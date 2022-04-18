@@ -1,0 +1,7 @@
+ipython
+matplotlib
+myst-parser
+nbsphinx
+sphinx
+sphinx-panels
+sphinx_rtd_theme

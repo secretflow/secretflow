@@ -1,0 +1,5 @@
+coverage
+unittest-xml-reporting
+tqdm==4.62.3
+loguru==0.6.0
+sf-ppu==0.0.4
