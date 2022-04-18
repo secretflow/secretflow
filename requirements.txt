@@ -1,0 +1,11 @@
+numpy==1.22.1
+pandas==1.4.0
+scikit-learn==1.0.2
+ray==1.9.2
+jax==0.2.27
+jaxlib==0.1.75
+tensorflow==2.7.1
+torch==1.10.1
+torchvision==0.11.2
+phe==1.4.0
+s3fs==2022.1.0
