@@ -47,6 +47,7 @@ array([[0.98313141, 0.49663851, 0.47700297, 0.79132457],
 For developers who want to contribute to SecretFlow, you can set up environment with the following instruction.
 
 ```sh
+git clone https://github.com/secretflow/secretflow.git
 conda create -n secretflow python=3.8
 conda activate secretflow
 pip install -r dev-requirements.txt -r requirements.txt
