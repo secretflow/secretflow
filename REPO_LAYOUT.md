@@ -2,7 +2,7 @@
 
 secretflow
 - data: horizontal, vertical and mixed DataFrame and Ndarray (like pandas and numpy)
-- device: various devices and their kernels, such as PYU, PPU, HEU, etc
+- device: various devices and their kernels, such as PYU, SPU, HEU, etc
 - model: federated learning and split learning algorithms
 - preprocessing: common utility functions and transformer classes (like scikit-learn)
 - security: privacy related algorithms, such as secure aggregation, differential privacy

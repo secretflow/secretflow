@@ -13,9 +13,12 @@
 # limitations under the License.
 
 from .dataframe import HDataFrame
-from .io import read_csv
+from .io import read_csv, to_csv
+from .util import PoissonDataSampler
 
 __all__ = [
     "HDataFrame",
     "read_csv",
+    "to_csv",
+    "PoissonDataSampler",
 ]

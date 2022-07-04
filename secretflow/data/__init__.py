@@ -12,5 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import horizontal
-from . import vertical
+from . import horizontal, vertical
+from .ndarray import FedNdarray
+
+__all__ = [
+    'horizontal',
+    'vertical',
+    'FedNdarray',
+]

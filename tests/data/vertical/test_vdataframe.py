@@ -1,36 +1,49 @@
 import pandas as pd
 
+from secretflow import reveal
 from secretflow.data.base import Partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.utils.errors import NotFoundError
 from tests.basecase import DeviceTestCase
-from secretflow import reveal
 
 
 class TestVDataFrame(DeviceTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        df_alice = pd.DataFrame({'a1': ['K5', 'K1', None, 'K6'],
-                                 'a2': ['A5', 'A1', 'A2', 'A6'],
-                                 'a3': [5, 1, 2, 6]})
+        df_alice = pd.DataFrame(
+            {
+                'a1': ['K5', 'K1', None, 'K6'],
+                'a2': ['A5', 'A1', 'A2', 'A6'],
+                'a3': [5, 1, 2, 6],
+            }
+        )
 
-        df_bob = pd.DataFrame({'b4': [10.2, 20.5, None, -0.4],
-                               'b5': ['B3', None, 'B9', 'B4'],
-                               'b6': [3, 1, 9, 4]})
+        df_bob = pd.DataFrame(
+            {
+                'b4': [10.2, 20.5, None, -0.4],
+                'b5': ['B3', None, 'B9', 'B4'],
+                'b6': [3, 1, 9, 4],
+            }
+        )
 
         cls.df_alice = df_alice
         cls.df_bob = df_bob
         cls.df = VDataFrame(
-            {cls.alice: Partition(data=cls.alice(lambda: df_alice)()),
-             cls.bob: Partition(data=cls.bob(lambda: df_bob)())})
+            {
+                cls.alice: Partition(data=cls.alice(lambda: df_alice)()),
+                cls.bob: Partition(data=cls.bob(lambda: df_bob)()),
+            }
+        )
 
     def test_columns_should_ok(self):
         # WHEN
         columns = self.df.columns
 
         # THEN
-        pd.testing.assert_index_equal(columns, self.df_alice.columns.append(self.df_bob.columns))
+        pd.testing.assert_index_equal(
+            columns, self.df_alice.columns.append(self.df_bob.columns)
+        )
 
     def test_min_should_ok(self):
         # WHEN
@@ -76,29 +89,39 @@ class TestVDataFrame(DeviceTestCase):
 
         # THEN
         expected_alice = self.df_alice[['a1']]
-        pd.testing.assert_frame_equal(reveal(value.partitions[self.alice].data), expected_alice)
+        pd.testing.assert_frame_equal(
+            reveal(value.partitions[self.alice].data), expected_alice
+        )
 
     def test_get_non_exist_items_should_error(self):
         # WHEN and THEN
         with self.assertRaisesRegex(NotFoundError, 'does not exist'):
-            value = self.df['a1', 'non_exist']
+            self.df['a1', 'non_exist']
 
     def test_get_multi_items_should_ok(self):
         # WHEN
         value = self.df[['a1', 'b4']]
         # THEN
         expected_alice = self.df_alice[['a1']]
-        pd.testing.assert_frame_equal(reveal(value.partitions[self.alice].data), expected_alice)
+        pd.testing.assert_frame_equal(
+            reveal(value.partitions[self.alice].data), expected_alice
+        )
         expected_bob = self.df_bob[['b4']]
-        pd.testing.assert_frame_equal(reveal(value.partitions[self.bob].data), expected_bob)
+        pd.testing.assert_frame_equal(
+            reveal(value.partitions[self.bob].data), expected_bob
+        )
 
         # WHEN
         value = self.df[['a1', 'a2', 'b5']]
         # THEN
         expected_alice = self.df_alice[['a1', 'a2']]
-        pd.testing.assert_frame_equal(reveal(value.partitions[self.alice].data), expected_alice)
+        pd.testing.assert_frame_equal(
+            reveal(value.partitions[self.alice].data), expected_alice
+        )
         expected_bob = self.df_bob[['b5']]
-        pd.testing.assert_frame_equal(reveal(value.partitions[self.bob].data), expected_bob)
+        pd.testing.assert_frame_equal(
+            reveal(value.partitions[self.bob].data), expected_bob
+        )
 
     def test_set_item_should_ok(self):
         # Case 1: single item.
@@ -108,7 +131,9 @@ class TestVDataFrame(DeviceTestCase):
         # THEN
         expected_alice = self.df_alice.copy(deep=True)
         expected_alice['a1'] = 'test'
-        pd.testing.assert_frame_equal(reveal(value.partitions[self.alice].data), expected_alice)
+        pd.testing.assert_frame_equal(
+            reveal(value.partitions[self.alice].data), expected_alice
+        )
 
         # Case 2: multi items on different parties.
         # WHEN
@@ -117,10 +142,14 @@ class TestVDataFrame(DeviceTestCase):
         # THEN
         expected_alice = self.df_alice.copy(deep=True)
         expected_alice['a1'] = 'test'
-        pd.testing.assert_frame_equal(reveal(value.partitions[self.alice].data), expected_alice)
+        pd.testing.assert_frame_equal(
+            reveal(value.partitions[self.alice].data), expected_alice
+        )
         expected_bob = self.df_bob.copy(deep=True)
         expected_bob[['b4', 'b5']] = 'test'
-        pd.testing.assert_frame_equal(reveal(value.partitions[self.bob].data), expected_bob)
+        pd.testing.assert_frame_equal(
+            reveal(value.partitions[self.bob].data), expected_bob
+        )
 
     def test_set_item_on_partition_should_ok(self):
         # WHEN
@@ -129,15 +158,27 @@ class TestVDataFrame(DeviceTestCase):
         # THEN
         expected_alice = self.df_alice.copy(deep=True)
         expected_alice['a1'] = expected_alice['a2']
-        pd.testing.assert_frame_equal(reveal(value.partitions[self.alice].data), expected_alice)
+        pd.testing.assert_frame_equal(
+            reveal(value.partitions[self.alice].data), expected_alice
+        )
 
     def test_set_item_on_non_exist_partition_should_error(self):
         # WHEN
-        with self.assertRaisesRegex(AssertionError,
-                                    'Device of the partition to assgin is not in this dataframe devices.'):
-            part = Partition(self.carol(lambda: pd.DataFrame({'a1': ['K5', 'K1', None, 'K6'],
-                                                              'a2': ['A5', 'A1', 'A2', 'A6'],
-                                                              'a3': [5, 1, 2, 6]}))())
+        with self.assertRaisesRegex(
+            AssertionError,
+            'Device of the partition to assgin is not in this dataframe devices.',
+        ):
+            part = Partition(
+                self.carol(
+                    lambda: pd.DataFrame(
+                        {
+                            'a1': ['K5', 'K1', None, 'K6'],
+                            'a2': ['A5', 'A1', 'A2', 'A6'],
+                            'a3': [5, 1, 2, 6],
+                        }
+                    )
+                )()
+            )
             value = self.df
             value['a1'] = part['a2']
 
@@ -149,21 +190,47 @@ class TestVDataFrame(DeviceTestCase):
         # THEN
         expected_alice = self.df_alice.copy(deep=True)
         expected_alice['a1'] = expected_alice['a2']
-        pd.testing.assert_frame_equal(reveal(value.partitions[self.alice].data), expected_alice)
+        pd.testing.assert_frame_equal(
+            reveal(value.partitions[self.alice].data), expected_alice
+        )
 
         expected_bob = self.df_bob.copy(deep=True)
         expected_bob['b4'] = expected_bob['b5']
-        pd.testing.assert_frame_equal(reveal(value.partitions[self.bob].data), expected_bob)
+        pd.testing.assert_frame_equal(
+            reveal(value.partitions[self.bob].data), expected_bob
+        )
 
     def test_set_item_on_different_vdataframe_should_error(self):
-        with self.assertRaisesRegex(AssertionError, 'Partitions to assgin is not same with this dataframe partitions.'):
+        with self.assertRaisesRegex(
+            AssertionError,
+            'Partitions to assgin is not same with this dataframe partitions.',
+        ):
             df = VDataFrame(
-                {self.alice: Partition(data=self.alice(lambda: pd.DataFrame({'a1': ['K5', 'K1', None, 'K6'],
-                                                                             'a2': ['A5', 'A1', 'A2', 'A6'],
-                                                                             'a3': [5, 1, 2, 6]}))()),
-                 self.carol: Partition(data=self.carol(lambda: pd.DataFrame({'b4': [10.2, 20.5, None, -0.4],
-                                                                             'b5': ['B3', None, 'B9', 'B4'],
-                                                                             'b6': [3, 1, 9, 4]}))())})
+                {
+                    self.alice: Partition(
+                        data=self.alice(
+                            lambda: pd.DataFrame(
+                                {
+                                    'a1': ['K5', 'K1', None, 'K6'],
+                                    'a2': ['A5', 'A1', 'A2', 'A6'],
+                                    'a3': [5, 1, 2, 6],
+                                }
+                            )
+                        )()
+                    ),
+                    self.carol: Partition(
+                        data=self.carol(
+                            lambda: pd.DataFrame(
+                                {
+                                    'b4': [10.2, 20.5, None, -0.4],
+                                    'b5': ['B3', None, 'B9', 'B4'],
+                                    'b6': [3, 1, 9, 4],
+                                }
+                            )
+                        )()
+                    ),
+                }
+            )
             value = self.df
             value[['a1', 'b4']] = df[['a2', 'b5']]
 
@@ -174,8 +241,11 @@ class TestVDataFrame(DeviceTestCase):
         # THEN
         pd.testing.assert_frame_equal(
             reveal(value.partitions[self.alice].data),
-            self.df_alice.drop(columns='a1', inplace=False))
-        pd.testing.assert_frame_equal(reveal(value.partitions[self.bob].data), self.df_bob)
+            self.df_alice.drop(columns='a1', inplace=False),
+        )
+        pd.testing.assert_frame_equal(
+            reveal(value.partitions[self.bob].data), self.df_bob
+        )
 
         # Case 2: inplace.
         # WHEN
@@ -184,10 +254,12 @@ class TestVDataFrame(DeviceTestCase):
         # THEN
         pd.testing.assert_frame_equal(
             reveal(value.partitions[self.alice].data),
-            self.df_alice.drop(columns='a1', inplace=False))
+            self.df_alice.drop(columns='a1', inplace=False),
+        )
         pd.testing.assert_frame_equal(
             reveal(value.partitions[self.bob].data),
-            self.df_bob.drop(columns=['b4', 'b5'], inplace=False))
+            self.df_bob.drop(columns=['b4', 'b5'], inplace=False),
+        )
 
     def test_fillna(self):
         # Case 1: not inplace.
@@ -196,10 +268,12 @@ class TestVDataFrame(DeviceTestCase):
         # THEN
         pd.testing.assert_frame_equal(
             reveal(value.partitions[self.alice].data),
-            self.df_alice.fillna(value='test', inplace=False))
+            self.df_alice.fillna(value='test', inplace=False),
+        )
         pd.testing.assert_frame_equal(
             reveal(value.partitions[self.bob].data),
-            self.df_bob.fillna(value='test', inplace=False))
+            self.df_bob.fillna(value='test', inplace=False),
+        )
 
         # Case 2: inplace.
         # WHEN
@@ -208,7 +282,9 @@ class TestVDataFrame(DeviceTestCase):
         # THEN
         pd.testing.assert_frame_equal(
             reveal(value.partitions[self.alice].data),
-            self.df_alice.fillna(value='test', inplace=False))
+            self.df_alice.fillna(value='test', inplace=False),
+        )
         pd.testing.assert_frame_equal(
             reveal(value.partitions[self.bob].data),
-            self.df_bob.fillna(value='test', inplace=False))
+            self.df_bob.fillna(value='test', inplace=False),
+        )

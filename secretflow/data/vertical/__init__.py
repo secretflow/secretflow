@@ -13,9 +13,10 @@
 # limitations under the License.
 
 from .dataframe import VDataFrame
-from .io import read_csv
+from .io import read_csv, to_csv
 
 __all__ = [
     "VDataFrame",
     "read_csv",
+    "to_csv",
 ]

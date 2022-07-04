@@ -1,12 +1,12 @@
 .. _development:
 
-开发者
+Development
 ===============
 
-下列文档可以帮忙您了解secretflow的设计思想和原则。
+The following documents will help you understand the design ideas and principles of secretflow.
 
 .. toctree::
    :maxdepth: 2
 
    architecture.md
-   ppu.md
+   spu.md

@@ -17,9 +17,9 @@ import numpy as np
 from .errors import InvalidArgumentError
 
 
-def encode(m: np.ndarray, fraction_precesion: int) -> np.ndarray:
+def encode(m: np.ndarray, fxp_bits: int) -> np.ndarray:
     """Encode float ndarray to uint64 finite field.
-    Float will times 10**fraction_precesion firstly.
+    Float will times 2**fxp_bits firstly.
 
     Args:
         m (np.ndarray): the ndarray to encode.
@@ -34,21 +34,23 @@ def encode(m: np.ndarray, fraction_precesion: int) -> np.ndarray:
         raise InvalidArgumentError(f'Accept float ndarray only but got {m.dtype}')
 
     uint64_max = 0xFFFFFFFFFFFFFFFF
-    assert fraction_precesion is not None, f'Fraction precesion must not be None.'
+    assert fxp_bits is not None, f'Fxp_bits must not be None.'
     max_value = m.max()
-    if max_value * (10 ** fraction_precesion) > uint64_max:
-        raise InvalidArgumentError(f'Float data exceeds uint range (0, {uint64_max}) after encoding.')
+    if max_value * (1 << fxp_bits) > uint64_max:
+        raise InvalidArgumentError(
+            f'Float data exceeds uint range (0, {uint64_max}) after encoding.'
+        )
     # Convert to np.float64 for reducing overflow.
-    return (m.astype(np.float64) * (10 ** fraction_precesion)).astype(np.uint64)
+    return (m.astype(np.float64) * (1 << fxp_bits)).astype(np.uint64)
 
 
-def decode(m: np.ndarray, fraction_precesion: int) -> np.ndarray:
+def decode(m: np.ndarray, fxp_bits: int) -> np.ndarray:
     """Decode ndarray from uint64 finite field to the float.
     Fraction precesion shall be corresponding to encoding fraction precesion.
 
     Args:
         m (np.ndarray): the ndarray to decode.
-        fraction_precesion (int): the decimal digits to keep when encoding float.
+        fxp_bits (int): the decimal digits to keep when encoding float.
             Must provide if the original dtype is float.
 
     Returns:
@@ -56,6 +58,6 @@ def decode(m: np.ndarray, fraction_precesion: int) -> np.ndarray:
     """
     assert isinstance(m, np.ndarray), f'Support ndarray only but got {type(m)}'
     assert m.dtype == np.uint64, f'Ndarray dtype must be uint but got {m.dtype}'
-    assert fraction_precesion is not None, f'Fraction precesion must not be None.'
+    assert fxp_bits is not None, f'Fraction precesion must not be None.'
     # Convert to int for restoring the negetives.
-    return m.astype(np.int64) / (10 ** fraction_precesion)
+    return m.astype(np.int64) / (1 << fxp_bits)

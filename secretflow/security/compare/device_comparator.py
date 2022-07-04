@@ -17,32 +17,53 @@ from typing import List, Union
 
 import jax.numpy as jnp
 
-from secretflow.device.device import PPU, PYU, DeviceObject
-from secretflow.device.device.base import reveal
+from secretflow.device import SPU, PYU, DeviceObject
 from secretflow.security.compare.comparator import Comparator
 
 
 @dataclass
 class DeviceComparator(Comparator):
-    device: Union[PYU, PPU]
-    
-    #TODO: reveal由用户来决定。
-    @reveal
+    """
+    Comparator based on a device (PYU or SPU).
+
+    Attributes:
+        device: a PYU or SPU. The device where the computation hosts.
+    """
+
+    device: Union[PYU, SPU]
+
     def min(self, data: List[DeviceObject], axis=None):
+        """The minimum of array over a given axis.
+
+        Args:
+            data: array of device objects.
+            axis: optional. Same as the axis argument of :py:meth:`numpy.amin`.
+
+        Returns:
+            a device object holds the minimum.
+        """
         assert data, f'Data to get min can not be None or empty'
         data = [d.to(self.device) for d in data]
 
-        def _min(data, axis):
+        def _min(*data, axis):
             return jnp.min(jnp.array(data), axis=axis)
 
-        return self.device(_min, static_argnames='axis')(data, axis=axis)
+        return self.device(_min, static_argnames='axis')(*data, axis=axis)
 
-    @reveal
     def max(self, data: List[DeviceObject], axis=None):
+        """The maximum of array over a given axis.
+
+        Args:
+            data: array of device objects.
+            axis: optional. Same as the axis argument of :py:meth:`numpy.amax`.
+
+        Returns:
+            a device object holds the maximum.
+        """
         assert data, f'Data to get max can not be None or empty'
         data = [d.to(self.device) for d in data]
 
-        def _max(data, axis):
+        def _max(*data, axis):
             return jnp.max(jnp.array(data), axis=axis)
 
-        return self.device(_max, static_argnames='axis')(data, axis=axis)
+        return self.device(_max, static_argnames='axis')(*data, axis=axis)

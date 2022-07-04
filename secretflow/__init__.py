@@ -12,24 +12,43 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import data
-from . import device
-from . import model
-from . import preprocessing
-from . import security
-from . import utils
-
+from . import data, device, ml, preprocessing, security, utils
 from .device import (
-    init,
-    to,
-    reveal,
-    proxy,
+    HEU,
+    PYU,
+    SPU,
     Device,
     DeviceObject,
-    PYU,
-    PYUObject,
-    PPU,
-    PPUObject,
-    HEU,
     HEUObject,
+    PYUObject,
+    SPUObject,
+    init,
+    proxy,
+    reveal,
+    shutdown,
+    to,
+    wait,
 )
+
+__ALL__ = [
+    'data',
+    'device',
+    'ml',
+    'preprocessing',
+    'security',
+    'utils',
+    'HEU',
+    'PYU',
+    'SPU',
+    'Device',
+    'DeviceObject',
+    'HEUObject',
+    'PYUObject',
+    'SPUObject',
+    'init',
+    'proxy',
+    'reveal',
+    'shutdown',
+    'to',
+    'wait',
+]

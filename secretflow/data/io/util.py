@@ -25,14 +25,14 @@ import secretflow.data.io.oss as oss
 
 
 def open(filepath: Union[str, Path], mode='rb'):
-    """打开文件，支持oss、http/https形式的文件。
+    """Open a oss/http/https file.
 
     Args:
-        filepath: 文件路径，可以是oss、http/https或者pathlib.Path对象。
-        mode: 可选; 打开模式。
+        filepath: The file path, which can be an oss, or pathlib.Path object.
+        mode: optional. open mode.
 
     Returns:
-        文件对象。
+        the file object.
     """
     if not isinstance(filepath, str):
         return filepath
@@ -40,12 +40,37 @@ def open(filepath: Union[str, Path], mode='rb'):
     o = urlparse(filepath)
     if o.scheme == 'oss':
         return oss.open(filepath, mode)
-    if o.scheme == 'http' or o.scheme == 'https':
-        r = requests.get(filepath, stream=True)
-        return BytesIO(r.raw.read())
 
     return builtins.open(filepath, mode)
 
 
-def read_csv_wrapper(filepath, *arg, **kwargs):
-    return pd.read_csv(open(filepath), *arg, **kwargs)
+def is_local_file(uri: str) -> bool:
+    return uri and not urlparse(uri).scheme
+
+
+def read_csv_wrapper(filepath, **kwargs) -> pd.DataFrame:
+    """A wrapper of pandas read_csv and supports oss file.
+
+    Args:
+        filepath: the file path.
+        kwargs: all other arguments are same with :py:meth:`pandas.DataFrame.read_csv`.
+
+    Returns:
+        a pandas DataFrame.
+    """
+    return pd.read_csv(open(filepath), **kwargs)
+
+
+def to_csv_wrapper(df: pd.DataFrame, filepath, **kwargs):
+    """A wrapper of pandas to_csv and supports oss file.
+
+    Args:
+        filepath: the file path.
+        kwargs: all other arguments are same with :py:meth:`pandas.DataFrame.read_csv`.
+
+    Returns:
+        a pandas DataFrame.
+    """
+    if is_local_file(filepath):
+        Path(filepath).parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(open(filepath, 'wb'), **kwargs)

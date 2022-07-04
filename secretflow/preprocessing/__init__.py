@@ -12,5 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from .discretization import KBinsDiscretizer
 from .encoder import LabelEncoder, OneHotEncoder
-from .scaler import MinMaxScaler
+from .scaler import MinMaxScaler, StandardScaler
+
+__all__ = [
+    'KBinsDiscretizer',
+    'LabelEncoder',
+    'OneHotEncoder',
+    'MinMaxScaler',
+    'StandardScaler',
+]

@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .base import *
-from .heu import HEU, HEUObject
-from .ppu import PPU, PPUObject, fxp_precision, fxp_size
-from .proxy import proxy
+from .base import Device, DeviceObject
+from .heu import HEU
+from .heu_object import HEUObject
+from .spu import SPU, SPUObject, CustomPyTreeNode
+from .type_traits import spu_fxp_precision, spu_fxp_size
 from .pyu import PYU, PYUObject
 from .register import DeviceType, register

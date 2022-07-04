@@ -1,62 +1,105 @@
 :notoc:
 
-隐语
+Secretflow
 =============
 
-`隐语 <https://github.com/secretflow/secretflow.git>`_ 是一个安全、开放、可扩展，用于隐私保护数据分析和机器学习的统一框架。隐语提供了
+`Secretflow <https://github.com/secretflow/secretflow>`_ is an unified framework for privacy-preserving data analysis and machine learning.
 
-- 设备抽象，将多方安全计算(MPC)、同态加密(HE)和可信执行环境(TEE)等隐私计算技术抽象为密文设备，将明文计算抽象为明文设备
-- 基于抽象设备的计算图，支持将数据分析和机器学习工作流表示为计算图。
-- 基于计算图的机器学习/数据分析能力，支持数据水平/垂直/混合切分等多种场景。
+Secretflow provides
 
-==========
-框架
-==========
+- Device abstraction, which abstracts privacy computing technologies such as 
+  Multi-Party Secure Computing (MPC), Homomorphic Encryption (HE), 
+  and Trusted Execution Environment (TEE) into ciphertext devices, 
+  and abstracts plaintext computing into plaintext devices.
+- Computational graphs based on abstracted devices, enabling data analysis
+  and machine learning workflows to be represented as computational graphs.
+- Machine learning/data analysis capabilities based on computational graphs,
+  supporting data horizontal/vertical/hybrid segmentation and other scenarios.
+
 .. image:: _static/secretflow_arch.svg
 
+Why `Secretflow`
+----------------
 
+At present, privacy computing technology is growing in popularity. 
+However, neither the technology nor the market has yet reached real maturity.
+In order to cope with the development uncertainty of privacy computing technology and applications, 
+we propose a general privacy computing framework called "secretflow".
+Secretflow will adhere to the following principles, 
+so that the framework has the maximum inclusive and extensible capabilities to 
+cope with the development of future privacy computing technologies and applications.
+
+- Completeness: It supports various privacy computing technologies and 
+  can be assembled flexibly to meet the needs of different scenarios.
+- Transparency: Build a unified technical framework, and try to make the 
+  underlying technology iteration transparent to the upper-layer application, 
+  with high cohesion and low coupling.
+- Openness: People with different professional directions can easily participate
+  in the construction of the framework, and jointly accelerate the development of privacy computing technology.
+- Connectivity: Data in scenarios supported by different underlying technologies
+  can be connected to each other.
+
+Documents
+----------
 .. panels::
 
     ---
 
-    入门
+    Getting started
     ^^^^^^^^^^^^^^^
 
-    如果你还不认识 **隐语** ， 欢迎访问入门文档.
+    New to **Secretflow**? Check out the getting stgarted guides.
 
     +++
     
     .. link-button:: getting_started
             :type: ref
-            :text: 马上开始
+            :text: To the getting started guides
             :classes: btn-primary stretched-link
 
     ---
 
-    教程
+    Toturials
     ^^^^^^^^^^^^^^^
 
-    想要了解更多 **隐语** 的用法? 欢迎访问我们的教程.
+    Want to know in-depth usages of **Secretflow**? Check out our toturials.
 
     +++
     
     .. link-button:: tutorial
             :type: ref
-            :text: 马上开始
+            :text: To the toturials
             :classes: btn-primary stretched-link
 
     ---
 
-    开发者
+    API reference
     ^^^^^^^^^^^^^^^
 
-    想要成为 **隐语** 的开发者? 欢迎访问我们的开发者文档.
+    Get a detailed description of the secretflow api.
+
+    +++
+    
+    .. link-button:: reference
+            :type: ref
+            :text: To the reference guide
+            :classes: btn-primary stretched-link
+
+    ---
+
+    Developer guide
+    ^^^^^^^^^^^^^^^
+
+    Want to know the design principles of secretflow?
+    Want to improve existing functions or add more functions?
+    The developer guidelines will guide you.
+    
 
     +++
     
     .. link-button:: development
             :type: ref
-            :text: 马上开始
+            :text: To the development guide
             :classes: btn-primary stretched-link
 
 .. toctree::
@@ -66,4 +109,5 @@
 
    getting_started/index
    tutorial/index
+   reference/index
    development/index

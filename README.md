@@ -1,16 +1,16 @@
 <div align="center">
-    <img src="docs/_static/logo.png" width="300">
+    <img src="docs/_static/logo.png">
 </div>
 
 ---
 
-SecretFlow is a unified framework for privacy preserving data intelligence and machine learning. To achieve this goal,
+SecretFlow is a unified framework for privacy-preserving data intelligence and machine learning. To achieve this goal,
 it provides:
 
-- An abstract device layer with plain devices and secret devices which encapsulate various cryptographic protocols.
-- A device flow layer which modeling higher algorithms as device object flow and DAG.
-- An algorithm layer to do data analysis and machine learning in horizontal or vertical data partition.
-- A workflow layer that seamlessly integrates data processing, model training, hyperparameter tuning.
+- An abstract device layer consists of plain devices and secret devices which encapsulate various cryptographic protocols.
+- A device flow layer modeling higher algorithms as device object flow and DAG.
+- An algorithm layer to do data analysis and machine learning with horizontal or vertical partitioned data.
+- A workflow layer that seamlessly integrates data processing, model training, and hyperparameter tuning.
 
 <div align="center">
     <img src="docs/_static/secretflow_arch.svg">
@@ -19,7 +19,7 @@ it provides:
 ## Install
 
 For users who want to try SecretFlow, you can install the current release
-from pypi. Note that it requires python version >
+from [pypi](https://pypi.org/). Note that it requires python version >
 =3.8, you can create a virtual environment with conda if not satisfied.
 
 ```sh
@@ -36,19 +36,31 @@ Try you first SecretFlow program
 >>> data = dev(np.random.rand)(3, 4)
 >>> data
 <secretflow.device.device.pyu.PYUObject object at 0x7fdec24a15b0>
->>> sf.reveal(data)
-array([[0.98313141, 0.49663851, 0.47700297, 0.79132457],
-       [0.16881197, 0.83516845, 0.09842819, 0.4015694 ],
-       [0.33930415, 0.07568802, 0.88075431, 0.45873773]])
 ```
+
+## Deployment
+
+- [Standalone or Cluster Mode](docs/getting_started/deployment.md)
 
 ## Contribution guide
 
-For developers who want to contribute to SecretFlow, you can set up environment with the following instruction.
+For developers who want to contribute to SecretFlow, you can set up an environment with the following instruction.
 
 ```sh
 git clone https://github.com/secretflow/secretflow.git
+
+# optional
+git lfs install
+
 conda create -n secretflow python=3.8
 conda activate secretflow
 pip install -r dev-requirements.txt -r requirements.txt
 ```
+
+### Coding Style
+We prefer [black](https://github.com/psf/black) as our code formatter. For various editor users,
+please refer to [editor integration](https://black.readthedocs.io/en/stable/integrations/editors.html).
+Pass `-S, --skip-string-normalization` to [black](https://github.com/psf/black) to avoid string quotes or prefixes normalization.
+
+## Disclaimer
+Non-release versions of SecretFlow are prohibited to use in any production environment due to possible bugs, glitches, lack of functionality, security issues or other problems.

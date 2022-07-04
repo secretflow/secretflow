@@ -15,14 +15,18 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-from secretflow.device.device import DeviceObject
+from secretflow.device import DeviceObject
 
 
 class Comparator(ABC):
+    """The abstract comparator."""
+
     @abstractmethod
     def min(self, data: List[DeviceObject], axis=None, reveal=False):
+        """The minimum of array over a given axis."""
         pass
 
     @abstractmethod
     def max(self, data: List[DeviceObject], axis=None, reveal=False):
+        """The maximum of array over a given axis."""
         pass

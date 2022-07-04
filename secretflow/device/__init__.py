@@ -13,4 +13,7 @@
 # limitations under the License.
 
 from .device import *
+from .driver import init, reveal, to, wait, with_device, shutdown
 from .kernels import *
+from .proxy import proxy
+from .link import Link

@@ -17,63 +17,86 @@ from typing import Dict, List, Union
 from secretflow.data.base import Partition
 from secretflow.data.io import read_csv_wrapper
 from secretflow.data.vertical.dataframe import VDataFrame
-from secretflow.device import PPU, PYU
+from secretflow.device import SPU, PYU
 
 
-def read_csv(filepath: Dict[PYU, str], delimiter=',', dtypes: Dict[PYU, Dict[str, type]] = None,
-             ppu: PPU = None, keys: Union[str, List[str]] = None, drop_keys=False) -> VDataFrame:
-    """创建垂直DataFrame
+def read_csv(
+    filepath: Dict[PYU, str],
+    delimiter=',',
+    dtypes: Dict[PYU, Dict[str, type]] = None,
+    spu: SPU = None,
+    keys: Union[str, List[str]] = None,
+    drop_keys=False,
+) -> VDataFrame:
+    """Read a comma-separated values (csv) file into VDataFrame.
 
-    当指定ppu和keys时，使用keys指定的字段用于PSI对齐；否则，默认各方数据已经预对齐。用于对齐的字段必须各方公有，其他字段不能在各方重复。
+    When specifying spu and keys, the fields specified by keys are used for PSI
+    alignment.Fields used for alignment must be common to all parties, and other
+    fields cannot be repeated across parties. The data for each party is
+    supposed pre-aligned if not specifying spu and keys.
 
     Args:
-        filepath: 参与方文件地址，地址可以是相对或绝对路径的本地文件，或者以`oss://`, `http(s)://`开头的远程文件，例如：
-          {PYU('alice'): 'oss://bucket/data/alice.csv', PYU('bob'): 'oss://bucket/data/bob.csv'}
-        delimiter: 文件分割符
-        dtypes: 参与方字段类型，若不指定，根据各方文件进行推断。例如：
-          {
-             PYU('alice'): {
-               'uid': np.str,
-               'age': np.int32,
-             },
-             PYU('bob'): {
-               'uid': np.str,
-               'score': np.float32,
-             }
-          }
-        ppu: PPU设备，用于PSI数据对齐；若不指定，则默认数据预对齐
-        keys: 用于对齐的字段，可以是单个或者多个字段；当指定ppu时，该参数必需
-        drop_keys: 是否删除用于对齐的字段
+        filepath: The file path of each party. It can be a local file with a
+            relative or absolute path, or a remote file starting with `oss://`,
+            `http(s)://`, E.g.
+
+            .. code:: python
+
+                {
+                    PYU('alice'): 'oss://bucket/data/alice.csv',
+                    PYU('bob'): 'oss://bucket/data/bob.csv'
+                }
+        delimiter: the file separator.
+        dtypes: Participant field type. It will be inferred from the file if
+            not specified, E.g.
+
+            .. code:: python
+
+                {
+                    PYU('alice'): {'uid': np.str, 'age': np.int32},
+                    PYU('bob'): {'uid': np.str, 'score': np.float32}
+                }
+        spu: SPU device, used for PSI data alignment.
+            The data of all parties are supposed pre-aligned if not specified.
+        keys: The field used for psi, which can be single or multiple fields.
+            This parameter is required when spu is specified.
+        drop_keys: whether to remove keys.
 
     Returns:
-        对齐后的垂直DataFrame
+        A aligned VDataFrame.
     """
     assert len(filepath) == 2, f'only support 2 parties for now'
-    assert ppu is None or keys is not None, f'keys required when ppu provided'
+    assert spu is None or keys is not None, f'keys required when spu provided'
 
     partitions = {}
 
     for device, path in filepath.items():
         usecols = dtypes[device].keys() if dtypes is not None else None
         dtype = dtypes[device] if dtypes is not None else None
-        partitions[device] = Partition(device(read_csv_wrapper)(
-            path, delimiter=delimiter, usecols=usecols, dtype=dtype))
+        partitions[device] = Partition(
+            device(read_csv_wrapper)(
+                path, delimiter=delimiter, usecols=usecols, dtype=dtype
+            )
+        )
 
     # TODO(@xibin.wxb): use psi_csv instead of psi_df
-    if ppu is not None:
-        dfs = ppu.psi_df(keys, [part.data for part in partitions.values()])
+    if spu is not None:
+        dfs = spu.psi_df(keys, [part.data for part in partitions.values()])
         partitions = {df.device: Partition(df) for df in dfs}
 
     if drop_keys:
         for device, partition in partitions.items():
             assert keys is not None, f"Cannot find keys={keys} when doing drop keys"
             if isinstance(keys, str):
-                assert keys in partition.columns, f"Cannot find keys={keys} when doing drop keys"
+                assert (
+                    keys in partition.columns
+                ), f"Cannot find keys={keys} when doing drop keys"
             elif isinstance(keys, List):
                 columns_set = set(partition.columns)
                 keys_set = set(keys)
                 assert columns_set.issuperset(
-                    keys_set), f"keys = {keys_set.difference(columns_set)} can not find on device {device}"
+                    keys_set
+                ), f"keys = {keys_set.difference(columns_set)} can not find on device {device}"
             else:
                 raise Exception(f"Illegal type for keys,got {type(keys)}")
             partitions[device] = partition.drop(labels=keys, axis=1)
@@ -97,3 +120,15 @@ def read_csv(filepath: Dict[PYU, str], delimiter=',', dtypes: Dict[PYU, Dict[str
             assert col not in unique_cols, f'col {col} duplicate in multiple devices'
             unique_cols.add(col)
     return VDataFrame(partitions)
+
+
+def to_csv(df: VDataFrame, file_uris: Dict[PYU, str], **kwargs):
+    """Write object to a comma-separated values (csv) file.
+
+    Args:
+        df: the VDataFrame to save.
+        file_uris: the file path of each PYU.
+        kwargs: all other arguments are same with :py:meth:`pandas.DataFrame.to_csv`.
+    """
+    for device, uri in file_uris.items():
+        df.partitions[device].to_csv(uri, **kwargs)

@@ -13,3 +13,7 @@
 # limitations under the License.
 
 from . import testing
+
+__ALL__ = [
+    'testing',
+]

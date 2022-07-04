@@ -1,9 +1,10 @@
 from typing import Tuple
+
 import numpy as np
 
-from secretflow.device import proxy, PYUObject
-from tests.basecase import DeviceTestCase
 from secretflow import reveal
+from secretflow.device import PYUObject, proxy
+from tests.basecase import DeviceTestCase
 
 
 @proxy(PYUObject)
@@ -37,7 +38,7 @@ class TestProxy(DeviceTestCase):
 
     def test_init_with_mismatch_device(self):
         with self.assertRaisesRegex(AssertionError, 'unexpected device type'):
-            Model(lambda: np.ones((3, 4)), device=self.ppu)
+            Model(lambda: np.ones((3, 4)), device=self.spu)
 
     def test_call_with_mismatch_device(self):
         x, y = self.alice(np.random.rand)(3, 4), self.bob(np.random.rand)(3)

@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import secrets
-
 from hashlib import sha256
 from typing import Tuple
 
@@ -22,11 +21,12 @@ def _decode_hex(hex: str):
     return int(f'0x{"".join(hex.split())}', 16)
 
 
-# DH groups
+# MODP DH Groups
 # ref https://datatracker.ietf.org/doc/html/rfc3526
 _PRIMES = {
     2: {
-        'prime': _decode_hex("""
+        'prime': _decode_hex(
+            """
         FFFFFFFF FFFFFFFF C90FDAA2 2168C234 C4C6628B 80DC1CD1
         29024E08 8A67CC74 020BBEA6 3B139B22 514A0879 8E3404DD
         EF9519B3 CD3A431B 302B0A6D F25F1437 4FE1356D 6D51C245
@@ -35,11 +35,13 @@ _PRIMES = {
         C2007CB8 A163BF05 98DA4836 1C55D39A 69163FA8 FD24CF5F
         83655D23 DCA3AD96 1C62F356 208552BB 9ED52907 7096966D
         670C354E 4ABC9804 F1746C08 CA237327 FFFFFFFF FFFFFFFF
-        """),
-        'generator': 2
+        """
+        ),
+        'generator': 2,
     },
     14: {
-        'prime': _decode_hex("""
+        'prime': _decode_hex(
+            """
         FFFFFFFF FFFFFFFF C90FDAA2 2168C234 C4C6628B 80DC1CD1
         29024E08 8A67CC74 020BBEA6 3B139B22 514A0879 8E3404DD
         EF9519B3 CD3A431B 302B0A6D F25F1437 4FE1356D 6D51C245
@@ -51,11 +53,13 @@ _PRIMES = {
         E39E772C 180E8603 9B2783A2 EC07A28F B5C55DF0 6F4C52C9
         DE2BCBF6 95581718 3995497C EA956AE5 15D22618 98FA0510
         15728E5A 8AACAA68 FFFFFFFF FFFFFFFF
-        """),
-        'generator': 2
+        """
+        ),
+        'generator': 2,
     },
     15: {
-        'prime': _decode_hex("""
+        'prime': _decode_hex(
+            """
         FFFFFFFF FFFFFFFF C90FDAA2 2168C234 C4C6628B 80DC1CD1
         29024E08 8A67CC74 020BBEA6 3B139B22 514A0879 8E3404DD
         EF9519B3 CD3A431B 302B0A6D F25F1437 4FE1356D 6D51C245
@@ -72,11 +76,13 @@ _PRIMES = {
         F12FFA06 D98A0864 D8760273 3EC86A64 521F2B18 177B200C
         BBE11757 7A615D6C 770988C0 BAD946E2 08E24FA0 74E5AB31
         43DB5BFC E0FD108E 4B82D120 A93AD2CA FFFFFFFF FFFFFFFF
-        """),
-        'generator': 2
+        """
+        ),
+        'generator': 2,
     },
     16: {
-        'prime': _decode_hex("""
+        'prime': _decode_hex(
+            """
         FFFFFFFF FFFFFFFF C90FDAA2 2168C234 C4C6628B 80DC1CD1
         29024E08 8A67CC74 020BBEA6 3B139B22 514A0879 8E3404DD
         EF9519B3 CD3A431B 302B0A6D F25F1437 4FE1356D 6D51C245
@@ -99,11 +105,13 @@ _PRIMES = {
         1F612970 CEE2D7AF B81BDD76 2170481C D0069127 D5B05AA9
         93B4EA98 8D8FDDC1 86FFB7DC 90A6C08F 4DF435C9 34063199
         FFFFFFFF FFFFFFFF
-        """),
-        'generator': 2
+        """
+        ),
+        'generator': 2,
     },
     17: {
-        'prime': _decode_hex("""
+        'prime': _decode_hex(
+            """
         FFFFFFFF FFFFFFFF C90FDAA2 2168C234 C4C6628B 80DC1CD1 29024E08
         8A67CC74 020BBEA6 3B139B22 514A0879 8E3404DD EF9519B3 CD3A431B
         302B0A6D F25F1437 4FE1356D 6D51C245 E485B576 625E7EC6 F44C42E9
@@ -132,11 +140,13 @@ _PRIMES = {
         B7C5DA76 F550AA3D 8A1FBFF0 EB19CCB1 A313D55C DA56C9EC 2EF29632
         387FE8D7 6E3C0468 043E8F66 3F4860EE 12BF2D5B 0B7474D6 E694F91E
         6DCC4024 FFFFFFFF FFFFFFFF
-        """),
-        'generator': 2
+        """
+        ),
+        'generator': 2,
     },
     18: {
-        'prime': _decode_hex("""
+        'prime': _decode_hex(
+            """
         FFFFFFFF FFFFFFFF C90FDAA2 2168C234 C4C6628B 80DC1CD1
         29024E08 8A67CC74 020BBEA6 3B139B22 514A0879 8E3404DD
         EF9519B3 CD3A431B 302B0A6D F25F1437 4FE1356D 6D51C245
@@ -180,17 +190,18 @@ _PRIMES = {
         4009438B 481C6CD7 889A002E D5EE382B C9190DA6 FC026E47
         9558E447 5677E9AA 9E3050E2 765694DF C81F56E8 80B96E71
         60C980DD 98EDD3DF FFFFFFFF FFFFFFFF
-        """),
-        'generator': 2
-    }
+        """
+        ),
+        'generator': 2,
+    },
 }
 
 
 class DiffieHellman:
-    """Diffie-Hellman密钥协商类。
+    """Diffie-Hellman implementation.
 
     Examples
-    -------
+    --------
     >>> df1 = DiffieHellman()
     >>> df2 = DiffieHellman()
     >>> pub_key1, pri_key1 = df1.generate_key_pair()
@@ -204,45 +215,49 @@ class DiffieHellman:
     def __init__(self, group=15):
         """
         Args:
-            group: 可选；DH素数组。默认值为15（可以符合AES-128加密强度）。
+            group: optional; MODP Groups, the default is 15 which has
+                a 130 bits or 260 exponent size of security strength.
         """
         self.p = _PRIMES[group]['prime']
         self.g = _PRIMES[group]['generator']
 
     def _check_public_key(self, public_key):
-        """检查公钥是否合法。
+        """Check the publick key.
 
         Args:
-            public_key: 要检查的公钥。
+            public_key: the public key to check.
         """
-        assert 2 < public_key < self.p - 1 and pow(public_key, (self.p - 1) // 2, self.p) == 1, \
-            f'Invalid public key {public_key}'
+        assert (
+            2 < public_key < self.p - 1
+            and pow(public_key, (self.p - 1) // 2, self.p) == 1
+        ), f'Invalid public key {public_key}'
 
     def generate_secret(self, private_key, peer_public_key) -> str:
-        """生成密钥。
+        """Generate secret.
 
-        密钥会进行sha256处理后返回。
+        The DH secret will be hashed with sha256 before returned.
 
         Args:
-            private_key: 私钥。
-            peer_public_key: 对端的公钥。
+            private_key: the private key.
+            peer_public_key: the public key of peer.
 
         Returns:
-            十六进制字符串形式的密钥。
-        -------
+            A secret in hex string.
         """
         self._check_public_key(peer_public_key)
         shared_secret = pow(peer_public_key, private_key, self.p)
-        return sha256(shared_secret.to_bytes(shared_secret.bit_length() // 8 + 1, byteorder='big')).hexdigest()
+        return sha256(
+            shared_secret.to_bytes(shared_secret.bit_length() // 8 + 1, byteorder='big')
+        ).hexdigest()
 
     def generate_key_pair(self, num_key_bits=256) -> Tuple:
-        """生成密钥对。
+        """Generate key pair.
 
         Args:
-            num_key_bits: 可选; 密钥比特位数。
+            num_key_bits: optional, bits of key.
 
         Returns:
-            由公钥和私钥组成的元组(公钥, 私钥)
+            A tuple of (public_key, private_key).
         """
         private_key = secrets.randbits(num_key_bits)
         public_key = pow(self.g, private_key, self.p)

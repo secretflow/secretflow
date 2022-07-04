@@ -1,7 +1,7 @@
 # PPU 
 
-PPU(`P`rivacy-Preserving `P`rocessing `U`nit)是可证、可度量的安全计算设备，支持在密文状态进行安全计算。
+PPU(`P`rivacy-Preserving `P`rocessing `U`nit)is a verifiable and measurable secure computing device that supports secure computing.
 
-PPU包含了一个安全运行时，支持[XLA](https://www.tensorflow.org/xla/operation_semantics?hl=en)形式的张量计算，底层使用多方安全计算技术保护隐私信息。
+PPU contains a security runtime that supports [XLA](https://www.tensorflow.org/xla/operation_semantics?hl=en) tensor computing and uses multi-party secure computing to protect private information.
 
-更多详细信息，详见[PPU](https://ppu.readthedocs.io/)
+For more details, see[PPU](https://ppu.readthedocs.io/).

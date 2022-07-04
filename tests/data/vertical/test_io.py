@@ -4,22 +4,31 @@ import tempfile
 import numpy as np
 import pandas as pd
 
-import secretflow.data.vertical as vd
-from tests.basecase import DeviceTestCase
 from secretflow import reveal
+from secretflow.data.base import Partition
+from secretflow.data.vertical import VDataFrame, read_csv, to_csv
+from tests.basecase import DeviceTestCase
 
 
-class TestReadCSV(DeviceTestCase):
+class TestVDataFrameIO(DeviceTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        df1 = pd.DataFrame({'c1': ['K5', 'K1', 'K2', 'K6', 'K4', 'K3'],
-                            'c2': ['A5', 'A1', 'A2', 'A6', 'A4', 'A3'],
-                            'c3': [5, 1, 2, 6, 4, 3]})
+        df1 = pd.DataFrame(
+            {
+                'c1': ['K5', 'K1', 'K2', 'K6', 'K4', 'K3'],
+                'c2': ['A5', 'A1', 'A2', 'A6', 'A4', 'A3'],
+                'c3': [5, 1, 2, 6, 4, 3],
+            }
+        )
 
-        df2 = pd.DataFrame({'c1': ['K3', 'K1', 'K9', 'K4'],
-                            'c4': ['B3', 'B1', 'B9', 'B4'],
-                            'c5': [3, 1, 9, 4]})
+        df2 = pd.DataFrame(
+            {
+                'c1': ['K3', 'K1', 'K9', 'K4'],
+                'c4': ['B3', 'B1', 'B9', 'B4'],
+                'c5': [3, 1, 9, 4],
+            }
+        )
 
         _, path1 = tempfile.mkstemp()
         _, path2 = tempfile.mkstemp()
@@ -35,70 +44,90 @@ class TestReadCSV(DeviceTestCase):
         for path in cls.filepath.values():
             os.remove(path)
 
+    @staticmethod
+    def cleartmp(paths):
+        for path in paths:
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+
     def test_read_csv(self):
-        df = vd.read_csv(self.filepath, ppu=self.ppu,
-                         keys='c1', drop_keys=False)
+        df = read_csv(self.filepath, spu=self.spu, keys='c1', drop_keys=False)
 
-        expected_alice = pd.DataFrame({'c1': ['K1', 'K3', 'K4'],
-                                       'c2': ['A1', 'A3', 'A4'],
-                                       'c3': [1, 3, 4]})
+        expected_alice = pd.DataFrame(
+            {'c1': ['K1', 'K3', 'K4'], 'c2': ['A1', 'A3', 'A4'], 'c3': [1, 3, 4]}
+        )
         df_alice = reveal(df.partitions[self.alice].data)
-        pd.testing.assert_frame_equal(
-            df_alice.reset_index(drop=True), expected_alice)
+        pd.testing.assert_frame_equal(df_alice.reset_index(drop=True), expected_alice)
 
-        expected_bob = pd.DataFrame({'c1': ['K1', 'K3', 'K4'],
-                                     'c4': ['B1', 'B3', 'B4'],
-                                     'c5': [1, 3, 4]})
+        expected_bob = pd.DataFrame(
+            {'c1': ['K1', 'K3', 'K4'], 'c4': ['B1', 'B3', 'B4'], 'c5': [1, 3, 4]}
+        )
         df_bob = reveal(df.partitions[self.bob].data)
-        pd.testing.assert_frame_equal(
-            df_bob.reset_index(drop=True), expected_bob)
+        pd.testing.assert_frame_equal(df_bob.reset_index(drop=True), expected_bob)
 
     def test_read_csv_drop_keys(self):
-        df = vd.read_csv(self.filepath, ppu=self.ppu,
-                         keys='c1', drop_keys=True)
+        df = read_csv(self.filepath, spu=self.spu, keys='c1', drop_keys=True)
 
-        expected = pd.DataFrame({'c2': ['A1', 'A3', 'A4'],
-                                 'c3': [1, 3, 4]})
+        expected = pd.DataFrame({'c2': ['A1', 'A3', 'A4'], 'c3': [1, 3, 4]})
         pd.testing.assert_frame_equal(
-            reveal(df.partitions[self.alice].data).reset_index(drop=True), expected)
+            reveal(df.partitions[self.alice].data).reset_index(drop=True), expected
+        )
 
-        expected = pd.DataFrame({'c4': ['B1', 'B3', 'B4'],
-                                 'c5': [1, 3, 4]})
+        expected = pd.DataFrame({'c4': ['B1', 'B3', 'B4'], 'c5': [1, 3, 4]})
         pd.testing.assert_frame_equal(
-            reveal(df.partitions[self.bob].data).reset_index(drop=True), expected)
+            reveal(df.partitions[self.bob].data).reset_index(drop=True), expected
+        )
 
     def test_read_csv_with_dtypes(self):
-        dtypes = {self.alice: {'c1': np.str, 'c2': np.str},
-                  self.bob: {'c1': np.str, 'c5': np.int64}}
-        df = vd.read_csv(self.filepath, ppu=self.ppu,
-                         keys='c1', dtypes=dtypes, drop_keys=True)
+        dtypes = {
+            self.alice: {'c1': np.str, 'c2': np.str},
+            self.bob: {'c1': np.str, 'c5': np.int64},
+        }
+        df = read_csv(
+            self.filepath, spu=self.spu, keys='c1', dtypes=dtypes, drop_keys=True
+        )
 
         expected = pd.DataFrame({'c2': ['A1', 'A3', 'A4']})
         pd.testing.assert_frame_equal(
-            reveal(df.partitions[self.alice].data).reset_index(drop=True), expected)
+            reveal(df.partitions[self.alice].data).reset_index(drop=True), expected
+        )
 
         expected = pd.DataFrame({'c5': [1, 3, 4]})
         pd.testing.assert_frame_equal(
-            reveal(df.partitions[self.bob].data).reset_index(drop=True), expected)
+            reveal(df.partitions[self.bob].data).reset_index(drop=True), expected
+        )
 
     def test_read_csv_mismatch_dtypes(self):
-        dtypes = {self.alice: {'c1': np.str, 'c6': np.str},
-                  self.bob: {'c1': np.str, 'c5': np.int64}}
+        dtypes = {
+            self.alice: {'c1': np.str, 'c6': np.str},
+            self.bob: {'c1': np.str, 'c5': np.int64},
+        }
         with self.assertRaisesRegex(ValueError, 'Usecols do not match columns'):
-            vd.read_csv(self.filepath, ppu=self.ppu, keys='c1',
-                        dtypes=dtypes, drop_keys=True)
+            read_csv(
+                self.filepath, spu=self.spu, keys='c1', dtypes=dtypes, drop_keys=True
+            )
 
-        # reset ppu to clear corrupted state
-        self.ppu.reset()
+        # reset spu to clear corrupted state
+        self.spu.reset()
 
     def test_read_csv_duplicated_cols(self):
-        df1 = pd.DataFrame({'c1': ['K5', 'K1', 'K2', 'K6', 'K4', 'K3'],
-                            'c2': ['A5', 'A1', 'A2', 'A6', 'A4', 'A3'],
-                            'c3': [5, 1, 2, 6, 4, 3]})
+        df1 = pd.DataFrame(
+            {
+                'c1': ['K5', 'K1', 'K2', 'K6', 'K4', 'K3'],
+                'c2': ['A5', 'A1', 'A2', 'A6', 'A4', 'A3'],
+                'c3': [5, 1, 2, 6, 4, 3],
+            }
+        )
 
-        df2 = pd.DataFrame({'c1': ['K3', 'K1', 'K9', 'K4'],
-                            'c2': ['B3', 'B1', 'B9', 'B4'],
-                            'c5': [3, 1, 9, 4]})
+        df2 = pd.DataFrame(
+            {
+                'c1': ['K3', 'K1', 'K9', 'K4'],
+                'c2': ['B3', 'B1', 'B9', 'B4'],
+                'c5': [3, 1, 9, 4],
+            }
+        )
 
         _, path1 = tempfile.mkstemp()
         _, path2 = tempfile.mkstemp()
@@ -108,17 +137,15 @@ class TestReadCSV(DeviceTestCase):
 
         filepath = {self.alice: path1, self.bob: path2}
         with self.assertRaisesRegex(AssertionError, 'duplicate in multiple devices'):
-            vd.read_csv(filepath, ppu=self.ppu, keys='c1', drop_keys=True)
+            read_csv(filepath, spu=self.spu, keys='c1', drop_keys=True)
 
         for path in filepath.values():
             os.remove(path)
 
     def test_read_csv_without_psi(self):
-        df1 = pd.DataFrame({'c2': ['A5', 'A1', 'A2', 'A6'],
-                            'c3': [5, 1, 2, 6]})
+        df1 = pd.DataFrame({'c2': ['A5', 'A1', 'A2', 'A6'], 'c3': [5, 1, 2, 6]})
 
-        df2 = pd.DataFrame({'c4': ['B3', 'B1', 'B9', 'B4'],
-                            'c5': [3, 1, 9, 4]})
+        df2 = pd.DataFrame({'c4': ['B3', 'B1', 'B9', 'B4'], 'c5': [3, 1, 9, 4]})
 
         _, path1 = tempfile.mkstemp()
         _, path2 = tempfile.mkstemp()
@@ -127,21 +154,27 @@ class TestReadCSV(DeviceTestCase):
         df2.to_csv(path2, index=False)
 
         filepath = {self.alice: path1, self.bob: path2}
-        dtypes = {self.alice: {'c2': np.str, 'c3': np.int64},
-                  self.bob: {'c4': np.str, 'c5': np.int64}}
-        df = vd.read_csv(filepath, dtypes=dtypes)
+        dtypes = {
+            self.alice: {'c2': np.str, 'c3': np.int64},
+            self.bob: {'c4': np.str, 'c5': np.int64},
+        }
+        df = read_csv(filepath, dtypes=dtypes)
 
         pd.testing.assert_frame_equal(
-            reveal(df.partitions[self.alice].data).reset_index(drop=True), df1)
+            reveal(df.partitions[self.alice].data).reset_index(drop=True), df1
+        )
         pd.testing.assert_frame_equal(
-            reveal(df.partitions[self.bob].data).reset_index(drop=True), df2)
+            reveal(df.partitions[self.bob].data).reset_index(drop=True), df2
+        )
+
+        self.cleartmp([path1, path2])
 
     def test_read_csv_without_psi_mismatch_length(self):
-        df1 = pd.DataFrame({'c2': ['A5', 'A1', 'A2', 'A6', 'A4', 'A3'],
-                            'c3': [5, 1, 2, 6, 4, 3]})
+        df1 = pd.DataFrame(
+            {'c2': ['A5', 'A1', 'A2', 'A6', 'A4', 'A3'], 'c3': [5, 1, 2, 6, 4, 3]}
+        )
 
-        df2 = pd.DataFrame({'c4': ['B3', 'B1', 'B9', 'B4'],
-                            'c5': [3, 1, 9, 4]})
+        df2 = pd.DataFrame({'c4': ['B3', 'B1', 'B9', 'B4'], 'c5': [3, 1, 9, 4]})
 
         _, path1 = tempfile.mkstemp()
         _, path2 = tempfile.mkstemp()
@@ -150,7 +183,42 @@ class TestReadCSV(DeviceTestCase):
         df2.to_csv(path2, index=False)
 
         filepath = {self.alice: path1, self.bob: path2}
-        dtypes = {self.alice: {'c2': np.str, 'c3': np.int64},
-                  self.bob: {'c4': np.str, 'c5': np.int64}}
+        dtypes = {
+            self.alice: {'c2': np.str, 'c3': np.int64},
+            self.bob: {'c4': np.str, 'c5': np.int64},
+        }
         with self.assertRaisesRegex(AssertionError, 'number of samples must be equal'):
-            vd.read_csv(filepath, dtypes=dtypes)
+            read_csv(filepath, dtypes=dtypes)
+
+        self.cleartmp([path1, path2])
+
+    def test_to_csv_should_ok(self):
+        # GIVEN
+        _, path1 = tempfile.mkstemp()
+        _, path2 = tempfile.mkstemp()
+        file_uris = {self.alice: path1, self.bob: path2}
+        df1 = pd.DataFrame({'c2': ['A5', 'A1', 'A2', 'A6'], 'c3': [5, 1, 2, 6]})
+
+        df2 = pd.DataFrame({'c4': ['B3', 'B1', 'B9', 'B4'], 'c5': [3, 1, 9, 4]})
+
+        df = VDataFrame(
+            {
+                self.alice: Partition(self.alice(lambda df: df)(df1)),
+                self.bob: Partition(self.bob(lambda df: df)(df2)),
+            }
+        )
+
+        # WHEN
+        to_csv(df, file_uris, index=False)
+
+        # THEN
+        # Waiting a while for to_csv finish.
+        import time
+
+        time.sleep(5)
+        actual_df = read_csv(file_uris)
+        pd.testing.assert_frame_equal(
+            reveal(actual_df.partitions[self.alice].data), df1
+        )
+        pd.testing.assert_frame_equal(reveal(actual_df.partitions[self.bob].data), df2)
+        self.cleartmp([path1, path2])

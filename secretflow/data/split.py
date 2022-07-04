@@ -12,18 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union, Tuple
-
+from typing import Tuple, Union
 
 import numpy as np
 import pandas as pd
-from loguru import logger
+
+import logging
 from sklearn.model_selection import train_test_split as _train_test_split
 
-from secretflow.data.vertical.dataframe import VDataFrame
+from secretflow.data.base import Partition
 from secretflow.data.horizontal.dataframe import HDataFrame
 from secretflow.data.ndarray import FedNdarray
-from secretflow.data.base import Partition
+from secretflow.data.vertical.dataframe import VDataFrame
 
 
 def train_test_split(
@@ -34,16 +34,19 @@ def train_test_split(
     shuffle=True,
     stratify=None,
 ) -> Tuple[object, object]:
-    """将FedDataFrame或FedNdarray切分训练集合测试集.
-    Attributes:
-        data : 待切分的数据集，类型仅支持[VDataFrame,HDataFrame,FedNdarray]
-        test_size : float, default=None,需要切分为测试集的百分比  
-        train_size : float , default=None,需要切分为训练集的百分比
-        random_state : int, RandomState控制切分过程中的shuffle逻辑，为多方切分保证同步
-        shuffle : bool, default=True 是否需要打乱随机切分
-        stratify : array-like, default=None 是否需要分层切分
+    """Split data into train and test dataset.
+
+    Args:
+        data : DataFrame to split, supported are: VDataFrame,HDataFrame,FedNdarray.
+        test_size (float): test dataset size, default is None.
+        train_size (float): train dataset size, default is None.
+        random_state (int): Controls the shuffling applied to the data before applying the split.
+        shuffle (bool): Whether or not to shuffle the data before splitting, default is True.
+        stratify (array-like): If not None, data is split in a stratified fashion, using this as the class labels.
+
     Returns
-        splitting : list, length=2 * len(arrays)类型和切分前保持一致
+        splitting : list, length=2 * len(arrays)
+
     Examples
     --------
     >>> import numpy as np
@@ -53,7 +56,7 @@ def train_test_split(
     >>> bob_arr = bob(lambda: np.array([[11, 12, 13], [14, 15, 16]]))()
 
     >>> fed_arr = load({self.alice: alice_arr, self.bob: bob_arr})
-    >>> 
+    >>>
     >>> X_train, X_test = train_test_split(
     ...  fed_arr, test_size=0.33, random_state=42)
     ...
@@ -81,13 +84,13 @@ def train_test_split(
         assert 0 < train_size < 1, f"Invalid train size {train_size}, must be in (0, 1)"
     elif test_size is not None and train_size is not None:
         test_size = None
-        logger.info(
-            "Neither train_size nor test_size is empty, Here use train_size for split")
+        logging.info(
+            "Neither train_size nor test_size is empty, Here use train_size for split"
+        )
     else:
         raise Exception("invalid params")
 
-    assert isinstance(
-        random_state, int), f'random_state must be an integer'
+    assert isinstance(random_state, int), f'random_state must be an integer'
 
     def split(*args, **kwargs) -> Tuple[object, object]:
         assert type(args[0]) in [np.ndarray, pd.DataFrame]
@@ -106,11 +109,31 @@ def train_test_split(
         else:
             part_data = part.data
         parts_train[device], parts_test[device] = device(split)(
-            part_data, train_size=train_size, test_size=test_size, random_state=random_state, shuffle=shuffle, stratify=stratify)
+            part_data,
+            train_size=train_size,
+            test_size=test_size,
+            random_state=random_state,
+            shuffle=shuffle,
+            stratify=stratify,
+        )
 
     if isinstance(data, VDataFrame):
-        return VDataFrame(partitions={pyu: Partition(data=part) for pyu, part in parts_train.items()}, aligned=data.aligned), VDataFrame(partitions={pyu:  Partition(data=part) for pyu, part in parts_train.items()},  aligned=data.aligned)
+        return VDataFrame(
+            partitions={pyu: Partition(data=part) for pyu, part in parts_train.items()},
+            aligned=data.aligned,
+        ), VDataFrame(
+            partitions={pyu: Partition(data=part) for pyu, part in parts_train.items()},
+            aligned=data.aligned,
+        )
     elif isinstance(data, HDataFrame):
-        return HDataFrame(partitions={pyu: Partition(data=part) for pyu, part in parts_train.items()}, aggregator=data.aggregator, comparator=data.comparator), VDataFrame(partitions={pyu:  Partition(data=part) for pyu, part in parts_train.items()},  aggregator=data.aggregator, comparator=data.comparator)
+        return HDataFrame(
+            partitions={pyu: Partition(data=part) for pyu, part in parts_train.items()},
+            aggregator=data.aggregator,
+            comparator=data.comparator,
+        ), HDataFrame(
+            partitions={pyu: Partition(data=part) for pyu, part in parts_train.items()},
+            aggregator=data.aggregator,
+            comparator=data.comparator,
+        )
     else:
         return FedNdarray(parts_train), FedNdarray(parts_test)

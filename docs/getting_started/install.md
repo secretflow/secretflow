@@ -1,12 +1,20 @@
-# 安装
+# Installation
+## Environment
+Python：3.8
 
-> 💡 注意，您的python版本需要>=3.8。推荐使用conda管理您的python环境。
+OS: CentOS 7, Ubuntu 18.04
+
+CPU/Memory: recommended minimum requirement is 8C16G.
+
+## Installation
+
+The latest release package can be obtained from [pypi](https://pypi.org).
 
 ```bash
-pip install secretflow
+pip install -U secretflow
 ```
-
-安装后，可以尝试运行你的第一份隐语代码。
+## Have a try
+After installation, you can try running your secretflow code.
 
 ```python
 >>> import secretflow as sf
