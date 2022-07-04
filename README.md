@@ -38,6 +38,12 @@ Try you first SecretFlow program
 <secretflow.device.device.pyu.PYUObject object at 0x7fdec24a15b0>
 ```
 
+## Getting started
+
+- [Getting started](https://secretflow.readthedocs.io/en/latest/getting_started/index.html)
+- [Tutorials help you to understand and use secretflow](https://secretflow.readthedocs.io/en/latest/tutorial/index.html)
+- [The api reference](https://secretflow.readthedocs.io/en/latest/reference/index.html)
+
 ## Deployment
 
 - [Standalone or Cluster Mode](docs/getting_started/deployment.md)
