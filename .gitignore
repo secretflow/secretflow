@@ -320,3 +320,12 @@ antbase2
 
 # Exclude local summary
 .summary
+
+# local dataset
+*.csv
+
+# bazel build
+bazel-*
+
+# docs
+docs/source

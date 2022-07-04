@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .dataframe import MixDataFrame
+from .dataframe import MixDataFrame, PartitionWay
 
 __all__ = [
     "MixDataFrame",
+    "PartitionWay",
 ]

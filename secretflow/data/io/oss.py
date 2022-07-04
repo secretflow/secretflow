@@ -27,6 +27,7 @@ _SCHEME = 'oss://'
 
 
 def s3fs():
+    """Return a s3 filesystem instance."""
     endpoint = os.environ.get(_S3_ENDPOINT)
     ak = os.environ.get(_S3_ACCESSKEYID)
     sk = os.environ.get(_S3_ACCESSSECRET)
@@ -46,22 +47,26 @@ def s3fs():
     if not endpoint.startswith('http'):
         endpoint = f'http://{endpoint}'
 
-    return s3.S3FileSystem(anon=False, key=ak, secret=sk,
-                           client_kwargs={'endpoint_url': endpoint},
-                           config_kwargs={'s3': {'addressing_style': addressing_style}})
+    return s3.S3FileSystem(
+        anon=False,
+        key=ak,
+        secret=sk,
+        client_kwargs={'endpoint_url': endpoint},
+        config_kwargs={'s3': {'addressing_style': addressing_style}},
+    )
 
 
 def open(path, mode='rb'):
-    """打开oss文件。
+    """Open a oss object.
 
     Args:
-        path: oss文件路径。
-        mode: 可选; 读取模式。
+        path: oss file path.
+        mode: optional; open mode.
 
     Returns:
-        文件对象。
+        A file-like object.
     """
     assert path.startswith(_SCHEME), f'Invalid path: {path}, should be oss://...'
 
     s3 = s3fs()
-    return s3.open(path[len(_SCHEME):], mode)
+    return s3.open(path[len(_SCHEME) :], mode)

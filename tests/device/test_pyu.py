@@ -36,7 +36,7 @@ class TestDevicePYU(DeviceTestCase):
         def load():
             return 1, 2, 3
 
-        x, y, z = self.alice(load, _num_returns=3)()
+        x, y, z = self.alice(load, num_returns=3)()
         self.assertTrue(isinstance(x, ft.PYUObject))
 
         x, y, z = ft.reveal([x, y, z])

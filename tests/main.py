@@ -5,10 +5,11 @@
 import unittest
 
 import xmlrunner
-from absl import flags, app
+from absl import app, flags
 
-flags.DEFINE_boolean('in_aci_pipeline', False,
-                     'Indicates current test running in ACI Pipeline.')
+flags.DEFINE_boolean(
+    'in_aci_pipeline', False, 'Indicates current test running in ACI Pipeline.'
+)
 
 
 def main(argv):

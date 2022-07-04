@@ -14,10 +14,19 @@
 
 import socket
 from contextlib import closing
-from typing import List, Tuple
-from typing import cast
+from typing import List, Tuple, cast
 
-import ppu
+import spu
+
+DEFAULT_2PC_RUNTIME_CONFIG = {
+    'protocol': spu.spu_pb2.SEMI2K,
+    'field': spu.spu_pb2.FM128,
+}
+
+DEFAULT_3PC_RUNTIME_CONFIG = {
+    'protocol': spu.spu_pb2.ABY3,
+    'field': spu.spu_pb2.FM128,
+}
 
 
 def unused_tcp_port() -> int:
@@ -28,30 +37,36 @@ def unused_tcp_port() -> int:
         return cast(int, sock.getsockname()[1])
 
 
-def cluster_def(parties: List[str], protocol=ppu.ppu_pb2.SEMI2K):
-    """Generate PPU cluster_def for testing"""
-    assert isinstance(
-        parties,
-        (Tuple,
-         List)) and len(parties) >= 2, f'number of parties should be >= 2'
+def cluster_def(parties: List[str], runtime_config=None):
+    """Generate SPU cluster_def for testing"""
+    assert (
+        isinstance(parties, (Tuple, List)) and len(parties) >= 2
+    ), 'number of parties should be >= 2'
     assert len(set(parties)) == len(parties), f'duplicated parties {parties}'
-    if protocol == ppu.ppu_pb2.ABY3:
+
+    if not runtime_config:
+        if len(parties) == 2:
+            runtime_config = DEFAULT_2PC_RUNTIME_CONFIG
+        elif len(parties) == 3:
+            runtime_config = DEFAULT_3PC_RUNTIME_CONFIG
+
+    assert runtime_config, "Runtime config is not provided or couldn't be deduced."
+
+    if runtime_config['protocol'] == spu.spu_pb2.ABY3:
         assert len(parties) == 3, 'ABY3 only supports 3PC.'
 
     cdef = {
         'nodes': [],
-        'runtime_config': {
-            'protocol': protocol,
-            'field': ppu.ppu_pb2.FM128,
-            'sigmoid_mode': ppu.ppu_pb2.MM1,
-        }
+        'runtime_config': runtime_config,
     }
 
     for i, party in enumerate(parties):
-        cdef['nodes'].append({
-            'party': party,
-            'id': f'local:{i}',
-            'address': f'127.0.0.1:{unused_tcp_port()}'
-        })
+        cdef['nodes'].append(
+            {
+                'party': party,
+                'id': f'local:{i}',
+                'address': f'127.0.0.1:{unused_tcp_port()}',
+            }
+        )
 
     return cdef

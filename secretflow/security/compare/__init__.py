@@ -15,11 +15,11 @@
 from .comparator import Comparator
 from .device_comparator import DeviceComparator
 from .plain_comparator import PlainComparator
-from .ppu_comparator import PPUComparator
+from .spu_comparator import SPUComparator
 
 __all__ = [
     'Comparator',
     'DeviceComparator',
     'PlainComparator',
-    'PPUComparator',
+    'SPUComparator',
 ]

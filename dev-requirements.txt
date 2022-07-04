@@ -1,5 +1,4 @@
 coverage
 unittest-xml-reporting
-tqdm==4.62.3
-loguru==0.6.0
-sf-ppu==0.0.4
+matplotlib==3.5.2
+sf-heu>=0.1.0b0,<=0.1.0b3

@@ -1,0 +1,6 @@
+[submodule "secretflow_lib/third_party/yasl"]
+	path = secretflow_lib/third_party/yasl
+	url = https://github.com/secretflow/yasl.git
+[submodule "secretflow_lib/secretflow_lib/third_party/yasl"]
+	path = secretflow_lib/secretflow_lib/third_party/yasl
+	url = https://github.com/secretflow/yasl.git

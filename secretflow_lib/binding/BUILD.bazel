@@ -1,0 +1,26 @@
+load("@pybind11_bazel//:build_defs.bzl", "pybind_extension")
+
+package(default_visibility = ["//visibility:public"])
+
+pybind_extension(
+    name = "_lib",
+    srcs = [
+        "binding.cc",
+        "binding.h",
+        "random.cc",
+    ],
+    deps = [
+        "//secretflow_lib/differential_privacy/random:distributions",
+    ],
+)
+
+py_library(
+    name = "binding",
+    data = [":_lib.so"],
+)
+
+py_test(
+    name = "random_test",
+    srcs = ["random_test.py"],
+    deps = ["binding"],
+)

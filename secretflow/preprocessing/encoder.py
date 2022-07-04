@@ -24,27 +24,49 @@ from secretflow.data.base import Partition
 from secretflow.data.horizontal import HDataFrame
 from secretflow.data.mix import MixDataFrame
 from secretflow.data.vertical import VDataFrame
-from secretflow.device.device import reveal
+from secretflow.device import reveal
 
 
 def _check_dataframe(df):
-    assert isinstance(df, (HDataFrame, VDataFrame, MixDataFrame)
-                      ), f'Accepts HDataFrame/VDataFrame/MixDataFrame only but got {type(df)}'
+    assert isinstance(
+        df, (HDataFrame, VDataFrame, MixDataFrame)
+    ), f'Accepts HDataFrame/VDataFrame/MixDataFrame only but got {type(df)}'
 
 
 class LabelEncoder:
+    """Encode target labels with value between 0 and n_classes-1.
+
+    Just same as :py:meth:`sklearn.preprocessing.LabelEncoder`
+    where the input/ouput is federated dataframe.
+
+    Attrs:
+        _encoder: the sklearn LabelEncoder instance.
+
+    Examples
+    --------
+    >>> from secretflow.preprocessing import LabelEncoder
+    >>> le = LabelEncoder()
+    >>> le.fit(df)
+    >>> le.transform(df)
+    """
+
     def _fit(self, df: Union[HDataFrame, VDataFrame]) -> np.ndarray:
         def _df_fit(df: pd.DataFrame):
             encoder = SkLabelEncoder()
             encoder.fit(column_or_1d(df))
             return encoder.classes_
 
-        classes = [reveal(device(_df_fit)(part.data)) for device, part in df.partitions.items()]
+        classes = [
+            reveal(device(_df_fit)(part.data)) for device, part in df.partitions.items()
+        ]
         return np.concatenate(classes)
 
     def fit(self, df: Union[HDataFrame, VDataFrame, MixDataFrame]):
+        """Fit label encoder."""
         _check_dataframe(df)
-        assert len(df.columns) == 1, 'DataFrame to encode should have one and only one column.'
+        assert (
+            len(df.columns) == 1
+        ), 'DataFrame to encode should have one and only one column.'
         if isinstance(df, (HDataFrame, VDataFrame)):
             classes = self._fit(df)
         else:
@@ -52,45 +74,76 @@ class LabelEncoder:
         self._encoder = SkLabelEncoder()
         self._encoder.fit(classes)
 
-    def _transform(self, df: Union[HDataFrame, VDataFrame]) -> Union[HDataFrame, VDataFrame]:
+    def _transform(
+        self, df: Union[HDataFrame, VDataFrame]
+    ) -> Union[HDataFrame, VDataFrame]:
         def _df_transform(encoder: SkLabelEncoder, df: pd.DataFrame):
-            new_df = df.copy(deep=True)
-            new_df.iloc[:, :] = encoder.transform(column_or_1d(df))[np.newaxis].T
-            return new_df
+            return pd.DataFrame(
+                data=encoder.transform(column_or_1d(df))[np.newaxis].T,
+                columns=df.columns,
+            )
 
         transformed_parts = {}
         for device, part in df.partitions.items():
-            transformed_parts[device] = Partition(device(_df_transform)(self._encoder, part.data))
+            transformed_parts[device] = Partition(
+                device(_df_transform)(self._encoder, part.data)
+            )
 
         new_df = df.copy()
         new_df.partitions = transformed_parts
         return new_df
 
-    def transform(self, df: Union[HDataFrame, VDataFrame, MixDataFrame]) -> Union[HDataFrame, VDataFrame, MixDataFrame]:
+    def transform(
+        self, df: Union[HDataFrame, VDataFrame, MixDataFrame]
+    ) -> Union[HDataFrame, VDataFrame, MixDataFrame]:
+        """Transform labels to normalized encoding."""
         assert hasattr(self, '_encoder'), 'Encoder has not been fit yet.'
         _check_dataframe(df)
-        assert len(df.columns) == 1, 'DataFrame to encode should have one and only one column.'
+        assert (
+            len(df.columns) == 1
+        ), 'DataFrame to encode should have one and only one column.'
 
         if isinstance(df, (HDataFrame, VDataFrame)):
             return self._transform(df)
         else:
-            return MixDataFrame(partitions=[self._transform(part) for part in df.partitions])
+            return MixDataFrame(
+                partitions=[self._transform(part) for part in df.partitions]
+            )
 
-    def fit_transform(self, df: Union[HDataFrame, VDataFrame]) -> Union[HDataFrame, VDataFrame, MixDataFrame]:
+    def fit_transform(
+        self, df: Union[HDataFrame, VDataFrame]
+    ) -> Union[HDataFrame, VDataFrame, MixDataFrame]:
+        """Fit label encoder and return encoded labels."""
         self.fit(df)
         return self.transform(df)
 
 
 class OneHotEncoder:
+    """Encode categorical features as a one-hot numeric array.
+
+    Just same as :py:meth:`sklearn.preprocessing.OneHotEncoder`
+    where the input/ouput is federated dataframe.
+
+    Attrs:
+        _encoder: the sklearn OneHotEncoder instance.
+
+    Examples
+    --------
+    >>> from secretflow.preprocessing import OneHotEncoder
+    >>> enc = OneHotEncoder()
+    >>> enc.fit(df)
+    >>> enc.transform(df)
+    """
 
     @staticmethod
     def _fill_categories(categories: Dict[str, np.array]):
-        """使用第一个值填充categories，从而每个array的长度一致以便于后续使用。
-        """
+        """Fill the categories with the max length."""
         max_len = max([len(c) for c in categories.values()])
         for feature in categories.keys():
             fill_num = max_len - len(categories[feature])
-            categories[feature] = np.append(categories[feature], [categories[feature][0] for i in range(fill_num)])
+            categories[feature] = np.append(
+                categories[feature], [categories[feature][0] for i in range(fill_num)]
+            )
 
     def _fit(self, df: Union[HDataFrame, VDataFrame]) -> Dict[str, np.array]:
         categories = []
@@ -100,7 +153,10 @@ class OneHotEncoder:
             encoder = SkOneHotEncoder()
             encoder.fit(df)
             return encoder
-        encoders = reveal([device(_df_fit)(part.data) for device, part in df.partitions.items()])
+
+        encoders = reveal(
+            [device(_df_fit)(part.data) for device, part in df.partitions.items()]
+        )
         for encoder in encoders:
             if isinstance(df, HDataFrame):
                 if len(feature_names_in) == 0:
@@ -114,10 +170,16 @@ class OneHotEncoder:
                 categories.extend(encoder.categories_)
                 feature_names_in.extend(encoder.feature_names_in_)
         assert len(feature_names_in) == len(
-            categories), f'Feature names length not equals to categories: {len(feature_names_in)} vs {len(categories)}'
-        return {feature: category for feature, category in zip(feature_names_in, categories)}
+            categories
+        ), f'Feature names length not equals to categories: {len(feature_names_in)} vs {len(categories)}'
+        return {
+            feature: category for feature, category in zip(feature_names_in, categories)
+        }
 
-    def fit(self, df: Union[HDataFrame, VDataFrame, MixDataFrame]) -> Union[HDataFrame, VDataFrame, MixDataFrame]:
+    def fit(
+        self, df: Union[HDataFrame, VDataFrame, MixDataFrame]
+    ) -> Union[HDataFrame, VDataFrame, MixDataFrame]:
+        """Fit this encoder with X."""
         _check_dataframe(df)
         if isinstance(df, (HDataFrame, VDataFrame)):
             categories = self._fit(df)
@@ -135,16 +197,26 @@ class OneHotEncoder:
         self._encoder = SkOneHotEncoder()
         self._encoder.fit(pd.DataFrame(categories))
 
-    def _transform(self, df: Union[HDataFrame, VDataFrame]) -> Union[HDataFrame, VDataFrame]:
+    def _transform(
+        self, df: Union[HDataFrame, VDataFrame]
+    ) -> Union[HDataFrame, VDataFrame]:
         transformed_parts = {}
 
         def _encode(encoder: SkOneHotEncoder, df: pd.DataFrame):
-            return pd.DataFrame(encoder.transform(df).toarray(), columns=encoder.get_feature_names_out())
+            return pd.DataFrame(
+                encoder.transform(df).toarray(), columns=encoder.get_feature_names_out()
+            )
+
         for device, part in df.partitions.items():
-            mask = np.in1d(self._encoder.feature_names_in_, part.dtypes.index, assume_unique=True)
+            mask = np.in1d(
+                self._encoder.feature_names_in_, part.dtypes.index, assume_unique=True
+            )
             encoder = SkOneHotEncoder()
-            categories = {self._encoder.feature_names_in_[
-                i]: self._encoder.categories_[i] for i, exist in enumerate(mask) if exist}
+            categories = {
+                self._encoder.feature_names_in_[i]: self._encoder.categories_[i]
+                for i, exist in enumerate(mask)
+                if exist
+            }
             self._fill_categories(categories)
             encoder.fit(pd.DataFrame(categories))
             transformed_parts[device] = Partition(device(_encode)(encoder, part.data))
@@ -152,14 +224,22 @@ class OneHotEncoder:
         new_df.partitions = transformed_parts
         return new_df
 
-    def transform(self, df: Union[HDataFrame, VDataFrame, MixDataFrame]) -> Union[HDataFrame, VDataFrame, MixDataFrame]:
+    def transform(
+        self, df: Union[HDataFrame, VDataFrame, MixDataFrame]
+    ) -> Union[HDataFrame, VDataFrame, MixDataFrame]:
+        """Transform X using one-hot encoding."""
         assert hasattr(self, '_encoder'), 'Encoder has not been fit yet.'
         _check_dataframe(df)
         if isinstance(df, (HDataFrame, VDataFrame)):
             return self._transform(df)
         else:
-            return MixDataFrame(partitions=[self._transform(part) for part in df.partitions])
+            return MixDataFrame(
+                partitions=[self._transform(part) for part in df.partitions]
+            )
 
-    def fit_transform(self, df: Union[HDataFrame, VDataFrame, MixDataFrame]) -> Union[HDataFrame, VDataFrame, MixDataFrame]:
+    def fit_transform(
+        self, df: Union[HDataFrame, VDataFrame, MixDataFrame]
+    ) -> Union[HDataFrame, VDataFrame, MixDataFrame]:
+        """Fit this OneHotEncoder with X, then transform X."""
         self.fit(df)
         return self.transform(df)

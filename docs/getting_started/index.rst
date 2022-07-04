@@ -1,11 +1,12 @@
 .. _getting_started:
 
-入门
+Getting started
 ===============
 
-您可以参考下列教程来了解和使用secretflow。
+The following tutorials will help you get started quickly with secretflow.
 
 .. toctree::
    :maxdepth: 2
 
-   安装 <install.md>
+   Installation <install.md>
+   Deployment <deployment.md>

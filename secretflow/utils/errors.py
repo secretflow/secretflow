@@ -12,29 +12,38 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 class AlreadyExistsError(Exception):
-    """Raise when already exists.
-    """
+    """Raise when already exists."""
+
     pass
 
 
 class InvalidArgumentError(Exception):
-    """Raise when invalid argument.
-    """
+    """Raise when invalid argument."""
+
     pass
 
 
 class NotFoundError(Exception):
-    """Rasie if not found.
-    """
+    """Raise if not found."""
+
+    pass
+
+
+class PartyNotFoundError(Exception):
+    """Raise if party not found."""
+
     pass
 
 
 class UnexpectedError(Exception):
-    """Raise when unexpected.
-    """
+    """Raise when unexpected."""
+
     pass
 
 
 class HttpNotOkError(Exception):
     """Raise if http code is not 200"""
+
+    pass

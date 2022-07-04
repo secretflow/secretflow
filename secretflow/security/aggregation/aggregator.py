@@ -15,14 +15,18 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-from secretflow.device.device import DeviceObject
+from secretflow.device import DeviceObject
 
 
 class Aggregator(ABC):
+    """The abstract aggregator."""
+
     @abstractmethod
     def sum(self, data: List[DeviceObject], axis=None):
+        """Sum of array elements over a given axis."""
         pass
 
     @abstractmethod
     def average(self, data: List[DeviceObject], axis=None, weights=None):
+        """Compute the weighted average along the specified axis."""
         pass

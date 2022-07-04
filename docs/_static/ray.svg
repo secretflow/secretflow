@@ -487,7 +487,7 @@
           <path d="M 245.875 -380.64 L 462.77 -380.64 C 463.87457 -380.64 464.77 -379.74457 464.77 -378.64 L 464.77 -230.64 C 464.77 -229.53543 463.87457 -228.64 462.77 -228.64 L 245.875 -228.64 C 244.77043 -228.64 243.875 -229.53543 243.875 -230.64 L 243.875 -378.64 C 243.875 -379.74457 244.77043 -380.64 245.875 -380.64 Z" fill="#c0ffff"/>
           <path d="M 245.875 -380.64 L 462.77 -380.64 C 463.87457 -380.64 464.77 -379.74457 464.77 -378.64 L 464.77 -230.64 C 464.77 -229.53543 463.87457 -228.64 462.77 -228.64 L 245.875 -228.64 C 244.77043 -228.64 243.875 -229.53543 243.875 -230.64 L 243.875 -378.64 C 243.875 -379.74457 244.77043 -380.64 245.875 -380.64 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4.0,4.0" stroke-width="1"/>
           <text transform="translate(248.875 -375.64)" fill="black">
-            <tspan font-family="Helvetica Neue" font-size="12" font-weight="400" fill="black" x="0" y="11">PPU</tspan>
+            <tspan font-family="Helvetica Neue" font-size="12" font-weight="400" fill="black" x="0" y="11">SPU</tspan>
           </text>
         </g>
         <g id="Graphic_725">
