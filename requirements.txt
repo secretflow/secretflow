@@ -1,4 +1,4 @@
-spu==0.1.0b0
+spu==0.1.0.beta0
 pandas==1.4.0
 scikit-learn==1.0.2
 secretflow-ray==2.0.0.dev0
