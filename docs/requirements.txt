@@ -5,3 +5,4 @@ sphinx
 sphinx-panels
 sphinx_rtd_theme
 ipython
+secretflow
