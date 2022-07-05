@@ -1,11 +1,11 @@
 :notoc:
 
-Secretflow
+SecretFlow
 =============
 
-`Secretflow <https://github.com/secretflow/secretflow>`_ is an unified framework for privacy-preserving data analysis and machine learning.
+`SecretFlow <https://github.com/secretflow/secretflow>`_ is a unified framework for privacy-preserving data analysis and machine learning.
 
-Secretflow provides
+SecretFlow provides
 
 - Device abstraction, which abstracts privacy computing technologies such as 
   Multi-Party Secure Computing (MPC), Homomorphic Encryption (HE), 
@@ -18,14 +18,14 @@ Secretflow provides
 
 .. image:: _static/secretflow_arch.svg
 
-Why `Secretflow`
+Why `SecretFlow`
 ----------------
 
 At present, privacy computing technology is growing in popularity. 
 However, neither the technology nor the market has yet reached real maturity.
 In order to cope with the development uncertainty of privacy computing technology and applications, 
-we propose a general privacy computing framework called "secretflow".
-Secretflow will adhere to the following principles, 
+we propose a general privacy computing framework called "SecretFlow".
+SecretFlow will adhere to the following principles, 
 so that the framework has the maximum inclusive and extensible capabilities to 
 cope with the development of future privacy computing technologies and applications.
 
@@ -48,7 +48,7 @@ Documents
     Getting started
     ^^^^^^^^^^^^^^^
 
-    New to **Secretflow**? Check out the getting stgarted guides.
+    New to **SecretFlow**? Check out the getting stgarted guides.
 
     +++
     
@@ -62,7 +62,7 @@ Documents
     Toturials
     ^^^^^^^^^^^^^^^
 
-    Want to know in-depth usages of **Secretflow**? Check out our toturials.
+    Want to know in-depth usages of **SecretFlow**? Check out our toturials.
 
     +++
     
@@ -76,7 +76,7 @@ Documents
     API reference
     ^^^^^^^^^^^^^^^
 
-    Get a detailed description of the secretflow api.
+    Get a detailed description of the SecretFlow api.
 
     +++
     
@@ -90,7 +90,7 @@ Documents
     Developer guide
     ^^^^^^^^^^^^^^^
 
-    Want to know the design principles of secretflow?
+    Want to know the design principles of SecretFlow?
     Want to improve existing functions or add more functions?
     The developer guidelines will guide you.
     
