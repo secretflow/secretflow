@@ -1,6 +1,6 @@
 # Deployment
 
-Secretflow can be deployed on a single host or on multiple nodes.
+SecretFlow can be deployed on a single host or on multiple nodes.
 
 ## Standalone Mode
 Use `secretflow.init` directly to run secretflow in standalone mode.
@@ -66,7 +66,7 @@ Now you can start secretflow.
 ```
 
 ### Suggestions for production
-Secretflow use `ray` as its distribution system. 
+SecretFlow use `ray` as its distribution system. 
 You may need to do some more configuration for higher security when using it in production.
 The following actions can help improve security features.
 
