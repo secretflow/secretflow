@@ -17,7 +17,7 @@ Start a head node on your first machine with the tag "alice".
 
 > Remember to use the real ip and port instead.
 
-> You can refert to [Ray TLS](https://docs.ray.io/en/latest/ray-core/configure.html#tls-authentication) for servercert.pem, serverkey.pem and cacert.pem.
+> You can refer to [Ray TLS](https://docs.ray.io/en/latest/ray-core/configure.html#tls-authentication) for servercert.pem, serverkey.pem and cacert.pem.
 
 > The following section `Suggestions for production` explains `RAY_SECURITY_CONFIG_PATH` and config.yml.
 
