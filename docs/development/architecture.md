@@ -1,6 +1,6 @@
 # SecretFlow
 
-SecretFlow is an unified framework for privacy preserving data analysis and machine learning.
+SecretFlow is a unified framework for privacy preserving data analysis and machine learning.
 
 ![secretflow](../_static/secretflow.svg)
 
