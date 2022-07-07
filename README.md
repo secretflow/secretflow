@@ -19,8 +19,8 @@ it provides:
 ## Install
 
 For users who want to try SecretFlow, you can install the current release
-from [pypi](https://pypi.org/). Note that it requires python version >
-=3.8, you can create a virtual environment with conda if not satisfied.
+from [pypi](https://pypi.org/). Note that it requires python version == 3.8,
+you can create a virtual environment with conda if not satisfied.
 
 ```sh
 pip install -U secretflow
