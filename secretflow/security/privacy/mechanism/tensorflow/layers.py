@@ -20,7 +20,6 @@ from secretflow.security.privacy.accounting.rdp_accountant import (
     get_rdp,
     get_privacy_spent_rdp,
 )
-import secretflow.security.privacy._lib.random as random
 
 
 class EmbeddingDP(tf.keras.layers.Layer, ABC):
@@ -75,6 +74,7 @@ class GaussianEmbeddingDP(EmbeddingDP):
         embed_clipped = tf.reshape(embed_flat_clipped, inputs.shape)
         # add noise
         if self.is_secure_generator:
+            import secretflow.security.privacy._lib.random as random
             noise = random.secure_normal_real(
                 0, self._noise_multiplier * self._l2_norm_clip, size=inputs.shape
             )
