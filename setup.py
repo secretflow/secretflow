@@ -19,7 +19,7 @@ def read_requirements():
 
 setup(
     name='secretflow',
-    version='0.6.13.beta',
+    version='0.6.13.beta1',
     license='Apache 2.0',
     description='Secret Flow',
     long_description=long_description,
