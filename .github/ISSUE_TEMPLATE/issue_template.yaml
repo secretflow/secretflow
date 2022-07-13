@@ -5,7 +5,7 @@ body:
     attributes:
       value: |
         Please make sure that you report a code/doc bug, feature request or build/installation bug on GitHub.
-        Please post on our [discution](https://github.com/secretflow/secretflow/discussions) instead if you want to ask questions or share ideas.
+        Please post on our [discussions](https://github.com/secretflow/secretflow/discussions) instead if you want to ask questions or share ideas.
   - type: dropdown
     id: issue-type
     attributes:
