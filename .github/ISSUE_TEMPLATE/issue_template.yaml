@@ -1,0 +1,94 @@
+name: Secretflow Issue Template
+description: Thank you for reporting the issue!
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please make sure that you report a code/doc bug, feature request or build/installation bug on GitHub.
+        Please post on our [discution](https://github.com/secretflow/secretflow/discussions) instead if you want to ask questions or share ideas.
+  - type: dropdown
+    id: issue-type
+    attributes:
+      label: Issue Type
+      description: What type of issue would you like to report?
+      multiple: false
+      options:
+        - Bug
+        - Build/Install
+        - Feature Request
+        - Documentation Feature Request
+        - Documentation Bug
+        - Others
+    validations:
+      required: true
+
+  - type: dropdown
+    id: source
+    attributes:
+      label: Source
+      description: Secretflow installed from
+      options:
+        - source
+        - binary
+    validations:
+      required: true
+  - type: input
+    id: sfversion
+    attributes:
+      label: Secretflow Version
+      description: 
+      placeholder: ex,. secretflow 0.6.13b0
+    validations:
+      required: true
+  - type: input
+    id: OS
+    attributes:
+      label: OS Platform and Distribution
+      description: 
+      placeholder: e.g., Linux Ubuntu 18.04
+    validations:
+      required: false
+  - type: input
+    id: Python
+    attributes:
+      label: Python version
+      description: 
+      placeholder: e.g., 3.8.13
+    validations:
+      required: false
+  - type: input
+    id: Bazel
+    attributes:
+      label: Bazel version
+      description: if compiling from source
+      placeholder: 
+    validations:
+      required: false
+  - type: input
+    id: Compiler
+    attributes:
+      label: GCC/Compiler version
+      description: if compiling from source
+      placeholder: 
+    validations:
+      required: false
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happend and What you expected to happen.
+      description: Describe the bug, exepcted bevavior and relevant log output.
+      placeholder: A bug happened!
+      value: 
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction-code
+    attributes:
+      label: Reproduction code to reproduce the issue.
+      description: Provide a reproducible code that is the bare minimum necessary to generate the problem.
+      placeholder: A short code snippet to reproduce the issue.
+      value: 
+      render: shell
+    validations:
+      required: true
