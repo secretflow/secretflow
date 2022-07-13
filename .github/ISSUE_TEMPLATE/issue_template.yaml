@@ -28,8 +28,8 @@ body:
       label: Source
       description: Secretflow installed from
       options:
-        - source
         - binary
+        - source
     validations:
       required: true
   - type: input
@@ -37,7 +37,7 @@ body:
     attributes:
       label: Secretflow Version
       description: 
-      placeholder: ex,. secretflow 0.6.13b0
+      placeholder: e.g., secretflow 0.6.13b0
     validations:
       required: true
   - type: input
@@ -60,7 +60,7 @@ body:
     id: Bazel
     attributes:
       label: Bazel version
-      description: if compiling from source
+      description: If compiling from source
       placeholder: 
     validations:
       required: false
@@ -68,7 +68,7 @@ body:
     id: Compiler
     attributes:
       label: GCC/Compiler version
-      description: if compiling from source
+      description: If compiling from source
       placeholder: 
     validations:
       required: false
@@ -76,7 +76,7 @@ body:
     id: what-happened
     attributes:
       label: What happend and What you expected to happen.
-      description: Describe the bug, exepcted bevavior and relevant log output.
+      description: Describe the bug, exepcted behavior and relevant log output.
       placeholder: A bug happened!
       value: 
       render: shell
