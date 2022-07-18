@@ -14,6 +14,3 @@ secretflow.security.privacy.strategy
 
 .. automodule:: secretflow.security.privacy.strategy
    :members:
-
-.. automodule:: secretflow.security.privacy
-   :members:

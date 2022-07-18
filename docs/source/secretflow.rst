@@ -12,6 +12,3 @@ secretflow
    secretflow.security
    secretflow.stats
    secretflow.utils
-
-.. automodule:: secretflow
-   :members:

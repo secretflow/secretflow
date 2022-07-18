@@ -43,6 +43,3 @@ secretflow.ml.boost.tree\_core.splitter
 
 .. automodule:: secretflow.ml.boost.tree_core.splitter
    :members:
-
-.. automodule:: secretflow.ml.boost.tree_core
-   :members:

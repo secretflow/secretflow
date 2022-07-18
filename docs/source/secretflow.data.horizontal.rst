@@ -19,6 +19,3 @@ secretflow.data.horizontal.util
 
 .. automodule:: secretflow.data.horizontal.util
    :members:
-
-.. automodule:: secretflow.data.horizontal
-   :members:

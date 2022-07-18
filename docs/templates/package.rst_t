@@ -36,7 +36,3 @@
 {% endfor %}
 {%- endif %}
 {%- endif %}
-
-{%- if not modulefirst and not is_namespace %}
-{{ automodule(pkgname, automodule_options) }}
-{% endif %}

@@ -15,6 +15,3 @@ secretflow.security.diffie\_hellman
 
 .. automodule:: secretflow.security.diffie_hellman
    :members:
-
-.. automodule:: secretflow.security
-   :members:

@@ -19,6 +19,3 @@ secretflow.ml.boost.boost\_core.training
 
 .. automodule:: secretflow.ml.boost.boost_core.training
    :members:
-
-.. automodule:: secretflow.ml.boost.boost_core
-   :members:

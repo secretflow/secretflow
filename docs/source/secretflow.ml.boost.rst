@@ -32,6 +32,3 @@ secretflow.ml.boost.tree\_param
 
 .. automodule:: secretflow.ml.boost.tree_param
    :members:
-
-.. automodule:: secretflow.ml.boost
-   :members:

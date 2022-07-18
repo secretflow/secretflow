@@ -19,6 +19,3 @@ secretflow.device.kernels.spu
 
 .. automodule:: secretflow.device.kernels.spu
    :members:
-
-.. automodule:: secretflow.device.kernels
-   :members:
