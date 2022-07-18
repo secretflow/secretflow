@@ -31,6 +31,3 @@ secretflow.security.aggregation.spu\_aggregator
 
 .. automodule:: secretflow.security.aggregation.spu_aggregator
    :members:
-
-.. automodule:: secretflow.security.aggregation
-   :members:

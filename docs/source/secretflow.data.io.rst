@@ -13,6 +13,3 @@ secretflow.data.io.util
 
 .. automodule:: secretflow.data.io.util
    :members:
-
-.. automodule:: secretflow.data.io
-   :members:

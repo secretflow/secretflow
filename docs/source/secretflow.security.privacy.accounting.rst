@@ -13,6 +13,3 @@ secretflow.security.privacy.accounting.rdp\_accountant
 
 .. automodule:: secretflow.security.privacy.accounting.rdp_accountant
    :members:
-
-.. automodule:: secretflow.security.privacy.accounting
-   :members:

@@ -37,6 +37,3 @@ secretflow.utils.testing
 
 .. automodule:: secretflow.utils.testing
    :members:
-
-.. automodule:: secretflow.utils
-   :members:

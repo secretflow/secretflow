@@ -29,6 +29,3 @@ secretflow.data.split
 
 .. automodule:: secretflow.data.split
    :members:
-
-.. automodule:: secretflow.data
-   :members:

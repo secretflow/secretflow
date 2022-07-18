@@ -271,8 +271,10 @@ class HEU(Device):
         """Initialize HEU
 
         Args:
-            config: HEU init config, for example:
+            config: HEU init config, for example
+
                 .. code:: python
+
                     {
                         'sk_keeper': {
                             'party': 'alice'
@@ -283,9 +285,9 @@ class HEU(Device):
                         # The HEU working mode, choose from PHEU / LHEU / FHEU_ROUGH / FHEU
                         'mode': 'PHEU',
                         # TODO: cleartext_type should be migrated to HeObject.
-                            Since HeCiphertext cannot obtain HeObject objects on the Python
-                            side, it is temporarily placed in the HEU instance and will be
-                            fixed after the he-device logic lowering to C++.
+                        # Since HeCiphertext cannot obtain HeObject objects on the Python
+                        # side, it is temporarily placed in the HEU instance and will be
+                        # fixed after the he-device logic lowering to C++.
                         'encoding': {
                             # DT_I1, DT_I8, DT_I16, DT_I32, DT_I64 or DT_FXP (default)
                             'cleartext_type': "DT_FXP"
@@ -299,7 +301,6 @@ class HEU(Device):
                             }
                         }
                     }
-
             spu_field_type: Field type in spu,
                 Device.to operation requires the data scale of HEU to be aligned with
                 SPU

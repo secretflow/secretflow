@@ -19,6 +19,3 @@ secretflow.preprocessing.binning.kernels.quantile\_summaries
 
 .. automodule:: secretflow.preprocessing.binning.kernels.quantile_summaries
    :members:
-
-.. automodule:: secretflow.preprocessing.binning.kernels
-   :members:

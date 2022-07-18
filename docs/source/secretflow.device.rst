@@ -26,6 +26,3 @@ secretflow.device.proxy
 
 .. automodule:: secretflow.device.proxy
    :members:
-
-.. automodule:: secretflow.device
-   :members:

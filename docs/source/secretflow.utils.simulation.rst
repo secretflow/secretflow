@@ -6,6 +6,3 @@ secretflow.utils.simulation
    :maxdepth: 2
 
    secretflow.utils.simulation.data
-
-.. automodule:: secretflow.utils.simulation
-   :members:
