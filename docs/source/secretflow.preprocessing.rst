@@ -25,6 +25,3 @@ secretflow.preprocessing.scaler
 
 .. automodule:: secretflow.preprocessing.scaler
    :members:
-
-.. automodule:: secretflow.preprocessing
-   :members:

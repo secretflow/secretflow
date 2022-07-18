@@ -49,6 +49,3 @@ secretflow.device.device.utils
 
 .. automodule:: secretflow.device.device.utils
    :members:
-
-.. automodule:: secretflow.device.device
-   :members:

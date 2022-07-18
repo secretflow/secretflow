@@ -37,6 +37,3 @@ secretflow.preprocessing.binning.vert\_woe\_substitution
 
 .. automodule:: secretflow.preprocessing.binning.vert_woe_substitution
    :members:
-
-.. automodule:: secretflow.preprocessing.binning
-   :members:

@@ -25,6 +25,3 @@ secretflow.security.compare.spu\_comparator
 
 .. automodule:: secretflow.security.compare.spu_comparator
    :members:
-
-.. automodule:: secretflow.security.compare
-   :members:

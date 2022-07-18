@@ -8,6 +8,3 @@ secretflow.ml
    secretflow.ml.boost
    secretflow.ml.linear
    secretflow.ml.nn
-
-.. automodule:: secretflow.ml
-   :members:

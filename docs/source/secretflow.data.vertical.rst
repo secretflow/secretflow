@@ -13,6 +13,3 @@ secretflow.data.vertical.io
 
 .. automodule:: secretflow.data.vertical.io
    :members:
-
-.. automodule:: secretflow.data.vertical
-   :members:

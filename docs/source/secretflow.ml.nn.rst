@@ -37,6 +37,3 @@ secretflow.ml.nn.utils
 
 .. automodule:: secretflow.ml.nn.utils
    :members:
-
-.. automodule:: secretflow.ml.nn
-   :members:

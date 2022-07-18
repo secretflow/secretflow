@@ -387,30 +387,37 @@ class SPU(Device):
         """SPU device constructor.
 
         Args:
-            cluster_def (Dict): SPU cluster definition. For example:
-            .. code:: python
+            cluster_def: SPU cluster definition. More details refer to
+                `SPU runtime config <https://spu.readthedocs.io/en/beta/reference/runtime_config.html>`_.
 
-                {
-                    'nodes': [
-                        {
-                            'party': 'alice',
-                            'id': 'local:0',
-                            'address': '127.0.0.1:9001',
-                            'listen_address': '' # Optional. Address will be used if listen_address is empty.
-                        },
-                        {
-                            'party': 'bob',
-                            'id': 'local:1',
-                            'address': '127.0.0.1:9002',
-                            'listen_address': ''
-                        },
-                    ],
-                    'runtime_config': {
-                        'protocol': spu.spu_pb2.SEMI2K,
-                        'field': spu.spu_pb2.FM128,
-                        'sigmoid_mode': spu.spu_pb2.RuntimeConfig.SIGMOID_REAL,
+                For example
+
+                .. code:: python
+
+                    {
+                        'nodes': [
+                            {
+                                'party': 'alice',
+                                'id': 'local:0',
+                                # The address for other peers.
+                                'address': '127.0.0.1:9001',
+                                # The listen address of this node.
+                                # Optional. Address will be used if listen_address is empty.
+                                'listen_address': ''
+                            },
+                            {
+                                'party': 'bob',
+                                'id': 'local:1',
+                                'address': '127.0.0.1:9002',
+                                'listen_address': ''
+                            },
+                        ],
+                        'runtime_config': {
+                            'protocol': spu.spu_pb2.SEMI2K,
+                            'field': spu.spu_pb2.FM128,
+                            'sigmoid_mode': spu.spu_pb2.RuntimeConfig.SIGMOID_REAL,
+                        }
                     }
-                }
         """
         super().__init__(DeviceType.SPU)
 
