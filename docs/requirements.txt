@@ -3,6 +3,7 @@ myst-parser
 nbsphinx
 sphinx
 sphinx-panels
-sphinx_rtd_theme
 ipython
 secretflow
+pydata-sphinx-theme
+linkify-it-py

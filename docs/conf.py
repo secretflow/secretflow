@@ -13,12 +13,11 @@
 # import os
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
-import sphinx_rtd_theme
 
 # -- Project information -----------------------------------------------------
 
 project = 'SecretFlow'
-copyright = '2022, Ant Group PPML Team'
+copyright = '2022 Ant Group Co., Ltd.'
 author = 'Ant Group PPML Team'
 
 # The full version, including alpha/beta/rc tags
@@ -44,6 +43,8 @@ extensions = [
     'sphinx_panels',
     'myst_parser',  # Parse markdown to html
 ]
+
+nbsphinx_requirejs_path = ''
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -76,20 +77,15 @@ intersphinx_mapping = {
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'sphinx_rtd_theme'
-html_css_files = ['css/custom.css']
-html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
-html_logo = 'img/logo.png'
-html_theme_options = {
-    'logo_only': True,
-    'navigation_depth': 2,
-}
-html_show_sourcelink = False
+html_theme = 'pydata_sphinx_theme'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+# Enable TODO
+todo_include_todos = True
 
 autodoc_default_options = {
     'members': True,
@@ -98,3 +94,61 @@ autodoc_default_options = {
     'undoc-members': False,
     'show-inheritance': False,
 }
+
+
+html_favicon = '_static/favicon.ico'
+
+html_css_files = [
+    'css/custom.css',
+]
+
+html_js_files = ['js/custom.js']
+
+html_theme_options = {
+    "icon_links": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/secretflow/secretflow",
+            "icon": "fab fa-github-square",
+            "type": "fontawesome",
+        },
+    ],
+    "external_links": [
+        {"name": "SPU", "url": "https://spu.readthedocs.com/"},
+        {"name": "HEU", "url": "https://heu.readthedocs.com/"},
+    ],
+    "logo": {
+        "text": "SecretFlow",
+        "image_light": "logo-light.png",
+        "image_dark": "logo-dark.png",
+    },
+}
+
+myst_enable_extensions = [
+    "amsmath",
+    "colon_fence",
+    "deflist",
+    "dollarmath",
+    "fieldlist",
+    "html_admonition",
+    "html_image",
+    "linkify",
+    "replacements",
+    "smartquotes",
+    "strikethrough",
+    "substitution",
+    "tasklist",
+]
+
+suppress_warnings = ["myst.header"]
+
+myst_gfm_only = True
+myst_heading_anchors = 1
+myst_title_to_header = True
+
+
+# app setup hook
+def setup(app):
+    app.add_config_value(
+        'recommonmark_config', {'auto_toc_tree_section': 'Contents'}, True,
+    )
