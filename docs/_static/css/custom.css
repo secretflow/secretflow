@@ -1,3 +1,12 @@
-.wy-side-nav-search .wy-dropdown > a img.logo, .wy-side-nav-search > a img.logo {
-    width: 150px;
+@import "../basic.css";
+
+html[data-theme="light"] {
+    --pst-color-primary: rgb(22 119 255);
+    --pst-color-secondary: rgb(22 255 201);
+}
+
+html[data-theme="dark"] {
+    --pst-color-primary: rgb(22 119 255);
+    --pst-color-secondary: rgb(22 255 201);
+    --pst-color-background: rgb(56, 56, 56);
 }
