@@ -114,8 +114,8 @@ html_theme_options = {
         },
     ],
     "external_links": [
-        {"name": "SPU", "url": "https://spu.readthedocs.com/"},
-        {"name": "HEU", "url": "https://heu.readthedocs.com/"},
+        {"name": "SPU", "url": "https://spu.readthedocs.io/"},
+        {"name": "HEU", "url": "https://heu.readthedocs.io/"},
     ],
     "logo": {
         "text": "SecretFlow",
