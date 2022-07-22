@@ -1,5 +1,6 @@
 matplotlib
 myst-parser
+ipython
 nbsphinx
 sphinx
 sphinx-panels
