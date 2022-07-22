@@ -30,18 +30,22 @@ release = '0.6'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'nbsphinx',
-    "IPython.sphinxext.ipython_directive",
-    "IPython.sphinxext.ipython_console_highlighting",
     'sphinx.ext.autodoc',
-    'sphinx.ext.doctest',
-    'sphinx.ext.intersphinx',
+    'sphinx.ext.graphviz',
     'sphinx.ext.todo',
-    'sphinx.ext.coverage',
-    'sphinx.ext.mathjax',
-    'sphinx.ext.napoleon',
-    'sphinx_panels',
-    'myst_parser',  # Parse markdown to html
+    'sphinx.ext.viewcode',
+    'sphinx.ext.extlinks',
+    'sphinx.ext.autosectionlabel',
+    'myst_parser',
+    "nbsphinx",
+    'sphinxcontrib.actdiag',
+    'sphinxcontrib.blockdiag',
+    'sphinxcontrib.mermaid',
+    'sphinxcontrib.nwdiag',
+    'sphinxcontrib.packetdiag',
+    'sphinxcontrib.rackdiag',
+    'sphinxcontrib.seqdiag',
+    'sphinx_markdown_tables',
 ]
 
 nbsphinx_requirejs_path = ''
