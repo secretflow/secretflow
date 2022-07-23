@@ -293,7 +293,7 @@ class HEU(Device):
                             'cleartext_type': "DT_FXP"
                         }
                         'he_parameters': {
-                            'schema': 'ou',
+                            'schema': 'zpaillier',
                             'key_pair': {
                                 'generate': {
                                     'bit_size': 2048,
