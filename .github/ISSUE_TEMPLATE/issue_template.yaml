@@ -47,7 +47,7 @@ body:
       description: 
       placeholder: e.g., Linux Ubuntu 18.04
     validations:
-      required: false
+      required: true
   - type: input
     id: Python
     attributes:
@@ -55,7 +55,7 @@ body:
       description: 
       placeholder: e.g., 3.8.13
     validations:
-      required: false
+      required: true
   - type: input
     id: Bazel
     attributes:
