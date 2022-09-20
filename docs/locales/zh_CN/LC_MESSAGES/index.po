@@ -1,0 +1,97 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2022 Ant Group Co., Ltd.
+# This file is distributed under the same license as the SecretFlow package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2022.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: SecretFlow \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2022-08-26 11:44+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.10.3\n"
+
+#: ../../index.rst:4 a07a6b0eac62421dbe045b5055220bdf
+msgid "SecretFlow"
+msgstr ""
+
+#: ../../index.rst:6 4688090ee5d84ba7a04f08db8e569e4d
+msgid ""
+"`SecretFlow <https://github.com/secretflow/secretflow>`_ is a unified "
+"framework for privacy-preserving data analysis and machine learning."
+msgstr "`SecretFlow <https://github.com/secretflow/secretflow>`_ 是一个隐私保护数据分析和机器学习的统一框架。"
+
+#: ../../index.rst:8 3307ddbe019a4dd8ab50532eb355b168
+msgid "SecretFlow provides"
+msgstr "SecretFlow 提供"
+
+#: ../../index.rst:10 480cbdec67cd4715a88ca00faa4673b6
+msgid ""
+"Device abstraction, which abstracts privacy computing technologies such "
+"as Multi-Party Secure Computing (MPC), Homomorphic Encryption (HE), and "
+"Trusted Execution Environment (TEE) into ciphertext devices, and "
+"abstracts plaintext computing into plaintext devices."
+msgstr "设备抽象，将多方安全计算（MPC）、同态加密（HE）、可信执行环境（TEE）等隐私计算技术抽象为密文设备，将明文计算抽象为明文设备。"
+
+#: ../../index.rst:14 db0377ff0cf5446887e513511ccfba40
+msgid ""
+"Computational graphs based on abstracted devices, enabling data analysis "
+"and machine learning workflows to be represented as computational graphs."
+msgstr "基于抽象设备的计算图，使数据分析和机器学习工作流程能够表示为计算图。"
+
+#: ../../index.rst:16 15c9fcff720c476bbd37b9ad29b6db82
+msgid ""
+"Machine learning/data analysis capabilities based on computational "
+"graphs, supporting data horizontal/vertical/hybrid segmentation and other"
+" scenarios."
+msgstr "基于计算图的机器学习/数据分析能力，支持数据水平/垂直/混合分割等场景。"
+
+#: ../../index.rst:22 6d89a1d46a41450da20dbe8dfc80f460
+msgid "Why `SecretFlow`"
+msgstr "为什么是 `SecretFlow`"
+
+#: ../../index.rst:24 9b621bf0ba4f4544a78058175f67092c
+msgid ""
+"At present, privacy computing technology is growing in popularity. "
+"However, neither the technology nor the market has yet reached real "
+"maturity. In order to cope with the development uncertainty of privacy "
+"computing technology and applications, we propose a general privacy "
+"computing framework called \"SecretFlow\". SecretFlow will adhere to the "
+"following principles, so that the framework has the maximum inclusive and"
+" extensible capabilities to cope with the development of future privacy "
+"computing technologies and applications."
+msgstr "目前，隐私计算技术日益普及。 然而，无论是技术还是市场，都还没有真正成熟。"
+"为了应对隐私计算技术和应用的发展不确定性，我们提出了一个通用的隐私计算框架 - SecretFlow。"
+"SecretFlow将坚持以下原则，使框架具有最大的包容性和可扩展性，以应对未来隐私计算技术和应用的发展。"
+
+#: ../../index.rst:32 4bffbe2381274ea5bf240aaedef4196d
+msgid ""
+"Completeness: It supports various privacy computing technologies and can "
+"be assembled flexibly to meet the needs of different scenarios."
+msgstr "完备性：支持多种隐私计算技术，可灵活组装，满足不同场景需求。"
+
+#: ../../index.rst:34 e2a49108337b48118addea3624356aa0
+msgid ""
+"Transparency: Build a unified technical framework, and try to make the "
+"underlying technology iteration transparent to the upper-layer "
+"application, with high cohesion and low coupling."
+msgstr "透明性：构建统一的技术框架，尽量让底层技术迭代对上层透明应用，具有高内聚和低耦合。"
+
+#: ../../index.rst:37 fdbd741c5bab4ec884c96759bb744afb
+msgid ""
+"Openness: People with different professional directions can easily "
+"participate in the construction of the framework, and jointly accelerate "
+"the development of privacy computing technology."
+msgstr "开放性：不同专业方向的人可以轻松参与框架的建设，共同加速隐私计算技术的发展。"
+
+#: ../../index.rst:39 0cc45b6f844240a5bf719c588b99b2ca
+msgid ""
+"Connectivity: Data in scenarios supported by different underlying "
+"technologies can be connected to each other."
+msgstr "连接性：不同底层技术支持的场景中的数据可以相互连接。"
+

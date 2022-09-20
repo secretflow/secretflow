@@ -1,4 +1,0 @@
-coverage
-unittest-xml-reporting
-matplotlib==3.5.2
-sf-heu>=0.1.0b1,<=0.1.0b3

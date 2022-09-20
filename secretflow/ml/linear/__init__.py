@@ -12,8 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .hess import HESSLogisticRegression
+from .fl_lr_mix import FlLogisticRegressionMix
+from .fl_lr_v import FlLogisticRegressionVertical
+from .hess_sgd import HESSLogisticRegression
+from .ss_sgd import SSRegression
+from .linear_model import LinearModel, RegType
 
 __all__ = [
+    'FlLogisticRegressionMix',
+    'FlLogisticRegressionVertical',
     'HESSLogisticRegression',
+    'SSRegression',
+    'LinearModel',
+    'RegType',
 ]

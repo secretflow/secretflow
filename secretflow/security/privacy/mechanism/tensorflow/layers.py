@@ -15,10 +15,17 @@
 import numpy as np
 import tensorflow as tf
 from abc import ABC, abstractmethod
+from typing import List
 
 from secretflow.security.privacy.accounting.rdp_accountant import (
     get_rdp,
     get_privacy_spent_rdp,
+)
+
+from secretflow.security.privacy.accounting.gdp_accountant import (
+    cal_mu_poisson,
+    cal_mu_uniform,
+    get_eps_from_mu,
 )
 
 
@@ -40,6 +47,7 @@ class GaussianEmbeddingDP(EmbeddingDP):
         batch_size: int,
         num_samples: int,
         l2_norm_clip: float = 1.0,
+        delta: float = None,
         is_secure_generator: bool = False,
     ) -> None:
         """
@@ -51,10 +59,11 @@ class GaussianEmbeddingDP(EmbeddingDP):
             is_secure_generator: whether use the secure generator to generate noise.
         """
         super().__init__()
-        self._noise_multiplier = noise_multiplier
-        self._l2_norm_clip = l2_norm_clip
-        self.q = batch_size / num_samples
-        self.delta = 1 / num_samples
+        self.noise_multiplier = noise_multiplier
+        self.l2_norm_clip = l2_norm_clip
+        self.num_samples = num_samples
+        self.batch_size = batch_size
+        self.delta = delta if delta is not None else min(1 / num_samples**2, 1e-5)
         self.is_secure_generator = is_secure_generator
 
     def call(self, inputs):
@@ -68,24 +77,25 @@ class GaussianEmbeddingDP(EmbeddingDP):
         norm_vec = tf.norm(embed_flat, ord=2, axis=-1)
         ones = tf.ones(shape=norm_vec.shape)
         max_v = tf.linalg.diag(
-            1.0 / tf.math.maximum(norm_vec / self._l2_norm_clip, ones)
+            1.0 / tf.math.maximum(norm_vec / self.l2_norm_clip, ones)
         )
         embed_flat_clipped = tf.linalg.matmul(max_v, embed_flat)
         embed_clipped = tf.reshape(embed_flat_clipped, inputs.shape)
         # add noise
         if self.is_secure_generator:
             import secretflow.security.privacy._lib.random as random
+
             noise = random.secure_normal_real(
-                0, self._noise_multiplier * self._l2_norm_clip, size=inputs.shape
+                0, self.noise_multiplier * self.l2_norm_clip, size=inputs.shape
             )
         else:
             noise = tf.random.normal(
-                inputs.shape, stddev=self._noise_multiplier * self._l2_norm_clip
+                inputs.shape, stddev=self.noise_multiplier * self.l2_norm_clip
             )
 
         return tf.add(embed_clipped, noise)
 
-    def privacy_spent_rdp(self, step: int, orders=None):
+    def privacy_spent_rdp(self, step: int, orders: List = None):
         """Get accountant using RDP.
 
         Args:
@@ -96,9 +106,36 @@ class GaussianEmbeddingDP(EmbeddingDP):
         if orders is None:
             orders = [1 + x / 10.0 for x in range(1, 100)] + list(range(12, 64))
 
-        rdp = get_rdp(self.q, self._noise_multiplier, step, orders)
+        q = self.batch_size / self.num_samples
+        rdp = get_rdp(q, self.noise_multiplier, step, orders)
         eps, _, opt_order = get_privacy_spent_rdp(orders, rdp, target_delta=self.delta)
         return eps, self.delta, opt_order
+
+    def privacy_spent_gdp(
+        self,
+        step: int,
+        sampling_type: str,
+    ):
+        """Get accountant using GDP.
+
+        Args:
+            step: The current step of model training or prediction.
+            sampling_type: Sampling type, which must be "poisson" or "uniform".
+        """
+
+        if sampling_type == 'poisson':
+            mu_ideal = cal_mu_poisson(
+                step, self.noise_multiplier, self.num_samples, self.batch_size
+            )
+        elif sampling_type == 'uniform':
+            mu_ideal = cal_mu_uniform(
+                step, self.noise_multiplier, self.num_samples, self.batch_size
+            )
+        else:
+            raise ValueError('the sampling_type must be "poisson" or "uniform".')
+
+        eps = get_eps_from_mu(mu_ideal, self.delta)
+        return eps, self.delta
 
 
 class LabelDP:

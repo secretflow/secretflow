@@ -1,30 +1,48 @@
 import numpy as np
 import pandas as pd
+import os
+import tempfile
 
 from secretflow import reveal
 from secretflow.data.base import Partition
-from secretflow.data.io import util as io_util
 from secretflow.data.ndarray import load, shuffle, train_test_split
 from secretflow.data.vertical import VDataFrame
 from secretflow.utils.errors import InvalidArgumentError
+
 from tests.basecase import DeviceTestCase, array_equal
 
 
 class TestFedNdarray(DeviceTestCase):
-    def test_load_file_should_ok(self):
-        # GIVEN
-        file_alice = (
-            'tests/datasets/adult/horizontal/adult.alice.npy'
-        )
-        file_bob = 'tests/datasets/adult/horizontal/adult.bob.npy'
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        _, alice_path = tempfile.mkstemp()
+        _, bob_path = tempfile.mkstemp()
+        alice_arr = np.random.rand(20, 10)
+        bob_arr = np.random.rand(10, 10)
+        np.save(alice_path, alice_arr, allow_pickle=False)
+        np.save(bob_path, bob_arr, allow_pickle=False)
+        cls.path = {cls.alice: f'{alice_path}.npy', cls.bob: f'{bob_path}.npy'}
+        cls.alice_arr = alice_arr
+        cls.bob_arr = bob_arr
 
+    @classmethod
+    def tearDownClass(cls) -> None:
+        super().tearDownClass()
+        try:
+            for filepath in cls.path.values():
+                os.remove(filepath)
+        except OSError:
+            pass
+
+    def test_load_file_should_ok(self):
         # WHEN
-        fed_arr = load({self.alice: file_alice, self.bob: file_bob}, allow_pickle=True)
+        fed_arr = load(self.path, allow_pickle=True)
         # THEN
-        alice_arr = np.load(io_util.open(file_alice), allow_pickle=True)
-        bob_arr = np.load(io_util.open(file_bob), allow_pickle=True)
-        self.assertTrue(array_equal(reveal(fed_arr.partitions[self.alice]), alice_arr))
-        self.assertTrue(array_equal(reveal(fed_arr.partitions[self.bob]), bob_arr))
+        self.assertTrue(
+            array_equal(reveal(fed_arr.partitions[self.alice]), self.alice_arr)
+        )
+        self.assertTrue(array_equal(reveal(fed_arr.partitions[self.bob]), self.bob_arr))
 
     def test_load_pyu_object_should_ok(self):
         # GIVEN
@@ -51,18 +69,12 @@ class TestFedNdarray(DeviceTestCase):
 
     def test_train_test_split_on_hdataframe_should_ok(self):
         # GIVEN
-        file_alice = (
-            'tests/datasets/adult/horizontal/adult.alice.npy'
-        )
-        file_bob = 'tests/datasets/adult/horizontal/adult.bob.npy'
-        fed_arr = load({self.alice: file_alice, self.bob: file_bob}, allow_pickle=True)
+        fed_arr = load(self.path, allow_pickle=True)
 
         # WHEN
         fed_arr0, fed_arr1 = train_test_split(fed_arr, 0.6, shuffle=False)
 
         # THEN
-        alice_arr = np.load(io_util.open(file_alice), allow_pickle=True)
-        bob_arr = np.load(io_util.open(file_bob), allow_pickle=True)
         self.assertTrue(
             array_equal(
                 np.concatenate(
@@ -72,7 +84,7 @@ class TestFedNdarray(DeviceTestCase):
                     ],
                     axis=0,
                 ),
-                alice_arr,
+                self.alice_arr,
             )
         )
         self.assertTrue(
@@ -84,7 +96,7 @@ class TestFedNdarray(DeviceTestCase):
                     ],
                     axis=0,
                 ),
-                bob_arr,
+                self.bob_arr,
             )
         )
 
@@ -165,16 +177,45 @@ class TestFedNdarray(DeviceTestCase):
         )
 
     def test_load_npz(self):
-        file_alice = 'tests/datasets/fraud/horizontal/fraud_detection_train_0_of_2.npz'
-        file_bob = 'tests/datasets/fraud/horizontal/fraud_detection_train_1_of_2.npz'
+        # GIVEN
+        _, alice_path = tempfile.mkstemp()
+        _, bob_path = tempfile.mkstemp()
+        alice_train = np.random.rand(20, 10)
+        alice_test = np.random.rand(20, 1)
+        bob_train = np.random.rand(10, 10)
+        bob_test = np.random.rand(10, 1)
+        np.savez(alice_path, train=alice_train, test=alice_test)
+        np.savez(bob_path, train=bob_train, test=bob_test)
         # WHEN
-        data = load({self.alice: file_alice, self.bob: file_bob}, allow_pickle=True)
+        data = load(
+            {self.alice: f'{alice_path}.npz', self.bob: f'{bob_path}.npz'},
+            allow_pickle=True,
+        )
 
         # THEN
-        alice_arr = np.load(io_util.open(file_alice), allow_pickle=True)
-
-        bob_arr = np.load(io_util.open(file_bob), allow_pickle=True)
-
         for k, v in data.items():
-            self.assertTrue(array_equal(reveal(v.partitions[self.alice]), alice_arr[k]))
-            self.assertTrue(array_equal(reveal(v.partitions[self.bob]), bob_arr[k]))
+            if k == 'train':
+                self.assertTrue(
+                    array_equal(reveal(v.partitions[self.alice]), alice_train)
+                )
+                self.assertTrue(array_equal(reveal(v.partitions[self.bob]), bob_train))
+            else:
+                self.assertTrue(
+                    array_equal(reveal(v.partitions[self.alice]), alice_test)
+                )
+                self.assertTrue(array_equal(reveal(v.partitions[self.bob]), bob_test))
+
+    def test_astype_should_ok(self):
+        # WHEN
+        fed_arr = load(self.path)
+        fed_arr = fed_arr.astype(str)
+
+        # THEN
+        self.assertTrue(
+            array_equal(
+                reveal(fed_arr.partitions[self.alice]), self.alice_arr.astype(str)
+            )
+        )
+        self.assertTrue(
+            array_equal(reveal(fed_arr.partitions[self.bob]), self.bob_arr.astype(str))
+        )

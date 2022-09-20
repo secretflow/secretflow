@@ -4,3 +4,4 @@ omit =
     */__init__.py
     */proto/*
     examples/*
+    */site-packages/*

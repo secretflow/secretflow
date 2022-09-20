@@ -36,18 +36,17 @@ def _check_dataframe(df):
 class LabelEncoder:
     """Encode target labels with value between 0 and n_classes-1.
 
-    Just same as :py:meth:`sklearn.preprocessing.LabelEncoder`
+    Just same as :py:class:`sklearn.preprocessing.LabelEncoder`
     where the input/ouput is federated dataframe.
 
-    Attrs:
+    Attributes:
         _encoder: the sklearn LabelEncoder instance.
 
-    Examples
-    --------
-    >>> from secretflow.preprocessing import LabelEncoder
-    >>> le = LabelEncoder()
-    >>> le.fit(df)
-    >>> le.transform(df)
+    Examples:
+        >>> from secretflow.preprocessing import LabelEncoder
+        >>> le = LabelEncoder()
+        >>> le.fit(df)
+        >>> le.transform(df)
     """
 
     def _fit(self, df: Union[HDataFrame, VDataFrame]) -> np.ndarray:
@@ -121,18 +120,17 @@ class LabelEncoder:
 class OneHotEncoder:
     """Encode categorical features as a one-hot numeric array.
 
-    Just same as :py:meth:`sklearn.preprocessing.OneHotEncoder`
+    Just same as :py:class:`sklearn.preprocessing.OneHotEncoder`
     where the input/ouput is federated dataframe.
 
-    Attrs:
+    Attributes:
         _encoder: the sklearn OneHotEncoder instance.
 
-    Examples
-    --------
-    >>> from secretflow.preprocessing import OneHotEncoder
-    >>> enc = OneHotEncoder()
-    >>> enc.fit(df)
-    >>> enc.transform(df)
+    Examples:
+        >>> from secretflow.preprocessing import OneHotEncoder
+        >>> enc = OneHotEncoder()
+        >>> enc.fit(df)
+        >>> enc.transform(df)
     """
 
     @staticmethod

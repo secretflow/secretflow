@@ -4,6 +4,7 @@ import jax.numpy as jnp
 import numpy as np
 
 import secretflow as sf
+from secretflow.device.device.spu import SPUCompilerNumReturnsPolicy
 from tests.basecase import DeviceTestCase
 
 
@@ -14,8 +15,32 @@ class TestDeviceSPUKernel(DeviceTestCase):
 
         x, y = self.alice(np.random.rand)(3, 4), self.alice(np.random.rand)(3, 4)
         x_, y_ = x.to(self.spu), y.to(self.spu)
-        x_, y_ = self.spu(foo)(x_, y_)
-        np.testing.assert_almost_equal(sf.reveal(x), sf.reveal(x_), decimal=6)
+
+        z_ = self.spu(foo)(x_, y_)
+
+        np.testing.assert_almost_equal(
+            (sf.reveal(x), sf.reveal(y)), sf.reveal(z_), decimal=6
+        )
+
+        x_hat, y_hat = self.spu(
+            foo, num_returns_policy=SPUCompilerNumReturnsPolicy.FROM_COMPILER
+        )(x_, y_)
+        np.testing.assert_almost_equal(
+            (sf.reveal(x), sf.reveal(y)),
+            (sf.reveal(x_hat), sf.reveal(y_hat)),
+            decimal=6,
+        )
+
+        x_hat_2, y_hat_2 = self.spu(
+            foo,
+            num_returns_policy=SPUCompilerNumReturnsPolicy.FROM_USER,
+            user_specified_num_returns=2,
+        )(x_, y_)
+        np.testing.assert_almost_equal(
+            (sf.reveal(x), sf.reveal(y)),
+            (sf.reveal(x_hat_2), sf.reveal(y_hat_2)),
+            decimal=6,
+        )
 
     def test_selu(self):
         def selu(x, alpha=1.67, lmbda=1.05):
@@ -69,7 +94,7 @@ class TestDeviceSPUKernel(DeviceTestCase):
 
         # SPU
         w1_, w2_ = w1.to(self.spu), w2.to(self.spu)
-        w_ = self.spu(average)(w1_, w2_, weights=[1, 2]).to(self.bob)
+        w_ = self.spu(average)(w1_, w2_, weights=[1, 2])
 
         for expected, actual in zip(sf.reveal(w), sf.reveal(w_)):
             np.testing.assert_almost_equal(expected, actual, decimal=5)
@@ -123,6 +148,15 @@ class TestDeviceSPUKernel(DeviceTestCase):
         y = func(x, 0)
         y_ = self.spu(func, static_argnames='axis')(x_, axis=0)
         np.testing.assert_almost_equal(y, sf.reveal(y_), decimal=6)
+
+        def init_w(base: float, num_feat: int) -> np.ndarray:
+            # last one is bias
+            return jnp.full((num_feat + 1, 1), base, dtype=jnp.float32)
+
+        spu_w = self.spu(init_w, static_argnames=('base', 'num_feat'))(
+            base=0, num_feat=30
+        )
+        print(sf.reveal(spu_w))
 
 
 class Test3PCSPUKernel(DeviceTestCase):

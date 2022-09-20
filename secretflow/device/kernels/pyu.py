@@ -16,51 +16,52 @@ from spu import Visibility
 
 from secretflow.device import (
     HEU,
-    SPU,
     PYU,
+    SPU,
+    SPUIO,
     Device,
     DeviceType,
     HEUObject,
-    SPUObject,
     PYUObject,
+    SPUObject,
     register,
 )
 
 
 @register(DeviceType.PYU)
-def to(
-    self: PYUObject,
-    device: Device,
-    spu_vis: str,
-    heu_dest_party: str,
-    heu_audit_log: str,
-):
+def to(self: PYUObject, device: Device, config):
     assert isinstance(device, Device), f'Expect a device but got {type(device)}'
 
     if isinstance(device, PYU):
         return PYUObject(device, self.data)
     elif isinstance(device, SPU):
         assert (
-            spu_vis == 'secret' or spu_vis == 'public'
+            config.spu_vis == 'secret' or config.spu_vis == 'public'
         ), f'vis must be public or secret'
-        spu_vis = (
-            Visibility.VIS_PUBLIC if spu_vis == 'public' else Visibility.VIS_SECRET
+
+        vtype = (
+            Visibility.VIS_PUBLIC
+            if config.spu_vis == 'public'
+            else Visibility.VIS_SECRET
         )
 
-        value_shares = self.device(SPU.infeed, num_returns=len(device.actors) + 1)(
-            device.cluster_def, str(self.data), self.data, spu_vis
+        def run_spu_io(data, runtime_config, world_size, vtype):
+            io = SPUIO(runtime_config, world_size)
+            return io.make_shares(data, vtype)
+
+        meta, *shares = self.device(run_spu_io, num_returns=(1 + device.world_size))(
+            self.data, device.conf, device.world_size, vtype
         )
-        shares, tree = value_shares[:-1], value_shares[-1]
 
-        for i, actor in enumerate(device.actors.values()):
-            actor.set_var.remote(shares[i].data)
+        return SPUObject(device, meta.data, [share.data for share in shares])
 
-        return SPUObject(device, tree.data)
     elif isinstance(device, HEU):  # PYU -> HEU, pure local operation
-        if heu_dest_party == 'auto':
-            heu_dest_party = list(device.evaluator_names())[0]
-        return HEUObject(device, self.data, self.device.party, True).to(
-            device, heu_dest_party=heu_dest_party, heu_audit_log=heu_audit_log
+        if config.heu_dest_party == 'auto':
+            config.heu_dest_party = list(device.evaluator_names())[0]
+
+        data = device.get_participant(self.device.party).encode.remote(
+            self.data, config.heu_encoder
         )
+        return HEUObject(device, data, self.device.party, True).to(device, config)
 
     raise ValueError(f'Unexpected device type: {type(device)}')

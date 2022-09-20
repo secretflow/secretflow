@@ -1,9 +1,9 @@
 import jax
 import numpy as np
-import secretflow as sf
 from jax.example_libraries import optimizers, stax
 from jax.example_libraries.stax import Dense, Relu
-from secretflow.device.device.spu import CustomPyTreeNode
+
+import secretflow as sf
 from tests.basecase import DeviceTestCase
 
 
@@ -80,8 +80,3 @@ class TestDeviceSPU(DeviceTestCase):
         x_spu = x_heu.to(self.spu)
         y = x_spu.to(self.alice)
         np.testing.assert_almost_equal(sf.reveal(x), sf.reveal(y), decimal=5)
-
-    def test_to_spu_with_pytreedef(self):
-        learning_rate = 0.1
-        params = sf.to(self.spu, lambda: init_state(learning_rate))
-        self.assertTrue(isinstance(params.data, CustomPyTreeNode))

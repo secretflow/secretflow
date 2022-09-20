@@ -125,11 +125,28 @@ class Partition(DataFrameBase):
             else pd.Series({df.name: df.types})
         )(self.data)
 
+    def astype(self, dtype, copy: bool = True, errors: str = "raise"):
+        """
+        Cast a pandas object to a specified dtype ``dtype``.
+
+        All args are same as :py:meth:`pandas.DataFrame.astype`.
+        """
+        return Partition(
+            self.data.device(pd.DataFrame.astype)(self.data, dtype, copy, errors)
+        )
+
     @property
     @reveal
     def columns(self):
         """Return the column labels of the DataFrame."""
         return self.data.device(lambda df: df.columns)(self.data)
+
+    @property
+    @reveal
+    def shape(self):
+        """Return a tuple representing the dimensionality of the DataFrame.
+        """
+        return self.data.device(lambda df: df.shape)(self.data)
 
     def iloc(self, index: Union[int, slice, List[int]]) -> 'Partition':
         """Integer-location based indexing for selection by position.
@@ -257,7 +274,7 @@ class Partition(DataFrameBase):
 
     def to_csv(self, filepath, **kwargs):
         """Save DataFrame to csv file."""
-        Partition(self.data.device(to_csv_wrapper)(self.data, filepath, **kwargs))
+        return self.data.device(to_csv_wrapper)(self.data, filepath, **kwargs)
 
     @reveal
     def __len__(self):

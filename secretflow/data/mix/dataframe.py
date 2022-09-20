@@ -220,6 +220,38 @@ class MixDataFrame:
         """
         return self.partitions[0].dtypes
 
+    def astype(self, dtype, copy: bool = True, errors: str = "raise"):
+        """
+        Cast object to a specified dtype ``dtype``.
+
+        All args are same as :py:meth:`pandas.DataFrame.astype`.
+        """
+        if isinstance(dtype, dict) and self.partition_way == PartitionWay.VERTICAL:
+            col_idx = self._col_index(list(dtype.keys()))
+            new_parts = []
+            for i, part in enumerate(self.partitions):
+                if i not in col_idx:
+                    new_parts.append(part.copy())
+                else:
+                    cols = col_idx[i]
+                    if not isinstance(cols, list):
+                        cols = [cols]
+                    new_parts.append(
+                        part.astype(
+                            dtype={col: dtype[col] for col in cols},
+                            copy=copy,
+                            errors=errors,
+                        )
+                    )
+
+            return MixDataFrame(partitions=new_parts)
+
+        return MixDataFrame(
+            partitions=[
+                vdf.astype(dtype, copy=copy, errors=errors) for vdf in self.partitions
+            ]
+        )
+
     @property
     def columns(self):
         """
@@ -230,6 +262,16 @@ class MixDataFrame:
             for part in self.partitions[1:]:
                 cols = cols.append(part.columns)
         return cols
+
+    @property
+    def shape(self) -> Tuple:
+        """Return a tuple representing the dimensionality of the DataFrame.
+        """
+        shapes = [part.shape for part in self.partitions]
+        if self.partition_way == PartitionWay.HORIZONTAL:
+            return sum([shape[0] for shape in shapes]), shapes[0][1]
+        else:
+            return shapes[0][0], sum([shape[1] for shape in shapes])
 
     def copy(self) -> 'MixDataFrame':
         """
@@ -301,7 +343,7 @@ class MixDataFrame:
             for part in self.partitions
         ]
         if not inplace:
-            return HDataFrame(partitions=new_partitions)
+            return MixDataFrame(partitions=new_partitions)
 
     def __len__(self):
         if self.partition_way == PartitionWay.HORIZONTAL:

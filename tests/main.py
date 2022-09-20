@@ -5,11 +5,7 @@
 import unittest
 
 import xmlrunner
-from absl import app, flags
-
-flags.DEFINE_boolean(
-    'in_aci_pipeline', False, 'Indicates current test running in ACI Pipeline.'
-)
+from absl import app
 
 
 def main(argv):
@@ -20,8 +16,9 @@ def main(argv):
     for case in all_cases:
         # add all tests into suite
         suite.addTests(case)
-    runner = xmlrunner.XMLTestRunner(output='report')
-    runner.run(suite)
+    with open('./results.xml', 'wb') as output:
+        runner = xmlrunner.XMLTestRunner(output=output, failfast=True)
+        runner.run(suite)
 
 
 if __name__ == '__main__':

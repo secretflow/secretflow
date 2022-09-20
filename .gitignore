@@ -281,6 +281,7 @@ pip-selfcheck.json
 dist
 deploy
 fascia.egg-info
+build
 
 # Remove log from project files
 *.h5
@@ -293,7 +294,6 @@ logs
 /fascia_python.tar.gz
 /dataset/
 
-*.ipynb
 */assets/*.graffle
 /tests/result.md
 /report/
@@ -323,9 +323,26 @@ antbase2
 
 # local dataset
 *.csv
+examples/datasets/*
 
 # bazel build
 bazel-*
 
 # docs
 docs/source
+
+# test artifacts
+alice.audit
+alice.audit.npy
+bob.audit
+bob.audit.npy
+bob.audit.pk.pickle
+bob.audit.data.pickle
+data.lock
+./data
+results.xml
+base_alice/
+base_bob/
+fuse_model/
+
+*Miniconda3.sh

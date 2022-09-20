@@ -13,10 +13,11 @@
 # limitations under the License.
 
 from . import horizontal, vertical
-from .ndarray import FedNdarray
+from .ndarray import FedNdarray, PartitionWay
 
 __all__ = [
     'horizontal',
     'vertical',
     'FedNdarray',
+    'PartitionWay',
 ]

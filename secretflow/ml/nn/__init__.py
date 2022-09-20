@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .fl_model import FLModelTF
-from .sl_model import SLModelTF
+
+from .fl.fl_model import FLModel
+from .sl.sl_model import SLModel
 
 __all__ = [
-    "FLModelTF",
-    "SLModelTF",
+    "FLModel",
+    "SLModel",
 ]

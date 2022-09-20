@@ -70,3 +70,20 @@ def cluster_def(parties: List[str], runtime_config=None):
         )
 
     return cdef
+
+
+def heu_config(sk_keeper: str, evaluators: List[str]):
+    return {
+        'sk_keeper': {'party': sk_keeper},
+        'evaluators': [{'party': evaluator} for evaluator in evaluators],
+        'mode': 'PHEU',
+        'he_parameters': {
+            'schema': 'paillier',
+            'key_pair': {'generate': {'bit_size': 2048}},
+        },
+        'encoding': {
+            'cleartext_type': 'DT_I32',
+            'encoder': "IntegerEncoder",
+            'encoder_args': {"scale": 1},
+        },
+    }

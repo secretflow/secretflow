@@ -15,7 +15,7 @@
 from .base import Device, DeviceObject
 from .heu import HEU
 from .heu_object import HEUObject
-from .spu import SPU, SPUObject, CustomPyTreeNode
-from .type_traits import spu_fxp_precision, spu_fxp_size
 from .pyu import PYU, PYUObject
 from .register import DeviceType, register
+from .spu import SPU, SPUIO, SPUCompilerNumReturnsPolicy, SPUObject, SPUValueMeta
+from .type_traits import spu_fxp_precision, spu_fxp_size

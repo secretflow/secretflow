@@ -1,0 +1,503 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2022 Ant Group Co., Ltd.
+# This file is distributed under the same license as the SecretFlow package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2022.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: SecretFlow \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2022-09-15 17:24+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.10.3\n"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:9
+msgid "Feature Engineering"
+msgstr "特征工程"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:20
+msgid ""
+"The following codes are demos only. It's **NOT for production** due to "
+"system security concerns, please **DO NOT** use it directly in "
+"production."
+msgstr "本页面中的代码仅供参考，部署模式存在安全问题，请 **不要** 作为生产代码使用。"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:42
+msgid ""
+"It is recommended to use `jupyter <https://jupyter.org/>`__ to run this "
+"tutorial."
+msgstr "推荐使用 `jupyter <https://jupyter.org/>`__ 运行本教程。"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:53
+msgid ""
+"Secretflow provides a variety of tools to analyze the statistics of the "
+"dataset in order to improve the quality of results from a machine "
+"learning process."
+msgstr "Secretflow 提供了多种工具来分析数据集，以提高机器学习结果的质量。"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:65
+msgid "Preparation"
+msgstr "初始化"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:67
+msgid "Initialize secretflow and create two parties alice and bob."
+msgstr "初始化Secretflow，并创建alice/bob两个计算参与方兼数据提供方。"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:78
+msgid ""
+"💡 Before using preprocessing, you may need to get to know secretflow's "
+"`DataFrame <../preprocessing/DataFrame.ipynb>`__."
+msgstr "使用前请先了解Secretflow的数据集设定 `DataFrame <../preprocessing/DataFrame.ipynb>`__。"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:109
+msgid "Data Preparation"
+msgstr "准备Demo数据"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:120
+msgid "Here we use linear as example data."
+msgstr "使用一组线性拟合数据作为示例。"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:261
+msgid "Pearson product-moment correlation coefficient"
+msgstr "皮尔逊积矩相关系数"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:263
+msgid ""
+"The Pearson product-moment correlation coefficient is used to measure the"
+" degree of correlation (linear correlation) between two variables X and "
+"Y."
+msgstr "皮尔逊积矩相关系数可以用来探查两个变量X/Y之间的线性相关性的强度。"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:265
+msgid ""
+"The Pearson product-moment correlation coefficient between two variables "
+"is defined as the covariance of the two variables divided by the product "
+"of their standard deviations:"
+msgstr "两个变量之间的皮尔逊积矩相关系数定义为两个变量的协方差除以其标准差的乘积："
+
+#: ../../components/mpc_ml/feature_eng.ipynb:267
+msgid ""
+"\\rho_{X,Y}=\\frac{cov(X, Y)}{\\sigma_X "
+"\\sigma_Y}=\\frac{(X-\\mu_X)(Y-\\mu_Y)}{\\sigma_X \\sigma_Y}\n"
+"\n"
+msgstr ""
+"\\rho_{X,Y}=\\frac{cov(X, Y)}{\\sigma_X "
+"\\sigma_Y}=\\frac{(X-\\mu_X)(Y-\\mu_Y)}{\\sigma_X \\sigma_Y}\n"
+"\n"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:269
+msgid ""
+"\\mu_X= \\mathbb{E}(X), "
+"\\sigma_X^2=\\mathbb{E}[(X-\\mathbb{E}(X))^2]=\\mathbb{E}(X^2)-\\mathbb{E}^2(X)"
+"\n"
+"\n"
+msgstr ""
+"\\mu_X= \\mathbb{E}(X), "
+"\\sigma_X^2=\\mathbb{E}[(X-\\mathbb{E}(X))^2]=\\mathbb{E}(X^2)-\\mathbb{E}^2(X)"
+"\n"
+"\n"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:271
+msgid ""
+"The Pearson product-moment correlation coefficient for samples(features) "
+"from dataset, usually represented by the lowercase letter r:"
+msgstr "数据集中样本（特征）的皮尔逊积矩相关系数，通常用小写字母 r 表示："
+
+#: ../../components/mpc_ml/feature_eng.ipynb:273
+msgid ""
+"r=\\frac{\\sum^n_{i=1}(X_i-\\bar{X})(Y_i-\\bar{Y})}{\\sqrt{\\sum^n_{i=1}(X_i-\\bar{X})^2}"
+" \\sqrt{\\sum^n_{i=1}(Y_i-\\bar{Y})^2}}\n"
+"\n"
+msgstr ""
+"r=\\frac{\\sum^n_{i=1}(X_i-\\bar{X})(Y_i-\\bar{Y})}{\\sqrt{\\sum^n_{i=1}(X_i-\\bar{X})^2}"
+" \\sqrt{\\sum^n_{i=1}(Y_i-\\bar{Y})^2}}\n"
+"\n"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:275
+msgid ""
+"Its value is between -1 and 1. :math:`r>0` corresponds to a positive "
+"correlation between features, otherwise it is a negative correlation; the"
+" larger the :math:`|r|`, the greater the degree of correlation."
+msgstr "其值介于-1与1之间。 :math:`r>0` 对应两者正相关，反之为负相关； :math:`|r|` 越大，相关程度越大。"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:278
+msgid "SSVertPearsonR"
+msgstr "SSVertPearsonR"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:280
+msgid ""
+"SecretFlow provides ``SSVertPearsonR`` for calculating Pearson product-"
+"moment correlation coefficient of Vertical DataFrame using secret "
+"sharing."
+msgstr "SecretFlow 的 ``SSVertPearsonR`` 模块可以用于探查垂直划分数据集的皮尔逊积矩相关系数，计算过程使用秘密分享协议保护。"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:282
+msgid ""
+"SSVertPearsonR will standardize input datraset first. After standardized,"
+" all features' variance is 1 and the mean is 0, the calculation is "
+"simplified to:"
+msgstr "SSVertPearsonR会首先标准化数据集，这样一来所有特征的均值为0方差为1，可以将计算简化为："
+
+#: ../../components/mpc_ml/feature_eng.ipynb:284
+msgid ""
+"r=\\frac{1}{n-1}X^TX\n"
+"\n"
+msgstr ""
+"r=\\frac{1}{n-1}X^TX\n"
+"\n"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:370
+msgid "Variance inflation factor"
+msgstr "方差扩大因子"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:372
+msgid ""
+"Variance Inflation Factor (VIF) was used to detect multicollinearity "
+"between variables. In a linear statistical model, the variance inflation "
+"factor (VIF) of a coefficient is equal to the quotient of the variance of"
+" that coefficient in a multivariate model and the variance of that "
+"coefficient in a model with only one variable. In simple terms, it refers"
+" to the ratio of the variance when there is multicollinearity among the "
+"explanatory variables (features) to the variance when there is no "
+"multicollinearity."
+msgstr ""
+"方差扩大因子 (VIF) "
+"用于探查变量之间的多重共线性。在一个线性统计模型中，一个系数的方差扩大因子等于多元模型中该系数的方差与只有一个变量的模型中该系数的方差的商，简单来说，就是解释变量（特征）之间存在多重共线性时的方差与不存在多重共线性时的方差之比。"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:376
+msgid "SSVertVIF"
+msgstr "SSVertVIF"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:378
+msgid ""
+"SecretFlow provides ``SSVertVIF`` for calculating variance inflation "
+"factor of Vertical DataFrame using secret sharing."
+msgstr "SecretFlow 的 ``SSVertVIF`` 模块可以用于探查垂直划分数据集的方差扩大因子，计算过程使用秘密分享协议保护。"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:380
+msgid "The vif value of the j-th feature is:"
+msgstr "第j个特征的vif值为："
+
+#: ../../components/mpc_ml/feature_eng.ipynb:382
+msgid ""
+"VIF_j = (X^TX)^{-1}_{jj}(n-1)var(X_j)\n"
+"\n"
+msgstr ""
+"VIF_j = (X^TX)^{-1}_{jj}(n-1)var(X_j)\n"
+"\n"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:384
+msgid "Notice:"
+msgstr "注意："
+
+#: ../../components/mpc_ml/feature_eng.ipynb:386
+msgid ""
+"The analytical solution of matrix inversion in secret sharing is very "
+"expensive, so this method uses Newton iteration to find approximate "
+"solution."
+msgstr "在秘密分享协议下计算矩阵逆开销非常大，所以这里使用牛顿迭代进行近似。"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:388
+msgid ""
+"When there is multicollinearity in the input dataset, the XTX matrix is "
+"not full rank, and the analytical solution for the inverse of the XTX "
+"matrix does not exist."
+msgstr "当输入数据集中存在完全线性相关时，XTX矩阵不满秩，XTX矩阵逆的解析解不存在。"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:390
+msgid ""
+"The VIF results of these linear correlational columns calculated by "
+"statsmodels are INF, indicating that the correlation is infinite. "
+"However, this method will get a large VIF value (>>1000) on these "
+"columns, which can also correctly reflect the strong correlation of these"
+" columns."
+msgstr "statsmodels在完全线性相关列上计算的VIF为INF，意为无限大的相关性。而我们提供的模块会输出一个很大的值(>>1000)，也能正确的表示这些列之间存在很强的相关性。"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:392
+msgid ""
+"When there are constant columns in the data, the VIF result calculated by"
+" statsmodels is NAN, and the result of this method is also a large VIF "
+"value (>> 1000), means these columns need to be removed before training."
+msgstr "对于常量列，statsmodels的结果是NAN，我们的模块依然是很大的值(>>1000)，表明这个列在建模前需要被剔除。"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:394
+msgid ""
+"Therefore, although the results of this method cannot be completely "
+"consistent with statemodels that calculations in plain text, but they can"
+" still correctly reflect the correlation of the input data columns."
+msgstr "所以本模块的结果虽然无法和statemodels这类明文计算的结果完全一致，但依然能正确的反映出特征间的相关性。"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:447
+msgid "Hypothesis Testing for Regression Coefficients"
+msgstr "线性模型/广义线性模型系数显著检验"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:449
+msgid ""
+"Linear / logistic regression variable significance test for all features "
+"(explanatory variables) use to judge whether the parameter is "
+"significant, that is, whether the independent variable can effectively "
+"predict the variation of the dependent variable, so as to determine "
+"whether the corresponding explanatory variable should be included in the "
+"model."
+msgstr "线性/逻辑回归变量显著性检验用于判断特征（解释变量）是否显著，即自变量是否能有效预测因变量的变化，从而判断对应的解释变量是否应被包含在模型中。"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:452
+msgid "Hypothesis Testing for linear Regression Coefficients"
+msgstr "线性回归系数显著检验"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:454
+msgid ""
+"For linear regression :math:`y=Xω` (X contains a constant term), use the "
+"t-test to test whether the regression term coefficients have zero values."
+msgstr "对线性回归 :math:`y=Xω`（X包含常数项），使用t检验来对回归项系数检验其值是否为零。"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:456
+msgid "Assume:"
+msgstr "其中："
+
+#: ../../components/mpc_ml/feature_eng.ipynb:458
+msgid ""
+"\\hat{ω}=(X^T X)^{-1} X^T y=ω+(X^T X)^{-1} X^T ε\n"
+"\n"
+msgstr ""
+"\\hat{ω}=(X^T X)^{-1} X^T y=ω+(X^T X)^{-1} X^T ε\n"
+"\n"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:460
+msgid ""
+"E(\\hat{ω})=ω\n"
+"\n"
+msgstr ""
+"E(\\hat{ω})=ω\n"
+"\n"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:462
+msgid ""
+"Var(\\hat{ω} )=σ^2 (X^T X)^{-1}\n"
+"\n"
+msgstr ""
+"Var(\\hat{ω} )=σ^2 (X^T X)^{-1}\n"
+"\n"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:464
+msgid ""
+"In the case where the five assumptions made by OLS are all established, "
+"the statistic:"
+msgstr "在最小二乘法5条假设都成立的情况下，统计量："
+
+#: ../../components/mpc_ml/feature_eng.ipynb:466
+msgid ""
+"t_j=\\frac{\\hat{ω}_j- ω_j}{s.e.(ω_j )}=\\frac{\\hat{ω}_j - "
+"ω_j}{\\sqrt{\\hat{σ}^2 (X^T X)_{jj}^{-1}}}  \\sim t_{n-k}\n"
+"\n"
+msgstr ""
+"t_j=\\frac{\\hat{ω}_j- ω_j}{s.e.(ω_j )}=\\frac{\\hat{ω}_j - "
+"ω_j}{\\sqrt{\\hat{σ}^2 (X^T X)_{jj}^{-1}}}  \\sim t_{n-k}\n"
+"\n"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:468
+msgid "where n is sample size, k is feature size."
+msgstr "其中，n为样本量，k为特征数"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:470
+#: ../../components/mpc_ml/feature_eng.ipynb:492
+msgid "The null and alternative hypotheses tested are:"
+msgstr "检验的原假设和备择假设为："
+
+#: ../../components/mpc_ml/feature_eng.ipynb:472
+msgid ""
+" \\begin{aligned}\n"
+"& H_0:ω_j=0 (j=1,2,⋯,k) \\\\ & H_1:ω_j≠0\n"
+"\\end{aligned}"
+msgstr ""
+" \\begin{aligned}\n"
+"& H_0:ω_j=0 (j=1,2,⋯,k) \\\\ & H_1:ω_j≠0\n"
+"\\end{aligned}"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:478
+msgid "Bring the null hypothesis of the test into :math:`t_j` :"
+msgstr "将检验的原假设带入 :math:`t_j` ："
+
+#: ../../components/mpc_ml/feature_eng.ipynb:480
+msgid ""
+"t_j=\\frac{\\hat{ω}_j}{s.e.(ω_j )}=\\frac{\\hat{ω}_j}{\\sqrt{\\hat{σ}^2 "
+"(X^T X)_{jj}^{-1}}}  \\sim t_{n-k}\n"
+"\n"
+msgstr ""
+"t_j=\\frac{\\hat{ω}_j}{s.e.(ω_j )}=\\frac{\\hat{ω}_j}{\\sqrt{\\hat{σ}^2 "
+"(X^T X)_{jj}^{-1}}}  \\sim t_{n-k}\n"
+"\n"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:483
+msgid "Hypothesis Testing for Logistic Regression Coefficients"
+msgstr "逻辑回归系数显著检验"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:485
+msgid "For logistic regression"
+msgstr "对于逻辑回归"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:487
+msgid ""
+" P(y=1|x)=π(x)=1/(1+e^{-ωx} ) \\\\\n"
+"P(y=0|x)=1-π(x)=1/(1+e^{ωx} )"
+msgstr ""
+" P(y=1|x)=π(x)=1/(1+e^{-ωx} ) \\\\\n"
+"P(y=0|x)=1-π(x)=1/(1+e^{ωx} )"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:494
+msgid ""
+" \\begin{aligned}\n"
+"& H_0:ω_j=0 (j=1,2,⋯,k) \\\\\n"
+"& H_1:ω_j≠0\n"
+"\\end{aligned}"
+msgstr ""
+" \\begin{aligned}\n"
+"& H_0:ω_j=0 (j=1,2,⋯,k) \\\\\n"
+"& H_1:ω_j≠0\n"
+"\\end{aligned}"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:501
+msgid ""
+"Wald test :math:`Wald=(\\hat{ω}_k/SE(\\hat{ω}_k ) )^2` fits a chi-square "
+"distribution with 1 degree of freedom."
+msgstr "Wald test :math:`Wald=(\\hat{ω}_k/SE(\\hat{ω}_k ) )^2` 符合自由度为1的卡方分布。"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:503
+msgid ""
+"Where :math:`SE(\\hat{ω}_k )` is the standard error of :math:`ω_k`, which"
+" is the square root of the diagonal elements of the variance-covariance "
+"matrix:"
+msgstr "其中 :math:`SE(\\hat{ω}_k )` 是 :math:`ω_k` 的标准误差, 为方差协方差矩阵的对角元素的平方根："
+
+#: ../../components/mpc_ml/feature_eng.ipynb:505
+msgid ""
+"SE(\\hat{ω}_k )={Cov(\\hat{ω}_{kk})}^{1/2}\n"
+"\n"
+msgstr ""
+"SE(\\hat{ω}_k )={Cov(\\hat{ω}_{kk})}^{1/2}\n"
+"\n"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:507
+msgid ""
+"The variance and covariance matrices of the model parameters are the "
+"values ​​of the inverse of the Hessian matrix of the log-likelihood "
+"function at :math:`\\hat{ω}`:"
+msgstr "模型参数的方差和协方差矩阵，为对数似然函数的Hessian矩阵的逆在 :math:`\\hat{ω}` 处的值："
+
+#: ../../components/mpc_ml/feature_eng.ipynb:509
+msgid ""
+"Cov(\\hat{ω}) =H^{-1}=\\frac{∂^2 l(ω)}{∂ω^2}|_{\\hat{ω}}\n"
+"\n"
+msgstr ""
+"Cov(\\hat{ω}) =H^{-1}=\\frac{∂^2 l(ω)}{∂ω^2}|_{\\hat{ω}}\n"
+"\n"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:511
+msgid "Where:"
+msgstr "其中："
+
+#: ../../components/mpc_ml/feature_eng.ipynb:513
+msgid ""
+"H_{kr}=\\frac{∂^2l(ω)}{∂ω_k ∂ω_r}=∑_{i=1}^mx_{ik}π(x_i)[π(x_i )-1]x_{ir}\n"
+"\n"
+msgstr ""
+"H_{kr}=\\frac{∂^2l(ω)}{∂ω_k ∂ω_r}=∑_{i=1}^mx_{ik}π(x_i)[π(x_i )-1]x_{ir}\n"
+"\n"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:515
+msgid ""
+"The Hessian matrix is ​​expressed as :math:`H=X^T A X`, A is a n\\*n "
+"matrix, where:"
+msgstr "Hessian矩阵表示为 :math:`H=X^T A X`， A矩阵为："
+
+#: ../../components/mpc_ml/feature_eng.ipynb:517
+msgid ""
+" \\begin{aligned}\n"
+"& A_{ii} = π(x_{i})[π(x_{i}) - 1] \\\\\n"
+"& A_{ij} = 0 , i≠j\n"
+"\\end{aligned}"
+msgstr ""
+" \\begin{aligned}\n"
+"& A_{ii} = π(x_{i})[π(x_{i}) - 1] \\\\\n"
+"& A_{ij} = 0 , i≠j\n"
+"\\end{aligned}"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:524
+msgid "Available:"
+msgstr "可得："
+
+#: ../../components/mpc_ml/feature_eng.ipynb:526
+msgid ""
+" \\begin{aligned}\n"
+"Wald & = (\\hat{ω}_k/SE(\\hat{ω}_k ) )^2 \\\\\n"
+"& = \\hat{ω}_k^2 /Cov(\\hat{ω}_{kk}) \\\\\n"
+"& = \\hat{ω}_k^2 / H^{-1}_{kk} \\\\\n"
+"& = \\hat{ω}_k^2 / (X^T \\Lambda X )^{-1}_{kk}\n"
+"\\end{aligned}"
+msgstr ""
+" \\begin{aligned}\n"
+"Wald & = (\\hat{ω}_k/SE(\\hat{ω}_k ) )^2 \\\\\n"
+"& = \\hat{ω}_k^2 /Cov(\\hat{ω}_{kk}) \\\\\n"
+"& = \\hat{ω}_k^2 / H^{-1}_{kk} \\\\\n"
+"& = \\hat{ω}_k^2 / (X^T \\Lambda X )^{-1}_{kk}\n"
+"\\end{aligned}"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:536
+msgid "SSPValue"
+msgstr "SSPValue"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:538
+msgid ""
+"SecretFlow provides ``SSPValue`` for calculating P-Value of hypothesis "
+"testing using secret sharing."
+msgstr "SecretFlow 的 ``SSPValue`` 模块可以用于探查模型的P-Value，计算过程使用秘密分享协议保护。"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:540
+msgid "For linear regression:"
+msgstr "线性回归模型："
+
+#: ../../components/mpc_ml/feature_eng.ipynb:542
+msgid "calculate prediction residuals :math:`\\hat{ε}=Xω - y`"
+msgstr "计算预测残差 :math:`\\hat{ε}=Xω - y`"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:543
+msgid "calculate :math:`\\hat{σ}^2=\\hat{ε}^T\\hat{ε} /(n-k)`"
+msgstr "计算 :math:`\\hat{σ}^2=\\hat{ε}^T\\hat{ε} /(n-k)`"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:544
+msgid "get :math:`(X^T X)^{-1}` by Newton iteration"
+msgstr "通过牛顿迭代计算 :math:`(X^T X)^{-1}` "
+
+#: ../../components/mpc_ml/feature_eng.ipynb:545
+msgid ":math:`t^2= ω^2 / \\hat{σ}^2(X^T X)_{jj}^{-1}`"
+msgstr ":math:`t^2= ω^2 / \\hat{σ}^2(X^T X)_{jj}^{-1}`"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:546
+msgid ":math:`p =2 * (1 - t_{n-k}.cdf(|t|))`"
+msgstr ":math:`p =2 * (1 - t_{n-k}.cdf(|t|))`"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:548
+msgid "For logistic regression:"
+msgstr "逻辑回归模型："
+
+#: ../../components/mpc_ml/feature_eng.ipynb:550
+msgid "calculate :math:`H=X^TAX`"
+msgstr "计算 :math:`H=X^TAX`"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:551
+msgid "get :math:`H^{-1}` by Newton iteration"
+msgstr "通过牛顿迭代计算 :math:`H^{-1}` "
+
+#: ../../components/mpc_ml/feature_eng.ipynb:552
+msgid "calculate :math:`z^2=ω^2/H^{-1}_{kk}`"
+msgstr "计算 :math:`z^2=ω^2/H^{-1}_{kk}`"
+
+#: ../../components/mpc_ml/feature_eng.ipynb:553
+msgid ":math:`p = 2 * (1 - norm.cdf(|z|))`"
+msgstr ":math:`p = 2 * (1 - norm.cdf(|z|))`"

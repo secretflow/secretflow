@@ -28,7 +28,7 @@ _WRAPPABLE_DEVICE_OBJ: Dict[Type[DeviceObject], Type[Device]] = {PYUObject: PYU}
 thread_local = threading.local()
 
 
-def _method_wrapper(device_object_type, name, num_returns):
+def _actor_wrapper(device_object_type, name, num_returns):
     def wrapper(self, *args, **kwargs):
         # device object type check and unwrap
         value_flat, value_tree = jax.tree_util.tree_flatten((args, kwargs))
@@ -40,7 +40,6 @@ def _method_wrapper(device_object_type, name, num_returns):
                 value_flat[i] = value.data
         args, kwargs = jax.tree_util.tree_unflatten(value_tree, value_flat)
 
-        # get ray actor handle
         handle = getattr(self.data, name)
         # TODO @raofei: 支持public_reveal装饰器
         res = handle.options(num_returns=num_returns).remote(*args, **kwargs)
@@ -51,6 +50,42 @@ def _method_wrapper(device_object_type, name, num_returns):
             return [device_object_type(self.device, x) for x in res]
 
     return wrapper
+
+
+def _cls_wrapper(cls):
+    def ray_get_wrapper(method):
+        def wrapper(*args, **kwargs):
+            arg_flat, arg_tree = jax.tree_util.tree_flatten((args, kwargs))
+            refs = {
+                pos: arg
+                for pos, arg in enumerate(arg_flat)
+                if isinstance(arg, ray.ObjectRef)
+            }
+
+            if refs:
+                actual_vals = ray.get(list(refs.values()))
+                for pos, actual_val in zip(refs.keys(), actual_vals):
+                    arg_flat[pos] = actual_val
+                args, kwargs = jax.tree_util.tree_unflatten(arg_tree, arg_flat)
+
+            return method(*args, **kwargs)
+
+        return wrapper
+
+    # isfunction return True on staticmethod & normal function, no classmethod
+    methods = inspect.getmembers(cls, inspect.isfunction)
+    # getmembers / getattr will strip methods' staticmethod decorator.
+    for name, method in methods:
+        if name == '__init__':
+            continue
+
+        wrapped_method = wraps(method)(ray_get_wrapper(method))
+        if isinstance(inspect.getattr_static(cls, name, None), staticmethod):
+            # getattr_static return methods and strip nothing.
+            wrapped_method = staticmethod(wrapped_method)
+        setattr(cls, name, wrapped_method)
+
+    return cls
 
 
 def proxy(device_object_type: Type[DeviceObject], max_concurrency=None):
@@ -99,7 +134,7 @@ def proxy(device_object_type: Type[DeviceObject], max_concurrency=None):
     ), f'{device_object_type} is not allowed to be proxy'
 
     def make_proxy(cls):
-        ActorClass = ray.remote(cls)
+        ActorClass = ray.remote(_cls_wrapper(cls))
 
         class ActorProxy(device_object_type):
             def __init__(self, *args, **kwargs):
@@ -140,7 +175,7 @@ def proxy(device_object_type: Type[DeviceObject], max_concurrency=None):
                 else:
                     num_returns = 1
             wrapped_method = wraps(method)(
-                _method_wrapper(device_object_type, name, num_returns)
+                _actor_wrapper(device_object_type, name, num_returns)
             )
             setattr(ActorProxy, name, wrapped_method)
 

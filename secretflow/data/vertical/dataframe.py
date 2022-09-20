@@ -18,7 +18,7 @@ from typing import Dict, List, Union
 import pandas as pd
 from pandas.core.indexes.base import Index
 from secretflow.data.base import DataFrameBase, Partition
-from secretflow.data.ndarray import FedNdarray
+from secretflow.data.ndarray import FedNdarray, PartitionWay
 from secretflow.device import PYU, Device, reveal
 from secretflow.utils.errors import InvalidArgumentError, NotFoundError
 
@@ -39,48 +39,50 @@ class VDataFrame(DataFrameBase):
         partitions: a dict of pyu and partition.
         aligned: a boolean indicating whether the data is
 
-    Examples
-    --------
-    >>> from secretflow.data.horizontal import read_csv
-    >>> from secretflow.security.aggregation import PlainAggregator, PlainComparator
-    >>> from secretflow import PYU
-    >>> alice = PYU('alice')
-    >>> bob = PYU('bob')
-    >>> h_df = read_csv({alice: 'alice.csv', bob: 'bob.csv'},
-                        aggregator=PlainAggregagor(alice),
-                        comparator=PlainComparator(alice))
-    >>> h_df.columns
-    Index(['sepal_length', 'sepal_width', 'petal_length', 'petal_width', 'class'], dtype='object')
-    >>> h_df.mean(numeric_only=True)
-    sepal_length    5.827693
-    sepal_width     3.054000
-    petal_length    3.730000
-    petal_width     1.198667
-    dtype: float64
-    >>> h_df.min(numeric_only=True)
-    sepal_length    4.3
-    sepal_width     2.0
-    petal_length    1.0
-    petal_width     0.1
-    dtype: float64
-    >>> h_df.max(numeric_only=True)
-    sepal_length    7.9
-    sepal_width     4.4
-    petal_length    6.9
-    petal_width     2.5
-    dtype: float64
-    >>> h_df.count()
-    sepal_length    130
-    sepal_width     150
-    petal_length    120
-    petal_width     150
-    class           150
-    dtype: int64
-    >>> h_df.fillna({'sepal_length': 2})
+    Examples:
+        >>> from secretflow.data.horizontal import read_csv
+        >>> from secretflow.security.aggregation import PlainAggregator, PlainComparator
+        >>> from secretflow import PYU
+        >>> alice = PYU('alice')
+        >>> bob = PYU('bob')
+        >>> h_df = read_csv({alice: 'alice.csv', bob: 'bob.csv'},
+                            aggregator=PlainAggregagor(alice),
+                            comparator=PlainComparator(alice))
+        >>> h_df.columns
+        Index(['sepal_length', 'sepal_width', 'petal_length', 'petal_width', 'class'], dtype='object')
+        >>> h_df.mean(numeric_only=True)
+        sepal_length    5.827693
+        sepal_width     3.054000
+        petal_length    3.730000
+        petal_width     1.198667
+        dtype: float64
+        >>> h_df.min(numeric_only=True)
+        sepal_length    4.3
+        sepal_width     2.0
+        petal_length    1.0
+        petal_width     0.1
+        dtype: float64
+        >>> h_df.max(numeric_only=True)
+        sepal_length    7.9
+        sepal_width     4.4
+        petal_length    6.9
+        petal_width     2.5
+        dtype: float64
+        >>> h_df.count()
+        sepal_length    130
+        sepal_width     150
+        petal_length    120
+        petal_width     150
+        class           150
+        dtype: int64
+        >>> h_df.fillna({'sepal_length': 2})
     """
 
     partitions: Dict[PYU, Partition]
     aligned: bool = True
+
+    def _check_parts(self):
+        assert self.partitions, 'Partitions in the dataframe is None or empty.'
 
     def min(self, *args, **kwargs) -> pd.Series:
         """
@@ -122,12 +124,43 @@ class VDataFrame(DataFrameBase):
         """
         return pd.concat([part.dtypes for part in self.partitions.values()])
 
+    def astype(self, dtype, copy: bool = True, errors: str = "raise"):
+        """
+        Cast object to a specified dtype ``dtype``.
+
+        All args are same as :py:meth:`pandas.DataFrame.astype`.
+        """
+        if isinstance(dtype, dict):
+            item_index = self._col_index(list(dtype.keys()))
+            new_parts = {}
+            for pyu, part in self.partitions.items():
+                if pyu not in item_index:
+                    new_parts[pyu] = part.copy()
+                else:
+                    cols = item_index[pyu]
+                    if not isinstance(cols, list):
+                        cols = [cols]
+                    new_parts[pyu] = part.astype(
+                        dtype={col: dtype[col] for col in cols},
+                        copy=copy,
+                        errors=errors,
+                    )
+            return VDataFrame(partitions=new_parts, aligned=self.aligned)
+
+        return VDataFrame(
+            partitions={
+                pyu: part.astype(dtype, copy, errors)
+                for pyu, part in self.partitions.items()
+            },
+            aligned=self.aligned,
+        )
+
     @property
     def columns(self):
         """
         The column labels of the DataFrame.
         """
-        assert len(self.partitions) > 0, 'Partitions in the dataframe is None or empty.'
+        self._check_parts()
         cols = None
         for part in self.partitions.values():
             if cols is None:
@@ -135,6 +168,13 @@ class VDataFrame(DataFrameBase):
             else:
                 cols = cols.append(part.columns)
         return cols
+
+    @property
+    def shape(self):
+        """Return a tuple representing the dimensionality of the DataFrame."""
+        self._check_parts()
+        shapes = [part.shape for part in self.partitions.values()]
+        return (shapes[0][0], sum([shape[1] for shape in shapes]))
 
     def mean(self, *args, **kwargs) -> pd.Series:
         """
@@ -174,7 +214,8 @@ class VDataFrame(DataFrameBase):
             FedNdarray.
         """
         return FedNdarray(
-            partitions={pyu: part.values for pyu, part in self.partitions.items()}
+            partitions={pyu: part.values for pyu, part in self.partitions.items()},
+            partition_way=PartitionWay.VERTICAL,
         )
 
     def copy(self) -> 'VDataFrame':
@@ -319,8 +360,11 @@ class VDataFrame(DataFrameBase):
         for device, uri in fileuris.items():
             if device not in self.partitions:
                 raise InvalidArgumentError(f'PYU {device} is not in this dataframe.')
-            else:
-                self.partitions[device].to_csv(uri, **kwargs)
+
+        return [
+            self.partitions[device].to_csv(uri, **kwargs)
+            for device, uri in fileuris.items()
+        ]
 
     def __len__(self):
         """Return the max length if not aligned."""
@@ -404,8 +448,7 @@ class VDataFrame(DataFrameBase):
             a dict of {pyu: shape}
         """
         return {
-            device: device(lambda partition: partition.shape)(partition)
-            for device, partition in self.partitions.items()
+            device: partition.shape for device, partition in self.partitions.items()
         }
 
     @property

@@ -1,0 +1,131 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2022 Ant Group Co., Ltd.
+# This file is distributed under the same license as the SecretFlow package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2022.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: SecretFlow \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2022-09-09 08:47+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.10.3\n"
+
+#: ../../../INSTALLATION.md:1
+msgid "Installation"
+msgstr "安装"
+
+#: ../../../INSTALLATION.md:3
+msgid ""
+"The simplist way to try SecretFlow is to use [offical docker "
+"image](#option-2-from-docker) which shipps with SecretFlow binary."
+msgstr "最简单的尝试SecretFlow的方式是使用带有SecretFlow的 **官方 docker image** 。"
+
+#: ../../../INSTALLATION.md:5
+msgid ""
+"Or you could [install SecretFlow via Python Package Index](#option-1"
+"-from-pypi)."
+msgstr "或者你也可以 **通过Python Package Index安装SecretFlow** 。"
+
+#: ../../../INSTALLATION.md:7
+msgid ""
+"For advanced users, you could [install SecretFlow from source](#option-3"
+"-from-source)."
+msgstr "对于高级用户，你可以 **从源码安装SecretFlow** 。"
+
+#: ../../../INSTALLATION.md:9
+msgid ""
+"After installation, don't forget to [have a quick try](#a-quick-try) to "
+"check if SecretFlow is good to go."
+msgstr "安装之后，请不要忘记 **快速尝试SecretFlow** 确保安装成功。"
+
+#: ../../../INSTALLATION.md:12
+msgid "Environment"
+msgstr "环境"
+
+#: ../../../INSTALLATION.md:13
+msgid "Python：3.8"
+msgstr ""
+
+#: ../../../INSTALLATION.md:15
+msgid "pip: >= 19.3"
+msgstr ""
+
+#: ../../../INSTALLATION.md:17
+msgid "OS: CentOS 7, Ubuntu 18.04"
+msgstr ""
+
+#: ../../../INSTALLATION.md:19
+msgid "CPU/Memory: recommended minimum requirement is 8C16G."
+msgstr "CPU/Memory: 推荐最低配置是 8C16G."
+
+#: ../../../INSTALLATION.md:21
+msgid "Option 1: from pypi"
+msgstr "方式 1: 从pypi"
+
+#: ../../../INSTALLATION.md:22
+msgid ""
+"For users who want to try SecretFlow, you can install [the current "
+"release](https://pypi.org/project/secretflow/)"
+msgstr "请安装 `当前release <https://pypi.org/project/secretflow/>`__ 。"
+
+#: ../../../INSTALLATION.md:24
+msgid ""
+"from [pypi](https://artifacts.antgroup-inc.cn/simple/secretflow/). Note "
+"that it requires python version == 3.8, you can create a virtual "
+"environment with conda if not satisfied."
+msgstr "通过 `pypi <https://artifacts.antgroup-inc.cn/simple/secretflow/>`__ 。 请注意"
+"python版本需要是3.8，你可以用conda构建一个虚拟环境。"
+
+#: ../../../INSTALLATION.md:31
+msgid "After that, please use pip to install SecretFlow."
+msgstr "之后，请使用pip安装SecretFlow。"
+
+#: ../../../INSTALLATION.md:38
+msgid "Option 2: from docker"
+msgstr "方式2: 通过docker"
+
+#: ../../../INSTALLATION.md:39
+msgid "You can also use SecretFlow Docker image to give SecretFlow a quick try."
+msgstr "你也可以通过SecretFlow的docker image来尝试SecretFlow。"
+
+#: ../../../INSTALLATION.md:41
+msgid ""
+"The latest version can be obtained from [secretflow "
+"tags](https://hub.docker.com/r/secretflow/secretflow-anolis8/tags)."
+msgstr "最新的版本请查看 `secretflow tags <https://hub.docker.com/r/secretflow/secretflow-anolis8/tags>`__ 。"
+
+#: ../../../INSTALLATION.md:47
+msgid "for example"
+msgstr "示例"
+
+#: ../../../INSTALLATION.md:52
+msgid "then run the image."
+msgstr "然后运行image"
+
+#: ../../../INSTALLATION.md:58
+msgid "Option 3: from source"
+msgstr "方式3: 通过源码"
+
+#: ../../../INSTALLATION.md:60
+msgid "Download code and set up Python virtual environment."
+msgstr "下载源码并建立Python虚拟环境"
+
+#: ../../../INSTALLATION.md:71
+msgid "Install SecretFlow"
+msgstr "安装SecretFlow"
+
+#: ../../../INSTALLATION.md:79
+msgid "A quick try"
+msgstr "快速尝试"
+
+#: ../../../INSTALLATION.md:80
+msgid "Try your first SecretFlow program."
+msgstr "你的第一个SecretFlow程序。"
+

@@ -4,13 +4,14 @@ from sklearn.preprocessing import MinMaxScaler as SkMinMaxScaler
 
 from secretflow import reveal
 from secretflow.data.base import Partition
-from secretflow.data.horizontal import read_csv as h_read_csv
 from secretflow.data.horizontal.dataframe import HDataFrame
 from secretflow.data.mix.dataframe import MixDataFrame
 from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.preprocessing.scaler import MinMaxScaler
-from secretflow.security.aggregation.device_aggregator import DeviceAggregator
+from secretflow.security.aggregation.plain_aggregator import PlainAggregator
 from secretflow.security.compare.plain_comparator import PlainComparator
+from secretflow.utils.simulation.datasets import load_iris
+
 from tests.basecase import DeviceTestCase
 
 
@@ -18,15 +19,13 @@ class TestMinMaxScaler(DeviceTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        path_alice = 'tests/datasets/iris/horizontal/iris.alice.csv'
-        path_bob = 'tests/datasets/iris/horizontal/iris.bob.csv'
-        cls.hdf_alice = pd.read_csv(path_alice)
-        cls.hdf_bob = pd.read_csv(path_bob)
-        cls.hdf = h_read_csv(
-            {cls.alice: path_alice, cls.bob: path_bob},
-            aggregator=DeviceAggregator(cls.carol),
+        cls.hdf = load_iris(
+            parts=[cls.alice, cls.bob],
+            aggregator=PlainAggregator(cls.alice),
             comparator=PlainComparator(cls.carol),
         )
+        cls.hdf_alice = reveal(cls.hdf.partitions[cls.alice].data)
+        cls.hdf_bob = reveal(cls.hdf.partitions[cls.bob].data)
 
         vdf_alice = pd.DataFrame(
             {
@@ -68,8 +67,7 @@ class TestMinMaxScaler(DeviceTestCase):
         )
         expect_alice = sk_scaler.transform(self.hdf_alice[selected_cols])
         np.testing.assert_almost_equal(
-            reveal(value.partitions[self.alice].data),
-            expect_alice,
+            reveal(value.partitions[self.alice].data), expect_alice,
         )
         expect_bob = sk_scaler.transform(self.hdf_bob[selected_cols])
         np.testing.assert_almost_equal(
@@ -172,7 +170,7 @@ class TestMinMaxScaler(DeviceTestCase):
                 self.alice: Partition(data=self.alice(lambda: df_part0.iloc[:4, :])()),
                 self.bob: Partition(data=self.bob(lambda: df_part0.iloc[4:, :])()),
             },
-            aggregator=DeviceAggregator(self.carol),
+            aggregator=PlainAggregator(self.carol),
             comparator=PlainComparator(self.carol),
         )
         v_part1 = HDataFrame(
@@ -180,7 +178,7 @@ class TestMinMaxScaler(DeviceTestCase):
                 self.alice: Partition(data=self.alice(lambda: df_part1.iloc[:4, :])()),
                 self.bob: Partition(data=self.bob(lambda: df_part1.iloc[4:, :])()),
             },
-            aggregator=DeviceAggregator(self.carol),
+            aggregator=PlainAggregator(self.carol),
             comparator=PlainComparator(self.carol),
         )
         v_mix = MixDataFrame(partitions=[v_part0, v_part1])

@@ -27,6 +27,7 @@ def read_csv(
     spu: SPU = None,
     keys: Union[str, List[str]] = None,
     drop_keys=False,
+    psi_protocl=None,
 ) -> VDataFrame:
     """Read a comma-separated values (csv) file into VDataFrame.
 
@@ -61,12 +62,14 @@ def read_csv(
         keys: The field used for psi, which can be single or multiple fields.
             This parameter is required when spu is specified.
         drop_keys: whether to remove keys.
+        psi_protocl: Specified protocol for PSI. Default 'KKRT_PSI_2PC' for 2 parties, 'ECDH_PSI_3PC' for 3 parties.
 
     Returns:
         A aligned VDataFrame.
     """
-    assert len(filepath) == 2, f'only support 2 parties for now'
     assert spu is None or keys is not None, f'keys required when spu provided'
+    if spu is not None:
+        assert len(filepath) <= 3, f'only support 2 or 3 parties for now'
 
     partitions = {}
 
@@ -79,9 +82,16 @@ def read_csv(
             )
         )
 
-    # TODO(@xibin.wxb): use psi_csv instead of psi_df
     if spu is not None:
-        dfs = spu.psi_df(keys, [part.data for part in partitions.values()])
+        if psi_protocl is None:
+            psi_protocl = 'KKRT_PSI_2PC' if len(filepath) == 2 else 'ECDH_PSI_3PC'
+
+        dfs = spu.psi_df(
+            keys,
+            [part.data for part in partitions.values()],
+            list(filepath.keys())[0].party,
+            psi_protocl,
+        )
         partitions = {df.device: Partition(df) for df in dfs}
 
     if drop_keys:

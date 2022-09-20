@@ -1,0 +1,58 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2022 Ant Group Co., Ltd.
+# This file is distributed under the same license as the SecretFlow package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2022.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: SecretFlow \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2022-09-15 13:44+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.10.3\n"
+
+#: ../../components/federated_learning/horizontal_federated_learning/fl_model.rst:2
+msgid "Federated NN Model"
+msgstr "水平联邦NN模型"
+
+#: ../../components/federated_learning/horizontal_federated_learning/fl_model.rst:4
+msgid ""
+"You could define a federated learning NN model with Tensorflow or PyTorch"
+" easily."
+msgstr "您可以使用 Tensorflow 或 PyTorch 轻松定义联邦学习模型。"
+
+#: ../../components/federated_learning/horizontal_federated_learning/fl_model.rst:6
+msgid "Please check API of :py:class:`~secretflow.ml.nn.FLModel`."
+msgstr "具体API使用请查看 :py:class:`~secretflow.ml.nn.FLModel` 。"
+
+#: ../../components/federated_learning/horizontal_federated_learning/fl_model.rst:8
+msgid "You may also check tutorials:"
+msgstr "您也可以查看相关教程。"
+
+#: ../../components/federated_learning/horizontal_federated_learning/fl_model.rst:10
+msgid ""
+":ref:`/tutorial/federate_learning_for_image_classification.ipynb` This is"
+" an example to demonstrate defining a model with TensorFlow."
+msgstr ""
+"使用 TensorFlow 定义模型的示例： "
+":ref:`/tutorial/federate_learning_for_image_classification.ipynb`"
+
+#: ../../components/federated_learning/horizontal_federated_learning/fl_model.rst:11
+msgid ""
+":ref:`/tutorial/federated_learning_with_pytorch_backend.ipynb` This is an"
+" example to demonstrate defining a model with PyTorch."
+msgstr ""
+"使用 PyTorch 定义模型的示例： "
+":ref:`/tutorial/federated_learning_with_pytorch_backend.ipynb`"
+
+#: ../../components/federated_learning/horizontal_federated_learning/fl_model.rst:13
+msgid ""
+"If you are interested, we also encourage you to check "
+":ref:`/developer/design/flmodel.md`."
+msgstr "如果您想深入了解细节，欢迎查看设计文档：:ref:`/developer/design/flmodel.md`。"
+

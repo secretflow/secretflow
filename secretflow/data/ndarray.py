@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import functools
-import operator
 import random
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Callable, Dict, List, Tuple, Union
 
+from enum import Enum, unique
 import numpy as np
 from sklearn.model_selection import train_test_split as _train_test_split
 
@@ -26,8 +25,19 @@ from secretflow.data.io import util as io_util
 from secretflow.device import PYU, PYUObject, reveal
 from secretflow.utils.errors import InvalidArgumentError
 
-# TODO @饶飞： 暂时没有区分是水平还是垂直。下面的函数是同时支持水平和垂直的。
+# 下面的函数是同时支持水平和垂直的。
 __ndarray = "__ndarray_type__"
+
+
+@unique
+class PartitionWay(Enum):
+    """The partitioning.
+    HORIZONTAL: horizontal partitioning.
+    VERATICAL: vertical partitioning.
+    """
+
+    HORIZONTAL = 'horizontal'
+    VERTICAL = 'vertical'
 
 
 @dataclass
@@ -40,6 +50,7 @@ class FedNdarray:
     """
 
     partitions: Dict[PYU, PYUObject]
+    partition_way: PartitionWay
 
     @reveal
     def partition_shape(self):
@@ -49,13 +60,33 @@ class FedNdarray:
             for device, partition in self.partitions.items()
         }
 
-    @reveal
-    def length(self):
-        """Get ndarray lengths of all partitions."""
-        return {
-            device: device(lambda partition: len(partition))(partition)
-            for device, partition in self.partitions.items()
-        }
+    @property
+    def shape(self) -> Tuple[int, int]:
+        """Get shape of united ndarray."""
+        shapes = self.partition_shape()
+
+        if len(shapes) == 0:
+            return (0, 0)
+
+        # no check shapes. assume arrays are aligned by split axis and has same dimension.
+        first_shape = list(shapes.values())[0]
+        assert len(first_shape) <= 2, "only support get shape on 1/2-D array"
+
+        if len(first_shape) == 1:
+            # 1D-array
+            assert (
+                len(shapes) == 1
+            ), "can not get shape on 1D-array with multiple partitions"
+            return first_shape
+
+        if self.partition_way == PartitionWay.VERTICAL:
+            rows = first_shape[0]
+            cols = sum([shapes[d][1] for d in shapes])
+        else:
+            rows = sum([shapes[d][0] for d in shapes])
+            cols = first_shape[1]
+
+        return (rows, cols)
 
     def astype(self, dtype, order='K', casting='unsafe', subok=True, copy=True):
         """Cast to a specified type.
@@ -70,22 +101,33 @@ class FedNdarray:
                     )
                 )(partition, dtype, order, casting, subok, copy)
                 for device, partition in self.partitions.items()
-            }
+            },
+            partition_way=self.partition_way,
+        )
+
+    def __getitem__(self, item) -> 'FedNdarray':
+        return FedNdarray(
+            partitions={
+                pyu: pyu(np.ndarray.__getitem__)(self.partitions[pyu], item)
+                for pyu in self.partitions
+            },
+            partition_way=self.partition_way,
         )
 
 
 def load(
     sources: Dict[PYU, Union[str, Callable[[], np.ndarray], PYUObject]],
+    partition_way: PartitionWay = PartitionWay.VERTICAL,
     allow_pickle=False,
     encoding='ASCII',
 ) -> FedNdarray:
     """Load FedNdarray from data source.
 
     .. warning:: Loading files that contain object arrays uses the ``pickle``
-                module, which is not secure against erroneous or maliciously
-                constructed data. Consider passing ``allow_pickle=False`` to
-                load data that is known not to contain object arrays for the
-                safer handling of untrusted sources.
+                 module, which is not secure against erroneous or maliciously
+                 constructed data. Consider passing ``allow_pickle=False`` to
+                 load data that is known not to contain object arrays for the
+                 safer handling of untrusted sources.
 
     Args:
         sources: Data source in each partition. Shall be one of the followings.
@@ -102,9 +144,8 @@ def load(
         Return a FedNdarray if source is pyu object or .npy. Or return a dict
         {key: FedNdarray} if source is .npz.
 
-    Examples
-    --------
-    >>> fed_arr = load({'alice': 'example/alice.csv', 'bob': 'example/alice.csv'})
+    Examples:
+        >>> fed_arr = load({'alice': 'example/alice.csv', 'bob': 'example/alice.csv'})
     """
 
     def _load(content) -> Tuple[List, List]:
@@ -144,15 +185,15 @@ def load(
             pyu_parts[device] = content
     # 处理pyu object
     if pyu_parts:
-        return FedNdarray(partitions=pyu_parts)
+        return FedNdarray(partitions=pyu_parts, partition_way=partition_way)
 
     # 检查各方的数据是否一致
-    is_same = [file_list[i - 1] == file_list[i] for i in range(1, len(file_list))]
-    check_status = functools.reduce(operator.and_, is_same)
-    if not check_status:
+    file_list_lens = set([len(file) for file in file_list])
+    if len(file_list_lens) != 1:
         raise Exception(
             f"All parties should have same structure,but got file_list = {file_list}"
         )
+
     file_names = file_list[0]
     result = {}
     for idx, m in enumerate(file_names):
@@ -160,8 +201,8 @@ def load(
         for device, data in data_dict.items():
             parts[device] = device(_get_item)(idx, data)
         if m == __ndarray and len(file_names) == 1:
-            return FedNdarray(partitions=parts)
-        result[m] = FedNdarray(partitions=parts)
+            return FedNdarray(partitions=parts, partition_way=partition_way)
+        result[m] = FedNdarray(partitions=parts, partition_way=partition_way)
     return result
 
 
@@ -198,7 +239,10 @@ def train_test_split(
         parts_train[device], parts_test[device] = device(split)(
             part, train_size=ratio, random_state=random_state, shuffle=shuffle
         )
-    return FedNdarray(parts_train), FedNdarray(parts_test)
+    return (
+        FedNdarray(parts_train, data.partition_way),
+        FedNdarray(parts_test, data.partition_way),
+    )
 
 
 def shuffle(data: FedNdarray):

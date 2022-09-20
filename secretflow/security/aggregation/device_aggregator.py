@@ -81,7 +81,7 @@ class DeviceAggregator(Aggregator):
                     jnp.average(
                         jnp.array(element),
                         axis=axis,
-                        weights=jnp.array(weights) if weights else None,
+                        weights=jnp.array(weights) if weights is not None else None,
                     )
                     for element in zip(*data)
                 ]
@@ -89,7 +89,7 @@ class DeviceAggregator(Aggregator):
                 return jnp.average(
                     jnp.array(data),
                     axis=axis,
-                    weights=jnp.array(weights) if weights else None,
+                    weights=jnp.array(weights) if weights is not None else None,
                 )
 
         return self.device(_average, static_argnames='axis')(

@@ -12,4 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .vert_pearsonr import VertPearsonR
+from .ss_pearsonr_v import PearsonR as SSVertPearsonR
+from .ss_vif_v import VIF as SSVertVIF
+from .ss_pvalue_v import PVlaue as SSPValue
+
+__all__ = [
+    'SSVertPearsonR',
+    'SSVertVIF',
+    'SSPValue',
+]

@@ -3,6 +3,8 @@ import pandas as pd
 from secretflow import reveal
 from secretflow.utils.errors import InvalidArgumentError
 from secretflow.utils.simulation.data.dataframe import create_df
+from secretflow.utils.simulation.datasets import dataset
+
 from tests.basecase import DeviceTestCase
 
 
@@ -10,7 +12,7 @@ class TestDataFrame(DeviceTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        cls.df = pd.read_csv('tests/datasets/iris/iris.csv')
+        cls.df = pd.read_csv(dataset('iris'))
 
     def test_create_hdataframe_should_ok_when_input_dataframe(self):
         # WHEN
@@ -25,9 +27,7 @@ class TestDataFrame(DeviceTestCase):
     def test_create_hdataframe_should_ok_when_input_file(self):
         # WHEN
         hdf = create_df(
-            'tests/datasets/iris/iris.csv',
-            parts=[self.alice, self.bob, self.carol],
-            axis=0,
+            dataset('iris'), parts=[self.alice, self.bob, self.carol], axis=0,
         )
 
         # THEN
@@ -76,7 +76,7 @@ class TestDataFrame(DeviceTestCase):
     def test_create_vdataframe_should_ok_when_input_callable(self):
         # WHEN
         hdf = create_df(
-            lambda: pd.read_csv('tests/datasets/iris/iris.csv'),
+            lambda: pd.read_csv(dataset('iris')),
             parts=[self.alice, self.bob, self.carol],
             axis=1,
         )

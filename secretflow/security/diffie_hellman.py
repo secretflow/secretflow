@@ -200,16 +200,15 @@ _PRIMES = {
 class DiffieHellman:
     """Diffie-Hellman implementation.
 
-    Examples
-    --------
-    >>> df1 = DiffieHellman()
-    >>> df2 = DiffieHellman()
-    >>> pub_key1, pri_key1 = df1.generate_key_pair()
-    >>> pub_key2, pri_key2 = df2.generate_key_pair()
-    >>> secret1 = df1.generate_secret(pri_key1, pub_key2)
-    >>> secret2 = df2.generate_secret(pri_key2, pub_key1)
-    >>> secret1 == secret2
-    True
+    Examples:
+        >>> df1 = DiffieHellman()
+        >>> df2 = DiffieHellman()
+        >>> pub_key1, pri_key1 = df1.generate_key_pair()
+        >>> pub_key2, pri_key2 = df2.generate_key_pair()
+        >>> secret1 = df1.generate_secret(pri_key1, pub_key2)
+        >>> secret2 = df2.generate_secret(pri_key2, pub_key1)
+        >>> secret1 == secret2
+        True
     """
 
     def __init__(self, group=15):

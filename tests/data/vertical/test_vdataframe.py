@@ -1,9 +1,11 @@
+import numpy as np
 import pandas as pd
 
 from secretflow import reveal
 from secretflow.data.base import Partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.utils.errors import NotFoundError
+
 from tests.basecase import DeviceTestCase
 
 
@@ -287,4 +289,35 @@ class TestVDataFrame(DeviceTestCase):
         pd.testing.assert_frame_equal(
             reveal(value.partitions[self.bob].data),
             self.df_bob.fillna(value='test', inplace=False),
+        )
+
+    def test_astype_should_ok(self):
+        # GIVEN
+        df = self.df[['a3', 'b4']].fillna(value=1, inplace=False)
+
+        # Case 1: single dtype
+        # WHEN
+        new_df = df.astype(np.int32)
+        # THEN
+        pd.testing.assert_frame_equal(
+            reveal(new_df.partitions[self.alice].data),
+            self.df_alice[['a3']].fillna(1).astype(np.int32),
+        )
+        pd.testing.assert_frame_equal(
+            reveal(new_df.partitions[self.bob].data),
+            self.df_bob[['b4']].fillna(1).astype(np.int32),
+        )
+
+        # Case 2: dtype dict.
+        # WHEN
+        dtype = {'a3': np.int32}
+        new_df = df.astype(dtype)
+        # THEN
+        pd.testing.assert_frame_equal(
+            reveal(new_df.partitions[self.alice].data),
+            self.df_alice[['a3']].fillna(1).astype(dtype),
+        )
+        pd.testing.assert_frame_equal(
+            reveal(new_df.partitions[self.bob].data),
+            self.df_bob[['b4']].fillna(1),
         )

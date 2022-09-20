@@ -18,10 +18,7 @@
 
 project = 'SecretFlow'
 copyright = '2022 Ant Group Co., Ltd.'
-author = 'Ant Group PPML Team'
-
-# The full version, including alpha/beta/rc tags
-release = '0.6'
+author = 'SecretFlow authors'
 
 
 # -- General configuration ---------------------------------------------------
@@ -31,6 +28,7 @@ release = '0.6'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'autodocsumm',
     'sphinx.ext.graphviz',
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
@@ -46,9 +44,13 @@ extensions = [
     'sphinxcontrib.rackdiag',
     'sphinxcontrib.seqdiag',
     'sphinx_markdown_tables',
+    'sphinx_design',
 ]
 
 nbsphinx_requirejs_path = ''
+
+# Make sure the target is unique
+autosectionlabel_prefix_document = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -58,7 +60,12 @@ templates_path = ['_templates']
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
+# multi-language docs
+
 language = 'en'
+locale_dirs = ['./locales/']  # path is example but recommended.
+gettext_compact = False  # optional.
+gettext_uuid = False  # optional.
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -69,10 +76,14 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "python": ("https://docs.python.org/3/", None),
-    'pandas': ('http://pandas.pydata.org/pandas-docs/dev', None),
+    'pandas': ('https://pandas.pydata.org/pandas-docs/dev', None),
     "tensorflow": (
         "https://www.tensorflow.org/api_docs/python",
         "https://github.com/GPflow/tensorflow-intersphinx/raw/master/tf2_py_objects.inv",
+    ),
+    'sklearn': (
+        'https://scikit-learn.org/stable',
+        (None, './_intersphinx/sklearn-objects.inv'),
     ),
 }
 
@@ -126,6 +137,7 @@ html_theme_options = {
         "image_light": "logo-light.png",
         "image_dark": "logo-dark.png",
     },
+    "show_nav_level": 4,
 }
 
 myst_enable_extensions = [
@@ -154,5 +166,7 @@ myst_title_to_header = True
 # app setup hook
 def setup(app):
     app.add_config_value(
-        'recommonmark_config', {'auto_toc_tree_section': 'Contents'}, True,
+        'recommonmark_config',
+        {'auto_toc_tree_section': 'Contents'},
+        True,
     )
