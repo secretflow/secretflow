@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 
 from secretflow import reveal
@@ -8,6 +9,7 @@ from secretflow.data.vertical import VDataFrame
 from secretflow.security.aggregation import DeviceAggregator
 from secretflow.security.compare import PlainComparator
 from secretflow.utils.errors import InvalidArgumentError
+
 from tests.basecase import DeviceTestCase
 
 
@@ -66,8 +68,9 @@ class TestHMixDataFrame(DeviceTestCase):
 
     def test_mean_should_ok(self):
         # WHEN
-        value_h, value_v = self.h_mix.mean(numeric_only=True), self.v_mix.mean(
-            numeric_only=True
+        value_h, value_v = (
+            self.h_mix.mean(numeric_only=True),
+            self.v_mix.mean(numeric_only=True),
         )
 
         # THEN
@@ -82,8 +85,9 @@ class TestHMixDataFrame(DeviceTestCase):
 
     def test_min_should_ok(self):
         # WHEN
-        value_h, value_v = self.h_mix.min(numeric_only=True), self.v_mix.min(
-            numeric_only=True
+        value_h, value_v = (
+            self.h_mix.min(numeric_only=True),
+            self.v_mix.min(numeric_only=True),
         )
 
         # THEN
@@ -95,8 +99,9 @@ class TestHMixDataFrame(DeviceTestCase):
 
     def test_max_should_ok(self):
         # WHEN
-        value_h, value_v = self.h_mix.max(numeric_only=True), self.v_mix.max(
-            numeric_only=True
+        value_h, value_v = (
+            self.h_mix.max(numeric_only=True),
+            self.v_mix.max(numeric_only=True),
         )
 
         # THEN
@@ -315,6 +320,60 @@ class TestHMixDataFrame(DeviceTestCase):
                 ]
             )[['b4', 'b6']],
             v_bob,
+        )
+
+    def test_astype_should_ok_when_vmix(self):
+        # GIVEN
+        value = self.v_mix[['a3', 'b4']].fillna(1)
+
+        # WHEN
+        value = value.astype({'a3': np.int})
+
+        # THEN
+        pd.testing.assert_frame_equal(
+            pd.concat(
+                [
+                    reveal(value.partitions[0].partitions[self.alice].data),
+                    reveal(value.partitions[0].partitions[self.bob].data),
+                ]
+            ),
+            self.df_part0[['a3']].fillna(1).astype(np.int),
+        )
+        pd.testing.assert_frame_equal(
+            pd.concat(
+                [
+                    reveal(value.partitions[1].partitions[self.alice].data),
+                    reveal(value.partitions[1].partitions[self.bob].data),
+                ]
+            ),
+            self.df_part1[['b4']].fillna(1),
+        )
+
+    def test_astype_should_ok_when_hmix(self):
+        # GIVEN
+        value = self.h_mix[['a3', 'b4']].fillna(1)
+
+        # WHEN
+        value = value.astype(np.int)
+
+        # THEN
+        pd.testing.assert_frame_equal(
+            pd.concat(
+                [
+                    reveal(value.partitions[0].partitions[self.alice].data),
+                    reveal(value.partitions[1].partitions[self.alice].data),
+                ]
+            ),
+            self.df_part0[['a3']].fillna(1).astype(np.int),
+        )
+        pd.testing.assert_frame_equal(
+            pd.concat(
+                [
+                    reveal(value.partitions[0].partitions[self.bob].data),
+                    reveal(value.partitions[1].partitions[self.bob].data),
+                ]
+            ),
+            self.df_part1[['b4']].fillna(1).astype(np.int),
         )
 
     def test_setitem_should_error_when_wrong_value_type(self):

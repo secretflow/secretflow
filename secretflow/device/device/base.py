@@ -13,6 +13,10 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from typing import Union
+
+from heu import phe
 
 from .register import DeviceType, dispatch
 
@@ -37,6 +41,26 @@ class Device(ABC):
         pass
 
 
+@dataclass
+class MoveConfig:
+    spu_vis: str = 'secret'
+    """spu_vis (str): Deivce object visibility, SPU device only. Value can be:
+        - secret: Secret sharing with protocol spdz-2k, aby3, etc.
+        - public: Public sharing, which means data will be replicated to each node.
+    """
+
+    heu_dest_party: str = 'auto'
+    """Where the encrypted data is located"""
+
+    heu_encoder: Union[
+        phe.IntegerEncoder, phe.FloatEncoder, phe.BigintEncoder, phe.BigintEncoder
+    ] = None
+    """Do encode before move data to heu"""
+
+    heu_audit_log: str = None
+    """file path to record audit log"""
+
+
 class DeviceObject(ABC):
     def __init__(self, device: Device):
         """Abstraction device object base class.
@@ -51,23 +75,20 @@ class DeviceObject(ABC):
         """Get underlying device type"""
         return self.device.device_type
 
-    def to(
-        self,
-        device: Device,
-        spu_vis: str = 'secret',
-        heu_dest_party: str = 'auto',
-        heu_audit_log: str = None,
-    ):
+    def to(self, device: Device, config: MoveConfig = None):
         """Device object conversion.
 
         Args:
             device (Device): Target device
-            spu_vis (str): Deivce object visibility, SPU device only.
-              secret: Secret sharing with protocol spdz-2k, aby3, etc.
-              public: Public sharing, which means data will be replicated to each node.
-            heu_dest_party (str): Where the encrypted data is located, HEU only.
+            config: configuration of this data movement
 
         Returns:
             DeviceObject: Target device object.
         """
-        return dispatch('to', self, device, spu_vis, heu_dest_party, heu_audit_log)
+        assert isinstance(
+            config, (type(None), MoveConfig)
+        ), f"config must be MoveConfig type, got {type(config)}, value={config}"
+
+        return dispatch(
+            'to', self, device, config if config is not None else MoveConfig()
+        )

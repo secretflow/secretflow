@@ -1,13 +1,16 @@
-from secretflow.device.driver import reveal
-from tests.basecase import DeviceTestCase
 from io import StringIO
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 import ray
 
-from secretflow.preprocessing.binning.vert_woe_binning import VertWoeBinning
-from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.data.base import Partition
+from secretflow.data.vertical.dataframe import VDataFrame
+from secretflow.device.driver import reveal
+from secretflow.preprocessing.binning.vert_woe_binning import VertWoeBinning
+from secretflow.utils.simulation.datasets import dataset
+
+from tests.basecase import DeviceTestCase
 
 
 def woe_almost_equal(a, b):
@@ -36,10 +39,11 @@ def audit_ciphertext_equal(a, b):
         return eval(f"0x{s[pos:]}")
 
     def get_c_in_b(s):
-        pos = s.find('Ciphertext:') + len('Ciphertext:')
-        return eval(s[pos:])
+        return eval(str(s))
 
-    for sa, sb in zip(a, b):
+    for i in range(a.shape[0]):
+        sa = a[i]
+        sb = b[i]
         assert get_c_in_a(sa) == get_c_in_b(sb), f"{sa}\n...........\n{sb}"
 
 
@@ -48,7 +52,10 @@ class TestVertBinning(DeviceTestCase):
     def setUpClass(cls) -> None:
         super().setUpClass()
 
-        normal_data = pd.read_csv("tests/datasets/linear/vertical/linear_a.csv")
+        normal_data = pd.read_csv(
+            dataset('linear'),
+            usecols=[f'x{i}' for i in range(1, 11)] + ['y'],
+        )
 
         cls.v_float_data = VDataFrame(
             {
@@ -155,11 +162,15 @@ class TestVertBinning(DeviceTestCase):
         woe_almost_equal(he_bob, he_alice)
 
         # audit_log
-        a = np.load('alice.audit.npy')
-        b = np.load('bob.audit.npy')
+        import cloudpickle as pickle
+
+        with open('alice.audit', 'rb') as f:
+            a = pickle.load(f)
+        with open('bob.audit', 'rb') as f:
+            b = pickle.load(f)
+
         assert a.size == b.size
         audit_ciphertext_equal(a, b)
-        import cloudpickle as pickle
 
         with open('bob.audit.pk.pickle', 'rb') as f:
             pk = pickle.load(f)

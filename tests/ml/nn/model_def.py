@@ -7,8 +7,8 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
-from secretflow.ml.nn.fl_base import BaseModule
-from secretflow.ml.nn.sl_base import SLBaseModule
+from secretflow.ml.nn.fl.backend.tensorflow.fl_base import BaseModule
+from secretflow.ml.nn.sl.backend.tensorflow.sl_base import SLBaseModule
 
 
 class ConvNet(BaseModule):

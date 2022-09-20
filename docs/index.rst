@@ -39,68 +39,6 @@ cope with the development of future privacy computing technologies and applicati
 - Connectivity: Data in scenarios supported by different underlying technologies
   can be connected to each other.
 
-Documents
-----------
-.. panels::
-
-    ---
-
-    Getting started
-    ^^^^^^^^^^^^^^^
-
-    New to **SecretFlow**? Check out the getting stgarted guides.
-
-    +++
-    
-    .. link-button:: getting_started
-            :type: ref
-            :text: To the getting started guides
-            :classes: btn-primary stretched-link
-
-    ---
-
-    Toturials
-    ^^^^^^^^^^^^^^^
-
-    Want to know in-depth usages of **SecretFlow**? Check out our toturials.
-
-    +++
-    
-    .. link-button:: tutorial
-            :type: ref
-            :text: To the toturials
-            :classes: btn-primary stretched-link
-
-    ---
-
-    API reference
-    ^^^^^^^^^^^^^^^
-
-    Get a detailed description of the SecretFlow api.
-
-    +++
-    
-    .. link-button:: reference
-            :type: ref
-            :text: To the reference guide
-            :classes: btn-primary stretched-link
-
-    ---
-
-    Developer guide
-    ^^^^^^^^^^^^^^^
-
-    Want to know the design principles of SecretFlow?
-    Want to improve existing functions or add more functions?
-    The developer guidelines will guide you.
-    
-
-    +++
-    
-    .. link-button:: development
-            :type: ref
-            :text: To the development guide
-            :classes: btn-primary stretched-link
 
 .. toctree::
    :maxdepth: 2
@@ -108,6 +46,7 @@ Documents
    :titlesonly:
 
    getting_started/index
+   components/index
+   api/index
    tutorial/index
-   reference/index
-   development/index
+   developer/index

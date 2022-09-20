@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 
 from secretflow.data.base import DataFrameBase, Partition
-from secretflow.data.ndarray import FedNdarray
+from secretflow.data.ndarray import FedNdarray, PartitionWay
 from secretflow.device import PYU, reveal
 from secretflow.security.aggregation.aggregator import Aggregator
 from secretflow.security.compare.comparator import Comparator
@@ -45,49 +45,51 @@ class HDataFrame(DataFrameBase):
         comparator: the comparator for computing global values such as
             maximum/minimum.
 
-    Examples
-    --------
-    >>> from secretflow.data.horizontal import read_csv
-    >>> from secretflow.security.aggregation import PlainAggregator, PlainComparator
-    >>> from secretflow import PYU
-    >>> alice = PYU('alice')
-    >>> bob = PYU('bob')
-    >>> h_df = read_csv({alice: 'alice.csv', bob: 'bob.csv'},
-                        aggregator=PlainAggregagor(alice),
-                        comparator=PlainComparator(alice))
-    >>> h_df.columns
-    Index(['sepal_length', 'sepal_width', 'petal_length', 'petal_width', 'class'], dtype='object')
-    >>> h_df.mean(numeric_only=True)
-    sepal_length    5.827693
-    sepal_width     3.054000
-    petal_length    3.730000
-    petal_width     1.198667
-    dtype: float64
-    >>> h_df.min(numeric_only=True)
-    sepal_length    4.3
-    sepal_width     2.0
-    petal_length    1.0
-    petal_width     0.1
-    dtype: float64
-    >>> h_df.max(numeric_only=True)
-    sepal_length    7.9
-    sepal_width     4.4
-    petal_length    6.9
-    petal_width     2.5
-    dtype: float64
-    >>> h_df.count()
-    sepal_length    130
-    sepal_width     150
-    petal_length    120
-    petal_width     150
-    class           150
-    dtype: int64
-    >>> h_df.fillna({'sepal_length': 2})
+    Examples:
+        >>> from secretflow.data.horizontal import read_csv
+        >>> from secretflow.security.aggregation import PlainAggregator, PlainComparator
+        >>> from secretflow import PYU
+        >>> alice = PYU('alice')
+        >>> bob = PYU('bob')
+        >>> h_df = read_csv({alice: 'alice.csv', bob: 'bob.csv'},
+                            aggregator=PlainAggregagor(alice),
+                            comparator=PlainComparator(alice))
+        >>> h_df.columns
+        Index(['sepal_length', 'sepal_width', 'petal_length', 'petal_width', 'class'], dtype='object')
+        >>> h_df.mean(numeric_only=True)
+        sepal_length    5.827693
+        sepal_width     3.054000
+        petal_length    3.730000
+        petal_width     1.198667
+        dtype: float64
+        >>> h_df.min(numeric_only=True)
+        sepal_length    4.3
+        sepal_width     2.0
+        petal_length    1.0
+        petal_width     0.1
+        dtype: float64
+        >>> h_df.max(numeric_only=True)
+        sepal_length    7.9
+        sepal_width     4.4
+        petal_length    6.9
+        petal_width     2.5
+        dtype: float64
+        >>> h_df.count()
+        sepal_length    130
+        sepal_width     150
+        petal_length    120
+        petal_width     150
+        class           150
+        dtype: int64
+        >>> h_df.fillna({'sepal_length': 2})
     """
 
     partitions: Dict[PYU, Partition] = field(default_factory=dict)
     aggregator: Aggregator = None
     comparator: Comparator = None
+
+    def _check_parts(self):
+        assert self.partitions, 'Partitions in the dataframe is None or empty.'
 
     def mean(self, *args, **kwargs) -> pd.Series:
         """
@@ -180,7 +182,8 @@ class HDataFrame(DataFrameBase):
             FedNdarray.
         """
         return FedNdarray(
-            partitions={pyu: part.values for pyu, part in self.partitions.items()}
+            partitions={pyu: part.values for pyu, part in self.partitions.items()},
+            partition_way=PartitionWay.HORIZONTAL,
         )
 
     @property
@@ -191,7 +194,7 @@ class HDataFrame(DataFrameBase):
         Returns:
             pd.Series: the data type of each column.
         """
-        assert len(self.partitions) > 0, 'Partitions in the dataframe is None or empty.'
+        self._check_parts()
         return list(self.partitions.values())[0].dtypes
 
     def astype(self, dtype, copy: bool = True, errors: str = "raise"):
@@ -218,8 +221,26 @@ class HDataFrame(DataFrameBase):
         """
         The column labels of the DataFrame.
         """
-        assert len(self.partitions) > 0, 'Partitions in the dataframe is None or empty.'
+        self._check_parts()
         return list(self.partitions.values())[0].columns
+
+    @property
+    def shape(self):
+        """Return a tuple representing the dimensionality of the DataFrame."""
+        self._check_parts()
+        shapes = [part.shape for part in self.partitions.values()]
+        return (sum([shape[0] for shape in shapes]), shapes[0][1])
+
+    @reveal
+    def partition_shape(self):
+        """Return shapes of each partition.
+
+        Returns:
+            a dict of {pyu: shape}
+        """
+        return {
+            device: partition.shape for device, partition in self.partitions.items()
+        }
 
     def copy(self) -> 'HDataFrame':
         """
@@ -338,8 +359,11 @@ class HDataFrame(DataFrameBase):
         for device, uri in fileuris.items():
             if device not in self.partitions:
                 raise InvalidArgumentError(f'PYU {device} is not in this dataframe.')
-            else:
-                self.partitions[device].to_csv(uri, **kwargs)
+
+        return [
+            self.partitions[device].to_csv(uri, **kwargs)
+            for device, uri in fileuris.items()
+        ]
 
     def __len__(self):
         return sum([len(part) for part in self.partitions.values()])

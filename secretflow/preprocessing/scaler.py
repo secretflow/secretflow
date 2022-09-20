@@ -31,15 +31,14 @@ from secretflow.utils.errors import InvalidArgumentError
 class MinMaxScaler:
     """Transform features by scaling each feature to a given range.
 
-    Attrs:
+    Attributes:
         _scaler: the sklearn MinMaxScaler instance.
 
-    Examples
-    --------
-    >>> from secretflow.preprocessing import MinMaxScaler
-    >>> scaler = MinMaxScaler()
-    >>> scaler.fit(df)
-    >>> scaler.transform(df)
+    Examples:
+        >>> from secretflow.preprocessing import MinMaxScaler
+        >>> scaler = MinMaxScaler()
+        >>> scaler.fit(df)
+        >>> scaler.transform(df)
     """
 
     @staticmethod
@@ -108,8 +107,8 @@ class MinMaxScaler:
 class StandardScaler:
     """Standardize features by removing the mean and scaling to unit variance.
 
-    StandardScaler is similar to Sklearn's StandardScaler. The main differences
-    are
+    StandardScaler is similar to :py:class:`sklearn.preprocessing.StandardScaler`.
+    The main differences are
     a) takes HDataFrame/VDataFrame/MixDataFrame as input/output.
     b) does not support sparse matrix.
 
@@ -129,14 +128,13 @@ class StandardScaler:
             If True, scale the data to unit variance (or equivalently,
             unit standard deviation).
 
-    Examples
-    --------
-    >>> from secretflow.preprocessing import StandardScaler
-    >>> data = HDataFrame(...) # your HDataFrame/VDataFrame/MixDataFrame instance.
-    >>> scaler = StandardScaler()
-    >>> scaler.fit(data)
-    >>> print(scaler._scaler.mean_, scaler._scaler.var_)
-    >>> scaler.transform(data)
+    Examples:
+        >>> from secretflow.preprocessing import StandardScaler
+        >>> data = HDataFrame(...) # your HDataFrame/VDataFrame/MixDataFrame instance.
+        >>> scaler = StandardScaler()
+        >>> scaler.fit(data)
+        >>> print(scaler._scaler.mean_, scaler._scaler.var_)
+        >>> scaler.transform(data)
     """
 
     def __init__(self, with_mean=True, with_std=True) -> None:

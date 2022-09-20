@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import testing
+from . import testing, sigmoid
 
-__ALL__ = [
+__all__ = [
     'testing',
+    'sigmoid',
 ]

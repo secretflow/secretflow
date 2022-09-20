@@ -47,33 +47,32 @@ def train_test_split(
     Returns
         splitting : list, length=2 * len(arrays)
 
-    Examples
-    --------
-    >>> import numpy as np
-    >>> from secret.data.split import train_test_split
-    >>> # FedNdarray
-    >>> alice_arr = alice(lambda: np.array([[1, 2, 3], [4, 5, 6]]))()
-    >>> bob_arr = bob(lambda: np.array([[11, 12, 13], [14, 15, 16]]))()
+    Examples:
+        >>> import numpy as np
+        >>> from secret.data.split import train_test_split
+        >>> # FedNdarray
+        >>> alice_arr = alice(lambda: np.array([[1, 2, 3], [4, 5, 6]]))()
+        >>> bob_arr = bob(lambda: np.array([[11, 12, 13], [14, 15, 16]]))()
 
-    >>> fed_arr = load({self.alice: alice_arr, self.bob: bob_arr})
-    >>>
-    >>> X_train, X_test = train_test_split(
-    ...  fed_arr, test_size=0.33, random_state=42)
-    ...
-    >>> VDataFrame
-    >>> df_alice = pd.DataFrame({'a1': ['K5', 'K1', None, 'K6'],
-    ...                          'a2': ['A5', 'A1', 'A2', 'A6'],
-    ...                          'a3': [5, 1, 2, 6]})
+        >>> fed_arr = load({self.alice: alice_arr, self.bob: bob_arr})
+        >>>
+        >>> X_train, X_test = train_test_split(
+        ...  fed_arr, test_size=0.33, random_state=42)
+        ...
+        >>> VDataFrame
+        >>> df_alice = pd.DataFrame({'a1': ['K5', 'K1', None, 'K6'],
+        ...                          'a2': ['A5', 'A1', 'A2', 'A6'],
+        ...                          'a3': [5, 1, 2, 6]})
 
-    >>> df_bob = pd.DataFrame({'b4': [10.2, 20.5, None, -0.4],
-    ...                        'b5': ['B3', None, 'B9', 'B4'],
-    ...                        'b6': [3, 1, 9, 4]})
-    >>> df_alice = df_alice
-    >>> df_bob = df_bob
-    >>> vdf = VDataFrame(
-    ...       {alice: Partition(data=cls.alice(lambda: df_alice)()),
-    ...          bob: Partition(data=cls.bob(lambda: df_bob)())})
-    >>> train_vdf, test_vdf = train_test_split(vdf, test_size=0.33, random_state=42)
+        >>> df_bob = pd.DataFrame({'b4': [10.2, 20.5, None, -0.4],
+        ...                        'b5': ['B3', None, 'B9', 'B4'],
+        ...                        'b6': [3, 1, 9, 4]})
+        >>> df_alice = df_alice
+        >>> df_bob = df_bob
+        >>> vdf = VDataFrame(
+        ...       {alice: Partition(data=cls.alice(lambda: df_alice)()),
+        ...          bob: Partition(data=cls.bob(lambda: df_bob)())})
+        >>> train_vdf, test_vdf = train_test_split(vdf, test_size=0.33, random_state=42)
 
     """
     assert type(data) in [HDataFrame, VDataFrame, FedNdarray]
@@ -122,7 +121,7 @@ def train_test_split(
             partitions={pyu: Partition(data=part) for pyu, part in parts_train.items()},
             aligned=data.aligned,
         ), VDataFrame(
-            partitions={pyu: Partition(data=part) for pyu, part in parts_train.items()},
+            partitions={pyu: Partition(data=part) for pyu, part in parts_test.items()},
             aligned=data.aligned,
         )
     elif isinstance(data, HDataFrame):
@@ -131,9 +130,12 @@ def train_test_split(
             aggregator=data.aggregator,
             comparator=data.comparator,
         ), HDataFrame(
-            partitions={pyu: Partition(data=part) for pyu, part in parts_train.items()},
+            partitions={pyu: Partition(data=part) for pyu, part in parts_test.items()},
             aggregator=data.aggregator,
             comparator=data.comparator,
         )
     else:
-        return FedNdarray(parts_train), FedNdarray(parts_test)
+        return (
+            FedNdarray(parts_train, data.partition_way),
+            FedNdarray(parts_test, data.partition_way),
+        )

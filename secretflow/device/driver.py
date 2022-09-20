@@ -12,17 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import inspect
-import multiprocessing
 from functools import wraps
 from typing import Any, Iterable, List, Optional, Tuple, Union
 
 import jax
+import multiprocess
 import ray
 from spu import Visibility
-from secretflow.device.device.spu import CustomPyTreeNode
 
-from .device import HEU, SPU, PYU, Device, DeviceObject, HEUObject, SPUObject, PYUObject
+from .device import (
+    HEU,
+    PYU,
+    SPU,
+    SPUIO,
+    Device,
+    DeviceObject,
+    HEUObject,
+    PYUObject,
+    SPUObject,
+)
+from .device.base import MoveConfig
 
 
 def with_device(
@@ -38,17 +47,16 @@ def with_device(
         num_returns (int): Number of returned DeviceObject.
         static_argnames (Union[str, Iterable[str], None]): See ``jax.jit()`` docstring.
 
-    Examples
-    --------
-    >>> p1, spu = PYU(), SPU()
-    >>> # dynamic decorator
-    >>> x = with_device(p1)(load_data)('alice.csv')
-    >>> # static decorator
-    >>> @with_device(spu)
-    >>> def selu(x, alpha=1.67, lmbda=1.05):
-    >>>     return lmbda * jnp.where(x > 0, x, alpha * jnp.exp(x) - alpha)
-    >>> x_ = x.to(spu)
-    >>> y = selu(x_)
+    Examples:
+        >>> p1, spu = PYU(), SPU()
+        >>> # dynamic decorator
+        >>> x = with_device(p1)(load_data)('alice.csv')
+        >>> # static decorator
+        >>> @with_device(spu)
+        >>> def selu(x, alpha=1.67, lmbda=1.05):
+        >>>     return lmbda * jnp.where(x > 0, x, alpha * jnp.exp(x) - alpha)
+        >>> x_ = x.to(spu)
+        >>> y = selu(x_)
     """
 
     def wrapper(fn):
@@ -75,33 +83,16 @@ def to(device: Device, data: Any, spu_vis: str = 'secret'):
     ), f'spu_vis must be public or secret'
 
     if isinstance(data, DeviceObject):
-        return data.to(device, spu_vis=spu_vis)
+        return data.to(device, MoveConfig(spu_vis=spu_vis))
 
     if isinstance(device, PYU):
         return device(lambda x: x)(data)
 
     if isinstance(device, SPU):
-        spu_vis = (
-            Visibility.VIS_PUBLIC if spu_vis == 'public' else Visibility.VIS_SECRET
-        )
-
-        # NOTE: Custom pytree node with attributes that can't be pickled.
-        node_builder = None
-        if inspect.isfunction(data) and data.__name__ == "<lambda>":
-            node_builder = data
-            data = node_builder()
-
-        value_shares = SPU.infeed(device.cluster_def, str(id(data)), data, spu_vis)
-        shares, tree = value_shares[:-1], value_shares[-1]
-        for i, actor in enumerate(device.actors.values()):
-            actor.set_var.remote(shares[i])
-
-        # Custom pytree node
-        if node_builder is not None:
-            value, _ = jax.tree_util.tree_flatten(tree)
-            tree = CustomPyTreeNode(value, node_builder)
-
-        return SPUObject(device, tree)
+        vtype = Visibility.VIS_PUBLIC if spu_vis == 'public' else Visibility.VIS_SECRET
+        io = SPUIO(device.conf, device.world_size)
+        meta, *shares = io.make_shares(data, vtype)
+        return SPUObject(device, meta, shares)
 
     # TODO(@xibin.wxb): support HEU conversion.
     if isinstance(device, HEU):
@@ -122,7 +113,7 @@ def reveal(func_or_object):
     control flow occurs.
 
     Args:
-        func_or_object: May be callable, PYUObject, List[PYUOject], Dict[Any, PYUObject].
+        func_or_object: May be callable or any Python objects which contains Device objects.
     """
     if callable(func_or_object):
 
@@ -131,66 +122,62 @@ def reveal(func_or_object):
             return reveal(func_or_object(*arg, **kwargs))
 
         return wrapper
+    all_object_refs = []
+    flatten_val, tree = jax.tree_util.tree_flatten(func_or_object)
 
-    value_flat, value_tree = jax.tree_util.tree_flatten(func_or_object)
-    value_ref, value_idx = [], []
-    for i, value in enumerate(value_flat):
-        if isinstance(value, PYUObject):
-            value_ref.append(value.data)
-            value_idx.append(i)
-        elif isinstance(value, SPUObject):
-            shares = [value.data] if isinstance(value.data, ray.ObjectRef) else []
-            shares.extend(
-                [
-                    actor.get_var.remote(value.data)
-                    for actor in value.device.actors.values()
-                ]
-            )
-            value_ref.extend(shares)
-            value_idx.append(i)
-        elif isinstance(value, HEUObject):
-            if value.is_plain:
-                value_ref.append(value.data)
+    for x in flatten_val:
+        if isinstance(x, PYUObject):
+            all_object_refs.append(x.data)
+        elif isinstance(x, HEUObject):
+            if x.is_plain:
+                ref = x.device.get_participant(x.location).decode.remote(x.data)
             else:
-                value_ref.append(value.device.sk_keeper.decrypt.remote(value.data))
-            value_idx.append(i)
+                ref = x.device.sk_keeper.decrypt_and_decode.remote(x.data)
+            all_object_refs.append(ref)
+        elif isinstance(x, SPUObject):
+            if isinstance(x.shares[0], ray.ObjectRef):
+                all_object_refs.extend(x.shares)
 
-    value_obj = ray.get(value_ref)
-    idx = 0
-    for i in value_idx:
-        if isinstance(value_flat[i], (PYUObject, HEUObject)):
-            value_flat[i] = value_obj[idx]
-            idx += 1
-        elif isinstance(value_flat[i], SPUObject):
-            if isinstance(value_flat[i].data, ray.ObjectRef):
-                tree = value_obj[idx]
-                idx += 1
+    cur_idx = 0
+    all_object = ray.get(all_object_refs)
+
+    new_flatten_val = []
+    for x in flatten_val:
+        if isinstance(x, PYUObject) or isinstance(x, HEUObject):
+            new_flatten_val.append(all_object[cur_idx])
+            cur_idx += 1
+
+        elif isinstance(x, SPUObject):
+            io = SPUIO(x.device.conf, x.device.world_size)
+            if isinstance(x.shares[0], ray.ObjectRef):
+                shares = [all_object[cur_idx + i] for i in range(x.device.world_size)]
+                new_idx = cur_idx + x.device.world_size
             else:
-                tree = value_flat[i].data
+                shares = x.shares
+                new_idx = cur_idx
+            new_flatten_val.append(io.reconstruct(shares))
+            cur_idx = new_idx
 
-            device = value_flat[i].device
-            value_flat[i] = SPU.outfeed(
-                device.conf,
-                tree,
-                *value_obj[idx : idx + len(device.actors)],
-            )
-            idx += len(device.actors)
         else:
-            assert False
-    assert idx == len(value_obj)
+            new_flatten_val.append(x)
 
-    return jax.tree_util.tree_unflatten(value_tree, value_flat)
+    return jax.tree_util.tree_unflatten(tree, new_flatten_val)
 
 
-def wait(objects: List[Union[PYUObject, SPUObject]]):
-    """Wait for pyu objects until all are ready or error occurrency.
+def wait(objects: Any):
+    """Wait for device objects until all are ready or error occurrency.
 
     Args:
-        objects: list of device objects.
+        objects: struct of device objects.
     """
     # TODO(@xibin.wxb): support HEUObject
-    assert isinstance(objects, list), f'Objects should be list but got {type(objects)}'
-    reveal([o.device(lambda o: None)(o) for o in objects])
+    objs = [
+        x
+        for x in jax.tree_util.tree_leaves(objects)
+        if isinstance(x, PYUObject) or isinstance(x, SPUObject)
+    ]
+
+    reveal([o.device(lambda o: None)(o) for o in objs])
 
 
 def init(
@@ -214,10 +201,10 @@ def init(
     if parties is not None:
         assert address is None, 'Address should be none when parties are given.'
         if num_cpus is None:
-            num_cpus = multiprocessing.cpu_count()
+            num_cpus = multiprocess.cpu_count()
         assert isinstance(
             parties, (str, Tuple, List)
-        ), f'parties must be str or list of str'
+        ), 'parties must be str or list of str'
         if isinstance(parties, str):
             parties = [parties]
         else:

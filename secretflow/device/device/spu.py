@@ -12,235 +12,297 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import functools
 import json
 import os
 import shutil
 import sys
 import time
+import uuid
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, List, Tuple, Union
+from enum import Enum, unique
+from typing import Any, Callable, Dict, Iterable, List, Sequence, Tuple, Union
 
 import jax
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 import ray
-from google.protobuf import json_format
-
 import spu
-import spu.binding._lib.libs as libs
-import spu.binding._lib.link as link
-from spu import spu_pb2
-from spu import Io, Runtime
-from heu import phe
+import spu.binding._lib.libs as spu_libs
+import spu.binding._lib.link as spu_link
+import spu.binding.util.frontend as spu_fe
+from google.protobuf import json_format
+from spu.binding.util.distributed import dtype_spu_to_np, shape_spu_to_np
+from spu import psi
+
+from secretflow.utils.errors import InvalidArgumentError
+from secretflow.utils.ndarray_bigint import BigintNdArray
 
 from .base import Device, DeviceObject, DeviceType
+from .pyu import PYUObject
 from .register import dispatch
-from .type_traits import spu_fxp_size, spu_datatype_to_heu
-from .utils import check_num_returns, flatten
+from .type_traits import spu_datatype_to_heu, spu_fxp_size
+
+_LINK_DESC_NAMES = [
+    'connect_retry_times',
+    'connect_retry_interval_ms',
+    'recv_timeout_ms',
+    'http_max_payload_size',
+    'http_timeout_ms',
+    'throttle_window_size',
+    'brpc_channel_protocol',
+    'brpc_channel_connection_type',
+]
 
 
-def argnames_partial_except(fn, static_argnames, kwargs):
-    if static_argnames is None:
-        return fn, kwargs
+def _fill_link_desc_attrs(link_desc: Dict, desc: spu_link.Desc):
+    if link_desc:
+        for name, value in link_desc.items():
+            assert (
+                isinstance(name, str) and name
+            ), f'Link desc param name shall be a valid string but got {type(name)}.'
+            if name not in _LINK_DESC_NAMES:
+                raise InvalidArgumentError(
+                    f'Unsupported param {name} in link desc, '
+                    f'{_LINK_DESC_NAMES} are now available only.'
+                )
+            setattr(desc, name, value)
 
-    assert isinstance(static_argnames, (str, Iterable))
-    if isinstance(static_argnames, str):
-        static_argnames = (static_argnames,)
+    if not link_desc or 'recv_timeout_ms' not in link_desc.keys():
+        # set default timeout 120s
+        desc.recv_timeout_ms = 120 * 1000
+    if not link_desc or 'http_timeout_ms' not in link_desc.keys():
+        # set default timeout 120s
+        desc.http_timeout_ms = 120 * 1000
 
-    static_kwargs = {k: kwargs.pop(k) for k in static_argnames if k in kwargs}
-    return functools.partial(fn, **static_kwargs), kwargs
+
+def _plaintext_to_numpy(data: Any) -> np.ndarray:
+    """try to convert anything to a jax-friendly numpy array.
+
+    Args:
+        data (Any): data
+
+    Returns:
+        np.ndarray: a numpy array.
+    """
+
+    # NOTE(junfeng): jnp.asarray would transfer int64s to int32s.
+    return np.asarray(jnp.asarray(data))
 
 
 @dataclass
-class CustomPyTreeNode:
-    """Custom pytree node wrapper for pickling.
+class SPUValueMeta:
+    """The metadata of a SPU value, which is a Numpy array or equivalent."""
 
-    NOTE: For custom pytree node, e.g `jax.example_libraries.optimizers.OptimizerState`,
-    it may contain `jaxlib.xla_extension.PyTreeDef` which is not pickable. So we have to
-    pickle its flattend value and reconstruct it in remote.
-
-    Attributes:
-        value: Flattened value of custom node.
-        builder: Callable that creates this custom node.
-    """
-
-    value: Any
-    builder: Callable
-
-
-@dataclass
-class PyTreeLeaf:
-    """SPUObject meta info.
-
-    Attributes:
-        name: object name in SPU runtime
-        vis: object visibility
-        dtype: object data type
-        shape: object array shape
-    """
-
-    name: str
-    vis: spu.Visibility
+    shape: Sequence[int]
     dtype: np.dtype
-    shape: Tuple
+    vtype: spu.Visibility
 
 
 class SPUObject(DeviceObject):
-    """SPU device object.
+    def __init__(
+        self,
+        device: Device,
+        meta: ray.ObjectRef,
+        shares: Sequence[ray.ObjectRef],
+    ):
+        """SPUObject refers to a Python Object which could be flattened to a
+        list of SPU Values. A SPU value is a Numpy array or equivalent.
+        e.g.
 
-    Attributes:
-        data (ray.ObjectRef): Reference to `PyTreeLeaf` which represents raw data meta info.
-    """
+        1. If referred Python object is [1,2,3]
+        Then meta would be referred to a single SPUValueMeta, and shares is
+        a list of referrence to pieces of share of [1,2,3].
 
-    def __init__(self, device: 'SPU', data: ray.ObjectRef):
+        2. If referred Python object is {'a': 1, 'b': [3, np.array(...)]}
+        The meta would be referred to something like {'a': SPUValueMeta1,
+        'b': [SPUValueMeta2, SPUValueMeta3]}
+        Each element of shares would be referred to something like
+        {'a': share1, 'b': [share2, share3]}
+
+        3. shares is a list of ObjectRef to share slices while these share
+        slices are not necessarily located at SPU device. The data transfer
+        would only happen when SPU device consumes SPU objects.
+
+        Args:
+            meta: Ref to the metadata.
+            refs (Sequence[ray.ObjectRef]): Refs to shares of data.
+        """
         super().__init__(device)
-        self.data = data
+        self.meta = meta
+        self.shares = shares
+
+
+class SPUIO:
+    def __init__(self, runtime_config: spu.RuntimeConfig, world_size: int) -> None:
+        """A wrapper of spu.Io.
+
+        Args:
+            runtime_config (RuntimeConfig): runtime_config of SPU device.
+            world_size (int): world_size of SPU device.
+        """
+        self.runtime_config = runtime_config
+        self.world_size = world_size
+        self.io = spu.Io(self.world_size, self.runtime_config)
+
+    def make_shares(self, data: Any, vtype: spu.Visibility) -> Tuple[Any, List[Any]]:
+        """Convert a Python object to meta and shares of a SPUObject.
+
+        Args:
+            data (Any): Any Python object.
+            vtype (Visibility): Visibility
+
+        Returns:
+            Tuple[Any, List[Any]]: meta and shares of a SPUObject
+        """
+        flatten_value, tree = jax.tree_util.tree_flatten(data)
+        flatten_shares = []
+        flatten_meta = []
+        for val in flatten_value:
+            val = _plaintext_to_numpy(val)
+            flatten_meta.append(SPUValueMeta(val.shape, val.dtype, vtype))
+            flatten_shares.append(self.io.make_shares(val, vtype))
+
+        return jax.tree_util.tree_unflatten(tree, flatten_meta), *[  # noqa e999
+            jax.tree_util.tree_unflatten(tree, list(shares))
+            for shares in list(zip(*flatten_shares))
+        ]
+
+    def reconstruct(self, shares: List[Any]) -> Any:
+        """Convert shares of a SPUObject to the origin Python object.
+
+        Args:
+            shares (List[Any]): Shares
+
+        Returns:
+            Any: the origin Python object.
+        """
+        assert len(shares) == self.world_size
+        _, tree = jax.tree_util.tree_flatten(shares[0])
+        flatten_shares = []
+        for share in shares:
+            flatten_share, _ = jax.tree_util.tree_flatten(share)
+            flatten_shares.append(flatten_share)
+
+        flatten_value = [
+            self.io.reconstruct(list(shares)) for shares in list(zip(*flatten_shares))
+        ]
+
+        return jax.tree_util.tree_unflatten(tree, flatten_value)
+
+
+@unique
+class SPUCompilerNumReturnsPolicy(Enum):
+    """Tell SPU device how to decide num of returns of called function."""
+
+    FROM_COMPILER = 'from_compiler'
+    """num of returns is from compiler result.
+    """
+    FROM_USER = 'from_user'
+    """If users are sure that returns is a list, they could specify the length of list.
+    """
+    SINGLE = 'single'
+    """num of returns is fixed to 1.
+    """
 
 
 @ray.remote
 class SPURuntime:
-    def __init__(self, rank: int, cluster_def: Dict):
-        """SPURuntime constructor.
+    def __init__(self, rank: int, cluster_def: Dict, link_desc: Dict = None):
+        """wrapper of spu.Runtime.
 
         Args:
-            rank (int): Communicator rank of this SPU runtime.
-            cluster_def (Dict): Cluster definition of all SPU runtimes,
-            including node, address, protocol, etc.
+            rank (int): rank of runtime
+            cluster_def (Dict): config of spu cluster
+            link_desc (Dict, optional): link config. Defaults to None.
         """
         self.rank = rank
         self.cluster_def = cluster_def
 
-        desc = link.Desc()
+        desc = spu_link.Desc()
         for i, node in enumerate(cluster_def['nodes']):
             if i == rank and node.get('listen_address', ''):
                 desc.add_party(node['id'], node['listen_address'])
             else:
                 desc.add_party(node['id'], node['address'])
+        _fill_link_desc_attrs(link_desc=link_desc, desc=desc)
+
+        self.link = spu_link.create_brpc(desc, rank)
         self.conf = json_format.Parse(
             json.dumps(cluster_def['runtime_config']), spu.RuntimeConfig()
         )
-
-        self.link = link.create_brpc(desc, rank)
-        self.runtime = Runtime(self.link, self.conf)
-
-    def set_var(self, vars: Dict[str, Any]):
-        """Set variables to SPU runtime.
-
-        Args:
-            vars: Dict{var_name -> ValueProto}
-        """
-        for name, var in vars.items():
-            self.runtime.set_var(name, var)
-
-    def get_var(self, tree: PyTreeLeaf):
-        """Get variables from SPU runtime.
-
-        Args:
-            tree: Tree struct with all leaf nodes are PyTreeLeaf,
-            can be PyTreeLeaf, List[PyTreeLeaf], etc.
-
-        Returns:
-            List[np.ndarray]: List of values corresponding to leaf nodes of flatten tree.
-        """
-        value_flat, _ = jax.tree_util.tree_flatten(tree)
-        return [self.runtime.get_var(value.name) for value in value_flat]
+        self.runtime = spu.Runtime(self.link, self.conf)
 
     def run(
         self,
-        task_id: int,
-        fn: Callable,
-        static_argnames: Union[str, Iterable[str], None],
-        args: List,
-        kwargs: Dict,
+        num_returns_policy: SPUCompilerNumReturnsPolicy,
+        out_shape,
+        executable: spu.spu_pb2.ExecutableProto,
+        *val,
     ):
-        """Execute function.
+        """run executable.
 
         Args:
-            task_id (int): Task ID of this.
-            fn (Callable): Function to be executed.
-            static_argnames (Union[str, Iterable[str], None]): See ``jax.jit()`` docstring.
-            args (List): Positional arguments, which should be either constant or tree
-            struct with all leaf nodes are PyTreeLeaf.
-            kwargs (Dict): Keyword arguments, which should be either constant or tree
-            struct with all leaf nodes are PyTreeLeaf.
+            executable (spu_pb2.ExecutableProto): the executable.
+            *inputs: input vars, need to follow the exec.input_names.
 
         Returns:
-            Tree struct with all leaf nodes are PyTreeLeaf,
-            can be PyTreeLeaf, List[PyTreeLeaf], etc.
+            List: first parts are output vars following the exec.output_names. The last item is metadata.
         """
-        from spu import Visibility, IrProto, XlaMeta
 
-        fn, kwargs = argnames_partial_except(fn, static_argnames, kwargs)
-        args, kwargs = flatten(args, kwargs)
+        flatten_val, _ = jax.tree_util.tree_flatten(val)
 
-        # step 1: feed constant args into SPU runtime
-        value_shares = SPU.infeed(
-            self.cluster_def,
-            f'task_{task_id}_input',
-            (args, kwargs),
-            vis=Visibility.VIS_PUBLIC,
-        )
-        shares, (args, kwargs) = value_shares[:-1], value_shares[-1]
-        self.set_var(shares[self.rank])
+        for name, x in zip(executable.input_names, flatten_val):
+            self.runtime.set_var(name, x)
 
-        # step 2: collect XLA computation input visibility and names
-        value_flat, _ = jax.tree_util.tree_flatten((args, kwargs))
-        input_names, input_vis = [], []
-        for value in value_flat:
-            input_names.append(value.name)
-            input_vis.append(value.vis)
-
-        # step 3: produce XLA computation given example args
-        cfn, output = jax.xla_computation(fn, return_shape=True)(*args, **kwargs)
-        output_flat, output_tree = jax.tree_util.tree_flatten(output)
-
-        output_leaf = [
-            PyTreeLeaf(
-                f'task_{task_id}_output_{i}',
-                Visibility.VIS_SECRET,
-                value.dtype,
-                value.shape,
-            )
-            for i, value in enumerate(output_flat)
-        ]
-        output_names = [leaf.name for leaf in output_leaf]
-
-        # step 4: execute jitted function in SPU
-        ir = IrProto(
-            ir_type=spu.spu_pb2.IrType.IR_XLA_HLO,
-            code=cfn.as_serialized_hlo_module_proto(),
-            meta=XlaMeta(inputs=input_vis),
-        )
-        nir = spu.compile(ir)
-        name = fn.func.__name__ if isinstance(fn, functools.partial) else fn.__name__
-        executable = spu.spu_pb2.ExecutableProto(
-            name=name,
-            input_names=input_names,
-            output_names=output_names,
-            code=nir.code,
-        )
         self.runtime.run(executable)
 
-        return jax.tree_util.tree_unflatten(output_tree, output_leaf)
+        outputs = []
+        metadata = []
+        for name in executable.output_names:
+            var = self.runtime.get_var(name)
+            outputs.append(var)
+            metadata.append(
+                SPUValueMeta(
+                    shape_spu_to_np(var.shape),
+                    dtype_spu_to_np(var.data_type),
+                    var.visibility,
+                )
+            )
+            self.runtime.del_var(name)
 
-    def a2h(self, tree: PyTreeLeaf, exp_heu_data_type: str):
+        for name in executable.input_names:
+            self.runtime.del_var(name)
+
+        if num_returns_policy == SPUCompilerNumReturnsPolicy.SINGLE:
+            _, out_tree = jax.tree_util.tree_flatten(out_shape)
+            return jax.tree_util.tree_unflatten(
+                out_tree, metadata
+            ), jax.tree_util.tree_unflatten(out_tree, outputs)
+        elif num_returns_policy == SPUCompilerNumReturnsPolicy.FROM_COMPILER:
+            return metadata + outputs
+        elif num_returns_policy == SPUCompilerNumReturnsPolicy.FROM_USER:
+            _, out_tree = jax.tree_util.tree_flatten(out_shape)
+            single_meta, single_share = jax.tree_util.tree_unflatten(
+                out_tree, metadata
+            ), jax.tree_util.tree_unflatten(out_tree, outputs)
+            return *(list(single_meta)), *(list(single_share))
+        else:
+            raise ValueError('unsupported SPUCompilerNumReturnsPolicy.')
+
+    def a2h(self, value, exp_heu_data_type: str):
         """Convert SPUObject to HEUObject.
 
         Args:
-            tree (PyTreeLeaf): SPUObject meata info.
+            tree (PyTreeLeaf): SPUObject meta info.
             exp_heu_data_type (str): HEU data type.
 
         Returns:
             np.ndarray: Array of `phe.Plaintext`.
         """
-        assert isinstance(
-            tree, PyTreeLeaf
-        ), f'A2H only support single array conversion.'
-
-        value = self.runtime.get_var(tree.name)
-        expect_st = f"semi2k.AShr<{spu_pb2.FieldType.Name(self.conf.field)}>"
+        expect_st = f"semi2k.AShr<{spu.spu_pb2.FieldType.Name(self.conf.field)}>"
         assert (
             value.storage_type == expect_st
         ), f"Unsupported storage type {value.storage_type}, expected {expect_st}"
@@ -251,66 +313,51 @@ class SPURuntime:
             f"please modify the initial configuration of HEU."
         )
 
-        shape = value.shape.dims
         size = spu_fxp_size(self.conf.field)
-        value = np.array(
+        value = BigintNdArray(
             [
-                # The data from SPU is already encoded.
-                # convert to phe.Plaintext to avoid double encoding
-                phe.Plaintext(
-                    int.from_bytes(
-                        value.content[i * size : (i + 1) * size],
-                        sys.byteorder,
-                        signed=True,
-                    )
+                int.from_bytes(
+                    value.content[i * size : (i + 1) * size],
+                    sys.byteorder,
+                    signed=True,
                 )
                 for i in range(len(value.content) // size)
-            ]
-        ).reshape(*shape)
-        return value
+            ],
+            value.shape.dims,
+        )
+
+        return value.to_hnp()
 
     def psi_df(
         self,
-        key: Union[str, Iterable[str]],
+        key: Union[str, List[str]],
         data: pd.DataFrame,
-        protocol='kkrt',
+        receiver: str,
+        protocol='KKRT_PSI_2PC',
+        precheck_input=True,
         sort=True,
+        broadcast_result=True,
+        bucket_size=1 << 20,
     ):
         """Private set intersection with DataFrame.
 
         Args:
-            key (Union[str, Iterable[str]]): Column(s) used to join.
+            key (str, List[str]): Column(s) used to join.
             data (pd.DataFrame): DataFrame to be joined.
-            protocol (str): PSI protocol, supported: ecdh, kkrt.
+            protocol (str): PSI protocol, See spu.psi.PsiType.
             sort (bool): Whether sort data by key after join.
+            receiver (str): Which party can get joined data, others will get None.
+            protocol (str): PSI protocol.
+            precheck_input (bool): Whether to check input data before join.
+            sort (bool): Whether sort data by key after join.
+            broadcast_result (bool): Whether to broadcast joined data to all parties.
+            bucket_size (int): Specified the hash bucket size used in psi. Larger values consume more memory.
 
         Returns:
-            pd.DataFrame: joined DataFrame. For example:
-
-            df1 = pd.DataFrame({'key': ['K5', 'K1', 'K2', 'K6', 'K4', 'K3'],
-                                'A': ['A5', 'A1', 'A2', 'A6', 'A4', 'A3']})
-
-            df2 = pd.DataFrame({'key': ['K3', 'K1', 'K9', 'K4'],
-                                'A': ['A3', 'A1', 'A9', 'A4']})
-
-            df1, df2 = spu.psi_df('key', [df1, df2])
-
-            >>> df1
-                key   A
-            1   K1    A1
-            5   K3    A3
-            4   K4    A4
-
-            >>> df2
-                key   A
-            1   K1    A1
-            0   K3    A3
-            3   K4    A4
+            pd.DataFrame or None: joined DataFrame.
         """
-        assert protocol in ('ecdh', 'kkrt'), f'unsupported psi protocol {protocol}'
-
         # save key dataframe to temp file for streaming psi
-        data_dir = f'.data/{self.rank}'
+        data_dir = f'.data/{self.rank}-{uuid.uuid4()}'
         os.makedirs(data_dir, exist_ok=True)
         input_path, output_path = (
             f'{data_dir}/psi-input.csv',
@@ -319,60 +366,80 @@ class SPURuntime:
         data.to_csv(input_path, index=False)
 
         try:
-            self.psi_csv(key, input_path, output_path, protocol, sort)
+            report = self.psi_csv(
+                key,
+                input_path,
+                output_path,
+                receiver,
+                protocol,
+                precheck_input,
+                sort,
+                broadcast_result,
+                bucket_size,
+            )
 
-            # load result dataframe from temp file
-            return pd.read_csv(output_path)
+            if report['intersection_count'] == -1:
+                # can not get result, return None
+                return None
+            else:
+                # load result dataframe from temp file
+                return pd.read_csv(output_path)
         finally:
             shutil.rmtree(data_dir, ignore_errors=True)
 
     def psi_csv(
         self,
-        key: Union[str, Iterable[str]],
+        key: Union[str, List[str]],
         input_path: str,
         output_path: str,
-        protocol='kkrt',
+        receiver: str,
+        protocol='KKRT_PSI_2PC',
+        precheck_input=True,
         sort=True,
+        broadcast_result=True,
+        bucket_size=1 << 20,
     ):
         """Private set intersection with csv file.
 
-        Examples
-        --------
-        >>> spu = sf.SPU(utils.cluster_def)
-        >>> alice = sf.PYU('alice'), sf.PYU('bob')
-        >>> input_path = {alice: '/path/to/alice.csv', bob: '/path/to/bob.csv'}
-        >>> output_path = {alice: '/path/to/alice_psi.csv', bob: '/path/to/bob_psi.csv'}
-        >>> spu.psi_csv(['c1', 'c2'], input_path, output_path)
+        Examples:
+            >>> spu = sf.SPU(utils.cluster_def)
+            >>> alice = sf.PYU('alice'), sf.PYU('bob')
+            >>> input_path = {alice: '/path/to/alice.csv', bob: '/path/to/bob.csv'}
+            >>> output_path = {alice: '/path/to/alice_psi.csv', bob: '/path/to/bob_psi.csv'}
+            >>> spu.psi_csv(['c1', 'c2'], input_path, output_path, 'alice')
 
         Args:
-            key (Union[str, Iterable[str]]): Column(s) used to join.
+            key (str, List[str]): Column(s) used to join.
             input_path: CSV file to be joined, comma seperated and contains header.
             output_path: Joined csv file, comma seperated and contains header.
-            protocol (str): PSI protocol, supported: ecdh, kkrt.
+            receiver (str): Which party can get joined data. Others won't generate output file and `intersection_count` get `-1`
+            protocol (str): PSI protocol.
+            precheck_input (bool): Whether to check input data before join.
             sort (bool): Whether sort data by key after join.
+            broadcast_result (bool): Whether to broadcast joined data to all parties.
+            bucket_size (int): Specified the hash bucket size used in psi. Larger values consume more memory.
 
         Returns:
             Dict: PSI report output by SPU.
         """
-        assert protocol in ('ecdh', 'kkrt'), f'unsupported psi protocol {protocol}'
-
         key = [key] if isinstance(key, str) else list(key)
 
-        report = libs.PsiReport()
-        if len(self.cluster_def['nodes']) == 2:
-            if protocol == 'ecdh':
-                libs.ecdh_2pc_psi(
-                    self.link, key, input_path, output_path, 1, sort, report
-                )
-            else:
-                libs.kkrt_2pc_psi(
-                    self.link, key, input_path, output_path, sort, report, True
-                )
-        elif len(self.cluster_def['nodes']) == 3:
-            assert protocol == 'ecdh', f'only ecdh-3pc psi supported'
-            libs.ecdh_3pc_psi(self.link, key, input_path, output_path, sort, report)
-        else:
-            raise ValueError('only 2pc or 3pc psi supported')
+        receiver_rank = -1
+        for i, node in enumerate(self.cluster_def['nodes']):
+            if node['party'] == receiver:
+                receiver_rank = i
+                break
+        assert receiver_rank >= 0, f'invalid receiver {receiver}'
+
+        config = psi.BucketPsiConfig(
+            psi_type=psi.PsiType.Value(protocol),
+            broadcast_result=broadcast_result,
+            receiver_rank=receiver_rank,
+            input_params=psi.InputParams(path=input_path, select_fields=key, precheck=precheck_input),
+            output_params=psi.OuputParams(path=output_path, need_sort=sort),
+            bucket_size=bucket_size,
+        )
+        report = psi.bucket_psi(self.link, config)
 
         party = self.cluster_def['nodes'][self.rank]['party']
         return {
@@ -382,8 +449,62 @@ class SPURuntime:
         }
 
 
+def _argnames_partial_except(fn, static_argnames, kwargs):
+    if static_argnames is None:
+        return fn, kwargs
+
+    assert isinstance(
+        static_argnames, (str, Iterable)
+    ), f'type of static_argnames is {type(static_argnames)} while str or Iterable is required here.'
+    if isinstance(static_argnames, str):
+        static_argnames = (static_argnames,)
+
+    static_kwargs = {k: kwargs.pop(k) for k in static_argnames if k in kwargs}
+    return functools.partial(fn, **static_kwargs), kwargs
+
+
+def _generate_input_uuid(name):
+    return f'{name}-input-{uuid.uuid4()}'
+
+
+def _generate_output_uuid(name):
+    return f'{name}-output-{uuid.uuid4()}'
+
+
+@ray.remote(num_returns=2)
+def _spu_compile(spu_name, fn, *meta_args, **meta_kwargs):
+    meta_args, meta_kwargs = jax.tree_util.tree_map(
+        lambda x: ray.get(x) if isinstance(x, ray.ObjectRef) else x,
+        (meta_args, meta_kwargs),
+    )
+
+    # prepare inputs and metatdata.
+    input_name = []
+    input_vis = []
+
+    def _get_input_metatdata(obj: SPUObject):
+        input_name.append(_generate_input_uuid(spu_name))
+        input_vis.append(obj.vtype)
+
+    jax.tree_util.tree_map(_get_input_metatdata, (meta_args, meta_kwargs))
+
+    executable, output_tree = spu_fe.compile(
+        spu_fe.Kind.JAX,
+        fn,
+        meta_args,
+        meta_kwargs,
+        input_name,
+        input_vis,
+        lambda output_flat: [
+            _generate_output_uuid(spu_name) for _ in range(len(output_flat))
+        ],
+    )
+
+    return executable, output_tree
+
+
 class SPU(Device):
-    def __init__(self, cluster_def: Dict):
+    def __init__(self, cluster_def: Dict, link_desc: Dict = None, name: str = 'SPU'):
         """SPU device constructor.
 
         Args:
@@ -418,15 +539,30 @@ class SPU(Device):
                             'sigmoid_mode': spu.spu_pb2.RuntimeConfig.SIGMOID_REAL,
                         }
                     }
+            link_desc: optional. A dict specifies the link parameters.
+                Available parameters are:
+                1. connect_retry_times
+                2. connect_retry_interval_ms
+                3. recv_timeout_ms
+                4. http_max_payload_size
+                5. http_timeout_ms
+                6. throttle_window_size
+                7. brpc_channel_protocol
+                   refer to `https://github.com/apache/incubator-brpc/blob/master/docs/en/client.md#protocols`
+                8. brpc_channel_connection_type
+                   refer to `https://github.com/apache/incubator-brpc/blob/master/docs/en/client.md#connection-type`
         """
         super().__init__(DeviceType.SPU)
-
         self.cluster_def = cluster_def
+        self.link_desc = link_desc
         self.conf = json_format.Parse(
             json.dumps(cluster_def['runtime_config']), spu.RuntimeConfig()
         )
+        self.world_size = len(self.cluster_def['nodes'])
+        self.name = name
         self.actors = {}
         self._task_id = -1
+        self.io = SPUIO(self.conf, self.world_size)
         self.init()
 
     def init(self):
@@ -434,7 +570,7 @@ class SPU(Device):
         for rank, node in enumerate(self.cluster_def['nodes']):
             self.actors[node['party']] = SPURuntime.options(
                 resources={node['party']: 1}
-            ).remote(rank, self.cluster_def)
+            ).remote(rank, self.cluster_def, self.link_desc)
 
     def reset(self):
         """Reset spu to clear corrupted internal state, for test only"""
@@ -443,179 +579,173 @@ class SPU(Device):
         time.sleep(0.5)
         self.init()
 
-    def get_field_type(self):
-        """Get SPU fix point integer type"""
-        return self.conf.field  # spu.spu_pb2.FM128
+    def _place_arguments(self, *args, **kwargs):
+        def place(obj):
+            if isinstance(obj, DeviceObject):
+                return obj.to(self)
+            else:
+                # if obj is not a DeviceObject, it should be a plaintext from
+                # host program, so it's safe to mark it as VIS_PUBLIC.
+                meta, *refs = self.io.make_shares(obj, spu.Visibility.VIS_PUBLIC)
+                return SPUObject(self, meta, refs)
 
-    def psi_df(
-        self,
-        key: Union[str, Iterable[str]],
-        dfs: List['PYUObject'],
-        protocol: str = 'kkrt',
-        sort=True,
-    ):
-        """Private set intersection with DataFrame.
-
-        Args:
-            key (Union[str, Iterable[str]]): Column(s) used to join.
-            dfs (List[PYUObject]): DataFrames to be joined, which
-            should be colocated with SPU runtimes.
-            protocol (str): PSI protocol, supported: ecdh, kkrt.
-            sort (bool): Whether sort data by key after join.
-
-        Returns:
-            List[PYUObject]: Joined DataFrames with order reserved.
-        """
-        return dispatch('psi_df', self, key, dfs, protocol, sort)
-
-    def psi_csv(
-        self,
-        key: Union[str, Iterable[str]],
-        input_path: Union[str, Dict[Device, str]],
-        output_path: Union[str, Dict[Device, str]],
-        protocol='kkrt',
-        sort=True,
-    ):
-        """Private set intersection with csv file.
-
-        Args:
-            key (Union[str, Iterable[str]]): Column(s) used to join.
-            input_path: CSV files to be joined, comma seperated and contains header.
-            output_path: Joined csv files, comma seperated and contains header.
-            protocol (str): PSI protocol, supported: ecdh, kkrt.
-            sort (bool): Whether sort data by key after join.
-
-        Returns:
-            List[Dict]: PSI reports output by SPU with order reserved.
-        """
-        return dispatch('psi_csv', self, key, input_path, output_path, protocol, sort)
-
-    @classmethod
-    def infeed(cls, cluster_def: Dict, name: str, data: Any, vis):
-        """Secret share data and feed into SPU runtime.
-
-        Args:
-            cluster_def: See `SPU.__init__`.
-            name: variable name.
-            data: variable value.
-            vis: Visibility in SPU
-                secret: secret share
-                public: public share
-
-        Returns:
-            Tree struct corresponding to data with all leaf nodes are PyTreeLeaf.
-        """
-        from spu import Io
-
-        world_size = len(cluster_def['nodes'])
-        runtime_config = json_format.Parse(
-            json.dumps(cluster_def['runtime_config']), spu.RuntimeConfig()
-        )
-        io = Io(world_size, runtime_config)
-
-        value_flat, value_tree = jax.tree_util.tree_flatten(data)
-        value_leaves = []
-
-        value_shares = [{} for _ in range(world_size)]
-        for i, value in enumerate(value_flat):
-            if isinstance(value, PyTreeLeaf):
-                value_leaves.append(value)
-                continue
-
-            if isinstance(value, CustomPyTreeNode):
-                _, tree = jax.tree_util.tree_flatten(value.builder())
-                value_leaves.append(jax.tree_util.tree_unflatten(tree, value.value))
-                continue
-
-            assert isinstance(
-                value,
-                (int, float, np.ndarray, pd.DataFrame, pd.Series, jnp.DeviceArray),
-            ), (
-                f'value must be int, float, pd.DataFrame or np.ndarray, '
-                f'got {type(value)} instead.'
-            )
-
-            # NOTE: JAX enables 32bit mode by default, so we wrap all values
-            # with jnp.array to convert them to int32 or float32.
-            # https://jax.readthedocs.io/en/latest/notebooks/Common_Gotchas_in_JAX.html#double-64bit-precision
-
-            # TODO(@xibin.wxb): remove np.array once if io.make_shares supports jnp.array.
-            value = np.array(jnp.array(value))
-            leaf = PyTreeLeaf(f'{name}_{i}', vis, value.dtype, value.shape)
-            value_leaves.append(leaf)
-            shares = io.make_shares(value, vis)
-            for rank in range(world_size):
-                value_shares[rank][leaf.name] = shares[rank]
-
-        value_shares.append(jax.tree_util.tree_unflatten(value_tree, value_leaves))
-        return value_shares
-
-    @classmethod
-    def outfeed(cls, conf: Dict, tree: Any, *shares):
-        """Reconstruct data with secret shares.
-
-        Args:
-            conf (Dict): SPU runtime config, see `SPU.__init__`.
-            tree (Any): Tree struct of original data.
-            shares (Tuple[List[np.ndarray]]): List of values corresponding to leaf nodes in tree.
-
-        Returns:
-            Original data feed into SPU.
-        """
-        io = Io(len(shares), conf)
-        value_flat, value_tree = jax.tree_util.tree_flatten(tree)
-
-        value_leaves = []
-        for i in range(len(value_flat)):
-            value_leaves.append(io.reconstruct([share[i] for share in shares]))
-
-        return jax.tree_util.tree_unflatten(value_tree, value_leaves)
+        return jax.tree_util.tree_map(place, (args, kwargs))
 
     def __call__(
         self,
         func: Callable,
         *,
-        num_returns: int = None,
         static_argnames: Union[str, Iterable[str], None] = None,
+        num_returns_policy: SPUCompilerNumReturnsPolicy = SPUCompilerNumReturnsPolicy.SINGLE,
+        user_specified_num_returns: int = 1,
     ):
-        """Set up ``fn`` for scheduling to this device.
-
-        Args:
-            func (Callable): Function to be jitted and schedule to this device.
-            num_returns (int): Number of returned SPUObject.
-            static_argnames (Union[str, Iterable[str], None]): See ``jax.jit()`` docstring.
-
-        Returns:
-            A wrapped version of ``fn``, set up for just-in-time compilation and device placement.
-        """
-        self._task_id += 1
-        task_id = self._task_id
-
         def wrapper(*args, **kwargs):
-            _num_returns = (
-                check_num_returns(func) if num_returns is None else num_returns
+            # handle static_argnames of func
+            fn, kwargs = _argnames_partial_except(func, static_argnames, kwargs)
+
+            # convert every args to SPU objects.
+            args, kwargs = self._place_arguments(*args, **kwargs)
+
+            (meta_args, meta_kwargs) = jax.tree_util.tree_map(
+                lambda x: x.meta if isinstance(x, SPUObject) else x, (args, kwargs)
             )
 
-            # device object type check and unwrap
-            value_flat, value_tree = jax.tree_util.tree_flatten((args, kwargs))
-            for i, value in enumerate(value_flat):
-                if isinstance(value, SPUObject):
-                    assert (
-                        value.device == self
-                    ), f'unexpected device object {value.device} self {self}'
-                    value_flat[i] = value.data
-            args, kwargs = jax.tree_util.tree_unflatten(value_tree, value_flat)
+            num_returns = user_specified_num_returns
+            meta_args = list(meta_args)
 
-            # execute jitted function in SPURuntime
-            res = None
-            for actor in self.actors.values():
-                res = actor.run.options(num_returns=_num_returns).remote(
-                    task_id, func, static_argnames, args, kwargs
+            # it's ok to choose any party to compile,
+            # here we choose party 0.
+            executable, out_shape = _spu_compile.options(
+                resources={self.cluster_def['nodes'][0]['party']: 1}
+            ).remote(self.name, fn, *meta_args, **meta_kwargs)
+
+            if num_returns_policy == SPUCompilerNumReturnsPolicy.FROM_COMPILER:
+                # Since user choose to use num of returns from compiler result,
+                # the compiler result must be revealed to host.
+                # Performance may hurt here.
+                # However, since we only expose executable here, it's still
+                # safe.
+                executable, out_shape = ray.get([executable, out_shape])
+                num_returns = len(executable.output_names)
+
+            if num_returns_policy == SPUCompilerNumReturnsPolicy.SINGLE:
+                num_returns = 1
+
+            # run executable and get returns.
+            outputs = [None] * self.world_size
+            for i, actor in enumerate(self.actors.values()):
+
+                (actor_args, actor_kwargs) = jax.tree_util.tree_map(
+                    lambda x: x.shares[i], (args, kwargs)
                 )
 
-            if _num_returns == 1:
-                return SPUObject(self, res)
+                val, _ = jax.tree_util.tree_flatten((actor_args, actor_kwargs))
+
+                actor_out = actor.run.options(num_returns=2 * num_returns).remote(
+                    num_returns_policy, out_shape, executable, *val
+                )
+
+                outputs[i] = actor_out
+
+            if num_returns_policy == SPUCompilerNumReturnsPolicy.SINGLE:
+                return SPUObject(self, outputs[0][0], [output[1] for output in outputs])
+
             else:
-                return [SPUObject(self, value) for value in res]
+                all_shares = [output[num_returns:] for output in outputs]
+                all_meta = outputs[0][0:num_returns]
+
+                all_atomic_spu_objects = [
+                    SPUObject(self, meta, list(share))
+                    for meta, share in zip(all_meta, zip(*all_shares))
+                ]
+
+                if num_returns_policy == SPUCompilerNumReturnsPolicy.FROM_USER:
+                    return all_atomic_spu_objects
+
+                _, out_tree = jax.tree_util.tree_flatten(out_shape)
+                return jax.tree_util.tree_unflatten(out_tree, all_atomic_spu_objects)
 
         return wrapper
+
+    def psi_df(
+        self,
+        key: Union[str, List[str], Dict[Device, List[str]]],
+        dfs: List['PYUObject'],
+        receiver: str,
+        protocol='KKRT_PSI_2PC',
+        precheck_input=True,
+        sort=True,
+        broadcast_result=True,
+        bucket_size=1 << 20,
+    ):
+        """Private set intersection with DataFrame.
+
+        Args:
+            key (str, List[str], Dict[Device, List[str]]): Column(s) used to join.
+            dfs (List[PYUObject]): DataFrames to be joined, which
+            should be colocated with SPU runtimes.
+            receiver (str): Which party can get joined data, others will get None.
+            protocol (str): PSI protocol.
+            precheck_input (bool): Whether to check input data before join.
+            sort (bool): Whether sort data by key after join.
+            broadcast_result (bool): Whether to broadcast joined data to all parties.
+            bucket_size (int): Specified the hash bucket size used in psi. Larger values consume more memory.
+
+        Returns:
+            List[PYUObject]: Joined DataFrames with order reserved.
+        """
+        return dispatch(
+            'psi_df',
+            self,
+            key,
+            dfs,
+            receiver,
+            protocol,
+            precheck_input,
+            sort,
+            broadcast_result,
+            bucket_size,
+        )
+
+    def psi_csv(
+        self,
+        key: Union[str, List[str], Dict[Device, List[str]]],
+        input_path: Union[str, Dict[Device, str]],
+        output_path: Union[str, Dict[Device, str]],
+        receiver: str,
+        protocol='KKRT_PSI_2PC',
+        precheck_input=True,
+        sort=True,
+        broadcast_result=True,
+        bucket_size=1 << 20,
+    ):
+        """Private set intersection with csv file.
+
+        Args:
+            key (str, List[str], Dict[Device, List[str]]): Column(s) used to join.
+            input_path: CSV files to be joined, comma seperated and contains header.
+            output_path: Joined csv files, comma seperated and contains header.
+            receiver (str): Which party can get joined data. Others won't generate output file and `intersection_count` get `-1`
+            protocol (str): PSI protocol.
+            precheck_input (bool): Whether check input data before joining, for now, it will check if key duplicate.
+            sort (bool): Whether sort data by key after joining.
+            broadcast_result (bool): Whether broadcast joined data to all parties.
+            bucket_size (int): Specified the hash bucket size used in psi. Larger values consume more memory.
+
+        Returns:
+            List[Dict]: PSI reports output by SPU with order reserved.
+        """
+
+        return dispatch(
+            'psi_csv',
+            self,
+            key,
+            input_path,
+            output_path,
+            receiver,
+            protocol,
+            precheck_input,
+            sort,
+            broadcast_result,
+            bucket_size,
+        )

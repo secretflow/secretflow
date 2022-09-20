@@ -13,13 +13,11 @@
 # limitations under the License.
 
 import builtins
-from io import BytesIO
 from pathlib import Path
 from typing import Union
 from urllib.parse import urlparse
 
 import pandas as pd
-import requests
 
 import secretflow.data.io.oss as oss
 

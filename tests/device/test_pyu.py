@@ -2,6 +2,8 @@ import numpy as np
 
 import secretflow.device as ft
 from secretflow import reveal
+from secretflow.device.device.pyu import PYUObject
+from secretflow.device.device.spu import SPUObject
 from tests.basecase import DeviceTestCase
 
 
@@ -41,3 +43,26 @@ class TestDevicePYU(DeviceTestCase):
 
         x, y, z = ft.reveal([x, y, z])
         self.assertEqual(x, 1)
+
+    def test_dictionary_return(self):
+        def load():
+            return {'a': 1, 'b': 23}
+
+        x = self.alice(load)()
+        self.assertTrue(isinstance(x, ft.PYUObject))
+        self.assertEqual(ft.reveal(x), {'a': 1, 'b': 23})
+
+        x_ = x.to(self.spu)
+        self.assertEqual(ft.reveal(x_), {'a': 1, 'b': 23})
+
+    def test_to(self):
+        @ft.with_device(self.alice)
+        def load(*shape):
+            return np.random.rand(*shape)
+
+        x = load(3, 4)
+        self.assertTrue(isinstance(x, PYUObject))
+
+        x_1 = x.to(self.spu)
+        self.assertTrue(isinstance(x_1, SPUObject))
+        self.assertTrue(np.allclose(ft.reveal(x), ft.reveal(x_1)))

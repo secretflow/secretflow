@@ -41,3 +41,6 @@ class PoissonDataSampler(tf.keras.utils.Sequence):
             return self.x[indices], self.y[indices]
         else:
             return self.x[indices], self.y[indices], self.s_w[indices]
+
+    def set_random_seed(self, random_seed):
+        np.random.seed(random_seed)

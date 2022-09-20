@@ -518,7 +518,7 @@ class VertWoeBinningPyuWorker:
         return (*bins_idx, *[e for e in else_bins_idx if e.size])
 
     def slave_sum_bin(
-        self, *bins_positive: Union[List, np.ndarray]
+        self, bins_positive: Union[List, np.ndarray]
     ) -> List[Tuple[int, int]]:
         '''
         build bins stat tuple.

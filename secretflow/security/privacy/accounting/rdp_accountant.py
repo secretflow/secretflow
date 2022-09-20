@@ -16,6 +16,9 @@ import math
 import numpy as np
 from .log_utils import log_alpha
 
+"""Implements privacy accounting for Rényi Differential Privacy.
+"""
+
 
 def rdp_core(q: float, noise_multiplier: float, alpha: float):
     """Comnpute RDP of the Sampled Gaussian mechanism at order alpha.

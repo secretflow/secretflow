@@ -1,0 +1,404 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2022 Ant Group Co., Ltd.
+# This file is distributed under the same license as the SecretFlow package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2022.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: SecretFlow \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2022-09-04 14:39+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.10.3\n"
+
+#: ../../developer/design/spu.rst:2 7ae8aeb2d56141deb23621be3cc3ccdd
+msgid "SPU (Secure Processing Unit)"
+msgstr ""
+
+#: ../../developer/design/spu.rst:4 fb808a221de14ccf930e1c8438653c26
+msgid ""
+"SPU(Secure Processing Unit) is is a domain-specific compiler and runtime "
+"suite. With SPU, you can:"
+msgstr "SPU(Secure Processing Unit)是一个特定领域的编译器和运行时组合。利用SPU，你可以："
+
+#: ../../developer/design/spu.rst:6 0383be849e6748c1a1265ec877b75f0c
+msgid "Create privacy-preserving application without any knowledge of MPC."
+msgstr "在不了解MPC知识的情况下创建隐私保护应用。"
+
+#: ../../developer/design/spu.rst:7 6a3ee7da890c47ce9efe2cd74346be88
+msgid "Program with your favorite machine learning framework and API."
+msgstr "利用你最喜欢的机器学习框架和API编程。"
+
+#: ../../developer/design/spu.rst:8 bb4b6d9a0fee498c90c37b93241558be
+msgid ""
+"Deploy your application to various security scenarios without modifying "
+"the code."
+msgstr "不需要调整代码的情况下也可以在不同安全假设下部署应用。"
+
+#: ../../developer/design/spu.rst:11 c3dbbbf6f79b4062804ca05633030d0a
+msgid "Introduction"
+msgstr "介绍"
+
+#: ../../developer/design/spu.rst:13 32d1e652a5c646c584f9e79dfdad1da6
+msgid ""
+"SPU, as the name suggests, behaves like other *processing unit* which "
+"accepts code and inputs and return outputs. But unlike other *processing "
+"unit*, SPU protects user's privacy during the whole process."
+msgstr "SPU，就像其他处理器（processing unit）一样接受代码和输入数据，并且得到输出数据。但是"
+"和其他处理器不同的是，SPU可以保护用户的隐私。"
+
+#: ../../developer/design/spu.rst:15 b352e811dcdd41d9886efeeda4b43a3c
+msgid ""
+"Although SPU and CPU are not easy to compare directly, but from "
+"programmer's point of view, we can simply make an analogy between them."
+msgstr "尽管SPU和CPU不能直接比较，但是从编程者的视角来说，我们可以做一个类比。"
+
+#: ../../developer/design/spu.rst:23 f9cefa647f844582a66c6a61416f70cb
+msgid "*Central Processing Unit*"
+msgstr "CPU"
+
+#: ../../developer/design/spu.rst:25 7e0469fc174545168635fdc19eb2c23c
+msgid "Physical device, integrated circuit."
+msgstr "物理设备，集成电路。"
+
+#: ../../developer/design/spu.rst:26 f8143114343447b5adca28023f78542e
+msgid "Works on plaintext."
+msgstr "处理明文。"
+
+#: ../../developer/design/spu.rst:27 a7cba9a2e6694435b7396e71d480afca
+msgid "Local system, single user."
+msgstr "本地系统，但用户。"
+
+#: ../../developer/design/spu.rst:28 2a3f60beaf2649379d37678bd3a875ef
+msgid "Flexible for all kind of workload."
+msgstr "灵活处理各类任务。"
+
+#: ../../developer/design/spu.rst:29 173fd2a60a3e40fdbacd574fff69a4dc
+msgid "Fast, low latency."
+msgstr "快、低时延。"
+
+#: ../../developer/design/spu.rst:35 5dc4ddacf487438c8bc05ac9bc240fcb
+msgid "*Secure Processing Unit*"
+msgstr "SPU"
+
+#: ../../developer/design/spu.rst:37 bd37d90e81674ef69e6eb9eb6e7b9684
+msgid "**Virtual device**, MPC protocol."
+msgstr "虚拟设备，MPC协议。"
+
+#: ../../developer/design/spu.rst:38 d4a4fb376f5b40bdac8d91372caf7219
+msgid "Works on **ciphertext**."
+msgstr "处理密文。"
+
+#: ../../developer/design/spu.rst:39 40623c3270fe49c2b92db912c1950e61
+msgid "**Distributed system**, multiple user."
+msgstr "分布式系统，多用户。"
+
+#: ../../developer/design/spu.rst:40 878856abb8c54793ba96c390514fe53a
+msgid "Suitable for certain kind of task."
+msgstr "只适合特定任务。"
+
+#: ../../developer/design/spu.rst:41 27ec4ac1943c4af285a6667f212ca125
+msgid "Relatively slow, high latency."
+msgstr "相对较慢，高时延。"
+
+#: ../../developer/design/spu.rst:44 270b08ee0720460fad4477d0fb4fe916
+msgid ""
+"There are two main components inside the SPU. The SPU compiler translates"
+" the python code into bytecode with privacy protection semantics. The SPU"
+" executes these bytecodes at runtime to get the result. We will introduce"
+" them separately below."
+msgstr "SPU包含两个主要模块。SPU编译器将Python编码转化为蕴含隐私保护语义的二进制文件。"
+"SPU runtime执行这些二进制文件并得到结果，我们将在接下来分别介绍。"
+
+#: ../../developer/design/spu.rst:47 cfb9c0cef82249b997bfd67879984094
+msgid "Components"
+msgstr "模块"
+
+#: ../../developer/design/spu.rst:50 bf21f341e7d74c5ab8e34615b16cf212
+msgid "Compiler"
+msgstr "编译器"
+
+#: ../../developer/design/spu.rst:57 c42873756ffe40d4ae7826814b4607fd
+msgid ""
+"Just like other compilers, *SPU Compiler* translates code in one "
+"programming language into another language."
+msgstr "就像其他编译器一样，SPU编译器将一种编程语言的代码翻译成另一种语言的代码。"
+
+#: ../../developer/design/spu.rst:59 d78c4601ff9341e3aa35a348ad9bba9b
+msgid "The SPU compiler is designed with the following considerations:"
+msgstr "SPU编译器在设计时考虑到："
+
+#: ../../developer/design/spu.rst:61 32766bc347554143bff0b1bde01d4bb6
+msgid "Reuse machine learning front-end, reduce user learning costs."
+msgstr "复用机器学习前端框架，减少用户学习成本。"
+
+#: ../../developer/design/spu.rst:62 13f991c1dd8e48da83917aa2f8c518a6
+msgid "Reuse machine learning compiler's functionality, avoid duplicated work."
+msgstr "复用机器学习编译器功能，减少重复的工作。"
+
+#: ../../developer/design/spu.rst:63 42981add8a564148baa2a084453813e9
+msgid "Optimize for MPC backend, generate MPC friendly bytecode."
+msgstr "为MPC后端优化，产生适合MPC协议的二进制代码。"
+
+#: ../../developer/design/spu.rst:65 a3be6dbb1da24831813f8a0a4a17fdb9
+msgid ""
+"With the first goal, we choose `XLA "
+"<https://www.tensorflow.org/xla/architecture>`__ as the source language "
+"of the SPU compiler, since many AI framework (such as TensorFlow, JAX) is"
+" able to compile python code to XLA IR, so with the support of XLA, we "
+"can support AI frontend natively."
+msgstr "为了实现第一个目标，我们选择 `XLA <https://www.tensorflow.org/xla/architecture>`__ 作为SPU编译器的源语言，因为很多AI框架"
+"可以将Python代码翻译成XLA IR。利用XLA，我们可以原生支持这些AI框架。"
+
+#: ../../developer/design/spu.rst:67 0202180b3e324845813da2a3576635cb
+msgid ""
+"With the second goal, we choose `MLIR <https://mlir.llvm.org/>`__ as the "
+"compiler infrastructure, and tries to resue the platform independent "
+"optimization and lowering pass as possible."
+msgstr "为了实现第二个目标，我们选择 `MLIR <https://mlir.llvm.org/>`__ 作为编译器基建。"
+"这样我们就可以复用很多与平台无关的优化和lowering pass。"
+
+#: ../../developer/design/spu.rst:69 aa20737f2ffd4cd191e23232e310b9b5
+msgid ""
+"With the third goal, we add security related type hint to the type "
+"system, and use these type hints to help to generated efficient bytecode."
+msgstr "为了实现第三个目标，我们在类型系统中添加了安全相关的类型提示，这些类型提示有助于实现高效率的二进制代码。"
+
+#: ../../developer/design/spu.rst:71 892b913167394f028792a22711078ea4
+msgid ""
+"For more details, please check `SPU type system "
+"<https://spu.readthedocs.io/en/beta/development/type_system.html>`__ and "
+"`SPU Compiler design "
+"<https://spu.readthedocs.io/en/beta/development/compiler.html>`__."
+msgstr "详情请查看 `SPU type system "
+"<https://spu.readthedocs.io/en/beta/development/type_system.html>`__ 和 "
+"`SPU Compiler design "
+"<https://spu.readthedocs.io/en/beta/development/compiler.html>`__."
+
+#: ../../developer/design/spu.rst:75 e69c081151b641b4bf94382540da984f
+msgid "Runtime"
+msgstr "运行时"
+
+#: ../../developer/design/spu.rst:77 ad12ad0f7fc54a5abcddfc42bf42f654
+msgid ""
+"*SPU Runtime* is a virtual device composed by multiple physical node that"
+" do not trust each other."
+msgstr "SPU运行时是一个用多个不相互信任的物理节点组成的虚拟设备。"
+
+#: ../../developer/design/spu.rst:79 07a2e656e08c452e9602ba9d53fbedf4
+msgid ""
+"Inside SPU, multiple physical node run a MPC protocol at the same time, "
+"completing certain computation tasks while protecting data privacy."
+msgstr "在SPU中，多个物理设备同时执行一个MPC协议，在完成特定计算任务的同时保护数据隐私。"
+
+#: ../../developer/design/spu.rst:80 b851174cc20b4a4a981627e1ccf53fdb
+msgid ""
+"From the outside, multiple physical nodes together form a virtual device,"
+" providing general computing service."
+msgstr "从外面看，多个物理设备形成了一个虚拟设备并且提供了通用计算服务。"
+
+#: ../../developer/design/spu.rst:82 2e3d7b17e2554c8ab46984b70d4f27e8
+msgid "The model is illustrated below."
+msgstr "模型示意图如下。"
+
+#: ../../developer/design/spu.rst:87 6aa482856bb14a90af4dd7c508fc01a1
+msgid "*SPU inside*"
+msgstr "SPU内部"
+
+#: ../../developer/design/spu.rst:89 1ee88b2a1c574e97937a46b4cd80cd15
+msgid ""
+"Of course, as a virtual machine, the SPU runtime itself is a multi-layer "
+"complex infrastructure, which translates the SPU bytecode layer by layer "
+"to the lowest-level cryptographic components, and provides concurrency "
+"and scheduling capabilities."
+msgstr "作为一个虚拟机，SPU运行时是一个多层的结果，将SPU二进制程序逐层分解只最底层的密码学原语"
+"，并且提供了并行和调度能力。"
+
+#: ../../developer/design/spu.rst:93 c4096f744a2d4273bc9141c015604ddf
+msgid "*SPU Runtime architecture*"
+msgstr "SPU运行时结构"
+
+#: ../../developer/design/spu.rst:96 8a4a57417c0f4f94ac2a255e870ea322
+msgid ""
+"We will not go into details here, for more details, please visit `SPU "
+"standalone docs <https://spu.readthedocs.io/>`__"
+msgstr "详情请访问 `SPU "
+"文档 <https://spu.readthedocs.io/>`__ 。"
+
+#: ../../developer/design/spu.rst:99 cfa18d369f3b42aaae75df1531607c10
+msgid "Summary"
+msgstr "总结"
+
+#: ../../developer/design/spu.rst:101 6f1e63f940a94e4290b26de19b7f65d9
+msgid ""
+"In the previous sections, we have introduced the various components of "
+"the SPU. Next, let's take a look at the overall process of the SPU "
+"operation."
+msgstr "前面我们介绍SPU的不同模块，接下来，我们了解一下SPU操作的总体流程。"
+
+#: ../../developer/design/spu.rst:107 e98b89dd6f7a48b2b1f14e56b58a5ee6
+msgid "Interacton with SPU RUntime"
+msgstr "和SPU运行时的交互"
+
+#: ../../developer/design/spu.rst:107 8cd679b2532e4b62beffa6bd6f182ef5
+msgid "SPU operations in summary"
+msgstr "SPU操作总结"
+
+#: ../../developer/design/spu.rst:109 6e68ba593c8f4b57bd261e5d7c3eddaf
+msgid "User write program with TensorFLow, PyTorch or JAX."
+msgstr "用户利用TensorFLow，PyTorch或JAX编程。"
+
+#: ../../developer/design/spu.rst:110 ac96491f97f1462c8234693308a76380
+msgid ""
+"With SPU Compiler, the source program is translated into SPU IR that SPU "
+"Runtime understands."
+msgstr "利用SPU编译器，源码被翻译成能被SPU运行时理解的SPU IR。"
+
+#: ../../developer/design/spu.rst:111 7dc29e4947ad4892a76f5f10023f9856
+msgid ""
+"With SPU IO, data provider encrypts their data to the format that SPU "
+"Runtime understands."
+msgstr "利用SPU IO，数据提供方将数据加密为SPU运行时可以理解的格式。"
+
+#: ../../developer/design/spu.rst:112 d0f00f1eecd44f4b9f6530c646708ce4
+msgid ""
+"SPU Runtime executes the IR on the encrypted input, with given MPC "
+"protocol, and generated (encrypted) output."
+msgstr "SPU运行时根据MPC协议执行IR，并产生（加密的）输出。"
+
+#: ../../developer/design/spu.rst:113 3c95cfbaaaec4626a070fb6adb54cbfa
+msgid ""
+"With SPU IO, data receiver decrypts the encrypted output and get the "
+"final result."
+msgstr "利用SPU IO，数据接收方解密加密之后的输出以得到最终结果。"
+
+#: ../../developer/design/spu.rst:117 119c798441ac4885bcc9d69bd0008921
+msgid "Appendix"
+msgstr "附录"
+
+#: ../../developer/design/spu.rst:120 9661a0122dd94090ab0a0bb1451143d2
+msgid "MPC (Secure multi-party computation)"
+msgstr ""
+
+#: ../../developer/design/spu.rst:122 afdd825be65c46e8b5d89232bbfc216b
+msgid ""
+"If you are not familiar with MPC, please check `Resources for Getting "
+"Started with MPC <https://u.cs.biu.ac.il/~lindell/MPC-resources.html>`__ "
+"and some famous `MPC frameworks and protocols <https://github.com/rdragos"
+"/awesome-mpc#frameworks.>`__."
+msgstr "如果你不熟悉MPC，请参阅 `Resources for Getting "
+"Started with MPC <https://u.cs.biu.ac.il/~lindell/MPC-resources.html>`__ "
+"和一些著名的 `MPC 框架和协议 <https://github.com/rdragos"
+"/awesome-mpc#frameworks.>`__。"
+
+#: ../../developer/design/spu.rst:126 ae6247f5e19c4877a6956a5ce1580696
+msgid "SPU implemented several MPC protocol including:"
+msgstr "SPU实现了多种MPC协议，包括："
+
+#: ../../developer/design/spu.rst:128 99c60135a67746d5873ad8902f1ef32c
+msgid ""
+"`ABY3 <https://eprint.iacr.org/2018/403.pdf>`__: A honest majority 3PC-"
+"protocol. SPU provides semi-honest implementation."
+msgstr "`ABY3 <https://eprint.iacr.org/2018/403.pdf>`__:一个多数诚实的3PC协议。SPU实现了半诚实模型。"
+
+#: ../../developer/design/spu.rst:131 ae7416ba00ea4f2b88422614e5c045ac
+msgid ""
+"`Semi2k-SPDZ <https://eprint.iacr.org/2018/482.pdf>`__ : A semi-honest "
+"NPC-protocol similar to SPDZ but requires a trusted third party to "
+"generate offline randoms. By default this protocol now uses trusted first"
+" party. Hence, it should be used for debugging purposes only."
+msgstr "`Semi2k-SPDZ <https://eprint.iacr.org/2018/482.pdf>`__ :一个半诚实"
+"NPC协议。和SPDZ协议类似，但是需要一个可信第三方来产生离线的随机数。目前，在协议中默认使用可信第一方。"
+"因此，目前主要用于调试。"
+
+#: ../../developer/design/spu.rst:137 f66a98219fbb4c8db7724fdbfa2be7eb
+msgid ""
+"`Cheetah <https://eprint.iacr.org/2022/207>`__ : A fast 2pc semi-honest "
+"protocol. Since this protocol does not require a trusted third party, it "
+"requires more computation effort."
+msgstr "`Cheetah <https://eprint.iacr.org/2022/207>`__ :一个快速半诚实的2pc模型。"
+"因为协议不需要可信第三方，因此会需要一些计算开销。"
+
+#: ../../developer/design/spu.rst:141 92e9a682b2a548068440b7d345886214
+msgid ""
+"Please check `SPU MPC development status "
+"<https://spu.readthedocs.io/en/beta/reference/mpc_status.html>`__ for "
+"details."
+msgstr "详情请参阅 `SPU MPC development status "
+"<https://spu.readthedocs.io/en/beta/reference/mpc_status.html>`__。"
+
+#: ../../developer/design/spu.rst:145 b1ceacc1123d4065a47e77534e889b5b
+msgid "SPU API design"
+msgstr "SPU API设计"
+
+#: ../../developer/design/spu.rst:147 fb77fdf3d15b43f68f9ca5fec84230c5
+msgid ""
+"The API of the SPU is quite simple. There are three main modules, "
+"corresponding to the previous component descriptions."
+msgstr "SPU的API十分简单，主要有三个主要模块，对应之前的模块描述。"
+
+#: ../../developer/design/spu.rst:149 edd37b0b2c6e496badf57c5b7312fa5d
+msgid ""
+"`SPU Io <https://spu.readthedocs.io/en/beta/reference/py_api.html"
+"#runtime-io>`__, a library to transfer between plaintext and secret "
+"shares."
+msgstr "`SPU Io <https://spu.readthedocs.io/en/beta/reference/py_api.html"
+"#runtime-io>`__ 是一个在密码和秘密分享之间转化的库。"
+
+#: ../../developer/design/spu.rst:151 8e60c83195ca4ff6a2b20d3a42c62c54
+msgid ""
+"`SPU compiler "
+"<https://spu.readthedocs.io/en/beta/reference/py_api.html#compiler>`__, a"
+" tool to translate XLA to SPU IR."
+msgstr "`SPU compiler "
+"<https://spu.readthedocs.io/en/beta/reference/py_api.html#compiler>`__,"
+"是一个将XLA转化为SPU IR的工具。"
+
+#: ../../developer/design/spu.rst:153 a1aa0c234c5443eea7ef2d09674b248a
+msgid ""
+"`SPU Runtime <https://spu.readthedocs.io/en/beta/reference/py_api.html"
+"#runtime-setup>`__, a library to consume SPU IR and execute MPC "
+"computation."
+msgstr "`SPU Runtime <https://spu.readthedocs.io/en/beta/reference/py_api.html"
+"#runtime-setup>`__, 是一个读入SPU IR并执行MPC计算的库。"
+
+#: ../../developer/design/spu.rst:158 c6c7b18c17f14da2a300c63eda999b74
+msgid "SPU in SecretFlow"
+msgstr "SecretFlow中的SPU"
+
+#: ../../developer/design/spu.rst:160 945c90fa31f648eebc105040697bcd8b
+msgid ""
+"In SecretFlow, *SPU Device* encapsulates all the concepts of the above "
+"SPU, providing a simpler programming interface upwards."
+msgstr "在SecretFlow中，SPU设备包装了上述所有SPU的概念，并提供了更简单的编程接口。"
+
+#: ../../developer/design/spu.rst:162 09b2eafef0954a7abc8c2ccdb52ea5c2
+msgid ""
+"Data owners are *PYU devices* in SecretFlow and plaintext of values are "
+"called *PYU Objects*."
+msgstr "数据所有者是SecretFlow中的PYU设备，明文并成为PYU Objects。"
+
+#: ../../developer/design/spu.rst:163 4676e08f4ea54841a54ef8b099e439de
+msgid ""
+"A *PYU object* (plaintext) could be converted to secret shares, which is "
+"called a *SPU Object*."
+msgstr "一个PYU object（明文）可以被转化为秘密分享，被叫做SPU Object。"
+
+#: ../../developer/design/spu.rst:164 3883f44295c54d9a91e3db873fc7e6a0
+msgid ""
+"Python functions could be sent and executed by a *SPU device*, with the "
+"help of SPU Compiler and Runtime."
+msgstr "Python函数可以被发送至SPU设备执行，背后是SPU编译器和运行时。"
+
+#: ../../developer/design/spu.rst:165 90c54ea6643047eda9c7ebc7ae8a56f3
+msgid ""
+"Lastly, a *SPU Object* could be transferred to a *PYU Object*, which is "
+"owned by a *PYU Device*."
+msgstr "最后，一个SPU Object可以被转化为PYU Object，并被一个PYU设备拥有。"
+

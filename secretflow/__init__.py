@@ -30,7 +30,7 @@ from .device import (
     wait,
 )
 
-__ALL__ = [
+__all__ = [
     'data',
     'device',
     'ml',

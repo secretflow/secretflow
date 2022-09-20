@@ -33,13 +33,14 @@ _STRATEGIES = ['uniform', 'quantile']
 class KBinsDiscretizer:
     """Bin continuous data into intervals.
 
-    This KBinsDiscretizer is almost same as sklearn.preprocessing.KBinsDiscretizer
+    This KBinsDiscretizer is almost same as
+    :py:class:`sklearn.preprocessing.KBinsDiscretizer`
     where the input and output are federated dataframe.
 
     Attributes:
-       _discretizer: the sklearn.preprocessing.KBinsDiscretizer instance used.
-       _n_bins: The number of bins to produce.
-       _strategy : {'uniform', 'quantile'}, notice that 'kmeans' is not supported yet now.
+        _discretizer: the sklearn.preprocessing.KBinsDiscretizer instance used.
+        _n_bins: The number of bins to produce.
+        _strategy: {'uniform', 'quantile'}, notice that 'kmeans' is not supported yet now.
     """
 
     def __init__(self, n_bins=5, strategy: str = 'quantile') -> None:
@@ -101,9 +102,9 @@ class KBinsDiscretizer:
             df: the X to fit.
             aggregator: optional; shall be provided if df is a horizontal partitioned MixDataFrame.
             comparator: optional; shall be provided if df is a horizontal partitioned MixDataFrame.
-            compress_thres: optional; the compress threshold of :meth:`binning.homo_binning.HomoBinning`.
-            error: optional; the error of :meth:`binning.homo_binning.HomoBinning`.
-            max_iter: optional; the max iterations of :meth:`binning.homo_binning.HomoBinning`.
+            compress_thres: optional; the compress threshold of :py:class:`~secretflow.preprocessing.binning.homo_binning.HomoBinning`.
+            error: optional; the error of :py:class:`~secretflow.preprocessing.binning.homo_binning.HomoBinning`.
+            max_iter: optional; the max iterations of :py:class:`~secretflow.preprocessing.binning.homo_binning.HomoBinning`.
 
         Returns:
             the instance itself.

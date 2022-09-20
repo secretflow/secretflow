@@ -16,6 +16,7 @@ from typing import List, Dict, Union
 import jax.numpy as jnp
 import numpy as np
 
+from secretflow.device.device.base import MoveConfig
 from secretflow.preprocessing.binning.vert_woe_binning_pyu import (
     VertWoeBinningPyuWorker,
 )
@@ -27,6 +28,14 @@ from secretflow.device import reveal
 class VertWoeBinning:
     """
     woe binning for vertical slice datasets.
+
+    Split all features into bins by equal frequency or ChiMerge.
+    Then calculate woe value & iv value for each bin by SS or HE secure device to protect Y label.
+
+    Finally, this method will output binning rules used to substitute features' value into woe by VertWOESubstitution.
+
+    more details about woe/iv value:
+    https://www.listendata.com/2015/03/weight-of-evidence-woe-and-information.html
 
     Attributes:
         secure_device: HEU or SPU for secure bucket summation.
@@ -100,14 +109,16 @@ class VertWoeBinning:
             chimerge_target_pvalue: stop merge if biggest pvalue of remain bins is greater than this value.
                 Range: (0, 1)
                 Default: 0.1
-            audit_log_path: output audit log for HEU encrypt to device's local path. disable empty means disable.
+            audit_log_path: output audit log for HEU encrypt to device's local path. empty means disable.
                 example: {'alice': '/path/to/alice/audit/filename', 'bob': 'bob/audit/filename'}
                 NOTICE: Please !!DO NOT!! touch this options, leave it empty and disabled.
                         Unless you really know this option's meaning and accept its risk.
 
         Return:
             Dict[PYU, PYUObject], PYUObject contain a dict for all features' rule in this party.
-            .. code:: json
+
+            .. code:: python
+
                 {
                     "variables":[
                         {
@@ -186,7 +197,9 @@ class VertWoeBinning:
         )
         woe_rules[master_device] = master_report
 
-        secure_label = label.to(self.secure_device, heu_audit_log=master_audit_log_path)
+        secure_label = label.to(
+            self.secure_device, MoveConfig(heu_audit_log=master_audit_log_path)
+        )
 
         # all slaves
         for device in workers:
@@ -202,6 +215,9 @@ class VertWoeBinning:
                     ), f"can not find {device.party} device's audit log path"
                     worker_audit_path = audit_log_path[device.party]
                     secure_label.dump(worker_audit_path)
+                    self.secure_device.get_participant(device.party).dump_pk.remote(
+                        f'{worker_audit_path}.pk.pickle'
+                    )
                 idx_obj = worker.slave_build_sum_indices(vdata.partitions[device].data)
                 # FIXME: avoid reveal, use remote function to calc sum in HEU when HEU support it
                 bin_indices = reveal(idx_obj)
@@ -209,7 +225,7 @@ class VertWoeBinning:
                     secure_label[b].sum().to(master_device).to(device)
                     for b in bin_indices
                 ]
-                bin_stats = worker.slave_sum_bin(*bins_positive)
+                bin_stats = worker.slave_sum_bin(bins_positive)
             else:
                 bin_select = worker.slave_build_sum_select(
                     vdata.partitions[device].data

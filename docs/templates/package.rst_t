@@ -7,6 +7,7 @@
 
 {%- macro toctree(docnames) -%}
 .. toctree::
+   :includehidden:
    :maxdepth: {{ maxdepth }}
 {% for docname in docnames %}
    {{ docname }}
@@ -18,6 +19,8 @@
 {% else %}
 {{- [pkgname, ""] | join(" ") | e | heading }}
 {% endif %}
+
+{{ automodule(pkgname, automodule_options) }}
 
 {%- if subpackages %}
 

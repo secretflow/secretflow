@@ -17,10 +17,18 @@ from .mechanism.tensorflow.layers import (
     GaussianEmbeddingDP,
     LabelDP,
 )
+
+from .mechanism.tensorflow.mechanism_fl import (
+    GaussianModelDP,
+)
+
 from .strategy import DPStrategy
+from .strategy_fl import DPStrategyFL
 
 __all__ = [
     'GaussianEmbeddingDP',
     'LabelDP',
+    'GaussianModelGsDP',
     'DPStrategy',
+    'DPStrategyFL',
 ]

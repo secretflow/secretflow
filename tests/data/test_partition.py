@@ -1,7 +1,8 @@
 import pandas as pd
 
 from secretflow import reveal
-from secretflow.data.base import Partition
+from secretflow.utils.simulation.datasets import load_iris
+
 from tests.basecase import DeviceTestCase
 
 
@@ -9,10 +10,9 @@ class TestPartition(DeviceTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        cls.df = pd.read_csv('tests/datasets/iris/horizontal/iris.alice.csv')
-        cls.part = Partition(
-            cls.alice(pd.read_csv)('tests/datasets/iris/horizontal/iris.alice.csv')
-        )
+        iris = load_iris(parts=[cls.alice])
+        cls.part = iris.partitions[cls.alice]
+        cls.df = reveal(cls.part.data)
 
     def test_mean_should_ok(self):
         # WHEN
@@ -108,11 +108,8 @@ class TestPartition(DeviceTestCase):
 
     def test_setitem_on_partition_should_ok(self):
         # WHEN
-        part = Partition(
-            self.alice(pd.read_csv)('tests/datasets/iris/horizontal/iris.alice.csv')
-        )
         value = self.part.copy()
-        value['sepal_length'] = part['sepal_width']
+        value['sepal_length'] = self.part['sepal_width']
 
         # THEN
         expected = self.df.copy(deep=True)
@@ -124,9 +121,7 @@ class TestPartition(DeviceTestCase):
         with self.assertRaisesRegex(
             AssertionError, 'Can not assign a partition with different device.'
         ):
-            part = Partition(
-                self.bob(pd.read_csv)('tests/datasets/iris/horizontal/iris.alice.csv')
-            )
+            part = load_iris(parts=[self.bob]).partitions[self.bob]
             value = self.part.copy()
             value['sepal_length'] = part['sepal_width']
 

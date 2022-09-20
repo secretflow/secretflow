@@ -39,9 +39,8 @@ def read_csv(
     Returns:
         HDataFrame
 
-    Examples
-    --------
-    >>> read_csv({PYU('alice'): 'alice.csv', PYU('bob'): 'bob.csv'})
+    Examples:
+        >>> read_csv({PYU('alice'): 'alice.csv', PYU('bob'): 'bob.csv'})
     """
     assert filepath, 'File path shall not be empty!'
     df = HDataFrame(aggregator=aggregator, comparator=comparator)

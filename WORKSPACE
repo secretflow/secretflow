@@ -1,8 +1,11 @@
 workspace(name = "secretflow")
 
-local_repository(
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
+
+git_repository(
     name = "yasl",
-    path = "secretflow_lib/third_party/yasl",
+    remote = "https://github.com/secretflow/yasl.git",
+    commit = "b50ed242ec17a28bff3274e5e6d152183d04ed8f",
 )
 
 load("@yasl//bazel:repositories.bzl", "yasl_deps")
@@ -23,19 +26,10 @@ http_archive(
 http_archive(
     name = "pybind11",
     build_file = "@pybind11_bazel//:pybind11.BUILD",
-    sha256 = "616d1c42e4cf14fa27b2a4ff759d7d7b33006fdc5ad8fd603bb2c22622f27020",
-    strip_prefix = "pybind11-2.7.1",
+    sha256 = "eacf582fa8f696227988d08cfc46121770823839fe9e301a20fbce67e7cd70ec",
+    strip_prefix = "pybind11-2.10.0",
     urls = [
-        "https://github.com/pybind/pybind11/archive/refs/tags/v2.7.1.tar.gz",
-    ],
-)
-
-http_archive(
-    name = "rules_foreign_cc",
-    sha256 = "bcd0c5f46a49b85b384906daae41d277b3dc0ff27c7c752cc51e43048a58ec83",
-    strip_prefix = "rules_foreign_cc-0.7.1",
-    urls = [
-        "https://github.com/bazelbuild/rules_foreign_cc/archive/0.7.1.tar.gz",
+        "https://github.com/pybind/pybind11/archive/refs/tags/v2.10.0.tar.gz",
     ],
 )
 

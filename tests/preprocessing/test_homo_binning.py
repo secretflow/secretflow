@@ -1,23 +1,64 @@
-import pandas as pd
+import tempfile
 
-from secretflow.device import reveal
+import numpy as np
+import pandas as pd
 from secretflow.data.horizontal import read_csv as h_read_csv
+from secretflow.device import reveal
 from secretflow.preprocessing.binning.homo_binning import HomoBinning
 from secretflow.security.aggregation.device_aggregator import DeviceAggregator
 from secretflow.security.compare.plain_comparator import PlainComparator
 from tests.basecase import DeviceTestCase
 
+_temp_dir = tempfile.mkdtemp()
+
+
+def gen_data(data_num, feature_num, is_sparse=False, use_random=False, data_bin_num=10):
+    data = []
+    shift_iter = 0
+    header = ["x" + str(i) for i in range(feature_num)]
+    index_colname_map = {}
+    for index, name in enumerate(header):
+        index_colname_map[index] = name
+    for data_key in range(data_num):
+        value = data_key % data_bin_num
+        if value == 0:
+            if shift_iter % data_bin_num == 0:
+                value = data_bin_num - 1
+            shift_iter += 1
+        if not is_sparse:
+            if not use_random:
+                features = value * np.ones(feature_num)
+            else:
+                features = np.random.random(feature_num)
+        else:
+            pass
+        data.append(features)
+    data = np.array(data)
+    data = pd.DataFrame(data)
+    data.rename(columns=index_colname_map, inplace=True)
+    return data
+
 
 class TestHomoBinning(DeviceTestCase):
+
+    data1 = gen_data(10000, 10, use_random=False)
+    data2 = gen_data(5000, 10, use_random=False)
+    dfs = [data1, data2]
+
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        path_alice = 'tests/datasets/simi_data/horizontal/linear_alice.csv'
-        path_bob = 'tests/datasets/simi_data/horizontal/linear_bob.csv'
-        cls.hdf_alice = pd.read_csv(path_alice)
-        cls.hdf_bob = pd.read_csv(path_bob)
+
+        file_uris = {
+            cls.alice: f'{_temp_dir}/test_alice.csv',
+            cls.bob: f'{_temp_dir}/test_bob.csv',
+        }
+
+        for df, file_uri in zip(cls.dfs, file_uris.values()):
+            df.to_csv(file_uri)
+
         cls.hdf = h_read_csv(
-            {cls.alice: path_alice, cls.bob: path_bob},
+            file_uris,
             aggregator=DeviceAggregator(cls.carol),
             comparator=PlainComparator(cls.carol),
         )

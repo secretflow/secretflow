@@ -1,7 +1,9 @@
 import numpy as np
+from heu import phe
 
 import secretflow.device as ft
 from secretflow import reveal
+from secretflow.device.device.base import MoveConfig
 from tests.basecase import DeviceTestCase
 
 
@@ -34,15 +36,16 @@ class TestDeviceHEU(DeviceTestCase):
         y_int = ft.with_device(self.bob)(np.random.randint)(10, size=(3, 4))
         z_int = ft.with_device(self.bob)(np.random.randint)(10, size=(4, 5))
 
-        x_ = x.to(self.heu)  # x_ is ciphertext
-        y_, y_int_, z_int_ = (
+        x_, y_, y_int_, z_int_ = (
+            x.to(self.heu),  # x_ is ciphertext
             y.to(self.heu),
-            y_int.to(self.heu),
-            z_int.to(self.heu),
+            y_int.to(self.heu, config=MoveConfig(heu_encoder=phe.BigintEncoder())),
+            z_int.to(self.heu, config=MoveConfig(heu_encoder=phe.BigintEncoder())),
         )  # plaintext
 
         add_ = x_ + y_  # shape: 3x4
         sub_ = x_ - y_  # shape: 3x4
+        # x_ is 1x scaled, y_int_ is not scaled, so result is 1x scaled
         mul_ = x_ * y_int_  # shape: 3x4
         matmul_ = x_ @ z_int_  # shape: 3x5
 
@@ -62,7 +65,7 @@ class TestDeviceHEU(DeviceTestCase):
         mul = reveal(mul_[:3:2, ::-1].to(self.alice))
         matmul = reveal(matmul_[[0, 1, 2], 1::2].to(self.alice))
 
-        self.assertEqual(add.shape, ())  # scalar
+        self.assertTrue(isinstance(add, float))  # add is scalar
         self.assertEqual(sub.shape, (2, 4))
         self.assertEqual(mul.shape, (2, 4))
         self.assertEqual(matmul.shape, (3, 2))
@@ -83,33 +86,11 @@ class TestDeviceHEU(DeviceTestCase):
             reveal(m)[3:10].sum(), reveal(m_heu[3:10].sum()), decimal=4
         )
 
-        def test_matrix(m, m_heu):
-            np.testing.assert_almost_equal(
-                reveal(m).sum(), reveal(m_heu.sum()), decimal=4
-            )
-            np.testing.assert_almost_equal(
-                reveal(m).sum(axis=0), reveal(m_heu.sum(axis=0)), decimal=4
-            )
-            np.testing.assert_almost_equal(
-                reveal(m).sum(axis=-1), reveal(m_heu.sum(axis=-1)), decimal=4
-            )
-            np.testing.assert_almost_equal(
-                reveal(m).sum(axis=(0, 1)), reveal(m_heu.sum(axis=(0, 1))), decimal=4
-            )
-
-        # test matrix, plaintext
+        # test matrix
         m = ft.with_device(self.bob)(np.random.rand)(20, 20)
-        m_heu = m.to(self.heu, heu_dest_party=self.bob.party)  # plaintext
-        test_matrix(m, m_heu)
-        test_matrix(m, m_heu.encrypt())
-
-        # test 3d-tensor from bob
-        m = ft.with_device(self.bob)(np.random.rand)(5, 10, 15)
-        m_heu = m.to(self.heu, heu_dest_party=self.bob.party)  # plaintext
-        test_matrix(m, m_heu)
-        test_matrix(m, m_heu.encrypt())
-
-        # test 4d-tensor from alice
-        m = ft.with_device(self.alice)(np.random.rand)(13, 11, 7, 5)
-        m_heu = m.to(self.heu, heu_dest_party=self.bob.party)  # ciphertext
-        test_matrix(m, m_heu)
+        m_heu = m.to(self.heu, MoveConfig(heu_dest_party=self.bob.party))  # plaintext
+        self.assertTrue(m_heu.is_plain)
+        np.testing.assert_almost_equal(reveal(m).sum(), reveal(m_heu.sum()), decimal=4)
+        np.testing.assert_almost_equal(
+            reveal(m).sum(), reveal(m_heu.encrypt().sum()), decimal=4
+        )

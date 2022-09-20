@@ -16,6 +16,7 @@ import random
 
 import math
 import numpy as np
+from heu import numpy as hnp
 
 
 def randbits(shape: tuple, bits):
@@ -62,6 +63,9 @@ class BigintNdArray:
 
     def to_numpy(self):
         return np.array(self.to_list())
+
+    def to_hnp(self):
+        return hnp.array(self.to_list())
 
     def to_bytes(self, bytes_per_int, byteorder='little'):
         mask = (1 << bytes_per_int * 8) - 1

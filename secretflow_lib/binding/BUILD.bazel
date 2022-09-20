@@ -2,6 +2,14 @@ load("@pybind11_bazel//:build_defs.bzl", "pybind_extension")
 
 package(default_visibility = ["//visibility:public"])
 
+exports_files(
+    [
+        "exported_symbols.lds",
+        "version_script.lds",
+    ],
+    visibility = ["//visibility:private"],
+)
+
 pybind_extension(
     name = "_lib",
     srcs = [
@@ -9,7 +17,17 @@ pybind_extension(
         "binding.h",
         "random.cc",
     ],
+    linkopts = select({
+        "@bazel_tools//src/conditions:darwin": [
+            "-Wl,-exported_symbols_list,$(location //secretflow_lib/binding:exported_symbols.lds)",
+        ],
+        "//conditions:default": [
+            "-Wl,--version-script,$(location //secretflow_lib/binding:version_script.lds)",
+        ],
+    }),
     deps = [
+        ":exported_symbols.lds",
+        ":version_script.lds",
         "//secretflow_lib/differential_privacy/random:distributions",
     ],
 )

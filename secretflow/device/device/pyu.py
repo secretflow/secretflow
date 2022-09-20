@@ -12,16 +12,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import inspect
 import logging
-from typing import Dict, List, Tuple
 
 import jax
 import ray
 
-from .utils import check_num_returns
 from .base import Device, DeviceObject, DeviceType
 
 _LOG_FORMAT = '%(asctime)s,%(msecs)d %(levelname)s [%(filename)s:%(funcName)s:%(lineno)d] %(message)s'
+
+
+def _check_num_returns(fn):
+    # inspect.signature fails on some builtin method (e.g. numpy.random.rand).
+    # You can wrap a self define function which calls builtin function inside
+    # with return annotation to get multi returns for now.
+    if inspect.isbuiltin(fn):
+        sig = inspect.signature(lambda *arg, **kwargs: fn(*arg, **kwargs))
+    else:
+        sig = inspect.signature(fn)
+
+    if sig.return_annotation is None or sig.return_annotation == sig.empty:
+        num_returns = 1
+    else:
+        if (
+            hasattr(sig.return_annotation, '_name')
+            and sig.return_annotation._name == 'Tuple'
+        ):
+            num_returns = len(sig.return_annotation.__args__)
+        elif isinstance(sig.return_annotation, tuple):
+            num_returns = len(sig.return_annotation)
+        else:
+            num_returns = 1
+
+    return num_returns
 
 
 class PYUObject(DeviceObject):
@@ -47,7 +71,7 @@ class PYU(Device):
 
         Args:
             party (str): Party name where this device is located.
-            node (str, optional): Node name where thi device is located. Defaults to "".
+            node (str, optional): Node name where the device is located. Defaults to "".
         """
         super().__init__(DeviceType.PYU)
 
@@ -78,10 +102,22 @@ class PYU(Device):
         """
 
         def wrapper(*args, **kwargs):
-            args_ = self._args_check(args)
-            kwargs_ = self._kwargs_check(kwargs)
+            def try_get_data(arg, device):
+                if isinstance(arg, DeviceObject):
+                    assert (
+                        arg.device == device
+                    ), f"receive tensor {arg} in different device"
+                    return arg.data
+                return arg
 
-            _num_returns = check_num_returns(fn) if num_returns is None else num_returns
+            args_, kwargs_ = jax.tree_util.tree_map(
+                lambda arg: try_get_data(arg, self),
+                (args, kwargs),
+            )
+
+            _num_returns = (
+                _check_num_returns(fn) if num_returns is None else num_returns
+            )
             data = self._run.options(
                 resources={self.party: 1}, num_returns=_num_returns
             ).remote(fn, *args_, **kwargs_)
@@ -91,36 +127,6 @@ class PYU(Device):
                 return [PYUObject(self, datum) for datum in data]
 
         return wrapper
-
-    def _args_check(self, args):
-        args_ = []
-        for arg in args:
-            if isinstance(arg, DeviceObject):
-                assert arg.device == self, f"receive tensor {arg} in different device"
-                args_.append(arg.data)
-            elif isinstance(arg, (List, Tuple)):
-                args_.append(self._args_check(arg))
-            elif isinstance(arg, Dict):
-                args_.append(self._kwargs_check(arg))
-            else:
-                args_.append(arg)
-
-        return args_
-
-    def _kwargs_check(self, kwargs):
-        kwargs_ = {}
-        for k, v in kwargs.items():
-            if isinstance(v, DeviceObject):
-                assert v.device == self, f"receive tensor {v} in different device"
-                kwargs_[k] = v.data
-            elif isinstance(v, (List, Tuple)):
-                kwargs_[k] = self._args_check(v)
-            elif isinstance(v, Dict):
-                kwargs_[k] = self._kwargs_check(v)
-            else:
-                kwargs_[k] = v
-
-        return kwargs_
 
     @classmethod
     @ray.remote

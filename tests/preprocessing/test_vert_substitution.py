@@ -1,13 +1,16 @@
-from tests.basecase import DeviceTestCase
-import numpy as np
-import pandas as pd
 from io import StringIO
 
-from secretflow.data.vertical.dataframe import VDataFrame
+import numpy as np
+import pandas as pd
+
 from secretflow.data.base import Partition
+from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.device.driver import reveal
 from secretflow.preprocessing.binning.vert_woe_binning import VertWoeBinning
 from secretflow.preprocessing.binning.vert_woe_substitution import VertWOESubstitution
+from secretflow.utils.simulation.datasets import dataset
+
+from tests.basecase import DeviceTestCase
 
 
 def woe_almost_equal(a, b):
@@ -35,7 +38,10 @@ class TestVertBinning(DeviceTestCase):
     def setUpClass(cls) -> None:
         super().setUpClass()
 
-        normal_data = pd.read_csv("tests/datasets/linear/vertical/linear_a.csv")
+        normal_data = pd.read_csv(
+            dataset('linear'),
+            usecols=['id'] + [f'x{i}' for i in range(1, 11)] + ['y'],
+        )
 
         cls.v_float_data = VDataFrame(
             {

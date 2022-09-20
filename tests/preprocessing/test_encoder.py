@@ -5,13 +5,14 @@ from sklearn.preprocessing import OneHotEncoder as SkOneHotEncoder
 from sklearn.utils.validation import column_or_1d
 
 from secretflow.data.base import Partition, reveal
-from secretflow.data.horizontal import read_csv as h_read_csv
 from secretflow.data.horizontal.dataframe import HDataFrame
 from secretflow.data.mix.dataframe import MixDataFrame
 from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.preprocessing.encoder import LabelEncoder, OneHotEncoder
-from secretflow.security.aggregation.device_aggregator import DeviceAggregator
+from secretflow.security.aggregation.plain_aggregator import PlainAggregator
 from secretflow.security.compare.plain_comparator import PlainComparator
+from secretflow.utils.simulation.datasets import load_iris
+
 from tests.basecase import DeviceTestCase
 
 
@@ -19,15 +20,13 @@ class TestLabelEncoder(DeviceTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        path_alice = 'tests/datasets/iris/horizontal/iris.alice.csv'
-        path_bob = 'tests/datasets/iris/horizontal/iris.bob.csv'
-        cls.hdf_alice = pd.read_csv(path_alice)
-        cls.hdf_bob = pd.read_csv(path_bob)
-        cls.hdf = h_read_csv(
-            {cls.alice: path_alice, cls.bob: path_bob},
-            aggregator=DeviceAggregator(cls.carol),
+        cls.hdf = load_iris(
+            parts=[cls.alice, cls.bob],
+            aggregator=PlainAggregator(cls.alice),
             comparator=PlainComparator(cls.carol),
         )
+        cls.hdf_alice = reveal(cls.hdf.partitions[cls.alice].data)
+        cls.hdf_bob = reveal(cls.hdf.partitions[cls.bob].data)
 
         vdf_alice = pd.DataFrame(
             {
@@ -131,7 +130,7 @@ class TestLabelEncoder(DeviceTestCase):
                 self.alice: Partition(data=self.alice(lambda: df.iloc[:4, :])()),
                 self.bob: Partition(data=self.bob(lambda: df.iloc[4:, :])()),
             },
-            aggregator=DeviceAggregator(self.carol),
+            aggregator=PlainAggregator(self.carol),
             comparator=PlainComparator(self.carol),
         )
         v_mix = MixDataFrame(partitions=[v_part0])
@@ -186,17 +185,16 @@ class TestLabelEncoder(DeviceTestCase):
 
 
 class TestOneHotEncoder(DeviceTestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        path_alice = 'tests/datasets/iris/horizontal/iris.alice.csv'
-        path_bob = 'tests/datasets/iris/horizontal/iris.bob.csv'
-        self.hdf_alice = pd.read_csv(path_alice)
-        self.hdf_bob = pd.read_csv(path_bob)
-        self.hdf = h_read_csv(
-            {self.alice: path_alice, self.bob: path_bob},
-            aggregator=DeviceAggregator(self.carol),
-            comparator=PlainComparator(self.carol),
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls.hdf = load_iris(
+            parts=[cls.alice, cls.bob],
+            aggregator=PlainAggregator(cls.alice),
+            comparator=PlainComparator(cls.alice),
         )
+        cls.hdf_alice = reveal(cls.hdf.partitions[cls.alice].data)
+        cls.hdf_bob = reveal(cls.hdf.partitions[cls.bob].data)
 
         vdf_alice = pd.DataFrame(
             {
@@ -214,12 +212,12 @@ class TestOneHotEncoder(DeviceTestCase):
             }
         )
 
-        self.vdf_alice = vdf_alice
-        self.vdf_bob = vdf_bob
-        self.vdf = VDataFrame(
+        cls.vdf_alice = vdf_alice
+        cls.vdf_bob = vdf_bob
+        cls.vdf = VDataFrame(
             {
-                self.alice: Partition(data=self.alice(lambda: vdf_alice)()),
-                self.bob: Partition(data=self.bob(lambda: vdf_bob)()),
+                cls.alice: Partition(data=cls.alice(lambda: vdf_alice)()),
+                cls.bob: Partition(data=cls.bob(lambda: vdf_bob)()),
             }
         )
 
@@ -326,7 +324,7 @@ class TestOneHotEncoder(DeviceTestCase):
                 self.alice: Partition(data=self.alice(lambda: df_part0.iloc[:4, :])()),
                 self.bob: Partition(data=self.bob(lambda: df_part0.iloc[4:, :])()),
             },
-            aggregator=DeviceAggregator(self.carol),
+            aggregator=PlainAggregator(self.carol),
             comparator=PlainComparator(self.carol),
         )
         v_part1 = HDataFrame(
@@ -334,7 +332,7 @@ class TestOneHotEncoder(DeviceTestCase):
                 self.alice: Partition(data=self.alice(lambda: df_part1.iloc[:4, :])()),
                 self.bob: Partition(data=self.bob(lambda: df_part1.iloc[4:, :])()),
             },
-            aggregator=DeviceAggregator(self.carol),
+            aggregator=PlainAggregator(self.carol),
             comparator=PlainComparator(self.carol),
         )
         v_mix = MixDataFrame(partitions=[v_part0, v_part1])

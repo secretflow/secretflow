@@ -1,0 +1,29 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2022 Ant Group Co., Ltd.
+# This file is distributed under the same license as the SecretFlow package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2022.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: SecretFlow \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2022-09-05 14:43+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.10.3\n"
+
+#: ../../api/index.rst:4 f8556228e7aa4d04aac4b45f47a84be4
+msgid "API Documentation"
+msgstr "API文档"
+
+#: ../../api/index.rst:6 29f31eba4c2442ecbb8eb28f9354c7d2
+msgid ""
+"This reference manual details modules, objects and functions included in "
+"SecretFlow, describing what they are and what they do."
+msgstr "这里介绍了SecretFlow中包含的模块、类和函数，并且描述了它们的基本信息和作用。"
+

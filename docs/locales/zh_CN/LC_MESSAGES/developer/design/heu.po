@@ -1,0 +1,274 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2022 Ant Group Co., Ltd.
+# This file is distributed under the same license as the SecretFlow package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2022.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: SecretFlow \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2022-09-14 17:33+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.10.3\n"
+
+#: ../../developer/design/heu.rst:2
+msgid "HEU Device"
+msgstr "HEU 设备"
+
+#: ../../developer/design/heu.rst:5
+msgid "What is HEU"
+msgstr "HEU 是什么"
+
+#: ../../developer/design/heu.rst:7
+msgid ""
+"Homomorphic Encryption processing Unit (HEU) is a submodule of Secretflow"
+" that implements high-performance homomorphic encryption algorithms."
+msgstr "HEU (Homomorphic Encryption processing Unit) 是隐语的一个子项目，它实现了高性能的同态加密算法"
+
+#: ../../developer/design/heu.rst:9
+msgid ""
+"The purpose of HEU is to lower the threshold for the use of homomorphic "
+"encryption, so that users can use homomorphic encryption algorithms to "
+"build privacy-preserving applications without professional cryptography "
+"knowledge."
+msgstr "HEU 的目的是为了降低同态加密算法的使用门槛，这样用户就可以很容易地构建隐私保护应用程序而无需专业的密码学知识"
+
+#: ../../developer/design/heu.rst:13
+msgid "The Design of HEU"
+msgstr "HEU 设计思想"
+
+#: ../../developer/design/heu.rst:25
+msgid ""
+"HEU has two meanings, it is both a device in Secretflow and a high-"
+"performance homomorphic encryption library that can be used "
+"independently."
+msgstr "HEU 包括两层含义，它既是隐语中的一个设备(HE Device)，也是一个可以独立使用的同态加密算法库(He Library)"
+
+#: ../../developer/design/heu.rst:30
+msgid ""
+":red:`HEU Library`: You can view HEU as a high-performance and complete "
+"homomorphic encryption library, which integrates almost all homomorphic "
+"encryption algorithms in the industry. At the same time, HEU encapsulates"
+" each algorithm and provides a uniform interface called \"HEU library "
+"access layer\". You can switch between different HE algorithms at any "
+"time without modifying business code."
+msgstr ""
+":red:`HEU Library`: 你可以把 HEU 看作是一个高性能的同态加密算法库，它实现、集成了业界主流的同态加密算法。同时，HEU "
+"还抽象出了统一接入层（library access layer），它向下屏蔽不同算法的细节，向上提供一致的编程接口。"
+
+#: ../../developer/design/heu.rst:32
+msgid ""
+":blue:`HEU device`: As a component of Secretflow, HEU abstracts the "
+"homomorphic encryption algorithms into a programmable device, making it "
+"easy for users to flexibly build applications using the homomorphic "
+"encryption technology without professional knowledge. HEU (device) aims "
+"to build a complete computing solution through HE, that is, based on HE, "
+"any type of computing can be completed. Compared with SPU, HEU's "
+"computation is purely local without any network communication, so HEU and"
+" SPU are complementary"
+msgstr ""
+":blue:`HEU device`: HEU "
+"同时也是隐语中的一个可编程设备，它可以降低隐私保护应用程序的开发门槛。过去，基于一些密码学算法开发隐私保护应用是一件比较难的事，而开发明文程序是相对容易的，HEU"
+" 可以自动将明文程序翻译成隐私保护程序，这样用户就可以像写明文程序一样开发隐私保护应用，大大降低了行业准入门槛。相比隐语其它设备，HEU "
+"的特点是可以在本地完成所有密态计算，不依赖网络，这个特性正好与 SPU 是互补的。"
+
+#: ../../developer/design/heu.rst:36
+msgid "Insight into HEU"
+msgstr "深入 HEU"
+
+#: ../../developer/design/heu.rst:38
+msgid "Now let's see the detail of HEU library."
+msgstr "现在让我们详细看一下 HEU Library 的设计。"
+
+#: ../../developer/design/heu.rst:40
+msgid ""
+"There are many kinds of homomorphic encryption algorithms, and the "
+"functions of different algorithms are very different. It is impossible to"
+" integrate all the algorithms into a same library and provide a uniform "
+"interface. Therefore, HEU classifies homomorphic encryption algorithms "
+"into three categories, corresponding to three different working modes, as"
+" shown in the following table:"
+msgstr ""
+"同态加密算法多种多样，算法间的差异也很大，把世界上所有的算法都抽象成一种接口是几乎不可能的事。鉴于此，HEU 退而求其次，把 HE "
+"算法分成三类，每一类算法对应一种工作模式，同种工作模式下不同的算法遵循相同的接口："
+
+#: ../../developer/design/heu.rst:42
+msgid "HEU Working Mode"
+msgstr "HEU 工作模式"
+
+#: ../../developer/design/heu.rst:1
+msgid "Working Mode"
+msgstr "工作模式"
+
+#: ../../developer/design/heu.rst:1
+msgid "Supported Calculation Types"
+msgstr "支持的密态运算类型"
+
+#: ../../developer/design/heu.rst:1
+msgid "Number Of Calculations"
+msgstr "密态运算次数"
+
+#: ../../developer/design/heu.rst:1
+msgid "HE Algorithms"
+msgstr "同态加密算法"
+
+#: ../../developer/design/heu.rst:1
+msgid "Calculating Speed"
+msgstr "计算速度"
+
+#: ../../developer/design/heu.rst:1
+msgid "Ciphertext Size"
+msgstr "密文大小"
+
+#: ../../developer/design/heu.rst:1
+msgid "PHEU"
+msgstr ""
+
+#: ../../developer/design/heu.rst:1
+msgid "Addition"
+msgstr "加法"
+
+#: ../../developer/design/heu.rst:1
+msgid "Unlimited"
+msgstr "无限制"
+
+#: ../../developer/design/heu.rst:1
+msgid "Paillier"
+msgstr ""
+
+#: ../../developer/design/heu.rst:1
+msgid "Fast"
+msgstr "快"
+
+#: ../../developer/design/heu.rst:1
+msgid "Small"
+msgstr "小"
+
+#: ../../developer/design/heu.rst:1
+msgid "LHEU"
+msgstr ""
+
+#: ../../developer/design/heu.rst:1
+msgid "Addition, Multiplication"
+msgstr "加法、乘法"
+
+#: ../../developer/design/heu.rst:1
+msgid "Limited"
+msgstr "有限次"
+
+#: ../../developer/design/heu.rst:1
+msgid "BGV, CKKS"
+msgstr ""
+
+#: ../../developer/design/heu.rst:1
+msgid "Fast (packed Mode)"
+msgstr "快（Batch 模式）"
+
+#: ../../developer/design/heu.rst:1
+msgid "Least (packed Mode)"
+msgstr "最小（Batch 模式下的均摊大小）"
+
+#: ../../developer/design/heu.rst:1
+msgid "FHEU"
+msgstr ""
+
+#: ../../developer/design/heu.rst:1
+msgid "Addition, Multiplication, Comparison, Mux"
+msgstr "加法、乘法、比较、多路选择（MUX) 等等"
+
+#: ../../developer/design/heu.rst:1
+msgid "TFHE (Bitwise)"
+msgstr ""
+
+#: ../../developer/design/heu.rst:1
+msgid "Very Slow"
+msgstr "非常慢"
+
+#: ../../developer/design/heu.rst:1
+msgid "Largest"
+msgstr "最大"
+
+#: ../../developer/design/heu.rst:49
+msgid ""
+"HEU is still under rapid iterative development, LHEU and FHEU modes are "
+"not ready currently, only PHEU mode is available."
+msgstr "HEU 当前还在快速迭代开发阶段，LHEU 和 FHEU 暂时不可用，仅 PHEU 模式是可用的。"
+
+#: ../../developer/design/heu.rst:51
+msgid ""
+"Based on the three working modes of the HEU, the architecture of the HEU "
+"library is divided into three relatively independent parts in vertical "
+"direction."
+msgstr "由于 HEU 提供三种不同的工作模式，HEU 在架构上也可分为相对独立的三部分。"
+
+#: ../../developer/design/heu.rst:55
+msgid ""
+"The left part integrates PHE-related libraries, including Paillier, "
+"ElGamal, and so on. HEU deeply optimizes these PHE algorithms and often "
+"performs better than third-party libraries. So even if you do not need to"
+" use SecretFlow, it's beneficial to just use HEU alone as a PHE library."
+msgstr ""
+"最左边的部分整合了 PHE 算法，具体包括 Paillier、ElGamal 等等，HEU "
+"深度改进并优化了这些算法的性能，性能通常比第三方库更高，因此，即便您不需要隐语，只把 HEU 单独拿出来当做 PHE lib 使用也是有收益的。"
+
+#: ../../developer/design/heu.rst:57
+msgid ""
+"The middle part integrates LHE libraries, including SEAL, HELib, "
+"Palisade, and so on. It should be noted that although BGV/BFV and CKKS "
+"are fully homomorphic encryption algorithms themselves, the performance "
+"of bootstrapping is very low, so HEU only uses them as leveled HEs."
+msgstr ""
+"中间部分整合了 LHE 库，包括 SEAL、HELib、Palisade 等等。需要注意的是，BGV/BFV/CKKS "
+"在学术上通常认为是全同态加密算法（FHE），但是因为这些算法的 FHE 特性依赖 Bootstrapping 操作，而 Bootstrapping"
+" 性能极低，不俱备实用性，因此这几种算法在 HEU 中被当做 LHE 使用"
+
+#: ../../developer/design/heu.rst:59
+msgid ""
+"The right part integrates the FHE library, namely `Concrete`_, which is a"
+" variant of the TFHE algorithm developed by `Zama.ai`_. It only supports "
+"encrypt one bit at a time, so its performance is very low. For example, a"
+" 64-bit integer will generate 64 ciphertexts after encrypted in this "
+"mode. And if you want to add two 64-bit integers, you need to execute a "
+"very complex circuit to obtain the result, which is very inefficient. In "
+"short, it is only suitable for low computation cost scenarios, and the "
+"advantage is that it can support arbitrary kind of encrypted operations, "
+"making it possible to do confidential outsourcing computing."
+msgstr ""
+"最右边的部分整合了全同态库，即 `Concrete`_，当前只支持这么一种，他是由 `Zama.ai`_ 公司研发的改进版 TFHE "
+"算法，其特点是只支持单比特加密，因此性能很低，但优点是 Bootstrapping 比 LHE 快的多。举例来说，一个 int64 整数使用 "
+"TFHE 加密后会产生64个密文，而为了把两个 int64 整数相加，FHE "
+"方案需要执行一个非常复杂的加法电路才能完成计算，可见效率是非常低的。总之，FHE "
+"模式只适合计算量比较少的场景，但它的比特加密模式可以执行任意电路，也就使得 FHEU 俱备执行任意计算的能力"
+
+#: ../../developer/design/heu.rst:64
+msgid ""
+"From a horizontal perspective, HEU can also be divided into several "
+"layers. The top layer is the ``LLO`` (low level operators) layer, which "
+"is the entry point to the HEU library. The HEU device first translates "
+"the user's code into a DAG, and then compiled into LLO code. LLO defines "
+"a atomic operations set for interworking with HEU library. The second "
+"layer is ``Rewriter``, which translates and rewrites the LLO code to suit"
+" different working modes. The third layer is ``Accelerator``, which "
+"further optimizes the LLO code to accelerate the performance of "
+"confidential computing. The next layer is ``Access Layer``, which "
+"abstracts a uniform interface for different homomorphic encryption "
+"libraries to facilitate protocol insertion and removal. The penultimate "
+"layer ``Protocol`` layer, which implements a variety of specific "
+"homomorphic encryption algorithms. The bottom layer is ``Hardware`` "
+"acceleration layer, which is still under working. We plan to support PHE "
+"hardware acceleration first, and then further expand to LHE and FHE."
+msgstr ""
+"水平方向 HEU 也可以分为好几层。最上面的是 ``LLO``（low level operators）层，它是 HEU Library "
+"的入口。HEU Device 首先会将用户代码翻译成 DAG 图，并进一步编译成 LLO 提交给 HEU Library，LLO "
+"定义了一组细粒度的原子操作用于和上层交互。第二层是 ``Rewriter``，用于转换 LLO code 以适应不同的工作模式。第三层是 "
+"``Accelerator``，用于进一步修改和优化 LLO code。第四层是 ``Access Layer``，这一层对不同的 HE "
+"算法抽象出了统一的接口，方便后续做协议插拔。倒数第二层是 ``Protocol``，这一层集成了市面上主流的同态加密库；最底层是 "
+"``Hardware``，用于实现 HE 的硬件加速，这一层还没完全实现，我们计划首先实现 PHE 的硬件加速（基于 GPU 和 Intel "
+"QAT 密码卡），之后再对 LHE 和 FHE 做硬件加速支持。"
+

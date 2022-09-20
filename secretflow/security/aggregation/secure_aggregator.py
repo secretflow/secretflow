@@ -139,38 +139,35 @@ class SecureAggregator(Aggregator):
         y_1 + y_2 + y_3 = x_1 + s_{a,b} + s_{a,c} + x_2 - s_{a,b} + s_{b,c} + x_3 - s_{a,c} - s_{b,c}
         = x_1 + x_2 + x_3
 
-    Notes
-    -------
-    `Masking with One-Time Pads` is based on semi-honest assumptions
-    and does not support client dropping. For more information, please refer to
-    `Practical Secure Aggregationfor Privacy-Preserving Machine Learning <https://eprint.iacr.org/2017/281.pdf>`_
+    Notes:
+        `Masking with One-Time Pads` is based on semi-honest assumptions
+        and does not support client dropping. For more information, please refer to
+        `Practical Secure Aggregationfor Privacy-Preserving Machine Learning <https://eprint.iacr.org/2017/281.pdf>`_
 
-    Warnings
-    --------
-    The SecureAggregator uses :py:meth:`numpy.random.PCG64`. There are many
-    discussions of whether PCG is a CSPRNG
-    (e.g. https://crypto.stackexchange.com/questions/77101/is-the-pcg-prng-a-csprng-or-why-not),
-    we perfer a conservative strategy unless a further security analysis came
-    up. Therefore we recommend users to use a standardized CSPRNG in industrial
-    scenarios.
+    Warnings:
+        The SecureAggregator uses :py:meth:`numpy.random.PCG64`. There are many
+        discussions of whether PCG is a CSPRNG
+        (e.g. https://crypto.stackexchange.com/questions/77101/is-the-pcg-prng-a-csprng-or-why-not),
+        we perfer a conservative strategy unless a further security analysis came
+        up. Therefore we recommend users to use a standardized CSPRNG in industrial
+        scenarios.
 
-    Examples
-    --------
-    >>> # Alice and bob are both pyu instances.
-    >>> aggregator = SecureAggregator(alice, [alice, bob])
-    >>> a = alice(lambda : np.random.rand(2, 5))()
-    >>> b = bob(lambda : np.random.rand(2, 5))()
-    >>> sum_a_b = aggregator.sum([a, b], axis=0)
-    >>> # Get the result.
-    >>> sf.reveal(sum_a_b)
-    array([[0.5954927 , 0.9381409 , 0.99397117, 1.551537  , 0.3269863 ],
-       [1.288345  , 1.1820003 , 1.1769378 , 0.7396539 , 1.215364  ]],
-      dtype=float32)
-    >>> average_a_b = aggregator.average([a, b], axis=0)
-    >>> sf.reveal(average_a_b)
-    array([[0.29774636, 0.46907043, 0.49698558, 0.7757685 , 0.16349316],
-       [0.6441725 , 0.5910001 , 0.5884689 , 0.3698269 , 0.607682  ]],
-      dtype=float32)
+    Examples:
+        >>> # Alice and bob are both pyu instances.
+        >>> aggregator = SecureAggregator(alice, [alice, bob])
+        >>> a = alice(lambda : np.random.rand(2, 5))()
+        >>> b = bob(lambda : np.random.rand(2, 5))()
+        >>> sum_a_b = aggregator.sum([a, b], axis=0)
+        >>> # Get the result.
+        >>> sf.reveal(sum_a_b)
+        array([[0.5954927 , 0.9381409 , 0.99397117, 1.551537  , 0.3269863 ],
+        [1.288345  , 1.1820003 , 1.1769378 , 0.7396539 , 1.215364  ]],
+        dtype=float32)
+        >>> average_a_b = aggregator.average([a, b], axis=0)
+        >>> sf.reveal(average_a_b)
+        array([[0.29774636, 0.46907043, 0.49698558, 0.7757685 , 0.16349316],
+        [0.6441725 , 0.5910001 , 0.5884689 , 0.3698269 , 0.607682  ]],
+        dtype=float32)
     """
 
     def __init__(self, device: PYU, participants: List[PYU], fxp_bits: int = 18):
@@ -253,10 +250,9 @@ class SecureAggregator(Aggregator):
                     dtype == dtypes[0]
                 ), f'Data should have same dtypes but got {dtype} {dtypes[0]}.'
             is_float = np.issubdtype(dtypes[0], np.floating)
-
-            sum_weights = len(data)
-            if weights:
-                sum_weights = np.sum(weights)
+            sum_weights = (
+                np.sum(weights, axis=axis) if weights else len(data)
+            )
             if is_nesting_list(masked_data):
                 sum_data = [np.sum(element, axis=axis) for element in zip(*masked_data)]
                 if is_float:
@@ -279,7 +275,7 @@ class SecureAggregator(Aggregator):
         masked_data = [None] * len(data)
         dtypes = [None] * len(data)
         _weights = []
-        if weights is not None and isinstance(weights, (list, tuple)):
+        if weights is not None and isinstance(weights, (list, tuple, np.ndarray)):
             assert len(weights) == len(
                 data
             ), f'Length of the weights not equals data: {len(weights)} vs {len(data)}.'

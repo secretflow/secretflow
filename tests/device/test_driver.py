@@ -2,8 +2,10 @@ import os
 import tempfile
 import time
 
-from secretflow.device.driver import wait
+import numpy as np
 
+from secretflow.device.device.spu import SPUObject
+from secretflow.device.driver import reveal, to, wait
 from tests.basecase import DeviceTestCase
 
 
@@ -40,3 +42,11 @@ class TestWait(DeviceTestCase):
             AssertionError, 'This exception is expected by design.'
         ):
             wait([o])
+
+    def test_host_to_spu(self):
+        x = to(self.spu, 32)
+        self.assertTrue(isinstance(x, SPUObject))
+
+        x_ = reveal(x)
+        self.assertTrue(isinstance(x_, np.ndarray))
+        self.assertEqual(x_, 32)

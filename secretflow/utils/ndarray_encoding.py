@@ -38,7 +38,7 @@ def encode(m: np.ndarray, fxp_bits: int) -> np.ndarray:
     max_value = m.max()
     if max_value * (1 << fxp_bits) > uint64_max:
         raise InvalidArgumentError(
-            f'Float data exceeds uint range (0, {uint64_max}) after encoding.'
+            f'Float data {max_value} exceeds uint range (0, {uint64_max}) after encoding.'
         )
     # Convert to np.float64 for reducing overflow.
     return (m.astype(np.float64) * (1 << fxp_bits)).astype(np.uint64)

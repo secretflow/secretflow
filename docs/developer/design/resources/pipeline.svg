@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns="http://www.w3.org/2000/svg" xmlns:xl="http://www.w3.org/1999/xlink" version="1.1" viewBox="465.24975 401 627.75025 384.5" width="627.75025" height="384.5">
+  <defs>
+    <marker orient="auto" overflow="visible" markerUnits="strokeWidth" id="FilledArrow_Marker" stroke-linejoin="miter" stroke-miterlimit="10" viewBox="-1 -4 10 8" markerWidth="10" markerHeight="8" color="black">
+      <g>
+        <path d="M 8 0 L 0 -3 L 0 3 Z" fill="currentColor" stroke="currentColor" stroke-width="1"/>
+      </g>
+    </marker>
+  </defs>
+  <g id="Pipeline" stroke="none" stroke-dasharray="none" stroke-opacity="1" fill-opacity="1" fill="none">
+    <title>Pipeline</title>
+    <rect fill="white" x="465.24975" y="401" width="627.75025" height="384.5"/>
+    <g id="Pipeline_black">
+      <title>black</title>
+      <g id="Graphic_72">
+        <rect x="713" y="482" width="123.5" height="36" fill="white"/>
+        <rect x="713" y="482" width="123.5" height="36" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(718 488.22)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="20" fill="black" x="7.48" y="19">AI frontend</tspan>
+        </text>
+      </g>
+      <g id="Graphic_74">
+        <rect x="713" y="567" width="123.5" height="63" fill="white"/>
+        <rect x="713" y="567" width="123.5" height="63" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(718 574.94)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="20" fill="black" x="36.57" y="19">SPU</tspan>
+          <tspan font-family="Helvetica Neue" font-size="20" fill="black" x="18.04" y="42.56">compiler</tspan>
+        </text>
+      </g>
+      <g id="Graphic_75">
+        <rect x="713" y="679" width="123.5" height="106" fill="white"/>
+        <rect x="713" y="679" width="123.5" height="106" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(718 708.44)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="20" fill="black" x="36.57" y="19">SPU</tspan>
+          <tspan font-family="Helvetica Neue" font-size="20" fill="black" x="23.03" y="42.56">runtime</tspan>
+        </text>
+      </g>
+      <g id="Line_76">
+        <line x1="774.75" y1="518" x2="774.75" y2="557.1" marker-end="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Line_77">
+        <line x1="774.75" y1="630" x2="774.75" y2="669.1" marker-end="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Graphic_78">
+        <rect x="745.454" y="526.8322" width="58.592" height="28.447998" fill="white"/>
+        <text transform="translate(750.454 531.8322)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="27711167e-20" y="15">XLA IR</tspan>
+        </text>
+      </g>
+      <g id="Graphic_79">
+        <rect x="741.606" y="637.8811" width="66.288" height="28.447998" fill="white"/>
+        <text transform="translate(746.606 642.8811)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="2309264e-19" y="15">SPU  IR</tspan>
+        </text>
+      </g>
+      <g id="Graphic_83">
+        <title>Person Outline</title>
+        <path d="M 774.75 404.8 C 777.07 404.8 778.95 406.68 778.95 409 C 778.95 411.32 777.07 413.2 774.75 413.2 C 772.43 413.2 770.55 411.32 770.55 409 C 770.55 406.68 772.43 404.8 774.75 404.8 M 774.75 422.8 C 780.69 422.8 786.95 425.72 786.95 427 L 786.95 429.2 L 762.55 429.2 L 762.55 427 C 762.55 425.72 768.81 422.8 774.75 422.8 M 774.75 401 C 770.33 401 766.75 404.58 766.75 409 C 766.75 413.42 770.33 417 774.75 417 C 779.17 417 782.75 413.42 782.75 409 C 782.75 404.58 779.17 401 774.75 401 Z M 774.75 419 C 769.41 419 758.75 421.68 758.75 427 L 758.75 433 L 790.75 433 L 790.75 427 C 790.75 421.68 780.09 419 774.75 419 Z" fill="black"/>
+      </g>
+      <g id="Line_84">
+        <line x1="774.75" y1="433" x2="774.75" y2="472.1" marker-end="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Graphic_85">
+        <rect x="751.822" y="435.21104" width="45.856" height="28.447998" fill="white"/>
+        <text transform="translate(756.822 440.21104)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="0" y="15">code</tspan>
+        </text>
+      </g>
+      <g id="Graphic_86">
+        <title>Person Outline</title>
+        <path d="M 1077 720.03225 C 1079.32 720.03225 1081.2 721.91225 1081.2 724.23225 C 1081.2 726.55225 1079.32 728.43225 1077 728.43225 C 1074.68 728.43225 1072.8 726.55225 1072.8 724.23225 C 1072.8 721.91225 1074.68 720.03225 1077 720.03225 M 1077 738.03225 C 1082.94 738.03225 1089.2 740.95225 1089.2 742.23225 L 1089.2 744.43225 L 1064.8 744.43225 L 1064.8 742.23225 C 1064.8 740.95225 1071.06 738.03225 1077 738.03225 M 1077 716.23225 C 1072.58 716.23225 1069 719.81225 1069 724.23225 C 1069 728.65225 1072.58 732.23225 1077 732.23225 C 1081.42 732.23225 1085 728.65225 1085 724.23225 C 1085 719.81225 1081.42 716.23225 1077 716.23225 Z M 1077 734.23225 C 1071.66 734.23225 1061 736.91225 1061 742.23225 L 1061 748.23225 L 1093 748.23225 L 1093 742.23225 C 1093 736.91225 1082.34 734.23225 1077 734.23225 Z" fill="black"/>
+      </g>
+      <g id="Line_182">
+        <line x1="630.4" y1="697" x2="703.1" y2="697" marker-end="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Line_187">
+        <line x1="836" y1="732.3227" x2="900.1" y2="732.1452" marker-end="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Graphic_186">
+        <rect x="843.6625" y="718.00825" width="50" height="28.447998" fill="white"/>
+        <text transform="translate(848.6625 723.00825)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="0" y="15">[data]</tspan>
+        </text>
+      </g>
+      <g id="Graphic_189">
+        <rect x="556" y="679" width="74.40001" height="36" fill="white"/>
+        <rect x="556" y="679" width="74.40001" height="36" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(562.28 685.22)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="20" fill="black" x="7105427e-20" y="19">SPU io</tspan>
+        </text>
+      </g>
+      <g id="Line_190">
+        <line x1="500" y1="697" x2="546.1" y2="697" marker-end="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Graphic_191">
+        <rect x="496.9321" y="682.776" width="41.712" height="28.447998" fill="white"/>
+        <text transform="translate(501.9321 687.776)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="0" y="15">data</tspan>
+        </text>
+      </g>
+      <g id="Graphic_215">
+        <title>Person Outline</title>
+        <path d="M 481.24975 684.8 C 483.56975 684.8 485.44975 686.68 485.44975 689 C 485.44975 691.32 483.56975 693.2 481.24975 693.2 C 478.92975 693.2 477.04975 691.32 477.04975 689 C 477.04975 686.68 478.92975 684.8 481.24975 684.8 M 481.24975 702.8 C 487.18975 702.8 493.44975 705.72 493.44975 707 L 493.44975 709.2 L 469.04975 709.2 L 469.04975 707 C 469.04975 705.72 475.30975 702.8 481.24975 702.8 M 481.24975 681 C 476.82975 681 473.24975 684.58 473.24975 689 C 473.24975 693.42 476.82975 697 481.24975 697 C 485.66975 697 489.24975 693.42 489.24975 689 C 489.24975 684.58 485.66975 681 481.24975 681 Z M 481.24975 699 C 475.90975 699 465.24975 701.68 465.24975 707 L 465.24975 713 L 497.24975 713 L 497.24975 707 C 497.24975 701.68 486.58975 699 481.24975 699 Z" fill="black"/>
+      </g>
+      <g id="Graphic_216">
+        <rect x="910" y="714" width="85" height="36" fill="white"/>
+        <rect x="910" y="714" width="85" height="36" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(915 720.22)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="20" fill="black" x="6.58" y="19">SPU io</tspan>
+        </text>
+      </g>
+      <g id="Line_217">
+        <line x1="995" y1="732" x2="1047.6758" y2="732" marker-end="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Graphic_219">
+        <rect x="638.4441" y="681" width="53.6" height="32" fill="white"/>
+        <text transform="translate(643.4441 686)" fill="black">
+          <tspan font-family="PingFang SC" font-size="16" fill="black" x="0" y="17">[data]</tspan>
+        </text>
+      </g>
+      <g id="Graphic_226">
+        <rect x="1000.0209" y="717.776" width="41.712" height="28.447998" fill="white"/>
+        <text transform="translate(1005.0209 722.776)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="0" y="15">data</tspan>
+        </text>
+      </g>
+      <g id="Line_238">
+        <line x1="630.4" y1="767" x2="703.1" y2="767" marker-end="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Graphic_237">
+        <rect x="556" y="749" width="74.40001" height="36" fill="white"/>
+        <rect x="556" y="749" width="74.40001" height="36" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(562.28 755.22)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="20" fill="black" x="7105427e-20" y="19">SPU io</tspan>
+        </text>
+      </g>
+      <g id="Line_236">
+        <line x1="500" y1="767" x2="546.1" y2="767" marker-end="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Graphic_235">
+        <rect x="496.9321" y="752.776" width="41.712" height="28.447998" fill="white"/>
+        <text transform="translate(501.9321 757.776)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="0" y="15">data</tspan>
+        </text>
+      </g>
+      <g id="Graphic_234">
+        <title>Person Outline</title>
+        <path d="M 481.24975 754.8 C 483.56975 754.8 485.44975 756.68 485.44975 759 C 485.44975 761.32 483.56975 763.2 481.24975 763.2 C 478.92975 763.2 477.04975 761.32 477.04975 759 C 477.04975 756.68 478.92975 754.8 481.24975 754.8 M 481.24975 772.8 C 487.18975 772.8 493.44975 775.72 493.44975 777 L 493.44975 779.2 L 469.04975 779.2 L 469.04975 777 C 469.04975 775.72 475.30975 772.8 481.24975 772.8 M 481.24975 751 C 476.82975 751 473.24975 754.58 473.24975 759 C 473.24975 763.42 476.82975 767 481.24975 767 C 485.66975 767 489.24975 763.42 489.24975 759 C 489.24975 754.58 485.66975 751 481.24975 751 Z M 481.24975 769 C 475.90975 769 465.24975 771.68 465.24975 777 L 465.24975 783 L 497.24975 783 L 497.24975 777 C 497.24975 771.68 486.58975 769 481.24975 769 Z" fill="black"/>
+      </g>
+      <g id="Graphic_233">
+        <rect x="638.4441" y="751" width="53.6" height="32" fill="white"/>
+        <text transform="translate(643.4441 756)" fill="black">
+          <tspan font-family="PingFang SC" font-size="16" fill="black" x="0" y="17">[data]</tspan>
+        </text>
+      </g>
+    </g>
+  </g>
+</svg>

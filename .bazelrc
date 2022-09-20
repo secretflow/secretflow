@@ -13,6 +13,7 @@ build --host_cxxopt=-std=c++17
 build:macos --features=-supports_dynamic_linker
 build:macos --cxxopt -Wno-deprecated-enum-enum-conversion
 build:macos --cxxopt -Wno-deprecated-anon-enum-enum-conversion
+build:macos --macos_minimum_os=11.0
 
 # static link libstdc++ & libgcc
 build:linux --action_env=BAZEL_LINKOPTS=-static-libstdc++:-static-libgcc
@@ -33,6 +34,7 @@ build:ubsan --copt -Og
 build:ubsan --copt -g
 build:ubsan --copt -fno-omit-frame-pointer
 build:ubsan --linkopt -fsanitize=undefined
+
 
 test --keep_going
 test --test_output=errors
