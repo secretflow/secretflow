@@ -10,7 +10,7 @@ flax==0.4.1
 cloudpickle==2.0.0
 networkx~=2.8
 
-dgl==0.6.1
+dgl>=0.9.0
 pandas==1.4.0
 pyarrow
 scikit-learn==1.0.2
