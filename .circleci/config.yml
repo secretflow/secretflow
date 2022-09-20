@@ -31,7 +31,7 @@ jobs:
       - checkout
       - python/install-packages:
           pkg-manager: pip
-          app-dir: ~/docker/  # If you're requirements.txt isn't in the root directory.
+          app-dir: ./docker/  # If you're requirements.txt isn't in the root directory.
           pip-dependency-file: dev-requirements.txt # if you have a different name for your requirements file, maybe one that combines your runtime and test requirements.
       - run:
           name: Run tests
