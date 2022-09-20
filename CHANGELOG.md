@@ -14,11 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Staging
 
-## [0.7.7] - 2022-9-16
+## [0.7.7b0] - 2022-9-16
 ### Changed
 - Bump dependencies
-  - sf-heu to 0.2.0
-  - spu to 0.2.5
+  - sf-heu to 0.2.0b0
+  - spu to 0.2.4b1
 
 ## [0.7.6] - 2022-09-08
 ### Fixed
