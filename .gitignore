@@ -328,9 +328,6 @@ examples/datasets/*
 # bazel build
 bazel-*
 
-# docs
-docs/source
-
 # test artifacts
 alice.audit
 alice.audit.npy
