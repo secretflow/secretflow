@@ -16,3 +16,5 @@ pytablewriter
 linkify-it-py
 sphinx-intl
 autodocsumm
+secretflow==0.7.7b1
+
