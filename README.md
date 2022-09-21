@@ -4,6 +4,8 @@
 
 ---
 
+[![CircleCI](https://dl.circleci.com/status-badge/img/gh/secretflow/secretflow/tree/beta.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/secretflow/secretflow/tree/beta)
+
 SecretFlow is a unified framework for privacy-preserving data intelligence and machine learning. To achieve this goal,
 it provides:
 
