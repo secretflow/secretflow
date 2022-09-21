@@ -16,7 +16,7 @@ jobs:
     steps:
       - checkout
       - run:
-          name: "bazel test"
+          name: "unit test"
           command: "pip install -r docker/dev-requirements.txt; sh run_pytest.sh"
 
 # Invoke jobs via workflows
