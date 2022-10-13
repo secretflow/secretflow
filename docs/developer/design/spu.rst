@@ -1,7 +1,7 @@
 SPU (Secure Processing Unit)
 ============================
 
-SPU(Secure Processing Unit) is is a domain-specific compiler and runtime suite. With SPU, you can:
+SPU(Secure Processing Unit) is a domain-specific compiler and runtime suite. With SPU, you can:
 
 - Create privacy-preserving application without any knowledge of MPC.
 - Program with your favorite machine learning framework and API.
