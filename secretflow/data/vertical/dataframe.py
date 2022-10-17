@@ -40,42 +40,39 @@ class VDataFrame(DataFrameBase):
         aligned: a boolean indicating whether the data is
 
     Examples:
-        >>> from secretflow.data.horizontal import read_csv
-        >>> from secretflow.security.aggregation import PlainAggregator, PlainComparator
+        >>> from secretflow.data.vertical import read_csv
         >>> from secretflow import PYU
         >>> alice = PYU('alice')
         >>> bob = PYU('bob')
-        >>> h_df = read_csv({alice: 'alice.csv', bob: 'bob.csv'},
-                            aggregator=PlainAggregagor(alice),
-                            comparator=PlainComparator(alice))
-        >>> h_df.columns
+        >>> v_df = read_csv({alice: 'alice.csv', bob: 'bob.csv'})
+        >>> v_df.columns
         Index(['sepal_length', 'sepal_width', 'petal_length', 'petal_width', 'class'], dtype='object')
-        >>> h_df.mean(numeric_only=True)
+        >>> v_df.mean(numeric_only=True)
         sepal_length    5.827693
         sepal_width     3.054000
         petal_length    3.730000
         petal_width     1.198667
         dtype: float64
-        >>> h_df.min(numeric_only=True)
+        >>> v_df.min(numeric_only=True)
         sepal_length    4.3
         sepal_width     2.0
         petal_length    1.0
         petal_width     0.1
         dtype: float64
-        >>> h_df.max(numeric_only=True)
+        >>> v_df.max(numeric_only=True)
         sepal_length    7.9
         sepal_width     4.4
         petal_length    6.9
         petal_width     2.5
         dtype: float64
-        >>> h_df.count()
+        >>> v_df.count()
         sepal_length    130
         sepal_width     150
         petal_length    120
         petal_width     150
         class           150
         dtype: int64
-        >>> h_df.fillna({'sepal_length': 2})
+        >>> v_df.fillna({'sepal_length': 2})
     """
 
     partitions: Dict[PYU, Partition]
