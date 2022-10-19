@@ -104,7 +104,10 @@ We are working on merging them.
 A typical SPU config:
 ```python
 import spu
-import secteflow as sf
+import secretflow as sf
+
+# Use ray head adress
+sf.init(address='ip:port')
 
 cluster_def={
     'nodes': [
