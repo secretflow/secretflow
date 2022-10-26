@@ -73,7 +73,7 @@ msgstr "处理明文。"
 
 #: ../../developer/design/spu.rst:27 a7cba9a2e6694435b7396e71d480afca
 msgid "Local system, single user."
-msgstr "本地系统，但用户。"
+msgstr "本地系统，单用户。"
 
 #: ../../developer/design/spu.rst:28 2a3f60beaf2649379d37678bd3a875ef
 msgid "Flexible for all kind of workload."
