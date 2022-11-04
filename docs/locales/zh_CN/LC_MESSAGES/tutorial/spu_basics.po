@@ -385,7 +385,7 @@ msgstr "但最后，我们需要从 spu 中获取值，我们不能总是将 *SP
 
 #: ../../tutorial/spu_basics.ipynb:1058
 msgid ""
-"Most common way of handling *SPUObject* is pass the secert to one party. "
+"Most common way of handling *SPUObject* is pass the secret to one party. "
 "This party is not necessarily one of parties consisting of SPU device."
 msgstr "处理 *SPUObject* 的最常见方法是将秘密传递给一方。 该方不一定是由 SPU 设备组成的各方之一。"
 
