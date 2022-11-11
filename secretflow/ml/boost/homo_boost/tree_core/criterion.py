@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 # Copyright 2022 Ant Group Co., Ltd.
@@ -101,7 +101,7 @@ class XgboostCriterion(Criterion):
         return math.floor(f * 10**decimal) / 10**decimal
 
     def node_gain(self, sum_grad: float, sum_hess: float) -> float:
-        """Calculate not gain
+        """Calculate node gain
         Args:
             sum_grad: Sum of gradient
             sum_hess: Sum of hessian

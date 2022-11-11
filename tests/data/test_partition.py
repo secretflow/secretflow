@@ -116,7 +116,7 @@ class TestPartition(DeviceTestCase):
         expected['sepal_length'] = expected['sepal_width']
         pd.testing.assert_frame_equal(reveal(value.data), expected)
 
-    def test_setitem_on_different_partition_should_ok(self):
+    def test_setitem_on_different_partition_should_wrong(self):
         # WHEN and THEN
         with self.assertRaisesRegex(
             AssertionError, 'Can not assign a partition with different device.'
