@@ -611,7 +611,7 @@ class FLModel:
         """Horizontal federated save model interface
 
         Args:
-            model_path: model path
+            model_path: model path, only support format like 'a/b/c', where c is the real model
             is_test: whether is test mode
         """
         assert isinstance(
@@ -623,6 +623,7 @@ class FLModel:
         res = []
         for device, worker in self._workers.items():
             assert device in model_path, f'Should provide a path for device {device}.'
+            assert not model_path[device].endswith("/"), f"model path should be 'a/b/c' not 'a/b/c/'"
             device_model_path, device_model_name = model_path[device].rsplit("/", 1)
 
             if is_test:
