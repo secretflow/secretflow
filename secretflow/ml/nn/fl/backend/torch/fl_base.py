@@ -298,9 +298,9 @@ class BaseTorchModel(ABC):
         pass
 
     def save_model(self, model_path: str):
-        device_model_path, _ = model_path.rsplit("/", 1)
-        if not os.path.exists(device_model_path):
-            os.makedirs(device_model_path)
+        model_dir, _ = model_path.rsplit("/", 1)
+        if not os.path.exists(model_dir):
+            os.makedirs(model_dir)
         assert model_path is not None, "model path cannot be empty"
         torch.save(self.model, model_path)
 
