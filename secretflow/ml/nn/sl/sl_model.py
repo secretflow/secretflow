@@ -427,64 +427,108 @@ class SLModel:
 
     def save_model(
         self,
-        model_path: Union[str, Dict[PYU, str]],
+        base_model_path: Union[str, Dict[PYU, str]] = None,
+        fuse_model_path: str = None,
         is_test=False,
+        save_traces=True,
     ):
-        """Horizontal federated save model interface
+        """Vertical split learning save model interface
 
         Args:
-            model_path: model path
+            base_model_path: base model path
+            fuse_model_path: fuse model path
             is_test: whether is test mode
+            save_traces: (only applies to SavedModel format) When enabled,
+                the SavedModel will store the function traces for each layer.
         """
         assert isinstance(
-            model_path, (str, Dict)
-        ), f'Model path accepts string or dict but got {type(model_path)}.'
-        if isinstance(model_path, str):
-            model_path = {device: model_path for device in self._workers.keys()}
+            base_model_path, (str, Dict)
+        ), f'Model path accepts string or dict but got {type(base_model_path)}.'
+        assert fuse_model_path is not None, "Fuse model path cannot be empty"
+        if isinstance(base_model_path, str):
+            base_model_path = {
+                device: base_model_path for device in self._workers.keys()
+            }
 
         res = []
         for device, worker in self._workers.items():
-            assert device in model_path, f'Should provide a path for device {device}.'
-            device_model_path, device_model_name = model_path[device].rsplit("/", 1)
-
+            assert (
+                device in base_model_path
+            ), f'Should provide a path for device {device}.'
             if is_test:
-                device_model_path = os.path.join(
-                    device_model_path, device.__str__().strip("_")
+                base_model_path_test = os.path.join(
+                    base_model_path[device], device.__str__().strip("_")
                 )
-            if not os.path.exists(device_model_path):
-                os.makedirs(device_model_path)
-            res.append(
-                worker.save_model(os.path.join(device_model_path, device_model_name))
+                res.append(
+                    worker.save_base_model(
+                        base_model_path_test, save_traces=save_traces
+                    )
+                )
+            else:
+                res.append(
+                    worker.save_base_model(
+                        base_model_path[device], save_traces=save_traces
+                    )
+                )
+        res.append(
+            self._workers[self.device_y].save_fuse_model(
+                fuse_model_path, save_traces=save_traces
             )
+        )
         wait(res)
 
     def load_model(
         self,
-        model_path: Union[str, Dict[PYU, str]],
+        base_model_path: Union[str, Dict[PYU, str]] = None,
+        fuse_model_path: str = None,
         is_test=False,
+        base_custom_objects=None,
+        fuse_custom_objects=None,
     ):
-        """Horizontal federated load model interface
+        """Vertical split learning load model interface
 
         Args:
-            model_path: model path
+            base_model_path: base model path
+            fuse_model_path: fuse model path
             is_test: whether is test mode
+            base_custom_objects: Optional dictionary mapping names (strings) to custom
+                classes or functions of the base model to be considered during deserialization
+            fuse_custom_objects: Optional dictionary mapping names (strings) to custom
+                classes or functions of the base model to be considered during deserialization.
         """
         assert isinstance(
-            model_path, (str, Dict)
-        ), f'Model path accepts string or dict but got {type(model_path)}.'
-        if isinstance(model_path, str):
-            model_path = {device: model_path for device in self._workers.keys()}
+            base_model_path, (str, Dict)
+        ), f'Model path accepts string or dict but got {type(base_model_path)}.'
+        assert fuse_model_path is not None, "Fuse model path cannot be empty"
+        if isinstance(base_model_path, str):
+            base_model_path = {
+                device: base_model_path for device in self._workers.keys()
+            }
 
         res = []
         for device, worker in self._workers.items():
-            assert device in model_path, f'Should provide a path for device {device}.'
-            device_model_path, device_model_name = model_path[device].rsplit("/", 1)
-
+            assert (
+                device in base_model_path
+            ), f'Should provide a path for device {device}.'
             if is_test:
-                device_model_path = os.path.join(
-                    device_model_path, device.__str__().strip("_")
+                # only execute when unittest
+                base_model_path_test = os.path.join(
+                    base_model_path[device], device.__str__().strip("_")
                 )
-            res.append(
-                worker.load_model(os.path.join(device_model_path, device_model_name))
+                res.append(
+                    worker.load_base_model(
+                        base_model_path_test, custom_objects=base_custom_objects
+                    )
+                )
+            else:
+                res.append(
+                    worker.load_base_model(
+                        base_model_path[device], custom_objects=base_custom_objects
+                    )
+                )
+        res.append(
+            self._workers[self.device_y].load_fuse_model(
+                fuse_model_path, custom_objects=fuse_custom_objects
             )
+        )
         wait(res)

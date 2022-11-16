@@ -603,7 +603,11 @@ class FLModel:
         else:
             return g_metrics, local_metrics
 
-    def save_model(self, model_path: Union[str, Dict[PYU, str]], is_test=False):
+    def save_model(
+        self,
+        model_path: Union[str, Dict[PYU, str]],
+        is_test=False,
+    ):
         """Horizontal federated save model interface
 
         Args:
@@ -619,18 +623,24 @@ class FLModel:
         res = []
         for device, worker in self._workers.items():
             assert device in model_path, f'Should provide a path for device {device}.'
-            if not os.path.exists(model_path[device]):
-                os.makedirs(model_path[device])
+            device_model_path, device_model_name = model_path[device].rsplit("/", 1)
+
             if is_test:
-                model_path_test = os.path.join(
-                    model_path[device], device.__str__().strip("_")
+                device_model_path = os.path.join(
+                    device_model_path, device.__str__().strip("_")
                 )
-                res.append(worker.save_model(model_path_test))
-            else:
-                res.append(worker.save_model(model_path[device]))
+            if not os.path.exists(device_model_path):
+                os.makedirs(device_model_path)
+            res.append(
+                worker.save_model(os.path.join(device_model_path, device_model_name))
+            )
         wait(res)
 
-    def load_model(self, model_path: Union[str, Dict[PYU, str]], is_test=False):
+    def load_model(
+        self,
+        model_path: Union[str, Dict[PYU, str]],
+        is_test=False,
+    ):
         """Horizontal federated load model interface
 
         Args:
@@ -646,11 +656,13 @@ class FLModel:
         res = []
         for device, worker in self._workers.items():
             assert device in model_path, f'Should provide a path for device {device}.'
+            device_model_path, device_model_name = model_path[device].rsplit("/", 1)
+
             if is_test:
-                model_path_test = os.path.join(
-                    model_path[device], device.__str__().strip("_")
+                device_model_path = os.path.join(
+                    device_model_path, device.__str__().strip("_")
                 )
-                res.append(worker.load_model(model_path_test))
-            else:
-                res.append(worker.load_model(model_path[device]))
+            res.append(
+                worker.load_model(os.path.join(device_model_path, device_model_name))
+            )
         wait(res)
