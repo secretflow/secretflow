@@ -13,6 +13,7 @@
 # limitations under the License.
 
 
+import os
 from abc import ABC, abstractmethod
 from typing import Callable, Optional
 
@@ -297,6 +298,9 @@ class BaseTorchModel(ABC):
         pass
 
     def save_model(self, model_path: str):
+        device_model_path, _ = model_path.rsplit("/", 1)
+        if not os.path.exists(device_model_path):
+            os.makedirs(device_model_path)
         assert model_path is not None, "model path cannot be empty"
         torch.save(self.model, model_path)
 

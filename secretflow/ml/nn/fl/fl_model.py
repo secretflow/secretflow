@@ -629,8 +629,6 @@ class FLModel:
                 device_model_path = os.path.join(
                     device_model_path, device.__str__().strip("_")
                 )
-            if not os.path.exists(device_model_path):
-                os.makedirs(device_model_path)
             res.append(
                 worker.save_model(os.path.join(device_model_path, device_model_name))
             )
