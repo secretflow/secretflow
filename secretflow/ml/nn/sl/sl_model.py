@@ -425,7 +425,11 @@ class SLModel:
             pbar.close()
         return metrics
 
-    def save_model(self, model_path: Union[str, Dict[PYU, str]], is_test=False):
+    def save_model(
+        self,
+        model_path: Union[str, Dict[PYU, str]],
+        is_test=False,
+    ):
         """Horizontal federated save model interface
 
         Args:
@@ -454,7 +458,11 @@ class SLModel:
             )
         wait(res)
 
-    def load_model(self, model_path: Union[str, Dict[PYU, str]], is_test=False):
+    def load_model(
+        self,
+        model_path: Union[str, Dict[PYU, str]],
+        is_test=False,
+    ):
         """Horizontal federated load model interface
 
         Args:
