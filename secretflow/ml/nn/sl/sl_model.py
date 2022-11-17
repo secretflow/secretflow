@@ -26,7 +26,8 @@ import os
 import secrets
 from typing import Callable, Dict, Iterable, List, Tuple, Union
 
-import tensorflow as tf
+from tqdm import tqdm
+
 from secretflow.data.base import Partition
 from secretflow.data.horizontal import HDataFrame
 from secretflow.data.ndarray import FedNdarray
@@ -35,33 +36,38 @@ from secretflow.device import PYU, Device, reveal, wait
 from secretflow.device.device.pyu import PYUObject
 from secretflow.ml.nn.sl.backend.tensorflow.sl_base import PYUSLTFModel
 from secretflow.security.privacy import DPStrategy
-from tqdm import tqdm
+from secretflow.utils.compressor import Compressor
 
 
 class SLModel:
     def __init__(
         self,
-        base_model_dict: Dict[Device, Callable[[], tf.keras.Model]] = {},
+        base_model_dict: Dict[Device, Callable[[], 'tensorflow.keras.Model']] = {},
         device_y: PYU = None,
-        model_fuse: Callable[[], tf.keras.Model] = None,
+        model_fuse: Callable[[], 'tensorflow.keras.Model'] = None,
+        compressor: Compressor = None,
         dp_strategy_dict: Dict[Device, DPStrategy] = None,
         **kwargs,
     ):
 
+        self.device_y = device_y
+        self.dp_strategy_dict = dp_strategy_dict
+        self.simulation = kwargs.get('simulation', False)
+        self.num_parties = len(base_model_dict)
         self._workers = {
             device: PYUSLTFModel(
                 device=device,
                 builder_base=model,
                 builder_fuse=None if device != device_y else model_fuse,
+                compressor=compressor,
                 dp_strategy=dp_strategy_dict.get(device, None)
                 if dp_strategy_dict
                 else None,
             )
             for device, model in base_model_dict.items()
         }
-        self.device_y = device_y
-        self.dp_strategy_dict = dp_strategy_dict
-        self.simulation = kwargs.get('simulation', False)
+
+        self.has_compressor = compressor is not None
 
     def handle_data(
         self,
@@ -157,6 +163,7 @@ class SLModel:
         dp_spent_step_freq=None,
         dataset_builder: Callable[[List], Tuple[int, Iterable]] = None,
         audit_log_dir: str = None,
+        random_seed: int = None,
     ):
         """Vertical split learning training interface
 
@@ -181,10 +188,11 @@ class SLModel:
                 iterable dataset which should has `steps_per_epoch` property. Dataset builder is mainly for
                 building graph dataset.
         """
-        random_seed = secrets.randbelow(100000)
+        if random_seed is None:
+            random_seed = secrets.randbelow(100000)
 
         params = locals()
-        logging.info(f"FL Train Params: {params}")
+        logging.info(f"SL Train Params: {params}")
         # sanity check
         assert (
             isinstance(batch_size, int) and batch_size > 0
@@ -194,6 +202,12 @@ class SLModel:
         assert isinstance(validation_freq, int) and validation_freq >= 1
         if dp_spent_step_freq is not None:
             assert isinstance(dp_spent_step_freq, int) and dp_spent_step_freq >= 1
+
+        # get basenet ouput num
+        self.basenet_output_num = {
+            device: reveal(worker.get_basenet_output_num())
+            for device, worker in self._workers.items()
+        }
 
         # build dataset
         train_x, train_y = x, y
@@ -233,6 +247,9 @@ class SLModel:
 
         self._workers[self.device_y].init_training(callbacks, epochs=epochs)
         self._workers[self.device_y].on_train_begin()
+
+        fuse_net_num_returns = sum(self.basenet_output_num.values())
+
         for epoch in range(epochs):
             report_list = []
             report_list.append(f"epoch: {epoch}/{epochs} - ")
@@ -245,16 +262,27 @@ class SLModel:
                 hiddens = []
                 self._workers[self.device_y].on_train_batch_begin(step=step)
                 for device, worker in self._workers.items():
-                    hidden = worker.base_forward(stage="train")
+                    # enable compression in fit when model has compressor
+                    hidden = worker.base_forward(
+                        stage="train", compress=self.has_compressor
+                    )
                     hiddens.append(hidden.to(self.device_y))
 
-                gradients = self._workers[self.device_y].fuse_net(*hiddens)
+                gradients = self._workers[self.device_y].fuse_net(
+                    *hiddens,
+                    _num_returns=fuse_net_num_returns,
+                    compress=self.has_compressor,
+                )
 
                 idx = 0
                 for device, worker in self._workers.items():
-                    gradient = gradients[idx].to(device)
-                    worker.base_backward(gradient)
-                    idx += 1
+                    gradient_list = []
+                    for i in range(self.basenet_output_num[device]):
+                        gradient = gradients[idx + i].to(device)
+                        gradient_list.append(gradient)
+
+                    worker.base_backward(gradient_list, compress=self.has_compressor)
+                    idx += self.basenet_output_num[device]
                 self._workers[self.device_y].on_train_batch_end(step=step)
 
                 if dp_spent_step_freq is not None:
@@ -269,7 +297,7 @@ class SLModel:
                 # validation
                 self._workers[self.device_y].reset_metrics()
                 for step in range(0, valid_steps):
-                    hiddens = []  # driver端
+                    hiddens = []  # driver end
                     for device, worker in self._workers.items():
                         hidden = worker.base_forward("eval")
                         hiddens.append(hidden.to(self.device_y))
@@ -307,7 +335,6 @@ class SLModel:
         history = self._workers[self.device_y].on_train_end()
         return reveal(history)
 
-    @reveal
     def predict(
         self,
         x: Union[
@@ -318,6 +345,7 @@ class SLModel:
         batch_size=32,
         verbose=0,
         dataset_builder: Callable[[List], Tuple[int, Iterable]] = None,
+        compress: bool = False,
     ):
         """Vertical split learning offline prediction interface
 
@@ -332,11 +360,14 @@ class SLModel:
             verbose: 0, 1. Verbosity mode
             dataset_builder: Callable function, its input is `x` or `[x, y]` if y is set, it should return
               steps_per_epoch and iterable dataset. Dataset builder is mainly for building graph dataset.
+            compress: Whether to use compressor to compress cross device data.
         """
 
         assert (
             isinstance(batch_size, int) and batch_size > 0
         ), f"batch_size should be integer > 0"
+        if compress:
+            assert self.has_compressor, "can not found compressor in model"
         predict_steps = self.handle_data(
             x,
             None,
@@ -348,15 +379,17 @@ class SLModel:
         if verbose > 0:
             pbar = tqdm(total=predict_steps)
             pbar.set_description('Predict Processing:')
+        result = []
         for step in range(0, predict_steps):
             hiddens = []
             for device, worker in self._workers.items():
-                hidden = worker.base_forward(stage="eval")
+                hidden = worker.base_forward(stage="eval", compress=compress)
                 hiddens.append(hidden.to(self.device_y))
             if verbose > 0:
                 pbar.update(1)
-        y_pred = self._workers[self.device_y].predict(*hiddens)
-        return y_pred
+            y_pred = self._workers[self.device_y].predict(*hiddens, compress=compress)
+            result.append(y_pred)
+        return result
 
     @reveal
     def evaluate(
@@ -371,6 +404,8 @@ class SLModel:
         sample_weight=None,
         verbose=1,
         dataset_builder: Callable[[List], Tuple[int, Iterable]] = None,
+        random_seed: int = None,
+        compress: bool = False,
     ):
         """Vertical split learning evaluate interface
 
@@ -389,6 +424,7 @@ class SLModel:
             verbose: Verbosity mode. 0 = silent, 1 = progress bar.
             dataset_builder: Callable function, its input is `x` or `[x, y]` if y is set, it should return
               steps_per_epoch and iterable dataset. Dataset builder is mainly for building graph dataset.
+            compress: Whether to use compressor to compress cross device data.
         Returns:
             metrics: federate evaluate result
         """
@@ -396,6 +432,10 @@ class SLModel:
         assert (
             isinstance(batch_size, int) and batch_size > 0
         ), f"batch_size should be integer > 0"
+        if compress:
+            assert self.has_compressor, "can not found compressor in model"
+        if random_seed is None:
+            random_seed = secrets.randbelow(100000)
         evaluate_steps = self.handle_data(
             x,
             y,
@@ -403,6 +443,7 @@ class SLModel:
             batch_size=batch_size,
             stage="eval",
             epochs=1,
+            random_seed=random_seed,
             dataset_builder=dataset_builder,
         )
         metrics = None
@@ -413,11 +454,11 @@ class SLModel:
         for step in range(0, evaluate_steps):
             hiddens = []  # driver端
             for device, worker in self._workers.items():
-                hidden = worker.base_forward(stage="eval")
+                hidden = worker.base_forward(stage="eval", compress=compress)
                 hiddens.append(hidden.to(self.device_y))
             if verbose > 0:
                 pbar.update(1)
-            metrics = self._workers[self.device_y].evaluate(*hiddens)
+            metrics = self._workers[self.device_y].evaluate(*hiddens, compress=compress)
         report_list = [f"{k}:{v}" for k, v in reveal(metrics).items()]
         report = " ".join(report_list)
         if verbose == 1:
@@ -435,7 +476,7 @@ class SLModel:
         """Vertical split learning save model interface
 
         Args:
-            base_model_path: base model path
+            base_model_path: base model path,only support format like 'a/b/c', where c is the model name
             fuse_model_path: fuse model path
             is_test: whether is test mode
             save_traces: (only applies to SavedModel format) When enabled,
@@ -455,21 +496,23 @@ class SLModel:
             assert (
                 device in base_model_path
             ), f'Should provide a path for device {device}.'
+            assert not base_model_path[device].endswith(
+                "/"
+            ), f"model path should be 'a/b/c' not 'a/b/c/'"
+            base_model_dir, base_model_name = base_model_path[device].rsplit("/", 1)
+
             if is_test:
-                base_model_path_test = os.path.join(
-                    base_model_path[device], device.__str__().strip("_")
+                # only execute when unittest
+                base_model_dir = os.path.join(
+                    base_model_dir, device.__str__().strip("_")
                 )
-                res.append(
-                    worker.save_base_model(
-                        base_model_path_test, save_traces=save_traces
-                    )
+            res.append(
+                worker.save_base_model(
+                    os.path.join(base_model_dir, base_model_name),
+                    save_traces=save_traces,
                 )
-            else:
-                res.append(
-                    worker.save_base_model(
-                        base_model_path[device], save_traces=save_traces
-                    )
-                )
+            )
+
         res.append(
             self._workers[self.device_y].save_fuse_model(
                 fuse_model_path, save_traces=save_traces
@@ -510,22 +553,23 @@ class SLModel:
             assert (
                 device in base_model_path
             ), f'Should provide a path for device {device}.'
+            assert not base_model_path[device].endswith(
+                "/"
+            ), f"model path should be 'a/b/c' not 'a/b/c/'"
+            base_model_dir, base_model_name = base_model_path[device].rsplit("/", 1)
+
             if is_test:
                 # only execute when unittest
-                base_model_path_test = os.path.join(
-                    base_model_path[device], device.__str__().strip("_")
+                base_model_dir = os.path.join(
+                    base_model_dir, device.__str__().strip("_")
                 )
-                res.append(
-                    worker.load_base_model(
-                        base_model_path_test, custom_objects=base_custom_objects
-                    )
+            res.append(
+                worker.load_base_model(
+                    os.path.join(base_model_dir, base_model_name),
+                    custom_objects=base_custom_objects,
                 )
-            else:
-                res.append(
-                    worker.load_base_model(
-                        base_model_path[device], custom_objects=base_custom_objects
-                    )
-                )
+            )
+
         res.append(
             self._workers[self.device_y].load_fuse_model(
                 fuse_model_path, custom_objects=fuse_custom_objects

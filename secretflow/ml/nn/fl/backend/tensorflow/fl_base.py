@@ -13,20 +13,18 @@
 # limitations under the License.
 
 
-import os
+import collections
 import math
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import Callable, Optional
 
-import collections
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras import callbacks as callbacks_module
-
-from secretflow.utils.io import rows_count
-from secretflow.ml.nn.fl.metrics import AUC, Mean, Precision, Recall
 
 from secretflow.ml.nn.fl.backend.tensorflow.sampler import sampler_data
+from secretflow.ml.nn.fl.metrics import AUC, Mean, Precision, Recall
+from secretflow.utils.io import rows_count
 
 # 抽象model类
 
@@ -282,8 +280,11 @@ class BaseTFModel(BaseModel):
 
     def init_training(self, callbacks, epochs=1, steps=0, verbose=0):
         assert self.model is not None, "model cannot be none, please give model define"
-        if not isinstance(callbacks, callbacks_module.CallbackList):
-            self.callbacks = callbacks_module.CallbackList(
+
+        from tensorflow.python.keras import callbacks as tf_callbacks
+
+        if not isinstance(callbacks, tf_callbacks.CallbackList):
+            self.callbacks = tf_callbacks.CallbackList(
                 callbacks,
                 add_history=True,
                 add_progbar=verbose != 0,
@@ -318,9 +319,7 @@ class BaseTFModel(BaseModel):
         pass
 
     def save_model(self, model_path: str):
-        model_dir, _ = model_path.rsplit("/", 1)
-        if not os.path.exists(model_dir):
-            os.makedirs(model_dir)
+        Path(model_path).mkdir(parents=True, exist_ok=True)
         assert model_path is not None, "model path cannot be empty"
         self.model.save(model_path)
 

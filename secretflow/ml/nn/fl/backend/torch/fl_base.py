@@ -18,13 +18,13 @@ from abc import ABC, abstractmethod
 from typing import Callable, Optional
 
 import numpy as np
+import torch
 import torchmetrics
+
 from secretflow.ml.nn.fl.backend.torch.sampler import sampler_data
 from secretflow.ml.nn.fl.backend.torch.utils import TorchModel
-from secretflow.ml.nn.fl.metrics import Mean, Precision, Recall
+from secretflow.ml.nn.fl.metrics import Default, Mean, Precision, Recall
 from secretflow.utils.io import rows_count
-
-import torch
 
 # Torch model on worker side
 
@@ -193,9 +193,16 @@ class BaseTorchModel(ABC):
                     )
                 )
             else:
-                raise NotImplementedError(
-                    f'Unsupported global metric {m.__class__.__qualname__} for now, please add it.'
+                # only do naive aggregate
+                metrics_value = m.compute()
+                wraped_metrics.append(
+                    Default(
+                        name=m._get_name().lower(),
+                        total=metrics_value,
+                        count=1,
+                    )
                 )
+
         return wraped_metrics
 
     def evaluate(self, evaluate_steps=0):

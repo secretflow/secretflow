@@ -20,6 +20,7 @@
 """
 import copy
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import Callable, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
@@ -35,6 +36,7 @@ from torch.utils.data import DataLoader
 import secretflow.device as ft
 from secretflow.device import PYUObject, proxy
 from secretflow.security.privacy import DPStrategy
+from secretflow.utils.compressor import Compressor, SparseCompressor
 
 
 class SLBaseModel(ABC):
@@ -105,6 +107,8 @@ class SLBaseTFModel(SLBaseModel):
         builder_base: Callable[[], tf.keras.Model],
         builder_fuse: Callable[[], tf.keras.Model],
         dp_strategy: DPStrategy,
+        compressor: Compressor,
+        **kwargs,
     ):
         super().__init__(builder_base, builder_fuse)
 
@@ -113,6 +117,7 @@ class SLBaseTFModel(SLBaseModel):
             self.dp_strategy.embedding_dp if dp_strategy is not None else None
         )
         self.label_dp = self.dp_strategy.label_dp if dp_strategy is not None else None
+        self.compressor = compressor
 
         self.train_set = None
         self.eval_set = None
@@ -132,12 +137,6 @@ class SLBaseTFModel(SLBaseModel):
         self.training_logs = None
         self.steps_per_epoch = None
 
-    def build_base_model(self, builder: Callable, *args, **kwargs):
-        self.model_base = builder(*args, **kwargs)
-
-    def build_fuse_model(self, builder: Callable, *args, **kwargs):
-        self.model_fuse = builder(*args, **kwargs)
-
     @staticmethod
     @tf.custom_gradient
     def fuse_op(x, y):
@@ -154,6 +153,9 @@ class SLBaseTFModel(SLBaseModel):
 
     def set_steps_per_epoch(self, steps_per_epoch):
         self.steps_per_epoch = steps_per_epoch
+
+    def get_basenet_output_num(self):
+        return len(self.model_base.outputs)
 
     def build_dataset(
         self,
@@ -187,12 +189,7 @@ class SLBaseTFModel(SLBaseModel):
         self.has_s_w = False
         if y is not None and len(y.shape) > 0:
             self.has_y = True
-            # Label differential privacy
-            x.append(
-                self.label_dp(y)
-                if stage == "train" and self.label_dp is not None
-                else y
-            )
+            x.append(y)
             if s_w is not None and len(s_w.shape) > 0:
                 self.has_s_w = True
                 x.append(s_w)
@@ -224,15 +221,28 @@ class SLBaseTFModel(SLBaseModel):
             self.eval_set = data_set
         else:
             raise Exception(f"Illegal argument stage={stage}")
-
         return steps_per_epoch
 
-    def base_forward(self, stage="train"):
+    @tf.function
+    def _base_forward_internal(self, data_x, h):
+        h = self.model_base(data_x)
+
+        # Embedding differential privacy
+        if self.embedding_dp is not None:
+            if isinstance(h, List):
+                h = [self.embedding_dp(hi) for hi in h]
+            else:
+                h = self.embedding_dp(h)
+        return h
+
+    def base_forward(self, stage="train", compress: bool = False):
         """compute hidden embedding
         Args:
             stage: Which stage of the base forward
+            compress: Whether to compress cross device data.
         Returns: hidden embedding
         """
+
         assert (
             self.model_base is not None
         ), "Base model cannot be none, please give model define or load a trained model"
@@ -244,11 +254,17 @@ class SLBaseTFModel(SLBaseModel):
             if self.has_y:
                 if self.has_s_w:
                     data_x = train_data[:-2]
-                    self.train_y = train_data[-2]
+                    train_y = train_data[-2]
                     self.train_sample_weight = train_data[-1]
                 else:
                     data_x = train_data[:-1]
-                    self.train_y = train_data[-1]
+                    train_y = train_data[-1]
+                # Label differential privacy
+                if self.label_dp is not None:
+                    dp_train_y = self.label_dp(train_y.numpy())
+                    self.train_y = tf.convert_to_tensor(dp_train_y)
+                else:
+                    self.train_y = train_y
             else:
                 data_x = train_data
         elif stage == "eval":
@@ -256,11 +272,17 @@ class SLBaseTFModel(SLBaseModel):
             if self.has_y:
                 if self.has_s_w:
                     data_x = eval_data[:-2]
-                    self.eval_y = eval_data[-2]
+                    eval_y = eval_data[-2]
                     self.eval_sample_weight = eval_data[-1]
                 else:
                     data_x = eval_data[:-1]
-                    self.eval_y = eval_data[-1]
+                    eval_y = eval_data[-1]
+                # Label differential privacy
+                if self.label_dp is not None:
+                    dp_eval_y = self.label_dp(eval_y.numpy())
+                    self.eval_y = tf.convert_to_tensor(dp_eval_y)
+                else:
+                    self.eval_y = eval_y
             else:
                 data_x = eval_data
         else:
@@ -269,44 +291,55 @@ class SLBaseTFModel(SLBaseModel):
         # Strip tuple of length one, e.g: (x,) -> x
         data_x = data_x[0] if isinstance(data_x, Tuple) and len(data_x) == 1 else data_x
 
-        self.tape = tf.GradientTape()
+        self.tape = tf.GradientTape(persistent=True)
         with self.tape:
-            self.h = self.model_base(data_x)
-
-            # NOTE: For graph neural network, we don't know (node/edge) labels ahead,
-            # so the model should return both label and prediction.
-            # TODO(@wuxibin): find a better way to extract graph labels.
-            if isinstance(self.h, tuple) and len(self.h) == 2:
-                y_true, self.h = self.h[0], self.h[1]
-                if stage == "train":
-                    self.train_y = y_true
-                else:
-                    self.eval_y = y_true
-            elif isinstance(self.h, tuple) and len(self.h) == 3:
-                y_true, self.h, self.kwargs = self.h[0], self.h[1], self.h[2]
-                if stage == "train":
-                    self.train_y = y_true
-                else:
-                    self.eval_y = y_true
-
-            # Embedding differential privacy
-            if self.embedding_dp is not None:
-                self.h = self.embedding_dp(self.h)
-
+            self.h = self._base_forward_internal(
+                data_x,
+                self.h,
+            )
+        if compress:
+            if self.compressor:
+                return self.compressor.compress(self.h.numpy())
+            else:
+                raise Exception(
+                    'can not find compressor when compress data in base_forward'
+                )
         return self.h
 
-    def base_backward(self, gradient):
+    @tf.function
+    def _base_backword_internal(self, gradients, trainable_vars):
+
+        self.model_base.optimizer.apply_gradients(zip(gradients, trainable_vars))
+
+    def base_backward(self, gradient, compress: bool = False):
         """backward on fusenet
 
         Args:
             gradient: gradient of fusenet hidden layer
+            compress: Whether to decompress gradient.
         """
+
+        return_hiddens = []
+
+        if compress:
+            if self.compressor:
+                gradient = self.compressor.decompress(gradient)
+            else:
+                raise Exception(
+                    'can not find compressor when decompress data in base_backward'
+                )
         with self.tape:
-            h = self.fuse_op(self.h, gradient)
+            if len(gradient) == len(self.h):
+                for i in range(len(gradient)):
+                    return_hiddens.append(self.fuse_op(self.h[i], gradient[i]))
+            else:
+                gradient = gradient[0]
+                return_hiddens.append(self.fuse_op(self.h, gradient))
 
         trainable_vars = self.model_base.trainable_variables
-        gradients = self.tape.gradient(h, trainable_vars)
-        self.model_base.optimizer.apply_gradients(zip(gradients, trainable_vars))
+        gradients = self.tape.gradient(return_hiddens, trainable_vars)
+
+        self._base_backword_internal(gradients, trainable_vars)
 
         # clear intermediate results
         self.tape = None
@@ -374,12 +407,13 @@ class SLBaseTFModel(SLBaseModel):
         else:
             raise Exception("Illegal Argument")
 
-    def fuse_net(self, *hidden_features) -> Tuple[np.ndarray, np.ndarray]:
+    def fuse_net(self, *hidden_features, _num_returns=2, compress=False):
         """Fuses the hidden layer and calculates the reverse gradient
         only on the side with the label
 
         Args:
-            hiddens: A list of hidden layers for each party to compute
+            hidden_features: A list of hidden layers for each party to compute
+            compress: Whether to decompress/compress data.
         Returns:
             gradient Of hiddens
         """
@@ -387,9 +421,54 @@ class SLBaseTFModel(SLBaseModel):
             self.model_fuse is not None
         ), "Fuse model cannot be none, please give model define"
 
-        hiddens = [tf.convert_to_tensor(h) for h in hidden_features]
+        if compress:
+            if self.compressor:
+                # save fuse_sparse_masks to apply on gradients
+                if isinstance(self.compressor, SparseCompressor):
+                    fuse_sparse_masks = list(
+                        map(lambda d: (d != 0) * 1, hidden_features)
+                    )
+                hidden_features = self.compressor.decompress(hidden_features)
+            else:
+                raise Exception(
+                    'can not find compressor when decompress data in fuse_net'
+                )
+
+        hiddens = []
+        for h in hidden_features:
+            # h will be list, if basenet is multi output
+            if isinstance(h, List):
+                for i in range(len(h)):
+                    hiddens.append(tf.convert_to_tensor(h[i]))
+            else:
+                hiddens.append(tf.convert_to_tensor(h))
 
         logs = {}
+
+        gradient = self._fuse_net_internal(
+            hiddens,
+            self.train_y,
+            self.train_sample_weight,
+        )
+
+        for m in self.model_fuse.metrics:
+            logs['train_' + m.name] = m.result().numpy()
+        self.logs = logs
+        if compress:
+            gradient = [g.numpy() for g in gradient]
+            gradient = self.compressor.compress(gradient)
+            # apply fuse_sparse_masks on gradients
+            if fuse_sparse_masks:
+                assert len(fuse_sparse_masks) == len(
+                    gradient
+                ), f'length of fuse_sparse_masks and gradient mismatch: {len(fuse_sparse_masks)} - {len(gradient)}'
+                gradient = list(
+                    map(lambda d, m: d.multiply(m), gradient, fuse_sparse_masks)
+                )
+        return gradient
+
+    @tf.function
+    def _fuse_net_internal(self, hiddens, train_y, train_sample_weight):
         with tf.GradientTape(persistent=True) as tape:
             for h in hiddens:
                 tape.watch(h)
@@ -398,10 +477,12 @@ class SLBaseTFModel(SLBaseModel):
             y_pred = self.model_fuse(hiddens, training=True, **self.kwargs)
 
             # Step 2: loss calculation, the loss function is configured in `compile()`.
+            # if isinstance(self.model_fuse.loss, tfutils.custom_loss):
+            #     self.model_fuse.loss.with_kwargs(kwargs)
             loss = self.model_fuse.compiled_loss(
-                self.train_y,
+                train_y,
                 y_pred,
-                sample_weight=self.train_sample_weight,
+                sample_weight=train_sample_weight,
                 regularization_losses=self.model_fuse.losses,
             )
 
@@ -412,64 +493,127 @@ class SLBaseTFModel(SLBaseModel):
 
         # Step4: update metrics
         self.model_fuse.compiled_metrics.update_state(
-            self.train_y, y_pred, sample_weight=self.train_sample_weight
+            train_y, y_pred, sample_weight=train_sample_weight
         )
-        for m in self.model_fuse.metrics:
-            logs['train_' + m.name] = m.result().numpy()
-        self.logs = logs
+
         return tape.gradient(loss, hiddens)
 
     def reset_metrics(self):
         self.model_fuse.compiled_metrics.reset_state()
         self.model_fuse.compiled_loss.reset_state()
 
-    def evaluate(self, *hidden_features):
+    @tf.function
+    def _evaluate_internal(self, hiddens, eval_y, eval_sample_weight):
+        # Step 1: forward pass
+        y_pred = self.model_fuse(hiddens, training=False, **self.kwargs)
+
+        # Step 2: update loss
+        # custom loss will be re-open in the next version
+        # if isinstance(self.model_fuse.loss, tfutils.custom_loss):
+        #     self.model_fuse.loss.with_kwargs(kwargs)
+        self.model_fuse.compiled_loss(
+            eval_y,
+            y_pred,
+            sample_weight=eval_sample_weight,
+            regularization_losses=self.model_fuse.losses,
+        )
+        # Step 3: update metrics
+        self.model_fuse.compiled_metrics.update_state(
+            eval_y, y_pred, sample_weight=eval_sample_weight
+        )
+
+        result = {}
+        for m in self.model_fuse.metrics:
+            result[m.name] = m.result()
+        return result
+
+    def evaluate(self, *hidden_features, compress: bool = False):
+        """Returns the loss value & metrics values for the model in test mode.
+
+        Args:
+            hidden_features: A list of hidden layers for each party to compute
+            compress: Whether to decompress input data.
+        Returns:
+            map of model metrics.
+        """
+
         assert (
             self.model_fuse is not None
         ), "model cannot be none, please give model define"
-
-        assert self.eval_y is not None, "eval_y cannot be empty"
-        hiddens = [tf.convert_to_tensor(h) for h in hidden_features]
-
-        # Step 1: forward pass
-        y_pred = self.model_fuse(hiddens, training=False, **self.kwargs)
-        # Step 2: update metrics
-        self.model_fuse.compiled_metrics.update_state(
-            self.eval_y, y_pred, sample_weight=self.eval_sample_weight
-        )
-        # Step 3: update loss
-        self.model_fuse.compiled_loss(
-            self.eval_y,
-            y_pred,
-            sample_weight=self.eval_sample_weight,
-            regularization_losses=self.model_fuse.losses,
+        if compress:
+            if self.compressor:
+                hidden_features = self.compressor.decompress(hidden_features)
+            else:
+                raise Exception(
+                    'can not find compressor when decompress data in evaluate'
+                )
+        hiddens = []
+        for h in hidden_features:
+            if isinstance(h, List):
+                for i in range(len(h)):
+                    hiddens.append(tf.convert_to_tensor(h[i]))
+            else:
+                hiddens.append(tf.convert_to_tensor(h))
+        metrics = self._evaluate_internal(
+            hiddens=hiddens,
+            eval_y=self.eval_y,
+            eval_sample_weight=self.eval_sample_weight,
         )
         result = {}
-        for m in self.model_fuse.metrics:
-            result[m.name] = m.result().numpy()
+        for k, v in metrics.items():
+            result[k] = v.numpy()
         return result
 
     def metrics(self):
         return self.model_fuse.metrics
 
-    def predict(self, *hidden_features):
-        assert (
-            self.model_fuse is not None
-        ), "Fuse model cannot be none, please give model define"
-
-        hiddens = [tf.convert_to_tensor(h) for h in hidden_features]
+    @tf.function
+    def _predict_internal(self, hiddens):
         y_pred = self.model_fuse(hiddens)
         return y_pred
 
+    def predict(self, *hidden_features, compress: bool = False):
+        """Generates output predictions for the input hidden layer features.
+
+        Args:
+            hidden_features: A list of hidden layers for each party to compute
+            compress: Whether to decompress input data.
+        Returns:
+            Array(s) of predictions.
+        """
+        assert (
+            self.model_fuse is not None
+        ), "Fuse model cannot be none, please give model define"
+        if compress:
+            if self.compressor:
+                hidden_features = self.compressor.decompress(hidden_features)
+            else:
+                raise Exception(
+                    'can not find compressor when decompress data in predict'
+                )
+
+        hiddens = []
+        for h in hidden_features:
+            if isinstance(h, List):
+                for i in range(len(h)):
+                    hiddens.append(tf.convert_to_tensor(h[i]))
+            else:
+                hiddens.append(tf.convert_to_tensor(h))
+        y_pred = self._predict_internal(hiddens)
+        return y_pred
+
     def save_base_model(self, base_model_path: str, save_traces=True):
+        Path(base_model_path).mkdir(parents=True, exist_ok=True)
         assert base_model_path is not None, "model path cannot be empty"
         self.model_base.save(base_model_path, save_traces=save_traces)
 
     def save_fuse_model(self, fuse_model_path: str, save_traces=True):
+        Path(fuse_model_path).mkdir(parents=True, exist_ok=True)
         assert fuse_model_path is not None, "model path cannot be empty"
         self.model_fuse.save(fuse_model_path, save_traces=save_traces)
 
     def load_base_model(self, base_model_path: str, custom_objects=None):
+        self.init_data()
         assert base_model_path is not None, "model path cannot be empty"
         self.model_base = tf.keras.models.load_model(
             base_model_path, custom_objects=custom_objects

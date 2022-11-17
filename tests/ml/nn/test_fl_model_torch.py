@@ -19,6 +19,7 @@ from secretflow.ml.nn.fl.utils import metric_wrapper, optim_wrapper
 from secretflow.preprocessing.encoder import OneHotEncoder
 from secretflow.security.aggregation import PlainAggregator
 from secretflow.utils.simulation.datasets import load_iris, load_mnist
+from secretflow.security.privacy import DPStrategyFL, GaussianModelDP
 from tests.basecase import DeviceTestCase
 from torch import nn, optim
 from torch.nn import functional as F
@@ -75,6 +76,8 @@ class TestFLModelTorchMnist(DeviceTestCase):
         aggregator = PlainAggregator(server)
 
         # spcify params
+        dp_spent_step_freq = kwargs.get('dp_spent_step_freq', None)
+
         fl_model = FLModel(
             server=server,
             device_list=device_list,
@@ -91,6 +94,7 @@ class TestFLModelTorchMnist(DeviceTestCase):
             epochs=2,
             batch_size=128,
             aggregate_freq=2,
+            dp_spent_step_freq=dp_spent_step_freq,
         )
         result = fl_model.predict(data, batch_size=128)
         self.assertEquals(len(reveal(result[device_list[0]])), 4000)
@@ -105,9 +109,13 @@ class TestFLModelTorchMnist(DeviceTestCase):
 
         self.assertGreater(global_metric[0].result().numpy(), 0.8)
 
-        model_path = os.path.join(_temp_dir, "base_model")
-        fl_model.save_model(model_path=model_path, is_test=True)
-        self.assertIsNotNone(os.path.exists(model_path))
+        model_path_test = os.path.join(_temp_dir, "base_model")
+        fl_model.save_model(model_path=model_path_test, is_test=True)
+        model_path_dict = {
+            self.alice: os.path.join(_temp_dir, "alice_model"),
+            self.bob: os.path.join(_temp_dir, "bob_model"),
+        }
+        fl_model.save_model(model_path=model_path_dict, is_test=False)
 
         new_fed_model = FLModel(
             server=server,
@@ -116,7 +124,8 @@ class TestFLModelTorchMnist(DeviceTestCase):
             aggregator=None,
             backend=backend,
         )
-        new_fed_model.load_model(model_path=model_path, is_test=True)
+        new_fed_model.load_model(model_path=model_path_dict, is_test=False)
+        new_fed_model.load_model(model_path=model_path_test, is_test=True)
         reload_metric, _ = new_fed_model.evaluate(
             data, label, batch_size=128, random_seed=1234
         )
@@ -200,6 +209,27 @@ class TestFLModelTorchMnist(DeviceTestCase):
             strategy='fed_scr',
             backend="torch",
             threshold=0.9,
+        )
+
+        # Define DP operations
+        gaussian_model_gdp = GaussianModelDP(
+            noise_multiplier=0.001,
+            l2_norm_clip=0.1,
+            num_clients=2,
+            is_secure_generator=False,
+        )
+        dp_strategy_fl = DPStrategyFL(model_gdp=gaussian_model_gdp)
+        dp_spent_step_freq = 10
+
+        self.torch_model_with_mnist(
+            model_def=model_def,
+            data=mnist_data,
+            label=mnist_label,
+            strategy='fed_stc',
+            backend="torch",
+            threshold=0.9,
+            dp_strategy=dp_strategy_fl,
+            dp_spent_step_freq=dp_spent_step_freq,
         )
 
 

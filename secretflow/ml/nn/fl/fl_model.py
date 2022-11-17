@@ -26,17 +26,16 @@ import secrets
 from typing import Callable, Dict, List, Tuple, Union
 
 import numpy as np
-import tensorflow as tf
+from tqdm import tqdm
+
 from secretflow.data.horizontal.dataframe import HDataFrame
 from secretflow.data.ndarray import FedNdarray
 from secretflow.device import PYU, reveal, wait
 from secretflow.device.device.pyu import PYUObject
-from secretflow.ml.nn.fl.backend.torch.utils import TorchModel
 from secretflow.ml.nn.fl.compress import COMPRESS_STRATEGY, do_compress
 from secretflow.ml.nn.fl.metrics import Metric, aggregate_metrics
 from secretflow.ml.nn.fl.strategy_dispatcher import dispatch_strategy
 from secretflow.ml.nn.fl.utils import History
-from tqdm import tqdm
 
 
 class FLModel:
@@ -44,7 +43,7 @@ class FLModel:
         self,
         server=None,
         device_list: List[PYU] = [],
-        model: Union[TorchModel, Callable[[], tf.keras.Model]] = None,
+        model: Union['TorchModel', Callable[[], 'tensorflow.keras.Model']] = None,
         aggregator=None,
         strategy='fed_avg_w',
         consensus_num=1,
@@ -199,13 +198,13 @@ class FLModel:
                 )
         if sampling_rate > 1.0:
             sampling_rate = 1.0
-            logging.warn("Batchsize is too large it will be set to the data size")
-        # check batchsize
+            logging.warn("Batch size is too large it will be set to the data size")
+        # check batch size
         for length in parties_length.values():
             batch_size = math.floor(length * sampling_rate)
             assert (
                 batch_size < 1024
-            ), f"Automatic batchsize is too big(batch_size={batch_size}), variable batchsize in dict is recommended"
+            ), f"Automatic batch size is too big(batch_size={batch_size}), variable batch size in dict is recommended"
         assert sampling_rate <= 1.0 and sampling_rate > 0.0, 'invalid sampling rate'
         self.steps_per_epoch = math.ceil(1.0 / sampling_rate)
 
@@ -611,25 +610,28 @@ class FLModel:
         """Horizontal federated save model interface
 
         Args:
-            model_path: model path, only support format like 'a/b/c', where c is the real model
+            model_path: model path, only support format like 'a/b/c', where c is the model name
             is_test: whether is test mode
         """
         assert isinstance(
             model_path, (str, Dict)
         ), f'Model path accepts string or dict but got {type(model_path)}.'
+
         if isinstance(model_path, str):
             model_path = {device: model_path for device in self._workers.keys()}
 
         res = []
         for device, worker in self._workers.items():
             assert device in model_path, f'Should provide a path for device {device}.'
-            assert not model_path[device].endswith("/"), f"model path should be 'a/b/c' not 'a/b/c/'"
+            assert not model_path[device].endswith(
+                "/"
+            ), f"model path should be 'a/b/c' not 'a/b/c/'"
             device_model_path, device_model_name = model_path[device].rsplit("/", 1)
-
             if is_test:
                 device_model_path = os.path.join(
                     device_model_path, device.__str__().strip("_")
                 )
+
             res.append(
                 worker.save_model(os.path.join(device_model_path, device_model_name))
             )
