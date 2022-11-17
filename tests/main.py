@@ -9,7 +9,6 @@ from absl import app
 
 
 def main(argv):
-    exit(1)
     del argv
     suite = unittest.TestSuite()
     # Find all test files start with 'test'
@@ -20,7 +19,8 @@ def main(argv):
     with open('./results.xml', 'wb') as output:
         runner = xmlrunner.XMLTestRunner(output=output, failfast=True)
         result = runner.run(suite)
-        if result.failures:
+        print(result.failures)
+        if result.failures != 0:
             exit(1)
         else:
             exit(0)
