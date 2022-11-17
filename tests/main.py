@@ -20,7 +20,7 @@ def main(argv):
         runner = xmlrunner.XMLTestRunner(output=output, failfast=True)
         result = runner.run(suite)
     print(f'result = {result}')
-    if result.failures != '0' or result.errors != '0':
+    if len(result.failures) or len(result.errors):
         exit(1)
     else:
         exit(0)
