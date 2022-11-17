@@ -14,7 +14,7 @@ with open(os.path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 # Default Linux platform tag
-plat_name = "manylinux_2_17_x86_64"
+plat_name = "manylinux2014_x86_64"
 
 if sys.platform == "darwin":
     # Due to a bug in conda x64 python, platform tag has to be 10_16 for X64 wheel
