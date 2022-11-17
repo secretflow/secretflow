@@ -17,7 +17,12 @@ jobs:
       - checkout
       - run:
           name: "unit test"
-          command: "set -ex;pip install -r docker/dev-requirements.txt;bazel build //secretflow_lib/binding/...;cp bazel-bin/secretflow_lib/binding/_lib.so secretflow/security/privacy/;sh run_pytest.sh"
+          command: |
+            set -ex
+            pip install -r docker/dev-requirements.txt
+            bazel build //secretflow_lib/binding/...
+            cp bazel-bin/secretflow_lib/binding/_lib.so secretflow/security/privacy/
+            sh run_pytest.sh
       - store_test_results:
           path: ./results.xml
 
