@@ -319,7 +319,7 @@ class BaseTFModel(BaseModel):
         pass
 
     def save_model(self, model_path: str):
-        Path(model_path).mkdir(parents=True, exist_ok=True)
+        Path(model_path).parent.mkdir(parents=True, exist_ok=True)
         assert model_path is not None, "model path cannot be empty"
         self.model.save(model_path)
 
