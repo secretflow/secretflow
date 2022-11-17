@@ -51,10 +51,7 @@ def compute_obj(G: np.ndarray, H: np.ndarray, reg_lambda: float) -> np.ndarray:
     Return:
         objective values.
     '''
-    # original calculation formula is G^2/(H+lambda)
-    # use (G*((H+lambda)^0.5))^2 to reduce intermediate results
-    # avoid div overflow if H is too large.
-    return jnp.square(G * jax.lax.rsqrt(H + reg_lambda))
+    return (G / (H + reg_lambda)) * G
 
 
 def compute_weight(

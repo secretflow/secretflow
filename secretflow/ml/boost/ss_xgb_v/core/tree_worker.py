@@ -15,7 +15,6 @@
 import math
 from typing import Tuple, List
 import numpy as np
-import pandas as pd
 from .xgb_tree import XgbTree
 from secretflow.device import PYUObject, proxy
 
@@ -63,7 +62,7 @@ class XgbTreeWorker:
                     else:
                         # if node split by this partition's feature
                         # mark the clearly split path in tree.
-                        if row[f] <= v:
+                        if row[f] < v:
                             idxs.append(idx * 2 + 1)
                         else:
                             idxs.append(idx * 2 + 2)
@@ -72,6 +71,64 @@ class XgbTreeWorker:
                     select[r, leaf_idx] = 1
 
         return select
+
+    def _qcut(self, x: np.ndarray) -> Tuple[np.ndarray, List]:
+        sorted_x = np.sort(x, axis=0)
+        remained_count = len(sorted_x)
+        assert remained_count > 0, 'can not qcut empty x'
+
+        value_category = list()
+        last_value = None
+
+        split_points = list()
+        expected_bin_count = math.ceil(remained_count / self.buckets)
+        current_bin_count = 0
+        for v in sorted_x:
+            if v != last_value:
+                if len(value_category) <= self.buckets:
+                    value_category.append(v)
+
+                if current_bin_count >= expected_bin_count:
+                    split_points.append(v)
+                    if len(split_points) == self.buckets - 1:
+                        break
+                    remained_count -= current_bin_count
+                    expected_bin_count = math.ceil(
+                        remained_count / (self.buckets - len(split_points))
+                    )
+                    current_bin_count = 0
+
+                last_value = v
+            current_bin_count += 1
+
+        if len(value_category) <= self.buckets:
+            # full dataset category count <= buckets
+            # use category as split point.
+            split_points = value_category[1:]
+        elif split_points[-1] != sorted_x[-1]:
+            # add max sample value into split_points like xgboost.
+            split_points.append(sorted_x[-1])
+
+        split_points = list(map(float, split_points))
+
+        def upper_bound_bin(x: float):
+            count = len(split_points)
+            pos = 0
+            while count > 0:
+                step = math.floor(count / 2)
+                v = split_points[pos + step]
+                if x == v:
+                    return pos + step + 1
+                elif x > v:
+                    pos = pos + step + 1
+                    count -= step + 1
+                else:
+                    count = step
+            return pos
+
+        bins = np.vectorize(upper_bound_bin)(x)
+
+        return bins, split_points
 
     def build_maps(self, x: np.ndarray) -> np.ndarray:
         '''
@@ -94,38 +151,23 @@ class XgbTreeWorker:
         # buckets_map: a sparse 0-1 array use in compute the gradient sums.
         buckets_map = np.zeros((x.shape[0], 0), dtype=np.int8)
         for f in range(x.shape[1]):
-            bins, split_point = pd.qcut(
-                x[:, f],
-                self.buckets,
-                labels=False,
-                duplicates='drop',
-                retbins=True,
-            )
+            bins, split_point = self._qcut(x[:, f])
             self.order_map[:, f] = bins
-            f_buckets_map = np.zeros((x.shape[0], split_point.size - 1), dtype=np.int8)
+            total_buckets = len(split_point) + 1
+            f_buckets_map = np.zeros((x.shape[0], total_buckets), dtype=np.int8)
 
-            bucket_idx = 0
             sum_bin_idx = np.array([], dtype=np.int64)
-            empty_buckets = [0]
-            for b in range(split_point.size - 1):
-                # pd.qcut will cut out empty buckets on some skewed data
-                # and these empty points need to be removed here
+            for b in range(total_buckets):
                 bin_idx = np.flatnonzero(bins == b)
-                if len(bin_idx) == 0:
-                    # empty bucket, need removed.
-                    empty_buckets.append(b + 1)
-                else:
-                    self.order_map[bin_idx, f] = bucket_idx
-                    sum_bin_idx = np.concatenate((sum_bin_idx, bin_idx), axis=None)
-                    f_buckets_map[sum_bin_idx, bucket_idx] = 1
-                    bucket_idx += 1
+                sum_bin_idx = np.concatenate((sum_bin_idx, bin_idx), axis=None)
+                f_buckets_map[sum_bin_idx, b] = 1
 
-            total_buckets = bucket_idx
-            buckets_map = np.concatenate(
-                (buckets_map, f_buckets_map[:, :total_buckets]), axis=1
-            )
+            buckets_map = np.concatenate((buckets_map, f_buckets_map), axis=1)
             self.feature_buckets.append(total_buckets)
-            self.split_points.append(list(np.delete(split_point, empty_buckets)))
+            # last bucket is split all samples into left child.
+            # using infinity to simulation xgboost pruning.
+            split_point.append(float('inf'))
+            self.split_points.append(split_point)
 
         return buckets_map
 

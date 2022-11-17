@@ -29,7 +29,7 @@ class TestFlLrMix(DeviceTestCaseBase):
                 'evaluators': [{'party': evaluator} for evaluator in evaluators],
                 'mode': 'PHEU',
                 'he_parameters': {
-                    'schema': 'paillier',
+                    'schema': 'ou',
                     'key_pair': {'generate': {'bit_size': 2048}},
                 },
             }

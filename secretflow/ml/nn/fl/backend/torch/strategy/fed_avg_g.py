@@ -50,6 +50,8 @@ class FedAvgG(BaseTorchModel):
             Parameters after local training
         """
         assert self.model is not None, "Model cannot be none, please give model define"
+        dp_strategy = kwargs.get('dp_strategy', None)
+
         if gradients is not None:
             # if gradients is not None, apply back propagation
             parameters = self.model.parameters()
@@ -89,6 +91,11 @@ class FedAvgG(BaseTorchModel):
         logs['train-loss'] = loss
         self.logs = self.transform_metrics(logs)
         self.epoch_logs = copy.deepcopy(self.logs)
+
+        # DP operation
+        if dp_strategy is not None:
+            if dp_strategy.model_gdp is not None:
+                local_gradients_sum = dp_strategy.model_gdp(local_gradients_sum)
 
         return local_gradients_sum, num_sample
 

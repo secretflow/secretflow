@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import hashlib
 import os
 import pickle
 import zipfile
@@ -31,37 +32,49 @@ from secretflow.data.vertical import VDataFrame
 from secretflow.device.device.pyu import PYU
 from secretflow.security.aggregation import Aggregator
 from secretflow.security.compare import Comparator
+from secretflow.utils.hash import sha256sum
 from secretflow.utils.simulation.data.dataframe import create_df, create_vdf
 from secretflow.utils.simulation.data.ndarray import create_ndarray
 
 _CACHE_DIR = os.path.join(os.path.expanduser('~'), '.secretflow/datasets')
 
-_Dataset = namedtuple('_Dataset', ['filename', 'url'])
+_Dataset = namedtuple('_Dataset', ['filename', 'url', 'sha256'])
 
 _DATASETS = {
     'iris': _Dataset(
         'iris.csv',
         'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/iris/iris.csv',
+        '92cae857cae978e0c25156265facc2300806cf37eb8700be094228b374f5188c',
     ),
     'dermatology': _Dataset(
         'dermatology.csv',
         'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/dermatology/dermatology.csv',
+        '76b63f6c2be12347b1b76f485c6e775e36d0ab5412bdff0e9df5a9885f5ae11e',
     ),
     'bank_marketing': _Dataset(
         'bank.csv',
         'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/bank_marketing/bank.csv',
+        'dc8d576e9bda0f41ee891251bd84bab9a39ce576cba715aac08adc2374a01fde',
     ),
     'mnist': _Dataset(
         'mnist.npz',
         'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/mnist/mnist.npz',
+        '731c5ac602752760c8e48fbffcf8c3b850d9dc2a2aedcf2cc48468fc17b673d1',
     ),
     'linear': _Dataset(
         'linear.csv',
         'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/linear/linear.csv',
+        'bf269b267eb9e6985ae82467a4e1ece420de90f3107633cb9b9aeda6632c0052',
     ),
     'cora': _Dataset(
         'cora.zip',
         'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/cora/cora.zip',
+        'd7018f2d7d2b693abff6f6f7ccaf9d70e2e428ca068830863f19a37d8575fd01',
+    ),
+    'bank_marketing_full': _Dataset(
+        'bank-full.csv',
+        'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/bank_marketing/bank-full.csv',
+        'd1513ec63b385506f7cfce9f2c5caa9fe99e7ba4e8c3fa264b3aaf0f849ed32d',
     ),
 }
 
@@ -73,10 +86,16 @@ def _unzip(file, extract_path=None):
         zip_f.extractall(extract_path)
 
 
-def _download(url: str, filepath: str):
+def _download(url: str, filepath: str, sha256: str):
     Path(filepath).parent.mkdir(parents=True, exist_ok=True)
     with open(filepath, 'wb') as f:
         content = requests.get(url, stream=True).content
+        h = hashlib.sha256()
+        h.update(content)
+        actual_sha256 = h.hexdigest()
+        assert (
+            sha256 == actual_sha256
+        ), f'Failed to check sha256 of {url}, expected {sha256}, got {actual_sha256}.'
         f.write(content)
 
 
@@ -84,11 +103,18 @@ def _get_dataset(dataset: _Dataset, cache_dir: str = None):
     if not cache_dir:
         cache_dir = _CACHE_DIR
     filepath = f'{cache_dir}/{dataset.filename}'
-    if not Path(filepath).exists():
+    need_download = not Path(filepath).exists()
+    if not need_download:
+        sha256 = sha256sum(filepath)
+        if sha256 != dataset.sha256:
+            os.remove(filepath)
+            need_download = True
+
+    if need_download:
         assert (
             dataset.url
         ), f'{dataset.filename} does not exist locally, please give a download url.'
-        _download(dataset.url, filepath)
+        _download(dataset.url, filepath, dataset.sha256)
     return filepath
 
 
@@ -122,7 +148,7 @@ def load_iris(
         4. petal_width
         5. class
 
-    This dataset orignated from `Iris <https://archive.ics.uci.edu/ml/datasets/iris>`_.
+    This dataset originated from `Iris <https://archive.ics.uci.edu/ml/datasets/iris>`_.
 
     Args:
         parts: the data partitions. The dataset will be distributed as evenly
@@ -204,6 +230,7 @@ def load_dermatology(
 def load_bank_marketing(
     parts: Union[List[PYU], Dict[PYU, Union[float, Tuple]]],
     axis=0,
+    full=False,
     aggregator: Aggregator = None,
     comparator: Comparator = None,
 ) -> Union[HDataFrame, VDataFrame]:
@@ -220,10 +247,11 @@ def load_bank_marketing(
             1) a float
             2) a interval in tuple closed on the left-side and open on the
                right-side.
-        axis: optional; optional, the value is 0 or 1.
+        axis: optional, the value is 0 or 1.
             0 means split by row and returns a horizontal partitioning
             federated DataFrame. 1 means split by column returns a vertical
             partitioning federated DataFrame.
+        full: optional. indicates whether to load to full version of dataset.
         aggregator: optional, shall be provided only when axis is 0. For details,
             please refer to `secretflow.data.horizontal.HDataFrame`.
         comparator:  optional, shall be provided only when axis is 0. For details,
@@ -232,7 +260,10 @@ def load_bank_marketing(
     Returns:
         return a HDataFrame if axis is 0 else VDataFrame.
     """
-    filepath = _get_dataset(_DATASETS['bank_marketing'])
+    if full:
+        filepath = _get_dataset(_DATASETS['bank_marketing_full'])
+    else:
+        filepath = _get_dataset(_DATASETS['bank_marketing'])
     return create_df(
         lambda: pd.read_csv(filepath, sep=';'),
         parts=parts,
@@ -338,7 +369,7 @@ def load_cora(
 
     Returns:
         A tuple of FedNdarray: edge, x, Y_train, Y_val, Y_valid, index_train,
-        index_val, index_test. Note that Y is binded to the first participant.
+        index_val, index_test. Note that Y is bound to the first participant.
     """
     assert parts, 'Parts shall not be None or empty!'
     if data_dir is None:

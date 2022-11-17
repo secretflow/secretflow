@@ -105,7 +105,7 @@ class MixDataFrame:
         first_part = partitions[0]
         assert isinstance(
             first_part, (HDataFrame, VDataFrame)
-        ), f'Not all partitions are hdatafrane or vdataframes.'
+        ), f'Not all partitions are HDataFrames or VDataFrames.'
         part_type = type(first_part)
 
         for part in partitions[1:]:
@@ -143,7 +143,7 @@ class MixDataFrame:
 
     def mean(self, *args, **kwargs) -> pd.Series:
         """
-        Return the mean of the values over the requested axis.
+        Returns the mean of the values over the requested axis.
 
         All arguments are same with :py:meth:`pandas.DataFrame.mean`.
 
@@ -163,7 +163,7 @@ class MixDataFrame:
 
     def min(self, *args, **kwargs) -> pd.Series:
         """
-        Return the min of the values over the requested axis.
+        Returns the min of the values over the requested axis.
 
         All arguments are same with :py:meth:`pandas.DataFrame.min`.
 
@@ -178,7 +178,7 @@ class MixDataFrame:
 
     def max(self, *args, **kwargs) -> pd.Series:
         """
-        Return the max of the values over the requested axis.
+        Returns the max of the values over the requested axis.
 
         All arguments are same with :py:meth:`pandas.DataFrame.max`.
 
@@ -205,6 +205,28 @@ class MixDataFrame:
         else:
             return pd.concat(cnts)
 
+    # TODO(zoupeicheng.zpc): Schedule to implement horizontal and mix case functionality.
+    def isna(self):
+        raise NotImplementedError
+
+    def quantile(self, q=0.5, axis=0):
+        raise NotImplementedError
+
+    def kurtosis(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def skew(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def sem(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def std(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def var(self, *args, **kwargs):
+        raise NotImplementedError
+
     @property
     def values(self):
         # TODO
@@ -213,7 +235,7 @@ class MixDataFrame:
     @property
     def dtypes(self) -> pd.Series:
         """
-        Return the dtypes in the DataFrame.
+        Returns the dtypes in the DataFrame.
 
         Returns:
             pd.Series: the data type of each column.
@@ -265,8 +287,7 @@ class MixDataFrame:
 
     @property
     def shape(self) -> Tuple:
-        """Return a tuple representing the dimensionality of the DataFrame.
-        """
+        """Returns a tuple representing the dimensionality of the DataFrame."""
         shapes = [part.shape for part in self.partitions]
         if self.partition_way == PartitionWay.HORIZONTAL:
             return sum([shape[0] for shape in shapes]), shapes[0][1]

@@ -57,9 +57,9 @@ RUN wget https://github.com/bazelbuild/bazel/releases/download/5.1.1/bazel-5.1.1
 # install python packages
 COPY requirements.txt /tmp
 RUN sed -i "s/tensorflow==/tensorflow-cpu==/g" /tmp/requirements.txt
-RUN python3 -m pip config set global.index-url https://mirrors.aliyun.com/pypi/simple \
+RUN python3 -m pip config set global.index-url https://mirrors.bfsu.edu.cn/pypi/web/simple/ \
     && python3 -m pip config set global.extra-index-url "https://pypi.tuna.tsinghua.edu.cn/simple https://download.pytorch.org/whl/cpu" \
-    && python3 -m pip config set install.trusted-host "mirrors.aliyun.com pypi.tuna.tsinghua.edu.cn download.pytorch.org" \
+    && python3 -m pip config set install.trusted-host "pypi.tuna.tsinghua.edu.cn download.pytorch.org mirrors.bfsu.edu.cn" \
     && python3 -m pip install --upgrade pip \
     && python3 -m pip install wheel \
     && python3 -m pip install -r /tmp/requirements.txt \

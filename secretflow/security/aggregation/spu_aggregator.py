@@ -12,11 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from secretflow.device import SPU
-from secretflow.security.aggregation.device_aggregator import DeviceAggregator
+
+from typing import List
+
+import jax.numpy as jnp
+
+from secretflow.device import SPU, DeviceObject, SPUObject
+from secretflow.security.aggregation.aggregator import Aggregator
 
 
-class SPUAggregator(DeviceAggregator):
+class SPUAggregator(Aggregator):
     """Aggregator based on SPU.
 
     The computation will be performed on the given SPU device.
@@ -41,7 +46,68 @@ class SPUAggregator(DeviceAggregator):
 
     """
 
-    def __post_init__(self):
-        assert isinstance(
-            self.device, SPU
-        ), f'Accepts SPU only but got {type(self.device)}.'
+    def __init__(self, device: SPU):
+        assert isinstance(device, SPU), f'Accepts SPU only but got {type(self.device)}.'
+        self.device = device
+
+    def sum(self, data: List[DeviceObject], axis=None) -> SPUObject:
+        """Sum of array elements over a given axis.
+
+        Args:
+            data: array of device objects.
+            axis: optional. Same as the axis argument of :py:meth:`numpy.mean`.
+
+        Returns:
+            a device object holds the sum.
+        """
+        assert data, 'Data to aggregate should not be None or empty!'
+        data = [d.to(self.device) for d in data]
+
+        def _sum(*data, axis):
+            if isinstance(data[0], (list, tuple)):
+                return [
+                    jnp.sum(jnp.array(element), axis=axis) for element in zip(*data)
+                ]
+            else:
+                return jnp.sum(jnp.array(data), axis=axis)
+
+        return self.device(_sum, static_argnames='axis')(*data, axis=axis)
+
+    def average(self, data: List[DeviceObject], axis=None, weights=None) -> SPUObject:
+        """Compute the weighted average along the specified axis.
+
+        Args:
+            data: array of device objects.
+            axis: optional. Same as the axis argument of :py:meth:`numpy.average`.
+            weights: optional. Same as the weights argument of :py:meth:`numpy.average`.
+
+        Returns:
+            a device object holds the weighted average.
+        """
+        assert data, 'Data to aggregate should not be None or empty!'
+        data = [d.to(self.device) for d in data]
+        if isinstance(weights, (list, tuple)):
+            weights = [
+                w.to(self.device) if isinstance(w, DeviceObject) else w for w in weights
+            ]
+
+        def _average(*data, axis, weights):
+            if isinstance(data[0], (list, tuple)):
+                return [
+                    jnp.average(
+                        jnp.array(element),
+                        axis=axis,
+                        weights=jnp.array(weights) if weights is not None else None,
+                    )
+                    for element in zip(*data)
+                ]
+            else:
+                return jnp.average(
+                    jnp.array(data),
+                    axis=axis,
+                    weights=jnp.array(weights) if weights is not None else None,
+                )
+
+        return self.device(_average, static_argnames='axis')(
+            *data, axis=axis, weights=weights
+        )

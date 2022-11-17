@@ -47,6 +47,55 @@ class TestVDataFrame(DeviceTestCase):
             columns, self.df_alice.columns.append(self.df_bob.columns)
         )
 
+    def test_pow_should_ok(self):
+        # WHEN
+        value = self.df.select_dtypes('number').pow(2).mean()
+
+        # THEN
+        expected_alice = self.df_alice.select_dtypes('number').pow(2).mean()
+        self.assertEqual(value['a3'], expected_alice['a3'])
+        expected_bob = self.df_bob.select_dtypes('number').pow(2).mean()
+        pd.testing.assert_series_equal(value[['b4', 'b6']], expected_bob)
+
+    def test_select_dtypes_should_ok(self):
+        # WHEN
+        value = self.df.select_dtypes('number').mean()
+
+        # THEN
+        expected_alice = self.df_alice.select_dtypes('number').mean()
+        self.assertEqual(value['a3'], expected_alice['a3'])
+        expected_bob = self.df_bob.select_dtypes('number').mean()
+        pd.testing.assert_series_equal(value[['b4', 'b6']], expected_bob)
+
+    def test_subtract_should_ok(self):
+        # WHEN
+        value = self.df.subtract(self.df.mean(numeric_only=True)).mean(
+            numeric_only=True
+        )
+
+        # THEN
+        expected_alice = self.df_alice.subtract(
+            self.df_alice.mean(numeric_only=True)
+        ).mean(numeric_only=True)
+        self.assertEqual(value['a3'], expected_alice['a3'])
+        expected_bob = self.df_bob.subtract(self.df_bob.mean(numeric_only=True)).mean(
+            numeric_only=True
+        )
+        # TODO(zoupeicheng.zpc): Ray's pandas ignored series containing None
+        pd.testing.assert_series_equal(value[['b6']], expected_bob[['b6']])
+
+    def test_round_should_ok(self):
+        # WHEN
+        value = self.df.round({'b4': 0})
+
+        # THEN
+        value_alice = reveal(value.partitions[self.alice].data)
+        expected_alice = self.df_alice
+        pd.testing.assert_frame_equal(value_alice, expected_alice)
+        expected_bob = self.df_bob.round({'b4': 0})
+        value_bob = reveal(value.partitions[self.bob].data)
+        pd.testing.assert_frame_equal(value_bob, expected_bob)
+
     def test_min_should_ok(self):
         # WHEN
         value = self.df.min(numeric_only=True)
@@ -77,12 +126,80 @@ class TestVDataFrame(DeviceTestCase):
         expected_bob = self.df_bob.mean(numeric_only=True)
         pd.testing.assert_series_equal(value[expected_bob.index], expected_bob)
 
+    def test_var_should_ok(self):
+        # WHEN
+        value = self.df.var(numeric_only=True)
+        # THEN
+        expected_alice = self.df_alice.var(numeric_only=True)
+        self.assertEqual(value['a3'], expected_alice['a3'])
+        expected_bob = self.df_bob.var(numeric_only=True)
+        # TODO(zoupeicheng.zpc): Ray's pandas ignored series containing None
+        pd.testing.assert_series_equal(value[['b6']], expected_bob[['b6']])
+
+    def test_std_should_ok(self):
+        # WHEN
+        value = self.df.std(numeric_only=True)
+        # THEN
+        expected_alice = self.df_alice.std(numeric_only=True)
+        self.assertEqual(value['a3'], expected_alice['a3'])
+        expected_bob = self.df_bob.std(numeric_only=True)
+        # TODO(zoupeicheng.zpc): Ray's pandas ignored series containing None
+        pd.testing.assert_series_equal(value[['b6']], expected_bob[['b6']])
+
+    def test_sem_should_ok(self):
+        # WHEN
+        value = self.df.sem(numeric_only=True)
+        # THEN
+        expected_alice = self.df_alice.sem(numeric_only=True)
+        self.assertEqual(value['a3'], expected_alice['a3'])
+        expected_bob = self.df_bob.sem(numeric_only=True)
+        # TODO(zoupeicheng.zpc): Ray's pandas ignored series containing None
+        pd.testing.assert_series_equal(value[['b6']], expected_bob[['b6']])
+
+    def test_skew_should_ok(self):
+        # WHEN
+        value = self.df.skew(numeric_only=True)
+        # THEN
+        expected_alice = self.df_alice.skew(numeric_only=True)
+        self.assertEqual(value['a3'], expected_alice['a3'])
+        expected_bob = self.df_bob.skew(numeric_only=True)
+        # TODO(zoupeicheng.zpc): Ray's pandas ignored series containing None
+        pd.testing.assert_series_equal(value[['b6']], expected_bob[['b6']])
+
+    def test_quantle_should_ok(self):
+        # WHEN
+        value = self.df.quantile()
+        # THEN
+        expected_alice = self.df_alice.quantile()
+        self.assertEqual(value['a3'], expected_alice['a3'])
+        expected_bob = self.df_bob.quantile()
+        # TODO(zoupeicheng.zpc): Ray's pandas ignored series containing None
+        pd.testing.assert_series_equal(value[['b6']], expected_bob[['b6']])
+
     def test_count_should_ok(self):
         # WHEN
         value = self.df.count()
 
         # THEN
         expected_alice = pd.concat([self.df_alice, self.df_bob], axis=1).count()
+        pd.testing.assert_series_equal(value, expected_alice)
+
+    def test_mode_should_ok(self):
+        # WHEN
+        value = self.df.mode()
+
+        # THEN
+        expected_alice = (
+            pd.concat([self.df_alice, self.df_bob], axis=1).mode().iloc[0, :]
+        )
+        pd.testing.assert_series_equal(value, expected_alice)
+
+    def test_count_na_should_ok(self):
+        # WHEN
+        value = self.df.isna().sum()
+
+        # THEN
+        expected_alice = pd.concat([self.df_alice, self.df_bob], axis=1).isna().sum()
         pd.testing.assert_series_equal(value, expected_alice)
 
     def test_get_single_item_should_ok(self):
@@ -261,6 +378,21 @@ class TestVDataFrame(DeviceTestCase):
         pd.testing.assert_frame_equal(
             reveal(value.partitions[self.bob].data),
             self.df_bob.drop(columns=['b4', 'b5'], inplace=False),
+        )
+
+    def test_replace_should_ok(self):
+        val = self.df_alice.iloc[1, 1]
+        val_to = 0.131212
+        # WHEN
+        value = self.df.replace(val, val_to)
+        # THEN
+        pd.testing.assert_frame_equal(
+            reveal(value.partitions[self.alice].data),
+            self.df_alice.replace(val, val_to),
+        )
+        pd.testing.assert_frame_equal(
+            reveal(value.partitions[self.bob].data),
+            self.df_bob.replace(val, val_to),
         )
 
     def test_fillna(self):

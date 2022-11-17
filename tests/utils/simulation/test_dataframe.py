@@ -27,7 +27,9 @@ class TestDataFrame(DeviceTestCase):
     def test_create_hdataframe_should_ok_when_input_file(self):
         # WHEN
         hdf = create_df(
-            dataset('iris'), parts=[self.alice, self.bob, self.carol], axis=0,
+            dataset('iris'),
+            parts=[self.alice, self.bob, self.carol],
+            axis=0,
         )
 
         # THEN

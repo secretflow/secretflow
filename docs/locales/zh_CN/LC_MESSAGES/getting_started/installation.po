@@ -77,10 +77,10 @@ msgstr "请安装 `当前release <https://pypi.org/project/secretflow/>`__ 。"
 
 #: ../../../INSTALLATION.md:24
 msgid ""
-"from [pypi](https://artifacts.antgroup-inc.cn/simple/secretflow/). Note "
+"from [pypi](https://pypi.org/project/secretflow/). Note "
 "that it requires python version == 3.8, you can create a virtual "
 "environment with conda if not satisfied."
-msgstr "通过 `pypi <https://artifacts.antgroup-inc.cn/simple/secretflow/>`__ 。 请注意"
+msgstr "通过 `pypi <https://pypi.org/project/secretflow/>`__ 。 请注意"
 "python版本需要是3.8，你可以用conda构建一个虚拟环境。"
 
 #: ../../../INSTALLATION.md:31

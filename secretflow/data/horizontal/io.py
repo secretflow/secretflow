@@ -68,5 +68,6 @@ def to_csv(df: HDataFrame, file_uris: Dict[PYU, str], **kwargs):
         file_uris: the file path of each PYU.
         kwargs: all other arguments are same with :py:meth:`pandas.DataFrame.to_csv`.
     """
-    for device, uri in file_uris.items():
-        df.partitions[device].to_csv(uri, **kwargs)
+    return [
+        df.partitions[device].to_csv(uri, **kwargs) for device, uri in file_uris.items()
+    ]

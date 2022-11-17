@@ -38,7 +38,7 @@ Protocol:
 
 1. For each element :math:`x_i` in its set, Alice applies the hash function and then exponentiates it 
    using its key :math:`\alpha`, thus computing :math:`{H(x_i)}^\alpha` . Alice sends 
-   :math:`\{\{H(x_i)\}^\alpha\}_{i=1}^{n_1}` to Bob.
+   :math:`{\{H(x_i)\}^\alpha}_{i=1}^{n_1}` to Bob.
 
 2. For each element :math:`{H(x_i)}^\alpha`  received from Alice in the previous step, Bob exponentiates 
    it using its key :math:`\beta`, computing :math:`{H(x_i)}^{\alpha\beta}`. 
@@ -46,7 +46,7 @@ Protocol:
 
 3. For each element :math:`y_i` in its set, Bob applies the hash function and then exponentiates it 
    using its key :math:`\beta`, thus computing :math:`{H(y_i)}^\beta` . 
-   Bob sends the set :math:`\{\{H(y_i)\}^\beta\}_{i=1}^{n_2}` to Alice.
+   Bob sends the set :math:`{\{H(y_i)\}^\beta}_{i=1}^{n_2}` to Alice.
 
 4. For each element :math:`{H(y_i)}^\beta`  received from Bob in the previous step, Alice exponentiates 
    it using its key :math:`\alpha`, computing :math:`{H(y_i)}^{\beta\alpha}` .   
@@ -115,7 +115,7 @@ KKRT16-PSI
 
 We use 3-way stash-less CuckooHash proposed in [PSZ18]_.
 
-.. figure:: ./resources/kkrt16_psi.svg
+.. figure:: ./resources/kkrt16_psi.png
 
 Protocol:
 
@@ -123,7 +123,7 @@ Protocol:
 2. Receiver insert each x into bin :math:`h_1(x)`, :math:`h_2(x)` or :math:`h_3(x)`
 3. Sender insert each y into bin :math:`h_1(y)`, :math:`h_2(y)` and :math:`h_3(y)`
 4. Run BaRK-OPRF, Receiver get :math:`F_{s,k_i}(x)`,Sender get :math:`F_{s,k_i}(y)`, for :math:`bin_i`
-5. Sender sends all :math:`\{F_{s,k_i}(y)\}` values to Receiver
+5. Sender sends all :math:`{F_{s,k_i}(y)}` values to Receiver
 6. Receiver compares two BaRK-OPRFs sets and gets intersection.
 
 BC22 PCG-PSI

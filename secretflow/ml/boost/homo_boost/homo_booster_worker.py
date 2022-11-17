@@ -105,7 +105,6 @@ class HomoBooster(link.Link):
             xgb_model: xgb model path, be used for training continuation
             callbacks: callback function list
         """
-
         link.set_mesh(self)
 
         if "label_key" not in params:
@@ -113,6 +112,15 @@ class HomoBooster(link.Link):
         if obj is not None:
             raise NotImplementedError(f"Custom object function is not supported")
         columns = [x for x in train_hdf.columns]
+        if params['hess_key'] in columns:
+            raise Exception(
+                f"The value of hess_key must be different from other columns in the data"
+            )
+        if params['grad_key'] in columns:
+            raise Exception(
+                f"The value of grad_key must be different from other columns in the data"
+            )
+
         columns.remove(params["label_key"])
 
         dtrain = xgb.DMatrix(
@@ -144,6 +152,56 @@ class HomoBooster(link.Link):
             callbacks=callbacks,
         )
         return self.bst
+
+    def homo_eval(
+        self,
+        eval_hdf: pd.DataFrame,
+        params: Dict,
+        model_path: str,
+    ):
+        link.set_mesh(self)
+
+        if self.role == link.CLIENT:
+            if not os.path.exists(model_path):
+                raise FileNotFoundError(f"model file {model_path} can not found")
+            try:
+                bst = xgb.Booster(params)
+                bst.load_model(model_path)
+            except Exception as e:
+                raise InterruptedError(f"Load model interrupted! detail:{e}")
+            deval = xgb.DMatrix(
+                eval_hdf.drop(columns=[params["label_key"]]),
+                eval_hdf[params["label_key"]],
+            )
+            score = bst.eval(data=deval)
+            score = score.split()[1:]
+            score = [tuple(s.split(':')) for s in score]
+            link.send_to_server(name=f"eval_local", value=score, version=0)
+
+            return score
+        if self.role == link.SERVER:
+            all_score = link.recv_from_clients(
+                name=f"eval_local",
+                version=0,
+            )
+
+            num_party = len(all_score)
+            all_score_dict = [dict(score) for score in all_score]
+            sum_score = {
+                k: sum(float(d[k]) for d in all_score_dict) / num_party
+                for k in all_score_dict[0]
+            }
+            agg_score = [(k, v) for k, v in sum_score.items()]
+
+            # prepare summary eval_metrics
+            # prepare global infos
+            metrics = sum_score.keys()
+            metrics = [m.replace("_", "-") for m in metrics]
+            global_metrics = []
+            for s in agg_score:
+                global_metrics.append(s)
+            return global_metrics
+        assert False, 'Should never get here.'
 
     def save_model(self, model_path: Union[str, os.PathLike]):
         if self.role == link.CLIENT:

@@ -15,6 +15,7 @@
 from .discretization import KBinsDiscretizer
 from .encoder import LabelEncoder, OneHotEncoder
 from .scaler import MinMaxScaler, StandardScaler
+from .transformer import LogroundTransformer
 
 __all__ = [
     'KBinsDiscretizer',
@@ -22,4 +23,5 @@ __all__ = [
     'OneHotEncoder',
     'MinMaxScaler',
     'StandardScaler',
+    'LogroundTransformer',
 ]

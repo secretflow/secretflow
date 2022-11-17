@@ -31,6 +31,7 @@ class TestDeviceHEU(DeviceTestCase):
         np.testing.assert_almost_equal(reveal(x), reveal(y), decimal=4)
 
     def test_math_ops(self):
+        schema = phe.SchemaType.ZPaillier
         x = ft.with_device(self.alice)(np.random.rand)(3, 4)
         y = ft.with_device(self.bob)(np.random.rand)(3, 4)
         y_int = ft.with_device(self.bob)(np.random.randint)(10, size=(3, 4))
@@ -39,8 +40,12 @@ class TestDeviceHEU(DeviceTestCase):
         x_, y_, y_int_, z_int_ = (
             x.to(self.heu),  # x_ is ciphertext
             y.to(self.heu),
-            y_int.to(self.heu, config=MoveConfig(heu_encoder=phe.BigintEncoder())),
-            z_int.to(self.heu, config=MoveConfig(heu_encoder=phe.BigintEncoder())),
+            y_int.to(
+                self.heu, config=MoveConfig(heu_encoder=phe.BigintEncoder(schema))
+            ),
+            z_int.to(
+                self.heu, config=MoveConfig(heu_encoder=phe.BigintEncoder(schema))
+            ),
         )  # plaintext
 
         add_ = x_ + y_  # shape: 3x4

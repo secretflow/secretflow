@@ -8,6 +8,7 @@ separated from the rest by a newline
 """
 import unittest
 
+import multiprocess
 import numpy as np
 import ray
 import spu
@@ -86,6 +87,7 @@ class DeviceTestCaseBase(unittest.TestCase):
             ['alice', 'bob', 'carol', 'davy', 'eric'],
             num_cpus=num_cpus,
             log_to_driver=False,
+            omp_num_threads=multiprocess.cpu_count()
         )
 
         cls.alice = sf.PYU('alice')

@@ -22,6 +22,54 @@ class TestPartition(DeviceTestCase):
         expected = self.df.mean(numeric_only=True)
         pd.testing.assert_series_equal(reveal(value.data), expected)
 
+    def test_var_should_ok(self):
+        # WHEN
+        value = self.part.var(numeric_only=True)
+
+        # THEN
+        expected = self.df.var(numeric_only=True)
+        pd.testing.assert_series_equal(reveal(value.data), expected)
+
+    def test_std_should_ok(self):
+        # WHEN
+        value = self.part.std(numeric_only=True)
+
+        # THEN
+        expected = self.df.std(numeric_only=True)
+        pd.testing.assert_series_equal(reveal(value.data), expected)
+
+    def test_sem_should_ok(self):
+        # WHEN
+        value = self.part.sem(numeric_only=True)
+
+        # THEN
+        expected = self.df.sem(numeric_only=True)
+        pd.testing.assert_series_equal(reveal(value.data), expected)
+
+    def test_skew_should_ok(self):
+        # WHEN
+        value = self.part.skew(numeric_only=True)
+
+        # THEN
+        expected = self.df.skew(numeric_only=True)
+        pd.testing.assert_series_equal(reveal(value.data), expected)
+
+    def test_kurtosis_should_ok(self):
+        # WHEN
+        value = self.part.kurtosis(numeric_only=True)
+
+        # THEN
+        expected = self.df.kurtosis(numeric_only=True)
+        pd.testing.assert_series_equal(reveal(value.data), expected)
+
+    def test_quantile_should_ok(self):
+        # WHEN
+        value = self.part.quantile()
+
+        # THEN
+        expected = self.df.quantile()
+        pd.testing.assert_series_equal(reveal(value.data), expected)
+
     def test_min_should_ok(self):
         # WHEN
         value = self.part.min()
@@ -45,6 +93,42 @@ class TestPartition(DeviceTestCase):
         # THEN
         expected = self.df.count()
         pd.testing.assert_series_equal(reveal(value.data), expected)
+
+    def test_pow_should_ok(self):
+        # WHEN
+        value = self.part.select_dtypes('number').pow(2.3).sum()
+
+        # THEN
+        expected = self.df.select_dtypes('number').pow(2.3).sum()
+        pd.testing.assert_series_equal(reveal(value.data), expected)
+
+    def test_select_dtypes_should_ok(self):
+        # WHEN
+        value = self.part.select_dtypes('number').mean()
+
+        # THEN
+        expected = self.df.select_dtypes('number').mean()
+        pd.testing.assert_series_equal(reveal(value.data), expected)
+
+    def test_subtract_should_ok(self):
+        # WHEN
+        part_num = self.part.select_dtypes('number')
+        means = part_num.mean()
+        value = part_num.subtract(means)[part_num.columns].mean(numeric_only=True)
+
+        # THEN
+        df_num = self.df.select_dtypes('number')
+        df_means = df_num.mean()
+        expected = df_num.subtract(df_means)[df_num.columns].mean(numeric_only=True)
+        pd.testing.assert_series_equal(reveal(value.data), expected)
+
+    def test_round_should_ok(self):
+        # WHEN
+        value = self.part.round(1)
+
+        # THEN
+        expected = self.df.round(1)
+        pd.testing.assert_frame_equal(reveal(value.data), expected)
 
     def test_dtypes_should_ok(self):
         # WHEN
@@ -116,7 +200,7 @@ class TestPartition(DeviceTestCase):
         expected['sepal_length'] = expected['sepal_width']
         pd.testing.assert_frame_equal(reveal(value.data), expected)
 
-    def test_setitem_on_different_partition_should_wrong(self):
+    def test_setitem_on_different_partition_should_error(self):
         # WHEN and THEN
         with self.assertRaisesRegex(
             AssertionError, 'Can not assign a partition with different device.'
@@ -162,3 +246,21 @@ class TestPartition(DeviceTestCase):
         expected = self.df.copy(deep=True)
         expected.fillna(value='test', inplace=True)
         pd.testing.assert_frame_equal(reveal(value.data), expected)
+
+    def test_replace_should_ok(self):
+        # WHEN
+        val = self.df.iloc[1, 1]
+        val_to = 0.31312
+        value = self.part.replace(val, val_to)
+
+        # THEN
+        expected = self.df.replace(val, val_to)
+        pd.testing.assert_frame_equal(reveal(value.data), expected)
+
+    def test_mode_should_ok(self):
+        # WHEN
+        value = self.part.mode()
+
+        # THEN
+        expected = self.df.mode().iloc[0, :]
+        pd.testing.assert_series_equal(reveal(value.data), expected)
