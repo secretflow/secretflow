@@ -18,7 +18,6 @@ from secretflow.data.horizontal.dataframe import HDataFrame
 from secretflow.device import reveal
 from secretflow.device.device import PYU
 from secretflow.ml.boost.homo_boost.homo_booster_worker import HomoBooster
-from secretflow.ml.boost.homo_boost.boost_core.core import FedBooster
 from secretflow.preprocessing.binning.homo_binning import HomoBinning
 from validator import GreaterThan, In, LessThan, Not, Range, Required, validate
 
@@ -28,7 +27,16 @@ class SFXgboost:
         self.server = server
         self.clients = clients
         self.fed_bst = {}
-        self._workers = {}
+        self._workers = []
+        for client in self.clients:
+            self._workers.append(
+                HomoBooster(device=client, clients=self.clients, server=self.server)
+            )
+        self._workers.append(
+            HomoBooster(device=self.server, clients=self.clients, server=self.server)
+        )
+        for worker in self._workers:
+            worker.initialize({worker.device: worker.data for worker in self._workers})
 
     def check_params(self, params):
         rules = {
@@ -81,10 +89,24 @@ class SFXgboost:
         early_stopping_rounds: int = None,
         evals_result: Dict = None,
         verbose_eval: Union[int, bool] = True,
-        xgb_model=None,
+        xgb_model: Dict = None,
         callbacks: List[Callable] = None,
-    ) -> Dict[PYU, FedBooster]:
-
+    ) -> "SFXgboost":
+        """Federated xgboost interface for training
+        Args:
+            train_hdf: horizontal federation table used for training
+            valid_hdf: horizontal federated table for validation
+            params: dictionary of parameters
+            num_boost_round: Number of spanning trees required
+            obj: custom objective function, objective type is squared_error
+            feval: custom eval evaluation function
+            maximize: whether feval is maximized
+            early_stopping_rounds: same as xgboost early_stooping_round option
+            evals_result: container for storing evaluation results
+            verbose_eval: same as xgboost verbose_eval
+            xgb_model: xgb model file path, used for breakpoint retraining (training continuation)
+            callbacks: list of callback functions
+        """
         # set up thread pool
         valid, errors = self.check_params(params)
         if not valid:
@@ -104,24 +126,14 @@ class SFXgboost:
         for col in columns:
             bin_split_points.append(bin_dict[col])
 
-        # TODO: 应该从hdf中读取party还是让用户指定？
-        # clients = []
-        # for device in train_hdf.partitions.keys():
-        #     clients.append(device)
-        self._workers = []
-        for client in self.clients:
-            self._workers.append(
-                HomoBooster(device=client, clients=self.clients, server=self.server)
-            )
-        self._workers.append(
-            HomoBooster(device=self.server, clients=self.clients, server=self.server)
-        )
-
         for worker in self._workers:
-            worker.initialize({worker.device: worker.data for worker in self._workers})
             worker.set_split_point(bin_split_points)
-
         for worker in self._workers:
+            if xgb_model is not None and worker.device in xgb_model.keys():
+                xgb_partition = xgb_model[worker.device]
+
+            else:
+                xgb_partition = None
             if worker.device in train_hdf.partitions.keys():
                 self.fed_bst[worker.device] = worker.homo_train(
                     train_hdf=train_hdf.partitions[worker.device].data,
@@ -134,7 +146,7 @@ class SFXgboost:
                     early_stopping_rounds=early_stopping_rounds,
                     evals_result=evals_result,
                     verbose_eval=verbose_eval,
-                    xgb_model=xgb_model,
+                    xgb_model=xgb_partition,
                     callbacks=callbacks,
                 )
             else:
@@ -156,12 +168,16 @@ class SFXgboost:
                     early_stopping_rounds=early_stopping_rounds,
                     evals_result=evals_result,
                     verbose_eval=verbose_eval,
-                    xgb_model=xgb_model,
+                    xgb_model=xgb_partition,
                     callbacks=callbacks,
                 )
         reveal(self.fed_bst)  # wait all tasks done
 
     def save_model(self, model_path: Dict):
+        """Federated xgboost save model interface
+        Args:
+            model_path: Path of the model stored
+        """
         assert self.fed_bst is not None, "FedBooster must be train before save model"
         res = {}
         for worker in self._workers:
@@ -170,9 +186,47 @@ class SFXgboost:
         reveal(res)
 
     def dump_model(self, model_path: Dict):
+        """Federated xgboost dump model interface
+        Args:
+            model_path: Path of the model stored
+        """
         assert self.fed_bst is not None, "FedBooster must be train before dump model"
         res = {}
         for worker in self._workers:
             if worker.device in model_path.keys():
                 res[worker.device] = worker.dump_model(model_path[worker.device])
         reveal(res)
+
+    def eval(
+        self,
+        model_path: Union[str, Dict[PYU, str]],
+        hdata: HDataFrame,
+        params: Dict,
+    ):
+        """Federated xgboost eval interface
+        Args:
+            model_path: Path of the model stored
+            hdata: Horizontal dataframe to be evaluated
+            params: Xgboost params
+        Returns:
+            result: Dict evaluate result
+        """
+        assert isinstance(
+            model_path, (str, Dict)
+        ), f'Model path accepts string or dict but got {type(model_path)}.'
+        if isinstance(model_path, str):
+            model_path = {device: model_path for device in self._workers.keys()}
+
+        res = {}
+        for worker in self._workers:
+            device = worker.device
+            if device == self.server:
+                hdata_partition = None
+                model_path_device = "mock_path"
+            else:
+                hdata_partition = hdata.partitions[worker.device].data
+                model_path_device = model_path[device]
+            res[device.party] = worker.homo_eval(
+                hdata_partition, params, model_path_device
+            )
+        return reveal(res)

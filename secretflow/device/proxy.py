@@ -31,6 +31,7 @@ thread_local = threading.local()
 def _actor_wrapper(device_object_type, name, num_returns):
     def wrapper(self, *args, **kwargs):
         # device object type check and unwrap
+        _num_returns = kwargs.pop('_num_returns', num_returns)
         value_flat, value_tree = jax.tree_util.tree_flatten((args, kwargs))
         for i, value in enumerate(value_flat):
             if isinstance(value, DeviceObject):
@@ -42,9 +43,9 @@ def _actor_wrapper(device_object_type, name, num_returns):
 
         handle = getattr(self.data, name)
         # TODO @raofei: 支持public_reveal装饰器
-        res = handle.options(num_returns=num_returns).remote(*args, **kwargs)
+        res = handle.options(num_returns=_num_returns).remote(*args, **kwargs)
 
-        if num_returns == 1:
+        if _num_returns == 1:
             return device_object_type(self.device, res)
         else:
             return [device_object_type(self.device, x) for x in res]

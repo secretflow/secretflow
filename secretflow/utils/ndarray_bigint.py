@@ -64,8 +64,8 @@ class BigintNdArray:
     def to_numpy(self):
         return np.array(self.to_list())
 
-    def to_hnp(self):
-        return hnp.array(self.to_list())
+    def to_hnp(self, encoder):
+        return hnp.array(self.to_list(), encoder=encoder)
 
     def to_bytes(self, bytes_per_int, byteorder='little'):
         mask = (1 << bytes_per_int * 8) - 1

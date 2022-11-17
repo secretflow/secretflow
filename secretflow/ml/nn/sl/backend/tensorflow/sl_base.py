@@ -34,6 +34,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import secretflow.device as ft
+
 from secretflow.device import PYUObject, proxy
 from secretflow.security.privacy import DPStrategy
 from secretflow.utils.compressor import Compressor, SparseCompressor

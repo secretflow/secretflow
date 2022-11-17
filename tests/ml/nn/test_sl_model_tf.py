@@ -225,6 +225,7 @@ class TestSLModelTensorflow(DeviceTestCase):
             device_y=self.bob,
             dp_strategy_dict=dp_strategy_dict,
             dp_spent_step_freq=dp_spent_step_freq,
+            acc=0.82,
         )
 
         # test compressor

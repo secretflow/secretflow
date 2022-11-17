@@ -69,6 +69,7 @@ class FedProx(BaseTorchModel):
         if weights is not None:
             self.model.update_weights(weights)
         num_sample = 0
+        dp_strategy = kwargs.get('dp_strategy', None)
         logs = {}
 
         mu = kwargs.get('mu', 0.0)
@@ -100,7 +101,14 @@ class FedProx(BaseTorchModel):
 
         self.logs = self.transform_metrics(logs)
         self.epoch_logs = copy.deepcopy(self.logs)
-        return self.model.get_weights(return_numpy=True), num_sample
+
+        model_weights = self.model.get_weights(return_numpy=True)
+        # DP operation
+        if dp_strategy is not None:
+            if dp_strategy.model_gdp is not None:
+                model_weights = dp_strategy.model_gdp(model_weights)
+
+        return model_weights, num_sample
 
 
 @register_strategy(strategy_name='fed_prox', backend='torch')

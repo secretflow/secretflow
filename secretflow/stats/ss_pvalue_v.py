@@ -25,7 +25,7 @@ from secretflow.device import SPUObject, SPU
 from secretflow.ml.linear import LinearModel, RegType, SSRegression
 from secretflow.data.vertical import VDataFrame
 
-from .utils import newton_matrix_inverse
+from .core.utils import newton_matrix_inverse
 
 
 # spu functions for Logistic PValue

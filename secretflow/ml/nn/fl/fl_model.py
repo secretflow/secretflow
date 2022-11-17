@@ -57,10 +57,7 @@ class FLModel:
         else:
             raise Exception(f"Invalid backend = {backend}")
         self.init_workers(
-            model,
-            device_list=device_list,
-            strategy=strategy,
-            backend=backend,
+            model, device_list=device_list, strategy=strategy, backend=backend,
         )
         self.server = server
         self._aggregator = aggregator

@@ -14,7 +14,6 @@
 
 from .aggregation import (
     Aggregator,
-    DeviceAggregator,
     SecureAggregator,
     PlainAggregator,
     SPUAggregator,
@@ -24,7 +23,6 @@ from .compare import Comparator, DeviceComparator, PlainComparator, SPUComparato
 
 __all__ = [
     'Aggregator',
-    'DeviceAggregator',
     'SecureAggregator',
     'PlainAggregator',
     'SPUAggregator',

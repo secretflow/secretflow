@@ -1,4 +1,6 @@
 import os
+import sys
+import platform
 import posixpath
 import shutil
 from pathlib import Path
@@ -10,6 +12,16 @@ from setuptools.command import build_ext
 this_directory = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
+
+# Default Linux platform tag
+plat_name = "manylinux2014_x86_64"
+
+if sys.platform == "darwin":
+    # Due to a bug in conda x64 python, platform tag has to be 10_16 for X64 wheel
+    if platform.machine() == "x86_64":
+        plat_name = "macosx_10_16_x86_64"
+    else:
+        plat_name = "macosx_11_0_arm64"
 
 
 def read_requirements():
@@ -88,7 +100,7 @@ class BuildBazelExtension(build_ext.build_ext):
 
 setup(
     name='secretflow',
-    version='0.7.7b1',
+    version='0.7.11b0',
     license='Apache 2.0',
     description='Secret Flow',
     long_description=long_description,
@@ -107,4 +119,5 @@ setup(
     cmdclass=dict(
         build_ext=BuildBazelExtension, clean=CleanCommand, cleanall=CleanCommand
     ),
+    options={'bdist_wheel': {'plat_name': plat_name}}
 )

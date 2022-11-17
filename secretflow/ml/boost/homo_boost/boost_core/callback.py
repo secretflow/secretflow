@@ -21,11 +21,11 @@ import secretflow.device.link as link
 
 
 class FedCallbackContainer(CallbackContainer):
-    '''Federate版本，封装xgboostCallbackContainer.
+    '''Federate version, encapsulates xgboostCallbackContainer.
     Attributes:
-        callbacks: 训练回调函数列表
-        metric: eval函数 callable
-        is_cv: 是否在做cross validation
+        callbacks: list of training callback functions
+        metric: eval function callable
+        is_cv: whether to do cross validation
     '''
 
     EvalsLog = TrainingCallback.EvalsLog
@@ -52,14 +52,14 @@ class FedCallbackContainer(CallbackContainer):
         return key
 
     def after_iteration(self, model, epoch, dtrain, evals) -> bool:
-        """在训练迭代后调用的函数.
+        """A function to call after training iterations.
         Args:
-            model: xgboost booster对象，存储训练的参数以及状态
-            epoch: 迭代轮数
-            dtrain: DMatrix xgboost格式训练数据
-            evals: List[(DMatrix, string)]需要评估的数据列表
+            model: xgboost booster object, which stores training parameters and states
+            epoch: number of iteration rounds
+            dtrain: DMatrix xgboost format training data
+            evals: List[(DMatrix, string)] List of data to evaluate
         Returns:
-            ret: 训练是否应该终止，如果callbacks有执行成功的返回true（eg：EarlyStop返回True，训练提前终止）
+            ret: Whether the training should be terminated, if the callbacks are successfully executed, return true (eg: EarlyStop returns True, the training is terminated early)
         """
         if self.is_cv:
             scores = model.eval(epoch, self.metric)
@@ -67,7 +67,7 @@ class FedCallbackContainer(CallbackContainer):
             self.aggregated_cv = scores
             self._update_history(scores, epoch)
         else:
-            if dtrain is not None:  # 接口需要，不能删
+            if dtrain is not None:  # required and cannot delete
                 pass
             evals = [] if evals is None else evals
             for _, name in evals:

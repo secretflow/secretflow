@@ -23,7 +23,7 @@ def encode(m: np.ndarray, fxp_bits: int) -> np.ndarray:
 
     Args:
         m (np.ndarray): the ndarray to encode.
-        fraction_precesion (int): keep how many decimal digits after the dot.
+        fraction_precision (int): keep how many decimal digits after the dot.
             Must provide if ndarray dtype is float.
 
     Returns:
@@ -46,7 +46,7 @@ def encode(m: np.ndarray, fxp_bits: int) -> np.ndarray:
 
 def decode(m: np.ndarray, fxp_bits: int) -> np.ndarray:
     """Decode ndarray from uint64 finite field to the float.
-    Fraction precesion shall be corresponding to encoding fraction precesion.
+    Fraction precision shall be corresponding to encoding fraction precision.
 
     Args:
         m (np.ndarray): the ndarray to decode.
@@ -58,6 +58,6 @@ def decode(m: np.ndarray, fxp_bits: int) -> np.ndarray:
     """
     assert isinstance(m, np.ndarray), f'Support ndarray only but got {type(m)}'
     assert m.dtype == np.uint64, f'Ndarray dtype must be uint but got {m.dtype}'
-    assert fxp_bits is not None, f'Fraction precesion must not be None.'
-    # Convert to int for restoring the negetives.
+    assert fxp_bits is not None, f'Fraction precision must not be None.'
+    # Convert to int for restoring the negatives.
     return m.astype(np.int64) / (1 << fxp_bits)

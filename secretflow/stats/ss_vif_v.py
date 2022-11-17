@@ -21,7 +21,7 @@ import secretflow as sf
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import SPU
 from secretflow.preprocessing.scaler import StandardScaler
-from .utils import newton_matrix_inverse
+from .core.utils import newton_matrix_inverse
 
 
 class VIF:

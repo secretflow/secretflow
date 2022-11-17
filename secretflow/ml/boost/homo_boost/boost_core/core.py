@@ -25,12 +25,11 @@ from secretflow.data.split import train_test_split
 from secretflow.ml.boost.homo_boost.homo_decision_tree import HomoDecisionTree
 from secretflow.ml.boost.homo_boost.tree_param import TreeParam
 from secretflow.utils.errors import InvalidArgumentError
-from xgboost.compat import STRING_TYPES
 
 
 class FedBooster(xgb_core.Booster):
-    """Fed版本Booster。
-    内部实现，不建议用户直接调用！！！
+    """Federated Booster internal
+    Internal implementation, it is not recommended for users to call directly! ! !
 
     Attributes:
         params : Parameters for boosters.
@@ -61,6 +60,7 @@ class FedBooster(xgb_core.Booster):
         super(FedBooster, self).__init__(
             params=params, cache=cache, model_file=model_file
         )
+        self.save_model(self.model_path)
 
     def federate_update(
         self,
@@ -72,20 +72,20 @@ class FedBooster(xgb_core.Booster):
         fobj: Callable = None,
     ):
         """
-        联邦更新函数，同xgboost中的update
+        federated update function, a variant in xgboost update
         Args:
-            params: 训练参数字典
-            dtrain: dmatrix格式的训练数据
-            hdata: HdataFrame格式的训练数据
-            bin_split_points: 全局分桶点
-            iter_round: 迭代轮数
-            fobj: 自定义评估函数
+            params: Training params dict
+            dtrain: Training data in dmatrix format
+            hdata: Training data in HdataFrame format
+            bin_split_points: Global split point
+            iter_round: Iteration rounds
+            fobj: Custom evaluation function
 
         """
         if not isinstance(dtrain, xgb_core.DMatrix):
             raise TypeError('invalid training matrix: {}'.format(type(dtrain).__name__))
         self._validate_features(dtrain)
-        # 创建FedTrain tree_params
+        # Create tree_params
         tree_param = TreeParam(
             max_depth=params['max_depth'] if 'max_depth' in params else 3,
             eta=params['eta'] if 'eta' in params else 0.3,
@@ -108,7 +108,7 @@ class FedBooster(xgb_core.Booster):
             decimal=params['decimal'] if 'decimal' in params else 10,
             num_class=params['num_class'] if 'num_class' in params else 0,
         )
-        # 行采样
+        # sample by row
         if tree_param.subsample < 1.0:
             train_data, _ = train_test_split(
                 hdata, ratio=tree_param.subsample, random_state=tree_param.random_state
@@ -120,7 +120,7 @@ class FedBooster(xgb_core.Booster):
         grad, hess = fobj(pred, dtrain)
         group_num = numpy.expand_dims(pred, axis=-1).shape[1]
 
-        # 单线程
+        # single thread
         if group_num > 2:
             assert params['objective'] in [
                 "multi:softmax",
@@ -166,14 +166,13 @@ class FedBooster(xgb_core.Booster):
         """Save the model to a file.
 
         Attributes:
-            fname : string or os.PathLike 模型路径，如果后缀是json，存储json格式模型
+            fname : string or os.PathLike, model path, if the suffix is json, store the model in json format
 
         """
-        if isinstance(fname, (STRING_TYPES, os.PathLike)):  # assume file name
+        if isinstance(fname, (str, os.PathLike)):  # assume file name
             fname = os.fspath(os.path.expanduser(fname))
             xgb_core._check_call(
                 xgb_core._LIB.XGBoosterSaveModel(self.handle, xgb_core.c_str(fname))
             )
-            os.remove(self.model_path)
         else:
             raise TypeError("fname must be a string or os PathLike")

@@ -171,6 +171,9 @@ class VertWoeBinning:
                 master_audit_log_path = audit_log_path[master_device.party]
 
         workers: Dict[PYU, VertWoeBinningPyuWorker] = {}
+        if master_device not in bin_names:
+            bin_names[master_device] = list()
+
         for device in bin_names:
             assert (
                 device in vdata.partitions.keys()

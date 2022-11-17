@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from .mechanism.tensorflow.layers import (
-    EmbeddingDP,
     GaussianEmbeddingDP,
     LabelDP,
 )
@@ -27,6 +26,7 @@ from .strategy_fl import DPStrategyFL
 
 __all__ = [
     'GaussianEmbeddingDP',
+    'GaussianModelDP',
     'LabelDP',
     'GaussianModelGsDP',
     'DPStrategy',

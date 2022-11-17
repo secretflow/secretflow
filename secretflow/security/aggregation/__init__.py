@@ -13,14 +13,12 @@
 # limitations under the License.
 
 from .aggregator import Aggregator
-from .device_aggregator import DeviceAggregator
 from .plain_aggregator import PlainAggregator
 from .spu_aggregator import SPUAggregator
 from .secure_aggregator import SecureAggregator
 
 __all__ = [
     'Aggregator',
-    'DeviceAggregator',
     'SecureAggregator',
     'PlainAggregator',
     'SPUAggregator',

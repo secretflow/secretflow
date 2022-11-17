@@ -4,6 +4,9 @@ build:
   os: ubuntu-20.04
   tools:
     python: "3.8"
+  jobs:
+    pre_build:
+      - SPHINX_APIDOC_OPTIONS=members,autosummary sphinx-apidoc -f -d 2 -t docs/templates -o docs/source ./secretflow/
 
 sphinx:
   configuration: docs/conf.py

@@ -123,6 +123,27 @@ class OneHotEncoder:
     Just same as :py:class:`sklearn.preprocessing.OneHotEncoder`
     where the input/ouput is federated dataframe.
 
+    Note: min_frequency and max_categories are calculated by partition,
+        so they are only available for vertical scenarios currently.
+
+    Args:
+        min_frequency: int or float, default=None
+            Specifies the minimum frequency below which a category will be
+            considered infrequent.
+
+            - If `int`, categories with a smaller cardinality will be considered
+            infrequent.
+
+            - If `float`, categories with a smaller cardinality than
+            `min_frequency * n_samples`  will be considered infrequent.
+
+        max_categories: int, default=None
+            Specifies an upper limit to the number of output features for each input
+            feature when considering infrequent categories. If there are infrequent
+            categories, `max_categories` includes the category representing the
+            infrequent categories along with the frequent categories. If `None`,
+            there is no limit to the number of output features.
+
     Attributes:
         _encoder: the sklearn OneHotEncoder instance.
 
@@ -132,6 +153,10 @@ class OneHotEncoder:
         >>> enc.fit(df)
         >>> enc.transform(df)
     """
+
+    def __init__(self, min_frequency=None, max_categories=None):
+        self.min_frequency = min_frequency
+        self.max_categories = max_categories
 
     @staticmethod
     def _fill_categories(categories: Dict[str, np.array]):
@@ -148,13 +173,16 @@ class OneHotEncoder:
         feature_names_in = []
 
         def _df_fit(df: pd.DataFrame):
-            encoder = SkOneHotEncoder()
+            encoder = SkOneHotEncoder(min_frequency=self.min_frequency, max_categories=self.max_categories)
             encoder.fit(df)
             return encoder
 
-        encoders = reveal(
-            [device(_df_fit)(part.data) for device, part in df.partitions.items()]
-        )
+        # reuse these encoders when min_frequency or max_categories are set
+        self._encoders = {device: device(_df_fit)(part.data) for device, part in df.partitions.items()}
+        if self.min_frequency or self.max_categories:
+            return None
+
+        encoders = reveal(list(self._encoders.values()))
         for encoder in encoders:
             if isinstance(df, HDataFrame):
                 if len(feature_names_in) == 0:
@@ -179,6 +207,11 @@ class OneHotEncoder:
     ) -> Union[HDataFrame, VDataFrame, MixDataFrame]:
         """Fit this encoder with X."""
         _check_dataframe(df)
+        if self.min_frequency or self.max_categories:
+            assert (
+                isinstance(df, VDataFrame)
+            ), f'Args min_frequency/max_categories are only supported in VDataFrame'
+
         if isinstance(df, (HDataFrame, VDataFrame)):
             categories = self._fit(df)
         else:
@@ -190,6 +223,11 @@ class OneHotEncoder:
                         categories[feature] = np.append(categories[feature], category)
                     else:
                         categories[feature] = category
+
+        self._fitted = True
+        if categories is None:
+            return
+
         self._fill_categories(categories)
 
         self._encoder = SkOneHotEncoder()
@@ -206,17 +244,21 @@ class OneHotEncoder:
             )
 
         for device, part in df.partitions.items():
-            mask = np.in1d(
-                self._encoder.feature_names_in_, part.dtypes.index, assume_unique=True
-            )
-            encoder = SkOneHotEncoder()
-            categories = {
-                self._encoder.feature_names_in_[i]: self._encoder.categories_[i]
-                for i, exist in enumerate(mask)
-                if exist
-            }
-            self._fill_categories(categories)
-            encoder.fit(pd.DataFrame(categories))
+            if self.min_frequency or self.max_categories:
+                # reuse encoder when min_frequency or max_categories are set
+                encoder = self._encoders[device]
+            else:
+                encoder = SkOneHotEncoder()
+                mask = np.in1d(
+                    self._encoder.feature_names_in_, part.dtypes.index, assume_unique=True
+                )
+                categories = {
+                    self._encoder.feature_names_in_[i]: self._encoder.categories_[i]
+                    for i, exist in enumerate(mask)
+                    if exist
+                }
+                self._fill_categories(categories)
+                encoder.fit(pd.DataFrame(categories))
             transformed_parts[device] = Partition(device(_encode)(encoder, part.data))
         new_df = df.copy()
         new_df.partitions = transformed_parts
@@ -226,7 +268,7 @@ class OneHotEncoder:
         self, df: Union[HDataFrame, VDataFrame, MixDataFrame]
     ) -> Union[HDataFrame, VDataFrame, MixDataFrame]:
         """Transform X using one-hot encoding."""
-        assert hasattr(self, '_encoder'), 'Encoder has not been fit yet.'
+        assert hasattr(self, '_fitted'), 'Encoder has not been fit yet.'
         _check_dataframe(df)
         if isinstance(df, (HDataFrame, VDataFrame)):
             return self._transform(df)

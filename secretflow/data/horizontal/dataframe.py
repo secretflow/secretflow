@@ -157,6 +157,22 @@ class HDataFrame(DataFrameBase):
             dtype=np.float64,
         )
 
+    def sum(self, *args, **kwargs) -> pd.Series:
+        """
+        Return the sum of the values over the requested axis.
+
+        All arguments are same with :py:meth:`pandas.DataFrame.sum`.
+
+        Returns:
+            pd.Series
+        """
+        assert self.aggregator is not None, 'Aggregator should be provided for sum.'
+        sums = [part.sum(*args, **kwargs) for part in self.partitions.values()]
+        return pd.Series(
+            reveal(self.aggregator.sum([s.values for s in sums], axis=0)),
+            index=sums[0].index,
+        )
+
     def count(self, *args, **kwargs) -> pd.Series:
         """Count non-NA cells for each column or row.
 
@@ -172,6 +188,50 @@ class HDataFrame(DataFrameBase):
             index=cnts[0].index,
             dtype=np.int64,
         )
+
+    def isna(self) -> 'HDataFrame':
+        """Detects missing values for an array-like object.
+        Same as pandas.DataFrame.isna
+        Returns
+            DataFrame: Mask of bool values for each element in DataFrame
+                 that indicates whether an element is an NA value.
+
+        Returns:
+            VDataFrame
+
+        Reference:
+            pd.DataFrame.isna
+        """
+        return HDataFrame(
+            {pyu: part.isna() for pyu, part in self.partitions.items()},
+            aggregator=self.aggregator,
+            comparator=self.comparator,
+        )
+
+    # TODO(zoupeicheng.zpc): Schedule to implement horizontal and mix case functionality.
+    def quantile(self, q=0.5, axis=0):
+        raise NotImplementedError
+
+    def kurtosis(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def skew(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def sem(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def std(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def var(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def replace(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def mode(self, *args, **kwargs):
+        raise NotImplementedError
 
     @property
     def values(self) -> FedNdarray:

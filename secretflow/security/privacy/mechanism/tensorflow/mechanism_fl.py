@@ -114,9 +114,8 @@ class GaussianModelDP:
                     )
 
                 model_weights_noised.append(
-                    tf.add(gradient_clipped, noise / np.sqrt(self.num_updates))
+                    np.add(gradient_clipped, noise / np.sqrt(self.num_updates))
                 )
-
         return model_weights_noised
 
     def privacy_spent_rdp(self, step: int, orders: List = None):

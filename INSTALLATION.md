@@ -44,7 +44,7 @@ export version={SecretFlow version}
 
 for example
 ```bash
-export version=0.6.13b1
+export version=0.7.11b0
 ```
 
 then run the image.
@@ -58,7 +58,7 @@ docker run -it secretflow/secretflow-anolis8:${version}
 1. Download code and set up Python virtual environment.
 
 ```sh
-git clone https://github.com/secretflow/secretflow.git) https://github.com/secretflow/secretflow.git
+git clone https://github.com/secretflow/secretflow.git
 cd secretflow
 
 conda create -n secretflow python=3.8

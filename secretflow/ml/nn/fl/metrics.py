@@ -19,9 +19,8 @@
 from dataclasses import dataclass
 from typing import List
 from abc import ABC, abstractmethod
+import logging
 
-import tensorflow as tf
-from tensorflow.python.keras.utils.metrics_utils import AUCCurve
 
 # The reason we just do not inherit or combine tensorflow metrics
 # is tensorflow metrics are un-serializable but we need send they from worker to server.
@@ -39,6 +38,34 @@ class Metric(ABC):
     @abstractmethod
     def __add__(self, other):
         pass
+
+
+@dataclass
+class Default(Metric):
+    name: str
+    total: float
+    count: float
+
+    def __add__(self, other):
+        assert self.name == other.name
+        total = self.total + other.total
+        count = self.count + other.count
+        return Default(self.name, total, count)
+
+    def __radd__(self, other):
+        assert other == 0
+        return Default(self.name, self.total, self.count)
+
+    def result(self):
+        logging.warn(
+            "Please pay attention to local metrics, global only do naive aggregation "
+        )
+        import tensorflow as tf
+
+        metric = tf.keras.metrics.Mean()
+        metric.total = self.total
+        metric.count = self.count
+        return metric.result()
 
 
 @dataclass
@@ -65,13 +92,14 @@ class Mean(Metric):
         return Mean(self.name, total, count)
 
     def result(self):
+        import tensorflow as tf
+
         metric = tf.keras.metrics.Mean()
         metric.total = self.total
         metric.count = self.count
         return metric.result()
 
 
-@dataclass
 class AUC(Metric):
     """Federated keras.metrics.AUC
 
@@ -84,13 +112,28 @@ class AUC(Metric):
         curve: type of AUC curve, same to 'tf.keras.metrics.AUC', it can be 'ROC' or 'PR'.
     """
 
-    name: str
-    thresholds: List[float]
-    true_positives: List[float]
-    true_negatives: List[float]
-    false_positives: List[float]
-    false_negatives: List[float]
-    curve: AUCCurve = AUCCurve.ROC
+    def __init__(
+        self,
+        name: str,
+        thresholds: List[float],
+        true_positives: List[float],
+        true_negatives: List[float],
+        false_positives: List[float],
+        false_negatives: List[float],
+        curve=None,
+    ):
+        self.name = name
+        self.thresholds = thresholds
+        self.true_positives = true_positives
+        self.true_negatives = true_negatives
+        self.false_positives = false_positives
+        self.false_negatives = false_negatives
+        if curve is not None:
+            self.curve = curve
+        else:
+            from tensorflow.python.keras.utils.metrics_utils import AUCCurve
+
+            self.curve: AUCCurve = AUCCurve.ROC
 
     def __radd__(self, other):
         assert other == 0
@@ -125,6 +168,8 @@ class AUC(Metric):
         )
 
     def result(self):
+        import tensorflow as tf
+
         # 由于tf.keras.metrics.AUC会默认给thresholds添加{-epsilon, 1+epsilon}两个边界值，因此这里需要去掉两个边界点。
         metric = tf.keras.metrics.AUC(
             thresholds=self.thresholds[1:-1], curve=self.curve
@@ -165,6 +210,8 @@ class Precision(Metric):
         return Precision(self.name, thresholds, true_positives, false_positives)
 
     def result(self):
+        import tensorflow as tf
+
         metric = tf.keras.metrics.Precision()
         metric.thresholds = self.thresholds
         metric.true_positives = self.true_positives
@@ -202,6 +249,8 @@ class Recall(Metric):
         return Recall(self.name, thresholds, true_positives, false_negatives)
 
     def result(self):
+        import tensorflow as tf
+
         metric = tf.keras.metrics.Recall()
         metric.thresholds = self.thresholds
         metric.true_positives = self.true_positives

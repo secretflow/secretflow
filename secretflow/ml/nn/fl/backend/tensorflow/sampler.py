@@ -18,9 +18,11 @@
 
 import logging
 import math
+
 import numpy as np
 import tensorflow as tf
-from secretflow.data.horizontal import PoissonDataSampler
+
+from secretflow.data.horizontal.sampler import PoissonDataSampler
 
 
 def batch_sampler(

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from dataclasses import dataclass
-from typing import Dict, List, Union
+from typing import Callable, Dict, List, Union
 
 import pandas as pd
 from pandas.core.indexes.base import Index
@@ -79,37 +79,153 @@ class VDataFrame(DataFrameBase):
     aligned: bool = True
 
     def _check_parts(self):
-        assert self.partitions, 'Partitions in the dataframe is None or empty.'
+        assert self.partitions, 'Partitions in the VDataFrame is None or empty.'
 
-    def min(self, *args, **kwargs) -> pd.Series:
+    def __concat_reveal_apply(self, fn: Callable, *args, **kwargs) -> pd.Series:
+        """Helper function to concatenate the revealed results of fn applied on each partition.
+
+        Args:
+            fn: Callable.
+                A function that
+                    takes partition with additional args and kwargs,
+                    and returns a Partition object
         """
-        Return the min of the values over the requested axis.
+        return pd.concat(
+            reveal(
+                [fn(part, *args, **kwargs).data for part in self.partitions.values()]
+            )
+        )
 
-        All arguments are same with :py:meth:`pandas.DataFrame.min`.
+    def __part_apply(self, fn, *args, **kwargs) -> 'VDataFrame':
+        """Helper function to generate a new VDataFrame by applying fn on each partition.
+        Args:
+            fn: Callable.
+                A function that
+                takes partition with additional args and kwargs,
+                    and returns a Partition object
+        """
+
+        # Note the [par.columns] is here to make sure alice does not see bob's columns.
+        # and it is only effective for subtract two VDataFrames with the same partitions roles and shapes.∂
+        return VDataFrame(
+            {
+                pyu: fn(part, *args, **kwargs)[part.columns]
+                for pyu, part in self.partitions.items()
+            },
+            self.aligned,
+        )
+
+    def mode(self, numeric_only=False, dropna=True) -> pd.Series:
+        """
+        Return the mode of the values over the axis 0.
+        The mode of a set of values is the value that appears most often.
+        Restrict mode on axis 0 in VDataFrame for data protection reasons.
 
         Returns:
             pd.Series
         """
-        return pd.concat(
-            reveal(
-                [part.min(*args, **kwargs).data for part in self.partitions.values()]
-            )
+        return self.__concat_reveal_apply(
+            Partition.mode, numeric_only=numeric_only, dropna=dropna, axis=0
         )
 
-    def max(self, *args, **kwargs) -> pd.Series:
+    def sum(self, numeric_only=False) -> pd.Series:
         """
-        Return the max of the values over the requested axis.
+        Return the sum of the values over the axis 0.
 
-        All arguments are same with :py:meth:`pandas.DataFrame.max`.
+        Restrict sum on axis 0 in VDataFrame for data protection reasons.
 
         Returns:
             pd.Series
         """
-        return pd.concat(
-            reveal(
-                [part.max(*args, **kwargs).data for part in self.partitions.values()]
-            )
+        return self.__concat_reveal_apply(Partition.sum, numeric_only=numeric_only)
+
+    def min(self, numeric_only=False) -> pd.Series:
+        """
+        Return the min of the values over the axis 0.
+
+        Note columns containing None values are ignored. Fill before proceed.
+
+        Restrict min on axis 0 in VDataFrame for data protection reasons.
+
+        Returns:
+            pd.Series
+        """
+        return self.__concat_reveal_apply(Partition.min, numeric_only=numeric_only)
+
+    def max(self, numeric_only=False) -> pd.Series:
+        """
+        Return the max of the values over the axis 0.
+
+        Note columns containing None values are ignored. Fill before proceed.
+
+        Restrict max on axis 0 in VDataFrame for data protection reasons.
+
+        Returns:
+            pd.Series
+        """
+        return self.__concat_reveal_apply(Partition.max, numeric_only=numeric_only)
+
+    def pow(self, *args, **kwargs) -> 'VDataFrame':
+        """Gets Exponential power of dataframe and other, element-wise (binary operator pow).
+        Equivalent to dataframe ** other, but with support to substitute a fill_value for missing data in one of the inputs.
+        With reverse version, rpow.
+        Among flexible wrappers (add, sub, mul, div, mod, pow) to arithmetic operators: +, -, *, /, //, %, **.
+
+        Returns:
+            VDataFrame
+
+        Reference:
+            pd.DataFrame.pow
+        """
+        return self.__part_apply(Partition.pow, *args, **kwargs)
+
+    def round(self, *args, **kwargs) -> 'VDataFrame':
+        """Round the DataFrame to a variable number of decimal places.
+
+        Returns:
+            VDataFrame: same shape except value rounded
+
+        Reference:
+            pd.DataFrame.round
+        """
+        return self.__part_apply(Partition.round, *args, **kwargs)
+
+    def select_dtypes(self, *args, **kwargs) -> 'VDataFrame':
+        """Returns a subset of the DataFrame's columns based on the column dtypes.
+
+        Reference:
+            pandas.DataFrame.select_dtypes
+        """
+        return VDataFrame(
+            {
+                pyu: part.select_dtypes(*args, **kwargs)
+                for pyu, part in self.partitions.items()
+            },
+            self.aligned,
         )
+
+    def replace(self, *args, **kwargs) -> 'VDataFrame':
+        """Replace values given in to_replace with value.
+        Same as pandas.DataFrame.replace
+        Values of the DataFrame are replaced with other values dynamically.
+
+        Returns:
+            VDataFrame: same shape except value replaced
+        """
+        return self.__part_apply(Partition.replace, *args, **kwargs)
+
+    def subtract(self, *args, **kwargs) -> 'VDataFrame':
+        """Gets Subtraction of dataframe and other, element-wise (binary operator sub).
+        Equivalent to dataframe - other, but with support to substitute a fill_value for missing data in one of the inputs.
+        With reverse version, rsub.
+        Among flexible wrappers (add, sub, mul, div, mod, pow) to arithmetic operators: +, -, *, /, //, %, **.
+
+        Note each part only will contains its own columns.
+
+        Reference:
+            pd.DataFrame.subtract
+        """
+        return self.__part_apply(Partition.subtract, *args, **kwargs)
 
     @property
     def dtypes(self) -> pd.Series:
@@ -173,34 +289,135 @@ class VDataFrame(DataFrameBase):
         shapes = [part.shape for part in self.partitions.values()]
         return (shapes[0][0], sum([shape[1] for shape in shapes]))
 
-    def mean(self, *args, **kwargs) -> pd.Series:
+    def mean(self, numeric_only=False) -> pd.Series:
         """
-        Return the mean of the values over the requested axis.
+        Return the mean of the values over the axis 0.
 
-        All arguments are same with :py:meth:`pandas.DataFrame.mean`.
+        Note columns containing None values are ignored. Fill before proceed.
+
+        Restrict mean on axis 0 in VDataFrame for data protection reasons.
 
         Returns:
             pd.Series
         """
-        return pd.concat(
-            reveal(
-                [part.mean(*args, **kwargs).data for part in self.partitions.values()]
-            )
-        )
+        return self.__concat_reveal_apply(Partition.mean, numeric_only=numeric_only)
 
-    def count(self, *args, **kwargs) -> pd.Series:
-        """Count non-NA cells for each column or row.
+    # TODO(zoupeicheng.zpc): support in HDataFrame is not scheduled yet
+    # TODO(zoupeicheng.zpc): DataFrame variance currently ignore None columns.
+    # However, original pandas ignore None entries!
+    def var(self, numeric_only=False) -> pd.Series:
+        """
+        Return the var of the values over the axis 0.
 
-        All arguments are same with :py:meth:`pandas.DataFrame.count`.
+        Note columns containing None values are ignored. Fill before proceed.
+
+        Restrict var on axis 0 in VDataFrame for data protection reasons.
 
         Returns:
             pd.Series
         """
-        return pd.concat(
-            reveal(
-                [part.count(*args, **kwargs).data for part in self.partitions.values()]
-            )
-        )
+        return self.__concat_reveal_apply(Partition.var, numeric_only=numeric_only)
+
+    # TODO(zoupeicheng.zpc): support in HDataFrame is not scheduled yet
+    # TODO(zoupeicheng.zpc): DataFrame std currently ignore None columns.
+    # However, original pandas ignore None entries!
+    def std(self, numeric_only=False) -> pd.Series:
+        """
+        Return the std of the values over the axis 0.
+
+        Note columns containing None values are ignored. Fill before proceed.
+
+        Restrict std on axis 0 in VDataFrame for data protection reasons.
+
+        Returns:
+            pd.Series
+        """
+        return self.__concat_reveal_apply(Partition.std, numeric_only=numeric_only)
+
+    # TODO(zoupeicheng.zpc): support in HDataFrame is not scheduled yet
+    # TODO(zoupeicheng.zpc): DataFrame sem currently ignore None columns.
+    # However, original pandas ignore None entries!
+    def sem(self, numeric_only=False) -> pd.Series:
+        """
+        Return the standard error of the mean over the axis 0.
+
+        Note columns containing None values are ignored. Fill before proceed.
+
+        Restrict sem on axis 0 in VDataFrame for data protection reasons.
+
+        Returns:
+            pd.Series
+        """
+        return self.__concat_reveal_apply(Partition.sem, numeric_only=numeric_only)
+
+    # TODO(zoupeicheng.zpc): support in HDataFrame is not scheduled yet
+    # TODO(zoupeicheng.zpc): DataFrame skew currently ignore None columns.
+    # However, original pandas ignore None entries!
+    def skew(self, numeric_only=False) -> pd.Series:
+        """
+        Return the skewness over the axis 0.
+
+        Note columns containing None values are ignored. Fill before proceed.
+
+        Restrict skew on axis 0 in VDataFrame for data protection reasons.
+
+        Returns:
+            pd.Series
+        """
+        return self.__concat_reveal_apply(Partition.skew, numeric_only=numeric_only)
+
+    # TODO(zoupeicheng.zpc): support in HDataFrame is not scheduled yet
+    # TODO(zoupeicheng.zpc): DataFrame kurtosis currently ignore None columns.
+    # However, original pandas ignore None entries!
+    def kurtosis(self, numeric_only=False) -> pd.Series:
+        """
+        Return the kurtosis over the requested axis.
+
+        Note columns containing None values are ignored. Fill before proceed.
+
+        Restrict kurtosis on axis 0 in VDataFrame for data protection reasons.
+
+        Returns:
+            pd.Series
+        """
+        return self.__concat_reveal_apply(Partition.kurtosis, numeric_only=numeric_only)
+
+    def quantile(self, q=0.5) -> pd.Series:
+        """Returns values at the given quantile over axis 0.
+
+        Note columns containing None values are ignored. Fill before proceed.
+
+        Restrict quantile on axis 0 in VDataFrame for data protection reasons.
+
+        Returns:
+            pd.Series
+        """
+        return self.__concat_reveal_apply(Partition.quantile, q=q)
+
+    def count(self, numeric_only=False) -> pd.Series:
+        """Count non-NA cells for each column.
+
+        Restrict count on axis 0 in VDataFrame for data protection reasons.
+
+        Returns:
+            pd.Series
+        """
+        return self.__concat_reveal_apply(Partition.count, numeric_only=numeric_only)
+
+    def isna(self) -> 'VDataFrame':
+        """ "Detects missing values for an array-like object.
+        Same as pandas.DataFrame.isna
+        Returns
+            DataFrame: Mask of bool values for each element in DataFrame
+                 that indicates whether an element is an NA value.
+
+        Returns:
+            VDataFrame
+
+        Reference:
+            pd.DataFrame.isna
+        """
+        return self.__part_apply(Partition.isna)
 
     @property
     def values(self):
@@ -222,10 +439,7 @@ class VDataFrame(DataFrameBase):
         Returns:
             VDataFrame.
         """
-        return VDataFrame(
-            partitions={pyu: part.copy() for pyu, part in self.partitions.items()},
-            aligned=self.aligned,
-        )
+        return self.__part_apply(Partition.copy)
 
     def drop(
         self,
@@ -285,20 +499,15 @@ class VDataFrame(DataFrameBase):
                         errors=errors,
                     )
             else:
-                return VDataFrame(
-                    partitions={
-                        pyu: part.drop(
-                            labels=labels,
-                            axis=axis,
-                            index=index,
-                            columns=columns,
-                            level=level,
-                            inplace=inplace,
-                            errors=errors,
-                        )
-                        for pyu, part in self.partitions.items()
-                    },
-                    aligned=self.aligned,
+                return self.__part_apply(
+                    Partition.drop,
+                    labels=labels,
+                    axis=axis,
+                    index=index,
+                    columns=columns,
+                    level=level,
+                    inplace=inplace,
+                    errors=errors,
                 )
 
     def fillna(
@@ -328,19 +537,14 @@ class VDataFrame(DataFrameBase):
                     downcast=downcast,
                 )
         else:
-            return VDataFrame(
-                partitions={
-                    pyu: part.fillna(
-                        value=value,
-                        method=method,
-                        axis=axis,
-                        inplace=inplace,
-                        limit=limit,
-                        downcast=downcast,
-                    )
-                    for pyu, part in self.partitions.items()
-                },
-                aligned=self.aligned,
+            return self.__part_apply(
+                Partition.fillna,
+                value=value,
+                method=method,
+                axis=axis,
+                inplace=inplace,
+                limit=limit,
+                downcast=downcast,
             )
 
     def to_csv(self, fileuris: Dict[PYU, str], **kwargs):
@@ -366,7 +570,7 @@ class VDataFrame(DataFrameBase):
     def __len__(self):
         """Return the max length if not aligned."""
         parts = list(self.partitions.values())
-        assert parts, 'No partitions in vdataframe.'
+        assert parts, 'No partitions in VDataFrame.'
         return max([len(part) for part in parts])
 
     def _col_index(self, col) -> Dict[Device, Union[str, List[str]]]:

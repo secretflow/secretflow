@@ -6,7 +6,7 @@ from secretflow.data.base import Partition
 from secretflow.data.horizontal.dataframe import HDataFrame
 from secretflow.data.mix import MixDataFrame
 from secretflow.data.vertical import VDataFrame
-from secretflow.security.aggregation import DeviceAggregator
+from secretflow.security.aggregation import PlainAggregator
 from secretflow.security.compare import PlainComparator
 from secretflow.utils.errors import InvalidArgumentError
 
@@ -53,7 +53,7 @@ class TestHMixDataFrame(DeviceTestCase):
                 cls.alice: Partition(data=cls.alice(lambda: df_part0.iloc[:4, :])()),
                 cls.bob: Partition(data=cls.bob(lambda: df_part0.iloc[4:, :])()),
             },
-            aggregator=DeviceAggregator(cls.carol),
+            aggregator=PlainAggregator(cls.carol),
             comparator=PlainComparator(cls.carol),
         )
         cls.v_part1 = HDataFrame(
@@ -61,7 +61,7 @@ class TestHMixDataFrame(DeviceTestCase):
                 cls.alice: Partition(data=cls.alice(lambda: df_part1.iloc[:4, :])()),
                 cls.bob: Partition(data=cls.bob(lambda: df_part1.iloc[4:, :])()),
             },
-            aggregator=DeviceAggregator(cls.carol),
+            aggregator=PlainAggregator(cls.carol),
             comparator=PlainComparator(cls.carol),
         )
         cls.v_mix = MixDataFrame(partitions=[cls.v_part0, cls.v_part1])

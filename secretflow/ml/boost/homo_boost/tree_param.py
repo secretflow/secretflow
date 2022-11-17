@@ -18,11 +18,11 @@ from typing import Union
 
 @dataclass()
 class TreeParam:
-    """参数类, 对外暴露的接口
+    """Param class, externally exposed interface
     Attributes:
         max_depth :  the max depth of a decision tree.
         eta : learning rate, same as xgb's "eta"
-        verbosity : int 日志打印的级别. Valid values are 0 (silent) - 3 (debug).
+        verbosity : int level of log printing. Valid values are 0 (silent) - 3 (debug).
         objective : Optional[callable , str] objective function, default 'squareloss'
         tree_method: Optional[str] tree type, only support hist
         criterion_method: str split criterion method, default xgboost

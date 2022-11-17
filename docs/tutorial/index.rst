@@ -39,3 +39,15 @@ We hope you enjoy these toturials from SecretFlow developers.
    Split_Learning_for_bank_marketing
    split_learning_gnn
    mix_lr
+
+.. toctree::
+   :maxdepth: 1
+   :caption: 场景方案
+
+   risk_control_scenario
+
+.. toctree::
+   :maxdepth: 1
+   :caption: 培训资料
+   
+   practical_case_walkthrough_using_sf_with_spu

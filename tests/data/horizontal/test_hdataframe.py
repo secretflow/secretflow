@@ -130,6 +130,26 @@ class TestHDataFrame(DeviceTestCase):
         expected = self.df_alice.count() + self.df_bob.count()
         pd.testing.assert_series_equal(count, expected)
 
+    def test_count_na_with_plain_aggr_should_ok(self):
+        # WHEN
+        # Note currently, our device execution may result in different types
+        # compared to original pandas, like int32 not int64
+        count = self.df_plain.isna().sum().astype(np.int64)
+
+        # THEN
+        expected = self.df_alice.isna().sum() + self.df_bob.isna().sum()
+        pd.testing.assert_series_equal(count, expected)
+
+    def test_count_na_with_spu_aggr_should_ok(self):
+        # WHEN
+        # Note currently, our device execution may result in different types
+        # compared to original pandas, like int32 not int64
+        count = self.df_spu.isna().sum().astype(np.int64)
+
+        # THEN
+        expected = self.df_alice.isna().sum() + self.df_bob.isna().sum()
+        pd.testing.assert_series_equal(count, expected)
+
     def test_len_should_ok(self):
         # WHEN
         length = len(self.df_plain)

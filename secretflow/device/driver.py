@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 from functools import wraps
 from typing import Any, Iterable, List, Optional, Tuple, Union
 
@@ -185,16 +186,20 @@ def init(
     address: Optional[str] = None,
     num_cpus: Optional[int] = None,
     log_to_driver=False,
+    omp_num_threads: int = None,
     **kwargs,
 ):
     """Connect to an existing Ray cluster or start one and connect to it.
 
     Args:
         parties: parties this node represents, e.g: 'alice', ['alice', 'bob', 'carol'].
-        address:  The address of the Ray cluster to connect to. If this address is not provided, then this command will
-        start Redis, a raylet, a plasma store, a plasma manager, and some workers.
+        address:  The address of the Ray cluster to connect to. If this address
+            is not provided, then a raylet, a plasma store, a plasma manager,
+            and some workers will be started.
         num_cpus: Number of CPUs the user wishes to assign to each raylet.
         log_to_driver: Whether direct output of worker processes on all nodes to driver.
+        omp_num_threads: set environment variable `OMP_NUM_THREADS`. It works only when
+            address is None.
         **kwargs: see :py:meth:`ray.init` parameters.
     """
     resources = None
@@ -212,6 +217,8 @@ def init(
 
         resources = {party: num_cpus for party in parties}
 
+    if not address and omp_num_threads:
+        os.environ['OMP_NUM_THREADS'] = f'{omp_num_threads}'
     ray.init(
         address,
         num_cpus=num_cpus,

@@ -53,11 +53,11 @@ class TestVDataFrameIO(DeviceTestCase):
                 pass
 
     def test_read_csv(self):
-        df = read_csv(self.filepath, spu=self.spu, keys='c1', drop_keys=False)
-
-        expected_alice = pd.DataFrame(
-            {'c1': ['K1', 'K3', 'K4'], 'c2': ['A1', 'A3', 'A4'], 'c3': [1, 3, 4]}
+        df = read_csv(
+            self.filepath, spu=self.spu, keys='c1', drop_keys={self.alice: 'c1'}
         )
+
+        expected_alice = pd.DataFrame({'c2': ['A1', 'A3', 'A4'], 'c3': [1, 3, 4]})
         df_alice = reveal(df.partitions[self.alice].data)
         pd.testing.assert_frame_equal(df_alice.reset_index(drop=True), expected_alice)
 
@@ -68,7 +68,7 @@ class TestVDataFrameIO(DeviceTestCase):
         pd.testing.assert_frame_equal(df_bob.reset_index(drop=True), expected_bob)
 
     def test_read_csv_drop_keys(self):
-        df = read_csv(self.filepath, spu=self.spu, keys='c1', drop_keys=True)
+        df = read_csv(self.filepath, spu=self.spu, keys='c1', drop_keys='c1')
 
         expected = pd.DataFrame({'c2': ['A1', 'A3', 'A4'], 'c3': [1, 3, 4]})
         pd.testing.assert_frame_equal(
@@ -82,11 +82,11 @@ class TestVDataFrameIO(DeviceTestCase):
 
     def test_read_csv_with_dtypes(self):
         dtypes = {
-            self.alice: {'c1': np.str, 'c2': np.str},
-            self.bob: {'c1': np.str, 'c5': np.int64},
+            self.alice: {'c1': str, 'c2': str},
+            self.bob: {'c1': str, 'c5': np.int64},
         }
         df = read_csv(
-            self.filepath, spu=self.spu, keys='c1', dtypes=dtypes, drop_keys=True
+            self.filepath, spu=self.spu, keys='c1', dtypes=dtypes, drop_keys='c1'
         )
 
         expected = pd.DataFrame({'c2': ['A1', 'A3', 'A4']})
@@ -101,12 +101,12 @@ class TestVDataFrameIO(DeviceTestCase):
 
     def test_read_csv_mismatch_dtypes(self):
         dtypes = {
-            self.alice: {'c1': np.str, 'c6': np.str},
-            self.bob: {'c1': np.str, 'c5': np.int64},
+            self.alice: {'c1': str, 'c6': str},
+            self.bob: {'c1': str, 'c5': np.int64},
         }
         with self.assertRaisesRegex(ValueError, 'Usecols do not match columns'):
             read_csv(
-                self.filepath, spu=self.spu, keys='c1', dtypes=dtypes, drop_keys=True
+                self.filepath, spu=self.spu, keys='c1', dtypes=dtypes, drop_keys='c1'
             )
 
         # reset spu to clear corrupted state
@@ -137,7 +137,44 @@ class TestVDataFrameIO(DeviceTestCase):
 
         filepath = {self.alice: path1, self.bob: path2}
         with self.assertRaisesRegex(AssertionError, 'duplicate in multiple devices'):
-            read_csv(filepath, spu=self.spu, keys='c1', drop_keys=True)
+            read_csv(filepath, spu=self.spu, keys='c1', drop_keys='c1')
+
+        for path in filepath.values():
+            os.remove(path)
+
+    def test_read_csv_drop_keys_out_of_scope(self):
+        df1 = pd.DataFrame(
+            {
+                'c1': ['K5', 'K1', 'K2', 'K6', 'K4', 'K3'],
+                'c2': ['A5', 'A1', 'A2', 'A6', 'A4', 'A3'],
+                'c3': [5, 1, 2, 6, 4, 3],
+            }
+        )
+
+        df2 = pd.DataFrame(
+            {
+                'c1': ['K3', 'K1', 'K9', 'K4'],
+                'c2': ['B3', 'B1', 'B9', 'B4'],
+                'c5': [3, 1, 9, 4],
+            }
+        )
+
+        _, path1 = tempfile.mkstemp()
+        _, path2 = tempfile.mkstemp()
+
+        df1.to_csv(path1, index=False)
+        df2.to_csv(path2, index=False)
+
+        filepath = {self.alice: path1, self.bob: path2}
+        with self.assertRaisesRegex(
+            AssertionError, 'can not find on device_psi_key_set of device'
+        ):
+            read_csv(
+                filepath,
+                spu=self.spu,
+                keys=['c1', 'c2'],
+                drop_keys={self.alice: ['c1', 'c3'], self.bob: ['c2']},
+            )
 
         for path in filepath.values():
             os.remove(path)
@@ -155,8 +192,8 @@ class TestVDataFrameIO(DeviceTestCase):
 
         filepath = {self.alice: path1, self.bob: path2}
         dtypes = {
-            self.alice: {'c2': np.str, 'c3': np.int64},
-            self.bob: {'c4': np.str, 'c5': np.int64},
+            self.alice: {'c2': str, 'c3': np.int64},
+            self.bob: {'c4': str, 'c5': np.int64},
         }
         df = read_csv(filepath, dtypes=dtypes)
 
@@ -184,8 +221,8 @@ class TestVDataFrameIO(DeviceTestCase):
 
         filepath = {self.alice: path1, self.bob: path2}
         dtypes = {
-            self.alice: {'c2': np.str, 'c3': np.int64},
-            self.bob: {'c4': np.str, 'c5': np.int64},
+            self.alice: {'c2': str, 'c3': np.int64},
+            self.bob: {'c4': str, 'c5': np.int64},
         }
         with self.assertRaisesRegex(AssertionError, 'number of samples must be equal'):
             read_csv(filepath, dtypes=dtypes)

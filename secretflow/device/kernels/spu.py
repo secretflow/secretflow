@@ -68,7 +68,7 @@ def spu_to_heu(self: SPUObject, heu: HEU, config):
 
     # TODO(@xibin.wxb): support pytree
     shards = {
-        p: actor.a2h.remote(ref, heu.cleartext_type)
+        p: actor.a2h.remote(ref, heu.cleartext_type, heu.schema)
         for (p, actor), ref in zip(self.device.actors.items(), self.shares)
     }
     shards = [
@@ -93,6 +93,7 @@ def psi_df(
     sort=True,
     broadcast_result=True,
     bucket_size=1 << 20,
+    curve_type="CURVE_25519",
 ) -> List[PYUObject]:
     assert isinstance(device, SPU), f'device must be SPU device'
     assert isinstance(
@@ -127,6 +128,7 @@ def psi_df(
                     sort,
                     broadcast_result,
                     bucket_size,
+                    curve_type,
                 ),
             )
         )
@@ -146,6 +148,7 @@ def psi_csv(
     sort=True,
     broadcast_result=True,
     bucket_size=1 << 20,
+    curve_type="CURVE_25519",
 ):
     assert isinstance(device, SPU), f'device must be SPU device'
     assert isinstance(
@@ -202,6 +205,7 @@ def psi_csv(
                     sort,
                     broadcast_result,
                     bucket_size,
+                    curve_type,
                 )
             )
     else:
@@ -220,6 +224,152 @@ def psi_csv(
                     sort,
                     broadcast_result,
                     bucket_size,
+                    curve_type,
+                )
+            )
+
+    # wait for all tasks done
+    return ray.get(res)
+
+
+@register(DeviceType.SPU)
+def psi_join_df(
+    device: SPU,
+    key: Union[str, List[str], Dict[Device, List[str]]],
+    dfs: List['PYUObject'],
+    receiver: str,
+    join_party: str,
+    protocol='KKRT_PSI_2PC',
+    precheck_input=True,
+    bucket_size=1 << 20,
+    curve_type="CURVE_25519",
+) -> List[PYUObject]:
+    assert isinstance(device, SPU), f'device must be SPU device'
+    assert isinstance(
+        key, (str, List, Dict)
+    ), f'invalid key, must be str of list of str or dict of str list'
+    assert len(set([df.device for df in dfs])) == len(
+        dfs
+    ), f'dataframe should not be in same PYU device'
+    assert len(dfs) == len(
+        device.actors
+    ), f'unexpected number of dataframes, should be {len(device.actors)}'
+
+    for df in dfs:
+        assert isinstance(df, PYUObject), f'dataframe must be in PYU device'
+        assert (
+            df.device.party in device.actors
+        ), f'{df.device} not co-located with {device}'
+
+    res = []
+    for df in dfs:
+        actor = device.actors[df.device.party]
+        k = key[df.device] if isinstance(key, Dict) else key
+        res.append(
+            PYUObject(
+                df.device,
+                actor.psi_join_df.remote(
+                    k,
+                    df.data,
+                    receiver,
+                    join_party,
+                    protocol,
+                    precheck_input,
+                    bucket_size,
+                    curve_type,
+                ),
+            )
+        )
+
+    return res
+
+
+@register(DeviceType.SPU)
+def psi_join_csv(
+    device: SPU,
+    key: Union[str, List[str], Dict[Device, List[str]]],
+    input_path: Union[str, Dict[Device, str]],
+    output_path: Union[str, Dict[Device, str]],
+    receiver: str,
+    join_party: str,
+    protocol='KKRT_PSI_2PC',
+    precheck_input=True,
+    bucket_size=1 << 20,
+    curve_type="CURVE_25519",
+):
+    assert isinstance(device, SPU), f'device must be SPU device'
+    assert isinstance(
+        key, (str, List, Dict)
+    ), f'invalid key, must be str of list of str or dict of list str'
+    assert isinstance(input_path, (str, Dict)), f'input_path must be str or dict of str'
+    assert isinstance(
+        output_path, (str, Dict)
+    ), f'output_path must be str or dict of str'
+
+    if isinstance(key, Dict):
+        if isinstance(input_path, Dict):
+            assert (
+                key.keys() == input_path.keys() == output_path.keys()
+            ), f'mismatch key & input_path & out_path devices'
+            for dev in key.keys():
+                assert (
+                    dev.party in device.actors
+                ), f'key {dev} not co-located with {device}'
+
+    if isinstance(input_path, Dict):
+        assert (
+            input_path.keys() == output_path.keys()
+        ), f'mismatch input_path and out_path devices'
+        assert len(input_path) == len(
+            device.actors
+        ), f'unexpected number of dataframes, should be {len(device.actors)}'
+
+        for dev in input_path.keys():
+            assert (
+                dev.party in device.actors
+            ), f'input_path {dev} not co-located with {device}'
+
+        for dev in output_path.keys():
+            assert (
+                dev.party in device.actors
+            ), f'output_path {dev} not co-located with {device}'
+
+    res = []
+    if isinstance(input_path, str):
+        assert isinstance(
+            output_path, str
+        ), f'input_path and output_path must be same types'
+        for actor in device.actors:
+            k = key[actor] if isinstance(key, Dict) else key
+            res.append(
+                actor.psi_join_csv.remote(
+                    k,
+                    input_path,
+                    output_path,
+                    receiver,
+                    join_party,
+                    protocol,
+                    precheck_input,
+                    bucket_size,
+                    curve_type,
+                )
+            )
+    else:
+        for dev, ipath in input_path.items():
+            opath = output_path[dev]
+            actor = device.actors[dev.party]
+            k = key[dev] if isinstance(key, Dict) else key
+            res.append(
+                actor.psi_join_csv.remote(
+                    k,
+                    ipath,
+                    opath,
+                    receiver,
+                    join_party,
+                    protocol,
+                    precheck_input,
+                    bucket_size,
+                    curve_type,
                 )
             )
 
