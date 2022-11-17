@@ -18,7 +18,7 @@ jobs:
       - run:
           name: "unit test"
           command: |
-            set -ex;
+            set -ex
             pip install -r docker/dev-requirements.txt
             bazel build //secretflow_lib/binding/...
             cp bazel-bin/secretflow_lib/binding/_lib.so secretflow/security/privacy/
