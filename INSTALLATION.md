@@ -44,7 +44,7 @@ export version={SecretFlow version}
 
 for example
 ```bash
-export version=0.6.13b1
+export version=0.7.11b0
 ```
 
 then run the image.
