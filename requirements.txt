@@ -9,7 +9,7 @@ absl-py>=1.1.0
 cloudpickle>=2.0.0
 networkx~=2.8
 
-secretflow-ray==2.0.0.dev2
+secretflow-ray==2.0.0.dev1
 tensorflow==2.10.0; platform_machine != "arm64"
 tensorflow-macos==2.10.0; platform_machine == "arm64" and platform_system == "Darwin"
 
