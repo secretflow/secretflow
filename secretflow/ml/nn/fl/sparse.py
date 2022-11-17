@@ -16,6 +16,7 @@
 from typing import List
 
 import numpy as np
+import jaxlib
 
 
 class STCSparse:
@@ -36,6 +37,8 @@ class STCSparse:
         for weight in weights:
             weight_shape = weight.shape
             weight_flat = weight.flatten()
+            if isinstance(weight_flat, jaxlib.xla_extension.DeviceArray):
+                weight_flat = np.array(weight_flat)
             weight_flat_abs = np.abs(weight_flat)
             weight_len = weight_flat.shape[0]
             mask_num = round(self.sparse_rate * weight_len)

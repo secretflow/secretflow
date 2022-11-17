@@ -64,6 +64,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+build/
 deploy/
 develop-eggs/
 dist/
@@ -328,6 +329,9 @@ examples/datasets/*
 # bazel build
 bazel-*
 
+# docs
+docs/source
+
 # test artifacts
 alice.audit
 alice.audit.npy
@@ -341,5 +345,7 @@ results.xml
 base_alice/
 base_bob/
 fuse_model/
+duplicate-keys.*
+selected-keys.*
 
 *Miniconda3.sh

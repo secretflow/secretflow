@@ -13,19 +13,17 @@
 # limitations under the License.
 
 
+import collections
 import math
 from abc import ABC, abstractmethod
 from typing import Callable, Optional
 
-import collections
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras import callbacks as callbacks_module
-
-from secretflow.utils.io import rows_count
-from secretflow.ml.nn.fl.metrics import AUC, Mean, Precision, Recall
 
 from secretflow.ml.nn.fl.backend.tensorflow.sampler import sampler_data
+from secretflow.ml.nn.fl.metrics import AUC, Mean, Precision, Recall
+from secretflow.utils.io import rows_count
 
 # 抽象model类
 
@@ -281,8 +279,11 @@ class BaseTFModel(BaseModel):
 
     def init_training(self, callbacks, epochs=1, steps=0, verbose=0):
         assert self.model is not None, "model cannot be none, please give model define"
-        if not isinstance(callbacks, callbacks_module.CallbackList):
-            self.callbacks = callbacks_module.CallbackList(
+
+        from tensorflow.python.keras import callbacks as tf_callbacks
+
+        if not isinstance(callbacks, tf_callbacks.CallbackList):
+            self.callbacks = tf_callbacks.CallbackList(
                 callbacks,
                 add_history=True,
                 add_progbar=verbose != 0,

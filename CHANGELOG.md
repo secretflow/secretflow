@@ -5,20 +5,88 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Types of changes
-`Added ` for new features.  
-`Changed` for changes in existing functionality.  
-`Deprecated` for soon-to-be removed features.  
-`Removed` for now removed features.  
-`Fixed` for any bug fixes.  
-`Security` in case of vulnerabilities.  
+`Added ` for new features.
+`Changed` for changes in existing functionality.
+`Deprecated` for soon-to-be removed features.
+`Removed` for now removed features.
+`Fixed` for any bug fixes.
+`Security` in case of vulnerabilities.
 
 ## Staging
+## [0.7.11] - 2022-11-15
+### Added
+- Add Finetune and FedEval to SFXgboost
+- Add SLModel support multi parties(>=2)
 
-## [0.7.7b0] - 2022-9-16
+### Changed
+- FLModel support most metrics of regression and classification
+
+### Fixed
+- SLModel can be initialized without model.
+- PSI doc typos.
+
+## [0.7.10] - 2022-10-25
+### Added
+- Add score card.
+- Add replace/mode function to DataFrame.
+- Add round function to VDataFrame.
+- Add psi_join_csv and psi_join_df.
+- Add preprocessing.LogroundTransformer.
+- Add args to preprocessing.OneHotEncoder.
+
 ### Changed
 - Bump dependencies
-  - sf-heu to 0.2.0b0
-  - spu to 0.2.4b1
+  - secretflow-ray to 2.0.0.dev2
+- Update psi_df doc.
+- Optimize sl_model by tf_funciton.
+- Add curve parameter for ecdh psi.
+- Protect biclassification, psi and pva with pyu object.
+- Modify XgbModel predict api.
+
+### Fixed
+- Raise exception if spu_fe.compile fails.
+- Fix quantile security vulnerability.
+- Fix woe bin bugs.
+- Fix psi_join recv timeout.
+
+## [0.7.9] - 2022-10-24
+### Added
+- omp_num_threads param for secretflow init().
+- Regression and biclassification evaluation.
+- Xgboost evaluation.
+- Horizontal fl supports default naive aggreagte for metrics.
+- PVA calculation.
+
+### Changed
+- Remove graph util NodeDataLoader.
+
+### Fixed
+- VDataFrame docstring.
+- Remove dependencies
+  - dgl
+
+### Changed
+- Get rid of import tensorflow/torch when import secretflow.
+
+## [0.7.8] - 2022-9-22
+### Added
+- Add license file
+
+### Fixed
+- Fix sl predict & remove reveal
+- Fix typos in function docs.
+
+### Changed
+- Bump dependencies
+  - TensorFlow to 2.10.0
+  - Jax to 0.3.17
+  - Jaxlib to 0.3.15
+
+## [0.7.7] - 2022-9-16
+### Changed
+- Bump dependencies
+  - sf-heu to 0.2.0
+  - spu to 0.2.5
 
 ## [0.7.6] - 2022-09-08
 ### Fixed
@@ -85,7 +153,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - fix model handle_data parties_length by adding partition_shape to dataframe
 
 ## [0.6.16] - 2022-08-08
-### Added 
+### Added
 - SS VIF.
 - FL strategy: FedProx.
 - Split GNN.
@@ -94,7 +162,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove duplicated shape_spu_to_np & dtype_spu_to_np in spu.py.
 
 ## [0.6.15] - 2022-08-02
-### Added 
+### Added
 - Development and release docker.
 - FL model strategy.
 - Sigmoid approximation in python.
@@ -111,7 +179,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SecureAggregator `average` when weights are multi-dimensions.
 
 ## [0.6.14] - 2022-07-07
-### Added 
+### Added
 - Vertical dp.
 
 ### Changed
@@ -122,7 +190,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Include c++ lib in setup.
 
 ## [0.6.13] - 2022-06-30
-### Added 
+### Added
 - simulation.dataset for tutorial
 - update tutorial of FL SL & SFXgboost
 - add csv stream reader for FL
@@ -212,20 +280,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix PPU dtype mismatch causing by JAX 32bit mode.
 - Vertical PearsonR.
 
-## [0.6.3] 
+## [0.6.3]
 - FlModel/SlModel support model path dict.
 
-## [0.6.2] 
+## [0.6.2]
 - Upgrade sf-ppu version to 0.0.7.1
 
-## [0.6.1] 
+## [0.6.1]
 - More perfect HEU
 - Split learning benchmark model
 - SFXgboost for homo xgboost training
 
-## [0.6.0] 
+## [0.6.0]
 - FL: different batch size for different clients.
-- Wait method for pyu objects.  
+- Wait method for pyu objects.
 - FLModel evaluate returns detailed metrics.
 
 ## [0.0.6] - 2022-04-06

@@ -44,8 +44,9 @@ Data input: HdataFrame, XGBoost supports converting Pandas.DataFrame directly in
 ```python
 from secretflow.data.horizontal import read_csv
 from secretflow.security.aggregation import SecureAggregator
-from secretflow.data.simulation.dataset import load_dermatology_data
-from secretflow.ml.boost import SFXgboost
+from secretflow.security.compare import SPUComparator
+from secretflow.utils.simulation.datasets import load_dermatology
+from secretflow.ml.boost.homo_boost import SFXgboost
 import secretflow as sf
 
 # In case you have a running secretflow runtime already.
@@ -54,17 +55,12 @@ sf.shutdown()
 sf.init(['alice', 'bob', 'charlie'], num_cpus=8, log_to_driver=True)
 alice, bob, charlie = sf.PYU('alice'), sf.PYU('bob'), sf.PYU('charlie')
 
-data_split = {
-            alice: 0.5,
-            bob: 1.0,
-        }
-file_uris = load_dermatology_data(party_ratio=data_split)
-
-hdf = read_csv(
-    file_uris,
-    aggregator=DeviceAggregator(charlie),
-    comparator=PlainComparator(charlie),
-)
+aggr = SecureAggregator(charlie, [alice, bob])
+spu = sf.SPU(sf.utils.testing.cluster_def(['alice', 'bob']))
+comp = SPUComparator(spu)
+data = load_dermatology(parts=[alice, bob], aggregator=aggr,
+                        comparator=comp)
+data.fillna(value=0, inplace=True)
 params = {# XGBoost parameter tutorial
          # https://xgboost.readthedocs.io/en/latest/parameter.html
          'max_depth': 4, # max depth

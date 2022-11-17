@@ -56,7 +56,9 @@ class BigintNdarrayCase(unittest.TestCase):
         # big int case
         array = ndarray_bigint.randbits((2, 3), 512)
         array_np = array.to_numpy()
-        array_pt = np.vectorize(lambda x: phe.Plaintext(x))(array_np)
+        array_pt = np.vectorize(lambda x: phe.Plaintext(phe.SchemaType.ZPaillier, x))(
+            array_np
+        )
         self.assertTrue(isinstance(array_pt[0][0], phe.Plaintext))
         self.assertEqual(array.data[0], int(array_pt[0][0]))
 

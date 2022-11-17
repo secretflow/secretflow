@@ -130,10 +130,10 @@ class FlLrVWorker(object):
         return np.transpose(h - y)
 
     def encode(self, data: np.ndarray, frac_bits: int) -> np.ndarray:
-        return data * (2 ** frac_bits)
+        return data * (2**frac_bits)
 
     def decode(self, data: np.ndarray, frac_bits: int) -> np.ndarray:
-        return data / (2 ** frac_bits)
+        return data / (2**frac_bits)
 
     def generate_rand_mask(self, decode_frac: int) -> np.ndarray:
         # TODO: the random range is not secure.
@@ -471,7 +471,7 @@ class FlLogisticRegressionVertical:
                     self.heu,
                     MoveConfig(
                         heu_dest_party=device.party,
-                        heu_encoder=phe.FloatEncoder(1),
+                        heu_encoder=phe.FloatEncoder(self.heu.schema, 1),
                         heu_audit_log=_gen_auth_file_path(
                             self.audit_log_dir, device, epoch, step, 'masked_g'
                         ),

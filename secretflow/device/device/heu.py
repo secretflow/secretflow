@@ -168,7 +168,7 @@ class HEUSkKeeper(HEUActor):
         ), f"missing field 'generate' in heu config"
 
         self.hekit = hnp.setup(
-            param.get("schema", "ou"),
+            param.get("schema", "paillier"),
             param['key_pair']['generate'].get('bit_size', 2048),
         )
         super().__init__(
@@ -275,7 +275,9 @@ class HEUEvaluator(HEUActor):
 
         # we should make (random + n) <= plaintext_bound,
         # so we restrict random bound to half of plaintext_bound
-        bound = self.hekit.public_key().plaintext_bound() / phe.Plaintext(2)
+        bound = self.hekit.public_key().plaintext_bound() / phe.Plaintext(
+            self.hekit.get_schema(), 2
+        )
         masks = [hnp.random.randint(-bound, bound, data.shape)]
         data_with_mask: hnp.CiphertextArray = data
         for m in masks:
@@ -366,7 +368,11 @@ class HEU(Device):
 
         self.cleartext_type = "DT_FXP"
         default_scale = 1 << spu_fxp_precision(spu_field_type)
-        self.encoder = phe.FloatEncoder(default_scale)
+        assert 'he_parameters' in config, f"missing field 'he_parameters' in heu config"
+        param: dict = config['he_parameters']
+        schema = phe.parse_schema_type(param.get("schema", "paillier"))
+        self.schema = schema
+        self.encoder = phe.FloatEncoder(schema, default_scale)
         if 'encoding' in config:
             cfg = config['encoding']
             self.cleartext_type = cfg.get("cleartext_type", "DT_FXP")
@@ -375,14 +381,14 @@ class HEU(Device):
 
             if edr_name == "IntegerEncoder":
                 edr_args["scale"] = edr_args.get("scale", default_scale)
-                self.encoder = phe.IntegerEncoder(**edr_args)
+                self.encoder = phe.IntegerEncoder(schema, **edr_args)
             elif edr_name == "FloatEncoder":
                 edr_args["scale"] = edr_args.get("scale", default_scale)
-                self.encoder = phe.FloatEncoder(**edr_args)
+                self.encoder = phe.FloatEncoder(schema, **edr_args)
             elif edr_name == "BigintEncoder":
-                self.encoder = phe.BigintEncoder()
+                self.encoder = phe.BigintEncoder(schema)
             elif edr_name == "BatchEncoder":
-                self.encoder = phe.BatchEncoder(**edr_args)
+                self.encoder = phe.BatchEncoder(schema, **edr_args)
             else:
                 raise AssertionError(f"Unsupported encoder type {edr_name}")
 

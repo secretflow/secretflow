@@ -31,7 +31,7 @@ class TestLabelEncoder(DeviceTestCase):
         vdf_alice = pd.DataFrame(
             {
                 'a1': ['K5', 'K1', None, 'K6'],
-                'a2': ['A5', 'A1', 'A2', 'A6'],
+                'a2': ['A5', 'A5', 'A2', 'A2'],
                 'a3': [5, 1, 2, 6],
             }
         )
@@ -39,7 +39,7 @@ class TestLabelEncoder(DeviceTestCase):
         vdf_bob = pd.DataFrame(
             {
                 'b4': [10.2, 20.5, None, -0.4],
-                'b5': ['B3', None, 'B9', 'B4'],
+                'b5': ['B3', 'B2', 'B3', 'B4'],
                 'b6': [3, 1, 9, 4],
             }
         )
@@ -199,7 +199,7 @@ class TestOneHotEncoder(DeviceTestCase):
         vdf_alice = pd.DataFrame(
             {
                 'a1': ['K5', 'K1', None, 'K6'],
-                'a2': ['A5', 'A1', 'A2', 'A6'],
+                'a2': ['A5', 'A5', 'A2', 'A2'],
                 'a3': [5, 1, 2, 1],
             }
         )
@@ -207,7 +207,7 @@ class TestOneHotEncoder(DeviceTestCase):
         vdf_bob = pd.DataFrame(
             {
                 'b4': [10.2, 20.5, None, -0.4],
-                'b5': ['B3', None, 'B3', 'B4'],
+                'b5': ['B3', 'B2', 'B3', 'B4'],
                 'b6': [3, 1, 9, 4],
             }
         )
@@ -367,6 +367,67 @@ class TestOneHotEncoder(DeviceTestCase):
             ),
             expected,
         )
+
+    def test_min_frequency_on_vdataframe_should_ok(self):
+        # WHEN
+        selected_columns = ['a1', 'a2', 'b5']
+        encoder = OneHotEncoder(min_frequency=2)
+        df = encoder.fit_transform(self.vdf[selected_columns])
+
+        # THEN
+        sk_encoder = SkOneHotEncoder(min_frequency=2)
+        expect_alice = pd.DataFrame(
+            sk_encoder.fit_transform(self.vdf_alice[['a1', 'a2']]).toarray(),
+            columns=sk_encoder.get_feature_names_out()
+        )
+        self.assertTrue(set(expect_alice.columns).issubset(set(df.partitions[self.alice].columns)))
+        alice_columns = expect_alice.columns
+        pd.testing.assert_frame_equal(reveal(df.partitions[self.alice][alice_columns].data), expect_alice)
+
+        expect_bob = pd.DataFrame(
+            sk_encoder.fit_transform(self.vdf_bob[['b5']]).toarray(),
+            columns=sk_encoder.get_feature_names_out()
+        )
+        self.assertTrue(set(expect_bob.columns).issubset(set(df.partitions[self.bob].columns)))
+        bob_columns = expect_bob.columns
+        pd.testing.assert_frame_equal(reveal(df.partitions[self.bob][bob_columns].data), expect_bob)
+
+    def test_max_categories_on_vdataframe_should_ok(self):
+        # WHEN
+        selected_columns = ['a1', 'a2', 'b5']
+        encoder = OneHotEncoder(max_categories=3)
+        df = encoder.fit_transform(self.vdf[selected_columns])
+
+        # THEN
+        sk_encoder = SkOneHotEncoder(max_categories=3)
+        expect_alice = pd.DataFrame(
+            sk_encoder.fit_transform(self.vdf_alice[['a1', 'a2']]).toarray(),
+            columns=sk_encoder.get_feature_names_out()
+        )
+        self.assertTrue(set(expect_alice.columns).issubset(set(df.partitions[self.alice].columns)))
+        alice_columns = expect_alice.columns
+        pd.testing.assert_frame_equal(reveal(df.partitions[self.alice][alice_columns].data), expect_alice)
+
+        expect_bob = pd.DataFrame(
+            sk_encoder.fit_transform(self.vdf_bob[['b5']]).toarray(),
+            columns=sk_encoder.get_feature_names_out()
+        )
+        self.assertTrue(set(expect_bob.columns).issubset(set(df.partitions[self.bob].columns)))
+        bob_columns = expect_bob.columns
+        pd.testing.assert_frame_equal(reveal(df.partitions[self.bob][bob_columns].data), expect_bob)
+
+    def test_should_error_on_hdataframe_with_args(self):
+        encoder = OneHotEncoder(min_frequency=3)
+        with self.assertRaisesRegex(
+            AssertionError, 'Args min_frequency/max_categories are only supported in VDataFrame'
+        ):
+            encoder.fit_transform(self.hdf)
+
+        encoder = OneHotEncoder(max_categories=3)
+        with self.assertRaisesRegex(
+            AssertionError, 'Args min_frequency/max_categories are only supported in VDataFrame'
+        ):
+            encoder.fit_transform(self.hdf)
 
     def test_should_error_when_not_dataframe(self):
         encoder = OneHotEncoder()

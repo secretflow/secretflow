@@ -14,10 +14,11 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Union, List
+from typing import Union, List, Callable
 
 import pandas as pd
 from pandas.core.indexes.base import Index
+from jax.tree_util import tree_map
 
 from secretflow.data.io.util import to_csv_wrapper
 from secretflow.device import PYUObject, reveal
@@ -28,17 +29,17 @@ class DataFrameBase(ABC):
 
     @abstractmethod
     def min(self):
-        """Get minimum value of all columns"""
+        """Gets minimum value of all columns"""
         pass
 
     @abstractmethod
     def max(self):
-        """Get maximum value of all columns"""
+        """Gets maximum value of all columns"""
         pass
 
     @abstractmethod
     def count(self):
-        """Get number of rows"""
+        """Gets number of rows"""
         pass
 
     @abstractmethod
@@ -67,57 +68,204 @@ class Partition(DataFrameBase):
 
     data: PYUObject = None
 
+    def __partition_wrapper(self, fn: Callable, *args, **kwargs) -> 'Partition':
+        return Partition(self.data.device(fn)(self.data, *args, **kwargs))
+
     def mean(self, *args, **kwargs) -> 'Partition':
-        """Return the mean of the values over the requested axis.
+        """Returns the mean of the values over the requested axis.
 
         Returns:
             Partition: mean values series.
         """
-        return Partition(
-            self.data.device(pd.DataFrame.mean)(self.data, *args, **kwargs)
-        )
+        return self.__partition_wrapper(pd.DataFrame.mean, *args, **kwargs)
+
+    def var(self, *args, **kwargs) -> 'Partition':
+        """Returns the variance of the values over the requested axis.
+
+        Returns:
+            Partition: variance values series.
+        """
+        return self.__partition_wrapper(pd.DataFrame.var, *args, **kwargs)
+
+    def std(self, *args, **kwargs) -> 'Partition':
+        """Returns the standard deviation of the values over the requested axis.
+
+        Returns:
+            Partition: standard deviation values series.
+
+        """
+        return self.__partition_wrapper(pd.DataFrame.std, *args, **kwargs)
+
+    def sem(self, *args, **kwargs) -> 'Partition':
+        """Returns the standard error of the mean over the requested axis.
+
+        Returns:
+            Partition: standard error of the mean series.
+
+        """
+        return self.__partition_wrapper(pd.DataFrame.sem, *args, **kwargs)
+
+    def skew(self, *args, **kwargs) -> 'Partition':
+        """Returns the skewness over the requested axis.
+
+        Returns:
+            Partition: skewness series.
+
+        """
+        return self.__partition_wrapper(pd.DataFrame.skew, *args, **kwargs)
+
+    def kurtosis(self, *args, **kwargs) -> 'Partition':
+        """Returns the kurtosis over the requested axis.
+
+        Returns:
+            Partition: kurtosis series.
+
+        """
+        return self.__partition_wrapper(pd.DataFrame.kurtosis, *args, **kwargs)
+
+    def sum(self, *args, **kwargs) -> 'Partition':
+        """Returns the sum of the values over the requested axis.
+
+        Returns:
+            Partition: sum values series.
+        """
+        return self.__partition_wrapper(pd.DataFrame.sum, *args, **kwargs)
+
+    def replace(self, *args, **kwargs) -> 'Partition':
+        """Replace values given in to_replace with value.
+        Same as pandas.DataFrame.replace
+        Values of the DataFrame are replaced with other values dynamically.
+
+        Returns:
+            Partition: same shape except value replaced
+        """
+        return self.__partition_wrapper(pd.DataFrame.replace, *args, **kwargs)
+
+    def quantile(self, q=0.5, axis=0) -> 'Partition':
+        """Returns values at the given quantile over requested axis.
+
+        Returns:
+            Partition: quantile values series.
+        """
+        # q is between 0 and 1
+        q = max(min(q, 1), 0)
+        # limit q to one of 0, 0.25, 0.5, 0.75 and 1
+        q = round(4 * q) / 4
+        return self.__partition_wrapper(pd.DataFrame.quantile, q=q, axis=axis)
 
     def min(self, *args, **kwargs) -> 'Partition':
-        """Return the minimum of the values over the requested axis.
+        """Returns the minimum of the values over the requested axis.
 
         Returns:
             Partition: minimum values series.
         """
-        return Partition(self.data.device(pd.DataFrame.min)(self.data, *args, **kwargs))
+        return self.__partition_wrapper(pd.DataFrame.min, *args, **kwargs)
+
+    def mode(self, *args, **kwargs) -> 'Partition':
+        """Returns the mode of the values over the requested axis.
+
+        For data protection reasons, only one mode will be returned.
+
+        Returns:
+            Partition: mode values series.
+        """
+
+        def _mode(*args, **kwargs):
+            return pd.DataFrame.mode(*args, **kwargs).iloc[0, :]
+
+        return self.__partition_wrapper(_mode, *args, **kwargs)
 
     def max(self, *args, **kwargs) -> 'Partition':
-        """Return the maximum of the values over the requested axis.
+        """Returns the maximum of the values over the requested axis.
 
         Returns:
             Partition: maximum values series.
         """
-        return Partition(self.data.device(pd.DataFrame.max)(self.data, *args, **kwargs))
+        return self.__partition_wrapper(pd.DataFrame.max, *args, **kwargs)
 
     def count(self, *args, **kwargs) -> 'Partition':
-        """Count non-NA cells for each column or row.
+        """Counts non-NA cells for each column or row.
 
         Returns:
             Partition: count values series.
         """
-        return Partition(
-            self.data.device(pd.DataFrame.count)(self.data, *args, **kwargs)
+        return self.__partition_wrapper(pd.DataFrame.count, *args, **kwargs)
+
+    def isna(self) -> 'Partition':
+        """Detects missing values for an array-like object.
+        Same as pandas.DataFrame.isna
+        Returns
+            DataFrame: Mask of bool values for each element in DataFrame
+                 that indicates whether an element is an NA value.
+        """
+        return self.__partition_wrapper(pd.DataFrame.isna)
+
+    def __unwrap(self, args, kwargs):
+        new_args = tree_map(lambda x: x.data if (type(x) == type(self)) else x, args)
+        new_kwargs = tree_map(
+            lambda x: x.data if (type(x) == type(self)) else x, kwargs
         )
+        return new_args, new_kwargs
+
+    def pow(self, *args, **kwargs) -> 'Partition':
+        """Gets Exponential power of (partition of) dataframe and other, element-wise (binary operator pow).
+        Equivalent to dataframe ** other, but with support to substitute a fill_value for missing data in one of the inputs.
+        With reverse version, rpow.
+        Among flexible wrappers (add, sub, mul, div, mod, pow) to arithmetic operators: +, -, *, /, //, %, **.
+
+        Reference:
+            pd.DataFrame.pow
+        """
+        new_args, new_kwargs = self.__unwrap(args, kwargs)
+
+        return self.__partition_wrapper(pd.DataFrame.pow, *new_args, **new_kwargs)
+
+    def subtract(self, *args, **kwargs) -> 'Partition':
+        """Gets Subtraction of (partition of) dataframe and other, element-wise (binary operator sub).
+        Equivalent to dataframe - other, but with support to substitute a fill_value for missing data in one of the inputs.
+        With reverse version, rsub.
+        Among flexible wrappers (add, sub, mul, div, mod, pow) to arithmetic operators: +, -, *, /, //, %, **.
+
+        Reference:
+            pd.DataFrame.subtract
+        """
+        new_args, new_kwargs = self.__unwrap(args, kwargs)
+
+        return self.__partition_wrapper(pd.DataFrame.subtract, *new_args, **new_kwargs)
+
+    def round(self, *args, **kwargs) -> 'Partition':
+        """Round the (partition of) DataFrame to a variable number of decimal places.
+
+        Reference:
+            pd.DataFrame.round
+        """
+        new_args, new_kwargs = self.__unwrap(args, kwargs)
+
+        return self.__partition_wrapper(pd.DataFrame.round, *new_args, **new_kwargs)
+
+    def select_dtypes(self, *args, **kwargs) -> 'Partition':
+        """Returns a subset of the DataFrame's columns based on the column dtypes.
+
+        Reference:
+            pandas.DataFrame.select_dtypes
+        """
+        return self.__partition_wrapper(pd.DataFrame.select_dtypes, *args, **kwargs)
 
     @property
     def values(self):
-        """Return the underlying ndarray."""
+        """Returns the underlying ndarray."""
         return self.data.device(lambda df: df.values)(self.data)
 
     @property
     @reveal
     def index(self):
-        """Return the index (row labels) of the DataFrame."""
+        """Returns the index (row labels) of the DataFrame."""
         return self.data.device(lambda df: df.index)(self.data)
 
     @property
     @reveal
     def dtypes(self):
-        """Return the dtypes in the DataFrame."""
+        """Returns the dtypes in the DataFrame."""
         # return series always.
         return self.data.device(
             lambda df: df.dtypes
@@ -138,14 +286,13 @@ class Partition(DataFrameBase):
     @property
     @reveal
     def columns(self):
-        """Return the column labels of the DataFrame."""
+        """Returns the column labels of the DataFrame."""
         return self.data.device(lambda df: df.columns)(self.data)
 
     @property
     @reveal
     def shape(self):
-        """Return a tuple representing the dimensionality of the DataFrame.
-        """
+        """Returns a tuple representing the dimensionality of the DataFrame."""
         return self.data.device(lambda df: df.shape)(self.data)
 
     def iloc(self, index: Union[int, slice, List[int]]) -> 'Partition':
@@ -268,9 +415,7 @@ class Partition(DataFrameBase):
 
     def value_counts(self, *args, **kwargs) -> 'Partition':
         """Return a Series containing counts of unique values."""
-        return Partition(
-            self.data.device(pd.DataFrame.value_counts)(self.data, *args, **kwargs)
-        )
+        return self.__partition_wrapper(pd.DataFrame.value_counts, *args, **kwargs)
 
     def to_csv(self, filepath, **kwargs):
         """Save DataFrame to csv file."""
@@ -278,7 +423,7 @@ class Partition(DataFrameBase):
 
     @reveal
     def __len__(self):
-        """Return the number of rows."""
+        """Returns the number of rows."""
         return self.data.device(lambda df: len(df))(self.data)
 
     def __getitem__(self, item: Union[str, List[str]]) -> 'Partition':
@@ -295,9 +440,7 @@ class Partition(DataFrameBase):
         item_list = item
         if not isinstance(item, (list, tuple, Index)):
             item_list = [item_list]
-        return Partition(
-            self.data.device(pd.DataFrame.__getitem__)(self.data, item_list)
-        )
+        return self.__partition_wrapper(pd.DataFrame.__getitem__, item_list)
 
     def __setitem__(self, key, value):
         """Assign values to columns.

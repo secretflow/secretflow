@@ -23,7 +23,7 @@ from typing import Union, List, Tuple
 from secretflow.utils.sigmoid import sigmoid, SigType
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.data.vertical import VDataFrame
-from secretflow.device import SPU, SPUObject, wait, PYUObject
+from secretflow.device import SPU, SPUObject, wait, PYUObject, PYU
 from secretflow.ml.linear.linear_model import RegType, LinearModel
 
 
@@ -450,8 +450,11 @@ class SSRegression:
         self.sig_type = m.sig_type
 
     def predict(
-        self, x: Union[FedNdarray, VDataFrame], batch_size: int = 1024
-    ) -> SPUObject:
+        self,
+        x: Union[FedNdarray, VDataFrame],
+        batch_size: int = 1024,
+        to_pyu: PYU = None,
+    ) -> Union[SPUObject, FedNdarray]:
         """
         Predict using the model.
 
@@ -459,11 +462,16 @@ class SSRegression:
 
             x : {FedNdarray, VDataFrame} of shape (n_samples, n_features)
                 Predict samples.
+
             batch_size : int, default=1024
                 how many samples use in one calculation.
 
+            to: the prediction initiator
+                if not None predict result is reveal to to_pyu device and save as FedNdarray
+                otherwise, keep predict result in secret and save as SPUObject.
+
         Return:
-            pred scores in SPUObject, shape (n_samples,)
+            pred scores in SPUObject or FedNdarray, shape (n_samples,)
         """
         assert hasattr(self, 'spu_w'), 'please fit model first'
 
@@ -492,4 +500,15 @@ class SSRegression:
             )
             spu_preds.append(spu_pred)
 
-        return self.spu(_concatenate, static_argnames=('axis'))(spu_preds, axis=0)
+        pred = self.spu(_concatenate, static_argnames=('axis'))(spu_preds, axis=0)
+
+        if to_pyu is not None:
+            assert isinstance(to_pyu, PYU)
+            return FedNdarray(
+                partitions={
+                    to_pyu: pred.to(to_pyu),
+                },
+                partition_way=PartitionWay.VERTICAL,
+            )
+        else:
+            return pred

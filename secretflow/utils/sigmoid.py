@@ -83,7 +83,7 @@ def sr_sig(x):
     F(x) = 0.5 * ( x / ( 1 + x^2 )^0.5 ) + 0.5
     sr_sig almost perfect fit to sigmoid if x out of range [-3,3]
     '''
-    return 0.5 * (x / jnp.sqrt(1 + jnp.power(x, 2))) + 0.5
+    return 0.5 * (x / jnp.sqrt(1 + jnp.square(x))) + 0.5
 
 
 def ls7_sig(x):

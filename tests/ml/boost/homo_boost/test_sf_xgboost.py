@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from secretflow.data.horizontal import read_csv as h_read_csv
 from secretflow.ml.boost.homo_boost import SFXgboost
-from secretflow.security.aggregation.device_aggregator import DeviceAggregator
+from secretflow.security.aggregation.plain_aggregator import PlainAggregator
 from secretflow.security.compare.plain_comparator import PlainComparator
 from tests.basecase import DeviceTestCase
 
@@ -24,14 +24,14 @@ def gen_data(data_num, feature_num, use_random=True, data_bin_num=10):
 
         if not use_random:
             features = value * np.ones(feature_num) * 0.1
-            # feature value 大于5，设为正样本，小于等于5设为负样本
+            # feature value positive if greater 5,else negative
             if value < 5:
                 random_label = 0.0
             else:
                 random_label = 1.0
 
         else:
-            # 大多时候使用random，可以报正近似完全二叉分裂
+            # random is used, which can approximatily complete binary split
             features = np.random.random(feature_num)
 
             random_label = np.random.randint(0, 2)
@@ -71,12 +71,13 @@ class TestHomoXgboost(DeviceTestCase):
 
         cls.hdf = h_read_csv(
             file_uris,
-            aggregator=DeviceAggregator(cls.carol),
+            aggregator=PlainAggregator(cls.carol),
             comparator=PlainComparator(cls.carol),
         )
 
     def test_homo_xgboost(self):
 
+        bst = SFXgboost(server=self.davy, clients=[self.alice, self.bob])
         params = {
             'max_depth': 4,
             'eta': 1.0,
@@ -89,17 +90,28 @@ class TestHomoXgboost(DeviceTestCase):
             'max_bin': 10,
             'colsample_bytree': 1.0,
             'eval_metric': 'logloss',
-            'hess_key': 'hess',
-            'grad_key': 'grad',
-            'label_key': 'label',
+            'hess_key': 'hess',  # 标记增加的hessian列名
+            'grad_key': 'grad',  # 标记增加的grad列名
+            'label_key': 'label',  # 标记hdataframe中label列名
         }
-        bst = SFXgboost(server=self.davy, clients=[self.alice, self.bob])
-        bst.train(self.hdf, self.hdf, params=params)
+
+        bst.train(self.hdf, self.hdf, params=params, num_boost_round=4)
         model_path = {
             self.alice: "./test_xgboost_alice.json",
             self.bob: "./test_xgboost_bob.json",
         }
         bst.save_model(model_path)
+        result = bst.eval(model_path=model_path, hdata=self.hdf, params=params)
+        print(result)
+        bst_ft = SFXgboost(server=self.davy, clients=[self.alice, self.bob])
+
+        bst_ft.train(
+            self.hdf,
+            self.hdf,
+            params=params,
+            num_boost_round=4,
+            xgb_model=model_path,
+        )
         for path in model_path.values():
             self.assertTrue(os.path.isfile(path), True)
             os.remove(path)

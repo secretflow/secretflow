@@ -58,6 +58,7 @@ class FedSCR(BaseTorchModel):
             Parameters after local training
         """
         assert self.model is not None, "Model cannot be none, please give model define"
+        dp_strategy = kwargs.get('dp_strategy', None)
         # prepare for the SCR compression
         threshold = kwargs.get('threshold', 0.0)
         compressor = SCRSparse(threshold=threshold)
@@ -112,6 +113,15 @@ class FedSCR(BaseTorchModel):
                     self.model.get_weights(return_numpy=True), self.model_weights
                 )
             ]
+
+        # DP operation
+        if dp_strategy is not None:
+            if dp_strategy.model_gdp is not None:
+                client_updates_tensor = dp_strategy.model_gdp(client_updates)
+                client_updates = [
+                    client_updates_tensor[i] for i in range(len(client_updates))
+                ]
+
         # do sparsity, filter out minor updates
         sparse_client_updates = compressor(client_updates)
         # compute new residual

@@ -24,7 +24,7 @@ from .core.utils import prepare_dataset
 from .core import node_split as split_fn
 from .core.tree_worker import XgbTreeWorker as Worker
 
-from secretflow.data import FedNdarray
+from secretflow.data import FedNdarray, PartitionWay
 from secretflow.data.vertical import VDataFrame
 from secretflow.device.device.base import MoveConfig
 from secretflow.device import (
@@ -65,7 +65,11 @@ class XgbModel:
         pred = self.spu(split_fn.predict_tree_weight)(weight_selects, weight)
         return pred
 
-    def predict(self, dtrain: Union[FedNdarray, VDataFrame]) -> SPUObject:
+    def predict(
+        self,
+        dtrain: Union[FedNdarray, VDataFrame],
+        to_pyu: PYU = None,
+    ) -> Union[SPUObject, FedNdarray]:
         '''
         predict on dtrain with this model.
 
@@ -74,8 +78,12 @@ class XgbModel:
             dtrain : [FedNdarray, VDataFrame]
                 vertical split dataset.
 
+            to: the prediction initiator
+                if not None predict result is reveal to to_pyu device and save as FedNdarray
+                otherwise, keep predict result in secret and save as SPUObject.
+
         Return:
-            Pred values store in spu object.
+            Pred values store in spu object or FedNdarray.
         '''
         if len(self.trees) == 0:
             return None
@@ -86,18 +94,26 @@ class XgbModel:
         preds = []
         for idx in range(len(self.trees)):
             pred = self._tree_pred(self.trees[idx], self.weights[idx])
+            wait([pred])
             preds.append(pred)
 
         pred = self.spu(
-            lambda ps, base: jnp.sum(jnp.concatenate(ps, axis=0), axis=0) + base
+            lambda ps, base: (jnp.sum(jnp.concatenate(ps, axis=0), axis=0) + base).reshape(-1, 1)
         )(preds, self.base)
 
-        if self.objective == RegType.Linear:
-            return pred
-        elif self.objective == RegType.Logistic:
-            return self.spu(split_fn.sigmoid)(pred)
+        if self.objective == RegType.Logistic:
+            pred = self.spu(split_fn.sigmoid)(pred)
+
+        if to_pyu is not None:
+            assert isinstance(to_pyu, PYU)
+            return FedNdarray(
+                partitions={
+                    to_pyu: pred.to(to_pyu),
+                },
+                partition_way=PartitionWay.VERTICAL,
+            )
         else:
-            raise f"unknown objective {self.objective}"
+            return pred
 
 
 class Xgb:

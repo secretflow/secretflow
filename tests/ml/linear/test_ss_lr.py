@@ -44,6 +44,12 @@ class TestVertBinning(ABY3DeviceTestCase):
         logging.info(f"{test_name} predict time: {time.time() - start}")
         logging.info(f"{test_name} auc: {roc_auc_score(y, yhat)}")
 
+        fed_yhat = model.predict(v_data, batch_size, self.alice)
+        assert len(fed_yhat.partitions) == 1 and self.alice in fed_yhat.partitions
+        yhat = reveal(fed_yhat.partitions[self.alice])
+        assert yhat.shape[0] == y.shape[0], f"{yhat.shape} == {y.shape}"
+        logging.info(f"{test_name} auc: {roc_auc_score(y, yhat)}")
+
     def test_breast_cancer(self):
         from sklearn.datasets import load_breast_cancer
 

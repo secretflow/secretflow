@@ -50,6 +50,7 @@ class FedAvgU(BaseTorchModel):
         Returns:
             Parameters after local training
         """
+        dp_strategy = kwargs.get('dp_strategy', None)
         if updates is not None:
             weights = [np.add(w, u) for w, u in zip(self.get_weights(), updates)]
             self.set_weights(weights)
@@ -85,6 +86,11 @@ class FedAvgU(BaseTorchModel):
             np.subtract(new_w, old_w)
             for new_w, old_w in zip(self.get_weights(), model_weights)
         ]
+
+        # DP operation
+        if dp_strategy is not None:
+            if dp_strategy.model_gdp is not None:
+                client_updates = dp_strategy.model_gdp(client_updates)
 
         return client_updates, num_sample
 

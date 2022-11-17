@@ -13,9 +13,11 @@
 # limitations under the License.
 
 from .dataframe import create_df, create_hdf, create_vdf
+from .ndarray import create_ndarray
 
 __ALL__ = [
     'create_df',
     'create_hdf',
     'create_vdf',
+    'create_ndarray',
 ]

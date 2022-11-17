@@ -69,7 +69,7 @@ class BaseModule(ABC, nn.Module):
             parameters = self.parameters()
         for g, p in zip(gradients, parameters):
             if g is not None:
-                p.grad = torch.from_numpy(g.copy())
+                p.grad = torch.from_numpy(np.array(g.copy()))
 
 
 # @dataclass

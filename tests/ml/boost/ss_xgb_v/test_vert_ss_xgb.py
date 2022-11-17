@@ -64,6 +64,15 @@ class TestVertBinning(ABY3DeviceTestCase):
         else:
             print(f"{test_name} mse: {mean_squared_error(y, yhat)}")
 
+        fed_yhat = model.predict(v_data, self.alice)
+        assert len(fed_yhat.partitions) == 1 and self.alice in fed_yhat.partitions
+        yhat = reveal(fed_yhat.partitions[self.alice])
+        assert yhat.shape[0] == y.shape[0], f"{yhat.shape} == {y.shape}"
+        if logistic:
+            print(f"{test_name} auc: {roc_auc_score(y, yhat)}")
+        else:
+            print(f"{test_name} mse: {mean_squared_error(y, yhat)}")
+
     def _run_npc_linear(self, test_name, parts, label_device):
         vdf = load_linear(parts=parts)
 

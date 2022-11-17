@@ -5,11 +5,25 @@ import tempfile
 
 from secretflow import reveal
 from secretflow.data.base import Partition
-from secretflow.data.ndarray import load, shuffle, train_test_split
+from secretflow.data.ndarray import (
+    load,
+    shuffle,
+    train_test_split,
+    tss,
+    rss,
+    r2_score,
+    mean_abs_err,
+    mean_abs_percent_err,
+    subtract,
+    histogram,
+    residual_histogram,
+)
 from secretflow.data.vertical import VDataFrame
 from secretflow.utils.errors import InvalidArgumentError
 
 from tests.basecase import DeviceTestCase, array_equal
+from secretflow.utils.simulation.datasets import create_ndarray
+import sklearn.metrics
 
 
 class TestFedNdarray(DeviceTestCase):
@@ -22,9 +36,20 @@ class TestFedNdarray(DeviceTestCase):
         bob_arr = np.random.rand(10, 10)
         np.save(alice_path, alice_arr, allow_pickle=False)
         np.save(bob_path, bob_arr, allow_pickle=False)
-        cls.path = {cls.alice: f'{alice_path}.npy', cls.bob: f'{bob_path}.npy'}
+        cls.path = {cls.alice: f"{alice_path}.npy", cls.bob: f"{bob_path}.npy"}
         cls.alice_arr = alice_arr
         cls.bob_arr = bob_arr
+
+        cls.y_true = np.random.rand(100, 100)
+        cls.y_pred = cls.y_true + np.random.rand(100, 100) / 20
+        cls.y_true_fed_h = create_ndarray(
+            cls.y_true, {cls.alice: 0.3, cls.bob: 0.7}, axis=0
+        )
+        cls.y_pred_fed_h = create_ndarray(
+            cls.y_pred, {cls.alice: 0.3, cls.bob: 0.7}, axis=0
+        )
+        cls.y_true_fed_v = create_ndarray(cls.y_true, {cls.bob: 1.0}, axis=1)
+        cls.y_pred_fed_v = create_ndarray(cls.y_pred, {cls.bob: 1.0}, axis=1)
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -63,7 +88,7 @@ class TestFedNdarray(DeviceTestCase):
 
         # WHEN & THEN
         with self.assertRaisesRegex(
-            InvalidArgumentError, 'Device of source differs with its key.'
+            InvalidArgumentError, "Device of source differs with its key."
         ):
             load({self.alice: bob_arr, self.bob: alice_arr})
 
@@ -104,19 +129,19 @@ class TestFedNdarray(DeviceTestCase):
         # GIVEN
         df_alice = pd.DataFrame(
             {
-                'id': [1, 2, 3, 4],
-                'a1': ['K5', 'K1', None, 'K6'],
-                'a2': ['A5', 'A1', 'A2', 'A6'],
-                'a3': [5, 1, 2, 6],
+                "id": [1, 2, 3, 4],
+                "a1": ["K5", "K1", None, "K6"],
+                "a2": ["A5", "A1", "A2", "A6"],
+                "a3": [5, 1, 2, 6],
             }
         )
 
         df_bob = pd.DataFrame(
             {
-                'id': [1, 2, 3, 4],
-                'b4': [10.2, 20.5, None, -0.4],
-                'b5': ['B3', None, 'B9', 'B4'],
-                'b6': [3, 1, 9, 4],
+                "id": [1, 2, 3, 4],
+                "b4": [10.2, 20.5, None, -0.4],
+                "b5": ["B3", None, "B9", "B4"],
+                "b6": [3, 1, 9, 4],
             }
         )
         df = VDataFrame(
@@ -144,19 +169,19 @@ class TestFedNdarray(DeviceTestCase):
         # GIVEN
         df_alice = pd.DataFrame(
             {
-                'id': [1, 2, 3, 4],
-                'a1': ['K5', 'K1', None, 'K6'],
-                'a2': ['A5', 'A1', 'A2', 'A6'],
-                'a3': [5, 1, 2, 6],
+                "id": [1, 2, 3, 4],
+                "a1": ["K5", "K1", None, "K6"],
+                "a2": ["A5", "A1", "A2", "A6"],
+                "a3": [5, 1, 2, 6],
             }
         )
 
         df_bob = pd.DataFrame(
             {
-                'id': [1, 2, 3, 4],
-                'b4': [10.2, 20.5, None, -0.4],
-                'b5': ['B3', None, 'B9', 'B4'],
-                'b6': [3, 1, 9, 4],
+                "id": [1, 2, 3, 4],
+                "b4": [10.2, 20.5, None, -0.4],
+                "b5": ["B3", None, "B9", "B4"],
+                "b6": [3, 1, 9, 4],
             }
         )
         df = VDataFrame(
@@ -188,13 +213,13 @@ class TestFedNdarray(DeviceTestCase):
         np.savez(bob_path, train=bob_train, test=bob_test)
         # WHEN
         data = load(
-            {self.alice: f'{alice_path}.npz', self.bob: f'{bob_path}.npz'},
+            {self.alice: f"{alice_path}.npz", self.bob: f"{bob_path}.npz"},
             allow_pickle=True,
         )
 
         # THEN
         for k, v in data.items():
-            if k == 'train':
+            if k == "train":
                 self.assertTrue(
                     array_equal(reveal(v.partitions[self.alice]), alice_train)
                 )
@@ -219,3 +244,61 @@ class TestFedNdarray(DeviceTestCase):
         self.assertTrue(
             array_equal(reveal(fed_arr.partitions[self.bob]), self.bob_arr.astype(str))
         )
+
+    def operator_h_v_cases_test(self, test_handle, true_val, binary=True):
+        if not binary:
+            a_h = reveal(test_handle(self.y_true_fed_h, spu_device=self.spu))
+            a_v = reveal(test_handle(self.y_true_fed_v))
+        else:
+            a_h = reveal(test_handle(self.y_true_fed_h, self.y_pred_fed_h, self.spu))
+            a_v = reveal(test_handle(self.y_true_fed_v, self.y_pred_fed_v))
+            # Currently mixed case is not supported
+        np.testing.assert_almost_equal(true_val, a_h, decimal=2)
+        np.testing.assert_almost_equal(true_val, a_v, decimal=2)
+
+    def test_tss(self):
+        tss_val = np.sum(np.square(self.y_true - np.mean(self.y_true)))
+        self.operator_h_v_cases_test(tss, tss_val, False)
+
+    def test_rss(self):
+        rss_val = np.sum(np.square(self.y_true - self.y_pred))
+        self.operator_h_v_cases_test(rss, rss_val)
+
+    def test_r2_score(self):
+        r2score_val = sklearn.metrics.r2_score(self.y_true, self.y_pred)
+        self.operator_h_v_cases_test(r2_score, r2score_val)
+
+    def test_mean_abs_err(self):
+        mae_val = sklearn.metrics.mean_absolute_error(self.y_true, self.y_pred)
+        self.operator_h_v_cases_test(mean_abs_err, mae_val)
+
+    def test_mean_abs_percent_err(self):
+        mape_val = sklearn.metrics.mean_absolute_percentage_error(
+            self.y_true, self.y_pred
+        )
+        self.operator_h_v_cases_test(mean_abs_percent_err, mape_val)
+
+    def test_subtraction(self):
+        residual_val = self.y_true - self.y_pred
+        self.operator_h_v_cases_test(subtract, residual_val)
+
+    def test_histogram(self):
+        hist, edges = np.histogram(self.y_true)
+        h_v, e_v = reveal(histogram(self.y_true_fed_v))
+        np.testing.assert_almost_equal(hist, reveal(h_v), decimal=2)
+        np.testing.assert_almost_equal(edges, reveal(e_v), decimal=2)
+        # TODO(zoupeicheng.zpc): pending on spu support for the following.
+        # h_h, e_h = reveal(histogram(self.y_true_fed_h, spu_device = self.spu))
+        # np.testing.assert_almost_equal(hist, reveal(h_h), decimal=2)
+        # np.testing.assert_almost_equal(edges, reveal(e_h), decimal=2)
+
+    def test_residual_histogram(self):
+        hist, edges = np.histogram(self.y_true - self.y_pred)
+        h_v, e_v = reveal(residual_histogram(self.y_true_fed_v, self.y_pred_fed_v))
+        h_v_direct, e_v_direct = reveal(
+            histogram(self.y_true_fed_v - self.y_pred_fed_v)
+        )
+        np.testing.assert_almost_equal(hist, reveal(h_v), decimal=2)
+        np.testing.assert_almost_equal(edges, reveal(e_v), decimal=2)
+        np.testing.assert_almost_equal(hist, reveal(h_v_direct), decimal=2)
+        np.testing.assert_almost_equal(edges, reveal(e_v_direct), decimal=2)
