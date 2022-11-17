@@ -19,11 +19,11 @@ def main(argv):
     with open('./results.xml', 'wb') as output:
         runner = xmlrunner.XMLTestRunner(output=output, failfast=True)
         result = runner.run(suite)
-        print(result.failures)
-        if result.failures != 0:
-            exit(1)
-        else:
-            exit(0)
+    print(f'result = {result}')
+    if result.failures != 0:
+        exit(1)
+    else:
+        exit(0)
 
 
 if __name__ == '__main__':
