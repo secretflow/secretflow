@@ -9,6 +9,7 @@ from absl import app
 
 
 def main(argv):
+    exit(1)
     del argv
     suite = unittest.TestSuite()
     # Find all test files start with 'test'

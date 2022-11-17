@@ -2,7 +2,6 @@
 
 set -ex
 coverage erase
-exit -1
 unset JOB_NAME & env PYTHONPATH=$PYTHONPATH:bazel-bin DGLBACKEND=tensorflow python -m coverage run -p tests/main.py "$@"
 coverage combine
 coverage report -m > tests/result.md
