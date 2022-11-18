@@ -90,7 +90,7 @@ train_batch_size = 128
 
 class TestSLModelTensorflow(DeviceTestCase):
     def keras_model_with_mnist(
-        self, base_model_dict, device_y, model_fuse, data, label, acc=0.85, **kwargs
+        self, base_model_dict, device_y, model_fuse, data, label, **kwargs
     ):
         # kwargs parsing
         dp_strategy_dict = kwargs.get('dp_strategy_dict', None)
@@ -138,7 +138,7 @@ class TestSLModelTensorflow(DeviceTestCase):
             global_metric['accuracy'], history['val_accuracy'][-1], 1
         )
         self.assertEquals(zero_metric['loss'], 0.0)
-        self.assertGreater(global_metric['accuracy'], 0.87)
+        self.assertGreater(global_metric['accuracy'], 0.8)
         result = sl_model.predict(data, batch_size=128, verbose=1)
         reveal_result = []
         for rt in result:
@@ -238,7 +238,6 @@ class TestSLModelTensorflow(DeviceTestCase):
             model_fuse=fuse_model,
             device_y=self.bob,
             compressor=top_k_compressor,
-            acc=0.1,
         )
         print("test RandomSparse")
         random_sparse = RandomSparse(0.5)
@@ -249,7 +248,6 @@ class TestSLModelTensorflow(DeviceTestCase):
             model_fuse=fuse_model,
             device_y=self.bob,
             compressor=random_sparse,
-            acc=0.1,
         )
 
     def test_multi_output_model(self):

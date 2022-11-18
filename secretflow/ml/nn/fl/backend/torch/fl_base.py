@@ -13,17 +13,18 @@
 # limitations under the License.
 
 
+from pathlib import Path
 from abc import ABC, abstractmethod
 from typing import Callable, Optional
 
 import numpy as np
+import torch
 import torchmetrics
+
 from secretflow.ml.nn.fl.backend.torch.sampler import sampler_data
 from secretflow.ml.nn.fl.backend.torch.utils import TorchModel
-from secretflow.ml.nn.fl.metrics import Mean, Precision, Recall, Default
+from secretflow.ml.nn.fl.metrics import Default, Mean, Precision, Recall
 from secretflow.utils.io import rows_count
-
-import torch
 
 # Torch model on worker side
 
@@ -304,6 +305,7 @@ class BaseTorchModel(ABC):
         pass
 
     def save_model(self, model_path: str):
+        Path(model_path).parent.mkdir(parents=True, exist_ok=True)
         assert model_path is not None, "model path cannot be empty"
         torch.save(self.model, model_path)
 

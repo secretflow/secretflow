@@ -476,7 +476,7 @@ class SLModel:
         """Vertical split learning save model interface
 
         Args:
-            base_model_path: base model path
+            base_model_path: base model path,only support format like 'a/b/c', where c is the model name
             fuse_model_path: fuse model path
             is_test: whether is test mode
             save_traces: (only applies to SavedModel format) When enabled,
@@ -496,21 +496,23 @@ class SLModel:
             assert (
                 device in base_model_path
             ), f'Should provide a path for device {device}.'
+            assert not base_model_path[device].endswith(
+                "/"
+            ), f"model path should be 'a/b/c' not 'a/b/c/'"
+            base_model_dir, base_model_name = base_model_path[device].rsplit("/", 1)
+
             if is_test:
-                base_model_path_test = os.path.join(
-                    base_model_path[device], device.__str__().strip("_")
+                # only execute when unittest
+                base_model_dir = os.path.join(
+                    base_model_dir, device.__str__().strip("_")
                 )
-                res.append(
-                    worker.save_base_model(
-                        base_model_path_test, save_traces=save_traces
-                    )
+            res.append(
+                worker.save_base_model(
+                    os.path.join(base_model_dir, base_model_name),
+                    save_traces=save_traces,
                 )
-            else:
-                res.append(
-                    worker.save_base_model(
-                        base_model_path[device], save_traces=save_traces
-                    )
-                )
+            )
+
         res.append(
             self._workers[self.device_y].save_fuse_model(
                 fuse_model_path, save_traces=save_traces
@@ -551,22 +553,23 @@ class SLModel:
             assert (
                 device in base_model_path
             ), f'Should provide a path for device {device}.'
+            assert not base_model_path[device].endswith(
+                "/"
+            ), f"model path should be 'a/b/c' not 'a/b/c/'"
+            base_model_dir, base_model_name = base_model_path[device].rsplit("/", 1)
+
             if is_test:
                 # only execute when unittest
-                base_model_path_test = os.path.join(
-                    base_model_path[device], device.__str__().strip("_")
+                base_model_dir = os.path.join(
+                    base_model_dir, device.__str__().strip("_")
                 )
-                res.append(
-                    worker.load_base_model(
-                        base_model_path_test, custom_objects=base_custom_objects
-                    )
+            res.append(
+                worker.load_base_model(
+                    os.path.join(base_model_dir, base_model_name),
+                    custom_objects=base_custom_objects,
                 )
-            else:
-                res.append(
-                    worker.load_base_model(
-                        base_model_path[device], custom_objects=base_custom_objects
-                    )
-                )
+            )
+
         res.append(
             self._workers[self.device_y].load_fuse_model(
                 fuse_model_path, custom_objects=fuse_custom_objects

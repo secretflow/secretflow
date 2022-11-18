@@ -20,6 +20,7 @@
 """
 import copy
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import Callable, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
@@ -603,10 +604,12 @@ class SLBaseTFModel(SLBaseModel):
         return y_pred
 
     def save_base_model(self, base_model_path: str, save_traces=True):
+        Path(base_model_path).parent.mkdir(parents=True, exist_ok=True)
         assert base_model_path is not None, "model path cannot be empty"
         self.model_base.save(base_model_path, save_traces=save_traces)
 
     def save_fuse_model(self, fuse_model_path: str, save_traces=True):
+        Path(fuse_model_path).parent.mkdir(parents=True, exist_ok=True)
         assert fuse_model_path is not None, "model path cannot be empty"
         self.model_fuse.save(fuse_model_path, save_traces=save_traces)
 
