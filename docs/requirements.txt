@@ -16,4 +16,4 @@ pytablewriter==0.64.2
 linkify-it-py==2.0.0
 sphinx-intl==2.0.1
 autodocsumm==0.2.9
-secretflow==0.7.11b1
+secretflow==0.7.11b2
