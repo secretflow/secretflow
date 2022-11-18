@@ -16,6 +16,7 @@
 import collections
 import math
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import Callable, Optional
 
 import numpy as np
@@ -318,6 +319,7 @@ class BaseTFModel(BaseModel):
         pass
 
     def save_model(self, model_path: str):
+        Path(model_path).parent.mkdir(parents=True, exist_ok=True)
         assert model_path is not None, "model path cannot be empty"
         self.model.save(model_path)
 

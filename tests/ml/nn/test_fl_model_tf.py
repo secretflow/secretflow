@@ -226,12 +226,17 @@ class TestFedModelTensorflow(DeviceTestCase):
         result = fed_model.predict(data, batch_size=128, random_seed=random_seed)
         self.assertEquals(len(reveal(result[self.alice])), alice_length)
 
-        model_path = os.path.join(_temp_dir, "base_model")
-        fed_model.save_model(model_path=model_path, is_test=True)
-        self.assertIsNotNone(os.path.exists(model_path))
+        model_path_test = os.path.join(_temp_dir, "base_model")
+        fed_model.save_model(model_path=model_path_test, is_test=True)
+        model_path_dict = {
+            self.alice: os.path.join(_temp_dir, "alice_model"),
+            self.bob: os.path.join(_temp_dir, "bob_model"),
+        }
+        fed_model.save_model(model_path=model_path_dict, is_test=False)
 
         # test load model
-        fed_model.load_model(model_path=model_path, is_test=True)
+        fed_model.load_model(model_path=model_path_test, is_test=True)
+        fed_model.load_model(model_path=model_path_dict, is_test=False)
         reload_metric, _ = fed_model.evaluate(
             data,
             label,

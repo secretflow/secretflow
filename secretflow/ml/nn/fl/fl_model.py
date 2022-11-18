@@ -599,34 +599,46 @@ class FLModel:
         else:
             return g_metrics, local_metrics
 
-    def save_model(self, model_path: Union[str, Dict[PYU, str]], is_test=False):
+    def save_model(
+        self,
+        model_path: Union[str, Dict[PYU, str]],
+        is_test=False,
+    ):
         """Horizontal federated save model interface
 
         Args:
-            model_path: model path
+            model_path: model path, only support format like 'a/b/c', where c is the model name
             is_test: whether is test mode
         """
         assert isinstance(
             model_path, (str, Dict)
         ), f'Model path accepts string or dict but got {type(model_path)}.'
+
         if isinstance(model_path, str):
             model_path = {device: model_path for device in self._workers.keys()}
 
         res = []
         for device, worker in self._workers.items():
             assert device in model_path, f'Should provide a path for device {device}.'
-            if not os.path.exists(model_path[device]):
-                os.makedirs(model_path[device])
+            assert not model_path[device].endswith(
+                "/"
+            ), f"model path should be 'a/b/c' not 'a/b/c/'"
+            device_model_path, device_model_name = model_path[device].rsplit("/", 1)
             if is_test:
-                model_path_test = os.path.join(
-                    model_path[device], device.__str__().strip("_")
+                device_model_path = os.path.join(
+                    device_model_path, device.__str__().strip("_")
                 )
-                res.append(worker.save_model(model_path_test))
-            else:
-                res.append(worker.save_model(model_path[device]))
+
+            res.append(
+                worker.save_model(os.path.join(device_model_path, device_model_name))
+            )
         wait(res)
 
-    def load_model(self, model_path: Union[str, Dict[PYU, str]], is_test=False):
+    def load_model(
+        self,
+        model_path: Union[str, Dict[PYU, str]],
+        is_test=False,
+    ):
         """Horizontal federated load model interface
 
         Args:
@@ -642,11 +654,13 @@ class FLModel:
         res = []
         for device, worker in self._workers.items():
             assert device in model_path, f'Should provide a path for device {device}.'
+            device_model_path, device_model_name = model_path[device].rsplit("/", 1)
+
             if is_test:
-                model_path_test = os.path.join(
-                    model_path[device], device.__str__().strip("_")
+                device_model_path = os.path.join(
+                    device_model_path, device.__str__().strip("_")
                 )
-                res.append(worker.load_model(model_path_test))
-            else:
-                res.append(worker.load_model(model_path[device]))
+            res.append(
+                worker.load_model(os.path.join(device_model_path, device_model_name))
+            )
         wait(res)
