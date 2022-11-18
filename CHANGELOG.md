@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - SLModel can be initialized without model.
 - PSI doc typos.
+- Fix the logic error bug of savemodel and loadmodel path in SLModel and FLModel
 
 ## [0.7.10] - 2022-10-25
 ### Added
