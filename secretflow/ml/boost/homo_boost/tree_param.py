@@ -19,6 +19,7 @@ from typing import Union
 @dataclass()
 class TreeParam:
     """Param class, externally exposed interface
+
     Attributes:
         max_depth :  the max depth of a decision tree.
         eta : learning rate, same as xgb's "eta"

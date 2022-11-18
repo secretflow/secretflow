@@ -266,12 +266,11 @@ class Xgb:
         '''train on dtrain and label.
 
         Args:
-
-            dtrain : {FedNdarray, VDataFrame}
+            dtrain: {FedNdarray, VDataFrame}
                 vertical split dataset.
-            label : {FedNdarray, VDataFrame}
+            label: {FedNdarray, VDataFrame}
                 label column.
-            params : Dict
+            params: Dict
                 booster params, details are as follows
 
         booster params details:

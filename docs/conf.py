@@ -27,6 +27,7 @@ author = 'SecretFlow authors'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'sphinx.ext.napoleon',
     'sphinx.ext.autodoc',
     'autodocsumm',
     'sphinx.ext.graphviz',

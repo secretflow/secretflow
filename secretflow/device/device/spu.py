@@ -131,7 +131,6 @@ class SPUObject(DeviceObject):
 
         Args:
             meta: Ref to the metadata.
-
             refs (Sequence[ray.ObjectRef]): Refs to shares of data.
         """
         super().__init__(device)
@@ -145,7 +144,6 @@ class SPUIO:
 
         Args:
             runtime_config (RuntimeConfig): runtime_config of SPU device.
-
             world_size (int): world_size of SPU device.
         """
         self.runtime_config = runtime_config
@@ -157,7 +155,6 @@ class SPUIO:
 
         Args:
             data (Any): Any Python object.
-
             vtype (Visibility): Visibility
 
         Returns:
@@ -221,9 +218,7 @@ class SPURuntime:
 
         Args:
             rank (int): rank of runtime
-
             cluster_def (Dict): config of spu cluster
-
             link_desc (Dict, optional): link config. Defaults to None.
         """
         self.rank = rank
@@ -354,21 +349,13 @@ class SPURuntime:
 
         Args:
             key (str, List[str]): Column(s) used to join.
-
             data (pd.DataFrame): DataFrame to be joined.
-
             receiver (str): Which party can get joined data, others will get None.
-
             protocol (str): PSI protocol, See spu.psi.PsiType.
-
             precheck_input (bool): Whether to check input data before join.
-
             sort (bool): Whether sort data by key after join.
-
             broadcast_result (bool): Whether to broadcast joined data to all parties.
-
             bucket_size (int): Specified the hash bucket size used in psi. Larger values consume more memory.
-
             curve_type (str): curve for ecdh psi
 
         Returns:
@@ -430,25 +417,16 @@ class SPURuntime:
 
         Args:
             key (str, List[str]): Column(s) used to join.
-
             input_path: CSV file to be joined, comma seperated and contains header.
-
             output_path: Joined csv file, comma seperated and contains header.
-
             receiver (str): Which party can get joined data.
-            Others won't generate output file and `intersection_count` get `-1`.
-
+                Others won't generate output file and `intersection_count` get `-1`.
             protocol (str): PSI protocol.
-
             precheck_input (bool): Whether to check input data before join.
-
             sort (bool): Whether sort data by key after join.
-
             broadcast_result (bool): Whether to broadcast joined data to all parties.
-
             bucket_size (int): Specified the hash bucket size used in psi.
             Larger values consume more memory.
-
             curve_type (str): curve for ecdh psi
 
         Returns:
@@ -503,19 +481,12 @@ class SPURuntime:
 
         Args:
             key (str, List[str]): Column(s) used to join.
-
             data (pd.DataFrame): DataFrame to be joined.
-
             receiver (str): Which party can get joined data, others will get None.
-
             join_party (str): party joined data
-
             protocol (str): PSI protocol, See spu.psi.PsiType.
-
             precheck_input (bool): Whether to check input data before join.
-
             bucket_size (int): Specified the hash bucket size used in psi. Larger values consume more memory.
-
             curve_type (str): curve for ecdh psi
 
         Returns:
@@ -575,21 +546,13 @@ class SPURuntime:
 
         Args:
             key (str, List[str]): Column(s) used to join.
-
             input_path: CSV file to be joined, comma seperated and contains header.
-
             output_path: Joined csv file, comma seperated and contains header.
-
             receiver (str): Which party can get joined data. Others won't generate output file and `intersection_count` get `-1`
-
             join_party (str): party joined data
-
             protocol (str): PSI protocol.
-
             precheck_input (bool): Whether to check input data before join.
-
             bucket_size (int): Specified the hash bucket size used in psi. Larger values consume more memory.
-
             curve_type (str): curve for ecdh psi
 
         Returns:
@@ -993,23 +956,15 @@ class SPU(Device):
 
         Args:
             key (str, List[str], Dict[Device, List[str]]): Column(s) used to join.
-
             dfs (List[PYUObject]): DataFrames to be joined, which
             should be colocated with SPU runtimes.
-
             receiver (str): Which party can get joined data, others will get None.
-
             protocol (str): PSI protocol.
-
             precheck_input (bool): Whether to check input data before join.
-
             sort (bool): Whether sort data by key after join.
-
             broadcast_result (bool): Whether to broadcast joined data to all parties.
-
             bucket_size (int): Specified the hash bucket size used in psi.
             Larger values consume more memory.
-
             curve_type (str): curve for ecdh psi
 
         Returns:
@@ -1046,23 +1001,15 @@ class SPU(Device):
 
         Args:
             key (str, List[str], Dict[Device, List[str]]): Column(s) used to join.
-
             input_path: CSV files to be joined, comma seperated and contains header.
-
             output_path: Joined csv files, comma seperated and contains header.
-
             receiver (str): Which party can get joined data.
             Others won't generate output file and `intersection_count` get `-1`.
-
             protocol (str): PSI protocol.
-
             precheck_input (bool): Whether check input data before joining,
             for now, it will check if key duplicate.
-
             sort (bool): Whether sort data by key after joining.
-
             broadcast_result (bool): Whether broadcast joined data to all parties.
-
             bucket_size (int): Specified the hash bucket size used in psi.
             Larger values consume more memory.
 

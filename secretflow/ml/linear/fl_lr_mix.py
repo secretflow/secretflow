@@ -109,10 +109,10 @@ class FlLogisticRegressionMix:
     The main steps of one epoch are:
 
     1. The `FlLogisticRegressionVertical` are fitted with the `VDataFrame` of X
-       and T respectly.
-    2. Aggregate :math:`{\\thlearning_rate}` of the `FlLogisticRegressionVertical` with
+       and Y respectly.
+    2. Aggregate :math:`{\\theta}` of the `FlLogisticRegressionVertical` with
        :py:class:`~secretflow.security.aggregation.SecureAggregator`.
-    3. Send aggregated :math:`{\\thlearning_rate}` to the `FlLogisticRegressionVertical`.
+    3. Send aggregated :math:`{\\theta}` to the `FlLogisticRegressionVertical`.
 
     """
 

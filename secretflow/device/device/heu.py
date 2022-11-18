@@ -44,6 +44,7 @@ class HEUActor:
         encoder,
     ):
         """Init heu actor class
+
         Args:
             heu_id: Heu instance id, globally unique
             party: The party id
