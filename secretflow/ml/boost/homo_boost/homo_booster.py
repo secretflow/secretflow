@@ -93,6 +93,7 @@ class SFXgboost:
         callbacks: List[Callable] = None,
     ) -> "SFXgboost":
         """Federated xgboost interface for training
+
         Args:
             train_hdf: horizontal federation table used for training
             valid_hdf: horizontal federated table for validation
@@ -175,6 +176,7 @@ class SFXgboost:
 
     def save_model(self, model_path: Dict):
         """Federated xgboost save model interface
+
         Args:
             model_path: Path of the model stored
         """
@@ -187,6 +189,7 @@ class SFXgboost:
 
     def dump_model(self, model_path: Dict):
         """Federated xgboost dump model interface
+
         Args:
             model_path: Path of the model stored
         """
@@ -204,10 +207,12 @@ class SFXgboost:
         params: Dict,
     ):
         """Federated xgboost eval interface
+
         Args:
             model_path: Path of the model stored
             hdata: Horizontal dataframe to be evaluated
             params: Xgboost params
+
         Returns:
             result: Dict evaluate result
         """

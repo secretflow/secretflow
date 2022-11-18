@@ -155,8 +155,7 @@ def load_iris(
             as possible to each PYU if parts is a array of PYUs. If parts is a
             dict {PYU: value}, the value shall be one of the followings.
             1) a float
-            2) a interval in tuple closed on the left-side and open on the
-               right-side.
+            2) an interval in tuple closed on the left-side and open on the right-side.
         axis: optional; optional, the value is 0 or 1.
             0 means split by row and returns a horizontal partitioning
             federated DataFrame. 1 means split by column returns a vertical
@@ -198,8 +197,7 @@ def load_dermatology(
             as possible to each PYU if parts is a array of PYUs. If parts is a
             dict {PYU: value}, the value shall be one of the followings.
             1) a float
-            2) a interval in tuple closed on the left-side and open on the
-               right-side.
+            2) an interval in tuple closed on the left-side and open on the right-side.
         axis: optional, the value could be 0 or 1.
             0 means split by row and returns a horizontal partitioning
             federated DataFrame. 1 means split by column returns a vertical
@@ -245,8 +243,7 @@ def load_bank_marketing(
             as possible to each PYU if parts is a array of PYUs. If parts is a
             dict {PYU: value}, the value shall be one of the followings.
             1) a float
-            2) a interval in tuple closed on the left-side and open on the
-               right-side.
+            2) an interval in tuple closed on the left-side and open on the right-side.
         axis: optional, the value is 0 or 1.
             0 means split by row and returns a horizontal partitioning
             federated DataFrame. 1 means split by column returns a vertical
@@ -291,8 +288,7 @@ def load_mnist(
             as possible to each PYU if parts is a array of PYUs. If parts is a
             dict {PYU: value}, the value shall be one of the followings.
             1) a float
-            2) a interval in tuple closed on the left-side and open on the
-               right-side.
+            2) an interval in tuple closed on the left-side and open on the right-side.
         normalized_x: optional, normalize x if True. Default to True.
         categorical_y: optional, do one hot encoding to y if True. Default to True.
 
@@ -339,8 +335,7 @@ def load_linear(parts: Union[List[PYU], Dict[PYU, Union[float, Tuple]]]) -> VDat
             as possible to each PYU if parts is a array of PYUs. If parts is a
             dict {PYU: value}, the value shall be one of the followings.
             1) a float
-            2) a interval in tuple closed on the left-side and open on the
-               right-side.
+            2) an interval in tuple closed on the left-side and open on the right-side.
 
     Returns:
         return a VDataFrame.

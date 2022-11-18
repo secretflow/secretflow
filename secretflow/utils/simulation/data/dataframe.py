@@ -44,8 +44,7 @@ def create_df(
             as possible to each PYU if parts is a array of PYUs. If parts is a
             dict of pyu with value, the value shall be one of the followings:
             1. a float
-            2. a interval in tuple closed on the left-side and open on the
-            right-side.
+            2. an interval in tuple closed on the left-side and open on the right-side.
         axis: optional, the value is 0 or 1. 0 means split by row returning a
             horizontal partitioning federated DataFrame. 1 means split by
             column returning a vertical partitioning federated DataFrame.

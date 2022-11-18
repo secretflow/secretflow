@@ -35,6 +35,7 @@ from secretflow.ml.boost.homo_boost.tree_param import TreeParam
 
 class HomoDecisionTree(DecisionTree):
     """Class for federated version decision tree
+
     Attributes:
         tree_param: params for tree build
         data: training data, HdataFrame

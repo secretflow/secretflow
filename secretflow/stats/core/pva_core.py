@@ -34,7 +34,8 @@ def pva(
 
         target: numeric
             the target label in actual entries to consider.
-    compute:
+
+    Returns:
         result: float
             abs(mean(prediction) - sum(actual == target)/count(actual))
     """

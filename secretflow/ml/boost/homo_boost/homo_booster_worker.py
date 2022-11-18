@@ -56,6 +56,7 @@ class HomoBooster(link.Link):
     ) -> pd.DataFrame:
         """mock data with the same schema for the SERVER to synchronize
         the training process
+
         Args:
             data_num: rows of data
             columns: feature names of data
@@ -91,6 +92,7 @@ class HomoBooster(link.Link):
         callbacks: List[Callable] = None,
     ) -> FedBooster:
         """Fed xgboost entrance
+
         Args:
             train_hdf: federate table for training
             valid_hdf: federate table for valid
