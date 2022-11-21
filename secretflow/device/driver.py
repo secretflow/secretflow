@@ -185,7 +185,7 @@ def init(
     parties: Union[str, List[str]] = None,
     address: Optional[str] = None,
     num_cpus: Optional[int] = None,
-    log_to_driver=False,
+    log_to_driver=True,
     omp_num_threads: int = None,
     **kwargs,
 ):
@@ -196,7 +196,8 @@ def init(
         address:  The address of the Ray cluster to connect to. If this address
             is not provided, then a raylet, a plasma store, a plasma manager,
             and some workers will be started.
-        num_cpus: Number of CPUs the user wishes to assign to each raylet.
+        num_cpus: Number of CPUs the user wishes to assign to each raylet. 
+            Min of (cpu count, 32) will be used if not provided.
         log_to_driver: Whether direct output of worker processes on all nodes to driver.
         omp_num_threads: set environment variable `OMP_NUM_THREADS`. It works only when
             address is None.
@@ -206,7 +207,7 @@ def init(
     if parties is not None:
         assert address is None, 'Address should be none when parties are given.'
         if num_cpus is None:
-            num_cpus = multiprocess.cpu_count()
+            num_cpus = min(multiprocess.cpu_count(), 32)
         assert isinstance(
             parties, (str, Tuple, List)
         ), 'parties must be str or list of str'
