@@ -80,6 +80,7 @@ jobs:
             conda activate secretflow
             conda install -y grpcio
 
+            export SYSTEM_VERSION_COMPAT=0
             python3 -m pip install --upgrade pip
             python3 -m pip install -r requirements.txt
             python3 -m pip install -r docker/dev-requirements.txt
