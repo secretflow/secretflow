@@ -80,6 +80,7 @@ jobs:
             conda activate secretflow
             conda install -y grpcio
 
+            python3 -m pip install --upgrade pip
             python3 -m pip install -r requirements.txt
             python3 -m pip install -r docker/dev-requirements.txt
             python3 setup.py bdist_wheel
