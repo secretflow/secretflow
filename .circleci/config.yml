@@ -48,7 +48,8 @@ jobs:
           name: "build package and publish"
           command: |
             set -ex
-            pip install -r docker/dev-requirements.txt
+            python3 -m pip install -r requirements.txt
+            python3 -m pip install -r docker/dev-requirements.txt
             python3 setup.py bdist_wheel
             python3 -m pip install twine
             python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
@@ -79,7 +80,8 @@ jobs:
             conda activate secretflow
             conda install -y grpcio
 
-            pip install -r docker/dev-requirements.txt
+            python3 -m pip install -r requirements.txt
+            python3 -m pip install -r docker/dev-requirements.txt
             python3 setup.py bdist_wheel
             python3 -m pip install twine
             python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
