@@ -1043,7 +1043,7 @@ class SPU(Device):
         bucket_size=1 << 20,
         curve_type="CURVE_25519",
     ):
-        """Private set intersection with csv file.
+        """Private set intersection with DataFrame.
 
         Args:
             key (str, List[str], Dict[Device, List[str]]): Column(s) used to join.
