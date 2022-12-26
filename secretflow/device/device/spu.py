@@ -777,7 +777,7 @@ class SPU(Device):
 
         Args:
             cluster_def: SPU cluster definition. More details refer to
-                `SPU runtime config <https://spu.readthedocs.io/en/beta/reference/runtime_config.html>`_.
+                `SPU runtime config <https://spu.readthedocs.io/en/latest/reference/runtime_config.html>`_.
 
                 For example
 
