@@ -75,18 +75,18 @@ pip install dist/*.whl
 
 ## Option 4: from WSL
 
-SecretFlow does not support windows directly now,however, a windows user  can use SecretFlow by WSL(Windows Subsystem for Linux)
+SecretFlow does not support windows directly now,however,a windows user  can use secretFlow by WSL(Windows Subsystem for Linux).
 
-1. install WSL2 on Windows
+1. Install WSL2 on Windows
 
-- you are supposed to follow the [guide_zh](https://learn.microsoft.com/zh-cn/windows/wsl/install)  or [guide_en](https://learn.microsoft.com/en-us/windows/wsl/install)  to install WSL(Windows Subsystem for Linux)  on your windows and be sure that the version of WSL is 
-- as for the distribution of GNU/Linux，the Ubuntu is recommended.
+- You are supposed to follow the [guide_zh](https://learn.microsoft.com/zh-cn/windows/wsl/install)  or [guide_en](https://learn.microsoft.com/en-us/windows/wsl/install)  to install WSL(Windows Subsystem for Linux)  on your windows and make sure that the version of WSL is 2.
+- As for the distribution of GNU/Linux，the Ubuntu is recommended.
 
-2. install Anaconda on WSL
+2. Install Anaconda on WSL
 
-just follow the installation of anaconda on GNU/Linux  to install anaconda at your WSL.
+Just follow the installation of anaconda on GNU/Linux  to install anaconda at your WSL.
 
-3. install secretflow
+3. Install secretflow
 
 - create conda environment
 
@@ -107,7 +107,6 @@ pip install -U secretflow
 ```
 
 ## A quick try
-
 Try your first SecretFlow program.
 
 ```python
