@@ -39,7 +39,7 @@ TEST(UniformRealTest, Test) {
 
   // WHEN
   std::random_device rd;
-  yacl::Prg<uint64_t> prg(rd());
+  yacl::crypto::Prg<uint64_t> prg(rd());
   UniformReal<float> uniform(from, to);
 
   std::vector<float> unif_real;
@@ -59,7 +59,7 @@ TEST(BernoulliNegExpTest, Test) {
 
   // WHEN
   std::random_device rd;
-  yacl::Prg<uint64_t> prg(rd());
+  yacl::crypto::Prg<uint64_t> prg(rd());
   BernoulliNegExp bernoulli(p);
 
   std::vector<float> bern;
@@ -80,7 +80,7 @@ TEST(NormalRealTest, Test) {
 
   // WHEN
   std::random_device rd;
-  yacl::Prg<uint64_t> prg(rd());
+  yacl::crypto::Prg<uint64_t> prg(rd());
   SecureNormalReal<double> secure_normal_real(mean, stdv);
 
   std::vector<float> norm_real;
@@ -103,7 +103,7 @@ TEST(NormalDiscreteTest, Test) {
 
   // WHEN
   std::random_device rd;
-  yacl::Prg<uint64_t> prg(rd());
+  yacl::crypto::Prg<uint64_t> prg(rd());
   NormalDiscrete<int> normal_discrete(mean, stdv);
 
   std::vector<float> norm_discrete;
@@ -126,7 +126,7 @@ TEST(LaplaceRealTest, Test) {
 
   // WHEN
   std::random_device rd;
-  yacl::Prg<uint64_t> prg(rd());
+  yacl::crypto::Prg<uint64_t> prg(rd());
   SecureLaplaceReal<double> secure_laplace_real(mean, stdv);
 
   std::vector<float> lapl_real;

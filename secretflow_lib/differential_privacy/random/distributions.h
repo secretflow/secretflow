@@ -43,7 +43,7 @@ struct UniformReal {
   }
 
   template <typename V>
-  T operator()(yacl::Prg<V> &prg) {
+  T operator()(yacl::crypto::Prg<V> &prg) {
     constexpr auto MASK = static_cast<V>(
         (static_cast<uint64_t>(1) << std::numeric_limits<T>::digits) - 1);
     constexpr auto DIVISOR =
@@ -79,7 +79,7 @@ struct BernoulliNegExp {
   }
 
   template <typename V>
-  double operator()(yacl::Prg<V> &prg) {
+  double operator()(yacl::crypto::Prg<V> &prg) {
     while (gamma_ > 1) {
       gamma_ -= 1;
 
@@ -130,7 +130,7 @@ struct SecureNormalReal {
   inline constexpr T pi() { return static_cast<T>(3.14159265358979323846L); }
 
   template <typename V>
-  T operator()(yacl::Prg<V> &prg) {
+  T operator()(yacl::crypto::Prg<V> &prg) {
     UniformReal<T> uniform(0.0, 1.0);
     const T u1 = uniform(prg);
     const T u2 = uniform(prg);
@@ -173,7 +173,7 @@ struct NormalDiscrete<T, typename std::enable_if<
   }
 
   template <typename V>
-  T operator()(yacl::Prg<V> &prg) {
+  T operator()(yacl::crypto::Prg<V> &prg) {
     if (stdv_ == 0) {
       return mean_;
     }
@@ -185,7 +185,7 @@ struct NormalDiscrete<T, typename std::enable_if<
     std::binomial_distribution<> binomial(1, 0.5);
     // generate a new generator for std::binomial_distribution
     // TODO: Adapt the official PRG interface of cpp11 for Prg
-    yacl::Prg<uint128_t> rd(0, yacl::PRG_MODE::kNistAesCtrDrbg);
+    yacl::crypto::Prg<uint128_t> rd(0, yacl::crypto::PRG_MODE::kNistAesCtrDrbg);
     std::mt19937 gen(rd());
 
     while (true) {
@@ -241,7 +241,7 @@ struct SecureLaplaceReal {
   inline constexpr T pi() { return static_cast<T>(3.14159265358979323846L); }
 
   template <typename V>
-  T operator()(yacl::Prg<V> &prg) {
+  T operator()(yacl::crypto::Prg<V> &prg) {
     UniformReal<T> uniform(0.0, 1.0);
     const T u1 = uniform(prg);
     const T u2 = uniform(prg);
