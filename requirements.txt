@@ -7,7 +7,7 @@ tensorflow_datasets
 networkx~=2.8
 tf2onnx>=1.13.0
 
-secretflow-rayfed==0.1.0b0
+secretflow-rayfed==0.1.0b1
 tensorflow==2.10.0; platform_machine != "arm64"
 tensorflow-macos==2.10.0; platform_machine == "arm64" and platform_system == "Darwin"
 
