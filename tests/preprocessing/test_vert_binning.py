@@ -2,15 +2,15 @@ from io import StringIO
 
 import numpy as np
 import pandas as pd
-import ray
 
+import secretflow.distributed as sfd
 from secretflow.data.base import Partition
 from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.device.driver import reveal
 from secretflow.preprocessing.binning.vert_woe_binning import VertWoeBinning
 from secretflow.utils.simulation.datasets import dataset
 
-from tests.basecase import DeviceTestCase
+from tests.basecase import MultiDriverDeviceTestCase
 
 
 def woe_almost_equal(a, b):
@@ -47,7 +47,7 @@ def audit_ciphertext_equal(a, b):
         assert get_c_in_a(sa) == get_c_in_b(sb), f"{sa}\n...........\n{sb}"
 
 
-class TestVertBinning(DeviceTestCase):
+class TestVertBinning(MultiDriverDeviceTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
@@ -175,8 +175,8 @@ class TestVertBinning(DeviceTestCase):
         with open('bob.audit.pk.pickle', 'rb') as f:
             pk = pickle.load(f)
 
-        spk = ray.get(self.heu.sk_keeper.public_key.remote())
-        assert str(spk) == str(pk)
+        spk = sfd.get(self.heu.sk_keeper.public_key.remote())
+        self.assertEqual(str(spk), str(pk))
 
     def test_binning_normal(self):
         he_binning = VertWoeBinning(self.heu)

@@ -7,14 +7,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-09-16 10:29+0800\n"
+"POT-Creation-Date: 2023-01-07 11:23+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.10.3\n"
+"Generated-By: Babel 2.11.0\n"
 
 #: ../../tutorial/Federated_Learning_with_Pytorch_backend.ipynb:9
 msgid "Federated Learning with Pytorch Backend"
@@ -22,7 +22,7 @@ msgstr "使用Pytorch后端来进行联邦学习"
 
 #: ../../tutorial/Federated_Learning_with_Pytorch_backend.ipynb:20
 msgid ""
-"The following codes are demos only. It's **NOT for production** due to "
+"The following codes are demos only. It’s **NOT for production** due to "
 "system security concerns, please **DO NOT** use it directly in "
 "production."
 msgstr "以下代码仅作为演示用，请勿直接在生产环境使用。"
@@ -61,11 +61,11 @@ msgid ""
 msgstr "TorchModel: 一个包装类包括 ``loss_fn``,\\ ``optim_fn``,\\ "
 
 #: ../../tutorial/Federated_Learning_with_Pytorch_backend.ipynb:100
-msgid "metric\\_wrapper: Wrap metrics to workers"
+msgid "metric_wrapper: Wrap metrics to workers"
 msgstr "metric_wrapper: metrics包装器"
 
 #: ../../tutorial/Federated_Learning_with_Pytorch_backend.ipynb:101
-msgid "optim\\_wrapper: Wrap optim\\_fn to workers"
+msgid "optim_wrapper: Wrap optim_fn to workers"
 msgstr "optim_wrapper： optim_fn包装器"
 
 #: ../../tutorial/Federated_Learning_with_Pytorch_backend.ipynb:102

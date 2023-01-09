@@ -14,13 +14,16 @@
 
 import inspect
 import logging
+from typing import Union
 
+import fed
 import jax
 import ray
 
-from .base import Device, DeviceObject, DeviceType
+import secretflow.distributed as sfd
+from secretflow.utils.logging import LOG_FORMAT, get_logging_level
 
-_LOG_FORMAT = '%(asctime)s,%(msecs)d %(levelname)s [%(filename)s:%(funcName)s:%(lineno)d] %(message)s'
+from .base import Device, DeviceObject, DeviceType
 
 
 def _check_num_returns(fn):
@@ -52,10 +55,10 @@ class PYUObject(DeviceObject):
     """PYU device object.
 
     Attributes:
-        data (ray.ObjectRef): Reference to underlying data.
+        data: Reference to underlying data.
     """
 
-    def __init__(self, device: 'PYU', data: ray.ObjectRef):
+    def __init__(self, device: 'PYU', data: Union[ray.ObjectRef, fed.FedObject]):
         super().__init__(device)
         self.data = data
 
@@ -78,8 +81,11 @@ class PYU(Device):
         self.party = party
         self.node = node
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{self.party}_{self.node}'
+
+    def __repr__(self) -> str:
+        return str(self)
 
     def __eq__(self, other):
         return type(other) == type(self) and str(other) == str(self)
@@ -111,16 +117,24 @@ class PYU(Device):
                 return arg
 
             args_, kwargs_ = jax.tree_util.tree_map(
-                lambda arg: try_get_data(arg, self),
-                (args, kwargs),
+                lambda arg: try_get_data(arg, self), (args, kwargs)
             )
 
             _num_returns = (
                 _check_num_returns(fn) if num_returns is None else num_returns
             )
-            data = self._run.options(
-                resources={self.party: 1}, num_returns=_num_returns
-            ).remote(fn, *args_, **kwargs_)
+            data = (
+                sfd.remote(self._run)
+                .party(self.party)
+                .options(num_returns=_num_returns)
+                .remote(fn, *args_, **kwargs_)
+            )
+            logging.debug(
+                (
+                    f'PYU remote function: {fn}, num_returns={num_returns}, '
+                    f'args len: {len(args)}, kwargs len: {len(kwargs)}.'
+                )
+            )
             if _num_returns == 1:
                 return PYUObject(self, data)
             else:
@@ -128,11 +142,10 @@ class PYU(Device):
 
         return wrapper
 
-    @classmethod
-    @ray.remote
+    @staticmethod
     def _run(fn, *args, **kwargs):
-        global _LOG_FORMAT
-        logging.basicConfig(level=logging.WARNING, format=_LOG_FORMAT)
+        logging.basicConfig(level=get_logging_level(), format=LOG_FORMAT)
+        logging.debug(f'PYU runs function: {fn}')
 
         # Automatically parse ray Object ref. Note that if it is a dictionary key, it is not parsed.
         arg_flat, arg_tree = jax.tree_util.tree_flatten((args, kwargs))

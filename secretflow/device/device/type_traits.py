@@ -69,7 +69,7 @@ def spu_datatype_to_heu(spu_dt):
 
 
 HEU_NP_DT_SWITCHER = {
-    "DT_I1": np.bool,
+    "DT_I1": np.bool_,
     "DT_I8": np.int8,
     "DT_I16": np.int16,
     "DT_I32": np.int32,

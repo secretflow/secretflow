@@ -96,13 +96,14 @@ class FedCallbackContainer(CallbackContainer):
                     value=agg_score,
                     version=self._sync_version,
                 )
+                self._update_history(agg_score, epoch)
             if self.role == link.CLIENT:
                 agg_score = link.recv_from_server(
                     name=self.key("agg_score"),
                     version=self._sync_version,
                 )
 
-            self._update_history(agg_score, epoch)
+                self._update_history(score, epoch)
         self._sync_version += 1
         # TODO: 聚合需要根据不同的算子来做不同的策略
         ret = any(c.after_iteration(model, epoch, self.history) for c in self.callbacks)

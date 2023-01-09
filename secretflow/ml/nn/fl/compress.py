@@ -18,9 +18,9 @@
 
 import numpy as np
 from typing import List
-from secretflow.ml.nn.fl.sparse import STCSparse
+from secretflow.utils.compressor import STCSparse
 
-COMPRESS_STRATEGY = ["fed_stc"]
+COMPRESS_STRATEGY = ("fed_stc", "fed_scr")
 
 
 def stc_compress(compressor, server_weights, agg_updates, res):
@@ -52,4 +52,4 @@ def do_compress(
         return stc_compress(compressor, server_weights, updates, res)
 
     else:
-        return server_weights, None, None
+        return server_weights, updates, res

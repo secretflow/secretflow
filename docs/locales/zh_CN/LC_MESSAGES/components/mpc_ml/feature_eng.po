@@ -3,19 +3,18 @@
 # This file is distributed under the same license as the SecretFlow package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2022.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-09-15 17:24+0800\n"
+"POT-Creation-Date: 2023-01-07 11:23+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.10.3\n"
+"Generated-By: Babel 2.11.0\n"
 
 #: ../../components/mpc_ml/feature_eng.ipynb:9
 msgid "Feature Engineering"
@@ -23,7 +22,7 @@ msgstr "特征工程"
 
 #: ../../components/mpc_ml/feature_eng.ipynb:20
 msgid ""
-"The following codes are demos only. It's **NOT for production** due to "
+"The following codes are demos only. It’s **NOT for production** due to "
 "system security concerns, please **DO NOT** use it directly in "
 "production."
 msgstr "本页面中的代码仅供参考，部署模式存在安全问题，请 **不要** 作为生产代码使用。"
@@ -51,7 +50,7 @@ msgstr "初始化Secretflow，并创建alice/bob两个计算参与方兼数据�
 
 #: ../../components/mpc_ml/feature_eng.ipynb:78
 msgid ""
-"💡 Before using preprocessing, you may need to get to know secretflow's "
+"💡 Before using preprocessing, you may need to get to know secretflow’s "
 "`DataFrame <../preprocessing/DataFrame.ipynb>`__."
 msgstr "使用前请先了解Secretflow的数据集设定 `DataFrame <../preprocessing/DataFrame.ipynb>`__。"
 
@@ -140,7 +139,7 @@ msgstr "SecretFlow 的 ``SSVertPearsonR`` 模块可以用于探查垂直划分�
 #: ../../components/mpc_ml/feature_eng.ipynb:282
 msgid ""
 "SSVertPearsonR will standardize input datraset first. After standardized,"
-" all features' variance is 1 and the mean is 0, the calculation is "
+" all features’ variance is 1 and the mean is 0, the calculation is "
 "simplified to:"
 msgstr "SSVertPearsonR会首先标准化数据集，这样一来所有特征的均值为0方差为1，可以将计算简化为："
 
@@ -412,7 +411,7 @@ msgstr ""
 
 #: ../../components/mpc_ml/feature_eng.ipynb:515
 msgid ""
-"The Hessian matrix is ​​expressed as :math:`H=X^T A X`, A is a n\\*n "
+"The Hessian matrix is ​​expressed as :math:`H=X^T A X`, A is a n*n "
 "matrix, where:"
 msgstr "Hessian矩阵表示为 :math:`H=X^T A X`， A矩阵为："
 
@@ -501,3 +500,4 @@ msgstr "计算 :math:`z^2=ω^2/H^{-1}_{kk}`"
 #: ../../components/mpc_ml/feature_eng.ipynb:553
 msgid ":math:`p = 2 * (1 - norm.cdf(|z|))`"
 msgstr ":math:`p = 2 * (1 - norm.cdf(|z|))`"
+

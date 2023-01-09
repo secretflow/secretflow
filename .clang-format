@@ -9,7 +9,7 @@ IncludeCategories:
     Priority:        2
   - Regex:           '.*\.pb\.h"$'
     Priority:        5
-  - Regex:           '^"yasl.*'
+  - Regex:           '^"yacl.*'
     Priority:        4
   - Regex:           '^".*'
     Priority:        3

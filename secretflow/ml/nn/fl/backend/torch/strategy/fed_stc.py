@@ -20,11 +20,12 @@ import copy
 from typing import Callable, Tuple
 
 import numpy as np
+
 from secretflow.device import PYUObject, proxy
 from secretflow.ml.nn.fl.backend.torch.fl_base import BaseTorchModel
 from secretflow.ml.nn.fl.backend.torch.utils import TorchModel
-from secretflow.ml.nn.fl.sparse import STCSparse
 from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
+from secretflow.utils.compressor import STCSparse, sparse_decode, sparse_encode
 
 
 class FedSTC(BaseTorchModel):
@@ -35,8 +36,8 @@ class FedSTC(BaseTorchModel):
     client) communication.
     """
 
-    def __init__(self, builder_base: Callable[[], TorchModel]):
-        super().__init__(builder_base)
+    def __init__(self, builder_base: Callable[[], TorchModel], random_seed):
+        super().__init__(builder_base, random_seed=random_seed)
         self._res = []
 
     def train_step(
@@ -64,6 +65,8 @@ class FedSTC(BaseTorchModel):
         compressor = STCSparse(sparse_rate=sparsity)
         # update current weights
         if updates is not None:
+            # Sparse matrix decoded in the downstream
+            updates = sparse_decode(data=updates)
             weights = [np.add(w, u) for w, u in zip(self.model_weights, updates)]
             self.model.update_weights(weights)
         num_sample = 0
@@ -129,6 +132,10 @@ class FedSTC(BaseTorchModel):
             for dense_u, sparse_u in zip(client_updates, sparse_client_updates)
         ]
         self.model.update_weights(self.model_weights)
+        # do sparse encoding
+        sparse_client_updates = sparse_encode(
+            data=sparse_client_updates, encode_method='coo'
+        )
         return sparse_client_updates, num_sample
 
 

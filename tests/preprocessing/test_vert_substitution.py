@@ -10,7 +10,7 @@ from secretflow.preprocessing.binning.vert_woe_binning import VertWoeBinning
 from secretflow.preprocessing.binning.vert_woe_substitution import VertWOESubstitution
 from secretflow.utils.simulation.datasets import dataset
 
-from tests.basecase import DeviceTestCase
+from tests.basecase import MultiDriverDeviceTestCase
 
 
 def woe_almost_equal(a, b):
@@ -33,7 +33,7 @@ def woe_almost_equal(a, b):
                 np.testing.assert_almost_equal(a_f_bin[k], b_f_bin[k], err_msg=k)
 
 
-class TestVertBinning(DeviceTestCase):
+class TestVertBinning(MultiDriverDeviceTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()

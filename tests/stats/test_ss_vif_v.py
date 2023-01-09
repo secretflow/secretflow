@@ -1,21 +1,25 @@
-import numpy as np
-import pandas as pd
-from statsmodels.stats.outliers_influence import variance_inflation_factor as vif
-
-from secretflow.stats import SSVertVIF
-from secretflow.utils.simulation.datasets import load_linear, dataset, create_df
-from secretflow.data.base import Partition
-from secretflow.data.vertical import VDataFrame
-from secretflow.device.driver import wait
-import sklearn
-
-from tests.basecase import DeviceTestCase, ABY3DeviceTestCase
 import logging
 import sys
 import time
 
+import numpy as np
+import pandas as pd
+import sklearn
+from statsmodels.stats.outliers_influence import \
+    variance_inflation_factor as vif
 
-class TestVertVIF(DeviceTestCase):
+from secretflow.data.base import Partition
+from secretflow.data.vertical import VDataFrame
+from secretflow.device.driver import reveal, wait
+from secretflow.stats import SSVertVIF
+from secretflow.utils.simulation.datasets import (create_df, dataset,
+                                                  load_linear)
+
+from tests.basecase import (ABY3MultiDriverDeviceTestCase,
+                            MultiDriverDeviceTestCase)
+
+
+class TestVertVIF(MultiDriverDeviceTestCase):
     def _statsmodels_vif(self, data):
         cols = data.shape[1]
         std = sklearn.preprocessing.StandardScaler()
@@ -31,7 +35,7 @@ class TestVertVIF(DeviceTestCase):
         ss_vif = np.select([ss_vif > 1000], [1000], ss_vif)
         vif = np.select([~np.isfinite(vif), vif > 1000], [1000, 1000], vif)
         err = np.absolute(ss_vif - vif) / np.maximum(vif, ss_vif)
-        assert np.amax(err) < 0.5
+        self.assertLess(np.amax(err), 0.5)
 
     def test_linear_vif(self):
         vdata = load_linear(parts={self.alice: (1, 11), self.bob: (11, 21)}).astype(
@@ -58,7 +62,7 @@ class TestVertVIF(DeviceTestCase):
         self._run_vif(vdata, data)
 
     def test_const_col_data(self):
-        nd_data = np.random.random((10, 8))
+        nd_data = reveal(self.alice(lambda : np.random.random((10, 8)))()).copy()
         # const value col
         nd_data[:, 2] = 1
 
@@ -75,7 +79,7 @@ class TestVertVIF(DeviceTestCase):
         self._run_vif(vdata, data)
 
     def test_linear_col_data(self):
-        nd_data = np.random.random((10, 8))
+        nd_data = reveal(self.alice(lambda : np.random.random((10, 8)))()).copy()
         # linear correlational col
         nd_data[:, 2] = nd_data[:, 6] * 2
 
@@ -103,7 +107,7 @@ if __name__ == '__main__':
     #    python tests/stats/test_ss_vif_v.py
 
     # use aby3 in this example.
-    cluster = ABY3DeviceTestCase()
+    cluster = ABY3MultiDriverDeviceTestCase()
     cluster.setUpClass()
     # init log
     logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)

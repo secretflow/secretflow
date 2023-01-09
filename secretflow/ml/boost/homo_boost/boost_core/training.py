@@ -13,6 +13,7 @@
 # limitations under the License.
 
 # coding: utf-8
+
 """Training Library containing training routines."""
 import copy
 import logging
@@ -20,11 +21,12 @@ import os
 from typing import Callable, Dict, List, Union
 
 import xgboost.core as xgb_core
+from xgboost import callback as xgb_callback
+
+import secretflow.device.link as link
 from secretflow.data.horizontal import HDataFrame
 from secretflow.ml.boost.homo_boost.boost_core import callback
 from secretflow.ml.boost.homo_boost.boost_core.core import FedBooster
-from xgboost import callback as xgb_callback
-import secretflow.device.link as link
 
 
 def _configure_deprecated_callbacks(

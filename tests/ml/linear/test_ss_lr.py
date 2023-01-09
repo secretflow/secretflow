@@ -5,13 +5,13 @@ import logging
 from secretflow.device.driver import reveal, wait
 from secretflow.ml.linear.ss_sgd import SSRegression
 from sklearn.preprocessing import StandardScaler
-from tests.basecase import ABY3DeviceTestCase
+from tests.basecase import ABY3MultiDriverDeviceTestCase
 from sklearn.metrics import roc_auc_score
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.utils.simulation.datasets import load_linear, create_df, dataset
 
 
-class TestVertBinning(ABY3DeviceTestCase):
+class TestVertBinning(ABY3MultiDriverDeviceTestCase):
     def _transform(self, data):
         scaler = StandardScaler()
         return scaler.fit_transform(data)
@@ -97,7 +97,7 @@ if __name__ == '__main__':
     #    python tests/ml/linear/test_ss_lr.py
 
     # use aby3 in this example.
-    cluster = ABY3DeviceTestCase()
+    cluster = ABY3MultiDriverDeviceTestCase()
     cluster.setUpClass()
     # init log
     logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)

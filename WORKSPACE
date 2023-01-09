@@ -3,14 +3,14 @@ workspace(name = "secretflow")
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
 git_repository(
-    name = "yasl",
+    name = "yacl",
     remote = "https://github.com/secretflow/yasl.git",
-    commit = "a1cd56d69261a0e2e4d369b0d29a4ca629ed9bc9",
+    tag = "0.3.0",
 )
 
-load("@yasl//bazel:repositories.bzl", "yasl_deps")
+load("@yacl//bazel:repositories.bzl", "yacl_deps")
 
-yasl_deps()
+yacl_deps()
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 

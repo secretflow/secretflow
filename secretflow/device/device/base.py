@@ -53,8 +53,16 @@ class MoveConfig:
     """Where the encrypted data is located"""
 
     heu_encoder: Union[
-        phe.IntegerEncoder, phe.FloatEncoder, phe.BigintEncoder, phe.BigintEncoder
+        phe.IntegerEncoder,
+        phe.FloatEncoder,
+        phe.BigintEncoder,
+        phe.BatchEncoder,
+        phe.IntegerEncoderParams,
+        phe.FloatEncoderParams,
+        phe.BigintEncoderParams,
+        phe.BatchEncoderParams,
     ] = None
+
     """Do encode before move data to heu"""
 
     heu_audit_log: str = None

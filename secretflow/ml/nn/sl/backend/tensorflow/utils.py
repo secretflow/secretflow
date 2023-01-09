@@ -16,7 +16,8 @@
 # limitations under the License.
 
 
-from typing import Callable
+from dataclasses import dataclass
+from typing import List, Callable
 
 import tensorflow as tf
 
@@ -72,3 +73,62 @@ class custom_loss:
         custom_objects = tf.keras.utils.get_custom_objects()
         # The object with func name has already been wrapped, so return it directly.
         return custom_objects[config['name']]
+
+
+@dataclass
+class TensorInfo:
+    name: str = None
+    tensor_name: str = None
+    dtype: str = None
+    shape: List[int] = None
+
+
+def wrap_onnx_input_output(io_pb):
+    from onnx.onnx_pb import TensorProto as tp
+
+    supported_dtypes = {
+        tp.DataType.FLOAT: 'float32',
+        tp.DataType.INT64: 'int64',
+        tp.DataType.STRING: 'string',
+    }
+    results = []
+    for info_pb in io_pb:
+        tensor_info = TensorInfo()
+        tensor_info.dtype = (
+            supported_dtypes[info_pb.type.tensor_type.elem_type]
+            if info_pb.type.tensor_type.elem_type in supported_dtypes
+            else ""
+        )
+        tensor_info.shape = []
+        tensor_info.shape.extend(
+            [
+                -1 if dim.dim_param else dim.dim_value
+                for dim in info_pb.type.tensor_type.shape.dim
+            ]
+        )
+        tensor_info.name = info_pb.name
+        tensor_info.tensor_name = info_pb.name
+        results.append(tensor_info)
+    return results
+
+
+def wrap_tf_input_output(io_pb):
+    from tensorflow.core.framework import types_pb2
+
+    supported_dtypes = {
+        types_pb2.DT_FLOAT: 'float32',
+        types_pb2.DT_INT64: 'int64',
+        types_pb2.DT_STRING: 'string',
+    }
+    results = []
+    for name, info_pb in sorted(io_pb.items()):
+        tensor_info = TensorInfo()
+        tensor_info.shape = []
+        tensor_info.name = name
+        tensor_info.tensor_name = info_pb.name
+        tensor_info.dtype = (
+            supported_dtypes[info_pb.dtype] if info_pb.dtype in supported_dtypes else ""
+        )
+        tensor_info.shape.extend([dim.size for dim in info_pb.tensor_shape.dim])
+        results.append(tensor_info)
+    return results

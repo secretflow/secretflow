@@ -22,8 +22,9 @@ from typing import Callable, Dict, List, Union
 
 import numpy as np
 import pandas as pd
-import secretflow.device.link as link
 import xgboost as xgb
+
+import secretflow.device.link as link
 from secretflow.device import PYUObject, proxy
 from secretflow.device.device import PYU
 from secretflow.ml.boost.homo_boost.boost_core.core import FedBooster
@@ -31,12 +32,16 @@ from secretflow.ml.boost.homo_boost.boost_core.training import train
 from secretflow.ml.boost.homo_boost.tree_core.loss_function import LossFunction
 
 
-@proxy(PYUObject, max_concurrency=2)
+@proxy(PYUObject, _simulation_max_concurrency=2)
 class HomoBooster(link.Link):
     def __init__(
-        self, device: PYU = None, clients: List[PYU] = None, server: PYU = None
+        self,
+        device: PYU = None,
+        clients: List[PYU] = None,
+        server: PYU = None,
+        msg_id_prefix='',
     ):
-        super().__init__(device)
+        super().__init__(device, msg_id_prefix)
         self.clients = clients
         self.server = server
         self.device = device

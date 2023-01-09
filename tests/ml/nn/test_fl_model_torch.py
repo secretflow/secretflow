@@ -12,19 +12,20 @@ import os
 import tempfile
 
 import numpy as np
-from secretflow.device import reveal
-from secretflow.ml.nn import FLModel
-from secretflow.ml.nn.fl.backend.torch.utils import BaseModule, TorchModel
-from secretflow.ml.nn.fl.utils import metric_wrapper, optim_wrapper
-from secretflow.preprocessing.encoder import OneHotEncoder
-from secretflow.security.aggregation import PlainAggregator
-from secretflow.utils.simulation.datasets import load_iris, load_mnist
-from secretflow.security.privacy import DPStrategyFL, GaussianModelDP
-from tests.basecase import DeviceTestCase
 from torch import nn, optim
-from torch.nn import functional as F
 from torchmetrics import Accuracy, Precision
 
+from secretflow.device import reveal
+from secretflow.ml.nn import FLModel
+from secretflow.ml.nn.fl.backend.torch.utils import TorchModel
+from secretflow.ml.nn.fl.compress import COMPRESS_STRATEGY
+from secretflow.ml.nn.fl.utils import metric_wrapper, optim_wrapper
+from secretflow.preprocessing.encoder import OneHotEncoder
+from secretflow.security.aggregation import PlainAggregator, SparsePlainAggregator
+from secretflow.security.privacy import DPStrategyFL, GaussianModelDP
+from secretflow.utils.simulation.datasets import load_iris, load_mnist
+from tests.basecase import MultiDriverDeviceTestCase
+from tests.ml.nn.model_def import ConvNet, MlpNet
 
 _temp_dir = tempfile.mkdtemp()
 
@@ -32,48 +33,18 @@ NUM_CLASSES = 10
 INPUT_SHAPE = (28, 28, 1)
 
 
-# model define for conv
-class ConvNet(BaseModule):
-    """Small ConvNet for MNIST."""
-
-    def __init__(self):
-        super(ConvNet, self).__init__()
-        self.conv1 = nn.Conv2d(1, 3, kernel_size=3)
-        self.fc_in_dim = 192
-        self.fc = nn.Linear(self.fc_in_dim, 10)
-
-    def forward(self, x):
-        x = F.relu(F.max_pool2d(self.conv1(x), 3))
-        x = x.view(-1, self.fc_in_dim)
-        x = self.fc(x)
-        return F.softmax(x, dim=1)
-
-
-class MlpNet(BaseModule):
-    """Small mlp network for Iris"""
-
-    def __init__(self):
-        super(MlpNet, self).__init__()
-        self.layer1 = nn.Linear(4, 50)
-        self.layer2 = nn.Linear(50, 50)
-        self.layer3 = nn.Linear(50, 3)
-
-    def forward(self, x):
-        x = F.relu(self.layer1(x))
-        x = F.relu(self.layer2(x))
-        x = F.relu(self.layer3(x))
-        x = F.softmax(x, dim=1)
-        return x
-
-
-class TestFLModelTorchMnist(DeviceTestCase):
+class TestFLModelTorchMnist(MultiDriverDeviceTestCase):
     def torch_model_with_mnist(
         self, model_def, data, label, strategy, backend, **kwargs
     ):
 
         device_list = [self.alice, self.bob]
         server = self.carol
-        aggregator = PlainAggregator(server)
+
+        if strategy in COMPRESS_STRATEGY:
+            aggregator = SparsePlainAggregator(server)
+        else:
+            aggregator = PlainAggregator(server)
 
         # spcify params
         dp_spent_step_freq = kwargs.get('dp_spent_step_freq', None)
@@ -85,6 +56,7 @@ class TestFLModelTorchMnist(DeviceTestCase):
             aggregator=aggregator,
             strategy=strategy,
             backend=backend,
+            random_seed=1234,
             **kwargs,
         )
         history = fl_model.fit(
@@ -123,6 +95,7 @@ class TestFLModelTorchMnist(DeviceTestCase):
             model=model_def,
             aggregator=None,
             backend=backend,
+            random_seed=1234,
         )
         new_fed_model.load_model(model_path=model_path_dict, is_test=False)
         new_fed_model.load_model(model_path=model_path_test, is_test=True)
@@ -163,6 +136,7 @@ class TestFLModelTorchMnist(DeviceTestCase):
             strategy='fed_avg_w',
             backend="torch",
         )
+
         # Test fed_avg_g with mnist
         self.torch_model_with_mnist(
             model_def=model_def,
@@ -233,7 +207,7 @@ class TestFLModelTorchMnist(DeviceTestCase):
         )
 
 
-class TestFLModelTorchMlp(DeviceTestCase):
+class TestFLModelTorchMlp(MultiDriverDeviceTestCase):
     def torch_model_mlp(self):
         """unittest ignore"""
         aggregator = PlainAggregator(self.carol)
@@ -268,6 +242,7 @@ class TestFLModelTorchMlp(DeviceTestCase):
             sparsity=0.0,
             strategy="fed_avg_w",
             backend="torch",
+            random_seed=1234,
         )
         history = fl_model.fit(
             data,
@@ -302,6 +277,7 @@ class TestFLModelTorchMlp(DeviceTestCase):
             model=new_model_def,
             aggregator=None,
             backend="torch",
+            random_seed=1234,
         )
         new_fed_model.load_model(model_path=model_path, is_test=True)
         reload_metric, _ = new_fed_model.evaluate(

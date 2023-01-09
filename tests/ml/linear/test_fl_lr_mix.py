@@ -14,10 +14,10 @@ from secretflow.ml.linear.fl_lr_mix import FlLogisticRegressionMix
 from secretflow.preprocessing.scaler import StandardScaler
 from secretflow.security.aggregation import SecureAggregator
 
-from tests.basecase import DeviceTestCaseBase
+from tests.basecase import MultiDriverDeviceTestCase
 
 
-class TestFlLrMix(DeviceTestCaseBase):
+class TestFlLrMix(MultiDriverDeviceTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.num_cpus = 64
@@ -29,14 +29,13 @@ class TestFlLrMix(DeviceTestCaseBase):
                 'evaluators': [{'party': evaluator} for evaluator in evaluators],
                 'mode': 'PHEU',
                 'he_parameters': {
-                    'schema': 'paillier',
+                    'schema': 'ou',
                     'key_pair': {'generate': {'bit_size': 2048}},
                 },
             }
 
         cls.heu0 = sf.HEU(heu_config('alice', ['bob', 'carol']), spu.spu_pb2.FM128)
         cls.heu1 = sf.HEU(heu_config('alice', ['bob', 'davy']), spu.spu_pb2.FM128)
-        cls.heu2 = sf.HEU(heu_config('alice', ['bob', 'eric']), spu.spu_pb2.FM128)
 
         features, label = load_breast_cancer(return_X_y=True, as_frame=True)
         label = label.to_frame()
@@ -54,30 +53,23 @@ class TestFlLrMix(DeviceTestCaseBase):
         )
         x = StandardScaler().fit_transform(x)
         y = VDataFrame(partitions={cls.alice: Partition(cls.alice(lambda: label)())})
-        x1, x = train_test_split(x, train_size=0.35, shuffle=False)
-        x2, x3 = train_test_split(x, train_size=0.54, shuffle=False)
-        y1, y = train_test_split(y, train_size=0.35, shuffle=False)
-        y2, y3 = train_test_split(y, train_size=0.54, shuffle=False)
+        x1, x2 = train_test_split(x, train_size=0.5, shuffle=False)
+        y1, y2 = train_test_split(y, train_size=0.5, shuffle=False)
 
         # davy holds same x
         x2_davy = x2.partitions[cls.carol].data.to(cls.davy)
         del x2.partitions[cls.carol]
         x2.partitions[cls.davy] = Partition(x2_davy)
 
-        # eric holds some x also.
-        x3_eric = x3.partitions[cls.carol].data.to(cls.eric)
-        del x3.partitions[cls.carol]
-        x3.partitions[cls.eric] = Partition(x3_eric)
-
-        cls.x = MixDataFrame(partitions=[x1, x2, x3])
-        cls.y = MixDataFrame(partitions=[y1, y2, y3])
+        cls.x = MixDataFrame(partitions=[x1, x2])
+        cls.y = MixDataFrame(partitions=[y1, y2])
         cls.y_arr = label.values
 
     def test_model_should_ok_when_fit_dataframe(self):
         # GIVEN
         aggregator0 = SecureAggregator(self.alice, [self.alice, self.bob, self.carol])
         aggregator1 = SecureAggregator(self.alice, [self.alice, self.bob, self.davy])
-        aggregator2 = SecureAggregator(self.alice, [self.alice, self.bob, self.eric])
+        # aggregator2 = SecureAggregator(self.alice, [self.alice, self.bob, self.eric])
 
         model = FlLogisticRegressionMix()
 
@@ -88,8 +80,8 @@ class TestFlLrMix(DeviceTestCaseBase):
             epochs=3,
             batch_size=64,
             learning_rate=0.1,
-            aggregators=[aggregator0, aggregator1, aggregator2],
-            heus=[self.heu0, self.heu1, self.heu2],
+            aggregators=[aggregator0, aggregator1],
+            heus=[self.heu0, self.heu1],
         )
 
         y_pred = np.concatenate(sf.reveal(model.predict(self.x)))

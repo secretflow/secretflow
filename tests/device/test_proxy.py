@@ -4,7 +4,9 @@ import numpy as np
 
 from secretflow import reveal
 from secretflow.device import PYUObject, proxy
-from tests.basecase import DeviceTestCase
+
+from tests.basecase import (MultiDriverDeviceTestCase,
+                            SingleDriverDeviceTestCase)
 
 
 @proxy(PYUObject)
@@ -28,7 +30,7 @@ class Model:
         return self.weights, 100
 
 
-class TestProxy(DeviceTestCase):
+class TestProxy(MultiDriverDeviceTestCase, SingleDriverDeviceTestCase):
     def setUp(self) -> None:
         self.model = Model(lambda: np.ones((3, 4)), device=self.alice)
 

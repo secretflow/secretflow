@@ -16,7 +16,7 @@
 from dataclasses import dataclass, field
 from typing import Dict, List
 
-from secretflow.ml.nn.fl.metrics import Metric
+from secretflow.ml.nn.metrics import Metric
 
 
 @dataclass

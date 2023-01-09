@@ -7,31 +7,34 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-08-30 17:10+0800\n"
+"POT-Creation-Date: 2023-01-07 11:23+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.10.3\n"
+"Generated-By: Babel 2.11.0\n"
 
-#: ../../developer/index.rst:9 1ef698e256904e7eaedeb1378a8e0480
+#: ../../developer/index.rst:9
 msgid "Design Documentation"
 msgstr "设计文档"
 
-#: ../../developer/index.rst:16 1670d38ff8144cc78e569e304d65243d
+#: ../../developer/index.rst:20
 msgid "Algorithm"
 msgstr "算法"
 
-#: ../../developer/index.rst:4 61af9772a2a947848283df2b18a183fd
+#: ../../developer/index.rst:31
+msgid "Benchmark"
+msgstr ""
+
+#: ../../developer/index.rst:4
 msgid "Developer"
 msgstr "开发者"
 
-#: ../../developer/index.rst:6 a1b4448948f34221baafff78f9cee586
+#: ../../developer/index.rst:6
 msgid ""
 "The following documents will help you understand the design ideas and "
 "principles of secretflow."
-msgstr ""
-"下列文档有助于您了解隐语的设计思想和原则。"
+msgstr "下列文档有助于您了解隐语的设计思想和原则。"
 

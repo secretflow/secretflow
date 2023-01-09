@@ -21,7 +21,7 @@ py::handle distribution(std::optional<std::vector<size_t>> size, Dist &dist) {
   T *buffer = new T[nelems];
 
   std::random_device rd;
-  yasl::PseudoRandomGenerator<uint64_t> prg(rd());
+  yacl::Prg<uint64_t> prg(rd());
   for (size_t i = 0; i < nelems; ++i) {
     buffer[i] = dist(prg);
   }

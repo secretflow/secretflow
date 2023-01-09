@@ -7,14 +7,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-09-16 13:52+0800\n"
+"POT-Creation-Date: 2023-01-07 11:23+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.10.3\n"
+"Generated-By: Babel 2.11.0\n"
 
 #: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:9
 msgid "Federated Learning for Image Classification"
@@ -22,7 +22,7 @@ msgstr "水平联邦：图像分类"
 
 #: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:20
 msgid ""
-"The following codes are demos only. It's **NOT for production** due to "
+"The following codes are demos only. It’s **NOT for production** due to "
 "system security concerns, please **DO NOT** use it directly in "
 "production."
 msgstr "以下代码仅作为示例，请勿在生产环境直接使用。"
@@ -57,7 +57,7 @@ msgid ""
 msgstr "这里的联邦学习特指的是水平场景的联邦学习，也就是样本的联合。这种模式适用于各个参与方业务相同，但触达的客户群不同，这种情况可以联合多方的样本来训练一个性能更好或者泛化性能更好的联合模型。比如在医疗场景，每个医院都有自己独特的病人群，各个地区的医院之间几乎是互不重叠，但是他们对于病历的检查记录（如影像，血检等）又是相同类型的。"
 
 #: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:66
-msgid "|f761566f0e57488b92b6868a5112184f|"
+msgid "|74e89b21f5f149acbfaed4b4d118b27c|"
 msgstr ""
 
 #: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:68
@@ -103,7 +103,7 @@ msgstr "Alice 和 Bob 各自拥有一半的数据。"
 #: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:205
 msgid ""
 "``x_train``, ``y_train``, ``x_test``, ``y_test`` are both ``FedNdarray``."
-" Let's take a look at the data obtained from ``FedNdarray``. FedNdarray "
+" Let’s take a look at the data obtained from ``FedNdarray``. FedNdarray "
 "is a virtual Ndarray built on a multi-party concept to protect data "
 "privacy. The underlying data is stored in each participant. The "
 "FedNdarray operation is actually performed by each participant on their "
@@ -117,7 +117,7 @@ msgstr ""
 
 #: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:232
 msgid ""
-"Let's grab some samples from the data set, and just visually see, what "
+"Let’s grab some samples from the data set, and just visually see, what "
 "does the data look like for Both Alice and Bob?"
 msgstr "让我们从数据集中抓取一些样本，通过可视化的方法来看看，在alice和bob两方的数据是什么样？"
 
@@ -147,15 +147,11 @@ msgid ""
 "each participant prepared previously"
 msgstr "定义参与训练的device_list，即之前准备好的各个参与方的PYU"
 
-#: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:434
-msgid "Define Aggregator"
-msgstr "定义Aggregator"
-
-#: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:430
+#: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:429
 msgid ""
-"Secretflow offer a variety of aggregation schemes, ``SecureAggregator`` "
-"and ``PPUAggregator``\\ can be used security aggregation, more "
-"information about aggregation,see `Secure Aggregator "
+"Define Aggregator Secretflow offer a variety of aggregation schemes, "
+"``SecureAggregator`` and ``PPUAggregator``\\ can be used security "
+"aggregation, more information about aggregation,see `Secure Aggregator "
 "<../developer/algorithm/secure_aggregation.ipynb>`__."
 msgstr ""
 "隐语提供了多种聚合方案，SecureAggregator和PPUAggregator可用于安全聚合，更多安全聚合方案可以参考 `安全聚合 "
@@ -191,7 +187,7 @@ msgid ""
 "\\* Each side had only a portion of the sample, but the training "
 "objectives is the same If Alice only uses her own data to train the "
 "model, could only obtain a model with an accuracy of 0.945. However, if "
-"Bob's data is combined, a model with an accuracy close to 0.995 can be "
+"Bob’s data is combined, a model with an accuracy close to 0.995 can be "
 "obtained. In addition, the generalization performance of the model "
 "jointly trained with multi-party data will also be better"
 msgstr ""
@@ -229,3 +225,5 @@ msgid ""
 "next, you can use your data or model to explore how to do federate "
 "learning"
 msgstr "下一步，你可能想尝试不同的数据集，您需要先将数据集进行垂直切分，然后按照本教程的流程进行"
+
+

@@ -1,2 +1,2 @@
 USE_BAZEL_VERSION=5.1.1
-BAZELISK_BASE_URL=https://github.com/bazelbuild/bazel/releases/download
+BAZELISK_BASE_URL=https://mirrors.huaweicloud.com/bazel/

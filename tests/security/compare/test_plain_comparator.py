@@ -1,9 +1,9 @@
 from secretflow.security.compare.plain_comparator import PlainComparator
-from tests.basecase import DeviceTestCase
+from tests.basecase import MultiDriverDeviceTestCase
 from tests.security.compare.test_comparator_base import TestComparatorBase
 
 
-class TestPlainComparator(DeviceTestCase, TestComparatorBase):
+class TestPlainComparator(MultiDriverDeviceTestCase, TestComparatorBase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()

@@ -44,7 +44,6 @@ extensions = [
     'sphinxcontrib.packetdiag',
     'sphinxcontrib.rackdiag',
     'sphinxcontrib.seqdiag',
-    'sphinx_markdown_tables',
     'sphinx_design',
 ]
 
@@ -93,7 +92,7 @@ intersphinx_mapping = {
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'pydata_sphinx_theme'
+html_theme = 'sf_pydata_sphinx_theme'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -129,16 +128,11 @@ html_theme_options = {
             "type": "fontawesome",
         },
     ],
-    "external_links": [
-        {"name": "SPU", "url": "https://spu.readthedocs.io/"},
-        {"name": "HEU", "url": "https://heu.readthedocs.io/"},
-    ],
     "logo": {
         "text": "SecretFlow",
-        "image_light": "logo-light.png",
-        "image_dark": "logo-dark.png",
     },
     "show_nav_level": 4,
+    "language_switch_button": True,
 }
 
 myst_enable_extensions = [

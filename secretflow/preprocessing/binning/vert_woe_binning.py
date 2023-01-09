@@ -22,7 +22,7 @@ from secretflow.preprocessing.binning.vert_woe_binning_pyu import (
 )
 from secretflow.device import SPU, HEU, PYU, PYUObject
 from secretflow.data.vertical import VDataFrame
-from secretflow.device import reveal
+from heu import phe
 
 
 class VertWoeBinning:
@@ -45,7 +45,7 @@ class VertWoeBinning:
     def __init__(self, secure_device: Union[SPU, HEU]):
         self.secure_device = secure_device
 
-    def _find_master_device(self, vdata: VDataFrame, label_name) -> PYU:
+    def _find_coordinator_device(self, vdata: VDataFrame, label_name) -> PYU:
         """
         Find which holds the label column.
 
@@ -60,14 +60,14 @@ class VertWoeBinning:
         label_count = 0
         for device in device_column_names:
             if np.isin(label_name, device_column_names[device]).all():
-                master_device = device
+                coordinator_device = device
                 label_count += 1
 
         assert (
             label_count == 1
         ), f"One and only one party can have label, but found {label_count}"
 
-        return master_device
+        return coordinator_device
 
     def binning(
         self,
@@ -155,35 +155,35 @@ class VertWoeBinning:
         if audit_log_path:
             assert isinstance(self.secure_device, HEU), "only HEU support audit log"
 
-        master_device = self._find_master_device(vdata, label_name)
-        master_audit_log_path = None
+        coordinator_device = self._find_coordinator_device(vdata, label_name)
+        coordinator_audit_log_path = None
 
         if isinstance(self.secure_device, HEU):
             assert len(bin_names) == 2, "only support two party binning in HEU mode"
-            assert self.secure_device.sk_keeper_name() == master_device.party, (
+            assert self.secure_device.sk_keeper_name() == coordinator_device.party, (
                 f"HEU sk keeper party {self.secure_device.sk_keeper_name()} "
-                "mismatch with master device's party {master_device.party}"
+                "mismatch with coordinator device's party {coordinator_device.party}"
             )
             if audit_log_path:
                 assert (
-                    master_device.party in audit_log_path
+                    coordinator_device.party in audit_log_path
                 ), "can not find sk keeper device's audit log path"
-                master_audit_log_path = audit_log_path[master_device.party]
+                coordinator_audit_log_path = audit_log_path[coordinator_device.party]
 
         workers: Dict[PYU, VertWoeBinningPyuWorker] = {}
-        if master_device not in bin_names:
-            bin_names[master_device] = list()
+        if coordinator_device not in bin_names:
+            bin_names[coordinator_device] = list()
 
         for device in bin_names:
             assert (
                 device in vdata.partitions.keys()
             ), f"device {device} in bin_names not exist in vdata"
             workers[device] = VertWoeBinningPyuWorker(
-                vdata.partitions[device],
+                vdata.partitions[device].data.data,
                 binning_method,
                 bin_num,
                 bin_names[device],
-                label_name if master_device == device else "",
+                label_name if coordinator_device == device else "",
                 positive_label,
                 chimerge_init_bins,
                 chimerge_target_bins,
@@ -193,24 +193,26 @@ class VertWoeBinning:
 
         woe_rules: Dict[PYU, PYUObject] = {}
 
-        # master build woe rules
-        master_worker = workers[master_device]
-        label, master_report = master_worker.master_work(
-            vdata.partitions[master_device].data
+        # coordinator build woe rules
+        coordinator_worker = workers[coordinator_device]
+        label, coordinator_report = coordinator_worker.coordinator_work(
+            vdata.partitions[coordinator_device].data
         )
-        woe_rules[master_device] = master_report
+        woe_rules[coordinator_device] = coordinator_report
 
         secure_label = label.to(
-            self.secure_device, MoveConfig(heu_audit_log=master_audit_log_path)
+            self.secure_device, MoveConfig(heu_audit_log=coordinator_audit_log_path)
         )
 
-        # all slaves
+        # all participants
         for device in workers:
-            if device == master_device:
+            if device == coordinator_device:
                 continue
 
             worker = workers[device]
-
+            bin_select = worker.participant_build_sum_select(
+                vdata.partitions[device].data
+            )
             if isinstance(self.secure_device, HEU):
                 if audit_log_path:
                     assert (
@@ -221,18 +223,15 @@ class VertWoeBinning:
                     self.secure_device.get_participant(device.party).dump_pk.remote(
                         f'{worker_audit_path}.pk.pickle'
                     )
-                idx_obj = worker.slave_build_sum_indices(vdata.partitions[device].data)
-                # FIXME: avoid reveal, use remote function to calc sum in HEU when HEU support it
-                bin_indices = reveal(idx_obj)
-                bins_positive = [
-                    secure_label[b].sum().to(master_device).to(device)
-                    for b in bin_indices
-                ]
-                bin_stats = worker.slave_sum_bin(bins_positive)
-            else:
-                bin_select = worker.slave_build_sum_select(
-                    vdata.partitions[device].data
+                move_config = MoveConfig()
+                move_config.heu_encoder = phe.BigintEncoderParams()
+                bin_select_heu = bin_select.to(self.secure_device, move_config)
+                bins_positive = (
+                    (secure_label @ bin_select_heu).to(coordinator_device).to(device)
                 )
+                bins_positive = device(lambda x: x)(bins_positive)
+                bin_stats = worker.participant_sum_bin(bins_positive)
+            else:
 
                 def spu_work(label, select):
                     return jnp.matmul(label, select)
@@ -241,12 +240,12 @@ class VertWoeBinning:
                     secure_label, bin_select.to(self.secure_device)
                 ).to(device)
 
-                bin_stats = worker.slave_sum_bin(bins_positive)
+                bin_stats = worker.participant_sum_bin(bins_positive)
 
-            woe_ivs = master_worker.master_calc_woe_for_peer(
-                bin_stats.to(master_device)
+            woe_ivs = coordinator_worker.coordinator_calc_woe_for_peer(
+                bin_stats.to(coordinator_device)
             )
-            report = worker.slave_build_report(woe_ivs.to(device))
+            report = worker.participant_build_report(woe_ivs.to(device))
             woe_rules[device] = report
 
         return woe_rules

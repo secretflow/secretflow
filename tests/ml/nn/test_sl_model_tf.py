@@ -15,7 +15,7 @@ import numpy as np
 from secretflow.data.ndarray import load
 from secretflow.ml.nn import SLModel
 from secretflow.security.privacy import DPStrategy, GaussianEmbeddingDP, LabelDP
-from tests.basecase import DeviceTestCase
+from tests.basecase import MultiDriverDeviceTestCase
 from secretflow.utils.simulation.datasets import load_mnist
 from secretflow.device import reveal
 from secretflow.utils.compressor import RandomSparse, TopkSparse
@@ -24,6 +24,25 @@ _temp_dir = tempfile.mkdtemp()
 
 NUM_CLASSES = 10
 INPUT_SHAPE = (28, 28, 1)
+
+
+def create_dataset_builder(
+    batch_size=32,
+    repeat_count=5,
+):
+    def dataset_builder(x):
+        import tensorflow as tf
+        import pandas as pd
+
+        x = [t.values if isinstance(t, pd.DataFrame) else t for t in x]
+        x = x[0] if len(x) == 1 else tuple(x)
+        data_set = (
+            tf.data.Dataset.from_tensor_slices(x).batch(batch_size).repeat(repeat_count)
+        )
+
+        return data_set
+
+    return dataset_builder
 
 
 def create_base_model(input_dim, output_dim, output_num, name='base_model'):
@@ -88,13 +107,14 @@ hidden_size = 64
 train_batch_size = 128
 
 
-class TestSLModelTensorflow(DeviceTestCase):
+class TestSLModelTensorflow(MultiDriverDeviceTestCase):
     def keras_model_with_mnist(
         self, base_model_dict, device_y, model_fuse, data, label, **kwargs
     ):
         # kwargs parsing
         dp_strategy_dict = kwargs.get('dp_strategy_dict', None)
         compressor = kwargs.get('compressor', None)
+        dataset_builder = kwargs.get('dataset_builder', None)
 
         party_shape = data.partition_shape()
         alice_length = party_shape[self.alice][0]
@@ -106,6 +126,8 @@ class TestSLModelTensorflow(DeviceTestCase):
             model_fuse=model_fuse,
             dp_strategy_dict=dp_strategy_dict,
             compressor=compressor,
+            simulation=True,
+            random_seed=1234,
         )
 
         history = sl_model.fit(
@@ -114,14 +136,18 @@ class TestSLModelTensorflow(DeviceTestCase):
             validation_data=(data, label),
             epochs=2,
             batch_size=train_batch_size,
-            shuffle=True,
+            shuffle=False,
             random_seed=1234,
+            dataset_builder=dataset_builder,
+            audit_log_dir=_temp_dir,
+            audit_log_params={'save_format': 'h5'},
         )
         global_metric = sl_model.evaluate(
             data,
             label,
             batch_size=128,
             random_seed=1234,
+            dataset_builder=dataset_builder,
         )
         alice_arr = self.alice(lambda: np.zeros(alice_length))()
         bob_arr = self.bob(lambda: np.zeros(bob_length))()
@@ -132,6 +158,7 @@ class TestSLModelTensorflow(DeviceTestCase):
             sample_weight=sample_weights,
             batch_size=128,
             random_seed=1234,
+            dataset_builder=dataset_builder,
         )
         # test history
         self.assertAlmostEqual(
@@ -160,6 +187,8 @@ class TestSLModelTensorflow(DeviceTestCase):
             model_fuse=model_fuse,
             dp_strategy_dict=dp_strategy_dict,
             compressor=compressor,
+            simulation=True,
+            random_seed=1234,
         )
         sl_model_load.load_model(
             base_model_path=base_model_path,
@@ -171,9 +200,43 @@ class TestSLModelTensorflow(DeviceTestCase):
             label,
             batch_size=128,
             random_seed=1234,
+            dataset_builder=dataset_builder,
         )
         self.assertAlmostEqual(global_metric['accuracy'], reload_metric['accuracy'], 1)
         self.assertAlmostEqual(global_metric['loss'], reload_metric['loss'], 1)
+
+        def _assert_tensor_info(tensor_info):
+            self.assertIsNotNone(tensor_info['inputs'])
+            self.assertIsNotNone(tensor_info['outputs'])
+            self.assertTrue(len(tensor_info['inputs']) > 0)
+            self.assertTrue(len(tensor_info['outputs']) > 0)
+
+        export_tf_base_path = os.path.join(_temp_dir, "base_model_export_tf")
+        export_tf_fuse_path = os.path.join(_temp_dir, "fuse_model_export_tf")
+        tensor_infos = sl_model_load.export_model(
+            base_model_path=export_tf_base_path,
+            fuse_model_path=export_tf_fuse_path,
+            is_test=True,
+        )
+        base_tensor_infos, fuse_tensor_info = reveal(tensor_infos)
+        print(base_tensor_infos, fuse_tensor_info)
+        for _, base_tensor_info in base_tensor_infos.items():
+            _assert_tensor_info(base_tensor_info)
+        _assert_tensor_info(fuse_tensor_info)
+
+        export_onnx_base_path = os.path.join(_temp_dir, "base_model_export_onnx")
+        export_onnx_fuse_path = os.path.join(_temp_dir, "fuse_model_export_onnx")
+        tensor_infos = sl_model_load.export_model(
+            base_model_path=export_onnx_base_path,
+            fuse_model_path=export_onnx_fuse_path,
+            is_test=True,
+        )
+
+        base_tensor_infos, fuse_tensor_info = reveal(tensor_infos)
+        print(base_tensor_infos, fuse_tensor_info)
+        for _, base_tensor_info in base_tensor_infos.items():
+            _assert_tensor_info(base_tensor_info)
+        _assert_tensor_info(fuse_tensor_info)
 
     def test_single_output_model(self):
         num_samples = 10000
@@ -225,7 +288,6 @@ class TestSLModelTensorflow(DeviceTestCase):
             device_y=self.bob,
             dp_strategy_dict=dp_strategy_dict,
             dp_spent_step_freq=dp_spent_step_freq,
-            acc=0.82,
         )
 
         # test compressor
@@ -248,6 +310,27 @@ class TestSLModelTensorflow(DeviceTestCase):
             model_fuse=fuse_model,
             device_y=self.bob,
             compressor=random_sparse,
+        )
+
+        # test dataset builder
+        print("test Dataset builder")
+        dataset_buidler_dict = {
+            self.alice: create_dataset_builder(
+                batch_size=128,
+                repeat_count=2,
+            ),
+            self.bob: create_dataset_builder(
+                batch_size=128,
+                repeat_count=2,
+            ),
+        }
+        self.keras_model_with_mnist(
+            data=x_train,
+            label=y_train,
+            base_model_dict=base_model_dict,
+            model_fuse=fuse_model,
+            device_y=self.bob,
+            dataset_builder=dataset_buidler_dict,
         )
 
     def test_multi_output_model(self):
