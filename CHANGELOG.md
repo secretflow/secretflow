@@ -19,6 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.7.18] - 2023-01-09
+### Changed
+- Bump:
+  - rayfed to 0.1.0b0.
+  - spu to 0.3.1a9.
+  - sf-heu to 0.3.2.
+
 ## [0.7.17] - 2022-12-21
 
 ### Added
