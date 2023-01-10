@@ -7,14 +7,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-09-16 10:29+0800\n"
+"POT-Creation-Date: 2023-01-07 11:23+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.10.3\n"
+"Generated-By: Babel 2.11.0\n"
 
 #: ../../tutorial/lr_with_spu.ipynb:9
 msgid "Logistic Regression with SPU"
@@ -22,22 +22,22 @@ msgstr "使用 SPU 进行逻辑回归"
 
 #: ../../tutorial/lr_with_spu.ipynb:20
 msgid ""
-"The following codes are demos only. It's **NOT for production** due to "
+"The following codes are demos only. It’s **NOT for production** due to "
 "system security concerns, please **DO NOT** use it directly in "
 "production."
 msgstr "以下代码仅作为示例，请勿在生产环境直接使用。"
 
 #: ../../tutorial/lr_with_spu.ipynb:31
 msgid ""
-"`SPU <https://spu.readthedocs.io/>`__ is a domain specific compiler and "
-"runtime suite, which provides provable secure computation service. SPU "
-"compiler uses `XLA <https://www.tensorflow.org/xla>`__ as its front-end "
-"IR, which supports diverse AI framework (like Tensorflow, JAX and "
-"PyTorch). SPU compiler translates XLA to an IR which could be interpreted"
-" by the SPU runtime. Currently SPU team highly recommends using `JAX "
-"<https://github.com/google/jax>`__ as the frontend."
+"`SPU <https://www.secretflow.org.cn/docs/spu/en/>`__ is a domain specific"
+" compiler and runtime suite, which provides provable secure computation "
+"service. SPU compiler uses `XLA <https://www.tensorflow.org/xla>`__ as "
+"its front-end IR, which supports diverse AI framework (like Tensorflow, "
+"JAX and PyTorch). SPU compiler translates XLA to an IR which could be "
+"interpreted by the SPU runtime. Currently SPU team highly recommends "
+"using `JAX <https://github.com/google/jax>`__ as the frontend."
 msgstr ""
-"`SPU <https://spu.readthedocs.io/>`__ "
+"`SPU <https://www.secretflow.org.cn/docs/spu/en/>`__ "
 "是一个特定领域的编译器和运行时套件，提供可证明的安全计算服务。SPU编译器使用 `XLA "
 "<https://www.tensorflow.org/xla>`__ "
 "作为前端IR，支持多种AI框架（如Tensorflow、JAX和PyTorch）。SPU 编译器将 XLA 转换为可由 SPU 运行时解释的 "
@@ -48,7 +48,7 @@ msgid "Learning Objectives:"
 msgstr "学习目标："
 
 #: ../../tutorial/lr_with_spu.ipynb:36
-msgid "After doing this lab, you'll know how to:"
+msgid "After doing this lab, you’ll know how to:"
 msgstr "完成本实验后，您将知道如何："
 
 #: ../../tutorial/lr_with_spu.ipynb:38
@@ -73,7 +73,7 @@ msgstr ""
 
 #: ../../tutorial/lr_with_spu.ipynb:43
 msgid ""
-"While, first, let's just forget MPC settings and just write a Logistic "
+"While, first, let’s just forget MPC settings and just write a Logistic "
 "Regression trainning program with JAX directly."
 msgstr "首先，让我们忘记 MPC 语意，直接使用 JAX 编写逻辑回归训练程序。"
 
@@ -102,20 +102,20 @@ msgstr "定义模型"
 
 #: ../../tutorial/lr_with_spu.ipynb:117
 msgid ""
-"First, let's define the loss function, which is a negative log-likelihood"
+"First, let’s define the loss function, which is a negative log-likelihood"
 " in our case."
 msgstr "首先，让我们定义损失函数，在我们的例子中它是一个负对数似然。"
 
 #: ../../tutorial/lr_with_spu.ipynb:155
 msgid ""
-"Second, let's define a single train step with SGD optimizer. Just to "
+"Second, let’s define a single train step with SGD optimizer. Just to "
 "remind you, x1 represents 15 features from one party while x2 represents "
 "the other 15 features from the other party."
 msgstr "其次，让我们使用 SGD 优化器定义单个训练步骤。 提醒一下，x1 代表来自一方的 15 个特征，而 x2 代表来自另一方的其他 15 个特征。"
 
 #: ../../tutorial/lr_with_spu.ipynb:185
 msgid ""
-"Last, let's build everything together as a ``fit`` method which returns "
+"Last, let’s build everything together as a ``fit`` method which returns "
 "the model and losses of each epoch."
 msgstr "最后，让我们将所有内容构建为“fit”方法，该方法返回每个epoch的模型和损失。"
 
@@ -138,7 +138,7 @@ msgid "Have a try!"
 msgstr "试试！"
 
 #: ../../tutorial/lr_with_spu.ipynb:273
-msgid "Let's put everything we have together and train a LR model!"
+msgid "Let’s put everything we have together and train a LR model!"
 msgstr "让我们把所有的东西放在一起，训练一个 LR 模型！"
 
 #: ../../tutorial/lr_with_spu.ipynb:375
@@ -213,7 +213,7 @@ msgid "Be care with ``sf.reveal``\\ ，since it may result in secret leak。"
 msgstr "请小心使用 ``sf.reveal``\\ ，因为它可能导致秘密泄露。"
 
 #: ../../tutorial/lr_with_spu.ipynb:799
-msgid "Finally, let's validate the model with AUC."
+msgid "Finally, let’s validate the model with AUC."
 msgstr "最后，让我们用 AUC 验证模型。"
 
 #: ../../tutorial/lr_with_spu.ipynb:846

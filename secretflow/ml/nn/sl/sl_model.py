@@ -23,7 +23,6 @@
 import logging
 import math
 import os
-import secrets
 from typing import Callable, Dict, Iterable, List, Tuple, Union
 
 from tqdm import tqdm
@@ -37,6 +36,8 @@ from secretflow.device.device.pyu import PYUObject
 from secretflow.ml.nn.sl.backend.tensorflow.sl_base import PYUSLTFModel
 from secretflow.security.privacy import DPStrategy
 from secretflow.utils.compressor import Compressor
+from secretflow.utils.random import global_random
+from multiprocessing import cpu_count
 
 
 class SLModel:
@@ -47,26 +48,37 @@ class SLModel:
         model_fuse: Callable[[], 'tensorflow.keras.Model'] = None,
         compressor: Compressor = None,
         dp_strategy_dict: Dict[Device, DPStrategy] = None,
+        random_seed: int = None,
         **kwargs,
     ):
+        """Interface for vertical split learning
+        Attributes:
+            base_model_dict: Basemodel dictionary, key is PYU, value is the Basemodel defined by party
+            device_y: Define which model have label
+            model_fuse:  Fuse model defination
+            compressor: Define strategy tensor compression algorithms to speed up transmission.
+            dp_strategy_dict: Dp strategy dictionary
+            random_seed: If specified, the initial value of the model will remain the same，which ensures reproducible
+        """
 
         self.device_y = device_y
         self.dp_strategy_dict = dp_strategy_dict
         self.simulation = kwargs.get('simulation', False)
         self.num_parties = len(base_model_dict)
+
         self._workers = {
             device: PYUSLTFModel(
                 device=device,
                 builder_base=model,
                 builder_fuse=None if device != device_y else model_fuse,
                 compressor=compressor,
+                random_seed=random_seed,
                 dp_strategy=dp_strategy_dict.get(device, None)
                 if dp_strategy_dict
                 else None,
             )
             for device, model in base_model_dict.items()
         }
-
         self.has_compressor = compressor is not None
 
     def handle_data(
@@ -83,22 +95,10 @@ class SLModel:
         epochs=1,
         stage="train",
         random_seed=1234,
-        dataset_builder: Callable = None,
+        dataset_builder: Dict = None,
     ):
         if isinstance(x, (VDataFrame, FedNdarray)):
             x = [x]
-
-        steps_per_epoch = None
-        # NOTE: if dataset_builder is set, it should return steps per epoch.
-        if dataset_builder is None:
-            parties_length = [
-                shape[0] for device, shape in x[0].partition_shape().items()
-            ]
-            assert len(set(parties_length)) == 1, "length of all parties must be same"
-            steps_per_epoch = math.ceil(parties_length[0] / batch_size)
-            # set steps_per_epoch to device_y
-            self._workers[self.device_y].set_steps_per_epoch(steps_per_epoch)
-
         worker_steps = []
         for device, worker in self._workers.items():
             if device == self.device_y and y is not None:
@@ -121,28 +121,47 @@ class SLModel:
 
             xs = [xi.partitions[device] for xi in x]
             xs = [t.data if isinstance(t, Partition) else t for t in xs]
-            steps = worker.build_dataset(
-                *xs,
-                y=y_partitions,
-                s_w=s_w_partitions,
-                batch_size=batch_size,
-                buffer_size=batch_size * 8,
-                shuffle=shuffle,
-                repeat_count=epochs,
-                stage=stage,
-                random_seed=random_seed,
-                dataset_builder=dataset_builder,
-            )
-            worker_steps.append(steps)
+            if dataset_builder:
+                assert (
+                    device in dataset_builder
+                ), f"party={device} does not provide dataset_builder, please check"
+                ret = worker.build_dataset_from_builder(
+                    *xs,
+                    y=y_partitions,
+                    s_w=s_w_partitions,
+                    batch_size=batch_size,
+                    stage=stage,
+                    dataset_builder=dataset_builder[device],
+                )
+                worker_steps.append(ret)
 
-        if dataset_builder is None:
-            return steps_per_epoch
+            else:
+                worker.build_dataset_from_numeric(
+                    *xs,
+                    y=y_partitions,
+                    s_w=s_w_partitions,
+                    batch_size=batch_size,
+                    buffer_size=batch_size * 8,
+                    shuffle=shuffle,
+                    repeat_count=epochs,
+                    stage=stage,
+                    random_seed=random_seed,
+                )
 
-        worker_steps = reveal(worker_steps)
-        assert (
-            len(set(worker_steps)) == 1
-        ), "steps_per_epoch of all parties must be same"
-        return worker_steps[0]
+        parties_length = [shape[0] for shape in x[0].partition_shape().values()]
+        assert len(set(parties_length)) == 1, "length of all parties must be same"
+        steps_per_epoch = math.ceil(parties_length[0] / batch_size)
+        if dataset_builder:
+            worker_steps_per_epoch = reveal(worker_steps)
+            assert (
+                len(set(worker_steps_per_epoch)) == 1
+            ), "steps_per_epoch of all parties must be same, Please check whether the batchsize or steps_per_epoch of all parties are consistent"
+            # set worker_steps_per_epoch[0] to steps_per_epoch if databuilder return steps_per_epoch else use driver calculate result
+            if worker_steps_per_epoch[0] > 0:
+                steps_per_epoch = worker_steps_per_epoch[0]
+
+        self._workers[self.device_y].set_steps_per_epoch(steps_per_epoch)
+        return steps_per_epoch
 
     def fit(
         self,
@@ -163,6 +182,7 @@ class SLModel:
         dp_spent_step_freq=None,
         dataset_builder: Callable[[List], Tuple[int, Iterable]] = None,
         audit_log_dir: str = None,
+        audit_log_params: dict = {},
         random_seed: int = None,
     ):
         """Vertical split learning training interface
@@ -185,11 +205,13 @@ class SLModel:
             sample_weight: weights for the training samples
             dp_spent_step_freq: specifies how many training steps to check the budget of dp
             dataset_builder: Callable function, its input is `x` or `[x, y]` if y is set, it should return a
-                iterable dataset which should has `steps_per_epoch` property. Dataset builder is mainly for
-                building graph dataset.
+                dataset.
+            audit_log_dir: If audit_log_dir is set, audit model will be enabled
+            audit_log_params: Kwargs for saving audit model, eg: {'save_traces'=True, 'save_format'='h5'}
+            random_seed: seed for prg, will only affect dataset shuffle
         """
         if random_seed is None:
-            random_seed = secrets.randbelow(100000)
+            random_seed = global_random(self.device_y, 100000)
 
         params = locals()
         logging.info(f"SL Train Params: {params}")
@@ -247,14 +269,15 @@ class SLModel:
 
         self._workers[self.device_y].init_training(callbacks, epochs=epochs)
         self._workers[self.device_y].on_train_begin()
-
         fuse_net_num_returns = sum(self.basenet_output_num.values())
-
+        wait_steps = min(min(self.get_cpus()) * 2, 100)
         for epoch in range(epochs):
+            res = []
             report_list = []
-            report_list.append(f"epoch: {epoch}/{epochs} - ")
+            report_list.append(f"epoch: {epoch+1}/{epochs} - ")
             if verbose == 1:
                 pbar = tqdm(total=steps_per_epoch)
+            self._workers[self.device_y].reset_metrics()
             self._workers[self.device_y].on_epoch_begin(epoch)
             for step in range(0, steps_per_epoch):
                 if verbose == 1:
@@ -283,8 +306,8 @@ class SLModel:
 
                     worker.base_backward(gradient_list, compress=self.has_compressor)
                     idx += self.basenet_output_num[device]
-                self._workers[self.device_y].on_train_batch_end(step=step)
-
+                r_count = self._workers[self.device_y].on_train_batch_end(step=step)
+                res.append(r_count)
                 if dp_spent_step_freq is not None:
                     current_step = epoch * steps_per_epoch + step
                     if current_step % dp_spent_step_freq == 0:
@@ -292,16 +315,24 @@ class SLModel:
                         for device, dp_strategy in self.dp_strategy_dict.items():
                             privacy_dict = dp_strategy.get_privacy_spent(current_step)
                             privacy_device[device] = privacy_dict
-
+                if len(res) == wait_steps:
+                    wait(res)
+                    res = []
             if validation and epoch % validation_freq == 0:
                 # validation
                 self._workers[self.device_y].reset_metrics()
+                res = []
                 for step in range(0, valid_steps):
                     hiddens = []  # driver end
                     for device, worker in self._workers.items():
                         hidden = worker.base_forward("eval")
                         hiddens.append(hidden.to(self.device_y))
                     metrics = self._workers[self.device_y].evaluate(*hiddens)
+                    res.append(metrics)
+                    if len(res) == wait_steps:
+                        wait(res)
+                        res = []
+                wait(res)
                 self._workers[self.device_y].on_validation(metrics)
 
                 # save checkpoint
@@ -320,7 +351,7 @@ class SLModel:
                         base_model_path=epoch_base_model_path,
                         fuse_model_path=epoch_fuse_model_path,
                         is_test=self.simulation,
-                        save_traces=True if dataset_builder is None else False,
+                        **audit_log_params,
                     )
             epoch_log = self._workers[self.device_y].on_epoch_end(epoch)
             for name, metric in reveal(epoch_log).items():
@@ -380,6 +411,8 @@ class SLModel:
             pbar = tqdm(total=predict_steps)
             pbar.set_description('Predict Processing:')
         result = []
+        wait_steps = min(min(self.get_cpus()) * 2, 100)
+        res = []
         for step in range(0, predict_steps):
             hiddens = []
             for device, worker in self._workers.items():
@@ -389,6 +422,12 @@ class SLModel:
                 pbar.update(1)
             y_pred = self._workers[self.device_y].predict(*hiddens, compress=compress)
             result.append(y_pred)
+
+            res.append(y_pred)
+            if len(res) == wait_steps:
+                wait(res)
+                res = []
+        wait(res)
         return result
 
     @reveal
@@ -403,7 +442,7 @@ class SLModel:
         batch_size: int = 32,
         sample_weight=None,
         verbose=1,
-        dataset_builder: Callable[[List], Tuple[int, Iterable]] = None,
+        dataset_builder: Dict = None,
         random_seed: int = None,
         compress: bool = False,
     ):
@@ -422,8 +461,8 @@ class SLModel:
             sample_weight: Optional Numpy array of weights for the test samples,
                 used for weighting the loss function.
             verbose: Verbosity mode. 0 = silent, 1 = progress bar.
-            dataset_builder: Callable function, its input is `x` or `[x, y]` if y is set, it should return
-              steps_per_epoch and iterable dataset. Dataset builder is mainly for building graph dataset.
+            dataset_builder: Callable function, its input is `x` or `[x, y]` if y is set, it should return dataset.
+            random_seed: Seed for prgs, will only affect shuffle
             compress: Whether to use compressor to compress cross device data.
         Returns:
             metrics: federate evaluate result
@@ -435,7 +474,7 @@ class SLModel:
         if compress:
             assert self.has_compressor, "can not found compressor in model"
         if random_seed is None:
-            random_seed = secrets.randbelow(100000)
+            random_seed = global_random(self.device_y, 100000)
         evaluate_steps = self.handle_data(
             x,
             y,
@@ -451,14 +490,18 @@ class SLModel:
         if verbose > 0:
             pbar = tqdm(total=evaluate_steps)
             pbar.set_description('Evaluate Processing:')
+
+        wait_steps = min(min(self.get_cpus()) * 2, 100)
         for step in range(0, evaluate_steps):
             hiddens = []  # driver端
-            for device, worker in self._workers.items():
+            for worker in self._workers.values():
                 hidden = worker.base_forward(stage="eval", compress=compress)
                 hiddens.append(hidden.to(self.device_y))
             if verbose > 0:
                 pbar.update(1)
             metrics = self._workers[self.device_y].evaluate(*hiddens, compress=compress)
+            if (step + 1) % wait_steps == 0:
+                wait(metrics)
         report_list = [f"{k}:{v}" for k, v in reveal(metrics).items()]
         report = " ".join(report_list)
         if verbose == 1:
@@ -471,7 +514,7 @@ class SLModel:
         base_model_path: Union[str, Dict[PYU, str]] = None,
         fuse_model_path: str = None,
         is_test=False,
-        save_traces=True,
+        **kwargs,
     ):
         """Vertical split learning save model interface
 
@@ -479,8 +522,19 @@ class SLModel:
             base_model_path: base model path,only support format like 'a/b/c', where c is the model name
             fuse_model_path: fuse model path
             is_test: whether is test mode
-            save_traces: (only applies to SavedModel format) When enabled,
-                the SavedModel will store the function traces for each layer.
+            kwargs: other argument inherit from tf or torch
+        Examples:
+            >>> save_params = {'save_traces' : True,
+            >>>                'save_format' : 'h5',}
+            >>> slmodel.save_model(base_model_path,
+            >>>                    fuse_model_path,)
+            >>>                    is_test=True,)
+            >>> # just passing params in
+            >>> slmodel.save_model(base_model_path,
+            >>>                    fuse_model_path,)
+            >>>                    is_test=True,
+            >>>                    save_traces=True,
+            >>>                    save_format='h5')
         """
         assert isinstance(
             base_model_path, (str, Dict)
@@ -508,15 +562,12 @@ class SLModel:
                 )
             res.append(
                 worker.save_base_model(
-                    os.path.join(base_model_dir, base_model_name),
-                    save_traces=save_traces,
+                    os.path.join(base_model_dir, base_model_name), **kwargs
                 )
             )
 
         res.append(
-            self._workers[self.device_y].save_fuse_model(
-                fuse_model_path, save_traces=save_traces
-            )
+            self._workers[self.device_y].save_fuse_model(fuse_model_path, **kwargs)
         )
         wait(res)
 
@@ -576,3 +627,63 @@ class SLModel:
             )
         )
         wait(res)
+
+    def export_model(
+        self,
+        base_model_path: Union[str, Dict[PYU, str]] = None,
+        fuse_model_path: str = None,
+        save_format="tf",
+        is_test=False,
+        **kwargs,
+    ):
+        """Vertical split learning export model interface
+
+        Args:
+            base_model_path: base model path,only support format like 'a/b/c', where c is the model name
+            fuse_model_path: fuse model path
+            save_format: what format to export
+            kwargs: other argument inherit from onnx safer
+        """
+        assert isinstance(
+            base_model_path, (str, Dict)
+        ), f'Model path accepts string or dict but got {type(base_model_path)}.'
+        assert fuse_model_path is not None, "Fuse model path cannot be empty"
+        if isinstance(base_model_path, str):
+            base_model_path = {
+                device: base_model_path for device in self._workers.keys()
+            }
+
+        res = []
+        base_input_output_infos = {}
+        for device, worker in self._workers.items():
+            assert (
+                device in base_model_path
+            ), f'Should provide a path for device {device}.'
+            assert not base_model_path[device].endswith(
+                "/"
+            ), f"model path should be 'a/b/c' not 'a/b/c/'"
+            base_model_dir, base_model_name = base_model_path[device].rsplit("/", 1)
+
+            if is_test:
+                # only execute when unittest
+                base_model_dir = os.path.join(
+                    base_model_dir, device.__str__().strip("_")
+                )
+
+            input_output_info = worker.export_base_model(
+                os.path.join(base_model_dir, base_model_name),
+                save_format=save_format,
+                **kwargs,
+            )
+            res.append(input_output_info)
+            base_input_output_infos[device] = input_output_info
+
+        fuse_input_output_info = self._workers[self.device_y].export_fuse_model(
+            fuse_model_path, save_format=save_format, **kwargs
+        )
+        res.append(fuse_input_output_info)
+        wait(res)
+        return base_input_output_infos, fuse_input_output_info
+
+    def get_cpus(self) -> List[int]:
+        return reveal([device(lambda: cpu_count())() for device in self._workers])

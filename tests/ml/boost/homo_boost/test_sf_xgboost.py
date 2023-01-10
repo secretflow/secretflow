@@ -3,11 +3,14 @@ import tempfile
 
 import numpy as np
 import pandas as pd
+
 from secretflow.data.horizontal import read_csv as h_read_csv
 from secretflow.ml.boost.homo_boost import SFXgboost
 from secretflow.security.aggregation.plain_aggregator import PlainAggregator
 from secretflow.security.compare.plain_comparator import PlainComparator
-from tests.basecase import DeviceTestCase
+
+from tests.basecase import (MultiDriverDeviceTestCase,
+                            SingleDriverDeviceTestCase)
 
 _temp_dir = tempfile.mkdtemp()
 
@@ -48,7 +51,7 @@ def gen_data(data_num, feature_num, use_random=True, data_bin_num=10):
     return data_with_label
 
 
-class TestHomoXgboost(DeviceTestCase):
+class TestHomoXgboost(SingleDriverDeviceTestCase, MultiDriverDeviceTestCase):
 
     fields = []
     data_size = 300000
@@ -101,6 +104,15 @@ class TestHomoXgboost(DeviceTestCase):
             self.bob: "./test_xgboost_bob.json",
         }
         bst.save_model(model_path)
+        for path in model_path.values():
+            self.assertTrue(os.path.isfile(path))
+        dump_path = {
+            self.alice: "./test_xgboost_alice.dump",
+            self.bob: "./test_xgboost_bob.dump",
+        }
+        bst.dump_model(dump_path)
+        for path in dump_path.values():
+            self.assertTrue(os.path.isfile(path))
         result = bst.eval(model_path=model_path, hdata=self.hdf, params=params)
         print(result)
         bst_ft = SFXgboost(server=self.davy, clients=[self.alice, self.bob])
@@ -113,13 +125,12 @@ class TestHomoXgboost(DeviceTestCase):
             xgb_model=model_path,
         )
         for path in model_path.values():
-            self.assertTrue(os.path.isfile(path), True)
-            os.remove(path)
-        dump_path = {
-            self.alice: "./test_xgboost_alice.dump",
-            self.bob: "./test_xgboost_bob.dump",
-        }
-        bst.dump_model(dump_path)
+            try:
+                os.remove(path)
+            except OSError:
+                pass
         for path in dump_path.values():
-            self.assertTrue(os.path.isfile(path), True)
-            os.remove(path)
+            try:
+                os.remove(path)
+            except OSError:
+                pass

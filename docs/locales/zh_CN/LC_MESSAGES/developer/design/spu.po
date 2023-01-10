@@ -3,7 +3,6 @@
 # This file is distributed under the same license as the SecretFlow package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2022.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
@@ -173,13 +172,13 @@ msgstr "为了实现第三个目标，我们在类型系统中添加了安全相
 #: ../../developer/design/spu.rst:71 892b913167394f028792a22711078ea4
 msgid ""
 "For more details, please check `SPU type system "
-"<https://spu.readthedocs.io/en/beta/development/type_system.html>`__ and "
+"<https://www.secretflow.org.cn/docs/spu/en/development/type_system.html>`__ and "
 "`SPU Compiler design "
-"<https://spu.readthedocs.io/en/beta/development/compiler.html>`__."
+"<https://www.secretflow.org.cn/docs/spu/en/development/compiler.html>`__."
 msgstr "详情请查看 `SPU type system "
-"<https://spu.readthedocs.io/en/beta/development/type_system.html>`__ 和 "
+"<https://www.secretflow.org.cn/docs/spu/en/development/type_system.html>`__ 和 "
 "`SPU Compiler design "
-"<https://spu.readthedocs.io/en/beta/development/compiler.html>`__."
+"<https://www.secretflow.org.cn/docs/spu/en/development/compiler.html>`__."
 
 #: ../../developer/design/spu.rst:75 e69c081151b641b4bf94382540da984f
 msgid "Runtime"
@@ -227,9 +226,9 @@ msgstr "SPU运行时结构"
 #: ../../developer/design/spu.rst:96 8a4a57417c0f4f94ac2a255e870ea322
 msgid ""
 "We will not go into details here, for more details, please visit `SPU "
-"standalone docs <https://spu.readthedocs.io/>`__"
+"standalone docs <https://www.secretflow.org.cn/docs/spu/en/>`__"
 msgstr "详情请访问 `SPU "
-"文档 <https://spu.readthedocs.io/>`__ 。"
+"文档 <https://www.secretflow.org.cn/docs/spu/en/>`__ 。"
 
 #: ../../developer/design/spu.rst:99 cfa18d369f3b42aaae75df1531607c10
 msgid "Summary"
@@ -328,10 +327,10 @@ msgstr "`Cheetah <https://eprint.iacr.org/2022/207>`__ :一个快速半诚实的
 #: ../../developer/design/spu.rst:141 92e9a682b2a548068440b7d345886214
 msgid ""
 "Please check `SPU MPC development status "
-"<https://spu.readthedocs.io/en/beta/reference/mpc_status.html>`__ for "
+"<https://www.secretflow.org.cn/docs/spu/en/reference/mpc_status.html>`__ for "
 "details."
 msgstr "详情请参阅 `SPU MPC development status "
-"<https://spu.readthedocs.io/en/beta/reference/mpc_status.html>`__。"
+"<https://www.secretflow.org.cn/docs/spu/en/reference/mpc_status.html>`__。"
 
 #: ../../developer/design/spu.rst:145 b1ceacc1123d4065a47e77534e889b5b
 msgid "SPU API design"
@@ -345,27 +344,27 @@ msgstr "SPU的API十分简单，主要有三个主要模块，对应之前的模
 
 #: ../../developer/design/spu.rst:149 edd37b0b2c6e496badf57c5b7312fa5d
 msgid ""
-"`SPU Io <https://spu.readthedocs.io/en/beta/reference/py_api.html"
+"`SPU Io <https://www.secretflow.org.cn/docs/spu/en/reference/py_api.html"
 "#runtime-io>`__, a library to transfer between plaintext and secret "
 "shares."
-msgstr "`SPU Io <https://spu.readthedocs.io/en/beta/reference/py_api.html"
+msgstr "`SPU Io <https://www.secretflow.org.cn/docs/spu/en/reference/py_api.html"
 "#runtime-io>`__ 是一个在密码和秘密分享之间转化的库。"
 
 #: ../../developer/design/spu.rst:151 8e60c83195ca4ff6a2b20d3a42c62c54
 msgid ""
 "`SPU compiler "
-"<https://spu.readthedocs.io/en/beta/reference/py_api.html#compiler>`__, a"
+"<https://www.secretflow.org.cn/docs/spu/en/reference/py_api.html#compiler>`__, a"
 " tool to translate XLA to SPU IR."
 msgstr "`SPU compiler "
-"<https://spu.readthedocs.io/en/beta/reference/py_api.html#compiler>`__,"
+"<https://www.secretflow.org.cn/docs/spu/en/reference/py_api.html#compiler>`__,"
 "是一个将XLA转化为SPU IR的工具。"
 
 #: ../../developer/design/spu.rst:153 a1aa0c234c5443eea7ef2d09674b248a
 msgid ""
-"`SPU Runtime <https://spu.readthedocs.io/en/beta/reference/py_api.html"
+"`SPU Runtime <https://www.secretflow.org.cn/docs/spu/en/reference/py_api.html"
 "#runtime-setup>`__, a library to consume SPU IR and execute MPC "
 "computation."
-msgstr "`SPU Runtime <https://spu.readthedocs.io/en/beta/reference/py_api.html"
+msgstr "`SPU Runtime <https://www.secretflow.org.cn/docs/spu/en/reference/py_api.html"
 "#runtime-setup>`__, 是一个读入SPU IR并执行MPC计算的库。"
 
 #: ../../developer/design/spu.rst:158 c6c7b18c17f14da2a300c63eda999b74

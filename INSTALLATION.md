@@ -44,7 +44,7 @@ export version={SecretFlow version}
 
 for example
 ```bash
-export version=0.7.11b0
+export version=0.6.13b1
 ```
 
 then run the image.
@@ -111,7 +111,7 @@ Try your first SecretFlow program.
 
 ```python
 >>> import secretflow as sf
->>> sf.init(['alice', 'bob', 'carol'], num_cpus=8, log_to_driver=True)
+>>> sf.init(['alice', 'bob', 'carol'], address='local')
 >>> dev = sf.PYU('alice')
 >>> import numpy as np
 >>> data = dev(np.random.rand)(3, 4)

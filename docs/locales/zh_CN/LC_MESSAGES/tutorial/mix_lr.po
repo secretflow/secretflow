@@ -7,14 +7,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-09-16 13:52+0800\n"
+"POT-Creation-Date: 2023-01-07 11:23+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.10.3\n"
+"Generated-By: Babel 2.11.0\n"
 
 #: ../../tutorial/mix_lr.ipynb:9
 msgid "Mix Federated Learning - Logistic Regression"
@@ -22,7 +22,7 @@ msgstr "混合联邦——逻辑回归"
 
 #: ../../tutorial/mix_lr.ipynb:20
 msgid ""
-"The following codes are demos only. It's **NOT for production** due to "
+"The following codes are demos only. It’s **NOT for production** due to "
 "system security concerns, please **DO NOT** use it directly in "
 "production."
 msgstr "**以下代码仅作为演示用，请勿直接在生产环境使用。**"
@@ -38,7 +38,7 @@ msgid "The following is an example of mix partitioning data."
 msgstr "下面是数据混合切分的一个例子。"
 
 #: ../../tutorial/mix_lr.ipynb:35
-msgid "|7c44a7d98ebe46758fa75e47eeb80764|"
+msgid "|963bd9f68bf347a38c7ddb3a76e75f6b|"
 msgstr ""
 
 #: ../../tutorial/mix_lr.ipynb:39
@@ -100,60 +100,60 @@ msgid "feature21~feature30"
 msgstr "特征21~特征30"
 
 #: ../../tutorial/mix_lr.ipynb:116
-msgid "alice\\_y0"
+msgid "alice_y0"
 msgstr ""
 
 #: ../../tutorial/mix_lr.ipynb:116
-msgid "alice\\_x0"
+msgid "alice_x0"
 msgstr ""
 
 #: ../../tutorial/mix_lr.ipynb:116
-msgid "bob\\_x0"
+msgid "bob_x0"
 msgstr ""
 
 #: ../../tutorial/mix_lr.ipynb:116
-msgid "carol\\_x"
+msgid "carol_x"
+msgstr ""
+
+#: ../../tutorial/mix_lr.ipynb:117
+msgid "alice_y1"
+msgstr ""
+
+#: ../../tutorial/mix_lr.ipynb:117
+msgid "alice_x1"
+msgstr ""
+
+#: ../../tutorial/mix_lr.ipynb:117
+msgid "bob_x1"
+msgstr ""
+
+#: ../../tutorial/mix_lr.ipynb:117
+msgid "dave_x"
 msgstr ""
 
 #: ../../tutorial/mix_lr.ipynb:118
-msgid "alice\\_y1"
+msgid "alice_y2"
 msgstr ""
 
 #: ../../tutorial/mix_lr.ipynb:118
-msgid "alice\\_x1"
+msgid "alice_x2"
 msgstr ""
 
 #: ../../tutorial/mix_lr.ipynb:118
-msgid "bob\\_x1"
+msgid "bob_x2"
 msgstr ""
 
 #: ../../tutorial/mix_lr.ipynb:118
-msgid "dave\\_x"
+msgid "eric_x"
 msgstr ""
 
-#: ../../tutorial/mix_lr.ipynb:120
-msgid "alice\\_y2"
-msgstr ""
-
-#: ../../tutorial/mix_lr.ipynb:120
-msgid "alice\\_x2"
-msgstr ""
-
-#: ../../tutorial/mix_lr.ipynb:120
-msgid "bob\\_x2"
-msgstr ""
-
-#: ../../tutorial/mix_lr.ipynb:120
-msgid "eric\\_x"
-msgstr ""
-
-#: ../../tutorial/mix_lr.ipynb:123
+#: ../../tutorial/mix_lr.ipynb:121
 msgid ""
 "Alice holds all label and all 1~10 features, bob holds all 11~20 fetures,"
 " carol/dave/eric hold a part of 21~30 features separately."
 msgstr "Alice持有所有的标签数据以及特征1~特征10，bob持有特征11~特征20，carol、dave、eric分别持有特征21~特征30的一部分。"
 
-#: ../../tutorial/mix_lr.ipynb:226
+#: ../../tutorial/mix_lr.ipynb:224
 msgid ""
 "Now create ``MixDataFrame`` x and y for further usage. ``MixDataFrame`` "
 "is a list of ``HDataFrame`` or ``VDataFrame``"
@@ -161,38 +161,39 @@ msgstr ""
 "构建 `MixDataFrame` 形式的x和y， `MixDataFrame` 由 `HDataFrame` 或者 `VDataFrame` "
 "列表构成。"
 
-#: ../../tutorial/mix_lr.ipynb:228
+#: ../../tutorial/mix_lr.ipynb:226
 msgid ""
-"you can read secretflow's `DataFrame "
+"you can read secretflow’s `DataFrame "
 "<../components/preprocessing/DataFrame.ipynb>`__ for more details."
 msgstr ""
 "您可以阅读 `DataFrame <../components/preprocessing/DataFrame.ipynb>`__ 了解更多 "
 "`DataFrame` 的知识。"
 
-#: ../../tutorial/mix_lr.ipynb:265
+#: ../../tutorial/mix_lr.ipynb:263
 msgid "Training"
 msgstr "模型训练"
 
-#: ../../tutorial/mix_lr.ipynb:276
+#: ../../tutorial/mix_lr.ipynb:274
 msgid "Construct ``HEU`` and ``SecureAggregator`` for further training."
 msgstr "构建 `HEU` 和 `SecureAggregator` 用于后续训练。"
 
-#: ../../tutorial/mix_lr.ipynb:321
+#: ../../tutorial/mix_lr.ipynb:319
 msgid "Fit the model."
 msgstr "训练模型。"
 
-#: ../../tutorial/mix_lr.ipynb:393
+#: ../../tutorial/mix_lr.ipynb:391
 msgid "Prediction"
 msgstr "模型预测"
 
-#: ../../tutorial/mix_lr.ipynb:404
+#: ../../tutorial/mix_lr.ipynb:402
 msgid "Let us do predictions with the model."
 msgstr "使用模型进行预测。"
 
-#: ../../tutorial/mix_lr.ipynb:458
+#: ../../tutorial/mix_lr.ipynb:456
 msgid "The end"
 msgstr "收尾"
 
-#: ../../tutorial/mix_lr.ipynb:460
+#: ../../tutorial/mix_lr.ipynb:458
 msgid "Clean temp files."
 msgstr "清理临时文件。"
+

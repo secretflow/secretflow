@@ -206,7 +206,7 @@ class SSRegression:
     under various MPC protocols to provide provable security.
 
     More detail for SPU:
-    https://spu.readthedocs.io/en/beta/
+    https://www.secretflow.org.cn/docs/spu/en/
 
     This method protects the original dataset and the final model by secret sharing
     the dataset to SPU device and running model fit under SPU.

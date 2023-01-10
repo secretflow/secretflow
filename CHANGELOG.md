@@ -13,6 +13,80 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Security` in case of vulnerabilities.
 
 ## Staging
+### Added
+
+### Changed
+
+### Fixed
+
+## [0.7.18] - 2023-01-09
+### Changed
+- Bump:
+  - rayfed to 0.1.0b0.
+  - spu to 0.3.1a9.
+  - sf-heu to 0.3.2.
+
+## [0.7.17] - 2022-12-21
+
+### Added
+- add export_model api for SLModel
+- add get_params api for preprocessing
+
+### Changed
+- VDataFrame read_csv uses spu.psi_csv instead of spu.psi_df to reduce memory usage.
+- Bump rayfed to 0.1.0a10.
+- Control the concurrency of ray task in SLModel fit/predict/evaluate.
+
+### Fixed
+- psi join multi-key sort command parameters
+
+## [0.7.16] - 2022-12-16
+
+### Changed
+- Optimize psi join memory usage.
+
+## [0.7.15] - 2022-12-14
+
+### Changed
+- Bump rayfed to 0.1.0a9.
+
+### Fixed
+- SS GLM distribution type err.
+
+## [0.7.14] - 2022-12-12
+### Added
+- GLM.
+
+### Changed
+- bump rayfed to 0.1.0a8.
+
+### Fixed
+- SSXgb for user_specified_num_returns=1.
+- SLModel sets steps_per_epoch for worker.
+- set num_cpu and resources only when start ray with local mode.
+
+## [0.7.13] - 2022-12-08
+### Added
+- Multi controller based on rayfed.
+### Changed
+- Rewrite data builder.
+- Bump to yacl.
+- utils.testing.cluster_def supports NPC.
+
+### Fixed
+- FLModel save path.
+- SSXgb col sub error.
+- HomeXgb callback.
+- Compress mask.
+- spu.__call__ fails when SPUCompilerNumReturnsPolicy is FROM_USER and user_specified_num_returns is 1.
+
+## [0.7.12] - 2022-11-18
+### Changed
+- OneHotEncoder remove PYUObject property.
+
+### Fixed
+- Add sl_model metrics wrap to fix format error.
+
 ## [0.7.11] - 2022-11-15
 ### Added
 - Add Finetune and FedEval to SFXgboost

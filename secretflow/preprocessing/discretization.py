@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Union
+from typing import Any, Dict, List, Union
 
 import numpy as np
 import pandas as pd
@@ -26,11 +26,12 @@ from secretflow.device.driver import reveal
 from secretflow.preprocessing.binning.homo_binning import HomoBinning
 from secretflow.security.aggregation import Aggregator
 from secretflow.security.compare import Comparator
+from secretflow.preprocessing.base import _PreprocessBase
 
 _STRATEGIES = ['uniform', 'quantile']
 
 
-class KBinsDiscretizer:
+class KBinsDiscretizer(_PreprocessBase):
     """Bin continuous data into intervals.
 
     This KBinsDiscretizer is almost same as
@@ -110,6 +111,7 @@ class KBinsDiscretizer:
             the instance itself.
         """
         self._check_dataframe(df)
+        self._columns = df.columns
         if self._strategy == 'uniform':
             min_max = pd.concat(
                 [
@@ -286,3 +288,17 @@ class KBinsDiscretizer:
             max_iter=max_iter,
         )
         return self.transform(df)
+
+    def get_params(self) -> Dict[str, Any]:
+        assert hasattr(self, '_discretizer'), 'Discretizer has not been fit yet.'
+
+        return {
+            'n_bins': self._n_bins,
+            'strategy': self._strategy,
+            'encode': self._encode,
+            'columns': self._columns,
+            'discretizer': {
+                'n_bins': self._discretizer.n_bins_,
+                'bin_edges': self._discretizer.bin_edges_,
+            },
+        }

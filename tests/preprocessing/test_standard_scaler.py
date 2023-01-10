@@ -12,10 +12,10 @@ from secretflow.security.aggregation import PlainAggregator
 from secretflow.security.compare import PlainComparator
 from secretflow.utils.simulation.datasets import load_iris
 
-from tests.basecase import DeviceTestCase
+from tests.basecase import MultiDriverDeviceTestCase
 
 
-class TestStandardScaler(DeviceTestCase):
+class TestStandardScaler(MultiDriverDeviceTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
@@ -59,8 +59,10 @@ class TestStandardScaler(DeviceTestCase):
 
         # WHEN
         value = scaler.fit_transform(self.hdf[selected_cols])
+        params = scaler.get_params()
 
         # THEN
+        self.assertIsNotNone(params)
         sk_scaler = SkStandardScaler()
         sk_scaler.fit(
             pd.concat([self.hdf_alice[selected_cols], self.hdf_bob[selected_cols]])
@@ -81,8 +83,10 @@ class TestStandardScaler(DeviceTestCase):
 
         # WHEN
         value = scaler.fit_transform(self.hdf[selected_cols])
+        params = scaler.get_params()
 
         # THEN
+        self.assertIsNotNone(params)
         sk_scaler = SkStandardScaler(with_mean=False)
         sk_scaler.fit(
             pd.concat([self.hdf_alice[selected_cols], self.hdf_bob[selected_cols]])
@@ -102,8 +106,10 @@ class TestStandardScaler(DeviceTestCase):
 
         # WHEN
         value = scaler.fit_transform(self.vdf[['a3', 'b4', 'b6']])
+        params = scaler.get_params()
 
         # THEN
+        self.assertIsNotNone(params)
         sk_scaler = SkStandardScaler()
         expect_alice = sk_scaler.fit_transform(self.vdf_alice[['a3']])
         np.testing.assert_equal(reveal(value.partitions[self.alice].data), expect_alice)
@@ -117,8 +123,10 @@ class TestStandardScaler(DeviceTestCase):
 
         # WHEN
         value = scaler.fit_transform(self.vdf[['a3', 'b4', 'b6']])
+        params = scaler.get_params()
 
         # THEN
+        self.assertIsNotNone(params)
         sk_scaler = SkStandardScaler(with_mean=False, with_std=False)
         expect_alice = sk_scaler.fit_transform(self.vdf_alice[['a3']])
         np.testing.assert_equal(reveal(value.partitions[self.alice].data), expect_alice)
@@ -163,8 +171,10 @@ class TestStandardScaler(DeviceTestCase):
         value = scaler.fit_transform(
             h_mix[['a3', 'b4', 'b6']], aggregator=PlainAggregator(self.alice)
         )
+        params = scaler.get_params()
 
         # THEN
+        self.assertIsNotNone(params)
         sk_scaler = SkStandardScaler()
         expect_alice = sk_scaler.fit_transform(df_part0[['a3']])
         np.testing.assert_almost_equal(
@@ -226,8 +236,10 @@ class TestStandardScaler(DeviceTestCase):
 
         # WHEN
         value = scaler.fit_transform(v_mix[['a3', 'b4', 'b6']])
+        params = scaler.get_params()
 
         # THEN
+        self.assertIsNotNone(params)
         sk_scaler = SkStandardScaler()
         expect_alice = sk_scaler.fit_transform(df_part0[['a3']])
         np.testing.assert_almost_equal(

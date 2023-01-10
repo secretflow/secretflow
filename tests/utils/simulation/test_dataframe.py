@@ -5,10 +5,10 @@ from secretflow.utils.errors import InvalidArgumentError
 from secretflow.utils.simulation.data.dataframe import create_df
 from secretflow.utils.simulation.datasets import dataset
 
-from tests.basecase import DeviceTestCase
+from tests.basecase import MultiDriverDeviceTestCase
 
 
-class TestDataFrame(DeviceTestCase):
+class TestDataFrame(MultiDriverDeviceTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()

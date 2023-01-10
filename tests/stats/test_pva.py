@@ -7,10 +7,10 @@ from secretflow.data import FedNdarray, PartitionWay
 from secretflow.data.base import Partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.stats import pva_eval
-from tests.basecase import DeviceTestCase
+from tests.basecase import MultiDriverDeviceTestCase
 
 
-class TestPVA(DeviceTestCase):
+class TestPVA(MultiDriverDeviceTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()

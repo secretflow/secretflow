@@ -87,7 +87,7 @@ cd sf-benchmark
 root目录下输入python然后回车；
 ```
 >>> import secretflow as sf
->>> sf.init(['alice', 'bob', 'carol'], num_cpus=8, log_to_driver=True)
+>>> sf.init(['alice', 'bob', 'carol'], address='local')
 >>> dev = sf.PYU('alice')
 >>> import numpy as np
 >>> data = dev(np.random.rand)(3, 4)

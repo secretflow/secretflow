@@ -37,11 +37,11 @@ class HESSLogisticRegression:
 
     SPU is a verifiable and measurable secure computing device that running
     under various MPC protocols to provide provable security. More detail:
-    https://spu.readthedocs.io/en/beta/
+    https://www.secretflow.org.cn/docs/spu/en/
 
     HEU is a secure computing device that implementing HE encryption and decryption,
     and provides matrix operations similar to the numpy, reducing the threshold for use.
-    More detail: https://heu.readthedocs.io/en/latest/
+    More detail: https://www.secretflow.org.cn/docs/heu/en/
 
     For more detail, please refer to paper in KDD'21:
     https://dl.acm.org/doi/10.1145/3447548.3467210

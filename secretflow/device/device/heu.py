@@ -14,14 +14,15 @@
 from functools import reduce
 from pathlib import Path
 from typing import Union
-
+import jax.tree_util
+import ray
 import cloudpickle as pickle
 import numpy as np
-import ray
 import spu
 from heu import numpy as hnp
 from heu import phe
 
+import secretflow.distributed as sfd
 from secretflow.utils.errors import PartyNotFoundError
 
 from .base import Device, DeviceType
@@ -66,8 +67,14 @@ class HEUActor:
 
     def getitem(self, data, item):
         """Delegate of hnp ndarray.__getitem___()"""
-        if isinstance(item, np.ndarray):
-            item = item.tolist()
+        item = jax.tree_util.tree_map(
+            lambda x: ray.get(x) if isinstance(x, ray.ObjectRef) else x,
+            item,
+        )
+        item = jax.tree_util.tree_map(
+            lambda x: x.tolist() if isinstance(x, np.ndarray) else x, item
+        )
+
         return data[item]
 
     def setitem(self, data, key, value):
@@ -98,7 +105,7 @@ class HEUActor:
         if isinstance(data, (hnp.PlaintextArray, hnp.CiphertextArray)):
             return
 
-        return hnp.array(data, self.encoder if edr is None else edr)
+        return self.hekit.array(data, self.encoder if edr is None else edr)
 
     def decode(self, data: hnp.PlaintextArray, edr=None):
         """decode plaintext to cleartext
@@ -157,7 +164,6 @@ class HEUActor:
         return fn(self.evaluator, data1, data2)
 
 
-@ray.remote
 class HEUSkKeeper(HEUActor):
     def __init__(self, heu_id, config, cleartext_type: np.dtype, encoder):
         assert 'he_parameters' in config, f"missing field 'he_parameters' in heu config"
@@ -219,10 +225,9 @@ class HEUSkKeeper(HEUActor):
         proto.storage_type = f"semi2k.AShr<{spu.FieldType.Name(spu_field_type)}>"
         proto.shape.dims.extend(data_with_mask.shape)
         proto.content = byte_content
-        return proto
+        return proto.SerializeToString()
 
 
-@ray.remote
 class HEUEvaluator(HEUActor):
     def __init__(
         self, heu_id, party: str, config, pk, cleartext_type: np.dtype, encoder
@@ -253,14 +258,21 @@ class HEUEvaluator(HEUActor):
         return reduce(self.evaluator.add, shards)
 
     def h2a_make_share(
-        self, data: hnp.CiphertextArray, evaluator_parties, spu_field_type
+        self,
+        data: hnp.CiphertextArray,
+        evaluator_parties,
+        spu_protocol,
+        spu_field_type,
+        spu_fxp_fraction_bits,
     ):
         """H2A: make share of data, runs on the side (party) where the data resides
 
         Args:
             data: HeCiphertext array
             evaluator_parties:
-            spu_field_type:
+            spu_protocol: part of spu runtime config.
+            spu_field_type: part of spu runtime config.
+            spu_fxp_fraction_bits: part of spu runtime config.
 
         Returns:
             Dynamical number of return values, equal to len(evaluator_parties) + 2
@@ -286,7 +298,7 @@ class HEUEvaluator(HEUActor):
 
         # convert mask to ValueProto
         # ValueProto: see spu.proto in SPU repo for details.
-        masks_proto = []
+        masks_value = []
         for mask in masks:
             proto = spu.ValueProto()
             proto.visibility = spu.Visibility.VIS_SECRET
@@ -294,12 +306,15 @@ class HEUEvaluator(HEUActor):
             proto.storage_type = f"semi2k.AShr<{spu.FieldType.Name(spu_field_type)}>"
             proto.shape.dims.extend(tuple(mask.shape))
             proto.content = mask.to_bytes(spu_fxp_size(spu_field_type), 'little')
-            masks_proto.append(proto)
+            masks_value.append(proto.SerializeToString())
 
         value_meta = SPUValueMeta(
             data.shape,
             heu_datatype_to_numpy(self.cleartext_type),
             spu.Visibility.VIS_SECRET,
+            spu_protocol,
+            spu_field_type,
+            spu_fxp_fraction_bits,
         )
 
         # Because Flake8 is very stupid, so we return a list instead of a tuple
@@ -307,7 +322,7 @@ class HEUEvaluator(HEUActor):
         return [
             value_meta,
             data_with_mask,
-            *masks_proto,
+            *masks_value,
         ]
 
 
@@ -335,7 +350,7 @@ class HEU(Device):
                         'encoding': {
                             # DT_I1, DT_I8, DT_I16, DT_I32, DT_I64 or DT_FXP (default)
                             'cleartext_type': "DT_FXP"
-                            # see https://heu.readthedocs.io/en/latest/getting_started/quick_start.html#id3 for detail
+                            # see https://www.secretflow.org.cn/docs/heu/en/getting_started/quick_start.html#id3 for detail
                             # available encoders:
                             #     - IntegerEncoder: Plaintext = Cleartext * scale
                             #     - FloatEncoder (default): Plaintext = Cleartext * scale
@@ -374,6 +389,7 @@ class HEU(Device):
         schema = phe.parse_schema_type(param.get("schema", "paillier"))
         self.schema = schema
         self.encoder = phe.FloatEncoder(schema, default_scale)
+        self.scale = default_scale
         if 'encoding' in config:
             cfg = config['encoding']
             self.cleartext_type = cfg.get("cleartext_type", "DT_FXP")
@@ -383,13 +399,17 @@ class HEU(Device):
             if edr_name == "IntegerEncoder":
                 edr_args["scale"] = edr_args.get("scale", default_scale)
                 self.encoder = phe.IntegerEncoder(schema, **edr_args)
+                self.scale = edr_args["scale"]
             elif edr_name == "FloatEncoder":
                 edr_args["scale"] = edr_args.get("scale", default_scale)
                 self.encoder = phe.FloatEncoder(schema, **edr_args)
+                self.scale = edr_args["scale"]
             elif edr_name == "BigintEncoder":
                 self.encoder = phe.BigintEncoder(schema)
+                self.scale = 1
             elif edr_name == "BatchEncoder":
                 self.encoder = phe.BatchEncoder(schema, **edr_args)
+                self.scale = edr_args.get("scale", 1)
             else:
                 raise AssertionError(f"Unsupported encoder type {edr_name}")
 
@@ -404,16 +424,25 @@ class HEU(Device):
         ), f"The current version does not support HEU standalone deployment mode"
 
         heu_id = id(self)
-        self.sk_keeper = HEUSkKeeper.options(
-            resources={self.config['sk_keeper']['party']: 1}
-        ).remote(heu_id, self.config, self.cleartext_type, self.encoder)
+        self.sk_keeper = (
+            sfd.remote(HEUSkKeeper)
+            .party(self.config['sk_keeper']['party'])
+            .remote(heu_id, self.config, self.cleartext_type, self.encoder)
+        )
 
-        pk = self.sk_keeper.public_key.remote()
+        pk = sfd.get(self.sk_keeper.public_key.remote())
         for cfg in self.config['evaluators']:
-            self.evaluators[cfg['party']] = HEUEvaluator.options(
-                resources={cfg['party']: 1}
-            ).remote(
-                heu_id, cfg['party'], self.config, pk, self.cleartext_type, self.encoder
+            self.evaluators[cfg['party']] = (
+                sfd.remote(HEUEvaluator)
+                .party(cfg['party'])
+                .remote(
+                    heu_id,
+                    cfg['party'],
+                    self.config,
+                    pk,
+                    self.cleartext_type,
+                    self.encoder,
+                )
             )
 
     def sk_keeper_name(self):

@@ -10,10 +10,10 @@ from secretflow.security.aggregation import PlainAggregator
 from secretflow.security.compare import PlainComparator
 from secretflow.utils.errors import InvalidArgumentError
 
-from tests.basecase import DeviceTestCase
+from tests.basecase import MultiDriverDeviceTestCase
 
 
-class TestHMixDataFrame(DeviceTestCase):
+class TestHMixDataFrame(MultiDriverDeviceTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
@@ -327,7 +327,7 @@ class TestHMixDataFrame(DeviceTestCase):
         value = self.v_mix[['a3', 'b4']].fillna(1)
 
         # WHEN
-        value = value.astype({'a3': np.int})
+        value = value.astype({'a3': np.int_})
 
         # THEN
         pd.testing.assert_frame_equal(
@@ -337,7 +337,7 @@ class TestHMixDataFrame(DeviceTestCase):
                     reveal(value.partitions[0].partitions[self.bob].data),
                 ]
             ),
-            self.df_part0[['a3']].fillna(1).astype(np.int),
+            self.df_part0[['a3']].fillna(1).astype(np.int_),
         )
         pd.testing.assert_frame_equal(
             pd.concat(
@@ -354,7 +354,7 @@ class TestHMixDataFrame(DeviceTestCase):
         value = self.h_mix[['a3', 'b4']].fillna(1)
 
         # WHEN
-        value = value.astype(np.int)
+        value = value.astype(np.int_)
 
         # THEN
         pd.testing.assert_frame_equal(
@@ -364,7 +364,7 @@ class TestHMixDataFrame(DeviceTestCase):
                     reveal(value.partitions[1].partitions[self.alice].data),
                 ]
             ),
-            self.df_part0[['a3']].fillna(1).astype(np.int),
+            self.df_part0[['a3']].fillna(1).astype(np.int_),
         )
         pd.testing.assert_frame_equal(
             pd.concat(
@@ -373,7 +373,7 @@ class TestHMixDataFrame(DeviceTestCase):
                     reveal(value.partitions[1].partitions[self.bob].data),
                 ]
             ),
-            self.df_part1[['b4']].fillna(1).astype(np.int),
+            self.df_part1[['b4']].fillna(1).astype(np.int_),
         )
 
     def test_setitem_should_error_when_wrong_value_type(self):

@@ -14,12 +14,15 @@
 
 import os
 from functools import wraps
-from typing import Any, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
+import fed
 import jax
 import multiprocess
 import ray
-from spu import Visibility
+
+import secretflow.distributed as sfd
+from secretflow.utils.logging import set_logging_level
 
 from .device import (
     HEU,
@@ -90,10 +93,10 @@ def to(device: Device, data: Any, spu_vis: str = 'secret'):
         return device(lambda x: x)(data)
 
     if isinstance(device, SPU):
-        vtype = Visibility.VIS_PUBLIC if spu_vis == 'public' else Visibility.VIS_SECRET
-        io = SPUIO(device.conf, device.world_size)
-        meta, *shares = io.make_shares(data, vtype)
-        return SPUObject(device, meta, shares)
+        raise ValueError(
+            "You cannot put data to SPU directly, "
+            "try put it to PYU and then move to SPU"
+        )
 
     # TODO(@xibin.wxb): support HEU conversion.
     if isinstance(device, HEU):
@@ -136,11 +139,14 @@ def reveal(func_or_object):
                 ref = x.device.sk_keeper.decrypt_and_decode.remote(x.data)
             all_object_refs.append(ref)
         elif isinstance(x, SPUObject):
-            if isinstance(x.shares[0], ray.ObjectRef):
-                all_object_refs.extend(x.shares)
+            assert isinstance(
+                x.shares_name[0], (ray.ObjectRef, fed.FedObject)
+            ), f"shares_name in spu obj should be ObjectRef or FedObject, but got {type(x.shares_name[0])} "
+            all_object_refs.append(x.meta)
+            all_object_refs.extend(x.device.outfeed_shares(x.shares_name))
 
     cur_idx = 0
-    all_object = ray.get(all_object_refs)
+    all_object = sfd.get(all_object_refs)
 
     new_flatten_val = []
     for x in flatten_val:
@@ -150,15 +156,12 @@ def reveal(func_or_object):
 
         elif isinstance(x, SPUObject):
             io = SPUIO(x.device.conf, x.device.world_size)
-            if isinstance(x.shares[0], ray.ObjectRef):
-                shares = [all_object[cur_idx + i] for i in range(x.device.world_size)]
-                new_idx = cur_idx + x.device.world_size
-            else:
-                shares = x.shares
-                new_idx = cur_idx
-            new_flatten_val.append(io.reconstruct(shares))
-            cur_idx = new_idx
+            meta = all_object[cur_idx]
+            shares = [all_object[cur_idx + i + 1] for i in range(x.device.world_size)]
+            new_idx = cur_idx + x.device.world_size + 1
 
+            new_flatten_val.append(io.reconstruct(shares, meta))
+            cur_idx = new_idx
         else:
             new_flatten_val.append(x)
 
@@ -184,30 +187,126 @@ def wait(objects: Any):
 def init(
     parties: Union[str, List[str]] = None,
     address: Optional[str] = None,
+    cluster_config: Dict = None,
     num_cpus: Optional[int] = None,
     log_to_driver=True,
     omp_num_threads: int = None,
+    logging_level: str = 'info',
+    cross_silo_grpc_retry_policy: Dict = None,
+    cross_silo_send_max_retries: int = None,
+    cross_silo_serializing_allowed_list: Dict = None,
     **kwargs,
 ):
     """Connect to an existing Ray cluster or start one and connect to it.
 
     Args:
         parties: parties this node represents, e.g: 'alice', ['alice', 'bob', 'carol'].
+            If parties are provided, then simulation mode will be enabled,
+            which means a single ray cluster will simulate as multi parties.
+            If you want to run SecretFlow in production mode, plean keep it None.
         address:  The address of the Ray cluster to connect to. If this address
-            is not provided, then a raylet, a plasma store, a plasma manager,
-            and some workers will be started.
-        num_cpus: Number of CPUs the user wishes to assign to each raylet. 
-            Min of (cpu count, 32) will be used if not provided.
-        log_to_driver: Whether direct output of worker processes on all nodes to driver.
-        omp_num_threads: set environment variable `OMP_NUM_THREADS`. It works only when
-            address is None.
+            is not provided, then a local ray will be started.
+        cluster_config: the cluster config of multi SecretFlow parties. Must be
+            provided if you run SecretFlow in cluster mode. E.g.
+
+            .. code:: python
+
+                # For alice
+                {
+                    'parties': {
+                        'alice': {
+                            # The address for other parties.
+                            'address': '127.0.0.1:10001',
+                            # (Optional) the listen address, the `address` will
+                            # be used if not prodived.
+                            'listen_addr': '0.0.0.0:10001'
+                        },
+                        'bob': {
+                            # The address for other parties.
+                            'address': '127.0.0.1:10002',
+                            # (Optional) the listen address, the `address` will
+                            # be used if not prodived.
+                            'listen_addr': '0.0.0.0:10002'
+                        },
+                    },
+                    'self_party': alice
+                }
+
+                # For bob
+                {
+                    'parties': {
+                        'alice': {
+                            # The address for other parties.
+                            'address': '127.0.0.1:10001',
+                            # (Optional) the listen address, the `address` will
+                            # be used if not prodived.
+                            'listen_addr': '0.0.0.0:10001'
+                        },
+                        'bob': {
+                            # The address for other parties.
+                            'address': '127.0.0.1:10002',
+                            # (Optional) the listen address, the `address` will
+                            # be used if not prodived.
+                            'listen_addr': '0.0.0.0:10002'
+                        },
+                    },
+                    'self_party': bob
+                }
+        num_cpus: Number of CPUs the user wishes to assign to each raylet.
+        log_to_driver: Whether direct output of worker processes on all nodes
+            to driver.
+        omp_num_threads: set environment variable `OMP_NUM_THREADS`. It works
+            only when address is None.
+        logging_level: optional; works only in production mode.
+            the logging level, could be `debug`, `info`, `warning`, `error`,
+            `critical`, not case sensititive.
+        cross_silo_grpc_retry_policy: optional, works only in production mode.
+            a dict descibes the retry policy for cross silo rpc call.
+            If None, the following default retry policy will be used.
+            More details please refer to
+            `retry-policy <https://github.com/grpc/proposal/blob/master/A6-client-retries.md#retry-policy>`_.
+
+            .. code:: python
+                {
+                    "maxAttempts": 4,
+                    "initialBackoff": "0.1s",
+                    "maxBackoff": "1s",
+                    "backoffMultiplier": 2,
+                    "retryableStatusCodes": [
+                        "UNAVAILABLE"
+                    ]
+                }
+        cross_silo_send_max_retries: optional, works only in production mode.
+            the max retries for sending data cross silo.
+        cross_silo_serializing_allowed_list: optional, works only in production mode.
+            A dict describes the package or class list allowed for cross-silo
+            serializing(deserializating). It's used for avoiding pickle deserializing
+            execution attack when crossing silos. E.g.
+
+            .. code:: python
+                {
+                    "numpy.core.numeric": ["*"],
+                    "numpy": ["dtype"],
+                }
         **kwargs: see :py:meth:`ray.init` parameters.
     """
     resources = None
-    if parties is not None:
-        assert address is None, 'Address should be none when parties are given.'
-        if num_cpus is None:
-            num_cpus = min(multiprocess.cpu_count(), 32)
+    is_standalone = True if parties else False
+    local_mode = address == 'local'
+    if not local_mode:
+        assert (
+            num_cpus is None
+        ), 'When connecting to an existing cluster, num_cpus must not be provided.'
+    if local_mode and num_cpus is None:
+        num_cpus = multiprocess.cpu_count()
+        if is_standalone:
+            # Give num_cpus a min value for better simulation.
+            num_cpus = min(num_cpus, 32)
+    set_logging_level(logging_level)
+
+    if is_standalone:
+        # Standalone mode
+        sfd.set_production(False)
         assert isinstance(
             parties, (str, Tuple, List)
         ), 'parties must be str or list of str'
@@ -216,18 +315,47 @@ def init(
         else:
             assert len(set(parties)) == len(parties), f'duplicated parties {parties}'
 
-        resources = {party: num_cpus for party in parties}
+        if local_mode:
+            resources = {party: num_cpus for party in parties}
+        else:
+            resources = None
 
-    if not address and omp_num_threads:
-        os.environ['OMP_NUM_THREADS'] = f'{omp_num_threads}'
-    ray.init(
-        address,
-        num_cpus=num_cpus,
-        resources=resources,
-        include_dashboard=False,
-        log_to_driver=log_to_driver,
-        **kwargs,
-    )
+        if not address:
+            if omp_num_threads:
+                os.environ['OMP_NUM_THREADS'] = f'{omp_num_threads}'
+
+        ray.init(
+            address,
+            num_cpus=num_cpus,
+            resources=resources,
+            log_to_driver=log_to_driver,
+            **kwargs,
+        )
+    else:
+        sfd.set_production(True)
+        # cluster mode
+        assert (
+            cluster_config
+        ), 'Must provide cluster config when running with cluster mode.'
+        assert 'self_party' in cluster_config, 'Miss self_party in cluster config.'
+        assert 'parties' in cluster_config, 'Miss parties in cluster config.'
+        self_party = cluster_config['self_party']
+        all_parties = cluster_config['parties']
+        assert (
+            self_party in all_parties
+        ), f'Party {self_party} not found in cluster config parties.'
+        fed.init(
+            address=address,
+            cluster=all_parties,
+            party=self_party,
+            log_to_driver=log_to_driver,
+            num_cpus=num_cpus,
+            logging_level=logging_level,
+            cross_silo_grpc_retry_policy=cross_silo_grpc_retry_policy,
+            cross_silo_send_max_retries=cross_silo_send_max_retries,
+            cross_silo_serializing_allowed_list=cross_silo_serializing_allowed_list,
+            **kwargs,
+        )
 
 
 def shutdown():
@@ -237,4 +365,4 @@ def shutdown():
     It is ok to run this twice in a row. The primary use case for this function
     is to cleanup state between tests.
     """
-    ray.shutdown()
+    sfd.shutdown()

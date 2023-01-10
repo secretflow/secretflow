@@ -22,10 +22,11 @@ from typing import Callable, Tuple
 
 import numpy as np
 import tensorflow as tf
+
 from secretflow.device import PYUObject, proxy
 from secretflow.ml.nn.fl.backend.tensorflow.fl_base import BaseTFModel
-from secretflow.ml.nn.fl.sparse import STCSparse
 from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
+from secretflow.utils.compressor import STCSparse, sparse_decode, sparse_encode
 
 
 class FedSTC(BaseTFModel):
@@ -36,8 +37,12 @@ class FedSTC(BaseTFModel):
     client) communication.
     """
 
-    def __init__(self, builder_base: Callable[[], tf.keras.Model]):
-        super().__init__(builder_base)
+    def __init__(
+        self,
+        builder_base: Callable[[], tf.keras.Model],
+        random_seed=None,
+    ):
+        super().__init__(builder_base, random_seed=random_seed)
         self._res = []
 
     def train_step(
@@ -63,6 +68,8 @@ class FedSTC(BaseTFModel):
 
         compressor = STCSparse(sparse_rate=sparsity)
         if updates is not None:
+            # Sparse matrix decoded in the downstream
+            updates = sparse_decode(data=updates)
             weights = [np.add(w, u) for w, u in zip(self.model_weights, updates)]
             self.model.set_weights(weights)
         num_sample = 0
@@ -128,6 +135,10 @@ class FedSTC(BaseTFModel):
             np.subtract(dense_u, sparse_u)
             for dense_u, sparse_u in zip(client_updates, sparse_client_updates)
         ]
+        # do sparse encoding
+        sparse_client_updates = sparse_encode(
+            data=sparse_client_updates, encode_method='coo'
+        )
         return sparse_client_updates, num_sample
 
 

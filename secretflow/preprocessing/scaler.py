@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Union
+from typing import Any, Dict, List, Union
 
 import numpy as np
 import pandas as pd
@@ -26,9 +26,10 @@ from secretflow.data.vertical import VDataFrame
 from secretflow.device.driver import reveal
 from secretflow.security.aggregation import Aggregator
 from secretflow.utils.errors import InvalidArgumentError
+from secretflow.preprocessing.base import _PreprocessBase
 
 
-class MinMaxScaler:
+class MinMaxScaler(_PreprocessBase):
     """Transform features by scaling each feature to a given range.
 
     Attributes:
@@ -58,6 +59,7 @@ class MinMaxScaler:
         )
         self._scaler = SkMinMaxScaler()
         self._scaler.fit(min_max)
+        self._columns = df.columns
 
     def _transform(
         self, df: Union[HDataFrame, VDataFrame]
@@ -103,8 +105,17 @@ class MinMaxScaler:
         self.fit(df)
         return self.transform(df)
 
+    def get_params(self) -> Dict[str, Any]:
+        assert hasattr(self, '_scaler'), 'Scaler has not been fit yet.'
 
-class StandardScaler:
+        return {
+            'columns': self._columns,
+            'min': self._scaler.min_,
+            'scale': self._scaler.scale_,
+        }
+
+
+class StandardScaler(_PreprocessBase):
     """Standardize features by removing the mean and scaling to unit variance.
 
     StandardScaler is similar to :py:class:`sklearn.preprocessing.StandardScaler`.
@@ -208,6 +219,7 @@ class StandardScaler:
                 partitioned MixDataFrame.
         """
         self._check_dataframe(df)
+        self._columns = df.columns
         if isinstance(df, MixDataFrame):
             if df.partition_way == PartitionWay.HORIZONTAL:
                 if self._with_mean or self._with_std:
@@ -346,3 +358,14 @@ class StandardScaler:
         """A convenience combine of fit and transform."""
         self.fit(df, aggregator=aggregator)
         return self.transform(df)
+
+    def get_params(self) -> Dict[str, Any]:
+        assert hasattr(self, '_scaler'), 'Scaler has not been fit yet.'
+
+        return {
+            'columns': self._columns,
+            'with_mean': self._scaler.with_mean,
+            'mean': self._scaler.mean_,
+            'with_std': self._scaler.with_std,
+            'scale': self._scaler.scale_,
+        }

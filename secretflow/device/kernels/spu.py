@@ -14,8 +14,7 @@
 
 from typing import Dict, List, Union
 
-import ray
-
+import secretflow.distributed as sfd
 from secretflow.device import (
     HEU,
     PYU,
@@ -34,15 +33,35 @@ from secretflow.device import (
 def to(self: SPUObject, device: Device, config):
     if isinstance(device, PYU):
 
-        def reveal(conf, world_size, refs):
+        def reveal(conf, world_size, refs, meta):
             io = SPUIO(conf, world_size)
-            return io.reconstruct(refs)
+            return io.reconstruct(refs, meta)
 
-        return device(reveal)(self.device.conf, self.device.world_size, self.shares)
+        return device(reveal)(
+            self.device.conf,
+            self.device.world_size,
+            self.device.outfeed_shares(self.shares_name),
+            self.meta,
+        )
 
     if isinstance(device, SPU):
-        # TODO(junfeng): check whether self and device are the same SPU device.
-        return self
+        # same spu
+        if self.device == device:
+            return self
+
+        # send to another spu.
+        assert (
+            device.conf.protocol == self.device.conf.protocol
+            and device.conf.field == self.device.conf.field
+            and device.conf.fxp_fraction_bits == self.device.conf.fxp_fraction_bits
+            and device.world_size == self.device.world_size
+        )
+
+        shares = self.device.outfeed_shares(self.shares_name)
+        shares_name = device.infeed_shares(shares)
+
+        # TODO: do we need reshare shares.
+        return SPUObject(device, self.meta, shares_name)
 
     if isinstance(device, HEU):
         return spu_to_heu(self, device, config)
@@ -69,7 +88,9 @@ def spu_to_heu(self: SPUObject, heu: HEU, config):
     # TODO(@xibin.wxb): support pytree
     shards = {
         p: actor.a2h.remote(ref, heu.cleartext_type, heu.schema)
-        for (p, actor), ref in zip(self.device.actors.items(), self.shares)
+        for (p, actor), ref in zip(
+            self.device.actors.items(), self.device.outfeed_shares(self.shares_name)
+        )
     }
     shards = [
         heu.get_participant(p).encrypt.remote(shard, config.heu_audit_log)
@@ -94,6 +115,8 @@ def psi_df(
     broadcast_result=True,
     bucket_size=1 << 20,
     curve_type="CURVE_25519",
+    preprocess_path=None,
+    ecdh_secret_key_path=None,
 ) -> List[PYUObject]:
     assert isinstance(device, SPU), f'device must be SPU device'
     assert isinstance(
@@ -129,6 +152,8 @@ def psi_df(
                     broadcast_result,
                     bucket_size,
                     curve_type,
+                    preprocess_path,
+                    ecdh_secret_key_path,
                 ),
             )
         )
@@ -149,6 +174,8 @@ def psi_csv(
     broadcast_result=True,
     bucket_size=1 << 20,
     curve_type="CURVE_25519",
+    preprocess_path=None,
+    ecdh_secret_key_path=None,
 ):
     assert isinstance(device, SPU), f'device must be SPU device'
     assert isinstance(
@@ -206,6 +233,8 @@ def psi_csv(
                     broadcast_result,
                     bucket_size,
                     curve_type,
+                    preprocess_path,
+                    ecdh_secret_key_path,
                 )
             )
     else:
@@ -225,11 +254,13 @@ def psi_csv(
                     broadcast_result,
                     bucket_size,
                     curve_type,
+                    preprocess_path,
+                    ecdh_secret_key_path,
                 )
             )
 
     # wait for all tasks done
-    return ray.get(res)
+    return sfd.get(res)
 
 
 @register(DeviceType.SPU)
@@ -374,4 +405,4 @@ def psi_join_csv(
             )
 
     # wait for all tasks done
-    return ray.get(res)
+    return sfd.get(res)

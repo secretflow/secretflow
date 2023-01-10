@@ -7,14 +7,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-09-16 11:28+0800\n"
+"POT-Creation-Date: 2023-01-07 11:23+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.10.3\n"
+"Generated-By: Babel 2.11.0\n"
 
 #: ../../tutorial/data_preprocessing_with_data_frame.ipynb:9
 msgid "Data Preprocessing with DataFrame"
@@ -22,7 +22,7 @@ msgstr "数据预处理"
 
 #: ../../tutorial/data_preprocessing_with_data_frame.ipynb:20
 msgid ""
-"The following codes are demos only. It's **NOT for production** due to "
+"The following codes are demos only. It’s **NOT for production** due to "
 "system security concerns, please **DO NOT** use it directly in "
 "production."
 msgstr "以下代码仅作为示例，请勿在生产环境直接使用。"
@@ -47,7 +47,7 @@ msgstr "初始化隐语，创建alice和bob两个参与方。"
 
 #: ../../tutorial/data_preprocessing_with_data_frame.ipynb:67
 msgid ""
-"💡 Before using preprocessing, you may need to get to know secretflow's "
+"💡 Before using preprocessing, you may need to get to know secretflow’s "
 "`DataFrame <../components/preprocessing/DataFrame.ipynb>`__."
 msgstr ""
 "💡 在使用预处理之前，您可以需要先了解隐语 `DataFrame "
@@ -84,7 +84,7 @@ msgstr "预处理"
 #: ../../tutorial/data_preprocessing_with_data_frame.ipynb:448
 msgid ""
 "Secretflow provides missing value filling, standardization, categorical "
-"features encoding, discretization .etc, which are similar to sklearn's "
+"features encoding, discretization .etc, which are similar to sklearn’s "
 "preprocessing."
 msgstr "隐语提供了缺失值填充、标准化、分类数据编码、离散化等多种预处理功能，其使用方式和sklearn的预处理一致。"
 
@@ -156,12 +156,12 @@ msgstr "标签编码"
 #: ../../tutorial/data_preprocessing_with_data_frame.ipynb:773
 msgid ""
 "secretflow provides ``LabelEncoder`` for encoding target labels with "
-"value between 0 and n\\_classes-1. The input and output of LabelEncoder "
-"are ``DataFrame``."
+"value between 0 and n_classes-1. The input and output of LabelEncoder are"
+" ``DataFrame``."
 msgstr "隐语提供了 `LabelEncoder` 用作将标签列编码至[0, 类别数 - 1]。LabelEncoder的输入输出形式均为DataFrame。"
 
 #: ../../tutorial/data_preprocessing_with_data_frame.ipynb:775
-msgid "Here is an example to encode target to [0, n\\_classes-1]."
+msgid "Here is an example to encode target to [0, n_classes-1]."
 msgstr "下面是一个对target列进行标签编码的例子。"
 
 #: ../../tutorial/data_preprocessing_with_data_frame.ipynb:846
@@ -189,8 +189,10 @@ msgid ""
 "by quantile or chimerge method, and calculate the woe value and iv value "
 "in each bucket. And ``VertWOESubstitution`` can substitute the features "
 "with the woe value."
-msgstr "隐语提供了 `VertWoeBinning` ，可以对特征按照数量或者chimerge方法进行分桶，并计算每个分桶的WOE和IV值。"
-"**VertWOESubstitution** 可以把特征值替换成WOE值。"
+msgstr ""
+"隐语提供了 `VertWoeBinning` "
+"，可以对特征按照数量或者chimerge方法进行分桶，并计算每个分桶的WOE和IV值。**VertWOESubstitution** "
+"可以把特征值替换成WOE值。"
 
 #: ../../tutorial/data_preprocessing_with_data_frame.ipynb:921
 msgid "Here is an example to encode features to woe."

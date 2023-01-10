@@ -4,10 +4,12 @@ from heu import phe
 import secretflow.device as ft
 from secretflow import reveal
 from secretflow.device.device.base import MoveConfig
-from tests.basecase import DeviceTestCase
+
+from tests.basecase import (MultiDriverDeviceTestCase,
+                            SingleDriverDeviceTestCase)
 
 
-class TestDeviceHEU(DeviceTestCase):
+class TestDeviceHEU(MultiDriverDeviceTestCase, SingleDriverDeviceTestCase):
     def test_device(self):
         x = ft.with_device(self.alice)(np.random.rand)(3, 4)
         x_ = x.to(self.heu)

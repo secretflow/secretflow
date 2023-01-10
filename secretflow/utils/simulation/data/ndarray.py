@@ -97,7 +97,7 @@ def create_ndarray(
     if axis == 0:
         return FedNdarray(
             partitions={
-                device: device(lambda df: arr[index[0] : index[1]])(arr)
+                device: device(lambda df: df[index[0] : index[1]])(arr)
                 for device, index in indexes.items()
             },
             partition_way=PartitionWay.HORIZONTAL,

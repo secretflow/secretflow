@@ -8,10 +8,10 @@ from secretflow.data.base import Partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.stats import psi_eval
 from secretflow.stats.core.utils import equal_range
-from tests.basecase import DeviceTestCase
+from tests.basecase import MultiDriverDeviceTestCase
 
 
-class TestPSI(DeviceTestCase):
+class TestPSI(MultiDriverDeviceTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()

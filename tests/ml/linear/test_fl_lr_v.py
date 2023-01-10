@@ -10,10 +10,10 @@ from secretflow.ml.linear.fl_lr_v import FlLogisticRegressionVertical
 from secretflow.preprocessing import StandardScaler
 from secretflow.security.aggregation.plain_aggregator import PlainAggregator
 
-from tests.basecase import DeviceTestCaseBase
+from tests.basecase import MultiDriverDeviceTestCase
 
 
-class TestFlLogisticRegressionVertical(DeviceTestCaseBase):
+class TestFlLogisticRegressionVertical(MultiDriverDeviceTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.num_cpus = 32

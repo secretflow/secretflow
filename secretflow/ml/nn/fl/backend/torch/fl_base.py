@@ -16,21 +16,36 @@
 from pathlib import Path
 from abc import ABC, abstractmethod
 from typing import Callable, Optional
-
 import numpy as np
 import torch
 import torchmetrics
 
 from secretflow.ml.nn.fl.backend.torch.sampler import sampler_data
 from secretflow.ml.nn.fl.backend.torch.utils import TorchModel
-from secretflow.ml.nn.fl.metrics import Default, Mean, Precision, Recall
+from secretflow.ml.nn.metrics import Default, Mean, Precision, Recall
 from secretflow.utils.io import rows_count
 
 # Torch model on worker side
 
 
 class BaseTorchModel(ABC):
-    def __init__(self, builder_base: Callable[[], TorchModel]):
+    def __init__(
+        self,
+        builder_base: Callable[[], TorchModel],
+        random_seed: int = None,
+    ):
+        self.train_data_loader = None
+        self.eval_data_loader = None
+        self.callbacks = None
+        self.logs = None
+        self.epoch = None
+        self.epoch_logs = None
+        self.training_logs = None
+        self.history = {}
+        self.train_set = None
+        self.eval_set = None
+        if random_seed is not None:
+            torch.manual_seed(random_seed)
         assert builder_base is not None, "Builder_base cannot be none"
         self.model = (
             builder_base.model_fn() if builder_base.model_fn is not None else None
@@ -46,15 +61,6 @@ class BaseTorchModel(ABC):
             if builder_base.metrics is not None
             else None
         )
-        self.train_data_loader = None
-        self.eval_data_loader = None
-        self.callbacks = None
-        self.logs = None
-        self.epoch_logs = None
-        self.training_logs = None
-        self.history = {}
-        self.train_set = None
-        self.eval_set = None
 
     def build_dataset_from_csv(
         self,
@@ -305,10 +311,21 @@ class BaseTorchModel(ABC):
         pass
 
     def save_model(self, model_path: str):
+        """For compatibility reasons it is recommended to instead save only its state dict Ref:https://pytorch.org/docs/master/notes/serialization.html#id5"""
         Path(model_path).parent.mkdir(parents=True, exist_ok=True)
         assert model_path is not None, "model path cannot be empty"
-        torch.save(self.model, model_path)
+        check_point = {
+            'model_state_dict': self.model.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+            'epoch': self.epoch[-1] if self.epoch else 0,
+        }
+        torch.save(check_point, model_path)
 
     def load_model(self, model_path: str):
+        """load model from state dict, model structure must be defined before load"""
         assert model_path is not None, "model path cannot be empty"
-        self.model = torch.load(model_path)
+        assert self.model is not None, "model structure must be defined before load"
+        checkpoint = torch.load(model_path)
+        self.model.load_state_dict(checkpoint['model_state_dict'])
+        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        return checkpoint['epoch']

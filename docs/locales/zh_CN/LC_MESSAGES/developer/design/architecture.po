@@ -7,61 +7,61 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-09-05 14:43+0800\n"
+"POT-Creation-Date: 2023-01-07 11:23+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.10.3\n"
+"Generated-By: Babel 2.11.0\n"
 
-#: ../../developer/design/architecture.md:1 66cd4bbf2f8144d88627adaba928dedc
+#: ../../developer/design/architecture.md:1
 msgid "Architecture"
 msgstr "架构"
 
-#: ../../developer/design/architecture.md:3 3d33d9bf17874c82b7995090edbdd864
+#: ../../developer/design/architecture.md:3
 msgid ""
 "SecretFlow is a unified framework for privacy preserving data analysis "
 "and machine learning."
 msgstr "隐语是一个开放的隐私保护数据分析和机器学习框架。"
 
-#: ../../developer/design/architecture.md:5 204c5064fec94d87bf7e3024b5f9a6cc
+#: ../../developer/design/architecture.md:5
 msgid "![secretflow](../../_static/secretflow.svg)"
 msgstr ""
 
-#: ../../developer/design/architecture.md:5 05b3f4bd654342e5b22c001aa917a7d2
+#: ../../developer/design/architecture.md:5
 msgid "secretflow"
 msgstr ""
 
-#: ../../developer/design/architecture.md:7 b6332773d64d48f49336b0323f1e34f5
+#: ../../developer/design/architecture.md:7
 msgid "Design Motivation"
 msgstr "设计思想"
 
-#: ../../developer/design/architecture.md:9 6216bfe995da43dba0cc52c0d618045d
+#: ../../developer/design/architecture.md:9
 msgid ""
 "Privacy computing is an emerging interdisciplinary field involving "
 "cryptography, machine learning, databases, hardware, and other fields. "
 "Based on the practical experience over the past few years, we found that"
 msgstr "隐私计算是一个新兴的跨学科领域，涉及密码学、机器学习、数据库、硬件等多个领域。根据过去几年的实践经验，我们发现"
 
-#: ../../developer/design/architecture.md:12 c9a4df8bd1aa476e9d8bf49d8c011ea4
+#: ../../developer/design/architecture.md:12
 msgid "No privacy computing technology is suitable for all scenarios."
 msgstr "没有一种隐私计算技术可以适用于所有的场景"
 
-#: ../../developer/design/architecture.md:13 402c2f73c9904083a7c1d33f8e91fb92
+#: ../../developer/design/architecture.md:13
 msgid ""
 "Private computing has a high learning curve and is difficult for users "
 "from other backgrounds to use."
 msgstr "隐私计算学习曲线很高，其他背景用户使用困难"
 
-#: ../../developer/design/architecture.md:14 1d34a5d1f409421b83b3db7a230ddcac
+#: ../../developer/design/architecture.md:14
 msgid ""
 "Privacy computing involves many fields and requires the cooperation of "
 "different domain experts."
 msgstr "隐私计算涉及领域众多，需要领域专家共同协作"
 
-#: ../../developer/design/architecture.md:16 ae786072bbff4f3fae43ef72d76466eb
+#: ../../developer/design/architecture.md:16
 msgid ""
 "The design goal of SecretFlow is to make it very easy for data scientists"
 " and machine learning developers to use private computing techniques for "
@@ -79,7 +79,7 @@ msgid ""
 "flows between devices."
 msgstr "隐语的设计目标是使得数据科学家和机器学习开发者可以非常容易地使用隐私计算技术进行数据分析和机器学习建模，而无需了解底层技术细节。为了达到这个目标，隐语提供了一层设备抽象，将多方安全计算(MPC)、同态加密(HE)和可信执行环境(TEE)等隐私计算技术抽象为密文设备，将单方计算抽象为明文设备。基于这层抽象，数据分析和机器学习工作流可以表示为一张计算图，其中节点表示某个设备上的计算，边表示设备之间的数据流动，不同类型设备之间的数据流动需要进行协议转换。在这一点上，隐语借鉴了主流的深度学习框架，后者将神经网络表示为一张由设备上的算子和设备间的张量流动构成的计算图。"
 
-#: ../../developer/design/architecture.md:26 e967f98ab3824dba9f0e7288478ef40d
+#: ../../developer/design/architecture.md:26
 msgid ""
 "SecretFlow is an open framework for developers at different levels. At "
 "the device layer, we work with experts in cryptography, trusted hardware,"
@@ -93,11 +93,12 @@ msgstr ""
 "隐语是一个开放的框架，面向不同层次的开发者。在设备层，我们与密码学、可信硬件、硬件加速等领域专家通力合作，不断提升协议安全、计算性能。同时，隐语提供了良好的设备接口，第三方隐私计算协议可作为设备插拔式接入。在算法层，为机器学习提供了灵活的编程接口，算法开发者可以很容易"
 " 定义自己的算法。"
 
-#: ../../developer/design/architecture.md:32 d276884f2934483587be084251e4ef52
+#: ../../developer/design/architecture.md
+#: ../../developer/design/architecture.md:32
 msgid "Device"
 msgstr "设备"
 
-#: ../../developer/design/architecture.md:34 240448fba92744f989f289770a76a5f4
+#: ../../developer/design/architecture.md:34
 msgid ""
 "The devices of the SecretFlow are divided into physical devices and "
 "logical devices. The physical device is the physical machine of each "
@@ -112,7 +113,7 @@ msgstr ""
 "特定的计算算子(Device Ops)，有自己特定的数据表示(Device "
 "Object)。逻辑设备分为明文和密文两种类型，前者执行单方本地计算，后者执行 多方参与的隐私计算。"
 
-#: ../../developer/design/architecture.md:40 c5683edbec544eacbfc262175cb4c750
+#: ../../developer/design/architecture.md:40
 msgid ""
 "The runtime of a logical device is responsible for memory management, "
 "data transmission, operator scheduling and other responsibilities, and "
@@ -121,29 +122,155 @@ msgid ""
 "belong to multiple logical devices at the same time. On the same set of "
 "physical devices, different logical devices can be virtualized according "
 "to different privacy protocols and participation combinations."
-msgstr ""
-"逻辑设备的运行时负责内存管理、数据传输、算子调度等职责，运行在一个或多个物理设备上。逻辑设备和物理设备不是一对一的关系，一个物理设备"
-"可能同时属于多个逻辑设备。在同一组物理设备上，可以根据不同的隐私协议和参与组合虚拟出不同的逻辑设备。"
+msgstr "逻辑设备的运行时负责内存管理、数据传输、算子调度等职责，运行在一个或多个物理设备上。逻辑设备和物理设备不是一对一的关系，一个物理设备可能同时属于多个逻辑设备。在同一组物理设备上，可以根据不同的隐私协议和参与组合虚拟出不同的逻辑设备。"
 
-#: ../../developer/design/architecture.md:45 4903b0020c61413ab3be06a9e6d08576
+#: ../../developer/design/architecture.md:45
 msgid "![device](../../_static/device.svg)"
 msgstr ""
 
-#: ../../developer/design/architecture.md:45 52982530f1dc456bae5d7f0bb7fd4f1e
+#: ../../developer/design/architecture.md:45
 msgid "device"
 msgstr "设备"
 
-#: ../../developer/design/architecture.md:47 183afbfba15546ee8e9c87d251229b3c
+#: ../../developer/design/architecture.md:47
 msgid ""
 "The following table is a list of devices currently supported by "
 "SecretFlow:"
 msgstr "下表是隐语目前暂定支持的设备列表："
 
-#: ../../developer/design/architecture.md:110 50077a9cf6b243c09ee8b45467d116cb
+#: ../../developer/design/architecture.md
+msgid "Type"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "Runtime"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "Ops"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "Protocol"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "Frontend"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "Status"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "PYU"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "Plaintext"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "Python Interpreter"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "—"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "Python"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "Release"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "SPU"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "Ciphertext"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "SPU VM"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "PSI, XLA HLO"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "SPDZ-2k, ABY3"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "JAX, TensorFlow, PyTorch"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "Alpha"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "HEU(PHEU Mode)"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "PHEU Runtime"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "Add"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "Paillier"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "Numpy"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "HEU(FHEU Mode)"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "HEU VM"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "XLA HLO"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "TFHE"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "WIP"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "TEE"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "TEE Runtime"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "Intel SGX"
+msgstr ""
+
+#: ../../developer/design/architecture.md:57
 msgid "Programmability"
 msgstr "可编程性"
 
-#: ../../developer/design/architecture.md:112 23bcf1acff1043338155a9a50e70d152
+#: ../../developer/design/architecture.md:59
 msgid ""
 "Logic devices are programmable which users can customize computing logic,"
 " and each device provides a protocol-independent programming interface to"
@@ -154,7 +281,7 @@ msgstr ""
 "逻辑设备具备可编程性，即用户可以在设备上自定义计算逻辑，每个设备对用户提供了协议无关的编程接口。在一个设备上，用户可以定义从简单的矩阵运算， "
 "到完整的深度模型训练，甚至任意执行逻辑。当然，这一切取决于设备提供的计算能力。"
 
-#: ../../developer/design/architecture.md:115 2bc2f4e237dd4df18d5d1ef775cabac8
+#: ../../developer/design/architecture.md:62
 msgid ""
 "For the plaintext device PYU, its front-end is python, and users can "
 "schedule any python function to execute on it through `@device`. These "
@@ -162,7 +289,7 @@ msgid ""
 "executed by the target device's python interpreter."
 msgstr "对于明文设备PYU，它的前端为python，用户可以通过@device将任意一段python函数调度至其上执行。这些函数经过cloudpickle序列化、传输、反序列化，由目标设备的python解释器执行。"
 
-#: ../../developer/design/architecture.md:117 11bc1645a8954eefb9eacba31736c10a
+#: ../../developer/design/architecture.md:64
 msgid ""
 "For ciphertext devices SPU, HEU, TEE, their front end can be any "
 "framework that supports "
@@ -171,28 +298,28 @@ msgid ""
 "on these front-end to a specified device for execution through `@device`."
 msgstr "对于密文设备PPU、HEU、TEE，它们的前端可以是任何支持XLA 的框架， 如JAX, TensorFlow"
 
-#: ../../developer/design/architecture.md:120 80d7d5ffbb734cb6bc5ef00e9ea57513
+#: ../../developer/design/architecture.md:67
 msgid ""
 "Currently, we recommend that you use JAX as the front end. And before "
 "using JAX, we strongly recommend that you must read the following "
 "documents."
 msgstr "目前，我们推荐您使用JAX作为前端。并且在使用JAX之前，我们强烈建议您务必阅读以下文档。"
 
-#: ../../developer/design/architecture.md:122 0e62ee226f084ce38180a761ab7b6f82
+#: ../../developer/design/architecture.md:69
 msgid "<https://jax.readthedocs.io/en/latest/notebooks/quickstart.html>"
 msgstr ""
 
-#: ../../developer/design/architecture.md:123 e6012c195ebe477f95db0478e1396a22
+#: ../../developer/design/architecture.md:70
 msgid "<https://jax.readthedocs.io/en/latest/notebooks/thinking_in_jax.html>"
 msgstr ""
 
-#: ../../developer/design/architecture.md:124 c663447c58c14cc08a86e8b7a95b0043
+#: ../../developer/design/architecture.md:71
 msgid ""
 "<https://jax.readthedocs.io/en/latest/notebooks/Common_Gotchas_in_JAX.html>"
 " (**IMPORTANT**)"
 msgstr ""
 
-#: ../../developer/design/architecture.md:140 37941f7ac2fa47a0b84de8688b867864
+#: ../../developer/design/architecture.md:87
 msgid ""
 "The user-defined function is first converted into XLA HLO Computation, "
 "and XLA performs device-independent code optimization and analysis, and "
@@ -207,7 +334,7 @@ msgstr ""
 "Computation，由XLA进行设备无关的代码优化和分析，并发往后端设备。后端设备进一步执行代码优化和分析，并生成最终的可执行代码。可执行代码或由设备的虚拟机解释执行(PPU,"
 " HEU)，或由硬件直接执行(TEE)。使用XLA HLO作为IR，使得我们可以复用XLA前端和设备无关代码优化，同时使得后端实现更加简洁干净。"
 
-#: ../../developer/design/architecture.md:144 3deae9a078ca4ccebc168a336b8f5b7d
+#: ../../developer/design/architecture.md:91
 msgid ""
 "For the ciphertext device HEU, it only supports a limited set of "
 "calculations, so a set of predefined operators such as `__add__`, "
@@ -215,17 +342,17 @@ msgid ""
 "through `@device`."
 msgstr "对于密文设备HEU，它仅支持一组有限的计算，因此提供了一组预定义算子如__add__, __mul__等，用户不能通过@device进行自定义编程。"
 
-#: ../../developer/design/architecture.md:153 a85e58606af644429fb013adb7e17d4c
+#: ../../developer/design/architecture.md:100
 msgid ""
 "For more details on logical devices, please refer to the design "
 "documentation for each device."
 msgstr "关于逻辑设备的更多细节，请参考各个设备的设计文档。"
 
-#: ../../developer/design/architecture.md:155 dce5a1ab11874d6ea2166db09a7a3bb8
+#: ../../developer/design/architecture.md:102
 msgid "Protocol Conversion"
 msgstr "协议转换"
 
-#: ../../developer/design/architecture.md:157 3256d82ade1b4de8871233dc96fbb839
+#: ../../developer/design/architecture.md:104
 msgid ""
 "The user performs programming on the logical device and constructs a "
 "logical computation graph, where the nodes represent a segment of "
@@ -241,17 +368,57 @@ msgstr ""
 "边表示跨设备的对象流动，此时需要进行协议转换。设备对象的DeviceObject.to接口用于转换至目标设备对象，任何新增的设备都应该提供相应的转换函数并"
 " 插入对象转换表中。"
 
-#: ../../developer/design/architecture.md:163 c518156d92cd4a11aa83b0911e308839
+#: ../../developer/design/architecture.md:110
 msgid ""
 "The following table is the translation table for each logical device "
 "object:"
 msgstr "下表是各个逻辑设备对象的转换表："
 
-#: ../../developer/design/architecture.md:207 115d34e41a204d83a0b01a0fb6335801
+#: ../../developer/design/architecture.md
+msgid "HEU"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "share"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "encrypt"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "reconstruct"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "encrypt+add"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "reconstruct+encrypt"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "decrypt"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "minus+decrypt"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "decrypt+encrypt"
+msgstr ""
+
+#: ../../developer/design/architecture.md
+msgid "decrypt+share"
+msgstr ""
+
+#: ../../developer/design/architecture.md:119
 msgid "Communication and Scheduling"
 msgstr "通信调度"
 
-#: ../../developer/design/architecture.md:209 73dbf178b1934df2a2967ef478645b4e
+#: ../../developer/design/architecture.md:121
 msgid ""
 "The user builds a logical calculation graph based on the device, so how "
 "do we execute this calculation graph? Since logical devices are mapped to"
@@ -262,13 +429,13 @@ msgid ""
 " problems."
 msgstr "用户基于设备构建了一张逻辑计算图，那么我们如何执行这张计算图？由于逻辑设备映射到一个或多个物理设备，因此我们需要将逻辑设备上的算子正确调度到其对应的物理设备，同时处理好这些物理设备间的数据传输关系。毫无疑问，我们需要一个分布式图执行引擎来解决这些问题。"
 
-#: ../../developer/design/architecture.md:214 05f3189206e448e9852b0aa57b847bd2
+#: ../../developer/design/architecture.md:126
 msgid ""
 "So what kind of distributed graph execution engine do we need? Here's "
 "what SecreFlow's requirements:"
 msgstr "那么我们需要一个怎样的分布式图执行引擎？以下是隐语对它的要求"
 
-#: ../../developer/design/architecture.md:216 c9107d7be27b4528952ac35e96376633
+#: ../../developer/design/architecture.md:128
 msgid ""
 "**Fine-grained heterogeneous computing**: In a logical computing graph, "
 "there are computing tasks with different granularities, ranging from "
@@ -279,7 +446,7 @@ msgstr ""
 "细粒度的异构计算：在一张逻辑计算图中，具有不同粒度的计算任务，既有简单的数据处理（秒级），也有复杂的多方训练（几个小时至几十小时）。同时，物理节点具有不同的硬件环境，CPU,"
 " GPU, TEE, FPGA等。"
 
-#: ../../developer/design/architecture.md:217 7d90fd0235ab46e2b617a5da926b0ced
+#: ../../developer/design/architecture.md:129
 msgid ""
 "**Flexible computing model**: In horizontal and vertical scenarios, for "
 "different workflows such as data processing and model training, it "
@@ -287,7 +454,7 @@ msgid ""
 "parallelism, and hybrid parallelism."
 msgstr "灵活的计算模型：在水平、垂直场景下，针对数据处理和模型训练等不同工作流，支持多种并行模型，如数据并行、模型并行、混合并行。"
 
-#: ../../developer/design/architecture.md:218 65caade2a9974bd0b1a6f0345f1eff75
+#: ../../developer/design/architecture.md:130
 msgid ""
 "**Dynamic execution**: In the federated learning scenario, the data size,"
 " bandwidth latency, and machine performance of different institutions may"
@@ -297,33 +464,33 @@ msgid ""
 "have dynamic execution capabilities."
 msgstr "动态执行：在联邦学习场景下，不同机构的数据规模、带宽延迟、机器性能可能有较大差异，这导致同步模式的效率受限于最慢的工作节点。因此，我们希望支持异步训练模式，这要求图执行引擎具有动态执行能力。"
 
-#: ../../developer/design/architecture.md:220 5cbd042f6d344e3f9e65b0bbaaab9c5b
+#: ../../developer/design/architecture.md:132
 msgid ""
 "We comprehensively evaluate several popular distributed frameworks in the"
 " industry"
 msgstr "我们综合评估了业界几个流行的分布式框架"
 
-#: ../../developer/design/architecture.md:222 fa73815bf1c64b82a94ee8c62d8eed36
+#: ../../developer/design/architecture.md:134
 msgid "[Dask](http://distributed.dask.org/en/stable/)"
 msgstr ""
 
-#: ../../developer/design/architecture.md:223 fdcd9127d9664b93a2356b8537c3f868
+#: ../../developer/design/architecture.md:135
 msgid "[Ray](https://docs.ray.io/en/latest/)"
 msgstr ""
 
-#: ../../developer/design/architecture.md:224 0b1eca46626f4ef2b58b83e22344ec3e
+#: ../../developer/design/architecture.md:136
 msgid ""
 "[TensorFlow "
 "Distributed](https://www.tensorflow.org/guide/distributed_training)"
 msgstr ""
 
-#: ../../developer/design/architecture.md:225 d6c681bcdb634bc9b29f682ed6e09868
+#: ../../developer/design/architecture.md:137
 msgid ""
 "[PyTorch "
 "Distributed](https://pytorch.org/tutorials/beginner/dist_overview.html)"
 msgstr ""
 
-#: ../../developer/design/architecture.md:227 a35cf0f0b8ec41139714e44be1e1a62c
+#: ../../developer/design/architecture.md:139
 msgid ""
 "In the end, we chose Ray as the distributed engine of SecretFlow, which "
 "satisfies the above requirements of SecretFlow very well. The distributed"
@@ -333,15 +500,15 @@ msgid ""
 "execution of computational graphs more flexible and efficient."
 msgstr "最终我们选择了Ray作为隐语的分布式引擎，它非常好地满足了隐语的上述需求。Ray提供的分布式原语使得逻辑设备上的任务调度和数据传输可以很容易地映射到物理设备。Ray提供的异步调度和动态执行能力使得计算图的执行更加灵活、高效。"
 
-#: ../../developer/design/architecture.md:231 a72732ce9e45433ca191056fc737cd36
+#: ../../developer/design/architecture.md:143
 msgid "![ray](../../_static/ray.svg)"
 msgstr ""
 
-#: ../../developer/design/architecture.md:231 188bcdc635e445e88c6a956cb30c3b5c
+#: ../../developer/design/architecture.md:143
 msgid "ray"
 msgstr ""
 
-#: ../../developer/design/architecture.md:233 ac695b7ac31a4ecd871c056c778862fd
+#: ../../developer/design/architecture.md:145
 msgid ""
 "Ray is a distributed system suitable for LAN environments. To apply it to"
 " privacy computing scenarios, a lot of security reinforcement and "
@@ -350,7 +517,7 @@ msgid ""
 "suitable for privacy computing."
 msgstr "Ray是适用于局域网环境的分布式系统，要将其应用于隐私计算场景，需要做许多安全加固和环境适配工作。我们与蚂蚁计算智能Ray内核团队展开深入合作，打造一个安全可靠的、适合隐私计算的Ray框架。"
 
-#: ../../developer/design/architecture.md:236 1b49be7dba1e487183becb33ce2b0ac3
+#: ../../developer/design/architecture.md:148
 msgid ""
 "In terms of security reinforcement, we have reinforced the framework as a"
 " whole by means of identity authentication, code pre-installation, and "
@@ -368,11 +535,11 @@ msgstr ""
 " gRPC通信、域名支持、弱网断线处理等相关功能的开发。同时，我们也在探索Ray生态，如Mars, Ray Datasets, Ray "
 "Train等在隐私计算场景的使用。"
 
-#: ../../developer/design/architecture.md:238 93a61a1ed572400997f7e0f7e6dc6c68
+#: ../../developer/design/architecture.md:150
 msgid "Privacy Preserving Algorithm"
 msgstr "隐私算法"
 
-#: ../../developer/design/architecture.md:240 4533ca04ad624585a82a57f1489733f4
+#: ../../developer/design/architecture.md:152
 msgid ""
 "The abstraction of logical devices provides great flexibility for "
 "algorithm developers. They can freely combine these devices like building"
@@ -380,15 +547,15 @@ msgid ""
 "privacy computing algorithms."
 msgstr "逻辑设备抽象为算法开发者提供了极大的灵活性，他们可以像积木一样自由组合这些设备，在设备上自定义计算，从而构建自己的隐私计算算法。"
 
-#: ../../developer/design/architecture.md:243 a5d7745d40dd4e34b6d57edd5be63c43
+#: ../../developer/design/architecture.md:155
 msgid "Here are some algorithms built by our device programming model:"
 msgstr "以下是我们设备编程构建的一些算法"
 
-#: ../../developer/design/architecture.md:245 efc84884157e4a1a9395e92b5e062336
+#: ../../developer/design/architecture.md:157
 msgid "Logistic regression, deep learning training on SPU, HEU."
 msgstr "在SPU、HEU上进行逻辑回归、深度学习训练"
 
-#: ../../developer/design/architecture.md:246 355f2f9c601d4b3db5f01aa9158a5f88
+#: ../../developer/design/architecture.md:158
 msgid ""
 "Build [HESS-LR](https://dl.acm.org/doi/10.1145/3447548.3467210), [HESS-"
 "XGB](https://dl.acm.org/doi/10.1145/3459637.3482361) with a combination "
@@ -397,24 +564,23 @@ msgstr ""
 "使用SPU, HEU的组合构建[HESS-LR](https://dl.acm.org/doi/10.1145/3447548.3467210),"
 " [HESS-XGB](https://dl.acm.org/doi/10.1145/3459637.3482361)算法"
 
-#: ../../developer/design/architecture.md:247 c8d0403c79a4461fa6d316ba3153f4c6
+#: ../../developer/design/architecture.md:159
 msgid ""
 "In horizontal federated learning, do local training in PYU, and do "
 "gradient and weight aggregation in SPU and TEE."
 msgstr "水平联邦学习，在PYU进行本地训练，在SPU或者TEE进行梯度、权重聚合。"
 
-#: ../../developer/design/architecture.md:248 0d6aa866f6f74a0dad506b4f5271ca5e
+#: ../../developer/design/architecture.md:160
 msgid ""
 "In vertical split learning, splitting a model into multiple PYUs, using "
 "differential privacy to protect forward hidden layers and reverse "
 "gradients"
 msgstr "垂直拆分学习，将一个模型拆分至多个PYU，使用差分隐私保护前向隐层和反向梯度。"
 
-#: ../../developer/design/architecture.md:250 61a0481748fb4d038f79ecfedc5fd437
+#: ../../developer/design/architecture.md:162
 msgid ""
 "For the details of these algorithms, please refer to our tutorials and "
 "implementations, and look forward to your developing more interesting "
 "algorithms based on SecretFlow!"
 msgstr "关于这些算法的细节，请参考我们的教程和实现，也期待您基于隐语开发出更多有趣的算法！"
-
 

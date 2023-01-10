@@ -1,21 +1,17 @@
+import pandas as pd
+from sklearn.datasets import load_iris
+
+from secretflow.data.base import Partition
+from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.stats import table_statistics
 
-from tests.basecase import DeviceTestCase
-import pandas as pd
-import secretflow as sf
-from sklearn.datasets import load_iris
-import tempfile
-from secretflow.data.vertical import read_csv as v_read_csv
+from tests.basecase import MultiDriverDeviceTestCase
 
 
-class TestTableStatistics(DeviceTestCase):
+class TestTableStatistics(MultiDriverDeviceTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        sf.shutdown()
-        sf.init(['alice', 'bob'])
-        alice = sf.PYU('alice')
-        bob = sf.PYU('bob')
         iris = load_iris(as_frame=True)
         data = pd.concat([iris.data, iris.target], axis=1)
         data.iloc[1, 1] = None
@@ -27,14 +23,12 @@ class TestTableStatistics(DeviceTestCase):
         )
         # Vertical partitioning.
         v_alice, v_bob = data.iloc[:, :2], data.iloc[:, 2:]
-
-        # Save to temprary files.
-        _, alice_path = tempfile.mkstemp()
-        _, bob_path = tempfile.mkstemp()
-        v_alice.to_csv(alice_path, index=False)
-        v_bob.to_csv(bob_path, index=False)
-
-        cls.df_v = v_read_csv({alice: alice_path, bob: bob_path})
+        cls.df_v = VDataFrame(
+            partitions={
+                cls.alice: Partition(cls.alice(lambda: v_alice)()),
+                cls.bob: Partition(cls.bob(lambda: v_bob)()),
+            }
+        )
         cls.df = data
 
     def test_table_statistics(self):

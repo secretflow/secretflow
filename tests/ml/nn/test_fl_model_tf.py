@@ -16,15 +16,17 @@ import numpy as np
 import tensorflow as tf
 
 from secretflow.data.ndarray import load
+from secretflow.device import reveal
 from secretflow.ml.nn import FLModel
 from secretflow.preprocessing.encoder import OneHotEncoder
-from secretflow.security.aggregation import PlainAggregator
+from secretflow.security.aggregation import PlainAggregator, SparsePlainAggregator
 from secretflow.security.compare import PlainComparator
-from secretflow.utils.simulation.datasets import load_iris, load_mnist
 from secretflow.security.privacy import DPStrategyFL, GaussianModelDP
-from secretflow.device import reveal
+from secretflow.utils.simulation.datasets import load_iris, load_mnist
 
-from tests.basecase import DeviceTestCase
+from tests.basecase import MultiDriverDeviceTestCase, SingleDriverDeviceTestCase
+
+from secretflow.ml.nn.fl.compress import COMPRESS_STRATEGY
 
 _temp_dir = tempfile.mkdtemp()
 
@@ -81,7 +83,7 @@ def create_conv_model(input_shape, num_classes, name='model'):
     return create_model
 
 
-class TestFedModelDF(DeviceTestCase):
+class TestFedModelDF(MultiDriverDeviceTestCase):
     def keras_model_for_iris(self):
         """unittest ignore"""
         aggregator = PlainAggregator(self.carol)
@@ -111,6 +113,7 @@ class TestFedModelDF(DeviceTestCase):
             model=model,
             aggregator=aggregator,
             sampler="batch",
+            random_seed=1234,
         )
         fed_model.fit(data, label, epochs=5, batch_size=16, aggregate_freq=3)
         global_metric, _ = fed_model.evaluate(data, label, batch_size=16)
@@ -118,7 +121,7 @@ class TestFedModelDF(DeviceTestCase):
         self.assertGreater(global_metric[1].result().numpy(), 0.7)
 
 
-class TestFedModelCSV(DeviceTestCase):
+class TestFedModelCSV(MultiDriverDeviceTestCase, SingleDriverDeviceTestCase):
     def test_keras_model(self):
         aggregator = PlainAggregator(self.carol)
         train_data = load_iris(parts=[self.alice, self.bob], aggregator=aggregator)
@@ -164,9 +167,14 @@ class TestFedModelCSV(DeviceTestCase):
         print(global_metric[1].result().numpy())
 
 
-class TestFedModelTensorflow(DeviceTestCase):
+class TestFedModelTensorflow(MultiDriverDeviceTestCase):
     def keras_model_with_mnist(self, model, data, label, strategy, backend, **kwargs):
-        aggregator = PlainAggregator(self.carol)
+
+        if strategy in COMPRESS_STRATEGY:
+            aggregator = SparsePlainAggregator(self.carol)
+        else:
+            aggregator = PlainAggregator(self.carol)
+
         party_shape = data.partition_shape()
         alice_length = party_shape[self.alice][0]
         bob_length = party_shape[self.bob][0]
@@ -187,6 +195,7 @@ class TestFedModelTensorflow(DeviceTestCase):
             aggregator=aggregator,
             backend=backend,
             strategy=strategy,
+            random_seed=1234,
             **kwargs,
         )
         random_seed = 1524

@@ -83,7 +83,7 @@ For more detail about parameter settings, see API :py:meth:`~secretflow.ml.linea
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
     # init all nodes in local Standalone Mode.
-    sf.init(['alice', 'bob', 'carol'])
+    sf.init(['alice', 'bob', 'carol'], address='local')
 
     # init PYU, the Python Processing Unit, process plaintext in each node.
     alice = sf.PYU('alice')
@@ -231,7 +231,7 @@ For more details about API, see :py:meth:`~secretflow.ml.linear.hess_sgd.model.H
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
     # init all nodes in local Standalone Mode. HESS-SGD only support 2PC
-    sf.init(['alice', 'bob'])
+    sf.init(['alice', 'bob'], address='local')
 
     # init PYU, the Python Processing Unit, process plaintext in each node.
     alice = sf.PYU('alice')

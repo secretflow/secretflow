@@ -12,10 +12,10 @@ from secretflow.security.aggregation.plain_aggregator import PlainAggregator
 from secretflow.security.compare.plain_comparator import PlainComparator
 from secretflow.utils.simulation.datasets import load_iris
 
-from tests.basecase import DeviceTestCase
+from tests.basecase import MultiDriverDeviceTestCase
 
 
-class TestKBinsDiscretizer(DeviceTestCase):
+class TestKBinsDiscretizer(MultiDriverDeviceTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
@@ -61,6 +61,8 @@ class TestKBinsDiscretizer(DeviceTestCase):
 
         # WHEN
         value = sf_est.fit_transform(self.hdf[selected_cols])
+        params = sf_est.get_params()
+        self.assertIsNotNone(params)
 
         if sk_est is not None:
             sk_est.fit(
@@ -68,7 +70,8 @@ class TestKBinsDiscretizer(DeviceTestCase):
             )
             expect_alice = sk_est.transform(self.hdf_alice[selected_cols])
             np.testing.assert_almost_equal(
-                reveal(value.partitions[self.alice].data), expect_alice,
+                reveal(value.partitions[self.alice].data),
+                expect_alice,
             )
             expect_bob = sk_est.transform(self.hdf_bob[selected_cols])
             np.testing.assert_almost_equal(
@@ -89,6 +92,8 @@ class TestKBinsDiscretizer(DeviceTestCase):
     ):
         # WHEN
         value = sf_est.fit_transform(self.vdf[['a3', 'b4', 'b6']])
+        params = sf_est.get_params()
+        self.assertIsNotNone(params)
 
         if sk_est is not None:
             expect_alice = sk_est.fit_transform(self.vdf_alice[['a3']])
@@ -147,8 +152,10 @@ class TestKBinsDiscretizer(DeviceTestCase):
             aggregator=PlainAggregator(self.alice),
             comparator=PlainComparator(self.alice),
         )
+        params = sf_est.get_params()
 
         # THEN
+        self.assertIsNotNone(params)
         if sk_est is not None:
             expect_alice = sk_est.fit_transform(df_part0[['a3']])
             np.testing.assert_equal(
@@ -219,8 +226,10 @@ class TestKBinsDiscretizer(DeviceTestCase):
 
         # WHEN
         value = sf_est.fit_transform(v_mix[['a3', 'b4', 'b6']])
+        params = sf_est.get_params()
 
         # THEN
+        self.assertIsNotNone(params)
         if sk_est is not None:
             expect_alice = sk_est.fit_transform(df_part0[['a3']])
             np.testing.assert_equal(

@@ -1,18 +1,20 @@
-from tests.basecase import DeviceTestCase
 import numpy as np
-from secretflow.device.driver import reveal
 
+from secretflow.device.driver import reveal
 from secretflow.utils import sigmoid
 
+from tests.basecase import MultiDriverDeviceTestCase
 
-class SigmoidAllCase(DeviceTestCase):
+
+class SigmoidAllCase(MultiDriverDeviceTestCase):
     def get_spu_x(self, x):
         pyu = self.alice(lambda: x)()
         return pyu.to(self.spu)
 
     def do_test(self, fn):
-        x = np.random.normal(0, 5, size=(5, 5))
-        spu = reveal(self.spu(fn)(self.get_spu_x(x)))
+        x_ = self.alice(lambda : np.random.normal(0, 5, size=(5, 5)))()
+        x = reveal(x_)
+        spu = reveal(self.spu(fn)(x_.to(self.spu)))
         jnp = fn(x)
         np.testing.assert_almost_equal(spu, jnp, decimal=2)
         np.testing.assert_almost_equal(fn(0), 0.5, decimal=2)

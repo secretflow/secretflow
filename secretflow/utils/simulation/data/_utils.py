@@ -17,7 +17,8 @@ def cal_indexes(
             If parts is a dict {PYU: value}, the value shall be one of the
             followings.
             1) a float
-            2) an interval in tuple closed on the left-side and open on the right-side.
+            2) an interval in tuple closed on the left-side and open on the
+               right-side.
         total_num: the dataset number.
 
     Returns:

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict, Union
+from typing import Any, Dict, Union
 
 import numpy as np
 import pandas as pd
@@ -25,6 +25,7 @@ from secretflow.data.horizontal import HDataFrame
 from secretflow.data.mix import MixDataFrame
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import reveal
+from secretflow.preprocessing.base import _PreprocessBase
 
 
 def _check_dataframe(df):
@@ -33,7 +34,7 @@ def _check_dataframe(df):
     ), f'Accepts HDataFrame/VDataFrame/MixDataFrame only but got {type(df)}'
 
 
-class LabelEncoder:
+class LabelEncoder(_PreprocessBase):
     """Encode target labels with value between 0 and n_classes-1.
 
     Just same as :py:class:`sklearn.preprocessing.LabelEncoder`
@@ -72,6 +73,7 @@ class LabelEncoder:
             classes = np.concatenate([self._fit(part) for part in df.partitions])
         self._encoder = SkLabelEncoder()
         self._encoder.fit(classes)
+        self._columns = df.columns
 
     def _transform(
         self, df: Union[HDataFrame, VDataFrame]
@@ -116,8 +118,16 @@ class LabelEncoder:
         self.fit(df)
         return self.transform(df)
 
+    def get_params(self) -> Dict[str, Any]:
+        assert hasattr(self, '_encoder'), 'Encoder has not been fit yet.'
 
-class OneHotEncoder:
+        return {
+            'columns': self._columns,
+            'classes': self._encoder.classes_,
+        }
+
+
+class OneHotEncoder(_PreprocessBase):
     """Encode categorical features as a one-hot numeric array.
 
     Just same as :py:class:`sklearn.preprocessing.OneHotEncoder`
@@ -173,17 +183,23 @@ class OneHotEncoder:
         feature_names_in = []
 
         def _df_fit(df: pd.DataFrame):
-            encoder = SkOneHotEncoder(min_frequency=self.min_frequency, max_categories=self.max_categories)
+            encoder = SkOneHotEncoder(
+                min_frequency=self.min_frequency, max_categories=self.max_categories
+            )
             encoder.fit(df)
             return encoder
 
         # reuse these encoders when min_frequency or max_categories are set
-        self._encoders = {device: device(_df_fit)(part.data) for device, part in df.partitions.items()}
+        self._encoders: Dict[str, 'SkOneHotEncoder'] = reveal(
+            {
+                device.party: device(_df_fit)(part.data)
+                for device, part in df.partitions.items()
+            }
+        )
         if self.min_frequency or self.max_categories:
             return None
 
-        encoders = reveal(list(self._encoders.values()))
-        for encoder in encoders:
+        for _, encoder in self._encoders.items():
             if isinstance(df, HDataFrame):
                 if len(feature_names_in) == 0:
                     feature_names_in = encoder.feature_names_in_
@@ -208,10 +224,11 @@ class OneHotEncoder:
         """Fit this encoder with X."""
         _check_dataframe(df)
         if self.min_frequency or self.max_categories:
-            assert (
-                isinstance(df, VDataFrame)
+            assert isinstance(
+                df, VDataFrame
             ), f'Args min_frequency/max_categories are only supported in VDataFrame'
 
+        self._columns = df.columns
         if isinstance(df, (HDataFrame, VDataFrame)):
             categories = self._fit(df)
         else:
@@ -246,11 +263,13 @@ class OneHotEncoder:
         for device, part in df.partitions.items():
             if self.min_frequency or self.max_categories:
                 # reuse encoder when min_frequency or max_categories are set
-                encoder = self._encoders[device]
+                encoder = self._encoders[device.party]
             else:
                 encoder = SkOneHotEncoder()
                 mask = np.in1d(
-                    self._encoder.feature_names_in_, part.dtypes.index, assume_unique=True
+                    self._encoder.feature_names_in_,
+                    part.dtypes.index,
+                    assume_unique=True,
                 )
                 categories = {
                     self._encoder.feature_names_in_[i]: self._encoder.categories_[i]
@@ -283,3 +302,47 @@ class OneHotEncoder:
         """Fit this OneHotEncoder with X, then transform X."""
         self.fit(df)
         return self.transform(df)
+
+    def get_params(self) -> Dict[str, Any]:
+        assert hasattr(self, '_fitted'), 'Encoder has not been fit yet.'
+
+        categories = []
+        infrequent_categories = []
+        feature_names_in = []
+        feature_names_out = []
+
+        if hasattr(self, '_encoder'):
+            categories = self._encoder.categories_
+            infrequent_categories = (
+                self._encoder.infrequent_categories_
+                if hasattr(self._encoder, '_infrequent_indices')
+                else None
+            )
+            feature_names_in = self._encoder.feature_names_in_
+            feature_names_out = self._encoder.get_feature_names_out()
+        else:
+            for encoder in self._encoders.values():
+                categories = np.append(categories, encoder.categories_)
+                infre_cat = (
+                    encoder.infrequent_categories_
+                    if hasattr(encoder, '_infrequent_indices')
+                    else None
+                )
+                infrequent_categories = np.append(
+                    infrequent_categories,
+                    infre_cat,
+                )
+                feature_names_in = np.append(
+                    feature_names_in, encoder.feature_names_in_
+                )
+                feature_names_out = np.append(
+                    feature_names_out, encoder.get_feature_names_out()
+                )
+
+        return {
+            'columns': self._columns,
+            'feature_names_in': feature_names_in,  # should same as columns
+            'feature_names_out': feature_names_out,
+            'categories': categories,
+            'infrequent_categories': infrequent_categories,
+        }

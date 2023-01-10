@@ -22,7 +22,6 @@
 import logging
 import math
 import os
-import secrets
 from typing import Callable, Dict, List, Tuple, Union
 
 import numpy as np
@@ -33,9 +32,11 @@ from secretflow.data.ndarray import FedNdarray
 from secretflow.device import PYU, reveal, wait
 from secretflow.device.device.pyu import PYUObject
 from secretflow.ml.nn.fl.compress import COMPRESS_STRATEGY, do_compress
-from secretflow.ml.nn.fl.metrics import Metric, aggregate_metrics
 from secretflow.ml.nn.fl.strategy_dispatcher import dispatch_strategy
 from secretflow.ml.nn.fl.utils import History
+from secretflow.ml.nn.metrics import Metric, aggregate_metrics
+from secretflow.utils.compressor import sparse_encode
+from secretflow.utils.random import global_random
 
 
 class FLModel:
@@ -48,8 +49,20 @@ class FLModel:
         strategy='fed_avg_w',
         consensus_num=1,
         backend="tensorflow",
+        random_seed=None,
         **kwargs,  # other parameters specific to strategies
     ):
+        """Interface for horizontal federated learning
+        Attributes:
+            server: PYU, Which PYU as a server
+            device_list: party list
+            model: model definition function
+            aggregator:  Security aggregators can be selected according to the security level
+            strategy: Federated training strategy
+            consensus_num: Num parties of consensus,Some strategies require multiple parties to reach consensus,
+            backend: Engine backend, the backend needs to be consistent with the model type
+            random_seed: If specified, the initial value of the model will remain the same, which ensures reproducible
+        """
         if backend == "tensorflow":
             import secretflow.ml.nn.fl.backend.tensorflow.strategy  # noqa
         elif backend == "torch":
@@ -57,7 +70,11 @@ class FLModel:
         else:
             raise Exception(f"Invalid backend = {backend}")
         self.init_workers(
-            model, device_list=device_list, strategy=strategy, backend=backend,
+            model,
+            device_list=device_list,
+            strategy=strategy,
+            backend=backend,
+            random_seed=random_seed,
         )
         self.server = server
         self._aggregator = aggregator
@@ -70,10 +87,21 @@ class FLModel:
         self.dp_strategy = kwargs.get('dp_strategy', None)
         self.simulation = kwargs.get('simulation', False)
 
-    def init_workers(self, model, device_list, strategy, backend):
+    def init_workers(
+        self,
+        model,
+        device_list,
+        strategy,
+        backend,
+        random_seed,
+    ):
         self._workers = {
             device: dispatch_strategy(
-                strategy, backend, builder_base=model, device=device
+                strategy,
+                backend,
+                builder_base=model,
+                device=device,
+                random_seed=random_seed,
             )
             for device in device_list
         }
@@ -131,7 +159,9 @@ class FLModel:
             assert (
                 batch_size < max_batch_size
             ), f"Automatic batchsize is too big(batch_size={batch_size}), variable batchsize in dict is recommended"
-        assert sampling_rate <= 1.0 and sampling_rate > 0.0, 'invalid sampling rate'
+        assert (
+            sampling_rate <= 1.0 and sampling_rate > 0.0
+        ), f'invalid sampling rate {sampling_rate}'
         self.steps_per_epoch = math.ceil(1.0 / sampling_rate)
 
         for device, worker in self._workers.items():
@@ -281,7 +311,7 @@ class FLModel:
             values and metrics of each party.
         """
         if not random_seed:
-            random_seed = secrets.randbelow(100000)
+            random_seed = global_random([*self._workers][0], 100000)
 
         params = locals()
         logging.info(f"FL Train Params: {params}")
@@ -390,6 +420,13 @@ class FLModel:
                         agg_update,
                         self._res,
                     )
+                    # Do sparse matrix encoding
+                    if self.strategy == 'fed_stc':
+                        model_params = model_params.to(self.server)
+                        model_params = self.server(sparse_encode, num_return=1)(
+                            data=model_params,
+                            encode_method='coo',
+                        )
 
                 # DP operation
                 if dp_spent_step_freq is not None and self.dp_strategy is not None:
@@ -476,7 +513,7 @@ class FLModel:
             predict results, numpy.array
         """
         if not random_seed:
-            random_seed = secrets.randbelow(100000)
+            random_seed = global_random([*self._workers][0], 100000)
         if isinstance(x, Dict):
             predict_steps = self.handle_file(
                 x,
@@ -552,7 +589,7 @@ class FLModel:
             and metrics of each party.
         """
         if not random_seed:
-            random_seed = secrets.randbelow(100000)
+            random_seed = global_random([*self._workers][0], 100000)
         if isinstance(x, Dict):
             evaluate_steps = self.handle_file(
                 x,
@@ -603,12 +640,14 @@ class FLModel:
         self,
         model_path: Union[str, Dict[PYU, str]],
         is_test=False,
+        saved_model=False,
     ):
         """Horizontal federated save model interface
 
         Args:
             model_path: model path, only support format like 'a/b/c', where c is the model name
             is_test: whether is test mode
+            saved_model: bool Whether to save as savedmodel or torchscript format
         """
         assert isinstance(
             model_path, (str, Dict)
@@ -628,22 +667,31 @@ class FLModel:
                 device_model_path = os.path.join(
                     device_model_path, device.__str__().strip("_")
                 )
-
-            res.append(
-                worker.save_model(os.path.join(device_model_path, device_model_name))
-            )
+            if saved_model:
+                raise Exception(
+                    "Not implement yet, it will be implemented in subsequent versions"
+                )
+            else:
+                res.append(
+                    worker.save_model(
+                        os.path.join(device_model_path, device_model_name)
+                    )
+                )
         wait(res)
 
     def load_model(
         self,
         model_path: Union[str, Dict[PYU, str]],
         is_test=False,
+        saved_model=False,
+        force_all_participate=False,
     ):
         """Horizontal federated load model interface
 
         Args:
             model_path: model path
             is_test: whether is test mode
+            saved_model: bool Whether to load from savedmodel or torchscript format
         """
         assert isinstance(
             model_path, (str, Dict)
@@ -660,7 +708,19 @@ class FLModel:
                 device_model_path = os.path.join(
                     device_model_path, device.__str__().strip("_")
                 )
-            res.append(
-                worker.load_model(os.path.join(device_model_path, device_model_name))
-            )
-        wait(res)
+            if saved_model:
+                raise Exception(
+                    "Not implement yet, it will be implemented in subsequent versions"
+                )
+            else:
+                res.append(
+                    worker.load_model(
+                        os.path.join(device_model_path, device_model_name)
+                    )
+                )
+        checks = reveal(res)
+        if force_all_participate:
+            assert len(set(checks)) == 1, "return of all parties must be same"
+            logging.info(f"load model success")
+        else:
+            logging.info(f"load model success")

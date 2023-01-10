@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union, Callable, Dict
+from typing import Any, Union, Callable, Dict
 from functools import partial
 
 import numpy as np
@@ -23,6 +23,7 @@ from secretflow.data.base import Partition
 from secretflow.data.horizontal import HDataFrame
 from secretflow.data.mix import MixDataFrame
 from secretflow.data.vertical import VDataFrame
+from secretflow.preprocessing.base import _PreprocessBase
 
 
 def _check_dataframe(df):
@@ -31,7 +32,7 @@ def _check_dataframe(df):
     ), f'Accepts HDataFrame/VDataFrame/MixDataFrame only but got {type(df)}'
 
 
-class _FunctionTransformer:
+class _FunctionTransformer(_PreprocessBase):
     """Constructs a transformer from an arbitrary callable.
 
     Just same as :py:class:`sklearn.preprocessing.FunctionTransformer`
@@ -70,6 +71,7 @@ class _FunctionTransformer:
         """Fit label encoder."""
         _check_dataframe(df)
 
+        self._columns = df.columns
         if isinstance(df, (HDataFrame, VDataFrame)):
             self._fit(df)
         else:
@@ -115,6 +117,13 @@ class _FunctionTransformer:
         self.fit(df)
         return self.transform(df)
 
+    def get_params(self) -> Dict[str, Any]:
+        return {
+            'columns': self._columns,
+            'func': self._transformer.func,
+            'kw_args': self._transformer.kw_args,
+        }
+
 
 class LogroundTransformer(_FunctionTransformer):
     """Constructs a transformer for calculating round(log2(x + bias)) of (partition of) dataframe.
@@ -131,4 +140,12 @@ class LogroundTransformer(_FunctionTransformer):
         ) -> pd.DataFrame:
             return x.add(bias).apply(np.log2).round(decimals=decimals)
 
+        self._decimals = decimals
+        self._bias = bias
         super().__init__(partial(_loground, decimals=decimals, bias=bias))
+
+    def get_params(self) -> Dict[str, Any]:
+        params = super().get_params()
+        params['decimals'] = self._decimals
+        params['bias'] = self._bias
+        return params

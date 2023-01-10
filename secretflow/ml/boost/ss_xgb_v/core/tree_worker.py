@@ -74,32 +74,42 @@ class XgbTreeWorker:
 
     def _qcut(self, x: np.ndarray) -> Tuple[np.ndarray, List]:
         sorted_x = np.sort(x, axis=0)
-        remained_count = len(sorted_x)
+        samples = len(sorted_x)
+        remained_count = samples
         assert remained_count > 0, 'can not qcut empty x'
 
         value_category = list()
         last_value = None
 
         split_points = list()
-        expected_bin_count = math.ceil(remained_count / self.buckets)
-        current_bin_count = 0
-        for v in sorted_x:
-            if v != last_value:
+        idx = 0
+        expected_idx = math.ceil(remained_count / self.buckets)
+        fast_skip = False
+        while idx < samples:
+            v = sorted_x[idx]
+            value_diff = v != last_value
+            if not fast_skip and value_diff:
                 if len(value_category) <= self.buckets:
                     value_category.append(v)
-
-                if current_bin_count >= expected_bin_count:
-                    split_points.append(v)
-                    if len(split_points) == self.buckets - 1:
-                        break
-                    remained_count -= current_bin_count
-                    expected_bin_count = math.ceil(
-                        remained_count / (self.buckets - len(split_points))
-                    )
-                    current_bin_count = 0
-
+                else:
+                    fast_skip = True
                 last_value = v
-            current_bin_count += 1
+
+            if idx >= expected_idx and value_diff:
+                split_points.append(v)
+                if len(split_points) == self.buckets - 1:
+                    break
+                remained_count = samples - idx
+                expected_bin_count = math.ceil(
+                    remained_count / (self.buckets - len(split_points))
+                )
+                expected_idx = idx + expected_bin_count
+                last_value = v
+
+            if not fast_skip or idx >= expected_idx:
+                idx += 1
+            else:
+                idx = expected_idx
 
         if len(value_category) <= self.buckets:
             # full dataset category count <= buckets
@@ -130,64 +140,71 @@ class XgbTreeWorker:
 
         return bins, split_points
 
-    def build_maps(self, x: np.ndarray) -> np.ndarray:
+    def _build_maps(self, x: np.ndarray):
         '''
         split features into buckets and build maps use in train.
-
-        Args:
-            x: dataset from this partition.
-
-        Return:
-            leaf nodes' selects
         '''
         # order_map: record sample belong to which bucket of all features.
-        self.order_map = np.zeros((x.shape[0], x.shape[1]), dtype=np.int8)
+        self.order_map = np.zeros((x.shape[0], x.shape[1]), dtype=np.int8, order='F')
         # split_points: bucket split points for all features.
         self.split_points = []
         # feature_buckets: how many buckets in each feature.
         self.feature_buckets = []
         # features: how many features in dataset.
         self.features = x.shape[1]
-        # buckets_map: a sparse 0-1 array use in compute the gradient sums.
-        buckets_map = np.zeros((x.shape[0], 0), dtype=np.int8)
         for f in range(x.shape[1]):
             bins, split_point = self._qcut(x[:, f])
             self.order_map[:, f] = bins
             total_buckets = len(split_point) + 1
-            f_buckets_map = np.zeros((x.shape[0], total_buckets), dtype=np.int8)
 
-            sum_bin_idx = np.array([], dtype=np.int64)
-            for b in range(total_buckets):
-                bin_idx = np.flatnonzero(bins == b)
-                sum_bin_idx = np.concatenate((sum_bin_idx, bin_idx), axis=None)
-                f_buckets_map[sum_bin_idx, b] = 1
-
-            buckets_map = np.concatenate((buckets_map, f_buckets_map), axis=1)
             self.feature_buckets.append(total_buckets)
             # last bucket is split all samples into left child.
             # using infinity to simulation xgboost pruning.
             split_point.append(float('inf'))
             self.split_points.append(split_point)
 
+    def build_bucket_map(self, start: int, length: int) -> np.ndarray:
+        '''
+        Build bucket_map fragment base on order_map.
+        '''
+        end = start + length
+        assert end <= self.order_map.shape[0]
+
+        total_buckets = sum(self.feature_buckets)
+        buckets_map = np.zeros((length, total_buckets), dtype=np.int8)
+        feature_bucket_pos = 0
+        for f in range(self.order_map.shape[1]):
+            feature_bucket = self.feature_buckets[f]
+            for bucket in range(feature_bucket):
+                bin_idx = np.flatnonzero(self.order_map[start:end, f] == bucket)
+                for b in range(bucket, feature_bucket):
+                    buckets_map[bin_idx, feature_bucket_pos + b] = 1
+            feature_bucket_pos += feature_bucket
         return buckets_map
 
-    def global_setup(self, x: np.ndarray, buckets: int, seed: int) -> np.ndarray:
+    def global_setup(self, x: np.ndarray, buckets: int, seed: int):
         '''
         Set up global context.
         '''
         np.random.seed(seed)
-        x = x if isinstance(x, np.ndarray) else np.array(x)
+        x = np.array(x, order='F')
+        # max buckets in each feature.
         self.buckets = buckets
-        buckets_map = self.build_maps(x)
-        return buckets_map
+        self._build_maps(x)
 
-    def update_buckets_count(self, buckets_count: List[int]) -> None:
+    def update_buckets_count(
+        self, buckets_count: List[Tuple[int, int]], buckets_choices: np.ndarray
+    ) -> np.ndarray:
         '''
-        save how many buckets in each partition's all features.
+        save how many buckets in each partition's features.
+        and add offset for buckets_choices if colsample < 1
         '''
-        self.buckets_count = buckets_count
+        self.buckets_count = [b[0] for b in buckets_count]
+        if buckets_choices is not None:
+            return buckets_choices + sum([b[1] for b in buckets_count[: self.work_idx]])
+        return None
 
-    def tree_setup(self, colsample: float) -> Tuple[np.ndarray, int]:
+    def tree_setup(self, colsample: float) -> Tuple[np.ndarray, Tuple[int, int]]:
         '''
         Set up tree context and do col sample if colsample < 1
         '''
@@ -199,20 +216,24 @@ class XgbTreeWorker:
             )
 
             buckets_choices = []
-            buckets_count = 0
-            buckets_start = 0
+            chosen_buckets = 0
+            total_buckets = 0
             for f_idx, f_buckets_size in enumerate(self.feature_buckets):
                 if f_idx in self.col_choices:
                     buckets_choices.extend(
-                        range(buckets_start, buckets_start + f_buckets_size)
+                        range(total_buckets, total_buckets + f_buckets_size)
                     )
-                    buckets_count += f_buckets_size
-                buckets_start += f_buckets_size
+                    chosen_buckets += f_buckets_size
+                total_buckets += f_buckets_size
 
-            return np.array(buckets_choices, dtype=np.int32), buckets_count
+            return np.array(buckets_choices, dtype=np.int32), (
+                chosen_buckets,
+                total_buckets,
+            )
         else:
             self.col_choices = None
-            return None, sum(self.feature_buckets)
+            total_buckets = sum(self.feature_buckets)
+            return None, (total_buckets, total_buckets)
 
     def tree_finish(self) -> XgbTree:
         return self.tree

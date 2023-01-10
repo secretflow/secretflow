@@ -14,10 +14,10 @@ from secretflow.security.aggregation.plain_aggregator import PlainAggregator
 from secretflow.security.compare.plain_comparator import PlainComparator
 from secretflow.utils.simulation.datasets import load_iris
 
-from tests.basecase import DeviceTestCase
+from tests.basecase import MultiDriverDeviceTestCase
 
 
-class TestFunctionTransformer(DeviceTestCase):
+class TestFunctionTransformer(MultiDriverDeviceTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
@@ -60,14 +60,20 @@ class TestFunctionTransformer(DeviceTestCase):
 
         # WHEN
         value = transformer.fit_transform(self.vdf[['a3', 'b4', 'b6']])
+        params = transformer.get_params()
 
         # THEN
+        self.assertIsNotNone(params)
         sk_transformer = SkFunctionTransformer(partial(np.add, 1))
         expect_alice = sk_transformer.fit_transform(self.vdf_alice[['a3']])
-        pd.testing.assert_frame_equal(reveal(value.partitions[self.alice].data), expect_alice)
+        pd.testing.assert_frame_equal(
+            reveal(value.partitions[self.alice].data), expect_alice
+        )
 
         expect_bob = sk_transformer.fit_transform(self.vdf_bob[['b4', 'b6']])
-        pd.testing.assert_frame_equal(reveal(value.partitions[self.bob].data), expect_bob)
+        pd.testing.assert_frame_equal(
+            reveal(value.partitions[self.bob].data), expect_bob
+        )
 
     def test_on_h_mixdataframe_should_ok(self):
         # GIVEN
@@ -104,8 +110,10 @@ class TestFunctionTransformer(DeviceTestCase):
 
         # WHEN
         value = transformer.fit_transform(h_mix[['a3', 'b4', 'b6']])
+        params = transformer.get_params()
 
         # THEN
+        self.assertIsNotNone(params)
         sk_transformer = SkFunctionTransformer(partial(np.add, 1))
         expect_alice = sk_transformer.fit_transform(df_part0[['a3']])
         pd.testing.assert_frame_equal(
@@ -167,8 +175,10 @@ class TestFunctionTransformer(DeviceTestCase):
 
         # WHEN
         value = transformer.fit_transform(v_mix[['a3', 'b4', 'b6']])
+        params = transformer.get_params()
 
         # THEN
+        self.assertIsNotNone(params)
         sk_transformer = SkFunctionTransformer(partial(np.add, 1))
         expect_alice = sk_transformer.fit_transform(df_part0[['a3']])
         pd.testing.assert_frame_equal(
@@ -220,17 +230,24 @@ class TestFunctionTransformer(DeviceTestCase):
 
         # WHEN
         value = transformer.fit_transform(self.vdf[['a3', 'b4', 'b6']])
+        params = transformer.get_params()
 
         # THEN
+        self.assertIsNotNone(params)
+
         def loground(x: pd.DataFrame):
             return x.add(1).apply(np.log2).round(2)
 
         sk_transformer = SkFunctionTransformer(loground)
         expect_alice = sk_transformer.fit_transform(self.vdf_alice[['a3']])
-        pd.testing.assert_frame_equal(reveal(value.partitions[self.alice].data), expect_alice)
+        pd.testing.assert_frame_equal(
+            reveal(value.partitions[self.alice].data), expect_alice
+        )
 
         expect_bob = sk_transformer.fit_transform(self.vdf_bob[['b4', 'b6']])
-        pd.testing.assert_frame_equal(reveal(value.partitions[self.bob].data), expect_bob)
+        pd.testing.assert_frame_equal(
+            reveal(value.partitions[self.bob].data), expect_bob
+        )
 
     def test_loground_on_hdataframe_should_ok(self):
         # GIVEN
@@ -239,8 +256,11 @@ class TestFunctionTransformer(DeviceTestCase):
 
         # WHEN
         value = transformer.fit_transform(self.hdf[selected_cols])
+        params = transformer.get_params()
 
         # THEN
+        self.assertIsNotNone(params)
+
         def loground(x: pd.DataFrame):
             return x.add(1).apply(np.log2).round(2)
 
@@ -250,7 +270,8 @@ class TestFunctionTransformer(DeviceTestCase):
         )
         expect_alice = sk_transformer.transform(self.hdf_alice[selected_cols])
         pd.testing.assert_frame_equal(
-            reveal(value.partitions[self.alice].data), expect_alice,
+            reveal(value.partitions[self.alice].data),
+            expect_alice,
         )
         expect_bob = sk_transformer.transform(self.hdf_bob[selected_cols])
         pd.testing.assert_frame_equal(

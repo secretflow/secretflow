@@ -7,8 +7,8 @@
 #include <type_traits>
 #include <typeinfo>
 
-#include "yasl/base/exception.h"
-#include "yasl/crypto/pseudo_random_generator.h"
+#include "yacl/base/exception.h"
+#include "yacl/crypto/tools/prg.h"
 
 namespace secretflow {
 namespace dp {
@@ -36,14 +36,14 @@ struct is_normal_descrete_support_type<int> : public std::true_type {};
 template <typename T>
 struct UniformReal {
   inline UniformReal(T from, T to) {
-    YASL_ENFORCE(from <= to);
-    YASL_ENFORCE(to - from <= std::numeric_limits<T>::max());
+    YACL_ENFORCE(from <= to);
+    YACL_ENFORCE(to - from <= std::numeric_limits<T>::max());
     from_ = from;
     to_ = to;
   }
 
   template <typename V>
-  T operator()(yasl::PseudoRandomGenerator<V> &prg) {
+  T operator()(yacl::crypto::Prg<V> &prg) {
     constexpr auto MASK = static_cast<V>(
         (static_cast<uint64_t>(1) << std::numeric_limits<T>::digits) - 1);
     constexpr auto DIVISOR =
@@ -74,12 +74,12 @@ struct UniformReal {
 struct BernoulliNegExp {
   inline BernoulliNegExp(double gamma) {
     // Gamma must be non-negative
-    YASL_ENFORCE(gamma >= 0);
+    YACL_ENFORCE(gamma >= 0);
     gamma_ = gamma;
   }
 
   template <typename V>
-  double operator()(yasl::PseudoRandomGenerator<V> &prg) {
+  double operator()(yacl::crypto::Prg<V> &prg) {
     while (gamma_ > 1) {
       gamma_ -= 1;
 
@@ -120,7 +120,7 @@ struct BernoulliNegExp {
 template <typename T>
 struct SecureNormalReal {
   inline SecureNormalReal(T mean, T stdv) {
-    YASL_ENFORCE(stdv >= 0);
+    YACL_ENFORCE(stdv >= 0);
     mean_ = mean;
     stdv_ = stdv;
   }
@@ -130,7 +130,7 @@ struct SecureNormalReal {
   inline constexpr T pi() { return static_cast<T>(3.14159265358979323846L); }
 
   template <typename V>
-  T operator()(yasl::PseudoRandomGenerator<V> &prg) {
+  T operator()(yacl::crypto::Prg<V> &prg) {
     UniformReal<T> uniform(0.0, 1.0);
     const T u1 = uniform(prg);
     const T u2 = uniform(prg);
@@ -167,13 +167,13 @@ template <typename T>
 struct NormalDiscrete<T, typename std::enable_if<
                              is_normal_descrete_support_type<T>::value>::type> {
   inline NormalDiscrete(T mean, double stdv) {
-    YASL_ENFORCE(stdv >= 0);
+    YACL_ENFORCE(stdv >= 0);
     mean_ = mean;
     stdv_ = stdv;
   }
 
   template <typename V>
-  T operator()(yasl::PseudoRandomGenerator<V> &prg) {
+  T operator()(yacl::crypto::Prg<V> &prg) {
     if (stdv_ == 0) {
       return mean_;
     }
@@ -184,9 +184,8 @@ struct NormalDiscrete<T, typename std::enable_if<
 
     std::binomial_distribution<> binomial(1, 0.5);
     // generate a new generator for std::binomial_distribution
-    // TODO: Adapt the official PRG interface of cpp11 for PseudoRandomGenerator
-    yasl::PseudoRandomGenerator<uint128_t> rd(0,
-                                              yasl::PRG_MODE::kNistAesCtrDrbg);
+    // TODO: Adapt the official PRG interface of cpp11 for Prg
+    yacl::crypto::Prg<uint128_t> rd(0, yacl::crypto::PRG_MODE::kNistAesCtrDrbg);
     std::mt19937 gen(rd());
 
     while (true) {
@@ -232,7 +231,7 @@ struct NormalDiscrete<T, typename std::enable_if<
 template <typename T>
 struct SecureLaplaceReal {
   inline SecureLaplaceReal(T mean, T stdv) {
-    YASL_ENFORCE(stdv >= 0);
+    YACL_ENFORCE(stdv >= 0);
     mean_ = mean;
     stdv_ = stdv;
   }
@@ -242,7 +241,7 @@ struct SecureLaplaceReal {
   inline constexpr T pi() { return static_cast<T>(3.14159265358979323846L); }
 
   template <typename V>
-  T operator()(yasl::PseudoRandomGenerator<V> &prg) {
+  T operator()(yacl::crypto::Prg<V> &prg) {
     UniformReal<T> uniform(0.0, 1.0);
     const T u1 = uniform(prg);
     const T u2 = uniform(prg);
