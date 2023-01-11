@@ -8,10 +8,10 @@ from secretflow.data import FedNdarray, PartitionWay
 from secretflow.data.base import Partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.stats import BiClassificationEval
-from tests.basecase import DeviceTestCase
+from tests.basecase import MultiDriverDeviceTestCase
 
 
-class TestBiClassificationReport(DeviceTestCase):
+class TestBiClassificationReport(MultiDriverDeviceTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()

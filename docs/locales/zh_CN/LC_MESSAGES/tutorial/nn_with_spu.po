@@ -7,14 +7,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-09-16 10:29+0800\n"
+"POT-Creation-Date: 2023-01-07 11:23+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.10.3\n"
+"Generated-By: Babel 2.11.0\n"
 
 #: ../../tutorial/nn_with_spu.ipynb:9
 msgid "Neural Network with SPU"
@@ -48,12 +48,12 @@ msgid ""
 msgstr "我们将使用相同的数据集和所有设置。"
 
 #: ../../tutorial/nn_with_spu.ipynb:19
-msgid "And first, let's work out the plaintext model."
+msgid "And first, let’s work out the plaintext model."
 msgstr "首先，让我们制定明文模型。"
 
 #: ../../tutorial/nn_with_spu.ipynb:30
 msgid ""
-"The following codes are demos only. It's **NOT for production** due to "
+"The following codes are demos only. It’s **NOT for production** due to "
 "system security concerns, please **DO NOT** use it directly in "
 "production."
 msgstr "以下代码仅作为示例，请勿在生产环境直接使用。"
@@ -75,16 +75,16 @@ msgstr "加载数据集"
 #: ../../tutorial/nn_with_spu.ipynb:58
 msgid ""
 "The below is just copied from lab `Logistic Regression On SPU "
-"<./lr_with_spu.ipynb>`__. I'm not going to explain again."
+"<./lr_with_spu.ipynb>`__. I’m not going to explain again."
 msgstr ""
 "以下内容是复制于实验 `Logistic Regression On SPU <./lr_with_spu.ipynb>`__ 。 "
 "我不会再次在这里解释。"
 
-#: ../../tutorial/nn_with_spu.ipynb:104
+#: ../../tutorial/nn_with_spu.ipynb:114
 msgid "Define the Model"
 msgstr "定义模型"
 
-#: ../../tutorial/nn_with_spu.ipynb:106
+#: ../../tutorial/nn_with_spu.ipynb:116
 msgid ""
 "We are going to use a 4-layer `MLP "
 "<https://en.wikipedia.org/wiki/Multilayer_perceptron>`__ model with a "
@@ -95,45 +95,45 @@ msgstr ""
 "模型和 `ReLU <https://en.wikipedia.org/wiki/Rectifier_(neural_networks)>`__ "
 "激活函数。"
 
-#: ../../tutorial/nn_with_spu.ipynb:143
+#: ../../tutorial/nn_with_spu.ipynb:153
 msgid "Then we define the trainning method here."
 msgstr "然后我们在这里定义训练方法。"
 
-#: ../../tutorial/nn_with_spu.ipynb:222
+#: ../../tutorial/nn_with_spu.ipynb:232
 msgid "Validate the Model"
 msgstr "验证模型"
 
-#: ../../tutorial/nn_with_spu.ipynb:224
+#: ../../tutorial/nn_with_spu.ipynb:234
 msgid "We use AUC as the validation metric."
 msgstr "我们使用 AUC 作为验证指标。"
 
-#: ../../tutorial/nn_with_spu.ipynb:252
+#: ../../tutorial/nn_with_spu.ipynb:262
 msgid "BUILD Together"
 msgstr "放在一起"
 
-#: ../../tutorial/nn_with_spu.ipynb:254
-msgid "Let's put everything together and train a plaintext NN model!"
+#: ../../tutorial/nn_with_spu.ipynb:264
+msgid "Let’s put everything together and train a plaintext NN model!"
 msgstr "让我们把所有不住放在一起，训练一个明文 NN 模型！"
 
-#: ../../tutorial/nn_with_spu.ipynb:346
+#: ../../tutorial/nn_with_spu.ipynb:356
 msgid ""
 "ust keep the number of AUC in mind, we are going to repeat the trainning "
-"with SPU. Let's do that magic!"
+"with SPU. Let’s do that magic!"
 msgstr "让我们把所有东西放在一起，训练一个明文神经网络模型！"
 
-#: ../../tutorial/nn_with_spu.ipynb:358
+#: ../../tutorial/nn_with_spu.ipynb:368
 msgid "Train a Model with SPU"
 msgstr "使用 SPU 训练模型"
 
-#: ../../tutorial/nn_with_spu.ipynb:528
-msgid "Let's check params from SPU program."
+#: ../../tutorial/nn_with_spu.ipynb:538
+msgid "Let’s check params from SPU program."
 msgstr "让我们检查 SPU 程序的参数。"
 
-#: ../../tutorial/nn_with_spu.ipynb:2172
-msgid "Lastly, let's validate the model."
+#: ../../tutorial/nn_with_spu.ipynb:2182
+msgid "Lastly, let’s validate the model."
 msgstr "最后，让我们验证模型。"
 
-#: ../../tutorial/nn_with_spu.ipynb:2220
+#: ../../tutorial/nn_with_spu.ipynb:2230
 msgid "This is the end of the lab."
 msgstr "实验到此结束。"
 

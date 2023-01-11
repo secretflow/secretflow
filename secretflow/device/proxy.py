@@ -13,19 +13,20 @@
 # limitations under the License.
 
 import inspect
-import threading
+import logging
 from functools import wraps
 from typing import Dict, Type
 
 import jax
 import ray
 
+import secretflow.distributed as sfd
+from secretflow.utils.logging import LOG_FORMAT, get_logging_level
+
 from . import link
 from .device import PYU, Device, DeviceObject, PYUObject
 
 _WRAPPABLE_DEVICE_OBJ: Dict[Type[DeviceObject], Type[Device]] = {PYUObject: PYU}
-
-thread_local = threading.local()
 
 
 def _actor_wrapper(device_object_type, name, num_returns):
@@ -41,6 +42,12 @@ def _actor_wrapper(device_object_type, name, num_returns):
                 value_flat[i] = value.data
         args, kwargs = jax.tree_util.tree_unflatten(value_tree, value_flat)
 
+        logging.debug(
+            (
+                f'Run method {name} of actor {self.actor_class}, num_returns='
+                f'{_num_returns}, args len: {len(args)}, kwargs len: {len(kwargs)}.'
+            )
+        )
         handle = getattr(self.data, name)
         # TODO @raofei: 支持public_reveal装饰器
         res = handle.options(num_returns=_num_returns).remote(*args, **kwargs)
@@ -89,7 +96,11 @@ def _cls_wrapper(cls):
     return cls
 
 
-def proxy(device_object_type: Type[DeviceObject], max_concurrency=None):
+def proxy(
+    device_object_type: Type[DeviceObject],
+    max_concurrency: int = None,
+    _simulation_max_concurrency: int = None,
+):
     """Define a device class which should accept DeviceObject as method parameters and return DeviceObject.
 
     This proxy function mainly does the following work:
@@ -126,6 +137,9 @@ def proxy(device_object_type: Type[DeviceObject], max_concurrency=None):
     Args:
         device_object_type (Type[DeviceObject]): DeviceObject type, eg. PYUObject.
         max_concurrency (int): Actor threadpool size.
+        _simulation_max_concurrencty (int): Actor threadpool size only for
+            simulation (single controller mode). This argument takes effect only
+            when max_concurrency is None.
 
     Returns:
         Callable: Wrapper function.
@@ -135,10 +149,12 @@ def proxy(device_object_type: Type[DeviceObject], max_concurrency=None):
     ), f'{device_object_type} is not allowed to be proxy'
 
     def make_proxy(cls):
-        ActorClass = ray.remote(_cls_wrapper(cls))
+        ActorClass = _cls_wrapper(cls)
 
         class ActorProxy(device_object_type):
             def __init__(self, *args, **kwargs):
+                logging.basicConfig(level=get_logging_level(), format=LOG_FORMAT)
+
                 assert 'device' in kwargs, (
                     f'missing device argument, please specify it with '
                     f'{cls.__name__}(*args, device=d, **kwargs)'
@@ -153,9 +169,22 @@ def proxy(device_object_type: Type[DeviceObject], max_concurrency=None):
                 if not issubclass(cls, link.Link):
                     del kwargs['device']
 
-                data = ActorClass.options(
-                    max_concurrency=max_concurrency, resources={device.party: 1}
-                ).remote(*args, **kwargs)
+                max_concur = max_concurrency
+                if (
+                    max_concur is None
+                    and _simulation_max_concurrency is not None
+                    and not sfd.production_mode()
+                ):
+                    max_concur = _simulation_max_concurrency
+
+                logging.info(
+                    f'Create proxy actor {ActorClass} with party {device.party}.'
+                )
+                data = sfd.remote(ActorClass).party(device.party)
+                if max_concur is not None:
+                    data = data.options(max_concurrency=max_concur)
+                data = data.remote(*args, **kwargs)
+                self.actor_class = ActorClass
                 super().__init__(device, data)
 
         methods = inspect.getmembers(cls, inspect.isfunction)

@@ -14,12 +14,15 @@
 
 from typing import Callable, Dict, List, Union
 
+from validator import GreaterThan, In, LessThan, Not, Range, Required, validate
+
 from secretflow.data.horizontal.dataframe import HDataFrame
 from secretflow.device import reveal
 from secretflow.device.device import PYU
+from secretflow.device.link import init_link
 from secretflow.ml.boost.homo_boost.homo_booster_worker import HomoBooster
 from secretflow.preprocessing.binning.homo_binning import HomoBinning
-from validator import GreaterThan, In, LessThan, Not, Range, Required, validate
+from secretflow.utils.random import global_random
 
 
 class SFXgboost:
@@ -28,15 +31,27 @@ class SFXgboost:
         self.clients = clients
         self.fed_bst = {}
         self._workers = []
+        msg_id_prefix = str(global_random(self.server, 100000000))
         for client in self.clients:
             self._workers.append(
-                HomoBooster(device=client, clients=self.clients, server=self.server)
+                HomoBooster(
+                    device=client,
+                    clients=self.clients,
+                    server=self.server,
+                    msg_id_prefix=msg_id_prefix,
+                )
             )
         self._workers.append(
-            HomoBooster(device=self.server, clients=self.clients, server=self.server)
+            HomoBooster(
+                device=self.server,
+                clients=self.clients,
+                server=self.server,
+                msg_id_prefix=msg_id_prefix,
+            )
         )
         for worker in self._workers:
-            worker.initialize({worker.device: worker.data for worker in self._workers})
+            partners = [w for w in self._workers if w != worker]
+            init_link(worker, partners)
 
     def check_params(self, params):
         rules = {
@@ -183,7 +198,7 @@ class SFXgboost:
         assert self.fed_bst is not None, "FedBooster must be train before save model"
         res = {}
         for worker in self._workers:
-            if worker.device in model_path.keys():
+            if worker.device in model_path:
                 res[worker.device] = worker.save_model(model_path[worker.device])
         reveal(res)
 

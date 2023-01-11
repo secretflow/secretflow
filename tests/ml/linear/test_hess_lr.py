@@ -7,11 +7,11 @@ from secretflow.data import FedNdarray, PartitionWay
 from secretflow.ml.linear.hess_sgd import HESSLogisticRegression
 from sklearn.datasets import load_breast_cancer
 from sklearn.preprocessing import StandardScaler
-from tests.basecase import DeviceTestCase
+from tests.basecase import MultiDriverDeviceTestCase
 from sklearn.metrics import roc_auc_score
 
 
-class TestHESSLogisticRegression(DeviceTestCase):
+class TestHESSLogisticRegression(MultiDriverDeviceTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()

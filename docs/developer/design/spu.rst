@@ -68,7 +68,7 @@ With the second goal, we choose `MLIR <https://mlir.llvm.org/>`__ as the compile
 
 With the third goal, we add security related type hint to the type system, and use these type hints to help to generated efficient bytecode.
 
-For more details, please check `SPU type system <https://spu.readthedocs.io/en/beta/development/type_system.html>`__ and `SPU Compiler design <https://spu.readthedocs.io/en/beta/development/compiler.html>`__.
+For more details, please check `SPU type system <https://www.secretflow.org.cn/docs/spu/en/development/type_system.html>`__ and `SPU Compiler design <https://www.secretflow.org.cn/docs/spu/en/development/compiler.html>`__.
 
 
 Runtime
@@ -93,7 +93,7 @@ Of course, as a virtual machine, the SPU runtime itself is a multi-layer complex
    *SPU Runtime architecture*
 
 
-We will not go into details here, for more details, please visit `SPU standalone docs <https://spu.readthedocs.io/>`__
+We will not go into details here, for more details, please visit `SPU standalone docs <https://www.secretflow.org.cn/docs/spu/en/>`__
 
 Summary
 -------
@@ -138,7 +138,7 @@ SPU implemented several MPC protocol including:
    semi-honest protocol. Since this protocol does not require a trusted
    third party, it requires more computation effort.
 
-Please check `SPU MPC development status <https://spu.readthedocs.io/en/beta/reference/mpc_status.html>`__ for
+Please check `SPU MPC development status <https://www.secretflow.org.cn/docs/spu/en/reference/mpc_status.html>`__ for
 details.
 
 SPU API design
@@ -146,11 +146,11 @@ SPU API design
 
 The API of the SPU is quite simple. There are three main modules, corresponding to the previous component descriptions.
 
--  `SPU Io <https://spu.readthedocs.io/en/beta/reference/py_api.html#runtime-io>`__,
+-  `SPU Io <https://www.secretflow.org.cn/docs/spu/en/reference/py_api.html#runtime-io>`__,
    a library to transfer between plaintext and secret shares.
--  `SPU compiler <https://spu.readthedocs.io/en/beta/reference/py_api.html#compiler>`__,
+-  `SPU compiler <https://www.secretflow.org.cn/docs/spu/en/reference/py_api.html#compiler>`__,
    a tool to translate XLA to SPU IR.
--  `SPU Runtime <https://spu.readthedocs.io/en/beta/reference/py_api.html#runtime-setup>`__,
+-  `SPU Runtime <https://www.secretflow.org.cn/docs/spu/en/reference/py_api.html#runtime-setup>`__,
    a library to consume SPU IR and execute MPC computation.
 
 

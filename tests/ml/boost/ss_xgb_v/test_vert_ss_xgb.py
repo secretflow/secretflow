@@ -12,38 +12,44 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import sys
-import time
 import logging
+import os
+import time
 
+from sklearn.metrics import mean_squared_error, roc_auc_score
+
+from secretflow import SPU
+from secretflow.data import FedNdarray, PartitionWay
 from secretflow.device.driver import reveal, wait
 from secretflow.ml.boost.ss_xgb_v import Xgb
-from secretflow.data import FedNdarray, PartitionWay
 from secretflow.utils.simulation.datasets import (
-    load_linear,
-    load_dermatology,
     create_df,
     dataset,
+    load_dermatology,
+    load_linear,
 )
-from tests.basecase import ABY3DeviceTestCase
 
-from sklearn.metrics import roc_auc_score, mean_squared_error
-
+from tests.basecase import ABY3MultiDriverDeviceTestCase, aby3_cluster
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 
-class TestVertBinning(ABY3DeviceTestCase):
+class TestVertBinning(ABY3MultiDriverDeviceTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
+        cluster_def = reveal(cls.alice(aby3_cluster)())
+        cls.spu02 = SPU(
+            cluster_def,
+            link_desc=cls.spu.link_desc,
+        )
 
     def run_xgb(self, test_name, v_data, label_data, y, logistic, subsample, colsample):
         xgb = Xgb(self.spu)
+        xgb02 = Xgb([self.spu, self.spu02])
         start = time.time()
         params = {
-            'num_boost_round': 3,
+            'num_boost_round': 2,
             'max_depth': 3,
             'sketch_eps': 0.25,
             'objective': 'logistic' if logistic else 'linear',
@@ -52,17 +58,22 @@ class TestVertBinning(ABY3DeviceTestCase):
             'colsample_bytree': colsample,
             'base_score': 0.5,
         }
-        model = xgb.train(params, v_data, label_data)
-        reveal(model.weights[-1])
+        model = xgb.train(params.copy(), v_data, label_data)
+        model02 = xgb02.train(params.copy(), v_data, label_data)
+        wait(model.weights[-1])
         print(f"{test_name} train time: {time.time() - start}")
         start = time.time()
         spu_yhat = model.predict(v_data)
         yhat = reveal(spu_yhat)
+        spu_yhat_02 = model02.predict(v_data)
+        yhat02 = reveal(spu_yhat_02)
         print(f"{test_name} predict time: {time.time() - start}")
         if logistic:
             print(f"{test_name} auc: {roc_auc_score(y, yhat)}")
+            print(f"{test_name} auc02: {roc_auc_score(y, yhat02)}")
         else:
             print(f"{test_name} mse: {mean_squared_error(y, yhat)}")
+            print(f"{test_name} mse02: {mean_squared_error(y, yhat02)}")
 
         fed_yhat = model.predict(v_data, self.alice)
         assert len(fed_yhat.partitions) == 1 and self.alice in fed_yhat.partitions
@@ -146,10 +157,10 @@ if __name__ == '__main__':
     #    python tests/ml/boost/ss_xgb_v/test_vert_ss_xgb.py
 
     # use aby3 in this example.
-    cluster = ABY3DeviceTestCase()
+    cluster = ABY3MultiDriverDeviceTestCase()
     cluster.setUpClass()
     # init log
-    logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+    logging.getLogger().setLevel(logging.INFO)
 
     # prepare data
     start = time.time()
@@ -158,7 +169,7 @@ if __name__ == '__main__':
         # load file 'dataset('linear')' as train dataset.
         # <<< !!! >>> replace dataset path to your own local file.
         dataset('linear'),
-        # split 1-10 columns to alice and 11-21 columns to bob which include y col.
+        # split 1-10 columns to alice and 11-22 columns to bob which include y col.
         # <<< !!! >>> replace parts range to your own dataset's columns count.
         parts={cluster.alice: (1, 11), cluster.bob: (11, 22)},
         # split by vertical. DON'T change this.
@@ -174,8 +185,8 @@ if __name__ == '__main__':
     wait([p.data for p in v_data.partitions.values()])
     logging.info(f"IO times: {time.time() - start}s")
 
-    # run ss xgb
     xgb = Xgb(cluster.spu)
+
     params = {
         # <<< !!! >>> change args to your test settings.
         # for more detail, see Xgb.train.__doc__

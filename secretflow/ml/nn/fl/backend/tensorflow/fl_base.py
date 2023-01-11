@@ -15,7 +15,7 @@
 
 import collections
 import math
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from pathlib import Path
 from typing import Callable, Optional
 
@@ -23,49 +23,25 @@ import numpy as np
 import tensorflow as tf
 
 from secretflow.ml.nn.fl.backend.tensorflow.sampler import sampler_data
-from secretflow.ml.nn.fl.metrics import AUC, Mean, Precision, Recall
+from secretflow.ml.nn.metrics import AUC, Mean, Precision, Recall
 from secretflow.utils.io import rows_count
 
-# 抽象model类
 
-
-class BaseModel(ABC):
-    def __init__(self, builder_base: Callable, builder_fuse: Callable = None):
-        self.model_base = builder_base() if builder_base is not None else None
-        self.model_fuse = builder_fuse() if builder_fuse is not None else None
-
-    @abstractmethod
-    def build_dataset(
+class BaseTFModel:
+    def __init__(
         self,
-        x: np.ndarray,
-        y: Optional[np.ndarray] = None,
-        batch_size=32,
-        buffer_size=128,
-        repeat_count=1,
+        builder_base: Callable[[], tf.keras.Model],
+        random_seed: int = None,
     ):
-        pass
-
-    @abstractmethod
-    def get_weights(self):
-        pass
-
-    @abstractmethod
-    def evaluate(
-        self, x, y, batch_size=None, verbose=1, sample_weight=None, steps=None
-    ):
-        pass
-
-
-class BaseTFModel(BaseModel):
-    def __init__(self, builder_base: Callable[[], tf.keras.Model]):
-        super().__init__(builder_base)
-        self.model = builder_base() if builder_base else None
         self.train_set = None
         self.eval_set = None
         self.callbacks = None
         self.logs = None
         self.epoch_logs = None
         self.training_logs = None
+        if random_seed is not None:
+            tf.keras.utils.set_random_seed(random_seed)
+        self.model = builder_base() if builder_base else None
 
     def build_dataset_from_csv(
         self,
@@ -326,3 +302,4 @@ class BaseTFModel(BaseModel):
     def load_model(self, model_path: str):
         assert model_path is not None, "model path cannot be empty"
         self.model = tf.keras.models.load_model(model_path)
+        return self.model.get_weights()[0].sum()

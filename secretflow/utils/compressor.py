@@ -1,7 +1,23 @@
-import numpy as np
+# Copyright 2022 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from abc import ABC, abstractmethod
+from typing import Any, List, Union
+
+import numpy as np
+import sparse as sp
 from scipy import sparse
-from typing import Union, List, Any
 
 
 class Compressor(ABC):
@@ -32,6 +48,18 @@ class Compressor(ABC):
 
         Returns:
             Union[np.ndarray, List[np.ndarray]]: decompressed data.
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def iscompressed(self, data: Union[Any, List[Any]]) -> Union[bool, List[bool]]:
+        """Checks whether data or data array has been compressed.
+
+        Args:
+            data (Union[Any, List[Any]]): data need to check.
+
+        Returns:
+            Union[bool, List[bool]]: True if data is compressed.
         """
         raise NotImplementedError()
 
@@ -104,6 +132,24 @@ class SparseCompressor(Compressor):
         data = list(map(lambda d: d.todense(), data))
         return data if is_list else data[0]
 
+    def iscompressed(
+        self, data: Union[sparse.spmatrix, List[sparse.spmatrix]]
+    ) -> Union[bool, List[bool]]:
+        """Checks whether data or data array has been compressed.
+
+        Args:
+            data (Union[sparse.spmatrix, List[sparse.spmatrix]]): data need to check.
+
+        Returns:
+            Union[bool, List[bool]]: True if data is compressed.
+        """
+        is_list = True
+        if sparse.issparse(data):
+            is_list = False
+            data = [data]
+        compressed = list(map(lambda d: sparse.issparse(d), data))
+        return compressed if is_list else compressed[0]
+
 
 class RandomSparse(SparseCompressor):
     """Random sparse compressor compress data by randomly set element to zero."""
@@ -142,3 +188,144 @@ class TopkSparse(SparseCompressor):
             (data_flat[mask_index], (row, col)), shape=data_shape
         )
         return matrix.tocsr()
+
+
+class STCSparse:
+    """Stc sparser, sample TopK element from original Weights
+    TODO: rewrite in sl compress manner
+    """
+
+    def __init__(self, sparse_rate: float):
+        self.sparse_rate = sparse_rate
+        self.name = 'STC'
+
+    def __call__(
+        self,
+        weights: List[np.ndarray],
+    ) -> List[np.ndarray]:
+        compression_weights = []
+        mask_arrays = []
+        for weight in weights:
+            weight_shape = weight.shape
+            weight_flat = weight.flatten()
+            weight_flat_abs = np.abs(weight_flat)
+            weight_len = weight_flat.shape[0]
+            mask_num = round(self.sparse_rate * weight_len)
+            mask_index = np.sort(np.argsort(weight_flat_abs)[:mask_num])
+            mask_array = np.ones(weight_flat.shape)
+            if mask_index.shape[0] != 0:
+                weight_flat[mask_index] = 0
+                mask_array[mask_index] = 0
+            if weight_len == mask_num:
+                average_value = 0.0
+            else:
+                average_value = np.sum(np.absolute(weight_flat)) / (
+                    weight_len - mask_num
+                )
+            weight_compress = average_value * np.sign(weight_flat)
+            compression_weight = weight_compress.reshape(weight_shape)
+            compression_weights.append(compression_weight)
+            mask_array = mask_array.reshape(weight_shape)
+            mask_arrays.append(mask_array)
+        return compression_weights
+
+
+class SCRSparse:
+    """Stc sparser, sample TopK element from original Weights
+    TODO: rewrite in sl compress manner
+    """
+
+    def __init__(self, threshold: float):
+        self.threshold = threshold
+        self.name = 'SCR'
+
+    def __call__(
+        self,
+        weights: List[np.ndarray],
+    ) -> List[np.ndarray]:
+        compression_weights = []
+        mask_arrays = []
+        for weight in weights:
+            weight_shape = weight.shape
+            if len(weight_shape) == 4:
+                # CNN layer
+                # Keep the 0th dimension
+                sum_0 = np.sum(np.absolute(weight), axis=(1, 2, 3))
+                sum_0 = sum_0 / np.max(sum_0)
+                index_zero_0 = self.get_dimension(sum_0, self.threshold)
+                weight[index_zero_0, :, :, :] = 0.0
+                # Keep the 1th dimension
+                sum_1 = np.sum(np.absolute(weight), axis=(0, 2, 3))
+                sum_1 = sum_1 / np.max(sum_1)
+                index_zero_1 = self.get_dimension(sum_1, self.threshold)
+                weight[:, index_zero_1, :, :] = 0.0
+            if len(weight_shape) == 2:
+                # Dense layer
+                # Keep the 0th dimension
+                sum_0 = np.sum(np.absolute(weight), axis=1)
+                sum_0 = sum_0 / np.max(sum_0)
+                index_zero_0 = self.get_dimension(sum_0, self.threshold)
+                weight[index_zero_0, :] = 0.0
+                # Keep the 1th dimension
+                sum_1 = np.sum(np.absolute(weight), axis=0)
+                sum_1 = sum_1 / np.max(sum_1)
+                index_zero_1 = self.get_dimension(sum_1, self.threshold)
+                weight[:, index_zero_1] = 0.0
+            compression_weight = weight
+            compression_weights.append(compression_weight)
+            mask_array = np.array(compression_weight, dtype=bool)
+            mask_arrays.append(mask_array)
+        return compression_weights
+
+    def get_dimension(self, index_value, threshold):
+        return np.argwhere(index_value <= threshold)
+
+
+# Sparse matrix encode and decode
+def sparse_encode(
+    data: List[np.ndarray],
+    encode_method: str = 'coo',
+) -> List:
+    """Encode the sparse matrix
+
+    Args:
+        data: sparse matrix to be compressed
+        encode_method: compressed method,support ['coo', 'gcxs']
+    Returns:
+        encoded_datas: Compressed matrix
+    """
+    # TODO: support more sparse matrix encoding methods
+    if data is None:
+        return None
+    assert encode_method in [
+        'coo',
+        'gcxs',
+    ], f'Get unsupport sparse encoding method: {encode_method}, '
+    encoded_datas = []
+    for datum in data:
+        if encode_method == 'coo':
+            encoded_data = sp.COO(datum)
+        else:
+            encoded_data = sp.GCXS(datum)
+        encoded_datas.append(encoded_data)
+    return encoded_datas
+
+
+def sparse_decode(data: List) -> List[np.ndarray]:
+    """Decode the compressed sparse matrix
+
+    Args:
+        data: compressed matrix to be decoded
+    Returns:
+        decoded_datas: Decoded matrix
+    """
+    if data is None:
+        return None
+    assert isinstance(
+        data[0], (sp._coo.core.COO, sp._compressed.compressed.GCXS)
+    ), 'Sparse encoding method not supporterd, Only COO GCXS supported'
+    decode_datas = []
+    for datum in data:
+        decode_datum = datum.todense()
+        decode_datas.append(decode_datum)
+    return decode_datas

@@ -20,11 +20,12 @@ import copy
 from typing import Callable, Tuple
 
 import numpy as np
+
 from secretflow.device import PYUObject, proxy
 from secretflow.ml.nn.fl.backend.torch.fl_base import BaseTorchModel
 from secretflow.ml.nn.fl.backend.torch.utils import TorchModel
-from secretflow.ml.nn.fl.sparse import SCRSparse
 from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
+from secretflow.utils.compressor import SCRSparse, sparse_encode
 
 
 class FedSCR(BaseTorchModel):
@@ -35,8 +36,8 @@ class FedSCR(BaseTorchModel):
     FedSCR will treat the updates in this structure as less important and filter them out.
     """
 
-    def __init__(self, builder_base: Callable[[], TorchModel]):
-        super().__init__(builder_base)
+    def __init__(self, builder_base: Callable[[], TorchModel], random_seed):
+        super().__init__(builder_base, random_seed=random_seed)
         self._res = []
 
     def train_step(
@@ -130,6 +131,10 @@ class FedSCR(BaseTorchModel):
             for dense_u, sparse_u in zip(client_updates, sparse_client_updates)
         ]
         self.model.update_weights(self.model_weights)
+        # do sparse encoding
+        sparse_client_updates = sparse_encode(
+            data=sparse_client_updates, encode_method='coo'
+        )
         return sparse_client_updates, num_sample
 
 

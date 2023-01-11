@@ -7,14 +7,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-09-16 13:52+0800\n"
+"POT-Creation-Date: 2023-01-07 11:23+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.10.3\n"
+"Generated-By: Babel 2.11.0\n"
 
 #: ../../tutorial/split_learning_gnn.ipynb:9
 msgid "Split Learning for Graph Neural Network"
@@ -22,7 +22,7 @@ msgstr "图神经网络拆分学习"
 
 #: ../../tutorial/split_learning_gnn.ipynb:20
 msgid ""
-"The following codes are demos only. It's **NOT for production** due to "
+"The following codes are demos only. It’s **NOT for production** due to "
 "system security concerns, please **DO NOT** use it directly in "
 "production."
 msgstr "以下代码仅作为示例，请勿在生产环境直接使用。"
@@ -54,7 +54,7 @@ msgstr ""
 #: ../../tutorial/split_learning_gnn.ipynb:79
 msgid ""
 "The ``cora.cites`` includes the citation records with two columns: "
-"cited\\_paper\\_id (target) and citing\\_paper\\_id (source)."
+"cited_paper_id (target) and citing_paper_id (source)."
 msgstr ""
 "`cora.cites` 包含了论文引用记录，共两个列： "
 "cited_paper_id(被引用论文)和citing_paper_id（发起引用的论文）。"
@@ -62,7 +62,7 @@ msgstr ""
 #: ../../tutorial/split_learning_gnn.ipynb:80
 msgid ""
 "The ``cora.content`` includes the paper content records with 1,435 "
-"columns: paper\\_id, subject, and 1,433 binary features."
+"columns: paper_id, subject, and 1,433 binary features."
 msgstr ""
 "`cora.content` 包含了论文内容记录，拥有1435个列，分别是paper_id（论文id）, subject（课题）, "
 "和其他1,433二值化特征。"
@@ -74,15 +74,15 @@ msgid ""
 msgstr "我们使用隐语内置已经切分好的cora数据集。"
 
 #: ../../tutorial/split_learning_gnn.ipynb:84
-msgid "The train set includes 140 cited\\_paper\\_ids."
+msgid "The train set includes 140 cited_paper_ids."
 msgstr "训练集包含140个论文id。"
 
 #: ../../tutorial/split_learning_gnn.ipynb:85
-msgid "The test set includes 1000 cited\\_paper\\_ids."
+msgid "The test set includes 1000 cited_paper_ids."
 msgstr "测试集包含1000个论文id。"
 
 #: ../../tutorial/split_learning_gnn.ipynb:86
-msgid "The valid set includes 500 cited\\_paper\\_ids."
+msgid "The valid set includes 500 cited_paper_ids."
 msgstr "验证集包含500个论文id。"
 
 #: ../../tutorial/split_learning_gnn.ipynb:98
@@ -178,7 +178,7 @@ msgid "The whole model structure is as follow"
 msgstr "完整的模型结构如下"
 
 #: ../../tutorial/split_learning_gnn.ipynb:721
-msgid "|07ba1395229a4d18baec6c52a7e8a048|"
+msgid "|c09c2cb7d6fa41e4bb436303b25ff7b0|"
 msgstr ""
 
 #: ../../tutorial/split_learning_gnn.ipynb:723
@@ -218,3 +218,5 @@ msgid ""
 "nodes set which may not be satisfied in real cases. We want to explore "
 "the case where all parties have common subset nodes."
 msgstr "支持部分对齐的图：示例中的图数据是假设每方的节点都是对齐一致的，但是实际中可能只有部分对齐。我们后续会探索多方仅有部分节点对齐的场景。"
+
+

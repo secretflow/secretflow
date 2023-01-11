@@ -3,10 +3,10 @@ import pandas as pd
 from secretflow import reveal
 from secretflow.utils.simulation.datasets import load_iris
 
-from tests.basecase import DeviceTestCase
+from tests.basecase import MultiDriverDeviceTestCase
 
 
-class TestPartition(DeviceTestCase):
+class TestPartition(MultiDriverDeviceTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()

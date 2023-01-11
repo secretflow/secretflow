@@ -19,6 +19,7 @@ from secretflow.data.io import read_csv_wrapper
 from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.device import PYU, SPU, Device
 from secretflow.utils.errors import InvalidArgumentError
+from secretflow.utils.random import global_random
 
 
 def read_csv(
@@ -45,8 +46,8 @@ def read_csv(
             .. code:: python
 
                 {
-                    PYU('alice'): 'oss://bucket/data/alice.csv',
-                    PYU('bob'): 'oss://bucket/data/bob.csv'
+                    PYU('alice'): 'alice.csv',
+                    PYU('bob'): 'bob.csv'
                 }
         delimiter: the file separator.
         dtypes: Participant field type. It will be inferred from the file if
@@ -63,8 +64,10 @@ def read_csv(
         keys: The field used for psi, which can be single or multiple fields.
             This parameter is required when spu is specified.
         drop_keys: keys to removed, which can be single or multiple fields.
-            This parameter is required when spu is specified since VDataFrame doesn't allow duplicate column names.
-        psi_protocl: Specified protocol for PSI. Default 'KKRT_PSI_2PC' for 2 parties, 'ECDH_PSI_3PC' for 3 parties.
+            This parameter is required when spu is specified since VDataFrame
+            doesn't allow duplicate column names.
+        psi_protocl: Specified protocol for PSI. Default 'KKRT_PSI_2PC' for 2
+            parties, 'ECDH_PSI_3PC' for 3 parties.
 
     Returns:
         A aligned VDataFrame.
@@ -73,8 +76,6 @@ def read_csv(
     assert spu is None or drop_keys is not None, f'drop_keys required when spu provided'
     if spu is not None:
         assert len(filepath) <= 3, f'only support 2 or 3 parties for now'
-
-    partitions = {}
 
     def get_keys(
         device: Device, x: Union[str, List[str], Dict[Device, List[str]]] = None
@@ -95,7 +96,25 @@ def read_csv(
         else:
             return []
 
-    for device, path in filepath.items():
+    filepath_actual = filepath
+    if spu is not None:
+        if psi_protocl is None:
+            psi_protocl = 'KKRT_PSI_2PC' if len(filepath) == 2 else 'ECDH_PSI_3PC'
+        rand_suffix = global_random(list(filepath.keys())[0], 100000)
+        output_file = {
+            pyu: f'{path}.psi_output_{rand_suffix}' for pyu, path in filepath.items()
+        }
+        spu.psi_csv(
+            keys,
+            input_path=filepath,
+            output_path=output_file,
+            protocol=psi_protocl,
+            receiver=list(filepath.keys())[0].party,
+        )
+        filepath_actual = output_file
+
+    partitions = {}
+    for device, path in filepath_actual.items():
         usecols = dtypes[device].keys() if dtypes is not None else None
         dtype = dtypes[device] if dtypes is not None else None
         partitions[device] = Partition(
@@ -103,18 +122,6 @@ def read_csv(
                 path, delimiter=delimiter, usecols=usecols, dtype=dtype
             )
         )
-
-    if spu is not None:
-        if psi_protocl is None:
-            psi_protocl = 'KKRT_PSI_2PC' if len(filepath) == 2 else 'ECDH_PSI_3PC'
-
-        dfs = spu.psi_df(
-            keys,
-            [part.data for part in partitions.values()],
-            list(filepath.keys())[0].party,
-            psi_protocl,
-        )
-        partitions = {df.device: Partition(df) for df in dfs}
 
     if drop_keys:
         for device, partition in partitions.items():
@@ -124,14 +131,17 @@ def read_csv(
             if device_drop_key is not None:
                 columns_set = set(partition.columns)
                 device_drop_key_set = set(device_drop_key)
-                assert columns_set.issuperset(
-                    device_drop_key_set
-                ), f"drop_keys = {device_drop_key_set.difference(columns_set)} can not find on device {device}"
+                assert columns_set.issuperset(device_drop_key_set), (
+                    f"drop_keys = {device_drop_key_set.difference(columns_set)}"
+                    " can not find on device {device}"
+                )
 
                 device_psi_key_set = set(device_psi_key)
-                assert device_psi_key_set.issuperset(
-                    device_drop_key_set
-                ), f"drop_keys = {device_drop_key_set.difference(device_psi_key_set)} can not find on device_psi_key_set of device {device}, which are {device_psi_key_set}"
+                assert device_psi_key_set.issuperset(device_drop_key_set), (
+                    f"drop_keys = {device_drop_key_set.difference(device_psi_key_set)} "
+                    f"can not find on device_psi_key_set of device {device},"
+                    f" which are {device_psi_key_set}"
+                )
 
                 partitions[device] = partition.drop(labels=device_drop_key, axis=1)
 

@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import ray
-
+import jax.tree_util
 from .base import DeviceObject
 from .register import dispatch
+from secretflow.device.device.pyu import PYUObject
 
 
 class HEUObject(DeviceObject):
@@ -60,6 +61,10 @@ class HEUObject(DeviceObject):
         return dispatch('matmul', self, other)
 
     def __getitem__(self, item):
+        item = jax.tree_util.tree_map(
+            lambda x: x.data if isinstance(x, PYUObject) else x, item
+        )
+
         return HEUObject(
             self.device,
             self.device.get_participant(self.location).getitem.remote(self.data, item),
@@ -68,6 +73,12 @@ class HEUObject(DeviceObject):
         )
 
     def __setitem__(self, key, value):
+        if isinstance(key, PYUObject):
+            key = key.data
+
+        if isinstance(value, HEUObject):
+            value = value.data
+
         return HEUObject(
             self.device,
             self.device.get_participant(self.location).setitem.remote(

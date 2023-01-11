@@ -4,8 +4,8 @@ cc_library(
     name = "distributions",
     hdrs = ["distributions.h"],
     deps = [
-        "@yasl//yasl/base:exception",
-        "@yasl//yasl/crypto:pseudo_random_generator",
+        "@yacl//yacl/base:exception",
+        "@yacl//yacl/crypto/tools:prg",
     ],
 )
 
@@ -17,6 +17,6 @@ cc_test(
         ":distributions",
         "@com_github_gperftools_gperftools//:gperftools",
         "@com_google_googletest//:gtest_main",
-        "@yasl//yasl/crypto:pseudo_random_generator",
+        "@yacl//yacl/crypto/tools:prg",
     ],
 )

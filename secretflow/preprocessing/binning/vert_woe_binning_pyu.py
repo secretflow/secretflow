@@ -19,7 +19,6 @@ import numpy as np
 import math
 
 from secretflow.device import PYUObject, proxy
-from secretflow.data.base import Partition
 
 
 @proxy(PYUObject)
@@ -31,7 +30,7 @@ class VertWoeBinningPyuWorker:
 
     def __init__(
         self,
-        data_part: Partition,
+        data: pd.DataFrame,
         binning_method: str,
         bin_num: int,
         bin_names: List[str],
@@ -41,7 +40,7 @@ class VertWoeBinningPyuWorker:
         chimerge_target_bins: int,
         chimerge_target_pvalue: float,
     ):
-        data_columns = data_part.columns
+        data_columns = data.columns
         assert np.isin(
             bin_names, data_columns
         ).all(), (
@@ -57,7 +56,6 @@ class VertWoeBinningPyuWorker:
         else:
             self.label_name = ""
         self.bin_num = bin_num
-        self.self_device = data_part.data.device
         self.binning_method = binning_method
         self.chimerge_init_bins = chimerge_init_bins
         self.chimerge_target_bins = chimerge_target_bins
@@ -436,7 +434,7 @@ class VertWoeBinningPyuWorker:
 
         return merged_bins_stat, merged_split_points
 
-    def master_work(self, data: pd.DataFrame) -> Tuple[np.ndarray, Dict]:
+    def coordinator_work(self, data: pd.DataFrame) -> Tuple[np.ndarray, Dict]:
         '''
         Label holder build report for it's own feature, and provide label to driver.
         Attributes:
@@ -476,7 +474,7 @@ class VertWoeBinningPyuWorker:
             ),
         )
 
-    def slave_build_sum_select(self, data: pd.DataFrame) -> np.ndarray:
+    def participant_build_sum_select(self, data: pd.DataFrame) -> np.ndarray:
         '''
         build select matrix for driver to calculate positive samples by Secret Sharing.
         Attributes:
@@ -503,21 +501,7 @@ class VertWoeBinningPyuWorker:
 
         return np.concatenate((select, *else_select), axis=1)
 
-    def slave_build_sum_indices(self, data: pd.DataFrame) -> Tuple[np.ndarray]:
-        '''
-        return samples indices in bins for driver to calculate positive samples by Homomorphic encryption.
-        Attributes:
-            data: full dataset for this party.
-
-        Return:
-            List[samples indices]
-        '''
-        bins_idx, self.split_points, else_bins_idx = self._build_feature_bins(data)
-        self.total_counts = [b.size for b in bins_idx]
-        self.else_counts = [b.size for b in else_bins_idx]
-        return (*bins_idx, *[e for e in else_bins_idx if e.size])
-
-    def slave_sum_bin(
+    def participant_sum_bin(
         self, bins_positive: Union[List, np.ndarray]
     ) -> List[Tuple[int, int]]:
         '''
@@ -576,22 +560,22 @@ class VertWoeBinningPyuWorker:
 
         return bins_stat
 
-    def master_calc_woe_for_peer(
+    def coordinator_calc_woe_for_peer(
         self, bins_stat: List[Tuple[int, int]]
     ) -> List[Tuple[float, float]]:
         '''
-        calculate woe/iv for slave party.
+        calculate woe/iv for participant party.
         Attributes:
-            bins_stat: bins stat tuple from slave party.
+            bins_stat: bins stat tuple from participant party.
 
         Return:
            List[Tuple[woe, iv]]
         '''
         return [self._calc_bin_woe_iv(*b) for b in bins_stat]
 
-    def slave_build_report(self, woe_ivs: List[Tuple[float, float]]) -> Dict:
+    def participant_build_report(self, woe_ivs: List[Tuple[float, float]]) -> Dict:
         '''
-        build report based on master party's woe/iv values.
+        build report based on coordinator party's woe/iv values.
         Attributes:
             woe_ivs: woe/iv values for all features' bins.
 

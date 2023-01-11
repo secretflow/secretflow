@@ -14,18 +14,8 @@
 
 from spu import Visibility
 
-from secretflow.device import (
-    HEU,
-    PYU,
-    SPU,
-    SPUIO,
-    Device,
-    DeviceType,
-    HEUObject,
-    PYUObject,
-    SPUObject,
-    register,
-)
+from secretflow.device import (HEU, PYU, SPU, SPUIO, Device, DeviceType,
+                               HEUObject, PYUObject, SPUObject, register)
 
 
 @register(DeviceType.PYU)
@@ -52,8 +42,9 @@ def to(self: PYUObject, device: Device, config):
         meta, *shares = self.device(run_spu_io, num_returns=(1 + device.world_size))(
             self.data, device.conf, device.world_size, vtype
         )
-
-        return SPUObject(device, meta.data, [share.data for share in shares])
+        return SPUObject(
+            device, meta.data, device.infeed_shares([share.data for share in shares])
+        )
 
     elif isinstance(device, HEU):  # PYU -> HEU, pure local operation
         if config.heu_dest_party == 'auto':

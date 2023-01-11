@@ -14,12 +14,14 @@
 
 import logging
 import os
+import pathlib
 import uuid
 from typing import Callable, Dict, List, Union
 
 import numpy
-import secretflow.device.link as link
 import xgboost.core as xgb_core
+
+import secretflow.device.link as link
 from secretflow.data.horizontal import HDataFrame
 from secretflow.data.split import train_test_split
 from secretflow.ml.boost.homo_boost.homo_decision_tree import HomoDecisionTree
@@ -43,7 +45,9 @@ class FedBooster(xgb_core.Booster):
         cache: List = (),
         model_file: Union[str, os.PathLike, xgb_core.Booster, bytearray] = None,
     ):
-        self.model_path = f"./{link.get_device()}_{uuid.uuid1()}.json"
+        checkpoint_dir = '.checkpoint'
+        pathlib.Path(checkpoint_dir).mkdir(parents=True, exist_ok=True)
+        self.model_path = f"{checkpoint_dir}/{link.get_device()}_{uuid.uuid1()}.json"
         if 'hess_key' in params:
             self.hess_key = params.pop("hess_key")
         else:

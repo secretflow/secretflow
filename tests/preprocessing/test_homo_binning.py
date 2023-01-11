@@ -7,7 +7,7 @@ from secretflow.device import reveal
 from secretflow.preprocessing.binning.homo_binning import HomoBinning
 from secretflow.security.aggregation.plain_aggregator import PlainAggregator
 from secretflow.security.compare.plain_comparator import PlainComparator
-from tests.basecase import DeviceTestCase
+from tests.basecase import MultiDriverDeviceTestCase
 
 _temp_dir = tempfile.mkdtemp()
 
@@ -39,7 +39,7 @@ def gen_data(data_num, feature_num, is_sparse=False, use_random=False, data_bin_
     return data
 
 
-class TestHomoBinning(DeviceTestCase):
+class TestHomoBinning(MultiDriverDeviceTestCase):
 
     data1 = gen_data(10000, 10, use_random=False)
     data2 = gen_data(5000, 10, use_random=False)

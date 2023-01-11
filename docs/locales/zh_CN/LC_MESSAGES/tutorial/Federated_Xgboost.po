@@ -7,14 +7,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-09-16 10:29+0800\n"
+"POT-Creation-Date: 2023-01-07 11:23+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.10.3\n"
+"Generated-By: Babel 2.11.0\n"
 
 #: ../../tutorial/Federated_Xgboost.ipynb:9
 msgid "Federated XGBoost"
@@ -22,7 +22,7 @@ msgstr "联邦XGBoost"
 
 #: ../../tutorial/Federated_Xgboost.ipynb:20
 msgid ""
-"The following codes are demos only. It's **NOT for production** due to "
+"The following codes are demos only. It’s **NOT for production** due to "
 "system security concerns, please **DO NOT** use it directly in "
 "production."
 msgstr "以下代码仅作为演示用，请勿直接在生产环境使用。"
@@ -31,7 +31,7 @@ msgstr "以下代码仅作为演示用，请勿直接在生产环境使用。"
 msgid ""
 "In this tutorial, we will learn how to use ``SecretFlow`` to train tree "
 "models for horizontal federation. Secretflow provides ``tree modeling`` "
-"capabilities for horizontal scenarios(\\ ``SFXgboost``), The usage of "
+"capabilities for horizontal scenarios(``SFXgboost``), The usage of "
 "``SFXgboost`` is similar to ``XGBoost``, you can easily convert your "
 "existing XGBoost program into a federated model for ``SecretFlow``."
 msgstr ""
@@ -113,7 +113,7 @@ msgstr "完成训练，并保存模型。"
 #: ../../tutorial/Federated_Xgboost.ipynb:366
 msgid ""
 "Create 3 entities in the Secretflow environment [Alice, Bob, Charlie] "
-"Where 'Alice' and 'Bob' are clients, and ``Charlie`` is the server,then "
+"Where ‘Alice’ and ‘Bob’ are clients, and ``Charlie`` is the server,then "
 "you can happily start ``Federate Boosting``."
 msgstr ""
 "在 Secretflow 环境中创建 3 个实体 [Alice, Bob, "
@@ -128,29 +128,29 @@ msgstr "准备数据"
 msgid "Prepare Params"
 msgstr "准备超参"
 
-#: ../../tutorial/Federated_Xgboost.ipynb:490
+#: ../../tutorial/Federated_Xgboost.ipynb:492
 msgid "Create SFXgboost"
 msgstr "创建SFXgboost"
 
-#: ../../tutorial/Federated_Xgboost.ipynb:513
+#: ../../tutorial/Federated_Xgboost.ipynb:516
 msgid "run SFXgboost"
 msgstr "运行SFXgboost"
 
-#: ../../tutorial/Federated_Xgboost.ipynb:728
+#: ../../tutorial/Federated_Xgboost.ipynb:732
 msgid ""
 "Now our Federated XGBoost training is complete, where the BST is the "
 "federated Boost object"
 msgstr "到这里我们的联邦XGBoost训练就已经完成，bst就是我们这里构建好的FedBoost对象"
 
-#: ../../tutorial/Federated_Xgboost.ipynb:740
+#: ../../tutorial/Federated_Xgboost.ipynb:744
 msgid "Conclusion"
 msgstr "总结"
 
-#: ../../tutorial/Federated_Xgboost.ipynb:742
+#: ../../tutorial/Federated_Xgboost.ipynb:746
 msgid "This tutorial introduces how to use tree models for training etc"
 msgstr "本教程介绍如何使用树模型进行训练等"
 
-#: ../../tutorial/Federated_Xgboost.ipynb:743
+#: ../../tutorial/Federated_Xgboost.ipynb:747
 msgid ""
 "SFXgboost encapsulates the logic of the federated subtree model. "
 "Sfxgboost trained models remain compatible with XGBoost, and we can "
@@ -159,7 +159,7 @@ msgstr ""
 "SFXgboost 封装了联邦子树模型的建树逻辑。经过 SFXgboost 训练的模型仍然与 XGBoost "
 "兼容，我们可以直接使用现有的基础设施进行在线预测等。"
 
-#: ../../tutorial/Federated_Xgboost.ipynb:744
+#: ../../tutorial/Federated_Xgboost.ipynb:748
 msgid ""
 "Next, you can try SFXgboost on your data, just need to follow this "
 "tutorial"

@@ -13,27 +13,26 @@
 # limitations under the License.
 
 
+import math
+
 import numpy as np
 import pandas as pd
-import math
-from secretflow.ml.linear import LinearModel, RegType, SSRegression
-from secretflow.data.vertical import VDataFrame
+import scipy.stats as stat
 import statsmodels.api as sm
+from sklearn import linear_model
 from sklearn.preprocessing import StandardScaler
-from secretflow.utils.sigmoid import SigType
 
-from secretflow.stats import SSPValue
 from secretflow.data.base import Partition
-
-from tests.basecase import DeviceTestCase
-
+from secretflow.data.vertical import VDataFrame
+from secretflow.ml.linear import LinearModel, RegType, SSRegression
+from secretflow.stats import SSPValue
+from secretflow.utils.sigmoid import SigType
 from secretflow.utils.simulation.datasets import dataset
 
-from sklearn import linear_model
-import scipy.stats as stat
+from tests.basecase import MultiDriverDeviceTestCase
 
 
-class TestVertPvalue(DeviceTestCase):
+class TestVertPvalue(MultiDriverDeviceTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()

@@ -6,10 +6,10 @@ from secretflow.data.base import Partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.utils.errors import NotFoundError
 
-from tests.basecase import DeviceTestCase
+from tests.basecase import MultiDriverDeviceTestCase
 
 
-class TestVDataFrame(DeviceTestCase):
+class TestVDataFrame(MultiDriverDeviceTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()

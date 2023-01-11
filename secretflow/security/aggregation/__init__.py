@@ -14,12 +14,14 @@
 
 from .aggregator import Aggregator
 from .plain_aggregator import PlainAggregator
-from .spu_aggregator import SPUAggregator
 from .secure_aggregator import SecureAggregator
+from .sparse_plain_aggregator import SparsePlainAggregator
+from .spu_aggregator import SPUAggregator
 
 __all__ = [
     'Aggregator',
     'SecureAggregator',
     'PlainAggregator',
     'SPUAggregator',
+    'SparsePlainAggregator',
 ]

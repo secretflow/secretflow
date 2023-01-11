@@ -18,28 +18,30 @@ import logging
 import os
 import shutil
 import struct
+import subprocess
 import sys
 import time
-import threading
 import uuid
 from dataclasses import dataclass
 from enum import Enum, unique
 from typing import Any, Callable, Dict, Iterable, List, Sequence, Tuple, Union
 
+import fed
 import jax
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 import ray
 import spu
-import spu.binding._lib.libs as spu_libs
 import spu.binding._lib.link as spu_link
+import spu.binding._lib.logging as spu_logging
 import spu.binding.util.frontend as spu_fe
 from google.protobuf import json_format
-from spu.binding.util.distributed import dtype_spu_to_np, shape_spu_to_np
-from spu import psi
 from heu import phe
+from spu import psi, spu_pb2
+from spu.binding.util.distributed import dtype_spu_to_np, shape_spu_to_np
 
+import secretflow.distributed as sfd
 from secretflow.utils.errors import InvalidArgumentError
 from secretflow.utils.ndarray_bigint import BigintNdArray
 
@@ -103,13 +105,18 @@ class SPUValueMeta:
     dtype: np.dtype
     vtype: spu.Visibility
 
+    # the following meta ensures SPU object could be consumed by SPU device.
+    protocol: spu_pb2.ProtocolKind
+    field: spu_pb2.FieldType
+    fxp_fraction_bits: int
+
 
 class SPUObject(DeviceObject):
     def __init__(
         self,
         device: Device,
-        meta: ray.ObjectRef,
-        shares: Sequence[ray.ObjectRef],
+        meta: Union[ray.ObjectRef, fed.FedObject],
+        shares_name: Sequence[Union[ray.ObjectRef, fed.FedObject]],
     ):
         """SPUObject refers to a Python Object which could be flattened to a
         list of SPU Values. A SPU value is a Numpy array or equivalent.
@@ -135,7 +142,19 @@ class SPUObject(DeviceObject):
         """
         super().__init__(device)
         self.meta = meta
-        self.shares = shares
+        self.shares_name = shares_name
+
+    def __del__(self):
+        if hasattr(self, "shares_name"):
+            assert len(self.shares_name) == len(self.device.actors)
+            for i, actor in enumerate(self.device.actors.values()):
+                try:
+                    actor.del_share.remote(self.shares_name[i])
+                except TypeError:
+                    # Python doesn't make any guarantees about when __del__ is called,
+                    # actor may not exist, been GCed before this function called.
+                    # This may happened when Host(Driver) progress exit.
+                    pass
 
 
 class SPUIO:
@@ -165,7 +184,16 @@ class SPUIO:
         flatten_meta = []
         for val in flatten_value:
             val = _plaintext_to_numpy(val)
-            flatten_meta.append(SPUValueMeta(val.shape, val.dtype, vtype))
+            flatten_meta.append(
+                SPUValueMeta(
+                    val.shape,
+                    val.dtype,
+                    vtype,
+                    self.runtime_config.protocol,
+                    self.runtime_config.field,
+                    self.runtime_config.fxp_fraction_bits,
+                )
+            )
             flatten_shares.append(self.io.make_shares(val, vtype))
 
         return jax.tree_util.tree_unflatten(tree, flatten_meta), *[  # noqa e999
@@ -173,16 +201,23 @@ class SPUIO:
             for shares in list(zip(*flatten_shares))
         ]
 
-    def reconstruct(self, shares: List[Any]) -> Any:
+    def reconstruct(self, shares: List[Any], meta: Any = None) -> Any:
         """Convert shares of a SPUObject to the origin Python object.
 
         Args:
-            shares (List[Any]): Shares
+            shares (List[Any]): Shares of a SPUObject
+            meta (Any): Meta of a SPUObject. If not provided, sanity check would be skipped.
 
         Returns:
             Any: the origin Python object.
         """
         assert len(shares) == self.world_size
+        if meta:
+            flatten_metas, _ = jax.tree_util.tree_flatten(meta)
+            for m in flatten_metas:
+                assert m.protocol == self.runtime_config.protocol
+                assert m.field == self.runtime_config.field
+                assert m.fxp_fraction_bits == self.runtime_config.fxp_fraction_bits
         _, tree = jax.tree_util.tree_flatten(shares[0])
         flatten_shares = []
         for share in shares:
@@ -211,16 +246,24 @@ class SPUCompilerNumReturnsPolicy(Enum):
     """
 
 
-@ray.remote
 class SPURuntime:
-    def __init__(self, rank: int, cluster_def: Dict, link_desc: Dict = None):
+    def __init__(
+        self,
+        rank: int,
+        cluster_def: Dict,
+        link_desc: Dict = None,
+        log_options: spu_logging.LogOptions = spu_logging.LogOptions(),
+    ):
         """wrapper of spu.Runtime.
 
         Args:
             rank (int): rank of runtime
             cluster_def (Dict): config of spu cluster
             link_desc (Dict, optional): link config. Defaults to None.
+            log_options (spu_logging.LogOptions, optional): spu log options.
         """
+        spu_logging.setup_logging(log_options)
+
         self.rank = rank
         self.cluster_def = cluster_def
 
@@ -237,6 +280,35 @@ class SPURuntime:
             json.dumps(cluster_def['runtime_config']), spu.RuntimeConfig()
         )
         self.runtime = spu.Runtime(self.link, self.conf)
+        self.share_seq_id = 0
+
+    def get_new_share_name(self) -> str:
+        self.share_seq_id += 1
+        return f"{self.share_seq_id}"
+
+    def infeed_share(self, val: Any) -> Any:
+        flatten_val, flatten_tree = jax.tree_util.tree_flatten(val)
+        shares_name = []
+        for share in flatten_val:
+            name = self.get_new_share_name()
+            self.runtime.set_var(name, share)
+            shares_name.append(name)
+
+        return jax.tree_util.tree_unflatten(flatten_tree, shares_name)
+
+    def outfeed_share(self, val: Any) -> Any:
+        flatten_names, flatten_tree = jax.tree_util.tree_flatten(val)
+        shares = []
+        for name in flatten_names:
+            shares.append(self.runtime.get_var(name))
+
+        return jax.tree_util.tree_unflatten(flatten_tree, shares)
+
+    def del_share(self, val: Any):
+        flatten_names, _ = jax.tree_util.tree_flatten(val)
+        for name in flatten_names:
+            assert isinstance(name, str)
+            self.runtime.del_var(name)
 
     def run(
         self,
@@ -256,43 +328,50 @@ class SPURuntime:
             List: first parts are output vars following the exec.output_names. The last item is metadata.
         """
 
-        flatten_val, _ = jax.tree_util.tree_flatten(val)
+        flatten_names, _ = jax.tree_util.tree_flatten(val)
+        assert len(executable.input_names) == len(flatten_names)
 
-        for name, x in zip(executable.input_names, flatten_val):
-            self.runtime.set_var(name, x)
+        executable.input_names[:] = flatten_names
+
+        output_names = []
+        for _ in range(len(executable.output_names)):
+            output_names.append(self.get_new_share_name())
+
+        executable.output_names[:] = output_names
 
         self.runtime.run(executable)
 
-        outputs = []
         metadata = []
-        for name in executable.output_names:
-            var = self.runtime.get_var(name)
-            outputs.append(var)
+        for name in output_names:
+            meta = self.runtime.get_var_meta(name)
             metadata.append(
                 SPUValueMeta(
-                    shape_spu_to_np(var.shape),
-                    dtype_spu_to_np(var.data_type),
-                    var.visibility,
+                    shape_spu_to_np(meta.shape),
+                    dtype_spu_to_np(meta.data_type),
+                    meta.visibility,
+                    self.conf.protocol,
+                    self.conf.field,
+                    self.conf.fxp_fraction_bits,
                 )
             )
-            self.runtime.del_var(name)
-
-        for name in executable.input_names:
-            self.runtime.del_var(name)
 
         if num_returns_policy == SPUCompilerNumReturnsPolicy.SINGLE:
             _, out_tree = jax.tree_util.tree_flatten(out_shape)
             return jax.tree_util.tree_unflatten(
                 out_tree, metadata
-            ), jax.tree_util.tree_unflatten(out_tree, outputs)
+            ), jax.tree_util.tree_unflatten(out_tree, output_names)
         elif num_returns_policy == SPUCompilerNumReturnsPolicy.FROM_COMPILER:
-            return metadata + outputs
+            return metadata + output_names
         elif num_returns_policy == SPUCompilerNumReturnsPolicy.FROM_USER:
             _, out_tree = jax.tree_util.tree_flatten(out_shape)
             single_meta, single_share = jax.tree_util.tree_unflatten(
                 out_tree, metadata
-            ), jax.tree_util.tree_unflatten(out_tree, outputs)
-            return *(list(single_meta)), *(list(single_share))
+            ), jax.tree_util.tree_unflatten(out_tree, output_names)
+
+            if hasattr(single_meta, '__iter__'):
+                return *(single_meta), *(single_share)
+            else:
+                return single_meta, single_share
         else:
             raise ValueError('unsupported SPUCompilerNumReturnsPolicy.')
 
@@ -307,6 +386,14 @@ class SPURuntime:
         Returns:
             np.ndarray: Array of `phe.Plaintext`.
         """
+
+        def _bytes_to_pb(msg: bytes) -> spu_pb2.ValueProto:
+            ret = spu_pb2.ValueProto()
+            ret.ParseFromString(msg)
+            return ret
+
+        # TODO: avoid der ValueProto in python
+        value = _bytes_to_pb(value)
         expect_st = f"semi2k.AShr<{spu.spu_pb2.FieldType.Name(self.conf.field)}>"
         assert (
             value.storage_type == expect_st
@@ -344,6 +431,9 @@ class SPURuntime:
         broadcast_result=True,
         bucket_size=1 << 20,
         curve_type="CURVE_25519",
+        preprocess_path=None,
+        ecdh_secret_key_path=None,
+        ic_mode: bool = False,
     ):
         """Private set intersection with DataFrame.
 
@@ -357,6 +447,7 @@ class SPURuntime:
             broadcast_result (bool): Whether to broadcast joined data to all parties.
             bucket_size (int): Specified the hash bucket size used in psi. Larger values consume more memory.
             curve_type (str): curve for ecdh psi
+            ic_mode (bool): Whether to run psi in interconnection mode
 
         Returns:
             pd.DataFrame or None: joined DataFrame.
@@ -382,6 +473,9 @@ class SPURuntime:
                 broadcast_result,
                 bucket_size,
                 curve_type,
+                preprocess_path,
+                ecdh_secret_key_path,
+                ic_mode,
             )
 
             if report['intersection_count'] == -1:
@@ -405,6 +499,9 @@ class SPURuntime:
         broadcast_result=True,
         bucket_size=1 << 20,
         curve_type="CURVE_25519",
+        preprocess_path=None,
+        ecdh_secret_key_path=None,
+        ic_mode: bool = False,
     ):
         """Private set intersection with csv file.
 
@@ -421,6 +518,9 @@ class SPURuntime:
             output_path: Joined csv file, comma seperated and contains header.
             receiver (str): Which party can get joined data.
                 Others won't generate output file and `intersection_count` get `-1`.
+                for unbalanced PSI, receiver is client(small dataset party)
+                unbalanced PSI offline phase, receiver(client) get preprocess_path data
+                unbalanced PSI online phase, receiver(client) get psi result
             protocol (str): PSI protocol.
             precheck_input (bool): Whether to check input data before join.
             sort (bool): Whether sort data by key after join.
@@ -428,6 +528,7 @@ class SPURuntime:
             bucket_size (int): Specified the hash bucket size used in psi.
             Larger values consume more memory.
             curve_type (str): curve for ecdh psi
+            ic_mode (bool): Whether to run psi in interconnection mode
 
         Returns:
             Dict: PSI report output by SPU.
@@ -453,7 +554,27 @@ class SPURuntime:
             curve_type=curve_type,
             bucket_size=bucket_size,
         )
-        report = psi.bucket_psi(self.link, config)
+
+        if (
+            protocol == "ECDH_OPRF_UNBALANCED_PSI_2PC_OFFLINE"
+            or protocol == "ECDH_OPRF_UNBALANCED_PSI_2PC_ONLINE"
+        ):
+            assert (
+                self.link.world_size == 2
+            ), f'invalid world_size for {self.link.world_size}'
+
+            assert isinstance(
+                preprocess_path, str
+            ), f'invalid preprocess_path for {protocol}'
+            config.preprocess_path = preprocess_path
+
+            if receiver_rank != self.link.rank:
+                assert isinstance(
+                    ecdh_secret_key_path, str
+                ), f'invalid ecdh_secret_key for {protocol}'
+                config.ecdh_secret_key_path = ecdh_secret_key_path
+
+        report = psi.bucket_psi(self.link, config, ic_mode)
 
         party = self.cluster_def['nodes'][self.rank]['party']
         return {
@@ -472,6 +593,7 @@ class SPURuntime:
         precheck_input=True,
         bucket_size=1 << 20,
         curve_type="CURVE_25519",
+        ic_mode: bool = False,
     ):
         """Private set intersection with DataFrame.
 
@@ -488,6 +610,7 @@ class SPURuntime:
             precheck_input (bool): Whether to check input data before join.
             bucket_size (int): Specified the hash bucket size used in psi. Larger values consume more memory.
             curve_type (str): curve for ecdh psi
+            ic_mode (bool): Whether to run psi in interconnection mode
 
         Returns:
             pd.DataFrame or None: joined DataFrame.
@@ -512,6 +635,7 @@ class SPURuntime:
                 precheck_input,
                 bucket_size,
                 curve_type,
+                ic_mode,
             )
 
             if report['intersection_count'] == -1:
@@ -534,6 +658,7 @@ class SPURuntime:
         precheck_input=True,
         bucket_size=1 << 20,
         curve_type="CURVE_25519",
+        ic_mode: bool = False,
     ):
         """Private set intersection with csv file.
 
@@ -554,6 +679,7 @@ class SPURuntime:
             precheck_input (bool): Whether to check input data before join.
             bucket_size (int): Specified the hash bucket size used in psi. Larger values consume more memory.
             curve_type (str): curve for ecdh psi
+            ic_mode (bool): Whether to run psi in interconnection mode
 
         Returns:
             Dict: PSI report output by SPU.
@@ -571,12 +697,13 @@ class SPURuntime:
         # save key dataframe to temp file for streaming psi
         data_dir = f'.data/{self.rank}-{uuid.uuid4()}'
         os.makedirs(data_dir, exist_ok=True)
-        input_path1, output_path1, output_path2 = (
+        input_path1, output_psi, output_peer, output_notsort = (
             f'{data_dir}/psi-input.csv',
-            f'{data_dir}/psi-output.csv',
-            f'{data_dir}/psi-output2.csv',
+            f'{data_dir}/psi-output-join.csv',
+            f'{data_dir}/psi-output-peer.csv',
+            f'{data_dir}/psi-output-nosort.csv',
         )
-        origin_table = pd.read_csv(input_path)
+        origin_table = pd.read_csv(input_path, usecols=key)
         table_nodup = origin_table.drop_duplicates(subset=key)
 
         table_nodup[key].to_csv(input_path1, index=False)
@@ -599,13 +726,13 @@ class SPURuntime:
             input_params=psi.InputParams(
                 path=input_path1, select_fields=key, precheck=precheck_input
             ),
-            output_params=psi.OuputParams(path=output_path1, need_sort=sort),
+            output_params=psi.OuputParams(path=output_psi, need_sort=sort),
             curve_type=curve_type,
             bucket_size=bucket_size,
         )
-        report = psi.bucket_psi(self.link, config)
+        report = psi.bucket_psi(self.link, config, ic_mode)
 
-        df_psi_out = pd.read_csv(output_path1)
+        df_psi_out = pd.read_csv(output_psi)
 
         join_rank = -1
         for i, node in enumerate(self.cluster_def['nodes']):
@@ -621,14 +748,14 @@ class SPURuntime:
         df_psi_join = origin_table.join(
             df_psi_out.set_index(key), on=key, how='inner', sort="False"
         )
-        df_psi_join[key].to_csv(output_path1, index=False)
+        df_psi_join[key].to_csv(output_psi, index=False)
 
-        in_file_stats = os.stat(output_path1)
+        in_file_stats = os.stat(output_psi)
         in_file_bytes = in_file_stats.st_size
 
         # TODO: better try RAII style
-        in_file = open(output_path1, "rb")
-        out_file = open(output_path2, "wb")
+        in_file = open(output_psi, "rb")
+        out_file = open(output_peer, "wb")
 
         def send_proc():
             max_read_bytes = 20480
@@ -679,27 +806,49 @@ class SPURuntime:
         in_file.close()
         out_file.close()
 
-        out_file_stats = os.stat(output_path2)
+        out_file_stats = os.stat(output_peer)
         out_file_bytes = out_file_stats.st_size
+
+        table_head = pd.read_csv(input_path, nrows=0)
+        table_head.to_csv(output_path, index=False)
+        table_head.to_csv(output_notsort, index=False)
+        table_columns = table_head.columns.str.replace(' ', '')
 
         # check psi result file size
         if out_file_bytes > 0:
-            peer_psi = pd.read_csv(output_path2)
+            peer_psi = pd.read_csv(output_peer)
             peer_psi.columns = key
 
-            if self_join:
-                df_psi_join = origin_table.join(
-                    peer_psi.set_index(key), on=key, how='inner', sort="True"
-                )
-            else:
-                df_psi_join = peer_psi.join(
-                    origin_table.set_index(key), on=key, how='inner', sort="True"
-                )
-        else:
-            df_psi_join = pd.DataFrame(columns=key)
+            join_count = 0
+            chunk_size = 100000
+            reader = pd.read_csv(input_path, chunksize=chunk_size)
+            for chunk in reader:
+                if self_join:
+                    chunk_join = chunk.join(
+                        peer_psi.set_index(key), on=key, how='inner', sort="True"
+                    )
+                else:
+                    chunk_join = peer_psi.join(
+                        chunk.set_index(key), on=key, how='inner', sort="True"
+                    )
+                join_count = join_count + chunk_join.shape[0]
+                chunk_join.to_csv(output_notsort, mode="a", index=False, header=False)
 
-        join_count = df_psi_join.shape[0]
-        df_psi_join.to_csv(output_path, index=False)
+        logging.warning(
+            f"intersection_count:{report.intersection_count} join_count:{join_count}"
+        )
+
+        idlist = []
+        for ele in key:
+            pos_str = str(table_columns.get_loc(ele) + 1)
+            idlist.append(f"--key={pos_str},{pos_str}")
+        idstr = ' '.join(idlist)
+        sort_cmd = f'tail -n +2 {output_notsort} | LC_ALL=C sort --buffer-size=2G --parallel=8 --temporary-directory=./ --stable --field-separator=, {idstr} >>{output_path}'
+        logging.info(f"sort_cmd:{sort_cmd}")
+        sp_ret = subprocess.run(sort_cmd, shell=True)
+        assert (
+            sp_ret.returncode == 0
+        ), f"sort cmd failed, return {sp_ret.returncode}, expected 0"
 
         # delete tmp data dir
         shutil.rmtree(data_dir, ignore_errors=True)
@@ -736,7 +885,6 @@ def _generate_output_uuid(name):
     return f'{name}-output-{uuid.uuid4()}'
 
 
-@ray.remote(num_returns=2)
 def _spu_compile(spu_name, fn, *meta_args, **meta_kwargs):
     meta_args, meta_kwargs = jax.tree_util.tree_map(
         lambda x: ray.get(x) if isinstance(x, ray.ObjectRef) else x,
@@ -772,12 +920,18 @@ def _spu_compile(spu_name, fn, *meta_args, **meta_kwargs):
 
 
 class SPU(Device):
-    def __init__(self, cluster_def: Dict, link_desc: Dict = None, name: str = 'SPU'):
+    def __init__(
+        self,
+        cluster_def: Dict,
+        link_desc: Dict = None,
+        name: str = 'SPU',
+        log_options: spu_logging.LogOptions = spu_logging.LogOptions(),
+    ):
         """SPU device constructor.
 
         Args:
             cluster_def: SPU cluster definition. More details refer to
-                `SPU runtime config <https://spu.readthedocs.io/en/beta/reference/runtime_config.html>`_.
+                `SPU runtime config <https://www.secretflow.org.cn/docs/spu/en/reference/runtime_config.html>`_.
 
                 For example
 
@@ -824,10 +978,12 @@ class SPU(Device):
                     7. brpc_channel_protocol refer to `https://github.com/apache/incubator-brpc/blob/master/docs/en/client.md#protocols`
 
                     8. brpc_channel_connection_type refer to `https://github.com/apache/incubator-brpc/blob/master/docs/en/client.md#connection-type`
+            log_options: optional. options of spu logging.
         """
         super().__init__(DeviceType.SPU)
         self.cluster_def = cluster_def
         self.link_desc = link_desc
+        self.log_options = log_options
         self.conf = json_format.Parse(
             json.dumps(cluster_def['runtime_config']), spu.RuntimeConfig()
         )
@@ -841,16 +997,21 @@ class SPU(Device):
     def init(self):
         """Init SPU runtime in each party"""
         for rank, node in enumerate(self.cluster_def['nodes']):
-            self.actors[node['party']] = SPURuntime.options(
-                resources={node['party']: 1}
-            ).remote(rank, self.cluster_def, self.link_desc)
+            self.actors[node['party']] = (
+                sfd.remote(SPURuntime)
+                .party(node['party'])
+                .remote(rank, self.cluster_def, self.link_desc, self.log_options)
+            )
 
     def reset(self):
         """Reset spu to clear corrupted internal state, for test only"""
-        for actor in self.actors.values():
-            ray.kill(actor)
+        self.shutdown()
         time.sleep(0.5)
         self.init()
+
+    def shutdown(self):
+        for actor in self.actors.values():
+            sfd.kill(actor)
 
     def _place_arguments(self, *args, **kwargs):
         def place(obj):
@@ -860,7 +1021,12 @@ class SPU(Device):
                 # if obj is not a DeviceObject, it should be a plaintext from
                 # host program, so it's safe to mark it as VIS_PUBLIC.
                 meta, *refs = self.io.make_shares(obj, spu.Visibility.VIS_PUBLIC)
-                return SPUObject(self, meta, refs)
+
+                shares_name = []
+                for i, actor in enumerate(self.actors.values()):
+                    shares_name.append(actor.infeed_share.remote(refs[i]))
+
+                return SPUObject(self, meta, shares_name)
 
         return jax.tree_util.tree_map(place, (args, kwargs))
 
@@ -888,9 +1054,12 @@ class SPU(Device):
 
             # it's ok to choose any party to compile,
             # here we choose party 0.
-            executable, out_shape = _spu_compile.options(
-                resources={self.cluster_def['nodes'][0]['party']: 1}
-            ).remote(self.name, fn, *meta_args, **meta_kwargs)
+            executable, out_shape = (
+                sfd.remote(_spu_compile)
+                .party(self.cluster_def['nodes'][0]['party'])
+                .options(num_returns=2)
+                .remote(self.name, fn, *meta_args, **meta_kwargs)
+            )
 
             if num_returns_policy == SPUCompilerNumReturnsPolicy.FROM_COMPILER:
                 # Since user choose to use num of returns from compiler result,
@@ -898,7 +1067,7 @@ class SPU(Device):
                 # Performance may hurt here.
                 # However, since we only expose executable here, it's still
                 # safe.
-                executable, out_shape = ray.get([executable, out_shape])
+                executable, out_shape = sfd.get([executable, out_shape])
                 num_returns = len(executable.output_names)
 
             if num_returns_policy == SPUCompilerNumReturnsPolicy.SINGLE:
@@ -909,7 +1078,7 @@ class SPU(Device):
             for i, actor in enumerate(self.actors.values()):
 
                 (actor_args, actor_kwargs) = jax.tree_util.tree_map(
-                    lambda x: x.shares[i], (args, kwargs)
+                    lambda x: x.shares_name[i], (args, kwargs)
                 )
 
                 val, _ = jax.tree_util.tree_flatten((actor_args, actor_kwargs))
@@ -933,12 +1102,37 @@ class SPU(Device):
                 ]
 
                 if num_returns_policy == SPUCompilerNumReturnsPolicy.FROM_USER:
-                    return all_atomic_spu_objects
+                    if len(all_atomic_spu_objects) == 1:
+                        return all_atomic_spu_objects[0]
+                    else:
+                        return all_atomic_spu_objects
 
                 _, out_tree = jax.tree_util.tree_flatten(out_shape)
                 return jax.tree_util.tree_unflatten(out_tree, all_atomic_spu_objects)
 
         return wrapper
+
+    def infeed_shares(
+        self, shares: List[Union[ray.ObjectRef, fed.FedObject]]
+    ) -> List[Union[ray.ObjectRef, fed.FedObject]]:
+        assert len(shares) == len(self.actors)
+
+        ret = []
+        for i, actor in enumerate(self.actors.values()):
+            ret.append(actor.infeed_share.remote(shares[i]))
+
+        return ret
+
+    def outfeed_shares(
+        self, shares_name: List[Union[ray.ObjectRef, fed.FedObject]]
+    ) -> List[Union[ray.ObjectRef, fed.FedObject]]:
+        assert len(shares_name) == len(self.actors)
+
+        ret = []
+        for i, actor in enumerate(self.actors.values()):
+            ret.append(actor.outfeed_share.remote(shares_name[i]))
+
+        return ret
 
     def psi_df(
         self,
@@ -951,6 +1145,8 @@ class SPU(Device):
         broadcast_result=True,
         bucket_size=1 << 20,
         curve_type="CURVE_25519",
+        preprocess_path=None,
+        ecdh_secret_key_path=None,
     ):
         """Private set intersection with DataFrame.
 
@@ -965,7 +1161,9 @@ class SPU(Device):
             broadcast_result (bool): Whether to broadcast joined data to all parties.
             bucket_size (int): Specified the hash bucket size used in psi.
             Larger values consume more memory.
-            curve_type (str): curve for ecdh psi
+            curve_type (str): curve for ecdh psi.
+            preprocess_path (str): preprocess file path for unbalanced psi.
+            ecdh_secret_key_path (str): ecdh_oprf secretkey file path, binary format, 32B, for unbalanced psi.
 
         Returns:
             List[PYUObject]: Joined DataFrames with order reserved.
@@ -982,6 +1180,8 @@ class SPU(Device):
             broadcast_result,
             bucket_size,
             curve_type,
+            preprocess_path,
+            ecdh_secret_key_path,
         )
 
     def psi_csv(
@@ -996,6 +1196,8 @@ class SPU(Device):
         broadcast_result=True,
         bucket_size=1 << 20,
         curve_type="CURVE_25519",
+        preprocess_path=None,
+        ecdh_secret_key_path=None,
     ):
         """Private set intersection with csv file.
 
@@ -1012,6 +1214,9 @@ class SPU(Device):
             broadcast_result (bool): Whether broadcast joined data to all parties.
             bucket_size (int): Specified the hash bucket size used in psi.
             Larger values consume more memory.
+            curve_type (str): curve for ecdh psi.
+            preprocess_path (str): preprocess file path for unbalanced psi.
+            ecdh_secret_key_path (str): ecdh_oprf secretkey file path, binary format, 32B.
 
         Returns:
             List[Dict]: PSI reports output by SPU with order reserved.
@@ -1030,6 +1235,8 @@ class SPU(Device):
             broadcast_result,
             bucket_size,
             curve_type,
+            preprocess_path,
+            ecdh_secret_key_path,
         )
 
     def psi_join_df(

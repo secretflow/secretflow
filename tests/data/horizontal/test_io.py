@@ -6,10 +6,10 @@ import pandas as pd
 from secretflow import reveal
 from secretflow.data.base import Partition
 from secretflow.data.horizontal import HDataFrame, read_csv, to_csv
-from tests.basecase import DeviceTestCase
+from tests.basecase import MultiDriverDeviceTestCase
 
 
-class TestHDataFrameIO(DeviceTestCase):
+class TestHDataFrameIO(MultiDriverDeviceTestCase):
     @staticmethod
     def cleartmp(paths):
         for path in paths:

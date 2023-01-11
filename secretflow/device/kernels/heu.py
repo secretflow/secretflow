@@ -13,19 +13,10 @@
 # limitations under the License.
 
 from heu import numpy as hnp
+from spu import spu_pb2
 
-from secretflow.device import (
-    HEU,
-    PYU,
-    SPU,
-    Device,
-    DeviceObject,
-    DeviceType,
-    HEUObject,
-    PYUObject,
-    SPUObject,
-    register,
-)
+from secretflow.device import (HEU, PYU, SPU, Device, DeviceObject, DeviceType,
+                               HEUObject, PYUObject, SPUObject, register)
 from secretflow.device.device.base import MoveConfig
 
 
@@ -60,10 +51,19 @@ def heu_to_spu(self: HEUObject, spu: SPU):
 
     evaluator_parties = [ev for ev in heu.evaluator_names() if ev in spu.actors.keys()]
 
+    # protocol is restricted to SEMI2K.
+    assert spu.conf.protocol == spu_pb2.SEMI2K
+
     res = (
         heu.get_participant(self.location)
         .h2a_make_share.options(num_returns=len(evaluator_parties) + 2)
-        .remote(self.data, evaluator_parties, spu.conf.field)
+        .remote(
+            self.data,
+            evaluator_parties,
+            spu.conf.protocol,
+            spu.conf.field,
+            0,
+        )
     )
 
     meta, sk_keeper_data, refs = (
@@ -90,7 +90,7 @@ def heu_to_spu(self: HEUObject, spu: SPU):
 
     refs.insert(spu_actor_idx_for_keeper, sk_keeper_data)
 
-    return SPUObject(spu, meta, refs)
+    return SPUObject(spu, meta, spu.infeed_shares(refs))
 
 
 # Data flows inside the HEU, across network

@@ -5,10 +5,44 @@ import numpy as np
 
 import secretflow as sf
 from secretflow.device.device.spu import SPUCompilerNumReturnsPolicy
-from tests.basecase import DeviceTestCase
+
+from tests.basecase import MultiDriverDeviceTestCase, SingleDriverDeviceTestCase
 
 
-class TestDeviceSPUKernel(DeviceTestCase):
+class TestDeviceSPUKernel(SingleDriverDeviceTestCase, MultiDriverDeviceTestCase):
+    def test_single_return(self):
+        def add(x, y):
+            return jnp.add(x, y)
+
+        x, y = self.alice(np.random.rand)(3, 4), self.alice(np.random.rand)(3, 4)
+        x_, y_ = x.to(self.spu), y.to(self.spu)
+        z_ = self.spu(
+            add,
+            num_returns_policy=sf.device.SPUCompilerNumReturnsPolicy.FROM_USER,
+            user_specified_num_returns=1,
+        )(x_, y_)
+
+        np.testing.assert_almost_equal(
+            (sf.reveal(x) + sf.reveal(y)), sf.reveal(z_), decimal=6
+        )
+
+        z_1 = self.spu(
+            add,
+            num_returns_policy=sf.device.SPUCompilerNumReturnsPolicy.FROM_COMPILER,
+        )(x_, y_)
+
+        np.testing.assert_almost_equal(sf.reveal(z_), sf.reveal(z_1), decimal=6)
+
+        np.testing.assert_almost_equal(
+            (sf.reveal(x) + sf.reveal(y)), sf.reveal(z_1), decimal=6
+        )
+
+        z_2 = self.spu(add)(x_, y_)
+
+        np.testing.assert_almost_equal(
+            (sf.reveal(x) + sf.reveal(y)), sf.reveal(z_2), decimal=6
+        )
+
     def test_multiple_return(self):
         def foo(x, y) -> Tuple[int, int]:
             return x, y
@@ -139,15 +173,12 @@ class TestDeviceSPUKernel(DeviceTestCase):
         def func(x, axis):
             return jnp.split(x, 2, axis)
 
-        x = np.arange(10)
-        x_ = sf.to(self.spu, x)
+        x = self.alice(lambda: np.arange(10))()
+        x_ = x.to(self.spu)
 
-        # with self.assertRaises(jax.errors.ConcretizationTypeError):
-        #    self.spu(func)(x_, 0)
-
-        y = func(x, 0)
+        y = self.alice(func)(x, 0)
         y_ = self.spu(func, static_argnames='axis')(x_, axis=0)
-        np.testing.assert_almost_equal(y, sf.reveal(y_), decimal=6)
+        np.testing.assert_almost_equal(sf.reveal(y), sf.reveal(y_), decimal=6)
 
         def init_w(base: float, num_feat: int) -> np.ndarray:
             # last one is bias
@@ -159,10 +190,7 @@ class TestDeviceSPUKernel(DeviceTestCase):
         print(sf.reveal(spu_w))
 
 
-class Test3PCSPUKernel(DeviceTestCase):
-    def setUp(self) -> None:
-        self.spu = sf.SPU(sf.utils.testing.cluster_def(['alice', 'bob', 'carol']))
-
+class Test3PCSPUKernel(MultiDriverDeviceTestCase):
     def test_matmul(self):
         # PYU
         x = self.alice(np.random.rand)(3, 4)

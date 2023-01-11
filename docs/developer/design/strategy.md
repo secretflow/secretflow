@@ -74,7 +74,7 @@ Define strategy tensor compression algorithms to speed up transmission.
 Add the strategy short name you need compress on downlink stage to COMPRESS_STRATEGY, and FLModel will control whether to perform compression when downlinking to the client after aggregation.
 Client-to-server upstream stage compression can be done in your local training strategy.
 ```python
-COMPRESS_STRATEGY = ["fed_stc"]
+COMPRESS_STRATEGY = ("fed_stc", "fed_scr")
 
 
 def stc_compress(compressor, server_weights, agg_updates, res):

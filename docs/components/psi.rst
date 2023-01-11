@@ -6,7 +6,8 @@ SecretFlow SPU implements the following PSI protocols,
 - Semi-honest ECDH-based two-party PSI protocol [HFH99]_
 - Semi-honest ECDH-based three-party PSI protocol
 - Semi-honest OT-based two-party PSI protocol [KKRT16]_
-- Semi-honest OT-based two-party PSI protocol (with improved communication efficiency) [BC22]_
+- Semi-honest PCG/VOLE-based two-party PSI protocol (with improved communication efficiency) [BC22]_
+- Semi-honest EC-OPRF based two-party Unbalanced PSI protocol
 
 
 As a general rule, OT-based PSI protocols are (significantly) faster but require more communication 
@@ -38,21 +39,21 @@ Protocol:
 
 1. For each element :math:`x_i` in its set, Alice applies the hash function and then exponentiates it 
    using its key :math:`\alpha`, thus computing :math:`{H(x_i)}^\alpha` . Alice sends 
-   :math:`{\{H(x_i)\}^\alpha}_{i=1}^{n_1}` to Bob.
+   :math:`{\{\,{H(x_i)}^\alpha\}\,}_{i=1}^{n_1}` to Bob.
 
 2. For each element :math:`{H(x_i)}^\alpha`  received from Alice in the previous step, Bob exponentiates 
    it using its key :math:`\beta`, computing :math:`{H(x_i)}^{\alpha\beta}`. 
-   Bob sends :math:`{\{\{H(x_i)\}^{\alpha\beta}\}}_{i=1}^{n_1}` to Alice.
+   Bob sends :math:`{\{\,{H(x_i)}^{\alpha\beta}\}\,}_{i=1}^{n_1}` to Alice.
 
 3. For each element :math:`y_i` in its set, Bob applies the hash function and then exponentiates it 
    using its key :math:`\beta`, thus computing :math:`{H(y_i)}^\beta` . 
-   Bob sends the set :math:`{\{H(y_i)\}^\beta}_{i=1}^{n_2}` to Alice.
+   Bob sends the set :math:`{\,{H(y_i)}^\beta}_{i=1}^{n_2}` to Alice.
 
 4. For each element :math:`{H(y_i)}^\beta`  received from Bob in the previous step, Alice exponentiates 
    it using its key :math:`\alpha`, computing :math:`{H(y_i)}^{\beta\alpha}` .   
 
-5. Alice compares two set :math:`{\{\{H(x_i)\}^{\alpha\beta}\}}_{i=1}^{n_1}` 
-   and :math:`{\{\{H(y_i)\}^{\beta\alpha}\}}_{i=1}^{n_2}` and gets intersection.
+5. Alice compares two set :math:`{\{\,{H(x_i)}^{\alpha\beta}\}\,}_{i=1}^{n_1}` 
+   and :math:`{\{\,{H(y_i)}^{\beta\alpha}\}\,}_{i=1}^{n_2}` and gets intersection.
 
 The Elliptic Curve groups, supported in secretflow SPU PSI moudule.
 
@@ -119,7 +120,7 @@ We use 3-way stash-less CuckooHash proposed in [PSZ18]_.
 
 Protocol:
 
-1. Sender and Receiver Agree on CuckooHash :math:`h_1,h_2,h_3: {\{0,1\}}^{*} \rightarrow [m]`
+1. Sender and Receiver Agree on CuckooHash :math:`h_1,h_2,h_3: {\{0,1\}\,}^{*} \rightarrow [m]`
 2. Receiver insert each x into bin :math:`h_1(x)`, :math:`h_2(x)` or :math:`h_3(x)`
 3. Sender insert each y into bin :math:`h_1(y)`, :math:`h_2(y)` and :math:`h_3(y)`
 4. Run BaRK-OPRF, Receiver get :math:`F_{s,k_i}(x)`,Sender get :math:`F_{s,k_i}(y)`, for :math:`bin_i`
@@ -147,7 +148,7 @@ and reduce 1/3 communication than [KKRT16]_.
 
 .. figure:: ./resources/pcg_psi.svg
 
-1. Sender and Receiver agree on :math:`(3,2)`-Generalized CuckooHash :math:`h_1,h_2: {\{0,1\}}^{*} \rightarrow [N]`
+1. Sender and Receiver agree on :math:`(3,2)`-Generalized CuckooHash :math:`h_1,h_2: {\{0,1\}\,}^{*} \rightarrow [N]`
 
 2. Receiver insert each x into bin :math:`h_1(x)` or :math:`h_2(x)`
 
@@ -158,9 +159,47 @@ and reduce 1/3 communication than [KKRT16]_.
 
 5. Receiver send Masked Bin Polynomial Coefficients to Sender, and receive BaRK-OPRF values
 
-6. Sender sends all BaRK-OPRF values for each :math:`{\{y_i\}}_{i=1}^{n_2}` to Receiver
+6. Sender sends all BaRK-OPRF values for each :math:`{\{y_i\}\,}_{i=1}^{n_2}` to Receiver
 
 7. Receiver compares two BaRK-OPRFs sets and gets intersection.
+
+Unbalanced PSI
+--------------
+
+Ecdh-OPRF based PSI
+>>>>>>>>>>>>>>>>>>>
+
+[RA18]_ section 3 introduce Basic Unbalanced PSI(Ecdh-OPRF based) protocol proposed in [BBCD+11]_ that relaxes 
+the security of the [JL10]_ to be secure against semi-honest adversaries. The protocol has two phases, the preprocessing phase and the online phase. The
+authors introduced many optimizations to push as much computation and communication cost to
+the preprocessing phase as possible
+
+An Oblivious Pseudorandom Function (OPRF) is a two-party protocol between client and server for computing the 
+output of a Pseudorandom Function (PRF). [draft-irtf-cfrg-voprf-10]_ specifies OPRF, VOPRF, and POPRF protocols 
+built upon prime-order groups.
+
+.. figure:: ./resources/ecdh_oprf_psi.png
+
+- Offline Phase
+  
+  1. For each element :math:`y_i` in its set, Bob applies PRF using 
+     private key :math:`\beta`, i.e. computing :math:`H_2(y_i,{H_1(y_i)}^\beta)` . 
+  
+  2. Bob sends :math:`{\,\{H_2(y_i,{H_1(y_i)}^\beta)\}\,}_{i=1}^{n_2}` to Alice in shuffled order
+   
+- Online Phase
+  
+  1. For each element :math:`x_i` in its set, Alice applies the hash function and then exponentiates 
+     it using its blind key :math:`r_i`, thus computing :math:`{H_1(x_i)}^{r_i}`. Alice sends 
+     :math:`{\,\{\,{H_1(x_i)}^{r_i}\,\}\,}_{i=1}^{n_1}` to Bob.
+  2. For each element :math:`H_1(x_i)^{r_i}` received from Alice in the previous step, Bob exponentiates 
+     it using its key :math:`\beta`, computing :math:`{H_1(x_i)}^{r_i\beta}`. 
+     Bob sends :math:`{\,\{\,{H_1(x_i)}^{\,{r_i}\,\beta}\,\}\,}_{i=1}^{n_1}` to Alice.
+  3. Alice receive :math:`{\,\{\,{H_1(x_i)}^{r_i\beta}\}\,}_{i=1}^{n_1}` from Bob, and unblind it use :math:`r_i`,
+     Get :math:`{\,\{\,{H_1(x_i)}^\beta\}\,}_{i=1}^{n_1}`, 
+     compute OPRF :math:`{\,\{H_2(x_i,{H_1(x_i)}^\beta)\}\,}_{i=1}^{n_1}`.
+  4. Alice compares two sets :math:`{\,\{H_2(x_i,{H_1(x_i)}^\beta)\}\,}_{i=1}^{n_1}`
+     and :math:`{\,\{H_2(y_i,{H_1(y_i)}^\beta)\}\,}_{i=1}^{n_2}` and gets intersection.
 
 Tutorial
 --------
@@ -170,6 +209,10 @@ Please check :ref:`/tutorial/PSI_On_SPU.ipynb` for details.
 
 Reference
 ------------
+
+.. [BBCD+11] Baldi, P., Baronio, R., Cristofaro, E.D., Gasti, P., Tsudik, G.: Countering GATTACA:
+   Efficient and Secure Testing of Fully-sequenced Human Genomes. In: ACM
+   Conference on Computer and Communications Security. pp. 691–702. ACM (2011)
 
 .. [BCGI18] E. Boyle, G. Couteau, N. Gilboa, and Y. Ishai. Compressing vector OLE. In ACM CCS 2018,
    pages 896-912. ACM Press, October 2018.
@@ -198,6 +241,9 @@ Reference
 
 .. [ipp-crypto] https://github.com/intel/ipp-crypto/ 
 
+.. [JL10] Jarecki, S., Liu, X.: Fast Secure Computation of Set Intersection. In: SCN. LNCS,
+   vol. 6280, pp. 418–435. Springer (2010)
+
 .. [KKRT16] V. Kolesnikov, R. Kumaresan, M. Rosulek, and N. Trieu. Efficient batched oblivious PRF with
     applications to private set intersection. In ACM CCS 2016, pages 818-829. ACM Press, October 2016.
 
@@ -207,6 +253,9 @@ Reference
 .. [PSZ18] B. Pinkas, T. Schneider, and M. Zohner. Scalable private set intersection based on ot extension.
    ACM Transactions on Privacy and Security (TOPS), 21(2):1-35, 2018.
 
+.. [RA18] Resende, A.C.D., Aranha, D.F.: Faster unbalanced private set intersection. In: Meiklejohn, S., 
+   Sako, K. (eds.) FC2018. LNCS, vol. 10957, pp. 203{221. Springer, Heidelberg (Feb / Mar 2018)   
+
 .. [SEC2-v2] Standards for Efficient Cryptography (SEC) <http://www.secg.org/sec2-v2.pdf>
 
 .. [SGRR19] P. Schoppmann, A. Gascón, L. Reichert, and M. Raykova. Distributed vector-OLE: Improved
@@ -215,4 +264,7 @@ Reference
 .. [WYKW21] C. Weng, K. Yang, J. Katz, and X. Wang. Wolverine: fast, scalable, and communication-efficient
    zero-knowledge proofs for boolean and arithmetic circuits. In 2021 IEEE Symposium on Security
    and Privacy (SP), pages 1074-1091. IEEE, 2021.
+
+.. [draft-irtf-cfrg-voprf-10] Oblivious Pseudorandom Functions (OPRFs) using Prime-Order Groups. 
+   https://www.ietf.org/archive/id/draft-irtf-cfrg-voprf-10.html      
 

@@ -4,7 +4,9 @@ from jax.example_libraries import optimizers, stax
 from jax.example_libraries.stax import Dense, Relu
 
 import secretflow as sf
-from tests.basecase import DeviceTestCase
+
+from tests.basecase import (MultiDriverDeviceTestCase,
+                            SingleDriverDeviceTestCase)
 
 
 def MLP():
@@ -32,7 +34,7 @@ def init_state(learning_rate):
     return opt_state
 
 
-class TestDeviceSPU(DeviceTestCase):
+class TestDeviceSPU(MultiDriverDeviceTestCase, SingleDriverDeviceTestCase):
     def test_scalar(self):
         x = self.alice(lambda: 1)()
         x_ = x.to(self.spu)

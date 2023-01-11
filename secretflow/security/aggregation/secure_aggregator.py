@@ -26,8 +26,8 @@ from secretflow.security.diffie_hellman import DiffieHellman
 
 @proxy(PYUObject)
 class _Masker:
-    def __init__(self, self_device: PYU, fxp_bits: int):
-        self._device = self_device
+    def __init__(self, party, fxp_bits: int):
+        self._party = party
         self._dh = DiffieHellman()
         self._pub_key, self._pri_key = self._dh.generate_key_pair()
         self._fxp_bits = fxp_bits
@@ -35,14 +35,14 @@ class _Masker:
     def pub_key(self) -> int:
         return self._pub_key
 
-    def gen_rng(self, pub_keys: Dict[PYU, int]) -> None:
+    def gen_rng(self, pub_keys: Dict[str, int]) -> None:
         assert pub_keys, f'Public keys is None or empty.'
         self._rngs = {
-            device: np.random.default_rng(
+            party: np.random.default_rng(
                 int(self._dh.generate_secret(self._pri_key, peer_pub_key), base=16)
             )
-            for device, peer_pub_key in pub_keys.items()
-            if device != self._device
+            for party, peer_pub_key in pub_keys.items()
+            if party != self._party
         }
 
     def mask(
@@ -86,15 +86,15 @@ class _Masker:
                 if is_float
                 else datum * weight
             )
-            for pyu, rng in self._rngs.items():
-                if pyu == self._device:
+            for party, rng in self._rngs.items():
+                if party == self._party:
                     continue
                 mask = rng.integers(
                     low=np.iinfo(np.int64).min,
                     high=np.iinfo(np.int64).max,
                     size=masked_datum.shape,
                 ).astype(masked_datum.dtype)
-                if pyu > self._device:
+                if party > self._party:
                     masked_datum += mask
                 else:
                     masked_datum -= mask
@@ -178,10 +178,10 @@ class SecureAggregator(Aggregator):
         self._participants = set(participants)
         self._fxp_bits = fxp_bits
         self._maskers = {
-            pyu: _Masker(pyu, self._fxp_bits, device=pyu) for pyu in participants
+            pyu: _Masker(pyu.party, self._fxp_bits, device=pyu) for pyu in participants
         }
         pub_keys = reveal(
-            {pyu: masker.pub_key() for pyu, masker in self._maskers.items()}
+            {pyu.party: masker.pub_key() for pyu, masker in self._maskers.items()}
         )
         for masker in self._maskers.values():
             masker.gen_rng(pub_keys)
@@ -209,7 +209,7 @@ class SecureAggregator(Aggregator):
         return is_list
 
     def sum(self, data: List[PYUObject], axis=None):
-        def _sum(*masked_data: List[np.ndarray], dtypes: List[np.dtype]):
+        def _sum(*masked_data: List[np.ndarray], dtypes: List[np.dtype], fxp_bits):
             for dtype in dtypes[1:]:
                 assert (
                     dtype == dtypes[0]
@@ -220,7 +220,7 @@ class SecureAggregator(Aggregator):
                 results = [np.sum(element, axis=axis) for element in zip(*masked_data)]
                 return (
                     [
-                        ndarray_encoding.decode(result, self._fxp_bits)
+                        ndarray_encoding.decode(result, fxp_bits)
                         for result in results
                     ]
                     if is_float
@@ -229,7 +229,7 @@ class SecureAggregator(Aggregator):
             else:
                 result = np.sum(masked_data, axis=axis)
                 return (
-                    ndarray_encoding.decode(result, self._fxp_bits)
+                    ndarray_encoding.decode(result, fxp_bits)
                     if is_float
                     else result
                 )
@@ -241,23 +241,23 @@ class SecureAggregator(Aggregator):
             masked_data[i], dtypes[i] = self._maskers[datum.device].mask(datum)
         masked_data = [d.to(self._device) for d in masked_data]
         dtypes = [dtype.to(self._device) for dtype in dtypes]
-        return self._device(_sum)(*masked_data, dtypes=dtypes)
+        return self._device(_sum)(*masked_data, dtypes=dtypes, fxp_bits=self._fxp_bits)
 
     def average(self, data: List[PYUObject], axis=None, weights=None):
-        def _average(*masked_data: List[np.ndarray], dtypes: List[np.dtype], weights):
+        def _average(*masked_data: List[np.ndarray], dtypes: List[np.dtype], weights, fxp_bits):
             for dtype in dtypes[1:]:
                 assert (
                     dtype == dtypes[0]
                 ), f'Data should have same dtypes but got {dtype} {dtypes[0]}.'
             is_float = np.issubdtype(dtypes[0], np.floating)
             sum_weights = (
-                np.sum(weights, axis=axis) if weights else len(data)
+                np.sum(weights, axis=axis) if weights else len(masked_data)
             )
             if is_nesting_list(masked_data):
                 sum_data = [np.sum(element, axis=axis) for element in zip(*masked_data)]
                 if is_float:
                     sum_data = [
-                        ndarray_encoding.decode(sum_datum, self._fxp_bits)
+                        ndarray_encoding.decode(sum_datum, fxp_bits)
                         for sum_datum in sum_data
                     ]
                 return [element / sum_weights for element in sum_data]
@@ -265,7 +265,7 @@ class SecureAggregator(Aggregator):
                 if is_float:
                     return (
                         ndarray_encoding.decode(
-                            np.sum(masked_data, axis=axis), self._fxp_bits
+                            np.sum(masked_data, axis=axis), fxp_bits
                         )
                         / sum_weights
                     )
@@ -298,4 +298,4 @@ class SecureAggregator(Aggregator):
                 )
         masked_data = [d.to(self._device) for d in masked_data]
         dtypes = [dtype.to(self._device) for dtype in dtypes]
-        return self._device(_average)(*masked_data, dtypes=dtypes, weights=_weights)
+        return self._device(_average)(*masked_data, dtypes=dtypes, weights=_weights, fxp_bits=self._fxp_bits)

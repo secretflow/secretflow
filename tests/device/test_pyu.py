@@ -4,10 +4,10 @@ import secretflow.device as ft
 from secretflow import reveal
 from secretflow.device.device.pyu import PYUObject
 from secretflow.device.device.spu import SPUObject
-from tests.basecase import DeviceTestCase
+from tests.basecase import MultiDriverDeviceTestCase, SingleDriverDeviceTestCase
 
 
-class TestDevicePYU(DeviceTestCase):
+class TestDevicePYU(MultiDriverDeviceTestCase, SingleDriverDeviceTestCase):
     def test_device(self):
         @ft.with_device(self.alice)
         def load(*shape):

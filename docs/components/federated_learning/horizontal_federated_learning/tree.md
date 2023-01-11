@@ -52,7 +52,7 @@ import secretflow as sf
 # In case you have a running secretflow runtime already.
 sf.shutdown()
 
-sf.init(['alice', 'bob', 'charlie'], num_cpus=8, log_to_driver=True)
+sf.init(['alice', 'bob', 'charlie'], address='local')
 alice, bob, charlie = sf.PYU('alice'), sf.PYU('bob'), sf.PYU('charlie')
 
 aggr = SecureAggregator(charlie, [alice, bob])
@@ -61,7 +61,8 @@ comp = SPUComparator(spu)
 data = load_dermatology(parts=[alice, bob], aggregator=aggr,
                         comparator=comp)
 data.fillna(value=0, inplace=True)
-params = {# XGBoost parameter tutorial
+params = {
+         # XGBoost parameter tutorial
          # https://xgboost.readthedocs.io/en/latest/parameter.html
          'max_depth': 4, # max depth
          'eta': 0.3, # learning rate

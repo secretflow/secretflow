@@ -1,19 +1,22 @@
-import numpy as np
-import pandas as pd
-from scipy.stats import pearsonr
-
-from secretflow.preprocessing.scaler import StandardScaler
-from secretflow.stats import SSVertPearsonR
-from secretflow.utils.simulation.datasets import load_linear, dataset, create_df
-
-from tests.basecase import DeviceTestCase, ABY3DeviceTestCase
-from secretflow.device.driver import wait
 import logging
 import sys
 import time
 
+import numpy as np
+import pandas as pd
+from scipy.stats import pearsonr
 
-class TestVertPearsonR(DeviceTestCase):
+from secretflow.device.driver import wait
+from secretflow.preprocessing.scaler import StandardScaler
+from secretflow.stats import SSVertPearsonR
+from secretflow.utils.simulation.datasets import (create_df, dataset,
+                                                  load_linear)
+
+from tests.basecase import (ABY3MultiDriverDeviceTestCase,
+                            MultiDriverDeviceTestCase)
+
+
+class TestVertPearsonR(MultiDriverDeviceTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
@@ -59,7 +62,7 @@ if __name__ == '__main__':
     #    python tests/stats/test_ss_pearsonr_v.py
 
     # use aby3 in this example.
-    cluster = ABY3DeviceTestCase()
+    cluster = ABY3MultiDriverDeviceTestCase()
     cluster.setUpClass()
     # init log
     logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)

@@ -2,14 +2,14 @@ import numpy as np
 
 from secretflow.stats import ScoreCard
 
-from tests.basecase import DeviceTestCase
+from tests.basecase import MultiDriverDeviceTestCase
 
 from secretflow.data import FedNdarray, PartitionWay
 
 import secretflow as sf
 
 
-class TestScoreCard(DeviceTestCase):
+class TestScoreCard(MultiDriverDeviceTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()

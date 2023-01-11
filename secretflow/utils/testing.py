@@ -14,16 +14,16 @@
 
 import socket
 from contextlib import closing
-from typing import List, Tuple, cast
+from typing import List, Tuple, cast, Dict, Any
 
 import spu
 
-DEFAULT_2PC_RUNTIME_CONFIG = {
+DEFAULT_SEMI2K_RUNTIME_CONFIG = {
     'protocol': spu.spu_pb2.SEMI2K,
     'field': spu.spu_pb2.FM128,
 }
 
-DEFAULT_3PC_RUNTIME_CONFIG = {
+DEFAULT_ABY3_RUNTIME_CONFIG = {
     'protocol': spu.spu_pb2.ABY3,
     'field': spu.spu_pb2.FM128,
 }
@@ -37,20 +37,32 @@ def unused_tcp_port() -> int:
         return cast(int, sock.getsockname()[1])
 
 
-def cluster_def(parties: List[str], runtime_config=None):
-    """Generate SPU cluster_def for testing"""
+def cluster_def(parties: List[str], runtime_config=None) -> Dict[str, Any]:
+    """Generate SPU cluster_def for testing purposes.
+
+    Args:
+        parties (List[str]): parties of SPU devices. Must be more than 1 party,
+        runtime_config (optional): runtime_config of SPU device.
+            More details refer to
+                `SPU runtime config <https://www.secretflow.org.cn/docs/spu/en/reference/runtime_config.html>`_.
+            Defaults to None and use default runtime config.
+                1. If 3 parties are present, protocol would be set to ABY3 and field to FM128.
+                2. Otherwise, protocol would be set to SEMI2k and field to FM128.
+                Other options are using default values.
+
+    Returns:
+        Dict[str, Any]: A SPU cluster_def to initiate a SPU device.
+    """
     assert (
         isinstance(parties, (Tuple, List)) and len(parties) >= 2
     ), 'number of parties should be >= 2'
     assert len(set(parties)) == len(parties), f'duplicated parties {parties}'
 
     if not runtime_config:
-        if len(parties) == 2:
-            runtime_config = DEFAULT_2PC_RUNTIME_CONFIG
-        elif len(parties) == 3:
-            runtime_config = DEFAULT_3PC_RUNTIME_CONFIG
-
-    assert runtime_config, "Runtime config is not provided or couldn't be deduced."
+        if len(parties) == 3:
+            runtime_config = DEFAULT_ABY3_RUNTIME_CONFIG
+        else:
+            runtime_config = DEFAULT_SEMI2K_RUNTIME_CONFIG
 
     if runtime_config['protocol'] == spu.spu_pb2.ABY3:
         assert len(parties) == 3, 'ABY3 only supports 3PC.'

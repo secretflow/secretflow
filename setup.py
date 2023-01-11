@@ -1,8 +1,8 @@
 import os
-import sys
 import platform
 import posixpath
 import shutil
+import sys
 from pathlib import Path
 
 import setuptools
@@ -100,7 +100,7 @@ class BuildBazelExtension(build_ext.build_ext):
 
 setup(
     name='secretflow',
-    version='0.7.11b3',
+    version='0.7.18b0',
     license='Apache 2.0',
     description='Secret Flow',
     long_description=long_description,
@@ -119,5 +119,5 @@ setup(
     cmdclass=dict(
         build_ext=BuildBazelExtension, clean=CleanCommand, cleanall=CleanCommand
     ),
-    options={'bdist_wheel': {'plat_name': plat_name}}
+    options={'bdist_wheel': {'plat_name': plat_name}},
 )

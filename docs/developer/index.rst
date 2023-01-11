@@ -15,6 +15,7 @@ The following documents will help you understand the design ideas and principles
    design/heu
    design/flmodel
    design/strategy
+   design/programming_in_secretflow
 
 .. toctree::
    :maxdepth: 1
