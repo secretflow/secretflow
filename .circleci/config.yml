@@ -27,7 +27,18 @@ jobs:
     # Add steps to the job
     # See: https://circleci.com/docs/2.0/configuration-reference/#steps
     steps:
+       # Kill the whole ci after 1hr
+      - run:
+          name: Cancel build after set time
+          background: true
+          command: |
+            sleep 3600
+            echo "Canceling workflow as too much time has elapsed"
+            curl -X POST --header "Content-Type: application/json" "https://circleci.com/api/v2/workflow/${CIRCLE_WORKFLOW_ID}/cancel?circle-token=${BUILD_TIMER_TOKEN}"
       - checkout
+      - restore_cache:
+          name: "Restore pip cache"
+          key: &pip-cache pip-{{ checksum "requirements.txt" }}
       - run:
           name: "unit test"
           command: |
@@ -36,6 +47,10 @@ jobs:
             bazel build //secretflow_lib/binding/...
             cp bazel-bin/secretflow_lib/binding/_lib.so secretflow/security/privacy/
             sh run_pytest.sh
+      - save_cache:
+          key: *pip-cache
+          paths:
+            - /usr/local/lib64/python3.8/site-packages
       - store_test_results:
           path: ./results.xml
   linux_publish:
