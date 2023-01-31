@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.7.18b1] - 2023-1-30
 ### Changed
-- add opiton whether exit on cross-silo sending.
+- add option whether exit on cross-silo sending.
 - put all requires in one file except dev.
 
 ### Fix
