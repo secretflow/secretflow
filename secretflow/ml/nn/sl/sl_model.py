@@ -34,10 +34,11 @@ from secretflow.data.vertical import VDataFrame
 from secretflow.device import PYU, Device, reveal, wait
 from secretflow.device.device.pyu import PYUObject
 from secretflow.ml.nn.sl.backend.tensorflow.sl_base import PYUSLTFModel
+from secretflow.ml.nn.sl.backend.tensorflow.strategy.split_async import PYUSLAsyncTFModel
 from secretflow.security.privacy import DPStrategy
 from secretflow.utils.compressor import Compressor
 from secretflow.utils.random import global_random
-from multiprocessing import cpu_count
+from multiprocess import cpu_count
 
 
 class SLModel:
@@ -49,37 +50,59 @@ class SLModel:
         compressor: Compressor = None,
         dp_strategy_dict: Dict[Device, DPStrategy] = None,
         random_seed: int = None,
+        strategy='split_nn',
         **kwargs,
     ):
         """Interface for vertical split learning
         Attributes:
-            base_model_dict: Basemodel dictionary, key is PYU, value is the Basemodel defined by party
-            device_y: Define which model have label
-            model_fuse:  Fuse model defination
+            base_model_dict: Basemodel dictionary, key is PYU, value is the Basemodel defined by party.
+            device_y: Define which model have label.
+            model_fuse:  Fuse model defination.
             compressor: Define strategy tensor compression algorithms to speed up transmission.
-            dp_strategy_dict: Dp strategy dictionary
-            random_seed: If specified, the initial value of the model will remain the same，which ensures reproducible
+            dp_strategy_dict: Dp strategy dictionary.
+            random_seed: If specified, the initial value of the model will remain the same, which ensures reproducible.
+            strategy: Strategy of split learning.
         """
 
         self.device_y = device_y
+        self.has_compressor = compressor is not None
         self.dp_strategy_dict = dp_strategy_dict
         self.simulation = kwargs.get('simulation', False)
         self.num_parties = len(base_model_dict)
 
-        self._workers = {
-            device: PYUSLTFModel(
-                device=device,
-                builder_base=model,
-                builder_fuse=None if device != device_y else model_fuse,
-                compressor=compressor,
-                random_seed=random_seed,
-                dp_strategy=dp_strategy_dict.get(device, None)
-                if dp_strategy_dict
-                else None,
-            )
-            for device, model in base_model_dict.items()
-        }
-        self.has_compressor = compressor is not None
+        if strategy == 'split_nn':
+            self._workers = {
+                device: PYUSLTFModel(
+                    device=device,
+                    builder_base=model,
+                    builder_fuse=None if device != device_y else model_fuse,
+                    compressor=compressor,
+                    random_seed=random_seed,
+                    dp_strategy=dp_strategy_dict.get(device, None)
+                    if dp_strategy_dict
+                    else None,
+                )
+                for device, model in base_model_dict.items()
+            }
+        elif strategy == 'split_async':
+            self._workers = {
+                device: PYUSLAsyncTFModel(
+                    device=device,
+                    builder_base=model,
+                    builder_fuse=None if device != device_y else model_fuse,
+                    compressor=compressor,
+                    random_seed=random_seed,
+                    dp_strategy=dp_strategy_dict.get(device, None)
+                    if dp_strategy_dict
+                    else None,
+                    base_local_steps=kwargs.get('base_local_steps', 1),
+                    fuse_local_steps=kwargs.get('fuse_local_steps', 1),
+                    bound_param=kwargs.get('bound_param', 0.0),
+                )
+                for device, model in base_model_dict.items()
+            }
+        else:
+            logging.error("unvalid split learning strategy: ", strategy)
 
     def handle_data(
         self,
@@ -308,7 +331,7 @@ class SLModel:
                     idx += self.basenet_output_num[device]
                 r_count = self._workers[self.device_y].on_train_batch_end(step=step)
                 res.append(r_count)
-                if dp_spent_step_freq is not None:
+                if self.dp_strategy_dict is not None and dp_spent_step_freq is not None:
                     current_step = epoch * steps_per_epoch + step
                     if current_step % dp_spent_step_freq == 0:
                         privacy_device = {}

@@ -19,12 +19,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+
+## [0.7.18b1] - 2023-1-30
+### Changed
+- add opiton whether exit on cross-silo sending.
+- put all requires in one file except dev.
+
+### Fix
+- Fix psi_join_csv output columns error.
+- fix heu object decode.
+
 ## [0.7.18] - 2023-01-09
+
 ### Changed
 - Bump:
   - rayfed to 0.1.0b0.
-  - spu to 0.3.1a9.
-  - sf-heu to 0.3.2.
+  - spu to 0.3.1b9.
+  - sf-heu to 0.3.2b1.
 
 ## [0.7.17] - 2022-12-21
 

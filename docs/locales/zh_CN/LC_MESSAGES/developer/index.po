@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-01-07 11:23+0800\n"
+"POT-Creation-Date: 2023-01-19 15:57+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,14 +17,22 @@ msgstr ""
 "Generated-By: Babel 2.11.0\n"
 
 #: ../../developer/index.rst:9
+msgid "A comprehensive comparison of various privacy-preserving technologies"
+msgstr "隐私计算技术路线介绍及对比"
+
+#: ../../developer/index.rst:9
+msgid "Background Materials"
+msgstr "背景材料"
+
+#: ../../developer/index.rst:15
 msgid "Design Documentation"
 msgstr "设计文档"
 
-#: ../../developer/index.rst:20
+#: ../../developer/index.rst:26
 msgid "Algorithm"
 msgstr "算法"
 
-#: ../../developer/index.rst:31
+#: ../../developer/index.rst:37
 msgid "Benchmark"
 msgstr ""
 
@@ -37,4 +45,3 @@ msgid ""
 "The following documents will help you understand the design ideas and "
 "principles of secretflow."
 msgstr "下列文档有助于您了解隐语的设计思想和原则。"
-

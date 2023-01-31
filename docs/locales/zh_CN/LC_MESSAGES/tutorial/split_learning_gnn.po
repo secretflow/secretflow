@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-01-07 11:23+0800\n"
+"POT-Creation-Date: 2023-01-16 09:47+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -178,7 +178,7 @@ msgid "The whole model structure is as follow"
 msgstr "完整的模型结构如下"
 
 #: ../../tutorial/split_learning_gnn.ipynb:721
-msgid "|c09c2cb7d6fa41e4bb436303b25ff7b0|"
+msgid "|3a1d5cb514ed4c829beea8fb159f5487|"
 msgstr ""
 
 #: ../../tutorial/split_learning_gnn.ipynb:723
@@ -218,5 +218,4 @@ msgid ""
 "nodes set which may not be satisfied in real cases. We want to explore "
 "the case where all parties have common subset nodes."
 msgstr "支持部分对齐的图：示例中的图数据是假设每方的节点都是对齐一致的，但是实际中可能只有部分对齐。我们后续会探索多方仅有部分节点对齐的场景。"
-
 

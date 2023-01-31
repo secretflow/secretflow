@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-01-07 11:23+0800\n"
+"POT-Creation-Date: 2023-01-16 09:47+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -38,7 +38,7 @@ msgid "The following is an example of mix partitioning data."
 msgstr "下面是数据混合切分的一个例子。"
 
 #: ../../tutorial/mix_lr.ipynb:35
-msgid "|963bd9f68bf347a38c7ddb3a76e75f6b|"
+msgid "|4313bbf4cd034777a6874b3a4059c335|"
 msgstr ""
 
 #: ../../tutorial/mix_lr.ipynb:39
@@ -196,4 +196,3 @@ msgstr "收尾"
 #: ../../tutorial/mix_lr.ipynb:458
 msgid "Clean temp files."
 msgstr "清理临时文件。"
-

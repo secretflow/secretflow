@@ -109,12 +109,16 @@ train_batch_size = 128
 
 class TestSLModelTensorflow(MultiDriverDeviceTestCase):
     def keras_model_with_mnist(
-        self, base_model_dict, device_y, model_fuse, data, label, **kwargs
+        self, base_model_dict, device_y, model_fuse, data, label, strategy='split_nn', **kwargs
     ):
         # kwargs parsing
         dp_strategy_dict = kwargs.get('dp_strategy_dict', None)
         compressor = kwargs.get('compressor', None)
         dataset_builder = kwargs.get('dataset_builder', None)
+
+        base_local_steps = kwargs.get('base_local_steps', 1)
+        fuse_local_steps = kwargs.get('fuse_local_steps', 1)
+        bound_param = kwargs.get('bound_param', 0.0)
 
         party_shape = data.partition_shape()
         alice_length = party_shape[self.alice][0]
@@ -128,6 +132,10 @@ class TestSLModelTensorflow(MultiDriverDeviceTestCase):
             compressor=compressor,
             simulation=True,
             random_seed=1234,
+            strategy=strategy,
+            base_local_steps=base_local_steps,
+            fuse_local_steps=fuse_local_steps,
+            bound_param=bound_param,
         )
 
         history = sl_model.fit(
@@ -189,6 +197,10 @@ class TestSLModelTensorflow(MultiDriverDeviceTestCase):
             compressor=compressor,
             simulation=True,
             random_seed=1234,
+            strategy=strategy,
+            base_local_steps=base_local_steps,
+            fuse_local_steps=fuse_local_steps,
+            bound_param=bound_param,
         )
         sl_model_load.load_model(
             base_model_path=base_model_path,
@@ -331,6 +343,41 @@ class TestSLModelTensorflow(MultiDriverDeviceTestCase):
             model_fuse=fuse_model,
             device_y=self.bob,
             dataset_builder=dataset_buidler_dict,
+        )
+        # test split async with multiple base local steps
+        self.keras_model_with_mnist(
+            data=x_train,
+            label=y_train,
+            base_model_dict=base_model_dict,
+            model_fuse=fuse_model,
+            device_y=self.bob,
+            strategy='split_async',
+            base_local_steps=5,
+            fuse_local_steps=1,
+        )
+        # test split async with multiple fuse local steps
+        self.keras_model_with_mnist(
+            data=x_train,
+            label=y_train,
+            base_model_dict=base_model_dict,
+            model_fuse=fuse_model,
+            device_y=self.bob,
+            strategy='split_async',
+            base_local_steps=1,
+            fuse_local_steps=5,
+            bound_param=0.1,
+        )
+        # test split async with both base and fuse multiple local steps
+        self.keras_model_with_mnist(
+            data=x_train,
+            label=y_train,
+            base_model_dict=base_model_dict,
+            model_fuse=fuse_model,
+            device_y=self.bob,
+            strategy='split_async',
+            base_local_steps=5,
+            fuse_local_steps=5,
+            bound_param=0.1,
         )
 
     def test_multi_output_model(self):

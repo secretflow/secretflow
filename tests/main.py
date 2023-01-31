@@ -2,16 +2,21 @@
 # *_* coding: utf-8 *_*
 
 """ Main test function """
-import multiprocessing
+import multiprocess
+import logging
 import signal
+import sys
 import unittest
 import xml.etree.ElementTree as ET
-import sys
 from typing import List
 
 import xmlrunner
 
 from tests.cluster import cluster, get_self_party, set_self_party
+
+_LOGGING_FORMAT = (
+    '%(asctime)s|%(levelname)s|%(filename)s:%(funcName)s:%(lineno)d| %(message)s'
+)
 
 
 class MultiDriverTestLoader(unittest.TestLoader):
@@ -70,7 +75,7 @@ def run_multi_driver_test():
     parties = list(cluster()['parties'].keys())
     global PROCS
     PROCS = [
-        multiprocessing.Process(target=party_run, args=(party,), daemon=True)
+        multiprocess.Process(target=party_run, args=(party,), daemon=True)
         for party in parties[1:]
     ]
     for p in PROCS:
@@ -137,6 +142,12 @@ def combine_results(files: List[str], output: str = 'results.xml'):
 
 
 if __name__ == '__main__':
+    logging.basicConfig(
+        stream=sys.stdout,
+        level=logging.DEBUG,
+        format=_LOGGING_FORMAT,
+    )
+
     test_file = 'test_*.py'
     if len(sys.argv) > 1:
         test_file = sys.argv[1]

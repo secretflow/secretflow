@@ -32,6 +32,7 @@ from .core.distribution import DistributionBernoulli
 
 def _predict(
     x: List[np.ndarray],
+    o: np.ndarray,
     w: np.ndarray,
     y_scale: float,
     link: Linker,
@@ -45,14 +46,16 @@ def _predict(
     assert w.shape[0] == num_feat + 1, "w shape is mismatch to x"
     assert len(w.shape) == 1 or w.shape[1] == 1, "w should be list or 1D array"
     w = w.reshape((-1, 1))
+    if o is not None:
+        o = o.reshape((-1, 1))
 
     bias = w[-1, 0]
     w = jnp.resize(w, (num_feat, 1))
 
     preds = []
 
-    def get_pred(x):
-        pred = jnp.matmul(x, w) + bias
+    def get_pred(x, o):
+        pred = jnp.matmul(x, w) + bias + o
         return link.response(pred) * y_scale
 
     end = 0
@@ -60,11 +63,19 @@ def _predict(
         begin = idx * batch_size
         end = begin + batch_size
         x_slice = x[begin:end, :]
-        preds.append(get_pred(x_slice))
+        if o is not None:
+            o_slice = o[begin:end, :]
+            preds.append(get_pred(x_slice, o_slice))
+        else:
+            preds.append(get_pred(x_slice, 0))
 
     if end < samples:
         x_slice = x[end:samples, :]
-        preds.append(get_pred(x_slice))
+        if o is not None:
+            o_slice = o[end:samples, :]
+            preds.append(get_pred(x_slice, o_slice))
+        else:
+            preds.append(get_pred(x_slice, 0))
 
     return jnp.concatenate(preds, axis=0)
 
@@ -72,10 +83,13 @@ def _predict(
 def _concatenate(
     arrays: List[np.ndarray], axis: int, pad_ones: bool = False
 ) -> np.ndarray:
-    x = jnp.concatenate(arrays, axis=axis)
     if pad_ones:
-        # last one is bias
-        return jnp.insert(x, x.shape[1], 1, axis=1)
+        if axis == 1:
+            ones = jnp.ones((arrays[0].shape[0], 1), dtype=arrays[0].dtype)
+        else:
+            ones = jnp.ones((1, arrays[0].shape[1]), dtype=arrays[0].dtype)
+        arrays.append(ones)
+    x = jnp.concatenate(arrays, axis=axis)
     return x
 
 
@@ -187,9 +201,9 @@ def _irls_update_w(
     v = dist.variance(mu)
     g_gradient = link.link_derivative(mu)
     if weight is not None:
-        W_diag = weight / (dist.scale() * v * g_gradient * g_gradient)
+        W_diag = weight / dist.scale() / (v * g_gradient) / g_gradient
     else:
-        W_diag = 1 / (dist.scale() * v * g_gradient * g_gradient)
+        W_diag = 1 / dist.scale() / (v * g_gradient) / g_gradient
     Z = eta + (y - mu) * g_gradient
 
     XTW = jnp.transpose(x * W_diag.reshape(-1, 1))
@@ -631,7 +645,10 @@ class SSGLM:
         )
 
     def predict(
-        self, x: Union[FedNdarray, VDataFrame], to_pyu: PYU = None
+        self,
+        x: Union[FedNdarray, VDataFrame],
+        o: Union[FedNdarray, VDataFrame] = None,
+        to_pyu: PYU = None,
     ) -> Union[SPUObject, PYUObject]:
         """
         Predict using the model.
@@ -640,6 +657,8 @@ class SSGLM:
 
             x : {FedNdarray, VDataFrame} of shape (n_samples, n_features)
                 Predict samples.
+            offset : {FedNdarray, VDataFrame} of shape (n_samples,)
+                Specify a column to use as the offset as per-row “bias values” use in predict
             to_pyu : the prediction initiator
                 if not None predict result is reveal to to_pyu device and save as FedNdarray
                 otherwise, keep predict result in secret and save as SPUObject.
@@ -652,6 +671,8 @@ class SSGLM:
         assert hasattr(self, 'y_scale'), 'please fit model first'
 
         x, shape = self._prepare_dataset(x)
+        if o is not None:
+            o, _ = self._prepare_dataset(o)
         self.samples, self.num_feat = shape
         infeed_rows = math.ceil((100000 * 100) / self.num_feat)
         self.infeed_batch_size = infeed_rows
@@ -661,8 +682,14 @@ class SSGLM:
         for infeed_step in range(infeed_total_batch):
             batch_x = self._next_infeed_batch(x, infeed_step)
             spu_x = self._to_spu(batch_x)
+            if o is not None:
+                batch_o = self._next_infeed_batch(o, infeed_step)
+                spu_o = self._to_spu(batch_o)[0]
+            else:
+                spu_o = None
             spu_pred = self.spu(_predict, static_argnames=('link', 'y_scale'),)(
                 spu_x,
+                spu_o,
                 self.spu_w,
                 y_scale=self.y_scale,
                 link=self.link,

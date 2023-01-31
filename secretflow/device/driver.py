@@ -108,7 +108,7 @@ def to(device: Device, data: Any, spu_vis: str = 'secret'):
     raise ValueError(f'Unknown device {device}')
 
 
-def reveal(func_or_object):
+def reveal(func_or_object, heu_encoder=None):
     """Get plaintext data from device.
 
     NOTE: Use this function with extreme caution, as it may cause privacy leaks.
@@ -118,6 +118,8 @@ def reveal(func_or_object):
 
     Args:
         func_or_object: May be callable or any Python objects which contains Device objects.
+        heu_encoder: Can be heu Encoder or EncoderParams.
+            This is used to replace the default encoder from config
     """
     if callable(func_or_object):
 
@@ -136,7 +138,7 @@ def reveal(func_or_object):
             if x.is_plain:
                 ref = x.device.get_participant(x.location).decode.remote(x.data)
             else:
-                ref = x.device.sk_keeper.decrypt_and_decode.remote(x.data)
+                ref = x.device.sk_keeper.decrypt_and_decode.remote(x.data, heu_encoder)
             all_object_refs.append(ref)
         elif isinstance(x, SPUObject):
             assert isinstance(
@@ -202,6 +204,7 @@ def init(
     cross_silo_grpc_retry_policy: Dict = None,
     cross_silo_send_max_retries: int = None,
     cross_silo_serializing_allowed_list: Dict = None,
+    exit_on_failure_cross_silo_sending: bool = True,
     **kwargs,
 ):
     """Connect to an existing Ray cluster or start one and connect to it.
@@ -295,6 +298,9 @@ def init(
                     "numpy.core.numeric": ["*"],
                     "numpy": ["dtype"],
                 }
+        exit_on_failure_cross_silo_sending: optional, works only in production mode.
+            whether exit when failure on cross-silo sending. If True, a SIGTERM
+            will be signaled to self if failed to sending cross-silo data.
         **kwargs: see :py:meth:`ray.init` parameters.
     """
     resources = None
@@ -361,6 +367,7 @@ def init(
             cross_silo_grpc_retry_policy=cross_silo_grpc_retry_policy,
             cross_silo_send_max_retries=cross_silo_send_max_retries,
             cross_silo_serializing_allowed_list=cross_silo_serializing_allowed_list,
+            exit_on_failure_cross_silo_sending=exit_on_failure_cross_silo_sending,
             **kwargs,
         )
 

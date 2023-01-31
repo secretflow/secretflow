@@ -232,7 +232,7 @@ cluster_config ={
             'listen_addr': '0.0.0.0:port'
         },
     },
-    'self_party': alice
+    'self_party': bob
 }
 
 sf.init(address='ip:port', cluster_config=cluster_config)
