@@ -832,7 +832,13 @@ class SPURuntime:
                         chunk.set_index(key), on=key, how='inner', sort="True"
                     )
                 join_count = join_count + chunk_join.shape[0]
-                chunk_join.to_csv(output_notsort, mode="a", index=False, header=False)
+                chunk_join.to_csv(
+                    output_notsort,
+                    mode="a",
+                    index=False,
+                    header=False,
+                    columns=table_columns,
+                )
 
         logging.warning(
             f"intersection_count:{report.intersection_count} join_count:{join_count}"
