@@ -657,7 +657,7 @@ class SSGLM:
 
             x : {FedNdarray, VDataFrame} of shape (n_samples, n_features)
                 Predict samples.
-            offset : {FedNdarray, VDataFrame} of shape (n_samples,)
+            o : {FedNdarray, VDataFrame} of shape (n_samples,)
                 Specify a column to use as the offset as per-row “bias values” use in predict
             to_pyu : the prediction initiator
                 if not None predict result is reveal to to_pyu device and save as FedNdarray

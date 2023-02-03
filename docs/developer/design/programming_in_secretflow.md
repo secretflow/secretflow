@@ -79,7 +79,7 @@ cluster_config = {
         }
         'bob': {
             'address': '127.0.0.1:10002',
-        }
+        },
     },
     'self_party': 'alice'
 }
@@ -95,10 +95,10 @@ cluster_config = {
     'parties': {
         'alice': {
             'address': '127.0.0.1:10001',
-        }
+        },
         'bob': {
             'address': '127.0.0.1:10002',
-        }
+        },
     },
     'self_party': 'bob'
 }
