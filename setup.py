@@ -28,8 +28,6 @@ def read_requirements():
     requirements = []
     with open('./requirements.txt') as file:
         requirements = file.read().splitlines()
-    with open('./docker/dev-requirements.txt') as file:
-        requirements += file.read().splitlines()
     print("Requirements: ", requirements)
     return requirements
 
@@ -100,7 +98,7 @@ class BuildBazelExtension(build_ext.build_ext):
 
 setup(
     name='secretflow',
-    version='0.7.18b0',
+    version='0.7.18b1',
     license='Apache 2.0',
     description='Secret Flow',
     long_description=long_description,

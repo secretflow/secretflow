@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-01-07 11:23+0800\n"
+"POT-Creation-Date: 2023-01-16 09:47+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -41,7 +41,7 @@ msgid ""
 msgstr "隐语提供了联邦数据的DataFrame形式封装。DataFrame由多个参与方的数据块构成，支持数据水平或者垂直切分。"
 
 #: ../../components/preprocessing/DataFrame.ipynb:44
-msgid "|d14881f3e34f44feb8a6324fb8d99eae|"
+msgid "|1e74cf144637435e84236bfc86a09633|"
 msgstr ""
 
 #: ../../components/preprocessing/DataFrame.ipynb:50
@@ -194,7 +194,4 @@ msgid ""
 msgstr ""
 "跟着教程 `预处理 <../../tutorial/data_preprocessing_with_data_frame.ipynb>`__ "
 "学习如何对数据进行预处理。"
-
-#~ msgid "|bd35a694b42c4661b3e5f8ae27fc43b2|"
-#~ msgstr ""
 

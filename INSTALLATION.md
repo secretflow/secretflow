@@ -19,8 +19,9 @@ OS: CentOS 7, Ubuntu 18.04
 CPU/Memory: recommended minimum requirement is 8C16G.
 
 ## Option 1: from pypi
-For users who want to try SecretFlow, you can install [the current release](https://pypi.org/project/secretflow/)
-from [pypi](https://pypi.org/project/secretflow/). Note that it requires python version == 3.8, you can create a virtual environment with conda if not satisfied.
+For users who want to try SecretFlow, you can install [the current release](https://pypi.org/project/secretflow/).
+
+Note that it requires python version == 3.8, you can create a virtual environment with conda if not satisfied.
 
 ```
 conda create -n sf python=3.8

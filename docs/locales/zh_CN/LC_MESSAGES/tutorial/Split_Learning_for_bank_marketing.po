@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-01-07 11:23+0800\n"
+"POT-Creation-Date: 2023-01-16 09:47+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -62,7 +62,7 @@ msgid ""
 msgstr "拆分学习的核心思想是将网络结构进行拆分，每个设备（机构）只保留一部分网络结构，所有设备的子网络结构组合在一起，构成一个完整的网络模型。在训练过程中，不同的设备（机构）只对本地的网络结构进行前向或反向计算，并将计算结果传递给下一个设备，多个设备端通过联合模型，完成训练，直到收敛为止。"
 
 #: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:58
-msgid "|a3bab4daa949439ab7d8c08831de1a4b|"
+msgid "|d60cdb7d5cdc41caaf91ed8dd8ba5e82|"
 msgstr ""
 
 #: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:60
@@ -261,7 +261,7 @@ msgstr ""
 " 用于安全地获取来自各方的交集和对齐数据。"
 
 #: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:841
-msgid "|cb19c7585ec24e979b5c29dfdd5ded9a|"
+msgid "|1e9cfc653481486aacd677f5f9f20b80|"
 msgstr ""
 
 #: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:843

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-01-07 11:23+0800\n"
+"POT-Creation-Date: 2023-01-16 09:47+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -57,7 +57,7 @@ msgid ""
 msgstr "这里的联邦学习特指的是水平场景的联邦学习，也就是样本的联合。这种模式适用于各个参与方业务相同，但触达的客户群不同，这种情况可以联合多方的样本来训练一个性能更好或者泛化性能更好的联合模型。比如在医疗场景，每个医院都有自己独特的病人群，各个地区的医院之间几乎是互不重叠，但是他们对于病历的检查记录（如影像，血检等）又是相同类型的。"
 
 #: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:66
-msgid "|74e89b21f5f149acbfaed4b4d118b27c|"
+msgid "|94a2f3b3a32841cd910d150bb9665a77|"
 msgstr ""
 
 #: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:68
@@ -225,5 +225,4 @@ msgid ""
 "next, you can use your data or model to explore how to do federate "
 "learning"
 msgstr "下一步，你可能想尝试不同的数据集，您需要先将数据集进行垂直切分，然后按照本教程的流程进行"
-
 

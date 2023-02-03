@@ -116,6 +116,16 @@ class HEUActor:
         """
         if edr is None:
             edr = self.encoder
+        if isinstance(
+            edr,
+            (
+                phe.BigintEncoderParams,
+                phe.IntegerEncoderParams,
+                phe.FloatEncoderParams,
+                phe.BigintEncoderParams,
+            ),
+        ):
+            edr = edr.instance(self.hekit.get_schema())
         if isinstance(data, hnp.PlaintextArray):
             return data.to_numpy(edr)
 

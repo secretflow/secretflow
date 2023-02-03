@@ -268,7 +268,9 @@ class SLBaseTFModel(SLBaseModel):
 
         self.set_dataset_stage(data_set=data_set, stage=stage)
         if isinstance(data_set, tf.data.Dataset):
-            return len(x[0]) // batch_size
+            import math
+
+            return math.ceil(len(x[0]) / batch_size)  # use ceil to avoid drop_last
         else:
             raise Exception("Unknown databuilder")
 
@@ -282,7 +284,7 @@ class SLBaseTFModel(SLBaseModel):
             raise Exception(f"Illegal argument stage={stage}")
 
     @tf.function
-    def _base_forward_internal(self, data_x, h):
+    def _base_forward_internal(self, data_x):
         h = self.model_base(data_x)
 
         # Embedding differential privacy
@@ -353,8 +355,8 @@ class SLBaseTFModel(SLBaseModel):
         with self.tape:
             self.h = self._base_forward_internal(
                 data_x,
-                self.h,
             )
+        self.data_x = data_x
         # TODO: only vaild on no server mode, refactor when use agglayer or server mode.
         # no need to compress data on model_fuse side
         if compress and not self.model_fuse:
@@ -367,8 +369,7 @@ class SLBaseTFModel(SLBaseModel):
         return self.h
 
     @tf.function
-    def _base_backword_internal(self, gradients, trainable_vars):
-
+    def _base_backward_internal(self, gradients, trainable_vars):
         self.model_base.optimizer.apply_gradients(zip(gradients, trainable_vars))
 
     def base_backward(self, gradient, compress: bool = False):
@@ -401,7 +402,7 @@ class SLBaseTFModel(SLBaseModel):
         trainable_vars = self.model_base.trainable_variables
         gradients = self.tape.gradient(return_hiddens, trainable_vars)
 
-        self._base_backword_internal(gradients, trainable_vars)
+        self._base_backward_internal(gradients, trainable_vars)
 
         # clear intermediate results
         self.tape = None
@@ -519,12 +520,7 @@ class SLBaseTFModel(SLBaseModel):
                 hiddens.append(tf.convert_to_tensor(h))
 
         logs = {}
-
-        gradient = self._fuse_net_internal(
-            hiddens,
-            self.train_y,
-            self.train_sample_weight,
-        )
+        gradient = self._fuse_net_train(hiddens)
 
         for m in self.model_fuse.metrics:
             logs['train_' + m.name] = m.result().numpy()
@@ -554,6 +550,13 @@ class SLBaseTFModel(SLBaseModel):
                     iscompressed,
                 )
         return gradient
+
+    def _fuse_net_train(self, hiddens):
+        return self._fuse_net_internal(
+            hiddens,
+            self.train_y,
+            self.train_sample_weight,
+        )
 
     @tf.function
     def _fuse_net_internal(self, hiddens, train_y, train_sample_weight):

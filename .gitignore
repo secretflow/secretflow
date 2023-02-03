@@ -342,6 +342,7 @@ bob.audit.data.pickle
 data.lock
 ./data
 results.xml
+result_*.xml
 base_alice/
 base_bob/
 fuse_model/
