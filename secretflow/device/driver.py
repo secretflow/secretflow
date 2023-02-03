@@ -46,7 +46,7 @@ def with_device(
 ):
     """Set up a wrapper for scheduling function to this device.
 
-    Agrs:
+    Args:
         dev (Device): Target device.
         num_returns (int): Number of returned DeviceObject.
         static_argnames (Union[str, Iterable[str], None]): See ``jax.jit()`` docstring.
