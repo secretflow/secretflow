@@ -170,9 +170,16 @@ def reveal(func_or_object):
 
 def wait(objects: Any):
     """Wait for device objects until all are ready or error occurrency.
-
+    NOTE: This function uses reveal internally, but won't reveal result to public. So this is secure to use this as synchronization semantics.
     Args:
         objects: struct of device objects.
+    
+    Examples:
+        >>> spu = sf.SPU()
+        >>> spu_value = spu(some_function)(some_value)
+        >>> alice_value = value.to(alice)
+        >>> # synchronization
+        >>> sf.wait(alice(some_save_value_function_locally)(alice_value))
     """
     # TODO(@xibin.wxb): support HEUObject
     objs = [
