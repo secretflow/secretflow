@@ -74,8 +74,12 @@ import secretflow as sf
 
 cluster_config = {
     'parties': {
-        'alice': '127.0.0.1:10001',
-        'bob': '127.0.0.1:10002',
+        'alice': {
+            'address': '127.0.0.1:10001',
+        }
+        'bob': {
+            'address': '127.0.0.1:10002',
+        },
     },
     'self_party': 'alice'
 }
@@ -89,8 +93,12 @@ import secretflow as sf
 
 cluster_config = {
     'parties': {
-        'alice': '127.0.0.1:10001',
-        'bob': '127.0.0.1:10002',
+        'alice': {
+            'address': '127.0.0.1:10001',
+        },
+        'bob': {
+            'address': '127.0.0.1:10002',
+        },
     },
     'self_party': 'bob'
 }

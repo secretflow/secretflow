@@ -69,7 +69,7 @@ class TestVertBinning(ABY3MultiDriverDeviceTestCase):
         deviance = get_dist(dist, 1, 1).deviance(yhat, y, None)
         logging.info(f"{test_name} deviance: {deviance}")
 
-        fed_yhat = model.predict(v_data, self.alice)
+        fed_yhat = model.predict(v_data, to_pyu=self.alice)
         assert len(fed_yhat.partitions) == 1 and self.alice in fed_yhat.partitions
         yhat = reveal(fed_yhat.partitions[self.alice])
         assert yhat.shape[0] == y.shape[0], f"{yhat.shape} == {y.shape}"

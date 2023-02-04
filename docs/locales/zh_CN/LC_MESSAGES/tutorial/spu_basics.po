@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-01-07 11:23+0800\n"
+"POT-Creation-Date: 2023-01-16 09:47+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -80,7 +80,7 @@ msgid "a SPU device based on *alice*, *bob* and *carol*"
 msgstr "一个基于 *alice* , *bob* 和 *carol* 的SPU设备"
 
 #: ../../tutorial/spu_basics.ipynb:44
-msgid "|cd31f68f5c3e4c65b5a4d76093602042|"
+msgid "|5254cc86f1cf4e409212cb9eefa32f3e|"
 msgstr ""
 
 #: ../../tutorial/spu_basics.ipynb:46
@@ -268,7 +268,10 @@ msgid ""
 "field of SPU objects including meta and shares are still located at "
 "owners(Host / PYU device). The shares would only be sent to parties of "
 "SPU device when computation do happenes. In short, data flow is lazy."
-msgstr ""
+msgstr "仅仅转化为SPU Object不会触发从host / PYU至SPU的数据流动，比如当你将一个PYU Object转化为SPU Object时。"
+"SPU object所有内容包括meta和shares仍然位于所有方（Host / PYU设备）。"
+"shares只会在计算发生的时候将会被发送到SPU设备的各方。"
+"简单的来说，数据流动是lazy的。"
 
 #: ../../tutorial/spu_basics.ipynb:883
 msgid "Computation with SPU Device"
@@ -324,7 +327,7 @@ msgstr ""
 "*debit\\_amount\\_spu*）将被发送到 SPU 设备。然后使用 SPU 编译器将它们编译为 *SPU Executable*。"
 
 #: ../../tutorial/spu_basics.ipynb:1003
-msgid "|244d28db544a43a68fd62f57f933aab9|"
+msgid "|85b9cddc6f464f4289b00437847cfe73|"
 msgstr ""
 
 #: ../../tutorial/spu_basics.ipynb:1005
@@ -344,7 +347,7 @@ msgid "one piece of each SPU Object share"
 msgstr "每个 SPU object一份share"
 
 #: ../../tutorial/spu_basics.ipynb:1023
-msgid "|87c3502dc87c40da802a810339b1a43c|"
+msgid "|d5427f97c1be4cb49ffaa24887666204|"
 msgstr ""
 
 #: ../../tutorial/spu_basics.ipynb:1025
@@ -528,4 +531,3 @@ msgstr ""
 #: ../../tutorial/spu_basics.ipynb:1853
 msgid "`Neural Network with SPU <./nn_with_spu.ipynb>`__"
 msgstr ""
-

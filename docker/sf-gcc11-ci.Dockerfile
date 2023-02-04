@@ -55,16 +55,20 @@ RUN wget https://github.com/bazelbuild/bazel/releases/download/5.1.1/bazel-5.1.1
     && chmod +x ./bazel-5.1.1-installer-linux-x86_64.sh && ./bazel-5.1.1-installer-linux-x86_64.sh && rm -f ./bazel-5.1.1-installer-linux-x86_64.sh
 
 # install python packages
-COPY requirements.txt /tmp
+COPY dev-requirements.txt /tmp/dev-requirements.txt
+COPY requirements.txt /tmp/requirements.txt
 RUN sed -i "s/tensorflow==/tensorflow-cpu==/g" /tmp/requirements.txt
+RUN grep -v -E "^(spu==|sf-heu==)" /tmp/requirements.txt > /tmp/requirements2.txt && mv /tmp/requirements2.txt /tmp/requirements.txt
 RUN python3 -m pip config set global.index-url https://mirrors.bfsu.edu.cn/pypi/web/simple/ \
     && python3 -m pip config set global.extra-index-url "https://pypi.tuna.tsinghua.edu.cn/simple https://download.pytorch.org/whl/cpu" \
     && python3 -m pip config set install.trusted-host "pypi.tuna.tsinghua.edu.cn download.pytorch.org mirrors.bfsu.edu.cn" \
     && python3 -m pip install --upgrade pip \
     && python3 -m pip install wheel \
     && python3 -m pip install -r /tmp/requirements.txt \
+    && python3 -m pip install -r /tmp/dev-requirements.txt \
     && python3 -m pip cache purge \
-    && rm -f /tmp/requirements.txt
+    && rm -f /tmp/requirements.txt \
+    && rm -f /tmp/dev-requirements.txt
 
 # run as root for now
 WORKDIR /home/admin/

@@ -115,6 +115,7 @@ class DeviceTestCase(unittest.TestCase):
                 num_cpus=8,
                 log_to_driver=True,
                 cluster_config=cluster(),
+                exit_on_failure_cross_silo_sending=True,
             )
 
         cls.alice = sf.PYU('alice')
