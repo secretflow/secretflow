@@ -179,7 +179,7 @@ def wait(objects: Any):
     Examples:
         >>> spu = sf.SPU()
         >>> spu_value = spu(some_function)(some_value)
-        >>> alice_value = value.to(alice)
+        >>> alice_value = spu_value.to(alice)
         >>> # synchronization
         >>> sf.wait(alice(some_save_value_function_locally)(alice_value))
     """
