@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.7.18b2] - 2023-2-9
+### Fix
+- add party as resource label in simulation mode.
+
 
 ## [0.7.18b1] - 2023-1-30
 ### Changed
@@ -332,7 +336,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.6.5] - 2022-06-06
 ### Added
 - Runtime_config as input to utils.testing.cluster_def.
-- SecureBoost optimization.
+- SFXgboost optimization.
 - Horizontal preprocessing
   - StardardScaler
   - KBinsDiscretizater

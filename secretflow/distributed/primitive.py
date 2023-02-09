@@ -83,6 +83,10 @@ class RemoteFunctionWrapper(RemoteFunction):
         return super()._remote(*args, **kwargs)
 
     def party(self, party: str):
+        if 'resources' in self._default_options:
+            self._default_options['resources'].update({self.party: 1})
+        else:
+            self._default_options.update({'resources': {self.party: 1}})
         self.party = party
         return self
 
@@ -98,6 +102,10 @@ class RemoteFunctionWrapper(RemoteFunction):
 class ActorClassWrapper(ActorClass):
     def party(self, party: str):
         self.party = party
+        if 'resources' in self._default_options:
+            self._default_options['resources'].update({self.party: 1})
+        else:
+            self._default_options.update({'resources': {self.party: 1}})
         return self
 
     def options(self, **actor_options):
