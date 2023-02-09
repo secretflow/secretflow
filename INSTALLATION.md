@@ -109,7 +109,7 @@ pip install -U secretflow
 
 ## GPU support
 
-NVIDIA's CUDA and cuDNN are typically used to accelerate the training and testing of tensoflow and pytorch deep learning models. tensoflow and pytorch are both deep learning backends for secretflow, and if you want to use GPU acceleration in secretflow, you can follow these steps:
+NVIDIA's CUDA and cuDNN are typically used to accelerate the training and testing of Tensoflow and PyTorch deep learning models. Tensoflow and PyTorch are both deep learning backends for SecretFlow, and if you want to use GPU acceleration in SecretFlow, you can follow these steps:
 
 1. Make sure your NVIDIA driver is available
 
@@ -135,13 +135,12 @@ docker build -f  sf-gpu.Dockerfile -t secretflow-gpu .
 3. Run an container
 
 ```bash
-docker container run -it --gpus all -p 8888:8888  secretflow-gpu bash
+docker container run -it --gpus all  secretflow-gpu bash
 ```
 
-- Port 8888 is exposed to be used for jupyter notebook
 - `--gpus all`:This parameters and values are essential
 
-4. After the container is running, you can use the jupyter notebook [GPU_check.ipynb](./docs/tutorial/GPU_check.ipynb) to  check the callability of tensorflow and pytorch for NVIDIA GPUs inside the container.
+4. After the container is running, you can use the jupyter notebook [GPU_check.ipynb](./docs/tutorial/GPU_check.ipynb) to check the callability of Tensorflow and PyTorch for NVIDIA GPUs inside the container.
 
 ## A quick try
 
