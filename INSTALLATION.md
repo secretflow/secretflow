@@ -1,6 +1,6 @@
 # Installation
 
-The simplist way to try SecretFlow is to use [offical docker image](#option-2-from-docker) which shipps with SecretFlow binary.
+The simplist way to try SecretFlow is to use [offical docker image](#option-2-from-docker) which ships with SecretFlow binary.
 
 Or you could [install SecretFlow via Python Package Index](#option-1-from-pypi).
 
