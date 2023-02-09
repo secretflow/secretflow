@@ -98,7 +98,7 @@ class BuildBazelExtension(build_ext.build_ext):
 
 setup(
     name='secretflow',
-    version='0.7.18b1',
+    version='0.7.18b2',
     license='Apache 2.0',
     description='Secret Flow',
     long_description=long_description,
