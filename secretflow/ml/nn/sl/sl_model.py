@@ -34,7 +34,7 @@ from secretflow.data.vertical import VDataFrame
 from secretflow.device import PYU, Device, reveal, wait
 from secretflow.device.device.pyu import PYUObject
 from secretflow.ml.nn.sl.backend.tensorflow.sl_base import PYUSLTFModel
-from secretflow.ml.nn.sl.backend.tensorflow.strategy.split_async import PYUSLAsyncTFModel
+from secretflow.ml.nn.sl.backend.tensorflow.strategy import PYUSLAsyncTFModel
 from secretflow.security.privacy import DPStrategy
 from secretflow.utils.compressor import Compressor
 from secretflow.utils.random import global_random
