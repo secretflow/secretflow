@@ -44,7 +44,7 @@ jobs:
           command: |
             set -ex
             sed -i "s/tensorflow==/tensorflow-cpu==/g" requirements.txt
-            pip install -r requirements.txt -i https://mirrors.bfsu.edu.cn/pypi/web/simple/
+            pip install -r requirements.txt -i https://download.pytorch.org/whl/cpu
             pip install -r dev-requirements.txt
       - run:
           name: "unit test"
