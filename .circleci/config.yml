@@ -22,7 +22,7 @@ jobs:
     # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
     # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
     docker:
-      - image: registry.hub.docker.com/secretflow/secretflow-gcc11-anolis-dev:0.5
+      - image: registry.hub.docker.com/secretflow/base-ci:0.1
     resource_class: 2xlarge+
     # Add steps to the job
     # See: https://circleci.com/docs/2.0/configuration-reference/#steps
@@ -38,13 +38,18 @@ jobs:
       - checkout
       - restore_cache:
           name: "Restore pip cache"
-          key: &pip-cache pip-{{ checksum "requirements.txt" }}
+          key: &pip-cache pip-{{ checksum "requirements.txt" }}-{{ checksum "dev-requirements.txt" }}
+      - run:
+          name: "Install python deps"
+          command: |
+            set -ex
+            sed -i "s/tensorflow==/tensorflow-cpu==/g" requirements.txt
+            pip install -r requirements.txt -i https://mirrors.bfsu.edu.cn/pypi/web/simple/
+            pip install -r dev-requirements.txt
       - run:
           name: "unit test"
           command: |
             set -ex
-            grep -E "^(spu==|sf-heu==)" requirements.txt > second_party_requirements.txt
-            pip install -r second_party_requirements.txt
             bazel build //secretflow_lib/binding/...
             cp bazel-bin/secretflow_lib/binding/_lib.so secretflow/security/privacy/
             sh run_pytest.sh
@@ -102,11 +107,8 @@ workflows:
   default:
     jobs:
       - ut
-  linux_publish:
+  publish:
     when: << pipeline.parameters.GHA_Action >>
     jobs:
       - linux_publish
-  macOS_publish:
-    when: << pipeline.parameters.GHA_Action >>
-    jobs:
       - macOS_publish
