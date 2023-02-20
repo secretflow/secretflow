@@ -292,6 +292,9 @@ class SLModel:
             self._workers[self.device_y].reset_metrics()
             self._workers[self.device_y].on_epoch_begin(epoch)
             fuse_net_num_returns = sum(self.basenet_output_num.values())
+            prev_hiddens = None
+            curr_hidden = None
+
             for step in range(0, steps_per_epoch):
                 if verbose == 1:
                     pbar.update(1)
@@ -304,11 +307,17 @@ class SLModel:
                     )
                     hiddens.append(hidden.to(self.device_y))
 
-                gradients = self._workers[self.device_y].fuse_net(
-                    *hiddens,
-                    _num_returns=fuse_net_num_returns,
-                    compress=self.has_compressor,
-                )
+                if prev_hiddens is None:
+                    prev_hiddens = hiddens
+                    continue
+                else:
+                    curr_hidden = prev_hiddens
+                    prev_hiddens = hiddens
+                    gradients = self._workers[self.device_y].fuse_net(
+                        *curr_hidden,
+                        _num_returns=fuse_net_num_returns,
+                        compress=self.has_compressor,
+                    )
                 # In some strategies, we need to bypass the backpropagation step.
                 skip_gradient = False
                 if self.check_skip_grad:
@@ -323,11 +332,10 @@ class SLModel:
                         for i in range(self.basenet_output_num[device]):
                             gradient = gradients[idx + i].to(device)
                             gradient_list.append(gradient)
+                        worker.base_backward(gradient_list, compress=self.has_compressor) # stage2
 
-                        worker.base_backward(
-                            gradient_list, compress=self.has_compressor
-                        )
                         idx += self.basenet_output_num[device]
+
                 r_count = self._workers[self.device_y].on_train_batch_end(step=step)
                 res.append(r_count)
                 if self.dp_strategy_dict is not None and dp_spent_step_freq is not None:

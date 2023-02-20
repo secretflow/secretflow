@@ -44,8 +44,13 @@ from secretflow.utils.compressor import Compressor, SparseCompressor
 
 class SLBaseModel(ABC):
     def __init__(self, builder_base: Callable, builder_fuse: Callable = None):
-        self.model_base = builder_base() if builder_base is not None else None
-        self.model_fuse = builder_fuse() if builder_fuse is not None else None
+        self.multi_model_base = [build_base() if build_base is not None else None for build_base in builder_base]
+        self.model_base = self.multi_model_base[0]
+        if builder_fuse :
+            self.multi_model_fuse = [build_fuse() if build_fuse is not None else None for build_fuse in builder_fuse]
+            self.model_fuse = self.multi_model_fuse[0]
+        else:
+            self.model_fuse = None
 
     @abstractmethod
     def base_forward(self):
@@ -108,13 +113,17 @@ class SLBaseTFModel(SLBaseModel):
         )
         self.label_dp = self.dp_strategy.label_dp if dp_strategy is not None else None
         self.compressor = compressor
-
+        self.count = 0
+        self.grad_s = None
         self.train_set = None
         self.eval_set = None
         self.valid_set = None
-        self.tape = None
-        self.h = None
+        self.tape = []
+        self.fuse_tape = []
+        self.h = [None]
         self.train_x, self.train_y = None, None
+        self.pre_train_y  = []
+        self.pre_y_pred = [None]
         self.eval_x, self.eval_y = None, None
         self.kwargs = {}
         self.train_has_y = False
@@ -143,6 +152,8 @@ class SLBaseTFModel(SLBaseModel):
 
     def init_data(self):
         self.train_x, self.train_y = None, None
+        # self.pre_train_y = []
+        # self.pre_y_pred = [None]
         self.eval_x, self.eval_y = None, None
         self.train_sample_weight = None
         self.eval_sample_weight = None
@@ -307,7 +318,6 @@ class SLBaseTFModel(SLBaseModel):
     @tf.function
     def _base_forward_internal(self, data_x):
         h = self.model_base(data_x)
-
         # Embedding differential privacy
         if self.embedding_dp is not None:
             if isinstance(h, List):
@@ -323,7 +333,6 @@ class SLBaseTFModel(SLBaseModel):
             compress: Whether to compress cross device data.
         Returns: hidden embedding
         """
-
         assert (
             self.model_base is not None
         ), "Base model cannot be none, please give model define or load a trained model"
@@ -346,6 +355,7 @@ class SLBaseTFModel(SLBaseModel):
                     self.train_y = tf.convert_to_tensor(dp_train_y)
                 else:
                     self.train_y = train_y
+                self.pre_train_y.append(self.train_y)
             else:
                 data_x = train_data
         elif stage == "eval":
@@ -372,11 +382,14 @@ class SLBaseTFModel(SLBaseModel):
         # Strip tuple of length one, e.g: (x,) -> x
         data_x = data_x[0] if isinstance(data_x, Tuple) and len(data_x) == 1 else data_x
 
-        self.tape = tf.GradientTape(persistent=True)
-        with self.tape:
-            self.h = self._base_forward_internal(
+        tape = tf.GradientTape(persistent=True)
+        self.tape.append(tape)
+        with self.tape[-1]:
+            h = self._base_forward_internal(
                 data_x,
             )
+        self.h.append(h)
+
         self.data_x = data_x
 
         forward_data = ForwardData()
@@ -418,24 +431,38 @@ class SLBaseTFModel(SLBaseModel):
                 raise Exception(
                     'can not find compressor when decompress data in base_backward'
                 )
-        with self.tape:
-            if len(gradient) == len(self.h):
+        with self.tape[-2] as tape:
+            h = self.h[-2]
+            if len(gradient) == len(h):
                 for i in range(len(gradient)):
-                    return_hiddens.append(self.fuse_op(self.h[i], gradient[i]))
+                    return_hiddens.append(self.fuse_op(h[i], gradient[i]))
             else:
                 gradient = gradient[0]
-                return_hiddens.append(self.fuse_op(self.h, gradient))
+                return_hiddens.append(self.fuse_op(h, gradient))
             # add model.losses into graph
             return_hiddens.append(self.model_base.losses)
 
         trainable_vars = self.model_base.trainable_variables
         gradients = self.tape.gradient(return_hiddens, trainable_vars)
 
-        self._base_backward_internal(gradients, trainable_vars)
+        if len(self.tape) == 2:
+            gradients = self.tape[-2].gradient(return_hiddens, self.model_base.trainable_variables)
 
-        # clear intermediate results
-        self.tape = None
-        self.h = None
+        else:
+            s = time.time()
+            now_value = [var.read_value() for var in self.multi_model_base[0].trainable_variables]
+            for idx, var in enumerate(self.model_base.trainable_variables):
+                var.assign(self.multi_model_base[1].trainable_variables[idx].read_value())
+            gradients = self.tape[-2].gradient(return_hiddens, self.model_base.trainable_variables)
+            for idx, var in enumerate(self.model_base.trainable_variables):
+                var.assign(now_value[idx])
+            self.copy_time += time.time() - s
+        s = time.time()
+        for idx, var in enumerate(self.multi_model_base[1].trainable_variables):
+            var.assign(self.model_base.trainable_variables[idx])
+        self.copy_time += time.time() - s
+        self._base_backward_internal(gradients, self.model_base.trainable_variables)
+        self.count += 1
         self.kwargs = {}
 
     def get_base_losses(self):
@@ -563,7 +590,6 @@ class SLBaseTFModel(SLBaseModel):
                     hiddens.append(tf.convert_to_tensor(h[i]))
             else:
                 hiddens.append(tf.convert_to_tensor(h))
-
         logs = {}
         gradient = self._fuse_net_train(hiddens, losses)
 
@@ -606,36 +632,53 @@ class SLBaseTFModel(SLBaseModel):
             self.train_y,
             self.train_sample_weight,
         )
+    @tf.function
+    def fuse_net_forward(self, hiddens, train_y, train_sample_weight):
+        y_pred =self.model_fuse(hiddens, training=True, **self.kwargs)
+        loss =self.model_fuse.compiled_loss(
+            train_y,
+            y_pred,
+            sample_weight=train_sample_weight,
+            regularization_losses=self.model_fuse.losses,
+        )
+        return [loss, y_pred]
 
     @tf.function
-    def _fuse_net_internal(self, hiddens, losses, train_y, train_sample_weight):
-        with tf.GradientTape(persistent=True) as tape:
+    def fuse_net_backward(self, gradients):
+        self.model_fuse.optimizer.apply_gradients(zip(gradients, self.model_fuse.trainable_variables))
+
+    # @tf.function
+    def _fuse_net_internal(self, hiddens, train_y, train_sample_weight):
+        fu_tape = tf.GradientTape(persistent=True)
+        self.fuse_tape.append(fu_tape)
+        now_value = None
+        with fu_tape as tape:
             for h in hiddens:
                 tape.watch(h)
-
             # Step 1: forward pass
-            y_pred = self.model_fuse(hiddens, training=True, **self.kwargs)
-            # Step 2: loss calculation, the loss function is configured in `compile()`.
-            # if isinstance(self.model_fuse.loss, tfutils.custom_loss):
-            #     self.model_fuse.loss.with_kwargs(kwargs)
-            loss = self.model_fuse.compiled_loss(
-                train_y,
-                y_pred,
-                sample_weight=train_sample_weight,
-                regularization_losses=self.model_fuse.losses + losses,
-            )
-
+            if len(self.fuse_tape) != 1: # first step
+                now_value = [var.read_value() for var in self.multi_model_fuse[0].trainable_variables]
+                for idx, var in enumerate(self.multi_model_fuse[0].trainable_variables):
+                    var.assign(self.multi_model_fuse[1].trainable_variables[idx].read_value())
+            train_y = self.pre_train_y[-2]
+            [loss, y_pred] = self.fuse_net_forward(hiddens, train_y, train_sample_weight)
         # Step3: compute gradients
-        trainable_vars = self.model_fuse.trainable_variables
-        gradients = tape.gradient(loss, trainable_vars)
-        self.model_fuse.optimizer.apply_gradients(zip(gradients, trainable_vars))
-
+        gradients = tape.gradient(loss, self.model_fuse.trainable_variables)
+        hiddens_gradients = tape.gradient(loss, hiddens)
+        s = time.time()
+        if now_value is not None:
+            for idx, var in enumerate(self.model_fuse.trainable_variables):
+                var.assign(now_value[idx])
+        for idx, var in enumerate(self.multi_model_fuse[1].trainable_variables):
+            eq_ans = tf.equal(var.read_value(), self.model_fuse.trainable_variables[idx].read_value())
+            var.assign(self.model_fuse.trainable_variables[idx].read_value())
+        self.copy_time += time.time()-s
+        self.fuse_net_backward(gradients)
         # Step4: update metrics
         self.model_fuse.compiled_metrics.update_state(
             train_y, y_pred, sample_weight=train_sample_weight
         )
-
-        return tape.gradient(loss, hiddens)
+        return hiddens_gradients
 
     def reset_metrics(self):
         self.model_fuse.compiled_metrics.reset_state()
