@@ -140,7 +140,7 @@ docker container run -it --gpus all  secretflow-gpu bash
 
 - `--gpus all`:This parameters and values are essential
 
-4. After the container is running, you can use the jupyter notebook [GPU_check.ipynb](./docs/tutorial/GPU_check.ipynb) to check the callability of Tensorflow and PyTorch for NVIDIA GPUs inside the container.
+1. After the container is running, you can use the jupyter notebook GPU_check.ipynb to check the callability of Tensorflow and PyTorch for NVIDIA GPUs inside the container.
 
 ## A quick try
 
