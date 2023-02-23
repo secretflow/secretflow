@@ -200,15 +200,15 @@ msgstr "使用dockerfile文件构建一个镜像"
 
 #: ../../../INSTALLATION.md:122
 msgid "Download code"
-msgstr ""
+msgstr "下载代码"
 
 #: ../../../INSTALLATION.md:129
 msgid "Construct an image"
-msgstr "下载代码"
+msgstr "构建镜像"
 
 #: ../../../INSTALLATION.md:135
 msgid "Run an container"
-msgstr "构建镜像"
+msgstr "运行容器"
 
 #: ../../../INSTALLATION.md:141
 msgid "`--gpus all`:This parameters and values are essential"
