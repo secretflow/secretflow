@@ -22,7 +22,7 @@ jobs:
     # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
     # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
     docker:
-      - image: registry.hub.docker.com/secretflow/base-ci:0.1
+      - image: registry.hub.docker.com/secretflow/base-ci:0.2
     resource_class: 2xlarge+
     # Add steps to the job
     # See: https://circleci.com/docs/2.0/configuration-reference/#steps
@@ -61,7 +61,7 @@ jobs:
           path: ./results.xml
   linux_publish:
     docker:
-      - image: registry.hub.docker.com/secretflow/secretflow-gcc11-centos7-release:0.1
+      - image: registry.hub.docker.com/secretflow/release-ci:0.2
     resource_class: xlarge
     steps:
       - checkout
