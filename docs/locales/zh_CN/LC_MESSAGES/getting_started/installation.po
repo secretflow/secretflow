@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-02-23 15:53+0800\n"
+"POT-Creation-Date: 2023-02-28 15:44+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -141,8 +141,8 @@ msgid ""
 "us/windows/wsl/install) to install WSL(Windows Subsystem for Linux) in "
 "your Windows and make sure that the version of WSL is 2."
 msgstr ""
-"请遵循 [guide_zh](https://learn.microsoft.com/zh-cn/windows/wsl/install) 或 "
-"[guide_en](https://learn.microsoft.com/en-us/windows/wsl/install) "
+"请遵循 `中文指南 <https://learn.microsoft.com/zh-cn/windows/wsl/install>`_ 或 "
+"`英文指南 <https://learn.microsoft.com/en-us/windows/wsl/install>`_ "
 "安装WSL。请确保WSL版本为2。"
 
 #: ../../../INSTALLATION.md:84
@@ -186,48 +186,57 @@ msgid ""
 "PyTorch are both deep learning backends for SecretFlow, and if you want "
 "to use GPU acceleration in SecretFlow, you can follow these steps:"
 msgstr ""
-"NVIDIA 的 CUDA 和 cuDNN 通常用于加速 Tensoflow 和 PyTorch 深度学习模型的训练和测试。"
-"Tensoflow和PyTorch都是SecretFlow的深度学习后端，"
-"如果你想在SecretFlow中使用GPU加速，你可以按照以下步骤操作："
+"NVIDIA 的 CUDA 和 cuDNN 通常用于加速 Tensoflow 和 PyTorch "
+"深度学习模型的训练和测试。Tensoflow和PyTorch都是SecretFlow的深度学习后端，如果你想在SecretFlow中使用GPU加速，你可以按照以下步骤操作："
 
 #: ../../../INSTALLATION.md:114
 msgid "Make sure your NVIDIA driver is available"
 msgstr "确保你已经安装了NVIDIA的驱动"
 
 #: ../../../INSTALLATION.md:120
+msgid ""
+"Follow the [NVIDIA official guide](https://docs.nvidia.com/datacenter"
+"/cloud-native/container-toolkit/install-guide.html#docker) to setup "
+"NVIDIA Container Toolkit on your distributions."
+msgstr ""
+"遵循 `NVIDIA 官方指南<https://docs.nvidia.com/datacenter/"
+"cloud-native/container-toolkit/install-guide.html#docker>`_"
+"在您的发行版上来设置NVIDIA Container Toolkit。"
+
+#: ../../../INSTALLATION.md:121
 msgid "Use a dockerfile file to construct an image"
 msgstr "使用dockerfile文件构建一个镜像"
 
-#: ../../../INSTALLATION.md:122
+#: ../../../INSTALLATION.md:123
 msgid "Download code"
 msgstr "下载代码"
 
-#: ../../../INSTALLATION.md:129
+#: ../../../INSTALLATION.md:130
 msgid "Construct an image"
 msgstr "构建镜像"
 
-#: ../../../INSTALLATION.md:135
+#: ../../../INSTALLATION.md:136
 msgid "Run an container"
 msgstr "运行容器"
 
-#: ../../../INSTALLATION.md:141
+#: ../../../INSTALLATION.md:142
 msgid "`--gpus all`:This parameters and values are essential"
 msgstr "`--gpus all`：此参数和值是必不可少的"
 
-#: ../../../INSTALLATION.md:143
+#: ../../../INSTALLATION.md:144
 msgid ""
 "After the container is running, you can use the jupyter notebook "
 "./docs/tutorial/GPU_check.ipynb to check the callability of Tensorflow "
 "and PyTorch for NVIDIA GPUs inside the container."
 msgstr ""
-"容器运行后，您可以使用 jupyter 笔记本 ./docs/tutorial/GPU_check.ipynb "
-"检查容器内 Tensorflow 和 PyTorch 对于 NVIDIA GPU 的可调用性。"
+"容器运行后，您可以使用 jupyter 笔记本 ./docs/tutorial/GPU_check.ipynb 检查容器内 Tensorflow "
+"和 PyTorch 对于 NVIDIA GPU 的可调用性。"
 
-#: ../../../INSTALLATION.md:145
+#: ../../../INSTALLATION.md:146
 msgid "A quick try"
 msgstr "快速尝试"
 
-#: ../../../INSTALLATION.md:147
+#: ../../../INSTALLATION.md:148
 msgid "Try your first SecretFlow program."
 msgstr "你的第一个SecretFlow程序。"
 
