@@ -117,6 +117,7 @@ NVIDIA's CUDA and cuDNN are typically used to accelerate the training and testin
 nvidia-smi
 ```
 
+2. Follow the [NVIDIA official guide]([Installation Guide — NVIDIA Cloud Native Technologies documentation](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#docker)) to setup NVIDIA Container Toolkit on your distributions.
 2. Use a dockerfile file to construct an image
 
 - Download code
