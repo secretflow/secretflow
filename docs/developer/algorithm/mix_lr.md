@@ -10,7 +10,7 @@ Mix partitioning descibes a senario with horizontal and vertical partitioning bo
 
 ## Partitioning
 
-The data will be partitioned into serveral vertical partitions firstly as follows.
+The data will be partitioned into several vertical partitions firstly as follows.
 
 <img alt="mix_partition.png" src="resources/mix_partitioned.png" width="500">
 

@@ -15,9 +15,9 @@ Add Proximal Term to the objective function
 ## Different training requirements for each device: γ-inexact
 
 ![defination_2](resources/fedprox_defination_2.jpg)
-FedAvg requires that each device is fully optimized for E epochs when training locally;
+FedAvg requires that each device is fully optimized for E epochs during training locally;
 Due to equipment heterogeneity, FedProx hopes to put forward different optimization requirements for each equipment k in each round t, and does not require all equipment to be completely optimized;
-![](https://latex.codecogs.com/svg.image?\inline&space;\small&space;\mu_k^t&space;\in&space;[0,1]), the higher the value, the looser the constraints, that is, the lower the training completion requirements for equipment k; on the contrary, when ![](https://latex.codecogs.com/svg.image?\inline&space;\small&space;\mu_k^t&space;=&space;0), the parameters are required The training update is 0, requiring the local model to fully fit;
+![](https://latex.codecogs.com/svg.image?\inline&space;\small&space;\mu_k^t&space;\in&space;[0,1]), the higher the value, the looser the constraints, that is, the lower the training completion requirements for equipment k; on the contrary, when ![](https://latex.codecogs.com/svg.image?\inline&space;\small&space;\mu_k^t&space;=&space;0), the parameters are required the training update is 0, requiring the local model to fully fit;
 With the help of ![](https://latex.codecogs.com/svg.image?\inline&space;\small&space;\mu_k^t), the training volume per round of each device can be adjusted according to the computing resources of the device;
 ## Requirements for parameter selection in Convergence analysis
 When the selected parameters meet the following conditions, the expected value of the convergence rate of the model can be bound
