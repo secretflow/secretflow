@@ -36,7 +36,7 @@ msgstr "推荐使用 `jupyter <https://jupyter.org/>`__ 运行本教程。"
 #: ../../components/mpc_ml/feature_eng.ipynb:53
 msgid ""
 "Secretflow provides a variety of tools to analyze the statistics of the "
-"dataset in order to improve the quality of results from a machine "
+"dataset in order to improve the quality of results from the machine "
 "learning process."
 msgstr "Secretflow 提供了多种工具来分析数据集，以提高机器学习结果的质量。"
 
@@ -138,7 +138,7 @@ msgstr "SecretFlow 的 ``SSVertPearsonR`` 模块可以用于探查垂直划分�
 
 #: ../../components/mpc_ml/feature_eng.ipynb:282
 msgid ""
-"SSVertPearsonR will standardize input datraset first. After standardized,"
+"SSVertPearsonR will standardize input dataset first. After standardized,"
 " all features’ variance is 1 and the mean is 0, the calculation is "
 "simplified to:"
 msgstr "SSVertPearsonR会首先标准化数据集，这样一来所有特征的均值为0方差为1，可以将计算简化为："

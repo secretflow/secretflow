@@ -170,7 +170,7 @@ msgstr "迭代前处理回调"
 msgid ""
 "Input the data into each Client XGBoost engine to calculate g & h   "
 "Initiate the homo_boost task; build FedBooster (iterate n iterations for "
-"tree model iteration)"
+"tree model iterations)"
 msgstr "将数据输入到每个Client XGBoost引擎中计算g & h 启动homo_boost任务； 构建FedBooster（迭代n次迭代进行树模型迭代）"
 
 #: ../../components/federated_learning/federated_learning/tree.md:30

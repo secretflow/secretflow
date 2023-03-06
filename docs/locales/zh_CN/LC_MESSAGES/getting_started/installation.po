@@ -22,7 +22,7 @@ msgstr "安装"
 
 #: ../../../INSTALLATION.md:3
 msgid ""
-"The simplist way to try SecretFlow is to use [offical docker "
+"The simplest way to try SecretFlow is to use [offical docker "
 "image](#option-2-from-docker) which ships with SecretFlow binary."
 msgstr "最简单的尝试SecretFlow的方式是使用带有SecretFlow的 **官方 docker image** 。"
 

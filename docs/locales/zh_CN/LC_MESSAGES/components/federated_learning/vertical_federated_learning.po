@@ -36,7 +36,7 @@ msgstr "拆分学习的概念"
 
 #: ../../components/federated_learning/vertical_federated_learning.rst:12
 msgid ""
-"The core idea of split learning is split the network structure. Each "
+"The core idea of split learning is to split the network structure. Each "
 "device (silo) retains only a part of the network structure, and the sub-"
 "network structure of all devices is combined together to form a complete "
 "network model. In the training process, different devices (silo) only "

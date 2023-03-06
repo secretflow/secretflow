@@ -9,7 +9,7 @@
 The main motivation of FedSTC is to compress the communication between client and server. The main contributions are as follows:
 1. Compared with the previous sparse work on upstream (client 2 server), FedSTC also sparses on downstream (server 2 client);
 2. When only some clients participate in each round, a Weight Update Caching mechanism is provided on the server side. Each client must synchronize the latest model before participating in the next round of training, or lag behind global weights. updates; (I understand such motivation is that if only part of the updates are updated, the content to be transmitted can be sparse);
-3. Quantization is added while sparse. The quantization method is Binarizaiton. Only 3 numbers will appear in the final matrix, {![](https://latex.codecogs.com/svg.image?\inline&space;\small&space;\mu), 0, ![](https://latex.codecogs.com/svg.image?\inline&space;\small&space;\mu)};
+3. Quantization is added while sparse. The quantization method is Binarizaton. Only 3 numbers will appear in the final matrix, {![](https://latex.codecogs.com/svg.image?\inline&space;\small&space;\mu), 0, ![](https://latex.codecogs.com/svg.image?\inline&space;\small&space;\mu)};
 4. Lossless Golomb Encoding is used on the sparse + quantized matrix;
 ## Design
 ### Sparsity（topk）

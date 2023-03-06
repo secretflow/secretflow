@@ -63,7 +63,7 @@ msgstr "服务端把更新后的模型发给每个参与方。"
 
 #: ../../components/federated_learning/horizontal_federated_learning/index.rst:23
 msgid ""
-"Each participant updates their local model, and prepare the next training"
+"Each participant updates their local model, and prepares the next training"
 " step."
 msgstr "每个参与方更新本地模型，并重复进行下一次迭代。"
 
