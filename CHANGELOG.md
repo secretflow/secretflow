@@ -19,6 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.7.18b4] - 2023-3-7
+
+### Changed
+- Bump RayFed to 0.1.1a.
+### Fix
+- give min num_cpus for simulation.
+
+## [0.7.18b3] - 2023-2-9
+### Fix
+- add __init__.py to sl tensorflow strategy folder.
+
 ## [0.7.18b2] - 2023-2-9
 ### Fix
 - add party as resource label in simulation mode.

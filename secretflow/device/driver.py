@@ -314,7 +314,7 @@ def init(
         num_cpus = multiprocess.cpu_count()
         if is_standalone:
             # Give num_cpus a min value for better simulation.
-            num_cpus = min(num_cpus, 32)
+            num_cpus = max(num_cpus, 32)
     set_logging_level(logging_level)
 
     if is_standalone:
