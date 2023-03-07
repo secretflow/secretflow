@@ -13,7 +13,7 @@ protobuf==3.19.4
 pyarrow
 s3fs==2022.1.0
 scikit-learn==1.1.3
-secretflow-rayfed==0.1.0b1
+secretflow-rayfed==0.1.1a0
 sf-heu==0.3.2b1
 sparse
 spu==0.3.1b9
