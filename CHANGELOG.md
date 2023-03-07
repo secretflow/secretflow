@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fix
 - give min num_cpus for simulation.
 
-## [0.7.18b3] - 2023-2-9
+## [0.7.18b3] - 2023-2-13
 ### Fix
 - add __init__.py to sl tensorflow strategy folder.
 
