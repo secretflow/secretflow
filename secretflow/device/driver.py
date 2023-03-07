@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import os
 from functools import wraps
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
@@ -22,6 +23,7 @@ import multiprocess
 import ray
 
 import secretflow.distributed as sfd
+from secretflow.utils.errors import InvalidArgumentError
 from secretflow.utils.logging import set_logging_level
 
 from .device import (
@@ -306,10 +308,10 @@ def init(
     resources = None
     is_standalone = True if parties else False
     local_mode = address == 'local'
-    if not local_mode:
-        assert (
-            num_cpus is None
-        ), 'When connecting to an existing cluster, num_cpus must not be provided.'
+    if not local_mode and num_cpus is not None:
+        raise InvalidArgumentError(
+            'When connecting to an existing cluster, num_cpus must not be provided.'
+        )
     if local_mode and num_cpus is None:
         num_cpus = multiprocess.cpu_count()
         if is_standalone:
@@ -318,15 +320,23 @@ def init(
     set_logging_level(logging_level)
 
     if is_standalone:
+        logging.info('Run secretflow in simulation mode.')
+        if cluster_config:
+            raise InvalidArgumentError(
+                'Simulation mode is enabled when `parties` is provided, '
+                'but you provide `cluster_config` at the same time. '
+                '`cluster_config` is for production mode only and should be `None` in simulation mode. '
+                'Or if you want to run SecretFlow in product mode, '
+                'please keep `parties` with `None`.'
+            )
         # Standalone mode
         sfd.set_production(False)
-        assert isinstance(
-            parties, (str, Tuple, List)
-        ), 'parties must be str or list of str'
+        if not isinstance(parties, (str, Tuple, List)):
+            raise InvalidArgumentError('parties must be str or list of str.')
         if isinstance(parties, str):
             parties = [parties]
         else:
-            assert len(set(parties)) == len(parties), f'duplicated parties {parties}'
+            assert len(set(parties)) == len(parties), f'duplicated parties {parties}.'
 
         if local_mode:
             resources = {party: num_cpus for party in parties}
@@ -345,18 +355,25 @@ def init(
             **kwargs,
         )
     else:
+        logging.info('Run secretflow in production mode.')
         sfd.set_production(True)
         # cluster mode
-        assert (
-            cluster_config
-        ), 'Must provide cluster config when running with cluster mode.'
-        assert 'self_party' in cluster_config, 'Miss self_party in cluster config.'
-        assert 'parties' in cluster_config, 'Miss parties in cluster config.'
+        if not cluster_config:
+            raise InvalidArgumentError(
+                'Must provide `cluster_config` when running with production mode.'
+                ' Or if you want to run SecretFlow in simulation mode, you should'
+                ' provide `parties` and keep `cluster_config` with `None`.'
+            )
+        if 'self_party' not in cluster_config:
+            raise InvalidArgumentError('Miss self_party in cluster config.')
+        if 'parties' not in cluster_config:
+            raise InvalidArgumentError('Miss parties in cluster config.')
         self_party = cluster_config['self_party']
         all_parties = cluster_config['parties']
-        assert (
-            self_party in all_parties
-        ), f'Party {self_party} not found in cluster config parties.'
+        if self_party not in all_parties:
+            raise InvalidArgumentError(
+                f'Party {self_party} not found in cluster config parties.'
+            )
         fed.init(
             address=address,
             cluster=all_parties,
