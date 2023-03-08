@@ -69,7 +69,6 @@ jobs:
           name: "build package and publish"
           command: |
             set -ex
-            python3 -m pip install -r requirements.txt
             python3 setup.py bdist_wheel
             python3 -m pip install twine
             python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
@@ -97,7 +96,6 @@ jobs:
             conda install -y grpcio
             export SYSTEM_VERSION_COMPAT=0
             python3 -m pip install --upgrade pip
-            python3 -m pip install -r requirements.txt
             python3 setup.py bdist_wheel
             python3 -m pip install twine
             python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
