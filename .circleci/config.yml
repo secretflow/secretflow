@@ -69,7 +69,6 @@ jobs:
           name: "build package and publish"
           command: |
             set -ex
-            python3 -m pip install -r requirements.txt
             python3 setup.py bdist_wheel
             python3 -m pip install twine
             python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
@@ -97,7 +96,6 @@ jobs:
             conda install -y grpcio
             export SYSTEM_VERSION_COMPAT=0
             python3 -m pip install --upgrade pip
-            python3 -m pip install -r requirements.txt
             python3 setup.py bdist_wheel
             python3 -m pip install twine
             python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
@@ -115,7 +113,7 @@ jobs:
             set -ex
             
             brew install bazel cmake ninja libomp wget
-            (cd "/opt/homebrew/Cellar/bazel/*.*.*/libexec/bin" && curl -fLO https://github.com/bazelbuild/bazel/releases/download/5.4.0/bazel-5.4.0-darwin-arm64 && chmod +x bazel-5.4.0-darwin-arm64)
+            (cd /opt/homebrew/Cellar/bazel/*.*.*/libexec/bin && curl -fLO https://github.com/bazelbuild/bazel/releases/download/5.4.0/bazel-5.4.0-darwin-arm64 && chmod +x bazel-5.4.0-darwin-arm64)
             wget https://repo.anaconda.com/miniconda/Miniconda3-py38_23.1.0-1-MacOSX-arm64.sh -O ~/miniconda.sh
             bash ~/miniconda.sh -b -p $HOME/miniconda
             source $HOME/miniconda/bin/activate
@@ -125,14 +123,15 @@ jobs:
             conda install -y grpcio
             export SYSTEM_VERSION_COMPAT=0
             python3 -m pip install --upgrade pip
-            python3 -m pip install -r requirements.txt
             python3 setup.py bdist_wheel
             python3 -m pip install twine
             python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
-  default:
+  ut:
+    when:
+      not: << pipeline.parameters.GHA_Action >>
     jobs:
       - ut
   publish:
