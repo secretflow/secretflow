@@ -18,7 +18,7 @@ parameters:
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/2.0/configuration-reference/#jobs
 jobs:
-  ut:
+  linux_ut:
     # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
     # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
     docker:
@@ -59,6 +59,35 @@ jobs:
             - /usr/local/lib64/python3.8/site-packages
       - store_test_results:
           path: ./results.xml
+  macos_ut:
+    macos:
+      xcode: 14.2
+    environment:
+      HOMEBREW_NO_AUTO_UPDATE: 1
+    resource_class: macos.m1.large.gen1
+    steps:
+      - checkout
+      - run:
+          name: "Install homebrew dependencies"
+          command: |
+            brew install bazel cmake ninja libomp wget
+            (cd /opt/homebrew/Cellar/bazel/*。*。*/libexec/bin && curl -fLO https://github.com/bazelbuild/bazel/releases/download/5.4.0/bazel-5.4.0-darwin-arm64 && chmod +x bazel-5.4.0-darwin-arm64)
+      - run:
+          name: "Install Miniconda"
+          command: |
+            wget https://repo.anaconda.com/miniconda/Miniconda3-py38_23.1.0-1-MacOSX-arm64.sh -O ~/miniconda.sh
+            bash ~/miniconda.sh -b -p $HOME/miniconda
+            source $HOME/miniconda/bin/activate
+            conda init bash zsh
+            pip install -r requirements.txt
+            pip install -r dev-requirements.txt
+      - run:
+          name: "build and test"
+          command: |
+            set -ex
+            bazel build //secretflow_lib/binding/...
+            cp bazel-bin/secretflow_lib/binding/_lib.so secretflow/security/privacy/
+            sh run_pytest.sh
   linux_publish:
     docker:
       - image: registry.hub.docker.com/secretflow/release-ci:0.2
@@ -133,7 +162,8 @@ workflows:
     when:
       not: << pipeline.parameters.GHA_Action >>
     jobs:
-      - ut
+      - linux_ut
+      - macos_ut
   publish:
     when: << pipeline.parameters.GHA_Action >>
     jobs:
