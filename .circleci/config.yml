@@ -79,7 +79,7 @@ jobs:
             bash ~/miniconda.sh -b -p $HOME/miniconda
             source $HOME/miniconda/bin/activate
             conda init bash zsh
-            conda install grpcio
+            conda install grpcio -y
             pip install -r requirements.txt
             pip install -r dev-requirements.txt
       - run:
