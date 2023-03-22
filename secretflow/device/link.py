@@ -113,7 +113,7 @@ class FedCommunicator(Communicator):
         parties = [partner.party for partner in partners]
         self.cluster = {
             party: value
-            for party, value in fed.get_cluster().items()
+            for party, value in fed.config.get_cluster_config().cluster_addresses.items()
             if party in parties
         }
 
@@ -131,7 +131,7 @@ class FedCommunicator(Communicator):
         if is_single:
             keys = [keys]
 
-        vals = ray.get([fed.recv(src.party, key, key) for key in keys])
+        vals = ray.get([fed.recv(src.party, src.party, key, key) for key in keys])
         return vals[0] if is_single else vals
 
 
@@ -215,6 +215,7 @@ class Link:
     >>>     init_link(client, ps)
     >>>
     """
+
     def __init__(self, device: PYU, key_prefix: str = ''):
         """Initialize
 
