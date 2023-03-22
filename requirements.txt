@@ -16,7 +16,7 @@ secretflow-rayfed==0.1.1a3
 sparse>=0.14.0
 spu==0.3.1b10
 sf-heu==0.3.2b1
-tensorflow-macos==2.10.1; platform_machine == "arm64" and platform_system == "Darwin"
+tensorflow-macos==2.11.0; platform_machine == "arm64" and platform_system == "Darwin"
 tensorflow==2.10.1; platform_machine != "arm64"
 tf2onnx>=1.13.0
 torch==2.0.0
