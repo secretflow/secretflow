@@ -1,24 +1,24 @@
-FROM openanolis/anolisos:8.4-x86_64
+FROM secretflow/anolis8-python:3.8.15 as python
+
+FROM anolis-registry.cn-zhangjiakou.cr.aliyuncs.com/openanolis/anolisos:8.6
 
 LABEL maintainer="secretflow-contact@service.alipay.com"
 
-RUN yum install -y git wget unzip which vim \
-    && yum clean all 
+COPY --from=python /root/miniconda3/envs/secretflow/bin/ /usr/local/bin/
+COPY --from=python /root/miniconda3/envs/secretflow/lib/ /usr/local/lib/
 
-COPY Miniconda3.sh /tmp/Miniconda3.sh
+RUN grep -rl '#!/root/miniconda3/envs/secretflow/bin' /usr/local/bin/ | xargs sed -i -e 's/#!\/root\/miniconda3\/envs\/secretflow/#!\/usr\/local/g'
 
-RUN bash /tmp/Miniconda3.sh -b \
-    && ln -s /root/miniconda3/bin/conda /usr/bin/conda \
-    && rm -f /tmp/Miniconda3.sh
+ARG sf_version
 
-COPY .condarc /root/.condarc
-COPY environment.yml /tmp/environment.yml
-RUN conda env create -f /tmp/environment.yml \
-    && rm -f /tmp/environment.yml \
-    && conda clean --all -f --yes \
-    && rm -rf /root/.cache
+ENV version $sf_version
 
-RUN echo "source /root/miniconda3/bin/activate secretflow" > ~/.bashrc
+RUN pip install secretflow==${version} --extra-index-url https://download.pytorch.org/whl/cpu
+
+# For security reason.
+# Since onnx-1.13.1's protobuf conflicts with TensorFlow-2.10.1's, 
+# so we upgrade it manually.
+RUN pip install onnx==1.13.1 protobuf==3.20.3 && rm -rf /root/.cache
 
 WORKDIR /root
 
