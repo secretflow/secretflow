@@ -1,6 +1,0 @@
-name: secretflow
-dependencies:
-  - python==3.8.13
-  - pip
-  - pip:
-      - secretflow==version

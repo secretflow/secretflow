@@ -53,16 +53,8 @@ NO_COLOR="\033[0m"
 IMAGE_TAG=secretflow/secretflow-anolis8:${VERSION}
 LATEST_TAG=secretflow/secretflow-anolis8:latest
 
-cp environment.yml environment.yml.bak
-sed -i.bak "s/version/${VERSION}/g" environment.yml
-
-
-if [ ! -f "./Miniconda3.sh" ]; then
-    curl https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -o Miniconda3.sh
-fi
-
 echo -e "Building ${GREEN}${IMAGE_TAG}${NO_COLOR}"
-docker build . -f anolis.Dockerfile -t ${IMAGE_TAG}
+docker build . -f anolis.Dockerfile -t ${IMAGE_TAG} --build-arg sf_version=${VERSION}
 echo -e "Finish building ${GREEN}${IMAGE_TAG}${NO_COLOR}"
 docker push ${IMAGE_TAG}
 
