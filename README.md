@@ -21,10 +21,10 @@ it provides:
 ## Documentation
 
 - [SecretFlow](https://www.secretflow.org.cn/docs/secretflow/zh_CN/)
-  - [Getting Started](https://www.secretflow.org.cn/docs/secretflow/zh_CN/getting_started/index.html/)
-  - [Components](https://www.secretflow.org.cn/docs/secretflow/zh_CN/components/index.html/)
-  - [API Reference](https://www.secretflow.org.cn/docs/secretflow/zh_CN/api/index.html/)
-  - [Tutorial](https://www.secretflow.org.cn/docs/secretflow/zh_CN/tutorial/index.html/)
+  - [Getting Started](https://www.secretflow.org.cn/docs/secretflow/zh_CN/getting_started/index.html)
+  - [Components](https://www.secretflow.org.cn/docs/secretflow/zh_CN/components/index.html)
+  - [API Reference](https://www.secretflow.org.cn/docs/secretflow/zh_CN/api/index.html)
+  - [Tutorial](https://www.secretflow.org.cn/docs/secretflow/zh_CN/tutorial/index.html)
 
 ## Install
 
