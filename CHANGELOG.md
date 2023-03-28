@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - SCQL (Secure Collaborative Query Language).
 
+### Changed
+- Bump spu to 0.3.2b9.
+
 ## [0.7.18b5] - 2023-3-22
 
 ### Changed
