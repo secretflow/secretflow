@@ -27,7 +27,7 @@ it provides:
   - [Tutorial](https://www.secretflow.org.cn/docs/secretflow/zh_CN/tutorial/index.html)
 
 
-## SecretFlow Related projects
+## SecretFlow Related Projects
 
 - [SCQL](https://github.com/secretflow/scql): A system that allows multiple distrusting parties to run joint analysis without revealing their private data.
 - [SPU](https://github.com/secretflow/spu): A provable, measurable secure computation device, which provides computation ability while keeping your private data protected.
