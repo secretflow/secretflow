@@ -51,7 +51,6 @@ from .register import dispatch
 from .type_traits import spu_datatype_to_heu, spu_fxp_size
 
 _LINK_DESC_NAMES = [
-    'connect_retry_times',
     'connect_retry_interval_ms',
     'recv_timeout_ms',
     'http_max_payload_size',
@@ -969,21 +968,19 @@ class SPU(Device):
                     }
             link_desc: optional. A dict specifies the link parameters.
                 Available parameters are:
-                    1. connect_retry_times
+                    1. connect_retry_interval_ms
 
-                    2. connect_retry_interval_ms
+                    2. recv_timeout_ms
 
-                    3. recv_timeout_ms
+                    3. http_max_payload_size
 
-                    4. http_max_payload_size
+                    4. http_timeout_ms
 
-                    5. http_timeout_ms
+                    5. throttle_window_size
 
-                    6. throttle_window_size
+                    6. brpc_channel_protocol refer to `https://github.com/apache/incubator-brpc/blob/master/docs/en/client.md#protocols`
 
-                    7. brpc_channel_protocol refer to `https://github.com/apache/incubator-brpc/blob/master/docs/en/client.md#protocols`
-
-                    8. brpc_channel_connection_type refer to `https://github.com/apache/incubator-brpc/blob/master/docs/en/client.md#connection-type`
+                    7. brpc_channel_connection_type refer to `https://github.com/apache/incubator-brpc/blob/master/docs/en/client.md#connection-type`
             log_options: optional. options of spu logging.
         """
         super().__init__(DeviceType.SPU)
