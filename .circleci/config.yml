@@ -89,6 +89,8 @@ jobs:
             bazel build //secretflow_lib/binding/...
             cp bazel-bin/secretflow_lib/binding/_lib.so secretflow/security/privacy/
             sh run_pytest.sh
+      - store_test_results:
+          path: ./results.xml
   linux_publish:
     docker:
       - image: registry.hub.docker.com/secretflow/release-ci:0.2
