@@ -129,7 +129,6 @@ class DeviceTestCase(unittest.TestCase):
             cls.spu = sf.SPU(
                 cluster_def,
                 link_desc={
-                    'connect_retry_times': 60,
                     'connect_retry_interval_ms': 1000,
                 },
             )
@@ -164,7 +163,7 @@ class ABY3DeviceTestCase(DeviceTestCase):
         print(cluster_def)
         cls.spu = sf.SPU(
             cluster_def,
-            link_desc={'connect_retry_times': 60, 'connect_retry_interval_ms': 1000},
+            link_desc={'connect_retry_interval_ms': 1000},
         )
         cls.heu = sf.HEU(heu_config, cluster_def['runtime_config']['field'])
 

@@ -219,7 +219,7 @@ class TestDevicePSI2PC(MultiDriverDeviceTestCase, SingleDriverDeviceTestCase):
             offline_input_path,
             offline_output_path,
             'alice',
-            protocol='ECDH_OPRF_UNBALANCED_PSI_2PC_OFFLINE',  # psi protocol
+            protocol='ECDH_OPRF_UB_PSI_2PC_OFFLINE',  # psi protocol
             precheck_input=False,  # will cost ext time if set True
             sort=True,  # will cost ext time if set True
             broadcast_result=False,  # offline must set broadcast_result False
@@ -245,7 +245,7 @@ class TestDevicePSI2PC(MultiDriverDeviceTestCase, SingleDriverDeviceTestCase):
             input_path=online_input_path,
             output_path=online_output_path,
             receiver='alice',  # if `broadcast_result=False`, only receiver can get output file.
-            protocol='ECDH_OPRF_UNBALANCED_PSI_2PC_ONLINE',  # psi protocol
+            protocol='ECDH_OPRF_UB_PSI_2PC_ONLINE',  # psi protocol
             precheck_input=False,  # will cost ext time if set True
             sort=True,  # will cost ext time if set True
             broadcast_result=False,  # online set Falise

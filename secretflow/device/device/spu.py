@@ -33,13 +33,13 @@ import numpy as np
 import pandas as pd
 import ray
 import spu
-import spu.binding._lib.link as spu_link
-import spu.binding._lib.logging as spu_logging
-import spu.binding.util.frontend as spu_fe
+import spu.libspu.link as spu_link
+import spu.libspu.logging as spu_logging
+import spu.utils.frontend as spu_fe
 from google.protobuf import json_format
 from heu import phe
 from spu import psi, spu_pb2
-from spu.binding.util.distributed import dtype_spu_to_np, shape_spu_to_np
+from spu.utils.distributed import dtype_spu_to_np, shape_spu_to_np
 
 import secretflow.distributed as sfd
 from secretflow.utils.errors import InvalidArgumentError
@@ -51,7 +51,6 @@ from .register import dispatch
 from .type_traits import spu_datatype_to_heu, spu_fxp_size
 
 _LINK_DESC_NAMES = [
-    'connect_retry_times',
     'connect_retry_interval_ms',
     'recv_timeout_ms',
     'http_max_payload_size',
@@ -550,14 +549,14 @@ class SPURuntime:
             input_params=psi.InputParams(
                 path=input_path, select_fields=key, precheck=precheck_input
             ),
-            output_params=psi.OuputParams(path=output_path, need_sort=sort),
+            output_params=psi.OutputParams(path=output_path, need_sort=sort),
             curve_type=curve_type,
             bucket_size=bucket_size,
         )
 
         if (
-            protocol == "ECDH_OPRF_UNBALANCED_PSI_2PC_OFFLINE"
-            or protocol == "ECDH_OPRF_UNBALANCED_PSI_2PC_ONLINE"
+            protocol == "ECDH_OPRF_UB_PSI_2PC_OFFLINE"
+            or protocol == "ECDH_OPRF_UB_PSI_2PC_ONLINE"
         ):
             assert (
                 self.link.world_size == 2
@@ -726,7 +725,7 @@ class SPURuntime:
             input_params=psi.InputParams(
                 path=input_path1, select_fields=key, precheck=precheck_input
             ),
-            output_params=psi.OuputParams(path=output_psi, need_sort=sort),
+            output_params=psi.OutputParams(path=output_psi, need_sort=sort),
             curve_type=curve_type,
             bucket_size=bucket_size,
         )
@@ -969,21 +968,19 @@ class SPU(Device):
                     }
             link_desc: optional. A dict specifies the link parameters.
                 Available parameters are:
-                    1. connect_retry_times
+                    1. connect_retry_interval_ms
 
-                    2. connect_retry_interval_ms
+                    2. recv_timeout_ms
 
-                    3. recv_timeout_ms
+                    3. http_max_payload_size
 
-                    4. http_max_payload_size
+                    4. http_timeout_ms
 
-                    5. http_timeout_ms
+                    5. throttle_window_size
 
-                    6. throttle_window_size
+                    6. brpc_channel_protocol refer to `https://github.com/apache/incubator-brpc/blob/master/docs/en/client.md#protocols`
 
-                    7. brpc_channel_protocol refer to `https://github.com/apache/incubator-brpc/blob/master/docs/en/client.md#protocols`
-
-                    8. brpc_channel_connection_type refer to `https://github.com/apache/incubator-brpc/blob/master/docs/en/client.md#connection-type`
+                    7. brpc_channel_connection_type refer to `https://github.com/apache/incubator-brpc/blob/master/docs/en/client.md#connection-type`
             log_options: optional. options of spu logging.
         """
         super().__init__(DeviceType.SPU)
