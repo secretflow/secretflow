@@ -555,8 +555,8 @@ class SPURuntime:
         )
 
         if (
-            protocol == "ECDH_OPRF_UNBALANCED_PSI_2PC_OFFLINE"
-            or protocol == "ECDH_OPRF_UNBALANCED_PSI_2PC_ONLINE"
+            protocol == "ECDH_OPRF_UB_PSI_2PC_OFFLINE"
+            or protocol == "ECDH_OPRF_UB_PSI_2PC_ONLINE"
         ):
             assert (
                 self.link.world_size == 2

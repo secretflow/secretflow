@@ -219,7 +219,7 @@ class TestDevicePSI2PC(MultiDriverDeviceTestCase, SingleDriverDeviceTestCase):
             offline_input_path,
             offline_output_path,
             'alice',
-            protocol='ECDH_OPRF_UNBALANCED_PSI_2PC_OFFLINE',  # psi protocol
+            protocol='ECDH_OPRF_UB_PSI_2PC_OFFLINE',  # psi protocol
             precheck_input=False,  # will cost ext time if set True
             sort=True,  # will cost ext time if set True
             broadcast_result=False,  # offline must set broadcast_result False
