@@ -33,13 +33,13 @@ import numpy as np
 import pandas as pd
 import ray
 import spu
-import spu.binding._lib.link as spu_link
-import spu.binding._lib.logging as spu_logging
-import spu.binding.util.frontend as spu_fe
+import spu.libspu.link as spu_link
+import spu.libspu.logging as spu_logging
+import spu.utils.frontend as spu_fe
 from google.protobuf import json_format
 from heu import phe
 from spu import psi, spu_pb2
-from spu.binding.util.distributed import dtype_spu_to_np, shape_spu_to_np
+from spu.utils.distributed import dtype_spu_to_np, shape_spu_to_np
 
 import secretflow.distributed as sfd
 from secretflow.utils.errors import InvalidArgumentError
@@ -550,7 +550,7 @@ class SPURuntime:
             input_params=psi.InputParams(
                 path=input_path, select_fields=key, precheck=precheck_input
             ),
-            output_params=psi.OuputParams(path=output_path, need_sort=sort),
+            output_params=psi.OutputParams(path=output_path, need_sort=sort),
             curve_type=curve_type,
             bucket_size=bucket_size,
         )
@@ -726,7 +726,7 @@ class SPURuntime:
             input_params=psi.InputParams(
                 path=input_path1, select_fields=key, precheck=precheck_input
             ),
-            output_params=psi.OuputParams(path=output_psi, need_sort=sort),
+            output_params=psi.OutputParams(path=output_psi, need_sort=sort),
             curve_type=curve_type,
             bucket_size=bucket_size,
         )
