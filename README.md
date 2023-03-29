@@ -32,7 +32,7 @@ it provides:
 - [SCQL](https://github.com/secretflow/scql): A system that allows multiple distrusting parties to run joint analysis without revealing their private data.
 - [SPU](https://github.com/secretflow/spu): A provable, measurable secure computation device, which provides computation ability while keeping your private data protected.
 - [HEU](https://github.com/secretflow/heu): A high-performance homomorphic encryption algorithm library.
-- [YACL](https://github.com/secretflow/yacl): A C++ library that contains modules and utilities which other SecretFlow code depends on.
+- [YACL](https://github.com/secretflow/yacl): A C++ library that contains cryptgraphy, network and io modules which other SecretFlow code depends on.
 
 ## Install
 
