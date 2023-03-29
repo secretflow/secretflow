@@ -35,9 +35,9 @@ class Penalty(Enum):
 
 
 '''
-stateless functions use in LR training.
-please keep functions stateless to make jax happy
-see https://jax.readthedocs.io/en/latest/jax-101/07-state.html
+Stateless functions used in LR training.
+Please keep functions stateless to make JAX happy.
+See https://jax.readthedocs.io/en/latest/jax-101/07-state.html for more information.
 '''
 
 
@@ -50,18 +50,18 @@ def _predict(
     batch_size: int,
 ):
     """
-    predict on datasets x.
+    Predict on input datasets x.
 
     Args:
-        x: input datasets.
-        w: model weights.
-        sig_type: sigmoid approximation type.
-        reg_type: Linear or Logistic regression.
-        total_batch: how many full batch in x.
-        batch_size: how many samples use in one calculation.
+        x: Input datasets.
+        w: Model weights.
+        sig_type: Sigmoid approximation type.
+        reg_type: Linear or logistic regression.
+        total_batch: How many full batches in x.
+        batch_size: How many samples to use in one calculation.
 
-    Return:
-        pred scores.
+    Returns:
+        Predicted scores.
     """
     x = jnp.concatenate(x, axis=1)
 
@@ -102,7 +102,7 @@ def _concatenate(arrays: List[np.ndarray], axis: int) -> np.ndarray:
 
 
 def _init_w(base: float, num_feat: int) -> np.ndarray:
-    # last one is bias
+    # The last element is the bias term.
     return jnp.full((num_feat + 1, 1), base, dtype=jnp.float32)
 
 
@@ -119,15 +119,15 @@ def _batch_update_w(
     batch_size: int,
 ) -> np.ndarray:
     """
-    update weights on dataset in one iteration.
+    Update the model weights on the dataset in one iteration.
 
     Args:
-        dataset: input datasets.
-        w: base model weights.
-        learning_rate: controls how much to change the model in one epoch.
-        batch_size: how many samples use in one calculation.
-        sig_type: sigmoid approximation type.
-        reg_type: Linear or Logistic regression.
+        dataset: Input datasets.
+        w: Base model weights.
+        learning_rate: Controls how much to change the model in one epoch.
+        batch_size: How many samples to use in one calculation.
+        sig_type: Sigmoid approximation type.
+        reg_type: Linear or logistic regression.
         penalty: The penalty (aka regularization term) to be used.
         l2_norm: L2 regularization term.
 
@@ -144,13 +144,13 @@ def _batch_update_w(
     assert y.shape[0] == x.shape[0], "x & y not aligned"
     assert len(y.shape) == 1 or (
         len(y.shape) == 2 and y.shape[1] == 1
-    ), "Y should be be list or 1D array"
+    ), "Y should be list or 1D array"
     y = y.reshape((y.shape[0], 1))
 
     for idx in range(total_batch):
         begin = idx * batch_size
         end = (idx + 1) * batch_size
-        # padding one col for bias in w
+        # Padding one column for bias in w
         x_slice = jnp.concatenate((x[begin:end, :], jnp.ones((batch_size, 1))), axis=1)
         y_slice = y[begin:end, :]
 
@@ -182,14 +182,14 @@ class SSRegression:
     for vertical split dataset setting by using secret sharing with mini
     batch SGD training solver. SS-SGD is short for secret sharing SGD training.
 
-    more detail for SGD:
+    More detail for SGD:
     https://stats.stackexchange.com/questions/488017/understanding-mini-batch-gradient-descent
 
     Linear regression fits a linear model with coefficients w = (w1, ..., wp)
     to minimize the residual sum of squares between the observed targets in
     the dataset, and the targets predicted by the linear approximation.
 
-    more detail for linear regression:
+    More detail for linear regression:
     https://en.wikipedia.org/wiki/Linear_regression
 
     Logistic regression, despite its name, is a linear model for classification
@@ -199,7 +199,7 @@ class SSRegression:
     are modeled using a logistic function. This method can fit binary regularization
     with optional L2 regularization.
 
-    more detail for logistic regression:
+    More detail for logistic regression:
     https://en.wikipedia.org/wiki/Logistic_regression
 
     SPU is a verifiable and measurable secure computing device that running
@@ -212,11 +212,10 @@ class SSRegression:
     the dataset to SPU device and running model fit under SPU.
 
     Args:
-
-        spu: secure device.
+        spu: The secure device.
 
     Notes:
-        training dataset should be normalized or standardized,
+        The training dataset should be normalized or standardized,
         otherwise the SGD solver will not converge.
 
     """
@@ -228,14 +227,14 @@ class SSRegression:
         self, ds: Union[FedNdarray, VDataFrame]
     ) -> Tuple[FedNdarray, Tuple[int, int]]:
         """
-        check data setting and get total shape.
+        Check the data setting and get the total shape.
 
         Args:
-            ds: input dataset
+            ds: The input dataset.
 
-        Return:
-            First: dataset in unified type
-            Second: shape concat all partition.
+        Returns:
+            First: The dataset in unified type.
+            Second: The shape concatenated from all partitions.
         """
         assert isinstance(
             ds, (FedNdarray, VDataFrame)
@@ -260,10 +259,10 @@ class SSRegression:
         l2_norm: float,
     ):
         """
-        Parameter validity check
+        Check the validity of the model's parameters.
 
         Args:
-            see fit()
+            See the fit() function for details.
         """
         self.x, shape = self._prepare_dataset(x)
         self.samples, self.num_feat = shape
@@ -297,9 +296,9 @@ class SSRegression:
         ], f"penalty should in {[e.value for e in Penalty]}, but got {reg_type}"
 
         self.lr_batch_size = batch_size
-        # for large dataset, batch infeed data for each 20w*200d size.
+        # For large dataset, batch infeed data for each 20w*200d size
         infeed_rows = math.ceil((200000 * 200) / self.num_feat)
-        # align to lr_batch_size, for algorithm accuracy
+        # Align to lr_batch_size, for algorithm accuracy
         infeed_rows = int((infeed_rows + batch_size - 1) / batch_size) * batch_size
         self.infeed_batch_size = infeed_rows
         self.infeed_total_batch = math.ceil(self.samples / infeed_rows)
@@ -319,12 +318,12 @@ class SSRegression:
 
     def _epoch(self, spu_w: SPUObject, epoch_idx: int) -> SPUObject:
         """
-        Complete one iteration
+    Complete one iteration.
 
-        Args:
-            spu_dataset: infeed dataset.
-            spu_w: base W to do iteration.
-            sig_type: sigmoid approximation type.
+    Args:
+        spu_dataset: The infeed dataset.
+        spu_w: The base W to perform the iteration.
+        sig_type: The sigmoid approximation type.
 
         Return:
             W after update in SPUObject.
@@ -388,14 +387,14 @@ class SSRegression:
             y : {FedNdarray, VDataFrame} of shape (n_samples,)
                 Target vector relative to X.
             epochs : int
-                iteration rounds.
+                Iteration rounds.
             learning_rate : float, default=0.1
-                controls how much to change the model in one epoch.
+                Controls how much to change the model in one epoch.
             batch_size : int, default=1024
-                how many samples use in one calculation.
+                How many samples use in one calculation.
             sig_type : str, default=t1
-                sigmoid approximation type.
-            reg_type : str, default=logistic
+                Sigmoid approximation type.
+            reg_type : str, default='logistic'
                 Linear or Logistic regression.
             penalty : str, default=None
                 The penalty (aka regularization term) to be used.
@@ -459,19 +458,18 @@ class SSRegression:
         Predict using the model.
 
         Args:
+            x: {FedNdarray, VDataFrame} of shape (n_samples, n_features).
+                The samples to predict.
 
-            x : {FedNdarray, VDataFrame} of shape (n_samples, n_features)
-                Predict samples.
+            batch_size: int, default=1024.
+                How many samples to use in one calculation.
 
-            batch_size : int, default=1024
-                how many samples use in one calculation.
-
-            to: the prediction initiator
-                if not None predict result is reveal to to_pyu device and save as FedNdarray
-                otherwise, keep predict result in secret and save as SPUObject.
+            to_pyu: the prediction initiator
+                If not None, the predicted result is revealed to the to_pyu device and saved as FedNdarray.__add__(self, other)
+                Otherwise, the predicted result is kept secret and saved as a SPUObject.
 
         Return:
-            pred scores in SPUObject or FedNdarray, shape (n_samples,)
+            The predicted scores in SPUObject or FedNdarray, with shape (n_samples,)
         """
         assert hasattr(self, 'spu_w'), 'please fit model first'
 
