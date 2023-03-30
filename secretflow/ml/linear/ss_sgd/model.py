@@ -318,15 +318,15 @@ class SSRegression:
 
     def _epoch(self, spu_w: SPUObject, epoch_idx: int) -> SPUObject:
         """
-    Complete one iteration.
+        Complete one iteration.
 
-    Args:
-        spu_dataset: The infeed dataset.
-        spu_w: The base W to perform the iteration.
-        sig_type: The sigmoid approximation type.
+        Args:
+            spu_dataset: The infeed dataset.
+            spu_w: The base W to perform the iteration.
+            sig_type: The sigmoid approximation type.
 
-        Return:
-            W after update in SPUObject.
+            Return:
+                W after update in SPUObject.
         """
         for infeed_step in range(self.infeed_total_batch):
             if epoch_idx == 0:
@@ -465,7 +465,7 @@ class SSRegression:
                 How many samples to use in one calculation.
 
             to_pyu: the prediction initiator
-                If not None, the predicted result is revealed to the to_pyu device and saved as FedNdarray.__add__(self, other)
+                If not None, the predicted result is revealed to the to_pyu device and saved as FedNdarray.
                 Otherwise, the predicted result is kept secret and saved as a SPUObject.
 
         Return:
