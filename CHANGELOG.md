@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.8.0b1] - 2023-3-31
+- Bump spu to 0.3.2b11
+
 ## [0.8.0b0] - 2023-3-28
 
 ### Added
