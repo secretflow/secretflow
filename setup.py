@@ -3,6 +3,7 @@ import platform
 import posixpath
 import shutil
 import sys
+import re
 from pathlib import Path
 
 import setuptools
@@ -22,6 +23,17 @@ if sys.platform == "darwin":
         plat_name = "macosx_10_16_x86_64"
     else:
         plat_name = "macosx_11_0_arm64"
+
+
+def find_version(*filepath):
+    # Extract version information from filepath
+    with open(os.path.join('.', *filepath)) as fp:
+        version_match = re.search(
+            r"^__version__ = ['\"]([^'\"]*)['\"]", fp.read(), re.M
+        )
+        if version_match:
+            return version_match.group(1)
+        raise RuntimeError("Unable to find version string.")
 
 
 def read_requirements():
@@ -98,7 +110,7 @@ class BuildBazelExtension(build_ext.build_ext):
 
 setup(
     name='secretflow',
-    version='0.8.0b1',
+    version= find_version("secretflow", "version.py"),
     license='Apache 2.0',
     description='Secret Flow',
     long_description=long_description,
