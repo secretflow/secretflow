@@ -16,13 +16,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
-- spu to 0.3.2b12
+
 ### Fixed
 
 
-## [0.7.19] - 2023-1-30
+## [0.8.1b0] - 2023-4-7
+### Added
+- SecureBoost and its benchmark.
+- Unbalanced PSI
+  - Two sub-protocols for generating cache and transmitting cache.
+  - Online with shuffling sub-protocol, supporting big data parties to obtain data.
+- Semi-homomorphic encryption protocol - OU
+
+### Changed
+- Bump spu to 0.3.2b12
+
+### Fix
+- Fix psi_join_csv output columns error.
+- Fix heu object decode.
+
+## [0.8.0b1] - 2023-3-31
+- Bump spu to 0.3.2b11
+
+## [0.8.0b0] - 2023-3-28
+
+### Added
+- SCQL (Secure Collaborative Query Language).
+
+### Changed
+- Bump spu to 0.3.2b9.
+
+
+## [0.7.18b5] - 2023-3-22
+
+### Changed
+- Bump many dependencies for security fix.
+
+## [0.7.18b4] - 2023-3-7
+
+### Changed
+- Bump RayFed to 0.1.1a.
+### Fix
+- give min num_cpus for simulation.
+
+## [0.7.18b3] - 2023-2-13
+### Fix
+- add __init__.py to sl tensorflow strategy folder.
+
+## [0.7.18b2] - 2023-2-9
+### Fix
+- add party as resource label in simulation mode.
+
+
+## [0.7.18b1] - 2023-1-30
 ### Changed
 - add option whether exit on cross-silo sending.
+- put all requires in one file except dev.
 
 ### Fix
 - Fix psi_join_csv output columns error.
