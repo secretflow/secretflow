@@ -6,9 +6,7 @@ import numpy as np
 
 from secretflow.device import PYUObject, proxy, reveal
 from secretflow.device.link import Link, init_link
-
-from tests.basecase import (MultiDriverDeviceTestCase,
-                            SingleDriverDeviceTestCase)
+from tests.basecase import MultiDriverDeviceTestCase, SingleDriverDeviceTestCase
 
 
 @proxy(PYUObject, max_concurrency=2)

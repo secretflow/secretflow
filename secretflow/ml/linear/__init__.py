@@ -15,9 +15,9 @@
 from .fl_lr_mix import FlLogisticRegressionMix
 from .fl_lr_v import FlLogisticRegressionVertical
 from .hess_sgd import HESSLogisticRegression
-from .ss_sgd import SSRegression
 from .linear_model import LinearModel, RegType
 from .ss_glm import SSGLM
+from .ss_sgd import SSRegression
 
 __all__ = [
     'FlLogisticRegressionMix',

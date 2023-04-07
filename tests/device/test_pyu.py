@@ -66,3 +66,17 @@ class TestDevicePYU(MultiDriverDeviceTestCase, SingleDriverDeviceTestCase):
         x_1 = x.to(self.spu)
         self.assertTrue(isinstance(x_1, SPUObject))
         self.assertTrue(np.allclose(ft.reveal(x), ft.reveal(x_1)))
+
+    def test_io(self):
+        def load():
+            return {'a': 1, 'b': 23}
+
+        x = self.alice(load)()
+
+        import tempfile
+
+        _, path = tempfile.mkstemp()
+        self.alice.dump(x, path)
+        x_ = self.alice.load(path)
+        self.assertTrue(isinstance(x_, PYUObject))
+        self.assertEqual(ft.reveal(x_), {'a': 1, 'b': 23})

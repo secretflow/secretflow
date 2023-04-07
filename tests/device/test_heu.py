@@ -3,10 +3,8 @@ from heu import phe
 
 import secretflow.device as ft
 from secretflow import reveal
-from secretflow.device.device.base import MoveConfig
-
-from tests.basecase import (MultiDriverDeviceTestCase,
-                            SingleDriverDeviceTestCase)
+from secretflow.device.device.heu import HEUMoveConfig
+from tests.basecase import MultiDriverDeviceTestCase, SingleDriverDeviceTestCase
 
 
 class TestDeviceHEU(MultiDriverDeviceTestCase, SingleDriverDeviceTestCase):
@@ -24,7 +22,7 @@ class TestDeviceHEU(MultiDriverDeviceTestCase, SingleDriverDeviceTestCase):
 
             y = add(x_, x_)
 
-        # Can't convert a HEUTensor to CPUTensor without secret key
+        # Can't convert an HEUTensor to CPUTensor without secret key
         with self.assertRaises(AssertionError):
             y = x_.to(self.bob)
 
@@ -43,10 +41,10 @@ class TestDeviceHEU(MultiDriverDeviceTestCase, SingleDriverDeviceTestCase):
             x.to(self.heu),  # x_ is ciphertext
             y.to(self.heu),
             y_int.to(
-                self.heu, config=MoveConfig(heu_encoder=phe.BigintEncoder(schema))
+                self.heu, config=HEUMoveConfig(heu_encoder=phe.BigintEncoder(schema))
             ),
             z_int.to(
-                self.heu, config=MoveConfig(heu_encoder=phe.BigintEncoder(schema))
+                self.heu, config=HEUMoveConfig(heu_encoder=phe.BigintEncoder(schema))
             ),
         )  # plaintext
 
@@ -95,7 +93,9 @@ class TestDeviceHEU(MultiDriverDeviceTestCase, SingleDriverDeviceTestCase):
 
         # test matrix
         m = ft.with_device(self.bob)(np.random.rand)(20, 20)
-        m_heu = m.to(self.heu, MoveConfig(heu_dest_party=self.bob.party))  # plaintext
+        m_heu = m.to(
+            self.heu, HEUMoveConfig(heu_dest_party=self.bob.party)
+        )  # plaintext
         self.assertTrue(m_heu.is_plain)
         np.testing.assert_almost_equal(reveal(m).sum(), reveal(m_heu.sum()), decimal=4)
         np.testing.assert_almost_equal(

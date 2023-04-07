@@ -5,7 +5,6 @@ from secretflow import reveal
 from secretflow.security.aggregation import PlainAggregator, SPUAggregator
 from secretflow.security.compare import PlainComparator, SPUComparator
 from secretflow.utils.simulation.datasets import load_iris
-
 from tests.basecase import MultiDriverDeviceTestCase
 
 

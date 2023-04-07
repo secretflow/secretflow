@@ -2,7 +2,6 @@ import numpy as np
 
 from secretflow.device.driver import reveal
 from secretflow.utils import sigmoid
-
 from tests.basecase import MultiDriverDeviceTestCase
 
 

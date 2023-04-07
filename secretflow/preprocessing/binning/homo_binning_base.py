@@ -23,6 +23,7 @@ from dataclasses import dataclass
 from typing import Dict, List
 
 import numpy as np
+
 from secretflow.device import PYUObject, proxy
 from secretflow.preprocessing.binning.kernels.base_binning import BaseBinning
 from secretflow.preprocessing.binning.kernels.quantile_binning import QuantileBinning

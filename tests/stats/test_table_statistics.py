@@ -4,7 +4,6 @@ from sklearn.datasets import load_iris
 from secretflow.data.base import Partition
 from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.stats import table_statistics
-
 from tests.basecase import MultiDriverDeviceTestCase
 
 

@@ -13,12 +13,12 @@ import tempfile
 import numpy as np
 
 from secretflow.data.ndarray import load
+from secretflow.device import reveal
 from secretflow.ml.nn import SLModel
 from secretflow.security.privacy import DPStrategy, GaussianEmbeddingDP, LabelDP
-from tests.basecase import MultiDriverDeviceTestCase
-from secretflow.utils.simulation.datasets import load_mnist
-from secretflow.device import reveal
 from secretflow.utils.compressor import RandomSparse, TopkSparse
+from secretflow.utils.simulation.datasets import load_mnist
+from tests.basecase import MultiDriverDeviceTestCase
 
 _temp_dir = tempfile.mkdtemp()
 
@@ -31,8 +31,8 @@ def create_dataset_builder(
     repeat_count=5,
 ):
     def dataset_builder(x):
-        import tensorflow as tf
         import pandas as pd
+        import tensorflow as tf
 
         x = [t.values if isinstance(t, pd.DataFrame) else t for t in x]
         x = x[0] if len(x) == 1 else tuple(x)
@@ -45,7 +45,7 @@ def create_dataset_builder(
     return dataset_builder
 
 
-def create_base_model(input_dim, output_dim, output_num, name='base_model'):
+def create_base_model(input_dim, output_dim, output_num, name='base_model', l2=None):
     # Create model
     def create_model():
         from tensorflow import keras
@@ -55,8 +55,10 @@ def create_base_model(input_dim, output_dim, output_num, name='base_model'):
         pooling = keras.layers.MaxPooling2D()(conv)
         flatten = keras.layers.Flatten()(pooling)
         dropout = keras.layers.Dropout(0.5)(flatten)
+        regularizer = keras.regularizers.L2(l2=l2) if l2 else None
         output_layers = [
-            keras.layers.Dense(output_dim)(dropout) for _ in range(output_num)
+            keras.layers.Dense(output_dim, kernel_regularizer=regularizer)(dropout)
+            for _ in range(output_num)
         ]
 
         model = keras.Model(inputs, output_layers)
@@ -109,7 +111,14 @@ train_batch_size = 128
 
 class TestSLModelTensorflow(MultiDriverDeviceTestCase):
     def keras_model_with_mnist(
-        self, base_model_dict, device_y, model_fuse, data, label, strategy='split_nn', **kwargs
+        self,
+        base_model_dict,
+        device_y,
+        model_fuse,
+        data,
+        label,
+        strategy='split_nn',
+        **kwargs
     ):
         # kwargs parsing
         dp_strategy_dict = kwargs.get('dp_strategy_dict', None)
@@ -119,6 +128,10 @@ class TestSLModelTensorflow(MultiDriverDeviceTestCase):
         base_local_steps = kwargs.get('base_local_steps', 1)
         fuse_local_steps = kwargs.get('fuse_local_steps', 1)
         bound_param = kwargs.get('bound_param', 0.0)
+
+        loss_thres = kwargs.get('loss_thres', 0.01)
+        split_steps = kwargs.get('split_steps', 1)
+        max_fuse_local_steps = kwargs.get('max_fuse_local_steps', 10)
 
         party_shape = data.partition_shape()
         alice_length = party_shape[self.alice][0]
@@ -136,6 +149,9 @@ class TestSLModelTensorflow(MultiDriverDeviceTestCase):
             base_local_steps=base_local_steps,
             fuse_local_steps=fuse_local_steps,
             bound_param=bound_param,
+            loss_thres=loss_thres,
+            split_steps=split_steps,
+            max_fuse_local_steps=max_fuse_local_steps,
         )
 
         history = sl_model.fit(
@@ -172,7 +188,17 @@ class TestSLModelTensorflow(MultiDriverDeviceTestCase):
         self.assertAlmostEqual(
             global_metric['accuracy'], history['val_accuracy'][-1], 1
         )
-        self.assertEquals(zero_metric['loss'], 0.0)
+        loss_sum = 0
+        for w in sl_model._workers.values():
+            loss = reveal(w.get_base_losses())
+            if len(loss) > 0:
+                import tensorflow as tf
+
+                loss_sum += tf.add_n(loss).numpy()
+        if loss_sum != 0:
+            self.assertAlmostEqual(zero_metric['loss'], loss_sum, 3)
+        else:
+            self.assertEquals(zero_metric['loss'], 0.0)
         self.assertGreater(global_metric['accuracy'], 0.8)
         result = sl_model.predict(data, batch_size=128, verbose=1)
         reveal_result = []
@@ -344,6 +370,7 @@ class TestSLModelTensorflow(MultiDriverDeviceTestCase):
             device_y=self.bob,
             dataset_builder=dataset_buidler_dict,
         )
+        print("test split async strategy")
         # test split async with multiple base local steps
         self.keras_model_with_mnist(
             data=x_train,
@@ -378,6 +405,30 @@ class TestSLModelTensorflow(MultiDriverDeviceTestCase):
             base_local_steps=5,
             fuse_local_steps=5,
             bound_param=0.1,
+        )
+        # test split state async
+        self.keras_model_with_mnist(
+            data=x_train,
+            label=y_train,
+            base_model_dict=base_model_dict,
+            model_fuse=fuse_model,
+            device_y=self.bob,
+            strategy='split_state_async',
+            loss_thres=0.01,
+            split_steps=1,
+            max_fuse_local_steps=10,
+        )
+        # test model with regularizer
+        base_model_with_reg = create_base_model(input_shape, 64, output_num=1, l2=1e-3)
+        self.keras_model_with_mnist(
+            data=x_train,
+            label=y_train,
+            base_model_dict={
+                self.alice: base_model_with_reg,
+                self.bob: base_model_with_reg,
+            },
+            model_fuse=fuse_model,
+            device_y=self.bob,
         )
 
     def test_multi_output_model(self):

@@ -4,7 +4,6 @@ from secretflow import reveal
 from secretflow.utils.errors import InvalidArgumentError
 from secretflow.utils.simulation.data.dataframe import create_df
 from secretflow.utils.simulation.datasets import dataset
-
 from tests.basecase import MultiDriverDeviceTestCase
 
 

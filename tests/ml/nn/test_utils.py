@@ -1,6 +1,7 @@
 from unittest import TestCase
-from secretflow.ml.nn.metrics import Mean, Precision
+
 from secretflow.ml.nn.fl.utils import History
+from secretflow.ml.nn.metrics import Mean, Precision
 
 
 class TestHistory(TestCase):

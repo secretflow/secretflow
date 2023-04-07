@@ -142,7 +142,7 @@ def _train_internal(
         )
         if len(set(pre_round_list)) != 1:
             raise ValueError(
-                f"num round before trainning for clients must aligned, but got {pre_round_list}"
+                f"num round before training for clients must aligned, but got {pre_round_list}"
             )
         pre_round = pre_round_list[0]
     start_iteration += pre_round

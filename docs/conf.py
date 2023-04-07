@@ -39,7 +39,6 @@ extensions = [
     "nbsphinx",
     'sphinxcontrib.actdiag',
     'sphinxcontrib.blockdiag',
-    'sphinxcontrib.mermaid',
     'sphinxcontrib.nwdiag',
     'sphinxcontrib.packetdiag',
     'sphinxcontrib.rackdiag',

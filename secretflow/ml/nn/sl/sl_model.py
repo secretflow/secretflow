@@ -25,6 +25,7 @@ import math
 import os
 from typing import Callable, Dict, Iterable, List, Tuple, Union
 
+from multiprocess import cpu_count
 from tqdm import tqdm
 
 from secretflow.data.base import Partition
@@ -33,12 +34,10 @@ from secretflow.data.ndarray import FedNdarray
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import PYU, Device, reveal, wait
 from secretflow.device.device.pyu import PYUObject
-from secretflow.ml.nn.sl.backend.tensorflow.sl_base import PYUSLTFModel
-from secretflow.ml.nn.sl.backend.tensorflow.strategy import PYUSLAsyncTFModel
+from secretflow.ml.nn.sl.strategy_dispatcher import dispatch_strategy
 from secretflow.security.privacy import DPStrategy
 from secretflow.utils.compressor import Compressor
 from secretflow.utils.random import global_random
-from multiprocess import cpu_count
 
 
 class SLModel:
@@ -70,39 +69,29 @@ class SLModel:
         self.simulation = kwargs.get('simulation', False)
         self.num_parties = len(base_model_dict)
 
-        if strategy == 'split_nn':
-            self._workers = {
-                device: PYUSLTFModel(
-                    device=device,
-                    builder_base=model,
-                    builder_fuse=None if device != device_y else model_fuse,
-                    compressor=compressor,
-                    random_seed=random_seed,
-                    dp_strategy=dp_strategy_dict.get(device, None)
-                    if dp_strategy_dict
-                    else None,
-                )
-                for device, model in base_model_dict.items()
-            }
-        elif strategy == 'split_async':
-            self._workers = {
-                device: PYUSLAsyncTFModel(
-                    device=device,
-                    builder_base=model,
-                    builder_fuse=None if device != device_y else model_fuse,
-                    compressor=compressor,
-                    random_seed=random_seed,
-                    dp_strategy=dp_strategy_dict.get(device, None)
-                    if dp_strategy_dict
-                    else None,
-                    base_local_steps=kwargs.get('base_local_steps', 1),
-                    fuse_local_steps=kwargs.get('fuse_local_steps', 1),
-                    bound_param=kwargs.get('bound_param', 0.0),
-                )
-                for device, model in base_model_dict.items()
-            }
-        else:
-            logging.error("unvalid split learning strategy: ", strategy)
+        # TODO: add argument `backend`
+        import secretflow.ml.nn.sl.backend.tensorflow.strategy  # noqa
+
+        self._workers = {}
+        for device, model in base_model_dict.items():
+            self._workers[device], self.check_skip_grad = dispatch_strategy(
+                strategy,
+                backend=kwargs.get('backend', 'tensorflow'),
+                device=device,
+                builder_base=model,
+                builder_fuse=None if device != device_y else model_fuse,
+                compressor=compressor,
+                random_seed=random_seed,
+                dp_strategy=dp_strategy_dict.get(device, None)
+                if dp_strategy_dict
+                else None,
+                base_local_steps=kwargs.get('base_local_steps', 1),
+                fuse_local_steps=kwargs.get('fuse_local_steps', 1),
+                bound_param=kwargs.get('bound_param', 0.0),
+                loss_thres=kwargs.get('loss_thres', 0.01),
+                split_steps=kwargs.get('split_steps', 1),
+                max_fuse_local_steps=kwargs.get('max_fuse_local_steps', 1),
+            )
 
     def handle_data(
         self,
@@ -302,6 +291,7 @@ class SLModel:
                 pbar = tqdm(total=steps_per_epoch)
             self._workers[self.device_y].reset_metrics()
             self._workers[self.device_y].on_epoch_begin(epoch)
+            fuse_net_num_returns = sum(self.basenet_output_num.values())
             for step in range(0, steps_per_epoch):
                 if verbose == 1:
                     pbar.update(1)
@@ -319,16 +309,25 @@ class SLModel:
                     _num_returns=fuse_net_num_returns,
                     compress=self.has_compressor,
                 )
+                # In some strategies, we need to bypass the backpropagation step.
+                skip_gradient = False
+                if self.check_skip_grad:
+                    skip_gradient = reveal(
+                        self._workers[self.device_y].get_skip_gradient()
+                    )
 
-                idx = 0
-                for device, worker in self._workers.items():
-                    gradient_list = []
-                    for i in range(self.basenet_output_num[device]):
-                        gradient = gradients[idx + i].to(device)
-                        gradient_list.append(gradient)
+                if not skip_gradient:
+                    idx = 0
+                    for device, worker in self._workers.items():
+                        gradient_list = []
+                        for i in range(self.basenet_output_num[device]):
+                            gradient = gradients[idx + i].to(device)
+                            gradient_list.append(gradient)
 
-                    worker.base_backward(gradient_list, compress=self.has_compressor)
-                    idx += self.basenet_output_num[device]
+                        worker.base_backward(
+                            gradient_list, compress=self.has_compressor
+                        )
+                        idx += self.basenet_output_num[device]
                 r_count = self._workers[self.device_y].on_train_batch_end(step=step)
                 res.append(r_count)
                 if self.dp_strategy_dict is not None and dp_spent_step_freq is not None:

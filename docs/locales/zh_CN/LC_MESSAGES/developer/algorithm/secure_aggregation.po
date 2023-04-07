@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-01-07 11:23+0800\n"
+"POT-Creation-Date: 2023-04-06 14:06+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -49,7 +49,7 @@ msgid ""
 msgstr "安全聚合是联邦学习中的重要概念。学术界对此已经有较多研究。隐语在水平联邦学习（梯度/权重聚合）、数据处理（比如数据探查、预处理）等方面使用了安全聚合。"
 
 #: ../../developer/algorithm/secure_aggregation.ipynb:46
-msgid "The following explains the secure aggregation used by secreflow."
+msgid "The following explains the secure aggregation used by secretflow."
 msgstr "下面将介绍隐语使用的安全聚合方案。"
 
 #: ../../developer/algorithm/secure_aggregation.ipynb:58
@@ -166,11 +166,11 @@ msgstr ""
 
 #: ../../developer/algorithm/secure_aggregation.ipynb:353
 msgid ""
-"**Warning:** The SecureAggregator uses `numpy.random.PCG64 "
+"***Warning:*** The SecureAggregator uses `numpy.random.PCG64 "
 "<https://numpy.org/doc/stable/reference/random/bit_generators/pcg64.html#numpy.random.PCG64>`__."
 " There are many discussions of whether PCG is a CSPRNG (e.g. "
 "https://crypto.stackexchange.com/questions/77101/is-the-pcg-prng-a"
-"-csprng-or-why-not), we perfer a conservative strategy unless a further "
+"-csprng-or-why-not), we prefer a conservative strategy unless a further "
 "security analysis came up. Therefore we recommend users to use a "
 "standardized CSPRNG in industrial scenarios."
 msgstr ""

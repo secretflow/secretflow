@@ -14,7 +14,7 @@
 
 import socket
 from contextlib import closing
-from typing import List, Tuple, cast, Dict, Any
+from typing import Any, Dict, List, Tuple, cast
 
 import spu
 
@@ -51,7 +51,7 @@ def cluster_def(parties: List[str], runtime_config=None) -> Dict[str, Any]:
                 Other options are using default values.
 
     Returns:
-        Dict[str, Any]: A SPU cluster_def to initiate a SPU device.
+        Dict[str, Any]: An SPU cluster_def to initiate an SPU device.
     """
     assert (
         isinstance(parties, (Tuple, List)) and len(parties) >= 2
@@ -76,7 +76,6 @@ def cluster_def(parties: List[str], runtime_config=None) -> Dict[str, Any]:
         cdef['nodes'].append(
             {
                 'party': party,
-                'id': f'local:{i}',
                 'address': f'127.0.0.1:{unused_tcp_port()}',
             }
         )

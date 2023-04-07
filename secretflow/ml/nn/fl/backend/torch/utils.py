@@ -20,11 +20,10 @@ from abc import ABC, abstractmethod
 from typing import List, Optional, Union
 
 import numpy as np
-from torchmetrics import Metric
-
 import torch
 from torch import nn, optim
 from torch.nn.modules.loss import _Loss as BaseTorchLoss
+from torchmetrics import Metric
 
 
 class BaseModule(ABC, nn.Module):
@@ -48,7 +47,7 @@ class BaseModule(ABC, nn.Module):
         keys = self.state_dict().keys()
         weights_dict = {}
         for k, v in zip(keys, weights):
-            weights_dict[k] = torch.Tensor(v)
+            weights_dict[k] = torch.Tensor(np.copy(v))
         self.load_state_dict(weights_dict)
 
     def get_gradients(self, parameters=None):

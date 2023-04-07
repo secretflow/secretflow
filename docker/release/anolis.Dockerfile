@@ -1,6 +1,6 @@
 FROM secretflow/anolis8-python:3.8.15 as python
 
-FROM anolis-registry.cn-zhangjiakou.cr.aliyuncs.com/openanolis/anolisos:8.6
+FROM openanolis/anolisos:8.8
 
 LABEL maintainer="secretflow-contact@service.alipay.com"
 

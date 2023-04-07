@@ -12,5 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import heu, spu, pyu
+from . import heu, pyu, spu
 from .spu import psi_df

@@ -7,6 +7,12 @@ build --enable_platform_specific_config
 build --cxxopt=-std=c++17
 build --host_cxxopt=-std=c++17
 
+# Binary safety flags
+build --copt=-fPIC
+build --copt=-fstack-protector-strong
+build:linux --copt=-Wl,-z,noexecstack
+build:macos --copt=-Wa,--noexecstack
+
 # platform specific config
 # Bazel will automatic pick platform config since we have enable_platform_specific_config set
 

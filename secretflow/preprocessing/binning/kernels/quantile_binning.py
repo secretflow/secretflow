@@ -21,6 +21,7 @@ from typing import Dict, List
 
 import numpy as np
 import pandas as pd
+
 from secretflow.preprocessing.binning.kernels.base_binning import BaseBinning
 from secretflow.preprocessing.binning.kernels.quantile_summaries import (
     QuantileSummaries,

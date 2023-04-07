@@ -12,16 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .ss_pearsonr_v import PearsonR as SSVertPearsonR
-from .ss_vif_v import VIF as SSVertVIF
-from .ss_pvalue_v import PVlaue as SSPValue
-from .regression_eval import RegressionEval
 from .biclassification_eval import BiClassificationEval
-from .pva_eval import pva_eval
 from .psi_eval import psi_eval
-from .table_statistics import table_statistics
+from .pva_eval import pva_eval
+from .regression_eval import RegressionEval
 from .score_card import ScoreCard
-
+from .ss_pearsonr_v import PearsonR as SSVertPearsonR
+from .ss_pvalue_v import PVlaue as SSPValue
+from .ss_vif_v import VIF as SSVertVIF
+from .table_statistics import table_statistics
 
 __all__ = [
     'SSVertPearsonR',

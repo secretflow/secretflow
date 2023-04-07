@@ -12,28 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import random
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Callable, Dict, List, Tuple, Union, Optional
-
 from enum import Enum, unique
-import numpy as np
-import jax.numpy as jnp
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
-from sklearn.model_selection import train_test_split as _train_test_split
+import jax.numpy as jnp
+import numpy as np
 
 from secretflow.data.io import util as io_util
-from secretflow.device import PYU, PYUObject, reveal, SPU, to
+from secretflow.device import PYU, SPU, PYUObject, reveal
 from secretflow.utils.errors import InvalidArgumentError
 
 from .math_utils import (
-    sum_of_difference_squares,
-    sum_of_difference_abs,
-    sum_of_difference_ratio_abs,
-    mean_of_difference_squares,
     mean_of_difference_abs,
     mean_of_difference_ratio_abs,
+    mean_of_difference_squares,
+    sum_of_difference_abs,
+    sum_of_difference_ratio_abs,
+    sum_of_difference_squares,
 )
 
 # 下面的函数是同时支持水平和垂直的。
@@ -278,45 +275,6 @@ def load(
     return result
 
 
-def train_test_split(
-    data: FedNdarray, ratio: float, random_state: int = None, shuffle=True
-) -> Tuple[FedNdarray, FedNdarray]:
-    """Split data into train and test dataset.
-
-    Args:
-        data: Data to split.
-        ratio: Train dataset ratio.
-        random_state: Controls the shuffling applied to the data before applying the split.
-        shuffle: Whether or not to shuffle the data before splitting.
-
-    Returns:
-        Tuple of train and test dataset.
-    """
-    assert data.partitions, "Data partitions are None or empty."
-    assert 0 < ratio < 1, f"Invalid split ratio {ratio}, must be in (0, 1)"
-
-    if random_state is None:
-        random_state = random.randint(0, 2**32 - 1)
-
-    assert isinstance(random_state, int), f"random_state must be an integer"
-
-    def split(*args, **kwargs) -> Tuple[np.ndarray, np.ndarray]:
-        if len(args[0].shape) == 0:
-            return np.array(None), np.array(None)
-        results = _train_test_split(*args, **kwargs)
-        return results[0], results[1]
-
-    parts_train, parts_test = {}, {}
-    for device, part in data.partitions.items():
-        parts_train[device], parts_test[device] = device(split)(
-            part, train_size=ratio, random_state=random_state, shuffle=shuffle
-        )
-    return (
-        FedNdarray(parts_train, data.partition_way),
-        FedNdarray(parts_test, data.partition_way),
-    )
-
-
 def shuffle(data: FedNdarray):
     """Random shuffle data.
 
@@ -358,8 +316,8 @@ def unary_op(
                 return device(len_1_handle_function)(partition, d)
             return device(len_1_handle_function)(partition)
     elif y_len > 1:
-        assert spu_device is not None, "A SPU device is required"
-        obj_list = [to(spu_device, partition) for partition in y.partitions.values()]
+        assert spu_device is not None, "An SPU device is required"
+        obj_list = [partition.to(spu_device) for partition in y.partitions.values()]
         if simulate_double_value_replacer_handle:
             return spu_device(handle_function)(obj_list, d)
         return spu_device(handle_function)(obj_list)
@@ -374,7 +332,7 @@ def mean(y: FedNdarray, spu_device: Optional[SPU] = None):
         spu_device: SPU
     If y is from a single party, then a PYUObject is returned.
     If y is from multiple parties, then
-        a SPU device is required and a SPUObject is returned.
+        an SPU device is required and an SPUObject is returned.
     If y is empty return 0.
     """
 
@@ -401,21 +359,21 @@ def binary_op(
             for device, partition in y1.partitions.items():
                 return device(len_1_handle_function)(partition, y2.partitions[device])
         elif y_len > 1:
-            assert spu_device is not None, "A SPU device is required"
+            assert spu_device is not None, "An SPU device is required"
             obj1_list = [
-                to(spu_device, partition) for partition in y1.partitions.values()
+                partition.to(spu_device) for partition in y1.partitions.values()
             ]
             obj2_list = [
-                to(spu_device, partition) for partition in y2.partitions.values()
+                partition.to(spu_device) for partition in y2.partitions.values()
             ]
             return spu_device(handle_function)(obj1_list, obj2_list)
         else:
             return 0
     else:
-        assert spu_device is not None, "A SPU device is required"
+        assert spu_device is not None, "An SPU device is required"
         assert y1.shape == y2.shape, "Two shapes must coincide"
-        obj1_list = [to(spu_device, partition) for partition in y1.partitions.values()]
-        obj2_list = [to(spu_device, partition) for partition in y2.partitions.values()]
+        obj1_list = [partition.to(spu_device) for partition in y1.partitions.values()]
+        obj2_list = [partition.to(spu_device) for partition in y2.partitions.values()]
         axis_1 = get_concat_axis(y1)
         axis_2 = get_concat_axis(y2)
 
@@ -456,7 +414,7 @@ def rss(y1: FedNdarray, y2: FedNdarray, spu_device: Optional[SPU] = None):
 
     If y1 is from a single party, then a PYUObject is returned.
     If y1 is from multiple parties, then
-        a SPU device is required and a SPUObject is returned.
+        an SPU device is required and an SPUObject is returned.
     If y1 is empty return 0.
 
     """
@@ -484,7 +442,7 @@ def tss(y: FedNdarray, spu_device: Optional[SPU] = None):
 
     If y is from a single party, then a PYUObject is returned.
     If y is from multiple parties, then
-        a SPU device is required and a SPUObject is returned.
+        an SPU device is required and an SPUObject is returned.
     If y is empty return 0.
     """
 
@@ -518,7 +476,7 @@ def mean_squared_error(
 
     If y_true is from a single party, then a PYUObject is returned.
     If y_true is from multiple parties, then
-        a SPU device is required and a SPUObject is returned.
+        an SPU device is required and an SPUObject is returned.
     If y_true is empty return 0.
 
     """
@@ -554,10 +512,11 @@ def root_mean_squared_error(
 
     If y_true is from a single party, then a PYUObject is returned.
     If y_true is from multiple parties, then
-        a SPU device is required and a SPUObject is returned.
+        an SPU device is required and an SPUObject is returned.
     If y_true is empty return 0.
 
     """
+
     # TODO: check y1 and y2 have the same device and shapes
     def spu_rmse(obj1_list: List[np.ndarray], obj2_list: List[np.ndarray]):
         sums = jnp.array(
@@ -594,7 +553,7 @@ def mean_abs_err(
 
     If y_true is from a single party, then a PYUObject is returned.
     If y_true is from multiple parties, then
-        a SPU device is required and a SPUObject is returned.
+        an SPU device is required and an SPUObject is returned.
     If y_true is empty return 0.
     """
 
@@ -630,7 +589,7 @@ def mean_abs_percent_err(
 
     If y_true is from a single party, then a PYUObject is returned.
     If y_true is from multiple parties, then
-        a SPU device is required and a SPUObject is returned.
+        an SPU device is required and an SPUObject is returned.
     If y_true is empty return 0.
 
     """
@@ -667,7 +626,7 @@ def r2_score(y_true: FedNdarray, y_pred: FedNdarray, spu_device: Optional[SPU] =
 
     If y_true is from a single party, then a PYUObject is returned.
     If y_true is from multiple parties, then
-        a SPU device is required and a SPUObject is returned.
+        an SPU device is required and an SPUObject is returned.
     If y_true is empty return 0.
     """
 
@@ -683,9 +642,9 @@ def r2_score(y_true: FedNdarray, y_pred: FedNdarray, spu_device: Optional[SPU] =
         for device in y_true.partitions.keys():
             return device(r2_from_tss_rss)(tss_val, rss_val)
     else:
-        assert spu_device is not None, "A SPU device is required"
+        assert spu_device is not None, "An SPU device is required"
         return spu_device(r2_from_tss_rss)(
-            to(spu_device, tss_val), to(spu_device, rss_val)
+            tss_val.to(spu_device), rss_val.to(spu_device)
         )
 
 
@@ -701,7 +660,7 @@ def histogram(y: FedNdarray, bins: int = 10, spu_device: Optional[SPU] = None):
 
     If y is from a single party, then a PYUObject is returned.
     If y is from multiple parties, then
-        a SPU device is required and a SPUObject is returned.
+        an SPU device is required and an SPUObject is returned.
     """
     y_len = len(y.partitions.keys())
     if y_len == 1:
@@ -709,8 +668,8 @@ def histogram(y: FedNdarray, bins: int = 10, spu_device: Optional[SPU] = None):
             return device(jnp.histogram)(partition, bins)
     else:
         assert False, "Feature Not Supported Yet"
-        assert spu_device is not None, "A SPU device is required"
-        obj_list = [to(spu_device, partition) for partition in y.partitions.values()]
+        assert spu_device is not None, "An SPU device is required"
+        obj_list = [partition.to(spu_device) for partition in y.partitions.values()]
         axis = get_concat_axis(y)
 
         def hist_concat_composition(obj_list: List[np.array], axis: int, bins: int):
@@ -734,7 +693,7 @@ def residual_histogram(
 
     If y is from a single party, then a PYUObject is returned.
     If y is from multiple parties, then
-        a SPU device is required and a SPUObject is returned.
+        an SPU device is required and an SPUObject is returned.
     """
     y_len = len(y1.partitions.keys())
     enable_local_compute_optimization = check_same_partition_shapes(y1, y2)
@@ -754,12 +713,12 @@ def residual_histogram(
                 )
         elif y_len > 1:
             assert False, "Feature Not Supported Yet"
-            assert spu_device is not None, "A SPU device is required"
+            assert spu_device is not None, "An SPU device is required"
             obj1_list = [
-                to(spu_device, partition) for partition in y1.partitions.values()
+                partition.to(spu_device) for partition in y1.partitions.values()
             ]
             obj2_list = [
-                to(spu_device, partition) for partition in y2.partitions.values()
+                partition.to(spu_device) for partition in y2.partitions.values()
             ]
             return spu_device(
                 hist_subtract_composition, static_argnames=("bins", "axis")
@@ -769,10 +728,10 @@ def residual_histogram(
             return None
     else:
         assert False, "Feature Not Supported Yet"
-        assert spu_device is not None, "A SPU device is required"
+        assert spu_device is not None, "An SPU device is required"
         assert y1.shape == y2.shape, "Two shapes must coincide"
-        obj1_list = [to(spu_device, partition) for partition in y1.partitions.values()]
-        obj2_list = [to(spu_device, partition) for partition in y2.partitions.values()]
+        obj1_list = [partition.to(spu_device) for partition in y1.partitions.values()]
+        obj2_list = [partition.to(spu_device) for partition in y2.partitions.values()]
         axis_1 = get_concat_axis(y1)
         axis_2 = get_concat_axis(y2)
 

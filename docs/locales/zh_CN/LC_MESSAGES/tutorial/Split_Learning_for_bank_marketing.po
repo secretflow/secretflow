@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-01-16 09:47+0800\n"
+"POT-Creation-Date: 2023-04-06 14:18+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -52,10 +52,10 @@ msgstr "什么是拆分学习？"
 
 #: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:56
 msgid ""
-"The core idea of split learning is split the network structure. Each "
+"The core idea of split learning is to split the network structure. Each "
 "device (silo) retains only a part of the network structure, and the sub-"
 "network structure of all devices is combined together to form a complete "
-"network model. In the training process, different devices (silo) only "
+"network model. In the training process, different devices (silos) only "
 "perform forward or reverse calculation on the local network structure, "
 "and transfer the calculation results to the next device. Multiple devices"
 " complete the training through joint model until convergence."
@@ -75,7 +75,7 @@ msgstr "`Alice` ：拥有 `data_alice` ， `model_base_alice` "
 
 #: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:73
 msgid "**Bob**: have *data_bob*\\ ，\\ *model_base_bob*\\ ，\\ *model_fuse*"
-msgstr "`Bob` ：用于 `data_bob` ， `model_base_bob` ， `model_fuse` "
+msgstr "`Bob` ：拥有 `data_bob` ， `model_base_bob` ， `model_fuse` "
 
 #: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:75
 msgid ""

@@ -4,9 +4,7 @@ import numpy as np
 
 from secretflow import reveal
 from secretflow.device import PYUObject, proxy
-
-from tests.basecase import (MultiDriverDeviceTestCase,
-                            SingleDriverDeviceTestCase)
+from tests.basecase import MultiDriverDeviceTestCase, SingleDriverDeviceTestCase
 
 
 @proxy(PYUObject)

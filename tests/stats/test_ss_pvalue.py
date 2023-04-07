@@ -28,7 +28,6 @@ from secretflow.ml.linear import LinearModel, RegType, SSRegression
 from secretflow.stats import SSPValue
 from secretflow.utils.sigmoid import SigType
 from secretflow.utils.simulation.datasets import dataset
-
 from tests.basecase import MultiDriverDeviceTestCase
 
 

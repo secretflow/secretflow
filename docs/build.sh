@@ -25,7 +25,7 @@ if [[ "$l" != "en" && "$l" != "zh_CN" ]]; then
     usage
 fi
 
-
+rm -rf ./source
 SPHINX_APIDOC_OPTIONS=members,autosummary sphinx-apidoc -f -d 2 -t templates -o ./source ../secretflow/
 make clean
 env PYTHONPATH=$PYTHONPATH:$PWD/.. make SPHINXOPTS="-D language='${l}'" html

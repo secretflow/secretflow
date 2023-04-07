@@ -18,7 +18,7 @@ from typing import Callable
 
 # NOTE: Device Conversion Table
 # +-------------------+---------------+---------+-------------+
-# |     |     PYU     |       SPU     |  TEE    |      HEU    |
+# |     |     PYU     |       SPU     |  TEEU   |      HEU    |
 # +-----+-------------+---------------+---------+-------------+
 # | PYU |             |      share    | encrypt |    encrypt  |
 # +-----+-------------+---------------+---------+-------------+
@@ -31,7 +31,7 @@ from typing import Callable
 class DeviceType(IntEnum):
     PYU = 0  # Python Unit
     SPU = 1  # Privacy Preserving Processing Unit
-    TEE = 2  # Trusted Execution Environment
+    TEEU = 2  # Trusted Execution Environment Processing Unit
     HEU = 3  # Homomorphic Encryption Unit
     NUM = 4  # Number of device type
 

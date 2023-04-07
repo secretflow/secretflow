@@ -40,6 +40,14 @@ cope with the development of future privacy computing technologies and applicati
   can be connected to each other.
 
 
+MPC, FL, TEE: which one is better?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We're often asked which technology is better. The short answer is there is no dominant winner.
+It depends on the requirements, such as performance, security assumption, etc. For a more detailed comparison, please check
+`A comprehensive comparison of various privacy-preserving technologies <https://www.yuque.com/secret-flow/admin/exgixt72drdvdsy3>`_ .
+
+
 .. toctree::
    :maxdepth: 2
    :hidden:
@@ -51,12 +59,4 @@ cope with the development of future privacy computing technologies and applicati
    tutorial/index
    developer/index
 
-MPC, FL, TEE: which one is better?
-------------------------------------------
-
-.. figure:: _static/pp_tech_comparison.png
-
-We're often asked which technology is better. The short answer is there is no dominant winner.
-As shown in the above picture, it depends on the requirements, such as performance, security assumption, etc. For a more detailed comparison, please check
-`A comprehensive comparison of various privacy-preserving technologies <https://www.yuque.com/secret-flow/admin/exgixt72drdvdsy3>`_
 

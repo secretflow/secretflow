@@ -12,13 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .aggregation import (
-    Aggregator,
-    SecureAggregator,
-    PlainAggregator,
-    SPUAggregator,
-)
-
+from .aggregation import Aggregator, PlainAggregator, SecureAggregator, SPUAggregator
 from .compare import Comparator, DeviceComparator, PlainComparator, SPUComparator
 
 __all__ = [

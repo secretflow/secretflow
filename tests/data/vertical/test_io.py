@@ -1,9 +1,9 @@
 import os
 import tempfile
+import unittest
 
 import numpy as np
 import pandas as pd
-import unittest
 
 from secretflow import reveal
 from secretflow.data.base import Partition

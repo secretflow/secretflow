@@ -18,20 +18,25 @@ import tensorflow as tf
 from secretflow.data.ndarray import load
 from secretflow.device import reveal
 from secretflow.ml.nn import FLModel
+from secretflow.ml.nn.fl.compress import COMPRESS_STRATEGY
 from secretflow.preprocessing.encoder import OneHotEncoder
 from secretflow.security.aggregation import PlainAggregator, SparsePlainAggregator
 from secretflow.security.compare import PlainComparator
 from secretflow.security.privacy import DPStrategyFL, GaussianModelDP
 from secretflow.utils.simulation.datasets import load_iris, load_mnist
-
 from tests.basecase import MultiDriverDeviceTestCase, SingleDriverDeviceTestCase
-
-from secretflow.ml.nn.fl.compress import COMPRESS_STRATEGY
 
 _temp_dir = tempfile.mkdtemp()
 
 NUM_CLASSES = 10
 INPUT_SHAPE = (28, 28, 1)
+
+path_to_flower_dataset = tf.keras.utils.get_file(
+    "flower_photos",
+    "https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/tf_flowers/flower_photos.tgz",
+    untar=True,
+    cache_dir=_temp_dir,
+)
 
 
 # model define for mlp
@@ -77,6 +82,39 @@ def create_conv_model(input_shape, num_classes, name='model'):
         # Compile model
         model.compile(
             loss='categorical_crossentropy', optimizer='adam', metrics=["accuracy"]
+        )
+        return model
+
+    return create_model
+
+
+# model define for flower recognaiton
+def create_conv_flower_model(input_shape, num_classes, name='model'):
+    def create_model():
+        from tensorflow import keras
+
+        # Create model
+
+        model = keras.Sequential(
+            [
+                keras.Input(shape=input_shape),
+                tf.keras.layers.Rescaling(1.0 / 255),
+                tf.keras.layers.Conv2D(32, 3, activation='relu'),
+                tf.keras.layers.MaxPooling2D(),
+                tf.keras.layers.Conv2D(32, 3, activation='relu'),
+                tf.keras.layers.MaxPooling2D(),
+                tf.keras.layers.Conv2D(32, 3, activation='relu'),
+                tf.keras.layers.MaxPooling2D(),
+                tf.keras.layers.Flatten(),
+                tf.keras.layers.Dense(128, activation='relu'),
+                tf.keras.layers.Dense(num_classes),
+            ]
+        )
+        # Compile model
+        model.compile(
+            loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+            optimizer='adam',
+            metrics=["accuracy"],
         )
         return model
 
@@ -348,4 +386,143 @@ class TestFedModelTensorflow(MultiDriverDeviceTestCase):
             dp_strategy=dp_strategy_fl,
             dp_spent_step_freq=dp_spent_step_freq,
             backend="tensorflow",
+        )
+
+
+class TestFedModelDataLoader(SingleDriverDeviceTestCase):
+    def keras_model_with_mnist(self, model, data, label, strategy, backend, **kwargs):
+
+        if strategy in COMPRESS_STRATEGY:
+            aggregator = SparsePlainAggregator(self.carol)
+        else:
+            aggregator = PlainAggregator(self.carol)
+
+        # spcify params
+        sampler_method = kwargs.get('sampler_method', "batch")
+        dp_spent_step_freq = kwargs.get('dp_spent_step_freq', None)
+        dataset_builder = kwargs.get('dataset_builder', None)
+        device_list = [self.alice, self.bob]
+
+        fed_model = FLModel(
+            server=self.carol,
+            device_list=device_list,
+            model=model,
+            aggregator=aggregator,
+            backend=backend,
+            strategy=strategy,
+            random_seed=1234,
+            **kwargs,
+        )
+        random_seed = 1234
+        history = fed_model.fit(
+            data,
+            label,
+            validation_data=data,
+            epochs=5,
+            batch_size=32,
+            aggregate_freq=2,
+            sampler_method=sampler_method,
+            random_seed=random_seed,
+            dp_spent_step_freq=dp_spent_step_freq,
+            dataset_builder=dataset_builder,
+        )
+        global_metric, _ = fed_model.evaluate(
+            data,
+            label,
+            batch_size=32,
+            sampler_method=sampler_method,
+            random_seed=random_seed,
+            dataset_builder=dataset_builder,
+        )
+        self.assertEquals(
+            global_metric[1].result().numpy(),
+            history.global_history['val_accuracy'][-1],
+        )
+
+        model_path_test = os.path.join(_temp_dir, "base_model")
+        fed_model.save_model(model_path=model_path_test, is_test=True)
+        model_path_dict = {
+            self.alice: os.path.join(_temp_dir, "alice_model"),
+            self.bob: os.path.join(_temp_dir, "bob_model"),
+        }
+        fed_model.save_model(model_path=model_path_dict, is_test=False)
+
+        # test load model
+        fed_model.load_model(model_path=model_path_test, is_test=True)
+        fed_model.load_model(model_path=model_path_dict, is_test=False)
+        reload_metric, _ = fed_model.evaluate(
+            data,
+            label,
+            batch_size=32,
+            sampler_method=sampler_method,
+            random_seed=random_seed,
+            dataset_builder=dataset_builder,
+        )
+        np.testing.assert_equal(
+            [m.result().numpy() for m in global_metric],
+            [m.result().numpy() for m in reload_metric],
+        )
+
+    def test_keras_model(self):
+
+        # prepare model
+        num_classes = 5
+
+        input_shape = (180, 180, 3)
+        # keras model
+        model = create_conv_flower_model(input_shape, num_classes)
+
+        def create_dataset_builder(
+            batch_size=32,
+        ):
+            def dataset_builder(x, stage="train"):
+                import math
+
+                import tensorflow as tf
+
+                img_height = 180
+                img_width = 180
+                data_set = tf.keras.utils.image_dataset_from_directory(
+                    x,
+                    validation_split=0.2,
+                    subset="both",
+                    seed=123,
+                    image_size=(img_height, img_width),
+                    batch_size=batch_size,
+                )
+                if stage == "train":
+                    train_dataset = data_set[0]
+                    train_step_per_epoch = math.ceil(
+                        len(data_set[0].file_paths) / batch_size
+                    )
+                    return train_dataset, train_step_per_epoch
+                elif stage == "eval":
+                    eval_dataset = data_set[1]
+                    eval_step_per_epoch = math.ceil(
+                        len(data_set[1].file_paths) / batch_size
+                    )
+                    return eval_dataset, eval_step_per_epoch
+
+            return dataset_builder
+
+        data_builder_dict = {
+            self.alice: create_dataset_builder(
+                batch_size=32,
+            ),
+            self.bob: create_dataset_builder(
+                batch_size=32,
+            ),
+        }
+
+        # test fed avg w
+        self.keras_model_with_mnist(
+            data={
+                self.alice: path_to_flower_dataset,
+                self.bob: path_to_flower_dataset,
+            },
+            label=None,
+            model=model,
+            strategy="fed_avg_w",
+            backend="tensorflow",
+            dataset_builder=data_builder_dict,
         )

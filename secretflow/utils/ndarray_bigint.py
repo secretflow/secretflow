@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
 import random
 
-import math
 import numpy as np
 from heu import numpy as hnp
 

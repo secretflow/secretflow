@@ -11,11 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import ray
 import jax.tree_util
+import ray
+
+from secretflow.device.device.pyu import PYUObject
+
 from .base import DeviceObject
 from .register import dispatch
-from secretflow.device.device.pyu import PYUObject
 
 
 class HEUObject(DeviceObject):
@@ -119,3 +121,84 @@ class HEUObject(DeviceObject):
     def dump(self, path):
         """Dump ciphertext into files."""
         self.device.get_participant(self.location).dump.remote(self.data, path)
+
+    def select_sum(self, item):
+        """
+        Sum of HEUObject selected elements
+        """
+        item = jax.tree_util.tree_map(
+            lambda x: x.data if isinstance(x, PYUObject) else x, item
+        )
+        return HEUObject(
+            self.device,
+            self.device.get_participant(self.location).select_sum.remote(
+                self.data, item
+            ),
+            self.location,
+            self.is_plain,
+        )
+
+    def batch_select_sum(self, item):
+        """
+        Sum of HEUObject selected elements
+        """
+        item = jax.tree_util.tree_map(
+            lambda x: x.data if isinstance(x, PYUObject) else x, item
+        )
+
+        return HEUObject(
+            self.device,
+            self.device.get_participant(self.location).batch_select_sum.remote(
+                self.data, item
+            ),
+            self.location,
+            self.is_plain,
+        )
+
+    def feature_wise_bucket_sum(self, subgroup_map, order_map, bucket_num, cumsum=False):
+        """
+        Sum of HEUObject selected elements
+        """
+
+        def process_data(x):
+            res = x
+            if isinstance(x, PYUObject):
+                res = x.data
+            return res
+
+        subgroup_map = jax.tree_util.tree_map(process_data, subgroup_map)
+        order_map = jax.tree_util.tree_map(process_data, order_map)
+        bucket_num = process_data(bucket_num)
+        return HEUObject(
+            self.device,
+            self.device.get_participant(self.location).feature_wise_bucket_sum.remote(
+                self.data, subgroup_map, order_map, bucket_num, cumsum
+            ),
+            self.location,
+            self.is_plain,
+        )
+
+    def batch_feature_wise_bucket_sum(self, subgroup_map, order_map, bucket_num, cumsum=False):
+        """
+        Sum of HEUObject selected elements
+        """
+
+        def process_data(x):
+            res = x
+            if isinstance(x, PYUObject):
+                res = x.data
+            return res
+
+        subgroup_map = jax.tree_util.tree_map(process_data, subgroup_map)
+        order_map = jax.tree_util.tree_map(process_data, order_map)
+        bucket_num = process_data(bucket_num)
+        return HEUObject(
+            self.device,
+            self.device.get_participant(
+                self.location
+            ).batch_feature_wise_bucket_sum.remote(
+                self.data, subgroup_map, order_map, bucket_num, cumsum
+            ),
+            self.location,
+            self.is_plain,
+        )

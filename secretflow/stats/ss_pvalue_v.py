@@ -14,16 +14,16 @@
 
 
 import logging
-from typing import List, Tuple
-import numpy as np
+from typing import Any, List, Tuple
+
 import jax.numpy as jnp
+import numpy as np
 from scipy import stats
 
 import secretflow as sf
-from secretflow.utils.sigmoid import SigType
-from secretflow.device import SPUObject, SPU
-from secretflow.ml.linear import LinearModel, RegType, SSRegression
 from secretflow.data.vertical import VDataFrame
+from secretflow.device import SPU, SPUObject
+from secretflow.utils.sigmoid import SigType
 
 from .core.utils import newton_matrix_inverse
 
@@ -176,7 +176,9 @@ class PVlaue:
                 square[idx] = 0
         return square
 
-    def pvalues(self, x: VDataFrame, y: VDataFrame, model: LinearModel) -> np.ndarray:
+    def pvalues(self, x: VDataFrame, y: VDataFrame, model: Any) -> np.ndarray:
+        from secretflow.ml.linear import LinearModel, RegType, SSRegression
+
         """
         computer pvalue for lr model
 
@@ -192,6 +194,7 @@ class PVlaue:
         Return:
             PValue
         """
+        assert isinstance(model, LinearModel), "Only support Linear model."
         assert isinstance(model.weights, SPUObject), (
             "Only support model fit by sslr/hesslr that "
             "training on vertical slice dataset."

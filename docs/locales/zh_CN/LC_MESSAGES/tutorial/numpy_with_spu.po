@@ -1,0 +1,490 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2022 Ant Group Co., Ltd.
+# This file is distributed under the same license as the SecretFlow package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2023.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: SecretFlow \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-03-22 11:05+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.11.0\n"
+
+#: ../../tutorial/numpy_with_spu.ipynb:9
+msgid "Privacy-Preserving Scientific Computing with NumPy in SPU"
+msgstr "在SPU中使用NumPy实现隐私保护的科学计算"
+
+#: ../../tutorial/numpy_with_spu.ipynb:11
+msgid ""
+"NumPy is one of the most popular tool for scientific computing. It is so "
+"common that we could find lots of equivalents of NumPy in other languages"
+" like `xtensor <https://xtensor.readthedocs.io/en/latest/>`__ and `Gonum "
+"<https://www.gonum.org/>`__. So we can’t help thinking whether we could "
+"express computation with NumPy-like APIs in privacy-preserving settings "
+"since everyone loves NumPy."
+msgstr "NumPy是最流行的科学计算工具之一。它非常常见，以至于我们可以在其他语言中找到许多类似于NumPy的工具，"
+"比如 `xtensor <https://xtensor.readthedocs.io/en/latest/>`__ 和 `Gonum  <https://www.gonum.org/>`__ 。"
+"因此，我们不禁想到，是否可以在隐私保护的环境中使用类似于NumPy的API表达计算，因为每个人都喜欢NumPy。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:13
+msgid ""
+"Luckily, with the power of `JAX "
+"<https://jax.readthedocs.io/en/latest/>`__ NumPy package, we could easily"
+" accomplish this goal. In this tutorial, we would go through: - The "
+"relation between JAX and SPU - Write a Jittable JAX Program - Execute JAX"
+" Program with SPU"
+msgstr "幸运的是，借助 `JAX <https://jax.readthedocs.io/en/latest/>`__ NumPy软件包的强大功能，"
+"我们可以轻松实现这个目标。在本教程中，我们将介绍以下内容："
+"1. JAX和SPU之间的关系"
+"2. 编写可编译的JAX程序"
+"3. 在SPU上执行JAX程序"
+
+#: ../../tutorial/numpy_with_spu.ipynb:25
+msgid "The relation between JAX and SPU"
+msgstr "JAX和SPU之间的关系"
+
+#: ../../tutorial/numpy_with_spu.ipynb:28
+msgid "TL;DR"
+msgstr ""
+
+#: ../../tutorial/numpy_with_spu.ipynb:30
+msgid ""
+"SPU actually consists of two components - Compiler and Runtime. SPU "
+"Runtime could only execute `PPHlo "
+"<https://www.secretflow.org.cn/docs/spu/en/reference/pphlo_doc.html>`__. "
+"One example of PPHlo kernel is `**pphlo.add** "
+"<https://www.secretflow.org.cn/docs/spu/en/reference/pphlo_doc.html"
+"#pphlo-add-mlir-pphlo-addop>`__. Actually we just feed PPHlo programs to "
+"SPU Runtime directly to execute MPC programs in some internal "
+"applications when the logic is extremely simple and clear."
+msgstr ""
+"SPU实际上由两个组件组成 - 编译器和运行时。SPU运行时只能执行 `PPHlo <https://www.secretflow.org.cn/docs/spu/en/reference/pphlo_doc.html>`__ 。"
+"一个PPHlo内核的例子是 `**pphlo.add** <https://www.secretflow.org.cn/docs/spu/en/reference/pphlo_doc.html#pphlo-add-mlir-pphlo-addop>`__ 。"
+"实际上，当逻辑非常简单和清晰时，我们只需将PPHlo程序直接输入SPU运行时以执行MPC程序，用于一些内部应用。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:32
+msgid ""
+"SPU compiler could translate `XLA <https://www.tensorflow.org/xla>`__ "
+"programs to `PPHlo "
+"<https://www.secretflow.org.cn/docs/spu/en/reference/pphlo_doc.html>`__. "
+"You could check “Supported” XLA ops in `this documentation "
+"<https://www.secretflow.org.cn/docs/spu/en/reference/xla_status.html>`__."
+" You may find XLA ops are very similar to PPHlo ops in most cases. It "
+"seems we still couldn’t write XLA programs by hand. You are absolutely "
+"correct. If you happen to check `here "
+"<https://www.tensorflow.org/xla#xla_frontends>`__, you should find "
+"actually there are lot’s of AI frameworks which could emit XLA programs "
+"without your effort, including:"
+msgstr ""
+"SPU编译器可以将 `XLA <https://www.tensorflow.org/xla>`__ 程序转换为 `PPHlo <https://www.secretflow.org.cn/docs/spu/en/reference/pphlo_doc.html>`__ 。"
+"您可以在 `此文档 <https://www.secretflow.org.cn/docs/spu/en/reference/xla_status.html>`__ 中检查“支持的”XLA操作。"
+"在大多数情况下，您会发现XLA操作与PPHlo操作非常相似。似乎我们仍然不能手动编写XLA程序。"
+"事实的确如此。如果您查看 `这里 <https://www.tensorflow.org/xla#xla_frontends>`__ ，您应该会发现实际上有很多人工智能框架可以自动生成XLA程序，包括："
+
+#: ../../tutorial/numpy_with_spu.ipynb:35
+msgid "TensorFLow"
+msgstr ""
+
+#: ../../tutorial/numpy_with_spu.ipynb:36
+msgid "Pytorch"
+msgstr ""
+
+#: ../../tutorial/numpy_with_spu.ipynb:37
+msgid "JAX"
+msgstr ""
+
+#: ../../tutorial/numpy_with_spu.ipynb:39
+msgid "Let’s go through each step to have a look at different programs!"
+msgstr "让我们逐步看一下不同的程序！"
+
+#: ../../tutorial/numpy_with_spu.ipynb:42
+msgid "JAX Program"
+msgstr "JAX 程序"
+
+#: ../../tutorial/numpy_with_spu.ipynb:44
+msgid ""
+"The below is a jax program to add an array and a scalar. It should make "
+"sense to you if you are familiar with NumPy."
+msgstr "下面是一个JAX程序，用于将一个数组和一个标量相加。如果您熟悉NumPy，这应该很容易理解。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:129
+msgid "XLA Program"
+msgstr "XLA 程序"
+
+#: ../../tutorial/numpy_with_spu.ipynb:131
+msgid ""
+"Let’s check what the XLA program for this JAX program looks like. JAX "
+"provides `xla_computation "
+"<https://jax.readthedocs.io/en/latest/_autosummary/jax.xla_computation.html>`__"
+" to convert JAX programs to XLA programs."
+msgstr "让我们来看看这个JAX程序的XLA程序是什么样子。JAX提供 `xla_computation <https://jax.readthedocs.io/en/latest/_autosummary/jax.xla_computation.html>`__ 函数将JAX程序转换为XLA程序。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:180
+msgid "You should be aware of the following facts:"
+msgstr "您应该知道以下事实："
+
+#: ../../tutorial/numpy_with_spu.ipynb:182
+msgid ""
+"shape and dtype is fixed in XLA program like **s32[2,2]{1,0}** in each "
+"command."
+msgstr "在XLA程序中，每个参数的形状和数据类型都是固定的，如 **s32[2,2]{1,0}** "
+
+#: ../../tutorial/numpy_with_spu.ipynb:183
+msgid "an implicit **broadcast** op is inserted before **add** op."
+msgstr "在 **add** 操作之前会插入一个隐式的 **broadcast** 操作。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:195
+msgid "PPHlo Program"
+msgstr "PPHlo 程序"
+
+#: ../../tutorial/numpy_with_spu.ipynb:197
+msgid ""
+"Lastly, let’s check the PPHlo program for this XLA program. "
+"**spu.compile** could convert XLA programs to PPHlo programs."
+msgstr "最后，让我们查看这个XLA程序的PPHlo程序。 **spu.compile** 函数可以将XLA程序转换为PPHlo程序。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:252
+msgid ""
+"You may find the PPHlo program is identical to XLA program. The only "
+"differences are:"
+msgstr "您可能会发现，PPHlo程序与XLA程序几乎完全相同。区别是："
+
+#: ../../tutorial/numpy_with_spu.ipynb:254
+msgid ""
+"You have to provide the input visibility to SPU compiler, i.e. "
+"**[spu.Visibility.VIS_SECRET, spu.Visibility.VIS_SECRET]** in our case."
+msgstr "您必须向SPU编译器提供输入可见性，例如我们的情况下为 **[spu.Visibility.VIS_SECRET, spu.Visibility.VIS_SECRET]**"
+
+#: ../../tutorial/numpy_with_spu.ipynb:255
+msgid ""
+"Comparing to XLA program, **Visibility** is an extra attribute to all "
+"variables in PPHlo program like **tensor<2x2x!pphlo.sec>** means this is "
+"a secret 2x2 i32 tensor."
+msgstr "与XLA程序相比，Visibility是PPHlo程序中所有变量的额外属性。例如， **tensor<2x2x!pphlo.sec>** 表示这是一个密态的2x2 i32张量。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:266
+msgid ""
+"SPU compiler would deduce visibility in each step, let’s modify input "
+"visibility and check what would happen."
+msgstr "SPU编译器会在每一步中推导可见性，让我们修改输入可见性并查看会发生什么。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:320
+msgid "From JAX to SPU"
+msgstr "从JAX到SPU"
+
+#: ../../tutorial/numpy_with_spu.ipynb:322
+msgid ""
+"So this is the whole story. 1. You write a JAX program in Python. 2. Then"
+" you could turn JAX program to XLA program with the first-party API from "
+"JAX, i.e. jax.xla_computation. 3. Afterwards, SPU compiler could transfer"
+" XLA program to PPHlo program - the only language could be understood by "
+"SPU Runtime. 4. In the end, the PPHlo program is sent to SPU Runtimes and"
+" executed."
+msgstr "这就是整个故事。"
+"1. 您可以使用Python编写JAX程序。"
+"2. 您可以使用JAX的第一方API（即jax.xla_computation）将JAX程序转换为XLA程序。"
+"3. SPU编译器可以将XLA程序转换为PPHlo程序——这是SPU运行时唯一能理解的语言。"
+"4. 将PPHlo程序发送到SPU运行时并执行。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:324
+msgid ""
+"In SecretFlow, we have implemented some helper methods so that you could "
+"just write a JAX program in the beginning, we would take care of the "
+"remaining steps for you."
+msgstr ""
+"在SecretFlow中，我们已经实现了一些辅助方法，这样您就可以一开始就编写JAX程序，我们会为您处理其余的步骤。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:336
+msgid "Write a Jittable JAX Program"
+msgstr "写一个可即时编译（Jittable）的JAX程序"
+
+#: ../../tutorial/numpy_with_spu.ipynb:338
+msgid ""
+"Jittable means a JAX program could be Just In Time (JIT) compilation into"
+" XLA program. So only when a JAX program is Jittable, it then could be "
+"possibly executed by SPU."
+msgstr ""
+"可即时编译（Jittable）指的是JAX程序可以即时编译（JIT）为XLA程序。因此，只有当一个JAX程序是可即时编译的，它才可能被SPU执行。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:340
+msgid ""
+"Since SPU doesn’t support all XLA operators, even a JAX program is "
+"jittable, SPU runtime still could refuse to execute."
+msgstr ""
+"由于SPU不支持所有的XLA运算符，即使一个JAX程序是可即时编译的，SPU运行时仍然可能拒绝执行。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:343
+msgid "JAX NumPy Package"
+msgstr "JAX NumPy库"
+
+#: ../../tutorial/numpy_with_spu.ipynb:345
+msgid ""
+"We could use these `NumPy-like APIs "
+"<https://jax.readthedocs.io/en/latest/jax.numpy.html>`__ from JAX. JAX "
+"NumPy APIs are very similar to original ones, while - JAX NumPy arrays "
+"are immutable, so you have to use **ndarray.at** instead of in-place "
+"array updates - You have to provide some extra args to make the method "
+"call jittable(we would discuss this later)."
+msgstr ""
+"我们可以使用 JAX 中的这些 类似于 NumPy 的 API。`JAX NumPy <https://jax.readthedocs.io/en/latest/jax.numpy.html>`__ 的 API "
+"和原始的 NumPy API 非常相似，但是有以下几点不同："
+"- JAX NumPy 数组是不可变的，因此您必须使用 **ndarray.at** 来进行非就地数组更新。"
+"- 您必须提供一些额外的参数使方法调用可即时编译（稍后我们会讨论这个）。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:347
+msgid ""
+"And actually SPU doesn’t support all JAX NumPy operators, please also "
+"check `this documentation "
+"<http://www.secretflow.org.cn/docs/spu/en/reference/np_op_status.html>`__."
+" We are updating this document promptly and we have listed the current "
+"status of each operators."
+msgstr ""
+"实际上，SPU 不支持所有的 JAX NumPy 操作符，请查看这份 `文档 <http://www.secretflow.org.cn/docs/spu/en/reference/np_op_status.html>`__ ."
+"我们正在及时更新这份文档，并列出了每个操作符的当前状态。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:349
+msgid "Next, we are going to write some JAX Numpy programs."
+msgstr "接下来，我们将编写一些 JAX NumPy 程序。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:361
+msgid "Euclidean Distance"
+msgstr "欧几里得距离"
+
+#: ../../tutorial/numpy_with_spu.ipynb:363
+msgid "Just one-line code we could compute Euclidean Distance of two points."
+msgstr "只需一行代码，我们就可以计算两个点的欧几里得距离。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:386
+msgid ""
+"Let’s check whether it is jittable by **jax.jit**. You could also use "
+"**jax.xla_computation** for testing as well."
+msgstr "我们可以用 **jax.jit** 来检查它是否是jittable的， 也可以用 **jax.xla_computation**"
+
+#: ../../tutorial/numpy_with_spu.ipynb:521
+msgid "Area of a Simple Polygon"
+msgstr "简单多边形面积"
+
+#: ../../tutorial/numpy_with_spu.ipynb:523
+msgid ""
+"Given a list of Cartesian coordinates of vertices of a simply polygon, we"
+" could calculate the area by `Shoelace formula "
+"<https://en.wikipedia.org/wiki/Shoelace_formula>`__."
+msgstr "给定一个简单多边形顶点的笛卡尔坐标列表，我们可以通过 `Shoelace formula <https://en.wikipedia.org/wiki/Shoelace_formula>`__  计算面积"
+
+#: ../../tutorial/numpy_with_spu.ipynb:586
+msgid "Let’s check whether **area_of_simple_polygon** is jittable."
+msgstr "让我们检查一下 **area_of_simple_polygon** 是否是 jittable 的。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:999
+msgid "Could We Jit Anything?"
+msgstr "我们是否可以 **Jit** 所有程序"
+
+#: ../../tutorial/numpy_with_spu.ipynb:1001
+msgid ""
+"Absolutely not, please check `this documentation "
+"<https://jax.readthedocs.io/en/latest/jax-101/02-jitting.html#why-can-t"
+"-we-just-jit-everything>`__ from JAX!"
+msgstr "绝对不是，请查看来自 JAX 的 `此文档 <https://jax.readthedocs.io/en/latest/jax-101/02-jitting.html#why-can-t-we-just-jit-everything>`__ ！"
+
+#: ../../tutorial/numpy_with_spu.ipynb:1003
+msgid ""
+"The most common cause to unjittable program is your control flow relies "
+"on the value of **input**. For instance,"
+msgstr "导致程序无法运行的最常见原因是您的控制流依赖于 **input** 的值。例如，"
+
+#: ../../tutorial/numpy_with_spu.ipynb:1175
+msgid ""
+"There are two possible solutions. 1. You could replace control flow with "
+"`low-level **jax.lax** APIs "
+"<https://jax.readthedocs.io/en/latest/jax.lax.html#control-flow-"
+"operators>`__. You need to spend some time figure out how to use these "
+"APIs."
+msgstr "有两种可能的解决方案。"
+"1. 您可以用低级的 `**jax.lax** API <https://jax.readthedocs.io/en/latest/jax.lax.html#control-flow-operators>`__ 替换控制流。您需要花一些时间弄清楚如何使用这些 API。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:1229
+msgid "The other possible solution is to use **static_argnames**."
+msgstr ""
+"另一种可能的解决方案是使用 **static_argnames**。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:1276
+msgid "so which method we should choose when the program is unjittable?"
+msgstr ""
+
+#: ../../tutorial/numpy_with_spu.ipynb:1278
+msgid "This is our suggestion:"
+msgstr "那么当程序 **unjittable** 时，我们应该选择哪种方法呢？"
+
+#: ../../tutorial/numpy_with_spu.ipynb:1280
+msgid ""
+"Rewrite the control flow with **jax.lax** APIs first. Although these are "
+"some learning costs here, but it deserves that."
+msgstr "首先使用 **jax.lax** API 重写控制流。虽然这里存在一些学习成本，但这是值得的。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:1281
+msgid ""
+"If the visibility of affected input values are **VIS_PUBLIC** like **n** "
+"in the above example, you could mark it as **static_argnames** and these "
+"affected input values would be compiled into XLA program."
+msgstr "如果受影响的输入值的可见性是 **VIS_PUBLIC**，如上例中的 **n**，您可以将其标记为 **static_argnames**，这些受影响的输入值将被编译到 XLA 程序中。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:1293
+msgid "More Examples"
+msgstr "更多例子"
+
+#: ../../tutorial/numpy_with_spu.ipynb:1295
+msgid ""
+"If you would like to check more examples, please check `Python examples "
+"<https://github.com/secretflow/spu/tree/main/examples/python>`__ in SPU "
+"repo. In most examples, the MPC part are written with **jax.numpy** "
+"package. And you could find we are using **jax.lax** APIs and "
+"**static_argnames** heavily to make JAX program jittable!"
+msgstr "如果您想查看更多示例，请查看 SPU 存储库中的 `Python 示例 <https://github.com/secretflow/spu/tree/main/examples/python>`__ 。在大多数示例中，MPC 部分都是使用 **jax.numpy** 包编写的。您会发现我们正在大量使用 **jax.lax** API 和 **static_argnames** 来使 JAX 程序变得 jittable！"
+
+#: ../../tutorial/numpy_with_spu.ipynb:1307
+msgid "Execute JAX Program with SPU"
+msgstr "使用 SPU 执行 JAX 程序"
+
+#: ../../tutorial/numpy_with_spu.ipynb:1309
+msgid ""
+"Once you have your jittable JAX program ready, we could execute them with"
+" SPU!"
+msgstr "一旦您准备好 jittable 的 JAX 程序，我们就可以使用 SPU 执行它们！"
+
+#: ../../tutorial/numpy_with_spu.ipynb:1312
+msgid "(Optional) SPU Simulation"
+msgstr "（可选）SPU 模拟"
+
+#: ../../tutorial/numpy_with_spu.ipynb:1314
+msgid ""
+"If you hope to get a quick try, I would like to introduce **spu.sim_jax**"
+" to you. Let’s show how does it work!"
+msgstr "如果您希望快速尝试，我想向您介绍 **spu.sim_jax**。让我们展示它是如何工作的！"
+
+#: ../../tutorial/numpy_with_spu.ipynb:1316
+msgid "**spu.sim_jax** is only exposed after **spu v0.3.1b8**."
+msgstr "**spu.sim_jax** 仅在 **spu v0.3.1b8** 之后提供。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:1318
+msgid ""
+"Here we create an SPU simulator with the following settings: - world size"
+" of 3. - with ABY3 protocol. Check all supported protocol `here "
+"<http://www.secretflow.org.cn/docs/spu/en/reference/mpc_status.html"
+"#supported-mpc-protocol>`__. - field of 64 which the values in SPU are "
+"expressed in 2^64 ring."
+msgstr ""
+"在这里，我们使用以下设置创建一个 SPU 模拟器："
+"- 三方"
+"- 使用 ABY3 协议。在 `此处 <http://www.secretflow.org.cn/docs/spu/en/reference/mpc_status.html#supported-mpc-protocol>`__ 检查所有支持的协议。"
+"- 64位字段，SPU中的值在2^64环上表示。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:1320
+msgid ""
+"However, if you just want to confirm if the JAX program could be executed"
+" by SPU, any settings should be fine. Different settings could only "
+"affect the elapsed time and precision of computation."
+msgstr ""
+"但是，如果您只是想确认 JAX 程序是否可以被 SPU 执行，那么任何设置都应该没问题。不同的设置只会影响经过的时间和计算的精度。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:1372
+msgid ""
+"If you execute the code above repeatedly, you may find the result is "
+"slightly different between runs, which is expected due to randomness in "
+"MPC computation."
+msgstr ""
+"如果您重复执行上面的代码，您可能会发现两次运行的结果略有不同，这是由于 MPC 计算中的随机性所致。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:1374
+msgid ""
+"After testing with **euclidean_distance**, we have a try with "
+"**area_of_simple_polygon**."
+msgstr ""
+"在使用 **euclidean_distance** 进行测试后，我们尝试使用 **area_of_simple_polygon**。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:1423
+msgid "Run with SPU Device"
+msgstr ""
+"使用 SPU 设备运行"
+
+#: ../../tutorial/numpy_with_spu.ipynb:1425
+msgid "Finally, we are going to run the JAX program with SecretFlow."
+msgstr ""
+"最后，我们将使用 SecretFlow 运行 JAX 程序。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:1427
+msgid ""
+"I guess you should be familiar with the following steps if you have "
+"checked out other tutorials."
+msgstr ""
+"如果您查看了其他教程，我想您应该熟悉以下步骤。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:1429
+msgid "Here we create a local standalone SecretFlow cluster with three devices:"
+msgstr ""
+"在这里，我们创建了一个包含三个设备的本地独立 SecretFlow 集群："
+
+#: ../../tutorial/numpy_with_spu.ipynb:1431
+msgid "Two PYU device - **alice** and **bob**"
+msgstr ""
+"两个PYU设备 - **alice** 和 **bob**"
+
+#: ../../tutorial/numpy_with_spu.ipynb:1432
+msgid "An SPU device"
+msgstr ""
+"一个SPU设备"
+
+#: ../../tutorial/numpy_with_spu.ipynb:1486
+msgid "We try **euclidean_distance** with spu device first."
+msgstr ""
+"我们先用 spu 设备尝试 **euclidean_distance**。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:1596
+msgid "Then we try **area_of_simple_polygon**."
+msgstr ""
+"然后我们尝试**area_of_simple_polygon**。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:1647
+msgid "Summary"
+msgstr "总结"
+
+#: ../../tutorial/numpy_with_spu.ipynb:1649
+msgid ""
+"This is the end of the tutorial. Let’s summarize the steps to do privacy-"
+"preserving scientific computation with JAX NumPy APIS:"
+msgstr ""
+"本教程到此结束。让我们总结一下使用 JAX NumPy APIS 进行隐私保护科学计算的步骤："
+
+#: ../../tutorial/numpy_with_spu.ipynb:1651
+msgid ""
+"Write a jittable JAX NumPy program. You should test it with **jax.jit** "
+"or **jax.xla_computation**."
+msgstr ""
+"编写一个 jittable JAX NumPy 程序。您应该使用 **jax.jit** 或 **jax.xla_computation** 对其进行测试。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:1652
+msgid "(Optional) Try the JAX program with **SPU simulation**."
+msgstr ""
+"可选）尝试使用 **SPU 模拟** 执行 JAX 程序。"
+
+#: ../../tutorial/numpy_with_spu.ipynb:1653
+msgid "Run this JAX NumPy with SPU device in SecretFlow."
+msgstr 在 SecretFlow 中使用 SPU 设备运行此 JAX NumPy 程序。""
+
+#: ../../tutorial/numpy_with_spu.ipynb:1655
+msgid ""
+"If you find your JAX program is jittable but fails with SPU compiler or "
+"runtime. Please check `JAX NumPy Operators Status "
+"<http://www.secretflow.org.cn/docs/spu/en/reference/np_op_status.html>`__"
+" and `XLA Implementation Status "
+"<http://www.secretflow.org.cn/docs/spu/en/reference/xla_status.html>`__. "
+"Or you could contact us directly with `GitHub Issues "
+"<https://github.com/secretflow/spu/issues>`__."
+msgstr ""
+"如果您发现您的 JAX 程序是 jittable 但在 SPU 编译器或运行时失败。请查看 `JAX NumPy Operators Status <http://www.secretflow.org.cn/docs/spu/en/reference/np_op_status.html>`__ 和 `XLA Implementation Status <http://www.secretflow.org.cn/docs/spu/zh/reference/xla_status.html>`__ 。或者您可以通过 `GitHub Issues <https://github.com/secretflow/spu/issues>`__ 直接联系我们。"
+

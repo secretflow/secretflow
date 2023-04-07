@@ -51,6 +51,7 @@ from .register import dispatch
 from .type_traits import spu_datatype_to_heu, spu_fxp_size
 
 _LINK_DESC_NAMES = [
+    'connect_retry_times',
     'connect_retry_interval_ms',
     'recv_timeout_ms',
     'http_max_payload_size',
@@ -61,7 +62,18 @@ _LINK_DESC_NAMES = [
 ]
 
 
-def _fill_link_desc_attrs(link_desc: Dict, desc: spu_link.Desc):
+def _fill_link_ssl_opts(tls_opts: Dict, link_ssl_opts: spu_link.SSLOptions):
+    for name, value in tls_opts.items():
+        assert (
+            isinstance(name, str) and name
+        ), f'tls options name shall be a valid string but got {type(name)}.'
+        if hasattr(link_ssl_opts.cert, name):
+            setattr(link_ssl_opts.cert, name, value)
+        if hasattr(link_ssl_opts.verify, name):
+            setattr(link_ssl_opts.verify, name, value)
+
+
+def _fill_link_desc_attrs(link_desc: Dict, tls_opts: Dict, desc: spu_link.Desc):
     if link_desc:
         for name, value in link_desc.items():
             assert (
@@ -81,6 +93,13 @@ def _fill_link_desc_attrs(link_desc: Dict, desc: spu_link.Desc):
         # set default timeout 120s
         desc.http_timeout_ms = 120 * 1000
 
+    if tls_opts:
+        server_opts = tls_opts.get('server_ssl_opts')
+        client_opts = tls_opts.get('client_ssl_opts')
+        _fill_link_ssl_opts(server_opts, desc.server_ssl_opts)
+        _fill_link_ssl_opts(client_opts, desc.client_ssl_opts)
+        desc.enable_ssl = True
+
 
 def _plaintext_to_numpy(data: Any) -> np.ndarray:
     """try to convert anything to a jax-friendly numpy array.
@@ -98,7 +117,7 @@ def _plaintext_to_numpy(data: Any) -> np.ndarray:
 
 @dataclass
 class SPUValueMeta:
-    """The metadata of a SPU value, which is a Numpy array or equivalent."""
+    """The metadata of an SPU value, which is a Numpy array or equivalent."""
 
     shape: Sequence[int]
     dtype: np.dtype
@@ -118,7 +137,7 @@ class SPUObject(DeviceObject):
         shares_name: Sequence[Union[ray.ObjectRef, fed.FedObject]],
     ):
         """SPUObject refers to a Python Object which could be flattened to a
-        list of SPU Values. A SPU value is a Numpy array or equivalent.
+        list of SPU Values. An SPU value is a Numpy array or equivalent.
         e.g.
 
         1. If referred Python object is [1,2,3]
@@ -136,8 +155,8 @@ class SPUObject(DeviceObject):
         would only happen when SPU device consumes SPU objects.
 
         Args:
-            meta: Ref to the metadata.
-            refs (Sequence[ray.ObjectRef]): Refs to shares of data.
+            meta: Union[ray.ObjectRef, fed.FedObject]: Ref to the metadata.
+            shares_name: Sequence[Union[ray.ObjectRef, fed.FedObject]]: names of shares of data in each SPU node.
         """
         super().__init__(device)
         self.meta = meta
@@ -169,14 +188,14 @@ class SPUIO:
         self.io = spu.Io(self.world_size, self.runtime_config)
 
     def make_shares(self, data: Any, vtype: spu.Visibility) -> Tuple[Any, List[Any]]:
-        """Convert a Python object to meta and shares of a SPUObject.
+        """Convert a Python object to meta and shares of an SPUObject.
 
         Args:
             data (Any): Any Python object.
             vtype (Visibility): Visibility
 
         Returns:
-            Tuple[Any, List[Any]]: meta and shares of a SPUObject
+            Tuple[Any, List[Any]]: meta and shares of an SPUObject
         """
         flatten_value, tree = jax.tree_util.tree_flatten(data)
         flatten_shares = []
@@ -201,11 +220,11 @@ class SPUIO:
         ]
 
     def reconstruct(self, shares: List[Any], meta: Any = None) -> Any:
-        """Convert shares of a SPUObject to the origin Python object.
+        """Convert shares of an SPUObject to the origin Python object.
 
         Args:
-            shares (List[Any]): Shares of a SPUObject
-            meta (Any): Meta of a SPUObject. If not provided, sanity check would be skipped.
+            shares (List[Any]): Shares of an SPUObject
+            meta (Any): Meta of an SPUObject. If not provided, sanity check would be skipped.
 
         Returns:
             Any: the origin Python object.
@@ -252,6 +271,7 @@ class SPURuntime:
         cluster_def: Dict,
         link_desc: Dict = None,
         log_options: spu_logging.LogOptions = spu_logging.LogOptions(),
+        use_link: bool = True,
     ):
         """wrapper of spu.Runtime.
 
@@ -260,6 +280,7 @@ class SPURuntime:
             cluster_def (Dict): config of spu cluster
             link_desc (Dict, optional): link config. Defaults to None.
             log_options (spu_logging.LogOptions, optional): spu log options.
+            use_link: optional. flag for create brpc link, default True.
         """
         spu_logging.setup_logging(log_options)
 
@@ -267,14 +288,21 @@ class SPURuntime:
         self.cluster_def = cluster_def
 
         desc = spu_link.Desc()
+        tls_opts = None
         for i, node in enumerate(cluster_def['nodes']):
-            if i == rank and node.get('listen_address', ''):
-                desc.add_party(node['id'], node['listen_address'])
-            else:
-                desc.add_party(node['id'], node['address'])
-        _fill_link_desc_attrs(link_desc=link_desc, desc=desc)
+            address = node['address']
+            if i == rank:
+                tls_opts = node.get('tls_opts', None)
+                if node.get('listen_address', ''):
+                    address = node['listen_address']
+            desc.add_party(node['party'], address)
+        _fill_link_desc_attrs(link_desc=link_desc, tls_opts=tls_opts, desc=desc)
 
-        self.link = spu_link.create_brpc(desc, rank)
+        if use_link:
+            self.link = spu_link.create_brpc(desc, rank)
+        else:
+            self.link = None
+
         self.conf = json_format.Parse(
             json.dumps(cluster_def['runtime_config']), spu.RuntimeConfig()
         )
@@ -308,6 +336,36 @@ class SPURuntime:
         for name in flatten_names:
             assert isinstance(name, str)
             self.runtime.del_var(name)
+
+    def dump(self, meta: Any, val: Any, path: str):
+        flatten_names, _ = jax.tree_util.tree_flatten(val)
+        shares = []
+        for name in flatten_names:
+            shares.append(self.runtime.get_var(name).decode("latin1"))
+
+        import cloudpickle as pickle
+
+        with open(path, 'wb') as f:
+            pickle.dump({'meta': meta, 'shares': shares}, f)
+
+    def load(self, path: str) -> Any:
+        import cloudpickle as pickle
+
+        with open(path, 'rb') as f:
+            record = pickle.load(f)
+
+        meta = record['meta']
+        shares = record['shares']
+
+        shares_name = []
+        for share in shares:
+            name = self.get_new_share_name()
+            self.runtime.set_var(name, share.encode("latin1"))
+            shares_name.append(name)
+
+        _, flatten_tree = jax.tree_util.tree_flatten(meta)
+
+        return meta, jax.tree_util.tree_unflatten(flatten_tree, shares_name)
 
     def run(
         self,
@@ -432,6 +490,8 @@ class SPURuntime:
         curve_type="CURVE_25519",
         preprocess_path=None,
         ecdh_secret_key_path=None,
+        dppsi_bob_sub_sampling=0.9,
+        dppsi_epsilon=3,
         ic_mode: bool = False,
     ):
         """Private set intersection with DataFrame.
@@ -446,6 +506,11 @@ class SPURuntime:
             broadcast_result (bool): Whether to broadcast joined data to all parties.
             bucket_size (int): Specified the hash bucket size used in psi. Larger values consume more memory.
             curve_type (str): curve for ecdh psi
+            preprocess_path (str): preprocess file path for unbalanced psi.
+            ecdh_secret_key_path (str): ecdh_oprf secretkey file path, binary format, 32B.
+            dppsi_bob_sub_sampling (double): bob subsampling bernoulli_distribution
+                probability of dp psi
+            dppsi_epsilon (double): epsilon of dp psi
             ic_mode (bool): Whether to run psi in interconnection mode
 
         Returns:
@@ -474,6 +539,8 @@ class SPURuntime:
                 curve_type,
                 preprocess_path,
                 ecdh_secret_key_path,
+                dppsi_bob_sub_sampling,
+                dppsi_epsilon,
                 ic_mode,
             )
 
@@ -500,6 +567,8 @@ class SPURuntime:
         curve_type="CURVE_25519",
         preprocess_path=None,
         ecdh_secret_key_path=None,
+        dppsi_bob_sub_sampling=0.9,
+        dppsi_epsilon=3,
         ic_mode: bool = False,
     ):
         """Private set intersection with csv file.
@@ -513,20 +582,27 @@ class SPURuntime:
 
         Args:
             key (str, List[str]): Column(s) used to join.
-            input_path: CSV file to be joined, comma seperated and contains header.
-            output_path: Joined csv file, comma seperated and contains header.
+            input_path: CSV file to be joined, comma separated and contains header.
+                Use an absolute path.
+            output_path: Joined csv file, comma separated and contains header.
+                Use an absolute path.
             receiver (str): Which party can get joined data.
                 Others won't generate output file and `intersection_count` get `-1`.
                 for unbalanced PSI, receiver is client(small dataset party)
                 unbalanced PSI offline phase, receiver(client) get preprocess_path data
                 unbalanced PSI online phase, receiver(client) get psi result
+                unbalanced PSI shuffle online phase, only receiver(large set party) get psi result
             protocol (str): PSI protocol.
             precheck_input (bool): Whether to check input data before join.
+                check input file whether have duplicated data and csv column ids.
             sort (bool): Whether sort data by key after join.
             broadcast_result (bool): Whether to broadcast joined data to all parties.
             bucket_size (int): Specified the hash bucket size used in psi.
-            Larger values consume more memory.
+                Larger values consume more memory.
             curve_type (str): curve for ecdh psi
+            dppsi_bob_sub_sampling (double): bob subsampling bernoulli_distribution
+                probability of dp psi
+            dppsi_epsilon (double): epsilon of dp psi
             ic_mode (bool): Whether to run psi in interconnection mode
 
         Returns:
@@ -534,6 +610,15 @@ class SPURuntime:
         """
         if isinstance(key, str):
             key = [key]
+
+        party = self.cluster_def['nodes'][self.rank]['party']
+
+        if (protocol == "ECDH_OPRF_UB_PSI_2PC_GEN_CACHE") and (party != receiver):
+            return {
+                'party': party,
+                'original_count': 0,
+                'intersection_count': -1,
+            }
 
         receiver_rank = -1
         for i, node in enumerate(self.cluster_def['nodes']):
@@ -554,7 +639,38 @@ class SPURuntime:
             bucket_size=bucket_size,
         )
 
-        if (
+        if protocol == "DP_PSI_2PC":
+            assert (
+                0 < dppsi_bob_sub_sampling < 1
+            ), f'invalid bob_sub_sampling({dppsi_bob_sub_sampling}) for dp-psi'
+            assert 0 < dppsi_epsilon, f'invalid epsilon({dppsi_epsilon}) for dp-psi'
+
+            config.dppsi_params = psi.DpPsiParams(
+                bob_sub_sampling=dppsi_bob_sub_sampling, epsilon=dppsi_epsilon
+            )
+        elif protocol == "ECDH_OPRF_UB_PSI_2PC_GEN_CACHE":
+            assert isinstance(
+                ecdh_secret_key_path, str
+            ), f'invalid ecdh_secret_key for {protocol}'
+            config.ecdh_secret_key_path = ecdh_secret_key_path
+        elif protocol == "ECDH_OPRF_UB_PSI_2PC_TRANSFER_CACHE":
+            assert isinstance(
+                preprocess_path, str
+            ), f'invalid preprocess_path for {protocol}'
+            if receiver_rank == self.link.rank:
+                config.preprocess_path = preprocess_path
+        elif protocol == "ECDH_OPRF_UB_PSI_2PC_SHUFFLE_ONLINE":
+            assert isinstance(
+                ecdh_secret_key_path, str
+            ), f'invalid ecdh_secret_key for {protocol}'
+            assert isinstance(
+                preprocess_path, str
+            ), f'invalid preprocess_path for {protocol}'
+
+            config.preprocess_path = preprocess_path
+            if receiver_rank == self.link.rank:
+                config.ecdh_secret_key_path = ecdh_secret_key_path
+        elif (
             protocol == "ECDH_OPRF_UB_PSI_2PC_OFFLINE"
             or protocol == "ECDH_OPRF_UB_PSI_2PC_ONLINE"
         ):
@@ -565,17 +681,17 @@ class SPURuntime:
             assert isinstance(
                 preprocess_path, str
             ), f'invalid preprocess_path for {protocol}'
-            config.preprocess_path = preprocess_path
 
             if receiver_rank != self.link.rank:
                 assert isinstance(
                     ecdh_secret_key_path, str
                 ), f'invalid ecdh_secret_key for {protocol}'
                 config.ecdh_secret_key_path = ecdh_secret_key_path
+            else:
+                config.preprocess_path = preprocess_path
 
         report = psi.bucket_psi(self.link, config, ic_mode)
 
-        party = self.cluster_def['nodes'][self.rank]['party']
         return {
             'party': party,
             'original_count': report.original_count,
@@ -670,8 +786,10 @@ class SPURuntime:
 
         Args:
             key (str, List[str]): Column(s) used to join.
-            input_path: CSV file to be joined, comma seperated and contains header.
-            output_path: Joined csv file, comma seperated and contains header.
+            input_path: CSV file to be joined, comma separated and contains header.
+                Use an absolute path.
+            output_path: Joined csv file, comma separated and contains header.
+                Use an absolute path.
             receiver (str): Which party can get joined data. Others won't generate output file and `intersection_count` get `-1`
             join_party (str): party joined data
             protocol (str): PSI protocol.
@@ -683,6 +801,12 @@ class SPURuntime:
         Returns:
             Dict: PSI report output by SPU.
         """
+        assert (
+            (protocol == "ECDH_PSI_2PC")
+            or (protocol == "KKRT_PSI_2PC")
+            or (protocol == "BC22_PSI_2PC")
+        ), f"Unsupported protocol:{protocol}"
+
         if isinstance(key, str):
             key = [key]
 
@@ -882,15 +1006,15 @@ def _argnames_partial_except(fn, static_argnames, kwargs):
     return functools.partial(fn, **static_kwargs), kwargs
 
 
-def _generate_input_uuid(name):
-    return f'{name}-input-{uuid.uuid4()}'
+def _generate_input_uuid():
+    return f'input-{uuid.uuid4()}'
 
 
-def _generate_output_uuid(name):
-    return f'{name}-output-{uuid.uuid4()}'
+def _generate_output_uuid():
+    return f'output-{uuid.uuid4()}'
 
 
-def _spu_compile(spu_name, fn, *meta_args, **meta_kwargs):
+def _spu_compile(fn, *meta_args, **meta_kwargs):
     meta_args, meta_kwargs = jax.tree_util.tree_map(
         lambda x: ray.get(x) if isinstance(x, ray.ObjectRef) else x,
         (meta_args, meta_kwargs),
@@ -901,7 +1025,7 @@ def _spu_compile(spu_name, fn, *meta_args, **meta_kwargs):
     input_vis = []
 
     def _get_input_metatdata(obj: SPUObject):
-        input_name.append(_generate_input_uuid(spu_name))
+        input_name.append(_generate_input_uuid())
         input_vis.append(obj.vtype)
 
     jax.tree_util.tree_map(_get_input_metatdata, (meta_args, meta_kwargs))
@@ -915,7 +1039,7 @@ def _spu_compile(spu_name, fn, *meta_args, **meta_kwargs):
             input_name,
             input_vis,
             lambda output_flat: [
-                _generate_output_uuid(spu_name) for _ in range(len(output_flat))
+                _generate_output_uuid() for _ in range(len(output_flat))
             ],
         )
     except Exception as error:
@@ -929,8 +1053,8 @@ class SPU(Device):
         self,
         cluster_def: Dict,
         link_desc: Dict = None,
-        name: str = 'SPU',
         log_options: spu_logging.LogOptions = spu_logging.LogOptions(),
+        use_link: bool = True,
     ):
         """SPU device constructor.
 
@@ -946,18 +1070,49 @@ class SPU(Device):
                         'nodes': [
                             {
                                 'party': 'alice',
-                                'id': 'local:0',
                                 # The address for other peers.
                                 'address': '127.0.0.1:9001',
                                 # The listen address of this node.
                                 # Optional. Address will be used if listen_address is empty.
-                                'listen_address': ''
+                                'listen_address': '',
+                                # Optional. TLS related options.
+                                'tls_opts': {
+                                    'server_ssl_opts': {
+                                        'certificate_path': 'servercert.pem',
+                                        'private_key_path': 'serverkey.pem',
+                                        # The options used for verify peer's client certificate
+                                        'ca_file_path': 'cacert.pem',
+                                        # Maximum depth of the certificate chain for verification
+                                        'verify_depth': 1
+                                    },
+                                    'client_ssl_opts': {
+                                        'certificate_path': 'clientcert.pem',
+                                        'private_key_path': 'clientkey.pem',
+                                        # The options used for verify peer's server certificate
+                                        'ca_file_path': 'cacert.pem',
+                                        # Maximum depth of the certificate chain for verification
+                                        'verify_depth': 1
+                                    }
+                                }
                             },
                             {
                                 'party': 'bob',
-                                'id': 'local:1',
                                 'address': '127.0.0.1:9002',
-                                'listen_address': ''
+                                'listen_address': '',
+                                'tls_opts': {
+                                    'server_ssl_opts': {
+                                        'certificate_path': "bob's servercert.pem",
+                                        'private_key_path': "bob's serverkey.pem",
+                                        'ca_file_path': "other's client cacert.pem",
+                                        'verify_depth': 1
+                                    },
+                                    'client_ssl_opts': {
+                                        'certificate_path': "bob's clientcert.pem",
+                                        'private_key_path': "bob's clientkey.pem",
+                                        'ca_file_path': "other's server cacert.pem",
+                                        'verify_depth': 1
+                                    }
+                                }
                             },
                         ],
                         'runtime_config': {
@@ -966,35 +1121,39 @@ class SPU(Device):
                             'sigmoid_mode': spu.spu_pb2.RuntimeConfig.SIGMOID_REAL,
                         }
                     }
-            link_desc: optional. A dict specifies the link parameters.
+            link_desc: Optional. A dict specifies the link parameters.
                 Available parameters are:
-                    1. connect_retry_interval_ms
+                    1. connect_retry_times
 
-                    2. recv_timeout_ms
+                    2. connect_retry_interval_ms
 
-                    3. http_max_payload_size
+                    3. recv_timeout_ms
 
-                    4. http_timeout_ms
+                    4. http_max_payload_size
 
-                    5. throttle_window_size
+                    5. http_timeout_ms
 
-                    6. brpc_channel_protocol refer to `https://github.com/apache/incubator-brpc/blob/master/docs/en/client.md#protocols`
+                    6. throttle_window_size
 
-                    7. brpc_channel_connection_type refer to `https://github.com/apache/incubator-brpc/blob/master/docs/en/client.md#connection-type`
-            log_options: optional. options of spu logging.
+                    7. brpc_channel_protocol refer to `https://github.com/apache/brpc/blob/master/docs/en/client.md#protocols`
+
+                    8. brpc_channel_connection_type refer to `https://github.com/apache/brpc/blob/master/docs/en/client.md#connection-type`
+            log_options: Optional. Options of spu logging.
+            use_link: Optional. flag for create brpc link, default True.
         """
         super().__init__(DeviceType.SPU)
         self.cluster_def = cluster_def
+        self.cluster_def['nodes'].sort(key=lambda x: x['party'])
         self.link_desc = link_desc
         self.log_options = log_options
         self.conf = json_format.Parse(
             json.dumps(cluster_def['runtime_config']), spu.RuntimeConfig()
         )
         self.world_size = len(self.cluster_def['nodes'])
-        self.name = name
         self.actors = {}
         self._task_id = -1
         self.io = SPUIO(self.conf, self.world_size)
+        self.use_link = use_link
         self.init()
 
     def init(self):
@@ -1003,7 +1162,13 @@ class SPU(Device):
             self.actors[node['party']] = (
                 sfd.remote(SPURuntime)
                 .party(node['party'])
-                .remote(rank, self.cluster_def, self.link_desc, self.log_options)
+                .remote(
+                    rank,
+                    self.cluster_def,
+                    self.link_desc,
+                    self.log_options,
+                    self.use_link,
+                )
             )
 
     def reset(self):
@@ -1033,6 +1198,22 @@ class SPU(Device):
 
         return jax.tree_util.tree_map(place, (args, kwargs))
 
+    def dump(self, obj: SPUObject, paths: List[str]):
+        assert obj.device == self, "obj must be owned by this device."
+        for i, actor in enumerate(self.actors.values()):
+            actor.dump.remote(obj.meta, obj.shares_name[i], paths[i])
+
+    def load(self, paths: List[str]) -> SPUObject:
+        outputs = [None] * self.world_size
+        for i, actor in enumerate(self.actors.values()):
+            actor_out = actor.load.options(num_returns=2).remote(paths[i])
+
+            outputs[i] = actor_out
+
+        return SPUObject(
+            self, outputs[0][0], [outputs[i][1] for i in range(self.world_size)]
+        )
+
     def __call__(
         self,
         func: Callable,
@@ -1061,7 +1242,7 @@ class SPU(Device):
                 sfd.remote(_spu_compile)
                 .party(self.cluster_def['nodes'][0]['party'])
                 .options(num_returns=2)
-                .remote(self.name, fn, *meta_args, **meta_kwargs)
+                .remote(fn, *meta_args, **meta_kwargs)
             )
 
             if num_returns_policy == SPUCompilerNumReturnsPolicy.FROM_COMPILER:
@@ -1079,7 +1260,6 @@ class SPU(Device):
             # run executable and get returns.
             outputs = [None] * self.world_size
             for i, actor in enumerate(self.actors.values()):
-
                 (actor_args, actor_kwargs) = jax.tree_util.tree_map(
                     lambda x: x.shares_name[i], (args, kwargs)
                 )
@@ -1150,6 +1330,8 @@ class SPU(Device):
         curve_type="CURVE_25519",
         preprocess_path=None,
         ecdh_secret_key_path=None,
+        dppsi_bob_sub_sampling=0.9,
+        dppsi_epsilon=3,
     ):
         """Private set intersection with DataFrame.
 
@@ -1167,6 +1349,9 @@ class SPU(Device):
             curve_type (str): curve for ecdh psi.
             preprocess_path (str): preprocess file path for unbalanced psi.
             ecdh_secret_key_path (str): ecdh_oprf secretkey file path, binary format, 32B, for unbalanced psi.
+            dppsi_bob_sub_sampling (double): bob subsampling bernoulli_distribution
+                probability of dp psi
+            dppsi_epsilon (double): epsilon of dp psi
 
         Returns:
             List[PYUObject]: Joined DataFrames with order reserved.
@@ -1185,6 +1370,8 @@ class SPU(Device):
             curve_type,
             preprocess_path,
             ecdh_secret_key_path,
+            dppsi_bob_sub_sampling,
+            dppsi_epsilon,
         )
 
     def psi_csv(
@@ -1201,13 +1388,17 @@ class SPU(Device):
         curve_type="CURVE_25519",
         preprocess_path=None,
         ecdh_secret_key_path=None,
+        dppsi_bob_sub_sampling=0.9,
+        dppsi_epsilon=3,
     ):
         """Private set intersection with csv file.
 
         Args:
             key (str, List[str], Dict[Device, List[str]]): Column(s) used to join.
-            input_path: CSV files to be joined, comma seperated and contains header.
-            output_path: Joined csv files, comma seperated and contains header.
+            input_path: CSV files to be joined, comma separated and contains header.
+                Use an absolute path.
+            output_path: Joined csv files, comma separated and contains header.
+                Use an absolute path.
             receiver (str): Which party can get joined data.
             Others won't generate output file and `intersection_count` get `-1`.
             protocol (str): PSI protocol.
@@ -1220,6 +1411,9 @@ class SPU(Device):
             curve_type (str): curve for ecdh psi.
             preprocess_path (str): preprocess file path for unbalanced psi.
             ecdh_secret_key_path (str): ecdh_oprf secretkey file path, binary format, 32B.
+            dppsi_bob_sub_sampling (double): bob subsampling bernoulli_distribution
+                probability of dp psi
+            dppsi_epsilon (double): epsilon of dp psi
 
         Returns:
             List[Dict]: PSI reports output by SPU with order reserved.
@@ -1240,6 +1434,8 @@ class SPU(Device):
             curve_type,
             preprocess_path,
             ecdh_secret_key_path,
+            dppsi_bob_sub_sampling,
+            dppsi_epsilon,
         )
 
     def psi_join_df(
@@ -1298,8 +1494,10 @@ class SPU(Device):
 
         Args:
             key (str, List[str], Dict[Device, List[str]]): Column(s) used to join.
-            input_path: CSV files to be joined, comma seperated and contains header.
-            output_path: Joined csv files, comma seperated and contains header.
+            input_path: CSV files to be joined, comma separated and contains header.
+                Use an absolute path.
+            output_path: Joined csv files, comma separated and contains header.
+                Use an absolute path.
             receiver (str): Which party can get joined data. Others won't generate output file and `intersection_count` get `-1`
             join_party (str): party can get joined data
             protocol (str): PSI protocol.

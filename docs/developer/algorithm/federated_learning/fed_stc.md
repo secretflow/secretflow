@@ -2,7 +2,7 @@
 ## Overview
 ||Sparse method|Quant method|Residual|Encoding|Upstream|Downstream|
 |---|---|---|---|---|---|---|
-|FedSTC|topk|binarizaiton|Yes|Golomb|Yes|Yes|
+|FedSTC|topk|binarization|Yes|Golomb|Yes|Yes|
 ||Handle Non-IID|Handle Dropping/Skipping||Generality|||
 ||Fine //TODO|Caching and synchronizing||General||
 

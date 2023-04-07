@@ -14,13 +14,14 @@
 
 from typing import List
 
-import numpy as np
 import jax.numpy as jnp
+import numpy as np
 
 import secretflow as sf
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import SPU
 from secretflow.preprocessing.scaler import StandardScaler
+
 from .core.utils import newton_matrix_inverse
 
 
@@ -77,7 +78,7 @@ class VIF:
         if standardize:
             scaler = StandardScaler()
             vdata = scaler.fit_transform(vdata)
-        obj_list = [sf.to(self.spu_device, d.data) for d in vdata.partitions.values()]
+        obj_list = [d.data.to(self.spu_device) for d in vdata.partitions.values()]
 
         rows = vdata.shape[0]
 

@@ -1,30 +1,30 @@
-import numpy as np
-import pandas as pd
 import os
 import tempfile
 import unittest
 
+import numpy as np
+import pandas as pd
+import sklearn.metrics
+
 from secretflow import reveal
 from secretflow.data.base import Partition
 from secretflow.data.ndarray import (
+    histogram,
     load,
-    shuffle,
-    train_test_split,
-    tss,
-    rss,
-    r2_score,
     mean_abs_err,
     mean_abs_percent_err,
-    subtract,
-    histogram,
+    r2_score,
     residual_histogram,
+    rss,
+    shuffle,
+    subtract,
+    tss,
 )
+from secretflow.data.split import train_test_split
 from secretflow.data.vertical import VDataFrame
 from secretflow.utils.errors import InvalidArgumentError
-
-from tests.basecase import MultiDriverDeviceTestCase, array_equal
 from secretflow.utils.simulation.datasets import create_ndarray
-import sklearn.metrics
+from tests.basecase import MultiDriverDeviceTestCase, array_equal
 
 
 class TestFedNdarray(MultiDriverDeviceTestCase):
@@ -103,7 +103,7 @@ class TestFedNdarray(MultiDriverDeviceTestCase):
         fed_arr = load(self.path, allow_pickle=True)
 
         # WHEN
-        fed_arr0, fed_arr1 = train_test_split(fed_arr, 0.6, shuffle=False)
+        fed_arr0, fed_arr1 = train_test_split(fed_arr, train_size=0.6, shuffle=False)
 
         # THEN
         self.assertTrue(
@@ -159,7 +159,7 @@ class TestFedNdarray(MultiDriverDeviceTestCase):
         fed_arr = df.values
 
         # WHEN
-        fed_arr0, fed_arr1 = train_test_split(fed_arr, 0.6, shuffle=False)
+        fed_arr0, fed_arr1 = train_test_split(fed_arr, train_size=0.6, shuffle=False)
 
         # THEN
         np.testing.assert_equal(

@@ -1,9 +1,9 @@
 import os
 import platform
 import posixpath
+import re
 import shutil
 import sys
-import re
 from pathlib import Path
 
 import setuptools
@@ -38,10 +38,16 @@ def find_version(*filepath):
 
 def read_requirements():
     requirements = []
+    dependency_links = []
     with open('./requirements.txt') as file:
         requirements = file.read().splitlines()
+    for r in requirements:
+        if r.startswith("--extra-index-url"):
+            requirements.remove(r)
+            dependency_links.append(r)
     print("Requirements: ", requirements)
-    return requirements
+    print("Dependency: ", dependency_links)
+    return requirements, dependency_links
 
 
 # [ref](https://github.com/perwin/pyimfit/blob/master/setup.py)
@@ -108,9 +114,11 @@ class BuildBazelExtension(build_ext.build_ext):
         shutil.copyfile(ext_bazel_bin_path, ext_dest_path)
 
 
+install_requires, dependency_links = read_requirements()
+
 setup(
     name='secretflow',
-    version= find_version("secretflow", "version.py"),
+    version=find_version("secretflow", "version.py"),
     license='Apache 2.0',
     description='Secret Flow',
     long_description=long_description,
@@ -119,7 +127,8 @@ setup(
     author_email='secretflow-contact@service.alipay.com',
     url='https://github.com/secretflow/secretflow',
     packages=find_packages(exclude=('examples', 'examples.*', 'tests', 'tests.*')),
-    install_requires=read_requirements(),
+    setup_requires=['protobuf_distutils'],
+    install_requires=install_requires,
     ext_modules=[
         BazelExtension(
             '//secretflow_lib/binding:_lib', 'secretflow/security/privacy/_lib'
@@ -129,5 +138,13 @@ setup(
     cmdclass=dict(
         build_ext=BuildBazelExtension, clean=CleanCommand, cleanall=CleanCommand
     ),
-    options={'bdist_wheel': {'plat_name': plat_name}},
+    dependency_links=dependency_links,
+    options={
+        'bdist_wheel': {'plat_name': plat_name},
+        'generate_py_protobufs': {
+            'source_dir': './secretflow/protos',
+            'proto_root_path': '.',
+            'output_dir': '.',
+        },
+    },
 )

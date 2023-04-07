@@ -15,12 +15,15 @@ import spu
 import secretflow as sf
 import secretflow.distributed as sfd
 from secretflow.utils.testing import unused_tcp_port
-
 from tests.cluster import cluster, get_self_party
 
 heu_config = {
     'sk_keeper': {'party': 'alice'},
-    'evaluators': [{'party': 'bob'}],
+    'evaluators': [
+        {'party': 'bob'},
+        {'party': 'carol'},
+        {'party': 'davy'},
+    ],
     # The HEU working mode, choose from PHEU / LHEU / FHEU_ROUGH / FHEU
     'mode': 'PHEU',
     'he_parameters': {
@@ -40,22 +43,16 @@ def semi2k_cluster():
         'nodes': [
             {
                 'party': 'alice',
-                'id': 'local:0',
                 'address': f'127.0.0.1:{unused_tcp_port()}',
             },
             {
                 'party': 'bob',
-                'id': 'local:1',
                 'address': f'127.0.0.1:{unused_tcp_port()}',
             },
         ],
         'runtime_config': {
             'protocol': spu.spu_pb2.SEMI2K,
             'field': spu.spu_pb2.FM128,
-            'enable_pphlo_profile': False,
-            'enable_hal_profile': False,
-            'enable_pphlo_trace': False,
-            'enable_action_trace': False,
         },
     }
 
@@ -65,27 +62,20 @@ def aby3_cluster():
         'nodes': [
             {
                 'party': 'alice',
-                'id': 'local:0',
                 'address': f'127.0.0.1:{unused_tcp_port()}',
             },
             {
                 'party': 'bob',
-                'id': 'local:1',
                 'address': f'127.0.0.1:{unused_tcp_port()}',
             },
             {
                 'party': 'carol',
-                'id': 'local:2',
                 'address': f'127.0.0.1:{unused_tcp_port()}',
             },
         ],
         'runtime_config': {
             'protocol': spu.spu_pb2.ABY3,
             'field': spu.spu_pb2.FM64,
-            'enable_pphlo_profile': False,
-            'enable_hal_profile': False,
-            'enable_pphlo_trace': False,
-            'enable_action_trace': False,
         },
     }
 
@@ -116,6 +106,7 @@ class DeviceTestCase(unittest.TestCase):
                 log_to_driver=True,
                 cluster_config=cluster(),
                 exit_on_failure_cross_silo_sending=True,
+                enable_waiting_for_other_parties_ready=False,
             )
 
         cls.alice = sf.PYU('alice')
@@ -129,6 +120,7 @@ class DeviceTestCase(unittest.TestCase):
             cls.spu = sf.SPU(
                 cluster_def,
                 link_desc={
+                    'connect_retry_times': 60,
                     'connect_retry_interval_ms': 1000,
                 },
             )
@@ -163,7 +155,7 @@ class ABY3DeviceTestCase(DeviceTestCase):
         print(cluster_def)
         cls.spu = sf.SPU(
             cluster_def,
-            link_desc={'connect_retry_interval_ms': 1000},
+            link_desc={'connect_retry_times': 60, 'connect_retry_interval_ms': 1000},
         )
         cls.heu = sf.HEU(heu_config, cluster_def['runtime_config']['field'])
 

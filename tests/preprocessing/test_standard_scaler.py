@@ -11,7 +11,6 @@ from secretflow.preprocessing.scaler import StandardScaler
 from secretflow.security.aggregation import PlainAggregator
 from secretflow.security.compare import PlainComparator
 from secretflow.utils.simulation.datasets import load_iris
-
 from tests.basecase import MultiDriverDeviceTestCase
 
 

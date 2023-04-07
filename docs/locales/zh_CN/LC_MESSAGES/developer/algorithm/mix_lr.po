@@ -42,7 +42,7 @@ msgstr "切分"
 
 #: ../../developer/algorithm/mix_lr.md:13
 msgid ""
-"The data will be partitioned into serveral vertical partitions firstly as"
+"The data will be partitioned into several vertical partitions firstly as"
 " follows."
 msgstr "数据首先被切分成多个垂直分块。"
 

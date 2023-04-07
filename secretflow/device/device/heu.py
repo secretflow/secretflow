@@ -11,13 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from dataclasses import dataclass
 from functools import reduce
 from pathlib import Path
 from typing import Union
-import jax.tree_util
-import ray
+
 import cloudpickle as pickle
+import jax.tree_util
 import numpy as np
+import ray
 import spu
 from heu import numpy as hnp
 from heu import phe
@@ -33,6 +36,27 @@ from .type_traits import (
     spu_fxp_precision,
     spu_fxp_size,
 )
+
+
+@dataclass
+class HEUMoveConfig:
+    heu_dest_party: str = 'auto'
+    """Where the encrypted data is located"""
+
+    heu_encoder: Union[
+        phe.IntegerEncoder,
+        phe.FloatEncoder,
+        phe.BigintEncoder,
+        phe.IntegerEncoderParams,
+        phe.FloatEncoderParams,
+        phe.BigintEncoderParams,
+        phe.BatchFloatEncoderParams,
+        phe.BatchIntegerEncoderParams,
+    ] = None
+    """Do encode before move data to heu"""
+
+    heu_audit_log: str = None
+    """file path to record audit log"""
 
 
 class HEUActor:
@@ -55,7 +79,8 @@ class HEUActor:
                     - phe.IntegerEncoder
                     - phe.FloatEncoder
                     - phe.BigintEncoder
-                    - phe.BatchEncoder
+                    - phe.BatchIntegerEncoder
+                    - phe.BatchFloatEncoder
         """
         self.heu_id = heu_id
         self.party = party
@@ -74,7 +99,9 @@ class HEUActor:
         item = jax.tree_util.tree_map(
             lambda x: x.tolist() if isinstance(x, np.ndarray) else x, item
         )
-
+        item = jax.tree_util.tree_map(
+            lambda x: int(x) if isinstance(x, np.int64) else x, item
+        )
         return data[item]
 
     def setitem(self, data, key, value):
@@ -95,6 +122,119 @@ class HEUActor:
 
         return self.evaluator.sum(data)
 
+    def select_sum(self, data, item):
+        """sum of data on selected elements"""
+        assert isinstance(
+            data, (hnp.PlaintextArray, hnp.CiphertextArray)
+        ), f"data must be hnp.ndarray type, real type={type(data)}"
+        assert (
+            data.size > 0
+        ), f"You cannot select sum an empty ndarray, data.shape={data.rows}x{data.cols}"
+        item = jax.tree_util.tree_map(
+            lambda x: ray.get(x) if isinstance(x, ray.ObjectRef) else x,
+            item,
+        )
+        item = jax.tree_util.tree_map(
+            lambda x: x.tolist() if isinstance(x, np.ndarray) else x, item
+        )
+        return self.evaluator.select_sum(data, item)
+
+    def batch_select_sum(self, data, item):
+        """sum of data on selected elements"""
+        assert isinstance(
+            data, (hnp.PlaintextArray, hnp.CiphertextArray)
+        ), f"data must be hnp.ndarray type, real type={type(data)}"
+        assert (
+            data.size > 0
+        ), f"You cannot select sum an empty ndarray, data.shape={data.rows}x{data.cols}"
+        item = jax.tree_util.tree_map(
+            lambda x: ray.get(x) if isinstance(x, ray.ObjectRef) else x,
+            item,
+        )
+        item = jax.tree_util.tree_map(
+            lambda x: x.tolist() if isinstance(x, np.ndarray) else x, item
+        )
+        assert isinstance(item, list), "item must be a list, but now item is {}".format(
+            type(item)
+        )
+        if len(item) == 0:
+            return data[item]
+        return self.evaluator.batch_select_sum(data, item)
+
+    def feature_wise_bucket_sum(self, data, subgroup_map, order_map, bucket_num, cumsum=False):
+        """sum of data on selected elements"""
+        assert isinstance(
+            data, (hnp.PlaintextArray, hnp.CiphertextArray)
+        ), f"data must be hnp.ndarray type, real type={type(data)}"
+        assert (
+            data.size > 0
+        ), f"You cannot select sum an empty ndarray, data.shape={data.rows}x{data.cols}"
+
+        def process_data(x):
+            res = x
+            if isinstance(x, ray.ObjectRef):
+                res = ray.get(x)
+            return res
+
+        subgroup_map = jax.tree_util.tree_map(process_data, subgroup_map)
+        assert isinstance(
+            subgroup_map, list
+        ), "item must be a list of np.array, but now item is {}, value {}".format(
+            type(subgroup_map), subgroup_map
+        )
+        order_map = jax.tree_util.tree_map(process_data, order_map)
+        assert isinstance(
+            order_map, list
+        ), "item must be a list, but now item is {}, value {}".format(
+            type(order_map), order_map
+        )
+        bucket_num = process_data(bucket_num)
+        assert isinstance(
+            bucket_num, np.ndarray
+        ), "item must be a np.ndarray, but now item is {}, value {}".format(
+            type(bucket_num), bucket_num
+        )
+        return self.evaluator.feature_wise_bucket_sum(
+            data, subgroup_map, order_map, bucket_num, cumsum
+        )
+
+    def batch_feature_wise_bucket_sum(self, data, subgroup_map, order_map, bucket_num, cumsum=False):
+        """sum of data on selected elements"""
+        assert isinstance(
+            data, (hnp.PlaintextArray, hnp.CiphertextArray)
+        ), f"data must be hnp.ndarray type, real type={type(data)}"
+        assert (
+            data.size > 0
+        ), f"You cannot select sum an empty ndarray, data.shape={data.rows}x{data.cols}"
+
+        def process_data(x):
+            res = x
+            if isinstance(x, ray.ObjectRef):
+                res = ray.get(x)
+            return res
+
+        subgroup_map = jax.tree_util.tree_map(process_data, subgroup_map)
+        assert isinstance(
+            subgroup_map, list
+        ), "item must be a list of np.array, but now item is {}, value {}".format(
+            type(subgroup_map), subgroup_map
+        )
+        order_map = jax.tree_util.tree_map(process_data, order_map)
+        assert isinstance(
+            order_map, np.ndarray
+        ), "item must be a np.ndarray, but now item is {}, value {}".format(
+            type(order_map), order_map
+        )
+        bucket_num = process_data(bucket_num)
+        assert isinstance(
+            bucket_num, int
+        ), "item must be a int, but now item is {}, value {}".format(
+            type(bucket_num), bucket_num
+        )
+        return self.evaluator.batch_feature_wise_bucket_sum(
+            data, subgroup_map, order_map, bucket_num, cumsum
+        )
+
     def encode(self, data: np.ndarray, edr=None):
         """encode cleartext to plaintext
 
@@ -114,6 +254,8 @@ class HEUActor:
             data: plaintext
             edr: encoder
         """
+        if isinstance(data, list):
+            return [self.decode(d, edr) for d in data]
         if edr is None:
             edr = self.encoder
         if isinstance(
@@ -122,7 +264,8 @@ class HEUActor:
                 phe.BigintEncoderParams,
                 phe.IntegerEncoderParams,
                 phe.FloatEncoderParams,
-                phe.BigintEncoderParams,
+                phe.BatchIntegerEncoderParams,
+                phe.BatchFloatEncoderParams,
             ),
         ):
             edr = edr.instance(self.hekit.get_schema())
@@ -204,6 +347,9 @@ class HEUSkKeeper(HEUActor):
 
     def decrypt(self, data) -> Union[phe.Plaintext, hnp.PlaintextArray]:
         """Decrypt data: ciphertext -> plaintext"""
+        if isinstance(data, list):
+            return [self.decrypt(d) for d in data]
+
         if isinstance(data, hnp.CiphertextArray):
             return self.hekit.decryptor().decrypt(data)
 
@@ -365,7 +511,8 @@ class HEU(Device):
                             #     - IntegerEncoder: Plaintext = Cleartext * scale
                             #     - FloatEncoder (default): Plaintext = Cleartext * scale
                             #     - BigintEncoder: Plaintext = Cleartext
-                            #     - BatchEncoder: Plaintext = Pack[Cleartext, Cleartext]
+                            #     - BatchIntegerEncoder: Plaintext = Pack[Cleartext, Cleartext]
+                            #     - BatchFloatEncoder: Plaintext = Pack[Cleartext, Cleartext]
                             'encoder': 'FloatEncoder'
                         }
                         'he_parameters': {
@@ -417,8 +564,11 @@ class HEU(Device):
             elif edr_name == "BigintEncoder":
                 self.encoder = phe.BigintEncoder(schema)
                 self.scale = 1
-            elif edr_name == "BatchEncoder":
-                self.encoder = phe.BatchEncoder(schema, **edr_args)
+            elif edr_name == "BatchIntegerEncoder":
+                self.encoder = phe.BatchIntegerEncoder(schema, **edr_args)
+                self.scale = edr_args.get("scale", 1)
+            elif edr_name == "BatchFloatEncoder":
+                self.encoder = phe.BatchFloatEncoder(schema, **edr_args)
                 self.scale = edr_args.get("scale", 1)
             else:
                 raise AssertionError(f"Unsupported encoder type {edr_name}")

@@ -12,9 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 from .version import __version__  # type: ignore
 
-from . import data, device, ml, preprocessing, security, utils
+from . import (
+    data,
+    device,
+    ml,
+    preprocessing,
+    security,
+    utils,
+)
 from .device import (
     HEU,
     PYU,
@@ -33,6 +41,8 @@ from .device import (
 )
 
 __all__ = [
+    'protos',
+    'kuscia',
     'data',
     'device',
     'ml',
@@ -53,4 +63,5 @@ __all__ = [
     'shutdown',
     'to',
     'wait',
+    'component',
 ]

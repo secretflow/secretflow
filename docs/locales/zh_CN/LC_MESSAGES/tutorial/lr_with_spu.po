@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-01-07 11:23+0800\n"
+"POT-Creation-Date: 2023-04-06 14:06+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -56,7 +56,7 @@ msgid "How to write a Logistic Regression trainning program with JAX."
 msgstr "如何使用 JAX 编写逻辑回归训练程序。"
 
 #: ../../tutorial/lr_with_spu.ipynb:39
-msgid "How to convert a JAX program to a SPU(MPC) program painlessly."
+msgid "How to convert a JAX program to an SPU(MPC) program painlessly."
 msgstr "如何轻松地将 JAX 程序转换为 SPU(MPC) 程序。"
 
 #: ../../tutorial/lr_with_spu.ipynb:41
@@ -74,14 +74,14 @@ msgstr ""
 #: ../../tutorial/lr_with_spu.ipynb:43
 msgid ""
 "While, first, let’s just forget MPC settings and just write a Logistic "
-"Regression trainning program with JAX directly."
+"Regression training program with JAX directly."
 msgstr "首先，让我们忘记 MPC 语意，直接使用 JAX 编写逻辑回归训练程序。"
 
 #: ../../tutorial/lr_with_spu.ipynb:55
 msgid "Train a model with JAX"
 msgstr "使用 JAX 训练模型"
 
-#: ../../tutorial/lr_with_spu.ipynb:67 ../../tutorial/lr_with_spu.ipynb:459
+#: ../../tutorial/lr_with_spu.ipynb:67 ../../tutorial/lr_with_spu.ipynb:419
 msgid "Load the Dataset"
 msgstr "加载数据集"
 
@@ -89,79 +89,73 @@ msgstr "加载数据集"
 msgid ""
 "We are going to split the whole dataset into train and test subsets after"
 " normalization with ``breast_cancer``. \\* if ``train`` is ``True``, "
-"returns train subsets. In order to simulate trainning with vertical "
+"returns train subsets. In order to simulate training with vertical "
 "dataset splitting, the ``party_id`` is provided. \\* else, returns test "
 "subsets."
 msgstr ""
 "我们将在使用“breast_cancer”标准化后将整个数据集拆分为训练和测试子集。 如果 ``train`` 是 "
 "``True``，返回训练子集，另外，为了模拟垂直数据集拆分的训练，还需要提供“party_id”参数。 否则，返回测试子集。"
 
-#: ../../tutorial/lr_with_spu.ipynb:115
+#: ../../tutorial/lr_with_spu.ipynb:114
 msgid "Define the Model"
 msgstr "定义模型"
 
-#: ../../tutorial/lr_with_spu.ipynb:117
+#: ../../tutorial/lr_with_spu.ipynb:116
 msgid ""
 "First, let’s define the loss function, which is a negative log-likelihood"
 " in our case."
 msgstr "首先，让我们定义损失函数，在我们的例子中它是一个负对数似然。"
 
-#: ../../tutorial/lr_with_spu.ipynb:155
+#: ../../tutorial/lr_with_spu.ipynb:154
 msgid ""
 "Second, let’s define a single train step with SGD optimizer. Just to "
 "remind you, x1 represents 15 features from one party while x2 represents "
 "the other 15 features from the other party."
 msgstr "其次，让我们使用 SGD 优化器定义单个训练步骤。 提醒一下，x1 代表来自一方的 15 个特征，而 x2 代表来自另一方的其他 15 个特征。"
 
-#: ../../tutorial/lr_with_spu.ipynb:185
+#: ../../tutorial/lr_with_spu.ipynb:184
 msgid ""
 "Last, let’s build everything together as a ``fit`` method which returns "
 "the model and losses of each epoch."
 msgstr "最后，让我们将所有内容构建为“fit”方法，该方法返回每个epoch的模型和损失。"
 
-#: ../../tutorial/lr_with_spu.ipynb:213
+#: ../../tutorial/lr_with_spu.ipynb:210
 msgid "Validate the Model"
 msgstr "验证模型"
 
-#: ../../tutorial/lr_with_spu.ipynb:215
+#: ../../tutorial/lr_with_spu.ipynb:212
 msgid "We could use the AUC to validate a binary classification model."
 msgstr "我们可以使用 AUC 来验证二元分类模型。"
 
-#: ../../tutorial/lr_with_spu.ipynb:242
-msgid ""
-"If you are interested, we could also plot loss after each epoch of "
-"trainning."
-msgstr "如果您有兴趣，我们还可以在每个epoch后绘制损失图。"
-
-#: ../../tutorial/lr_with_spu.ipynb:271
+#: ../../tutorial/lr_with_spu.ipynb:240
 msgid "Have a try!"
 msgstr "试试！"
 
-#: ../../tutorial/lr_with_spu.ipynb:273
+#: ../../tutorial/lr_with_spu.ipynb:242
 msgid "Let’s put everything we have together and train a LR model!"
 msgstr "让我们把所有的东西放在一起，训练一个 LR 模型！"
 
-#: ../../tutorial/lr_with_spu.ipynb:375
+#: ../../tutorial/lr_with_spu.ipynb:332
 msgid ""
-"Just remember the plot and AUC here since we would like to do the similar"
-" thing with SPU!"
-msgstr "请记住这里的损失图和 AUC，因为我们想用 SPU 做类似的事情！"
+"Just remember the AUC here since we would like to do the similar thing "
+"with SPU!"
+msgstr "请记住这里的 AUC，因为我们想用 SPU 做类似的事情！"
 
-#: ../../tutorial/lr_with_spu.ipynb:387
+#: ../../tutorial/lr_with_spu.ipynb:344
 msgid "Train a Model with SPU"
 msgstr "使用 SPU 训练模型"
 
-#: ../../tutorial/lr_with_spu.ipynb:389
+#: ../../tutorial/lr_with_spu.ipynb:346
 msgid ""
-"At this part, we are going to show you how to do the similar trainning "
+"At this part, we are going to show you how to do the similar training "
 "with MPC securely!"
 msgstr "在这一部分，我们将向您展示如何安全地使用 MPC 进行类似的训练！"
 
-#: ../../tutorial/lr_with_spu.ipynb:401
+#: ../../tutorial/lr_with_spu.ipynb:358
 msgid "Init the Environment"
 msgstr "初始化环境"
 
-#: ../../tutorial/lr_with_spu.ipynb:403
+#: ../../tutorial/lr_with_spu.ipynb:360
 msgid ""
 "We are going to init three virtual devices on our physical environment. -"
 " alice, bob：Two PYU devices for local plaintext computation. - spu：SPU "
@@ -170,13 +164,13 @@ msgstr ""
 "我们将在我们的物理环境中初始化三个虚拟设备。 - alice, bob：两个用于本地明文计算的 PYU 设备。- spu：SPU 设备由 "
 "alice 和 bob 组成，用于 MPC 安全计算。"
 
-#: ../../tutorial/lr_with_spu.ipynb:461
-msgid "we instruct alice and bob to load the train subset repectively."
+#: ../../tutorial/lr_with_spu.ipynb:421
+msgid "we instruct alice and bob to load the train subset respectively."
 msgstr "我们指示 alice 和 bob 分别加载训练子集。"
 
-#: ../../tutorial/lr_with_spu.ipynb:517
+#: ../../tutorial/lr_with_spu.ipynb:477
 msgid ""
-"Before trainning, we need to pass hyperparamters and all data to SPU "
+"Before training, we need to pass hyperparamters and all data to SPU "
 "device. SecretFlow provides two methods: - secretflow.to: transfer a "
 "PythonObject or DeviceObject to a specific device. - DeviceObject.to: "
 "transfer the DeviceObject to a specific device."
@@ -185,44 +179,44 @@ msgstr ""
 "PythonObject 或 DeviceObject 传输到特定设备。 - DeviceObject.to：将 DeviceObject "
 "传输到特定设备。"
 
-#: ../../tutorial/lr_with_spu.ipynb:551
+#: ../../tutorial/lr_with_spu.ipynb:605
 msgid "Train the model"
 msgstr "训练模型"
 
-#: ../../tutorial/lr_with_spu.ipynb:553
+#: ../../tutorial/lr_with_spu.ipynb:607
 msgid ""
-"Now we are ready to train a LR model with SPU. After trainning, losses "
-"and model are SPUObjects which are still secret."
+"Now we are ready to train a LR model with SPU. After training, losses and"
+" model are SPUObjects which are still secret."
 msgstr "现在我们准备好用 SPU 训练一个 LR 模型。 经过训练，损失和模型是仍然保密的 SPU 对象。"
 
-#: ../../tutorial/lr_with_spu.ipynb:614
+#: ../../tutorial/lr_with_spu.ipynb:693
 msgid "Reveal the result"
 msgstr "揭示结果"
 
-#: ../../tutorial/lr_with_spu.ipynb:616
+#: ../../tutorial/lr_with_spu.ipynb:695
 msgid ""
-"In order to check losses and model, we need to convert SPUObject(secret) "
-"to Python object(plaintest). SecretFlow provide ``sf.reveal`` to convert "
-"any DeviceObject to Python object."
+"In order to check the trained model, we need to convert SPUObject(secret)"
+" to Python object(plaintext). SecretFlow provide ``sf.reveal`` to convert"
+" any DeviceObject to Python object."
 msgstr ""
-"为了检查损失和模型，我们需要将 SPUObject(secret) 转换为 Python object(明文)。 SecretFlow 提供 "
+"为了检查训练的模型，我们需要将 SPUObject(secret) 转换为 Python object(明文)。 SecretFlow 提供 "
 "``sf.reveal`` 将任何 DeviceObject 转换为 Python object。"
 
-#: ../../tutorial/lr_with_spu.ipynb:618
+#: ../../tutorial/lr_with_spu.ipynb:697
 msgid "Be care with ``sf.reveal``\\ ，since it may result in secret leak。"
 msgstr "请小心使用 ``sf.reveal``\\ ，因为它可能导致秘密泄露。"
 
-#: ../../tutorial/lr_with_spu.ipynb:799
+#: ../../tutorial/lr_with_spu.ipynb:708
 msgid "Finally, let’s validate the model with AUC."
 msgstr "最后，让我们用 AUC 验证模型。"
 
-#: ../../tutorial/lr_with_spu.ipynb:846
+#: ../../tutorial/lr_with_spu.ipynb:755
 msgid ""
-"You may find the model from SPU trainning program achieve the same AUC as"
-" JAX program."
+"You may find the model from SPU training program achieve the same AUC as "
+"JAX program."
 msgstr "你可能会发现 SPU 训练程序中的模型达到了与 JAX 程序相同的 AUC。"
 
-#: ../../tutorial/lr_with_spu.ipynb:848
+#: ../../tutorial/lr_with_spu.ipynb:757
 msgid "This is the end of lab."
 msgstr "实验到此结束。"
 

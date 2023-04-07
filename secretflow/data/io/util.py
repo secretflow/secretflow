@@ -19,8 +19,6 @@ from urllib.parse import urlparse
 
 import pandas as pd
 
-import secretflow.data.io.oss as oss
-
 
 def open(filepath: Union[str, Path], mode='rb'):
     """Open a oss/http/https file.
@@ -37,6 +35,8 @@ def open(filepath: Union[str, Path], mode='rb'):
 
     o = urlparse(filepath)
     if o.scheme == 'oss':
+        import secretflow.data.io.oss as oss
+
         return oss.open(filepath, mode)
 
     return builtins.open(filepath, mode)

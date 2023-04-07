@@ -15,29 +15,65 @@
 from heu import numpy as hnp
 from spu import spu_pb2
 
-from secretflow.device import (HEU, PYU, SPU, Device, DeviceObject, DeviceType,
-                               HEUObject, PYUObject, SPUObject, register)
-from secretflow.device.device.base import MoveConfig
+from secretflow.device import (
+    HEU,
+    PYU,
+    SPU,
+    DeviceObject,
+    DeviceType,
+    HEUObject,
+    PYUObject,
+    SPUObject,
+    register,
+)
+from secretflow.device.device.base import register_to
+from secretflow.device.device.heu import HEUMoveConfig
 
 
-@register(DeviceType.HEU)
-def to(self: HEUObject, device: Device, config):
-    assert isinstance(device, Device)
+@register_to(DeviceType.HEU, DeviceType.HEU)
+def heu_to_heu(self: HEUObject, heu: HEU, config: HEUMoveConfig = None):
+    assert isinstance(heu, HEU), f'Expect an HEU but got {type(heu)}.'
+    if config is None:
+        config = HEUMoveConfig()
 
-    if isinstance(device, HEU):
-        if self.device is device:
-            return heu_to_same_heu(self, config)
-        else:
-            return heu_to_other_heu(self, device, config)
-    if isinstance(device, PYU):  # pure local operation
-        return heu_to_pyu(self, device, config)
-    if isinstance(device, SPU):
-        return heu_to_spu(self, device)
-
-    raise ValueError(f'Unexpected device type: {type(device)}')
+    if self.device is heu:
+        return heu_to_same_heu(self, config)
+    else:
+        return heu_to_other_heu(self, heu, config)
 
 
+@register_to(DeviceType.HEU, DeviceType.PYU)
+def heu_to_pyu(self: HEUObject, pyu: PYU, config: HEUMoveConfig = None):
+    assert isinstance(pyu, PYU), f'Expect a PYU but got {type(pyu)}.'
+    if config is None:
+        config = HEUMoveConfig()
+
+    # heu -> heu(sk_keeper)
+    if self.location != pyu.party:
+        config.heu_dest_party = pyu.party
+        self = self.to(self.device, config)
+
+    # below is pure local operation
+    if self.is_plain:
+        cleartext = self.device.get_participant(self.location).decode.remote(
+            self.data, config.heu_encoder
+        )
+        return PYUObject(pyu, cleartext)
+
+    assert (
+        pyu.party == self.device.sk_keeper_name()
+    ), f'Can not convert to PYU device {pyu.party} without secret key'
+
+    # HEU -> PYU: Decrypt
+    cleartext = self.device.sk_keeper.decrypt_and_decode.remote(
+        self.data, config.heu_encoder
+    )
+    return PYUObject(pyu, cleartext)
+
+
+@register_to(DeviceType.HEU, DeviceType.SPU)
 def heu_to_spu(self: HEUObject, spu: SPU):
+    assert isinstance(spu, SPU), f'Expect an SPU but got {type(spu)}.'
     heu = self.device
 
     assert (
@@ -94,7 +130,7 @@ def heu_to_spu(self: HEUObject, spu: SPU):
 
 
 # Data flows inside the HEU, across network
-def heu_to_same_heu(self: HEUObject, config: MoveConfig):
+def heu_to_same_heu(self: HEUObject, config: HEUMoveConfig):
     if self.location == config.heu_dest_party:
         return self  # nothing to do
 
@@ -110,32 +146,8 @@ def heu_to_same_heu(self: HEUObject, config: MoveConfig):
 
 
 # The two HEU have different pk/sk
-def heu_to_other_heu(self: DeviceObject, dest_device: HEU, config):
+def heu_to_other_heu(self: DeviceObject, dest_device: HEU, config: HEUMoveConfig):
     raise NotImplementedError("Heu object cannot flow across HEUs")
-
-
-def heu_to_pyu(self: HEUObject, device: PYU, config: MoveConfig):
-    # heu -> heu(sk_keeper)
-    if self.location != device.party:
-        config.heu_dest_party = device.party
-        self = self.to(self.device, config)
-
-    # below is pure local operation
-    if self.is_plain:
-        cleartext = self.device.get_participant(self.location).decode.remote(
-            self.data, config.heu_encoder
-        )
-        return PYUObject(device, cleartext)
-
-    assert (
-        device.party == self.device.sk_keeper_name()
-    ), f'Can not convert to PYU device {device.party} without secret key'
-
-    # HEU -> PYU: Decrypt
-    cleartext = self.device.sk_keeper.decrypt_and_decode.remote(
-        self.data, config.heu_encoder
-    )
-    return PYUObject(device, cleartext)
 
 
 def _binary_op(self: HEUObject, other: HEUObject, op) -> 'HEUObject':

@@ -28,7 +28,6 @@ from secretflow.utils.simulation.datasets import (
     load_dermatology,
     load_linear,
 )
-
 from tests.basecase import ABY3MultiDriverDeviceTestCase, aby3_cluster
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -37,6 +36,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 class TestVertBinning(ABY3MultiDriverDeviceTestCase):
     @classmethod
     def setUpClass(cls) -> None:
+        cls.num_cpus = 32
         super().setUpClass()
         cluster_def = reveal(cls.alice(aby3_cluster)())
         cls.spu02 = SPU(

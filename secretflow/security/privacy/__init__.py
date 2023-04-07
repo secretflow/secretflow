@@ -12,15 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .mechanism.tensorflow.layers import (
-    GaussianEmbeddingDP,
-    LabelDP,
-)
-
-from .mechanism.tensorflow.mechanism_fl import (
-    GaussianModelDP,
-)
-
+from .mechanism.tensorflow.layers import GaussianEmbeddingDP, LabelDP
+from .mechanism.tensorflow.mechanism_fl import GaussianModelDP
 from .strategy import DPStrategy
 from .strategy_fl import DPStrategyFL
 

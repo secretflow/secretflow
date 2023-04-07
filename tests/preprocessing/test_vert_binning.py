@@ -9,7 +9,6 @@ from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.device.driver import reveal
 from secretflow.preprocessing.binning.vert_woe_binning import VertWoeBinning
 from secretflow.utils.simulation.datasets import dataset
-
 from tests.basecase import MultiDriverDeviceTestCase
 
 

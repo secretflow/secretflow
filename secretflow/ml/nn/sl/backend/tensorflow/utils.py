@@ -17,7 +17,7 @@
 
 
 from dataclasses import dataclass
-from typing import List, Callable
+from typing import Any, Callable, List, Union
 
 import tensorflow as tf
 
@@ -132,3 +132,16 @@ def wrap_tf_input_output(io_pb):
         tensor_info.shape.extend([dim.size for dim in info_pb.tensor_shape.dim])
         results.append(tensor_info)
     return results
+
+
+@dataclass
+class ForwardData:
+    """
+    ForwardData is a dataclass for data uploaded by each party to label party for computation.
+
+    hidden: base model hidden layers outputs
+    losses: the sum of base model losses should added up to fuse model loss
+    """
+
+    hidden: Union[Any, List[Any]] = None
+    losses: Any = None

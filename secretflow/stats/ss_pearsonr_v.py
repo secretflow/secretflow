@@ -14,8 +14,8 @@
 
 from typing import List
 
-import numpy as np
 import jax.numpy as jnp
+import numpy as np
 
 import secretflow as sf
 from secretflow.data.vertical import VDataFrame
@@ -58,7 +58,7 @@ class PearsonR:
         if standardize:
             scaler = StandardScaler()
             vdata = scaler.fit_transform(vdata)
-        obj_list = [sf.to(self.spu_device, d.data) for d in vdata.partitions.values()]
+        obj_list = [d.data.to(self.spu_device) for d in vdata.partitions.values()]
 
         rows = vdata.shape[0]
 

@@ -12,17 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Dict, Union
+from typing import Dict, List, Union
+
 import jax.numpy as jnp
 import numpy as np
+from heu import phe
 
-from secretflow.device.device.base import MoveConfig
+from secretflow.data.vertical import VDataFrame
+from secretflow.device import HEU, PYU, SPU, PYUObject
+from secretflow.device.device.heu import HEUMoveConfig
 from secretflow.preprocessing.binning.vert_woe_binning_pyu import (
     VertWoeBinningPyuWorker,
 )
-from secretflow.device import SPU, HEU, PYU, PYUObject
-from secretflow.data.vertical import VDataFrame
-from heu import phe
 
 
 class VertWoeBinning:
@@ -200,9 +201,17 @@ class VertWoeBinning:
         )
         woe_rules[coordinator_device] = coordinator_report
 
-        secure_label = label.to(
-            self.secure_device, MoveConfig(heu_audit_log=coordinator_audit_log_path)
-        )
+        if isinstance(self.secure_device, SPU):
+            secure_label = label.to(self.secure_device)
+        elif isinstance(self.secure_device, HEU):
+            secure_label = label.to(
+                self.secure_device,
+                HEUMoveConfig(heu_audit_log=coordinator_audit_log_path),
+            )
+        else:
+            raise NotImplementedError(
+                f'Secure device should be SPU or HEU, but got {type(self.secure_device)}.'
+            )
 
         # all participants
         for device in workers:
@@ -210,9 +219,7 @@ class VertWoeBinning:
                 continue
 
             worker = workers[device]
-            bin_select = worker.participant_build_sum_select(
-                vdata.partitions[device].data
-            )
+
             if isinstance(self.secure_device, HEU):
                 if audit_log_path:
                     assert (
@@ -223,15 +230,21 @@ class VertWoeBinning:
                     self.secure_device.get_participant(device.party).dump_pk.remote(
                         f'{worker_audit_path}.pk.pickle'
                     )
-                move_config = MoveConfig()
+                move_config = HEUMoveConfig()
                 move_config.heu_encoder = phe.BigintEncoderParams()
-                bin_select_heu = bin_select.to(self.secure_device, move_config)
-                bins_positive = (
-                    (secure_label @ bin_select_heu).to(coordinator_device).to(device)
+                bin_indices = worker.participant_build_sum_indices(
+                    vdata.partitions[device].data
                 )
-                bins_positive = device(lambda x: x)(bins_positive)
+                bins_positive = (
+                    secure_label.batch_select_sum(bin_indices)
+                    .to(coordinator_device)
+                    .to(device)
+                )
                 bin_stats = worker.participant_sum_bin(bins_positive)
             else:
+                bin_select = worker.participant_build_sum_select(
+                    vdata.partitions[device].data
+                )
 
                 def spu_work(label, select):
                     return jnp.matmul(label, select)

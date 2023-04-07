@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import inspect
 import logging
 from typing import Union
 
@@ -23,32 +22,8 @@ import ray
 import secretflow.distributed as sfd
 from secretflow.utils.logging import LOG_FORMAT, get_logging_level
 
+from ._utils import check_num_returns
 from .base import Device, DeviceObject, DeviceType
-
-
-def _check_num_returns(fn):
-    # inspect.signature fails on some builtin method (e.g. numpy.random.rand).
-    # You can wrap a self define function which calls builtin function inside
-    # with return annotation to get multi returns for now.
-    if inspect.isbuiltin(fn):
-        sig = inspect.signature(lambda *arg, **kwargs: fn(*arg, **kwargs))
-    else:
-        sig = inspect.signature(fn)
-
-    if sig.return_annotation is None or sig.return_annotation == sig.empty:
-        num_returns = 1
-    else:
-        if (
-            hasattr(sig.return_annotation, '_name')
-            and sig.return_annotation._name == 'Tuple'
-        ):
-            num_returns = len(sig.return_annotation.__args__)
-        elif isinstance(sig.return_annotation, tuple):
-            num_returns = len(sig.return_annotation)
-        else:
-            num_returns = 1
-
-    return num_returns
 
 
 class PYUObject(DeviceObject):
@@ -69,20 +44,18 @@ class PYU(Device):
     Essentially PYU is a python worker who can execute any python code.
     """
 
-    def __init__(self, party: str, node: str = ""):
+    def __init__(self, party: str):
         """PYU contructor.
 
         Args:
             party (str): Party name where this device is located.
-            node (str, optional): Node name where the device is located. Defaults to "".
         """
         super().__init__(DeviceType.PYU)
 
         self.party = party
-        self.node = node
 
     def __str__(self) -> str:
-        return f'{self.party}_{self.node}'
+        return f'{self.party}'
 
     def __repr__(self) -> str:
         return str(self)
@@ -120,9 +93,7 @@ class PYU(Device):
                 lambda arg: try_get_data(arg, self), (args, kwargs)
             )
 
-            _num_returns = (
-                _check_num_returns(fn) if num_returns is None else num_returns
-            )
+            _num_returns = check_num_returns(fn) if num_returns is None else num_returns
             data = (
                 sfd.remote(self._run)
                 .party(self.party)
@@ -141,6 +112,26 @@ class PYU(Device):
                 return [PYUObject(self, datum) for datum in data]
 
         return wrapper
+
+    def dump(self, obj: PYUObject, path: str):
+        assert obj.device == self, "obj must be owned by this device."
+
+        def fn(data, path):
+            import cloudpickle as pickle
+
+            with open(path, 'wb') as f:
+                pickle.dump(data, f)
+
+        self.__call__(fn)(obj, path)
+
+    def load(self, path: str):
+        def fn(path):
+            import cloudpickle as pickle
+
+            with open(path, 'rb') as f:
+                return pickle.load(f)
+
+        return self.__call__(fn)(path)
 
     @staticmethod
     def _run(fn, *args, **kwargs):

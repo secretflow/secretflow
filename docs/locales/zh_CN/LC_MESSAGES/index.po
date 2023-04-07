@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-01-19 14:58+0800\n"
+"POT-Creation-Date: 2023-02-06 14:35+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -98,20 +98,17 @@ msgid ""
 "technologies can be connected to each other."
 msgstr "连接性：不同底层技术支持的场景中的数据可以相互连接。"
 
-#: ../../index.rst:55
+#: ../../index.rst:44
 msgid "MPC, FL, TEE: which one is better?"
 msgstr "MPC、FL、TEE、DP：众多隐私技术路线应该选择哪个？"
 
-#: ../../index.rst:59
+#: ../../index.rst:46
 msgid ""
 "We're often asked which technology is better. The short answer is there "
-"is no dominant winner. As shown in the above picture, it depends on the "
-"requirements, such as performance, security assumption, etc. For a more "
-"detailed comparison, please check `A comprehensive comparison of various "
-"privacy-preserving technologies <https://www.yuque.com/secret-"
-"flow/admin/exgixt72drdvdsy3>`_"
-msgstr ""
-"隐私计算路线繁多，没有任何单一技术能够解决所有挑战。上图是一个整体的各技术路线的多维度对比，实际业务应用选型时，"
-"还需根据具体的安全假设、硬件条件和性能要求等因素综合考量，选择最适合业务场景的解决方案。更具体的综合比较请参考"
+"is no dominant winner. It depends on the requirements, such as "
+"performance, security assumption, etc. For a more detailed comparison, "
+"please check `A comprehensive comparison of various privacy-preserving "
+"technologies <https://www.yuque.com/secret-flow/admin/exgixt72drdvdsy3>`_ ."
+msgstr "隐私计算路线繁多，没有任何单一技术能够解决所有挑战。"
+"实际业务应用选型时，还需根据具体的安全假设、硬件条件和性能要求等因素综合考量，选择最适合业务场景的解决方案。更具体的综合比较请参考"
 " `隐私计算技术路线介绍与对比 <https://www.yuque.com/secret-flow/admin/exgixt72drdvdsy3>`_ 。"
-

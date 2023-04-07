@@ -1,8 +1,8 @@
 from typing import Dict, List, Tuple, Union
 
-from secretflow.device.device.pyu import PYU
 import numpy as np
 
+from secretflow.device.device.pyu import PYU
 from secretflow.utils.errors import InvalidArgumentError
 
 

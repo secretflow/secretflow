@@ -432,7 +432,7 @@ msgstr "用户基于设备构建了一张逻辑计算图，那么我们如何执
 #: ../../developer/design/architecture.md:126
 msgid ""
 "So what kind of distributed graph execution engine do we need? Here's "
-"what SecreFlow's requirements:"
+"what SecretFlow's requirements:"
 msgstr "那么我们需要一个怎样的分布式图执行引擎？以下是隐语对它的要求"
 
 #: ../../developer/design/architecture.md:128

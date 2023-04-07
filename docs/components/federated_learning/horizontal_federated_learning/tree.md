@@ -1,5 +1,5 @@
-# Federated XGBoost
-Federate XGBoost currently supports the construction of horizontal scene tree boosting models
+# Horizontally Federated XGBoost
+Horizontally Federated XGBoost currently supports the construction of horizontal scene tree boosting models
 
 In the horizontal federated learning scenario, the data is partitioned horizontally according to the sample, that is, the data schema of each participant is consistent and has the same columns and types.
 
@@ -26,11 +26,11 @@ Data input: HdataFrame, XGBoost supports converting Pandas.DataFrame directly in
 2. Construct mock data of the same sample space on the server side to synchronize the training process of server and client
 3. Process callback_before_iteration
 4. Input the data into each Client XGBoost engine to calculate g & h  
-   Initiate the homo_boost task; build FedBooster (iterate n iterations for tree model iteration)  
+   Initiate the homo_boost task; build FedBooster (iterate n iterations for tree model iterations)  
     1. Handle callback_before_iteration  
     1. Calculate grad and hess through the XGBoost engine; build a tree model through federated and add it to the Fedboost model. The point of interaction between the XGBoost engine and our federated tree building module - a standard XGBoost model.  
     1. Handle callback_after_iteration (such as early stop, evaluation, etc.）  
-5. Input the current g and h into the federate decision tree module, initiate the homo_boost task; build FedBooster (iterate n iterations to do tree model iteration)  
+5. Input the current g and h into the federate decision tree module, initiate the homo_boost task; build FedBooster (iterate n iterations to do tree model iterations)  
     1. Perform data reassign and assign it to the node to be split  
     1. Calculate sum_of_grad and sum_of_hess according to the previously calculated binning buckets  
     1. Send to the server side, the server side performs secure aggregation, selects the split information,and sends it back to the client side.  

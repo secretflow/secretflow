@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import tensorflow as tf
 from typing import List
+
 import numpy as np
+import tensorflow as tf
 
 from secretflow.security.privacy.accounting.rdp_accountant import (
-    get_rdp,
     get_privacy_spent_rdp,
+    get_rdp,
 )
 
 

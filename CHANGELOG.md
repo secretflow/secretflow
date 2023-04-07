@@ -19,6 +19,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+
+## [0.8.1b0] - 2023-4-7
+### Added
+- SecureBoost and its benchmark.
+- Unbalanced PSI
+  - Two sub-protocols for generating cache and transmitting cache.
+  - Online with shuffling sub-protocol, supporting big data parties to obtain data.
+- Semi-homomorphic encryption protocol - OU
+
+### Changed
+- Bump spu to 0.3.2b12
+
+### Fix
+- Fix psi_join_csv output columns error.
+- Fix heu object decode.
+
 ## [0.8.0b1] - 2023-3-31
 - Bump spu to 0.3.2b11
 
@@ -29,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Bump spu to 0.3.2b9.
+
 
 ## [0.7.18b5] - 2023-3-22
 

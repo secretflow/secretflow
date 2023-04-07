@@ -15,19 +15,19 @@
 import logging
 import math
 from typing import Dict, List, Optional
+
 import numpy as np
 import spu
 
 from secretflow import reveal
 from secretflow.data.mix.dataframe import MixDataFrame, PartitionWay
+from secretflow.device.device import PYU
 from secretflow.device.device.heu import HEU
 from secretflow.device.device.pyu import PYUObject
 from secretflow.device.device.type_traits import spu_fxp_precision
 from secretflow.ml.linear.fl_lr_v import FlLogisticRegressionVertical
 from secretflow.security.aggregation import Aggregator, SecureAggregator
 from secretflow.utils.errors import InvalidArgumentError
-
-from secretflow.device.device import PYU
 
 
 class _CustomSecureAggregator(SecureAggregator):
@@ -171,7 +171,7 @@ class FlLogisticRegressionMix:
         """Fit the model.
 
         Args:
-            x: trainning vector. X should be a horizontal partitioned
+            x: training vector. X should be a horizontal partitioned
                 :py:class:`~secretflow.data.mix.MixDataFrame`, which consists
                 of :py:class:`~secretflow.data.vertical.VDataFrame`s.
             y: target vector relative to x. Y should be a horizontal partitioned

@@ -6,6 +6,10 @@
 
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/secretflow/secretflow/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/secretflow/secretflow/tree/main)
 
+<p align="center">
+<a href="./README.zh-CN.md">简体中文</a>｜<a href="./README.md">English</a>
+</p>
+
 SecretFlow is a unified framework for privacy-preserving data intelligence and machine learning. To achieve this goal,
 it provides:
 
@@ -20,11 +24,11 @@ it provides:
 
 ## Documentation
 
-- [SecretFlow](https://www.secretflow.org.cn/docs/secretflow/zh_CN/)
-  - [Getting Started](https://www.secretflow.org.cn/docs/secretflow/zh_CN/getting_started/index.html)
-  - [Components](https://www.secretflow.org.cn/docs/secretflow/zh_CN/components/index.html)
-  - [API Reference](https://www.secretflow.org.cn/docs/secretflow/zh_CN/api/index.html)
-  - [Tutorial](https://www.secretflow.org.cn/docs/secretflow/zh_CN/tutorial/index.html)
+- [SecretFlow](https://www.secretflow.org.cn/docs/secretflow/en/)
+  - [Getting Started](https://www.secretflow.org.cn/docs/secretflow/en/getting_started/index.html)
+  - [Components](https://www.secretflow.org.cn/docs/secretflow/en/components/index.html)
+  - [API Reference](https://www.secretflow.org.cn/docs/secretflow/en/api/index.html)
+  - [Tutorial](https://www.secretflow.org.cn/docs/secretflow/en/tutorial/index.html)
 
 
 ## SecretFlow Related Projects
@@ -36,11 +40,11 @@ it provides:
 
 ## Install
 
-Please check [INSTALLATION.md](./INSTALLATION.md)
+Please check [INSTALLATION.md](./docs/getting_started/INSTALLATION.md)
 
 ## Deployment
 
-Please check [DEPLOYMENT.md](./DEPLOYMENT.md)
+Please check [DEPLOYMENT.md](./docs/getting_started/DEPLOYMENT.md)
 
 ## Contributing
 

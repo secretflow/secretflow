@@ -16,7 +16,6 @@ from abc import ABC, abstractmethod
 from typing import Any, List, Union
 
 import numpy as np
-import sparse as sp
 from scipy import sparse
 
 
@@ -302,6 +301,8 @@ def sparse_encode(
         'gcxs',
     ], f'Get unsupport sparse encoding method: {encode_method}, '
     encoded_datas = []
+    import sparse as sp
+
     for datum in data:
         if encode_method == 'coo':
             encoded_data = sp.COO(datum)
@@ -319,6 +320,8 @@ def sparse_decode(data: List) -> List[np.ndarray]:
     Returns:
         decoded_datas: Decoded matrix
     """
+    import sparse as sp
+
     if data is None:
         return None
     assert isinstance(

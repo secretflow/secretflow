@@ -1,14 +1,16 @@
+import logging
+import sys
+import tempfile
 import time
 
-import sys
-import logging
-from secretflow.device.driver import reveal, wait
-from secretflow.ml.linear.ss_sgd import SSRegression
-from sklearn.preprocessing import StandardScaler
-from tests.basecase import ABY3MultiDriverDeviceTestCase
 from sklearn.metrics import roc_auc_score
+from sklearn.preprocessing import StandardScaler
+
 from secretflow.data import FedNdarray, PartitionWay
-from secretflow.utils.simulation.datasets import load_linear, create_df, dataset
+from secretflow.device.driver import reveal, wait
+from secretflow.ml.linear import LinearModel, SSRegression
+from secretflow.utils.simulation.datasets import create_df, dataset, load_linear
+from tests.basecase import ABY3MultiDriverDeviceTestCase
 
 
 class TestVertBinning(ABY3MultiDriverDeviceTestCase):
@@ -23,9 +25,9 @@ class TestVertBinning(ABY3MultiDriverDeviceTestCase):
         wait(wait_objs)
 
     def run_test(self, test_name, v_data, label_data, y, batch_size):
-        model = SSRegression(self.spu)
+        reg = SSRegression(self.spu)
         start = time.time()
-        model.fit(
+        reg.fit(
             v_data,
             label_data,
             3,
@@ -38,13 +40,61 @@ class TestVertBinning(ABY3MultiDriverDeviceTestCase):
         )
         logging.info(f"{test_name} train time: {time.time() - start}")
         start = time.time()
-        spu_yhat = model.predict(v_data, batch_size)
+        spu_yhat = reg.predict(v_data, batch_size)
         yhat = reveal(spu_yhat)
         assert yhat.shape[0] == y.shape[0], f"{yhat.shape} == {y.shape}"
         logging.info(f"{test_name} predict time: {time.time() - start}")
         logging.info(f"{test_name} auc: {roc_auc_score(y, yhat)}")
 
-        fed_yhat = model.predict(v_data, batch_size, self.alice)
+        fed_yhat = reg.predict(v_data, batch_size, self.alice)
+        assert len(fed_yhat.partitions) == 1 and self.alice in fed_yhat.partitions
+        yhat = reveal(fed_yhat.partitions[self.alice])
+        assert yhat.shape[0] == y.shape[0], f"{yhat.shape} == {y.shape}"
+        logging.info(f"{test_name} auc: {roc_auc_score(y, yhat)}")
+
+        start = time.time()
+        reg.fit(
+            v_data,
+            label_data,
+            3,
+            0.1,
+            batch_size,
+            't1',
+            'logistic',
+            'l2',
+            0.05,
+            decay_epoch=2,
+            decay_rate=0.5,
+            strategy='policy_sgd',
+        )
+        logging.info(f"{test_name} policy-sgd train time: {time.time() - start}")
+        start = time.time()
+
+        model = reg.save_model()
+
+        alice_weight_dir_path = tempfile.mkdtemp()
+        bob_weight_dir_path = tempfile.mkdtemp()
+        carol_weight_dir_path = tempfile.mkdtemp()
+
+        rec = model.dump(
+            {
+                "alice": alice_weight_dir_path,
+                "bob": bob_weight_dir_path,
+                "carol": carol_weight_dir_path,
+            },
+        )
+
+        new_model = LinearModel.load(rec, spu=self.spu)
+
+        reg.load_model(new_model)
+
+        spu_yhat = reg.predict(v_data, batch_size)
+        yhat = reveal(spu_yhat)
+        assert yhat.shape[0] == y.shape[0], f"{yhat.shape} == {y.shape}"
+        logging.info(f"{test_name} predict time: {time.time() - start}")
+        logging.info(f"{test_name} auc: {roc_auc_score(y, yhat)}")
+
+        fed_yhat = reg.predict(v_data, batch_size, self.alice)
         assert len(fed_yhat.partitions) == 1 and self.alice in fed_yhat.partitions
         yhat = reveal(fed_yhat.partitions[self.alice])
         assert yhat.shape[0] == y.shape[0], f"{yhat.shape} == {y.shape}"
@@ -126,9 +176,9 @@ if __name__ == '__main__':
     logging.info(f"IO times: {time.time() - start}s")
 
     # run ss lr
-    model = SSRegression(cluster.spu)
+    reg = SSRegression(cluster.spu)
     start = time.time()
-    model.fit(
+    reg.fit(
         v_data,
         label_data,
         # <<< !!! >>> change args to your test settings.
@@ -142,7 +192,7 @@ if __name__ == '__main__':
     )
     logging.info(f"main train time: {time.time() - start}")
     start = time.time()
-    spu_yhat = model.predict(v_data, 1024)
+    spu_yhat = reg.predict(v_data, 1024)
     yhat = reveal(spu_yhat)
     logging.info(f"main predict time: {time.time() - start}")
     logging.info(f"main auc: {roc_auc_score(y, yhat)}")

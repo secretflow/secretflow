@@ -12,15 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union
-
 import math
+from typing import Union
 
 import numpy as np
 
-from secretflow.data.vertical import VDataFrame
-from secretflow.data.horizontal import HDataFrame
 from secretflow.data import FedNdarray
+from secretflow.data.horizontal import HDataFrame
+from secretflow.data.vertical import VDataFrame
 
 
 class ScoreCard:

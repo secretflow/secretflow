@@ -117,10 +117,10 @@ class FLModel:
             worker.set_weights(weights)
         return initial_weight
 
-    def handle_file(
+    def _handle_file(
         self,
         train_dict: Dict[PYU, str],
-        label: str,
+        label: str = None,
         batch_size: Union[int, Dict[PYU, int]] = 32,
         sampling_rate=None,
         shuffle=False,
@@ -130,57 +130,83 @@ class FLModel:
         label_decoder=None,
         max_batch_size=20000,
         prefetch_buffer_size=None,
+        dataset_builder=None,
     ):
-        # get party length
-        parties_length = reveal(
-            {
-                device: worker.get_rows_count(train_dict[device])
-                for device, worker in self._workers.items()
-            }
-        )
-        if sampling_rate is None:
-            if isinstance(batch_size, int):
-                sampling_rate = max(
-                    [batch_size / length for length in parties_length.values()]
-                )
-            else:
-                sampling_rate = max(
-                    [
-                        batch_size[device] / length
-                        for device, length in parties_length.items()
-                    ]
-                )
-            if sampling_rate > 1.0:
-                sampling_rate = 1.0
-                logging.warn("Batchsize is too large it will be set to the data size")
-        # check batchsize
-        for length in parties_length.values():
-            batch_size = math.floor(length * sampling_rate)
-            assert (
-                batch_size < max_batch_size
-            ), f"Automatic batchsize is too big(batch_size={batch_size}), variable batchsize in dict is recommended"
-        assert (
-            sampling_rate <= 1.0 and sampling_rate > 0.0
-        ), f'invalid sampling rate {sampling_rate}'
-        self.steps_per_epoch = math.ceil(1.0 / sampling_rate)
+        if dataset_builder:
 
-        for device, worker in self._workers.items():
-            repeat_count = epochs
-            worker.build_dataset_from_csv(
-                train_dict[device],
-                label,
-                sampling_rate=sampling_rate,
-                shuffle=shuffle,
-                random_seed=random_seed,
-                repeat_count=repeat_count,
-                sample_length=parties_length[device],
-                prefetch_buffer_size=prefetch_buffer_size,
-                stage=stage,
-                label_decoder=label_decoder,
+            steps_per_epochs = []
+            for device, worker in self._workers.items():
+                assert (
+                    device in dataset_builder
+                ), f"party={device} does not provide dataset_builder, please check"
+                steps_per_epoch = worker.build_dataset_from_builder(
+                    dataset_builder[device],
+                    train_dict[device],
+                    label,
+                    None,
+                    stage=stage,
+                    repeat_count=epochs,
+                )
+                steps_per_epochs.append(steps_per_epoch)
+            set_steps_per_epochs = set(reveal(steps_per_epochs))
+            assert (
+                len(set_steps_per_epochs) == 1
+            ), "steps_per_epochs of all parties must be same"
+            self.steps_per_epoch = set_steps_per_epochs.pop()
+
+        else:
+            # get party length
+            parties_length = reveal(
+                {
+                    device: worker.get_rows_count(train_dict[device])
+                    for device, worker in self._workers.items()
+                }
             )
+            if sampling_rate is None:
+                if isinstance(batch_size, int):
+                    sampling_rate = max(
+                        [batch_size / length for length in parties_length.values()]
+                    )
+                else:
+                    sampling_rate = max(
+                        [
+                            batch_size[device] / length
+                            for device, length in parties_length.items()
+                        ]
+                    )
+                if sampling_rate > 1.0:
+                    sampling_rate = 1.0
+                    logging.warn(
+                        "Batchsize is too large it will be set to the data size"
+                    )
+            # check batchsize
+            for length in parties_length.values():
+                batch_size = math.floor(length * sampling_rate)
+                assert (
+                    batch_size < max_batch_size
+                ), f"Automatic batchsize is too big(batch_size={batch_size}), variable batchsize in dict is recommended"
+            assert (
+                sampling_rate <= 1.0 and sampling_rate > 0.0
+            ), f'invalid sampling rate {sampling_rate}'
+            self.steps_per_epoch = math.ceil(1.0 / sampling_rate)
+
+            for device, worker in self._workers.items():
+                repeat_count = epochs
+                worker.build_dataset_from_csv(
+                    train_dict[device],
+                    label,
+                    sampling_rate=sampling_rate,
+                    shuffle=shuffle,
+                    random_seed=random_seed,
+                    repeat_count=repeat_count,
+                    sample_length=parties_length[device],
+                    prefetch_buffer_size=prefetch_buffer_size,
+                    stage=stage,
+                    label_decoder=label_decoder,
+                )
         return self.steps_per_epoch
 
-    def handle_data(
+    def _handle_data(
         self,
         train_x: Union[HDataFrame, FedNdarray],
         train_y: Union[HDataFrame, FedNdarray] = None,
@@ -190,6 +216,7 @@ class FLModel:
         random_seed=1234,
         epochs=1,
         sample_weight: Union[FedNdarray, HDataFrame] = None,
+        dataset_builder: Callable = None,
         sampler_method="batch",
         stage="train",
     ):
@@ -245,17 +272,32 @@ class FLModel:
                 y_partitions = train_y.partitions[device]
             else:
                 y_partitions = None
-            worker.build_dataset(
-                train_x.partitions[device],
-                y_partitions,
-                s_w=sample_weight_partitions,
-                sampling_rate=sampling_rate,
-                shuffle=shuffle,
-                random_seed=random_seed,
-                repeat_count=repeat_count,
-                sampler_method=sampler_method,
-                stage=stage,
-            )
+
+            if dataset_builder:
+                assert (
+                    device in dataset_builder
+                ), f"party={device} does not provide dataset_builder, please check"
+
+                worker.build_dataset_from_builder(
+                    dataset_builder[device],
+                    train_x.partitions[device],
+                    y_partitions,
+                    s_w=sample_weight_partitions,
+                    repeat_count=repeat_count,
+                    stage=stage,
+                )
+            else:
+                worker.build_dataset(
+                    train_x.partitions[device],
+                    y_partitions,
+                    s_w=sample_weight_partitions,
+                    sampling_rate=sampling_rate,
+                    shuffle=shuffle,
+                    random_seed=random_seed,
+                    repeat_count=repeat_count,
+                    sampler_method=sampler_method,
+                    stage=stage,
+                )
         return self.steps_per_epoch
 
     def fit(
@@ -280,6 +322,7 @@ class FLModel:
         random_seed=None,
         dp_spent_step_freq=None,
         audit_log_dir=None,
+        dataset_builder: Dict[PYU, Callable] = None,
     ) -> History:
         """Horizontal federated training interface
 
@@ -304,6 +347,7 @@ class FLModel:
             random_seed: Prg seed for shuffling
             dp_spent_step_freq: specifies how many training steps to check the budget of dp
             audit_log_dir: path of audit log dir, checkpoint will be save if audit_log_dir is not None
+            dataset_builder: Callable function about hot to build the dataset. must return (dataset, steps_per_epoch)
         Returns:
             A history object. It's history.global_history attribute is a
             aggregated record of training loss values and metrics, while
@@ -331,7 +375,7 @@ class FLModel:
             else:
                 valid_x, valid_y = None, None
 
-            self.handle_file(
+            self._handle_file(
                 x,
                 y,
                 batch_size=batch_size,
@@ -342,6 +386,7 @@ class FLModel:
                 label_decoder=label_decoder,
                 max_batch_size=max_batch_size,
                 prefetch_buffer_size=prefetch_buffer_size,
+                dataset_builder=dataset_builder,
             )
         else:
             assert type(x) == type(y), "x and y must be same data type"
@@ -355,7 +400,7 @@ class FLModel:
             else:
                 valid_x, valid_y = None, None
 
-            self.handle_data(
+            self._handle_data(
                 train_x,
                 train_y,
                 sample_weight=sample_weight,
@@ -365,6 +410,7 @@ class FLModel:
                 random_seed=random_seed,
                 epochs=epochs,
                 sampler_method=sampler_method,
+                dataset_builder=dataset_builder,
             )
         history = History()
 
@@ -461,6 +507,7 @@ class FLModel:
                     label_decoder=label_decoder,
                     random_seed=random_seed,
                     sampler_method=sampler_method,
+                    dataset_builder=dataset_builder,
                 )
                 for device, worker in self._workers.items():
                     worker.set_validation_metrics(global_eval)
@@ -500,6 +547,7 @@ class FLModel:
         label_decoder=None,
         sampler_method='batch',
         random_seed=1234,
+        dataset_builder: Dict[PYU, Callable] = None,
     ) -> Dict[PYU, PYUObject]:
         """Horizontal federated offline prediction interface
 
@@ -509,19 +557,21 @@ class FLModel:
             label_decoder: Only used for CSV reading, for label preprocess
             sampler_method: The name of sampler method
             random_seed: Prg seed for shuffling
+            dataset_builder: Callable function about hot to build the dataset. must return (dataset, steps_per_epoch)
         Returns:
             predict results, numpy.array
         """
         if not random_seed:
             random_seed = global_random([*self._workers][0], 100000)
         if isinstance(x, Dict):
-            predict_steps = self.handle_file(
+            predict_steps = self._handle_file(
                 x,
                 None,
                 batch_size=batch_size,
                 stage="eval",
                 epochs=1,
                 label_decoder=label_decoder,
+                dataset_builder=dataset_builder,
             )
         else:
             if isinstance(x, HDataFrame):
@@ -529,7 +579,7 @@ class FLModel:
             else:
                 eval_x = x
 
-            predict_steps = self.handle_data(
+            predict_steps = self._handle_data(
                 eval_x,
                 train_y=None,
                 sample_weight=None,
@@ -538,6 +588,7 @@ class FLModel:
                 epochs=1,
                 sampler_method=sampler_method,
                 random_seed=random_seed,
+                dataset_builder=dataset_builder,
             )
 
         result = {}
@@ -558,6 +609,7 @@ class FLModel:
         return_dict=False,
         sampler_method='batch',
         random_seed=None,
+        dataset_builder: Dict[PYU, Callable] = None,
     ) -> Tuple[
         Union[List[Metric], Dict[str, Metric]],
         Union[Dict[str, List[Metric]], Dict[str, Dict[str, Metric]]],
@@ -578,10 +630,11 @@ class FLModel:
             sample_weight: Optional Numpy array of weights for the test samples,
                 used for weighting the loss function.
             label_decoder: User define how to handle label column when use csv reader
-            sampler_method: The name of sampler method
             return_dict: If `True`, loss and metric results are returned as a dict,
                 with each key being the name of the metric. If `False`, they are
                 returned as a list.
+            sampler_method: The name of sampler method.
+            dataset_builder: Callable function about hot to build the dataset. must return (dataset, steps_per_epoch)
 
         Returns:
             A tuple of two objects. The first object is a aggregated record of
@@ -591,13 +644,14 @@ class FLModel:
         if not random_seed:
             random_seed = global_random([*self._workers][0], 100000)
         if isinstance(x, Dict):
-            evaluate_steps = self.handle_file(
+            evaluate_steps = self._handle_file(
                 x,
                 y,
                 batch_size=batch_size,
                 stage="eval",
                 epochs=1,
                 label_decoder=label_decoder,
+                dataset_builder=dataset_builder,
             )
         else:
             assert type(x) == type(y), "x and y must be same data type"
@@ -608,7 +662,7 @@ class FLModel:
             if isinstance(sample_weight, HDataFrame):
                 sample_weight = sample_weight.values
 
-            evaluate_steps = self.handle_data(
+            evaluate_steps = self._handle_data(
                 eval_x,
                 eval_y,
                 sample_weight=sample_weight,
@@ -617,6 +671,7 @@ class FLModel:
                 epochs=1,
                 sampler_method=sampler_method,
                 random_seed=random_seed,
+                dataset_builder=dataset_builder,
             )
 
         local_metrics = {}

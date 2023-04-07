@@ -3,10 +3,10 @@ import shutil
 import unittest
 
 import pandas as pd
+import spu
 
 import secretflow as sf
 from secretflow.utils.random import global_random
-
 from tests.basecase import (
     ABY3MultiDriverDeviceTestCase,
     MultiDriverDeviceTestCase,
@@ -194,10 +194,92 @@ class TestDevicePSI2PC(MultiDriverDeviceTestCase, SingleDriverDeviceTestCase):
             )
         )
 
+        # write secretkey.bin
+        secret_key = "000102030405060708090a0b0c0d0e0ff0e0d0c0b0a090807060504030201000"
+        secret_key_path = f'{data_dir}/secret_key.bin'
+        with open(secret_key_path, 'wb') as f:
+            f.write(bytes.fromhex(secret_key))
+
         offline_input_path = {
             self.alice: 'fake.csv',
             self.bob: f'{data_dir}/bob.csv',
         }
+
+        server_party_name = 'bob'
+        client_party_name = 'alice'
+
+        offline_preprocess_path = f'{data_dir}/offline_preprocess_data.csv'
+
+        # gen cache
+        print("=====gen cache phase====")
+        # gen cache phase
+        gen_cache_config = spu.psi.BucketPsiConfig(
+            input_params=spu.psi.InputParams(
+                path=f'{data_dir}/bob.csv', select_fields=['c1', 'c2'], precheck=False
+            ),
+            output_params=spu.psi.OutputParams(
+                path=f'{data_dir}/server_cache.bin', need_sort=False
+            ),
+            curve_type="CURVE_FOURQ",
+            bucket_size=1000000,
+            ecdh_secret_key_path=secret_key_path,
+        )
+
+        gen_cache_report = self.bob(spu.psi.gen_cache_for_2pc_ub_psi)(gen_cache_config)
+        print(f'gen_cache_report={sf.reveal(gen_cache_report)}')
+
+        # transfer cache
+        print("=====transfer cache phase====")
+
+        transfer_cache_input_path = f'{data_dir}/server_cache.bin'
+        transfer_cache_output_path = ''
+
+        # tansfer cache phase
+        self.spu.psi_csv(
+            key=[],
+            input_path=transfer_cache_input_path,  # client no input, server input cache file path
+            output_path=transfer_cache_output_path,  # client and server both no output
+            receiver=client_party_name,  # client(small set data party) name
+            protocol='ECDH_OPRF_UB_PSI_2PC_TRANSFER_CACHE',  # psi protocol
+            precheck_input=False,  # will cost ext time if set True
+            sort=False,  # set false, not used in tansfer_cache phase
+            broadcast_result=False,  # set false, not used in tansfer_cache phase
+            bucket_size=1000000,  # not used
+            curve_type="CURVE_FOURQ",
+            preprocess_path=offline_preprocess_path,  # output client cache
+        )
+
+        # shuffle online
+        print("=====shuffle online phase====")
+
+        shuffle_online_input_path = {
+            self.alice: f'{data_dir}/alice.csv',
+            self.bob: f'{data_dir}/bob.csv',
+        }
+        shuffle_online_output_path = {
+            self.alice: '',
+            self.bob: f'{data_dir}/bob_psi.csv',
+        }
+        shuffle_online_preprocess_path = {
+            self.alice: offline_preprocess_path,
+            self.bob: transfer_cache_input_path,
+        }
+
+        # shuffle online phase
+        self.spu.psi_csv(
+            key=[],
+            input_path=shuffle_online_input_path,  # client and server input file path
+            output_path=shuffle_online_output_path,  # server got intersection output
+            receiver=server_party_name,  # server(large set data party) name
+            protocol='ECDH_OPRF_UB_PSI_2PC_SHUFFLE_ONLINE',  # psi protocol
+            precheck_input=False,  # will cost ext time if set True
+            sort=False,  # will cost ext time if set True
+            broadcast_result=False,  # set false, not used in shuffle online subprotocol phase
+            bucket_size=10000000,  # used for buffer compare intersection
+            curve_type="CURVE_FOURQ",
+            preprocess_path=shuffle_online_preprocess_path,  # client and server cache path
+            ecdh_secret_key_path=secret_key_path,  # server's private key
+        )
 
         # offline
         print("=====offline phase====")
@@ -207,52 +289,52 @@ class TestDevicePSI2PC(MultiDriverDeviceTestCase, SingleDriverDeviceTestCase):
             self.bob: "dummy.csv",
         }
 
-        offline_preprocess_path = f'{data_dir}/offline_preprocess_data.csv'
-        secret_key = "000102030405060708090a0b0c0d0e0ff0e0d0c0b0a090807060504030201000"
-        secret_key_path = f'{data_dir}/secret_key.bin'
-        with open(secret_key_path, 'wb') as f:
-            f.write(bytes.fromhex(secret_key))
-
         # offline phase
+        # streaming read server(large set) data, evaluate and send to client
         self.spu.psi_csv(
-            ['c1', 'c2'],
-            offline_input_path,
-            offline_output_path,
-            'alice',
+            key=['c1', 'c2'],
+            input_path=offline_input_path,  # client no input, server large set data input
+            output_path=offline_output_path,  # client no output, server no output,
+            receiver=client_party_name,  # client(small set data party) name
             protocol='ECDH_OPRF_UB_PSI_2PC_OFFLINE',  # psi protocol
             precheck_input=False,  # will cost ext time if set True
-            sort=True,  # will cost ext time if set True
+            sort=False,  # set false, not used in offline phase
             broadcast_result=False,  # offline must set broadcast_result False
-            bucket_size=1000000,
+            bucket_size=1000000,  # pre-read and shuffle data in bucket size
             curve_type="CURVE_FOURQ",
-            preprocess_path=offline_preprocess_path,
-            ecdh_secret_key_path=secret_key_path,
+            preprocess_path=offline_preprocess_path,  # output client cache
+            ecdh_secret_key_path=secret_key_path,  # server's ecc secret key
         )
 
         # online
         print("=====online phase====")
         online_input_path = {
             self.alice: f'{data_dir}/alice.csv',
-            self.bob: 'fake.csv',
+            self.bob: f'{data_dir}/bob.csv',
         }
         online_output_path = {
             self.alice: f'{data_dir}/alice_psi.csv',
-            self.bob: 'dummy_out.csv',
+            self.bob: f'{data_dir}/bob_psi.csv',
+        }
+
+        cache_path = {
+            self.alice: offline_preprocess_path,
+            self.bob: transfer_cache_input_path,
         }
 
         self.spu.psi_csv(
             key=['c1', 'c2'],
-            input_path=online_input_path,
-            output_path=online_output_path,
-            receiver='alice',  # if `broadcast_result=False`, only receiver can get output file.
+            input_path=online_input_path,  # client small set data input, server large set data input
+            output_path=online_output_path,  # client small set data input, server no input
+            receiver=client_party_name,  # if `broadcast_result=False`, only receiver can get output file.
             protocol='ECDH_OPRF_UB_PSI_2PC_ONLINE',  # psi protocol
             precheck_input=False,  # will cost ext time if set True
             sort=True,  # will cost ext time if set True
-            broadcast_result=False,  # online set Falise
-            bucket_size=300000000,
+            broadcast_result=True,  # False, only client get psi result, True, bot get result
+            bucket_size=300000000,  # read bucket_size once, and compute intersection
             curve_type="CURVE_FOURQ",
-            preprocess_path=offline_preprocess_path,
-            ecdh_secret_key_path=secret_key_path,
+            preprocess_path=cache_path,  # client cache file path
+            ecdh_secret_key_path=secret_key_path,  # server's ecc sercret key path
         )
 
         expected = pd.DataFrame({'c1': ['K1', 'K4'], 'c2': ['A1', 'A4'], 'c3': [1, 4]})

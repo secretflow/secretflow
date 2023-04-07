@@ -13,9 +13,10 @@
 # limitations under the License.
 
 
-from typing import Any, Dict, List, Tuple
-import jax.numpy as jnp
 from enum import Enum, unique
+from typing import Any, Dict, List, Tuple
+
+import jax.numpy as jnp
 import numpy as np
 
 from secretflow.utils import sigmoid as appr_sig

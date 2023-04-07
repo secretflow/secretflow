@@ -18,4 +18,5 @@ from .heu_object import HEUObject
 from .pyu import PYU, PYUObject
 from .register import DeviceType, register
 from .spu import SPU, SPUIO, SPUCompilerNumReturnsPolicy, SPUObject, SPUValueMeta
+from .teeu import TEEU, TEEUData, TEEUObject
 from .type_traits import spu_fxp_precision, spu_fxp_size

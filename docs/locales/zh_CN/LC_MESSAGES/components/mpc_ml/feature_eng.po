@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-01-07 11:23+0800\n"
+"POT-Creation-Date: 2023-04-06 14:06+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -138,8 +138,8 @@ msgstr "SecretFlow 的 ``SSVertPearsonR`` 模块可以用于探查垂直划分�
 
 #: ../../components/mpc_ml/feature_eng.ipynb:282
 msgid ""
-"SSVertPearsonR will standardize input dataset first. After standardized,"
-" all features’ variance is 1 and the mean is 0, the calculation is "
+"SSVertPearsonR will standardize input dataset first. After standardized, "
+"all features’ variance is 1 and the mean is 0, the calculation is "
 "simplified to:"
 msgstr "SSVertPearsonR会首先标准化数据集，这样一来所有特征的均值为0方差为1，可以将计算简化为："
 
@@ -295,14 +295,12 @@ msgid ""
 "t_j=\\frac{\\hat{ω}_j- ω_j}{s.e.(ω_j )}=\\frac{\\hat{ω}_j - "
 "ω_j}{\\sqrt{\\hat{σ}^2 (X^T X)_{jj}^{-1}}}  \\sim t_{n-k}\n"
 "\n"
+"where n is sample size, k is feature size."
 msgstr ""
 "t_j=\\frac{\\hat{ω}_j- ω_j}{s.e.(ω_j )}=\\frac{\\hat{ω}_j - "
 "ω_j}{\\sqrt{\\hat{σ}^2 (X^T X)_{jj}^{-1}}}  \\sim t_{n-k}\n"
 "\n"
-
-#: ../../components/mpc_ml/feature_eng.ipynb:468
-msgid "where n is sample size, k is feature size."
-msgstr "其中，n为样本量，k为特征数"
+"其中，n为样本量，k为特征数"
 
 #: ../../components/mpc_ml/feature_eng.ipynb:470
 #: ../../components/mpc_ml/feature_eng.ipynb:492

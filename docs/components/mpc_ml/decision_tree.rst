@@ -1,8 +1,8 @@
 Decision Trees
 ==============
 
-With the help of Secret Sharing, a secure multi-party computation technique, 
-SecretFlow implements provably secure gradient boosting model 
+With the help of Secret Sharing, a secure multi-party computation technique,
+SecretFlow implements provably secure gradient boosting model
 :py:meth:`~secretflow.ml.boost.ss_xgb_v.model.Xgb`
 to support both regression and binary classification machine learning tasks.
 
@@ -22,19 +22,19 @@ XGBoost Training Algorithm
 Algorithm details can be found in `the official documents <https://xgboost.readthedocs.io/en/stable/tutorials/model.html>`_.
 The main process of building a single tree is as follows:
 
-- Statistics calculating: calculate the first-order gradient :math:`g_{i}` and second-order gradient :math:`h_{i}` 
+- Statistics calculating: calculate the first-order gradient :math:`g_{i}` and second-order gradient :math:`h_{i}`
   for each sample with current prediction and label, according to the definition of loss function.
 
-- Node splitting: enumerates all possible split candidates and choose the best one with the maximal gain. 
+- Node splitting: enumerates all possible split candidates and choose the best one with the maximal gain.
   A split candidate is consisted of a split feature and a split value, which divides the samples in current node
   :math:`I` into two child nodes :math:`I_{L}` and :math:`I_{R}`, according to their feature values. Then, a split
   gain is computed with the following formula:
-  
+
   .. image:: resources/gain_formula.png
       :height: 120px
       :width: 992px
       :scale: 50 %
-    
+
   where :math:`\lambda` and :math:`\gamma` are the regularizers for the leaf number and leaf weights respectively.
   In this way, we can split the nodes recursively until the leaf.
 
@@ -46,7 +46,7 @@ The main process of building a single tree is as follows:
       :width: 382px
       :scale: 45 %
 
-Regression and classification share the same training process except: 
+Regression and classification share the same training process except:
 
 1. they employs different loss functions, i.e. MSE for regression and Logloss for classification.
 2. classification executes an extra sigmoid function to transform the prediction into a probability.
@@ -74,7 +74,7 @@ for more details about SS-XGB algorithm and security analysis.
 Example
 --------
 
-A local cluster(Standalone Mode) needs to be initialized as the running environment for this example. 
+A local cluster(Standalone Mode) needs to be initialized as the running environment for this example.
 See `Deployment <../../getting_started/deployment.html>`_ and refer to the 'Cluster Mode'.
 
 For more details about the APIs, see :py:meth:`~secretflow.ml.boost.ss_xgb_v.model.Xgb`
@@ -98,7 +98,7 @@ For more details about the APIs, see :py:meth:`~secretflow.ml.boost.ss_xgb_v.mod
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
     # init all nodes in local Standalone Mode.
-    sf.init(['alice', 'bob', 'carol'])
+    sf.init(['alice', 'bob', 'carol'], address='local')
 
     # init PYU, the Python Processing Unit, process plaintext in each node.
     alice = sf.PYU('alice')
@@ -142,11 +142,11 @@ For more details about the APIs, see :py:meth:`~secretflow.ml.boost.ss_xgb_v.mod
     start = time.time()
     params = {
         # for more detail, see Xgb API doc
-        'num_boost_round': 5,  
-        'max_depth': 5,          
-        'learning_rate': 0.1,     
-        'sketch_eps': 0.08,      
-        'objective': 'logistic', 
+        'num_boost_round': 5,
+        'max_depth': 5,
+        'learning_rate': 0.1,
+        'sketch_eps': 0.08,
+        'objective': 'logistic',
         'reg_lambda': 0.1,
         'subsample': 1,
         'colsample_bytree': 1,

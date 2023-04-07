@@ -1,20 +1,15 @@
-Vertical Federated Learning
-===========================
-
-This mode applies to the situation where multi participants share the same sample ID space but differ in feature space.
-
 Split Learning
 ==============
 
 What is Split Learning
 ----------------------
 
-The core idea of split learning is split the network structure. Each device (silo) retains only a part of the network structure, and the sub-network structure of all devices is combined together to form a complete network model. 
+The core idea of split learning is to split the network structure. Each device (silo) retains only a part of the network structure, and the sub-network structure of all devices is combined together to form a complete network model. 
 In the training process, different devices (silos) only perform forward or reverse calculation on the local network structure, and transfer the calculation results to the next device. Multiple devices complete the training through joint model until convergence.
 
 A typical example of split learning:
 
-.. image:: ../../tutorial/resources/split_learning_tutorial.png
+.. image:: ../../../tutorial/resources/split_learning_tutorial.png
 
 Alice holds its own data and base model.
 Bob holds its own data, base model and fuse model.
@@ -30,7 +25,7 @@ Bob holds its own data, base model and fuse model.
 Split Learning Model
 --------------------
 
-SecreFlow provides :py:class:`~secretflow.ml.nn.SLModel` to define a split learning model.
+SecretFlow provides :py:class:`~secretflow.ml.nn.SLModel` to define a split learning model.
 You can check the tutorial to have a try.
 
 Tutorial

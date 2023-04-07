@@ -13,12 +13,8 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from typing import Union
 
-from heu import phe
-
-from .register import DeviceType, dispatch
+from .register import DeviceType, dispatch, register
 
 
 class Device(ABC):
@@ -41,32 +37,8 @@ class Device(ABC):
         pass
 
 
-@dataclass
-class MoveConfig:
-    spu_vis: str = 'secret'
-    """spu_vis (str): Deivce object visibility, SPU device only. Value can be:
-        - secret: Secret sharing with protocol spdz-2k, aby3, etc.
-        - public: Public sharing, which means data will be replicated to each node.
-    """
-
-    heu_dest_party: str = 'auto'
-    """Where the encrypted data is located"""
-
-    heu_encoder: Union[
-        phe.IntegerEncoder,
-        phe.FloatEncoder,
-        phe.BigintEncoder,
-        phe.BatchEncoder,
-        phe.IntegerEncoderParams,
-        phe.FloatEncoderParams,
-        phe.BigintEncoderParams,
-        phe.BatchEncoderParams,
-    ] = None
-
-    """Do encode before move data to heu"""
-
-    heu_audit_log: str = None
-    """file path to record audit log"""
+def _name_of_to(device_type: DeviceType):
+    return f'to_{device_type.name}'
 
 
 class DeviceObject(ABC):
@@ -83,7 +55,7 @@ class DeviceObject(ABC):
         """Get underlying device type"""
         return self.device.device_type
 
-    def to(self, device: Device, config: MoveConfig = None):
+    def to(self, device: Device, *args, **kwargs):
         """Device object conversion.
 
         Args:
@@ -93,10 +65,15 @@ class DeviceObject(ABC):
         Returns:
             DeviceObject: Target device object.
         """
-        assert isinstance(
-            config, (type(None), MoveConfig)
-        ), f"config must be MoveConfig type, got {type(config)}, value={config}"
+        return dispatch(_name_of_to(device.device_type), self, device, *args, **kwargs)
 
-        return dispatch(
-            'to', self, device, config if config is not None else MoveConfig()
-        )
+
+def register_to(from_device_type, to_device_type):
+    """Register to as device kernel.
+
+    Args:
+        from_device_type: the source device type.
+        to_device_type: the dest device type.
+    """
+
+    return register(device_type=from_device_type, op_name=_name_of_to(to_device_type))

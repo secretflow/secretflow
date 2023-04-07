@@ -24,9 +24,9 @@ from secretflow.data.horizontal import HDataFrame
 from secretflow.data.mix import MixDataFrame, PartitionWay
 from secretflow.data.vertical import VDataFrame
 from secretflow.device.driver import reveal
+from secretflow.preprocessing.base import _PreprocessBase
 from secretflow.security.aggregation import Aggregator
 from secretflow.utils.errors import InvalidArgumentError
-from secretflow.preprocessing.base import _PreprocessBase
 
 
 class MinMaxScaler(_PreprocessBase):

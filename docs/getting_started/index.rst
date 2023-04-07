@@ -16,6 +16,6 @@ Finally, please refer to :ref:`developer` and :ref:`api` when you write you own 
 .. toctree::
    :maxdepth: 2
 
-   installation
-   deployment
+   INSTALLATION
+   DEPLOYMENT
 

@@ -22,6 +22,7 @@ We hope you enjoy these toturials from SecretFlow developers.
    spu_basics
    lr_with_spu
    nn_with_spu
+   numpy_with_spu
 
 .. toctree::
    :maxdepth: 1
@@ -36,6 +37,7 @@ We hope you enjoy these toturials from SecretFlow developers.
    Federate_Learning_for_Image_Classification
    Federated_Learning_with_Pytorch_backend
    Federated_Xgboost
+   SecureBoost
    Split_Learning_for_bank_marketing
    split_learning_gnn
    mix_lr

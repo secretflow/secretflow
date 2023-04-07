@@ -26,8 +26,7 @@ from secretflow import reveal
 from secretflow.data.ndarray import FedNdarray
 from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.device import proxy
-from secretflow.device.device.base import MoveConfig
-from secretflow.device.device.heu import HEU
+from secretflow.device.device.heu import HEU, HEUMoveConfig
 from secretflow.device.device.pyu import PYU, PYUObject
 from secretflow.device.device.type_traits import spu_fxp_precision
 from secretflow.security.aggregation.aggregator import Aggregator
@@ -366,7 +365,7 @@ class FlLogisticRegressionVertical:
         """Fit the model.
 
         Args:
-            x: trainning vector.
+            x: training vector.
             y: target vector relative to x.
             batch_size: number of samples per gradient update.
             epochs: number of epochs to train the model.
@@ -469,7 +468,7 @@ class FlLogisticRegressionVertical:
                 # and add mask and send to y device.
                 x_heu = worker.encode(x_batchs[i], self.fxp_bits).to(
                     self.heu,
-                    MoveConfig(
+                    HEUMoveConfig(
                         heu_dest_party=device.party,
                         heu_encoder=phe.FloatEncoder(self.heu.schema, 1),
                         heu_audit_log=_gen_auth_file_path(
@@ -479,7 +478,7 @@ class FlLogisticRegressionVertical:
                 )
                 r_heu = r.to(
                     self.heu,
-                    MoveConfig(
+                    HEUMoveConfig(
                         heu_dest_party=device.party,
                         heu_audit_log=_gen_auth_file_path(
                             self.audit_log_dir, device, epoch, step, 'residual'
@@ -488,7 +487,7 @@ class FlLogisticRegressionVertical:
                 )
                 m_heu = worker.generate_rand_mask(self.fxp_bits).to(
                     self.heu,
-                    MoveConfig(
+                    HEUMoveConfig(
                         heu_dest_party=device.party,
                         heu_audit_log=_gen_auth_file_path(
                             self.audit_log_dir, device, epoch, step, 'rand_mask'

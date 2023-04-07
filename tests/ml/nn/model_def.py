@@ -36,3 +36,25 @@ class ConvNet(BaseModule):
         x = x.view(-1, self.fc_in_dim)
         x = self.fc(x)
         return F.softmax(x, dim=1)
+
+
+class ConvRGBNet(BaseModule):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.network = nn.Sequential(
+            nn.Conv2d(
+                in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1
+            ),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),
+            nn.Conv2d(16, 16, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),
+            nn.Flatten(),
+            nn.Linear(16 * 45 * 45, 128),
+            nn.ReLU(),
+            nn.Linear(128, 5),
+        )
+
+    def forward(self, xb):
+        return self.network(xb)

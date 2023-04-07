@@ -2,7 +2,6 @@
 # *_* coding: utf-8 *_*
 
 """ Main test function """
-import multiprocess
 import logging
 import signal
 import sys
@@ -10,6 +9,7 @@ import unittest
 import xml.etree.ElementTree as ET
 from typing import List
 
+import multiprocess
 import xmlrunner
 
 from tests.cluster import cluster, get_self_party, set_self_party
@@ -37,16 +37,16 @@ class MultiDriverTestLoader(unittest.TestLoader):
 class SingleDriverTestLoader(unittest.TestLoader):
     def getTestCaseNames(self, testCaseClass):
         from tests.basecase import (
-            ABY3SingleDriverDeviceTestCase,
-            SingleDriverDeviceTestCase,
+            ABY3MultiDriverDeviceTestCase,
+            MultiDriverDeviceTestCase,
         )
 
         if issubclass(
-            testCaseClass, (SingleDriverDeviceTestCase, ABY3SingleDriverDeviceTestCase)
+            testCaseClass, (MultiDriverDeviceTestCase, ABY3MultiDriverDeviceTestCase)
         ):
-            return super().getTestCaseNames(testCaseClass)
-        else:
             return []
+        else:
+            return super().getTestCaseNames(testCaseClass)
 
 
 def party_run(self_party):
@@ -57,8 +57,8 @@ def party_run(self_party):
     set_production(True)
 
     suite = unittest.TestSuite()
-    global test_file
-    all_cases = MultiDriverTestLoader().discover('./tests', test_file)
+    global test_pattern
+    all_cases = MultiDriverTestLoader().discover('./tests', test_pattern)
     for case in all_cases:
         # add all tests into suite
         suite.addTests(case)
@@ -98,8 +98,8 @@ def run_single_driver_test():
 
     set_production(False)
     suite = unittest.TestSuite()
-    global test_file
-    all_cases = SingleDriverTestLoader().discover('./tests', test_file)
+    global test_pattern
+    all_cases = SingleDriverTestLoader().discover('./tests', test_pattern)
     for case in all_cases:
         # add all tests into suite
         suite.addTests(case)
@@ -142,15 +142,52 @@ def combine_results(files: List[str], output: str = 'results.xml'):
 
 
 if __name__ == '__main__':
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        prog='run_pytest',
+        description='entrypoint for all secretflow python tests.',
+    )
+
+    parser.add_argument(
+        'test_pattern', default='test_*.py', help='pattern for test loader.', nargs='?'
+    )
+    parser.add_argument(
+        "-s",
+        "--scope",
+        default='all',
+        choices=['all', 'single', 'multi'],
+        help='scope of tests.',
+        nargs='?',
+    )
+
+    args = parser.parse_args()
+
+    print(args)
+
+    if args.scope == 'all':
+        run_simluation_test = True
+        run_production_test = True
+    elif args.scope == 'single':
+        run_simluation_test = True
+        run_production_test = False
+    else:
+        run_simluation_test = False
+        run_production_test = True
+
     logging.basicConfig(
         stream=sys.stdout,
         level=logging.DEBUG,
         format=_LOGGING_FORMAT,
     )
 
-    test_file = 'test_*.py'
-    if len(sys.argv) > 1:
-        test_file = sys.argv[1]
-    run_multi_driver_test()
-    run_single_driver_test()
-    combine_results(['result_alice.xml', 'result_single.xml'])
+    test_pattern = args.test_pattern
+    results = []
+    if run_production_test:
+        run_multi_driver_test()
+        results.append('result_alice.xml')
+    if run_simluation_test:
+        run_single_driver_test()
+        results.append('result_single.xml')
+
+    combine_results(results)

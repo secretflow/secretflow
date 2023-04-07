@@ -1,13 +1,14 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) 2022 Ant Group Co., Ltd.
 # This file is distributed under the same license as the SecretFlow package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2022.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2023.
 #
+#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-01-07 11:23+0800\n"
+"POT-Creation-Date: 2023-02-07 15:50+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -46,19 +47,24 @@ msgstr ""
 msgid "Semi-honest EC-OPRF based two-party Unbalanced PSI protocol"
 msgstr ""
 
-#: ../../components/psi.rst:13
+#: ../../components/psi.rst:11
+msgid "Differentially Private (DP) PSI Protocol [DP-PSI]_"
+msgstr ""
+
+#: ../../components/psi.rst:14
 msgid ""
 "As a general rule, OT-based PSI protocols are (significantly) faster but "
 "require more communication than Diffie-Hellman-based PSI protocols. In "
 "some scenarios, communication cost is overwhelmingly more important than "
 "computation cost."
-msgstr "OT-based PSI比Diffie-Hellman-based PSI协议运行时间少，但通信量更大。一些场景中可能会更关注通信量。"
+msgstr "一般情况下, "
+"OT-based PSI比Diffie-Hellman-based PSI协议运行时间少，但通信量更大。一些场景中可能会更关注通信量。"
 
-#: ../../components/psi.rst:18
+#: ../../components/psi.rst:19
 msgid "ECDH-PSI (2P)"
 msgstr "ECDH-PSI （两方）"
 
-#: ../../components/psi.rst:20
+#: ../../components/psi.rst:21
 msgid ""
 "The semi-honest DH-PSI protocol is due to Huberman, Franklin, and Hogg "
 "[HFH99]_, but with roots as far back as Meadows [Mea86]_. It is a semi-"
@@ -68,53 +74,54 @@ msgstr ""
 "半诚实模型的DH-PSI协议在 Huberman, Franklin, and Hogg [HFH99]_ 中提出，但最早可以追溯到Meadows"
 " [Mea86]_。DH-PSI协议对数据集中的数据进行指数(点乘)运算。"
 
-#: ../../components/psi.rst:24
+#: ../../components/psi.rst:25
 msgid "DH-PSI protocol based on the Decisional Diffie-Hellman assumption:"
 msgstr "DH-PSI 协议基于判定Diffie-Hellman假设:"
 
-#: ../../components/psi.rst:26
+#: ../../components/psi.rst:27
 msgid "Agree on a group G, with a generator g."
 msgstr "选取群 G, 和生成元 g"
 
-#: ../../components/psi.rst:27
+#: ../../components/psi.rst:28
 msgid ""
 "The assumption: for random a,b,c cannot distinguish :math:`(g^a, g^b, "
 "g^{ab})` from :math:`(g^a, g^b, g^c)`"
 msgstr "假设: 对于随机数 a,b,c 不能区分 :math:`(g^a, g^b, g^{ab})` 和 :math:`(g^a, g^b, g^c)`"
 
-#: ../../components/psi.rst:29
+#: ../../components/psi.rst:30
 msgid ""
 "Several candidate groups are widely used, such as subgroups of the "
 "multiplication group of a finite field and elliptic curve groups. In "
 "practice, carefully chosen elliptic curves like Curve25519 [Ber06]_ offer"
 " a good balance between security and performance."
 msgstr ""
-"可以选择的群包括有限域上的乘法群和椭圆曲线上的加法群。实际应用中，综合性能和安全方面比较，通常选取椭圆曲线群，例如: Curve25519 "
-"[Ber06]_。"
+"可以选择的群包括有限域上的乘法群和椭圆曲线上的加法群。实际应用中，综合性能和安全方面比较，"
+"通常选取椭圆曲线群，例如: Curve25519 [Ber06]_。"
 
-#: ../../components/psi.rst:35
+#: ../../components/psi.rst:36
 msgid ""
 "Note that at the beginning of ECDH-PSI protocol, we assume the input data"
 " from both Alice and Bob are shuffled."
 msgstr "ECDH-PSI 协议开始前，Alice 和 Bob 需要对数据进行随机乱序。"
 
-#: ../../components/psi.rst:38 ../../components/psi.rst:90
-#: ../../components/psi.rst:121
+
+#: ../../components/psi.rst:39 ../../components/psi.rst:91
+#: ../../components/psi.rst:122 ../../components/psi.rst:233
 msgid "Protocol:"
 msgstr "协议流程:"
 
-#: ../../components/psi.rst:40
+#: ../../components/psi.rst:41
 msgid ""
 "For each element :math:`x_i` in its set, Alice applies the hash function "
 "and then exponentiates it using its key :math:`\\alpha`, thus computing "
 ":math:`{H(x_i)}^\\alpha` . Alice sends "
 ":math:`{\\{\\,{H(x_i)}^\\alpha\\}\\,}_{i=1}^{n_1}` to Bob."
 msgstr ""
-"Alice 对数据集中元素 :math:`x_i` 进行Hash处理，并使用密钥 :math:`\\alpha` 进行指数运算，得到 "
-":math:`{H(x_i)}^\\alpha` ， Alice 发送   "
-":math:`{\\{H(x_i)\\}^\\alpha}_{i=1}^{n_1}` 给 Bob。"
+"Alice 对数据集中元素 :math:`x_i` 进行Hash处理，并使用密钥 :math:`\\alpha` "
+"进行指数运算，得到 :math:`{H(x_i)}^\\alpha` ， Alice 发送   "
+":math:`{\\{\\,{H(x_i)}^\\alpha\\}\\,}_{i=1}^{n_1}` 给 Bob。"
 
-#: ../../components/psi.rst:44
+#: ../../components/psi.rst:45
 msgid ""
 "For each element :math:`{H(x_i)}^\\alpha`  received from Alice in the "
 "previous step, Bob exponentiates it using its key :math:`\\beta`, "
@@ -123,117 +130,118 @@ msgid ""
 msgstr ""
 "接收Alice发送的数据: :math:`{H(x_i)}^\\alpha`， Bob 使用密钥 :math:`\\beta` 进行指数计算，得到"
 " :math:`{H(x_i)}^{\\alpha\\beta}`。Bob 发送 "
-":math:`{\\{\\{H(x_i)\\}^{\\alpha\\beta}\\}}_{i=1}^{n_1}` 给 Alice。"
+":math:`{\\{\\,{H(x_i)}^{\\alpha\\beta}\\}\\,}_{i=1}^{n_1}` 给 Alice。"
 
-#: ../../components/psi.rst:48
+#: ../../components/psi.rst:49
 msgid ""
 "For each element :math:`y_i` in its set, Bob applies the hash function "
 "and then exponentiates it using its key :math:`\\beta`, thus computing "
 ":math:`{H(y_i)}^\\beta` . Bob sends the set "
-":math:`{\\,{H(y_i)}^\\beta}_{i=1}^{n_2}` to Alice."
+":math:`{\\,\\{\\,{H(y_i)}^\\beta\\}\\,}_{i=1}^{n_2}` to Alice."
 msgstr ""
 "Bob对数据集中元素  :math:`y_i` 进行Hash处理，并使用密钥 :math:`\\beta`，进行指数运算， 得到 "
-":math:`{H(y_i)}^\\beta` 。 Bob发送 :math:`{\\{H(y_i)\\}^\\beta}_{i=1}^{n_2}`"
-" 给 Alice。"
+":math:`{H(y_i)}^\\beta` 。 Bob发送 "
+" :math:`{\\,\\{\\,{H(y_i)}^\\beta\\}\\,}_{i=1}^{n_2}` 给 Alice。"
 
-#: ../../components/psi.rst:52
+#: ../../components/psi.rst:53
 msgid ""
 "For each element :math:`{H(y_i)}^\\beta`  received from Bob in the "
 "previous step, Alice exponentiates it using its key :math:`\\alpha`, "
 "computing :math:`{H(y_i)}^{\\beta\\alpha}` ."
 msgstr ""
-"接收Bob发送的数据: :math:`{H(y_i)}^\\beta` ，Alice 使用密钥 :math:`\\alpha` 进行指数运算，得到"
-" :math:`{H(y_i)}^{\\beta\\alpha}` 。"
+"接收Bob发送的数据: :math:`{H(y_i)}^\\beta` ，Alice 使用密钥 :math:`\\alpha` "
+"进行指数运算，得到 :math:`{H(y_i)}^{\\beta\\alpha}` 。"
 
-#: ../../components/psi.rst:55
+#: ../../components/psi.rst:56
 msgid ""
 "Alice compares two set "
 ":math:`{\\{\\,{H(x_i)}^{\\alpha\\beta}\\}\\,}_{i=1}^{n_1}` and "
 ":math:`{\\{\\,{H(y_i)}^{\\beta\\alpha}\\}\\,}_{i=1}^{n_2}` and gets "
 "intersection."
 msgstr ""
-"Alice 比较两个集合 :math:`{\\{\\{H(x_i)\\}^{\\alpha\\beta}\\}}_{i=1}^{n_1}` 和  "
-":math:`{\\{\\{H(y_i)\\}^{\\beta\\alpha}\\}}_{i=1}^{n_2}` ，得到交集。"
+"Alice 比较两个集合 :math:`{\\{\\,{H(x_i)}^{\\alpha\\beta}\\}\\,}_{i=1}^{n_1}` 和  "
+":math:`{\\{\\,{H(y_i)}^{\\beta\\alpha}\\}\\,}_{i=1}^{n_2}` ，得到交集。"
 
-#: ../../components/psi.rst:58
+#: ../../components/psi.rst:59
 msgid "The Elliptic Curve groups, supported in secretflow SPU PSI moudule."
 msgstr "隐语 SPU PSI模块支持的椭圆曲线类型包括： "
 
-#: ../../components/psi.rst:61
+#: ../../components/psi.rst:62
 msgid "EC group"
 msgstr ""
 
-#: ../../components/psi.rst:61 ../../components/psi.rst:211
+#: ../../components/psi.rst:62 ../../components/psi.rst:281
 msgid "Reference"
 msgstr "参考文献"
 
-#: ../../components/psi.rst:61
+#: ../../components/psi.rst:62
 msgid "CryptoLib"
 msgstr "密码库"
 
-#: ../../components/psi.rst:63
+#: ../../components/psi.rst:64
 msgid "Curve25519"
 msgstr ""
 
-#: ../../components/psi.rst:63
+#: ../../components/psi.rst:64
 msgid "[Ber06]_"
 msgstr ""
 
-#: ../../components/psi.rst:63
+#: ../../components/psi.rst:64
 msgid "`LibSoidum <https://doc.libsodium.org/>`_"
 msgstr ""
 
-#: ../../components/psi.rst:65
+#: ../../components/psi.rst:66
 msgid "[ipp-crypto]_ (Intel® CPU support AVX-512 IFMA)"
 msgstr ""
 
-#: ../../components/psi.rst:67
+#: ../../components/psi.rst:68
 msgid "Secp256k1"
 msgstr ""
 
-#: ../../components/psi.rst:67
+#: ../../components/psi.rst:68
 msgid "[SEC2-v2]_"
 msgstr ""
 
-#: ../../components/psi.rst:67 ../../components/psi.rst:69
+#: ../../components/psi.rst:68 ../../components/psi.rst:70
 msgid "`OpenSSL <https://www.openssl.org>`_"
 msgstr ""
 
-#: ../../components/psi.rst:69
+#: ../../components/psi.rst:70
 msgid "SM2"
 msgstr ""
 
-#: ../../components/psi.rst:69
+#: ../../components/psi.rst:70
 msgid "GBT.32918.1-2016"
 msgstr ""
 
-#: ../../components/psi.rst:71
+#: ../../components/psi.rst:72
 msgid "ISO/IEC 14888-3:2018"
 msgstr ""
 
-#: ../../components/psi.rst:73
+#: ../../components/psi.rst:74
 msgid "FourQ"
 msgstr ""
 
-#: ../../components/psi.rst:73
+#: ../../components/psi.rst:74
 msgid "[FourQ]_"
 msgstr ""
 
-#: ../../components/psi.rst:73
+#: ../../components/psi.rst:74
 msgid "`FourQlib <https://github.com/microsoft/FourQlib>`_"
 msgstr ""
 
-#: ../../components/psi.rst:77
+#: ../../components/psi.rst:78
 msgid "ECDH-PSI (3P)"
-msgstr "ECDH-PSI （三方）"
+msgstr ""
 
-#: ../../components/psi.rst:79
+#: ../../components/psi.rst:80
 msgid ""
 "We implement our own three-party PSI protocol based on ECDH. Note that "
 "our implementation has known leakage, please use at your own risk."
-msgstr "隐语实现了自研的基于 ECDH 的三方 PSI 协议，注意我们实现的这个协议会泄漏两方交集大小，请自行判断是否满足使用场景的安全性。"
+msgstr "隐语实现了自研的基于 ECDH 的三方 PSI 协议，"
+"注意我们实现的这个协议会泄漏两方交集大小，请自行判断是否满足使用场景的安全性。"
 
-#: ../../components/psi.rst:82
+#: ../../components/psi.rst:83
 msgid ""
 "Assume Alice, Bob, Charlie (receiver) want to perform 3P PSI, in addition"
 " to the final output, our protocol leaks the intersection size of Alice's"
@@ -242,7 +250,7 @@ msgstr ""
 "假设 Alice、Bob 以及 Charlie 想要共同执行 PSI 协议，我们实现的这个协议会泄漏 Alice 和 Bob 交集大小给 "
 "Charlie。"
 
-#: ../../components/psi.rst:87
+#: ../../components/psi.rst:88
 msgid ""
 "Note that at the beginning of ECDH-PSI protocol, we assume the input data"
 " from both Alice and Charlie are shuffled (It's not necessary to shuffle "
@@ -251,13 +259,14 @@ msgstr ""
 "另一个需要注意的是，在执行此协议之前，我们假设 Alice 和 Charlie 的数据集是经过 shuffle 乱序的（Bob "
 "的集合可以是非乱序的）。"
 
-#: ../../components/psi.rst:92
+#: ../../components/psi.rst:93
 msgid ""
 "For i-th element in its set, Alice calculates :math:`H(x_i)^\\alpha` and "
 "sends to Bob."
-msgstr "对于 Alice 集合中的第 i 个元素，Alice 计算 :math:`H(x_i)^\\alpha` 并把结果发送给 Bob；"
+msgstr ""
+"对于 Alice 集合中的第 i 个元素，Alice 计算 :math:`H(x_i)^\\alpha` 并把结果发送给 Bob；"
 
-#: ../../components/psi.rst:94
+#: ../../components/psi.rst:95
 msgid ""
 "For i-th element, Bob calculates :math:`H(x_i)^{\\alpha\\beta}` and "
 ":math:`H(y_i)^\\beta`, then random shuffles and sends them to Alice."
@@ -265,7 +274,7 @@ msgstr ""
 "对于第 i 个元素，Bob 计算 :math:`H(x_i)^{\\alpha\\beta}` 以及 :math:`H(y_i)^\\beta` "
 "并把结果发送给 Alice；"
 
-#: ../../components/psi.rst:97
+#: ../../components/psi.rst:98
 msgid ""
 "For i-th element, Alice calculates :math:`H(y_i)^{\\alpha\\beta}` and "
 "gets the intersection of :math:`H(x_i)^{\\alpha\\beta} \\cap "
@@ -277,7 +286,7 @@ msgstr ""
 ":math:`H(x_i)^{\\alpha\\beta} \\cap H(y_i)^{\\alpha\\beta}` （我们把交集结果记为 "
 ":math:`I^{\\alpha\\beta}`），之后把交集结果 :math:`I^{\\alpha\\beta}` 发送给 Charlie；"
 
-#: ../../components/psi.rst:101
+#: ../../components/psi.rst:102
 msgid ""
 "For i-th element, Charlie sends :math:`H(z_i)^{\\gamma}` to Bob, Bob "
 "calculates and sends to Alice :math:`H(z_i)^{\\beta\\gamma}`, finally "
@@ -288,7 +297,7 @@ msgstr ""
 ":math:`H(z_i)^{\\beta\\gamma}` 并把结果发送给 Alice，最终 Alice 计算 "
 ":math:`H(z_i)^{\\alpha\\beta\\gamma}` 并且把最终结果返回给 Charlie；"
 
-#: ../../components/psi.rst:105
+#: ../../components/psi.rst:106
 msgid ""
 "Charlie calculates :math:`I^{\\alpha\\beta\\gamma}` and compares "
 ":math:`I^{\\alpha\\beta\\gamma}` with "
@@ -298,11 +307,11 @@ msgstr ""
 ":math:`I^{\\alpha\\beta\\gamma}` 以及 :math:`H(z_i)^{\\alpha\\beta\\gamma}`"
 " 的交集，并输出结果。"
 
-#: ../../components/psi.rst:111
+#: ../../components/psi.rst:112
 msgid "KKRT16-PSI"
 msgstr ""
 
-#: ../../components/psi.rst:113
+#: ../../components/psi.rst:114
 msgid ""
 "[KKRT16]_ is semi-honest OT-based PSI, based on OT Extension, BaRK-OPRF "
 "and CuckooHash. [KKRT16]_ is the first PSI protocol requiring only one "
@@ -312,11 +321,12 @@ msgstr ""
 "[KKRT16]_ 是半诚实 OT-based PSI协议,基于 OT Extension, BaRK-OPRF 和 CuckooHash。 "
 "[KKRT16]_ 是第一个在千万( :math:`2^{24}`)规模,长度(128 bits)数据集上，求交时间在1分钟之内的PSI协议."
 
-#: ../../components/psi.rst:117
+#: ../../components/psi.rst:118
 msgid "We use 3-way stash-less CuckooHash proposed in [PSZ18]_."
-msgstr "隐语 SPU PSI 中使用了 [PSZ18]_ 提到的 3-way stash-less CuckooHash。"
+msgstr ""
+"隐语 SPU PSI 中使用了 [PSZ18]_ 提到的 3-way stash-less CuckooHash。"
 
-#: ../../components/psi.rst:123
+#: ../../components/psi.rst:124
 msgid ""
 "Sender and Receiver Agree on CuckooHash :math:`h_1,h_2,h_3: "
 "{\\{0,1\\}\\,}^{*} \\rightarrow [m]`"
@@ -324,19 +334,21 @@ msgstr ""
 "Receiver和Sender确定CuckooHash参数和对应的三个hash函数 :math:`h_1,h_2,h_3: "
 "{\\{0,1\\}}^{*} \\rightarrow [m]` "
 
-#: ../../components/psi.rst:124
+#: ../../components/psi.rst:125
 msgid ""
 "Receiver insert each x into bin :math:`h_1(x)`, :math:`h_2(x)` or "
 ":math:`h_3(x)`"
-msgstr "Receiver将每个元素 x 插入到 bin :math:`h_1(x)`, :math:`h_2(x)` 或 :math:`h_3(x)`"
+msgstr ""
+"Receiver将每个元素 x 插入到 bin :math:`h_1(x)`, :math:`h_2(x)` 或 :math:`h_3(x)`"
 
-#: ../../components/psi.rst:125
+#: ../../components/psi.rst:126
 msgid ""
 "Sender insert each y into bin :math:`h_1(y)`, :math:`h_2(y)` and "
 ":math:`h_3(y)`"
-msgstr "Sender将每个元素 y 插入到 bin :math:`h_1(y)`, :math:`h_2(y)` 和 :math:`h_3(y)`"
+msgstr ""
+"Sender将每个元素 y 插入到 bin :math:`h_1(y)`, :math:`h_2(y)` 和 :math:`h_3(y)`"
 
-#: ../../components/psi.rst:126
+#: ../../components/psi.rst:127
 msgid ""
 "Run BaRK-OPRF, Receiver get :math:`F_{s,k_i}(x)`,Sender get "
 ":math:`F_{s,k_i}(y)`, for :math:`bin_i`"
@@ -344,19 +356,20 @@ msgstr ""
 "执行 BaRK-OPRF, Receiver得到 :math:`F_{s,k_i}(x)`,Sender得到 "
 ":math:`F_{s,k_i}(y)`, 对每个 :math:`bin_i`"
 
-#: ../../components/psi.rst:127
+#: ../../components/psi.rst:128
 msgid "Sender sends all :math:`{F_{s,k_i}(y)}` values to Receiver"
-msgstr "Sender将 :math:`\\{F_{s,k_i}(y)\\}` 发给Receiver"
+msgstr ""
+"Sender将 :math:`\\{F_{s,k_i}(y)\\}` 发给Receiver"
 
-#: ../../components/psi.rst:128 ../../components/psi.rst:164
+#: ../../components/psi.rst:129 ../../components/psi.rst:165
 msgid "Receiver compares two BaRK-OPRFs sets and gets intersection."
 msgstr "Receiver比较两个 BaRK-OPRFs 集合并得到交集."
 
-#: ../../components/psi.rst:131
+#: ../../components/psi.rst:132
 msgid "BC22 PCG-PSI"
 msgstr ""
 
-#: ../../components/psi.rst:133
+#: ../../components/psi.rst:134
 msgid ""
 "Pseudorandom Correlation Generator (PCG), is a primitive introduced in "
 "the work of Boyle et al. [BCG+19b]_, [BCGI18]_, [SGRR19]_, [BCG+19a]_, "
@@ -367,7 +380,7 @@ msgstr ""
 "[BCG+19b]_, [BCGI18]_, [SGRR19]_, [BCG+19a]_, [CIK+20]_ "
 "中引入的一种密码协议。PCG的优势在于可以将满足特定相关条件的随机数，在不影响安全的前提下进行压缩."
 
-#: ../../components/psi.rst:137
+#: ../../components/psi.rst:138
 msgid ""
 "Boyle et al. have designed multiple concretely efficient PCGs for "
 "specific correlations, such as vector oblivious linear evaluation (VOLE) "
@@ -380,10 +393,11 @@ msgid ""
 msgstr ""
 "Boyle 等人设计了一系列满足特定相关性的高效PCG协议, 例如: vector oblivious linear evaluation "
 "(VOLE) 或者batch oblivious linear evaluation "
-"(BOLE)。这些基础的密码原语是现代安全多方计算中的核心组件，可以显著降低通信量。基于LPN假设，PCG/VOLE 函数，Receiver "
+"(BOLE)。这些基础的密码原语是现代安全多方计算中的核心组件，可以显著降低通信量。"
+"基于LPN假设，PCG/VOLE 函数，Receiver "
 "和Sender得到一组满足线性关系的分量，通信量是亚线性的。"
 
-#: ../../components/psi.rst:144
+#: ../../components/psi.rst:145
 msgid ""
 "[BC22]_ use PCG speeding up private set intersection protocols, "
 "minimizing computation and communication. We implement semi-honest "
@@ -392,11 +406,11 @@ msgid ""
 ":math:`2^{24}` items each) of long strings (128 bits), and reduce 1/3 "
 "communication than [KKRT16]_."
 msgstr ""
-"[BC22]_ 使用PCG加速PSI协议，减少计算量和通信量。我们实现了 [BC22]_ 中的半诚实协议，其中 PCG/VOLE 使用 "
-"[WYKW21]_ 中的协议。[BC22]_ 在千万( :math:`2^{24}`)规模,长度(128 "
-"bits)数据集上，求交时间在30秒左右，通信量是 [KKRT16]_ 的1/3."
+"[BC22]_ 使用PCG加速PSI协议，减少计算量和通信量。我们实现了 [BC22]_ 中的半诚实协议，"
+"其中 PCG/VOLE 使用 [WYKW21]_ 中的协议。[BC22]_ 在千万( :math:`2^{24}`)规模,长度"
+"(128bits)数据集上，求交时间在30秒左右，通信量是 [KKRT16]_ 的1/3."
 
-#: ../../components/psi.rst:151
+#: ../../components/psi.rst:152
 msgid ""
 "Sender and Receiver agree on :math:`(3,2)`-Generalized CuckooHash "
 ":math:`h_1,h_2: {\\{0,1\\}\\,}^{*} \\rightarrow [N]`"
@@ -404,15 +418,15 @@ msgstr ""
 "Sender 和 Receiver 共同协商GCH参数: :math:`(3,2)`-Generalized CuckooHash "
 ":math:`h_1,h_2: {\\{0,1\\}}^{*} \\rightarrow [N]`"
 
-#: ../../components/psi.rst:153
+#: ../../components/psi.rst:154
 msgid "Receiver insert each x into bin :math:`h_1(x)` or :math:`h_2(x)`"
 msgstr "Receiver 将 x 放入  bin :math:`h_1(x)` 或 :math:`h_2(x)`"
 
-#: ../../components/psi.rst:155
+#: ../../components/psi.rst:156
 msgid "Sender insert each y into bin :math:`h_1(y)` and :math:`h_2(y)`"
 msgstr "Sender 将 y 放入 bin :math:`h_1(y)` 和 :math:`h_2(y)`"
 
-#: ../../components/psi.rst:157
+#: ../../components/psi.rst:158
 msgid ""
 "Run PCG/VOLE from [WYKW21]_, :math:`w_i = \\Delta * u_i + v_i`,  Sender "
 "get :math:`w_i` and :math:`\\Delta`, Receiver get :math:`u_i` and "
@@ -422,27 +436,29 @@ msgstr ""
 "得到 :math:`w_i` 和 :math:`\\Delta`,  Receiver 得到 :math:`u_i` 和 :math:`v_i`,"
 " 对每个 :math:`bin_i`."
 
-#: ../../components/psi.rst:160
+#: ../../components/psi.rst:161
 msgid ""
 "Receiver send Masked Bin Polynomial Coefficients to Sender, and receive "
 "BaRK-OPRF values"
-msgstr "Receiver发送掩盖的Bin多项式系数给Sender， 计算本方数据集的 BaRK-OPRF."
+msgstr ""
+"Receiver发送掩盖的Bin多项式系数给Sender， 计算本方数据集的 BaRK-OPRF."
 
-#: ../../components/psi.rst:162
+#: ../../components/psi.rst:163
 msgid ""
 "Sender sends all BaRK-OPRF values for each "
 ":math:`{\\{y_i\\}\\,}_{i=1}^{n_2}` to Receiver"
-msgstr "Sender发送每个 :math:`{\\{y_i\\}}_{i=1}^{n_2}` BaRK-OPRF 给Receiver."
+msgstr ""
+"Sender发送每个 :math:`{\\{y_i\\}}_{i=1}^{n_2}` BaRK-OPRF 给Receiver."
 
-#: ../../components/psi.rst:167
+#: ../../components/psi.rst:168
 msgid "Unbalanced PSI"
 msgstr "非平衡PSI"
 
-#: ../../components/psi.rst:170
+#: ../../components/psi.rst:171
 msgid "Ecdh-OPRF based PSI"
 msgstr "基于ecdh-OPRF的PSI协议"
 
-#: ../../components/psi.rst:172
+#: ../../components/psi.rst:173
 msgid ""
 "[RA18]_ section 3 introduce Basic Unbalanced PSI(Ecdh-OPRF based) "
 "protocol proposed in [BBCD+11]_ that relaxes the security of the [JL10]_ "
@@ -455,7 +471,7 @@ msgstr ""
 "恶意PSI协议进行简化得到semi-honest协议。协议分成两个阶段：离线预处理阶段和在线阶段。[RA18]_ "
 "中引入了一些优化方法减少离线预处理阶段的计算和通信量。secretflow中实现了[RA18]_ 第3章中的基本协议。"
 
-#: ../../components/psi.rst:177
+#: ../../components/psi.rst:178
 msgid ""
 "An Oblivious Pseudorandom Function (OPRF) is a two-party protocol between"
 " client and server for computing the output of a Pseudorandom Function "
@@ -466,11 +482,11 @@ msgstr ""
 "OPRF)是一个两方协议,客户端和服务端通过执行协议计算伪随机函数(Pseudorandom Function PRF)的结果。RFC 草案 "
 "[draft-irtf-cfrg-voprf-10]_ 基于素数阶群，给出了OPRF, VOPRF, and POPRF 的构造方案。"
 
-#: ../../components/psi.rst:183
+#: ../../components/psi.rst:184
 msgid "Offline Phase"
 msgstr "离线阶段"
 
-#: ../../components/psi.rst:185
+#: ../../components/psi.rst:186
 msgid ""
 "For each element :math:`y_i` in its set, Bob applies PRF using private "
 "key :math:`\\beta`, i.e. computing :math:`H_2(y_i,{H_1(y_i)}^\\beta)` ."
@@ -478,19 +494,19 @@ msgstr ""
 "Bob对数据集中元素  :math:`y_i` 使用密钥 :math:`\\beta`，进行PRF运算， 得到 "
 ":math:`H_2(y_i,{H_1(y_i)}^\\beta)` 。"
 
-#: ../../components/psi.rst:188
+#: ../../components/psi.rst:189
 msgid ""
 "Bob sends :math:`{\\,\\{H_2(y_i,{H_1(y_i)}^\\beta)\\}\\,}_{i=1}^{n_2}` to"
 " Alice in shuffled order"
 msgstr ""
-"Bob对集合 :math:`\\{\\{H_2(y_i,{H_1(y_i)}^\\beta)\\}\\}_{i=1}^{n_2}` "
+"Bob对集合 :math:`{\\,\\{H_2(y_i,{H_1(y_i)}^\\beta)\\}\\,}_{i=1}^{n_2}` "
 "打乱顺序后，发送给Alice。"
 
-#: ../../components/psi.rst:190
+#: ../../components/psi.rst:191
 msgid "Online Phase"
 msgstr "在线阶段"
 
-#: ../../components/psi.rst:192
+#: ../../components/psi.rst:193
 msgid ""
 "For each element :math:`x_i` in its set, Alice applies the hash function "
 "and then exponentiates it using its blind key :math:`r_i`, thus computing"
@@ -499,9 +515,9 @@ msgid ""
 msgstr ""
 "Alice 对数据集中元素 :math:`x_i` 进行Hash处理，并使用blind密钥 :math:`r_i` 进行指数运算，得到 "
 ":math:`{H_1(x_i)}^{r_i}` ， Alice 发送   "
-":math:`\\{\\{H_1(x_i)\\}^{r_i}\\}_{i=1}^{n_1}` 给 Bob。"
+":math:`{\\,\\{\\,{H_1(x_i)}^{r_i}\\,\\}\\,}_{i=1}^{n_1}` 给 Bob。"
 
-#: ../../components/psi.rst:195
+#: ../../components/psi.rst:196
 msgid ""
 "For each element :math:`H_1(x_i)^{r_i}` received from Alice in the "
 "previous step, Bob exponentiates it using its key :math:`\\beta`, "
@@ -513,33 +529,213 @@ msgstr ""
 ":math:`{H_1(x_i)}^{r_i\\beta}` 。Bob发送 "
 ":math:`{\\,\\{\\,{H_1(x_i)}^{\\,{r_i}\\,\\beta}\\,\\}\\,}_{i=1}^{n_1}` 给Alice。"
 
-#: ../../components/psi.rst:198
+#: ../../components/psi.rst:199
 msgid ""
 "Alice receive :math:`{\\,\\{\\,{H_1(x_i)}^{r_i\\beta}\\}\\,}_{i=1}^{n_1}`"
 " from Bob, and unblind it use :math:`r_i`, Get "
 ":math:`{\\,\\{\\,{H_1(x_i)}^\\beta\\}\\,}_{i=1}^{n_1}`, compute OPRF "
 ":math:`{\\,\\{H_2(x_i,{H_1(x_i)}^\\beta)\\}\\,}_{i=1}^{n_1}`."
 msgstr ""
+"Alice接收Bob的数据 :math:`{\\,\\{\\,{H_1(x_i)}^{r_i\\beta}\\}\\,}_{i=1}^{n_1}` "
+"使用 :math:`{r_i}^{-1}` 进行unblind操作，得到 "
+":math:`{\\,\\{\\,{H_1(x_i)}^\\beta\\}\\,}_{i=1}^{n_1}`, 计算OPRF "
+":math:`{\\,\\{H_2(x_i,{H_1(x_i)}^\\beta)\\}\\,}_{i=1}^{n_1}` 。"
 
-#: ../../components/psi.rst:201
+#: ../../components/psi.rst:202
 msgid ""
 "Alice compares two sets "
 ":math:`{\\,\\{H_2(x_i,{H_1(x_i)}^\\beta)\\}\\,}_{i=1}^{n_1}` and "
 ":math:`{\\,\\{H_2(y_i,{H_1(y_i)}^\\beta)\\}\\,}_{i=1}^{n_2}` and gets "
 "intersection."
 msgstr ""
-"Alice 比较两个集合 :math:`\\{\\{H_2(x_i,{H_1(x_i)}^\\beta)\\}\\}_{i=1}^{n_1}` 和"
-"  :math:`\\{\\{H_2(y_i,{H_1(y_i)}^\\beta)\\}\\}_{i=1}^{n_2}` ，得到交集。"
+"Alice 比较两个集合 :math:`{\\,\\{H_2(x_i,{H_1(x_i)}^\\beta)\\}\\,}_{i=1}^{n_1}` 和"
+" :math:`{\\,\\{H_2(y_i,{H_1(y_i)}^\\beta)\\}\\,}_{i=1}^{n_2}` ，得到交集。"
 
-#: ../../components/psi.rst:205
+#: ../../components/psi.rst:206
+msgid "Differentially Private PSI"
+msgstr "差分隐私PSI"
+
+#: ../../components/psi.rst:208
+msgid ""
+"We also implement a Differentially Private (DP) Private Set Intersection "
+"(PSI) Protocol. Our implementaion bases on ECDH-PSI, and provides:"
+msgstr ""
+"我们实现了带差分隐私的隐私求交协议，基于ECDH-PSI，提供"
+
+#: ../../components/psi.rst:211
+msgid "Differentially private PSI results."
+msgstr "PSI结果的差分隐私保护。"
+
+#: ../../components/psi.rst:213
+msgid "This feature is currently under test, please use at your own risk!"
+msgstr "该协议还在进一步的研究测试中，请评估风险后再进行应用。"
+
+#: ../../components/psi.rst:215
+msgid ""
+"Why PSI with differentially private results? If we want a scheme that "
+"protects both the private inputs and output privacy, an ideal way is to "
+"use `circuit PSI`, which is a typical PSI variant that allows secure "
+"computation (e.g. MPC or HE) on the PSI result without revealing it. "
+"`PSTY19 <https://eprint.iacr.org/2019/241.pdf>`_ However those protocols "
+"are expensive in terms of efficiency."
+msgstr ""
+"为什么要对PSI结果增加差分隐私(DP)保护？如果需要对输入和输出都进行隐私保护，一种可行的"
+"方案是使用 `circuit PSI`。`circuit PSI`是一种PSI变种的方案，可以对PSI的结果进行"
+"安全计算(例如：MPC 或 HE)。"
+"例如：`PSTY19 <https://eprint.iacr.org/2019/241.pdf>`_ 。"
+"但是 `circuit PSI` 的计算量和通信量都相对较大，性能不高。"
+
+#: ../../components/psi.rst:222
+msgid ""
+"DP-PSI is a way of utilising the up-sampling and sub-sampling mechanism "
+"to add calibrated noises to the PSI results, without revealing its "
+"concise value."
+msgstr ""
+"DP-PSI 使用上采样(up-sampling)和下采样(sub-sampling)机制，"
+"对PSI结果增加可控的噪声，保护PSI结果。"
+
+#: ../../components/psi.rst:225
+msgid ""
+"The protocol is listed below, assume Alice has a (hashed and shuffled) "
+"set :math:`X` and Bob has a (hashed and shuffled) :math:`Y`."
+msgstr "协议描述如下，假设Alice 的集合是 :math:`X` (hashed 和 shuffled)，"
+"Bob 的集合是 :math:`Y` (hashed 和 shuffled)"
+
+#: ../../components/psi.rst:230
+msgid ""
+"Note that we use encrypt to denote the process of calculating "
+":math:`y\\gets x^a`."
+msgstr "下面使用的加密具体是指: :math:`y\\gets x^a` 。"
+
+#: ../../components/psi.rst:235
+msgid ""
+"Alice and Bob first encrypts their own dataset, and gets :math:`X^a` and "
+":math:`Y^b` separately."
+msgstr "Alice 和 Bob首先对自己的数据集加密，分别得到 "
+":math:`X^a` 和 :math:`Y^b` 。"
+
+#: ../../components/psi.rst:238
+msgid "Alice sends :math:`X^a` to Bob."
+msgstr "Alice 发送 :math:`X^a` 给Bob。"
+
+#: ../../components/psi.rst:240
+msgid ""
+"Bob performs random subsampling on :math:`Y^b`, gets :math:`Y_*^b` and "
+"send to Alice. In the meantime, on receiving :math:`X^a` from Alice, Bob "
+"reencrypts it with :math:`b`, gets :math:`X^{ab}`. Then it samples a "
+"random permutation :math:`\\pi` to permute Alice's set, and send permuted"
+" :math:`\\pi(X^{ab})` back to Alice."
+msgstr ""
+"Bob对 :math:`Y^b` 执行随机下采样，得到 :math:`Y_*^b` ，发送给Alice。"
+"Bob接收Alice的数据 :math:`X^a` ，并使用 :math:`b` 再次加密，得到 :math:`X^{ab}` 。"
+"Bob 对Alice的数据集进行随机置换 :math:`\\pi` ，将打乱的数据 :math:`\\pi(X^{ab})` 发送给Alice。"
+
+#: ../../components/psi.rst:246
+msgid ""
+"On receving :math:`Y_*^b` and :math:`\\pi(X^{ab})` from Bob, Alice "
+"reencrypts :math:`Y_*^b` and gets :math:`Y_*^{ab}`, then calculate the "
+"intersection :math:`I_*^{ab}\\gets\\pi(X^{ab})\\cap Y_*^{ab}`."
+msgstr ""
+"Alice接收Bob的数据： :math:`Y_*^b` 和 :math:`\\pi(X^{ab})`，"
+"对 :math:`Y_*^b` 再次加密得到 :math:`Y_*^{ab}`，"
+"计算交集  :math:`I_*^{ab}\\gets\\pi(X^{ab})\\cap Y_*^{ab}`。"
+
+#: ../../components/psi.rst:250
+msgid ""
+"Alice randomly subsamples the intersection, gets :math:`I_{**}^{ab}`, and"
+" then find-out their corresponding index in :math:`Y_*^b`. Then randomly "
+"add non-intersection index to this set."
+msgstr ""
+"Alice对交集进行下采样(subsample)，得到 :math:`I_{**}^{ab}`，并找出在 :math:`Y_*^b` "
+"中的序号，随机添加非交集序号到前面得到的交集序号集合。"
+
+#: ../../components/psi.rst:254
+msgid "Alice sends the index set to Bob, then Bob reveal the final results."
+msgstr ""
+"Alice 发送序号集合到Bob，Bob得到最后的交集。"
+
+#: ../../components/psi.rst:256
+msgid ""
+"In the end, this scheme ensures that the receiver (Bob) only learns the "
+"noised intersection, without the ability of pointing out whether an "
+"element is in the actual set intersection or not."
+msgstr ""
+"上面的方案保证接收方(Bob)得到带噪声的交集，并无法区分真实的交集数据和干扰数据。"
+
+#: ../../components/psi.rst:260
+msgid ""
+"Note that multiple invocation of DP-PSI inevitably weaken the privacy "
+"protection, therefore, we strongly suggest that user should implement a "
+"protection mechanism to prevent multiple DP-PSI executions on the same "
+"input value."
+msgstr ""
+"需要注意的是，多次DP-PSI调用会减弱隐私保护的效果，因此，建议用户通过保护机制来限制"
+"对同样数据执行多次DP-PSI协议执行。"
+
+#: ../../components/psi.rst:266
+msgid "Intel(R) Xeon(R) Platinum"
+msgstr ""
+
+#: ../../components/psi.rst:266
+msgid "2^20"
+msgstr ""
+
+#: ../../components/psi.rst:266
+msgid "2^21"
+msgstr ""
+
+#: ../../components/psi.rst:266
+msgid "2^22"
+msgstr ""
+
+#: ../../components/psi.rst:266
+msgid "2^23"
+msgstr ""
+
+#: ../../components/psi.rst:266
+msgid "2^24"
+msgstr ""
+
+#: ../../components/psi.rst:268
+msgid "DP-PSI"
+msgstr ""
+
+#: ../../components/psi.rst:268
+msgid "9.806s"
+msgstr ""
+
+#: ../../components/psi.rst:268
+msgid "20.134s"
+msgstr ""
+
+#: ../../components/psi.rst:268
+msgid "42.067s"
+msgstr ""
+
+#: ../../components/psi.rst:268
+msgid "86.580s"
+msgstr ""
+
+#: ../../components/psi.rst:268
+msgid "170.359s"
+msgstr ""
+
+#: ../../components/psi.rst:271
+msgid ""
+"For DP, our default privacy protection strength is :math:`\\epsilon=3`. "
+"For more details, please refer to the original paper: [DP-PSI]_"
+msgstr ""
+"差分隐私的默认强度是 :math:`\\epsilon=3`。方案的详细描述和安全强度，请参考论文： [DP-PSI]_ 。"
+
+#: ../../components/psi.rst:275
 msgid "Tutorial"
 msgstr "使用教程"
 
-#: ../../components/psi.rst:207
+#: ../../components/psi.rst:277
 msgid "Please check :ref:`/tutorial/PSI_On_SPU.ipynb` for details."
 msgstr "详细的使用教程请参考 :ref:`/tutorial/PSI_On_SPU.ipynb`."
 
-#: ../../components/psi.rst:213
+#: ../../components/psi.rst:283
 msgid ""
 "Baldi, P., Baronio, R., Cristofaro, E.D., Gasti, P., Tsudik, G.: "
 "Countering GATTACA: Efficient and Secure Testing of Fully-sequenced Human"
@@ -547,13 +743,13 @@ msgid ""
 " 691–702. ACM (2011)"
 msgstr ""
 
-#: ../../components/psi.rst:217
+#: ../../components/psi.rst:287
 msgid ""
 "E. Boyle, G. Couteau, N. Gilboa, and Y. Ishai. Compressing vector OLE. In"
 " ACM CCS 2018, pages 896-912. ACM Press, October 2018."
 msgstr ""
 
-#: ../../components/psi.rst:220 ../../components/psi.rst:224
+#: ../../components/psi.rst:290 ../../components/psi.rst:294
 msgid ""
 "E. Boyle, G. Couteau, N. Gilboa, Y. Ishai, L. Kohl, P. Rindal, and P. "
 "Scholl. Efficient two-round OT extension and silent non-interactive "
@@ -561,90 +757,94 @@ msgid ""
 "2019."
 msgstr ""
 
-#: ../../components/psi.rst:228
+#: ../../components/psi.rst:298
 msgid "Private Set Intersection from Pseudorandom Correlation Generators"
 msgstr ""
 
-#: ../../components/psi.rst:230
+#: ../../components/psi.rst:300
 msgid ""
 "Daniel J. Bernstein. Curve25519: new diffie-hellman speed records. In In "
 "Public Key Cryptography (PKC), Springer-Verlag LNCS 3958, page 2006, "
 "2006. (Cited on page 4.)"
 msgstr ""
 
-#: ../../components/psi.rst:233
+#: ../../components/psi.rst:303
 msgid ""
 "G. Couteau, Y. Ishai, L. Kohl, E. Boyle, P. Scholl, and N. Gilboa. "
 "Efficient pseudorandom correlation generators from ring-lpn. Springer-"
 "Verlag, 2020."
 msgstr ""
 
-#: ../../components/psi.rst:236
+#: ../../components/psi.rst:306
+msgid "Differentially-Private PSI https://arxiv.org/pdf/2208.13249.pdf"
+msgstr ""
+
+#: ../../components/psi.rst:308
 msgid ""
 "Costello, C., Longa, P.: Fourq: four-dimensional decompositions on a "
 "q-curve over the mersenne prime. Cryptology ePrint Archive, Report "
 "2015/565 (2015), https://eprint.iacr.org/2015/565"
 msgstr ""
 
-#: ../../components/psi.rst:239
+#: ../../components/psi.rst:311
 msgid ""
 "Bernardo A. Huberman, Matt Franklin, and Tad Hogg. Enhancing privacy and "
 "trust in electronic communities. In ACM CONFERENCE ON ELECTRONIC "
 "COMMERCE. ACM, 1999."
 msgstr ""
 
-#: ../../components/psi.rst:242
+#: ../../components/psi.rst:314
 msgid "https://github.com/intel/ipp-crypto/"
 msgstr ""
 
-#: ../../components/psi.rst:244
+#: ../../components/psi.rst:316
 msgid ""
 "Jarecki, S., Liu, X.: Fast Secure Computation of Set Intersection. In: "
 "SCN. LNCS, vol. 6280, pp. 418–435. Springer (2010)"
 msgstr ""
 
-#: ../../components/psi.rst:247
+#: ../../components/psi.rst:319
 msgid ""
 "V. Kolesnikov, R. Kumaresan, M. Rosulek, and N. Trieu. Efficient batched "
 "oblivious PRF with applications to private set intersection. In ACM CCS "
 "2016, pages 818-829. ACM Press, October 2016."
 msgstr ""
 
-#: ../../components/psi.rst:250
+#: ../../components/psi.rst:322
 msgid ""
 "C. Meadows. A more efficient cryptographic matchmaking protocol for use "
 "in the absence of a continuously available third party. In 1986 IEEE "
 "Symposium on Security and Privacy, pages 134-134, April 1986."
 msgstr ""
 
-#: ../../components/psi.rst:253
+#: ../../components/psi.rst:325
 msgid ""
 "B. Pinkas, T. Schneider, and M. Zohner. Scalable private set intersection"
 " based on ot extension. ACM Transactions on Privacy and Security (TOPS), "
 "21(2):1-35, 2018."
 msgstr ""
 
-#: ../../components/psi.rst:256
+#: ../../components/psi.rst:328
 msgid ""
 "Resende, A.C.D., Aranha, D.F.: Faster unbalanced private set "
 "intersection. In: Meiklejohn, S., Sako, K. (eds.) FC2018. LNCS, vol. "
 "10957, pp. 203{221. Springer, Heidelberg (Feb / Mar 2018)"
 msgstr ""
 
-#: ../../components/psi.rst:259
+#: ../../components/psi.rst:331
 msgid ""
 "Standards for Efficient Cryptography (SEC) "
 "<http://www.secg.org/sec2-v2.pdf>"
 msgstr ""
 
-#: ../../components/psi.rst:261
+#: ../../components/psi.rst:333
 msgid ""
 "P. Schoppmann, A. Gascón, L. Reichert, and M. Raykova. Distributed "
 "vector-OLE: Improved constructions and implementation. In ACM CCS 2019, "
 "pages 1055-1072. ACM Press, November 2019."
 msgstr ""
 
-#: ../../components/psi.rst:264
+#: ../../components/psi.rst:336
 msgid ""
 "C. Weng, K. Yang, J. Katz, and X. Wang. Wolverine: fast, scalable, and "
 "communication-efficient zero-knowledge proofs for boolean and arithmetic "
@@ -652,7 +852,7 @@ msgid ""
 "1074-1091. IEEE, 2021."
 msgstr ""
 
-#: ../../components/psi.rst:268
+#: ../../components/psi.rst:340
 msgid ""
 "Oblivious Pseudorandom Functions (OPRFs) using Prime-Order Groups. "
 "https://www.ietf.org/archive/id/draft-irtf-cfrg-voprf-10.html"

@@ -35,10 +35,11 @@ from torch.utils.data import DataLoader
 
 import secretflow.device as ft
 from secretflow.device import PYUObject, proxy
+from secretflow.ml.nn.metrics import AUC, Mean, Precision, Recall
+from secretflow.ml.nn.sl.backend.tensorflow.utils import ForwardData
+from secretflow.ml.nn.sl.strategy_dispatcher import register_strategy
 from secretflow.security.privacy import DPStrategy
 from secretflow.utils.compressor import Compressor, SparseCompressor
-
-from secretflow.ml.nn.metrics import AUC, Mean, Precision, Recall
 
 
 class SLBaseModel(ABC):
@@ -116,8 +117,10 @@ class SLBaseTFModel(SLBaseModel):
         self.train_x, self.train_y = None, None
         self.eval_x, self.eval_y = None, None
         self.kwargs = {}
-        self.has_y = False
-        self.has_s_w = False
+        self.train_has_y = False
+        self.train_has_s_w = False
+        self.eval_has_y = False
+        self.eval_has_s_w = False
         self.train_sample_weight = None
         self.eval_sample_weight = None
         self.fuse_callbacks = None
@@ -125,6 +128,7 @@ class SLBaseTFModel(SLBaseModel):
         self.epoch_logs = None
         self.training_logs = None
         self.steps_per_epoch = None
+        self.skip_gradient = False
         if random_seed is not None:
             tf.keras.utils.set_random_seed(random_seed)
         super().__init__(builder_base, builder_fuse)
@@ -185,13 +189,13 @@ class SLBaseTFModel(SLBaseModel):
         """
         assert x and x[0] is not None, "X can not be None, please check"
         x = [xi for xi in x]
-        self.has_y = False
-        self.has_s_w = False
+        has_y = False
+        has_s_w = False
         if y is not None and len(y.shape) > 0:
-            self.has_y = True
+            has_y = True
             x.append(y)
             if s_w is not None and len(s_w.shape) > 0:
-                self.has_s_w = True
+                has_s_w = True
                 x.append(s_w)
 
         # convert pandas.DataFrame to numpy.ndarray
@@ -205,7 +209,9 @@ class SLBaseTFModel(SLBaseModel):
         if shuffle:
             data_set = data_set.shuffle(buffer_size, seed=random_seed)
 
-        self.set_dataset_stage(data_set=data_set, stage=stage)
+        self.set_dataset_stage(
+            data_set=data_set, stage=stage, has_y=has_y, has_s_w=has_s_w
+        )
 
     def build_dataset_from_builder(
         self,
@@ -230,13 +236,13 @@ class SLBaseTFModel(SLBaseModel):
         """
         assert x and x[0] is not None, "X can not be None, please check"
         x = [xi for xi in x]
-        self.has_y = False
-        self.has_s_w = False
+        has_y = False
+        has_s_w = False
         if y is not None and len(y.shape) > 0:
-            self.has_y = True
+            has_y = True
             x.append(y)
             if s_w is not None and len(s_w.shape) > 0:
-                self.has_s_w = True
+                has_s_w = True
                 x.append(s_w)
 
         data_set = dataset_builder(x)
@@ -266,7 +272,12 @@ class SLBaseTFModel(SLBaseModel):
                 f"Unable to get batchsize from dataset, please spcify batchsize in 'fit'"
             )
 
-        self.set_dataset_stage(data_set=data_set, stage=stage)
+        self.set_dataset_stage(
+            data_set=data_set,
+            stage=stage,
+            has_y=has_y,
+            has_s_w=has_s_w,
+        )
         if isinstance(data_set, tf.data.Dataset):
             import math
 
@@ -274,12 +285,22 @@ class SLBaseTFModel(SLBaseModel):
         else:
             raise Exception("Unknown databuilder")
 
-    def set_dataset_stage(self, data_set, stage="train"):
+    def set_dataset_stage(
+        self,
+        data_set,
+        stage="train",
+        has_y=None,
+        has_s_w=None,
+    ):
         data_set = iter(data_set)
         if stage == "train":
             self.train_set = data_set
+            self.train_has_y = has_y
+            self.train_has_s_w = has_s_w
         elif stage == "eval":
             self.eval_set = data_set
+            self.eval_has_y = has_y
+            self.eval_has_s_w = has_s_w
         else:
             raise Exception(f"Illegal argument stage={stage}")
 
@@ -295,7 +316,7 @@ class SLBaseTFModel(SLBaseModel):
                 h = self.embedding_dp(h)
         return h
 
-    def base_forward(self, stage="train", compress: bool = False):
+    def base_forward(self, stage="train", compress: bool = False) -> ForwardData:
         """compute hidden embedding
         Args:
             stage: Which stage of the base forward
@@ -311,8 +332,8 @@ class SLBaseTFModel(SLBaseModel):
         self.init_data()
         if stage == "train":
             train_data = next(self.train_set)
-            if self.has_y:
-                if self.has_s_w:
+            if self.train_has_y:
+                if self.train_has_s_w:
                     data_x = train_data[:-2]
                     train_y = train_data[-2]
                     self.train_sample_weight = train_data[-1]
@@ -329,8 +350,8 @@ class SLBaseTFModel(SLBaseModel):
                 data_x = train_data
         elif stage == "eval":
             eval_data = next(self.eval_set)
-            if self.has_y:
-                if self.has_s_w:
+            if self.eval_has_y:
+                if self.eval_has_s_w:
                     data_x = eval_data[:-2]
                     eval_y = eval_data[-2]
                     self.eval_sample_weight = eval_data[-1]
@@ -357,16 +378,22 @@ class SLBaseTFModel(SLBaseModel):
                 data_x,
             )
         self.data_x = data_x
+
+        forward_data = ForwardData()
+        if len(self.model_base.losses) > 0:
+            forward_data.losses = tf.add_n(self.model_base.losses)
         # TODO: only vaild on no server mode, refactor when use agglayer or server mode.
         # no need to compress data on model_fuse side
         if compress and not self.model_fuse:
             if self.compressor:
-                return self.compressor.compress(self.h.numpy())
+                forward_data.hidden = self.compressor.compress(self.h.numpy())
             else:
                 raise Exception(
                     'can not find compressor when compress data in base_forward'
                 )
-        return self.h
+        else:
+            forward_data.hidden = self.h
+        return forward_data
 
     @tf.function
     def _base_backward_internal(self, gradients, trainable_vars):
@@ -398,6 +425,8 @@ class SLBaseTFModel(SLBaseModel):
             else:
                 gradient = gradient[0]
                 return_hiddens.append(self.fuse_op(self.h, gradient))
+            # add model.losses into graph
+            return_hiddens.append(self.model_base.losses)
 
         trainable_vars = self.model_base.trainable_variables
         gradients = self.tape.gradient(return_hiddens, trainable_vars)
@@ -408,6 +437,9 @@ class SLBaseTFModel(SLBaseModel):
         self.tape = None
         self.h = None
         self.kwargs = {}
+
+    def get_base_losses(self):
+        return self.model_base.losses
 
     def get_base_weights(self):
         return self.model_base.get_weights()
@@ -470,12 +502,18 @@ class SLBaseTFModel(SLBaseModel):
         else:
             raise Exception("Illegal Argument")
 
-    def fuse_net(self, *hidden_features, _num_returns=2, compress=False):
+    def fuse_net(
+        self,
+        *forward_data: List[ForwardData],
+        _num_returns: int = 2,
+        compress: bool = False,
+    ):
         """Fuses the hidden layer and calculates the reverse gradient
         only on the side with the label
 
         Args:
-            hidden_features: A list of hidden layers for each party to compute
+            forward_data: A list of ForwardData containing hidden layers, losses, etc.
+                that are uploaded by each party for computation.
             compress: Whether to decompress/compress data.
         Returns:
             gradient Of hiddens
@@ -483,6 +521,11 @@ class SLBaseTFModel(SLBaseModel):
         assert (
             self.model_fuse is not None
         ), "Fuse model cannot be none, please give model define"
+        for i, h in enumerate(forward_data):
+            assert h.hidden is not None, f"hidden cannot be found in forward_data[{i}]"
+        # get reg losses:
+        losses = [h.losses for h in forward_data if h.losses is not None]
+        hidden_features = [h.hidden for h in forward_data]
         if compress:
             if self.compressor:
                 iscompressed = self.compressor.iscompressed(hidden_features)
@@ -490,7 +533,9 @@ class SLBaseTFModel(SLBaseModel):
                 if isinstance(self.compressor, SparseCompressor):
                     fuse_sparse_masks = list(
                         map(
-                            lambda d, compressed: (d != 0) * 1 if compressed else None,
+                            # Get a sparse matrix mask with dtype=bool.
+                            # Using <bool> as the dtype will ensure that the data type of gradients after applying the mask does not change.
+                            lambda d, compressed: (d != 0) if compressed else None,
                             hidden_features,
                             iscompressed,
                         )
@@ -520,11 +565,14 @@ class SLBaseTFModel(SLBaseModel):
                 hiddens.append(tf.convert_to_tensor(h))
 
         logs = {}
-        gradient = self._fuse_net_train(hiddens)
+        gradient = self._fuse_net_train(hiddens, losses)
 
         for m in self.model_fuse.metrics:
             logs['train_' + m.name] = m.result().numpy()
         self.logs = logs
+        # In some strategies, we don't need to return gradient.
+        if self.skip_gradient:
+            return [None] * _num_returns
         if compress:
             gradient = [g.numpy() for g in gradient]
             # apply fuse_sparse_masks on gradients
@@ -551,15 +599,16 @@ class SLBaseTFModel(SLBaseModel):
                 )
         return gradient
 
-    def _fuse_net_train(self, hiddens):
+    def _fuse_net_train(self, hiddens, losses=[]):
         return self._fuse_net_internal(
             hiddens,
+            losses,
             self.train_y,
             self.train_sample_weight,
         )
 
     @tf.function
-    def _fuse_net_internal(self, hiddens, train_y, train_sample_weight):
+    def _fuse_net_internal(self, hiddens, losses, train_y, train_sample_weight):
         with tf.GradientTape(persistent=True) as tape:
             for h in hiddens:
                 tape.watch(h)
@@ -573,7 +622,7 @@ class SLBaseTFModel(SLBaseModel):
                 train_y,
                 y_pred,
                 sample_weight=train_sample_weight,
-                regularization_losses=self.model_fuse.losses,
+                regularization_losses=self.model_fuse.losses + losses,
             )
 
         # Step3: compute gradients
@@ -593,7 +642,7 @@ class SLBaseTFModel(SLBaseModel):
         self.model_fuse.compiled_loss.reset_state()
 
     @tf.function
-    def _evaluate_internal(self, hiddens, eval_y, eval_sample_weight):
+    def _evaluate_internal(self, hiddens, eval_y, eval_sample_weight, losses=None):
         # Step 1: forward pass
         y_pred = self.model_fuse(hiddens, training=False, **self.kwargs)
 
@@ -605,7 +654,7 @@ class SLBaseTFModel(SLBaseModel):
             eval_y,
             y_pred,
             sample_weight=eval_sample_weight,
-            regularization_losses=self.model_fuse.losses,
+            regularization_losses=self.model_fuse.losses + losses,
         )
         # Step 3: update metrics
         self.model_fuse.compiled_metrics.update_state(
@@ -617,11 +666,12 @@ class SLBaseTFModel(SLBaseModel):
             result[m.name] = m.result()
         return result
 
-    def evaluate(self, *hidden_features, compress: bool = False):
+    def evaluate(self, *forward_data: List[ForwardData], compress: bool = False):
         """Returns the loss value & metrics values for the model in test mode.
 
         Args:
-            hidden_features: A list of hidden layers for each party to compute
+            forward_data: A list of data dictionaries containing hidden layers, losses, etc.
+                that are uploaded by each party for computation.
             compress: Whether to decompress input data.
         Returns:
             map of model metrics.
@@ -630,6 +680,11 @@ class SLBaseTFModel(SLBaseModel):
         assert (
             self.model_fuse is not None
         ), "model cannot be none, please give model define"
+        for i, h in enumerate(forward_data):
+            assert h.hidden is not None, f"hidden cannot be found in forward_data[{i}]"
+        # get reg losses:
+        losses = [h.losses for h in forward_data if h.losses is not None]
+        hidden_features = [h.hidden for h in forward_data]
         if compress:
             if self.compressor:
                 hidden_features = self.compressor.decompress(hidden_features)
@@ -648,6 +703,7 @@ class SLBaseTFModel(SLBaseModel):
             hiddens=hiddens,
             eval_y=self.eval_y,
             eval_sample_weight=self.eval_sample_weight,
+            losses=losses,
         )
         result = {}
         for k, v in metrics.items():
@@ -703,11 +759,12 @@ class SLBaseTFModel(SLBaseModel):
         y_pred = self.model_fuse(hiddens)
         return y_pred
 
-    def predict(self, *hidden_features, compress: bool = False):
+    def predict(self, *forward_data: List[ForwardData], compress: bool = False):
         """Generates output predictions for the input hidden layer features.
 
         Args:
-            hidden_features: A list of hidden layers for each party to compute
+            forward_data: A list of data dictionaries containing hidden layers,
+                that are uploaded by each party for computation.
             compress: Whether to decompress input data.
         Returns:
             Array(s) of predictions.
@@ -715,6 +772,9 @@ class SLBaseTFModel(SLBaseModel):
         assert (
             self.model_fuse is not None
         ), "Fuse model cannot be none, please give model define"
+        for i, h in enumerate(forward_data):
+            assert h.hidden is not None, f"hidden cannot be found in forward_data[{i}]"
+        hidden_features = [h.hidden for h in forward_data]
         if compress:
             if self.compressor:
                 hidden_features = self.compressor.decompress(hidden_features)
@@ -763,7 +823,8 @@ class SLBaseTFModel(SLBaseModel):
     ):
         Path(model_path).parent.mkdir(parents=True, exist_ok=True)
         assert model_path is not None, "model path cannot be empty"
-        assert save_format in ["onnx", "tf"], "save_format must be 'onnx' or 'tf'"
+        assert save_format in [
+            "onnx", "tf"], "save_format must be 'onnx' or 'tf'"
         if save_format == "onnx":
             return self._export_onnx(model, model_path, **kwargs)
         elif save_format == "tf":
@@ -773,6 +834,7 @@ class SLBaseTFModel(SLBaseModel):
 
     def _export_onnx(self, model, model_path, **kwargs):
         import tf2onnx
+
         from .utils import wrap_onnx_input_output
 
         model_proto, _ = tf2onnx.convert.from_keras(
@@ -788,11 +850,13 @@ class SLBaseTFModel(SLBaseModel):
         model.save(model_path, **kwargs)
 
         from tensorflow.python.tools import saved_model_utils
+
         from .utils import wrap_tf_input_output
 
         tag_set = 'serve'
         signature_def_key = 'serving_default'
-        meta_graph_def = saved_model_utils.get_meta_graph_def(model_path, tag_set)
+        meta_graph_def = saved_model_utils.get_meta_graph_def(
+            model_path, tag_set)
         if signature_def_key not in meta_graph_def.signature_def:
             raise ValueError(
                 f'Could not find signature "{signature_def_key}". Please choose from: '
@@ -814,6 +878,9 @@ class SLBaseTFModel(SLBaseModel):
         """
         privacy_dict = self.dp_strategy.get_privacy_spent(step, orders)
         return privacy_dict
+
+    def get_skip_gradient(self):
+        return False
 
 
 class ModelPartition(object):
@@ -879,6 +946,7 @@ class ModelPartition(object):
         return getattr(self.model, fn_name)(*args, **kwargs)
 
 
+@register_strategy(strategy_name='split_nn', backend='tensorflow')
 @proxy(PYUObject)
 class PYUSLTFModel(SLBaseTFModel):
     pass

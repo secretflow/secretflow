@@ -2,6 +2,7 @@ import tempfile
 
 import numpy as np
 import pandas as pd
+
 from secretflow.data.horizontal import read_csv as h_read_csv
 from secretflow.device import reveal
 from secretflow.preprocessing.binning.homo_binning import HomoBinning

@@ -6,7 +6,7 @@ Components
 Preprocessing
 -------------
 
-SecretFlow provides serveral common utility functions/classes to change raw
+SecretFlow provides several common utility functions/classes to change raw
 features into a representation for more suitable for the downstream pipeline.
 
 .. grid:: 2

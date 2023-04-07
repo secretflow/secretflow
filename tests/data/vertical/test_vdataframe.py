@@ -5,7 +5,6 @@ from secretflow import reveal
 from secretflow.data.base import Partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.utils.errors import NotFoundError
-
 from tests.basecase import MultiDriverDeviceTestCase
 
 

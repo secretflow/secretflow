@@ -5,7 +5,6 @@ import numpy as np
 
 import secretflow as sf
 from secretflow.device.device.spu import SPUCompilerNumReturnsPolicy
-
 from tests.basecase import MultiDriverDeviceTestCase, SingleDriverDeviceTestCase
 
 

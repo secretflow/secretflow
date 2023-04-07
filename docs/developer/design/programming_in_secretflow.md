@@ -4,11 +4,11 @@
 Secretflow aims to provide privacy-preserving machine learning and data analysis. The scenarios it faces are naturally across-silo distributed. Providing an efficient and concise programming model is one of the main challenges SecretFlow faces.
 
 The two common distributed programming ideas can be mainly classified into two modes.
-- The first mode is what we call multi-controller. That is, developers need to write code for each participant separately, 
-And usually through MPI semantics (such as all_gather, all_reduce, etc.) to communicate. 
+- The first mode is what we call multi-controller. That is developers need to write code for each participant separately, usually through MPI semantics (such as all_gather, all_reduce, etc.) to communicate. 
 Each participant executes its own code to complete the collaborative task. For example, SPU of SecretFlow is such a mode.
+By the way, multi-controler codes can be written in same code file if the code logics of each participant are almost same (so called homogeneous code). 
 - The second mode is what we call single-controller. That is to say, the developer has a global perspective.
-The code logic of each participant is written in the same code, and only one copy of the code needs to be run.
+The code logic of each participant is written in same code file, and only one copy of the code needs to be run.
 The task distribution mechanism (such as ray's remote mechanism) is used to uniformly manage the participants' execution logic. 
 A typical example is ray, which provides a driver perspective with a remote mechanism, 
 and users can write distributed code from a global perspective.
@@ -59,7 +59,7 @@ In order to ensure this, it also brings some requirements to programming, which 
 In the current implementation of cross-sil communication, each node of the DAG will be sequentially marked with a serial number, and send/recv will ensure the correctness of data sending and receiving according to the serial number of the node. This design is mainly to simplify cross-silo communication, but also introduces some restrictions, such as the control flow itself cannot be multi-threaded (otherwise, cross-silo distributed serial number generation will be wrong).
 
 ### Implementation
-Welcome to [rayfed](https://github.com/secretflow/rayfed).
+Welcome to [rayfed](https://github.com/ray-project/rayfed).
 
 ### Instructions
 
@@ -79,7 +79,7 @@ cluster_config = {
         }
         'bob': {
             'address': '127.0.0.1:10002',
-        },
+        }
     },
     'self_party': 'alice'
 }
@@ -95,10 +95,10 @@ cluster_config = {
     'parties': {
         'alice': {
             'address': '127.0.0.1:10001',
-        },
+        }
         'bob': {
             'address': '127.0.0.1:10002',
-        },
+        }
     },
     'self_party': 'bob'
 }
@@ -126,7 +126,7 @@ Multi-controller execution needs to start multiple ray clusters, and debugging i
 
 **The single controller implementation remains unchanged from the original, and the code does not need any modification.**
 
-The usage the single controller is very simple. You only need to provide the `parties` parameter when `secretflow.init`. For the specific usage method, please refer to :py:meth:`~secretflow.driver.init`.
+The usage the single controller is very simple. You only need to provide the `parties` parameter when `secretflow.init`. For the specific usage method, please refer to [sf.init](../../source/secretflow.device.rst#secretflow.device.driver.init).
 
 
 The bottom layer of SF encapsulates two sets of primitives, ray and rayfed, which are unified into one.

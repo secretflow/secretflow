@@ -16,8 +16,10 @@
 # limitations under the License.
 
 
-import numpy as np
 from typing import List
+
+import numpy as np
+
 from secretflow.utils.compressor import STCSparse
 
 COMPRESS_STRATEGY = ("fed_stc", "fed_scr")

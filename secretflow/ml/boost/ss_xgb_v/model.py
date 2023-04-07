@@ -31,7 +31,6 @@ from secretflow.device import (
     SPUObject,
     wait,
 )
-from secretflow.device.device.base import MoveConfig
 
 from .core import node_split as split_fn
 from .core.node_split import RegType
@@ -327,9 +326,7 @@ class Xgb:
         if self.colsample < 1:
             self.col_choices = []
             for spu in self.spu:
-                choices = [
-                    c.to(spu, MoveConfig(spu_vis='public')) for c in col_buckets_choices
-                ]
+                choices = [c.to(spu, spu_vis='public') for c in col_buckets_choices]
                 spu_choices = spu(lambda c: jnp.concatenate(c, axis=None))(choices)
                 self.col_choices.append(spu_choices)
         else:
@@ -352,7 +349,7 @@ class Xgb:
                     lambda s, c: np.sort(np.random.choice(s, c, replace=False))
                 )(samples, choices)
                 # same as colsample above, keep choices in public.
-                sub_choices = sub_choices.to(spu, MoveConfig(spu_vis='public'))
+                sub_choices = sub_choices.to(spu, spu_vis='public')
             else:
                 sub_choices = None
 
