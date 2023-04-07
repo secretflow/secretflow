@@ -13,12 +13,13 @@
 # limitations under the License.
 
 from typing import Dict
-import pandas as pd
-import numpy as np
 
-from secretflow.device import proxy, PYUObject, PYU
-from secretflow.data.vertical import VDataFrame
+import numpy as np
+import pandas as pd
+
 from secretflow.data.base import Partition
+from secretflow.data.vertical import VDataFrame
+from secretflow.device import PYU, PYUObject, proxy
 
 
 @proxy(PYUObject)

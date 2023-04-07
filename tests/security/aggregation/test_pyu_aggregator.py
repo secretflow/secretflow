@@ -1,5 +1,4 @@
 from secretflow.security.aggregation.plain_aggregator import PlainAggregator
-
 from secretflow.security.aggregation.sparse_plain_aggregator import (
     SparsePlainAggregator,
 )

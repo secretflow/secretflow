@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-01-16 09:47+0800\n"
+"POT-Creation-Date: 2023-04-06 14:18+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -48,7 +48,7 @@ msgid "run MPC computation with SPU device."
 msgstr "利用SPU设备执行MPC计算"
 
 #: ../../tutorial/spu_basics.ipynb:31
-msgid "Create a SPU Device"
+msgid "Create an SPU Device"
 msgstr "创建一个SPU设备"
 
 #: ../../tutorial/spu_basics.ipynb:34
@@ -76,11 +76,11 @@ msgid "a PYU device based on *dave*"
 msgstr "一个基于 *dave* 的PYU设备"
 
 #: ../../tutorial/spu_basics.ipynb:42
-msgid "a SPU device based on *alice*, *bob* and *carol*"
+msgid "an SPU device based on *alice*, *bob* and *carol*"
 msgstr "一个基于 *alice* , *bob* 和 *carol* 的SPU设备"
 
 #: ../../tutorial/spu_basics.ipynb:44
-msgid "|5254cc86f1cf4e409212cb9eefa32f3e|"
+msgid "|c94fba679df846eb8c705031c594b441|"
 msgstr ""
 
 #: ../../tutorial/spu_basics.ipynb:46
@@ -93,7 +93,7 @@ msgstr "创建一个基于三方ABY3协议的SPU设备"
 
 #: ../../tutorial/spu_basics.ipynb:109
 msgid ""
-"After that, let’s create a SPU device with `ABY3 "
+"After that, let’s create an SPU device with `ABY3 "
 "<https://eprint.iacr.org/2018/403.pdf>`__ protocol."
 msgstr "之后，我们创建一个基于 `ABY3 <https://eprint.iacr.org/2018/403.pdf>`__ 协议的SPU设备。"
 
@@ -105,7 +105,7 @@ msgstr "``sf.utils.testing.cluster_def`` 是一个helper通过寻找未占用的
 
 #: ../../tutorial/spu_basics.ipynb:169
 msgid ""
-"Then let’s use *aby3_config* to create a SPU device and check its "
+"Then let’s use *aby3_config* to create an SPU device and check its "
 "cluster_def."
 msgstr "随后我们用 *aby3\\_config* 来创建一个SPU设备并检查其 cluster\\_def 。"
 
@@ -134,7 +134,7 @@ msgstr "让我们将一个字典从HOST传给SPU设备。"
 #: ../../tutorial/spu_basics.ipynb:315
 msgid ""
 "*bank_account_spu* is a **SPUObject**. A *SPUObject* represents a Python "
-"Object which could be consumed by a SPU device."
+"Object which could be consumed by an SPU device."
 msgstr ""
 "*bank\\_account\\_spu* 是一个 **SPUObject**。一个 *SPUObject* "
 "可以代表一个可以被一个SPU设备接受的 Python Object。"
@@ -153,7 +153,7 @@ msgstr ""
 
 #: ../../tutorial/spu_basics.ipynb:367
 msgid ""
-"At this moment, since we are creating a SPU object from **Host**. We "
+"At this moment, since we are creating an SPU object from **Host**. We "
 "could check these two fields freely."
 msgstr "此时，由于我们是在 **Host** 创建一个SPU object。我们可以自由地查看这两个成员。"
 
@@ -193,7 +193,7 @@ msgstr "visibility，代表了值是密文还是明文。"
 
 #: ../../tutorial/spu_basics.ipynb:525
 msgid ""
-"storage_type, indicates attributeds of value, e.g. MPC protocol(ABY3 in "
+"storage_type, indicates attributes of value, e.g. MPC protocol(ABY3 in "
 "our case), field size(128 bits in our case), etc"
 msgstr "storage\\_type，代表了值的属性，比如MPC协议（这里是ABY3），field size（我们这里是128位），等等。"
 
@@ -215,7 +215,7 @@ msgstr "然后，我们尝试另一条路。首先，我们用一个PYU设备创
 
 #: ../../tutorial/spu_basics.ipynb:592
 msgid ""
-"Then let’s pass debit_amount_pyu from PYU to SPU. We will get a SPU "
+"Then let’s pass debit_amount_pyu from PYU to SPU. We will get an SPU "
 "object as result."
 msgstr "然后我们将debit\\_amount\\_pyu从PYU传到SPU，我们将会得到一个SPU object作为结果。"
 
@@ -248,11 +248,11 @@ msgid ""
 msgstr "这是使用 SPU 设备的数据流的第一部分，此时，您应该了解以下事实。"
 
 #: ../../tutorial/spu_basics.ipynb:868
-msgid "A Python Object/PYU Object could be transferred to a SPU Object."
+msgid "A Python Object/PYU Object could be transferred to an SPU Object."
 msgstr "Python Object/PYU Object可以转化到 SPU Object。"
 
 #: ../../tutorial/spu_basics.ipynb:869
-msgid "A SPU Object consists of meta and shares."
+msgid "An SPU Object consists of meta and shares."
 msgstr "一个SPU Object 包含了meta 和 shares。"
 
 #: ../../tutorial/spu_basics.ipynb:870
@@ -264,14 +264,14 @@ msgstr "你只能在SPU Object位于host的时候检查 meta 和 shares。否则
 #: ../../tutorial/spu_basics.ipynb:871
 msgid ""
 "Just converting to SPU Object won’t trigger data flow from host / PYU to "
-"SPU. e.g. When you transferred a PYU object to a SPU object. All the "
+"SPU. e.g. When you transferred a PYU object to an SPU object. All the "
 "field of SPU objects including meta and shares are still located at "
 "owners(Host / PYU device). The shares would only be sent to parties of "
-"SPU device when computation do happenes. In short, data flow is lazy."
-msgstr "仅仅转化为SPU Object不会触发从host / PYU至SPU的数据流动，比如当你将一个PYU Object转化为SPU Object时。"
-"SPU object所有内容包括meta和shares仍然位于所有方（Host / PYU设备）。"
-"shares只会在计算发生的时候将会被发送到SPU设备的各方。"
-"简单的来说，数据流动是lazy的。"
+"SPU device when computation do happen. In short, data flow is lazy."
+msgstr ""
+"仅仅转化为SPU Object不会触发从host / PYU至SPU的数据流动，比如当你将一个PYU Object转化为SPU "
+"Object时。SPU object所有内容包括meta和shares仍然位于所有方（Host / "
+"PYU设备）。shares只会在计算发生的时候将会被发送到SPU设备的各方。简单的来说，数据流动是lazy的。"
 
 #: ../../tutorial/spu_basics.ipynb:883
 msgid "Computation with SPU Device"
@@ -327,7 +327,7 @@ msgstr ""
 "*debit\\_amount\\_spu*）将被发送到 SPU 设备。然后使用 SPU 编译器将它们编译为 *SPU Executable*。"
 
 #: ../../tutorial/spu_basics.ipynb:1003
-msgid "|85b9cddc6f464f4289b00437847cfe73|"
+msgid "|8654a48da27542749ea779414435339b|"
 msgstr ""
 
 #: ../../tutorial/spu_basics.ipynb:1005
@@ -347,7 +347,7 @@ msgid "one piece of each SPU Object share"
 msgstr "每个 SPU object一份share"
 
 #: ../../tutorial/spu_basics.ipynb:1023
-msgid "|d5427f97c1be4cb49ffaa24887666204|"
+msgid "|e847817bc23e4076aeece7b40ccef97a|"
 msgstr ""
 
 #: ../../tutorial/spu_basics.ipynb:1025
@@ -355,7 +355,7 @@ msgid "spu_basics_distribute.png"
 msgstr ""
 
 #: ../../tutorial/spu_basics.ipynb:1038
-msgid "Then each party of SPU device would execute SPU Executation."
+msgid "Then each party of SPU device would execute SPU Executable."
 msgstr "然后 SPU 设备的每一方将执行 SPU Executation。"
 
 #: ../../tutorial/spu_basics.ipynb:1040
@@ -419,7 +419,7 @@ msgid ""
 msgstr "例如，如果有人想使用 2PC 协议 - Cheetah，你应该准备另一个集群 def："
 
 #: ../../tutorial/spu_basics.ipynb:1249
-msgid "Then you could create a SPU device with *cheetah_config*."
+msgid "Then you could create an SPU device with *cheetah_config*."
 msgstr "然后你可以用 *cheetah\\_config* 创建一个 SPU 设备。"
 
 #: ../../tutorial/spu_basics.ipynb:1271
@@ -531,3 +531,4 @@ msgstr ""
 #: ../../tutorial/spu_basics.ipynb:1853
 msgid "`Neural Network with SPU <./nn_with_spu.ipynb>`__"
 msgstr ""
+

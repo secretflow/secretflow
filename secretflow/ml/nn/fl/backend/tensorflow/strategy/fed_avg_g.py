@@ -16,14 +16,15 @@
 # limitations under the License.
 
 
-from typing import Tuple
-from secretflow.ml.nn.fl.backend.tensorflow.fl_base import BaseTFModel
-import numpy as np
-import copy
 import collections
+import copy
+from typing import Tuple
+
+import numpy as np
 import tensorflow as tf
 
 from secretflow.device import PYUObject, proxy
+from secretflow.ml.nn.fl.backend.tensorflow.fl_base import BaseTFModel
 from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
 
 

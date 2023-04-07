@@ -2,6 +2,7 @@ import unittest
 
 import numpy as np
 import pandas as pd
+
 from secretflow.ml.boost.homo_boost.tree_core.feature_histogram import (
     FeatureHistogram,
     HistogramBag,

@@ -9,7 +9,6 @@ from secretflow.device.driver import reveal
 from secretflow.preprocessing.binning.vert_woe_binning import VertWoeBinning
 from secretflow.preprocessing.binning.vert_woe_substitution import VertWOESubstitution
 from secretflow.utils.simulation.datasets import dataset
-
 from tests.basecase import MultiDriverDeviceTestCase
 
 

@@ -187,7 +187,7 @@ class RayCommunicator(Communicator):
 
 
 class Link:
-    """A helper class for communication inside actor between serveral actors.
+    """A helper class for communication inside actor between several actors.
 
     You should not use this class directly but inherit it and decorate your
     child class with :py:meth:`~secretflow.device.proxy`.

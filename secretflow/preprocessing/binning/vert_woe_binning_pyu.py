@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Dict, Union, Tuple
-from scipy.stats import chi2
-import pandas as pd
-import numpy as np
 import math
+from typing import Dict, List, Tuple, Union
+
+import numpy as np
+import pandas as pd
+from scipy.stats import chi2
 
 from secretflow.device import PYUObject, proxy
 
@@ -473,6 +474,20 @@ class VertWoeBinningPyuWorker:
                 woe_ivs, split_points, else_woe_ivs, total_counts, else_counts
             ),
         )
+
+    def participant_build_sum_indices(self, data: pd.DataFrame) -> List[List[int]]:
+        '''
+        build sum indices for driver to calculate positive samples by HE.
+        Attributes:
+            data: full dataset for this party.
+
+        Return:
+            bin indices.
+        '''
+        bins_idx, self.split_points, else_bins_idx = self._build_feature_bins(data)
+        self.total_counts = [b.size for b in bins_idx]
+        self.else_counts = [b.size for b in else_bins_idx]
+        return [*bins_idx, *[e for e in else_bins_idx if e.size]]
 
     def participant_build_sum_select(self, data: pd.DataFrame) -> np.ndarray:
         '''

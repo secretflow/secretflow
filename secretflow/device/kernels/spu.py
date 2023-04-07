@@ -27,49 +27,56 @@ from secretflow.device import (
     SPUObject,
     register,
 )
+from secretflow.device.device.base import register_to
+from secretflow.device.device.heu import HEUMoveConfig
 
 
-@register(DeviceType.SPU)
-def to(self: SPUObject, device: Device, config):
-    if isinstance(device, PYU):
+@register_to(DeviceType.SPU, DeviceType.PYU)
+def spu_to_pyu(self: SPUObject, pyu: Device, config: HEUMoveConfig = None):
+    assert isinstance(pyu, PYU), f'Expect a PYU but got {type(pyu)}.'
+    if config is None:
+        config = HEUMoveConfig()
 
-        def reveal(conf, world_size, refs, meta):
-            io = SPUIO(conf, world_size)
-            return io.reconstruct(refs, meta)
+    def reveal(conf, world_size, refs, meta):
+        io = SPUIO(conf, world_size)
+        return io.reconstruct(refs, meta)
 
-        return device(reveal)(
-            self.device.conf,
-            self.device.world_size,
-            self.device.outfeed_shares(self.shares_name),
-            self.meta,
-        )
-
-    if isinstance(device, SPU):
-        # same spu
-        if self.device == device:
-            return self
-
-        # send to another spu.
-        assert (
-            device.conf.protocol == self.device.conf.protocol
-            and device.conf.field == self.device.conf.field
-            and device.conf.fxp_fraction_bits == self.device.conf.fxp_fraction_bits
-            and device.world_size == self.device.world_size
-        )
-
-        shares = self.device.outfeed_shares(self.shares_name)
-        shares_name = device.infeed_shares(shares)
-
-        # TODO: do we need reshare shares.
-        return SPUObject(device, self.meta, shares_name)
-
-    if isinstance(device, HEU):
-        return spu_to_heu(self, device, config)
-
-    raise ValueError(f'Unexpected device type: {type(device)}')
+    return pyu(reveal)(
+        self.device.conf,
+        self.device.world_size,
+        self.device.outfeed_shares(self.shares_name),
+        self.meta,
+    )
 
 
-def spu_to_heu(self: SPUObject, heu: HEU, config):
+@register_to(DeviceType.SPU, DeviceType.SPU)
+def spu_to_spu(self: SPUObject, spu: SPU):
+    assert isinstance(spu, SPU), f'Expect an SPU but got {type(spu)}.'
+    # same spu
+    if self.device == spu:
+        return self
+
+    # send to another spu.
+    assert (
+        spu.conf.protocol == self.device.conf.protocol
+        and spu.conf.field == self.device.conf.field
+        and spu.conf.fxp_fraction_bits == self.device.conf.fxp_fraction_bits
+        and spu.world_size == self.device.world_size
+    )
+
+    shares = self.device.outfeed_shares(self.shares_name)
+    shares_name = spu.infeed_shares(shares)
+
+    # TODO: do we need reshare shares.
+    return SPUObject(spu, self.meta, shares_name)
+
+
+@register_to(DeviceType.SPU, DeviceType.HEU)
+def spu_to_heu(self: SPUObject, heu: Device, config: HEUMoveConfig = None):
+    assert isinstance(heu, HEU), f'Expect an HEU but got {type(heu)}.'
+    if config is None:
+        config = HEUMoveConfig()
+
     if config.heu_dest_party == "auto":
         config.heu_dest_party = list(heu.evaluator_names())[0]
 
@@ -117,6 +124,8 @@ def psi_df(
     curve_type="CURVE_25519",
     preprocess_path=None,
     ecdh_secret_key_path=None,
+    dppsi_bob_sub_sampling=0.9,
+    dppsi_epsilon=3,
 ) -> List[PYUObject]:
     assert isinstance(device, SPU), f'device must be SPU device'
     assert isinstance(
@@ -154,6 +163,8 @@ def psi_df(
                     curve_type,
                     preprocess_path,
                     ecdh_secret_key_path,
+                    dppsi_bob_sub_sampling,
+                    dppsi_epsilon,
                 ),
             )
         )
@@ -174,8 +185,10 @@ def psi_csv(
     broadcast_result=True,
     bucket_size=1 << 20,
     curve_type="CURVE_25519",
-    preprocess_path=None,
+    preprocess_path: Union[str, Dict[Device, str]] = None,
     ecdh_secret_key_path=None,
+    dppsi_bob_sub_sampling=0.9,
+    dppsi_epsilon=3,
 ):
     assert isinstance(device, SPU), f'device must be SPU device'
     assert isinstance(
@@ -214,13 +227,28 @@ def psi_csv(
                 dev.party in device.actors
             ), f'output_path {dev} not co-located with {device}'
 
+    if isinstance(preprocess_path, Dict):
+        if isinstance(input_path, Dict):
+            assert (
+                preprocess_path.keys() == input_path.keys() == output_path.keys()
+            ), f'mismatch key & input_path & out_path devices'
+            for dev in preprocess_path.keys():
+                assert (
+                    dev.party in device.actors
+                ), f'key {dev} not co-located with {device}'
+
     res = []
     if isinstance(input_path, str):
         assert isinstance(
             output_path, str
         ), f'input_path and output_path must be same types'
-        for actor in device.actors:
+        for actor in device.actors.values():
             k = key[actor] if isinstance(key, Dict) else key
+            p = (
+                preprocess_path[actor]
+                if isinstance(preprocess_path, Dict)
+                else preprocess_path
+            )
             res.append(
                 actor.psi_csv.remote(
                     k,
@@ -233,8 +261,10 @@ def psi_csv(
                     broadcast_result,
                     bucket_size,
                     curve_type,
-                    preprocess_path,
+                    p,
                     ecdh_secret_key_path,
+                    dppsi_bob_sub_sampling,
+                    dppsi_epsilon,
                 )
             )
     else:
@@ -242,6 +272,11 @@ def psi_csv(
             opath = output_path[dev]
             actor = device.actors[dev.party]
             k = key[dev] if isinstance(key, Dict) else key
+            p = (
+                preprocess_path[dev]
+                if isinstance(preprocess_path, Dict)
+                else preprocess_path
+            )
             res.append(
                 actor.psi_csv.remote(
                     k,
@@ -254,8 +289,10 @@ def psi_csv(
                     broadcast_result,
                     bucket_size,
                     curve_type,
-                    preprocess_path,
+                    p,
                     ecdh_secret_key_path,
+                    dppsi_bob_sub_sampling,
+                    dppsi_epsilon,
                 )
             )
 

@@ -123,7 +123,7 @@ Since logical devices are mapped to one or more physical devices, we need to cor
 logical devices to their corresponding physical devices, and handle the data transmission relationship
 between these physical devices. There is no doubt that we need a distributed graph execution engine to solve these problems.
 
-So what kind of distributed graph execution engine do we need? Here's what SecreFlow's requirements:
+So what kind of distributed graph execution engine do we need? Here's what SecretFlow's requirements:
 
 - **Fine-grained heterogeneous computing**: In a logical computing graph, there are computing tasks with different granularities, ranging from simple data processing (second level) to complex multi-party training (several hours to tens of hours). At the same time, physical nodes have different hardware environments, such as CPU, GPU, TEE, FPGA, etc.
 - **Flexible computing model**: In horizontal and vertical scenarios, for different workflows such as data processing and model training, it supports multiple parallel models, such as data parallelism, model parallelism, and hybrid parallelism.

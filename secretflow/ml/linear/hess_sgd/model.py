@@ -13,17 +13,17 @@
 # limitations under the License.
 
 import logging
-from typing import Tuple, Union, List
+from typing import List, Tuple, Union
 
 import jax.numpy as jnp
 import numpy as np
 
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.data.vertical import VDataFrame
-from secretflow.device import HEU, SPU, PYUObject, wait, SPUObject
+from secretflow.device import HEU, SPU, PYUObject, SPUObject, wait
 from secretflow.device.device.type_traits import spu_fxp_precision
+from secretflow.ml.linear.linear_model import LinearModel, RegType
 from secretflow.utils.sigmoid import SigType, sigmoid
-from secretflow.ml.linear.linear_model import RegType, LinearModel
 
 
 # hess-lr

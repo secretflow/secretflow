@@ -1,4 +1,5 @@
 import unittest
+
 import numpy as np
 
 import secretflow_lib.binding._lib.random as random

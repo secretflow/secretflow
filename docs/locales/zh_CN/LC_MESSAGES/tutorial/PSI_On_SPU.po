@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-01-07 11:23+0800\n"
+"POT-Creation-Date: 2023-04-06 14:06+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -73,7 +73,7 @@ msgid ""
 msgstr "在开始之前，我们需要初始化环境。以下三个节点 ``alice``， ``bob`` 和 ``carol`` 是在一台机器上创建的，以模拟多个参与者。"
 
 #: ../../tutorial/PSI_On_SPU.ipynb:77
-msgid "Prepraring dataset"
+msgid "Preparing dataset"
 msgstr "准备数据集"
 
 #: ../../tutorial/PSI_On_SPU.ipynb:88
@@ -215,7 +215,7 @@ msgstr "三方隐私求交"
 #: ../../tutorial/PSI_On_SPU.ipynb:842
 msgid ""
 "Next, we add a third-party ``carol``, and create a PYU device for it, as "
-"well as a SPU device built by the third party."
+"well as an SPU device built by the third party."
 msgstr "接下来，我们添加第三方 ``carol`` ，并为其创建一个PYU设备，以及一个由三方构建的SPU设备。"
 
 #: ../../tutorial/PSI_On_SPU.ipynb:864

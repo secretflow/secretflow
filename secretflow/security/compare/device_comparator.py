@@ -17,7 +17,7 @@ from typing import List, Union
 
 import jax.numpy as jnp
 
-from secretflow.device import SPU, PYU, DeviceObject
+from secretflow.device import PYU, SPU, DeviceObject
 from secretflow.security.compare.comparator import Comparator
 
 

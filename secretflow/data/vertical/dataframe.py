@@ -17,6 +17,7 @@ from typing import Callable, Dict, List, Union
 
 import pandas as pd
 from pandas.core.indexes.base import Index
+
 from secretflow.data.base import DataFrameBase, Partition
 from secretflow.data.ndarray import FedNdarray, PartitionWay
 from secretflow.device import PYU, Device, reveal

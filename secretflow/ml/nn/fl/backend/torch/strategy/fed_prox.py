@@ -21,6 +21,7 @@ from typing import List, Tuple
 
 import numpy as np
 import torch
+
 from secretflow.device import PYUObject, proxy
 from secretflow.ml.nn.fl.backend.torch.fl_base import BaseTorchModel
 from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy

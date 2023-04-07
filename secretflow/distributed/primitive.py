@@ -1,3 +1,18 @@
+# Copyright 2023 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
 import inspect
 from functools import partial
 from typing import List, Union
@@ -7,15 +22,10 @@ import jax
 import ray
 from ray import Language
 from ray._private import ray_option_utils
-from ray._private.inspect_util import is_cython
-from ray.actor import (
-    ActorClass,
-    ActorClassID,
-    _inject_tracing_into_class,
-    _modify_class,
-    ray_constants,
-)
+from ray.actor import ActorClass, _inject_tracing_into_class, ray_constants
 from ray.remote_function import RemoteFunction
+
+from secretflow.utils.ray_compatibility import ray_version_less_than_2_0_0
 
 _production_mode = False
 
@@ -28,6 +38,22 @@ def set_production(mode: bool):
 def production_mode():
     global _production_mode
     return _production_mode
+
+
+def _is_cython(obj):
+    """Check if an object is a Cython function or method"""
+
+    # TODO(suo): We could split these into two functions, one for Cython
+    # functions and another for Cython methods.
+    # TODO(suo): There doesn't appear to be a Cython function 'type' we can
+    # check against via isinstance. Please correct me if I'm wrong.
+    def check_cython(x):
+        return type(x).__name__ == "cython_function_or_method"
+
+    # Check if function or method, respectively
+    return check_cython(obj) or (
+        hasattr(obj, "__func__") and check_cython(obj.__func__)
+    )
 
 
 def remote(*args, **kwargs):
@@ -83,11 +109,11 @@ class RemoteFunctionWrapper(RemoteFunction):
         return super()._remote(*args, **kwargs)
 
     def party(self, party: str):
+        self.party = party
         if 'resources' in self._default_options:
             self._default_options['resources'].update({self.party: 1})
         else:
             self._default_options.update({'resources': {self.party: 1}})
-        self.party = party
         return self
 
     def options(self, **task_options):
@@ -122,6 +148,12 @@ class ActorClassWrapper(ActorClass):
 
 
 def _make_actor(cls, actor_options):
+    if ray_version_less_than_2_0_0():
+        from ray import ActorClassID
+        from ray.actor import modify_class as _modify_class
+    else:
+        from ray.actor import ActorClassID, _modify_class
+
     Class = _modify_class(cls)
     _inject_tracing_into_class(Class)
 
@@ -141,7 +173,7 @@ def _make_actor(cls, actor_options):
 
 
 def _make_remote(function_or_class, options):
-    if inspect.isfunction(function_or_class) or is_cython(function_or_class):
+    if inspect.isfunction(function_or_class) or _is_cython(function_or_class):
         ray_option_utils.validate_task_options(options, in_options=False)
         return RemoteFunctionWrapper(
             Language.PYTHON,
@@ -149,7 +181,6 @@ def _make_remote(function_or_class, options):
             None,
             options,
         )
-
     if inspect.isclass(function_or_class):
         ray_option_utils.validate_actor_options(options, in_options=False)
         return _make_actor(function_or_class, options)

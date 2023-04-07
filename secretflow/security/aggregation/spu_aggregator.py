@@ -27,7 +27,7 @@ class SPUAggregator(Aggregator):
     The computation will be performed on the given SPU device.
 
     Examples:
-      >>> # spu shall be a SPU device instance.
+      >>> # spu shall be an SPU device instance.
       >>> aggregator = SPUAggregator(spu)
       >>> # Alice and bob are both pyu instances.
       >>> a = alice(lambda : np.random.rand(2, 5))()

@@ -15,11 +15,12 @@
 import hashlib
 import os
 import pickle
+import random
 import zipfile
 from collections import namedtuple
 from pathlib import Path
 from typing import Dict, List, Tuple, Union
-import random
+
 import networkx as nx
 import numpy as np
 import pandas as pd
@@ -81,6 +82,16 @@ _DATASETS = {
         'ml-1m.zip',
         'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/movielens/ml-1m.zip',
         'a6898adb50b9ca05aa231689da44c217cb524e7ebd39d264c56e2832f2c54e20',
+    ),
+    'pubmed': _Dataset(
+        'pubmed.zip',
+        'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/pubmed/pubmed.zip',
+        '04a5aa8b3b3432d617d35286e42011b64d58ac362a107d2c257d9da85bf0c021',
+    ),
+    'citeseer': _Dataset(
+        'citeseer.zip',
+        'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/citeseer/citeseer.zip',
+        '8f0f1aba42c7be5818dc43d96913713a2ffc1c0d9dc09bef30d0432d2c102b49',
     ),
 }
 
@@ -444,7 +455,7 @@ def load_cora(
     x_arr = FedNdarray(
         partitions={
             part: part(
-                lambda: nodes[:, feature_split_idxs[i] : feature_split_idxs[i + 1]]
+                lambda: nodes[:, feature_split_idxs[i]: feature_split_idxs[i + 1]]
             )()
             for i, part in enumerate(parts)
         },
@@ -472,6 +483,297 @@ def load_cora(
     )
     idx_test_arr = FedNdarray(
         partitions={parts[0]: parts[0](lambda: test_mask)()},
+        partition_way=PartitionWay.HORIZONTAL,
+    )
+
+    return (
+        edge_arr,
+        x_arr,
+        Y_train_arr,
+        Y_val_arr,
+        Y_test_arr,
+        idx_train_arr,
+        idx_val_arr,
+        idx_test_arr,
+    )
+
+
+def load_pubmed(
+    parts: List[PYU], data_dir: str = None, add_self_loop: bool = True
+) -> Tuple[
+    FedNdarray,
+    FedNdarray,
+    FedNdarray,
+    FedNdarray,
+    FedNdarray,
+    FedNdarray,
+    FedNdarray,
+    FedNdarray,
+]:
+    """Load the pubmed dataset for split learning GNN.
+    Datasource: https://github.com/kimiyoung/planetoid/tree/master/data
+
+    Args:
+        parts (List[PYU]): parties that the paper features will be partitioned
+            evenly.
+
+    Returns:
+        A tuple of FedNdarray: edge, x, Y_train, Y_val, Y_valid, index_train,
+        index_val, index_test. Note that Y is bound to the first participant.
+    """
+    assert parts, 'Parts shall not be None or empty!'
+    if data_dir is None:
+        data_dir = os.path.join(_CACHE_DIR, 'pubmed')
+        if not Path(data_dir).is_dir():
+            filepath = _get_dataset(_DATASETS['pubmed'])
+            _unzip(filepath, data_dir)
+
+    file_names = [
+        os.path.join(data_dir, f'ind.pubmed.{name}')
+        for name in ['y', 'tx', 'ty', 'allx', 'ally', 'graph']
+    ]
+
+    objects = []
+    for name in file_names:
+        with open(name, 'rb') as f:
+            objects.append(pickle.load(f, encoding='latin1'))
+
+    y, tx, ty, allx, ally, graph = tuple(objects)
+
+    with open(os.path.join(data_dir, f"ind.pubmed.test.index"), 'r') as f:
+        test_idx_reorder = f.readlines()
+    test_idx_reorder = list(map(lambda s: int(s.strip()), test_idx_reorder))
+    test_idx_range = np.sort(test_idx_reorder)
+
+    nodes = scipy.sparse.vstack((allx, tx)).tolil()
+    nodes[test_idx_reorder, :] = nodes[test_idx_range, :]
+    edge_sparse = nx.adjacency_matrix(nx.from_dict_of_lists(graph))
+
+    labels = np.vstack((ally, ty))
+    labels[test_idx_reorder, :] = labels[test_idx_range, :]
+
+    # test 1000
+    # train #class * 20 = 7 * 20 = 140
+    # val 500
+    idx_test = test_idx_range.tolist()
+    idx_train = range(len(y))
+    idx_val = range(len(y), len(y) + 500)
+
+    def sample_mask(idx, length):
+        mask = np.zeros(length)
+        mask[idx] = 1
+        return np.array(mask, dtype=np.bool)
+
+    train_mask = sample_mask(idx_train, labels.shape[0])
+    val_mask = sample_mask(idx_val, labels.shape[0])
+    test_mask = sample_mask(idx_test, labels.shape[0])
+
+    y_train = np.zeros(labels.shape)
+    y_val = np.zeros(labels.shape)
+    y_test = np.zeros(labels.shape)
+    y_train[train_mask, :] = labels[train_mask, :]
+    y_val[val_mask, :] = labels[val_mask, :]
+    y_test[test_mask, :] = labels[test_mask, :]
+
+    def edge_dense(edge: np.ndarray):
+        if add_self_loop:
+            return edge + np.eye(edge.shape[1])
+        else:
+            return edge.toarray()
+
+    nodes = nodes.toarray()
+    edge_arr = FedNdarray(
+        partitions={part: part(edge_dense)(edge_sparse) for part in parts},
+        partition_way=PartitionWay.HORIZONTAL,
+    )
+
+    feature_split_idxs = np.rint(np.linspace(0, nodes.shape[1], len(parts) + 1)).astype(
+        np.int32
+    )
+    x_arr = FedNdarray(
+        partitions={
+            part: part(
+                lambda: nodes[:, feature_split_idxs[i] : feature_split_idxs[i + 1]]
+            )()
+            for i, part in enumerate(parts)
+        },
+        partition_way=PartitionWay.VERTICAL,
+    )
+    Y_train_arr = FedNdarray(
+        partitions={parts[0]: parts[0](lambda: y_train)()},
+        partition_way=PartitionWay.HORIZONTAL,
+    )
+    Y_val_arr = FedNdarray(
+        partitions={parts[0]: parts[0](lambda: y_val)()},
+        partition_way=PartitionWay.HORIZONTAL,
+    )
+    Y_test_arr = FedNdarray(
+        partitions={parts[0]: parts[0](lambda: y_test)()},
+        partition_way=PartitionWay.HORIZONTAL,
+    )
+    idx_train_arr = FedNdarray(
+        partitions={part: part(lambda: train_mask)() for part in parts},
+        partition_way=PartitionWay.HORIZONTAL,
+    )
+    idx_val_arr = FedNdarray(
+        partitions={part: part(lambda: val_mask)() for part in parts},
+        partition_way=PartitionWay.HORIZONTAL,
+    )
+    idx_test_arr = FedNdarray(
+        partitions={part: part(lambda: test_mask)() for part in parts},
+        partition_way=PartitionWay.HORIZONTAL,
+    )
+
+    return (
+        edge_arr,
+        x_arr,
+        Y_train_arr,
+        Y_val_arr,
+        Y_test_arr,
+        idx_train_arr,
+        idx_val_arr,
+        idx_test_arr,
+    )
+
+
+def load_citeseer(
+    parts: List[PYU], data_dir: str = None, add_self_loop: bool = True
+) -> Tuple[
+    FedNdarray,
+    FedNdarray,
+    FedNdarray,
+    FedNdarray,
+    FedNdarray,
+    FedNdarray,
+    FedNdarray,
+    FedNdarray,
+]:
+    """Load the citeseer dataset for split learning GNN.
+    Datasource: https://github.com/kimiyoung/planetoid/tree/master/data
+
+    Args:
+        parts (List[PYU]): parties that the paper features will be partitioned
+            evenly.
+
+    Returns:
+        A tuple of FedNdarray: edge, x, Y_train, Y_val, Y_valid, index_train,
+        index_val, index_test. Note that Y is bound to the first participant.
+    """
+    assert parts, 'Parts shall not be None or empty!'
+    if data_dir is None:
+        data_dir = os.path.join(_CACHE_DIR, 'citeseer')
+        if not Path(data_dir).is_dir():
+            filepath = _get_dataset(_DATASETS['citeseer'])
+            _unzip(filepath, data_dir)
+
+    file_names = [
+        os.path.join(data_dir, f'ind.citeseer.{name}')
+        for name in ['x', 'y', 'tx', 'ty', 'allx', 'ally', 'graph']
+    ]
+
+    objects = []
+    for name in file_names:
+        with open(name, 'rb') as f:
+            objects.append(pickle.load(f, encoding='latin1'))
+
+    x, y, tx, ty, allx, ally, graph = tuple(objects)
+
+    with open(os.path.join(data_dir, f"ind.citeseer.test.index"), 'r') as f:
+        test_idx_reorder = f.readlines()
+    test_idx_reorder = list(map(lambda s: int(s.strip()), test_idx_reorder))
+    test_idx_range = np.sort(test_idx_reorder)
+
+    # Fix citeseer dataset (there are some isolated nodes in the graph)
+    # Find isolated nodes, add them as zero-vecs into the right position
+    test_idx_range_full = range(min(test_idx_reorder), max(test_idx_reorder) + 1)
+    zero_ind = list(set(test_idx_range_full) - set(test_idx_reorder))
+    tx_extended = scipy.sparse.lil_matrix((len(test_idx_range_full), x.shape[1]))
+    tx_extended[test_idx_range - min(test_idx_range), :] = tx
+    tx = tx_extended
+    ty_extended = np.zeros((len(test_idx_range_full), y.shape[1]))
+    ty_extended[test_idx_range - min(test_idx_range), :] = ty
+    ty_extended[
+        zero_ind - min(test_idx_range),
+        np.random.randint(0, y.shape[1], len(zero_ind)),
+    ] = 1
+    ty = ty_extended
+
+    nodes = scipy.sparse.vstack((allx, tx)).tolil()
+    nodes[test_idx_reorder, :] = nodes[test_idx_range, :]
+    edge_sparse = nx.adjacency_matrix(nx.from_dict_of_lists(graph))
+
+    labels = np.vstack((ally, ty))
+    labels[test_idx_reorder, :] = labels[test_idx_range, :]
+
+    # test 1000
+    # train #class * 20 = 6 * 20 = 120
+    # val 500
+    idx_test = test_idx_range.tolist()
+    idx_train = range(len(y))
+    idx_val = range(len(y), len(y) + 500)
+
+    def sample_mask(idx, length):
+        mask = np.zeros(length)
+        mask[idx] = 1
+        return np.array(mask, dtype=np.bool)
+
+    train_mask = sample_mask(idx_train, labels.shape[0])
+    val_mask = sample_mask(idx_val, labels.shape[0])
+    test_mask = sample_mask(idx_test, labels.shape[0])
+
+    y_train = np.zeros(labels.shape)
+    y_val = np.zeros(labels.shape)
+    y_test = np.zeros(labels.shape)
+    y_train[train_mask, :] = labels[train_mask, :]
+    y_val[val_mask, :] = labels[val_mask, :]
+    y_test[test_mask, :] = labels[test_mask, :]
+
+    def edge_dense(edge: np.ndarray):
+        if add_self_loop:
+            return edge + np.eye(edge.shape[1])
+        else:
+            return edge.toarray()
+
+    nodes = nodes.toarray()
+    edge_arr = FedNdarray(
+        partitions={part: part(edge_dense)(edge_sparse) for part in parts},
+        partition_way=PartitionWay.HORIZONTAL,
+    )
+
+    feature_split_idxs = np.rint(np.linspace(0, nodes.shape[1], len(parts) + 1)).astype(
+        np.int32
+    )
+    x_arr = FedNdarray(
+        partitions={
+            part: part(
+                lambda: nodes[:, feature_split_idxs[i] : feature_split_idxs[i + 1]]
+            )()
+            for i, part in enumerate(parts)
+        },
+        partition_way=PartitionWay.VERTICAL,
+    )
+    Y_train_arr = FedNdarray(
+        partitions={parts[0]: parts[0](lambda: y_train)()},
+        partition_way=PartitionWay.HORIZONTAL,
+    )
+    Y_val_arr = FedNdarray(
+        partitions={parts[0]: parts[0](lambda: y_val)()},
+        partition_way=PartitionWay.HORIZONTAL,
+    )
+    Y_test_arr = FedNdarray(
+        partitions={parts[0]: parts[0](lambda: y_test)()},
+        partition_way=PartitionWay.HORIZONTAL,
+    )
+    idx_train_arr = FedNdarray(
+        partitions={part: part(lambda: train_mask)() for part in parts},
+        partition_way=PartitionWay.HORIZONTAL,
+    )
+    idx_val_arr = FedNdarray(
+        partitions={part: part(lambda: val_mask)() for part in parts},
+        partition_way=PartitionWay.HORIZONTAL,
+    )
+    idx_test_arr = FedNdarray(
+        partitions={part: part(lambda: test_mask)() for part in parts},
         partition_way=PartitionWay.HORIZONTAL,
     )
 
@@ -566,7 +868,6 @@ def load_ml_1m(
         f = open(extract_dir + "/ratings.dat", "r", encoding="unicode_escape")
 
     for line in f:
-
         ls = line.strip().split("::")
         rating = dict(zip(ratings_columns, ls))
         rating.update(users_data.get(ls[0]))

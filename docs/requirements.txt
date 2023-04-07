@@ -7,12 +7,10 @@ sphinx-autobuild==2021.3.14
 sphinx-markdown-parser==0.2.4
 sphinxcontrib-actdiag==3.0.0
 sphinxcontrib-blockdiag==3.0.0
-sphinxcontrib-mermaid==0.7.1
 sphinxcontrib-nwdiag==2.0.0
 sphinxcontrib-seqdiag==3.0.0
 pytablewriter==0.64.2
 linkify-it-py==2.0.0
 sphinx-intl==2.0.1
 autodocsumm==0.2.9
-secretflow==0.7.18b0
-sf-pydata-sphinx-theme
+pydata-sphinx-theme

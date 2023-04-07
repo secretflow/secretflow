@@ -5,18 +5,14 @@ import time
 import numpy as np
 import pandas as pd
 import sklearn
-from statsmodels.stats.outliers_influence import \
-    variance_inflation_factor as vif
+from statsmodels.stats.outliers_influence import variance_inflation_factor as vif
 
 from secretflow.data.base import Partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.device.driver import reveal, wait
 from secretflow.stats import SSVertVIF
-from secretflow.utils.simulation.datasets import (create_df, dataset,
-                                                  load_linear)
-
-from tests.basecase import (ABY3MultiDriverDeviceTestCase,
-                            MultiDriverDeviceTestCase)
+from secretflow.utils.simulation.datasets import create_df, dataset, load_linear
+from tests.basecase import ABY3MultiDriverDeviceTestCase, MultiDriverDeviceTestCase
 
 
 class TestVertVIF(MultiDriverDeviceTestCase):

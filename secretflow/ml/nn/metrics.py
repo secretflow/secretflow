@@ -16,11 +16,10 @@
 """keras global evaluation metrics
 
 """
+import logging
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List
-from abc import ABC, abstractmethod
-import logging
-
 
 # The reason we just do not inherit or combine tensorflow metrics
 # is tensorflow metrics are un-serializable but we need send they from worker to server.

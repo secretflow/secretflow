@@ -1,6 +1,6 @@
 # Installation
 
-The simplist way to try SecretFlow is to use [offical docker image](#option-2-from-docker) which ships with SecretFlow binary.
+The simplest way to try SecretFlow is to use [offical docker image](#option-2-from-docker) which ships with SecretFlow binary.
 
 Or you could [install SecretFlow via Python Package Index](#option-1-from-pypi).
 
@@ -10,6 +10,7 @@ After installation, don't forget to [have a quick try](#a-quick-try) to check if
 
 
 ## Environment
+
 Python：3.8
 
 pip: >= 19.3
@@ -118,7 +119,8 @@ nvidia-smi
 ```
 
 2. Follow the [NVIDIA official guide](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#docker) to setup NVIDIA Container Toolkit on your distributions.
-2. Use a dockerfile file to construct an image
+
+3. Use a dockerfile file to construct an image
 
 - Download code
 
@@ -133,15 +135,15 @@ cd secretflow/docker
 docker build -f  sf-gpu.Dockerfile -t secretflow-gpu .
 ```
 
-3. Run an container
+4. Run an container
 
 ```bash
-docker container run -it --gpus all  secretflow-gpu bash
+docker container run -it --gpus all secretflow-gpu bash
 ```
 
-- `--gpus all`:This parameters and values are essential
+- `--gpus all`: This parameter is essential.
 
-1. After the container is running, you can use the jupyter notebook ./docs/tutorial/GPU_check.ipynb to check the callability of Tensorflow and PyTorch for NVIDIA GPUs inside the container.
+5. After the container is running, you can use the jupyter notebook [GPU Check](../tutorial/GPU_check.ipynb) to check the callability of Tensorflow and PyTorch for NVIDIA GPUs inside the container.
 
 ## A quick try
 

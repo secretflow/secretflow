@@ -13,8 +13,8 @@
 # limitations under the License.
 
 
-import numpy as np
 import jax.numpy as jnp
+import numpy as np
 
 
 def newton_matrix_inverse(x: np.ndarray, iter_round: int = 20):

@@ -142,13 +142,13 @@ class SecureAggregator(Aggregator):
     Notes:
         `Masking with One-Time Pads` is based on semi-honest assumptions
         and does not support client dropping. For more information, please refer to
-        `Practical Secure Aggregationfor Privacy-Preserving Machine Learning <https://eprint.iacr.org/2017/281.pdf>`_
+        `Practical Secure Aggregation for Privacy-Preserving Machine Learning <https://eprint.iacr.org/2017/281.pdf>`_
 
     Warnings:
         The SecureAggregator uses :py:meth:`numpy.random.PCG64`. There are many
         discussions of whether PCG is a CSPRNG
         (e.g. https://crypto.stackexchange.com/questions/77101/is-the-pcg-prng-a-csprng-or-why-not),
-        we perfer a conservative strategy unless a further security analysis came
+        we prefer a conservative strategy unless a further security analysis came
         up. Therefore we recommend users to use a standardized CSPRNG in industrial
         scenarios.
 

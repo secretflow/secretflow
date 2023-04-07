@@ -241,11 +241,11 @@ For more details about API, see :py:meth:`~secretflow.ml.linear.hess_sgd.model.H
     #           process ciphertext under the protection of a multi-party secure computing protocol
     spu = sf.SPU(sf.utils.testing.cluster_def(['alice', 'bob']))
 
-    # first, init a HEU device that alice is sk_keeper and bob is evaluator
+    # first, init an HEU device that alice is sk_keeper and bob is evaluator
     heu_config = sf.utils.testing.heu_config(sk_keeper='alice', evaluators=['bob'])
     heu_x = sf.HEU(heu_config, spu.cluster_def['runtime_config']['field'])
 
-    # then, init a HEU device that bob is sk_keeper and alice is evaluator
+    # then, init an HEU device that bob is sk_keeper and alice is evaluator
     heu_config = sf.utils.testing.heu_config(sk_keeper='bob', evaluators=['alice'])
     heu_y = sf.HEU(heu_config, spu.cluster_def['runtime_config']['field'])
 

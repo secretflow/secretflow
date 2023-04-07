@@ -8,6 +8,7 @@ SecretFlow SPU implements the following PSI protocols,
 - Semi-honest OT-based two-party PSI protocol [KKRT16]_
 - Semi-honest PCG/VOLE-based two-party PSI protocol (with improved communication efficiency) [BC22]_
 - Semi-honest EC-OPRF based two-party Unbalanced PSI protocol
+- Differentially Private (DP) PSI Protocol [DP-PSI]_
 
 
 As a general rule, OT-based PSI protocols are (significantly) faster but require more communication 
@@ -47,7 +48,7 @@ Protocol:
 
 3. For each element :math:`y_i` in its set, Bob applies the hash function and then exponentiates it 
    using its key :math:`\beta`, thus computing :math:`{H(y_i)}^\beta` . 
-   Bob sends the set :math:`{\,{H(y_i)}^\beta}_{i=1}^{n_2}` to Alice.
+   Bob sends the set :math:`{\,\{\,{H(y_i)}^\beta\}\,}_{i=1}^{n_2}` to Alice.
 
 4. For each element :math:`{H(y_i)}^\beta`  received from Bob in the previous step, Alice exponentiates 
    it using its key :math:`\alpha`, computing :math:`{H(y_i)}^{\beta\alpha}` .   
@@ -201,6 +202,75 @@ built upon prime-order groups.
   4. Alice compares two sets :math:`{\,\{H_2(x_i,{H_1(x_i)}^\beta)\}\,}_{i=1}^{n_1}`
      and :math:`{\,\{H_2(y_i,{H_1(y_i)}^\beta)\}\,}_{i=1}^{n_2}` and gets intersection.
 
+Differentially Private PSI
+--------------------------
+
+We also implement a Differentially Private (DP) Private Set Intersection (PSI)
+Protocol. Our implementaion bases on ECDH-PSI, and provides:
+
+- Differentially private PSI results.
+
+This feature is currently under test, please use at your own risk!  
+
+Why PSI with differentially private results? If we want a scheme that protects
+both the private inputs and output privacy, an ideal way is to use `circuit
+PSI`, which is a typical PSI variant that allows secure computation (e.g. MPC or
+HE) on the PSI result without revealing it. `PSTY19
+<https://eprint.iacr.org/2019/241.pdf>`_ However those protocols are expensive
+in terms of efficiency.  
+
+DP-PSI is a way of utilising the up-sampling and sub-sampling mechanism to add
+calibrated noises to the PSI results, without revealing its concise value.  
+
+The protocol is listed below, assume Alice has a (hashed and shuffled) set
+:math:`X` and Bob has a (hashed and shuffled) :math:`Y`.  
+
+.. figure:: ./resources/dp_psi.png
+
+Note that we use encrypt to denote the process of calculating :math:`y\gets
+x^a`.
+
+Protocol:
+
+1. Alice and Bob first encrypts their own dataset, and gets :math:`X^a` and
+   :math:`Y^b` separately.
+   
+2. Alice sends :math:`X^a` to Bob.
+   
+3. Bob performs random subsampling on :math:`Y^b`, gets :math:`Y_*^b` and send
+   to Alice. In the meantime, on receiving :math:`X^a` from Alice, Bob
+   reencrypts it with :math:`b`, gets :math:`X^{ab}`. Then it samples a random
+   permutation :math:`\pi` to permute Alice's set, and send permuted
+   :math:`\pi(X^{ab})` back to Alice.
+   
+4. On receving :math:`Y_*^b` and :math:`\pi(X^{ab})` from Bob, Alice reencrypts
+   :math:`Y_*^b` and gets :math:`Y_*^{ab}`, then calculate the intersection
+   :math:`I_*^{ab}\gets\pi(X^{ab})\cap Y_*^{ab}`.
+   
+5. Alice randomly subsamples the intersection, gets :math:`I_{**}^{ab}`, and
+   then find-out their corresponding index in :math:`Y_*^b`. Then randomly add
+   non-intersection index to this set.
+   
+6. Alice sends the index set to Bob, then Bob reveal the final results.
+
+In the end, this scheme ensures that the receiver (Bob) only learns the noised
+intersection, without the ability of pointing out whether an element is in the
+actual set intersection or not.  
+
+Note that multiple invocation of DP-PSI inevitably weaken the privacy
+protection, therefore, we strongly suggest that user should implement a
+protection mechanism to prevent multiple DP-PSI executions on the same input
+value.  
+
++---------------------------+--------+---------+---------+---------+-----------+
+| Intel(R) Xeon(R) Platinum | 2^20   | 2^21    | 2^22    | 2^23    |   2^24    |
++===========================+========+=========+=========+=========+===========+
+|   DP-PSI                  | 9.806s | 20.134s | 42.067s | 86.580s | 170.359s  |
++---------------------------+--------+---------+---------+---------+-----------+
+
+For DP, our default privacy protection strength is :math:`\epsilon=3`. For more
+details, please refer to the original paper: [DP-PSI]_
+
 Tutorial
 --------
 
@@ -231,7 +301,9 @@ Reference
    Key Cryptography (PKC), Springer-Verlag LNCS 3958, page 2006, 2006. (Cited on page 4.)
 
 .. [CIK+20] G. Couteau, Y. Ishai, L. Kohl, E. Boyle, P. Scholl, and N. Gilboa. Efficient pseudorandom
-   correlation generators from ring-lpn. Springer-Verlag, 2020.   
+   correlation generators from ring-lpn. Springer-Verlag, 2020.  
+
+.. [DP-PSI] Differentially-Private PSI https://arxiv.org/pdf/2208.13249.pdf    
 
 .. [FourQ] Costello, C., Longa, P.: Fourq: four-dimensional decompositions on a q-curve over the mersenne prime. 
     Cryptology ePrint Archive, Report 2015/565 (2015), https://eprint.iacr.org/2015/565

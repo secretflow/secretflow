@@ -13,18 +13,18 @@
 # limitations under the License.
 
 
-from secretflow.device import SPU
 from secretflow.data import FedNdarray
 from secretflow.data.ndarray import (
     mean,
-    r2_score,
-    rss,
     mean_abs_err,
     mean_abs_percent_err,
     mean_squared_error,
-    root_mean_squared_error,
+    r2_score,
     residual_histogram,
+    root_mean_squared_error,
+    rss,
 )
+from secretflow.device import SPU
 
 
 class RegressionEval:
@@ -34,8 +34,8 @@ class RegressionEval:
     Attributes:
         y_true: FedNdarray
             If y_true is from a single party, then each statistics is a PYUObject.
-            If y_true is from multiple parties, then a SPU device is required
-            and each statistics is a SPUObject.
+            If y_true is from multiple parties, then an SPU device is required
+            and each statistics is an SPUObject.
         y_pred: FedNdarray
             y_true and y_pred must have the same device and partition shapes
         r2_score: Union[PYUObject, SPUObject]

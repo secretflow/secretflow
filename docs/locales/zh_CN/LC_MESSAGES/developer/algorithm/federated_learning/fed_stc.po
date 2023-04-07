@@ -57,8 +57,8 @@ msgid "topk"
 msgstr "topk"
 
 #: ../../developer/algorithm/federated_learning/fed_stc.md
-msgid "binarizaiton"
-msgstr "binarizaiton"
+msgid "binarization"
+msgstr "binarization"
 
 #: ../../developer/algorithm/federated_learning/fed_stc.md
 msgid "Yes"
@@ -122,11 +122,11 @@ msgstr ""
 #: ../../developer/algorithm/federated_learning/fed_stc.md:12
 msgid ""
 "Quantization is added while sparse. The quantization method is "
-"Binarizaiton. Only 3 numbers will appear in the final matrix, "
+"Binarization. Only 3 numbers will appear in the final matrix, "
 "{![](https://latex.codecogs.com/svg.image?\\inline&space;\\small&space;\\mu),"
 " 0, "
 "![](https://latex.codecogs.com/svg.image?\\inline&space;\\small&space;\\mu)};"
-msgstr "在做稀疏化的同时加上了量化，量化的方法是Binarizaiton，最终的矩阵中只会出现3个数字，{mu, 0, -mu}；"
+msgstr "在做稀疏化的同时加上了量化，量化的方法是Binarization，最终的矩阵中只会出现3个数字，{mu, 0, -mu}；"
 
 #: ../../developer/algorithm/federated_learning/fed_stc.md:13
 msgid "Lossless Golomb Encoding is used on the sparse + quantized matrix;"

@@ -20,7 +20,7 @@ One training step of federated learning:
 2. Each participant uses its own local data to train the model, and uploads encrypted updates to the server.
 3. The server aggregates the encrypted updates uploaded by all parties, and updates model parameters with the aggregated updates.
 4. The server returns the updated model to each participant.
-5. Each participant updates their local model, and prepare the next training step.
+5. Each participant updates their local model, and prepares the next training step.
 
 
 .. toctree::

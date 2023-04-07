@@ -22,6 +22,7 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import reduce
 
 import numpy as np
+
 import secretflow.device.link as link
 from secretflow.data.horizontal import HDataFrame
 from secretflow.ml.boost.homo_boost.tree_core.decision_tree import DecisionTree

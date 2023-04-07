@@ -17,9 +17,10 @@ import collections
 import math
 from abc import abstractmethod
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 
 from secretflow.ml.nn.fl.backend.tensorflow.sampler import sampler_data
@@ -158,6 +159,47 @@ class BaseTFModel:
             self.eval_set = iter(data_set)
         else:
             raise Exception(f"Illegal argument stage={stage}")
+
+    def build_dataset_from_builder(
+        self,
+        dataset_builder: Callable,
+        x: Union[pd.DataFrame, str],
+        y: Optional[np.ndarray] = None,
+        s_w: Optional[np.ndarray] = None,
+        repeat_count=1,
+        stage="train",
+    ):
+        """build tf.data.Dataset
+
+        Args:
+            dataset_builder: Function of how to build dataset, must return dataset and step_per_epoch
+            x: A string representing the path to a CSV file or data folder containing the input data.
+            y: label, FedNdArray or HDataFrame
+            s_w: Default None, all samples are assumed to have equal weight.
+            repeat_count: An integer specifying the number of times to repeat the dataset. This is useful for increasing the effective size of the dataset.
+            stage: A string specifying the stage of the dataset to build. This is useful for separating training, validation, and test datasets.
+        Returns:
+            A tensorflow dataset
+        """
+        data_set = None
+        assert dataset_builder is not None, "Dataset builder cannot be none"
+        if isinstance(x, str):
+            data_set, step_per_epoch = dataset_builder(x, stage=stage)
+        else:
+            if y is not None:
+                x.append(y)
+                if s_w is not None and len(s_w.shape) > 0:
+                    x.append(s_w)
+
+            data_set, step_per_epoch = dataset_builder(x, stage=stage)
+        data_set = data_set.repeat(repeat_count)
+        if stage == "train":
+            self.train_set = iter(data_set)
+        elif stage == "eval":
+            self.eval_set = iter(data_set)
+        else:
+            raise Exception(f"Illegal argument stage={stage}")
+        return step_per_epoch
 
     def get_rows_count(self, filename):
         return int(rows_count(filename=filename)) - 1  # except header line

@@ -80,8 +80,8 @@ model_def = TorchModel(
             loss_fn=nn.CrossEntropyLoss,
             optim_fn=optim_wrapper(optim.Adam, lr=5e-3),
             metrics=[
-                metric_wrapper(Accuracy, num_classes=3, average='micro'),
-                metric_wrapper(Precision, num_classes=3, average='micro'),
+                metric_wrapper(Accuracy, task="multiclass", num_classes=3, average='micro'),
+                metric_wrapper(Precision, task="multiclass", num_classes=3, average='micro'),
             ],
         )
 

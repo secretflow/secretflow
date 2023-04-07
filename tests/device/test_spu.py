@@ -1,12 +1,13 @@
+import tempfile
+
 import jax
 import numpy as np
 from jax.example_libraries import optimizers, stax
 from jax.example_libraries.stax import Dense, Relu
 
 import secretflow as sf
-
-from tests.basecase import (MultiDriverDeviceTestCase,
-                            SingleDriverDeviceTestCase)
+from secretflow.device.device.spu import SPUObject
+from tests.basecase import MultiDriverDeviceTestCase, SingleDriverDeviceTestCase
 
 
 def MLP():
@@ -82,3 +83,25 @@ class TestDeviceSPU(MultiDriverDeviceTestCase, SingleDriverDeviceTestCase):
         x_spu = x_heu.to(self.spu)
         y = x_spu.to(self.alice)
         np.testing.assert_almost_equal(sf.reveal(x), sf.reveal(y), decimal=5)
+
+    def test_dump_load(self):
+        world_size = self.spu.world_size
+
+        if world_size == 2:
+            _, alice_path = tempfile.mkstemp()
+            _, bob_path = tempfile.mkstemp()
+            paths = [alice_path, bob_path]
+        elif world_size == 3:
+            _, alice_path = tempfile.mkstemp()
+            _, bob_path = tempfile.mkstemp()
+            _, carol_path = tempfile.mkstemp()
+            paths = [alice_path, bob_path, carol_path]
+
+        x = self.alice(np.random.uniform)(-10, 10, (3, 4))
+        x_spu = x.to(self.spu)
+
+        self.spu.dump(x_spu, paths)
+
+        x_spu_ = self.spu.load(paths)
+        assert isinstance(x_spu_, SPUObject)
+        np.testing.assert_almost_equal(sf.reveal(x_spu), sf.reveal(x_spu_), decimal=5)

@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
+from typing import Tuple, Union
+
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.data.vertical import VDataFrame
-
-from typing import Union, Tuple
-
-import math
 
 
 def prepare_dataset(
@@ -41,7 +40,7 @@ def prepare_dataset(
 
     assert ds.partition_way == PartitionWay.VERTICAL, (
         "SS XGB Only support vertical dataset, "
-        "for horizontal dataset please use secreflow.ml.boost.homo_boost"
+        "for horizontal dataset please use secretflow.ml.boost.homo_boost"
     )
 
     shape = ds.shape

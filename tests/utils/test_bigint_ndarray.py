@@ -1,7 +1,8 @@
 import unittest
-import numpy as np
 
+import numpy as np
 from heu import phe
+
 from secretflow.utils import ndarray_bigint
 
 

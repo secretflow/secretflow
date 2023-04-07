@@ -13,10 +13,14 @@
 # limitations under the License.
 
 import math
-from typing import Tuple, List
+from typing import List, Tuple
+
 import numpy as np
-from .xgb_tree import XgbTree
+from heu import numpy as hnp
+
 from secretflow.device import PYUObject, proxy
+
+from .xgb_tree import XgbTree
 
 
 @proxy(PYUObject)
@@ -41,36 +45,7 @@ class XgbTreeWorker:
             leaf nodes' selects
         '''
         x = x if isinstance(x, np.ndarray) else np.array(x)
-        split_nodes = len(tree.split_features)
-
-        select = np.zeros((x.shape[0], split_nodes + 1), dtype=np.int8)
-        # should parallel in c++
-        for r in range(x.shape[0]):
-            row = x[r, :]
-            idxs = list()
-            idxs.append(0)
-            while len(idxs):
-                idx = idxs.pop(0)
-                if idx < split_nodes:
-                    f = tree.split_features[idx]
-                    v = tree.split_values[idx]
-                    if f == -1:
-                        # if node split by others partition's feature
-                        # mark all split paths in tree.
-                        idxs.append(idx * 2 + 1)
-                        idxs.append(idx * 2 + 2)
-                    else:
-                        # if node split by this partition's feature
-                        # mark the clearly split path in tree.
-                        if row[f] < v:
-                            idxs.append(idx * 2 + 1)
-                        else:
-                            idxs.append(idx * 2 + 2)
-                else:
-                    leaf_idx = idx - split_nodes
-                    select[r, leaf_idx] = 1
-
-        return select
+        return hnp.tree_predict(x, tree.split_features, tree.split_values)
 
     def _qcut(self, x: np.ndarray) -> Tuple[np.ndarray, List]:
         sorted_x = np.sort(x, axis=0)

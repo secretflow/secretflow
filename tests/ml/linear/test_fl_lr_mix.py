@@ -13,7 +13,6 @@ from secretflow.data.vertical import VDataFrame
 from secretflow.ml.linear.fl_lr_mix import FlLogisticRegressionMix
 from secretflow.preprocessing.scaler import StandardScaler
 from secretflow.security.aggregation import SecureAggregator
-
 from tests.basecase import MultiDriverDeviceTestCase
 
 

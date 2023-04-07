@@ -7,5 +7,5 @@ Federated learning is a machine learning technique that trains an algorithm acro
    :maxdepth: 2
 
    horizontal_federated_learning/index
-   vertical_federated_learning
+   vertical_federated_learning/index
    mix_federated_learning

@@ -14,11 +14,11 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Union, List, Callable
+from typing import Callable, List, Union
 
 import pandas as pd
-from pandas.core.indexes.base import Index
 from jax.tree_util import tree_map
+from pandas.core.indexes.base import Index
 
 from secretflow.data.io.util import to_csv_wrapper
 from secretflow.device import PYUObject, reveal

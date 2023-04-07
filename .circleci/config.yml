@@ -46,6 +46,7 @@ jobs:
             sed -i "s/tensorflow==/tensorflow-cpu==/g" requirements.txt
             pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
             pip install -r dev-requirements.txt
+            pip install onnx==1.13.1 protobuf==3.20.3
       - run:
           name: "unit test"
           command: |
@@ -82,6 +83,7 @@ jobs:
             conda install grpcio onnx -y
             pip install -r requirements.txt
             pip install -r dev-requirements.txt
+            pip install onnx==1.13.1 protobuf==3.20.3
       - run:
           name: "build and test"
           command: |

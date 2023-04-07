@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 from typing import Tuple, Union
 
 import numpy as np
 import pandas as pd
-
-import logging
 from sklearn.model_selection import train_test_split as _train_test_split
 
 from secretflow.data.base import Partition
@@ -32,7 +31,6 @@ def train_test_split(
     train_size=None,
     random_state=1234,
     shuffle=True,
-    stratify=None,
 ) -> Tuple[object, object]:
     """Split data into train and test dataset.
 
@@ -42,7 +40,6 @@ def train_test_split(
         train_size (float): train dataset size, default is None.
         random_state (int): Controls the shuffling applied to the data before applying the split.
         shuffle (bool): Whether or not to shuffle the data before splitting, default is True.
-        stratify (array-like): If not None, data is split in a stratified fashion, using this as the class labels.
 
     Returns
         splitting : list, length=2 * len(arrays)
@@ -113,7 +110,6 @@ def train_test_split(
             test_size=test_size,
             random_state=random_state,
             shuffle=shuffle,
-            stratify=stratify,
         )
 
     if isinstance(data, VDataFrame):

@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .fed_avg_w import PYUFedAvgW
 from .fed_avg_g import PYUFedAvgG
 from .fed_avg_u import PYUFedAvgU
+from .fed_avg_w import PYUFedAvgW
 from .fed_prox import PYUFedProx
 from .fed_scr import PYUFedSCR
 from .fed_stc import PYUFedSTC

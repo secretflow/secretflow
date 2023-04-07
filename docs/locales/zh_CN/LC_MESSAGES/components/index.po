@@ -26,7 +26,7 @@ msgstr "预处理"
 
 #: ../../components/index.rst:9
 msgid ""
-"SecretFlow provides serveral common utility functions/classes to change "
+"SecretFlow provides several common utility functions/classes to change "
 "raw features into a representation for more suitable for the downstream "
 "pipeline."
 msgstr "隐语提供了多种工具方法和类，可以将原始特征转换为更适合后续流程（比如训练）的数据形式。"

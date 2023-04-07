@@ -23,10 +23,10 @@ from secretflow.data.horizontal import HDataFrame
 from secretflow.data.mix.dataframe import MixDataFrame, PartitionWay
 from secretflow.data.vertical import VDataFrame
 from secretflow.device.driver import reveal
+from secretflow.preprocessing.base import _PreprocessBase
 from secretflow.preprocessing.binning.homo_binning import HomoBinning
 from secretflow.security.aggregation import Aggregator
 from secretflow.security.compare import Comparator
-from secretflow.preprocessing.base import _PreprocessBase
 
 _STRATEGIES = ['uniform', 'quantile']
 

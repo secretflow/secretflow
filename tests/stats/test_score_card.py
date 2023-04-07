@@ -1,12 +1,9 @@
 import numpy as np
 
-from secretflow.stats import ScoreCard
-
-from tests.basecase import MultiDriverDeviceTestCase
-
-from secretflow.data import FedNdarray, PartitionWay
-
 import secretflow as sf
+from secretflow.data import FedNdarray, PartitionWay
+from secretflow.stats import ScoreCard
+from tests.basecase import MultiDriverDeviceTestCase
 
 
 class TestScoreCard(MultiDriverDeviceTestCase):

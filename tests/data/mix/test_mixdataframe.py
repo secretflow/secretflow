@@ -9,7 +9,6 @@ from secretflow.data.vertical import VDataFrame
 from secretflow.security.aggregation import PlainAggregator
 from secretflow.security.compare import PlainComparator
 from secretflow.utils.errors import InvalidArgumentError
-
 from tests.basecase import MultiDriverDeviceTestCase
 
 

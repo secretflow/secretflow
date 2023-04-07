@@ -1,6 +1,7 @@
+from functools import partial
+
 import numpy as np
 import pandas as pd
-from functools import partial
 from sklearn.preprocessing import FunctionTransformer as SkFunctionTransformer
 
 from secretflow import reveal
@@ -13,7 +14,6 @@ from secretflow.preprocessing.transformer import _FunctionTransformer
 from secretflow.security.aggregation.plain_aggregator import PlainAggregator
 from secretflow.security.compare.plain_comparator import PlainComparator
 from secretflow.utils.simulation.datasets import load_iris
-
 from tests.basecase import MultiDriverDeviceTestCase
 
 

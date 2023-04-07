@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pandas as pd
-from secretflow.data.vertical import VDataFrame
 from typing import Union
+
+import pandas as pd
+
+from secretflow.data.vertical import VDataFrame
 
 
 def table_statistics(table: Union[pd.DataFrame, VDataFrame]) -> pd.DataFrame:

@@ -1,15 +1,16 @@
+import logging
 import time
 
-import logging
 import numpy as np
+from sklearn.metrics import roc_auc_score
+from sklearn.preprocessing import StandardScaler
+
+from secretflow.data import FedNdarray, PartitionWay
 from secretflow.device.driver import reveal, wait
 from secretflow.ml.linear.ss_glm import SSGLM
 from secretflow.ml.linear.ss_glm.core import get_dist
-from sklearn.preprocessing import StandardScaler
+from secretflow.utils.simulation.datasets import create_df, dataset, load_linear
 from tests.basecase import ABY3MultiDriverDeviceTestCase
-from secretflow.data import FedNdarray, PartitionWay
-from secretflow.utils.simulation.datasets import load_linear, create_df, dataset
-from sklearn.metrics import roc_auc_score
 
 
 class TestVertBinning(ABY3MultiDriverDeviceTestCase):

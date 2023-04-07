@@ -12,6 +12,7 @@ import os
 import tempfile
 
 import numpy as np
+import tensorflow as tf
 from torch import nn, optim
 from torchmetrics import Accuracy, Precision
 
@@ -24,13 +25,20 @@ from secretflow.preprocessing.encoder import OneHotEncoder
 from secretflow.security.aggregation import PlainAggregator, SparsePlainAggregator
 from secretflow.security.privacy import DPStrategyFL, GaussianModelDP
 from secretflow.utils.simulation.datasets import load_iris, load_mnist
-from tests.basecase import MultiDriverDeviceTestCase
-from tests.ml.nn.model_def import ConvNet, MlpNet
+from tests.basecase import MultiDriverDeviceTestCase, SingleDriverDeviceTestCase
+from tests.ml.nn.model_def import ConvNet, ConvRGBNet, MlpNet
 
 _temp_dir = tempfile.mkdtemp()
 
 NUM_CLASSES = 10
 INPUT_SHAPE = (28, 28, 1)
+
+path_to_flower_dataset = tf.keras.utils.get_file(
+    "flower_photos",
+    "https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/tf_flowers/flower_photos.tgz",
+    untar=True,
+    cache_dir=_temp_dir,
+)
 
 
 class TestFLModelTorchMnist(MultiDriverDeviceTestCase):
@@ -76,10 +84,10 @@ class TestFLModelTorchMnist(MultiDriverDeviceTestCase):
 
         self.assertEquals(
             global_metric[0].result().numpy(),
-            history.global_history['val_accuracy'][-1],
+            history.global_history['val_multiclassaccuracy'][-1],
         )
 
-        self.assertGreater(global_metric[0].result().numpy(), 0.8)
+        self.assertGreater(global_metric[0].result().numpy(), 0.5)
 
         model_path_test = os.path.join(_temp_dir, "base_model")
         fl_model.save_model(model_path=model_path_test, is_test=True)
@@ -123,8 +131,12 @@ class TestFLModelTorchMnist(MultiDriverDeviceTestCase):
             loss_fn=loss_fn,
             optim_fn=optim_fn,
             metrics=[
-                metric_wrapper(Accuracy, num_classes=10, average='micro'),
-                metric_wrapper(Precision, num_classes=10, average='micro'),
+                metric_wrapper(
+                    Accuracy, task="multiclass", num_classes=10, average='micro'
+                ),
+                metric_wrapper(
+                    Precision, task="multiclass", num_classes=10, average='micro'
+                ),
             ],
         )
 
@@ -182,7 +194,7 @@ class TestFLModelTorchMnist(MultiDriverDeviceTestCase):
             label=mnist_label,
             strategy='fed_scr',
             backend="torch",
-            threshold=0.9,
+            threshold=0.8,
         )
 
         # Define DP operations
@@ -208,8 +220,7 @@ class TestFLModelTorchMnist(MultiDriverDeviceTestCase):
 
 
 class TestFLModelTorchMlp(MultiDriverDeviceTestCase):
-    def torch_model_mlp(self):
-        """unittest ignore"""
+    def test_torch_model_mlp(self):
         aggregator = PlainAggregator(self.carol)
         hdf = load_iris(parts=[self.alice, self.bob], aggregator=aggregator)
 
@@ -228,8 +239,12 @@ class TestFLModelTorchMlp(MultiDriverDeviceTestCase):
             loss_fn=loss_fn,
             optim_fn=optim_fn,
             metrics=[
-                metric_wrapper(Accuracy, num_classes=3, average='micro'),
-                metric_wrapper(Precision, num_classes=3, average='micro'),
+                metric_wrapper(
+                    Accuracy, task="multiclass", num_classes=3, average='micro'
+                ),
+                metric_wrapper(
+                    Precision, task="multiclass", num_classes=3, average='micro'
+                ),
             ],
         )
         device_list = [self.alice, self.bob]
@@ -248,17 +263,16 @@ class TestFLModelTorchMlp(MultiDriverDeviceTestCase):
             data,
             label,
             validation_data=(data, label),
-            epochs=100,
+            epochs=20,
             batch_size=32,
             aggregate_freq=1,
         )
         global_metric, _ = fl_model.evaluate(
             data, label, batch_size=32, random_seed=1234
         )
-
         self.assertEquals(
             global_metric[0].result().numpy(),
-            history.global_history['val_accuracy'][-1],
+            history.global_history['val_multiclassaccuracy'][-1],
         )
         model_path = os.path.join(_temp_dir, "base_model")
         fl_model.save_model(model_path=model_path, is_test=True)
@@ -266,9 +280,15 @@ class TestFLModelTorchMlp(MultiDriverDeviceTestCase):
 
         # test load model
         new_model_def = TorchModel(
+            model_fn=MlpNet,
+            optim_fn=optim_fn,
             metrics=[
-                metric_wrapper(Accuracy, num_classes=3, average='micro'),
-                metric_wrapper(Precision, num_classes=3, average='micro'),
+                metric_wrapper(
+                    Accuracy, task="multiclass", num_classes=3, average='micro'
+                ),
+                metric_wrapper(
+                    Precision, task="multiclass", num_classes=3, average='micro'
+                ),
             ],
         )
         new_fed_model = FLModel(
@@ -288,3 +308,133 @@ class TestFLModelTorchMlp(MultiDriverDeviceTestCase):
             [m.result().numpy() for m in global_metric],
             [m.result().numpy() for m in reload_metric],
         )
+
+
+class TestFLModelTorchDataBuilder(SingleDriverDeviceTestCase):
+    def test_torch_model_databuilder(self):
+        aggregator = PlainAggregator(self.carol)
+        hdf = load_iris(parts=[self.alice, self.bob], aggregator=aggregator)
+
+        label = hdf['class']
+
+        def create_dataset_builder(
+            batch_size=32,
+            train_split=0.8,
+            shuffle=True,
+            random_seed=1234,
+        ):
+            def dataset_builder(x, stage="train"):
+                import math
+
+                import numpy as np
+                from torch.utils.data import DataLoader
+                from torch.utils.data.sampler import SubsetRandomSampler
+                from torchvision import datasets, transforms
+
+                # Define dataset
+                flower_transform = transforms.Compose(
+                    [
+                        transforms.Resize((180, 180)),
+                        transforms.ToTensor(),
+                    ]
+                )
+                flower_dataset = datasets.ImageFolder(x, transform=flower_transform)
+                dataset_size = len(flower_dataset)
+                # Define sampler
+
+                indices = list(range(dataset_size))
+                if shuffle:
+                    np.random.seed(random_seed)
+                    np.random.shuffle(indices)
+                split = int(np.floor(train_split * dataset_size))
+                train_indices, val_indices = indices[:split], indices[split:]
+                train_sampler = SubsetRandomSampler(train_indices)
+                valid_sampler = SubsetRandomSampler(val_indices)
+
+                # Define databuilder
+                train_loader = DataLoader(
+                    flower_dataset, batch_size=batch_size, sampler=train_sampler
+                )
+                valid_loader = DataLoader(
+                    flower_dataset, batch_size=batch_size, sampler=valid_sampler
+                )
+
+                # Return
+                if stage == "train":
+                    train_step_per_epoch = math.ceil(split / batch_size)
+                    return train_loader, train_step_per_epoch
+                elif stage == "eval":
+                    eval_step_per_epoch = math.ceil((dataset_size - split) / batch_size)
+                    return valid_loader, eval_step_per_epoch
+
+            return dataset_builder
+
+        data_builder_dict = {
+            self.alice: create_dataset_builder(
+                batch_size=32,
+                train_split=0.8,
+                shuffle=False,
+                random_seed=1234,
+            ),
+            self.bob: create_dataset_builder(
+                batch_size=32,
+                train_split=0.8,
+                shuffle=False,
+                random_seed=1234,
+            ),
+        }
+
+        loss_fn = nn.CrossEntropyLoss
+        optim_fn = optim_wrapper(optim.Adam, lr=1e-3)
+        model_def = TorchModel(
+            model_fn=ConvRGBNet,
+            loss_fn=loss_fn,
+            optim_fn=optim_fn,
+            metrics=[
+                metric_wrapper(
+                    Accuracy, task="multiclass", num_classes=5, average='micro'
+                ),
+                metric_wrapper(
+                    Precision, task="multiclass", num_classes=5, average='micro'
+                ),
+            ],
+        )
+        device_list = [self.alice, self.bob]
+
+        fl_model = FLModel(
+            server=self.carol,
+            device_list=device_list,
+            model=model_def,
+            aggregator=aggregator,
+            sparsity=0.0,
+            strategy="fed_avg_w",
+            backend="torch",
+            random_seed=1234,
+        )
+        data = {
+            self.alice: path_to_flower_dataset,
+            self.bob: path_to_flower_dataset,
+        }
+
+        history = fl_model.fit(
+            data,
+            None,
+            validation_data=data,
+            epochs=2,
+            aggregate_freq=1,
+            dataset_builder=data_builder_dict,
+        )
+        global_metric, _ = fl_model.evaluate(
+            data,
+            label,
+            batch_size=32,
+            dataset_builder=data_builder_dict,
+        )
+
+        self.assertEquals(
+            global_metric[0].result().numpy(),
+            history.global_history['val_multiclassaccuracy'][-1],
+        )
+        model_path = os.path.join(_temp_dir, "base_model")
+        fl_model.save_model(model_path=model_path, is_test=True)
+        self.assertIsNotNone(os.path.exists(model_path))

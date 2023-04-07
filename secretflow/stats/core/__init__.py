@@ -13,5 +13,5 @@
 # limitations under the License.
 
 from .biclassification_eval_core import gen_all_reports as gen_biclassification_reports
-from .pva_core import pva
 from .psi_core import psi
+from .pva_core import pva

@@ -2,13 +2,14 @@ import copy
 from typing import Tuple
 
 import numpy as np
+from sklearn.datasets import load_breast_cancer
+from sklearn.metrics import roc_auc_score
+from sklearn.preprocessing import StandardScaler
+
 import secretflow as sf
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.ml.linear.hess_sgd import HESSLogisticRegression
-from sklearn.datasets import load_breast_cancer
-from sklearn.preprocessing import StandardScaler
 from tests.basecase import MultiDriverDeviceTestCase
-from sklearn.metrics import roc_auc_score
 
 
 class TestHESSLogisticRegression(MultiDriverDeviceTestCase):

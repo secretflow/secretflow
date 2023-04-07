@@ -176,11 +176,11 @@ logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 cluster_def = {
     'nodes': [
         # <<< !!! >>> replace <192.168.0.1:12945> to alice node's local ip & free port
-        {'party': 'alice', 'id': 'local:0', 'address': '192.168.0.1:12945', 'listen_address': '0.0.0.0:12945'},
+        {'party': 'alice', 'address': '192.168.0.1:12945', 'listen_address': '0.0.0.0:12945'},
         # <<< !!! >>> replace <192.168.0.2:12946> to bob node's local ip & free port
-        {'party': 'bob', 'id': 'local:1', 'address': '192.168.0.2:12946', 'listen_address': '0.0.0.0:12946'},
+        {'party': 'bob', 'address': '192.168.0.2:12946', 'listen_address': '0.0.0.0:12946'},
         # <<< !!! >>> if you need 3pc test, please add node here, for example, add carol as rank 2
-        # {'party': 'carol', 'id': 'local:2', 'address': '127.0.0.1:12347'},
+        # {'party': 'carol', 'address': '127.0.0.1:12347'},
     ],
     'runtime_config': {
         'protocol': spu.spu_pb2.SEMI2K,

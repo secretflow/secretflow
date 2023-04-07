@@ -9,11 +9,8 @@ from scipy.stats import pearsonr
 from secretflow.device.driver import wait
 from secretflow.preprocessing.scaler import StandardScaler
 from secretflow.stats import SSVertPearsonR
-from secretflow.utils.simulation.datasets import (create_df, dataset,
-                                                  load_linear)
-
-from tests.basecase import (ABY3MultiDriverDeviceTestCase,
-                            MultiDriverDeviceTestCase)
+from secretflow.utils.simulation.datasets import create_df, dataset, load_linear
+from tests.basecase import ABY3MultiDriverDeviceTestCase, MultiDriverDeviceTestCase
 
 
 class TestVertPearsonR(MultiDriverDeviceTestCase):

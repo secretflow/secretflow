@@ -8,9 +8,7 @@ from secretflow.data.horizontal import read_csv as h_read_csv
 from secretflow.ml.boost.homo_boost import SFXgboost
 from secretflow.security.aggregation.plain_aggregator import PlainAggregator
 from secretflow.security.compare.plain_comparator import PlainComparator
-
-from tests.basecase import (MultiDriverDeviceTestCase,
-                            SingleDriverDeviceTestCase)
+from tests.basecase import MultiDriverDeviceTestCase, SingleDriverDeviceTestCase
 
 _temp_dir = tempfile.mkdtemp()
 

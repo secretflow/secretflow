@@ -22,7 +22,7 @@ msgstr "预处理"
 
 #: ../../components/preprocessing/index.rst:4
 msgid ""
-"SecretFlow provides serveral common utility functions/classes to change "
+"SecretFlow provides several common utility functions/classes to change "
 "raw features into a representation for more suitable for the downstream "
 "pipeline."
 msgstr ""

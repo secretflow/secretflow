@@ -1,6 +1,5 @@
-import pandas as pd
-
 import numpy as np
+import pandas as pd
 
 
 def gen_data(data_num, feature_num, num_class=2):

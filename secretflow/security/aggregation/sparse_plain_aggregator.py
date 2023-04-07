@@ -16,7 +16,6 @@
 from typing import List
 
 import numpy as np
-import sparse as sp
 
 from secretflow.device import PYU, DeviceObject
 from secretflow.security.aggregation.plain_aggregator import PlainAggregator
@@ -48,6 +47,8 @@ class SparsePlainAggregator(PlainAggregator):
         ), f'Accepts PYU only but got {type(self.device)}.'
 
     def _zip_decode_data(self, data: List) -> List:
+        import sparse as sp
+
         if isinstance(data[0][0], (sp._coo.core.COO, sp._compressed.compressed.GCXS)):
             decoded_data = [sparse_decode(data=element) for element in zip(*data)]
         elif isinstance(data[0][0], np.ndarray):
@@ -59,6 +60,8 @@ class SparsePlainAggregator(PlainAggregator):
         return decoded_data
 
     def _decode_data(self, data: List) -> List:
+        import sparse as sp
+
         if isinstance(data[0][0], (sp._coo.core.COO, sp._compressed.compressed.GCXS)):
             decoded_data = sparse_decode(data=data)
         elif isinstance(data[0], np.ndarray):

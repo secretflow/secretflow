@@ -27,6 +27,7 @@ import tensorflow as tf
 
 from secretflow.device import PYUObject, proxy
 from secretflow.ml.nn.sl.backend.tensorflow.sl_base import SLBaseTFModel
+from secretflow.ml.nn.sl.strategy_dispatcher import register_strategy
 from secretflow.security.privacy import DPStrategy
 from secretflow.utils.compressor import Compressor
 
@@ -93,6 +94,8 @@ class SLAsyncTFModel(SLBaseTFModel):
                 else:
                     gradient = gradient[0]
                     return_hiddens.append(self.fuse_op(h, gradient))
+                # add model.losses into graph
+                return_hiddens.append(self.model_base.losses)
 
             trainable_vars = self.model_base.trainable_variables
             gradients = self.tape.gradient(return_hiddens, trainable_vars)
@@ -104,10 +107,11 @@ class SLAsyncTFModel(SLBaseTFModel):
         self.data_x = None
         self.kwargs = {}
 
-    def _fuse_net_train(self, hiddens):
+    def _fuse_net_train(self, hiddens, losses=[]):
         self.hiddens = copy.deepcopy(hiddens)
         return self._fuse_net_async_internal(
             hiddens,
+            losses,
             self.train_y,
             self.train_sample_weight,
             self.fuse_local_steps,
@@ -116,7 +120,13 @@ class SLAsyncTFModel(SLBaseTFModel):
 
     @tf.function
     def _fuse_net_async_internal(
-        self, hiddens, train_y, train_sample_weight, fuse_local_steps, bound_param
+        self,
+        hiddens,
+        losses,
+        train_y,
+        train_sample_weight,
+        fuse_local_steps,
+        bound_param,
     ):
         accumulated_gradients = []
         for local_step in range(fuse_local_steps):
@@ -130,7 +140,7 @@ class SLAsyncTFModel(SLBaseTFModel):
                     train_y,
                     y_pred,
                     sample_weight=train_sample_weight,
-                    regularization_losses=self.model_fuse.losses,
+                    regularization_losses=self.model_fuse.losses + losses,
                 )
 
             # Step3: compute gradients
@@ -169,6 +179,7 @@ class SLAsyncTFModel(SLBaseTFModel):
         return accumulated_gradients
 
 
+@register_strategy(strategy_name='split_async', backend='tensorflow')
 @proxy(PYUObject)
 class PYUSLAsyncTFModel(SLAsyncTFModel):
     pass

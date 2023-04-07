@@ -2,7 +2,6 @@ import pandas as pd
 
 from secretflow import reveal
 from secretflow.utils.simulation.datasets import load_iris
-
 from tests.basecase import MultiDriverDeviceTestCase
 
 

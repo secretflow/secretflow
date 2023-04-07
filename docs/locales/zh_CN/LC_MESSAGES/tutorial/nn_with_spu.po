@@ -30,7 +30,7 @@ msgstr "请先阅读 `Logistic Regression On SPU <./lr_with_spu.ipynb>`__ 。"
 msgid ""
 "In lab `Logistic Regression On SPU <./lr_with_spu.ipynb>`__, we have "
 "showed how to use SecretFlow/SPU to convert a plaintext JAX training "
-"program to a secrue MPC trainning program."
+"program to a secure MPC training program."
 msgstr ""
 "在实验 `Logistic Regression On SPU <./lr_with_spu.ipynb>`__ 中，我们展示了如何使用 "
 "SecretFlow/SPU 将明文 JAX 训练程序转换为安全 MPC 训练程序。"
@@ -96,7 +96,7 @@ msgstr ""
 "激活函数。"
 
 #: ../../tutorial/nn_with_spu.ipynb:153
-msgid "Then we define the trainning method here."
+msgid "Then we define the training method here."
 msgstr "然后我们在这里定义训练方法。"
 
 #: ../../tutorial/nn_with_spu.ipynb:232
@@ -117,7 +117,7 @@ msgstr "让我们把所有不住放在一起，训练一个明文 NN 模型！"
 
 #: ../../tutorial/nn_with_spu.ipynb:356
 msgid ""
-"ust keep the number of AUC in mind, we are going to repeat the trainning "
+"ust keep the number of AUC in mind, we are going to repeat the training "
 "with SPU. Let’s do that magic!"
 msgstr "让我们把所有东西放在一起，训练一个明文神经网络模型！"
 
