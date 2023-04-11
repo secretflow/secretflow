@@ -80,17 +80,15 @@ See `Deployment <../../getting_started/deployment.html>`_ and refer to the 'Clus
 For more details about the APIs, see :py:meth:`~secretflow.ml.boost.ss_xgb_v.model.Xgb`
 
 .. code-block:: python
-
     import sys
     import time
     import logging
 
-    import spu
     import secretflow as sf
     from secretflow.ml.boost.ss_xgb_v import Xgb
     from secretflow.device.driver import wait, reveal
     from secretflow.data import FedNdarray, PartitionWay
-
+    from secretflow.data.split import train_test_split
     from sklearn.metrics import roc_auc_score
 
 
@@ -136,7 +134,11 @@ For more details about the APIs, see :py:meth:`~secretflow.ml.boost.ss_xgb_v.mod
     # wait IO finished
     wait([p.data for p in v_data.partitions.values()])
     wait([p.data for p in label_data.partitions.values()])
-
+    # split train data and test date
+    random_state = 1234
+    split_factor = 0.8
+    v_train_data, v_test_data = train_test_split(v_data, train_size=split_factor, random_state=random_state)
+    v_train_label, v_test_label= train_test_split(label_data, train_size=split_factor, random_state=random_state)
     # run SS-XGB
     xgb = Xgb(spu)
     start = time.time()
@@ -152,15 +154,16 @@ For more details about the APIs, see :py:meth:`~secretflow.ml.boost.ss_xgb_v.mod
         'colsample_bytree': 1,
         'base_score': 0.5,
     }
-    model = xgb.train(params, v_data, label_data)
+    model = xgb.train(params, v_train_data,v_train_label)
     logging.info(f"train time: {time.time() - start}")
 
     # Do predict
     start = time.time()
     # Now the result is saved in the spu by ciphertext
-    spu_yhat = model.predict(v_data)
+    spu_yhat = model.predict(v_test_data)
     # reveal for auc test.
     yhat = reveal(spu_yhat)
     logging.info(f"predict time: {time.time() - start}")
-    y = read_y()
+    y = reveal(v_test_label.partitions[alice])
+    # get the area under curve(auc) score
     logging.info(f"auc: {roc_auc_score(y, yhat)}")
