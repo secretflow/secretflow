@@ -80,18 +80,15 @@ See `Deployment <../../getting_started/deployment.html>`_ and refer to the 'Clus
 For more details about the APIs, see :py:meth:`~secretflow.ml.boost.ss_xgb_v.model.Xgb`
 
 .. code-block:: python
-
     import sys
     import time
     import logging
 
-    import spu
-    import numpy
     import secretflow as sf
     from secretflow.ml.boost.ss_xgb_v import Xgb
     from secretflow.device.driver import wait, reveal
     from secretflow.data import FedNdarray, PartitionWay
-
+    from secretflow.data.split import train_test_split
     from sklearn.metrics import roc_auc_score
 
 
@@ -111,52 +108,37 @@ For more details about the APIs, see :py:meth:`~secretflow.ml.boost.ss_xgb_v.mod
     spu = sf.SPU(sf.utils.testing.cluster_def(['alice', 'bob', 'carol']))
 
     # read data in each party
-    def read_x(start, end, is_training=True, train_split_factor=0.8)->numpy.ndarray:
+    def read_x(start, end):
         from sklearn.datasets import load_breast_cancer
         x = load_breast_cancer()['data']
-        length = x.shape[0]
-        if is_training:
-            train_data = x[:int(length * train_split_factor), start:end]
-            logging.info(f"load train data, the number of samples: {train_data.shape[0]}")
-            return train_data
-        else:
-            test_data = x[int(length * train_split_factor):, start:end]
-            logging.info(f"load test data, the number of samples: {test_data.shape[0]}")
-            return test_data
+        return x[:, start:end]
 
-    def read_y(is_training=True, train_split_factor=0.8)->numpy.ndarray:
+    def read_y():
         from sklearn.datasets import load_breast_cancer
-        y = load_breast_cancer()['target']
-        length = y.shape[0]
-        if is_training:
-            train_label = y[:int(length * train_split_factor)]
-            logging.info(f"load train label, the number of samples: {train_label.shape[0]}")
-            return train_label
-        else:
-            test_label = y[int(length * train_split_factor):]
-            logging.info(f"load test label, the number of samples: {test_label.shape[0]}")
-            return test_label
+        return load_breast_cancer()['target']
 
-    #split train set and test set, you can set the value of train_split_factor as you like.
-    train_split_factor = 0.8
-    # alice / bob / carol each hold one third of the features of the train data
-    v_train_data = FedNdarray(
+    # alice / bob / carol each hold one third of the features of the data
+    v_data = FedNdarray(
         partitions={
-            alice: alice(read_x)(0, 10, is_training=True, train_split_factor=train_split_factor),
-            bob: bob(read_x)(10, 20, is_training=True, train_split_factor=train_split_factor),
-            carol: carol(read_x)(20, 30, is_training=True, train_split_factor=train_split_factor),
+            alice: alice(read_x)(0, 10),
+            bob: bob(read_x)(10, 20),
+            carol: carol(read_x)(20, 30),
         },
         partition_way=PartitionWay.VERTICAL,
     )
     # Y label belongs to alice
-    v_train_label = FedNdarray(
-        partitions={alice: alice(read_y)(is_training=True, train_split_factor=train_split_factor)},
+    label_data = FedNdarray(
+        partitions={alice: alice(read_y)()},
         partition_way=PartitionWay.VERTICAL,
     )
     # wait IO finished
-    wait([p.data for p in v_train_data.partitions.values()])
-    wait([p.data for p in v_train_label.partitions.values()])
-
+    wait([p.data for p in v_data.partitions.values()])
+    wait([p.data for p in label_data.partitions.values()])
+    # split train data and test date
+    random_state = 1234
+    split_factor = 0.8
+    v_train_data, v_test_data = train_test_split(v_data, train_size=split_factor, random_state=random_state)
+    v_train_label, v_test_label= train_test_split(label_data, train_size=split_factor, random_state=random_state)
     # run SS-XGB
     xgb = Xgb(spu)
     start = time.time()
@@ -172,25 +154,16 @@ For more details about the APIs, see :py:meth:`~secretflow.ml.boost.ss_xgb_v.mod
         'colsample_bytree': 1,
         'base_score': 0.5,
     }
-    model = xgb.train(params, v_train_data, v_train_label)
+    model = xgb.train(params, v_train_data,v_train_label)
     logging.info(f"train time: {time.time() - start}")
 
     # Do predict
     start = time.time()
-    # alice / bob / carol each hold one third of the features of the test data
-    v_test_data = FedNdarray(
-        partitions={
-            alice: alice(read_x)(0, 10, is_training=False, train_split_factor=train_split_factor),
-            bob: bob(read_x)(10, 20, is_training=False, train_split_factor=train_split_factor),
-            carol: carol(read_x)(20, 30, is_training=False, train_split_factor=train_split_factor),
-        },
-        partition_way=PartitionWay.VERTICAL,
-    )
-    wait([p.data for p in v_test_data.partitions.values()])
     # Now the result is saved in the spu by ciphertext
     spu_yhat = model.predict(v_test_data)
     # reveal for auc test.
     yhat = reveal(spu_yhat)
     logging.info(f"predict time: {time.time() - start}")
-    y = read_y(is_training=False, train_split_factor=train_split_factor)
+    y = reveal(v_test_label.partitions[alice])
+    # get the area under curve(auc) score
     logging.info(f"auc: {roc_auc_score(y, yhat)}")
