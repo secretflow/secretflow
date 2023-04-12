@@ -26,10 +26,10 @@ msgstr "欢迎来到隐语SecretFlow！"
 
 #: ../../getting_started/index.rst:8
 msgid ""
-"Please follow the :ref:`/getting_started/deployment.rst#deployment` and "
+"Please follow the :ref:`getting_started/deployment:deployment` and "
 ":ref:`getting_started/installation:installation` documentation to get "
 "SecretFlow ready."
-msgstr "请根据 :ref:`/getting_started/deployment.rst#deployment` "
+msgstr "请根据 :ref:`getting_started/deployment:deployment` "
 "和 :ref:`getting_started/installation:installation` 准备好SecretFlow。"
 
 #: ../../getting_started/index.rst:10
