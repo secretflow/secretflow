@@ -37,11 +37,11 @@ SecretFlow是一个统一的框架，用于保护隐私的数据智能和机器�
 
 ## 安装
 
-请查阅[INSTALLATION.md](./docs/getting_started/INSTALLATION.md)
+请查阅[INSTALLATION.md](./docs/getting_started/installation.md)
 
 ## 部署
 
-请查阅[DEPLOYMENT.md](./docs/getting_started/DEPLOYMENT.md)
+请查阅[DEPLOYMENT.md](./docs/getting_started/deployment.md)
 
 ## 贡献代码
 

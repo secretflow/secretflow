@@ -40,11 +40,11 @@ it provides:
 
 ## Install
 
-Please check [INSTALLATION.md](./docs/getting_started/INSTALLATION.md)
+Please check [INSTALLATION.md](./docs/getting_started/installation.md)
 
 ## Deployment
 
-Please check [DEPLOYMENT.md](./docs/getting_started/DEPLOYMENT.md)
+Please check [DEPLOYMENT.md](./docs/getting_started/deployment.md)
 
 ## Contributing
 
