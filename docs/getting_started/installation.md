@@ -108,9 +108,13 @@ conda activate sf
 pip install -U secretflow
 ```
 
-## GPU support
+## GPUs support
 
-NVIDIA's CUDA and cuDNN are typically used to accelerate the training and testing of Tensoflow and PyTorch deep learning models. Tensoflow and PyTorch are both deep learning backends for SecretFlow, and if you want to use GPU acceleration in SecretFlow, you can follow these steps:
+NVIDIA's CUDA and cuDNN are typically used to accelerate the training and testing of Tensoflow and PyTorch deep learning models. Tensoflow and PyTorch are both deep learning backends for SecretFlow.
+
+[JAX]([google/jax: Composable transformations of Python+NumPy programs: differentiate, vectorize, JIT to GPU/TPU, and more (github.com)](https://github.com/google/jax)) is the frontend highly recommended by the SecretFlow team. JAX can compile and run your NumPy code on accelerators, such as GPUs and TPUs.Now we supply GPUs supports to JAX in SecretFlow.
+
+if you want to use GPU acceleration in SecretFlow, you can follow these steps:
 
 1. Make sure your NVIDIA driver is available
 
@@ -143,7 +147,7 @@ docker container run -it --gpus all secretflow-gpu bash
 
 - `--gpus all`: This parameter is essential.
 
-5. After the container is running, you can use the jupyter notebook [GPU Check](../tutorial/GPU_check.ipynb) to check the callability of Tensorflow and PyTorch for NVIDIA GPUs inside the container.
+5. After the container is running, you can use the jupyter notebook [GPU Check](../tutorial/GPU_check.ipynb) to check the callability of JAX, Tensorflow and PyTorch for NVIDIA GPUs inside the container.
 
 ## A quick try
 
