@@ -163,7 +163,7 @@ For more details about the APIs, see :py:meth:`~secretflow.ml.boost.ss_xgb_v.mod
     start = time.time()
     # Now the result is saved in the spu by ciphertext
     spu_yhat = model.predict(v_test_data)
-    # reveal for auc test.
+    # reveal for auc, acc and classification report test.
     yhat = reveal(spu_yhat)
     logging.info(f"predict time: {time.time() - start}")
     y = reveal(v_test_label.partitions[alice])
