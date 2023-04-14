@@ -89,7 +89,9 @@ For more details about the APIs, see :py:meth:`~secretflow.ml.boost.ss_xgb_v.mod
     from secretflow.device.driver import wait, reveal
     from secretflow.data import FedNdarray, PartitionWay
     from secretflow.data.split import train_test_split
+    import numpy as np
     from sklearn.metrics import roc_auc_score
+    from sklearn.metrics import accuracy_score, classification_report
 
 
     # init log
@@ -165,5 +167,11 @@ For more details about the APIs, see :py:meth:`~secretflow.ml.boost.ss_xgb_v.mod
     yhat = reveal(spu_yhat)
     logging.info(f"predict time: {time.time() - start}")
     y = reveal(v_test_label.partitions[alice])
-    # get the area under curve(auc) score
+    # get the area under curve(auc) score of classification
     logging.info(f"auc: {roc_auc_score(y, yhat)}")
+    binary_class_results = np.where(yhat>0.5, 1, 0)
+    # get the accuracy score of classification
+    logging.info(f"acc: {accuracy_score(y, binary_class_results)}")
+    # get the report of classification
+    print("classification report:")
+    print(classification_report(y, binary_class_results))
