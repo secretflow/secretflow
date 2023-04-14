@@ -116,7 +116,7 @@ NVIDIA's CUDA and cuDNN are typically used to accelerate the training and testin
 
 if you want to use GPU acceleration in SecretFlow, you can follow these steps:
 
-1. Make sure your NVIDIA driver is available and meet the version requirements as [JAX recommend]([google/jax: Composable transformations of Python+NumPy programs: differentiate, vectorize, JIT to GPU/TPU, and more (github.com)](https://github.com/google/jax#pip-installation-gpu-cuda-installed-via-pip-easier)).
+1. Make sure your NVIDIA driver is available and meet the version requirements as [JAX recommend](https://github.com/google/jax#pip-installation-gpu-cuda-installed-via-pip-easier).
 
 - The version requirements:
 
