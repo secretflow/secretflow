@@ -55,3 +55,10 @@ class TestWait(MultiDriverDeviceTestCase, SingleDriverDeviceTestCase):
         x_ = reveal(x)
         self.assertTrue(isinstance(x_, np.ndarray))
         self.assertEqual(x_, 32)
+
+    def test_spu_reveal_empty_list(self):
+        x = to(self.alice, []).to(self.spu)
+        self.assertTrue(isinstance(x, SPUObject))
+
+        x_ = reveal(x)
+        self.assertEqual(x_, [])
