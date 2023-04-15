@@ -134,7 +134,7 @@ msgid ""
 "variable is whether the customer subscribes to deposit product."
 msgstr ""
 "这个数据集来自 `kaggle <https://www.kaggle.com/janiobachmann/bank-marketing-"
-"dataset>`__ ，是一个经典的银行营销数据集，是一家葡萄牙银行机构电话直销活动，目标变量是 客户订阅是否存款产品。"
+"dataset>`__ ，是一个经典的银行营销数据集，是一家葡萄牙银行机构电话直销活动，目标变量是客户是否订阅存款产品。"
 
 #: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:117
 msgid "Data"
