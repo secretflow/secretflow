@@ -44,12 +44,12 @@ provides both linear and logistic regression linear models
 for vertical split dataset setting by using secret sharing with mini
 batch SGD training solver.
 
-`Linear regression <https://en.wikipedia.org/wiki/Linear_regression>`_
+`Linear regression <https://www.microsoft.com/en-us/research/uploads/prod/2006/01/Bishop-Pattern-Recognition-and-Machine-Learning-2006.pdf#%5B%7B%22num%22%3A1566%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22Fit%22%7D%5D>`_
 fits a linear model with coefficients w = (w1, ..., wp)
 to minimize the residual sum of squares between the observed targets in
 the dataset, and the targets predicted by the linear approximation.
 
-`Logistic regression <https://en.wikipedia.org/wiki/Logistic_regression>`_
+`Logistic regression <https://www.microsoft.com/en-us/research/uploads/prod/2006/01/Bishop-Pattern-Recognition-and-Machine-Learning-2006.pdf#%5B%7B%22num%22%3A1791%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22Fit%22%7D%5D>`_
 , despite its name, is a linear model for classification
 rather than regression. logistic regression is also known in the literature
 as logit regression, maximum-entropy classification (MaxEnt) or the log-linear
