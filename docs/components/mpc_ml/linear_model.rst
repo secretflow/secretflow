@@ -71,13 +71,15 @@ For more detail about parameter settings, see API :py:meth:`~secretflow.ml.linea
     import time
     import logging
 
+    import numpy as np
     import spu
     import secretflow as sf
+    from secretflow.data.split import train_test_split
     from secretflow.device.driver import wait, reveal
     from secretflow.data import FedNdarray, PartitionWay
     from secretflow.ml.linear.ss_sgd import SSRegression
 
-    from sklearn.metrics import roc_auc_score
+    from sklearn.metrics import roc_auc_score, accuracy_score, classification_report
 
     # init log
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -128,14 +130,18 @@ For more detail about parameter settings, see API :py:meth:`~secretflow.ml.linea
     # wait IO finished
     wait([p.data for p in v_data.partitions.values()])
     wait([p.data for p in label_data.partitions.values()])
-
+    # split train data and test date
+    random_state = 1234
+    split_factor = 0.8
+    v_train_data, v_test_data = train_test_split(v_data, train_size=split_factor, random_state=random_state)
+    v_train_label, v_test_label = train_test_split(label_data, train_size=split_factor, random_state=random_state)
     # run SS-SGD
     # SSRegression use spu to fit model.
     model = SSRegression(spu)
     start = time.time()
     model.fit(
-        v_data,      # x
-        label_data,  # y
+        v_train_data,      # x
+        v_train_label,  # y
         5,           # epochs
         0.3,         # learning_rate
         32,          # batch_size
@@ -149,12 +155,19 @@ For more detail about parameter settings, see API :py:meth:`~secretflow.ml.linea
     # Do predict
     start = time.time()
     # Now the result is saved in the spu by ciphertext
-    spu_yhat = model.predict(v_data)
-    # reveal for auc test.
+    spu_yhat = model.predict(v_test_data)
+    # reveal for auc, acc and classification report test.
     yhat = reveal(spu_yhat)
     logging.info(f"predict time: {time.time() - start}")
-    y = read_y()
+    y = reveal(v_test_label.partitions[alice])
+    # get the area under curve(auc) score of classification
     logging.info(f"auc: {roc_auc_score(y, yhat)}")
+    binary_class_results = np.where(yhat > 0.5, 1, 0)
+    # get the accuracy score of classification
+    logging.info(f"acc: {accuracy_score(y, binary_class_results)}")
+    # get the report of classification
+    print("classification report:")
+    print(classification_report(y, binary_class_results))
 
 
 algorithm details
@@ -214,18 +227,17 @@ For more details about API, see :py:meth:`~secretflow.ml.linear.hess_sgd.model.H
 .. code-block:: python
 
     import sys
-    import copy
     import time
     import logging
 
-    import spu
+    import numpy as np
     import secretflow as sf
+    from secretflow.data.split import train_test_split
     from secretflow.device.driver import wait, reveal
     from secretflow.data import FedNdarray, PartitionWay
     from secretflow.ml.linear.hess_sgd import HESSLogisticRegression
 
-    from sklearn.metrics import roc_auc_score
-
+    from sklearn.metrics import roc_auc_score, accuracy_score, classification_report
 
     # init log
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -238,7 +250,7 @@ For more details about API, see :py:meth:`~secretflow.ml.linear.hess_sgd.model.H
     bob = sf.PYU('bob')
 
     # init SPU, the Secure Processing Unit,
-    #           process ciphertext under the protection of a multi-party secure computing protocol
+    # process ciphertext under the protection of a multi-party secure computing protocol
     spu = sf.SPU(sf.utils.testing.cluster_def(['alice', 'bob']))
 
     # first, init a HEU device that alice is sk_keeper and bob is evaluator
@@ -275,23 +287,32 @@ For more details about API, see :py:meth:`~secretflow.ml.linear.hess_sgd.model.H
     )
     # Y label belongs to bob
     label_data = FedNdarray(
-        partitions={bob: bob(read_y)()},
+        partitions={alice: alice(read_y)()},
         partition_way=PartitionWay.VERTICAL,
     )
 
     # wait IO finished
     wait([p.data for p in v_data.partitions.values()])
     wait([p.data for p in label_data.partitions.values()])
-
+    # split train data and test date
+    random_state = 1234
+    split_factor = 0.8
+    v_train_data, v_test_data = train_test_split(v_data, train_size=split_factor, random_state=random_state)
+    v_train_label, v_test_label = train_test_split(label_data, train_size=split_factor, random_state=random_state)
     # run HESS-SGD
     # HESSLogisticRegression use spu / heu to fit model.
-    model = HESSLogisticRegression(spu, heu_x, heu_y)
+    model = HESSLogisticRegression(spu, heu_y, heu_x)
+    # HESSLogisticRegression(spu, heu_x, heu_y)
+    # spu – SPU SPU device.
+    # heu_x – HEU HEU device without label.
+    # heu_y – HEU HEU device with label.
+    # Here, label belong to Alice(heu_x)
     start = time.time()
     model.fit(
-        v_data,
-        label_data,
+        v_train_data,
+        v_train_label,
         learning_rate=0.3,
-        epochs=4,       
+        epochs=5,
         batch_size=32,
     )
     logging.info(f"train time: {time.time() - start}")
@@ -299,12 +320,19 @@ For more details about API, see :py:meth:`~secretflow.ml.linear.hess_sgd.model.H
     # Do predict
     start = time.time()
     # Now the result is saved in the spu by ciphertext
-    spu_yhat = model.predict(v_data)
-    # reveal for auc test.
+    spu_yhat = model.predict(v_test_data)
+    # reveal for auc, acc and classification report test.
     yhat = reveal(spu_yhat)
     logging.info(f"predict time: {time.time() - start}")
-    y = read_y()
+    y = reveal(v_test_label.partitions[alice])
+    # get the area under curve(auc) score of classification
     logging.info(f"auc: {roc_auc_score(y, yhat)}")
+    binary_class_results = np.where(yhat > 0.5, 1, 0)
+    # get the accuracy score of classification
+    logging.info(f"acc: {accuracy_score(y, binary_class_results)}")
+    # get the report of classification
+    print("classification report:")
+    print(classification_report(y, binary_class_results))
 
 Algorithm Details
 ++++++++++++++++++
