@@ -22,7 +22,7 @@ jobs:
     # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
     # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
     docker:
-      - image: registry.hub.docker.com/secretflow/ubuntu-base-ci:0.1
+      - image: registry.hub.docker.com/secretflow/ubuntu-base-ci:0.4
     resource_class: 2xlarge+
     # Add steps to the job
     # See: https://circleci.com/docs/2.0/configuration-reference/#steps
@@ -72,7 +72,7 @@ jobs:
           name: "Install homebrew dependencies"
           command: |
             brew install bazel cmake ninja libomp wget
-            (cd /opt/homebrew/Cellar/bazel/*.*.*/libexec/bin && curl -fLO https://github.com/bazelbuild/bazel/releases/download/5.4.0/bazel-5.4.0-darwin-arm64 && chmod +x bazel-5.4.0-darwin-arm64)
+            (cd /opt/homebrew/Cellar/bazel/*.*.*/libexec/bin && curl -fLO https://github.com/bazelbuild/bazel/releases/download/5.4.1/bazel-5.4.1-darwin-arm64 && chmod +x bazel-5.4.1-darwin-arm64)
       - run:
           name: "Install Miniconda"
           command: |
@@ -95,7 +95,7 @@ jobs:
           path: ./results.xml
   linux_publish:
     docker:
-      - image: registry.hub.docker.com/secretflow/release-ci:0.2
+      - image: registry.hub.docker.com/secretflow/release-ci:0.6
     resource_class: xlarge
     steps:
       - checkout
@@ -120,7 +120,7 @@ jobs:
             set -ex
             
             brew install bazel cmake ninja nasm libomp wget
-            (cd "/usr/local/Cellar/bazel/4.2.1/libexec/bin" && curl -fLO https://releases.bazel.build/5.4.0/release/bazel-5.4.0-darwin-x86_64 && chmod +x bazel-5.4.0-darwin-x86_64)
+            (cd "/usr/local/Cellar/bazel/4.2.1/libexec/bin" && curl -fLO https://releases.bazel.build/5.4.1/release/bazel-5.4.1-darwin-x86_64 && chmod +x bazel-5.4.1-darwin-x86_64)
             wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O ~/miniconda.sh
             bash ~/miniconda.sh -b -p $HOME/miniconda
             source $HOME/miniconda/bin/activate
@@ -147,7 +147,7 @@ jobs:
             set -ex
             
             brew install bazel cmake ninja libomp wget
-            (cd /opt/homebrew/Cellar/bazel/*.*.*/libexec/bin && curl -fLO https://github.com/bazelbuild/bazel/releases/download/5.4.0/bazel-5.4.0-darwin-arm64 && chmod +x bazel-5.4.0-darwin-arm64)
+            (cd /opt/homebrew/Cellar/bazel/*.*.*/libexec/bin && curl -fLO https://github.com/bazelbuild/bazel/releases/download/5.4.1/bazel-5.4.1-darwin-arm64 && chmod +x bazel-5.4.1-darwin-arm64)
             wget https://repo.anaconda.com/miniconda/Miniconda3-py38_23.1.0-1-MacOSX-arm64.sh -O ~/miniconda.sh
             bash ~/miniconda.sh -b -p $HOME/miniconda
             source $HOME/miniconda/bin/activate
