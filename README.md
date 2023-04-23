@@ -50,7 +50,7 @@ Please check [DEPLOYMENT.md](./docs/getting_started/deployment.md)
 
 We also provide a curated list of papers and SecretFlow's tutorials on Privacy-Enhancing Technologies (PETs).
 
-- [awesome-pets](./docs/awesome-pets/README.md)
+Please check [awesome-pets](./docs/awesome-pets/README.md)
 
 
 ## Contributing
