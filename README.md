@@ -52,6 +52,8 @@ We also provide a curated list of papers and SecretFlow's tutorials on Privacy-E
 
 Please feel free to open a pull request.
 
+### Tools and Primitives
+
 Cryptography-based techniques. If you are a beginner in cryptography, and wants to learn about the theory or applications of crypto, please also checkout our [[crypto-for-beginners]](docs/tutorials/crypto-beginner.md) list.
 
 1. [Secure Multi-Party Computation (MPC)](docs/papers/tools/mpc.md)  (Contributors: [@jamie-cui](https://www.github.com/jamie-cui))
@@ -64,6 +66,8 @@ Anonymity-related techniques
 Hardware-based solutions
 
 1. [Trusted Execution Environment (TEE)](docs/papers/tools/tee.md) 
+
+### Applications of PETs
 
 Private Set/Database Operations
 
@@ -84,6 +88,7 @@ Multimedia Privacy and Security
 2. [Attack Methods](docs/papers/applications/multimedia/attack.md) (Contributors: [@XiaoHwei](https://www.github.com/XiaoHwei))
 3. [Defense Methods](docs/papers/applications/multimedia/defense.md) (Contributors: [@XiaoHwei](https://www.github.com/XiaoHwei))
 
+## Other Resources
 
 We're sorry some of the materials are avaliable only in Chinese, we'll try to provide an English version in the future.
 
