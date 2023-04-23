@@ -53,6 +53,3 @@ We're sorry some of the materials are avaliable only in Chinese, we'll try to pr
 2. [Team SecretFlow's Talks (on bilibili.com)](tutorials/bilibili.md) 
 3. [Team SecretFlow's Posts (on wechat)](tutorials/wechat.md)
 
-## Contributes
-
-Please read the contribution guidelines first.
