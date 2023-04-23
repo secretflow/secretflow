@@ -111,8 +111,8 @@ jobs:
             python3 setup.py bdist_wheel
             
             ls dist/*.whl
-            # python3 -m pip install twine
-            # python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
+            python3 -m pip install twine
+            python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
   macOS_x64_publish:
     macos:
       xcode: 13.0.0
@@ -146,8 +146,8 @@ jobs:
             python3 setup.py bdist_wheel
 
             ls dist/*.whl
-            # python3 -m pip install twine
-            # python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
+            python3 -m pip install twine
+            python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
   macOS_arm64_publish:
     macos:
       xcode: 14.2
@@ -181,8 +181,8 @@ jobs:
             python3 setup.py bdist_wheel
 
             ls dist/*.whl
-            # python3 -m pip install twine
-            # python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
+            python3 -m pip install twine
+            python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
