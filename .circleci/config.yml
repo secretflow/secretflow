@@ -198,12 +198,13 @@ workflows:
       - linux_publish:
           matrix:
             parameters:
-              python_ver: ["3.8", "3.9", "3.10", "3.11"]
+              # python_ver: ["3.8", "3.9", "3.10", "3.11"]
+              python_ver: ["3.8"]
       - macOS_x64_publish:
           matrix:
             parameters:
-              python_ver: ['3.8', '3.9', '3.10', '3.11']
+              python_ver: ["3.8"]
       - macOS_arm64_publish:
           matrix:
             parameters:
-              python_ver: ['3.8', '3.9', '3.10', '3.11']
+              python_ver: ["3.8"]
