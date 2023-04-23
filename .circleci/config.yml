@@ -26,6 +26,7 @@ jobs:
     resource_class: 2xlarge+
     # Add steps to the job
     # See: https://circleci.com/docs/2.0/configuration-reference/#steps
+    shell: /bin/bash --login -eo pipefail
     steps:
        # Kill the whole ci after 1hr
       - run:
@@ -42,7 +43,6 @@ jobs:
       - run:
           name: "Install python deps"
           command: |
-            set -ex
             sed -i "s/tensorflow==/tensorflow-cpu==/g" requirements.txt
             pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
             pip install -r dev-requirements.txt
@@ -50,7 +50,6 @@ jobs:
       - run:
           name: "unit test"
           command: |
-            set -ex
             bazel build //secretflow_lib/binding/...
             cp bazel-bin/secretflow_lib/binding/_lib.so secretflow/security/privacy/
             sh run_pytest.sh
@@ -95,71 +94,95 @@ jobs:
           path: ./results.xml
   linux_publish:
     docker:
-      - image: registry.hub.docker.com/secretflow/release-ci:0.6
-    resource_class: xlarge
+      - image: registry.hub.docker.com/secretflow/release-ci:0.7
+    resource_class: 2xlarge
+    parameters:
+      python_ver:
+        type: string
+    shell: /bin/bash --login -eo pipefail
     steps:
       - checkout
       - run:
           name: "build package and publish"
           command: |
-            set -ex
+            conda create -n build python=<< parameters.python_ver >> -y
+            conda activate build  
+
             python3 setup.py bdist_wheel
-            python3 -m pip install twine
-            python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
+            
+            ls dist/*.whl
+            # python3 -m pip install twine
+            # python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
   macOS_x64_publish:
     macos:
       xcode: 13.0.0
     environment:
       HOMEBREW_NO_AUTO_UPDATE: 1
     resource_class: large
+    parameters:
+      python_ver:
+        type: string
     steps:
       - checkout
       - run:
-          name: "build package and publish"
+          name: Install dependencies
           command: |
-            set -ex
-            
             brew install bazel cmake ninja nasm libomp wget
             (cd "/usr/local/Cellar/bazel/4.2.1/libexec/bin" && curl -fLO https://releases.bazel.build/5.4.1/release/bazel-5.4.1-darwin-x86_64 && chmod +x bazel-5.4.1-darwin-x86_64)
+      - run:
+          name: Install Miniconda
+          command: |
             wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O ~/miniconda.sh
             bash ~/miniconda.sh -b -p $HOME/miniconda
             source $HOME/miniconda/bin/activate
-            conda init zsh
-            conda create -y -n secretflow python=3.8
-            conda activate secretflow
-            conda install -y grpcio
-            export SYSTEM_VERSION_COMPAT=0
-            python3 -m pip install --upgrade pip
+            conda init bash zsh
+      - run:
+          name: "build package and publish"
+          command: |
+            conda create -n build python=<< parameters.python_ver >> -y
+            conda activate build
+            # export SYSTEM_VERSION_COMPAT=0
+
             python3 setup.py bdist_wheel
-            python3 -m pip install twine
-            python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
+
+            ls dist/*.whl
+            # python3 -m pip install twine
+            # python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
   macOS_arm64_publish:
     macos:
       xcode: 14.2
     environment:
       HOMEBREW_NO_AUTO_UPDATE: 1
     resource_class: macos.m1.large.gen1
+    parameters:
+      python_ver:
+        type: string
     steps:
       - checkout
       - run:
-          name: "build package and publish"
+          name: Install dependencies
           command: |
-            set -ex
-            
             brew install bazel cmake ninja libomp wget
             (cd /opt/homebrew/Cellar/bazel/*.*.*/libexec/bin && curl -fLO https://github.com/bazelbuild/bazel/releases/download/5.4.1/bazel-5.4.1-darwin-arm64 && chmod +x bazel-5.4.1-darwin-arm64)
+      - run:
+          name: Install Miniconda
+          command: |
             wget https://repo.anaconda.com/miniconda/Miniconda3-py38_23.1.0-1-MacOSX-arm64.sh -O ~/miniconda.sh
             bash ~/miniconda.sh -b -p $HOME/miniconda
             source $HOME/miniconda/bin/activate
-            conda init zsh
-            conda create -y -n secretflow python=3.8
-            conda activate secretflow
-            conda install -y grpcio
-            export SYSTEM_VERSION_COMPAT=0
-            python3 -m pip install --upgrade pip
+            conda init bash zsh
+      - run:
+          name: "build package and publish"
+          command: |            
+            conda create -n build python=<< parameters.python_ver >> -y
+            conda activate build
+            # export SYSTEM_VERSION_COMPAT=0
+
             python3 setup.py bdist_wheel
-            python3 -m pip install twine
-            python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
+
+            ls dist/*.whl
+            # python3 -m pip install twine
+            # python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
@@ -172,6 +195,15 @@ workflows:
   publish:
     when: << pipeline.parameters.GHA_Action >>
     jobs:
-      - linux_publish
-      - macOS_x64_publish
-      - macOS_arm64_publish
+      - linux_publish:
+          matrix:
+            parameters:
+              python_ver: ["3.8", "3.9", "3.10", "3.11"]
+      - macOS_x64_publish:
+          matrix:
+            parameters:
+              python_ver: ['3.8', '3.9', '3.10', '3.11']
+      - macOS_arm64_publish:
+          matrix:
+            parameters:
+              python_ver: ['3.8', '3.9', '3.10', '3.11']
