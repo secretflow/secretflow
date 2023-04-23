@@ -46,6 +46,14 @@ Please check [INSTALLATION.md](./docs/getting_started/installation.md)
 
 Please check [DEPLOYMENT.md](./docs/getting_started/deployment.md)
 
+## Learn PETs
+
+We also provide a curated list of papers and SecretFlow's tutorials on Privacy-Enhancing Technologies (PETs). In this list, we only define and categorie techniques that help maintain the security and privacy of data.
+
+Please feel free to open a pull request.
+
+[see]
+
 ## Contributing
 
 Please check [CONTRIBUTING.md](./CONTRIBUTING.md)
