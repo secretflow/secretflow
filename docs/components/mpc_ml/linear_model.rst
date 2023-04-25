@@ -5,10 +5,10 @@ Linear model is a kind of statistical model with simple form and very widely use
 Under the protection of a multi-party secure computing protocol, SecretFlow
 implements provably secure linear regression and binary classification
 regression through 
-`Minibatch Stochastic Gradient Descent (SGD) method <https://d2l.ai/chapter_optimization/minibatch-sgd.html#minibatches>`_
+`minibatch Stochastic Gradient Descent (SGD) method <https://d2l.ai/chapter_optimization/minibatch-sgd.html#minibatches>`_
 for vertically partitioned dataset setting.
 
-The matrix formula for Minibatch Stochastic Gradient Descent (SGD) is as follows:
+The matrix formula for minibatch Stochastic Gradient Descent (SGD) is as follows:
 
 Normal:
 
