@@ -96,7 +96,7 @@ jobs:
                   set -ex
                   bazel build //secretflow_lib/binding/...
                   cp bazel-bin/secretflow_lib/binding/_lib.so secretflow/security/privacy/
-                  pytest --env prod  -n auto --junitxml=results.xml -v --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  tests/
+                  pytest --testmon --env prod -n auto --junitxml=results.xml -v --capture=no --cov=secretflow/ --cov-report=xml:coverage.xml tests/
             - save_cache:
                 key: testmondata-{{ arch }}-{{ .Branch }}-{{ .Revision }}
                 paths:
