@@ -35,13 +35,6 @@ We hope you enjoy these toturials from SecretFlow developers.
 
 .. toctree::
    :maxdepth: 1
-   :caption: TEEU
-
-   teeu
-   teeu_xgboost
-
-.. toctree::
-   :maxdepth: 1
    :caption: PSI
 
    PSI_On_SPU
