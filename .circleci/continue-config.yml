@@ -28,6 +28,16 @@ jobs:
             echo "Canceling workflow as too much time has elapsed"
             curl -X POST --header "Content-Type: application/json" "https://circleci.com/api/v2/workflow/${CIRCLE_WORKFLOW_ID}/cancel?circle-token=${BUILD_TIMER_TOKEN}"
       - checkout
+      - run:
+          name: Compute previous commit sha
+          command: |
+            export PREV_COMMIT_ID=`git rev-parse HEAD~1`
+            export CURR_COMMIT_ID=`git rev-parse HEAD`
+            echo $PREV_COMMIT_ID
+            echo $CURR_COMMIT_ID
+      - restore_cache:
+          name: Restore pytest testmondata
+          key: testmondata-linux-{{ .Environment.PREV_COMMIT_ID }}
       - restore_cache:
           name: "Restore pip cache"
           key: &pip-cache pip-{{ checksum "requirements.txt" }}-{{ checksum "dev-requirements.txt" }}
@@ -43,7 +53,18 @@ jobs:
           command: |
             bazel build //secretflow_lib/binding/...
             cp bazel-bin/secretflow_lib/binding/_lib.so secretflow/security/privacy/
-            pytest --env prod  -n auto --junitxml=results.xml -v --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  tests/
+            PYTEST_FLAGS=--env prod -n auto --junitxml=results.xml -v --capture=no --cov=secretflow/ --cov-report=xml:coverage.xml tests/
+            if test -f .testmondata; then
+                echo "Find testmodata cache"
+                PYTEST_FLAGS=$PYTEST_FLAGS --testmon
+            fi
+            echo $PYTEST_FLAGS
+            pytest $PYTEST_FLAGS
+      - save_cache:
+          key: testmondata-linux-{{ .Environment.CURR_COMMIT_ID }}
+          paths:
+            - .testmondata
+          when: always
       - save_cache:
           key: *pip-cache
           paths:
