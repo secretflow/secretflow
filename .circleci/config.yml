@@ -68,34 +68,34 @@ jobs:
     steps:
       - checkout
       - when:
-            condition:
-              equal: [ main, << pipeline.git.branch >> ]
-            steps:
-              - run:
-                  name: "Install homebrew dependencies"
-                  command: |
-                    brew install bazel cmake ninja libomp wget
-                    (cd /opt/homebrew/Cellar/bazel/*.*.*/libexec/bin && curl -fLO https://github.com/bazelbuild/bazel/releases/download/5.4.1/bazel-5.4.1-darwin-arm64 && chmod +x bazel-5.4.1-darwin-arm64)
-              - run:
-                  name: "Install Miniconda"
-                  command: |
-                    wget https://repo.anaconda.com/miniconda/Miniconda3-py38_23.1.0-1-MacOSX-arm64.sh -O ~/miniconda.sh
-                    bash ~/miniconda.sh -b -p $HOME/miniconda
-                    source $HOME/miniconda/bin/activate
-                    conda init bash zsh
-                    conda install grpcio onnx -y
-                    pip install -r requirements.txt
-                    pip install -r dev-requirements.txt
-                    pip install onnx==1.13.1 protobuf==3.20.3
-              - run:
-                  name: "build and test"
-                  command: |
-                    set -ex
-                    bazel build //secretflow_lib/binding/...
-                    cp bazel-bin/secretflow_lib/binding/_lib.so secretflow/security/privacy/
-                    sh run_pytest.sh
-              - store_test_results:
-                  path: ./results.xml
+          condition:
+            equal: [ main, << pipeline.git.branch >> ]
+          steps:
+            - run:
+                name: "Install homebrew dependencies"
+                command: |
+                  brew install bazel cmake ninja libomp wget
+                  (cd /opt/homebrew/Cellar/bazel/*.*.*/libexec/bin && curl -fLO https://github.com/bazelbuild/bazel/releases/download/5.4.1/bazel-5.4.1-darwin-arm64 && chmod +x bazel-5.4.1-darwin-arm64)
+            - run:
+                name: "Install Miniconda"
+                command: |
+                  wget https://repo.anaconda.com/miniconda/Miniconda3-py38_23.1.0-1-MacOSX-arm64.sh -O ~/miniconda.sh
+                  bash ~/miniconda.sh -b -p $HOME/miniconda
+                  source $HOME/miniconda/bin/activate
+                  conda init bash zsh
+                  conda install grpcio onnx -y
+                  pip install -r requirements.txt
+                  pip install -r dev-requirements.txt
+                  pip install onnx==1.13.1 protobuf==3.20.3
+            - run:
+                name: "build and test"
+                command: |
+                  set -ex
+                  bazel build //secretflow_lib/binding/...
+                  cp bazel-bin/secretflow_lib/binding/_lib.so secretflow/security/privacy/
+                  sh run_pytest.sh
+            - store_test_results:
+                path: ./results.xml
   linux_publish:
     docker:
       - image: registry.hub.docker.com/secretflow/release-ci:0.7
