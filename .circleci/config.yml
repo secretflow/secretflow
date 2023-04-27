@@ -52,7 +52,7 @@ jobs:
           command: |
             bazel build //secretflow_lib/binding/...
             cp bazel-bin/secretflow_lib/binding/_lib.so secretflow/security/privacy/
-            sh run_pytest.sh
+            pytest --env prod  -n auto --junitxml=results.xml -v --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  tests/
       - save_cache:
           key: *pip-cache
           paths:
@@ -93,7 +93,7 @@ jobs:
                   set -ex
                   bazel build //secretflow_lib/binding/...
                   cp bazel-bin/secretflow_lib/binding/_lib.so secretflow/security/privacy/
-                  sh run_pytest.sh
+                  pytest --env prod  -n auto --junitxml=results.xml -v --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  tests/
             - store_test_results:
                 path: ./results.xml
   linux_publish:
