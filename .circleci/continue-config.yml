@@ -53,13 +53,8 @@ jobs:
           command: |
             bazel build //secretflow_lib/binding/...
             cp bazel-bin/secretflow_lib/binding/_lib.so secretflow/security/privacy/
-            PYTEST_FLAGS=--env prod -n auto --junitxml=results.xml -v --capture=no --cov=secretflow/ --cov-report=xml:coverage.xml tests/
-            if test -f .testmondata; then
-                echo "Find testmodata cache"
-                PYTEST_FLAGS=$PYTEST_FLAGS --testmon
-            fi
-            echo $PYTEST_FLAGS
-            pytest $PYTEST_FLAGS
+            pytest --testmon --env prod -n auto --junitxml=results.xml -v --capture=no --cov=secretflow/ --cov-report=xml:coverage.xml tests/
+            ls -la
       - save_cache:
           key: testmondata-linux-{{ .Environment.CURR_COMMIT_ID }}
           paths:
