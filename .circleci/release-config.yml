@@ -2,7 +2,13 @@
 # See: https://circleci.com/docs/2.0/configuration-reference
 version: 2.1
 parameters:
+  GHA_Actor:
+    type: string
+    default: ""
   GHA_Action:
+    type: string
+    default: ""
+  GHA_Event:
     type: string
     default: ""
 
