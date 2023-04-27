@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.8.2b1] - 2023-4-27
+### Fixed
+- Add missing __init__ files.
+
 ## [0.8.2b0] - 2023-4-19
 ### Added
 - TEE python Unit(TEEU) is introduced as the TEE cryptographic device and enables authorized computation with authorized data in TEE. TEEU brings more possibilities for hybrid computation.
