@@ -523,8 +523,8 @@ class SPURuntime:
         # save key dataframe to temp file for streaming psi
         with tempfile.TemporaryDirectory() as data_dir:
             input_path, output_path = (
-                f'{data_dir.name}/psi-input.csv',
-                f'{data_dir.name}/psi-output.csv',
+                f'{data_dir}/psi-input.csv',
+                f'{data_dir}/psi-output.csv',
             )
             data.to_csv(input_path, index=False)
 
@@ -734,8 +734,8 @@ class SPURuntime:
         # save key dataframe to temp file for streaming psi
         with tempfile.TemporaryDirectory() as data_dir:
             input_path, output_path = (
-                f'{data_dir.name}/psi-input.csv',
-                f'{data_dir.name}/psi-output.csv',
+                f'{data_dir}/psi-input.csv',
+                f'{data_dir}/psi-output.csv',
             )
             data.to_csv(input_path, index=False)
 
