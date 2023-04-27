@@ -4,8 +4,6 @@ from dataclasses import dataclass
 
 import numpy as np
 import pytest
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
 
 import secretflow as sf
 import secretflow.distributed as sfd
@@ -13,7 +11,6 @@ from secretflow.device import global_state
 from secretflow.device.device.teeu import TEEU
 from secretflow.utils.testing import unused_tcp_port
 from tests.cluster import cluster, get_self_party, set_self_party
-from tests.utils.auth_manager import start_auth_server
 
 
 @dataclass
@@ -43,6 +40,9 @@ def teeu_production_setup_devices(request, sf_party_for_4pc):
         )
 
     elif self_party in ('alice', 'bob'):
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
+
         _, private_key_path = tempfile.mkstemp()
         _, public_key_path = tempfile.mkstemp()
         inventory.tmp_files = [private_key_path, public_key_path]
@@ -98,6 +98,8 @@ def teeu_production_setup_devices(request, sf_party_for_4pc):
     global_state.set_auth_manager_host(f'127.0.0.1:{auth_port}')
 
     if self_party == 'carol':
+        from tests.utils.auth_manager import start_auth_server
+
         inventory.server = start_auth_server(auth_port)
 
     yield inventory

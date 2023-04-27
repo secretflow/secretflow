@@ -19,7 +19,6 @@ from typing import Any, Callable, Union
 import fed
 import jax
 import ray
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 import secretflow.distributed.primitive as sfd
 from secretflow.device.device._utils import check_num_returns
@@ -126,6 +125,7 @@ class TEEUWorker:
         )
 
         import ray.cloudpickle.cloudpickle as pickle
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
         for idx, value in teeu_data:
             aesgcm = AESGCM(data_keys[idx])

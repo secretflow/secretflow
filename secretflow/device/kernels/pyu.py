@@ -17,7 +17,6 @@ import logging
 import secrets
 from typing import Any, Callable, List, Union
 
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from spu import Visibility
 
 from secretflow.device import (
@@ -162,6 +161,9 @@ def pyu_to_teeu(
             allow_funcs=allow_funcs_bytes,
             allow_enclaves=allow_enclaves,
         )
+
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
         aesgcm = AESGCM(data_key)
         nonce = secrets.token_bytes(12)
         aad = data_uuid.encode('utf-8')
