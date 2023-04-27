@@ -1,4 +1,5 @@
 import os
+from sys import platform
 import tempfile
 from dataclasses import dataclass
 
@@ -114,7 +115,7 @@ def teeu_production_setup_devices(request, sf_party_for_4pc):
     del inventory
     sf.shutdown()
 
-
+@pytest.mark.skipif(platform == 'darwin', reason="TEEU does not support macOS")
 def test(teeu_production_setup_devices):
     def average(data):
         return np.average(data, axis=0)
