@@ -16,10 +16,10 @@ import functools
 import json
 import logging
 import os
-import shutil
 import struct
 import subprocess
 import sys
+import tempfile
 import time
 import uuid
 from dataclasses import dataclass
@@ -521,15 +521,13 @@ class SPURuntime:
             pd.DataFrame or None: joined DataFrame.
         """
         # save key dataframe to temp file for streaming psi
-        data_dir = f'.data/{self.rank}-{uuid.uuid4()}'
-        os.makedirs(data_dir, exist_ok=True)
-        input_path, output_path = (
-            f'{data_dir}/psi-input.csv',
-            f'{data_dir}/psi-output.csv',
-        )
-        data.to_csv(input_path, index=False)
+        with tempfile.TemporaryDirectory() as data_dir:
+            input_path, output_path = (
+                f'{data_dir}/psi-input.csv',
+                f'{data_dir}/psi-output.csv',
+            )
+            data.to_csv(input_path, index=False)
 
-        try:
             report = self.psi_csv(
                 key,
                 input_path,
@@ -554,8 +552,7 @@ class SPURuntime:
             else:
                 # load result dataframe from temp file
                 return pd.read_csv(output_path)
-        finally:
-            shutil.rmtree(data_dir, ignore_errors=True)
+            
 
     def psi_csv(
         self,
@@ -735,15 +732,13 @@ class SPURuntime:
             pd.DataFrame or None: joined DataFrame.
         """
         # save key dataframe to temp file for streaming psi
-        data_dir = f'.data/{self.rank}-{uuid.uuid4()}'
-        os.makedirs(data_dir, exist_ok=True)
-        input_path, output_path = (
-            f'{data_dir}/psi-input.csv',
-            f'{data_dir}/psi-output.csv',
-        )
-        data.to_csv(input_path, index=False)
+        with tempfile.TemporaryDirectory() as data_dir:
+            input_path, output_path = (
+                f'{data_dir}/psi-input.csv',
+                f'{data_dir}/psi-output.csv',
+            )
+            data.to_csv(input_path, index=False)
 
-        try:
             report = self.psi_join_csv(
                 key,
                 input_path,
@@ -763,8 +758,6 @@ class SPURuntime:
             else:
                 # load result dataframe from temp file
                 return pd.read_csv(output_path)
-        finally:
-            shutil.rmtree(data_dir, ignore_errors=True)
 
     def psi_join_csv(
         self,
@@ -822,13 +815,12 @@ class SPURuntime:
         assert receiver_rank >= 0, f'invalid receiver {receiver}'
 
         # save key dataframe to temp file for streaming psi
-        data_dir = f'.data/{self.rank}-{uuid.uuid4()}'
-        os.makedirs(data_dir, exist_ok=True)
+        data_dir = tempfile.TemporaryDirectory()
         input_path1, output_psi, output_peer, output_notsort = (
-            f'{data_dir}/psi-input.csv',
-            f'{data_dir}/psi-output-join.csv',
-            f'{data_dir}/psi-output-peer.csv',
-            f'{data_dir}/psi-output-nosort.csv',
+            f'{data_dir.name}/psi-input.csv',
+            f'{data_dir.name}/psi-output-join.csv',
+            f'{data_dir.name}/psi-output-peer.csv',
+            f'{data_dir.name}/psi-output-nosort.csv',
         )
         origin_table = pd.read_csv(input_path, usecols=key)
         table_nodup = origin_table.drop_duplicates(subset=key)
@@ -984,7 +976,7 @@ class SPURuntime:
         ), f"sort cmd failed, return {sp_ret.returncode}, expected 0"
 
         # delete tmp data dir
-        shutil.rmtree(data_dir, ignore_errors=True)
+        data_dir.cleanup()
 
         party = self.cluster_def['nodes'][self.rank]['party']
 
