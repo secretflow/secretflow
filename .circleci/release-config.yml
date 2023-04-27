@@ -58,7 +58,6 @@ jobs:
           command: |
             conda create -n build python=<< parameters.python_ver >> -y
             conda activate build
-            # export SYSTEM_VERSION_COMPAT=0
 
             python3 setup.py bdist_wheel
 
@@ -93,7 +92,6 @@ jobs:
           command: |            
             conda create -n build python=<< parameters.python_ver >> -y
             conda activate build
-            # export SYSTEM_VERSION_COMPAT=0
 
             python3 setup.py bdist_wheel
 
