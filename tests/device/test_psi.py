@@ -259,12 +259,12 @@ def test_no_broadcast_sim(sim_env_and_model):
 def _test_psi_csv(devices, data):
     with tempfile.TemporaryDirectory() as data_dir:
         input_path = {
-            devices.alice: f'{data_dir}/alice.csv',
-            devices.bob: f'{data_dir}/bob.csv',
+            devices.alice: f'{data_dir.name}/alice.csv',
+            devices.bob: f'{data_dir.name}/bob.csv',
         }
         output_path = {
-            devices.alice: f'{data_dir}/alice_psi.csv',
-            devices.bob: f'{data_dir}/bob_psi.csv',
+            devices.alice: f'{data_dir.name}/alice_psi.csv',
+            devices.bob: f'{data_dir.name}/bob_psi.csv',
         }
 
         sf.reveal(
@@ -303,8 +303,8 @@ def test_psi_csv_sim(sim_env_and_model):
 def _test_unbalanced_psi_csv(devices, data):
     with tempfile.TemporaryDirectory() as data_dir:
         input_path = {
-            devices.alice: f'{data_dir}/alice.csv',
-            devices.bob: f'{data_dir}/bob.csv',
+            devices.alice: f'{data_dir.name}/alice.csv',
+            devices.bob: f'{data_dir.name}/bob.csv',
         }
 
         sf.reveal(
@@ -320,29 +320,29 @@ def _test_unbalanced_psi_csv(devices, data):
 
         # write secretkey.bin
         secret_key = "000102030405060708090a0b0c0d0e0ff0e0d0c0b0a090807060504030201000"
-        secret_key_path = f'{data_dir}/secret_key.bin'
+        secret_key_path = f'{data_dir.name}/secret_key.bin'
         with open(secret_key_path, 'wb') as f:
             f.write(bytes.fromhex(secret_key))
 
         offline_input_path = {
             devices.alice: 'fake.csv',
-            devices.bob: f'{data_dir}/bob.csv',
+            devices.bob: f'{data_dir.name}/bob.csv',
         }
 
         server_party_name = 'bob'
         client_party_name = 'alice'
 
-        offline_preprocess_path = f'{data_dir}/offline_preprocess_data.csv'
+        offline_preprocess_path = f'{data_dir.name}/offline_preprocess_data.csv'
 
         # gen cache
         print("=====gen cache phase====")
         # gen cache phase
         gen_cache_config = spu.psi.BucketPsiConfig(
             input_params=spu.psi.InputParams(
-                path=f'{data_dir}/bob.csv', select_fields=['c1', 'c2'], precheck=False
+                path=f'{data_dir.name}/bob.csv', select_fields=['c1', 'c2'], precheck=False
             ),
             output_params=spu.psi.OutputParams(
-                path=f'{data_dir}/server_cache.bin', need_sort=False
+                path=f'{data_dir.name}/server_cache.bin', need_sort=False
             ),
             curve_type="CURVE_FOURQ",
             bucket_size=1000000,
@@ -355,7 +355,7 @@ def _test_unbalanced_psi_csv(devices, data):
         # transfer cache
         print("=====transfer cache phase====")
 
-        transfer_cache_input_path = f'{data_dir}/server_cache.bin'
+        transfer_cache_input_path = f'{data_dir.name}/server_cache.bin'
         transfer_cache_output_path = ''
 
         # tansfer cache phase
@@ -377,12 +377,12 @@ def _test_unbalanced_psi_csv(devices, data):
         print("=====shuffle online phase====")
 
         shuffle_online_input_path = {
-            devices.alice: f'{data_dir}/alice.csv',
-            devices.bob: f'{data_dir}/bob.csv',
+            devices.alice: f'{data_dir.name}/alice.csv',
+            devices.bob: f'{data_dir.name}/bob.csv',
         }
         shuffle_online_output_path = {
             devices.alice: '',
-            devices.bob: f'{data_dir}/bob_psi.csv',
+            devices.bob: f'{data_dir.name}/bob_psi.csv',
         }
         shuffle_online_preprocess_path = {
             devices.alice: offline_preprocess_path,
@@ -433,12 +433,12 @@ def _test_unbalanced_psi_csv(devices, data):
         # online
         print("=====online phase====")
         online_input_path = {
-            devices.alice: f'{data_dir}/alice.csv',
-            devices.bob: f'{data_dir}/bob.csv',
+            devices.alice: f'{data_dir.name}/alice.csv',
+            devices.bob: f'{data_dir.name}/bob.csv',
         }
         online_output_path = {
-            devices.alice: f'{data_dir}/alice_psi.csv',
-            devices.bob: f'{data_dir}/bob_psi.csv',
+            devices.alice: f'{data_dir.name}/alice_psi.csv',
+            devices.bob: f'{data_dir.name}/bob_psi.csv',
         }
 
         cache_path = {
@@ -552,12 +552,12 @@ def test_psi_join_csv(prod_env_and_model):
     devices, data = prod_env_and_model
     with tempfile.TemporaryDirectory() as data_dir:
         input_path = {
-            devices.alice: f'{data_dir}/alice.csv',
-            devices.bob: f'{data_dir}/bob.csv',
+            devices.alice: f'{data_dir.name}/alice.csv',
+            devices.bob: f'{data_dir.name}/bob.csv',
         }
         output_path = {
-            devices.alice: f'{data_dir}/alice_psi.csv',
-            devices.bob: f'{data_dir}/bob_psi.csv',
+            devices.alice: f'{data_dir.name}/alice_psi.csv',
+            devices.bob: f'{data_dir.name}/bob_psi.csv',
         }
 
         sf.reveal(

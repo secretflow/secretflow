@@ -523,8 +523,8 @@ class SPURuntime:
         # save key dataframe to temp file for streaming psi
         with tempfile.TemporaryDirectory() as data_dir:
             input_path, output_path = (
-                f'{data_dir}/psi-input.csv',
-                f'{data_dir}/psi-output.csv',
+                f'{data_dir.name}/psi-input.csv',
+                f'{data_dir.name}/psi-output.csv',
             )
             data.to_csv(input_path, index=False)
 
@@ -734,8 +734,8 @@ class SPURuntime:
         # save key dataframe to temp file for streaming psi
         with tempfile.TemporaryDirectory() as data_dir:
             input_path, output_path = (
-                f'{data_dir}/psi-input.csv',
-                f'{data_dir}/psi-output.csv',
+                f'{data_dir.name}/psi-input.csv',
+                f'{data_dir.name}/psi-output.csv',
             )
             data.to_csv(input_path, index=False)
 
@@ -817,10 +817,10 @@ class SPURuntime:
         # save key dataframe to temp file for streaming psi
         data_dir = tempfile.TemporaryDirectory()
         input_path1, output_psi, output_peer, output_notsort = (
-            f'{data_dir}/psi-input.csv',
-            f'{data_dir}/psi-output-join.csv',
-            f'{data_dir}/psi-output-peer.csv',
-            f'{data_dir}/psi-output-nosort.csv',
+            f'{data_dir.name}/psi-input.csv',
+            f'{data_dir.name}/psi-output-join.csv',
+            f'{data_dir.name}/psi-output-peer.csv',
+            f'{data_dir.name}/psi-output-nosort.csv',
         )
         origin_table = pd.read_csv(input_path, usecols=key)
         table_nodup = origin_table.drop_duplicates(subset=key)

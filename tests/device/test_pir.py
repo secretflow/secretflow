@@ -46,8 +46,8 @@ def test_pir(set_up):
     env, da, db = set_up
     with tempfile.TemporaryDirectory() as data_dir:
         input_path = {
-            env.alice: f'{data_dir}/alice.csv',
-            env.bob: f'{data_dir}/bob.csv',
+            env.alice: f'{data_dir.name}/alice.csv',
+            env.bob: f'{data_dir.name}/bob.csv',
         }
 
         sf.reveal(
@@ -64,11 +64,11 @@ def test_pir(set_up):
         label_columns = ['date', 'age']
 
         oprf_key = "000102030405060708090a0b0c0d0e0ff0e0d0c0b0a090807060504030201000"
-        oprf_key_path = f'{data_dir}/oprf_key.bin'
+        oprf_key_path = f'{data_dir.name}/oprf_key.bin'
         with open(oprf_key_path, 'wb') as f:
             f.write(bytes.fromhex(oprf_key))
 
-        setup_path = f'{data_dir}/setup_dir'
+        setup_path = f'{data_dir.name}/setup_dir'
 
         env.spu.pir_setup(
             server='bob',
@@ -81,7 +81,7 @@ def test_pir(set_up):
             label_max_len=20,
         )
 
-        pir_result_path = f'{data_dir}/pir_out.csv'
+        pir_result_path = f'{data_dir.name}/pir_out.csv'
 
         alice_config = {
             'input_path': input_path[env.alice],
