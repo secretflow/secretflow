@@ -28,17 +28,9 @@ jobs:
             echo "Canceling workflow as too much time has elapsed"
             curl -X POST --header "Content-Type: application/json" "https://circleci.com/api/v2/workflow/${CIRCLE_WORKFLOW_ID}/cancel?circle-token=${BUILD_TIMER_TOKEN}"
       - checkout
-      - run:
-          name: Compute previous commit sha
-          command: |
-            echo 'export PREV_COMMIT_ID=`git rev-parse HEAD~1`' >> "$BASH_ENV"
-            echo 'export CURR_COMMIT_ID=`git rev-parse HEAD`' >> "$BASH_ENV"
-            source "$BASH_ENV"
-            echo $PREV_COMMIT_ID
-            echo $CURR_COMMIT_ID
       - restore_cache:
           name: Restore pytest testmondata
-          key: testmondata-linux-{{ .Environment.PREV_COMMIT_ID }}
+          key: testmondata-linux-{{ .Branch }}-
       - restore_cache:
           name: "Restore pip cache"
           key: &pip-cache pip-{{ checksum "requirements.txt" }}-{{ checksum "dev-requirements.txt" }}
@@ -57,7 +49,7 @@ jobs:
             pytest --testmon --env prod -n auto --junitxml=results.xml -v --capture=no --cov=secretflow/ --cov-report=xml:coverage.xml tests/
             ls -la
       - save_cache:
-          key: testmondata-linux-{{ .Environment.CURR_COMMIT_ID }}
+          key: testmondata-linux-{{ .Branch }}-{{ .Revision }}
           paths:
             - .testmondata
           when: always
