@@ -18,4 +18,4 @@ Please check out this simple [tutorial](../../../tutorial/SecureBoost.ipynb).
 
 ## Security Warning
 
-Please note that the federated tree model algorithm (SecureBoost)[https://arxiv.org/abs/1901.08755] is not a provably secure algorithm. There exist known (attacks)[https://arxiv.org/pdf/2011.09290.pdf] that could lead to data leakage. Therefore, we recommend using (MPC-XGB)[https://arxiv.org/abs/2005.08479] instead of SecureBoost when data security is a concern, which is implemented in [Decision Trees](../../mpc_ml/decision_tree.rst).
+Please note that the federated tree model algorithm [SecureBoost](https://arxiv.org/abs/1901.08755) is not a provably secure algorithm. There exist known [attacks](https://arxiv.org/pdf/2011.09290.pdf) that could lead to data leakage. Therefore, we recommend using [MPC-XGB](https://arxiv.org/abs/2005.08479) instead of SecureBoost when data security is a concern, which is implemented in [Decision Trees](../../mpc_ml/decision_tree.rst).

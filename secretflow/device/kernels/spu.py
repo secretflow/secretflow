@@ -407,7 +407,7 @@ def psi_join_csv(
         assert isinstance(
             output_path, str
         ), f'input_path and output_path must be same types'
-        for actor in device.actors:
+        for actor in device.actors.values():
             k = key[actor] if isinstance(key, Dict) else key
             res.append(
                 actor.psi_join_csv.remote(
@@ -440,6 +440,88 @@ def psi_join_csv(
                     curve_type,
                 )
             )
+
+    # wait for all tasks done
+    return sfd.get(res)
+
+
+@register(DeviceType.SPU)
+def pir_setup(
+    device: SPU,
+    server: str,
+    input_path: str,
+    key_columns: Union[str, List[str]],
+    label_columns: Union[str, List[str]],
+    oprf_key_path: str,
+    setup_path: str,
+    num_per_query: int,
+    label_max_len: int,
+    protocol="KEYWORD_PIR_LABELED_PSI",
+):
+    assert isinstance(device, SPU), f'device must be SPU device'
+    assert isinstance(server, str), f'server must be str'
+    assert isinstance(input_path, str), f'input_path must be str'
+    assert isinstance(
+        key_columns, (str, List, Dict)
+    ), f'invalid key_columns, must be str of list of str or dict of list str'
+    assert isinstance(
+        label_columns, (str, List, Dict)
+    ), f'invalid label_columns, must be str of list of str or dict of list str'
+    assert isinstance(oprf_key_path, str), f'oprf_key_path must be str '
+    assert isinstance(setup_path, str), f'setup_path must be str '
+    assert isinstance(num_per_query, int), f'num_per_query must be int'
+    assert isinstance(label_max_len, int), f'label_max_len must be int'
+
+    assert server in device.actors.keys(), f'invalid server party name {server}'
+
+    res = []
+
+    actor = device.actors[server]
+    res.append(
+        actor.pir_setup.remote(
+            server,
+            input_path,
+            key_columns,
+            label_columns,
+            oprf_key_path,
+            setup_path,
+            num_per_query,
+            label_max_len,
+            protocol,
+        )
+    )
+
+    # wait for all tasks done
+    return sfd.get(res)
+
+
+@register(DeviceType.SPU)
+def pir_query(
+    device: SPU,
+    server: str,
+    config: Dict[Device, Dict],
+    protocol="KEYWORD_PIR_LABELED_PSI",
+):
+    assert isinstance(device, SPU), f'device must be SPU device'
+    assert isinstance(server, str), f'server must be str'
+    assert isinstance(config, Dict), f'config must be str'
+
+    assert server in device.actors.keys(), f'invalid server party name {server}'
+
+    assert 2 == len(
+        device.actors
+    ), f'unexpected number({len(device.actors)}) of partys, should be 2'
+
+    res = []
+    for dev, iconfig in config.items():
+        actor = device.actors[dev.party]
+        res.append(
+            actor.pir_query.remote(
+                server,
+                iconfig,
+                protocol,
+            )
+        )
 
     # wait for all tasks done
     return sfd.get(res)

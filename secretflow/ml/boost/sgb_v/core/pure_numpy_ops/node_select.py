@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List
+from typing import List, Tuple
 import numpy as np
 
 
@@ -22,25 +22,41 @@ def root_select(samples: int) -> List[np.ndarray]:
 
 
 def get_child_select(
-    nodes_s: List[np.ndarray], lchilds_ss: List[np.ndarray]
-) -> List[np.ndarray]:
+    nodes_s: List[np.ndarray],
+    lchilds_ss: List[np.ndarray],
+    gain_is_cost_effective: List[bool],
+    split_node_indices: List[int],
+) -> Tuple[List[np.ndarray], List[int], List[np.ndarray], List[int]]:
     """
-    compute the next level's sample select indices.
+    compute the next level's sample select indices, and node indices
 
     Args:
         nodes_s: sample select indices of each node from current level's nodes.
-        lchilds_ss: left children's sample selects idx for current level's nodes.
+        lchilds_ss: left children's sample selects idx for current level's nodes (after pruning).
         A non-empty single sample select is a np.ndarray with the shape n_samples * 1
         and with entries being 0 and 1s. 1 indicates the sample remains in node.
+        gain_is_cost_effective: List[bool]. indicate whether node should be split.
+        split_node_indices: List[int]. node indices at the current level.
 
-    Return:
-        sample select indices for nodes in next tree level.
+    Returns:
+        sample select indices for nodes in the next level.
+        node indices for the next level
+        sample select indices for pruned nodes
+        node indices for th pruned nodes
     """
     lchilds_ss = list(zip(*lchilds_ss))
     lchilds_s = [np.concatenate(ss, axis=None) for ss in lchilds_ss]
-    assert len(lchilds_s) == len(nodes_s), f"{len(lchilds_s)} != {len(nodes_s)}"
-    childs_s = list()
-    for current, lchild in zip(nodes_s, lchilds_s):
+    childs_s = []
+    node_indices = []
+    index = 0
+    pruned_s = []
+    pruned_node_indices = []
+    for i, current in enumerate(nodes_s):
+        if not gain_is_cost_effective[i]:
+            pruned_s.append(nodes_s[i])
+            pruned_node_indices.append(split_node_indices[i])
+            continue
+        lchild = lchilds_s[index]
         assert (
             current.size == lchild.size
         ), "current size is {}, lchild size is {}".format(current.size, lchild.size)
@@ -48,6 +64,9 @@ def get_child_select(
         ls = current * lchild
         # get right child's select by sub.
         rs = current - ls
-        childs_s.append(ls)
-        childs_s.append(rs)
-    return childs_s
+        node_index = split_node_indices[i]
+        childs_s.extend([ls, rs])
+        l_index = 2 * node_index + 1
+        node_indices.extend([l_index, l_index + 1])
+        index += 1
+    return childs_s, node_indices, pruned_s, pruned_node_indices

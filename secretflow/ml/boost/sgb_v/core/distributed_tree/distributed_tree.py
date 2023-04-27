@@ -11,9 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from secretflow.device import PYUObject, PYU
 from typing import Dict
+
+import numpy as np
+
+from secretflow.device import PYU, PYUObject
+
 from ..pure_numpy_ops.pred import predict_tree_weight
+from .split_tree import from_dict as split_tree_from_dict
 
 
 class DistributedTree:
@@ -21,6 +26,7 @@ class DistributedTree:
 
     def __init__(self):
         self.split_tree_dict = {}
+        # leaf weight is np.ndarray
         self.leaf_weight = None
         self.label_holder = None
 
@@ -68,3 +74,28 @@ class DistributedTree:
         weight = self.leaf_weight
         pred = self.label_holder(predict_tree_weight)(weight_selects, weight)
         return pred
+
+    def to_dict(self) -> Dict:
+        """Serialize to a Dictionary. Note this dict contain PYUObjects, cannot dump to file at this level."""
+        split_tree_dict = {
+            device: device(lambda t: t.to_dict())(tree)
+            for device, tree in self.split_tree_dict.items()
+        }
+        return {
+            'split_tree_dict': split_tree_dict,
+            'leaf_weight': self.label_holder(lambda arr: arr.tolist())(
+                self.leaf_weight
+            ),
+            'label_holder': self.label_holder,
+        }
+
+
+def from_dict(tree_content: Dict) -> DistributedTree:
+    dt = DistributedTree()
+    dt.split_tree_dict = {
+        device: device(split_tree_from_dict)(dict)
+        for device, dict in tree_content['split_tree_dict'].items()
+    }
+    dt.label_holder = tree_content['label_holder']
+    dt.leaf_weight = dt.label_holder(np.array)(tree_content['leaf_weight'])
+    return dt

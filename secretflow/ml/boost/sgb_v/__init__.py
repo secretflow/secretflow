@@ -14,8 +14,6 @@
 
 from .model import SgbModel
 from .sgb import Sgb
+from .factory import SGBFactory
 
-__all__ = [
-    'SgbModel',
-    'Sgb',
-]
+__all__ = ['SgbModel', 'Sgb', 'SGBFactory']

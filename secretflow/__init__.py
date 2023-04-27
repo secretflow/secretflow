@@ -16,10 +16,13 @@
 from .version import __version__  # type: ignore
 
 from . import (
+    component,
     data,
     device,
+    kuscia,
     ml,
     preprocessing,
+    protos,
     security,
     utils,
 )

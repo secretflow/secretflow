@@ -259,7 +259,9 @@ class HESSLogisticRegression:
         # label `y` is single scaled integer, so we have to right shift
         # `(p1 + p2)`. The whole return value is single scaled integer.
         y = y.reshape((y.shape[0],))
-        return (1 << (scale - 1)) + ((p1 + p2) >> (2 * scale + 3)) - y
+        yhat = (1 << (scale - 1)) + ((p1 + p2) >> (2 * scale + 3))
+        yhat = jnp.select([yhat < 0, yhat > (1 << scale)], [0, (1 << scale)], yhat)
+        return yhat - y
 
     @staticmethod
     def _encode(x: PYUObject, scale: int, expand: bool):

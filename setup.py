@@ -11,6 +11,11 @@ from setuptools import find_packages, setup
 from setuptools.command import build_ext
 
 this_directory = os.path.abspath(os.path.dirname(__file__))
+
+if os.getcwd() != this_directory:
+    print("You must run setup.py from the project root")
+    exit(-1)
+
 with open(os.path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
@@ -33,7 +38,8 @@ def find_version(*filepath):
         )
         if version_match:
             return version_match.group(1)
-        raise RuntimeError("Unable to find version string.")
+        print("Unable to find version string.")
+        exit(-1)
 
 
 def read_requirements():
@@ -51,21 +57,24 @@ def read_requirements():
 
 
 # [ref](https://github.com/perwin/pyimfit/blob/master/setup.py)
-# Modified cleanup command to remove build subdirectory
+# Modified cleanup command to remove dist subdirectory
 # Based on: https://stackoverflow.com/questions/1710839/custom-distutils-commands
 class CleanCommand(setuptools.Command):
-    description = "custom clean command that forcefully removes dist/build directories"
+    description = "custom clean command that forcefully removes dist directories"
     user_options = []
 
     def initialize_options(self):
-        self._cwd = None
+        pass
 
     def finalize_options(self):
-        self._cwd = os.getcwd()
+        pass
 
     def run(self):
-        assert os.getcwd() == self._cwd, 'Must be in package root: %s' % self._cwd
-        os.system('rm -rf ./build ./dist')
+        directories_to_clean = ['./dist', './build']
+
+        for dir in directories_to_clean:
+            if os.path.exists(dir):
+                shutil.rmtree(dir)
 
 
 # [ref](https://github.com/google/trimmed_match/blob/master/setup.py)
@@ -146,5 +155,10 @@ setup(
             'proto_root_path': '.',
             'output_dir': '.',
         },
+    },
+    entry_points={
+        'console_scripts': [
+            'secretflow = secretflow.cli:cli',
+        ],
     },
 )

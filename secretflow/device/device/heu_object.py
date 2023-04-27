@@ -155,7 +155,9 @@ class HEUObject(DeviceObject):
             self.is_plain,
         )
 
-    def feature_wise_bucket_sum(self, subgroup_map, order_map, bucket_num, cumsum=False):
+    def feature_wise_bucket_sum(
+        self, subgroup_map, order_map, bucket_num, cumsum=False
+    ):
         """
         Sum of HEUObject selected elements
         """
@@ -178,7 +180,9 @@ class HEUObject(DeviceObject):
             self.is_plain,
         )
 
-    def batch_feature_wise_bucket_sum(self, subgroup_map, order_map, bucket_num, cumsum=False):
+    def batch_feature_wise_bucket_sum(
+        self, subgroup_map, order_map, bucket_num, cumsum=False
+    ):
         """
         Sum of HEUObject selected elements
         """

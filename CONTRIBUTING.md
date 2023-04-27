@@ -1,19 +1,36 @@
 # Contribution guide
 
 ## Build
-Please check [INSTALLATION.md](./INSTALLATION.md) to build SecretFlow from source.
+Please check [INSTALLATION.md](./docs/getting_started/installation.md) to build SecretFlow from source.
 
 ## Test
 
-If you need to run all tests,
+Before start, please install required package for testing.
 ```sh
-bash run_pytest.sh
+pip install -r dev-requirements.txt
+```
+
+There are two types in secretflow/tests.
+- simulation mode: SUT(System under test) is simulated by a single Ray cluster.
+- production mode: SUT consists of multiple ray clusters. We have multiple processes running as different parties.
+In most cases, SUT is tested by production mode.
+
+If you need to run all tests,
+
+```sh
+# tests under production mode
+pytest --env prod  -n auto  -v --capture=no  tests/
+# tests under simulation mode
+pytest --env sim  -n auto  -v --capture=no  tests/
 ```
 
 If you would like to run a single test, e.g. tests/device/test_spu.py,
 
 ```sh
-bash run_pytest.sh test_spu.py
+# tests under simulation mode
+pytest --env sim  -n auto  -v --capture=no  tests/device/test_spu.py
+# tests under production mode
+pytest --env prod  -n auto  -v --capture=no  tests/device/test_spu.py
 ```
 
 ## Coding Style

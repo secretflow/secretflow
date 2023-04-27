@@ -3,29 +3,32 @@ import numpy as np
 import secretflow as sf
 
 
-class TestAggregatorBase:
-    def test_sum_on_single_should_ok(self):
+# NOTE(fengjun.feng): could not use TestAggregatorBase since pytest would recognize as a testsuite.
+class AggregatorBase:
+    def test_sum_on_single_should_ok(self, env_and_aggregator):
+        env, aggregator = env_and_aggregator
         # GIVEN
-        a = self.alice(lambda: np.array([[1.0, 2.0, 3], [4.0, 5.0, 6.0]]))()
-        b = self.bob(lambda: np.array([[11.0, 12.0, 13.0], [14, 15.0, 16.0]]))()
+        a = env.alice(lambda: np.array([[1.0, 2.0, 3], [4.0, 5.0, 6.0]]))()
+        b = env.bob(lambda: np.array([[11.0, 12.0, 13.0], [14, 15.0, 16.0]]))()
 
         # WHEN
-        sum = sf.reveal(self.aggregator.sum([a, b], axis=0))
+        sum = sf.reveal(aggregator.sum([a, b], axis=0))
 
         # THEN
         np.testing.assert_almost_equal(
             sum, np.array([[12.0, 14.0, 16.0], [18.0, 20.0, 22.0]]), decimal=5
         )
 
-    def test_sum_on_list_should_ok(self):
+    def test_sum_on_list_should_ok(self, env_and_aggregator):
+        env, aggregator = env_and_aggregator
         # GIVEN
-        a = self.alice(
+        a = env.alice(
             lambda: [
                 np.array([[1, 2, 3], [4, 5, 6]]),
                 np.array([[21, 22, 23], [24, 25, 26]]),
             ]
         )()
-        b = self.bob(
+        b = env.bob(
             lambda: [
                 np.array([[11, 12, 13], [14, 15, 16]]),
                 np.array([[31, 32, 33], [34, 35, 36]]),
@@ -33,7 +36,7 @@ class TestAggregatorBase:
         )()
 
         # WHEN
-        sum = sf.reveal(self.aggregator.sum([a, b], axis=0))
+        sum = sf.reveal(aggregator.sum([a, b], axis=0))
 
         # THEN
         np.testing.assert_almost_equal(
@@ -43,28 +46,30 @@ class TestAggregatorBase:
             sum[1], np.array([[52, 54, 56], [58, 60, 62]]), decimal=5
         )
 
-    def test_average_on_single_without_weights_should_ok(self):
+    def test_average_on_single_without_weights_should_ok(self, env_and_aggregator):
+        env, aggregator = env_and_aggregator
         # GIVEN
-        a = self.alice(lambda: np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]))()
-        b = self.bob(lambda: np.array([[11.0, 12.0, 13.0], [14.0, 15.0, 16.0]]))()
+        a = env.alice(lambda: np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]))()
+        b = env.bob(lambda: np.array([[11.0, 12.0, 13.0], [14.0, 15.0, 16.0]]))()
 
         # WHEN
-        avg = sf.reveal(self.aggregator.average([a, b], axis=0))
+        avg = sf.reveal(aggregator.average([a, b], axis=0))
 
         # THEN
         np.testing.assert_almost_equal(
             avg, np.array([[6.0, 7.0, 8.0], [9.0, 10.0, 11.0]]), decimal=5
         )
 
-    def test_average_on_list_without_weights_should_ok(self):
+    def test_average_on_list_without_weights_should_ok(self, env_and_aggregator):
+        env, aggregator = env_and_aggregator
         # GIVEN
-        a = self.alice(
+        a = env.alice(
             lambda: [
                 np.array([[1, 2, 3], [4, 5, 6]]),
                 np.array([[21, 22, 23], [24, 25, 26]]),
             ]
         )()
-        b = self.bob(
+        b = env.bob(
             lambda: [
                 np.array([[11, 12, 13], [14, 15, 16]]),
                 np.array([[31, 32, 33], [34, 35, 36]]),
@@ -72,7 +77,7 @@ class TestAggregatorBase:
         )()
 
         # WHEN
-        avg = sf.reveal(self.aggregator.average([a, b], axis=0))
+        avg = sf.reveal(aggregator.average([a, b], axis=0))
 
         # THEN
         np.testing.assert_almost_equal(
@@ -82,28 +87,30 @@ class TestAggregatorBase:
             avg[1], np.array([[26, 27, 28], [29, 30, 31]]), decimal=5
         )
 
-    def test_average_with_weights_should_ok(self):
+    def test_average_with_weights_should_ok(self, env_and_aggregator):
+        env, aggregator = env_and_aggregator
         # GIVEN
-        a = self.alice(lambda: np.array([[1, 2, 3], [4, 5, 6]]))()
-        b = self.bob(lambda: np.array([[11, 12, 13], [14, 15, 16]]))()
+        a = env.alice(lambda: np.array([[1, 2, 3], [4, 5, 6]]))()
+        b = env.bob(lambda: np.array([[11, 12, 13], [14, 15, 16]]))()
 
         # WHEN
-        sum = sf.reveal(self.aggregator.average([a, b], axis=0, weights=[2, 3]))
+        sum = sf.reveal(aggregator.average([a, b], axis=0, weights=[2, 3]))
 
         # THEN
         np.testing.assert_almost_equal(
             sum, np.array([[7, 8, 9], [10, 11, 12]]), decimal=4
         )
 
-    def test_average_on_list_with_weights_should_ok(self):
+    def test_average_on_list_with_weights_should_ok(self, env_and_aggregator):
+        env, aggregator = env_and_aggregator
         # GIVEN
-        a = self.alice(
+        a = env.alice(
             lambda: [
                 np.array([[1, 2, 3], [4, 5, 6]]),
                 np.array([[21, 22, 23], [24, 25, 26]]),
             ]
         )()
-        b = self.bob(
+        b = env.bob(
             lambda: [
                 np.array([[11, 12, 13], [14, 15, 16]]),
                 np.array([[31, 32, 33], [34, 35, 36]]),
@@ -111,7 +118,7 @@ class TestAggregatorBase:
         )()
 
         # WHEN
-        avg = sf.reveal(self.aggregator.average([a, b], axis=0, weights=[2, 3]))
+        avg = sf.reveal(aggregator.average([a, b], axis=0, weights=[2, 3]))
 
         # THEN
         np.testing.assert_almost_equal(
@@ -121,17 +128,18 @@ class TestAggregatorBase:
             avg[1], np.array([[27, 28, 29], [30, 31, 32]]), decimal=4
         )
 
-    def test_average_with_same_shape_weights_should_ok(self):
+    def test_average_with_same_shape_weights_should_ok(self, env_and_aggregator):
+        env, aggregator = env_and_aggregator
         # GIVEN
         arr0 = np.array([[1, 2, 3]])
         arr1 = np.array([[11, 12, 13]])
-        a = self.alice(lambda: arr0)()
-        b = self.bob(lambda: arr1)()
+        a = env.alice(lambda: arr0)()
+        b = env.bob(lambda: arr1)()
 
         weights = np.array([[[5, 7, 2]], [[5, 3, 8]]])
 
         # WHEN
-        sum = sf.reveal(self.aggregator.average([a, b], axis=0, weights=weights))
+        sum = sf.reveal(aggregator.average([a, b], axis=0, weights=weights))
 
         # THEN
         np.testing.assert_almost_equal(

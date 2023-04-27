@@ -11,6 +11,15 @@ We hope you enjoy these toturials from SecretFlow developers.
 
 .. toctree::
    :maxdepth: 1
+   :caption: IO
+   FedDataFrameDataLoader
+   FedNdarrayDataLoader
+   CustomDataLoaderTF
+   CustomDataLoaderTorch
+   CustomDataLoaderOnSL
+
+.. toctree::
+   :maxdepth: 1
    :caption: DataFrame
 
    data_preprocessing_with_data_frame
@@ -23,6 +32,13 @@ We hope you enjoy these toturials from SecretFlow developers.
    lr_with_spu
    nn_with_spu
    numpy_with_spu
+
+.. toctree::
+   :maxdepth: 1
+   :caption: TEEU
+
+   teeu
+   teeu_xgboost
 
 .. toctree::
    :maxdepth: 1

@@ -495,4 +495,4 @@ class DecisionTree(object):
             ]
         )
         with open(model_path, "w") as dump_f:
-            json.dump(json_model, dump_f)
+            json.dump(json_model, dump_f, ensure_ascii=False)

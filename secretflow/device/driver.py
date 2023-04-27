@@ -323,25 +323,13 @@ def init(
         enable_waiting_for_other_parties_ready: wait for other parties ready if True.
         tls_config: optional, a dict describes the tls certificate and key infomations. E.g.
 
-            # For alice
             .. code:: python
                 {
-                    'alice': {
-                        'key': 'server key of alice in pem.'
-                        'cert': 'server certificate of alice in pem.',
-                        'ca_cert': 'root ca certificate of other parties (E.g. bob)'
-                    }
+                    'key': 'server key in pem.'
+                    'cert': 'server certificate in pem.',
+                    'ca_cert': 'root ca certificate of other parties.'
                 }
 
-            # For bob
-            .. code:: python
-                {
-                    'bob': {
-                        'key': 'server key of bob in pem.'
-                        'cert': 'server certificate of bob in pem.',
-                        'ca_cert': 'root ca certificate of other parties (E.g. alice)'
-                    }
-                }
         auth_manager_config: optional, a dict describes the config about authority manager
             service. Authority manager helps manage the authority of TEE data.
             This parameter is for TEE users only. An example,
@@ -403,9 +391,6 @@ def init(
             # Give num_cpus a min value for better simulation.
             num_cpus = max(num_cpus, 32)
 
-    if tls_config:
-        _parse_tls_config(tls_config)
-
     if party_key_pair:
         _parse_party_key_pair(party_key_pair)
 
@@ -430,7 +415,7 @@ def init(
         if auth_ca_cert_path:
             with open(auth_ca_cert_path, 'r') as f:
                 auth_ca_cert = f.read()
-        global_state.set_auth_manager_ca_cert(ca_cert=auth_ca_cert)
+            global_state.set_auth_manager_ca_cert(ca_cert=auth_ca_cert)
 
     global_state.set_tee_simulation(tee_simulation=tee_simulation)
 
@@ -488,6 +473,10 @@ def init(
                 f'Party {self_party} not found in cluster config parties.'
             )
         global_state.set_self_party(self_party)
+
+        if tls_config:
+            _parse_tls_config(tls_config, self_party)
+
         fed.init(
             address=address,
             cluster=all_parties,
@@ -518,35 +507,30 @@ def shutdown():
 
 
 def _parse_tls_config(
-    tls_config: Dict[str, Union[Dict, str]]
+    tls_config: Dict[str, str], party: str
 ) -> Dict[str, global_state.PartyCert]:
     party_certs = {}
-    for name, info in tls_config.items():
-        if 'cert' not in info or 'key' not in info or 'ca_cert' not in info:
-            raise InvalidArgumentError(
-                'You should provide cert, key and ca_cert at the same time.'
-            )
-        key_path = pathlib.Path(info['key'])
-        cert_path = pathlib.Path(info['cert'])
-        root_cert_path = pathlib.Path(info['ca_cert'])
-
-        if not key_path.exists:
-            raise InvalidArgumentError(
-                f'Private key file {info["key"]} does not exist!'
-            )
-        if not cert_path.exists:
-            raise InvalidArgumentError(f'Cert file {info["cert"]} does not exist!')
-        if not root_cert_path.exists:
-            raise InvalidArgumentError(
-                f'CA cert file {info["ca_cert"]} does not exist!'
-            )
-        party_cert = global_state.PartyCert(
-            party_name=name,
-            key=key_path.read_text(),
-            cert=cert_path.read_text(),
-            root_ca_cert=root_cert_path.read_text(),
+    if set(tls_config) != set(('cert', 'key', 'ca_cert')):
+        raise InvalidArgumentError(
+            'You should only provide cert, key and ca_cert in tls config.'
         )
-        party_certs[name] = party_cert
+    key_path = pathlib.Path(tls_config['key'])
+    cert_path = pathlib.Path(tls_config['cert'])
+    root_cert_path = pathlib.Path(tls_config['ca_cert'])
+
+    if not key_path.exists():
+        raise InvalidArgumentError(f'Private key file {key_path} does not exist!')
+    if not cert_path.exists():
+        raise InvalidArgumentError(f'Cert file {cert_path} does not exist!')
+    if not root_cert_path.exists():
+        raise InvalidArgumentError(f'CA cert file {root_cert_path} does not exist!')
+    party_cert = global_state.PartyCert(
+        party_name=party,
+        key=key_path.read_text(),
+        cert=cert_path.read_text(),
+        root_ca_cert=root_cert_path.read_text(),
+    )
+    party_certs[party] = party_cert
     global_state.set_party_certs(party_certs=party_certs)
 
 

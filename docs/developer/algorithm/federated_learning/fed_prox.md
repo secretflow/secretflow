@@ -14,7 +14,7 @@ Add Proximal Term to the objective function
 ![](https://latex.codecogs.com/svg.image?\inline&space;\small&space;\mu/2||w&space;-&space;w^t||^2&space;): proxy term, which limits the difference between the optimized w and the ![](https://latex.codecogs.com/svg.image?\inline&space;\small&space;w^t) released in the t round, so that the updated w of each device k is equal to Do not differ too much between them to help fit  
 ## Different training requirements for each device: γ-inexact
 
-![defination_2](resources/fedprox_defination_2.jpg)
+![definition_2](resources/fedprox_definition_2.jpg)
 FedAvg requires that each device is fully optimized for E epochs during training locally;
 Due to equipment heterogeneity, FedProx hopes to put forward different optimization requirements for each equipment k in each round t, and does not require all equipment to be completely optimized;
 ![](https://latex.codecogs.com/svg.image?\inline&space;\small&space;\mu_k^t&space;\in&space;[0,1]), the higher the value, the looser the constraints, that is, the lower the training completion requirements for equipment k; on the contrary, when ![](https://latex.codecogs.com/svg.image?\inline&space;\small&space;\mu_k^t&space;=&space;0), the parameters are required the training update is 0, requiring the local model to fully fit;

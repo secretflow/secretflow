@@ -13,7 +13,8 @@
 # limitations under the License.
 
 from typing import List
-
+import numpy as np
+import jax.tree_util
 from ..pure_numpy_ops.random import create_permuation_with_last_number_fixed
 
 
@@ -42,7 +43,7 @@ class Shuffler:
 
         """
         shuffle_mask = [
-            create_permuation_with_last_number_fixed(feature_bucket_num)
+            create_permuation_with_last_number_fixed(feature_bucket_num).astype(int)
             for feature_bucket_num in bucket_list
         ]
 
@@ -52,6 +53,9 @@ class Shuffler:
             feature_mask += offset
             reindex_list.extend(feature_mask)
             offset += feature_mask.size
+        reindex_list = jax.tree_util.tree_map(
+            lambda x: int(x) if isinstance(x, np.int64) else x, reindex_list
+        )
         self.reindex_list_map[key] = reindex_list
 
     def get_shuffling_indices(self, key: int) -> List[int]:

@@ -19,6 +19,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.8.2b0] - 2023-4-19
+### Added
+- TEE python Unit(TEEU) is introduced as the TEE cryptographic device and enables authorized computation with authorized data in TEE. TEEU brings more possibilities for hybrid computation.
+- An experimental SecretFlow component design.
+- SGB feature: add support for pre-pruning and model save & load.
+
+### Changed
+- Use pytest instead of unittest.
+- Bump spu to 0.3.3b0
+- Bump heu to 0.4.3b2
+
+### Fix
+- Fix hess lr auc err with large learning_rate.
 
 ## [0.8.1b0] - 2023-4-7
 ### Added

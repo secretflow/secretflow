@@ -566,7 +566,6 @@ msgid ""
 msgstr "除了SPU的创建需要多个参会方同时执行外，创建SPU的方式与模拟模式一样，请阅读前文了解更多细节。"
 
 #: ../../getting_started/DEPLOYMENT.md:383
-#, fuzzy
 msgid ""
 "In order to avoid problems such as connection timeout caused by the "
 "startup time difference, you may need to set the `link_desc` parameter "
