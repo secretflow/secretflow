@@ -1,0 +1,131 @@
+// Copyright 2023 Ant Group Co., Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
+// NOTE: this file is still experimental.
+
+syntax = "proto3";
+
+package secretflow.component;
+
+import "secretflow/protos/component/comp_def.proto";
+
+// A NodeParameter is the instance of corresponding param in comp.
+message NodeParameter {
+  // prefixes of corresponding param.
+  repeated string prefixes = 1;
+
+  // name of corresponding param.
+  string name = 2;
+
+  // Required for atomic param node.
+  AtomicParameter atomic = 3;
+
+  // Required for union param node.
+  // Name of selected child.
+  string union_selection = 4;
+}
+
+message IndivialTableMetadata {
+  string party = 1;
+
+  string path = 2;
+}
+
+message VeriticalPartitioningTableMetaData {
+  repeated string parties = 1;
+
+  repeated string paths = 2;
+}
+
+message TableMetadata {
+  TableType type = 1;
+
+  IndivialTableMetadata indivial = 2;
+
+  VeriticalPartitioningTableMetaData vertical_partitioning = 3;
+}
+
+message ModelMetadata {
+  // experimental only
+  string public_file_path = 1;
+
+  repeated string parties = 2;
+
+  repeated string party_dir_paths = 3;
+}
+
+message RuleMetadata {
+  // todo
+}
+
+message ReportMetadata {
+  // todo
+}
+
+message TableParams {
+  //
+  message Params {
+    repeated NodeParameter values = 1;
+  }
+
+  message ColParameter {
+    string name = 1;
+
+    repeated string cols = 2;
+
+    repeated Params params = 3;
+  }
+
+  repeated ColParameter col_params = 1;
+}
+
+message NodeIo {
+  string name = 1;
+
+  SFDataType type = 2;
+
+  TableParams table_params = 3;
+
+  TableMetadata table_metadata = 4;
+
+  ModelMetadata model_metadata = 5;
+
+  RuleMetadata rule_metadata = 6;
+
+  ReportMetadata report_metadata = 7;
+}
+
+// Definition of a node.
+// A Node is a instance of a component.
+message NodeDef {
+  // id of the node, should be unique in the DAG.
+  string id = 1;
+
+  // domain of the corresponding comp.
+  string domain = 2;
+
+  // name of the corresponding comp.
+  string name = 3;
+
+  // version of the corresponding comp.
+  string version = 4;
+
+  // parameter of the node.
+  repeated NodeParameter params = 5;
+
+  repeated NodeIo inputs = 6;
+
+  repeated NodeIo outputs = 7;
+}

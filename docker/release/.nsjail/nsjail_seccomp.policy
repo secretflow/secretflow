@@ -1,0 +1,12 @@
+POLICY rules {
+    KILL{
+acct, add_key, adjtimex, bpf, clock_adjtime, clock_settime, create_module, delete_module, finit_module, get_kernel_syms,
+get_mempolicy, init_module, ioperm, iopl, kcmp, kexec_file_load, kexec_load, keyctl, lookup_dcookie, mbind, mount,
+move_pages, name_to_handle_at, nfsservctl, open_by_handle_at, perf_event_open, personality, pivot_root,
+process_vm_readv, process_vm_writev, ptrace, query_module, quotactl, reboot, request_key, set_mempolicy, setns,
+settimeofday, symlinkat, swapon, swapoff, sysfs, sysctl, umount,  unshare, uselib, userfaultfd, ustat,
+socket(domain, type, proto){(domain!=1)&&(domain!=2)&&(domain!=10)&&(domain!=16)}
+    }
+}
+
+USE rules DEFAULT ALLOW

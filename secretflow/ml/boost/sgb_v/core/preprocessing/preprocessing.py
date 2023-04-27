@@ -72,6 +72,9 @@ def validate_sgb_params_dict(params: dict) -> SGBTrainParams:
         reg_lambda >= 0 and reg_lambda <= 10000
     ), f"reg_lambda should in [0, 10000], got {reg_lambda}"
 
+    gamma = float(params.pop('gamma', 0))
+    assert gamma >= 0 and gamma <= 10000, f"gamma should in [0, 10000], got {gamma}"
+
     subsample = float(params.pop('subsample', 1))
     assert (
         subsample > 0 and subsample <= 1
@@ -97,6 +100,7 @@ def validate_sgb_params_dict(params: dict) -> SGBTrainParams:
         lr,
         obj,
         reg_lambda,
+        gamma,
         subsample,
         colsample,
         base,

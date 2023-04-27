@@ -63,17 +63,25 @@ class SplitTreeTrainer:
     def predict_leaf_selects(self, x: np.ndarray) -> np.ndarray:
         return self.tree.predict_leaf_select(x)
 
-    def tree_finish(self) -> SplitTree:
+    def tree_finish(self, leaf_indices: List[int]) -> SplitTree:
+        self.tree.extend_leaf_indices(leaf_indices)
         return self.tree
 
     def do_split(
-        self, split_buckets: List[int], sampled_rows: List[int]
+        self,
+        split_buckets: List[int],
+        sampled_rows: List[int],
+        gain_is_cost_effective: List[bool],
+        node_indices: List[int],
     ) -> List[np.ndarray]:
         """
         record split info and generate next level's left children select.
         """
         lchild_selects = []
         for key, s in enumerate(split_buckets):
+            # pruning
+            if not gain_is_cost_effective[key]:
+                continue
             s = self.splitter.find_split_bucket(s)
             if s != -1:
                 # unmask
@@ -81,7 +89,9 @@ class SplitTreeTrainer:
                     s = self.shuffler.undo_shuffle_mask(key, s)
                 feature, split_point_idx = self.splitter.get_split_feature(s)
                 self.tree.insert_split_node(
-                    feature, self.splitter.get_split_points()[feature][split_point_idx]
+                    feature,
+                    self.splitter.get_split_points()[feature][split_point_idx],
+                    node_indices[key],
                 )
                 # lchild' select
                 ls = self.splitter.compute_left_child_selects(
@@ -89,7 +99,7 @@ class SplitTreeTrainer:
                 )
                 lchild_selects.append(ls)
             else:
-                self.tree.insert_split_node(-1, float("inf"))
+                self.tree.insert_split_node(-1, float("inf"), node_indices[key])
                 lchild_selects.append(np.array([], dtype=np.int8))
 
         return lchild_selects
@@ -107,4 +117,4 @@ class SplitTreeTrainer:
         return self.shuffler.get_shuffling_indices(key)
 
     def reset_shuffle_mask(self):
-        return self.shuffler.reset_shuffle_mask()
+        self.shuffler.reset_shuffle_mask()

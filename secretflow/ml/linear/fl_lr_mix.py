@@ -19,12 +19,12 @@ from typing import Dict, List, Optional
 import numpy as np
 import spu
 
-from secretflow import reveal
 from secretflow.data.mix.dataframe import MixDataFrame, PartitionWay
 from secretflow.device.device import PYU
 from secretflow.device.device.heu import HEU
 from secretflow.device.device.pyu import PYUObject
 from secretflow.device.device.type_traits import spu_fxp_precision
+from secretflow.device.driver import reveal
 from secretflow.ml.linear.fl_lr_v import FlLogisticRegressionVertical
 from secretflow.security.aggregation import Aggregator, SecureAggregator
 from secretflow.utils.errors import InvalidArgumentError
@@ -43,8 +43,7 @@ class _CustomSecureAggregator(SecureAggregator):
 
     @staticmethod
     def _merge_data(data: List[PYUObject]):
-        """Merge multi data in same pyu.
-        """
+        """Merge multi data in same pyu."""
         assert data, 'Data should be not be empty.'
         pyu_data = {}
         for datum in data:
@@ -117,7 +116,11 @@ class FlLogisticRegressionMix:
     """
 
     def _init_train_data(
-        self, x: MixDataFrame, y: MixDataFrame, epochs: int, batch_size: int,
+        self,
+        x: MixDataFrame,
+        y: MixDataFrame,
+        epochs: int,
+        batch_size: int,
     ):
         for ver_lr, x_part, y_part in zip(self.ver_lr_list, x.partitions, y.partitions):
             ver_lr.init_train_data(
@@ -135,7 +138,11 @@ class FlLogisticRegressionMix:
         for ver_lr in self.ver_lr_list:
             ver_lr.set_weight(dict(zip(ver_lr.workers.keys(), agg_weight)))
 
-    def _compute_loss(self, x: MixDataFrame, y: MixDataFrame,) -> float:
+    def _compute_loss(
+        self,
+        x: MixDataFrame,
+        y: MixDataFrame,
+    ) -> float:
         """Compute the loss.
 
         Args:
@@ -221,15 +228,20 @@ class FlLogisticRegressionMix:
         ), 'Amount of heus should be same as `VDataFrame`s of X.'
 
         devices_list = [list(part.partitions.keys()) for part in x.partitions]
-        self.aggregators = [
-            _CustomSecureAggregator(
-                ver_devices[0], participants=set(ver_devices), fxp_bits=fxp_bits
+        self.aggregators = []
+        for ver_devices in zip(*devices_list):
+            participants = list(set(ver_devices))
+            participants.sort()
+            self.aggregators.append(
+                _CustomSecureAggregator(
+                    ver_devices[0], participants=participants, fxp_bits=fxp_bits
+                )
             )
-            for ver_devices in zip(*devices_list)
-        ]
         devices_y = [list(part.partitions.keys())[0] for part in y.partitions]
+        devices_y = list(set(devices_y))
+        devices_y.sort()
         self.aggregator_y = _CustomSecureAggregator(
-            device=devices_y[0], participants=set(devices_y), fxp_bits=fxp_bits
+            device=devices_y[0], participants=devices_y, fxp_bits=fxp_bits
         )
 
         self.ver_lr_list = [

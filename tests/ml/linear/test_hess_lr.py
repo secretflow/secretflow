@@ -1,77 +1,128 @@
 import copy
+from dataclasses import dataclass
 from typing import Tuple
 
 import numpy as np
+import pytest
 from sklearn.datasets import load_breast_cancer
 from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import StandardScaler
 
 import secretflow as sf
+import secretflow.distributed as sfd
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.ml.linear.hess_sgd import HESSLogisticRegression
-from tests.basecase import MultiDriverDeviceTestCase
+from tests.cluster import cluster, set_self_party
+from tests.conftest import heu_config, semi2k_cluster
 
 
-class TestHESSLogisticRegression(MultiDriverDeviceTestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        super().setUpClass()
+@dataclass
+class DeviceInventory:
+    alice: sf.PYU = None
+    bob: sf.PYU = None
+    carol: sf.PYU = None
+    davy: sf.PYU = None
+    spu: sf.SPU = None
+    heu_x: sf.HEU = None
+    heu_y: sf.HEU = None
 
-        config_x = copy.deepcopy(cls.heu.config)
-        config_x['encoding'] = {
-            'cleartext_type': 'DT_I32',
-            'encoder': "IntegerEncoder",
-            'encoder_args': {"scale": 1},
-        }
-        cls.heu_x = sf.HEU(config_x, cls.spu.cluster_def['runtime_config']['field'])
 
-        config_y = copy.deepcopy(config_x)
-        sk_keeper = config_y["sk_keeper"]
-        evaluator = config_y["evaluators"][0]
-        config_y["sk_keeper"] = evaluator
-        config_y["evaluators"][0] = sk_keeper
+@pytest.fixture(scope="module")
+def env(request, sf_party_for_4pc):
+    devices = DeviceInventory()
+    sfd.set_production(True)
+    set_self_party(sf_party_for_4pc)
+    sf.init(
+        address='local',
+        num_cpus=8,
+        log_to_driver=True,
+        cluster_config=cluster(),
+        exit_on_failure_cross_silo_sending=True,
+        enable_waiting_for_other_parties_ready=False,
+    )
 
-        cls.heu_y = sf.HEU(config_y, cls.spu.cluster_def['runtime_config']['field'])
+    devices.alice = sf.PYU('alice')
+    devices.bob = sf.PYU('bob')
+    devices.carol = sf.PYU('carol')
+    devices.davy = sf.PYU('davy')
 
-    def load_dataset(self):
-        def _load_dataset(return_label=False) -> Tuple[np.ndarray, np.ndarray]:
-            features, label = load_breast_cancer(return_X_y=True)
+    cluster_def = sf.reveal(devices.alice(semi2k_cluster)())
 
-            if return_label:
-                return features[:, 15:], label
-            else:
-                return features[:, :15], None
+    devices.spu = sf.SPU(
+        cluster_def,
+        link_desc={
+            'connect_retry_times': 60,
+            'connect_retry_interval_ms': 1000,
+        },
+    )
 
-        def _transform(data):
-            scaler = StandardScaler()
-            return scaler.fit_transform(data)
+    config_x = heu_config
+    config_x['encoding'] = {
+        'cleartext_type': 'DT_I32',
+        'encoder': "IntegerEncoder",
+        'encoder_args': {"scale": 1},
+    }
+    devices.heu_x = sf.HEU(config_x, devices.spu.cluster_def['runtime_config']['field'])
 
-        x1, _ = self.alice(_load_dataset)(return_label=False)
-        x2, y = self.bob(_load_dataset)(return_label=True)
+    config_y = copy.deepcopy(config_x)
+    sk_keeper = config_y["sk_keeper"]
+    evaluator = config_y["evaluators"][0]
+    config_y["sk_keeper"] = evaluator
+    config_y["evaluators"][0] = sk_keeper
 
-        x1 = self.alice(_transform)(x1)
-        x2 = self.bob(_transform)(x2)
+    devices.heu_y = sf.HEU(config_y, devices.spu.cluster_def['runtime_config']['field'])
 
-        self.x = FedNdarray(
-            partitions={x1.device: x1, x2.device: x2},
-            partition_way=PartitionWay.VERTICAL,
-        )
-        self.y = FedNdarray(
-            partitions={y.device: y}, partition_way=PartitionWay.VERTICAL
-        )
+    yield devices
+    del devices
+    sf.shutdown()
 
-    def test_model(self):
-        self.load_dataset()
 
-        model = HESSLogisticRegression(self.spu, self.heu_x, self.heu_y)
-        model.fit(self.x, self.y, epochs=4, batch_size=64)
+def _load_dataset(env):
+    def _load_dataset(return_label=False) -> Tuple[np.ndarray, np.ndarray]:
+        features, label = load_breast_cancer(return_X_y=True)
 
-        print(f"w {sf.reveal(model._w)}")
+        if return_label:
+            return features[:, 15:], label
+        else:
+            return features[:, :15], None
 
-        y = sf.reveal(self.y.partitions[self.bob])
-        yhat = sf.reveal(model.predict(self.x))
+    def _transform(data):
+        scaler = StandardScaler()
+        return scaler.fit_transform(data)
 
-        auc = roc_auc_score(y, yhat)
+    x1, _ = env.alice(_load_dataset)(return_label=False)
+    x2, y = env.bob(_load_dataset)(return_label=True)
 
-        print(f'auc={auc}')
-        self.assertGreater(auc, 0.99)
+    x1 = env.alice(_transform)(x1)
+    x2 = env.bob(_transform)(x2)
+
+    x = FedNdarray(
+        partitions={x1.device: x1, x2.device: x2},
+        partition_way=PartitionWay.VERTICAL,
+    )
+    y = FedNdarray(partitions={y.device: y}, partition_way=PartitionWay.VERTICAL)
+
+    return x, y
+
+
+def test_model(env):
+    x, y = _load_dataset(env)
+
+    model = HESSLogisticRegression(env.spu, env.heu_x, env.heu_y)
+    model.fit(x, y, epochs=4, batch_size=64)
+
+    print(f"w {sf.reveal(model._w)}")
+
+    label = sf.reveal(y.partitions[env.bob])
+    yhat = sf.reveal(model.predict(x))
+
+    auc = roc_auc_score(label, yhat)
+
+    print(f'auc={auc}')
+    assert auc > 0.99
+
+    model.fit(x, y, epochs=4, batch_size=64, learning_rate=0.1)
+    yhat = sf.reveal(model.predict(x))
+    auc = roc_auc_score(label, yhat)
+    print(f'auc={auc}')
+    assert auc > 0.98

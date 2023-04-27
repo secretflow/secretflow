@@ -13,6 +13,7 @@
 # limitations under the License.
 import numpy as np
 from .pred import sigmoid
+from typing import Tuple
 
 
 def compute_gh_linear(y: np.ndarray, pred: np.ndarray):
@@ -24,5 +25,5 @@ def compute_gh_logistic(y: np.ndarray, pred: np.ndarray):
     return yhat - y, yhat * (1 - yhat)
 
 
-def split_GH(x):
+def split_GH(x) -> Tuple[np.ndarray, np.ndarray]:
     return x[:, 0].reshape(1, -1), x[:, 1].reshape(1, -1)

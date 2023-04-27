@@ -1,43 +1,60 @@
 import numpy as np
+import pytest
 
 import secretflow as sf
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.stats import ScoreCard
-from tests.basecase import MultiDriverDeviceTestCase
 
 
-class TestScoreCard(MultiDriverDeviceTestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        super().setUpClass()
-        cls.sc = ScoreCard(20, 600, 20)
-        cls.pred1 = np.random.random((10, 1))
-        cls.ds1 = FedNdarray(
-            partitions={cls.alice: cls.alice(lambda x: x)(cls.pred1)},
-            partition_way=PartitionWay.VERTICAL,
-        )
+@pytest.fixture(scope='module')
+def prod_env_and_data(sf_production_setup_devices):
+    sc = ScoreCard(20, 600, 20)
+    pred1 = np.random.random((10, 1))
+    ds1 = FedNdarray(
+        partitions={
+            sf_production_setup_devices.alice: sf_production_setup_devices.alice(
+                lambda x: x
+            )(pred1)
+        },
+        partition_way=PartitionWay.VERTICAL,
+    )
 
-        cls.alice_pred2 = np.random.random((10, 1))
-        cls.bob_pred2 = np.random.random((10, 1))
-        cls.ds2 = FedNdarray(
-            partitions={
-                cls.alice: cls.alice(lambda x: x)(cls.alice_pred2),
-                cls.bob: cls.bob(lambda x: x)(cls.bob_pred2),
-            },
-            partition_way=PartitionWay.HORIZONTAL,
-        )
+    alice_pred2 = np.random.random((10, 1))
+    bob_pred2 = np.random.random((10, 1))
+    ds2 = FedNdarray(
+        partitions={
+            sf_production_setup_devices.alice: sf_production_setup_devices.alice(
+                lambda x: x
+            )(alice_pred2),
+            sf_production_setup_devices.bob: sf_production_setup_devices.bob(
+                lambda x: x
+            )(bob_pred2),
+        },
+        partition_way=PartitionWay.HORIZONTAL,
+    )
 
-    def test_sc(self):
-        scord = self.sc.transform(self.ds1)
-        assert scord.shape[0] == 10
-        assert len(scord.partitions) == 1
-        scord1 = sf.reveal(list(scord.partitions.items())[0])
-        print(f"pred \n{self.pred1}\n -> \n{scord1}")
+    yield sf_production_setup_devices, {
+        'sc': sc,
+        'ds1': ds1,
+        'ds2': ds2,
+        'pred1': pred1,
+        'alice_pred2': alice_pred2,
+        'bob_pred2': bob_pred2,
+    }
 
-        scord = self.sc.transform(self.ds2)
-        assert scord.shape[0] == 20
-        assert len(scord.partitions) == 2
-        scord2_alice = sf.reveal(list(scord.partitions.items())[0])
-        scord2_bob = sf.reveal(list(scord.partitions.items())[1])
-        print(f"pred \n{self.alice_pred2}\n -> \n{scord2_alice}")
-        print(f"pred \n{self.bob_pred2}\n -> \n{scord2_bob}")
+
+def test_sc(prod_env_and_data):
+    env, data = prod_env_and_data
+    scord = data['sc'].transform(data['ds1'])
+    assert scord.shape[0] == 10
+    assert len(scord.partitions) == 1
+    scord1 = sf.reveal(list(scord.partitions.items())[0])
+    print(f"pred \n{data['pred1']}\n -> \n{scord1}")
+
+    scord = data['sc'].transform(data['ds2'])
+    assert scord.shape[0] == 20
+    assert len(scord.partitions) == 2
+    scord2_alice = sf.reveal(list(scord.partitions.items())[0])
+    scord2_bob = sf.reveal(list(scord.partitions.items())[1])
+    print(f"pred \n{data['alice_pred2']}\n -> \n{scord2_alice}")
+    print(f"pred \n{data['bob_pred2']}\n -> \n{scord2_bob}")

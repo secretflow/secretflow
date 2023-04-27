@@ -1,5 +1,3 @@
-coverage
-unittest-xml-reporting
 matplotlib
 protobuf-distutils
 statsmodels==0.13.2

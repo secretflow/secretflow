@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-02-23 15:47+0800\n"
+"POT-Creation-Date: 2023-04-18 17:20+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh_CN\n"
@@ -26,39 +26,71 @@ msgstr "GPU检查"
 msgid "Check NVIDIA driver"
 msgstr "检查NVIDIA驱动"
 
-#: ../../tutorial/GPU_check.ipynb:154
-msgid "Check TensorFlow version"
-msgstr "检查TensorFlow版本"
+#: ../../tutorial/GPU_check.ipynb:113
+msgid "Import PyTorch to check GPU devices"
+msgstr "导入 PyTorch 以检查 GPU 设备"
 
-#: ../../tutorial/GPU_check.ipynb:200
-msgid "Check if TensorFlow can call GPUs"
-msgstr "检查TensorFlow是否能调用GPU"
+#: ../../tutorial/GPU_check.ipynb:134
+msgid "Check the version of PyTorch"
+msgstr "检查 PyTorch 的版本"
 
-#: ../../tutorial/GPU_check.ipynb:348
-msgid "Check physical GPUs in TensorFlow"
-msgstr "在TensorFlow中检查物理GPU"
-
-#: ../../tutorial/GPU_check.ipynb:435
-msgid "Check the GPU type of the computer in TensorFlow"
-msgstr "在TensorFlow中检查计算机的GPU型号"
-
-#: ../../tutorial/GPU_check.ipynb:554
-msgid "Check PyTorch version"
-msgstr "检查PyTorch版本"
-
-#: ../../tutorial/GPU_check.ipynb:600
+#: ../../tutorial/GPU_check.ipynb:180
 msgid "Check if PyTorch can call GPUs"
 msgstr "检查PyTorch是否能调用GPU"
 
-#: ../../tutorial/GPU_check.ipynb:646
+#: ../../tutorial/GPU_check.ipynb:226
 msgid "Check the number of the GPUs of the computer in PyTorch"
 msgstr "在PyTorch中检查计算机的GPU的数量"
 
-#: ../../tutorial/GPU_check.ipynb:692
+#: ../../tutorial/GPU_check.ipynb:272
 msgid "Check the GPU type of the computer in PyTorch"
 msgstr "在PyTorch中检查计算机的GPU型号"
 
-#: ../../tutorial/GPU_check.ipynb:738
+#: ../../tutorial/GPU_check.ipynb:318
+msgid "Import TensorFlow to check GPU devices"
+msgstr "导入 TensorFlow 检查 GPU 设备"
+
+#: ../../tutorial/GPU_check.ipynb:382
+msgid "Check the version of TensorFlow"
+msgstr "检查 TensorFlow 的版本"
+
+#: ../../tutorial/GPU_check.ipynb:428
+msgid "Check if TensorFlow can call GPUs"
+msgstr "检查TensorFlow是否能调用GPU"
+
+#: ../../tutorial/GPU_check.ipynb:555
+msgid "Check physical GPUs in TensorFlow"
+msgstr "在TensorFlow中检查物理GPU"
+
+#: ../../tutorial/GPU_check.ipynb:633
+msgid "Check the GPU type of the computer in TensorFlow"
+msgstr "在TensorFlow中检查计算机的GPU型号"
+
+#: ../../tutorial/GPU_check.ipynb:724
+msgid "Import Jax and jaxlib to check GPU devices"
+msgstr "导入 Jax 和 jaxlib 以检查 GPU 设备"
+
+#: ../../tutorial/GPU_check.ipynb:746
+msgid "Check the version of jax and jaxlib"
+msgstr "检查jax和jaxlib的版本"
+
+#: ../../tutorial/GPU_check.ipynb:827
+msgid "Check all the devices from the default backend of jax"
+msgstr "从 jax 的默认后端检查所有设备"
+
+#: ../../tutorial/GPU_check.ipynb:873
+msgid "Check the total number of devices of jax"
+msgstr "查看jax的设备总数"
+
+#: ../../tutorial/GPU_check.ipynb:919
+msgid "Check the number of JAX processes associated with the backend of jax"
+msgstr "查看jax后端关联的JAX进程数"
+
+#: ../../tutorial/GPU_check.ipynb:965
+msgid "Check the backend of jaxlib"
+msgstr "检查jaxlib的后端"
+
+#: ../../tutorial/GPU_check.ipynb:1011
 msgid ""
 "Import SecretFlow to verify that no errors are reported in this "
 "environemnt"
