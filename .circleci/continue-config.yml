@@ -31,8 +31,8 @@ jobs:
       - run:
           name: Compute previous commit sha
           command: |
-            echo 'export PREV_COMMIT_ID=`git rev-parse HEAD~1' >> "$BASH_ENV"
-            echo 'export CURR_COMMIT_ID=`git rev-parse HEAD` >> "$BASH_ENV"
+            echo 'export PREV_COMMIT_ID=`git rev-parse HEAD~1`' >> "$BASH_ENV"
+            echo 'export CURR_COMMIT_ID=`git rev-parse HEAD`' >> "$BASH_ENV"
             source "$BASH_ENV"
             echo $PREV_COMMIT_ID
             echo $CURR_COMMIT_ID
