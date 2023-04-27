@@ -200,6 +200,10 @@ class SPUIO:
         flatten_value, tree = jax.tree_util.tree_flatten(data)
         flatten_shares = []
         flatten_meta = []
+
+        if len(flatten_value) == 0:
+            return data, *([[]] * self.world_size)
+
         for val in flatten_value:
             val = _plaintext_to_numpy(val)
             flatten_meta.append(
