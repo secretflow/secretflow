@@ -29,6 +29,9 @@ jobs:
             curl -X POST --header "Content-Type: application/json" "https://circleci.com/api/v2/workflow/${CIRCLE_WORKFLOW_ID}/cancel?circle-token=${BUILD_TIMER_TOKEN}"
       - checkout
       - restore_cache:
+          name: Restore pytest testmondata
+          key: testmondata-{{ arch }}-{{ .Branch }}-
+      - restore_cache:
           name: "Restore pip cache"
           key: &pip-cache pip-{{ checksum "requirements.txt" }}-{{ checksum "dev-requirements.txt" }}
       - run:
@@ -43,7 +46,13 @@ jobs:
           command: |
             bazel build //secretflow_lib/binding/...
             cp bazel-bin/secretflow_lib/binding/_lib.so secretflow/security/privacy/
-            pytest --env prod  -n auto --junitxml=results.xml -v --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  tests/
+            pytest --testmon --env prod -n auto --junitxml=results.xml -v --capture=no --cov=secretflow/ --cov-report=xml:coverage.xml tests/
+            ls -la
+      - save_cache:
+          key: testmondata-{{ arch }}-{{ .Branch }}-{{ .Revision }}
+          paths:
+            - .testmondata
+          when: always
       - save_cache:
           key: *pip-cache
           paths:
@@ -78,6 +87,9 @@ jobs:
                   pip install -r requirements.txt
                   pip install -r dev-requirements.txt
                   pip install onnx==1.13.1 protobuf==3.20.3
+            - restore_cache:
+                name: Restore pytest testmondata
+                key: testmondata-{{ arch }}-{{ .Branch }}-
             - run:
                 name: "build and test"
                 command: |
@@ -85,6 +97,11 @@ jobs:
                   bazel build //secretflow_lib/binding/...
                   cp bazel-bin/secretflow_lib/binding/_lib.so secretflow/security/privacy/
                   pytest --env prod  -n auto --junitxml=results.xml -v --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  tests/
+            - save_cache:
+                key: testmondata-{{ arch }}-{{ .Branch }}-{{ .Revision }}
+                paths:
+                  - .testmondata
+                when: always
             - store_test_results:
                 path: ./results.xml
 # Invoke jobs via workflows
