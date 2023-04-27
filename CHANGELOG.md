@@ -28,10 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Use pytest instead of unittest.
 - Bump spu to 0.3.3b0
-- Bump heu to 0.4.3b2
+- Bump heu to 0.4.3b3
 
 ### Fix
 - Fix hess lr auc err with large learning_rate.
+- Fix SFXBoost Chinese encoding.
 
 ## [0.8.1b0] - 2023-4-7
 ### Added
