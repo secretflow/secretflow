@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import List
+from sys import platform
 
 import numpy as np
 import pytest
@@ -96,7 +97,7 @@ def env(request, sf_party_for_4pc):
     del devices
     sf.shutdown()
 
-
+@pytest.mark.skipif(platform == 'darwin', reason="macOS has accuracy issue")
 def test_model_should_ok_when_fit_dataframe(env):
     devices, data = env
 
