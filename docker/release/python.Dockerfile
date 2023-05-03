@@ -8,4 +8,7 @@ RUN bash /tmp/Miniconda3.sh -b \
     && ln -s /root/miniconda3/bin/conda /usr/bin/conda \
     && rm -f /tmp/Miniconda3.sh
 
+RUN echo 'export TERMINFO="/usr/share/terminfo"' >> ~/.bashrc \
+    && source ~/.bashrc
+    
 RUN conda create --name secretflow python==3.8.15
