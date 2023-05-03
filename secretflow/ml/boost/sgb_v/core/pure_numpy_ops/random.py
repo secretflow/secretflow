@@ -17,7 +17,7 @@ import numpy as np
 
 
 def create_permuation_with_last_number_fixed(size):
-    a = np.zeros((size,), dtype=int)
+    a = np.zeros((size,))
     a[:-1] = np.random.permutation(size - 1)
     a[-1] = size - 1
     return a

@@ -116,7 +116,7 @@ msgstr "每个设备不同训练要求：γ -inexact"
 
 #: ../../developer/algorithm/federated_learning/fed_prox.md:17
 msgid ""
-"![defination_2](resources/fedprox_defination_2.jpg) FedAvg requires that "
+"![definition_2](resources/fedprox_definition_2.jpg) FedAvg requires that "
 "each device is fully optimized for E epochs during training locally; Due to"
 " equipment heterogeneity, FedProx hopes to put forward different "
 "optimization requirements for each equipment k in each round t, and does "
@@ -133,8 +133,8 @@ msgid ""
 msgstr "FedAvg要求每个设备在本地训练时都完整地进行优化E个epochs；而由于设备异质性，FedProx希望在每一轮t中对每一个设备k提出不同的优化要求，不需要所有设备都完整地进行优化；![](https://latex.codecogs.com/svg.image?\\inline&space;\\small&space;\\mu_k^t&space;\\in&space;[0,1])，值越高代表限制条件越宽松，即对设备k的训练完成度要求越低；反之，当![](https://latex.codecogs.com/svg.image?\\inline&space;\\small&space;\\mu_k^t&space;=&space;0)的时候要求参数训练的更新为0，要求本地模型完全拟合；借助![](https://latex.codecogs.com/svg.image?\\inline&space;\\small&space;\\mu_k^t)可以按照设备的计算力资源调整每个设备每轮的训练量；"
 
 #: ../../developer/algorithm/federated_learning/fed_prox.md:17
-msgid "defination_2"
-msgstr "defination_2"
+msgid "definition_2"
+msgstr "definition_2"
 
 #: ../../developer/algorithm/federated_learning/fed_prox.md:22
 msgid "Requirements for parameter selection in Convergence analysis"

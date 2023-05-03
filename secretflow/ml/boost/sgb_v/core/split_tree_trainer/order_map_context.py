@@ -132,7 +132,7 @@ class OrderMapContext:
     def get_feature_bucket_at(self, index: int) -> int:
         return self.feature_buckets[index]
 
-    def get_split_points(self) -> List[List[int]]:
+    def get_split_points(self) -> List[List[float]]:
         return self.split_points
 
     def get_order_map_shape(self) -> Tuple[int, int]:

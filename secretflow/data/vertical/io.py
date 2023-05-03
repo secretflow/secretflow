@@ -30,6 +30,7 @@ def read_csv(
     keys: Union[str, List[str], Dict[Device, List[str]]] = None,
     drop_keys: Union[str, List[str], Dict[Device, List[str]]] = None,
     psi_protocl=None,
+    no_header: bool = False,
 ) -> VDataFrame:
     """Read a comma-separated values (csv) file into VDataFrame.
 
@@ -119,7 +120,11 @@ def read_csv(
         dtype = dtypes[device] if dtypes is not None else None
         partitions[device] = Partition(
             device(read_csv_wrapper)(
-                path, delimiter=delimiter, usecols=usecols, dtype=dtype
+                path,
+                auto_gen_header_prefix=str(device) if no_header else '',
+                delimiter=delimiter,
+                usecols=usecols,
+                dtype=dtype,
             )
         )
 

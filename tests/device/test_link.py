@@ -6,7 +6,6 @@ import numpy as np
 
 from secretflow.device import PYUObject, proxy, reveal
 from secretflow.device.link import Link, init_link
-from tests.basecase import MultiDriverDeviceTestCase, SingleDriverDeviceTestCase
 
 
 @proxy(PYUObject, max_concurrency=2)
@@ -44,26 +43,33 @@ class ParameterServer(Link):
                 logging.info(f'parameter server {self._device} finish step {step_id}')
 
 
-class TestLink(MultiDriverDeviceTestCase, SingleDriverDeviceTestCase):
-    def test_parameter_server(self):
-        ps = ParameterServer(
-            device=self.davy, worker_device=[self.alice, self.bob, self.carol]
-        )
+def _test_parameter_server(devices):
+    ps = ParameterServer(
+        device=devices.davy, worker_device=[devices.alice, devices.bob, devices.carol]
+    )
 
-        workers = [
-            Worker(device=self.alice, ps_device=self.davy),
-            Worker(device=self.bob, ps_device=self.davy),
-            Worker(device=self.carol, ps_device=self.davy),
-        ]
+    workers = [
+        Worker(device=devices.alice, ps_device=devices.davy),
+        Worker(device=devices.bob, ps_device=devices.davy),
+        Worker(device=devices.carol, ps_device=devices.davy),
+    ]
 
-        # 集群组网
-        for worker in workers:
-            init_link(worker, ps)
+    # 集群组网
+    for worker in workers:
+        init_link(worker, ps)
 
-        init_link(ps, workers)
+    init_link(ps, workers)
 
-        epochs, steps_per_epoch = 1, 10
-        res = [worker.run(epochs, steps_per_epoch) for worker in workers]
-        res.append(ps.run(epochs, steps_per_epoch))
+    epochs, steps_per_epoch = 1, 10
+    res = [worker.run(epochs, steps_per_epoch) for worker in workers]
+    res.append(ps.run(epochs, steps_per_epoch))
 
-        reveal(res)  # wait all tasks done
+    reveal(res)  # wait all tasks done
+
+
+def test_parameter_server_prod(sf_production_setup_devices):
+    _test_parameter_server(sf_production_setup_devices)
+
+
+def test_parameter_server_sim(sf_simulation_setup_devices):
+    _test_parameter_server(sf_simulation_setup_devices)

@@ -99,6 +99,7 @@ class HEUActor:
         item = jax.tree_util.tree_map(
             lambda x: x.tolist() if isinstance(x, np.ndarray) else x, item
         )
+
         item = jax.tree_util.tree_map(
             lambda x: int(x) if isinstance(x, np.int64) else x, item
         )
@@ -161,7 +162,9 @@ class HEUActor:
             return data[item]
         return self.evaluator.batch_select_sum(data, item)
 
-    def feature_wise_bucket_sum(self, data, subgroup_map, order_map, bucket_num, cumsum=False):
+    def feature_wise_bucket_sum(
+        self, data, subgroup_map, order_map, bucket_num, cumsum=False
+    ):
         """sum of data on selected elements"""
         assert isinstance(
             data, (hnp.PlaintextArray, hnp.CiphertextArray)
@@ -198,7 +201,9 @@ class HEUActor:
             data, subgroup_map, order_map, bucket_num, cumsum
         )
 
-    def batch_feature_wise_bucket_sum(self, data, subgroup_map, order_map, bucket_num, cumsum=False):
+    def batch_feature_wise_bucket_sum(
+        self, data, subgroup_map, order_map, bucket_num, cumsum=False
+    ):
         """sum of data on selected elements"""
         assert isinstance(
             data, (hnp.PlaintextArray, hnp.CiphertextArray)

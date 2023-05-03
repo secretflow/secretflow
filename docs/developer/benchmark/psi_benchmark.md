@@ -119,7 +119,7 @@ ray start --address="192.168.0.1:9394" --resources='{"carol": 8}'
 在python中测试节点是否启动成功，任意选一台机器输入python，执行下列代码，参数中address为头节点(alice)的地址，拿alice机器来验证，每输入一行下列代码回车一次：
 ```
 >>> import secretflow as sf
->>> sf.init(address='192.168.0.1:9394')
+>>> sf.init(['alice','bob'], address='192.168.0.1:9394')
 >>> alice = sf.PYU('alice')
 >>> bob = sf.PYU('bob')
 >>> sf.reveal(alice(lambda x : x)(2))
@@ -193,7 +193,7 @@ def main(_):
 
     # sf init
     # <<< !!! >>> replace <192.168.0.1:9394> to your ray head
-    sf.init(address='192.168.0.1:9394')
+    sf.init(['alice','bob'], address='192.168.0.1:9394')
     alice = sf.PYU('alice')
     bob = sf.PYU('bob')
     carol = sf.PYU('carol')

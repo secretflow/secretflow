@@ -1,0 +1,68 @@
+// Copyright 2023 Ant Group Co., Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package secretflow.component;
+
+import "secretflow/protos/component/comp_def.proto";
+import "secretflow/protos/component/data_def.proto";
+import "secretflow/protos/component/cluster.proto";
+
+message AttrValue {
+  // prefixes of corresponding param.
+  repeated string prefixes = 1;
+
+  // name of corresponding param.
+  string name = 2;
+
+  // Required for atomic param node.
+  AtomicParameter atomic = 3;
+
+  // Required for union param node.
+  // Name of selected child.
+  string union_selection = 4;
+}
+
+// Evaluate a node.
+//   evaluate(NodeEvalParam param) -> NodeEvalResult
+message NodeEvalParam {
+  // Name of this node, unique per-pipeline.
+  string name = 1;
+
+  // Component(type) of this node.
+  string comp_id = 2;
+
+  // The attribute value, must match the component def.
+  repeated AttrValue attrs = 3;  // the input attributes.
+
+  // The input values (all with type DistData)
+  repeated DistData inputs = 4;
+
+  // Output names, if empty engine will rand one.
+  repeated string output_names = 5;
+
+  // Report names, if empty engine will rand one.
+  repeated string report_names = 6;
+
+  SFClusterConfig cluster_config = 7;
+}
+
+message NodeEvalResult {
+  // Output values.
+  repeated DistData outputs = 1;
+
+  // Report values.
+  repeated DistData reports = 2;
+}

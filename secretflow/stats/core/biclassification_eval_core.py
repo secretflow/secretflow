@@ -48,11 +48,11 @@ class Report:
         self.eq_frequent_bin_report = [
             EqBinReport(a) for a in eq_frequent_result_arr_list
         ]
-        self.eq_range_result_arr_list = [
+        self.eq_range_bin_report = [
             EqBinReport(a) for a in eq_range_result_arr_list
         ]
         self.summary_report = SummaryReport(summary_report_arr)
-        self.head_report = [EqBinReport(a) for a in head_prs]
+        self.head_report = [PrReport(a) for a in head_prs]
 
 
 class PrReport:
@@ -74,7 +74,7 @@ class PrReport:
         self.recall = arr[2]
 
 
-PR_REPORT_STATISTICS_ENTRY_COUNT = 6
+PR_REPORT_STATISTICS_ENTRY_COUNT = 3
 
 
 class SummaryReport:

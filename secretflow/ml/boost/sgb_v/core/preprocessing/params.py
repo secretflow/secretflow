@@ -1,3 +1,7 @@
+# Copyright 2023 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
 #      https://www.apache.org/licenses/LICENSE-2.0
@@ -11,8 +15,6 @@
 from dataclasses import dataclass
 from enum import Enum, unique
 
-from secretflow.device import HEU, PYU, PYUObject
-
 
 @unique
 class RegType(Enum):
@@ -22,11 +24,9 @@ class RegType(Enum):
 
 @dataclass
 class LabelHolderInfo:
-    label_holder_pyu: PYU
-    heu: HEU
-    y: PYUObject
     seed: int
     reg_lambda: float
+    gamma: float
     learning_rate: float
     base_score: float
     sample_num: int
@@ -41,6 +41,7 @@ class SGBTrainParams:
     learning_rate: float
     objective: RegType
     reg_lambda: float
+    gamma: float
     subsample: float
     colsample_by_tree: float
     base_score: float

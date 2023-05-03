@@ -22,13 +22,13 @@ import spu
 from heu import phe
 from numpy.random import RandomState
 
-from secretflow import reveal
 from secretflow.data.ndarray import FedNdarray
 from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.device import proxy
 from secretflow.device.device.heu import HEU, HEUMoveConfig
 from secretflow.device.device.pyu import PYU, PYUObject
 from secretflow.device.device.type_traits import spu_fxp_precision
+from secretflow.device.driver import reveal
 from secretflow.security.aggregation.aggregator import Aggregator
 
 
@@ -49,7 +49,7 @@ class FlLrVWorker(object):
                 if rdm is not None
                 else list(range(sample_num))
             )
-            for (s, e) in zip(splits[:-1], splits[1:]):
+            for s, e in zip(splits[:-1], splits[1:]):
                 batch_idx = shuffle_idx[s:e]
                 yield (x[batch_idx], y[batch_idx] if y is not None else None)
 

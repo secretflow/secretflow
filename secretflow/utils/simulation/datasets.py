@@ -112,30 +112,35 @@ def _download(url: str, filepath: str, sha256: str):
     assert (
         sha256 == actual_sha256
     ), f'Failed to check sha256 of {url}, expected {sha256}, got {actual_sha256}.'
-    import filelock
 
-    with filelock.FileLock(f'{filepath}.lock'):
-        with open(filepath, 'wb') as f:
-            f.write(content)
+    with open(filepath, 'wb') as f:
+        f.write(content)
 
 
 def _get_dataset(dataset: _Dataset, cache_dir: str = None):
     if not cache_dir:
         cache_dir = _CACHE_DIR
-    filepath = f'{cache_dir}/{dataset.filename}'
-    need_download = not Path(filepath).exists()
-    if not need_download:
-        sha256 = sha256sum(filepath)
-        if sha256 != dataset.sha256:
-            os.remove(filepath)
-            need_download = True
 
-    if need_download:
-        assert (
-            dataset.url
-        ), f'{dataset.filename} does not exist locally, please give a download url.'
-        _download(dataset.url, filepath, dataset.sha256)
-    return filepath
+    filepath = f'{cache_dir}/{dataset.filename}'
+    Path(filepath).parent.mkdir(parents=True, exist_ok=True)
+
+    import filelock
+
+    with filelock.FileLock(f'{filepath}.lock'):
+        need_download = not Path(filepath).exists()
+        if not need_download:
+            sha256 = sha256sum(filepath)
+            if sha256 != dataset.sha256:
+                os.remove(filepath)
+                need_download = True
+
+        if need_download:
+            assert (
+                dataset.url
+            ), f'{dataset.filename} does not exist locally, please give a download url.'
+
+            _download(dataset.url, filepath, dataset.sha256)
+        return filepath
 
 
 def dataset(name: str, cache_dir: str = None) -> str:
@@ -455,7 +460,7 @@ def load_cora(
     x_arr = FedNdarray(
         partitions={
             part: part(
-                lambda: nodes[:, feature_split_idxs[i]: feature_split_idxs[i + 1]]
+                lambda: nodes[:, feature_split_idxs[i] : feature_split_idxs[i + 1]]
             )()
             for i, part in enumerate(parts)
         },

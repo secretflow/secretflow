@@ -2,13 +2,13 @@ import tempfile
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from secretflow.data.horizontal import read_csv as h_read_csv
 from secretflow.device import reveal
 from secretflow.preprocessing.binning.homo_binning import HomoBinning
 from secretflow.security.aggregation.plain_aggregator import PlainAggregator
 from secretflow.security.compare.plain_comparator import PlainComparator
-from tests.basecase import MultiDriverDeviceTestCase
 
 _temp_dir = tempfile.mkdtemp()
 
@@ -40,47 +40,53 @@ def gen_data(data_num, feature_num, is_sparse=False, use_random=False, data_bin_
     return data
 
 
-class TestHomoBinning(MultiDriverDeviceTestCase):
-
+@pytest.fixture(scope='module')
+def prod_env_and_data(sf_production_setup_devices):
     data1 = gen_data(10000, 10, use_random=False)
     data2 = gen_data(5000, 10, use_random=False)
     dfs = [data1, data2]
 
-    @classmethod
-    def setUpClass(cls) -> None:
-        super().setUpClass()
+    file_uris = {
+        sf_production_setup_devices.alice: f'{_temp_dir}/test_alice.csv',
+        sf_production_setup_devices.bob: f'{_temp_dir}/test_bob.csv',
+    }
 
-        file_uris = {
-            cls.alice: f'{_temp_dir}/test_alice.csv',
-            cls.bob: f'{_temp_dir}/test_bob.csv',
-        }
+    for df, file_uri in zip(dfs, file_uris.values()):
+        df.to_csv(file_uri)
 
-        for df, file_uri in zip(cls.dfs, file_uris.values()):
-            df.to_csv(file_uri)
+    hdf = h_read_csv(
+        file_uris,
+        aggregator=PlainAggregator(sf_production_setup_devices.carol),
+        comparator=PlainComparator(sf_production_setup_devices.carol),
+    )
 
-        cls.hdf = h_read_csv(
-            file_uris,
-            aggregator=PlainAggregator(cls.carol),
-            comparator=PlainComparator(cls.carol),
-        )
+    yield sf_production_setup_devices, {
+        'data1': data1,
+        'data2': data2,
+        'dfs': dfs,
+        'file_uris': file_uris,
+        'hdf': hdf,
+    }
 
-    def test_homo_binning(self):
-        # GIVEN
-        bin_obj = HomoBinning(
-            bin_num=5,
-            bin_indexes=[1, 2, 3, 4],
-            error=1e-10,
-            max_iter=200,
-            compress_thres=30,
-        )
-        bin_result = bin_obj.fit_split_points(self.hdf)
-        bin_result_df = pd.DataFrame.from_dict(reveal(bin_result))
 
-        expect_result = {
-            "x0": [2.0, 4.0, 6.0, 8.0, 9.0],
-            "x1": [2.0, 4.0, 6.0, 8.0, 9.0],
-            "x2": [2.0, 4.0, 6.0, 8.0, 9.0],
-            "x3": [2.0, 4.0, 6.0, 8.0, 9.0],
-        }
-        expect_df = pd.DataFrame.from_dict(expect_result)
-        pd.testing.assert_frame_equal(bin_result_df, expect_df, rtol=1e-2)
+def test_homo_binning(prod_env_and_data):
+    env, data = prod_env_and_data
+    # GIVEN
+    bin_obj = HomoBinning(
+        bin_num=5,
+        bin_indexes=[1, 2, 3, 4],
+        error=1e-10,
+        max_iter=200,
+        compress_thres=30,
+    )
+    bin_result = bin_obj.fit_split_points(data['hdf'])
+    bin_result_df = pd.DataFrame.from_dict(reveal(bin_result))
+
+    expect_result = {
+        "x0": [2.0, 4.0, 6.0, 8.0, 9.0],
+        "x1": [2.0, 4.0, 6.0, 8.0, 9.0],
+        "x2": [2.0, 4.0, 6.0, 8.0, 9.0],
+        "x3": [2.0, 4.0, 6.0, 8.0, 9.0],
+    }
+    expect_df = pd.DataFrame.from_dict(expect_result)
+    pd.testing.assert_frame_equal(bin_result_df, expect_df, rtol=1e-2)

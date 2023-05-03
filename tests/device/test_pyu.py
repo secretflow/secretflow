@@ -1,82 +1,136 @@
 import numpy as np
+import pytest
 
 import secretflow.device as ft
 from secretflow import reveal
 from secretflow.device.device.pyu import PYUObject
 from secretflow.device.device.spu import SPUObject
-from tests.basecase import MultiDriverDeviceTestCase, SingleDriverDeviceTestCase
 
 
-class TestDevicePYU(MultiDriverDeviceTestCase, SingleDriverDeviceTestCase):
-    def test_device(self):
-        @ft.with_device(self.alice)
-        def load(*shape):
-            return np.random.rand(*shape)
+def _test_device(devices):
+    @ft.with_device(devices.alice)
+    def load(*shape):
+        return np.random.rand(*shape)
 
-        x = load(3, 4)
-        y = x.to(self.bob)
-        self.assertEqual(x.device, self.alice)
-        self.assertEqual(y.device, self.bob)
-        np.testing.assert_equal(reveal(x), reveal(y))
+    x = load(3, 4)
+    y = x.to(devices.bob)
 
-    def test_average(self):
-        def average(*a, axis=None, weights=None):
-            return np.average(a, axis=axis, weights=weights)
+    assert y.device == devices.bob
+    np.testing.assert_equal(reveal(x), reveal(y))
 
-        x = ft.with_device(self.alice)(np.random.rand)(3, 4)
-        y = ft.with_device(self.bob)(np.random.rand)(3, 4)
 
-        with self.assertRaises(AssertionError):
-            self.alice(average)(x, y, axis=0)
+def test_device_prod(sf_production_setup_devices):
+    _test_device(sf_production_setup_devices)
 
-        y = y.to(self.alice)
-        actual = self.alice(average)(x, y, axis=0, weights=(1, 2))
-        expected = np.average([reveal(x), reveal(y)], axis=0, weights=(1, 2))
-        np.testing.assert_equal(reveal(actual), expected)
 
-    def test_multiple_return(self):
-        def load():
-            return 1, 2, 3
+def test_device_sim(sf_simulation_setup_devices):
+    _test_device(sf_simulation_setup_devices)
 
-        x, y, z = self.alice(load, num_returns=3)()
-        self.assertTrue(isinstance(x, ft.PYUObject))
 
-        x, y, z = ft.reveal([x, y, z])
-        self.assertEqual(x, 1)
+def _test_average(devices):
+    def average(*a, axis=None, weights=None):
+        return np.average(a, axis=axis, weights=weights)
 
-    def test_dictionary_return(self):
-        def load():
-            return {'a': 1, 'b': 23}
+    x = ft.with_device(devices.alice)(np.random.rand)(3, 4)
+    y = ft.with_device(devices.bob)(np.random.rand)(3, 4)
 
-        x = self.alice(load)()
-        self.assertTrue(isinstance(x, ft.PYUObject))
-        self.assertEqual(ft.reveal(x), {'a': 1, 'b': 23})
+    with pytest.raises(AssertionError):
+        devices.alice(average)(x, y, axis=0)
 
-        x_ = x.to(self.spu)
-        self.assertEqual(ft.reveal(x_), {'a': 1, 'b': 23})
+    y = y.to(devices.alice)
+    actual = devices.alice(average)(x, y, axis=0, weights=(1, 2))
+    expected = np.average([reveal(x), reveal(y)], axis=0, weights=(1, 2))
+    np.testing.assert_equal(reveal(actual), expected)
 
-    def test_to(self):
-        @ft.with_device(self.alice)
-        def load(*shape):
-            return np.random.rand(*shape)
 
-        x = load(3, 4)
-        self.assertTrue(isinstance(x, PYUObject))
+def test_average_prod(sf_production_setup_devices):
+    _test_average(sf_production_setup_devices)
 
-        x_1 = x.to(self.spu)
-        self.assertTrue(isinstance(x_1, SPUObject))
-        self.assertTrue(np.allclose(ft.reveal(x), ft.reveal(x_1)))
 
-    def test_io(self):
-        def load():
-            return {'a': 1, 'b': 23}
+def test_average_sim(sf_simulation_setup_devices):
+    _test_average(sf_simulation_setup_devices)
 
-        x = self.alice(load)()
 
-        import tempfile
+def _test_multiple_return(devices):
+    def load():
+        return 1, 2, 3
 
-        _, path = tempfile.mkstemp()
-        self.alice.dump(x, path)
-        x_ = self.alice.load(path)
-        self.assertTrue(isinstance(x_, PYUObject))
-        self.assertEqual(ft.reveal(x_), {'a': 1, 'b': 23})
+    x, y, z = devices.alice(load, num_returns=3)()
+    assert isinstance(x, ft.PYUObject)
+
+    x, y, z = ft.reveal([x, y, z])
+    assert x == 1
+
+
+def test_multiple_return_prod(sf_production_setup_devices):
+    _test_multiple_return(sf_production_setup_devices)
+
+
+def test_multiple_return_sim(sf_simulation_setup_devices):
+    _test_multiple_return(sf_simulation_setup_devices)
+
+
+def _test_dictionary_return(devices):
+    def load():
+        return {'a': 1, 'b': 23}
+
+    x = devices.alice(load)()
+    assert isinstance(x, ft.PYUObject)
+    assert ft.reveal(x) == {'a': 1, 'b': 23}
+
+    x_ = x.to(devices.spu)
+    assert ft.reveal(x_) == {'a': 1, 'b': 23}
+
+
+def test_dictionary_return_prod(sf_production_setup_devices):
+    _test_dictionary_return(sf_production_setup_devices)
+
+
+def test_dictionary_return_sim(sf_simulation_setup_devices):
+    _test_dictionary_return(sf_simulation_setup_devices)
+
+
+def _test_to(devices):
+    @ft.with_device(devices.alice)
+    def load(*shape):
+        return np.random.rand(*shape)
+
+    x = load(3, 4)
+    assert isinstance(x, PYUObject)
+
+    x_1 = x.to(devices.spu)
+    assert isinstance(x_1, SPUObject)
+    assert np.allclose(ft.reveal(x), ft.reveal(x_1))
+
+
+def test_to_prod(sf_production_setup_devices):
+    _test_to(sf_production_setup_devices)
+
+
+def test_to_sim(sf_simulation_setup_devices):
+    _test_to(sf_simulation_setup_devices)
+
+
+def _test_io(devices):
+    def load():
+        return {'a': 1, 'b': 23}
+
+    x = devices.alice(load)()
+
+    import tempfile
+
+    _, path = tempfile.mkstemp()
+    devices.alice.dump(x, path)
+    x_ = devices.alice.load(path)
+    # self.assertTrue(isinstance(x_, PYUObject))
+    assert isinstance(x_, PYUObject)
+    # self.assertEqual(ft.reveal(x_), {'a': 1, 'b': 23})
+    assert ft.reveal(x_) == {'a': 1, 'b': 23}
+
+
+def test_io_prod(sf_production_setup_devices):
+    _test_io(sf_production_setup_devices)
+
+
+def test_io_sim(sf_simulation_setup_devices):
+    _test_io(sf_simulation_setup_devices)

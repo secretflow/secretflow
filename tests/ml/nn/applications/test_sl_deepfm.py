@@ -11,7 +11,6 @@ separated from the rest by a newline
 from secretflow.ml.nn import SLModel
 from secretflow.ml.nn.applications.sl_deep_fm import DeepFMbase, DeepFMfuse
 from secretflow.utils.simulation.datasets import load_ml_1m
-from tests.basecase import SingleDriverDeviceTestCase
 
 NUM_USERS = 6040
 NUM_MOVIES = 3952
@@ -41,7 +40,6 @@ GENRES_VOCAB = [
 
 
 def create_base_model_alice():
-
     # Create model
     def create_model():
         import tensorflow as tf
@@ -213,59 +211,73 @@ def create_dataset_builder_bob(
     return dataset_builder
 
 
-class TestFedModelNdArray(SingleDriverDeviceTestCase):
-    def test_keras_model(self):
-        # load data
-        vdf = load_ml_1m(
-            part={
-                self.alice: ["UserID", "Gender", "Age", "Occupation", "Zip-code"],
-                self.bob: ["MovieID", "Rating", "Title", "Genres", "Timestamp"],
-            },
-            num_sample=50000,
-        )
-        label = vdf["Rating"]
+def test_keras_model(sf_simulation_setup_devices):
+    # load data
+    vdf = load_ml_1m(
+        part={
+            sf_simulation_setup_devices.alice: [
+                "UserID",
+                "Gender",
+                "Age",
+                "Occupation",
+                "Zip-code",
+            ],
+            sf_simulation_setup_devices.bob: [
+                "MovieID",
+                "Rating",
+                "Title",
+                "Genres",
+                "Timestamp",
+            ],
+        },
+        num_sample=50000,
+    )
+    label = vdf["Rating"]
 
-        data = vdf.drop(columns=["Rating", "Timestamp", "Title", "Zip-code"])
-        data["UserID"] = data["UserID"].astype("string")
-        data["MovieID"] = data["MovieID"].astype("string")
+    data = vdf.drop(columns=["Rating", "Timestamp", "Title", "Zip-code"])
+    data["UserID"] = data["UserID"].astype("string")
+    data["MovieID"] = data["MovieID"].astype("string")
 
-        data_builder_dict = {
-            self.alice: create_dataset_builder_alice(
-                batch_size=128,
-                repeat_count=5,
-            ),
-            self.bob: create_dataset_builder_bob(
-                batch_size=128,
-                repeat_count=5,
-            ),
-        }
-        # User-defined compiled keras model
-        device_y = self.bob
-        model_base_alice = create_base_model_alice()
-        model_base_bob = create_base_model_bob()
-        base_model_dict = {self.alice: model_base_alice, self.bob: model_base_bob}
-        model_fuse = create_fuse_model()
-
-        sl_model = SLModel(
-            base_model_dict=base_model_dict,
-            device_y=device_y,
-            model_fuse=model_fuse,
-        )
-        history = sl_model.fit(
-            data,
-            label,
-            epochs=5,
+    data_builder_dict = {
+        sf_simulation_setup_devices.alice: create_dataset_builder_alice(
             batch_size=128,
-            random_seed=1234,
-            dataset_builder=data_builder_dict,
-        )
-        global_metric = sl_model.evaluate(
-            data,
-            label,
+            repeat_count=5,
+        ),
+        sf_simulation_setup_devices.bob: create_dataset_builder_bob(
             batch_size=128,
-            random_seed=1234,
-            dataset_builder=data_builder_dict,
-        )
-        # test history
-        self.assertGreater(history['train_auc_1'][-1], 0.7)
-        print(global_metric)
+            repeat_count=5,
+        ),
+    }
+    # User-defined compiled keras model
+    device_y = sf_simulation_setup_devices.bob
+    model_base_alice = create_base_model_alice()
+    model_base_bob = create_base_model_bob()
+    base_model_dict = {
+        sf_simulation_setup_devices.alice: model_base_alice,
+        sf_simulation_setup_devices.bob: model_base_bob,
+    }
+    model_fuse = create_fuse_model()
+
+    sl_model = SLModel(
+        base_model_dict=base_model_dict,
+        device_y=device_y,
+        model_fuse=model_fuse,
+    )
+    history = sl_model.fit(
+        data,
+        label,
+        epochs=5,
+        batch_size=128,
+        random_seed=1234,
+        dataset_builder=data_builder_dict,
+    )
+    global_metric = sl_model.evaluate(
+        data,
+        label,
+        batch_size=128,
+        random_seed=1234,
+        dataset_builder=data_builder_dict,
+    )
+    # test history
+    assert history['train_auc_1'][-1] > 0.7
+    print(global_metric)
