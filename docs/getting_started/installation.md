@@ -142,7 +142,7 @@ cd secretflow/docker
 - Construct an image
 
 ```bash
-docker build -f  sf-gpu.Dockerfile -t secretflow-gpu .
+docker build -f  secretflow-gpu.Dockerfile -t secretflow-gpu .
 ```
 
 4. Run an container
