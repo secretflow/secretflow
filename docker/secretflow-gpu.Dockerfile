@@ -2,7 +2,7 @@ FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu20.04
 
 RUN  apt-get update \
      && apt-get install -y libcudnn8=8.6.0.163-1+cuda11.8 --allow-downgrades --allow-change-held-packages  \
-     && apt-get install -y python3.8 --allow-downgrades --allow-change-held-packages   
+     && apt-get install -y python3.8 --allow-downgrades --allow-change-held-packages   \
      && apt-get install -y python3-pip --allow-downgrades --allow-change-held-packages 
 
 RUN if [ ! -e /usr/bin/python ]; then ln -sf /usr/bin/python3.8 /usr/bin/python; fi
@@ -33,7 +33,7 @@ RUN pip install --upgrade "jax[cuda11_pip]"==0.4.1 -f https://storage.googleapis
 RUN pip install -U secretflow \
     && pip install tensorflow==2.12.0 \
     && pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118 
-    && pip install protobuf==3.19.0 
+    && pip install protobuf==3.19.6 
 
 COPY secretflow_entrypoint.sh /opt/secretflow/
 
