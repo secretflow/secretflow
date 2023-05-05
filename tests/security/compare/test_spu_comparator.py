@@ -1,10 +1,12 @@
+import pytest
+
 from secretflow.security.compare.spu_comparator import SPUComparator
-from tests.basecase import MultiDriverDeviceTestCase
-from tests.security.compare.test_comparator_base import TestComparatorBase
+from tests.security.compare.test_comparator_base import ComparatorBase
 
 
-class TestSPUComparator(MultiDriverDeviceTestCase, TestComparatorBase):
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.comparator = SPUComparator(cls.spu)
+class TestSPUComparator(ComparatorBase):
+    @pytest.fixture()
+    def env_and_comparator(self, sf_production_setup_devices):
+        yield sf_production_setup_devices, SPUComparator(
+            sf_production_setup_devices.spu
+        )

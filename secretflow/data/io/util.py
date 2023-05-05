@@ -46,17 +46,28 @@ def is_local_file(uri: str) -> bool:
     return uri and not urlparse(uri).scheme
 
 
-def read_csv_wrapper(filepath, **kwargs) -> pd.DataFrame:
+def read_csv_wrapper(
+    filepath: str, auto_gen_header_prefix: str = "", **kwargs
+) -> pd.DataFrame:
     """A wrapper of pandas read_csv and supports oss file.
 
     Args:
         filepath: the file path.
+        auto_gen_header_prefix: If set, the format of generated headers would be {gen_header_prefix}_{col_idx}.
         kwargs: all other arguments are same with :py:meth:`pandas.DataFrame.read_csv`.
 
     Returns:
         a pandas DataFrame.
     """
-    return pd.read_csv(open(filepath), **kwargs)
+    if auto_gen_header_prefix:
+        kwargs['header'] = None
+        df = pd.read_csv(open(filepath), **kwargs)
+        df.columns = [
+            "{}_{}".format(auto_gen_header_prefix, i) for i in range(df.shape[1])
+        ]
+        return df
+    else:
+        return pd.read_csv(open(filepath), **kwargs)
 
 
 def to_csv_wrapper(df: pd.DataFrame, filepath, **kwargs):

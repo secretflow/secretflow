@@ -56,7 +56,7 @@ class SLModel:
         Attributes:
             base_model_dict: Basemodel dictionary, key is PYU, value is the Basemodel defined by party.
             device_y: Define which model have label.
-            model_fuse:  Fuse model defination.
+            model_fuse:  Fuse model definition.
             compressor: Define strategy tensor compression algorithms to speed up transmission.
             dp_strategy_dict: Dp strategy dictionary.
             random_seed: If specified, the initial value of the model will remain the same, which ensures reproducible.

@@ -19,6 +19,7 @@ The following documents will help you understand the design ideas and principles
    design/architecture
    design/spu
    design/heu
+   design/teeu
    design/flmodel
    design/strategy
    design/programming_in_secretflow
@@ -39,3 +40,4 @@ The following documents will help you understand the design ideas and principles
    :caption: Benchmark
 
    benchmark/psi_benchmark
+   benchmark/ubpsi_benchmark

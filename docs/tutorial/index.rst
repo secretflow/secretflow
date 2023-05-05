@@ -11,6 +11,15 @@ We hope you enjoy these toturials from SecretFlow developers.
 
 .. toctree::
    :maxdepth: 1
+   :caption: IO
+   FedDataFrameDataLoader
+   FedNdarrayDataLoader
+   CustomDataLoaderTF
+   CustomDataLoaderTorch
+   CustomDataLoaderOnSL
+
+.. toctree::
+   :maxdepth: 1
    :caption: DataFrame
 
    data_preprocessing_with_data_frame

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List
+from typing import List, Tuple
 import numpy as np
 
 
@@ -38,8 +38,8 @@ def compute_weight_from_node_select(
     learning_rate: float,
 ) -> np.ndarray:
 
-    g_sum = np.matmul(node_select, np.transpose(g))
-    h_sum = np.matmul(node_select, np.transpose(h))
+    g_sum = np.matmul(node_select, g)
+    h_sum = np.matmul(node_select, h)
 
     return compute_weight(g_sum, h_sum, reg_lambda, learning_rate)
 
@@ -63,8 +63,12 @@ def compute_weight(
 
 
 def find_best_splits(
-    level_nodes_G: List[np.array], level_nodes_H: List[np.array], reg_lambda: float
-):
+    level_nodes_G: List[np.array],
+    level_nodes_H: List[np.array],
+    reg_lambda: float,
+    gamma: float,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """find the best split buckets and if gains > gamma"""
     GL = np.concatenate(level_nodes_G, axis=0)
     HL = np.concatenate(level_nodes_H, axis=0)
 
@@ -79,8 +83,8 @@ def find_best_splits(
 
     # last objective value means split all sample to left, equal to no split.
     obj = obj_l[:, -1].reshape(-1, 1)
-    # gamma == 0
     gain = obj_l + obj_r - obj
 
     split_buckets = np.argmax(gain, 1)
-    return split_buckets
+    should_split = (np.max(gain, 1) - gamma) > 0
+    return (split_buckets, should_split)

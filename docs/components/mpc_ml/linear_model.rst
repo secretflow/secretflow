@@ -5,10 +5,10 @@ Linear model is a kind of statistical model with simple form and very widely use
 Under the protection of a multi-party secure computing protocol, SecretFlow
 implements provably secure linear regression and binary classification
 regression through 
-`batch Stochastic Gradient Descent (SGD) method <https://stats.stackexchange.com/questions/488017/understanding-mini-batch-gradient-descent>`_
+`minibatch Stochastic Gradient Descent (SGD) method <https://d2l.ai/chapter_optimization/minibatch-sgd.html#minibatches>`_
 for vertically partitioned dataset setting.
 
-The matrix formula for batch Stochastic Gradient Descent (SGD) is as follows:
+The matrix formula for minibatch Stochastic Gradient Descent (SGD) is as follows:
 
 Normal:
 
@@ -44,12 +44,12 @@ provides both linear and logistic regression linear models
 for vertical split dataset setting by using secret sharing with mini
 batch SGD training solver.
 
-`Linear regression <https://en.wikipedia.org/wiki/Linear_regression>`_
+`Linear regression <https://d2l.ai/chapter_linear-regression/linear-regression.html#basics>`_
 fits a linear model with coefficients w = (w1, ..., wp)
 to minimize the residual sum of squares between the observed targets in
 the dataset, and the targets predicted by the linear approximation.
 
-`Logistic regression <https://en.wikipedia.org/wiki/Logistic_regression>`_
+`Logistic regression <https://d2l.ai/chapter_linear-classification/softmax-regression.html#linear-model>`_
 , despite its name, is a linear model for classification
 rather than regression. logistic regression is also known in the literature
 as logit regression, maximum-entropy classification (MaxEnt) or the log-linear

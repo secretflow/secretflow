@@ -1,196 +1,320 @@
 import os
 import shutil
-import unittest
 
 import pandas as pd
+import pytest
 import spu
 
 import secretflow as sf
-from secretflow.utils.random import global_random
-from tests.basecase import (
-    ABY3MultiDriverDeviceTestCase,
-    MultiDriverDeviceTestCase,
-    SingleDriverDeviceTestCase,
-)
+import tempfile
 
 
-class TestDevicePSI2PC(MultiDriverDeviceTestCase, SingleDriverDeviceTestCase):
-    def setUp(self) -> None:
-        da = pd.DataFrame(
-            {
-                'c1': ['K5', 'K1', 'K2', 'K6', 'K4', 'K3'],
-                'c2': ['A5', 'A1', 'A2', 'A6', 'A4', 'A3'],
-                'c3': [5, 1, 2, 6, 4, 3],
-            }
-        )
+def set_up(devices):
+    da = pd.DataFrame(
+        {
+            'c1': ['K5', 'K1', 'K2', 'K6', 'K4', 'K3'],
+            'c2': ['A5', 'A1', 'A2', 'A6', 'A4', 'A3'],
+            'c3': [5, 1, 2, 6, 4, 3],
+        }
+    )
 
-        db = pd.DataFrame(
-            {
-                'c1': ['K3', 'K1', 'K9', 'K4'],
-                'c2': ['B3', 'A1', 'A9', 'A4'],
-                'c3': [3, 1, 9, 4],
-            }
-        )
+    db = pd.DataFrame(
+        {
+            'c1': ['K3', 'K1', 'K9', 'K4'],
+            'c2': ['B3', 'A1', 'A9', 'A4'],
+            'c3': [3, 1, 9, 4],
+        }
+    )
 
-        db2 = pd.DataFrame(
-            {
-                'c1': ['K3', 'K1', 'K1', 'K4'],
-                'c2': ['B3', 'A1', 'A1', 'A4'],
-                'c3': ['C3', 'C1', 'D1', 'C4'],
-                'c4': [3, 1, 9, 4],
-            }
-        )
+    db2 = pd.DataFrame(
+        {
+            'c1': ['K3', 'K1', 'K1', 'K4'],
+            'c2': ['B3', 'A1', 'A1', 'A4'],
+            'c3': ['C3', 'C1', 'D1', 'C4'],
+            'c4': [3, 1, 9, 4],
+        }
+    )
 
-        db3 = pd.DataFrame(
-            {'c1': ['K7', 'K8', 'K9'], 'c2': ['A7', 'A8', 'A9'], 'c3': [7, 8, 9]}
-        )
+    db3 = pd.DataFrame(
+        {'c1': ['K7', 'K8', 'K9'], 'c2': ['A7', 'A8', 'A9'], 'c3': [7, 8, 9]}
+    )
 
-        db4 = pd.DataFrame(
-            {
-                'c11': ['K3', 'K1', 'K9', 'K4'],
-                'c21': ['B3', 'A1', 'A9', 'A4'],
-                'c31': [3, 1, 9, 4],
-            }
-        )
+    db4 = pd.DataFrame(
+        {
+            'c11': ['K3', 'K1', 'K9', 'K4'],
+            'c21': ['B3', 'A1', 'A9', 'A4'],
+            'c31': [3, 1, 9, 4],
+        }
+    )
 
-        self.da = sf.to(self.alice, da)
-        self.db = sf.to(self.bob, db)
-        self.db2 = sf.to(self.bob, db2)
-        self.db3 = sf.to(self.bob, db3)
-        self.dc = sf.to(self.carol, db)
-        self.db4 = sf.to(self.bob, db4)
+    da_aby3 = pd.DataFrame(
+        {
+            'c1': ['K5', 'K1', 'K2', 'K6', 'K4', 'K3'],
+            'c2': ['A5', 'A1', 'A2', 'A6', 'B4', 'A3'],
+            'c3': [5, 1, 2, 6, 4, 3],
+        }
+    )
 
-    def test_single_col(self):
+    db_aby3 = pd.DataFrame(
+        {
+            'c1': ['K3', 'K1', 'K9', 'K4'],
+            'c2': ['B3', 'A1', 'A9', 'A4'],
+            'c3': [3, 1, 9, 4],
+        }
+    )
 
-        da, db = self.spu.psi_df('c1', [self.da, self.db], 'alice')
+    dc_aby3 = pd.DataFrame(
+        {
+            'c1': ['K9', 'K4', 'K3', 'K1', 'k8'],
+            'c2': ['A9', 'B4', 'B3', 'A1', 'k8'],
+            'c3': [9, 4, 3, 1, 8],
+        }
+    )
 
-        expected = pd.DataFrame(
-            {'c1': ['K1', 'K3', 'K4'], 'c2': ['A1', 'A3', 'A4'], 'c3': [1, 3, 4]}
-        )
-        pd.testing.assert_frame_equal(sf.reveal(da).reset_index(drop=True), expected)
+    da_new = pd.DataFrame(
+        {
+            'id1': ['K100', 'K200', 'K200', 'K300', 'K400', 'K400', 'K500'],
+            'item': ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
+            'feature1': ['AAA', 'BBB', 'CCC', 'DDD', 'EEE', 'FFF', 'GGG'],
+        }
+    )
 
-        expected = pd.DataFrame(
-            {'c1': ['K1', 'K3', 'K4'], 'c2': ['A1', 'B3', 'A4'], 'c3': [1, 3, 4]}
-        )
-        pd.testing.assert_frame_equal(sf.reveal(db).reset_index(drop=True), expected)
+    db_new = pd.DataFrame(
+        {
+            'id2': ['K200', 'K300', 'K400', 'K500', 'K600', 'K700'],
+            'feature2': ['AA', 'BB', 'CC', 'DD', 'EE', 'FF'],
+        }
+    )
 
-    def test_multiple_col(self):
-        da, db = self.spu.psi_df(['c1', 'c2'], [self.da, self.db], 'alice')
+    data = {}
 
-        expected = pd.DataFrame({'c1': ['K1', 'K4'], 'c2': ['A1', 'A4'], 'c3': [1, 4]})
-        pd.testing.assert_frame_equal(sf.reveal(da).reset_index(drop=True), expected)
-        pd.testing.assert_frame_equal(sf.reveal(db).reset_index(drop=True), expected)
+    data['da'] = sf.to(devices.alice, da)
+    data['db'] = sf.to(devices.bob, db)
+    data['db2'] = sf.to(devices.bob, db2)
+    data['db3'] = sf.to(devices.bob, db3)
+    data['dc'] = sf.to(devices.carol, db)
+    data['db4'] = sf.to(devices.bob, db4)
+    data['da_new'] = sf.to(devices.alice, da_new)
+    data['db_new'] = sf.to(devices.bob, db_new)
+    data['da_aby3'] = sf.to(devices.alice, da_aby3)
+    data['db_aby3'] = sf.to(devices.bob, db_aby3)
+    data['dc_aby3'] = sf.to(devices.carol, dc_aby3)
 
-    def test_different_cols(self):
-        da, db = self.spu.psi_df(
-            {self.alice: ['c1', 'c2'], self.bob: ['c11', 'c21']},
-            [self.da, self.db4],
-            'alice',
-        )
+    return data
 
-        expected_a = pd.DataFrame(
-            {'c1': ['K1', 'K4'], 'c2': ['A1', 'A4'], 'c3': [1, 4]}
-        )
-        expected_b = pd.DataFrame(
-            {'c11': ['K1', 'K4'], 'c21': ['A1', 'A4'], 'c31': [1, 4]}
-        )
-        pd.testing.assert_frame_equal(sf.reveal(da).reset_index(drop=True), expected_a)
-        pd.testing.assert_frame_equal(sf.reveal(db).reset_index(drop=True), expected_b)
 
-    def test_invalid_device(self):
-        with self.assertRaisesRegex(AssertionError, 'not co-located'):
-            da, dc = self.spu.psi_df(['c1', 'c2'], [self.da, self.dc], 'alice')
-            sf.reveal([da, dc])
+@pytest.fixture(scope='function')
+def prod_env_and_model(sf_production_setup_devices):
+    data = set_up(sf_production_setup_devices)
+    yield sf_production_setup_devices, data
 
-    @unittest.skip('spu reset not works now FIXME @raofei')
-    def duplicate_col(self):
-        with self.assertRaisesRegex(RuntimeError, 'found duplicated keys'):
-            da, db = self.spu.psi_df('c1', [self.da, self.db2], 'alice')
-            sf.reveal([da, db])
 
-        # reset spu to clear corrupted state
-        self.spu.reset()
+@pytest.fixture(scope='function')
+def sim_env_and_model(sf_simulation_setup_devices):
+    data = set_up(sf_simulation_setup_devices)
+    yield sf_simulation_setup_devices, data
 
-    @unittest.skip('spu reset not works now FIXME @raofei')
-    def missing_col(self):
-        with self.assertRaisesRegex(RuntimeError, "can't find feature names 'c4'"):
-            da, db = self.spu.psi_df(['c1', 'c4'], [self.da, self.db2], 'alice')
-            sf.reveal([da, db])
 
-        # reset spu to clear corrupted state
-        self.spu.reset()
+def _test_single_col(devices, data):
+    da, db = devices.spu.psi_df('c1', [data['da'], data['db']], 'alice')
 
-    def test_no_intersection(self):
-        da, db = self.spu.psi_df('c1', [self.da, self.db3], 'alice')
-        expected = pd.DataFrame({'c1': [], 'c2': [], 'c3': []}).astype('object')
-        pd.testing.assert_frame_equal(sf.reveal(da).reset_index(drop=True), expected)
-        pd.testing.assert_frame_equal(sf.reveal(db).reset_index(drop=True), expected)
+    expected = pd.DataFrame(
+        {'c1': ['K1', 'K3', 'K4'], 'c2': ['A1', 'A3', 'A4'], 'c3': [1, 3, 4]}
+    )
+    pd.testing.assert_frame_equal(sf.reveal(da).reset_index(drop=True), expected)
 
-    def test_no_broadcast(self):
-        # only alice can get result
-        da, db = self.spu.psi_df(
-            'c1', [self.da, self.db], 'alice', 'KKRT_PSI_2PC', False, True, False
-        )
-        expected = pd.DataFrame(
-            {'c1': ['K1', 'K3', 'K4'], 'c2': ['A1', 'A3', 'A4'], 'c3': [1, 3, 4]}
-        )
-        pd.testing.assert_frame_equal(sf.reveal(da).reset_index(drop=True), expected)
-        # bob can not get result
-        self.assertIsNone(sf.reveal(db))
+    expected = pd.DataFrame(
+        {'c1': ['K1', 'K3', 'K4'], 'c2': ['A1', 'B3', 'A4'], 'c3': [1, 3, 4]}
+    )
+    pd.testing.assert_frame_equal(sf.reveal(db).reset_index(drop=True), expected)
 
-    def test_psi_csv(self):
-        data_dir = f'.data/{global_random(self.alice, 100000000)}'
 
+def test_single_col_prod(prod_env_and_model):
+    devices, data = prod_env_and_model
+    _test_single_col(devices, data)
+
+
+def test_single_col_sim(sim_env_and_model):
+    devices, data = sim_env_and_model
+    _test_single_col(devices, data)
+
+
+def _test_multiple_col(devices, data):
+    da, db = devices.spu.psi_df(['c1', 'c2'], [data['da'], data['db']], 'alice')
+
+    expected = pd.DataFrame({'c1': ['K1', 'K4'], 'c2': ['A1', 'A4'], 'c3': [1, 4]})
+    pd.testing.assert_frame_equal(sf.reveal(da).reset_index(drop=True), expected)
+    pd.testing.assert_frame_equal(sf.reveal(db).reset_index(drop=True), expected)
+
+
+def test_multiple_col_prod(prod_env_and_model):
+    devices, data = prod_env_and_model
+    _test_multiple_col(devices, data)
+
+
+def test_multiple_col_sim(sim_env_and_model):
+    devices, data = sim_env_and_model
+    _test_multiple_col(devices, data)
+
+
+def _test_different_cols(devices, data):
+    da, db = devices.spu.psi_df(
+        {devices.alice: ['c1', 'c2'], devices.bob: ['c11', 'c21']},
+        [data['da'], data['db4']],
+        'alice',
+    )
+
+    expected_a = pd.DataFrame({'c1': ['K1', 'K4'], 'c2': ['A1', 'A4'], 'c3': [1, 4]})
+    expected_b = pd.DataFrame({'c11': ['K1', 'K4'], 'c21': ['A1', 'A4'], 'c31': [1, 4]})
+    pd.testing.assert_frame_equal(sf.reveal(da).reset_index(drop=True), expected_a)
+    pd.testing.assert_frame_equal(sf.reveal(db).reset_index(drop=True), expected_b)
+
+
+def test_different_cols_prod(prod_env_and_model):
+    devices, data = prod_env_and_model
+    _test_different_cols(devices, data)
+
+
+def test_different_cols_sim(sim_env_and_model):
+    devices, data = sim_env_and_model
+    _test_different_cols(devices, data)
+
+
+def _test_invalid_device(devices, data):
+    with pytest.raises(AssertionError, match='not co-located'):
+        da, dc = devices.spu.psi_df(['c1', 'c2'], [data['da'], data['dc']], 'alice')
+        sf.reveal([da, dc])
+
+
+def test_invalid_device_prod(prod_env_and_model):
+    devices, data = prod_env_and_model
+    _test_invalid_device(devices, data)
+
+
+def test_invalid_device_sim(sim_env_and_model):
+    devices, data = sim_env_and_model
+    _test_invalid_device(devices, data)
+
+
+# @unittest.skip('spu reset not works now FIXME @raofei')
+# def duplicate_col(self):
+#     with self.assertRaisesRegex(RuntimeError, 'found duplicated keys'):
+#         da, db = self.spu.psi_df('c1', [self.da, self.db2], 'alice')
+#         sf.reveal([da, db])
+
+#     # reset spu to clear corrupted state
+#     self.spu.reset()
+
+
+# @unittest.skip('spu reset not works now FIXME @raofei')
+# def missing_col(self):
+#     with self.assertRaisesRegex(RuntimeError, "can't find feature names 'c4'"):
+#         da, db = self.spu.psi_df(['c1', 'c4'], [self.da, self.db2], 'alice')
+#         sf.reveal([da, db])
+
+#     # reset spu to clear corrupted state
+#     self.spu.reset()
+
+
+def _test_no_intersection(devices, data):
+    da, db = devices.spu.psi_df('c1', [data['da'], data['db3']], 'alice')
+    expected = pd.DataFrame({'c1': [], 'c2': [], 'c3': []}).astype('object')
+    pd.testing.assert_frame_equal(sf.reveal(da).reset_index(drop=True), expected)
+    pd.testing.assert_frame_equal(sf.reveal(db).reset_index(drop=True), expected)
+
+
+def test_no_intersection_prod(prod_env_and_model):
+    devices, data = prod_env_and_model
+    _test_no_intersection(devices, data)
+
+
+def test_no_intersection_sim(sim_env_and_model):
+    devices, data = sim_env_and_model
+    _test_no_intersection(devices, data)
+
+
+def _test_no_broadcast(devices, data):
+    # only alice can get result
+    da, db = devices.spu.psi_df(
+        'c1', [data['da'], data['db']], 'alice', 'KKRT_PSI_2PC', False, True, False
+    )
+    expected = pd.DataFrame(
+        {'c1': ['K1', 'K3', 'K4'], 'c2': ['A1', 'A3', 'A4'], 'c3': [1, 3, 4]}
+    )
+    pd.testing.assert_frame_equal(sf.reveal(da).reset_index(drop=True), expected)
+    # bob can not get result
+    assert sf.reveal(db) is None
+
+
+def test_no_broadcast_prod(prod_env_and_model):
+    devices, data = prod_env_and_model
+    _test_no_broadcast(devices, data)
+
+
+def test_no_broadcast_sim(sim_env_and_model):
+    devices, data = sim_env_and_model
+    _test_no_broadcast(devices, data)
+
+
+def _test_psi_csv(devices, data):
+    with tempfile.TemporaryDirectory() as data_dir:
         input_path = {
-            self.alice: f'{data_dir}/alice.csv',
-            self.bob: f'{data_dir}/bob.csv',
+            devices.alice: f'{data_dir}/alice.csv',
+            devices.bob: f'{data_dir}/bob.csv',
         }
         output_path = {
-            self.alice: f'{data_dir}/alice_psi.csv',
-            self.bob: f'{data_dir}/bob_psi.csv',
+            devices.alice: f'{data_dir}/alice_psi.csv',
+            devices.bob: f'{data_dir}/bob_psi.csv',
         }
 
-        os.makedirs(data_dir, exist_ok=True)
         sf.reveal(
-            self.alice(lambda df, save_path: df.to_csv(save_path, index=False))(
-                self.da, input_path[self.alice]
+            devices.alice(lambda df, save_path: df.to_csv(save_path, index=False))(
+                data['da'], input_path[devices.alice]
             )
         )
         sf.reveal(
-            self.bob(lambda df, save_path: df.to_csv(save_path, index=False))(
-                self.db, input_path[self.bob]
+            devices.bob(lambda df, save_path: df.to_csv(save_path, index=False))(
+                data['db'], input_path[devices.bob]
             )
         )
 
-        self.spu.psi_csv(['c1', 'c2'], input_path, output_path, 'alice')
+        devices.spu.psi_csv(['c1', 'c2'], input_path, output_path, 'alice')
 
         expected = pd.DataFrame({'c1': ['K1', 'K4'], 'c2': ['A1', 'A4'], 'c3': [1, 4]})
 
         pd.testing.assert_frame_equal(
-            sf.reveal(self.alice(pd.read_csv)(output_path[self.alice])), expected
+            sf.reveal(devices.alice(pd.read_csv)(output_path[devices.alice])), expected
         )
         pd.testing.assert_frame_equal(
-            sf.reveal(self.bob(pd.read_csv)(output_path[self.bob])), expected
+            sf.reveal(devices.bob(pd.read_csv)(output_path[devices.bob])), expected
         )
-        shutil.rmtree(data_dir, ignore_errors=True)
 
-    def test_unbalanced_psi_csv(self):
-        data_dir = f'.data/{global_random(self.alice, 100000000)}'
 
+def test_psi_csv_prod(prod_env_and_model):
+    devices, data = prod_env_and_model
+    _test_psi_csv(devices, data)
+
+
+def test_psi_csv_sim(sim_env_and_model):
+    devices, data = sim_env_and_model
+    _test_psi_csv(devices, data)
+
+
+def _test_unbalanced_psi_csv(devices, data):
+    with tempfile.TemporaryDirectory() as data_dir:
         input_path = {
-            self.alice: f'{data_dir}/alice.csv',
-            self.bob: f'{data_dir}/bob.csv',
+            devices.alice: f'{data_dir}/alice.csv',
+            devices.bob: f'{data_dir}/bob.csv',
         }
 
-        os.makedirs(data_dir, exist_ok=True)
         sf.reveal(
-            self.alice(lambda df, save_path: df.to_csv(save_path, index=False))(
-                self.da, input_path[self.alice]
+            devices.alice(lambda df, save_path: df.to_csv(save_path, index=False))(
+                data['da'], input_path[devices.alice]
             )
         )
         sf.reveal(
-            self.bob(lambda df, save_path: df.to_csv(save_path, index=False))(
-                self.db, input_path[self.bob]
+            devices.bob(lambda df, save_path: df.to_csv(save_path, index=False))(
+                data['db'], input_path[devices.bob]
             )
         )
 
@@ -201,8 +325,8 @@ class TestDevicePSI2PC(MultiDriverDeviceTestCase, SingleDriverDeviceTestCase):
             f.write(bytes.fromhex(secret_key))
 
         offline_input_path = {
-            self.alice: 'fake.csv',
-            self.bob: f'{data_dir}/bob.csv',
+            devices.alice: 'fake.csv',
+            devices.bob: f'{data_dir}/bob.csv',
         }
 
         server_party_name = 'bob'
@@ -225,7 +349,7 @@ class TestDevicePSI2PC(MultiDriverDeviceTestCase, SingleDriverDeviceTestCase):
             ecdh_secret_key_path=secret_key_path,
         )
 
-        gen_cache_report = self.bob(spu.psi.gen_cache_for_2pc_ub_psi)(gen_cache_config)
+        gen_cache_report = devices.bob(spu.psi.gen_cache_for_2pc_ub_psi)(gen_cache_config)
         print(f'gen_cache_report={sf.reveal(gen_cache_report)}')
 
         # transfer cache
@@ -235,7 +359,7 @@ class TestDevicePSI2PC(MultiDriverDeviceTestCase, SingleDriverDeviceTestCase):
         transfer_cache_output_path = ''
 
         # tansfer cache phase
-        self.spu.psi_csv(
+        devices.spu.psi_csv(
             key=[],
             input_path=transfer_cache_input_path,  # client no input, server input cache file path
             output_path=transfer_cache_output_path,  # client and server both no output
@@ -253,20 +377,20 @@ class TestDevicePSI2PC(MultiDriverDeviceTestCase, SingleDriverDeviceTestCase):
         print("=====shuffle online phase====")
 
         shuffle_online_input_path = {
-            self.alice: f'{data_dir}/alice.csv',
-            self.bob: f'{data_dir}/bob.csv',
+            devices.alice: f'{data_dir}/alice.csv',
+            devices.bob: f'{data_dir}/bob.csv',
         }
         shuffle_online_output_path = {
-            self.alice: '',
-            self.bob: f'{data_dir}/bob_psi.csv',
+            devices.alice: '',
+            devices.bob: f'{data_dir}/bob_psi.csv',
         }
         shuffle_online_preprocess_path = {
-            self.alice: offline_preprocess_path,
-            self.bob: transfer_cache_input_path,
+            devices.alice: offline_preprocess_path,
+            devices.bob: transfer_cache_input_path,
         }
 
         # shuffle online phase
-        self.spu.psi_csv(
+        devices.spu.psi_csv(
             key=[],
             input_path=shuffle_online_input_path,  # client and server input file path
             output_path=shuffle_online_output_path,  # server got intersection output
@@ -285,13 +409,13 @@ class TestDevicePSI2PC(MultiDriverDeviceTestCase, SingleDriverDeviceTestCase):
         print("=====offline phase====")
 
         offline_output_path = {
-            self.alice: "dummy.csv",
-            self.bob: "dummy.csv",
+            devices.alice: "dummy.csv",
+            devices.bob: "dummy.csv",
         }
 
         # offline phase
         # streaming read server(large set) data, evaluate and send to client
-        self.spu.psi_csv(
+        devices.spu.psi_csv(
             key=['c1', 'c2'],
             input_path=offline_input_path,  # client no input, server large set data input
             output_path=offline_output_path,  # client no output, server no output,
@@ -309,20 +433,20 @@ class TestDevicePSI2PC(MultiDriverDeviceTestCase, SingleDriverDeviceTestCase):
         # online
         print("=====online phase====")
         online_input_path = {
-            self.alice: f'{data_dir}/alice.csv',
-            self.bob: f'{data_dir}/bob.csv',
+            devices.alice: f'{data_dir}/alice.csv',
+            devices.bob: f'{data_dir}/bob.csv',
         }
         online_output_path = {
-            self.alice: f'{data_dir}/alice_psi.csv',
-            self.bob: f'{data_dir}/bob_psi.csv',
+            devices.alice: f'{data_dir}/alice_psi.csv',
+            devices.bob: f'{data_dir}/bob_psi.csv',
         }
 
         cache_path = {
-            self.alice: offline_preprocess_path,
-            self.bob: transfer_cache_input_path,
+            devices.alice: offline_preprocess_path,
+            devices.bob: transfer_cache_input_path,
         }
 
-        self.spu.psi_csv(
+        devices.spu.psi_csv(
             key=['c1', 'c2'],
             input_path=online_input_path,  # client small set data input, server large set data input
             output_path=online_output_path,  # client small set data input, server no input
@@ -340,151 +464,119 @@ class TestDevicePSI2PC(MultiDriverDeviceTestCase, SingleDriverDeviceTestCase):
         expected = pd.DataFrame({'c1': ['K1', 'K4'], 'c2': ['A1', 'A4'], 'c3': [1, 4]})
 
         pd.testing.assert_frame_equal(
-            sf.reveal(self.alice(pd.read_csv)(online_output_path[self.alice])), expected
+            sf.reveal(devices.alice(pd.read_csv)(online_output_path[devices.alice])),
+            expected,
         )
 
-        shutil.rmtree(data_dir, ignore_errors=True)
+
+def test_unbalanced_psi_csv_prod(prod_env_and_model):
+    devices, data = prod_env_and_model
+    _test_unbalanced_psi_csv(devices, data)
 
 
-class TestDevicePSI3PC(ABY3MultiDriverDeviceTestCase):
-    def setUp(self) -> None:
-        da = pd.DataFrame(
-            {
-                'c1': ['K5', 'K1', 'K2', 'K6', 'K4', 'K3'],
-                'c2': ['A5', 'A1', 'A2', 'A6', 'B4', 'A3'],
-                'c3': [5, 1, 2, 6, 4, 3],
-            }
-        )
-
-        db = pd.DataFrame(
-            {
-                'c1': ['K3', 'K1', 'K9', 'K4'],
-                'c2': ['B3', 'A1', 'A9', 'A4'],
-                'c3': [3, 1, 9, 4],
-            }
-        )
-
-        dc = pd.DataFrame(
-            {
-                'c1': ['K9', 'K4', 'K3', 'K1', 'k8'],
-                'c2': ['A9', 'B4', 'B3', 'A1', 'k8'],
-                'c3': [9, 4, 3, 1, 8],
-            }
-        )
-
-        self.da = sf.to(self.alice, da)
-        self.db = sf.to(self.bob, db)
-        self.dc = sf.to(self.carol, dc)
-
-    def test_single_col(self):
-        da, db, dc = self.spu.psi_df(
-            'c1', [self.da, self.db, self.dc], 'alice', protocol='ECDH_PSI_3PC'
-        )
-
-        expected = pd.DataFrame(
-            {'c1': ['K1', 'K3', 'K4'], 'c2': ['A1', 'A3', 'B4'], 'c3': [1, 3, 4]}
-        )
-        pd.testing.assert_frame_equal(sf.reveal(da).reset_index(drop=True), expected)
-
-        expected = pd.DataFrame(
-            {'c1': ['K1', 'K3', 'K4'], 'c2': ['A1', 'B3', 'A4'], 'c3': [1, 3, 4]}
-        )
-        pd.testing.assert_frame_equal(sf.reveal(db).reset_index(drop=True), expected)
-
-        expected = pd.DataFrame(
-            {'c1': ['K1', 'K3', 'K4'], 'c2': ['A1', 'B3', 'B4'], 'c3': [1, 3, 4]}
-        )
-        pd.testing.assert_frame_equal(sf.reveal(dc).reset_index(drop=True), expected)
-
-    def test_multiple_col(self):
-        da, db, dc = self.spu.psi_df(
-            ['c1', 'c2'],
-            [self.da, self.db, self.dc],
-            protocol='ECDH_PSI_3PC',
-            receiver='alice',
-        )
-        expected = pd.DataFrame({'c1': ['K1'], 'c2': ['A1'], 'c3': [1]})
-        pd.testing.assert_frame_equal(sf.reveal(da).reset_index(drop=True), expected)
-        pd.testing.assert_frame_equal(sf.reveal(db).reset_index(drop=True), expected)
-        pd.testing.assert_frame_equal(sf.reveal(dc).reset_index(drop=True), expected)
+def test_unbalanced_psi_csv_sim(sim_env_and_model):
+    devices, data = sim_env_and_model
+    _test_unbalanced_psi_csv(devices, data)
 
 
-class TestDevicePSIJoin(MultiDriverDeviceTestCase):
-    def setUp(self) -> None:
-        da = pd.DataFrame(
-            {
-                'id1': ['K100', 'K200', 'K200', 'K300', 'K400', 'K400', 'K500'],
-                'item': ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
-                'feature1': ['AAA', 'BBB', 'CCC', 'DDD', 'EEE', 'FFF', 'GGG'],
-            }
-        )
+def test_single_col(prod_env_and_model):
+    devices, data = prod_env_and_model
+    da, db, dc = devices.spu2.psi_df(
+        'c1',
+        [data['da_aby3'], data['db_aby3'], data['dc_aby3']],
+        'alice',
+        protocol='ECDH_PSI_3PC',
+    )
 
-        db = pd.DataFrame(
-            {
-                'id2': ['K200', 'K300', 'K400', 'K500', 'K600', 'K700'],
-                'feature2': ['AA', 'BB', 'CC', 'DD', 'EE', 'FF'],
-            }
-        )
+    expected = pd.DataFrame(
+        {'c1': ['K1', 'K3', 'K4'], 'c2': ['A1', 'A3', 'B4'], 'c3': [1, 3, 4]}
+    )
+    pd.testing.assert_frame_equal(sf.reveal(da).reset_index(drop=True), expected)
 
-        self.da = sf.to(self.alice, da)
-        self.db = sf.to(self.bob, db)
+    expected = pd.DataFrame(
+        {'c1': ['K1', 'K3', 'K4'], 'c2': ['A1', 'B3', 'A4'], 'c3': [1, 3, 4]}
+    )
+    pd.testing.assert_frame_equal(sf.reveal(db).reset_index(drop=True), expected)
 
-    def test_psi_join_df(self):
-        select_keys = {
-            self.alice: ['id1'],
-            self.bob: ['id2'],
+    expected = pd.DataFrame(
+        {'c1': ['K1', 'K3', 'K4'], 'c2': ['A1', 'B3', 'B4'], 'c3': [1, 3, 4]}
+    )
+    pd.testing.assert_frame_equal(sf.reveal(dc).reset_index(drop=True), expected)
+
+
+def test_multiple_col(prod_env_and_model):
+    devices, data = prod_env_and_model
+    da, db, dc = devices.spu2.psi_df(
+        ['c1', 'c2'],
+        [data['da_aby3'], data['db_aby3'], data['dc_aby3']],
+        protocol='ECDH_PSI_3PC',
+        receiver='alice',
+    )
+    expected = pd.DataFrame({'c1': ['K1'], 'c2': ['A1'], 'c3': [1]})
+    pd.testing.assert_frame_equal(sf.reveal(da).reset_index(drop=True), expected)
+    pd.testing.assert_frame_equal(sf.reveal(db).reset_index(drop=True), expected)
+    pd.testing.assert_frame_equal(sf.reveal(dc).reset_index(drop=True), expected)
+
+
+def test_psi_join_df(prod_env_and_model):
+    devices, data = prod_env_and_model
+    select_keys = {
+        devices.alice: ['id1'],
+        devices.bob: ['id2'],
+    }
+
+    da, db = devices.spu.psi_join_df(
+        select_keys, [data['da_new'], data['db_new']], 'bob', 'bob'
+    )
+
+    result_a = pd.DataFrame(
+        {
+            'id1': ['K200', 'K200', 'K300', 'K400', 'K400', 'K500'],
+            'item': ['B', 'C', 'D', 'E', 'F', 'G'],
+            'feature1': ['BBB', 'CCC', 'DDD', 'EEE', 'FFF', 'GGG'],
         }
+    )
 
-        da, db = self.spu.psi_join_df(select_keys, [self.da, self.db], 'bob', 'bob')
+    result_b = pd.DataFrame(
+        {
+            'id2': ['K200', 'K200', 'K300', 'K400', 'K400', 'K500'],
+            'feature2': ['AA', 'AA', 'BB', 'CC', 'CC', 'DD'],
+        }
+    )
 
-        result_a = pd.DataFrame(
-            {
-                'id1': ['K200', 'K200', 'K300', 'K400', 'K400', 'K500'],
-                'item': ['B', 'C', 'D', 'E', 'F', 'G'],
-                'feature1': ['BBB', 'CCC', 'DDD', 'EEE', 'FFF', 'GGG'],
-            }
-        )
+    pd.testing.assert_frame_equal(sf.reveal(da).reset_index(drop=True), result_a)
+    pd.testing.assert_frame_equal(sf.reveal(db).reset_index(drop=True), result_b)
 
-        result_b = pd.DataFrame(
-            {
-                'id2': ['K200', 'K200', 'K300', 'K400', 'K400', 'K500'],
-                'feature2': ['AA', 'AA', 'BB', 'CC', 'CC', 'DD'],
-            }
-        )
 
-        pd.testing.assert_frame_equal(sf.reveal(da).reset_index(drop=True), result_a)
-        pd.testing.assert_frame_equal(sf.reveal(db).reset_index(drop=True), result_b)
-
-    def test_psi_join_csv(self):
-        data_dir = f'.data/{global_random(self.alice, 100000000)}'
-
+def test_psi_join_csv(prod_env_and_model):
+    devices, data = prod_env_and_model
+    with tempfile.TemporaryDirectory() as data_dir:
         input_path = {
-            self.alice: f'{data_dir}/alice.csv',
-            self.bob: f'{data_dir}/bob.csv',
+            devices.alice: f'{data_dir}/alice.csv',
+            devices.bob: f'{data_dir}/bob.csv',
         }
         output_path = {
-            self.alice: f'{data_dir}/alice_psi.csv',
-            self.bob: f'{data_dir}/bob_psi.csv',
+            devices.alice: f'{data_dir}/alice_psi.csv',
+            devices.bob: f'{data_dir}/bob_psi.csv',
         }
 
-        os.makedirs(data_dir, exist_ok=True)
         sf.reveal(
-            self.alice(lambda df, save_path: df.to_csv(save_path, index=False))(
-                self.da, input_path[self.alice]
+            devices.alice(lambda df, save_path: df.to_csv(save_path, index=False))(
+                data['da_new'], input_path[devices.alice]
             )
         )
         sf.reveal(
-            self.bob(lambda df, save_path: df.to_csv(save_path, index=False))(
-                self.db, input_path[self.bob]
+            devices.bob(lambda df, save_path: df.to_csv(save_path, index=False))(
+                data['db_new'], input_path[devices.bob]
             )
         )
 
         select_keys = {
-            self.alice: ['id1'],
-            self.bob: ['id2'],
+            devices.alice: ['id1'],
+            devices.bob: ['id2'],
         }
 
-        self.spu.psi_join_csv(select_keys, input_path, output_path, 'alice', 'alice')
+        devices.spu.psi_join_csv(select_keys, input_path, output_path, 'alice', 'alice')
 
         result_a = pd.DataFrame(
             {
@@ -511,9 +603,8 @@ class TestDevicePSIJoin(MultiDriverDeviceTestCase):
                 return False
 
         pd.testing.assert_frame_equal(
-            sf.reveal(self.alice(pd.read_csv)(output_path[self.alice])), result_a
+            sf.reveal(devices.alice(pd.read_csv)(output_path[devices.alice])), result_a
         )
         pd.testing.assert_frame_equal(
-            sf.reveal(self.bob(pd.read_csv)(output_path[self.bob])), result_b
+            sf.reveal(devices.bob(pd.read_csv)(output_path[devices.bob])), result_b
         )
-        shutil.rmtree(data_dir, ignore_errors=True)

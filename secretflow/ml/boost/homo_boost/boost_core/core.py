@@ -88,7 +88,7 @@ class FedBooster(xgb_core.Booster):
         """
         if not isinstance(dtrain, xgb_core.DMatrix):
             raise TypeError('invalid training matrix: {}'.format(type(dtrain).__name__))
-        self._validate_features(dtrain)
+        self._validate_dmatrix_features(dtrain)
         # Create tree_params
         tree_param = TreeParam(
             max_depth=params['max_depth'] if 'max_depth' in params else 3,

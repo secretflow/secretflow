@@ -12,19 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-from typing import Union
+import json
+from pathlib import Path
+from typing import Dict, Union
 
 import jax.numpy as jnp
 
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.data.vertical import VDataFrame
-from secretflow.device import HEU, PYU, PYUObject
+from secretflow.device import PYU, PYUObject, reveal, wait
 
-from .core.label_holder import RegType
-from .core.preprocessing import prepare_dataset
-from .core.pure_numpy_ops.pred import sigmoid
 from .core.distributed_tree.distributed_tree import DistributedTree
+from .core.distributed_tree.distributed_tree import from_dict as dt_from_dict
+from .core.preprocessing.params import RegType
+from .core.preprocessing.preprocessing import prepare_dataset
+from .core.pure_numpy_ops.pred import sigmoid
+
+
+common_path_postfix = "/common.json"
+leaf_weight_postfix = "/leaf_weight.json"
+split_tree_postfix = "/split_tree.json"
 
 
 class SgbModel:
@@ -32,27 +39,18 @@ class SgbModel:
     Sgboost Model & predict. It is a distributed tree in essence.
     """
 
-    def __init__(
-        self, heu: HEU, label_holder: PYU, objective: RegType, base: float
-    ) -> None:
+    def __init__(self, label_holder: PYU, objective: RegType, base: float) -> None:
         """
         Args:
-            heu: HEU device, secret key keeper must belong to label_holder's party
             label_holder: PYU device, label holder's PYU device.
             objective: RegType, specifies doing logistic regression or regression
             base: float
         """
-        assert heu.sk_keeper_name() == label_holder.party, (
-            f"HEU sk keeper party {heu.sk_keeper_name()} "
-            "mismatch with label_holder device's party {label_holder.party}"
-        )
-        self.heu = heu
         self.label_holder = label_holder
         self.objective = objective
         self.base = base
         # List[DistributedTree]
         self.trees = list()
-        # TODO how to ser/der ?
 
     def _insert_distributed_tree(self, tree: DistributedTree):
         self.trees.append(tree)
@@ -88,7 +86,7 @@ class SgbModel:
 
         pred = self.label_holder(
             lambda ps, base: (
-                jnp.sum(jnp.concatenate(ps, axis=0), axis=0) + base
+                jnp.sum(jnp.concatenate(ps, axis=1), axis=1) + base
             ).reshape(-1, 1)
         )(preds, self.base)
 
@@ -105,3 +103,141 @@ class SgbModel:
             )
         else:
             return pred
+
+    def to_dict(self) -> Dict:
+        distributed_tree_dicts = [dt.to_dict() for dt in self.trees]
+        device_list = [*distributed_tree_dicts[0]['split_tree_dict'].keys()]
+
+        return {
+            'label_holder': self.label_holder,
+            'common': {
+                'objective': self.objective.value,
+                'base': self.base,
+                'tree_num': len(self.trees),
+            },
+            'leaf_weights': [
+                tree_dict['leaf_weight'] for tree_dict in distributed_tree_dicts
+            ],
+            'split_trees': {
+                device: [
+                    tree_dict['split_tree_dict'][device]
+                    for tree_dict in distributed_tree_dicts
+                ]
+                for device in device_list
+            },
+        }
+
+    def save_model(self, device_path_dict: Dict, wait_before_proceed=True):
+        """Save model to different parties
+
+        Args:
+            device_path_dict (Dict): {device: a path to save model for the device}.
+            wait_before_process (bool): if False, handle will be returned,
+                to allow user to wait for model write to finish
+                (and do something else in the meantime).
+        """
+
+        def json_dump(obj, path):
+            f = Path(path)
+            f.parent.mkdir(exist_ok=True, parents=True)
+            with open(path, 'w') as f:
+                json.dump(obj, f)
+            return None
+
+        model_dict = self.to_dict()
+        assert (
+            self.label_holder in device_path_dict
+        ), "device holder path must be provided"
+
+        # save common
+        common_path = device_path_dict[self.label_holder] + common_path_postfix
+        finish_common = self.label_holder(json_dump)(model_dict['common'], common_path)
+
+        # save leaf weight
+        leaf_weight_path = device_path_dict[self.label_holder] + leaf_weight_postfix
+        finish_leaf = self.label_holder(json_dump)(
+            model_dict['leaf_weights'], leaf_weight_path
+        )
+
+        # save split trees
+        finish_split_trees = []
+        for device, path in device_path_dict.items():
+            split_tree_path = path + split_tree_postfix
+            finish_split_trees.append(
+                device(json_dump)(model_dict['split_trees'][device], split_tree_path)
+            )
+
+        # no real content, handler for wait
+        r = (finish_common, finish_leaf, finish_split_trees)
+        if wait_before_proceed:
+            wait(r)
+            return None
+        return r
+
+
+def from_dict(model_dict: Dict) -> SgbModel:
+    sm = SgbModel(
+        model_dict['label_holder'],
+        RegType(model_dict['common']['objective']),
+        model_dict['common']['base'],
+    )
+    device_list = [*model_dict['split_trees'].keys()]
+
+    def build_split_tree_dict(i):
+        return {device: model_dict['split_trees'][device][i] for device in device_list}
+
+    sm.trees = [
+        dt_from_dict(
+            {
+                'split_tree_dict': build_split_tree_dict(i),
+                'leaf_weight': leaf_weight,
+                'label_holder': model_dict['label_holder'],
+            }
+        )
+        for i, leaf_weight in enumerate(model_dict['leaf_weights'])
+    ]
+    return sm
+
+
+def from_json_to_dict(
+    device_path_dict: Dict,
+    label_holder: PYU,
+) -> Dict:
+    def json_load(path):
+        with open(path, 'r') as f:
+            r = json.load(f)
+        return r
+
+    assert label_holder in device_path_dict, "device holder path must be provided"
+
+    # load common
+    common_path = device_path_dict[label_holder] + common_path_postfix
+    common_params = reveal(label_holder(json_load)(common_path))
+
+    # load leaf weight
+    leaf_weight_path = device_path_dict[label_holder] + leaf_weight_postfix
+    leaf_weights = [
+        *label_holder(json_load, num_returns=common_params['tree_num'])(
+            leaf_weight_path
+        )
+    ]
+    return {
+        'label_holder': label_holder,
+        'common': common_params,
+        'leaf_weights': leaf_weights,
+        'split_trees': {
+            device: [
+                *device(json_load, num_returns=common_params['tree_num'])(
+                    path + split_tree_postfix
+                )
+            ]
+            for device, path in device_path_dict.items()
+        },
+    }
+
+
+def load_model(
+    device_path_dict: Dict,
+    label_holder: PYU,
+) -> SgbModel:
+    return from_dict(from_json_to_dict(device_path_dict, label_holder))

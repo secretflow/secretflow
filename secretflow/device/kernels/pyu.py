@@ -112,8 +112,6 @@ def pyu_to_teeu(
     Returns:
         A TEEUObject whose underlying data is ciphertext.
     """
-    from sdc.auth_frame import AuthFrame, CredentialsConf
-
     assert isinstance(teeu, TEEU), f'Expect a TEEU but got {type(teeu)}'
     logging.debug(
         f'Transfer PYU object from {self.device.party} to TEEU of {teeu.party}.'
@@ -132,6 +130,8 @@ def pyu_to_teeu(
         auth_ca_cert: str,
         sim: bool,
     ):
+        from sdc.auth_frame import AuthFrame, CredentialsConf
+
         if not isinstance(allow_funcs, (list, tuple)):
             allow_funcs = [allow_funcs]
 
@@ -161,6 +161,7 @@ def pyu_to_teeu(
             allow_funcs=allow_funcs_bytes,
             allow_enclaves=allow_enclaves,
         )
+
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
         aesgcm = AESGCM(data_key)

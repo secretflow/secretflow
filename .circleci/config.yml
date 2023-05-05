@@ -1,6 +1,25 @@
-# Use the latest 2.1 version of CircleCI pipeline process engine.
-# See: https://circleci.com/docs/2.0/configuration-reference
+# Copyright 2023 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 version: 2.1
+
+setup: true
+
+orbs:
+  path-filtering: circleci/path-filtering@0.1.4
+  continuation: circleci/continuation@0.3.1
+
 parameters:
   GHA_Actor:
     type: string
@@ -15,163 +34,24 @@ parameters:
     type: string
     default: ""
 
-# Define a job to be invoked later in a workflow.
-# See: https://circleci.com/docs/2.0/configuration-reference/#jobs
-jobs:
-  linux_ut:
-    # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
-    # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
-    docker:
-      - image: registry.hub.docker.com/secretflow/ubuntu-base-ci:0.4
-    resource_class: 2xlarge+
-    # Add steps to the job
-    # See: https://circleci.com/docs/2.0/configuration-reference/#steps
-    steps:
-       # Kill the whole ci after 1hr
-      - run:
-          name: Cancel build after set time
-          background: true
-          command: |
-            sleep 3600
-            echo "Canceling workflow as too much time has elapsed"
-            curl -X POST --header "Content-Type: application/json" "https://circleci.com/api/v2/workflow/${CIRCLE_WORKFLOW_ID}/cancel?circle-token=${BUILD_TIMER_TOKEN}"
-      - checkout
-      - restore_cache:
-          name: "Restore pip cache"
-          key: &pip-cache pip-{{ checksum "requirements.txt" }}-{{ checksum "dev-requirements.txt" }}
-      - run:
-          name: "Install python deps"
-          command: |
-            set -ex
-            sed -i "s/tensorflow==/tensorflow-cpu==/g" requirements.txt
-            pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
-            pip install -r dev-requirements.txt
-            pip install onnx==1.13.1 protobuf==3.20.3
-      - run:
-          name: "unit test"
-          command: |
-            set -ex
-            bazel build //secretflow_lib/binding/...
-            cp bazel-bin/secretflow_lib/binding/_lib.so secretflow/security/privacy/
-            sh run_pytest.sh
-      - save_cache:
-          key: *pip-cache
-          paths:
-            - /usr/local/lib64/python3.8/site-packages
-      - store_test_results:
-          path: ./results.xml
-  macos_ut:
-    macos:
-      xcode: 14.2
-    environment:
-      HOMEBREW_NO_AUTO_UPDATE: 1
-    resource_class: macos.m1.large.gen1
-    steps:
-      - checkout
-      - run:
-          name: "Install homebrew dependencies"
-          command: |
-            brew install bazel cmake ninja libomp wget
-            (cd /opt/homebrew/Cellar/bazel/*.*.*/libexec/bin && curl -fLO https://github.com/bazelbuild/bazel/releases/download/5.4.1/bazel-5.4.1-darwin-arm64 && chmod +x bazel-5.4.1-darwin-arm64)
-      - run:
-          name: "Install Miniconda"
-          command: |
-            wget https://repo.anaconda.com/miniconda/Miniconda3-py38_23.1.0-1-MacOSX-arm64.sh -O ~/miniconda.sh
-            bash ~/miniconda.sh -b -p $HOME/miniconda
-            source $HOME/miniconda/bin/activate
-            conda init bash zsh
-            conda install grpcio onnx -y
-            pip install -r requirements.txt
-            pip install -r dev-requirements.txt
-            pip install onnx==1.13.1 protobuf==3.20.3
-      - run:
-          name: "build and test"
-          command: |
-            set -ex
-            bazel build //secretflow_lib/binding/...
-            cp bazel-bin/secretflow_lib/binding/_lib.so secretflow/security/privacy/
-            sh run_pytest.sh
-      - store_test_results:
-          path: ./results.xml
-  linux_publish:
-    docker:
-      - image: registry.hub.docker.com/secretflow/release-ci:0.6
-    resource_class: xlarge
-    steps:
-      - checkout
-      - run:
-          name: "build package and publish"
-          command: |
-            set -ex
-            python3 setup.py bdist_wheel
-            python3 -m pip install twine
-            python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
-  macOS_x64_publish:
-    macos:
-      xcode: 13.0.0
-    environment:
-      HOMEBREW_NO_AUTO_UPDATE: 1
-    resource_class: large
-    steps:
-      - checkout
-      - run:
-          name: "build package and publish"
-          command: |
-            set -ex
-            
-            brew install bazel cmake ninja nasm libomp wget
-            (cd "/usr/local/Cellar/bazel/4.2.1/libexec/bin" && curl -fLO https://releases.bazel.build/5.4.1/release/bazel-5.4.1-darwin-x86_64 && chmod +x bazel-5.4.1-darwin-x86_64)
-            wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O ~/miniconda.sh
-            bash ~/miniconda.sh -b -p $HOME/miniconda
-            source $HOME/miniconda/bin/activate
-            conda init zsh
-            conda create -y -n secretflow python=3.8
-            conda activate secretflow
-            conda install -y grpcio
-            export SYSTEM_VERSION_COMPAT=0
-            python3 -m pip install --upgrade pip
-            python3 setup.py bdist_wheel
-            python3 -m pip install twine
-            python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
-  macOS_arm64_publish:
-    macos:
-      xcode: 14.2
-    environment:
-      HOMEBREW_NO_AUTO_UPDATE: 1
-    resource_class: macos.m1.large.gen1
-    steps:
-      - checkout
-      - run:
-          name: "build package and publish"
-          command: |
-            set -ex
-            
-            brew install bazel cmake ninja libomp wget
-            (cd /opt/homebrew/Cellar/bazel/*.*.*/libexec/bin && curl -fLO https://github.com/bazelbuild/bazel/releases/download/5.4.1/bazel-5.4.1-darwin-arm64 && chmod +x bazel-5.4.1-darwin-arm64)
-            wget https://repo.anaconda.com/miniconda/Miniconda3-py38_23.1.0-1-MacOSX-arm64.sh -O ~/miniconda.sh
-            bash ~/miniconda.sh -b -p $HOME/miniconda
-            source $HOME/miniconda/bin/activate
-            conda init zsh
-            conda create -y -n secretflow python=3.8
-            conda activate secretflow
-            conda install -y grpcio
-            export SYSTEM_VERSION_COMPAT=0
-            python3 -m pip install --upgrade pip
-            python3 setup.py bdist_wheel
-            python3 -m pip install twine
-            python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
-# Invoke jobs via workflows
-# See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
-  ut:
+  unittest-workflow:
     when:
       not: << pipeline.parameters.GHA_Action >>
     jobs:
-      - linux_ut
-      - macos_ut
-  publish:
+      - path-filtering/filter:
+          base-revision: main
+          config-path: .circleci/continue-config.yml
+          mapping: |
+            secretflow/.* build-and-run true
+            secretflow_lib/.* build-and-run true
+            tests/.* build-and-run true
+            .bazelrc build-and-run true
+            requirements.txt build-and-run true
+            requirements-dev.txt build-and-run true
+            WORKSPACE build-and-run true
+  publish-workflow:
     when: << pipeline.parameters.GHA_Action >>
     jobs:
-      - linux_publish
-      - macOS_x64_publish
-      - macOS_arm64_publish
+      - continuation/continue:
+          configuration_path: .circleci/release-config.yml

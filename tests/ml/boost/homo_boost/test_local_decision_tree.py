@@ -1,8 +1,8 @@
 import os
-import unittest
 
 import numpy as np
 import pandas as pd
+import pytest
 import xgboost as xgb
 
 from secretflow.ml.boost.homo_boost.tree_core.decision_tree import DecisionTree
@@ -41,58 +41,63 @@ def gen_data(data_num, feature_num, use_random=True, data_bin_num=10):
     return data
 
 
-class TestFeatureHistogram(unittest.TestCase):
-    def setUp(self):
+class TestFeatureHistogram:
+    @pytest.fixture()
+    def set_up(self):
         # dataset 设置
-        self.sample_num = 10000
-        self.feature_num = 10
-        self.data_bin_num = 10
-        self.use_random = False
-        self.header = ["x" + str(i) for i in range(self.feature_num)]
+        sample_num = 10000
+        feature_num = 10
+        data_bin_num = 10
+        use_random = False
+        header = ["x" + str(i) for i in range(feature_num)]
 
-        self.data = gen_data(
-            self.sample_num,
-            self.feature_num,
-            use_random=self.use_random,
-            data_bin_num=self.data_bin_num,
+        data = gen_data(
+            sample_num,
+            feature_num,
+            use_random=use_random,
+            data_bin_num=data_bin_num,
         )
 
         # 创建 bin_split_points
         bin_split_points = []
         valid_features = {}
-        for fid in range(len(self.header)):
+        for fid in range(len(header)):
             valid_features[fid] = True
-            if self.use_random:
-                bin_split_points.append(
-                    np.linspace(0.0, 1.0, self.data_bin_num + 1)[1:]
-                )
+            if use_random:
+                bin_split_points.append(np.linspace(0.0, 1.0, data_bin_num + 1)[1:])
             else:
                 bin_split_points.append(
-                    np.linspace(0.0, 0.1 * (self.data_bin_num - 1), self.data_bin_num)
+                    np.linspace(0.0, 0.1 * (data_bin_num - 1), data_bin_num)
                 )
-        self.valid_features = valid_features
-        self.bin_split_points = np.array(bin_split_points)
+        valid_features = valid_features
+        bin_split_points = np.array(bin_split_points)
 
         # prepare xgboost train DMatrix
-        label = self.data['label']
-        data = self.data.drop(columns=['label'])
+        label = data['label']
+        data = data.drop(columns=['label'])
 
-        self.dTrain = xgb.DMatrix(data, label)
+        dTrain = xgb.DMatrix(data, label)
 
         # prepare xgboost test DMatrix
         test_data = gen_data(
-            10, self.feature_num, use_random=False, data_bin_num=self.data_bin_num
+            10, feature_num, use_random=False, data_bin_num=data_bin_num
         )
-        self.dTest = xgb.DMatrix(test_data.drop(columns=['label']))
+        dTest = xgb.DMatrix(test_data.drop(columns=['label']))
 
-    def tearDown(self) -> None:
+        yield {
+            'data': data,
+            'dTrain': dTrain,
+            'dTest': dTest,
+            'bin_split_points': bin_split_points,
+        }
+
         model_file_list = ["temp.json", "temp.dump", "xgb_model.json", "xgb_model.dump"]
         for filename in model_file_list:
             if os.path.isfile(filename):
                 os.remove(filename)
 
-    def test_local_build_tree(self):
-        self.data = self.data.drop(columns=['label'])
+    def test_local_build_tree(self, set_up):
+        data = set_up['data']
 
         param = {
             'max_depth': 4,
@@ -106,12 +111,12 @@ class TestFeatureHistogram(unittest.TestCase):
             'max_bin': 10,
             'gamma': 0,
         }
-        bst = xgb.Booster(param, [self.dTrain])
+        bst = xgb.Booster(param, [set_up['dTrain']])
 
-        xgboost_pred = bst.predict(self.dTrain, output_margin=True, training=True)
+        xgboost_pred = bst.predict(set_up['dTrain'], output_margin=True, training=True)
         # 把xgboost计算出来的grad和hess附在 dataframe上
         obj_func = LossFunction(param['objective']).obj_function()
-        self.data['grad'], self.data['hess'] = obj_func(xgboost_pred, self.dTrain)
+        data['grad'], data['hess'] = obj_func(xgboost_pred, set_up['dTrain'])
 
         tree_param = TreeParam(
             max_depth=4,
@@ -127,8 +132,8 @@ class TestFeatureHistogram(unittest.TestCase):
 
         decision_tree = DecisionTree(
             tree_param=tree_param,
-            data=self.data,
-            bin_split_points=self.bin_split_points,
+            data=data,
+            bin_split_points=set_up['bin_split_points'],
             tree_id=0,
             group_id=0,
             iter_round=0,
@@ -146,17 +151,13 @@ class TestFeatureHistogram(unittest.TestCase):
         bst.load_model('temp.json')  # load data
         bst.dump_model("temp.dump")
 
-        ypred = bst.predict(self.dTest, training=True, output_margin=False)
+        ypred = bst.predict(set_up['dTest'], training=True, output_margin=False)
 
         # 用xgboost训练模型
-        xgb_bst = xgb.train(param, self.dTrain, num_boost_round=1, obj=obj_func)
-        xgb_result = xgb_bst.predict(self.dTest, output_margin=False)
+        xgb_bst = xgb.train(param, set_up['dTrain'], num_boost_round=1, obj=obj_func)
+        xgb_result = xgb_bst.predict(set_up['dTest'], output_margin=False)
         xgb_bst.save_model("xgb_model.json")
         xgb_bst.dump_model("xgb_model.dump")
 
         # 比较xgb和federate模型的预测结果是否一致
         np.testing.assert_array_equal(ypred, xgb_result)
-
-
-if __name__ == '__main__':
-    unittest.main()
