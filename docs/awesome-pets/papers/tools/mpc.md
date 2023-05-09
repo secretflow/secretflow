@@ -107,8 +107,8 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   *Pedro Branco, Nico Döttling, Paulo Mateus*  
   PKC 2022, [eprint](https://eprint.iacr.org/2020/635), BDM22
 
-- Cheetah: Lean and Fast Secure Two-Party Deep Neural Network Inference
-  *Zhicong Huang, Wen-jie Lu, Cheng Hong, Jiansheng Ding*
+- Cheetah: Lean and Fast Secure Two-Party Deep Neural Network Inference  
+  *Zhicong Huang, Wen-jie Lu, Cheng Hong, Jiansheng Ding*  
   USENIX Security 2022, [eprint](https://eprint.iacr.org/2022/207), HLHD22
 	
 - Silver: Silent VOLE and Oblivious Transfer from Hardness of Decoding Structured LDPC Codes  
