@@ -142,13 +142,13 @@ cd secretflow/docker
 - Construct an image
 
 ```bash
-docker build -f  sf-gpu.Dockerfile -t secretflow-gpu .
+docker build -f  secretflow-gpu.Dockerfile -t secretflow-gpu .
 ```
 
 4. Run an container
 
 ```bash
-docker container run -it --gpus all secretflow-gpu bash
+docker container run --runtime=nvidia  -it --gpus all secretflow-gpu bash
 ```
 
 - `--gpus all`: This parameter is essential.
