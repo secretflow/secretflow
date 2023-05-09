@@ -102,14 +102,18 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
 - Correlated Pseudorandomness from Expand-Accumulate Codes  
 	*Elette Boyle, Geoffroy Couteau, Niv Gilboa, Yuval Ishai, Lisa Kohl, Nicolas Resch, Peter Scholl*  
 	Crypto 2022, [eprint](https://eprint.iacr.org/2022/1014), BCG+22
+
+- Two-Round Oblivious Linear Evaluation from Learning with Errors  
+  *Pedro Branco, Nico Döttling, Paulo Mateus*  
+  PKC 2022, [eprint](https://eprint.iacr.org/2020/635), BDM22
+
+- Cheetah: Lean and Fast Secure Two-Party Deep Neural Network Inference
+  *Zhicong Huang, Wen-jie Lu, Cheng Hong, Jiansheng Ding*
+  USENIX Security 2022, [eprint](https://eprint.iacr.org/2022/207), HLHD22
 	
 - Silver: Silent VOLE and Oblivious Transfer from Hardness of Decoding Structured LDPC Codes  
   *Geoffroy Couteau, Peter Rindal, Srinivasan Raghuraman*  
   Crypto 2021, [eprint](https://eprint.iacr.org/2021/1150), CRR21
-  
-- Two-Round Oblivious Linear Evaluation from Learning with Errors  
-  *Pedro Branco, Nico Döttling, Paulo Mateus*  
-  PKC 2022, [eprint](https://eprint.iacr.org/2020/635), BDM20
   
 - Efficient Protocols for Oblivious Linear Function Evaluation from Ring-LWE  
   *Carsten Baum, Daniel Escudero, Alberto Pedrouzo-Ulloa, Peter Scholl, Juan Ramón Troncoso-Pastoriza*  
@@ -154,14 +158,6 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   *Arpita Patra, Thomas Schneider, Ajith Suresh, Hossein Yalame*  
   Usenix Security 2021, [eprint](https://eprint.iacr.org/2020/1225), PSSY21
 
-- MP-SPDZ: A Versatile Framework for Multi-Party Computation  
-  *Marcel Keller*  
-  CCS 2020, [eprint](https://eprint.iacr.org/2020/521), Kel20
-
-- ABY3: A Mixed Protocol Framework for Machine Learning  
-  *Payman Mohassel, Peter Rindal*  
-  CCS 2018, [eprint](https://eprint.iacr.org/2018/403), MR18
-
 - ABY - A Framework for Efficient Mixed-Protocol Secure Two-Party Computation  
   *Daniel Demmler, Thomas Schneider, Michael Zohner*  
   NDSS 2017, [eprint](https://www.ndss-symposium.org/wp-content/uploads/2017/09/08_2_1.pdf), DSZ17
@@ -204,6 +200,10 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   *Dario Catalano, Mario Di Raimondo, Dario Fiore, and Irene Giacomelli*  
   PKC 2020, [eprint](https://eprint.iacr.org/2019/211), CRFG20
 
+- MP-SPDZ: A Versatile Framework for Multi-Party Computation  
+  *Marcel Keller*  
+  CCS 2020, [eprint](https://eprint.iacr.org/2020/521), Kel20
+
 - Covert Security with Public Verifiability: Faster, Leaner, and Simpler  
   *Cheng Hong, Jonathan Katz, Vladimir Kolesnikov, Wen-jie Lu, Xiao Wang*  
   EuroCrypt 2019, [eprint](https://eprint.iacr.org/2018/1108), HKKL+19
@@ -222,4 +222,8 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
 
 - Adaptively Secure MPC with Sublinear Communication Complexity  
   *Ran Cohen, Abhi Shelat, Daniel Wichs*  
-  Crypto 2019, [eprint](https://eprint.iacr.org/2018/1161), CSW19 
+  Crypto 2019, [eprint](https://eprint.iacr.org/2018/1161), CSW19
+
+- ABY3: A Mixed Protocol Framework for Machine Learning  
+  *Payman Mohassel, Peter Rindal*  
+  CCS 2018, [eprint](https://eprint.iacr.org/2018/403), MR18
