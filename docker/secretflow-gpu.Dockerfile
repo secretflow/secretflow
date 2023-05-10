@@ -32,7 +32,7 @@ RUN pip install --upgrade "jax[cuda11_pip]"==0.4.1 -f https://storage.googleapis
 # jax==0.4.1
 RUN pip install -U secretflow \
     && pip install tensorflow==2.12.0 \
-    && pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118 
+    && pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118 \
     && pip install protobuf==3.20.3  
 
 COPY secretflow_entrypoint.sh /opt/secretflow/
