@@ -25,17 +25,23 @@ logger = logging.getLogger()
 logger.setLevel(logging.ERROR)
 
 
-nvidia_driver_info = str(subprocess.Popen('nvidia-smi', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout.readlines()[2])
+res = subprocess.Popen('nvidia-smi', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+nvidia_driver_info = str(res.stdout.readlines()[2])
 r = re.compile("Driver Version:(.+)CUDA")
 nvidia_driver_num = r.search(nvidia_driver_info).group(1).strip()
+res.stdout.close() 
 
-nvcc_info = str(subprocess.Popen('nvcc -V', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout.readlines()[3])
+res = subprocess.Popen('nvcc -V', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+nvcc_info = str(res.stdout.readlines()[3])
 r = re.compile("release (.+), V")
 nvcc_version = r.search(nvcc_info).group(1).strip()
+res.stdout.close() 
 
-cudnn_info = str(subprocess.Popen('dpkg -l |  grep cudnn', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout.readlines()).strip()
+res = subprocess.Popen('dpkg -l |  grep cudnn', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+cudnn_info = str(res.stdout.readlines()).strip()
 r = re.compile("cudnn8(.+)amd")
 cudnn_version = r.search(cudnn_info).group(1).strip()
+res.stdout.close() 
 
 print("\n\n")
 print('{0:<40}  {1:<40}'.format("The version of Python:", sys.version))
