@@ -108,6 +108,12 @@ conda activate sf
 pip install -U secretflow
 ```
 
+4. Use WSL to develop your application
+
+
+After set up of SecretFlow in WSL, you can use [Pycharm Professional to Configure an interpreter using WSL](https://www.jetbrains.com/help/pycharm/using-wsl-as-a-remote-interpreter.html) or [Visual Studio Code with WSL](https://learn.microsoft.com/en-us/windows/wsl/tutorials/wsl-vscode) to use SecretFlow in Windows Operating System.
+
+
 ## GPUs support
 
 NVIDIA's CUDA and cuDNN are typically used to accelerate the training and testing of Tensoflow and PyTorch deep learning models. Tensoflow and PyTorch are both deep learning backends for SecretFlow.
@@ -142,13 +148,13 @@ cd secretflow/docker
 - Construct an image
 
 ```bash
-docker build -f  sf-gpu.Dockerfile -t secretflow-gpu .
+docker build -f  secretflow-gpu.Dockerfile -t secretflow-gpu .
 ```
 
 4. Run an container
 
 ```bash
-docker container run -it --gpus all secretflow-gpu bash
+docker container run --runtime=nvidia  -it --gpus all secretflow-gpu bash
 ```
 
 - `--gpus all`: This parameter is essential.

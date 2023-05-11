@@ -19,6 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.8.2b2] - 2023-5-9
+### Fixed
+- Fix SPU compilation cache bug
+
+### Changed
+- Bump spu to 0.3.3b2
+
 ## [0.8.2b1] - 2023-4-27
 ### Fixed
 - Add missing __init__ files.
