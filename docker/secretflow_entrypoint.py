@@ -19,7 +19,8 @@ from jax.lib import xla_bridge
 import subprocess
 import re
 import logging
-
+import spu
+import ray
 
 logger = logging.getLogger()
 logger.setLevel(logging.ERROR)
@@ -51,6 +52,8 @@ print('{0:<40}  {1:<40}'.format("The version of cuda:", nvcc_version))
 print('{0:<40}  {1:<40}'.format("The version of cudnn:", cudnn_version))
 print("\nThe version of some packages")
 print('{0:<40}  {1:<40}'.format("The version of SecretFlow:", secretflow.__version__))
+print('{0:<40}  {1:<40}'.format("SPU:", spu.__version__))
+print('{0:<40}  {1:<40}'.format("ray:", ray.__version__))
 print('{0:<40}  {1:<40}'.format("The version of Jax:", jax.__version__))
 print('{0:<40}  {1:<40}'.format("The version of Jaxlib:", jaxlib.__version__))
 print('{0:<40}  {1:<40}'.format("The version of TensorFlow:", tf.__version__))

@@ -37,4 +37,6 @@ RUN pip install -U secretflow \
 
 COPY secretflow_entrypoint.sh /opt/secretflow/
 
+COPY secretflow_entrypoint.py /opt/secretflow/
+
 ENTRYPOINT ["sh","/opt/secretflow/secretflow_entrypoint.sh"]
