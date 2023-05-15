@@ -43,7 +43,7 @@ msgstr ""
 msgid ""
 "This article will demonstrate how to run XGBoost in TEEU for model "
 "training."
-msgstr "本文将延时如何在TEEU中使用XGBoost训练模型。"
+msgstr "本文将演示如何在TEEU中使用XGBoost训练模型。"
 
 #: ../../tutorial/teeu_xgboost.md:13
 msgid "1.1 Simulation mode"
@@ -86,11 +86,11 @@ msgid ""
 "For security reasons, Ray running in TEE is an independent cluster, so "
 "currently SecretFlow only supports the use of TEEU in multiple Ray "
 "cluster mode. You can read the [SecretFlow Deployment "
-"Documentation](../getting_started/DEPLOYMENT.md#production) in advance to"
+"Documentation](../getting_started/deployment.md#production) in advance to"
 " understand the deployment of multiple Ray clusters."
 msgstr ""
 "出于安全原因，运行在 TEE 里的 Ray 是独立的集群，因此目前 SecretFlow 仅支持在多个 Ray 集群模式下使用 "
-"TEEU。您可以事先阅读[SecretFlow部署文档](../getting_started/DEPLOYMENT.md#production)了解多个"
+"TEEU。您可以事先阅读[SecretFlow部署文档](../getting_started/deployment.md#production)了解多个"
 " Ray 集群的部署。"
 
 #: ../../tutorial/teeu_xgboost.md:26
@@ -155,7 +155,7 @@ msgstr "示例：TEEU中运行XGBoost"
 msgid ""
 "Next, we will demonstrate how to combine data from multiple parties in "
 "TEEU, and then use XGBoost to train it."
-msgstr "接下来，我们将延时如何在TEEU中合并多方的数据并且使用XGBoost训练。"
+msgstr "接下来，我们将演示如何在TEEU中合并多方的数据并且使用XGBoost训练。"
 
 #: ../../tutorial/teeu_xgboost.md:60
 msgid "Example code"

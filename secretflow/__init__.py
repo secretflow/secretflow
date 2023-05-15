@@ -13,8 +13,6 @@
 # limitations under the License.
 
 
-from .version import __version__  # type: ignore
-
 from . import (
     component,
     data,
@@ -30,6 +28,7 @@ from .device import (
     HEU,
     PYU,
     SPU,
+    TEEU,
     Device,
     DeviceObject,
     HEUObject,
@@ -42,6 +41,7 @@ from .device import (
     to,
     wait,
 )
+from .version import __version__  # type: ignore
 
 __all__ = [
     'protos',
@@ -55,6 +55,7 @@ __all__ = [
     'HEU',
     'PYU',
     'SPU',
+    'TEEU',
     'Device',
     'DeviceObject',
     'HEUObject',
