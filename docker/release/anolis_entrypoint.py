@@ -1,19 +1,18 @@
+import logging
 import os
 import sys
-import logging
 #importing tensorflow directly will bring the warning message, 
 # using the line to change the level of logging to block information of warnings
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-import secretflow
-import spu
-import ray
-import tensorflow  as tf
-import torch
+
 import jax
 import jaxlib
-
-
+import ray
+import secretflow
+import spu
+import tensorflow  as tf
+import torch
 
 
 logger = logging.getLogger()
