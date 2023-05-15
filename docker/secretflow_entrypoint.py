@@ -1,3 +1,26 @@
+import logging
+import os
+import subprocess
+import sys 
+import re
+#importing tensorflow directly will bring the warning message, 
+# using the line to change the level of logging to block information of warnings
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
+
+import jax
+import jaxlib
+import secretflow
+import spu
+import ray
+import tensorflow  as tf
+import torch
+
+from jax.lib import xla_bridge
+
+logger = logging.getLogger()
+logger.setLevel(logging.ERROR)
+
 banner=f"""
 Welcome to use
    _____                     __  ________             
@@ -7,23 +30,6 @@ Welcome to use
 /____/\___/\___/_/   \___/\__/_/   /_/\____/|__/|__/  
 """
 print(banner)
-import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-import secretflow 
-import jax
-import tensorflow  as tf
-import torch
-import jaxlib
-import sys 
-from jax.lib import xla_bridge
-import subprocess
-import re
-import logging
-import spu
-import ray
-
-logger = logging.getLogger()
-logger.setLevel(logging.ERROR)
 
 
 res = subprocess.Popen('nvidia-smi', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -47,17 +53,17 @@ res.stdout.close()
 print("\n\n")
 print('{0:<40}  {1:<40}'.format("The version of Python:", sys.version))
 print("\nSome infomation of version of NVIDIA GPU")
-print('{0:<40}  {1:<40}'.format("The version of GPU driver:", nvidia_driver_num))
-print('{0:<40}  {1:<40}'.format("The version of cuda:", nvcc_version))
-print('{0:<40}  {1:<40}'.format("The version of cudnn:", cudnn_version))
+print('{0:<40}  {1:<40}'.format("GPU driver:", nvidia_driver_num))
+print('{0:<40}  {1:<40}'.format("CUDA:", nvcc_version))
+print('{0:<40}  {1:<40}'.format("cuDNN:", cudnn_version))
 print("\nThe version of some packages")
-print('{0:<40}  {1:<40}'.format("The version of SecretFlow:", secretflow.__version__))
+print('{0:<40}  {1:<40}'.format("SecretFlow:", secretflow.__version__))
 print('{0:<40}  {1:<40}'.format("SPU:", spu.__version__))
-print('{0:<40}  {1:<40}'.format("ray:", ray.__version__))
-print('{0:<40}  {1:<40}'.format("The version of Jax:", jax.__version__))
-print('{0:<40}  {1:<40}'.format("The version of Jaxlib:", jaxlib.__version__))
-print('{0:<40}  {1:<40}'.format("The version of TensorFlow:", tf.__version__))
-print('{0:<40}  {1:<40}'.format("The version of PyTorch:", torch.__version__))
+print('{0:<40}  {1:<40}'.format("Ray:", ray.__version__))
+print('{0:<40}  {1:<40}'.format("Jax:", jax.__version__))
+print('{0:<40}  {1:<40}'.format("Jaxlib:", jaxlib.__version__))
+print('{0:<40}  {1:<40}'.format("TensorFlow:", tf.__version__))
+print('{0:<40}  {1:<40}'.format("PyTorch:", torch.__version__))
 print("\nGPU check")
 gpu_num = torch.cuda.device_count()
 print('GPU numbers:',gpu_num)
