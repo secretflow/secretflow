@@ -146,9 +146,13 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   *Elette Boyle, Geoffroy Couteau, Niv Gilboa, Yuval Ishai, Lisa Kohl, Nicolas Resch, Peter Scholl*  
   Crypto 2022, [eprint](https://eprint.iacr.org/2022/1014), BCG+22
 
-## Online Techniques
+## Online Techniques (Including protocols that do not separate online/offline)
 
 ### Semi-Honest Secret Sharing
+
+- Squirrel: A Scalable Secure Two-Party Computation Framework for Training Gradient Boosting Decision Tree 
+  *Wen-jie Lu, Zhicong Huang, Qizhi Zhang, Yuchen Wang, Cheng Hong*
+  USENIX Security 2023, [eprint](https://eprint.iacr.org/2023/527)
 
 - Cheetah: Lean and Fast Secure Two-Party Deep Neural Network Inference  
   *Zhicong Huang, Wen-jie Lu, Cheng Hong, Jiansheng Ding*  
