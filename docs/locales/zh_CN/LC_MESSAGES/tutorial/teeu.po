@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-04-23 17:19+0800\n"
+"POT-Creation-Date: 2023-05-15 14:56+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -48,7 +48,7 @@ msgid ""
 msgstr ""
 "TEEU(`TEE` processing `U`nit)是 SecretFlow 中的 TEE 设备，通过 "
 "TEEU，用户可以方便的把数据放在TEE内进行计算，并且达到保护数据完整和安全的目的。作为 SecretFlow "
-"设备层的一员，TEEU丰富了隐语的设备层能力，并且给明密文混合计算带来了更多组合和可能。举一些例子，比如可以把水平联邦模型权重聚合放置到TEEU内进行从而保护梯度聚合过程的安全，亦或者使用用"
+"设备层的一员，TEEU丰富了隐语的设备层能力，并且给明密文混合计算带来了更多组合和可能。举一些例子，比如可以把水平联邦模型权重聚合放置到TEEU内进行从而保护梯度聚合过程的安全，亦或者使用"
 " TEEU 来快速生成 SPDZ 协议的离线因子来进行MPC的加速。更多可能性等待您的探索。"
 
 #: ../../tutorial/teeu.md:8
@@ -56,7 +56,7 @@ msgid ""
 "At present, SecretFlow provides two modes of using TEEU, simulation and "
 "non-simulation. It is recommended that you start with the simulation "
 "mode, which will help you get started quickly and successfully."
-msgstr "目前隐语提供了仿真和非仿真两种使用 TEEU 的模式，建议您从仿真模式开始上手，有助于您快速成功上手。"
+msgstr "目前隐语提供了仿真和非仿真两种使用 TEEU 的模式，建议您从仿真模式开始，有助于您快速成功上手。"
 
 #: ../../tutorial/teeu.md:10
 msgid "1.1 Simulation mode"
@@ -99,11 +99,11 @@ msgid ""
 "For security reasons, Ray running in TEE is an independent cluster, so "
 "currently SecretFlow only supports the use of TEEU in multiple Ray "
 "cluster mode. You can read the [SecretFlow Deployment "
-"Documentation](../getting_started/DEPLOYMENT.md#production) in advance to"
+"Documentation](../getting_started/deployment.md#production) in advance to"
 " understand the deployment of multiple Ray clusters."
 msgstr ""
 "出于安全原因，运行在 TEE 里的 Ray 是独立的集群，因此目前 SecretFlow 仅支持在多个 Ray 集群模式下使用 "
-"TEEU。您可以事先阅读[SecretFlow部署文档](../getting_started/DEPLOYMENT.md#production)了解多个"
+"TEEU。您可以事先阅读[SecretFlow部署文档](../getting_started/deployment.md#production)了解多个"
 " Ray 集群的部署。"
 
 #: ../../tutorial/teeu.md:23
@@ -120,7 +120,7 @@ msgstr ""
 "目前 SecretFlow TEEU 仅提供 docker 镜像，由于基础技术的一些限制，目前 TEE 程序需要较大内存才能运行成功，您需要确保 "
 "docker 容器可使用内存至少大于 30GB。"
 
-#: ../../tutorial/teeu.md:27 ../../tutorial/teeu.md:374
+#: ../../tutorial/teeu.md:27 ../../tutorial/teeu.md:397
 msgid "Deploy AuthManager"
 msgstr "部署 AuthManager"
 
@@ -128,11 +128,11 @@ msgstr "部署 AuthManager"
 msgid "AuthManager is the module responsible for authorization management."
 msgstr "AuthManager是负责授权管理的模块。"
 
-#: ../../tutorial/teeu.md:31 ../../tutorial/teeu.md:377
+#: ../../tutorial/teeu.md:31 ../../tutorial/teeu.md:400
 msgid "Download the docker image"
 msgstr "下载 docker 镜像"
 
-#: ../../tutorial/teeu.md:36 ../../tutorial/teeu.md:382
+#: ../../tutorial/teeu.md:36 ../../tutorial/teeu.md:405
 msgid "Enter the docker image"
 msgstr "进入 docker 镜像"
 
@@ -153,17 +153,17 @@ msgstr ""
 msgid "Start the service"
 msgstr "启动服务"
 
-#: ../../tutorial/teeu.md:51
+#: ../../tutorial/teeu.md:50
 msgid ""
 "The default port is 8835. Feel free to modify the `port` in config.yaml "
 "if port conflicts."
 msgstr "默认端口号是8835。如果发生端口冲突，请修改为其他未占用端口。"
 
-#: ../../tutorial/teeu.md:53
+#: ../../tutorial/teeu.md:52
 msgid "Example: TEEU secure aggregation"
 msgstr "示例：TEEU 安全聚合"
 
-#: ../../tutorial/teeu.md:55 ../../tutorial/teeu.md:474
+#: ../../tutorial/teeu.md:54 ../../tutorial/teeu.md:496
 msgid ""
 "In federated learning scenarios, how to safely aggregate data from "
 "multiple parties is a common problem. Using TEEU can easily obtain the "
@@ -175,11 +175,11 @@ msgstr ""
 "在联邦学习场景下，如何安全的聚合来自多个参与方的数据是一个常见的问题。使用 TEEU 可以很方便的获得安全聚合能力，下面示例演示了如何使用 "
 "TEEU 进行安全聚合。我们假设 Alice 和 Bob 作为数据提供方，Carol 作为 TEEU 的提供方提供安全聚合计算服务。"
 
-#: ../../tutorial/teeu.md:58 ../../tutorial/teeu.md:477
+#: ../../tutorial/teeu.md:57 ../../tutorial/teeu.md:499
 msgid "Write Secure Aggregation Code"
 msgstr "编写安全聚合代码"
 
-#: ../../tutorial/teeu.md:60
+#: ../../tutorial/teeu.md:59
 msgid ""
 "The following code demonstrates that Alice and Bob each generate a numpy "
 "array, and then send it to the TEEU held by Carol for secure aggregation."
@@ -190,28 +190,28 @@ msgstr ""
 "下面这段代码演示了 Alice 和 Bob 分别生成了一个 numpy array，然后发送给 Carol 持有的 TEEU "
 "进行安全聚合（求平均值）。最后为了验证正确性，对原始值明文聚合和 TEEU 聚合进行了结果比对，两者结果应该是一致的。"
 
-#: ../../tutorial/teeu.md:91 ../../tutorial/teeu.md:684
+#: ../../tutorial/teeu.md:89 ../../tutorial/teeu.md:714
 msgid "Alice runs the code"
 msgstr "Alice 运行代码"
 
-#: ../../tutorial/teeu.md:93 ../../tutorial/teeu.md:181
-#: ../../tutorial/teeu.md:686 ../../tutorial/teeu.md:774
+#: ../../tutorial/teeu.md:91 ../../tutorial/teeu.md:181
+#: ../../tutorial/teeu.md:716 ../../tutorial/teeu.md:805
 msgid "Start the ray master node"
 msgstr "启动 ray 主节点"
 
-#: ../../tutorial/teeu.md:95 ../../tutorial/teeu.md:688
+#: ../../tutorial/teeu.md:93 ../../tutorial/teeu.md:718
 msgid ""
 "You should modify the following command to match the actual situation, as"
 " it currently assumes that Alice's Ray master node is listening at "
 "192.168.0.10:10000."
 msgstr "下列命令假设Alice的ray主节点监听地址为 192.168.0.10:10000，请根据实际情况修改。"
 
-#: ../../tutorial/teeu.md:101 ../../tutorial/teeu.md:188
-#: ../../tutorial/teeu.md:694 ../../tutorial/teeu.md:782
+#: ../../tutorial/teeu.md:99 ../../tutorial/teeu.md:188
+#: ../../tutorial/teeu.md:724 ../../tutorial/teeu.md:813
 msgid "Generate a public-private key pair"
 msgstr "生成公私钥对"
 
-#: ../../tutorial/teeu.md:103 ../../tutorial/teeu.md:696
+#: ../../tutorial/teeu.md:101 ../../tutorial/teeu.md:726
 msgid ""
 "As Alice's data needs to be encrypted and sent to TEEU, it is imperative "
 "to generate a pair of public and private keys. Below, you may find the "
@@ -222,59 +222,59 @@ msgstr ""
 "因为 Alice 的数据需要加密发送给 TEEU，所以需要事先生成一对公私钥。您可以执行下列代码生成公私钥，公私钥以 pem "
 "格式分别存放在当前目录的 private_key.pem，public_key.pem。"
 
-#: ../../tutorial/teeu.md:110 ../../tutorial/teeu.md:703
+#: ../../tutorial/teeu.md:108 ../../tutorial/teeu.md:733
 msgid "Execute code"
 msgstr "执行代码"
 
-#: ../../tutorial/teeu.md:112
+#: ../../tutorial/teeu.md:110
 msgid ""
 "Add the SecretFlow initialization related code in front of the secure "
 "aggregation code to get the following code. First, you need to modify the"
 " configuration items in the code."
 msgstr "在安全聚合代码的前面加上SecretFlow初始化相关代码，得到下列的代码。首先您需要对代码中的配置项进行修改。"
 
-#: ../../tutorial/teeu.md:114 ../../tutorial/teeu.md:707
+#: ../../tutorial/teeu.md:112 ../../tutorial/teeu.md:737
 msgid ""
 "The code assumes that Alice's communication address is "
 "192.168.0.10:10001, please modify it according to the actual situation"
 msgstr "代码中假设 Alice 通信地址为 192.168.0.10:10001，请您根据实际情况修改"
 
-#: ../../tutorial/teeu.md:115 ../../tutorial/teeu.md:202
-#: ../../tutorial/teeu.md:278 ../../tutorial/teeu.md:582
-#: ../../tutorial/teeu.md:708 ../../tutorial/teeu.md:795
+#: ../../tutorial/teeu.md:113 ../../tutorial/teeu.md:202
+#: ../../tutorial/teeu.md:288 ../../tutorial/teeu.md:605
+#: ../../tutorial/teeu.md:738 ../../tutorial/teeu.md:826
 msgid "You need to fill in the correct `auth_manager_config`"
 msgstr "您需要填写填充正确的 `auth_manager_config`"
 
-#: ../../tutorial/teeu.md:116 ../../tutorial/teeu.md:203
-#: ../../tutorial/teeu.md:583 ../../tutorial/teeu.md:709
-#: ../../tutorial/teeu.md:796
+#: ../../tutorial/teeu.md:114 ../../tutorial/teeu.md:203
+#: ../../tutorial/teeu.md:606 ../../tutorial/teeu.md:739
+#: ../../tutorial/teeu.md:827
 msgid "`host` is the listening address of the AuthManager service"
 msgstr "`host`为 AuthManager 的服务监听地址"
 
-#: ../../tutorial/teeu.md:117
+#: ../../tutorial/teeu.md:115
 msgid ""
 "`ca_cert` is the CA certificate address of AuthManager, if AuthManager "
 "does not start with TLS, no configuration is required."
 msgstr "`ca_cert`为 AuthManager 的 CA 证书地址，如果 AuthManager 未启动 TLS，则不需要配置。"
 
-#: ../../tutorial/teeu.md:119
+#: ../../tutorial/teeu.md:117
 msgid ""
 "Suppose we save the code as demo.py, and then execute `python demo.py` on"
 " Alice's machine."
 msgstr "假设我们把代码保存为 demo.py，然后在 Alice 的机器上执行 `python demo.py`。"
 
-#: ../../tutorial/teeu.md:179 ../../tutorial/teeu.md:772
+#: ../../tutorial/teeu.md:179 ../../tutorial/teeu.md:803
 msgid "Bob runs the code"
 msgstr "Bob 运行代码"
 
-#: ../../tutorial/teeu.md:183 ../../tutorial/teeu.md:776
+#: ../../tutorial/teeu.md:183 ../../tutorial/teeu.md:807
 msgid ""
 "You should modify the following command to match the actual situation, as"
 " it currently assumes that Bob's Ray master node is listening at "
 "192.168.0.20:10000."
 msgstr "下列命令假设 Bob 的Ray主节点监听在 192.168.0.20:10000，请根据实际情况修改。"
 
-#: ../../tutorial/teeu.md:190 ../../tutorial/teeu.md:784
+#: ../../tutorial/teeu.md:190 ../../tutorial/teeu.md:815
 msgid ""
 "As Bob's data needs to be encrypted and sent to TEEU, it is imperative to"
 " generate a pair of public and private keys. Below, you may find the code"
@@ -285,8 +285,8 @@ msgstr ""
 "因为 Bob 的数据需要加密发送给 TEEU，所以需要事先生成一对公私钥。您可以执行下列代码生成公私钥，公私钥以 pem 格式分别存放在当前目录的"
 " private_key.pem，public_key.pem。"
 
-#: ../../tutorial/teeu.md:196 ../../tutorial/teeu.md:677
-#: ../../tutorial/teeu.md:791
+#: ../../tutorial/teeu.md:196 ../../tutorial/teeu.md:707
+#: ../../tutorial/teeu.md:822
 msgid "Run the code"
 msgstr "运行代码"
 
@@ -315,15 +315,29 @@ msgid ""
 " Bob's machine."
 msgstr "假设我们把代码保存为 demo.py，然后在Bob的机器上执行 `python demo.py`。"
 
-#: ../../tutorial/teeu.md:266 ../../tutorial/teeu.md:508
+#: ../../tutorial/teeu.md:269 ../../tutorial/teeu.md:531
 msgid "Carol runs code (executed in TEE)"
 msgstr "Carol 运行代码（在TEE中执行）"
 
-#: ../../tutorial/teeu.md:268
+#: ../../tutorial/teeu.md:271
 msgid "Run the container firstly."
 msgstr "启动容器"
 
-#: ../../tutorial/teeu.md:274
+#: ../../tutorial/teeu.md:278 ../../tutorial/teeu.md:368
+msgid "Hint:"
+msgstr "提示："
+
+#: ../../tutorial/teeu.md:280
+msgid ""
+"The display of error messages such as \"Failed to open Intel SGX "
+"device\", \"Error, call sgx_create_enclave QE fail\", \"Failed to load "
+"QE3\" is expected while running in simulation mode."
+msgstr ""
+"如果屏幕显示诸如 \"Failed to open Intel SGX device\", \"Error, call "
+"sgx_create_enclave QE fail\", \"Failed to load QE3\\ "
+"等是符合预期的，因为我们在使用仿真模式运行。"
+
+#: ../../tutorial/teeu.md:284
 msgid ""
 "Similarly, add the SecretFlow initialization code in front of the secure "
 "aggregation code to get the following code. Unlike the previous one, "
@@ -333,41 +347,53 @@ msgstr ""
 "同理，在安全聚合代码的前面加上 SecretFlow 初始化相关代码，得到下列的代码。与前面有所区别，Carol 的代码需要在 TEE "
 "中运行，因此需要进行一些额外的步骤。首先您需要对代码中的配置项进行修改。"
 
-#: ../../tutorial/teeu.md:277
+#: ../../tutorial/teeu.md:287
 msgid ""
 "In the code, it is assumed that Carol's communication address is "
 "192.168.0.30:10001, please modify it according to the actual situation"
-msgstr "代码中假设 Alice 通信地址为 192.168.0.30:10001，请您根据实际情况修改"
+msgstr "代码中假设 Carol 通信地址为 192.168.0.30:10001，请您根据实际情况修改"
 
-#: ../../tutorial/teeu.md:279
+#: ../../tutorial/teeu.md:289
 msgid "`host` is the listen address of AuthManager"
 msgstr "`host`为 AuthManager 的服务监听地址"
 
-#: ../../tutorial/teeu.md:280
+#: ../../tutorial/teeu.md:290
 msgid ""
 "`ca_cert` is the CA certificate path of AuthManager, if AuthManager does "
 "not enable TLS, no configuration is required."
 msgstr "`ca_cert` 为 AuthManager 的 CA 证书地址，如果 AuthManager 未启动 TLS，则不需要配置。"
 
-#: ../../tutorial/teeu.md:282
+#: ../../tutorial/teeu.md:292
 msgid ""
 "After modification, please save the file to "
 "`/root/occlum_instance/image/root/demo.py`."
 msgstr "修改完毕后，请把该文件保存至 /root/occlum_instance/image/root/demo.py"
 
-#: ../../tutorial/teeu.md:343
+#: ../../tutorial/teeu.md:357
 msgid "Then we run the script with the following command."
 msgstr "然后我们通过下列命令运行脚本。"
 
-#: ../../tutorial/teeu.md:351
+#: ../../tutorial/teeu.md:370
+msgid ""
+"While running on Occlum, it is anticipated to observe warning logs, such "
+"as \"Fail to open /proc/self/io\", \"Fail to open /proc/self/statm\", and"
+" \"Fail to open /proc/loadavg\", due to the absence of certain kernel "
+"functionalities. However, these warnings do not interfere with the proper"
+" functioning of the program."
+msgstr ""
+"因为Occlum缺乏部分内核功能，所以在Occlum上运行程序时，出现诸如 \"Fail to open /proc/self/io\"、 "
+"\"Fail to open /proc/self/statm\"和 \"Fail to open "
+"/proc/loadavg\"之类的警告日志是符合预期的。这并不会影响程序正确运行。"
+
+#: ../../tutorial/teeu.md:374
 msgid "1.2 Non-simulation mode"
 msgstr "1.2 非仿真模式"
 
-#: ../../tutorial/teeu.md:353
+#: ../../tutorial/teeu.md:376
 msgid "About non-simulation mode"
 msgstr "关于非仿真模式"
 
-#: ../../tutorial/teeu.md:355
+#: ../../tutorial/teeu.md:378
 msgid ""
 "When it is necessary to use the real TEE environment to protect the "
 "confidentiality and integrity of the data in the computing process, the "
@@ -388,7 +414,7 @@ msgstr ""
 "TEEU仅支持在[Occlum](https://github.com/occlum/occlum)上运行，支持Intel SGX "
 "DCAP的远程认证模式."
 
-#: ../../tutorial/teeu.md:358
+#: ../../tutorial/teeu.md:381
 msgid ""
 "In non-simulation mode, for Carol (TEEU provider), some additional steps "
 "are required to ensure that TEEU runs on a real TEE machine, and Alice "
@@ -397,33 +423,33 @@ msgstr ""
 "非仿真模式下，对于 Carol（TEEU 提供方）而言，需要额外进行一些步骤以保证 TEEU 运行在真实的 TEE 机器上，Alice 和 Bob"
 " 也需要进行一些额外的配置。"
 
-#: ../../tutorial/teeu.md:360
+#: ../../tutorial/teeu.md:383
 msgid "Prerequisites"
 msgstr "运行前提"
 
-#: ../../tutorial/teeu.md:362
+#: ../../tutorial/teeu.md:385
 msgid ""
 "You need to prepare a machine that supports SGX 2.0. We assume that you "
 "have installed the operating system and SGX driver on this machine, and "
 "installed the docker software."
 msgstr "您需要准备一台支持 SGX 2.0 的机器，我们假设您已经在该机器上安装好了操作系统和 SGX 驱动，并且安装了 docker 软件。"
 
-#: ../../tutorial/teeu.md:364
+#: ../../tutorial/teeu.md:387
 msgid ""
 "Due to some limitations of the basic technology, the current TEE program "
 "requires a large amount of memory to run successfully. You need to ensure"
 " that the docker container can use at least 30GB of memory."
 msgstr "由于基础技术的一些限制，目前 TEE 程序需要较大内存才能运行成功，您需要确保 docker 容器可使用内存至少大于 30GB。"
 
-#: ../../tutorial/teeu.md:366
+#: ../../tutorial/teeu.md:389
 msgid "Pre-deployment"
 msgstr "前置部署"
 
-#: ../../tutorial/teeu.md:368
+#: ../../tutorial/teeu.md:391
 msgid "**Deploy Intel SGX PCCS on SGX machine**"
 msgstr "**在SGX机器上部署 Intel SGX PCCS**"
 
-#: ../../tutorial/teeu.md:370
+#: ../../tutorial/teeu.md:393
 msgid ""
 "Refer to [Intel SGX PCCS Install "
 "Document](https://github.com/intel/SGXDataCenterAttestationPrimitives/tree/master/QuoteGeneration/pccs)."
@@ -432,7 +458,7 @@ msgstr ""
 "参考 [Intel SGX PCCS Install "
 "Document](https://github.com/intel/SGXDataCenterAttestationPrimitives/tree/master/QuoteGeneration/pccs)。您可以按照文档进行安装。"
 
-#: ../../tutorial/teeu.md:372
+#: ../../tutorial/teeu.md:395
 msgid ""
 "Assuming that you start the PCCS service on port 8081 (the default "
 "listening port of PPCS), subsequent documents will be described according"
@@ -442,23 +468,23 @@ msgstr ""
 "假设您把 PCCS 服务监听在 8081 端口（PPCS "
 "默认的监听端口），后续文档将按照该端口进行描述，如果您修改了默认监听端口，则记得替换成实际端口。"
 
-#: ../../tutorial/teeu.md:375
+#: ../../tutorial/teeu.md:398
 msgid ""
 "Unlike simulation mode, non-simulation mode requires the simulation flag "
 "to be turned off."
 msgstr "与仿真模式不同，非仿真模式需要关闭仿真标识。"
 
-#: ../../tutorial/teeu.md:387
+#: ../../tutorial/teeu.md:410
 msgid "Modify pccs configuration"
 msgstr "修改 PCCS 配置"
 
-#: ../../tutorial/teeu.md:389
+#: ../../tutorial/teeu.md:412
 msgid ""
 "Config `PCCS_URL` in `/etc/sgx_default_qcnl.conf` with the actual "
 "deployment PCCS service address and set `USE_SECURE_CERT=FALSE`."
 msgstr "`/etc/sgx_default_qcnl.conf` 中 PCCS_URL 配置为 PCCS 的实际部署服务地址。"
 
-#: ../../tutorial/teeu.md:419
+#: ../../tutorial/teeu.md:442
 msgid ""
 "Modify `ua_dcap_pccs_url` configuration in "
 "`/root/occlum_release/image/etc/kubetee/unified_attestation.json` to the "
@@ -467,11 +493,11 @@ msgstr ""
 "修改`occlum_release/image/etc/kubetee/unified_attestation.json`中 "
 "ua_dcap_pccs_url 配置为实际的PCCS服务地址"
 
-#: ../../tutorial/teeu.md:434
+#: ../../tutorial/teeu.md:457
 msgid "Configure TLS"
 msgstr "配置 TLS"
 
-#: ../../tutorial/teeu.md:436
+#: ../../tutorial/teeu.md:459
 msgid ""
 "We recommend that you enable TLS. For information on how to configure "
 "this feature, please refer to "
@@ -480,132 +506,13 @@ msgstr ""
 "我们建议您启用 "
 "TLS，配置方法参见[AuthManager](https://github.com/secretflow/authmanager)。"
 
-#: ../../tutorial/teeu.md:449 ../../tutorial/teeu.md:663
+#: ../../tutorial/teeu.md:461
 msgid ""
-"After generating the public and private keys, use the private key to "
-"build."
+"Generate a pair of public and private keys, and then use the following "
+"command to build"
 msgstr "生成公私钥后，使用私钥进行 build。"
 
-#: ../../tutorial/teeu.md:454
-msgid "Run the service"
-msgstr "运行服务"
-
-#: ../../tutorial/teeu.md:459
-msgid ""
-"The default port is 8835. If the port conflicts, you can add the `--port`"
-" parameter to specify the port number."
-msgstr "默认端口为 8835，如果端口冲突了，则可以添加 `--port` 参数指定端口号。"
-
-#: ../../tutorial/teeu.md:465
-msgid "Get the mrenclave of AuthManager"
-msgstr "获取 AuthManager 的 mrenclave"
-
-#: ../../tutorial/teeu.md:467
-msgid ""
-"Execute the following command to obtain the mrenclave of AuthManager. "
-"mrenclave can be understood as a metric representing AuthManager code, "
-"data, and operating environment. The output is a string of hexadecimal "
-"strings, you can save it and use it in the next step."
-msgstr ""
-"执行下列命令可以获得 AuthManager 的 mrenclave，mrenclave 可以理解为表征 AuthManager "
-"代码、数据、运行环境等的度量值。输出内容为一串十六进制字符串，您可以保存下来，后续步骤会使用到。"
-
-#: ../../tutorial/teeu.md:473
-msgid "Example - TEEU Secure Aggregation"
-msgstr "示例：TEEU 安全聚合"
-
-#: ../../tutorial/teeu.md:478
-msgid ""
-"The following code demonstrates that Alice and Bob each generate a numpy "
-"array, and then send it to the TEEU held by Carol for safe aggregation "
-"(averaging). Finally, in order to verify the correctness, the results of "
-"the original value plaintext aggregation and TEEU aggregation were "
-"compared, and the results of the two should be consistent."
-msgstr ""
-"下面这段代码演示了 Alice 和 Bob 分别生成了一个 numpy array，然后发送给 Carol 持有的 TEEU "
-"进行安全聚合（求平均值）。最后为了验证正确性，对原始值明文聚合和 TEEU 聚合进行了结果比对，两者结果应该是一致的。"
-
-#: ../../tutorial/teeu.md:510
-msgid "Start the container"
-msgstr "启动容器"
-
-#: ../../tutorial/teeu.md:512
-msgid "Start the SecretFlow TEE container."
-msgstr "启动容器"
-
-#: ../../tutorial/teeu.md:516
-msgid ""
-"After entering the container, the default location is "
-"/root/occlum_instance."
-msgstr "进入容器后，默认所在位置为 /root/occlum_instance。"
-
-#: ../../tutorial/teeu.md:518
-msgid ""
-"Modify the configuration file The configuration file is located at "
-"`/root/occlum_instance/image/etc/kubetee/unified_attestation.json` and is"
-" required by [jinzhao-attest](https://github.com/jinzhao-dev/jinzhao-"
-"attest). This file encapsulates the remote attestation process of various"
-" TEEs. The template is as follows, and replace the `ua_dcap_pccs_url` "
-"with the deployed PCCS address."
-msgstr ""
-"修改配置文件 `/root/occlum_instance/image/etc/kubetee/unified_attestation.json`"
-" 。这个是 [jinzhao-attest](https://github.com/jinzhao-dev/jinzhao-attest) "
-"需要的配置文件，对多种 TEE 的远程认证流程进行了封装，模板如下，将 `ua_dcap_pccs_url`中的域名替换为部署的 PCCS 地址。"
-
-#: ../../tutorial/teeu.md:551
-msgid ""
-"After that, modify `/etc/sgx_default_qcnl.conf`, replace `PCCS_URL` with "
-"the previously deployed PCCS address, and set `USE_SECURE_CERT=FALSE`."
-msgstr ""
-"接下来修改`/etc/sgx_default_qcnl.conf`，将`PCCS_URL`中的域名替换为前面部署的 PCCS 地址，并且设置 "
-"`USE_SECURE_CERT=FALSE` 。"
-
-#: ../../tutorial/teeu.md:576
-msgid "Write the test code"
-msgstr "编写测试代码"
-
-#: ../../tutorial/teeu.md:578
-msgid ""
-"Add the SecretFlow initialization related code in front of the secure "
-"aggregation code to get the following code. Carol's code needs to run in "
-"tee, so some extra steps are required."
-msgstr ""
-"在安全聚合代码的前面加上 SecretFlow 初始化相关代码，得到下列的代码。Carol 的代码需要在 TEE "
-"中运行，因此需要进行一些额外的步骤。"
-
-#: ../../tutorial/teeu.md:580
-msgid "First, you need to modify the configuration items in the code."
-msgstr "首先您需要对代码中的配置项进行修改。"
-
-#: ../../tutorial/teeu.md:581
-msgid ""
-"In the code, it is assumed that the communication address of Carol is "
-"192.168.0.30:10001, please modify it according to the actual situation"
-msgstr "代码中假设 Carol 通信地址为 192.168.0.30:10001，请您根据实际情况修改"
-
-#: ../../tutorial/teeu.md:584 ../../tutorial/teeu.md:710
-#: ../../tutorial/teeu.md:797
-msgid ""
-"`ca_cert` is the CA certificate address of AuthManager, if AuthManager "
-"does not start tls, no configuration is required. (It is recommended to "
-"enable tls)"
-msgstr "`ca_cert`为 AuthManager 的 CA 证书地址，如果 AuthManager 未启动 TLS，则不需要配置。（推荐启用 TLS）"
-
-#: ../../tutorial/teeu.md:585
-msgid ""
-"`mrenclave` is the mrenclave of the AuthManager module, you should have "
-"obtained this value in the step of deploying AuthManager."
-msgstr "`mrenclave`为 AuthManager 模块的 mrenclave，在部署 AuthManager 的步骤中您应该已经获得了该值。"
-
-#: ../../tutorial/teeu.md:587
-msgid "Please save the modified file as /root/occlum_instance/image/root/demo.py."
-msgstr "请把修改的文件保存为 /root/occlum_instance/image/root/demo.py。"
-
-#: ../../tutorial/teeu.md:653
-msgid "build occlum"
-msgstr "构建occlum"
-
-#: ../../tutorial/teeu.md:655
+#: ../../tutorial/teeu.md:463 ../../tutorial/teeu.md:685
 msgid ""
 "You first need to generate a pair of public and private keys, and then "
 "use the following command to build the release version of occlum. You can"
@@ -618,11 +525,136 @@ msgstr ""
 "occlum。生成公私钥可以参考下列脚本，生成的公私钥分别存在当前目录的 "
 "private_key.pem、public_key.pem。请妥善保存您的私钥，不要泄露给其他人。"
 
-#: ../../tutorial/teeu.md:669
+#: ../../tutorial/teeu.md:471 ../../tutorial/teeu.md:693
+msgid ""
+"After generating the public and private keys, use the private key to "
+"build."
+msgstr "生成公私钥后，使用私钥进行 build。"
+
+#: ../../tutorial/teeu.md:476
+msgid "Run the service"
+msgstr "运行服务"
+
+#: ../../tutorial/teeu.md:481
+msgid ""
+"The default port is 8835. If the port conflicts, you can add the `--port`"
+" parameter to specify the port number."
+msgstr "默认端口为 8835，如果端口冲突了，则可以添加 `--port` 参数指定端口号。"
+
+#: ../../tutorial/teeu.md:487
+msgid "Get the mrenclave of AuthManager"
+msgstr "获取 AuthManager 的 mrenclave"
+
+#: ../../tutorial/teeu.md:489
+msgid ""
+"Execute the following command to obtain the mrenclave of AuthManager. "
+"mrenclave can be understood as a metric representing AuthManager code, "
+"data, and operating environment. The output is a string of hexadecimal "
+"strings, you can save it and use it in the next step."
+msgstr ""
+"执行下列命令可以获得 AuthManager 的 mrenclave，mrenclave 可以理解为表征 AuthManager "
+"代码、数据、运行环境等的度量值。输出内容为一串十六进制字符串，您可以保存下来，后续步骤会使用到。"
+
+#: ../../tutorial/teeu.md:495
+msgid "Example - TEEU Secure Aggregation"
+msgstr "示例：TEEU 安全聚合"
+
+#: ../../tutorial/teeu.md:500
+msgid ""
+"The following code demonstrates that Alice and Bob each generate a numpy "
+"array, and then send it to the TEEU held by Carol for safe aggregation "
+"(averaging). Finally, in order to verify the correctness, the results of "
+"the original value plaintext aggregation and TEEU aggregation were "
+"compared, and the results of the two should be consistent."
+msgstr ""
+"下面这段代码演示了 Alice 和 Bob 分别生成了一个 numpy array，然后发送给 Carol 持有的 TEEU "
+"进行安全聚合（求平均值）。最后为了验证正确性，对原始值明文聚合和 TEEU 聚合进行了结果比对，两者结果应该是一致的。"
+
+#: ../../tutorial/teeu.md:533
+msgid "Start the container"
+msgstr "启动容器"
+
+#: ../../tutorial/teeu.md:535
+msgid "Start the SecretFlow TEE container."
+msgstr "启动容器"
+
+#: ../../tutorial/teeu.md:539
+msgid ""
+"After entering the container, the default location is "
+"/root/occlum_instance."
+msgstr "进入容器后，默认所在位置为 /root/occlum_instance。"
+
+#: ../../tutorial/teeu.md:541
+msgid ""
+"Modify the configuration file The configuration file is located at "
+"`/root/occlum_instance/image/etc/kubetee/unified_attestation.json` and is"
+" required by [jinzhao-attest](https://github.com/jinzhao-dev/jinzhao-"
+"attest). This file encapsulates the remote attestation process of various"
+" TEEs. The template is as follows, and replace the `ua_dcap_pccs_url` "
+"with the deployed PCCS address."
+msgstr ""
+"修改配置文件 `/root/occlum_instance/image/etc/kubetee/unified_attestation.json`"
+" 。这个是 [jinzhao-attest](https://github.com/jinzhao-dev/jinzhao-attest) "
+"需要的配置文件，对多种 TEE 的远程认证流程进行了封装，模板如下，将 `ua_dcap_pccs_url`中的域名替换为部署的 PCCS 地址。"
+
+#: ../../tutorial/teeu.md:574
+msgid ""
+"After that, modify `/etc/sgx_default_qcnl.conf`, replace `PCCS_URL` with "
+"the previously deployed PCCS address, and set `USE_SECURE_CERT=FALSE`."
+msgstr ""
+"接下来修改`/etc/sgx_default_qcnl.conf`，将`PCCS_URL`中的域名替换为前面部署的 PCCS 地址，并且设置 "
+"`USE_SECURE_CERT=FALSE` 。"
+
+#: ../../tutorial/teeu.md:599
+msgid "Write the test code"
+msgstr "编写测试代码"
+
+#: ../../tutorial/teeu.md:601
+msgid ""
+"Add the SecretFlow initialization related code in front of the secure "
+"aggregation code to get the following code. Carol's code needs to run in "
+"tee, so some extra steps are required."
+msgstr ""
+"在安全聚合代码的前面加上 SecretFlow 初始化相关代码，得到下列的代码。Carol 的代码需要在 TEE "
+"中运行，因此需要进行一些额外的步骤。"
+
+#: ../../tutorial/teeu.md:603
+msgid "First, you need to modify the configuration items in the code."
+msgstr "首先您需要对代码中的配置项进行修改。"
+
+#: ../../tutorial/teeu.md:604
+msgid ""
+"In the code, it is assumed that the communication address of Carol is "
+"192.168.0.30:10001, please modify it according to the actual situation"
+msgstr "代码中假设 Carol 通信地址为 192.168.0.30:10001，请您根据实际情况修改"
+
+#: ../../tutorial/teeu.md:607 ../../tutorial/teeu.md:740
+#: ../../tutorial/teeu.md:828
+msgid ""
+"`ca_cert` is the CA certificate address of AuthManager, if AuthManager "
+"does not start tls, no configuration is required. (It is recommended to "
+"enable tls)"
+msgstr "`ca_cert`为 AuthManager 的 CA 证书地址，如果 AuthManager 未启动 TLS，则不需要配置。（推荐启用 TLS）"
+
+#: ../../tutorial/teeu.md:608
+msgid ""
+"`mrenclave` is the mrenclave of the AuthManager module, you should have "
+"obtained this value in the step of deploying AuthManager."
+msgstr "`mrenclave`为 AuthManager 模块的 mrenclave，在部署 AuthManager 的步骤中您应该已经获得了该值。"
+
+#: ../../tutorial/teeu.md:610
+msgid "Please save the modified file as /root/occlum_instance/image/root/demo.py."
+msgstr "请把修改的文件保存为 /root/occlum_instance/image/root/demo.py。"
+
+#: ../../tutorial/teeu.md:683
+msgid "build occlum"
+msgstr "构建occlum"
+
+#: ../../tutorial/teeu.md:699
 msgid "Obtain the MRENCLAVE of TEEU"
 msgstr "获取 TEEU 的 mrenclave"
 
-#: ../../tutorial/teeu.md:671
+#: ../../tutorial/teeu.md:701
 msgid ""
 "Execute the following command to get the MRENCLAVE of TEEU, which is used"
 " to characterize the metrics of TEEU code, data, and operating "
@@ -632,102 +664,110 @@ msgstr ""
 "执行下列命令可以获得 TEEU 的 MRENCLAVE，用于表征 TEEU "
 "代码、数据、运行环境等的度量值。输出内容为一串十六进制字符串，您可以保存下来，后续步骤会使用到。"
 
-#: ../../tutorial/teeu.md:679
+#: ../../tutorial/teeu.md:709
 msgid "Execute the following command to run the script."
 msgstr "执行下列命令运行脚本。"
 
-#: ../../tutorial/teeu.md:705
+#: ../../tutorial/teeu.md:735
 msgid ""
 "Add the SecretFlow initialization related code in front of the secure "
 "aggregation code to get the following code. You need to configure the "
 "code:"
 msgstr "在安全聚合代码的前面加上 SecretFlow 初始化相关代码，得到下列的代码。您需要对代码进行配置："
 
-#: ../../tutorial/teeu.md:711 ../../tutorial/teeu.md:798
+#: ../../tutorial/teeu.md:741 ../../tutorial/teeu.md:829
 msgid ""
 "`mrenclave` is the MRENCLAVE of the AuthManager module, you should have "
 "obtained this value in the step of deploying AuthManager."
 msgstr "`mrenclave`为 AuthManager 模块的 MRENCLAVE，在部署 AuthManager 的步骤中您应该已经获得了该值。"
 
-#: ../../tutorial/teeu.md:712 ../../tutorial/teeu.md:799
+#: ../../tutorial/teeu.md:742
 msgid ""
 "Use the MRENCLAVE of TEEU obtained earlier, fill in the correct value: "
-"`teeu = teeu('carol', mr_enclave='mr_enclave of TEEU')`"
+"`teeu = TEEU('carol', mr_enclave='mr_enclave of TEEU')`"
 msgstr ""
-"使用前面获得的 TEEU 的 MRENCLAVE，填充正确的值: `teeu = teeu('carol', "
+"使用前面获得的 TEEU 的 MRENCLAVE，填充正确的值: `teeu = TEEU('carol', "
 "mr_enclave='mr_enclave of TEEU')`"
 
-#: ../../tutorial/teeu.md:714
+#: ../../tutorial/teeu.md:744
 msgid ""
 "After the configuration is complete, suppose we save the code as demo.py,"
 " and then execute `python demo.py` on Alice's machine."
 msgstr "配置完成后，假设我们把代码保存为 demo.py，然后在 Alice 的机器上执行 `python demo.py`。"
 
-#: ../../tutorial/teeu.md:793
+#: ../../tutorial/teeu.md:824
 msgid ""
 "Similar to Alice, add the SecretFlow initialization code in front of the "
 "secure aggregation code to get the following code. You need to configure "
 "the code:"
 msgstr "和 Alice 类似，在安全聚合代码的前面加上 SecretFlow 初始化相关代码，得到下列的代码。您需要对代码进行配置："
 
-#: ../../tutorial/teeu.md:794
+#: ../../tutorial/teeu.md:825
 msgid ""
 "In the code, it is assumed that Bob’s communication address is "
 "192.168.0.20:10001, please modify it according to the actual situation"
 msgstr "代码中假设 Bob 通信地址为 192.168.0.20:10001，请您根据实际情况修改"
 
-#: ../../tutorial/teeu.md:801
+#: ../../tutorial/teeu.md:830
+msgid ""
+"Use the MRENCLAVE of TEEU obtained earlier, fill in the correct value: "
+"`teeu = TEEU('carol', mr_enclave='mr_enclave of TEEU')`"
+msgstr ""
+"使用前面获得的 TEEU 的 MRENCLAVE，填充正确的值: `teeu = TEEU('carol', "
+"mr_enclave='mr_enclave of TEEU')`"
+
+#: ../../tutorial/teeu.md:832
 msgid ""
 "After the configuration is complete, suppose we save the code as demo.py,"
 " and then execute `python demo.py` on Bob's machine."
 msgstr "配置完成后，假设我们把代码保存为 demo.py，然后在 Bob 的机器上执行 `python demo.py`。"
 
-#: ../../tutorial/teeu.md:860
+#: ../../tutorial/teeu.md:891
 msgid "Summary"
 msgstr "总结"
 
-#: ../../tutorial/teeu.md:861
+#: ../../tutorial/teeu.md:892
 msgid ""
 "This chapter demonstrates how to use TEEU on a real SGX 2.0 machine. The "
 "main difference between non-simulation mode and simulation mode is as "
 "follows."
 msgstr "本章节演示了如何在真实的SGX 2.0机器上运行TEEU。相比仿真模式，非仿真模式的主要差别如下。"
 
-#: ../../tutorial/teeu.md:863
+#: ../../tutorial/teeu.md:894
 msgid "Configure remote attestation."
 msgstr "配置远程认证。"
 
-#: ../../tutorial/teeu.md:864
+#: ../../tutorial/teeu.md:895
 msgid "Deploy DCAS"
 msgstr "部署 DCAS"
 
-#: ../../tutorial/teeu.md:865
+#: ../../tutorial/teeu.md:896
 msgid "Configure `/etc/sgx_default_qcnl.conf`"
 msgstr "配置 `/etc/sgx_default_qcnl.conf`"
 
-#: ../../tutorial/teeu.md:866
+#: ../../tutorial/teeu.md:897
 msgid "Configure `image/etc/kubetee/unified_attestation.json`"
 msgstr "配置 `image/etc/kubetee/unified_attestation.json`"
 
-#: ../../tutorial/teeu.md:867
+#: ../../tutorial/teeu.md:898
 msgid ""
 "To start the AuthManager and SecretFlow TEE images, it is necessary to "
 "mount the SGX-related devices. E.g.,"
 msgstr "启动AuthManager和SecretFlow TEE镜像时，需要挂载SGX相关设备。"
 
-#: ../../tutorial/teeu.md:871
+#: ../../tutorial/teeu.md:902
 msgid ""
 "Obtain and fill in the measurement values (MRENCLAVE) of AuthManager and "
 "TEEU."
 msgstr "获取并填充AuthManager和TEEU的度量值（mrenclave）。"
 
-#: ../../tutorial/teeu.md:872
+#: ../../tutorial/teeu.md:903
 msgid ""
 "Fill in the mrenclave of AuthManager in `auth_manager_config` of "
 "`sf.init()`."
 msgstr "在 `sf.init()` 的 `auth_manager_config` 参数里填充AuthManager的mrenclave。"
 
-#: ../../tutorial/teeu.md:873
+#: ../../tutorial/teeu.md:904
 msgid ""
 "Fill in the MRENCLAVE of TEEU when constructing its instance by `teeu = "
 "sf.TEEU(..., mr_enclave='MRENCLAVE_OF_TEEU')` ."
@@ -735,15 +775,27 @@ msgstr ""
 "构建TEEU实例时填充mrenclave: `teeu = sf.TEEU(..., "
 "mr_enclave='MRENCLAVE_OF_TEEU')` 。"
 
-#: ../../tutorial/teeu.md:874
-msgid "Set `tee_simulation=False` in `sf.init()`"
+#: ../../tutorial/teeu.md:905
+msgid "Set `tee_simulation=False` in `sf.init()`."
 msgstr "在 `sf.init()` 时设置 `tee_simulation=False` 。"
 
-#: ../../tutorial/teeu.md:876
+#: ../../tutorial/teeu.md:906
+msgid "Build occlum without arg `--sgx-mode sim`."
+msgstr "Build occlum时不要带参数 `--sgx-mode sim` 。"
+
+#: ../../tutorial/teeu.md:908
+msgid "More examples"
+msgstr "更多示例"
+
+#: ../../tutorial/teeu.md:910
+msgid "[XGBoost in TEEU](./teeu_xgboost.md)"
+msgstr "[在TEEU中运行XGBoost](./teeu_xgboost.md)"
+
+#: ../../tutorial/teeu.md:912
 msgid "1.3 Advanced topics"
 msgstr "1.3 高阶话题"
 
-#: ../../tutorial/teeu.md:878
+#: ../../tutorial/teeu.md:914
 msgid ""
 "If you want to know more about TEEU, please read the developer-oriented "
 "document [TEEU](../developer/design/teeu.md), which introduces the "

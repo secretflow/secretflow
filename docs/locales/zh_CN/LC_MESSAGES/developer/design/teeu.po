@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-04-14 11:44+0800\n"
+"POT-Creation-Date: 2023-05-15 15:13+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -700,143 +700,143 @@ msgid ""
 "[teeu quick start]( ../../tutorial/teeu.md ))."
 msgstr "本小节我们结合demo代码来讲解TEEU背后发生的事情，demo代码如下（如何运行demo代码可以参考[teeu快速上手](../../tutorial/teeu.md)）。"
 
-#: ../../developer/design/teeu.md:175
+#: ../../developer/design/teeu.md:180
 msgid "Lines 7-8 construct PYU instances of two participants, Alice and Bob."
 msgstr "第7~8行构造了两个参与方Alice和Bob的PYU实例。"
 
-#: ../../developer/design/teeu.md:176
+#: ../../developer/design/teeu.md:181
 msgid ""
-"Line 9 constructs an instance of TEEU, which is held by the participant "
+"Line 10 constructs an instance of TEEU, which is held by the participant "
 "carol."
-msgstr "第9行构造了TEEU的实例，TEEU有参与方carol持有。"
+msgstr "第10行构造了TEEU的实例，TEEU有参与方carol持有。"
 
-#: ../../developer/design/teeu.md:177
+#: ../../developer/design/teeu.md:182
 msgid ""
-"Lines 10-11 Alice and Bob respectively generate a random numpy array, "
+"Lines 12-13 Alice and Bob respectively generate a random numpy array, "
 "where the random generation occurs locally in Alice and Bob respectively."
-msgstr "第10~11行Alice和Bob分别生成了一个随机numpy array，这里的随机生成分别发生在Alice和Bob本地。"
+msgstr "第12-13行Alice和Bob分别生成了一个随机numpy array，这里的随机生成分别发生在Alice和Bob本地。"
 
-#: ../../developer/design/teeu.md:178
+#: ../../developer/design/teeu.md:183
 msgid ""
-"In lines 13-14, Alice and Bob respectively send their respective numpy "
+"In lines 15-16, Alice and Bob respectively send their respective numpy "
 "arrays to teeu through the `to` method, allowing them to execute the "
 "average method. This step does the following:"
 msgstr ""
-"第13~14行Alice和Bob分别把通过`to`方法把各自的numpy "
+"第15~16行Alice和Bob分别把通过`to`方法把各自的numpy "
 "array发送给teeu，允许对其执行average方法。这一步做了以下事情："
 
-#: ../../developer/design/teeu.md:179
+#: ../../developer/design/teeu.md:184
 msgid "Data encryption"
 msgstr "数据加密"
 
-#: ../../developer/design/teeu.md:180
+#: ../../developer/design/teeu.md:185
 msgid "Randomly generate encrypted data key and data id."
 msgstr "随机生成加密数据密钥和数据id。"
 
-#: ../../developer/design/teeu.md:181
+#: ../../developer/design/teeu.md:186
 msgid "Use the key to encrypt the data to obtain the data ciphertext."
 msgstr "使用密钥加密数据，得到数据密文。"
 
-#: ../../developer/design/teeu.md:182
+#: ../../developer/design/teeu.md:187
 msgid ""
 "Use the private key to sign the data ciphertext, data id, etc. (use the "
 "private key of Alice/Bob)"
 msgstr "使用私钥对数据密文、数据id等进行签名（使用Alice/Bob的私钥）"
 
-#: ../../developer/design/teeu.md:183
+#: ../../developer/design/teeu.md:188
 msgid "Authorization"
 msgstr "授权"
 
-#: ../../developer/design/teeu.md:184
+#: ../../developer/design/teeu.md:189
 msgid ""
 "Generate authorization information, including data id, average method, "
 "TEEU measurement value (mr_enclave), etc."
 msgstr "生成授权信息，包括数据id、average方法、TEEU的度量值（mr_enclave）等"
 
-#: ../../developer/design/teeu.md:185
+#: ../../developer/design/teeu.md:190
 msgid "Sign the authorization information (using Alice/Bob's private key)"
 msgstr "对授权信息进行签名（使用Alice/Bob的私钥）"
 
-#: ../../developer/design/teeu.md:186
+#: ../../developer/design/teeu.md:191
 msgid "Perform remote attestation on AuthManager"
 msgstr "对AuthManager进行远程认证"
 
-#: ../../developer/design/teeu.md:187
+#: ../../developer/design/teeu.md:192
 msgid ""
 "Obtain the remote attestation report of AuthManager and verify it to "
 "ensure that AuthManager is running in a real and trusted SGX environment "
 "and the code has not been tampered with."
 msgstr "通过远程认证，用户可以确保enclave运行环境是可靠的，且运行的代码未被篡改。"
 
-#: ../../developer/design/teeu.md:188
+#: ../../developer/design/teeu.md:193
 msgid ""
 "Use the public key of AuthManager to encrypt and protect the data "
 "encryption key, authorization information, etc., and then send it to "
 "AuthManager"
 msgstr "使用AuthManager的公钥对数据加密秘钥、授权信息等进行加密保护，并附带然后发送给AuthManager"
 
-#: ../../developer/design/teeu.md:189
+#: ../../developer/design/teeu.md:194
 msgid "Send the data ciphertext and data id to TEEU."
 msgstr "把数据密文和数据id发送给TEEU。"
 
-#: ../../developer/design/teeu.md:190
+#: ../../developer/design/teeu.md:195
 msgid ""
-"On line 16, TEEU executes the average method, and the input parameter is "
+"On line 17, TEEU executes the average method, and the input parameter is "
 "a list composed of the numpy arrays of Alice and Bob. This step does the "
 "following:"
-msgstr "第16行 TEEU 执行 average 方法，入参为Alice和Bob的numpy array构成的列表。这一步做了以下事情："
+msgstr "第17行 TEEU 执行 average 方法，入参为Alice和Bob的numpy array构成的列表。这一步做了以下事情："
 
-#: ../../developer/design/teeu.md:191
+#: ../../developer/design/teeu.md:196
 msgid ""
 "TEEU temporarily randomly generates a pair of public and private keys, "
 "and generates its own remote attestation report, and the public key is "
 "attached to the report."
 msgstr "TEEU临时随机生成一对公私钥，并且生成自己的远程认证报告，公钥附带在报告中。"
 
-#: ../../developer/design/teeu.md:192
+#: ../../developer/design/teeu.md:197
 msgid ""
 "TEEU sends Report, average method, and data id corresponding to numpy "
 "array to AuthManager, requesting to obtain the data decryption key."
 msgstr "TEEU将 Report、average方法、numpy array对应的数据id发送给 AuthManager，请求获取数据解密密钥。"
 
-#: ../../developer/design/teeu.md:193
+#: ../../developer/design/teeu.md:198
 msgid "AuthManager performs authorization check:"
 msgstr "AuthManager进行授权检查："
 
-#: ../../developer/design/teeu.md:194
+#: ../../developer/design/teeu.md:199
 msgid ""
 "First verify the report of the TEEU, and check that its metric value is "
 "consistent with the metric value in the authorization information."
 msgstr "首先验证TEEU的Report，检查其度量值和授权信息中的度量值一致。"
 
-#: ../../developer/design/teeu.md:195
+#: ../../developer/design/teeu.md:200
 msgid ""
 "Check that the average method is consistent with the method in the "
 "authorization information."
 msgstr "检查average方法和授权信息中的方法一致。"
 
-#: ../../developer/design/teeu.md:196
+#: ../../developer/design/teeu.md:201
 msgid ""
 "After the above two checks are passed, the data decryption key is "
 "encrypted with the public key of TEEU and returned to TEEU"
 msgstr "上面两部检查均通过后，则将数据解密密钥使用TEEU的公钥进行加密，并返回给TEEU"
 
-#: ../../developer/design/teeu.md:197
+#: ../../developer/design/teeu.md:202
 msgid ""
 "TEEU uses the decryption key to decrypt the numpy array to obtain the "
 "plaintext, and executes the average method to obtain the average value "
 "after aggregation."
 msgstr "TEEU使用解密密钥对numpy array进行解密，得到明文，并执行average方法，求得聚合后的平均值。"
 
-#: ../../developer/design/teeu.md:198
+#: ../../developer/design/teeu.md:203
 msgid "TEEU sends the execution result to Alice and Bob."
 msgstr "TEEU将执行结果发送给Alice和Bob。"
 
-#: ../../developer/design/teeu.md:200
+#: ../../developer/design/teeu.md:205
 msgid "How to install and use new python libraries in Occlum"
 msgstr "如何在 Occlum 中安装和使用新的 python 库"
 
-#: ../../developer/design/teeu.md:201
+#: ../../developer/design/teeu.md:206
 msgid ""
 "Currently, the TEE image provided by SecretFlow has some built-in python "
 "libraries, such as numpy. If you need to use other libraries that are not"
@@ -845,30 +845,30 @@ msgstr ""
 "目前 SecretFlow 提供的 TEE 镜像内置了部分 python 库，比如 "
 "numpy。如果您需要使用到其他没有内置的库，则需要先安装才能使用。方法如下"
 
-#: ../../developer/design/teeu.md:202
+#: ../../developer/design/teeu.md:207
 msgid "Start the container"
 msgstr "启动容器"
 
-#: ../../developer/design/teeu.md:206
+#: ../../developer/design/teeu.md:211
 msgid "Install the python package"
 msgstr "安装python包"
 
-#: ../../developer/design/teeu.md:211
+#: ../../developer/design/teeu.md:216
 msgid "Run the code"
 msgstr "运行代码"
 
-#: ../../developer/design/teeu.md:213
+#: ../../developer/design/teeu.md:218
 msgid ""
 "You need to do occlum build, get new mr_enclave, and run your script. For"
 " details, please refer to the previous "
 "[tutorial](../../tutorial/teeu.md)."
 msgstr "您需要执行occlum build，获取新的mr_enclave，并运行您的脚本。具体可以参考前面的教程。提示："
 
-#: ../../developer/design/teeu.md:215
+#: ../../developer/design/teeu.md:220
 msgid "Hint:"
 msgstr "提醒："
 
-#: ../../developer/design/teeu.md:216
+#: ../../developer/design/teeu.md:221
 msgid ""
 "/root/occlum_instance/images is the top-level root directory when occlum "
 "is actually running. Your custom script is recommended to be placed under"
@@ -880,7 +880,7 @@ msgstr ""
 "/root/occlum_instance/images/root/下面，实际运行（执行occlum "
 "run命令）时，脚本的路径必须填写为`occlum run /bin/python /root/your_script.py`"
 
-#: ../../developer/design/teeu.md:217
+#: ../../developer/design/teeu.md:222
 msgid ""
 "The new python program may take up more memory. If you encounter errors "
 "such as insufficient memory, you can try to expand the memory "
@@ -891,22 +891,22 @@ msgstr ""
 "新的 python "
 "程序可能会占用更多的内存，如果您遇到内存不足等报错，可以尝试扩大内存配置，配置文件为/root/occlum_instance/Occlum.json，通常您只需要把`user_space_size`调整一个更大的值。"
 
-#: ../../developer/design/teeu.md:218
+#: ../../developer/design/teeu.md:223
 msgid ""
 "Every time you modify the content of the script or configuration file, "
 "you must first execute occlum build -f to ensure it takes effect, please "
 "pay attention."
 msgstr "每次修改了脚本或者配置文件的内容，都必须先执行 `occlum build -f` 才能确保生效，请一定注意"
 
-#: ../../developer/design/teeu.md:220
+#: ../../developer/design/teeu.md:225
 msgid "Roadmap"
 msgstr "路线图"
 
-#: ../../developer/design/teeu.md:222
+#: ../../developer/design/teeu.md:227
 msgid "![roadmap]( resources/tee_roadmap_en.png )"
 msgstr "![roadmap]( resources/tee_roadmap_cn.png )"
 
-#: ../../developer/design/teeu.md:222
+#: ../../developer/design/teeu.md:227
 msgid "roadmap"
 msgstr ""
 

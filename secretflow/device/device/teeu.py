@@ -119,7 +119,7 @@ class TEEUWorker:
             code_position_independent_dumps as dumps,
         )
 
-        func_bytes = dumps(func)
+        func_bytes = dumps(func, protocol=4)
         data_keys = self.auth_frame.get_data_keys(
             func_bytes, data_uuid_list=[o[1].data_uuid for o in teeu_data]
         )

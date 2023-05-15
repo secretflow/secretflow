@@ -21,7 +21,7 @@ Note that since the real TEE environment is not used, the simulation mode lacks 
 
 #### Understand the SecretFlow deployment of multi-ray cluster mode
 
-For security reasons, Ray running in TEE is an independent cluster, so currently SecretFlow only supports the use of TEEU in multiple Ray cluster mode. You can read the [SecretFlow Deployment Documentation](../getting_started/DEPLOYMENT.md#production) in advance to understand the deployment of multiple Ray clusters.
+For security reasons, Ray running in TEE is an independent cluster, so currently SecretFlow only supports the use of TEEU in multiple Ray cluster mode. You can read the [SecretFlow Deployment Documentation](../getting_started/deployment.md#production) in advance to understand the deployment of multiple Ray clusters.
 
 #### Prepare to run the simulated TEEU machine
 
@@ -33,12 +33,12 @@ AuthManager is the module responsible for authorization management.
 
 1. Download the docker image
 ```shell
-docker pull secreflow/authmanager-release-sim-ubuntu:latest
+docker pull secretflow/authmanager-release-sim-ubuntu:latest
 ```
 
 2. Enter the docker image
 ```shell
-docker run -it --net host secreflow/authmanager-release-sim-ubuntu:latest
+docker run -it --net host secretflow/authmanager-release-sim-ubuntu:latest
 ```
 
 3. (Optional) Configure TLS
@@ -120,8 +120,10 @@ x_a, y_a = alice(gen_data(), num_returns=2)()
 # Bob generates its samples.
 x_b, y_b = alice(gen_data(), num_returns=2)()
 
+from secretflow.device import TEEU
+
 # mrenclave can be omitted in simulation mode.
-teeu = TEEU('carol', mrenclave='')
+teeu = TEEU('carol', mr_enclave='')
 
 # Transfer data to teeu.
 x_a_teeu = x_a.to(teeu, allow_funcs=xgb_demo)
@@ -152,7 +154,7 @@ ray start --head --node-ip-address="192.168.0.10" --port="10000" --include-dashb
 As Alice's data needs to be encrypted and sent to TEEU, it is imperative to generate a pair of public and private keys. Below, you may find the code that, upon execution, generates the public and private keys, which will be stored in the current directory in PEM format as "private_key.pem" and "public_key.pem", respectively.
 
 ```bash
-openssl genrsa -out private_key.pem 3072
+openssl genrsa -3 -out private_key.pem 3072
 openssl rsa -in private_key.pem -pubout -out public_key.pem
 ```
 
@@ -186,6 +188,7 @@ party_key_pair = {
 auth_manager_config = {
     'host': 'host of AuthManager',
     'ca_cert': 'path_of_AuthManager_ca_certificate',
+    'mr_enclave': ''
 }
 
 # Connect to alice's ray
@@ -252,7 +255,9 @@ x_a, y_a = alice(gen_data(), num_returns=2)()
 # Bob generates its samples.
 x_b, y_b = alice(gen_data(), num_returns=2)()
 
-teeu = TEEU('carol', mrenclave='')
+from secretflow.device import TEEU
+
+teeu = TEEU('carol', mr_enclave='')
 
 # Transfer data to teeu.
 x_a_teeu = x_a.to(teeu, allow_funcs=xgb_demo)
@@ -281,7 +286,7 @@ ray start --head --node-ip-address="192.168.0.20" --port="100000" --include-dash
 
 As Bob's data needs to be encrypted and sent to TEEU, it is imperative to generate a pair of public and private keys. Below, you may find the code that, upon execution, generates the public and private keys, which will be stored in the current directory in PEM format as "private_key.pem" and "public_key.pem", respectively.
 ```bash
-openssl genrsa -out private_key.pem 3072
+openssl genrsa -3 -out private_key.pem 3072
 openssl rsa -in private_key.pem -pubout -out public_key.pem
 ```
 
@@ -306,21 +311,22 @@ cluster_config = {
         'bob': {'address': '192.168.0.20:10001', 'listen_address': '0.0.0.0:10001'},
         'carol': {'address': '192.168.0.30:10001', 'listen_address': '0.0.0.0:10001'},
     },
-    'self_party': 'alice',
+    'self_party': 'bob',
 }
 
 party_key_pair = {
-    'alice': {'private_key': './private_key.pem', 'public_key': './public_key.pem'}
+    'bob': {'private_key': './private_key.pem', 'public_key': './public_key.pem'}
 }
 
 auth_manager_config = {
     'host': 'host of AuthManager',
     'ca_cert': 'path_of_AuthManager_ca_certificate',
+    'mr_enclave': ''
 }
 
 # Connect to Bob's ray
 sf.init(
-    address='192.168.0.10:10000',
+    address='192.168.0.20:10000',
     cluster_config=cluster_config,
     party_key_pair=party_key_pair,
     auth_manager_config=auth_manager_config,
@@ -382,7 +388,9 @@ x_a, y_a = alice(gen_data(), num_returns=2)()
 # Bob generates its samples.
 x_b, y_b = alice(gen_data(), num_returns=2)()
 
-teeu = TEEU('carol', mrenclave='')
+from secretflow.device import TEEU
+
+teeu = TEEU('carol', mr_enclave='')
 
 # Transfer data to teeu.
 x_a_teeu = x_a.to(teeu, allow_funcs=xgb_demo)
@@ -403,7 +411,7 @@ print(f'Train error: {error}')
 Run the SecretFlow TEE image firstly.
 
 ```bash
-docker run -it --network host SecretFlow/tee-occlum:latest
+docker run -it --network host secretflow/secretflow-teeu:latest
 ```
 
 Similarly, add the SecretFlow initialization code in front of the code to get the following code. Unlike the previous one, Carol's code needs to run in TEE, so some extra steps are required.
@@ -432,25 +440,23 @@ cluster_config = {
         'bob': {'address': '192.168.0.20:10001', 'listen_address': '0.0.0.0:10001'},
         'carol': {'address': '192.168.0.30:10001', 'listen_address': '0.0.0.0:10001'},
     },
-    'self_party': 'alice',
-}
-
-party_key_pair = {
-    'alice': {'private_key': './private_key.pem', 'public_key': './public_key.pem'}
+    'self_party': 'carol',
 }
 
 auth_manager_config = {
     'host': 'host of AuthManager',
     'ca_cert': 'path_of_AuthManager_ca_certificate',
+    'mr_enclave': ''
 }
 
-# Connect to Bob's ray
+# Start a local Ray.
 sf.init(
-    address='192.168.0.10:10000',
+    address='local',
     cluster_config=cluster_config,
-    party_key_pair=party_key_pair,
     auth_manager_config=auth_manager_config,
     tee_simulation=True,
+    _temp_dir="/host/tmp/ray",
+    _plasma_directory="/tmp",
 )
 
 import numpy as np
@@ -508,7 +514,9 @@ x_a, y_a = alice(gen_data(), num_returns=2)()
 # Bob generates its samples.
 x_b, y_b = alice(gen_data(), num_returns=2)()
 
-teeu = TEEU('carol', mrenclave='')
+from secretflow.device import TEEU
+
+teeu = TEEU('carol', mr_enclave='')
 
 # Transfer data to teeu.
 x_a_teeu = x_a.to(teeu, allow_funcs=xgb_demo)
@@ -528,7 +536,9 @@ Then we run the script with the following command.
 
 ```bash
 cd /root/occlum_instance
-occlum build --sgx-mode sim
+openssl genrsa -3 -out private_key.pem 3072
+openssl rsa -in private_key.pem -pubout -out public_key.pem
+occlum build --sgx-mode sim --sign-key private_key.pem
 occlum run /bin/python3.8 /root/demo.py
 ```
 

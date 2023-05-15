@@ -159,23 +159,28 @@ In this section, we combine the demo code to explain what happens behind TEEU. T
 import numpy as np
 
 def average(data):
-    return np. average(data, axis=1)
+    return np.average(data, axis=1)
 
-Alice = sf.PYU('Alice')
-Bob = sf.PYU('Bob')
-teeu = teeu('carol', mr_enclave='mr_enclave of TEEU')
-a = Alice(lambda np.random.rand(4, 3))()
-b = Bob(lambda np.random.rand(4, 3))()
+
+alice = sf.PYU('Alice')
+bob = sf.PYU('Bob')
+
+teeu = TEEU('carol', mr_enclave='mr_enclave of TEEU')
+
+a = alice(lambda: np.random.rand(4, 3))()
+b = bob(lambda: np.random.rand(4, 3))()
+
 a_teeu = a.to(teeu, allow_funcs=average)
 b_teeu = b.to(teeu, allow_funcs=average)
-avg_val = teeu(average)[a_teeu, b_teeu])
-print(sf. get(avg_val))
+
+avg_val = teeu(average)([a_teeu, b_teeu])
+print(sf.reveal(avg_val))
 ```
 
 1. Lines 7-8 construct PYU instances of two participants, Alice and Bob.
-2. Line 9 constructs an instance of TEEU, which is held by the participant carol.
-3. Lines 10-11 Alice and Bob respectively generate a random numpy array, where the random generation occurs locally in Alice and Bob respectively.
-4. In lines 13-14, Alice and Bob respectively send their respective numpy arrays to teeu through the `to` method, allowing them to execute the average method. This step does the following:
+2. Line 10 constructs an instance of TEEU, which is held by the participant carol.
+3. Lines 12-13 Alice and Bob respectively generate a random numpy array, where the random generation occurs locally in Alice and Bob respectively.
+4. In lines 15-16, Alice and Bob respectively send their respective numpy arrays to teeu through the `to` method, allowing them to execute the average method. This step does the following:
     1. Data encryption
         1. Randomly generate encrypted data key and data id.
         2. Use the key to encrypt the data to obtain the data ciphertext.
@@ -187,7 +192,7 @@ print(sf. get(avg_val))
         1. Obtain the remote attestation report of AuthManager and verify it to ensure that AuthManager is running in a real and trusted SGX environment and the code has not been tampered with.
         2. Use the public key of AuthManager to encrypt and protect the data encryption key, authorization information, etc., and then send it to AuthManager
     4. Send the data ciphertext and data id to TEEU.
-5. On line 16, TEEU executes the average method, and the input parameter is a list composed of the numpy arrays of Alice and Bob. This step does the following:
+5. On line 17, TEEU executes the average method, and the input parameter is a list composed of the numpy arrays of Alice and Bob. This step does the following:
     1. TEEU temporarily randomly generates a pair of public and private keys, and generates its own remote attestation report, and the public key is attached to the report.
     2. TEEU sends Report, average method, and data id corresponding to numpy array to AuthManager, requesting to obtain the data decryption key.
     3. AuthManager performs authorization check:
@@ -206,7 +211,7 @@ docker run -it --net host --privileged -v /dev/sgx_enclave:/dev/sgx/enclave -v /
 2. Install the python package
 ```bash
 cd /root/occlum_instance
-PYTHONPATH=$PWD/image/lib/python3.8/site-packages/ pip install --prefix image <python_package>
+PYTHONPATH=$PWD/image/opt/secretflow/lib/python3.8/site-packages/ pip install --prefix image/opt/secretflow <python_package>
 ```
 3. Run the code
 
