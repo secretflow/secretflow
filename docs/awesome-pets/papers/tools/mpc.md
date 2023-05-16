@@ -91,6 +91,11 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   STOC 1999, [eprint](https://dl.acm.org/doi/pdf/10.1145/301250.301312), NP99
 
 ### vector Oblivious Linear Evaluation
+
+- Half-Tree: Halving the Cost of Tree Expansion in COT and DPF  
+  *Xiaojie Guo, Kang Yang, Xiao Wang, Wenhao Zhang, Xiang Xie, Jiang Zhang, Zheli Liu*  
+  EuroCrypt 2023, [eprint](https://eprint.iacr.org/2022/1431), GYWZ23
+
 - Actively Secure Arithmetic Computation and VOLE with Constant Computational Overhead  
   *Benny Applebaum, Niv Konstantini*  
   EuroCrypt 2023, [eprint](https://eprint.iacr.org/2023/270), AK23  
