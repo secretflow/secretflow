@@ -1,8 +1,8 @@
 import logging
 import os
+import re
 import subprocess
 import sys 
-import re
 #importing tensorflow directly will bring the warning message, 
 # using the line to change the level of logging to block information of warnings
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -10,9 +10,9 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 import jax
 import jaxlib
+import ray
 import secretflow
 import spu
-import ray
 import tensorflow  as tf
 import torch
 
