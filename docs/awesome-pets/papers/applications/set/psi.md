@@ -53,6 +53,10 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   *Gayathri Garimella, Payman Mohassel, Mike Rosulek, Saeed Sadeghian, Jaspal Singh*  
   PKC 2021, [eprint](https://eprint.iacr.org/2021/243), GMRS21
   
+- PSI from PaXoS: Fast, Malicious Private Set Intersection
+  *Benny Pinkas, Mike Rosulek, Ni Trieu, Avishay Yanai*
+  EuroCrypt 2020, [eprint](https://eprint.iacr.org/2020/193), PaXoS
+  
 - Private Set Intersection in the Internet Setting From Lightweight Oblivious PRF  
   *Melissa Chase, Peihan Miao*  
   Crypto 2020, [eprint](https://eprint.iacr.org/2020/729), CM20
@@ -60,6 +64,7 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
 - SpOT-Light: Lightweight Private Set Intersection from Sparse OT Extension, 2019,   
   *Benny Pinkas, Mike Rosulek, Ni Trieu, Avishay Yanai*  
   Crypto 2019, [eprint](https://eprint.iacr.org/2019/634), PRTY19
+  
 - Malicious-Secure Private Set Intersection via Dual Execution  
   *Peter Rindal, Mike Rosulek*  
   CCS 2017, [eprint](https://eprint.iacr.org/2017/769), RR17b 
