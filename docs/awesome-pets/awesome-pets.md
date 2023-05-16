@@ -25,7 +25,7 @@ Hardware-based solutions
 
 Private Set/Database Operations
 
-1. [Private Set Intersection (PSI)](papers/applications/set/psi.md) (Contributors: [@jamie-cui](https://www.github.com/jamie-cui))
+1. [Private Set Intersection (PSI)](papers/applications/set/psi.md) (Contributors: [@jamie-cui](https://www.github.com/jamie-cui) [@tarantula-leo](https://www.github.com/tarantula-leo))
 <!-- 2. [Private Set Union (PSU)](papers/psu.md) -->
 <!-- 3. [Private Information Retrival (PIR)](papers/pir.md) -->
 
