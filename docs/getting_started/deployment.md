@@ -267,6 +267,286 @@ spu = sf.SPU(cluster_def=cluster_def)
 
 Due to the complexity of the Ray communication protocol, including cross-node mutual access and using many ports, it's really complex and error-prone to deploy multiple containers on multiple machines using the bridge network to build a Ray cluster for simulation. Ray's official support for this is not good, so we do not recommend this deployment mode.
 
+### Deploy SecretFlow in WSL(Windows Subsystem for Linux) with simulation mode
+
+If you use SecretFlow in WSL2, you could deploy SecretFlow with different distributions in WSL2.
+
+
+The following steps show how to deploy SecretFlow in WSL with simulation mode.
+1. Install different distributions in your WSL.
+
+You are supposed to install at least two same distributions of different versions such as Ubuntu 20.04.6 LTS and Ubuntu 22.04.2 LTS or at least two different distributions such Ubuntu and Debian.
+In this example, `alice`in`Ubuntu 20.04.6 LTS` and `bob` in `Ubuntu 22.04.2 LTS`:
+   - alice: 
+
+        ```bash
+        (secretflow) alice@DESKTOP-SAOB7DQ:~$ lsb_release -a
+        No LSB modules are available.
+        Distributor ID: Ubuntu
+        Description:    Ubuntu 20.04.6 LTS
+        Release:        20.04
+        Codename:       focal
+        (secretflow) alice@DESKTOP-SAOB7DQ:~$
+        ```
+   - bob:
+
+        ```bash
+        (secretflow) bob@DESKTOP-SAOB7DQ:~$ lsb_release -a
+        No LSB modules are available.
+        Distributor ID: Ubuntu
+        Description:    Ubuntu 22.04.2 LTS
+        Release:        22.04
+        Codename:       jammy
+        (secretflow) bob@DESKTOP-SAOB7DQ:~$
+        ```
+2. Install SecretFlow in different distributions.
+
+The following steps are expected to be done in different distributions to set up the development environment of SecretFlow.
+   - Install Miniconda
+        change your working directory to your home directory to install Miniconda.
+
+        ```bash
+        cd ~
+        ```
+        
+        download Miniconda.
+
+        ```bash
+        wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+        ```
+        
+        install Miniconda
+
+        ```bash
+        sh Miniconda3-latest-Linux-x86_64.sh
+        ```
+
+        After the installation of Miniconda, you could remove the installation package of Miniconda.
+
+   - Create a virtual environment for SecretFlow
+        all versions of Python in different distributions should be exactly same.
+        
+        ```bash
+        conda create --name secretflow python==3.8.15
+        ```
+
+   - Activate the virtual environment of SecretFlow
+
+
+        ```bash
+        conda activate secretflow
+        ```
+
+   - Install SecretFlow
+
+        ```bash
+        pip install -U secretflow
+        ```
+    
+3. Get the IP address of your WSL.
+
+Due to the implementation principle of WSL, different distributions in WSL share the same IP address, then we only could use it to deploy SecretFlow just in a single machine mode. Use the command`ifconfig`to get the IP address of your WSL.
+if `command not found`appears, you could install `net-tools`, you could run the following command to install it in Ubuntu.
+
+    ```bash
+    apt install net-tools
+    ```
+
+
+A example in Ubuntu:
+
+```bash
+(secretflow) alice@DESKTOP-SAOB7DQ:~$ ifconfig
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.23.139.91  netmask 255.255.240.0  broadcast 172.23.143.255
+        inet6 fe80::215:5dff:fe23:1cd6  prefixlen 64  scopeid 0x20<link>
+        ether 00:15:5d:23:1c:d6  txqueuelen 1000  (Ethernet)
+        RX packets 1782122  bytes 7504258331 (7.5 GB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 1077846  bytes 63011688 (63.0 MB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+        inet6 ::1  prefixlen 128  scopeid 0x10<host>
+        loop  txqueuelen 1000  (Local Loopback)
+        RX packets 701234  bytes 573429022 (573.4 MB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 701234  bytes 573429022 (573.4 MB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+```
+
+The IP address ``172.23.139.91`` is what we need, let's denote it as `ray_ip`
+
+4. Start the Ray cluster at head node.
+
+Use `ray_ip` to start a head node on your first distribution with the tag "alice". the `ray_ip` is `172.23.139.91` here and the and we select the port  `20010` (we denote this as `ray_port`)as the port of the Ray, then the command to start the Ray cluster at the head node could be as follows:
+
+```bash
+ray start --head --node-ip-address="172.23.139.91" --port="20010" --resources='{"alice": 16}' --include-dashboard=False --disable-usage-stats
+```
+
+it's logs:
+
+```bash
+(secretflow) alice@DESKTOP-SAOB7DQ:~$ ray start --head --node-ip-address="172.23.139.91" --port="20010" --resources='{"alice": 16}' --include-dashboard=False --disable-usage-stats
+Usage stats collection is disabled.
+
+Local node IP: 172.23.139.91
+
+--------------------
+Ray runtime started.
+--------------------
+
+Next steps
+  To connect to this Ray runtime from another node, run
+    ray start --address='172.23.139.91:20010'
+
+  Alternatively, use the following Python code:
+    import ray
+    ray.init(address='auto', _node_ip_address='172.23.139.91')
+
+  To connect to this Ray runtime from outside of the cluster, for example to
+  connect to a remote cluster from your laptop directly, use the following
+  Python code:
+    import ray
+    ray.init(address='ray://<head_node_ip_address>:10001')
+
+  To see the status of the cluster, use
+    ray status
+
+  If connection fails, check your firewall settings and network configuration.
+
+  To terminate the Ray runtime, run
+    ray stop
+(secretflow) alice@DESKTOP-SAOB7DQ:~$
+```
+
+5. Start the Ray cluster at other nodes
+
+Use `ray_ip` and `ray_port` to start the other nodes of the Ray cluster such distribution with the tag "bob"
+Here:
+- `ray_ip`:172.23.139.91
+- `ray_port`:20010
+then run the command:
+
+```bash
+ray start --address="172.23.139.91:20010" --resources='{"bob": 16}' --disable-usage-stats
+```
+
+it's logs:
+
+```bash
+(secretflow) bob@DESKTOP-SAOB7DQ:~$ ray start --address="172.23.139.91:20010" --resources='{"bob": 16}' --disable-usage-stats
+Local node IP: 172.23.139.91
+
+--------------------
+Ray runtime started.
+--------------------
+
+To terminate the Ray runtime, run
+  ray stop
+(secretflow) bob@DESKTOP-SAOB7DQ:~$
+
+```
+
+6. Check the status of the Ray cluster.
+
+Check the status of the Ray cluster in any node of the Ray cluster such the distribution with the tag "alice"
+
+```bash
+ray status
+```
+
+its log:
+
+```bash
+(secretflow) alice@DESKTOP-SAOB7DQ:~$ ray status
+======== Autoscaler status: 2023-05-18 10:33:28.673249 ========
+Node status
+---------------------------------------------------------------
+Healthy:
+ 1 node_4cb5fcb410e8b11a62bcebe5653918f0c6ae2b996e028e8e5ec22199
+ 1 node_d74a3ee633f939d04af3f67f7d4910c064c95a040e6998bfb706aed6
+Pending:
+ (no pending nodes)
+Recent failures:
+ (no failures)
+
+Resources
+---------------------------------------------------------------
+Usage:
+ 0.0/24.0 CPU
+ 0.0/16.0 alice
+ 0.0/16.0 bob
+ 0.00/8.894 GiB memory
+ 0.00/4.110 GiB object_store_memory
+
+Demands:
+ (no resource demands)
+(secretflow) alice@DESKTOP-SAOB7DQ:~$
+```
+
+As shown above, two nodes of the Ray cluster could be found here.
+
+7. Start SecretFlow
+
+We use `ray_ip` and `ray_port` to start SecretFlow in first distribution with the tag "alice", the following Python code in bash shows that SecretFlow has successfully connected to the Ray cluster. You could also run the script of the Python code directly.
+
+```bash
+(secretflow) alice@DESKTOP-SAOB7DQ:~$ python
+Python 3.8.15 (default, Nov 24 2022, 15:19:38)
+[GCC 11.2.0] :: Anaconda, Inc. on linux
+Type "help", "copyright", "credits" or "license" for more information.
+>>> import secretflow as sf
+>>> sf.init(parties=['alice', 'bob'], address='172.23.139.91:20010')
+2023-05-18 10:36:07,871 INFO worker.py:1352 -- Connecting to existing Ray cluster at address: 172.23.139.91:20010...
+2023-05-18 10:36:07,879 INFO worker.py:1538 -- Connected to Ray cluster.
+>>># your code to run
+>>>
+```
+
+8. (Optional) Start the SPU device
+
+This step describes how to start the SPU device. Suppose the SPU uses port 9100 on alice and port 9200 on bob. (port numbers are examples only, you can choose any free port).
+Here:
+- `ray_ip`:172.23.139.91
+- `ray_port`:20010
+
+
+```python
+import spu
+import secretflow as sf
+
+# Use ray head adress please.
+# sf.init(parties=['alice', 'bob'], address='ray_ip:ray_port')
+sf.init(parties=['alice', 'bob'], address='172.23.139.91:20010')
+
+cluster_def={
+    'nodes': [
+        {
+            'party': 'alice',
+            'address': '172.23.139.91:9100',
+            'listen_addr': '0.0.0.0:9100'
+        },
+        {
+            'party': 'bob',
+            'address': '172.23.139.91:9200',
+            'listen_addr': '0.0.0.0:9200'
+        },
+    ],
+    'runtime_config': {
+        'protocol': spu.spu_pb2.SEMI2K,
+        'field': spu.spu_pb2.FM128,
+        'sigmoid_mode': spu.spu_pb2.RuntimeConfig.SIGMOID_REAL,
+    }
+}
+
+spu = sf.SPU(cluster_def=cluster_def)
+
+# your code to run.
+```
+
 ## Production
 
 SecretFlow provides multi controller mode for production with enhanced security. (If you want to know more, welcome to read [Programming in SecretFlow](../developer/design/programming_in_secretflow.md))
