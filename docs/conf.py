@@ -9,10 +9,20 @@
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from sphinx.util.tags import Tags
+
+    # Sphinx injects this during eval
+    tags: Tags = None
+
+# waiting for autodoc2 to support Google-style docstring...
+import os
+import sys
+
+sys.path.insert(0, os.path.abspath('..'))
 
 # -- Project information -----------------------------------------------------
 
@@ -29,22 +39,20 @@ author = 'SecretFlow authors'
 extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.autodoc',
-    'autodocsumm',
     'sphinx.ext.graphviz',
     'sphinx.ext.todo',
-    'sphinx.ext.viewcode',
     'sphinx.ext.extlinks',
     'sphinx.ext.autosectionlabel',
+    'sphinx.ext.intersphinx',
     'myst_parser',
     "nbsphinx",
-    'sphinxcontrib.actdiag',
-    'sphinxcontrib.blockdiag',
-    'sphinxcontrib.nwdiag',
-    'sphinxcontrib.packetdiag',
-    'sphinxcontrib.rackdiag',
-    'sphinxcontrib.seqdiag',
+    'autodocsumm',
     'sphinx_design',
 ]
+
+if tags.has('mdx'):
+    extensions.append('sphinx_mdx')
+
 
 nbsphinx_requirejs_path = ''
 
@@ -78,7 +86,8 @@ intersphinx_mapping = {
     'pandas': ('https://pandas.pydata.org/pandas-docs/dev', None),
     "tensorflow": (
         "https://www.tensorflow.org/api_docs/python",
-        "https://github.com/GPflow/tensorflow-intersphinx/raw/master/tf2_py_objects.inv",
+        "https://github.com/GPflow/tensorflow-intersphinx/raw/master"
+        "/tf2_py_objects.inv",
     ),
     'sklearn': (
         'https://scikit-learn.org/stable',
@@ -153,7 +162,7 @@ myst_enable_extensions = [
 suppress_warnings = ["myst.header"]
 
 myst_gfm_only = True
-myst_heading_anchors = 1
+myst_heading_anchors = 6
 myst_title_to_header = True
 
 

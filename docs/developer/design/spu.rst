@@ -70,6 +70,8 @@ With the third goal, we add security related type hint to the type system, and u
 
 For more details, please check `SPU type system <https://www.secretflow.org.cn/docs/spu/en/development/type_system.html>`__ and `SPU Compiler design <https://www.secretflow.org.cn/docs/spu/en/development/compiler.html>`__.
 
+..
+   FIXME: support cross-documentation referencing for the above SPU links
 
 Runtime
 ~~~~~~~

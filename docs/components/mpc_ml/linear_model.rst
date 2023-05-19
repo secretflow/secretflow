@@ -61,7 +61,7 @@ Example
 ++++++++
 
 A local cluster(Standalone Mode) needs to be initialized as the running environment for this example. 
-See `Deployment <../../getting_started/deployment.html>`_ and refer to the 'Cluster Mode'.
+See :ref:`Deployment <getting_started/deployment:Cluster mode for simulation>`.
 
 For more detail about parameter settings, see API :py:meth:`~secretflow.ml.linear.ss_sgd.model.SSRegression`
 
@@ -220,7 +220,7 @@ Example
 ++++++++
 
 A local cluster(Standalone Mode) needs to be initialized as the running environment for this example. 
-See `Deployment <../../getting_started/deployment.html>`_ and refer to the 'Cluster Mode'.
+See :ref:`Deployment <getting_started/deployment:Cluster mode for simulation>`.
 
 For more details about API, see :py:meth:`~secretflow.ml.linear.hess_sgd.model.HESSLogisticRegression`
 

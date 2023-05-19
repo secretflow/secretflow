@@ -1,10 +1,11 @@
 # Deployment
 
-
 ## Pre-knowledge: about Ray
+
 SecretFlow uses Ray as its distributed framework. A Ray cluster consists of a head node and zero or several slave nodes, for more information about Ray, please visit [Ray official website](https://docs.ray.io/).
 
 ## Simulation
+
 SecretFlow is designed for fast simulation on a single host or on multiple nodes with single ray cluster.
 
 **Note**
@@ -12,14 +13,18 @@ SecretFlow is designed for fast simulation on a single host or on multiple nodes
 SecretFlow with single ray cluster is for simulation only. Please refer to `production` section below for production.
 
 ---
+
 ### Standalone mode for simulation
+
 Use `secretflow.init` directly to run secretflow in standalone mode. A ray cluster with only one node will be started, and it will automatically shut down when the program exits.
 
 ```python
 >>> import secretflow as sf
 >>> sf.init(parties=['alice', 'bob'], address='local')
 ```
+
 ### Cluster mode for simulation
+
 In the cluster simulation mode, each Ray node simulates an participant. This is done by adding the participant name as resource tag on each Ray node, and then the calculation task of each participant is dispatched to the corresponding Ray node.
 The overall communication network is as follows.
 
@@ -28,14 +33,16 @@ The overall communication network is as follows.
 The following is an example showing how to build a cluster consisting of alice and bob on multiple nodes.
 
 #### Start head node
+
 Start a head node on your first machine with the tag "alice".
 
 ---
+
 **NOTE**
 
 1. Remember to use the real ip and port instead.
-
 2. `{"alice": 16}` means that alice can run up to 16 workers at the same time. Just feel free to change it if you like.
+
 ---
 
 ```bash
@@ -47,9 +54,11 @@ Head node starts successfully if you see "Ray runtime started." in the screen ou
 Now we have a cluster with a head node only, let us start more nodes.
 
 #### Start other nodes
+
 Start a node with the tag "bob" on another machine. The node will connect to the head node and join the cluster.
 
 ---
+
 **Note**
 
 Replace `ip:port` with the `node-ip-address` and `port` of head node please.
@@ -60,16 +69,18 @@ Replace `ip:port` with the `node-ip-address` and `port` of head node please.
 ray start --address="ip:port" --resources='{"bob": 16}' --disable-usage-stats
 ```
 
-The node starts successfully if you see "Ray runtime started." in the screen output. 
+The node starts successfully if you see "Ray runtime started." in the screen output.
 A Ray cluster consisting of two Ray nodes has been built by now, while the head node simulates `alice` and the slave node simulates `bob`.
 
 You can repeat the step above to start more nodes with using other parties as resources tag as you like.
 
 #### Start SecretFlow
-Now you can start SecretFlow and run your code. 
+
+Now you can start SecretFlow and run your code.
 The following code shows that alice and bob each execute a function that returns the input value.
 
 ---
+
 **Tips**
 
 1. Replace `ip:port` in `sf.init` with the `node-ip-address` and `port` of head node please.
@@ -90,6 +101,7 @@ The following code shows that alice and bob each execute a function that returns
 ```
 
 #### (optional) How to shut down the cluster
+
 In some cases you would like to shut down the cluster, the following command will help you.
 Remember to run the command on all machines.
 
@@ -111,15 +123,17 @@ We are working on merging them.
 A typical SPU config is as follows.
 
 ---
+
 **Tips**
 
 1. Replace `address` in `sf.init` with the `node-ip-address` and `port` of head node please.
-2. Fill `address` of `alice` with the address which can be accessed by `bob` and choose **an unused port** different with Ray. 
+2. Fill `address` of `alice` with the address which can be accessed by `bob` and choose **an unused port** different with Ray.
 3. `listen_addr` of `alice` can use the same port of alice `address`.
-4. Fill `address` of `bob` with the ip which can be accessed by `alice` and choose **an unused port** different with Ray. 
+4. Fill `address` of `bob` with the ip which can be accessed by `alice` and choose **an unused port** different with Ray.
 5. `listen_addr` of `bob` can use the same port of bob `address`.
 
 ---
+
 ```python
 import spu
 import secretflow as sf
@@ -155,6 +169,7 @@ spu = sf.SPU(cluster_def=cluster_def)
 For more configurations of SPU, please refer to [SPU config](https://www.secretflow.org.cn/docs/spu/en/reference/runtime_config.html)
 
 ---
+
 **Note**
 
 You will see the usage of setup an spu in many tutorials. But
@@ -163,6 +178,7 @@ be careful that it works only in standalone mode because `sf.utils.testing.clust
 ```python
 >>> spu = sf.SPU(sf.utils.testing.cluster_def(['alice', 'bob', 'carol']))
 ```
+
 ---
 
 ### Deploy SecretFlow in a docker container with simulation mode
@@ -172,9 +188,11 @@ You may need to understand the concept of [docker network](https://docs.docker.c
 SecretFlow recommends to start the container using the host network mode, and the following will explain the reasons to you.
 
 #### (Recommended) Host network
+
 When you start the docker container using host network (e.g. run container with `--network host`), the container will share the network of the host machine. Therefore, no special configuration is required to build a SecretFlow cluster in this case, and you can directly use the address of the host as the communication address between nodes. Refer to the preceding steps for deployment..
 
 #### (Not recommended) Bridge network
+
 If you start the Docker container with a bridge network, it means that the container will have an isolated network with a different IP address from the host, and containers on different bridge networks are not connected by default.
 Although you can map ports to the host through port mapping, since the communication between Ray's multiple nodes is complex, involving many ports, it is easy to make mistakes and difficult to configure correctly, so we do not recommend using the bridge mode to build the simulation cluster.
 
@@ -196,10 +214,13 @@ docker network create sfnet --subnet 192.168.0.1/24
 2. Start the first container to simulate party `alice`
 
 The following command starts the container named `secretflow0`, uses the bridege network created in the first step, and specifies the ip as 192.168.0.10.
+
 ```bash
 docker run -it --network sfnet --ip 192.168.0.10 --name secretflow1 secretflow/secretflow-anolis8:latest bash
 ```
+
 After the container is started successfully, then we start the head node of ray. The following command starts Ray's head node listening on port 9001 (you are free to choose an unused port).
+
 ```
 ray start --head --port=9001 --resources='{"alice": 16}' --include-dashboard=False --disable-usage-stats
 ```
@@ -207,10 +228,13 @@ ray start --head --port=9001 --resources='{"alice": 16}' --include-dashboard=Fal
 3. Start the second container to simulate party `bob`
 
 The following command starts the container named `secretflow1`, uses the bridege network created in the first step, and specifies the ip as 192.168.0.20.
+
 ```bash
 docker run -it --network sfnet --ip 192.168.0.20 --name secretflow2 secretflow/secretflow-anolis8:latest bash
 ```
+
 After starting the container, we start Ray's slave node. The following command starts a slave node and connects to the head node started in the previous step.
+
 ```
 ray start --address=192.168.0.10:9001 --resources='{"bob": 16}' --disable-usage-stats
 ```
@@ -220,6 +244,7 @@ So far we have built two Ray nodes, representing party alice and bob respectivel
 4. Start SecretFlow
 
 We start SecretFlow in the first container, the following Python code shows that SecretFlow has successfully connected to the Ray cluster.
+
 ```python
 >>> import secretflow as sf
 >>> sf.init(parties=['alice', 'bob'], address='192.168.0.10:9001')
@@ -231,6 +256,7 @@ We start SecretFlow in the first container, the following Python code shows that
 5. (Optional) Start the SPU device
 
 This step describes how to start the SPU device. Suppose the SPU uses port 9100 on alice and port 9200 on bob. (port numbers are examples only, you can choose any free port)
+
 ```python
 import spu
 import secretflow as sf
@@ -277,14 +303,14 @@ The architecture of the production mode is shown in the figure below.
 
 ![simulation_comm](resources/rayfed_comm_en.png)
 
-The following will guide you to deploy SecretFlow for production. 
+The following will guide you to deploy SecretFlow for production.
 
 ### Setup a SecretFlow cluster crossing silo
-
 
 The following is an example showing how to build a cluster consisting of alice and bob for production.
 
 ---
+
 **Note**
 
 Please keep in mind that alice and bob should run the code simultaneously.
@@ -294,22 +320,28 @@ Please keep in mind that alice and bob should run the code simultaneously.
 #### Start SecretFlow on the node of `alice`
 
 `alice` starts its ray cluster firstly. Note that the command here is to start Ray's head node.
+
 ```bash
 ray start --head --node-ip-address="ip" --port="port" --include-dashboard=False --disable-usage-stats
 ```
-Head node starts successfully if you see "Ray runtime started." in the screen output. 
+
+Head node starts successfully if you see "Ray runtime started." in the screen output.
 So far, Alice's Ray cluster has been successfully built.
 
 Then `alice` initializes SecretFlow with a cluster config and runs the code.
 
 ---
+
 **Tips**
+
 1. Replace `ip:port` in `sf.init` with the `node-ip-address` and `port` of head node please.
 2. Fill `address` of `alice` with the address which can be accessed by `bob`. Remember to choose an unused port different with port of Ray and SPU.
-3. Fill `address` of `bob` with the address which can be accessed by `alice`. Remember to choose an unused port different with port of Ray and SPU. 
+3. Fill `address` of `bob` with the address which can be accessed by `alice`. Remember to choose an unused port different with port of Ray and SPU.
 4. Note that `self_party` is `alice`.
 5. Please note that `sf.init` does not need to provide the `parties` parameter, but needs to provide a `cluster_config` to describe the communication address and port between the two organizations.
+
 ---
+
 ```python
 cluster_config ={
     'parties': {
@@ -335,22 +367,26 @@ sf.init(address='alice ray head node address', cluster_config=cluster_config)
 #### Start SecretFlow on the node of `bob`
 
 `bob` starts its ray cluster firstly. Note that the command here is to start the head node of Ray, because bob needs to build a separate Ray cluster.
+
 ```bash
 ray start --head --node-ip-address="ip" --port="port" --include-dashboard=False --disable-usage-stats
 ```
-Head node starts successfully if you see "Ray runtime started." in the screen output. 
-So far, Alice's Ray cluster has been successfully built.
 
+Head node starts successfully if you see "Ray runtime started." in the screen output.
+So far, Alice's Ray cluster has been successfully built.
 
 Then `bob` initializes SecretFlow with a cluster config almost same as `alice` except for `self_party` and ray address and runs the code.
 
 ---
+
 **Tips**
+
 1. Replace `address` in `sf.init` with the `node-ip-address` and `port` of head node please. Note, here is bob’s head node address, please don’t fill in alice’s.
-2. Fill `address` of `alice` with the address which can be accessed by `bob`. Remember to choose an unused port different with port of Ray and SPU. 
-3. Fill `address` of `bob` with the address which can be accessed by `alice`. Remember to choose an unused port different with port of Ray and SPU. 
-4. Note that `self_party` is `bob`. 
+2. Fill `address` of `alice` with the address which can be accessed by `bob`. Remember to choose an unused port different with port of Ray and SPU.
+3. Fill `address` of `bob` with the address which can be accessed by `alice`. Remember to choose an unused port different with port of Ray and SPU.
+4. Note that `self_party` is `bob`.
 5. Please note that `sf.init` does not need to provide the `parties` parameter, but needs to provide a `cluster_config` to describe the communication address and port between the two organizations.
+
 ---
 
 ```python
@@ -387,48 +423,51 @@ In order to avoid problems such as connection timeout caused by the startup time
 
 1. Enable tls Authentication.
 
-    SecretFlow can be configured to use TLS on cross-silo gRPC channels.
+   SecretFlow can be configured to use TLS on cross-silo gRPC channels.
 
-    An example for alice.
-    ```python
-    tls_config = {
-        "ca_cert": "ca root cert of other parties (e.g. bob)",
-        "cert": "server cert of alice in pem",
-        "key": "server key of alice in pem",
-    }
+   An example for alice.
 
-    sf.init(address='ip:port', 
-            cluster_config=cluster_config, 
-            tls_config=tls_config
-    )
-    ```
+   ```python
+   tls_config = {
+       "ca_cert": "ca root cert of other parties (e.g. bob)",
+       "cert": "server cert of alice in pem",
+       "key": "server key of alice in pem",
+   }
 
-    An example for bob.
-    ```python
-    tls_config = {
-        "ca_cert": "ca root cert of other parties (e.g. alice)",
-        "cert": "server cert of bob in pem",
-        "key": "server key of bob in pem",
-    }
+   sf.init(address='ip:port',
+           cluster_config=cluster_config,
+           tls_config=tls_config
+   )
+   ```
 
-    sf.init(address='ip:port', 
-            cluster_config=cluster_config, 
-            tls_config=tls_config
-    )
-    ```
+   An example for bob.
+
+   ```python
+   tls_config = {
+       "ca_cert": "ca root cert of other parties (e.g. alice)",
+       "cert": "server cert of bob in pem",
+       "key": "server key of bob in pem",
+   }
+
+   sf.init(address='ip:port',
+           cluster_config=cluster_config,
+           tls_config=tls_config
+   )
+   ```
 
 2. Enhanced serialization/deserialization.
 
-    SecretFlow uses `pickle` in serialization/deserialization which is vulnerable. You can set `cross_silo_serializing_allowed_list` when init  SecretFlow to specify an allowlist to restrict serializable objects.
-    An example could be （**You should not use this demo directly. Configure it to your actual needs.**）
-    ```python
-    allowed_list =  {
-        "numpy.core.numeric": ["*"],
-        "numpy": ["dtype"],
-    }
+   SecretFlow uses `pickle` in serialization/deserialization which is vulnerable. You can set `cross_silo_serializing_allowed_list` when init SecretFlow to specify an allowlist to restrict serializable objects.
+   An example could be （**You should not use this demo directly. Configure it to your actual needs.**）
 
-    sf.init(address='ip:port', 
-            cluster_config=cluster_config, 
-            cross_silo_serializing_allowed_list=allowed_list
-    )
-    ```
+   ```python
+   allowed_list =  {
+       "numpy.core.numeric": ["*"],
+       "numpy": ["dtype"],
+   }
+
+   sf.init(address='ip:port',
+           cluster_config=cluster_config,
+           cross_silo_serializing_allowed_list=allowed_list
+   )
+   ```

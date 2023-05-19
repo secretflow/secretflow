@@ -74,12 +74,13 @@ for more details about SS-XGB algorithm and security analysis.
 Example
 --------
 
-A local cluster(Standalone Mode) needs to be initialized as the running environment for this example.
-See `Deployment <../../getting_started/deployment.html>`_ and refer to the 'Cluster Mode'.
+A local cluster (Standalone Mode) needs to be initialized as the running environment for this example.
+See :ref:`Deployment <getting_started/deployment:Cluster mode for simulation>`.
 
 For more details about the APIs, see :py:meth:`~secretflow.ml.boost.ss_xgb_v.model.Xgb`
 
 .. code-block:: python
+
     import sys
     import time
     import logging
