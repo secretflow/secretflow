@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-04-18 17:20+0800\n"
+"POT-Creation-Date: 2023-05-22 15:49+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh_CN\n"
@@ -16,81 +16,145 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.11.0\n"
+"Generated-By: Babel 2.12.1\n"
 
 #: ../../tutorial/GPU_check.ipynb:9
 msgid "GPU check"
 msgstr "GPU检查"
 
-#: ../../tutorial/GPU_check.ipynb:11
+#: ../../tutorial/GPU_check.ipynb:12
 msgid "Check NVIDIA driver"
 msgstr "检查NVIDIA驱动"
 
-#: ../../tutorial/GPU_check.ipynb:113
+#: ../../tutorial/GPU_check.ipynb:115
+#, fuzzy
+msgid "Check GPU in PyTorch"
+msgstr "在 PyTorch 中检查GPU"
+
+#: ../../tutorial/GPU_check.ipynb:118
 msgid "Import PyTorch to check GPU devices"
 msgstr "导入 PyTorch 以检查 GPU 设备"
 
-#: ../../tutorial/GPU_check.ipynb:134
+#: ../../tutorial/GPU_check.ipynb:140
 msgid "Check the version of PyTorch"
 msgstr "检查 PyTorch 的版本"
 
-#: ../../tutorial/GPU_check.ipynb:180
+#: ../../tutorial/GPU_check.ipynb:187
 msgid "Check if PyTorch can call GPUs"
 msgstr "检查PyTorch是否能调用GPU"
 
-#: ../../tutorial/GPU_check.ipynb:226
+#: ../../tutorial/GPU_check.ipynb:234
 msgid "Check the number of the GPUs of the computer in PyTorch"
 msgstr "在PyTorch中检查计算机的GPU的数量"
 
-#: ../../tutorial/GPU_check.ipynb:272
+#: ../../tutorial/GPU_check.ipynb:281
 msgid "Check the GPU type of the computer in PyTorch"
 msgstr "在PyTorch中检查计算机的GPU型号"
 
-#: ../../tutorial/GPU_check.ipynb:318
+#: ../../tutorial/GPU_check.ipynb:328
+#, fuzzy
+msgid "Check GPU in TensorFlow"
+msgstr "在 TensorFlow 中检查GPU"
+
+#: ../../tutorial/GPU_check.ipynb:331
 msgid "Import TensorFlow to check GPU devices"
 msgstr "导入 TensorFlow 检查 GPU 设备"
 
-#: ../../tutorial/GPU_check.ipynb:382
+#: ../../tutorial/GPU_check.ipynb:384
 msgid "Check the version of TensorFlow"
 msgstr "检查 TensorFlow 的版本"
 
-#: ../../tutorial/GPU_check.ipynb:428
+#: ../../tutorial/GPU_check.ipynb:431
 msgid "Check if TensorFlow can call GPUs"
 msgstr "检查TensorFlow是否能调用GPU"
 
-#: ../../tutorial/GPU_check.ipynb:555
+#: ../../tutorial/GPU_check.ipynb:553
 msgid "Check physical GPUs in TensorFlow"
 msgstr "在TensorFlow中检查物理GPU"
 
-#: ../../tutorial/GPU_check.ipynb:633
+#: ../../tutorial/GPU_check.ipynb:632
 msgid "Check the GPU type of the computer in TensorFlow"
 msgstr "在TensorFlow中检查计算机的GPU型号"
 
 #: ../../tutorial/GPU_check.ipynb:724
+#, fuzzy
+msgid "Check GPU in Jax and jaxlib"
+msgstr "在 jax和jaxlib 中检查GPU"
+
+#: ../../tutorial/GPU_check.ipynb:727
 msgid "Import Jax and jaxlib to check GPU devices"
 msgstr "导入 Jax 和 jaxlib 以检查 GPU 设备"
 
-#: ../../tutorial/GPU_check.ipynb:746
+#: ../../tutorial/GPU_check.ipynb:750
 msgid "Check the version of jax and jaxlib"
 msgstr "检查jax和jaxlib的版本"
 
-#: ../../tutorial/GPU_check.ipynb:827
+#: ../../tutorial/GPU_check.ipynb:832
 msgid "Check all the devices from the default backend of jax"
 msgstr "从 jax 的默认后端检查所有设备"
 
-#: ../../tutorial/GPU_check.ipynb:873
+#: ../../tutorial/GPU_check.ipynb:879
 msgid "Check the total number of devices of jax"
 msgstr "查看jax的设备总数"
 
-#: ../../tutorial/GPU_check.ipynb:919
+#: ../../tutorial/GPU_check.ipynb:926
 msgid "Check the number of JAX processes associated with the backend of jax"
 msgstr "查看jax后端关联的JAX进程数"
 
-#: ../../tutorial/GPU_check.ipynb:965
+#: ../../tutorial/GPU_check.ipynb:973
 msgid "Check the backend of jaxlib"
 msgstr "检查jaxlib的后端"
 
-#: ../../tutorial/GPU_check.ipynb:1011
+#: ../../tutorial/GPU_check.ipynb:1020
+msgid "Run a linear regression demo to verify that the Jax can run well"
+msgstr "运行一个线性回归的样例来验证Jax能正常运行"
+
+#: ../../tutorial/GPU_check.ipynb:1022
+msgid ""
+"The demo code is from "
+"https://www.secretflow.org.cn/docs/secretflow/en/tutorial/lr_with_spu.html"
+" #### load dataset"
+msgstr ""
+"样例代码来自"
+"`https://www.secretflow.org.cn/docs/secretflow/zh_CN/tutorial/lr_with_spu.html <https://www.secretflow.org.cn/docs/secretflow/zh_CN/tutorial/lr_with_spu.html>`"
+"#### 加载数据集"
+
+#: ../../tutorial/GPU_check.ipynb:1066
+msgid "define model"
+msgstr "定义模型"
+
+#: ../../tutorial/GPU_check.ipynb:1105
+msgid "build train step"
+msgstr "定义训练步骤"
+
+#: ../../tutorial/GPU_check.ipynb:1135
+msgid "build fit function"
+msgstr "构建拟合函数"
+
+#: ../../tutorial/GPU_check.ipynb:1160
+msgid "validate model"
+msgstr "验证模型"
+
+#: ../../tutorial/GPU_check.ipynb:1187
+msgid "train model"
+msgstr "训练模型"
+
+#: ../../tutorial/GPU_check.ipynb:1251
+msgid "As you can see, the warning message"
+msgstr "正如您看到的，警告信息"
+
+#: ../../tutorial/GPU_check.ipynb:1253
+msgid ""
+"No GPU/TPU found, falling back to CPU. (Set TF_CPP_MIN_LOG_LEVEL=0 and "
+"rerun for more info.)"
+msgstr "No GPU/TPU found, falling back to CPU. (Set TF_CPP_MIN_LOG_LEVEL=0 and "
+"rerun for more info.)"
+
+#: ../../tutorial/GPU_check.ipynb:1255
+msgid "doesn’t appear, which indicate the jax run the code in GPU"
+msgstr "没有出现，这暗示着jax的代码运行在GPU上"
+
+#: ../../tutorial/GPU_check.ipynb:1267
 msgid ""
 "Import SecretFlow to verify that no errors are reported in this "
 "environemnt"
