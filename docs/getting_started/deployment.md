@@ -345,8 +345,8 @@ The following steps are expected to be done in different distributions to set up
     
 3. Get the IP address of your WSL.
 
-Due to the implementation principle of WSL, different distributions in WSL share the same IP address, then we only could use it to deploy SecretFlow just in a single machine mode. Use the command`ifconfig`to get the IP address of your WSL.
-if `command not found`appears, you could install `net-tools`, you could run the following command to install it in Ubuntu.
+Due to the implementation principle of WSL, different distributions in WSL share the same IP address, then we only could use it to deploy SecretFlow just in a single machine mode. Use the command `ifconfig` to get the IP address of your WSL.
+if `command not found` appears, you could install `net-tools`, you could run the following command to install it in Ubuntu.
 
     ```bash
     apt install net-tools
