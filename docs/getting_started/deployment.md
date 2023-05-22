@@ -309,6 +309,8 @@ Then `alice` initializes SecretFlow with a cluster config and runs the code.
 3. Fill `address` of `bob` with the address which can be accessed by `alice`. Remember to choose an unused port different with port of Ray and SPU. 
 4. Note that `self_party` is `alice`.
 5. Please note that `sf.init` does not need to provide the `parties` parameter, but needs to provide a `cluster_config` to describe the communication address and port between the two organizations.
+6. To ensure `ports` of `alice` and `bob` can be accessed by each other and the firewall of the system isn't disabled, you are supposed to add the 'address' of `alice` and `bob` into the IP whitelist of each other.
+7. The `telnet` command is typically used to test the accessibility of a port.
 ---
 ```python
 cluster_config ={
@@ -351,6 +353,8 @@ Then `bob` initializes SecretFlow with a cluster config almost same as `alice` e
 3. Fill `address` of `bob` with the address which can be accessed by `alice`. Remember to choose an unused port different with port of Ray and SPU. 
 4. Note that `self_party` is `bob`. 
 5. Please note that `sf.init` does not need to provide the `parties` parameter, but needs to provide a `cluster_config` to describe the communication address and port between the two organizations.
+6. To ensure `ports` of `alice` and `bob` can be accessed by each other and the firewall of the system isn't disabled, you are supposed to add the 'address' of `alice` and `bob` into the IP whitelist of each other.
+7. The `telnet` command is typically used to test the accessibility of a port.
 ---
 
 ```python
