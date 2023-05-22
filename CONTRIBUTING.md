@@ -49,7 +49,7 @@ We stick to [Angular Style](https://github.com/angular/angular.js/blob/master/DE
 
 
 ## Documentation update and its multilingual version
-if you upudate the documentation files in `docs/`, you are supposed to update its multilingual version in `docs/locales/zh_CN/LC_MESSAGES`.
+if you update the documentation files in `docs/`, you are supposed to update its multilingual version in `docs/locales/zh_CN/LC_MESSAGES`.
 
 For example, if you update `docs/getting_started/installation.md`, you also need to update the corresponding `*.po` file in `docs/locales/zh_CN/LC_MESSAGES/getting_started/installation.po`.
 
@@ -63,4 +63,5 @@ Follow follwing steps to update documentation:
    sh update_po.sh
    ```
 3. Update the corresponding `*.po` file
-4. only commit the files which you update and pull request
+4. All `fuzzy` should be removed in `*.po` file, because it won't take effect in the Chinese version of the documentation.
+5. only commit the files which you update and pull request
