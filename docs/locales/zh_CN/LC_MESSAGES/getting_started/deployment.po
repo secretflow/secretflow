@@ -432,7 +432,6 @@ msgid ""
 msgstr "如果您需要在多台机器上使用bridge网络部署多个容器来搭建Ray集群，由于Ray的通信协议复杂(使用到很多端口且会发生跨节点互相访问），导致需要每台机器上都要透出很多端口，操作很复杂且很容易出错。Ray官方对此的支持也并不好，所以我们非常不推荐这种部署模式。"
 
 #: ../../getting_started/deployment.md:270
-#, fuzzy
 msgid "Deploy SecretFlow in WSL(Windows Subsystem for Linux) with simulation mode"
 msgstr "使用WSL(Windows Subsystem for Linux)部署仿真SecretFlow"
 
@@ -446,7 +445,7 @@ msgstr ""
 
 
 #: ../../getting_started/deployment.md:275
-#, fuzzy
+
 msgid ""
 "The following steps show how to deploy SecretFlow in WSL with simulation "
 "mode."
@@ -525,7 +524,6 @@ msgid "Activate the virtual environment of SecretFlow"
 msgstr "激活隐语的虚拟环境"
 
 #: ../../getting_started/deployment.md:340
-#, fuzzy
 msgid "Install SecretFlow"
 msgstr "启动SecretFlow"
 
@@ -550,7 +548,6 @@ msgstr ""
 "安装它"
 
 #: ../../getting_started/deployment.md:356
-#, fuzzy
 msgid "A example in Ubuntu:"
 msgstr "Ubuntu下的一个例子"
 
@@ -563,7 +560,6 @@ msgstr ""
 "`ray_ip`"
 
 #: ../../getting_started/deployment.md:381
-#, fuzzy
 msgid "Start the Ray cluster at head node."
 msgstr "启动Ray集群主节点"
 
@@ -587,7 +583,6 @@ msgid "it's logs:"
 msgstr "运行日志"
 
 #: ../../getting_started/deployment.md:425
-#, fuzzy
 msgid "Start the Ray cluster at other nodes"
 msgstr "启动Ray集群其他节点"
 
@@ -629,7 +624,6 @@ msgid "As shown above, two nodes of the Ray cluster could be found here."
 msgstr "如上所示，可以发现两个Ray集群的节点"
 
 #: ../../getting_started/deployment.md:494
-#, fuzzy
 msgid ""
 "We use `ray_ip` and `ray_port` to start SecretFlow in first distribution "
 "with the tag \"alice\", the following Python code in bash shows that "
@@ -642,7 +636,6 @@ msgstr ""
 "直接运行Python代码脚本"
 
 #: ../../getting_started/deployment.md:511
-#, fuzzy
 msgid ""
 "This step describes how to start the SPU device. Suppose the SPU uses "
 "port 9100 on alice and port 9200 on bob. (port numbers are examples only,"
