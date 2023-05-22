@@ -27,7 +27,6 @@ msgid "Check NVIDIA driver"
 msgstr "检查NVIDIA驱动"
 
 #: ../../tutorial/GPU_check.ipynb:115
-#, fuzzy
 msgid "Check GPU in PyTorch"
 msgstr "在 PyTorch 中检查GPU"
 
@@ -52,7 +51,6 @@ msgid "Check the GPU type of the computer in PyTorch"
 msgstr "在PyTorch中检查计算机的GPU型号"
 
 #: ../../tutorial/GPU_check.ipynb:328
-#, fuzzy
 msgid "Check GPU in TensorFlow"
 msgstr "在 TensorFlow 中检查GPU"
 
@@ -77,7 +75,6 @@ msgid "Check the GPU type of the computer in TensorFlow"
 msgstr "在TensorFlow中检查计算机的GPU型号"
 
 #: ../../tutorial/GPU_check.ipynb:724
-#, fuzzy
 msgid "Check GPU in Jax and jaxlib"
 msgstr "在 jax和jaxlib 中检查GPU"
 
