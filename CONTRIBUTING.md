@@ -46,3 +46,22 @@ Pass `-S, --skip-string-normalization` to [black](https://github.com/psf/black) 
 
 ## Git commit message style
 We stick to [Angular Style](https://github.com/angular/angular.js/blob/master/DEVELOPERS.md#-git-commit-guidelines).
+
+
+## Documentation update and its multilingual version
+if you update the documentation files in `docs/`, you are supposed to update its multilingual version in `docs/locales/zh_CN/LC_MESSAGES`.
+
+For example, if you update `docs/getting_started/installation.md`, you also need to update the corresponding `*.po` file in `docs/locales/zh_CN/LC_MESSAGES/getting_started/installation.po`.
+
+Follow follwing steps to update documentation:
+1. Update documentation in `docs`
+2. Run the following command to update `*.po` file
+
+   ```bash
+   cd docs
+   pip install -r requirements.txt
+   sh update_po.sh
+   ```
+3. Update the corresponding `*.po` file
+4. All `fuzzy` should be removed in `*.po` file, because it won't take effect in the Chinese version of the documentation.
+5. only commit the files which you update and pull request
