@@ -23,8 +23,8 @@ features into a representation for more suitable for the downstream pipeline.
 Private Set Intersection(PSI)
 -----------------------------
 
-SecretFlow SPU now supports ECDH-PSI, KKRT16-PSI, and BC22-PCG-PSI. 
-Please check :ref:`/components/psi.rst` for details. 
+SecretFlow SPU now supports ECDH-PSI, KKRT16-PSI, and BC22-PCG-PSI.
+Please check :ref:`/components/psi.rst` for details.
 
 .. grid:: 2
     :gutter: 2
@@ -33,7 +33,7 @@ Please check :ref:`/components/psi.rst` for details.
       :link: psi
       :link-type: doc
 
-        Private set intersection is a secure multiparty computation cryptographic technique that 
+        Private set intersection is a secure multiparty computation cryptographic technique that
         allows two parties holding sets to compare encrypted versions of these sets in order to
         compute the intersection.
 
@@ -82,7 +82,7 @@ Federated learning is a machine learning technique that trains an algorithm acro
         For cases that multi participants share the same feature space but differ in sample ID.
 
     .. grid-item-card:: Vertical Federated Learning
-      :link: federated_learning/vertical_federated_learning
+      :link: federated_learning/vertical_federated_learning/index
       :link-type: doc
 
         For cases that multi participants share the same sample ID space but differ in feature space.
@@ -91,7 +91,7 @@ Federated learning is a machine learning technique that trains an algorithm acro
       :link: federated_learning/mix_federated_learning
       :link-type: doc
 
-        For cases that parts of participants share the same sample ID space but differ in feature space, 
+        For cases that parts of participants share the same sample ID space but differ in feature space,
         where others share the same feature space but differ in sample ID.
 
 .. toctree::

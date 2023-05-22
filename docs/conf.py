@@ -10,17 +10,10 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from sphinx.util.tags import Tags
-
-    # Sphinx injects this during eval
-    tags: Tags = None
-
 # waiting for autodoc2 to support Google-style docstring...
 import os
 import sys
+from typing import TYPE_CHECKING
 
 sys.path.insert(0, os.path.abspath('..'))
 
@@ -50,9 +43,14 @@ extensions = [
     'sphinx_design',
 ]
 
+if TYPE_CHECKING:
+    from sphinx.util.tags import Tags
+
+    # Sphinx injects this during eval
+    tags: Tags = None  # type: ignore
+
 if tags.has('mdx'):
     extensions.append('sphinx_mdx')
-
 
 nbsphinx_requirejs_path = ''
 
