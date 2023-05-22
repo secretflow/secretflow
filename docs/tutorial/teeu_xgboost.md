@@ -295,7 +295,7 @@ openssl rsa -in private_key.pem -pubout -out public_key.pem
 Similar to Alice, add the SecretFlow initialization code in front of the code to get the following code.
 First, you need to modify the configuration items in the code.
 
-- The code assumes that Alice's communication address is 192.168.0.20:10001, please modify it according to the actual situation
+- The code assumes that Bob's communication address is 192.168.0.20:10001, please modify it according to the actual situation
 - You need to fill in the correct `auth_manager_config`
 - `host` is the listening address of the AuthManager service
 - `ca_cert` is the CA certificate address of AuthManager, if AuthManager does not start tls, no configuration is required.
