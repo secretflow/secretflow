@@ -651,6 +651,10 @@ msgid "Production"
 msgstr "生产模式"
 
 #: ../../getting_started/deployment.md:552
+msgid "Production"
+msgstr "生产模式"
+
+#: ../../getting_started/deployment.md:272
 msgid ""
 "SecretFlow provides multi controller mode for production with enhanced "
 "security. (If you want to know more, welcome to read [Programming in "
@@ -745,6 +749,30 @@ msgid "Start SecretFlow on the node of `bob`"
 msgstr "在bob节点上启动SecretFlow。"
 
 #: ../../getting_started/deployment.md:617
+#: ../../getting_started/deployment.md:312
+#: ../../getting_started/deployment.md:356
+msgid ""
+"To ensure `ports` of `alice` and `bob` can be accessed by each other and "
+"the firewall of the system isn't disabled, you are supposed to add the "
+"'address' of `alice` and `bob` into the IP whitelist of each other."
+msgstr "为了确保alice和bob的端口能够被对方访问同时"
+"系统的防火墙不被关闭，您应该"
+"把alice和bob的IP地址加入到对方的IP白名单"
+
+#: ../../getting_started/deployment.md:313
+#: ../../getting_started/deployment.md:357
+msgid ""
+"The `telnet` command is typically used to test the accessibility of a "
+"port."
+msgstr "telnet 命令通常用于测试端口的"
+"可访问性。"
+
+
+#: ../../getting_started/deployment.md:337
+msgid "Start SecretFlow on the node of `bob`"
+msgstr "在bob节点上启动SecretFlow。"
+
+#: ../../getting_started/deployment.md:339
 msgid ""
 "`bob` starts its ray cluster firstly. Note that the command here is to "
 "start the head node of Ray, because bob needs to build a separate Ray "
@@ -766,15 +794,15 @@ msgstr ""
 "使用主节点的 `node-ip-address` 和 `port`来填充 `sf.init` 的 `address` "
 "参数。注意，这里填写的是bob的头节点地址，请不要填写成alice的。"
 
-#: ../../getting_started/deployment.md:632
+#: ../../getting_started/deployment.md:354
 msgid "Note that `self_party` is `bob`."
 msgstr "注意`self_party` 为 `bob`。"
 
-#: ../../getting_started/deployment.md:659
+#: ../../getting_started/deployment.md:383
 msgid "How to setup SPU for production"
 msgstr "如何构建SPU"
 
-#: ../../getting_started/deployment.md:661
+#: ../../getting_started/deployment.md:385
 msgid ""
 "The way to build the SPU is the same as the simulation mode, the only "
 "difference is that building the SPU also needs to be executed by multiple"
@@ -782,7 +810,7 @@ msgid ""
 "details."
 msgstr "除了SPU的创建需要多个参会方同时执行外，创建SPU的方式与模拟模式一样，请阅读前文了解更多细节。"
 
-#: ../../getting_started/deployment.md:663
+#: ../../getting_started/deployment.md:387
 msgid ""
 "In order to avoid problems such as connection timeout caused by the "
 "startup time difference, you may need to set the `link_desc` parameter "
