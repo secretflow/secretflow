@@ -71,6 +71,10 @@ language = 'en'
 locale_dirs = ['./locales/']  # path is example but recommended.
 gettext_compact = False  # optional.
 gettext_uuid = False  # optional.
+gettext_allow_fuzzy_translations = True
+# allows messages marked with `, fuzzy` in .po files to be included when Sphinx
+# compiles .mo files. this allows translations to be slightly outdated when the
+# original text has minor changes (instead of completely disappearing).
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
