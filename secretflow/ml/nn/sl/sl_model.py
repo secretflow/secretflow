@@ -68,6 +68,12 @@ class SLModel:
         self.dp_strategy_dict = dp_strategy_dict
         self.simulation = kwargs.get('simulation', False)
         self.num_parties = len(base_model_dict)
+        self.pipeline_size = kwargs.get('pipeline_size', 1)
+        assert self.pipeline_size >= 1, f"invalid pipeline size: {self.pipeline_size}"
+        if self.pipeline_size > 1:
+            assert (
+                strategy == 'pipeline'
+            ), f"if pipeline_size is set to {self.pipeline_size}, strategy must be 'pipeline' instead of the provided value: {strategy}."
 
         # TODO: add argument `backend`
         import secretflow.ml.nn.sl.backend.tensorflow.strategy  # noqa
@@ -91,6 +97,7 @@ class SLModel:
                 loss_thres=kwargs.get('loss_thres', 0.01),
                 split_steps=kwargs.get('split_steps', 1),
                 max_fuse_local_steps=kwargs.get('max_fuse_local_steps', 1),
+                pipeline_size=kwargs.get('pipeline_size', 1),
             )
 
     def handle_data(
@@ -292,9 +299,7 @@ class SLModel:
             self._workers[self.device_y].reset_metrics()
             self._workers[self.device_y].on_epoch_begin(epoch)
             fuse_net_num_returns = sum(self.basenet_output_num.values())
-            prev_hiddens = None
-            curr_hidden = None
-
+            hiddens_buf = [None] * (self.pipeline_size - 1)
             for step in range(0, steps_per_epoch):
                 if verbose == 1:
                     pbar.update(1)
@@ -307,17 +312,16 @@ class SLModel:
                     )
                     hiddens.append(hidden.to(self.device_y))
 
-                if prev_hiddens is None:
-                    prev_hiddens = hiddens
+                # pipeline
+                hiddens_buf.append(hiddens)
+                hiddens = hiddens_buf.pop(0)
+                if hiddens is None:
                     continue
-                else:
-                    curr_hidden = prev_hiddens
-                    prev_hiddens = hiddens
-                    gradients = self._workers[self.device_y].fuse_net(
-                        *curr_hidden,
-                        _num_returns=fuse_net_num_returns,
-                        compress=self.has_compressor,
-                    )
+                gradients = self._workers[self.device_y].fuse_net(
+                    *hiddens,
+                    _num_returns=fuse_net_num_returns,
+                    compress=self.has_compressor,
+                )
                 # In some strategies, we need to bypass the backpropagation step.
                 skip_gradient = False
                 if self.check_skip_grad:
@@ -332,10 +336,11 @@ class SLModel:
                         for i in range(self.basenet_output_num[device]):
                             gradient = gradients[idx + i].to(device)
                             gradient_list.append(gradient)
-                        worker.base_backward(gradient_list, compress=self.has_compressor) # stage2
 
+                        worker.base_backward(
+                            gradient_list, compress=self.has_compressor
+                        )
                         idx += self.basenet_output_num[device]
-
                 r_count = self._workers[self.device_y].on_train_batch_end(step=step)
                 res.append(r_count)
                 if self.dp_strategy_dict is not None and dp_spent_step_freq is not None:
@@ -384,6 +389,10 @@ class SLModel:
                         **audit_log_params,
                     )
             epoch_log = self._workers[self.device_y].on_epoch_end(epoch)
+            # clean pipeline
+            if self.pipeline_size > 1:
+                for device, worker in self._workers.items():
+                    worker.clean_pipeline()
             for name, metric in reveal(epoch_log).items():
                 report_list.append(f"{name}:{metric} ")
             report = " ".join(report_list)
