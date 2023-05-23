@@ -28,9 +28,13 @@ A is the Residual status on the server side of the previous round;
 ### Caching
 
 The server keeps the most recent historical updates:
+
 ![math3](resources/fedstc_math_3.jpg)
+
 The latest global weights can be expressed as:
+
 ![math4](resources/fedstc_math_4.jpg)
+
 When a client joins training again, it must update the corresponding $P^{(s)}$ or $W$;
 
 ### Binarization (quant -> ternary tensor)
