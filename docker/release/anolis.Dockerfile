@@ -38,4 +38,8 @@ COPY .nsjail /root/.nsjail
 
 WORKDIR /root
 
-CMD ["/bin/bash"]
+COPY anolis_entrypoint.sh /opt/secretflow/
+
+COPY anolis_entrypoint.py /opt/secretflow/
+
+ENTRYPOINT ["sh","/opt/secretflow/anolis_entrypoint.sh"]
