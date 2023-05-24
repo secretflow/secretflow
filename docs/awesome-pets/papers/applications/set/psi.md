@@ -15,6 +15,10 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
 
 ## PKC-based PSI
 
+- Laconic Private Set-Intersection From Pairings
+  *Aranha D, Lin C, Orlandi C, et al*
+  CCS 2022, [eprint](https://eprint.iacr.org/2022/529)
+
 - Improved Private Set Intersection for Sets with Small Entries  
   *S. Dov Gordon, Carmit Hazay, Phi Hung Le*  
   PKC 2023, [eprint](https://eprint.iacr.org/2022/334)
