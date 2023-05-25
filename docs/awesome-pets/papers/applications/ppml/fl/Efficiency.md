@@ -38,3 +38,5 @@
 - [Federated Learning: Strategies for Improving Communication Efficiency](https://arxiv.org/pdf/1610.05492.pdf)
 
 - [Bayesian Nonparametric Federated Learning of Neural Networks. ICLR 2019.](https://arxiv.org/pdf/1905.12022.pdf)
+
+- [FedAdapter: Efficient Federated Learning for Modern NLP. MobiCom 2023.](https://arxiv.org/abs/2205.10162)
