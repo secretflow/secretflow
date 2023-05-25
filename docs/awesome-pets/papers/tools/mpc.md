@@ -160,7 +160,7 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   *Dragos Rotaru, Tim Wood*  
   IndoCrypt 2019, [eprint](https://eprint.iacr.org/2019/207)
 
-- High-Throughput Secure Three-Party Computation for Malicious Adversaries and an Honest Majority
+- High-Throughput Secure Three-Party Computation for Malicious Adversaries and an Honest Majority  
   *Jun Furukawa, Yehuda Lindell, Ariel Nof, Or Weistein*  
   EuroCrypt 2017, [eprint](https://eprint.iacr.org/2016/944.pdf), FLNW17
 
@@ -217,7 +217,7 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   ACNS 2021, [eprint](https://eprint.iacr.org/2019/1298)
 
 - Fantastic Four: Honest-Majority Four-Party Secure Computation With Malicious Security  
-  *Anders Dalskov, Daniel Escudero, and Marcel Keller*
+  *Anders Dalskov, Daniel Escudero, and Marcel Keller*  
   Usenix Security 2021, [eprint](https://eprint.iacr.org/2020/1330)
 
 - Overdrive2k: Efficient Secure MPC over Z2k from Somewhat Homomorphic Encryption  
@@ -265,15 +265,15 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   Crypto 2018, [eprint](https://eprint.iacr.org/2018/482.pdf), Spdz2k
 
 - Optimized Honest-Majority MPC for Malicious Adversaries — Breaking the 1 Billion-Gate Per Second Barrier  
-  *Toshinori Araki, Assi Barak, Jun Furukawa, Tamar Lichter, Yehuda Lindell, Ariel Nof, Kazuma Ohara, Adi Watzman, Or Weinstein*
+  *Toshinori Araki, Assi Barak, Jun Furukawa, Tamar Lichter, Yehuda Lindell, Ariel Nof, Kazuma Ohara, Adi Watzman, Or Weinstein*  
   S&P 2017, [eprint](https://www.ieee-security.org/TC/SP2017/papers/96.pdf)
 
 ### Zero-Knowledge Proof
 
 - Zero-Knowledge Proofs on Secret-Shared Data via Fully Linear PCPs  
-  *Dan Boneh, Elette Boyle, Henry Corrigan-Gibbs, Niv Gilboa, Yuval Ishai*
+  *Dan Boneh, Elette Boyle, Henry Corrigan-Gibbs, Niv Gilboa, Yuval Ishai*  
   Crypto 2019, [eprint](https://eprint.iacr.org/2019/188.pdf), BBCG+19
 
 - Practical Fully Secure Three-Party Computation via Sublinear Distributed Zero-Knowledge Proofs  
-  *Elette Boyle, Niv Gilboa, Yuval Ishai, and Ariel Nof*
+  *Elette Boyle, Niv Gilboa, Yuval Ishai, and Ariel Nof*  
   CCS 2019, [eprint](https://eprint.iacr.org/2019/1390), BGIN19
