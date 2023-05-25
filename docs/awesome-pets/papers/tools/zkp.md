@@ -1,6 +1,6 @@
 # Zero-knowledge Proof (ZKP)
 
-![](https://badgen.net/badge/:update-to/:Apr-2023/red) ![](https://badgen.net/badge/:papers/:91/blue) 
+![](https://badgen.net/badge/:update-to/:Apr-2023/red) ![](https://badgen.net/badge/:papers/:92/blue) 
 
 
 > **"We are currently experiencing a Cambrian Explosion in the field of cryptographic proofs of computational integrity (CI), a subset of which include zero knowledge proofs**. While a couple of years ago there were about 1–3 new systems a year, the rate has picked up so much that today we are seeing this same amount monthly, if not weekly."  
@@ -11,6 +11,7 @@ Since its invention in 1986, ZKP systems, more and more,  become building blocks
 > If we compare this with Partial Homomorphic Encryption and Fully Homomorphic Encryption, specific ZKP can only prove some specific(simple) and finite statements, while general ZK (theoretically) can prove any statements.
 
 - [Zero-knowledge Proof (ZKP)](#zero-knowledge-proof-zkp)
+  - [Survey \& Tutorial](#survey--tutorial)
   - [Milestones](#milestones)
   - [Specific ZKP](#specific-zkp)
     - [Traditional \& simple relations (over logarithm)](#traditional--simple-relations-over-logarithm)
@@ -24,6 +25,12 @@ Since its invention in 1986, ZKP systems, more and more,  become building blocks
       - [VOLE-based (Commit-and-prove type)](#vole-based-commit-and-prove-type)
   - [ZKP Standard Efforts](#zkp-standard-efforts)
   - [Applications on ZKP systems](#applications-on-zkp-systems)
+
+## Survey & Tutorial
+
+- Zero-Knowledge twenty years after its invention, also called A Short Tutorial of Zero-Knowledge  
+  *Oded Goldreich*  
+  Gol10, [paper](https://www.wisdom.weizmann.ac.il/~oded/PSX/zk-tut10.pdf), [Gol04 older version](https://www.wisdom.weizmann.ac.il/~oded/PSX/zk-tut02v4.pdf),[homepage](https://www.wisdom.weizmann.ac.il/~oded/zk-tut02.html)
 
 ## Milestones
 
