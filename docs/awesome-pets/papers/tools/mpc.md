@@ -3,9 +3,9 @@
 ![](https://badgen.net/badge/:update-to/:Apr-2023/red) ![](https://badgen.net/badge/:papers/:59/blue) 
 
 > "The design of scure protocols that implement arbitrarily desired functionalities is a major part of mordern cryptography."
-> -- Foundation of Cryptography, Volumn 2, Oded Goldreich. 
+> -- Foundation of Cryptography, Volumn 2, Oded Goldreich.
 
-MPC has evolved from a theoretical curiosity in the 1980s to a tool for building real systems today. Over the past decade, MPC has been one of the most active research areas in both theoretical and applied cryptography. In the following, we try to show the newest and interesting advances in mpc (both theory & applicaiton), and also the infulential papers in history. 
+MPC has evolved from a theoretical curiosity in the 1980s to a tool for building real systems today. Over the past decade, MPC has been one of the most active research areas in both theoretical and applied cryptography. In the following, we try to show the newest and interesting advances in mpc (both theory & applicaiton), and also the infulential papers in history.
 
 Note: one paper may be included in several categories (e.g. a paper may introduce a new protocol for both OT and VOLE, we decide to include it in both categories).
 
@@ -26,6 +26,7 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
 ## Offline Techniques
 
 ### Oblivious transfer
+
 - Endemic Oblivious Transfer via Random Oracles, Revisited  
   *Zhelei Zhou, Bingsheng Zhang, Hong-Sheng Zhou, Kui Ren*  
   EuroCrypt 2023, [eprint](https://eprint.iacr.org/2022/1525), ZZZR23  
@@ -56,7 +57,7 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   
 - Endemic Oblivious Transfer  
   *Daniel Masny, Peter Rindal*  
-  CCS 2019, [eprint](https://eprint.iacr.org/2019/706), MR19 
+  CCS 2019, [eprint](https://eprint.iacr.org/2019/706), MR19
   
 - Efficient Pseudorandom Correlation Generators: Silent OT Extension and More  
   *Elette Boyle, Geoffroy Couteau, Niv Gilboa, Yuval Ishai, Lisa Kohl, Peter Scholl*  
@@ -95,22 +96,23 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   STOC 1999, [eprint](https://dl.acm.org/doi/pdf/10.1145/301250.301312), NP99
 
 ### vector Oblivious Linear Evaluation
+
 - Actively Secure Arithmetic Computation and VOLE with Constant Computational Overhead  
   *Benny Applebaum, Niv Konstantini*  
   EuroCrypt 2023, [eprint](https://eprint.iacr.org/2023/270), AK23  
 
 - Two-Round Oblivious Linear Evaluation from Learning with Errors  
-	*Pedro Branco, Nico Do ̈ttling, Paulo Mateus*  
-	PKC 2022, [eprint](https://eprint.iacr.org/2020/635), BDM22
+  *Pedro Branco, Nico Do ̈ttling, Paulo Mateus*  
+  PKC 2022, [eprint](https://eprint.iacr.org/2020/635), BDM22
 
 - Correlated Pseudorandomness from Expand-Accumulate Codes  
-	*Elette Boyle, Geoffroy Couteau, Niv Gilboa, Yuval Ishai, Lisa Kohl, Nicolas Resch, Peter Scholl*  
-	Crypto 2022, [eprint](https://eprint.iacr.org/2022/1014), BCG+22
+  *Elette Boyle, Geoffroy Couteau, Niv Gilboa, Yuval Ishai, Lisa Kohl, Nicolas Resch, Peter Scholl*  
+  Crypto 2022, [eprint](https://eprint.iacr.org/2022/1014), BCG+22
 
 - Two-Round Oblivious Linear Evaluation from Learning with Errors  
   *Pedro Branco, Nico Döttling, Paulo Mateus*  
   PKC 2022, [eprint](https://eprint.iacr.org/2020/635), BDM22
-	
+
 - Silver: Silent VOLE and Oblivious Transfer from Hardness of Decoding Structured LDPC Codes  
   *Geoffroy Couteau, Peter Rindal, Srinivasan Raghuraman*  
   Crypto 2021, [eprint](https://eprint.iacr.org/2021/1150), CRR21
@@ -135,7 +137,7 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   *Satrajit Ghosh, Jesper Buus Nielsen, Tobias Nilges*  
   AsiaCrypt 2017, [eprint](https://eprint.iacr.org/2017/409), GNN17
   
-- TinyOLE: Efficient actively secure two-party computation from oblivious linear function evaluation, 2017,   
+- TinyOLE: Efficient actively secure two-party computation from oblivious linear function evaluation, 2017,  
   *Nico Döttling, Satrajit Ghosh, Jesper Buus Nielsen, Tobias Nilges, Roberto Trifiletti*  
   CCS 2017, [eprint](https://eprint.iacr.org/2017/790), DGNN+17
   
@@ -143,7 +145,6 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   *Moni Naor, Benny Pinkas*  
   STOC 1999, [eprint](https://dl.acm.org/doi/pdf/10.1145/301250.301312), NP99
   
-
 ### Pseudorandom-Correlation Generator
 
 - Correlated Pseudorandomness from Expand-Accumulate Codes  
@@ -163,8 +164,6 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
 - High-Throughput Secure Three-Party Computation for Malicious Adversaries and an Honest Majority  
   *Jun Furukawa, Yehuda Lindell, Ariel Nof, Or Weistein*  
   EuroCrypt 2017, [eprint](https://eprint.iacr.org/2016/944.pdf), FLNW17
-
-
 
 ## Online Techniques
 

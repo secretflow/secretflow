@@ -11,6 +11,7 @@ Since its invention in 1986, ZKP systems, more and more,  become building blocks
 > If we compare this with Partial Homomorphic Encryption and Fully Homomorphic Encryption, specific ZKP can only prove some specific(simple) and finite statements, while general ZK (theoretically) can prove any statements.
 
 - [Zero-knowledge Proof (ZKP)](#zero-knowledge-proof-zkp)
+  - [Survey \& Tutorial](#survey--tutorial)
   - [Milestones](#milestones)
   - [Specific ZKP](#specific-zkp)
     - [Traditional \& simple relations (over logarithm)](#traditional--simple-relations-over-logarithm)
@@ -25,6 +26,12 @@ Since its invention in 1986, ZKP systems, more and more,  become building blocks
   - [ZKP Standard Efforts](#zkp-standard-efforts)
   - [Applications on ZKP systems](#applications-on-zkp-systems)
 
+## Survey & Tutorial
+
+- Zero-Knowledge twenty years after its invention, also called A Short Tutorial of Zero-Knowledge  
+  *Oded Goldreich*  
+  Gol10, [paper](https://www.wisdom.weizmann.ac.il/~oded/PSX/zk-tut10.pdf), [Gol04 older version](https://www.wisdom.weizmann.ac.il/~oded/PSX/zk-tut02v4.pdf),[homepage](https://www.wisdom.weizmann.ac.il/~oded/zk-tut02.html)
+
 ## Milestones
 
 - The Knowledge Complexity of Interactive Proof-Systems (**Invention of zero-knowledge**)  
@@ -38,10 +45,6 @@ Since its invention in 1986, ZKP systems, more and more,  become building blocks
 - Efficient Identification and Signatures for Smart Cards  
   *Schnorr Claus-Peter*  
   CRYPTO 1989, [paper](https://link.springer.com/chapter/10.1007/0-387-34805-0_22), Sch89
-
-- Zero-Knowledge twenty years after its invention  
-  *Oded Goldreich*  
-  [paper](https://www.wisdom.weizmann.ac.il/~oded/PSX/zk-tut02v3.pdf)
 
 - Short Pairing-Based Non-Interactive Zero-Knowledge Arguments  
   *Groth Jens*  
