@@ -1,6 +1,6 @@
 # Zero-knowledge Proof (ZKP)
 
-![](https://badgen.net/badge/:update-to/:Apr-2023/red) ![](https://badgen.net/badge/:papers/:91/blue) 
+![](https://badgen.net/badge/:update-to/:Apr-2023/red) ![](https://badgen.net/badge/:papers/:92/blue) 
 
 
 > **"We are currently experiencing a Cambrian Explosion in the field of cryptographic proofs of computational integrity (CI), a subset of which include zero knowledge proofs**. While a couple of years ago there were about 1–3 new systems a year, the rate has picked up so much that today we are seeing this same amount monthly, if not weekly."  
@@ -31,13 +31,17 @@ Since its invention in 1986, ZKP systems, more and more,  become building blocks
   *Shafi Goldwasser, Silvio Micali, and Charle Rackoff*  
   STOC 1985, [paper](https://dl.acm.org/doi/10.1145/22145.22178), GMR85
 
-- On defining proofs of knowledge  
+- On defining proofs of knowledge
   *Bellare Mihir and Oded Goldreich*  
   CRYPTO 1992, [paper](https://link.springer.com/chapter/10.1007/3-540-48071-4_28), BG92
 
 - Efficient Identification and Signatures for Smart Cards  
   *Schnorr Claus-Peter*  
   CRYPTO 1989, [paper](https://link.springer.com/chapter/10.1007/0-387-34805-0_22), Sch89
+
+- Zero-Knowledge twenty years after its invention  
+  *Oded Goldreich*  
+  [paper](https://www.wisdom.weizmann.ac.il/~oded/PSX/zk-tut02v3.pdf)
 
 - Short Pairing-Based Non-Interactive Zero-Knowledge Arguments  
   *Groth Jens*  

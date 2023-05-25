@@ -1,6 +1,6 @@
 # Secure Multi-Party Computation (MPC)
 
-![](https://badgen.net/badge/:update-to/:Apr-2023/red) ![](https://badgen.net/badge/:papers/:48/blue) 
+![](https://badgen.net/badge/:update-to/:Apr-2023/red) ![](https://badgen.net/badge/:papers/:59/blue) 
 
 > "The design of scure protocols that implement arbitrarily desired functionalities is a major part of mordern cryptography."
 > -- Foundation of Cryptography, Volumn 2, Oded Goldreich. 
@@ -11,13 +11,17 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
 
 ## Table of Contents
 
-- [offline-techniques](#offline-techniques)
-  * [ot](#oblivious-transfer) : oblivious transfer
-  * [vole](#vector-oblivious-linear-evaluation): (subfield) (vector) oblivious linear evaluation
-  * [pcg](#pseudorandom-correlation-generator): pseudorandom correlation generator
-- [online-techniques](#online-techniques)
-  * [semi-honest secret sharing](#semi-honest-secret-sharing)
-  * [malicious secret sharing](#malicious-secret-sharing)
+- [Secure Multi-Party Computation (MPC)](#secure-multi-party-computation-mpc)
+  - [Table of Contents](#table-of-contents)
+  - [Offline Techniques](#offline-techniques)
+    - [Oblivious transfer](#oblivious-transfer)
+    - [vector Oblivious Linear Evaluation](#vector-oblivious-linear-evaluation)
+    - [Pseudorandom-Correlation Generator](#pseudorandom-correlation-generator)
+    - [Preprocessing](#preprocessing)
+  - [Online Techniques](#online-techniques)
+    - [Semi-Honest Secret Sharing](#semi-honest-secret-sharing)
+    - [Malicious Secret Sharing](#malicious-secret-sharing)
+    - [Zero-Knowledge Proof](#zero-knowledge-proof)
 
 ## Offline Techniques
 
@@ -146,6 +150,20 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   *Elette Boyle, Geoffroy Couteau, Niv Gilboa, Yuval Ishai, Lisa Kohl, Nicolas Resch, Peter Scholl*  
   Crypto 2022, [eprint](https://eprint.iacr.org/2022/1014), BCG+22
 
+### Preprocessing
+
+- Improved primitives for MPC over mixed arithmetic-binary circuits  
+  *Daniel Escudero, Satrajit Ghosh, Marcel Keller ,Rahul Rachuri, Peter Scholl*  
+  Crypto 2020, [eprint](https://eprint.iacr.org/2020/338.pdf)
+
+- MArBled Circuits: Mixing Arithmetic and Boolean Circuits with Active Security  
+  *Dragos Rotaru, Tim Wood*  
+  IndoCrypt 2019, [eprint](https://eprint.iacr.org/2019/207)
+
+- Optimized Honest-Majority MPC for Malicious Adversaries — Breaking the 1 Billion-Gate Per Second Barrier  
+  *Toshinori Araki, Assi Barak, Jun Furukawa, Tamar Lichter, Yehuda Lindell, Ariel Nof, Kazuma Ohara, Adi Watzman, Or Weinstein*
+  S&P 2017, [eprint](https://www.ieee-security.org/TC/SP2017/papers/96.pdf)
+
 ## Online Techniques
 
 ### Semi-Honest Secret Sharing
@@ -192,6 +210,14 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   *Sai Sheshank Burra, Enrique Larraia, Jesper Buus Nielsen, Peter Sebastian Nordholt, Claudio Orlandi, Emmanuela Orsini, Peter Scholl, Nigel P. Smart*  
   JCryptpo 2021, [eprint](https://eprint.iacr.org/2015/472), BLNN+21
 
+- An Efficient Passive-to-Active Compiler for Honest-Majority MPC over Rings  
+  *Mark Absponel, Anders Dalskov, Daniel Escudero, Ariel Nof*  
+  ACNS 2021, [eprint](https://eprint.iacr.org/2019/1298)
+
+- Fantastic Four: Honest-Majority Four-Party Secure Computation With Malicious Security  
+  *Anders Dalskov, Daniel Escudero, and Marcel Keller*
+  Usenix Security 2021, [eprint](https://eprint.iacr.org/2020/1330)
+
 - Overdrive2k: Efficient Secure MPC over Z2k from Somewhat Homomorphic Encryption  
   *Emmanuela Orsini, Nigel P. Smart, Frederik Vercauteren*  
   CT-RSA 2020, [eprint](https://eprint.iacr.org/2019/153), OSV20
@@ -227,3 +253,25 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
 - ABY3: A Mixed Protocol Framework for Machine Learning  
   *Payman Mohassel, Peter Rindal*  
   CCS 2018, [eprint](https://eprint.iacr.org/2018/403), MR18
+
+- Fast Large-Scale Honest-Majority MPC for Malicious Adversaries  
+  *Koji Chida, Daniel Genkin, Koki Hamada, Dai Ikarashi, Ryo Kikuchi, Yehuda Lindell, Ariel Nof*  
+  Crypto 2018, [eprint](https://eprint.iacr.org/2018/570)
+
+- SPD$\mathbb {Z}_{2^k}$: Efficient MPC mod $2^k$ for Dishonest Majority  
+  *Ronald Cramer, Ivan Damgård, Daniel Escudero, Peter Scholl, Chaoping Xing*  
+  Crypto 2018, [eprint](https://eprint.iacr.org/2018/482.pdf), Spdz2k
+
+- High-Throughput Secure Three-Party Computation for Malicious Adversaries and an Honest Majority
+  *Jun Furukawa, Yehuda Lindell, Ariel Nof, Or Weistein*  
+  EuroCrypt 2017, [eprint](https://eprint.iacr.org/2016/944.pdf), FLNW17
+
+### Zero-Knowledge Proof
+
+- Zero-Knowledge Proofs on Secret-Shared Data via Fully Linear PCPs  
+  *Dan Boneh, Elette Boyle, Henry Corrigan-Gibbs, Niv Gilboa, Yuval Ishai*
+  Crypto 2019, [eprint](https://eprint.iacr.org/2019/188.pdf), BBCG+19
+
+- Practical Fully Secure Three-Party Computation via Sublinear Distributed Zero-Knowledge Proofs  
+  *Elette Boyle, Niv Gilboa, Yuval Ishai, and Ariel Nof*
+  CCS 2019, [eprint](https://eprint.iacr.org/2019/1390), BGIN19
