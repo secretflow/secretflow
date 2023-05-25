@@ -109,3 +109,48 @@
 - S. Takagi, Y. Cao, and M. Yoshikawa, 
   [POSTER: Data collection via local differential privacy with secret parameters](https://dl.acm.org/doi/10.1145/3320269.3405441),
   in Proc.ACM Asia CCS, 2020, p. 910–912
+
+- Erlingsson Ú, Pihur V, Korolova A.
+  [Rappor: Randomized aggregatable privacy-preserving ordinal response](https://dl.acm.org/doi/abs/10.1145/2660267.2660348)
+  in Proc.ACM SIGSAC CCS, 2014, pp. 1054-1067.
+
+- Wang T, Blocki J, Li N, et al.
+  [Locally differentially private protocols for frequency estimation](https://www.usenix.org/conference/usenixsecurity17/technical-sessions/presentation/wang-tianhao)
+  in USENIX Security Symposium, 2017, pp. 729-745.
+
+- Fanti G, Pihur V, Erlingsson Ú
+  [Building a RAPPOR with the unknown: Privacy-preserving learning of associations and data dictionaries](https://arxiv.org/abs/1503.01214)
+  in arXiv preprint arXiv:1503.01214, 2015.
+
+- Ren X, Yu C M, Yu W, et al. 
+  [High-dimensional crowdsourced data distribution estimation with local privacy](https://ieeexplore.ieee.org/abstract/document/7876342),
+  in Proc.IEEE International Conference on Computer and Information Technology, 2016, pp. 226-233.
+
+- Zhang Z, Wang T, Li N, et al.
+  [Calm: Consistent adaptive local marginal for marginal release under local differential privacy](https://dl.acm.org/doi/abs/10.1145/3243734.3243742),
+  in Proc. ACM SIGSAC CCS, 2018, pp. 212-229
+
+
+- Cormode G, Kulkarni T, Srivastava D.
+  [Answering range queries under local differential privacy](https://dl.acm.org/doi/abs/10.14778/3339490.3339496)
+  in VLDB Endowment, 2019, pp. 1126-1138
+
+- Du L, Zhang Z, Bai S, et al.
+  [AHEAD: adaptive hierarchical decomposition for range query under local differential privacy](https://dl.acm.org/doi/abs/10.1145/3460120.3485668)
+  in Proc.ACM SIGSAC CCS, 2021, pp. 1266-1288
+
+- Wang T, Ding B, Zhou J, et al.
+  [Answering multi-dimensional analytical queries under local differential privacy](https://dl.acm.org/doi/abs/10.1145/3299869.3319891)
+  in International Conference on Management of Data, 2019, pp. 159-176
+
+- Yang J, Wang T, Li N, et al.
+  [Answering multi-dimensional range queries under local differential privacy](https://arxiv.org/abs/2009.06538)
+  in arXiv preprint arXiv:2009.06538, 2020
+
+- Wang N, Xiao X, Yang Y, et al.
+  [Collecting and analyzing multidimensional data with local differential privacy](https://ieeexplore.ieee.org/abstract/document/8731512)
+  in International Conference on Data Engineering, 2019, pp. 638-649
+
+- Ren X, Yu C M, Yu W, et al.
+  [LoPub: high-dimensional crowdsourced data publication with local differential privacy](https://ieeexplore.ieee.org/abstract/document/8306916)
+  in Proc.IEEE Transactions on Information Forensics and Security, 2018, pp. 2151-2166
