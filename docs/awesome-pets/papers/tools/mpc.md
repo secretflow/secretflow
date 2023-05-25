@@ -160,9 +160,11 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   *Dragos Rotaru, Tim Wood*  
   IndoCrypt 2019, [eprint](https://eprint.iacr.org/2019/207)
 
-- Optimized Honest-Majority MPC for Malicious Adversaries — Breaking the 1 Billion-Gate Per Second Barrier  
-  *Toshinori Araki, Assi Barak, Jun Furukawa, Tamar Lichter, Yehuda Lindell, Ariel Nof, Kazuma Ohara, Adi Watzman, Or Weinstein*
-  S&P 2017, [eprint](https://www.ieee-security.org/TC/SP2017/papers/96.pdf)
+- High-Throughput Secure Three-Party Computation for Malicious Adversaries and an Honest Majority
+  *Jun Furukawa, Yehuda Lindell, Ariel Nof, Or Weistein*  
+  EuroCrypt 2017, [eprint](https://eprint.iacr.org/2016/944.pdf), FLNW17
+
+
 
 ## Online Techniques
 
@@ -262,9 +264,9 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   *Ronald Cramer, Ivan Damgård, Daniel Escudero, Peter Scholl, Chaoping Xing*  
   Crypto 2018, [eprint](https://eprint.iacr.org/2018/482.pdf), Spdz2k
 
-- High-Throughput Secure Three-Party Computation for Malicious Adversaries and an Honest Majority
-  *Jun Furukawa, Yehuda Lindell, Ariel Nof, Or Weistein*  
-  EuroCrypt 2017, [eprint](https://eprint.iacr.org/2016/944.pdf), FLNW17
+- Optimized Honest-Majority MPC for Malicious Adversaries — Breaking the 1 Billion-Gate Per Second Barrier  
+  *Toshinori Araki, Assi Barak, Jun Furukawa, Tamar Lichter, Yehuda Lindell, Ariel Nof, Kazuma Ohara, Adi Watzman, Or Weinstein*
+  S&P 2017, [eprint](https://www.ieee-security.org/TC/SP2017/papers/96.pdf)
 
 ### Zero-Knowledge Proof
 
