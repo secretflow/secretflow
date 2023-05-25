@@ -130,7 +130,6 @@
   [Calm: Consistent adaptive local marginal for marginal release under local differential privacy](https://dl.acm.org/doi/abs/10.1145/3243734.3243742),
   in Proc. ACM SIGSAC CCS, 2018, pp. 212-229
 
-
 - Cormode G, Kulkarni T, Srivastava D.
   [Answering range queries under local differential privacy](https://dl.acm.org/doi/abs/10.14778/3339490.3339496)
   in VLDB Endowment, 2019, pp. 1126-1138
