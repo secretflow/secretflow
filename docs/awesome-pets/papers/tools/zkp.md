@@ -31,7 +31,7 @@ Since its invention in 1986, ZKP systems, more and more,  become building blocks
   *Shafi Goldwasser, Silvio Micali, and Charle Rackoff*  
   STOC 1985, [paper](https://dl.acm.org/doi/10.1145/22145.22178), GMR85
 
-- On defining proofs of knowledge
+- On defining proofs of knowledge  
   *Bellare Mihir and Oded Goldreich*  
   CRYPTO 1992, [paper](https://link.springer.com/chapter/10.1007/3-540-48071-4_28), BG92
 
