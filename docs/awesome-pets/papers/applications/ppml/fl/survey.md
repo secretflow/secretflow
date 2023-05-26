@@ -4,12 +4,12 @@
 - [Federated Learning in Mobile Edge Networks: A Comprehensive Survey](https://arxiv.org/pdf/1909.11875.pdf)
 - [Advances and Open Problems in Federated Learning](https://arxiv.org/pdf/1912.04977.pdf)
 - [Federated Learning: Challenges, Methods, and Future Directions](https://arxiv.org/pdf/1908.07873.pdf)
-
 - [Vertical Federated Learning: Challenges, Methodologies and Experiments](https://arxiv.org/pdf/2202.04309.pdf)
-
 - [Vertical Federated Learning](https://arxiv.org/pdf/2211.12814.pdf)
+- [Privacy-Preserving Aggregation in Federated Learning: A Survey](https://ieeexplore.ieee.org/abstract/document/9830997)
 
 ## Security
+
 - [A survey on security and privacy of federated learning](https://www.researchgate.net/publication/344611776_A_survey_on_security_and_privacy_of_federated_learning)
 
 - [Threats to Federated Learning: A Survey](https://arxiv.org/abs/2003.02133)
