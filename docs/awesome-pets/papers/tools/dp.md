@@ -95,7 +95,7 @@
   IEEE Trans. on Dependable and Secure Comput., pp. 1–13, 2019
 
 - Y. NIE, W. Yang, L. Huang, X. Xie, Z. Zhao, and S. Wang, 
- [A utility-optimized framework for personalized private histogram estimation](https://ieeexplore.ieee.org/document/8368271),
+  [A utility-optimized framework for personalized private histogram estimation](https://ieeexplore.ieee.org/document/8368271),
   IEEE Trans. Knowl. Data Eng., vol. 31, no. 4, pp. 655–669, 2019.
 
 - T. Murakami and Y. Kawamoto, 
