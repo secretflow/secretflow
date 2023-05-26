@@ -64,6 +64,37 @@
   [Multi-key Fully-Homomorphic Encryption in the Plain Model](https://eprint.iacr.org/2020/180.pdf)[add-space][add-space]
   TCC 2020
 
+- *Fabrice Benhamouda, Aayush Jain, Ilan Komargodski, Huijia Lin,*[add-space][add-space]
+  [Multiparty Reusable Non-Interactive Secure Computation from LWE](https://eprint.iacr.org/2021/378.pdf)[add-space][add-space]
+  EUROCRYPT 2021
+
+- *Dan Boneh, Rosario Gennaro, Steven Goldfeder, Aayush Jain, Sam Kim, Peter M. R. Rasmussen, Amit Sahai,*[add-space][add-space]
+  [Threshold Cryptosystems From Threshold Fully Homomorphic Encryption](https://eprint.iacr.org/2017/956.pdf)[add-space][add-space]
+  CRYPTO 2018: Advances in Cryptology – CRYPTO 2018 pp 565–596
+
+- *Pascal Lafourcade, Gael Marcadet, Léo Robert,*[add-space][add-space]
+  [Faster Non-interactive Verifiable Computing](https://eprint.iacr.org/2022/646)[add-space][add-space]
+  Cluster Computing volume 24, pages475–488 (2021)
+
+- *Siddhartha Chowdhury, Sayani Sinha, Animesh Singh, Shubham Mishra, Chandan Chaudhary, Sikhar Patranabis, Pratyay Mukherjee, Ayantika Chatterjee, Debdeep Mukhopadhyay,*[add-space][add-space]
+  [Efficient Threshold FHE with Application to Real-Time Systems](https://eprint.iacr.org/2022/1625.pdf)[add-space][add-space]
+
+- *Wutichai Chongchitmate, Rafail Ostrovsky,*[add-space][add-space]
+  [Circuit-Private Multi-key FHE](https://link.springer.com/chapter/10.1007/978-3-662-54388-7_9)[add-space][add-space]
+  PKC 2017
+
+- *Dan Boneh, Saba Eskandarian, Lucjan Hanzlik, Nicola Greco,*[add-space][add-space]
+  [Single Secret Leader Election](https://eprint.iacr.org/2020/025.pdf)[add-space][add-space]
+  AFT '20
+
+- *Katharina Boudgoust, Peter Scholl,*[add-space][add-space]
+  [Simple Threshold (Fully Homomorphic) Encryption From LWE With Polynomial Modulus](https://eprint.iacr.org/2023/016.pdf)[add-space][add-space]
+  IACR Cryptol. ePrint Arch. 2023: 16 (2023)
+
+- *Florian Bourse, Malika Izabachène,*[add-space][add-space]
+  [Plug-and-play sanitization for TFHE](https://eprint.iacr.org/2022/1438.pdf)[add-space][add-space]
+  IACR Cryptol. ePrint Arch. 2022: 1438 (2022)
+
 
 
 
