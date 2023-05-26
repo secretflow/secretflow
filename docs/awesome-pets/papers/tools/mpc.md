@@ -380,23 +380,6 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   [A Proof of Security of Yao’s Protocol for Two-Party Computation](https://eprint.iacr.org/2004/175.pdf)[add-space][add-space]
   Journal of Cryptology volume 22, pages161–188 (2009)
 
-- *Wenjie Xiong, Liu Ke, Dimitrije Jankov, Michael Kounavis, Xiaochen Wang, Eric Northup, Jie Amy Yang,
-Bilge Acun, Carole-Jean Wu, Ping Tak Peter Tang, G. Edward Suh, Xuan Zhang, Hsien-Hsin S. Lee,*[add-space][add-space]
-  [SecNDP: Secure Near-Data Processing with Untrusted Memory](https://eprint.iacr.org/2021/1642.pdf)[add-space][add-space]
-  2022 IEEE International Symposium on High-Performance Computer Architecture (HPCA), Seoul, Korea, Republic of, 2022, pp. 244-258
-
-- *Adi Akavia, Dan Feldman, Hayim Shaul,*[add-space][add-space]
-  [Secure Search on Encrypted Data via Multi-Ring Sketch](https://dl.acm.org/doi/10.1145/3243734.3243810)[add-space][add-space]
-  CCS '18: Proceedings of the 2018 ACM SIGSAC Conference on Computer and Communications SecurityOctober 2018,Pages 985–1001
-
-- *Nick Frymann, Daniel Gardham, Franziskus Kiefer,*[add-space][add-space]
-  [Asynchronous Remote Key Generation: An Analysis of Yubico’s Proposal for W3C WebAuthn](https://eprint.iacr.org/2020/1004.pdf)[add-space][add-space]
-  CCS '20: Proceedings of the 2020 ACM SIGSAC Conference on Computer and Communications SecurityOctober 2020Pages 939–954
-
-- *Nick Frymann, Daniel Gardham, Mark Manulis,*[add-space][add-space]
-  [Unlinkable Delegation of WebAuthn Credentials](https://eprint.iacr.org/2022/303.pdf)[add-space][add-space]
-  ESORICS 2022. ESORICS 2022. Lecture Notes in Computer Science, vol 13556
-
 - *Ittai Abraham, Benny Pinkas, Avishay Yanai,*[add-space][add-space]
   [Blinder – MPC Based Scalable and Robust Anonymous Committed Broadcast](https://eprint.iacr.org/2020/248.pdf)[add-space][add-space]
   Cryptology ePrint Archive, 2020.
