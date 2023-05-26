@@ -1,5 +1,4 @@
-# Secure Multi-Party Computation (MPC)
-
+# Secure Multi-Party Computation 
 ![](https://badgen.net/badge/:update-to/:Apr-2023/red) ![](https://badgen.net/badge/:papers/:59/blue) 
 
 > "The design of scure protocols that implement arbitrarily desired functionalities is a major part of mordern cryptography."
