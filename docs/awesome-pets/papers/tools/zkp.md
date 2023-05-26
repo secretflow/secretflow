@@ -305,10 +305,14 @@ Without trusted setup.
 - Transparent Polynomial Delegation and Its Applications to Zero Knowledge Proof  
   *Jiaheng Zhang, Tiancheng Xie, Yupeng Zhang, and Dawn Song*  
   S&P 2020, [paper](https://eprint.iacr.org/2019/1482), ZXZ+20
-
+  
 - Sumcheck Arguments and Their Applications  
   *Jonathan Bootle, Alessandro Chiesa, and Katerina Sotiraki*  
   CRYPTO 2021, [paper](https://eprint.iacr.org/2021/333), BCS21
+
+- Doubly Efficient Interactive Proofs for General Arithmetic Circuits with Linear Prover Time  
+  *Jiaheng Zhang, Tianyi Liu, Weijie Wang, Yinuo Zhang, Dawn Song, and Xiang Xie*  
+  CCS 2021, [paper](https://dl.acm.org/doi/pdf/10.1145/3460120.3484767), ZLW+21
 
 - RedShift: Transparent SNARKs from List Polynomial Commitments  
   *Assimakis A. Kattis, Konstantin Panarin, and Alexander Vlasov*  
@@ -317,14 +321,6 @@ Without trusted setup.
 - Flashproofs: Efficient Zero-Knowledge Arguments of Range and Polynomial Evaluation with Transparent Setup  
   *Nan Wang, and Sid Chi-Kin Chau*  
   ASIACRYPT 2022, [paper](https://eprint.iacr.org/2022/1251), WC22
-
-- Transparent polynomial delegation and its applications to zero knowledge proof  
-  *Jiaheng Zhang, Tiancheng Xie, Yupeng Zhang, and Dawn Song*  
-  S&P 2020, [paper](https://eprint.iacr.org/2019/1482.pdf), ZXZS20
-
-- Doubly Efficient Interactive Proofs for General Arithmetic Circuits with Linear Prover Time  
-  *Jiaheng Zhang, Tianyi Liu, Weijie Wang, Yinuo Zhang, Dawn Song, and Xiang Xie*  
-  CCS 2021, [paper](https://dl.acm.org/doi/pdf/10.1145/3460120.3484767), ZLW+21
 
 #### DL-based
 
