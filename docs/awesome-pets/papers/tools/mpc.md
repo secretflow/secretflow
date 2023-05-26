@@ -47,9 +47,9 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   *Ian McQuoid, Mike Rosulek, Lawrence Roy*  
   AsiaCrypt 2021, [eprint](https://eprint.iacr.org/2021/682), MRR21
 
-- Ferret: Fast Extension for Correlated OT with Small Communication
-  *Kang Yang, Chenkai Weng, Xiao Lan, Jiang Zhang, Xiao Wang*
-  CCS 2020, [eprint](https://eprint.iacr.org/2020/924.pdf), YWLZ+20 
+- Ferret: Fast Extension for Correlated OT with Small Communication  
+  *Kang Yang, Chenkai Weng, Xiao Lan, Jiang Zhang, Xiao Wang*  
+  CCS 2020, [eprint](https://eprint.iacr.org/2020/924.pdf), YWLZ+20  
 
 - Efficient and Round-Optimal Oblivious Transfer and Commitment with Adaptive Security  
   *Ran Canetti, Pratik Sarkar, Xiao Wang*  
