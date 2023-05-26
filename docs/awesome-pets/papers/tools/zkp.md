@@ -23,6 +23,8 @@ Since its invention in 1986, ZKP systems, more and more,  become building blocks
     - [with URS(Uniform Reference String)](#with-ursuniform-reference-string)
       - [DL-based](#dl-based)
       - [VOLE-based (Commit-and-prove type)](#vole-based-commit-and-prove-type)
+    - [ZKSNARKS](#zksnarks)
+    - [STARKS](#starks)
   - [ZKP Standard Efforts](#zkp-standard-efforts)
   - [Applications on ZKP systems](#applications-on-zkp-systems)
 
@@ -360,6 +362,50 @@ Without trusted setup.
   *Chenkai Weng, Kang Yang, Zhaomin Yang, Xiang Xie, and Xiao Wang*  
   CCS 2022, [paper](https://eprint.iacr.org/2022/566), WYY+22
 
+
+### ZKSNARKS
+
+
+- From extractable collision resistance to succinct non-interactive arguments of knowledge, and back again  
+  *Nir Bitansky, R. Canetti, A. Chiesa, and Eran Tromer*  
+  ITCS 2012, [paper](https://dl.acm.org/doi/10.1145/2090236.2090263), BCC+12
+  
+- Quadratic Span Programs and Succinct NIZKs without PCPs  
+  *Rosario Gennaro, Craig Gentry, Bryan Parno, and Mariana Raykova*  
+  EUROCRYPT 2013, [paper](https://eprint.iacr.org/2012/215), GGPR13
+  
+- Succinct Non-Interactive Zero Knowledge for a von Neumann Architecture  
+  *Eli Ben-Sasson, A. Chiesa, Eran Tromer, and M. Virza*  
+  USENIX 2014, [paper](https://eprint.iacr.org/2013/879), BCT+14
+
+- On the Size of Pairing-Based Non-Interactive Arguments  
+  *Groth Jens*  
+  EUROCRYPT 2016, [paper](https://eprint.iacr.org/2016/260), Gro16
+
+- PLONK: Permutations over Lagrange-Bases for Oecumenical Noninteractive Arguments of Knowledge  
+  *Ariel Gabizon, Zachary J. Williamson, and Oana Ciobotaru*  
+  eprint 2019, [paper](https://eprint.iacr.org/2019/953), GWC19
+  
+- HALO: Recursive Proof Composition without a Trusted Setup  
+  *Sean Bowe, J. Grigg, and Daira Hopwood*  
+  eprint 2019, [paper](https://eprint.iacr.org/2019/1021), BGH19
+  
+
+### STARKS
+
+
+- Scalable, transparent, and post-quantum secure computational integrity  
+  *Eli Ben-Sasson, Iddo Bentov, Y. Horesh, and Michael Riabzev*  
+  eprint 2018, [paper](https://eprint.iacr.org/2018/046), BBHR18
+  
+- DEEP-FRI: Sampling Outside the Box Improves Soundness  
+  *Eli Ben-Sasson, Lior Goldberg, Swastik Kopparty, and Shubhangi Saraf*  
+  arXiv 2019, [paper](https://eprint.iacr.org/2019/336), BGKS19
+
+- Proximity Gaps for Reed-Solomon Codes  
+  *Eli Ben-Sasson, Dan Carmon, Y. Ishai, Swastik Kopparty, and Shubhangi Saraf*  
+  FOCS 2020, [paper](https://eprint.iacr.org/2020/654), BCI+20
+  
 ## ZKP Standard Efforts
 
 
