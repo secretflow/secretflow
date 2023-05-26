@@ -1,79 +1,70 @@
 # Table of Contents
-  * [Distance Calculation](#Distance_Calculation)
-  * [Private Information Retrival](#PIR)
+  * [FHE](#FHE)
+  * [FHE-based MPC](#FHE-based MPC)
   
 
-## Signature
-- *Jean-Philippe Aumasson, Adrian Hamelink, and Omer Shlomovits,*[add-space][add-space]
-  [A Survey of ECDSA Threshold Signing](https://eprint.iacr.org/2020/1390)[add-space][add-space]
-  Cryptology ePrint Archive, 2020
+## FHE
+- *Kim Laine,*[add-space][add-space]
+  [Simple Encrypted Arithmetic Library 2.3.1](https://www.microsoft.com/en-us/research/uploads/prod/2017/11/sealmanual-2-3-1.pdf)[add-space][add-space]
 
-- *Chelsea Komlo, Ian Goldberg,*[add-space][add-space]
-  [FROST: Flexible Round-Optimized Schnorr Threshold Signatures](https://link.springer.com/chapter/10.1007/978-3-030-81652-0_2)[add-space][add-space]
-  Springer International Publishing, 2021: 34-65
+- *Alberto Ibarrondo, Alexander Viand,*[add-space][add-space]
+  [Pyfhel: PYthon For Homomorphic Encryption Libraries](https://www.research-collection.ethz.ch/bitstream/handle/20.500.11850/522339/pyfhel.pdf?sequence=3)[add-space][add-space]
+  WAHC '21
 
-- *Yehuda Lindell,*[add-space][add-space]
-  [Fast Secure Two-Party ECDSA Signing](https://link.springer.com/chapter/10.1007/978-3-319-63715-0_21)[add-space][add-space]
-  Springer International Publishing, 2017: 613-644
+- *Vadim Lyubashevsky Chris Peikert Oded Regev,*[add-space][add-space]
+  [On Ideal Lattices and Learning with Errors Over Rings](https://eprint.iacr.org/2012/230.pdf)[add-space][add-space]
+  Eurocrypt 2010
 
-- *Rosario Gennaro, Steven Goldfeder,*[add-space][add-space]
-  [Fast Multiparty Threshold ECDSA with Fast Trustless Setup](https://dl.acm.org/doi/abs/10.1145/3243734.3243859)[add-space][add-space]
-  CCS '18: Proceedings of the 2018 ACM SIGSAC Conference on Computer and Communications SecurityOctober 2018Pages 1179–1194
+- *Ilia Iliashenko1 and Vincent Zucca,*[add-space][add-space]
+  [Faster homomorphic comparison operations for BGV and BFV](https://eprint.iacr.org/2021/315.pdf)[add-space][add-space]
+  MINOR revision.PoPETS 2021
 
-## Distance Calculation
-- *Kimmo Järvinen, Ágnes Kiss, Thomas Schneider, Oleksandr Tkachenko, Zheng Yang,*[add-space][add-space]
-  [Faster Privacy-Preserving Location Proximity Schemes](https://link.springer.com/chapter/10.1007/978-3-030-00434-7_1)[add-space][add-space]
-  IACR Cryptol. ePrint Arch. 2018: 694 (2018)
+- *Zvika Brakerski, Craig Gentry, Vinod Vaikuntanathan,*[add-space][add-space]
+  [(Leveled) fully homomorphic encryption without bootstrapping](https://dl.acm.org/doi/10.1145/2090236.2090262)[add-space][add-space]
+  ITCS '12
 
-- *Kimmo Järvinen, Ágnes Kiss, Thomas Schneider, Oleksandr Tkachenko, Zheng Yang,*[add-space][add-space]
-  [Faster privacy-preserving location proximity schemes for circles and polygons](https://ietresearch.onlinelibrary.wiley.com/doi/10.1049/iet-ifs.2019.0125)[add-space][add-space]
-  IET Inf. Secur. 14(3): 254-265 (2020)
+- *Meghan Cowan, Deeksha Dangwal, Armin Alaghi, Caroline Trippel, Vincent T. Lee, Brandon Reagen,*[add-space][add-space]
+  [Porcupine: A Synthesizing Compiler for Vectorized Homomorphic Encryption](https://arxiv.org/abs/2101.07841)[add-space][add-space]
+  PLDI 2021
 
-- *Asma Aloufi, Peizhao Hu, Hang Liu, Sherman S. M. Chow,*[add-space][add-space]
-  [Universal Location Referencing and Homomorphic Evaluation of Geospatial Query](https://eprint.iacr.org/2019/820)
-  IACR Cryptol. ePrint Arch. 2019: 820 (2019)[add-space][add-space]
+- *Wei Dai, Bain Capital Crypto,*[add-space][add-space]
+  [PESCA: A Privacy-Enhancing Smart-Contract Architecture](https://eprint.iacr.org/2022/1119.pdf)[add-space][add-space]
 
-- *Peizhao Hu, Sherman S. M. Chow, Asma Aloufi,*[add-space][add-space]
-  [Geosocial Query with User-Controlled Privacy](https://eprint.iacr.org/2018/304)[add-space][add-space]
-  IACR Cryptol. ePrint Arch. 2018: 304 (2018)
 
-- *Peizhao Hu, Tamalika Mukherjee, Alagu Valliappan and Stanisław Radziszowski,*[add-space][add-space]
-  [“Are we close?” – Secure Proximity Computation in Geosocial Networks](https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=3df1e190b007459e1babf9204821c5f340b6da91)[add-space][add-space]
+## FHE-based MPC
+- *Adriana Lopez-Alt, Eran Tromer, Vinod Vaikuntanathan,*[add-space][add-space]
+  [On-the-Fly Multiparty Computation on the Cloud via Multikey Fully Homomorphic Encryption](https://eprint.iacr.org/2013/094.pdf)[add-space][add-space]
+  STOC 2012
 
-- *Kristin Lauter, Adriana López-Alt, Michael Naehrig,*[add-space][add-space]
-  [Private Computation on Encrypted Genomic Data](https://link.springer.com/chapter/10.1007/978-3-319-16295-9_1)[add-space][add-space]
-  Conference paper First Online: 01 January 2015
+- *S. Dov Gordon, Feng-Hao Liu, Elaine Shi,*[add-space][add-space]
+  [Constant-Round MPC with Fairness and Guarantee of Output Delivery](https://eprint.iacr.org/2015/371.pdf)[add-space][add-space]
+  Annual International Cryptology Conference 2015
 
-## Secure Multi-party Computation,MPC
-- *Sophia Yakoubov，*[add-space][add-space]
-  [A Gentle Introduction to Yao’s Garbled Circuits](https://web.mit.edu/sonka89/www/papers/2017ygc.pdf)[add-space][add-space]
+- *Pratyay Mukherjee, Daniel Wichs,*[add-space][add-space]
+  [Two Round Multiparty Computation via Multi-Key FHE](https://eprint.iacr.org/2015/345.pdf)[add-space][add-space]
+  EUROCRYPT 2016
 
-- *Yehuda Lindell, Benny Pinkas,*[add-space][add-space]
-  [A Proof of Security of Yao’s Protocol for Two-Party Computation](https://eprint.iacr.org/2004/175.pdf)[add-space][add-space]
-  Journal of Cryptology volume 22, pages161–188 (2009)
+- *Eunkyung Kim, Hyang-Sook Lee, Jeongeun Park,*[add-space][add-space]
+  [Towards Round-Optimal Secure Multiparty Computations: Multikey FHE without a CRS](https://eprint.iacr.org/2018/1156.pdf)[add-space][add-space]
+  ACISP2018
 
-- *Wenjie Xiong, Liu Ke, Dimitrije Jankov, Michael Kounavis, Xiaochen Wang, Eric Northup, Jie Amy Yang,
-Bilge Acun, Carole-Jean Wu, Ping Tak Peter Tang, G. Edward Suh, Xuan Zhang, Hsien-Hsin S. Lee,*[add-space][add-space]
-  [SecNDP: Secure Near-Data Processing with Untrusted Memory](https://eprint.iacr.org/2021/1642.pdf)[add-space][add-space]
-  2022 IEEE International Symposium on High-Performance Computer Architecture (HPCA), Seoul, Korea, Republic of, 2022, pp. 244-258
+- *Zvika Brakerski, Shai Halevi, Antigoni Polychroniadou,*[add-space][add-space]
+  [Four Round Secure Computation without Setup](https://eprint.iacr.org/2017/386.pdf)[add-space][add-space]
+  TCC (1) 2017: 645-677
 
-- *Adi Akavia, Dan Feldman, Hayim Shaul,*[add-space][add-space]
-  [Secure Search on Encrypted Data via Multi-Ring Sketch](https://dl.acm.org/doi/10.1145/3243734.3243810)[add-space][add-space]
-  CCS '18: Proceedings of the 2018 ACM SIGSAC Conference on Computer and Communications SecurityOctober 2018,Pages 985–1001
+- *Hyang-Sook Lee, Jeongeun Park,*[add-space][add-space]
+  [On the Security of Multikey Homomorphic Encryption](https://eprint.iacr.org/2019/1082.pdf)[add-space][add-space]
+  IMA CC 2019
 
-- *Daniel Demmler, Thomas Schneider, Michael Zohner,*[add-space][add-space]
-  [ABY – A Framework for Efficient Mixed-Protocol Secure Two-Party Computation](https://encrypto.de/papers/DSZ15.pdf)[add-space][add-space]
-  NDSS. 2015
+- *Hao Chen, Ilaria Chillotti, Yongsoo Song,*[add-space][add-space]
+  [Multi-Key Homomophic Encryption from TFHE](https://eprint.iacr.org/2019/116.pdf)[add-space][add-space]
+  ASIACRYPT 2019
 
-- *Nick Frymann, Daniel Gardham, Franziskus Kiefer,*[add-space][add-space]
-  [Asynchronous Remote Key Generation: An Analysis of Yubico’s Proposal for W3C WebAuthn](https://eprint.iacr.org/2020/1004.pdf)[add-space][add-space]
-  CCS '20: Proceedings of the 2020 ACM SIGSAC Conference on Computer and Communications SecurityOctober 2020Pages 939–954
+- *Prabhanjan Ananth, Abhishek Jain, ZhengZhong Jin, Giulio Malavolta,*[add-space][add-space]
+  [Multi-key Fully-Homomorphic Encryption in the Plain Model](https://eprint.iacr.org/2020/180.pdf)[add-space][add-space]
+  TCC 2020
 
-- *Nick Frymann, Daniel Gardham, Mark Manulis,*[add-space][add-space]
-  [Unlinkable Delegation of WebAuthn Credentials](https://eprint.iacr.org/2022/303.pdf)[add-space][add-space]
-  ESORICS 2022. ESORICS 2022. Lecture Notes in Computer Science, vol 13556
 
-- *Ittai Abraham, Benny Pinkas, Avishay Yanai,*[add-space][add-space]
-  [Blinder – MPC Based Scalable and Robust Anonymous Committed Broadcast](https://eprint.iacr.org/2020/248.pdf)[add-space][add-space]
-  Cryptology ePrint Archive, 2020.
+
+
 
