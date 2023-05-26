@@ -4,6 +4,7 @@
 - [Federated Learning in Mobile Edge Networks: A Comprehensive Survey](https://arxiv.org/pdf/1909.11875.pdf)
 - [Advances and Open Problems in Federated Learning](https://arxiv.org/pdf/1912.04977.pdf)
 - [Federated Learning: Challenges, Methods, and Future Directions](https://arxiv.org/pdf/1908.07873.pdf)
+- [Federated Learning for Internet of Things: Applications, Challenges, and Opportunities](https://arxiv.org/pdf/2111.07494.pdf)
 
 - [Vertical Federated Learning: Challenges, Methodologies and Experiments](https://arxiv.org/pdf/2202.04309.pdf)
 
