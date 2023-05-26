@@ -82,7 +82,6 @@ class PipelineTFModel(SLBaseTFModel):
                     self.train_y = tf.convert_to_tensor(dp_train_y)
                 else:
                     self.train_y = train_y
-                # [test] - pipeline ---------------------------
                 self.pre_train_y.append(self.train_y)
             else:
                 data_x = train_data
@@ -210,9 +209,6 @@ class PipelineTFModel(SLBaseTFModel):
         self.fuse_tape = []
         self.h = []
         self.pre_train_y = []
-
-    def get_debug_str(self):
-        return self.debug_str
 
 
 @register_strategy(strategy_name='pipeline', backend='tensorflow')
