@@ -27,6 +27,7 @@ Since its invention in 1986, ZKP systems, more and more,  become building blocks
       - [VOLE-based (Commit-and-prove type)](#vole-based-commit-and-prove-type)
   - [ZKP Standard Efforts](#zkp-standard-efforts)
   - [Applications on ZKP systems](#applications-on-zkp-systems)
+    - [Signature from ZKP](#signature-from-zkp)
 
 ## Survey & Tutorial
 
@@ -386,17 +387,9 @@ Without trusted setup.
   *Jonathan Katz, Vladimir Kolesnikov, and Xiao Wang*  
   CCS 2018, [paper](https://dl.acm.org/doi/pdf/10.1145/3243734.3243805), KKW18
 
-- BBQ: Using AES in picnic signatures  
-  *Cyprien de Saint Guilhem, Lauren De Meyer, Emmanuela Orsini, and Nigel P. Smart*  
-  SAC 2019, [paper](https://eprint.iacr.org/2019/781.pdf), dDOS19
-
 - Concretely-efficient zero-knowledge arguments for arithmetic circuits and their application to lattice-based cryptography  
   *Carsten Baum and Ariel Nof*  
   PKC 2020, [paper](https://eprint.iacr.org/2019/532.pdf), BN20
-
-- Banquet: Short and fast signatures from AES  
-  *Carsten Baum, Cyprien de Saint Guilhem, Daniel Kales, Emmanuela Orsini, Peter Scholl, and Greg Zaverucha*  
-  PKC 2021, [paper](https://eprint.iacr.org/2021/068.pdf), BdK+21
 
 - Limbo: Efficient zero-knowledge MPCitH-based arguments  
   *Cyprien de Saint Guilhem, Emmanuela Orsini, and Titouan Tanguy*  
@@ -509,3 +502,30 @@ Here just list several interesting applicaitons.
 - Zk-Creds: Flexible Anonymous Credentials from ZkSNARKs and Existing Identity Infrastructure  
   *Michael Rosenberg, Jacob White, Christina Garman, and Ian Miers*  
   S&P 2023, [paper](https://eprint.iacr.org/2022/878), RWG+23
+  
+### Signature from ZKP
+
+- Post-quantum zero-knowledge and signatures from symmetric-key primitives  
+  *Melissa Chase, David Derler, Steven Goldfeder, Claudio Orlandi, Sebastian Ramacher, Christian Rechberger, Daniel Slamanig, and Greg Zaverucha*  
+  CCS 2017, [paper](https://dl.acm.org/doi/pdf/10.1145/3133956.3133997), CDG+17
+  
+- The picnic signature scheme, design document v2.1  
+  *Melissa Chase, David Derler, Steven Goldfeder, Jonathan Katz, Vladimir Kolesnikov, Claudio Orlandi, Sebastian Ramacher, Christian Rechberger, Daniel Slamanig and Xiao Wang*  
+  [paper](https://github.com/microsoft/Picnic/blob/master/spec/design-v2.1.pdf), CDG+19
+  
+- BBQ: Using AES in picnic signatures  
+  *Cyprien de Saint Guilhem, Lauren De Meyer, Emmanuela Orsini, and Nigel P. Smart*  
+  SAC 2019, [paper](https://eprint.iacr.org/2019/781.pdf), dDOS19
+  
+- The picnic signature scheme, design document v2.2  
+  *Melissa Chase, David Derler, Steven Goldfeder, Claudio Orlandi, Sebastian Ramacher, Christian Rechberger, Daniel Slamanig, Greg Zaverucha*  
+  [paper](https://github.com/microsoft/Picnic/blob/master/spec/design-v2.2.pdf),  CDG+20
+
+- Banquet: Short and fast signatures from AES  
+  *Carsten Baum, Cyprien de Saint Guilhem, Daniel Kales, Emmanuela Orsini, Peter Scholl, and Greg Zaverucha*  
+  PKC 2021, [paper](https://eprint.iacr.org/2021/068.pdf), BdK+21
+  
+- Efficient Lifting for Shorter Zero-Knowledge Proofs and Post-Quantum Signatures  
+  *Daniel Kales, and Greg Zaverucha*  
+  eprint 2022, [paper](https://eprint.iacr.org/2022/588.pdf), KZ22
+
