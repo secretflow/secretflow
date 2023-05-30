@@ -13,7 +13,7 @@ HE, especially FHE(Fully Homomorphic Encryption), does matter and are keys for n
     - [Multi-key FHE](#multi-key-fhe)
   - [Impl. Efforts](#impl-efforts)
     - [Hardware-based Acceleration](#hardware-based-acceleration)
-    - [Open-sourced Libs](#open-sourced-libs)
+    - [Open-sourced libs](#open-sourced-libs)
   - [Applications](#applications)
   - [Standard Efforts](#standard-efforts)
 
@@ -32,7 +32,7 @@ HE, especially FHE(Fully Homomorphic Encryption), does matter and are keys for n
 
 ### Hardware-based Acceleration
 
-### Open-sourced Libs
+### Open-sourced libs
 
 ## Applications
 
