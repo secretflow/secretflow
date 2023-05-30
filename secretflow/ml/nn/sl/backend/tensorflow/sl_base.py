@@ -485,9 +485,9 @@ class SLBaseTFModel(SLBaseModel):
         self.epoch_logs.update(val_logs)
 
     def on_epoch_end(self, epoch):
-
-        self.fuse_callbacks.on_epoch_end(epoch, self.epoch_logs)
-        self.training_logs = self.epoch_logs
+        if self.fuse_callbacks:
+            self.fuse_callbacks.on_epoch_end(epoch, self.epoch_logs)
+            self.training_logs = self.epoch_logs
         return self.epoch_logs
 
     def on_train_end(self):
@@ -823,8 +823,7 @@ class SLBaseTFModel(SLBaseModel):
     ):
         Path(model_path).parent.mkdir(parents=True, exist_ok=True)
         assert model_path is not None, "model path cannot be empty"
-        assert save_format in [
-            "onnx", "tf"], "save_format must be 'onnx' or 'tf'"
+        assert save_format in ["onnx", "tf"], "save_format must be 'onnx' or 'tf'"
         if save_format == "onnx":
             return self._export_onnx(model, model_path, **kwargs)
         elif save_format == "tf":
@@ -855,8 +854,7 @@ class SLBaseTFModel(SLBaseModel):
 
         tag_set = 'serve'
         signature_def_key = 'serving_default'
-        meta_graph_def = saved_model_utils.get_meta_graph_def(
-            model_path, tag_set)
+        meta_graph_def = saved_model_utils.get_meta_graph_def(model_path, tag_set)
         if signature_def_key not in meta_graph_def.signature_def:
             raise ValueError(
                 f'Could not find signature "{signature_def_key}". Please choose from: '

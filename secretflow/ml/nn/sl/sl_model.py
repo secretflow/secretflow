@@ -300,23 +300,28 @@ class SLModel:
             self._workers[self.device_y].on_epoch_begin(epoch)
             fuse_net_num_returns = sum(self.basenet_output_num.values())
             hiddens_buf = [None] * (self.pipeline_size - 1)
-            for step in range(0, steps_per_epoch):
-                if verbose == 1:
-                    pbar.update(1)
-                hiddens = []
-                self._workers[self.device_y].on_train_batch_begin(step=step)
-                for device, worker in self._workers.items():
-                    # enable compression in fit when model has compressor
-                    hidden = worker.base_forward(
-                        stage="train", compress=self.has_compressor
-                    )
-                    hiddens.append(hidden.to(self.device_y))
+            for step in range(0, steps_per_epoch + self.pipeline_size - 1):
+                # forward stage
+                if step < steps_per_epoch:
+                    if verbose == 1:
+                        pbar.update(1)
+                    hiddens = []
+                    self._workers[self.device_y].on_train_batch_begin(step=step)
+                    for device, worker in self._workers.items():
+                        # enable compression in fit when model has compressor
+                        hidden = worker.base_forward(
+                            stage="train", compress=self.has_compressor
+                        )
+                        hiddens.append(hidden.to(self.device_y))
 
-                # pipeline
-                hiddens_buf.append(hiddens)
+                    # pipeline
+                    hiddens_buf.append(hiddens)
                 hiddens = hiddens_buf.pop(0)
                 if hiddens is None:
                     continue
+                # In pipeline strategy, the backpropagation process of the model will lag n cycles behind the forward propagation process.
+                step = step - self.pipeline_size + 1
+
                 gradients = self._workers[self.device_y].fuse_net(
                     *hiddens,
                     _num_returns=fuse_net_num_returns,
@@ -353,6 +358,9 @@ class SLModel:
                 if len(res) == wait_steps:
                     wait(res)
                     res = []
+            assert (
+                len(hiddens_buf) == 0
+            ), f'hiddens buffer is non-empty, len: {len(hiddens_buf)}'
             if validation and epoch % validation_freq == 0:
                 # validation
                 self._workers[self.device_y].reset_metrics()
@@ -388,7 +396,11 @@ class SLModel:
                         is_test=self.simulation,
                         **audit_log_params,
                     )
-            epoch_log = self._workers[self.device_y].on_epoch_end(epoch)
+            for device, worker in self._workers.items():
+                if self.device_y == device:
+                    epoch_log = worker.on_epoch_end(epoch)
+                else:
+                    worker.on_epoch_end(epoch)
             # clean pipeline
             if self.pipeline_size > 1:
                 for device, worker in self._workers.items():

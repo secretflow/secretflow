@@ -24,11 +24,10 @@ import tensorflow as tf
 
 from secretflow.device import PYUObject, proxy
 from secretflow.ml.nn.sl.backend.tensorflow.sl_base import SLBaseTFModel
+from secretflow.ml.nn.sl.backend.tensorflow.utils import ForwardData
 from secretflow.ml.nn.sl.strategy_dispatcher import register_strategy
 from secretflow.security.privacy import DPStrategy
 from secretflow.utils.compressor import Compressor
-
-from secretflow.ml.nn.sl.backend.tensorflow.utils import ForwardData
 
 
 class PipelineTFModel(SLBaseTFModel):
@@ -104,7 +103,7 @@ class PipelineTFModel(SLBaseTFModel):
             else:
                 data_x = eval_data
         else:
-            raise Exception("invalid stage")
+            raise Exception(f"invalid stage {stage}")
 
         # Strip tuple of length one, e.g: (x,) -> x
         data_x = data_x[0] if isinstance(data_x, Tuple) and len(data_x) == 1 else data_x
@@ -158,12 +157,6 @@ class PipelineTFModel(SLBaseTFModel):
                     'can not find compressor when decompress data in base_backward'
                 )
 
-        assert (
-            len(self.base_tape) == self.pipeline_size
-        ), f'mismatch pipeline, pipeline size: {self.pipeline_size-1}, base_tape: {len(self.base_tape)}'
-        assert (
-            len(self.h) == self.pipeline_size
-        ), f'mismatch pipeline, pipeline size: {self.pipeline_size}, h: {len(self.h)}'
         pre_tape = self.base_tape.pop(0)
         with pre_tape:
             h = self.h.pop(0)
@@ -175,9 +168,6 @@ class PipelineTFModel(SLBaseTFModel):
                 return_hiddens.append(self.fuse_op(h, gradient))
             return_hiddens.append(self.model_base.losses)
 
-        assert (
-            len(self.trainable_vars) == self.pipeline_size
-        ), f'mismatch pipeline, pipeline size: {self.pipeline_size}, h: {len(self.trainable_vars)}'
         now_value = [var.read_value() for var in self.model_base.trainable_variables]
         pre_value = self.trainable_vars.pop(0)
         for idx, var in enumerate(self.model_base.trainable_variables):
@@ -192,9 +182,6 @@ class PipelineTFModel(SLBaseTFModel):
         self.kwargs = {}
 
     def _fuse_net_train(self, hiddens, losses=[]):
-        assert (
-            len(self.pre_train_y) == self.pipeline_size
-        ), f'mismatch pipeline, pipeline size: {self.pipeline_size}, pre_train_y: {len(self.pre_train_y)}'
         train_y = self.pre_train_y.pop(0)
         return self._fuse_net_internal(
             hiddens,
@@ -203,12 +190,18 @@ class PipelineTFModel(SLBaseTFModel):
             self.train_sample_weight,
         )
 
-    def clean_pipeline(self):
+    def on_epoch_end(self, epoch):
+        # clean up pipeline
         self.trainable_vars = []
         self.base_tape = []
         self.fuse_tape = []
         self.h = []
         self.pre_train_y = []
+
+        if self.fuse_callbacks:
+            self.fuse_callbacks.on_epoch_end(epoch, self.epoch_logs)
+            self.training_logs = self.epoch_logs
+        return self.epoch_logs
 
 
 @register_strategy(strategy_name='pipeline', backend='tensorflow')
