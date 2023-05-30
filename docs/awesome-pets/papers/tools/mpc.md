@@ -393,3 +393,86 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   [Blinder – MPC Based Scalable and Robust Anonymous Committed Broadcast](https://eprint.iacr.org/2020/248.pdf)  
   Cryptology ePrint Archive, 2020.
 
+## FHE-based MPC
+
+- *Adriana Lopez-Alt, Eran Tromer, Vinod Vaikuntanathan,*  
+  [On-the-Fly Multiparty Computation on the Cloud via Multikey Fully Homomorphic Encryption](https://eprint.iacr.org/2013/094.pdf)  
+  STOC 2012
+
+- *S. Dov Gordon, Feng-Hao Liu, Elaine Shi,*  
+  [Constant-Round MPC with Fairness and Guarantee of Output Delivery](https://eprint.iacr.org/2015/371.pdf)  
+  Annual International Cryptology Conference 2015
+
+- *Pratyay Mukherjee, Daniel Wichs,*  
+  [Two Round Multiparty Computation via Multi-Key FHE](https://eprint.iacr.org/2015/345.pdf)  
+  EUROCRYPT 2016
+
+- *Eunkyung Kim, Hyang-Sook Lee, Jeongeun Park,*  
+  [Towards Round-Optimal Secure Multiparty Computations: Multikey FHE without a CRS](https://eprint.iacr.org/2018/1156.pdf)  
+  ACISP2018
+
+- *Zvika Brakerski, Shai Halevi, Antigoni Polychroniadou,*  
+  [Four Round Secure Computation without Setup](https://eprint.iacr.org/2017/386.pdf)  
+  TCC (1) 2017: 645-677
+
+- *Hyang-Sook Lee, Jeongeun Park,*  
+  [On the Security of Multikey Homomorphic Encryption](https://eprint.iacr.org/2019/1082.pdf)  
+  IMA CC 2019
+
+- *Hao Chen, Ilaria Chillotti, Yongsoo Song,*  
+  [Multi-Key Homomophic Encryption from TFHE](https://eprint.iacr.org/2019/116.pdf)  
+  ASIACRYPT 2019
+
+- *Prabhanjan Ananth, Abhishek Jain, ZhengZhong Jin, Giulio Malavolta,*  
+  [Multi-key Fully-Homomorphic Encryption in the Plain Model](https://eprint.iacr.org/2020/180.pdf)  
+  TCC 2020
+
+- *Fabrice Benhamouda, Aayush Jain, Ilan Komargodski, Huijia Lin,*  
+  [Multiparty Reusable Non-Interactive Secure Computation from LWE](https://eprint.iacr.org/2021/378.pdf)  
+  EUROCRYPT 2021
+
+- *Dan Boneh, Rosario Gennaro, Steven Goldfeder, Aayush Jain, Sam Kim, Peter M. R. Rasmussen, Amit Sahai,*  
+  [Threshold Cryptosystems From Threshold Fully Homomorphic Encryption](https://eprint.iacr.org/2017/956.pdf)  
+  CRYPTO 2018: Advances in Cryptology – CRYPTO 2018 pp 565–596
+
+- *Pascal Lafourcade, Gael Marcadet, Léo Robert,*  
+  [Faster Non-interactive Verifiable Computing](https://eprint.iacr.org/2022/646)  
+  Cluster Computing volume 24, pages475–488 (2021)
+
+- *Siddhartha Chowdhury, Sayani Sinha, Animesh Singh, Shubham Mishra, Chandan Chaudhary, Sikhar Patranabis, Pratyay Mukherjee, Ayantika Chatterjee, Debdeep Mukhopadhyay,*  
+  [Efficient Threshold FHE with Application to Real-Time Systems](https://eprint.iacr.org/2022/1625.pdf)  
+
+- *Wutichai Chongchitmate, Rafail Ostrovsky,*  
+  [Circuit-Private Multi-key FHE](https://link.springer.com/chapter/10.1007/978-3-662-54388-7_9)  
+  PKC 2017
+
+- *Dan Boneh, Saba Eskandarian, Lucjan Hanzlik, Nicola Greco,*  
+  [Single Secret Leader Election](https://eprint.iacr.org/2020/025.pdf)  
+  AFT '20
+
+- *Katharina Boudgoust, Peter Scholl,*  
+  [Simple Threshold (Fully Homomorphic) Encryption From LWE With Polynomial Modulus](https://eprint.iacr.org/2023/016.pdf)  
+  IACR Cryptol. ePrint Arch. 2023: 16 (2023)
+
+- *Florian Bourse, Malika Izabachène,*  
+  [Plug-and-play sanitization for TFHE](https://eprint.iacr.org/2022/1438.pdf)  
+  IACR Cryptol. ePrint Arch. 2022: 1438 (2022)
+
+- *Shai Halevi, Carmit Hazay, Antigoni Polychroniadou, Muthuramakrishnan Venkitasubramaniam,*  
+  [Round-Optimal Secure Multi-party Computation](https://link.springer.com/article/10.1007/s00145-021-09382-3)  
+  CRYPTO 2018
+
+- *Nico Döttling, Vipul Goyal, Giulio Malavolta, Justin Raizes,*  
+  [Interaction-Preserving Compilers for Secure Computation](https://eprint.iacr.org/2021/1503.pdf)  
+  ITCS 2022
+
+- *Pascal Lafourcade, Gael Marcadet, Léo Robert,*  
+  [RMC-PVC: A Multi-Client Reusable Verifiable Computation Protocol (Long version)](https://eprint.iacr.org/2022/1748.pdf)  
+  SAC 23
+- *Shai Halevi, Carmit Hazay, Antigoni Polychroniadou, Muthuramakrishnan Venkitasubramaniam,*  
+  [Round-Optimal Secure Multi-party Computation](https://link.springer.com/article/10.1007/s00145-021-09382-3)  
+  CRYPTO 2018
+
+- *Nico Döttling, Vipul Goyal, Giulio Malavolta, Justin Raizes,*  
+  [Interaction-Preserving Compilers for Secure Computation](https://eprint.iacr.org/2021/1503.pdf)  
+  ITCS 2022
