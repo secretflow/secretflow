@@ -8,6 +8,7 @@
 > -- ELI BEN-SASSON, [A Cambrian Explosion of Crypto Proofs](https://nakamoto.com/cambrian-explosion-of-crypto-proofs/)
 
 Since its invention in 1986, ZKP systems, more and more,  become building blocks for many other important domains, such as blockchains, Anonymous Credentials (in Web3), authentication systems, etc. In the following, we will mainly elaborate on the pratical ZKPs and roughly divide them into two categories: specific purpose ZKP and general purpose ZKP, in which their differences mainly come from the ability to prove different statements.
+
 > If we compare this with Partial Homomorphic Encryption and Fully Homomorphic Encryption, specific ZKP can only prove some specific(simple) and finite statements, while general ZK (theoretically) can prove any statements.
 
 - [Zero-knowledge Proof (ZKP)](#zero-knowledge-proof-zkp)
@@ -22,15 +23,21 @@ Since its invention in 1986, ZKP systems, more and more,  become building blocks
     - [with updatable universal SRS](#with-updatable-universal-srs)
     - [with URS(Uniform Reference String)](#with-ursuniform-reference-string)
       - [DL-based](#dl-based)
+      - [MPC-in-the-head-based](#mpc-in-the-head-based)
       - [VOLE-based (Commit-and-prove type)](#vole-based-commit-and-prove-type)
   - [ZKP Standard Efforts](#zkp-standard-efforts)
   - [Applications on ZKP systems](#applications-on-zkp-systems)
+    - [Signature from ZKP](#signature-from-zkp)
 
 ## Survey & Tutorial
 
 - Zero-Knowledge twenty years after its invention, also called A Short Tutorial of Zero-Knowledge  
   *Oded Goldreich*  
   Gol10, [paper](https://www.wisdom.weizmann.ac.il/~oded/PSX/zk-tut10.pdf), [Gol04 older version](https://www.wisdom.weizmann.ac.il/~oded/PSX/zk-tut02v4.pdf),[homepage](https://www.wisdom.weizmann.ac.il/~oded/zk-tut02.html)
+
+- Proofs, Arguments, and Zero-Knowledge  
+  *Justin Thaler*  
+  Tha23, [paper](https://people.cs.georgetown.edu/jthaler/ProofsArgsAndZK.pdf)
 
 ## Milestones
 
@@ -42,9 +49,21 @@ Since its invention in 1986, ZKP systems, more and more,  become building blocks
   *Bellare Mihir and Oded Goldreich*  
   CRYPTO 1992, [paper](https://link.springer.com/chapter/10.1007/3-540-48071-4_28), BG92
 
+- Algebraic methods for interactive proof systems  
+  *Carsten Lund, Lance Fortnow, Howard Karloff, and Noam Nisan*  
+  JACM 1992, [paper](https://dl.acm.org/doi/pdf/10.1145/146585.146605), LFKN92
+
 - Efficient Identification and Signatures for Smart Cards  
   *Schnorr Claus-Peter*  
   CRYPTO 1989, [paper](https://link.springer.com/chapter/10.1007/0-387-34805-0_22), Sch89
+
+- Zero-knowledge from secure multiparty computation  
+  *Yuval Ishai, Eyal Kushilevitz, Rafail Ostrovsky, and Amit Sahai*  
+  STOC 2007, [paper](http://web.cs.ucla.edu/~sahai/work/web/2007%20Publications/STOC2007.pdf), IKOS07
+
+- Delegating computation: interactive proofs for muggles  
+  *Shafi Goldwasser, Yael Tauman Kalai, and Guy N. Rothblum*  
+  STOC 2008, [paper](https://dl.acm.org/doi/pdf/10.1145/2699436), [GKR08 older version](https://web.archive.org/web/20130401194435id_/http://research.microsoft.com/en-us/um/people/yael/publications/2008-DelegatingComputation.pdf), GKR08
 
 - Short Pairing-Based Non-Interactive Zero-Knowledge Arguments  
   *Groth Jens*  
@@ -62,6 +81,14 @@ Since its invention in 1986, ZKP systems, more and more,  become building blocks
   *Benedikt Bunz, Jonathan Bootle, Dan Boneh, Andrew Poelstra, Pieter Wuille, and Greg Maxwell*  
   S&P 2018, [paper](https://eprint.iacr.org/2017/1066), BBB+18
 
+- Fast Reed-Solomon Interactive Oracle Proofs of Proximity  
+  *Eli Ben-Sasson, Iddo Bentov, Ynon Horesh, and Michael Riabzev*  
+  ICALP 2018, [paper](https://drops.dagstuhl.de/opus/volltexte/2018/9018/pdf/LIPIcs-ICALP-2018-14.pdf), BBHR18
+
+- Scalable Zero Knowledge with no Trusted Setup  
+  *Eli Ben-Sasson, Iddo Bentov, Ynon Horesh, and Michael Riabzev*  
+  CRYPTO 2019, [paper](https://www.iacr.org/archive/crypto2019/116940201/116940201.pdf), BBHR19
+
 - PLONK: Permutations over Lagrange-Bases for Oecumenical Noninteractive Arguments of Knowledge  
   *Ariel Gabizon, Zachary J. Williamson, and Oana Ciobotaru*  
   eprint 2019, [paper](https://eprint.iacr.org/2019/953), GWC19
@@ -69,6 +96,10 @@ Since its invention in 1986, ZKP systems, more and more,  become building blocks
 - Wolverine: Fast, Scalable, and Communication-Efficient Zero-Knowledge Proofs for Boolean and Arithmetic Circuits  
   *Chenkai Weng, Kang Yang, Jonathan Katz, and Xiao Wang*  
   S&P 2021, [paper](https://eprint.iacr.org/2020/925), WYK+21
+
+- Gemini: Elastic SNARKs for Diverse Environments  
+  *Jonathan Bootle, Alessandro Chiesa, Yuncong Hu, and Michele Orrù*  
+  EUROCRYPT 2022, [paper](https://eprint.iacr.org/2022/420.pdf), BCHO22
 
 ## Specific ZKP
 
@@ -106,7 +137,7 @@ Since its invention in 1986, ZKP systems, more and more,  become building blocks
   *Thomas Attema, Ronald Cramer, and Serge Fehr*  
   CRYPTO 2021, [paper](https://eprint.iacr.org/2020/753), ACF21
 
-- DAG-Sigma: A DAG-Based Sigma Protocol for Relations in CNF  
+- DAG-Sigma: A DAG-Based Sigma Protocol for Relations in CNF  
   *Gongxian Zeng, Junzuo Lai, Zhengan Huang, Yu Wang, and Zhiming Zheng*  
   ASIACRYPT 2022, [paper](https://eprint.iacr.org/2022/1569), ZLH+22
 
@@ -152,7 +183,7 @@ Since its invention in 1986, ZKP systems, more and more,  become building blocks
   *Dan Boneh, Benedikt Bünz, and Ben Fisch*  
   CRYPTO 2019, [paper](https://eprint.iacr.org/2018/1188), BBF19
 
-- Compressed $\varSigma$-Protocol Theory and Practical Application to Plug & Play Secure Algorithmics  
+- Compressed $\varSigma$-Protocol Theory and Practical Application to Plug & Play Secure Algorithmics  
   *Thomas Attema, and Ronald Cramer*  
   CRYPTO 2020, [paper](https://eprint.iacr.org/2020/152), AC20
 
@@ -228,11 +259,15 @@ Updatable universal SRS means that the same SRS by a trusted setup could be used
   *Ariel Gabizon, Zachary J. Williamson, and Oana Ciobotaru*  
   eprint 2019, [paper](https://eprint.iacr.org/2019/953), GWC19
 
+- Libra: Succinct Zero-Knowledge Proofs with Optimal Prover Computation  
+  *Tiancheng Xie, Jiaheng Zhang, Yupeng Zhang, Charalampos Papamanthou, and Dawn Song*  
+  CRYPTO 2019, [paper](https://eprint.iacr.org/2019/317.pdf), XZZ+19
+
 - MIRAGE: Succinct Arguments for Randomized Algorithms with Applications to Universal Zk-SNARKs  
   *Ahmed Kosba, Dimitrios Papadopoulos, Charalampos Papamanthou, and Dawn Song*  
   USENIX Security 2020, [paper](https://eprint.iacr.org/2020/278), KPP+20
 
-- Lunar: A Toolbox for More Efficient Universal and Updatable ZkSNARKs and Commit-and-Prove Extensions  
+- Lunar: A Toolbox for More Efficient Universal and Updatable ZkSNARKs and Commit-and-Prove Extensions  
   *Matteo Campanelli, Antonio Faonio, Dario Fiore, Anaïs Querol, and Hadrián Rodríguez*  
   ASIACRYPT 2021, [paper](https://eprint.iacr.org/2020/1069), CFF+21
 
@@ -240,7 +275,7 @@ Updatable universal SRS means that the same SRS by a trusted setup could be used
   *Carla Ràfols, and Arantxa Zapico*  
   CRYPTO 2021, [paper](https://eprint.iacr.org/2021/590), RZ21
 
-- Counting Vampires: From Univariate Sumcheck to Updatable ZK-SNARK  
+- Counting Vampires: From Univariate Sumcheck to Updatable ZK-SNARK  
   *Helger Lipmaa, Janno Siim, and Michał Zając*  
   ASIACRYPT 2022, [paper](https://eprint.iacr.org/2022/406), LSZ22
 
@@ -271,16 +306,20 @@ Without trusted setup.
 - Transparent Polynomial Delegation and Its Applications to Zero Knowledge Proof  
   *Jiaheng Zhang, Tiancheng Xie, Yupeng Zhang, and Dawn Song*  
   S&P 2020, [paper](https://eprint.iacr.org/2019/1482), ZXZ+20
-
+  
 - Sumcheck Arguments and Their Applications  
   *Jonathan Bootle, Alessandro Chiesa, and Katerina Sotiraki*  
   CRYPTO 2021, [paper](https://eprint.iacr.org/2021/333), BCS21
+
+- Doubly Efficient Interactive Proofs for General Arithmetic Circuits with Linear Prover Time  
+  *Jiaheng Zhang, Tianyi Liu, Weijie Wang, Yinuo Zhang, Dawn Song, and Xiang Xie*  
+  CCS 2021, [paper](https://dl.acm.org/doi/pdf/10.1145/3460120.3484767), ZLW+21
 
 - RedShift: Transparent SNARKs from List Polynomial Commitments  
   *Assimakis A. Kattis, Konstantin Panarin, and Alexander Vlasov*  
   CCS 2022, [paper](https://eprint.iacr.org/2019/1400), KPV22
 
-- Flashproofs: Efficient Zero-Knowledge Arguments of Range and Polynomial Evaluation with Transparent Setup  
+- Flashproofs: Efficient Zero-Knowledge Arguments of Range and Polynomial Evaluation with Transparent Setup  
   *Nan Wang, and Sid Chi-Kin Chau*  
   ASIACRYPT 2022, [paper](https://eprint.iacr.org/2022/1251), WC22
 
@@ -306,11 +345,11 @@ Without trusted setup.
   *Geoffroy Couteau, and Dominik Hartmann*  
   CRYPTO 2020, [paper](https://eprint.iacr.org/2020/286), CH20
 
-- Compressed $\varSigma$-Protocol Theory and Practical Application to Plug & Play Secure Algorithmics  
+- Compressed $\varSigma$-Protocol Theory and Practical Application to Plug & Play Secure Algorithmics  
   *Thomas Attema, and Ronald Cramer*  
   CRYPTO 2020, [paper](https://eprint.iacr.org/2020/152), AC20
-  
-- Compressed $\varSigma$-Protocols for Bilinear Group Arithmetic Circuits and Application to Logarithmic Transparent Threshold Signatures  
+
+- Compressed $\varSigma$-Protocols for Bilinear Group Arithmetic Circuits and Application to Logarithmic Transparent Threshold Signatures  
   *Thomas Attema, Ronald Cramer, and Matthieu Rambaud*  
   ASIACRYPT 2021, [paper](https://eprint.iacr.org/2020/1447), ACR21
 
@@ -318,13 +357,43 @@ Without trusted setup.
   *Dan Boneh, Justin Drake, Ben Fisch, and Ariel Gabizon*  
   CRYPTO 2021, [paper](https://eprint.iacr.org/2020/1536), BDF+21
 
-- Efficient NIZKs for Algebraic Sets  
+- Efficient NIZKs for Algebraic Sets  
   *Geoffroy Couteau, Helger Lipmaa, Roberto Parisella, and Arne Tobias Ødegaard*  
   ASIACRYPT 2021, [paper](https://eprint.iacr.org/2021/1251), CLP+21
 
-- ECLIPSE: Enhanced Compiling Method for Pedersen-Committed ZkSNARK Engines  
+- ECLIPSE: Enhanced Compiling Method for Pedersen-Committed ZkSNARK Engines  
   *Diego F. Aranha, Emil Madsen Bennedsen, Matteo Campanelli, Chaya Ganesh, Claudio Orlandi, and Akira Takahashi*  
   PKC 2022, [paper](https://eprint.iacr.org/2021/934), ABC+22
+
+#### MPC-in-the-head-based
+
+- Zero-knowledge from secure multiparty computation  
+  *Yuval Ishai, Eyal Kushilevitz, Rafail Ostrovsky, and Amit Sahai*  
+  STOC 2007, [paper](http://web.cs.ucla.edu/~sahai/work/web/2007%20Publications/STOC2007.pdf), IKOS07
+
+- Zkboo: Faster zero-knowledge for boolean circuits  
+  *Irene Giacomelli, Jesper Madsen, and Claudio Orlandi*  
+  USENIX 2016, [paper](https://www.usenix.org/system/files/conference/usenixsecurity16/sec16_paper_giacomelli.pdf), GMO16
+
+- Post-quantum zero-knowledge and signatures from symmetric-key primitives  
+  *Melissa Chase, David Derler, Steven Goldfeder, Claudio Orlandi, Sebastian Ramacher, Christian Rechberger, Daniel Slamanig, and Greg Zaverucha*  
+  CCS 2017, [paper](https://dl.acm.org/doi/pdf/10.1145/3133956.3133997), CDG+17
+
+- Ligero: Lightweight sublinear arguments without a trusted setup  
+  *Scott Ames, Carmit Hazay, Yuval Ishai, and Muthuramakrishnan Venkitasubramaniam*  
+  CCS 2017, [paper](https://dl.acm.org/doi/pdf/10.1145/3133956.3134104), AHIV17
+
+- Improved non-interactive zero knowledge with applications to post-quantum signatures  
+  *Jonathan Katz, Vladimir Kolesnikov, and Xiao Wang*  
+  CCS 2018, [paper](https://dl.acm.org/doi/pdf/10.1145/3243734.3243805), KKW18
+
+- Concretely-efficient zero-knowledge arguments for arithmetic circuits and their application to lattice-based cryptography  
+  *Carsten Baum and Ariel Nof*  
+  PKC 2020, [paper](https://eprint.iacr.org/2019/532.pdf), BN20
+
+- Limbo: Efficient zero-knowledge MPCitH-based arguments  
+  *Cyprien de Saint Guilhem, Emmanuela Orsini, and Titouan Tanguy*  
+  CCS 2021, [paper](https://dl.acm.org/doi/pdf/10.1145/3460120.3484595), dOT21
 
 #### VOLE-based (Commit-and-prove type)
 
@@ -332,7 +401,7 @@ Without trusted setup.
   *Carsten Baum, Lennart Braun, Alexander Munch-Hansen, Benoit Razet, and Peter Scholl*  
   CCS 2021, [paper](https://eprint.iacr.org/2021/750), BBM+21
 
-- $\mathsf{Mac’n’Cheese}$: Zero-Knowledge Proofs for Boolean and Arithmetic Circuits with Nested Disjunctions  
+- $\mathsf{Mac’n’Cheese}$: Zero-Knowledge Proofs for Boolean and Arithmetic Circuits with Nested Disjunctions  
   *Carsten Baum, Alex J. Malozemoff, Marc B. Rosen, and Peter Scholl*  
   CRYPTO 2021, [paper](https://eprint.iacr.org/2020/1410), BMR+21
 
@@ -368,6 +437,7 @@ Without trusted setup.
   IETF rfc8235, [paper](https://datatracker.ietf.org/doc/rfc8235), Hao 21
 
 Below are from organization [zkproof](https://zkproof.org/):
+
 > ZKProof is an open-industry academic initiative that seeks to mainstream zero-knowledge proof (ZKP) cryptography through an inclusive, community-driven standardization process that focuses on interoperability and security.
 
 - Proposal: Commit-and-Prove Zero-Knowledge Proof Systems and Extensions  
@@ -425,6 +495,49 @@ Here just list several interesting applicaitons.
   *Paul Grubbs, Arasu Arun, Ye Zhang, Joseph Bonneau, and Michael Walfish*  
   USENIX 2022, [paper](https://eprint.iacr.org/2021/1022), GAZ+22
 
+- Efficient Zero-Knowledge Proofs on Signed Data with Applications to Verifiable Computation on Data Streams  
+  *Dario Fiore, and Ida Tucker*  
+  CCS 2022, [paper](https://eprint.iacr.org/2022/1393.pdf), FT22
+
 - Zk-Creds: Flexible Anonymous Credentials from ZkSNARKs and Existing Identity Infrastructure  
   *Michael Rosenberg, Jacob White, Christina Garman, and Ian Miers*  
   S&P 2023, [paper](https://eprint.iacr.org/2022/878), RWG+23
+  
+### Signature from ZKP
+
+- Post-quantum zero-knowledge and signatures from symmetric-key primitives  
+  *Melissa Chase, David Derler, Steven Goldfeder, Claudio Orlandi, Sebastian Ramacher, Christian Rechberger, Daniel Slamanig, and Greg Zaverucha*  
+  CCS 2017, [paper](https://dl.acm.org/doi/pdf/10.1145/3133956.3133997), CDG+17
+  
+- Improved non-interactive zero knowledge with applications to post-quantum signatures  
+  *Jonathan Katz, Vladimir Kolesnikov, and Xiao Wang*  
+  CCS 2018, [paper](https://dl.acm.org/doi/pdf/10.1145/3243734.3243805), KKW18
+  
+- The picnic signature scheme, design document v2.1  
+  *Melissa Chase, David Derler, Steven Goldfeder, Jonathan Katz, Vladimir Kolesnikov, Claudio Orlandi, Sebastian Ramacher, Christian Rechberger, Daniel Slamanig and Xiao Wang*  
+  [paper](https://github.com/microsoft/Picnic/blob/master/spec/design-v2.1.pdf), CDG+19
+  
+- BBQ: Using AES in picnic signatures  
+  *Cyprien de Saint Guilhem, Lauren De Meyer, Emmanuela Orsini, and Nigel P. Smart*  
+  SAC 2019, [paper](https://eprint.iacr.org/2019/781.pdf), dDOS19
+  
+- The picnic signature scheme, design document v2.2  
+  *Melissa Chase, David Derler, Steven Goldfeder, Claudio Orlandi, Sebastian Ramacher, Christian Rechberger, Daniel Slamanig, Greg Zaverucha*  
+  [paper](https://github.com/microsoft/Picnic/blob/master/spec/design-v2.2.pdf),  CDG+20
+
+- Banquet: Short and fast signatures from AES  
+  *Carsten Baum, Cyprien de Saint Guilhem, Daniel Kales, Emmanuela Orsini, Peter Scholl, and Greg Zaverucha*  
+  PKC 2021, [paper](https://eprint.iacr.org/2021/068.pdf), BdK+21
+  
+- Limbo: Efficient zero-knowledge MPCitH-based arguments  
+  *Cyprien de Saint Guilhem, Emmanuela Orsini, and Titouan Tanguy*  
+  CCS 2021, [paper](https://dl.acm.org/doi/pdf/10.1145/3460120.3484595), dOT21
+  
+- Shorter signatures based on tailor-made minimalist symmetric-key crypto  
+  *Christoph Dobraunig, Daniel Kales, Christian Rechberger, Markus Schofnegger, and Greg Zaverucha*  
+  CCS 2022, [paper](https://dl.acm.org/doi/pdf/10.1145/3548606.3559353), DKR+21
+  
+- Efficient Lifting for Shorter Zero-Knowledge Proofs and Post-Quantum Signatures  
+  *Daniel Kales, and Greg Zaverucha*  
+  eprint 2022, [paper](https://eprint.iacr.org/2022/588.pdf), KZ22
+
