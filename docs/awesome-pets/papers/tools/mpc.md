@@ -22,6 +22,11 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
     - [Semi-Honest Secret Sharing](#semi-honest-secret-sharing)
     - [Malicious Secret Sharing](#malicious-secret-sharing)
     - [Zero-Knowledge Proof](#zero-knowledge-proof)
+  - [Threshold ECDSA](#Threshold_ECDSA)
+  - [Distance Calculation](#Distance_Calculation)
+  - [Private Information Retrival](#PIR)
+  - [Secure Multi-party Computation](#MPC)
+  - [FHE-based MPC](#fhe-based-mpc)
 
 ## Offline Techniques
 
@@ -280,3 +285,171 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
 - Practical Fully Secure Three-Party Computation via Sublinear Distributed Zero-Knowledge Proofs  
   *Elette Boyle, Niv Gilboa, Yuval Ishai, and Ariel Nof*  
   CCS 2019, [eprint](https://eprint.iacr.org/2019/1390), BGIN19
+
+## Threshold ECDSA
+- *G.Tillem, O.Burundukov,*  
+  [Threshold Signatures using Secure Multiparty Computation](https://www.ingwb.com/binaries/content/assets/insights/themes/distributed-ledger-technology/ing-releases-multiparty-threshold-signing-library-to-improve-customer-security/threshold-signatures-using-secure-multiparty-computation.pdf)  
+
+- *Damiano Abram, Ariel Nof, Claudio Orlandi, Peter Scholl, and Omer Shlomovits,*  
+  [Low-Bandwidth Threshold ECDSA via Pseudorandom Correlation Generators](https://eprint.iacr.org/2021/1587.pdf)  
+  SP22
+
+- *Cecilia Boschini, Akira Takahashi, and Mehdi Tibouchi,*  
+  [MuSig-L: Lattice-Based Multi-Signature With Single-Round Online Phase](https://eprint.iacr.org/2022/1036.pdf)  
+  A major revision of an IACR publication in CRYPTO 2022
+
+- *Abida Haque, Stephan Krenn, Daniel Slamanig, Christoph Striecks,*  
+  [Logarithmic-Size (Linkable) Threshold Ring Signatures in the Plain Model](https://eprint.iacr.org/2020/683)  
+  A major revision of an IACR publication in PKC 2022
+
+- *Yehuda Lindell,*  
+  [Simple Three-Round Multiparty Schnorr Signing with Full Simulatability](https://eprint.iacr.org/2022/374.pdf)  
+
+- *Sourav Das, Thomas Yurek, Zhuolun Xiang, Andrew Miller, Lefteris Kokoris-Kogias, Ling Ren,*  
+  [Practical Asynchronous Distributed Key Generation](https://eprint.iacr.org/2021/1591.pdf)  
+  IEEE S&P 2022
+
+- *Rosario Gennaro, Steven Goldfeder, Arvind Narayanan,*  
+  [Threshold-Optimal DSA/ECDSA Signatures and an Application to Bitcoin Wallet Security](https://eprint.iacr.org/2016/013.pdf)  
+  ACNS 2016: Applied Cryptography and Network Security pp 156–174
+
+- *Dan Boneh, Rosario Gennaro, Steven Goldfeder, Aayush Jain, Sam Kim, Peter M. R. Rasmussen, Amit Sahai,*  
+  [Threshold Cryptosystems from Threshold Fully Homomorphic Encryption](https://link.springer.com/chapter/10.1007/978-3-319-96884-1_19)  
+  CRYPTO 2018: Advances in Cryptology – CRYPTO 2018 pp 565–596
+
+## Distance Calculation
+- *Kimmo Järvinen, Ágnes Kiss, Thomas Schneider, Oleksandr Tkachenko, Zheng Yang,*  
+  [Faster Privacy-Preserving Location Proximity Schemes](https://link.springer.com/chapter/10.1007/978-3-030-00434-7_1)  
+  IACR Cryptol. ePrint Arch. 2018: 694 (2018)
+
+- *Kimmo Järvinen, Ágnes Kiss, Thomas Schneider, Oleksandr Tkachenko, Zheng Yang,*  
+  [Faster privacy-preserving location proximity schemes for circles and polygons](https://ietresearch.onlinelibrary.wiley.com/doi/10.1049/iet-ifs.2019.0125)  
+  IET Inf. Secur. 14(3): 254-265 (2020)
+
+- *Asma Aloufi, Peizhao Hu, Hang Liu, Sherman S. M. Chow,*  
+  [Universal Location Referencing and Homomorphic Evaluation of Geospatial Query](https://eprint.iacr.org/2019/820)
+  IACR Cryptol. ePrint Arch. 2019: 820 (2019)  
+
+- *Peizhao Hu, Sherman S. M. Chow, Asma Aloufi,*  
+  [Geosocial Query with User-Controlled Privacy](https://eprint.iacr.org/2018/304)  
+  IACR Cryptol. ePrint Arch. 2018: 304 (2018)
+
+- *Peizhao Hu, Tamalika Mukherjee, Alagu Valliappan and Stanisław Radziszowski,*  
+  [“Are we close?” – Secure Proximity Computation in Geosocial Networks](https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=3df1e190b007459e1babf9204821c5f340b6da91)  
+
+- *Kristin Lauter, Adriana López-Alt, Michael Naehrig,*  
+  [Private Computation on Encrypted Genomic Data](https://link.springer.com/chapter/10.1007/978-3-319-16295-9_1)  
+  Conference paper First Online: 01 January 2015
+
+## PIR
+- *Dan Boneh, Craig Gentry, Shai Halevi, Frank Wang & David J. Wu ,*  
+  [Private Database Queries Using Somewhat Homomorphic Encryption](https://link.springer.com/chapter/10.1007/978-3-642-38980-1_7)  
+  ACNS 2013: Applied Cryptography and Network Security pp 102–118
+
+- *Trinabh Gupta, Natacha Crooks, Whitney Mulhern, Srinath Setty, Lorenzo Alvisi, and Michael Walfish,*  
+  [Scalable and Private Media Consumption with Popcorn](https://www.semanticscholar.org/paper/Scalable-and-Private-Media-Consumption-with-Popcorn-Gupta-Crooks/2d252b7b8aa30f5decdc52aa50484ae326979368)  
+  In Proc. of NSDI 16.
+
+- *Jeongeun Park, Mehdi Tibouchi,*  
+  [SHECS-PIR: Somewhat Homomorphic Encryption-Based Compact and Scalable Private Information Retrieval](https://link.springer.com/chapter/10.1007/978-3-030-59013-0_5)  
+  ESORICS 2020: Computer Security – ESORICS 2020 pp 86–106
+
+- *Ishtiyaque Ahmad, Laboni Sarker, Divyakant Agrawal, Amr El Abbadi, Trinabh Gupta,*  
+  [Coeus: A System for Oblivious Document Ranking and Retrieval](https://dl.acm.org/doi/10.1145/3477132.3483586)  
+  SOSP '21
+
+- *Frank Wang, Catherine Yun, Shafi Goldwasser, Vinod Vaikuntanathan, Matei Zaharia,*  
+  [Splinter: Practical Private Queries on Public Data](https://eprint.iacr.org/2016/1148)  
+  NSID'17
+
+- *Dominic Dams, Jeff Lataille, Rino Sanchez, John Wade,*  
+  [WIDESEAS: A lattice-based PIR scheme implemented in EncryptedQuery](https://eprint.iacr.org/2019/855)  
+  Cryptology ePrint Archive, Report 2019/855 (2019)
+
+- *Asra Ali, Tancrède Lepoint, Sarvar Patel, Mariana Raykova, Phillipp Schoppmann, Karn Seth, Kevin Yeo,*  
+  [Communication--Computation Trade-offs in PIR](https://eprint.iacr.org/2019/1483)  
+  Cryptology ePrint Archive, Report 2019/1483 (2019)
+
+- *Craig Gentry, Shai Halevi,*  
+  [Compressible FHE with applications to PIR](https://link.springer.com/chapter/10.1007/978-3-030-36033-7_17)  
+  TCC 2019, Part II. LNCS, vol. 11892, pp. 438–464. Springer, Heidelberg (Dec 2019)
+
+- *Alex Davidson (Brave Software), Gonçalo Pestana (Brave Software), Sofía Celi (Brave Software),*  
+  [FrodoPIR: Simple, Scalable, Single-Server Private Information Retrieval](https://petsymposium.org/popets/2023/popets-2023-0022.php)  
+
+## Secure Multi-party Computation,MPC
+- *Sophia Yakoubov，*  
+  [A Gentle Introduction to Yao’s Garbled Circuits](https://web.mit.edu/sonka89/www/papers/2017ygc.pdf)  
+
+- *Yehuda Lindell, Benny Pinkas,*  
+  [A Proof of Security of Yao’s Protocol for Two-Party Computation](https://eprint.iacr.org/2004/175.pdf)  
+  Journal of Cryptology volume 22, pages161–188 (2009)
+
+- *Ittai Abraham, Benny Pinkas, Avishay Yanai,*  
+  [Blinder – MPC Based Scalable and Robust Anonymous Committed Broadcast](https://eprint.iacr.org/2020/248.pdf)  
+  Cryptology ePrint Archive, 2020.
+
+## FHE-based MPC
+- *Adriana Lopez-Alt, Eran Tromer, Vinod Vaikuntanathan,*  
+  [On-the-Fly Multiparty Computation on the Cloud via Multikey Fully Homomorphic Encryption](https://eprint.iacr.org/2013/094.pdf)  
+  STOC 2012
+
+- *S. Dov Gordon, Feng-Hao Liu, Elaine Shi,*  
+  [Constant-Round MPC with Fairness and Guarantee of Output Delivery](https://eprint.iacr.org/2015/371.pdf)  
+  Annual International Cryptology Conference 2015
+
+- *Pratyay Mukherjee, Daniel Wichs,*  
+  [Two Round Multiparty Computation via Multi-Key FHE](https://eprint.iacr.org/2015/345.pdf)  
+  EUROCRYPT 2016
+
+- *Eunkyung Kim, Hyang-Sook Lee, Jeongeun Park,*  
+  [Towards Round-Optimal Secure Multiparty Computations: Multikey FHE without a CRS](https://eprint.iacr.org/2018/1156.pdf)  
+  ACISP2018
+
+- *Zvika Brakerski, Shai Halevi, Antigoni Polychroniadou,*  
+  [Four Round Secure Computation without Setup](https://eprint.iacr.org/2017/386.pdf)  
+  TCC (1) 2017: 645-677
+
+- *Hyang-Sook Lee, Jeongeun Park,*  
+  [On the Security of Multikey Homomorphic Encryption](https://eprint.iacr.org/2019/1082.pdf)  
+  IMA CC 2019
+
+- *Hao Chen, Ilaria Chillotti, Yongsoo Song,*  
+  [Multi-Key Homomophic Encryption from TFHE](https://eprint.iacr.org/2019/116.pdf)  
+  ASIACRYPT 2019
+
+- *Prabhanjan Ananth, Abhishek Jain, ZhengZhong Jin, Giulio Malavolta,*  
+  [Multi-key Fully-Homomorphic Encryption in the Plain Model](https://eprint.iacr.org/2020/180.pdf)  
+  TCC 2020
+
+- *Fabrice Benhamouda, Aayush Jain, Ilan Komargodski, Huijia Lin,*  
+  [Multiparty Reusable Non-Interactive Secure Computation from LWE](https://eprint.iacr.org/2021/378.pdf)  
+  EUROCRYPT 2021
+
+- *Dan Boneh, Rosario Gennaro, Steven Goldfeder, Aayush Jain, Sam Kim, Peter M. R. Rasmussen, Amit Sahai,*  
+  [Threshold Cryptosystems From Threshold Fully Homomorphic Encryption](https://eprint.iacr.org/2017/956.pdf)  
+  CRYPTO 2018: Advances in Cryptology – CRYPTO 2018 pp 565–596
+
+- *Pascal Lafourcade, Gael Marcadet, Léo Robert,*  
+  [Faster Non-interactive Verifiable Computing](https://eprint.iacr.org/2022/646)  
+  Cluster Computing volume 24, pages475–488 (2021)
+
+- *Siddhartha Chowdhury, Sayani Sinha, Animesh Singh, Shubham Mishra, Chandan Chaudhary, Sikhar Patranabis, Pratyay Mukherjee, Ayantika Chatterjee, Debdeep Mukhopadhyay,*  
+  [Efficient Threshold FHE with Application to Real-Time Systems](https://eprint.iacr.org/2022/1625.pdf)  
+
+- *Wutichai Chongchitmate, Rafail Ostrovsky,*  
+  [Circuit-Private Multi-key FHE](https://link.springer.com/chapter/10.1007/978-3-662-54388-7_9)  
+  PKC 2017
+
+- *Dan Boneh, Saba Eskandarian, Lucjan Hanzlik, Nicola Greco,*  
+  [Single Secret Leader Election](https://eprint.iacr.org/2020/025.pdf)  
+  AFT '20
+
+- *Katharina Boudgoust, Peter Scholl,*  
+  [Simple Threshold (Fully Homomorphic) Encryption From LWE With Polynomial Modulus](https://eprint.iacr.org/2023/016.pdf)  
+  IACR Cryptol. ePrint Arch. 2023: 16 (2023)
+
+- *Florian Bourse, Malika Izabachène,*  
+  [Plug-and-play sanitization for TFHE](https://eprint.iacr.org/2022/1438.pdf)  
+  IACR Cryptol. ePrint Arch. 2022: 1438 (2022)
+
