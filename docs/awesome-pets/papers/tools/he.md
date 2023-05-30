@@ -1,6 +1,6 @@
 # Table of Contents
   * [FHE](#FHE)
-  * [FHE-based MPC](#FHE-based MPC)
+  * [FHE-based MPC](#fhe-based-mpc)
   
 
 ## FHE
