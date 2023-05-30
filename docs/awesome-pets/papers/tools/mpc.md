@@ -22,10 +22,10 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
     - [Semi-Honest Secret Sharing](#semi-honest-secret-sharing)
     - [Malicious Secret Sharing](#malicious-secret-sharing)
     - [Zero-Knowledge Proof](#zero-knowledge-proof)
-  - [Threshold ECDSA](#Threshold_ECDSA)
-  - [Distance Calculation](#Distance_Calculation)
-  - [Private Information Retrival](#PIR)
-  - [Secure Multi-party Computation](#MPC)
+  - [Threshold ECDSA](#threshold-ecdsa)
+  - [Distance Calculation](#distance-calculation)
+  - [Private Information Retrival](#pir)
+  - [Secure Multi-party Computation](#secure-multi-party-computationmpc)
   - [FHE-based MPC](#fhe-based-mpc)
 
 ## Offline Techniques
