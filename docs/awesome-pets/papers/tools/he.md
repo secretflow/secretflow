@@ -17,8 +17,35 @@ HE, especially FHE(Fully Homomorphic Encryption), does matter and are keys for n
   - [Applications](#applications)
   - [Standard Efforts](#standard-efforts)
 
-
 ## Survey
+
+- Computing Blindfolded,New Developments in Fully Homomorphic Encryption  
+  *V. Vinod*  
+  FOCS 2011, [paper](https://people.csail.mit.edu/vinodv/FHE/FHE-focs-survey.pdf), Vin11
+
+- Practical homomorphic encryption: A survey  
+  *C. Moore, M. O’Neill, E. O’Sullivan, Y. Doroz, and B. Sunar*  
+  ISCAS 2014, [paper](https://pure.qub.ac.uk/files/17845072/Practical_Homomorphic_Encryption_Survey_CameraReady.pdf), MOO+14
+
+- A Guide to Fully Homomorphic Encryption  
+  *F. Armknecht, C. Boyd, C. Carr, A. Jaschke, and C. A. Reuter*  
+  2016, [paper](https://eprint.iacr.org/2015/1192.pdf), ACC+16
+
+- Homomorphic Encryption  
+  *H. Shai*  
+  2017, [paper](https://shaih.github.io/pubs/he-chapter.pdf), Shai17
+
+- A Survey on Fully Homomorphic Encryption: An Engineering Perspective  
+  *P. Martins, L. Sousa, and A. Mariano*  
+  ACM Comput. Surv. 2018, [paper](https://eprint.iacr.org/2022/1602.pdf), MSM18
+
+- Fundamentals of Fully Homomorphic Encryption – A survey  
+  *Z. Brakerski*  
+  [paper](https://eccc.weizmann.ac.il/report/2018/125/download/), Bra18
+
+- A Decade (or So) of Fully Homomorphic Encryption  
+  *C. Gentry*  
+  presented at the Eurocrypt2021 invited talk, [paper](https://eurocrypt.iacr.org/2021/slides/gentry.pdf)
 
 ## Partial HE(PHE)
 
@@ -80,9 +107,38 @@ Communications of the ACM, [paper](https://dl.acm.org/doi/pdf/10.1145/359340.359
 
 ## Impl. Efforts
 
+- Can homomorphic encryption be practical?  
+  *M. Naehrig, K. Lauter, and V. Vaikuntanathan*  
+  the 3rd ACM workshop on Cloud computing security workshop 2011, [paper](https://eprint.iacr.org/2011/405.pdf), NLV11
+- A Comparison of the Homomorphic Encryption Schemes FV and YASHE  
+   *T. Lepoint and M. Naehrig*  
+   AFRICACRYPT 2014, [paper](https://eprint.iacr.org/2014/062.pdf), LN14
+- Building an Efficient Lattice Gadget Toolkit: Subgaussian Sampling and More  
+  *N. Genise, D. Micciancio, and Y. Polyakov*  
+  EUROCRYPT 2019, [paper](https://eprint.iacr.org/2018/946.pdf), GMP19
+- Faster Homomorphic Linear Transformations in HElib  
+  *S. Halevi and V. Shoup*  
+  CRYPTO 2018, [paper](https://eprint.iacr.org/2018/244), HS18
+- OpenFHE: Open-Source Fully Homomorphic Encryption Library  
+  *A. A. Badawi et al.*  
+  WAHC 2022, [paper](https://eprint.iacr.org/2022/915), BBB+22
+- Simple Encrypted Arithmetic Library - SEAL v2.1  
+  *Hao Chen, Kim Laine, Rachel Player*  
+  FC 2017,[paper](https://eprint.iacr.org/2017/224.pdf), [version 2.3 by Kim Laine](https://www.microsoft.com/en-us/research/uploads/prod/2017/11/sealmanual-2-3-1.pdf), CLP17
+
 ### Hardware-based Acceleration
 
+TODO:
+
 ### Open-sourced libs
+
+| Name                                                         | Description                                                                                             | Scheme                                                                           | Language    |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ----------- |
+| [Secretflow/HEU](https://github.com/secretflow/heu)          | A high-performance homomorphic encryption algorithm library                                             | Paillier, OU, ElGamal, FHE(in developing)                                                            | C++, python |
+| [OpenFHE](https://github.com/openfheorg/openfhe-development) | OpenFHE is an open-source FHE library that includes efficient implementations of all common FHE schemes | - BFV, BGV, CKKS, DM, CGGI, <br/> - Threshold FHE & Proxy Re-Encryption for BFV, BGV, CKKS | C++         |
+| [microsoft/SEAL](https://github.com/microsoft/SEAL)          | an easy-to-use open-source homomorphic encryption library                                               | BFV, BGV, CKKS                                                                   | C++, C#     |
+
+See more, https://github.com/jonaschn/awesome-he#libraries
 
 ## Applications
 
@@ -90,10 +146,10 @@ Here just list several inspirational and instructive applicaitons.
 
 ## Standard Efforts
 
-- PSEC-3: Provably Secure Elliptic Curve Encryption Scheme
-  *T. Okamoto and D. Pointcheval*
-  Submission to IEEE P1363a, 2000, [paper](https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=4acdabff9b41622d0ee49ade2d0b4302e3727bf5), OP00; [a note by Rachel Shipsey](https://www.cosic.esat.kuleuven.be/nessie/reports/phase1/rhuwp3-008b.pdf), 
+- PSEC-3: Provably Secure Elliptic Curve Encryption Scheme  
+  *T. Okamoto and D. Pointcheval*  
+  Submission to IEEE P1363a, 2000, [paper](https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=4acdabff9b41622d0ee49ade2d0b4302e3727bf5), OP00; [a note by Rachel Shipsey](https://www.cosic.esat.kuleuven.be/nessie/reports/phase1/rhuwp3-008b.pdf),  
 
-- Homomorphic Encryption Security Standard v1.1
-  *Martin Albrecht and Melissa Chase and Hao Chen and Jintai Ding and Shafi Goldwasser and Sergey Gorbunov and Shai Halevi and Jeffrey Hoffstein and Kim Laine and Kristin Lauter and Satya Lokam and Daniele Micciancio and Dustin Moody and Travis Morrison and Amit Sahai and Vinod Vaikuntanathan*
+- Homomorphic Encryption Security Standard v1.1  
+  *Martin Albrecht and Melissa Chase and Hao Chen and Jintai Ding and Shafi Goldwasser and Sergey Gorbunov and Shai Halevi and Jeffrey Hoffstein and Kim Laine and Kristin Lauter and Satya Lokam and Daniele Micciancio and Dustin Moody and Travis Morrison and Amit Sahai and Vinod Vaikuntanathan*  
   HomomorphicEncryption.org, [paper](http://homomorphicencryption.org/wp-content/uploads/2018/11/HomomorphicEncryptionStandardv1.1.pdf), [homepage](https://homomorphicencryption.org/standard/), ACC+18
