@@ -19,9 +19,9 @@ Since its invention in 1986, ZKP systems, more and more,  become building blocks
     - [Membership(Range) Proof](#membershiprange-proof)
   - [General purpose ZKP](#general-purpose-zkp)
     - [Frameworks](#frameworks)
-    - [with SRS(Structured Reference String)](#with-srsstructured-reference-string)
+    - [with SRS(Structured Reference String), including ZKSNARK](#with-srsstructured-reference-string-including-zksnark)
     - [with updatable universal SRS](#with-updatable-universal-srs)
-    - [with URS(Uniform Reference String)](#with-ursuniform-reference-string)
+    - [with URS(Uniform Reference String), including ZKSTARK](#with-ursuniform-reference-string-including-zkstark)
       - [DL-based](#dl-based)
       - [MPC-in-the-head-based](#mpc-in-the-head-based)
       - [VOLE-based (Commit-and-prove type)](#vole-based-commit-and-prove-type)
@@ -219,18 +219,26 @@ Since its invention in 1986, ZKP systems, more and more,  become building blocks
   *Yuncong Zhang, Alan Szepeniec, Ren Zhang, Shi-Feng Sun, Geng Wang, and Dawu Gu*  
   CCS 2022, [paper](https://eprint.iacr.org/2021/710), ZSZ+22
 
-### with SRS(Structured Reference String)
+### with SRS(Structured Reference String), including ZKSNARK
 
 Traditional SRS usually need trusted setup per curcuit.
 
 - Short Pairing-Based Non-Interactive Zero-Knowledge Arguments  
   *Groth Jens*  
   ASIACRYPT 2010, [paper](http://www0.cs.ucl.ac.uk/staff/J.Groth/ShortNIZK.pdf), Gro10
+  
+- From extractable collision resistance to succinct non-interactive arguments of knowledge, and back again  
+  *Nir Bitansky, R. Canetti, A. Chiesa, and Eran Tromer*  
+  ITCS 2012, [paper](https://dl.acm.org/doi/10.1145/2090236.2090263), BCC+12
 
 - Quadratic Span Programs and Succinct NIZKs without PCPs  
   *Rosario Gennaro, Craig Gentry, Bryan Parno, and Mariana Raykova*  
   EUROCRYPT 2013, [paper](https://eprint.iacr.org/2012/215), GGPR13
 
+- Succinct Non-Interactive Zero Knowledge for a von Neumann Architecture  
+  *Eli Ben-Sasson, A. Chiesa, Eran Tromer, and M. Virza*  
+  USENIX 2014, [paper](https://eprint.iacr.org/2013/879), BCT+14
+  
 - On the Size of Pairing-Based Non-Interactive Arguments  
   *Groth Jens*  
   EUROCRYPT 2016, [paper](https://eprint.iacr.org/2016/260), Gro16
@@ -279,7 +287,7 @@ Updatable universal SRS means that the same SRS by a trusted setup could be used
   *Helger Lipmaa, Janno Siim, and Michał Zając*  
   ASIACRYPT 2022, [paper](https://eprint.iacr.org/2022/406), LSZ22
 
-### with URS(Uniform Reference String)
+### with URS(Uniform Reference String), including ZKSTARK
 
 Without trusted setup.
 
@@ -291,9 +299,17 @@ Without trusted setup.
   *Eli Ben-Sasson, Iddo Bentov, Yinon Horesh, and Michael Riabzev*  
   CRYPTO 2019, [paper](https://www.iacr.org/archive/crypto2019/116940201/116940201.pdf), BBH+19
 
+- HALO: Recursive Proof Composition without a Trusted Setup  
+  *Sean Bowe, J. Grigg, and Daira Hopwood*  
+  eprint 2019, [paper](https://eprint.iacr.org/2019/1021), BGH19
+  
 - Aurora: Transparent Succinct Arguments for R1CS  
   *Eli Ben-Sasson, Alessandro Chiesa, Michael Riabzev, Nicholas Spooner, Madars Virza, and Nicholas P. Ward*  
   EUROCRYPT 2019, [paper](https://eprint.iacr.org/2018/828), BCR+19
+  
+- DEEP-FRI: Sampling Outside the Box Improves Soundness  
+  *Eli Ben-Sasson, Lior Goldberg, Swastik Kopparty, and Shubhangi Saraf*  
+  arXiv 2019, [paper](https://eprint.iacr.org/2019/336), BGKS19
 
 - Ligero++: A New Optimized Sublinear IOP  
   *Rishabh Bhadauria, Zhiyong Fang, Carmit Hazay, Muthuramakrishnan Venkitasubramaniam, Tiancheng Xie, and Yupeng Zhang*  
@@ -428,7 +444,8 @@ Without trusted setup.
 - AntMan: Interactive Zero-Knowledge Proofs with Sublinear Communication  
   *Chenkai Weng, Kang Yang, Zhaomin Yang, Xiang Xie, and Xiao Wang*  
   CCS 2022, [paper](https://eprint.iacr.org/2022/566), WYY+22
-
+  
+  
 ## ZKP Standard Efforts
 
 

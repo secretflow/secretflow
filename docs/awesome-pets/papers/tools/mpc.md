@@ -28,6 +28,7 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   - [Secure Multi-party Computation](#secure-multi-party-computationmpc)
   - [FHE-based MPC](#fhe-based-mpc)
 
+
 ## Offline Techniques
 
 ### Oblivious transfer
@@ -275,8 +276,6 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
 - Optimized Honest-Majority MPC for Malicious Adversaries — Breaking the 1 Billion-Gate Per Second Barrier  
   *Toshinori Araki, Assi Barak, Jun Furukawa, Tamar Lichter, Yehuda Lindell, Ariel Nof, Kazuma Ohara, Adi Watzman, Or Weinstein*  
   S&P 2017, [eprint](https://www.ieee-security.org/TC/SP2017/papers/96.pdf)
-
-### Zero-Knowledge Proof
 
 - Zero-Knowledge Proofs on Secret-Shared Data via Fully Linear PCPs  
   *Dan Boneh, Elette Boyle, Henry Corrigan-Gibbs, Niv Gilboa, Yuval Ishai*  
