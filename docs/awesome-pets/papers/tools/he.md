@@ -216,15 +216,15 @@ Communications of the ACM, [paper](https://dl.acm.org/doi/pdf/10.1145/359340.359
 - Building an Efficient Lattice Gadget Toolkit: Subgaussian Sampling and More  
   *N. Genise, D. Micciancio, and Y. Polyakov*  
   EUROCRYPT 2019, [paper](https://eprint.iacr.org/2018/946.pdf), GMP19
+- Simple Encrypted Arithmetic Library - SEAL v2.1  
+  *Hao Chen, Kim Laine, Rachel Player*  
+  FC 2017,[paper](https://eprint.iacr.org/2017/224.pdf), [version 2.3 by Kim Laine](https://www.microsoft.com/en-us/research/uploads/prod/2017/11/sealmanual-2-3-1.pdf), CLP17
 - Faster Homomorphic Linear Transformations in HElib  
   *S. Halevi and V. Shoup*  
   CRYPTO 2018, [paper](https://eprint.iacr.org/2018/244), HS18
 - OpenFHE: Open-Source Fully Homomorphic Encryption Library  
   *A. A. Badawi et al.*  
   WAHC 2022, [paper](https://eprint.iacr.org/2022/915), BBB+22
-- Simple Encrypted Arithmetic Library - SEAL v2.1  
-  *Hao Chen, Kim Laine, Rachel Player*  
-  FC 2017,[paper](https://eprint.iacr.org/2017/224.pdf), [version 2.3 by Kim Laine](https://www.microsoft.com/en-us/research/uploads/prod/2017/11/sealmanual-2-3-1.pdf), CLP17
 
 ### Hardware-based Acceleration
 
