@@ -172,7 +172,8 @@ def test_homo_xgboost_cn(sf_production_setup_devices):
         'lambda': 0.1,
         'alpha': 0,
         'max_bin': 10,
-        'colsample_bytree': 1.0,
+        'subsample': 0.8,
+        'colsample_bytree': 0.8,
         'eval_metric': 'logloss',
         'hess_key': 'hess',  # 标记增加的hessian列名
         'grad_key': 'grad',  # 标记增加的grad列名
