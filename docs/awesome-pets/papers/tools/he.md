@@ -103,7 +103,107 @@ Communications of the ACM, [paper](https://dl.acm.org/doi/pdf/10.1145/359340.359
 
 ### Classical(or Milestones)
 
+- A fully homomorphic encryption scheme  
+  *Gentry, Craig*  
+  Stanford university 2009, [paper](https://www.proquest.com/openview/93369e65682e50979432340f1fdae44e/1?pq-origsite=gscholar&cbl=18750), Gentry09  
+
+- Fully Homomorphic Encryption Using Ideal Lattices  
+  *Gentry, Craig*  
+  STOC 2009, [paper](https://www.cs.cmu.edu/~odonnell/hits09/gentry-homomorphic-encryption.pdf), Gentry09  
+
+- A simple BGN-type cryptosystem from LWE  
+  *Gentry, Craig, Shai Halevi, and Vinod Vaikuntanathan*  
+  EUROCRYPT 2010, [paper](https://link.springer.com/chapter/10.1007/978-3-642-13190-5_26), GSV10    
+
+- Fully homomorphic encryption from ring-LWE and security for key dependent messages  
+  *Zvika Brakerski, Vinod Vaikuntanathan*  
+  CRYPTO 2011, [paper](https://www.iacr.org/archive/crypto2011/68410501/68410501.pdf), BV11  
+
+- (Leveled) fully homomorphic encryption without bootstrapping  
+  *Zvika Brakerski, Craig Gentry, Vinod Vaikuntanathan  
+  ITCS 2012, [paper](https://eprint.iacr.org/2011/277.pdf), BGV12  
+
+- Fully Homomorphic Encryption without Modulus Switching from Classical GapSVP  
+  *Zvika Brakerski*  
+  CRYPTO 2012, [paper](https://eprint.iacr.org/2012/078.pdf), Brakerski12  
+
+- Somewhat Practical Fully Homomorphic Encryption  
+  *Junfeng Fan, Frederik Vercauteren*  
+  eprint 2012, [paper](https://eprint.iacr.org/2012/144.pdf), FV12  
+
+- Packed Ciphertexts in LWE-based Homomorphic Encryption  
+  *Zvika Brakerski, Craig Gentry, Shai Halevi*  
+  PKC 2013, [paper](https://eprint.iacr.org/2012/565.pdf), BGH13  
+
+- Homomorphic Encryption from Learning with Errors: Conceptually-Simpler, Asymptotically-Faster, Attribute-Based  
+  *Craig Gentry, Amit Sahai, Brent Waters*  
+  CRYPTO 2013, [paper](https://eprint.iacr.org/2013/340.pdf), GSW13  
+
+- Efficient Fully Homomorphic Encryption from (Standard) LWE  
+  *Zvika Brakerski, Vinod Vaikuntanathan*  
+  SIAM Journal on computing 2014, [paper](https://eprint.iacr.org/2011/344.pdf), BV14  
+
+- FHEW: Bootstrapping Homomorphic Encryption in less than a second  
+  *Léo Ducas, Daniele Micciancio*  
+  EUROCRYPT 2015, [paper](https://eprint.iacr.org/2014/816.pdf), DM15  
+
+- Faster Fully Homomorphic Encryption: Bootstrapping in less than 0.1 Seconds  
+  *Ilaria Chillotti, Nicolas Gama, Mariya Georgieva, and Malika Izabachène*  
+  ASIACRYPT 2016, [paper](https://eprint.iacr.org/2016/870.pdf), CGG+16  
+
+- Homomorphic Encryption for Arithmetic of Approximate Numbers  
+  *Jung Hee Cheon, Andrey Kim, Miran Kim, Yongsoo Song*  
+  ASIACRYPT 2017, [paper](https://eprint.iacr.org/2016/421.pdf) , CKKS17  
+
+- Threshold Cryptosystems from Threshold Fully Homomorphic Encryption  
+  *Dan Boneh, Rosario Gennaro, Steven Goldfeder, Aayush Jain, Sam Kim, Peter M. R. Rasmussen, Amit Sahai*  
+  CRYPTO 2018, [paper](https://eprint.iacr.org/2017/956.pdf), BGG+18  
+
+- TFHE: Fast Fully Homomorphic Encryption Over the Torus  
+  *Ilaria Chillotti, Nicolas Gama, Mariya Georgieva, Malika Izabachène*  
+  Journal of Cryptology 2019, [paper](https://eprint.iacr.org/2018/421.pdf), BGG+2019  
+
+- Bootstrapping fully homomorphic encryption over the integers in less than one second  
+  *Hilder Vitor Lima Pereira*  
+  PKC 2021, [paper](https://eprint.iacr.org/2020/995.pdf), Pereira21  
+
+- Improved Programmable Bootstrapping with Larger Precision and Efficient Arithmetic Circuits for TFHE  
+  *Ilaria Chillotti, Damien Ligier, Jean-Baptiste Orfila, Samuel Tap*  
+  ASIACRYPT 2021, [paper](https://eprint.iacr.org/2021/729.pdf), CLO+21  
+
+- Efficient FHEW Bootstrapping with Small Evaluation Keys, and Applications to Threshold Homomorphic Encryption    
+  *Yongwoo Lee, Daniele Micciancio, Andrey Kim, Rakyong Choi, Maxim Deryabin, Jieun Eom, Donghoon Yoo*  
+  EUROCRYPT 2023, [paper](https://eprint.iacr.org/2022/198.pdf), LMK+23  
+
 ### Multi-key FHE
+
+- On-the-Fly Multiparty Computation on the Cloud via Multikey Fully Homomorphic Encryption  
+  *Adriana Lopez-Alt, Eran Tromer, Vinod Vaikuntanathan*  
+  STOC 2012, [paper](https://eprint.iacr.org/2013/094.pdf), LTV12  
+
+- Multi-Identity and Multi-Key Leveled FHE from Learning with Errors  
+  *Michael Clear, Ciarán McGoldrick*  
+  CRYPTO 2015, [paper](https://eprint.iacr.org/2014/798.pdf), CM15  
+
+- Lattice-Based Fully Dynamic Multi-key FHE with Short Ciphertexts  
+  *Zvika Brakerski, Renen Perlman*  
+  CRYPTO 2016, [paper](https://eprint.iacr.org/2016/339.pdf), BP16  
+
+- Multi-Key FHE from LWE, Revisited  
+  *Chris Peikert, Sina Shiehian*  
+  TCC 2016, [paper](https://eprint.iacr.org/2016/196.pdf), PS16  
+
+- Two Round Multiparty Computation via Multi-Key FHE  
+  *Pratyay Mukherjee, Daniel Wichs*  
+  EUROCRYPT 2016, [paper](https://eprint.iacr.org/2015/345.pdf), MW16  
+
+- Efficient Multi-Key Homomorphic Encryption with Packed Ciphertexts with Application to Oblivious Neural Network Inference  
+  *Hao Chen, Wei Dai, Miran Kim, Yongsoo Song*  
+  CCS 2019, [paper](https://eprint.iacr.org/2019/524.pdf), CDKS19  
+
+- Multi-Key Homomophic Encryption from TFHE  
+  *Hao Chen, Ilaria Chillotti, Yongsoo Song*  
+  ASIACRYPT 2019, [paper](https://eprint.iacr.org/2019/116.pdf), CCS19  
 
 ## Impl. Efforts
 
