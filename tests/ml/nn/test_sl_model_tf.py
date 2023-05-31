@@ -432,6 +432,17 @@ class TestSLModelTensorflow:
             split_steps=1,
             max_fuse_local_steps=10,
         )
+        # test pipeline
+        keras_model_with_mnist(
+            devices=sf_simulation_setup_devices,
+            data=x_train,
+            label=y_train,
+            base_model_dict=base_model_dict,
+            model_fuse=fuse_model,
+            device_y=sf_simulation_setup_devices.bob,
+            strategy='pipeline',
+            pipeline_size=2,
+        )
         # test model with regularizer
         base_model_with_reg = create_base_model(input_shape, 64, output_num=1, l2=1e-3)
         keras_model_with_mnist(

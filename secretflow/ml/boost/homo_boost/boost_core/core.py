@@ -19,11 +19,11 @@ import uuid
 from typing import Callable, Dict, List, Union
 
 import numpy
+import pandas as pd
 import xgboost.core as xgb_core
+from sklearn.model_selection import train_test_split
 
 import secretflow.device.link as link
-from secretflow.data.horizontal import HDataFrame
-from secretflow.data.split import train_test_split
 from secretflow.ml.boost.homo_boost.homo_decision_tree import HomoDecisionTree
 from secretflow.ml.boost.homo_boost.tree_param import TreeParam
 from secretflow.utils.errors import InvalidArgumentError
@@ -70,7 +70,7 @@ class FedBooster(xgb_core.Booster):
         self,
         params: Dict,
         dtrain: xgb_core.DMatrix,
-        hdata: HDataFrame,
+        hdata: pd.DataFrame,
         bin_split_points: List,
         iter_round: int = None,
         fobj: Callable = None,
@@ -112,13 +112,6 @@ class FedBooster(xgb_core.Booster):
             decimal=params['decimal'] if 'decimal' in params else 10,
             num_class=params['num_class'] if 'num_class' in params else 0,
         )
-        # sample by row
-        if tree_param.subsample < 1.0:
-            train_data, _ = train_test_split(
-                hdata, ratio=tree_param.subsample, random_state=tree_param.random_state
-            )
-        else:
-            train_data = hdata
 
         pred = self.predict(dtrain, output_margin=True, training=True)
         grad, hess = fobj(pred, dtrain)
@@ -143,6 +136,15 @@ class FedBooster(xgb_core.Booster):
                 hdata[self.grad_key], hdata[self.hess_key] = grad, hess
 
             tree_id = iter_round * group_num + group_id
+            # sample by row
+            if tree_param.subsample < 1.0:
+                train_data, _ = train_test_split(
+                    hdata,
+                    train_size=tree_param.subsample,
+                    random_state=tree_param.random_state,
+                )
+            else:
+                train_data = hdata
             decision_tree = HomoDecisionTree(
                 tree_param=tree_param,
                 data=train_data,

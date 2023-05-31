@@ -59,7 +59,6 @@ class DecisionTree(object):
         hess_key: str = "hess",
         label_key: str = "label",
     ):
-
         # input parameters
         self.criterion_method = tree_param.criterion_method
         self.criterion_params = [

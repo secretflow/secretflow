@@ -68,6 +68,12 @@ class SLModel:
         self.dp_strategy_dict = dp_strategy_dict
         self.simulation = kwargs.get('simulation', False)
         self.num_parties = len(base_model_dict)
+        self.pipeline_size = kwargs.get('pipeline_size', 1)
+        assert self.pipeline_size >= 1, f"invalid pipeline size: {self.pipeline_size}"
+        if self.pipeline_size > 1:
+            assert (
+                strategy == 'pipeline'
+            ), f"if pipeline_size is set to {self.pipeline_size}, strategy must be 'pipeline' instead of the provided value: {strategy}."
 
         # TODO: add argument `backend`
         import secretflow.ml.nn.sl.backend.tensorflow.strategy  # noqa
@@ -91,6 +97,7 @@ class SLModel:
                 loss_thres=kwargs.get('loss_thres', 0.01),
                 split_steps=kwargs.get('split_steps', 1),
                 max_fuse_local_steps=kwargs.get('max_fuse_local_steps', 1),
+                pipeline_size=kwargs.get('pipeline_size', 1),
             )
 
     def handle_data(
@@ -292,17 +299,28 @@ class SLModel:
             self._workers[self.device_y].reset_metrics()
             self._workers[self.device_y].on_epoch_begin(epoch)
             fuse_net_num_returns = sum(self.basenet_output_num.values())
-            for step in range(0, steps_per_epoch):
-                if verbose == 1:
-                    pbar.update(1)
-                hiddens = []
-                self._workers[self.device_y].on_train_batch_begin(step=step)
-                for device, worker in self._workers.items():
-                    # enable compression in fit when model has compressor
-                    hidden = worker.base_forward(
-                        stage="train", compress=self.has_compressor
-                    )
-                    hiddens.append(hidden.to(self.device_y))
+            hiddens_buf = [None] * (self.pipeline_size - 1)
+            for step in range(0, steps_per_epoch + self.pipeline_size - 1):
+                # forward stage
+                if step < steps_per_epoch:
+                    if verbose == 1:
+                        pbar.update(1)
+                    hiddens = []
+                    self._workers[self.device_y].on_train_batch_begin(step=step)
+                    for device, worker in self._workers.items():
+                        # enable compression in fit when model has compressor
+                        hidden = worker.base_forward(
+                            stage="train", compress=self.has_compressor
+                        )
+                        hiddens.append(hidden.to(self.device_y))
+
+                    # pipeline
+                    hiddens_buf.append(hiddens)
+                hiddens = hiddens_buf.pop(0)
+                if hiddens is None:
+                    continue
+                # In pipeline strategy, the backpropagation process of the model will lag n cycles behind the forward propagation process.
+                step = step - self.pipeline_size + 1
 
                 gradients = self._workers[self.device_y].fuse_net(
                     *hiddens,
@@ -340,6 +358,9 @@ class SLModel:
                 if len(res) == wait_steps:
                     wait(res)
                     res = []
+            assert (
+                len(hiddens_buf) == 0
+            ), f'hiddens buffer is non-empty, len: {len(hiddens_buf)}'
             if validation and epoch % validation_freq == 0:
                 # validation
                 self._workers[self.device_y].reset_metrics()
@@ -375,7 +396,15 @@ class SLModel:
                         is_test=self.simulation,
                         **audit_log_params,
                     )
-            epoch_log = self._workers[self.device_y].on_epoch_end(epoch)
+            for device, worker in self._workers.items():
+                if self.device_y == device:
+                    epoch_log = worker.on_epoch_end(epoch)
+                else:
+                    worker.on_epoch_end(epoch)
+            # clean pipeline
+            if self.pipeline_size > 1:
+                for device, worker in self._workers.items():
+                    worker.clean_pipeline()
             for name, metric in reveal(epoch_log).items():
                 report_list.append(f"{name}:{metric} ")
             report = " ".join(report_list)
