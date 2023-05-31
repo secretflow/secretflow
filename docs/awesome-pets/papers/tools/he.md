@@ -1,6 +1,6 @@
 # Homomorphic Encryption (HE)
 
-![](https://badgen.net/badge/:update-to/:June-2023/red) ![](https://badgen.net/badge/:papers/:xx/blue) 
+![](https://badgen.net/badge/:update-to/:June-2023/red) ![](https://badgen.net/badge/:papers/:27/blue) 
 
 HE, especially FHE(Fully Homomorphic Encryption), does matter and are keys for now and future.
 
