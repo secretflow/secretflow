@@ -181,8 +181,6 @@ Communications of the ACM, [paper](https://dl.acm.org/doi/pdf/10.1145/359340.359
   *Adriana Lopez-Alt, Eran Tromer, Vinod Vaikuntanathan*  
   STOC 2012, [paper](https://eprint.iacr.org/2013/094.pdf), LTV12  
 
-- 
-
 - Multi-Identity and Multi-Key Leveled FHE from Learning with Errors  
   *Michael Clear, Ciarán McGoldrick*  
   CRYPTO 2015, [paper](https://eprint.iacr.org/2014/798.pdf), CM15  
