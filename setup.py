@@ -187,8 +187,7 @@ setup(
     long_description_content_type='text/markdown',
     author='SCI Center',
     author_email='secretflow-contact@service.alipay.com',
-    # OPENSOURCE-CLEANUP SUB https://code.alipay.com/secretflow/secretflow https://github.com/secretflow/secretflow
-    url='https://code.alipay.com/secretflow/secretflow',
+    url='https://github.com/secretflow/secretflow',
     packages=find_packages(
         exclude=(
             'examples',
