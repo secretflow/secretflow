@@ -194,9 +194,6 @@ setup(
             'examples.*',
             'tests',
             'tests.*',
-            # OPENSOURCE-CLEANUP REMOVE 2
-            "secretflow.component.benchmark",
-            "secretflow.component.benchmark.*",
         )
     ),
     setup_requires=['protobuf_distutils'],
