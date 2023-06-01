@@ -127,7 +127,7 @@ class FlLogisticRegressionMix:
                 x=x_part.values, y=y_part.values, epochs=epochs, batch_size=batch_size
             )
 
-    def _agg_weights(self):
+    def _agg_weights(self, aggr_hooks: List):
         weights_list = [
             list(ver_lr.get_weight().values()) for ver_lr in self.ver_lr_list
         ]
@@ -135,6 +135,9 @@ class FlLogisticRegressionMix:
             self.aggregators[i].average(weights, axis=0)
             for i, weights in enumerate(zip(*weights_list))
         ]
+
+        for hook in aggr_hooks:
+            agg_weight = hook.on_aggregate(agg_weight)
         for ver_lr in self.ver_lr_list:
             ver_lr.set_weight(dict(zip(ver_lr.workers.keys(), agg_weight)))
 
@@ -174,6 +177,7 @@ class FlLogisticRegressionMix:
         learning_rate: Optional[float] = 0.1,
         agg_epochs: Optional[int] = 1,
         audit_log_dir: Dict[PYU, str] = None,
+        aggr_hooks: List = None,
     ):
         """Fit the model.
 
@@ -200,6 +204,7 @@ class FlLogisticRegressionMix:
                 device. No audit log if is None. Default to None.
                 Please leave it None unless you are very sure what the audit
                 does and accept the risk.
+            aggr_hooks: The hooks called on each aggregation
         """
         assert isinstance(
             x, MixDataFrame
@@ -226,6 +231,8 @@ class FlLogisticRegressionMix:
         assert len(heus) == len(
             x.partitions
         ), 'Amount of heus should be same as `VDataFrame`s of X.'
+        aggr_hooks = aggr_hooks or []  # change None -> []
+        aggr_hooks = aggr_hooks if isinstance(aggr_hooks, List) else [aggr_hooks]
 
         devices_list = [list(part.partitions.keys()) for part in x.partitions]
         self.aggregators = []
@@ -258,7 +265,7 @@ class FlLogisticRegressionMix:
 
         for epoch in range(epochs):
             if epoch % agg_epochs == 0:
-                self._agg_weights()
+                self._agg_weights(aggr_hooks)
                 loss = self._compute_loss(x, y)
                 logging.info(f'MixLr epoch {epoch}: loss = {loss}')
                 if loss <= tol:
@@ -266,7 +273,7 @@ class FlLogisticRegressionMix:
             self._fit_in_steps(
                 x, batch_size=batch_size, epoch=epoch, learning_rate=learning_rate
             )
-        self._agg_weights()
+        self._agg_weights(aggr_hooks)
         loss = self._compute_loss(x, y)
         logging.info(f'MixLr epoch {epoch + 1}: loss = {loss}')
 
