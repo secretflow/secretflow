@@ -13,3 +13,5 @@
 - [A Communication-Efficient Collaborative Learning Framework for Distributed Features](https://arxiv.org/pdf/1912.11187.pdf)
 
 - [Asymmetrical Vertical Federated Learning](https://arxiv.org/pdf/2004.07427.pdf)
+
+- [A Nearest Neighbor Under-sampling Strategy for Vertical Federated Learning in Financial Domain](https://dl.acm.org/doi/abs/10.1145/3531536.3532960)
