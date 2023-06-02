@@ -13,6 +13,10 @@ Private Information Retrival is a protocol that allows a client to retrieve an e
   
 ## Single-Server PIR
 
+- Flamingo: Multi-Round Single-Server Secure Aggregation with Applications to Private Federated Learning
+  *Yiping Ma, Jess Woods, Sebastian Angel, Antigoni Polychroniadou, Tal Rabin*
+  IEEE S&P 2023, [eprint](https://eprint.iacr.org/2023/486), MWAP+23
+
 - One Server for the Price of Two: Simple and Fast Single-Server Private Information Retrieval  
   *Alexandra Henzinger, Matthew M. Hong, Henry Corrigan-Gibbs, Sarah Meiklejohn, Vinod Vaikuntanathan*  
   Usenix Security 2023, [eprint](https://eprint.iacr.org/2022/949), HHCM+23
