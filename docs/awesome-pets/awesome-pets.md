@@ -10,8 +10,8 @@ Please feel free to open a pull request.
 
 Cryptography-based techniques. If you are a beginner in cryptography, and wants to learn about the theory or applications of crypto, please also checkout our [[crypto-for-beginners]](tutorials/crypto-beginner.md) list.
 
-1. [Secure Multi-Party Computation (MPC)](papers/tools/mpc.md)  (Contributors: [@jamie-cui](https://www.github.com/jamie-cui))
-2. [Zero-Knowledge Proof (ZKP)](papers/tools/zkp.md) (Contributors: [@xfap](https://www.github.com/xfap))
+1. [Secure Multi-Party Computation (MPC)](papers/tools/mpc.md)  (Contributors: [@jamie-cui](https://www.github.com/jamie-cui) [@DuanYuFi](https://github.com/DuanYuFi))
+2. [Zero-Knowledge Proof (ZKP)](papers/tools/zkp.md) (Contributors: [@xfap](https://www.github.com/xfap) [@yuzhouwudizuilihai](https://github.com/yuzhouwudizuilihai) [@zlyber](https://api.github.com/users/zlyber))
 
 Anonymity-related techniques
 
@@ -25,7 +25,7 @@ Hardware-based solutions
 
 Private Set/Database Operations
 
-1. [Private Set Intersection (PSI)](papers/applications/set/psi.md) (Contributors: [@jamie-cui](https://www.github.com/jamie-cui))
+1. [Private Set Intersection (PSI)](papers/applications/set/psi.md) (Contributors: [@jamie-cui](https://www.github.com/jamie-cui) [@tarantula-leo](https://www.github.com/tarantula-leo))
 <!-- 2. [Private Set Union (PSU)](papers/psu.md) -->
 <!-- 3. [Private Information Retrival (PIR)](papers/pir.md) -->
 
@@ -37,7 +37,7 @@ Protecting training/inference data
 
 Attacks on machine learning system
 
-1. [General attacks and defense](papers/applications/aml/attack_defense.md) (Contributors: [@zhangxingmeng](https://www.github.com/zhangxingmeng))
+1. [General attacks and defense](papers/applications/aml/attack_defense.md) (Contributors: [@zhangxingmeng](https://www.github.com/zhangxingmeng) [@JDywz](https://github.com/JdYwz))
 
 Multimedia Privacy and Security
 

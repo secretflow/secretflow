@@ -22,9 +22,8 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import reduce
 
 import numpy as np
-
+import pandas as pd
 import secretflow.device.link as link
-from secretflow.data.horizontal import HDataFrame
 from secretflow.ml.boost.homo_boost.tree_core.decision_tree import DecisionTree
 from secretflow.ml.boost.homo_boost.tree_core.feature_histogram import (
     FeatureHistogram,
@@ -53,7 +52,7 @@ class HomoDecisionTree(DecisionTree):
     def __init__(
         self,
         tree_param: TreeParam = None,
-        data: HDataFrame = None,
+        data: pd.DataFrame = None,
         bin_split_points: np.ndarray = None,
         group_id: int = None,
         tree_id: int = None,
@@ -62,7 +61,6 @@ class HomoDecisionTree(DecisionTree):
         grad_key: str = "grad",
         label_key: str = "label",
     ):
-
         super(HomoDecisionTree, self).__init__(
             tree_param, grad_key=grad_key, hess_key=hess_key, label_key=label_key
         )
@@ -129,7 +127,6 @@ class HomoDecisionTree(DecisionTree):
 
     def cal_root_node(self):
         if self.role == link.CLIENT:
-
             g_sum, h_sum = self.get_grad_hess_sum(self.data)
             # initialize node
             link.send_to_server(
@@ -265,7 +262,6 @@ class HomoDecisionTree(DecisionTree):
                 for batch_id, idx in enumerate(
                     range(0, len(self.cur_layer_node), self.max_split_nodes)
                 ):
-
                     local_hist_bags = HomoDecisionTree.cal_local_hist_bags(
                         self.cur_layer_node[idx : idx + self.max_split_nodes],
                         self.cur_layer_datas[idx : idx + self.max_split_nodes],

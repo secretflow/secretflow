@@ -27,19 +27,10 @@ ARG sf_version
 
 ENV version $sf_version
 
-RUN pip install secretflow==${version} --extra-index-url https://download.pytorch.org/whl/cpu
-
-# For security reason.
-# Since onnx-1.13.1's protobuf conflicts with TensorFlow-2.10.1's,
-# so we upgrade it manually.
-RUN pip install onnx==1.13.1 protobuf==3.20.3 && rm -rf /root/.cache
+RUN pip install secretflow-lite==${version} && rm -rf /root/.cache
 
 COPY .nsjail /root/.nsjail
 
 WORKDIR /root
 
-COPY anolis_entrypoint.sh /opt/secretflow/
-
-COPY anolis_entrypoint.py /opt/secretflow/
-
-ENTRYPOINT ["sh","/opt/secretflow/anolis_entrypoint.sh"]
+CMD ["/bin/bash"]

@@ -18,7 +18,7 @@ Note that since the real TEE environment is not used, the simulation mode lacks 
 
 #### Understand the SecretFlow deployment of multi-ray cluster mode
 
-For security reasons, Ray running in TEE is an independent cluster, so currently SecretFlow only supports the use of TEEU in multiple Ray cluster mode. You can read the [SecretFlow Deployment Documentation](../getting_started/DEPLOYMENT.md#production) in advance to understand the deployment of multiple Ray clusters.
+For security reasons, Ray running in TEE is an independent cluster, so currently SecretFlow only supports the use of TEEU in multiple Ray cluster mode. You can read the [SecretFlow Deployment Documentation](../getting_started/deployment.md#production) in advance to understand the deployment of multiple Ray clusters.
 
 #### Prepare to run the simulated TEEU machine
 
@@ -30,12 +30,12 @@ AuthManager is the module responsible for authorization management.
 
 1. Download the docker image
 ```shell
-docker pull secreflow/authmanager-release-sim-ubuntu:latest
+docker pull secretflow/authmanager-ubuntu-sim-release:latest
 ```
 
 2. Enter the docker image
 ```shell
-docker run -it --net host secreflow/authmanager-release-sim-ubuntu:latest
+docker run -it --net host secretflow/authmanager-ubuntu-sim-release:latest
 ```
 
 3. (Optional) Configure TLS
@@ -45,7 +45,6 @@ AuthManager enables TLS by default. If you only use it for local simulation, you
 4. Start the service
 
 ```shell
-cd occlum_release
 occlum run /bin/auth-manager --config_path /host/config.yaml
 ```
 The default port is 8835. Feel free to modify the `port` in config.yaml if port conflicts.
@@ -64,16 +63,18 @@ Finally, in order to verify the correctness, the results of the original value p
 import numpy as np
 
 def average(data):
-    return np. average(data, axis=1)
-
+    return np.average(data, axis=1)
 
 alice = sf.PYU('alice')
 bob = sf.PYU('bob')
-# mrenclave can be omitted in simulation mode.
-teeu = teeu('carol', mr_enclave='')
 
-a = alice(lambda np.random.rand(4, 3))()
-b = bob(lambda np.random.rand(4, 3))()
+from secretflow.device import TEEU
+
+# mrenclave can be omitted in simulation mode.
+teeu = TEEU('carol', mr_enclave='')
+
+a = alice(lambda: np.random.rand(4, 3))()
+b = bob(lambda: np.random.rand(4, 3))()
 
 # Transfer data to teeu.
 a_teeu = a.to(teeu, allow_funcs=average)
@@ -81,7 +82,7 @@ b_teeu = b.to(teeu, allow_funcs=average)
 
 # TEEU runs average.
 avg_val = teeu(average)([a_teeu, b_teeu])
-print(sf.get(avg_val))
+print(sf.reveal(avg_val))
 
 a = sf.reveal(a)
 b = sf.reveal(b)
@@ -103,7 +104,7 @@ ray start --head --node-ip-address="192.168.0.10" --port="10000" --include-dashb
 As Alice's data needs to be encrypted and sent to TEEU, it is imperative to generate a pair of public and private keys. Below, you may find the code that, upon execution, generates the public and private keys, which will be stored in the current directory in PEM format as "private_key.pem" and "public_key.pem", respectively.
 
 ```bash
-openssl genrsa -out private_key.pem 3072
+openssl genrsa -3 -out private_key.pem 3072
 openssl rsa -in private_key.pem -pubout -out public_key.pem
 ```
 
@@ -137,11 +138,12 @@ party_key_pair = {
 auth_manager_config = {
     'host': 'host of AuthManager',
     'ca_cert': 'path_of_AuthManager_ca_certificate',
+    'mr_enclave': ''
 }
 
-# Connect to Bob's ray
+# Connect to Alice's ray
 sf.init(
-    address='192.168.0.20:10000',
+    address='192.168.0.10:10000',
     cluster_config=cluster_config,
     party_key_pair=party_key_pair,
     auth_manager_config=auth_manager_config,
@@ -151,16 +153,17 @@ sf.init(
 import numpy as np
 
 def average(data):
-    return np. average(data, axis=1)
+    return np.average(data, axis=1)
 
+from secretflow.device import TEEU
 
 alice = sf.PYU('alice')
 bob = sf.PYU('bob')
 # mrenclave can be omitted in simulation mode.
-teeu = teeu('carol', mr_enclave='')
+teeu = TEEU('carol', mr_enclave='')
 
-a = alice(lambda np.random.rand(4, 3))()
-b = bob(lambda np.random.rand(4, 3))()
+a = alice(lambda: np.random.rand(4, 3))()
+b = bob(lambda: np.random.rand(4, 3))()
 
 # Transfer data to teeu.
 a_teeu = a.to(teeu, allow_funcs=average)
@@ -168,7 +171,7 @@ b_teeu = b.to(teeu, allow_funcs=average)
 
 # TEEU runs average.
 avg_val = teeu(average)([a_teeu, b_teeu])
-print(sf.get(avg_val))
+print(sf.reveal(avg_val))
 
 
 a = sf.reveal(a)
@@ -182,14 +185,14 @@ np.testing.assert_equal(avg_val, average([a, b]) )
 
 You should modify the following command to match the actual situation, as it currently assumes that Bob's Ray master node is listening at 192.168.0.20:10000.
 ```bash
-ray start --head --node-ip-address="192.168.0.20" --port="100000" --include-dashboard=False --disable-usage-stats
+ray start --head --node-ip-address="192.168.0.20" --port="10000" --include-dashboard=False --disable-usage-stats
 ```
 
 2. Generate a public-private key pair
 
 As Bob's data needs to be encrypted and sent to TEEU, it is imperative to generate a pair of public and private keys. Below, you may find the code that, upon execution, generates the public and private keys, which will be stored in the current directory in PEM format as "private_key.pem" and "public_key.pem", respectively.
 ```bash
-openssl genrsa -out private_key.pem 3072
+openssl genrsa -3 -out private_key.pem 3072
 openssl rsa -in private_key.pem -pubout -out public_key.pem
 ```
 
@@ -198,7 +201,7 @@ openssl rsa -in private_key.pem -pubout -out public_key.pem
 Similar to Alice, add the SecretFlow initialization code in front of the secure aggregation code to get the following code.
 First, you need to modify the configuration items in the code.
 
-- The code assumes that Alice's communication address is 192.168.0.20:10001, please modify it according to the actual situation
+- The code assumes that Bob's communication address is 192.168.0.20:10001, please modify it according to the actual situation
 - You need to fill in the correct `auth_manager_config`
 - `host` is the listening address of the AuthManager service
 - `ca_cert` is the CA certificate address of AuthManager, if AuthManager does not start tls, no configuration is required.
@@ -224,6 +227,7 @@ party_key_pair = {
 auth_manager_config = {
     'host': 'host of AuthManager',
     'ca_cert': 'path_of_AuthManager_ca_certificate',
+    'mr_enclave': ''
 }
 
 # Connect to Bob's ray
@@ -238,16 +242,17 @@ sf.init(
 import numpy as np
 
 def average(data):
-    return np. average(data, axis=1)
+    return np.average(data, axis=1)
 
+from secretflow.device import TEEU
 
 alice = sf.PYU('alice')
 bob = sf.PYU('bob')
 # mrenclave can be omitted in simulation mode.
-teeu = teeu('carol', mr_enclave='')
+teeu = TEEU('carol', mr_enclave='')
 
-a = alice(lambda np.random.rand(4, 3))()
-b = bob(lambda np.random.rand(4, 3))()
+a = alice(lambda: np.random.rand(4, 3))()
+b = bob(lambda: np.random.rand(4, 3))()
 
 # Transfer data to teeu.
 a_teeu = a.to(teeu, allow_funcs=average)
@@ -255,7 +260,8 @@ b_teeu = b.to(teeu, allow_funcs=average)
 
 # TEEU runs average.
 avg_val = teeu(average)([a_teeu, b_teeu])
-print(sf.get(avg_val))
+avg_val = sf.reveal(avg_val)
+print(avg_val)
 
 
 a = sf.reveal(a)
@@ -268,8 +274,15 @@ np.testing.assert_equal(avg_val, average([a, b]) )
 Run the container firstly.
 
 ```bash
-docker run -it --network host secretflow/tee-occlum:latest
+docker run -it --network host secretflow/secretflow-teeu:latest
 ```
+
+---
+Hint:
+
+The display of error messages such as "Failed to open Intel SGX device", "Error, call sgx_create_enclave QE fail", "Failed to load QE3" is expected while running in simulation mode.
+
+---
 
 Similarly, add the SecretFlow initialization code in front of the secure aggregation code to get the following code. Unlike the previous one, Carol's code needs to run in tee, so some extra steps are required.
 First, you need to modify the configuration items in the code.
@@ -302,6 +315,7 @@ cluster_config = {
 auth_manager_config = {
     'host': 'host of AuthManager',
     'ca_cert': 'path_of_AuthManager_ca_certificate',
+    'mr_enclave': ''
 }
 
 # Start a local Ray.
@@ -310,21 +324,24 @@ sf.init(
     cluster_config=cluster_config,
     auth_manager_config=auth_manager_config,
     tee_simulation=True,
+    _temp_dir="/host/tmp/ray",
+    _plasma_directory="/tmp",
 )
 
 import numpy as np
 
 def average(data):
-    return np. average(data, axis=1)
+    return np.average(data, axis=1)
 
+from secretflow.device import TEEU
 
 alice = sf.PYU('alice')
 bob = sf.PYU('bob')
 # mrenclave can be omitted in simulation mode.
-teeu = teeu('carol', mr_enclave='')
+teeu = TEEU('carol', mr_enclave='')
 
-a = alice(lambda np.random.rand(4, 3))()
-b = bob(lambda np.random.rand(4, 3))()
+a = alice(lambda: np.random.rand(4, 3))()
+b = bob(lambda: np.random.rand(4, 3))()
 
 # Transfer data to teeu.
 a_teeu = a.to(teeu, allow_funcs=average)
@@ -332,7 +349,7 @@ b_teeu = b.to(teeu, allow_funcs=average)
 
 # TEEU runs average.
 avg_val = teeu(average)([a_teeu, b_teeu])
-print(sf.get(avg_val))
+print(sf.reveal(avg_val))
 
 
 a = sf.reveal(a)
@@ -344,9 +361,18 @@ Then we run the script with the following command.
 
 ```bash
 cd /root/occlum_instance
-occlum build --sgx-mode sim
-occlum run /bin/python3.8 /root/demo.py
+openssl genrsa -3 -out private_key.pem 3072
+openssl rsa -in private_key.pem -pubout -out public_key.pem
+occlum build --sgx-mode sim --sign-key private_key.pem
+occlum run /bin/python /root/demo.py
 ```
+
+---
+Hint:
+
+While running on Occlum, it is anticipated to observe warning logs, such as "Fail to open /proc/self/io", "Fail to open /proc/self/statm", and "Fail to open /proc/loadavg", due to the absence of certain kernel functionalities. However, these warnings do not interfere with the proper functioning of the program.
+
+---
 
 ## 1.2 Non-simulation mode
 
@@ -376,7 +402,7 @@ Unlike simulation mode, non-simulation mode requires the simulation flag to be t
 
 1. Download the docker image
 ```shell
-docker pull secreflow/authmanager-release-ubuntu:latest
+docker pull secretflow/authmanager-ubuntu-release:latest
 ```
 
 2. Enter the docker image
@@ -434,7 +460,6 @@ Modify `ua_dcap_pccs_url` configuration in `/root/occlum_release/image/etc/kubet
 4. Configure TLS
 
 We recommend that you enable TLS. For information on how to configure this feature, please refer to [AuthManager](https://github.com/SecretFlow/authmanager).
-```
 
 5. Generate a pair of public and private keys, and then use the following command to build
 
@@ -442,7 +467,7 @@ You first need to generate a pair of public and private keys, and then use the f
 You can refer to the following scripts to generate public and private keys. The generated public and private keys are stored in private_key.pem and public_key.pem in the current directory. Please keep your private key safe and do not disclose it to others.
 
 ```bash
-openssl genrsa -out private_key.pem 3072
+openssl genrsa -3 -out private_key.pem 3072
 openssl rsa -in private_key.pem -pubout -out public_key.pem
 ```
 
@@ -467,7 +492,7 @@ occlum run /bin/auth-manager --config_path /host/config.yaml
 Execute the following command to obtain the mrenclave of AuthManager. mrenclave can be understood as a metric representing AuthManager code, data, and operating environment. The output is a string of hexadecimal strings, you can save it and use it in the next step.
 
 ```bash
-sgx_sign dump -enclave build/lib/libocclum-libos.signed.so -dumpfile mrenclave && grep "enclave_hash.m" mrenclave -m 1 -A 2 | tail -n 2 | sed "s/0x//g" | sed " s/ //g" | sed 'N;s/\n//'
+occlum print mrenclave
 ```
 
 ### Example - TEEU Secure Aggregation
@@ -482,15 +507,16 @@ Finally, in order to verify the correctness, the results of the original value p
 import numpy as np
 
 def average(data):
-    return np. average(data, axis=1)
+    return np.average(data, axis=1)
 
+from secretflow.device import TEEU
 
 alice = sf.PYU('alice')
 bob = sf.PYU('bob')
-teeu = teeu('carol', mr_enclave='mrenclave_of_teeu')
+teeu = TEEU('carol', mr_enclave='mrenclave_of_teeu')
 
-a = alice(lambda np.random.rand(4, 3))()
-b = bob(lambda np.random.rand(4, 3))()
+a = alice(lambda: np.random.rand(4, 3))()
+b = bob(lambda: np.random.rand(4, 3))()
 
 # Transfer data to teeu.
 a_teeu = a.to(teeu, allow_funcs=average)
@@ -498,7 +524,7 @@ b_teeu = b.to(teeu, allow_funcs=average)
 
 # TEEU runs average.
 avg_val = teeu(average)([a_teeu, b_teeu])
-print(sf.get(avg_val))
+print(sf.reveal(avg_val))
 
 a = sf.reveal(a)
 b = sf.reveal(b)
@@ -511,7 +537,7 @@ np.testing.assert_equal(avg_val, average([a, b]) )
 
 Start the SecretFlow TEE container.
 ```bash
-docker run -it --network host --privileged -v /dev/sgx_enclave:/dev/sgx/enclave -v /dev/sgx_provision:/dev/sgx/provision secretflow/tee-occlum:latest
+docker run -it --network host --privileged -v /dev/sgx_enclave:/dev/sgx/enclave -v /dev/sgx_provision:/dev/sgx/provision secretflow/secretflow-teeu:latest
 ```
 After entering the container, the default location is /root/occlum_instance.
 
@@ -617,25 +643,32 @@ cluster_config = {
 auth_manager_config = {
     'host': 'host of AuthManager',
     'ca_cert': 'path_of_ca_certificate_of_AuthManager',
-    'mrenclave': 'mrenclave of AuthManager',
+    'mr_enclave': 'mrenclave of AuthManager',
 }
 
 # Carol starts a local ray inside tee.
-sf.init(address='local', cluster_config=cluster_config, auth_manager_config=auth_manager_config)
+sf.init(
+    address='local', 
+    cluster_config=cluster_config, 
+    auth_manager_config=auth_manager_config,
+    _temp_dir="/host/tmp/ray",
+    _plasma_directory="/tmp",
+)
 
 import numpy as np
 
 def average(data):
-    return np. average(data, axis=1)
+    return np.average(data, axis=1)
 
+from secretflow.device import TEEU
 
 alice = sf.PYU('alice')
 bob = sf.PYU('bob')
 # Carol can omit the mrenclave.
-teeu = teeu('carol', mr_enclave='')
+teeu = TEEU('carol', mr_enclave='')
 
-a = alice(lambda np.random.rand(4, 3))()
-b = bob(lambda np.random.rand(4, 3))()
+a = alice(lambda: np.random.rand(4, 3))()
+b = bob(lambda: np.random.rand(4, 3))()
 
 # Transfer data to teeu.
 a_teeu = a.to(teeu, allow_funcs=average)
@@ -643,7 +676,7 @@ b_teeu = b.to(teeu, allow_funcs=average)
 
 # TEEU runs average.
 avg_val = teeu(average)([a_teeu, b_teeu])
-print(sf.get(avg_val))
+print(sf.reveal(avg_val))
 
 a = sf.reveal(a)
 b = sf.reveal(b)
@@ -656,7 +689,7 @@ You first need to generate a pair of public and private keys, and then use the f
 You can refer to the following scripts to generate public and private keys. The generated public and private keys are stored in private_key.pem and public_key.pem in the current directory. Please keep your private key safe and do not disclose it to others.
 
 ```bash
-openssl genrsa -out private_key.pem 3072
+openssl genrsa -3 -out private_key.pem 3072
 openssl rsa -in private_key.pem -pubout -out public_key.pem
 ```
 
@@ -671,14 +704,14 @@ occlum build -f --sign-key private_key.pem
 Execute the following command to get the MRENCLAVE of TEEU, which is used to characterize the metrics of TEEU code, data, and operating environment. The output is a string of hexadecimal strings, you can save it and use it in the next step.
 
 ```bash
-sgx_sign dump -enclave build/lib/libocclum-libos.signed.so -dumpfile mrenclave && grep "enclave_hash.m" mrenclave -m 1 -A 2 | tail -n 2 | sed "s/0x//g" | sed " s/ //g" | sed 'N;s/\n//'
+occlum print mrenclave
 ```
 
 6. Run the code
 
 Execute the following command to run the script.
 ```bash
-occlum run /bin/python3.8 /root/demo.py
+occlum run /bin/python /root/demo.py
 ```
 
 #### Alice runs the code
@@ -696,7 +729,7 @@ ray start --head --node-ip-address="192.168.0.10" --port="10000" --include-dashb
 As Alice's data needs to be encrypted and sent to TEEU, it is imperative to generate a pair of public and private keys. Below, you may find the code that, upon execution, generates the public and private keys, which will be stored in the current directory in PEM format as "private_key.pem" and "public_key.pem", respectively.
 
 ```bash
-openssl genrsa -out private_key.pem 3072
+openssl genrsa -3 -out private_key.pem 3072
 openssl rsa -in private_key.pem -pubout -out public_key.pem
 ```
 
@@ -709,7 +742,7 @@ Add the SecretFlow initialization related code in front of the secure aggregatio
   - `host` is the listening address of the AuthManager service
   - `ca_cert` is the CA certificate address of AuthManager, if AuthManager does not start tls, no configuration is required. (It is recommended to enable tls)
   - `mrenclave` is the MRENCLAVE of the AuthManager module, you should have obtained this value in the step of deploying AuthManager.
-- Use the MRENCLAVE of TEEU obtained earlier, fill in the correct value: `teeu = teeu('carol', mr_enclave='mr_enclave of TEEU')`
+- Use the MRENCLAVE of TEEU obtained earlier, fill in the correct value: `teeu = TEEU('carol', mr_enclave='mr_enclave of TEEU')`
 
 After the configuration is complete, suppose we save the code as demo.py, and then execute `python demo.py` on Alice's machine.
 
@@ -733,7 +766,7 @@ party_key_pair = {
 auth_manager_config = {
     'host': 'host of AuthManager',
     'ca_cert': 'path_of_ca_certificate_of_AuthManager',
-    'mrenclave': 'mrenclave of AuthManager',
+    'mr_enclave': 'mrenclave of AuthManager',
 }
 
 # Connect to Alice's ray
@@ -749,20 +782,21 @@ sf.init(
 import numpy as np
 
 def average(data):
-    return np. average(data, axis=1)
+    return np.average(data, axis=1)
 
+from secretflow.device import TEEU
 
 alice = sf.PYU('alice')
 bob = sf.PYU('bob')
-teeu = teeu('carol', mr_enclave='mrenclave_of_TEEU')
+teeu = TEEU('carol', mr_enclave='mrenclave_of_TEEU')
 
-a = alice(lambda np.random.rand(4, 3))()
-b = bob(lambda np.random.rand(4, 3))()
+a = alice(lambda: np.random.rand(4, 3))()
+b = bob(lambda: np.random.rand(4, 3))()
 a_teeu = a.to(teeu, allow_funcs=average)
 b_teeu = b.to(teeu, allow_funcs=average)
 
 avg_val = teeu(average)([a_teeu, b_teeu])
-print(sf.get(avg_val))
+print(sf.reveal(avg_val))
 
 
 a = sf.reveal(a)
@@ -784,19 +818,19 @@ ray start --head --node-ip-address="192.168.0.20" --port="100000" --include-dash
 As Bob's data needs to be encrypted and sent to TEEU, it is imperative to generate a pair of public and private keys. Below, you may find the code that, upon execution, generates the public and private keys, which will be stored in the current directory in PEM format as "private_key.pem" and "public_key.pem", respectively.
 
 ```bash
-openssl genrsa -out private_key.pem 3072
+openssl genrsa -3 -out private_key.pem 3072
 openssl rsa -in private_key.pem -pubout -out public_key.pem
 ```
 
 3. Run the code
 
 Similar to Alice, add the SecretFlow initialization code in front of the secure aggregation code to get the following code. You need to configure the code:
-- In the code, it is assumed that Bob’s communication address is 192.168.0.20:10001, please modify it according to the actual situation
+- In the code, it is assumed that Bob's communication address is 192.168.0.20:10001, please modify it according to the actual situation
 - You need to fill in the correct `auth_manager_config`
   - `host` is the listening address of the AuthManager service
   - `ca_cert` is the CA certificate address of AuthManager, if AuthManager does not start tls, no configuration is required. (It is recommended to enable tls)
   - `mrenclave` is the MRENCLAVE of the AuthManager module, you should have obtained this value in the step of deploying AuthManager.
-- Use the MRENCLAVE of TEEU obtained earlier, fill in the correct value: `teeu = teeu('carol', mr_enclave='mr_enclave of TEEU')`
+- Use the MRENCLAVE of TEEU obtained earlier, fill in the correct value: `teeu = TEEU('carol', mr_enclave='mr_enclave of TEEU')`
 
 After the configuration is complete, suppose we save the code as demo.py, and then execute `python demo.py` on Bob's machine.
 
@@ -820,7 +854,7 @@ party_key_pair = {
 auth_manager_config = {
     'host': 'host of AuthManager',
     'ca_cert': 'path_of_ca_certificate_of_AuthManager',
-    'mrenclave': 'mrenclave of AuthManager',
+    'mr_enclave': 'mrenclave of AuthManager',
 }
 
 # Connect to Bob's ray
@@ -836,20 +870,20 @@ sf.init(
 import numpy as np
 
 def average(data):
-    return np. average(data, axis=1)
+    return np.average(data, axis=1)
 
 
 alice = sf.PYU('alice')
 bob = sf.PYU('bob')
-teeu = teeu('carol', mr_enclave='mrenclave_of_TEEU')
+teeu = TEEU('carol', mr_enclave='mrenclave_of_TEEU')
 
-a = alice(lambda np.random.rand(4, 3))()
-b = bob(lambda np.random.rand(4, 3))()
+a = alice(lambda: np.random.rand(4, 3))()
+b = bob(lambda: np.random.rand(4, 3))()
 a_teeu = a.to(teeu, allow_funcs=average)
 b_teeu = b.to(teeu, allow_funcs=average)
 
 avg_val = teeu(average)([a_teeu, b_teeu])
-print(sf.get(avg_val))
+print(sf.reveal(avg_val))
 
 
 a = sf.reveal(a)
@@ -866,12 +900,17 @@ This chapter demonstrates how to use TEEU on a real SGX 2.0 machine. The main di
   - Configure `image/etc/kubetee/unified_attestation.json`
 2. To start the AuthManager and SecretFlow TEE images, it is necessary to mount the SGX-related devices. E.g.,
 ```bash
-docker run -it --network host --privileged -v /dev/sgx_enclave:/dev/sgx/enclave -v /dev/sgx_provision:/dev/sgx/provision secretflow/tee-occlum:latest
+docker run -it --network host --privileged -v /dev/sgx_enclave:/dev/sgx/enclave -v /dev/sgx_provision:/dev/sgx/provision secretflow/secretflow-teeu:latest
 ```
 3. Obtain and fill in the measurement values (MRENCLAVE) of AuthManager and TEEU.
   - Fill in the mrenclave of AuthManager in `auth_manager_config` of `sf.init()`.
   - Fill in the MRENCLAVE of TEEU when constructing its instance by `teeu = sf.TEEU(..., mr_enclave='MRENCLAVE_OF_TEEU')` .
-4. Set `tee_simulation=False` in `sf.init()`
+4. Set `tee_simulation=False` in `sf.init()`.
+5. Build occlum without arg `--sgx-mode sim`.
+
+### More examples
+
+[XGBoost in TEEU](./teeu_xgboost.md)
 
 ## 1.3 Advanced topics
 

@@ -1,6 +1,6 @@
 # PPML based on Crypto
 
-![](https://badgen.net/badge/:update-to/:Apr-2023/red) ![](https://badgen.net/badge/:papers/:42/blue) 
+![](https://badgen.net/badge/:update-to/:Apr-2023/red) ![](https://badgen.net/badge/:papers/:43/blue) 
 
 
 Privacy-preserving machine learning (PPML) based on Cryptographic techniques has been attracting attention in recent years. A lot papers provide matchine learning as a service (MLaaS) mainly in two ways:
@@ -40,9 +40,9 @@ An overview of existing works is illustrated in the table below.
 | 2PC |    PRNNInfer   |  &#10004;  |          |   &#10004;   |                        |         HE        |
 | 2PC |     AriaNN     |  &#10004;  | &#10004; |   &#10004;   |                        |      FSS & SS     |
 | 2PC |      Pika      |  &#10004;  | &#10004; |   &#10004;   |                        |        FSS        |
-| 2PC |      LLAMA     |  &#10004;  |          |   &#10004;   |                        |      FSS & SS     |
 | 2PC |     Fusion     |  &#10004;  |          |   &#10004;   |    Malicious servers   |      SS & ZKP     |
 | 2PC |      SIMC      |  &#10004;  |          |   &#10004;   |    Malicious clients   | SS & HE & OT & GC |
+| 2PC |    Squirrel    |  &#10004;  | &#10004; |   &#10004;   |                        |    SS & HE & OT   |
 |     |                |            |          |              |                        |                   |
 | 3PC |    Chameleon   |  &#10004;  |          |   &#10004;   |                        |      GC & SS      |
 | 3PC |      ABY3      |  &#10004;  | &#10004; |   &#10004;   |                        |      GC & SS      |
@@ -58,6 +58,7 @@ An overview of existing works is illustrated in the table below.
 | 3PC |     Piranha    |  &#10004;  | &#10004; |   &#10004;   |                        |         SS        |
 | 3PC |      pMPL      |  &#10004;  | &#10004; |   &#10004;   | GOD (privileged party) |         SS        |
 | 3PC |       PEA      |  &#10004;  | &#10004; |   &#10004;   |                        |      SS & DP      |
+| 3PC |      LLAMA     |  &#10004;  |          |   &#10004;   |                        |      FSS & SS     |
 |     |                |            |          |              |                        |                   |
 | 4PC |      FLASH     |  &#10004;  | &#10004; |   &#10004;   |           GOD          |         SS        |
 | 4PC |      SWIFT     |  &#10004;  | &#10004; |   &#10004;   |           GOD          |         SS        |
@@ -88,9 +89,6 @@ An overview of existing works is illustrated in the table below.
 - SIMC: ML Inference Secure Against Malicious Clients at Semi-Honest Cost.      
     *Nishanth Chandran, Divya Gupta, Sai Lakshmi Bhavana Obbattu, Akash Shah*   
     USENIX 2022, [eprint](https://eprint.iacr.org/2021/1538)
-- LLAMA: A Low Latency Math Library for Secure Inference.   
-    *Kanav Gupta, Deepak Kumaraswamy, Nishanth Chandran, Divya Gupta*   
-    PETS 2022, [eprint](https://eprint.iacr.org/2022/793)
 - Private and Reliable Neural Network Inference.    
     *Nikola Jovanovic, Marc Fischer, Samuel Steffen, Martin T. Vechev*  
     CCS 2022, [eprint](https://doi.org/10.48550/arXiv.2210.15614)
@@ -132,6 +130,9 @@ An overview of existing works is illustrated in the table below.
     CCS 2017, [eprint](http://eprint.iacr.org/2017/452)
 
 ### <a id='2pc-train'>Secure Training</a>
+- Squirrel: A Scalable Secure Two-Party Computation Framework for Training Gradient Boosting Decision Tree. 
+    *Wen-jie Lu, Zhicong Huang, Qizhi Zhang, Yuchen Wang, Cheng Hong*     
+    USENIX 2023, [eprint](https://eprint.iacr.org/2023/527.pdf)
 - AriaNN: Low-Interaction Privacy-Preserving Deep Learning via Function Secret Sharing. 
     *Théo Ryffel, Pierre Tholoniat, David Pointcheval, Francis R. Bach*     
     PETS 2022, [eprint](https://arxiv.org/abs/2006.04593)
@@ -160,6 +161,9 @@ An overview of existing works is illustrated in the table below.
 
 ## Three-party Computation (3PC)
 ### <a id='3pc-infer'>Secure Inference</a>
+- LLAMA: A Low Latency Math Library for Secure Inference.   
+    *Kanav Gupta, Deepak Kumaraswamy, Nishanth Chandran, Divya Gupta*   
+    PETS 2022, [eprint](https://eprint.iacr.org/2022/793)
 - CrypTFlow: Secure TensorFlow Inference.   
     *Nishant Kumar, Mayank Rathee, Nishanth Chandran, Divya Gupta, Aseem Rastogi, Rahul Sharma*     
     S&P 2020, [eprint](http://arxiv.org/abs/1909.07814)

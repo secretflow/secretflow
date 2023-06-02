@@ -3,9 +3,9 @@ Federated learning is a popular distributed machine learning framework in which 
 
 1. [Survey](survey.md)
 2. [Datasets](datasets.md)
-3. [Efficiency](efficiency.md)  
+3. [Efficiency](Efficiency.md)  
 Computation,Communication,Quantization
-4. [Effectiveness](effectiveness.md)  
+4. [Effectiveness](Effectiveness.md)  
 Non_IID, Accuracy challenge, Convergence, Robustness
 5. [Incentive](incentive.md)
 6. [Vertical FL](vertical.md)

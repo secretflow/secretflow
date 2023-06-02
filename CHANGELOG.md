@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.8.2b3] - 2023-5-15
+### Fixed
+- Correct TEEU function serialization protocol and docs.
+
 ## [0.8.2b2] - 2023-5-9
 ### Fixed
 - Fix SPU compilation cache bug

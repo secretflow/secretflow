@@ -121,6 +121,7 @@ def test_model_should_ok_when_fit_dataframe(env):
         learning_rate=0.1,
         aggregators=[aggregator0, aggregator1],
         heus=[devices.heu0, devices.heu1],
+        # aggr_hooks=[RouterLrAggrHook(devices.alice)]
     )
 
     y_pred = np.concatenate(sf.reveal(model.predict(data['x'])))
