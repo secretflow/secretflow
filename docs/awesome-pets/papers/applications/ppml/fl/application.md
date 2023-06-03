@@ -173,6 +173,12 @@ Keywords: Split Learning + Sparsification
 
 - [Record and reward federated learning contributions with blockchain](https://mblocklab.com/RecordandReward.pdf)
 
+- [Poster: A Reliable and Accountable Privacy-Preserving Federated Learning Framework using the Blockchain](https://dl.acm.org/doi/pdf/10.1145/3319535.3363256?casa_token=Vw3UHtNLryEAAAAA:kxFrIGLfztDBayYUYarcyjKV4cF3pxFoIuksJTczmIIDXdOut8Q5U30COoCiFTLVYrhWT9BAo0PbJF4)
+
+- [Biscotti: A Blockchain System for Private and Secure Federated Learning](https://www.academia.edu/download/84157304/tpds20-biscotti.pdf)
+
+- [Towards Blockchain-Based Reputation-Aware Federated Learning](https://www.researchgate.net/publication/339297228_Towards_Blockchain-Based_Reputation-Aware_Federated_Learning)
+
 ## Other
 - [Boosting Privately: Privacy-Preserving Federated Extreme Boosting for Mobile Crowdsensing](https://arxiv.org/pdf/1907.10218.pdf)
 
