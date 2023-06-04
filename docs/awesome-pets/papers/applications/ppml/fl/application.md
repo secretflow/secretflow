@@ -198,6 +198,7 @@ Keywords: Split Learning + Sparsification
 
 - [LstFcFedLear: A LSTM-FC with Vertical Federated Learning Network for Fault Prediction](https://dl.acm.org/doi/10.1155/2021/2668761)
 
+- [FairVFL: A Fair Vertical Federated Learning Framework with Contrastive Adversarial Learning](https://papers.nips.cc/paper_files/paper/2022/file/333a7697dbb67f09249337f81c27d749-Paper-Conference.pdf)
 
 ### Graph Neural Networks
 
@@ -265,7 +266,6 @@ Citation: 0
 
 - [GRAFFL: Gradient-free Federated Learning of a Bayesian Generative Model](https://arxiv.org/pdf/1910.08489.pdf)
 
-- [FairVFL: A Fair Vertical Federated Learning Framework with Contrastive Adversarial Learning](https://papers.nips.cc/paper_files/paper/2022/file/333a7697dbb67f09249337f81c27d749-Paper-Conference.pdf)
 
 
 ### VAE (Variational Autoencoder)
