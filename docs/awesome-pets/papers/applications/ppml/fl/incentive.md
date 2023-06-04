@@ -12,6 +12,8 @@
 
 - [Fedcoin: A peer-to-peer payment system for federated learning](https://arxiv.org/pdf/2002.11711.pdf)
 
+- [Efficient Participant Contribution Evaluation for Horizontal and Vertical Federated Learning](https://ieeexplore.ieee.org/document/9835159)
+
 
 ## Profit Allocation
 
