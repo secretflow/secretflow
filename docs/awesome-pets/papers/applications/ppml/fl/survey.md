@@ -9,6 +9,8 @@
 
 - [Vertical Federated Learning](https://arxiv.org/pdf/2211.12814.pdf)
 
+- [Vertical Federated Learning: A Structured Literature Review](https://arxiv.org/pdf/2212.00622.pdf)
+
 ## Security
 - [A survey on security and privacy of federated learning](https://www.researchgate.net/publication/344611776_A_survey_on_security_and_privacy_of_federated_learning)
 
