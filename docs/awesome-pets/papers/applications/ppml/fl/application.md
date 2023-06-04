@@ -36,6 +36,8 @@
 
 - [FedVision: An Online Visual Object Detection Platform Powered by Federated Learning](https://arxiv.org/pdf/2001.06202.pdf)
 
+- [Feature Map Transfer: Vertical Federated Learning for CNN Models](https://link.springer.com/content/pdf/10.1007/978-981-16-7502-7_4.pdf)
+
 
 ## Health Care: 
 - [Multi-Institutional Deep Learning Modeling Without Sharing Patient Data: A Feasibility Study on Brain Tumor Segmentation](https://arxiv.org/pdf/1810.04304.pdf)
@@ -157,6 +159,8 @@ Keywords: Split Learning + Sparsification
 
 - [Exploiting Unlabeled Data in Smart Cities using Federated Learning](https://arxiv.org/pdf/2001.04030.pdf)
 
+- [A Mobility Forecasting Framework with Vertical Federated Learning](https://ieeexplore.ieee.org/abstract/document/9842629)
+
 
 ## Robotics
 - [Federated Imitation Learning: A Privacy Considered Imitation Learning Framework for Cloud Robotic Systems with Heterogeneous Sensor Data](https://arxiv.org/pdf/1909.00895.pdf)
@@ -191,6 +195,8 @@ Keywords: Split Learning + Sparsification
 - [Federated Multi-task Hierarchical Attention Model for Sensor Analytics](https://arxiv.org/pdf/1905.05142.pdf)
 
 - [DÏoT: A Federated Self-learning Anomaly Detection System for IoT](https://arxiv.org/pdf/1804.07474.pdf)
+
+- [LstFcFedLear: A LSTM-FC with Vertical Federated Learning Network for Fault Prediction](https://dl.acm.org/doi/10.1155/2021/2668761)
 
 
 ### Graph Neural Networks
@@ -259,6 +265,8 @@ Citation: 0
 
 - [GRAFFL: Gradient-free Federated Learning of a Bayesian Generative Model](https://arxiv.org/pdf/1910.08489.pdf)
 
+- [FairVFL: A Fair Vertical Federated Learning Framework with Contrastive Adversarial Learning](https://papers.nips.cc/paper_files/paper/2022/file/333a7697dbb67f09249337f81c27d749-Paper-Conference.pdf)
+
 
 ### VAE (Variational Autoencoder)
 
@@ -286,6 +294,9 @@ Citation: 0
 
 - [The Tradeoff Between Privacy and Accuracy in Anomaly Detection Using Federated XGBoost](https://arxiv.org/pdf/1907.07157.pdf)
 
+
+### Time Series Prediction
+- [Multi-Participant Vertical Federated Learning Based Time Series Prediction](https://dl.acm.org/doi/pdf/10.1145/3532213.3532238)
 
 ### Other Model
 - [Privacy Preserving QoE Modeling using Collaborative Learning](https://arxiv.org/pdf/1906.09248.pdf)
