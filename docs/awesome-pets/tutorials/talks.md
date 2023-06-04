@@ -1,5 +1,8 @@
 # Team SecretFlow's Talks
 
+- 2023「隐语开源社区Meetup·深圳站」视频回放  
+https://space.bilibili.com/2073575923/channel/collectiondetail?sid=1410739
+
 - 2023「隐语开源社区开放日」视频回放  
 https://space.bilibili.com/2073575923/channel/collectiondetail?sid=1244375
 
