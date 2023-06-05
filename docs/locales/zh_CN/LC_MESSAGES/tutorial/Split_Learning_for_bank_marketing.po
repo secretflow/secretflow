@@ -471,8 +471,8 @@ msgid ""
 "However, if Bob’s data are combined, a model with an accuracy of "
 "**0.8884** and AUC **0.8436** can be obtained."
 msgstr ""
-"上面两个实验模拟了一个典型的垂直场景的训练问题，alice和bob拥有相同的样本群，但每一方只有样本的一部分数据，如果alice只用自己的一方数据来训练模型，能够得到一个精确度0.583,auc"
-" 0.53的模型，但是如果联合bob的数据之后，可以获得一个精确度0.893，auc0.883的模型。"
+"上面两个实验模拟了一个典型的垂直场景的训练问题，alice和bob拥有相同的样本群，但每一方只有样本的一部分数据，如果alice只用自己的一方数据来训练模型，能够得到一个准确度为0.8729,auc"
+" 分数为0.5241的模型，但是如果联合bob的数据之后，可以获得一个准确度为0.8884，auc分数为0.8436的模型。"
 
 #: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2807
 msgid "Conclusion"
