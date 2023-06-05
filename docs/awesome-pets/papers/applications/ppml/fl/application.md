@@ -159,8 +159,6 @@ Keywords: Split Learning + Sparsification
 
 - [Exploiting Unlabeled Data in Smart Cities using Federated Learning](https://arxiv.org/pdf/2001.04030.pdf)
 
-- [A Mobility Forecasting Framework with Vertical Federated Learning](https://ieeexplore.ieee.org/abstract/document/9842629)
-
 
 ## Robotics
 - [Federated Imitation Learning: A Privacy Considered Imitation Learning Framework for Cloud Robotic Systems with Heterogeneous Sensor Data](https://arxiv.org/pdf/1909.00895.pdf)
