@@ -26,6 +26,10 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
 - Private Matching for Compute  
   *Prasad Buddhavarapu, Andrew Knox, Payman Mohassel, Shubho Sengupta, Erik Taubeneck, Vlad Vlaskin*  
   Unpublished 2020, [eprint](https://eprint.iacr.org/2020/599)
+
+- Scalable multi-party private set-intersection  
+  *Carmit Hazay, Muthuramakrishnan Venkitasubramaniam*  
+  PKC 2017, [eprint](https://eprint.iacr.org/2017/027)
   
 - Linear-Complexity Private Set Intersection Protocols Secure in Malicious Model  
   *Emiliano De Cristofaro, Jihye Kim, Gene Tsudik*  
