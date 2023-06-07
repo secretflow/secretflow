@@ -1,3 +1,4 @@
+import argparse
 import os
 import platform
 import posixpath
@@ -5,6 +6,7 @@ import re
 import shutil
 import sys
 from pathlib import Path
+from typing import List
 
 import setuptools
 from setuptools import find_packages, setup
@@ -15,19 +17,6 @@ this_directory = os.path.abspath(os.path.dirname(__file__))
 if os.getcwd() != this_directory:
     print("You must run setup.py from the project root")
     exit(-1)
-
-with open(os.path.join(this_directory, 'README.md'), encoding='utf-8') as f:
-    long_description = f.read()
-
-# Default Linux platform tag
-plat_name = "manylinux2014_x86_64"
-
-if sys.platform == "darwin":
-    # Due to a bug in conda x64 python, platform tag has to be 10_16 for X64 wheel
-    if platform.machine() == "x86_64":
-        plat_name = "macosx_10_16_x86_64"
-    else:
-        plat_name = "macosx_11_0_arm64"
 
 
 def find_version(*filepath):
@@ -42,11 +31,32 @@ def find_version(*filepath):
         exit(-1)
 
 
-def read_requirements():
+def filter_requirements(requirements: List[str], custom_feature: str):
+    """A lite feature in comment should be something like "# FEATURE=[lite]"."""
+    filtered_reqs = []
+    for r in requirements:
+        comment_symbol_idx = r.find('#')
+        if comment_symbol_idx == -1:
+            continue
+
+        comment = r[comment_symbol_idx + 1 :]
+        feature_match = re.search(r"FEATURE=\[([0-9A-Za-z,]+)\]", comment)
+        if not feature_match:
+            continue
+        features = feature_match.group(1).split(',')
+        if custom_feature in features:
+            filtered_reqs.append(r[:comment_symbol_idx].strip())
+
+    return filtered_reqs
+
+
+def read_requirements(custom_feature: str = None):
     requirements = []
     dependency_links = []
     with open('./requirements.txt') as file:
         requirements = file.read().splitlines()
+    if custom_feature:
+        requirements = filter_requirements(requirements, custom_feature)
     for r in requirements:
         if r.startswith("--extra-index-url"):
             requirements.remove(r)
@@ -70,7 +80,7 @@ class CleanCommand(setuptools.Command):
         pass
 
     def run(self):
-        directories_to_clean = ['./dist', './build']
+        directories_to_clean = ['./build']
 
         for dir in directories_to_clean:
             if os.path.exists(dir):
@@ -123,19 +133,69 @@ class BuildBazelExtension(build_ext.build_ext):
         shutil.copyfile(ext_bazel_bin_path, ext_dest_path)
 
 
-install_requires, dependency_links = read_requirements()
+def plat_name():
+    # Default Linux platform tag
+    plat_name = "manylinux2014_x86_64"
+    if sys.platform == "darwin":
+        # Due to a bug in conda x64 python, platform tag has to be 10_16 for X64 wheel
+        if platform.machine() == "x86_64":
+            plat_name = "macosx_10_16_x86_64"
+        else:
+            plat_name = "macosx_11_0_arm64"
+
+    return plat_name
+
+
+def long_description():
+    with open(os.path.join(this_directory, 'README.md'), encoding='utf-8') as f:
+        return f.read()
+
+
+argparser = argparse.ArgumentParser()
+argparser.add_argument(
+    '--lite', action='store_true', help='Build SecretFlow lite', required=False
+)
+args, unknowns = argparser.parse_known_args()
+sys.argv = [sys.argv[0]] + unknowns
+
+
+package_name = 'secretflow'
+description = 'SecretFlow'
+# Feature is used to filter the requirements.
+custom_feature = None
+
+
+if args.lite:
+    """
+    The primary distinction between secretflow-lite and non-lite lies in
+    the inclusion of traditional machine learning only. Specifically, lite
+    does not incorporate deep learning dependency packages due to their
+    significant size.
+    """
+    package_name = 'secretflow-lite'
+    custom_feature = 'lite'
+    description = 'SecretFlow Lite'
+
+install_requires, dependency_links = read_requirements(custom_feature)
 
 setup(
-    name='secretflow',
+    name=package_name,
     version=find_version("secretflow", "version.py"),
     license='Apache 2.0',
-    description='Secret Flow',
-    long_description=long_description,
+    description=description,
+    long_description=long_description(),
     long_description_content_type='text/markdown',
     author='SCI Center',
     author_email='secretflow-contact@service.alipay.com',
     url='https://github.com/secretflow/secretflow',
-    packages=find_packages(exclude=('examples', 'examples.*', 'tests', 'tests.*')),
+    packages=find_packages(
+        exclude=(
+            'examples',
+            'examples.*',
+            'tests',
+            'tests.*',
+        )
+    ),
     setup_requires=['protobuf_distutils'],
     install_requires=install_requires,
     ext_modules=[
@@ -149,7 +209,7 @@ setup(
     ),
     dependency_links=dependency_links,
     options={
-        'bdist_wheel': {'plat_name': plat_name},
+        'bdist_wheel': {'plat_name': plat_name()},
         'generate_py_protobufs': {
             'source_dir': './secretflow/protos',
             'proto_root_path': '.',

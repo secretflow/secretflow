@@ -6,6 +6,8 @@ Or you could [install SecretFlow via Python Package Index](#option-1-from-pypi).
 
 For advanced users, you could [install SecretFlow from source](#option-3-from-source).
 
+For Windows users, you could [install SecretFlow base WSL2](##Option-4-from-WSL).
+
 After installation, don't forget to [have a quick try](#a-quick-try) to check if SecretFlow is good to go.
 
 
@@ -116,27 +118,48 @@ After set up of SecretFlow in WSL, you can use [Pycharm Professional to Configur
 
 ## GPUs support
 
+### Before you read
+
+if you don't need the GPU support, please skip this session to [a quick try](#a-quick-try).
+
+### Introduction
+
 NVIDIA's CUDA and cuDNN are typically used to accelerate the training and testing of Tensoflow and PyTorch deep learning models. Tensoflow and PyTorch are both deep learning backends for SecretFlow.
 
 [JAX](https://github.com/google/jax) is the frontend highly recommended by the SecretFlow team. JAX can compile and run your NumPy code on accelerators, such as GPUs and TPUs.Now we supply GPUs supports to JAX in SecretFlow.
 
-if you want to use GPU acceleration in SecretFlow, you can follow these steps:
 
+if you want to use GPU acceleration in SecretFlow, you use offical GPU docker image or build the GPU docker image by yourself, However, whichever way you choose, you need to finish the [Preparations](###Preparations).Next, chose [option 1](###Option-1-get-the-GPU-docker-image-from-the-SecretFlow-repository) or [option 2](Option-2-build-the-GPU-docker-image-by-yourself) to get the GPU image. Finally, based on the image to run your container of GPU.
+
+### Preparations
 1. Make sure your NVIDIA driver is available and meet the version requirements as [JAX recommend](https://github.com/google/jax#pip-installation-gpu-cuda-installed-via-pip-easier).
 
 - The version requirements:
 
- the driver must be version >= 525.60.13 for CUDA 12 and >= 450.80.02 for CUDA 11 on Linux.
+ the driver on the host must be version >= 525.60.13 for CUDA 12 and >= 450.80.02 for CUDA 11 on Linux.
 
 - Run NVIDIA System Management Interface (nvidia-smi) to make sure your NVIDIA driver is available and meet the version requirements.
 
 ```bash
 nvidia-smi
 ```
+- Since the GPU packages of PyTorch and TensorFlow are not available now, we only supply the GPU Docker image based on the CUDA11. When the GPU packages of PyTorch and TensorFlow based on the CUDA12 are available, we will supply the GPU Docker image based on the CUDA12. 
 
 2. Follow the [NVIDIA official guide](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#docker) to setup NVIDIA Container Toolkit on your distributions.
 
-3. Use a dockerfile file to construct an image
+### Option 1: get the GPU docker image from the SecretFlow repository
+
+The GPU Docker image of SecretFlow is available on the SecretFlow repository at Dockerhub and you can run the following command to get the latest GPU docker image.
+
+```bash
+docker pull secretflow/secretflow-gpu
+```
+For more information, please visit [the GPU docker images at Dockerhub](https://hub.docker.com/r/secretflow/secretflow-gpu).
+
+### Option 2: build the GPU docker image by yourself
+You also can build the Docker image by yourself.
+
+1. Use a dockerfile file to construct an image
 
 - Download code
 
@@ -151,15 +174,17 @@ cd secretflow/docker
 docker build -f  secretflow-gpu.Dockerfile -t secretflow-gpu .
 ```
 
-4. Run an container
+### Run an container and Check GPU
+1. Run an container
 
 ```bash
 docker container run --runtime=nvidia  -it --gpus all secretflow-gpu bash
 ```
 
 - `--gpus all`: This parameter is essential.
+- `--runtime=nvidia`: This parameter is essential.
 
-5. After the container is running, you can use the jupyter notebook [GPU Check](../tutorial/GPU_check.ipynb) to check the callability of JAX, Tensorflow and PyTorch for NVIDIA GPUs inside the container.
+2. After the container is running, you can use the jupyter notebook [GPU Check](../tutorial/GPU_check.ipynb) to check the callability of JAX, Tensorflow and PyTorch for NVIDIA GPUs inside the container.
 
 ## A quick try
 
