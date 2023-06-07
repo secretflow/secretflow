@@ -196,7 +196,7 @@ msgid ""
 msgstr "在WSL上建立SecretFlow的开发环境以后，您可以使用"
 "`基于WSL配置Pycharm Professional的解释器 <https://www.jetbrains.com/help/pycharm/using-wsl-as-a-remote-"
 "interpreter.html>`__ 或者也可以使用`基于WSL的Visual Studio Code <https://learn.microsoft.com/en-us/windows/wsl/tutorials/wsl-vscode>`__"
-"来在 Windows Operating System 操作系统上使用SecretFlow"
+"来在 Windows 操作系统上使用SecretFlow"
 
 #: ../../getting_started/installation.md:119
 msgid "GPUs support"
