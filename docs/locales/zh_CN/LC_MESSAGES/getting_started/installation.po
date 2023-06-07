@@ -379,9 +379,3 @@ msgstr "快速尝试"
 msgid "Try your first SecretFlow program."
 msgstr "你的第一个SecretFlow程序。"
 
-#~ msgid ""
-#~ "if you want to use GPU "
-#~ "acceleration in SecretFlow, you can "
-#~ "follow these steps:"
-#~ msgstr "如果你想在SecretFlow中使用GPU加速，你可以按照以下步骤操作："
-
