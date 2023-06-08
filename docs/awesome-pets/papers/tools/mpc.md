@@ -1,6 +1,6 @@
 # Secure Multi-Party Computation (MPC)
 
-![](https://badgen.net/badge/:update-to/:Apr-2023/red) ![](https://badgen.net/badge/:papers/:59/blue) 
+![](https://badgen.net/badge/:update-to/:Apr-2023/red) ![](https://badgen.net/badge/:papers/:70/blue) 
 
 > "The design of scure protocols that implement arbitrarily desired functionalities is a major part of mordern cryptography."
 > -- Foundation of Cryptography, Volumn 2, Oded Goldreich.
@@ -280,6 +280,10 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   CCS 2019, [eprint](https://eprint.iacr.org/2019/1390), BGIN19
 
 ### Function Secret Sharing
+ - Programmable Distributed Point Functions
+   *Elette Boyle, Niv Gilboa, Yuval Ishai and Victor I. Kolobov *  
+  CRYPTO 2022, [eprint](https://eprint.iacr.org/2022/1060.pdf), BGIK22
+
  - Lightweight, Maliciously Secure Verifiable Function Secret Sharing
    *Leo de Castro and Antigoni Polychroniadou*  
   EUROCRYPT 2022, [eprint](https://eprint.iacr.org/2021/580.pdf), CP22
