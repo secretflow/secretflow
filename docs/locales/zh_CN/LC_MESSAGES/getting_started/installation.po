@@ -24,31 +24,31 @@ msgstr "安装"
 msgid ""
 "The simplest way to try SecretFlow is to use [offical docker "
 "image](#option-2-from-docker) which ships with SecretFlow binary."
-msgstr "最简单的尝试SecretFlow的方式是使用带有SecretFlow的 **官方 docker image** 。"
+msgstr "最简单的尝试隐语的方式是使用带有隐语的 **官方 docker image** 。"
 
 #: ../../getting_started/installation.md:5
 msgid ""
 "Or you could [install SecretFlow via Python Package Index](#option-1"
 "-from-pypi)."
-msgstr "或者你也可以 **通过Python Package Index安装SecretFlow** 。"
+msgstr "或者您也可以 **通过Python Package Index安装隐语** 。"
 
 #: ../../getting_started/installation.md:7
 msgid ""
 "For advanced users, you could [install SecretFlow from source](#option-3"
 "-from-source)."
-msgstr "对于高级用户，你可以 **从源码安装SecretFlow** 。"
+msgstr "对于高级用户，您可以 **从源码安装隐语** 。"
 
 #: ../../getting_started/installation.md:9
 msgid ""
 "For Windows users, you could [install SecretFlow base WSL2](##Option-4"
 "-from-WSL)."
-msgstr "对于高级用户，你可以 **从源码安装SecretFlow** 。"
+msgstr "对于Windows用户，您可以 **从WSL安装隐语** 。"
 
 #: ../../getting_started/installation.md:11
 msgid ""
 "After installation, don't forget to [have a quick try](#a-quick-try) to "
 "check if SecretFlow is good to go."
-msgstr "安装之后，请不要忘记 **快速尝试SecretFlow** 确保安装成功。"
+msgstr "安装之后，请不要忘记 **快速尝试隐语示例** 确保安装成功。"
 
 #: ../../getting_started/installation.md:14
 msgid "Environment"
@@ -72,31 +72,31 @@ msgstr "CPU/Memory: 推荐最低配置是 8C16G."
 
 #: ../../getting_started/installation.md:24
 msgid "Option 1: from pypi"
-msgstr "方式 1: 从pypi"
+msgstr "方式1: 通过pypi安装"
 
 #: ../../getting_started/installation.md:25
 msgid ""
 "For users who want to try SecretFlow, you can install [the current "
 "release](https://pypi.org/project/secretflow/)."
-msgstr "请安装 `当前release <https://pypi.org/project/secretflow/>`__ 。"
+msgstr "请安装 `当前版本 <https://pypi.org/project/secretflow/>`__ 。"
 
 #: ../../getting_started/installation.md:27
 msgid ""
 "Note that it requires python version == 3.8, you can create a virtual "
 "environment with conda if not satisfied."
-msgstr "请注意python版本需要是3.8，你可以用conda构建一个虚拟环境。"
+msgstr "请注意python版本需要是3.8，您也可以用conda构建一个虚拟环境若python版本不满足。"
 
 #: ../../getting_started/installation.md:34
 msgid "After that, please use pip to install SecretFlow."
-msgstr "之后，请使用pip安装SecretFlow。"
+msgstr "之后，请使用pip安装隐语。"
 
 #: ../../getting_started/installation.md:40
 msgid "Option 2: from docker"
-msgstr "方式2: 通过docker"
+msgstr "方式2: 通过docker安装"
 
 #: ../../getting_started/installation.md:41
 msgid "You can also use SecretFlow Docker image to give SecretFlow a quick try."
-msgstr "你也可以通过SecretFlow的docker image来尝试SecretFlow。"
+msgstr "您也可以通过隐语的Docker图像来快速尝试隐语。"
 
 #: ../../getting_started/installation.md:43
 msgid ""
@@ -112,11 +112,11 @@ msgstr "示例"
 
 #: ../../getting_started/installation.md:54
 msgid "then run the image."
-msgstr "然后运行image"
+msgstr "然后运行图像"
 
 #: ../../getting_started/installation.md:60
 msgid "Option 3: from source"
-msgstr "方式3: 通过源码"
+msgstr "方式3: 通过源码安装"
 
 #: ../../getting_started/installation.md:62
 msgid "Download code and set up Python virtual environment."
@@ -128,13 +128,13 @@ msgstr "安装SecretFlow"
 
 #: ../../getting_started/installation.md:80
 msgid "Option 4: from WSL"
-msgstr "方式4: 通过WSL"
+msgstr "方式4: 通过WSL安装"
 
 #: ../../getting_started/installation.md:82
 msgid ""
 "SecretFlow does not support Windows directly now, however, a Windows user"
 " can use secretFlow by WSL(Windows Subsystem for Linux)."
-msgstr "隐语不直接支持Windows, 请使用WSL(Windows Subsystem for Linux)"
+msgstr "隐语不直接支持Window系统, Windows用户可以通过WSL(Windows Subsystem for Linux)来使用隐语"
 
 #: ../../getting_started/installation.md:84
 msgid "Install WSL2 in Windows"
@@ -161,13 +161,13 @@ msgstr "在WSL中安装Anaconda"
 
 #: ../../getting_started/installation.md:91
 msgid ""
-"Just follow the installation of anaconda in GNU/Linux to install anaconda"
+"Just follow the installation of anaconda in GNU/Linux to install Anaconda"
 " in your WSL."
-msgstr "请在WSL的GNU/Linux中安装anaconda。"
+msgstr "请在WSL的GNU/Linux中安装Anaconda。"
 
 #: ../../getting_started/installation.md:93
 msgid "Install secretflow"
-msgstr "安装SecretFlow"
+msgstr "安装隐语"
 
 #: ../../getting_started/installation.md:95
 msgid "create conda environment"
@@ -179,7 +179,7 @@ msgstr "激活conda环境"
 
 #: ../../getting_started/installation.md:107
 msgid "use pip to install SecretFlow."
-msgstr "之后，请使用pip安装SecretFlow。"
+msgstr "之后，请使用pip安装隐语。"
 
 #: ../../getting_started/installation.md:113
 msgid "Use WSL to develop your application"
@@ -196,7 +196,7 @@ msgid ""
 msgstr "在WSL上建立SecretFlow的开发环境以后，您可以使用"
 "`基于WSL配置Pycharm Professional的解释器 <https://www.jetbrains.com/help/pycharm/using-wsl-as-a-remote-"
 "interpreter.html>`__ 或者也可以使用`基于WSL的Visual Studio Code <https://learn.microsoft.com/en-us/windows/wsl/tutorials/wsl-vscode>`__"
-"来在 Windows 操作系统上使用SecretFlow"
+"来在 Windows 操作系统上使用隐语"
 
 #: ../../getting_started/installation.md:119
 msgid "GPUs support"
@@ -224,7 +224,7 @@ msgid ""
 "PyTorch are both deep learning backends for SecretFlow."
 msgstr ""
 "NVIDIA 的 CUDA 和 cuDNN 通常用于加速 Tensoflow 和 PyTorch "
-"深度学习模型的训练和测试。Tensoflow和PyTorch都是SecretFlow的深度学习后端。"
+"深度学习模型的训练和测试。Tensoflow和PyTorch都是隐语的深度学习后端。"
 
 #: ../../getting_started/installation.md:129
 msgid ""
@@ -262,7 +262,7 @@ msgid ""
 "requirements as [JAX recommend](https://github.com/google/jax#pip-"
 "installation-gpu-cuda-installed-via-pip-easier)."
 msgstr ""
-"请确保你的NVIDIA驱动可用且符合 [JAX recommend](https://github.com/google/jax#pip-"
+"请确保您的NVIDIA驱动可用且符合 [JAX recommend](https://github.com/google/jax#pip-"
 "installation-gpu-cuda-installed-via-pip-easier) 的版本要求。"
 
 #: ../../getting_started/installation.md:137
@@ -344,11 +344,11 @@ msgstr "下载代码"
 
 #: ../../getting_started/installation.md:171
 msgid "Construct an image"
-msgstr "构建镜像"
+msgstr "构建图像"
 
 #: ../../getting_started/installation.md:177
 msgid "Run an container and Check GPU"
-msgstr "运行容器"
+msgstr "运行容器并检测GPU是否运行正常"
 
 #: ../../getting_started/installation.md:178
 msgid "Run an container"
@@ -368,7 +368,7 @@ msgid ""
 "Check](../tutorial/GPU_check.ipynb) to check the callability of JAX, "
 "Tensorflow and PyTorch for NVIDIA GPUs inside the container."
 msgstr ""
-"容器运行后，您可以使用 jupyter 笔记本 [GPU Check](../tutorial/GPU_check.ipynb) 检查容器内 "
+"容器运行后，您可以使用 jupyter 笔记本 [GPU Check](../tutorial/GPU_check.ipynb) 来检查容器内 "
 "Tensorflow 和 PyTorch 对于 NVIDIA GPU 的可调用性。"
 
 #: ../../getting_started/installation.md:189
@@ -377,5 +377,5 @@ msgstr "快速尝试"
 
 #: ../../getting_started/installation.md:191
 msgid "Try your first SecretFlow program."
-msgstr "你的第一个SecretFlow程序。"
+msgstr "建立您的第一个隐语程序。"
 
