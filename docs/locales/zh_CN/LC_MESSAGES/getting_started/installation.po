@@ -124,7 +124,7 @@ msgstr "下载源码并建立Python虚拟环境"
 
 #: ../../getting_started/installation.md:72
 msgid "Install SecretFlow"
-msgstr "安装SecretFlow"
+msgstr "安装隐语"
 
 #: ../../getting_started/installation.md:80
 msgid "Option 4: from WSL"
@@ -138,7 +138,7 @@ msgstr "隐语不直接支持Window系统, Windows用户可以通过WSL(Windows 
 
 #: ../../getting_started/installation.md:84
 msgid "Install WSL2 in Windows"
-msgstr "在Windows上安装WSL2"
+msgstr "请在Windows上安装WSL2"
 
 #: ../../getting_started/installation.md:86
 msgid ""
@@ -254,7 +254,7 @@ msgstr ""
 
 #: ../../getting_started/installation.md:134
 msgid "Preparations"
-msgstr "前置工作"
+msgstr "准备工作"
 
 #: ../../getting_started/installation.md:135
 msgid ""
@@ -324,15 +324,15 @@ msgid ""
 "For more information, please visit [the GPU docker images at "
 "Dockerhub](https://hub.docker.com/r/secretflow/secretflow-gpu)."
 msgstr ""
-"对于更多的信息，请访问 `Dockerhub上的 GPU docker 镜像 <https://hub.docker.com/r/secretflow/secretflow-gpu>`__"
+"对于更多的信息，请访问 `Dockerhub上的GPU docker镜像 <https://hub.docker.com/r/secretflow/secretflow-gpu>`__"
 
 #: ../../getting_started/installation.md:159
 msgid "Option 2: build the GPU docker image by yourself"
-msgstr "方式2：自行构建镜像"
+msgstr "方式2：自行构建GPU docker镜像"
 
 #: ../../getting_started/installation.md:160
 msgid "You also can build the Docker image by yourself."
-msgstr "您也可以自行构建 Docker 镜像"
+msgstr "您也可以自行构建Docker镜像"
 
 #: ../../getting_started/installation.md:162
 msgid "Use a dockerfile file to construct an image"
@@ -377,5 +377,5 @@ msgstr "快速尝试"
 
 #: ../../getting_started/installation.md:191
 msgid "Try your first SecretFlow program."
-msgstr "建立您的第一个隐语程序。"
+msgstr "接下来请尝试您的第一个隐语程序。"
 
