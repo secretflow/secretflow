@@ -24,7 +24,7 @@ msgstr "安装"
 msgid ""
 "The simplest way to try SecretFlow is to use [offical docker "
 "image](#option-2-from-docker) which ships with SecretFlow binary."
-msgstr "最简单的尝试隐语的方式是使用带有隐语的 **官方 docker image** 。"
+msgstr "最简单的尝试隐语的方式是使用带有隐语的 **官方docker image** 。"
 
 #: ../../getting_started/installation.md:5
 msgid ""
