@@ -1,6 +1,6 @@
 # Secure Multi-Party Computation (MPC)
 
-![](https://badgen.net/badge/:update-to/:Apr-2023/red) ![](https://badgen.net/badge/:papers/:59/blue) 
+![](https://badgen.net/badge/:update-to/:Apr-2023/red) ![](https://badgen.net/badge/:papers/:70/blue) 
 
 > "The design of scure protocols that implement arbitrarily desired functionalities is a major part of mordern cryptography."
 > -- Foundation of Cryptography, Volumn 2, Oded Goldreich.
@@ -21,6 +21,7 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   - [Online Techniques](#online-techniques)
     - [Semi-Honest Secret Sharing](#semi-honest-secret-sharing)
     - [Malicious Secret Sharing](#malicious-secret-sharing)
+    - [Function Secret Sharing](#function-secret-sharing)
 
 ## Offline Techniques
 
@@ -277,3 +278,49 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
 - Practical Fully Secure Three-Party Computation via Sublinear Distributed Zero-Knowledge Proofs  
   *Elette Boyle, Niv Gilboa, Yuval Ishai, and Ariel Nof*  
   CCS 2019, [eprint](https://eprint.iacr.org/2019/1390), BGIN19
+
+
+ ### Function Secret Sharing
+- Programmable Distributed Point Functions  
+  *Elette Boyle, Niv Gilboa, Yuval Ishai, Victor I. Kolobov*  
+  Crypto 2022, [eprint](https://eprint.iacr.org/2022/1060.pdf), BGIK22
+  
+- Lightweight, Maliciously Secure Verifiable Function Secret Sharing  
+  *Leo de Castro and Antigoni Polychroniadou*  
+  EuroCrypt 2022, [eprint](https://eprint.iacr.org/2021/580.pdf), CP22
+
+- Lightweight Techniques for Private Heavy Hitters  
+  *Dan Boneh, Elette Boyle, Henry Corrigan-Gibbs, Niv Gilboa, Yuval Ishai*  
+  SP 2021, [eprint](https://arxiv.org/abs/2012.14884), BBGG+21
+
+- Function Secret Sharing for PSI-CA : With Applications to Private Contact Tracing  
+  *Samuel Dittmer, Yuval Ishai, Steve Lu, Rafail Ostrovsky, Mohamed Elsabagh, Nikolaos Kiourtis, Brian Schulte, Angelos Stavrou*  
+  Unpublished 2021, [eprint](https://eprint.iacr.org/2020/1599), DILO+21
+
+- Function Secret Sharing for Mixed-Mode and Fixed-Point Secure Computation  
+  *Elette Boyle, Nishanth Chandran, Niv Gilboa, Divya Gupta, Yuval Ishai, Nishant Kumar, Mayank Rathee*  
+  EuroCrypt 2021, [eprint](https://eprint.iacr.org/2020/1392), BCGI+21
+
+- Correlated Pseudorandom Functions from Variable-Density LPN  
+  *Elette Boyle, Geoffroy Couteau, Niv Gilboa, Yuval Ishai, Lisa Kohl, Peter Scholl*  
+  FOCS 2020, [eprint](https://eprint.iacr.org/2020/1417), BCGI+20
+
+- Secure Computation with Preprocessing via Function Secret Sharing   
+  *Elette Boyle, Niv Gilboa, Yuval Ishai*  
+  TCC 2019, [eprint](https://eprint.iacr.org/2019/1095), BGI19
+
+- Efficient Two-Round OT Extension and Silent Non-Interactive Secure Computation  
+  *Elette Boyle, Geoffroy Couteau, Niv Gilboa, Yuval Ishai, Lisa Kohl, Peter Rindal, Peter Scholl*  
+  CCS 2019, [eprint](https://eprint.iacr.org/2019/1159), BCGI+19
+
+- Function secret sharing: Improvements and extensions  
+  *Elette Boyle, Niv Gilboa, Yuval Ishai*  
+  CCS 2016, [eprint](https://eprint.iacr.org/2018/707), BGI16
+
+- Function Secret Sharing  
+  *Elette Boyle, Niv Gilboa, Yuval Ishai*  
+  EuroCrypt 2015, [eprint](https://www.iacr.org/archive/eurocrypt2015/90560300/90560300.pdf), BGI15
+
+- Distributed Point Functions and Their Applications  
+  *Niv Gilboa, Yuval Ishai*  
+  EuroCrypt 2014, [eprint](https://www.iacr.org/archive/eurocrypt2014/84410245/84410245.pdf), GI14
