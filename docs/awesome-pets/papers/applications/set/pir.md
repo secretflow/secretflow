@@ -13,6 +13,10 @@ Private Information Retrival is a protocol that allows a client to retrieve an e
   
 ## Single-Server PIR
 
+- SPG: Structure-Private Graph Database via SqueezePIR  
+  *Ling Liang, Jilan Lin, Zheng Qu, Ishtiyaque Ahmad, Fengbin Tu, Trinabh Gupta, Yufei Ding, Yuan Xie*  
+  IEEE/ACM VLDB 2023, [eprint](https://www.vldb.org/pvldb/vol16/p1615-liang.pdf),
+  
 - One Server for the Price of Two: Simple and Fast Single-Server Private Information Retrieval  
   *Alexandra Henzinger, Matthew M. Hong, Henry Corrigan-Gibbs, Sarah Meiklejohn, Vinod Vaikuntanathan*  
   Usenix Security 2023, [eprint](https://eprint.iacr.org/2022/949), HHCM+23
