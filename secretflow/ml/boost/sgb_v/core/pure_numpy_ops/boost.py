@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from typing import List, Tuple
+
 import numpy as np
 
 
@@ -37,7 +38,6 @@ def compute_weight_from_node_select(
     reg_lambda: float,
     learning_rate: float,
 ) -> np.ndarray:
-
     g_sum = np.matmul(node_select, g)
     h_sum = np.matmul(node_select, h)
 
@@ -62,13 +62,9 @@ def compute_weight(
     return np.select([H == 0], [0], w)
 
 
-def find_best_splits(
-    level_nodes_G: List[np.array],
-    level_nodes_H: List[np.array],
-    reg_lambda: float,
-    gamma: float,
-) -> Tuple[np.ndarray, np.ndarray]:
-    """find the best split buckets and if gains > gamma"""
+def calculate_gains(
+    level_nodes_G: List[np.ndarray], level_nodes_H: List[np.ndarray], reg_lambda: float
+) -> np.ndarray:
     GL = np.concatenate(level_nodes_G, axis=0)
     HL = np.concatenate(level_nodes_H, axis=0)
 
@@ -84,7 +80,40 @@ def find_best_splits(
     # last objective value means split all sample to left, equal to no split.
     obj = obj_l[:, -1].reshape(-1, 1)
     gain = obj_l + obj_r - obj
+    return gain
 
+
+def find_best_splits(
+    level_nodes_G: List[np.array],
+    level_nodes_H: List[np.array],
+    reg_lambda: float,
+    gamma: float,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """find the best split buckets and if gains > gamma"""
+    gain = calculate_gains(level_nodes_G, level_nodes_H, reg_lambda)
     split_buckets = np.argmax(gain, 1)
-    should_split = (np.max(gain, 1) - gamma) > 0
+    should_split = (
+        (np.max(gain, 1) - gamma) > 0
+        if gamma > 0
+        else np.ones(split_buckets.shape).astype(bool)
+    )
     return (split_buckets, should_split)
+
+
+def find_best_splits_with_gains(
+    nodes_G: List[np.array], nodes_H: List[np.array], reg_lambda: float, gamma: float
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    gain = calculate_gains(nodes_G, nodes_H, reg_lambda)
+    split_buckets = np.argmax(gain, 1)
+    split_gains = np.max(gain, 1)
+    should_split = (split_gains - gamma) > 0
+    return (split_buckets, split_gains, should_split)
+
+
+def find_single_best_split(
+    node_indices: List[int],
+    split_buckets: np.ndarray,
+    split_gains: np.ndarray,
+) -> Tuple[int, int, float]:
+    index = np.argmax(split_gains)
+    return (node_indices[index], split_buckets[index], split_gains[index])

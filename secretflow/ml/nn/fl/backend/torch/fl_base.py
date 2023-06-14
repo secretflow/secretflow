@@ -11,22 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+"""Torch model on worker side
+"""
 
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Callable, Optional, Union
 
 import numpy as np
+import pandas as pd
 import torch
 import torchmetrics
-import pandas as pd
+
 from secretflow.ml.nn.fl.backend.torch.sampler import sampler_data
-from secretflow.ml.nn.fl.backend.torch.utils import TorchModel
+from secretflow.ml.nn.utils import TorchModel
 from secretflow.ml.nn.metrics import Default, Mean, Precision, Recall
 from secretflow.utils.io import rows_count
-
-# Torch model on worker side
 
 
 class BaseTorchModel(ABC):

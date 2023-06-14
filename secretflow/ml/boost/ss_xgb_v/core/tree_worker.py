@@ -19,6 +19,7 @@ import numpy as np
 from heu import numpy as hnp
 
 from secretflow.device import PYUObject, proxy
+from secretflow.ml.boost.core.order_map_tools import qcut
 
 from .xgb_tree import XgbTree
 
@@ -48,72 +49,7 @@ class XgbTreeWorker:
         return hnp.tree_predict(x, tree.split_features, tree.split_values)
 
     def _qcut(self, x: np.ndarray) -> Tuple[np.ndarray, List]:
-        sorted_x = np.sort(x, axis=0)
-        samples = len(sorted_x)
-        remained_count = samples
-        assert remained_count > 0, 'can not qcut empty x'
-
-        value_category = list()
-        last_value = None
-
-        split_points = list()
-        idx = 0
-        expected_idx = math.ceil(remained_count / self.buckets)
-        fast_skip = False
-        while idx < samples:
-            v = sorted_x[idx]
-            value_diff = v != last_value
-            if not fast_skip and value_diff:
-                if len(value_category) <= self.buckets:
-                    value_category.append(v)
-                else:
-                    fast_skip = True
-                last_value = v
-
-            if idx >= expected_idx and value_diff:
-                split_points.append(v)
-                if len(split_points) == self.buckets - 1:
-                    break
-                remained_count = samples - idx
-                expected_bin_count = math.ceil(
-                    remained_count / (self.buckets - len(split_points))
-                )
-                expected_idx = idx + expected_bin_count
-                last_value = v
-
-            if not fast_skip or idx >= expected_idx:
-                idx += 1
-            else:
-                idx = expected_idx
-
-        if len(value_category) <= self.buckets:
-            # full dataset category count <= buckets
-            # use category as split point.
-            split_points = value_category[1:]
-        elif split_points[-1] != sorted_x[-1]:
-            # add max sample value into split_points like xgboost.
-            split_points.append(sorted_x[-1])
-
-        split_points = list(map(float, split_points))
-
-        def upper_bound_bin(x: float):
-            count = len(split_points)
-            pos = 0
-            while count > 0:
-                step = math.floor(count / 2)
-                v = split_points[pos + step]
-                if x == v:
-                    return pos + step + 1
-                elif x > v:
-                    pos = pos + step + 1
-                    count -= step + 1
-                else:
-                    count = step
-            return pos
-
-        bins = np.vectorize(upper_bound_bin)(x)
-
-        return bins, split_points
+        return qcut(x, self.buckets)
 
     def _build_maps(self, x: np.ndarray):
         '''

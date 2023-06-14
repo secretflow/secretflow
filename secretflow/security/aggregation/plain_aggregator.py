@@ -60,6 +60,7 @@ class PlainAggregator(Aggregator):
         else:
             try:
                 import tensorflow as tf
+
                 if isinstance(arr, tf.Tensor):
                     return arr.numpy().dtype
             except ImportError:

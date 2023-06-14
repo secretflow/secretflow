@@ -37,7 +37,7 @@
 - [FedVision: An Online Visual Object Detection Platform Powered by Federated Learning](https://arxiv.org/pdf/2001.06202.pdf)
 
 
-## Health Care: 
+## Health Care:
 - [Multi-Institutional Deep Learning Modeling Without Sharing Patient Data: A Feasibility Study on Brain Tumor Segmentation](https://arxiv.org/pdf/1810.04304.pdf)
 
 - [Federated Learning in Distributed Medical Databases: Meta-Analysis of Large-Scale Subcortical Brain Data](https://arxiv.org/pdf/1810.08553.pdf)
@@ -213,7 +213,7 @@ Keywords: Split Learning + Sparsification
 
 - [FedGNN: Federated Graph Neural Network for Privacy-Preserving Recommendation](https://arxiv.org/pdf/2102.04925)
 
-- [FedGraphNN: A Federated Learning System and Benchmark for Graph Neural Networks](https://arxiv.org/pdf/2104.07145) 
+- [FedGraphNN: A Federated Learning System and Benchmark for Graph Neural Networks](https://arxiv.org/pdf/2104.07145)
 
 - [FL-AGCNS: Federated Learning Framework for Automatic Graph Convolutional Network Search](https://arxiv.org/pdf/2104.04141)
 

@@ -21,9 +21,10 @@ from secretflow.device import PYUObject, reveal
 
 from ....core.distributed_tree.distributed_tree import DistributedTree
 from ..bucket_sum_calculator import BucketSumCalculator
-from ..component import Devices
+from ..component import Devices, print_params
 from ..gradient_encryptor import GradientEncryptor
 from ..leaf_manager import LeafManager
+from ..logging import LoggingParams, LoggingTools
 from ..loss_computer import LossComputer
 from ..node_selector import NodeSelector
 from ..order_map_manager import OrderMapManager
@@ -63,9 +64,12 @@ class LevelWiseTreeTrainer(TreeTrainer):
     def __init__(self) -> None:
         self.components = LevelWiseTreeTrainerComponents()
         self.params = LevelWiseTreeTrainerParams()
+        self.logging_params = LoggingParams()
 
     def show_params(self):
         super().show_params()
+        print_params(self.params)
+        print_params(self.logging_params)
 
     def set_params(self, params: dict):
         super().set_params(params)
@@ -83,13 +87,16 @@ class LevelWiseTreeTrainer(TreeTrainer):
 
     def _get_trainer_params(self, params: dict):
         params['max_depth'] = self.params.max_depth
+        LoggingTools.logging_params_write_dict(params, self.logging_params)
 
     def _set_trainer_params(self, params: dict):
         depth = int(params.pop('max_depth', 5))
         assert depth > 0 and depth <= 16, f"max_depth should in [1, 16], got {depth}"
 
         self.params.max_depth = depth
+        self.logging_params = LoggingTools.logging_params_from_dict(params)
 
+    @LoggingTools.enable_logging
     def train_tree(
         self,
         cur_tree_num,
@@ -160,6 +167,7 @@ class LevelWiseTreeTrainer(TreeTrainer):
         tree.set_leaf_weight(self.label_holder, weight)
         return tree
 
+    @LoggingTools.enable_logging
     def _train_level(
         self,
         split_node_selects: PYUObject,
@@ -268,7 +276,7 @@ class LevelWiseTreeTrainer(TreeTrainer):
         (
             split_buckets,
             gain_is_cost_effective,
-        ) = self.components.split_finder.find_best_splits(
+        ) = self.components.split_finder.find_best_splits_level_wise(
             level_nodes_G, level_nodes_H, tree_num, level
         )
         # all parties including driver know the shape of tree in each node

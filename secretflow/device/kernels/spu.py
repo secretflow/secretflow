@@ -525,3 +525,35 @@ def pir_query(
 
     # wait for all tasks done
     return sfd.get(res)
+
+
+@register(DeviceType.SPU)
+def pir_memory_query(
+    device: SPU,
+    server: str,
+    config: Dict[Device, Dict],
+    protocol="KEYWORD_PIR_LABELED_PSI",
+):
+    assert isinstance(device, SPU), f'device must be SPU device'
+    assert isinstance(server, str), f'server must be str'
+    assert isinstance(config, Dict), f'config must be str'
+
+    assert server in device.actors.keys(), f'invalid server party name {server}'
+
+    assert 2 == len(
+        device.actors
+    ), f'unexpected number({len(device.actors)}) of partys, should be 2'
+
+    res = []
+    for dev, iconfig in config.items():
+        actor = device.actors[dev.party]
+        res.append(
+            actor.pir_memory_query.remote(
+                server,
+                iconfig,
+                protocol,
+            )
+        )
+
+    # wait for all tasks done
+    return sfd.get(res)
