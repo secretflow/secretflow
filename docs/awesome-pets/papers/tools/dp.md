@@ -6,11 +6,13 @@
 
 ## Table of Contents
 
-- [fundamental-principles](#fundamental-principles)
-  * [definition-and-mechanism](#definition-and-mechanism)
-  * [sensitivity](#sensitivity)
-  * [accountant](#accountant)
-  * [local-differential-privacy](#local-differential-privacy)
+- [Differential Privacy (DP)](#differential-privacy-dp)
+  - [Table of Contents](#table-of-contents)
+  - [Fundamental Principle](#fundamental-principle)
+    - [Definition and Mechanism](#definition-and-mechanism)
+    - [Sensitivity](#sensitivity)
+    - [Accountant](#accountant)
+    - [Local Differential Privacy](#local-differential-privacy)
 
 
 ## Fundamental Principle
@@ -109,3 +111,14 @@
 - S. Takagi, Y. Cao, and M. Yoshikawa, 
   [POSTER: Data collection via local differential privacy with secret parameters](https://dl.acm.org/doi/10.1145/3320269.3405441),
   in Proc.ACM Asia CCS, 2020, p. 910–912
+
+
+- G. Cormode, S. Jha, T. Kulkarni, N. Li, D. Srivastava, and T. Wang, 
+ [Privacy at Scale: Local Differential Privacy in Practice](https://doi.org/10.1145/3183713.3197390), In Proceedings of the 2018 International Conference on Management of Data (SIGMOD '18). 
+
+- L. Du, Z. Zhang, S. Bai, C. Liu, S. Ji, P. Cheng, and J. Chen,
+ [AHEAD: Adaptive Hierarchical Decomposition for Range Query under Local Differential Privacy](https://doi.org/10.1145/3460120.3485668), In Proceedings of the 2021 ACM SIGSAC Conference on Computer and Communications Security (CCS '21). 
+
+- Z. Zhang, T. Wang, N. Li, S. He, and J. Chen, [CALM: Consistent Adaptive Local Marginal for Marginal Release under Local Differential Privacy](https://doi.org/10.1145/3243734.3243742), In Proceedings of the 2018 ACM SIGSAC Conference on Computer and Communications Security (CCS '18).
+
+- J. Yang, T. Wang, N. Li, X. Cheng, and S. Su, [Answering multi-dimensional range queries under local differential privacy](https://doi.org/10.14778/3430915.3430927), Proc. VLDB Endow. 14, 3 (November 2020), 378–390.
