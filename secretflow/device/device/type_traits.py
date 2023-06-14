@@ -44,7 +44,7 @@ HEU_SPU_DT_SWITCHER = {
     "DT_I16": spu_pb2.DataType.DT_I16,
     "DT_I32": spu_pb2.DataType.DT_I32,
     "DT_I64": spu_pb2.DataType.DT_I64,
-    "DT_FXP": spu_pb2.DataType.DT_FXP,
+    "DT_FXP": spu_pb2.DataType.DT_F32,
 }
 
 
@@ -59,7 +59,7 @@ SPU_HEU_DT_SWITCHER = {
     spu_pb2.DataType.DT_I16: "DT_I16",
     spu_pb2.DataType.DT_I32: "DT_I32",
     spu_pb2.DataType.DT_I64: "DT_I64",
-    spu_pb2.DataType.DT_FXP: "DT_FXP",
+    spu_pb2.DataType.DT_F32: "DT_FXP",
 }
 
 
