@@ -22,6 +22,7 @@ from secretflow.device import PYUObject
 from ....core.preprocessing.params import RegType
 from ....core.pure_numpy_ops.grad import compute_gh_linear, compute_gh_logistic
 from ..component import Component, Devices, print_params
+from ..logging import LoggingParams, LoggingTools
 
 
 @dataclass
@@ -40,9 +41,11 @@ class LossComputer(Component):
 
     def __init__(self) -> None:
         self.params = LossComputerParams()
+        self.logging_params = LoggingParams()
 
     def show_params(self):
         print_params(self.params)
+        print_params(self.logging_params)
 
     def set_params(self, params: dict):
         obj = params.get('objective', 'logistic')
@@ -52,12 +55,17 @@ class LossComputer(Component):
         obj = RegType(obj)
         self.params.objective = obj
 
+        self.logging_params = LoggingTools.logging_params_from_dict(params)
+
     def get_params(self, params: dict):
         params['objective'] = self.params.objective
+
+        LoggingTools.logging_params_write_dict(params, self.logging_params)
 
     def set_devices(self, devices: Devices):
         self.label_holder = devices.label_holder
 
+    @LoggingTools.enable_logging
     def compute_gh(
         self, y: Union[PYUObject, np.ndarray], pred: Union[PYUObject, np.ndarray]
     ) -> Tuple[PYUObject, PYUObject]:

@@ -44,7 +44,7 @@ class WeightArbiter:
         def unflatten():
             idx = 0
             for w in weights:
-                yield np.array(weights_from_rs[idx:idx + len(w)]).reshape(-1, 1)
+                yield np.array(weights_from_rs[idx : idx + len(w)]).reshape(-1, 1)
                 idx += len(w)
 
         return list(unflatten())
@@ -69,7 +69,8 @@ class RouterLrAggrHook:
 
         # Send weights to arbiter
         new_weights = self.wa.update_weight(
-            [w.to(self.arbiter) for w in weights], _num_returns=len(weights))
+            [w.to(self.arbiter) for w in weights], _num_returns=len(weights)
+        )
 
         # Move weights to each party
         return [w.to(dev.device) for w, dev in zip(new_weights, weights)]

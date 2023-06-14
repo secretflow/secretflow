@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ....core.distributed_tree.distributed_tree import DistributedTree
-
 import abc
 
+from ....core.distributed_tree.distributed_tree import DistributedTree
 from ..component import Composite, Devices
 
 

@@ -45,5 +45,4 @@ def predict_tree_weight(selects: List[np.ndarray], weights: np.ndarray) -> np.nd
     assert (
         select.shape[1] == weights.shape[0]
     ), f"select {select.shape}, weights {weights.shape}"
-
     return np.matmul(select, weights).reshape((select.shape[0]), 1)

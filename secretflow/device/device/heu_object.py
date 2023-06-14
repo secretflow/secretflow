@@ -11,8 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from typing import List, Union
 import jax.tree_util
 import ray
+import numpy as np
 
 from secretflow.device.device.pyu import PYUObject
 
@@ -181,10 +184,23 @@ class HEUObject(DeviceObject):
         )
 
     def batch_feature_wise_bucket_sum(
-        self, subgroup_map, order_map, bucket_num, cumsum=False
-    ):
-        """
-        Sum of HEUObject selected elements
+        self,
+        subgroup_map: List[Union[PYUObject, np.ndarray]],
+        order_map: Union[PYUObject, np.ndarray],
+        bucket_num: int,
+        cumsum=False,
+    ) -> List["HEUObject"]:
+        """Calculate a list o bucket sum arrays.
+        A bucket sum array has dim 2 and shape (feature_num * bucket_sum, self.col_num).
+
+        Args:
+            subgroup_map (List[Union[PYUObject, np.ndarray]]): elements in each subset of elements of self.
+            order_map (Union[PYUObject, np.ndarray]): shape (self.row_num, feature_num). map[i,j] = k means element i, feature j is in bucket k.
+            bucket_num (int): how many bucket to split each feature into.
+            cumsum (bool, optional): whether calculate the cumulative sums or individual sums. Defaults to False.
+
+        Return:
+            a list of bucket sum array in HEUObject.
         """
 
         def process_data(x):

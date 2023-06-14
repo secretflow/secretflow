@@ -16,74 +16,100 @@ syntax = "proto3";
 
 package secretflow.component;
 
+// Description of a SecretFlow cluster, including:
+// - version info
+// - parties: who participate in the computation.
+// - secret devices and their configs: security levels.
 message SFClusterDesc {
+  // SecretFlow version.
   string sf_version = 1;
 
+  // Python version.
   string py_version = 2;
 
   // Joined entities.
+  // e.g. [CompanyA, CompanyB]
   repeated string parties = 3;
 
-  // Description for an SPU device.
+  // Description for a secret device.
+  // PYUs do not need to claim.
   message DeviceDesc {
-    // Name of spu.
+    // Name of the device.
     string name = 1;
 
+    // Supported: SPU, HEU, TEEU
     string type = 2;
 
-    // Parties of spu.
+    // Parties of device.
     repeated string parties = 3;
 
-    // https://www.secretflow.org.cn/docs/spu/en/reference/runtime_config.html
-    // Please provide a json.
+    // Specific config for the secret device.
     string config = 4;
   }
 
+  // Description of secret devices
   repeated DeviceDesc devices = 4;
 }
 
-// Addesses for a spu.
-message SPUAddressConfig {
-  string spu_id = 1;
-
-  repeated string parties = 2;
-
-  repeated string addresses = 3;
-
-  repeated string listen_addresses = 4;
-}
-
-// Addesses for SecretFlow cluster.
-message SFAddressConfig {
-  repeated string addresses = 3;
-
-  repeated string listen_addresses = 4;
-}
-
-message LocalFsConfig {
-  // working directory
-  string wd = 1;
-}
-
+// A StorageConfig is the root for all data for one party.
+// For security reasons, you have to put the a JSON format of config at
+// .sf_storage file at each node for each party in production.
 message StorageConfig {
   // supported: local_fs
   string type = 1;
 
-  LocalFsConfig local_fs = 2;
+  message LocalFSConfig {
+    // working directory
+    string wd = 1;
+  }
+  // local_fs
+  LocalFSConfig local_fs = 2;
 }
 
+// Runtime Config for a SecretFlow cluster.
 message SFClusterConfig {
+  // Contains addresses for a RayFed cluster.
+  // Each party should own an address.
+  // Only for production mode.
+  message RayFedConfig {
+    repeated string parties = 1;
+
+    repeated string addresses = 2;
+
+    repeated string listen_addresses = 3;
+  }
+
+  // Contains addresses for a SPU device.
+  message SPUConfig {
+    string name = 1;
+
+    repeated string parties = 2;
+
+    repeated string addresses = 3;
+
+    repeated string listen_addresses = 4;
+  }
+
+  // Public and shared to all parties.
+  message PublicConfig {
+    RayFedConfig rayfed_config = 1;
+
+    repeated SPUConfig spu_configs = 2;
+  }
+
+  // Different for each party.
+  // For production mode only.
+  message PrivateConfig {
+    string self_party = 1;
+
+    string ray_head_addr = 2;
+
+    StorageConfig storage_config = 3;
+  }
+
   SFClusterDesc desc = 1;
 
-  // Allocated dynamically beyond this point.
-  // For production only.
-  string self_party = 2;
+  PublicConfig public_config = 2;
 
-  StorageConfig storage = 3;
-
-  string ray_head_addr = 4;
-
-  SFAddressConfig sf_addresses = 5;
-
-  repeated SPUAddressConfig spu_addresses = 6;
+  PrivateConfig private_config = 3;
 }

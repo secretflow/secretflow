@@ -15,8 +15,11 @@
 from abc import ABC, abstractmethod
 from typing import Any, List, Union
 
+import jax.numpy as jnp
 import numpy as np
 from scipy import sparse
+
+from secretflow.utils.communicate import ForwardData
 
 
 class Compressor(ABC):
@@ -90,7 +93,7 @@ class SparseCompressor(Compressor):
     # sample random element from original List[np.ndarray]
     def compress(
         self,
-        data: Union[np.ndarray, List[np.ndarray]],
+        data: Union[ForwardData, np.ndarray, List[np.ndarray]],
     ) -> Union[sparse.spmatrix, List[sparse.spmatrix]]:
         """Compress data to sparse matrix before send.
 
@@ -102,16 +105,27 @@ class SparseCompressor(Compressor):
         """
         # there is no need for sparsification in evaluate/predict.
         is_list = True
-        if isinstance(data, np.ndarray):
+
+        if isinstance(data, ForwardData):
+            hidden = data.hidden
+        else:
+            hidden = data
+
+        if isinstance(hidden, (np.ndarray, jnp.ndarray)):
             is_list = False
-            data = [data]
-        elif not isinstance(data, (list, tuple)):
-            assert False, f'invalid data: {type(data)}'
-        out = list(map(lambda d: self._compress_one(d), data))
-        return out if is_list else out[0]
+            hidden = [hidden]
+        elif not isinstance(hidden, (list, tuple)):
+            assert False, f'invalid data: {type(hidden)}'
+        out = list(map(lambda d: self._compress_one(d), hidden))
+        out = out if is_list else out[0]
+        if isinstance(data, ForwardData):
+            data.hidden = out
+        else:
+            data = out
+        return data
 
     def decompress(
-        self, data: Union[sparse.spmatrix, List[sparse.spmatrix]]
+        self, data: Union[ForwardData, sparse.spmatrix, List[sparse.spmatrix]]
     ) -> Union[np.ndarray, List[np.ndarray]]:
         """Decompress data from sparse matrix to dense after received.
 
@@ -123,13 +137,23 @@ class SparseCompressor(Compressor):
         """
         # there is no need for sparsification in evaluate/predict.
         is_list = True
-        if sparse.issparse(data):
+        if isinstance(data, ForwardData):
+            sparse_hidden = data.hidden
+        else:
+            sparse_hidden = data
+
+        if sparse.issparse(sparse_hidden):
             is_list = False
-            data = [data]
-        elif not isinstance(data, (list, tuple)):
-            assert False, f'invalid data: {type(data)}'
-        data = list(map(lambda d: d.todense(), data))
-        return data if is_list else data[0]
+            sparse_hidden = [sparse_hidden]
+        elif not isinstance(sparse_hidden, (list, tuple)):
+            assert False, f'invalid data: {type(sparse_hidden)}'
+        sparse_hidden = list(map(lambda d: d.todense(), sparse_hidden))
+        sparse_hidden = sparse_hidden if is_list else sparse_hidden[0]
+        if isinstance(data, ForwardData):
+            data.hidden = sparse_hidden
+        else:
+            data = sparse_hidden
+        return data
 
     def iscompressed(
         self, data: Union[sparse.spmatrix, List[sparse.spmatrix]]

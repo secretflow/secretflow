@@ -35,13 +35,13 @@ from secretflow.device import (
 from .core import node_split as split_fn
 from .core.node_split import RegType
 from .core.tree_worker import XgbTreeWorker as Worker
-from .core.utils import prepare_dataset
+from secretflow.ml.boost.core.data_preprocess import prepare_dataset, validate
 
 
 class XgbModel:
-    '''
+    """
     SS Xgb Model & predict.
-    '''
+    """
 
     def __init__(self, spu: SPU, objective: RegType, base: float) -> None:
         self.spu = spu
@@ -51,7 +51,6 @@ class XgbModel:
         self.trees = list()
         # List[SPUObject of np.array], owned by spu and not reveal to any one
         self.weights = list()
-        # TODO how to ser/der ?
 
     def _tree_pred(self, tree: Dict[PYU, PYUObject], weight: SPUObject) -> SPUObject:
         assert len(tree) == len(self.x)
@@ -72,7 +71,7 @@ class XgbModel:
         dtrain: Union[FedNdarray, VDataFrame],
         to_pyu: PYU = None,
     ) -> Union[SPUObject, FedNdarray]:
-        '''
+        """
         predict on dtrain with this model.
 
         Args:
@@ -86,11 +85,13 @@ class XgbModel:
 
         Return:
             Pred values store in spu object or FedNdarray.
-        '''
+        """
         if len(self.trees) == 0:
             return None
         x, _ = prepare_dataset(dtrain)
-        assert len(x.partitions) == len(self.trees[0])
+        assert len(x.partitions) == len(
+            self.trees[0]
+        ), f"{len(x.partitions)}, {self.trees[0]}"
         self.workers = [Worker(0, device=pyu) for pyu in x.partitions]
         self.x = x.partitions
         preds = []
@@ -121,7 +122,7 @@ class XgbModel:
 
 
 class Xgb:
-    '''
+    """
     This method provides both classification and regression tree boosting (also known as GBDT, GBM)
     for vertical split dataset setting by using secret sharing.
 
@@ -131,7 +132,7 @@ class Xgb:
     Args:
         spu: secret device running MPC protocols
 
-    '''
+    """
 
     def __init__(self, spu: Union[SPU, List[SPU]]) -> None:
         if not isinstance(spu, list):
@@ -153,7 +154,7 @@ class Xgb:
             split_fn.update_train_pred,
             num_returns_policy=SPUCompilerNumReturnsPolicy.FROM_USER,
             user_specified_num_returns=self.fragment_count,
-            static_argnames=('fragments'),
+            static_argnames=("fragments"),
         )(self.pred, current, fragments=self.fragment_count)
 
         self.pred = pred if isinstance(pred, list) else [pred]
@@ -172,59 +173,53 @@ class Xgb:
         start = time.time()
         assert len(self.spu) > 0, "need at least one spu device"
         self.spus = len(self.spu)
-        x, x_shape = prepare_dataset(dataset)
-        y, y_shape = prepare_dataset(label)
-        assert len(x_shape) == 2, "only support 2D-array on dtrain"
-        assert len(y_shape) == 1 or y_shape[1] == 1, "label only support one col"
+        x, x_shape, y, y_shape = validate(dataset, label)
+
         self.samples = y_shape[0]
-
-        assert self.samples == x_shape[0], "dtrain & label are not aligned"
-        assert len(y.partitions) == 1, "label only support one partition"
-
         self.x = x.partitions
 
-        self.trees = int(params.pop('num_boost_round', 10))
+        self.trees = int(params.pop("num_boost_round", 10))
         assert (
             1 <= self.trees <= 1024
         ), f"num_boost_round should in [1, 1024], got {self.trees}"
 
-        self.depth = int(params.pop('max_depth', 5))
+        self.depth = int(params.pop("max_depth", 5))
         assert (
             self.depth > 0 and self.depth <= 16
         ), f"max_depth should in [1, 16], got {self.depth}"
 
-        self.lr = float(params.pop('learning_rate', 0.3))
+        self.lr = float(params.pop("learning_rate", 0.3))
         assert (
             self.lr > 0 and self.lr <= 1
         ), f"learning_rate should in (0, 1], got {self.lr}"
 
-        obj = params.pop('objective', 'logistic')
+        obj = params.pop("objective", "logistic")
         assert obj in [
             e.value for e in RegType
         ], f"objective should in {[e.value for e in RegType]}, got {obj}"
         self.obj = RegType(obj)
 
-        self.reg_lambda = float(params.pop('reg_lambda', 0.1))
+        self.reg_lambda = float(params.pop("reg_lambda", 0.1))
         assert (
             self.reg_lambda >= 0 and self.reg_lambda <= 10000
         ), f"reg_lambda should in [0, 10000], got {self.reg_lambda}"
 
-        self.subsample = float(params.pop('subsample', 1))
+        self.subsample = float(params.pop("subsample", 1))
         assert (
             self.subsample > 0 and self.subsample <= 1
         ), f"subsample should in (0, 1], got {self.subsample}"
 
-        self.colsample = float(params.pop('colsample_bytree', 1))
+        self.colsample = float(params.pop("colsample_by_tree", 1))
         assert (
             self.colsample > 0 and self.colsample <= 1
-        ), f"colsample_bytree should in (0, 1], got {self.colsample}"
+        ), f"colsample_by_tree should in (0, 1], got {self.colsample}"
 
-        self.base = float(params.pop('base_score', 0))
+        self.base = float(params.pop("base_score", 0))
 
-        sketch = params.pop('sketch_eps', 0.1)
+        sketch = params.pop("sketch_eps", 0.1)
         assert sketch > 0 and sketch <= 1, f"sketch_eps should in (0, 1], got {sketch}"
         self.buckets = math.ceil(1.0 / sketch)
-        self.seed = int(params.pop('seed', 42))
+        self.seed = int(params.pop("seed", 42))
 
         assert len(params) == 0, f"Unknown params {list(params.keys())}"
 
@@ -238,8 +233,6 @@ class Xgb:
         self.fragment_count = fragment_count
 
         logging.info(f"fragment_count {fragment_count}")
-
-        y = list(y.partitions.values())[0]
 
         if fragment_count == 1:
             y = y.device(lambda y: y.reshape((1, y.shape[0])))(y)
@@ -300,7 +293,7 @@ class Xgb:
             f_samples = self.frag_samples[f_idx]
             spu_idx = f_idx % self.spus
             pred = self.spu[spu_idx](
-                split_fn.init_pred, static_argnames=('base', 'samples')
+                split_fn.init_pred, static_argnames=("base", "samples")
             )(base=self.base, samples=f_samples)
             self.pred.append(pred)
             if spu_idx == self.spus - 1:
@@ -326,7 +319,7 @@ class Xgb:
         if self.colsample < 1:
             self.col_choices = []
             for spu in self.spu:
-                choices = [c.to(spu, spu_vis='public') for c in col_buckets_choices]
+                choices = [c.to(spu, spu_vis="public") for c in col_buckets_choices]
                 spu_choices = spu(lambda c: jnp.concatenate(c, axis=None))(choices)
                 self.col_choices.append(spu_choices)
         else:
@@ -349,11 +342,14 @@ class Xgb:
                     lambda s, c: np.sort(np.random.choice(s, c, replace=False))
                 )(samples, choices)
                 # same as colsample above, keep choices in public.
-                sub_choices = sub_choices.to(spu, spu_vis='public')
+                sub_choices = sub_choices.to(spu, spu_vis="public")
             else:
                 sub_choices = None
 
-            gh = spu(split_fn.tree_setup, static_argnames=("objective"),)(
+            gh = spu(
+                split_fn.tree_setup,
+                static_argnames=("objective"),
+            )(
                 pred,
                 y,
                 sub_choices,
@@ -372,7 +368,7 @@ class Xgb:
         dtrain: Union[FedNdarray, VDataFrame],
         label: Union[FedNdarray, VDataFrame],
     ) -> XgbModel:
-        '''train on dtrain and label.
+        """train on dtrain and label.
 
         Args:
             dtrain: {FedNdarray, VDataFrame}
@@ -402,7 +398,7 @@ class Xgb:
             'subsample': Subsample ratio of the training instances.
                 default: 1
                 range: (0, 1]
-            'colsample_bytree': Subsample ratio of columns when constructing each tree.
+            'colsample_by_tree': Subsample ratio of columns when constructing each tree.
                 default: 1
                 range: (0, 1]
             'sketch_eps': This roughly translates into O(1 / sketch_eps) number of bins.
@@ -415,7 +411,7 @@ class Xgb:
 
         Return:
             XgbModel
-        '''
+        """
         self._prepare(params, dtrain, label)
         self._global_setup()
 
@@ -485,7 +481,7 @@ class Xgb:
 
         spu_split_buckets = self.spu[0](
             split_fn.find_best_split_bucket,
-            static_argnames='reg_lambda',
+            static_argnames="reg_lambda",
         )(level_GHs, reg_lambda=self.reg_lambda)
 
         lchild_ss = []
@@ -499,7 +495,7 @@ class Xgb:
             split_fn.get_child_select,
             num_returns_policy=SPUCompilerNumReturnsPolicy.FROM_USER,
             user_specified_num_returns=self.fragment_count,
-            static_argnames=('fragments'),
+            static_argnames=("fragments"),
         )(nodes_s, lchild_ss, fragments=self.fragment_count)
 
         childs_s = childs_s if isinstance(childs_s, list) else [childs_s]
@@ -519,7 +515,7 @@ class Xgb:
             spu_idx = f_idx % self.spus
             spu = self.spu[spu_idx]
             samples = self.frag_samples[f_idx]
-            s = spu(split_fn.root_select, static_argnames=('samples'))(samples=samples)
+            s = spu(split_fn.root_select, static_argnames=("samples"))(samples=samples)
             root_s.append(s)
         return root_s
 

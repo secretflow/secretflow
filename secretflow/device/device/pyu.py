@@ -55,10 +55,10 @@ class PYU(Device):
         self.party = party
 
     def __str__(self) -> str:
-        return f'{self.party}'
+        return self.party
 
     def __repr__(self) -> str:
-        return str(self)
+        return f"PYURuntime({self.party})"
 
     def __eq__(self, other):
         return type(other) == type(self) and str(other) == str(self)

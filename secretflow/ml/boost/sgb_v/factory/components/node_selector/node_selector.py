@@ -43,6 +43,41 @@ class NodeSelector(Component):
     def is_list_empty(self, any_list: Union[PYUObject, List]) -> PYUObject:
         return self.label_holder(lambda any_list: len(any_list) == 0)(any_list)
 
+    def get_child_indices(self, node_indices: List[int], is_lefts: List[bool]):
+        """node indices from the same level, in a [l_child, r_child, ...] fasion"""
+
+        def _inner(node_indices, is_lefts):
+            result = []
+            for i, is_left in enumerate(is_lefts):
+                is_left_offset = int(1 - is_left)
+                result.append(node_indices[2 * i + is_left_offset])
+            return result
+
+        return self.label_holder(_inner)(node_indices, is_lefts)
+
+    def get_pruned_indices_and_selects(
+        self,
+        node_indices: List[int],
+        node_selects: List[np.ndarray],
+        gain_is_cost_effective: List[bool],
+    ) -> Tuple[PYUObject, PYUObject]:
+        def _inner(
+            node_indices, node_selects, gain_is_cost_effective
+        ) -> Tuple[List[int], List[np.ndarray]]:
+            pruned_indices = []
+            pruned_node_selects = []
+            for node_index, node_select, gain in zip(
+                node_indices, node_selects, gain_is_cost_effective
+            ):
+                if not gain:
+                    pruned_indices.append(node_index)
+                    pruned_node_selects.append(node_select)
+            return pruned_indices, pruned_node_selects
+
+        return self.label_holder(_inner, num_returns=2)(
+            node_indices, node_selects, gain_is_cost_effective
+        )
+
     def pick_children_node_ss(
         self, node_select_list: PYUObject
     ) -> Tuple[List[PYUObject], List[bool], int]:

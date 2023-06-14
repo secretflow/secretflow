@@ -112,7 +112,7 @@ openssl rsa -in private_key.pem -pubout -out public_key.pem
 
 Add the SecretFlow initialization related code in front of the secure aggregation code to get the following code.
 First, you need to modify the configuration items in the code.
-- The code assumes that Alice's communication address is 192.168.0.10:10001, please modify it according to the actual situation
+- The code assumes that Alice's communication address is 192.168.0.10:20001, please modify it according to the actual situation
 - You need to fill in the correct `auth_manager_config`
   - `host` is the listening address of the AuthManager service
   - `ca_cert` is the CA certificate address of AuthManager, if AuthManager does not start with TLS, no configuration is required.
@@ -124,9 +124,9 @@ import secretflow as sf
 
 cluster_config = {
     'parties': {
-        'alice': {'address': '192.168.0.10:10001', 'listen_address': '0.0.0.0:10001'},
-        'bob': {'address': '192.168.0.20:10001', 'listen_address': '0.0.0.0:10001'},
-        'carol': {'address': '192.168.0.30:10001', 'listen_address': '0.0.0.0:10001'},
+        'alice': {'address': '192.168.0.10:20001', 'listen_address': '0.0.0.0:20001'},
+        'bob': {'address': '192.168.0.20:20001', 'listen_address': '0.0.0.0:20001'},
+        'carol': {'address': '192.168.0.30:20001', 'listen_address': '0.0.0.0:20001'},
     },
     'self_party': 'alice',
 }
@@ -201,7 +201,7 @@ openssl rsa -in private_key.pem -pubout -out public_key.pem
 Similar to Alice, add the SecretFlow initialization code in front of the secure aggregation code to get the following code.
 First, you need to modify the configuration items in the code.
 
-- The code assumes that Bob's communication address is 192.168.0.20:10001, please modify it according to the actual situation
+- The code assumes that Bob's communication address is 192.168.0.20:20001, please modify it according to the actual situation
 - You need to fill in the correct `auth_manager_config`
 - `host` is the listening address of the AuthManager service
 - `ca_cert` is the CA certificate address of AuthManager, if AuthManager does not start tls, no configuration is required.
@@ -213,9 +213,9 @@ import secretflow as sf
 
 cluster_config = {
     'parties': {
-        'alice': {'address': '192.168.0.10:10001', 'listen_address': '0.0.0.0:10001'},
-        'bob': {'address': '192.168.0.20:10001', 'listen_address': '0.0.0.0:10001'},
-        'carol': {'address': '192.168.0.30:10001', 'listen_address': '0.0.0.0:10001'},
+        'alice': {'address': '192.168.0.10:20001', 'listen_address': '0.0.0.0:20001'},
+        'bob': {'address': '192.168.0.20:20001', 'listen_address': '0.0.0.0:20001'},
+        'carol': {'address': '192.168.0.30:20001', 'listen_address': '0.0.0.0:20001'},
     },
     'self_party': 'bob',
 }
@@ -287,7 +287,7 @@ The display of error messages such as "Failed to open Intel SGX device", "Error,
 Similarly, add the SecretFlow initialization code in front of the secure aggregation code to get the following code. Unlike the previous one, Carol's code needs to run in tee, so some extra steps are required.
 First, you need to modify the configuration items in the code.
 
-1. In the code, it is assumed that Carol's communication address is 192.168.0.30:10001, please modify it according to the actual situation
+1. In the code, it is assumed that Carol's communication address is 192.168.0.30:20001, please modify it according to the actual situation
 2. You need to fill in the correct `auth_manager_config`
   - `host` is the listen address of AuthManager
   - `ca_cert` is the CA certificate path of AuthManager, if AuthManager does not enable TLS, no configuration is required.
@@ -305,9 +305,9 @@ import secretflow as sf
 
 cluster_config = {
     'parties': {
-        'alice': {'address': '192.168.0.10:10001', 'listen_address': '0.0.0.0:10001'},
-        'bob': {'address': '192.168.0.20:10001', 'listen_address': '0.0.0.0:10001'},
-        'carol': {'address': '192.168.0.30:10001', 'listen_address': '0.0.0.0:10001'},
+        'alice': {'address': '192.168.0.10:20001', 'listen_address': '0.0.0.0:20001'},
+        'bob': {'address': '192.168.0.20:20001', 'listen_address': '0.0.0.0:20001'},
+        'carol': {'address': '192.168.0.30:20001', 'listen_address': '0.0.0.0:20001'},
     },
     'self_party': 'carol',
 }
@@ -604,7 +604,7 @@ USE_SECURE_CERT=FALSE
 Add the SecretFlow initialization related code in front of the secure aggregation code to get the following code. Carol's code needs to run in tee, so some extra steps are required.
 
 First, you need to modify the configuration items in the code.
-- In the code, it is assumed that the communication address of Carol is 192.168.0.30:10001, please modify it according to the actual situation
+- In the code, it is assumed that the communication address of Carol is 192.168.0.30:20001, please modify it according to the actual situation
 - You need to fill in the correct `auth_manager_config`
   - `host` is the listening address of the AuthManager service
   - `ca_cert` is the CA certificate address of AuthManager, if AuthManager does not start tls, no configuration is required. (It is recommended to enable tls)
@@ -624,16 +624,16 @@ import secretflow as sf
 cluster_config = {
     'parties': {
         'alice': {
-            'address': '192.168.0.10:10001',
-            'listen_address': '0.0.0.0:10001'
+            'address': '192.168.0.10:20001',
+            'listen_address': '0.0.0.0:20001'
     },
         'bob': {
-            'address': '192.168.0.20:10001',
-            'listen_address': '0.0.0.0:10001'
+            'address': '192.168.0.20:20001',
+            'listen_address': '0.0.0.0:20001'
         },
         'carol': {
-            'address': '192.168.0.30:10001',
-            'listen_address': '0.0.0.0:10001'
+            'address': '192.168.0.30:20001',
+            'listen_address': '0.0.0.0:20001'
         },
     },
     'self_party': 'carol'
@@ -737,7 +737,7 @@ openssl rsa -in private_key.pem -pubout -out public_key.pem
 
 Add the SecretFlow initialization related code in front of the secure aggregation code to get the following code. You need to configure the code:
 
-- The code assumes that Alice's communication address is 192.168.0.10:10001, please modify it according to the actual situation
+- The code assumes that Alice's communication address is 192.168.0.10:20001, please modify it according to the actual situation
 - You need to fill in the correct `auth_manager_config`
   - `host` is the listening address of the AuthManager service
   - `ca_cert` is the CA certificate address of AuthManager, if AuthManager does not start tls, no configuration is required. (It is recommended to enable tls)
@@ -751,9 +751,9 @@ import secretflow as sf
 
 cluster_config = {
     'parties': {
-        'alice': {'address': '192.168.0.10:10001', 'listen_address': '0.0.0.0:10001'},
-        'bob': {'address': '192.168.0.20:10001', 'listen_address': '0.0.0.0:10001'},
-        'carol': {'address': '192.168.0.30:10001', 'listen_address': '0.0.0.0:10001'},
+        'alice': {'address': '192.168.0.10:20001', 'listen_address': '0.0.0.0:20001'},
+        'bob': {'address': '192.168.0.20:20001', 'listen_address': '0.0.0.0:20001'},
+        'carol': {'address': '192.168.0.30:20001', 'listen_address': '0.0.0.0:20001'},
     },
     'self_party': 'alice',
 }
@@ -825,7 +825,7 @@ openssl rsa -in private_key.pem -pubout -out public_key.pem
 3. Run the code
 
 Similar to Alice, add the SecretFlow initialization code in front of the secure aggregation code to get the following code. You need to configure the code:
-- In the code, it is assumed that Bob's communication address is 192.168.0.20:10001, please modify it according to the actual situation
+- In the code, it is assumed that Bob's communication address is 192.168.0.20:20001, please modify it according to the actual situation
 - You need to fill in the correct `auth_manager_config`
   - `host` is the listening address of the AuthManager service
   - `ca_cert` is the CA certificate address of AuthManager, if AuthManager does not start tls, no configuration is required. (It is recommended to enable tls)
@@ -839,9 +839,9 @@ import secretflow as sf
 
 cluster_config = {
     'parties': {
-        'alice': {'address': '192.168.0.10:10001', 'listen_address': '0.0.0.0:10001'},
-        'bob': {'address': '192.168.0.20:10001', 'listen_address': '0.0.0.0:10001'},
-        'carol': {'address': '192.168.0.30:10001', 'listen_address': '0.0.0.0:10001'},
+        'alice': {'address': '192.168.0.10:20001', 'listen_address': '0.0.0.0:20001'},
+        'bob': {'address': '192.168.0.20:20001', 'listen_address': '0.0.0.0:20001'},
+        'carol': {'address': '192.168.0.30:20001', 'listen_address': '0.0.0.0:20001'},
     },
     'self_party': 'bob',
 }
