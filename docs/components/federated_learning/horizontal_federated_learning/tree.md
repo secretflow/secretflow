@@ -74,7 +74,7 @@ params = {
          'num_class':6, # Only required in multi-class classification
          'gamma': 0, # Same to min_impurity_split,The minimux gain for a split
          'subsample': 1.0, # Subsample rate by rows
-         'colsample_bytree': 1.0, # Feature selection rate by tree
+         'colsample_by_tree': 1.0, # Feature selection rate by tree
          'colsample_bylevel': 1.0, # Feature selection rate by level
          'eval_metric': 'merror',  # supported eval metric：
                                     # 1. rmse

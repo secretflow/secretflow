@@ -21,6 +21,10 @@ class LevelCache:
         self.level_nodes_GH = []
         self.cache = None
 
+    def reset(self):
+        self.cache = None
+        self.level_nodes_GH = []
+
     def reset_level_nodes_GH(self):
         self.level_nodes_GH = []
 

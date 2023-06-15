@@ -18,7 +18,7 @@ from torchmetrics import Accuracy, Precision
 
 from secretflow.device import reveal
 from secretflow.ml.nn import FLModel
-from secretflow.ml.nn.fl.backend.torch.utils import TorchModel
+from secretflow.ml.nn.utils import TorchModel
 from secretflow.ml.nn.fl.compress import COMPRESS_STRATEGY
 from secretflow.ml.nn.fl.utils import metric_wrapper, optim_wrapper
 from secretflow.preprocessing.encoder import OneHotEncoder

@@ -22,6 +22,7 @@ from secretflow.device import PYU, HEUObject, PYUObject
 from secretflow.device.device.heu import HEUMoveConfig
 
 from ..component import Component, Devices, print_params
+from ..logging import LoggingParams, LoggingTools
 
 
 @dataclass
@@ -59,10 +60,12 @@ class GradientEncryptor(Component):
 
     def __init__(self):
         self.params = GradientEncryptorParams()
+        self.logging_params = LoggingParams()
         self.gh_encoder = define_encoder(self.params)
 
     def show_params(self):
         print_params(self.params)
+        print_params(self.logging_params)
 
     def set_devices(self, devices: Devices):
         self.label_holder = devices.label_holder
@@ -77,17 +80,19 @@ class GradientEncryptor(Component):
         params['fixed_point_parameter'] = self.params.fixed_point_parameter
         params['batch_encoding_enabled'] = self.params.batch_encoding_enabled
         params['audit_paths'] = self.params.audit_paths
+        LoggingTools.logging_params_write_dict(params, self.logging_params)
 
     def set_params(self, params: dict):
         # validation
         fxp_r = params.get('fixed_point_parameter', 20)
         assert (
-            fxp_r >= 20 and fxp_r <= 100
-        ), f"fixed_point_parameter should in [20, 100], got {fxp_r}"
+            fxp_r >= 10 and fxp_r <= 100
+        ), f"fixed_point_parameter should in [10, 100], got {fxp_r}"
 
         enable_batch_encoding = bool(params.get('batch_encoding_enabled', True))
 
         audit_paths = params.get('audit_paths', {})
+
         assert isinstance(audit_paths, dict), " audit paths must be a dict"
 
         # set params
@@ -97,10 +102,12 @@ class GradientEncryptor(Component):
 
         # calculate attributes
         self.gh_encoder = define_encoder(self.params)
+        self.logging_params = LoggingTools.logging_params_from_dict(params)
 
     def pack(self, g: PYUObject, h: PYUObject) -> PYUObject:
         return self.label_holder(lambda g, h: np.concatenate([g, h], axis=1))(g, h)
 
+    @LoggingTools.enable_logging
     def encrypt(self, gh: PYUObject, tree_index: int) -> HEUObject:
         if self.label_holder.party in self.params.audit_paths:
             path = (
@@ -115,6 +122,7 @@ class GradientEncryptor(Component):
             path
         )
 
+    @LoggingTools.enable_logging
     def cache_to_workers(
         self, encrypted_gh: HEUObject, gh: PYUObject
     ) -> Dict[PYU, Union[HEUObject, PYUObject]]:

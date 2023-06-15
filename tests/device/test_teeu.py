@@ -1,7 +1,7 @@
 import os
-from sys import platform
 import tempfile
 from dataclasses import dataclass
+from sys import platform
 
 import numpy as np
 import pytest
@@ -114,6 +114,7 @@ def teeu_production_setup_devices(request, sf_party_for_4pc):
                 pass
     del inventory
     sf.shutdown()
+
 
 @pytest.mark.skipif(platform == 'darwin', reason="TEEU does not support macOS")
 def test(teeu_production_setup_devices):

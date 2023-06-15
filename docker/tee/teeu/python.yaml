@@ -1,0 +1,29 @@
+includes:
+  - base.yaml
+targets:
+  - target: /bin
+    createlinks:
+      - src: /opt/secretflow/bin/python
+        linkname: python
+      - src: /opt/secretflow/bin/ray
+        linkname: ray
+    copy:
+      - files:
+        - /opt/occlum/toolchains/bash/glibc/bash
+  - target: /opt/secretflow
+    copy:
+      - dirs:
+        - /root/miniconda3/envs/secretflow/lib
+  - target: /opt/secretflow/bin
+    copy:
+      - files:
+        - /root/miniconda3/envs/secretflow/bin/python
+        - /root/miniconda3/envs/secretflow/bin/pip
+        - /root/miniconda3/envs/secretflow/bin/ray
+  - target: /opt/occlum/glibc/lib
+    copy:
+      - files:
+        - /opt/occlum/glibc/lib/libnss_files.so.2
+        - /opt/occlum/glibc/lib/libnss_dns.so.2
+        - /opt/occlum/glibc/lib/libresolv.so.2
+        - /root/miniconda3/envs/secretflow/lib/libgomp.so.1

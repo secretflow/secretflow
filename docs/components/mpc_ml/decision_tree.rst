@@ -153,7 +153,7 @@ For more details about the APIs, see :py:meth:`~secretflow.ml.boost.ss_xgb_v.mod
         'objective': 'logistic',
         'reg_lambda': 0.1,
         'subsample': 1,
-        'colsample_bytree': 1,
+        'colsample_by_tree': 1,
         'base_score': 0.5,
     }
     model = xgb.train(params, v_train_data,v_train_label)

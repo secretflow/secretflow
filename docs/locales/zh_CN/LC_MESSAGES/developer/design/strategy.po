@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-09-09 08:47+0800\n"
+"POT-Creation-Date: 2023-05-29 19:21+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -43,8 +43,10 @@ msgid ""
 "\"fed_prox\", \"fed_scr\", etc.) to complete the call. At the same time, "
 "the Strategy framework supports the development, registration, and use of"
 " user-defined strategies."
-msgstr "联邦学习策略是联邦学习区别于常规分布式机器学习的关键差别，对于模型训练效果影响非常关键。Strategy在联邦学习中主要由两部分组成，一部分是local部分的本地训练策略，其中包含对于loss函数的控制（和server端如何对齐等），梯度或者参数怎么上行传输；第二部分是server部分，包含如何对Clients上传的梯度或参数如何聚合，如何更新，如何下行分发等。"
-"SecretFlow在FLModel之下封装了一层Strategy，控制模型在联邦场景下的学习策略，隐语提供了Strategy Zoo，目前已支持涵盖Non-iid和通信优化等多种策略，而且在不断的迭代更新，用户只需要传递不同策略的alias name("fed_avg_w","fed_avg_g","fed_prox","fed_scr"等)，即可完成调用。同时Strategy框架支持用户自定义策略开发、注册、使用等。"
+msgstr ""
+"联邦学习策略是联邦学习区别于常规分布式机器学习的关键差别，对于模型训练效果影响非常关键。Strategy在联邦学习中主要由两部分组成，一部分是local部分的本地训练策略，其中包含对于loss函数的控制（和server端如何对齐等），梯度或者参数怎么上行传输；第二部分是server部分，包含如何对Clients上传的梯度或参数如何聚合，如何更新，如何下行分发等。SecretFlow在FLModel之下封装了一层Strategy，控制模型在联邦场景下的学习策略，隐语提供了Strategy"
+" Zoo，目前已支持涵盖Non-iid和通信优化等多种策略，而且在不断的迭代更新，用户只需要传递不同策略的alias "
+"name(\"fed_avg_w\",\"fed_avg_g\",\"fed_prox\",\"fed_scr\"等)，即可完成调用。同时Strategy框架支持用户自定义策略开发、注册、使用等。"
 
 #: ../../developer/design/strategy.md:6
 msgid "The positioning and characteristics of SecretFlow's Strategy"
@@ -73,7 +75,9 @@ msgid ""
 "aggregation logic to complete the development of the strategy. At the "
 "same time, only one line of code is required for the user to complete the"
 " registration."
-msgstr "为用户二次开发新的strategy提供了用户友好的接口，用户只需要定义好train_step，并提供聚合逻辑即可完成strategy的开发， 同时只需要用户一行代码就可以完成注册"
+msgstr ""
+"为用户二次开发新的strategy提供了用户友好的接口，用户只需要定义好train_step，并提供聚合逻辑即可完成strategy的开发， "
+"同时只需要用户一行代码就可以完成注册"
 
 #: ../../developer/design/strategy.md:12
 msgid "Architecture diagram"
@@ -115,8 +119,8 @@ msgid ""
 "only needs to pass the name of the strategy method they want to use into "
 "\"FLModel\". Currently provided strategies (continuously updated):"
 msgstr ""
-"使用built-in Strategy是非常直接以及简单的，用户只需要把想要使用的strategy 方法名传入"FLModel"即可。"
-"目前提供的strategy(持续更新中)："
+"使用built-in Strategy是非常直接以及简单的，用户只需要把想要使用的strategy "
+"方法名传入\"FLModel\"即可。目前提供的strategy(持续更新中)："
 
 #: ../../developer/design/strategy.md:33
 msgid "Custom Strategy"
@@ -151,7 +155,9 @@ msgid ""
 "The local strategy in SecretFlow is a framework on top of fl_base, "
 "inherits all the properties and methods of BaseModel, and provides local "
 "calculation logic dedicated to a specific strategy"
-msgstr "SecretFlow中的local strategy是封装在fl_base之上的一层，继承BaseModel的所有属性和方法，并提供专属与特定strategy 的local 计算逻辑"
+msgstr ""
+"SecretFlow中的local "
+"strategy是封装在fl_base之上的一层，继承BaseModel的所有属性和方法，并提供专属与特定strategy 的local 计算逻辑"
 
 #: ../../developer/design/strategy.md:72
 msgid "compressor definition"
@@ -166,13 +172,25 @@ msgid ""
 "server upstream stage compression can be done in your local training "
 "strategy."
 msgstr ""
-"定义专属与当前strategy的tensor压缩算法，加快传输速度。"
-"将您需要进行下行压缩的策略加入COMPRESS_STRATEGY，FLModel会根据判断来决定是否在聚合后下行传输到client的时候进行压缩。"
-"client到server的上行阶段压缩，在您的local training strategy中完成即可。"
+"定义专属与当前strategy的tensor压缩算法，加快传输速度。将您需要进行下行压缩的策略加入COMPRESS_STRATEGY，FLModel会根据判断来决定是否在聚合后下行传输到client的时候进行压缩。client到server的上行阶段压缩，在您的local"
+" training strategy中完成即可。"
 
-#: ../../developer/design/strategy.md:107
+#: ../../developer/design/strategy.md:106
+msgid "Then, update `__init__.py`,to make this strategy effect.   eg:"
+msgstr "最后，需要更新`__init__.py`文件，来让新的策略生效"
+
+#: ../../developer/design/strategy.md:108
+msgid "secretflow/ml/nn/fl/backend/tensorflow/strategy/\\_\\_init\\_\\_.py"
+msgstr "secretflow/ml/nn/fl/backend/tensorflow/strategy/\\_\\_init\\_\\_.py"
+
+#: ../../developer/design/strategy.md:109
+msgid "secretflow/ml/nn/fl/backend/torch/strategy/\\_\\_init\\_\\_.py"
+msgstr "secretflow/ml/nn/fl/backend/torch/strategy/\\_\\_init\\_\\_.py"
+
+#: ../../developer/design/strategy.md:132
 msgid ""
 "Until now, the development of custom strategy is completed. You can pass "
 "the short name of new strategy into the strategy field of FL_Model to "
 "enable the new federated learning strategy."
 msgstr "到这里就完成开发了，您可以将构造好新的strategy_name传入FL_Model的strategy字段，就可以启用新的联邦学习策略啦"
+

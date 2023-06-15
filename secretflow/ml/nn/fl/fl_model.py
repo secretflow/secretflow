@@ -27,7 +27,7 @@ from typing import Callable, Dict, List, Tuple, Union
 import numpy as np
 from tqdm import tqdm
 
-from secretflow.data.horizontal.dataframe import HDataFrame
+from secretflow.data.horizontal import HDataFrame
 from secretflow.data.ndarray import FedNdarray
 from secretflow.device import PYU, reveal, wait
 from secretflow.device.device.pyu import PYUObject
@@ -133,7 +133,6 @@ class FLModel:
         dataset_builder=None,
     ):
         if dataset_builder:
-
             steps_per_epochs = []
             for device, worker in self._workers.items():
                 assert (

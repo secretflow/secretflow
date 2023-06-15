@@ -29,7 +29,6 @@ from secretflow.device import PYUObject, proxy
 from secretflow.ml.nn.sl.backend.tensorflow.sl_base import SLBaseTFModel
 from secretflow.ml.nn.sl.strategy_dispatcher import register_strategy
 from secretflow.security.privacy import DPStrategy
-from secretflow.utils.compressor import Compressor
 
 
 class SLStateAsyncTFModel(SLBaseTFModel):
@@ -38,7 +37,6 @@ class SLStateAsyncTFModel(SLBaseTFModel):
         builder_base: Callable[[], tf.keras.Model],
         builder_fuse: Callable[[], tf.keras.Model],
         dp_strategy: DPStrategy,
-        compressor: Compressor,
         loss_thres: float = 0,
         split_steps: int = 1,
         max_fuse_local_steps: int = 1,
@@ -46,9 +44,15 @@ class SLStateAsyncTFModel(SLBaseTFModel):
         **kwargs,
     ):
         super().__init__(
-            builder_base, builder_fuse, dp_strategy, compressor, random_seed, **kwargs
+            builder_base,
+            builder_fuse,
+            dp_strategy,
+            random_seed,
+            **kwargs,
         )
-        assert max_fuse_local_steps > 0, f'state async max_fuse_local_steps should greater than 0'
+        assert (
+            max_fuse_local_steps > 0
+        ), f'state async max_fuse_local_steps should greater than 0'
         self.loss_thres = loss_thres
         self.split_steps = split_steps
         self.max_fuse_local_steps = max_fuse_local_steps

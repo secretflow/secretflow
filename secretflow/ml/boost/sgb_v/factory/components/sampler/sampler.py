@@ -27,19 +27,23 @@ from ..component import Component, Devices, print_params
 @dataclass
 class SamplerParams:
     """
-    'row_sample_rate': Row sub sample ratio of the training instances.
+    'row_sample_rate': float. Row sub sample ratio of the training instances.
         default: 1
         range: (0, 1]
-    'col_sample_rate': Col sub sample ratio of columns when constructing each tree.
+    'col_sample_rate': float. Col sub sample ratio of columns when constructing each tree.
         default: 1
         range: (0, 1]
-    'seed': Pseudorandom number generator seed.
+    'seed': int. Pseudorandom number generator seed.
         default: 1212
+    'label_holder_feature_only': bool. affects col sampling.
+        default: False
+        if turned on, all non-label holder's col sample rate will be 0.
     """
 
     row_sample_rate: float = 1
     col_sample_rate: float = 1
     seed: int = 1212
+    label_holder_feature_only: bool = False
 
 
 class Sampler(Component):
@@ -63,6 +67,9 @@ class Sampler(Component):
         self.params.row_sample_rate = subsample
         self.params.col_sample_rate = colsample
         self.params.seed = int(params.get('seed', 1212))
+        self.params.label_holder_feature_only = bool(
+            params.get('label_holder_feature_only', False)
+        )
 
         self.rng = np.random.default_rng(self.params.seed)
 
@@ -70,9 +77,10 @@ class Sampler(Component):
         params['seed'] = self.params.seed
         params['row_sample_rate'] = self.params.row_sample_rate
         params['col_sample_rate'] = self.params.col_sample_rate
+        params['label_holder_feature_only'] = self.params.label_holder_feature_only
 
-    def set_devices(self, _: Devices):
-        return
+    def set_devices(self, devices: Devices):
+        self.label_holder = devices.label_holder
 
     def generate_col_choices(
         self, feature_buckets: List[PYUObject]
@@ -86,14 +94,29 @@ class Sampler(Component):
             Tuple[List[PYUObject], List[PYUObject]]: first list is column choices, second is total number of buckets after sampling
         """
         colsample = self.params.col_sample_rate
-        col_choices, total_buckets = zip(
-            *[
-                fb.device(generate_one_partition_col_choices, num_returns=2)(
-                    colsample, fb
-                )
-                for fb in feature_buckets
-            ]
-        )
+
+        if self.params.label_holder_feature_only:
+            col_choices, total_buckets = zip(
+                *[
+                    fb.device(generate_one_partition_col_choices, num_returns=2)(
+                        colsample, fb
+                    )
+                    if fb.device == self.label_holder
+                    else fb.device(generate_one_partition_col_choices, num_returns=2)(
+                        0, fb
+                    )
+                    for fb in feature_buckets
+                ]
+            )
+        else:
+            col_choices, total_buckets = zip(
+                *[
+                    fb.device(generate_one_partition_col_choices, num_returns=2)(
+                        colsample, fb
+                    )
+                    for fb in feature_buckets
+                ]
+            )
         return col_choices, total_buckets
 
     def generate_row_choices(self, row_num) -> Union[None, np.ndarray]:

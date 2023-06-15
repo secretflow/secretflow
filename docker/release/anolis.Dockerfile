@@ -27,7 +27,7 @@ ARG sf_version
 
 ENV version $sf_version
 
-RUN pip install secretflow==${version} --extra-index-url https://download.pytorch.org/whl/cpu
+RUN pip install secretflow==${version} --extra-index-url https://download.pytorch.org/whl/cpu && rm -rf /root/.cache
 
 # For security reason.
 # Since onnx-1.13.1's protobuf conflicts with TensorFlow-2.10.1's,

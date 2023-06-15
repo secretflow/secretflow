@@ -23,7 +23,7 @@ import numpy as np
 
 from secretflow.device import PYUObject, proxy
 from secretflow.ml.nn.fl.backend.torch.fl_base import BaseTorchModel
-from secretflow.ml.nn.fl.backend.torch.utils import TorchModel
+from secretflow.ml.nn.utils import TorchModel
 from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
 from secretflow.utils.compressor import SCRSparse, sparse_encode
 

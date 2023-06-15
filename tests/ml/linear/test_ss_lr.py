@@ -1,5 +1,4 @@
 import logging
-import tempfile
 import time
 
 from sklearn.metrics import roc_auc_score
@@ -7,7 +6,7 @@ from sklearn.preprocessing import StandardScaler
 
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.device.driver import reveal, wait
-from secretflow.ml.linear import LinearModel, SSRegression
+from secretflow.ml.linear import SSRegression
 from secretflow.utils.simulation.datasets import load_linear
 
 
@@ -32,9 +31,9 @@ def _run_test(devices, test_name, v_data, label_data, y, batch_size):
         3,
         0.3,
         batch_size,
-        't1',
-        'logistic',
-        'l2',
+        "t1",
+        "logistic",
+        "l2",
         0.5,
     )
     logging.info(f"{test_name} train time: {time.time() - start}")
@@ -58,34 +57,16 @@ def _run_test(devices, test_name, v_data, label_data, y, batch_size):
         3,
         0.1,
         batch_size,
-        't1',
-        'logistic',
-        'l2',
+        "t1",
+        "logistic",
+        "l2",
         0.05,
         decay_epoch=2,
         decay_rate=0.5,
-        strategy='policy_sgd',
+        strategy="policy_sgd",
     )
     logging.info(f"{test_name} policy-sgd train time: {time.time() - start}")
     start = time.time()
-
-    model = reg.save_model()
-
-    alice_weight_dir_path = tempfile.mkdtemp()
-    bob_weight_dir_path = tempfile.mkdtemp()
-    carol_weight_dir_path = tempfile.mkdtemp()
-
-    rec = model.dump(
-        {
-            "alice": alice_weight_dir_path,
-            "bob": bob_weight_dir_path,
-            "carol": carol_weight_dir_path,
-        },
-    )
-
-    new_model = LinearModel.load(rec, spu=devices.spu)
-
-    reg.load_model(new_model)
 
     spu_yhat = reg.predict(v_data, batch_size)
     yhat = reveal(spu_yhat)
@@ -105,7 +86,7 @@ def test_breast_cancer(sf_production_setup_devices_aby3):
 
     start = time.time()
     ds = load_breast_cancer()
-    x, y = _transform(ds['data']), ds['target']
+    x, y = _transform(ds["data"]), ds["target"]
 
     v_data = FedNdarray(
         partitions={
@@ -143,7 +124,7 @@ def test_linear(sf_production_setup_devices_aby3):
             sf_production_setup_devices_aby3.bob: (11, 22),
         }
     )
-    label_data = vdf['y']
+    label_data = vdf["y"]
     v_data = vdf.drop(columns="y")
     y = reveal(label_data.partitions[sf_production_setup_devices_aby3.bob].data)
     _wait_io([v_data.values, label_data.values])

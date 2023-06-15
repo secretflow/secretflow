@@ -236,8 +236,8 @@ msgstr "在安全聚合代码的前面加上SecretFlow初始化相关代码，�
 #: ../../tutorial/teeu.md:115 ../../tutorial/teeu.md:740
 msgid ""
 "The code assumes that Alice's communication address is "
-"192.168.0.10:10001, please modify it according to the actual situation"
-msgstr "代码中假设 Alice 通信地址为 192.168.0.10:10001，请您根据实际情况修改"
+"192.168.0.10:20001, please modify it according to the actual situation"
+msgstr "代码中假设 Alice 通信地址为 192.168.0.10:20001，请您根据实际情况修改"
 
 #: ../../tutorial/teeu.md:116 ../../tutorial/teeu.md:205
 #: ../../tutorial/teeu.md:291 ../../tutorial/teeu.md:608
@@ -299,9 +299,9 @@ msgstr "与 Alice 类似，在安全聚合代码的前面加上 SecretFlow 初�
 
 #: ../../tutorial/teeu.md:204
 msgid ""
-"The code assumes that Bob's communication address is 192.168.0.20:10001, "
+"The code assumes that Bob's communication address is 192.168.0.20:20001, "
 "please modify it according to the actual situation"
-msgstr "代码中假设 Bob 通信地址为 192.168.0.20:10001，请您根据实际情况修改"
+msgstr "代码中假设 Bob 通信地址为 192.168.0.20:20001，请您根据实际情况修改"
 
 #: ../../tutorial/teeu.md:207
 msgid ""
@@ -350,8 +350,8 @@ msgstr ""
 #: ../../tutorial/teeu.md:290
 msgid ""
 "In the code, it is assumed that Carol's communication address is "
-"192.168.0.30:10001, please modify it according to the actual situation"
-msgstr "代码中假设 Carol 通信地址为 192.168.0.30:10001，请您根据实际情况修改"
+"192.168.0.30:20001, please modify it according to the actual situation"
+msgstr "代码中假设 Carol 通信地址为 192.168.0.30:20001，请您根据实际情况修改"
 
 #: ../../tutorial/teeu.md:292
 msgid "`host` is the listen address of AuthManager"
@@ -625,8 +625,8 @@ msgstr "首先您需要对代码中的配置项进行修改。"
 #: ../../tutorial/teeu.md:607
 msgid ""
 "In the code, it is assumed that the communication address of Carol is "
-"192.168.0.30:10001, please modify it according to the actual situation"
-msgstr "代码中假设 Carol 通信地址为 192.168.0.30:10001，请您根据实际情况修改"
+"192.168.0.30:20001, please modify it according to the actual situation"
+msgstr "代码中假设 Carol 通信地址为 192.168.0.30:20001，请您根据实际情况修改"
 
 #: ../../tutorial/teeu.md:610 ../../tutorial/teeu.md:743
 #: ../../tutorial/teeu.md:831
@@ -705,8 +705,8 @@ msgstr "和 Alice 类似，在安全聚合代码的前面加上 SecretFlow 初�
 #: ../../tutorial/teeu.md:828
 msgid ""
 "In the code, it is assumed that Bob's communication address is "
-"192.168.0.20:10001, please modify it according to the actual situation"
-msgstr "代码中假设 Bob 通信地址为 192.168.0.20:10001，请您根据实际情况修改"
+"192.168.0.20:20001, please modify it according to the actual situation"
+msgstr "代码中假设 Bob 通信地址为 192.168.0.20:20001，请您根据实际情况修改"
 
 #: ../../tutorial/teeu.md:835
 msgid ""

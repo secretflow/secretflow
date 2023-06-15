@@ -46,7 +46,7 @@ class VertWoeBinning:
     def __init__(self, secure_device: Union[SPU, HEU]):
         self.secure_device = secure_device
 
-    def _find_coordinator_device(self, vdata: VDataFrame, label_name) -> PYU:
+    def _find_label_holder_device(self, vdata: VDataFrame, label_name) -> PYU:
         """
         Find which holds the label column.
 
@@ -61,14 +61,14 @@ class VertWoeBinning:
         label_count = 0
         for device in device_column_names:
             if np.isin(label_name, device_column_names[device]).all():
-                coordinator_device = device
+                label_holder_device = device
                 label_count += 1
 
         assert (
             label_count == 1
         ), f"One and only one party can have label, but found {label_count}"
 
-        return coordinator_device
+        return label_holder_device
 
     def binning(
         self,
@@ -86,6 +86,8 @@ class VertWoeBinning:
         """
         Build woe substitution rules base on vdata.
         Only support binary classification label dataset.
+        The total sample numbers in each bin are not protected in current implementation.
+        The split points for bins and the number of postive samples in each bin are protected.
 
         Attributes:
             vdata: vertical slice datasets
@@ -131,12 +133,26 @@ class VertWoeBinning:
                             "else_counts": int, # np.nan samples count
                             "woes": list[float], # woe values for each bins.
                             "else_woe": float, # woe value for np.nan samples.
-                            "ivs": list[float], # iv values for each bins.
-                            "else_iv": float, # iv value for np.nan samples.
                         },
                         # ... others feature
+                    ],
+                    # label holder's PYUObject only
+                    # warning: giving bin_ivs to other party will leak positive samples in each bin.
+                    # it is up to label holder's will to give feature iv or bin ivs or all info to workers.
+                    # for more information, look at: https://github.com/secretflow/secretflow/issues/565
+
+                    # in the following comment, by safe we mean label distribution info is not leaked.
+                    "feature_iv_info" :[
+                        {
+                            "name": str, #feature name
+                            "ivs": list[float], #iv values for each bins, not safe to share with workers in any case.
+                            "else_iv": float, #iv for nan values, may share to with workers
+                            "feature_iv": float, #sum of bin_ivs, safe to share with workers when bin num > 2.
+                        }
                     ]
                 }
+
+
         """
         assert binning_method in (
             "quantile",
@@ -156,24 +172,24 @@ class VertWoeBinning:
         if audit_log_path:
             assert isinstance(self.secure_device, HEU), "only HEU support audit log"
 
-        coordinator_device = self._find_coordinator_device(vdata, label_name)
-        coordinator_audit_log_path = None
+        label_holder_device = self._find_label_holder_device(vdata, label_name)
+        label_holder_audit_log_path = None
 
         if isinstance(self.secure_device, HEU):
             assert len(bin_names) == 2, "only support two party binning in HEU mode"
-            assert self.secure_device.sk_keeper_name() == coordinator_device.party, (
+            assert self.secure_device.sk_keeper_name() == label_holder_device.party, (
                 f"HEU sk keeper party {self.secure_device.sk_keeper_name()} "
-                "mismatch with coordinator device's party {coordinator_device.party}"
+                "mismatch with label_holder device's party {label_holder_device.party}"
             )
             if audit_log_path:
                 assert (
-                    coordinator_device.party in audit_log_path
+                    label_holder_device.party in audit_log_path
                 ), "can not find sk keeper device's audit log path"
-                coordinator_audit_log_path = audit_log_path[coordinator_device.party]
+                label_holder_audit_log_path = audit_log_path[label_holder_device.party]
 
         workers: Dict[PYU, VertWoeBinningPyuWorker] = {}
-        if coordinator_device not in bin_names:
-            bin_names[coordinator_device] = list()
+        if label_holder_device not in bin_names:
+            bin_names[label_holder_device] = list()
 
         for device in bin_names:
             assert (
@@ -184,7 +200,7 @@ class VertWoeBinning:
                 binning_method,
                 bin_num,
                 bin_names[device],
-                label_name if coordinator_device == device else "",
+                label_name if label_holder_device == device else "",
                 positive_label,
                 chimerge_init_bins,
                 chimerge_target_bins,
@@ -194,19 +210,18 @@ class VertWoeBinning:
 
         woe_rules: Dict[PYU, PYUObject] = {}
 
-        # coordinator build woe rules
-        coordinator_worker = workers[coordinator_device]
-        label, coordinator_report = coordinator_worker.coordinator_work(
-            vdata.partitions[coordinator_device].data
+        # label_holder build woe rules
+        label_holder_worker = workers[label_holder_device]
+        label, label_holder_report = label_holder_worker.label_holder_work(
+            vdata.partitions[label_holder_device].data
         )
-        woe_rules[coordinator_device] = coordinator_report
 
         if isinstance(self.secure_device, SPU):
             secure_label = label.to(self.secure_device)
         elif isinstance(self.secure_device, HEU):
             secure_label = label.to(
                 self.secure_device,
-                HEUMoveConfig(heu_audit_log=coordinator_audit_log_path),
+                HEUMoveConfig(heu_audit_log=label_holder_audit_log_path),
             )
         else:
             raise NotImplementedError(
@@ -215,7 +230,7 @@ class VertWoeBinning:
 
         # all participants
         for device in workers:
-            if device == coordinator_device:
+            if device == label_holder_device:
                 continue
 
             worker = workers[device]
@@ -235,12 +250,9 @@ class VertWoeBinning:
                 bin_indices = worker.participant_build_sum_indices(
                     vdata.partitions[device].data
                 )
-                bins_positive = (
-                    secure_label.batch_select_sum(bin_indices)
-                    .to(coordinator_device)
-                    .to(device)
+                bins_positive = secure_label.batch_select_sum(bin_indices).to(
+                    label_holder_device
                 )
-                bin_stats = worker.participant_sum_bin(bins_positive)
             else:
                 bin_select = worker.participant_build_sum_select(
                     vdata.partitions[device].data
@@ -251,14 +263,29 @@ class VertWoeBinning:
 
                 bins_positive = self.secure_device(spu_work)(
                     secure_label, bin_select.to(self.secure_device)
-                ).to(device)
+                ).to(label_holder_device)
 
-                bin_stats = worker.participant_sum_bin(bins_positive)
-
-            woe_ivs = coordinator_worker.coordinator_calc_woe_for_peer(
-                bin_stats.to(coordinator_device)
+            bim_sum_info = worker.get_bin_sum_info().to(label_holder_device)
+            (
+                bin_stats,
+                total_counts,
+                merged_split_point_indices,
+            ) = label_holder_worker.label_holder_sum_bin(bins_positive, bim_sum_info)
+            worker.participant_update_info(
+                total_counts.to(device), merged_split_point_indices.to(device)
             )
-            report = worker.participant_build_report(woe_ivs.to(device))
+            woes, ivs = label_holder_worker.label_holder_calc_woe_for_peer(bin_stats)
+            # label_holder process and save the ivs, calculate the feature_ivs
+            label_holder_worker.label_holder_collect_iv_for_participant(
+                ivs, bim_sum_info
+            )
+            report = worker.participant_build_report(woes.to(device))
             woe_rules[device] = report
+
+        # feature ivs are in label_holder report, which may be later shared to worker
+        label_holder_report = label_holder_worker.generate_iv_report(
+            label_holder_report
+        )
+        woe_rules[label_holder_device] = label_holder_report
 
         return woe_rules

@@ -14,12 +14,10 @@
 
 
 import abc
-
+from dataclasses import dataclass, fields
 from typing import List
 
 from secretflow.device import HEU, PYU
-
-from dataclasses import dataclass, fields
 
 
 @dataclass
@@ -50,13 +48,11 @@ class Component(abc.ABC):
 class Composite(Component):
     def __init__(self) -> None:
         self.components = None
-        self.params = None
 
     def show_params(self):
         for field in fields(self.components):
             print("showing the params of component", field.name)
             getattr(self.components, field.name).show_params()
-        print_params(self.params)
 
     def get_params_dict(self, params: dict = {}):
         for field in fields(self.components):

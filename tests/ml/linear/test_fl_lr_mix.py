@@ -1,6 +1,6 @@
 from dataclasses import dataclass
-from typing import List
 from sys import platform
+from typing import List
 
 import numpy as np
 import pytest
@@ -97,6 +97,7 @@ def env(request, sf_party_for_4pc):
     del devices
     sf.shutdown()
 
+
 @pytest.mark.skipif(platform == 'darwin', reason="macOS has accuracy issue")
 def test_model_should_ok_when_fit_dataframe(env):
     devices, data = env
@@ -121,6 +122,7 @@ def test_model_should_ok_when_fit_dataframe(env):
         learning_rate=0.1,
         aggregators=[aggregator0, aggregator1],
         heus=[devices.heu0, devices.heu1],
+        # aggr_hooks=[RouterLrAggrHook(devices.alice)]
     )
 
     y_pred = np.concatenate(sf.reveal(model.predict(data['x'])))
