@@ -13,5 +13,6 @@
 # limitations under the License.
 
 from .bucket_sum_calculator import BucketSumCalculator
+from .leaf_wise_bucket_sum_calculator import LeafWiseBucketSumCalculator
 
-__all__ = ['BucketSumCalculator']
+__all__ = ['BucketSumCalculator', 'LeafWiseBucketSumCalculator']

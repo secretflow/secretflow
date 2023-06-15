@@ -16,7 +16,9 @@ import numpy as np
 from secretflow.data.ndarray import load
 from secretflow.device import reveal
 from secretflow.ml.nn import SLModel
-from secretflow.security.privacy import DPStrategy, GaussianEmbeddingDP, LabelDP
+from secretflow.ml.nn.sl.agglayer.agg_method import Average
+from secretflow.security.privacy import DPStrategy, LabelDP
+from secretflow.security.privacy.mechanism.tensorflow import GaussianEmbeddingDP
 from secretflow.utils.compressor import RandomSparse, TopkSparse
 from secretflow.utils.simulation.datasets import load_mnist
 
@@ -87,11 +89,31 @@ def create_fuse_model(input_dim, output_dim, party_nums, input_num, name='fuse_m
             )
         # user define hidden process logic
         merged_layer = layers.concatenate(input_layers)
-
         fuse_layer = layers.Dense(64, activation='relu')(merged_layer)
         output = layers.Dense(output_dim, activation='softmax')(fuse_layer)
         # Create model
         model = keras.Model(inputs=input_layers, outputs=output)
+        # Compile model
+        model.compile(
+            loss=['categorical_crossentropy'],
+            optimizer='adam',
+            metrics=["accuracy"],
+        )
+        return model
+
+    return create_model
+
+
+def create_fuse_model_agglayer(input_dim, output_dim, name='fuse_model'):
+    def create_model():
+        from tensorflow import keras
+        from tensorflow.keras import layers
+
+        input_layer = keras.Input(input_dim)
+        fuse_layer = layers.Dense(64, activation='relu')(input_layer)
+        output = layers.Dense(output_dim, activation='softmax')(fuse_layer)
+        # Create model
+        model = keras.Model(inputs=input_layer, outputs=output)
         # Compile model
         model.compile(
             loss=['categorical_crossentropy'],
@@ -121,7 +143,6 @@ def keras_model_with_mnist(
 ):
     # kwargs parsing
     dp_strategy_dict = kwargs.get('dp_strategy_dict', None)
-    compressor = kwargs.get('compressor', None)
     dataset_builder = kwargs.get('dataset_builder', None)
 
     base_local_steps = kwargs.get('base_local_steps', 1)
@@ -132,6 +153,9 @@ def keras_model_with_mnist(
     split_steps = kwargs.get('split_steps', 1)
     max_fuse_local_steps = kwargs.get('max_fuse_local_steps', 10)
 
+    agg_method = kwargs.get('agg_method', None)
+    compressor = kwargs.get('compressor', None)
+
     party_shape = data.partition_shape()
     alice_length = party_shape[devices.alice][0]
     bob_length = party_shape[devices.bob][0]
@@ -141,9 +165,9 @@ def keras_model_with_mnist(
         device_y=device_y,
         model_fuse=model_fuse,
         dp_strategy_dict=dp_strategy_dict,
-        compressor=compressor,
         simulation=True,
         random_seed=1234,
+        backend="tensorflow",
         strategy=strategy,
         base_local_steps=base_local_steps,
         fuse_local_steps=fuse_local_steps,
@@ -151,6 +175,8 @@ def keras_model_with_mnist(
         loss_thres=loss_thres,
         split_steps=split_steps,
         max_fuse_local_steps=max_fuse_local_steps,
+        agg_method=agg_method,
+        compressor=compressor,
     )
 
     history = sl_model.fit(
@@ -219,13 +245,14 @@ def keras_model_with_mnist(
         device_y=device_y,
         model_fuse=model_fuse,
         dp_strategy_dict=dp_strategy_dict,
-        compressor=compressor,
         simulation=True,
         random_seed=1234,
         strategy=strategy,
         base_local_steps=base_local_steps,
         fuse_local_steps=fuse_local_steps,
         bound_param=bound_param,
+        agg_method=agg_method,
+        compressor=compressor,
     )
     sl_model_load.load_model(
         base_model_path=base_model_path,
@@ -335,30 +362,6 @@ class TestSLModelTensorflow:
             dp_spent_step_freq=dp_spent_step_freq,
         )
 
-        # test compressor
-        print("test TopkSparse")
-        top_k_compressor = TopkSparse(0.5)
-        keras_model_with_mnist(
-            devices=sf_simulation_setup_devices,
-            data=x_train,
-            label=y_train,
-            base_model_dict=base_model_dict,
-            model_fuse=fuse_model,
-            device_y=sf_simulation_setup_devices.bob,
-            compressor=top_k_compressor,
-        )
-        print("test RandomSparse")
-        random_sparse = RandomSparse(0.5)
-        keras_model_with_mnist(
-            devices=sf_simulation_setup_devices,
-            data=x_train,
-            label=y_train,
-            base_model_dict=base_model_dict,
-            model_fuse=fuse_model,
-            device_y=sf_simulation_setup_devices.bob,
-            compressor=random_sparse,
-        )
-
         # test dataset builder
         print("test Dataset builder")
         dataset_buidler_dict = {
@@ -432,17 +435,6 @@ class TestSLModelTensorflow:
             split_steps=1,
             max_fuse_local_steps=10,
         )
-        # test pipeline
-        keras_model_with_mnist(
-            devices=sf_simulation_setup_devices,
-            data=x_train,
-            label=y_train,
-            base_model_dict=base_model_dict,
-            model_fuse=fuse_model,
-            device_y=sf_simulation_setup_devices.bob,
-            strategy='pipeline',
-            pipeline_size=2,
-        )
         # test model with regularizer
         base_model_with_reg = create_base_model(input_shape, 64, output_num=1, l2=1e-3)
         keras_model_with_mnist(
@@ -472,7 +464,11 @@ class TestSLModelTensorflow:
         basenet_output = 2
 
         # keras model
-        base_model = create_base_model(input_shape, 64, output_num=basenet_output)
+        base_model = create_base_model(
+            input_shape,
+            64,
+            output_num=2,
+        )
         base_model_dict = {
             sf_simulation_setup_devices.alice: base_model,
             sf_simulation_setup_devices.bob: base_model,
@@ -491,4 +487,67 @@ class TestSLModelTensorflow:
             base_model_dict=base_model_dict,
             model_fuse=fuse_model,
             device_y=sf_simulation_setup_devices.bob,
+        )
+
+    def test_secure_agglayer(self, sf_simulation_setup_devices):
+        (x_train, y_train), (_, _) = load_mnist(
+            parts={
+                sf_simulation_setup_devices.alice: (0, 10000),
+                sf_simulation_setup_devices.bob: (0, 10000),
+            },
+            normalized_x=True,
+            categorical_y=True,
+        )
+        base_model = create_base_model(
+            input_shape,
+            64,
+            output_num=1,
+        )
+        base_model_dict = {
+            sf_simulation_setup_devices.alice: base_model,
+            sf_simulation_setup_devices.bob: base_model,
+        }
+        fuse_model = create_fuse_model_agglayer(
+            input_dim=hidden_size,
+            output_dim=num_classes,
+        )
+
+        # agg layer
+        print("test PlainAggLayer")
+        top_k_compressor = TopkSparse(0.5)
+        keras_model_with_mnist(
+            data=x_train,
+            label=y_train,
+            devices=sf_simulation_setup_devices,
+            base_model_dict=base_model_dict,
+            model_fuse=fuse_model,
+            device_y=sf_simulation_setup_devices.bob,
+            agg_method=Average(),
+            compressor=top_k_compressor,
+        )
+
+        print("test RandomSparse")
+        random_sparse = RandomSparse(0.2)
+
+        keras_model_with_mnist(
+            data=x_train,
+            label=y_train,
+            devices=sf_simulation_setup_devices,
+            base_model_dict=base_model_dict,
+            model_fuse=fuse_model,
+            device_y=sf_simulation_setup_devices.bob,
+            agg_method=Average(),
+            compressor=random_sparse,
+        )
+
+        # spu agglayer
+        print("test SPUAggLayer")
+        keras_model_with_mnist(
+            data=x_train,
+            label=y_train,
+            devices=sf_simulation_setup_devices,
+            base_model_dict=base_model_dict,
+            model_fuse=fuse_model,
+            device_y=sf_simulation_setup_devices.bob,
+            agg_method=Average(),
         )

@@ -13,30 +13,60 @@
 # limitations under the License.
 
 from secretflow.component.ml.linear.ss_sgd import ss_sgd_predict_comp, ss_sgd_train_comp
+from secretflow.component.preprocessing.feature_filter import feature_filter_comp
 from secretflow.component.preprocessing.train_test_split import train_test_split_comp
+from secretflow.component.preprocessing.vert_woe_binning import (
+    vert_woe_binning_comp,
+    vert_woe_substitution_comp,
+)
 from secretflow.component.psi.two_party_balanced import two_party_balanced_psi_comp
-from secretflow.protos.component.comp_def_pb2 import CompListDef
-from secretflow.protos.component.node_def_pb2 import NodeDef
+from secretflow.component.stats.biclassification_eval import biclassification_eval_comp
+from secretflow.component.stats.pva_eval import pva_value_comp
+from secretflow.component.stats.ss_pearsonr import ss_pearsonr_comp
+from secretflow.component.stats.ss_pvalue import ss_pvalue_comp
+from secretflow.component.stats.ss_vif import ss_vif_comp
+from secretflow.component.stats.table_statistics import table_statistics_comp
+from secretflow.protos.component.cluster_pb2 import SFClusterConfig
+from secretflow.protos.component.comp_pb2 import CompListDef, ComponentDef
+from secretflow.protos.component.evaluation_pb2 import NodeEvalParam, NodeEvalResult
+from secretflow.component.ml.boost.sgb.sgb import sgb_predict_comp, sgb_train_comp
+from secretflow.component.ml.boost.ss_xgb.ss_xgb import (
+    ss_xgb_predict_comp,
+    ss_xgb_train_comp,
+)
 
 ALL_COMPONENTS = [
     train_test_split_comp,
     two_party_balanced_psi_comp,
     ss_sgd_train_comp,
     ss_sgd_predict_comp,
+    feature_filter_comp,
+    vert_woe_binning_comp,
+    vert_woe_substitution_comp,
+    ss_vif_comp,
+    ss_pearsonr_comp,
+    ss_pvalue_comp,
+    table_statistics_comp,
+    biclassification_eval_comp,
+    pva_value_comp,
+    sgb_predict_comp,
+    sgb_train_comp,
+    ss_xgb_predict_comp,
+    ss_xgb_train_comp,
 ]
-COMP_LIST_NAME = 'experimental'
-COMP_LIST_DOC_STRING = 'Some experimental componments. Not production ready.'
-COMP_LIST_VERSION = '0.0.1'
+COMP_LIST_NAME = "experimental"
+COMP_LIST_DESC = "Some experimental componments. Not production ready."
+COMP_LIST_VERSION = "0.0.1"
 
 
 def gen_key(domain: str, name: str, version: str) -> str:
-    return f'{domain}/{name}:{version}'
+    return f"{domain}/{name}:{version}"
 
 
 def generate_comp_list():
     comp_list = CompListDef()
     comp_list.name = COMP_LIST_NAME
-    comp_list.doc_string = COMP_LIST_DOC_STRING
+    comp_list.desc = COMP_LIST_DESC
     comp_list.version = COMP_LIST_VERSION
     comp_map = {}
     all_comp_defs = []
@@ -53,10 +83,21 @@ def generate_comp_list():
 COMP_LIST, COMP_MAP = generate_comp_list()
 
 
-def eval(instance: NodeDef, secretflow_cluster_config):
-    key = gen_key(instance.domain, instance.name, instance.version)
+def get_comp_def(domain: str, name: str, version: str) -> ComponentDef:
+    key = gen_key(domain, name, version)
+    assert key in COMP_MAP
+    return COMP_MAP[key].definition()
+
+
+# FIXME(junfeng): Should load storage config from .sf_storage JSON file
+def comp_eval(
+    param: NodeEvalParam,
+    cluster_config: SFClusterConfig,
+    tracer_report: bool = False,
+) -> NodeEvalResult:
+    key = gen_key(param.domain, param.name, param.version)
     if key in COMP_MAP:
         comp = COMP_MAP[key]
-        comp.eval(instance, secretflow_cluster_config)
+        return comp.eval(param, cluster_config, tracer_report=tracer_report)
     else:
         raise RuntimeError("component is not found.")

@@ -20,6 +20,7 @@ from secretflow.data import FedNdarray, PartitionWay
 from secretflow.device import PYUObject
 
 from ..component import Component, Devices, print_params
+from ..logging import LoggingParams, LoggingTools
 from .order_map_actor import OrderMapActor
 
 
@@ -41,11 +42,13 @@ class OrderMapBuilderParams:
 class OrderMapManager(Component):
     def __init__(self) -> None:
         self.params = OrderMapBuilderParams()
+        self.logging_params = LoggingParams()
         self.buckets = eps_inverse(self.params.sketch_eps)
         self.order_map_actors = []
 
     def show_params(self):
         print_params(self.params)
+        print_params(self.logging_params)
 
     def set_params(self, params: Dict):
         # validate
@@ -58,16 +61,21 @@ class OrderMapManager(Component):
         self.buckets = eps_inverse(sketch)
         self.params.seed = int(params.get('seed', 1212))
 
+        self.logging_params = LoggingTools.logging_params_from_dict(params)
+
     def get_params(self, params: dict):
         params['sketch_eps'] = self.params.sketch_eps
         params['seed'] = self.params.seed
+
+        LoggingTools.logging_params_write_dict(params, self.logging_params)
 
     def set_devices(self, devices: Devices):
         self.order_map_actors = [
             OrderMapActor(idx, device=pyu) for idx, pyu in enumerate(devices.workers)
         ]
 
-    def build_order_map(self, x: FedNdarray):
+    @LoggingTools.enable_logging
+    def build_order_map(self, x: FedNdarray) -> FedNdarray:
         # we assumed x's devices match when setting up devices.
         buckets, seed = self.buckets, self.params.seed
         self.order_map = FedNdarray(
@@ -79,6 +87,7 @@ class OrderMapManager(Component):
             },
             partition_way=PartitionWay.VERTICAL,
         )
+        return self.order_map
 
     def get_order_map(self) -> FedNdarray:
         return self.order_map

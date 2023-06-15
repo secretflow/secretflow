@@ -42,7 +42,7 @@ def read_csv(
     Examples:
         >>> read_csv({PYU('alice'): 'alice.csv', PYU('bob'): 'bob.csv'})
     """
-    assert filepath, 'File path shall not be empty!'
+    assert filepath, "File path shall not be empty!"
     df = HDataFrame(aggregator=aggregator, comparator=comparator)
     for device, path in filepath.items():
         df.partitions[device] = Partition(device(read_csv_wrapper)(path, **kwargs))
@@ -55,19 +55,6 @@ def read_csv(
             dtypes_next = part.dtypes
             assert dtypes.equals(
                 dtypes_next
-            ), f'Different dtypes: {dtypes} vs {dtypes_next}'
+            ), f"Different dtypes: {dtypes} vs {dtypes_next}"
 
     return df
-
-
-def to_csv(df: HDataFrame, file_uris: Dict[PYU, str], **kwargs):
-    """Write object to a comma-separated values (csv) file.
-
-    Args:
-        df: the HDataFrame to save.
-        file_uris: the file path of each PYU.
-        kwargs: all other arguments are same with :py:meth:`pandas.DataFrame.to_csv`.
-    """
-    return [
-        df.partitions[device].to_csv(uri, **kwargs) for device, uri in file_uris.items()
-    ]

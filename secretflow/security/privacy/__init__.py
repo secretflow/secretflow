@@ -12,16 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .mechanism.tensorflow.layers import GaussianEmbeddingDP, LabelDP
-from .mechanism.tensorflow.mechanism_fl import GaussianModelDP
-from .strategy import DPStrategy
-from .strategy_fl import DPStrategyFL
+from secretflow.security.privacy.mechanism.mechanism_fl import GaussianModelDP
+from secretflow.security.privacy.strategy import DPStrategy
+from secretflow.security.privacy.strategy_fl import DPStrategyFL
+from secretflow.security.privacy.mechanism.label_dp import LabelDP
 
 __all__ = [
-    'GaussianEmbeddingDP',
     'GaussianModelDP',
-    'LabelDP',
-    'GaussianModelGsDP',
     'DPStrategy',
     'DPStrategyFL',
+    'LabelDP',
 ]

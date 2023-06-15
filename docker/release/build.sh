@@ -52,16 +52,24 @@ NO_COLOR="\033[0m"
 
 IMAGE_TAG=secretflow/secretflow-anolis8:${VERSION}
 LATEST_TAG=secretflow/secretflow-anolis8:latest
+IMAGE_LITE_TAG=secretflow/secretflow-lite-anolis8:${VERSION}
+LATEST_LITE_TAG=secretflow/secretflow-lite-anolis8:latest
 
 echo -e "Building ${GREEN}${IMAGE_TAG}${NO_COLOR}"
 docker build . -f anolis.Dockerfile -t ${IMAGE_TAG} --build-arg sf_version=${VERSION}
 echo -e "Finish building ${GREEN}${IMAGE_TAG}${NO_COLOR}"
 docker push ${IMAGE_TAG}
 
+echo -e "Building ${GREEN}${IMAGE_LITE_TAG}${NO_COLOR}"
+docker build . -f anolis-lite.Dockerfile -t ${IMAGE_LITE_TAG} --build-arg sf_version=${VERSION}
+echo -e "Finish building ${GREEN}${IMAGE_LITE_TAG}${NO_COLOR}"
+docker push ${IMAGE_LITE_TAG}
+
 if [[ LATEST -eq 1 ]]; then
     echo -e "Tag and push ${GREEN}${LATEST_TAG}${NO_COLOR} ..."
     docker tag ${IMAGE_TAG} ${LATEST_TAG}
     docker push ${LATEST_TAG}
+    echo -e "Tag and push ${GREEN}${LATEST_LITE_TAG}${NO_COLOR} ..."
+    docker tag ${IMAGE_LITE_TAG} ${LATEST_LITE_TAG}
+    docker push ${LATEST_LITE_TAG}
 fi
-
-mv environment.yml.bak environment.yml

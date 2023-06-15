@@ -23,7 +23,7 @@ from secretflow.device import HEU
 
 from ..model import SgbModel
 from .booster import GlobalOrdermapBooster
-from .components import LevelWiseTreeTrainer
+from .components import LeafWiseTreeTrainer, LevelWiseTreeTrainer
 
 
 class TreeGrowingMethod(Enum):
@@ -67,14 +67,14 @@ class SGBFactory:
         assert self.heu is not None, "HEU must be set"
         if self.factory_params.tree_growing_method == TreeGrowingMethod.LEVEL:
             tree_trainer = LevelWiseTreeTrainer()
-            booster = GlobalOrdermapBooster(self.heu, tree_trainer)
-            # this line rectifies any conflicts in default settting of components
-            booster.set_params(booster.get_params())
-            # apply any custom settings
-            booster.set_params(self.params_dict)
-            return booster
         else:
-            assert False, "Feature not supported yet"
+            tree_trainer = LeafWiseTreeTrainer()
+        booster = GlobalOrdermapBooster(self.heu, tree_trainer)
+        # this line rectifies any conflicts in default settting of components
+        booster.set_params(booster.get_params())
+        # apply any custom settings
+        booster.set_params(self.params_dict)
+        return booster
 
     def get_params(self, detailed: bool = False) -> dict:
         """get the params set
@@ -89,14 +89,14 @@ class SGBFactory:
             # detailed option will include all defaults
             if self.factory_params.tree_growing_method == TreeGrowingMethod.LEVEL:
                 tree_trainer = LevelWiseTreeTrainer()
-                booster = GlobalOrdermapBooster(self.heu, tree_trainer)
-                # this line rectifies any conflicts in default settting of components
-                booster.set_params(booster.get_params())
-                # apply any custom settings
-                booster.set_params(self.params_dict)
-                return booster.get_params()
             else:
-                assert False, "Feature not supported yet"
+                tree_trainer = LeafWiseTreeTrainer()
+            booster = GlobalOrdermapBooster(self.heu, tree_trainer)
+            # this line rectifies any conflicts in default settting of components
+            booster.set_params(booster.get_params())
+            # apply any custom settings
+            booster.set_params(self.params_dict)
+            return booster.get_params()
         else:
             # show only customized params
             return self.params_dict

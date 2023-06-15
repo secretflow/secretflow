@@ -277,7 +277,7 @@ The following steps show how to deploy SecretFlow in WSL with simulation mode.
 
 You are supposed to install at least two same distributions of different versions such as Ubuntu 20.04.6 LTS and Ubuntu 22.04.2 LTS or at least two different distributions such Ubuntu and Debian.
 In this example, `alice`in`Ubuntu 20.04.6 LTS` and `bob` in `Ubuntu 22.04.2 LTS`:
-   - alice: 
+   - alice:
 
         ```bash
         (secretflow) alice@DESKTOP-SAOB7DQ:~$ lsb_release -a
@@ -308,13 +308,13 @@ The following steps are expected to be done in different distributions to set up
         ```bash
         cd ~
         ```
-        
+
         download Miniconda.
 
         ```bash
         wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
         ```
-        
+
         install Miniconda
 
         ```bash
@@ -325,7 +325,7 @@ The following steps are expected to be done in different distributions to set up
 
    - Create a virtual environment for SecretFlow
         all versions of Python in different distributions should be exactly same.
-        
+
         ```bash
         conda create --name secretflow python==3.8.15
         ```
@@ -342,7 +342,7 @@ The following steps are expected to be done in different distributions to set up
         ```bash
         pip install -U secretflow
         ```
-    
+
 3. Get the IP address of your WSL.
 
 Due to the implementation principle of WSL, different distributions in WSL share the same IP address, then we only could use it to deploy SecretFlow just in a single machine mode. Use the command `ifconfig` to get the IP address of your WSL.

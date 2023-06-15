@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from secretflow.security.privacy.mechanism.tensorflow.mechanism_fl import (
-    GaussianModelDP,
-)
+from secretflow.security.privacy.mechanism.mechanism_fl import GaussianModelDP
 
 
 class DPStrategyFL:

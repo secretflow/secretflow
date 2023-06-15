@@ -318,7 +318,7 @@ def load_mnist(
         categorical_y: optional, do one hot encoding to y if True. Default to True.
 
     Returns:
-        A tuple consists of two tuples, (x_train, y_train) and (x_train, y_train).
+        A tuple consists of two tuples, (x_train, y_train) and (x_test, y_test).
     """
     filepath = _get_dataset(_DATASETS['mnist'])
     with np.load(filepath) as f:

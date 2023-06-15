@@ -195,7 +195,7 @@ def test_dermatology(sf_production_setup_devices_aby3):
             sf_production_setup_devices_aby3.alice: (17, 35),
         },
         axis=1,
-    )
+    ).fillna(0)
 
     label_data = vdf['class']
     y = reveal(

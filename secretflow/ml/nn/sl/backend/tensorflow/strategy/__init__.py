@@ -14,10 +14,8 @@
 
 from .split_async import PYUSLAsyncTFModel
 from .split_state_async import PYUSLStateAsyncTFModel
-from .pipeline import PYUPipelineTFModel
 
 __all__ = [
     "PYUSLAsyncTFModel",
     "PYUSLStateAsyncTFModel",
-    "PYUPipelineTFModel",
 ]
