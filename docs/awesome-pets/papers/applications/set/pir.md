@@ -7,8 +7,10 @@ Private Information Retrival is a protocol that allows a client to retrieve an e
 
 ## Table of Contents
 
-- [Single-Server PIR](#single-server-pir)
-- [Multi-Server PIR](#multi-server-pir)
+- [Private Information Retrieval (PIR)](#private-information-retrieval-pir)
+  - [Table of Contents](#table-of-contents)
+  - [Single-Server PIR](#single-server-pir)
+  - [Multi-Server PIR](#multi-server-pir)
   
   
 ## Single-Server PIR
@@ -149,6 +151,45 @@ Private Information Retrival is a protocol that allows a client to retrieve an e
   FOCS 1995, [eprint](https://www.cs.umd.edu/~gasarch/TOPICS/pir/first.pdf), CGKS95
 
 
+- Private Database Queries Using Somewhat Homomorphic Encryption  
+  *Dan Boneh, Craig Gentry, Shai Halevi, Frank Wang & David J. Wu*  
+  ACNS 2013, [eprint](https://link.springer.com/chapter/10.1007/978-3-642-38980-1_7), BGNW+13  
+  
+
+- Scalable and Private Media Consumption with Popcorn  
+  *Trinabh Gupta, Natacha Crooks, Whitney Mulhern, Srinath Setty, Lorenzo Alvisi, and Michael Walfish*  
+  NSDI 16, [eprint](https://www.semanticscholar.org/paper/Scalable-and-Private-Media-Consumption-with-Popcorn-Gupta-Crooks/2d252b7b8aa30f5decdc52aa50484ae326979368), GCMS+16  
+
+- SHECS-PIR: Somewhat Homomorphic Encryption-Based Compact and Scalable Private Information Retrieval  
+  *Jeongeun Park, Mehdi Tibouchi*  
+  ESORICS 2020, [eprint](https://link.springer.com/chapter/10.1007/978-3-030-59013-0_5), PT20  
+  
+
+- Coeus: A System for Oblivious Document Ranking and Retrieval  
+  *Ishtiyaque Ahmad, Laboni Sarker, Divyakant Agrawal, Amr El Abbadi, Trinabh Gupta*  
+  SOSP '21, [eprint](https://dl.acm.org/doi/10.1145/3477132.3483586), ASAA+21    
+  
+
+- Splinter: Practical Private Queries on Public Data  
+  *Frank Wang, Catherine Yun, Shafi Goldwasser, Vinod Vaikuntanathan, Matei Zaharia*  
+  NSID'17, [eprint](https://eprint.iacr.org/2016/1148),WYGV+17    
+  
+
+- WIDESEAS: A lattice-based PIR scheme implemented in EncryptedQuery  
+  *Dominic Dams, Jeff Lataille, Rino Sanchez, John Wade*  
+  IACR 2019， [eprint](https://eprint.iacr.org/2019/855), DLSW19    
+
+- Communication--Computation Trade-offs in PIR  
+  *Asra Ali, Tancrède Lepoint, Sarvar Patel, Mariana Raykova, Phillipp Schoppmann, Karn Seth, Kevin Yeo*  
+  IACR 2019, [eprint](https://eprint.iacr.org/2019/1483), ALPR19    
+
+- Compressible FHE with applications to PIR  
+  *Craig Gentry, Shai Halevi*  
+  TCC 2019, [eprint](https://link.springer.com/chapter/10.1007/978-3-030-36033-7_17), GH19    
+
+- FrodoPIR: Simple, Scalable, Single-Server Private Information Retrieval  
+  *Alex Davidson (Brave Software), Gonçalo Pestana (Brave Software), Sofía Celi (Brave Software)*  
+  PoPETS 2023, [eprint](https://petsymposium.org/popets/2023/popets-2023-0022.php), DPC23  
 
 
 
