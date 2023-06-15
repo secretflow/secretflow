@@ -14,25 +14,27 @@
 
 
 from secretflow.component.component import Component, IoType
+from secretflow.component.data_utils import (
+    DistDataType,
+    dump_vertical_table,
+    load_table,
+)
 from secretflow.data.split import train_test_split as train_test_split_fn
-from secretflow.data.vertical import read_csv
-from secretflow.device.device.pyu import PYU
-from secretflow.device.driver import wait
-from secretflow.protos.component.comp_def_pb2 import TableType
+from secretflow.protos.component.data_pb2 import VerticalTable
 
 train_test_split_comp = Component(
     "train_test_split",
     domain="preprocessing",
     version="0.0.1",
-    desc="""Split arrays or matrices into random train and test subsets.
-    Check: https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html
+    desc="""Split datasets into random train and test subsets.
+    Plese check: https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html
     """,
 )
 
 
-train_test_split_comp.float_param(
+train_test_split_comp.float_attr(
     name="train_size",
-    desc="proportion of the dataset to include in the train split.",
+    desc="Proportion of the dataset to include in the train subset.",
     is_list=False,
     is_optional=True,
     default_value=0.75,
@@ -42,9 +44,9 @@ train_test_split_comp.float_param(
     lower_bound_inclusive=True,
     upper_bound_inclusive=True,
 )
-train_test_split_comp.float_param(
+train_test_split_comp.float_attr(
     name="test_size",
-    desc="proportion of the dataset to include in the test split.",
+    desc="Proportion of the dataset to include in the test subset.",
     is_list=False,
     is_optional=True,
     default_value=0.25,
@@ -54,72 +56,70 @@ train_test_split_comp.float_param(
     lower_bound_inclusive=True,
     upper_bound_inclusive=True,
 )
-train_test_split_comp.int_param(
+train_test_split_comp.int_attr(
     name="random_state",
-    desc="Controls the shuffling applied to the data before applying the split.",
+    desc="Specify the random seed of the shuffling.",
     is_list=False,
     is_optional=True,
     default_value=1234,
 )
-train_test_split_comp.bool_param(
+train_test_split_comp.bool_attr(
     name="shuffle",
-    desc="Whether or not to shuffle the data before splitting.",
+    desc="Whether to shuffle the data before splitting.",
     is_list=False,
     is_optional=True,
     default_value=True,
 )
-train_test_split_comp.table_io(
+train_test_split_comp.io(
     io_type=IoType.INPUT,
-    name="input",
-    desc="input",
-    types=[TableType.VERTICAL_PARTITIONING_TABLE],
+    name="input_data",
+    desc="Input dataset.",
+    types=[DistDataType.VERTICAL_TABLE],
     col_params=None,
 )
-train_test_split_comp.table_io(
+train_test_split_comp.io(
     io_type=IoType.OUTPUT,
     name="train",
-    desc="train",
-    types=[TableType.VERTICAL_PARTITIONING_TABLE],
+    desc="Output train dataset.",
+    types=[DistDataType.VERTICAL_TABLE],
     col_params=None,
 )
-train_test_split_comp.table_io(
+train_test_split_comp.io(
     io_type=IoType.OUTPUT,
     name="test",
-    desc="test",
-    types=[TableType.VERTICAL_PARTITIONING_TABLE],
+    desc="Output test dataset.",
+    types=[DistDataType.VERTICAL_TABLE],
     col_params=None,
 )
 
 
 @train_test_split_comp.eval_fn
 def train_test_split_eval_fn(
-    *, ctx, train_size, test_size, random_state, shuffle, input, train, test
+    *, ctx, train_size, test_size, random_state, shuffle, input_data, train, test
 ):
-    input_parties = input.table_metadata.vertical_partitioning.parties
-    input_paths = input.table_metadata.vertical_partitioning.paths
-
-    train_parties = train.table_metadata.vertical_partitioning.parties
-    train_paths = train.table_metadata.vertical_partitioning.paths
-
-    test_parties = test.table_metadata.vertical_partitioning.parties
-    test_paths = test.table_metadata.vertical_partitioning.paths
-
-    pyus = {k: PYU(k) for k in ctx['pyu']}
-    assert len(pyus) == 2
-
-    input_dict = {pyus[k]: v for k, v in zip(input_parties, input_paths)}
-    train_dict = {pyus[k]: v for k, v in zip(train_parties, train_paths)}
-    test_dict = {pyus[k]: v for k, v in zip(test_parties, test_paths)}
-
-    input_df = read_csv(input_dict)
-
-    train_df, test_df = train_test_split_fn(
-        input_df,
-        train_size=train_size,
-        test_size=test_size,
-        random_state=random_state,
-        shuffle=shuffle,
+    input_df = load_table(
+        ctx, input_data, load_features=True, load_ids=True, load_labels=True
     )
 
-    wait(train_df.to_csv(train_dict, index=False))
-    wait(test_df.to_csv(test_dict, index=False))
+    pyus = list(input_df.partitions.keys())
+    assert len(pyus) == 2
+
+    with ctx.tracer.trace_running():
+        train_df, test_df = train_test_split_fn(
+            input_df,
+            train_size=train_size,
+            test_size=test_size,
+            random_state=random_state,
+            shuffle=shuffle,
+        )
+
+    in_meta = VerticalTable()
+    input_data.meta.Unpack(in_meta)
+
+    in_meta.num_lines = train_df.shape[0]
+    train_db = dump_vertical_table(ctx, train_df, train, in_meta, input_data.sys_info)
+
+    in_meta.num_lines = test_df.shape[0]
+    test_db = dump_vertical_table(ctx, test_df, test, in_meta, input_data.sys_info)
+
+    return {"train": train_db, "test": test_db}

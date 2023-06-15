@@ -19,7 +19,7 @@ Anonymity-related techniques
 
 Hardware-based solutions
 
-1. [Trusted Execution Environment (TEE)](papers/tools/tee.md) 
+1. [Trusted Execution Environment (TEE)](papers/tools/tee.md)
 
 ### Applications of PETs
 
@@ -32,7 +32,7 @@ Private Set/Database Operations
 Protecting training/inference data
 
 1. [PPML based on Crypto](papers/applications/ppml/ppml_crypto.md) (Contributors: [@llCurious](https://www.github.com/llCurious))
-2. [Ferderated Learning (FL)](papers/applications/ppml/fl/fl.md) (Contributors: [@zhangxingmeng](https://www.github.com/zhangxingmeng) [@FelixZheng1](https://www.github.com/FelixZheng1))
+2. [Ferderated Learning (FL)](papers/applications/ppml/fl/fl.md) (Contributors: [@zhangxingmeng](https://www.github.com/zhangxingmeng) [@FelixZheng1](https://www.github.com/FelixZheng1) [@Cryptocxf](https://github.com/Cryptocxf))
 <!-- 3. [Split Learning (SL)](papers/applications/ppml/sl.md) (Contributors: [@yingting6](https://www.github.com/yingting6)) -->
 
 Attacks on machine learning system
@@ -50,6 +50,5 @@ Multimedia Privacy and Security
 We're sorry some of the materials are avaliable only in Chinese, we'll try to provide an English version in the future.
 
 1. [Team SecretFlow's Papers](papers/secretflow.md)
-2. [Team SecretFlow's Talks (on bilibili.com)](tutorials/talks.md) 
+2. [Team SecretFlow's Talks (on bilibili.com)](tutorials/talks.md)
 3. [Team SecretFlow's Posts (on wechat)](tutorials/posts.md)
-

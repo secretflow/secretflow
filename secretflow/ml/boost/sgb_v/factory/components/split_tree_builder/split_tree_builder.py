@@ -63,17 +63,24 @@ class SplitTreeBuilder(Component):
                 [buckets_count.to(actor.device) for buckets_count in total_buckets]
             )
 
-    def split_bucket_to_partition(self, split_buckets: PYUObject) -> List[PYUObject]:
+    def split_bucket_to_partition(
+        self, split_buckets: Union[PYUObject, List[PYUObject]]
+    ) -> List[PYUObject]:
         """map split bucket to position in the partition or -1 if not in partition
 
         Args:
-            split_buckets (PYUObject): PYUObject is in fact a List[int].
+            split_buckets (Union[PYUObject, List[PYUObject]]): Either is a PYUObject or List[PYUObject],
+                but in both cases it's in fact List[int].
 
         Returns:
             List[PYUObject]: each PYUObject is in fact a List[int]. split buckets viewed by each party
         """
         return [
-            actor.split_buckets_to_paritition(split_buckets.to(actor.device))
+            actor.split_buckets_to_paritition(
+                split_buckets.to(actor.device)
+                if isinstance(split_buckets, PYUObject)
+                else [sb.to(actor.device) for sb in split_buckets]
+            )
             for actor in self.split_tree_builder_actors
         ]
 
@@ -121,7 +128,10 @@ class SplitTreeBuilder(Component):
             split_node_indices_here = (
                 node_indices.to(self.workers[i])
                 if isinstance(node_indices, PYUObject)
-                else node_indices
+                else [
+                    node.to(self.workers[i]) if isinstance(node, PYUObject) else node
+                    for node in node_indices
+                ]
             )
             # split buckets is sent from label holder to workers
             selects = self.split_tree_builder_actors[i].do_split_list_wise(

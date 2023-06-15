@@ -12,43 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import math
-from typing import Tuple, Union
-
-from secretflow.data import FedNdarray, PartitionWay
-from secretflow.data.vertical import VDataFrame
-
 from .params import RegType, SGBTrainParams
-
-
-def prepare_dataset(
-    ds: Union[FedNdarray, VDataFrame]
-) -> Tuple[FedNdarray, Tuple[int, int]]:
-    """
-    check data setting and get total shape.
-
-    Args:
-        ds: input dataset
-
-    Return:
-        First: dataset in unified type
-        Second: shape concat all partition.
-    """
-    assert isinstance(
-        ds, (FedNdarray, VDataFrame)
-    ), f"ds should be FedNdarray or VDataFrame, got {type(ds)}"
-
-    ds = ds if isinstance(ds, FedNdarray) else ds.values
-
-    assert ds.partition_way == PartitionWay.VERTICAL, (
-        "SGB Only support vertical dataset, "
-        "for horizontal dataset please use secreflow.ml.boost.homo_boost"
-    )
-
-    shape = ds.shape
-    assert math.prod(shape), f"not support empty dataset, shape {shape}"
-
-    return ds, shape
 
 
 def validate_sgb_params_dict(params: dict) -> SGBTrainParams:
@@ -83,7 +47,7 @@ def validate_sgb_params_dict(params: dict) -> SGBTrainParams:
     colsample = float(params.pop('colsample_by_tree', 1))
     assert (
         colsample > 0 and colsample <= 1
-    ), f"colsample_bytree should in (0, 1], got {colsample}"
+    ), f"colsample_by_tree should in (0, 1], got {colsample}"
 
     base = float(params.pop('base_score', 0))
 

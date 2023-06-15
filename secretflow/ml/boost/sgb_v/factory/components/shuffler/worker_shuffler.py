@@ -14,12 +14,11 @@
 
 from typing import List
 
+import numpy as np
 
 from secretflow.device import PYUObject, proxy
 
 from ....core.split_tree_trainer.shuffler import Shuffler
-
-import numpy as np
 
 
 @proxy(PYUObject)
@@ -30,6 +29,9 @@ class WorkerShuffler:
 
     def reset_shuffle_mask(self):
         self.shuffler.reset_shuffle_mask()
+
+    def reset_shuffle_mask_with_keys(self, keys: List[int]):
+        self.shuffler.reset_shuffle_mask_with_keys(keys)
 
     def create_shuffle_mask(self, key: int, bucket_list: List[PYUObject]) -> List[int]:
         self.shuffler.create_shuffle_mask(key, bucket_list)
@@ -51,4 +53,10 @@ class WorkerShuffler:
         return [
             self.undo_shuffle_mask(key, index)
             for key, index in enumerate(split_buckets)
+        ]
+
+    def undo_shuffle_mask_with_keys(self, split_buckets: List[int], keys) -> List[int]:
+        return [
+            self.undo_shuffle_mask(key, index)
+            for key, index in zip(keys, split_buckets)
         ]

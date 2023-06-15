@@ -143,7 +143,7 @@ if you want to use GPU acceleration in SecretFlow, you use offical GPU docker im
 ```bash
 nvidia-smi
 ```
-- Since the GPU packages of PyTorch and TensorFlow are not available now, we only supply the GPU Docker image based on the CUDA11. When the GPU packages of PyTorch and TensorFlow based on the CUDA12 are available, we will supply the GPU Docker image based on the CUDA12. 
+- Since the GPU packages of PyTorch and TensorFlow are not available now, we only supply the GPU Docker image based on the CUDA11. When the GPU packages of PyTorch and TensorFlow based on the CUDA12 are available, we will supply the GPU Docker image based on the CUDA12.
 
 2. Follow the [NVIDIA official guide](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#docker) to setup NVIDIA Container Toolkit on your distributions.
 

@@ -56,7 +56,7 @@ class Default(Metric):
         return Default(self.name, self.total, self.count)
 
     def result(self):
-        logging.warn(
+        logging.warning(
             "Please pay attention to local metrics, global only do naive aggregation "
         )
         import tensorflow as tf

@@ -13,8 +13,10 @@
 # limitations under the License.
 
 from typing import List
-import numpy as np
+
 import jax.tree_util
+import numpy as np
+
 from ..pure_numpy_ops.random import create_permuation_with_last_number_fixed
 
 
@@ -32,7 +34,7 @@ class Shuffler:
         It should also be applied to restore the correct split bucket,
         after receiving from label holder.
 
-        The key is the index of node in a fixed level.
+        The key is the index of node in a fixed level. (or node index for leaf wise mode)
         We will create one mask each for each fewer number child node selects at a level.
         Note when calculating bucket sums, we only do it for either left or right child.
         The other can be calculated
@@ -63,6 +65,10 @@ class Shuffler:
 
     def reset_shuffle_mask(self):
         self.reindex_list_map = {}
+
+    def reset_shuffle_mask_with_keys(self, keys):
+        for key in keys:
+            self.reindex_list_map.pop(key)
 
     def is_shuffled(self) -> bool:
         return len(self.reindex_list_map) > 0

@@ -3,15 +3,15 @@ FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu20.04
 RUN  apt-get update \
      && apt-get install -y libcudnn8=8.6.0.163-1+cuda11.8 --allow-downgrades --allow-change-held-packages  \
      && apt-get install -y python3.8 --allow-downgrades --allow-change-held-packages   \
-     && apt-get install -y python3-pip --allow-downgrades --allow-change-held-packages 
+     && apt-get install -y python3-pip --allow-downgrades --allow-change-held-packages
 
 RUN if [ ! -e /usr/bin/python ]; then ln -sf /usr/bin/python3.8 /usr/bin/python; fi
 
 RUN if [ ! -e /usr/bin/python3 ]; then ln -sf /usr/bin/python3.8 /usr/bin/python3; fi
 
 #install the dependencies of cuda11
-#you are supposed to  add the mirror source of pypi to accelerate installation of nvidia packages of cuda11, 
-#if not, the building of images are prone to fail very much 
+#you are supposed to  add the mirror source of pypi to accelerate installation of nvidia packages of cuda11,
+#if not, the building of images are prone to fail very much
 RUN pip install nvidia-cublas-cu11 nvidia-cuda-cupti-cu11 nvidia-cuda-nvcc-cu11 \
     nvidia-cuda-nvrtc-cu11 nvidia-cuda-runtime-cu11 install nvidia-cudnn-cu11 \
     nvidia-cufft-cu11  nvidia-curand-cu11  nvidia-cusolver-cu11 \
@@ -40,7 +40,7 @@ RUN pip install -U secretflow \
     && pip install protobuf==3.20.3 \
     && rm -rf  ~/.cache/pip \
     && rm -rf /tmp/*
-    
+
 COPY secretflow_entrypoint.sh /opt/secretflow/
 
 COPY secretflow_entrypoint.py /opt/secretflow/

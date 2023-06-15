@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import os
 import time
 
@@ -38,14 +39,17 @@ def _run_sgb(
     audit_dict={},
     auc_bar=0.9,
     mse_hat=2.3,
+    tree_grow_method='level',
 ):
+    test_name = test_name + "_with_method_" + tree_grow_method
     factory = SGBFactory()
     factory.set_heu(env.heu)
     start = time.perf_counter()
     params = {
-        'tree_growing_method': 'level',
+        'tree_growing_method': tree_grow_method,
         'num_boost_round': 2,
         'max_depth': 3,
+        'max_leaf': 2**3,
         'sketch_eps': 0.25,
         'objective': 'logistic' if logistic else 'linear',
         'reg_lambda': 0.1,
@@ -56,21 +60,28 @@ def _run_sgb(
         'audit_paths': audit_dict,
         'seed': 42,
         'fixed_point_parameter': 20,
+        # Turn these two options on for benchmarking or debugging.
+        # Verbose mode will produce more logging information.
+        'verbose': False,
+        # Wait execution mode will syncronize operations and therefore reduce performance, but we now can measure component's time more accurately.
+        # Wait execution mode execution time is expected to be slower than that when use in production.
+        'wait_execution': False,
+        'first_tree_with_label_holder_feature': True,
     }
     model = factory.train(params, v_data, label_data)
     reveal(model.trees[-1])
-    print(f"{test_name} train time: {time.perf_counter() - start}")
+    logging.info(f"{test_name} train time: {time.perf_counter() - start}")
     start = time.perf_counter()
     yhat = model.predict(v_data)
     yhat = reveal(yhat)
-    print(f"{test_name} predict time: {time.perf_counter() - start}")
+    logging.info(f"{test_name} predict time: {time.perf_counter() - start}")
     if logistic:
         auc = roc_auc_score(y, yhat)
-        print(f"{test_name} auc: {auc}")
+        logging.info(f"{test_name} auc: {auc}")
         assert auc > auc_bar
     else:
         mse = mean_squared_error(y, yhat)
-        print(f"{test_name} mse: {mse}")
+        logging.info(f"{test_name} mse: {mse}")
         assert mse < mse_hat
 
     fed_yhat = model.predict(v_data, env.alice)
@@ -78,9 +89,9 @@ def _run_sgb(
     yhat = reveal(fed_yhat.partitions[env.alice])
     assert yhat.shape[0] == y.shape[0], f"{yhat.shape} == {y.shape}"
     if logistic:
-        print(f"{test_name} auc: {roc_auc_score(y, yhat)}")
+        logging.info(f"{test_name} auc: {roc_auc_score(y, yhat)}")
     else:
-        print(f"{test_name} mse: {mean_squared_error(y, yhat)}")
+        logging.info(f"{test_name} mse: {mean_squared_error(y, yhat)}")
 
     saving_path_dict = {
         device: "./" + test_name + "/" + device.party
@@ -111,6 +122,9 @@ def _run_npc_linear(env, test_name, parts, label_device):
     label_data = label_data[:500, :]
 
     _run_sgb(env, test_name, v_data, label_data, y, True, 0.9, 1)
+
+    # test with leaf wise growth
+    _run_sgb(env, test_name, v_data, label_data, y, True, 0.9, 1, {}, 0.9, 2.3, 'leaf')
 
 
 def test_2pc_linear(sf_production_setup_devices_aby3):
@@ -200,8 +214,7 @@ def test_dermatology(sf_production_setup_devices_aby3):
             sf_production_setup_devices_aby3.alice: (17, 35),
         },
         axis=1,
-    )
-
+    ).fillna(0)
     label_data = vdf['class']
     y = reveal(
         label_data.partitions[sf_production_setup_devices_aby3.alice].data
