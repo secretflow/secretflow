@@ -97,7 +97,7 @@ msgstr "`hidden_0` 和 `hidden_1` 输入到 `AggLayer` 进行聚合，聚合后�
 msgid ""
 "**Bob** input *hidden\\_merge* to *model\\_fuse*, get the gradient with "
 "*label* and send it back."
-msgstr "`Bob` 方输入 `hidden_merge` 到 `model_fuse`，得到带`label` 的梯度，并进行回传"
+msgstr "`Bob` 方输入 `hidden_merge` 到 `model_fuse`，结合`label` 得到梯度，并进行回传"
 
 #: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:79
 msgid ""
@@ -232,11 +232,11 @@ msgid ""
 "Any operation of the federated table will be scheduled by the driver to "
 "each worker, and the execution instructions will be delivered layer by "
 "layer until the Python Runtime of the specific worker. The framework "
-"ensures that only ``worker.device`` and ``Object.device`` can operate "
-"data at the same time."
+"ensures that only the worker with worker.device equal to the "
+"Object.device can operate on the data."
 msgstr ""
-"联邦表的任何操作都会由驱动调度给每个worker，执行指令会逐层传递，直到特定worker的Python Runtime。 该框架确保只有 "
-"``worker.device`` 和 ``Object.device`` 可以同时操作数据。"
+"联邦表的任何操作都会由driver调度给每个worker，执行指令会逐层传递，直到特定worker的Python Runtime。 框架确保只有当worker的"
+" worker.device 和 Object.device 相同时，才能够操作数据。"
 
 #: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:835
 msgid ""
