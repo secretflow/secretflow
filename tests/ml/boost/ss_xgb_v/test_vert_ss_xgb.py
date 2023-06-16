@@ -36,7 +36,7 @@ def _run_xgb(env, test_name, v_data, label_data, y, logistic, subsample, colsamp
         'objective': 'logistic' if logistic else 'linear',
         'reg_lambda': 0.1,
         'subsample': subsample,
-        'colsample_bytree': colsample,
+        'colsample_by_tree': colsample,
         'base_score': 0.5,
     }
     model = xgb.train(params.copy(), v_data, label_data)
@@ -168,7 +168,7 @@ def test_dermatology(sf_production_setup_devices_aby3):
             sf_production_setup_devices_aby3.bob: (17, 35),
         },
         axis=1,
-    )
+    ).fillna(0)
 
     label_data = vdf['class']
     y = reveal(label_data.partitions[sf_production_setup_devices_aby3.bob].data).values
@@ -240,7 +240,7 @@ def test_dermatology(sf_production_setup_devices_aby3):
 #         'objective': 'logistic',
 #         'reg_lambda': 0.1,
 #         'subsample': 1,
-#         'colsample_bytree': 1,
+#         'colsample_by_tree': 1,
 #         'base_score': 0.5,
 #     }
 #     start = time.time()

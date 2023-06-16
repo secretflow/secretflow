@@ -12,33 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from abc import ABC, abstractmethod
-from typing import List
-
-import numpy as np
 import tensorflow as tf
 
-from secretflow.security.privacy.accounting.gdp_accountant import (
-    cal_mu_poisson,
-    cal_mu_uniform,
-    get_eps_from_mu,
-)
-from secretflow.security.privacy.accounting.rdp_accountant import (
-    get_privacy_spent_rdp,
-    get_rdp,
-)
+from secretflow.security.privacy.accounting.budget_accountant import BudgetAccountant
 
 
-class EmbeddingDP(tf.keras.layers.Layer, ABC):
-    def __init__(self) -> None:
-        super().__init__()
-
-    @abstractmethod
-    def call(self, inputs):
-        pass
-
-
-class GaussianEmbeddingDP(EmbeddingDP):
+class GaussianEmbeddingDP(BudgetAccountant, tf.keras.layers.Layer):
     """Embedding differential privacy perturbation using gaussian noise"""
 
     def __init__(
@@ -94,91 +73,3 @@ class GaussianEmbeddingDP(EmbeddingDP):
             )
 
         return tf.add(embed_clipped, noise)
-
-    def privacy_spent_rdp(self, step: int, orders: List = None):
-        """Get accountant using RDP.
-
-        Args:
-            step: The current step of model training or prediction.
-            orders: An array (or a scalar) of RDP orders.
-        """
-
-        if orders is None:
-            orders = [1 + x / 10.0 for x in range(1, 100)] + list(range(12, 64))
-
-        q = self.batch_size / self.num_samples
-        rdp = get_rdp(q, self.noise_multiplier, step, orders)
-        eps, _, opt_order = get_privacy_spent_rdp(orders, rdp, target_delta=self.delta)
-        return eps, self.delta, opt_order
-
-    def privacy_spent_gdp(
-        self,
-        step: int,
-        sampling_type: str,
-    ):
-        """Get accountant using GDP.
-
-        Args:
-            step: The current step of model training or prediction.
-            sampling_type: Sampling type, which must be "poisson" or "uniform".
-        """
-
-        if sampling_type == 'poisson':
-            mu_ideal = cal_mu_poisson(
-                step, self.noise_multiplier, self.num_samples, self.batch_size
-            )
-        elif sampling_type == 'uniform':
-            mu_ideal = cal_mu_uniform(
-                step, self.noise_multiplier, self.num_samples, self.batch_size
-            )
-        else:
-            raise ValueError('the sampling_type must be "poisson" or "uniform".')
-
-        eps = get_eps_from_mu(mu_ideal, self.delta)
-        return eps, self.delta
-
-
-class LabelDP:
-    """Label differential privacy perturbation"""
-
-    def __init__(self, eps: float) -> None:
-        """
-        Args:
-            eps: epsilon for pure DP.
-        """
-        self._eps = eps
-
-    def __call__(self, inputs: np.ndarray):
-        """Random Response. Except for binary classification, inputs only support onehot form.
-
-        Args:
-            inputs: the label.
-        """
-        if not np.sum((inputs == 0) + (inputs == 1)) == inputs.size:
-            raise ValueError(
-                'Except for binary classification, inputs only support onehot form.'
-            )
-
-        if inputs.ndim == 1:
-            p_ori = np.exp(self._eps) / (np.exp(self._eps) + 1)
-            choice_ori = np.random.binomial(1, p_ori, size=inputs.shape[0])
-            outputs = np.abs(1 - choice_ori - inputs)
-        elif inputs.ndim == 2:
-            p_ori = np.exp(self._eps) / (np.exp(self._eps) + inputs.shape[-1] - 1)
-            p_oth = (1 - p_ori) / (inputs.shape[-1] - 1)
-            p_array = inputs * (p_ori - p_oth) + np.ones(inputs.shape) * p_oth
-            index_rr = np.array(
-                [
-                    np.random.choice(inputs.shape[-1], p=p_array[i])
-                    for i in range(inputs.shape[0])
-                ]
-            )
-            outputs = np.eye(inputs.shape[-1])[index_rr]
-        else:
-            raise ValueError('the dim of inputs in LabelDP must be less than 2.')
-
-        # TODO(@yushi): Support regression.
-        return outputs
-
-    def privacy_spent(self):
-        return self._eps

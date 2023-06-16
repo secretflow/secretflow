@@ -105,11 +105,33 @@ logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 cluster_def = {
     'nodes': [
         # <<< !!! >>> replace <192.168.0.1:17268> to alice node's local ip & free port
-        {'party': 'alice', 'id': 'local:0', 'address': f'192.168.0.1:17268'},
+        {'party': 'alice', 'address': '192.168.0.1:17268', 'listen_address': '0.0.0.0:17268'},
         # <<< !!! >>> replace <192.168.0.2:17269> to bob node's local ip & free port
-        {'party': 'bob', 'id': 'local:1', 'address': f'192.168.0.2:17269'},
+        {'party': 'bob', 'address': '192.168.0.2:17269', 'listen_address': '0.0.0.0:17269'},
     ],
-        offline_input_path = {
+    'runtime_config': {
+        'protocol': spu.spu_pb2.SEMI2K,
+        'field': spu.spu_pb2.FM128,
+    },
+}
+​
+link_desc = {
+    'recv_timeout_ms': 3600000,
+}
+
+def main(_):
+    # sf init
+    # <<< !!! >>> replace <192.168.0.1:9394> to your ray head
+    sf.shutdown()
+    sf.init(['alice','bob'],address='192.168.0.1:9394',log_to_driver=True,omp_num_threads=multiprocess.cpu_count())
+​
+    # init log
+    logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+​
+    alice = sf.PYU('alice')
+    bob = sf.PYU('bob')
+
+    offline_input_path = {
         alice: 'dummyalice.csv',
         bob: '/root/benchmark/unbalanced_200000w.csv',
     }
@@ -141,7 +163,7 @@ cluster_def = {
         receiver='alice',  # if `broadcast_result=False`, only receiver can get output file.
         protocol='ECDH_OPRF_UB_PSI_2PC_OFFLINE',        # psi protocol
         precheck_input=False,  # will cost ext time if set True
-        sort=True,  # will cost ext time if set True
+        sort=False,  # will cost ext time if set True
         broadcast_result=False,  # will cost ext time if set True
         bucket_size=10000000,
         curve_type="CURVE_FOURQ",
@@ -178,10 +200,10 @@ logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 # SPU settings
 cluster_def = {
     'nodes': [
-        # <<< !!! >>> replace <192.168.0.1:13666> to alice node's local ip & free port
-        {'party': 'alice', 'id': 'local:0', 'address': f'192.168.0.1:13666'},
-        # <<< !!! >>> replace <192.168.0.2:12946> to bob node's local ip & free port
-        {'party': 'bob', 'id': 'local:1', 'address': f'192.168.0.1:13667'},
+        # <<< !!! >>> replace <192.168.0.1:17268> to alice node's local ip & free port
+        {'party': 'alice', 'address': '192.168.0.1:17268', 'listen_address': '0.0.0.0:17268'},
+        # <<< !!! >>> replace <192.168.0.2:17269> to bob node's local ip & free port
+        {'party': 'bob', 'address': '192.168.0.2:17269', 'listen_address': '0.0.0.0:17269'},
     ],
     'runtime_config': {
         'protocol': spu.spu_pb2.SEMI2K,

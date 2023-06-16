@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import copy
 import logging
 import time
 from dataclasses import dataclass
@@ -40,9 +41,14 @@ class GlobalOrdermapBoosterParams:
     num_boost_round : int, default=10
                 Number of boosting iterations. Same as number of trees.
                 range: [1, 1024]
+    first_tree_with_label_holder_feature: bool, default=False
+                Whether to train the first tree with label holder's own features.
+                Can increase training speed and label security.
+                The training loss may increase.
     """
 
     num_boost_round: int = 10
+    first_tree_with_label_holder_feature: bool = False
 
 
 class GlobalOrdermapBooster(Composite):
@@ -54,6 +60,7 @@ class GlobalOrdermapBooster(Composite):
     def __init__(self, heu: HEU, tree_trainer: TreeTrainer) -> None:
         self.components = GlobalOrdermapBoosterComponents()
         self.params = GlobalOrdermapBoosterParams()
+        self.user_config = {}
         self.heu = heu
         self.tree_trainer = tree_trainer
 
@@ -61,9 +68,15 @@ class GlobalOrdermapBooster(Composite):
         trees = int(params.pop('num_boost_round', 10))
         assert 1 <= trees <= 1024, f"num_boost_round should in [1, 1024], got {trees}"
         self.params.num_boost_round = trees
+        self.params.first_tree_with_label_holder_feature = bool(
+            params.pop('first_tree_with_label_holder_feature', False)
+        )
 
     def _get_booster_params(self, params: dict):
         params['num_boost_round'] = self.params.num_boost_round
+        params[
+            'first_tree_with_label_holder_feature'
+        ] = self.params.first_tree_with_label_holder_feature
 
     def show_params(self):
         super().show_params()
@@ -71,10 +84,10 @@ class GlobalOrdermapBooster(Composite):
         print_params(self.params)
 
     def set_params(self, params: dict):
-        print("booster params", params)
         super().set_params(params)
         self.tree_trainer.set_params(params)
         self._set_booster_params(params)
+        self.user_config = params
 
     def get_params(self, params: dict = {}) -> dict:
         super().get_params(params)
@@ -101,9 +114,17 @@ class GlobalOrdermapBooster(Composite):
 
         for tree_index in range(self.params.num_boost_round):
             start = time.perf_counter()
+            if self.params.first_tree_with_label_holder_feature and tree_index == 0:
+                # we are sure the config is small, so ok to copy
+                config = copy.deepcopy(self.user_config)
+                config['label_holder_feature_only'] = True
+                self.tree_trainer.set_params(config)
             tree = self.tree_trainer.train_tree(
                 tree_index, self.components.order_map_manager, y, pred, x_shape
             )
+            if self.params.first_tree_with_label_holder_feature and tree_index == 0:
+                config['label_holder_feature_only'] = False
+                self.tree_trainer.set_params(config)
             self.components.model_builder.insert_tree(tree)
             cur_tree_num = self.components.model_builder.get_tree_num()
 

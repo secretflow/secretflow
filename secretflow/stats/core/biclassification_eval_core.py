@@ -48,9 +48,7 @@ class Report:
         self.eq_frequent_bin_report = [
             EqBinReport(a) for a in eq_frequent_result_arr_list
         ]
-        self.eq_range_bin_report = [
-            EqBinReport(a) for a in eq_range_result_arr_list
-        ]
+        self.eq_range_bin_report = [EqBinReport(a) for a in eq_range_result_arr_list]
         self.summary_report = SummaryReport(summary_report_arr)
         self.head_report = [PrReport(a) for a in head_prs]
 
@@ -167,7 +165,7 @@ class EqBinReport:
         self.false_positive_rate = arr[7]
         self.f1_score = arr[8]
         self.Lift = arr[9]
-        self.predicted_negative_ratio = arr[10]
+        self.predicted_positive_ratio = arr[10]
         self.predicted_negative_ratio = arr[11]
         self.cumulative_percent_of_positive = arr[12]
         self.cumulative_percent_of_negative = arr[13]

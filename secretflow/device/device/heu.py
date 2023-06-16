@@ -340,6 +340,9 @@ class HEUSkKeeper(HEUActor):
             heu_id, config['sk_keeper']['party'], self.hekit, cleartext_type, encoder
         )
 
+    def __repr__(self) -> str:
+        return f"HEUSkKeeper(heu_id={self.heu_id}, party={self.party})"
+
     def public_key(self):
         return self.hekit.public_key()
 
@@ -396,6 +399,9 @@ class HEUEvaluator(HEUActor):
         self.config = config
         self.hekit = hnp.setup(pk)
         super().__init__(heu_id, party, self.hekit, cleartext_type, encoder)
+
+    def __repr__(self) -> str:
+        return f"HEUEvaluator(heu_id={self.heu_id}, party={self.party})"
 
     def dump(self, data, path):
         """Dump data to file."""

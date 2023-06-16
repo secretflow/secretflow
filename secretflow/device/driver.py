@@ -240,20 +240,20 @@ def init(
                     'parties': {
                         'alice': {
                             # The address for other parties.
-                            'address': '127.0.0.1:10001',
+                            'address': '127.0.0.1:20001',
                             # (Optional) the listen address, the `address` will
                             # be used if not prodived.
-                            'listen_addr': '0.0.0.0:10001'
+                            'listen_addr': '0.0.0.0:20001'
                         },
                         'bob': {
                             # The address for other parties.
-                            'address': '127.0.0.1:10002',
+                            'address': '127.0.0.1:20002',
                             # (Optional) the listen address, the `address` will
                             # be used if not prodived.
-                            'listen_addr': '0.0.0.0:10002'
+                            'listen_addr': '0.0.0.0:20002'
                         },
                     },
-                    'self_party': alice
+                    'self_party': 'alice'
                 }
 
                 # For bob
@@ -261,20 +261,20 @@ def init(
                     'parties': {
                         'alice': {
                             # The address for other parties.
-                            'address': '127.0.0.1:10001',
+                            'address': '127.0.0.1:20001',
                             # (Optional) the listen address, the `address` will
                             # be used if not prodived.
-                            'listen_addr': '0.0.0.0:10001'
+                            'listen_addr': '0.0.0.0:20001'
                         },
                         'bob': {
                             # The address for other parties.
-                            'address': '127.0.0.1:10002',
+                            'address': '127.0.0.1:20002',
                             # (Optional) the listen address, the `address` will
                             # be used if not prodived.
-                            'listen_addr': '0.0.0.0:10002'
+                            'listen_addr': '0.0.0.0:20002'
                         },
                     },
-                    'self_party': bob
+                    'self_party': 'bob'
                 }
         num_cpus: Number of CPUs the user wishes to assign to each raylet.
         log_to_driver: Whether direct output of worker processes on all nodes
@@ -291,6 +291,7 @@ def init(
             `retry-policy <https://github.com/grpc/proposal/blob/master/A6-client-retries.md#retry-policy>`_.
 
             .. code:: python
+
                 {
                     "maxAttempts": 4,
                     "initialBackoff": "0.1s",
@@ -311,6 +312,7 @@ def init(
             execution attack when crossing silos. E.g.
 
             .. code:: python
+
                 {
                     "numpy.core.numeric": ["*"],
                     "numpy": ["dtype"],
@@ -324,6 +326,7 @@ def init(
         tls_config: optional, a dict describes the tls certificate and key infomations. E.g.
 
             .. code:: python
+
                 {
                     'key': 'server key in pem.'
                     'cert': 'server certificate in pem.',
@@ -335,6 +338,7 @@ def init(
             This parameter is for TEE users only. An example,
 
             .. code:: python
+
                 {
                     'host': 'host of authority manager service.'
                     'mr_enclave': 'mr_enclave of authority manager.',
@@ -344,8 +348,9 @@ def init(
             This is required for party who wants to send data to TEEU.
             E.g.
 
-            # For alice
             .. code:: python
+
+                # For alice
                 {
                     'alice': {
                         'public_key': 'RSA public key of alice in pem.',
@@ -353,8 +358,7 @@ def init(
                     }
                 }
 
-            # For bob
-            .. code:: python
+                # For bob
                 {
                     'bob': {
                         'public_key': 'RSA public key of bob in pem.',
@@ -368,6 +372,7 @@ def init(
     """
     set_logging_level(logging_level)
     simluation_mode = True if parties else False
+
     if auth_manager_config and simluation_mode:
         raise InvalidArgumentError(
             'TEE abilities is available only in production mode.'
@@ -382,8 +387,9 @@ def init(
     else:
         local_mode = address == 'local'
     if not local_mode and num_cpus is not None:
-        raise InvalidArgumentError(
-            'When connecting to an existing cluster, num_cpus must not be provided.'
+        num_cpus = None
+        logging.warning(
+            'When connecting to an existing cluster, num_cpus must not be provided. Num_cpus is neglected at this moment.'
         )
     if local_mode and num_cpus is None:
         num_cpus = multiprocess.cpu_count()
@@ -495,6 +501,22 @@ def init(
             **kwargs,
         )
 
+        global g_all_parties
+        global g_self_party
+        g_all_parties = all_parties
+        g_self_party = self_party
+
+
+def barrier():
+    global g_all_parties
+    global g_self_party
+
+    if sfd.production_mode():
+        barriers = []
+        for party in g_all_parties:
+            barriers.append(PYU(party)(lambda: None)())
+        reveal(barriers)
+
 
 def shutdown():
     """Disconnect the worker, and terminate processes started by secretflow.init().
@@ -503,6 +525,7 @@ def shutdown():
     It is ok to run this twice in a row. The primary use case for this function
     is to cleanup state between tests.
     """
+    barrier()
     sfd.shutdown()
 
 

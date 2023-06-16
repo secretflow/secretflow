@@ -14,7 +14,7 @@
 
 import json
 from pathlib import Path
-from typing import Dict, Union
+from typing import Dict, Union, List
 
 import jax.numpy as jnp
 
@@ -25,7 +25,7 @@ from secretflow.device import PYU, PYUObject, reveal, wait
 from .core.distributed_tree.distributed_tree import DistributedTree
 from .core.distributed_tree.distributed_tree import from_dict as dt_from_dict
 from .core.preprocessing.params import RegType
-from .core.preprocessing.preprocessing import prepare_dataset
+from secretflow.ml.boost.core.data_preprocess import prepare_dataset
 from .core.pure_numpy_ops.pred import sigmoid
 
 
@@ -49,8 +49,7 @@ class SgbModel:
         self.label_holder = label_holder
         self.objective = objective
         self.base = base
-        # List[DistributedTree]
-        self.trees = list()
+        self.trees: List[DistributedTree] = list()
 
     def _insert_distributed_tree(self, tree: DistributedTree):
         self.trees.append(tree)

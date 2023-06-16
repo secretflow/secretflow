@@ -7,36 +7,44 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-01-07 11:23+0800\n"
+"POT-Creation-Date: 2023-05-29 19:21+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.11.0\n"
+"Generated-By: Babel 2.10.3\n"
 
 #: ../../tutorial/index.rst:12
+msgid "IO"
+msgstr ""
+
+#: ../../tutorial/index.rst:22
 msgid "DataFrame"
 msgstr ""
 
-#: ../../tutorial/index.rst:18
+#: ../../tutorial/index.rst:28
 msgid "SPU"
 msgstr ""
 
-#: ../../tutorial/index.rst:26
+#: ../../tutorial/index.rst:37
+msgid "TEEU"
+msgstr ""
+
+#: ../../tutorial/index.rst:44
 msgid "PSI"
 msgstr ""
 
-#: ../../tutorial/index.rst:32
+#: ../../tutorial/index.rst:50
 msgid "Federated Learning"
 msgstr "联邦学习"
 
-#: ../../tutorial/index.rst:43
+#: ../../tutorial/index.rst:62
 msgid "场景方案"
 msgstr ""
 
-#: ../../tutorial/index.rst:49
+#: ../../tutorial/index.rst:68
 msgid "培训资料"
 msgstr ""
 

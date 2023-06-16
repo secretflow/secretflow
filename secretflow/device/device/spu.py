@@ -276,6 +276,7 @@ class SPURuntime:
         link_desc: Dict = None,
         log_options: spu_logging.LogOptions = spu_logging.LogOptions(),
         use_link: bool = True,
+        id: str = None,
     ):
         """wrapper of spu.Runtime.
 
@@ -296,6 +297,7 @@ class SPURuntime:
         for i, node in enumerate(cluster_def['nodes']):
             address = node['address']
             if i == rank:
+                self.party = node['party']
                 tls_opts = node.get('tls_opts', None)
                 if node.get('listen_address', ''):
                     address = node['listen_address']
@@ -312,6 +314,10 @@ class SPURuntime:
         )
         self.runtime = spu.Runtime(self.link, self.conf)
         self.share_seq_id = 0
+        self.id = id
+
+    def __repr__(self):
+        return f"SPURuntime(device_id={self.id}, party={self.party})"
 
     def get_new_share_name(self) -> str:
         self.share_seq_id += 1
@@ -552,7 +558,6 @@ class SPURuntime:
             else:
                 # load result dataframe from temp file
                 return pd.read_csv(output_path)
-            
 
     def psi_csv(
         self,
@@ -1183,6 +1188,152 @@ class SPURuntime:
             'data_count': report.data_count,
         }
 
+    def pir_memory_query(
+        self,
+        server: str,
+        config: Dict,
+        protocol="KEYWORD_PIR_LABELED_PSI",
+    ):
+        """Private information retrival online query phase.
+        Args:
+            server (str): Which party is pir server.
+            config (dict): Server/Client config dict
+                For example:
+
+                .. code:: python
+
+                    {
+                        # client config
+                        alice: {
+                            'input_path': '/path/intput.csv',
+                            'key_columns': 'id',
+                            'output_path': '/path/output.csv',
+                        },
+                        # server config
+                        bob: {
+                            'input_path': '/path/server.csv',
+                            'key_columns': 'id',
+                            'label_columns': 'label',
+                            'num_per_query': '1',
+                            'label_max_len': '20',
+                        },
+                    }
+
+                server config dict must have:
+                    'input_path', 'key_columns', 'label_columns', 'oprf_key_path',
+                    'num_per_query', 'label_max_len'
+                    input_path (str): Client's CSV file path. comma separated and contains header.
+                        Use an absolute path.
+                    key_columns (str, List[str]): Column(s) used as pir key
+                    label_columns (str, List[str]): Column(s) used as pir label
+                    num_per_query (int): Items number per query.
+                    label_max_len (int): Max number bytes of label, padding data to label_max_len
+                        Max label bytes length add 4 bytes(len).
+                client config dict must have:
+                    'input_path','key_columns', 'output_path'
+                    input_path (str): Client's CSV file path. comma separated and contains header.
+                        Use an absolute path.
+                    key_columns (str, List[str]): Column(s) used as pir key
+                    output_path (str): Query result save to output_path, csv format.
+        Returns:
+            Dict: PIR report output by SPU.
+        """
+
+        pir_client_config_names = [
+            'input_path',
+            'key_columns',
+            'output_path',
+        ]
+        pir_setup_config_names = [
+            'input_path',
+            'key_columns',
+            'label_columns',
+            'num_per_query',
+            'label_max_len',
+        ]
+
+        party = self.cluster_def['nodes'][self.rank]['party']
+        server_rank = -1
+        for i, node in enumerate(self.cluster_def['nodes']):
+            if node['party'] == server:
+                server_rank = i
+                break
+        assert server_rank >= 0, f'invalid server: {server}'
+
+        if self.rank == server_rank:
+            # check config dict
+            for name, value in config.items():
+                assert (
+                    isinstance(name, str) and name
+                ), f'Link desc param name shall be a valid string but got {type(name)}.'
+                if name not in pir_setup_config_names:
+                    raise InvalidArgumentError(
+                        f'Unsupported param {name} in pir server config desc, '
+                        f'{pir_setup_config_names} are now available only.'
+                    )
+
+            for name in pir_setup_config_names:
+                if name not in config.keys():
+                    raise InvalidArgumentError(
+                        f'param {name} must in pir server config'
+                    )
+
+            packed_bytes = struct.pack('?is', True, 1, b'\x00')
+            self.link.send(self.link.next_rank(), packed_bytes)
+            logging.info(f"rank:{self.rank} send {len(packed_bytes)} sync status")
+
+            config = pir.PirSetupConfig(
+                pir_protocol=pir.PirProtocol.Value(protocol),
+                store_type=pir.KvStoreType.Value("LEVELDB_KV_STORE"),
+                input_path=config['input_path'],
+                key_columns=config['key_columns'],
+                label_columns=config['label_columns'],
+                num_per_query=config['num_per_query'],
+                label_max_len=config['label_max_len'],
+                oprf_key_path='',
+                setup_path='::memory',
+            )
+            report = pir.pir_memory_server(self.link, config)
+
+        else:
+            # check config dict
+            for name, value in config.items():
+                assert (
+                    isinstance(name, str) and name
+                ), f'Link desc param name shall be a valid string but got {type(name)}.'
+                if name not in pir_client_config_names:
+                    raise InvalidArgumentError(
+                        f'Unsupported param {name} in pir client config desc, '
+                        f'{pir_client_config_names} are now available only.'
+                    )
+
+            for name in pir_client_config_names:
+                if name not in config.keys():
+                    raise InvalidArgumentError(
+                        f'param {name} must in pir client config'
+                    )
+
+            if isinstance(config['key_columns'], str):
+                key_columns = [config['key_columns']]
+            elif isinstance(config['key_columns'], List):
+                key_columns = config['key_columns']
+
+            recv_bytes = self.link.recv(self.link.next_rank())
+            logging.info(f"rank:{self.rank} recv {len(recv_bytes)} sync status")
+
+            config = pir.PirClientConfig(
+                pir_protocol=pir.PirProtocol.Value(protocol),
+                input_path=config['input_path'],
+                key_columns=key_columns,
+                output_path=config['output_path'],
+            )
+            report = pir.pir_client(self.link, config)
+
+        return {
+            'party': party,
+            'data_count': report.data_count,
+        }
+
 
 def _argnames_partial_except(fn, static_argnames, kwargs):
     if static_argnames is None:
@@ -1247,6 +1398,7 @@ class SPU(Device):
         link_desc: Dict = None,
         log_options: spu_logging.LogOptions = spu_logging.LogOptions(),
         use_link: bool = True,
+        id: str = None,
     ):
         """SPU device constructor.
 
@@ -1346,6 +1498,7 @@ class SPU(Device):
         self._task_id = -1
         self.io = SPUIO(self.conf, self.world_size)
         self.use_link = use_link
+        self.id = id
         self.init()
 
     def init(self):
@@ -1360,6 +1513,7 @@ class SPU(Device):
                     self.link_desc,
                     self.log_options,
                     self.use_link,
+                    self.id,
                 )
             )
 
@@ -1392,8 +1546,10 @@ class SPU(Device):
 
     def dump(self, obj: SPUObject, paths: List[str]):
         assert obj.device == self, "obj must be owned by this device."
+        ret = []
         for i, actor in enumerate(self.actors.values()):
-            actor.dump.remote(obj.meta, obj.shares_name[i], paths[i])
+            ret.append(actor.dump.remote(obj.meta, obj.shares_name[i], paths[i]))
+        return ret
 
     def load(self, paths: List[str]) -> SPUObject:
         outputs = [None] * self.world_size
@@ -1801,6 +1957,64 @@ class SPU(Device):
         """
         return dispatch(
             'pir_query',
+            self,
+            server,
+            config,
+            protocol,
+        )
+
+    def pir_memory_query(
+        self,
+        server: str,
+        config: Dict,
+        protocol="KEYWORD_PIR_LABELED_PSI",
+    ):
+        """Private information retrival online query.
+        Args:
+            server (str): Which party is pir server.
+            config (dict): Server/Client config dict
+                For example
+
+                .. code:: python
+
+                    {
+                        # client config
+                        alice: {
+                            'input_path': '/path/intput.csv',
+                            'key_columns': 'id',
+                            'output_path': '/path/output.csv',
+                        },
+                        # server config
+                        bob: {
+                            'input_path': '/path/server.csv',
+                            'key_columns': 'id',
+                            'label_columns': 'label',
+                            'num_per_query': '1',
+                            'label_max_len': '20',
+                        },
+                    }
+
+                server config dict must have:
+                    'input_path', 'key_columns', 'label_columns', 'oprf_key_path',
+                    'num_per_query', 'label_max_len'
+                    input_path (str): Client's CSV file path. comma separated and contains header.
+                        Use an absolute path.
+                    key_columns (str, List[str]): Column(s) used as pir key
+                    label_columns (str, List[str]): Column(s) used as pir label
+                    num_per_query (int): Items number per query.
+                    label_max_len (int): Max number bytes of label, padding data to label_max_len
+                        Max label bytes length add 4 bytes(len).
+                client config dict must have:
+                    'input_path','key_columns', 'output_path'
+                    input_path (str): Client's CSV file path. comma separated and contains header.
+                        Use an absolute path.
+                    key_columns (str, List[str]): Column(s) used as pir key
+                    output_path (str): Query result save to output_path, csv format.
+        Returns:
+            Dict: PIR report output by SPU.
+        """
+        return dispatch(
+            'pir_memory_query',
             self,
             server,
             config,

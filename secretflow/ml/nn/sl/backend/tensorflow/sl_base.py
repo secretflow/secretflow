@@ -21,25 +21,18 @@
 import copy
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Callable, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-import torch
 from tensorflow.python.keras import callbacks as callbacks_module
-from torch import nn
-from torch.nn.modules.loss import _Loss as BaseTorchLoss
-from torch.optim import Optimizer
-from torch.utils.data import DataLoader
 
-import secretflow.device as ft
 from secretflow.device import PYUObject, proxy
 from secretflow.ml.nn.metrics import AUC, Mean, Precision, Recall
-from secretflow.ml.nn.sl.backend.tensorflow.utils import ForwardData
 from secretflow.ml.nn.sl.strategy_dispatcher import register_strategy
 from secretflow.security.privacy import DPStrategy
-from secretflow.utils.compressor import Compressor, SparseCompressor
+from secretflow.utils.communicate import ForwardData
 
 
 class SLBaseModel(ABC):
@@ -60,45 +53,12 @@ class SLBaseModel(ABC):
         pass
 
 
-class SLBaseModule(ABC, nn.Module):
-    @abstractmethod
-    def forward(self, x):
-        pass
-
-    def get_weights(self):
-        return {k: v.cpu() for k, v in self.state_dict().items()}
-
-    def set_weights(self, weights):
-        self.load_state_dict(weights)
-
-    def get_gradients(self, parameters=None):
-        if parameters is None:
-            parameters = self.parameters()
-        grads = []
-        for p in parameters:
-            grad = None if p.grad is None else p.grad.data.cpu().numpy()
-            grads.append(grad)
-        return grads
-
-    def set_gradients(
-        self,
-        gradients: List[Union[torch.Tensor, np.ndarray]],
-        parameters: Optional[List[torch.Tensor]] = None,
-    ):
-        if parameters is None:
-            parameters = self.parameters()
-        for g, p in zip(gradients, parameters):
-            if g is not None:
-                p.grad = torch.from_numpy(g.copy())
-
-
 class SLBaseTFModel(SLBaseModel):
     def __init__(
         self,
         builder_base: Callable[[], tf.keras.Model],
         builder_fuse: Callable[[], tf.keras.Model],
         dp_strategy: DPStrategy,
-        compressor: Compressor,
         random_seed: int = None,
         **kwargs,
     ):
@@ -107,7 +67,6 @@ class SLBaseTFModel(SLBaseModel):
             self.dp_strategy.embedding_dp if dp_strategy is not None else None
         )
         self.label_dp = self.dp_strategy.label_dp if dp_strategy is not None else None
-        self.compressor = compressor
 
         self.train_set = None
         self.eval_set = None
@@ -154,7 +113,6 @@ class SLBaseTFModel(SLBaseModel):
         if hasattr(self.model_base, 'outputs') and self.model_base.outputs is not None:
             return len(self.model_base.outputs)
         else:
-
             if hasattr(self.model_base, "output_num"):
                 return self.model_base.output_num()
             else:
@@ -231,6 +189,10 @@ class SLBaseTFModel(SLBaseModel):
             x: feature, FedNdArray or HDataFrame
             y: label, FedNdArray or HDataFrame
             s_w: sample weight, FedNdArray or HDataFrame
+            batch_size: Number of samples per gradient update.
+            shuffle: Whether to shuffle dataset
+            buffer_size: buffer size for shuffling
+            random_seed: Prg seed for shuffling
             stage: stage of this datset
             dataset_builder: dataset build callable function of worker
         """
@@ -316,11 +278,10 @@ class SLBaseTFModel(SLBaseModel):
                 h = self.embedding_dp(h)
         return h
 
-    def base_forward(self, stage="train", compress: bool = False) -> ForwardData:
+    def base_forward(self, stage="train") -> ForwardData:
         """compute hidden embedding
         Args:
             stage: Which stage of the base forward
-            compress: Whether to compress cross device data.
         Returns: hidden embedding
         """
 
@@ -382,42 +343,21 @@ class SLBaseTFModel(SLBaseModel):
         forward_data = ForwardData()
         if len(self.model_base.losses) > 0:
             forward_data.losses = tf.add_n(self.model_base.losses)
-        # TODO: only vaild on no server mode, refactor when use agglayer or server mode.
-        # no need to compress data on model_fuse side
-        if compress and not self.model_fuse:
-            if self.compressor:
-                forward_data.hidden = self.compressor.compress(self.h.numpy())
-            else:
-                raise Exception(
-                    'can not find compressor when compress data in base_forward'
-                )
-        else:
-            forward_data.hidden = self.h
+        forward_data.hidden = self.h
         return forward_data
 
-    @tf.function
     def _base_backward_internal(self, gradients, trainable_vars):
         self.model_base.optimizer.apply_gradients(zip(gradients, trainable_vars))
 
-    def base_backward(self, gradient, compress: bool = False):
+    def base_backward(self, gradient):
         """backward on fusenet
 
         Args:
             gradient: gradient of fusenet hidden layer
-            compress: Whether to decompress gradient.
         """
 
         return_hiddens = []
 
-        # TODO: only vaild on no server mode, refactor when use agglayer or server mode.
-        # no need to decompress data on model_fuse side
-        if compress and not self.model_fuse:
-            if self.compressor:
-                gradient = self.compressor.decompress(gradient)
-            else:
-                raise Exception(
-                    'can not find compressor when decompress data in base_backward'
-                )
         with self.tape:
             if len(gradient) == len(self.h):
                 for i in range(len(gradient)):
@@ -466,19 +406,23 @@ class SLBaseTFModel(SLBaseModel):
         return self.model_fuse.stop_training
 
     def on_train_begin(self):
-        self.fuse_callbacks.on_train_begin()
+        if self.fuse_callbacks:
+            self.fuse_callbacks.on_train_begin()
 
     def on_epoch_begin(self, epoch):
-        self.fuse_callbacks.on_epoch_begin(epoch)
+        if self.fuse_callbacks:
+            self.fuse_callbacks.on_epoch_begin(epoch)
 
     def on_train_batch_begin(self, step=None):
         assert step is not None, "Step cannot be none"
-        self.fuse_callbacks.on_train_batch_begin(step)
+        if self.fuse_callbacks:
+            self.fuse_callbacks.on_train_batch_begin(step)
 
     def on_train_batch_end(self, step=None):
         assert step is not None, "Step cannot be none"
         self.epoch_logs = copy.deepcopy(self.logs)
-        self.fuse_callbacks.on_train_batch_end(step, self.logs)
+        if self.fuse_callbacks:
+            self.fuse_callbacks.on_train_batch_end(step, self.logs)
 
     def on_validation(self, val_logs):
         val_logs = {'val_' + name: val for name, val in val_logs.items()}
@@ -487,11 +431,12 @@ class SLBaseTFModel(SLBaseModel):
     def on_epoch_end(self, epoch):
         if self.fuse_callbacks:
             self.fuse_callbacks.on_epoch_end(epoch, self.epoch_logs)
-            self.training_logs = self.epoch_logs
+        self.training_logs = self.epoch_logs
         return self.epoch_logs
 
     def on_train_end(self):
-        self.fuse_callbacks.on_train_end(logs=self.training_logs)
+        if self.fuse_callbacks:
+            self.fuse_callbacks.on_train_end(logs=self.training_logs)
         return self.model_fuse.history.history
 
     def set_sample_weight(self, sample_weight, stage="train"):
@@ -506,7 +451,6 @@ class SLBaseTFModel(SLBaseModel):
         self,
         *forward_data: List[ForwardData],
         _num_returns: int = 2,
-        compress: bool = False,
     ):
         """Fuses the hidden layer and calculates the reverse gradient
         only on the side with the label
@@ -514,47 +458,20 @@ class SLBaseTFModel(SLBaseModel):
         Args:
             forward_data: A list of ForwardData containing hidden layers, losses, etc.
                 that are uploaded by each party for computation.
-            compress: Whether to decompress/compress data.
         Returns:
             gradient Of hiddens
         """
         assert (
             self.model_fuse is not None
         ), "Fuse model cannot be none, please give model define"
+
         for i, h in enumerate(forward_data):
             assert h.hidden is not None, f"hidden cannot be found in forward_data[{i}]"
+            if isinstance(h.losses, List) and h.losses[0] is None:
+                h.losses = None
         # get reg losses:
         losses = [h.losses for h in forward_data if h.losses is not None]
         hidden_features = [h.hidden for h in forward_data]
-        if compress:
-            if self.compressor:
-                iscompressed = self.compressor.iscompressed(hidden_features)
-                # save fuse_sparse_masks to apply on gradients
-                if isinstance(self.compressor, SparseCompressor):
-                    fuse_sparse_masks = list(
-                        map(
-                            # Get a sparse matrix mask with dtype=bool.
-                            # Using <bool> as the dtype will ensure that the data type of gradients after applying the mask does not change.
-                            lambda d, compressed: (d != 0) if compressed else None,
-                            hidden_features,
-                            iscompressed,
-                        )
-                    )
-                # decompress
-                hidden_features = list(
-                    map(
-                        lambda d, compressed: self.compressor.decompress(d)
-                        if compressed
-                        else d,
-                        hidden_features,
-                        iscompressed,
-                    )
-                )
-            else:
-                raise Exception(
-                    'can not find compressor when decompress data in fuse_net'
-                )
-
         hiddens = []
         for h in hidden_features:
             # h will be list, if basenet is multi output
@@ -573,30 +490,6 @@ class SLBaseTFModel(SLBaseModel):
         # In some strategies, we don't need to return gradient.
         if self.skip_gradient:
             return [None] * _num_returns
-        if compress:
-            gradient = [g.numpy() for g in gradient]
-            # apply fuse_sparse_masks on gradients
-            if fuse_sparse_masks:
-                assert len(fuse_sparse_masks) == len(
-                    gradient
-                ), f'length of fuse_sparse_masks and gradient mismatch: {len(fuse_sparse_masks)} - {len(gradient)}'
-
-                def apply_mask(m, d):
-                    if m is not None:
-                        return m.multiply(d).tocsr()
-                    return d
-
-                gradient = list(map(apply_mask, fuse_sparse_masks, gradient))
-            else:
-                gradient = list(
-                    map(
-                        lambda d, compressed: self.compressor.compress(d)
-                        if compressed
-                        else d
-                    ),
-                    gradient,
-                    iscompressed,
-                )
         return gradient
 
     def _fuse_net_train(self, hiddens, losses=[]):
@@ -666,13 +559,12 @@ class SLBaseTFModel(SLBaseModel):
             result[m.name] = m.result()
         return result
 
-    def evaluate(self, *forward_data: List[ForwardData], compress: bool = False):
+    def evaluate(self, *forward_data: List[ForwardData]):
         """Returns the loss value & metrics values for the model in test mode.
 
         Args:
             forward_data: A list of data dictionaries containing hidden layers, losses, etc.
                 that are uploaded by each party for computation.
-            compress: Whether to decompress input data.
         Returns:
             map of model metrics.
         """
@@ -682,16 +574,11 @@ class SLBaseTFModel(SLBaseModel):
         ), "model cannot be none, please give model define"
         for i, h in enumerate(forward_data):
             assert h.hidden is not None, f"hidden cannot be found in forward_data[{i}]"
+            if isinstance(h.losses, List) and h.losses[0] is None:
+                h.losses = None
         # get reg losses:
         losses = [h.losses for h in forward_data if h.losses is not None]
         hidden_features = [h.hidden for h in forward_data]
-        if compress:
-            if self.compressor:
-                hidden_features = self.compressor.decompress(hidden_features)
-            else:
-                raise Exception(
-                    'can not find compressor when decompress data in evaluate'
-                )
         hiddens = []
         for h in hidden_features:
             if isinstance(h, List):
@@ -759,13 +646,12 @@ class SLBaseTFModel(SLBaseModel):
         y_pred = self.model_fuse(hiddens)
         return y_pred
 
-    def predict(self, *forward_data: List[ForwardData], compress: bool = False):
+    def predict(self, *forward_data: List[ForwardData]):
         """Generates output predictions for the input hidden layer features.
 
         Args:
             forward_data: A list of data dictionaries containing hidden layers,
                 that are uploaded by each party for computation.
-            compress: Whether to decompress input data.
         Returns:
             Array(s) of predictions.
         """
@@ -774,14 +660,9 @@ class SLBaseTFModel(SLBaseModel):
         ), "Fuse model cannot be none, please give model define"
         for i, h in enumerate(forward_data):
             assert h.hidden is not None, f"hidden cannot be found in forward_data[{i}]"
+            if isinstance(h.losses, List) and h.losses[0] is None:
+                h.losses = None
         hidden_features = [h.hidden for h in forward_data]
-        if compress:
-            if self.compressor:
-                hidden_features = self.compressor.decompress(hidden_features)
-            else:
-                raise Exception(
-                    'can not find compressor when decompress data in predict'
-                )
 
         hiddens = []
         for h in hidden_features:
@@ -881,75 +762,7 @@ class SLBaseTFModel(SLBaseModel):
         return False
 
 
-class ModelPartition(object):
-    def __init__(self, model_fn, optim_fn, loss_fn, dataloader_fn):
-        self.model: SLBaseModule = model_fn()
-        self.optimizer: Optimizer = optim_fn(self.model.parameters())
-        self.loss: BaseTorchLoss = loss_fn()
-        self._dataloader: Dict[str, DataLoader] = {
-            k: dl_fn() for k, dl_fn in dataloader_fn.items()
-        }
-        self._dataiter: Dict[str, Iterator] = {
-            k: iter(_dl) for k, _dl in self._dataloader.items()
-        }
-
-    def get_one_batch(self, name='train'):
-        try:
-            x, y = next(self._dataiter[name])
-        except StopIteration:
-            self._dataiter = iter(self._dataloader[name])
-            x, y = next(self._dataiter)
-        return x, y
-
-    def forward(
-        self, used_name='train', external_input=None
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        if external_input is None:
-            external_input = {}
-        x, y = self.get_one_batch(used_name)
-        y_pred = self.model(x, **external_input)
-        return y_pred, y
-
-    def zero_grad(self):
-        self.optimizer.zero_grad()
-
-    def backward(self, used_name='train', gradients=None, external_input: Dict = None):
-        if gradients is not None:
-            self.model.set_gradients(gradients)
-        else:
-            if external_input is None:
-                external_input = {}
-            y_pred, y = self.forward(used_name, external_input)
-            loss = self.loss(y_pred, y)
-            loss.backward()
-        return self.model.get_gradients()
-
-    def apply_gradients(self, gradients=None):
-        if gradients is not None:
-            self.model.set_gradients(gradients)
-        self.optim_step()
-
-    def optim_step(self):
-        self.optimizer.step()
-        return self.model.get_weights()
-
-    def get_weights(self):
-        return self.model.get_weights()
-
-    def set_weights(self, weights):
-        self.model.set_weights(weights)
-
-    def call_model_fn(self, fn_name, *args, **kwargs):
-        # TODO: a temporary utils
-        return getattr(self.model, fn_name)(*args, **kwargs)
-
-
 @register_strategy(strategy_name='split_nn', backend='tensorflow')
 @proxy(PYUObject)
 class PYUSLTFModel(SLBaseTFModel):
-    pass
-
-
-@proxy(ft.PYUObject)
-class PYUModel(ModelPartition):
     pass

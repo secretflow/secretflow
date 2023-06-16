@@ -1,0 +1,32 @@
+{
+  "resource_limits": {
+      "user_space_size": "26GB",
+      "kernel_space_heap_size": "512MB",
+      "max_num_of_threads": 512
+  },
+  "env": {
+      "default": [
+          "OCCLUM=yes",
+          "PYTHONHOME=/opt/secretflow",
+          "PATH=/bin",
+          "RAY_BACKEND_LOG_LEVEL=debug",
+          "RAY_agent_register_timeout_ms=300000",
+          "RAY_worker_register_timeout_seconds=300",
+          "RAY_raylet_client_connect_timeout_milliseconds=2500",
+          "RAY_raylet_client_num_connect_attempts=100",
+          "HOME=/root",
+          "RAY_IN_TEE=true",
+          "PYTHONPATH=/host",
+          "RAY_USE_TLS=1",
+          "RAY_TLS_SERVER_CERT=/root/server.crt",
+          "RAY_TLS_SERVER_KEY=/root/server.key",
+          "RAY_TLS_CA_CERT=/root/server.crt"
+      ]
+  },
+  "entry_points": [
+      "/bin"
+  ],
+  "metadata": {
+    "debuggable": false
+  }
+}

@@ -123,7 +123,8 @@ msgid ""
 "targets in the dataset, and the targets predicted by the linear "
 "approximation."
 msgstr ""
-"`线性回归 <https://en.wikipedia.org/wiki/Linear_regression>`_ 拟合系数为 w = (w1, "
+"`线性回归 <https://d2l.ai/chapter_linear-regression/linear-"
+"regression.html#basics>`_ 拟合系数为 w = (w1, "
 "..., wp) 的线性模型，目标为最小化数据集中标签值与线性近似的预测值之间的残差平方和。"
 
 #: ../../components/mpc_ml/linear_model.rst:52

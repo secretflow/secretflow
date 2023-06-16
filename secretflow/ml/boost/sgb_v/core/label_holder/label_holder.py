@@ -57,6 +57,15 @@ class LabelHolder:
     def set_y(self, y: np.ndarray):
         self.y = y.reshape((y.shape[0], 1))
 
+    def reset(self):
+        self.sub_choices = None
+        self.level_cache.reset()
+        self.leaf_node_selects = []
+        self.leaf_node_indices = []
+        self.gh = None
+        self.g = None
+        self.h = None
+
     def init_pred(self) -> np.ndarray:
         """Produce dummy prediction, used at the begin of training in SGB."""
         base = self.base_score

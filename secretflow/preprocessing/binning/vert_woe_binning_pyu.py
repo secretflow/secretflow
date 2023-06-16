@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import copy
 import math
+from dataclasses import dataclass
 from typing import Dict, List, Tuple, Union
 
 import numpy as np
@@ -20,6 +22,8 @@ import pandas as pd
 from scipy.stats import chi2
 
 from secretflow.device import PYUObject, proxy
+
+from .kernels.chi_merge import apply_chimerge, update_split_points
 
 
 @proxy(PYUObject)
@@ -42,6 +46,9 @@ class VertWoeBinningPyuWorker:
         chimerge_target_pvalue: float,
     ):
         data_columns = data.columns
+        assert isinstance(
+            bin_names, list
+        ), f"bin names should be a list of string but got {type(bin_names)}"
         assert np.isin(
             bin_names, data_columns
         ).all(), (
@@ -61,6 +68,8 @@ class VertWoeBinningPyuWorker:
         self.chimerge_init_bins = chimerge_init_bins
         self.chimerge_target_bins = chimerge_target_bins
         self.chimerge_target_chi = chi2.ppf(1 - chimerge_target_pvalue, df=1)
+        # iv results
+        self.iv_results = []
 
     def _build_feature_bin(
         self, f_data: pd.DataFrame
@@ -181,22 +190,52 @@ class VertWoeBinningPyuWorker:
             positive_value = float(self.positive_label)
             return np.array((raw_label == positive_value)).astype(np.float32)
 
+    def _build_iv_info_dict(
+        self,
+        f_name: str,
+        ivs: List[float],
+        else_iv: float,
+    ) -> Dict:
+        """
+        build iv info dict
+
+        Args:
+            f_name (str): feature name.
+            ivs (List[float]): bin ivs.
+            else_iv (float): else ivs.
+
+        Returns:
+            Dict:  with the following infomation:
+            {
+                "name": str, #feature name
+                "ivs": list[float], #iv values for each bins, not safe to share with workers in any case.
+                "else_iv": float, #iv for nan values, may share to with workers
+                "feature_iv": float, #sum of bin_ivs, safe to share with workers when bin num > 2.
+            }
+        """
+        ret = dict()
+        ret['name'] = f_name
+        ret['ivs'] = ivs
+        ret['else_iv'] = else_iv
+        ret['feature_iv'] = sum(ivs)
+        return ret
+
     def _build_report_dict(
         self,
-        woe_ivs: List[Tuple],
+        woes: List[float],
         f_name: str,
         split_points: Union[np.ndarray, List[str]],
-        else_woe_iv: Tuple,
+        else_woe: float,
         total_counts: List[int],
         else_counts: int,
     ) -> Dict:
         '''
         build report dict for one feature.
         Attributes:
-            woe_ivs: woe/iv values for each bins in feature.
+            woes: woe values for each bins in feature.
             f_name: feature name.
             split_points: see _build_feature_bin.
-            else_woe_iv: woe/iv for np.nan values in feature.
+            else_woe: woe for np.nan values in feature.
             total_counts: total samples in each bins.
             else_counts: total samples for np.nan values.
 
@@ -213,18 +252,15 @@ class VertWoeBinningPyuWorker:
             ret['split_points'] = list(split_points)
 
         ret['woes'] = list()
-        ret['ivs'] = list()
         ret['total_counts'] = list()
-        assert len(total_counts) == len(woe_ivs), (
-            f"len(total_counts) {len(total_counts)}," f" len(woe_ivs) {len(woe_ivs)}"
+        assert len(total_counts) == len(woes), (
+            f"len(total_counts) {len(total_counts)}," f" len(woes) {len(woes)}"
         )
-        for i in range(len(woe_ivs)):
+        for i in range(len(woes)):
             ret['total_counts'].append(total_counts[i])
-            ret['woes'].append(woe_ivs[i][0])
-            ret['ivs'].append(woe_ivs[i][1])
+            ret['woes'].append(woes[i])
 
-        ret['else_woe'] = else_woe_iv[0]
-        ret['else_iv'] = else_woe_iv[1]
+        ret['else_woe'] = else_woe
         ret['else_counts'] = else_counts
 
         return ret
@@ -264,39 +300,67 @@ class VertWoeBinningPyuWorker:
         iv = (positive_distrib - negative_distrib) * woe
         return (woe, iv)
 
+    def accumulate_iv_info(
+        self,
+        ivs: List[float],
+        bin_names: List[str],
+        else_ivs: List[float],
+        split_point_sizes: List[int],
+    ):
+        """accumulate iv info in results.
+
+        Args:
+            ivs (List[float]): bin ivs
+            bin_names (List[str]): bin names
+            else_iv (List[float]): nan iv.
+            split_point_sizes (List[int]): _description_
+
+        """
+        pos = 0
+        for f_idx in range(len(bin_names)):
+            f_bin_size = split_point_sizes[f_idx]
+            self.iv_results.append(
+                self._build_iv_info_dict(
+                    bin_names[f_idx],
+                    ivs[pos : pos + f_bin_size],
+                    else_ivs[f_idx],
+                )
+            )
+            pos += f_bin_size
+        return
+
     def _build_report(
         self,
-        woe_ivs: List[Tuple[float]],
+        woes: Tuple[float],
         split_points: List[Union[np.ndarray, List[str]]],
-        else_woe_ivs: List[Tuple],
+        else_woes: List[Tuple],
         total_counts: List[int],
         else_counts: List[int],
     ) -> Dict:
         '''
         Attributes:
-            woe_ivs: woe/iv values for all features' bins.
+            woes: woe values for all features' bins.
             split_points: see _build_feature_bin.
-            else_woe_iv: woe/iv values for all features' np.nan bin.
+            else_woe: woe values for all features' np.nan bin.
             total_counts: total samples all features' bins.
             else_counts: np.nan samples in all features.
 
         Return:
             Dict report
         '''
-        assert len(else_woe_ivs) == len(self.bin_names), (
-            f"len(else_woe_ivs) {len(else_woe_ivs)},"
+        assert len(else_woes) == len(self.bin_names), (
+            f"len(else_woes) {len(else_woes)},"
             f" len(self.bin_names) {len(self.bin_names)}"
         )
         assert len(split_points) == len(self.bin_names), (
             f"len(split_points) {len(split_points)},"
             f" len(self.bin_names) {len(self.bin_names)}"
         )
-        assert len(woe_ivs) == len(total_counts), (
-            f"len(woe_ivs) {len(woe_ivs)}," f" len(total_counts) {len(total_counts)}"
+        assert len(woes) == len(total_counts), (
+            f"len(woes) {len(woes)}," f" len(total_counts) {len(total_counts)}"
         )
-        assert len(else_woe_ivs) == len(else_counts), (
-            f"len(else_woe_ivs) {len(else_woe_ivs)},"
-            f" len(else_counts) {len(else_counts)}"
+        assert len(else_woes) == len(else_counts), (
+            f"len(else_woes) {len(else_woes)}," f" len(else_counts) {len(else_counts)}"
         )
         pos = 0
         variables = list()
@@ -309,133 +373,28 @@ class VertWoeBinningPyuWorker:
                 f_bin_size = split_point.size + 1
 
             assert pos + f_bin_size <= len(
-                woe_ivs
-            ), f"pos {pos}, f_bin_size {f_bin_size}, len(woe_ivs) {len(woe_ivs)}"
+                woes
+            ), f"pos {pos}, f_bin_size {f_bin_size}, len(woes) {len(woes)}"
             variables.append(
                 self._build_report_dict(
-                    woe_ivs[pos : pos + f_bin_size],
+                    woes[pos : pos + f_bin_size],
                     self.bin_names[f_idx],
                     split_points[f_idx],
-                    else_woe_ivs[f_idx],
+                    else_woes[f_idx],
                     total_counts[pos : pos + f_bin_size],
                     else_counts[f_idx],
                 )
             )
             pos += f_bin_size
 
-        assert pos == len(woe_ivs), f"pos {pos}, len(woe_ivs) {len(woe_ivs)}"
+        assert pos == len(woes), f"pos {pos}, len(woes) {len(woes)}"
         assert len(variables) == len(self.bin_names), (
             f"len(variables) {len(variables)}, "
             f"len(self.bin_names) {len(self.bin_names)}"
         )
         return {"variables": variables}
 
-    def _chi_merge(
-        self, bins: List[Tuple[float, float]]
-    ) -> Tuple[List[Tuple[float, float]], List[int]]:
-        '''
-        apply ChiMerge on one feature. ChiMerge proposed by paper AAAI92-019.
-        merge adjacent bins by their samples' Chi-Square Statistic.
-        Attributes:
-            bins: bins in feature build by initialization cut.
-
-        Return:
-            Tuple[bins after merge, removed bin indices in input bins]
-        '''
-
-        def get_chi(bin1: Tuple[float, float], bin2: Tuple[float, float]):
-            total = bin1[0] + bin2[0]
-            total_positive = bin1[1] + bin2[1]
-            positive_rate = float(total_positive) / float(total)
-
-            if positive_rate == 0 or positive_rate == 1:
-                # two bins has same label distribution
-                return 0.0
-
-            bin1_positive = bin1[1]
-            bin1_expt_positive = positive_rate * float(bin1[0])
-            bin1_negative = bin1[0] - bin1[1]
-            bin1_expt_negative = float(bin1[0]) - bin1_expt_positive
-
-            bin2_positive = bin2[1]
-            bin2_expt_positive = positive_rate * float(bin2[0])
-            bin2_negative = bin2[0] - bin2[1]
-            bin2_expt_negative = float(bin2[0]) - bin2_expt_positive
-
-            return (
-                math.pow(bin1_positive - bin1_expt_positive, 2) / bin1_expt_positive
-                + math.pow(bin1_negative - bin1_expt_negative, 2) / bin1_expt_negative
-                + math.pow(bin2_positive - bin2_expt_positive, 2) / bin2_expt_positive
-                + math.pow(bin2_negative - bin2_expt_negative, 2) / bin2_expt_negative
-            )
-
-        chis = [get_chi(bins[i], bins[i + 1]) for i in range(len(bins) - 1)]
-
-        def get_min(chis):
-            min_idx = np.argmin(chis)
-            return chis[min_idx], min_idx
-
-        orig_idx = [i for i in range(len(bins))]
-        removed_idx = list()
-        while True:
-            if len(bins) <= self.chimerge_target_bins:
-                # chi_merge stop by bin size
-                return bins, removed_idx
-
-            min_chi, min_idx = get_min(chis)
-            if min_chi > self.chimerge_target_chi:
-                # chi_merge stop by chi value3333333
-                return bins, removed_idx
-
-            # merge bins[min_idx] & bins[min_idx + 1]
-            new_stat = (
-                bins[min_idx][0] + bins[min_idx + 1][0],
-                bins[min_idx][1] + bins[min_idx + 1][1],
-            )
-            bins.pop(min_idx + 1)
-            bins[min_idx] = new_stat
-            removed_idx.append(orig_idx.pop(min_idx))
-            # update chis
-            chis.pop(min_idx)
-            if min_idx > 0:
-                chis[min_idx - 1] = get_chi(bins[min_idx - 1], bins[min_idx])
-            if min_idx < len(bins) - 1:
-                chis[min_idx] = get_chi(bins[min_idx], bins[min_idx + 1])
-
-    def _apply_chimerge(
-        self,
-        bins_stat: List[Tuple[float, float]],
-        split_points: List[Union[np.ndarray, List[str]]],
-    ) -> Tuple[List[Tuple[float, float]], List[Union[np.ndarray, List[str]]]]:
-        '''
-        apply ChiMerge on all number type features.
-        Attributes:
-            bins_stat: bins for all features build by initialization cut.
-            split_points: see _build_feature_bin
-
-        Return:
-            Tuple[bins after merge, split points after merge]
-        '''
-        pos = 0
-        merged_bins_stat = list()
-        merged_split_points = list()
-        for f_idx in range(len(split_points)):
-            if isinstance(split_points[f_idx], list):
-                # can not apple chimerge on string type feature. skip and forward values into result.
-                f_size = len(split_points[f_idx])
-                merged_bins_stat += bins_stat[pos : pos + f_size]
-                merged_split_points.append(split_points[f_idx])
-                pos += f_size
-            else:
-                f_size = split_points[f_idx].size + 1
-                mbs, merged_idx = self._chi_merge(bins_stat[pos : pos + f_size])
-                merged_split_points.append(np.delete(split_points[f_idx], merged_idx))
-                merged_bins_stat += mbs
-                pos += f_size
-
-        return merged_bins_stat, merged_split_points
-
-    def coordinator_work(self, data: pd.DataFrame) -> Tuple[np.ndarray, Dict]:
+    def label_holder_work(self, data: pd.DataFrame) -> Tuple[np.ndarray, Dict]:
         '''
         Label holder build report for it's own feature, and provide label to driver.
         Attributes:
@@ -460,18 +419,34 @@ class VertWoeBinningPyuWorker:
         bins_stat = [sum_bin(b) for b in bins_idx]
 
         if self.binning_method == "chimerge":
-            bins_stat, split_points = self._apply_chimerge(bins_stat, split_points)
+            bins_stat, merged_split_point_indices = apply_chimerge(
+                bins_stat,
+                self.is_string_features(split_points),
+                self.get_split_points_sizes(split_points),
+                self.chimerge_target_bins,
+                self.chimerge_target_chi,
+            )
+            split_points = update_split_points(
+                split_points,
+                merged_split_point_indices,
+                self.is_string_features(split_points),
+            )
 
-        woe_ivs = [self._calc_bin_woe_iv(*s) for s in bins_stat]
+        woes, bin_ivs = tuple(zip(*[self._calc_bin_woe_iv(*b) for b in bins_stat]))
         total_counts = [b[0] for b in bins_stat]
 
-        else_woe_ivs = [self._calc_bin_woe_iv(*sum_bin(b)) for b in else_bins]
+        else_woes, else_ivs = tuple(
+            zip(*[self._calc_bin_woe_iv(*sum_bin(b)) for b in else_bins])
+        )
         else_counts = [b.size for b in else_bins]
 
+        self.accumulate_iv_info(
+            bin_ivs, self.bin_names, else_ivs, self.get_split_points_sizes(split_points)
+        )
         return (
             label,
             self._build_report(
-                woe_ivs, split_points, else_woe_ivs, total_counts, else_counts
+                woes, split_points, else_woes, total_counts, else_counts
             ),
         )
 
@@ -516,18 +491,46 @@ class VertWoeBinningPyuWorker:
 
         return np.concatenate((select, *else_select), axis=1)
 
-    def participant_sum_bin(
-        self, bins_positive: Union[List, np.ndarray]
-    ) -> List[Tuple[int, int]]:
-        '''
-        build bins stat tuple.
-        Attributes:
-            bins_positive: positive counts in all not empty bins.
+    def _is_string_features(self):
+        return self.is_string_features(self.split_points)
 
-        Return:
-            List[Tuple[total, positive]]
-        '''
-        else_bin_count = len([x for x in self.else_counts if x > 0])
+    def is_string_features(self, split_points):
+        return [isinstance(sp, list) for sp in split_points]
+
+    def _get_split_points_sizes(self):
+        return self.get_split_points_sizes(self.split_points)
+
+    def get_split_points_sizes(self, split_points):
+        return [len(sp) if isinstance(sp, list) else sp.size + 1 for sp in split_points]
+
+    def get_bin_sum_info(self) -> 'ParticipantTransactionInfo':
+        return ParticipantTransactionInfo(
+            self.else_counts,
+            self.total_counts,
+            self.bin_names,
+            self.binning_method,
+            self._is_string_features(),
+            self._get_split_points_sizes(),
+            self.chimerge_target_bins,
+            self.chimerge_target_chi,
+        )
+
+    def label_holder_sum_bin(
+        self,
+        bins_positive: Union[List, np.ndarray],
+        bin_sum_info: 'ParticipantTransactionInfo',
+    ) -> Tuple[List[Tuple[int, int]], List[int], List[Union[None, int]]]:
+        """build bins stat tuple and information for participant to update
+
+        Args:
+            bins_positive (Union[List, np.ndarray]): number of positive samples in bins
+            bin_sum_info ParticipantTransactionInfo: information participant give to label_holder.
+        Returns:
+            List[Tuple[int, int]: bin stats
+            List[int]: updated total counts
+            List[Union[None, int]]]: merged indices for split points
+        """
+        else_bin_count = len([x for x in bin_sum_info.else_counts if x > 0])
         if len(bins_positive) == 1 and isinstance(bins_positive[0], np.ndarray):
             bins_positive = list(bins_positive[0])
         else:
@@ -539,28 +542,48 @@ class VertWoeBinningPyuWorker:
         else:
             else_positive = list()
 
-        assert len(bins_positive) == len(self.total_counts), (
+        assert len(bins_positive) == len(bin_sum_info.total_counts), (
             f"len(bins_positive) {len(bins_positive)}, "
-            f"len(self.total_counts) {len(self.total_counts)}"
+            f"len(total_counts) {len(bin_sum_info.total_counts)}"
         )
-
         bins_positive = [round(float(p)) for p in bins_positive]
-        bins_stat = [b for b in zip(self.total_counts, bins_positive)]
-
-        if self.binning_method == "chimerge":
-            bins_stat, self.split_points = self._apply_chimerge(
-                bins_stat, self.split_points
+        bins_stat = [b for b in zip(bin_sum_info.total_counts, bins_positive)]
+        total_counts = bin_sum_info.total_counts
+        merged_split_point_indices = None
+        if bin_sum_info.binning_method == "chimerge":
+            bins_stat, merged_split_point_indices = apply_chimerge(
+                bins_stat,
+                bin_sum_info.is_string_features,
+                bin_sum_info.split_points_sizes,
+                bin_sum_info.chimerge_target_bins,
+                bin_sum_info.chimerge_target_chi,
             )
-            self.total_counts = [b[0] for b in bins_stat]
+            total_counts = [b[0] for b in bins_stat]
 
-        assert len(self.bin_names) == len(self.else_counts), (
-            f"len(self.bin_names) {len(self.bin_names)}, "
-            f"len(self.else_counts) {len(self.else_counts)}"
+        else_stats = self._label_holder_build_else_stats(
+            else_positive, bin_sum_info.bin_names, bin_sum_info.else_counts
+        )
+        bins_stat += else_stats
+
+        return bins_stat, total_counts, merged_split_point_indices
+
+    def participant_update_info(self, total_counts, merged_split_point_indices):
+        if self.binning_method == "chimerge":
+            self.total_counts = total_counts
+            self.split_points = update_split_points(
+                self.split_points,
+                merged_split_point_indices,
+                self._is_string_features(),
+            )
+
+    def _label_holder_build_else_stats(self, else_positive, bin_names, else_counts):
+        assert len(bin_names) == len(else_counts), (
+            f"len(bin_names) {len(bin_names)}, " f"len(else_counts) {len(else_counts)}"
         )
 
         else_stat = list()
-        for i in range(len(self.else_counts)):
-            count = self.else_counts[i]
+        for i in range(len(else_counts)):
+            count = else_counts[i]
             if count > 0:
                 assert (
                     len(else_positive) > 0
@@ -571,37 +594,89 @@ class VertWoeBinningPyuWorker:
                 else_stat.append((0, 0))
         assert len(else_positive) == 0, f"len(else_positive) {len(else_positive)}"
 
-        bins_stat += else_stat
+        return else_stat
 
-        return bins_stat
-
-    def coordinator_calc_woe_for_peer(
+    def label_holder_calc_woe_for_peer(
         self, bins_stat: List[Tuple[int, int]]
-    ) -> List[Tuple[float, float]]:
+    ) -> Tuple[Tuple[float], Tuple[float]]:
         '''
         calculate woe/iv for participant party.
         Attributes:
             bins_stat: bins stat tuple from participant party.
 
         Return:
-           List[Tuple[woe, iv]]
+           woes : woe for each bin
+           ivs : iv for each bin
         '''
-        return [self._calc_bin_woe_iv(*b) for b in bins_stat]
+        woe_iv = tuple(zip(*[self._calc_bin_woe_iv(*b) for b in bins_stat]))
+        # empty case
+        if len(woe_iv) != 2:
+            return [], []
+        woes, bin_ivs = woe_iv[0], woe_iv[1]
+        return woes, bin_ivs
 
-    def participant_build_report(self, woe_ivs: List[Tuple[float, float]]) -> Dict:
+    def label_holder_collect_iv_for_participant(
+        self, ivs: Tuple[float], transaction_info: 'ParticipantTransactionInfo'
+    ):
+        f_count = len(transaction_info.bin_names)
+        self.accumulate_iv_info(
+            ivs[:-f_count],
+            transaction_info.bin_names,
+            ivs[-f_count:],
+            transaction_info.split_points_sizes,
+        )
+
+    def generate_iv_report(self, report_dict: Dict) -> Dict:
+        iv_results = copy.deepcopy(self.iv_results)
+        self.iv_results = []
+        report_dict["feature_iv_info"] = iv_results
+        return report_dict
+
+    def participant_build_report(self, woes: Tuple[float]) -> Dict:
         '''
-        build report based on coordinator party's woe/iv values.
+        build report based on label_holder party's woe values.
         Attributes:
-            woe_ivs: woe/iv values for all features' bins.
+            woes: woe values for all features' bins.
 
         Return:
             Dict
         '''
         f_count = len(self.bin_names)
         return self._build_report(
-            woe_ivs[:-f_count],
+            woes[:-f_count],
             self.split_points,
-            woe_ivs[-f_count:],
+            woes[-f_count:],
             self.total_counts,
             self.else_counts,
         )
+
+
+@dataclass
+class ParticipantTransactionInfo:
+    """The information participant give to label_holder in order to calculate woe.
+
+    All these information are public any ways or can be inferred from public information,
+    except for total counts and else counts: these are revealed due to the approach of calculating woe,
+    and yet we consider them ok to give to label_holder.
+
+    Note that split point values are protected.
+
+
+    else_counts (List[int]): number of nan values in bins
+    total_counts (List[int]): total number of samples in bins
+    bin_names (List[str]): bin names
+    binning_method (str): binning method. 'chimerge' or else.
+    is_string_features (List[bool]): if features are string type
+    split_points_sizes (List[int]): size of split points
+    chimerge_target_bins (int): chimerge parameter: target bin num
+    chimerge_target_chi (float): chimerge parameter: chi
+    """
+
+    else_counts: List[int]
+    total_counts: List[int]
+    bin_names: List[str]
+    binning_method: str
+    is_string_features: List[bool]
+    split_points_sizes: List[int]
+    chimerge_target_bins: int
+    chimerge_target_chi: float

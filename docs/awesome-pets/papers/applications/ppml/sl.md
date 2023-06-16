@@ -3,7 +3,7 @@ Split learning~(SL) is a prevailing distributed deep learning framework where th
 
 ## Table of Contents
 - [Efficiency challenge](#efficiency-challenge)
-  * [Computation efficiency](#Computation) 
+  * [Computation efficiency](#Computation)
   * [Communication efficiency](#Communication)
 - [Accuracy challenge](#accuracy-challenge)
 - [Security challenge](#security-challenge)

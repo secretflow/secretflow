@@ -24,7 +24,7 @@ from secretflow.utils.random import global_random
 
 def read_csv(
     filepath: Dict[PYU, str],
-    delimiter=',',
+    delimiter=",",
     dtypes: Dict[PYU, Dict[str, type]] = None,
     spu: SPU = None,
     keys: Union[str, List[str], Dict[Device, List[str]]] = None,
@@ -73,10 +73,10 @@ def read_csv(
     Returns:
         A aligned VDataFrame.
     """
-    assert spu is None or keys is not None, f'keys required when spu provided'
-    assert spu is None or drop_keys is not None, f'drop_keys required when spu provided'
+    assert spu is None or keys is not None, f"keys required when spu provided"
+    assert spu is None or drop_keys is not None, f"drop_keys required when spu provided"
     if spu is not None:
-        assert len(filepath) <= 3, f'only support 2 or 3 parties for now'
+        assert len(filepath) <= 3, f"only support 2 or 3 parties for now"
 
     def get_keys(
         device: Device, x: Union[str, List[str], Dict[Device, List[str]]] = None
@@ -100,10 +100,10 @@ def read_csv(
     filepath_actual = filepath
     if spu is not None:
         if psi_protocl is None:
-            psi_protocl = 'KKRT_PSI_2PC' if len(filepath) == 2 else 'ECDH_PSI_3PC'
+            psi_protocl = "KKRT_PSI_2PC" if len(filepath) == 2 else "ECDH_PSI_3PC"
         rand_suffix = global_random(list(filepath.keys())[0], 100000)
         output_file = {
-            pyu: f'{path}.psi_output_{rand_suffix}' for pyu, path in filepath.items()
+            pyu: f"{path}.psi_output_{rand_suffix}" for pyu, path in filepath.items()
         }
         spu.psi_csv(
             keys,
@@ -121,7 +121,7 @@ def read_csv(
         partitions[device] = Partition(
             device(read_csv_wrapper)(
                 path,
-                auto_gen_header_prefix=str(device) if no_header else '',
+                auto_gen_header_prefix=str(device) if no_header else "",
                 delimiter=delimiter,
                 usecols=usecols,
                 dtype=dtype,
@@ -161,22 +161,9 @@ def read_csv(
         if length is None:
             length = n
         else:
-            assert length == n, f'number of samples must be equal across all devices'
+            assert length == n, f"number of samples must be equal across all devices"
 
         for col in dtype.index:
-            assert col not in unique_cols, f'col {col} duplicate in multiple devices'
+            assert col not in unique_cols, f"col {col} duplicate in multiple devices"
             unique_cols.add(col)
     return VDataFrame(partitions)
-
-
-def to_csv(df: VDataFrame, file_uris: Dict[PYU, str], **kwargs):
-    """Write object to a comma-separated values (csv) file.
-
-    Args:
-        df: the VDataFrame to save.
-        file_uris: the file path of each PYU.
-        kwargs: all other arguments are same with :py:meth:`pandas.DataFrame.to_csv`.
-    """
-    return [
-        df.partitions[device].to_csv(uri, **kwargs) for device, uri in file_uris.items()
-    ]
