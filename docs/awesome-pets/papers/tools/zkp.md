@@ -287,6 +287,10 @@ Updatable universal SRS means that the same SRS by a trusted setup could be used
   *Helger Lipmaa, Janno Siim, and Michał Zając*
   ASIACRYPT 2022, [paper](https://eprint.iacr.org/2022/406), LSZ22
 
+- HyperPlonk: Plonk with Linear-Time Prover and High-Degree Custom Gates
+  *Binyi Chen, Benedikt Bünz, Dan Boneh, and Zhenfei Zhang*
+  EUROCRYPT 2023, [paper](https://eprint.iacr.org/2022/1355), CBB+23
+
 ### with URS(Uniform Reference String), including ZKSTARK
 
 Without trusted setup.
@@ -338,6 +342,18 @@ Without trusted setup.
 - Flashproofs: Efficient Zero-Knowledge Arguments of Range and Polynomial Evaluation with Transparent Setup
   *Nan Wang, and Sid Chi-Kin Chau*
   ASIACRYPT 2022, [paper](https://eprint.iacr.org/2022/1251), WC22
+
+- Linear-Time Arguments with Sublinear Verification from Tensor Codes
+  *Jonathan Bootle, Alessandro Chiesa, and Jens Groth*
+  TCC 2020, [paper](https://eprint.iacr.org/2020/1426), BCG20
+
+- Orion: Zero Knowledge Proof with Linear Prover Time
+  *Tiancheng Xie, Yupeng Zhang, and Dawn Song*
+  CRYPTO 2022, [paper](https://eprint.iacr.org/2022/1010), XZS22
+
+- Dew: Transparent Constant-sized zkSNARKs
+  *Arasu Arun, Chaya Ganesh, Satya Lokam, Tushar Mopuri, and Sriram Sridhar*
+  PKC 2023, [paper](https://eprint.iacr.org/2022/419), AGL+23
 
 #### DL-based
 
