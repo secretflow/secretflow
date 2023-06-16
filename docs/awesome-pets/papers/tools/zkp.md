@@ -557,3 +557,5 @@ Here just list several interesting applicaitons.
 - Efficient Lifting for Shorter Zero-Knowledge Proofs and Post-Quantum Signatures
   *Daniel Kales, and Greg Zaverucha*
   eprint 2022, [paper](https://eprint.iacr.org/2022/588.pdf), KZ22
+  
+  Public-Coin Zero-Knowledge Arguments with (almost) Minimal Time and Space Overheads
