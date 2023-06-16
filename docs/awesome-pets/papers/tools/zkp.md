@@ -479,46 +479,42 @@ Here just list several interesting applicaitons.
 - Constant-Size Dynamic k-Tatsuaki
   *Man Ho Au, Willy Susilo, and Yi Mu*
   SCN06, [paper](https://eprint.iacr.org/2008/136), ASM06
-
 - Anonymous Credentials Light
   *Foteini Baldimtsi, and Anna Lysyanskaya*
   CCS 2013, [paper](https://eprint.iacr.org/2012/298), BL13
-
 - Anonymous Attestation Using the Strong Diffie Hellman Assumption Revisited
   *Jan Camenisch, Manu Drijvers, and Anja Lehmann*
   Trust and Trustworthy Computing 2016, [paper](https://eprint.iacr.org/2016/663), CDL16
-
 - Scaling Veriﬁable Computation Using Efﬁcient Set Accumulators
   *Alex Ozdemir, Riad S Wahby, Barry Whitehat, and Dan Boneh*
   USENIX 2020, [paper](https://www.usenix.org/conference/usenixsecurity20/presentation/ozdemir), OWW+20
-
 - Zero Knowledge Proofs for Decision Tree Predictions and Accuracy
   *Jiaheng Zhang, Zhiyong Fang, Yupeng Zhang, and Dawn Song*
   CCS 2020. [paper](https://dl.acm.org/doi/10.1145/3372297.3417278), ZFZ+20
-
 - DECO: Liberating Web Data Using Decentralized Oracles for Threshold
   *Fan Zhang, Sai Krishna Deepak Maram, Harjasleen Malvai, Steven Goldfeder, and Ari Juels*
   CCS 2020, [paper](https://dl.acm.org/doi/10.1145/3372297.3417239), ZMM+20
-
 - ZkCNN: Zero Knowledge Proofs for Convolutional Neural Network Predictions and Accuracy
   *Tianyi Liu, Xiang Xie, and Yupeng Zhang*
   CCS 2021, [paper](https://eprint.iacr.org/2021/673), LXZ21
-
 - ZeeStar: Private Smart Contracts by Homomorphic Encryption and Zero-Knowledge Proofs
   *Samuel Steffen, Benjamin Bichsel, Roger Baumgartner, and Martin Vechev*
   S&P 2022, [paper](https://files.sri.inf.ethz.ch/website/papers/sp22-zeestar.pdf), SBB+22
-
 - Zero-Knowledge Middleboxes
   *Paul Grubbs, Arasu Arun, Ye Zhang, Joseph Bonneau, and Michael Walfish*
   USENIX 2022, [paper](https://eprint.iacr.org/2021/1022), GAZ+22
-
 - Efficient Zero-Knowledge Proofs on Signed Data with Applications to Verifiable Computation on Data Streams
   *Dario Fiore, and Ida Tucker*
   CCS 2022, [paper](https://eprint.iacr.org/2022/1393.pdf), FT22
-
 - Zk-Creds: Flexible Anonymous Credentials from ZkSNARKs and Existing Identity Infrastructure
   *Michael Rosenberg, Jacob White, Christina Garman, and Ian Miers*
   S&P 2023, [paper](https://eprint.iacr.org/2022/878), RWG+23
+- Public-Coin Zero-Knowledge Arguments with (almost) Minimal Time and Space Overheads
+  *Alexander R. Block1, Justin Holmgren, Alon Rosen, Ron D. Rothblum, and Pratik Soni*
+  TCC 2020,[paper](https://link.springer.com/chapter/10.1007/978-3-030-64378-2_7),BHR+23
+- Proving UNSAT in Zero Knowledge
+  *Michael Rosenberg, Jacob White, Christina Garman, and Ian Miers*
+  CCS 2022, [paper](https://dl.acm.org/doi/10.1145/3548606.3559373), RWG+23
 
 ### Signature from ZKP
 
