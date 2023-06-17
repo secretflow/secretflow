@@ -521,35 +521,54 @@ Here just list several interesting applicaitons.
 - Post-quantum zero-knowledge and signatures from symmetric-key primitives
   *Melissa Chase, David Derler, Steven Goldfeder, Claudio Orlandi, Sebastian Ramacher, Christian Rechberger, Daniel Slamanig, and Greg Zaverucha*
   CCS 2017, [paper](https://dl.acm.org/doi/pdf/10.1145/3133956.3133997), CDG+17
-
 - Improved non-interactive zero knowledge with applications to post-quantum signatures
   *Jonathan Katz, Vladimir Kolesnikov, and Xiao Wang*
   CCS 2018, [paper](https://dl.acm.org/doi/pdf/10.1145/3243734.3243805), KKW18
-
 - The picnic signature scheme, design document v2.1
   *Melissa Chase, David Derler, Steven Goldfeder, Jonathan Katz, Vladimir Kolesnikov, Claudio Orlandi, Sebastian Ramacher, Christian Rechberger, Daniel Slamanig and Xiao Wang*
   [paper](https://github.com/microsoft/Picnic/blob/master/spec/design-v2.1.pdf), CDG+19
-
 - BBQ: Using AES in picnic signatures
   *Cyprien de Saint Guilhem, Lauren De Meyer, Emmanuela Orsini, and Nigel P. Smart*
   SAC 2019, [paper](https://eprint.iacr.org/2019/781.pdf), dDOS19
-
 - The picnic signature scheme, design document v2.2
   *Melissa Chase, David Derler, Steven Goldfeder, Claudio Orlandi, Sebastian Ramacher, Christian Rechberger, Daniel Slamanig, Greg Zaverucha*
   [paper](https://github.com/microsoft/Picnic/blob/master/spec/design-v2.2.pdf),  CDG+20
-
 - Banquet: Short and fast signatures from AES
   *Carsten Baum, Cyprien de Saint Guilhem, Daniel Kales, Emmanuela Orsini, Peter Scholl, and Greg Zaverucha*
   PKC 2021, [paper](https://eprint.iacr.org/2021/068.pdf), BdK+21
-
 - Limbo: Efficient zero-knowledge MPCitH-based arguments
   *Cyprien de Saint Guilhem, Emmanuela Orsini, and Titouan Tanguy*
   CCS 2021, [paper](https://dl.acm.org/doi/pdf/10.1145/3460120.3484595), dOT21
-
 - Shorter signatures based on tailor-made minimalist symmetric-key crypto
   *Christoph Dobraunig, Daniel Kales, Christian Rechberger, Markus Schofnegger, and Greg Zaverucha*
   CCS 2022, [paper](https://dl.acm.org/doi/pdf/10.1145/3548606.3559353), DKR+21
-
 - Efficient Lifting for Shorter Zero-Knowledge Proofs and Post-Quantum Signatures
   *Daniel Kales, and Greg Zaverucha*
   eprint 2022, [paper](https://eprint.iacr.org/2022/588.pdf), KZ22
+
+### Lattice-based ZKP
+
+- Compressed Σ-Protocol Theory and Practical Application to Plug & Play Secure Algorithmics
+
+  *Thomas Attema, Ronald Cramer* 
+
+  CRYPTO 2020, [paper](https://link.springer.com/chapter/10.1007/978-3-030-56877-1_18), AC20
+
+- A Compressed Σ-Protocol Theory for Lattices
+
+  *Thomas Attema, Ronald Cramer, Lisa Kohl*
+
+  CRYPTO 2021, [paper](https://link.springer.com/chapter/10.1007/978-3-030-84245-1_19), ACK21
+
+- Short, Invertible Elements in Partially Splitting Cyclotomic Rings and Applications to Lattice-Based Zero-Knowledge Proofs 
+
+  *Vadim Lyubashevsky, Gregor Seiler* 
+
+  EUROCRYPT 2018, [paper](https://link.springer.com/chapter/10.1007/978-3-319-78381-9_8), LS18
+
+- Practical Product Proofs for Lattice Commitments
+
+  *Thomas Attema, Vadim Lyubashevsky, Gregor Seiler* 
+
+  CRYPTO 2020, [paper](https://link.springer.com/chapter/10.1007/978-3-030-56880-1_17), ALS20
+
