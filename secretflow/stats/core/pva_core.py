@@ -23,7 +23,9 @@ import pandas as pd
 def pva(
     actual: Union[pd.DataFrame, jnp.array],
     prediction: Union[pd.DataFrame, jnp.array],
-    target,
+    target: float,
+    rtol: float = 1e-05,
+    atol: float = 1e-08,
 ):
     """Compute Prediction Vs Actual score.
 
@@ -48,5 +50,5 @@ def pva(
         prediction.size == actual.size
     ), "there must be at equal number of actuals and predictions"
     score_p = jnp.mean(prediction)
-    score_a = jnp.sum(actual == target) / actual.size
+    score_a = jnp.sum(jnp.isclose(actual, target, rtol=rtol, atol=atol)) / actual.size
     return jnp.abs(score_p - score_a)

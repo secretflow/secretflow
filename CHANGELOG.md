@@ -12,12 +12,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
-## Staging
+## [0.8.3b0] - 2023-6-14
 ### Added
+- Split learning add application of deepfm for recommendation scenarios.
+- Split learning add pytorch support.
+- Add IO tutorials for federated learning.
+- Reorg DP strategies.
+- SGB and XGB refactor. Add data checks. Improve qcut.
+- Add the preview version of components.
 
 ### Changed
+- Bump spu to 0.3.3b2
 
 ### Fixed
+- TEEU function serialization.
 
 ## [0.8.2b3] - 2023-5-15
 ### Fixed
@@ -43,11 +51,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Use pytest instead of unittest.
 - Bump spu to 0.3.3b0
-- Bump heu to 0.4.3b3
+- Bump heu to 0.4.3b2
 
 ### Fix
 - Fix hess lr auc err with large learning_rate.
-- Fix SFXBoost Chinese encoding.
 
 ## [0.8.1b0] - 2023-4-7
 ### Added

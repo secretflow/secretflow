@@ -21,7 +21,7 @@ if os.getcwd() != this_directory:
 
 def find_version(*filepath):
     # Extract version information from filepath
-    with open(os.path.join('.', *filepath)) as fp:
+    with open(os.path.join(".", *filepath)) as fp:
         version_match = re.search(
             r"^__version__ = ['\"]([^'\"]*)['\"]", fp.read(), re.M
         )
@@ -35,7 +35,7 @@ def filter_requirements(requirements: List[str], custom_feature: str):
     """A lite feature in comment should be something like "# FEATURE=[lite]"."""
     filtered_reqs = []
     for r in requirements:
-        comment_symbol_idx = r.find('#')
+        comment_symbol_idx = r.find("#")
         if comment_symbol_idx == -1:
             continue
 
@@ -43,7 +43,7 @@ def filter_requirements(requirements: List[str], custom_feature: str):
         feature_match = re.search(r"FEATURE=\[([0-9A-Za-z,]+)\]", comment)
         if not feature_match:
             continue
-        features = feature_match.group(1).split(',')
+        features = feature_match.group(1).split(",")
         if custom_feature in features:
             filtered_reqs.append(r[:comment_symbol_idx].strip())
 
@@ -53,7 +53,7 @@ def filter_requirements(requirements: List[str], custom_feature: str):
 def read_requirements(custom_feature: str = None):
     requirements = []
     dependency_links = []
-    with open('./requirements.txt') as file:
+    with open("./requirements.txt") as file:
         requirements = file.read().splitlines()
     if custom_feature:
         requirements = filter_requirements(requirements, custom_feature)
@@ -80,7 +80,7 @@ class CleanCommand(setuptools.Command):
         pass
 
     def run(self):
-        directories_to_clean = ['./build']
+        directories_to_clean = ["./build"]
 
         for dir in directories_to_clean:
             if os.path.exists(dir):
@@ -93,8 +93,8 @@ class BazelExtension(setuptools.Extension):
 
     def __init__(self, bazel_target, ext_name):
         self._bazel_target = bazel_target
-        self._relpath, self._target_name = posixpath.relpath(bazel_target, '//').split(
-            ':'
+        self._relpath, self._target_name = posixpath.relpath(bazel_target, "//").split(
+            ":"
         )
         setuptools.Extension.__init__(self, ext_name, sources=[])
 
@@ -111,19 +111,19 @@ class BuildBazelExtension(build_ext.build_ext):
         Path(self.build_temp).mkdir(parents=True, exist_ok=True)
 
         bazel_argv = [
-            'bazel',
-            'build',
-            ext._bazel_target + '.so',
-            '--symlink_prefix=' + os.path.join(self.build_temp, 'bazel-'),
-            '--compilation_mode=' + ('dbg' if self.debug else 'opt'),
+            "bazel",
+            "build",
+            ext._bazel_target + ".so",
+            "--symlink_prefix=" + os.path.join(self.build_temp, "bazel-"),
+            "--compilation_mode=" + ("dbg" if self.debug else "opt"),
         ]
 
         self.spawn(bazel_argv)
 
-        shared_lib_suffix = '.so'
+        shared_lib_suffix = ".so"
         ext_bazel_bin_path = os.path.join(
             self.build_temp,
-            'bazel-bin',
+            "bazel-bin",
             ext._relpath,
             ext._target_name + shared_lib_suffix,
         )
@@ -147,20 +147,20 @@ def plat_name():
 
 
 def long_description():
-    with open(os.path.join(this_directory, 'README.md'), encoding='utf-8') as f:
+    with open(os.path.join(this_directory, "README.md"), encoding="utf-8") as f:
         return f.read()
 
 
 argparser = argparse.ArgumentParser()
 argparser.add_argument(
-    '--lite', action='store_true', help='Build SecretFlow lite', required=False
+    "--lite", action="store_true", help="Build SecretFlow lite", required=False
 )
 args, unknowns = argparser.parse_known_args()
 sys.argv = [sys.argv[0]] + unknowns
 
 
-package_name = 'secretflow'
-description = 'SecretFlow'
+package_name = "secretflow"
+description = "SecretFlow"
 # Feature is used to filter the requirements.
 custom_feature = None
 
@@ -172,53 +172,53 @@ if args.lite:
     does not incorporate deep learning dependency packages due to their
     significant size.
     """
-    package_name = 'secretflow-lite'
-    custom_feature = 'lite'
-    description = 'SecretFlow Lite'
+    package_name = "secretflow-lite"
+    custom_feature = "lite"
+    description = "SecretFlow Lite"
 
 install_requires, dependency_links = read_requirements(custom_feature)
 
 setup(
     name=package_name,
     version=find_version("secretflow", "version.py"),
-    license='Apache 2.0',
+    license="Apache 2.0",
     description=description,
     long_description=long_description(),
-    long_description_content_type='text/markdown',
-    author='SCI Center',
-    author_email='secretflow-contact@service.alipay.com',
-    url='https://github.com/secretflow/secretflow',
+    long_description_content_type="text/markdown",
+    author="SCI Center",
+    author_email="secretflow-contact@service.alipay.com",
+    url="https://github.com/secretflow/secretflow",
     packages=find_packages(
         exclude=(
-            'examples',
-            'examples.*',
-            'tests',
-            'tests.*',
+            "examples",
+            "examples.*",
+            "tests",
+            "tests.*",
         )
     ),
-    setup_requires=['protobuf_distutils'],
+    setup_requires=["protobuf_distutils"],
     install_requires=install_requires,
     ext_modules=[
         BazelExtension(
-            '//secretflow_lib/binding:_lib', 'secretflow/security/privacy/_lib'
+            "//secretflow_lib/binding:_lib", "secretflow/security/privacy/_lib"
         ),
     ],
-    extras_require={'dev': ['pylint']},
+    extras_require={"dev": ["pylint"]},
     cmdclass=dict(
         build_ext=BuildBazelExtension, clean=CleanCommand, cleanall=CleanCommand
     ),
     dependency_links=dependency_links,
     options={
-        'bdist_wheel': {'plat_name': plat_name()},
-        'generate_py_protobufs': {
-            'source_dir': './secretflow/protos',
-            'proto_root_path': '.',
-            'output_dir': '.',
+        "bdist_wheel": {"plat_name": plat_name()},
+        "generate_py_protobufs": {
+            "source_dir": "./secretflow/protos",
+            "proto_root_path": ".",
+            "output_dir": ".",
         },
     },
     entry_points={
-        'console_scripts': [
-            'secretflow = secretflow.cli:cli',
+        "console_scripts": [
+            "secretflow = secretflow.cli:cli",
         ],
     },
 )

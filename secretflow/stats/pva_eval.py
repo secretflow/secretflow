@@ -26,7 +26,9 @@ from .core import pva
 def pva_eval(
     actual: Union[FedNdarray, VDataFrame],
     prediction: Union[FedNdarray, VDataFrame],
-    target,
+    target: float,
+    rtol: float = 1e-05,
+    atol: float = 1e-08,
 ) -> PYUObject:
     """Compute Prediction Vs Actual score.
 
@@ -78,4 +80,4 @@ def pva_eval(
     else:
         prediction = ([*prediction.partitions.values()][0]).data
 
-    return device(pva)(actual, prediction, target)
+    return device(pva)(actual, prediction, target, rtol, atol)

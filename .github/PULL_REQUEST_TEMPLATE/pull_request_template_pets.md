@@ -6,5 +6,4 @@
 
 **Description**
 
-> Please include a summary of the change and the relevant motivation. 
-
+> Please include a summary of the change and the relevant motivation.

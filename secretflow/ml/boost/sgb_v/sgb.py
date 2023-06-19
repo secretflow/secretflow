@@ -30,14 +30,15 @@ from .core.cache.level_cache import LevelCache
 from .core.distributed_tree.distributed_tree import DistributedTree
 from .core.label_holder.label_holder import LabelHolder
 from .core.preprocessing.params import LabelHolderInfo
-from .core.preprocessing.preprocessing import prepare_dataset, validate_sgb_params_dict
+from .core.preprocessing.preprocessing import validate_sgb_params_dict
+from secretflow.ml.boost.core.data_preprocess import validate
 from .core.split_tree_trainer.split_tree_trainer import SplitTreeTrainer as Worker
 from .model import SgbModel
 
 logging.basicConfig(
-    format='%(asctime)s %(levelname)-8s %(message)s',
+    format="%(asctime)s %(levelname)-8s %(message)s",
     level=logging.INFO,
-    datefmt='%Y-%m-%d %H:%M:%S',
+    datefmt="%Y-%m-%d %H:%M:%S",
 )
 
 
@@ -47,6 +48,7 @@ class Sgb:
     for vertical split dataset setting by using secure boost.
 
     SGB is short for SecureBoost. Compared to its safer counterpart SS-XGB, SecureBoost focused on protecting label holder.
+    Check https://arxiv.org/abs/1901.08755.
 
     Args:
         heu: secret device running homomorphic encryptions
@@ -64,21 +66,17 @@ class Sgb:
         label: Union[FedNdarray, VDataFrame],
         audit_paths: Dict = {},
     ) -> None:
-        x, x_shape = prepare_dataset(dataset)
-        y, y_shape = prepare_dataset(label)
-        assert len(x_shape) == 2, "only support 2D-array on dtrain"
-        assert len(y_shape) == 1 or y_shape[1] == 1, "label only support one label col"
+        x, _, y, y_shape = validate(dataset, label)
+
         self.samples = y_shape[0]
-        assert self.samples == x_shape[0], "dtrain & label are not aligned"
-        assert len(y.partitions) == 1, "label only support one partition"
-        label_holder = [*y.partitions.keys()][0]
+        label_holder = y.device
         assert (
             label_holder.party == self.heu.sk_keeper_name()
         ), f"HEU sk keeper party {self.heu.sk_keeper_name()}, mismatch with label_holder device's party {label_holder.party}"
         # determine label_holder from label holder
         self.label_holder = label_holder
 
-        self.y = list(y.partitions.values())[0]
+        self.y = y
         self.workers = [Worker(idx, device=pyu) for idx, pyu in enumerate(x.partitions)]
         self.x = x.partitions
 
@@ -141,6 +139,7 @@ class Sgb:
     def _tree_setup(self, tree_num) -> None:
         col_choices = {}
         works_buckets_count = []
+        self.train_label_holder.reset()
         for pyu_work in self.workers:
             choices, count = pyu_work.tree_setup(self.colsample)
             works_buckets_count.append(count)
@@ -177,6 +176,7 @@ class Sgb:
             .to(self.heu, move_config(self.label_holder, self.gh_encoder))
             .encrypt(path)
         )
+
         # encrypt once, send once.
         self.encrypted_gh = {
             worker.device: encypted_gh.to(
@@ -185,7 +185,6 @@ class Sgb:
             for worker in self.workers
             if worker.device != self.label_holder
         }
-        wait([self.train_label_holder.get_gh(), *self.encrypted_gh.values()])
         self._sub_sampling()
 
     def train(
@@ -283,7 +282,6 @@ class Sgb:
         return model
 
     def _train_tree(self, tree_num: int) -> DistributedTree:
-        self.train_label_holder.clear_leaves()
         root_select = self.train_label_holder.root_select()
 
         split_node_selects = root_select

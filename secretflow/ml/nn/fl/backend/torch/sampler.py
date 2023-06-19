@@ -46,7 +46,6 @@ def batch_sampler(
     batch_size = math.floor(x.shape[0] * sampling_rate)
     assert batch_size > 0, "Unvalid batch size"
     if random_seed is not None:
-
         random.seed(random_seed)
         torch.manual_seed(random_seed)  # set random seed for cpu
         torch.cuda.manual_seed(random_seed)  # set random seed for cuda

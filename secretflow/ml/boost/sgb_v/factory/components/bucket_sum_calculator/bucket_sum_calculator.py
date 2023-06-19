@@ -21,8 +21,9 @@ from secretflow.device import PYU, HEUObject, PYUObject
 from ....core.pure_numpy_ops.bucket_sum import batch_select_sum, regroup_bucket_sums
 from ....core.pure_numpy_ops.grad import split_GH
 from ..cache.level_wise_cache import LevelWiseCache
-from ..component import Composite, Devices
+from ..component import Composite, Devices, print_params
 from ..gradient_encryptor import GradientEncryptor
+from ..logging import LoggingParams, LoggingTools
 from ..shuffler import Shuffler
 
 
@@ -34,15 +35,16 @@ class BucketSumCalculatorComponents:
 class BucketSumCalculator(Composite):
     def __init__(self):
         self.components = BucketSumCalculatorComponents()
+        self.logging_params = LoggingParams()
 
     def show_params(self):
-        return
+        print_params(self.logging_params)
 
-    def set_params(self, _: dict):
-        return
+    def set_params(self, params: dict):
+        self.logging_params = LoggingTools.logging_params_from_dict(params)
 
-    def get_params(self, _: dict):
-        return
+    def get_params(self, params: dict):
+        LoggingTools.logging_params_write_dict(params, self.logging_params)
 
     def set_devices(self, devices: Devices):
         super().set_devices(devices)
@@ -50,6 +52,7 @@ class BucketSumCalculator(Composite):
         self.workers = devices.workers
         self.party_num = len(self.workers)
 
+    @LoggingTools.enable_logging
     def calculate_bucket_sum_level_wise(
         self,
         shuffler: Shuffler,

@@ -54,14 +54,16 @@ if you update the documentation files in `docs/`, you are supposed to update its
 For example, if you update `docs/getting_started/installation.md`, you also need to update the corresponding `*.po` file in `docs/locales/zh_CN/LC_MESSAGES/getting_started/installation.po`.
 
 Follow follwing steps to update documentation:
-1. Update documentation in `docs`
-2. Run the following command to update `*.po` file
+1. Update documentation in `docs`.
+2. Run the following command to update `*.po` file.
 
    ```bash
    cd docs
    pip install -r requirements.txt
    sh update_po.sh
    ```
-3. Update the corresponding `*.po` file
+3. Update the corresponding `*.po` file.
 4. All `fuzzy` should be removed in `*.po` file, because it won't take effect in the Chinese version of the documentation.
-5. only commit the files which you update and pull request
+5. All strings which start with `#~` such as `#~ msgid ` or `#~ msgstr` should be removed, because it is redundant.  
+6. Only commit the files which you update and pull request.
+7. If your document is conflict with the main branch of SecretFlow, you are supposed to solve the conflict locally and commit.

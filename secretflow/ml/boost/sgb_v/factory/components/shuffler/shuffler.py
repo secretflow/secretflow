@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List
-
 from dataclasses import dataclass
+from typing import List, Union
+
 from secretflow.device import PYUObject
 
-from .worker_shuffler import WorkerShuffler
 from ..component import Component, Devices, print_params
+from .worker_shuffler import WorkerShuffler
 
 
 @dataclass
@@ -74,6 +74,32 @@ class Shuffler(Component):
         """
         return [
             worker_shuffler.undo_shuffle_mask_list_wise(split_buckets)
+            for worker_shuffler, split_buckets in zip(
+                self.worker_shufflers, split_buckets_parition_wise
+            )
+        ]
+
+    def unshuffle_split_buckets_with_keys(
+        self,
+        split_buckets_parition_wise: List[PYUObject],
+        keys: Union[PYUObject, List[PYUObject]],
+    ) -> List[PYUObject]:
+        """unshuffle split buckets viewed by each parition
+
+        Args:
+            split_buckets_parition_wise (List[PYUObject]): PYUObject is List[int], split buckets viewed from this partition
+            keys (Union[PYUObject, List[PYUObject]]): Both cases are in fact List[int]. keys will be sent to all workers
+
+        Returns:
+            List[List[PYUObject]]: unshuffled split buckets
+        """
+        return [
+            worker_shuffler.undo_shuffle_mask_with_keys(
+                split_buckets,
+                keys.to(worker_shuffler.device)
+                if isinstance(keys, PYUObject)
+                else [k.to(worker_shuffler.device) for k in keys],
+            )
             for worker_shuffler, split_buckets in zip(
                 self.worker_shufflers, split_buckets_parition_wise
             )
