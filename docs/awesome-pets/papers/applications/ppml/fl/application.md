@@ -265,7 +265,6 @@ Citation: 0
 - [GRAFFL: Gradient-free Federated Learning of a Bayesian Generative Model](https://arxiv.org/pdf/1910.08489.pdf)
 
 
-
 ### VAE (Variational Autoencoder)
 
 - [(VAE) An On-Device Federated Learning Approach for Cooperative Anomaly Detection](https://arxiv.org/pdf/2002.12301.pdf)
