@@ -17,7 +17,6 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
     - [Oblivious transfer](#oblivious-transfer)
     - [vector Oblivious Linear Evaluation](#vector-oblivious-linear-evaluation)
     - [Pseudorandom-Correlation Generator](#pseudorandom-correlation-generator)
-    - [Preprocessing](#preprocessing)
   - [Online Techniques](#online-techniques)
     - [Semi-Honest Secret Sharing](#semi-honest-secret-sharing)
     - [Malicious Secret Sharing](#malicious-secret-sharing)
@@ -155,20 +154,6 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   *Elette Boyle, Geoffroy Couteau, Niv Gilboa, Yuval Ishai, Lisa Kohl, Nicolas Resch, Peter Scholl*  
   Crypto 2022, [eprint](https://eprint.iacr.org/2022/1014), BCG+22
 
-### Preprocessing
-
-- Improved primitives for MPC over mixed arithmetic-binary circuits  
-  *Daniel Escudero, Satrajit Ghosh, Marcel Keller ,Rahul Rachuri, Peter Scholl*  
-  Crypto 2020, [eprint](https://eprint.iacr.org/2020/338.pdf)
-
-- MArBled Circuits: Mixing Arithmetic and Boolean Circuits with Active Security  
-  *Dragos Rotaru, Tim Wood*  
-  IndoCrypt 2019, [eprint](https://eprint.iacr.org/2019/207)
-
-- High-Throughput Secure Three-Party Computation for Malicious Adversaries and an Honest Majority  
-  *Jun Furukawa, Yehuda Lindell, Ariel Nof, Or Weistein*  
-  EuroCrypt 2017, [eprint](https://eprint.iacr.org/2016/944.pdf), FLNW17
-
 ## Online Techniques
 
 ### Semi-Honest Secret Sharing
@@ -180,6 +165,18 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
 - ABY2.0: Improved Mixed-Protocol Secure Two-Party Computation  
   *Arpita Patra, Thomas Schneider, Ajith Suresh, Hossein Yalame*  
   Usenix Security 2021, [eprint](https://eprint.iacr.org/2020/1225), PSSY21
+  
+- Improved primitives for MPC over mixed arithmetic-binary circuits  
+  *Daniel Escudero, Satrajit Ghosh, Marcel Keller ,Rahul Rachuri, Peter Scholl*  
+  Crypto 2020, [eprint](https://eprint.iacr.org/2020/338.pdf)
+  
+- MArBled Circuits: Mixing Arithmetic and Boolean Circuits with Active Security  
+  *Dragos Rotaru, Tim Wood*  
+  IndoCrypt 2019, [eprint](https://eprint.iacr.org/2019/207)
+
+- High-Throughput Secure Three-Party Computation for Malicious Adversaries and an Honest Majority  
+  *Jun Furukawa, Yehuda Lindell, Ariel Nof, Or Weistein*  
+  EuroCrypt 2017, [eprint](https://eprint.iacr.org/2016/944.pdf), FLNW17
 
 - ABY - A Framework for Efficient Mixed-Protocol Secure Two-Party Computation  
   *Daniel Demmler, Thomas Schneider, Michael Zohner*  
