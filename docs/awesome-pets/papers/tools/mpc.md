@@ -160,20 +160,6 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   *Sebastian Hasler, Toomas Krips, Ralf Küsters, Pascal Reisert, Marc Rivinius*
   ASIA CCS 2023 [eprint](https://eprint.iacr.org/2023/462)
 
-### Preprocessing
-
-- Improved primitives for MPC over mixed arithmetic-binary circuits
-  *Daniel Escudero, Satrajit Ghosh, Marcel Keller ,Rahul Rachuri, Peter Scholl*
-  Crypto 2020, [eprint](https://eprint.iacr.org/2020/338.pdf)
-
-- MArBled Circuits: Mixing Arithmetic and Boolean Circuits with Active Security
-  *Dragos Rotaru, Tim Wood*
-  IndoCrypt 2019, [eprint](https://eprint.iacr.org/2019/207)
-
-- High-Throughput Secure Three-Party Computation for Malicious Adversaries and an Honest Majority
-  *Jun Furukawa, Yehuda Lindell, Ariel Nof, Or Weistein*
-  EuroCrypt 2017, [eprint](https://eprint.iacr.org/2016/944.pdf), FLNW17
-
 ## Online Techniques
 
 ### Semi-Honest Secret Sharing
