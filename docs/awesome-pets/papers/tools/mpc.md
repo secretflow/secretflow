@@ -156,8 +156,8 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
 
 ### Others
 
-- Overdrive LowGear 2.0: Reduced-Bandwidth MPC without Sacrifice
-  *Sebastian Hasler, Toomas Krips, Ralf Küsters, Pascal Reisert, Marc Rivinius*
+- Overdrive LowGear 2.0: Reduced-Bandwidth MPC without Sacrifice  
+  *Sebastian Hasler, Toomas Krips, Ralf Küsters, Pascal Reisert, Marc Rivinius*  
   ASIA CCS 2023 [eprint](https://eprint.iacr.org/2023/462)
 
 ## Online Techniques
