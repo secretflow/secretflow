@@ -86,7 +86,6 @@ msgstr ""
 "结点分裂：通过枚举所有分裂方案，选出带来最优增益值的方式执行分裂。"
 "分裂方案包含分裂特征和分裂阈值，可以将当前结点样本集合 :math:`I` 分裂为 "
 "左子树样本集合 :math:`I_{L}` 和右子树样本集合 :math:`I_{R}`， "
-"$\lambda$和$\gamma$分别为叶节点权值和叶节点数的惩罚因子，"
 "并由如下公式计算出此分裂方案的增益值："
 
 #: ../../components/mpc_ml/decision_tree.rst:38
@@ -95,7 +94,7 @@ msgid ""
 "leaf number and leaf weights respectively. In this way, we can split the "
 "nodes recursively until the leaf."
 msgstr ""
-"其中：:math:`\\lambda` 和 :math:`\\gamma` 分别为叶节点权值和叶节点数的惩罚因子。"
+"其中：:math:`\\lambda` 和 :math:`\\gamma` 分别为叶节点数和叶节点权重的惩罚因子。"
 
 #: ../../components/mpc_ml/decision_tree.rst:42
 msgid ""

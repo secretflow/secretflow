@@ -56,7 +56,7 @@ msgid ""
 "The ``cora.cites`` includes the citation records with two columns: "
 "cited_paper_id (target) and citing_paper_id (source)."
 msgstr ""
-"`cora.cites` 包含了论文引用记录，共两个列： "
+"`cora.cites` 包含了论文引用记录，共两列： "
 "cited_paper_id(被引用论文)和citing_paper_id（发起引用的论文）。"
 
 #: ../../tutorial/split_learning_gnn.ipynb:80
@@ -64,7 +64,7 @@ msgid ""
 "The ``cora.content`` includes the paper content records with 1,435 "
 "columns: paper_id, subject, and 1,433 binary features."
 msgstr ""
-"`cora.content` 包含了论文内容记录，拥有1435个列，分别是paper_id（论文id）, subject（课题）, "
+"`cora.content` 包含了论文内容记录，拥有1435列，分别是paper_id（论文id）, subject（课题）, "
 "和其他1,433二值化特征。"
 
 #: ../../tutorial/split_learning_gnn.ipynb:82
@@ -109,7 +109,7 @@ msgstr "alice和bob均持有所有的边。"
 msgid ""
 "By the way, since cora is a built-in dataset of SecretFlow, you can just "
 "run the following snippet to replace the codes above."
-msgstr "事实上，隐语已经内置好了cora数据，所以你只需要跑下面这一行代码即可获得上面代码相同的结果。"
+msgstr "事实上，隐语已经内置好了cora数据，所以你只需要跑下面这一行代码即可获得与上面代码相同的结果。"
 
 #: ../../tutorial/split_learning_gnn.ipynb:287
 msgid "Build a Graph Neural Network Model"

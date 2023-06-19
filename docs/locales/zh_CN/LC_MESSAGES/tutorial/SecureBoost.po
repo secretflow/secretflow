@@ -105,7 +105,7 @@ msgid ""
 "We can now save the model and load it to use later. Note that the model "
 "is a distributed identity, we will save to and load from multiple "
 "parties."
-msgstr "我们现在可以保存模型, 并在以后使用它。请注意，模型是分布式的，我们将保存到多个参与方，并从多个参与方中加载。"
+msgstr "现在我们可以保存模型, 并在以后使用它。请注意，模型是分布式的，我们将保存到多个参与方，并从多个参与方中加载。"
 
 #: ../../tutorial/SecureBoost.ipynb:567
 msgid "Let’s first define the paths."

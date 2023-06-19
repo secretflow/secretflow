@@ -167,7 +167,7 @@ msgid ""
 "multicollinearity."
 msgstr ""
 "方差扩大因子 (VIF) "
-"用于探查变量之间的多重共线性。在一个线性统计模型中，一个系数的方差扩大因子等于多元模型中该系数的方差与只有一个变量的模型中该系数的方差的商，简单来说，就是解释变量（特征）之间存在多重共线性时的方差与不存在多重共线性时的方差之比。"
+"用于探查变量之间的多重共线性。在一个线性统计模型中，一个系数的方差扩大因子等于多元模型中该系数方差与一元模型中该系数方差的商，简单来说，就是解释变量（特征）之间存在多重共线性时的方差与不存在多重共线性时的方差之比。"
 
 #: ../../components/mpc_ml/feature_eng.ipynb:376
 msgid "SSVertVIF"
@@ -207,7 +207,7 @@ msgid ""
 "When there is multicollinearity in the input dataset, the XTX matrix is "
 "not full rank, and the analytical solution for the inverse of the XTX "
 "matrix does not exist."
-msgstr "当输入数据集中存在完全线性相关时，XTX矩阵不满秩，XTX矩阵逆的解析解不存在。"
+msgstr "当输入数据集中存在完全线性相关时， :math:`X^TX` 矩阵不满秩， :math:`X^TX` 矩阵逆的解析解不存在。"
 
 #: ../../components/mpc_ml/feature_eng.ipynb:390
 msgid ""
@@ -254,7 +254,7 @@ msgstr "线性回归系数显著检验"
 msgid ""
 "For linear regression :math:`y=Xω` (X contains a constant term), use the "
 "t-test to test whether the regression term coefficients have zero values."
-msgstr "对线性回归 :math:`y=Xω`（X包含常数项），使用t检验来对回归项系数检验其值是否为零。"
+msgstr "对线性回归 :math:`y=Xω` （X包含常数项），使用t检验来对回归项系数检验其值是否为零。"
 
 #: ../../components/mpc_ml/feature_eng.ipynb:456
 msgid "Assume:"
@@ -290,16 +290,10 @@ msgid ""
 "the statistic:"
 msgstr "在最小二乘法5条假设都成立的情况下，统计量："
 
-#: ../../components/mpc_ml/feature_eng.ipynb:466
+#: ../../components/mpc_ml/feature_eng.ipynb:468
 msgid ""
-"t_j=\\frac{\\hat{ω}_j- ω_j}{s.e.(ω_j )}=\\frac{\\hat{ω}_j - "
-"ω_j}{\\sqrt{\\hat{σ}^2 (X^T X)_{jj}^{-1}}}  \\sim t_{n-k}\n"
-"\n"
 "where n is sample size, k is feature size."
 msgstr ""
-"t_j=\\frac{\\hat{ω}_j- ω_j}{s.e.(ω_j )}=\\frac{\\hat{ω}_j - "
-"ω_j}{\\sqrt{\\hat{σ}^2 (X^T X)_{jj}^{-1}}}  \\sim t_{n-k}\n"
-"\n"
 "其中，n为样本量，k为特征数"
 
 #: ../../components/mpc_ml/feature_eng.ipynb:470

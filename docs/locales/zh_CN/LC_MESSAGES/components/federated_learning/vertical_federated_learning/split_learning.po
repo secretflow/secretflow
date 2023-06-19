@@ -36,11 +36,11 @@ msgid ""
 " complete the training through joint model until convergence."
 msgstr "拆分学习的核心思想是拆分网络结构。每一个参与方拥有模型结构的一部分，所有参与方的模型合在一起形成一个完整的模型。训练过程中，不同参与方只对本地模型进行正向或者反向传播计算，并将计算结果传递给下一个参与方。多个参与方通过联合模型进行训练直至最终收敛。"
 
-一个典型的拆分学习例子："
+
 
 #: ../../components/federated_learning/vertical_federated_learning/split_learning.rst:10
 msgid "A typical example of split learning:"
-msgstr "例子："
+msgstr "一个典型的拆分学习例子："
 
 #: ../../components/federated_learning/vertical_federated_learning/split_learning.rst:14
 msgid ""
