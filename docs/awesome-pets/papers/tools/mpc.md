@@ -154,6 +154,12 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   *Elette Boyle, Geoffroy Couteau, Niv Gilboa, Yuval Ishai, Lisa Kohl, Nicolas Resch, Peter Scholl*  
   Crypto 2022, [eprint](https://eprint.iacr.org/2022/1014), BCG+22
 
+### Others
+
+- Overdrive LowGear 2.0: Reduced-Bandwidth MPC without Sacrifice  
+  *Sebastian Hasler, Toomas Krips, Ralf Küsters, Pascal Reisert, Marc Rivinius*  
+  ASIA CCS 2023 [eprint](https://eprint.iacr.org/2023/462)
+
 ## Online Techniques
 
 ### Semi-Honest Secret Sharing
