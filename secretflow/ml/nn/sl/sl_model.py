@@ -384,11 +384,15 @@ class SLModel:
 
                 # save checkpoint
                 if audit_log_dir is not None:
-                    epoch_base_model_path = os.path.join(
-                        audit_log_dir,
-                        "base_model",
-                        str(epoch),
-                    )
+                    epoch_base_model_path = {
+                        device: os.path.join(
+                            audit_log_dir,
+                            "base_model",
+                            device.party,
+                            str(epoch)
+                        )
+                        for device in self._workers.keys()
+                    }
                     epoch_fuse_model_path = os.path.join(
                         audit_log_dir,
                         "fuse_model",
