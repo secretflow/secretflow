@@ -389,7 +389,7 @@ class SLModel:
                             audit_log_dir,
                             "base_model",
                             device.party,
-                            str(epoch)
+                            str(epoch),
                         )
                         for device in self._workers.keys()
                     }
