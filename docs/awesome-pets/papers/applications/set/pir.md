@@ -13,10 +13,7 @@ Private Information Retrival is a protocol that allows a client to retrieve an e
   - [Single-Server PIR](#single-server-pir)
   - [Multi-Server PIR](#multi-server-pir)
   
-  
 
-- [Single-Server PIR](#single-server-pir)
-- [Multi-Server PIR](#multi-server-pir)
 
 
 
@@ -119,6 +116,19 @@ Private Information Retrival is a protocol that allows a client to retrieve an e
   FOCS 1997, [eprint](https://doi.org/10.1109/SFCS.1997.646125), KO97
 
 
+- Communication--Computation Trade-offs in PIR  
+  *Asra Ali, Tancrède Lepoint, Sarvar Patel, Mariana Raykova, Phillipp Schoppmann, Karn Seth, Kevin Yeo*  
+  IACR 2019, [eprint](https://eprint.iacr.org/2019/1483), ALPR19    
+
+- Compressible FHE with applications to PIR  
+  *Craig Gentry, Shai Halevi*  
+  TCC 2019, [eprint](https://link.springer.com/chapter/10.1007/978-3-030-36033-7_17), GH19    
+
+- FrodoPIR: Simple, Scalable, Single-Server Private Information Retrieval  
+  *Alex Davidson (Brave Software), Gonçalo Pestana (Brave Software), Sofía Celi (Brave Software)*  
+  PoPETS 2023, [eprint](https://petsymposium.org/popets/2023/popets-2023-0022.php), DPC23  
+
+
 ## Multi-Server PIR
 
 - Private Information Retrieval with Sublinear Online Time
@@ -191,17 +201,7 @@ Private Information Retrival is a protocol that allows a client to retrieve an e
   *Dominic Dams, Jeff Lataille, Rino Sanchez, John Wade*  
   IACR 2019， [eprint](https://eprint.iacr.org/2019/855), DLSW19    
 
-- Communication--Computation Trade-offs in PIR  
-  *Asra Ali, Tancrède Lepoint, Sarvar Patel, Mariana Raykova, Phillipp Schoppmann, Karn Seth, Kevin Yeo*  
-  IACR 2019, [eprint](https://eprint.iacr.org/2019/1483), ALPR19    
 
-- Compressible FHE with applications to PIR  
-  *Craig Gentry, Shai Halevi*  
-  TCC 2019, [eprint](https://link.springer.com/chapter/10.1007/978-3-030-36033-7_17), GH19    
-
-- FrodoPIR: Simple, Scalable, Single-Server Private Information Retrieval  
-  *Alex Davidson (Brave Software), Gonçalo Pestana (Brave Software), Sofía Celi (Brave Software)*  
-  PoPETS 2023, [eprint](https://petsymposium.org/popets/2023/popets-2023-0022.php), DPC23  
 
 
 

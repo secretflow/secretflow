@@ -21,14 +21,11 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   - [Online Techniques](#online-techniques)
     - [Semi-Honest Secret Sharing](#semi-honest-secret-sharing)
     - [Malicious Secret Sharing](#malicious-secret-sharing)
-
   - [Distance Calculation](#distance-calculation)
   - [Secure Multi-party Computation,MPC](#secure-multi-party-computationmpc)
   - [FHE-based MPC](#fhe-based-mpc)
-
-
+- [ ](#)
     - [Function Secret Sharing](#function-secret-sharing)
-
 
 ## Offline Techniques
 
@@ -356,18 +353,6 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   *Zvika Brakerski, Shai Halevi, Antigoni Polychroniadou*  
   TCC 2017, [eprint](https://eprint.iacr.org/2017/386.pdf), BHP17   
 
-- On the Security of Multikey Homomorphic Encryption  
-  *Hyang-Sook Lee, Jeongeun Park*  
-  IMA CC 2019, [eprint](https://eprint.iacr.org/2019/1082.pdf), LP19    
-  
-
-- Multi-Key Homomophic Encryption from TFHE  
-  *Hao Chen, Ilaria Chillotti, Yongsoo Song*  
-  ASIACRYPT 2019, [eprint](https://eprint.iacr.org/2019/116.pdf), CCS19    
-
-- Multi-key Fully-Homomorphic Encryption in the Plain Model  
-  *Prabhanjan Ananth, Abhishek Jain, ZhengZhong Jin, Giulio Malavolta*  
-  TCC 2020, [eprint](https://eprint.iacr.org/2020/180.pdf), AJJM20    
   
 - Multiparty Reusable Non-Interactive Secure Computation from LWE  
   *Fabrice Benhamouda, Aayush Jain, Ilan Komargodski, Huijia Lin*  
