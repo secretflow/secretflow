@@ -11,6 +11,7 @@ HE, especially FHE(Fully Homomorphic Encryption), does matter and are keys for n
   - [FHE](#fhe)
     - [Classical(or Milestones)](#classicalor-milestones)
     - [Multi-key FHE](#multi-key-fhe)
+- [  ITCS 2022, eprint, DGMR22](#-itcs-2022-eprint-dgmr22)
   - [Impl. Efforts](#impl-efforts)
     - [Hardware-based Acceleration](#hardware-based-acceleration)
     - [Open-sourced libs](#open-sourced-libs)
@@ -108,11 +109,7 @@ Communications of the ACM, [paper](https://dl.acm.org/doi/pdf/10.1145/359340.359
 
 - Faster homomorphic comparison operations for BGV and BFV  
   *Ilia Iliashenko1, Vincent Zucca*  
-  PoPETS 2021, [eprint](https://eprint.iacr.org/2021/315.pdf), IZ21  
-
-- (Leveled) fully homomorphic encryption without bootstrapping  
-  *Zvika Brakerski, Craig Gentry, Vinod Vaikuntanathan*  
-  ITCS '12, [eprint](https://dl.acm.org/doi/10.1145/2090236.2090262), BGV12    
+  PoPETS 2021, [eprint](https://eprint.iacr.org/2021/315.pdf), IZ21    
 
 - Porcupine: A Synthesizing Compiler for Vectorized Homomorphic Encryption  
   *Meghan Cowan, Deeksha Dangwal, Armin Alaghi, Caroline Trippel, Vincent T. Lee, Brandon Reagen*  
@@ -225,11 +222,7 @@ Communications of the ACM, [paper](https://dl.acm.org/doi/pdf/10.1145/359340.359
 
 - Multi-Key Homomophic Encryption from TFHE  
   *Hao Chen, Ilaria Chillotti, Yongsoo Song*  
-  ASIACRYPT 2019, [paper](https://eprint.iacr.org/2019/116.pdf), CCS19  
-  
-- On-the-Fly Multiparty Computation on the Cloud via Multikey Fully Homomorphic Encryption  
-  *Adriana Lopez-Alt, Eran Tromer, Vinod Vaikuntanathan*  
-  STOC 2012, [eprint](https://eprint.iacr.org/2013/094.pdf), LTV12    
+  ASIACRYPT 2019, [paper](https://eprint.iacr.org/2019/116.pdf), CCS19   
  
 
 - Constant-Round MPC with Fairness and Guarantee of Output Delivery  
@@ -267,35 +260,11 @@ Communications of the ACM, [paper](https://dl.acm.org/doi/pdf/10.1145/359340.359
 
 - Threshold Cryptosystems From Threshold Fully Homomorphic Encryption  
   *Dan Boneh, Rosario Gennaro, Steven Goldfeder, Aayush Jain, Sam Kim, Peter M. R. Rasmussen, Amit Sahai*  
-  CRYPTO 2018, [eprint](https://eprint.iacr.org/2017/956.pdf), BGGJ+18  
-
-- Faster Non-interactive Verifiable Computing  
-  *Pascal Lafourcade, Gael Marcadet, Léo Robert*  
-  IACR 2021, [eprint](https://eprint.iacr.org/2022/646), LMR21    
-
-- Efficient Threshold FHE with Application to Real-Time Systems  
-  *Siddhartha Chowdhury, Sayani Sinha, Animesh Singh, Shubham Mishra, Chandan Chaudhary, Sikhar Patranabis, Pratyay Mukherjee, Ayantika Chatterjee, Debdeep Mukhopadhyay*  
-  IACR 2022, [eprint](https://eprint.iacr.org/2022/1625.pdf), CSMC+22    
+  CRYPTO 2018, [eprint](https://eprint.iacr.org/2017/956.pdf), BGGJ+18     
 
 - Circuit-Private Multi-key FHE  
   *Wutichai Chongchitmate, Rafail Ostrovsky*  
-  PKC 2017, [eprint](https://link.springer.com/chapter/10.1007/978-3-662-54388-7_9), CO17  
-
-- Single Secret Leader Election  
-  *Dan Boneh, Saba Eskandarian, Lucjan Hanzlik, Nicola Greco*  
-  AFT '20, [eprint](https://eprint.iacr.org/2020/025.pdf), BEHG20    
-  
-- Simple Threshold (Fully Homomorphic) Encryption From LWE With Polynomial Modulus  
-  *Katharina Boudgoust, Peter Scholl*  
-  IACR 2023, [eprint](https://eprint.iacr.org/2023/016.pdf), BS23    
-
-- Plug-and-play sanitization for TFHE  
-  *Florian Bourse, Malika Izabachène*  
-  IACR 2022, [eprint](https://eprint.iacr.org/2022/1438.pdf), BI22    
-
-- Round-Optimal Secure Multi-party Computation  
-  *Shai Halevi, Carmit Hazay, Antigoni Polychroniadou, Muthuramakrishnan Venkitasubramaniam*  
-  CRYPTO 2018, [eprint](https://link.springer.com/article/10.1007/s00145-021-09382-3), HHPV18    
+  PKC 2017, [eprint](https://link.springer.com/chapter/10.1007/978-3-662-54388-7_9), CO17      
   
 
 - Interaction-Preserving Compilers for Secure Computation  
