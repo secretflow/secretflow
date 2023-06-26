@@ -6,7 +6,7 @@ Or you could [install SecretFlow via Python Package Index](#option-1-from-pypi).
 
 For advanced users, you could [install SecretFlow from source](#option-3-from-source).
 
-For Windows users, you could [install SecretFlow base WSL2](##Option-4-from-WSL).
+For Windows users, you could [install SecretFlow base WSL2](#option-4-from-wsl).
 
 After installation, don't forget to [have a quick try](#a-quick-try) to check if SecretFlow is good to go.
 
