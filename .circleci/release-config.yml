@@ -40,7 +40,7 @@ jobs:
             python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
   macOS_x64_publish:
     macos:
-      xcode: 13.0.0
+      xcode: 14.2
     environment:
       HOMEBREW_NO_AUTO_UPDATE: 1
     resource_class: macos.x86.medium.gen2
