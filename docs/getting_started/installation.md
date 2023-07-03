@@ -165,7 +165,7 @@ You also can build the Docker image by yourself.
 
 ```bash
 git clone https://github.com/secretflow/secretflow.git
-cd secretflow/docker
+cd secretflow/docker/release/
 ```
 
 - Construct an image
