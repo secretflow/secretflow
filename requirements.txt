@@ -6,8 +6,8 @@
 clean-text  # FEATURE=[lite]
 click  # FEATURE=[lite]
 grpcio<=1.49.1  # FEATURE=[lite]
-jax  # FEATURE=[lite]
-jaxlib  # FEATURE=[lite]
+jax<=0.4.12  # FEATURE=[lite]
+jaxlib<=0.4.12  # FEATURE=[lite]
 multiprocess  # FEATURE=[lite]
 networkx==2.8.8
 numpy==1.23.5  # FEATURE=[lite]
