@@ -145,6 +145,7 @@ Keywords: Split Learning + Sparsification
 
 ## Speech Recognition
 - [Training Keyword Spotting Models on Non-IID Data with Federated Learning](https://arxiv.org/pdf/2005.10406.pdf)
+- [FedAudio: A Federated Learning Benchmark for Audio Tasks](https://arxiv.org/pdf/2210.15707.pdf)
 
 ## Finance
 - [FedCoin: A Peer-to-Peer Payment System for Federated Learning](https://arxiv.org/pdf/2002.11711.pdf)
