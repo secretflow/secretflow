@@ -3,8 +3,11 @@ import os
 
 import pandas as pd
 
-from secretflow.component.data_utils import DistDataType, gen_table_statistic_report
-from secretflow.component.stats.table_statistics import table_statistics_comp
+from secretflow.component.data_utils import DistDataType
+from secretflow.component.stats.table_statistics import (
+    gen_table_statistic_report,
+    table_statistics_comp,
+)
 from secretflow.protos.component.data_pb2 import (
     DistData,
     IndividualTable,
@@ -62,11 +65,11 @@ def test_table_statistics_comp(comp_prod_sf_cluster_config):
     meta = VerticalTable(
         schemas=[
             TableSchema(
-                types=["f32", "f32"],
+                feature_types=["f32", "f32"],
                 features=["a", "b"],
             ),
             TableSchema(
-                types=["f32", "f32"],
+                feature_types=["f32", "f32"],
                 features=["c", "d"],
             ),
         ],
@@ -121,7 +124,7 @@ def test_table_statistics_individual_comp(comp_prod_sf_cluster_config):
     )
     meta = IndividualTable(
         schema=TableSchema(
-            types=["f32", "f32", "f32", "f32"], features=["a", "b", "c", "d"]
+            feature_types=["f32", "f32", "f32", "f32"], features=["a", "b", "c", "d"]
         )
     )
     param.inputs[0].meta.Pack(meta)

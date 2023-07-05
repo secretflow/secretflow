@@ -12,12 +12,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
+## [1.0.0b0] - 2023-7-3
+### Added
+- SLModel supports AggLayer
+- SLModel（nn/deepfm）supports one party providing features and the other party providing labels.
+- Component Specification and SecretFlow Component List v0.0.1.
+
+### Changed
+- Bump spu to 0.4.1b0
+
+### Fixed
+- Fix logic error when sl base model load from none
+
 ## [0.8.3b0] - 2023-6-14
 ### Added
 - Split learning add application of deepfm for recommendation scenarios.
 - Split learning add pytorch support.
 - Add IO tutorials for federated learning.
-- Reorg DP strategies.
+- Reorg DP strategies
 - SGB and XGB refactor. Add data checks. Improve qcut.
 - Add the preview version of components.
 
@@ -106,7 +118,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.7.18b1] - 2023-1-30
 ### Changed
-- add option whether exit on cross-silo sending.
+- add an option whether exit on cross-silo sending.
 - put all requires in one file except dev.
 
 ### Fix
@@ -188,7 +200,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add SLModel support multi parties(>=2)
 
 ### Changed
-- FLModel support most metrics of regression and classification
+- FLModel supports most metrics of regression and classification
 
 ### Fixed
 - SLModel can be initialized without model.
@@ -197,7 +209,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.7.10] - 2022-10-25
 ### Added
-- Add score card.
+- Add scorecard.
 - Add replace/mode function to DataFrame.
 - Add round function to VDataFrame.
 - Add psi_join_csv and psi_join_df.
@@ -338,7 +350,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sigmoid approximation in python.
 - SS LR.
 - Verical FL LR.
-- Auto ray.get for nested params with pyu objects in proxy decoreted cls.
+- Auto ray.get for nested params with pyu objects in proxy decorated cls.
 - Link desc in spu construction.
 
 ### Changed
@@ -393,7 +405,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - MixLR demo.
 - DP on split learning DNN.
 - XGBoost tutorial.
-- DataFrame and FedNdarray supports astype method.
+- DataFrame and FedNdarray support astype method.
 
 ### Changed
 - Use lfs instead of http file.
@@ -447,7 +459,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## [0.6.4]
-- Fix PPU dtype mismatch causing by JAX 32bit mode.
+- Fix PPU dtype mismatch caused by JAX 32bit mode.
 - Vertical PearsonR.
 
 ## [0.6.3]

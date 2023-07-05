@@ -18,13 +18,15 @@ from typing import Tuple
 
 import numpy as np
 
+from secretflow.ml.boost.sgb_v.factory.params import default_params
+from secretflow.ml.boost.sgb_v.factory.sgb_actor import SGBActor
+
 from ....core.pure_numpy_ops.boost import find_best_splits
 from ..component import Component, Devices, print_params
 
+
 # This is the leaf wise split finder
 # given gains, find the best split.
-
-
 @dataclass
 class SplitFinderParams:
     """
@@ -39,8 +41,8 @@ class SplitFinderParams:
     'audit_paths': dict. {device : path to save log for audit}
     """
 
-    gamma: float = 0
-    reg_lambda: float = 0.1
+    gamma: float = default_params.gamma
+    reg_lambda: float = default_params.reg_lambda
     audit_paths: dict = field(default_factory=dict)
 
 
@@ -74,6 +76,9 @@ class SplitFinder(Component):
 
     def set_devices(self, devices: Devices):
         self.label_holder = devices.label_holder
+
+    def set_actors(self, _: SGBActor):
+        return
 
     def find_best_splits(
         self, G: np.ndarray, H: np.ndarray, tree_num: int, level: int

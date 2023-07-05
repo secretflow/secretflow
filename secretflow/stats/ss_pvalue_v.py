@@ -81,7 +81,7 @@ def _t_square_value(
     return t_square
 
 
-class PVlaue:
+class PValue:
     """
     Calculate P-Value for LR model training on vertical slice dataset by using secret sharing.
 

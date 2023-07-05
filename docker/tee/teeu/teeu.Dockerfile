@@ -3,8 +3,8 @@ FROM secretflow/occlum:0.29.5-ubuntu20.04 as base
 RUN apt-get update -y && apt-get install wget && apt-get clean
 
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
-     && bash ./Miniconda3-latest-Linux-x86_64.sh -b \
-     && rm -f Miniconda3-latest-Linux-x86_64.sh
+    && bash ./Miniconda3-latest-Linux-x86_64.sh -b \
+    && rm -f Miniconda3-latest-Linux-x86_64.sh
 
 RUN /root/miniconda3/bin/conda create --name secretflow python==3.8.10 Cython
 
@@ -12,6 +12,7 @@ SHELL ["/root/miniconda3/bin/conda", "run", "-n", "secretflow", "/bin/bash", "-c
 
 RUN pip install "grpcio>=1.28.1,<=1.43.0"
 RUN pip install ray[tune]==1.13.0 psutil && python -c "import ray; obj = ray.put(1); print(ray.get(obj));" && pip uninstall -y ray
+
 RUN pip install secretflow_ray==1.13.0
 
 

@@ -431,13 +431,15 @@ class VertWoeBinningPyuWorker:
                 merged_split_point_indices,
                 self.is_string_features(split_points),
             )
-
-        woes, bin_ivs = tuple(zip(*[self._calc_bin_woe_iv(*b) for b in bins_stat]))
+        if len(self.bin_names) > 0:
+            woes, bin_ivs = tuple(zip(*[self._calc_bin_woe_iv(*b) for b in bins_stat]))
+            else_woes, else_ivs = tuple(
+                zip(*[self._calc_bin_woe_iv(*sum_bin(b)) for b in else_bins])
+            )
+        else:
+            woes, bin_ivs = [], []
+            else_woes, else_ivs = [], []
         total_counts = [b[0] for b in bins_stat]
-
-        else_woes, else_ivs = tuple(
-            zip(*[self._calc_bin_woe_iv(*sum_bin(b)) for b in else_bins])
-        )
         else_counts = [b.size for b in else_bins]
 
         self.accumulate_iv_info(

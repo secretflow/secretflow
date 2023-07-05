@@ -4,7 +4,7 @@ import pandas as pd
 from sklearn.datasets import load_breast_cancer
 
 from secretflow.component.data_utils import DistDataType, extract_distdata_info
-from secretflow.component.preprocessing.vert_woe_binning import (
+from secretflow.component.feature.vert_woe_binning import (
     vert_woe_binning_comp,
     vert_woe_substitution_comp,
 )
@@ -30,8 +30,8 @@ def test_woe_binning(comp_prod_sf_cluster_config):
             os.path.join(local_fs_wd, "test_woe_binning"),
             exist_ok=True,
         )
-        x = pd.DataFrame(x[:, :15], columns=[f'a{i}' for i in range(15)])
-        y = pd.DataFrame(y, columns=['y'])
+        x = pd.DataFrame(x[:, :15], columns=[f"a{i}" for i in range(15)])
+        y = pd.DataFrame(y, columns=["y"])
         ds = pd.concat([x, y], axis=1)
         ds.to_csv(os.path.join(local_fs_wd, alice_path), index=False)
 
@@ -41,11 +41,11 @@ def test_woe_binning(comp_prod_sf_cluster_config):
             exist_ok=True,
         )
 
-        ds = pd.DataFrame(x[:, 15:], columns=[f'b{i}' for i in range(15)])
+        ds = pd.DataFrame(x[:, 15:], columns=[f"b{i}" for i in range(15)])
         ds.to_csv(os.path.join(local_fs_wd, bob_path), index=False)
 
     bin_param_01 = NodeEvalParam(
-        domain="preprocessing",
+        domain="feature",
         name="vert_woe_binning",
         version="0.0.1",
         attr_paths=[
@@ -61,8 +61,8 @@ def test_woe_binning(comp_prod_sf_cluster_config):
                 name="input_data",
                 type=str(DistDataType.VERTICAL_TABLE),
                 data_refs=[
-                    DistData.DataRef(uri=alice_path, party="alice", format="csv"),
                     DistData.DataRef(uri=bob_path, party="bob", format="csv"),
+                    DistData.DataRef(uri=alice_path, party="alice", format="csv"),
                 ],
             ),
         ],
@@ -70,7 +70,7 @@ def test_woe_binning(comp_prod_sf_cluster_config):
     )
 
     bin_param_02 = NodeEvalParam(
-        domain="preprocessing",
+        domain="feature",
         name="vert_woe_binning",
         version="0.0.1",
         attr_paths=[
@@ -86,8 +86,8 @@ def test_woe_binning(comp_prod_sf_cluster_config):
                 name="input_data",
                 type=str(DistDataType.VERTICAL_TABLE),
                 data_refs=[
-                    DistData.DataRef(uri=alice_path, party="alice", format="csv"),
                     DistData.DataRef(uri=bob_path, party="bob", format="csv"),
+                    DistData.DataRef(uri=alice_path, party="alice", format="csv"),
                 ],
             ),
         ],
@@ -97,13 +97,14 @@ def test_woe_binning(comp_prod_sf_cluster_config):
     meta = VerticalTable(
         schemas=[
             TableSchema(
-                types=["f32"] * 15,
-                features=[f"a{i}" for i in range(15)],
-                labels=["y"],
+                feature_types=["f32"] * 15,
+                features=[f"b{i}" for i in range(15)],
             ),
             TableSchema(
-                types=["f32"] * 15,
-                features=[f"b{i}" for i in range(15)],
+                feature_types=["f32"] * 15,
+                features=[f"a{i}" for i in range(15)],
+                label_types=["f32"],
+                labels=["y"],
             ),
         ],
     )
@@ -114,7 +115,7 @@ def test_woe_binning(comp_prod_sf_cluster_config):
     bin_res = vert_woe_binning_comp.eval(bin_param_02, comp_prod_sf_cluster_config)
 
     sub_param = NodeEvalParam(
-        domain="preprocessing",
+        domain="feature",
         name="vert_woe_substitution",
         version="0.0.1",
         attr_paths=[],

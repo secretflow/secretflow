@@ -80,7 +80,7 @@ class SLModel:
         self.simulation = kwargs.get('simulation', False)
         self.device_agg = kwargs.get('device_agg', None)
         self.compressor = kwargs.get('compressor', None)
-
+        self.base_model_dict = base_model_dict
         self.backend = backend
         self.num_parties = len(base_model_dict)
         self.agglayer = AggLayer(
@@ -98,13 +98,17 @@ class SLModel:
             import secretflow.ml.nn.sl.backend.torch.strategy  # noqa
         else:
             raise Exception(f"Invalid backend = {backend}")
-
+        worker_list = list(base_model_dict.keys())
+        if device_y not in worker_list:
+            worker_list.append(device_y)
         self._workers = {}
-        for device, model in base_model_dict.items():
+        for device in worker_list:
             self._workers[device], self.check_skip_grad = dispatch_strategy(
                 strategy,
                 backend=backend,
-                builder_base=model,
+                builder_base=base_model_dict[device]
+                if device in base_model_dict.keys()
+                else None,
                 builder_fuse=None if device != device_y else model_fuse,
                 random_seed=random_seed,
                 dp_strategy=dp_strategy_dict.get(device, None)
@@ -333,9 +337,7 @@ class SLModel:
                 if isinstance(agg_hiddens, PYUObject):
                     agg_hiddens = [agg_hiddens]
                 # 3. Fusenet do local calculates and return gradients
-                gradients = self._workers[self.device_y].fuse_net(
-                    *agg_hiddens,
-                )
+                gradients = self._workers[self.device_y].fuse_net(*agg_hiddens)
 
                 # In some strategies, we need to bypass the backpropagation step.
                 skip_gradient = False
@@ -348,7 +350,8 @@ class SLModel:
                     # do agglayer backward
                     scatter_gradients = self.agglayer.backward(gradients)
                     for device, worker in self._workers.items():
-                        worker.base_backward(scatter_gradients[device])
+                        if device in scatter_gradients.keys():
+                            worker.base_backward(scatter_gradients[device])
 
                 r_count = self._workers[self.device_y].on_train_batch_end(step=step)
                 res.append(r_count)
@@ -593,11 +596,13 @@ class SLModel:
         assert fuse_model_path is not None, "Fuse model path cannot be empty"
         if isinstance(base_model_path, str):
             base_model_path = {
-                device: base_model_path for device in self._workers.keys()
+                device: base_model_path for device in self.base_model_dict.keys()
             }
 
         res = []
         for device, worker in self._workers.items():
+            if device not in self.base_model_dict.keys():
+                continue
             assert (
                 device in base_model_path
             ), f'Should provide a path for device {device}.'
@@ -647,11 +652,12 @@ class SLModel:
         assert fuse_model_path is not None, "Fuse model path cannot be empty"
         if isinstance(base_model_path, str):
             base_model_path = {
-                device: base_model_path for device in self._workers.keys()
+                device: base_model_path for device in self.base_model_dict.keys()
             }
-
         res = []
         for device, worker in self._workers.items():
+            if device not in self.base_model_dict.keys():
+                continue
             assert (
                 device in base_model_path
             ), f'Should provide a path for device {device}.'
@@ -701,12 +707,14 @@ class SLModel:
         assert fuse_model_path is not None, "Fuse model path cannot be empty"
         if isinstance(base_model_path, str):
             base_model_path = {
-                device: base_model_path for device in self._workers.keys()
+                device: base_model_path for device in self.base_model_dict.keys()
             }
 
         res = []
         base_input_output_infos = {}
         for device, worker in self._workers.items():
+            if device not in self.base_model_dict.keys():
+                continue
             assert (
                 device in base_model_path
             ), f'Should provide a path for device {device}.'

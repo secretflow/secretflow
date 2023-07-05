@@ -14,16 +14,16 @@
 
 import functools
 from dataclasses import dataclass
-from typing import Dict
+from typing import Dict, List
 
 from google.protobuf import json_format
-
-from secretflow.protos.component.cluster_pb2 import SFClusterDesc, StorageConfig
-from secretflow.protos.component.evaluation_pb2 import NodeEvalParam
-from secretflow.kuscia.proto.api.v1alpha1.kusciatask.kuscia_task_pb2 import (
+from kuscia.proto.api.v1alpha1.kusciatask.kuscia_task_pb2 import (
     AllocatedPorts,
     ClusterDefine,
 )
+
+from secretflow.protos.component.cluster_pb2 import SFClusterDesc, StorageConfig
+from secretflow.protos.component.evaluation_pb2 import NodeEvalParam
 
 
 @dataclass
@@ -34,6 +34,10 @@ class KusicaTaskConfig:
     sf_node_eval_param: NodeEvalParam = None
     sf_cluster_desc: SFClusterDesc = None
     sf_storage_config: Dict[str, StorageConfig] = None
+    sf_input_ids: List[str] = None
+    sf_output_ids: List[str] = None
+    sf_output_uris: List[str] = None
+    sf_datasource_config: Dict[str, Dict] = None
 
     @functools.cached_property
     def party_name(self):
@@ -59,13 +63,39 @@ class KusicaTaskConfig:
                 req["task_input_config"]["sf_cluster_desc"], sf_cluster_desc
             )
 
-            sf_storage_config = {}
-            for storage_party, config in req["task_input_config"][
-                "sf_storage_config"
-            ].items():
-                storage_config_pb = StorageConfig()
-                json_format.ParseDict(config, storage_config_pb)
-                sf_storage_config[storage_party] = storage_config_pb
+            sf_storage_config = None
+            if "sf_storage_config" in req["task_input_config"]:
+                sf_storage_config = {}
+                for storage_party, config in req["task_input_config"][
+                    "sf_storage_config"
+                ].items():
+                    storage_config_pb = StorageConfig()
+                    json_format.ParseDict(config, storage_config_pb)
+                    sf_storage_config[storage_party] = storage_config_pb
+
+            sf_input_ids = (
+                req["task_input_config"]["sf_input_ids"]
+                if "sf_input_ids" in req["task_input_config"]
+                else None
+            )
+            sf_output_ids = (
+                req["task_input_config"]["sf_output_ids"]
+                if "sf_output_ids" in req["task_input_config"]
+                else None
+            )
+            sf_output_uris = (
+                req["task_input_config"]["sf_output_uris"]
+                if "sf_output_uris" in req["task_input_config"]
+                else None
+            )
+
+            sf_datasource_config = None
+            if "sf_datasource_config" in req["task_input_config"]:
+                sf_datasource_config = {}
+                for party, config in req["task_input_config"][
+                    "sf_datasource_config"
+                ].items():
+                    sf_datasource_config[party] = config
 
             return cls(
                 task_id,
@@ -74,6 +104,10 @@ class KusicaTaskConfig:
                 sf_node_eval_param,
                 sf_cluster_desc,
                 sf_storage_config,
+                sf_input_ids,
+                sf_output_ids,
+                sf_output_uris,
+                sf_datasource_config,
             )
         else:
             return cls(

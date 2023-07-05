@@ -225,6 +225,8 @@ class AggLayer(object):
 
         coverted_data = []
         for device, f_datum in data.items():
+            if device not in self.parties:
+                continue
             hidden = device(self.get_hiddens)(f_datum)
             loss = device(self.get_reg_loss)(f_datum)
             # transfer other fields to device_y
@@ -247,13 +249,25 @@ class AggLayer(object):
             return server_data
         return server_data
 
-    def scatter(self, data: ForwardData) -> Dict[PYU, DeviceObject]:
+    @staticmethod
+    def parse_gradients(gradients):
+        if isinstance(gradients, List) and len(gradients) == 1:
+            return gradients[0]
+        else:
+            return gradients
+
+    def scatter(self, data: Union[List, PYUObject]) -> Dict[PYU, DeviceObject]:
         """Send ForwardData to participates"""
         # do compress before send to participates
+        # FIXME: The return of PYU proxy are inconsistent when "num_return==1" and ">1"
+        if isinstance(data, PYUObject):
+            data = self.device_agg(self.parse_gradients)(data)
+            data = [data]
         if isinstance(self.device_agg, COMPRESS_DEVICE_LIST) and self.compressor:
             data = [self.device_agg(self.compressor.compress)(datum) for datum in data]
         # send
         result = {}
+
         for p, d in zip(self.parties, data):
             datum = d.to(p)
             # do decompress after recieve from device agg
@@ -350,6 +364,7 @@ class AggLayer(object):
                     self.compressor,
                     self.is_compressed,
                 )
+
             if isinstance(gradient, DeviceObject):
                 gradient = gradient.to(self.device_agg)
             if isinstance(weights, (Tuple, List)):
@@ -402,6 +417,9 @@ class AggLayer(object):
             )(
                 gradient,
             )
+            if isinstance(p_gradient, PYUObject):
+                p_gradient = self.device_agg(self.parse_gradients)(p_gradient)
+                p_gradient = [p_gradient]
             scatter_g = {}
             for p, g in zip(self.parties, p_gradient):
                 p_g = g.to(p)

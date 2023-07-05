@@ -308,7 +308,6 @@ def psi_join_df(
     receiver: str,
     join_party: str,
     protocol='KKRT_PSI_2PC',
-    precheck_input=True,
     bucket_size=1 << 20,
     curve_type="CURVE_25519",
 ) -> List[PYUObject]:
@@ -342,7 +341,6 @@ def psi_join_df(
                     receiver,
                     join_party,
                     protocol,
-                    precheck_input,
                     bucket_size,
                     curve_type,
                 ),
@@ -361,7 +359,6 @@ def psi_join_csv(
     receiver: str,
     join_party: str,
     protocol='KKRT_PSI_2PC',
-    precheck_input=True,
     bucket_size=1 << 20,
     curve_type="CURVE_25519",
 ):
@@ -417,7 +414,6 @@ def psi_join_csv(
                     receiver,
                     join_party,
                     protocol,
-                    precheck_input,
                     bucket_size,
                     curve_type,
                 )
@@ -435,7 +431,6 @@ def psi_join_csv(
                     receiver,
                     join_party,
                     protocol,
-                    precheck_input,
                     bucket_size,
                     curve_type,
                 )

@@ -21,7 +21,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n&secretflow/protos/component/data.proto\x12\x14secretflow.component\x1a\x19google/protobuf/any.proto\x1a)secretflow/protos/component/cluster.proto\"W\n\nSystemInfo\x12\x10\n\x08\x61pp_name\x18\x01 \x01(\t\x12\x37\n\nsecretflow\x18\x02 \x01(\x0b\x32#.secretflow.component.SFClusterDesc\"K\n\x0bTableSchema\x12\x0b\n\x03ids\x18\x01 \x03(\t\x12\x10\n\x08\x66\x65\x61tures\x18\x02 \x03(\t\x12\r\n\x05types\x18\x03 \x03(\t\x12\x0e\n\x06labels\x18\x04 \x03(\t\"V\n\rVerticalTable\x12\x32\n\x07schemas\x18\x01 \x03(\x0b\x32!.secretflow.component.TableSchema\x12\x11\n\tnum_lines\x18\x02 \x01(\x03\"W\n\x0fIndividualTable\x12\x31\n\x06schema\x18\x01 \x01(\x0b\x32!.secretflow.component.TableSchema\x12\x11\n\tnum_lines\x18\x02 \x01(\x03\"\xab\x01\n\x16\x44\x65viceObjectCollection\x12G\n\x04objs\x18\x01 \x03(\x0b\x32\x39.secretflow.component.DeviceObjectCollection.DeviceObject\x12\x13\n\x0bpublic_info\x18\x02 \x01(\t\x1a\x33\n\x0c\x44\x65viceObject\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x15\n\rdata_ref_idxs\x18\x02 \x03(\x05\"\xf0\x01\n\x08\x44istData\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\x12\x32\n\x08sys_info\x18\x03 \x01(\x0b\x32 .secretflow.component.SystemInfo\x12\"\n\x04meta\x18\x04 \x01(\x0b\x32\x14.google.protobuf.Any\x12\x39\n\tdata_refs\x18\x05 \x03(\x0b\x32&.secretflow.component.DistData.DataRef\x1a\x35\n\x07\x44\x61taRef\x12\x0b\n\x03uri\x18\x01 \x01(\t\x12\r\n\x05party\x18\x02 \x01(\t\x12\x0e\n\x06\x66ormat\x18\x03 \x01(\tb\x06proto3'
+  serialized_pb=b'\n&secretflow/protos/component/data.proto\x12\x14secretflow.component\x1a\x19google/protobuf/any.proto\x1a)secretflow/protos/component/cluster.proto\"W\n\nSystemInfo\x12\x10\n\x08\x61pp_name\x18\x01 \x01(\t\x12\x37\n\nsecretflow\x18\x02 \x01(\x0b\x32#.secretflow.component.SFClusterDesc\"z\n\x0bTableSchema\x12\x0b\n\x03ids\x18\x01 \x03(\t\x12\x10\n\x08\x66\x65\x61tures\x18\x02 \x03(\t\x12\x0e\n\x06labels\x18\x03 \x03(\t\x12\x10\n\x08id_types\x18\x04 \x03(\t\x12\x15\n\rfeature_types\x18\x05 \x03(\t\x12\x13\n\x0blabel_types\x18\x06 \x03(\t\"V\n\rVerticalTable\x12\x32\n\x07schemas\x18\x01 \x03(\x0b\x32!.secretflow.component.TableSchema\x12\x11\n\tnum_lines\x18\x02 \x01(\x03\"W\n\x0fIndividualTable\x12\x31\n\x06schema\x18\x01 \x01(\x0b\x32!.secretflow.component.TableSchema\x12\x11\n\tnum_lines\x18\x02 \x01(\x03\"\xab\x01\n\x16\x44\x65viceObjectCollection\x12G\n\x04objs\x18\x01 \x03(\x0b\x32\x39.secretflow.component.DeviceObjectCollection.DeviceObject\x12\x13\n\x0bpublic_info\x18\x02 \x01(\t\x1a\x33\n\x0c\x44\x65viceObject\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x15\n\rdata_ref_idxs\x18\x02 \x03(\x05\"\xf0\x01\n\x08\x44istData\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\x12\x32\n\x08sys_info\x18\x03 \x01(\x0b\x32 .secretflow.component.SystemInfo\x12\"\n\x04meta\x18\x04 \x01(\x0b\x32\x14.google.protobuf.Any\x12\x39\n\tdata_refs\x18\x05 \x03(\x0b\x32&.secretflow.component.DistData.DataRef\x1a\x35\n\x07\x44\x61taRef\x12\x0b\n\x03uri\x18\x01 \x01(\t\x12\r\n\x05party\x18\x02 \x01(\t\x12\x0e\n\x06\x66ormat\x18\x03 \x01(\tb\x06proto3'
   ,
   dependencies=[google_dot_protobuf_dot_any__pb2.DESCRIPTOR,secretflow_dot_protos_dot_component_dot_cluster__pb2.DESCRIPTOR,])
 
@@ -90,15 +90,29 @@ _TABLESCHEMA = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='types', full_name='secretflow.component.TableSchema.types', index=2,
+      name='labels', full_name='secretflow.component.TableSchema.labels', index=2,
       number=3, type=9, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='labels', full_name='secretflow.component.TableSchema.labels', index=3,
+      name='id_types', full_name='secretflow.component.TableSchema.id_types', index=3,
       number=4, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='feature_types', full_name='secretflow.component.TableSchema.feature_types', index=4,
+      number=5, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='label_types', full_name='secretflow.component.TableSchema.label_types', index=5,
+      number=6, type=9, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -116,7 +130,7 @@ _TABLESCHEMA = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=223,
-  serialized_end=298,
+  serialized_end=345,
 )
 
 
@@ -154,8 +168,8 @@ _VERTICALTABLE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=300,
-  serialized_end=386,
+  serialized_start=347,
+  serialized_end=433,
 )
 
 
@@ -193,8 +207,8 @@ _INDIVIDUALTABLE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=388,
-  serialized_end=475,
+  serialized_start=435,
+  serialized_end=522,
 )
 
 
@@ -232,8 +246,8 @@ _DEVICEOBJECTCOLLECTION_DEVICEOBJECT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=598,
-  serialized_end=649,
+  serialized_start=645,
+  serialized_end=696,
 )
 
 _DEVICEOBJECTCOLLECTION = _descriptor.Descriptor(
@@ -270,8 +284,8 @@ _DEVICEOBJECTCOLLECTION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=478,
-  serialized_end=649,
+  serialized_start=525,
+  serialized_end=696,
 )
 
 
@@ -316,8 +330,8 @@ _DISTDATA_DATAREF = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=839,
-  serialized_end=892,
+  serialized_start=886,
+  serialized_end=939,
 )
 
 _DISTDATA = _descriptor.Descriptor(
@@ -375,8 +389,8 @@ _DISTDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=652,
-  serialized_end=892,
+  serialized_start=699,
+  serialized_end=939,
 )
 
 _SYSTEMINFO.fields_by_name['secretflow'].message_type = secretflow_dot_protos_dot_component_dot_cluster__pb2._SFCLUSTERDESC

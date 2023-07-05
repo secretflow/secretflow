@@ -15,6 +15,8 @@
 from dataclasses import dataclass
 
 from secretflow.device import PYUObject
+from secretflow.ml.boost.sgb_v.factory.params import default_params
+from secretflow.ml.boost.sgb_v.factory.sgb_actor import SGBActor
 
 from ....core.distributed_tree.distributed_tree import DistributedTree
 from ....core.preprocessing.params import RegType
@@ -33,8 +35,8 @@ class ModelBuilderParams:
         default: 0
     """
 
-    base_score: float = 0
-    objective: RegType = RegType('logistic')
+    base_score: float = default_params.base_score
+    objective: RegType = default_params.objective
 
 
 class ModelBuilder(Component):
@@ -61,6 +63,9 @@ class ModelBuilder(Component):
 
     def set_devices(self, devices: Devices):
         self.label_holder = devices.label_holder
+
+    def set_actors(self, _: SGBActor):
+        return
 
     def init_pred(self, sample_num: int) -> PYUObject:
         base = self.params.base_score

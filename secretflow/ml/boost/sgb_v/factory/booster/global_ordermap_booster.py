@@ -18,6 +18,8 @@ import time
 from dataclasses import dataclass
 from typing import Union
 
+import numpy as np
+
 from secretflow.data import FedNdarray
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import HEU, wait
@@ -25,6 +27,7 @@ from secretflow.device import HEU, wait
 from ...model import SgbModel
 from ..components import DataPreprocessor, ModelBuilder, OrderMapManager, TreeTrainer
 from ..components.component import Composite, Devices, print_params
+from ..sgb_actor import SGBActor
 
 
 @dataclass
@@ -45,6 +48,7 @@ class GlobalOrdermapBoosterParams:
                 Whether to train the first tree with label holder's own features.
                 Can increase training speed and label security.
                 The training loss may increase.
+                If label holder has no feature, set this to False.
     """
 
     num_boost_round: int = 10
@@ -65,11 +69,11 @@ class GlobalOrdermapBooster(Composite):
         self.tree_trainer = tree_trainer
 
     def _set_booster_params(self, params: dict):
-        trees = int(params.pop('num_boost_round', 10))
+        trees = int(params.get('num_boost_round', 10))
         assert 1 <= trees <= 1024, f"num_boost_round should in [1, 1024], got {trees}"
         self.params.num_boost_round = trees
         self.params.first_tree_with_label_holder_feature = bool(
-            params.pop('first_tree_with_label_holder_feature', False)
+            params.get('first_tree_with_label_holder_feature', False)
         )
 
     def _get_booster_params(self, params: dict):
@@ -99,14 +103,24 @@ class GlobalOrdermapBooster(Composite):
         super().set_devices(devices)
         self.tree_trainer.set_devices(devices)
 
+    def set_actors(self, actors: SGBActor):
+        super().set_actors(actors)
+        self.tree_trainer.set_actors(actors)
+
     def fit(
         self,
         dataset: Union[FedNdarray, VDataFrame],
         label: Union[FedNdarray, VDataFrame],
     ) -> SgbModel:
         x, x_shape, y, _ = self.components.preprocessor.validate(dataset, label)
+
+        # set devices
         devices = Devices(y.device, [*x.partitions.keys()], self.heu)
         self.set_devices(devices)
+
+        # set actors
+        actors = [SGBActor(device=device) for device in devices.workers]
+        self.set_actors(actors)
 
         pred = self.components.model_builder.init_pred(x_shape[0])
         self.components.order_map_manager.build_order_map(x)
@@ -122,6 +136,11 @@ class GlobalOrdermapBooster(Composite):
             tree = self.tree_trainer.train_tree(
                 tree_index, self.components.order_map_manager, y, pred, x_shape
             )
+            if tree is None:
+                logging.info(
+                    f"early_stopped, current tree num: {self.components.model_builder.get_tree_num()}"
+                )
+                break
             if self.params.first_tree_with_label_holder_feature and tree_index == 0:
                 config['label_holder_feature_only'] = False
                 self.tree_trainer.set_params(config)
@@ -129,7 +148,9 @@ class GlobalOrdermapBooster(Composite):
             cur_tree_num = self.components.model_builder.get_tree_num()
 
             if cur_tree_num < self.params.num_boost_round:
-                pred = y.device(lambda x, y: x + y)(pred, tree.predict(x.partitions))
+                pred = y.device(lambda x, y: x + np.array(y, order='F'))(
+                    pred, tree.predict(x.partitions)
+                )
                 wait([pred])
             else:
                 wait(tree)

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import math
 from dataclasses import dataclass
 from typing import List, Tuple, Union
 
@@ -20,8 +19,11 @@ import numpy as np
 
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.device import PYUObject
+from secretflow.ml.boost.sgb_v.factory.params import default_params
+from secretflow.ml.boost.sgb_v.factory.sgb_actor import SGBActor
 
 from ..component import Component, Devices, print_params
+from .sample_actor import SampleActor
 
 
 @dataclass
@@ -38,12 +40,23 @@ class SamplerParams:
     'label_holder_feature_only': bool. affects col sampling.
         default: False
         if turned on, all non-label holder's col sample rate will be 0.
+    'enable_goss': bool. whether enable GOSS, see lightGBM's paper for more understanding in GOSS.
+        default: False
+    'top_rate': float. GOSS-specific parameter. The fraction of large gradients to sample.
+        default: 0.3
+        range: (0, 1), but top_rate + bottom_rate < 1
+    'bottom_rate': float. GOSS-specific parameter. The fraction of small gradients to sample.
+        default: 0.5
+        range: (0, 1), but top_rate + bottom_rate < 1
     """
 
-    row_sample_rate: float = 1
-    col_sample_rate: float = 1
-    seed: int = 1212
-    label_holder_feature_only: bool = False
+    row_sample_rate: float = default_params.row_sample_rate
+    col_sample_rate: float = default_params.col_sample_rate
+    seed: int = default_params.seed
+    label_holder_feature_only: bool = default_params.label_holder_feature_only
+    enable_goss: bool = default_params.enable_goss
+    top_rate: float = default_params.top_rate
+    bottom_rate: float = default_params.bottom_rate
 
 
 class Sampler(Component):
@@ -64,6 +77,20 @@ class Sampler(Component):
             colsample > 0 and colsample <= 1
         ), f"col_sample_rate should in (0, 1], got {colsample}"
 
+        top_rate = float(params.get('top_rate', 0.3))
+        assert (
+            top_rate > 0 and top_rate < 1
+        ), f"top_rate should in (0, 1), got {top_rate}"
+
+        bottom_rate = float(params.get('bottom_rate', 0.5))
+        assert (
+            bottom_rate > 0 and bottom_rate < 1
+        ), f"bottom_rate should in (0, 1), got {bottom_rate}"
+
+        assert (
+            bottom_rate + top_rate < 1
+        ), f"the sum of top_rate and bottom_rate should be less than 1, got {bottom_rate + top_rate}"
+
         self.params.row_sample_rate = subsample
         self.params.col_sample_rate = colsample
         self.params.seed = int(params.get('seed', 1212))
@@ -71,16 +98,27 @@ class Sampler(Component):
             params.get('label_holder_feature_only', False)
         )
 
-        self.rng = np.random.default_rng(self.params.seed)
+        self.params.enable_goss = bool(params.get('enable_goss', False))
+        self.params.top_rate = top_rate
+        self.params.bottom_rate = bottom_rate
 
     def get_params(self, params: dict):
         params['seed'] = self.params.seed
         params['row_sample_rate'] = self.params.row_sample_rate
         params['col_sample_rate'] = self.params.col_sample_rate
         params['label_holder_feature_only'] = self.params.label_holder_feature_only
+        params['enable_goss'] = self.params.enable_goss
+        params['top_rate'] = self.params.top_rate
+        params['bottom_rate'] = self.params.bottom_rate
 
     def set_devices(self, devices: Devices):
         self.label_holder = devices.label_holder
+        self.workers = devices.workers
+
+    def set_actors(self, actors: SGBActor):
+        self.sample_actors = {actor.device: actor for actor in actors}
+        for actor in self.sample_actors.values():
+            actor.register_class('SampleActor', SampleActor, self.params.seed)
 
     def generate_col_choices(
         self, feature_buckets: List[PYUObject]
@@ -98,12 +136,15 @@ class Sampler(Component):
         if self.params.label_holder_feature_only:
             col_choices, total_buckets = zip(
                 *[
-                    fb.device(generate_one_partition_col_choices, num_returns=2)(
-                        colsample, fb
+                    self.sample_actors[fb.device].invoke_class_method_two_ret(
+                        'SampleActor',
+                        'generate_one_partition_col_choices',
+                        colsample,
+                        fb,
                     )
                     if fb.device == self.label_holder
-                    else fb.device(generate_one_partition_col_choices, num_returns=2)(
-                        0, fb
+                    else self.sample_actors[fb.device].invoke_class_method_two_ret(
+                        'SampleActor', 'generate_one_partition_col_choices', 0, fb
                     )
                     for fb in feature_buckets
                 ]
@@ -111,37 +152,78 @@ class Sampler(Component):
         else:
             col_choices, total_buckets = zip(
                 *[
-                    fb.device(generate_one_partition_col_choices, num_returns=2)(
-                        colsample, fb
+                    self.sample_actors[fb.device].invoke_class_method_two_ret(
+                        'SampleActor',
+                        'generate_one_partition_col_choices',
+                        colsample,
+                        fb,
                     )
                     for fb in feature_buckets
                 ]
             )
         return col_choices, total_buckets
 
-    def generate_row_choices(self, row_num) -> Union[None, np.ndarray]:
-        if self.params.row_sample_rate == 1:
-            return None
-        sample_num_in_tree = math.ceil(row_num * self.params.row_sample_rate)
+    def generate_row_choices(
+        self, row_num: int, g: PYUObject
+    ) -> Tuple[Union[None, np.ndarray], Union[None, np.ndarray]]:
+        """Sample rows,
+        either in a goss style or normal style based on config
 
-        rng, sample_num, choices = (
-            self.rng,
-            row_num,
-            sample_num_in_tree,
-        )
-        return rng.choice(sample_num, choices, replace=False, shuffle=True)
+        Args:
+            row_num (int): row number
+            g (PYUObject): gradient
 
-    def apply_vector_sampling(
-        self, x: PYUObject, indices: Union[PYUObject, np.ndarray]
+        Returns:
+            Tuple[Union[None, np.ndarray], Union[None, np.ndarray]]:
+                1. row choices
+                2. weight (for info gain), None if not GOSS-enabled
+        """
+        if self.params.enable_goss:
+            top_rate = self.params.top_rate
+            bottom_rate = self.params.bottom_rate
+            return self.sample_actors[g.device].invoke_class_method_two_ret(
+                'SampleActor', 'goss', row_num, g, top_rate, bottom_rate
+            )
+        else:
+            sample_rate = self.params.row_sample_rate
+            choices = self.sample_actors[g.device].invoke_class_method(
+                'SampleActor', 'generate_row_choices', row_num, sample_rate
+            )
+            return choices, None
+
+    def _should_row_subsampling(self) -> bool:
+        return self.params.row_sample_rate < 1 or self.params.enable_goss
+
+    def _apply_vector_sampling(
+        self,
+        x: PYUObject,
+        indices: Union[PYUObject, np.ndarray],
     ):
         """Sample x for a single partition. Assuming we have a column vector.
         Assume the indices was generated from row sampling by sampler"""
         if self.params.row_sample_rate < 1:
-            return x.device(lambda x, indices: x.reshape(-1, 1)[indices, :])(
-                x, indices.to(x.device) if isinstance(indices, PYUObject) else indices
-            )
+            return x.device(lambda x, indices: x.reshape(-1, 1)[indices, :])(x, indices)
         else:
             return x.device(lambda x: x.reshape(-1, 1))(x)
+
+    def apply_vector_sampling_weighted(
+        self,
+        x: PYUObject,
+        indices: Union[PYUObject, np.ndarray],
+        weight: Union[PYUObject, None] = None,
+    ):
+        if self.params.enable_goss:
+            return x.device(
+                lambda x, indices, weight: (
+                    np.multiply(x.reshape(-1)[indices], weight.reshape(-1))
+                ).reshape(-1, 1)
+            )(
+                x,
+                indices,
+                weight,
+            )
+        else:
+            return self._apply_vector_sampling(x, indices)
 
     def apply_v_fed_sampling(
         self,
@@ -163,7 +245,7 @@ class Sampler(Component):
         """
         X_sub = X
         # sample cols and rows of bucket_map
-        if self.params.col_sample_rate < 1 and self.params.row_sample_rate < 1:
+        if self.params.col_sample_rate < 1 and self._should_row_subsampling():
             # sub choices is stored in context owned by label_holder and shared to all workers.
             X_sub = FedNdarray(
                 partitions={
@@ -188,7 +270,7 @@ class Sampler(Component):
                 partition_way=PartitionWay.VERTICAL,
             )
         # only sample rows
-        elif self.params.row_sample_rate < 1:
+        elif self._should_row_subsampling():
             X_sub = FedNdarray(
                 partitions={
                     pyu: pyu(lambda x, y: x[y, :])(
@@ -202,21 +284,3 @@ class Sampler(Component):
                 partition_way=PartitionWay.VERTICAL,
             )
         return X_sub
-
-
-def generate_one_partition_col_choices(
-    colsample, feature_buckets: List[int]
-) -> Tuple[Union[None, np.ndarray], int]:
-    if colsample < 1:
-        feature_num = len(feature_buckets)
-        choices = math.ceil(feature_num * colsample)
-        col_choices = np.sort(np.random.choice(feature_num, choices, replace=False))
-
-        buckets_count = 0
-        for f_idx, f_buckets_size in enumerate(feature_buckets):
-            if f_idx in col_choices:
-                buckets_count += f_buckets_size
-
-        return col_choices, buckets_count
-    else:
-        return None, sum(feature_buckets)

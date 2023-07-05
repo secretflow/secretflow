@@ -354,6 +354,11 @@ class SPURuntime:
             shares.append(self.runtime.get_var(name).decode("latin1"))
 
         import cloudpickle as pickle
+        from pathlib import Path
+
+        # create parent folders.
+        file = Path(path)
+        file.parent.mkdir(parents=True, exist_ok=True)
 
         with open(path, 'wb') as f:
             pickle.dump({'meta': meta, 'shares': shares}, f)
@@ -711,7 +716,6 @@ class SPURuntime:
         receiver: str,
         join_party: str,
         protocol='KKRT_PSI_2PC',
-        precheck_input=True,
         bucket_size=1 << 20,
         curve_type="CURVE_25519",
         ic_mode: bool = False,
@@ -728,7 +732,6 @@ class SPURuntime:
             receiver (str): Which party can get joined data, others will get None.
             join_party (str): party joined data
             protocol (str): PSI protocol, See spu.psi.PsiType.
-            precheck_input (bool): Whether to check input data before join.
             bucket_size (int): Specified the hash bucket size used in psi. Larger values consume more memory.
             curve_type (str): curve for ecdh psi
             ic_mode (bool): Whether to run psi in interconnection mode
@@ -751,7 +754,6 @@ class SPURuntime:
                 receiver,
                 join_party,
                 protocol,
-                precheck_input,
                 bucket_size,
                 curve_type,
                 ic_mode,
@@ -772,7 +774,6 @@ class SPURuntime:
         receiver: str,
         join_party: str,
         protocol='KKRT_PSI_2PC',
-        precheck_input=True,
         bucket_size=1 << 20,
         curve_type="CURVE_25519",
         ic_mode: bool = False,
@@ -795,7 +796,6 @@ class SPURuntime:
             receiver (str): Which party can get joined data. Others won't generate output file and `intersection_count` get `-1`
             join_party (str): party joined data
             protocol (str): PSI protocol.
-            precheck_input (bool): Whether to check input data before join.
             bucket_size (int): Specified the hash bucket size used in psi. Larger values consume more memory.
             curve_type (str): curve for ecdh psi
             ic_mode (bool): Whether to run psi in interconnection mode
@@ -840,17 +840,14 @@ class SPURuntime:
         del table_nodup
 
         # psi join case, need sort and broadcast set True
-        sort = True
-        broadcast_result = True
-
         config = psi.BucketPsiConfig(
             psi_type=psi.PsiType.Value(protocol),
-            broadcast_result=broadcast_result,
+            broadcast_result=True,
             receiver_rank=receiver_rank,
             input_params=psi.InputParams(
-                path=input_path1, select_fields=key, precheck=precheck_input
+                path=input_path1, select_fields=key, precheck=False
             ),
-            output_params=psi.OutputParams(path=output_psi, need_sort=sort),
+            output_params=psi.OutputParams(path=output_psi, need_sort=True),
             curve_type=curve_type,
             bucket_size=bucket_size,
         )
@@ -1793,7 +1790,6 @@ class SPU(Device):
         receiver: str,
         join_party: str,
         protocol='KKRT_PSI_2PC',
-        precheck_input=True,
         bucket_size=1 << 20,
         curve_type="CURVE_25519",
     ):
@@ -1805,7 +1801,6 @@ class SPU(Device):
             receiver (str): Which party can get joined data. Others won't generate output file and `intersection_count` get `-1`
             join_party (str): party can get joined data
             protocol (str): PSI protocol.
-            precheck_input (bool): Whether check input data before joining, for now, it will check if key duplicate.
             bucket_size (int): Specified the hash bucket size used in psi. Larger values consume more memory.
             curve_type (str): curve for ecdh psi
 
@@ -1821,7 +1816,6 @@ class SPU(Device):
             receiver,
             join_party,
             protocol,
-            precheck_input,
             bucket_size,
             curve_type,
         )
@@ -1834,7 +1828,6 @@ class SPU(Device):
         receiver: str,
         join_party: str,
         protocol='KKRT_PSI_2PC',
-        precheck_input=True,
         bucket_size=1 << 20,
         curve_type="CURVE_25519",
     ):
@@ -1866,7 +1859,6 @@ class SPU(Device):
             receiver,
             join_party,
             protocol,
-            precheck_input,
             bucket_size,
             curve_type,
         )
