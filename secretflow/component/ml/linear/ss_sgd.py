@@ -15,26 +15,26 @@
 import json
 import os
 
-import pandas as pd
-
 from secretflow.component.component import CompEvalError, Component, IoType
 from secretflow.component.data_utils import (
     DistDataType,
     extract_table_header,
+    gen_prediction_csv_meta,
     load_table,
     model_dumps,
     model_loads,
+    save_prediction_csv,
 )
 from secretflow.device.device.pyu import PYU
 from secretflow.device.device.spu import SPU, SPUObject
 from secretflow.device.driver import wait
 from secretflow.ml.linear import LinearModel, RegType, SSRegression
-from secretflow.protos.component.data_pb2 import DistData, IndividualTable, TableSchema
+from secretflow.protos.component.data_pb2 import DistData
 from secretflow.utils.sigmoid import SigType
 
 ss_sgd_train_comp = Component(
     "ss_sgd_train",
-    domain="ml.linear",
+    domain="ml.train",
     version="0.0.1",
     desc="""Train both linear and logistic regression
     linear models for vertical partitioning dataset with mini batch SGD training solver by using secret sharing.
@@ -58,6 +58,8 @@ ss_sgd_train_comp.float_attr(
     is_list=False,
     is_optional=True,
     default_value=0.1,
+    lower_bound=0,
+    lower_bound_inclusive=False,
 )
 ss_sgd_train_comp.int_attr(
     name="batch_size",
@@ -65,6 +67,8 @@ ss_sgd_train_comp.int_attr(
     is_list=False,
     is_optional=True,
     default_value=1024,
+    lower_bound=0,
+    lower_bound_inclusive=False,
 )
 ss_sgd_train_comp.str_attr(
     name="sig_type",
@@ -96,6 +100,8 @@ ss_sgd_train_comp.float_attr(
     is_list=False,
     is_optional=True,
     default_value=0.5,
+    lower_bound=0,
+    lower_bound_inclusive=True,
 )
 ss_sgd_train_comp.float_attr(
     name="eps",
@@ -105,6 +111,8 @@ ss_sgd_train_comp.float_attr(
     is_list=False,
     is_optional=True,
     default_value=0.001,
+    lower_bound=0,
+    lower_bound_inclusive=False,
 )
 ss_sgd_train_comp.io(
     io_type=IoType.INPUT,
@@ -191,7 +199,7 @@ def ss_sgd_train_eval_fn(
 
 ss_sgd_predict_comp = Component(
     "ss_sgd_predict",
-    domain="ml.linear",
+    domain="ml.predict",
     version="0.0.1",
     desc="Predict using the SS-SGD model.",
 )
@@ -201,6 +209,8 @@ ss_sgd_predict_comp.int_attr(
     is_list=False,
     is_optional=True,
     default_value=1024,
+    lower_bound=0,
+    lower_bound_inclusive=False,
 )
 ss_sgd_predict_comp.str_attr(
     name="receiver",
@@ -230,7 +240,7 @@ ss_sgd_predict_comp.bool_attr(
     name="save_label",
     desc=(
         "Whether or not to save real label columns into output pred file. "
-        "If ture, input feature_dataset must contain label columns and receiver party must be label owner."
+        "If true, input feature_dataset must contain label columns and receiver party must be label owner."
     ),
     is_list=False,
     is_optional=True,
@@ -326,56 +336,57 @@ def ss_sgd_predict_eval_fn(
         y_path = os.path.join(ctx.local_fs_wd, pred)
 
         if save_ids:
-            ids = load_table(ctx, feature_dataset, load_ids=True)
-            assert pyu in ids.partitions
-            ids_name = extract_table_header(feature_dataset, load_ids=True)
-            assert receiver in ids_name
-            ids = ids.partitions[pyu].data
-            ids_name = list(ids_name[receiver].keys())
+            id_df = load_table(ctx, feature_dataset, load_ids=True)
+            assert pyu in id_df.partitions
+            id_header_map = extract_table_header(feature_dataset, load_ids=True)
+            assert receiver in id_header_map
+            id_header = list(id_header_map[receiver].keys())
+            id_data = id_df.partitions[pyu].data
         else:
-            ids = None
-            ids_name = None
+            id_header_map = None
+            id_header = None
+            id_data = None
 
         if save_label:
-            label = load_table(ctx, feature_dataset, load_labels=True)
-            assert pyu in label.partitions
-            label_name = extract_table_header(feature_dataset, load_labels=True)
-            assert receiver in label_name
-            label = label.partitions[pyu].data
-            label_name = list(label_name[receiver].keys())
+            label_df = load_table(ctx, feature_dataset, load_labels=True)
+            assert pyu in label_df.partitions
+            label_header_map = extract_table_header(feature_dataset, load_labels=True)
+            assert receiver in label_header_map
+            label_header = list(label_header_map[receiver].keys())
+            label_data = label_df.partitions[pyu].data
         else:
-            label = None
-            label_name = None
+            label_header_map = None
+            label_header = None
+            label_data = None
 
-        def save_csv(x, label, ids, path):
-            x = pd.DataFrame(x, columns=[pred_name])
-
-            if label is not None:
-                label = pd.DataFrame(label, columns=label_name)
-                x = pd.concat([x, label], axis=1)
-            if ids is not None:
-                ids = pd.DataFrame(ids, columns=ids_name)
-                x = pd.concat([x, ids], axis=1)
-
-            x.to_csv(path, index=False)
-
-        wait(pyu(save_csv)(pyu_y.partitions[pyu], label, ids, y_path))
+        wait(
+            pyu(save_prediction_csv)(
+                pyu_y.partitions[pyu],
+                pred_name,
+                y_path,
+                label_data,
+                label_header,
+                id_data,
+                id_header,
+            )
+        )
 
     y_db = DistData(
-        name="train",
+        name=pred_name,
         type=str(DistDataType.INDIVIDUAL_TABLE),
         data_refs=[DistData.DataRef(uri=pred, party=receiver, format="csv")],
     )
 
-    meta = IndividualTable(
-        schema=TableSchema(
-            ids=ids_name if ids_name is not None else [],
-            types=["f32"],
-            features=[pred_name],
-            labels=label_name if label_name is not None else [],
-        ),
+    meta = gen_prediction_csv_meta(
+        id_header=id_header_map,
+        label_header=label_header_map,
+        party=receiver,
+        pred_name=pred_name,
         num_lines=x.shape[0],
+        id_keys=id_header,
+        label_keys=label_header,
     )
+
     y_db.meta.Pack(meta)
 
     return {"pred": y_db}

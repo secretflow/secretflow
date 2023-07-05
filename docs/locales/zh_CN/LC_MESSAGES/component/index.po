@@ -1,0 +1,113 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2022 Ant Group Co., Ltd.
+# This file is distributed under the same license as the SecretFlow package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2023.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: SecretFlow \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-07-02 23:05+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.12.1\n"
+
+#: ../../component/index.rst:40
+msgid "References"
+msgstr ""
+"参考资料"
+
+#: ../../component/index.rst:47
+msgid "Documentation"
+msgstr ""
+"文档"
+
+#: ../../component/index.rst:4
+msgid "Component"
+msgstr ""
+"组件"
+
+#: ../../component/index.rst:6
+msgid ""
+"Both Component Specification and SecretFlow Component List are subject to"
+" modify at this moment."
+msgstr ""
+"当前组件规范和 SecretFlow 组件列表均有可能发生变化。"
+
+#: ../../component/index.rst:8
+msgid ""
+"Component Specification is a protocol brought by SecretFlow Ecosystem. It"
+" mainly includes Data, Component and Node Evaluation protocol. Logically,"
+" if you wrap any program with Component Specification, it will be "
+"recognized by Kuscia(Deployment and scheduling of SecretFlow stack) and "
+"SecretFlow Platform [#f1]_ (User Interface and Control Panel) . In the "
+"one word, for system developers, if you wrap your application with "
+"Component Specification, you could utilize other open-source SecretFlow "
+"projects with little effort."
+msgstr ""
+"组件规范是 SecretFlow 生态系统提出的一种协议。它主要包括数据、组件"
+"和节点执行协议。从逻辑上讲，如果您使用组件规范包装任何程序，它将被"
+" Kuscia(SecretFlow 技术栈的部署和调度系统) 和 SecretFlow 平台"
+" [#f1]_ (用户界面和控制面板) 认可。简而言之，对于系统开发人员，如果您使"
+"用组件规范包装应用程序，您可以轻松地利用其他开源 SecretFlow 项目。"
+
+#: ../../component/index.rst:13
+msgid ""
+"Based on Component Specification, we wrapped some commonly used "
+"SecretFlow applications. The SecretFlow Component List is not final, we "
+"are updating the list promptly. Now, you could run SecretFlow "
+"applications with component API or CLI apart from writing Python "
+"programs."
+msgstr ""
+"基于组件规范，我们将一些常用的 SecretFlow 应用程序包装起来。SecretFlow"
+" 组件列表不是最终版本，我们正在及时更新列表。现在，您可以使用组件 API"
+" 或 CLI 运行 SecretFlow 应用程序，而不必编写 Python 程序。"
+
+#: ../../component/index.rst:16
+msgid ""
+"Besides SecretFlow, we are going to wrap other applications including "
+"SCQL and TECC with Component Specification."
+msgstr ""
+"除了 SecretFlow，我们还将使用组件规范包装其他应用，包括 SCQL 和 TECC。"
+
+#: ../../component/index.rst:18
+msgid ""
+"For developers who are not familiar with :doc:`/component/comp_spec`, "
+"they are encouraged to check :doc:`/component/comp_spec_design` first."
+msgstr ""
+"对于不熟悉 :doc:`/component/comp_spec` 的开发人员，建议首先查看 :doc:`/component/comp_spec_design` 。"
+
+#: ../../component/index.rst:20
+msgid ""
+"After that, please check :doc:`/component/comp_list` and corresponding "
+"guides at :doc:`/component/comp_guide`."
+msgstr ""
+"之后，请查看 :doc:`/component/comp_list` 以及 :doc:`/component/comp_guide` 中的相关指南。"
+
+#: ../../component/index.rst:24
+msgid "Footnotes"
+msgstr "脚注"
+
+#: ../../component/index.rst:25
+msgid "Product name is undecided."
+msgstr "产品名称未定。"
+
+#: ../../component/index.rst:30
+msgid "Announcement"
+msgstr "公告"
+
+#: ../../component/index.rst:33
+msgid "July, 2023"
+msgstr ""
+
+#: ../../component/index.rst:35
+msgid ""
+"From SecretFlow 1.0.0, we officially launch the first version of "
+"Component Specification and SecretFlow Component List based on it."
+msgstr ""
+"从 SecretFlow 1.0.0 开始，我们正式推出基于组件规范的第一个版本和相"
+"应的 SecretFlow 组件列表。"

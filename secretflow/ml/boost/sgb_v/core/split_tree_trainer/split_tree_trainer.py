@@ -43,7 +43,7 @@ class SplitTreeTrainer:
         Set up global context.
         """
         np.random.seed(seed)
-        x = x if isinstance(x, np.ndarray) else np.array(x)
+        x = np.array(x, order='F')
         self.splitter.build_maps(x, buckets)
         return self.splitter.get_order_map()
 

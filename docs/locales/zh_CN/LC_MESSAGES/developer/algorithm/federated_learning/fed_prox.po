@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-05-23 17:31+0800\n"
+"POT-Creation-Date: 2023-07-03 15:40+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -81,8 +81,8 @@ msgstr "在目标函数中增加 Proximal Term"
 
 #: ../../developer/algorithm/federated_learning/fed_prox.md:14
 msgid ""
-"\n"
-"\\mathop{max}\\limits_{w} h_k(w;w^t)=F_k(w)+\\frac{\\mu}{2}||w-w^t||^2\n"
+"$$ \\mathop{max}\\limits_{w} h_k(w;w^t)=F_k(w)+\\frac{\\mu}{2}||w-w^t||^2"
+" $$"
 msgstr ""
 
 #: ../../developer/algorithm/federated_learning/fed_prox.md:18
@@ -165,11 +165,11 @@ msgstr "参数条件"
 
 #: ../../developer/algorithm/federated_learning/fed_prox.md:43
 msgid ""
-"\n"
+"$$ "
 "\\rho^t=(\\frac{1}{\\mu}-\\frac{\\gamma^tB}{\\mu}-\\frac{B(1+\\gamma^t\\sqrt(2))}{"
 " \\overline\\mu\\sqrt(K)}-\\frac{LB(1+\\gamma^t)}{\\overline\\mu\\mu} - "
 "\\frac{L(1+\\gamma^t)^2B^2} "
-"{2\\mu^2}-\\frac{LB^2(1+\\gamma^t)^2}{\\mu^2K}(2\\sqrt{2K}+2))\n"
+"{2\\mu^2}-\\frac{LB^2(1+\\gamma^t)^2}{\\mu^2K}(2\\sqrt{2K}+2)) $$"
 msgstr ""
 
 #: ../../developer/algorithm/federated_learning/fed_prox.md:47
@@ -261,4 +261,3 @@ msgid ""
 "[Federated Optimization in Heterogeneous "
 "Networks](https://arxiv.org/pdf/1812.06127.pdf)"
 msgstr ""
-

@@ -26,15 +26,15 @@ from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.device.device.pyu import PYU, PYUObject
 from secretflow.device.device.spu import SPU, SPUObject
 from secretflow.device.driver import DeviceObject, wait
-from secretflow.protos.component.comp_pb2 import Attribute, AttrType, IoDef
+from secretflow.protos.component.comp_pb2 import IoDef
 from secretflow.protos.component.data_pb2 import (
     DeviceObjectCollection,
     DistData,
     IndividualTable,
     SystemInfo,
+    TableSchema,
     VerticalTable,
 )
-from secretflow.protos.component.report_pb2 import Descriptions, Div, Report, Tab, Table
 
 
 class MetaEnum(enum.EnumMeta):
@@ -87,6 +87,8 @@ SUPPORTED_VTABLE_DATA_TYPE = {
     "f64": np.float64,
     "str": object,
 }
+
+REVERSE_DATA_TYPE_MAP = dict((v, k) for k, v in SUPPORTED_VTABLE_DATA_TYPE.items())
 
 
 def check_io_def(io_def: IoDef):
@@ -182,7 +184,7 @@ def extract_table_header(
     for slice, dr in zip(schemas, db.data_refs):
         smeta = dict()
         if load_features:
-            for t, h in zip(slice.types, slice.features):
+            for t, h in zip(slice.feature_types, slice.features):
                 if feature_selects is not None:
                     if h not in feature_selects:
                         # feature not selected, skip
@@ -199,21 +201,21 @@ def extract_table_header(
                 assert t in SUPPORTED_VTABLE_DATA_TYPE
                 smeta[h] = SUPPORTED_VTABLE_DATA_TYPE[t]
         if load_labels:
-            for label in slice.labels:
+            for t, h in zip(slice.label_types, slice.labels):
                 if col_selects is not None:
-                    if label not in col_selects:
+                    if h not in col_selects:
                         # label not selected, skip
                         continue
-                    col_selects.remove(label)
-                smeta[label] = SUPPORTED_VTABLE_DATA_TYPE["f32"]
+                    col_selects.remove(h)
+                smeta[h] = SUPPORTED_VTABLE_DATA_TYPE[t]
         if load_ids:
-            for id in slice.ids:
+            for t, h in zip(slice.id_types, slice.ids):
                 if col_selects is not None:
                     if id not in col_selects:
                         # id not selected, skip
                         continue
-                    col_selects.remove(id)
-                smeta[id] = SUPPORTED_VTABLE_DATA_TYPE["str"]
+                    col_selects.remove(h)
+                smeta[h] = SUPPORTED_VTABLE_DATA_TYPE[t]
 
         if len(smeta):
             ret[dr.party] = smeta
@@ -274,20 +276,49 @@ def load_table(
     return vdf
 
 
+@dataclass
+class VerticalTableWrapper:
+    num_lines: int
+    schema_map: Dict[str, TableSchema]
+
+    def to_vertical_table(self, order: List[str] = None):
+        if order is None:
+            schemas = list(self.schema_map.values())
+        else:
+            schemas = [self.schema_map[k] for k in order]
+
+        return VerticalTable(schemas=schemas, num_lines=self.num_lines)
+
+    @classmethod
+    def from_dist_data(cls, data: DistData, num_lines: int = None):
+        meta = VerticalTable()
+        assert data.meta.Unpack(meta)
+
+        return cls(
+            num_lines=meta.num_lines if num_lines is None else num_lines,
+            schema_map={
+                data_ref.party: schema
+                for data_ref, schema in zip(list(data.data_refs), list(meta.schemas))
+            },
+        )
+
+
 def dump_vertical_table(
     ctx,
     v_data: VDataFrame,
     uri: str,
-    meta: VerticalTable,
+    meta: VerticalTableWrapper,
     sys_info: SystemInfo,
 ) -> DistData:
     assert isinstance(v_data, VDataFrame)
+
     with ctx.tracer.trace_io():
-        output_uri = {p: f"{uri}_{p.party}" for p in v_data.partitions}
+        output_uri = {p: uri for p in v_data.partitions}
         output_path = {
             p: os.path.join(ctx.local_fs_wd, output_uri[p]) for p in output_uri
         }
         wait(v_data.to_csv(output_path, index=False))
+        order = [p.party for p in v_data.partitions]
 
     ret = DistData(
         name=uri,
@@ -298,7 +329,7 @@ def dump_vertical_table(
             for p in output_uri
         ],
     )
-    ret.meta.Pack(meta)
+    ret.meta.Pack(meta.to_vertical_table(order))
 
     return ret
 
@@ -309,7 +340,7 @@ def model_dumps(
     major_version: int,
     minor_version: int,
     objs: List[DeviceObject],
-    public_info: str,
+    public_info: Any,
     storage_root: str,
     dist_data_uri: str,
     sys_info: SystemInfo,
@@ -320,11 +351,16 @@ def model_dumps(
     for i, obj in enumerate(objs):
         if isinstance(obj, PYUObject):
             device: PYU = obj.device
-            uri = f"{dist_data_uri}_{i}"
+            uri = f"{dist_data_uri}/{i}"
             path = os.path.join(storage_root, uri)
 
             def dumps(path: str, obj: Any):
                 import pickle
+                from pathlib import Path
+
+                # create parent folders.
+                file = Path(path)
+                file.parent.mkdir(parents=True, exist_ok=True)
 
                 with open(path, "wb") as f:
                     f.write(pickle.dumps(obj))
@@ -339,7 +375,7 @@ def model_dumps(
             objs_party.append(device.party)
         elif isinstance(obj, SPUObject):
             device: SPU = obj.device
-            uris = [f"{dist_data_uri}_{i}_{party}" for party in device.actors.keys()]
+            uris = [f"{dist_data_uri}/{i}" for party in device.actors.keys()]
             spu_paths = [os.path.join(storage_root, uri) for uri in uris]
 
             wait(device.dump(obj, spu_paths))
@@ -445,89 +481,49 @@ def model_loads(
     return objs, model_info["public_info"]
 
 
-def gen_table_statistic_report(df: pd.DataFrame) -> Report:
-    headers, rows = [], []
-    headers.append(
-        Table.HeaderItem(name="table_column_name", desc="", type=AttrType.AT_STRING)
-    )
-    rows.append(
-        Table.Row(
-            name="table_column_name",
-            desc="",
-            items=[Attribute(s=i) for i in df.index],
+def save_prediction_csv(
+    pred_df: pd.DataFrame,
+    pred_key: str,
+    path: str,
+    label_df: pd.DataFrame = None,
+    label_keys: List[str] = None,
+    id_df: pd.DataFrame = None,
+    id_keys: List[str] = None,
+) -> None:
+    x = pd.DataFrame(pred_df, columns=[pred_key])
+
+    if label_df is not None:
+        label = pd.DataFrame(label_df, columns=label_keys)
+        x = pd.concat([x, label], axis=1)
+    if id_df is not None:
+        id = pd.DataFrame(id_df, columns=id_keys)
+        x = pd.concat([x, id], axis=1)
+
+    x.to_csv(path, index=False)
+
+
+def gen_prediction_csv_meta(
+    id_header: Dict[str, Dict[str, np.dtype]],
+    label_header: Dict[str, Dict[str, np.dtype]],
+    party: str,
+    pred_name: str,
+    num_lines: int = None,
+    id_keys: List[str] = None,
+    label_keys: List[str] = None,
+) -> IndividualTable:
+    return IndividualTable(
+        schema=TableSchema(
+            ids=id_keys if id_keys is not None else [],
+            id_types=[REVERSE_DATA_TYPE_MAP[id_header[party][k]] for k in id_keys]
+            if id_keys is not None
+            else [],
+            labels=(label_keys if label_keys is not None else []) + [pred_name],
+            label_types=(
+                [REVERSE_DATA_TYPE_MAP[label_header[party][k]] for k in label_keys]
+                if label_keys is not None
+                else []
+            )
+            + ["f32"],
         ),
+        num_lines=num_lines if num_lines is not None else -1,
     )
-    for col in df.columns:
-        headers.append(Table.HeaderItem(name=col, desc="", type=AttrType.AT_STRING))
-        rows.append(
-            Table.Row(name=col, desc="", items=[Attribute(s=str(i)) for i in df[col]])
-        )
-
-    r_table = Table(headers=headers, rows=rows)
-
-    return Report(
-        name="table statistics",
-        desc="",
-        tabs=[
-            Tab(
-                divs=[
-                    Div(
-                        children=[
-                            Div.Child(
-                                type="table",
-                                table=r_table,
-                            )
-                        ],
-                    )
-                ],
-            )
-        ],
-    )
-
-
-def dump_table_statistics(name, sys_info, df: pd.DataFrame) -> DistData:
-    report_mate = gen_table_statistic_report(df)
-    res = DistData(
-        name=name,
-        sys_info=sys_info,
-        type=str(DistDataType.REPORT),
-        data_refs=[],
-    )
-    res.meta.Pack(report_mate)
-    return res
-
-
-def dump_pva_eval_result(name, sys_info, value: float) -> DistData:
-    r_desc = Descriptions(
-        items=[
-            Descriptions.Item(
-                name="pva", type=AttrType.AT_FLOAT, value=Attribute(f=value)
-            )
-        ]
-    )
-
-    report_mate = Report(
-        name="report",
-        desc="pva",
-        tabs=[
-            Tab(
-                divs=[
-                    Div(
-                        children=[
-                            Div.Child(
-                                type="descriptions",
-                                descriptions=r_desc,
-                            )
-                        ],
-                    )
-                ],
-            )
-        ],
-    )
-    report_dd = DistData(
-        name=name,
-        type=str(DistDataType.REPORT),
-        sys_info=sys_info,
-    )
-    report_dd.meta.Pack(report_mate)
-    return report_dd

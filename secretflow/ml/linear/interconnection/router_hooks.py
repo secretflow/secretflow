@@ -50,7 +50,7 @@ class WeightArbiter:
         return list(unflatten())
 
 
-# 隐私路由水平 LR 方案实现(WIP)
+# 华控隐私路由水平 LR 方案实现
 class RouterLrAggrHook:
     def __init__(self, device):
         self.arbiter = device

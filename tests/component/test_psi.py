@@ -3,7 +3,7 @@ import os
 import pandas as pd
 
 from secretflow.component.data_utils import DistDataType
-from secretflow.component.psi.two_party_balanced import two_party_balanced_psi_comp
+from secretflow.component.preprocessing.psi import psi_comp
 from secretflow.protos.component.comp_pb2 import Attribute
 from secretflow.protos.component.data_pb2 import (
     DistData,
@@ -76,24 +76,20 @@ def test_psi(comp_prod_sf_cluster_config):
     )
 
     param = NodeEvalParam(
-        domain="psi",
-        name="two_party_balanced_psi",
+        domain="preprocessing",
+        name="psi",
         version="0.0.1",
         attr_paths=[
             "protocol",
-            "receiver",
-            "precheck_input",
             "sort",
             "broadcast_result",
             "bucket_size",
-            "curve_type",
+            "ecdh_curve_type",
             "input/receiver_input/key",
             "input/sender_input/key",
         ],
         attrs=[
             Attribute(s="ECDH_PSI_2PC"),
-            Attribute(s="alice"),
-            Attribute(b=True),
             Attribute(b=True),
             Attribute(b=True),
             Attribute(i64=1048576),
@@ -123,19 +119,29 @@ def test_psi(comp_prod_sf_cluster_config):
     )
     param.inputs[0].meta.Pack(
         IndividualTable(
-            schema=TableSchema(types=["str"] * 3, features=["id1", "item", "feature1"]),
+            schema=TableSchema(
+                feature_types=["str"] * 3,
+                features=["item", "feature1"],
+                id_types=["str"],
+                ids=["id1"],
+            ),
             num_lines=-1,
         ),
     )
 
     param.inputs[1].meta.Pack(
         IndividualTable(
-            schema=TableSchema(types=["str"] * 2, features=["id2", "feature2"]),
+            schema=TableSchema(
+                feature_types=["str"] * 2,
+                features=["feature2"],
+                id_types=["str"],
+                ids=["id2"],
+            ),
             num_lines=-1,
         ),
     )
 
-    res = two_party_balanced_psi_comp.eval(param, comp_prod_sf_cluster_config)
+    res = psi_comp.eval(param, comp_prod_sf_cluster_config)
 
     assert len(res.outputs) == 1
 
@@ -160,22 +166,20 @@ def test_psi(comp_prod_sf_cluster_config):
 
     # keys are not specified.
     param_2 = NodeEvalParam(
-        domain="psi",
-        name="two_party_balanced_psi",
+        domain="preprocessing",
+        name="psi",
         version="0.0.1",
         attr_paths=[
             "protocol",
             "receiver",
-            "precheck_input",
             "sort",
             "broadcast_result",
             "bucket_size",
-            "curve_type",
+            "ecdh_curve_type",
         ],
         attrs=[
             Attribute(s="ECDH_PSI_2PC"),
             Attribute(s="alice"),
-            Attribute(b=True),
             Attribute(b=True),
             Attribute(b=True),
             Attribute(i64=1048576),
@@ -204,7 +208,10 @@ def test_psi(comp_prod_sf_cluster_config):
     param_2.inputs[0].meta.Pack(
         IndividualTable(
             schema=TableSchema(
-                types=["str"] * 3, features=["item", "feature1"], ids=["id1"]
+                feature_types=["str"] * 3,
+                features=["item", "feature1"],
+                id_types=["str"],
+                ids=["id1"],
             ),
             num_lines=-1,
         ),
@@ -212,12 +219,17 @@ def test_psi(comp_prod_sf_cluster_config):
 
     param_2.inputs[1].meta.Pack(
         IndividualTable(
-            schema=TableSchema(types=["str"] * 2, features=["feature2"], ids=["id2"]),
+            schema=TableSchema(
+                feature_types=["str"] * 2,
+                features=["feature2"],
+                id_types=["str"],
+                ids=["id2"],
+            ),
             num_lines=-1,
         ),
     )
 
-    res_2 = two_party_balanced_psi_comp.eval(param_2, comp_prod_sf_cluster_config)
+    res_2 = psi_comp.eval(param_2, comp_prod_sf_cluster_config)
 
     assert len(res_2.outputs) == 1
 

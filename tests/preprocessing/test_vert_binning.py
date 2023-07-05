@@ -52,7 +52,10 @@ def prod_env_and_data(sf_production_setup_devices):
         dataset('linear'),
         usecols=[f'x{i}' for i in range(1, 11)] + ['y'],
     )
-
+    row_num = normal_data.shape[0]
+    np.random.seed(0)
+    normal_data['x1'] = np.random.randint(0, 2, (row_num,))
+    normal_data['x2'] = np.random.randint(0, 5, (row_num,))
     v_float_data = VDataFrame(
         {
             sf_production_setup_devices.alice: Partition(

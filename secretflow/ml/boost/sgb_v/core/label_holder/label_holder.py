@@ -55,7 +55,7 @@ class LabelHolder:
         self.leaf_node_indices = []
 
     def set_y(self, y: np.ndarray):
-        self.y = y.reshape((y.shape[0], 1))
+        self.y = y.reshape((y.shape[0], 1), order='F')
 
     def reset(self):
         self.sub_choices = None

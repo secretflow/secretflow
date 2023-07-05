@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-05-23 18:10+0800\n"
+"POT-Creation-Date: 2023-07-03 15:40+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -160,7 +160,7 @@ msgid "Caching"
 msgstr "Caching"
 
 #: ../../developer/algorithm/federated_learning/fed_stc.md:30
-msgid "server 保留了最近的 historical updates: "
+msgid "The server keeps the most recent historical updates:"
 msgstr ""
 
 #: ../../developer/algorithm/federated_learning/fed_stc.md:32
@@ -194,9 +194,7 @@ msgid "Binarization (quant -> ternary tensor)"
 msgstr "Binarization (quant -> ternary tensor)"
 
 #: ../../developer/algorithm/federated_learning/fed_stc.md:42
-msgid ""
-"\n"
-"e' \\in {-\\mu,0,\\mu}, \\mu = mean(abs(e))\n"
+msgid "$$ e' \\in {-\\mu,0,\\mu}, \\mu = mean(abs(e)) $$"
 msgstr ""
 
 #: ../../developer/algorithm/federated_learning/fed_stc.md:46

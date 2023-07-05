@@ -14,6 +14,8 @@
 
 import abc
 
+from secretflow.ml.boost.sgb_v.factory.sgb_actor import SGBActor
+
 from ....core.distributed_tree.distributed_tree import DistributedTree
 from ..component import Composite, Devices
 
@@ -27,6 +29,9 @@ class TreeTrainer(Composite):
 
     def set_devices(self, devices: Devices):
         super().set_devices(devices)
+
+    def set_actors(self, actors: SGBActor):
+        return super().set_actors(actors)
 
     @abc.abstractmethod
     def train_tree(

@@ -16,18 +16,18 @@
 from secretflow.component.component import Component, IoType
 from secretflow.component.data_utils import (
     DistDataType,
+    VerticalTableWrapper,
     dump_vertical_table,
     load_table,
 )
 from secretflow.data.split import train_test_split as train_test_split_fn
-from secretflow.protos.component.data_pb2 import VerticalTable
 
 train_test_split_comp = Component(
     "train_test_split",
     domain="preprocessing",
     version="0.0.1",
     desc="""Split datasets into random train and test subsets.
-    Plese check: https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html
+    Please check: https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html
     """,
 )
 
@@ -61,7 +61,9 @@ train_test_split_comp.int_attr(
     desc="Specify the random seed of the shuffling.",
     is_list=False,
     is_optional=True,
-    default_value=1234,
+    default_value=1024,
+    lower_bound=0,
+    lower_bound_inclusive=False,
 )
 train_test_split_comp.bool_attr(
     name="shuffle",
@@ -113,13 +115,20 @@ def train_test_split_eval_fn(
             shuffle=shuffle,
         )
 
-    in_meta = VerticalTable()
-    input_data.meta.Unpack(in_meta)
+    train_db = dump_vertical_table(
+        ctx,
+        train_df,
+        train,
+        VerticalTableWrapper.from_dist_data(input_data, train_df.shape[0]),
+        input_data.sys_info,
+    )
 
-    in_meta.num_lines = train_df.shape[0]
-    train_db = dump_vertical_table(ctx, train_df, train, in_meta, input_data.sys_info)
-
-    in_meta.num_lines = test_df.shape[0]
-    test_db = dump_vertical_table(ctx, test_df, test, in_meta, input_data.sys_info)
+    test_db = dump_vertical_table(
+        ctx,
+        test_df,
+        test,
+        VerticalTableWrapper.from_dist_data(input_data, test_df.shape[0]),
+        input_data.sys_info,
+    )
 
     return {"train": train_db, "test": test_db}
