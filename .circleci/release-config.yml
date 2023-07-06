@@ -122,6 +122,7 @@ jobs:
             # Install miniconda
             wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
             bash Miniconda3-latest-Linux-x86_64.sh -b
+
             # get version first
             echo "print(__version__)" >> secretflow/version.py
             VERSION=$(~/miniconda3/bin/python secretflow/version.py)
@@ -134,10 +135,14 @@ jobs:
             # restore changed file
             git checkout secretflow/version.py
 
+            # login docker
+            docker login -u secretflow -p ${DOCKER_DEPLOY_TOKEN}
+
             # Build image
             cd docker/release
             echo -e "Building ${IMAGE_TAG}" 
             docker build . -f anolis.Dockerfile -t ${IMAGE_TAG} --build-arg sf_version=${VERSION}
+
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
