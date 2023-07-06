@@ -136,7 +136,7 @@ jobs:
 
             # Build image
             cd docker/release
-            sh ./build.sh -l -v ${VERSION}
+            bash ./build.sh -l -v ${VERSION}
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
