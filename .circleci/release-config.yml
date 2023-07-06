@@ -127,11 +127,6 @@ jobs:
             echo "print(__version__)" >> secretflow/version.py
             VERSION=$(~/miniconda3/bin/python secretflow/version.py)
 
-            IMAGE_TAG=secretflow/secretflow-anolis8:${VERSION}
-            LATEST_TAG=secretflow/secretflow-anolis8:latest
-            IMAGE_LITE_TAG=secretflow/secretflow-lite-anolis8:${VERSION}
-            LATEST_LITE_TAG=secretflow/secretflow-lite-anolis8:latest
-
             # restore changed file
             git checkout secretflow/version.py
 
@@ -140,20 +135,7 @@ jobs:
 
             # Build image
             cd docker/release
-            echo -e "Building ${IMAGE_TAG}" 
-            docker build . -f anolis.Dockerfile -t ${IMAGE_TAG} --build-arg sf_version=${VERSION}
-
-            echo -e "Building ${IMAGE_LITE_TAG}" 
-            docker build . -f anolis-lite.Dockerfile -t ${IMAGE_LITE_TAG} --build-arg sf_version=${VERSION}
-
-            docker tag ${IMAGE_TAG} ${LATEST_TAG}
-            docker tag ${IMAGE_LITE_TAG} ${LATEST_LITE_TAG}
-            
-            # Push image
-            docker push ${IMAGE_TAG}
-            docker push ${IMAGE_LITE_TAG}
-            docker push ${LATEST_TAG}
-            docker push ${LATEST_LITE_TAG}
+            sh ./build.sh -l -v ${VERSION}
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
