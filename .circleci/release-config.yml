@@ -135,8 +135,9 @@ jobs:
             git checkout secretflow/version.py
 
             # Build image
+            cd docker/release
             echo -e "Building ${IMAGE_TAG}" 
-            docker build . -f docker/release/anolis.Dockerfile -t ${IMAGE_TAG} --build-arg sf_version=${VERSION}
+            docker build . -f anolis.Dockerfile -t ${IMAGE_TAG} --build-arg sf_version=${VERSION}
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
