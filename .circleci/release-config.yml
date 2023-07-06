@@ -119,9 +119,12 @@ jobs:
       - run:
           name: Build Docker image
           command: |
+            # Install miniconda
+            wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+            bash Miniconda3-latest-Linux-x86_64.sh -b
             # get version first
             echo "print(__version__)" >> secretflow/version.py
-            VERSION=$(python secretflow/version.py)
+            VERSION=$(~/miniconda3/bin/python secretflow/version.py)
 
             IMAGE_TAG=secretflow/secretflow-anolis8:${VERSION}
             LATEST_TAG=secretflow/secretflow-anolis8:latest
