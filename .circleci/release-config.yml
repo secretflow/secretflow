@@ -111,9 +111,8 @@ jobs:
             python3 -m pip install twine
             python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
   docker_image_publish:
-    # Use `docker:stable` as the Docker container to run this job in
     docker:
-      - image: docker:stable
+      - image: cimg/deploy:2023.06.1
     steps:
       - checkout
       - setup_remote_docker
