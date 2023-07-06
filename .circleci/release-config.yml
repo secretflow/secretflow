@@ -110,6 +110,33 @@ jobs:
             ls dist/*.whl
             python3 -m pip install twine
             python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
+  docker_image_publish:
+    docker:
+      - image: cimg/deploy:2023.06.1
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build Docker image
+          command: |
+            # Install miniconda
+            wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+            bash Miniconda3-latest-Linux-x86_64.sh -b
+
+            # get version first
+            echo "print(__version__)" >> secretflow/version.py
+            VERSION=$(~/miniconda3/bin/python secretflow/version.py)
+
+            # restore changed file
+            git checkout secretflow/version.py
+
+            # login docker
+            docker login -u secretflow -p ${DOCKER_DEPLOY_TOKEN}
+
+            # Build image
+            cd docker/release
+            bash ./build.sh -l -v ${VERSION}
+
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
@@ -129,3 +156,6 @@ workflows:
           matrix:
             parameters:
               python_ver: ["3.8"]
+      - docker_image_publish:
+          requires:
+            - linux_publish
