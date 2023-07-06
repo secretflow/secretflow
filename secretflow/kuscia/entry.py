@@ -20,7 +20,8 @@ from typing import List
 import click
 from google.protobuf import json_format
 from google.protobuf.json_format import MessageToJson
-from kuscia.proto.api.v1alpha1.datamesh.domaindata_pb2 import DataColumn, DomainData
+from kuscia.proto.api.v1alpha1.common_pb2 import DataColumn
+from kuscia.proto.api.v1alpha1.datamesh.domaindata_pb2 import DomainData
 
 from secretflow.component.entry import comp_eval
 from secretflow.kuscia.datamesh import (
