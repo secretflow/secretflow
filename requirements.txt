@@ -27,7 +27,7 @@ secretflow-rayfed==0.1.1a3 # FEATURE=[lite]
 # For security reason. This is introduced by TensorFlow.
 setuptools>=65.5.1
 sparse>=0.14.0
-spu==0.4.1b0  # FEATURE=[lite]
+spu==0.4.1b1  # FEATURE=[lite]
 sf-heu==0.4.4b0  # FEATURE=[lite]
 tensorflow-macos==2.11.0; platform_machine == "arm64" and platform_system == "Darwin"
 tensorflow==2.11.1; platform_machine != "arm64"
