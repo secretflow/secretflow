@@ -3,154 +3,175 @@
 # This file is distributed under the same license as the SecretFlow package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2023.
 #
+#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-06-05 16:25+0800\n"
+"POT-Creation-Date: 2023-07-05 19:52+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: zh_CN\n"
+"Language-Team: zh_CN <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.12.1\n"
 
 #: ../../tutorial/CustomDataLoaderOnSL.ipynb:9
-msgid "在SecretFlow中使用DataBuilder进行SLModel学习"
-msgstr ""
+msgid "Customize DataBuilder on SLModel in SecretFlow"
+msgstr "在SecretFlow中使用DataBuilder进行SLModel学习"
 
 #: ../../tutorial/CustomDataLoaderOnSL.ipynb:20
 msgid ""
-"The following codes are demos only. It’s **NOT for production** due to "
+"The following codes are demos only. It's **NOT for production** due to "
 "system security concerns, please **DO NOT** use it directly in "
 "production."
-msgstr ""
+msgstr "下面的代码只是演示。由于系统安全问题,请不要直接在生产中使用它。"
 
 #: ../../tutorial/CustomDataLoaderOnSL.ipynb:31
-msgid "隐语在SLModel中提供了联邦学习在垂直场景的支持，本文将以DeepFM推荐场景为例介绍下，如何在SLModel中使用自定义DataBuilder"
-msgstr ""
-
-#: ../../tutorial/CustomDataLoaderOnSL.ipynb:32
-msgid "这篇文档的主要目标是借助DeepFM训练来介绍如何在SLModel中使用自定义DataBuilder"
-msgstr ""
+msgid ""
+"We support federated learning in vertical scenarios on SLModel in "
+"SecretFlow. In this tutorial, we will take DeepFM model for "
+"recommendation as an example to introduce how to customize a DataBuilder "
+"on SLModel."
+msgstr "隐语在SLModel中提供了联邦学习在垂直场景的支持，本文将以DeepFM推荐场景为例介绍下，如何在SLModel中使用自定义DataBuilder。"
 
 #: ../../tutorial/CustomDataLoaderOnSL.ipynb:33
-msgid "*注：DeepFM相关的内容以及拆分方案，请移步DeepFM相关文档*"
-msgstr ""
-
-#: ../../tutorial/CustomDataLoaderOnSL.ipynb:45
-msgid "环境设置"
-msgstr ""
-
-#: ../../tutorial/CustomDataLoaderOnSL.ipynb:108
-msgid "数据集介绍"
-msgstr ""
-
-#: ../../tutorial/CustomDataLoaderOnSL.ipynb:119
-msgid "我们这里将使用最经典的MovieLens数据集来进行演示。"
-msgstr ""
-
-#: ../../tutorial/CustomDataLoaderOnSL.ipynb:120
-msgid "MovieLens是一个开放式的推荐系统数据集，包含了电影评分和电影元数据信息。"
-msgstr ""
-
-#: ../../tutorial/CustomDataLoaderOnSL.ipynb:121
 msgid ""
-"`数据集地址 <https://secretflow-data.oss-"
-"accelerate.aliyuncs.com/datasets/movielens/ml-1m.zip>`__"
-msgstr ""
+"The main goal of this tutorial is to train DeepFM to show how to "
+"customize a DataBuilder on SLModel."
+msgstr "这篇文档的主要目标是借助DeepFM训练来介绍如何在SLModel中使用自定义DataBuilder。"
 
-#: ../../tutorial/CustomDataLoaderOnSL.ipynb:132
+#: ../../tutorial/CustomDataLoaderOnSL.ipynb:35
 msgid ""
-"我们对数据进行了切分： - alice: “UserID”, “Gender”, “Age”, “Occupation”, “Zip-code” "
-"- bob: “MovieID”, “Rating”, “Title”, “Genres”, “Timestamp”"
-msgstr ""
+"*If you want to learn more about related content for DeepFM model and "
+"split plans, please move to related documents for DeepFM model.*"
+msgstr "注：DeepFM相关的内容以及拆分方案，请移步DeepFM相关文档"
 
-#: ../../tutorial/CustomDataLoaderOnSL.ipynb:144
-msgid "定义DataBuilder函数"
-msgstr ""
+#: ../../tutorial/CustomDataLoaderOnSL.ipynb:47
+msgid "Environment Setting"
+msgstr "环境设置"
 
-#: ../../tutorial/CustomDataLoaderOnSL.ipynb:155
-msgid "我们定义DataBuilder的目的是已有的FedDataFrame和FedNdarray提供的功能无法满足需求，我们可以在通过自定义DataBuilder来满足高阶定制化需求。"
-msgstr ""
+#: ../../tutorial/CustomDataLoaderOnSL.ipynb:164
+msgid "Datasets"
+msgstr "数据集介绍"
 
-#: ../../tutorial/CustomDataLoaderOnSL.ipynb:156
-msgid "在SplitLearning中（各方数据需要对齐）我们暂时仅提供了面向CSV数据的DataBuilder能力。在自定义DataBuilder中可以定义对每一行数据怎么处理。SLModel会根据您定义的方式进行操作。"
-msgstr ""
-
-#: ../../tutorial/CustomDataLoaderOnSL.ipynb:158
-msgid "需要注意的点:"
-msgstr ""
-
-#: ../../tutorial/CustomDataLoaderOnSL.ipynb:159
+#: ../../tutorial/CustomDataLoaderOnSL.ipynb:175
 msgid ""
-"- "
-"我们的MovieLens数据集读取进来后会是CSV格式的，但是需要被当做稀疏特征来进行处理，所以会在DataBuilder中将每一列转成字典形式 "
-"- 在Bob测我们将评分进行了Threshold处理成二值形式 - "
-"在DataBuilder中可以定义自定义函数，然后使用dataset.map来应用到每一列。 - "
-"因为垂直模式需要保证两方数据是对齐的，所以暂时只支持CSV模式 - "
+"We will use the classic dataset `MovieLens <https://secretflow-data.oss-"
+"accelerate.aliyuncs.com/datasets/movielens/ml-1m.zip>`__ for "
+"introduction. MovieLens is an open recommendation system dataset that "
+"contains movie ratings and movie metadata information."
+msgstr "我们这里将使用最经典的MovieLens数据集来进行演示。MovieLens是一个开放式的推荐系统数据集，包含了电影评分和电影元数据信息。"
+
+#: ../../tutorial/CustomDataLoaderOnSL.ipynb:177
+msgid ""
+"And we split data into several pieces: - alice: \"UserID\", \"Gender\", "
+"\"Age\", \"Occupation\", \"Zip-code\" - bob: \"MovieID\", \"Rating\", "
+"\"Title\", \"Genres\", \"Timestamp\""
+msgstr "我们对数据进行了切分：alice: "UserID", "Gender", "Age", "Occupation", "Zip-code" bob: "MovieID", "Rating", "Title", "Genres", "Timestamp" "
+
+#: ../../tutorial/CustomDataLoaderOnSL.ipynb:189
+msgid "Define DataBuilders"
+msgstr "定义DataBuilder函数"
+
+#: ../../tutorial/CustomDataLoaderOnSL.ipynb:200
+msgid ""
+"We customize a DataBuilder with the aim to meet higher level "
+"customization demands, as the existing FedDataFrame and FedNdarray did "
+"not provide the required functionality."
+msgstr "我们定义DataBuilder的目的是已有的FedDataFrame和FedNdarray提供的功能无法满足需求，我们可以在通过自定义DataBuilder来满足高阶定制化需求。"
+
+#: ../../tutorial/CustomDataLoaderOnSL.ipynb:202
+msgid ""
+"In Split Learning(where all sides of the data need to be aligned), we "
+"only provide DataBuilder for CSV data for the time being. You can define "
+"what to do with each row of data in the custom DataBuilder. The "
+"operations in SLModel depend on the way you define it."
+msgstr "在Split Learning中（各方数据需要对齐）我们暂时仅提供了面向CSV数据的DataBuilder能力。在自定义DataBuilder中可以定义对每一行数据怎么处理。SLModel会根据您定义的方式进行操作。"
+
+#: ../../tutorial/CustomDataLoaderOnSL.ipynb:204
+msgid ""
+"The things you should notice here: - We read MovieLens dataset in CSV "
+"format. However, it needs to be treated as sparse features. The "
+"DataBuilder will convert each column into the form of dictionary. - Bob's"
+" score was processed into binary form using threshold. - Custom functions"
+" can be defined in the DataBuilder and then applied to each column using "
+"dataset.map. - Only CSV format is supported in the vertical scenario due "
+"to the restriction that both sides of the data should be aligned. - It "
+"returns Dataset which has been defined Batch\\_size and Repeat in the CSV"
+" mode so that SLModel can infer the Steps\\_per\\_epoch according to the "
+"Dataset."
+msgstr "需要注意的点:""
+"我们的MovieLens数据集读取进来后会是CSV格式的，但是需要被当做稀疏特征来进行处理，所以会在DataBuilder中将每一列转成字典形式"
+"在Bob测我们将评分进行了Threshold处理成二值形式"
+"在DataBuilder中可以定义自定义函数，然后使用dataset.map来应用到每一列。"
+"因为垂直模式需要保证两方数据是对齐的，所以暂时只支持CSV模式"
 "CSV模式只需要返回Dataset，Dataset需要定义好Batch_size，Repeat，SLModel会根据Dataset推断Steps_per_epoch"
-msgstr ""
 
-#: ../../tutorial/CustomDataLoaderOnSL.ipynb:171
-msgid "1、下载数据，并转换成csv"
-msgstr ""
+#: ../../tutorial/CustomDataLoaderOnSL.ipynb:217
+msgid "1. Download the dataset and convert it to the CSV format."
+msgstr "1、下载数据，并转换成csv"
 
-#: ../../tutorial/CustomDataLoaderOnSL.ipynb:220
-msgid "读取dat格式的数据并转成字典"
-msgstr ""
+#: ../../tutorial/CustomDataLoaderOnSL.ipynb:241
+msgid "Read the data from the dat format and convert it to the dictionary form."
+msgstr "读取dat格式的数据并转成字典"
 
-#: ../../tutorial/CustomDataLoaderOnSL.ipynb:310
+#: ../../tutorial/CustomDataLoaderOnSL.ipynb:330
 msgid ""
-"接下来我们将user、movie和rating进行join，并进行拆分，组装成\\ ``alice_ml1m.csv``\\ 和\\ "
-"``bob_ml1m.csv``"
-msgstr ""
+"Next, we join user, movie and rating, split up and assemble them into "
+"alice\\_ml1m.csv and bob\\_ml1m.csv."
+msgstr "接下来我们将user、movie和rating进行join，并进行拆分，组装成alice_ml1m.csv和bob_ml1m.csv"
 
-#: ../../tutorial/CustomDataLoaderOnSL.ipynb:391
-msgid "到此为止我们已经完成了数据的处理和拆分"
-msgstr ""
+#: ../../tutorial/CustomDataLoaderOnSL.ipynb:411
+msgid "So we've done the data processing and splitting up by now."
+msgstr "到此为止我们已经完成了数据的处理和拆分"
 
-#: ../../tutorial/CustomDataLoaderOnSL.ipynb:393
-msgid "产出了"
-msgstr ""
+#: ../../tutorial/CustomDataLoaderOnSL.ipynb:413
+msgid "And we output two files:Alice: alice_ml1m.csv and Bob: bob_ml1m.csv"
+msgstr "产出了alice: alice_ml1m.csv bob: bob_ml1m.csv"
 
-#: ../../tutorial/CustomDataLoaderOnSL.ipynb:532
-msgid "1. 使用明文引擎开发DataBuilder函数"
-msgstr ""
+#: ../../tutorial/CustomDataLoaderOnSL.ipynb:551
+msgid "1. Use plaintext engines to develop Databuilders."
+msgstr "1. 使用明文引擎开发DataBuilder函数"
 
-#: ../../tutorial/CustomDataLoaderOnSL.ipynb:534
-msgid "因为SLModel每方的数据是不同的，所以需要分别开发DataBuilder"
-msgstr ""
+#: ../../tutorial/CustomDataLoaderOnSL.ipynb:553
+msgid ""
+"Because the data for each side of the SLModel is different, DataBuilder "
+"needs to be developed separately."
+msgstr "因为SLModel每方的数据是不同的，所以需要分别开发DataBuilder"
 
-#: ../../tutorial/CustomDataLoaderOnSL.ipynb:546
-msgid "开发Alice侧的DataBuilder"
-msgstr ""
+#: ../../tutorial/CustomDataLoaderOnSL.ipynb:565
+msgid "Develop Alice's DataBuilder"
+msgstr "开发Alice侧的DataBuilder"
 
-#: ../../tutorial/CustomDataLoaderOnSL.ipynb:824
-msgid "开发Bob侧的DataBuilder"
-msgstr ""
+#: ../../tutorial/CustomDataLoaderOnSL.ipynb:883
+msgid "Develop Bob's DataBuilder"
+msgstr "开发Bob侧的DataBuilder"
 
-#: ../../tutorial/CustomDataLoaderOnSL.ipynb:1396
-msgid "2. 将单方的DataBuilder 包装(wrap)起来"
-msgstr ""
+#: ../../tutorial/CustomDataLoaderOnSL.ipynb:1455
+msgid "2. Wrap their DataBuilders separately."
+msgstr "2. 将单方的DataBuilder 包装(wrap)起来"
 
-#: ../../tutorial/CustomDataLoaderOnSL.ipynb:1470
-msgid "3.构造databuilder_dict"
-msgstr ""
+#: ../../tutorial/CustomDataLoaderOnSL.ipynb:1529
+msgid "3. Construct a databuilder\\_dict."
+msgstr "3.构造databuilder_dict"
 
-#: ../../tutorial/CustomDataLoaderOnSL.ipynb:1501
-msgid "接下来我们定义DeepFM模型，将数据跑起来"
-msgstr ""
+#: ../../tutorial/CustomDataLoaderOnSL.ipynb:1560
+msgid "Define DeepFM Model and run it"
+msgstr "接下来我们定义DeepFM模型，将数据跑起来"
 
-#: ../../tutorial/CustomDataLoaderOnSL.ipynb:1513
-msgid "定义DeepFM模型"
-msgstr ""
+#: ../../tutorial/CustomDataLoaderOnSL.ipynb:1572
+msgid "1. Define a DeepFM model."
+msgstr "定义DeepFM模型"
 
-#: ../../tutorial/CustomDataLoaderOnSL.ipynb:1561
-msgid "定义alice的basenet"
-msgstr ""
+#: ../../tutorial/CustomDataLoaderOnSL.ipynb:1620
+msgid "2. Define Alice's basenet."
+msgstr "定义alice的basenet"
 
-#: ../../tutorial/CustomDataLoaderOnSL.ipynb:1634
-msgid "定义bob的basenet和fusenet"
-msgstr ""
+#: ../../tutorial/CustomDataLoaderOnSL.ipynb:1693
+msgid "3.Define Bob's basenet and fusenet."
+msgstr "定义bob的basenet和fusenet"
+
