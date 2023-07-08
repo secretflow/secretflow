@@ -1,0 +1,182 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2022 Ant Group Co., Ltd.
+# This file is distributed under the same license as the SecretFlow package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2023.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: SecretFlow \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-07-03 17:24+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.12.1\n"
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:9
+msgid "在SecretFlow中加载csv数据"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:20
+msgid ""
+"The following codes are demos only. It’s **NOT for production** due to "
+"system security concerns, please **DO NOT** use it directly in "
+"production."
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:31
+msgid "这篇教程会通过几个示例来展示，如何在SecretFlow中加载CSV数据，进而可以利用SecretFlow进行数据处理，建模。"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:43
+msgid "设置"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:109
+msgid "接口介绍"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:120
+msgid ""
+"我们在SecretFlow中提供了类似于\\ ``pandas.read_csv``\\ "
+"的接口来将各方数据的CSV读取成为一个联邦概念的统一的数据。"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:121
+msgid ""
+"- 对于水平场景有\\ ``secretflow.horizontal.read_csv`` `API "
+"<https://www.secretflow.org.cn/docs/secretflow/en/source/secretflow.data.horizontal.html#secretflow.data.horizontal.read_csv>`__\\"
+" 。"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:122
+msgid ""
+"- 对于垂直场景有\\ ``secretflow.vertical.read_csv`` `API "
+"<https://www.secretflow.org.cn/docs/secretflow/en/source/secretflow.data.horizontal.html#secretflow.data.vertical.read_csv>`__\\"
+" 。"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:124
+msgid "通过read_csv可以读取多方的csv文件，构成一个FedDataFrame"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:135
+msgid "**Build Federated Table**"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:136
+msgid ""
+"联邦表是一个跨多方的虚拟概念 1. 联邦表中各方的数据存储在本地，不允许出域。 2. 除了拥有数据的一方之外，没有人可以访问数据存储。 3. "
+"联邦表的任何操作都会由Driver调度给每个Worker，执行指令会逐层传递，直到特定拥有数据的Worker的Python Runtime。 "
+"框架确保只有 Worker.device 和 Object.device相同的时候才能够操作数据。 4. 联合表旨在从中心角度管理和操作多方数据 "
+"5. 接口方面和\\ ``pandas.DataFrame`` 对齐，以降低多方数据操作的成本"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:138
+msgid "|3605a0d12393411da79e5c2e47f100c7|"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:140
+msgid "vdataframe.png"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:153
+msgid "数据下载，分割"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:259
+msgid "将水平拆分后的dataframe分别保存成csv"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:297
+msgid "将垂直拆分后的dataframe分别保存成csv"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:323
+msgid "接下来我们以水平为例介绍如何加载csv数据"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:347
+msgid ""
+"首先准备好两方的数据csv文件,水平场景要求两方的schema是一致的 - Alice: datapath (alice机器能访问到的本地路径) "
+"- Bob: datapath (bob机器能访问到的本地路径)"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:358
+msgid "因为水平场景相同schema的数据分布在多方，所以在进行一些dataframe操作的时候需要跨域计算。"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:359
+msgid ""
+"read_csv接口需要传入\\ ``aggregator``\\ 和\\ ``comparator``,我们可以在计算的时候指定\\ "
+"``安全聚合器``\\ 和\\ ``安全比较器``\\ 来对数据隐私进行保护"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:423
+msgid "得到的\\ ``hdf``\\ 是一个FedDataframe，我们接下来可以对他做一些数据处理"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:424
+msgid ""
+"参考文档\\ `使用FedDataFrame进行数据预处理 "
+"<https://www.secretflow.org.cn/docs/secretflow/en/tutorial/data_preprocessing_with_data_frame.html>`__\\"
+" ："
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:446
+msgid "得到的\\ ``data``\\ 和\\ ``label``\\ 即可以作为输入传入FLModel或者SLModel进行建模"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:457
+msgid "隐语提供了train_test_split可以对数据进行拆分"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:513
+msgid "接下来我们以垂直为例介绍如何加载csv数据"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:524
+msgid ""
+"首先准备好两方的数据csv文件,垂直场景两方数据并不强制要求对齐，我们在\\ ``read_csv``\\ 接口中提供了PSI的能力。 "
+"Alice: datapath (alice机器能访问到的本地路径)"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:525
+msgid "Bob: datapath (bob机器能访问到的本地路径)"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:536
+msgid ""
+"垂直场景是各方的schema不同，但是每一方都拥有每一个column的全部数据。不再需要比较器和聚合器。但是各方数据不一定是对齐的，我们需要在读取时候通过\\"
+" ``PSI``\\ 来进行数据对齐。"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:538
+msgid "path_dict：数据路径"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:539
+msgid "spu: 用于求交使用的spu设备"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:540
+msgid "keys: 用于求交的keys（支持多列求交）"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:541
+msgid "drop_keys: 求交后需要删去的ID列名"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:752
+msgid "同样这里也可以通过train_test_split来进行切分"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:774
+msgid "接下来，可以用自己的csv数据尝试一下"
+msgstr ""
+
+#~ msgid "|8d9b55167c3d4a9d99c2ff852c74dc27|"
+#~ msgstr ""

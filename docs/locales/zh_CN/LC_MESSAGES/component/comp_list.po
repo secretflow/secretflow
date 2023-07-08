@@ -1,0 +1,1090 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2022 Ant Group Co., Ltd.
+# This file is distributed under the same license as the SecretFlow package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2023.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: SecretFlow \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-07-03 08:44+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.12.1\n"
+
+#: ../../component/comp_list.md:5
+msgid "SecretFlow Component List"
+msgstr "SecretFlow组件列表"
+
+#: ../../component/comp_list.md:9
+msgid "Last update: Mon Jul  3 08:44:11 2023"
+msgstr ""
+
+#: ../../component/comp_list.md:11
+msgid "Version: 0.0.1"
+msgstr ""
+
+#: ../../component/comp_list.md:13
+msgid "First-party SecretFlow components."
+msgstr "SecretFlow官方组件。"
+
+#: ../../component/comp_list.md:14
+msgid "feature"
+msgstr ""
+
+#: ../../component/comp_list.md:16
+msgid "vert_woe_binning"
+msgstr ""
+
+#: ../../component/comp_list.md:19 ../../component/comp_list.md:52
+#: ../../component/comp_list.md:75 ../../component/comp_list.md:104
+#: ../../component/comp_list.md:134 ../../component/comp_list.md:157
+#: ../../component/comp_list.md:188 ../../component/comp_list.md:220
+#: ../../component/comp_list.md:253 ../../component/comp_list.md:291
+#: ../../component/comp_list.md:325 ../../component/comp_list.md:363
+#: ../../component/comp_list.md:383 ../../component/comp_list.md:413
+#: ../../component/comp_list.md:446 ../../component/comp_list.md:466
+#: ../../component/comp_list.md:486
+msgid "Component version: 0.0.1"
+msgstr "组件版本：0.0.1"
+
+#: ../../component/comp_list.md:21
+msgid ""
+"Generate Weight of Evidence (WOE) binning rules for vertical partitioning"
+" datasets."
+msgstr "为垂直分割数据集生成权重信息（WOE）分箱规则。"
+
+#: ../../component/comp_list.md:22 ../../component/comp_list.md:78
+#: ../../component/comp_list.md:107 ../../component/comp_list.md:160
+#: ../../component/comp_list.md:191 ../../component/comp_list.md:223
+#: ../../component/comp_list.md:256 ../../component/comp_list.md:294
+#: ../../component/comp_list.md:328 ../../component/comp_list.md:386
+#: ../../component/comp_list.md:416
+msgid "Attrs"
+msgstr "参数"
+
+#: ../../component/comp_list.md
+msgid "Name"
+msgstr "名称"
+
+#: ../../component/comp_list.md
+msgid "Description"
+msgstr "描述"
+
+#: ../../component/comp_list.md
+msgid "Type"
+msgstr "类型"
+
+#: ../../component/comp_list.md
+msgid "Required"
+msgstr "必填"
+
+#: ../../component/comp_list.md
+msgid "Notes"
+msgstr "注释"
+
+#: ../../component/comp_list.md
+msgid "secure_device_type"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Use SPU or HEU to secure bucket summation."
+msgstr "使用SPU或HEU来保护桶求和。"
+
+#: ../../component/comp_list.md
+msgid "String"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "N"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Default: spu. Allowed: ['spu', 'heu']."
+msgstr "默认：spu。可选：['spu'，'heu']。"
+
+#: ../../component/comp_list.md
+msgid "binning_method"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid ""
+"How to bin features with numeric types: \"quantile\"(equal "
+"frequency)/\"chimerge\"(ChiMerge from AAAI92-019: "
+"https://www.aaai.org/Papers/AAAI/1992/AAAI92-019.pdf)"
+msgstr ""
+"如何对数值型特征进行分箱：\"quantile\"（等频）, "
+"\"chimerge\"（来自AAAI92-019的ChiMerge算法：https://www.aaai.org/Papers/AAAI/1992/AAAI92-019.pdf）"
+
+#: ../../component/comp_list.md
+msgid "Default: quantile. Allowed: ['quantile', 'chimerge']."
+msgstr "默认：quantile。可选：['quantile'，'chimerge']。"
+
+#: ../../component/comp_list.md
+msgid "bin_num"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Max bin counts for one features."
+msgstr "一个特征最大分箱数。"
+
+#: ../../component/comp_list.md
+msgid "Integer"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Default: 10. Range: (0, $\\infty$)."
+msgstr "默认: 10. 范围: (0, $\\infty$)."
+
+#: ../../component/comp_list.md
+msgid "positive_label"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Which value represent positive value in label."
+msgstr "标签中表示正例的值。"
+
+#: ../../component/comp_list.md
+msgid "Default: 1."
+msgstr "默认: 1."
+
+#: ../../component/comp_list.md
+msgid "chimerge_init_bins"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Max bin counts for initialization binning in ChiMerge."
+msgstr "ChiMerge初始化分箱的最大bin数。"
+
+#: ../../component/comp_list.md
+msgid "Default: 100. Range: (2, $\\infty$)."
+msgstr "默认: 100. 范围: (2, $\\infty$)."
+
+#: ../../component/comp_list.md
+msgid "chimerge_target_bins"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Stop merging if remaining bin counts is less than or equal to this value."
+msgstr "如果剩余分箱数量小于或等于此值，则停止合并。"
+
+#: ../../component/comp_list.md
+msgid "Default: 10. Range: [2, $\\infty$)."
+msgstr "默认: 10. 范围: [2, $\\infty$)."
+
+#: ../../component/comp_list.md
+msgid "chimerge_target_pvalue"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid ""
+"Stop merging if biggest pvalue of remaining bins is greater than this "
+"value."
+msgstr "如果剩余分箱中最大的p值大于此值，则停止合并。"
+
+#: ../../component/comp_list.md
+msgid "Float"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Default: 0.1. Range: (0.0, 1.0]."
+msgstr "默认: 0.1. 范围: (0.0, 1.0]."
+
+#: ../../component/comp_list.md:35 ../../component/comp_list.md:55
+#: ../../component/comp_list.md:86 ../../component/comp_list.md:116
+#: ../../component/comp_list.md:137 ../../component/comp_list.md:170
+#: ../../component/comp_list.md:202 ../../component/comp_list.md:233
+#: ../../component/comp_list.md:274 ../../component/comp_list.md:308
+#: ../../component/comp_list.md:344 ../../component/comp_list.md:366
+#: ../../component/comp_list.md:395 ../../component/comp_list.md:426
+#: ../../component/comp_list.md:449 ../../component/comp_list.md:469
+#: ../../component/comp_list.md:489
+msgid "Inputs"
+msgstr "输入"
+
+#: ../../component/comp_list.md
+msgid "Type(s)"
+msgstr "类型"
+
+#: ../../component/comp_list.md
+msgid "input_data"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Input dataset for generating rule."
+msgstr "用于生成规则的输入数据集。"
+
+#: ../../component/comp_list.md
+msgid "['sf.table.vertical_table']"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid ""
+"Extra table attributes.(0) feature_selects - which features should be "
+"binned. Min column number to select(inclusive): 1."
+msgstr "额外的表属性。 (0) feature_selects - 应该对哪些特征进行分箱。要选择的最小数量（包括在内）：1。"
+
+#: ../../component/comp_list.md:42 ../../component/comp_list.md:63
+#: ../../component/comp_list.md:94 ../../component/comp_list.md:124
+#: ../../component/comp_list.md:145 ../../component/comp_list.md:178
+#: ../../component/comp_list.md:210 ../../component/comp_list.md:241
+#: ../../component/comp_list.md:281 ../../component/comp_list.md:315
+#: ../../component/comp_list.md:351 ../../component/comp_list.md:373
+#: ../../component/comp_list.md:403 ../../component/comp_list.md:433
+#: ../../component/comp_list.md:456 ../../component/comp_list.md:476
+#: ../../component/comp_list.md:496
+msgid "Outputs"
+msgstr "输出"
+
+#: ../../component/comp_list.md
+msgid "woe_rule"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Output WOE rule."
+msgstr "输出WOE规则"
+
+#: ../../component/comp_list.md
+msgid "['sf.rule.woe_binning']"
+msgstr ""
+
+#: ../../component/comp_list.md:49
+msgid "vert_woe_substitution"
+msgstr ""
+
+#: ../../component/comp_list.md:54
+msgid "Substitute datasets' value by WOE substitution rules."
+msgstr "使用WOE替代规则替代数据集的值。"
+
+#: ../../component/comp_list.md
+msgid "Vertical partitioning dataset to be substituted."
+msgstr "需要进行替代的垂直分区数据集。"
+
+#: ../../component/comp_list.md
+msgid "WOE substitution rule."
+msgstr "WOE替代规则。"
+
+#: ../../component/comp_list.md
+msgid "output_data"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Output substituted dataset."
+msgstr "输出的替代之后的数据集"
+
+#: ../../component/comp_list.md:70
+msgid "ml.eval"
+msgstr ""
+
+#: ../../component/comp_list.md:72
+msgid "biclassification_eval"
+msgstr ""
+
+#: ../../component/comp_list.md:77
+msgid ""
+"Statistics evaluation for a bi-classification model on a dataset. 1. "
+"summary_report: SummaryReport 2. group_reports: List[GroupReport] 3. "
+"eq_frequent_bin_report: List[EqBinReport] 4. eq_range_bin_report: "
+"List[EqBinReport] 5. head_report: List[PrReport] reports for fpr = 0.001,"
+" 0.005, 0.01, 0.05, 0.1, 0.2"
+msgstr ""
+"对数据集上的二分类模型进行统计评估。1. summary_report: SummaryReport 2. group_reports: "
+"List[GroupReport] 3. eq_frequent_bin_report: List[EqBinReport] 4. "
+"eq_range_bin_report: List[EqBinReport] 5. head_report: "
+"List[PrReport]，报告包括fpr= 0.001, 0.005, 0.01, 0.05, 0.1, 0.2的报告。"
+
+#: ../../component/comp_list.md
+msgid "bucket_size"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Number of buckets."
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Default: 10. Range: [1, $\\infty$)."
+msgstr "默认: 10. 范围: [1, $\\infty$)."
+
+#: ../../component/comp_list.md
+msgid "min_item_cnt_per_bucket"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid ""
+"Min item cnt per bucket. If any bucket doesn't meet the requirement, "
+"error raises. For security reasons, we require this parameter to be at "
+"least 5."
+msgstr "每个桶的最小项目数。如果任何一个桶不满足要求，则会引发错误。出于安全原因，我们要求此参数至少为5。"
+
+#: ../../component/comp_list.md
+msgid "Default: 5. Range: [5, $\\infty$)."
+msgstr "默认: 5. 范围: [5, $\\infty$)."
+
+#: ../../component/comp_list.md
+msgid "labels"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "['sf.table.vertical_table', 'sf.table.individual']"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid ""
+"Extra table attributes.(0) col - The column name to use in the dataset. "
+"If not provided, the label of dataset will be used by default. Max column"
+" number to select(inclusive): 1."
+msgstr "额外的表属性。(0) col - 在数据集中要使用的列名。如果未提供，则默认使用数据集的标签。要选择的最大列数量（包括在内）：1。"
+
+#: ../../component/comp_list.md
+msgid "predictions"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "reports"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Output report."
+msgstr "输出报告"
+
+#: ../../component/comp_list.md
+msgid "['sf.report']"
+msgstr ""
+
+#: ../../component/comp_list.md:101
+msgid "prediction_bias_eval"
+msgstr ""
+
+#: ../../component/comp_list.md:106
+msgid "Calculate prediction bias, ie. average of predictions - average of labels."
+msgstr "计算预测偏差，即预测平均值 - 标签平均值"
+
+#: ../../component/comp_list.md
+msgid "bucket_num"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Num of bucket."
+msgstr "桶数量"
+
+#: ../../component/comp_list.md
+msgid ""
+"Min item cnt per bucket. If any bucket doesn't meet the requirement, "
+"error raises. For security reasons, we require this parameter to be at "
+"least 2."
+msgstr "每个桶的最小项目数。如果任何一个桶不满足要求，则会引发错误。出于安全原因，我们要求此参数至少为2。"
+
+#: ../../component/comp_list.md
+msgid "Default: 2. Range: [2, $\\infty$)."
+msgstr "默认: 2. 范围: [2, $\\infty$)."
+
+#: ../../component/comp_list.md
+msgid "bucket_method"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Bucket method."
+msgstr "分桶方式"
+
+#: ../../component/comp_list.md
+msgid "Default: equal_width. Allowed: ['equal_width', 'equal_frequency']."
+msgstr "默认: equal_width. 允许值: ['equal_width', 'equal_frequency']."
+
+#: ../../component/comp_list.md
+msgid "result"
+msgstr ""
+
+#: ../../component/comp_list.md:131
+msgid "ss_pvalue"
+msgstr ""
+
+#: ../../component/comp_list.md:136
+msgid ""
+"Calculate P-Value for LR model training on vertical partitioning dataset "
+"by using secret sharing. For large dataset(large than 10w samples & 200 "
+"features), recommend to use [Ring size: 128, Fxp: 40] options for SPU "
+"device."
+msgstr ""
+"通过使用秘密共享计算垂直分区数据集上的LR模型训练的P值。对于大型数据集（大于10w个样本和200个特征），建议使用[Ring size: "
+"128，Fxp: 40]选项来 SPU 设备。"
+
+#: ../../component/comp_list.md
+msgid "model"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Input model."
+msgstr "输入模型"
+
+#: ../../component/comp_list.md
+msgid "['sf.model.ss_sgd']"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Input dataset."
+msgstr "输入数据集"
+
+#: ../../component/comp_list.md
+msgid "report"
+msgstr ""
+
+#: ../../component/comp_list.md:152
+msgid "ml.predict"
+msgstr ""
+
+#: ../../component/comp_list.md:154
+msgid "sgb_predict"
+msgstr ""
+
+#: ../../component/comp_list.md:159
+msgid "Predict using SGB model."
+msgstr "使用SGB模型进行预测。"
+
+#: ../../component/comp_list.md
+msgid "receiver"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Party of receiver."
+msgstr "接收方"
+
+#: ../../component/comp_list.md
+msgid "Y"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Default: ."
+msgstr "默认 ."
+
+#: ../../component/comp_list.md
+msgid "pred_name"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Name for prediction column"
+msgstr "预测值列名"
+
+#: ../../component/comp_list.md
+msgid "Default: pred."
+msgstr "默认：pred."
+
+#: ../../component/comp_list.md
+msgid "save_ids"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid ""
+"Whether to save ids columns into output prediction table. If true, input "
+"feature_dataset must contain id columns, and receiver party must be id "
+"owner."
+msgstr "是否将ids列保存到输出预测表中。如果为true，则输入feature_dataset必须包含id列，并且接收方必须是id所有者。"
+
+#: ../../component/comp_list.md
+msgid "Boolean"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Default: False."
+msgstr "默认：False。"
+
+#: ../../component/comp_list.md
+msgid "save_label"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid ""
+"Whether or not to save real label columns into output pred file. If true,"
+" input feature_dataset must contain label columns and receiver party must"
+" be label owner."
+msgstr "是否将真实标签列保存到输出预测表中。如果为true，则输入的feature_dataset必须包含标签列，并且接收方必须是标签所有者。"
+
+#: ../../component/comp_list.md
+msgid "['sf.model.sgb']"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "feature_dataset"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Input feature dataset."
+msgstr "输入特征数据集。"
+
+#: ../../component/comp_list.md
+msgid "pred"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Output prediction"
+msgstr "输出预测值"
+
+#: ../../component/comp_list.md
+msgid "['sf.table.individual']"
+msgstr ""
+
+#: ../../component/comp_list.md:185
+msgid "ss_sgd_predict"
+msgstr ""
+
+#: ../../component/comp_list.md:190
+msgid "Predict using the SS-SGD model."
+msgstr "使用 SS-SGD 模型预测"
+
+#: ../../component/comp_list.md
+msgid "batch_size"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "The number of training examples utilized in one iteration."
+msgstr "在一次迭代中使用的训练样本数量。"
+
+#: ../../component/comp_list.md
+msgid "Default: 1024. Range: (0, $\\infty$)."
+msgstr "默认: 1024. 范围: (0, $\\infty$)."
+
+#: ../../component/comp_list.md
+msgid "Column name for predictions."
+msgstr "预测值列名"
+
+#: ../../component/comp_list.md
+msgid "Output prediction."
+msgstr "输出预测值"
+
+#: ../../component/comp_list.md:217
+msgid "ss_xgb_predict"
+msgstr ""
+
+#: ../../component/comp_list.md:222
+msgid "Predict using the SS-XGB model."
+msgstr "使用 SS-XGB 模型预测"
+
+#: ../../component/comp_list.md
+msgid "['sf.model.ss_xgb']"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Input features."
+msgstr "输入特征。"
+
+#: ../../component/comp_list.md:248
+msgid "ml.train"
+msgstr ""
+
+#: ../../component/comp_list.md:250
+msgid "sgb_train"
+msgstr ""
+
+#: ../../component/comp_list.md:255
+msgid ""
+"Provides both classification and regression tree boosting (also known as "
+"GBDT, GBM) for vertical split dataset setting by using secure boost. SGB "
+"is short for SecureBoost. Compared to its safer counterpart SS-XGB, "
+"SecureBoost focused on protecting label holder. Check "
+"https://arxiv.org/abs/1901.08755."
+msgstr ""
+"使用安全提升提供垂直拆分数据集设置的分类和回归树提升（也称为GBDT，GBM）。SGB代表安全提升。与更安全的对应品SS-"
+"XGB相比，SecureBoost专注于保护标签持有者。请参阅https://arxiv.org/abs/1901.08755。"
+
+#: ../../component/comp_list.md
+msgid "num_boost_round"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Number of boosting iterations."
+msgstr "boosting轮数"
+
+#: ../../component/comp_list.md
+msgid "max_depth"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Maximum depth of a tree."
+msgstr "树的最大深度。"
+
+#: ../../component/comp_list.md
+msgid "Default: 5. Range: [1, 16]."
+msgstr "默认: 5. 范围: [1, 16]."
+
+#: ../../component/comp_list.md
+msgid "learning_rate"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Step size shrinkage used in update to prevent overfitting."
+msgstr "用于更新的步长缩小，以防止过拟合。"
+
+#: ../../component/comp_list.md
+msgid "objective"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Specify the learning objective."
+msgstr "指定学习目标。"
+
+#: ../../component/comp_list.md
+msgid "Default: logistic. Allowed: ['linear', 'logistic']."
+msgstr "默认: logistic. 可选: ['linear', 'logistic']."
+
+#: ../../component/comp_list.md
+msgid "reg_lambda"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "L2 regularization term on weights."
+msgstr "权重的L2正则化项。"
+
+#: ../../component/comp_list.md
+msgid "Default: 0.1. Range: [0.0, 10000.0]."
+msgstr "默认: 0.1. 范围: [0.0, 10000.0]."
+
+#: ../../component/comp_list.md
+msgid "gamma"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid ""
+"Greater than 0 means pre-pruning enabled. If gain of a node is less than "
+"this value, it would be pruned."
+msgstr "大于0表示启用预修剪枝。如果节点的增益小于此值，则会被修剪。"
+
+#: ../../component/comp_list.md
+msgid "subsample"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Subsample ratio of the training instances."
+msgstr "训练实例的子采样比率。"
+
+#: ../../component/comp_list.md
+msgid "Default: 1.0. Range: (0.0, 1.0]."
+msgstr "默认: 1.0. 范围: (0.0, 1.0]."
+
+#: ../../component/comp_list.md
+msgid "colsample_by_tree"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Subsample ratio of columns when constructing each tree."
+msgstr "构建每棵树时列的子样本比率"
+
+#: ../../component/comp_list.md
+msgid "sketch_eps"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "This roughly translates into O(1 / sketch_eps) number of bins."
+msgstr "这大致转化为O(1 / sketch_eps)个桶。"
+
+#: ../../component/comp_list.md
+msgid "base_score"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "The initial prediction score of all instances, global bias."
+msgstr "所有实例的初始预测分数，全局偏差。"
+
+#: ../../component/comp_list.md
+msgid "Default: 0.0. Range: [0.0, $\\infty$)."
+msgstr "默认: 0.0. 范围: [0.0, $\\infty$)."
+
+#: ../../component/comp_list.md
+msgid "seed"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Pseudorandom number generator seed."
+msgstr "伪随机数生成器的种子。"
+
+#: ../../component/comp_list.md
+msgid "Default: 42. Range: [0, $\\infty$)."
+msgstr "默认: 42. 范围: [0, $\\infty$)."
+
+#: ../../component/comp_list.md
+msgid "fixed_point_parameter"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid ""
+"Any floating point number encoded by heu, will multiply a scale and take "
+"the round, scale = 2 ** fixed_point_parameter. larger value may mean more"
+" numerical accuracy, but too large will lead to overflow problem."
+msgstr ""
+"由heu编码的任何浮点数，都会乘以一个比例并四舍五入，scale = 2** "
+"fixed_point_parameter。较大的值可能意味着更高的数值精度，但太大会导致溢出问题。"
+
+#: ../../component/comp_list.md
+msgid "Default: 20. Range: [0, $\\infty$)."
+msgstr "默认: 20. 范围: [0, $\\infty$)."
+
+#: ../../component/comp_list.md
+msgid "train_dataset"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Input train dataset."
+msgstr "输入训练数据集"
+
+#: ../../component/comp_list.md
+msgid "output_model"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Output model."
+msgstr "输出模型"
+
+#: ../../component/comp_list.md:288
+msgid "ss_sgd_train"
+msgstr ""
+
+#: ../../component/comp_list.md:293
+msgid ""
+"Train both linear and logistic regression linear models for vertical "
+"partitioning dataset with mini batch SGD training solver by using secret "
+"sharing. SS-SGD is short for secret sharing SGD training."
+msgstr "使用秘密共享，通过小批量SGD训练求解器，在垂直划分数据集上训练线性和逻辑回归线性模型。SS-SGD表示秘密共享SGD训练。"
+
+#: ../../component/comp_list.md
+msgid "epochs"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "The number of complete pass through the training data."
+msgstr "完整遍历训练数据的次数。"
+
+#: ../../component/comp_list.md
+msgid "The step size at each iteration in one iteration."
+msgstr "每次迭代中的步长。"
+
+#: ../../component/comp_list.md
+msgid "Default: 0.1. Range: (0.0, $\\infty$)."
+msgstr "默认: 0.1. 范围: (0.0, $\\infty$)."
+
+#: ../../component/comp_list.md
+msgid "sig_type"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Sigmoid approximation type."
+msgstr "Sigmoid近似类型。"
+
+#: ../../component/comp_list.md
+msgid "Default: t1. Allowed: ['real', 't1', 't3', 't5', 'df', 'sr', 'mix']."
+msgstr "默认: t1. 可选: ['real', 't1', 't3', 't5', 'df', 'sr', 'mix']."
+
+#: ../../component/comp_list.md
+msgid "reg_type"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Regression type"
+msgstr "回归类型"
+
+#: ../../component/comp_list.md
+msgid "penalty"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "The penalty(aka regularization term) to be used."
+msgstr "要使用的惩罚项(又称正则化项)。"
+
+#: ../../component/comp_list.md
+msgid "Default: None. Allowed: ['None', 'l1', 'l2']."
+msgstr "默认: None. 可选: ['None', 'l1', 'l2']."
+
+#: ../../component/comp_list.md
+msgid "l2_norm"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "L2 regularization term."
+msgstr "L2正则化项。"
+
+#: ../../component/comp_list.md
+msgid "Default: 0.5. Range: [0.0, $\\infty$)."
+msgstr "默认: 0.5. 范围: [0.0, $\\infty$)."
+
+#: ../../component/comp_list.md
+msgid "eps"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid ""
+"If the change rate of weights is less than this threshold, the model is "
+"considered to be converged, and the training stops early. 0 to disable."
+msgstr "如果权重变化率小于此阈值，则认为模型已收敛，训练将提前停止。设置为0以禁用。"
+
+#: ../../component/comp_list.md
+msgid "Default: 0.001. Range: (0.0, $\\infty$)."
+msgstr "默认: 0.001. 范围: (0.0, $\\infty$)."
+
+#: ../../component/comp_list.md
+msgid "Output model"
+msgstr "输出模型"
+
+#: ../../component/comp_list.md:322
+msgid "ss_xgb_train"
+msgstr ""
+
+#: ../../component/comp_list.md:327
+msgid ""
+"This method provides both classification and regression tree boosting "
+"(also known as GBDT, GBM) for vertical partitioning dataset setting by "
+"using secret sharing. SS-XGB is short for secret sharing XGB. More "
+"details: https://arxiv.org/pdf/2005.08479.pdf"
+msgstr ""
+"此方法使用秘密共享，为垂直分区的数据集设置提供了分类和回归树提升(也称为GBDT、GBM)。 SS-"
+"XGB表示秘密共享XGB。详情请见：https://arxiv.org/pdf/2005.08479.pdf。"
+
+#: ../../component/comp_list.md
+msgid "Step size shrinkage used in updates to prevent overfitting."
+msgstr "用于更新的步长缩减，以防止过度拟合。"
+
+#: ../../component/comp_list.md
+msgid "Train dataset"
+msgstr "训练数据集"
+
+#: ../../component/comp_list.md:358
+msgid "preprocessing"
+msgstr ""
+
+#: ../../component/comp_list.md:360
+msgid "feature_filter"
+msgstr ""
+
+#: ../../component/comp_list.md:365
+msgid "Drop features from the dataset."
+msgstr "从数据集中删除特征"
+
+#: ../../component/comp_list.md
+msgid "in_ds"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Extra table attributes.(0) drop_features - Features to drop."
+msgstr "额外的表属性。(0) drop_features - 要删除的特征。"
+
+#: ../../component/comp_list.md
+msgid "out_ds"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Output dataset with filtered features."
+msgstr "筛选特征后的输出数据集。"
+
+#: ../../component/comp_list.md:380
+msgid "psi"
+msgstr ""
+
+#: ../../component/comp_list.md:385
+msgid "Balanced PSI between two parties."
+msgstr "两方之间的平衡PSI（隐私保护交集计算）。"
+
+#: ../../component/comp_list.md
+msgid "protocol"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "PSI protocol."
+msgstr "PSI 协议"
+
+#: ../../component/comp_list.md
+msgid ""
+"Default: ECDH_PSI_2PC. Allowed: ['ECDH_PSI_2PC', 'KKRT_PSI_2PC', "
+"'BC22_PSI_2PC']."
+msgstr "默认: ECDH_PSI_2PC. 可选: ['ECDH_PSI_2PC', 'KKRT_PSI_2PC', 'BC22_PSI_2PC']."
+
+#: ../../component/comp_list.md
+msgid ""
+"Specify the hash bucket size used in PSI. Larger values consume more "
+"memory."
+msgstr "在隐私保护交集计算中指定哈希桶大小。较大的值消耗更多内存。"
+
+#: ../../component/comp_list.md
+msgid "Default: 1048576. Range: (0, $\\infty$)."
+msgstr "默认: 1048576. 范围: (0, $\\infty$)."
+
+#: ../../component/comp_list.md
+msgid "ecdh_curve_type"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Curve type for ECDH PSI."
+msgstr "ECDH PSI的曲线类型。"
+
+#: ../../component/comp_list.md
+msgid ""
+"Default: CURVE_FOURQ. Allowed: ['CURVE_25519', 'CURVE_FOURQ', "
+"'CURVE_SM2', 'CURVE_SECP256K1']."
+msgstr ""
+"默认: CURVE_FOURQ. 可选: ['CURVE_25519', 'CURVE_FOURQ', 'CURVE_SM2', "
+"'CURVE_SECP256K1']."
+
+#: ../../component/comp_list.md
+msgid "receiver_input"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Input for receiver"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid ""
+"Extra table attributes.(0) key - Column(s) used to join. If not provided,"
+" ids of the dataset will be used."
+msgstr "额外的表属性。(0) key - 用于连接的列。如果未提供，则将使用数据集的ID。"
+
+#: ../../component/comp_list.md
+msgid "sender_input"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Input for sender"
+msgstr "发送方的输入"
+
+#: ../../component/comp_list.md
+msgid "psi_output"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Output"
+msgstr "输出"
+
+#: ../../component/comp_list.md:410
+msgid "train_test_split"
+msgstr ""
+
+#: ../../component/comp_list.md:415
+msgid ""
+"Split datasets into random train and test subsets. Please check: https"
+"://scikit-"
+"learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html"
+msgstr ""
+"将数据集分成随机的训练和测试子集。请参阅：https://scikit-"
+"learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html"
+
+#: ../../component/comp_list.md
+msgid "train_size"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Proportion of the dataset to include in the train subset."
+msgstr "要包含在训练子集中的数据集的比例。"
+
+#: ../../component/comp_list.md
+msgid "Default: 0.75. Range: [0.0, 1.0]."
+msgstr "默认: 0.75. 范围: [0.0, 1.0]."
+
+#: ../../component/comp_list.md
+msgid "test_size"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Proportion of the dataset to include in the test subset."
+msgstr "要包含在测试子集中的数据集的比例。"
+
+#: ../../component/comp_list.md
+msgid "Default: 0.25. Range: [0.0, 1.0]."
+msgstr "默认: 0.25. 范围: [0.0, 1.0]."
+
+#: ../../component/comp_list.md
+msgid "random_state"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Specify the random seed of the shuffling."
+msgstr "指定随机种子"
+
+#: ../../component/comp_list.md
+msgid "shuffle"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Whether to shuffle the data before splitting."
+msgstr "是否在拆分之前对数据进行洗牌。"
+
+#: ../../component/comp_list.md
+msgid "Default: True."
+msgstr "默认: True."
+
+#: ../../component/comp_list.md
+msgid "train"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Output train dataset."
+msgstr "输出训练数据集"
+
+#: ../../component/comp_list.md
+msgid "test"
+msgstr ""
+
+#: ../../component/comp_list.md
+msgid "Output test dataset."
+msgstr "输出测试数据集"
+
+#: ../../component/comp_list.md:441
+msgid "stats"
+msgstr ""
+
+#: ../../component/comp_list.md:443
+msgid "ss_pearsonr"
+msgstr ""
+
+#: ../../component/comp_list.md:448
+msgid ""
+"Calculate Pearson's product-moment correlation coefficient for vertical "
+"partitioning dataset by using secret sharing. For large dataset(large "
+"than 10w samples & 200 features), recommend to use [Ring size: 128, Fxp: "
+"40] options for SPU device."
+msgstr "使用秘密共享计算垂直分区数据集的Pearson积矩相关系数。对于大型数据集（大于10万个样本和200个特征），建议使用SPU设备的[环大小：128，Fxp：40]选项。"
+
+#: ../../component/comp_list.md
+msgid ""
+"Extra table attributes.(0) feature_selects - Specify which features to "
+"calculate correlation coefficient with. If empty, all features will be "
+"used"
+msgstr "额外的表属性。(0) feature_selects - 指定要计算相关系数的特征。如果为空，将使用所有特征。"
+
+#: ../../component/comp_list.md:463
+msgid "ss_vif"
+msgstr ""
+
+#: ../../component/comp_list.md:468
+msgid ""
+"Calculate Variance Inflation Factor(VIF) for vertical partitioning "
+"dataset by using secret sharing. For large dataset(large than 10w samples"
+" & 200 features), recommend to use [Ring size: 128, Fxp: 40] options for "
+"SPU device."
+msgstr "使用秘密共享计算垂直分区数据集的方差膨胀因子（VIF）。对于大型数据集（大于10万个样本和200个特征），建议使用SPU设备的[环大小：128，Fxp：40]选项。"
+
+#: ../../component/comp_list.md
+msgid ""
+"Extra table attributes.(0) feature_selects - Specify which features to "
+"calculate VIF with. If empty, all features will be used."
+msgstr "额外的表属性。(0) feature_selects - 指定要计算VIF的特征。如果为空，将使用所有特征。"
+
+#: ../../component/comp_list.md:483
+msgid "table_statistics"
+msgstr ""
+
+#: ../../component/comp_list.md:488
+msgid ""
+"Get a table of statistics, including each column's datatype, total_count,"
+" count, count_na, min, max, var, std, sem, skewness, kurtosis, q1, q2, "
+"q3, moment_2, moment_3, moment_4, central_moment_2, central_moment_3, "
+"central_moment_4, sum, sum_2, sum_3 and sum_4. moment_2 means E[X^2]. "
+"central_moment_2 means E[(X - mean(X))^2]. sum_2 means sum(X^2)."
+msgstr ""
+"获取统计信息表，包括每列的数据类型，总数，计数，缺失值计数，最小值，最大值，方差，标准差，标准误，偏度，峰度，q1，q2，q3，moment_2，moment_3，moment_4，central_moment_2，central_moment_3，central_moment_4，总和，sum_2，sum_3和sum_4。其中，moment_2表示E[X^2]，central_moment_2表示E[(X"
+" - mean(X))^2]，sum_2表示sum(X^2)。"
+
+#: ../../component/comp_list.md
+msgid "Input data."
+msgstr "输入数据。"
+
+#~ msgid "Last update: Sun Jul  2 23:02:14 2023"
+#~ msgstr ""

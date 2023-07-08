@@ -16,10 +16,11 @@ syntax = "proto3";
 
 package secretflow.component;
 
-// Description of a SecretFlow cluster, including:
-// - version info
-// - parties: who participate in the computation.
-// - secret devices and their configs: security levels.
+// Intrinsic properties of a SecretFlow cluster, including:
+//
+// - Version info.
+// - Parties: who participate in the computation.
+// - Secret devices including  and their configs.
 message SFClusterDesc {
   // SecretFlow version.
   string sf_version = 1;
@@ -28,16 +29,37 @@ message SFClusterDesc {
   string py_version = 2;
 
   // Joined entities.
-  // e.g. [CompanyA, CompanyB]
+  // e.g. ["alice", "bob",...].
   repeated string parties = 3;
 
   // Description for a secret device.
-  // PYUs do not need to claim.
+  // - PYUs do not need to claim since they are plaintext devices.
+  // - Notes for config:
+  // At this moment, you have to provide a JSON string for different devices.
+  // We are going to formalize this part in future.
+  //   * Example SPU config:
+  //
+  // ```json
+  //   {
+  //     "runtime_config": {
+  //         "protocol": "REF2K",
+  //         "field": "FM64"
+  //     },
+  //     "link_desc": {
+  //         "connect_retry_times": 60,
+  //         "connect_retry_interval_ms": 1000,
+  //         "brpc_channel_protocol": "http",
+  //         "brpc_channel_connection_type": "pooled",
+  //         "recv_timeout_ms": 1200000,
+  //         "http_timeout_ms": 1200000
+  //     }
+  // }
+  // ```
   message DeviceDesc {
     // Name of the device.
     string name = 1;
 
-    // Supported: SPU, HEU, TEEU
+    // Supported: SPU, HEU, TEEU.
     string type = 2;
 
     // Parties of device.
@@ -51,26 +73,25 @@ message SFClusterDesc {
   repeated DeviceDesc devices = 4;
 }
 
-// A StorageConfig is the root for all data for one party.
-// For security reasons, you have to put the a JSON format of config at
-// .sf_storage file at each node for each party in production.
+// A StorageConfig specifies the root for all data for one party.
+// - At this moment, only local_fs is supported. We would support OSS, database
+// in future.
 message StorageConfig {
-  // supported: local_fs
+  // Supported: local_fs.
   string type = 1;
 
   message LocalFSConfig {
-    // working directory
+    // Working directory.
     string wd = 1;
   }
-  // local_fs
+  // local_fs config.
   LocalFSConfig local_fs = 2;
 }
 
 // Runtime Config for a SecretFlow cluster.
+// Besides intrinsic SFClusterDesc, dynamic network configs are provided.
 message SFClusterConfig {
-  // Contains addresses for a RayFed cluster.
-  // Each party should own an address.
-  // Only for production mode.
+  // Addresses for the RayFed cluster of each party.
   message RayFedConfig {
     repeated string parties = 1;
 
@@ -79,8 +100,9 @@ message SFClusterConfig {
     repeated string listen_addresses = 3;
   }
 
-  // Contains addresses for a SPU device.
+  // Contains addresses for one SPU device.
   message SPUConfig {
+    // Should match SPU name in SFClusterDesc.devices.
     string name = 1;
 
     repeated string parties = 2;
@@ -98,7 +120,7 @@ message SFClusterConfig {
   }
 
   // Different for each party.
-  // For production mode only.
+  // Private and unique to each party.
   message PrivateConfig {
     string self_party = 1;
 
@@ -107,9 +129,12 @@ message SFClusterConfig {
     StorageConfig storage_config = 3;
   }
 
+  // Intrinsic properties.
   SFClusterDesc desc = 1;
 
+  // Dynamic runtime public configs.
   PublicConfig public_config = 2;
 
+  // Dynamic runtime private configs.
   PrivateConfig private_config = 3;
 }

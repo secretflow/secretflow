@@ -1,0 +1,140 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2022 Ant Group Co., Ltd.
+# This file is distributed under the same license as the SecretFlow package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2023.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: SecretFlow \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-07-03 17:24+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.12.1\n"
+
+#: ../../tutorial/CustomDataLoaderTorch.ipynb:9
+msgid "在SecretFlow中使用自定义DataBuilder（Torch）"
+msgstr ""
+
+#: ../../tutorial/CustomDataLoaderTorch.ipynb:20
+msgid ""
+"The following codes are demos only. It’s **NOT for production** due to "
+"system security concerns, please **DO NOT** use it directly in "
+"production."
+msgstr ""
+
+#: ../../tutorial/CustomDataLoaderTorch.ipynb:31
+msgid ""
+"本教程将展示下，怎样在SecretFlow的多方安全环境中，如何使用自定义DataBuilder模式加载数据，并训练模型。 "
+"本教程将使用Flower数据集的图像分类任务来进行介绍，如何使用自定义DataBuilder完成联邦学习"
+msgstr ""
+
+#: ../../tutorial/CustomDataLoaderTorch.ipynb:43
+msgid "环境设置"
+msgstr ""
+
+#: ../../tutorial/CustomDataLoaderTorch.ipynb:109
+msgid "接口介绍"
+msgstr ""
+
+#: ../../tutorial/CustomDataLoaderTorch.ipynb:120
+msgid ""
+"我们在SecretFlow的\\ ``FLModel``\\ "
+"中支持了自定义DataBuilder的读取方式，可以方便用户根据需求更灵活的处理数据输入。 "
+"下面我们以一个例子来展示下，如何使用自定义DataBuilder来进行联邦模型训练。"
+msgstr ""
+
+#: ../../tutorial/CustomDataLoaderTorch.ipynb:131
+msgid ""
+"使用DataBuilder的步骤： 1. "
+"使用单机版本pytorch引擎进行开发，完成pytorch下构建DataLoader的DataBuilder函数。\\ "
+"*注：dataset_builder函数需要传入stage参数* 2. "
+"将各方的DataBuilder函数进行wrap，得到create_dataset_builder 3. 构造data_builder_dict "
+"[PYU,dataset_builder] 4. 将得到的data_builder_dict作为参数传入\\ ``fit``\\ 函数的\\ "
+"``dataset_builder``\\ 。此时\\ ``x``\\ "
+"参数位置传入dataset_builder中需要的输入。（eg:本例中传入的输入是实际使用的图像路径）"
+msgstr ""
+
+#: ../../tutorial/CustomDataLoaderTorch.ipynb:142
+msgid ""
+"在FLModel中使用DataBuilder需要预先定义databuilder dict。需要能够返回\\ ``tf.dataset``\\ "
+"和\\ ``steps_per_epoch``\\ 。而且各方返回的steps_per_epoch必须保持一致。"
+msgstr ""
+
+#: ../../tutorial/CustomDataLoaderTorch.ipynb:166
+msgid "下载数据"
+msgstr ""
+
+#: ../../tutorial/CustomDataLoaderTorch.ipynb:177
+msgid "Flower数据集介绍：Flower数据集是一个包含了5种花卉（郁金香、黄水仙、鸢尾花、百合、向日葵）共计4323张彩色图片的数据集。每种花卉都有多个角度和不同光照下的图片，每张图片的分辨率为320x240。这个数据集常用于图像分类和机器学习算法的训练与测试。数据集中每个类别的数量分别是：daisy（633），dandelion（898），rose（641），sunflower（699），tulip（852）"
+msgstr ""
+
+#: ../../tutorial/CustomDataLoaderTorch.ipynb:179
+msgid ""
+"下载地址: http://download.tensorflow.org/example_images/flower_photos.tgz "
+"|c317fff879674a1781bef3f5dc8d420b|"
+msgstr ""
+
+#: ../../tutorial/CustomDataLoaderTorch.ipynb:181
+msgid "flower_dataset_demo.png"
+msgstr ""
+
+#: ../../tutorial/CustomDataLoaderTorch.ipynb:194
+msgid "下载数据并解压"
+msgstr ""
+
+#: ../../tutorial/CustomDataLoaderTorch.ipynb:253
+msgid "接下来我们开始构造自定义DataBuilder"
+msgstr ""
+
+#: ../../tutorial/CustomDataLoaderTorch.ipynb:265
+msgid "1. 使用单机引擎开发DataBuilder"
+msgstr ""
+
+#: ../../tutorial/CustomDataLoaderTorch.ipynb:276
+msgid "我们在开发\\ ``DataBuilder``\\ 的时候可以自由的按照单机开发的逻辑即可。"
+msgstr ""
+
+#: ../../tutorial/CustomDataLoaderTorch.ipynb:277
+msgid "目的是构建一个\\ ``Torch``\\ 中\\ ``Dataloader``\\ 对象即可"
+msgstr ""
+
+#: ../../tutorial/CustomDataLoaderTorch.ipynb:377
+msgid "2. 将开发完成的DataBuilder进行包装(wrap)"
+msgstr ""
+
+#: ../../tutorial/CustomDataLoaderTorch.ipynb:388
+msgid "我们开发好的DataBuilder在运行是需要分发到各个执行机器上去执行，为了序列化，我们需要把他们进行wrap。"
+msgstr ""
+
+#: ../../tutorial/CustomDataLoaderTorch.ipynb:389
+msgid ""
+"需要注意的是： - FLModel要求DataBuilder的输入必须包含stage参数（stage=\"train） - "
+"FLModel要求传入的DataBuilder需要返回两个结果（data_set，steps_per_epoch）*\\*"
+msgstr ""
+
+#: ../../tutorial/CustomDataLoaderTorch.ipynb:464
+msgid "3. 构建dataset_builder_dict"
+msgstr ""
+
+#: ../../tutorial/CustomDataLoaderTorch.ipynb:500
+msgid "4. 得到dataset_builder_dict我们就可以使用它进行联邦训练了"
+msgstr ""
+
+#: ../../tutorial/CustomDataLoaderTorch.ipynb:512
+msgid "接下来我们定义一个Torch后端的FLModel来进行训练"
+msgstr ""
+
+#: ../../tutorial/CustomDataLoaderTorch.ipynb:656
+msgid "我们构造好的dataset builder的输入是图像数据集的路径，所以这里需要将输入的数据设置为一个\\ ``Dict``"
+msgstr ""
+
+#~ msgid ""
+#~ "下载地址: "
+#~ "http://download.tensorflow.org/example_images/flower_photos.tgz "
+#~ "|8520e435f258481a9344c9116e55f173|"
+#~ msgstr ""

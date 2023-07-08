@@ -59,7 +59,7 @@ ss_vif_comp.io(
 
 
 @ss_vif_comp.eval_fn
-def ss_pearsonr_eval_fn(
+def ss_vif_eval_fn(
     *,
     ctx,
     input_data,

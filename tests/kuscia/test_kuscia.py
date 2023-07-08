@@ -2,7 +2,7 @@ from secretflow.kuscia.ray_config import RayConfig
 from secretflow.kuscia.sf_config import compose_sf_cluster_config
 from secretflow.kuscia.task_config import KusicaTaskConfig
 from secretflow.protos.component.cluster_pb2 import SFClusterDesc, StorageConfig
-from secretflow.kuscia.proto.api.v1alpha1.kusciatask.kuscia_task_pb2 import (
+from kuscia.proto.api.v1alpha1.kusciatask.kuscia_task_pb2 import (
     AllocatedPorts,
     ClusterDefine,
     Party,
@@ -75,6 +75,7 @@ def test_compose_sf_cluster_config():
 
     sf_cluster_config = compose_sf_cluster_config(
         sf_cluster_desc,
+        "datamesh.local",
         kusica_task_cluster_def,
         kusica_task_allocated_ports,
         ray_config,

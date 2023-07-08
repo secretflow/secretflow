@@ -17,14 +17,11 @@ from typing import List
 
 import numpy as np
 
-from secretflow.device import PYUObject, proxy
-
 from ....core.pure_numpy_ops.boost import compute_weight_from_node_select
 
 # handle order map building for one party
 
 
-@proxy(PYUObject)
 class LeafActor:
     def __init__(self) -> None:
         self.leaf_node_selects = []

@@ -25,13 +25,13 @@ from secretflow.data import FedNdarray, PartitionWay
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import HEU, PYU, PYUObject, reveal, wait
 from secretflow.device.device.heu import HEUMoveConfig
+from secretflow.ml.boost.core.data_preprocess import validate
 
 from .core.cache.level_cache import LevelCache
 from .core.distributed_tree.distributed_tree import DistributedTree
 from .core.label_holder.label_holder import LabelHolder
 from .core.preprocessing.params import LabelHolderInfo
 from .core.preprocessing.preprocessing import validate_sgb_params_dict
-from secretflow.ml.boost.core.data_preprocess import validate
 from .core.split_tree_trainer.split_tree_trainer import SplitTreeTrainer as Worker
 from .model import SgbModel
 
@@ -268,7 +268,7 @@ class Sgb:
 
             if cur_tree_num < self.trees:
                 prev_pred = self.pred
-                self.pred = self.label_holder(lambda x, y: x + y)(
+                self.pred = self.label_holder(lambda x, y: x + np.array(y, order='F'))(
                     prev_pred, tree.predict(self.x)
                 )
                 wait([self.pred])

@@ -55,6 +55,9 @@ class VertWOESubstitutionPyuWorker:
             else:
                 condlist = list()
                 split_points = rule["split_points"]
+                # if no effective split points, we do no transformation
+                if len(split_points) == 0:
+                    continue
                 for i in range(len(split_points)):
                     if i == 0:
                         condlist.append(col_data <= split_points[i])

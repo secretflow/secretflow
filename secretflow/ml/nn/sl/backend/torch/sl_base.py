@@ -435,7 +435,7 @@ class SLBaseTorchModel(SLBaseModel):
 
         # Step4: update metrics
         for m in self.metrics_fuse:
-            if len(train_y.shape) > 1:
+            if len(train_y.shape) > 1 and train_y.shape[1] > 1:
                 m.update(y_pred, train_y.int().argmax(-1))
             else:
                 m.update(y_pred, train_y.int())
@@ -528,7 +528,7 @@ class SLBaseTorchModel(SLBaseModel):
 
         # Step 3: update metrics
         for m in self.metrics_fuse:
-            if len(eval_y.shape) > 1:
+            if len(eval_y.shape) > 1 and eval_y.shape[1] > 1:  # in case eval_y is of shape [batch_size, 1]
                 m.update(y_pred, eval_y.argmax(-1))
             else:
                 m.update(y_pred, eval_y.int())

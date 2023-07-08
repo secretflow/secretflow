@@ -27,11 +27,18 @@ We hope you enjoy these toturials from SecretFlow developers.
 
 .. toctree::
    :maxdepth: 1
+   :caption: WOE
+
+   WeightOfEvidenceEncoding
+
+.. toctree::
+   :maxdepth: 1
    :caption: SPU
 
    spu_basics
    lr_with_spu
    nn_with_spu
+   gpt2_with_spu
    numpy_with_spu
 
 .. toctree::
@@ -70,3 +77,10 @@ We hope you enjoy these toturials from SecretFlow developers.
    :caption: 培训资料
    
    practical_case_walkthrough_using_sf_with_spu
+
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Miscellaneous
+
+   GPU_check

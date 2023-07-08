@@ -12,32 +12,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from secretflow.component.ml.linear.ss_sgd import ss_sgd_predict_comp, ss_sgd_train_comp
-from secretflow.component.preprocessing.feature_filter import feature_filter_comp
-from secretflow.component.preprocessing.train_test_split import train_test_split_comp
-from secretflow.component.preprocessing.vert_woe_binning import (
+from secretflow.component.feature.vert_woe_binning import (
     vert_woe_binning_comp,
     vert_woe_substitution_comp,
 )
-from secretflow.component.psi.two_party_balanced import two_party_balanced_psi_comp
-from secretflow.component.stats.biclassification_eval import biclassification_eval_comp
-from secretflow.component.stats.pva_eval import pva_value_comp
-from secretflow.component.stats.ss_pearsonr import ss_pearsonr_comp
-from secretflow.component.stats.ss_pvalue import ss_pvalue_comp
-from secretflow.component.stats.ss_vif import ss_vif_comp
-from secretflow.component.stats.table_statistics import table_statistics_comp
-from secretflow.protos.component.cluster_pb2 import SFClusterConfig
-from secretflow.protos.component.comp_pb2 import CompListDef, ComponentDef
-from secretflow.protos.component.evaluation_pb2 import NodeEvalParam, NodeEvalResult
 from secretflow.component.ml.boost.sgb.sgb import sgb_predict_comp, sgb_train_comp
 from secretflow.component.ml.boost.ss_xgb.ss_xgb import (
     ss_xgb_predict_comp,
     ss_xgb_train_comp,
 )
+from secretflow.component.ml.eval.biclassification_eval import (
+    biclassification_eval_comp,
+)
+from secretflow.component.ml.eval.prediction_bias_eval import prediction_bias_comp
+from secretflow.component.ml.eval.ss_pvalue import ss_pvalue_comp
+from secretflow.component.ml.linear.ss_sgd import ss_sgd_predict_comp, ss_sgd_train_comp
+from secretflow.component.preprocessing.feature_filter import feature_filter_comp
+from secretflow.component.preprocessing.psi import psi_comp
+from secretflow.component.preprocessing.train_test_split import train_test_split_comp
+from secretflow.component.stats.ss_pearsonr import ss_pearsonr_comp
+from secretflow.component.stats.ss_vif import ss_vif_comp
+from secretflow.component.stats.table_statistics import table_statistics_comp
+from secretflow.protos.component.cluster_pb2 import SFClusterConfig
+from secretflow.protos.component.comp_pb2 import CompListDef, ComponentDef
+from secretflow.protos.component.evaluation_pb2 import NodeEvalParam, NodeEvalResult
 
 ALL_COMPONENTS = [
     train_test_split_comp,
-    two_party_balanced_psi_comp,
+    psi_comp,
     ss_sgd_train_comp,
     ss_sgd_predict_comp,
     feature_filter_comp,
@@ -48,14 +50,14 @@ ALL_COMPONENTS = [
     ss_pvalue_comp,
     table_statistics_comp,
     biclassification_eval_comp,
-    pva_value_comp,
+    prediction_bias_comp,
     sgb_predict_comp,
     sgb_train_comp,
     ss_xgb_predict_comp,
     ss_xgb_train_comp,
 ]
-COMP_LIST_NAME = "experimental"
-COMP_LIST_DESC = "Some experimental componments. Not production ready."
+COMP_LIST_NAME = "secretflow"
+COMP_LIST_DESC = "First-party SecretFlow components."
 COMP_LIST_VERSION = "0.0.1"
 
 

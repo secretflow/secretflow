@@ -25,7 +25,7 @@ def test_ss_vif(comp_prod_sf_cluster_config):
             os.path.join(local_fs_wd, "test_ss_vif"),
             exist_ok=True,
         )
-        ds = pd.DataFrame(x[:, :15], columns=[f'a{i}' for i in range(15)])
+        ds = pd.DataFrame(x[:, :15], columns=[f"a{i}" for i in range(15)])
         ds.to_csv(os.path.join(local_fs_wd, alice_input_path), index=False)
 
     elif self_party == "bob":
@@ -33,7 +33,7 @@ def test_ss_vif(comp_prod_sf_cluster_config):
             os.path.join(local_fs_wd, "test_ss_vif"),
             exist_ok=True,
         )
-        ds = pd.DataFrame(x[:, 15:], columns=[f'b{i}' for i in range(15)])
+        ds = pd.DataFrame(x[:, 15:], columns=[f"b{i}" for i in range(15)])
         ds.to_csv(os.path.join(local_fs_wd, bob_input_path), index=False)
 
     param = NodeEvalParam(
@@ -62,11 +62,11 @@ def test_ss_vif(comp_prod_sf_cluster_config):
     meta = VerticalTable(
         schemas=[
             TableSchema(
-                types=["f32"] * 15,
+                feature_types=["f32"] * 15,
                 features=[f"a{i}" for i in range(15)],
             ),
             TableSchema(
-                types=["f32"] * 15,
+                feature_types=["f32"] * 15,
                 features=[f"b{i}" for i in range(15)],
             ),
         ],

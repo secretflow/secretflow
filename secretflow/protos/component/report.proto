@@ -31,7 +31,7 @@ message Descriptions {
     Attribute value = 4;
   }
 
-  // Name of the group.
+  // Name of the Descriptions.
   string name = 1;
 
   string desc = 2;
@@ -57,7 +57,7 @@ message Table {
     repeated Attribute items = 3;
   }
 
-  // Name of the table
+  // Name of the Table.
   string name = 1;
 
   string desc = 2;
@@ -67,10 +67,10 @@ message Table {
   repeated Row rows = 4;
 }
 
-// A division or a section of the page
+// A division or a section of a page.
 message Div {
   message Child {
-    // supported: descriptions, table, div
+    // Supported: descriptions, table, div.
     string type = 1;
 
     Descriptions descriptions = 2;
@@ -80,7 +80,7 @@ message Div {
     Div div = 4;
   }
 
-  // Name of the Div
+  // Name of the Div.
   string name = 1;
 
   string desc = 2;
@@ -88,9 +88,9 @@ message Div {
   repeated Child children = 3;
 }
 
-// A page of report.
+// A page of a report.
 message Tab {
-  // Name of the tab.
+  // Name of the Tab.
   string name = 1;
 
   string desc = 2;
@@ -99,7 +99,7 @@ message Tab {
 }
 
 message Report {
-  // Name of the report.
+  // Name of the Report.
   string name = 1;
 
   string desc = 2;
@@ -108,6 +108,6 @@ message Report {
 
   int32 err_code = 4;
 
-  // err detail (json encoded message, structed error detail)
+  // Structed error detail (JSON encoded message).
   string err_detail = 5;
 }

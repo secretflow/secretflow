@@ -7,14 +7,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-01-16 09:47+0800\n"
+"POT-Creation-Date: 2023-07-03 17:24+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.11.0\n"
+"Generated-By: Babel 2.12.1\n"
 
 #: ../../tutorial/split_learning_gnn.ipynb:9
 msgid "Split Learning for Graph Neural Network"
@@ -35,15 +35,15 @@ msgstr "初始化"
 msgid "Create two participant alice and bob."
 msgstr "创建alice和bob两个参与方。"
 
-#: ../../tutorial/split_learning_gnn.ipynb:63
+#: ../../tutorial/split_learning_gnn.ipynb:66
 msgid "Prepare the Dataset"
 msgstr "准备数据集"
 
-#: ../../tutorial/split_learning_gnn.ipynb:75
+#: ../../tutorial/split_learning_gnn.ipynb:78
 msgid "The cora dataset"
 msgstr "Cora数据集"
 
-#: ../../tutorial/split_learning_gnn.ipynb:77
+#: ../../tutorial/split_learning_gnn.ipynb:80
 msgid ""
 "The `cora <https://linqs-data.soe.ucsc.edu/public/lbc/cora.tgz>`__ "
 "dataset has two tap-separated files: ``cora.cites`` and ``cora.content``."
@@ -51,7 +51,7 @@ msgstr ""
 "`cora <https://linqs-data.soe.ucsc.edu/public/lbc/cora.tgz>`__ "
 "数据集由两个文件组成：`cora.cites` 和 `cora.content`。"
 
-#: ../../tutorial/split_learning_gnn.ipynb:79
+#: ../../tutorial/split_learning_gnn.ipynb:82
 msgid ""
 "The ``cora.cites`` includes the citation records with two columns: "
 "cited_paper_id (target) and citing_paper_id (source)."
@@ -59,7 +59,7 @@ msgstr ""
 "`cora.cites` 包含了论文引用记录，共两列： "
 "cited_paper_id(被引用论文)和citing_paper_id（发起引用的论文）。"
 
-#: ../../tutorial/split_learning_gnn.ipynb:80
+#: ../../tutorial/split_learning_gnn.ipynb:83
 msgid ""
 "The ``cora.content`` includes the paper content records with 1,435 "
 "columns: paper_id, subject, and 1,433 binary features."
@@ -67,63 +67,63 @@ msgstr ""
 "`cora.content` 包含了论文内容记录，拥有1435列，分别是paper_id（论文id）, subject（课题）, "
 "和其他1,433二值化特征。"
 
-#: ../../tutorial/split_learning_gnn.ipynb:82
+#: ../../tutorial/split_learning_gnn.ipynb:85
 msgid ""
 "Let us use the partitioned cora dataset, which is already a built-in "
 "dataset of SecretFlow."
 msgstr "我们使用隐语内置已经切分好的cora数据集。"
 
-#: ../../tutorial/split_learning_gnn.ipynb:84
+#: ../../tutorial/split_learning_gnn.ipynb:87
 msgid "The train set includes 140 cited_paper_ids."
 msgstr "训练集包含140个论文id。"
 
-#: ../../tutorial/split_learning_gnn.ipynb:85
+#: ../../tutorial/split_learning_gnn.ipynb:88
 msgid "The test set includes 1000 cited_paper_ids."
 msgstr "测试集包含1000个论文id。"
 
-#: ../../tutorial/split_learning_gnn.ipynb:86
+#: ../../tutorial/split_learning_gnn.ipynb:89
 msgid "The valid set includes 500 cited_paper_ids."
 msgstr "验证集包含500个论文id。"
 
-#: ../../tutorial/split_learning_gnn.ipynb:98
+#: ../../tutorial/split_learning_gnn.ipynb:101
 msgid "Split the dataset"
 msgstr "切分数据集"
 
-#: ../../tutorial/split_learning_gnn.ipynb:100
+#: ../../tutorial/split_learning_gnn.ipynb:103
 msgid "Let us split the dataset for split learning."
 msgstr "对数据集进行切分。"
 
-#: ../../tutorial/split_learning_gnn.ipynb:102
+#: ../../tutorial/split_learning_gnn.ipynb:105
 msgid "Alice holds the 1~716 features, and bob holds the left."
 msgstr "alice持有前716个特征，bob持有剩余的其他特征。"
 
-#: ../../tutorial/split_learning_gnn.ipynb:103
+#: ../../tutorial/split_learning_gnn.ipynb:106
 msgid "Alice holds all label."
 msgstr "alice持有所有的标签。"
 
-#: ../../tutorial/split_learning_gnn.ipynb:104
+#: ../../tutorial/split_learning_gnn.ipynb:107
 msgid "Alice and bob hold all edges both."
 msgstr "alice和bob均持有所有的边。"
 
-#: ../../tutorial/split_learning_gnn.ipynb:261
+#: ../../tutorial/split_learning_gnn.ipynb:264
 msgid ""
 "By the way, since cora is a built-in dataset of SecretFlow, you can just "
 "run the following snippet to replace the codes above."
 msgstr "事实上，隐语已经内置好了cora数据，所以你只需要跑下面这一行代码即可获得与上面代码相同的结果。"
 
-#: ../../tutorial/split_learning_gnn.ipynb:287
+#: ../../tutorial/split_learning_gnn.ipynb:290
 msgid "Build a Graph Neural Network Model"
 msgstr "构建图神经网络模型"
 
-#: ../../tutorial/split_learning_gnn.ipynb:299
+#: ../../tutorial/split_learning_gnn.ipynb:302
 msgid "Implement a graph convolution layer"
 msgstr "实现图卷积层"
 
-#: ../../tutorial/split_learning_gnn.ipynb:505
+#: ../../tutorial/split_learning_gnn.ipynb:508
 msgid "Implement a fuse net"
 msgstr "实现fuse层"
 
-#: ../../tutorial/split_learning_gnn.ipynb:507
+#: ../../tutorial/split_learning_gnn.ipynb:510
 msgid ""
 "The fuse model is used in the party with the label. It works as follows: "
 "1. Use the concated node embeddings to generat the final node embeddings."
@@ -133,78 +133,78 @@ msgstr ""
 "Fuse模型会在持有label的一方使用，其工作原理如下： 1. 使用多个参与方拼接后的embedding生成最终的embedding。 2. "
 "使用Softmax预测分类。"
 
-#: ../../tutorial/split_learning_gnn.ipynb:588
+#: ../../tutorial/split_learning_gnn.ipynb:591
 msgid "Build the base model"
 msgstr "构建基础模型"
 
-#: ../../tutorial/split_learning_gnn.ipynb:590
+#: ../../tutorial/split_learning_gnn.ipynb:593
 msgid ""
 "The base model is used in each party to generate node embeddings. It "
 "applys one graph convolutional layer to produce node embeddings."
 msgstr "每个参与方都会使用基础模型生成embedding。基础模型使用一层图卷积层来生成embedding。"
 
-#: ../../tutorial/split_learning_gnn.ipynb:592
+#: ../../tutorial/split_learning_gnn.ipynb:595
 msgid ""
 "The node embeddings of all parties are then transfered to the party with "
 "labels for further processing."
 msgstr "所有参与方的embedding将会传输给持有标签的一方进行后续处理。"
 
-#: ../../tutorial/split_learning_gnn.ipynb:658
+#: ../../tutorial/split_learning_gnn.ipynb:661
 msgid "Build the fuse model"
 msgstr "构建fuse模型"
 
-#: ../../tutorial/split_learning_gnn.ipynb:660
+#: ../../tutorial/split_learning_gnn.ipynb:663
 msgid ""
 "The fuse model concat the node embeddings from all parties as input. It "
 "works only in the party with the label."
 msgstr "Fuse模型把所有参与方的embedding拼接在一起，该模型仅在持有标签的一方使用。"
 
-#: ../../tutorial/split_learning_gnn.ipynb:713
+#: ../../tutorial/split_learning_gnn.ipynb:716
 msgid "Train GNN model with split learning"
 msgstr "基于拆分学习训练GNN模型"
 
-#: ../../tutorial/split_learning_gnn.ipynb:715
+#: ../../tutorial/split_learning_gnn.ipynb:718
 msgid "Let us build a split learning model for training."
 msgstr "构建一个拆分学习模型。"
 
-#: ../../tutorial/split_learning_gnn.ipynb:717
+#: ../../tutorial/split_learning_gnn.ipynb:720
 msgid ""
 "Alice who has the label holds a base model and a fuse model, while bob "
 "holds a base model only."
 msgstr "alice作为持有标签的一方，将拥有基础模型和fuse模型，bob仅拥有基础模型。"
 
-#: ../../tutorial/split_learning_gnn.ipynb:719
+#: ../../tutorial/split_learning_gnn.ipynb:722
 msgid "The whole model structure is as follow"
 msgstr "完整的模型结构如下"
 
-#: ../../tutorial/split_learning_gnn.ipynb:721
-msgid "|3a1d5cb514ed4c829beea8fb159f5487|"
+#: ../../tutorial/split_learning_gnn.ipynb:724
+msgid "|ea9447886aca4e42aa0d19ede0c01474|"
 msgstr ""
 
-#: ../../tutorial/split_learning_gnn.ipynb:723
+#: ../../tutorial/split_learning_gnn.ipynb:726
 msgid "split_learning_gnn_model.png"
 msgstr ""
 
-#: ../../tutorial/split_learning_gnn.ipynb:787
+#: ../../tutorial/split_learning_gnn.ipynb:790
 msgid "Fit the model."
 msgstr "拟合模型。"
 
-#: ../../tutorial/split_learning_gnn.ipynb:1011
+#: ../../tutorial/split_learning_gnn.ipynb:1014
 msgid "Examine the GNN model predictions"
 msgstr "查看GNN模型预测效果。"
 
-#: ../../tutorial/split_learning_gnn.ipynb:1089
+#: ../../tutorial/split_learning_gnn.ipynb:1092
 msgid "Conclusion"
 msgstr "总结"
 
-#: ../../tutorial/split_learning_gnn.ipynb:1100
+#: ../../tutorial/split_learning_gnn.ipynb:1103
 msgid ""
 "In this tutorial, we demonstrate how to train graph neural network with "
 "split learning. This is a very basic implementation and there are some "
 "works we will explore in the future:"
 msgstr "本文展示了怎么使用拆分学习训练图神经网络。文中实现了一个基础的GNN示例，未来我们会进行更多探索，比如:"
 
-#: ../../tutorial/split_learning_gnn.ipynb:1102
+#: ../../tutorial/split_learning_gnn.ipynb:1105
 msgid ""
 "SGD on large graphs: in the example above, in each training step, we have"
 " to do ``prepare``, ``aggregate`` and ``update`` on whole graph, which is"
@@ -212,10 +212,12 @@ msgid ""
 "training to reduce computation and memory comsumption."
 msgstr "大规模图数据：文中示例每次训练是在全部图数据上进行，会引入较大的计算负担。我们会尝试探索诸如mini batch等方式来降低计算和内存消耗。"
 
-#: ../../tutorial/split_learning_gnn.ipynb:1103
+#: ../../tutorial/split_learning_gnn.ipynb:1106
 msgid ""
 "Partially aligned graphs: in the example above, parties must have same "
 "nodes set which may not be satisfied in real cases. We want to explore "
 "the case where all parties have common subset nodes."
 msgstr "支持部分对齐的图：示例中的图数据是假设每方的节点都是对齐一致的，但是实际中可能只有部分对齐。我们后续会探索多方仅有部分节点对齐的场景。"
 
+#~ msgid "|ab61d2ce2ccc460db3482491dfc86718|"
+#~ msgstr ""
