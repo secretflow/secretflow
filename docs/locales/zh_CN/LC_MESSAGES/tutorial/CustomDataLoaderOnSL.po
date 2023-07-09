@@ -3,7 +3,7 @@
 # This file is distributed under the same license as the SecretFlow package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2023.
 #
-#, fuzzy
+
 msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
@@ -21,14 +21,14 @@ msgstr ""
 
 #: ../../tutorial/CustomDataLoaderOnSL.ipynb:9
 msgid "Customize DataBuilder on SLModel in SecretFlow"
-msgstr "在SecretFlow中使用DataBuilder进行SLModel学习"
+msgstr "在 SecretFlow 中使用 DataBuilder 进行 SLModel 学习"
 
 #: ../../tutorial/CustomDataLoaderOnSL.ipynb:20
 msgid ""
 "The following codes are demos only. It's **NOT for production** due to "
 "system security concerns, please **DO NOT** use it directly in "
 "production."
-msgstr "下面的代码只是演示。由于系统安全问题,请不要直接在生产中使用它。"
+msgstr "下面的代码只是演示。由于系统安全问题,请**不要**直接**在生产中**使用它。"
 
 #: ../../tutorial/CustomDataLoaderOnSL.ipynb:31
 msgid ""
@@ -36,13 +36,13 @@ msgid ""
 "SecretFlow. In this tutorial, we will take DeepFM model for "
 "recommendation as an example to introduce how to customize a DataBuilder "
 "on SLModel."
-msgstr "隐语在SLModel中提供了联邦学习在垂直场景的支持，本文将以DeepFM推荐场景为例介绍下，如何在SLModel中使用自定义DataBuilder。"
+msgstr "隐语在SLModel中提供了联邦学习在垂直场景的支持，本文将以DeepFM推荐场景为例介绍，如何在SLModel中使用自定义DataBuilder。"
 
 #: ../../tutorial/CustomDataLoaderOnSL.ipynb:33
 msgid ""
 "The main goal of this tutorial is to train DeepFM to show how to "
 "customize a DataBuilder on SLModel."
-msgstr "这篇文档的主要目标是借助DeepFM训练来介绍如何在SLModel中使用自定义DataBuilder。"
+msgstr "这篇教程的主要目标是借助DeepFM训练来介绍如何在SLModel中使用自定义DataBuilder。"
 
 #: ../../tutorial/CustomDataLoaderOnSL.ipynb:35
 msgid ""
@@ -106,7 +106,7 @@ msgid ""
 "Dataset."
 msgstr "需要注意的点:""
 "我们的MovieLens数据集读取进来后会是CSV格式的，但是需要被当做稀疏特征来进行处理，所以会在DataBuilder中将每一列转成字典形式"
-"在Bob测我们将评分进行了Threshold处理成二值形式"
+"在Bob侧我们将评分进行了阈值（Threshold）处理成二值形式"
 "在DataBuilder中可以定义自定义函数，然后使用dataset.map来应用到每一列。"
 "因为垂直模式需要保证两方数据是对齐的，所以暂时只支持CSV模式"
 "CSV模式只需要返回Dataset，Dataset需要定义好Batch_size，Repeat，SLModel会根据Dataset推断Steps_per_epoch"
@@ -153,7 +153,7 @@ msgstr "开发Bob侧的DataBuilder"
 
 #: ../../tutorial/CustomDataLoaderOnSL.ipynb:1455
 msgid "2. Wrap their DataBuilders separately."
-msgstr "2. 将单方的DataBuilder 包装(wrap)起来"
+msgstr "2. 将单方的DataBuilder 包装（wrap）起来"
 
 #: ../../tutorial/CustomDataLoaderOnSL.ipynb:1529
 msgid "3. Construct a databuilder\\_dict."
@@ -161,7 +161,7 @@ msgstr "3.构造databuilder_dict"
 
 #: ../../tutorial/CustomDataLoaderOnSL.ipynb:1560
 msgid "Define DeepFM Model and run it"
-msgstr "接下来我们定义DeepFM模型，将数据跑起来"
+msgstr "接下来我们定义DeepFM模型，并且运行模型"
 
 #: ../../tutorial/CustomDataLoaderOnSL.ipynb:1572
 msgid "1. Define a DeepFM model."
@@ -169,9 +169,9 @@ msgstr "定义DeepFM模型"
 
 #: ../../tutorial/CustomDataLoaderOnSL.ipynb:1620
 msgid "2. Define Alice's basenet."
-msgstr "定义alice的basenet"
+msgstr "定义Alice的basenet"
 
 #: ../../tutorial/CustomDataLoaderOnSL.ipynb:1693
 msgid "3.Define Bob's basenet and fusenet."
-msgstr "定义bob的basenet和fusenet"
+msgstr "定义Bob的basenet和fusenet"
 
