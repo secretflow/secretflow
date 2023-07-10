@@ -1,6 +1,6 @@
 # Secure Multi-Party Computation (MPC)
 
-![](https://badgen.net/badge/:update-to/:Apr-2023/red) ![](https://badgen.net/badge/:papers/:70/blue) 
+![](https://badgen.net/badge/:update-to/:Apr-2023/red) ![](https://badgen.net/badge/:papers/:73/blue) 
 
 > "The design of scure protocols that implement arbitrarily desired functionalities is a major part of mordern cryptography."
 > -- Foundation of Cryptography, Volumn 2, Oded Goldreich.
@@ -140,7 +140,7 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   *Satrajit Ghosh, Jesper Buus Nielsen, Tobias Nilges*  
   AsiaCrypt 2017, [eprint](https://eprint.iacr.org/2017/409), GNN17
   
-- TinyOLE: Efficient actively secure two-party computation from oblivious linear function evaluation, 2017,  
+- TinyOLE: Efficient actively secure two-party computation from oblivious linear function evaluation  
   *Nico Döttling, Satrajit Ghosh, Jesper Buus Nielsen, Tobias Nilges, Roberto Trifiletti*  
   CCS 2017, [eprint](https://eprint.iacr.org/2017/790), DGNN+17
   
@@ -150,9 +150,21 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   
 ### Pseudorandom-Correlation Generator
 
+- Correlated Pseudorandomness from the Hardness of Quasi-Abelian Decoding  
+  *Maxime Bombar, Geoffroy Couteau, Alain Couvreur, Clément Ducros*  
+  Crypto 2023, [eprint](https://eprint.iacr.org/2023/845), BCCD23  
+
+- Expand-Convolute Codes for Pseudorandom Correlation Generators from LPN  
+  *Srinivasan Raghuraman, Peter Rindal, Titouan Tanguy*  
+  Crypto 2023, [eprint](https://eprint.iacr.org/2023/882), RRT23  
+
 - Correlated Pseudorandomness from Expand-Accumulate Codes  
   *Elette Boyle, Geoffroy Couteau, Niv Gilboa, Yuval Ishai, Lisa Kohl, Nicolas Resch, Peter Scholl*  
-  Crypto 2022, [eprint](https://eprint.iacr.org/2022/1014), BCG+22
+  Crypto 2022, [eprint](https://eprint.iacr.org/2022/1014), BCG+22  
+  
+- Efficient Pseudorandom Correlation Generators from Ring-LPN  
+  *Elette Boyle, Geoffroy Couteau, Niv Gilboa, Yuval Ishai, Lisa Kohl, Peter Scholl*  
+  Crypto 2020, [eprint](https://eprint.iacr.org/2022/1035), BCG+20  
 
 ### Others
 
