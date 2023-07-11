@@ -29,7 +29,7 @@ Since its invention in 1986, ZKP systems, more and more,  become building blocks
   - [Applications on ZKP systems](#applications-on-zkp-systems)
     - [For Machine Learning(Federated Learning)](#for-machine-learningfederated-learning)
     - [For Web3(Authentication)](#for-web3authentication)
-    - [ZKP With Blockchains](#zkp-with-blockchains)
+    - [For Blockchains](#for-blockchains)
     - [Signature from ZKP](#signature-from-zkp)
 
 ## Survey & Tutorial
@@ -539,7 +539,7 @@ Here just list several interesting applicaitons.
   *Michael Rosenberg, Jacob White, Christina Garman, and Ian Miers*  
   S&P 2023, [paper](https://eprint.iacr.org/2022/878), RWG+23
   
-### ZKP With Blockchains
+### For Blockchains
 
 - Zerocash: Decentralized Anonymous Payments from Bitcoin  
   *Ben Sasson, Eli, Alessandro Chiesa, Christina Garman, Matthew Green, Ian Miers, Eran Tromer, and Madars Virza*  
@@ -578,4 +578,3 @@ Here just list several interesting applicaitons.
 - Shorter signatures based on tailor-made minimalist symmetric-key crypto  
   *Christoph Dobraunig, Daniel Kales, Christian Rechberger, Markus Schofnegger, and Greg Zaverucha*  
   CCS 2022, [paper](https://dl.acm.org/doi/pdf/10.1145/3548606.3559353), DKR+21
-  
