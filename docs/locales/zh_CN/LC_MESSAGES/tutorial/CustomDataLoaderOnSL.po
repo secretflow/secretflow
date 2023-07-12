@@ -48,7 +48,7 @@ msgstr "这篇教程的主要目标是借助DeepFM训练来介绍如何在SLMode
 msgid ""
 "*If you want to learn more about related content for DeepFM model and "
 "split plans, please move to related documents for DeepFM model.*"
-msgstr "注：DeepFM相关的内容以及拆分方案，请移步DeepFM相关文档"
+msgstr "注：如果您想了解DeepFM相关的内容以及拆分方案，请移步DeepFM相关文档"
 
 #: ../../tutorial/CustomDataLoaderOnSL.ipynb:47
 msgid "Environment Setting"
@@ -64,7 +64,8 @@ msgid ""
 "accelerate.aliyuncs.com/datasets/movielens/ml-1m.zip>`__ for "
 "introduction. MovieLens is an open recommendation system dataset that "
 "contains movie ratings and movie metadata information."
-msgstr "我们这里将使用最经典的MovieLens数据集来进行演示。MovieLens是一个开放式的推荐系统数据集，包含了电影评分和电影元数据信息。"
+msgstr "我们这里将使用经典的MovieLens数据集<https://secretflow-data.oss-"
+"accelerate.aliyuncs.com/datasets/movielens/ml-1m.zip>来进行演示。MovieLens是一个开放式的推荐系统数据集，包含了电影评分和电影元数据信息。"
 
 #: ../../tutorial/CustomDataLoaderOnSL.ipynb:177
 msgid ""
