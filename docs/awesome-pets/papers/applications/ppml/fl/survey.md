@@ -16,10 +16,16 @@
 
 - [Vulnerabilities in Federated Learning](https://www.semanticscholar.org/paper/Vulnerabilities-in-Federated-Learning-Bouacida-Mohapatra/4eb8c7023c57f76d5e2401c033e7e2769be03a79)
 
+- [How to Backdoor Federated Learning](http://proceedings.mlr.press/v108/bagdasaryan20a/bagdasaryan20a.pdf)
+
 ## Personalization
 - [Survey of Personalization Techniques for Federated Learning. 2020-03-19](https://arxiv.org/pdf/2003.08673.pdf)
+
+- [Towards Personalized Federated Learning](https://ieeexplore.ieee.org/abstract/document/9743558)
+
 ## Aggregation
 - [Emerging Trends in Federated Learning: From Model Fusion to Federated X Learning](https://arxiv.org/pdf/2102.12920.pdf)
+
 ## Applications
 - [A Survey on Federated Learning and its Applications for Accelerating Industrial Internet of Things](https://arxiv.org/abs/2104.10501)
 
