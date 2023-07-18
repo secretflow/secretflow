@@ -116,6 +116,10 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   *Pedro Branco, Nico Do ̈ttling, Paulo Mateus*  
   PKC 2022, [eprint](https://eprint.iacr.org/2020/635), BDM22
 
+- Moz$`\mathbb{Z}_{2^k}`$ arella: Efficient Vector-OLE and Zero-Knowledge Proofs Over $`\mathbb{Z}_{2^k}`$  
+  *Carsten Baum, Lennart Braun, Alexander Munch-Hansen, and Peter Scholl*  
+  Crypto 2022, [eprint](https://eprint.iacr.org/2022/819.pdf), BBMS22
+
 - Correlated Pseudorandomness from Expand-Accumulate Codes  
   *Elette Boyle, Geoffroy Couteau, Niv Gilboa, Yuval Ishai, Lisa Kohl, Nicolas Resch, Peter Scholl*  
   Crypto 2022, [eprint](https://eprint.iacr.org/2022/1014), BCG+22
