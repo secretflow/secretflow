@@ -103,7 +103,7 @@ msgstr "加载 npy 文件"
 msgid ""
 "Loading ``npy`` is straightforward. Simply call the load interface, and "
 "the results will be a standard FedNdarray object."
-msgstr "加载 npy 就很直接了，直接调用 load 接口读取出来就是一个标准的 FedNdarray 对象"
+msgstr "加载 npy 就很直接了，只要调用 load 接口读取出来就是一个标准的 FedNdarray 对象"
 
 #: ../../tutorial/FedNdarrayDataLoader.ipynb:484
 msgid "How can I convert my existing data into a FedNdarray for further reading?"
