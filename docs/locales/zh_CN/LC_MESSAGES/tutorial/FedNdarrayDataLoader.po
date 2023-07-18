@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-06-05 16:25+0800\n"
+"POT-Creation-Date: 2023-07-18 16:54+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,8 +18,8 @@ msgstr ""
 "Generated-By: Babel 2.12.1\n"
 
 #: ../../tutorial/FedNdarrayDataLoader.ipynb:9
-msgid "在SecretFlow中加载Numpy数据"
-msgstr ""
+msgid "Load Numpy data in SecretFlow"
+msgstr "在 SecretFlow 中加载 Numpy 数据"
 
 #: ../../tutorial/FedNdarrayDataLoader.ipynb:20
 msgid ""
@@ -29,101 +29,211 @@ msgid ""
 msgstr ""
 
 #: ../../tutorial/FedNdarrayDataLoader.ipynb:31
-msgid "本教程将展示下，怎样在SecretFlow的多方安全环境中加载numpy数据。"
-msgstr ""
+msgid ""
+"This tutorial will demonstrate how to load Numpy data in a multi-party "
+"secure environment using SecretFlow."
+msgstr "本教程将展示下，怎样在 SecretFlow 的多方安全环境中加载 numpy 数据。"
 
 #: ../../tutorial/FedNdarrayDataLoader.ipynb:32
-msgid "SecretFlow支持\\ ``npy``\\ ，\\ ``npz``\\ 多种格式，接口封装和\\ ``numpy``\\ 保持一致"
-msgstr ""
+msgid ""
+"SecretFlow supports multiple formats, including ``.npy`` and ``.npz``, "
+"and its interface is designed to be compatible with ``numpy``."
+msgstr "SecretFlow支持	`npy`，`npz` 多种格式，接口封装和 `numpy` 保持一致"
 
 #: ../../tutorial/FedNdarrayDataLoader.ipynb:44
-msgid "环境设置"
-msgstr ""
+msgid "Environment Configuration"
+msgstr "环境设置"
 
-#: ../../tutorial/FedNdarrayDataLoader.ipynb:107
-msgid "接口介绍"
-msgstr ""
+#: ../../tutorial/FedNdarrayDataLoader.ipynb:110
+msgid "Interface Introduction"
+msgstr "接口介绍"
 
-#: ../../tutorial/FedNdarrayDataLoader.ipynb:118
+#: ../../tutorial/FedNdarrayDataLoader.ipynb:121
 msgid ""
-"我们在SecretFlow中提供了类似于\\ ``numpy.load``\\ 的接口\\ "
-"``secretflow.data.ndarray.load``\\ 来将各方数据的\\ ``ndarray``\\ 读取成为一个联邦概念的数据。"
-msgstr ""
+"In SecretFlow, we provide an interface similar to ``numpy.load`` called "
+"``secretflow.load.ndarray.load`` to load ndarray data from multiple "
+"parties and convert it into a federated representation."
+msgstr "我们在 SecretFlow 中提供了类似于 `numpy.load` 的接口 `secretflow.data.ndarray.load` 来将各方数据的 ndarray 读取成为一个联邦概念的数据。"
 
-#: ../../tutorial/FedNdarrayDataLoader.ipynb:120
-msgid "通过secretflow.data.load可以读取多方的numpy文件，构成一个\\ ``FedNdarray``"
-msgstr ""
-
-#: ../../tutorial/FedNdarrayDataLoader.ipynb:122
+#: ../../tutorial/FedNdarrayDataLoader.ipynb:123
 msgid ""
-"接口介绍：\\ `secretflow.data.load "
+"Using ``secretflow.data.load``, you can read numpy files from multiple "
+"parties and create a ``FedNdarray`` object."
+msgstr "通过 `secretflow.data.load` 可以读取多方的 numpy 文件，构成一个 `FedNdarray`"
+
+#: ../../tutorial/FedNdarrayDataLoader.ipynb:125
+msgid ""
+"Interface Introduction：\\ `secretflow.data.load "
 "<https://www.secretflow.org.cn/docs/secretflow/en/source/secretflow.data.html#secretflow.data.ndarray.load>`__"
 msgstr ""
+"接口介绍：\\ `secretflow.data.load "
+"<https://www.secretflow.org.cn/docs/secretflow/en/source/secretflow.data.html#secretflow.data.ndarray.load>`__"
 
-#: ../../tutorial/FedNdarrayDataLoader.ipynb:134
-msgid "数据下载与分割"
-msgstr ""
+#: ../../tutorial/FedNdarrayDataLoader.ipynb:137
+msgid "Data Download and Splitting"
+msgstr "数据下载与分割"
 
-#: ../../tutorial/FedNdarrayDataLoader.ipynb:194
-msgid "对数据进行拆分"
-msgstr ""
+#: ../../tutorial/FedNdarrayDataLoader.ipynb:197
+msgid "Data Splitting"
+msgstr "对数据进行分割"
 
-#: ../../tutorial/FedNdarrayDataLoader.ipynb:223
-msgid "分别保存成npz格式文件"
-msgstr ""
+#: ../../tutorial/FedNdarrayDataLoader.ipynb:226
+msgid "Saving separately as npz format files"
+msgstr "分别保存为 `npz` 格式文件"
 
-#: ../../tutorial/FedNdarrayDataLoader.ipynb:245
-msgid "将alice和bob的train_x保存成npy格式。方便后文npy格式读取使用"
-msgstr ""
+#: ../../tutorial/FedNdarrayDataLoader.ipynb:248
+msgid ""
+"Saving ``tarin_x`` from Alice and Bob as npy format for convenient future"
+" reading."
+msgstr "将 alice 和 bob 的 `train_x` 保存成 `npy` 格式。方便后文 `npy` 格式读取使用"
 
-#: ../../tutorial/FedNdarrayDataLoader.ipynb:268
-msgid "加载npz文件"
-msgstr ""
+#: ../../tutorial/FedNdarrayDataLoader.ipynb:271
+msgid "Loading npz files"
+msgstr "加载 npz 文件"
 
-#: ../../tutorial/FedNdarrayDataLoader.ipynb:355
-msgid "FedNpz的每一个value是是FedNdarray"
-msgstr ""
+#: ../../tutorial/FedNdarrayDataLoader.ipynb:358
+msgid "In FedNpz, each value represents a FedNdarray."
+msgstr "FedNpz 的每一个 value 是 FedNdarray"
 
-#: ../../tutorial/FedNdarrayDataLoader.ipynb:402
-msgid "加载npy文件"
-msgstr ""
+#: ../../tutorial/FedNdarrayDataLoader.ipynb:405
+msgid "Loading npy files"
+msgstr "加载 npy 文件"
 
-#: ../../tutorial/FedNdarrayDataLoader.ipynb:413
-msgid "加载npy就很简单了，直接调用load接口读取出来就是一个标准的FedNdarray对象"
-msgstr ""
+#: ../../tutorial/FedNdarrayDataLoader.ipynb:416
+msgid ""
+"Loading ``npy`` is straightforward. Simply call the load interface, and "
+"the results will be a standard FedNdarray object."
+msgstr "加载 npy 就很简单了，直接调用 load 接口读取出来就是一个标准的 FedNdarray 对象"
 
-#: ../../tutorial/FedNdarrayDataLoader.ipynb:481
-msgid "应该怎样将我已有的数据转成FedNdarray再进行读取？"
-msgstr ""
+#: ../../tutorial/FedNdarrayDataLoader.ipynb:484
+msgid "How can I convert my existing data into a FedNdarray for further reading?"
+msgstr "应该怎样将我已有的数据转成 FedNdarray 再进行读取？"
 
-#: ../../tutorial/FedNdarrayDataLoader.ipynb:492
-msgid "那我们怎么样将其他类型的数据转成FedNdarray 数据呢？"
-msgstr ""
+#: ../../tutorial/FedNdarrayDataLoader.ipynb:495
+msgid "How can we convert other types of data into FedNdarray data?"
+msgstr "那我们怎么样将其他类型的数据转成 FedNdarray 数据呢？"
 
-#: ../../tutorial/FedNdarrayDataLoader.ipynb:493
-msgid "比如我有一个图像数据集，语音数据集，我该怎么样通过FedNdarray将数据传入联邦模型"
-msgstr ""
+#: ../../tutorial/FedNdarrayDataLoader.ipynb:496
+msgid ""
+"If we have an image dataset or a speech dataset, how can we pass the data"
+" into a federated model using FedNdarray?"
+msgstr "比如我有一个图像数据集，语音数据集，我该怎么样通过 FedNdarray 将数据传入联邦模型"
 
-#: ../../tutorial/FedNdarrayDataLoader.ipynb:494
-msgid "我们这里以花卉分类数据集Flower来举个例子"
-msgstr ""
+#: ../../tutorial/FedNdarrayDataLoader.ipynb:497
+msgid ""
+"Let’s take the Flower dataset as an example to demonstrate how to pass "
+"the data into a federated model using FedNdarray."
+msgstr "我们这里以花卉分类数据集 Flower 来举个例子"
 
-#: ../../tutorial/FedNdarrayDataLoader.ipynb:589
-msgid "下载解压后根目录存在 Root = “flower_photos”"
-msgstr ""
+#: ../../tutorial/FedNdarrayDataLoader.ipynb:592
+msgid ""
+"After downloading and extracting the dataset, if the root directory is "
+"named “flower_photos”, you can set Root = “flower_photos”."
+msgstr "下载解压后根目录存在 Root = \"flower_photos\""
 
-#: ../../tutorial/FedNdarrayDataLoader.ipynb:682
-msgid "得到需要的NPZ之后，使用上面介绍过的Load函数读取成FedNdarray，输入到模型中即可开始训练"
-msgstr ""
+#: ../../tutorial/FedNdarrayDataLoader.ipynb:685
+msgid ""
+"Once you have obtained the required ``npz`` files, use the previously "
+"mentioned load function to read them into FedNdarray form at. Then, input"
+" them into the model to begin training."
+msgstr "得到需要的 NPZ 之后，使用上面介绍过的 Load 函数读取成 FedNdarray，输入到模型中即可开始训练"
 
-#: ../../tutorial/FedNdarrayDataLoader.ipynb:787
-msgid "小建议"
-msgstr ""
+#: ../../tutorial/FedNdarrayDataLoader.ipynb:790
+msgid "Tips"
+msgstr "小建议"
 
-#: ../../tutorial/FedNdarrayDataLoader.ipynb:798
-msgid "建议将数据转为ndarray类型之后，使用单机版训练引擎进行测试，检查数据格式是否正确匹配模型。然后再使用隐语的联邦框架进行测试，可以提高排查效率."
-msgstr ""
+#: ../../tutorial/FedNdarrayDataLoader.ipynb:801
+msgid ""
+"It is recommended to test the data after converting it to the ndarray "
+"type using a single-machine training engine to verify if the data format "
+"matches the model correctly. Then, you can proceed to test it using the "
+"SecretFlow federated framework, which can improve the efficiency of "
+"troubleshooting."
+msgstr "建议将数据转为 ndarray 类型之后，使用单机版训练引擎进行测试，检查数据格式是否正确匹配模型。然后再使用隐语的联邦框架进行测试，可以提高排查效率."
 
-#: ../../tutorial/FedNdarrayDataLoader.ipynb:799
-msgid "*注意：在使用图像数据集是要注意维度排列*"
-msgstr ""
+#: ../../tutorial/FedNdarrayDataLoader.ipynb:802
+msgid ""
+"*Note: When using image datasets, it is important to pay attention to the"
+" dimension ordering.*"
+msgstr "*注意：*在使用图像数据集是要注意维度排列"
+
+#~ msgid "在SecretFlow中加载Numpy数据"
+#~ msgstr ""
+
+#~ msgid "本教程将展示下，怎样在SecretFlow的多方安全环境中加载numpy数据。"
+#~ msgstr ""
+
+#~ msgid "SecretFlow支持\\ ``npy``\\ ，\\ ``npz``\\ 多种格式，接口封装和\\ ``numpy``\\ 保持一致"
+#~ msgstr ""
+
+#~ msgid "环境设置"
+#~ msgstr ""
+
+#~ msgid "接口介绍"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "我们在SecretFlow中提供了类似于\\ ``numpy.load``\\ 的接口\\ "
+#~ "``secretflow.data.ndarray.load``\\ 来将各方数据的\\ ``ndarray``\\"
+#~ " 读取成为一个联邦概念的数据。"
+#~ msgstr ""
+
+#~ msgid "通过secretflow.data.load可以读取多方的numpy文件，构成一个\\ ``FedNdarray``"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "接口介绍：\\ `secretflow.data.load "
+#~ "<https://www.secretflow.org.cn/docs/secretflow/en/source/secretflow.data.html#secretflow.data.ndarray.load>`__"
+#~ msgstr ""
+
+#~ msgid "数据下载与分割"
+#~ msgstr ""
+
+#~ msgid "对数据进行拆分"
+#~ msgstr ""
+
+#~ msgid "分别保存成npz格式文件"
+#~ msgstr ""
+
+#~ msgid "将alice和bob的train_x保存成npy格式。方便后文npy格式读取使用"
+#~ msgstr ""
+
+#~ msgid "加载npz文件"
+#~ msgstr ""
+
+#~ msgid "FedNpz的每一个value是是FedNdarray"
+#~ msgstr ""
+
+#~ msgid "加载npy文件"
+#~ msgstr ""
+
+#~ msgid "加载npy就很简单了，直接调用load接口读取出来就是一个标准的FedNdarray对象"
+#~ msgstr ""
+
+#~ msgid "应该怎样将我已有的数据转成FedNdarray再进行读取？"
+#~ msgstr ""
+
+#~ msgid "那我们怎么样将其他类型的数据转成FedNdarray 数据呢？"
+#~ msgstr ""
+
+#~ msgid "比如我有一个图像数据集，语音数据集，我该怎么样通过FedNdarray将数据传入联邦模型"
+#~ msgstr ""
+
+#~ msgid "我们这里以花卉分类数据集Flower来举个例子"
+#~ msgstr ""
+
+#~ msgid "下载解压后根目录存在 Root = “flower_photos”"
+#~ msgstr ""
+
+#~ msgid "得到需要的NPZ之后，使用上面介绍过的Load函数读取成FedNdarray，输入到模型中即可开始训练"
+#~ msgstr ""
+
+#~ msgid "小建议"
+#~ msgstr ""
+
+#~ msgid "建议将数据转为ndarray类型之后，使用单机版训练引擎进行测试，检查数据格式是否正确匹配模型。然后再使用隐语的联邦框架进行测试，可以提高排查效率."
+#~ msgstr ""
+
+#~ msgid "*注意：在使用图像数据集是要注意维度排列*"
+#~ msgstr ""
+
