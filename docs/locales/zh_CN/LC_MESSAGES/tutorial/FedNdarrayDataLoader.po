@@ -34,7 +34,7 @@ msgid ""
 "secure environment using SecretFlow. SecretFlow supports multiple "
 "formats, including ``.npy`` and ``.npz``, and its interface is designed "
 "to be compatible with ``numpy``"
-msgstr "本教程将展示下，怎样在 SecretFlow 的多方安全环境中加载 Numpy 数据。"
+msgstr "本教程将展示如何在 SecretFlow 的多方安全环境中加载 Numpy 数据。"
 
 #: ../../tutorial/FedNdarrayDataLoader.ipynb:43
 msgid "Environment Configuration"
