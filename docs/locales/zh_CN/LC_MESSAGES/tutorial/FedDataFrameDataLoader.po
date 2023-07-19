@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-07-03 17:24+0800\n"
+"POT-Creation-Date: 2023-07-19 22:21+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -25,10 +25,12 @@ msgid ""
 "The following codes are demos only. It’s **NOT for production** due to "
 "system security concerns, please **DO NOT** use it directly in "
 "production."
-msgstr "下面的代码只是示例，由于系统安全问题，**请勿在**生产环境中直接使用。"
+msgstr "下面的代码只是示例，由于系统安全问题，**请勿在** 生产环境中直接使用。"
 
 #: ../../tutorial/FedDataFrameDataLoader.ipynb:31
-msgid "This tutorial will demonstrate, through several examples, how to load CSV data in SecretFlow and utilize it for data processing and modeling."
+msgid ""
+"This tutorial will demonstrate, through several examples, how to load CSV"
+" data in SecretFlow and utilize it for data processing and modeling."
 msgstr "这篇教程会通过几个示例来展示，如何在SecretFlow中加载CSV数据，进而可以利用SecretFlow进行数据处理，建模。"
 
 #: ../../tutorial/FedDataFrameDataLoader.ipynb:43
@@ -40,98 +42,140 @@ msgid "Introduction to the interface"
 msgstr "接口介绍"
 
 #: ../../tutorial/FedDataFrameDataLoader.ipynb:120
-msgid "In SecretFlow, we provide an interface similar to\\ ``pandas.read_csv``\\ to read CSV data from different parties and unify it into a federated concept of data."
+msgid ""
+"In SecretFlow, we provide an interface similar to ``pandas.read_csv`` to "
+"read CSV data from different parties and unify it into a federated "
+"concept of data."
 msgstr ""
 "我们在SecretFlow中提供了类似于\\ ``pandas.read_csv``\\ "
 "的接口来将各方数据的CSV读取成为一个联邦概念的统一的数据。"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:121
-msgid ""
-"- For horizontal scenarios, there is\\ ``secretflow.horizontal.read_csv``  `API "
-"<https://www.secretflow.org.cn/docs/secretflow/en/source/secretflow.data.horizontal.html#secretflow.data.horizontal.read_csv>`__\\"
-" available."
-msgstr ""
-"- 对于水平场景有\\ ``secretflow.horizontal.read_csv`` `API "
-"<https://www.secretflow.org.cn/docs/secretflow/en/source/secretflow.data.horizontal.html#secretflow.data.horizontal.read_csv>`__\\"
-" 。"
-
 #: ../../tutorial/FedDataFrameDataLoader.ipynb:122
 msgid ""
-"- For horizontal scenarios, there is\\ ``secretflow.vertical.read_csv`` `API "
-"<https://www.secretflow.org.cn/docs/secretflow/en/source/secretflow.data.horizontal.html#secretflow.data.vertical.read_csv>`__\\"
+"For horizontal scenarios, there is ``secretflow.horizontal.read_csv`` "
+"`API "
+"<https://www.secretflow.org.cn/docs/secretflow/en/source/secretflow.data.horizontal.html#secretflow.data.horizontal.read_csv>`__"
 " available."
 msgstr ""
-"- 对于垂直场景有\\ ``secretflow.vertical.read_csv`` `API "
-"<https://www.secretflow.org.cn/docs/secretflow/en/source/secretflow.data.horizontal.html#secretflow.data.vertical.read_csv>`__\\"
+"对于水平场景有 ``secretflow.horizontal.read_csv`` "
+"`API <https://www.secretflow.org.cn/docs/secretflow/en/source/secretflow.data.horizontal.html#secretflow.data.horizontal.read_csv>`__"
 " 。"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:124
-msgid "By using\\ ``read_csv``\\, you can read CSV files from multiple parties and create a FedDataFrame."
-msgstr "通过read_csv可以读取多方的csv文件，构成一个FedDataFrame"
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:123
+msgid ""
+"For horizontal scenarios, there is ``secretflow.vertical.read_csv`` `API "
+"<https://www.secretflow.org.cn/docs/secretflow/en/source/secretflow.data.horizontal.html#secretflow.data.vertical.read_csv>`__"
+" available."
+msgstr ""
+"对于垂直场景有 ``secretflow.vertical.read_csv`` "
+"`API <https://www.secretflow.org.cn/docs/secretflow/en/source/secretflow.data.horizontal.html#secretflow.data.vertical.read_csv>`__"
+" 。"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:135
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:125
+msgid ""
+"By using ``read_csv``, you can read CSV files from multiple parties and "
+"create a FedDataFrame."
+msgstr "通过read_csv可以读取多方的csv文件，构成一个FedDataFrame。"
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:136
 msgid "**Build Federated Table**"
 msgstr "**构建联邦表**"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:136
-msgid ""
-"A federated table is a virtual concept that spans multiple parties. 1. Data from each party in the federated table is stored locally and is not allowed to leave the domain. 2. Except for the party that owns the data, no one else can access the data storage. 3. Any operation on the federated table is scheduled by the Driver to each Worker, and the execution instructions are passed layer by layer until they reach the Python Runtime of the specific Worker that owns the data. The framework ensures that data can only be operated on when the Worker.device and Object.device are the same. 4. The federated table is designed to manage and manipulate multi-party data from a central perspective. 5. The interface aligns with\\ ``pandas.DataFrame``\\ to reduce the cost of multi-party data operations."
-msgstr ""
-"联邦表是一个跨多方的虚拟概念 1. 联邦表中各方的数据存储在本地，不允许出域。 2. 除了拥有数据的一方之外，没有人可以访问数据存储。 3. "
-"联邦表的任何操作都会由Driver调度给每个Worker，执行指令会逐层传递，直到特定拥有数据的Worker的Python Runtime。 "
-"框架确保只有 Worker.device 和 Object.device相同的时候才能够操作数据。 4. 联合表旨在从中心角度管理和操作多方数据 "
-"5. 接口方面和\\ ``pandas.DataFrame``\\ 对齐，以降低多方数据操作的成本"
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:137
+msgid "A federated table is a virtual concept that spans multiple parties."
+msgstr "联邦表是一个跨多方的虚拟概念。"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:138
-msgid "|3605a0d12393411da79e5c2e47f100c7|"
-msgstr ""
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:139
+msgid ""
+"Data from each party in the federated table is stored locally and is not "
+"allowed to leave the domain."
+msgstr "联邦表中各方的数据存储在本地，不允许出域。"
 
 #: ../../tutorial/FedDataFrameDataLoader.ipynb:140
+msgid ""
+"Except for the party that owns the data, no one else can access the data "
+"storage."
+msgstr "除了拥有数据的一方之外，没有人可以访问数据存储。"
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:141
+msgid ""
+"Any operation on the federated table is scheduled by the Driver to each "
+"Worker, and the execution instructions are passed layer by layer until "
+"they reach the Python Runtime of the specific Worker that owns the data. "
+"The framework ensures that data can only be operated on when the "
+"Worker.device and Object.device are the same."
+msgstr ""
+"联邦表的任何操作都会由Driver调度给每个Worker，执行指令会逐层传递，直到特定拥有数据的Worker的Python Runtime。 "
+"框架确保只有 Worker.device 和 Object.device相同的时候才能够操作数据。"
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:142
+msgid ""
+"The federated table is designed to manage and manipulate multi-party data"
+" from a central perspective."
+msgstr "联合表旨在从中心角度管理和操作多方数据"
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:143
+msgid ""
+"The interface aligns with ``pandas.DataFrame`` to reduce the cost of "
+"multi-party data operations."
+msgstr "接口方面和`pandas.DataFrame` 对齐，以降低多方数据操作的成本。"
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:145
+msgid "|b4e593b315f549a8a1e7ebdcfe39c03a|"
+msgstr ""
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:147
 msgid "vdataframe.png"
 msgstr ""
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:153
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:160
 msgid "Data Download and Splitting"
 msgstr "数据下载，分割"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:259
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:266
 msgid "Save horizontally split DataFrame as CSV files separately."
-msgstr "将水平拆分后的dataframe分别保存成csv"
+msgstr "将水平拆分后的dataframe分别保存成csv。"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:297
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:304
 msgid "Save vertically split DataFrame as CSV files separately."
-msgstr "将垂直拆分后的dataframe分别保存成csv"
+msgstr "将垂直拆分后的dataframe分别保存成csv。"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:323
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:330
 msgid "Loading CSV Data Example for Horizontal Scenario"
 msgstr "接下来我们以水平为例介绍如何加载csv数据"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:347
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:354
 msgid ""
-"First, prepare the CSV data files for two parties. In a horizontal scenario, it is required that the schema of the data from both parties is consistent. - Alice: datapath (the local path accessible on Alice's machine)"
-"- Bob: datapath (the local path accessible on Bob's machine)"
+"First, prepare the CSV data files for two parties. In a horizontal "
+"scenario, it is required that the schema of the data from both parties is"
+" consistent."
+msgstr "首先准备好两方的数据csv文件,水平场景要求两方的schema是一致的。"
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:356
+msgid "Alice: datapath (the local path accessible on Alice’s machine)"
+msgstr "Alice: datapath (alice机器能访问到的本地路径)"
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:357
+msgid "Bob: datapath (the local path accessible on Bob’s machine)"
+msgstr "Bob: datapath (bob机器能访问到的本地路径)"
+
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:368
+msgid ""
+"In a horizontal scenario, since the data with the same schema is "
+"distributed across multiple parties, cross-domain computation is required"
+" for certain DataFrame operations. The ``read_csv`` interface requires "
+"the specification of an ``aggregator`` and a ``comparator``. We can "
+"specify a ``secure aggregator`` and a ``secure comparator`` during "
+"computation to protect data privacy."
 msgstr ""
-"首先准备好两方的数据csv文件,水平场景要求两方的schema是一致的 - Alice: datapath (alice机器能访问到的本地路径) "
-"- Bob: datapath (bob机器能访问到的本地路径)"
+"因为水平场景相同schema的数据分布在多方，所以在进行一些dataframe操作的时候需要跨域计算。read_csv接口需要传入\\ "
+"``aggregator``\\ 和\\ ``comparator``,我们可以在计算的时候指定\\ ``安全聚合器``\\ 和\\ "
+"``安全比较器``\\ 来对数据隐私进行保护。"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:358
-msgid "In a horizontal scenario, since the data with the same schema is distributed across multiple parties, cross-domain computation is required for certain DataFrame operations."
-msgstr "因为水平场景相同schema的数据分布在多方，所以在进行一些dataframe操作的时候需要跨域计算。"
-
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:359
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:432
 msgid ""
-"The\\ ``read_csv``\\ interface requires the specification of an\\ ``aggregator``\\ and a\\ ``comparator`\\ . We can specify a\\ ``secure aggregator``\\ and a\\ ``secure comparator``\\ during computation to protect data privacy."
-msgstr ""
-"read_csv接口需要传入\\ ``aggregator``\\ 和\\ ``comparator``,我们可以在计算的时候指定\\ "
-"``安全聚合器``\\ 和\\ ``安全比较器``\\ 来对数据隐私进行保护"
-
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:423
-msgid "The resulting\\ ``hdf``\\ is a FedDataFrame, and we can now perform some data processing on it."
-msgstr "得到的\\ ``hdf``\\ 是一个FedDataframe，我们接下来可以对他做一些数据处理"
-
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:424
-msgid ""
-"For reference,\\ `Data Preprocessing with FedDataFrame"
+"The resulting hdf is a FedDataFrame, and we can now perform some data "
+"processing on it. For reference, `Data Preprocessing with FedDataFrame "
 "<https://www.secretflow.org.cn/docs/secretflow/en/tutorial/data_preprocessing_with_data_frame.html>`__\\"
 " ："
 msgstr ""
@@ -139,61 +183,218 @@ msgstr ""
 "<https://www.secretflow.org.cn/docs/secretflow/en/tutorial/data_preprocessing_with_data_frame.html>`__\\"
 " ："
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:446
-msgid "The obtained\\ ``data``\\ and\\ ``label``\\ can be inputted into FLModel or SLModel for modeling purposes."
-msgstr "得到的\\ ``data``\\ 和\\ ``label``\\ 即可以作为输入传入FLModel或者SLModel进行建模"
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:454
+msgid ""
+"The obtained ``data`` and ``label`` can be inputted into FLModel or "
+"SLModel for modeling purposes."
+msgstr "得到的\\ ``data``\\ 和\\ ``label``\\ 即可以作为输入传入FLModel或者SLModel进行建模。"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:457
-msgid "SecretFlow provides\\ ``train_test_split``\\ to split data."
-msgstr "隐语提供了train_test_split可以对数据进行拆分"
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:465
+msgid "SecretFlow provides ``train_test_split`` to split data."
+msgstr "隐语提供了train_test_split可以对数据进行拆分。"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:513
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:521
 msgid "Loading CSV Data Example for Vertical Scenario"
 msgstr "接下来我们以垂直为例介绍如何加载csv数据"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:524
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:532
 msgid ""
-"First, prepare the CSV data files for two parties. In a vertical scenario, it is not required that the schema of the data from both parties is consistent. We provide the ability of PSI in the\\ ``read_csv``\\ interface."
-"Alice: datapath (The local path accessible on Alice's machine)"
+"First, prepare the CSV data files for two parties. In a vertical "
+"scenario, it is not required that the schema of the data from both "
+"parties is consistent. We provide the ability of PSI in the ``read_csv`` "
+"interface."
+msgstr "首先准备好两方的数据csv文件,垂直场景两方数据并不强制要求对齐，我们在\\ ``read_csv``\\ 接口中提供了PSI的能力。 "
 
-msgstr ""
-"首先准备好两方的数据csv文件,垂直场景两方数据并不强制要求对齐，我们在\\ ``read_csv``\\ 接口中提供了PSI的能力。 "
-"Alice: datapath (alice机器能访问到的本地路径)"
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:534
+msgid "Alice: datapath (The local path accessible on Alice’s machine)"
+msgstr "Alice: datapath (alice机器能访问到的本地路径)"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:525
-msgid "Bob: datapath (The local path accessible on Bob's machine)"
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:535
+msgid "Bob: datapath (The local path accessible on Bob’s machine)"
 msgstr "Bob: datapath (bob机器能访问到的本地路径)"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:536
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:546
 msgid ""
-"In a vertical scenario, the schema of the data from both parties is not consistent, but each party has all the data of each column. No comparator or aggregator is required. However, the data of each party is not necessarily aligned, and we need to align the data through\\ ``PSI``\\ when reading."
+"In a vertical scenario, the schema of the data from both parties is not "
+"consistent, but each party has all the data of each column. No comparator"
+" or aggregator is required. However, the data of each party is not "
+"necessarily aligned, and we need to align the data through ``PSI`` when "
+"reading."
 msgstr ""
 "垂直场景是各方的schema不同，但是每一方都拥有每一个column的全部数据。不再需要比较器和聚合器。但是各方数据不一定是对齐的，我们需要在读取时候通过\\"
 " ``PSI``\\ 来进行数据对齐。"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:538
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:548
 msgid "path_dict: data path"
 msgstr "path_dict：数据路径"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:539
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:549
 msgid "spu: spu device used for intersection"
 msgstr "spu: 用于求交使用的spu设备"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:540
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:550
 msgid "keys: keys for intersection (support multi-column intersection)"
 msgstr "keys: 用于求交的keys（支持多列求交）"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:541
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:551
 msgid "drop_keys: ID column name to be deleted after intersection"
 msgstr "drop_keys: 求交后需要删去的ID列名"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:752
-msgid "We can also use\\ ``train_test_split``\\ to split data."
-msgstr "同样这里也可以通过train_test_split来进行切分"
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:763
+msgid "We can also use ``train_test_split`` to split data."
+msgstr "同样这里也可以通过train_test_split来进行切分。"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:774
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:785
 msgid "Next, you can try your own csv data"
 msgstr "接下来，可以用自己的csv数据尝试一下"
 
 #~ msgid "|8d9b55167c3d4a9d99c2ff852c74dc27|"
 #~ msgstr ""
+
+#~ msgid ""
+#~ "In SecretFlow, we provide an interface"
+#~ " similar to\\ ``pandas.read_csv``\\ to read"
+#~ " CSV data from different parties and"
+#~ " unify it into a federated concept"
+#~ " of data."
+#~ msgstr ""
+#~ "我们在SecretFlow中提供了类似于\\ ``pandas.read_csv``\\ "
+#~ "的接口来将各方数据的CSV读取成为一个联邦概念的统一的数据。"
+
+#~ msgid ""
+#~ "- For horizontal scenarios, there is\\"
+#~ " ``secretflow.horizontal.read_csv``  `API "
+#~ "<https://www.secretflow.org.cn/docs/secretflow/en/source/secretflow.data.horizontal.html#secretflow.data.horizontal.read_csv>`__\\"
+#~ " available."
+#~ msgstr ""
+#~ "- 对于水平场景有\\ ``secretflow.horizontal.read_csv`` `API"
+#~ " "
+#~ "<https://www.secretflow.org.cn/docs/secretflow/en/source/secretflow.data.horizontal.html#secretflow.data.horizontal.read_csv>`__\\"
+#~ " 。"
+
+#~ msgid ""
+#~ "- For horizontal scenarios, there is\\"
+#~ " ``secretflow.vertical.read_csv`` `API "
+#~ "<https://www.secretflow.org.cn/docs/secretflow/en/source/secretflow.data.horizontal.html#secretflow.data.vertical.read_csv>`__\\"
+#~ " available."
+#~ msgstr ""
+#~ "- 对于垂直场景有\\ ``secretflow.vertical.read_csv`` `API"
+#~ " "
+#~ "<https://www.secretflow.org.cn/docs/secretflow/en/source/secretflow.data.horizontal.html#secretflow.data.vertical.read_csv>`__\\"
+#~ " 。"
+
+#~ msgid ""
+#~ "A federated table is a virtual "
+#~ "concept that spans multiple parties. 1."
+#~ " Data from each party in the "
+#~ "federated table is stored locally and"
+#~ " is not allowed to leave the "
+#~ "domain. 2. Except for the party "
+#~ "that owns the data, no one else"
+#~ " can access the data storage. 3. "
+#~ "Any operation on the federated table "
+#~ "is scheduled by the Driver to each"
+#~ " Worker, and the execution instructions "
+#~ "are passed layer by layer until "
+#~ "they reach the Python Runtime of "
+#~ "the specific Worker that owns the "
+#~ "data. The framework ensures that data"
+#~ " can only be operated on when "
+#~ "the Worker.device and Object.device are "
+#~ "the same. 4. The federated table "
+#~ "is designed to manage and manipulate "
+#~ "multi-party data from a central "
+#~ "perspective. 5. The interface aligns "
+#~ "with\\ ``pandas.DataFrame``\\ to reduce the"
+#~ " cost of multi-party data operations."
+#~ msgstr ""
+#~ "联邦表是一个跨多方的虚拟概念 1. 联邦表中各方的数据存储在本地，不允许出域。 2. "
+#~ "除了拥有数据的一方之外，没有人可以访问数据存储。 3. "
+#~ "联邦表的任何操作都会由Driver调度给每个Worker，执行指令会逐层传递，直到特定拥有数据的Worker的Python "
+#~ "Runtime。 框架确保只有 Worker.device 和 "
+#~ "Object.device相同的时候才能够操作数据。 4. 联合表旨在从中心角度管理和操作多方数据 5."
+#~ " 接口方面和\\ ``pandas.DataFrame``\\ 对齐，以降低多方数据操作的成本"
+
+#~ msgid "|3605a0d12393411da79e5c2e47f100c7|"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "In a horizontal scenario, since the "
+#~ "data with the same schema is "
+#~ "distributed across multiple parties, cross-"
+#~ "domain computation is required for "
+#~ "certain DataFrame operations."
+#~ msgstr "因为水平场景相同schema的数据分布在多方，所以在进行一些dataframe操作的时候需要跨域计算。"
+
+#~ msgid ""
+#~ "The resulting\\ ``hdf``\\ is a "
+#~ "FedDataFrame, and we can now perform "
+#~ "some data processing on it."
+#~ msgstr "得到的\\ ``hdf``\\ 是一个FedDataframe，我们接下来可以对他做一些数据处理"
+
+#~ msgid ""
+#~ "- For horizontal scenarios, there is "
+#~ "``secretflow.vertical.read_csv`` `API "
+#~ "<https://www.secretflow.org.cn/docs/secretflow/en/source/secretflow.data.horizontal.html#secretflow.data.vertical.read_csv>`__"
+#~ " available."
+#~ msgstr ""
+#~ "1. 对于水平场景有\\ ``secretflow.horizontal.read_csv`` `API"
+#~ " "
+#~ "<https://www.secretflow.org.cn/docs/secretflow/en/source/secretflow.data.horizontal.html#secretflow.data.horizontal.read_csv>`__\\"
+#~ " 。"
+
+#~ msgid ""
+#~ "In SecretFlow, we provide an interface"
+#~ " similar to ``pandas.read_csv`` to read "
+#~ "CSV data from different parties and "
+#~ "unify it into a federated concept "
+#~ "of data."
+#~ msgstr ""
+#~ "我们在SecretFlow中提供了类似于\\ ``pandas.read_csv``\\ "
+#~ "的接口来将各方数据的CSV读取成为一个联邦概念的统一的数据。"
+
+#~ msgid ""
+#~ "- For horizontal scenarios, there is "
+#~ "``secretflow.horizontal.read_csv`` `API "
+#~ "<https://www.secretflow.org.cn/docs/secretflow/en/source/secretflow.data.horizontal.html#secretflow.data.horizontal.read_csv>`__"
+#~ " available. "
+#~ msgstr ""
+#~ "- 对于水平场景有\\ ``secretflow.horizontal.read_csv`` `API"
+#~ " "
+#~ "<https://www.secretflow.org.cn/docs/secretflow/en/source/secretflow.data.horizontal.html#secretflow.data.horizontal.read_csv>`__\\"
+#~ " 。"
+
+#~ msgid ""
+#~ "In SecretFlow, we provide an interface"
+#~ " similar to ``pandas.read_csv`` to read "
+#~ "CSV data from different parties and "
+#~ "unify it into a federated concept "
+#~ "of data.For horizontal scenarios, there "
+#~ "is ``secretflow.horizontal.read_csv`` `API "
+#~ "<https://www.secretflow.org.cn/docs/secretflow/en/source/secretflow.data.horizontal.html#secretflow.data.horizontal.read_csv>`"
+#~ " available.For horizontal scenarios, there "
+#~ "is ``secretflow.vertical.read_csv`` `API "
+#~ "<https://www.secretflow.org.cn/docs/secretflow/en/source/secretflow.data.horizontal.html#secretflow.data.vertical.read_csv>`"
+#~ " available."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "In SecretFlow, we provide an interface"
+#~ " similar to ``pandas.read_csv`` to read "
+#~ "CSV data from different parties and "
+#~ "unify it into a federated concept "
+#~ "of data. - For horizontal scenarios, "
+#~ "there is ``secretflow.horizontal.read_csv`` `API "
+#~ "<https://www.secretflow.org.cn/docs/secretflow/en/source/secretflow.data.horizontal.html#secretflow.data.horizontal.read_csv>`__"
+#~ " available. - For horizontal scenarios, "
+#~ "there is ``secretflow.vertical.read_csv`` `API "
+#~ "<https://www.secretflow.org.cn/docs/secretflow/en/source/secretflow.data.horizontal.html#secretflow.data.vertical.read_csv>`__"
+#~ " available."
+#~ msgstr ""
+#~ "在SecretFlow中，我们提供了类似于`pandas.read_csv`的接口，可以从不同方读取csv数据，并统一成联邦概念的数据。\n"
+#~ "1. 对于水平场景有\n"
+#~ "2. 对于垂直场景有\n"
+
+#~ msgid "|d66fa44b1e2a4efab7448736c3655596|"
+#~ msgstr ""
+
