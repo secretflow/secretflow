@@ -125,15 +125,15 @@ msgstr ""
 
 #: ../../tutorial/CustomDataLoaderTF.ipynb:189
 msgid "flower_dataset_demo.png"
-msgstr "下载数据并解压"
+msgstr ""
 
 #: ../../tutorial/CustomDataLoaderTF.ipynb:202
 msgid "Download Data and Unzip"
-msgstr "接下来我们开始构造自定义DataBuilder"
+msgstr "下载数据并解压"
 
 #: ../../tutorial/CustomDataLoaderTF.ipynb:260
 msgid "Next let's start building a custom DataBuilder"
-msgstr ""
+msgstr "接下来我们开始构造自定义DataBuilder"
 
 #: ../../tutorial/CustomDataLoaderTF.ipynb:272
 msgid "1. Develop DataBuilder with single-machine version engine"
