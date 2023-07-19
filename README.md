@@ -7,8 +7,9 @@
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/secretflow/secretflow/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/secretflow/secretflow/tree/main)
 
 <p align="center">
-<a href="./README.zh-CN.md">简体中文</a>｜<a href="./README.md">English</a>
+<a href="https://github.com/secretflow/.github/blob/main/profile/README.zh-CN.md">简体中文</a>｜<a href="https://github.com/secretflow/.github/blob/main/profile/README.md">English</a>
 </p>
+
 
 SecretFlow is a unified framework for privacy-preserving data intelligence and machine learning. To achieve this goal,
 it provides:
