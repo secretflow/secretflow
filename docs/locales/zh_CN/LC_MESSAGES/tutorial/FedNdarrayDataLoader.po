@@ -37,7 +37,7 @@ msgstr "本教程将展示如何在 SecretFlow 的多方安全环境中加载 Nu
 msgid ""
 "SecretFlow supports multiple formats, including ``.npy`` and ``.npz``, "
 "and its interface is designed to be compatible with ``numpy``"
-msgstr "SecretFlow 支持 `npy`, `npz` 等多种格式，接口封装和 `numpy` 保持一致。"
+msgstr "SecretFlow 支持 \\ ``npy``\\ , \\ ``npz`` \\  等多种格式，接口封装和 \\ ``numpy`` \\ 保持一致。"
 
 #: ../../tutorial/FedNdarrayDataLoader.ipynb:44
 msgid "Environment Configuration"
@@ -53,14 +53,14 @@ msgid ""
 "``secretflow.load.ndarray.load`` to load ``ndarray`` data from multiple "
 "parties and convert it into a federated representation."
 msgstr ""
-"我们在 SecretFlow 中提供了类似于 `numpy.load` 的接口 `secretflow.data.ndarray.load` "
-"来将各方数据的 `ndarray` 读取成为一个联邦概念的数据。"
+"我们在 SecretFlow 中提供了类似于 \\ ``numpy.load`` \\ 的接口 \\ ``secretflow.data.ndarray.load`` \\  "
+"来将各方数据的 \\ ``ndarray`` \\ 读取成为一个联邦概念的数据。"
 
 #: ../../tutorial/FedNdarrayDataLoader.ipynb:123
 msgid ""
 "Using secretflow.data.load, you can read numpy files from multiple "
 "parties and create a ``FedNdarray`` object."
-msgstr "通过 secretflow.data.load 可以读取多方的 Numpy 文件，构成一个 `FedNdarray`。"
+msgstr "通过 secretflow.data.load 可以读取多方的 Numpy 文件，构成一个 \\ ``FedNdarray`` \\ 。"
 
 #: ../../tutorial/FedNdarrayDataLoader.ipynb:125
 msgid ""
@@ -86,7 +86,7 @@ msgstr "分别保存成 npz 格式文件用"
 msgid ""
 "Saving tarin_x from Alice and Bob as npy format for convenient future "
 "reading."
-msgstr "将 alice 和 bob 的 train_x 保存成 npy 格式，方便后文 npy 格式读取使用。"
+msgstr "将 Alice 和 Bob 的 train_x 保存成 npy 格式，方便后文 npy 格式读取使用。"
 
 #: ../../tutorial/FedNdarrayDataLoader.ipynb:271
 msgid "Loading npz files"
