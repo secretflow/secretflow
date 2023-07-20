@@ -118,7 +118,7 @@ msgstr "联合表旨在从中心角度管理和操作多方数据"
 msgid ""
 "The interface aligns with ``pandas.DataFrame`` to reduce the cost of "
 "multi-party data operations."
-msgstr "接口方面和`pandas.DataFrame` 对齐，以降低多方数据操作的成本。"
+msgstr "接口方面和 ``pandas.DataFrame`` 对齐，以降低多方数据操作的成本。"
 
 #: ../../tutorial/FedDataFrameDataLoader.ipynb:145
 msgid "|b4e593b315f549a8a1e7ebdcfe39c03a|"
