@@ -25,7 +25,7 @@ msgid ""
 "The following codes are demos only. It’s **NOT for production** due to "
 "system security concerns, please **DO NOT** use it directly in "
 "production."
-msgstr "下面的代码只是演示。出于系统安全考虑，请不要直接在生产中使用。下面的代码只是演示。出于系统安全考虑，请不要直接在生产中使用。"
+msgstr "下面的代码只是演示。出于系统安全考虑，请不要直接在生产中使用。"
 
 #: ../../tutorial/CustomDataLoaderTorch.ipynb:31
 msgid ""
@@ -55,7 +55,7 @@ msgid ""
 "In SecretFlow, we have supported the ability to customize the DataBuilder"
 " for reading in the ``FLModel``. This allows users to handle data input "
 "more flexibly according to their specific requirements."
-msgstr "我们在SecretFlow的`FLModel`中支持了自定义DataBuilder的读取方式，可以方便用户根据需求更灵活的处理数据输入。"
+msgstr "我们在SecretFlow的 `FLModel` 中支持了自定义DataBuilder的读取方式，可以方便用户根据需求更灵活的处理数据输入。"
 
 #: ../../tutorial/CustomDataLoaderTorch.ipynb:124
 msgid ""
@@ -91,7 +91,7 @@ msgid ""
 "required input to the dataset_builder in the ``x`` parameter position. "
 "(For example, in this case, the input provided is the actual image paths "
 "used.)"
-msgstr "将得到的data_builder_dict作为参数传入`fit`函数的`dataset_builder`。此时`x`参数位置传入dataset_builder中需要的输入。（eg:本例中传入的输入是实际使用的图像路径）"
+msgstr "将得到的data_builder_dict作为参数传入 `fit` 函数的 `dataset_builder` 。此时 `x` 参数位置传入dataset_builder中需要的输入。（eg:本例中传入的输入是实际使用的图像路径）"
 
 #: ../../tutorial/CustomDataLoaderTorch.ipynb:190
 msgid ""
@@ -99,7 +99,7 @@ msgid ""
 "dictionary, which needs to be able to return ``tf.dataset`` and "
 "``steps_per_epoch``. Moreover, the ``steps_per_epoch`` returned by each "
 "party must remain consistent."
-msgstr "在FLModel中使用DataBuilder需要预先定义databuilder dict。需要能够返回`tf.dataset`和`steps_per_epoch`。而且各方返回的steps_per_epoch必须保持一致。"
+msgstr "在FLModel中使用DataBuilder需要预先定义databuilder dict。需要能够返回 `tf.dataset` 和 `steps_per_epoch` 。而且各方返回的 `steps_per_epoch` 必须保持一致。"
 
 #: ../../tutorial/CustomDataLoaderTorch.ipynb:214
 msgid "Download Data"
@@ -151,7 +151,7 @@ msgid ""
 "In the development of the ``DataBuilder``, we are free to follow the "
 "logic of single-machine development. The objective is to construct a "
 "``Dataloader`` object in ``Torch``."
-msgstr "我们在开发`DataBuilder`的时候可以自由的按照单机开发的逻辑即可。目的是构建一个`Torch`中`Dataloader`对象即可。"
+msgstr "我们在开发 `DataBuilder` 的时候可以自由的按照单机开发的逻辑即可。目的是构建一个 `Torch` 中 `Dataloader` 对象即可。"
 
 #: ../../tutorial/CustomDataLoaderTorch.ipynb:425
 msgid "2.Wrap the developed DataBuilder."
@@ -181,7 +181,7 @@ msgstr "3. 构建dataset_builder_dict"
 msgid ""
 "4. Once we obtain the ``dataset_builder_dict``, we can proceed with "
 "federated training using it."
-msgstr "4. 得到dataset_builder_dict我们就可以使用它进行联邦训练了"
+msgstr "4. 得到 `dataset_builder_dict` 我们就可以使用它进行联邦训练了"
 
 #: ../../tutorial/CustomDataLoaderTorch.ipynb:561
 msgid "Next, we define a FLModel with a Torch backend for training."
@@ -191,7 +191,7 @@ msgstr "接下来我们定义一个Torch后端的FLModel来进行训练"
 msgid ""
 "The input to our constructed dataset builder is the path to the image "
 "dataset; hence, here, we need to set the input data as a ``Dict``."
-msgstr "我们构造好的dataset builder的输入是图像数据集的路径，所以这里需要将输入的数据设置为一个`Dict`"
+msgstr "我们构造好的dataset builder的输入是图像数据集的路径，所以这里需要将输入的数据设置为一个 `Dict` "
 
 #~ msgid ""
 #~ "下载地址: "
