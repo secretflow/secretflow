@@ -19,7 +19,7 @@ msgstr "在 SecretFlow 中加载 Numpy 数据"
 #: ../../tutorial/FedNdarrayDataLoader.ipynb:20
 msgid ""
 "The following codes are demos only. It’s **NOT for production** due to system security concerns, please **DO NOT** use it directly in production."
-msgstr "下述代码仅作为展示用例。考虑考系统安全因素，其 **不适用于生产环境** 。请 **不要** 在生产实践中直接使用。 "
+msgstr "下述代码仅作为展示用例。考虑到系统安全因素，其 **不适用于生产环境** 。请 **不要** 在生产实践中直接使用。 "
 
 #: ../../tutorial/FedNdarrayDataLoader.ipynb:31
 msgid ""
