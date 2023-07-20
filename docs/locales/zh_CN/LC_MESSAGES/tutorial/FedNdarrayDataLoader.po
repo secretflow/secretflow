@@ -1,13 +1,9 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) 2022 Ant Group Co., Ltd.
-# This file is distributed under the same license as the SecretFlow package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2023.
-#
+
 msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-07-19 15:28+0800\n"
+"POT-Creation-Date: 2023-07-19 23:11+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -22,10 +18,8 @@ msgstr "在 SecretFlow 中加载 Numpy 数据"
 
 #: ../../tutorial/FedNdarrayDataLoader.ipynb:20
 msgid ""
-"The following codes are demos only. It’s **NOT for production** due to "
-"system security concerns, please **DO NOT** use it directly in "
-"production."
-msgstr ""
+"The following codes are demos only. It’s **NOT for production** due to system security concerns, please **DO NOT** use it directly in production."
+msgstr "下述代码仅作为展示用例。考虑考系统安全因素，其 **不适用于生产环境** 。请 **不要** 在生产实践中直接使用。 "
 
 #: ../../tutorial/FedNdarrayDataLoader.ipynb:31
 msgid ""
@@ -37,7 +31,9 @@ msgstr "本教程将展示如何在 SecretFlow 的多方安全环境中加载 Nu
 msgid ""
 "SecretFlow supports multiple formats, including ``.npy`` and ``.npz``, "
 "and its interface is designed to be compatible with ``numpy``"
-msgstr "SecretFlow 支持 \\ ``npy``\\ , \\ ``npz`` \\  等多种格式，接口封装和 \\ ``numpy`` \\ 保持一致。"
+msgstr ""
+"SecretFlow 支持 \\ ``npy``\\ , \\ ``npz`` \\  等多种格式，接口封装和 \\ ``numpy`` \\ "
+"保持一致。"
 
 #: ../../tutorial/FedNdarrayDataLoader.ipynb:44
 msgid "Environment Configuration"
@@ -53,8 +49,9 @@ msgid ""
 "``secretflow.load.ndarray.load`` to load ``ndarray`` data from multiple "
 "parties and convert it into a federated representation."
 msgstr ""
-"我们在 SecretFlow 中提供了类似于 \\ ``numpy.load`` \\ 的接口 \\ ``secretflow.data.ndarray.load`` \\  "
-"来将各方数据的 \\ ``ndarray`` \\ 读取成为一个联邦概念的数据。"
+"我们在 SecretFlow 中提供了类似于 \\ ``numpy.load`` \\ 的接口 \\ "
+"``secretflow.data.ndarray.load`` \\  来将各方数据的 \\ ``ndarray`` \\ "
+"读取成为一个联邦概念的数据。"
 
 #: ../../tutorial/FedNdarrayDataLoader.ipynb:123
 msgid ""
