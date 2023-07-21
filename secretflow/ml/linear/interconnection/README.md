@@ -27,7 +27,7 @@ RC负责收发隐私路由数据包，RS负责对隐私路由数据包的处理�
 2. HE->SS：同态加密数据转化为秘密共享数据分片，其中同态加密的发送数据方有公钥和私钥，该过程可以认为是明文数据到秘密共享分片的转化。
 3. HE->SS：同态加密数据转化为秘密共享数据分片，其中同态加密的发送数据方只有公钥。
 
-**如果需要开发和隐语互联互通的隐私路由，可以参考如下demo，**
+**如果需要开发和隐语互联互通的隐私路由，可以参考如下demo**
 
 ### 0. 运行demo前的预安装
 
@@ -36,19 +36,25 @@ pip install anyconn_core-0.0.5-py3-none-any.whl
 pip install router-0.1.0-py3-none-any.whl
 ```
 
-### demo 1. SS->HE
+### Demo 1. SS->HE
+
+SS->HE：秘密共享数据分片转化为同态加密数据。
 
 ![互联互通-SS2HE](/Users/chenlu/workspace/secretflow_chenlu/secretflow/ml/linear/interconnection/img/互联互通-SS2HE.png)
 
 `demo/ss2he`目录下的5个python文件同时运行，可模拟上图SS2HE过程。
 
-### demo 2. HE->SS（HE发送方有公钥和私钥）
+### Demo 2. HE->SS（HE发送方有公钥和私钥）
+
+同态加密数据转化为秘密共享数据分片，其中同态加密的发送数据方有公钥和私钥，该过程可以认为是明文数据到秘密共享分片的转化。
 
 ![互联互通-HE2SS-plain](/Users/chenlu/workspace/secretflow_chenlu/secretflow/ml/linear/interconnection/img/互联互通-HE2SS-plain.png)
 
 `demo/horizontal_lr`目录下的4个python文件同时运行，可模拟平台A和平台B横向lr过程中权重数据的交互，包括HE2SS和SS2HE，迭代交替运行。
 
-### demo 3. HE->SS（HE发送方只有公钥）
+### Demo 3. HE->SS（HE发送方只有公钥）
+
+同态加密数据转化为秘密共享数据分片，其中同态加密的发送数据方只有公钥。
 
 ![互联互通-HE2SS](/Users/chenlu/workspace/secretflow_chenlu/secretflow/ml/linear/interconnection/img/互联互通-HE2SS.png)
 
@@ -56,7 +62,7 @@ pip install router-0.1.0-py3-none-any.whl
 
 注：在运行一次后，需要清理一下当前目录下生成的public_key文件。
 
-## 与隐语横向LR互联互通的实例
+## 与隐语横向LR互联互通的样例
 
 已实现了在隐语`class FlLogisticRegressionMix`使用隐私路由进行数据交互的hook，即router_hooks.py。其中的`WeightArbiter`使用RC进行权重的交互传输。
 
