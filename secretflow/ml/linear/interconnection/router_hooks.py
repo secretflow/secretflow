@@ -151,7 +151,7 @@ class WeightArbiter:
         return list(unflatten())
 
 
-# 隐私路由水平 LR 方案实现(WIP)
+# 通过该Hook类，启动隐私路由，对接华控清交平台的横向LR
 class RouterLrAggrHook:
     def __init__(self, device):
         self.arbiter = device
