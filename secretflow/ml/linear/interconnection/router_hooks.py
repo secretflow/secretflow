@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Please read the https://github.com/secretflow/interconnection-impl/tree/main/router/README.md for the details.
+
 from router import RC, Pack
 from anyconn_core import AppConfig
 
@@ -30,6 +32,7 @@ router_table = {
     "rs_02": {"rs": ["rs_01"], "rc": ["rc_02", "rc_03"]},
 }
 
+# FIXME, you should configurate the address of rs and rc.
 nodes = [
     {"id": "rs_01", "tag": "RS", "address": "101.200.76.152:30565"},
     {"id": "rs_02", "tag": "RS", "address": "101.200.76.152:30281"},
