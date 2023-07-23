@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pandas as pd
+
 from secretflow.component.component import Component, IoType
-from secretflow.component.data_utils import (
-    DistDataType,
-    dump_table_statistics,
-    load_table,
-)
+from secretflow.component.data_utils import DistDataType, load_table
+from secretflow.protos.component.comp_pb2 import Attribute, AttrType
+from secretflow.protos.component.data_pb2 import DistData
+from secretflow.protos.component.report_pb2 import Div, Report, Tab, Table
 from secretflow.stats.table_statistics import table_statistics
 
 table_statistics_comp = Component(
@@ -50,6 +51,52 @@ table_statistics_comp.io(
     types=[DistDataType.REPORT],
     col_params=None,
 )
+
+
+def gen_table_statistic_report(df: pd.DataFrame) -> Report:
+    headers, rows = [], []
+    for k in df.columns:
+        headers.append(Table.HeaderItem(name=k, desc="", type=AttrType.AT_STRING))
+
+    for index, df_row in df.iterrows():
+        rows.append(
+            Table.Row(
+                name=index, items=[Attribute(s=str(df_row[k])) for k in df.columns]
+            )
+        )
+
+    r_table = Table(headers=headers, rows=rows)
+
+    return Report(
+        name="table statistics",
+        desc="",
+        tabs=[
+            Tab(
+                divs=[
+                    Div(
+                        children=[
+                            Div.Child(
+                                type="table",
+                                table=r_table,
+                            )
+                        ],
+                    )
+                ],
+            )
+        ],
+    )
+
+
+def dump_table_statistics(name, sys_info, df: pd.DataFrame) -> DistData:
+    report_mate = gen_table_statistic_report(df)
+    res = DistData(
+        name=name,
+        sys_info=sys_info,
+        type=str(DistDataType.REPORT),
+        data_refs=[],
+    )
+    res.meta.Pack(report_mate)
+    return res
 
 
 @table_statistics_comp.eval_fn

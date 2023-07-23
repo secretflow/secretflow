@@ -31,16 +31,14 @@ class LabelDP:
         Args:
             inputs: the label.
         """
-        if not np.sum((inputs == 0) + (inputs == 1)) == inputs.size:
-            raise ValueError(
-                'Except for binary classification, inputs only support onehot form.'
-            )
 
-        if inputs.ndim == 1:
+        def _case_binary(inputs):
             p_ori = np.exp(self._eps) / (np.exp(self._eps) + 1)
             choice_ori = np.random.binomial(1, p_ori, size=inputs.shape[0])
             outputs = np.abs(1 - choice_ori - inputs)
-        elif inputs.ndim == 2:
+            return outputs
+
+        def _case_onehot(inputs):
             p_ori = np.exp(self._eps) / (np.exp(self._eps) + inputs.shape[-1] - 1)
             p_oth = (1 - p_ori) / (inputs.shape[-1] - 1)
             p_array = inputs * (p_ori - p_oth) + np.ones(inputs.shape) * p_oth
@@ -51,6 +49,21 @@ class LabelDP:
                 ]
             )
             outputs = np.eye(inputs.shape[-1])[index_rr]
+            return outputs
+
+        if not np.sum((inputs == 0) + (inputs == 1)) == inputs.size:
+            raise ValueError(
+                'Except for binary classification, inputs only support onehot form.'
+            )
+
+        if inputs.ndim == 1:
+            outputs = _case_binary(inputs=inputs)
+        elif inputs.ndim == 2:
+            if inputs.shape[-1] == 1:
+                outputs = _case_binary(inputs=inputs.reshape(-1))
+                outputs = outputs.reshape(-1, 1)
+            else:
+                outputs = _case_onehot(inputs=inputs)
         else:
             raise ValueError('the dim of inputs in LabelDP must be less than 2.')
 

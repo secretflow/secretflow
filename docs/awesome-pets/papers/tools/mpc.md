@@ -1,6 +1,6 @@
 # Secure Multi-Party Computation (MPC)
 
-![](https://badgen.net/badge/:update-to/:Apr-2023/red) ![](https://badgen.net/badge/:papers/:70/blue) 
+![](https://badgen.net/badge/:update-to/:Jul-2023/red) ![](https://badgen.net/badge/:papers/:76/blue) 
 
 > "The design of scure protocols that implement arbitrarily desired functionalities is a major part of mordern cryptography."
 > -- Foundation of Cryptography, Volumn 2, Oded Goldreich.
@@ -94,9 +94,17 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   *Yuval Ishai, Joe Kilian, Kobbi Nissim, Erez Petrank*  
   Crypto 2003, [eprint](https://www.iacr.org/archive/crypto2003/27290145/27290145.pdf), IKNP03
 
+- Efficient oblivious transfer protocols  
+  *Moni Naor, Benny Pinkas*  
+  SODA 2001, [eprint](https://dl.acm.org/doi/abs/10.5555/365411.365502), NP01
+
 - Oblivious Transfer and Polynomial Evaluation  
   *Moni Naor, Benny Pinkas*  
   STOC 1999, [eprint](https://dl.acm.org/doi/pdf/10.1145/301250.301312), NP99
+
+- Non-interactive oblivious transfer and applications  
+  *Mihir Bellare, Silvio Micali*  
+  Crypto 1989, [eprint](https://link.springer.com/chapter/10.1007/0-387-34805-0_48), BM89
 
 ### vector Oblivious Linear Evaluation
 
@@ -108,6 +116,10 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   *Pedro Branco, Nico Do ̈ttling, Paulo Mateus*  
   PKC 2022, [eprint](https://eprint.iacr.org/2020/635), BDM22
 
+- Moz$`\mathbb{Z}_{2^k}`$ arella: Efficient Vector-OLE and Zero-Knowledge Proofs Over $`\mathbb{Z}_{2^k}`$  
+  *Carsten Baum, Lennart Braun, Alexander Munch-Hansen, and Peter Scholl*  
+  Crypto 2022, [eprint](https://eprint.iacr.org/2022/819.pdf), BBMS22
+
 - Correlated Pseudorandomness from Expand-Accumulate Codes  
   *Elette Boyle, Geoffroy Couteau, Niv Gilboa, Yuval Ishai, Lisa Kohl, Nicolas Resch, Peter Scholl*  
   Crypto 2022, [eprint](https://eprint.iacr.org/2022/1014), BCG+22
@@ -115,6 +127,10 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
 - Two-Round Oblivious Linear Evaluation from Learning with Errors  
   *Pedro Branco, Nico Döttling, Paulo Mateus*  
   PKC 2022, [eprint](https://eprint.iacr.org/2020/635), BDM22
+
+- Wolverine: Fast, Scalable, and Communication-Efficient Zero-Knowledge Proofs for Boolean and Arithmetic Circuits  
+  *Chenkai Weng, Kang Yang, Jonathan Katz, and Xiao Wang*  
+  S&P 2021, [paper](https://eprint.iacr.org/2020/925), WYK+21
 
 - Silver: Silent VOLE and Oblivious Transfer from Hardness of Decoding Structured LDPC Codes  
   *Geoffroy Couteau, Peter Rindal, Srinivasan Raghuraman*  
@@ -140,7 +156,7 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   *Satrajit Ghosh, Jesper Buus Nielsen, Tobias Nilges*  
   AsiaCrypt 2017, [eprint](https://eprint.iacr.org/2017/409), GNN17
   
-- TinyOLE: Efficient actively secure two-party computation from oblivious linear function evaluation, 2017,  
+- TinyOLE: Efficient actively secure two-party computation from oblivious linear function evaluation  
   *Nico Döttling, Satrajit Ghosh, Jesper Buus Nielsen, Tobias Nilges, Roberto Trifiletti*  
   CCS 2017, [eprint](https://eprint.iacr.org/2017/790), DGNN+17
   
@@ -150,9 +166,21 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   
 ### Pseudorandom-Correlation Generator
 
+- Correlated Pseudorandomness from the Hardness of Quasi-Abelian Decoding  
+  *Maxime Bombar, Geoffroy Couteau, Alain Couvreur, Clément Ducros*  
+  Crypto 2023, [eprint](https://eprint.iacr.org/2023/845), BCCD23  
+
+- Expand-Convolute Codes for Pseudorandom Correlation Generators from LPN  
+  *Srinivasan Raghuraman, Peter Rindal, Titouan Tanguy*  
+  Crypto 2023, [eprint](https://eprint.iacr.org/2023/882), RRT23  
+
 - Correlated Pseudorandomness from Expand-Accumulate Codes  
   *Elette Boyle, Geoffroy Couteau, Niv Gilboa, Yuval Ishai, Lisa Kohl, Nicolas Resch, Peter Scholl*  
-  Crypto 2022, [eprint](https://eprint.iacr.org/2022/1014), BCG+22
+  Crypto 2022, [eprint](https://eprint.iacr.org/2022/1014), BCG+22  
+  
+- Efficient Pseudorandom Correlation Generators from Ring-LPN  
+  *Elette Boyle, Geoffroy Couteau, Niv Gilboa, Yuval Ishai, Lisa Kohl, Peter Scholl*  
+  Crypto 2020, [eprint](https://eprint.iacr.org/2022/1035), BCG+20  
 
 ### Others
 

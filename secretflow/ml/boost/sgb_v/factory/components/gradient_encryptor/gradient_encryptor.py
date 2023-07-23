@@ -20,6 +20,8 @@ from heu import phe
 
 from secretflow.device import PYU, HEUObject, PYUObject
 from secretflow.device.device.heu import HEUMoveConfig
+from secretflow.ml.boost.sgb_v.factory.params import default_params
+from secretflow.ml.boost.sgb_v.factory.sgb_actor import SGBActor
 
 from ..component import Component, Devices, print_params
 from ..logging import LoggingParams, LoggingTools
@@ -35,15 +37,19 @@ class GradientEncryptorParams:
              but too large will lead to overflow problem.
              See HEU's document for more details.
         default: 20
+        range: [1, 100]
 
     'batch_encoding_enabled': bool. if use batch encoding optimization.
         default: True.
-
+    'label_holder_feature_only': bool. affects cache to workers.
+        default: False
+        if turned on, gh won't be sent to workers in anyway.
     'audit_paths': dict. {device : path to save log for audit}
     """
 
-    fixed_point_parameter: int = 20
-    batch_encoding_enabled: bool = True
+    fixed_point_parameter: int = default_params.fixed_point_parameter
+    batch_encoding_enabled: bool = default_params.batch_encoding_enabled
+    label_holder_feature_only: bool = default_params.label_holder_feature_only
     audit_paths: dict = field(default_factory=dict)
 
 
@@ -76,26 +82,30 @@ class GradientEncryptor(Component):
             label_holder_party_name == self.heu.sk_keeper_name()
         ), f"HEU sk keeper party {self.heu.sk_keeper_name()}, mismatch with label_holder device's party {label_holder_party_name}"
 
+    def set_actors(self, _: SGBActor):
+        return
+
     def get_params(self, params: dict):
         params['fixed_point_parameter'] = self.params.fixed_point_parameter
         params['batch_encoding_enabled'] = self.params.batch_encoding_enabled
         params['audit_paths'] = self.params.audit_paths
+        params['label_holder_feature_only'] = self.params.label_holder_feature_only
         LoggingTools.logging_params_write_dict(params, self.logging_params)
 
     def set_params(self, params: dict):
         # validation
         fxp_r = params.get('fixed_point_parameter', 20)
         assert (
-            fxp_r >= 10 and fxp_r <= 100
-        ), f"fixed_point_parameter should in [10, 100], got {fxp_r}"
+            fxp_r >= 1 and fxp_r <= 100
+        ), f"fixed_point_parameter should in [1, 100], got {fxp_r}"
 
         enable_batch_encoding = bool(params.get('batch_encoding_enabled', True))
-
         audit_paths = params.get('audit_paths', {})
-
+        label_holder_feature_only = bool(params.get('label_holder_feature_only', False))
         assert isinstance(audit_paths, dict), " audit paths must be a dict"
 
         # set params
+        self.params.label_holder_feature_only = label_holder_feature_only
         self.params.fixed_point_parameter = fxp_r
         self.params.batch_encoding_enabled = enable_batch_encoding
         self.params.audit_paths = audit_paths
@@ -108,7 +118,9 @@ class GradientEncryptor(Component):
         return self.label_holder(lambda g, h: np.concatenate([g, h], axis=1))(g, h)
 
     @LoggingTools.enable_logging
-    def encrypt(self, gh: PYUObject, tree_index: int) -> HEUObject:
+    def encrypt(self, gh: PYUObject, tree_index: int) -> Union[None, HEUObject]:
+        if self.params.label_holder_feature_only:
+            return None
         if self.label_holder.party in self.params.audit_paths:
             path = (
                 self.params.audit_paths[self.label_holder.party]
@@ -126,11 +138,18 @@ class GradientEncryptor(Component):
     def cache_to_workers(
         self, encrypted_gh: HEUObject, gh: PYUObject
     ) -> Dict[PYU, Union[HEUObject, PYUObject]]:
-        cache = {
-            worker: encrypted_gh.to(self.heu, move_config(worker, self.gh_encoder))
-            for worker in self.workers
-            if worker != self.label_holder
-        }
+        if self.params.label_holder_feature_only:
+            cache = {
+                worker: worker(lambda: None)()
+                for worker in self.workers
+                if worker != self.label_holder
+            }
+        else:
+            cache = {
+                worker: encrypted_gh.to(self.heu, move_config(worker, self.gh_encoder))
+                for worker in self.workers
+                if worker != self.label_holder
+            }
         cache[self.label_holder] = gh
         return cache
 

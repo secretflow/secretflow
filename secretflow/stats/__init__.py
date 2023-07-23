@@ -14,11 +14,11 @@
 
 from .biclassification_eval import BiClassificationEval
 from .psi_eval import psi_eval
-from .pva_eval import pva_eval
+from .prediction_bias_eval import prediction_bias_eval
 from .regression_eval import RegressionEval
 from .score_card import ScoreCard
 from .ss_pearsonr_v import PearsonR as SSVertPearsonR
-from .ss_pvalue_v import PVlaue as SSPValue
+from .ss_pvalue_v import PValue as SSPValue
 from .ss_vif_v import VIF as SSVertVIF
 from .table_statistics import table_statistics
 
@@ -28,7 +28,7 @@ __all__ = [
     'SSPValue',
     'RegressionEval',
     'BiClassificationEval',
-    'pva_eval',
+    'prediction_bias_eval',
     'table_statistics',
     'psi_eval',
     'ScoreCard',

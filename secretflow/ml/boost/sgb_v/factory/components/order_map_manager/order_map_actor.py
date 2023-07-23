@@ -13,18 +13,14 @@
 # limitations under the License.
 
 
-from typing import List, Union, Tuple
+from typing import List, Tuple, Union
 
 import numpy as np
 
-from secretflow.device import PYUObject, proxy
-
 from ....core.split_tree_trainer.order_map_context import OrderMapContext
 
+
 # handle order map building for one party
-
-
-@proxy(PYUObject)
 class OrderMapActor:
     def __init__(self, idx: int) -> None:
         self.idx = idx
@@ -35,7 +31,7 @@ class OrderMapActor:
         Set up global context.
         """
         np.random.seed(seed)
-        x = x if isinstance(x, np.ndarray) else np.array(x)
+        x = np.array(x, order='F')
         self.ordermap_context.build_maps(x, buckets)
         return self.ordermap_context.get_order_map()
 

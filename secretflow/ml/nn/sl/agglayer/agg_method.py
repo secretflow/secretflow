@@ -64,7 +64,7 @@ class AggMethod(ABC):
         df_dx = g_backward(*inputs, weights=weights)
         gradients_list = []
         if isinstance(gradients, (tuple, list)):
-            for idx, dx in enumerate(df_dx):
+            for dx in df_dx:
                 party_gradients = []
                 for g in gradients:
                     party_gradients.append(jnp.array(dx) * jnp.array(g))
@@ -90,11 +90,10 @@ class Average(AggMethod):
     ):
         # Here we use jax to ensure that both PYU and SPU can be supported, and support autograd to generate backward funciton
         if isinstance(data, tuple) and len(data) == 1:
-            data = data[0]
-
+            data = list(data)
         self.inputs = data[0]
         if isinstance(data[0], (list, tuple)):
-            return [
+            agg_data = [
                 jnp.average(
                     jnp.array(element),
                     axis=axis,
@@ -103,8 +102,9 @@ class Average(AggMethod):
                 for element in zip(*data)
             ]
         else:
-            return jnp.average(
+            agg_data = jnp.average(
                 jnp.array(data),
                 axis=axis,
                 weights=jnp.array(weights) if weights is not None else None,
             )
+        return agg_data

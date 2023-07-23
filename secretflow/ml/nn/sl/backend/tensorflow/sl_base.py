@@ -110,15 +110,21 @@ class SLBaseTFModel(SLBaseModel):
         self.steps_per_epoch = steps_per_epoch
 
     def get_basenet_output_num(self):
-        if hasattr(self.model_base, 'outputs') and self.model_base.outputs is not None:
-            return len(self.model_base.outputs)
-        else:
-            if hasattr(self.model_base, "output_num"):
-                return self.model_base.output_num()
+        if self.model_base:
+            if (
+                hasattr(self.model_base, 'outputs')
+                and self.model_base.outputs is not None
+            ):
+                return len(self.model_base.outputs)
             else:
-                raise Exception(
-                    "Please define the output_num function in basemodel and return the number of basenet outputs, then try again"
-                )
+                if hasattr(self.model_base, "output_num"):
+                    return self.model_base.output_num()
+                else:
+                    raise Exception(
+                        "Please define the output_num function in basemodel and return the number of basenet outputs, then try again"
+                    )
+        else:
+            return 0
 
     def build_dataset_from_numeric(
         self,
@@ -284,11 +290,6 @@ class SLBaseTFModel(SLBaseModel):
             stage: Which stage of the base forward
         Returns: hidden embedding
         """
-
-        assert (
-            self.model_base is not None
-        ), "Base model cannot be none, please give model define or load a trained model"
-
         data_x = None
         self.init_data()
         if stage == "train":
@@ -332,7 +333,8 @@ class SLBaseTFModel(SLBaseModel):
 
         # Strip tuple of length one, e.g: (x,) -> x
         data_x = data_x[0] if isinstance(data_x, Tuple) and len(data_x) == 1 else data_x
-
+        if not self.model_base:
+            return None
         self.tape = tf.GradientTape(persistent=True)
         with self.tape:
             self.h = self._base_forward_internal(
@@ -464,7 +466,8 @@ class SLBaseTFModel(SLBaseModel):
         assert (
             self.model_fuse is not None
         ), "Fuse model cannot be none, please give model define"
-
+        forward_data = list(forward_data)
+        forward_data[:] = (h for h in forward_data if h is not None)
         for i, h in enumerate(forward_data):
             assert h.hidden is not None, f"hidden cannot be found in forward_data[{i}]"
             if isinstance(h.losses, List) and h.losses[0] is None:
@@ -482,6 +485,7 @@ class SLBaseTFModel(SLBaseModel):
                 hiddens.append(tf.convert_to_tensor(h))
 
         logs = {}
+
         gradient = self._fuse_net_train(hiddens, losses)
 
         for m in self.model_fuse.metrics:
@@ -572,6 +576,8 @@ class SLBaseTFModel(SLBaseModel):
         assert (
             self.model_fuse is not None
         ), "model cannot be none, please give model define"
+        forward_data = list(forward_data)
+        forward_data[:] = (h for h in forward_data if h is not None)
         for i, h in enumerate(forward_data):
             assert h.hidden is not None, f"hidden cannot be found in forward_data[{i}]"
             if isinstance(h.losses, List) and h.losses[0] is None:
@@ -658,6 +664,8 @@ class SLBaseTFModel(SLBaseModel):
         assert (
             self.model_fuse is not None
         ), "Fuse model cannot be none, please give model define"
+        forward_data = list(forward_data)
+        forward_data[:] = (h for h in forward_data if h is not None)
         for i, h in enumerate(forward_data):
             assert h.hidden is not None, f"hidden cannot be found in forward_data[{i}]"
             if isinstance(h.losses, List) and h.losses[0] is None:

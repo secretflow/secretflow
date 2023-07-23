@@ -1,0 +1,196 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2022 Ant Group Co., Ltd.
+# This file is distributed under the same license as the SecretFlow package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2023.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: SecretFlow \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-06-05 16:25+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.12.1\n"
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:1
+msgid "隐语非平衡(Unbalanced) PSI Benchmark白皮书"
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:3
+msgid "This tutorial is only available in Chinese."
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:5
+msgid "导语"
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:6
+msgid ""
+"去年10月份，隐语发布了PSI的性能数据，引起了内部和外部用户的广泛关注，具体协议包括：ecdh/kkrt16/bc22协议，这些协议更适合双方数据量差别不大的场景，可以称为平衡PSI（Balanced"
+" PSI）。"
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:8
+msgid ""
+"现实中的隐私求交场景中，有时多双方数据量级差异很大，例如：百万vs十亿，2千万vs "
+"20亿。针对这种场景，隐语实现并开源了专门的非平衡PSI(Unbalanced PSI)协议，能得到更好的性能。具体来讲：与ecdh-psi对比"
+"，ecdh-psi在大数据集上进行两次加密操作。隐语实现的非平衡PSI只在大数据集上进行一次加密操作，在大数据集与小数据集的体量相差非常大的时候"
+"，总体计算量和运行时间大约是ecdh-"
+"psi的1/2。非平衡PSI还把协议分成离线和在线（offline/online）两个阶段，在提前执行离线（offline）缓存的情形下，在线阶段只需10多分钟即可完成在线（online）协议，得到交集结果。"
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:10
+msgid ""
+"本文给出隐语非平衡PSI(Unbalanced "
+"PSI)协议的具体测试环境、步骤、和数据，方便大家了解协议的使用方法和性能数据，便于大家更好的了解隐语非平衡PSI，满足大家的业务需求。"
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:12
+msgid "测试方法和步骤"
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:14
+msgid "一、测试机型"
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:16
+msgid "Python：3.8"
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:17
+msgid "pip: >= 19.3"
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:18
+msgid "OS: CentOS 7"
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:19
+msgid "CPU/Memory: 推荐最低配置是 8C16G"
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:20
+msgid "硬盘：500G"
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:22
+msgid "二、安装conda 使用conda管理python环境，如果机器没有conda需要先安装，步骤如下："
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:50
+msgid "三、安装secretflow"
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:60
+msgid "四、创建节点并启动集群"
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:61
+msgid ""
+"创建ray header节点 创建ray "
+"header节点，选择一台机器为主机，在主机上执行如下命令，ip替换为主机的内网ip，命名为alice，端口选择一个空闲端口即可 "
+"注意：192.168.0.1 ip为mock，请替换为实际的ip地址"
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:69
+msgid "创建从属节点 创建从属节点，在bob机器执行如下命令，ip依然填alice机器的内网ip，命名为bob，端口不变"
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:77
+msgid "五、数据要求"
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:78
+msgid "Alice方：2000万 Bob方：20亿 交集：1000万"
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:82
+msgid "六、Benchmark脚本"
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:83
+msgid ""
+"脚本分为offline和online，offline用于对大数据方的setup、online对小数据的执行基于ecdh的oprf协议。 "
+"详细的Unbalanced psi解读可参考：非平衡隐私集合求交(Unbalanced PSI)协议介绍﻿"
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:86
+msgid "offline脚本："
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:184
+msgid "online脚本："
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:279
+msgid "Unbalanced PSI Benchmark报告"
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:281
+msgid "备注：目前是小数据方到大数据方的交集结果，如果大数据方到小数据方的交集结果online运行时间会增加一倍"
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:283
+msgid "![](./resources/ubpsi_benchmark.png)"
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:285
+msgid "![](./resources/ubpsi_offline.png)"
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:287
+msgid "![](./resources/ubpsi_online.png)"
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:290
+msgid "解读："
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:291
+msgid ""
+"Unbalanced "
+"PSI的offline阶段，大数据方对大数据集(20亿)进行加密并发送(截取12B)到小数据方，加密（ecc点乘）可以进行并发计算，CPU的核数增大可以提高性能。可以看到性能数据基本和CPU的核数成线性关系，网络带宽消耗不大。"
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:292
+msgid ""
+"Unbalanced PSI的online阶段，可以划分为两部分子阶段，对小数据集数据执行ecdh-"
+"oprf得到小数据集的加密结果；小数据集加密结果和offline阶段的到大数据集加密数据进行比较的到交集。总体计算量和传输量不大，运行时间在10几分钟左右。"
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:294
+msgid "Balanced PSI Benchmark报告 为了方便大家对比，同等硬件资源和数据规模下，对平衡PSI做了性能测试，报告如下："
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:297
+msgid "![](./resources/ecdh_psi_benchmark.png)"
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:299
+msgid "![](./resources/ecdh_psi_line.png)"
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:301
+msgid ""
+"解读： Balanced PSI 跑20亿*2000万规模数据时，在8C16G资源下CPU成为瓶颈，机器资源提升到64C128G后LAN 环境 "
+"79分钟完成任务执行。"
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:304
+msgid "参考文章："
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:305
+msgid ""
+"1.[非平衡隐私集合求交(Unbalanced "
+"PSI)协议介绍](http://mp.weixin.qq.com/s?__biz=MzA5NTQ0MTI4OA==&mid=2456914836&idx=1&sn=a82e36185a50f8437f4eab402a36ed7b&chksm=873a7373b04dfa6512bdfbbfbb051144cdd04c45f911077f46e5aef2e087018db57fa02d6c44&scene=21#wechat_redirect)"
+msgstr ""
+
+#: ../../developer/benchmark/ubpsi_benchmark.md:307
+msgid "2.[隐语 balanced psi Benchmark 白皮书](psi_benchmark.md)"
+msgstr ""

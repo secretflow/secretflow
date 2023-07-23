@@ -1,0 +1,304 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2022 Ant Group Co., Ltd.
+# This file is distributed under the same license as the SecretFlow package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2023.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: SecretFlow \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-06-05 16:25+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.12.1\n"
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:9
+msgid "隐语SecretFlow实际场景MPC算法开发实践"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:11
+msgid "This tutorial is only available in Chinese."
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:13
+msgid "推荐使用\\ ``conda``\\ 创建一个新环境 > conda create -n sf python=3.8"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:15
+msgid "直接使用\\ ``pip``\\ 安装secretflow > pip install -U secretflow"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:17
+msgid "基于secretflow：\\ **0.8.2b2**\\ 版本"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:19
+msgid ""
+"此代码示例主要是展示了如何基于secretflow以及SPU隐私计算设备完成一个实际的应用的开发，推荐先看前一个教程\\ `spu_basics "
+"<./spu_basics.ipynb>`__\\ 熟悉基本的SPU概念。"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:31
+msgid "任务介绍"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:42
+msgid "Vehicle Insurance Claim Fraud Detection"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:44
+msgid ""
+"该数据集来源于\\ `kaggle <https://www.kaggle.com/datasets/shivamb/vehicle-claim-"
+"fraud-detection>`__\\ ，包含 - 车辆数据集-属性、模型、事故详细信息等 - 保单详细信息-保单类型、有效期等"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:46
+msgid ""
+"目标是检测索赔申请是否欺诈： 字段\\ ``FraudFound_P`` (0 or 1) 即为预测的target值，是一个典型的\\ "
+"**二分类场景**\\ 。"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:58
+msgid "实验目标"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:60
+msgid ""
+"在本次实验中，我们将会利用一个开源数据集在隐语上完成隐私保护的逻辑回归、神经网络模型和XGB模型。主要涉及到如下的几个流程： 1. 数据加载 2."
+" 数据洞察 3. 数据预处理 4. 模型构建 5. 模型的训练与预测"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:72
+msgid "前置工作"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:84
+msgid "Ray集群启动（多机部署）"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:86
+msgid ""
+"考虑多机部署的情况，在启动secretflow之前需要先将ray集群启动。在header节点和worker节点上各自执行下述的指令。 > P.S."
+" 启动集群之后，可以执行\\ ``ray status``\\ 看一下集群是否正确启动完成"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:97
+msgid "**Header节点**"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:104
+msgid "**Worker节点**"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:134
+msgid "单机部署"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:136
+msgid ""
+"我们在此使用单机部署的方式做一个样例展示。 通过调用\\ ``sf.init()``\\ "
+"我们实例化了一个ray集群，有5个节点，也就对应了5个物理设备。"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:189
+msgid "定义明文计算设备PYU"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:191
+msgid ""
+"我们在启动了上述5个节点之后，明确隐语中的逻辑设备。这里我们将alice、bob、carol三方作为数据的提供方，可以本地执行明文计算，也就是 "
+"**PYU (PYthon runtime Unit)** 设备。"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:270
+msgid "定义密文计算设备SPU (3PC)"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:272
+msgid ""
+"进一步，我们以\\ **SPU (Secure Processing Unit)** "
+"为例，选择3个物理节点组成基于MPC（下例为三方的ABY3协议）的隐私计算设备。"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:315
+msgid "数据加载"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:327
+msgid "Load Data (Mock)"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:329
+msgid ""
+"在定义好隐语中的逻辑设备概念之后，我们演示一下如何进行数据的读入。这里使用一个mock的data load方法\\ "
+"``get_data_mock()``\\ 做一个演示。"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:378
+msgid "指定PYU设备读取数据"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:429
+msgid "PYU->SPU 数据转换"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:544
+msgid "Load Data (Distributed)"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:546
+msgid ""
+"我们下面考虑对一个实际应用场景的数据进行读取，也就是全集数据垂直分布在不同的参与方中。 > "
+"出于演示的目的，我们这里将中心化的明文数据进行垂直分割的拆分，首先观察下此数据集的特征。"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:558
+msgid "读入明文全集数据"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:929
+msgid "数据三方垂直拆分"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:931
+msgid "我们首先对这个数据进行一个拆分的处理，来模拟一个数据垂直分割的三方场景："
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:933
+msgid "alice持有前10个属性"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:934
+msgid "bob持有中间的10个属性"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:935
+msgid "carol持有剩下的所有属性以及标签值"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:937
+msgid "同时为了方便各方之间的样本做对齐，我们加了一个新的特征\\ ``UID``\\ 来标识数据样本。"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:939
+msgid "我们预先基于sklearn将全集数据拆分成训练集和测试集，方便后续进行模型训练效果的验证。"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:1655
+msgid "三方数据加载"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:1657
+msgid "注意：这里的接口里面需要显示地指明用于多方之间样本对齐的key，以及明确使用何种设备来执行PSI。"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:1901
+msgid "数据洞察"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:1903
+msgid "基于上层封装的VDataFrame抽象，隐语提供了多种数据分析的API，例如统计信息、查改某些列的信息等。"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:1967
+msgid "数据预处理"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:1969
+msgid "在读取完数据之后，下面我们演示如何在隐语上对一个实际多方持有的数据进行数据预处理。"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:1981
+msgid "Label Encoder"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:1983
+msgid "对无序且二值的值，我们可以使用label encoding，转化为0/1表示"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:2057
+msgid "(Ordinal) Categorical Features"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:2059
+msgid "对于有序的类别数据，我们构建映射，将类别数据转化为0~n-1的整数"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:2465
+msgid "(Nominal) Categorical Features"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:2467
+msgid "无序的类别数据，我们直接采用onehot encoder进行01编码"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:2479
+msgid "Onehot Encoder"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:2781
+msgid "数据对象转换"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:2783
+msgid "此处我们将PYUObject 转化为 SPUObject，方便输入到SPU device执行基于MPC协议的隐私计算"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:3028
+msgid "模型构建"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:3030
+msgid ""
+"在完成数据的读入之后，下面我们进行模型的构建。在本demo中，主要提供了三种模型的构建： - LR: 逻辑回归 - NN：神经网络模型 - "
+"XGB: XGBoost 树模型"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:3032
+msgid ""
+"注意，本示例主要是演示在隐语上进行算法开发的流程，并没有针对模型 (LR, NN) "
+"进行调参。我们分别提供了明文和密文的计算结果，实验结果显示两者的输出是基本一致的，表明隐语的密态计算能够和明文计算保持精度一致。"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:3044
+msgid "LR ( jax ) using SPU"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:3249
+msgid "NN ( jax + flax ) using SPU"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:3424
+msgid "XGB ( jax ) using SPU"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:4259
+msgid "The End"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:4261
+msgid ""
+"显示地调用\\ ``sf.shutdown()``\\ 关闭实例化的集群。 > "
+"注意：如果是在.py文件中运行代码，不需要显示地执行shutdown，在程序进程运行结束后会隐式地执行\\ ``shutdown``\\ 函数。"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:4283
+msgid "小结一下"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:4285
+msgid "介绍了如何针对一个实际场景的应用，在隐语上进行开发，提供隐私保护的能力"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:4286
+msgid "隐语上的数据加载、预处理、建模、训练流程"
+msgstr ""
+
+#: ../../tutorial/practical_case_walkthrough_using_sf_with_spu.ipynb:4287
+msgid "下一步，自己实现任意的计算（jax实现的计算），对于TF，pytorch的支持WIP"
+msgstr ""

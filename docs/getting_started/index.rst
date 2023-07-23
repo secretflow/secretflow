@@ -9,7 +9,9 @@ Please follow the :ref:`getting_started/deployment:deployment` and :ref:`getting
 
 Then, we encourage you to check :ref:`tutorial` to play with SecretFlow.
 
-After that, please check :ref:`components` which are first-class tools and utilities to facilitate your development.
+After that, please check :ref:`user_guide` which are first-party algorithms, tools and utilities to facilitate your development.
+
+If you would like to integrate SecretFlow algorithms to your privacy-preserving systems with a unified interface, we encourage you to check :ref:`component`.
 
 Finally, please refer to :ref:`developer` and :ref:`api` when you write you own SecretFlow programs.
 

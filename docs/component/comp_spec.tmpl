@@ -1,0 +1,74 @@
+# Component Specification
+
+## Table of Contents
+{{range .Files}}
+
+{{$file_name := .Name}} ### {{.Name | replace "secretflow/protos/component/" ""}}
+
+{{if .HasServices}}
+- Services
+  {{range .Services}}  - [{{.Name}}](#{{.FullName | lower | replace "." ""}})
+  {{end}}
+{{end}}
+{{if .HasMessages}}
+- Messages
+  {{range .Messages}}  - [{{.LongName}}](#{{.LongName | lower | replace "." ""}})
+  {{end}}
+{{end}}
+{{if .HasEnums}}
+- Enums
+  {{range .Enums}}  - [{{.LongName}}](#{{.LongName | lower | replace "." ""}})
+  {{end}}
+{{end}}
+{{end}}
+
+{{range .Files}}
+
+{{$file_name := .Name}} ## {{.Name | replace "secretflow/protos/component/" ""}}
+
+Proto file: [{{.Name }}](https://github.com/secretflow/secretflow/tree/main/{{.Name }})
+
+
+{{range .Services -}}
+### {{.Name}} {#{{.FullName | lower | replace "." ""}}}
+{{.Description}}
+
+{{range .Methods -}}
+#### {{.Name}}
+
+> **rpc** {{.Name}}([{{.RequestLongType}}](#{{.RequestLongType | lower | replace "." ""}}))
+    [{{.ResponseLongType}}](#{{.ResponseLongType | lower | replace "." ""}})
+
+{{ .Description}}
+{{end}} <!-- end methods -->
+{{end}} <!-- end services -->
+
+### Messages
+{{range .Messages}}
+
+#### {{.LongName}}
+{{.Description}}
+
+{{if .HasFields}}
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+{{range .Fields -}}
+	| {{if .IsOneof}}[**oneof**](https://developers.google.com/protocol-buffers/docs/proto3#oneof) {{.OneofDecl}}.{{end}}{{.Name}} | [{{if .IsMap}}map {{else}}{{.Label}} {{end}}{{.LongType}}](#{{.LongType | lower | replace "." ""}}) | {{if .Description}}{{nobr .Description}}{{if .DefaultValue}} Default: {{.DefaultValue}}{{end}}{{else}}none{{end}} |
+{{end}} <!-- end Fields -->
+{{end}} <!-- end HasFields -->
+{{end}} <!-- end messages -->
+
+### Enums
+{{range .Enums}}
+
+#### {{.LongName}}
+{{.Description}}
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+{{range .Values -}}
+	| {{.Name}} | {{.Number}} | {{if .Description}}{{nobr .Description}}{{else}}none{{end}} |
+{{end}}
+
+{{end}} <!-- end Enums -->
+{{end}} <!-- end Files -->

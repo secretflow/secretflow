@@ -14,26 +14,23 @@
 
 
 from dataclasses import dataclass
-from enum import Enum
 from typing import Union
+
+from heu import phe
 
 from secretflow.data import FedNdarray
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import HEU
+from secretflow.ml.boost.sgb_v.factory.params import TreeGrowingMethod, default_params
 
 from ..model import SgbModel
 from .booster import GlobalOrdermapBooster
 from .components import LeafWiseTreeTrainer, LevelWiseTreeTrainer
 
 
-class TreeGrowingMethod(Enum):
-    LEVEL = "level"
-    LEAF = "leaf"
-
-
 @dataclass
 class SGBFactoryParams:
-    tree_growing_method: TreeGrowingMethod = TreeGrowingMethod.LEVEL
+    tree_growing_method: TreeGrowingMethod = default_params.tree_growing_method
 
 
 class SGBFactory:
@@ -47,6 +44,7 @@ class SGBFactory:
     """
 
     def __init__(self):
+        # params_dict is either default or user set, should not change by program
         self.params_dict = {'tree_growing_method': "level"}
         self.factory_params = SGBFactoryParams()
         self.heu = None
@@ -65,6 +63,22 @@ class SGBFactory:
 
     def _produce(self) -> GlobalOrdermapBooster:
         assert self.heu is not None, "HEU must be set"
+        if self.heu.schema == phe.parse_schema_type("elgamal"):
+            assert self.params_dict.get(
+                'enable_quantization', False
+            ), "When the schema is elgamal, we must enable quantization to avoid runtime errors."
+            assert self.params_dict.get(
+                'quantization_scale', default_params.quantization_scale
+            ) * (
+                1
+                << self.params_dict.get(
+                    'fixed_point_parameter', default_params.fixed_point_parameter
+                )
+            ) < (
+                # this value is set in the HEU, later may become configurable
+                1
+                << 32
+            ), "quantization scale and fix point parameter too large for elgamal scheme, try to set them lower"
         if self.factory_params.tree_growing_method == TreeGrowingMethod.LEVEL:
             tree_trainer = LevelWiseTreeTrainer()
         else:

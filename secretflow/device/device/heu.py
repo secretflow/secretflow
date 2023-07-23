@@ -15,7 +15,7 @@
 from dataclasses import dataclass
 from functools import reduce
 from pathlib import Path
-from typing import Union
+from typing import Union, List
 
 import cloudpickle as pickle
 import jax.tree_util
@@ -287,7 +287,7 @@ class HEUActor:
     ) -> hnp.CiphertextArray:
         """Encrypt data
 
-        If the data has already been encoded, the data will be encrypted directly,
+        If the data has already been encoded, the data will be encrypted directly;
         you don't have to worry about the data being encoded repeatedly
 
         Even if the data has been encrypted, you still need to pass in the
@@ -314,7 +314,9 @@ class HEUActor:
     def do_binary_op(self, fn_name, data1, data2):
         """perform math operation
         Args:
-            fn: hnp.Evaluator functions, such as hnp.Evaluator.add, hnp.Evaluator.sub
+            fn_name: hnp.Evaluator functions, such as hnp.Evaluator.add, hnp.Evaluator.sub
+            data1: input data 1
+            data2: input data 2
         Returns:
             numpy ndarray of HeCiphertext
         """
@@ -353,7 +355,7 @@ class HEUSkKeeper(HEUActor):
         with open(path, "wb") as f:
             pickle.dump(pk, f)
 
-    def decrypt(self, data) -> Union[phe.Plaintext, hnp.PlaintextArray]:
+    def decrypt(self, data) -> Union[phe.Plaintext, List[phe.Plaintext], hnp.PlaintextArray]:
         """Decrypt data: ciphertext -> plaintext"""
         if isinstance(data, list):
             return [self.decrypt(d) for d in data]
@@ -421,7 +423,7 @@ class HEUEvaluator(HEUActor):
             pickle.dump(pk, f)
 
     def a2h_sum_shards(self, *shards):
-        """A2H: get sum of arithmetic shares"""
+        """A2H: get the sum of arithmetic shares"""
         return reduce(self.evaluator.add, shards)
 
     def h2a_make_share(
@@ -494,7 +496,38 @@ class HEUEvaluator(HEUActor):
 
 
 class HEU(Device):
-    """Homomorphic encryption device"""
+    """Homomorphic encryption device
+
+    HEU is a virtual device, and each HEU instance consists of multiple parties. Since HE is an
+    asymmetric encryption algorithm, the participants that make up an HEU are divided into
+    sk_keeper and evaluator. sk_keeper has one and only one participant, which has a private key
+    and a public key, and has decryption and computing capabilities. On the other hand, evaluators
+    only have public key and have computing capability.
+
+    HEU supports data flow between Devices (using the 'to()' function). Currently, the flow
+    directions supported by HEU are:
+
+     - PYU -> HEU: lazy data encryption: if HEU and PYU belong to the same party, the plaintext
+       will be moved, otherwise do encryption and move
+     - HEU -> PYU: decrypted data
+     - HEU -> HEU: data is moved between different parties in the same HEU, if the data is in
+       plaintext, encryption is triggered
+     - SPU -> HEU: Convert Arithmetic Sharing data into HE encrypted data and store it in the
+       specified evaluator
+     - HEU -> SPU: Convert HE encrypted data into Arithmetic Sharing data and store it in SPU
+
+    HEU 是个虚拟设备，每个 HEU 实例由多个参与方组成。由于 HE 是一种非对称加密算法，组成 HEU 实例的参与方分为
+    sk_keeper 和 evaluator， sk_keeper 有且仅有一个参与方，其拥有私钥和公钥，俱备解密、运算能力，其余参与方皆为
+    evaluator，仅有公钥，俱备运算能力。
+
+    HEU 支持数据在 Device 之间流动（使用 to 函数），目前 HEU 支持的流动方向有：
+
+    - PYU -> HEU: 数据 Lazy 加密：如果 HEU 与 PYU 属于同一个参与方，则明文移动，反之触发加密并移动
+    - HEU -> PYU: 解密数据
+    - HEU -> HEU: 数据在同一个 HEU 的不同参与方之间移动，如果数据是明文态，则触发加密
+    - SPU -> HEU: 将 Arithmetic Sharing 的数据转换成 HE 加密的数据并存放到指定 evaluator 中
+    - HEU -> SPU: 将 HE 加密的数据转换成 Arithmetic Sharing 数据并存放到 SPU
+    """
 
     def __init__(self, config: dict, spu_field_type):
         """Initialize HEU
@@ -508,16 +541,21 @@ class HEU(Device):
                         'sk_keeper': {
                             'party': 'alice'
                         },
-                        'evaluators': [{
-                            'party': 'bob'
-                        }],
-                        # The HEU working mode, choose from PHEU / LHEU / FHEU_ROUGH / FHEU
+                        'evaluators': [
+                            {
+                                'party': 'bob'
+                            }
+                        ],
+                        # The HEU working mode, only support PHEU currently
                         'mode': 'PHEU',
-                        # TODO: cleartext_type should be migrated to HeObject.
                         'encoding': {
-                            # DT_I1, DT_I8, DT_I16, DT_I32, DT_I64 or DT_FXP (default)
-                            'cleartext_type': "DT_FXP"
-                            # see https://www.secretflow.org.cn/docs/heu/en/getting_started/quick_start.html#id3 for detail
+                            # TODO: cleartext_type should be migrated to HeObject.
+                            # DT_I1
+                            # DT_I8, DT_I16, DT_I32, DT_I64
+                            # DT_U8, DT_U16, DT_U32, DT_U64
+                            # DT_F32 (default), DT_F64
+                            'cleartext_type': 'DT_F32'
+                            # see https://www.secretflow.org.cn/docs/heu/latest/en-US/getting_started/quick_start#id3 for detail
                             # available encoders:
                             #     - IntegerEncoder: Plaintext = Cleartext * scale
                             #     - FloatEncoder (default): Plaintext = Cleartext * scale
@@ -525,8 +563,10 @@ class HEU(Device):
                             #     - BatchIntegerEncoder: Plaintext = Pack[Cleartext, Cleartext]
                             #     - BatchFloatEncoder: Plaintext = Pack[Cleartext, Cleartext]
                             'encoder': 'FloatEncoder'
-                        }
+                        },
                         'he_parameters': {
+                            # which HE algorithm to use,
+                            # see https://www.secretflow.org.cn/docs/heu/latest/en-US/getting_started/algo_choice for detail
                             'schema': 'paillier',
                             'key_pair': {
                                 'generate': {
@@ -535,9 +575,10 @@ class HEU(Device):
                             }
                         }
                     }
+
+
             spu_field_type: Field type in spu,
-                Device.to operation requires the data scale of HEU to be aligned with
-                SPU
+                Device.to operation requires the data scale of HEU to be aligned with SPU
         """
         super().__init__(DeviceType.HEU)
 
@@ -550,7 +591,7 @@ class HEU(Device):
         self.evaluators = {}
         self.config = config
 
-        self.cleartext_type = "DT_FXP"
+        self.cleartext_type = "DT_F32"
         default_scale = 1 << spu_fxp_precision(spu_field_type)
         assert 'he_parameters' in config, f"missing field 'he_parameters' in heu config"
         param: dict = config['he_parameters']
@@ -560,7 +601,7 @@ class HEU(Device):
         self.scale = default_scale
         if 'encoding' in config:
             cfg = config['encoding']
-            self.cleartext_type = cfg.get("cleartext_type", "DT_FXP")
+            self.cleartext_type = cfg.get("cleartext_type", "DT_F32")
             edr_args = cfg.get("encoder_args", {})
             edr_name = cfg.get("encoder", "FloatEncoder")
 

@@ -152,6 +152,7 @@ myst_enable_extensions = [
 
 suppress_warnings = ["myst.header"]
 
+myst_gfm_only = True
 myst_heading_anchors = 1
 myst_title_to_header = True
 

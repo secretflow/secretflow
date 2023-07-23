@@ -7,7 +7,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
+
 "POT-Creation-Date: 2023-06-20 15:07+0800\n"
+
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -76,6 +78,7 @@ msgstr ""
 "SPU实际上由两个组件组成 - 编译器和运行时。SPU运行时只能执行 `PPHlo "
 "<https://www.secretflow.org.cn/docs/spu/en/reference/pphlo_doc.html>`__ "
 "。一个PPHlo内核的例子是 `pphlo.add "
+
 "<https://www.secretflow.org.cn/docs/spu/en/reference/pphlo_doc.html"
 "#pphlo-add-mlir-pphlo-addop>`__ "
 "。实际上，当逻辑非常简单和清晰时，我们只需将PPHlo程序直接输入SPU运行时以执行MPC程序，用于一些内部应用。"

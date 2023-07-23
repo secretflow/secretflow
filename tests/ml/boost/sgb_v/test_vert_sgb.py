@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import os
 import time
 
@@ -54,18 +55,18 @@ def _run_sgb(
     }
     model = sgb.train(params, v_data, label_data, audit_dict)
     reveal(model.trees[-1])
-    print(f"{test_name} train time: {time.perf_counter() - start}")
+    logging.info(f"{test_name} train time: {time.perf_counter() - start}")
     start = time.perf_counter()
     yhat = model.predict(v_data)
     yhat = reveal(yhat)
-    print(f"{test_name} predict time: {time.perf_counter() - start}")
+    logging.info(f"{test_name} predict time: {time.perf_counter() - start}")
     if logistic:
         auc = roc_auc_score(y, yhat)
-        print(f"{test_name} auc: {auc}")
+        logging.info(f"{test_name} auc: {auc}")
         assert auc > auc_bar
     else:
         mse = mean_squared_error(y, yhat)
-        print(f"{test_name} mse: {mse}")
+        logging.info(f"{test_name} mse: {mse}")
         assert mse < mse_hat
 
     fed_yhat = model.predict(v_data, env.alice)
@@ -73,9 +74,9 @@ def _run_sgb(
     yhat = reveal(fed_yhat.partitions[env.alice])
     assert yhat.shape[0] == y.shape[0], f"{yhat.shape} == {y.shape}"
     if logistic:
-        print(f"{test_name} auc: {roc_auc_score(y, yhat)}")
+        logging.info(f"{test_name} auc: {roc_auc_score(y, yhat)}")
     else:
-        print(f"{test_name} mse: {mean_squared_error(y, yhat)}")
+        logging.info(f"{test_name} mse: {mean_squared_error(y, yhat)}")
 
     saving_path_dict = {
         device: "./" + test_name + "/" + device.party

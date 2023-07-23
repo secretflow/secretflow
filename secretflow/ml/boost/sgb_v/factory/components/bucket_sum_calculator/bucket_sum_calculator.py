@@ -17,6 +17,7 @@ from typing import Dict, List, Tuple
 
 from secretflow.data import FedNdarray
 from secretflow.device import PYU, HEUObject, PYUObject
+from secretflow.ml.boost.sgb_v.factory.params import default_params
 
 from ....core.pure_numpy_ops.bucket_sum import batch_select_sum, regroup_bucket_sums
 from ....core.pure_numpy_ops.grad import split_GH
@@ -28,6 +29,16 @@ from ..shuffler import Shuffler
 
 
 @dataclass
+class BucketSumCalculatorParams:
+    """
+    'label_holder_feature_only': bool. if true, non-label holder will not do bucket sum
+        default: False
+    """
+
+    label_holder_feature_only: bool = default_params.label_holder_feature_only
+
+
+@dataclass
 class BucketSumCalculatorComponents:
     level_wise_cache: LevelWiseCache = LevelWiseCache()
 
@@ -36,21 +47,30 @@ class BucketSumCalculator(Composite):
     def __init__(self):
         self.components = BucketSumCalculatorComponents()
         self.logging_params = LoggingParams()
+        self.params = BucketSumCalculatorParams()
 
     def show_params(self):
         print_params(self.logging_params)
+        print_params(self.params)
 
     def set_params(self, params: dict):
         self.logging_params = LoggingTools.logging_params_from_dict(params)
+        self.params.label_holder_feature_only = bool(
+            params.get('label_holder_feature_only', False)
+        )
 
     def get_params(self, params: dict):
         LoggingTools.logging_params_write_dict(params, self.logging_params)
+        params['label_holder_feature_only'] = self.params.label_holder_feature_only
 
     def set_devices(self, devices: Devices):
         super().set_devices(devices)
         self.label_holder = devices.label_holder
         self.workers = devices.workers
         self.party_num = len(self.workers)
+
+    def set_actors(self, actors):
+        super().set_actors(actors)
 
     @LoggingTools.enable_logging
     def calculate_bucket_sum_level_wise(
@@ -71,30 +91,35 @@ class BucketSumCalculator(Composite):
         self.components.level_wise_cache.reset_level_caches()
         for i, worker in enumerate(self.workers):
             if worker != self.label_holder:
-                bucket_sums = encrypted_gh_dict[worker].batch_feature_wise_bucket_sum(
-                    children_split_node_selects,
-                    order_map_sub.partitions[worker],
-                    bucket_num_plus_one,
-                    True,
-                )
-                self.components.level_wise_cache.collect_level_node_GH(
-                    worker, bucket_sums, is_lefts
-                )
-                bucket_sums = self.components.level_wise_cache.get_level_nodes_GH(
-                    worker
-                )
-                bucket_sums = [
-                    bucket_sum[shuffler.create_shuffle_mask(i, j, bucket_lists[i])]
-                    for j, bucket_sum in enumerate(bucket_sums)
-                ]
-
-                bucket_sums_list[i] = [
-                    bucket_sum.to(
-                        self.label_holder,
-                        gradient_encryptor.get_move_config(self.label_holder),
+                if self.params.label_holder_feature_only:
+                    continue
+                else:
+                    bucket_sums = encrypted_gh_dict[
+                        worker
+                    ].batch_feature_wise_bucket_sum(
+                        children_split_node_selects,
+                        order_map_sub.partitions[worker],
+                        bucket_num_plus_one,
+                        True,
                     )
-                    for bucket_sum in bucket_sums
-                ]
+                    self.components.level_wise_cache.collect_level_node_GH(
+                        worker, bucket_sums, is_lefts
+                    )
+                    bucket_sums = self.components.level_wise_cache.get_level_nodes_GH(
+                        worker
+                    )
+                    bucket_sums = [
+                        bucket_sum[shuffler.create_shuffle_mask(i, j, bucket_lists[i])]
+                        for j, bucket_sum in enumerate(bucket_sums)
+                    ]
+
+                    bucket_sums_list[i] = [
+                        bucket_sum.to(
+                            self.label_holder,
+                            gradient_encryptor.get_move_config(self.label_holder),
+                        )
+                        for bucket_sum in bucket_sums
+                    ]
             else:
                 bucket_sums = self.label_holder(batch_select_sum)(
                     encrypted_gh_dict[worker],
@@ -109,7 +134,10 @@ class BucketSumCalculator(Composite):
                     worker
                 )
                 bucket_sums_list[i] = bucket_sums
-
+                if self.params.label_holder_feature_only:
+                    effective_index = i
+        if self.params.label_holder_feature_only:
+            bucket_sums_list = [bucket_sums_list[effective_index]]
         level_nodes_G, level_nodes_H = self.label_holder(
             lambda bucket_sums_list, node_num: [
                 *zip(
@@ -127,3 +155,6 @@ class BucketSumCalculator(Composite):
         self.components.level_wise_cache.update_level_cache(
             is_last_level, gain_is_cost_effective
         )
+
+    def reset_cache(self):
+        self.components.level_wise_cache.reset()

@@ -18,6 +18,8 @@ from typing import List, Tuple, Union
 import numpy as np
 
 from secretflow.device import PYUObject, reveal
+from secretflow.ml.boost.sgb_v.factory.params import default_params
+from secretflow.ml.boost.sgb_v.factory.sgb_actor import SGBActor
 
 from ....core.distributed_tree.distributed_tree import DistributedTree
 from ..bucket_sum_calculator import BucketSumCalculator
@@ -57,7 +59,7 @@ class LevelWiseTreeTrainerParams:
             range: [1, 16]
     """
 
-    max_depth: int = 5
+    max_depth: int = default_params.max_depth
 
 
 class LevelWiseTreeTrainer(TreeTrainer):
@@ -85,16 +87,75 @@ class LevelWiseTreeTrainer(TreeTrainer):
         self.label_holder = devices.label_holder
         self.party_num = len(self.workers)
 
+    def set_actors(self, actors: SGBActor):
+        return super().set_actors(actors)
+
     def _get_trainer_params(self, params: dict):
         params['max_depth'] = self.params.max_depth
         LoggingTools.logging_params_write_dict(params, self.logging_params)
 
     def _set_trainer_params(self, params: dict):
-        depth = int(params.pop('max_depth', 5))
+        depth = int(params.get('max_depth', 5))
         assert depth > 0 and depth <= 16, f"max_depth should in [1, 16], got {depth}"
 
         self.params.max_depth = depth
         self.logging_params = LoggingTools.logging_params_from_dict(params)
+
+    def train_tree_context_setup(
+        self,
+        cur_tree_num: int,
+        order_map_manager: OrderMapManager,
+        y: PYUObject,
+        pred: Union[PYUObject, np.ndarray],
+        x_shape: Tuple[int, int],
+    ):
+        # reset caches
+        self.components.split_tree_builder.reset()
+        self.components.leaf_manager.clear_leaves()
+        self.components.bucket_sum_calculator.reset_cache()
+
+        # sub sampling
+        feature_buckets = order_map_manager.get_feature_buckets()
+        col_choices, total_buckets = self.components.sampler.generate_col_choices(
+            feature_buckets
+        )
+        self.components.split_tree_builder.set_col_choices_and_buckets(
+            col_choices, total_buckets, feature_buckets
+        )
+        g, h = self.components.loss_computer.compute_gh(y, pred)
+        row_choices, weight = self.components.sampler.generate_row_choices(
+            x_shape[0], g
+        )
+
+        order_map = order_map_manager.get_order_map()
+        self.bucket_lists = order_map_manager.get_bucket_lists(col_choices)
+        self.order_map_sub = self.components.sampler.apply_v_fed_sampling(
+            order_map, row_choices, col_choices
+        )
+        self.row_choices = row_choices
+        self.bucket_num = order_map_manager.buckets
+
+        # compute g, h and encryption
+        g = self.components.sampler.apply_vector_sampling_weighted(
+            g, row_choices, weight
+        )
+        h = self.components.sampler.apply_vector_sampling_weighted(
+            h, row_choices, weight
+        )
+        self.components.loss_computer.compute_abs_sums(g, h)
+        self.should_stop = self.components.loss_computer.check_early_stop()
+        if self.should_stop:
+            return
+        self.components.loss_computer.compute_scales()
+
+        g, h = self.components.loss_computer.scale_gh(g, h)
+        self.g = g
+        self.h = h
+        gh = self.components.gradient_encryptor.pack(g, h)
+        encrypted_gh = self.components.gradient_encryptor.encrypt(gh, cur_tree_num)
+        self.encrypted_gh_dict = self.components.gradient_encryptor.cache_to_workers(
+            encrypted_gh, gh
+        )
 
     @LoggingTools.enable_logging
     def train_tree(
@@ -105,39 +166,14 @@ class LevelWiseTreeTrainer(TreeTrainer):
         pred: Union[PYUObject, np.ndarray],
         x_shape: Tuple[int, int],
     ) -> DistributedTree:
-        # sub sampling
-        self.components.split_tree_builder.reset()
-        feature_buckets = order_map_manager.get_feature_buckets()
-        col_choices, total_buckets = self.components.sampler.generate_col_choices(
-            feature_buckets
-        )
-        self.components.split_tree_builder.set_col_choices_and_buckets(
-            col_choices, total_buckets, feature_buckets
-        )
-        row_choices = self.components.sampler.generate_row_choices(x_shape[0])
-        y_sub = self.components.sampler.apply_vector_sampling(y, row_choices)
-        pred_sub = self.components.sampler.apply_vector_sampling(pred, row_choices)
-        order_map = order_map_manager.get_order_map()
-        self.bucket_lists = order_map_manager.get_bucket_lists(col_choices)
-        order_map_sub = self.components.sampler.apply_v_fed_sampling(
-            order_map, row_choices, col_choices
-        )
-        self.row_choices = row_choices
-        self.order_map_sub = order_map_sub
-        self.bucket_num = order_map_manager.buckets
-
-        # compute g, h and encryption
-        g, h = self.components.loss_computer.compute_gh(y_sub, pred_sub)
-        gh = self.components.gradient_encryptor.pack(g, h)
-        encrypted_gh = self.components.gradient_encryptor.encrypt(gh, cur_tree_num)
-        self.encrypted_gh_dict = self.components.gradient_encryptor.cache_to_workers(
-            encrypted_gh, gh
-        )
+        self.train_tree_context_setup(cur_tree_num, order_map_manager, y, pred, x_shape)
+        if self.should_stop:
+            return None
+        row_num = self.order_map_sub.shape[0]
+        g, h = self.g, self.h
+        root_select = self.components.node_selector.root_select(row_num)
 
         # level wise train begins
-        self.components.leaf_manager.clear_leaves()
-        root_select = self.components.node_selector.root_select(order_map_sub.shape[0])
-
         split_node_selects = root_select
         split_node_indices = [0]
 
@@ -272,7 +308,9 @@ class LevelWiseTreeTrainer(TreeTrainer):
             self.components.gradient_encryptor,
             node_num,
         )
-
+        level_nodes_G, level_nodes_H = self.components.loss_computer.reverse_scale_gh(
+            level_nodes_G, level_nodes_H
+        )
         (
             split_buckets,
             gain_is_cost_effective,
