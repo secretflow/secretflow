@@ -19,7 +19,7 @@ from secretflow.preprocessing.scaler import StandardScaler
 from secretflow.security.aggregation import SecureAggregator
 from tests.cluster import cluster, set_self_party
 
-from secretflow.ml.linear.interconnection.router_hooks import RouterLrAggrHook
+# from secretflow.ml.linear.interconnection.router_hooks import RouterLrAggrHook
 
 
 @dataclass
