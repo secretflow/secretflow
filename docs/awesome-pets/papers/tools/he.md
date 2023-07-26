@@ -5,6 +5,7 @@
 HE, especially FHE(Fully Homomorphic Encryption), does matter and are keys for now and future.
 
 - [Homomorphic Encryption (HE)](#homomorphic-encryption-he)
+  - [Notable References](#notable-references)
   - [Survey](#survey)
   - [Partial HE(PHE)](#partial-hephe)
   - [FHE](#fhe)
@@ -15,6 +16,10 @@ HE, especially FHE(Fully Homomorphic Encryption), does matter and are keys for n
     - [Open-sourced libs](#open-sourced-libs)
   - [Applications](#applications)
   - [Standard Efforts](#standard-efforts)
+
+## Notable References
+
+- [Homomorphic Encryption References](https://people.csail.mit.edu/vinodv/FHE/FHE-refs.html)
 
 ## Survey
 
@@ -227,7 +232,9 @@ Communications of the ACM, [paper](https://dl.acm.org/doi/pdf/10.1145/359340.359
 
 ### Hardware-based Acceleration
 
-TODO:
+- Intel HEXL: Accelerating Homomorphic Encryption with Intel AVX512-IFMA52
+  *Fabian Boemer, Sejun Kim, Gelila Seifu, Fillipe D. M. de Souza, Vinodh Gopal*
+  Proceedings of the 9th on Workshop on Encrypted Computing & Applied Homomorphic Cryptography 2021, [paper](https://dl.acm.org/doi/abs/10.1145/3474366.3486926)
 
 ### Open-sourced libs
 
