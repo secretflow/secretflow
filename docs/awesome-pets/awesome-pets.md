@@ -45,6 +45,10 @@ Multimedia Privacy and Security
 2. [Attack Methods](papers/applications/multimedia/attack.md) (Contributors: [@XiaoHwei](https://www.github.com/XiaoHwei))
 3. [Defense Methods](papers/applications/multimedia/defense.md) (Contributors: [@XiaoHwei](https://www.github.com/XiaoHwei))
 
+Biometric Template Protection
+
+1. [Surveys](papers/applications/btp/btp.md) (Contributors: [@zhangwfjh](https://www.github.com/zhangwfjh))
+
 ## Other Resources
 
 We're sorry some of the materials are avaliable only in Chinese, we'll try to provide an English version in the future.
