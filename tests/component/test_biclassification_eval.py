@@ -167,11 +167,11 @@ def test_biclassification_eval(comp_prod_sf_cluster_config):
         output_uris=[""],
     )
     meta = IndividualTable(
-        schema=TableSchema(labels=["labels"], label_types=["f32"]),
+        schema=TableSchema(labels=["labels"], label_types=["float32"]),
     )
     param.inputs[0].meta.Pack(meta)
     meta = VerticalTable(
-        schemas=[TableSchema(labels=["predictions"], label_types=["f32"])],
+        schemas=[TableSchema(labels=["predictions"], label_types=["float32"])],
     )
     param.inputs[1].meta.Pack(meta)
 

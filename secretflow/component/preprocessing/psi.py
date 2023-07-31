@@ -39,7 +39,7 @@ psi_comp = Component(
     "psi",
     domain="preprocessing",
     version="0.0.1",
-    desc="Balanced PSI between two parties.",
+    desc="PSI between two parties.",
 )
 psi_comp.str_attr(
     name="protocol",
@@ -69,7 +69,7 @@ psi_comp.str_attr(
 psi_comp.io(
     io_type=IoType.INPUT,
     name="receiver_input",
-    desc="Input for receiver",
+    desc="Individual table for receiver",
     types=[DistDataType.INDIVIDUAL_TABLE],
     col_params=[
         TableColParam(
@@ -81,7 +81,7 @@ psi_comp.io(
 psi_comp.io(
     io_type=IoType.INPUT,
     name="sender_input",
-    desc="Input for sender",
+    desc="Individual table for sender",
     types=[DistDataType.INDIVIDUAL_TABLE],
     col_params=[
         TableColParam(
@@ -93,7 +93,7 @@ psi_comp.io(
 psi_comp.io(
     io_type=IoType.OUTPUT,
     name="psi_output",
-    desc="Output",
+    desc="Output vertical table",
     types=[DistDataType.VERTICAL_TABLE],
 )
 

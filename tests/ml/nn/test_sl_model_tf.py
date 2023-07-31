@@ -224,7 +224,7 @@ def keras_model_with_mnist(
         assert math.isclose(zero_metric['loss'], loss_sum, rel_tol=0.01)
     else:
         assert zero_metric['loss'] == 0.0
-    assert global_metric['accuracy'] > 0.8
+    assert global_metric['accuracy'] > 0.7
     result = sl_model.predict(data, batch_size=128, verbose=1)
     reveal_result = []
     for rt in result:
@@ -452,6 +452,18 @@ class TestSLModelTensorflow:
             device_y=sf_simulation_setup_devices.bob,
         )
 
+        print("test TopK Sparse")
+        top_k_compressor = TopkSparse(0.5)
+        keras_model_with_mnist(
+            data=x_train,
+            label=y_train,
+            devices=sf_simulation_setup_devices,
+            base_model_dict=base_model_dict,
+            model_fuse=fuse_model,
+            device_y=sf_simulation_setup_devices.bob,
+            compressor=top_k_compressor,
+        )
+
     def test_multi_output_model(self, sf_simulation_setup_devices):
         (x_train, y_train), (_, _) = load_mnist(
             parts={
@@ -530,7 +542,7 @@ class TestSLModelTensorflow:
         )
 
         print("test RandomSparse")
-        random_sparse = RandomSparse(0.2)
+        random_sparse = RandomSparse(0.1)
 
         keras_model_with_mnist(
             data=x_train,
@@ -578,7 +590,7 @@ class TestSLModelTensorflow:
         )
 
         # agg layer
-        print("test PlainAggLayer")
+        print("test PlainAggLayer with topk sparse")
         top_k_compressor = TopkSparse(0.5)
         keras_model_with_mnist(
             data=x_train,

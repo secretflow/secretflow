@@ -1,0 +1,181 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2022 Ant Group Co., Ltd.
+# This file is distributed under the same license as the SecretFlow package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2023.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: SecretFlow \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-07-20 15:00+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.12.1\n"
+
+#: ../../tutorial/gpt2_with_puma.ipynb:9
+msgid "GPT-2 Secure inference with Puma"
+msgstr "基于Puma框架的GPT2安全推理"
+
+#: ../../tutorial/gpt2_with_puma.ipynb:11
+msgid ""
+"In this lab, we showcase how to run 3PC secure inference on a pre-trained"
+" `GPT-2 <https://cdn.openai.com/better-language-"
+"models/language_models_are_unsupervised_multitask_learners.pdf>`__ model "
+"for text generation with Puma."
+msgstr "在本 lab 中，我们展示如何使用 Puma 基于一个预训练的"
+" `GPT-2 <https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf>`__  "
+"模型安全生成文本。"
+
+#: ../../tutorial/gpt2_with_puma.ipynb:13
+msgid ""
+"First, we show how to use JAX and the Hugging Face Transformers library "
+"for text generation with the pre-trained GPT-2 model. After that, we show"
+" how to use Puma on the top of SPU for secure text generation with minor "
+"modifications to the plaintext counterpart."
+msgstr "首先，我们展示如何使用 JAX 和 Hugging Face transformers 库基于预训练 "
+"GPT-2 模型生成文本。然后，我们展示如何通过少量代码修改在 Puma 上生成文本。"
+
+#: ../../tutorial/gpt2_with_puma.ipynb:24
+msgid ""
+"The following codes are demos only. It’s **NOT for production** due to "
+"system security concerns, please **DO NOT** use it directly in "
+"production."
+msgstr "以下代码仅作为示例，请勿在生产环境直接使用。"
+
+#: ../../tutorial/gpt2_with_puma.ipynb:35
+msgid "This tutorial may need more resources than 16c48g."
+msgstr "本教程可能需要比 16c48g 更多的资源。"
+
+#: ../../tutorial/gpt2_with_puma.ipynb:47
+msgid "What is Puma?"
+msgstr "Puma 是什么？"
+
+#: ../../tutorial/gpt2_with_puma.ipynb:49
+msgid ""
+"Puma is a fast and accurate end-to-end 3-party secure Transformer models "
+"inference framework. Puma designs high quality approximations for "
+"expensive functions, such as :math:`\\mathsf{GeLU}` and "
+":math:`\\mathsf{Softmax}`, which significantly reduce the cost of secure "
+"inference while preserving the model performance. Additionally, we design"
+" secure :math:`\\mathsf{Embedding}` and :math:`\\mathsf{LayerNorm}` "
+"procedures that faithfully implement the desired functionality without "
+"undermining the Transformer architecture. Puma is approximately "
+":math:`2\\times` faster than the state-of-the-art MPC framework MPCFormer"
+" (ICLR 2023) and has similar accuracy as plaintext models without fine-"
+"tuning (which the previous works failed to achieve)."
+msgstr "Puma 是一个快速且准确的端到端安全三方安全Transformer模型推理框架。"
+" Puma 为 :math:`\\mathsf{GeLU}`和 :math:`\\mathsf{Softmax}`等开销较大的复杂"
+"非线性函数设计了高质量的近似函数，这在保证模型性能的同时大大减少了安全推理的开销。除此之外，"
+"我们还设计了安全的 :math:`\\mathsf{Embedding}`和 :math:`\\mathsf{LayerNorm}`算子实现，"
+"从而在不改变模型结构的前提下实现安全推理。Puma 比之前当前最优的方案之一 MPCFormer（ICLR 2023）"
+"高效2倍左右，并且在不对提供的模型微调的前提下达到了和明文同水平的准确率等指标"
+"（之前的安全Transformer推理框架均需要在改变模型结构后进一步微调）。"
+
+#: ../../tutorial/gpt2_with_puma.ipynb:62
+msgid "Text generation using GPT-2 with JAX/FLAX"
+msgstr "使用 JAX/Flax 通过 GPT-2 生成文本"
+
+#: ../../tutorial/gpt2_with_puma.ipynb:65
+msgid "Install the transformers library"
+msgstr "安装 transformers 库"
+
+#: ../../tutorial/gpt2_with_puma.ipynb:86
+msgid ""
+"The JAX version required by transformers is not satisfied with SPU. But "
+"it’s ok to run with the conflicted JAX with SPU in this example."
+msgstr "transformers 库要求的 JAX 版本与 SPU 不一致，但不影响运行本教程的示例。"
+
+#: ../../tutorial/gpt2_with_puma.ipynb:98
+msgid "Load the pre-trained GPT-2 Model"
+msgstr "加载预训练 GPT-2 模型""
+
+#: ../../tutorial/gpt2_with_puma.ipynb:100
+msgid ""
+"Please refer to this `documentation "
+"<https://huggingface.co/docs/transformers/main/en/model_doc/gpt2>`__ for "
+"more details."
+msgstr "请参考 `该文档 "
+"<https://huggingface.co/docs/transformers/main/en/model_doc/gpt2>`__ 获取更多 Flax 运行 GPT-2 的细节。"
+
+#: ../../tutorial/gpt2_with_puma.ipynb:149
+msgid ""
+"To hack GeLU function of GPT2, you need to change the ``self.act`` as "
+"``jax.nn.gelu`` to hack ``gelu``. For example, in "
+"``transformers/src/transformers/models/gpt2/modeling_flax_gpt2.py``, line"
+" 296:"
+msgstr "为了劫持GPT2模型中的 GeLU 函数，需要将``self.act``修改为`jax.nn.gelu`` 。"
+"例如，将``transformers/src/transformers/models/gpt2/modeling_flax_gpt2.py``，296行"
+
+#: ../../tutorial/gpt2_with_puma.ipynb:155
+msgid "is changed as"
+msgstr "修改为"
+
+#: ../../tutorial/gpt2_with_puma.ipynb:171
+msgid "Define the text generation function"
+msgstr "定义文本生成函数"
+
+#: ../../tutorial/gpt2_with_puma.ipynb:173
+msgid ""
+"We use a `greedy search strategy <https://huggingface.co/blog/how-to-"
+"generate>`__ for text generation here."
+msgstr "我们使用 `贪心搜索策略 <https://huggingface.co/blog/how-to-"
+"generate>`__ 来生成文本。"
+
+#: ../../tutorial/gpt2_with_puma.ipynb:204
+msgid "Run text generation on CPU"
+msgstr "在 CPU 上生成文本"
+
+#: ../../tutorial/gpt2_with_puma.ipynb:302
+msgid ""
+"Here we generate 10 tokens. Keep the generated text in mind, we are going"
+" to generate text on SPU in the next step."
+msgstr "这里我们生成了 10 个 tokens。请记住生成的文本，我们接下来会在 SPU 上生成文本。"
+
+#: ../../tutorial/gpt2_with_puma.ipynb:314
+msgid "Run text generation on SPU"
+msgstr "在 SPU 上生成文本"
+
+#: ../../tutorial/gpt2_with_puma.ipynb:326
+msgid "Import the necessary libraries and config the optimizations"
+msgstr "引入需要的库并配置相关优化"
+
+#: ../../tutorial/gpt2_with_puma.ipynb:366
+msgid "Define the Softmax hijack function."
+msgstr "劫持 Softmax ，定义其优化函数"
+
+#: ../../tutorial/gpt2_with_puma.ipynb:413
+msgid "Define the GeLU hijack function"
+msgstr "劫持 GeLU ，定义其优化函数"
+
+#: ../../tutorial/gpt2_with_puma.ipynb:471
+msgid "Launch Puma on GPT2:"
+msgstr "针对GPT2模型启动 Puma "
+
+#: ../../tutorial/gpt2_with_puma.ipynb:763
+msgid "Check the Puma output"
+msgstr "检查 Puma 的输出"
+
+#: ../../tutorial/gpt2_with_puma.ipynb:765
+msgid ""
+"As you can see, it’s very easy to run GPT-2 inference on Puma. Now let’s "
+"reveal the generated text from Puma."
+msgstr "可以发现，在 Puma 上运行 GPT-2 推理非常简单。接下来让我们明文显示 SPU 生成的文本。"
+
+#: ../../tutorial/gpt2_with_puma.ipynb:866
+msgid ""
+"As we can see, the generated text from Puma is exactly same as the "
+"generated text from CPU!"
+msgstr "可以发现，Puma 生成的文本与 CPU 生成的文本是完全一致的！"
+
+#: ../../tutorial/gpt2_with_puma.ipynb:877
+msgid ""
+"This is the end of the lab. For more benchmarks about Puma, please refer "
+"to: "
+"https://github.com/secretflow/spu/tree/main/examples/python/ml/flax_llama7b"
+msgstr "本教程到此结束。更多关于Puma的测试，请参考"
+"https://github.com/secretflow/spu/tree/main/examples/python/ml/flax_llama7b"

@@ -41,6 +41,7 @@ def zeros(shape):
 
 class BigintNdArray:
     def __init__(self, data, shape):
+        assert len(data) == math.prod(shape), f"{len(data)} != {math.prod(shape)}"
         self.shape = shape
         self.data = data
 

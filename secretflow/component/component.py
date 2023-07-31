@@ -37,8 +37,8 @@ from secretflow.protos.component.comp_pb2 import (
 from secretflow.protos.component.evaluation_pb2 import NodeEvalParam, NodeEvalResult
 
 
-def clean_text(x: str) -> str:
-    return cleantext.clean(x, lower=False, no_line_breaks=True)
+def clean_text(x: str, no_line_breaks: bool = True) -> str:
+    return cleantext.clean(x.strip(), lower=False, no_line_breaks=no_line_breaks)
 
 
 class CompDeclError(Exception):
@@ -115,7 +115,7 @@ class Component:
         self.name = name
         self.domain = domain
         self.version = version
-        self.desc = clean_text(desc)
+        self.desc = clean_text(desc, no_line_breaks=False)
 
         self.__definition = None
         self.__eval_callback = None
@@ -657,6 +657,7 @@ class Component:
             log_to_driver=True,
             cluster_config=cluster_config,
             omp_num_threads=multiprocess.cpu_count(),
+            cross_silo_messages_max_size_in_bytes=1024**3,
         )
 
     def _check_storage(self, config: SFClusterConfig):

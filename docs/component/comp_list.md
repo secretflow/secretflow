@@ -6,7 +6,7 @@ SecretFlow Component List
 =========================
 
 
-Last update: Mon Jul  3 08:44:11 2023
+Last update: Wed Jul 12 14:00:40 2023
 
 Version: 0.0.1
 
@@ -24,7 +24,7 @@ Generate Weight of Evidence (WOE) binning rules for vertical partitioning datase
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
-|secure_device_type|Use SPU or HEU to secure bucket summation.|String|N|Default: spu. Allowed: ['spu', 'heu'].|
+|secure_device_type|Use SPU(Secure multi-party computation or MPC) or HEU(Homomorphic encryption or HE) to secure bucket summation.|String|N|Default: spu. Allowed: ['spu', 'heu'].|
 |binning_method|How to bin features with numeric types: "quantile"(equal frequency)/"chimerge"(ChiMerge from AAAI92-019: https://www.aaai.org/Papers/AAAI/1992/AAAI92-019.pdf)|String|N|Default: quantile. Allowed: ['quantile', 'chimerge'].|
 |bin_num|Max bin counts for one features.|Integer|N|Default: 10. Range: (0, $\infty$).|
 |positive_label|Which value represent positive value in label.|String|N|Default: 1.|
@@ -74,7 +74,13 @@ Substitute datasets' value by WOE substitution rules.
 
 Component version: 0.0.1
 
-Statistics evaluation for a bi-classification model on a dataset. 1. summary_report: SummaryReport 2. group_reports: List[GroupReport] 3. eq_frequent_bin_report: List[EqBinReport] 4. eq_range_bin_report: List[EqBinReport] 5. head_report: List[PrReport] reports for fpr = 0.001, 0.005, 0.01, 0.05, 0.1, 0.2
+Statistics evaluation for a bi-classification model on a dataset.
+1. summary_report: SummaryReport
+2. group_reports: List[GroupReport]
+3. eq_frequent_bin_report: List[EqBinReport]
+4. eq_range_bin_report: List[EqBinReport]
+5. head_report: List[PrReport]
+reports for fpr = 0.001, 0.005, 0.01, 0.05, 0.1, 0.2
 #### Attrs
 
 
@@ -133,7 +139,9 @@ Calculate prediction bias, ie. average of predictions - average of labels.
 
 Component version: 0.0.1
 
-Calculate P-Value for LR model training on vertical partitioning dataset by using secret sharing. For large dataset(large than 10w samples & 200 features), recommend to use [Ring size: 128, Fxp: 40] options for SPU device.
+Calculate P-Value for LR model training on vertical partitioning dataset by using secret sharing.
+For large dataset(large than 10w samples & 200 features),
+recommend to use [Ring size: 128, Fxp: 40] options for SPU device.
 #### Inputs
 
 
@@ -252,7 +260,10 @@ Predict using the SS-XGB model.
 
 Component version: 0.0.1
 
-Provides both classification and regression tree boosting (also known as GBDT, GBM) for vertical split dataset setting by using secure boost. SGB is short for SecureBoost. Compared to its safer counterpart SS-XGB, SecureBoost focused on protecting label holder. Check https://arxiv.org/abs/1901.08755.
+Provides both classification and regression tree boosting (also known as GBDT, GBM)
+for vertical split dataset setting by using secure boost.
+- SGB is short for SecureBoost. Compared to its safer counterpart SS-XGB, SecureBoost focused on protecting label holder.
+- Check https://arxiv.org/abs/1901.08755.
 #### Attrs
 
 
@@ -290,7 +301,9 @@ Provides both classification and regression tree boosting (also known as GBDT, G
 
 Component version: 0.0.1
 
-Train both linear and logistic regression linear models for vertical partitioning dataset with mini batch SGD training solver by using secret sharing. SS-SGD is short for secret sharing SGD training.
+Train both linear and logistic regression
+linear models for vertical partitioning dataset with mini batch SGD training solver by using secret sharing.
+- SS-SGD is short for secret sharing SGD training.
 #### Attrs
 
 
@@ -324,7 +337,10 @@ Train both linear and logistic regression linear models for vertical partitionin
 
 Component version: 0.0.1
 
-This method provides both classification and regression tree boosting (also known as GBDT, GBM) for vertical partitioning dataset setting by using secret sharing. SS-XGB is short for secret sharing XGB. More details: https://arxiv.org/pdf/2005.08479.pdf
+This method provides both classification and regression tree boosting (also known as GBDT, GBM)
+for vertical partitioning dataset setting by using secret sharing.
+- SS-XGB is short for secret sharing XGB.
+- More details: https://arxiv.org/pdf/2005.08479.pdf
 #### Attrs
 
 
@@ -382,7 +398,7 @@ Drop features from the dataset.
 
 Component version: 0.0.1
 
-Balanced PSI between two parties.
+PSI between two parties.
 #### Attrs
 
 
@@ -412,7 +428,8 @@ Balanced PSI between two parties.
 
 Component version: 0.0.1
 
-Split datasets into random train and test subsets. Please check: https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html
+Split datasets into random train and test subsets.
+- Please check: https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html
 #### Attrs
 
 
@@ -445,7 +462,9 @@ Split datasets into random train and test subsets. Please check: https://scikit-
 
 Component version: 0.0.1
 
-Calculate Pearson's product-moment correlation coefficient for vertical partitioning dataset by using secret sharing. For large dataset(large than 10w samples & 200 features), recommend to use [Ring size: 128, Fxp: 40] options for SPU device.
+Calculate Pearson's product-moment correlation coefficient for vertical partitioning dataset
+by using secret sharing.
+- For large dataset(large than 10w samples & 200 features), recommend to use [Ring size: 128, Fxp: 40] options for SPU device.
 #### Inputs
 
 
@@ -465,7 +484,9 @@ Calculate Pearson's product-moment correlation coefficient for vertical partitio
 
 Component version: 0.0.1
 
-Calculate Variance Inflation Factor(VIF) for vertical partitioning dataset by using secret sharing. For large dataset(large than 10w samples & 200 features), recommend to use [Ring size: 128, Fxp: 40] options for SPU device.
+Calculate Variance Inflation Factor(VIF) for vertical partitioning dataset
+by using secret sharing.
+- For large dataset(large than 10w samples & 200 features), recommend to use [Ring size: 128, Fxp: 40] options for SPU device.
 #### Inputs
 
 
@@ -485,7 +506,35 @@ Calculate Variance Inflation Factor(VIF) for vertical partitioning dataset by us
 
 Component version: 0.0.1
 
-Get a table of statistics, including each column's datatype, total_count, count, count_na, min, max, var, std, sem, skewness, kurtosis, q1, q2, q3, moment_2, moment_3, moment_4, central_moment_2, central_moment_3, central_moment_4, sum, sum_2, sum_3 and sum_4. moment_2 means E[X^2]. central_moment_2 means E[(X - mean(X))^2]. sum_2 means sum(X^2).
+Get a table of statistics,
+including each column's
+1. datatype
+2. total_count
+3. count
+4. count_na
+5. min
+6. max
+7. var
+8. std
+9. sem
+10. skewness
+11. kurtosis
+12. q1
+13. q2
+14. q3
+15. moment_2
+16. moment_3
+17. moment_4
+18. central_moment_2
+19. central_moment_3
+20. central_moment_4
+21. sum
+22. sum_2
+23. sum_3
+24. sum_4
+- moment_2 means E[X^2].
+- central_moment_2 means E[(X - mean(X))^2].
+- sum_2 means sum(X^2).
 #### Inputs
 
 

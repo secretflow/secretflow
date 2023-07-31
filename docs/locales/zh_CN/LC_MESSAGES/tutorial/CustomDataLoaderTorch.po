@@ -126,7 +126,7 @@ msgid ""
 "Download link:\\ "
 "http://download.tensorflow.org/example_images/flower_photos.tgz "
 "|5b3ad82cbbe5405db14465608eacd64a|"
-msgstr "下载地址:\\" 
+msgstr "下载地址:\\"
 "http://download.tensorflow.org/example_images/flower_photos.tgz "
 "|5b3ad82cbbe5405db14465608eacd64a|"
 

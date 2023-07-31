@@ -19,7 +19,7 @@ Anonymity-related techniques
 
 Hardware-based solutions
 
-1. [Trusted Execution Environment (TEE)](papers/tools/tee.md) 
+1. [Trusted Execution Environment (TEE)](papers/tools/tee.md)
 
 ### Applications of PETs
 
@@ -50,6 +50,5 @@ Multimedia Privacy and Security
 We're sorry some of the materials are avaliable only in Chinese, we'll try to provide an English version in the future.
 
 1. [Team SecretFlow's Papers](papers/secretflow.md)
-2. [Team SecretFlow's Talks (on bilibili.com)](tutorials/talks.md) 
+2. [Team SecretFlow's Talks (on bilibili.com)](tutorials/talks.md)
 3. [Team SecretFlow's Posts (on wechat)](tutorials/posts.md)
-

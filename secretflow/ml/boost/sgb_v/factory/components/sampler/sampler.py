@@ -19,7 +19,7 @@ import numpy as np
 
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.device import PYUObject
-from secretflow.ml.boost.sgb_v.factory.params import default_params
+from secretflow.ml.boost.sgb_v.core.params import default_params
 from secretflow.ml.boost.sgb_v.factory.sgb_actor import SGBActor
 
 from ..component import Component, Devices, print_params
@@ -29,10 +29,10 @@ from .sample_actor import SampleActor
 @dataclass
 class SamplerParams:
     """
-    'row_sample_rate': float. Row sub sample ratio of the training instances.
+    'rowsample_by_tree': float. Row sub sample ratio of the training instances.
         default: 1
         range: (0, 1]
-    'col_sample_rate': float. Col sub sample ratio of columns when constructing each tree.
+    'colsample_by_tree': float. Col sub sample ratio of columns when constructing each tree.
         default: 1
         range: (0, 1]
     'seed': int. Pseudorandom number generator seed.
@@ -50,10 +50,10 @@ class SamplerParams:
         range: (0, 1), but top_rate + bottom_rate < 1
     """
 
-    row_sample_rate: float = default_params.row_sample_rate
-    col_sample_rate: float = default_params.col_sample_rate
+    rowsample_by_tree: float = default_params.rowsample_by_tree
+    colsample_by_tree: float = default_params.colsample_by_tree
     seed: int = default_params.seed
-    label_holder_feature_only: bool = default_params.label_holder_feature_only
+    label_holder_feature_only: bool = False
     enable_goss: bool = default_params.enable_goss
     top_rate: float = default_params.top_rate
     bottom_rate: float = default_params.bottom_rate
@@ -67,45 +67,30 @@ class Sampler(Component):
         print_params(self.params)
 
     def set_params(self, params: dict):
-        subsample = float(params.get('row_sample_rate', 1))
-        assert (
-            subsample > 0 and subsample <= 1
-        ), f"row_sample_rate should in (0, 1], got {subsample}"
-
-        colsample = float(params.get('col_sample_rate', 1))
-        assert (
-            colsample > 0 and colsample <= 1
-        ), f"col_sample_rate should in (0, 1], got {colsample}"
-
-        top_rate = float(params.get('top_rate', 0.3))
-        assert (
-            top_rate > 0 and top_rate < 1
-        ), f"top_rate should in (0, 1), got {top_rate}"
-
-        bottom_rate = float(params.get('bottom_rate', 0.5))
-        assert (
-            bottom_rate > 0 and bottom_rate < 1
-        ), f"bottom_rate should in (0, 1), got {bottom_rate}"
+        subsample = params.get('rowsample_by_tree', default_params.rowsample_by_tree)
+        colsample = params.get('colsample_by_tree', default_params.colsample_by_tree)
+        top_rate = params.get('top_rate', default_params.top_rate)
+        bottom_rate = params.get('bottom_rate', default_params.bottom_rate)
 
         assert (
             bottom_rate + top_rate < 1
         ), f"the sum of top_rate and bottom_rate should be less than 1, got {bottom_rate + top_rate}"
 
-        self.params.row_sample_rate = subsample
-        self.params.col_sample_rate = colsample
-        self.params.seed = int(params.get('seed', 1212))
-        self.params.label_holder_feature_only = bool(
-            params.get('label_holder_feature_only', False)
+        self.params.rowsample_by_tree = subsample
+        self.params.colsample_by_tree = colsample
+        self.params.seed = params.get('seed', default_params.seed)
+        self.params.label_holder_feature_only = params.get(
+            'label_holder_feature_only', False
         )
 
-        self.params.enable_goss = bool(params.get('enable_goss', False))
+        self.params.enable_goss = params.get('enable_goss', default_params.enable_goss)
         self.params.top_rate = top_rate
         self.params.bottom_rate = bottom_rate
 
     def get_params(self, params: dict):
         params['seed'] = self.params.seed
-        params['row_sample_rate'] = self.params.row_sample_rate
-        params['col_sample_rate'] = self.params.col_sample_rate
+        params['rowsample_by_tree'] = self.params.rowsample_by_tree
+        params['colsample_by_tree'] = self.params.colsample_by_tree
         params['label_holder_feature_only'] = self.params.label_holder_feature_only
         params['enable_goss'] = self.params.enable_goss
         params['top_rate'] = self.params.top_rate
@@ -120,6 +105,9 @@ class Sampler(Component):
         for actor in self.sample_actors.values():
             actor.register_class('SampleActor', SampleActor, self.params.seed)
 
+    def del_actors(self):
+        del self.sample_actors
+
     def generate_col_choices(
         self, feature_buckets: List[PYUObject]
     ) -> Tuple[List[PYUObject], List[PYUObject]]:
@@ -131,7 +119,7 @@ class Sampler(Component):
         Returns:
             Tuple[List[PYUObject], List[PYUObject]]: first list is column choices, second is total number of buckets after sampling
         """
-        colsample = self.params.col_sample_rate
+        colsample = self.params.colsample_by_tree
 
         if self.params.label_holder_feature_only:
             col_choices, total_buckets = zip(
@@ -185,14 +173,14 @@ class Sampler(Component):
                 'SampleActor', 'goss', row_num, g, top_rate, bottom_rate
             )
         else:
-            sample_rate = self.params.row_sample_rate
+            sample_rate = self.params.rowsample_by_tree
             choices = self.sample_actors[g.device].invoke_class_method(
                 'SampleActor', 'generate_row_choices', row_num, sample_rate
             )
             return choices, None
 
     def _should_row_subsampling(self) -> bool:
-        return self.params.row_sample_rate < 1 or self.params.enable_goss
+        return self.params.rowsample_by_tree < 1 or self.params.enable_goss
 
     def _apply_vector_sampling(
         self,
@@ -201,7 +189,7 @@ class Sampler(Component):
     ):
         """Sample x for a single partition. Assuming we have a column vector.
         Assume the indices was generated from row sampling by sampler"""
-        if self.params.row_sample_rate < 1:
+        if self.params.rowsample_by_tree < 1:
             return x.device(lambda x, indices: x.reshape(-1, 1)[indices, :])(x, indices)
         else:
             return x.device(lambda x: x.reshape(-1, 1))(x)
@@ -245,7 +233,7 @@ class Sampler(Component):
         """
         X_sub = X
         # sample cols and rows of bucket_map
-        if self.params.col_sample_rate < 1 and self._should_row_subsampling():
+        if self.params.colsample_by_tree < 1 and self._should_row_subsampling():
             # sub choices is stored in context owned by label_holder and shared to all workers.
             X_sub = FedNdarray(
                 partitions={
@@ -261,7 +249,7 @@ class Sampler(Component):
                 partition_way=PartitionWay.VERTICAL,
             )
         # only sample cols
-        elif self.params.col_sample_rate < 1:
+        elif self.params.colsample_by_tree < 1:
             X_sub = FedNdarray(
                 partitions={
                     pyu: pyu(lambda x, y: x[:, y])(partition, col_choices[i])

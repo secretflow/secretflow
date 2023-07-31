@@ -4,7 +4,7 @@
 
 - [UniMiB SHAR: a new dataset for human activity recognition using acceleration data from smartphones](https://arxiv.org/pdf/1611.07688v5.pdf)
 [**HomePage**](http://www.sal.disco.unimib.it/technologies/unimib-shar/)
-  
+
 
 - [The OARF Benchmark Suite: Characterization and Implications for Federated Learning Systems](https://arxiv.org/pdf/2006.07856.pdf)
 

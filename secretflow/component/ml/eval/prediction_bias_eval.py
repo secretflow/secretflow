@@ -15,7 +15,7 @@
 from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import DistDataType, load_table
 from secretflow.device.driver import reveal
-from secretflow.protos.component.comp_pb2 import Attribute, AttrType
+from secretflow.protos.component.comp_pb2 import Attribute
 from secretflow.protos.component.data_pb2 import DistData
 from secretflow.protos.component.report_pb2 import Div, Report, Tab, Table
 from secretflow.stats.core.prediction_bias_core import PredictionBiasReport
@@ -60,7 +60,7 @@ prediction_bias_comp.str_attr(
 prediction_bias_comp.io(
     io_type=IoType.INPUT,
     name="labels",
-    desc="labels",
+    desc="Input table with labels.",
     types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
     col_params=[
         TableColParam(
@@ -74,7 +74,7 @@ prediction_bias_comp.io(
 prediction_bias_comp.io(
     io_type=IoType.INPUT,
     name="predictions",
-    desc="predictions",
+    desc="Input table with predictions.",
     types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
     col_params=[
         TableColParam(
@@ -98,43 +98,41 @@ def dump_report(name, sys_info, report: PredictionBiasReport) -> DistData:
         name="Prediction Bias Table",
         desc="Calculate prediction bias, ie. average of predictions - average of labels.",
         headers=[
-            Table.HeaderItem(
-                name="interval", desc="prediction interval", type=AttrType.AT_STRING
-            ),
+            Table.HeaderItem(name="interval", desc="prediction interval", type="str"),
             Table.HeaderItem(
                 name="left_endpoint",
                 desc="left endpoint of interval",
-                type=AttrType.AT_FLOAT,
+                type="float",
             ),
             Table.HeaderItem(
                 name="left_closed",
                 desc="indicate if left endpoint of interval is closed",
-                type=AttrType.AT_BOOL,
+                type="bool",
             ),
             Table.HeaderItem(
                 name="right_endpoint",
                 desc="right endpoint of interval",
-                type=AttrType.AT_FLOAT,
+                type="float",
             ),
             Table.HeaderItem(
                 name="right_closed",
                 desc="indicate if right endpoint of interval is closed",
-                type=AttrType.AT_BOOL,
+                type="bool",
             ),
             Table.HeaderItem(
                 name="avg_prediction",
                 desc="average prediction of interval",
-                type=AttrType.AT_FLOAT,
+                type="float",
             ),
             Table.HeaderItem(
                 name="avg_label",
                 desc="average label of interval",
-                type=AttrType.AT_FLOAT,
+                type="float",
             ),
             Table.HeaderItem(
                 name="bias",
                 desc="prediction bias of interval",
-                type=AttrType.AT_FLOAT,
+                type="float",
             ),
         ],
     )

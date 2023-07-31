@@ -93,6 +93,10 @@ class SplitCandidateHeap:
     def pop(self) -> SplitCandidate:
         return heapq.heappop(self.heap)
 
+    def is_heap_empty(self) -> bool:
+        return len(self.heap) == 0
+
+    # check heap not empty before extract
     def extract_best_split_info(self) -> Tuple[int, np.ndarray, int]:
         best_candidate = self.pop()
         return (

@@ -15,7 +15,7 @@
 from dataclasses import dataclass
 from functools import reduce
 from pathlib import Path
-from typing import Union, List
+from typing import List, Union
 
 import cloudpickle as pickle
 import jax.tree_util
@@ -29,7 +29,7 @@ import secretflow.distributed as sfd
 from secretflow.utils.errors import PartyNotFoundError
 
 from .base import Device, DeviceType
-from .spu import SPUValueMeta
+from .spu import SPUIOInfo, SPUValueMeta
 from .type_traits import (
     heu_datatype_to_numpy,
     heu_datatype_to_spu,
@@ -355,7 +355,9 @@ class HEUSkKeeper(HEUActor):
         with open(path, "wb") as f:
             pickle.dump(pk, f)
 
-    def decrypt(self, data) -> Union[phe.Plaintext, List[phe.Plaintext], hnp.PlaintextArray]:
+    def decrypt(
+        self, data
+    ) -> Union[phe.Plaintext, List[phe.Plaintext], hnp.PlaintextArray]:
         """Decrypt data: ciphertext -> plaintext"""
         if isinstance(data, list):
             return [self.decrypt(d) for d in data]
@@ -385,13 +387,13 @@ class HEUSkKeeper(HEUActor):
         data_with_mask = self.decrypt(data_with_mask)
         byte_content = data_with_mask.to_bytes(spu_fxp_size(spu_field_type), 'little')
         # ValueProto: see spu.proto in SPU repo for details.
-        proto = spu.ValueProto()
-        proto.visibility = spu.Visibility.VIS_SECRET
-        proto.data_type = heu_datatype_to_spu(self.cleartext_type)
-        proto.storage_type = f"semi2k.AShr<{spu.FieldType.Name(spu_field_type)}>"
-        proto.shape.dims.extend(data_with_mask.shape)
-        proto.content = byte_content
-        return proto.SerializeToString()
+
+        # TODO: support chunk
+        chunk = spu.spu_pb2.ValueChunkProto()
+        chunk.content = byte_content
+        chunk.chunk_offset = 0
+        chunk.total_bytes = len(chunk.content)
+        return chunk.SerializeToString()
 
 
 class HEUEvaluator(HEUActor):
@@ -467,15 +469,21 @@ class HEUEvaluator(HEUActor):
 
         # convert mask to ValueProto
         # ValueProto: see spu.proto in SPU repo for details.
-        masks_value = []
+        shares_chunk = []
         for mask in masks:
-            proto = spu.ValueProto()
-            proto.visibility = spu.Visibility.VIS_SECRET
-            proto.data_type = heu_datatype_to_spu(self.cleartext_type)
-            proto.storage_type = f"semi2k.AShr<{spu.FieldType.Name(spu_field_type)}>"
-            proto.shape.dims.extend(tuple(mask.shape))
-            proto.content = mask.to_bytes(spu_fxp_size(spu_field_type), 'little')
-            masks_value.append(proto.SerializeToString())
+            # TODO: support chunk
+            chunk = spu.spu_pb2.ValueChunkProto()
+            chunk.content = mask.to_bytes(spu_fxp_size(spu_field_type), 'little')
+            chunk.chunk_offset = 0
+            chunk.total_bytes = len(chunk.content)
+            shares_chunk.append(chunk.SerializeToString())
+
+            meta = spu.spu_pb2.ValueMetaProto()
+            meta.visibility = spu.Visibility.VIS_SECRET
+            meta.data_type = heu_datatype_to_spu(self.cleartext_type)
+            meta.storage_type = f"semi2k.AShr<{spu.FieldType.Name(spu_field_type)}>"
+            meta.shape.dims.extend(tuple(mask.shape))
+            io_info = SPUIOInfo(0, 1, meta.SerializeToString())
 
         value_meta = SPUValueMeta(
             data.shape,
@@ -491,7 +499,8 @@ class HEUEvaluator(HEUActor):
         return [
             value_meta,
             data_with_mask,
-            *masks_value,
+            io_info,
+            *shares_chunk,
         ]
 
 

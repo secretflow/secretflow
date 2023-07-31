@@ -52,6 +52,9 @@ class LevelWiseCache(Component):
             'LevelCache', LevelCache
         )
 
+    def del_actors(self):
+        del self.worker_level_caches
+
     def reset_level_caches(self):
         for device in self.worker_level_caches.keys():
             if device != self.label_holder:

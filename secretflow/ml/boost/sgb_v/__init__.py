@@ -13,7 +13,13 @@
 # limitations under the License.
 
 from .model import SgbModel
-from .sgb import Sgb
-from .factory import SGBFactory
+from .factory import SGBFactory as Sgb
+from .core.params import get_classic_lightGBM_params, get_classic_XGB_params, SGBParams
 
-__all__ = ['SgbModel', 'Sgb', 'SGBFactory']
+__all__ = [
+    'SgbModel',
+    'Sgb',
+    'get_classic_lightGBM_params',
+    'get_classic_XGB_params',
+    'SGBParams',
+]

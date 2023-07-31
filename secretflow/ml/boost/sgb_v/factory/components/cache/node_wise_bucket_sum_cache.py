@@ -54,6 +54,9 @@ class NodeWiseCache(Component):
 
         self.worker_caches[self.label_holder].register_class('NodeCache', NodeCache)
 
+    def del_actors(self):
+        del self.worker_caches
+
     def reset(self):
         for device in self.worker_caches:
             if device != self.label_holder:

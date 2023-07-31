@@ -39,10 +39,13 @@ class SplitTreeBuilder(Component):
         self.workers = devices.workers
         self.label_holder = devices.label_holder
 
-    def set_actors(self, actors: SGBActor):
+    def set_actors(self, actors: List[SGBActor]):
         self.split_tree_builder_actors = actors
         for i, actor in enumerate(self.split_tree_builder_actors):
             actor.register_class('SplitTreeActor', SplitTreeActor, i)
+
+    def del_actors(self):
+        del self.split_tree_builder_actors
 
     def reset(self):
         for actor in self.split_tree_builder_actors:

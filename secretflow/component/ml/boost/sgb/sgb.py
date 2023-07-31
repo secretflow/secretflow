@@ -40,9 +40,9 @@ sgb_train_comp = Component(
     desc="""Provides both classification and regression tree boosting (also known as GBDT, GBM)
     for vertical split dataset setting by using secure boost.
 
-    SGB is short for SecureBoost. Compared to its safer counterpart SS-XGB, SecureBoost focused on protecting label holder.
+    - SGB is short for SecureBoost. Compared to its safer counterpart SS-XGB, SecureBoost focused on protecting label holder.
 
-    Check https://arxiv.org/abs/1901.08755.
+    - Check https://arxiv.org/abs/1901.08755.
     """,
 )
 sgb_train_comp.int_attr(
@@ -110,17 +110,6 @@ sgb_train_comp.float_attr(
     upper_bound_inclusive=True,
 )
 sgb_train_comp.float_attr(
-    name="subsample",
-    desc="Subsample ratio of the training instances.",
-    is_list=False,
-    is_optional=True,
-    default_value=1,
-    lower_bound=0,
-    upper_bound=1,
-    lower_bound_inclusive=False,
-    upper_bound_inclusive=True,
-)
-sgb_train_comp.float_attr(
     name="colsample_by_tree",
     desc="Subsample ratio of columns when constructing each tree.",
     is_list=False,
@@ -160,6 +149,7 @@ sgb_train_comp.int_attr(
     lower_bound=0,
     lower_bound_inclusive=True,
 )
+
 sgb_train_comp.int_attr(
     name="fixed_point_parameter",
     desc="""Any floating point number encoded by heu,
@@ -170,14 +160,130 @@ sgb_train_comp.int_attr(
     is_list=False,
     is_optional=True,
     default_value=20,
-    lower_bound=0,
+    lower_bound=1,
+    upper_bound=100,
     lower_bound_inclusive=True,
+    upper_bound_inclusive=True,
+)
+sgb_train_comp.bool_attr(
+    name="first_tree_with_label_holder_feature",
+    desc="Whether to train the first tree with label holder's own features.",
+    is_list=False,
+    is_optional=True,
+    default_value=False,
+)
+
+sgb_train_comp.bool_attr(
+    name="batch_encoding_enabled",
+    desc="If use batch encoding optimization.",
+    is_list=False,
+    is_optional=True,
+    default_value=True,
+)
+sgb_train_comp.bool_attr(
+    name="enable_quantization",
+    desc="Whether enable quantization of g and h.",
+    is_list=False,
+    is_optional=True,
+    default_value=False,
+)
+sgb_train_comp.float_attr(
+    name="quantization_scale",
+    desc="Scale the sum of g to the specified value.",
+    is_list=False,
+    is_optional=True,
+    default_value=10000.0,
+    lower_bound=0,
+    upper_bound=10000000.0,
+    lower_bound_inclusive=True,
+    upper_bound_inclusive=True,
+)
+
+sgb_train_comp.int_attr(
+    name="max_leaf",
+    desc="Maximum leaf of a tree. Only effective if train leaf wise.",
+    is_list=False,
+    is_optional=True,
+    default_value=15,
+    lower_bound=1,
+    upper_bound=2**15,
+    lower_bound_inclusive=True,
+    upper_bound_inclusive=True,
+)
+
+sgb_train_comp.float_attr(
+    name="rowsample_by_tree",
+    desc="Row sub sample ratio of the training instances.",
+    is_list=False,
+    is_optional=True,
+    default_value=1,
+    lower_bound=0,
+    upper_bound=1,
+    lower_bound_inclusive=False,
+    upper_bound_inclusive=True,
+)
+
+sgb_train_comp.bool_attr(
+    name="enable_goss",
+    desc="Whether to enable GOSS.",
+    is_list=False,
+    is_optional=True,
+    default_value=False,
+)
+sgb_train_comp.float_attr(
+    name="top_rate",
+    desc="GOSS-specific parameter. The fraction of large gradients to sample.",
+    is_list=False,
+    is_optional=True,
+    default_value=0.3,
+    lower_bound=0,
+    upper_bound=1,
+    lower_bound_inclusive=False,
+    upper_bound_inclusive=True,
+)
+sgb_train_comp.float_attr(
+    name="bottom_rate",
+    desc="GOSS-specific parameter. The fraction of small gradients to sample.",
+    is_list=False,
+    is_optional=True,
+    default_value=0.5,
+    lower_bound=0,
+    upper_bound=1,
+    lower_bound_inclusive=False,
+    upper_bound_inclusive=True,
+)
+sgb_train_comp.float_attr(
+    name="early_stop_criterion_g_abs_sum",
+    desc="If sum(abs(g)) is lower than or equal to this threshold, training will stop.",
+    is_list=False,
+    is_optional=True,
+    default_value=0.0,
+    lower_bound=0.0,
+    lower_bound_inclusive=True,
+)
+sgb_train_comp.float_attr(
+    name="early_stop_criterion_g_abs_sum_change_ratio",
+    desc="If absolute g sum change ratio is lower than or equal to this threshold, training will stop.",
+    is_list=False,
+    is_optional=True,
+    default_value=0.0,
+    lower_bound=0,
+    upper_bound=1,
+    lower_bound_inclusive=True,
+    upper_bound_inclusive=True,
+)
+sgb_train_comp.str_attr(
+    name="tree_growing_method",
+    desc="How to grow tree?",
+    is_list=False,
+    is_optional=True,
+    default_value="level",
 )
 
 sgb_train_comp.io(
     io_type=IoType.INPUT,
     name="train_dataset",
-    desc="Input train dataset.",
+    desc="Input vertical table.",
     types=[DistDataType.VERTICAL_TABLE],
     col_params=None,
 )
@@ -193,6 +299,7 @@ MODEL_MAX_MAJOR_VERSION = 0
 MODEL_MAX_MINOR_VERSION = 1
 
 
+# audit path is not supported in this form yet.
 @sgb_train_comp.eval_fn
 def sgb_train_eval_fn(
     *,
@@ -203,12 +310,23 @@ def sgb_train_eval_fn(
     objective,
     reg_lambda,
     gamma,
-    subsample,
+    rowsample_by_tree,
     colsample_by_tree,
+    bottom_rate,
+    top_rate,
+    max_leaf,
+    quantization_scale,
     sketch_eps,
     base_score,
     seed,
     fixed_point_parameter,
+    enable_goss,
+    enable_quantization,
+    batch_encoding_enabled,
+    early_stop_criterion_g_abs_sum_change_ratio,
+    early_stop_criterion_g_abs_sum,
+    tree_growing_method,
+    first_tree_with_label_holder_feature,
     train_dataset,
     output_model,
 ):
@@ -234,18 +352,29 @@ def sgb_train_eval_fn(
         sgb = Sgb(heu)
         model = sgb.train(
             params={
-                "num_boost_round": num_boost_round,
-                "max_depth": max_depth,
-                "learning_rate": learning_rate,
-                "objective": objective,
-                "reg_lambda": reg_lambda,
-                "gamma": gamma,
-                "subsample": subsample,
-                "colsample_by_tree": colsample_by_tree,
-                "sketch_eps": sketch_eps,
-                "base_score": base_score,
-                "seed": seed,
-                "fixed_point_parameter": fixed_point_parameter,
+                'num_boost_round': num_boost_round,
+                'max_depth': max_depth,
+                'learning_rate': learning_rate,
+                'objective': objective,
+                'reg_lambda': reg_lambda,
+                'gamma': gamma,
+                'rowsample_by_tree': rowsample_by_tree,
+                'colsample_by_tree': colsample_by_tree,
+                'bottom_rate': bottom_rate,
+                'top_rate': top_rate,
+                'max_leaf': max_leaf,
+                'quantization_scale': quantization_scale,
+                'sketch_eps': sketch_eps,
+                'base_score': base_score,
+                'seed': seed,
+                'fixed_point_parameter': fixed_point_parameter,
+                'enable_goss': enable_goss,
+                'enable_quantization': enable_quantization,
+                'batch_encoding_enabled': batch_encoding_enabled,
+                'early_stop_criterion_g_abs_sum_change_ratio': early_stop_criterion_g_abs_sum_change_ratio,
+                'early_stop_criterion_g_abs_sum': early_stop_criterion_g_abs_sum,
+                'tree_growing_method': tree_growing_method,
+                'first_tree_with_label_holder_feature': first_tree_with_label_holder_feature,
             },
             dtrain=x,
             label=y,
@@ -319,14 +448,14 @@ sgb_predict_comp.io(
 sgb_predict_comp.io(
     io_type=IoType.INPUT,
     name="feature_dataset",
-    desc="Input feature dataset.",
+    desc="Input vertical table.",
     types=[DistDataType.VERTICAL_TABLE],
     col_params=None,
 )
 sgb_predict_comp.io(
     io_type=IoType.OUTPUT,
     name="pred",
-    desc="Output prediction。",
+    desc="Output prediction.",
     types=[DistDataType.INDIVIDUAL_TABLE],
     col_params=None,
 )

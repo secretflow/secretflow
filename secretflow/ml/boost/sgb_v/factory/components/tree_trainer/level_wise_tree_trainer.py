@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 from dataclasses import dataclass
 from typing import List, Tuple, Union
 
 import numpy as np
 
 from secretflow.device import PYUObject, reveal
-from secretflow.ml.boost.sgb_v.factory.params import default_params
+from secretflow.ml.boost.sgb_v.core.params import default_params
 from secretflow.ml.boost.sgb_v.factory.sgb_actor import SGBActor
 
 from ....core.distributed_tree.distributed_tree import DistributedTree
@@ -95,8 +96,7 @@ class LevelWiseTreeTrainer(TreeTrainer):
         LoggingTools.logging_params_write_dict(params, self.logging_params)
 
     def _set_trainer_params(self, params: dict):
-        depth = int(params.get('max_depth', 5))
-        assert depth > 0 and depth <= 16, f"max_depth should in [1, 16], got {depth}"
+        depth = params.get('max_depth', default_params.max_depth)
 
         self.params.max_depth = depth
         self.logging_params = LoggingTools.logging_params_from_dict(params)
@@ -109,10 +109,12 @@ class LevelWiseTreeTrainer(TreeTrainer):
         pred: Union[PYUObject, np.ndarray],
         x_shape: Tuple[int, int],
     ):
+        logging.info("train tree context set up.")
         # reset caches
         self.components.split_tree_builder.reset()
         self.components.leaf_manager.clear_leaves()
         self.components.bucket_sum_calculator.reset_cache()
+        logging.debug("cache resetted.")
 
         # sub sampling
         feature_buckets = order_map_manager.get_feature_buckets()
@@ -134,6 +136,7 @@ class LevelWiseTreeTrainer(TreeTrainer):
         )
         self.row_choices = row_choices
         self.bucket_num = order_map_manager.buckets
+        logging.debug("sub sampled (per tree).")
 
         # compute g, h and encryption
         g = self.components.sampler.apply_vector_sampling_weighted(
@@ -143,19 +146,26 @@ class LevelWiseTreeTrainer(TreeTrainer):
             h, row_choices, weight
         )
         self.components.loss_computer.compute_abs_sums(g, h)
-        self.should_stop = self.components.loss_computer.check_early_stop()
+        logging.debug("g h computed.")
+
+        self.should_stop = reveal(self.components.loss_computer.check_early_stop())
         if self.should_stop:
+            logging.debug("early stopped.")
             return
+        logging.debug("not early stopped.")
         self.components.loss_computer.compute_scales()
 
         g, h = self.components.loss_computer.scale_gh(g, h)
         self.g = g
         self.h = h
+        logging.debug("g h scaled.")
+
         gh = self.components.gradient_encryptor.pack(g, h)
         encrypted_gh = self.components.gradient_encryptor.encrypt(gh, cur_tree_num)
         self.encrypted_gh_dict = self.components.gradient_encryptor.cache_to_workers(
             encrypted_gh, gh
         )
+        logging.debug("g h encrypted.")
 
     @LoggingTools.enable_logging
     def train_tree(
@@ -169,6 +179,7 @@ class LevelWiseTreeTrainer(TreeTrainer):
         self.train_tree_context_setup(cur_tree_num, order_map_manager, y, pred, x_shape)
         if self.should_stop:
             return None
+        logging.info("begin train tree.")
         row_num = self.order_map_sub.shape[0]
         g, h = self.g, self.h
         root_select = self.components.node_selector.root_select(row_num)
@@ -176,8 +187,9 @@ class LevelWiseTreeTrainer(TreeTrainer):
         # level wise train begins
         split_node_selects = root_select
         split_node_indices = [0]
-
+        logging.debug("beging level wise training.")
         for level in range(self.params.max_depth):
+            logging.debug(f"training level {level}.")
             split_node_selects, split_node_indices = self._train_level(
                 split_node_selects,
                 split_node_indices,

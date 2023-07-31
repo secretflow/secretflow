@@ -17,7 +17,6 @@ from typing import Dict, List, Tuple
 
 from secretflow.data import FedNdarray
 from secretflow.device import PYU, HEUObject, PYUObject
-from secretflow.ml.boost.sgb_v.factory.params import default_params
 from secretflow.ml.boost.sgb_v.factory.sgb_actor import SGBActor
 
 from ....core.pure_numpy_ops.bucket_sum import batch_select_sum, regroup_bucket_sums
@@ -36,7 +35,7 @@ class LeafWiseBucketSumCalculatorParams:
         default: False
     """
 
-    label_holder_feature_only: bool = default_params.label_holder_feature_only
+    label_holder_feature_only: bool = False
 
 
 @dataclass
@@ -56,8 +55,8 @@ class LeafWiseBucketSumCalculator(Composite):
 
     def set_params(self, params: dict):
         self.logging_params = LoggingTools.logging_params_from_dict(params)
-        self.params.label_holder_feature_only = bool(
-            params.get('label_holder_feature_only', False)
+        self.params.label_holder_feature_only = params.get(
+            'label_holder_feature_only', False
         )
 
     def get_params(self, params: dict):
@@ -70,8 +69,11 @@ class LeafWiseBucketSumCalculator(Composite):
         self.workers = devices.workers
         self.party_num = len(self.workers)
 
-    def set_actors(self, actors: SGBActor):
+    def set_actors(self, actors: List[SGBActor]):
         return super().set_actors(actors)
+
+    def del_actors(self):
+        return super().del_actors()
 
     @LoggingTools.enable_logging
     def calculate_bucket_sum(

@@ -17,7 +17,7 @@ from typing import Dict, List, Tuple
 
 from secretflow.data import FedNdarray
 from secretflow.device import PYU, HEUObject, PYUObject
-from secretflow.ml.boost.sgb_v.factory.params import default_params
+from secretflow.ml.boost.sgb_v.factory.sgb_actor import SGBActor
 
 from ....core.pure_numpy_ops.bucket_sum import batch_select_sum, regroup_bucket_sums
 from ....core.pure_numpy_ops.grad import split_GH
@@ -35,7 +35,7 @@ class BucketSumCalculatorParams:
         default: False
     """
 
-    label_holder_feature_only: bool = default_params.label_holder_feature_only
+    label_holder_feature_only: bool = False
 
 
 @dataclass
@@ -69,8 +69,11 @@ class BucketSumCalculator(Composite):
         self.workers = devices.workers
         self.party_num = len(self.workers)
 
-    def set_actors(self, actors):
+    def set_actors(self, actors: List[SGBActor]):
         super().set_actors(actors)
+
+    def del_actors(self):
+        super().del_actors()
 
     @LoggingTools.enable_logging
     def calculate_bucket_sum_level_wise(

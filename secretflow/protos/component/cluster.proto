@@ -16,6 +16,8 @@ syntax = "proto3";
 
 package secretflow.component;
 
+option java_package = "org.secretflow.proto.component";
+
 // Intrinsic properties of a SecretFlow cluster, including:
 //
 // - Version info.

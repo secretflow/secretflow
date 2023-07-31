@@ -14,9 +14,10 @@
 
 
 from typing import List, Tuple
-from secretflow.ml.boost.core.order_map_tools import qcut
 
 import numpy as np
+
+from secretflow.ml.boost.core.order_map_tools import qcut
 
 
 # Deal with order map context of a single partition

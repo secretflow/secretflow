@@ -17,7 +17,9 @@ from typing import List
 import jax.tree_util
 import numpy as np
 
-from ..pure_numpy_ops.random import create_permuation_with_last_number_fixed
+from secretflow.ml.boost.sgb_v.core.pure_numpy_ops.random import (
+    create_permuation_with_last_number_fixed,
+)
 
 
 class Shuffler:

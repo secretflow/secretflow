@@ -28,8 +28,6 @@ class Report:
     Attributes:
         summary_report: SummaryReport
 
-        group_reports: List[GroupReport]
-
         eq_frequent_bin_report: List[EqBinReport]
 
         eq_range_bin_report: List[EqBinReport]

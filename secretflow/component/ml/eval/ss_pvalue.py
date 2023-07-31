@@ -18,7 +18,7 @@ from secretflow.component.component import CompEvalError, Component, IoType
 from secretflow.component.data_utils import DistDataType, load_table
 from secretflow.component.ml.linear.ss_sgd import load_ss_sgd_model
 from secretflow.device.device.spu import SPU
-from secretflow.protos.component.comp_pb2 import Attribute, AttrType
+from secretflow.protos.component.comp_pb2 import Attribute
 from secretflow.protos.component.data_pb2 import DistData
 from secretflow.protos.component.report_pb2 import Descriptions, Div, Report, Tab
 from secretflow.stats.ss_pvalue_v import PValue
@@ -42,13 +42,13 @@ ss_pvalue_comp.io(
 ss_pvalue_comp.io(
     io_type=IoType.INPUT,
     name="input_data",
-    desc="Input dataset.",
+    desc="Input vertical table.",
     types=[DistDataType.VERTICAL_TABLE],
 )
 ss_pvalue_comp.io(
     io_type=IoType.OUTPUT,
     name="report",
-    desc="Output report.",
+    desc="Output P-Value report.",
     types=[DistDataType.REPORT],
 )
 
@@ -85,7 +85,7 @@ def ss_pearsonr_eval_fn(
         items=[
             Descriptions.Item(
                 name=f'feature/{feature_names[i]}',
-                type=AttrType.AT_FLOAT,
+                type="float",
                 value=Attribute(f=pv[i]),
             )
             for i in range(len(feature_names))
@@ -93,7 +93,7 @@ def ss_pearsonr_eval_fn(
         + [
             Descriptions.Item(
                 name="bias",
-                type=AttrType.AT_FLOAT,
+                type="float",
                 value=Attribute(f=pv[len(feature_names)]),
             )
         ],
