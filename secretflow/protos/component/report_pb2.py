@@ -18,9 +18,9 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='secretflow/protos/component/report.proto',
   package='secretflow.component',
   syntax='proto3',
-  serialized_options=None,
+  serialized_options=b'\n\036org.secretflow.proto.component',
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n(secretflow/protos/component/report.proto\x12\x14secretflow.component\x1a&secretflow/protos/component/comp.proto\"\xe5\x01\n\x0c\x44\x65scriptions\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x02 \x01(\t\x12\x36\n\x05items\x18\x03 \x03(\x0b\x32\'.secretflow.component.Descriptions.Item\x1a\x80\x01\n\x04Item\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x02 \x01(\t\x12,\n\x04type\x18\x03 \x01(\x0e\x32\x1e.secretflow.component.AttrType\x12.\n\x05value\x18\x04 \x01(\x0b\x32\x1f.secretflow.component.Attribute\"\xb6\x02\n\x05Table\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x02 \x01(\t\x12\x37\n\x07headers\x18\x03 \x03(\x0b\x32&.secretflow.component.Table.HeaderItem\x12-\n\x04rows\x18\x04 \x03(\x0b\x32\x1f.secretflow.component.Table.Row\x1aV\n\nHeaderItem\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x02 \x01(\t\x12,\n\x04type\x18\x03 \x01(\x0e\x32\x1e.secretflow.component.AttrType\x1aQ\n\x03Row\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x02 \x01(\t\x12.\n\x05items\x18\x03 \x03(\x0b\x32\x1f.secretflow.component.Attribute\"\xfa\x01\n\x03\x44iv\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x02 \x01(\t\x12\x31\n\x08\x63hildren\x18\x03 \x03(\x0b\x32\x1f.secretflow.component.Div.Child\x1a\xa3\x01\n\x05\x43hild\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x38\n\x0c\x64\x65scriptions\x18\x02 \x01(\x0b\x32\".secretflow.component.Descriptions\x12*\n\x05table\x18\x03 \x01(\x0b\x32\x1b.secretflow.component.Table\x12&\n\x03\x64iv\x18\x04 \x01(\x0b\x32\x19.secretflow.component.Div\"J\n\x03Tab\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x02 \x01(\t\x12\'\n\x04\x64ivs\x18\x03 \x03(\x0b\x32\x19.secretflow.component.Div\"s\n\x06Report\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x02 \x01(\t\x12\'\n\x04tabs\x18\x03 \x03(\x0b\x32\x19.secretflow.component.Tab\x12\x10\n\x08\x65rr_code\x18\x04 \x01(\x05\x12\x12\n\nerr_detail\x18\x05 \x01(\tb\x06proto3'
+  serialized_pb=b'\n(secretflow/protos/component/report.proto\x12\x14secretflow.component\x1a&secretflow/protos/component/comp.proto\"\xc4\x01\n\x0c\x44\x65scriptions\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x02 \x01(\t\x12\x36\n\x05items\x18\x03 \x03(\x0b\x32\'.secretflow.component.Descriptions.Item\x1a`\n\x04Item\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x02 \x01(\t\x12\x0c\n\x04type\x18\x03 \x01(\t\x12.\n\x05value\x18\x04 \x01(\x0b\x32\x1f.secretflow.component.Attribute\"\x96\x02\n\x05Table\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x02 \x01(\t\x12\x37\n\x07headers\x18\x03 \x03(\x0b\x32&.secretflow.component.Table.HeaderItem\x12-\n\x04rows\x18\x04 \x03(\x0b\x32\x1f.secretflow.component.Table.Row\x1a\x36\n\nHeaderItem\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x02 \x01(\t\x12\x0c\n\x04type\x18\x03 \x01(\t\x1aQ\n\x03Row\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x02 \x01(\t\x12.\n\x05items\x18\x03 \x03(\x0b\x32\x1f.secretflow.component.Attribute\"\xfa\x01\n\x03\x44iv\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x02 \x01(\t\x12\x31\n\x08\x63hildren\x18\x03 \x03(\x0b\x32\x1f.secretflow.component.Div.Child\x1a\xa3\x01\n\x05\x43hild\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x38\n\x0c\x64\x65scriptions\x18\x02 \x01(\x0b\x32\".secretflow.component.Descriptions\x12*\n\x05table\x18\x03 \x01(\x0b\x32\x1b.secretflow.component.Table\x12&\n\x03\x64iv\x18\x04 \x01(\x0b\x32\x19.secretflow.component.Div\"J\n\x03Tab\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x02 \x01(\t\x12\'\n\x04\x64ivs\x18\x03 \x03(\x0b\x32\x19.secretflow.component.Div\"s\n\x06Report\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x02 \x01(\t\x12\'\n\x04tabs\x18\x03 \x03(\x0b\x32\x19.secretflow.component.Tab\x12\x10\n\x08\x65rr_code\x18\x04 \x01(\x05\x12\x12\n\nerr_detail\x18\x05 \x01(\tB \n\x1eorg.secretflow.proto.componentb\x06proto3'
   ,
   dependencies=[secretflow_dot_protos_dot_component_dot_comp__pb2.DESCRIPTOR,])
 
@@ -51,8 +51,8 @@ _DESCRIPTIONS_ITEM = _descriptor.Descriptor(
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
       name='type', full_name='secretflow.component.Descriptions.Item.type', index=2,
-      number=3, type=14, cpp_type=8, label=1,
-      has_default_value=False, default_value=0,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
@@ -75,8 +75,8 @@ _DESCRIPTIONS_ITEM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=208,
-  serialized_end=336,
+  serialized_start=207,
+  serialized_end=303,
 )
 
 _DESCRIPTIONS = _descriptor.Descriptor(
@@ -121,7 +121,7 @@ _DESCRIPTIONS = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=107,
-  serialized_end=336,
+  serialized_end=303,
 )
 
 
@@ -149,8 +149,8 @@ _TABLE_HEADERITEM = _descriptor.Descriptor(
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
       name='type', full_name='secretflow.component.Table.HeaderItem.type', index=2,
-      number=3, type=14, cpp_type=8, label=1,
-      has_default_value=False, default_value=0,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
@@ -166,8 +166,8 @@ _TABLE_HEADERITEM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=480,
-  serialized_end=566,
+  serialized_start=447,
+  serialized_end=501,
 )
 
 _TABLE_ROW = _descriptor.Descriptor(
@@ -211,8 +211,8 @@ _TABLE_ROW = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=568,
-  serialized_end=649,
+  serialized_start=503,
+  serialized_end=584,
 )
 
 _TABLE = _descriptor.Descriptor(
@@ -263,8 +263,8 @@ _TABLE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=339,
-  serialized_end=649,
+  serialized_start=306,
+  serialized_end=584,
 )
 
 
@@ -316,8 +316,8 @@ _DIV_CHILD = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=739,
-  serialized_end=902,
+  serialized_start=674,
+  serialized_end=837,
 )
 
 _DIV = _descriptor.Descriptor(
@@ -361,8 +361,8 @@ _DIV = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=652,
-  serialized_end=902,
+  serialized_start=587,
+  serialized_end=837,
 )
 
 
@@ -407,8 +407,8 @@ _TAB = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=904,
-  serialized_end=978,
+  serialized_start=839,
+  serialized_end=913,
 )
 
 
@@ -467,15 +467,13 @@ _REPORT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=980,
-  serialized_end=1095,
+  serialized_start=915,
+  serialized_end=1030,
 )
 
-_DESCRIPTIONS_ITEM.fields_by_name['type'].enum_type = secretflow_dot_protos_dot_component_dot_comp__pb2._ATTRTYPE
 _DESCRIPTIONS_ITEM.fields_by_name['value'].message_type = secretflow_dot_protos_dot_component_dot_comp__pb2._ATTRIBUTE
 _DESCRIPTIONS_ITEM.containing_type = _DESCRIPTIONS
 _DESCRIPTIONS.fields_by_name['items'].message_type = _DESCRIPTIONS_ITEM
-_TABLE_HEADERITEM.fields_by_name['type'].enum_type = secretflow_dot_protos_dot_component_dot_comp__pb2._ATTRTYPE
 _TABLE_HEADERITEM.containing_type = _TABLE
 _TABLE_ROW.fields_by_name['items'].message_type = secretflow_dot_protos_dot_component_dot_comp__pb2._ATTRIBUTE
 _TABLE_ROW.containing_type = _TABLE
@@ -563,4 +561,5 @@ Report = _reflection.GeneratedProtocolMessageType('Report', (_message.Message,),
 _sym_db.RegisterMessage(Report)
 
 
+DESCRIPTOR._options = None
 # @@protoc_insertion_point(module_scope)

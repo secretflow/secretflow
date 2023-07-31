@@ -38,8 +38,8 @@ ss_xgb_train_comp = Component(
     desc="""This method provides both classification and regression tree boosting (also known as GBDT, GBM)
     for vertical partitioning dataset setting by using secret sharing.
 
-    SS-XGB is short for secret sharing XGB.
-    More details: https://arxiv.org/pdf/2005.08479.pdf
+    - SS-XGB is short for secret sharing XGB.
+    - More details: https://arxiv.org/pdf/2005.08479.pdf
     """,
 )
 ss_xgb_train_comp.int_attr(
@@ -150,7 +150,7 @@ ss_xgb_train_comp.int_attr(
 ss_xgb_train_comp.io(
     io_type=IoType.INPUT,
     name="train_dataset",
-    desc="Train dataset",
+    desc="Input vertical table.",
     types=["sf.table.vertical_table"],
     col_params=None,
 )
@@ -286,7 +286,7 @@ ss_xgb_predict_comp.io(
 ss_xgb_predict_comp.io(
     io_type=IoType.INPUT,
     name="feature_dataset",
-    desc="Input features.",
+    desc="Input vertical table.",
     types=["sf.table.vertical_table"],
     col_params=None,
 )

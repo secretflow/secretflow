@@ -69,7 +69,7 @@ def prediction_bias_eval(
     device2 = [*prediction.partitions.keys()][0]
     assert (
         device1 == device2
-    ), "Currently require the device for two inputs are the same"
+    ), "Currently we requires both inputs belongs to the same party and computation happens locally."
 
     # Later may use spu
 

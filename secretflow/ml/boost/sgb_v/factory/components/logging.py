@@ -21,6 +21,7 @@ from secretflow.device import wait
 
 
 # logging params will be set at each component
+# these parameters are helpful for developers
 @dataclass
 class LoggingParams:
     """
@@ -46,6 +47,9 @@ class LoggingParams:
 
     verbose: bool = False
     wait_execution: bool = False
+
+
+logging_params_names = {'verbose', 'wait_execution'}
 
 
 class LoggingTools:

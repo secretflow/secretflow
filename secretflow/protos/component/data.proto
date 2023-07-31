@@ -20,6 +20,8 @@ import "google/protobuf/any.proto";
 
 import "secretflow/protos/component/cluster.proto";
 
+option java_package = "org.secretflow.proto.component";
+
 // Describe the application related to data.
 // - SCQL, GRM related meta information should be here.
 // - You can add more field here, when another application is added.
@@ -37,8 +39,21 @@ message SystemInfo {
 // feature.
 // - All names must match the regexp `[A-Za-z0-9.][A-Za-z0-9_>./]*`.
 // - All data type must be one of
-// `component.data_utils.SUPPORTED_VTABLE_DATA_TYPE`, including
-//  `i8 | i16 | i32 | i64 | u8 | u16 | u32 | u64 | f16 | f32 | f64 | str`.
+// * int8
+// * int16
+// * int32
+// * int64
+// * uint8
+// * uint16
+// * uint32
+// * uint64
+// * float16
+// * float32
+// * float64
+// * bool
+// * int
+// * float
+// * str
 message TableSchema {
   // Id column name(s).
   // Optional, can be empty.

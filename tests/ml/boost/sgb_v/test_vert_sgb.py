@@ -38,22 +38,45 @@ def _run_sgb(
     colsample,
     audit_dict={},
     auc_bar=0.9,
-    mse_hat=2.3,
+    mse_hat=1,
+    tree_grow_method='level',
+    enable_goss=False,
+    early_stop_criterion_g_abs_sum=10.0,
+    num_boost_round=2,
+    num_tree_cap=2,
 ):
+    test_name = test_name + "_with_method_" + tree_grow_method
     sgb = Sgb(env.heu)
     start = time.perf_counter()
     params = {
-        'num_boost_round': 2,
+        'tree_growing_method': tree_grow_method,
+        # for first_tree_with_label_holder_feature is True
+        'num_boost_round': num_boost_round + 1,
         'max_depth': 3,
+        'max_leaf': 2**3,
         'sketch_eps': 0.25,
         'objective': 'logistic' if logistic else 'linear',
         'reg_lambda': 0.1,
         'gamma': 1,
-        'subsample': subsample,
+        'rowsample_by_tree': subsample,
         'colsample_by_tree': colsample,
         'base_score': 0.5,
+        'audit_paths': audit_dict,
+        'seed': 42,
+        'fixed_point_parameter': 20,
+        # Turn these two options on for benchmarking or debugging.
+        # Verbose mode will produce more logging information.
+        'verbose': False,
+        # Wait execution mode will syncronize operations and therefore reduce performance, but we now can measure component's time more accurately.
+        # Wait execution mode execution time is expected to be slower than that when use in production.
+        'wait_execution': False,
+        'first_tree_with_label_holder_feature': True,
+        'enable_goss': enable_goss,
+        'enable_quantization': True,  # surprisingly, quantization may also improve auc on some datasets
+        'early_stop_criterion_g_abs_sum': early_stop_criterion_g_abs_sum,
+        'early_stop_criterion_g_abs_sum_change_ratio': 0.01,
     }
-    model = sgb.train(params, v_data, label_data, audit_dict)
+    model = sgb.train(params, v_data, label_data)
     reveal(model.trees[-1])
     logging.info(f"{test_name} train time: {time.perf_counter() - start}")
     start = time.perf_counter()
@@ -68,6 +91,12 @@ def _run_sgb(
         mse = mean_squared_error(y, yhat)
         logging.info(f"{test_name} mse: {mse}")
         assert mse < mse_hat
+
+    if num_tree_cap < num_boost_round:
+        logging.info(
+            f"current tree number is {len(model.trees)}, cap is {num_tree_cap}"
+        )
+        assert len(model.trees) <= num_tree_cap
 
     fed_yhat = model.predict(v_data, env.alice)
     assert len(fed_yhat.partitions) == 1 and env.alice in fed_yhat.partitions
@@ -106,7 +135,13 @@ def _run_npc_linear(env, test_name, parts, label_device):
     v_data = v_data[:500, :]
     label_data = label_data[:500, :]
 
+    logging.info("running XGB style test")
     _run_sgb(env, test_name, v_data, label_data, y, True, 0.9, 1)
+    logging.info("running lightGBM style test")
+    # test with leaf wise growth and goss: lightGBM style
+    _run_sgb(
+        env, test_name, v_data, label_data, y, True, 0.9, 1, {}, 0.9, 2.3, 'leaf', True
+    )
 
 
 def test_2pc_linear(sf_production_setup_devices_aby3):
@@ -188,16 +223,38 @@ def test_breast_cancer(sf_production_setup_devices_aby3):
         0.9,
     )
 
+    # test with leaf wise growth
+    _run_sgb(
+        sf_production_setup_devices_aby3,
+        "breast_cancer_early_stop",
+        v_data,
+        label_data,
+        y,
+        True,
+        0.9,
+        1,
+        {},
+        0.9,
+        2.3,
+        'leaf',
+        early_stop_criterion_g_abs_sum=100,
+        num_boost_round=10,
+        num_tree_cap=3,
+    )
+
 
 def test_dermatology(sf_production_setup_devices_aby3):
-    vdf = load_dermatology(
-        parts={
-            sf_production_setup_devices_aby3.bob: (0, 17),
-            sf_production_setup_devices_aby3.alice: (17, 35),
-        },
-        axis=1,
-    ).fillna(0)
-
+    vdf = (
+        load_dermatology(
+            parts={
+                sf_production_setup_devices_aby3.bob: (0, 17),
+                sf_production_setup_devices_aby3.alice: (17, 35),
+            },
+            axis=1,
+        )
+        .fillna(0)
+        .replace({None: 0})
+    )
     label_data = vdf['class']
     y = reveal(
         label_data.partitions[sf_production_setup_devices_aby3.alice].data
@@ -219,4 +276,20 @@ def test_dermatology(sf_production_setup_devices_aby3):
         0.9,
         0.9,
         audit_dict,
+    )
+
+    _run_sgb(
+        sf_production_setup_devices_aby3,
+        "dermatology",
+        v_data,
+        label_data,
+        y,
+        False,
+        0.9,
+        0.9,
+        audit_dict,
+        0.9,
+        1,
+        'leaf',
+        True,
     )

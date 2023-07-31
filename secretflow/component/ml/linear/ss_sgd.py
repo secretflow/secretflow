@@ -38,7 +38,8 @@ ss_sgd_train_comp = Component(
     version="0.0.1",
     desc="""Train both linear and logistic regression
     linear models for vertical partitioning dataset with mini batch SGD training solver by using secret sharing.
-    SS-SGD is short for secret sharing SGD training.
+
+    - SS-SGD is short for secret sharing SGD training.
     """,
 )
 ss_sgd_train_comp.int_attr(
@@ -117,14 +118,14 @@ ss_sgd_train_comp.float_attr(
 ss_sgd_train_comp.io(
     io_type=IoType.INPUT,
     name="train_dataset",
-    desc="Input train dataset.",
+    desc="Input vertical table.",
     types=[DistDataType.VERTICAL_TABLE],
     col_params=None,
 )
 ss_sgd_train_comp.io(
     io_type=IoType.OUTPUT,
     name="output_model",
-    desc="Output model",
+    desc="Output model.",
     types=[DistDataType.SS_SGD_MODEL],
 )
 
@@ -255,7 +256,7 @@ ss_sgd_predict_comp.io(
 ss_sgd_predict_comp.io(
     io_type=IoType.INPUT,
     name="feature_dataset",
-    desc="Input feature dataset.",
+    desc="Input vertical table.",
     types=[DistDataType.VERTICAL_TABLE],
     col_params=None,
 )

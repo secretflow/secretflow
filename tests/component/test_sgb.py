@@ -54,7 +54,7 @@ def test_sgb(comp_prod_sf_cluster_config):
             "objective",
             "reg_lambda",
             "gamma",
-            "subsample",
+            "rowsample_by_tree",
             "colsample_by_tree",
             "sketch_eps",
             "base_score",
@@ -87,13 +87,13 @@ def test_sgb(comp_prod_sf_cluster_config):
     meta = VerticalTable(
         schemas=[
             TableSchema(
-                feature_types=["f32"] * 15,
+                feature_types=["float32"] * 15,
                 features=[f"a{i}" for i in range(15)],
                 labels=["y"],
-                label_types=["f32"],
+                label_types=["float32"],
             ),
             TableSchema(
-                feature_types=["f32"] * 15,
+                feature_types=["float32"] * 15,
                 features=[f"b{i}" for i in range(15)],
             ),
         ],
@@ -132,13 +132,13 @@ def test_sgb(comp_prod_sf_cluster_config):
     meta = VerticalTable(
         schemas=[
             TableSchema(
-                feature_types=["f32"] * 15,
+                feature_types=["float32"] * 15,
                 features=[f"a{i}" for i in range(15)],
                 labels=["y"],
-                label_types=["f32"],
+                label_types=["float32"],
             ),
             TableSchema(
-                feature_types=["f32"] * 15,
+                feature_types=["float32"] * 15,
                 features=[f"b{i}" for i in range(15)],
             ),
         ],

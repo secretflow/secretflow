@@ -17,6 +17,8 @@ syntax = "proto3";
 
 package secretflow.component;
 
+option java_package = "org.secretflow.proto.component";
+
 // Supported attribute types.
 enum AttrType {
   AT_UNDEFINED = 0;
@@ -91,6 +93,8 @@ message AttributeDef {
     // Only valid when type is `AT_FLOATS \| AT_INTS \| AT_STRINGS \| AT_BOOLS`.
     int64 list_max_length_inclusive = 2;
 
+    // If True, when Atmoic Attr is not provided or is_na, default_value would
+    // be used. Else, Atmoic Attr must be provided.
     bool is_optional = 3;
 
     // A reasonable default for this attribute if the user does not supply a

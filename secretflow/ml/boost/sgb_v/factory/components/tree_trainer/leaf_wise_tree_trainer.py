@@ -19,7 +19,7 @@ from typing import List, Tuple, Union
 import numpy as np
 
 from secretflow.device import PYUObject, reveal
-from secretflow.ml.boost.sgb_v.factory.params import default_params
+from secretflow.ml.boost.sgb_v.core.params import default_params
 from secretflow.ml.boost.sgb_v.factory.sgb_actor import SGBActor
 
 from ....core.distributed_tree.distributed_tree import DistributedTree
@@ -90,19 +90,18 @@ class LeafWiseTreeTrainer(TreeTrainer):
         self.label_holder = devices.label_holder
         self.party_num = len(self.workers)
 
-    def set_actors(self, actors: SGBActor):
+    def set_actors(self, actors: List[SGBActor]):
         return super().set_actors(actors)
+
+    def del_actors(self):
+        super().del_actors()
 
     def _get_trainer_params(self, params: dict):
         params['max_leaf'] = self.params.max_leaf
         LoggingTools.logging_params_write_dict(params, self.logging_params)
 
     def _set_trainer_params(self, params: dict):
-        leaf_num = int(params.get('max_leaf', 15))
-        assert (
-            leaf_num > 0 and leaf_num <= 2**15
-        ), f"max_depth should in [1, 2**15], got {leaf_num}"
-
+        leaf_num = params.get('max_leaf', default_params.max_leaf)
         self.params.max_leaf = leaf_num
         self.logging_params = LoggingTools.logging_params_from_dict(params)
 
@@ -114,10 +113,12 @@ class LeafWiseTreeTrainer(TreeTrainer):
         pred: Union[PYUObject, np.ndarray],
         x_shape: Tuple[int, int],
     ):
+        logging.info("train tree context set up.")
         # reset caches
         self.components.split_tree_builder.reset()
         self.components.leaf_manager.clear_leaves()
         self.components.bucket_sum_calculator.reset_cache()
+        logging.debug("cache resetted.")
 
         # sub sampling
         feature_buckets = order_map_manager.get_feature_buckets()
@@ -141,6 +142,8 @@ class LeafWiseTreeTrainer(TreeTrainer):
         self.bucket_num = order_map_manager.buckets
         self.row_choices = row_choices
 
+        logging.debug("sub sampled (per tree).")
+
         # compute g, h and encryption
         g = self.components.sampler.apply_vector_sampling_weighted(
             g, row_choices, weight
@@ -149,19 +152,27 @@ class LeafWiseTreeTrainer(TreeTrainer):
             h, row_choices, weight
         )
         self.components.loss_computer.compute_abs_sums(g, h)
-        self.should_stop = self.components.loss_computer.check_early_stop()
+
+        logging.debug("g h computed.")
+
+        self.should_stop = reveal(self.components.loss_computer.check_early_stop())
         if self.should_stop:
+            logging.debug("early stopped.")
             return
+        logging.debug("not early stopped.")
         self.components.loss_computer.compute_scales()
 
         g, h = self.components.loss_computer.scale_gh(g, h)
         self.g = g
         self.h = h
+        logging.debug("g h scaled.")
+
         gh = self.components.gradient_encryptor.pack(g, h)
         encrypted_gh = self.components.gradient_encryptor.encrypt(gh, cur_tree_num)
         self.encrypted_gh_dict = self.components.gradient_encryptor.cache_to_workers(
             encrypted_gh, gh
         )
+        logging.debug("g h encrypted.")
 
     @LoggingTools.enable_logging
     def train_tree(
@@ -175,6 +186,7 @@ class LeafWiseTreeTrainer(TreeTrainer):
         self.train_tree_context_setup(cur_tree_num, order_map_manager, y, pred, x_shape)
         if self.should_stop:
             return None
+        logging.info("begin train tree.")
         row_num = self.order_map_sub.shape[0]
         root_select = self.components.node_selector.root_select(row_num)
         g, h = self.g, self.h
@@ -182,7 +194,9 @@ class LeafWiseTreeTrainer(TreeTrainer):
         new_split_node_selects = root_select
         new_split_node_indices = [0]
 
+        logging.debug("begin leaf wise training")
         for leaf in range(self.params.max_leaf):
+            logging.debug(f"training leaf {leaf}.")
             new_split_node_selects, new_split_node_indices = self._train_leaf(
                 new_split_node_selects,
                 new_split_node_indices,
@@ -313,6 +327,8 @@ class LeafWiseTreeTrainer(TreeTrainer):
         )
         self.components.leaf_manager.extend_leaves(pruned_s, pruned_node_indices)
 
+        if reveal(self.components.split_candidate_manager.is_no_candidate_left()):
+            return [], []
         # select the best candidate to do split
         (
             node_index,

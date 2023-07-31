@@ -65,11 +65,11 @@ def test_table_statistics_comp(comp_prod_sf_cluster_config):
     meta = VerticalTable(
         schemas=[
             TableSchema(
-                feature_types=["f32", "f32"],
+                feature_types=["float32", "float32"],
                 features=["a", "b"],
             ),
             TableSchema(
-                feature_types=["f32", "f32"],
+                feature_types=["float32", "float32"],
                 features=["c", "d"],
             ),
         ],
@@ -124,7 +124,8 @@ def test_table_statistics_individual_comp(comp_prod_sf_cluster_config):
     )
     meta = IndividualTable(
         schema=TableSchema(
-            feature_types=["f32", "f32", "f32", "f32"], features=["a", "b", "c", "d"]
+            feature_types=["float32", "float32", "float32", "float32"],
+            features=["a", "b", "c", "d"],
         )
     )
     param.inputs[0].meta.Pack(meta)

@@ -18,7 +18,7 @@ from typing import Dict, List, Union
 
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.device import PYUObject
-from secretflow.ml.boost.sgb_v.factory.params import default_params
+from secretflow.ml.boost.sgb_v.core.params import default_params
 from secretflow.ml.boost.sgb_v.factory.sgb_actor import SGBActor
 
 from ..component import Component, Devices, print_params
@@ -54,14 +54,11 @@ class OrderMapManager(Component):
 
     def set_params(self, params: Dict):
         # validate
-        sketch = params.get('sketch_eps', 0.1)
-        assert (
-            sketch > 0 and sketch <= 1
-        ), f"sketch_eps should in (0, 1], got {sketch}"  # set
+        sketch = params.get('sketch_eps', default_params.sketch_eps)
         self.params.sketch_eps = sketch
         # derive attributes
         self.buckets = eps_inverse(sketch)
-        self.params.seed = int(params.get('seed', 1212))
+        self.params.seed = params.get('seed', default_params.seed)
 
         self.logging_params = LoggingTools.logging_params_from_dict(params)
 
@@ -78,6 +75,9 @@ class OrderMapManager(Component):
         self.order_map_actors = actors
         for i, actor in enumerate(self.order_map_actors):
             actor.register_class('OrderMapActor', OrderMapActor, i)
+
+    def del_actors(self):
+        del self.order_map_actors
 
     @LoggingTools.enable_logging
     def build_order_map(self, x: FedNdarray) -> FedNdarray:

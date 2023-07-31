@@ -19,9 +19,9 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='secretflow/protos/component/evaluation.proto',
   package='secretflow.component',
   syntax='proto3',
-  serialized_options=None,
+  serialized_options=b'\n\036org.secretflow.proto.component',
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n,secretflow/protos/component/evaluation.proto\x12\x14secretflow.component\x1a&secretflow/protos/component/comp.proto\x1a&secretflow/protos/component/data.proto\"\xc7\x01\n\rNodeEvalParam\x12\x0e\n\x06\x64omain\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0f\n\x07version\x18\x03 \x01(\t\x12\x12\n\nattr_paths\x18\x04 \x03(\t\x12.\n\x05\x61ttrs\x18\x05 \x03(\x0b\x32\x1f.secretflow.component.Attribute\x12.\n\x06inputs\x18\x06 \x03(\x0b\x32\x1e.secretflow.component.DistData\x12\x13\n\x0boutput_uris\x18\x07 \x03(\t\"A\n\x0eNodeEvalResult\x12/\n\x07outputs\x18\x01 \x03(\x0b\x32\x1e.secretflow.component.DistDatab\x06proto3'
+  serialized_pb=b'\n,secretflow/protos/component/evaluation.proto\x12\x14secretflow.component\x1a&secretflow/protos/component/comp.proto\x1a&secretflow/protos/component/data.proto\"\xc7\x01\n\rNodeEvalParam\x12\x0e\n\x06\x64omain\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0f\n\x07version\x18\x03 \x01(\t\x12\x12\n\nattr_paths\x18\x04 \x03(\t\x12.\n\x05\x61ttrs\x18\x05 \x03(\x0b\x32\x1f.secretflow.component.Attribute\x12.\n\x06inputs\x18\x06 \x03(\x0b\x32\x1e.secretflow.component.DistData\x12\x13\n\x0boutput_uris\x18\x07 \x03(\t\"A\n\x0eNodeEvalResult\x12/\n\x07outputs\x18\x01 \x03(\x0b\x32\x1e.secretflow.component.DistDataB \n\x1eorg.secretflow.proto.componentb\x06proto3'
   ,
   dependencies=[secretflow_dot_protos_dot_component_dot_comp__pb2.DESCRIPTOR,secretflow_dot_protos_dot_component_dot_data__pb2.DESCRIPTOR,])
 
@@ -155,4 +155,5 @@ NodeEvalResult = _reflection.GeneratedProtocolMessageType('NodeEvalResult', (_me
 _sym_db.RegisterMessage(NodeEvalResult)
 
 
+DESCRIPTOR._options = None
 # @@protoc_insertion_point(module_scope)

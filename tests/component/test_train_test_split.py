@@ -91,15 +91,15 @@ def test_train_test_split(comp_prod_sf_cluster_config):
             TableSchema(
                 id_types=["str"],
                 ids=["id2"],
-                feature_types=["f32", "str", "f32"],
+                feature_types=["float32", "str", "float32"],
                 features=["b4", "b5", "b6"],
             ),
             TableSchema(
                 id_types=["str"],
                 ids=["id1"],
-                feature_types=["str", "str", "f32"],
+                feature_types=["str", "str", "float32"],
                 features=["a1", "a2", "a3"],
-                label_types=["f32"],
+                label_types=["float32"],
                 labels=["y"],
             ),
         ],

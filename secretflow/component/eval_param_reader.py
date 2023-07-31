@@ -144,7 +144,8 @@ class EvalParamReader:
             if path in self._instance_attrs:
                 raise EvalParamError(f"attr {path} is duplicate in node def.")
 
-            self._instance_attrs[path] = attr
+            if not attr.is_na:
+                self._instance_attrs[path] = attr
 
         for attr in self._definition.attrs:
             if attr.type not in [

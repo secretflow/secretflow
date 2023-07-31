@@ -24,7 +24,7 @@ from secretflow.device import PYU, PYUObject, reveal, wait
 
 from .core.distributed_tree.distributed_tree import DistributedTree
 from .core.distributed_tree.distributed_tree import from_dict as dt_from_dict
-from .core.preprocessing.params import RegType
+from .core.params import RegType
 from secretflow.ml.boost.core.data_preprocess import prepare_dataset
 from .core.pure_numpy_ops.pred import sigmoid
 

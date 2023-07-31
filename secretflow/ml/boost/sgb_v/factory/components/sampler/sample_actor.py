@@ -64,11 +64,11 @@ class SampleActor:
         return used_set, w
 
     def generate_row_choices(
-        self, row_num: int, row_sample_rate: float
+        self, row_num: int, rowsample_by_tree: float
     ) -> Union[None, np.ndarray]:
-        if row_sample_rate == 1:
+        if rowsample_by_tree == 1:
             return None
-        sample_num_in_tree = math.ceil(row_num * row_sample_rate)
+        sample_num_in_tree = math.ceil(row_num * rowsample_by_tree)
 
         sample_num, choices = (
             row_num,

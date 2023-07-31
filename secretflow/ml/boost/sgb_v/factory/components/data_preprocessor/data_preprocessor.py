@@ -40,6 +40,9 @@ class DataPreprocessor(Component):
     def set_actors(self, _):
         return
 
+    def del_actors(self):
+        return
+
     def validate(
         self, dataset, label
     ) -> Tuple[FedNdarray, Tuple[int, int], PYUObject, Tuple[int, int]]:

@@ -12,6 +12,8 @@ When compared to its MPC technology-powered counterpart, secret sharing-based XG
 
 Our implementation of SecureBoost offers high performance and cutting-edge speed, supported by HEU devices.
 
+Since secretflow 1.0, we further optimized the performance and supported some advanced training features including lightGBM style (leaf wise and GOSS) training, train the first tree with label holder's data only, etc.
+
 ## Tutorial
 
 Please check out this simple [tutorial](../../../tutorial/SecureBoost.ipynb).

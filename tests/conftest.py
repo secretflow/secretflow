@@ -108,6 +108,7 @@ def semi2k_cluster():
         "runtime_config": {
             "protocol": spu.spu_pb2.SEMI2K,
             "field": spu.spu_pb2.FM128,
+            "share_max_chunk_size": 1025,
             "enable_pphlo_profile": False,
             "enable_hal_profile": False,
             "enable_pphlo_trace": False,
@@ -202,6 +203,7 @@ def sf_production_setup_devices(request, sf_party_for_4pc):
         address="local",
         num_cpus=32,
         log_to_driver=True,
+        logging_level='debug',
         cluster_config=cluster(),
         exit_on_failure_cross_silo_sending=True,
         enable_waiting_for_other_parties_ready=False,
@@ -250,6 +252,7 @@ def sf_production_setup_devices_aby3(request, sf_party_for_4pc):
         address="local",
         num_cpus=32,
         log_to_driver=True,
+        logging_level='debug',
         cluster_config=cluster(),
         exit_on_failure_cross_silo_sending=True,
         enable_waiting_for_other_parties_ready=False,

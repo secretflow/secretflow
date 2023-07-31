@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-07-04 12:16+0800\n"
+"POT-Creation-Date: 2023-07-11 13:40+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -70,6 +70,7 @@ msgstr ""
 "https://github.com/secretflow/secretflow/issues/565，发布分桶的ivs可能会泄漏标签信息。目前，我们选择将桶的iv值保存在标签持有者设备中。标签持有者可以选择"
 
 #: ../../user_guide/preprocessing/WeightOfEvidenceEncoding.ipynb:482
+msgid "share no iv information"
 msgstr "不共享iv信息"
 
 #: ../../user_guide/preprocessing/WeightOfEvidenceEncoding.ipynb:483

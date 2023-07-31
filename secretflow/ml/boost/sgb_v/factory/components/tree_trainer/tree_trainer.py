@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import abc
+from typing import List
 
 from secretflow.ml.boost.sgb_v.factory.sgb_actor import SGBActor
 
@@ -30,7 +31,7 @@ class TreeTrainer(Composite):
     def set_devices(self, devices: Devices):
         super().set_devices(devices)
 
-    def set_actors(self, actors: SGBActor):
+    def set_actors(self, actors: List[SGBActor]):
         return super().set_actors(actors)
 
     @abc.abstractmethod

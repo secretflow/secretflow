@@ -50,12 +50,15 @@ class SplitCandidateManager(Component):
     def set_devices(self, devices: Devices):
         self.label_holder = devices.label_holder
 
-    def set_actors(self, actors: SGBActor):
+    def set_actors(self, actors: List[SGBActor]):
         for actor in actors:
             if actor.device == self.label_holder:
                 self.heap = actor
                 break
         self.heap.register_class('SplitCandidateHeap', SplitCandidateHeap)
+
+    def del_actors(self):
+        del self.heap
 
     def batch_push(
         self,
@@ -90,6 +93,9 @@ class SplitCandidateManager(Component):
             max_gain,
             split_bucket,
         )
+
+    def is_no_candidate_left(self) -> bool:
+        return self.heap.invoke_class_method('SplitCandidateHeap', 'is_heap_empty')
 
     def extract_best_split_info(self) -> Tuple[int, np.ndarray, int]:
         return self.heap.invoke_class_method_three_ret(

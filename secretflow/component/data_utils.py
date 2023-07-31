@@ -74,17 +74,20 @@ class DataSetFormatSupported(BaseEnum):
 
 
 SUPPORTED_VTABLE_DATA_TYPE = {
-    "i8": np.int8,
-    "i16": np.int16,
-    "i32": np.int32,
-    "i64": np.int64,
-    "u8": np.uint8,
-    "u16": np.uint16,
-    "u32": np.uint32,
-    "u64": np.uint64,
-    "f16": np.float16,
-    "f32": np.float32,
-    "f64": np.float64,
+    "int8": np.int8,
+    "int16": np.int16,
+    "int32": np.int32,
+    "int64": np.int64,
+    "uint8": np.uint8,
+    "uint16": np.uint16,
+    "uint32": np.uint32,
+    "uint64": np.uint64,
+    "float16": np.float16,
+    "float32": np.float32,
+    "float64": np.float64,
+    "bool": bool,
+    "int": int,
+    "float": float,
     "str": object,
 }
 
@@ -523,7 +526,7 @@ def gen_prediction_csv_meta(
                 if label_keys is not None
                 else []
             )
-            + ["f32"],
+            + ["float"],
         ),
         num_lines=num_lines if num_lines is not None else -1,
     )

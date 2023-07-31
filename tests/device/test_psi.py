@@ -1,4 +1,5 @@
 import tempfile
+import logging
 
 import pandas as pd
 import pytest
@@ -113,8 +114,17 @@ def sim_env_and_model(sf_simulation_setup_devices):
     yield sf_simulation_setup_devices, data
 
 
+def _progress_callbacks(party: str, data: sf.utils.progress.ProgressData):
+    assert party == "alice" or party == "bob"
+    logging.info(
+        f"{party} progress callback ---- percentage: {data.percentage}, total: {data.total}, finished: {data.finished}, description: {data.description}"
+    )
+
+
 def _test_single_col(devices, data):
-    da, db = devices.spu.psi_df("c1", [data["da"], data["db"]], "alice")
+    da, db = devices.spu.psi_df(
+        "c1", [data["da"], data["db"]], "alice", progress_callbacks=_progress_callbacks
+    )
 
     expected = pd.DataFrame(
         {"c1": ["K1", "K3", "K4"], "c2": ["A1", "A3", "A4"], "c3": [1, 3, 4]}
@@ -138,7 +148,12 @@ def test_single_col_sim(sim_env_and_model):
 
 
 def _test_multiple_col(devices, data):
-    da, db = devices.spu.psi_df(["c1", "c2"], [data["da"], data["db"]], "alice")
+    da, db = devices.spu.psi_df(
+        ["c1", "c2"],
+        [data["da"], data["db"]],
+        "alice",
+        progress_callbacks=_progress_callbacks,
+    )
 
     expected = pd.DataFrame({"c1": ["K1", "K4"], "c2": ["A1", "A4"], "c3": [1, 4]})
     pd.testing.assert_frame_equal(sf.reveal(da).reset_index(drop=True), expected)
@@ -276,7 +291,13 @@ def _test_psi_csv(devices, data):
             )
         )
 
-        devices.spu.psi_csv(["c1", "c2"], input_path, output_path, "alice")
+        devices.spu.psi_csv(
+            ["c1", "c2"],
+            input_path,
+            output_path,
+            "alice",
+            progress_callbacks=_progress_callbacks,
+        )
 
         expected = pd.DataFrame({"c1": ["K1", "K4"], "c2": ["A1", "A4"], "c3": [1, 4]})
 
@@ -526,7 +547,11 @@ def test_psi_join_df(prod_env_and_model):
     }
 
     da, db = devices.spu.psi_join_df(
-        select_keys, [data["da_new"], data["db_new"]], "bob", "bob"
+        select_keys,
+        [data["da_new"], data["db_new"]],
+        "bob",
+        "bob",
+        progress_callbacks=_progress_callbacks,
     )
 
     result_a = pd.DataFrame(
@@ -576,7 +601,14 @@ def test_psi_join_csv(prod_env_and_model):
             devices.bob: ["id2"],
         }
 
-        devices.spu.psi_join_csv(select_keys, input_path, output_path, "alice", "alice")
+        devices.spu.psi_join_csv(
+            select_keys,
+            input_path,
+            output_path,
+            "alice",
+            "alice",
+            progress_callbacks=_progress_callbacks,
+        )
 
         result_a = pd.DataFrame(
             {

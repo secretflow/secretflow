@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from typing import List, Union
 
 from secretflow.device import PYUObject
-from secretflow.ml.boost.sgb_v.factory.params import default_params
+from secretflow.ml.boost.sgb_v.core.params import default_params
 from secretflow.ml.boost.sgb_v.factory.sgb_actor import SGBActor
 
 from ..component import Component, Devices, print_params
@@ -42,7 +42,7 @@ class Shuffler(Component):
         print_params(self.params)
 
     def set_params(self, params: dict):
-        self.params.seed = int(params.get('seed', 1212))
+        self.params.seed = params.get('seed', default_params.seed)
 
     def get_params(self, params: dict):
         params['seed'] = self.params.seed
@@ -51,11 +51,14 @@ class Shuffler(Component):
         self.workers = devices.workers
         return
 
-    def set_actors(self, actors: SGBActor):
+    def set_actors(self, actors: List[SGBActor]):
         self.worker_shufflers = actors
         for worker in self.worker_shufflers:
             # may change random state initialie methods latter
             worker.register_class('WorkerShuffler', WorkerShuffler, self.params.seed)
+
+    def del_actors(self):
+        del self.worker_shufflers
 
     def reset_shuffle_masks(self):
         for ws in self.worker_shufflers:

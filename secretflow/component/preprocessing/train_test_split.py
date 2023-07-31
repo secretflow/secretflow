@@ -27,7 +27,8 @@ train_test_split_comp = Component(
     domain="preprocessing",
     version="0.0.1",
     desc="""Split datasets into random train and test subsets.
-    Please check: https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html
+
+    - Please check: https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html
     """,
 )
 
@@ -75,7 +76,7 @@ train_test_split_comp.bool_attr(
 train_test_split_comp.io(
     io_type=IoType.INPUT,
     name="input_data",
-    desc="Input dataset.",
+    desc="Input vertical table.",
     types=[DistDataType.VERTICAL_TABLE],
     col_params=None,
 )

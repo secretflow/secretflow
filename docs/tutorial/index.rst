@@ -40,6 +40,7 @@ We hope you enjoy these toturials from SecretFlow developers.
    nn_with_spu
    gpt2_with_spu
    numpy_with_spu
+   gpt2_with_puma
 
 .. toctree::
    :maxdepth: 1

@@ -36,6 +36,18 @@ RUN pip install onnx==1.13.1 protobuf==3.20.3 && rm -rf /root/.cache
 
 COPY .nsjail /root/.nsjail
 
+ARG config_templates=""
+LABEL kuscia.secretflow.config-templates=$config_templates
+
+ARG deploy_templates=""
+LABEL kuscia.secretflow.deploy-templates=$deploy_templates
+
+ARG comp_list=""
+LABEL kuscia.secretflow.comp_list=$comp_list
+
+ARG translation=""
+LABEL kuscia.secretflow.translation=$translation
+
 WORKDIR /root
 
 COPY anolis_entrypoint.sh /opt/secretflow/

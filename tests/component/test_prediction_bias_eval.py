@@ -74,7 +74,7 @@ def test_prediction_bias_eval(comp_prod_sf_cluster_config):
     meta = VerticalTable(
         schemas=[
             TableSchema(
-                label_types=["f32"],
+                label_types=["float32"],
                 labels=["labels"],
             )
         ],
@@ -82,7 +82,7 @@ def test_prediction_bias_eval(comp_prod_sf_cluster_config):
     param.inputs[0].meta.Pack(meta)
     meta = IndividualTable(
         schema=TableSchema(
-            label_types=["f32"],
+            label_types=["float32"],
             labels=["predictions"],
         ),
     )

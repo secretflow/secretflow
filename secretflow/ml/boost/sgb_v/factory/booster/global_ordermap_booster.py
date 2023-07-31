@@ -16,13 +16,14 @@ import copy
 import logging
 import time
 from dataclasses import dataclass
-from typing import Union
+from typing import List, Union
 
 import numpy as np
 
 from secretflow.data import FedNdarray
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import HEU, wait
+from secretflow.ml.boost.sgb_v.core.params import default_params
 
 from ...model import SgbModel
 from ..components import DataPreprocessor, ModelBuilder, OrderMapManager, TreeTrainer
@@ -51,8 +52,10 @@ class GlobalOrdermapBoosterParams:
                 If label holder has no feature, set this to False.
     """
 
-    num_boost_round: int = 10
-    first_tree_with_label_holder_feature: bool = False
+    num_boost_round: int = default_params.num_boost_round
+    first_tree_with_label_holder_feature: bool = (
+        default_params.first_tree_with_label_holder_feature
+    )
 
 
 class GlobalOrdermapBooster(Composite):
@@ -69,11 +72,11 @@ class GlobalOrdermapBooster(Composite):
         self.tree_trainer = tree_trainer
 
     def _set_booster_params(self, params: dict):
-        trees = int(params.get('num_boost_round', 10))
-        assert 1 <= trees <= 1024, f"num_boost_round should in [1, 1024], got {trees}"
+        trees = params.get('num_boost_round', default_params.num_boost_round)
         self.params.num_boost_round = trees
-        self.params.first_tree_with_label_holder_feature = bool(
-            params.get('first_tree_with_label_holder_feature', False)
+        self.params.first_tree_with_label_holder_feature = params.get(
+            'first_tree_with_label_holder_feature',
+            default_params.first_tree_with_label_holder_feature,
         )
 
     def _get_booster_params(self, params: dict):
@@ -103,9 +106,13 @@ class GlobalOrdermapBooster(Composite):
         super().set_devices(devices)
         self.tree_trainer.set_devices(devices)
 
-    def set_actors(self, actors: SGBActor):
+    def set_actors(self, actors: List[SGBActor]):
         super().set_actors(actors)
         self.tree_trainer.set_actors(actors)
+
+    def del_actors(self):
+        super().del_actors()
+        self.tree_trainer.del_actors()
 
     def fit(
         self,
@@ -120,11 +127,16 @@ class GlobalOrdermapBooster(Composite):
 
         # set actors
         actors = [SGBActor(device=device) for device in devices.workers]
+        logging.debug("actors are created.")
         self.set_actors(actors)
+        logging.debug("actors are set.")
 
         pred = self.components.model_builder.init_pred(x_shape[0])
+        logging.debug("pred initialized.")
         self.components.order_map_manager.build_order_map(x)
+        logging.debug("ordermap built.")
         self.components.model_builder.init_model()
+        logging.debug("model initialized.")
 
         for tree_index in range(self.params.num_boost_round):
             start = time.perf_counter()
@@ -133,6 +145,7 @@ class GlobalOrdermapBooster(Composite):
                 config = copy.deepcopy(self.user_config)
                 config['label_holder_feature_only'] = True
                 self.tree_trainer.set_params(config)
+                logging.info("training the first tree with label holder only.")
             tree = self.tree_trainer.train_tree(
                 tree_index, self.components.order_map_manager, y, pred, x_shape
             )
@@ -158,5 +171,5 @@ class GlobalOrdermapBooster(Composite):
             logging.info(
                 f"epoch {cur_tree_num - 1} time {time.perf_counter() - start}s"
             )
-
+        self.del_actors()
         return self.components.model_builder.finish()
