@@ -53,7 +53,8 @@ workflows:
             requirements-dev.txt build-and-run true
             WORKSPACE build-and-run true
   publish-workflow:
-    when: << pipeline.parameters.GHA_Action >>
+    when:
+      equal: [ "release", << pipeline.parameters.GHA_Event >> ]
     jobs:
       - continuation/continue:
           configuration_path: .circleci/release-config.yml
