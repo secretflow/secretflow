@@ -74,7 +74,6 @@ jobs:
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
   publish:
-    when: << pipeline.parameters.GHA_Action >>
     jobs:
       - linux_publish:
           matrix:
