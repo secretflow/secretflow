@@ -66,6 +66,24 @@ class Compressor(ABC):
         raise NotImplementedError()
 
 
+def handel_special_types(hidden):
+    try:
+        from tensorflow.python.framework.ops import EagerTensor
+
+        if isinstance(hidden, EagerTensor):
+            return hidden.numpy()
+    except ImportError:
+        pass
+    try:
+        from torch import Tensor
+
+        if isinstance(hidden, Tensor):
+            return hidden.detach().numpy()
+    except ImportError:
+        pass
+    return hidden
+
+
 class SparseCompressor(Compressor):
     def __init__(self, sparse_rate: float):
         """Initialize
@@ -92,8 +110,7 @@ class SparseCompressor(Compressor):
 
     # sample random element from original List[np.ndarray]
     def compress(
-        self,
-        data: Union[ForwardData, np.ndarray, List[np.ndarray]],
+        self, data: Union[ForwardData, np.ndarray, List[np.ndarray]],
     ) -> Union[sparse.spmatrix, List[sparse.spmatrix]]:
         """Compress data to sparse matrix before send.
 
@@ -111,6 +128,7 @@ class SparseCompressor(Compressor):
         else:
             hidden = data
 
+        hidden = handel_special_types(hidden)
         if isinstance(hidden, (np.ndarray, jnp.ndarray)):
             is_list = False
             hidden = [hidden]
@@ -222,10 +240,7 @@ class STCSparse:
         self.sparse_rate = sparse_rate
         self.name = 'STC'
 
-    def __call__(
-        self,
-        weights: List[np.ndarray],
-    ) -> List[np.ndarray]:
+    def __call__(self, weights: List[np.ndarray],) -> List[np.ndarray]:
         compression_weights = []
         mask_arrays = []
         for weight in weights:
@@ -262,10 +277,7 @@ class SCRSparse:
         self.threshold = threshold
         self.name = 'SCR'
 
-    def __call__(
-        self,
-        weights: List[np.ndarray],
-    ) -> List[np.ndarray]:
+    def __call__(self, weights: List[np.ndarray],) -> List[np.ndarray]:
         compression_weights = []
         mask_arrays = []
         for weight in weights:
@@ -305,10 +317,7 @@ class SCRSparse:
 
 
 # Sparse matrix encode and decode
-def sparse_encode(
-    data: List[np.ndarray],
-    encode_method: str = 'coo',
-) -> List:
+def sparse_encode(data: List[np.ndarray], encode_method: str = 'coo',) -> List:
     """Encode the sparse matrix
 
     Args:
