@@ -37,8 +37,9 @@ parameters:
 workflows:
   unittest-workflow:
     when:
-      - not: << pipeline.parameters.GHA_Action >>
-      - not: << pipeline.parameters.GHA_Meta >>
+      and:
+        - not: << pipeline.parameters.GHA_Action >>
+        - not: << pipeline.parameters.GHA_Meta >>
     jobs:
       - path-filtering/filter:
           base-revision: main
