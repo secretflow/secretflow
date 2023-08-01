@@ -571,10 +571,14 @@ class SLBaseTorchModel(SLBaseModel):
         hiddens = []
         for h in hidden_features:
             if isinstance(h, List):
-                for i in range(len(h)):
-                    hiddens.append(h[i])
+                for e in h:
+                    hiddens.append(
+                        torch.as_tensor(e) if isinstance(e, np.matrix) else e
+                    )
             else:
-                hiddens.append(h)
+                hiddens.append(torch.as_tensor(h)) if isinstance(
+                    h, np.matrix
+                ) else hiddens.append(h)
         result = {}
         metrics = self._evaluate_internal(
             hiddens=hiddens,
