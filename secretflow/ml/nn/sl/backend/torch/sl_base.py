@@ -541,7 +541,7 @@ class SLBaseTorchModel(SLBaseModel):
         )
         logs["val_loss"] = loss.detach().numpy()
 
-        # Step 3: update metrics
+        # Step 3: update metricsagg
         for m in self.metrics_fuse:
             if (
                 len(eval_y.shape) > 1 and eval_y.shape[1] > 1

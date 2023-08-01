@@ -145,9 +145,13 @@ class AggLayer(object):
 
     @staticmethod
     def set_forward_data(
-        hidden, losses,
+        hidden,
+        losses,
     ):
-        return ForwardData(hidden=hidden, losses=losses,)
+        return ForwardData(
+            hidden=hidden,
+            losses=losses,
+        )
 
     @staticmethod
     def handle_sparse_hiddens(data, compressor):
@@ -255,7 +259,7 @@ class AggLayer(object):
 
     def collect(self, data: Dict[PYU, DeviceObject]) -> List[DeviceObject]:
         """Collect data from participates
-        todo: Support compress communication when using agg method.
+        TODO: Support compress communication when using agg method.
         """
         assert data, 'Data to aggregate should not be None or empty!'
 
@@ -323,7 +327,10 @@ class AggLayer(object):
         return result
 
     def forward(
-        self, data: Dict[PYU, DeviceObject], axis=0, weights=None,
+        self,
+        data: Dict[PYU, DeviceObject],
+        axis=0,
+        weights=None,
     ) -> DeviceObject:
         """Forward aggregate the embeddings calculated by all parties according to the agg_method
 
@@ -380,14 +387,17 @@ class AggLayer(object):
                     self.fuse_sparse_masks,
                     self.is_compressed,
                 ) = self.device_y(
-                    self.handle_sparse_hiddens, num_returns=3,  # 解压
+                    self.handle_sparse_hiddens,
+                    num_returns=3,
                 )(
                     compute_data, self.compressor
                 )
             return compute_data
 
     def backward(
-        self, gradient: DeviceObject, weights=None,
+        self,
+        gradient: DeviceObject,
+        weights=None,
     ) -> Dict[PYU, DeviceObject]:
         """Backward split the gradients to all parties according to the agg_method
 
@@ -426,7 +436,8 @@ class AggLayer(object):
                 )
             else:
                 p_gradient = self.device_agg(
-                    self.agg_method.backward, num_returns=len(self.parties),
+                    self.agg_method.backward,
+                    num_returns=len(self.parties),
                 )(
                     *gradient_numpy,
                     weights=weights,
@@ -450,8 +461,11 @@ class AggLayer(object):
 
             # split gradients to parties by index
             p_gradient = self.device_y(
-                self.split_to_parties, num_returns=len(self.parties),
-            )(gradient,)
+                self.split_to_parties,
+                num_returns=len(self.parties),
+            )(
+                gradient,
+            )
 
             # handle single feature mode
             if isinstance(p_gradient, PYUObject):
