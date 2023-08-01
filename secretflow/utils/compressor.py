@@ -66,7 +66,8 @@ class Compressor(ABC):
         raise NotImplementedError()
 
 
-def handel_special_types(hidden):
+# TODO: Frequent imports may have an impact on performance. Handel it in outer layer. @xiaonan
+def handle_special_types(hidden):
     try:
         from tensorflow.python.framework.ops import EagerTensor
 
@@ -128,7 +129,7 @@ class SparseCompressor(Compressor):
         else:
             hidden = data
 
-        hidden = handel_special_types(hidden)
+        hidden = handle_special_types(hidden)
         if isinstance(hidden, (np.ndarray, jnp.ndarray)):
             is_list = False
             hidden = [hidden]
