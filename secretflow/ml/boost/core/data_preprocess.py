@@ -69,19 +69,21 @@ def validate(
     assert len(y.partitions) == 1, "label only support one partition"
     # get y as a PYUObject
     y = list(y.partitions.values())[0]
+    y = y.device(lambda y: y.reshape(-1, 1, order='F'))(y)
+    y_shape = (samples, 1)
     wait(data_check_task)
     return x, x_shape, y, y_shape
 
 
 def data_checks(x, worker):
     check_numeric(x, worker)
-    check_nan_val(x, worker)
+    check_null_val(x, worker)
 
 
-def check_nan_val(x, worker):
-    assert ~pd.isna(
+def check_null_val(x, worker):
+    assert ~pd.isnull(
         x
-    ).any(), "worker {}'s data contain NaN, this may cause errors or degraded performance in stages like qcut.".format(
+    ).any(), "worker {}'s data contain NaN or None, this may cause errors or degraded performance in stages like qcut.".format(
         worker
     )
 

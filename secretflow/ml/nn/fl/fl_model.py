@@ -322,6 +322,7 @@ class FLModel:
         dp_spent_step_freq=None,
         audit_log_dir=None,
         dataset_builder: Dict[PYU, Callable] = None,
+        wait_steps=100,
     ) -> History:
         """Horizontal federated training interface
 
@@ -347,6 +348,7 @@ class FLModel:
             dp_spent_step_freq: specifies how many training steps to check the budget of dp
             audit_log_dir: path of audit log dir, checkpoint will be save if audit_log_dir is not None
             dataset_builder: Callable function about hot to build the dataset. must return (dataset, steps_per_epoch)
+            wait_steps: A step size to indicate how many concurrent tasks should be waited, which could prevent the stuck of ray when more tasks join (default 100).
         Returns:
             A history object. It's history.global_history attribute is a
             aggregated record of training loss values and metrics, while
@@ -422,6 +424,7 @@ class FLModel:
             worker.on_train_begin()
         model_params = None
         for epoch in range(epochs):
+            res = []
             report_list = []
             pbar = tqdm(total=self.steps_per_epoch)
             # do train
@@ -445,6 +448,7 @@ class FLModel:
                     )
                     client_param_list.append(client_params)
                     sample_num_list.append(sample_num)
+                    res.append(client_params)
 
                 model_params = self._aggregator.average(
                     client_param_list, axis=0, weights=sample_num_list
@@ -483,7 +487,9 @@ class FLModel:
                             current_dp_step
                         )
                         logging.debug(f'DP privacy accountant {privacy_spent}')
-
+                if len(res) == wait_steps:
+                    wait(res)
+                    res = []
             local_metrics_obj = []
             for device, worker in self._workers.items():
                 worker.on_epoch_end(epoch)

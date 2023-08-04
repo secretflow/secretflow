@@ -14,20 +14,15 @@
 
 
 from typing import List, Tuple, Union
-from ..shuffler.worker_shuffler import WorkerShuffler
-from ..order_map_manager.order_map_actor import OrderMapActor
-from ....core.distributed_tree.split_tree import SplitTree
-
-
-# handle order map building for one party
-
-from secretflow.device import PYUObject, proxy
 
 import numpy as np
 
+from ....core.distributed_tree.split_tree import SplitTree
 
-@proxy(PYUObject)
-class SplitTreeBuilderActor:
+# handle order map building for one party
+
+
+class SplitTreeActor:
     def __init__(self, worker_index: int) -> None:
         self.worker_index = worker_index
         self.reset()
@@ -123,45 +118,6 @@ class SplitTreeBuilderActor:
                 )
                 # lchild' select
                 lchild_selects.append(left_child_selects[key])
-            else:
-                self.tree.insert_split_node(-1, float("inf"), node_indices[key])
-                lchild_selects.append(np.array([], dtype=np.int8))
-
-        return lchild_selects
-
-    def do_split(
-        self,
-        split_buckets: List[int],
-        sampled_rows: List[int],
-        gain_is_cost_effective: List[bool],
-        node_indices: List[int],
-        shuffler: WorkerShuffler,
-        order_map_actor: OrderMapActor,
-    ) -> List[np.ndarray]:
-        """
-        record split info and generate next level's left children select.
-        """
-        lchild_selects = []
-        for key, s in enumerate(split_buckets):
-            # pruning
-            if not gain_is_cost_effective[key]:
-                continue
-            s = self.find_split_bucket(s)
-            if s != -1:
-                # unmask
-                if shuffler.is_shuffled():
-                    s = shuffler.undo_shuffle_mask(key, s)
-                feature, split_point_idx = self.get_split_feature(s)
-                self.tree.insert_split_node(
-                    feature,
-                    order_map_actor.get_split_points()[feature][split_point_idx],
-                    node_indices[key],
-                )
-                # lchild' select
-                ls = order_map_actor.compute_left_child_selects(
-                    feature, split_point_idx, sampled_rows
-                )
-                lchild_selects.append(ls)
             else:
                 self.tree.insert_split_node(-1, float("inf"), node_indices[key])
                 lchild_selects.append(np.array([], dtype=np.int8))

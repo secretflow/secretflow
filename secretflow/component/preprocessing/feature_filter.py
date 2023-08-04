@@ -29,7 +29,7 @@ feature_filter_comp = Component(
 feature_filter_comp.io(
     io_type=IoType.INPUT,
     name="in_ds",
-    desc="Input dataset.",
+    desc="Input vertical table.",
     types=[DistDataType.VERTICAL_TABLE],
     col_params=[TableColParam(name="drop_features", desc="Features to drop.")],
 )
@@ -37,7 +37,7 @@ feature_filter_comp.io(
 feature_filter_comp.io(
     io_type=IoType.OUTPUT,
     name="out_ds",
-    desc="Output dataset with filtered features.",
+    desc="Output vertical table.",
     types=[DistDataType.VERTICAL_TABLE],
     col_params=None,
 )
@@ -55,12 +55,14 @@ def feature_filter_eval_fn(*, ctx, in_ds, in_ds_drop_features, out_ds):
 
     for s in in_meta.schemas:
         s_meta = TableSchema()
-        for t, h in zip(s.types, s.features):
+        for t, h in zip(s.feature_types, s.features):
             if h not in in_ds_drop_features:
-                s_meta.types.append(t)
+                s_meta.feature_types.append(t)
                 s_meta.features.append(h)
         s_meta.ids.extend(s.ids)
+        s_meta.id_types.extend(s.id_types)
         s_meta.labels.extend(s.labels)
+        s_meta.label_types.extend(s.label_types)
         out_meta.schemas.append(s_meta)
 
     out_dist = DistData()

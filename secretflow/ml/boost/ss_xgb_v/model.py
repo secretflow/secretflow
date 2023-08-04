@@ -346,10 +346,7 @@ class Xgb:
             else:
                 sub_choices = None
 
-            gh = spu(
-                split_fn.tree_setup,
-                static_argnames=("objective"),
-            )(
+            gh = spu(split_fn.tree_setup, static_argnames=("objective"),)(
                 pred,
                 y,
                 sub_choices,

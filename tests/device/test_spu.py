@@ -96,7 +96,7 @@ def test_pytree_sim(sf_simulation_setup_devices):
 
 
 def _test_to_heu(devices):
-    x = devices.alice(np.random.uniform)(-10, 10, (3, 4))
+    x = devices.alice(np.random.uniform)(-10, 10, (30, 40))
     x_spu = x.to(devices.spu)
 
     # spu -> heu

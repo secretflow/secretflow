@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-05-22 16:12+0800\n"
+"POT-Creation-Date: 2023-06-29 22:33+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -176,7 +176,7 @@ msgstr "现在你可以启动SecretFlow。下面这段代码表示alice和bob分
 #: ../../getting_started/deployment.md:73
 #: ../../getting_started/deployment.md:114
 #: ../../getting_started/deployment.md:586
-#: ../../getting_started/deployment.md:628
+#: ../../getting_started/deployment.md:630
 msgid "**Tips**"
 msgstr "**提示**"
 
@@ -439,13 +439,9 @@ msgstr "使用WSL(Windows Subsystem for Linux)部署仿真SecretFlow"
 msgid ""
 "If you use SecretFlow in WSL2, you could deploy SecretFlow with different"
 " distributions in WSL2."
-msgstr ""
-"如果您在WSL2使用隐语的话，您可以在WSL2上使用不同的发行版"
-"部署隐语"
-
+msgstr "如果您在WSL2使用隐语的话，您可以在WSL2上使用不同的发行版部署隐语"
 
 #: ../../getting_started/deployment.md:275
-
 msgid ""
 "The following steps show how to deploy SecretFlow in WSL with simulation "
 "mode."
@@ -462,10 +458,9 @@ msgid ""
 "two different distributions such Ubuntu and Debian. In this example, "
 "`alice`in`Ubuntu 20.04.6 LTS` and `bob` in `Ubuntu 22.04.2 LTS`:"
 msgstr ""
-"您应该安装至少两个不同版本的发行版，例如"
-"Ubuntu 20.04.6 LTS 和 Ubuntu 22.04.2 LTS 或者至少"
-"两个不同的发行版，例如Ubuntu 和 Debian，在这个例子里面"
-"`alice`位于`Ubuntu 20.04.6 LTS` 而且`bob` 位于 `Ubuntu 22.04.2 LTS`:"
+"您应该安装至少两个不同版本的发行版，例如Ubuntu 20.04.6 LTS 和 Ubuntu 22.04.2 LTS "
+"或者至少两个不同的发行版，例如Ubuntu 和 Debian，在这个例子里面`alice`位于`Ubuntu 20.04.6 LTS` "
+"而且`bob` 位于 `Ubuntu 22.04.2 LTS`:"
 
 #: ../../getting_started/deployment.md:280
 msgid "alice:"
@@ -483,17 +478,13 @@ msgstr "在不同的发行版上安装隐语"
 msgid ""
 "The following steps are expected to be done in different distributions to"
 " set up the development environment of SecretFlow."
-msgstr ""
-"在不同的发行版上执行下列步骤"
-"建立隐语的开发环境"
+msgstr "在不同的发行版上执行下列步骤建立隐语的开发环境"
 
 #: ../../getting_started/deployment.md:305
 msgid ""
 "Install Miniconda    change your working directory to your home directory"
 " to install Miniconda."
-msgstr ""
-"安装Miniconda  改变您的工作目录到您的home目录安装Miniconda"
-""
+msgstr "安装Miniconda  改变您的工作目录到您的home目录安装Miniconda"
 
 #: ../../getting_started/deployment.md:312
 msgid "download Miniconda."
@@ -507,17 +498,13 @@ msgstr "安装Miniconda"
 msgid ""
 "After the installation of Miniconda, you could remove the installation "
 "package of Miniconda."
-msgstr ""
-"在Miniconda的安装完成以后，您可以删除"
-"Miniconda的安装包"
+msgstr "在Miniconda的安装完成以后，您可以删除Miniconda的安装包"
 
 #: ../../getting_started/deployment.md:326
 msgid ""
 "Create a virtual environment for SecretFlow    all versions of Python in "
 "different distributions should be exactly same."
-msgstr ""
-"创建隐语的虚拟环境， 在不同发行版上的Python版本"
-"应该完全一致"
+msgstr "创建隐语的虚拟环境， 在不同发行版上的Python版本应该完全一致"
 
 #: ../../getting_started/deployment.md:333
 msgid "Activate the virtual environment of SecretFlow"
@@ -540,12 +527,9 @@ msgid ""
 " install `net-tools`, you could run the following command to install it "
 "in Ubuntu."
 msgstr ""
-"因为WSL的实现原理，WSL里的不同发行版"
-"共用相同的IP地址，所以我们只能够"
-"在单机模式下部署隐语。使用命令 `ifconfig`"
-"获得您的WSL的IP地址，如果出现 `command not found`，您可以"
-"安装 `net-tools`，您可以在Ubuntu上运行下列命令"
-"安装它"
+"因为WSL的实现原理，WSL里的不同发行版共用相同的IP地址，所以我们只能够在单机模式下部署隐语。使用命令 "
+"`ifconfig`获得您的WSL的IP地址，如果出现 `command not found`，您可以安装 `net-"
+"tools`，您可以在Ubuntu上运行下列命令安装它"
 
 #: ../../getting_started/deployment.md:356
 msgid "A example in Ubuntu:"
@@ -555,9 +539,7 @@ msgstr "Ubuntu下的一个例子"
 msgid ""
 "The IP address ``172.23.139.91`` is what we need, let's denote it as "
 "`ray_ip`"
-msgstr ""
-"IP 地址 ``172.23.139.91`` 是我们需要的, 我们把它记作"
-"`ray_ip`"
+msgstr "IP 地址 ``172.23.139.91`` 是我们需要的, 我们把它记作`ray_ip`"
 
 #: ../../getting_started/deployment.md:381
 msgid "Start the Ray cluster at head node."
@@ -571,11 +553,8 @@ msgid ""
 "then the command to start the Ray cluster at the head node could be as "
 "follows:"
 msgstr ""
-"使用 `ray_ip` 在标记为\"alice\"的发行版上启动主节点"
-"这里，`ray_ip` 是 `172.23.139.91` 而且我们选择端口"
-"`20010` (我们把它记作 `ray_port`)作为Ray的端口"
-"那么在主节点启动Ray集群的命令就可以如下"
-"所示"
+"使用 `ray_ip` 在标记为\"alice\"的发行版上启动主节点这里，`ray_ip` 是 `172.23.139.91` "
+"而且我们选择端口`20010` (我们把它记作 `ray_port`)作为Ray的端口那么在主节点启动Ray集群的命令就可以如下所示"
 
 #: ../../getting_started/deployment.md:389
 #: ../../getting_started/deployment.md:437
@@ -590,9 +569,7 @@ msgstr "启动Ray集群其他节点"
 msgid ""
 "Use `ray_ip` and `ray_port` to start the other nodes of the Ray cluster "
 "such distribution with the tag \"bob\" Here:"
-msgstr ""
-"使用 `ray_ip` 和 `ray_port` 启动Ray集群的其他节点"
-"在标记为\"bob\"的发行版上："
+msgstr "使用 `ray_ip` 和 `ray_port` 启动Ray集群的其他节点在标记为\"bob\"的发行版上："
 
 #: ../../getting_started/deployment.md:429
 #: ../../getting_started/deployment.md:513
@@ -611,9 +588,7 @@ msgstr "检查Ray集群的状态"
 msgid ""
 "Check the status of the Ray cluster in any node of the Ray cluster such "
 "the distribution with the tag \"alice\""
-msgstr ""
-"在Ray集群的任一节点检查Ray集群的状态，比如"
-"标记为\"alice\"的发行版上"
+msgstr "在Ray集群的任一节点检查Ray集群的状态，比如标记为\"alice\"的发行版上"
 
 #: ../../getting_started/deployment.md:461
 msgid "its log:"
@@ -630,10 +605,8 @@ msgid ""
 "SecretFlow has successfully connected to the Ray cluster. You could also "
 "run the script of the Python code directly."
 msgstr ""
-"我们使用`ray_ip` 和 `ray_port` 在标记为\"alice\"的第一个发行版上启动"
-"隐语, 下面在bash上运行的Python代码表示 "
-"隐语已经成功地连接到了Ray集群. 你也可以"
-"直接运行Python代码脚本"
+"我们使用`ray_ip` 和 `ray_port` 在标记为\"alice\"的第一个发行版上启动隐语, "
+"下面在bash上运行的Python代码表示 隐语已经成功地连接到了Ray集群. 你也可以直接运行Python代码脚本"
 
 #: ../../getting_started/deployment.md:511
 msgid ""
@@ -651,10 +624,6 @@ msgid "Production"
 msgstr "生产模式"
 
 #: ../../getting_started/deployment.md:552
-msgid "Production"
-msgstr "生产模式"
-
-#: ../../getting_started/deployment.md:272
 msgid ""
 "SecretFlow provides multi controller mode for production with enhanced "
 "security. (If you want to know more, welcome to read [Programming in "
@@ -704,7 +673,7 @@ msgid ""
 msgstr "alice首先启动ray集群。注意这里的命令是启动Ray的主节点。"
 
 #: ../../getting_started/deployment.md:580
-#: ../../getting_started/deployment.md:621
+#: ../../getting_started/deployment.md:623
 msgid ""
 "Head node starts successfully if you see \"Ray runtime started.\" in the "
 "screen output.  So far, Alice's Ray cluster has been successfully built."
@@ -717,7 +686,7 @@ msgid ""
 msgstr "`alice`使用集群配置初始化SecretFlow，并且运行代码。"
 
 #: ../../getting_started/deployment.md:588
-#: ../../getting_started/deployment.md:630
+#: ../../getting_started/deployment.md:632
 msgid ""
 "Fill `address` of `alice` with the address which can be accessed by "
 "`bob`. Remember to choose an unused port different with port of Ray and "
@@ -725,7 +694,7 @@ msgid ""
 msgstr "`alice` 的 `address` 请填写可以被bob访通的地址，并且选择一个 **未被占用的端口** ，注意不要和Ray和SPU的端口冲突。"
 
 #: ../../getting_started/deployment.md:589
-#: ../../getting_started/deployment.md:631
+#: ../../getting_started/deployment.md:633
 msgid ""
 "Fill `address` of `bob` with the address which can be accessed by "
 "`alice`. Remember to choose an unused port different with port of Ray and"
@@ -737,55 +706,46 @@ msgid "Note that `self_party` is `alice`."
 msgstr "注意 `self_party` 为 `alice` 。"
 
 #: ../../getting_started/deployment.md:591
-#: ../../getting_started/deployment.md:633
+#: ../../getting_started/deployment.md:635
 msgid ""
 "Please note that `sf.init` does not need to provide the `parties` "
 "parameter, but needs to provide a `cluster_config` to describe the "
 "communication address and port between the two organizations."
 msgstr "请注意sf.init不需要提供 `parties` 参数，而是需要提供 `cluster_config` 来描述两个机构之间的通信地址和端口。"
 
-#: ../../getting_started/deployment.md:615
-msgid "Start SecretFlow on the node of `bob`"
-msgstr "在bob节点上启动SecretFlow。"
-
-#: ../../getting_started/deployment.md:617
-#: ../../getting_started/deployment.md:312
-#: ../../getting_started/deployment.md:356
+#: ../../getting_started/deployment.md:592
+#: ../../getting_started/deployment.md:636
 msgid ""
 "To ensure `ports` of `alice` and `bob` can be accessed by each other and "
 "the firewall of the system isn't disabled, you are supposed to add the "
 "'address' of `alice` and `bob` into the IP whitelist of each other."
-msgstr "为了确保alice和bob的端口能够被对方访问同时"
-"系统的防火墙不被关闭，您应该"
-"把alice和bob的IP地址加入到对方的IP白名单"
+msgstr "为了确保alice和bob的端口能够被对方访问同时系统的防火墙不被关闭，您应该把alice和bob的IP地址加入到对方的IP白名单"
 
-#: ../../getting_started/deployment.md:313
-#: ../../getting_started/deployment.md:357
+#: ../../getting_started/deployment.md:593
+#: ../../getting_started/deployment.md:637
 msgid ""
 "The `telnet` command is typically used to test the accessibility of a "
 "port."
-msgstr "telnet 命令通常用于测试端口的"
-"可访问性。"
+msgstr "telnet 命令通常用于测试端口的可访问性。"
 
-
-#: ../../getting_started/deployment.md:337
+#: ../../getting_started/deployment.md:617
 msgid "Start SecretFlow on the node of `bob`"
 msgstr "在bob节点上启动SecretFlow。"
 
-#: ../../getting_started/deployment.md:339
+#: ../../getting_started/deployment.md:619
 msgid ""
 "`bob` starts its ray cluster firstly. Note that the command here is to "
 "start the head node of Ray, because bob needs to build a separate Ray "
 "cluster."
 msgstr "bob首先启动ray集群"
 
-#: ../../getting_started/deployment.md:625
+#: ../../getting_started/deployment.md:627
 msgid ""
 "Then `bob` initializes SecretFlow with a cluster config almost same as "
 "`alice` except for `self_party` and ray address and runs the code."
 msgstr "bob使用和alice类似的集群配置初始化SecretFlow，除了 `self_party` 字段稍有不同。然后运行代码。"
 
-#: ../../getting_started/deployment.md:629
+#: ../../getting_started/deployment.md:631
 msgid ""
 "Replace `address` in `sf.init` with the `node-ip-address` and `port` of "
 "head node please. Note, here is bob’s head node address, please don’t "
@@ -794,15 +754,15 @@ msgstr ""
 "使用主节点的 `node-ip-address` 和 `port`来填充 `sf.init` 的 `address` "
 "参数。注意，这里填写的是bob的头节点地址，请不要填写成alice的。"
 
-#: ../../getting_started/deployment.md:354
+#: ../../getting_started/deployment.md:634
 msgid "Note that `self_party` is `bob`."
 msgstr "注意`self_party` 为 `bob`。"
 
-#: ../../getting_started/deployment.md:383
+#: ../../getting_started/deployment.md:663
 msgid "How to setup SPU for production"
 msgstr "如何构建SPU"
 
-#: ../../getting_started/deployment.md:385
+#: ../../getting_started/deployment.md:665
 msgid ""
 "The way to build the SPU is the same as the simulation mode, the only "
 "difference is that building the SPU also needs to be executed by multiple"
@@ -810,7 +770,7 @@ msgid ""
 "details."
 msgstr "除了SPU的创建需要多个参会方同时执行外，创建SPU的方式与模拟模式一样，请阅读前文了解更多细节。"
 
-#: ../../getting_started/deployment.md:387
+#: ../../getting_started/deployment.md:667
 msgid ""
 "In order to avoid problems such as connection timeout caused by the "
 "startup time difference, you may need to set the `link_desc` parameter "
@@ -823,31 +783,31 @@ msgstr ""
 "[SPU](../source/secretflow.device.device.rst#secretflow.device.device.spu.SPU.__init__)"
 " "
 
-#: ../../getting_started/deployment.md:666
+#: ../../getting_started/deployment.md:670
 msgid "Suggestions for production"
 msgstr "生产环境建议"
 
-#: ../../getting_started/deployment.md:668
+#: ../../getting_started/deployment.md:672
 msgid "Enable tls Authentication."
 msgstr "启动tls验证。"
 
-#: ../../getting_started/deployment.md:670
+#: ../../getting_started/deployment.md:674
 msgid "SecretFlow can be configured to use TLS on cross-silo gRPC channels."
 msgstr "SecretFlow的跨机构grpc通信可以配置TLS以提升安全性。"
 
-#: ../../getting_started/deployment.md:672
+#: ../../getting_started/deployment.md:676
 msgid "An example for alice."
 msgstr "alice的配置示例。"
 
-#: ../../getting_started/deployment.md:686
+#: ../../getting_started/deployment.md:690
 msgid "An example for bob."
 msgstr "bob的配置示例。"
 
-#: ../../getting_started/deployment.md:700
+#: ../../getting_started/deployment.md:704
 msgid "Enhanced serialization/deserialization."
 msgstr "序列化/反序列化增强。"
 
-#: ../../getting_started/deployment.md:702
+#: ../../getting_started/deployment.md:706
 msgid ""
 "SecretFlow uses `pickle` in serialization/deserialization which is "
 "vulnerable. You can set `cross_silo_serializing_allowed_list` when init  "
@@ -859,3 +819,19 @@ msgstr ""
 "`cross_silo_serializing_allowed_list` "
 "参数设置允许序列化的对象。示例如下（请不要直接使用该示例，请根据实际需要自行修改）。 "
 
+#: ../../getting_started/deployment.md:720
+msgid "Deploy based on Kuscia"
+msgstr "基于Kuscia部署"
+
+#: ../../getting_started/deployment.md:722
+msgid ""
+"Kuscia is a K8s-based privacy computing task orchestration framework. It "
+"provides a unified privacy computing foundation that can abstract away "
+"heterogeneous infrastructure and protocols. If you need to use SecretFlow"
+" in your business, it is recommended to deploy and run SecretFlow based "
+"on Kuscia. Please refer to Kuscia's [Quick "
+"Start](https://www.secretflow.org.cn/docs/kuscia/latest/zh-"
+"Hans/getting_started/quickstart_cn) document for details."
+msgstr ""
+"Kuscia是一款基于K8s的隐私计算任务编排框架，旨在屏蔽异构的基础设施和协议，提供统一的隐私计算底座。如果你需要在业务中使用SecretFlow，推荐基于Kuscia部署运行SecretFlow。详情请参考Kuscia的[快速入门](https://www.secretflow.org.cn/docs/kuscia/latest"
+"/zh-Hans/getting_started/quickstart_cn)文档。"

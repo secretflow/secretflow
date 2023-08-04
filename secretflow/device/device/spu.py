@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import functools
+import itertools
 import json
 import logging
 import os
@@ -44,6 +45,7 @@ from spu.utils.distributed import dtype_spu_to_np, shape_spu_to_np
 import secretflow.distributed as sfd
 from secretflow.utils.errors import InvalidArgumentError
 from secretflow.utils.ndarray_bigint import BigintNdArray
+from secretflow.utils.progress import ProgressData
 
 from .base import Device, DeviceObject, DeviceType
 from .pyu import PYUObject
@@ -119,14 +121,32 @@ def _plaintext_to_numpy(data: Any) -> np.ndarray:
 class SPUValueMeta:
     """The metadata of an SPU value, which is a Numpy array or equivalent."""
 
+    # duck type for jax compile
     shape: Sequence[int]
     dtype: np.dtype
+    # used in _spu_compile
     vtype: spu.Visibility
 
     # the following meta ensures SPU object could be consumed by SPU device.
     protocol: spu_pb2.ProtocolKind
     field: spu_pb2.FieldType
     fxp_fraction_bits: int
+
+
+@dataclass
+class SPUIOInfo:
+    """Used in SPU IO"""
+
+    # for complex py-object that can be flattened into multiply numpy values.
+    # this index indicate which chunks belong to which value.
+    start_chunk_index: int
+    end_chunk_index: int
+
+    # spu.libspu.Share.meta, ValueMetaProto
+    # The main difference from SPUValueMeta is that SPUValueMeta is used to compile py function
+    # and the spu runtime does not perceive SPUValueMeta
+    # ValueMetaProto is used for SPU IO, py runtime does not perceive the content, so keep in binary form
+    meta: bytes
 
 
 class SPUObject(DeviceObject):
@@ -150,8 +170,8 @@ class SPUObject(DeviceObject):
         Each element of shares would be referred to something like
         {'a': share1, 'b': [share2, share3]}
 
-        3. shares is a list of ObjectRef to share slices while these share
-        slices are not necessarily located at SPU device. The data transfer
+        3. shares is a list of ObjectRef to share chunks while these share
+        chunks are not necessarily located at SPU device. The data transfer
         would only happen when SPU device consumes SPU objects.
 
         Args:
@@ -187,7 +207,18 @@ class SPUIO:
         self.world_size = world_size
         self.io = spu.Io(self.world_size, self.runtime_config)
 
-    def make_shares(self, data: Any, vtype: spu.Visibility) -> Tuple[Any, List[Any]]:
+    def get_shares_chunk_count(self, data: Any, vtype: spu.Visibility) -> int:
+        flatten_value, _ = jax.tree_util.tree_flatten(data)
+        count = 0
+        for val in flatten_value:
+            val = _plaintext_to_numpy(val)
+            count += self.io.get_share_chunk_count(val, vtype)
+
+        return count
+
+    def make_shares(
+        self, data: Any, vtype: spu.Visibility
+    ) -> Tuple[Any, Any, List[bytes]]:
         """Convert a Python object to meta and shares of an SPUObject.
 
         Args:
@@ -195,17 +226,27 @@ class SPUIO:
             vtype (Visibility): Visibility
 
         Returns:
-            Tuple[Any, List[Any]]: meta and shares of an SPUObject
+            Tuple[Any, Any, *List[bytes]]: meta and share chunks of an SPUObject
+            TODO: return typing in function definition is not correct,
+                  */typing.Unpack support is add in py311, not support in py38
         """
         flatten_value, tree = jax.tree_util.tree_flatten(data)
-        flatten_shares = []
+        flatten_shares_chunk = [[] for _ in range(self.world_size)]
         flatten_meta = []
+        flatten_io_info = []
 
         if len(flatten_value) == 0:
-            return data, *[[] for _ in range(self.world_size)]  # noqa e999
+            return data, data
 
         for val in flatten_value:
             val = _plaintext_to_numpy(val)
+            shares_chunk = self.io.make_shares(val, vtype)
+            assert (
+                len(shares_chunk) == self.world_size
+            ), f"{len(shares_chunk)} != {self.world_size}"
+            assert (
+                len(set([len(s.share_chunks) for s in shares_chunk])) == 1
+            ), "count of share_chunks miss match, all shares from one val should has same count."
             flatten_meta.append(
                 SPUValueMeta(
                     val.shape,
@@ -216,14 +257,25 @@ class SPUIO:
                     self.runtime_config.fxp_fraction_bits,
                 )
             )
-            flatten_shares.append(self.io.make_shares(val, vtype))
+            flatten_io_info.append(
+                SPUIOInfo(
+                    len(flatten_shares_chunk[0]),
+                    len(flatten_shares_chunk[0]) + len(shares_chunk[0].share_chunks),
+                    shares_chunk[0].meta,
+                )
+            )
+            for w in range(self.world_size):
+                flatten_shares_chunk[w].extend(shares_chunk[w].share_chunks)
 
-        return jax.tree_util.tree_unflatten(tree, flatten_meta), *[  # noqa e999
-            jax.tree_util.tree_unflatten(tree, list(shares))
-            for shares in list(zip(*flatten_shares))
-        ]
+        return (
+            jax.tree_util.tree_unflatten(tree, flatten_meta),
+            jax.tree_util.tree_unflatten(tree, flatten_io_info),
+            *(itertools.chain.from_iterable(flatten_shares_chunk)),
+        )
 
-    def reconstruct(self, shares: List[Any], meta: Any = None) -> Any:
+    def reconstruct(
+        self, shares_chunk: List[bytes], io_info: Any, meta: Any = None
+    ) -> Any:
         """Convert shares of an SPUObject to the origin Python object.
 
         Args:
@@ -233,24 +285,38 @@ class SPUIO:
         Returns:
             Any: the origin Python object.
         """
-        assert len(shares) == self.world_size
+        assert (
+            len(shares_chunk) % self.world_size == 0
+        ), f"{len(shares_chunk)} % {self.world_size}"
+        flatten_info, flatten_tree = jax.tree_util.tree_flatten(io_info)
         if meta:
             flatten_metas, _ = jax.tree_util.tree_flatten(meta)
+            assert len(flatten_metas) == len(
+                flatten_info
+            ), f"{len(flatten_metas)} != {len(flatten_info)}"
             for m in flatten_metas:
                 assert m.protocol == self.runtime_config.protocol
                 assert m.field == self.runtime_config.field
                 assert m.fxp_fraction_bits == self.runtime_config.fxp_fraction_bits
-        _, tree = jax.tree_util.tree_flatten(shares[0])
-        flatten_shares = []
-        for share in shares:
-            flatten_share, _ = jax.tree_util.tree_flatten(share)
-            flatten_shares.append(flatten_share)
 
-        flatten_value = [
-            self.io.reconstruct(list(shares)) for shares in list(zip(*flatten_shares))
+        chunks_count_pre_party = int(len(shares_chunk) / self.world_size)
+        chunks_pre_party = [
+            shares_chunk[i * chunks_count_pre_party : (i + 1) * chunks_count_pre_party]
+            for i in range(self.world_size)
         ]
+        flatten_value = []
+        for info in flatten_info:
+            shares = []
+            for i in range(self.world_size):
+                share = spu.libspu.Share()
+                share.meta = info.meta
+                share.share_chunks = chunks_pre_party[i][
+                    info.start_chunk_index : info.end_chunk_index
+                ]
+                shares.append(share)
+            flatten_value.append(self.io.reconstruct(shares))
 
-        return jax.tree_util.tree_unflatten(tree, flatten_value)
+        return jax.tree_util.tree_unflatten(flatten_tree, flatten_value)
 
 
 @unique
@@ -323,23 +389,53 @@ class SPURuntime:
         self.share_seq_id += 1
         return f"{self.share_seq_id}"
 
-    def infeed_share(self, val: Any) -> Any:
-        flatten_val, flatten_tree = jax.tree_util.tree_flatten(val)
+    def infeed_share(self, io_info: Any, *shares_chunk: List[bytes]) -> Any:
+        flatten_io_info, flatten_tree = jax.tree_util.tree_flatten(io_info)
         shares_name = []
-        for share in flatten_val:
+        for io_info in flatten_io_info:
+            share = spu.libspu.Share()
+            share.meta = io_info.meta
+            share.share_chunks = shares_chunk[
+                io_info.start_chunk_index : io_info.end_chunk_index
+            ]
+
             name = self.get_new_share_name()
             self.runtime.set_var(name, share)
             shares_name.append(name)
 
         return jax.tree_util.tree_unflatten(flatten_tree, shares_name)
 
-    def outfeed_share(self, val: Any) -> Any:
+    def outfeed_share(self, val: Any) -> Tuple[Any, List[bytes]]:
         flatten_names, flatten_tree = jax.tree_util.tree_flatten(val)
-        shares = []
-        for name in flatten_names:
-            shares.append(self.runtime.get_var(name))
+        shares_chunk = []
+        flatten_io_info = []
 
-        return jax.tree_util.tree_unflatten(flatten_tree, shares)
+        if len(flatten_names) == 0:
+            return val
+
+        for name in flatten_names:
+            var = self.runtime.get_var(name)
+            flatten_io_info.append(
+                SPUIOInfo(
+                    len(shares_chunk),
+                    len(shares_chunk) + len(var.share_chunks),
+                    var.meta,
+                )
+            )
+            shares_chunk.extend(var.share_chunks)
+
+        return (
+            jax.tree_util.tree_unflatten(flatten_tree, flatten_io_info),
+            *shares_chunk,
+        )
+
+    def outfeed_shares_chunk_count(self, val: Any) -> int:
+        flatten_names, _ = jax.tree_util.tree_flatten(val)
+        chunk_count = 0
+        for name in flatten_names:
+            chunk_count += self.runtime.get_var_chunk_count(name)
+
+        return chunk_count
 
     def del_share(self, val: Any):
         flatten_names, _ = jax.tree_util.tree_flatten(val)
@@ -351,9 +447,14 @@ class SPURuntime:
         flatten_names, _ = jax.tree_util.tree_flatten(val)
         shares = []
         for name in flatten_names:
-            shares.append(self.runtime.get_var(name).decode("latin1"))
+            shares.append(self.runtime.get_var(name))
 
         import cloudpickle as pickle
+        from pathlib import Path
+
+        # create parent folders.
+        file = Path(path)
+        file.parent.mkdir(parents=True, exist_ok=True)
 
         with open(path, 'wb') as f:
             pickle.dump({'meta': meta, 'shares': shares}, f)
@@ -370,7 +471,7 @@ class SPURuntime:
         shares_name = []
         for share in shares:
             name = self.get_new_share_name()
-            self.runtime.set_var(name, share.encode("latin1"))
+            self.runtime.set_var(name, share)
             shares_name.append(name)
 
         _, flatten_tree = jax.tree_util.tree_flatten(meta)
@@ -436,13 +537,13 @@ class SPURuntime:
             ), jax.tree_util.tree_unflatten(out_tree, output_names)
 
             if hasattr(single_meta, '__iter__'):
-                return *(single_meta), *(single_share)
+                return (*(single_meta), *(single_share))
             else:
                 return single_meta, single_share
         else:
             raise ValueError('unsupported SPUCompilerNumReturnsPolicy.')
 
-    def a2h(self, value, exp_heu_data_type: str, schema):
+    def a2h(self, io_info, exp_heu_data_type: str, schema, *chunks):
         """Convert SPUObject to HEUObject.
 
         Args:
@@ -453,36 +554,62 @@ class SPURuntime:
         Returns:
             np.ndarray: Array of `phe.Plaintext`.
         """
+        assert isinstance(io_info, SPUIOInfo), "not support pytree for now"
+        spu_meta = spu_pb2.ValueMetaProto()
+        spu_meta.ParseFromString(io_info.meta)
+        assert io_info.start_chunk_index == 0, "not support pytree for now"
+        assert io_info.end_chunk_index == len(chunks), "not support pytree for now"
 
-        def _bytes_to_pb(msg: bytes) -> spu_pb2.ValueProto:
-            ret = spu_pb2.ValueProto()
-            ret.ParseFromString(msg)
-            return ret
-
-        # TODO: avoid der ValueProto in python
-        value = _bytes_to_pb(value)
         expect_st = f"semi2k.AShr<{spu.spu_pb2.FieldType.Name(self.conf.field)}>"
         assert (
-            value.storage_type == expect_st
-        ), f"Unsupported storage type {value.storage_type}, expected {expect_st}"
+            spu_meta.storage_type == expect_st
+        ), f"Unsupported storage type {spu_meta.storage_type}, expected {expect_st}"
 
-        assert spu_datatype_to_heu(value.data_type) == exp_heu_data_type, (
-            f"You cannot feed {value.data_type} into this HEU since it only "
+        assert spu_datatype_to_heu(spu_meta.data_type) == exp_heu_data_type, (
+            f"You cannot feed {spu_meta.data_type} into this HEU since it only "
             f"supports {exp_heu_data_type}, if you want to change data type of HEU, "
             f"please modify the initial configuration of HEU."
         )
 
         size = spu_fxp_size(self.conf.field)
+
+        def _bytes_to_pb(chunk_idx: int) -> spu_pb2.ValueChunkProto:
+            ret = spu_pb2.ValueChunkProto()
+            ret.ParseFromString(chunks[chunk_idx])
+            return ret
+
+        def _get_int_bytes() -> bytes:
+            if len(chunks) == 0:
+                return
+            chunk_idx = 0
+            chunk_pb = _bytes_to_pb(chunk_idx)
+            chunk_idx += 1
+            assert (
+                chunk_pb.total_bytes % size == 0
+            ), f"share size {chunk_pb.total_bytes} need align to {size}"
+            total_pos = 0
+            chunk_pos = 0
+            int_bytes = b""
+            while total_pos < chunk_pb.total_bytes:
+                except_len = size - len(int_bytes)
+                read_len = min(except_len, len(chunk_pb.content) - chunk_pos)
+                int_bytes += chunk_pb.content[chunk_pos : chunk_pos + read_len]
+                total_pos += read_len
+                chunk_pos += read_len
+                if len(int_bytes) == size:
+                    yield int_bytes
+                    int_bytes = b""
+                if chunk_pos == len(chunk_pb.content) and chunk_idx < len(chunks):
+                    chunk_pb = _bytes_to_pb(chunk_idx)
+                    chunk_idx += 1
+                    chunk_pos = 0
+
         value = BigintNdArray(
             [
-                int.from_bytes(
-                    value.content[i * size : (i + 1) * size],
-                    sys.byteorder,
-                    signed=True,
-                )
-                for i in range(len(value.content) // size)
+                int.from_bytes(int_b, sys.byteorder, signed=True)
+                for int_b in _get_int_bytes()
             ],
-            value.shape.dims,
+            spu_meta.shape.dims,
         )
 
         return value.to_hnp(encoder=phe.BigintEncoder(schema))
@@ -502,6 +629,8 @@ class SPURuntime:
         ecdh_secret_key_path=None,
         dppsi_bob_sub_sampling=0.9,
         dppsi_epsilon=3,
+        progress_callbacks: Callable[[str, ProgressData], None] = None,
+        callbacks_interval_ms: int = 5 * 1000,
         ic_mode: bool = False,
     ):
         """Private set intersection with DataFrame.
@@ -521,6 +650,8 @@ class SPURuntime:
             dppsi_bob_sub_sampling (double): bob subsampling bernoulli_distribution
                 probability of dp psi
             dppsi_epsilon (double): epsilon of dp psi
+            progress_callbacks (Callable[[str, ProgressData], None]): Callbacks for update progress.
+            callbacks_interval_ms (int): The interval at which the callbacks is called
             ic_mode (bool): Whether to run psi in interconnection mode
 
         Returns:
@@ -549,6 +680,8 @@ class SPURuntime:
                 ecdh_secret_key_path,
                 dppsi_bob_sub_sampling,
                 dppsi_epsilon,
+                progress_callbacks,
+                callbacks_interval_ms,
                 ic_mode,
             )
 
@@ -575,6 +708,8 @@ class SPURuntime:
         ecdh_secret_key_path=None,
         dppsi_bob_sub_sampling=0.9,
         dppsi_epsilon=3,
+        progress_callbacks: Callable[[str, ProgressData], None] = None,
+        callbacks_interval_ms: int = 5 * 1000,
         ic_mode: bool = False,
     ):
         """Private set intersection with csv file.
@@ -609,6 +744,8 @@ class SPURuntime:
             dppsi_bob_sub_sampling (double): bob subsampling bernoulli_distribution
                 probability of dp psi
             dppsi_epsilon (double): epsilon of dp psi
+            progress_callbacks (Callable[[str, ProgressData], None]): Callbacks for update progress
+            callbacks_interval_ms (int): The interval at which the callbacks is called
             ic_mode (bool): Whether to run psi in interconnection mode
 
         Returns:
@@ -632,6 +769,25 @@ class SPURuntime:
                 receiver_rank = i
                 break
         assert receiver_rank >= 0, f'invalid receiver {receiver}'
+
+        # define callbacks
+        callbacks_func = None
+
+        def psi_callbacks(p_data: psi.ProgressData):
+            if progress_callbacks:
+                progress_callbacks(
+                    party,
+                    ProgressData(
+                        p_data.total,
+                        p_data.finished,
+                        p_data.running,
+                        p_data.percentage,
+                        p_data.description,
+                    ),
+                )
+
+        if progress_callbacks:
+            callbacks_func = psi_callbacks
 
         config = psi.BucketPsiConfig(
             psi_type=psi.PsiType.Value(protocol),
@@ -696,7 +852,9 @@ class SPURuntime:
             else:
                 config.preprocess_path = preprocess_path
 
-        report = psi.bucket_psi(self.link, config, ic_mode)
+        report = psi.bucket_psi(
+            self.link, config, callbacks_func, callbacks_interval_ms, ic_mode
+        )
 
         return {
             'party': party,
@@ -711,9 +869,10 @@ class SPURuntime:
         receiver: str,
         join_party: str,
         protocol='KKRT_PSI_2PC',
-        precheck_input=True,
         bucket_size=1 << 20,
         curve_type="CURVE_25519",
+        progress_callbacks: Callable[[str, ProgressData], None] = None,
+        callbacks_interval_ms: int = 5 * 1000,
         ic_mode: bool = False,
     ):
         """Private set intersection with DataFrame.
@@ -728,9 +887,10 @@ class SPURuntime:
             receiver (str): Which party can get joined data, others will get None.
             join_party (str): party joined data
             protocol (str): PSI protocol, See spu.psi.PsiType.
-            precheck_input (bool): Whether to check input data before join.
             bucket_size (int): Specified the hash bucket size used in psi. Larger values consume more memory.
             curve_type (str): curve for ecdh psi
+            progress_callbacks (Callable[[str, ProgressData], None]): Callbacks for update progress
+            callbacks_interval_ms (int): The interval at which the callbacks is called
             ic_mode (bool): Whether to run psi in interconnection mode
 
         Returns:
@@ -751,9 +911,10 @@ class SPURuntime:
                 receiver,
                 join_party,
                 protocol,
-                precheck_input,
                 bucket_size,
                 curve_type,
+                progress_callbacks,
+                callbacks_interval_ms,
                 ic_mode,
             )
 
@@ -772,9 +933,10 @@ class SPURuntime:
         receiver: str,
         join_party: str,
         protocol='KKRT_PSI_2PC',
-        precheck_input=True,
         bucket_size=1 << 20,
         curve_type="CURVE_25519",
+        progress_callbacks: Callable[[str, ProgressData], None] = None,
+        callbacks_interval_ms: int = 5 * 1000,
         ic_mode: bool = False,
     ):
         """Private set intersection with csv file.
@@ -795,9 +957,10 @@ class SPURuntime:
             receiver (str): Which party can get joined data. Others won't generate output file and `intersection_count` get `-1`
             join_party (str): party joined data
             protocol (str): PSI protocol.
-            precheck_input (bool): Whether to check input data before join.
             bucket_size (int): Specified the hash bucket size used in psi. Larger values consume more memory.
             curve_type (str): curve for ecdh psi
+            progress_callbacks (Callable[[str, ProgressData], None]): Callbacks for update progress
+            callbacks_interval_ms (int): The interval at which the callbacks is called
             ic_mode (bool): Whether to run psi in interconnection mode
 
         Returns:
@@ -839,22 +1002,43 @@ class SPURuntime:
         # free table_nodup dataframe
         del table_nodup
 
-        # psi join case, need sort and broadcast set True
-        sort = True
-        broadcast_result = True
+        # define callbacks
+        callbacks_func = None
+        party = self.cluster_def['nodes'][self.rank]['party']
+        total = 1
 
+        def psi_callbacks(psi_progress: psi.ProgressData):
+            # deal progress
+            nonlocal total
+            total = psi_progress.total + 1
+            p_data = ProgressData(
+                total,
+                psi_progress.finished,
+                psi_progress.running,
+                int(psi_progress.percentage * psi_progress.total / total),
+                psi_progress.description,
+            )
+            if progress_callbacks:
+                progress_callbacks(party, p_data)
+
+        if progress_callbacks:
+            callbacks_func = psi_callbacks
+
+        # psi join case, need sort and broadcast set True
         config = psi.BucketPsiConfig(
             psi_type=psi.PsiType.Value(protocol),
-            broadcast_result=broadcast_result,
+            broadcast_result=True,
             receiver_rank=receiver_rank,
             input_params=psi.InputParams(
-                path=input_path1, select_fields=key, precheck=precheck_input
+                path=input_path1, select_fields=key, precheck=False
             ),
-            output_params=psi.OutputParams(path=output_psi, need_sort=sort),
+            output_params=psi.OutputParams(path=output_psi, need_sort=True),
             curve_type=curve_type,
             bucket_size=bucket_size,
         )
-        report = psi.bucket_psi(self.link, config, ic_mode)
+        report = psi.bucket_psi(
+            self.link, config, callbacks_func, callbacks_interval_ms, ic_mode
+        )
 
         df_psi_out = pd.read_csv(output_psi)
 
@@ -983,7 +1167,8 @@ class SPURuntime:
         # delete tmp data dir
         data_dir.cleanup()
 
-        party = self.cluster_def['nodes'][self.rank]['party']
+        if progress_callbacks:
+            progress_callbacks(party, ProgressData(total, total, 0, 100, "Join, 100%"))
 
         return {
             'party': party,
@@ -1385,7 +1570,7 @@ def _spu_compile(fn, *meta_args, **meta_kwargs):
                 _generate_output_uuid() for _ in range(len(output_flat))
             ],
         )
-    except Exception as error:
+    except Exception:
         raise ray.exceptions.WorkerCrashedError()
 
     return executable, output_tree
@@ -1534,13 +1719,11 @@ class SPU(Device):
             else:
                 # if obj is not a DeviceObject, it should be a plaintext from
                 # host program, so it's safe to mark it as VIS_PUBLIC.
-                meta, *refs = self.io.make_shares(obj, spu.Visibility.VIS_PUBLIC)
+                meta, io_info, *refs = self.io.make_shares(
+                    obj, spu.Visibility.VIS_PUBLIC
+                )
 
-                shares_name = []
-                for i, actor in enumerate(self.actors.values()):
-                    shares_name.append(actor.infeed_share.remote(refs[i]))
-
-                return SPUObject(self, meta, shares_name)
+                return SPUObject(self, meta, self.infeed_shares(io_info, refs))
 
         return jax.tree_util.tree_map(place, (args, kwargs))
 
@@ -1644,31 +1827,57 @@ class SPU(Device):
         return wrapper
 
     def infeed_shares(
-        self, shares: List[Union[ray.ObjectRef, fed.FedObject]]
+        self,
+        io_info: Union[ray.ObjectRef, fed.FedObject],
+        shares_chunk: List[Union[ray.ObjectRef, fed.FedObject]],
     ) -> List[Union[ray.ObjectRef, fed.FedObject]]:
-        assert len(shares) == len(self.actors)
+        assert (
+            len(shares_chunk) % len(self.actors) == 0
+        ), f"{len(shares_chunk)} , {len(self.actors)}"
+        chunks_pre_actor = int(len(shares_chunk) / len(self.actors))
 
         ret = []
         for i, actor in enumerate(self.actors.values()):
-            ret.append(actor.infeed_share.remote(shares[i]))
+            start_pos = i * chunks_pre_actor
+            end_pos = (i + 1) * chunks_pre_actor
+            ret.append(
+                actor.infeed_share.remote(io_info, *shares_chunk[start_pos:end_pos])
+            )
 
         return ret
 
     def outfeed_shares(
         self, shares_name: List[Union[ray.ObjectRef, fed.FedObject]]
-    ) -> List[Union[ray.ObjectRef, fed.FedObject]]:
+    ) -> Tuple[
+        Union[ray.ObjectRef, fed.FedObject],
+        List[Union[ray.ObjectRef, fed.FedObject]],
+    ]:
         assert len(shares_name) == len(self.actors)
+
+        shares_chunk_count = sfd.get(
+            (next(iter(self.actors.values()))).outfeed_shares_chunk_count.remote(
+                shares_name[0]
+            )
+        )
 
         ret = []
         for i, actor in enumerate(self.actors.values()):
-            ret.append(actor.outfeed_share.remote(shares_name[i]))
+            remote_ret = actor.outfeed_share.options(
+                num_returns=1 + shares_chunk_count
+            ).remote(shares_name[i])
 
-        return ret
+            if shares_chunk_count == 0:
+                io_info = remote_ret
+            else:
+                io_info, *shares_chunk = remote_ret
+                ret.extend(shares_chunk)
+
+        return io_info, ret
 
     def psi_df(
         self,
         key: Union[str, List[str], Dict[Device, List[str]]],
-        dfs: List['PYUObject'],
+        dfs: List[PYUObject],
         receiver: str,
         protocol='KKRT_PSI_2PC',
         precheck_input=True,
@@ -1680,6 +1889,8 @@ class SPU(Device):
         ecdh_secret_key_path=None,
         dppsi_bob_sub_sampling=0.9,
         dppsi_epsilon=3,
+        progress_callbacks: Callable[[str, ProgressData], None] = None,
+        callbacks_interval_ms: int = 5 * 1000,
     ):
         """Private set intersection with DataFrame.
 
@@ -1700,6 +1911,8 @@ class SPU(Device):
             dppsi_bob_sub_sampling (double): bob subsampling bernoulli_distribution
                 probability of dp psi
             dppsi_epsilon (double): epsilon of dp psi
+            progress_callbacks (Callable[[str, ProgressData], None]): Callbacks for update progress
+            callbacks_interval_ms (int): The interval at which the callbacks is called
 
         Returns:
             List[PYUObject]: Joined DataFrames with order reserved.
@@ -1720,6 +1933,8 @@ class SPU(Device):
             ecdh_secret_key_path,
             dppsi_bob_sub_sampling,
             dppsi_epsilon,
+            progress_callbacks,
+            callbacks_interval_ms,
         )
 
     def psi_csv(
@@ -1738,6 +1953,8 @@ class SPU(Device):
         ecdh_secret_key_path=None,
         dppsi_bob_sub_sampling=0.9,
         dppsi_epsilon=3,
+        progress_callbacks: Callable[[str, ProgressData], None] = None,
+        callbacks_interval_ms: int = 5 * 1000,
     ):
         """Private set intersection with csv file.
 
@@ -1762,6 +1979,8 @@ class SPU(Device):
             dppsi_bob_sub_sampling (double): bob subsampling bernoulli_distribution
                 probability of dp psi
             dppsi_epsilon (double): epsilon of dp psi
+            progress_callbacks (Callable[[str, ProgressData], None]): Callbacks for update progress
+            callbacks_interval_ms (int): The interval at which the callbacks is called
 
         Returns:
             List[Dict]: PSI reports output by SPU with order reserved.
@@ -1784,18 +2003,21 @@ class SPU(Device):
             ecdh_secret_key_path,
             dppsi_bob_sub_sampling,
             dppsi_epsilon,
+            progress_callbacks,
+            callbacks_interval_ms,
         )
 
     def psi_join_df(
         self,
         key: Union[str, List[str], Dict[Device, List[str]]],
-        dfs: List['PYUObject'],
+        dfs: List[PYUObject],
         receiver: str,
         join_party: str,
         protocol='KKRT_PSI_2PC',
-        precheck_input=True,
         bucket_size=1 << 20,
         curve_type="CURVE_25519",
+        progress_callbacks: Callable[[str, ProgressData], None] = None,
+        callbacks_interval_ms: int = 5 * 1000,
     ):
         """Private set intersection with DataFrame.
 
@@ -1805,9 +2027,10 @@ class SPU(Device):
             receiver (str): Which party can get joined data. Others won't generate output file and `intersection_count` get `-1`
             join_party (str): party can get joined data
             protocol (str): PSI protocol.
-            precheck_input (bool): Whether check input data before joining, for now, it will check if key duplicate.
             bucket_size (int): Specified the hash bucket size used in psi. Larger values consume more memory.
             curve_type (str): curve for ecdh psi
+            progress_callbacks (Callable[[str, ProgressData], None]): Callbacks for update progress
+            callbacks_interval_ms (int): The interval at which the callbacks is called
 
         Returns:
             List[PYUObject]: Joined DataFrames with order reserved.
@@ -1821,9 +2044,10 @@ class SPU(Device):
             receiver,
             join_party,
             protocol,
-            precheck_input,
             bucket_size,
             curve_type,
+            progress_callbacks,
+            callbacks_interval_ms,
         )
 
     def psi_join_csv(
@@ -1834,9 +2058,10 @@ class SPU(Device):
         receiver: str,
         join_party: str,
         protocol='KKRT_PSI_2PC',
-        precheck_input=True,
         bucket_size=1 << 20,
         curve_type="CURVE_25519",
+        progress_callbacks: Callable[[str, ProgressData], None] = None,
+        callbacks_interval_ms: int = 5 * 1000,
     ):
         """Private set intersection with csv file.
 
@@ -1852,6 +2077,8 @@ class SPU(Device):
             precheck_input (bool): Whether check input data before joining, for now, it will check if key duplicate.
             bucket_size (int): Specified the hash bucket size used in psi. Larger values consume more memory.
             curve_type (str): curve for ecdh psi
+            progress_callbacks (Callable[[str, ProgressData], None]): Callbacks for update progress
+            callbacks_interval_ms (int): The interval at which the callbacks is called
 
         Returns:
             List[Dict]: PSI reports output by SPU with order reserved.
@@ -1866,9 +2093,10 @@ class SPU(Device):
             receiver,
             join_party,
             protocol,
-            precheck_input,
             bucket_size,
             curve_type,
+            progress_callbacks,
+            callbacks_interval_ms,
         )
 
     def pir_setup(

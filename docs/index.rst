@@ -54,9 +54,8 @@ It depends on the requirements, such as performance, security assumption, etc. F
    :titlesonly:
 
    getting_started/index
-   components/index
+   user_guide/index
    api/index
    tutorial/index
+   component/index
    developer/index
-
-

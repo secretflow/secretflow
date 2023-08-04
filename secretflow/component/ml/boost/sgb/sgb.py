@@ -14,34 +14,35 @@
 import json
 import os
 
-import pandas as pd
 import spu
 
 from secretflow.component.component import Component, IoType
 from secretflow.component.data_utils import (
     DistDataType,
     extract_table_header,
+    gen_prediction_csv_meta,
     load_table,
     model_dumps,
     model_loads,
+    save_prediction_csv,
 )
 from secretflow.device.device.heu import HEU
 from secretflow.device.device.pyu import PYU
 from secretflow.device.driver import wait
 from secretflow.ml.boost.sgb_v import Sgb, SgbModel
 from secretflow.ml.boost.sgb_v.model import from_dict
-from secretflow.protos.component.data_pb2 import DistData, IndividualTable, TableSchema
+from secretflow.protos.component.data_pb2 import DistData
 
 sgb_train_comp = Component(
     "sgb_train",
-    domain="ml.boost",
+    domain="ml.train",
     version="0.0.1",
     desc="""Provides both classification and regression tree boosting (also known as GBDT, GBM)
     for vertical split dataset setting by using secure boost.
 
-    SGB is short for SecureBoost. Compared to its safer counterpart SS-XGB, SecureBoost focused on protecting label holder.
+    - SGB is short for SecureBoost. Compared to its safer counterpart SS-XGB, SecureBoost focused on protecting label holder.
 
-    Check https://arxiv.org/abs/1901.08755.
+    - Check https://arxiv.org/abs/1901.08755.
     """,
 )
 sgb_train_comp.int_attr(
@@ -109,22 +110,11 @@ sgb_train_comp.float_attr(
     upper_bound_inclusive=True,
 )
 sgb_train_comp.float_attr(
-    name="subsample",
-    desc="Subsample ratio of the training instances.",
-    is_list=False,
-    is_optional=True,
-    default_value=0.1,
-    lower_bound=0,
-    upper_bound=1,
-    lower_bound_inclusive=False,
-    upper_bound_inclusive=True,
-)
-sgb_train_comp.float_attr(
     name="colsample_by_tree",
     desc="Subsample ratio of columns when constructing each tree.",
     is_list=False,
     is_optional=True,
-    default_value=0.1,
+    default_value=1,
     lower_bound=0,
     upper_bound=1,
     lower_bound_inclusive=False,
@@ -147,6 +137,8 @@ sgb_train_comp.float_attr(
     is_list=False,
     is_optional=True,
     default_value=0,
+    lower_bound=0,
+    lower_bound_inclusive=True,
 )
 sgb_train_comp.int_attr(
     name="seed",
@@ -154,7 +146,10 @@ sgb_train_comp.int_attr(
     is_list=False,
     is_optional=True,
     default_value=42,
+    lower_bound=0,
+    lower_bound_inclusive=True,
 )
+
 sgb_train_comp.int_attr(
     name="fixed_point_parameter",
     desc="""Any floating point number encoded by heu,
@@ -165,12 +160,130 @@ sgb_train_comp.int_attr(
     is_list=False,
     is_optional=True,
     default_value=20,
+    lower_bound=1,
+    upper_bound=100,
+    lower_bound_inclusive=True,
+    upper_bound_inclusive=True,
+)
+sgb_train_comp.bool_attr(
+    name="first_tree_with_label_holder_feature",
+    desc="Whether to train the first tree with label holder's own features.",
+    is_list=False,
+    is_optional=True,
+    default_value=False,
+)
+
+sgb_train_comp.bool_attr(
+    name="batch_encoding_enabled",
+    desc="If use batch encoding optimization.",
+    is_list=False,
+    is_optional=True,
+    default_value=True,
+)
+sgb_train_comp.bool_attr(
+    name="enable_quantization",
+    desc="Whether enable quantization of g and h.",
+    is_list=False,
+    is_optional=True,
+    default_value=False,
+)
+sgb_train_comp.float_attr(
+    name="quantization_scale",
+    desc="Scale the sum of g to the specified value.",
+    is_list=False,
+    is_optional=True,
+    default_value=10000.0,
+    lower_bound=0,
+    upper_bound=10000000.0,
+    lower_bound_inclusive=True,
+    upper_bound_inclusive=True,
+)
+
+sgb_train_comp.int_attr(
+    name="max_leaf",
+    desc="Maximum leaf of a tree. Only effective if train leaf wise.",
+    is_list=False,
+    is_optional=True,
+    default_value=15,
+    lower_bound=1,
+    upper_bound=2**15,
+    lower_bound_inclusive=True,
+    upper_bound_inclusive=True,
+)
+
+sgb_train_comp.float_attr(
+    name="rowsample_by_tree",
+    desc="Row sub sample ratio of the training instances.",
+    is_list=False,
+    is_optional=True,
+    default_value=1,
+    lower_bound=0,
+    upper_bound=1,
+    lower_bound_inclusive=False,
+    upper_bound_inclusive=True,
+)
+
+sgb_train_comp.bool_attr(
+    name="enable_goss",
+    desc="Whether to enable GOSS.",
+    is_list=False,
+    is_optional=True,
+    default_value=False,
+)
+sgb_train_comp.float_attr(
+    name="top_rate",
+    desc="GOSS-specific parameter. The fraction of large gradients to sample.",
+    is_list=False,
+    is_optional=True,
+    default_value=0.3,
+    lower_bound=0,
+    upper_bound=1,
+    lower_bound_inclusive=False,
+    upper_bound_inclusive=True,
+)
+sgb_train_comp.float_attr(
+    name="bottom_rate",
+    desc="GOSS-specific parameter. The fraction of small gradients to sample.",
+    is_list=False,
+    is_optional=True,
+    default_value=0.5,
+    lower_bound=0,
+    upper_bound=1,
+    lower_bound_inclusive=False,
+    upper_bound_inclusive=True,
+)
+sgb_train_comp.float_attr(
+    name="early_stop_criterion_g_abs_sum",
+    desc="If sum(abs(g)) is lower than or equal to this threshold, training will stop.",
+    is_list=False,
+    is_optional=True,
+    default_value=0.0,
+    lower_bound=0.0,
+    lower_bound_inclusive=True,
+)
+sgb_train_comp.float_attr(
+    name="early_stop_criterion_g_abs_sum_change_ratio",
+    desc="If absolute g sum change ratio is lower than or equal to this threshold, training will stop.",
+    is_list=False,
+    is_optional=True,
+    default_value=0.0,
+    lower_bound=0,
+    upper_bound=1,
+    lower_bound_inclusive=True,
+    upper_bound_inclusive=True,
+)
+sgb_train_comp.str_attr(
+    name="tree_growing_method",
+    desc="How to grow tree?",
+    is_list=False,
+    is_optional=True,
+    default_value="level",
 )
 
 sgb_train_comp.io(
     io_type=IoType.INPUT,
     name="train_dataset",
-    desc="Input train dataset.",
+    desc="Input vertical table.",
     types=[DistDataType.VERTICAL_TABLE],
     col_params=None,
 )
@@ -186,6 +299,7 @@ MODEL_MAX_MAJOR_VERSION = 0
 MODEL_MAX_MINOR_VERSION = 1
 
 
+# audit path is not supported in this form yet.
 @sgb_train_comp.eval_fn
 def sgb_train_eval_fn(
     *,
@@ -196,12 +310,23 @@ def sgb_train_eval_fn(
     objective,
     reg_lambda,
     gamma,
-    subsample,
+    rowsample_by_tree,
     colsample_by_tree,
+    bottom_rate,
+    top_rate,
+    max_leaf,
+    quantization_scale,
     sketch_eps,
     base_score,
     seed,
     fixed_point_parameter,
+    enable_goss,
+    enable_quantization,
+    batch_encoding_enabled,
+    early_stop_criterion_g_abs_sum_change_ratio,
+    early_stop_criterion_g_abs_sum,
+    tree_growing_method,
+    first_tree_with_label_holder_feature,
     train_dataset,
     output_model,
 ):
@@ -227,18 +352,29 @@ def sgb_train_eval_fn(
         sgb = Sgb(heu)
         model = sgb.train(
             params={
-                "num_boost_round": num_boost_round,
-                "max_depth": max_depth,
-                "learning_rate": learning_rate,
-                "objective": objective,
-                "reg_lambda": reg_lambda,
-                "gamma": gamma,
-                "subsample": subsample,
-                "colsample_by_tree": colsample_by_tree,
-                "sketch_eps": sketch_eps,
-                "base_score": base_score,
-                "seed": seed,
-                "fixed_point_parameter": fixed_point_parameter,
+                'num_boost_round': num_boost_round,
+                'max_depth': max_depth,
+                'learning_rate': learning_rate,
+                'objective': objective,
+                'reg_lambda': reg_lambda,
+                'gamma': gamma,
+                'rowsample_by_tree': rowsample_by_tree,
+                'colsample_by_tree': colsample_by_tree,
+                'bottom_rate': bottom_rate,
+                'top_rate': top_rate,
+                'max_leaf': max_leaf,
+                'quantization_scale': quantization_scale,
+                'sketch_eps': sketch_eps,
+                'base_score': base_score,
+                'seed': seed,
+                'fixed_point_parameter': fixed_point_parameter,
+                'enable_goss': enable_goss,
+                'enable_quantization': enable_quantization,
+                'batch_encoding_enabled': batch_encoding_enabled,
+                'early_stop_criterion_g_abs_sum_change_ratio': early_stop_criterion_g_abs_sum_change_ratio,
+                'early_stop_criterion_g_abs_sum': early_stop_criterion_g_abs_sum,
+                'tree_growing_method': tree_growing_method,
+                'first_tree_with_label_holder_feature': first_tree_with_label_holder_feature,
             },
             dtrain=x,
             label=y,
@@ -268,7 +404,7 @@ def sgb_train_eval_fn(
 
 sgb_predict_comp = Component(
     "sgb_predict",
-    domain="ml.boost",
+    domain="ml.predict",
     version="0.0.1",
     desc="Predict using SGB model.",
 )
@@ -300,7 +436,7 @@ sgb_predict_comp.bool_attr(
     name="save_label",
     desc=(
         "Whether or not to save real label columns into output pred file. "
-        "If ture, input feature_dataset must contain label columns and receiver party must be label owner."
+        "If true, input feature_dataset must contain label columns and receiver party must be label owner."
     ),
     is_list=False,
     is_optional=True,
@@ -312,14 +448,14 @@ sgb_predict_comp.io(
 sgb_predict_comp.io(
     io_type=IoType.INPUT,
     name="feature_dataset",
-    desc="Input feature dataset.",
+    desc="Input vertical table.",
     types=[DistDataType.VERTICAL_TABLE],
     col_params=None,
 )
 sgb_predict_comp.io(
     io_type=IoType.OUTPUT,
     name="pred",
-    desc="Output prediction。",
+    desc="Output prediction.",
     types=[DistDataType.INDIVIDUAL_TABLE],
     col_params=None,
 )
@@ -385,57 +521,58 @@ def sgb_predict_eval_fn(
 
         y_path = os.path.join(ctx.local_fs_wd, pred)
 
-    if save_ids:
-        ids = load_table(ctx, feature_dataset, load_ids=True)
-        assert pyu in ids.partitions
-        ids_name = extract_table_header(feature_dataset, load_ids=True)
-        assert receiver in ids_name
-        ids = ids.partitions[pyu].data
-        ids_name = list(ids_name[receiver].keys())
-    else:
-        ids = None
-        ids_name = None
+        if save_ids:
+            id_df = load_table(ctx, feature_dataset, load_ids=True)
+            assert pyu in id_df.partitions
+            id_header_map = extract_table_header(feature_dataset, load_ids=True)
+            assert receiver in id_header_map
+            id_header = list(id_header_map[receiver].keys())
+            id_data = id_df.partitions[pyu].data
+        else:
+            id_header_map = None
+            id_header = None
+            id_data = None
 
-    if save_label:
-        label = load_table(ctx, feature_dataset, load_labels=True)
-        assert pyu in label.partitions
-        label_name = extract_table_header(feature_dataset, load_labels=True)
-        assert receiver in label_name
-        label = label.partitions[pyu].data
-        label_name = list(label_name[receiver].keys())
-    else:
-        label = None
-        label_name = None
+        if save_label:
+            label_df = load_table(ctx, feature_dataset, load_labels=True)
+            assert pyu in label_df.partitions
+            label_header_map = extract_table_header(feature_dataset, load_labels=True)
+            assert receiver in label_header_map
+            label_header = list(label_header_map[receiver].keys())
+            label_data = label_df.partitions[pyu].data
+        else:
+            label_header_map = None
+            label_header = None
+            label_data = None
 
-    def save_csv(x, label, ids, path):
-        x = pd.DataFrame(x, columns=[pred_name])
-
-        if label is not None:
-            label = pd.DataFrame(label, columns=label_name)
-            x = pd.concat([x, label], axis=1)
-        if ids is not None:
-            ids = pd.DataFrame(ids, columns=ids_name)
-            x = pd.concat([x, ids], axis=1)
-
-        x.to_csv(path, index=False)
-
-    wait(pyu(save_csv)(pyu_y.partitions[pyu], label, ids, y_path))
+        wait(
+            pyu(save_prediction_csv)(
+                pyu_y.partitions[pyu],
+                pred_name,
+                y_path,
+                label_data,
+                label_header,
+                id_data,
+                id_header,
+            )
+        )
 
     y_db = DistData(
-        name="pred",
+        name=pred_name,
         type=str(DistDataType.INDIVIDUAL_TABLE),
         data_refs=[DistData.DataRef(uri=pred, party=receiver, format="csv")],
     )
 
-    meta = IndividualTable(
-        schema=TableSchema(
-            ids=ids_name if ids_name is not None else [],
-            types=["f32"],
-            features=[pred_name],
-            labels=label_name if label_name is not None else [],
-        ),
+    meta = gen_prediction_csv_meta(
+        id_header=id_header_map,
+        label_header=label_header_map,
+        party=receiver,
+        pred_name=pred_name,
         num_lines=x.shape[0],
+        id_keys=id_header,
+        label_keys=label_header,
     )
+
     y_db.meta.Pack(meta)
 
     return {"pred": y_db}

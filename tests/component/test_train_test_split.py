@@ -75,8 +75,8 @@ def test_train_test_split(comp_prod_sf_cluster_config):
                 name="input_data",
                 type=str(DistDataType.VERTICAL_TABLE),
                 data_refs=[
-                    DistData.DataRef(uri=alice_input_path, party="alice", format="csv"),
                     DistData.DataRef(uri=bob_input_path, party="bob", format="csv"),
+                    DistData.DataRef(uri=alice_input_path, party="alice", format="csv"),
                 ],
             )
         ],
@@ -89,15 +89,18 @@ def test_train_test_split(comp_prod_sf_cluster_config):
     meta = VerticalTable(
         schemas=[
             TableSchema(
-                ids=["id1"],
-                types=["str", "str", "f32"],
-                features=["a1", "a2", "a3"],
-                labels=["y"],
+                id_types=["str"],
+                ids=["id2"],
+                feature_types=["float32", "str", "float32"],
+                features=["b4", "b5", "b6"],
             ),
             TableSchema(
-                ids=["id2"],
-                types=["f32", "str", "f32"],
-                features=["b4", "b5", "b6"],
+                id_types=["str"],
+                ids=["id1"],
+                feature_types=["str", "str", "float32"],
+                features=["a1", "a2", "a3"],
+                label_types=["float32"],
+                labels=["y"],
             ),
         ],
     )

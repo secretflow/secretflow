@@ -30,8 +30,8 @@ def test_ss_sgd(comp_prod_sf_cluster_config):
             os.path.join(local_fs_wd, "test_ss_sgd"),
             exist_ok=True,
         )
-        x = pd.DataFrame(x[:, :15], columns=[f'a{i}' for i in range(15)])
-        y = pd.DataFrame(y, columns=['y'])
+        x = pd.DataFrame(x[:, :15], columns=[f"a{i}" for i in range(15)])
+        y = pd.DataFrame(y, columns=["y"])
         ds = pd.concat([x, y], axis=1)
         ds.to_csv(os.path.join(local_fs_wd, alice_path), index=False)
 
@@ -41,11 +41,11 @@ def test_ss_sgd(comp_prod_sf_cluster_config):
             exist_ok=True,
         )
 
-        ds = pd.DataFrame(x[:, 15:], columns=[f'b{i}' for i in range(15)])
+        ds = pd.DataFrame(x[:, 15:], columns=[f"b{i}" for i in range(15)])
         ds.to_csv(os.path.join(local_fs_wd, bob_path), index=False)
 
     train_param = NodeEvalParam(
-        domain="ml.linear",
+        domain="ml.train",
         name="ss_sgd_train",
         version="0.0.1",
         attr_paths=[
@@ -88,12 +88,13 @@ def test_ss_sgd(comp_prod_sf_cluster_config):
     meta = VerticalTable(
         schemas=[
             TableSchema(
-                types=["f32"] * 15,
+                feature_types=["float32"] * 15,
                 features=[f"a{i}" for i in range(15)],
+                label_types=["float32"],
                 labels=["y"],
             ),
             TableSchema(
-                types=["f32"] * 15,
+                feature_types=["float32"] * 15,
                 features=[f"b{i}" for i in range(15)],
             ),
         ],
@@ -103,7 +104,7 @@ def test_ss_sgd(comp_prod_sf_cluster_config):
     train_res = ss_sgd_train_comp.eval(train_param, comp_prod_sf_cluster_config)
 
     predict_param = NodeEvalParam(
-        domain="ml.linear",
+        domain="ml.predict",
         name="ss_sgd_predict",
         version="0.0.1",
         attr_paths=[
@@ -134,12 +135,13 @@ def test_ss_sgd(comp_prod_sf_cluster_config):
     meta = VerticalTable(
         schemas=[
             TableSchema(
-                types=["f32"] * 15,
+                feature_types=["float32"] * 15,
                 features=[f"a{i}" for i in range(15)],
+                label_types=["float32"],
                 labels=["y"],
             ),
             TableSchema(
-                types=["f32"] * 15,
+                feature_types=["float32"] * 15,
                 features=[f"b{i}" for i in range(15)],
             ),
         ],

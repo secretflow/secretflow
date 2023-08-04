@@ -131,6 +131,8 @@ def reveal(func_or_object, heu_encoder=None):
         return wrapper
     all_object_refs = []
     flatten_val, tree = jax.tree_util.tree_flatten(func_or_object)
+    all_spu_chunks_count = []
+    spu_chunks_idx = 0
 
     for x in flatten_val:
         if isinstance(x, PYUObject):
@@ -145,8 +147,10 @@ def reveal(func_or_object, heu_encoder=None):
             assert isinstance(
                 x.shares_name[0], (ray.ObjectRef, fed.FedObject)
             ), f"shares_name in spu obj should be ObjectRef or FedObject, but got {type(x.shares_name[0])} "
-            all_object_refs.append(x.meta)
-            all_object_refs.extend(x.device.outfeed_shares(x.shares_name))
+            info, shares_chunk = x.device.outfeed_shares(x.shares_name)
+            all_spu_chunks_count.append(len(shares_chunk))
+            all_object_refs.append(info)
+            all_object_refs.extend([s for s in shares_chunk])
         elif isinstance(x, TEEUObject):
             all_object_refs.append(x.data)
             logging.debug(f'Getting teeu data from TEEU {x.device.party}.')
@@ -162,12 +166,14 @@ def reveal(func_or_object, heu_encoder=None):
 
         elif isinstance(x, SPUObject):
             io = SPUIO(x.device.conf, x.device.world_size)
-            meta = all_object[cur_idx]
-            shares = [all_object[cur_idx + i + 1] for i in range(x.device.world_size)]
-            new_idx = cur_idx + x.device.world_size + 1
+            io_info = all_object[cur_idx]
+            cur_idx += 1
+            chunks_count = all_spu_chunks_count[spu_chunks_idx]
+            spu_chunks_idx += 1
+            shares_chunk = all_object[cur_idx : cur_idx + chunks_count]
+            cur_idx += chunks_count
 
-            new_flatten_val.append(io.reconstruct(shares, meta))
-            cur_idx = new_idx
+            new_flatten_val.append(io.reconstruct(shares_chunk, io_info))
         else:
             new_flatten_val.append(x)
 

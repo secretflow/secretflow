@@ -289,6 +289,9 @@ class SLBaseTorchModel(SLBaseModel):
         if callbacks is not None:
             raise Exception("Callback is not supported yet")
 
+    def init_predict(self, callbacks, steps=1, verbose=0):
+        pass
+
     def build_dataset_from_builder(
         self,
         *x: List[np.ndarray],
@@ -435,7 +438,7 @@ class SLBaseTorchModel(SLBaseModel):
 
         # Step4: update metrics
         for m in self.metrics_fuse:
-            if len(train_y.shape) > 1:
+            if len(train_y.shape) > 1 and train_y.shape[1] > 1:
                 m.update(y_pred, train_y.int().argmax(-1))
             else:
                 m.update(y_pred, train_y.int())
@@ -497,6 +500,18 @@ class SLBaseTorchModel(SLBaseModel):
         val_logs = {'val_' + name: val for name, val in val_logs.items()}
         self.epoch_logs.update(val_logs)
 
+    def on_predict_batch_begin(self, batch):
+        assert batch is not None, "Batch cannot be none"
+
+    def on_predict_batch_end(self, batch):
+        assert batch is not None, "Batch cannot be none"
+
+    def on_predict_begin(self):
+        pass
+
+    def on_predict_end(self):
+        pass
+
     def set_sample_weight(self, sample_weight, stage="train"):
         if stage == "train":
             self.train_sample_weight = sample_weight
@@ -528,7 +543,9 @@ class SLBaseTorchModel(SLBaseModel):
 
         # Step 3: update metrics
         for m in self.metrics_fuse:
-            if len(eval_y.shape) > 1:
+            if (
+                len(eval_y.shape) > 1 and eval_y.shape[1] > 1
+            ):  # in case eval_y is of shape [batch_size, 1]
                 m.update(y_pred, eval_y.argmax(-1))
             else:
                 m.update(y_pred, eval_y.int())
@@ -554,10 +571,14 @@ class SLBaseTorchModel(SLBaseModel):
         hiddens = []
         for h in hidden_features:
             if isinstance(h, List):
-                for i in range(len(h)):
-                    hiddens.append(h[i])
+                for e in h:
+                    hiddens.append(
+                        torch.as_tensor(e) if isinstance(e, np.matrix) else e
+                    )
             else:
-                hiddens.append(h)
+                hiddens.append(torch.as_tensor(h)) if isinstance(
+                    h, np.matrix
+                ) else hiddens.append(h)
         result = {}
         metrics = self._evaluate_internal(
             hiddens=hiddens,

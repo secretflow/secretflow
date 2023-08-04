@@ -66,6 +66,25 @@ class Compressor(ABC):
         raise NotImplementedError()
 
 
+# TODO: Frequent imports may have an impact on performance. Handel it in outer layer. @xiaonan
+def handle_special_types(hidden):
+    try:
+        from tensorflow.python.framework.ops import EagerTensor
+
+        if isinstance(hidden, EagerTensor):
+            return hidden.numpy()
+    except ImportError:
+        pass
+    try:
+        from torch import Tensor
+
+        if isinstance(hidden, Tensor):
+            return hidden.detach().numpy()
+    except ImportError:
+        pass
+    return hidden
+
+
 class SparseCompressor(Compressor):
     def __init__(self, sparse_rate: float):
         """Initialize
@@ -111,6 +130,7 @@ class SparseCompressor(Compressor):
         else:
             hidden = data
 
+        hidden = handle_special_types(hidden)
         if isinstance(hidden, (np.ndarray, jnp.ndarray)):
             is_list = False
             hidden = [hidden]

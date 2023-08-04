@@ -1,0 +1,145 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2022 Ant Group Co., Ltd.
+# This file is distributed under the same license as the SecretFlow package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2023.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: SecretFlow \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-07-02 23:05+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.12.1\n"
+
+#: ../../component/comp_guide.rst:2
+msgid "Guide of SecretFlow Components"
+msgstr "SecretFlow 组件指南"
+
+#: ../../component/comp_guide.rst:5
+msgid "Get the Component List"
+msgstr "获取组件列表"
+
+#: ../../component/comp_guide.rst:8 ../../component/comp_guide.rst:186
+#: ../../component/comp_guide.rst:338
+msgid "Python API"
+msgstr ""
+
+#: ../../component/comp_guide.rst:9
+msgid "You could check SecretFlow Component List by"
+msgstr "可以通过下列方式检查 SecretFlow 组件列表："
+
+#: ../../component/comp_guide.rst:15
+msgid "**COMP_LIST** is a CompListDef instance."
+msgstr "**COMP_LIST** 是 CompListDef 实例。"
+
+#: ../../component/comp_guide.rst:19 ../../component/comp_guide.rst:322
+msgid "CLI"
+msgstr ""
+
+#: ../../component/comp_guide.rst:21
+msgid "Check Current SecretFlow Version"
+msgstr "检查当前的 SecretFlow 版本"
+
+#: ../../component/comp_guide.rst:29
+msgid "List All Components"
+msgstr "列出所有组件"
+
+#: ../../component/comp_guide.rst:55
+msgid "Get Definition of Component(s)"
+msgstr "获取组件的定义"
+
+#: ../../component/comp_guide.rst:57
+msgid ""
+"You must specify a component with the following format: "
+"**domain/name:version**."
+msgstr "您必须用以下格式指定一个组件：domain/name:version。"
+
+#: ../../component/comp_guide.rst:161
+msgid "You could inspect all components at once by"
+msgstr "您可以通过以下方式一次性检查所有组件："
+
+#: ../../component/comp_guide.rst:168
+msgid "You may save the list to file by:"
+msgstr "您可以通过以下方式将列表保存到文件："
+
+#: ../../component/comp_guide.rst:179
+msgid "Evaluate a Node"
+msgstr "执行节点"
+
+#: ../../component/comp_guide.rst:181
+msgid ""
+"You should use **secretflow.component.entry.comp_eval** to evaluate a "
+"node."
+msgstr "您应该使用 secretflow.component.entry.comp_eval 来执行节点。"
+
+#: ../../component/comp_guide.rst:183
+msgid ""
+"The following code demonstrate how to use this API and could not be run "
+"directly."
+msgstr "以下代码演示了如何使用此API，但不能直接运行。"
+
+#: ../../component/comp_guide.rst:329
+msgid "log_file: log file path."
+msgstr "log_file: 日志文件路径"
+
+#: ../../component/comp_guide.rst:330
+msgid "result_file: result file path."
+msgstr "result_file: 结果文件路径。"
+
+#: ../../component/comp_guide.rst:331
+msgid "eval_param: base64-encoded NodeEvalParam prototext."
+msgstr "eval_param: base64编码的NodeEvalParam prototext。"
+
+#: ../../component/comp_guide.rst:332
+msgid "cluster: base64-encoded SFClusterConfig prototext."
+msgstr "cluster: Base64编码的SFClusterConfig prototext。"
+
+#: ../../component/comp_guide.rst:335
+msgid "Create a Component"
+msgstr "创建组件"
+
+#: ../../component/comp_guide.rst:340
+msgid ""
+"If you want to create a new component in SecretFlow, you may check one of"
+" simplest component: "
+"`secretflow/component/preprocessing/train_test_split.py "
+"<https://github.com/secretflow/secretflow/blob/main/secretflow/component/preprocessing/train_test_split.py>`_"
+msgstr "如果你想要在 SecretFlow 中创建一个新的组件，你可以参考"
+" <https://github.com/secretflow/secretflow/blob/main/secretflow/component/preprocessing/train_test_split.py>`_ "
+"这个是最简单的组件。"
+
+#: ../../component/comp_guide.rst:343
+msgid "The brief steps to build a SecretFlow Component are:"
+msgstr "构建一个 SecretFlow 组件的简要步骤如下："
+
+#: ../../component/comp_guide.rst:345
+msgid "Create a new file under **secretflow/component/** ."
+msgstr "在 secretflow/component/ 目录下创建一个新的文件。"
+
+#: ../../component/comp_guide.rst:347
+msgid ""
+"Create a Component class with "
+"**secretflow.component.component.Component**:"
+msgstr "使用 **secretflow.component.component.Component** 创建一个组件类："
+
+#: ../../component/comp_guide.rst:362
+msgid "Declare attributes and IO."
+msgstr "定义属性和输入输出。"
+
+#: ../../component/comp_guide.rst:429
+msgid "Declare evaluation function."
+msgstr "定义执行函数。"
+
+#: ../../component/comp_guide.rst:449
+msgid ""
+"Put your new component in ALL_COMPONENTS of `secretflow.component.entry "
+"<https://github.com/secretflow/secretflow/blob/main/secretflow/component/entry.py>`_"
+" ."
+msgstr "将你的新组件加入到"
+" `secretflow.component.entry <https://github.com/secretflow/secretflow/blob/main/secretflow/component/entry.py>`_ "
+"的 ALL_COMPONENTS 中。"

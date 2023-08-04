@@ -19,33 +19,43 @@ package secretflow.component;
 import "secretflow/protos/component/comp.proto";
 import "secretflow/protos/component/data.proto";
 
+option java_package = "org.secretflow.proto.component";
+
 // Evaluate a node.
-//   evaluate(NodeEvalParam param, SFClusterConfig sf_config) -> NodeEvalResult
+// - comp.evaluate(NodeEvalParam, SFClusterConfig) -> NodeEvalResult
+//
 // NodeEvalParam contains all the information to evaluate a component.
 message NodeEvalParam {
-  // domain of component
+  // Domain of the component.
   string domain = 1;
 
-  // name of component
+  // Name of the component.
   string name = 2;
 
-  // version of component
+  // Version of the component.
   string version = 3;
 
-  // The attribute value.
+  // The path of attributes.
+  // The attribute path for a TableAttrDef is `{input\|output}/{IoDef
+  // name}/{TableAttrDef name}`.
   repeated string attr_paths = 4;
 
+  // The value of the attribute.
+  // Must match attr_paths.
   repeated Attribute attrs = 5;
 
-  // The input values
-  // NOTE: name of DistData doesn't need to match name of input in Comp
-  // definition.
+  // The input data, the order of inputs must match inputs in ComponentDef.
+  // NOTE: Names of DistData doesn't need to match those of inputs in
+  // ComponentDef definition.
   repeated DistData inputs = 6;
 
+  // The output data uris, the order of output_uris must match outputs in
+  // ComponentDef.
   repeated string output_uris = 7;
 }
 
+// NodeEvalResult contains outputs of a component evaluation.
 message NodeEvalResult {
-  // Output values.
+  // Output data.
   repeated DistData outputs = 1;
 }

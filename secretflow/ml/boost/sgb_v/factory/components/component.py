@@ -18,6 +18,7 @@ from dataclasses import dataclass, fields
 from typing import List
 
 from secretflow.device import HEU, PYU
+from ..sgb_actor import SGBActor
 
 
 @dataclass
@@ -44,6 +45,14 @@ class Component(abc.ABC):
     def set_devices(self, devices: Devices):
         pass
 
+    @abc.abstractmethod
+    def set_actors(self, actors: List[SGBActor]):
+        pass
+
+    @abc.abstractmethod
+    def del_actors(self):
+        pass
+
 
 class Composite(Component):
     def __init__(self) -> None:
@@ -65,6 +74,14 @@ class Composite(Component):
     def set_devices(self, devices: Devices):
         for field in fields(self.components):
             getattr(self.components, field.name).set_devices(devices)
+
+    def set_actors(self, actors: List[SGBActor]):
+        for field in fields(self.components):
+            getattr(self.components, field.name).set_actors(actors)
+
+    def del_actors(self):
+        for field in fields(self.components):
+            getattr(self.components, field.name).del_actors()
 
 
 def print_params(params):

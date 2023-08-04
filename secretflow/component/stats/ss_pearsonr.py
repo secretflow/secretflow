@@ -22,7 +22,7 @@ from secretflow.component.component import (
 )
 from secretflow.component.data_utils import DistDataType, load_table
 from secretflow.device.device.spu import SPU
-from secretflow.protos.component.comp_pb2 import Attribute, AttrType
+from secretflow.protos.component.comp_pb2 import Attribute
 from secretflow.protos.component.data_pb2 import DistData
 from secretflow.protos.component.report_pb2 import Div, Report, Tab, Table
 from secretflow.stats.ss_pearsonr_v import PearsonR
@@ -34,14 +34,13 @@ ss_pearsonr_comp = Component(
     desc="""Calculate Pearson's product-moment correlation coefficient for vertical partitioning dataset
     by using secret sharing.
 
-    For large dataset(large than 10w samples & 200 features),
-    recommend to use [Ring size: 128, Fxp: 40] options for SPU device.
+    - For large dataset(large than 10w samples & 200 features), recommend to use [Ring size: 128, Fxp: 40] options for SPU device.
     """,
 )
 ss_pearsonr_comp.io(
     io_type=IoType.INPUT,
     name="input_data",
-    desc="Input dataset.",
+    desc="Input vertical table.",
     types=[DistDataType.VERTICAL_TABLE],
     col_params=[
         TableColParam(
@@ -53,7 +52,7 @@ ss_pearsonr_comp.io(
 ss_pearsonr_comp.io(
     io_type=IoType.OUTPUT,
     name="report",
-    desc="Output report.",
+    desc="Output Pearson's product-moment correlation coefficient report.",
     types=[DistDataType.REPORT],
 )
 
@@ -94,8 +93,7 @@ def ss_pearsonr_eval_fn(
 
     r_table = Table(
         headers=[
-            Table.HeaderItem(name=f, desc="", type=AttrType.AT_FLOAT)
-            for f in feature_names
+            Table.HeaderItem(name=f, desc="", type="float") for f in feature_names
         ],
         rows=[
             Table.Row(

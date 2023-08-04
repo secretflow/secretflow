@@ -14,7 +14,8 @@
 
 from typing import List, Union
 
-from secretflow.device import PYU, HEUObject, PYUObject, proxy
+from secretflow.device import PYU, HEUObject, PYUObject
+from secretflow.ml.boost.sgb_v.factory.sgb_actor import SGBActor
 
 from ..component import Component, Devices
 from .node_bucket_sum_cache_internal import NodeCache
@@ -25,6 +26,7 @@ from .node_bucket_sum_cache_internal import NodeCache
 class NodeWiseCache(Component):
     def __init__(self):
         self.worker_caches = {}
+        self.workers = []
 
     def show_params(self):
         return
@@ -36,40 +38,73 @@ class NodeWiseCache(Component):
         return
 
     def set_devices(self, devices: Devices):
+        self.workers = devices.workers
+        self.label_holder = devices.label_holder
+
+    def set_actors(self, actors: SGBActor):
         self.worker_caches = {
             worker: NodeCache()
-            for worker in devices.workers
-            if worker != devices.label_holder
+            for worker in self.workers
+            if worker != self.label_holder
         }
-        self.worker_caches[devices.label_holder] = proxy(PYUObject)(NodeCache)(
-            device=devices.label_holder
-        )
+        for actor in actors:
+            if actor.device == self.label_holder:
+                self.worker_caches[self.label_holder] = actor
+                break
+
+        self.worker_caches[self.label_holder].register_class('NodeCache', NodeCache)
+
+    def del_actors(self):
+        del self.worker_caches
 
     def reset(self):
         for device in self.worker_caches:
-            self.worker_caches[device].reset()
+            if device != self.label_holder:
+                self.worker_caches[device].reset()
+            else:
+                self.worker_caches[device].invoke_class_method('NodeCache', 'reset')
 
     def reset_node(self, node_index: int):
         for device in self.worker_caches:
-            self.worker_caches[device].reset_node(node_index)
+            if device != self.label_holder:
+                self.worker_caches[device].reset_node(node_index)
+            else:
+                self.worker_caches[device].invoke_class_method(
+                    'NodeCache', 'reset_node', node_index
+                )
 
     def collect_node_bucket_sum(
-        self, worker: PYU, node_index: int, bucket_sum: Union[HEUObject, PYUObject]
+        self, device: PYU, node_index: int, bucket_sum: Union[HEUObject, PYUObject]
     ):
-        self.worker_caches[worker].collect_node_bucket_sum(node_index, bucket_sum)
+        if device != self.label_holder:
+            self.worker_caches[device].collect_node_bucket_sum(node_index, bucket_sum)
+        else:
+            self.worker_caches[device].invoke_class_method(
+                'NodeCache', 'collect_node_bucket_sum', node_index, bucket_sum
+            )
 
     def batch_collect_node_bucket_sums(
         self,
-        worker: PYU,
+        device: PYU,
         node_indices: List[int],
         bucket_sums: List[Union[HEUObject, PYUObject]],
     ):
-        self.worker_caches[worker].batch_collect_node_bucket_sums(
-            node_indices, bucket_sums
-        )
+        if device != self.label_holder:
+            self.worker_caches[device].batch_collect_node_bucket_sums(
+                node_indices, bucket_sums
+            )
+        else:
+            self.worker_caches[device].invoke_class_method(
+                'NodeCache', 'batch_collect_node_bucket_sums', node_indices, bucket_sums
+            )
 
-    def get_node_bucket_sum(self, worker: PYU, node_index: int) -> PYUObject:
-        return self.worker_caches[worker].get_node(node_index)
+    def get_node_bucket_sum(self, device: PYU, node_index: int) -> PYUObject:
+        if device != self.label_holder:
+            return self.worker_caches[device].get_node(node_index)
+        else:
+            return self.worker_caches[device].invoke_class_method(
+                'NodeCache', 'get_node', node_index
+            )
 
     def batch_get_node_bucket_sum(
         self, worker: PYU, node_indices: List[int]
