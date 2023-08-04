@@ -39,13 +39,13 @@ msgstr ""
 msgid ""
 "In this lab, the idea is quite similar but this time we will work with a "
 "Neural Network model."
-msgstr "在这个实验室中，这个想法非常相似，但这次我们将使用神经网络模型。"
+msgstr "在这个实验中，这个想法非常相似，但这次我们将使用一个神经网络模型。"
 
 #: ../../tutorial/nn_with_spu.ipynb:17
 msgid ""
 "We are going to use the same dataset and all the settings as lab "
 "`Logistic Regression On SPU <./lr_with_spu.ipynb>`__."
-msgstr "我们将使用相同的数据集和所有设置。"
+msgstr "我们将使用和原来的实验相同的数据集和设置。"
 
 #: ../../tutorial/nn_with_spu.ipynb:19
 msgid "And first, let’s work out the plaintext model."
@@ -78,7 +78,7 @@ msgid ""
 "<./lr_with_spu.ipynb>`__. I’m not going to explain again."
 msgstr ""
 "以下内容是复制于实验 `Logistic Regression On SPU <./lr_with_spu.ipynb>`__ 。 "
-"我不会再次在这里解释。"
+"这里不再解释。"
 
 #: ../../tutorial/nn_with_spu.ipynb:113
 msgid "Define the Model"
@@ -113,7 +113,7 @@ msgstr "放在一起"
 
 #: ../../tutorial/nn_with_spu.ipynb:263
 msgid "Let’s put everything together and train a plaintext NN model!"
-msgstr "让我们把所有不住放在一起，训练一个明文 NN 模型！"
+msgstr "让我们把所有步骤放在一起，训练一个明文 NN 模型！"
 
 #: ../../tutorial/nn_with_spu.ipynb:355
 msgid ""
