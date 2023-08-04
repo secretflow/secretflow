@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Predict supports callbacks, call the callback function before/after prediction starts and after every step.
 ## [1.0.0a1] - 2023-7-26
 ### Fixed
-- SLModel fix bug in handling data with databuilder
+- SLModel fix bug in handling data with databuilder 
 - The FLModel solves the problem of the production mode hanging due to a small batch size.
 
 ## [1.0.0a0] - 2023-7-3

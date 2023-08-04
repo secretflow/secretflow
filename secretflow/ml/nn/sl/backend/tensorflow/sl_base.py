@@ -382,7 +382,8 @@ class SLBaseTFModel(SLBaseModel):
         forward_data = ForwardData()
         if len(self.model_base.losses) > 0:
             forward_data.losses = tf.add_n(self.model_base.losses)
-        forward_data.hidden = self.h
+        # The compressor can only recognize np type but not tensor.
+        forward_data.hidden = self.h.numpy() if tf.is_tensor(self.h) else self.h
         return forward_data
 
     def _base_backward_internal(self, gradients, trainable_vars):
@@ -490,7 +491,9 @@ class SLBaseTFModel(SLBaseModel):
     def on_train_end(self):
         if self.fuse_callbacks:
             self.fuse_callbacks.on_train_end(logs=self.training_logs)
-        return self.model_fuse.history.history
+        if self.model_fuse is not None:
+            return self.model_fuse.history.history
+        return None
 
     def on_predict_batch_begin(self, batch):
         if self.predict_callbacks:

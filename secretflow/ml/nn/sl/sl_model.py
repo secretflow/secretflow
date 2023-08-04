@@ -91,6 +91,8 @@ class SLModel:
             backend=backend,
             compressor=self.compressor,
         )
+        self.pipeline_size = kwargs.get('pipeline_size', 1)
+        assert self.pipeline_size >= 1, f"invalid pipeline size: {self.pipeline_size}"
 
         if backend.lower() == "tensorflow":
             import secretflow.ml.nn.sl.backend.tensorflow.strategy  # noqa
@@ -121,6 +123,7 @@ class SLModel:
                 loss_thres=kwargs.get('loss_thres', 0.01),
                 split_steps=kwargs.get('split_steps', 1),
                 max_fuse_local_steps=kwargs.get('max_fuse_local_steps', 1),
+                pipeline_size=kwargs.get('pipeline_size', 1),
             )
 
     def handle_data(
@@ -163,12 +166,16 @@ class SLModel:
 
             if dataset_builder:
                 # in dataset builder mode, xi cannot be none, or else datasetbuilder in worker cannot parse label
-                xs = [
-                    xi.partitions[device].data  # xi is FedDataframe
-                    if isinstance(xi.partitions[device], Partition)
-                    else xi.partitions[device]  # xi is FedNdarray
-                    for xi in x
-                ]
+                xs = (
+                    [
+                        xi.partitions[device].data  # xi is FedDataframe
+                        if isinstance(xi.partitions[device], Partition)
+                        else xi.partitions[device]  # xi is FedNdarray
+                        for xi in x
+                    ]
+                    if device in dataset_builder
+                    else [None]
+                )
                 if device not in dataset_builder:
                     logging.warning("party={device} does not provide dataset_builder")
                     dataset_partition = None
@@ -262,7 +269,9 @@ class SLModel:
             batch_size: Number of samples per gradient update.
             epochs: Number of epochs to train the model
             verbose: 0, 1. Verbosity mode
-            callbacks: List of `keras.callbacks.Callback` instances.
+            callbacks: List of Callback or Dict[device, Callback]. Callback can be:
+            - `keras.callbacks.Callback` for tensorflow backend
+            - `secretflow.ml.nn.sl.backend.torch.callback.Callback` for torch backend
             validation_data: Data on which to validate
             shuffle: Whether shuffle dataset or not
             validation_freq: specifies how many training epochs to run before a new validation run is performed
@@ -330,8 +339,11 @@ class SLModel:
                 stage="eval",
                 dataset_builder=dataset_builder,
             )
-
-        self._workers[self.device_y].init_training(callbacks, epochs=epochs)
+        if isinstance(callbacks, dict):
+            for dev, callback_builder in callbacks.items():
+                self._workers[dev].init_training(callback_builder, epochs=epochs)
+        else:
+            self._workers[self.device_y].init_training(callbacks, epochs=epochs)
         [worker.on_train_begin() for worker in self._workers.values()]
         wait_steps = min(min(self.get_cpus()) * 2, 100)
         for epoch in range(epochs):
@@ -343,16 +355,28 @@ class SLModel:
             self._workers[self.device_y].reset_metrics()
             [worker.on_epoch_begin(epoch) for worker in self._workers.values()]
 
-            for step in range(0, steps_per_epoch):
-                if verbose == 1:
-                    pbar.update(1)
-                hiddens = {}
-                self._workers[self.device_y].on_train_batch_begin(step=step)
-                for device, worker in self._workers.items():
-                    # 1. Local calculation of basenet
-                    hidden = worker.base_forward(stage="train")
-                    # 2. The results of basenet are sent to fusenet
-                    hiddens[device] = hidden
+            hiddens_buf = [None] * (self.pipeline_size - 1)
+            for step in range(0, steps_per_epoch + self.pipeline_size - 1):
+                if step < steps_per_epoch:
+                    if verbose == 1:
+                        pbar.update(1)
+                    hiddens = {}
+                    self._workers[self.device_y].on_train_batch_begin(step=step)
+                    for device, worker in self._workers.items():
+                        # 1. Local calculation of basenet
+                        hidden = worker.base_forward(stage="train")
+                        # 2. The results of basenet are sent to fusenet
+
+                        hiddens[device] = hidden
+                    hiddens_buf.append(hiddens)
+                # clean up buffer
+                hiddens = hiddens_buf.pop(0)
+                # Async transfer hiddens to label side
+                if hiddens is None:
+                    continue
+                # During pipeline strategy, the backpropagation process of the model will lag n cycles behind the forward propagation process.
+                step = step - self.pipeline_size + 1
+
                 # do agglayer forward
                 agg_hiddens = self.agglayer.forward(hiddens, axis=0)
 
@@ -375,6 +399,12 @@ class SLModel:
 
                 r_count = self._workers[self.device_y].on_train_batch_end(step=step)
                 res.append(r_count)
+                [
+                    worker.on_train_batch_end(step=step)
+                    for dev, worker in self._workers.items()
+                    if dev != self.device_y
+                ]
+
                 if self.dp_strategy_dict is not None and dp_spent_step_freq is not None:
                     current_step = epoch * steps_per_epoch + step
                     if current_step % dp_spent_step_freq == 0:
@@ -385,6 +415,9 @@ class SLModel:
                 if len(res) == wait_steps:
                     wait(res)
                     res = []
+            assert (
+                len(hiddens_buf) == 0
+            ), f'hiddens buffer unfinished, len: {len(hiddens_buf)}'
             if validation and epoch % validation_freq == 0:
                 # validation
                 self._workers[self.device_y].reset_metrics()
@@ -427,6 +460,12 @@ class SLModel:
                         **audit_log_params,
                     )
             epoch_log = self._workers[self.device_y].on_epoch_end(epoch)
+            call_res = [
+                worker.on_epoch_end(epoch)
+                for dev, worker in self._workers.items()
+                if dev != self.device_y
+            ]
+            wait(call_res)
             for name, metric in reveal(epoch_log).items():
                 report_list.append(f"{name}:{metric} ")
             report = " ".join(report_list)
@@ -437,6 +476,12 @@ class SLModel:
                 break
 
         history = self._workers[self.device_y].on_train_end()
+        call_res = [
+            worker.on_train_end()
+            for dev, worker in self._workers.items()
+            if dev != self.device_y
+        ]
+        wait(call_res)
         return reveal(history)
 
     def predict(
@@ -620,7 +665,7 @@ class SLModel:
             >>>                    is_test=True,)
             >>> # just passing params in
             >>> slmodel.save_model(base_model_path,
-            >>>                    fuse_model_path,)
+            >>>                    fuse_model_path,
             >>>                    is_test=True,
             >>>                    save_traces=True,
             >>>                    save_format='h5')

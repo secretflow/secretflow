@@ -134,8 +134,10 @@ class SLBaseTorchModel(SLBaseModel):
         self.training_logs = None
         self.history = {}
         self.steps_per_epoch = None
+        self.shuffle = False
         if random_seed is not None:
             torch.manual_seed(random_seed)
+            self.random_seed = random_seed
         # used in backward propagation gradients from fuse model to base model
         self.fuse_op = FuseOp()
         super().__init__(builder_base, builder_fuse)
@@ -249,6 +251,7 @@ class SLBaseTorchModel(SLBaseModel):
         assert x and x[0] is not None, "X can not be None, please check"
 
         if shuffle and random_seed is not None:
+            self.shuffle = shuffle
             random.seed(random_seed)
             torch.manual_seed(random_seed)  # set random seed for cpu
             torch.cuda.manual_seed(random_seed)  # set random seed for cuda
@@ -286,8 +289,10 @@ class SLBaseTorchModel(SLBaseModel):
         assert (
             self.model_base is not None
         ), "model cannot be none, please give model define"
+
         if callbacks is not None:
-            raise Exception("Callback is not supported yet")
+            self.fuse_callbacks = callbacks()
+            self.fuse_callbacks.init_model(self.model_base, self.model_fuse)
 
     def init_predict(self, callbacks, steps=1, verbose=0):
         pass
@@ -464,10 +469,19 @@ class SLBaseTorchModel(SLBaseModel):
         self.training_logs = {}
         self.epoch = []
 
+        if self.fuse_callbacks is not None:
+            self.fuse_callbacks.on_train_begin()
+
     def on_train_end(self):
+        if self.fuse_callbacks is not None:
+            self.fuse_callbacks.on_train_end()
+
         return self.history
 
     def on_epoch_begin(self, epoch):
+        if self.shuffle:
+            # FIXME: need a better way to handle global random state
+            torch.manual_seed(self.random_seed)
         if self.train_set is not None:
             self.train_iter = iter(self.train_set)
 
@@ -480,8 +494,14 @@ class SLBaseTorchModel(SLBaseModel):
             for m in self.metrics_fuse:
                 m.reset()
 
+        if self.fuse_callbacks is not None:
+            self.fuse_callbacks.on_epoch_begin(epoch)
+
     def on_epoch_end(self, epoch):
         self.epoch.append(epoch)
+
+        if self.fuse_callbacks is not None:
+            self.fuse_callbacks.on_epoch_end(epoch)
 
         if self.epoch_logs is not None:
             for k, v in self.epoch_logs.items():
@@ -491,10 +511,14 @@ class SLBaseTorchModel(SLBaseModel):
 
     def on_train_batch_begin(self, step=None):
         assert step is not None, "Step cannot be none"
+        if self.fuse_callbacks is not None:
+            self.fuse_callbacks.on_batch_begin(step)
 
     def on_train_batch_end(self, step=None):
         assert step is not None, "Step cannot be none"
         self.epoch_logs = copy.deepcopy(self.logs)
+        if self.fuse_callbacks is not None:
+            self.fuse_callbacks.on_batch_end(step)
 
     def on_validation(self, val_logs):
         val_logs = {'val_' + name: val for name, val in val_logs.items()}
@@ -570,14 +594,17 @@ class SLBaseTorchModel(SLBaseModel):
 
         hiddens = []
         for h in hidden_features:
+            # the evaluate function only recognizes torch.tensor, but inputs may be np type via compression.
             if isinstance(h, List):
                 for e in h:
                     hiddens.append(
-                        torch.as_tensor(e) if isinstance(e, np.matrix) else e
+                        torch.as_tensor(e)
+                        if isinstance(e, (np.matrix, np.ndarray))
+                        else e
                     )
             else:
                 hiddens.append(torch.as_tensor(h)) if isinstance(
-                    h, np.matrix
+                    h, (np.matrix, np.ndarray)
                 ) else hiddens.append(h)
         result = {}
         metrics = self._evaluate_internal(

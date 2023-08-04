@@ -548,3 +548,4 @@ msgstr ""
 #: ../../component/comp_spec_design.rst:242
 msgid "It contains output DistDatas."
 msgstr "它包含输出 DistDatas。"
+

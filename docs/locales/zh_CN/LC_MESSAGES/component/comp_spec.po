@@ -1638,3 +1638,4 @@ msgstr ""
 #: ../../component/comp_spec.md:753
 msgid "Table.Row"
 msgstr ""
+

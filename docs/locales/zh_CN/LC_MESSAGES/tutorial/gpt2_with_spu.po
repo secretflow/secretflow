@@ -133,3 +133,4 @@ msgstr "可以发现，SPU 生成的文本与 CPU 生成的文本是完全一致
 #: ../../tutorial/gpt2_with_spu.ipynb:687
 msgid "This is the end of the lab."
 msgstr "本教程到此结束。"
+
