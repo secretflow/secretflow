@@ -1,9 +1,7 @@
 name: "Publish Python Package"
-# on:
-#   release:
-#     types: [published]
 on:
-  workflow_dispatch:
+  release:
+    types: [published]
 jobs:
   trigger-circleci:
     runs-on: ubuntu-latest
