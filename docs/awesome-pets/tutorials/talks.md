@@ -1,5 +1,11 @@
 # Team SecretFlow's Talks
 
+- 2023「OSCP 系列解读直播」视频回放
+https://space.bilibili.com/2073575923/channel/collectiondetail?sid=1572361
+
+- 2023「隐语开源社区Meetup·一周年专场」视频回放
+https://space.bilibili.com/2073575923/channel/collectiondetail?sid=1559449
+
 - 2023「隐语开源社区Meetup·深圳站」视频回放
 https://space.bilibili.com/2073575923/channel/collectiondetail?sid=1410739
 
