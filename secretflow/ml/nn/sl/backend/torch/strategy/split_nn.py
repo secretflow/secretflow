@@ -45,8 +45,8 @@ class SLTorchModel(SLBaseTorchModel):
         self.h = self.base_forward_internal(
             data_x,
         )
-
-        return self.h
+        # The compressor in forward can only recognize np type but not tensor.
+        return self.h.detach().numpy() if isinstance(self.h, torch.Tensor) else self.h
 
     def base_backward(self, gradient):
         """backward on fusenet
@@ -71,7 +71,8 @@ class SLTorchModel(SLBaseTorchModel):
         # apply gradients for base net
         self.optim_base.zero_grad()
         for rh in return_hiddens:
-            rh.sum().backward(retain_graph=True)
+            if rh.requires_grad:
+                rh.sum().backward(retain_graph=True)
         self.optim_base.step()
 
         # clear intermediate results

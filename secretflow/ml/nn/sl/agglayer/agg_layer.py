@@ -154,16 +154,16 @@ class AggLayer(object):
         )
 
     @staticmethod
-    def handle_sparse_hiddens(data, compressor):
-        def _handle_sparse_hidden(datum):
-            """Decompress sparse tensor if needed"""
+    def decompress_hiddens(data, compressor):
+        def _decompress_hiddens(datum):
+            """Decompress the hidden if needed"""
 
             if isinstance(datum, ForwardData):
                 hidden_features = datum.hidden
             else:
                 hidden_features = datum
             iscompressed = compressor.iscompressed(hidden_features)
-            # save fuse_sparse_masks to apply on gradients
+            # save fuse_sparse_masks to apply on gradients if it is sparse compression.
             fuse_sparse_masks = None
             if isinstance(compressor, SparseCompressor):
                 fuse_sparse_masks = list(
@@ -176,7 +176,7 @@ class AggLayer(object):
                     )
                 )
 
-            # decompress
+            # decompress if needed
             hidden_features = list(
                 map(
                     lambda d, compressed: compressor.decompress(d) if compressed else d,
@@ -192,7 +192,8 @@ class AggLayer(object):
             return datum, fuse_sparse_masks, iscompressed
 
         if isinstance(data, Tuple) and len(data) == 1:
-            # The case is after packing and unpacking using PYU, a tuple of length 1 will be obtained, if 'num_return' is not specified to PYU.
+            # The case is after packing and unpacking using PYU, a tuple of length 1 will be obtained,
+            # if 'num_return' is not specified to PYU.
             data = data[0]
         if isinstance(data, (List, Tuple)):
             hidden_features = [
@@ -200,7 +201,7 @@ class AggLayer(object):
             ]
             hidden_features[:] = (h for h in hidden_features if h is not None)
             # Deal with sparse input, record the mask and is_compressed.
-            dense_data, fuse_sparse_masks, iscompressed = _handle_sparse_hidden(
+            dense_data, fuse_sparse_masks, iscompressed = _decompress_hiddens(
                 hidden_features
             )
 
@@ -212,25 +213,29 @@ class AggLayer(object):
                     ret_data.append(d)
             return ret_data, fuse_sparse_masks, iscompressed
         else:
-            data, fuse_sparse_masks, iscompressed = _handle_sparse_hidden(data)
+            data, fuse_sparse_masks, iscompressed = _decompress_hiddens(data)
             return data, fuse_sparse_masks, iscompressed
 
     @staticmethod
-    def handle_sparse_gradients(gradients, fuse_sparse_masks, compressor, iscompressed):
+    def compress_gradients(gradients, fuse_sparse_masks, compressor, iscompressed):
         """compress gradients to sparse format"""
 
-        def apply_mask(m, d):
+        def apply_sparse_mask(m, d):
             if m is not None:
                 return m.multiply(d).tocsr()
             return d
 
         gradients = [g.numpy() for g in gradients]
-        # apply fuse_sparse_masks on gradients, compress twice will decrease preformance
-        if fuse_sparse_masks is not None and fuse_sparse_masks[0] is not None:
+        # when using sparse compressor, use masks on gradients can avoid compressing twice.
+        if (
+            isinstance(compressor, SparseCompressor)
+            and fuse_sparse_masks is not None
+            and fuse_sparse_masks[0] is not None
+        ):
             assert len(fuse_sparse_masks) == len(
                 gradients
             ), f'length of fuse_sparse_masks and gradient mismatch: {len(fuse_sparse_masks)} - {len(gradients)}'
-            gradients = list(map(apply_mask, fuse_sparse_masks, gradients))
+            gradients = list(map(apply_sparse_mask, fuse_sparse_masks, gradients))
         else:
             gradients = list(
                 map(
@@ -286,12 +291,12 @@ class AggLayer(object):
 
         # do decompress after recieve data from each parties
         if isinstance(self.device_agg, COMPRESS_DEVICE_LIST) and self.compressor:
-
-            def decompress_if_need(compressor, d):
-                return compressor.decompress(d) if compressor.iscompressed(d) else d
-
             server_data = [
-                self.device_agg(decompress_if_need)(self.compressor, d)
+                self.device_agg(
+                    lambda compressor, d: compressor.decompress(d)
+                    if compressor.iscompressed(d)
+                    else d
+                )(self.compressor, d)
                 for d in server_data
             ]
             return server_data
@@ -359,6 +364,13 @@ class AggLayer(object):
             agg_hiddens = agg_hiddens.to(self.device_y)
 
             # TODO: Supports sparse calculation and add compression from device_agg to device_y. #juxing
+            # if self.compressor:
+            #     agg_hiddens, fuse_sparse_masks, is_compressed = self.device_y(
+            #         self.decompress_hiddens,
+            #         num_returns=3,
+            #     )([agg_hiddens], self.compressor)
+            #     self.fuse_sparse_masks = fuse_sparse_masks
+            #     self.is_compressed = is_compressed
 
             # convert to tensor on device y
             agg_hidden_tensor = self.device_y(self.convert_to_tensor)(
@@ -381,13 +393,13 @@ class AggLayer(object):
                     working_data = working_data.to(self.device_y)
                 compute_data.append(working_data)
             if self.compressor:
-                # if hidden in data is sparse, record mask and decompress it
+                # decompress if needed.
                 (
                     compute_data,
                     self.fuse_sparse_masks,
                     self.is_compressed,
                 ) = self.device_y(
-                    self.handle_sparse_hiddens,
+                    self.decompress_hiddens,
                     num_returns=3,
                 )(
                     compute_data, self.compressor
@@ -409,6 +421,15 @@ class AggLayer(object):
         """
         assert gradient, 'gradient to aggregate should not be None or empty!'
         if self.agg_method:
+            # TODO: Supports sparse calculation and add compression from device_y to device_agg. #juxing
+            # if self.compressor:
+            #     gradient = self.device_y(self.compress_gradients)(
+            #         gradient,
+            #         self.fuse_sparse_masks,
+            #         self.compressor,
+            #         self.is_compressed,
+            #     )
+
             if isinstance(gradient, DeviceObject):
                 gradient = gradient.to(self.device_agg)
 
@@ -452,7 +473,7 @@ class AggLayer(object):
             ), "The device of gradients(PYUObject) must located on party device_y "
             if self.compressor:
                 # Compress if needed (same device will be passed)
-                gradient = self.device_y(self.handle_sparse_gradients)(
+                gradient = self.device_y(self.compress_gradients)(
                     gradient,
                     self.fuse_sparse_masks,
                     self.compressor,

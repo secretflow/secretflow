@@ -835,3 +835,4 @@ msgid ""
 msgstr ""
 "Kuscia是一款基于K8s的隐私计算任务编排框架，旨在屏蔽异构的基础设施和协议，提供统一的隐私计算底座。如果你需要在业务中使用SecretFlow，推荐基于Kuscia部署运行SecretFlow。详情请参考Kuscia的[快速入门](https://www.secretflow.org.cn/docs/kuscia/latest"
 "/zh-Hans/getting_started/quickstart_cn)文档。"
+

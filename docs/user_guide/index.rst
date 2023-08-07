@@ -18,7 +18,7 @@ features into a representation for more suitable for the downstream pipeline.
 
         Secretflow provides federated data encapsulation in the form of DataFrame.
         DataFrame is composed of data blocks of multiple parties and supports horizontal or vertical partitioned data.
-
+    
     .. grid-item-card:: WeightOfEnvidenceEncoding (WOE)
       :link:  preprocessing/WeigtOfEvidenceEncoding
       :link-type: doc
@@ -30,7 +30,7 @@ Private Set Intersection(PSI)
 -----------------------------
 
 SecretFlow SPU now supports ECDH-PSI, KKRT16-PSI, and BC22-PCG-PSI. 
-Please check :doc:`/user_guide/psi` for details.
+Please check :doc:`/user_guide/psi` for details. 
 
 .. grid:: 2
     :gutter: 2

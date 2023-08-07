@@ -158,7 +158,7 @@ You must specify a component with the following format: **domain/name:version**.
     }
 
 
-You could inspect all components at once by
+You could inspect all components at once by 
 
 .. code-block:: sh
 
@@ -337,7 +337,7 @@ Create a Component
 Python API
 ^^^^^^^^^^
 
-If you want to create a new component in SecretFlow, you may check one of simplest component:
+If you want to create a new component in SecretFlow, you may check one of simplest component: 
 `secretflow/component/preprocessing/train_test_split.py <https://github.com/secretflow/secretflow/blob/main/secretflow/component/preprocessing/train_test_split.py>`_
 
 The brief steps to build a SecretFlow Component are:
@@ -359,7 +359,7 @@ The brief steps to build a SecretFlow Component are:
        """,
    )
 
-3. Declare attributes and IO.
+3. Declare attributes and IO. 
 
 .. code-block:: python
 
