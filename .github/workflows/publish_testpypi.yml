@@ -1,13 +1,15 @@
-name: "Publish Python Package"
+name: "Publish TestPyPI Package"
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
+
 jobs:
   trigger-circleci:
     runs-on: ubuntu-latest
     steps:
-      - name: secretflow-heu-deploy
-        id: secretflow-heu-deploy
+      - name: secretflow-deploy
+        id: secretflow-deploy
         uses: CircleCI-Public/trigger-circleci-pipeline-action@v1.0.5
+        with:
+          GHA_Meta: "publish_testpypi"
         env:
           CCI_TOKEN: ${{ secrets.CCI_TOKEN }}

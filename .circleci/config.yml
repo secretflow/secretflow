@@ -54,13 +54,13 @@ workflows:
             WORKSPACE build-and-run true
   publish-workflow:
     when:
-      equal: [ "release", << pipeline.parameters.GHA_Event >> ]
+      equal: ["publish_pypi", << pipeline.parameters.GHA_Meta >>]
     jobs:
       - continuation/continue:
           configuration_path: .circleci/release-config.yml
   testpypi-workflow:
     when:
-      equal: ["test_pypi", << pipeline.parameters.GHA_Meta >>]
+      equal: ["publish_testpypi", << pipeline.parameters.GHA_Meta >>]
     jobs:
       - continuation/continue:
           configuration_path: .circleci/testpypi-config.yml
