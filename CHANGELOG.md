@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
+## [1.1.0b0.dev0] - 2023-8-7
+
+### Added
+- Label inference attack v3
+
 ## [1.0.0b2] - 2023-7-28
 ### Changed
 - SGB upgrade: use SGBFactory to replace SGB, update parameters and tutorials. SGB now supports more functionalities.
