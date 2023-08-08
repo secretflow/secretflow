@@ -16,7 +16,7 @@ from typing import List
 
 import numpy as np
 
-from secretflow.ml.boost.sgb_v.factory.params import default_params
+from secretflow.ml.boost.sgb_v.core.params import default_params
 from secretflow.ml.boost.sgb_v.factory.sgb_actor import SGBActor
 
 from ..component import Component, Devices, print_params
@@ -46,14 +46,8 @@ class LeafManager(Component):
         print_params(self.params)
 
     def set_params(self, params: dict):
-        reg_lambda = float(params.get('reg_lambda', 0.1))
-        assert (
-            reg_lambda >= 0 and reg_lambda <= 10000
-        ), f"reg_lambda should in [0, 10000], got {reg_lambda}"
-
-        lr = float(params.get('learning_rate', 0.3))
-        assert lr > 0 and lr <= 1, f"learning_rate should in (0, 1], got {lr}"
-
+        reg_lambda = params.get('reg_lambda', default_params.reg_lambda)
+        lr = params.get('learning_rate', default_params.learning_rate)
         self.params.reg_lambda = reg_lambda
         self.params.learning_rate = lr
 
@@ -64,12 +58,15 @@ class LeafManager(Component):
     def set_devices(self, devices: Devices):
         self.label_holder = devices.label_holder
 
-    def set_actors(self, actors: SGBActor):
+    def set_actors(self, actors: List[SGBActor]):
         for actor in actors:
             if actor.device == self.label_holder:
                 self.leaf_actor = actor
                 break
         self.leaf_actor.register_class('LeafActor', LeafActor)
+
+    def del_actors(self):
+        del self.leaf_actor
 
     def clear_leaves(self):
         self.leaf_actor.invoke_class_method('LeafActor', 'clear_leaves')

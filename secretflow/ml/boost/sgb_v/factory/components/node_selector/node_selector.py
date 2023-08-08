@@ -16,7 +16,6 @@ from typing import List, Tuple, Union
 import numpy as np
 
 from secretflow.device import PYUObject
-from secretflow.ml.boost.sgb_v.factory.sgb_actor import SGBActor
 
 from ....core.pure_numpy_ops.node_select import get_child_select, root_select
 from ..component import Component, Devices
@@ -38,7 +37,10 @@ class NodeSelector(Component):
     def set_devices(self, devices: Devices):
         self.label_holder = devices.label_holder
 
-    def set_actors(self, _: SGBActor):
+    def set_actors(self, _):
+        return
+
+    def del_actors(self):
         return
 
     def root_select(self, sample_num):

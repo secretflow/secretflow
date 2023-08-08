@@ -17,7 +17,7 @@ from typing import List, Tuple, Union
 
 import numpy as np
 
-from ....core.split_tree_trainer.order_map_context import OrderMapContext
+from .order_map_context import OrderMapContext
 
 
 # handle order map building for one party

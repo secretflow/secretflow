@@ -29,6 +29,7 @@ from secretflow.utils.communicate import ForwardData
 from secretflow.utils.compressor import Compressor, SparseCompressor
 from secretflow.utils.errors import InvalidArgumentError
 
+
 COMPRESS_DEVICE_LIST = (PYU,)
 
 
@@ -153,52 +154,97 @@ class AggLayer(object):
         )
 
     @staticmethod
-    def handle_sparse_hiddens(hidden_features, compressor):
-        iscompressed = compressor.iscompressed(hidden_features)
-        # save fuse_sparse_masks to apply on gradients
-        fuse_sparse_masks = None
-        if isinstance(compressor, SparseCompressor):
-            fuse_sparse_masks = list(
+    def decompress_hiddens(data, compressor):
+        def _decompress_hiddens(datum):
+            """Decompress the hidden if needed"""
+
+            if isinstance(datum, ForwardData):
+                hidden_features = datum.hidden
+            else:
+                hidden_features = datum
+            iscompressed = compressor.iscompressed(hidden_features)
+            # save fuse_sparse_masks to apply on gradients if it is sparse compression.
+            fuse_sparse_masks = None
+            if isinstance(compressor, SparseCompressor):
+                fuse_sparse_masks = list(
+                    map(
+                        # Get a sparse matrix mask with dtype=bool.
+                        # Using <bool> as the dtype will ensure that the data type of gradients after applying the mask does not change.
+                        lambda d, compressed: (d != 0) if compressed else None,
+                        hidden_features,
+                        iscompressed,
+                    )
+                )
+
+            # decompress if needed
+            hidden_features = list(
                 map(
-                    # Get a sparse matrix mask with dtype=bool.
-                    # Using <bool> as the dtype will ensure that the data type of gradients after applying the mask does not change.
-                    lambda d, compressed: (d != 0) if compressed else None,
+                    lambda d, compressed: compressor.decompress(d) if compressed else d,
                     hidden_features,
                     iscompressed,
                 )
             )
-        # decompress
-        hidden_features = list(
-            map(
-                lambda d, compressed: compressor.decompress(d) if compressed else d,
-                hidden_features,
-                iscompressed,
+
+            if isinstance(datum, ForwardData):
+                datum.hidden = hidden_features
+            else:
+                datum = hidden_features
+            return datum, fuse_sparse_masks, iscompressed
+
+        if isinstance(data, Tuple) and len(data) == 1:
+            # The case is after packing and unpacking using PYU, a tuple of length 1 will be obtained,
+            # if 'num_return' is not specified to PYU.
+            data = data[0]
+        if isinstance(data, (List, Tuple)):
+            hidden_features = [
+                f.hidden if isinstance(f, ForwardData) else f for f in data
+            ]
+            hidden_features[:] = (h for h in hidden_features if h is not None)
+            # Deal with sparse input, record the mask and is_compressed.
+            dense_data, fuse_sparse_masks, iscompressed = _decompress_hiddens(
+                hidden_features
             )
-        )
-        return hidden_features, fuse_sparse_masks, iscompressed
+
+            ret_data = []
+            for f_d, d in zip(data, dense_data):
+                if isinstance(f_d, ForwardData):
+                    ret_data.append(ForwardData(d, f_d.losses))
+                else:
+                    ret_data.append(d)
+            return ret_data, fuse_sparse_masks, iscompressed
+        else:
+            data, fuse_sparse_masks, iscompressed = _decompress_hiddens(data)
+            return data, fuse_sparse_masks, iscompressed
 
     @staticmethod
-    def handle_sparse_gradients(gradient, sparse_masks, compressor, iscompressed):
-        gradient = [g.numpy() for g in gradient]
-        # apply fuse_sparse_masks on gradients
-        if sparse_masks:
-            assert len(sparse_masks) == len(
-                gradient
-            ), f'length of fuse_sparse_masks and gradient mismatch: {len(sparse_masks)} - {len(gradient)}'
+    def compress_gradients(gradients, fuse_sparse_masks, compressor, iscompressed):
+        """compress gradients to sparse format"""
 
-            def apply_mask(m, d):
-                if m is not None:
-                    return m.multiply(d).tocsr()
-                return d
+        def apply_sparse_mask(m, d):
+            if m is not None:
+                return m.multiply(d).tocsr()
+            return d
 
-            gradient = list(map(apply_mask, sparse_masks, gradient))
+        gradients = [g.numpy() for g in gradients]
+        # when using sparse compressor, use masks on gradients can avoid compressing twice.
+        if (
+            isinstance(compressor, SparseCompressor)
+            and fuse_sparse_masks is not None
+            and fuse_sparse_masks[0] is not None
+        ):
+            assert len(fuse_sparse_masks) == len(
+                gradients
+            ), f'length of fuse_sparse_masks and gradient mismatch: {len(fuse_sparse_masks)} - {len(gradients)}'
+            gradients = list(map(apply_sparse_mask, fuse_sparse_masks, gradients))
         else:
-            gradient = list(
-                map(lambda d, compressed: compressor.compress(d) if compressed else d),
-                gradient,
-                iscompressed,
+            gradients = list(
+                map(
+                    lambda d, compressed: compressor.compress(d) if compressed else d,
+                    gradients,
+                    iscompressed,
+                )
             )
-        return gradient
+        return gradients
 
     def split_to_parties(self, data: List) -> List[PYUObject]:
         assert (
@@ -213,11 +259,13 @@ class AggLayer(object):
         for p in self.parties:
             data_slice = data[start_idx : start_idx + self.basenet_output_num[p]]
             result.append(data_slice)
-            start_idx = start_idx + start_idx + self.basenet_output_num[p]
+            start_idx = start_idx + self.basenet_output_num[p]
         return result
 
     def collect(self, data: Dict[PYU, DeviceObject]) -> List[DeviceObject]:
-        """Collect data from participates"""
+        """Collect data from participates
+        TODO: Support compress communication when using agg method.
+        """
         assert data, 'Data to aggregate should not be None or empty!'
 
         # Record the values of fields in ForwardData except for hidden
@@ -244,7 +292,12 @@ class AggLayer(object):
         # do decompress after recieve data from each parties
         if isinstance(self.device_agg, COMPRESS_DEVICE_LIST) and self.compressor:
             server_data = [
-                self.device_agg(self.compressor.decompress)(d) for d in server_data
+                self.device_agg(
+                    lambda compressor, d: compressor.decompress(d)
+                    if compressor.iscompressed(d)
+                    else d
+                )(self.compressor, d)
+                for d in server_data
             ]
             return server_data
         return server_data
@@ -310,14 +363,14 @@ class AggLayer(object):
             # send to device y
             agg_hiddens = agg_hiddens.to(self.device_y)
 
-            # TODO: This is not dead code, it will automatically take effect after agglayer supports sparse calculation. @juxing
-            if self.compressor:
-                agg_hiddens, fuse_sparse_masks, is_compressed = self.device_y(
-                    self.handle_sparse_hiddens,
-                    num_returns=3,
-                )([agg_hiddens], self.compressor)
-                self.fuse_sparse_masks = fuse_sparse_masks
-                self.is_compressed = is_compressed
+            # TODO: Supports sparse calculation and add compression from device_agg to device_y. #juxing
+            # if self.compressor:
+            #     agg_hiddens, fuse_sparse_masks, is_compressed = self.device_y(
+            #         self.decompress_hiddens,
+            #         num_returns=3,
+            #     )([agg_hiddens], self.compressor)
+            #     self.fuse_sparse_masks = fuse_sparse_masks
+            #     self.is_compressed = is_compressed
 
             # convert to tensor on device y
             agg_hidden_tensor = self.device_y(self.convert_to_tensor)(
@@ -331,16 +384,27 @@ class AggLayer(object):
 
             return agg_forward_data
         else:
-            data = [datum.to(self.device_y) for datum in data.values()]
+            compute_data = []
+            for device in data:
+                working_data = data[device]
+                if self.compressor and device != self.device_y:
+                    working_data = device(self.compressor.compress)(working_data)
+                if device != self.device_y:
+                    working_data = working_data.to(self.device_y)
+                compute_data.append(working_data)
             if self.compressor:
-                data, fuse_sparse_masks, is_compressed = self.device_y(
-                    self.handle_sparse_hiddens,
+                # decompress if needed.
+                (
+                    compute_data,
+                    self.fuse_sparse_masks,
+                    self.is_compressed,
+                ) = self.device_y(
+                    self.decompress_hiddens,
                     num_returns=3,
-                )(data, self.compressor)
-                self.fuse_sparse_masks = fuse_sparse_masks
-                self.is_compressed = is_compressed
-
-            return data
+                )(
+                    compute_data, self.compressor
+                )
+            return compute_data
 
     def backward(
         self,
@@ -357,16 +421,18 @@ class AggLayer(object):
         """
         assert gradient, 'gradient to aggregate should not be None or empty!'
         if self.agg_method:
-            if self.compressor:
-                gradient = self.device_y(self.handle_sparse_gradients)(
-                    gradient,
-                    self.fuse_sparse_masks,
-                    self.compressor,
-                    self.is_compressed,
-                )
+            # TODO: Supports sparse calculation and add compression from device_y to device_agg. #juxing
+            # if self.compressor:
+            #     gradient = self.device_y(self.compress_gradients)(
+            #         gradient,
+            #         self.fuse_sparse_masks,
+            #         self.compressor,
+            #         self.is_compressed,
+            #     )
 
             if isinstance(gradient, DeviceObject):
                 gradient = gradient.to(self.device_agg)
+
             if isinstance(weights, (Tuple, List)):
                 weights = [
                     w.to(self.device_agg) if isinstance(w, DeviceObject) else w
@@ -401,27 +467,37 @@ class AggLayer(object):
                 )
             scatter_g = self.scatter(p_gradient)
         else:
+            # default branch, input gradients is from fusenet, belong to device_y
             assert (
                 gradient.device == self.device_y
             ), "The device of gradients(PYUObject) must located on party device_y "
             if self.compressor:
-                gradient = self.device_y(self.handle_sparse_gradients)(
+                # Compress if needed (same device will be passed)
+                gradient = self.device_y(self.compress_gradients)(
                     gradient,
                     self.fuse_sparse_masks,
                     self.compressor,
                     self.is_compressed,
                 )
+
+            # split gradients to parties by index
             p_gradient = self.device_y(
                 self.split_to_parties,
                 num_returns=len(self.parties),
             )(
                 gradient,
             )
+
+            # handle single feature mode
             if isinstance(p_gradient, PYUObject):
-                p_gradient = self.device_agg(self.parse_gradients)(p_gradient)
+                p_gradient = self.device_y(self.parse_gradients)(p_gradient)
                 p_gradient = [p_gradient]
+
             scatter_g = {}
-            for p, g in zip(self.parties, p_gradient):
-                p_g = g.to(p)
-                scatter_g[p] = p_g
+            for device, gradient in zip(self.parties, p_gradient):
+                if device != self.device_y:
+                    gradient = gradient.to(device)
+                if self.compressor and device != self.device_y:
+                    gradient = device(self.compressor.decompress)(gradient)
+                scatter_g[device] = gradient
         return scatter_g

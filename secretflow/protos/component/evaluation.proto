@@ -19,6 +19,8 @@ package secretflow.component;
 import "secretflow/protos/component/comp.proto";
 import "secretflow/protos/component/data.proto";
 
+option java_package = "org.secretflow.proto.component";
+
 // Evaluate a node.
 // - comp.evaluate(NodeEvalParam, SFClusterConfig) -> NodeEvalResult
 //

@@ -92,7 +92,7 @@ def heu_to_spu(self: HEUObject, spu: SPU):
 
     res = (
         heu.get_participant(self.location)
-        .h2a_make_share.options(num_returns=len(evaluator_parties) + 2)
+        .h2a_make_share.options(num_returns=len(evaluator_parties) + 3)
         .remote(
             self.data,
             evaluator_parties,
@@ -102,14 +102,15 @@ def heu_to_spu(self: HEUObject, spu: SPU):
         )
     )
 
-    meta, sk_keeper_data, refs = (
+    meta, sk_keeper_data, io_info, chunks = (
         res[0],
         res[1],
-        res[2:],
+        res[2],
+        res[3:],
     )
 
     # sk_keeper: set data_with_mask as shard
-    sk_keeper_data = heu.sk_keeper.h2a_decrypt_make_share.remote(
+    sk_keeper_chunk = heu.sk_keeper.h2a_decrypt_make_share.remote(
         sk_keeper_data, spu.conf.field
     )
 
@@ -124,9 +125,9 @@ def heu_to_spu(self: HEUObject, spu: SPU):
         spu_actor_idx_for_keeper != -1
     ), f"couldn't find {heu.sk_keeper_name()} in spu actor list."
 
-    refs.insert(spu_actor_idx_for_keeper, sk_keeper_data)
+    chunks.insert(spu_actor_idx_for_keeper, sk_keeper_chunk)
 
-    return SPUObject(spu, meta, spu.infeed_shares(refs))
+    return SPUObject(spu, meta, spu.infeed_shares(io_info, chunks))
 
 
 # Data flows inside the HEU, across network

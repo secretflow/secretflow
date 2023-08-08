@@ -29,7 +29,7 @@ feature_filter_comp = Component(
 feature_filter_comp.io(
     io_type=IoType.INPUT,
     name="in_ds",
-    desc="Input dataset.",
+    desc="Input vertical table.",
     types=[DistDataType.VERTICAL_TABLE],
     col_params=[TableColParam(name="drop_features", desc="Features to drop.")],
 )
@@ -37,7 +37,7 @@ feature_filter_comp.io(
 feature_filter_comp.io(
     io_type=IoType.OUTPUT,
     name="out_ds",
-    desc="Output dataset with filtered features.",
+    desc="Output vertical table.",
     types=[DistDataType.VERTICAL_TABLE],
     col_params=None,
 )

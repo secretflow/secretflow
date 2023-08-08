@@ -11,15 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import logging
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import Any, List, Union
 
 import jax.numpy as jnp
 import numpy as np
 from scipy import sparse
-
 from secretflow.utils.communicate import ForwardData
+from secretflow.utils.errors import InvalidArgumentError
 
 
 class Compressor(ABC):
@@ -115,7 +116,7 @@ class SparseCompressor(Compressor):
             is_list = False
             hidden = [hidden]
         elif not isinstance(hidden, (list, tuple)):
-            assert False, f'invalid data: {type(hidden)}'
+            raise InvalidArgumentError(f'invalid data: {type(hidden)}')
         out = list(map(lambda d: self._compress_one(d), hidden))
         out = out if is_list else out[0]
         if isinstance(data, ForwardData):
@@ -146,7 +147,7 @@ class SparseCompressor(Compressor):
             is_list = False
             sparse_hidden = [sparse_hidden]
         elif not isinstance(sparse_hidden, (list, tuple)):
-            assert False, f'invalid data: {type(sparse_hidden)}'
+            raise InvalidArgumentError(f'invalid data: {type(sparse_hidden)}')
         sparse_hidden = list(map(lambda d: d.todense(), sparse_hidden))
         sparse_hidden = sparse_hidden if is_list else sparse_hidden[0]
         if isinstance(data, ForwardData):
@@ -356,3 +357,173 @@ def sparse_decode(data: List) -> List[np.ndarray]:
         decode_datum = datum.todense()
         decode_datas.append(decode_datum)
     return decode_datas
+
+
+@dataclass
+class QuantizedData:
+    data: Any = None
+    q1: int = None
+    q2: int = None
+    origin_type: Any = None
+
+
+class QuantizedCompressor(Compressor):
+    """Abstract base class for quantized compressor"""
+
+    def __init__(self, quant_bits: int = 8):
+        """Initialize
+
+        Args:
+            quant_bits: the compressed bits length.
+        """
+        super().__init__()
+        self.quant_bits = quant_bits
+        self.np_type = self._infer_np_type(quant_bits)
+
+    def compress(
+        self,
+        data: Union[ForwardData, np.ndarray, List[np.ndarray]],
+    ) -> Union[Any, List[Any]]:
+        is_list = True
+
+        if isinstance(data, ForwardData):
+            hidden = data.hidden
+        else:
+            hidden = data
+
+        if isinstance(hidden, (np.ndarray, jnp.ndarray)):
+            is_list = False
+            hidden = [hidden]
+        elif not isinstance(hidden, (list, tuple)):
+            raise InvalidArgumentError(f'invalid data: {type(hidden)}')
+        out = list(map(lambda x: self._compress_one(x), hidden))
+        out = out if is_list else out[0]
+        if isinstance(data, ForwardData):
+            data.hidden = out
+        else:
+            data = out
+        return data
+
+    def decompress(
+        self,
+        data: Union[ForwardData, np.ndarray, List[np.ndarray], List[QuantizedData]],
+    ) -> Union[np.ndarray, List[np.ndarray]]:
+        is_list = True
+        if isinstance(data, ForwardData):
+            quantized_hidden = data.hidden
+        else:
+            quantized_hidden = data
+
+        if isinstance(quantized_hidden, (np.ndarray, jnp.ndarray, QuantizedData)):
+            is_list = False
+            quantized_hidden = [quantized_hidden]
+
+        quantized_hidden = list(
+            map(lambda x: self._decompress_one(x), quantized_hidden)
+        )
+        quantized_hidden = quantized_hidden if is_list else quantized_hidden[0]
+
+        if isinstance(data, ForwardData):
+            data.hidden = quantized_hidden
+        else:
+            data = quantized_hidden
+
+        return data
+
+    def iscompressed(self, data: Union[Any, List[Any]]) -> Union[bool, List[bool]]:
+        if not isinstance(data, list):
+            return isinstance(data, QuantizedData)
+        is_compressed = list(map(lambda x: isinstance(x, QuantizedData), data))
+        return is_compressed
+
+    def _infer_np_type(self, quant_bits):
+        if self.quant_bits <= 0 or self.quant_bits > 64:
+            logging.error(
+                f"The quantized bits len must be between 0 and 64, got {quant_bits}"
+            )
+            raise RuntimeError(
+                f"The quantized bits len must be between 0 and 64, got {quant_bits}"
+            )
+        recommend_bits = {8: np.int8, 16: np.int16, 32: np.int32, 64: np.int64}
+        if quant_bits in recommend_bits:
+            return recommend_bits[quant_bits]
+        else:
+            logging.warning(
+                f"It is recommended to use 8/16/32/64 as the compression bits (got {self.quant_bits}),"
+                f"That will loss accuracy but not save communication traffic."
+            )
+            for i in range(64):
+                if (quant_bits + i) in recommend_bits:
+                    return recommend_bits[(quant_bits + i)]
+        raise RuntimeError(f"Unknown input quant_bits {quant_bits}")
+
+    @abstractmethod
+    def _compress_one(self, data: np.ndarray) -> QuantizedData:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def _decompress_one(self, data: QuantizedData) -> np.ndarray:
+        raise NotImplementedError()
+
+
+class QuantizedZeroPoint(QuantizedCompressor):
+    """Quantized compressor with strengthen the QuantizedLSTM with replacing 32-bit RQM to 8-bit zero point.
+    The tests show that the QuantizedZeroPoint compressor has higner accuracy than QuantizedLSTM.
+    Reference paper 2017 "Quantization and Training of Neural Networks for Efficient Integer-Arithmetic-Only Inference".
+
+    Link: https://arxiv.org/abs/1712.05877
+    """
+
+    def __init__(self, quant_bits: int = 8):
+        super().__init__(quant_bits)
+
+    def _compress_one(self, data: np.ndarray) -> QuantizedData:
+        _max = np.max(data)
+        _min = np.min(data)
+        qmin = -(int)(1 << (self.quant_bits - 1))
+        qmax = (int)((1 << (self.quant_bits - 1)) - 1)
+
+        scale = (_max - _min) / (qmax - qmin)
+        initial_zero_point = qmin - _min / scale
+        nudged_zero_point = initial_zero_point
+        if initial_zero_point < qmin:
+            nudged_zero_point = qmin
+        elif initial_zero_point > qmax:
+            nudged_zero_point = qmax
+        else:
+            nudged_zero_point = int(initial_zero_point)
+        transformed_val = data / scale + nudged_zero_point
+        clamped_val = np.clip(transformed_val, qmin, qmax)
+        quantized = np.round(clamped_val)
+        return QuantizedData(
+            quantized.astype(self.np_type), scale, nudged_zero_point, data.dtype
+        )
+
+    def _decompress_one(self, data: QuantizedData) -> np.ndarray:
+        return (data.data.astype(data.origin_type) - float(data.q2)) * data.q1
+
+
+class QuantizedLSTM(QuantizedCompressor):
+    """Quantized compressor with LSTM, a basic algorithm which replace float with int.
+
+    Reference paper 2016 "On the efficient representation and execution of deep acoustic models".
+
+    Link: https://arxiv.org/abs/1607.04683
+    """
+
+    def __init__(self, quant_bits: int = 8):
+        super().__init__(quant_bits)
+
+    def _compress_one(self, data: np.ndarray) -> QuantizedData:
+        _max = np.max(data)
+        _min = np.min(data)
+        q_scale = int((1 << self.quant_bits) - 1)
+        q_shift = int(1 << (self.quant_bits - 1))
+
+        q = q_scale / (_max - _min)
+        rqm = int(round(q * _min) + q_shift)
+        quantized = np.round(q * data) - rqm
+        return QuantizedData(quantized.astype(self.np_type), q, rqm, data.dtype)
+
+    def _decompress_one(self, data: QuantizedData) -> np.ndarray:
+        return (data.data.astype(data.origin_type) + float(data.q2)) / float(data.q1)

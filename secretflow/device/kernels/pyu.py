@@ -19,6 +19,7 @@ from typing import Any, Callable, List, Union
 
 from spu import Visibility
 
+import secretflow.distributed as sfd
 from secretflow.device import (
     HEU,
     PYU,
@@ -63,15 +64,28 @@ def pyu_to_spu(self: PYUObject, spu: SPU, spu_vis: str = 'secret') -> SPUObject:
 
     vtype = Visibility.VIS_PUBLIC if spu_vis == 'public' else Visibility.VIS_SECRET
 
+    def get_shares_chunk_count(data, runtime_config, world_size, vtype) -> int:
+        io = SPUIO(runtime_config, world_size)
+        return io.get_shares_chunk_count(data, vtype)
+
     def run_spu_io(data, runtime_config, world_size, vtype):
         io = SPUIO(runtime_config, world_size)
-        return io.make_shares(data, vtype)
+        ret = io.make_shares(data, vtype)
+        return ret
 
-    meta, *shares = self.device(run_spu_io, num_returns=(1 + spu.world_size))(
+    shares_chunk_count = self.device(get_shares_chunk_count)(
         self.data, spu.conf, spu.world_size, vtype
     )
+    shares_chunk_count = sfd.get(shares_chunk_count.data)
+
+    meta, io_info, *shares_chunk = self.device(
+        run_spu_io, num_returns=(2 + shares_chunk_count * spu.world_size)
+    )(self.data, spu.conf, spu.world_size, vtype)
+
     return SPUObject(
-        spu, meta.data, spu.infeed_shares([share.data for share in shares])
+        spu,
+        meta.data,
+        spu.infeed_shares(io_info.data, [s.data for s in shares_chunk]),
     )
 
 

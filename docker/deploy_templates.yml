@@ -1,0 +1,28 @@
+- name: secretflow
+  replicas: 1
+  spec:
+    containers:
+      - command:
+          - sh
+        args:
+          - -c
+          - "python -m secretflow.kuscia.entry /etc/kuscia/task-config.conf"
+        configVolumeMounts:
+          - mountPath: /etc/kuscia/task-config.conf
+            subPath: task-config.conf
+        name: secretflow
+        ports:
+          - name: spu
+            port: 54509
+            protocol: GRPC
+            scope: Cluster
+          - name: fed
+            port: 8080
+            protocol: GRPC
+            scope: Cluster
+          - name: global
+            port: 8081
+            protocol: GRPC
+            scope: Domain
+        workingDir: /work
+    restartPolicy: Never

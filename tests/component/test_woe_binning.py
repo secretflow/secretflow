@@ -97,13 +97,13 @@ def test_woe_binning(comp_prod_sf_cluster_config):
     meta = VerticalTable(
         schemas=[
             TableSchema(
-                feature_types=["f32"] * 15,
+                feature_types=["float32"] * 15,
                 features=[f"b{i}" for i in range(15)],
             ),
             TableSchema(
-                feature_types=["f32"] * 15,
+                feature_types=["float32"] * 15,
                 features=[f"a{i}" for i in range(15)],
-                label_types=["f32"],
+                label_types=["float32"],
                 labels=["y"],
             ),
         ],

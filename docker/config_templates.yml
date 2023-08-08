@@ -1,0 +1,7 @@
+task-config.conf: |
+  {
+    "task_id": "{{.TASK_ID}}",
+    "task_input_config": "{{.TASK_INPUT_CONFIG}}",
+    "task_cluster_def": "{{.TASK_CLUSTER_DEFINE}}",
+    "allocated_ports": "{{.ALLOCATED_PORTS}}"
+  }

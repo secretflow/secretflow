@@ -46,7 +46,11 @@ class Component(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def set_actors(self, actors: SGBActor):
+    def set_actors(self, actors: List[SGBActor]):
+        pass
+
+    @abc.abstractmethod
+    def del_actors(self):
         pass
 
 
@@ -71,9 +75,13 @@ class Composite(Component):
         for field in fields(self.components):
             getattr(self.components, field.name).set_devices(devices)
 
-    def set_actors(self, actors: SGBActor):
+    def set_actors(self, actors: List[SGBActor]):
         for field in fields(self.components):
             getattr(self.components, field.name).set_actors(actors)
+
+    def del_actors(self):
+        for field in fields(self.components):
+            getattr(self.components, field.name).del_actors()
 
 
 def print_params(params):

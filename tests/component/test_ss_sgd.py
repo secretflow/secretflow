@@ -88,13 +88,13 @@ def test_ss_sgd(comp_prod_sf_cluster_config):
     meta = VerticalTable(
         schemas=[
             TableSchema(
-                feature_types=["f32"] * 15,
+                feature_types=["float32"] * 15,
                 features=[f"a{i}" for i in range(15)],
-                label_types=["f32"],
+                label_types=["float32"],
                 labels=["y"],
             ),
             TableSchema(
-                feature_types=["f32"] * 15,
+                feature_types=["float32"] * 15,
                 features=[f"b{i}" for i in range(15)],
             ),
         ],
@@ -135,13 +135,13 @@ def test_ss_sgd(comp_prod_sf_cluster_config):
     meta = VerticalTable(
         schemas=[
             TableSchema(
-                feature_types=["f32"] * 15,
+                feature_types=["float32"] * 15,
                 features=[f"a{i}" for i in range(15)],
-                label_types=["f32"],
+                label_types=["float32"],
                 labels=["y"],
             ),
             TableSchema(
-                feature_types=["f32"] * 15,
+                feature_types=["float32"] * 15,
                 features=[f"b{i}" for i in range(15)],
             ),
         ],

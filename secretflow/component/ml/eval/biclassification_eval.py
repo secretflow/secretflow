@@ -15,7 +15,7 @@
 from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import DistDataType, load_table
 from secretflow.device.driver import reveal
-from secretflow.protos.component.comp_pb2 import Attribute, AttrType
+from secretflow.protos.component.comp_pb2 import Attribute
 from secretflow.protos.component.data_pb2 import DistData
 from secretflow.protos.component.report_pb2 import Descriptions, Div, Report, Tab, Table
 from secretflow.stats.biclassification_eval import BiClassificationEval
@@ -61,7 +61,7 @@ biclassification_eval_comp.int_attr(
 biclassification_eval_comp.io(
     io_type=IoType.INPUT,
     name="labels",
-    desc="labels",
+    desc="Input table with labels",
     types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
     col_params=[
         TableColParam(
@@ -75,7 +75,7 @@ biclassification_eval_comp.io(
 biclassification_eval_comp.io(
     io_type=IoType.INPUT,
     name="predictions",
-    desc="predictions",
+    desc="Input table with predictions",
     types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
     col_params=[
         TableColParam(
@@ -146,71 +146,71 @@ def dump_biclassification_reports(name, sys_info, reports):
         headers = [
             Table.HeaderItem(
                 name="start_value",
-                type=AttrType.AT_FLOAT,
+                type="float",
             ),
             Table.HeaderItem(
                 name="end_value",
-                type=AttrType.AT_FLOAT,
+                type="float",
             ),
             Table.HeaderItem(
                 name="positive",
-                type=AttrType.AT_INT,
+                type="int",
             ),
             Table.HeaderItem(
                 name="negative",
-                type=AttrType.AT_INT,
+                type="int",
             ),
             Table.HeaderItem(
                 name="total",
-                type=AttrType.AT_INT,
+                type="int",
             ),
             Table.HeaderItem(
                 name="precision",
-                type=AttrType.AT_FLOAT,
+                type="float",
             ),
             Table.HeaderItem(
                 name="recall",
-                type=AttrType.AT_FLOAT,
+                type="float",
             ),
             Table.HeaderItem(
                 name="false_positive_rate",
-                type=AttrType.AT_FLOAT,
+                type="float",
             ),
             Table.HeaderItem(
                 name="f1_score",
-                type=AttrType.AT_FLOAT,
+                type="float",
             ),
             Table.HeaderItem(
                 name="lift",
-                type=AttrType.AT_FLOAT,
+                type="float",
             ),
             Table.HeaderItem(
                 name="predicted_positive_ratio",
-                type=AttrType.AT_FLOAT,
+                type="float",
             ),
             Table.HeaderItem(
                 name="predicted_negative_ratio",
-                type=AttrType.AT_FLOAT,
+                type="float",
             ),
             Table.HeaderItem(
                 name="cumulative_percent_of_positive",
-                type=AttrType.AT_FLOAT,
+                type="float",
             ),
             Table.HeaderItem(
                 name="cumulative_percent_of_negative",
-                type=AttrType.AT_FLOAT,
+                type="float",
             ),
             Table.HeaderItem(
                 name="total_cumulative_percent",
-                type=AttrType.AT_FLOAT,
+                type="float",
             ),
             Table.HeaderItem(
                 name="ks",
-                type=AttrType.AT_FLOAT,
+                type="float",
             ),
             Table.HeaderItem(
                 name="avg_score",
-                type=AttrType.AT_FLOAT,
+                type="float",
             ),
         ]
         for idx, bin_report in enumerate(equal_bin_reports):
@@ -258,19 +258,19 @@ def dump_biclassification_reports(name, sys_info, reports):
         headers = [
             Table.HeaderItem(
                 name="threshold",
-                type=AttrType.AT_FLOAT,
+                type="float",
             ),
             Table.HeaderItem(
                 name="FPR(False Positive Rate)",
-                type=AttrType.AT_FLOAT,
+                type="float",
             ),
             Table.HeaderItem(
                 name="precision",
-                type=AttrType.AT_FLOAT,
+                type="float",
             ),
             Table.HeaderItem(
                 name="recall",
-                type=AttrType.AT_FLOAT,
+                type="float",
             ),
         ]
         rows = []
@@ -322,7 +322,7 @@ def dump_biclassification_reports(name, sys_info, reports):
                                     items=[
                                         Descriptions.Item(
                                             name="total_samples",
-                                            type=AttrType.AT_INT,
+                                            type="int",
                                             value=Attribute(
                                                 i64=int(
                                                     reports.summary_report.total_samples
@@ -331,7 +331,7 @@ def dump_biclassification_reports(name, sys_info, reports):
                                         ),
                                         Descriptions.Item(
                                             name="positive_samples",
-                                            type=AttrType.AT_INT,
+                                            type="int",
                                             value=Attribute(
                                                 i64=int(
                                                     reports.summary_report.positive_samples
@@ -340,7 +340,7 @@ def dump_biclassification_reports(name, sys_info, reports):
                                         ),
                                         Descriptions.Item(
                                             name="negative_samples",
-                                            type=AttrType.AT_INT,
+                                            type="int",
                                             value=Attribute(
                                                 i64=int(
                                                     reports.summary_report.negative_samples
@@ -349,21 +349,21 @@ def dump_biclassification_reports(name, sys_info, reports):
                                         ),
                                         Descriptions.Item(
                                             name="auc",
-                                            type=AttrType.AT_FLOAT,
+                                            type="float",
                                             value=Attribute(
                                                 f=reports.summary_report.auc
                                             ),
                                         ),
                                         Descriptions.Item(
                                             name="ks",
-                                            type=AttrType.AT_FLOAT,
+                                            type="float",
                                             value=Attribute(
                                                 f=reports.summary_report.ks
                                             ),
                                         ),
                                         Descriptions.Item(
                                             name="f1_score",
-                                            type=AttrType.AT_FLOAT,
+                                            type="float",
                                             value=Attribute(
                                                 f=reports.summary_report.f1_score
                                             ),

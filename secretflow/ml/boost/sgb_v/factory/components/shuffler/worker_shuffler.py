@@ -18,7 +18,7 @@ import numpy as np
 
 from secretflow.device import PYUObject
 
-from ....core.split_tree_trainer.shuffler import Shuffler
+from .shuffler_core import Shuffler
 
 
 class WorkerShuffler:

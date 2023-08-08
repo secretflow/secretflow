@@ -13,7 +13,7 @@ SHELL ["/root/miniconda3/bin/conda", "run", "-n", "secretflow", "/bin/bash", "-c
 RUN pip install "grpcio>=1.28.1,<=1.43.0"
 RUN pip install ray[tune]==1.13.0 psutil && python -c "import ray; obj = ray.put(1); print(ray.get(obj));" && pip uninstall -y ray
 
-RUN pip install secretflow_ray==1.13.0
+RUN pip install secretflow_ray==1.13.0 
 
 
 

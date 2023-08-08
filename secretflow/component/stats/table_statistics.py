@@ -16,7 +16,7 @@ import pandas as pd
 
 from secretflow.component.component import Component, IoType
 from secretflow.component.data_utils import DistDataType, load_table
-from secretflow.protos.component.comp_pb2 import Attribute, AttrType
+from secretflow.protos.component.comp_pb2 import Attribute
 from secretflow.protos.component.data_pb2 import DistData
 from secretflow.protos.component.report_pb2 import Div, Report, Tab, Table
 from secretflow.stats.table_statistics import table_statistics
@@ -26,13 +26,36 @@ table_statistics_comp = Component(
     domain="stats",
     version="0.0.1",
     desc="""Get a table of statistics,
-    including each column's datatype, total_count, count, count_na, min, max,
-    var, std, sem, skewness, kurtosis, q1, q2, q3, moment_2, moment_3, moment_4,
-    central_moment_2, central_moment_3, central_moment_4, sum, sum_2, sum_3 and sum_4.
+    including each column's
 
-    moment_2 means E[X^2].
-    central_moment_2 means E[(X - mean(X))^2].
-    sum_2 means sum(X^2).
+    1. datatype
+    2. total_count
+    3. count
+    4. count_na
+    5. min
+    6. max
+    7. var
+    8. std
+    9. sem
+    10. skewness
+    11. kurtosis
+    12. q1
+    13. q2
+    14. q3
+    15. moment_2
+    16. moment_3
+    17. moment_4
+    18. central_moment_2
+    19. central_moment_3
+    20. central_moment_4
+    21. sum
+    22. sum_2
+    23. sum_3
+    24. sum_4
+
+    - moment_2 means E[X^2].
+    - central_moment_2 means E[(X - mean(X))^2].
+    - sum_2 means sum(X^2).
     """,
 )
 
@@ -40,14 +63,14 @@ table_statistics_comp = Component(
 table_statistics_comp.io(
     io_type=IoType.INPUT,
     name="input_data",
-    desc="Input data.",
+    desc="Input table.",
     types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
     col_params=None,
 )
 table_statistics_comp.io(
     io_type=IoType.OUTPUT,
     name="report",
-    desc="Output report.",
+    desc="Output table statistics report.",
     types=[DistDataType.REPORT],
     col_params=None,
 )
@@ -56,7 +79,7 @@ table_statistics_comp.io(
 def gen_table_statistic_report(df: pd.DataFrame) -> Report:
     headers, rows = [], []
     for k in df.columns:
-        headers.append(Table.HeaderItem(name=k, desc="", type=AttrType.AT_STRING))
+        headers.append(Table.HeaderItem(name=k, desc="", type="str"))
 
     for index, df_row in df.iterrows():
         rows.append(

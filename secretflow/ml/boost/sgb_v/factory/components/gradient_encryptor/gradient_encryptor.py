@@ -20,8 +20,7 @@ from heu import phe
 
 from secretflow.device import PYU, HEUObject, PYUObject
 from secretflow.device.device.heu import HEUMoveConfig
-from secretflow.ml.boost.sgb_v.factory.params import default_params
-from secretflow.ml.boost.sgb_v.factory.sgb_actor import SGBActor
+from secretflow.ml.boost.sgb_v.core.params import default_params
 
 from ..component import Component, Devices, print_params
 from ..logging import LoggingParams, LoggingTools
@@ -49,7 +48,7 @@ class GradientEncryptorParams:
 
     fixed_point_parameter: int = default_params.fixed_point_parameter
     batch_encoding_enabled: bool = default_params.batch_encoding_enabled
-    label_holder_feature_only: bool = default_params.label_holder_feature_only
+    label_holder_feature_only: bool = False
     audit_paths: dict = field(default_factory=dict)
 
 
@@ -82,7 +81,10 @@ class GradientEncryptor(Component):
             label_holder_party_name == self.heu.sk_keeper_name()
         ), f"HEU sk keeper party {self.heu.sk_keeper_name()}, mismatch with label_holder device's party {label_holder_party_name}"
 
-    def set_actors(self, _: SGBActor):
+    def set_actors(self, _):
+        return
+
+    def del_actors(self):
         return
 
     def get_params(self, params: dict):
@@ -94,16 +96,14 @@ class GradientEncryptor(Component):
 
     def set_params(self, params: dict):
         # validation
-        fxp_r = params.get('fixed_point_parameter', 20)
-        assert (
-            fxp_r >= 1 and fxp_r <= 100
-        ), f"fixed_point_parameter should in [1, 100], got {fxp_r}"
-
-        enable_batch_encoding = bool(params.get('batch_encoding_enabled', True))
+        fxp_r = params.get(
+            'fixed_point_parameter', default_params.fixed_point_parameter
+        )
+        enable_batch_encoding = params.get(
+            'batch_encoding_enabled', default_params.batch_encoding_enabled
+        )
         audit_paths = params.get('audit_paths', {})
-        label_holder_feature_only = bool(params.get('label_holder_feature_only', False))
-        assert isinstance(audit_paths, dict), " audit paths must be a dict"
-
+        label_holder_feature_only = params.get('label_holder_feature_only', False)
         # set params
         self.params.label_holder_feature_only = label_holder_feature_only
         self.params.fixed_point_parameter = fxp_r

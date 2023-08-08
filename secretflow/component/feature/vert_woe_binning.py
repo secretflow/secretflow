@@ -109,7 +109,7 @@ vert_woe_binning_comp.float_attr(
 vert_woe_binning_comp.io(
     io_type=IoType.INPUT,
     name="input_data",
-    desc="Input dataset for generating rule.",
+    desc="Input vertical table.",
     types=[DistDataType.VERTICAL_TABLE],
     col_params=[
         TableColParam(
@@ -239,14 +239,14 @@ vert_woe_substitution_comp.io(
 vert_woe_substitution_comp.io(
     io_type=IoType.INPUT,
     name="woe_rule",
-    desc="WOE substitution rule.",
+    desc="Input WOE substitution rule.",
     types=[DistDataType.WOE_RUNNING_RULE],
     col_params=None,
 )
 vert_woe_substitution_comp.io(
     io_type=IoType.OUTPUT,
     name="output_data",
-    desc="Output substituted dataset.",
+    desc="Output vertical table.",
     types=[DistDataType.VERTICAL_TABLE],
     col_params=None,
 )
@@ -285,11 +285,11 @@ def vert_woe_substitution_eval_fn(
 
     vt_wrapper = VerticalTableWrapper.from_dist_data(input_data, output_df.shape[0])
 
-    # modify types of feature_selects to f32
+    # modify types of feature_selects to float
     for v in vt_wrapper.schema_map.values():
         for i, f in enumerate(list(v.features)):
             if f in feature_selects:
-                v.feature_types[i] = 'f32'
+                v.feature_types[i] = 'float'
 
     return {
         "output_data": dump_vertical_table(
