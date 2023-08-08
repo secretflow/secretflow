@@ -5,7 +5,6 @@
 HE, especially FHE(Fully Homomorphic Encryption), does matter and are keys for now and future.
 
 - [Homomorphic Encryption (HE)](#homomorphic-encryption-he)
-  - [Notable References](#notable-references)
   - [Survey](#survey)
   - [Partial HE(PHE)](#partial-hephe)
   - [FHE](#fhe)
@@ -16,10 +15,7 @@ HE, especially FHE(Fully Homomorphic Encryption), does matter and are keys for n
     - [Open-sourced libs](#open-sourced-libs)
   - [Applications](#applications)
   - [Standard Efforts](#standard-efforts)
-
-## Notable References
-
-- [Homomorphic Encryption References](https://people.csail.mit.edu/vinodv/FHE/FHE-refs.html)
+  - [Other Resources](#other-resources)
 
 ## Survey
 
@@ -232,9 +228,9 @@ Communications of the ACM, [paper](https://dl.acm.org/doi/pdf/10.1145/359340.359
 
 ### Hardware-based Acceleration
 
-- Intel HEXL: Accelerating Homomorphic Encryption with Intel AVX512-IFMA52
-  *Fabian Boemer, Sejun Kim, Gelila Seifu, Fillipe D. M. de Souza, Vinodh Gopal*
-  Proceedings of the 9th on Workshop on Encrypted Computing & Applied Homomorphic Cryptography 2021, [paper](https://dl.acm.org/doi/abs/10.1145/3474366.3486926)
+- Intel HEXL: Accelerating Homomorphic Encryption with Intel AVX512-IFMA52  
+  *Fabian Boemer, Sejun Kim, Gelila Seifu, Fillipe D. M. de Souza, Vinodh Gopal*  
+  Proceedings of the 9th on Workshop on Encrypted Computing & Applied Homomorphic Cryptography 2021, [paper](https://dl.acm.org/doi/abs/10.1145/3474366.3486926), BKS+21
 
 ### Open-sourced libs
 
@@ -256,6 +252,11 @@ Here just list several inspirational and instructive applicaitons.
   *T. Okamoto and D. Pointcheval*
   Submission to IEEE P1363a, 2000, [paper](https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=4acdabff9b41622d0ee49ade2d0b4302e3727bf5), OP00; [a note by Rachel Shipsey](https://www.cosic.esat.kuleuven.be/nessie/reports/phase1/rhuwp3-008b.pdf),
 
-- Homomorphic Encryption Security Standard v1.1
-  *Martin Albrecht and Melissa Chase and Hao Chen and Jintai Ding and Shafi Goldwasser and Sergey Gorbunov and Shai Halevi and Jeffrey Hoffstein and Kim Laine and Kristin Lauter and Satya Lokam and Daniele Micciancio and Dustin Moody and Travis Morrison and Amit Sahai and Vinod Vaikuntanathan*
+- Homomorphic Encryption Security Standard v1.1  
+  *Martin Albrecht and Melissa Chase and Hao Chen and Jintai Ding and Shafi Goldwasser and Sergey Gorbunov and Shai Halevi and Jeffrey Hoffstein and Kim Laine and Kristin Lauter and Satya Lokam and Daniele Micciancio and Dustin Moody and Travis Morrison and Amit Sahai and Vinod Vaikuntanathan*  
   HomomorphicEncryption.org, [paper](http://homomorphicencryption.org/wp-content/uploads/2018/11/HomomorphicEncryptionStandardv1.1.pdf), [homepage](https://homomorphicencryption.org/standard/), ACC+18
+
+  ## Other Resources
+
+- [Homomorphic Encryption References](https://people.csail.mit.edu/vinodv/FHE/FHE-refs.html)
+
