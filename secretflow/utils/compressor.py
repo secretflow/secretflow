@@ -16,9 +16,10 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, List, Union
 
-import jax.numpy as jnp
 import numpy as np
 from scipy import sparse
+
+import jax.numpy as jnp
 from secretflow.utils.communicate import ForwardData
 from secretflow.utils.errors import InvalidArgumentError
 
@@ -527,3 +528,57 @@ class QuantizedLSTM(QuantizedCompressor):
 
     def _decompress_one(self, data: QuantizedData) -> np.ndarray:
         return (data.data.astype(data.origin_type) + float(data.q2)) / float(data.q1)
+
+
+class QuantizedFP(QuantizedCompressor):
+    """Quantized compressor with low-bit floating points, fp16/32/64 will be change directly in numpy format, while fp8(M4E3) will be stored as int8 object.
+
+    Reference paper "FP8 FORMATS FOR DEEP LEARNING".
+
+    Link: https://arxiv.org/pdf/2209.05433.pdf
+    """
+
+    def __init__(self, quant_bits: int = 8):
+        super().__init__(quant_bits)
+        if quant_bits not in [8, 16, 32, 64]:
+            raise RuntimeError(
+                f"The quantized bits for QuantizedFP must in 8/16/32/64, got {quant_bits}"
+            )
+
+    def _compress_one(self, data: np.ndarray) -> QuantizedData:
+        if self.quant_bits > 8:
+            # fp 16/32/64
+            return QuantizedData(
+                data.astype(getattr(np, f'float{self.quant_bits}')),
+                None,
+                None,
+                data.dtype,
+            )
+        else:
+            # fp8(M4E3) with a scale factor, store as np.int8.
+            q_sign = np.sign(data)
+
+            out = np.abs(data)
+            scale = 448 / np.max(out)  # A fp8 value can represent to [-448, 448]
+            out = out * scale
+            mant, exp = np.frexp(out)
+            q_mant = np.round(mant * 8)
+            q_exp = np.where(exp > -6, exp + 6, 0)
+
+            quantized = q_sign * (q_exp * 8 + q_mant)
+            return QuantizedData(
+                quantized.astype(self.np_type), scale, None, data.dtype
+            )
+
+    def _decompress_one(self, data: QuantizedData) -> np.ndarray:
+        if self.quant_bits != 8:
+            return data.data.astype(data.origin_type)
+        else:
+            # decompose fp8(stored in int8) to default fp
+            quantized = data.data
+            sign = np.sign(quantized)
+            abs_quantized = np.abs(quantized)
+            exp = (abs_quantized // 8) - 6
+            mant = (abs_quantized % 8).astype(data.origin_type) / 8
+            ori_data = sign * np.ldexp(mant, exp) / data.q1
+            return ori_data
