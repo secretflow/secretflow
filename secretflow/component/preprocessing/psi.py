@@ -192,7 +192,7 @@ def two_party_balanced_psi_eval_fn(
         )
 
     with ctx.tracer.trace_running():
-        join_count = spu.psi_join_csv(
+        intersection_count = spu.psi_csv(
             key={receiver_pyu: receiver_input_key, sender_pyu: sender_input_key},
             input_path={
                 receiver_pyu: os.path.join(
@@ -207,11 +207,11 @@ def two_party_balanced_psi_eval_fn(
                 sender_pyu: os.path.join(local_fs_wd, psi_output),
             },
             receiver=receiver_party,
-            join_party=sender_party,
+            sort=False,
             protocol=protocol,
             bucket_size=bucket_size,
             curve_type=ecdh_curve_type,
-        )[0]["join_count"]
+        )[0]["intersection_count"]
 
     output_db = DistData(
         name=psi_output,
@@ -240,7 +240,7 @@ def two_party_balanced_psi_eval_fn(
     )
     vmeta = VerticalTable()
     assert output_db.meta.Unpack(vmeta)
-    vmeta.num_lines = join_count
+    vmeta.num_lines = intersection_count
     output_db.meta.Pack(vmeta)
 
     return {"psi_output": output_db}

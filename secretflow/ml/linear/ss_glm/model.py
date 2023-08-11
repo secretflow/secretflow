@@ -372,7 +372,13 @@ class SSGLM:
         spu_o: SPUObject,
         spu_w: SPUObject,
     ) -> SPUObject:
-        spu_model = self.spu(_irls_update_w, static_argnames=('dist', 'link',),)(
+        spu_model = self.spu(
+            _irls_update_w,
+            static_argnames=(
+                'dist',
+                'link',
+            ),
+        )(
             spu_x,
             spu_y,
             spu_o,
@@ -687,7 +693,10 @@ class SSGLM:
                 spu_o = self._to_spu(batch_o)[0]
             else:
                 spu_o = None
-            spu_pred = self.spu(_predict, static_argnames=('link', 'y_scale'),)(
+            spu_pred = self.spu(
+                _predict,
+                static_argnames=('link', 'y_scale'),
+            )(
                 spu_x,
                 spu_o,
                 self.spu_w,

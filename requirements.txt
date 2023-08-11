@@ -5,7 +5,7 @@
 # Avoid thead pool fork issue, see https://github.com/grpc/grpc/issues/31772
 clean-text  # FEATURE=[lite]
 click  # FEATURE=[lite]
-grpcio==1.56.2  # FEATURE=[lite]
+grpcio==1.56.2   # FEATURE=[lite]
 jax<=0.4.12  # FEATURE=[lite]
 jaxlib<=0.4.12  # FEATURE=[lite]
 kuscia==0.0.1b2  # FEATURE=[lite]
@@ -27,9 +27,8 @@ secretflow-rayfed==0.1.1a4 # FEATURE=[lite]
 # For security reason. This is introduced by TensorFlow.
 setuptools>=65.5.1
 sparse>=0.14.0
---extra-index-url https://test.pypi.org/simple/
-spu==0.4.2b2  # FEATURE=[lite]
-sf-heu==0.4.4b0  # FEATURE=[lite]
+spu==0.4.2a2  # FEATURE=[lite]
+sf-heu==0.4.4  # FEATURE=[lite]
 tensorflow-macos==2.11.0; platform_machine == "arm64" and platform_system == "Darwin"
 tensorflow==2.11.1; platform_machine != "arm64"
 tf2onnx>=1.13.0
