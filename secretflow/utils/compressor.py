@@ -531,19 +531,29 @@ class QuantizedLSTM(QuantizedCompressor):
 
 
 class QuantizedFP(QuantizedCompressor):
-    """Quantized compressor with low-bit floating points, fp16/32/64 will be change directly in numpy format, while fp8(M4E3) will be stored as int8 object.
+    """Quantized compressor with low-bit floating points, fp16/32/64 will be change directly in numpy format, while fp8 will be stored as int8 object.
 
     Reference paper "FP8 FORMATS FOR DEEP LEARNING".
 
     Link: https://arxiv.org/pdf/2209.05433.pdf
     """
 
-    def __init__(self, quant_bits: int = 8):
+    def __init__(self, quant_bits: int = 8, format='E4M3'):
         super().__init__(quant_bits)
         if quant_bits not in [8, 16, 32, 64]:
             raise RuntimeError(
                 f"The quantized bits for QuantizedFP must in 8/16/32/64, got {quant_bits}"
             )
+
+        if quant_bits == 8 and format not in ['E4M3', 'E5M2']:
+            raise RuntimeError(
+                f"The format for fp8 quantized must in E4M3/E5M2, got {format}"
+            )
+        config = {
+            'E4M3': {'max_value': 448, 'mant_len': 8, 'exp_offset': 6},
+            'E5M2': {'max_value': 57344, 'mant_len': 4, 'exp_offset': 14},
+        }
+        self.config = config[format]
 
     def _compress_one(self, data: np.ndarray) -> QuantizedData:
         if self.quant_bits > 8:
@@ -555,17 +565,21 @@ class QuantizedFP(QuantizedCompressor):
                 data.dtype,
             )
         else:
-            # fp8(M4E3) with a scale factor, store as np.int8.
+            # fp8 with a scale factor, store as np.int8.
             q_sign = np.sign(data)
 
             out = np.abs(data)
-            scale = 448 / np.max(out)  # A fp8 value can represent to [-448, 448]
+            scale = self.config['max_value'] / np.max(
+                out
+            )  # A fp8 value can represent to [-448, 448]
             out = out * scale
             mant, exp = np.frexp(out)
-            q_mant = np.round(mant * 8)
-            q_exp = np.where(exp > -6, exp + 6, 0)
+            q_mant = np.round(mant * self.config['mant_len'])
+            q_exp = np.where(
+                exp > -self.config['exp_offset'], exp + self.config['exp_offset'], 0
+            )
 
-            quantized = q_sign * (q_exp * 8 + q_mant)
+            quantized = q_sign * (q_exp * self.config['mant_len'] + q_mant)
             return QuantizedData(
                 quantized.astype(self.np_type), scale, None, data.dtype
             )
@@ -578,7 +592,49 @@ class QuantizedFP(QuantizedCompressor):
             quantized = data.data
             sign = np.sign(quantized)
             abs_quantized = np.abs(quantized)
-            exp = (abs_quantized // 8) - 6
-            mant = (abs_quantized % 8).astype(data.origin_type) / 8
+            exp = (abs_quantized // self.config['mant_len']) - self.config['exp_offset']
+            mant = (abs_quantized % self.config['mant_len']).astype(
+                data.origin_type
+            ) / self.config['mant_len']
             ori_data = sign * np.ldexp(mant, exp) / data.q1
             return ori_data
+
+
+class QuantizedKmeans(QuantizedCompressor):
+    """Quantized compressor with Kmeans, a algorithm which replace float with relatived centroid's index.
+
+    Reference paper 2016 "Deep Compression: Compressing Deep Neural Networks with Pruning, Trained Quantization and Huffman Coding".
+
+    Link: https://arxiv.org/abs/1510.00149
+    """
+
+    def __init__(self, quant_bits: int = 8, n_clusters=None):
+        super().__init__(quant_bits)
+        from sklearn.cluster import KMeans
+
+        if n_clusters is None:
+            self.n_clusters = 2**quant_bits
+        else:
+            self.n_clusters = n_clusters
+        self.km = KMeans(self.n_clusters, n_init=1, max_iter=50)
+
+    def _compress_one(self, data: np.ndarray) -> QuantizedData:
+        if data.flatten().shape[0] <= self.n_clusters:
+            return QuantizedData(data, None, None, None)
+        ori_shape = data.shape
+        self.km.fit(np.expand_dims(data.flatten(), axis=1))
+        quantized = self.km.labels_ - (1 << (self.quant_bits - 1))
+        quantized = np.reshape(quantized, ori_shape)
+        q = self.km.cluster_centers_
+
+        return QuantizedData(quantized.astype(self.np_type), q, None, data.dtype)
+
+    def _decompress_one(self, data: QuantizedData) -> np.ndarray:
+        if data.data.flatten().shape[0] <= self.n_clusters:
+            return data.data
+        label = data.data.astype(data.origin_type) + (1 << (self.quant_bits - 1))
+        dequantized = np.zeros_like(label)
+        for i in range(data.q1.shape[0]):
+            dequantized[label == i] = data.q1[i]
+
+        return dequantized
