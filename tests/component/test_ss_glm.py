@@ -51,8 +51,8 @@ def test_glm(comp_prod_sf_cluster_config):
             "epochs",
             "learning_rate",
             "batch_size",
-            "link",
-            "dist",
+            "link_type",
+            "label_dist_type",
             "optimizer",
         ],
         attrs=[
