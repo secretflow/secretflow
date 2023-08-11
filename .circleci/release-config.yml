@@ -11,9 +11,6 @@ parameters:
   GHA_Event:
     type: string
     default: ""
-  GHA_Meta:
-    type: string
-    default: ""
 
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/2.0/configuration-reference/#jobs
