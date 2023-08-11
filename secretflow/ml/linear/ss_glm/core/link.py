@@ -9,6 +9,14 @@ from secretflow.utils import sigmoid as appr_sig
 from secretflow.utils.errors import InvalidArgumentError
 
 
+@unique
+class LinkType(Enum):
+    Logit = 'Logit'
+    Log = 'Log'
+    Reciprocal = 'Reciprocal'
+    Indentity = 'Indentity'
+
+
 class Linker(ABC):
     @abstractmethod
     def link(self, mu: np.ndarray) -> np.ndarray:
@@ -28,6 +36,10 @@ class Linker(ABC):
 
 
 class LinkLogit(Linker):
+    @staticmethod
+    def link_type() -> Linker:
+        return LinkType.Logit
+
     def link(self, mu: np.ndarray) -> np.ndarray:
         return jnp.log(mu / (1 - mu))
 
@@ -42,6 +54,10 @@ class LinkLogit(Linker):
 
 
 class LinkLog(Linker):
+    @staticmethod
+    def link_type() -> Linker:
+        return LinkType.Log
+
     def link(self, mu: np.ndarray) -> np.ndarray:
         return jnp.log(mu)
 
@@ -56,6 +72,10 @@ class LinkLog(Linker):
 
 
 class LinkReciprocal(Linker):
+    @staticmethod
+    def link_type() -> Linker:
+        return LinkType.Reciprocal
+
     def link(self, mu: np.ndarray) -> np.ndarray:
         return 1 / mu
 
@@ -70,6 +90,10 @@ class LinkReciprocal(Linker):
 
 
 class LinkIndentity(Linker):
+    @staticmethod
+    def link_type() -> Linker:
+        return LinkType.Indentity
+
     def link(self, mu: np.ndarray) -> np.ndarray:
         return mu
 
@@ -81,14 +105,6 @@ class LinkIndentity(Linker):
 
     def link_derivative(self, mu: np.ndarray) -> np.ndarray:
         return jnp.ones(mu.shape)
-
-
-@unique
-class LinkType(Enum):
-    Logit = 'Logit'
-    Log = 'Log'
-    Reciprocal = 'Reciprocal'
-    Indentity = 'Indentity'
 
 
 def get_link(t: Union[LinkType, str]) -> Linker:

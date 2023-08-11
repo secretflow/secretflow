@@ -62,6 +62,7 @@ class DistDataType(BaseEnum):
     VERTICAL_TABLE = "sf.table.vertical_table"
     INDIVIDUAL_TABLE = "sf.table.individual"
     SS_SGD_MODEL = "sf.model.ss_sgd"
+    SS_GLM_MODEL = "sf.model.ss_glm"
     SGB_MODEL = "sf.model.sgb"
     WOE_RUNNING_RULE = "sf.rule.woe_binning"
     SS_XGB_MODEL = "sf.model.ss_xgb"

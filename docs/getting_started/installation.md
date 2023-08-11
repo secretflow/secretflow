@@ -120,14 +120,42 @@ After set up of SecretFlow in WSL, you can use [Pycharm Professional to Configur
 
 Try your first SecretFlow program.
 
+Import secretflow package.
+
 ```python
 >>> import secretflow as sf
->>> sf.init(['alice', 'bob', 'carol'], address='local')
->>> dev = sf.PYU('alice')
->>> import numpy as np
->>> data = dev(np.random.rand)(3, 4)
->>> data
+```
+
+Create a local cluster with parties alice, bob and carol.
+
+```python
+>>> sf.init(parties=['alice', 'bob', 'carol'], address='local')
+```
+
+Create alice's PYU device, which can process alice's data.
+
+```python
+>>> alice_device = sf.PYU('alice')
+```
+
+Let alice say hello world.
+```python
+>>> message_from_alice = alice_device(lambda x:x)("Hello World!")
+```
+
+Print the message.
+```python
+>>> message_from_alice
 <secretflow.device.device.pyu.PYUObject object at 0x7fdec24a15b0>
+```
+
+We see that the message on alice device is a PYU Object at deriver program.
+
+Print the text at the driver by revealing the message.
+
+```python
+>>> print(sf.reveal(message_from_alice))
+Hello World!
 ```
 
 ## GPU support
@@ -182,7 +210,7 @@ You could also build the Docker image by yourself.
 
 ```bash
 git clone https://github.com/secretflow/secretflow.git
-cd secretflow/docker/release/
+cd secretflow/docker
 ```
 
 2. Use a dockerfile file to construct the image

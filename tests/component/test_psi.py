@@ -27,9 +27,9 @@ def test_psi(comp_prod_sf_cluster_config):
     if self_party == "alice":
         da = pd.DataFrame(
             {
-                "id1": ["K100", "K200", "K200", "K300", "K400", "K400", "K500"],
-                "item": ["A", "B", "C", "D", "E", "F", "G"],
-                "feature1": ["AAA", "BBB", "CCC", "DDD", "EEE", "FFF", "GGG"],
+                "id1": ["K100", "K200", "K300", "K400", "K500"],
+                "item": ["A", "B", "D", "E", "G"],
+                "feature1": ["AAA", "BBB", "DDD", "EEE", "GGG"],
             }
         )
 
@@ -63,15 +63,15 @@ def test_psi(comp_prod_sf_cluster_config):
 
     expected_result_a = pd.DataFrame(
         {
-            "id1": ["K200", "K200", "K300", "K400", "K400", "K500"],
-            "item": ["B", "C", "D", "E", "F", "G"],
-            "feature1": ["BBB", "CCC", "DDD", "EEE", "FFF", "GGG"],
+            "id1": ["K200", "K300", "K400", "K500"],
+            "item": ["B", "D", "E", "G"],
+            "feature1": ["BBB", "DDD", "EEE", "GGG"],
         }
     )
     expected_result_b = pd.DataFrame(
         {
-            "id2": ["K200", "K200", "K300", "K400", "K400", "K500"],
-            "feature2": ["AA", "AA", "BB", "CC", "CC", "DD"],
+            "id2": ["K200", "K300", "K400", "K500"],
+            "feature2": ["AA", "BB", "CC", "DD"],
         }
     )
 

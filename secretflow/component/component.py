@@ -340,7 +340,7 @@ class Component:
                             or (lower_bound_inclusive and v == lower_bound)
                         ):
                             raise CompDeclError(
-                                f"default_value {v} fails bound check: lower_bound {lower_bound}, lower_bound_inclusive {lower_bound_inclusive}"
+                                f"attr {name} default_value {v} fails bound check: lower_bound {lower_bound}, lower_bound_inclusive {lower_bound_inclusive}"
                             )
                 else:
                     if not (
@@ -348,7 +348,7 @@ class Component:
                         or (lower_bound_inclusive and default_value == lower_bound)
                     ):
                         raise CompDeclError(
-                            f"default_value {default_value} fails bound check: lower_bound {lower_bound}, lower_bound_inclusive {lower_bound_inclusive}"
+                            f"attr {name} default_value {default_value} fails bound check: lower_bound {lower_bound}, lower_bound_inclusive {lower_bound_inclusive}"
                         )
 
         if default_value is not None:
@@ -360,7 +360,7 @@ class Component:
                             or (upper_bound_inclusive and v == upper_bound)
                         ):
                             raise CompDeclError(
-                                f"default_value {v} fails bound check: upper_bound {upper_bound}, upper_bound_inclusive {upper_bound_inclusive}"
+                                f"attr {name} default_value {v} fails bound check: upper_bound {upper_bound}, upper_bound_inclusive {upper_bound_inclusive}"
                             )
                 else:
                     if not (
@@ -368,7 +368,7 @@ class Component:
                         or (upper_bound_inclusive and default_value == upper_bound)
                     ):
                         raise CompDeclError(
-                            f"default_value {default_value} fails bound check: upper_bound {upper_bound}, upper_bound_inclusive {upper_bound_inclusive}"
+                            f"attr {name} default_value {default_value} fails bound check: upper_bound {upper_bound}, upper_bound_inclusive {upper_bound_inclusive}"
                         )
 
         if (
