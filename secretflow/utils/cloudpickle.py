@@ -33,9 +33,10 @@ import types
 import typing
 import weakref
 from collections import ChainMap, OrderedDict
+from enum import Enum
 
 import _collections_abc
-from ray.cloudpickle import Pickler, cloudpickle_fast
+from ray.cloudpickle import Pickler, cloudpickle, cloudpickle_fast
 
 
 def _code_reduce(obj):
@@ -100,6 +101,117 @@ def _code_reduce(obj):
     return types.CodeType, args
 
 
+'''borrow from cloudpickle.py'''
+
+
+def _get_or_create_tracker_id(class_def):
+    return '00000000000000000000000000000000'
+
+
+def _decompose_typevar(obj):
+    return (
+        obj.__name__,
+        obj.__bound__,
+        obj.__constraints__,
+        obj.__covariant__,
+        obj.__contravariant__,
+        _get_or_create_tracker_id(obj),
+    )
+
+
+def _typevar_reduce(obj):
+    # TypeVar instances require the module information hence why we
+    # are not using the _should_pickle_by_reference directly
+    module_and_name = cloudpickle._lookup_module_and_qualname(obj, name=obj.__name__)
+
+    if module_and_name is None:
+        return (cloudpickle._make_typevar, _decompose_typevar(obj))
+    elif cloudpickle._is_registered_pickle_by_value(module_and_name[0]):
+        return (cloudpickle._make_typevar, _decompose_typevar(obj))
+
+    return (getattr, module_and_name)
+
+
+'''borrow from cloudpickle_fast.py'''
+
+
+def _class_getnewargs(obj):
+    type_kwargs = {}
+    if "__module__" in obj.__dict__:
+        type_kwargs["__module__"] = obj.__module__
+
+    __dict__ = obj.__dict__.get('__dict__', None)
+    if isinstance(__dict__, property):
+        type_kwargs['__dict__'] = __dict__
+
+    return (
+        type(obj),
+        obj.__name__,
+        cloudpickle_fast._get_bases(obj),
+        type_kwargs,
+        _get_or_create_tracker_id(obj),
+        None,
+    )
+
+
+def _enum_getnewargs(obj):
+    members = {e.name: e.value for e in obj}
+    return (
+        obj.__bases__,
+        obj.__name__,
+        obj.__qualname__,
+        members,
+        obj.__module__,
+        _get_or_create_tracker_id(obj),
+        None,
+    )
+
+
+def _dynamic_class_reduce(obj):
+    """
+    Save a class that can't be stored as module global.
+
+    This method is used to serialize classes that are defined inside
+    functions, or that otherwise can't be serialized as attribute lookups
+    from global modules.
+    """
+    if Enum is not None and issubclass(obj, Enum):
+        return (
+            cloudpickle_fast._make_skeleton_enum,
+            _enum_getnewargs(obj),
+            cloudpickle_fast._enum_getstate(obj),
+            None,
+            None,
+            cloudpickle_fast._class_setstate,
+        )
+    else:
+        return (
+            cloudpickle_fast._make_skeleton_class,
+            _class_getnewargs(obj),
+            cloudpickle_fast._class_getstate(obj),
+            None,
+            None,
+            cloudpickle_fast._class_setstate,
+        )
+
+
+def _class_reduce(obj):
+    """Select the reducer depending on the dynamic nature of the class obj"""
+    if obj is type(None):  # noqa
+        return type, (None,)
+    elif obj is type(Ellipsis):
+        return type, (Ellipsis,)
+    elif obj is type(NotImplemented):
+        return type, (NotImplemented,)
+    elif obj in cloudpickle_fast._BUILTIN_TYPE_NAMES:
+        return cloudpickle_fast._builtin_type, (
+            cloudpickle_fast._BUILTIN_TYPE_NAMES[obj],
+        )
+    elif not cloudpickle_fast._should_pickle_by_reference(obj):
+        return _dynamic_class_reduce(obj)
+    return NotImplemented
+
+
 class CodePositionIndependentCloudPickler(Pickler):
     _dispatch_table = {}
     _dispatch_table[classmethod] = cloudpickle_fast._classmethod_reduce
@@ -119,7 +231,7 @@ class CodePositionIndependentCloudPickler(Pickler):
     _dispatch_table[types.MethodType] = cloudpickle_fast._method_reduce
     _dispatch_table[types.MappingProxyType] = cloudpickle_fast._mappingproxy_reduce
     _dispatch_table[weakref.WeakSet] = cloudpickle_fast._weakset_reduce
-    _dispatch_table[typing.TypeVar] = cloudpickle_fast._typevar_reduce
+    _dispatch_table[typing.TypeVar] = _typevar_reduce
     _dispatch_table[_collections_abc.dict_keys] = cloudpickle_fast._dict_keys_reduce
     _dispatch_table[_collections_abc.dict_values] = cloudpickle_fast._dict_values_reduce
     _dispatch_table[_collections_abc.dict_items] = cloudpickle_fast._dict_items_reduce
@@ -304,7 +416,7 @@ class CodePositionIndependentCloudPickler(Pickler):
                 is_anyclass = False
 
             if is_anyclass:
-                return cloudpickle_fast._class_reduce(obj)
+                return _class_reduce(obj)
             elif isinstance(obj, types.FunctionType):
                 return self._function_reduce(obj)
             else:
