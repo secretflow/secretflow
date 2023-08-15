@@ -57,6 +57,10 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   *Gayathri Garimella, Payman Mohassel, Mike Rosulek, Saeed Sadeghian, Jaspal Singh*
   PKC 2021, [eprint](https://eprint.iacr.org/2021/243), GMRS21
 
+- Oblivious Key-Value Stores and Amplification for Private Set Intersection
+  *Gayathri Garimella, Benny Pinkas, Mike Rosulek, Ni Trieu, and Avishay Yanai*
+  Crypto 2021, [eprint](https://eprint.iacr.org/2021/883), GPR+21
+
 - PSI from PaXoS: Fast, Malicious Private Set Intersection
   *Benny Pinkas, Mike Rosulek, Ni Trieu, Avishay Yanai*
   EuroCrypt 2020, [eprint](https://eprint.iacr.org/2020/193), PaXoS
