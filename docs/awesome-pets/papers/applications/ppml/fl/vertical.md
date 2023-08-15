@@ -20,6 +20,4 @@
 
 - [When Homomorphic Encryption Marries Secret Sharing: Secure Large-Scale Sparse Logistic Regression and Applications in Risk Control](https://arxiv.org/pdf/2008.08753.pdf)
 
-- [FedV: Privacy-Preserving Federated Learning over Vertically Partitioned Data](https://doi.org/10.1145/3474369.3486872)
-
 - [FedBCD: A Communication-Efficient Collaborative Learning Framework for Distributed Features](https://ieeexplore.ieee.org/document/9855231/)
