@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from .aggregation import Aggregator, PlainAggregator, SecureAggregator, SPUAggregator
+from .aggregation.lwe_secure_aggregator import LWESecureAggregator
 from .compare import Comparator, DeviceComparator, PlainComparator, SPUComparator
 
 __all__ = [
@@ -24,4 +25,5 @@ __all__ = [
     'DeviceComparator',
     'PlainComparator',
     'SPUComparator',
+    'LWESecureAggregator'
 ]
