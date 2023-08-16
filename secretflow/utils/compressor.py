@@ -16,10 +16,10 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, List, Union
 
+import jax.numpy as jnp
 import numpy as np
 from scipy import sparse
 
-import jax.numpy as jnp
 from secretflow.utils.communicate import ForwardData
 from secretflow.utils.errors import InvalidArgumentError
 
