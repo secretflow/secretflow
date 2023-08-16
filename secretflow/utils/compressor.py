@@ -537,19 +537,22 @@ class QuantizedFP(QuantizedCompressor):
 
     Link: https://arxiv.org/pdf/2209.05433.pdf
     """
+
     def __init__(self, quant_bits: int = 8, format='E4M3'):
         super().__init__(quant_bits)
         if quant_bits not in [8, 16, 32, 64]:
             raise RuntimeError(
                 f"The quantized bits for QuantizedFP must in 8/16/32/64, got {quant_bits}"
             )
-        
+
         if quant_bits == 8 and format not in ['E4M3', 'E5M2']:
             raise RuntimeError(
                 f"The format for fp8 quantized must in E4M3/E5M2, got {format}"
             )
-        config = {'E4M3': {'max_value': 448, 'mant_len': 8, 'exp_offset': 6},
-                  'E5M2': {'max_value': 57344, 'mant_len': 4, 'exp_offset': 14}}
+        config = {
+            'E4M3': {'max_value': 448, 'mant_len': 8, 'exp_offset': 6},
+            'E5M2': {'max_value': 57344, 'mant_len': 4, 'exp_offset': 14},
+        }
         self.config = config[format]
 
     def _compress_one(self, data: np.ndarray) -> QuantizedData:
@@ -566,11 +569,16 @@ class QuantizedFP(QuantizedCompressor):
             q_sign = np.sign(data)
 
             out = np.abs(data)
-            scale = self.config['max_value'] / np.max(out)
+            max_division = np.max(out) if np.max(out) > 0 else 1
+            scale = self.config['max_value'] / max_division
             out = out * scale
-            mant, exp = np.frexp(out)          # frexp mantissa range is (-1, 1), not (-2, -1] and [1, 2)
-            q_exp = np.where(exp > -self.config['exp_offset'], exp + self.config['exp_offset'], 0)
-            q_mant = np.round((2 * mant -1) * self.config['mant_len'])     
+            mant, exp = np.frexp(
+                out
+            )  # frexp mantissa range is (-1, 1), not (-2, -1] and [1, 2)
+            q_exp = np.where(
+                exp > -self.config['exp_offset'], exp + self.config['exp_offset'], 0
+            )
+            q_mant = np.round((2 * mant - 1) * self.config['mant_len'])
 
             quantized = q_sign * (q_exp * self.config['mant_len'] + q_mant)
             return QuantizedData(
@@ -586,7 +594,11 @@ class QuantizedFP(QuantizedCompressor):
             sign = np.sign(quantized)
             abs_quantized = np.abs(quantized)
             exp = (abs_quantized // self.config['mant_len']) - self.config['exp_offset']
-            mant = ((abs_quantized % self.config['mant_len']).astype(data.origin_type) / self.config['mant_len'] + 1) / 2
+            mant = (
+                (abs_quantized % self.config['mant_len']).astype(data.origin_type)
+                / self.config['mant_len']
+                + 1
+            ) / 2
 
             ori_data = sign * np.ldexp(mant, exp) / data.q1
             return ori_data
