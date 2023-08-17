@@ -454,6 +454,83 @@
     },
     {
       "domain": "ml.predict",
+      "name": "ss_glm_predict",
+      "desc": "Predict using the SSGLM model.",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "receiver",
+          "desc": "Party of receiver.",
+          "type": "AT_STRING",
+          "atomic": {}
+        },
+        {
+          "name": "pred_name",
+          "desc": "Column name for predictions.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "pred"
+            }
+          }
+        },
+        {
+          "name": "save_ids",
+          "desc": "Whether to save ids columns into output prediction table. If true, input feature_dataset must contain id columns, and receiver party must be id owner.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "save_label",
+          "desc": "Whether or not to save real label columns into output pred file. If true, input feature_dataset must contain label columns and receiver party must be label owner.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "offset_col",
+          "desc": "Specify a column to use as the offset",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "model",
+          "desc": "Input model.",
+          "types": [
+            "sf.model.ss_glm"
+          ]
+        },
+        {
+          "name": "feature_dataset",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "pred",
+          "desc": "Output prediction.",
+          "types": [
+            "sf.table.individual"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "ml.predict",
       "name": "ss_sgd_predict",
       "desc": "Predict using the SS-SGD model.",
       "version": "0.0.1",
@@ -988,6 +1065,224 @@
           "desc": "Output model.",
           "types": [
             "sf.model.sgb"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "ml.train",
+      "name": "ss_glm_train",
+      "desc": "generalized linear model (GLM) is a flexible generalization of ordinary linear regression.\nThe GLM generalizes linear regression by allowing the linear model to be related to the response\nvariable via a link function and by allowing the magnitude of the variance of each measurement to\nbe a function of its predicted value.",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "epochs",
+          "desc": "The number of complete pass through the training data.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "10"
+            },
+            "hasLowerBound": true,
+            "lowerBound": {
+              "i64": "1"
+            },
+            "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "learning_rate",
+          "desc": "The step size at each iteration in one iteration.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.1
+            },
+            "hasLowerBound": true,
+            "lowerBound": {}
+          }
+        },
+        {
+          "name": "batch_size",
+          "desc": "The number of training examples utilized in one iteration.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "1024"
+            },
+            "hasLowerBound": true,
+            "lowerBound": {}
+          }
+        },
+        {
+          "name": "link_type",
+          "desc": "link function type",
+          "type": "AT_STRING",
+          "atomic": {
+            "allowedValues": {
+              "ss": [
+                "Logit",
+                "Log",
+                "Reciprocal",
+                "Indentity"
+              ]
+            }
+          }
+        },
+        {
+          "name": "label_dist_type",
+          "desc": "label distribution type",
+          "type": "AT_STRING",
+          "atomic": {
+            "allowedValues": {
+              "ss": [
+                "Bernoulli",
+                "Poisson",
+                "Gamma",
+                "Tweedie"
+              ]
+            }
+          }
+        },
+        {
+          "name": "tweedie_power",
+          "desc": "Tweedie distribution power parameter",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 1.0
+            },
+            "hasLowerBound": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true,
+            "hasUpperBound": true,
+            "upperBound": {
+              "f": 2.0
+            },
+            "upperBoundInclusive": true
+          }
+        },
+        {
+          "name": "dist_scale",
+          "desc": "A guess value for distribution's scale",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 1.0
+            },
+            "hasLowerBound": true,
+            "lowerBound": {
+              "f": 1.0
+            },
+            "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "eps",
+          "desc": "If the change rate of weights is less than this threshold, the model is considered to be converged, and the training stops early. 0 to disable.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.0001
+            },
+            "hasLowerBound": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "iter_start_irls",
+          "desc": "run a few rounds of IRLS training as the initialization of w, 0 disable",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {},
+            "hasLowerBound": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "decay_epoch",
+          "desc": "decay learning interval",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {},
+            "hasLowerBound": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "decay_rate",
+          "desc": "decay learning rate",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {},
+            "hasLowerBound": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true,
+            "hasUpperBound": true,
+            "upperBound": {
+              "f": 1.0
+            }
+          }
+        },
+        {
+          "name": "optimizer",
+          "desc": "which optimizer to use: IRLS(Iteratively Reweighted Least Squares) or SGD(Stochastic Gradient Descent)",
+          "type": "AT_STRING",
+          "atomic": {
+            "allowedValues": {
+              "ss": [
+                "SGD",
+                "IRLS"
+              ]
+            }
+          }
+        },
+        {
+          "name": "offset_col",
+          "desc": "Specify a column to use as the offset",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "weight_col",
+          "desc": "Specify a column to use for the observation weights",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "train_dataset",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_model",
+          "desc": "Output model.",
+          "types": [
+            "sf.model.ss_glm"
           ]
         }
       ]

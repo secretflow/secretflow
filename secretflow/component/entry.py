@@ -36,6 +36,7 @@ from secretflow.component.stats.table_statistics import table_statistics_comp
 from secretflow.protos.component.cluster_pb2 import SFClusterConfig
 from secretflow.protos.component.comp_pb2 import CompListDef, ComponentDef
 from secretflow.protos.component.evaluation_pb2 import NodeEvalParam, NodeEvalResult
+from secretflow.component.ml.linear.ss_glm import ss_glm_predict_comp, ss_glm_train_comp
 
 ALL_COMPONENTS = [
     train_test_split_comp,
@@ -55,6 +56,8 @@ ALL_COMPONENTS = [
     sgb_train_comp,
     ss_xgb_predict_comp,
     ss_xgb_train_comp,
+    ss_glm_predict_comp,
+    ss_glm_train_comp,
 ]
 COMP_LIST_NAME = "secretflow"
 COMP_LIST_DESC = "First-party SecretFlow components."

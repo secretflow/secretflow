@@ -13,3 +13,11 @@
 - [A Communication-Efficient Collaborative Learning Framework for Distributed Features](https://arxiv.org/pdf/1912.11187.pdf)
 
 - [Asymmetrical Vertical Federated Learning](https://arxiv.org/pdf/2004.07427.pdf)
+
+- [Federated Doubly Stochastic Kernel Learning for Vertically Partitioned Data](https://dl.acm.org/doi/10.1145/3394486.3403298)
+
+- [Privacy preserving vertical federated learning for tree-based models](https://arxiv.org/pdf/2008.06170.pdf)
+
+- [When Homomorphic Encryption Marries Secret Sharing: Secure Large-Scale Sparse Logistic Regression and Applications in Risk Control](https://arxiv.org/pdf/2008.08753.pdf)
+
+- [FedBCD: A Communication-Efficient Collaborative Learning Framework for Distributed Features](https://ieeexplore.ieee.org/document/9855231/)
