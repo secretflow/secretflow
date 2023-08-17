@@ -96,7 +96,7 @@ class TEEUWorker:
         logging.basicConfig(level=get_logging_level(), format=LOG_FORMAT)
 
         logging.debug(
-            f'TEEU runs function: {func}, with args: {args}, kwargs: {kwargs}'
+            f'TEEU runs function: {func}, with args len: {len(args)}, kwargs len: {len(kwargs)}.'
         )
 
         # Auto-unboxing the ray object.
@@ -178,7 +178,7 @@ def _cls_wrapper(cls):
             logging.basicConfig(level=get_logging_level(), format=LOG_FORMAT)
 
             logging.debug(
-                f'TEEU runs function: {method}, with args: {args}, kwargs: {kwargs}'
+                f'TEEU runs function: {method}, with args len: {len(args)}, kwargs len: {len(kwargs)}.'
             )
 
             arg_flat, arg_tree = jax.tree_util.tree_flatten((args, kwargs))
@@ -228,12 +228,12 @@ def _cls_wrapper(cls):
         def __init__(self, *args, **kwargs):
             from sdc.auth_frame import AuthFrame, CredentialsConf
 
-            auth_host = kwargs['auth_host']
-            auth_mr_enclave = kwargs['auth_mr_enclave']
-            auth_ca_cert = kwargs['auth_ca_cert']
-            tls_cert = kwargs['tls_cert']
-            tls_key = kwargs['tls_key']
-            simluation = kwargs['simluation']
+            auth_host = kwargs.pop('auth_host')
+            auth_mr_enclave = kwargs.pop('auth_mr_enclave')
+            auth_ca_cert = kwargs.pop('auth_ca_cert')
+            tls_cert = kwargs.pop('tls_cert')
+            tls_key = kwargs.pop('tls_key')
+            simluation = kwargs.pop('simluation')
             if auth_ca_cert:
                 credentials = CredentialsConf(
                     root_ca=auth_ca_cert.encode('utf-8'),
@@ -248,17 +248,11 @@ def _cls_wrapper(cls):
                 conf=credentials,
                 sim=simluation,
             )
-            del kwargs['auth_host']
-            del kwargs['auth_mr_enclave']
-            del kwargs['auth_ca_cert']
-            del kwargs['tls_cert']
-            del kwargs['tls_key']
-            del kwargs['simluation']
 
             logging.basicConfig(level=get_logging_level(), format=LOG_FORMAT)
 
             logging.debug(
-                f'TEEU runs function: __init__, with args: {args}, kwargs: {kwargs}'
+                f'TEEU runs function: __init__, with args len: {len(args)}, kwargs len: {len(kwargs)}.'
             )
 
             # Auto-unboxing the ray object.
