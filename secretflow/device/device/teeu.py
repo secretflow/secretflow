@@ -226,6 +226,7 @@ def _cls_wrapper(cls):
 
     class ClassWithAuth(cls):
         def __init__(self, *args, **kwargs):
+            logging.basicConfig(level=get_logging_level(), format=LOG_FORMAT)
             from sdc.auth_frame import AuthFrame, CredentialsConf
 
             auth_host = kwargs.pop('auth_host')
@@ -248,8 +249,6 @@ def _cls_wrapper(cls):
                 conf=credentials,
                 sim=simluation,
             )
-
-            logging.basicConfig(level=get_logging_level(), format=LOG_FORMAT)
 
             logging.debug(
                 f'TEEU runs function: __init__, with args len: {len(args)}, kwargs len: {len(kwargs)}.'
