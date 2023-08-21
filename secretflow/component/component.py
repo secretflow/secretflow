@@ -657,7 +657,9 @@ class Component:
             log_to_driver=True,
             cluster_config=cluster_config,
             omp_num_threads=multiprocess.cpu_count(),
-            cross_silo_messages_max_size_in_bytes=1024**3,
+            cross_silo_comm_options={
+                'messages_max_size_in_bytes': 1024**3,
+            },
         )
 
     def _check_storage(self, config: SFClusterConfig):
