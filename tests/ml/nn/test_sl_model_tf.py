@@ -10,17 +10,16 @@ separated from the rest by a newline
 import math
 import os
 import tempfile
+
 import numpy as np
+
 from secretflow.data.ndarray import load
 from secretflow.device import reveal
 from secretflow.ml.nn import SLModel
 from secretflow.ml.nn.sl.agglayer.agg_method import Average
 from secretflow.security.privacy import DPStrategy, LabelDP
 from secretflow.security.privacy.mechanism.tensorflow import GaussianEmbeddingDP
-from secretflow.utils.compressor import (
-    TopkSparse,
-    QuantizedZeroPoint,
-)
+from secretflow.utils.compressor import QuantizedZeroPoint, TopkSparse
 from secretflow.utils.simulation.datasets import load_mnist
 
 _temp_dir = tempfile.mkdtemp()
@@ -315,6 +314,10 @@ def keras_model_with_mnist(
 
 class TestSLModelTensorflow:
     def test_single_output_model(self, sf_simulation_setup_devices):
+        global _temp_dir
+        _temp_dir = reveal(
+            sf_simulation_setup_devices.alice(lambda: tempfile.mkdtemp())()
+        )
         num_samples = 10000
         (x_train, y_train), (_, _) = load_mnist(
             parts={
@@ -637,6 +640,10 @@ class TestSLModelTensorflow:
         )
 
     def test_single_feature_model(self, sf_simulation_setup_devices):
+        global _temp_dir
+        _temp_dir = reveal(
+            sf_simulation_setup_devices.alice(lambda: tempfile.mkdtemp())()
+        )
         num_samples = 10000
         (x_train, y_train), (_, _) = load_mnist(
             parts={

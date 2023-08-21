@@ -359,8 +359,21 @@ The schema of a table.
 feature.
 - All names must match the regexp `[A-Za-z0-9.][A-Za-z0-9_>./]*`.
 - All data type must be one of
-`component.data_utils.SUPPORTED_VTABLE_DATA_TYPE`, including
- `i8 | i16 | i32 | i64 | u8 | u16 | u32 | u64 | f16 | f32 | f64 | str`.
+* int8
+* int16
+* int32
+* int64
+* uint8
+* uint16
+* uint32
+* uint64
+* float16
+* float32
+* float64
+* bool
+* int
+* float
+* str
 
 
 | Field | Type | Description |
@@ -451,7 +464,7 @@ AT_STRINGS | AT_BOOLS`.
 | ----- | ---- | ----------- |
 | list_min_length_inclusive | [ int64](#int64) | Only valid when type is `AT_FLOATS \| AT_INTS \| AT_STRINGS \| AT_BOOLS`. |
 | list_max_length_inclusive | [ int64](#int64) | Only valid when type is `AT_FLOATS \| AT_INTS \| AT_STRINGS \| AT_BOOLS`. |
-| is_optional | [ bool](#bool) | none |
+| is_optional | [ bool](#bool) | If True, when Atmoic Attr is not provided or is_na, default_value would be used. Else, Atmoic Attr must be provided. |
 | default_value | [ Attribute](#attribute) | A reasonable default for this attribute if the user does not supply a value. |
 | allowed_values | [ Attribute](#attribute) | Only valid when type is `AT_FLOAT \| AT_INT \| AT_STRING \| AT_FLOATS \| AT_INTS \| AT_STRINGS`. Please use list fields of AtomicParameter, i.e. `ss`, `i64s`, `fs`. If the attribute is a list, allowed_values is applied to each element. |
 | has_lower_bound | [ bool](#bool) | Only valid when type is `AT_FLOAT \| AT_INT \| AT_FLOATS \| AT_INTS `. If the attribute is a list, lower_bound is applied to each element. |
@@ -662,7 +675,7 @@ Displays multiple read-only fields in groups.
 | ----- | ---- | ----------- |
 | name | [ string](#string) | Name of the field. |
 | desc | [ string](#string) | none |
-| type | [ AttrType](#attrtype) | none |
+| type | [ string](#string) | Must be one of bool/int/float/str |
 | value | [ Attribute](#attribute) | none |
  <!-- end Fields -->
  <!-- end HasFields -->
@@ -745,7 +758,7 @@ Displays rows of data.
 | ----- | ---- | ----------- |
 | name | [ string](#string) | none |
 | desc | [ string](#string) | none |
-| type | [ AttrType](#attrtype) | none |
+| type | [ string](#string) | Must be one of bool/int/float/str |
  <!-- end Fields -->
  <!-- end HasFields -->
 

@@ -37,7 +37,6 @@ def env(request, sf_party_for_4pc):
         num_cpus=8,
         log_to_driver=True,
         cluster_config=cluster(),
-        exit_on_failure_cross_silo_sending=True,
         enable_waiting_for_other_parties_ready=False,
     )
 

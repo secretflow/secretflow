@@ -12,13 +12,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
-## [1.1.0.dev230811] - 2023-8-7
+## [1.1.0.dev230818] - 2023-8-18
+
+### Added
+- Add five papers in Vertical Federated Learning
+- docs: update references on homomorphic encryption
+- Add new quantized compressor method and tutorial
+
+## [1.1.0.dev230811] - 2023-8-11
 
 ### Fixed
 - PSI use psi_csv in psi comp.
 
 ### Added
 - GLM train and predict components
+## [1.1.0b0.dev1] - 2023-8-7
+
+### Added
+- Support the usage of brpc link as a backend for cross-silo communication.
 
 ## [1.1.0b0.dev0] - 2023-8-7
 

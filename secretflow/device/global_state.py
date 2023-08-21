@@ -14,10 +14,12 @@
 
 
 from dataclasses import dataclass
-from typing import Dict
+from typing import Dict, List
 
 
 _SELF_PARTY: str = None
+
+_PARTIES: List = None
 
 
 def set_self_party(self_party: str):
@@ -28,6 +30,16 @@ def set_self_party(self_party: str):
 def self_party() -> str:
     global _SELF_PARTY
     return _SELF_PARTY
+
+
+def parties():
+    global _PARTIES
+    return _PARTIES
+
+
+def set_parties(parties: List) -> List:
+    global _PARTIES
+    _PARTIES = parties
 
 
 @dataclass

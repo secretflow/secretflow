@@ -6,7 +6,7 @@ SecretFlow Component List
 =========================
 
 
-Last update: Wed Jul 12 14:00:40 2023
+Last update: Wed Aug 16 15:20:41 2023
 
 Version: 0.0.1
 
@@ -20,7 +20,7 @@ Component version: 0.0.1
 
 Generate Weight of Evidence (WOE) binning rules for vertical partitioning datasets.
 #### Attrs
-  
+
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -33,14 +33,14 @@ Generate Weight of Evidence (WOE) binning rules for vertical partitioning datase
 |chimerge_target_pvalue|Stop merging if biggest pvalue of remaining bins is greater than this value.|Float|N|Default: 0.1. Range: (0.0, 1.0].|
 
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_data|Input dataset for generating rule.|['sf.table.vertical_table']|Extra table attributes.(0) feature_selects - which features should be binned. Min column number to select(inclusive): 1. |
+|input_data|Input vertical table.|['sf.table.vertical_table']|Extra table attributes.(0) feature_selects - which features should be binned. Min column number to select(inclusive): 1. |
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -53,19 +53,19 @@ Component version: 0.0.1
 
 Substitute datasets' value by WOE substitution rules.
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
 |input_data|Vertical partitioning dataset to be substituted.|['sf.table.vertical_table']||
-|woe_rule|WOE substitution rule.|['sf.rule.woe_binning']||
+|woe_rule|Input WOE substitution rule.|['sf.rule.woe_binning']||
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|output_data|Output substituted dataset.|['sf.table.vertical_table']||
+|output_data|Output vertical table.|['sf.table.vertical_table']||
 
 ## ml.eval
 
@@ -82,7 +82,7 @@ Statistics evaluation for a bi-classification model on a dataset.
 5. head_report: List[PrReport]
 reports for fpr = 0.001, 0.005, 0.01, 0.05, 0.1, 0.2
 #### Attrs
-  
+
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -90,15 +90,15 @@ reports for fpr = 0.001, 0.005, 0.01, 0.05, 0.1, 0.2
 |min_item_cnt_per_bucket|Min item cnt per bucket. If any bucket doesn't meet the requirement, error raises. For security reasons, we require this parameter to be at least 5.|Integer|N|Default: 5. Range: [5, $\infty$).|
 
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|labels|labels|['sf.table.vertical_table', 'sf.table.individual']|Extra table attributes.(0) col - The column name to use in the dataset. If not provided, the label of dataset will be used by default. Max column number to select(inclusive): 1. |
-|predictions|predictions|['sf.table.vertical_table', 'sf.table.individual']|Extra table attributes.(0) col - The column name to use in the dataset. If not provided, the label of dataset will be used by default. Max column number to select(inclusive): 1. |
+|labels|Input table with labels|['sf.table.vertical_table', 'sf.table.individual']|Extra table attributes.(0) col - The column name to use in the dataset. If not provided, the label of dataset will be used by default. Max column number to select(inclusive): 1. |
+|predictions|Input table with predictions|['sf.table.vertical_table', 'sf.table.individual']|Extra table attributes.(0) col - The column name to use in the dataset. If not provided, the label of dataset will be used by default. Max column number to select(inclusive): 1. |
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -111,7 +111,7 @@ Component version: 0.0.1
 
 Calculate prediction bias, ie. average of predictions - average of labels.
 #### Attrs
-  
+
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -120,15 +120,15 @@ Calculate prediction bias, ie. average of predictions - average of labels.
 |bucket_method|Bucket method.|String|N|Default: equal_width. Allowed: ['equal_width', 'equal_frequency'].|
 
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|labels|labels|['sf.table.vertical_table', 'sf.table.individual']|Extra table attributes.(0) col - The column name to use in the dataset. If not provided, the label of dataset will be used by default. Max column number to select(inclusive): 1. |
-|predictions|predictions|['sf.table.vertical_table', 'sf.table.individual']|Extra table attributes.(0) col - The column name to use in the dataset. If not provided, the label of dataset will be used by default. Max column number to select(inclusive): 1. |
+|labels|Input table with labels.|['sf.table.vertical_table', 'sf.table.individual']|Extra table attributes.(0) col - The column name to use in the dataset. If not provided, the label of dataset will be used by default. Max column number to select(inclusive): 1. |
+|predictions|Input table with predictions.|['sf.table.vertical_table', 'sf.table.individual']|Extra table attributes.(0) col - The column name to use in the dataset. If not provided, the label of dataset will be used by default. Max column number to select(inclusive): 1. |
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -143,19 +143,19 @@ Calculate P-Value for LR model training on vertical partitioning dataset by usin
 For large dataset(large than 10w samples & 200 features),
 recommend to use [Ring size: 128, Fxp: 40] options for SPU device.
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
 |model|Input model.|['sf.model.ss_sgd']||
-|input_data|Input dataset.|['sf.table.vertical_table']||
+|input_data|Input vertical table.|['sf.table.vertical_table']||
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|report|Output report.|['sf.report']||
+|report|Output P-Value report.|['sf.report']||
 
 ## ml.predict
 
@@ -166,7 +166,7 @@ Component version: 0.0.1
 
 Predict using SGB model.
 #### Attrs
-  
+
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -176,19 +176,51 @@ Predict using SGB model.
 |save_label|Whether or not to save real label columns into output pred file. If true, input feature_dataset must contain label columns and receiver party must be label owner.|Boolean|N|Default: False.|
 
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
 |model|model|['sf.model.sgb']||
-|feature_dataset|Input feature dataset.|['sf.table.vertical_table']||
+|feature_dataset|Input vertical table.|['sf.table.vertical_table']||
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|pred|Output prediction|['sf.table.individual']||
+|pred|Output prediction.|['sf.table.individual']||
+
+### ss_glm_predict
+
+
+Component version: 0.0.1
+
+Predict using the SSGLM model.
+#### Attrs
+
+
+|Name|Description|Type|Required|Notes|
+| :--- | :--- | :--- | :--- | :--- |
+|receiver|Party of receiver.|String|Y|Default: .|
+|pred_name|Column name for predictions.|String|N|Default: pred.|
+|save_ids|Whether to save ids columns into output prediction table. If true, input feature_dataset must contain id columns, and receiver party must be id owner.|Boolean|N|Default: False.|
+|save_label|Whether or not to save real label columns into output pred file. If true, input feature_dataset must contain label columns and receiver party must be label owner.|Boolean|N|Default: False.|
+|offset_col|Specify a column to use as the offset|String|N|Default: .|
+
+#### Inputs
+
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|model|Input model.|['sf.model.ss_glm']||
+|feature_dataset|Input vertical table.|['sf.table.vertical_table']||
+
+#### Outputs
+
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|pred|Output prediction.|['sf.table.individual']||
 
 ### ss_sgd_predict
 
@@ -197,7 +229,7 @@ Component version: 0.0.1
 
 Predict using the SS-SGD model.
 #### Attrs
-  
+
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -208,15 +240,15 @@ Predict using the SS-SGD model.
 |save_label|Whether or not to save real label columns into output pred file. If true, input feature_dataset must contain label columns and receiver party must be label owner.|Boolean|N|Default: False.|
 
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
 |model|Input model.|['sf.model.ss_sgd']||
-|feature_dataset|Input feature dataset.|['sf.table.vertical_table']||
+|feature_dataset|Input vertical table.|['sf.table.vertical_table']||
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -229,7 +261,7 @@ Component version: 0.0.1
 
 Predict using the SS-XGB model.
 #### Attrs
-  
+
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -239,15 +271,15 @@ Predict using the SS-XGB model.
 |save_label|Whether or not to save real label columns into output pred file. If true, input feature_dataset must contain label columns and receiver party must be label owner.|Boolean|N|Default: False.|
 
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
 |model|Input model.|['sf.model.ss_xgb']||
-|feature_dataset|Input features.|['sf.table.vertical_table']||
+|feature_dataset|Input vertical table.|['sf.table.vertical_table']||
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -265,7 +297,7 @@ for vertical split dataset setting by using secure boost.
 - SGB is short for SecureBoost. Compared to its safer counterpart SS-XGB, SecureBoost focused on protecting label holder.
 - Check https://arxiv.org/abs/1901.08755.
 #### Attrs
-  
+
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -275,26 +307,80 @@ for vertical split dataset setting by using secure boost.
 |objective|Specify the learning objective.|String|N|Default: logistic. Allowed: ['linear', 'logistic'].|
 |reg_lambda|L2 regularization term on weights.|Float|N|Default: 0.1. Range: [0.0, 10000.0].|
 |gamma|Greater than 0 means pre-pruning enabled. If gain of a node is less than this value, it would be pruned.|Float|N|Default: 0.1. Range: [0.0, 10000.0].|
-|subsample|Subsample ratio of the training instances.|Float|N|Default: 1.0. Range: (0.0, 1.0].|
 |colsample_by_tree|Subsample ratio of columns when constructing each tree.|Float|N|Default: 1.0. Range: (0.0, 1.0].|
 |sketch_eps|This roughly translates into O(1 / sketch_eps) number of bins.|Float|N|Default: 0.1. Range: (0.0, 1.0].|
 |base_score|The initial prediction score of all instances, global bias.|Float|N|Default: 0.0. Range: [0.0, $\infty$).|
 |seed|Pseudorandom number generator seed.|Integer|N|Default: 42. Range: [0, $\infty$).|
-|fixed_point_parameter|Any floating point number encoded by heu, will multiply a scale and take the round, scale = 2 ** fixed_point_parameter. larger value may mean more numerical accuracy, but too large will lead to overflow problem.|Integer|N|Default: 20. Range: [0, $\infty$).|
+|fixed_point_parameter|Any floating point number encoded by heu, will multiply a scale and take the round, scale = 2 ** fixed_point_parameter. larger value may mean more numerical accuracy, but too large will lead to overflow problem.|Integer|N|Default: 20. Range: [1, 100].|
+|first_tree_with_label_holder_feature|Whether to train the first tree with label holder's own features.|Boolean|N|Default: False.|
+|batch_encoding_enabled|If use batch encoding optimization.|Boolean|N|Default: True.|
+|enable_quantization|Whether enable quantization of g and h.|Boolean|N|Default: False.|
+|quantization_scale|Scale the sum of g to the specified value.|Float|N|Default: 10000.0. Range: [0.0, 10000000.0].|
+|max_leaf|Maximum leaf of a tree. Only effective if train leaf wise.|Integer|N|Default: 15. Range: [1, 32768].|
+|rowsample_by_tree|Row sub sample ratio of the training instances.|Float|N|Default: 1.0. Range: (0.0, 1.0].|
+|enable_goss|Whether to enable GOSS.|Boolean|N|Default: False.|
+|top_rate|GOSS-specific parameter. The fraction of large gradients to sample.|Float|N|Default: 0.3. Range: (0.0, 1.0].|
+|bottom_rate|GOSS-specific parameter. The fraction of small gradients to sample.|Float|N|Default: 0.5. Range: (0.0, 1.0].|
+|early_stop_criterion_g_abs_sum|If sum(abs(g)) is lower than or equal to this threshold, training will stop.|Float|N|Default: 0.0. Range: [0.0, $\infty$).|
+|early_stop_criterion_g_abs_sum_change_ratio|If absolute g sum change ratio is lower than or equal to this threshold, training will stop.|Float|N|Default: 0.0. Range: [0.0, 1.0].|
+|tree_growing_method|How to grow tree?|String|N|Default: level.|
 
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|train_dataset|Input train dataset.|['sf.table.vertical_table']||
+|train_dataset|Input vertical table.|['sf.table.vertical_table']||
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
 |output_model|Output model.|['sf.model.sgb']||
+
+### ss_glm_train
+
+
+Component version: 0.0.1
+
+generalized linear model (GLM) is a flexible generalization of ordinary linear regression.
+The GLM generalizes linear regression by allowing the linear model to be related to the response
+variable via a link function and by allowing the magnitude of the variance of each measurement to
+be a function of its predicted value.
+#### Attrs
+
+
+|Name|Description|Type|Required|Notes|
+| :--- | :--- | :--- | :--- | :--- |
+|epochs|The number of complete pass through the training data.|Integer|N|Default: 10. Range: [1, $\infty$).|
+|learning_rate|The step size at each iteration in one iteration.|Float|N|Default: 0.1. Range: (0.0, $\infty$).|
+|batch_size|The number of training examples utilized in one iteration.|Integer|N|Default: 1024. Range: (0, $\infty$).|
+|link_type|link function type|String|Y|Default: . Allowed: ['Logit', 'Log', 'Reciprocal', 'Indentity'].|
+|label_dist_type|label distribution type|String|Y|Default: . Allowed: ['Bernoulli', 'Poisson', 'Gamma', 'Tweedie'].|
+|tweedie_power|Tweedie distribution power parameter|Float|N|Default: 1.0. Range: [0.0, 2.0].|
+|dist_scale|A guess value for distribution's scale|Float|N|Default: 1.0. Range: [1.0, $\infty$).|
+|eps|If the change rate of weights is less than this threshold, the model is considered to be converged, and the training stops early. 0 to disable.|Float|N|Default: 0.0001. Range: [0.0, $\infty$).|
+|iter_start_irls|run a few rounds of IRLS training as the initialization of w, 0 disable|Integer|N|Default: 0. Range: [0, $\infty$).|
+|decay_epoch|decay learning interval|Integer|N|Default: 0. Range: [0, $\infty$).|
+|decay_rate|decay learning rate|Float|N|Default: 0.0. Range: [0.0, 1.0).|
+|optimizer|which optimizer to use: IRLS(Iteratively Reweighted Least Squares) or SGD(Stochastic Gradient Descent)|String|Y|Default: . Allowed: ['SGD', 'IRLS'].|
+|offset_col|Specify a column to use as the offset|String|N|Default: .|
+|weight_col|Specify a column to use for the observation weights|String|N|Default: .|
+
+#### Inputs
+
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|train_dataset|Input vertical table.|['sf.table.vertical_table']||
+
+#### Outputs
+
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|output_model|Output model.|['sf.model.ss_glm']||
 
 ### ss_sgd_train
 
@@ -305,7 +391,7 @@ Train both linear and logistic regression
 linear models for vertical partitioning dataset with mini batch SGD training solver by using secret sharing.
 - SS-SGD is short for secret sharing SGD training.
 #### Attrs
-  
+
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -319,18 +405,18 @@ linear models for vertical partitioning dataset with mini batch SGD training sol
 |eps|If the change rate of weights is less than this threshold, the model is considered to be converged, and the training stops early. 0 to disable.|Float|N|Default: 0.001. Range: (0.0, $\infty$).|
 
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|train_dataset|Input train dataset.|['sf.table.vertical_table']||
+|train_dataset|Input vertical table.|['sf.table.vertical_table']||
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|output_model|Output model|['sf.model.ss_sgd']||
+|output_model|Output model.|['sf.model.ss_sgd']||
 
 ### ss_xgb_train
 
@@ -342,7 +428,7 @@ for vertical partitioning dataset setting by using secret sharing.
 - SS-XGB is short for secret sharing XGB.
 - More details: https://arxiv.org/pdf/2005.08479.pdf
 #### Attrs
-  
+
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -358,14 +444,14 @@ for vertical partitioning dataset setting by using secret sharing.
 |seed|Pseudorandom number generator seed.|Integer|N|Default: 42. Range: [0, $\infty$).|
 
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|train_dataset|Train dataset|['sf.table.vertical_table']||
+|train_dataset|Input vertical table.|['sf.table.vertical_table']||
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -380,18 +466,18 @@ Component version: 0.0.1
 
 Drop features from the dataset.
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|in_ds|Input dataset.|['sf.table.vertical_table']|Extra table attributes.(0) drop_features - Features to drop. |
+|in_ds|Input vertical table.|['sf.table.vertical_table']|Extra table attributes.(0) drop_features - Features to drop. |
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|out_ds|Output dataset with filtered features.|['sf.table.vertical_table']||
+|out_ds|Output vertical table.|['sf.table.vertical_table']||
 
 ### psi
 
@@ -400,7 +486,7 @@ Component version: 0.0.1
 
 PSI between two parties.
 #### Attrs
-  
+
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -409,19 +495,19 @@ PSI between two parties.
 |ecdh_curve_type|Curve type for ECDH PSI.|String|N|Default: CURVE_FOURQ. Allowed: ['CURVE_25519', 'CURVE_FOURQ', 'CURVE_SM2', 'CURVE_SECP256K1'].|
 
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|receiver_input|Input for receiver|['sf.table.individual']|Extra table attributes.(0) key - Column(s) used to join. If not provided, ids of the dataset will be used. |
-|sender_input|Input for sender|['sf.table.individual']|Extra table attributes.(0) key - Column(s) used to join. If not provided, ids of the dataset will be used. |
+|receiver_input|Individual table for receiver|['sf.table.individual']|Extra table attributes.(0) key - Column(s) used to join. If not provided, ids of the dataset will be used. |
+|sender_input|Individual table for sender|['sf.table.individual']|Extra table attributes.(0) key - Column(s) used to join. If not provided, ids of the dataset will be used. |
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|psi_output|Output|['sf.table.vertical_table']||
+|psi_output|Output vertical table|['sf.table.vertical_table']||
 
 ### train_test_split
 
@@ -431,7 +517,7 @@ Component version: 0.0.1
 Split datasets into random train and test subsets.
 - Please check: https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html
 #### Attrs
-  
+
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -441,14 +527,14 @@ Split datasets into random train and test subsets.
 |shuffle|Whether to shuffle the data before splitting.|Boolean|N|Default: True.|
 
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_data|Input dataset.|['sf.table.vertical_table']||
+|input_data|Input vertical table.|['sf.table.vertical_table']||
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -466,18 +552,18 @@ Calculate Pearson's product-moment correlation coefficient for vertical partitio
 by using secret sharing.
 - For large dataset(large than 10w samples & 200 features), recommend to use [Ring size: 128, Fxp: 40] options for SPU device.
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_data|Input dataset.|['sf.table.vertical_table']|Extra table attributes.(0) feature_selects - Specify which features to calculate correlation coefficient with. If empty, all features will be used |
+|input_data|Input vertical table.|['sf.table.vertical_table']|Extra table attributes.(0) feature_selects - Specify which features to calculate correlation coefficient with. If empty, all features will be used |
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|report|Output report.|['sf.report']||
+|report|Output Pearson's product-moment correlation coefficient report.|['sf.report']||
 
 ### ss_vif
 
@@ -488,18 +574,18 @@ Calculate Variance Inflation Factor(VIF) for vertical partitioning dataset
 by using secret sharing.
 - For large dataset(large than 10w samples & 200 features), recommend to use [Ring size: 128, Fxp: 40] options for SPU device.
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_data|Input dataset.|['sf.table.vertical_table']|Extra table attributes.(0) feature_selects - Specify which features to calculate VIF with. If empty, all features will be used. |
+|input_data|Input vertical table.|['sf.table.vertical_table']|Extra table attributes.(0) feature_selects - Specify which features to calculate VIF with. If empty, all features will be used. |
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|report|Output report.|['sf.report']||
+|report|Output Variance Inflation Factor(VIF) report.|['sf.report']||
 
 ### table_statistics
 
@@ -536,15 +622,15 @@ including each column's
 - central_moment_2 means E[(X - mean(X))^2].
 - sum_2 means sum(X^2).
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_data|Input data.|['sf.table.vertical_table', 'sf.table.individual']||
+|input_data|Input table.|['sf.table.vertical_table', 'sf.table.individual']||
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|report|Output report.|['sf.report']||
+|report|Output table statistics report.|['sf.report']||
