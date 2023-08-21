@@ -1,4 +1,0 @@
-# OPENSOURCE-CLEANUP DELETE_FILE
-[antflake8]
-max-line-length = 80
-extend-ignore = E203, E501, E721, W605
