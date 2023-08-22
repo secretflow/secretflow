@@ -1,7 +1,11 @@
 import numpy as np
 
-from secretflow.utils.compressor import (ForwardData, QuantizedData,
-                                         QuantizedFP, QuantizedKmeans)
+from secretflow.utils.compressor import (
+    ForwardData,
+    QuantizedData,
+    QuantizedFP,
+    QuantizedKmeans,
+)
 
 
 def compressed_test(compressor):

@@ -34,7 +34,6 @@ class FeatureImportance(object):
         other_importance: float = 0,
         main_type: str = 'split',
     ):
-
         assert main_type in LEGAL_TYPE, f"illegal importance type {main_type}"
         self.main_importance = main_importance
         self.other_importance = other_importance

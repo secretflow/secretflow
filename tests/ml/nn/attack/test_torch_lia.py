@@ -231,7 +231,11 @@ def test_sl_and_lia(sf_simulation_setup_devices):
         strategy='split_nn',
     )
 
-    callback_dict = {alice: create_attacker_builder(file_path=data_file_path, batch_size=16, model_save_path=model_save_path)}
+    callback_dict = {
+        alice: create_attacker_builder(
+            file_path=data_file_path, batch_size=16, model_save_path=model_save_path
+        )
+    }
 
     history = sl_model.fit(
         fed_data,
@@ -242,7 +246,7 @@ def test_sl_and_lia(sf_simulation_setup_devices):
         shuffle=False,
         random_seed=1234,
         dataset_builder=None,
-        callbacks=callback_dict
+        callbacks=callback_dict,
     )
     print(history)
 

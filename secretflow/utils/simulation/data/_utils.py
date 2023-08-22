@@ -36,7 +36,9 @@ def cal_indexes(
             assert isinstance(
                 part, PYU
             ), f'Parts shall be list like of PYUs but got {type(part)}.'
-        split_points = np.round(np.linspace(0, total_num, num=len(parts) + 1)).astype(np.integer)
+        split_points = np.round(np.linspace(0, total_num, num=len(parts) + 1)).astype(
+            np.integer
+        )
         for i in range(len(parts)):
             indexes[parts[i]] = (split_points[i], split_points[i + 1])
     elif isinstance(parts, dict):
