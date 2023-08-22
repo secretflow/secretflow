@@ -44,7 +44,6 @@ class HistogramBag(object):
     p_hid: int = -1
 
     def binary_op(self, other, func: callable, inplace: bool = False):
-
         assert isinstance(
             other, HistogramBag
         ), f"Expect HistogramBag but got instance of {type(other)}"

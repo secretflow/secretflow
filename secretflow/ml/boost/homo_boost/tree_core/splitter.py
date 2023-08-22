@@ -75,7 +75,6 @@ class Splitter(object):
         min_leaf_node: int = 1,
         min_child_weight: int = 1,
     ):
-
         if not isinstance(criterion_method, str):
             raise TypeError(
                 "criterion_method type should be str, but %s find"
