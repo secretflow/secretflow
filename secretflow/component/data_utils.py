@@ -215,7 +215,7 @@ def extract_table_header(
         if load_ids:
             for t, h in zip(slice.id_types, slice.ids):
                 if col_selects is not None:
-                    if id not in col_selects:
+                    if h not in col_selects:
                         # id not selected, skip
                         continue
                     col_selects.remove(h)
