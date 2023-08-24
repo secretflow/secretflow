@@ -57,7 +57,9 @@ class WeightArbiter:
     def __init__(self):
         self.kit = phe.setup(phe.SchemaType.ZPaillier, 2048)
         # You can get the public key by following method:
-        logging.warn(f"\033[33m ================== Initialize Arbiter RC ===================\033[0m")
+        logging.warn(
+            f"\033[33m ================== Initialize Arbiter RC ===================\033[0m"
+        )
         self.public_key = self.kit.public_key()
         self.rc = RC()
         self.rc_id = "rc_03"
@@ -66,37 +68,43 @@ class WeightArbiter:
         self.round = 0
 
     def sync_with_rs(self, flatten_weights: List[float]):
-        logging.warn(f"\033[33m ================== ROUND {self.round} ===================\033[0m")
+        logging.warn(
+            f"\033[33m ================== ROUND {self.round} ===================\033[0m"
+        )
         # secretflow sends its own weights to secret-sharing platform
-        w_int = [int(_w * 2 ** 40) for _w in flatten_weights]  # left shift 40 bits.
-        w2_int = [int(_w * 2 ** 40) for _w in np.random.random(size=len(w_int))]
+        w_int = [int(_w * 2**40) for _w in flatten_weights]  # left shift 40 bits.
+        w2_int = [int(_w * 2**40) for _w in np.random.random(size=len(w_int))]
         w1_int = [_w - _w2 for _w, _w2 in zip(w_int, w2_int)]
-        w1_pack = Pack(task_id='1',
-                       source_id=self.rc_id,
-                       data_id='2',
-                       target_id="rs_01",
-                       encryption='ss',
-                       shape=(len(w1_int),),
-                       dtype='int',
-                       data=w1_int,
-                       process="he2ss",
-                       key=None,
-                       n_batches=1,
-                       uid=f"round{self.round}__2",
-                       router_table=self.router_table)
-        w2_pack = Pack(task_id='1',
-                       source_id=self.rc_id,
-                       data_id='2',
-                       target_id="rs_02",
-                       encryption='ss',
-                       shape=(len(w2_int),),
-                       dtype='int',
-                       data=w2_int,
-                       process="he2ss",
-                       key=None,
-                       n_batches=1,
-                       uid=f"round{self.round}_2",
-                       router_table=self.router_table)
+        w1_pack = Pack(
+            task_id='1',
+            source_id=self.rc_id,
+            data_id='2',
+            target_id="rs_01",
+            encryption='ss',
+            shape=(len(w1_int),),
+            dtype='int',
+            data=w1_int,
+            process="he2ss",
+            key=None,
+            n_batches=1,
+            uid=f"round{self.round}__2",
+            router_table=self.router_table,
+        )
+        w2_pack = Pack(
+            task_id='1',
+            source_id=self.rc_id,
+            data_id='2',
+            target_id="rs_02",
+            encryption='ss',
+            shape=(len(w2_int),),
+            dtype='int',
+            data=w2_int,
+            process="he2ss",
+            key=None,
+            n_batches=1,
+            uid=f"round{self.round}_2",
+            router_table=self.router_table,
+        )
         self.rc.send(w1_pack)
         logging.warn(f"\033[33m ROUND {self.round} rc send w1_int:{w1_int} \033[0m")
         self.rc.send(w2_pack)
@@ -117,17 +125,26 @@ class WeightArbiter:
             key=pk_buffer,
             n_batches=2,
             uid=f"round{self.round}_1",
-            router_table=self.router_table)
+            router_table=self.router_table,
+        )
         self.rc.send(pubkey_pack)
         logging.warn(f"\033[33m ROUND {self.round} pk_buffer {self.public_key} \033[0m")
 
         packs = self.rc.recv(timeout=180)
-        logging.warn(f"\033[33m ROUND {self.round} recv packs {[pack.uid for pack in packs]} \033[0m")
+        logging.warn(
+            f"\033[33m ROUND {self.round} recv packs {[pack.uid for pack in packs]} \033[0m"
+        )
         pack = packs[0]
-        result = [self.kit.decryptor().decrypt_raw(pickle.loads(ct_buffer.encode("latin1")))
-                  for ct_buffer in pack.data]
-        global_weight = [data / 2 ** 40 for data in result]  # right shift 40 bits to recovery from big int
-        logging.warn(f"\033[33m ROUND {self.round} recv global_weight:{global_weight} \033[0m")
+        result = [
+            self.kit.decryptor().decrypt_raw(pickle.loads(ct_buffer.encode("latin1")))
+            for ct_buffer in pack.data
+        ]
+        global_weight = [
+            data / 2**40 for data in result
+        ]  # right shift 40 bits to recovery from big int
+        logging.warn(
+            f"\033[33m ROUND {self.round} recv global_weight:{global_weight} \033[0m"
+        )
 
         self.round += 1
 

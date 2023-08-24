@@ -205,7 +205,6 @@ def sf_production_setup_devices(request, sf_party_for_4pc):
         log_to_driver=True,
         logging_level='debug',
         cluster_config=cluster(),
-        exit_on_failure_cross_silo_sending=True,
         enable_waiting_for_other_parties_ready=False,
     )
 
@@ -254,7 +253,6 @@ def sf_production_setup_devices_aby3(request, sf_party_for_4pc):
         log_to_driver=True,
         logging_level='debug',
         cluster_config=cluster(),
-        exit_on_failure_cross_silo_sending=True,
         enable_waiting_for_other_parties_ready=False,
     )
 

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-07-03 08:44+0800\n"
+"POT-Creation-Date: 2023-08-16 15:21+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -31,8 +31,8 @@ msgstr ""
 #: ../../component/comp_spec.md:10 ../../component/comp_spec.md:29
 #: ../../component/comp_spec.md:47 ../../component/comp_spec.md:69
 #: ../../component/comp_spec.md:81 ../../component/comp_spec.md:105
-#: ../../component/comp_spec.md:265 ../../component/comp_spec.md:406
-#: ../../component/comp_spec.md:596 ../../component/comp_spec.md:641
+#: ../../component/comp_spec.md:265 ../../component/comp_spec.md:419
+#: ../../component/comp_spec.md:609 ../../component/comp_spec.md:654
 msgid "Messages"
 msgstr ""
 
@@ -108,7 +108,7 @@ msgstr ""
 msgid "[VerticalTable](#verticaltable)"
 msgstr ""
 
-#: ../../component/comp_spec.md:43 ../../component/comp_spec.md:399
+#: ../../component/comp_spec.md:43 ../../component/comp_spec.md:412
 msgid "comp.proto"
 msgstr ""
 
@@ -145,8 +145,8 @@ msgid "[IoDef.TableAttrDef](#iodeftableattrdef)"
 msgstr ""
 
 #: ../../component/comp_spec.md:59 ../../component/comp_spec.md:254
-#: ../../component/comp_spec.md:395 ../../component/comp_spec.md:564
-#: ../../component/comp_spec.md:630 ../../component/comp_spec.md:766
+#: ../../component/comp_spec.md:408 ../../component/comp_spec.md:577
+#: ../../component/comp_spec.md:643 ../../component/comp_spec.md:779
 msgid "Enums"
 msgstr ""
 
@@ -154,7 +154,7 @@ msgstr ""
 msgid "[AttrType](#attrtype)"
 msgstr ""
 
-#: ../../component/comp_spec.md:65 ../../component/comp_spec.md:589
+#: ../../component/comp_spec.md:65 ../../component/comp_spec.md:602
 msgid "evaluation.proto"
 msgstr ""
 
@@ -166,7 +166,7 @@ msgstr ""
 msgid "[NodeEvalResult](#nodeevalresult)"
 msgstr ""
 
-#: ../../component/comp_spec.md:77 ../../component/comp_spec.md:634
+#: ../../component/comp_spec.md:77 ../../component/comp_spec.md:647
 msgid "report.proto"
 msgstr ""
 
@@ -745,13 +745,68 @@ msgid "All names must match the regexp `[A-Za-z0-9.][A-Za-z0-9_>./]*`."
 msgstr "所有名称必须匹配正则表达式 [A-Za-z0-9.][A-Za-z0-9_>./]*。"
 
 #: ../../component/comp_spec.md:361
-msgid ""
-"All data type must be one of "
-"`component.data_utils.SUPPORTED_VTABLE_DATA_TYPE`, including `i8 | i16 | "
-"i32 | i64 | u8 | u16 | u32 | u64 | f16 | f32 | f64 | str`."
+msgid "All data type must be one of"
+msgstr "所有数据类型必须属于"
+
+#: ../../component/comp_spec.md:362
+msgid "int8"
 msgstr ""
-"所有数据类型必须是 component.data_utils.SUPPORTED_VTABLE_DATA_TYPE 其中之一，包括 "
-"i8、i16、i32、i64、u8、u16、u32、u64、f16、f32、f64、str。"
+
+#: ../../component/comp_spec.md:363
+msgid "int16"
+msgstr ""
+
+#: ../../component/comp_spec.md:364
+msgid "int32"
+msgstr ""
+
+#: ../../component/comp_spec.md:365
+msgid "int64"
+msgstr ""
+
+#: ../../component/comp_spec.md:366
+msgid "uint8"
+msgstr ""
+
+#: ../../component/comp_spec.md:367
+msgid "uint16"
+msgstr ""
+
+#: ../../component/comp_spec.md:368
+msgid "uint32"
+msgstr ""
+
+#: ../../component/comp_spec.md:369
+msgid "uint64"
+msgstr ""
+
+#: ../../component/comp_spec.md:370
+msgid "float16"
+msgstr ""
+
+#: ../../component/comp_spec.md:371
+msgid "float32"
+msgstr ""
+
+#: ../../component/comp_spec.md:372
+msgid "float64"
+msgstr ""
+
+#: ../../component/comp_spec.md:373
+msgid "bool"
+msgstr ""
+
+#: ../../component/comp_spec.md:374
+msgid "int"
+msgstr ""
+
+#: ../../component/comp_spec.md:375
+msgid "float"
+msgstr ""
+
+#: ../../component/comp_spec.md:376
+msgid "str"
+msgstr ""
 
 #: ../../component/comp_spec.md
 msgid "ids"
@@ -803,19 +858,19 @@ msgstr ""
 msgid "Label column data type(s). Len(labels) should match len(label_types)."
 msgstr "标签列的数据类型。len(labels) 应该和 len(label_types) 匹配。"
 
-#: ../../component/comp_spec.md:378
+#: ../../component/comp_spec.md:391
 msgid "VerticalTable"
 msgstr ""
 
-#: ../../component/comp_spec.md:379
+#: ../../component/comp_spec.md:392
 msgid "VerticalTable describes a vertical virtual table from multiple parties."
 msgstr "VerticalTable 描述来自多个参与方的垂直虚拟表。"
 
-#: ../../component/comp_spec.md:380
+#: ../../component/comp_spec.md:393
 msgid "TODO: move this to secretflow/protos/builtin/"
 msgstr "TODO：将此移动到 secretflow/protos/builtin/。"
 
-#: ../../component/comp_spec.md:382
+#: ../../component/comp_spec.md:395
 msgid ""
 "Guide: if some type is only required to be handle inside a specific "
 "system, for instance woe.rule file in engine, we don't need to define a "
@@ -836,17 +891,17 @@ msgid ""
 "parent DistData message."
 msgstr "垂直分区片的模式。必须与父 DistData 消息中的 data_refs 匹配。"
 
-#: ../../component/comp_spec.md:401
+#: ../../component/comp_spec.md:414
 msgid ""
 "Proto file: "
 "[secretflow/protos/component/comp.proto](https://github.com/secretflow/secretflow/tree/main/secretflow/protos/component/comp.proto)"
 msgstr ""
 
-#: ../../component/comp_spec.md:409
+#: ../../component/comp_spec.md:422
 msgid "Attribute"
 msgstr ""
 
-#: ../../component/comp_spec.md:410
+#: ../../component/comp_spec.md:423
 msgid "The value of an attribute"
 msgstr "属性的值"
 
@@ -942,11 +997,11 @@ msgstr ""
 msgid "Indicates the value is missing explicitly."
 msgstr "指示该值明确缺失。"
 
-#: ../../component/comp_spec.md:428
+#: ../../component/comp_spec.md:441
 msgid "AttributeDef"
 msgstr ""
 
-#: ../../component/comp_spec.md:429
+#: ../../component/comp_spec.md:442
 msgid "Describe an attribute."
 msgstr "描述一个属性。"
 
@@ -992,11 +1047,11 @@ msgstr ""
 msgid "[ AttributeDef.UnionAttrGroupDesc](#attributedefunionattrgroupdesc)"
 msgstr ""
 
-#: ../../component/comp_spec.md:444
+#: ../../component/comp_spec.md:457
 msgid "AttributeDef.AtomicAttrDesc"
 msgstr ""
 
-#: ../../component/comp_spec.md:445
+#: ../../component/comp_spec.md:458
 msgid ""
 "Extras for an atomic attribute. Including: `AT_FLOAT | AT_INT | AT_STRING"
 " | AT_BOOL | AT_FLOATS | AT_INTS | AT_STRINGS | AT_BOOLS`."
@@ -1019,6 +1074,12 @@ msgstr ""
 #: ../../component/comp_spec.md
 msgid "is_optional"
 msgstr ""
+
+#: ../../component/comp_spec.md
+msgid ""
+"If True, when Atmoic Attr is not provided or is_na, default_value would "
+"be used. Else, Atmoic Attr must be provided."
+msgstr "如果为True，当Atmoic Attr没有提供或者is_na为True是，default_value将会被使用。否则，Atmoic Attr必须提供。"
 
 #: ../../component/comp_spec.md
 msgid "default_value"
@@ -1058,8 +1119,8 @@ msgid ""
 "Only valid when type is `AT_FLOAT | AT_INT | AT_FLOATS | AT_INTS `. If "
 "the attribute is a list, lower_bound is applied to each element."
 msgstr ""
-"仅当类型为 `AT_FLOAT | AT_INT | AT_FLOATS | AT_INTS` 时有效。如果属性是列表，则 "
-"lower_bound 应用于每个元素。"
+"仅当类型为 `AT_FLOAT | AT_INT | AT_FLOATS | AT_INTS` 时有效。如果属性是列表，则 lower_bound"
+" 应用于每个元素。"
 
 #: ../../component/comp_spec.md
 msgid "lower_bound"
@@ -1078,8 +1139,8 @@ msgid ""
 "Only valid when type is `AT_FLOAT | AT_INT | AT_FLOATS | AT_INTS `. If "
 "the attribute is a list, upper_bound is applied to each element."
 msgstr ""
-"仅当类型为 `AT_FLOAT | AT_INT | AT_FLOATS | AT_INTS` 时有效。如果属性是列表，则 "
-"upper_bound 应用于每个元素。"
+"仅当类型为 `AT_FLOAT | AT_INT | AT_FLOATS | AT_INTS` 时有效。如果属性是列表，则 upper_bound"
+" 应用于每个元素。"
 
 #: ../../component/comp_spec.md
 msgid "upper_bound"
@@ -1089,11 +1150,11 @@ msgstr ""
 msgid "upper_bound_inclusive"
 msgstr ""
 
-#: ../../component/comp_spec.md:467
+#: ../../component/comp_spec.md:480
 msgid "AttributeDef.UnionAttrGroupDesc"
 msgstr ""
 
-#: ../../component/comp_spec.md:468
+#: ../../component/comp_spec.md:481
 msgid "Extras for a union attribute group."
 msgstr "union attribute group的额外信息。"
 
@@ -1105,11 +1166,11 @@ msgstr ""
 msgid "The default selected child."
 msgstr "默认选中的子节点。"
 
-#: ../../component/comp_spec.md:478
+#: ../../component/comp_spec.md:491
 msgid "CompListDef"
 msgstr ""
 
-#: ../../component/comp_spec.md:479
+#: ../../component/comp_spec.md:492
 msgid "A list of components"
 msgstr "一个组件列表。"
 
@@ -1125,11 +1186,11 @@ msgstr ""
 msgid "[repeated ComponentDef](#componentdef)"
 msgstr ""
 
-#: ../../component/comp_spec.md:492
+#: ../../component/comp_spec.md:505
 msgid "ComponentDef"
 msgstr ""
 
-#: ../../component/comp_spec.md:493
+#: ../../component/comp_spec.md:506
 msgid "The definition of a comp."
 msgstr "组件的定义。"
 
@@ -1169,11 +1230,11 @@ msgstr ""
 msgid "outputs"
 msgstr ""
 
-#: ../../component/comp_spec.md:509
+#: ../../component/comp_spec.md:522
 msgid "IoDef"
 msgstr ""
 
-#: ../../component/comp_spec.md:510
+#: ../../component/comp_spec.md:523
 msgid "Define an input/output for component."
 msgstr "定义组件的输入/输出。"
 
@@ -1201,29 +1262,29 @@ msgstr ""
 "仅对表格有效。TableAttrDef 的属性路径为 `{input|output}/{IoDef name}/{TableAttrDef "
 "name}` 。"
 
-#: ../../component/comp_spec.md:523
+#: ../../component/comp_spec.md:536
 msgid "IoDef.TableAttrDef"
 msgstr ""
 
-#: ../../component/comp_spec.md:524
+#: ../../component/comp_spec.md:537
 msgid "An extra attribute for a table."
 msgstr "表格的额外属性。"
 
-#: ../../component/comp_spec.md:526
+#: ../../component/comp_spec.md:539
 msgid "If provided in a IoDef, e.g."
 msgstr "如果在 IoDef 中提供，例如："
 
-#: ../../component/comp_spec.md:544
+#: ../../component/comp_spec.md:557
 msgid ""
 "means after a user provide a table as IO, they should also specify cols "
 "as \"feature\":"
 msgstr "意味着用户提供表格作为 IO 数据后，他们还应该指定 cols 作为 \"feature\" ："
 
-#: ../../component/comp_spec.md:546
+#: ../../component/comp_spec.md:559
 msgid "col_min_cnt_inclusive is 1: At least 1 col to be selected."
 msgstr "col_min_cnt_inclusive 为 1：至少选择 1 列。"
 
-#: ../../component/comp_spec.md:547
+#: ../../component/comp_spec.md:560
 msgid ""
 "col_max_cnt_inclusive is 3: At most 3 cols to be selected. And "
 "afterwards, user have to fill an int attribute called bucket_size for "
@@ -1256,11 +1317,11 @@ msgstr ""
 msgid "extra attribute for specified col."
 msgstr "指定列的额外属性。"
 
-#: ../../component/comp_spec.md:567
+#: ../../component/comp_spec.md:580
 msgid "AttrType"
 msgstr ""
 
-#: ../../component/comp_spec.md:568
+#: ../../component/comp_spec.md:581
 msgid "Supported attribute types."
 msgstr "支持的属性类型。"
 
@@ -1372,25 +1433,25 @@ msgstr ""
 msgid "11"
 msgstr ""
 
-#: ../../component/comp_spec.md:591
+#: ../../component/comp_spec.md:604
 msgid ""
 "Proto file: "
 "[secretflow/protos/component/evaluation.proto](https://github.com/secretflow/secretflow/tree/main/secretflow/protos/component/evaluation.proto)"
 msgstr ""
 
-#: ../../component/comp_spec.md:599
+#: ../../component/comp_spec.md:612
 msgid "NodeEvalParam"
 msgstr ""
 
-#: ../../component/comp_spec.md:600
+#: ../../component/comp_spec.md:613
 msgid "Evaluate a node."
 msgstr "执行节点"
 
-#: ../../component/comp_spec.md:601
+#: ../../component/comp_spec.md:614
 msgid "comp.evaluate(NodeEvalParam, SFClusterConfig) -> NodeEvalResult"
 msgstr ""
 
-#: ../../component/comp_spec.md:603
+#: ../../component/comp_spec.md:616
 msgid "NodeEvalParam contains all the information to evaluate a component."
 msgstr "NodeEvalParam 包含评估组件所需的所有信息。"
 
@@ -1449,11 +1510,11 @@ msgid ""
 "ComponentDef."
 msgstr "输出数据 URI，输出 URI 的顺序必须与 ComponentDef 中定义的输出顺序相匹配。"
 
-#: ../../component/comp_spec.md:619
+#: ../../component/comp_spec.md:632
 msgid "NodeEvalResult"
 msgstr ""
 
-#: ../../component/comp_spec.md:620
+#: ../../component/comp_spec.md:633
 msgid "NodeEvalResult contains outputs of a component evaluation."
 msgstr "NodeEvalResult 包含组件执行的输出。"
 
@@ -1461,17 +1522,17 @@ msgstr "NodeEvalResult 包含组件执行的输出。"
 msgid "Output data."
 msgstr "输出数据。"
 
-#: ../../component/comp_spec.md:636
+#: ../../component/comp_spec.md:649
 msgid ""
 "Proto file: "
 "[secretflow/protos/component/report.proto](https://github.com/secretflow/secretflow/tree/main/secretflow/protos/component/report.proto)"
 msgstr ""
 
-#: ../../component/comp_spec.md:644
+#: ../../component/comp_spec.md:657
 msgid "Descriptions"
 msgstr ""
 
-#: ../../component/comp_spec.md:645
+#: ../../component/comp_spec.md:658
 msgid "Displays multiple read-only fields in groups."
 msgstr "以组的形式显示多个只读字段。"
 
@@ -1487,7 +1548,7 @@ msgstr ""
 msgid "[repeated Descriptions.Item](#descriptionsitem)"
 msgstr ""
 
-#: ../../component/comp_spec.md:657
+#: ../../component/comp_spec.md:670
 msgid "Descriptions.Item"
 msgstr ""
 
@@ -1496,14 +1557,18 @@ msgid "Name of the field."
 msgstr "字段的名称。"
 
 #: ../../component/comp_spec.md
+msgid "Must be one of bool/int/float/str"
+msgstr "必须属于 bool/int/float/str 之一"
+
+#: ../../component/comp_spec.md
 msgid "value"
 msgstr ""
 
-#: ../../component/comp_spec.md:671
+#: ../../component/comp_spec.md:684
 msgid "Div"
 msgstr ""
 
-#: ../../component/comp_spec.md:672
+#: ../../component/comp_spec.md:685
 msgid "A division or a section of a page."
 msgstr "页面的一个部分或一个章节。"
 
@@ -1519,7 +1584,7 @@ msgstr ""
 msgid "[repeated Div.Child](#divchild)"
 msgstr ""
 
-#: ../../component/comp_spec.md:684
+#: ../../component/comp_spec.md:697
 msgid "Div.Child"
 msgstr ""
 
@@ -1551,7 +1616,7 @@ msgstr ""
 msgid "[ Div](#div)"
 msgstr ""
 
-#: ../../component/comp_spec.md:698
+#: ../../component/comp_spec.md:711
 msgid "Report"
 msgstr ""
 
@@ -1583,11 +1648,11 @@ msgstr ""
 msgid "Structed error detail (JSON encoded message)."
 msgstr "结构化的错误详情（JSON 编码的消息）。"
 
-#: ../../component/comp_spec.md:713
+#: ../../component/comp_spec.md:726
 msgid "Tab"
 msgstr ""
 
-#: ../../component/comp_spec.md:714
+#: ../../component/comp_spec.md:727
 msgid "A page of a report."
 msgstr "report的一页"
 
@@ -1603,11 +1668,11 @@ msgstr ""
 msgid "[repeated Div](#div)"
 msgstr ""
 
-#: ../../component/comp_spec.md:726
+#: ../../component/comp_spec.md:739
 msgid "Table"
 msgstr ""
 
-#: ../../component/comp_spec.md:727
+#: ../../component/comp_spec.md:740
 msgid "Displays rows of data."
 msgstr "以行的形式展示数据。"
 
@@ -1631,11 +1696,10 @@ msgstr ""
 msgid "[repeated Table.Row](#tablerow)"
 msgstr ""
 
-#: ../../component/comp_spec.md:740
+#: ../../component/comp_spec.md:753
 msgid "Table.HeaderItem"
 msgstr ""
 
-#: ../../component/comp_spec.md:753
+#: ../../component/comp_spec.md:766
 msgid "Table.Row"
 msgstr ""
-

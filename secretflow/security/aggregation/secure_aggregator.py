@@ -219,20 +219,13 @@ class SecureAggregator(Aggregator):
             if is_nesting_list(masked_data):
                 results = [np.sum(element, axis=axis) for element in zip(*masked_data)]
                 return (
-                    [
-                        ndarray_encoding.decode(result, fxp_bits)
-                        for result in results
-                    ]
+                    [ndarray_encoding.decode(result, fxp_bits) for result in results]
                     if is_float
                     else results
                 )
             else:
                 result = np.sum(masked_data, axis=axis)
-                return (
-                    ndarray_encoding.decode(result, fxp_bits)
-                    if is_float
-                    else result
-                )
+                return ndarray_encoding.decode(result, fxp_bits) if is_float else result
 
         self._check_data(data)
         masked_data = [None] * len(data)
@@ -244,15 +237,15 @@ class SecureAggregator(Aggregator):
         return self._device(_sum)(*masked_data, dtypes=dtypes, fxp_bits=self._fxp_bits)
 
     def average(self, data: List[PYUObject], axis=None, weights=None):
-        def _average(*masked_data: List[np.ndarray], dtypes: List[np.dtype], weights, fxp_bits):
+        def _average(
+            *masked_data: List[np.ndarray], dtypes: List[np.dtype], weights, fxp_bits
+        ):
             for dtype in dtypes[1:]:
                 assert (
                     dtype == dtypes[0]
                 ), f'Data should have same dtypes but got {dtype} {dtypes[0]}.'
             is_float = np.issubdtype(dtypes[0], np.floating)
-            sum_weights = (
-                np.sum(weights, axis=axis) if weights else len(masked_data)
-            )
+            sum_weights = np.sum(weights, axis=axis) if weights else len(masked_data)
             if is_nesting_list(masked_data):
                 sum_data = [np.sum(element, axis=axis) for element in zip(*masked_data)]
                 if is_float:
@@ -298,4 +291,6 @@ class SecureAggregator(Aggregator):
                 )
         masked_data = [d.to(self._device) for d in masked_data]
         dtypes = [dtype.to(self._device) for dtype in dtypes]
-        return self._device(_average)(*masked_data, dtypes=dtypes, weights=_weights, fxp_bits=self._fxp_bits)
+        return self._device(_average)(
+            *masked_data, dtypes=dtypes, weights=_weights, fxp_bits=self._fxp_bits
+        )

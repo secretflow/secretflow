@@ -42,7 +42,12 @@ def env(request, sf_party_for_4pc):
         num_cpus=8,
         log_to_driver=True,
         cluster_config=cluster(),
-        exit_on_failure_cross_silo_sending=True,
+        cross_silo_comm_backend='brpc_link',
+        cross_silo_comm_options={
+            'exit_on_sending_failure': True,
+            'http_max_payload_size': 5 * 1024 * 1024,
+            'recv_timeout_ms': 1800 * 1000,
+        },
         enable_waiting_for_other_parties_ready=False,
     )
 

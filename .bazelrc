@@ -7,6 +7,11 @@ build --enable_platform_specific_config
 build --cxxopt=-std=c++17
 build --host_cxxopt=-std=c++17
 
+build:avx --copt=-mavx
+build:avx --host_copt=-mavx
+build:avx --copt=-DCHECK_AVX
+build:avx --host_copt=-DCHECK_AVX
+
 # Binary safety flags
 build --copt=-fPIC
 build --copt=-fstack-protector-strong
