@@ -34,7 +34,7 @@ msgstr "SecretFlow 提供"
 
 #: ../../index.rst:10
 msgid ""
-"Device abstraction, which abstracts privacy computing technologies such "
+"Device abstraction, which abstracts privacy-preserving computing technologies such "
 "as Multi-Party Secure Computing (MPC), Homomorphic Encryption (HE), and "
 "Trusted Execution Environment (TEE) into ciphertext devices, and "
 "abstracts plaintext computing into plaintext devices."
@@ -59,7 +59,7 @@ msgstr "为什么是 `SecretFlow`"
 
 #: ../../index.rst:24
 msgid ""
-"At present, privacy computing technology is growing in popularity. "
+"At present, privacy-preserving computing technology is growing in popularity. "
 "However, neither the technology nor the market has yet reached real "
 "maturity. In order to cope with the development uncertainty of privacy "
 "computing technology and applications, we propose a general privacy "
@@ -74,7 +74,7 @@ msgstr ""
 
 #: ../../index.rst:32
 msgid ""
-"Completeness: It supports various privacy computing technologies and can "
+"Completeness: It supports various privacy-preserving computing technologies and can "
 "be assembled flexibly to meet the needs of different scenarios."
 msgstr "完备性：支持多种隐私计算技术，可灵活组装，满足不同场景需求。"
 
@@ -89,7 +89,7 @@ msgstr "透明性：构建统一的技术框架，尽量让底层技术迭代对
 msgid ""
 "Openness: People with different professional directions can easily "
 "participate in the construction of the framework, and jointly accelerate "
-"the development of privacy computing technology."
+"the development of privacy-preserving computing technology."
 msgstr "开放性：不同专业方向的人可以轻松参与框架的建设，共同加速隐私计算技术的发展。"
 
 #: ../../index.rst:39
