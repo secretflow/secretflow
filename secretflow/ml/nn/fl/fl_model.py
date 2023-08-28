@@ -69,12 +69,14 @@ class FLModel:
             import secretflow.ml.nn.fl.backend.torch.strategy  # noqa
         else:
             raise Exception(f"Invalid backend = {backend}")
+        self.num_gpus = kwargs.get('num_gpus', 0)
         self.init_workers(
             model,
             device_list=device_list,
             strategy=strategy,
             backend=backend,
             random_seed=random_seed,
+            num_gpus=self.num_gpus,
         )
         self.server = server
         self._aggregator = aggregator
@@ -94,6 +96,7 @@ class FLModel:
         strategy,
         backend,
         random_seed,
+        num_gpus,
     ):
         self._workers = {
             device: dispatch_strategy(
@@ -102,6 +105,7 @@ class FLModel:
                 builder_base=model,
                 device=device,
                 random_seed=random_seed,
+                num_gpus=num_gpus,
             )
             for device in device_list
         }
@@ -251,7 +255,7 @@ class FLModel:
                 )
         if sampling_rate > 1.0:
             sampling_rate = 1.0
-            logging.warn("Batch size is too large it will be set to the data size")
+            logging.warning("Batch size is too large it will be set to the data size")
         # check batch size
         for length in parties_length.values():
             batch_size = math.floor(length * sampling_rate)

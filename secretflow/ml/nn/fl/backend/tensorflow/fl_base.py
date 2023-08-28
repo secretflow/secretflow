@@ -33,6 +33,7 @@ class BaseTFModel:
         self,
         builder_base: Callable[[], tf.keras.Model],
         random_seed: int = None,
+        num_gpus: float = None,
     ):
         self.train_set = None
         self.eval_set = None

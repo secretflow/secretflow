@@ -102,7 +102,7 @@ def _code_reduce(obj):
 
 
 '''borrow from cloudpickle.py
-The cloudpickle library utilizes random UUID as the class_tracker_id, 
+The cloudpickle library utilizes random UUID as the class_tracker_id,
 leading to a failure in decrypting the data with the serialization of a class in TEEU.
 To solve this problem, we replace it with '00000000000000000000000000000000'.
 '''

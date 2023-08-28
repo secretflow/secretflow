@@ -428,12 +428,6 @@ class TEEU(Device):
                 party_cert = global_state.party_certs().get(
                     party, global_state.PartyCert()
                 )
-                auth_host = global_state.auth_manager_host()
-                auth_mr_enclave = global_state.auth_manager_mr_enclave()
-                auth_ca_cert = global_state.auth_manager_ca_cert()
-                tls_cert = party_cert.cert
-                tls_key = party_cert.key
-                simluation = global_state.tee_simulation()
                 kwargs['auth_host'] = global_state.auth_manager_host()
                 kwargs['auth_mr_enclave'] = global_state.auth_manager_mr_enclave()
                 kwargs['auth_ca_cert'] = global_state.auth_manager_ca_cert()

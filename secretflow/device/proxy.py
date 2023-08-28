@@ -100,6 +100,7 @@ def proxy(
     device_object_type: Type[DeviceObject],
     max_concurrency: int = None,
     _simulation_max_concurrency: int = None,
+    num_gpus: int = 0,
 ):
     """Define a device class which should accept DeviceObject as method parameters and return DeviceObject.
 
@@ -140,6 +141,7 @@ def proxy(
         _simulation_max_concurrencty (int): Actor threadpool size only for
             simulation (single controller mode). This argument takes effect only
             when max_concurrency is None.
+        num_gpus: The number of GPUs to use for training. Default is 0
 
     Returns:
         Callable: Wrapper function.
@@ -183,6 +185,10 @@ def proxy(
                 data = sfd.remote(ActorClass).party(device.party)
                 if max_concur is not None:
                     data = data.options(max_concurrency=max_concur)
+                if num_gpus > 0:
+                    data = data.options(num_gpus=num_gpus)
+                    kwargs["use_gpu"] = True
+
                 data = data.remote(*args, **kwargs)
                 self.actor_class = ActorClass
                 super().__init__(device, data)

@@ -214,6 +214,7 @@ def init(
     address: Optional[str] = None,
     cluster_config: Dict = None,
     num_cpus: Optional[int] = None,
+    num_gpus: Optional[int] = None,
     log_to_driver=True,
     omp_num_threads: int = None,
     logging_level: str = 'info',
@@ -485,6 +486,7 @@ def init(
         ray.init(
             address,
             num_cpus=num_cpus,
+            num_gpus=num_gpus,
             resources=resources,
             log_to_driver=log_to_driver,
             **kwargs,

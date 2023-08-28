@@ -157,8 +157,9 @@ class SLBaseTFModel(SLBaseModel):
         data_tuple = []
         has_x = False
         if x is not None:
-            has_x = True
-            x = [xi for xi in x]
+            x = [xi for xi in x if xi is not None]
+            if x:
+                has_x = True
             data_tuple.extend(x)
         has_y = False
         has_s_w = False
@@ -174,24 +175,28 @@ class SLBaseTFModel(SLBaseModel):
         data_tuple = [
             t.values if isinstance(t, pd.DataFrame) else t for t in data_tuple
         ]
+
         # https://github.com/tensorflow/tensorflow/issues/20481
         data_tuple = data_tuple[0] if len(data_tuple) == 1 else tuple(data_tuple)
+        if len(data_tuple) > 0:
+            data_set = (
+                tf.data.Dataset.from_tensor_slices(data_tuple)
+                .batch(batch_size)
+                .repeat(repeat_count)
+            )
 
-        data_set = (
-            tf.data.Dataset.from_tensor_slices(data_tuple)
-            .batch(batch_size)
-            .repeat(repeat_count)
-        )
-        if shuffle:
-            data_set = data_set.shuffle(buffer_size, seed=random_seed)
+            if shuffle:
+                data_set = data_set.shuffle(buffer_size, seed=random_seed)
 
-        self.set_dataset_stage(
-            data_set=data_set,
-            stage=stage,
-            has_x=has_x,
-            has_y=has_y,
-            has_s_w=has_s_w,
-        )
+            self.set_dataset_stage(
+                data_set=data_set,
+                stage=stage,
+                has_x=has_x,
+                has_y=has_y,
+                has_s_w=has_s_w,
+            )
+        else:
+            data_set = None
 
     def build_dataset_from_builder(
         self,
@@ -313,6 +318,33 @@ class SLBaseTFModel(SLBaseModel):
                 h = self.embedding_dp(h)
         return h
 
+    def unpack_dataset(self, data, has_x, has_y, has_s_w):
+        data_x, data_y, data_s_w = None, None, None
+        # case: only has x or has y, and s_w is none
+        if has_x and not has_y and not has_s_w:
+            data_x = data
+        elif not has_x and not has_s_w and has_y:
+            data_y = data
+        elif not has_x and not has_y:
+            raise Exception("x and y can not be none at same time")
+        elif not has_y and has_s_w:
+            raise Exception("Illegal argument: s_w is illegal if y is none")
+        else:
+            # handle data isinstance of list
+            if has_y:
+                if has_s_w:
+                    data_x = data[:-2] if has_x else None
+                    data_y = data[-2]
+                    data_s_w = data[-1]
+                else:
+                    data_x = data[:-1] if has_x else None
+                    data_y = data[-1]
+                if self.label_dp is not None:
+                    data_y = self.label_dp(data_y.numpy())
+                    data_y = tf.convert_to_tensor(data_y)
+
+        return data_x, data_y, data_s_w
+
     def base_forward(self, stage="train") -> ForwardData:
         """compute hidden embedding
         Args:
@@ -324,47 +356,18 @@ class SLBaseTFModel(SLBaseModel):
         training = True
         if stage == "train":
             train_data = next(self.train_set)
-            if self.train_has_y:
-                if self.train_has_s_w:
-                    data_x = train_data[:-2] if self.train_has_x else None
-                    train_y = train_data[-2]
-                    self.train_sample_weight = train_data[-1]
-                else:
-                    data_x = train_data[:-1] if self.train_has_x else None
-                    train_y = train_data[-1]
-                # Label differential privacy
-                if self.label_dp is not None:
-                    dp_train_y = self.label_dp(train_y.numpy())
-                    self.train_y = tf.convert_to_tensor(dp_train_y)
-                else:
-                    self.train_y = train_y
-            else:
-                if self.train_has_x:
-                    data_x = train_data
-                else:
-                    raise Exception("x,y cannot be none at same time!")
+
+            self.train_x, self.train_y, self.train_sample_weight = self.unpack_dataset(
+                train_data, self.train_has_x, self.train_has_y, self.train_has_s_w
+            )
+            data_x = self.train_x
         elif stage == "eval":
             training = False
             eval_data = next(self.eval_set)
-            if self.eval_has_y:
-                if self.eval_has_s_w:
-                    data_x = eval_data[:-2] if self.eval_has_x else None
-                    eval_y = eval_data[-2]
-                    self.eval_sample_weight = eval_data[-1]
-                else:
-                    data_x = eval_data[:-1] if self.eval_has_x else None
-                    eval_y = eval_data[-1]
-                # Label differential privacy
-                if self.label_dp is not None:
-                    dp_eval_y = self.label_dp(eval_y.numpy())
-                    self.eval_y = tf.convert_to_tensor(dp_eval_y)
-                else:
-                    self.eval_y = eval_y
-            else:
-                if self.eval_has_x:
-                    data_x = eval_data
-                else:
-                    raise Exception("x,y cannot be none at same time!")
+            self.eval_x, self.eval_y, self.eval_sample_weight = self.unpack_dataset(
+                eval_data, self.eval_has_x, self.eval_has_y, self.eval_has_s_w
+            )
+            data_x = self.eval_x
         else:
             raise Exception("invalid stage")
 
@@ -374,6 +377,7 @@ class SLBaseTFModel(SLBaseModel):
 
         # Strip tuple of length one, e.g: (x,) -> x
         data_x = data_x[0] if isinstance(data_x, Tuple) and len(data_x) == 1 else data_x
+
         self.tape = tf.GradientTape(persistent=True)
         with self.tape:
             self.h = self._base_forward_internal(data_x, training=training)
