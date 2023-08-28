@@ -158,8 +158,7 @@ def keras_model_with_mnist(
     pipeline_size = kwargs.get('pipeline_size', 1)
 
     party_shape = data.partition_shape()
-    alice_length = party_shape[devices.alice][0]
-    bob_length = party_shape[devices.bob][0]
+    data_length = party_shape[devices.alice][0]
 
     sl_model = SLModel(
         base_model_dict=base_model_dict,
@@ -200,9 +199,7 @@ def keras_model_with_mnist(
         random_seed=1234,
         dataset_builder=dataset_builder,
     )
-    alice_arr = devices.alice(lambda: np.zeros(alice_length))()
-    bob_arr = devices.bob(lambda: np.zeros(bob_length))()
-    sample_weights = load({devices.alice: alice_arr, devices.bob: bob_arr})
+    sample_weights = load({devices.bob: devices.bob(lambda: np.zeros(data_length))()})
     zero_metric = sl_model.evaluate(
         data,
         label,
@@ -233,7 +230,7 @@ def keras_model_with_mnist(
     reveal_result = []
     for rt in result:
         reveal_result.extend(reveal(rt))
-    assert len(reveal_result) == alice_length
+    assert len(reveal_result) == data_length
     base_model_path = os.path.join(_temp_dir, "base_model")
     fuse_model_path = os.path.join(_temp_dir, "fuse_model")
     sl_model.save_model(
@@ -247,6 +244,7 @@ def keras_model_with_mnist(
     reload_base_model_dict = {}
     for device in base_model_dict.keys():
         reload_base_model_dict[device] = None
+
     sl_model_load = SLModel(
         base_model_dict=reload_base_model_dict,
         device_y=device_y,

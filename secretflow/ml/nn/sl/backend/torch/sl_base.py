@@ -105,6 +105,8 @@ class SLBaseTorchModel(SLBaseModel):
         *args,
         **kwargs,
     ):
+        num_gpus = kwargs.get("num_gpus", 0)
+        self.use_gpu = num_gpus > 0
         self.dp_strategy = dp_strategy
         self.embedding_dp = (
             self.dp_strategy.embedding_dp if dp_strategy is not None else None
@@ -122,8 +124,10 @@ class SLBaseTorchModel(SLBaseModel):
         self.train_x, self.train_y = None, None
         self.eval_x, self.eval_y = None, None
         self.kwargs = {}
+        self.train_has_x = False
         self.train_has_y = False
         self.train_has_s_w = False
+        self.eval_has_x = False
         self.eval_has_y = False
         self.eval_has_s_w = False
         self.train_sample_weight = None
@@ -163,6 +167,33 @@ class SLBaseTorchModel(SLBaseModel):
                     "Please define the output_num function in basemodel and return the number of basenet outputs, then try again"
                 )
 
+    def unpack_dataset(self, data, has_x, has_y, has_s_w):
+        data_x, data_y, data_s_w = None, None, None
+        # case: only has x or has y, and s_w is none
+        if has_x and not has_y and not has_s_w:
+            data_x = data
+        elif not has_x and not has_s_w and has_y:
+            data_y = data
+        elif not has_x and not has_y:
+            raise Exception("x and y can not be none at same time")
+        elif not has_y and has_s_w:
+            raise Exception("Illegal argument: s_w is illegal if y is none")
+        else:
+            # handle data isinstance of list
+            if has_y:
+                if has_s_w:
+                    data_x = data[:-2] if has_x else None
+                    data_y = data[-2]
+                    data_s_w = data[-1]
+                else:
+                    data_x = data[:-1] if has_x else None
+                    data_y = data[-1]
+                if self.label_dp is not None:
+                    data_y = self.label_dp(data_y.numpy())
+                    data_y = torch.tensor(data_y)
+
+        return data_x, data_y, data_s_w
+
     def get_batch_data(self, stage="train"):
         data_x = None
         self.init_data()
@@ -172,46 +203,19 @@ class SLBaseTorchModel(SLBaseModel):
 
         if stage == "train":
             train_data = next(self.train_iter)
-
-            if self.train_has_y:
-                if self.train_has_s_w:
-                    data_x = train_data[:-2]
-                    train_y = train_data[-2]
-                    self.train_sample_weight = train_data[-1]
-                else:
-                    data_x = train_data[:-1]
-                    train_y = train_data[-1]
-
-                # Label differential privacy
-                if self.label_dp is not None:
-                    dp_train_y = self.label_dp(train_y.numpy())
-                    self.train_y = torch.tensor(dp_train_y)
-                else:
-                    self.train_y = train_y
-            else:
-                data_x = train_data
+            self.train_x, self.train_y, self.train_sample_weight = self.unpack_dataset(
+                train_data, self.train_has_x, self.train_has_y, self.train_has_s_w
+            )
+            data_x = self.train_x
 
         elif stage == "eval":
             self.model_base.eval()
             eval_data = next(self.eval_iter)
 
-            if self.eval_has_y:
-                if self.eval_has_s_w:
-                    data_x = eval_data[:-2]
-                    eval_y = eval_data[-2]
-                    self.eval_sample_weight = eval_data[-1]
-                else:
-                    data_x = eval_data[:-1]
-                    eval_y = eval_data[-1]
-
-                # Label differential privacy
-                if self.label_dp is not None:
-                    dp_eval_y = self.label_dp(eval_y.numpy())
-                    self.eval_y = torch.tensor(dp_eval_y)
-                else:
-                    self.eval_y = eval_y
-            else:
-                data_x = eval_data
+            self.eval_x, self.eval_y, self.eval_sample_weight = self.unpack_dataset(
+                eval_data, self.eval_has_x, self.eval_has_y, self.eval_has_s_w
+            )
+            data_x = self.eval_x
         else:
             raise Exception("invalid stage")
 
@@ -248,8 +252,6 @@ class SLBaseTorchModel(SLBaseModel):
             stage: stage of this datset
             random_seed: Prg seed for shuffling
         """
-        assert x and x[0] is not None, "X can not be None, please check"
-
         if shuffle and random_seed is not None:
             self.shuffle = shuffle
             random.seed(random_seed)
@@ -257,20 +259,28 @@ class SLBaseTorchModel(SLBaseModel):
             torch.cuda.manual_seed(random_seed)  # set random seed for cuda
             torch.backends.cudnn.deterministic = True
 
-        x = [xi for xi in x]
+        data_tuple = []
+        has_x = False
+        if x is not None:
+            x = [xi for xi in x if xi is not None]
+            if x:
+                has_x = True
+            data_tuple.extend(x)
 
         has_y = False
         has_s_w = False
         if y is not None and len(y.shape) > 0:
             has_y = True
-            x.append(y)
+            data_tuple.append(y)
             if s_w is not None and len(s_w.shape) > 0:
                 has_s_w = True
-                x.append(s_w)
+                data_tuple.append(s_w)
 
         # convert pandas.DataFrame to torch.tensor
-        x = [t.values if isinstance(t, pd.DataFrame) else t for t in x]
-        x_copy = [torch.tensor(t.copy()) for t in x]
+        data_tuple = [
+            t.values if isinstance(t, pd.DataFrame) else t for t in data_tuple
+        ]
+        x_copy = [torch.tensor(t.copy()) for t in data_tuple]
         data_set = torch_data.TensorDataset(*x_copy)
         dataloader = torch_data.DataLoader(
             dataset=data_set,
@@ -281,6 +291,7 @@ class SLBaseTorchModel(SLBaseModel):
         self.set_dataset_stage(
             data_set=dataloader,
             stage=stage,
+            has_x=has_x,
             has_y=has_y,
             has_s_w=has_s_w,
         )
@@ -318,7 +329,8 @@ class SLBaseTorchModel(SLBaseModel):
             stage: stage of this datset
             dataset_builder: dataset build callable function of worker
         """
-        assert x and x[0] is not None, "X can not be None, please check"
+        if not dataset_builder:
+            return -1
 
         if random_seed is not None:
             random.seed(random_seed)
@@ -326,21 +338,30 @@ class SLBaseTorchModel(SLBaseModel):
             torch.cuda.manual_seed(random_seed)  # set random seed for cuda
             torch.backends.cudnn.deterministic = True
 
-        x = [xi for xi in x]
+        data_tuple = []
+        has_x = False
+
+        #  x is (None,) if dont have feature
+        if x[0] is not None:
+            has_x = True
+            x = [xi for xi in x]
+            data_tuple.extend(x)
+
         has_y = False
         has_s_w = False
         if y is not None and len(y.shape) > 0:
             has_y = True
-            x.append(y)
+            data_tuple.append(y)
         if s_w is not None and len(s_w.shape) > 0:
             has_s_w = True
-            x.append(s_w)
+            data_tuple.append(s_w)
 
-        data_set = dataset_builder(x)
+        data_set = dataset_builder(data_tuple)
 
         self.set_dataset_stage(
             data_set=data_set,
             stage=stage,
+            has_x=has_x,
             has_y=has_y,
             has_s_w=has_s_w,
         )
@@ -385,15 +406,18 @@ class SLBaseTorchModel(SLBaseModel):
         self,
         data_set,
         stage="train",
+        has_x=None,
         has_y=None,
         has_s_w=None,
     ):
         if stage == "train":
             self.train_set = data_set
+            self.train_has_x = has_x
             self.train_has_y = has_y
             self.train_has_s_w = has_s_w
         elif stage == "eval":
             self.eval_set = data_set
+            self.eval_has_x = has_x
             self.eval_has_y = has_y
             self.eval_has_s_w = has_s_w
             self.eval_iter = iter(self.eval_set)

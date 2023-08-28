@@ -357,7 +357,8 @@ class AggLayer(object):
             self.hiddens = server_data
             # agg hiddens
             agg_hiddens = self.device_agg(
-                self.agg_method.forward, static_argnames="axis"
+                self.agg_method.forward,
+                static_argnames="axis",
             )(*server_data, axis=axis, weights=weights)
 
             # send to device y

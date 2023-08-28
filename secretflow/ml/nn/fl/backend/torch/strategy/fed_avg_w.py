@@ -21,8 +21,6 @@ from typing import Tuple
 
 import numpy as np
 import torch
-
-from secretflow.device import PYUObject, proxy
 from secretflow.ml.nn.fl.backend.torch.fl_base import BaseTorchModel
 from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
 
@@ -76,6 +74,11 @@ class FedAvgW(BaseTorchModel):
                     y_t = torch.squeeze(y, -1).long()
                 else:
                     y_t = y.argmax(dim=-1)
+            if self.use_gpu:
+                x = x.to(self.exe_device)
+                y_t = y_t.to(self.exe_device)
+                if s_w is not None:
+                    s_w = s_w.to(self.exe_device)
             y_pred = self.model(x)
 
             # do back propagation
@@ -83,7 +86,7 @@ class FedAvgW(BaseTorchModel):
             loss.backward()
             self.optimizer.step()
             for m in self.metrics:
-                m.update(y_pred, y_t)
+                m.update(y_pred.cpu(), y_t.cpu())
         loss_value = loss.item()
         logs['train-loss'] = loss_value
 
@@ -101,6 +104,5 @@ class FedAvgW(BaseTorchModel):
 
 
 @register_strategy(strategy_name='fed_avg_w', backend='torch')
-@proxy(PYUObject)
 class PYUFedAvgW(FedAvgW):
     pass
