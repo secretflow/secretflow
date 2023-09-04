@@ -69,6 +69,10 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   *Benny Pinkas, Mike Rosulek, Ni Trieu, Avishay Yanai*
   Crypto 2019, [eprint](https://eprint.iacr.org/2019/634), PRTY19
 
+- Efficient Circuit-based PSI with Linear Communication
+  *Benny Pinkas, Thomas Schneider, Oleksandr Tkachenko, Avishay Yanai*
+  EUROCRYPT 2019, [eprint](https://eprint.iacr.org/2019/241), PSTY19
+
 - Malicious-Secure Private Set Intersection via Dual Execution
   *Peter Rindal, Mike Rosulek*
   CCS 2017, [eprint](https://eprint.iacr.org/2017/769), RR17b
