@@ -47,7 +47,7 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
 
 - Faster Secure Comparisons with Offline Phase for Efficient Private Set Intersection
   Florian Kerschbaum, Erik-Oliver Blass, Rasoul Akhavan Mahdavi
-  NDSS 2023, [ndss](https://www.ndss-symposium.org/ndss-paper/faster-secure-comparisons-with-offline-phase-for-efficient-private-set-intersection/), KBM23  
+  NDSS 2023, [ndss](https://www.ndss-symposium.org/ndss-paper/faster-secure-comparisons-with-offline-phase-for-efficient-private-set-intersection/)  
     
 - Circuit-PSI with Linear Complexity via Relaxed Batch OPPRF
   *Nishanth Chandran, Divya Gupta, Akash Shah*
