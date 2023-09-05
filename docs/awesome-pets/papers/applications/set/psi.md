@@ -45,6 +45,10 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
 
 ## OT-based PSI
 
+- Faster Secure Comparisons with Offline Phase for Efficient Private Set Intersection
+  Florian Kerschbaum, Erik-Oliver Blass, Rasoul Akhavan Mahdavi
+  NDSS 2023, [ndss](https://www.ndss-symposium.org/ndss-paper/faster-secure-comparisons-with-offline-phase-for-efficient-private-set-intersection/), KBM23  
+    
 - Circuit-PSI with Linear Complexity via Relaxed Batch OPPRF
   *Nishanth Chandran, Divya Gupta, Akash Shah*
   PETS 2022, [eprint](https://eprint.iacr.org/2021/034), CGS22
