@@ -132,12 +132,12 @@ class BaseTorchModel(ABC):
         if x is None or len(x.shape) == 0:
             raise Exception("Data 'x' cannot be None")
 
-        assert sampling_rate is not None, "Sampling rate cannot be None"
-        if x is not None and y is not None:
+        if y is not None:
             assert (
                 x.shape[0] == y.shape[0]
             ), "The samples of feature is different with label"
 
+        assert sampling_rate is not None, "Sampling rate cannot be None"
         data_set = sampler_data(
             sampler_method,
             x,

@@ -67,9 +67,9 @@ class RegressionEval:
         self.bins = bins
 
     def gen_all_reports(self):
-        assert self.y_true.shape == self.y_pred.shape
         if self.y_true is None or self.y_true.shape[0] == 0:
             return
+        assert self.y_true.shape == self.y_pred.shape
         self.r2_score = r2_score(self.y_true, self.y_pred, self.spu)
         self.mean_abs_err = mean_abs_err(self.y_true, self.y_pred, self.spu)
         self.mean_abs_percent_err = mean_abs_percent_err(
