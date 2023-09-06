@@ -12,6 +12,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
+## [1.1.0b0] - 2023-9-6
+
+### Added
+- SLModel: supports quantization compression algorithm, reducing communication volume by 2-4 times.
+- SLModel: supports pipeline strategy, which can accelerate model training by 2-4 times in most scenarios.
+- SLModel: PyTorch backend supports GPU.
+- SLModel: introduces two attack and defense algorithms, LIA and FIA, for testing model security in the research and development stage.
+- SLModel: supports a mode where one party only provides labels without providing features.
+- Component: GLM train and predict components.
+- Support the usage of brpc link as a backend for cross-silo communication.
+
+### Changed
+- Component: add more parameters for SGB components.
+
 ## [1.1.0.dev230825] - 2023-8-25
 
 ### Added
@@ -52,7 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Predict supports callbacks, call the callback function before/after prediction starts and after every step.
 ## [1.0.0a1] - 2023-7-26
 ### Fixed
-- SLModel fix bug in handling data with databuilder 
+- SLModel fix bug in handling data with databuilder
 - The FLModel solves the problem of the production mode hanging due to a small batch size.
 
 ## [1.0.0a0] - 2023-7-3
