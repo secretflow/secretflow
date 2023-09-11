@@ -410,6 +410,10 @@ Without trusted setup.
   *Irene Giacomelli, Jesper Madsen, and Claudio Orlandi*
   USENIX 2016, [paper](https://www.usenix.org/system/files/conference/usenixsecurity16/sec16_paper_giacomelli.pdf), GMO16
 
+- Prio: Private, Robust, and Scalable Computation of Aggregate Statistics
+  Henry Corrigan-Gibbs and Dan Boneh
+  USENIX 2017, [paper](https://www.usenix.org/system/files/conference/nsdi17/nsdi17-corrigan-gibbs.pdf)
+
 - Post-quantum zero-knowledge and signatures from symmetric-key primitives
   *Melissa Chase, David Derler, Steven Goldfeder, Claudio Orlandi, Sebastian Ramacher, Christian Rechberger, Daniel Slamanig, and Greg Zaverucha*
   CCS 2017, [paper](https://dl.acm.org/doi/pdf/10.1145/3133956.3133997), CDG+17
