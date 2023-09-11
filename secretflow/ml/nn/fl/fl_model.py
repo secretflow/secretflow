@@ -178,7 +178,7 @@ class FLModel:
                     )
                 if sampling_rate > 1.0:
                     sampling_rate = 1.0
-                    logging.warn(
+                    logging.warning(
                         "Batchsize is too large it will be set to the data size"
                     )
             # check batchsize
@@ -254,7 +254,7 @@ class FLModel:
                 )
         if sampling_rate > 1.0:
             sampling_rate = 1.0
-            logging.warn("Batch size is too large it will be set to the data size")
+            logging.warning("Batch size is too large it will be set to the data size")
         # check batch size
         for length in parties_length.values():
             batch_size = math.floor(length * sampling_rate)
