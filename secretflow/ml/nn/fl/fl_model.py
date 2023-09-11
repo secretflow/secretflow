@@ -69,18 +69,15 @@ class FLModel:
             import secretflow.ml.nn.fl.backend.torch.strategy  # noqa
         else:
             raise Exception(f"Invalid backend = {backend}")
-        self.num_gpus = kwargs.get('num_gpus', 0)
         self.init_workers(
             model,
             device_list=device_list,
             strategy=strategy,
             backend=backend,
             random_seed=random_seed,
-            num_gpus=self.num_gpus,
         )
         self.server = server
         self._aggregator = aggregator
-        self.steps_per_epoch = 0
         self.consensus_num = consensus_num
         self.kwargs = kwargs
         self.strategy = strategy
@@ -88,6 +85,7 @@ class FLModel:
         self.backend = backend
         self.dp_strategy = kwargs.get('dp_strategy', None)
         self.simulation = kwargs.get('simulation', False)
+        self.num_gpus = kwargs.get('num_gpus', 0)
 
     def init_workers(
         self,
@@ -155,7 +153,7 @@ class FLModel:
             assert (
                 len(set_steps_per_epochs) == 1
             ), "steps_per_epochs of all parties must be same"
-            self.steps_per_epoch = set_steps_per_epochs.pop()
+            steps_per_epoch = set_steps_per_epochs.pop()
 
         else:
             # get party length
@@ -191,7 +189,7 @@ class FLModel:
             assert (
                 sampling_rate <= 1.0 and sampling_rate > 0.0
             ), f'invalid sampling rate {sampling_rate}'
-            self.steps_per_epoch = math.ceil(1.0 / sampling_rate)
+            steps_per_epoch = math.ceil(1.0 / sampling_rate)
 
             for device, worker in self._workers.items():
                 repeat_count = epochs
@@ -207,7 +205,7 @@ class FLModel:
                     stage=stage,
                     label_decoder=label_decoder,
                 )
-        return self.steps_per_epoch
+        return steps_per_epoch
 
     def _handle_data(
         self,
@@ -255,7 +253,7 @@ class FLModel:
                 )
         if sampling_rate > 1.0:
             sampling_rate = 1.0
-            logging.warning("Batch size is too large it will be set to the data size")
+            logging.warn("Batch size is too large it will be set to the data size")
         # check batch size
         for length in parties_length.values():
             batch_size = math.floor(length * sampling_rate)
@@ -263,7 +261,7 @@ class FLModel:
                 batch_size < 1024
             ), f"Automatic batch size is too big(batch_size={batch_size}), variable batch size in dict is recommended"
         assert sampling_rate <= 1.0 and sampling_rate > 0.0, 'invalid sampling rate'
-        self.steps_per_epoch = math.ceil(1.0 / sampling_rate)
+        steps_per_epoch = math.ceil(1.0 / sampling_rate)
 
         for device, worker in self._workers.items():
             repeat_count = epochs
@@ -301,7 +299,7 @@ class FLModel:
                     sampler_method=sampler_method,
                     stage=stage,
                 )
-        return self.steps_per_epoch
+        return steps_per_epoch
 
     def fit(
         self,
@@ -380,7 +378,7 @@ class FLModel:
             else:
                 valid_x, valid_y = None, None
 
-            self._handle_file(
+            train_steps_per_epoch = self._handle_file(
                 x,
                 y,
                 batch_size=batch_size,
@@ -405,7 +403,7 @@ class FLModel:
             else:
                 valid_x, valid_y = None, None
 
-            self._handle_data(
+            train_steps_per_epoch = self._handle_data(
                 train_x,
                 train_y,
                 sample_weight=sample_weight,
@@ -430,11 +428,11 @@ class FLModel:
         for epoch in range(epochs):
             res = []
             report_list = []
-            pbar = tqdm(total=self.steps_per_epoch)
+            pbar = tqdm(total=train_steps_per_epoch)
             # do train
             report_list.append(f"epoch: {epoch+1}/{epochs} - ")
             [worker.on_epoch_begin(epoch) for worker in self._workers.values()]
-            for step in range(0, self.steps_per_epoch, aggregate_freq):
+            for step in range(0, train_steps_per_epoch, aggregate_freq):
                 if verbose == 1:
                     pbar.update(aggregate_freq)
                 client_param_list, sample_num_list = [], []
@@ -444,10 +442,10 @@ class FLModel:
                     )
                     client_params, sample_num = worker.train_step(
                         client_params,
-                        epoch * self.steps_per_epoch + step,
+                        epoch * train_steps_per_epoch + step,
                         aggregate_freq
-                        if step + aggregate_freq < self.steps_per_epoch
-                        else self.steps_per_epoch - step,
+                        if step + aggregate_freq < train_steps_per_epoch
+                        else train_steps_per_epoch - step,
                         **self.kwargs,
                     )
                     client_param_list.append(client_params)
@@ -484,7 +482,7 @@ class FLModel:
                 # DP operation
                 if dp_spent_step_freq is not None and self.dp_strategy is not None:
                     current_dp_step = math.ceil(
-                        epoch * self.steps_per_epoch / aggregate_freq
+                        epoch * train_steps_per_epoch / aggregate_freq
                     ) + int(step / aggregate_freq)
                     if current_dp_step % dp_spent_step_freq == 0:
                         privacy_spent = self.dp_strategy.get_privacy_spent(
