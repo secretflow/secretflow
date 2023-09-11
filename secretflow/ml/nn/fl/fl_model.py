@@ -69,12 +69,14 @@ class FLModel:
             import secretflow.ml.nn.fl.backend.torch.strategy  # noqa
         else:
             raise Exception(f"Invalid backend = {backend}")
+        self.num_gpus = kwargs.get('num_gpus', 0)
         self.init_workers(
             model,
             device_list=device_list,
             strategy=strategy,
             backend=backend,
             random_seed=random_seed,
+            num_gpus=self.num_gpus,
         )
         self.server = server
         self._aggregator = aggregator
@@ -85,7 +87,6 @@ class FLModel:
         self.backend = backend
         self.dp_strategy = kwargs.get('dp_strategy', None)
         self.simulation = kwargs.get('simulation', False)
-        self.num_gpus = kwargs.get('num_gpus', 0)
 
     def init_workers(
         self,
