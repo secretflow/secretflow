@@ -499,6 +499,10 @@ Below are from organization [zkproof](https://zkproof.org/):
 
 Here just list several interesting applicaitons.
 
+- Prio: Private, Robust, and Scalable Computation of Aggregate Statistics
+  Henry Corrigan-Gibbs and Dan Boneh
+  USENIX 2017, [paper](https://www.usenix.org/system/files/conference/nsdi17/nsdi17-corrigan-gibbs.pdf)
+
 - Scaling Verifiable Computation Using Efﬁcient Set Accumulators
   *Alex Ozdemir, Riad S Wahby, Barry Whitehat, and Dan Boneh*
   USENIX 2020, [paper](https://www.usenix.org/conference/usenixsecurity20/presentation/ozdemir), OWW+20
