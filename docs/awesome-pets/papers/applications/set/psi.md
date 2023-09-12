@@ -8,10 +8,12 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
 
 ## Table of Contents
 
-- [PKC-based PSI](#pkc-based-psi)
-- [OT-based PSI](#ot-based-psi)
-- [VOLE-based PSI](#vole-based-psi)
-- [Other Variants](#other-variants)
+- [Private Set Intersection (PSI)](#private-set-intersection-psi)
+  - [Table of Contents](#table-of-contents)
+  - [PKC-based PSI](#pkc-based-psi)
+  - [OT-based PSI](#ot-based-psi)
+  - [VOLE-based PSI](#vole-based-psi)
+  - [Other Variants](#other-variants)
 
 ## PKC-based PSI
 
@@ -128,3 +130,12 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
 - PIR-PSI: Scaling Private Contact Discovery
   *Daniel Demmler, Peter Rindal, Mike Rosulek, Ni Trieu*
   PETS 2018, [eprint](https://eprint.iacr.org/2018/579), DRRT18
+
+
+- Structure-Aware Private Set Intersection with Applications to Fuzzy Matching   
+  *Gayathri Garimella, Mike Rosulek, Jaspal Singh*  
+  CRYPTO 2022, [eprint](https://eprint.iacr.org/2022/1011.pdf), GRS22
+
+- Malicious Secure, Structure-Aware Private Set Intersection  
+  *Gayathri Garimella, Mike Rosulek, Jaspal Singh*  
+  CRYPTO 2023, [eprint](https://eprint.iacr.org/2023/1166), GRS23
