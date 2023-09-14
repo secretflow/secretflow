@@ -36,7 +36,7 @@ def main(args):
     target_model = ResNet18()
     if not os.path.exists(args.trg_model_path):
         raise Exception("Target Model does not exist!")
-    target_model = torch.load(args.trg_model_path)
+    target_model.load_state_dict(torch.load(args.trg_model_path))
     target_model = target_model.to(device)
     target_model.eval()
     print("\nTarget model:", target_model, "\n")
@@ -51,7 +51,7 @@ def main(args):
     )
     if not os.path.exists(args.att_model_path):
         raise Exception("Attack Model does not exist!")
-    attack_model = torch.load(args.att_model_path)
+    attack_model.load_state_dict(torch.load(args.att_model_path))
     attack_model = attack_model.to(device)
     attack_model.eval()
 
