@@ -12,13 +12,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
-## [1.1.0.dev230811] - 2023-8-7
+## [1.1.0b0] - 2023-9-6
+
+### Added
+- SLModel: supports quantization compression algorithm, reducing communication volume by 2-4 times.
+- SLModel: supports pipeline strategy, which can accelerate model training by 2-4 times in most scenarios.
+- SLModel: PyTorch backend supports GPU.
+- SLModel: introduces two attack and defense algorithms, LIA and FIA, for testing model security in the research and development stage.
+- SLModel: supports a mode where one party only provides labels without providing features.
+- Component: GLM train and predict components.
+- Support the usage of brpc link as a backend for cross-silo communication.
+
+### Changed
+- Component: add more parameters for SGB components.
+
+## [1.1.0.dev230825] - 2023-8-25
+
+### Added
+- Stateful task for teeu
+- GPU support for torch fl model
+- docs: DeepFM translation
+
+### Changed
+- Switch to shared workflow
+
+## [1.1.0.dev230818] - 2023-8-18
+
+### Added
+- Add five papers in Vertical Federated Learning
+- docs: update references on homomorphic encryption
+- Add new quantized compressor method and tutorial
+
+## [1.1.0.dev230811] - 2023-8-11
 
 ### Fixed
 - PSI use psi_csv in psi comp.
 
 ### Added
 - GLM train and predict components
+## [1.1.0b0.dev1] - 2023-8-7
+
+### Added
+- Support the usage of brpc link as a backend for cross-silo communication.
 
 ## [1.1.0b0.dev0] - 2023-8-7
 
@@ -31,7 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Predict supports callbacks, call the callback function before/after prediction starts and after every step.
 ## [1.0.0a1] - 2023-7-26
 ### Fixed
-- SLModel fix bug in handling data with databuilder 
+- SLModel fix bug in handling data with databuilder
 - The FLModel solves the problem of the production mode hanging due to a small batch size.
 
 ## [1.0.0a0] - 2023-7-3

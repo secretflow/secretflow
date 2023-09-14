@@ -10,17 +10,16 @@ separated from the rest by a newline
 import math
 import os
 import tempfile
+
 import numpy as np
+
 from secretflow.data.ndarray import load
 from secretflow.device import reveal
 from secretflow.ml.nn import SLModel
 from secretflow.ml.nn.sl.agglayer.agg_method import Average
 from secretflow.security.privacy import DPStrategy, LabelDP
 from secretflow.security.privacy.mechanism.tensorflow import GaussianEmbeddingDP
-from secretflow.utils.compressor import (
-    TopkSparse,
-    QuantizedZeroPoint,
-)
+from secretflow.utils.compressor import QuantizedZeroPoint, TopkSparse
 from secretflow.utils.simulation.datasets import load_mnist
 
 _temp_dir = tempfile.mkdtemp()
@@ -159,8 +158,7 @@ def keras_model_with_mnist(
     pipeline_size = kwargs.get('pipeline_size', 1)
 
     party_shape = data.partition_shape()
-    alice_length = party_shape[devices.alice][0]
-    bob_length = party_shape[devices.bob][0]
+    data_length = party_shape[devices.alice][0]
 
     sl_model = SLModel(
         base_model_dict=base_model_dict,
@@ -201,9 +199,7 @@ def keras_model_with_mnist(
         random_seed=1234,
         dataset_builder=dataset_builder,
     )
-    alice_arr = devices.alice(lambda: np.zeros(alice_length))()
-    bob_arr = devices.bob(lambda: np.zeros(bob_length))()
-    sample_weights = load({devices.alice: alice_arr, devices.bob: bob_arr})
+    sample_weights = load({devices.bob: devices.bob(lambda: np.zeros(data_length))()})
     zero_metric = sl_model.evaluate(
         data,
         label,
@@ -234,7 +230,7 @@ def keras_model_with_mnist(
     reveal_result = []
     for rt in result:
         reveal_result.extend(reveal(rt))
-    assert len(reveal_result) == alice_length
+    assert len(reveal_result) == data_length
     base_model_path = os.path.join(_temp_dir, "base_model")
     fuse_model_path = os.path.join(_temp_dir, "fuse_model")
     sl_model.save_model(
@@ -248,6 +244,7 @@ def keras_model_with_mnist(
     reload_base_model_dict = {}
     for device in base_model_dict.keys():
         reload_base_model_dict[device] = None
+
     sl_model_load = SLModel(
         base_model_dict=reload_base_model_dict,
         device_y=device_y,
@@ -315,6 +312,10 @@ def keras_model_with_mnist(
 
 class TestSLModelTensorflow:
     def test_single_output_model(self, sf_simulation_setup_devices):
+        global _temp_dir
+        _temp_dir = reveal(
+            sf_simulation_setup_devices.alice(lambda: tempfile.mkdtemp())()
+        )
         num_samples = 10000
         (x_train, y_train), (_, _) = load_mnist(
             parts={
@@ -637,6 +638,10 @@ class TestSLModelTensorflow:
         )
 
     def test_single_feature_model(self, sf_simulation_setup_devices):
+        global _temp_dir
+        _temp_dir = reveal(
+            sf_simulation_setup_devices.alice(lambda: tempfile.mkdtemp())()
+        )
         num_samples = 10000
         (x_train, y_train), (_, _) = load_mnist(
             parts={

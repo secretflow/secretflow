@@ -21,7 +21,6 @@ from typing import Callable, Tuple
 
 import numpy as np
 
-from secretflow.device import PYUObject, proxy
 from secretflow.ml.nn.fl.backend.torch.fl_base import BaseTorchModel
 from secretflow.ml.nn.utils import TorchModel
 from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
@@ -83,6 +82,13 @@ class FedSCR(BaseTorchModel):
 
             num_sample += x.shape[0]
             y_t = y.argmax(dim=-1)
+
+            if self.use_gpu:
+                x = x.to(self.exe_device)
+                y_t = y_t.to(self.exe_device)
+                if s_w is not None:
+                    s_w = s_w.to(self.exe_device)
+
             y_pred = self.model(x)
 
             # do back propagation
@@ -90,7 +96,7 @@ class FedSCR(BaseTorchModel):
             loss.backward()
             self.optimizer.step()
             for m in self.metrics:
-                m.update(y_pred, y_t)
+                m.update(y_pred.cpu(), y_t.cpu())
         loss = loss.item()
         logs['train-loss'] = loss
         self.logs = self.transform_metrics(logs)
@@ -139,6 +145,5 @@ class FedSCR(BaseTorchModel):
 
 
 @register_strategy(strategy_name='fed_scr', backend='torch')
-@proxy(PYUObject)
 class PYUFedSCR(FedSCR):
     pass

@@ -20,7 +20,7 @@ features into a representation for more suitable for the downstream pipeline.
         DataFrame is composed of data blocks of multiple parties and supports horizontal or vertical partitioned data.
     
     .. grid-item-card:: WeightOfEnvidenceEncoding (WOE)
-      :link:  preprocessing/WeigtOfEvidenceEncoding
+      :link:  preprocessing/WeightOfEvidenceEncoding
       :link-type: doc
 
         Secretflow provides WOE Encoding for vertical datasets.

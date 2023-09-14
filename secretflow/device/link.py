@@ -110,15 +110,10 @@ class Communicator(ABC):
 
 class FedCommunicator(Communicator):
     def __init__(self, partners: List[PYU]):
-        parties = [partner.party for partner in partners]
-        self.cluster = {
-            party: value
-            for party, value in fed.config.get_cluster_config().cluster_addresses.items()
-            if party in parties
-        }
+        self.parties = [partner.party for partner in partners]
 
     def send(self, dest: PYU, data: Any, key: str):
-        assert dest.party in self.cluster, f'Device {dest} is not in this communicator.'
+        assert dest.party in self.parties, f'Device {dest} is not in this communicator.'
         return fed.send(
             dest_party=dest.party,
             data=data,

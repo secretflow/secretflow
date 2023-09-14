@@ -127,7 +127,7 @@ jobs:
             bash Miniconda3-latest-Linux-x86_64.sh -b
 
             # get version first
-            echo "print(__version__)" >> secretflow/version.py
+            printf "from datetime import date\ntoday = date.today()\ndstr = today.strftime(\"%%Y%%m%%d\")\n__version__ = __version__.replace(\"\$\$DATE\$\$\", dstr)\nprint(__version__)" >> secretflow/version.py
             VERSION=$(~/miniconda3/bin/python secretflow/version.py)
 
             # restore changed file
