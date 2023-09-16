@@ -12,11 +12,11 @@ The example in this repository are designed to demonstrate the basic attack proc
 # Download
 To download the `target_model.pt`, `attack_model.pt` and `data.npz`, please use the following Baidu Netdisk link:
 ```
-https://pan.baidu.com/s/1mXPpy2c68WPYCfAg6bJ2xw
+https://drive.google.com/file/d/1ym_xNI26oT6bl12RL2zHlzoim-L7MgbS/view?usp=sharing
 ```
-The extraction code is **8bg7**.
+Unpack the downloaded models and data files to the `tmp` folder.
 
-Store the downloaded model and data files to the `tmp` folder.
+We are using the [CelebA](https://mmlab.ie.cuhk.edu.hk/projects/CelebA.html) dataset. We have scaled down the images to 3 × 64 × 64 pixels.
 
 # Run Example
 ```
