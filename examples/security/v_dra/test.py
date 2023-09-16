@@ -104,7 +104,7 @@ if __name__ == '__main__':
         help="the path of attack model",
     )
     parser.add_argument(
-        '--data_path', type=str, default='tmp/data.npz', help="the path of test data"
+        '--data_path', type=str, default='tmp/data.pt', help="the path of test data"
     )
     parser.add_argument(
         '--recon_num', type=int, default=1, help="number of reconstructed images"
