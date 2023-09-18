@@ -644,12 +644,18 @@ class Component:
             "self_party": config.private_config.self_party,
         }
         for party, addr in zip(
-            list(config.public_config.rayfed_config.parties),
-            list(config.public_config.rayfed_config.addresses),
+            list(config.public_config.ray_fed_config.parties),
+            list(config.public_config.ray_fed_config.addresses),
         ):
             cluster_config["parties"][party] = {"address": addr}
 
         import multiprocess
+
+        cross_silo_comm_backend = (
+            config.desc.ray_fed_config.cross_silo_comm_backend
+            if len(config.desc.ray_fed_config.cross_silo_comm_backend)
+            else 'grpc'
+        )
 
         init(
             address=config.private_config.ray_head_addr,
@@ -657,6 +663,7 @@ class Component:
             log_to_driver=True,
             cluster_config=cluster_config,
             omp_num_threads=multiprocess.cpu_count(),
+            cross_silo_comm_backend=cross_silo_comm_backend,
             cross_silo_comm_options={
                 'messages_max_size_in_bytes': 1024**3,
             },

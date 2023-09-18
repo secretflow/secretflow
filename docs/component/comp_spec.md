@@ -15,9 +15,10 @@
     - [SFClusterConfig.SPUConfig](#sfclusterconfigspuconfig)
     - [SFClusterDesc](#sfclusterdesc)
     - [SFClusterDesc.DeviceDesc](#sfclusterdescdevicedesc)
+    - [SFClusterDesc.RayFedConfig](#sfclusterdescrayfedconfig)
     - [StorageConfig](#storageconfig)
     - [StorageConfig.LocalFSConfig](#storageconfiglocalfsconfig)
-  
+
 
 
 
@@ -35,7 +36,7 @@
     - [SystemInfo](#systeminfo)
     - [TableSchema](#tableschema)
     - [VerticalTable](#verticaltable)
-  
+
 
 
 
@@ -53,12 +54,12 @@
     - [ComponentDef](#componentdef)
     - [IoDef](#iodef)
     - [IoDef.TableAttrDef](#iodeftableattrdef)
-  
+
 
 
 - Enums
     - [AttrType](#attrtype)
-  
+
 
 
 
@@ -69,7 +70,7 @@
 - Messages
     - [NodeEvalParam](#nodeevalparam)
     - [NodeEvalResult](#nodeevalresult)
-  
+
 
 
 
@@ -88,7 +89,7 @@
     - [Table](#table)
     - [Table.HeaderItem](#tableheaderitem)
     - [Table.Row](#tablerow)
-  
+
 
 
 
@@ -139,7 +140,7 @@ Public and shared to all parties.
 
 | Field | Type | Description |
 | ----- | ---- | ----------- |
-| rayfed_config | [ SFClusterConfig.RayFedConfig](#sfclusterconfigrayfedconfig) | none |
+| ray_fed_config | [ SFClusterConfig.RayFedConfig](#sfclusterconfigrayfedconfig) | none |
 | spu_configs | [repeated SFClusterConfig.SPUConfig](#sfclusterconfigspuconfig) | none |
  <!-- end Fields -->
  <!-- end HasFields -->
@@ -186,6 +187,7 @@ Intrinsic properties of a SecretFlow cluster, including:
 | py_version | [ string](#string) | Python version. |
 | parties | [repeated string](#string) | Joined entities. e.g. ["alice", "bob",...]. |
 | devices | [repeated SFClusterDesc.DeviceDesc](#sfclusterdescdevicedesc) | Description of secret devices |
+| ray_fed_config | [ SFClusterDesc.RayFedConfig](#sfclusterdescrayfedconfig) | none |
  <!-- end Fields -->
  <!-- end HasFields -->
 
@@ -222,6 +224,17 @@ We are going to formalize this part in future.
 | type | [ string](#string) | Supported: SPU, HEU, TEEU. |
 | parties | [repeated string](#string) | Parties of device. |
 | config | [ string](#string) | Specific config for the secret device. |
+ <!-- end Fields -->
+ <!-- end HasFields -->
+
+
+#### SFClusterDesc.RayFedConfig
+
+
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| cross_silo_comm_backend | [ string](#string) | Indicates communication backend of RayFed. Accepted: 'grpc', 'brpc_link' Dafault is 'grpc' |
  <!-- end Fields -->
  <!-- end HasFields -->
 

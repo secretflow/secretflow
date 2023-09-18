@@ -101,16 +101,16 @@ def compose_sf_cluster_config(
         ),
     )
 
-    public_rayfed_config = SFClusterConfig.RayFedConfig()
+    public_ray_fed_config = SFClusterConfig.RayFedConfig()
     if set(list(sf_cluster_desc.parties)) != set(list(fed_address.keys())):
         raise RuntimeError(
             "parties in kusica_task doesn't match those in sf_cluster_desc"
         )
     for p in sf_cluster_desc.parties:
-        public_rayfed_config.parties.append(p)
-        public_rayfed_config.addresses.append(fed_address[p])
+        public_ray_fed_config.parties.append(p)
+        public_ray_fed_config.addresses.append(fed_address[p])
 
-    res.public_config.rayfed_config.CopyFrom(public_rayfed_config)
+    res.public_config.ray_fed_config.CopyFrom(public_ray_fed_config)
 
     for device in sf_cluster_desc.devices:
         if device.type.lower() == "spu":

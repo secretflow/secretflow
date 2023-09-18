@@ -18,9 +18,9 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import KBinsDiscretizer as SkKBinsDiscretizer
 
-from secretflow.data.base import Partition
 from secretflow.data.horizontal import HDataFrame
 from secretflow.data.mix.dataframe import MixDataFrame, PartitionWay
+from secretflow.data.base import partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.device.driver import reveal
 from secretflow.preprocessing.base import _PreprocessBase
@@ -199,8 +199,8 @@ class KBinsDiscretizer(_PreprocessBase):
 
         if isinstance(df, HDataFrame):
             for device, part in df.partitions.items():
-                transformed_parts[device] = Partition(
-                    device(_df_transform)(est, part.data)
+                transformed_parts[device] = partition(
+                    device(_df_transform)(est, part.data), part.backend
                 )
         else:
             # VDataFrame
@@ -213,8 +213,8 @@ class KBinsDiscretizer(_PreprocessBase):
                 )
                 est_part.bin_edges_ = est.bin_edges_[start_idx:end_idx]
                 est_part.n_bins_ = est.n_bins_[start_idx:end_idx]
-                transformed_parts[device] = Partition(
-                    device(_df_transform)(est_part, part.data)
+                transformed_parts[device] = partition(
+                    device(_df_transform)(est_part, part.data), part.backend
                 )
                 start_idx = end_idx
 

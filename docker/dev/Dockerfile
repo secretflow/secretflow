@@ -25,8 +25,8 @@ RUN grep -rl '#!/root/miniconda3/envs/secretflow/bin' /usr/local/bin/ | xargs se
 
 COPY *.whl /tmp/
 
-RUN pip install -i https://mirrors.aliyun.com/pypi/simple/ kuscia
-RUN pip install -i https://mirrors.aliyun.com/pypi/simple/ /tmp/*.whl && rm -rf /root/.cache
+RUN pip install -i https://mirrors.aliyun.com/pypi/simple/  kuscia
+RUN pip install -i https://mirrors.aliyun.com/pypi/simple/  /tmp/*.whl && rm -rf /root/.cache
 
 COPY .nsjail /root/.nsjail
 

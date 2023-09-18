@@ -26,7 +26,7 @@ import secretflow as sf
 from secretflow.device import HEU, PYU, SPU, DeviceObject, PYUObject
 from secretflow.ml.nn.sl.agglayer.agg_method import AggMethod
 from secretflow.utils.communicate import ForwardData
-from secretflow.utils.compressor import Compressor, SparseCompressor
+from secretflow.utils.compressor import Compressor, SparseCompressor, MixedCompressor
 from secretflow.utils.errors import InvalidArgumentError
 
 
@@ -157,7 +157,6 @@ class AggLayer(object):
     def decompress_hiddens(data, compressor):
         def _decompress_hiddens(datum):
             """Decompress the hidden if needed"""
-
             if isinstance(datum, ForwardData):
                 hidden_features = datum.hidden
             else:
@@ -165,12 +164,14 @@ class AggLayer(object):
             iscompressed = compressor.iscompressed(hidden_features)
             # save fuse_sparse_masks to apply on gradients if it is sparse compression.
             fuse_sparse_masks = None
-            if isinstance(compressor, SparseCompressor):
+            if isinstance(compressor, (SparseCompressor, MixedCompressor)):
                 fuse_sparse_masks = list(
                     map(
                         # Get a sparse matrix mask with dtype=bool.
                         # Using <bool> as the dtype will ensure that the data type of gradients after applying the mask does not change.
-                        lambda d, compressed: (d != 0) if compressed else None,
+                        lambda d, compressed: d.get_sparse_mask()
+                        if compressed
+                        else None,
                         hidden_features,
                         iscompressed,
                     )
@@ -220,22 +221,26 @@ class AggLayer(object):
     def compress_gradients(gradients, fuse_sparse_masks, compressor, iscompressed):
         """compress gradients to sparse format"""
 
-        def apply_sparse_mask(m, d):
-            if m is not None:
-                return m.multiply(d).tocsr()
-            return d
-
         gradients = [g.numpy() for g in gradients]
         # when using sparse compressor, use masks on gradients can avoid compressing twice.
         if (
-            isinstance(compressor, SparseCompressor)
+            isinstance(compressor, (SparseCompressor, MixedCompressor))
             and fuse_sparse_masks is not None
             and fuse_sparse_masks[0] is not None
         ):
             assert len(fuse_sparse_masks) == len(
                 gradients
             ), f'length of fuse_sparse_masks and gradient mismatch: {len(fuse_sparse_masks)} - {len(gradients)}'
-            gradients = list(map(apply_sparse_mask, fuse_sparse_masks, gradients))
+            gradients = list(
+                map(
+                    lambda d, mask, compressed: compressor.compress(d, sparse_mask=mask)
+                    if compressed
+                    else d,
+                    gradients,
+                    fuse_sparse_masks,
+                    iscompressed,
+                )
+            )
         else:
             gradients = list(
                 map(

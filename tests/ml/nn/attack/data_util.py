@@ -1,5 +1,35 @@
+import random
+
 import numpy as np
+import torch
+from torch.utils.data import Dataset
 from torchvision import datasets
+
+
+class CIFARSIMLabeled(Dataset):
+    def __init__(self, size):
+        self.size = size
+        self.data = torch.rand(size, 3, 32, 16)
+        self.targets = [random.randint(0, 9) for i in range(size)]
+
+    def __getitem__(self, index):
+        return self.data[index], self.targets[index]
+
+    def __len__(self):
+        return self.size
+
+
+class CIFARSIMUnlabeled(Dataset):
+    def __init__(self, size):
+        self.size = size
+        self.data = torch.rand(size, 3, 32, 16)
+        self.targets = [-1] * size
+
+    def __getitem__(self, index):
+        return self.data[index], self.targets[index]
+
+    def __len__(self):
+        return self.size
 
 
 class CIFAR10Labeled(datasets.CIFAR10):

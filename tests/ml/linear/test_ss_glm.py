@@ -76,6 +76,12 @@ def _run_test(devices, test_name, v_data, label_data, y, batch_size, link, dist)
     deviance = get_dist(dist, 1, 1).deviance(yhat, y, None)
     logging.info(f"{test_name} deviance: {deviance}")
 
+    fed_w, bias = model.spu_w_to_federated(v_data, devices.alice)
+    yhat = reveal(model.predict_fed_w(v_data, fed_w, bias))
+    assert yhat.shape[0] == y.shape[0], f"{yhat.shape} == {y.shape}"
+    deviance = get_dist(dist, 1, 1).deviance(yhat, y, None)
+    logging.info(f"{test_name} fed deviance: {deviance}")
+
 
 def test_breast_cancer(sf_production_setup_devices_aby3):
     start = time.time()

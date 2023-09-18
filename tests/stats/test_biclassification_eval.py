@@ -5,7 +5,7 @@ from sklearn.metrics import roc_auc_score
 
 from secretflow import reveal
 from secretflow.data import FedNdarray, PartitionWay
-from secretflow.data.base import Partition
+from secretflow.data.base import partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.stats import BiClassificationEval
 
@@ -23,7 +23,7 @@ def test_auc(sf_production_setup_devices):
 
     y_true_fed = VDataFrame(
         partitions={
-            sf_production_setup_devices.alice: Partition(
+            sf_production_setup_devices.alice: partition(
                 data=sf_production_setup_devices.alice(lambda x: x)(y_true_pd_dataframe)
             ),
         }

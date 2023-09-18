@@ -202,7 +202,7 @@ def extract_table_header(
                     col_selects.remove(h)
 
                 t = t.lower()
-                assert t in SUPPORTED_VTABLE_DATA_TYPE
+                assert t in SUPPORTED_VTABLE_DATA_TYPE, f"The feature type {t} is not supported"
                 smeta[h] = SUPPORTED_VTABLE_DATA_TYPE[t]
         if load_labels:
             for t, h in zip(slice.label_types, slice.labels):

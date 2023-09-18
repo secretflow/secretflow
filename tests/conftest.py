@@ -341,7 +341,7 @@ def comp_prod_sf_cluster_config(request, sf_party_for_4pc):
     config = SFClusterConfig(
         desc=desc,
         public_config=SFClusterConfig.PublicConfig(
-            rayfed_config=SFClusterConfig.RayFedConfig(
+            ray_fed_config=SFClusterConfig.RayFedConfig(
                 parties=["alice", "bob", "carol", "davy"],
                 addresses=[
                     "127.0.0.1:61041",

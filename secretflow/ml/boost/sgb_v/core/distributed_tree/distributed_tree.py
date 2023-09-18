@@ -16,9 +16,8 @@ from typing import Dict
 import numpy as np
 
 from secretflow.device import PYU, PYUObject
-
-from ..pure_numpy_ops.pred import predict_tree_weight
 from .split_tree import from_dict as split_tree_from_dict
+from ..pure_numpy_ops.pred import predict_tree_weight
 
 
 class DistributedTree:

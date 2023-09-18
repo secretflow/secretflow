@@ -80,7 +80,7 @@ class SLTorchModel(SLBaseTorchModel):
         self.h = None
         self.kwargs = {}
 
-    def fuse_net(self, *hidden_features, _num_returns=2):
+    def fuse_net(self, hidden_features, _num_returns=2):
         """Fuses the hidden layer and calculates the reverse gradient
         only on the side with the label
 
