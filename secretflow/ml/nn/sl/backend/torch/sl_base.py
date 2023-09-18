@@ -252,7 +252,9 @@ class SLBaseTorchModel(SLBaseModel):
             stage: stage of this datset
             random_seed: Prg seed for shuffling
         """
-        assert x is not None or y is not None, f"At least one of feature(x) and label(y) is not None."
+        assert (
+            x is not None or y is not None
+        ), f"At least one of feature(x) and label(y) is not None."
         if shuffle and random_seed is not None:
             self.shuffle = shuffle
             random.seed(random_seed)
@@ -330,7 +332,9 @@ class SLBaseTorchModel(SLBaseModel):
             stage: stage of this datset
             dataset_builder: dataset build callable function of worker
         """
-        assert x is not None or y is not None, f"At least one of feature(x) and label(y) is not None."
+        assert (
+            x is not None or y is not None
+        ), f"At least one of feature(x) and label(y) is not None."
         if not dataset_builder:
             return -1
 
