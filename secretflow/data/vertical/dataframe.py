@@ -13,12 +13,12 @@
 # limitations under the License.
 
 from dataclasses import dataclass
-from typing import Callable, Dict, List, Union
+from typing import Dict, List, Union
 
 import pandas as pd
-from pandas.core.indexes.base import Index
+from pandas import Index
 
-from secretflow.data.base import DataFrameBase, Partition
+from secretflow.data.base import DataFrameBase, PartitionBase
 from secretflow.data.ndarray import FedNdarray, PartitionWay
 from secretflow.device import PYU, Device, reveal
 from secretflow.utils.errors import InvalidArgumentError, NotFoundError
@@ -76,31 +76,34 @@ class VDataFrame(DataFrameBase):
         >>> v_df.fillna({'sepal_length': 2})
     """
 
-    partitions: Dict[PYU, Partition]
+    partitions: Dict[PYU, PartitionBase]
     aligned: bool = True
 
     def _check_parts(self):
         assert self.partitions, 'Partitions in the VDataFrame is None or empty.'
 
-    def __concat_reveal_apply(self, fn: Callable, *args, **kwargs) -> pd.Series:
+    def __concat_reveal_apply(self, fn: str, *args, **kwargs) -> pd.Series:
         """Helper function to concatenate the revealed results of fn applied on each partition.
 
         Args:
-            fn: Callable.
+            fn: a reflection of a Callable fucntion.
                 A function that
                     takes partition with additional args and kwargs,
                     and returns a Partition object
         """
         return pd.concat(
             reveal(
-                [fn(part, *args, **kwargs).data for part in self.partitions.values()]
+                [
+                    getattr(part, fn)(*args, **kwargs).data
+                    for part in self.partitions.values()
+                ]
             )
         )
 
     def __part_apply(self, fn, *args, **kwargs) -> 'VDataFrame':
         """Helper function to generate a new VDataFrame by applying fn on each partition.
         Args:
-            fn: Callable.
+            fn: a reflection of a Callable fucntion.
                 A function that
                 takes partition with additional args and kwargs,
                     and returns a Partition object
@@ -110,7 +113,7 @@ class VDataFrame(DataFrameBase):
         # and it is only effective for subtract two VDataFrames with the same partitions roles and shapes.∂
         return VDataFrame(
             {
-                pyu: fn(part, *args, **kwargs)[part.columns]
+                pyu: getattr(part, fn)(*args, **kwargs)[part.columns]
                 for pyu, part in self.partitions.items()
             },
             self.aligned,
@@ -126,7 +129,10 @@ class VDataFrame(DataFrameBase):
             pd.Series
         """
         return self.__concat_reveal_apply(
-            Partition.mode, numeric_only=numeric_only, dropna=dropna, axis=0
+            "mode",
+            numeric_only=numeric_only,
+            dropna=dropna,
+            axis=0,
         )
 
     def sum(self, numeric_only=False) -> pd.Series:
@@ -138,7 +144,7 @@ class VDataFrame(DataFrameBase):
         Returns:
             pd.Series
         """
-        return self.__concat_reveal_apply(Partition.sum, numeric_only=numeric_only)
+        return self.__concat_reveal_apply("sum", numeric_only=numeric_only)
 
     def min(self, numeric_only=False) -> pd.Series:
         """
@@ -151,9 +157,9 @@ class VDataFrame(DataFrameBase):
         Returns:
             pd.Series
         """
-        return self.__concat_reveal_apply(Partition.min, numeric_only=numeric_only)
+        return self.__concat_reveal_apply("min", numeric_only=numeric_only)
 
-    def max(self, numeric_only=False) -> pd.Series:
+    def max(self, numeric_only=False):
         """
         Return the max of the values over the axis 0.
 
@@ -164,7 +170,7 @@ class VDataFrame(DataFrameBase):
         Returns:
             pd.Series
         """
-        return self.__concat_reveal_apply(Partition.max, numeric_only=numeric_only)
+        return self.__concat_reveal_apply("max", numeric_only=numeric_only)
 
     def pow(self, *args, **kwargs) -> 'VDataFrame':
         """Gets Exponential power of dataframe and other, element-wise (binary operator pow).
@@ -178,7 +184,7 @@ class VDataFrame(DataFrameBase):
         Reference:
             pd.DataFrame.pow
         """
-        return self.__part_apply(Partition.pow, *args, **kwargs)
+        return self.__part_apply("pow", *args, **kwargs)
 
     def round(self, *args, **kwargs) -> 'VDataFrame':
         """Round the DataFrame to a variable number of decimal places.
@@ -189,7 +195,7 @@ class VDataFrame(DataFrameBase):
         Reference:
             pd.DataFrame.round
         """
-        return self.__part_apply(Partition.round, *args, **kwargs)
+        return self.__part_apply("round", *args, **kwargs)
 
     def select_dtypes(self, *args, **kwargs) -> 'VDataFrame':
         """Returns a subset of the DataFrame's columns based on the column dtypes.
@@ -213,7 +219,7 @@ class VDataFrame(DataFrameBase):
         Returns:
             VDataFrame: same shape except value replaced
         """
-        return self.__part_apply(Partition.replace, *args, **kwargs)
+        return self.__part_apply("replace", *args, **kwargs)
 
     def subtract(self, *args, **kwargs) -> 'VDataFrame':
         """Gets Subtraction of dataframe and other, element-wise (binary operator sub).
@@ -226,17 +232,20 @@ class VDataFrame(DataFrameBase):
         Reference:
             pd.DataFrame.subtract
         """
-        return self.__part_apply(Partition.subtract, *args, **kwargs)
+        return self.__part_apply("subtract", *args, **kwargs)
 
     @property
-    def dtypes(self) -> pd.Series:
+    def dtypes(self) -> dict:
         """
         Return the dtypes in the DataFrame.
 
         Returns:
-            pd.Series: the data type of each column.
+            dict: the data type of each column.
         """
-        return pd.concat([part.dtypes for part in self.partitions.values()])
+        my_dtypes = {}
+        for part in self.partitions.values():
+            my_dtypes.update(part.to_pandas().dtypes)
+        return my_dtypes
 
     def astype(self, dtype, copy: bool = True, errors: str = "raise"):
         """
@@ -270,7 +279,7 @@ class VDataFrame(DataFrameBase):
         )
 
     @property
-    def columns(self):
+    def columns(self) -> list:
         """
         The column labels of the DataFrame.
         """
@@ -279,6 +288,8 @@ class VDataFrame(DataFrameBase):
         for part in self.partitions.values():
             if cols is None:
                 cols = part.columns
+            elif isinstance(cols, list):
+                cols.extend(part.columns)
             else:
                 cols = cols.append(part.columns)
         return cols
@@ -288,7 +299,7 @@ class VDataFrame(DataFrameBase):
         """Return a tuple representing the dimensionality of the DataFrame."""
         self._check_parts()
         shapes = [part.shape for part in self.partitions.values()]
-        return (shapes[0][0], sum([shape[1] for shape in shapes]))
+        return shapes[0][0], sum([shape[1] for shape in shapes])
 
     def mean(self, numeric_only=False) -> pd.Series:
         """
@@ -301,7 +312,7 @@ class VDataFrame(DataFrameBase):
         Returns:
             pd.Series
         """
-        return self.__concat_reveal_apply(Partition.mean, numeric_only=numeric_only)
+        return self.__concat_reveal_apply("mean", numeric_only=numeric_only)
 
     # TODO(zoupeicheng.zpc): support in HDataFrame is not scheduled yet
     # TODO(zoupeicheng.zpc): DataFrame variance currently ignore None columns.
@@ -317,7 +328,7 @@ class VDataFrame(DataFrameBase):
         Returns:
             pd.Series
         """
-        return self.__concat_reveal_apply(Partition.var, numeric_only=numeric_only)
+        return self.__concat_reveal_apply("var", numeric_only=numeric_only)
 
     # TODO(zoupeicheng.zpc): support in HDataFrame is not scheduled yet
     # TODO(zoupeicheng.zpc): DataFrame std currently ignore None columns.
@@ -333,7 +344,7 @@ class VDataFrame(DataFrameBase):
         Returns:
             pd.Series
         """
-        return self.__concat_reveal_apply(Partition.std, numeric_only=numeric_only)
+        return self.__concat_reveal_apply("std", numeric_only=numeric_only)
 
     # TODO(zoupeicheng.zpc): support in HDataFrame is not scheduled yet
     # TODO(zoupeicheng.zpc): DataFrame sem currently ignore None columns.
@@ -349,7 +360,7 @@ class VDataFrame(DataFrameBase):
         Returns:
             pd.Series
         """
-        return self.__concat_reveal_apply(Partition.sem, numeric_only=numeric_only)
+        return self.__concat_reveal_apply("sem", numeric_only=numeric_only)
 
     # TODO(zoupeicheng.zpc): support in HDataFrame is not scheduled yet
     # TODO(zoupeicheng.zpc): DataFrame skew currently ignore None columns.
@@ -365,7 +376,7 @@ class VDataFrame(DataFrameBase):
         Returns:
             pd.Series
         """
-        return self.__concat_reveal_apply(Partition.skew, numeric_only=numeric_only)
+        return self.__concat_reveal_apply("skew", numeric_only=numeric_only)
 
     # TODO(zoupeicheng.zpc): support in HDataFrame is not scheduled yet
     # TODO(zoupeicheng.zpc): DataFrame kurtosis currently ignore None columns.
@@ -381,7 +392,7 @@ class VDataFrame(DataFrameBase):
         Returns:
             pd.Series
         """
-        return self.__concat_reveal_apply(Partition.kurtosis, numeric_only=numeric_only)
+        return self.__concat_reveal_apply("kurtosis", numeric_only=numeric_only)
 
     def quantile(self, q=0.5) -> pd.Series:
         """Returns values at the given quantile over axis 0.
@@ -393,7 +404,7 @@ class VDataFrame(DataFrameBase):
         Returns:
             pd.Series
         """
-        return self.__concat_reveal_apply(Partition.quantile, q=q)
+        return self.__concat_reveal_apply("quantile", q=q)
 
     def count(self, numeric_only=False) -> pd.Series:
         """Count non-NA cells for each column.
@@ -403,7 +414,7 @@ class VDataFrame(DataFrameBase):
         Returns:
             pd.Series
         """
-        return self.__concat_reveal_apply(Partition.count, numeric_only=numeric_only)
+        return self.__concat_reveal_apply("count", numeric_only=numeric_only)
 
     def isna(self) -> 'VDataFrame':
         """ "Detects missing values for an array-like object.
@@ -413,15 +424,15 @@ class VDataFrame(DataFrameBase):
                  that indicates whether an element is an NA value.
 
         Returns:
-            VDataFrame
+            A VDataFrame
 
         Reference:
             pd.DataFrame.isna
         """
-        return self.__part_apply(Partition.isna)
+        return self.__part_apply("isna")
 
     @property
-    def values(self):
+    def values(self) -> FedNdarray:
         """
         Return a federated Numpy representation of the DataFrame.
 
@@ -440,7 +451,7 @@ class VDataFrame(DataFrameBase):
         Returns:
             VDataFrame.
         """
-        return self.__part_apply(Partition.copy)
+        return self.__part_apply("copy")
 
     def drop(
         self,
@@ -501,7 +512,7 @@ class VDataFrame(DataFrameBase):
                     )
             else:
                 return self.__part_apply(
-                    Partition.drop,
+                    "drop",
                     labels=labels,
                     axis=axis,
                     index=index,
@@ -537,9 +548,10 @@ class VDataFrame(DataFrameBase):
                     limit=limit,
                     downcast=downcast,
                 )
+            return self
         else:
             return self.__part_apply(
-                Partition.fillna,
+                "fillna",
                 value=value,
                 method=method,
                 axis=axis,
@@ -590,7 +602,8 @@ class VDataFrame(DataFrameBase):
 
                 found = True
                 if pyu not in pyu_col:
-                    pyu_col[pyu] = key
+                    pyu_col[pyu] = []  # ensure the output is []
+                    pyu_col[pyu].append(key)
                 else:
                     if not isinstance(pyu_col[pyu], list):
                         # Convert to list if more than one column.
@@ -612,7 +625,7 @@ class VDataFrame(DataFrameBase):
         )
 
     def __setitem__(self, key, value):
-        if isinstance(value, Partition):
+        if isinstance(value, PartitionBase):
             assert (
                 value.data.device in self.partitions
             ), 'Device of the partition to assgin is not in this dataframe devices.'
@@ -634,7 +647,7 @@ class VDataFrame(DataFrameBase):
             except NotFoundError:
                 # Insert as a new key if not seen.
                 for pyu, part in value.partitions.items():
-                    self.partitions[pyu][part.dtypes.index] = part
+                    self.partitions[pyu][list(part.dtypes.keys())] = part
         else:
             key_index = self._col_index(key)
             for pyu, col in key_index.items():
@@ -664,3 +677,9 @@ class VDataFrame(DataFrameBase):
         return {
             device: partition.columns for device, partition in self.partitions.items()
         }
+
+    def to_pandas(self):
+        return VDataFrame(
+            {pyu: part.to_pandas() for pyu, part in self.partitions.items()},
+            self.aligned,
+        )

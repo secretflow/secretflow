@@ -17,7 +17,7 @@ from typing import Dict
 import numpy as np
 import pandas as pd
 
-from secretflow.data.base import Partition
+from secretflow.data.base import partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import PYU, PYUObject, proxy
 
@@ -97,7 +97,10 @@ class VertWOESubstitution:
 
         new_vdata = VDataFrame(
             {
-                d: Partition(data=works[d].sub(vdata.partitions[d].data, woe_rules[d]))
+                d: partition(
+                    data=works[d].sub(vdata.partitions[d].data, woe_rules[d]),
+                    backend=vdata.partitions[d].backend,
+                )
                 for d in woe_rules
             }
         )

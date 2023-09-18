@@ -19,7 +19,7 @@ from secretflow.ml.nn import SLModel
 from secretflow.ml.nn.sl.agglayer.agg_method import Average
 from secretflow.security.privacy import DPStrategy, LabelDP
 from secretflow.security.privacy.mechanism.tensorflow import GaussianEmbeddingDP
-from secretflow.utils.compressor import QuantizedZeroPoint, TopkSparse
+from secretflow.utils.compressor import QuantizedZeroPoint, TopkSparse, MixedCompressor
 from secretflow.utils.simulation.datasets import load_mnist
 
 _temp_dir = tempfile.mkdtemp()
@@ -492,6 +492,17 @@ class TestSLModelTensorflow:
             device_y=sf_simulation_setup_devices.bob,
             compressor=quantized_compressor,
         )
+        print("test mixed compressor")
+        mixed_compressor = MixedCompressor(QuantizedZeroPoint(), TopkSparse(0.5))
+        keras_model_with_mnist(
+            data=x_train,
+            label=y_train,
+            devices=sf_simulation_setup_devices,
+            base_model_dict=base_model_dict,
+            model_fuse=fuse_model,
+            device_y=sf_simulation_setup_devices.bob,
+            compressor=mixed_compressor,
+        )
 
     def test_multi_output_model(self, sf_simulation_setup_devices):
         (x_train, y_train), (_, _) = load_mnist(
@@ -558,24 +569,16 @@ class TestSLModelTensorflow:
 
         # agg layer
         print("test PlainAggLayer")
-        all_compressor = [
-            TopkSparse(0.5),
-            QuantizedZeroPoint(),
-        ]
-
-        for test_compressor in all_compressor:
-            print(f"test compressor {type(test_compressor)}")
-
-            keras_model_with_mnist(
-                data=x_train,
-                label=y_train,
-                devices=sf_simulation_setup_devices,
-                base_model_dict=base_model_dict,
-                model_fuse=fuse_model,
-                device_y=sf_simulation_setup_devices.bob,
-                agg_method=Average(),
-                compressor=test_compressor,
-            )
+        keras_model_with_mnist(
+            data=x_train,
+            label=y_train,
+            devices=sf_simulation_setup_devices,
+            base_model_dict=base_model_dict,
+            model_fuse=fuse_model,
+            device_y=sf_simulation_setup_devices.bob,
+            agg_method=Average(),
+            compressor=TopkSparse(0.5),
+        )
 
         # spu agglayer
         print("test SPUAggLayer")

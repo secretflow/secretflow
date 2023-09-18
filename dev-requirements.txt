@@ -1,6 +1,7 @@
 matplotlib
 protobuf-distutils
 statsmodels==0.13.2
+polars==0.18.15
 pytest
 pytest-cov
 pytest-xdist

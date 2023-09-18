@@ -1,12 +1,13 @@
+import random
 import tempfile
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils.data import Dataset
 from torchmetrics import Accuracy, Precision
 from torchvision import datasets, transforms
-from torchvision.transforms import ToTensor
 
 import secretflow as sf
 from secretflow.data.ndarray import FedNdarray, PartitionWay
@@ -19,6 +20,8 @@ from secretflow.ml.nn.utils import TorchModel
 from tests.ml.nn.attack.data_util import (
     CIFAR10Labeled,
     CIFAR10Unlabeled,
+    CIFARSIMLabeled,
+    CIFARSIMUnlabeled,
     label_index_split,
 )
 from tests.ml.nn.attack.model_def import (
@@ -28,7 +31,20 @@ from tests.ml.nn.attack.model_def import (
 )
 
 
-def data_builder(file_path, batch_size):
+class CIFARSIMDataset(Dataset):
+    def __init__(self, size):
+        self.size = size
+        self.data = torch.rand(size, 3, 32, 32)
+        self.targets = [random.randint(0, 9) for i in range(size)]
+
+    def __getitem__(self, index):
+        return self.data[index], self.targets[index]
+
+    def __len__(self):
+        return self.size
+
+
+def data_builder(batch_size, file_path=None):
     def prepare_data():
         n_labeled = 40
         num_classes = 10
@@ -43,29 +59,36 @@ def data_builder(file_path, batch_size):
 
         transforms_ = get_transforms()
 
-        base_dataset = datasets.CIFAR10(file_path, train=True)
+        if file_path is None:
+            # fake dataset, just for unittest
+            train_labeled_dataset = CIFARSIMLabeled(200)
+            train_unlabeled_dataset = CIFARSIMUnlabeled(200)
+            train_complete_dataset = CIFARSIMLabeled(400)
+            test_dataset = CIFARSIMLabeled(200)
+        else:
+            base_dataset = datasets.CIFAR10(file_path, train=True)
 
-        train_labeled_idxs, train_unlabeled_idxs = label_index_split(
-            base_dataset.targets, int(n_labeled / num_classes), num_classes
-        )
-        train_labeled_dataset = CIFAR10Labeled(
-            file_path, train_labeled_idxs, train=True, transform=transforms_
-        )
-        train_unlabeled_dataset = CIFAR10Unlabeled(
-            file_path, train_unlabeled_idxs, train=True, transform=transforms_
-        )
-        train_complete_dataset = CIFAR10Labeled(
-            file_path, None, train=True, transform=transforms_
-        )
-        test_dataset = CIFAR10Labeled(
-            file_path, train=False, transform=transforms_, download=True
-        )
-        print(
-            "#Labeled:",
-            len(train_labeled_idxs),
-            "#Unlabeled:",
-            len(train_unlabeled_idxs),
-        )
+            train_labeled_idxs, train_unlabeled_idxs = label_index_split(
+                base_dataset.targets, int(n_labeled / num_classes), num_classes
+            )
+            train_labeled_dataset = CIFAR10Labeled(
+                file_path, train_labeled_idxs, train=True, transform=transforms_
+            )
+            train_unlabeled_dataset = CIFAR10Unlabeled(
+                file_path, train_unlabeled_idxs, train=True, transform=transforms_
+            )
+            train_complete_dataset = CIFAR10Labeled(
+                file_path, None, train=True, transform=transforms_
+            )
+            test_dataset = CIFAR10Labeled(
+                file_path, train=False, transform=transforms_, download=True
+            )
+            print(
+                "#Labeled:",
+                len(train_labeled_idxs),
+                "#Unlabeled:",
+                len(train_unlabeled_idxs),
+            )
 
         labeled_trainloader = torch.utils.data.DataLoader(
             train_labeled_dataset,
@@ -135,7 +158,7 @@ def create_attacker_builder(file_path, batch_size, model_save_path):
         model = create_model(ema=False)
         ema_model = create_model(ema=True)
 
-        data_buil = data_builder(file_path=file_path, batch_size=batch_size)
+        data_buil = data_builder(batch_size=batch_size, file_path=file_path)
 
         attacker = LabelInferenceAttacker(
             model, ema_model, 10, data_buil, save_model_path=model_save_path
@@ -158,16 +181,21 @@ def test_sl_and_lia(sf_simulation_setup_devices):
 
     # first, train a sl model and save model
     # prepare data
-    data_file_path = lia_path + '/data_download'
-    model_save_path = lia_path + '/lia_model'
-    train = True
-    train_dataset = datasets.CIFAR10(
-        data_file_path, train, transform=ToTensor(), download=True
-    )
+    # if you want to run this lia on CIFAR10, open this
+    # data_file_path = lia_path + '/data_download'
+    # train = True
+    # train_dataset = datasets.CIFAR10(
+    #     data_file_path, train, transform=transforms.ToTensor(), download=True
+    # )
+    # fake dataset, just for unittest
+    train_dataset = CIFARSIMDataset(200)
+
     # dataloader transformed train_dataset, so we here call dataloader before we get data and label
     train_loader = torch.utils.data.DataLoader(
         dataset=train_dataset, batch_size=128, shuffle=False
     )
+
+    model_save_path = lia_path + '/lia_model'
 
     train_np = np.array(train_loader.dataset)
     train_data = np.array([t[0].numpy() for t in train_np])
@@ -233,8 +261,12 @@ def test_sl_and_lia(sf_simulation_setup_devices):
 
     callback_dict = {
         alice: create_attacker_builder(
-            file_path=data_file_path, batch_size=16, model_save_path=model_save_path
+            file_path=None, batch_size=16, model_save_path=model_save_path
         )
+        # if you want to run this lia on CIFAR10, open this
+        # alice: create_attacker_builder(
+        #     file_path=data_file_path, batch_size=16, model_save_path=model_save_path
+        # )
     }
 
     history = sl_model.fit(

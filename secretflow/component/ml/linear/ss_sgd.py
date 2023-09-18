@@ -113,7 +113,7 @@ ss_sgd_train_comp.float_attr(
     is_optional=True,
     default_value=0.001,
     lower_bound=0,
-    lower_bound_inclusive=False,
+    lower_bound_inclusive=True,
 )
 ss_sgd_train_comp.io(
     io_type=IoType.INPUT,

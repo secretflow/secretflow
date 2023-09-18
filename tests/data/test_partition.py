@@ -165,7 +165,7 @@ def test_dtypes_should_ok(prod_env_and_data):
 
     # THEN
     expected = data['df'].dtypes
-    pd.testing.assert_series_equal(value, expected)
+    pd.testing.assert_series_equal(pd.Series(value), pd.Series(expected))
 
 
 def test_index_should_ok(prod_env_and_data):

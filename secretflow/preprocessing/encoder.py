@@ -20,9 +20,9 @@ from sklearn.preprocessing import LabelEncoder as SkLabelEncoder
 from sklearn.preprocessing import OneHotEncoder as SkOneHotEncoder
 from sklearn.utils.validation import column_or_1d
 
-from secretflow.data.base import Partition
 from secretflow.data.horizontal import HDataFrame
 from secretflow.data.mix import MixDataFrame
+from secretflow.data.base import partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import reveal
 from secretflow.preprocessing.base import _PreprocessBase
@@ -51,9 +51,9 @@ class LabelEncoder(_PreprocessBase):
     """
 
     def _fit(self, df: Union[HDataFrame, VDataFrame]) -> np.ndarray:
-        def _df_fit(df: pd.DataFrame):
+        def _df_fit(_df: pd.DataFrame):
             encoder = SkLabelEncoder()
-            encoder.fit(column_or_1d(df))
+            encoder.fit(column_or_1d(_df))
             return encoder.classes_
 
         classes = [
@@ -78,16 +78,31 @@ class LabelEncoder(_PreprocessBase):
     def _transform(
         self, df: Union[HDataFrame, VDataFrame]
     ) -> Union[HDataFrame, VDataFrame]:
-        def _df_transform(encoder: SkLabelEncoder, df: pd.DataFrame):
-            return pd.DataFrame(
-                data=encoder.transform(column_or_1d(df))[np.newaxis].T,
-                columns=df.columns,
-            )
+        def _df_transform(
+            encoder: SkLabelEncoder, _df: Union[pd.DataFrame, "pl.DataFrame"]
+        ):
+            pl = None
+            try:
+                import polars as pl
+            except ImportError:
+                pass
+            if isinstance(_df, pd.DataFrame):
+                return pd.DataFrame(
+                    data=encoder.transform(column_or_1d(_df))[np.newaxis].T,
+                    columns=_df.columns,
+                )
+            elif pl is not None and isinstance(_df, pl.DataFrame):
+                return pl.DataFrame(
+                    data=encoder.transform(column_or_1d(_df))[np.newaxis].T,
+                    schema=_df.columns,
+                )
+            else:
+                raise RuntimeError(f"Unkonwon type of df {type(_df)}")
 
         transformed_parts = {}
         for device, part in df.partitions.items():
-            transformed_parts[device] = Partition(
-                device(_df_transform)(self._encoder, part.data)
+            transformed_parts[device] = partition(
+                device(_df_transform)(self._encoder, part.data), part.backend
             )
 
         new_df = df.copy()
@@ -268,7 +283,7 @@ class OneHotEncoder(_PreprocessBase):
                 encoder = SkOneHotEncoder()
                 mask = np.in1d(
                     self._encoder.feature_names_in_,
-                    part.dtypes.index,
+                    part.columns,
                     assume_unique=True,
                 )
                 categories = {
@@ -278,7 +293,9 @@ class OneHotEncoder(_PreprocessBase):
                 }
                 self._fill_categories(categories)
                 encoder.fit(pd.DataFrame(categories))
-            transformed_parts[device] = Partition(device(_encode)(encoder, part.data))
+            transformed_parts[device] = partition(
+                device(_encode)(encoder, part.data), backend=part.backend
+            )
         new_df = df.copy()
         new_df.partitions = transformed_parts
         return new_df

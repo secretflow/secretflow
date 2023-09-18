@@ -73,6 +73,15 @@ message SFClusterDesc {
 
   // Description of secret devices
   repeated DeviceDesc devices = 4;
+
+  message RayFedConfig {
+    // Indicates communication backend of RayFed.
+    // Accepted: 'grpc', 'brpc_link'
+    // Dafault is 'grpc'
+    string cross_silo_comm_backend = 1;
+  }
+
+  RayFedConfig ray_fed_config = 5;
 }
 
 // A StorageConfig specifies the root for all data for one party.
@@ -116,7 +125,7 @@ message SFClusterConfig {
 
   // Public and shared to all parties.
   message PublicConfig {
-    RayFedConfig rayfed_config = 1;
+    RayFedConfig ray_fed_config = 1;
 
     repeated SPUConfig spu_configs = 2;
   }

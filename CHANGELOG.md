@@ -30,7 +30,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Stateful task for teeu
-- GPU support for torch fl model
 - docs: DeepFM translation
 
 ### Changed

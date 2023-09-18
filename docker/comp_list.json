@@ -1416,7 +1416,8 @@
               "f": 0.001
             },
             "hasLowerBound": true,
-            "lowerBound": {}
+            "lowerBound": {},
+            "lowerBoundInclusive": true
           }
         }
       ],

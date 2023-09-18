@@ -20,10 +20,10 @@ import numpy as np
 import pandas as pd
 from pandas.core.indexes.base import Index
 
-from secretflow.data.base import Partition
-from secretflow.data.horizontal import HDataFrame
-from secretflow.data.vertical import VDataFrame
 from secretflow.utils.errors import InvalidArgumentError, NotFoundError, UnexpectedError
+from ..base import PartitionBase
+from ..horizontal import HDataFrame
+from ..vertical import VDataFrame
 
 
 @unique
@@ -118,9 +118,9 @@ class MixDataFrame:
             if part_type == VDataFrame:
                 assert (
                     part.columns == first_part.columns
-                ).all(), 'All partitions should have same columns when partitioned horizontally.'
+                ), 'All partitions should have same columns when partitioned horizontally.'
             else:
-                len(part) == len(
+                assert len(part) == len(
                     first_part
                 ), 'All partitions should have same length when partitioned vertically.'
 
@@ -282,7 +282,7 @@ class MixDataFrame:
         cols = self.partitions[0].columns
         if self.partition_way == PartitionWay.VERTICAL:
             for part in self.partitions[1:]:
-                cols = cols.append(part.columns)
+                cols.extend(part.columns)
         return cols
 
     @property
@@ -411,7 +411,7 @@ class MixDataFrame:
             )
 
     def __setitem__(self, key, value):
-        if isinstance(value, (HDataFrame, VDataFrame, Partition)):
+        if isinstance(value, (HDataFrame, VDataFrame, PartitionBase)):
             raise InvalidArgumentError(
                 'Can not assgin a HDataFrame/VDataFrame/Partition to MixDataFrame.'
             )
