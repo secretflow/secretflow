@@ -1,6 +1,6 @@
 # Zero-knowledge Proof (ZKP)
 
-![](https://badgen.net/badge/:update-to/:July-2023/red) ![](https://badgen.net/badge/:papers/:129/blue)
+![](https://badgen.net/badge/:update-to/:Sep-2023/red) ![](https://badgen.net/badge/:papers/:127/blue)
 
 
 > **"We are currently experiencing a Cambrian Explosion in the field of cryptographic proofs of computational integrity (CI), a subset of which include zero knowledge proofs**. While a couple of years ago there were about 1–3 new systems a year, the rate has picked up so much that today we are seeing this same amount monthly, if not weekly."
@@ -25,13 +25,12 @@ Since its invention in 1986, ZKP systems, more and more,  become building blocks
       - [DL-based](#dl-based)
       - [MPC-in-the-head-based](#mpc-in-the-head-based)
       - [VOLE-based (Commit-and-prove type)](#vole-based-commit-and-prove-type)
-  - [ZKP Standard Efforts](#zkp-standard-efforts)
   - [Applications on ZKP systems](#applications-on-zkp-systems)
-    - [For Credential](#for-credential)
+    - [For Machine Learning(Federated Learning)](#for-machine-learningfederated-learning)
     - [For Web3(Authentication)](#for-web3authentication)
     - [For Blockchains](#for-blockchains)
     - [Signature from ZKP](#signature-from-zkp)
-  - [ZKP Standard Efforts](#zkp-standard-efforts-1)
+  - [ZKP Standard Efforts](#zkp-standard-efforts)
 
 ## Survey & Tutorial
 
@@ -465,33 +464,6 @@ Without trusted setup.
   *Chenkai Weng, Kang Yang, Zhaomin Yang, Xiang Xie, and Xiao Wang*
   CCS 2022, [paper](https://eprint.iacr.org/2022/566), WYY+22
 
-
-## ZKP Standard Efforts
-
-
-- RFC: Schnorr Non-Interactive Zero-Knowledge Proof
-  *Hao, Feng*
-  IETF rfc8235, [paper](https://datatracker.ietf.org/doc/rfc8235), Hao21
-
-Below are from organization [zkproof](https://zkproof.org/):
-
-> ZKProof is an open-industry academic initiative that seeks to mainstream zero-knowledge proof (ZKP) cryptography through an inclusive, community-driven standardization process that focuses on interoperability and security.
-
-- Proposal: Commit-and-Prove Zero-Knowledge Proof Systems and Extensions
-  *Daniel Benarroch, Matteo Campanelli, Dario Fiore, Jihye Kim, Jiwon Lee, Hyunok Oh, and Anaıs Querol*
-  ZKProof 2,3,4th workshop, [paper](https://docs.zkproof.org/pages/standards/accepted-workshop4/proposal-commit.pdf), BCF+21
-
-- Rinocchio: SNARKs for Ring Arithmetic
-  *Ganesh, Chaya, Anca Nitulescu, and Eduardo Soria-Vazquez*
-  ZKProof 4th workshop, 2021, [paper](https://docs.zkproof.org/pages/standards/accepted-workshop4/proposal-rinocchio.pdf), CNS21
-
-- Zk-Proof Community——Proposal: Σ-Protocols
-  *Stephan Krenn and Michele Orrù*
-  ZKProof 4th workshop, 2021, [paper](https://docs.zkproof.org/pages/standards/accepted-workshop4/proposal-sigma.pdf), KO21
-
-- See more at [zkproof proposals](https://docs.zkproof.org/standards/proposals).
-
-
 ## Applications on ZKP systems
 
 Here just list several interesting applicaitons.
@@ -508,7 +480,7 @@ Here just list several interesting applicaitons.
   *Dario Fiore, and Ida Tucker*
   CCS 2022, [paper](https://eprint.iacr.org/2022/1393.pdf), FT22
 
-### For Credential
+### For Machine Learning(Federated Learning)
 
 - Zero Knowledge Proofs for Decision Tree Predictions and Accuracy
   *Jiaheng Zhang, Zhiyong Fang, Yupeng Zhang, and Dawn Song*
@@ -517,6 +489,10 @@ Here just list several interesting applicaitons.
 - ZkCNN: Zero Knowledge Proofs for Convolutional Neural Network Predictions and Accuracy
   *Tianyi Liu, Xiang Xie, and Yupeng Zhang*
   CCS 2021, [paper](https://eprint.iacr.org/2021/673), LXZ21
+
+- Mystique: Efficient Conversions for Zero-Knowledge Proofs with Applications to Machine Learning
+  *Chenkai Weng, Kang Yang, Xiang Xie, Jonathan Katz, and Xiao Wang*
+  USENIX 2021. [paper](https://eprint.iacr.org/2021/730), WYX+21
 
 ### For Web3(Authentication)
 
