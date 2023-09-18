@@ -25,12 +25,13 @@ Since its invention in 1986, ZKP systems, more and more,  become building blocks
       - [DL-based](#dl-based)
       - [MPC-in-the-head-based](#mpc-in-the-head-based)
       - [VOLE-based (Commit-and-prove type)](#vole-based-commit-and-prove-type)
+  - [ZKP Standard Efforts](#zkp-standard-efforts)
   - [Applications on ZKP systems](#applications-on-zkp-systems)
     - [For Credential](#for-credential)
-    - [For Machine Learning(Federated Learning)](#for-machine-learningfederated-learning)
+    - [For Web3(Authentication)](#for-web3authentication)
     - [For Blockchains](#for-blockchains)
     - [Signature from ZKP](#signature-from-zkp)
-  - [ZKP Standard Efforts](#zkp-standard-efforts)
+  - [ZKP Standard Efforts](#zkp-standard-efforts-1)
 
 ## Survey & Tutorial
 
@@ -494,6 +495,10 @@ Below are from organization [zkproof](https://zkproof.org/):
 ## Applications on ZKP systems
 
 Here just list several interesting applicaitons.
+
+- Prio: Private, Robust, and Scalable Computation of Aggregate Statistics
+  Henry Corrigan-Gibbs and Dan Boneh
+  USENIX 2017, [paper](https://www.usenix.org/system/files/conference/nsdi17/nsdi17-corrigan-gibbs.pdf)
 
 - Scaling Verifiable Computation Using Efﬁcient Set Accumulators
   *Alex Ozdemir, Riad S Wahby, Barry Whitehat, and Dan Boneh*
