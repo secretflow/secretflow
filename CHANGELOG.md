@@ -12,6 +12,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
+## [1.2.0.dev230918] - 2023-9-18
+
+### Added
+- support GLM model transition from MPC version to Federated version.
+- add sparse, quantized and mixed compressor.
+- add polars backend for dataframe and SL model.
+- add DisPFL adn VFGNN example.
+- add cross_silo_comm_backend option to SFClusterConfig.RayFedConfig.
+
+### Fixed
+- fix dataset build in SL.
+
 ## [1.1.0b0] - 2023-9-6
 
 ### Added
