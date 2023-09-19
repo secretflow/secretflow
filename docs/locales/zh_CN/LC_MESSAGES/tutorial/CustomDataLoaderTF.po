@@ -5,36 +5,40 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: SecretFlow \n"
+"Project-Id-Version: SecretFlow\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-07-20 11:39+0800\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
+"POT-Creation-Date: 2023-08-31 18:00+0800\n"
+"PO-Revision-Date: 2023-08-31 19:33+0800\n"
+"Last-Translator: Tony Wu <tonywu6@protonmail.com>\n"
+"Language-Team: \n"
+"Language: zh\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.12.1\n"
+"X-Generator: Poedit 3.3.2\n"
 
 #: ../../tutorial/CustomDataLoaderTF.ipynb:9
 msgid "Using Custom DataBuilder in SecretFlow (TensorFlow)"
-msgstr "在SecretFlow中使用自定义DataBuilder（TensorFlow）"
+msgstr "在 SecretFlow 中使用自定义 DataBuilder（TensorFlow）"
 
 #: ../../tutorial/CustomDataLoaderTF.ipynb:20
 msgid ""
-"The following codes are demos only. It's **NOT for production** due to "
-"system security concerns, please **DO NOT** use it directly in "
-"production."
+"The following codes are demos only. It’s **NOT for production** due to "
+"system security concerns, please **DO NOT** use it directly in production."
 msgstr "以下代码仅作为示例，请勿在生产环境直接使用。"
 
 #: ../../tutorial/CustomDataLoaderTF.ipynb:31
 msgid ""
-"In this tutorial, we will show you how to load data and train model using"
-" the custom DataBuilder schema in the multi-party secure environment of "
+"In this tutorial, we will show you how to load data and train model using "
+"the custom DataBuilder schema in the multi-party secure environment of "
 "SecretFlow. This tutorial will use the image classification task of the "
-"Flower dataset to introduce, how to use the custom DataBuilder to "
-"complete federated learning."
-msgstr "本教程将展示下，怎样在SecretFlow的多方安全环境中，如何使用自定义DataBuilder模式加载数据，并训练模型。本教程将使用Flower数据集的图像分类任务来进行介绍，如何使用自定义DataBuilder完成联邦学习"
+"Flower dataset to introduce, how to use the custom DataBuilder to complete "
+"federated learning."
+msgstr ""
+"本教程将展示下，怎样在 SecretFlow 的多方安全环境中，如何使用自定义 "
+"DataBuilder 模式加载数据，并训练模型。本教程将使用 Flower 数据集的图像分类任"
+"务来进行介绍，如何使用自定义 DataBuilder 完成联邦学习。"
 
 #: ../../tutorial/CustomDataLoaderTF.ipynb:43
 msgid "Environment Setting"
@@ -46,56 +50,59 @@ msgstr "接口介绍"
 
 #: ../../tutorial/CustomDataLoaderTF.ipynb:120
 msgid ""
-"We support custom DataBuilder reads in SecretFlow's ``FLModel`` to make "
-"it easier for users to handle data inputs more flexibly according to "
-"their needs. Let's use an example to demonstrate how to use the custom "
-"DataBuilder for federated model training."
+"We support custom DataBuilder reads in SecretFlow’s ``FLModel`` to make it "
+"easier for users to handle data inputs more flexibly according to their "
+"needs. Let’s use an example to demonstrate how to use the custom DataBuilder "
+"for federated model training."
 msgstr ""
-"我们在SecretFlow的\\ "
-"``FLModel``\\中支持了自定义DataBuilder的读取方式，可以方便用户根据需求更灵活的处理数据输入。下面我们以一个例子来展示下，如何使用自定义DataBuilder来进行联邦模型训练。"
+"我们在 SecretFlow 的 ``FLModel`` 中支持了自定义 DataBuilder 的读取方式，可以"
+"方便用户根据需求更灵活的处理数据输入。下面我们以一个例子来展示下，如何使用自"
+"定义 DataBuilder 来进行联邦模型训练。"
 
 #: ../../tutorial/CustomDataLoaderTF.ipynb:131
 msgid "Steps to use DataBuilder:"
-msgstr "使用DataBuilder的步骤："
+msgstr "使用 DataBuilder 的步骤："
 
 #: ../../tutorial/CustomDataLoaderTF.ipynb:133
 msgid ""
-"Use the single-machine version engine (TensorFlow, PyTorch) to develop "
-"and get the Builder function of the Dataset."
-msgstr "使用单机版本引擎（tensorflow，pytorch）进行开发，得到Dataset的Builder函数。"
+"Use the single-machine version engine (TensorFlow, PyTorch) to develop and "
+"get the Builder function of the Dataset."
+msgstr ""
+"使用单机版本引擎（tensorflow，pytorch）进行开发，得到 Dataset 的 Builder 函"
+"数。"
 
 #: ../../tutorial/CustomDataLoaderTF.ipynb:134
 msgid ""
-"Wrap the Builder functions of each party to get "
-"``create_dataset_builder`` function. *Note: The dataset\\_builder needs "
-"to pass in the stage parameter.*"
+"Wrap the Builder functions of each party to get ``create_dataset_builder`` "
+"function. *Note: The dataset_builder needs to pass in the stage parameter.*"
 msgstr ""
-"将各方的Builder函数进行wrap，得到\\ "
-"``create_dataset_builder``\\。*注：dataset_builder函数需要传入stage参数*"
+"将各方的 Builder 函数进行 wrap，得到 ``create_dataset_builder`` 。*注："
+"dataset_builder 函数需要传入 stage 参数*"
 
 #: ../../tutorial/CustomDataLoaderTF.ipynb:135
-msgid "Build the data\\_builder\\_dict [PYU, dataset\\_builder]."
-msgstr "构造data_builder_dict [PYU,dataset_builder]"
+msgid "Build the data_builder_dict [PYU, dataset_builder]."
+msgstr "构造 data_builder_dict [PYU, dataset_builder]。"
 
 #: ../../tutorial/CustomDataLoaderTF.ipynb:136
 msgid ""
-"Pass the obtained data\\_builder\\_dict to the ``dataset_builder`` of the"
-" ``fit`` function. At the same time, the x parameter position is passed "
-"into the required input in dataset\\_builder (eg: the input passed in "
-"this example is the actual image path used)."
+"Pass the obtained data_builder_dict to the ``dataset_builder`` of the "
+"``fit`` function. At the same time, the x parameter position is passed into "
+"the required input in dataset_builder (eg: the input passed in this example "
+"is the actual image path used)."
 msgstr ""
-"将得到的data_builder_dict传入\\ ``fit``\\函数的\\ "
-"``dataset_builder``\\。同时x参数位置传入dataset_builder中需要的输入。（eg:本例中传入的输入是实际使用的图像路径）"
+"将得到的 data_builder_dict 传入 ``fit`` 函数的 ``dataset_builder``。同时 x 参"
+"数位置传入 dataset_builder 中需要的输入。（比如：本例中传入的输入是实际使用的"
+"图像路径）。"
 
 #: ../../tutorial/CustomDataLoaderTF.ipynb:147
 msgid ""
-"Using DataBuilder in FLModel requires a pre-defined "
-"``data_builder_dict``. Need to be able to return ``tf.dataset`` and "
-"``steps_per_epoch``. And the steps\\_per\\_epoch returned by all parties "
-"must be consistent."
+"Using DataBuilder in FLModel requires a pre-defined ``data_builder_dict``. "
+"Need to be able to return ``tf.dataset`` and ``steps_per_epoch``. And the "
+"steps_per_epoch returned by all parties must be consistent."
 msgstr ""
-"在FLModel中使用DataBuilder需要预先定义\\ ``data_builder_dict``\\。需要能够返回\\ "
-"``tf.dataset``\\和\\ ``steps_per_epoch``\\。而且各方返回的steps_per_epoch必须保持一致。"
+"在 FLModel 中使用 DataBuilder 需要预先定义 ``data_builder_dict``。需要能够返"
+"回 ``tf.dataset`` 和 ``steps_per_epoch``。而且各方返回的 steps_per_epoch 必须"
+"保持一致。"
 
 #: ../../tutorial/CustomDataLoaderTF.ipynb:171
 msgid "Download Data"
@@ -104,23 +111,29 @@ msgstr "下载数据"
 #: ../../tutorial/CustomDataLoaderTF.ipynb:182
 msgid ""
 "Flower Dataset Introduction: The Flower dataset consists of 4323 color "
-"images of 5 different types of flowers (daisy, dandelion, rose, "
-"sunflower, and tulip). Each flower has images from multiple angles and "
-"different lighting conditions, and the resolution of each image is "
-"320x240. This dataset is commonly used for training and testing of image "
-"classification and machine learning algorithms. The number of each "
-"category in the dataset is as follows: daisy (633), dandelion (898), rose"
-" (641), sunflower (699), and tulip (852)."
-msgstr "Flower数据集介绍：flower数据集是一个包含了5种花卉（雏菊、蒲公英、玫瑰、向日葵、郁金香）共计4323张彩色图片的数据集。每种花卉都有多个角度和不同光照下的图片，每张图片的分辨率为320x240。这个数据集常用于图像分类和机器学习算法的训练与测试。数据集中每个类别的数量分别是：daisy（633），dandelion（898），rose（641），sunflower（699），tulip（852）"
+"images of 5 different types of flowers (daisy, dandelion, rose, sunflower, "
+"and tulip). Each flower has images from multiple angles and different "
+"lighting conditions, and the resolution of each image is 320x240. This "
+"dataset is commonly used for training and testing of image classification "
+"and machine learning algorithms. The number of each category in the dataset "
+"is as follows: daisy (633), dandelion (898), rose (641), sunflower (699), "
+"and tulip (852)."
+msgstr ""
+"Flower 数据集介绍：flower 数据集是一个包含了 5 种花卉（雏菊、蒲公英、玫瑰、向"
+"日葵、郁金香）共计 4323 张彩色图片的数据集。每种花卉都有多个角度和不同光照下"
+"的图片，每张图片的分辨率为 320x240。这个数据集常用于图像分类和机器学习算法的"
+"训练与测试。数据集中每个类别的数量分别是：daisy（633），dandelion（898），"
+"rose（641），sunflower（699），tulip（852）"
 
 #: ../../tutorial/CustomDataLoaderTF.ipynb:185
 msgid ""
-"Download link: "
-"http://download.tensorflow.org/example_images/flower_photos.tgz"
-msgstr "下载地址: http://download.tensorflow.org/example_images/flower_photos.tgz "
+"Download link: http://download.tensorflow.org/example_images/flower_photos."
+"tgz"
+msgstr ""
+"下载地址: http://download.tensorflow.org/example_images/flower_photos.tgz"
 
 #: ../../tutorial/CustomDataLoaderTF.ipynb:187
-msgid "|57f90d1f24964fecb7925e41a07d564d|"
+msgid "|799662bd410247b9b1f8c64ac4045c4f|"
 msgstr ""
 
 #: ../../tutorial/CustomDataLoaderTF.ipynb:189
@@ -132,67 +145,68 @@ msgid "Download Data and Unzip"
 msgstr "下载数据并解压"
 
 #: ../../tutorial/CustomDataLoaderTF.ipynb:259
-msgid "Next let's start building a custom DataBuilder"
-msgstr "接下来我们开始构造自定义DataBuilder"
+msgid "Next let’s start building a custom DataBuilder"
+msgstr "接下来我们开始构造自定义 DataBuilder"
 
 #: ../../tutorial/CustomDataLoaderTF.ipynb:271
 msgid "1. Develop DataBuilder with single-machine version engine"
-msgstr "1. 使用单机引擎开发DataBuilder"
+msgstr "1. 使用单机引擎开发 DataBuilder"
 
 #: ../../tutorial/CustomDataLoaderTF.ipynb:282
 msgid ""
 "When we develop DataBuilder, we are free to follow the logic of single-"
 "machine development. The purpose is to build a ``tf.dataset`` object."
-msgstr "我们在开发DataBuilder的时候可以自由的按照单机开发的逻辑即可。目的是构建一个\\ ``tf.dataset``\\ 对象即可"
+msgstr ""
+"我们在开发 DataBuilder 的时候可以自由的按照单机开发的逻辑即可。目的是构建一"
+"个 ``tf.dataset`` 对象即可。"
 
 #: ../../tutorial/CustomDataLoaderTF.ipynb:458
 msgid "2. Wrap the developed DataBuilder"
-msgstr "2.将开发完成的DataBuilder进行包装(wrap)"
+msgstr "2. 将开发完成的 DataBuilder 进行包装（wrap）"
 
 #: ../../tutorial/CustomDataLoaderTF.ipynb:469
 msgid ""
 "The DataBuilder we developed needs to be distributed to each execution "
-"machine for execution, and we need to wrap them in order to serialize. "
-"Note: **FLModel requires the incoming DataBuilder return two results "
-"(data\\_set, steps\\_per\\_epoch).**"
+"machine for execution, and we need to wrap them in order to serialize. Note: "
+"**FLModel requires the incoming DataBuilder return two results (data_set, "
+"steps_per_epoch).**"
 msgstr ""
-"我们开发好的DataBuilder在运行是需要分发到各个执行机器上去执行，为了序列化，我们需要把他们进行wrap。需要注意的是：\\ "
-"**FLModel要求传入的DataBuilder需要返回两个结果（data_set，steps_per_epoch）**"
+"我们开发好的 DataBuilder 在运行是需要分发到各个执行机器上去执行，为了序列化，"
+"我们需要把他们进行 wrap。需要注意的是： **FLModel 要求传入的DataBuilder需要返"
+"回两个结果（data_set，steps_per_epoch）。**"
 
-#: ../../tutorial/CustomDataLoaderTF.ipynb:522
-msgid "3. Build dataset\\_builder\\_dict"
-msgstr "3. 构建dataset_builder_dict"
+#: ../../tutorial/CustomDataLoaderTF.ipynb:518
+msgid "3. Build dataset_builder_dict"
+msgstr "3. 构建 dataset_builder_dict"
 
-#: ../../tutorial/CustomDataLoaderTF.ipynb:533
+#: ../../tutorial/CustomDataLoaderTF.ipynb:529
 msgid ""
-"In the horizontal scenario, the logic for all parties to process data is "
-"the same, so we only need a wrapped DataBuilder construction method. Next"
-" we build the ``dataset_builder_dict``"
+"In the horizontal scenario, the logic for all parties to process data is the "
+"same, so we only need a wrapped DataBuilder construction method. Next we "
+"build the ``dataset_builder_dict``"
 msgstr ""
-"在水平场景，我们各方处理数据的逻辑是一样的，所以只需要一个wrap后的DataBuilder构造方法即可。接下来我们构建\\ "
-"``dataset_builder_dict``"
+"在水平场景，我们各方处理数据的逻辑是一样的，所以只需要一个 wrap 后的"
+"DataBuilder构造方法即可。接下来我们构建 ``dataset_builder_dict``"
 
-#: ../../tutorial/CustomDataLoaderTF.ipynb:562
+#: ../../tutorial/CustomDataLoaderTF.ipynb:558
 msgid ""
-"4. After get dataset\\_builder\\_dict, we can pass it into the model for "
-"use"
-msgstr "4.得到dataset_builder_dict后我们就可以传入模型进行使用了"
+"4. After get dataset_builder_dict, we can pass it into the model for use"
+msgstr "4. 得到 dataset_builder_dict 后我们就可以传入模型进行使用了"
 
-#: ../../tutorial/CustomDataLoaderTF.ipynb:573
+#: ../../tutorial/CustomDataLoaderTF.ipynb:569
 msgid ""
 "Next we define the model and use the custom data constructed above for "
 "training"
 msgstr "接下来我们定义模型，并使用上面构造好的自定义数据进行训练"
 
-#: ../../tutorial/CustomDataLoaderTF.ipynb:695
+#: ../../tutorial/CustomDataLoaderTF.ipynb:692
 msgid ""
 "The input of our constructed dataset builder is the path of the image "
 "dataset, so we need to set the input data as a ``Dict`` here."
-msgstr "我们构造好的dataset builder的输入是图像数据集的路径，所以这里需要将输入的数据设置为一个\\ ``Dict``"
+msgstr ""
+"我们构造好的 dataset builder 的输入是图像数据集的路径，所以这里需要将输入的数"
+"据设置为一个 ``Dict``。"
 
-#: ../../tutorial/CustomDataLoaderTF.ipynb:778
+#: ../../tutorial/CustomDataLoaderTF.ipynb:775
 msgid "Next, you can use your own dataset to try"
 msgstr "接下来，您可以使用自己的数据集来进行尝试"
-
-#~ msgid "|284978d47e104551a8549facedcc1040|"
-#~ msgstr ""
