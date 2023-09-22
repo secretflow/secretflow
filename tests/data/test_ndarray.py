@@ -7,7 +7,6 @@ import pytest
 import sklearn.metrics
 
 from secretflow import reveal
-from secretflow.data.base import Partition
 from secretflow.data.ndarray import (
     histogram,
     load,
@@ -19,14 +18,19 @@ from secretflow.data.ndarray import (
     subtract,
     tss,
 )
+from secretflow.data.base import partition
 from secretflow.data.split import train_test_split
 from secretflow.data.vertical import VDataFrame
 from secretflow.utils.errors import InvalidArgumentError
 from secretflow.utils.simulation.datasets import create_ndarray
-from tests.basecase import array_equal
 
 
-@pytest.fixture(scope='module')
+def array_equal(a: np.ndarray, b: np.ndarray) -> bool:
+    # Ignore nan.
+    return ((a == b) | ((a != a) & (b != b))).all()
+
+
+@pytest.fixture(scope="module")
 def prod_env_and_data(sf_production_setup_devices):
     def gen_arr():
         _, path = tempfile.mkstemp()
@@ -94,10 +98,10 @@ def prod_env_and_data(sf_production_setup_devices):
 def test_load_file_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
-    fed_arr = load(data['path'], allow_pickle=True)
+    fed_arr = load(data["path"], allow_pickle=True)
     # THEN
-    assert array_equal(reveal(fed_arr.partitions[env.alice]), data['alice_arr'])
-    assert array_equal(reveal(fed_arr.partitions[env.bob]), data['bob_arr'])
+    assert array_equal(reveal(fed_arr.partitions[env.alice]), data["alice_arr"])
+    assert array_equal(reveal(fed_arr.partitions[env.bob]), data["bob_arr"])
 
 
 def test_load_pyu_object_should_ok(prod_env_and_data):
@@ -130,7 +134,7 @@ def test_load_should_error_with_wrong_pyu_object(prod_env_and_data):
 def test_train_test_split_on_hdataframe_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # GIVEN
-    fed_arr = load(data['path'], allow_pickle=True)
+    fed_arr = load(data["path"], allow_pickle=True)
 
     # WHEN
     fed_arr0, fed_arr1 = train_test_split(fed_arr, train_size=0.6, shuffle=False)
@@ -144,7 +148,7 @@ def test_train_test_split_on_hdataframe_should_ok(prod_env_and_data):
             ],
             axis=0,
         ),
-        data['alice_arr'],
+        data["alice_arr"],
     )
 
     assert array_equal(
@@ -155,7 +159,7 @@ def test_train_test_split_on_hdataframe_should_ok(prod_env_and_data):
             ],
             axis=0,
         ),
-        data['bob_arr'],
+        data["bob_arr"],
     )
 
 
@@ -181,8 +185,8 @@ def test_train_test_split_on_vdataframe_should_ok(prod_env_and_data):
     )
     df = VDataFrame(
         {
-            env.alice: Partition(data=env.alice(lambda: df_alice)()),
-            env.bob: Partition(data=env.bob(lambda: df_bob)()),
+            env.alice: partition(data=env.alice(lambda: df_alice)()),
+            env.bob: partition(data=env.bob(lambda: df_bob)()),
         }
     )
     fed_arr = df.values
@@ -223,8 +227,8 @@ def test_shuffle_should_ok(prod_env_and_data):
     )
     df = VDataFrame(
         {
-            env.alice: Partition(data=env.alice(lambda: df_alice)()),
-            env.bob: Partition(data=env.bob(lambda: df_bob)()),
+            env.alice: partition(data=env.alice(lambda: df_alice)()),
+            env.bob: partition(data=env.bob(lambda: df_bob)()),
         }
     )
     fed_arr = df.values
@@ -278,25 +282,25 @@ def test_load_npz(prod_env_and_data):
 def test_astype_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
-    fed_arr = load(data['path'])
+    fed_arr = load(data["path"])
     fed_arr = fed_arr.astype(str)
 
     # THEN
     assert array_equal(
-        reveal(fed_arr.partitions[env.alice]), data['alice_arr'].astype(str)
+        reveal(fed_arr.partitions[env.alice]), data["alice_arr"].astype(str)
     )
 
-    assert array_equal(reveal(fed_arr.partitions[env.bob]), data['bob_arr'].astype(str))
+    assert array_equal(reveal(fed_arr.partitions[env.bob]), data["bob_arr"].astype(str))
 
 
 def operator_h_v_cases_test(prod_env_and_data, test_handle, true_val, binary=True):
     env, data = prod_env_and_data
     if not binary:
-        a_h = reveal(test_handle(data['y_true_fed_h'], spu_device=env.spu))
-        a_v = reveal(test_handle(data['y_true_fed_v']))
+        a_h = reveal(test_handle(data["y_true_fed_h"], spu_device=env.spu))
+        a_v = reveal(test_handle(data["y_true_fed_v"]))
     else:
-        a_h = reveal(test_handle(data['y_true_fed_h'], data['y_pred_fed_h'], env.spu))
-        a_v = reveal(test_handle(data['y_true_fed_v'], data['y_pred_fed_v']))
+        a_h = reveal(test_handle(data["y_true_fed_h"], data["y_pred_fed_h"], env.spu))
+        a_v = reveal(test_handle(data["y_true_fed_v"], data["y_pred_fed_v"]))
         # Currently mixed case is not supported
     np.testing.assert_almost_equal(true_val, a_h, decimal=2)
     np.testing.assert_almost_equal(true_val, a_v, decimal=2)
@@ -304,46 +308,46 @@ def operator_h_v_cases_test(prod_env_and_data, test_handle, true_val, binary=Tru
 
 def test_tss(prod_env_and_data):
     env, data = prod_env_and_data
-    tss_val = np.sum(np.square(data['y_true'] - np.mean(data['y_true'])))
+    tss_val = np.sum(np.square(data["y_true"] - np.mean(data["y_true"])))
     operator_h_v_cases_test(prod_env_and_data, tss, tss_val, False)
 
 
 def test_rss(prod_env_and_data):
     env, data = prod_env_and_data
-    rss_val = np.sum(np.square(data['y_true'] - data['y_pred']))
+    rss_val = np.sum(np.square(data["y_true"] - data["y_pred"]))
     operator_h_v_cases_test(prod_env_and_data, rss, rss_val)
 
 
 def test_r2_score(prod_env_and_data):
     env, data = prod_env_and_data
-    r2score_val = sklearn.metrics.r2_score(data['y_true'], data['y_pred'])
+    r2score_val = sklearn.metrics.r2_score(data["y_true"], data["y_pred"])
     operator_h_v_cases_test(prod_env_and_data, r2_score, r2score_val)
 
 
 def test_mean_abs_err(prod_env_and_data):
     env, data = prod_env_and_data
-    mae_val = sklearn.metrics.mean_absolute_error(data['y_true'], data['y_pred'])
+    mae_val = sklearn.metrics.mean_absolute_error(data["y_true"], data["y_pred"])
     operator_h_v_cases_test(prod_env_and_data, mean_abs_err, mae_val)
 
 
 def test_mean_abs_percent_err(prod_env_and_data):
     env, data = prod_env_and_data
     mape_val = sklearn.metrics.mean_absolute_percentage_error(
-        data['y_true'], data['y_pred']
+        data["y_true"], data["y_pred"]
     )
     operator_h_v_cases_test(prod_env_and_data, mean_abs_percent_err, mape_val)
 
 
 def test_subtraction(prod_env_and_data):
     env, data = prod_env_and_data
-    residual_val = data['y_true'] - data['y_pred']
+    residual_val = data["y_true"] - data["y_pred"]
     operator_h_v_cases_test(prod_env_and_data, subtract, residual_val)
 
 
 def test_histogram(prod_env_and_data):
     env, data = prod_env_and_data
-    hist, edges = np.histogram(data['y_true'])
-    h_v, e_v = reveal(histogram(data['y_true_fed_v']))
+    hist, edges = np.histogram(data["y_true"])
+    h_v, e_v = reveal(histogram(data["y_true_fed_v"]))
     np.testing.assert_almost_equal(hist, reveal(h_v), decimal=2)
     np.testing.assert_almost_equal(edges, reveal(e_v), decimal=2)
     # TODO(zoupeicheng.zpc): pending on spu support for the following.

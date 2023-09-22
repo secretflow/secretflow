@@ -1,0 +1,12 @@
+---
+name: Run clang-format Linter
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
+jobs:
+  run-clang-format:
+    uses: secretflow/.github/.github/workflows/clang-format.yml@main

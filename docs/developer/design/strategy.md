@@ -103,5 +103,30 @@ class PYUFedCustom(FedCustom):
     pass
 
 ```
+Then, update `__init__.py`,to make this strategy effect.  
+eg:
+ - secretflow/ml/nn/fl/backend/tensorflow/strategy/\_\_init\_\_.py
+ - secretflow/ml/nn/fl/backend/torch/strategy/\_\_init\_\_.py
+
+ ```python
+from .fed_avg_g import PYUFedAvgG
+from .fed_avg_u import PYUFedAvgU
+from .fed_avg_w import PYUFedAvgW
+from .fed_prox import PYUFedProx
+from .fed_scr import PYUFedSCR
+from .fed_stc import PYUFedSTC
+from .custom_strategy import PYUCustomStrategy
+
+__all__ = [
+    'PYUFedAvgG',
+    'PYUFedAvgW',
+    'PYUFedAvgU',
+    'PYUFedSCR',
+    'PYUFedSTC',
+    'PYUFedProx',
+    'PYUCustomStrategy'
+]
+
+ ```
 
 Until now, the development of custom strategy is completed. You can pass the short name of new strategy into the strategy field of FL_Model to enable the new federated learning strategy.

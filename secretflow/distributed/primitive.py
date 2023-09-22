@@ -84,9 +84,8 @@ def kill(actor, *, no_restart=True):
 
 def shutdown():
     if production_mode():
-        return fed.shutdown()
-    else:
-        return ray.shutdown()
+        fed.shutdown()
+    ray.shutdown()
 
 
 def _resolve_args(*args, **kwargs):

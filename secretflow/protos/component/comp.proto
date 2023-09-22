@@ -1,0 +1,223 @@
+// Copyright 2023 Ant Group Co., Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
+syntax = "proto3";
+
+package secretflow.component;
+
+option java_package = "org.secretflow.proto.component";
+
+// Supported attribute types.
+enum AttrType {
+  AT_UNDEFINED = 0;
+
+  // Atomic types
+
+  AT_FLOAT = 1;   // FLOAT
+  AT_INT = 2;     // INT
+  AT_STRING = 3;  // STRING
+  AT_BOOL = 4;    // BOOL
+
+  // List types
+
+  AT_FLOATS = 5;   // FLOATS
+  AT_INTS = 6;     // INTS
+  AT_STRINGS = 7;  // STRINGS
+  AT_BOOLS = 8;    // BOOLS
+
+  // Special types.
+
+  AT_STRUCT_GROUP = 9;
+  AT_UNION_GROUP = 10;
+  AT_SF_TABLE_COL = 11;
+}
+
+// The value of an attribute
+message Attribute {
+  float f = 1;  // FLOAT
+
+  // INT
+  // NOTE(junfeng): "is" is preserved by Python. Replaced with "i64".
+  int64 i64 = 2;
+
+  string s = 3;  // STRING
+  bool b = 4;    // BOOL
+
+  // lists
+
+  repeated float fs = 5;    // FLOATS
+  repeated int64 i64s = 6;  // INTS
+  repeated string ss = 7;   // STRINGS
+  repeated bool bs = 8;     // BOOLS
+
+  // Indicates the value is missing explicitly.
+  bool is_na = 9;
+}
+
+// Describe an attribute.
+message AttributeDef {
+  // Indicates the ancestors of a node,
+  // e.g. `[name_a, name_b, name_c]` means the path prefixes of current
+  // Attribute is `name_a/name_b/name_c/`.
+  // Only `^[a-zA-Z0-9_.-]*$` is allowed.
+  // `input` and `output` are reserved.
+  repeated string prefixes = 1;
+
+  // Must be unique in the same level just like Linux file systems.
+  // Only `^[a-zA-Z0-9_.-]*$` is allowed.
+  // `input` and `output` are reserved.
+  string name = 2;
+
+  string desc = 3;
+
+  AttrType type = 4;
+
+  // Extras for an atomic attribute.
+  // Including: `AT_FLOAT | AT_INT | AT_STRING | AT_BOOL | AT_FLOATS | AT_INTS |
+  // AT_STRINGS | AT_BOOLS`.
+  message AtomicAttrDesc {
+    // Only valid when type is `AT_FLOATS \| AT_INTS \| AT_STRINGS \| AT_BOOLS`.
+    int64 list_min_length_inclusive = 1;
+    // Only valid when type is `AT_FLOATS \| AT_INTS \| AT_STRINGS \| AT_BOOLS`.
+    int64 list_max_length_inclusive = 2;
+
+    // If True, when Atmoic Attr is not provided or is_na, default_value would
+    // be used. Else, Atmoic Attr must be provided.
+    bool is_optional = 3;
+
+    // A reasonable default for this attribute if the user does not supply a
+    // value.
+    Attribute default_value = 4;
+
+    // Only valid when type is `AT_FLOAT \| AT_INT \| AT_STRING \| AT_FLOATS \|
+    // AT_INTS \| AT_STRINGS`.
+    // Please use list fields of AtomicParameter, i.e. `ss`, `i64s`, `fs`.
+    // If the attribute is a list, allowed_values is applied to each element.
+    Attribute allowed_values = 5;
+
+    // Only valid when type is `AT_FLOAT \| AT_INT \| AT_FLOATS \| AT_INTS `.
+    // If the attribute is a list, lower_bound is applied to each element.
+    bool has_lower_bound = 6;
+    Attribute lower_bound = 7;
+    bool lower_bound_inclusive = 8;
+
+    // Only valid when type is `AT_FLOAT \| AT_INT \| AT_FLOATS \| AT_INTS `.
+    // If the attribute is a list, upper_bound is applied to each element.
+    bool has_upper_bound = 9;
+    Attribute upper_bound = 10;
+    bool upper_bound_inclusive = 11;
+  }
+
+  AtomicAttrDesc atomic = 5;
+
+  // Extras for a union attribute group.
+  message UnionAttrGroupDesc {
+    // The default selected child.
+    string default_selection = 1;
+  }
+
+  UnionAttrGroupDesc union = 6;
+}
+
+// Define an input/output for component.
+message IoDef {
+  // should be unique among all IOs of the component.
+  string name = 1;
+
+  string desc = 2;
+
+  // Must be one of DistData.type in data.proto
+  repeated string types = 3;
+
+  // An extra attribute for a table.
+  //
+  // If provided in a IoDef, e.g.
+  // ```json
+  // {
+  //   "name": "feature",
+  //   "types": [
+  //       "int",
+  //       "float"
+  //   ],
+  //   "col_min_cnt_inclusive": 1,
+  //   "col_max_cnt": 3,
+  //   "attrs": [
+  //       {
+  //           "name": "bucket_size",
+  //           "type": "AT_INT"
+  //       }
+  //   ]
+  // }
+  // ```
+  // means after a user provide a table as IO, they should also specify
+  // cols as "feature":
+  // - col_min_cnt_inclusive is 1: At least 1 col to be selected.
+  // - col_max_cnt_inclusive is 3: At most 3 cols to be selected.
+  // And afterwards, user have to fill an int attribute called bucket_size for
+  // each selected cols.
+  message TableAttrDef {
+    // Must be unique among all attributes for the table.
+    string name = 1;
+
+    string desc = 2;
+
+    // Accepted col data types.
+    // Please check DistData.VerticalTable in data.proto.
+    repeated string types = 3;
+
+    // inclusive
+    int64 col_min_cnt_inclusive = 4;
+    int64 col_max_cnt_inclusive = 5;
+
+    // extra attribute for specified col.
+    repeated AttributeDef attrs = 6;
+  }
+
+  // Only valid for tables.
+  // The attribute path for a TableAttrDef is `{input\|output}/{IoDef
+  // name}/{TableAttrDef name}`.
+  repeated TableAttrDef attrs = 4;
+}
+
+// The definition of a comp.
+message ComponentDef {
+  // Namespace of the comp.
+  string domain = 1;
+
+  // Should be unique among all comps of the same domain.
+  string name = 2;
+
+  string desc = 3;
+
+  // Version of the comp.
+  string version = 4;
+
+  repeated AttributeDef attrs = 5;
+
+  repeated IoDef inputs = 6;
+
+  repeated IoDef outputs = 7;
+}
+
+// A list of components
+message CompListDef {
+  string name = 1;
+
+  string desc = 2;
+
+  string version = 3;
+
+  repeated ComponentDef comps = 4;
+}

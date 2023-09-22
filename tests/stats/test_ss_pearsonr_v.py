@@ -3,6 +3,7 @@ import pandas as pd
 import pytest
 from scipy.stats import pearsonr
 
+from secretflow import reveal
 from secretflow.preprocessing.scaler import StandardScaler
 from secretflow.stats import SSVertPearsonR
 from secretflow.utils.simulation.datasets import dataset, load_linear
@@ -38,6 +39,8 @@ def scipy_pearsonr():
 
 def test_pearsonr(prod_env_and_data):
     env, data = prod_env_and_data
+    for d in data.partitions.values():
+        reveal(d.data)
     v_pearsonr = SSVertPearsonR(env.spu)
     scaler = StandardScaler()
     std_data = scaler.fit_transform(data)

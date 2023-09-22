@@ -29,7 +29,6 @@ from secretflow.device import PYUObject, proxy
 from secretflow.ml.nn.sl.backend.tensorflow.sl_base import SLBaseTFModel
 from secretflow.ml.nn.sl.strategy_dispatcher import register_strategy
 from secretflow.security.privacy import DPStrategy
-from secretflow.utils.compressor import Compressor
 
 
 class SLAsyncTFModel(SLBaseTFModel):
@@ -38,7 +37,6 @@ class SLAsyncTFModel(SLBaseTFModel):
         builder_base: Callable[[], tf.keras.Model],
         builder_fuse: Callable[[], tf.keras.Model],
         dp_strategy: DPStrategy,
-        compressor: Compressor,
         base_local_steps: int,
         fuse_local_steps: int,
         bound_param: float,
@@ -46,15 +44,19 @@ class SLAsyncTFModel(SLBaseTFModel):
         **kwargs,
     ):
         super().__init__(
-            builder_base, builder_fuse, dp_strategy, compressor, random_seed, **kwargs
+            builder_base,
+            builder_fuse,
+            dp_strategy,
+            random_seed,
+            **kwargs,
         )
         self.base_local_steps = base_local_steps
         self.fuse_local_steps = fuse_local_steps
         self.bound_param = bound_param
 
     @tf.function
-    def _base_forward_internal(self, data_x, use_dp: bool = True):
-        h = self.model_base(data_x)
+    def _base_forward_internal(self, data_x, use_dp: bool = True, training=True):
+        h = self.model_base(data_x, training=training)
 
         # Embedding differential privacy
         if use_dp and self.embedding_dp is not None:
@@ -64,30 +66,24 @@ class SLAsyncTFModel(SLBaseTFModel):
                 h = self.embedding_dp(h)
         return h
 
-    def base_backward(self, gradient, compress: bool = False):
+    def base_backward(self, gradient):
         """backward on fusenet
 
         Args:
             gradient: gradient of fusenet hidden layer
-            compress: Whether to decompress gradient.
         """
 
-        # TODO: only vaild on no server mode, refactor when use agglayer or server mode.
-        # no need to decompress data on model_fuse side
-        if compress and not self.model_fuse:
-            if self.compressor:
-                gradient = self.compressor.decompress(gradient)
-            else:
-                raise Exception(
-                    'can not find compressor when decompress data in base_backward'
-                )
         for local_step in range(self.base_local_steps):
             return_hiddens = []
             with self.tape:
                 if local_step == 0 and self.h is not None:
                     h = self.h
                 else:
-                    h = self._base_forward_internal(self.data_x, use_dp=False)
+                    h = self._base_forward_internal(
+                        self.data_x,
+                        use_dp=False,
+                        training=True,  # backward will only in training procedure
+                    )
                 if len(gradient) == len(h):
                     for i in range(len(gradient)):
                         return_hiddens.append(self.fuse_op(h[i], gradient[i]))

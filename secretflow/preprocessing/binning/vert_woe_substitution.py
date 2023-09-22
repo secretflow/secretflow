@@ -17,7 +17,7 @@ from typing import Dict
 import numpy as np
 import pandas as pd
 
-from secretflow.data.base import Partition
+from secretflow.data.base import partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import PYU, PYUObject, proxy
 
@@ -55,6 +55,9 @@ class VertWOESubstitutionPyuWorker:
             else:
                 condlist = list()
                 split_points = rule["split_points"]
+                # if no effective split points, we do no transformation
+                if len(split_points) == 0:
+                    continue
                 for i in range(len(split_points)):
                     if i == 0:
                         condlist.append(col_data <= split_points[i])
@@ -94,7 +97,10 @@ class VertWOESubstitution:
 
         new_vdata = VDataFrame(
             {
-                d: Partition(data=works[d].sub(vdata.partitions[d].data, woe_rules[d]))
+                d: partition(
+                    data=works[d].sub(vdata.partitions[d].data, woe_rules[d]),
+                    backend=vdata.partitions[d].backend,
+                )
                 for d in woe_rules
             }
         )

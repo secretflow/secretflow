@@ -37,7 +37,7 @@
 - [FedVision: An Online Visual Object Detection Platform Powered by Federated Learning](https://arxiv.org/pdf/2001.06202.pdf)
 
 
-## Health Care: 
+## Health Care:
 - [Multi-Institutional Deep Learning Modeling Without Sharing Patient Data: A Feasibility Study on Brain Tumor Segmentation](https://arxiv.org/pdf/1810.04304.pdf)
 
 - [Federated Learning in Distributed Medical Databases: Meta-Analysis of Large-Scale Subcortical Brain Data](https://arxiv.org/pdf/1810.08553.pdf)
@@ -173,6 +173,12 @@ Keywords: Split Learning + Sparsification
 
 - [Record and reward federated learning contributions with blockchain](https://mblocklab.com/RecordandReward.pdf)
 
+- [Poster: A Reliable and Accountable Privacy-Preserving Federated Learning Framework using the Blockchain](https://dl.acm.org/doi/pdf/10.1145/3319535.3363256?casa_token=Vw3UHtNLryEAAAAA:kxFrIGLfztDBayYUYarcyjKV4cF3pxFoIuksJTczmIIDXdOut8Q5U30COoCiFTLVYrhWT9BAo0PbJF4)
+
+- [Biscotti: A Blockchain System for Private and Secure Federated Learning](https://www.academia.edu/download/84157304/tpds20-biscotti.pdf)
+
+- [Towards Blockchain-Based Reputation-Aware Federated Learning](https://www.researchgate.net/publication/339297228_Towards_Blockchain-Based_Reputation-Aware_Federated_Learning)
+
 ## Other
 - [Boosting Privately: Privacy-Preserving Federated Extreme Boosting for Mobile Crowdsensing](https://arxiv.org/pdf/1907.10218.pdf)
 
@@ -207,7 +213,7 @@ Keywords: Split Learning + Sparsification
 
 - [FedGNN: Federated Graph Neural Network for Privacy-Preserving Recommendation](https://arxiv.org/pdf/2102.04925)
 
-- [FedGraphNN: A Federated Learning System and Benchmark for Graph Neural Networks](https://arxiv.org/pdf/2104.07145) 
+- [FedGraphNN: A Federated Learning System and Benchmark for Graph Neural Networks](https://arxiv.org/pdf/2104.07145)
 
 - [FL-AGCNS: Federated Learning Framework for Automatic Graph Convolutional Network Search](https://arxiv.org/pdf/2104.04141)
 

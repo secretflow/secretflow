@@ -16,8 +16,8 @@ from typing import Callable, Dict, List, Union
 
 import pandas as pd
 
-from secretflow.data.base import Partition
 from secretflow.data.horizontal import HDataFrame
+from secretflow.data.base import partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import PYU
 from secretflow.security.aggregation.aggregator import Aggregator
@@ -36,7 +36,7 @@ def create_df(
     comparator: Comparator = None,
 ) -> Union[HDataFrame, VDataFrame]:
     """Create a federated dataframe from a single data source.
-
+    TODO: support other backends.
     Args:
         source: the dataset source, shall be a file path or pandas.DataFrame or
             callable (shall returns a pandas.DataFrame).
@@ -97,8 +97,8 @@ def create_df(
     if axis == 0:
         return HDataFrame(
             partitions={
-                device: Partition(
-                    device(lambda df: df.iloc[index[0] : index[1], :])(df)
+                device: partition(
+                    device(lambda _df: _df.iloc[index[0] : index[1], :])(df)
                 )
                 for device, index in indexes.items()
             },
@@ -108,8 +108,8 @@ def create_df(
     else:
         return VDataFrame(
             partitions={
-                device: Partition(
-                    device(lambda df: df.iloc[:, index[0] : index[1]])(df)
+                device: partition(
+                    device(lambda _df: _df.iloc[:, index[0] : index[1]])(df)
                 )
                 for device, index in indexes.items()
             }

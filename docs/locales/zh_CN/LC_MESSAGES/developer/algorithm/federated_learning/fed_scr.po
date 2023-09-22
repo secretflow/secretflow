@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-05-23 17:14+0800\n"
+"POT-Creation-Date: 2023-07-03 15:40+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -185,9 +185,7 @@ msgid ""
 msgstr "计算一个 Channel 对应的梯度绝对值之和: "
 
 #: ../../developer/algorithm/federated_learning/fed_scr.md:39
-msgid ""
-"\n"
-"C^{k,l}_f(n)=\\sum_{j=0}^{F_l}|u^{k,l}_{j,i,;,;}(n)|\n"
+msgid "$$ C^{k,l}_f(n)=\\sum_{j=0}^{F_l}|u^{k,l}_{j,i,;,;}(n)| $$"
 msgstr ""
 
 #: ../../developer/algorithm/federated_learning/fed_scr.md:43
@@ -197,9 +195,7 @@ msgid ""
 msgstr "计算一个Filter对应的梯度绝对值之和: "
 
 #: ../../developer/algorithm/federated_learning/fed_scr.md:45
-msgid ""
-"\n"
-"F^{k,l}_f(n)=\\sum_{j=0}^{C*l}|u^{k,l}*{i,j,;,;}(n)|\n"
+msgid "$$ F^{k,l}_f(n)=\\sum_{j=0}^{C*l}|u^{k,l}*{i,j,;,;}(n)| $$"
 msgstr ""
 
 #: ../../developer/algorithm/federated_learning/fed_scr.md:49

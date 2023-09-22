@@ -37,7 +37,9 @@ parameters:
 workflows:
   unittest-workflow:
     when:
-      not: << pipeline.parameters.GHA_Action >>
+      and:
+        - not: << pipeline.parameters.GHA_Action >>
+        - not: << pipeline.parameters.GHA_Meta >>
     jobs:
       - path-filtering/filter:
           base-revision: main
@@ -51,7 +53,14 @@ workflows:
             requirements-dev.txt build-and-run true
             WORKSPACE build-and-run true
   publish-workflow:
-    when: << pipeline.parameters.GHA_Action >>
+    when:
+      equal: ["publish_pypi", << pipeline.parameters.GHA_Meta >>]
     jobs:
       - continuation/continue:
           configuration_path: .circleci/release-config.yml
+  testpypi-workflow:
+    when:
+      equal: ["publish_testpypi", << pipeline.parameters.GHA_Meta >>]
+    jobs:
+      - continuation/continue:
+          configuration_path: .circleci/testpypi-config.yml

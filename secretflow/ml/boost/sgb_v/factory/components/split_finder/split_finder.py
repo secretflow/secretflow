@@ -18,7 +18,9 @@ from typing import Tuple
 
 import numpy as np
 
-from ....core.pure_numpy_ops.boost import find_best_splits
+from secretflow.ml.boost.sgb_v.core.params import default_params
+
+from ....core.pure_numpy_ops.boost import find_best_splits, find_best_splits_with_gains
 from ..component import Component, Devices, print_params
 
 
@@ -36,8 +38,8 @@ class SplitFinderParams:
     'audit_paths': dict. {device : path to save log for audit}
     """
 
-    gamma: float = 0
-    reg_lambda: float = 0.1
+    gamma: float = default_params.gamma
+    reg_lambda: float = default_params.reg_lambda
     audit_paths: dict = field(default_factory=dict)
 
 
@@ -49,16 +51,9 @@ class SplitFinder(Component):
         print_params(self.params)
 
     def set_params(self, params: dict):
-        gamma = float(params.get('gamma', 0))
-        assert gamma >= 0 and gamma <= 10000, f"gamma should in [0, 10000], got {gamma}"
-
-        reg_lambda = float(params.get('reg_lambda', 0.1))
-        assert (
-            reg_lambda >= 0 and reg_lambda <= 10000
-        ), f"reg_lambda should in [0, 10000], got {reg_lambda}"
-
+        gamma = params.get('gamma', default_params.gamma)
+        reg_lambda = params.get('reg_lambda', default_params.reg_lambda)
         audit_paths = params.get('audit_paths', {})
-        assert isinstance(audit_paths, dict), " audit paths must be a dict"
 
         self.params.gamma = gamma
         self.params.reg_lambda = reg_lambda
@@ -72,7 +67,36 @@ class SplitFinder(Component):
     def set_devices(self, devices: Devices):
         self.label_holder = devices.label_holder
 
-    def find_best_splits(
+    def set_actors(self, _):
+        return
+
+    def del_actors(self):
+        return
+
+    def find_best_splits_with_gains(
+        self, G: np.ndarray, H: np.ndarray, tree_num: int, leaf: int
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        reg_lambda = self.params.reg_lambda
+        gamma = self.params.gamma
+        split_buckets, split_gains, should_split = self.label_holder(
+            find_best_splits_with_gains, num_returns=3
+        )(G, H, reg_lambda, gamma)
+
+        if self.label_holder.party in self.params.audit_paths:
+            # may change log later
+            split_info_path = (
+                self.params.audit_paths[self.label_holder.party]
+                + ".split_buckets.tree_"
+                + str(tree_num)
+                + ".leaf_"
+                + str(leaf)
+                + ".pickle"
+            )
+            # split info when considering the nth leaf
+            self.label_holder(write_log)(split_buckets, split_info_path)
+        return split_buckets, split_gains, should_split
+
+    def find_best_splits_level_wise(
         self, G: np.ndarray, H: np.ndarray, tree_num: int, level: int
     ) -> Tuple[np.ndarray, np.ndarray]:
         reg_lambda = self.params.reg_lambda

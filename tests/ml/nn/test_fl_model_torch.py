@@ -18,7 +18,7 @@ from torchmetrics import Accuracy, Precision
 
 from secretflow.device import reveal
 from secretflow.ml.nn import FLModel
-from secretflow.ml.nn.fl.backend.torch.utils import TorchModel
+from secretflow.ml.nn.utils import TorchModel
 from secretflow.ml.nn.fl.compress import COMPRESS_STRATEGY
 from secretflow.ml.nn.fl.utils import metric_wrapper, optim_wrapper
 from secretflow.preprocessing.encoder import OneHotEncoder
@@ -53,7 +53,7 @@ def _torch_model_with_mnist(
 
     # spcify params
     dp_spent_step_freq = kwargs.get('dp_spent_step_freq', None)
-
+    num_gpus = kwargs.get("num_gpus", 0)
     fl_model = FLModel(
         server=server,
         device_list=device_list,
@@ -62,7 +62,7 @@ def _torch_model_with_mnist(
         strategy=strategy,
         backend=backend,
         random_seed=1234,
-        **kwargs,
+        num_gpus=num_gpus,
     )
     history = fl_model.fit(
         data,
@@ -99,6 +99,7 @@ def _torch_model_with_mnist(
         aggregator=None,
         backend=backend,
         random_seed=1234,
+        num_gpus=num_gpus,
     )
     new_fed_model.load_model(model_path=model_path_dict, is_test=False)
     new_fed_model.load_model(model_path=model_path_test, is_test=True)
@@ -148,6 +149,7 @@ class TestFLModelTorchMnist:
             label=mnist_label,
             strategy='fed_avg_w',
             backend="torch",
+            # num_gpus=0.25,
         )
 
         # Test fed_avg_g with mnist
@@ -230,7 +232,10 @@ class TestFLModelTorchMlp:
     def test_torch_model_mlp(self, sf_simulation_setup_devices):
         aggregator = PlainAggregator(sf_simulation_setup_devices.carol)
         hdf = load_iris(
-            parts=[sf_simulation_setup_devices.alice, sf_simulation_setup_devices.bob],
+            parts=[
+                sf_simulation_setup_devices.alice,
+                sf_simulation_setup_devices.bob,
+            ],
             aggregator=aggregator,
         )
 
@@ -271,7 +276,9 @@ class TestFLModelTorchMlp:
             strategy="fed_avg_w",
             backend="torch",
             random_seed=1234,
+            # num_gpus=0.5,  # here is no GPU in the CI environment, so it is temporarily commented out.
         )
+
         history = fl_model.fit(
             data,
             label,

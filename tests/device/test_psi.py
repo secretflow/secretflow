@@ -1,130 +1,138 @@
-import os
-import shutil
+import tempfile
+import logging
 
 import pandas as pd
 import pytest
 import spu
 
 import secretflow as sf
-import tempfile
 
 
 def set_up(devices):
     da = pd.DataFrame(
         {
-            'c1': ['K5', 'K1', 'K2', 'K6', 'K4', 'K3'],
-            'c2': ['A5', 'A1', 'A2', 'A6', 'A4', 'A3'],
-            'c3': [5, 1, 2, 6, 4, 3],
+            "c1": ["K5", "K1", "K2", "K6", "K4", "K3"],
+            "c2": ["A5", "A1", "A2", "A6", "A4", "A3"],
+            "c3": [5, 1, 2, 6, 4, 3],
         }
     )
 
     db = pd.DataFrame(
         {
-            'c1': ['K3', 'K1', 'K9', 'K4'],
-            'c2': ['B3', 'A1', 'A9', 'A4'],
-            'c3': [3, 1, 9, 4],
+            "c1": ["K3", "K1", "K9", "K4"],
+            "c2": ["B3", "A1", "A9", "A4"],
+            "c3": [3, 1, 9, 4],
         }
     )
 
     db2 = pd.DataFrame(
         {
-            'c1': ['K3', 'K1', 'K1', 'K4'],
-            'c2': ['B3', 'A1', 'A1', 'A4'],
-            'c3': ['C3', 'C1', 'D1', 'C4'],
-            'c4': [3, 1, 9, 4],
+            "c1": ["K3", "K1", "K1", "K4"],
+            "c2": ["B3", "A1", "A1", "A4"],
+            "c3": ["C3", "C1", "D1", "C4"],
+            "c4": [3, 1, 9, 4],
         }
     )
 
     db3 = pd.DataFrame(
-        {'c1': ['K7', 'K8', 'K9'], 'c2': ['A7', 'A8', 'A9'], 'c3': [7, 8, 9]}
+        {"c1": ["K7", "K8", "K9"], "c2": ["A7", "A8", "A9"], "c3": [7, 8, 9]}
     )
 
     db4 = pd.DataFrame(
         {
-            'c11': ['K3', 'K1', 'K9', 'K4'],
-            'c21': ['B3', 'A1', 'A9', 'A4'],
-            'c31': [3, 1, 9, 4],
+            "c11": ["K3", "K1", "K9", "K4"],
+            "c21": ["B3", "A1", "A9", "A4"],
+            "c31": [3, 1, 9, 4],
         }
     )
 
     da_aby3 = pd.DataFrame(
         {
-            'c1': ['K5', 'K1', 'K2', 'K6', 'K4', 'K3'],
-            'c2': ['A5', 'A1', 'A2', 'A6', 'B4', 'A3'],
-            'c3': [5, 1, 2, 6, 4, 3],
+            "c1": ["K5", "K1", "K2", "K6", "K4", "K3"],
+            "c2": ["A5", "A1", "A2", "A6", "B4", "A3"],
+            "c3": [5, 1, 2, 6, 4, 3],
         }
     )
 
     db_aby3 = pd.DataFrame(
         {
-            'c1': ['K3', 'K1', 'K9', 'K4'],
-            'c2': ['B3', 'A1', 'A9', 'A4'],
-            'c3': [3, 1, 9, 4],
+            "c1": ["K3", "K1", "K9", "K4"],
+            "c2": ["B3", "A1", "A9", "A4"],
+            "c3": [3, 1, 9, 4],
         }
     )
 
     dc_aby3 = pd.DataFrame(
         {
-            'c1': ['K9', 'K4', 'K3', 'K1', 'k8'],
-            'c2': ['A9', 'B4', 'B3', 'A1', 'k8'],
-            'c3': [9, 4, 3, 1, 8],
+            "c1": ["K9", "K4", "K3", "K1", "k8"],
+            "c2": ["A9", "B4", "B3", "A1", "k8"],
+            "c3": [9, 4, 3, 1, 8],
         }
     )
 
     da_new = pd.DataFrame(
         {
-            'id1': ['K100', 'K200', 'K200', 'K300', 'K400', 'K400', 'K500'],
-            'item': ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
-            'feature1': ['AAA', 'BBB', 'CCC', 'DDD', 'EEE', 'FFF', 'GGG'],
+            "id1": ["K100", "K200", "K200", "K300", "K400", "K400", "K500"],
+            "item": ["A", "B", "C", "D", "E", "F", "G"],
+            "feature1": ["AAA", "BBB", "CCC", "DDD", "EEE", "FFF", "GGG"],
         }
     )
 
     db_new = pd.DataFrame(
         {
-            'id2': ['K200', 'K300', 'K400', 'K500', 'K600', 'K700'],
-            'feature2': ['AA', 'BB', 'CC', 'DD', 'EE', 'FF'],
+            "id2": ["K200", "K300", "K400", "K500", "K600", "K700"],
+            "feature2": ["AA", "BB", "CC", "DD", "EE", "FF"],
         }
     )
 
     data = {}
 
-    data['da'] = sf.to(devices.alice, da)
-    data['db'] = sf.to(devices.bob, db)
-    data['db2'] = sf.to(devices.bob, db2)
-    data['db3'] = sf.to(devices.bob, db3)
-    data['dc'] = sf.to(devices.carol, db)
-    data['db4'] = sf.to(devices.bob, db4)
-    data['da_new'] = sf.to(devices.alice, da_new)
-    data['db_new'] = sf.to(devices.bob, db_new)
-    data['da_aby3'] = sf.to(devices.alice, da_aby3)
-    data['db_aby3'] = sf.to(devices.bob, db_aby3)
-    data['dc_aby3'] = sf.to(devices.carol, dc_aby3)
+    data["da"] = sf.to(devices.alice, da)
+    data["db"] = sf.to(devices.bob, db)
+    data["db2"] = sf.to(devices.bob, db2)
+    data["db3"] = sf.to(devices.bob, db3)
+    data["dc"] = sf.to(devices.carol, db)
+    data["db4"] = sf.to(devices.bob, db4)
+    data["da_new"] = sf.to(devices.alice, da_new)
+    data["db_new"] = sf.to(devices.bob, db_new)
+    data["da_aby3"] = sf.to(devices.alice, da_aby3)
+    data["db_aby3"] = sf.to(devices.bob, db_aby3)
+    data["dc_aby3"] = sf.to(devices.carol, dc_aby3)
 
     return data
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def prod_env_and_model(sf_production_setup_devices):
     data = set_up(sf_production_setup_devices)
     yield sf_production_setup_devices, data
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def sim_env_and_model(sf_simulation_setup_devices):
     data = set_up(sf_simulation_setup_devices)
     yield sf_simulation_setup_devices, data
 
 
+def _progress_callbacks(party: str, data: sf.utils.progress.ProgressData):
+    assert party == "alice" or party == "bob"
+    logging.info(
+        f"{party} progress callback ---- percentage: {data.percentage}, total: {data.total}, finished: {data.finished}, description: {data.description}"
+    )
+
+
 def _test_single_col(devices, data):
-    da, db = devices.spu.psi_df('c1', [data['da'], data['db']], 'alice')
+    da, db = devices.spu.psi_df(
+        "c1", [data["da"], data["db"]], "alice", progress_callbacks=_progress_callbacks
+    )
 
     expected = pd.DataFrame(
-        {'c1': ['K1', 'K3', 'K4'], 'c2': ['A1', 'A3', 'A4'], 'c3': [1, 3, 4]}
+        {"c1": ["K1", "K3", "K4"], "c2": ["A1", "A3", "A4"], "c3": [1, 3, 4]}
     )
     pd.testing.assert_frame_equal(sf.reveal(da).reset_index(drop=True), expected)
 
     expected = pd.DataFrame(
-        {'c1': ['K1', 'K3', 'K4'], 'c2': ['A1', 'B3', 'A4'], 'c3': [1, 3, 4]}
+        {"c1": ["K1", "K3", "K4"], "c2": ["A1", "B3", "A4"], "c3": [1, 3, 4]}
     )
     pd.testing.assert_frame_equal(sf.reveal(db).reset_index(drop=True), expected)
 
@@ -140,9 +148,14 @@ def test_single_col_sim(sim_env_and_model):
 
 
 def _test_multiple_col(devices, data):
-    da, db = devices.spu.psi_df(['c1', 'c2'], [data['da'], data['db']], 'alice')
+    da, db = devices.spu.psi_df(
+        ["c1", "c2"],
+        [data["da"], data["db"]],
+        "alice",
+        progress_callbacks=_progress_callbacks,
+    )
 
-    expected = pd.DataFrame({'c1': ['K1', 'K4'], 'c2': ['A1', 'A4'], 'c3': [1, 4]})
+    expected = pd.DataFrame({"c1": ["K1", "K4"], "c2": ["A1", "A4"], "c3": [1, 4]})
     pd.testing.assert_frame_equal(sf.reveal(da).reset_index(drop=True), expected)
     pd.testing.assert_frame_equal(sf.reveal(db).reset_index(drop=True), expected)
 
@@ -159,13 +172,13 @@ def test_multiple_col_sim(sim_env_and_model):
 
 def _test_different_cols(devices, data):
     da, db = devices.spu.psi_df(
-        {devices.alice: ['c1', 'c2'], devices.bob: ['c11', 'c21']},
-        [data['da'], data['db4']],
-        'alice',
+        {devices.alice: ["c1", "c2"], devices.bob: ["c11", "c21"]},
+        [data["da"], data["db4"]],
+        "alice",
     )
 
-    expected_a = pd.DataFrame({'c1': ['K1', 'K4'], 'c2': ['A1', 'A4'], 'c3': [1, 4]})
-    expected_b = pd.DataFrame({'c11': ['K1', 'K4'], 'c21': ['A1', 'A4'], 'c31': [1, 4]})
+    expected_a = pd.DataFrame({"c1": ["K1", "K4"], "c2": ["A1", "A4"], "c3": [1, 4]})
+    expected_b = pd.DataFrame({"c11": ["K1", "K4"], "c21": ["A1", "A4"], "c31": [1, 4]})
     pd.testing.assert_frame_equal(sf.reveal(da).reset_index(drop=True), expected_a)
     pd.testing.assert_frame_equal(sf.reveal(db).reset_index(drop=True), expected_b)
 
@@ -181,8 +194,8 @@ def test_different_cols_sim(sim_env_and_model):
 
 
 def _test_invalid_device(devices, data):
-    with pytest.raises(AssertionError, match='not co-located'):
-        da, dc = devices.spu.psi_df(['c1', 'c2'], [data['da'], data['dc']], 'alice')
+    with pytest.raises(AssertionError, match="not co-located"):
+        da, dc = devices.spu.psi_df(["c1", "c2"], [data["da"], data["dc"]], "alice")
         sf.reveal([da, dc])
 
 
@@ -217,8 +230,8 @@ def test_invalid_device_sim(sim_env_and_model):
 
 
 def _test_no_intersection(devices, data):
-    da, db = devices.spu.psi_df('c1', [data['da'], data['db3']], 'alice')
-    expected = pd.DataFrame({'c1': [], 'c2': [], 'c3': []}).astype('object')
+    da, db = devices.spu.psi_df("c1", [data["da"], data["db3"]], "alice")
+    expected = pd.DataFrame({"c1": [], "c2": [], "c3": []}).astype("object")
     pd.testing.assert_frame_equal(sf.reveal(da).reset_index(drop=True), expected)
     pd.testing.assert_frame_equal(sf.reveal(db).reset_index(drop=True), expected)
 
@@ -236,10 +249,10 @@ def test_no_intersection_sim(sim_env_and_model):
 def _test_no_broadcast(devices, data):
     # only alice can get result
     da, db = devices.spu.psi_df(
-        'c1', [data['da'], data['db']], 'alice', 'KKRT_PSI_2PC', False, True, False
+        "c1", [data["da"], data["db"]], "alice", "KKRT_PSI_2PC", False, True, False
     )
     expected = pd.DataFrame(
-        {'c1': ['K1', 'K3', 'K4'], 'c2': ['A1', 'A3', 'A4'], 'c3': [1, 3, 4]}
+        {"c1": ["K1", "K3", "K4"], "c2": ["A1", "A3", "A4"], "c3": [1, 3, 4]}
     )
     pd.testing.assert_frame_equal(sf.reveal(da).reset_index(drop=True), expected)
     # bob can not get result
@@ -259,28 +272,34 @@ def test_no_broadcast_sim(sim_env_and_model):
 def _test_psi_csv(devices, data):
     with tempfile.TemporaryDirectory() as data_dir:
         input_path = {
-            devices.alice: f'{data_dir}/alice.csv',
-            devices.bob: f'{data_dir}/bob.csv',
+            devices.alice: f"{data_dir}/alice.csv",
+            devices.bob: f"{data_dir}/bob.csv",
         }
         output_path = {
-            devices.alice: f'{data_dir}/alice_psi.csv',
-            devices.bob: f'{data_dir}/bob_psi.csv',
+            devices.alice: f"{data_dir}/alice_psi.csv",
+            devices.bob: f"{data_dir}/bob_psi.csv",
         }
 
         sf.reveal(
             devices.alice(lambda df, save_path: df.to_csv(save_path, index=False))(
-                data['da'], input_path[devices.alice]
+                data["da"], input_path[devices.alice]
             )
         )
         sf.reveal(
             devices.bob(lambda df, save_path: df.to_csv(save_path, index=False))(
-                data['db'], input_path[devices.bob]
+                data["db"], input_path[devices.bob]
             )
         )
 
-        devices.spu.psi_csv(['c1', 'c2'], input_path, output_path, 'alice')
+        devices.spu.psi_csv(
+            ["c1", "c2"],
+            input_path,
+            output_path,
+            "alice",
+            progress_callbacks=_progress_callbacks,
+        )
 
-        expected = pd.DataFrame({'c1': ['K1', 'K4'], 'c2': ['A1', 'A4'], 'c3': [1, 4]})
+        expected = pd.DataFrame({"c1": ["K1", "K4"], "c2": ["A1", "A4"], "c3": [1, 4]})
 
         pd.testing.assert_frame_equal(
             sf.reveal(devices.alice(pd.read_csv)(output_path[devices.alice])), expected
@@ -303,60 +322,62 @@ def test_psi_csv_sim(sim_env_and_model):
 def _test_unbalanced_psi_csv(devices, data):
     with tempfile.TemporaryDirectory() as data_dir:
         input_path = {
-            devices.alice: f'{data_dir}/alice.csv',
-            devices.bob: f'{data_dir}/bob.csv',
+            devices.alice: f"{data_dir}/alice.csv",
+            devices.bob: f"{data_dir}/bob.csv",
         }
 
         sf.reveal(
             devices.alice(lambda df, save_path: df.to_csv(save_path, index=False))(
-                data['da'], input_path[devices.alice]
+                data["da"], input_path[devices.alice]
             )
         )
         sf.reveal(
             devices.bob(lambda df, save_path: df.to_csv(save_path, index=False))(
-                data['db'], input_path[devices.bob]
+                data["db"], input_path[devices.bob]
             )
         )
 
         # write secretkey.bin
         secret_key = "000102030405060708090a0b0c0d0e0ff0e0d0c0b0a090807060504030201000"
-        secret_key_path = f'{data_dir}/secret_key.bin'
-        with open(secret_key_path, 'wb') as f:
+        secret_key_path = f"{data_dir}/secret_key.bin"
+        with open(secret_key_path, "wb") as f:
             f.write(bytes.fromhex(secret_key))
 
         offline_input_path = {
-            devices.alice: 'fake.csv',
-            devices.bob: f'{data_dir}/bob.csv',
+            devices.alice: "fake.csv",
+            devices.bob: f"{data_dir}/bob.csv",
         }
 
-        server_party_name = 'bob'
-        client_party_name = 'alice'
+        server_party_name = "bob"
+        client_party_name = "alice"
 
-        offline_preprocess_path = f'{data_dir}/offline_preprocess_data.csv'
+        offline_preprocess_path = f"{data_dir}/offline_preprocess_data.csv"
 
         # gen cache
         print("=====gen cache phase====")
         # gen cache phase
         gen_cache_config = spu.psi.BucketPsiConfig(
             input_params=spu.psi.InputParams(
-                path=f'{data_dir}/bob.csv', select_fields=['c1', 'c2'], precheck=False
+                path=f"{data_dir}/bob.csv", select_fields=["c1", "c2"], precheck=False
             ),
             output_params=spu.psi.OutputParams(
-                path=f'{data_dir}/server_cache.bin', need_sort=False
+                path=f"{data_dir}/server_cache.bin", need_sort=False
             ),
             curve_type="CURVE_FOURQ",
             bucket_size=1000000,
             ecdh_secret_key_path=secret_key_path,
         )
 
-        gen_cache_report = devices.bob(spu.psi.gen_cache_for_2pc_ub_psi)(gen_cache_config)
-        print(f'gen_cache_report={sf.reveal(gen_cache_report)}')
+        gen_cache_report = devices.bob(spu.psi.gen_cache_for_2pc_ub_psi)(
+            gen_cache_config
+        )
+        print(f"gen_cache_report={sf.reveal(gen_cache_report)}")
 
         # transfer cache
         print("=====transfer cache phase====")
 
-        transfer_cache_input_path = f'{data_dir}/server_cache.bin'
-        transfer_cache_output_path = ''
+        transfer_cache_input_path = f"{data_dir}/server_cache.bin"
+        transfer_cache_output_path = ""
 
         # tansfer cache phase
         devices.spu.psi_csv(
@@ -364,7 +385,7 @@ def _test_unbalanced_psi_csv(devices, data):
             input_path=transfer_cache_input_path,  # client no input, server input cache file path
             output_path=transfer_cache_output_path,  # client and server both no output
             receiver=client_party_name,  # client(small set data party) name
-            protocol='ECDH_OPRF_UB_PSI_2PC_TRANSFER_CACHE',  # psi protocol
+            protocol="ECDH_OPRF_UB_PSI_2PC_TRANSFER_CACHE",  # psi protocol
             precheck_input=False,  # will cost ext time if set True
             sort=False,  # set false, not used in tansfer_cache phase
             broadcast_result=False,  # set false, not used in tansfer_cache phase
@@ -377,12 +398,12 @@ def _test_unbalanced_psi_csv(devices, data):
         print("=====shuffle online phase====")
 
         shuffle_online_input_path = {
-            devices.alice: f'{data_dir}/alice.csv',
-            devices.bob: f'{data_dir}/bob.csv',
+            devices.alice: f"{data_dir}/alice.csv",
+            devices.bob: f"{data_dir}/bob.csv",
         }
         shuffle_online_output_path = {
-            devices.alice: '',
-            devices.bob: f'{data_dir}/bob_psi.csv',
+            devices.alice: "",
+            devices.bob: f"{data_dir}/bob_psi.csv",
         }
         shuffle_online_preprocess_path = {
             devices.alice: offline_preprocess_path,
@@ -395,7 +416,7 @@ def _test_unbalanced_psi_csv(devices, data):
             input_path=shuffle_online_input_path,  # client and server input file path
             output_path=shuffle_online_output_path,  # server got intersection output
             receiver=server_party_name,  # server(large set data party) name
-            protocol='ECDH_OPRF_UB_PSI_2PC_SHUFFLE_ONLINE',  # psi protocol
+            protocol="ECDH_OPRF_UB_PSI_2PC_SHUFFLE_ONLINE",  # psi protocol
             precheck_input=False,  # will cost ext time if set True
             sort=False,  # will cost ext time if set True
             broadcast_result=False,  # set false, not used in shuffle online subprotocol phase
@@ -416,11 +437,11 @@ def _test_unbalanced_psi_csv(devices, data):
         # offline phase
         # streaming read server(large set) data, evaluate and send to client
         devices.spu.psi_csv(
-            key=['c1', 'c2'],
+            key=["c1", "c2"],
             input_path=offline_input_path,  # client no input, server large set data input
             output_path=offline_output_path,  # client no output, server no output,
             receiver=client_party_name,  # client(small set data party) name
-            protocol='ECDH_OPRF_UB_PSI_2PC_OFFLINE',  # psi protocol
+            protocol="ECDH_OPRF_UB_PSI_2PC_OFFLINE",  # psi protocol
             precheck_input=False,  # will cost ext time if set True
             sort=False,  # set false, not used in offline phase
             broadcast_result=False,  # offline must set broadcast_result False
@@ -433,12 +454,12 @@ def _test_unbalanced_psi_csv(devices, data):
         # online
         print("=====online phase====")
         online_input_path = {
-            devices.alice: f'{data_dir}/alice.csv',
-            devices.bob: f'{data_dir}/bob.csv',
+            devices.alice: f"{data_dir}/alice.csv",
+            devices.bob: f"{data_dir}/bob.csv",
         }
         online_output_path = {
-            devices.alice: f'{data_dir}/alice_psi.csv',
-            devices.bob: f'{data_dir}/bob_psi.csv',
+            devices.alice: f"{data_dir}/alice_psi.csv",
+            devices.bob: f"{data_dir}/bob_psi.csv",
         }
 
         cache_path = {
@@ -447,11 +468,11 @@ def _test_unbalanced_psi_csv(devices, data):
         }
 
         devices.spu.psi_csv(
-            key=['c1', 'c2'],
+            key=["c1", "c2"],
             input_path=online_input_path,  # client small set data input, server large set data input
             output_path=online_output_path,  # client small set data input, server no input
             receiver=client_party_name,  # if `broadcast_result=False`, only receiver can get output file.
-            protocol='ECDH_OPRF_UB_PSI_2PC_ONLINE',  # psi protocol
+            protocol="ECDH_OPRF_UB_PSI_2PC_ONLINE",  # psi protocol
             precheck_input=False,  # will cost ext time if set True
             sort=True,  # will cost ext time if set True
             broadcast_result=True,  # False, only client get psi result, True, bot get result
@@ -461,7 +482,7 @@ def _test_unbalanced_psi_csv(devices, data):
             ecdh_secret_key_path=secret_key_path,  # server's ecc sercret key path
         )
 
-        expected = pd.DataFrame({'c1': ['K1', 'K4'], 'c2': ['A1', 'A4'], 'c3': [1, 4]})
+        expected = pd.DataFrame({"c1": ["K1", "K4"], "c2": ["A1", "A4"], "c3": [1, 4]})
 
         pd.testing.assert_frame_equal(
             sf.reveal(devices.alice(pd.read_csv)(online_output_path[devices.alice])),
@@ -482,24 +503,24 @@ def test_unbalanced_psi_csv_sim(sim_env_and_model):
 def test_single_col(prod_env_and_model):
     devices, data = prod_env_and_model
     da, db, dc = devices.spu2.psi_df(
-        'c1',
-        [data['da_aby3'], data['db_aby3'], data['dc_aby3']],
-        'alice',
-        protocol='ECDH_PSI_3PC',
+        "c1",
+        [data["da_aby3"], data["db_aby3"], data["dc_aby3"]],
+        "alice",
+        protocol="ECDH_PSI_3PC",
     )
 
     expected = pd.DataFrame(
-        {'c1': ['K1', 'K3', 'K4'], 'c2': ['A1', 'A3', 'B4'], 'c3': [1, 3, 4]}
+        {"c1": ["K1", "K3", "K4"], "c2": ["A1", "A3", "B4"], "c3": [1, 3, 4]}
     )
     pd.testing.assert_frame_equal(sf.reveal(da).reset_index(drop=True), expected)
 
     expected = pd.DataFrame(
-        {'c1': ['K1', 'K3', 'K4'], 'c2': ['A1', 'B3', 'A4'], 'c3': [1, 3, 4]}
+        {"c1": ["K1", "K3", "K4"], "c2": ["A1", "B3", "A4"], "c3": [1, 3, 4]}
     )
     pd.testing.assert_frame_equal(sf.reveal(db).reset_index(drop=True), expected)
 
     expected = pd.DataFrame(
-        {'c1': ['K1', 'K3', 'K4'], 'c2': ['A1', 'B3', 'B4'], 'c3': [1, 3, 4]}
+        {"c1": ["K1", "K3", "K4"], "c2": ["A1", "B3", "B4"], "c3": [1, 3, 4]}
     )
     pd.testing.assert_frame_equal(sf.reveal(dc).reset_index(drop=True), expected)
 
@@ -507,12 +528,12 @@ def test_single_col(prod_env_and_model):
 def test_multiple_col(prod_env_and_model):
     devices, data = prod_env_and_model
     da, db, dc = devices.spu2.psi_df(
-        ['c1', 'c2'],
-        [data['da_aby3'], data['db_aby3'], data['dc_aby3']],
-        protocol='ECDH_PSI_3PC',
-        receiver='alice',
+        ["c1", "c2"],
+        [data["da_aby3"], data["db_aby3"], data["dc_aby3"]],
+        protocol="ECDH_PSI_3PC",
+        receiver="alice",
     )
-    expected = pd.DataFrame({'c1': ['K1'], 'c2': ['A1'], 'c3': [1]})
+    expected = pd.DataFrame({"c1": ["K1"], "c2": ["A1"], "c3": [1]})
     pd.testing.assert_frame_equal(sf.reveal(da).reset_index(drop=True), expected)
     pd.testing.assert_frame_equal(sf.reveal(db).reset_index(drop=True), expected)
     pd.testing.assert_frame_equal(sf.reveal(dc).reset_index(drop=True), expected)
@@ -521,26 +542,30 @@ def test_multiple_col(prod_env_and_model):
 def test_psi_join_df(prod_env_and_model):
     devices, data = prod_env_and_model
     select_keys = {
-        devices.alice: ['id1'],
-        devices.bob: ['id2'],
+        devices.alice: ["id1"],
+        devices.bob: ["id2"],
     }
 
     da, db = devices.spu.psi_join_df(
-        select_keys, [data['da_new'], data['db_new']], 'bob', 'bob'
+        select_keys,
+        [data["da_new"], data["db_new"]],
+        "bob",
+        "bob",
+        progress_callbacks=_progress_callbacks,
     )
 
     result_a = pd.DataFrame(
         {
-            'id1': ['K200', 'K200', 'K300', 'K400', 'K400', 'K500'],
-            'item': ['B', 'C', 'D', 'E', 'F', 'G'],
-            'feature1': ['BBB', 'CCC', 'DDD', 'EEE', 'FFF', 'GGG'],
+            "id1": ["K200", "K200", "K300", "K400", "K400", "K500"],
+            "item": ["B", "C", "D", "E", "F", "G"],
+            "feature1": ["BBB", "CCC", "DDD", "EEE", "FFF", "GGG"],
         }
     )
 
     result_b = pd.DataFrame(
         {
-            'id2': ['K200', 'K200', 'K300', 'K400', 'K400', 'K500'],
-            'feature2': ['AA', 'AA', 'BB', 'CC', 'CC', 'DD'],
+            "id2": ["K200", "K200", "K300", "K400", "K400", "K500"],
+            "feature2": ["AA", "AA", "BB", "CC", "CC", "DD"],
         }
     )
 
@@ -552,44 +577,51 @@ def test_psi_join_csv(prod_env_and_model):
     devices, data = prod_env_and_model
     with tempfile.TemporaryDirectory() as data_dir:
         input_path = {
-            devices.alice: f'{data_dir}/alice.csv',
-            devices.bob: f'{data_dir}/bob.csv',
+            devices.alice: f"{data_dir}/alice.csv",
+            devices.bob: f"{data_dir}/bob.csv",
         }
         output_path = {
-            devices.alice: f'{data_dir}/alice_psi.csv',
-            devices.bob: f'{data_dir}/bob_psi.csv',
+            devices.alice: f"{data_dir}/alice_psi.csv",
+            devices.bob: f"{data_dir}/bob_psi.csv",
         }
 
         sf.reveal(
             devices.alice(lambda df, save_path: df.to_csv(save_path, index=False))(
-                data['da_new'], input_path[devices.alice]
+                data["da_new"], input_path[devices.alice]
             )
         )
         sf.reveal(
             devices.bob(lambda df, save_path: df.to_csv(save_path, index=False))(
-                data['db_new'], input_path[devices.bob]
+                data["db_new"], input_path[devices.bob]
             )
         )
 
         select_keys = {
-            devices.alice: ['id1'],
-            devices.bob: ['id2'],
+            devices.alice: ["id1"],
+            devices.bob: ["id2"],
         }
 
-        devices.spu.psi_join_csv(select_keys, input_path, output_path, 'alice', 'alice')
+        devices.spu.psi_join_csv(
+            select_keys,
+            input_path,
+            output_path,
+            "alice",
+            "alice",
+            progress_callbacks=_progress_callbacks,
+        )
 
         result_a = pd.DataFrame(
             {
-                'id1': ['K200', 'K200', 'K300', 'K400', 'K400', 'K500'],
-                'item': ['B', 'C', 'D', 'E', 'F', 'G'],
-                'feature1': ['BBB', 'CCC', 'DDD', 'EEE', 'FFF', 'GGG'],
+                "id1": ["K200", "K200", "K300", "K400", "K400", "K500"],
+                "item": ["B", "C", "D", "E", "F", "G"],
+                "feature1": ["BBB", "CCC", "DDD", "EEE", "FFF", "GGG"],
             }
         )
 
         result_b = pd.DataFrame(
             {
-                'id2': ['K200', 'K200', 'K300', 'K400', 'K400', 'K500'],
-                'feature2': ['AA', 'AA', 'BB', 'CC', 'CC', 'DD'],
+                "id2": ["K200", "K200", "K300", "K400", "K400", "K500"],
+                "feature2": ["AA", "AA", "BB", "CC", "CC", "DD"],
             }
         )
 

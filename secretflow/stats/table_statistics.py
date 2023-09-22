@@ -41,44 +41,45 @@ def table_statistics(table: Union[pd.DataFrame, VDataFrame]) -> pd.DataFrame:
     ), "table must be a pd.DataFrame or VDataFrame"
     index = table.columns
     result = pd.DataFrame(index=index)
-    result['datatype'] = table.dtypes
-    result['total_count'] = table.shape[0]
-    result['count'] = table.count()
-    result['count_na'] = table.isna().sum()
-    result['min'] = table.min(numeric_only=True)
-    result['max'] = table.max(numeric_only=True)
-    result['mean'] = table.mean(numeric_only=True)
-    result['var'] = table.var(numeric_only=True)
-    result['std'] = table.std(numeric_only=True)
-    result['sem'] = table.sem(numeric_only=True)
-    result['skew'] = table.skew(numeric_only=True)
-    result['kurtosis'] = table.kurtosis(numeric_only=True)
-    result['q1'] = table.quantile(0.25)
-    result['q2'] = table.quantile(0.5)
-    result['q3'] = table.quantile(0.75)
-    result['moment_2'] = table.select_dtypes('number').pow(2).mean(numeric_only=True)
-    result['moment_3'] = table.select_dtypes('number').pow(3).mean(numeric_only=True)
-    result['moment_4'] = table.select_dtypes('number').pow(4).mean(numeric_only=True)
-    result['central_moment_2'] = (
-        table.subtract(result['mean'])
-        .select_dtypes('number')
+    result["datatype"] = table.dtypes
+    result["total_count"] = table.shape[0]
+    result["count(non-NA count)"] = table.count()
+    result["count_na(NA count)"] = table.isna().sum()
+    result["na_ratio"] = table.isna().sum() / table.shape[0]
+    result["min"] = table.min(numeric_only=True)
+    result["max"] = table.max(numeric_only=True)
+    result["mean"] = table.mean(numeric_only=True)
+    result["var(variance)"] = table.var(numeric_only=True)
+    result["std(standard deviation)"] = table.std(numeric_only=True)
+    result["sem(standard error)"] = table.sem(numeric_only=True)
+    result["skew"] = table.skew(numeric_only=True)
+    result["kurtosis"] = table.kurtosis(numeric_only=True)
+    result["q1(first quartile)"] = table.quantile(0.25)
+    result["q2(second quartile, median)"] = table.quantile(0.5)
+    result["q3(third quartile)"] = table.quantile(0.75)
+    result["moment_2"] = table.select_dtypes("number").pow(2).mean(numeric_only=True)
+    result["moment_3"] = table.select_dtypes("number").pow(3).mean(numeric_only=True)
+    result["moment_4"] = table.select_dtypes("number").pow(4).mean(numeric_only=True)
+    result["central_moment_2"] = (
+        table.subtract(result["mean"])
+        .select_dtypes("number")
         .pow(2)
         .mean(numeric_only=True)
     )
-    result['central_moment_3'] = (
-        table.subtract(result['mean'])
-        .select_dtypes('number')
+    result["central_moment_3"] = (
+        table.subtract(result["mean"])
+        .select_dtypes("number")
         .pow(3)
         .mean(numeric_only=True)
     )
-    result['central_moment_4'] = (
-        table.subtract(result['mean'])
-        .select_dtypes('number')
+    result["central_moment_4"] = (
+        table.subtract(result["mean"])
+        .select_dtypes("number")
         .pow(4)
         .mean(numeric_only=True)
     )
-    result['sum'] = table.sum(numeric_only=True)
-    result['sum_2'] = table.select_dtypes('number').pow(2).sum(numeric_only=True)
-    result['sum_3'] = table.select_dtypes('number').pow(3).sum(numeric_only=True)
-    result['sum_4'] = table.select_dtypes('number').pow(4).sum(numeric_only=True)
+    result["sum"] = table.sum(numeric_only=True)
+    result["sum_2"] = table.select_dtypes("number").pow(2).sum(numeric_only=True)
+    result["sum_3"] = table.select_dtypes("number").pow(3).sum(numeric_only=True)
+    result["sum_4"] = table.select_dtypes("number").pow(4).sum(numeric_only=True)
     return result

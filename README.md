@@ -26,17 +26,18 @@ it provides:
 
 - [SecretFlow](https://www.secretflow.org.cn/docs/secretflow/en/)
   - [Getting Started](https://www.secretflow.org.cn/docs/secretflow/en/getting_started/index.html)
-  - [Components](https://www.secretflow.org.cn/docs/secretflow/en/components/index.html)
+  - [User Guide](https://www.secretflow.org.cn/docs/secretflow/en/user_guide/index.html)
   - [API Reference](https://www.secretflow.org.cn/docs/secretflow/en/api/index.html)
   - [Tutorial](https://www.secretflow.org.cn/docs/secretflow/en/tutorial/index.html)
 
 
 ## SecretFlow Related Projects
 
+- [Kuscia](https://github.com/secretflow/kuscia): A K8s-based privacy-preserving computing task orchestration framework.
 - [SCQL](https://github.com/secretflow/scql): A system that allows multiple distrusting parties to run joint analysis without revealing their private data.
 - [SPU](https://github.com/secretflow/spu): A provable, measurable secure computation device, which provides computation ability while keeping your private data protected.
 - [HEU](https://github.com/secretflow/heu): A high-performance homomorphic encryption algorithm library.
-- [YACL](https://github.com/secretflow/yacl): A C++ library that contains cryptgraphy, network and io modules which other SecretFlow code depends on.
+- [YACL](https://github.com/secretflow/yacl): A C++ library that contains cryptography, network and io modules which other SecretFlow code depends on.
 
 ## Install
 
@@ -59,4 +60,4 @@ Please check [CONTRIBUTING.md](./CONTRIBUTING.md)
 
 ## Disclaimer
 
-Non-release versions of SecretFlow are prohibited to use in any production environment due to possible bugs, glitches, lack of functionality, security issues or other problems.
+Non-release versions of SecretFlow are prohibited from using in any production environment due to possible bugs, glitches, lack of functionality, security issues or other problems.

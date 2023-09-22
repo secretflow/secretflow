@@ -14,18 +14,19 @@
 
 from typing import Dict
 
-from secretflow.data.base import Partition
-from secretflow.data.horizontal.dataframe import HDataFrame
-from secretflow.data.io import read_csv_wrapper
 from secretflow.device import PYU
 from secretflow.security.aggregation.aggregator import Aggregator
 from secretflow.security.compare.comparator import Comparator
+from .dataframe import HDataFrame
+from ..base import partition
+from ..partition.io import read_csv_wrapper
 
 
 def read_csv(
     filepath: Dict[PYU, str],
     aggregator: Aggregator = None,
     comparator: Comparator = None,
+    backend: str = "pandas",
     **kwargs,
 ) -> HDataFrame:
     """Read a comma-separated values (csv) file into HDataFrame.
@@ -34,7 +35,8 @@ def read_csv(
         filepath: a dict {PYU: file path}.
         aggregator: optionla; the aggregator assigned to the dataframe.
         comparator: optionla; the comparator assigned to the dataframe.
-        kwargs: all other arguments are same with :py:meth:`pandas.DataFrame.read_csv`.
+        backend optionla; the backend of the dataframe, default to 'pandas'.
+        kwargs: all other arguments.
 
     Returns:
         HDataFrame
@@ -42,10 +44,12 @@ def read_csv(
     Examples:
         >>> read_csv({PYU('alice'): 'alice.csv', PYU('bob'): 'bob.csv'})
     """
-    assert filepath, 'File path shall not be empty!'
+    assert filepath, "File path shall not be empty!"
     df = HDataFrame(aggregator=aggregator, comparator=comparator)
     for device, path in filepath.items():
-        df.partitions[device] = Partition(device(read_csv_wrapper)(path, **kwargs))
+        df.partitions[device] = partition(
+            device(read_csv_wrapper)(path, backend=backend, **kwargs), backend=backend
+        )
     # Check column and dtype.
     dtypes = None
     for part in df.partitions.values():
@@ -53,21 +57,8 @@ def read_csv(
             dtypes = part.dtypes
         else:
             dtypes_next = part.dtypes
-            assert dtypes.equals(
-                dtypes_next
-            ), f'Different dtypes: {dtypes} vs {dtypes_next}'
+            for key in part.dtypes:
+                if key not in dtypes_next or dtypes_next[key] != part.dtypes[key]:
+                    raise RuntimeError(f"Different dtypes: {dtypes} vs {dtypes_next}")
 
     return df
-
-
-def to_csv(df: HDataFrame, file_uris: Dict[PYU, str], **kwargs):
-    """Write object to a comma-separated values (csv) file.
-
-    Args:
-        df: the HDataFrame to save.
-        file_uris: the file path of each PYU.
-        kwargs: all other arguments are same with :py:meth:`pandas.DataFrame.to_csv`.
-    """
-    return [
-        df.partitions[device].to_csv(uri, **kwargs) for device, uri in file_uris.items()
-    ]

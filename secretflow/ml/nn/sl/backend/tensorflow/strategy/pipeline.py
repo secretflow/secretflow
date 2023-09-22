@@ -17,17 +17,15 @@
 
 """pipeline split learning strategy
 """
-# Dict, Iterator, List, Optional, , Union
 from typing import Callable, Tuple
 
 import tensorflow as tf
 
 from secretflow.device import PYUObject, proxy
 from secretflow.ml.nn.sl.backend.tensorflow.sl_base import SLBaseTFModel
-from secretflow.ml.nn.sl.backend.tensorflow.utils import ForwardData
 from secretflow.ml.nn.sl.strategy_dispatcher import register_strategy
 from secretflow.security.privacy import DPStrategy
-from secretflow.utils.compressor import Compressor
+from secretflow.ml.nn.sl.backend.tensorflow.utils import ForwardData
 
 
 class PipelineTFModel(SLBaseTFModel):
@@ -36,13 +34,16 @@ class PipelineTFModel(SLBaseTFModel):
         builder_base: Callable[[], tf.keras.Model],
         builder_fuse: Callable[[], tf.keras.Model],
         dp_strategy: DPStrategy,
-        compressor: Compressor,
         random_seed: int = None,
         pipeline_size: int = 1,
         **kwargs,
     ):
         super().__init__(
-            builder_base, builder_fuse, dp_strategy, compressor, random_seed, **kwargs
+            builder_base,
+            builder_fuse,
+            dp_strategy,
+            random_seed,
+            **kwargs,
         )
         self.pipeline_size = pipeline_size
 
@@ -103,7 +104,7 @@ class PipelineTFModel(SLBaseTFModel):
             else:
                 data_x = eval_data
         else:
-            raise Exception(f"invalid stage {stage}")
+            raise Exception("invalid stage")
 
         # Strip tuple of length one, e.g: (x,) -> x
         data_x = data_x[0] if isinstance(data_x, Tuple) and len(data_x) == 1 else data_x
@@ -126,37 +127,19 @@ class PipelineTFModel(SLBaseTFModel):
             forward_data.losses = tf.add_n(self.model_base.losses)
         # TODO: only vaild on no server mode, refactor when use agglayer or server mode.
         # no need to compress data on model_fuse side
-        if compress and not self.model_fuse:
-            if self.compressor:
-                # forward_data.hidden = self.compressor.compress(self.h.numpy())
-                forward_data.hidden = self.compressor.compress(h.numpy())
-            else:
-                raise Exception(
-                    'can not find compressor when compress data in base_forward'
-                )
-        else:
-            forward_data.hidden = h
+        forward_data.hidden = h
         return forward_data
 
-    def base_backward(self, gradient, compress: bool = False):
+    def base_backward(self, gradient):
         """backward on fusenet
 
         Args:
             gradient: gradient of fusenet hidden layer
-            compress: Whether to decompress gradient.
         """
         return_hiddens = []
 
         # TODO: only vaild on no server mode, refactor when use agglayer or server mode.
         # no need to decompress data on model_fuse side
-        if compress and not self.model_fuse:
-            if self.compressor:
-                gradient = self.compressor.decompress(gradient)
-            else:
-                raise Exception(
-                    'can not find compressor when decompress data in base_backward'
-                )
-
         pre_tape = self.base_tape.pop(0)
         with pre_tape:
             h = self.h.pop(0)
@@ -191,7 +174,7 @@ class PipelineTFModel(SLBaseTFModel):
         )
 
     def on_epoch_end(self, epoch):
-        # clean up pipeline
+        # clean pipeline
         self.trainable_vars = []
         self.base_tape = []
         self.fuse_tape = []
@@ -200,7 +183,7 @@ class PipelineTFModel(SLBaseTFModel):
 
         if self.fuse_callbacks:
             self.fuse_callbacks.on_epoch_end(epoch, self.epoch_logs)
-            self.training_logs = self.epoch_logs
+        self.training_logs = self.epoch_logs
         return self.epoch_logs
 
 

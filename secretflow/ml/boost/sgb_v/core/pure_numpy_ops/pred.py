@@ -22,7 +22,7 @@ from secretflow.utils import sigmoid as appr_sig
 
 def init_pred(base: float, samples: int) -> np.ndarray:
     shape = (samples, 1)
-    return np.full(shape, base)
+    return np.full(shape, base, order='F')
 
 
 def sigmoid(pred: np.ndarray) -> np.ndarray:
@@ -45,5 +45,4 @@ def predict_tree_weight(selects: List[np.ndarray], weights: np.ndarray) -> np.nd
     assert (
         select.shape[1] == weights.shape[0]
     ), f"select {select.shape}, weights {weights.shape}"
-
     return np.matmul(select, weights).reshape((select.shape[0]), 1)

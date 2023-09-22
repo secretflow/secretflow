@@ -1,0 +1,106 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2022 Ant Group Co., Ltd.
+# This file is distributed under the same license as the SecretFlow package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2023.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: SecretFlow \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-06-26 14:14+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.12.1\n"
+
+#: ../../tutorial/WeightOfEvidenceEncoding.ipynb:9
+msgid "Weight Of Evidence encoding"
+msgstr "WOE编码"
+
+#: ../../tutorial/WeightOfEvidenceEncoding.ipynb:20
+msgid ""
+"The following codes are demos only. It’s **NOT for production** due to "
+"system security concerns, please **DO NOT** use it directly in "
+"production."
+msgstr "以下代码仅用于演示。由于系统安全问题，请勿直接在生产中使用。"
+
+#: ../../tutorial/WeightOfEvidenceEncoding.ipynb:31
+msgid ""
+"It is recommended to use `jupyter <https://jupyter.org/>`__ to run this "
+"tutorial."
+msgstr "建议使用 `jupyter <https://jupyter.org/>`__ 运行本教程。"
+
+#: ../../tutorial/WeightOfEvidenceEncoding.ipynb:42
+msgid ""
+"Binning create buckets of independent variables based on ranking methods."
+" Binning helps us converting continuous variables into categorical ones."
+msgstr "分箱是基于排序方法创建独立变量的桶。分箱帮助我们将连续变量转换为分类变量。"
+
+#: ../../tutorial/WeightOfEvidenceEncoding.ipynb:44
+msgid ""
+"WOE binning Implements a binning of numeric variables and factors with "
+"respect to a dichotomous target variable."
+msgstr "WOE分箱实现了针对二元目标变量的数值变量的分箱。"
+
+#: ../../tutorial/WeightOfEvidenceEncoding.ipynb:62
+msgid "Currently we provide WOE encoding for vertically partitioned datasets."
+msgstr "目前我们为垂直分割的数据集提供WOE编码。"
+
+#: ../../tutorial/WeightOfEvidenceEncoding.ipynb:64
+msgid "Let’s first load a sample dataset."
+msgstr "让我们先加载一个样本数据集。"
+
+#: ../../tutorial/WeightOfEvidenceEncoding.ipynb:152
+msgid "Now, we are ready to perform WOE binning and substitution."
+msgstr "现在，我们已经准备好执行WOE分箱和替换。"
+
+#: ../../tutorial/WeightOfEvidenceEncoding.ipynb:480
+#, fuzzy
+msgid ""
+"Sometimes we may need the iv values. Releasing bin ivs will potentially "
+"leak label information according to issue "
+"https://github.com/secretflow/secretflow/issues/565. Currently, we choose"
+" to save bin iv values in label holders device. It is up to label "
+"holder’s choice to"
+msgstr ""
+"有时我们可能需要IV值。根据GitHub issue, "
+"https://github.com/secretflow/secretflow/issues/565，发布分桶的ivs可能会泄漏标签信息。目前，我们选择将桶的iv值保存在标签持有者设备中。标签持有者可以选择"
+" 1. 不共享iv信息 2. 共享一些已选择的iv信息"
+
+#: ../../tutorial/WeightOfEvidenceEncoding.ipynb:482
+#, fuzzy
+msgid "share no iv information"
+msgstr "将一些iv信息分享给其他方"
+
+#: ../../tutorial/WeightOfEvidenceEncoding.ipynb:483
+#, fuzzy
+msgid "share some chosen iv information"
+msgstr "将一些iv信息分享给其他方"
+
+#: ../../tutorial/WeightOfEvidenceEncoding.ipynb:485
+msgid "We will demonstrate how to share the feature ivs."
+msgstr "我们将演示如何共享特征iv。"
+
+#: ../../tutorial/WeightOfEvidenceEncoding.ipynb:496
+msgid ""
+"Recall that the woe_rules is a dictionary ``{PYU: PYUObject}``, where "
+"each ``PYUObject`` itself is a dictionary of the following type:"
+msgstr "回想一下，woe_rules是一个字典 {PYU: PYUObject}，其中 \" \"每个 PYUObject 本身是以下类型的字典"
+
+#: ../../tutorial/WeightOfEvidenceEncoding.ipynb:593
+msgid "Congradulations! In this tutorial we have learnt how to"
+msgstr "恭喜! 在本教程中，我们学习了如何"
+
+#: ../../tutorial/WeightOfEvidenceEncoding.ipynb:595
+msgid "do WOE encoding"
+msgstr "进行WOE编码"
+
+#: ../../tutorial/WeightOfEvidenceEncoding.ipynb:596
+msgid "share some iv information to other parties"
+msgstr "将一些iv信息分享给其他方"
+
+

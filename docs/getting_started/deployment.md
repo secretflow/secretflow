@@ -4,6 +4,17 @@
 ## Pre-knowledge: about Ray
 SecretFlow uses Ray as its distributed framework. A Ray cluster consists of a head node and zero or several slave nodes, for more information about Ray, please visit [Ray official website](https://docs.ray.io/).
 
+## Deploy based on Kuscia
+
+Kuscia is a K8s-based privacy computing task orchestration framework.
+It provides a unified privacy computing foundation that can abstract away heterogeneous infrastructure and protocols.
+
+With Kuscia, you can easily manage and execute SecretFlow jobs through kubectl commands or apis without paying attention to the details of SecretFlow networking.
+In addition, Kuscia supports communication security and running SecretFlow jobs concurrently.
+
+If you need to use SecretFlow in your business, it is recommended to deploy and run SecretFlow based on Kuscia.
+Please refer to Kuscia's [Quick Start](https://www.secretflow.org.cn/docs/kuscia/latest/zh-Hans/getting_started/quickstart_cn) document for details.
+
 ## Simulation
 SecretFlow is designed for fast simulation on a single host or on multiple nodes with single ray cluster.
 
@@ -277,7 +288,7 @@ The following steps show how to deploy SecretFlow in WSL with simulation mode.
 
 You are supposed to install at least two same distributions of different versions such as Ubuntu 20.04.6 LTS and Ubuntu 22.04.2 LTS or at least two different distributions such Ubuntu and Debian.
 In this example, `alice`in`Ubuntu 20.04.6 LTS` and `bob` in `Ubuntu 22.04.2 LTS`:
-   - alice: 
+   - alice:
 
         ```bash
         (secretflow) alice@DESKTOP-SAOB7DQ:~$ lsb_release -a
@@ -308,13 +319,13 @@ The following steps are expected to be done in different distributions to set up
         ```bash
         cd ~
         ```
-        
+
         download Miniconda.
 
         ```bash
         wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
         ```
-        
+
         install Miniconda
 
         ```bash
@@ -325,7 +336,7 @@ The following steps are expected to be done in different distributions to set up
 
    - Create a virtual environment for SecretFlow
         all versions of Python in different distributions should be exactly same.
-        
+
         ```bash
         conda create --name secretflow python==3.8.15
         ```
@@ -342,7 +353,7 @@ The following steps are expected to be done in different distributions to set up
         ```bash
         pip install -U secretflow
         ```
-    
+
 3. Get the IP address of your WSL.
 
 Due to the implementation principle of WSL, different distributions in WSL share the same IP address, then we only could use it to deploy SecretFlow just in a single machine mode. Use the command `ifconfig` to get the IP address of your WSL.
@@ -716,3 +727,7 @@ In order to avoid problems such as connection timeout caused by the startup time
             cross_silo_serializing_allowed_list=allowed_list
     )
     ```
+
+
+
+

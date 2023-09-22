@@ -96,14 +96,14 @@ _DATASETS = {
 }
 
 
-def _unzip(file, extract_path=None):
+def unzip(file, extract_path=None):
     if not extract_path:
         extract_path = str(Path(file).parent)
     with zipfile.ZipFile(file, 'r') as zip_f:
         zip_f.extractall(extract_path)
 
 
-def _download(url: str, filepath: str, sha256: str):
+def download(url: str, filepath: str, sha256: str):
     Path(filepath).parent.mkdir(parents=True, exist_ok=True)
     content = requests.get(url, stream=True).content
     h = hashlib.sha256()
@@ -117,7 +117,7 @@ def _download(url: str, filepath: str, sha256: str):
         f.write(content)
 
 
-def _get_dataset(dataset: _Dataset, cache_dir: str = None):
+def get_dataset(dataset: _Dataset, cache_dir: str = None):
     if not cache_dir:
         cache_dir = _CACHE_DIR
 
@@ -127,19 +127,19 @@ def _get_dataset(dataset: _Dataset, cache_dir: str = None):
     import filelock
 
     with filelock.FileLock(f'{filepath}.lock'):
-        need_download = not Path(filepath).exists()
-        if not need_download:
+        needdownload = not Path(filepath).exists()
+        if not needdownload:
             sha256 = sha256sum(filepath)
             if sha256 != dataset.sha256:
                 os.remove(filepath)
-                need_download = True
+                needdownload = True
 
-        if need_download:
+        if needdownload:
             assert (
                 dataset.url
             ), f'{dataset.filename} does not exist locally, please give a download url.'
 
-            _download(dataset.url, filepath, dataset.sha256)
+            download(dataset.url, filepath, dataset.sha256)
         return filepath
 
 
@@ -155,7 +155,7 @@ def dataset(name: str, cache_dir: str = None) -> str:
     """
     assert name and isinstance(name, str), 'Name shall be a valid string.'
     name = name.lower()
-    return _get_dataset(_DATASETS[name], cache_dir)
+    return get_dataset(_DATASETS[name], cache_dir)
 
 
 def load_iris(
@@ -193,7 +193,7 @@ def load_iris(
     Returns:
         return a HDataFrame if axis is 0 else VDataFrame.
     """
-    filepath = _get_dataset(_DATASETS['iris'])
+    filepath = get_dataset(_DATASETS['iris'])
     return create_df(
         source=filepath,
         parts=parts,
@@ -236,7 +236,7 @@ def load_dermatology(
     Returns:
         return a HDataFrame if axis is 0 else VDataFrame.
     """
-    filepath = _get_dataset(_DATASETS['dermatology'])
+    filepath = get_dataset(_DATASETS['dermatology'])
     df = pd.read_csv(filepath)
     if class_starts_from_zero:
         df['class'] = df['class'] - 1
@@ -283,9 +283,9 @@ def load_bank_marketing(
         return a HDataFrame if axis is 0 else VDataFrame.
     """
     if full:
-        filepath = _get_dataset(_DATASETS['bank_marketing_full'])
+        filepath = get_dataset(_DATASETS['bank_marketing_full'])
     else:
-        filepath = _get_dataset(_DATASETS['bank_marketing'])
+        filepath = get_dataset(_DATASETS['bank_marketing'])
     return create_df(
         lambda: pd.read_csv(filepath, sep=';'),
         parts=parts,
@@ -318,9 +318,9 @@ def load_mnist(
         categorical_y: optional, do one hot encoding to y if True. Default to True.
 
     Returns:
-        A tuple consists of two tuples, (x_train, y_train) and (x_train, y_train).
+        A tuple consists of two tuples, (x_train, y_train) and (x_test, y_test).
     """
-    filepath = _get_dataset(_DATASETS['mnist'])
+    filepath = get_dataset(_DATASETS['mnist'])
     with np.load(filepath) as f:
         x_train, y_train = f['x_train'], f['y_train']
         x_test, y_test = f['x_test'], f['y_test']
@@ -365,7 +365,7 @@ def load_linear(parts: Union[List[PYU], Dict[PYU, Union[float, Tuple]]]) -> VDat
     Returns:
         return a VDataFrame.
     """
-    filepath = _get_dataset(_DATASETS['linear'])
+    filepath = get_dataset(_DATASETS['linear'])
     return create_vdf(source=filepath, parts=parts, shuffle=False)
 
 
@@ -395,8 +395,8 @@ def load_cora(
     if data_dir is None:
         data_dir = os.path.join(_CACHE_DIR, 'cora')
         if not Path(data_dir).is_dir():
-            filepath = _get_dataset(_DATASETS['cora'])
-            _unzip(filepath, data_dir)
+            filepath = get_dataset(_DATASETS['cora'])
+            unzip(filepath, data_dir)
 
     file_names = [
         os.path.join(data_dir, f'ind.cora.{name}')
@@ -530,8 +530,8 @@ def load_pubmed(
     if data_dir is None:
         data_dir = os.path.join(_CACHE_DIR, 'pubmed')
         if not Path(data_dir).is_dir():
-            filepath = _get_dataset(_DATASETS['pubmed'])
-            _unzip(filepath, data_dir)
+            filepath = get_dataset(_DATASETS['pubmed'])
+            unzip(filepath, data_dir)
 
     file_names = [
         os.path.join(data_dir, f'ind.pubmed.{name}')
@@ -668,8 +668,8 @@ def load_citeseer(
     if data_dir is None:
         data_dir = os.path.join(_CACHE_DIR, 'citeseer')
         if not Path(data_dir).is_dir():
-            filepath = _get_dataset(_DATASETS['citeseer'])
-            _unzip(filepath, data_dir)
+            filepath = get_dataset(_DATASETS['citeseer'])
+            unzip(filepath, data_dir)
 
     file_names = [
         os.path.join(data_dir, f'ind.citeseer.{name}')
@@ -844,8 +844,8 @@ def load_ml_1m(
     if data_dir is None:
         data_dir = os.path.join(_CACHE_DIR, 'ml-1m')
         if not Path(data_dir).is_dir():
-            filepath = _get_dataset(_DATASETS['ml-1m'])
-            _unzip(filepath, data_dir)
+            filepath = get_dataset(_DATASETS['ml-1m'])
+            unzip(filepath, data_dir)
     extract_dir = os.path.join(data_dir, 'ml-1m')
     users_data = _load_data(
         extract_dir + "/users.dat",

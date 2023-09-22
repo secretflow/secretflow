@@ -23,7 +23,6 @@ from typing import Tuple
 import numpy as np
 import tensorflow as tf
 
-from secretflow.device import PYUObject, proxy
 from secretflow.ml.nn.fl.backend.tensorflow.fl_base import BaseTFModel
 from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
 
@@ -112,6 +111,5 @@ class FedAvgU(BaseTFModel):
 
 
 @register_strategy(strategy_name='fed_avg_u', backend='tensorflow')
-@proxy(PYUObject)
 class PYUFedAvgU(FedAvgU):
     pass

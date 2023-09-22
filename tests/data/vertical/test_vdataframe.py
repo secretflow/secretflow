@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 
 from secretflow import reveal
-from secretflow.data.base import Partition
+from secretflow.data.base import partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.utils.errors import NotFoundError
 
@@ -28,10 +28,10 @@ def prod_env_and_data(sf_production_setup_devices):
 
     df = VDataFrame(
         {
-            sf_production_setup_devices.alice: Partition(
+            sf_production_setup_devices.alice: partition(
                 data=sf_production_setup_devices.alice(lambda: df_alice)()
             ),
-            sf_production_setup_devices.bob: Partition(
+            sf_production_setup_devices.bob: partition(
                 data=sf_production_setup_devices.bob(lambda: df_bob)()
             ),
         }
@@ -48,11 +48,11 @@ def test_columns_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
     columns = data['df'].columns
-
     # THEN
-    pd.testing.assert_index_equal(
-        columns, data['df_alice'].columns.append(data['df_bob'].columns)
-    )
+    alice_columns = data['df_alice'].columns.to_list()
+    bob_columns = data['df_bob'].columns.to_list()
+    alice_columns.extend(bob_columns)
+    np.testing.assert_equal(columns, alice_columns)
 
 
 def test_pow_should_ok(prod_env_and_data):
@@ -334,7 +334,7 @@ def test_set_item_on_non_exist_partition_should_error(prod_env_and_data):
         AssertionError,
         match='Device of the partition to assgin is not in this dataframe devices.',
     ):
-        part = Partition(
+        part = partition(
             env.carol(
                 lambda: pd.DataFrame(
                     {
@@ -375,7 +375,7 @@ def test_set_item_on_different_vdataframe_should_error(prod_env_and_data):
     ):
         df = VDataFrame(
             {
-                env.alice: Partition(
+                env.alice: partition(
                     data=env.alice(
                         lambda: pd.DataFrame(
                             {
@@ -386,7 +386,7 @@ def test_set_item_on_different_vdataframe_should_error(prod_env_and_data):
                         )
                     )()
                 ),
-                env.carol: Partition(
+                env.carol: partition(
                     data=env.carol(
                         lambda: pd.DataFrame(
                             {

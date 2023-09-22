@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Dict
+from typing import Dict, List
 
 import numpy as np
 from heu import numpy as hnp
@@ -52,6 +52,7 @@ class SplitTree:
             leaf nodes' selects: List[np.array], length equals leaf number.
         """
         x = x if isinstance(x, np.ndarray) else np.array(x)
+
         return hnp.tree_predict_with_indices(
             x,
             self.split_features,

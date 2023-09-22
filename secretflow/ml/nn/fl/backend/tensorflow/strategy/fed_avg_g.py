@@ -15,7 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import collections
 import copy
 from typing import Tuple
@@ -23,7 +22,6 @@ from typing import Tuple
 import numpy as np
 import tensorflow as tf
 
-from secretflow.device import PYUObject, proxy
 from secretflow.ml.nn.fl.backend.tensorflow.fl_base import BaseTFModel
 from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
 
@@ -106,11 +104,9 @@ class FedAvgG(BaseTFModel):
         if dp_strategy is not None:
             if dp_strategy.model_gdp is not None:
                 local_gradients_sum = dp_strategy.model_gdp(local_gradients_sum)
-
         return local_gradients_sum, num_sample
 
 
 @register_strategy(strategy_name='fed_avg_g', backend='tensorflow')
-@proxy(PYUObject)
 class PYUFedAvgG(FedAvgG):
     pass

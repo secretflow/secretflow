@@ -12,106 +12,126 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
+import os
 
-from secretflow.component.component import Component, IoType
-from secretflow.data.vertical import read_csv
+from secretflow.component.component import CompEvalError, Component, IoType
+from secretflow.component.data_utils import (
+    DistDataType,
+    extract_table_header,
+    gen_prediction_csv_meta,
+    load_table,
+    model_dumps,
+    model_loads,
+    save_prediction_csv,
+)
 from secretflow.device.device.pyu import PYU
-from secretflow.device.device.spu import SPU
+from secretflow.device.device.spu import SPU, SPUObject
 from secretflow.device.driver import wait
-from secretflow.ml.linear import LinearModel, SSRegression
-from secretflow.protos.component.comp_def_pb2 import TableType
+from secretflow.ml.linear import LinearModel, RegType, SSRegression
+from secretflow.protos.component.data_pb2 import DistData
+from secretflow.utils.sigmoid import SigType
 
 ss_sgd_train_comp = Component(
     "ss_sgd_train",
-    domain="ml.linear",
+    domain="ml.train",
     version="0.0.1",
-    desc="""This method provides both linear and logistic regression
-    linear models for vertical split dataset setting by using secret sharing
-    with mini batch SGD training solver. SS-SGD is short for secret sharing SGD training.
+    desc="""Train both linear and logistic regression
+    linear models for vertical partitioning dataset with mini batch SGD training solver by using secret sharing.
+
+    - SS-SGD is short for secret sharing SGD training.
     """,
 )
-ss_sgd_train_comp.int_param(
+ss_sgd_train_comp.int_attr(
     name="epochs",
-    desc="iteration rounds.",
+    desc="The number of complete pass through the training data.",
     is_list=False,
     is_optional=True,
-    default_value=1,
+    default_value=10,
     allowed_values=None,
     lower_bound=1,
     upper_bound=None,
     lower_bound_inclusive=True,
 )
-ss_sgd_train_comp.float_param(
+ss_sgd_train_comp.float_attr(
     name="learning_rate",
-    desc="controls how much to change the model in one epoch.",
+    desc="The step size at each iteration in one iteration.",
     is_list=False,
     is_optional=True,
     default_value=0.1,
+    lower_bound=0,
+    lower_bound_inclusive=False,
 )
-ss_sgd_train_comp.int_param(
+ss_sgd_train_comp.int_attr(
     name="batch_size",
-    desc="how many samples use in one calculation.",
+    desc="The number of training examples utilized in one iteration.",
     is_list=False,
     is_optional=True,
     default_value=1024,
+    lower_bound=0,
+    lower_bound_inclusive=False,
 )
-ss_sgd_train_comp.str_param(
+ss_sgd_train_comp.str_attr(
     name="sig_type",
-    desc="sigmoid approximation type.",
+    desc="Sigmoid approximation type.",
     is_list=False,
     is_optional=True,
     default_value="t1",
     allowed_values=["real", "t1", "t3", "t5", "df", "sr", "mix"],
 )
-ss_sgd_train_comp.str_param(
+ss_sgd_train_comp.str_attr(
     name="reg_type",
-    desc="Linear or Logistic regression",
+    desc="Regression type",
     is_list=False,
     is_optional=True,
     default_value="logistic",
     allowed_values=["linear", "logistic"],
 )
-ss_sgd_train_comp.str_param(
+ss_sgd_train_comp.str_attr(
     name="penalty",
-    desc="The penalty (aka regularization term) to be used.",
+    desc="The penalty(aka regularization term) to be used.",
     is_list=False,
     is_optional=True,
     default_value="None",
     allowed_values=["None", "l1", "l2"],
 )
-ss_sgd_train_comp.float_param(
+ss_sgd_train_comp.float_attr(
     name="l2_norm",
     desc="L2 regularization term.",
     is_list=False,
     is_optional=True,
     default_value=0.5,
+    lower_bound=0,
+    lower_bound_inclusive=True,
 )
-ss_sgd_train_comp.float_param(
+ss_sgd_train_comp.float_attr(
     name="eps",
-    desc="""If the W's change rate is less than this threshold,
+    desc="""If the change rate of weights is less than this threshold,
             the model is considered to be converged,
-            and the training stops early. 0 disable.""",
+            and the training stops early. 0 to disable.""",
     is_list=False,
     is_optional=True,
     default_value=0.001,
+    lower_bound=0,
+    lower_bound_inclusive=True,
 )
-ss_sgd_train_comp.table_io(
+ss_sgd_train_comp.io(
     io_type=IoType.INPUT,
-    name="x",
-    desc="features",
-    types=[TableType.VERTICAL_PARTITIONING_TABLE],
+    name="train_dataset",
+    desc="Input vertical table.",
+    types=[DistDataType.VERTICAL_TABLE],
     col_params=None,
 )
-ss_sgd_train_comp.table_io(
-    io_type=IoType.INPUT,
-    name="y",
-    desc="label",
-    types=[TableType.VERTICAL_PARTITIONING_TABLE],
-    col_params=None,
+ss_sgd_train_comp.io(
+    io_type=IoType.OUTPUT,
+    name="output_model",
+    desc="Output model.",
+    types=[DistDataType.SS_SGD_MODEL],
 )
-ss_sgd_train_comp.model_io(
-    io_type=IoType.OUTPUT, name="output", desc="output", types=["ss_sgb"]
-)
+
+# current version 0.1
+MODEL_MAX_MAJOR_VERSION = 0
+MODEL_MAX_MINOR_VERSION = 1
 
 
 @ss_sgd_train_comp.eval_fn
@@ -126,148 +146,248 @@ def ss_sgd_train_eval_fn(
     penalty,
     l2_norm,
     eps,
-    x,
-    y,
-    output,
+    train_dataset,
+    output_model,
 ):
-    """This method provides both linear and logistic regression
-    linear models for vertical split dataset setting by using secret sharing
-    with mini batch SGD training solver. SS-SGD is short for secret sharing SGD training.
-    """
+    # only local fs is supported at this moment.
+    local_fs_wd = ctx.local_fs_wd
 
-    x_parties = x.table_metadata.vertical_partitioning.parties
-    x_paths = x.table_metadata.vertical_partitioning.paths
+    if ctx.spu_configs is None or len(ctx.spu_configs) == 0:
+        raise CompEvalError("spu config is not found.")
+    if len(ctx.spu_configs) > 1:
+        raise CompEvalError("only support one spu")
+    spu_config = next(iter(ctx.spu_configs.values()))
 
-    y_parties = y.table_metadata.vertical_partitioning.parties
-    y_paths = y.table_metadata.vertical_partitioning.paths
-
-    model_public_path = output.model_metadata.public_file_path
-    model_parties = output.model_metadata.parties
-    model_party_paths = output.model_metadata.party_dir_paths
-
-    spu = SPU(
-        ctx['spu'],
-        link_desc={
-            'connect_retry_times': 60,
-            'connect_retry_interval_ms': 1000,
-            'brpc_channel_protocol': "http",
-            "brpc_channel_connection_type": "pooled",
-            'recv_timeout_ms': 1200 * 1000,  # 1200s
-            'http_timeout_ms': 1200 * 1000,  # 1200s
-        },
-    )
+    spu = SPU(spu_config["cluster_def"], spu_config["link_desc"])
 
     reg = SSRegression(spu)
-    pyus = {k: PYU(k) for k in ctx['pyu']}
 
-    x_filepath = {pyus[k]: p for k, p in zip(x_parties, x_paths)}
-    y_filepath = {pyus[k]: p for k, p in zip(y_parties, y_paths)}
+    y = load_table(ctx, train_dataset, load_labels=True)
+    x = load_table(ctx, train_dataset, load_features=True)
 
-    x = read_csv(x_filepath, no_header=True)
-    y = read_csv(y_filepath, no_header=True)
-
-    reg.fit(
-        x=x,
-        y=y,
-        epochs=epochs,
-        learning_rate=learning_rate,
-        batch_size=batch_size,
-        sig_type=sig_type,
-        reg_type=reg_type,
-        penalty=penalty,
-        l2_norm=l2_norm,
-        eps=eps,
-    )
+    with ctx.tracer.trace_running():
+        reg.fit(
+            x=x,
+            y=y,
+            epochs=epochs,
+            learning_rate=learning_rate,
+            batch_size=batch_size,
+            sig_type=sig_type,
+            reg_type=reg_type,
+            penalty=penalty,
+            l2_norm=l2_norm,
+            eps=eps,
+        )
 
     model = reg.save_model()
 
-    dir_path = {k: v for k, v in zip(model_parties, model_party_paths)}
+    model_meta = {"reg_type": model.reg_type.value, "sig_type": model.sig_type.value}
 
-    record = model.dump(dir_path=dir_path)
+    model_db = model_dumps(
+        "ss_sgd",
+        DistDataType.SS_SGD_MODEL,
+        MODEL_MAX_MAJOR_VERSION,
+        MODEL_MAX_MINOR_VERSION,
+        [model.weights],
+        json.dumps(model_meta),
+        local_fs_wd,
+        output_model,
+        train_dataset.sys_info,
+    )
 
-    with open(model_public_path, 'wb') as f:
-        import cloudpickle as pickle
-
-        pickle.dump(record, f)
+    return {"output_model": model_db}
 
 
 ss_sgd_predict_comp = Component(
     "ss_sgd_predict",
-    domain="ml.linear",
+    domain="ml.predict",
     version="0.0.1",
-    desc="Predict using the model.",
+    desc="Predict using the SS-SGD model.",
 )
-ss_sgd_predict_comp.int_param(
+ss_sgd_predict_comp.int_attr(
     name="batch_size",
-    desc="how many samples use in one calculation.",
+    desc="The number of training examples utilized in one iteration.",
     is_list=False,
     is_optional=True,
     default_value=1024,
+    lower_bound=0,
+    lower_bound_inclusive=False,
 )
-ss_sgd_predict_comp.table_io(
+ss_sgd_predict_comp.str_attr(
+    name="receiver",
+    desc="Party of receiver.",
+    is_list=False,
+    is_optional=False,
+)
+ss_sgd_predict_comp.str_attr(
+    name="pred_name",
+    desc="Column name for predictions.",
+    is_list=False,
+    is_optional=True,
+    default_value="pred",
+    allowed_values=None,
+)
+ss_sgd_predict_comp.bool_attr(
+    name="save_ids",
+    desc=(
+        "Whether to save ids columns into output prediction table. "
+        "If true, input feature_dataset must contain id columns, and receiver party must be id owner."
+    ),
+    is_list=False,
+    is_optional=True,
+    default_value=False,
+)
+ss_sgd_predict_comp.bool_attr(
+    name="save_label",
+    desc=(
+        "Whether or not to save real label columns into output pred file. "
+        "If true, input feature_dataset must contain label columns and receiver party must be label owner."
+    ),
+    is_list=False,
+    is_optional=True,
+    default_value=False,
+)
+ss_sgd_predict_comp.io(
     io_type=IoType.INPUT,
-    name="x",
-    desc="features",
-    types=[TableType.VERTICAL_PARTITIONING_TABLE],
+    name="model",
+    desc="Input model.",
+    types=[DistDataType.SS_SGD_MODEL],
+)
+ss_sgd_predict_comp.io(
+    io_type=IoType.INPUT,
+    name="feature_dataset",
+    desc="Input vertical table.",
+    types=[DistDataType.VERTICAL_TABLE],
     col_params=None,
 )
-ss_sgd_predict_comp.model_io(
-    io_type=IoType.INPUT, name="model", desc="model", types=["ss_sgb"]
-)
-ss_sgd_predict_comp.table_io(
+ss_sgd_predict_comp.io(
     io_type=IoType.OUTPUT,
-    name="y",
-    desc="label",
-    types=[TableType.INDIVIDUAL_TABLE],
+    name="pred",
+    desc="Output prediction.",
+    types=[DistDataType.INDIVIDUAL_TABLE],
     col_params=None,
 )
+
+
+def load_ss_sgd_model(ctx, spu, model) -> LinearModel:
+    model_objs, model_meta_str = model_loads(
+        model,
+        MODEL_MAX_MAJOR_VERSION,
+        MODEL_MAX_MINOR_VERSION,
+        DistDataType.SS_SGD_MODEL,
+        # only local fs is supported at this moment.
+        ctx.local_fs_wd,
+        spu=spu,
+    )
+    assert len(model_objs) == 1 and isinstance(
+        model_objs[0], SPUObject
+    ), f"model_objs {model_objs}, model_meta_str {model_meta_str}"
+
+    model_meta = json.loads(model_meta_str)
+    assert (
+        isinstance(model_meta, dict)
+        and "reg_type" in model_meta
+        and "sig_type" in model_meta
+    )
+    model = LinearModel(
+        weights=model_objs[0],
+        reg_type=RegType(model_meta["reg_type"]),
+        sig_type=SigType(model_meta["sig_type"]),
+    )
+
+    return model
 
 
 @ss_sgd_predict_comp.eval_fn
-def ss_sgd_predict_eval_fn(*, ctx, batch_size, x, model, y):
-    x_parties = x.table_metadata.vertical_partitioning.parties
-    x_paths = x.table_metadata.vertical_partitioning.paths
+def ss_sgd_predict_eval_fn(
+    *,
+    ctx,
+    batch_size,
+    feature_dataset,
+    model,
+    receiver,
+    pred_name,
+    pred,
+    save_ids,
+    save_label,
+):
+    if ctx.spu_configs is None or len(ctx.spu_configs) == 0:
+        raise CompEvalError("spu config is not found.")
+    if len(ctx.spu_configs) > 1:
+        raise CompEvalError("only support one spu")
+    spu_config = next(iter(ctx.spu_configs.values()))
 
-    model_public_path = model.model_metadata.public_file_path
+    spu = SPU(spu_config["cluster_def"], spu_config["link_desc"])
 
-    y_party = y.table_metadata.indivial.party
-    y_path = y.table_metadata.indivial.path
-
-    spu = SPU(
-        ctx['spu'],
-        link_desc={
-            'connect_retry_times': 60,
-            'connect_retry_interval_ms': 1000,
-            'brpc_channel_protocol': "http",
-            "brpc_channel_connection_type": "pooled",
-            'recv_timeout_ms': 1200 * 1000,  # 1200s
-            'http_timeout_ms': 1200 * 1000,  # 1200s
-        },
-    )
-    pyus = {k: PYU(k) for k in ctx['pyu']}
-
-    with open(model_public_path, 'rb') as f:
-        import cloudpickle as pickle
-
-        record = pickle.load(f)
-
-    model = LinearModel.load(record=record, spu=spu)
-    x_filepath = {pyus[k]: p for k, p in zip(x_parties, x_paths)}
-    x = read_csv(x_filepath, no_header=True)
+    model = load_ss_sgd_model(ctx, spu, model)
 
     reg = SSRegression(spu)
     reg.load_model(model)
 
-    pyu = pyus[y_party]
-    y = reg.predict(
-        x=x,
-        batch_size=batch_size,
-        to_pyu=pyu,
+    x = load_table(ctx, feature_dataset, load_features=True)
+
+    with ctx.tracer.trace_running():
+        pyu = PYU(receiver)
+        pyu_y = reg.predict(
+            x=x,
+            batch_size=batch_size,
+            to_pyu=pyu,
+        )
+
+        y_path = os.path.join(ctx.local_fs_wd, pred)
+
+        if save_ids:
+            id_df = load_table(ctx, feature_dataset, load_ids=True)
+            assert pyu in id_df.partitions
+            id_header_map = extract_table_header(feature_dataset, load_ids=True)
+            assert receiver in id_header_map
+            id_header = list(id_header_map[receiver].keys())
+            id_data = id_df.partitions[pyu].data
+        else:
+            id_header_map = None
+            id_header = None
+            id_data = None
+
+        if save_label:
+            label_df = load_table(ctx, feature_dataset, load_labels=True)
+            assert pyu in label_df.partitions
+            label_header_map = extract_table_header(feature_dataset, load_labels=True)
+            assert receiver in label_header_map
+            label_header = list(label_header_map[receiver].keys())
+            label_data = label_df.partitions[pyu].data
+        else:
+            label_header_map = None
+            label_header = None
+            label_data = None
+
+        wait(
+            pyu(save_prediction_csv)(
+                pyu_y.partitions[pyu],
+                pred_name,
+                y_path,
+                label_data,
+                label_header,
+                id_data,
+                id_header,
+            )
+        )
+
+    y_db = DistData(
+        name=pred_name,
+        type=str(DistDataType.INDIVIDUAL_TABLE),
+        data_refs=[DistData.DataRef(uri=pred, party=receiver, format="csv")],
     )
 
-    def save_csv(x, path):
-        import numpy
+    meta = gen_prediction_csv_meta(
+        id_header=id_header_map,
+        label_header=label_header_map,
+        party=receiver,
+        pred_name=pred_name,
+        num_lines=x.shape[0],
+        id_keys=id_header,
+        label_keys=label_header,
+    )
 
-        numpy.savetxt(path, x, delimiter=",")
+    y_db.meta.Pack(meta)
 
-    wait(pyu(save_csv)(y.partitions[pyu], y_path))
+    return {"pred": y_db}

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict, List, Union
+from typing import Callable, Dict, List, Union
 
 import secretflow.distributed as sfd
 from secretflow.device import (
@@ -27,6 +27,7 @@ from secretflow.device import (
     SPUObject,
     register,
 )
+from secretflow.utils.progress import ProgressData
 from secretflow.device.device.base import register_to
 from secretflow.device.device.heu import HEUMoveConfig
 
@@ -37,14 +38,14 @@ def spu_to_pyu(self: SPUObject, pyu: Device, config: HEUMoveConfig = None):
     if config is None:
         config = HEUMoveConfig()
 
-    def reveal(conf, world_size, refs, meta):
+    def reveal(conf, world_size, io_info, share_chunks, meta):
         io = SPUIO(conf, world_size)
-        return io.reconstruct(refs, meta)
+        return io.reconstruct(share_chunks, io_info, meta)
 
     return pyu(reveal)(
         self.device.conf,
         self.device.world_size,
-        self.device.outfeed_shares(self.shares_name),
+        *self.device.outfeed_shares(self.shares_name),
         self.meta,
     )
 
@@ -64,8 +65,8 @@ def spu_to_spu(self: SPUObject, spu: SPU):
         and spu.world_size == self.device.world_size
     )
 
-    shares = self.device.outfeed_shares(self.shares_name)
-    shares_name = spu.infeed_shares(shares)
+    io_info, shares_chunk = self.device.outfeed_shares(self.shares_name)
+    shares_name = spu.infeed_shares(io_info, shares_chunk)
 
     # TODO: do we need reshare shares.
     return SPUObject(spu, self.meta, shares_name)
@@ -93,11 +94,18 @@ def spu_to_heu(self: SPUObject, heu: Device, config: HEUMoveConfig = None):
     ), f'Mismatch SPU and HEU parties, spu: {list(self.device.actors.keys())}, heu:{heu_parties}'
 
     # TODO(@xibin.wxb): support pytree
+    io_info, shares_chunk = self.device.outfeed_shares(self.shares_name)
+    assert (
+        len(shares_chunk) % len(self.device.actors) == 0
+    ), f"{len(shares_chunk)} % {len(self.device.actors)}"
+    chunks_count_pre_party = int(len(shares_chunk) / len(self.device.actors))
+    chunks_pre_party = [
+        shares_chunk[i * chunks_count_pre_party : (i + 1) * chunks_count_pre_party]
+        for i in range(len(self.device.actors))
+    ]
     shards = {
-        p: actor.a2h.remote(ref, heu.cleartext_type, heu.schema)
-        for (p, actor), ref in zip(
-            self.device.actors.items(), self.device.outfeed_shares(self.shares_name)
-        )
+        p: actor.a2h.remote(io_info, heu.cleartext_type, heu.schema, *chunks)
+        for (p, actor), chunks in zip(self.device.actors.items(), chunks_pre_party)
     }
     shards = [
         heu.get_participant(p).encrypt.remote(shard, config.heu_audit_log)
@@ -126,6 +134,8 @@ def psi_df(
     ecdh_secret_key_path=None,
     dppsi_bob_sub_sampling=0.9,
     dppsi_epsilon=3,
+    progress_callbacks: Callable[[str, ProgressData], None] = None,
+    callbacks_interval_ms: int = 5 * 1000,
 ) -> List[PYUObject]:
     assert isinstance(device, SPU), f'device must be SPU device'
     assert isinstance(
@@ -165,6 +175,8 @@ def psi_df(
                     ecdh_secret_key_path,
                     dppsi_bob_sub_sampling,
                     dppsi_epsilon,
+                    progress_callbacks,
+                    callbacks_interval_ms,
                 ),
             )
         )
@@ -189,6 +201,8 @@ def psi_csv(
     ecdh_secret_key_path=None,
     dppsi_bob_sub_sampling=0.9,
     dppsi_epsilon=3,
+    progress_callbacks: Callable[[str, ProgressData], None] = None,
+    callbacks_interval_ms: int = 5 * 1000,
 ):
     assert isinstance(device, SPU), f'device must be SPU device'
     assert isinstance(
@@ -265,6 +279,8 @@ def psi_csv(
                     ecdh_secret_key_path,
                     dppsi_bob_sub_sampling,
                     dppsi_epsilon,
+                    progress_callbacks,
+                    callbacks_interval_ms,
                 )
             )
     else:
@@ -293,6 +309,8 @@ def psi_csv(
                     ecdh_secret_key_path,
                     dppsi_bob_sub_sampling,
                     dppsi_epsilon,
+                    progress_callbacks,
+                    callbacks_interval_ms,
                 )
             )
 
@@ -308,9 +326,10 @@ def psi_join_df(
     receiver: str,
     join_party: str,
     protocol='KKRT_PSI_2PC',
-    precheck_input=True,
     bucket_size=1 << 20,
     curve_type="CURVE_25519",
+    progress_callbacks: Callable[[str, ProgressData], None] = None,
+    callbacks_interval_ms: int = 5 * 1000,
 ) -> List[PYUObject]:
     assert isinstance(device, SPU), f'device must be SPU device'
     assert isinstance(
@@ -342,9 +361,10 @@ def psi_join_df(
                     receiver,
                     join_party,
                     protocol,
-                    precheck_input,
                     bucket_size,
                     curve_type,
+                    progress_callbacks,
+                    callbacks_interval_ms,
                 ),
             )
         )
@@ -361,9 +381,10 @@ def psi_join_csv(
     receiver: str,
     join_party: str,
     protocol='KKRT_PSI_2PC',
-    precheck_input=True,
     bucket_size=1 << 20,
     curve_type="CURVE_25519",
+    progress_callbacks: Callable[[str, ProgressData], None] = None,
+    callbacks_interval_ms: int = 5 * 1000,
 ):
     assert isinstance(device, SPU), f'device must be SPU device'
     assert isinstance(
@@ -417,9 +438,10 @@ def psi_join_csv(
                     receiver,
                     join_party,
                     protocol,
-                    precheck_input,
                     bucket_size,
                     curve_type,
+                    progress_callbacks,
+                    callbacks_interval_ms,
                 )
             )
     else:
@@ -435,9 +457,10 @@ def psi_join_csv(
                     receiver,
                     join_party,
                     protocol,
-                    precheck_input,
                     bucket_size,
                     curve_type,
+                    progress_callbacks,
+                    callbacks_interval_ms,
                 )
             )
 
@@ -517,6 +540,38 @@ def pir_query(
         actor = device.actors[dev.party]
         res.append(
             actor.pir_query.remote(
+                server,
+                iconfig,
+                protocol,
+            )
+        )
+
+    # wait for all tasks done
+    return sfd.get(res)
+
+
+@register(DeviceType.SPU)
+def pir_memory_query(
+    device: SPU,
+    server: str,
+    config: Dict[Device, Dict],
+    protocol="KEYWORD_PIR_LABELED_PSI",
+):
+    assert isinstance(device, SPU), f'device must be SPU device'
+    assert isinstance(server, str), f'server must be str'
+    assert isinstance(config, Dict), f'config must be str'
+
+    assert server in device.actors.keys(), f'invalid server party name {server}'
+
+    assert 2 == len(
+        device.actors
+    ), f'unexpected number({len(device.actors)}) of partys, should be 2'
+
+    res = []
+    for dev, iconfig in config.items():
+        actor = device.actors[dev.party]
+        res.append(
+            actor.pir_memory_query.remote(
                 server,
                 iconfig,
                 protocol,

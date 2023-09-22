@@ -43,6 +43,9 @@ from .device import (
 )
 
 
+_CROSS_SILO_COMM_BACKENDS = ['grpc', 'brpc_link']
+
+
 def with_device(
     dev: Device,
     *,
@@ -131,6 +134,8 @@ def reveal(func_or_object, heu_encoder=None):
         return wrapper
     all_object_refs = []
     flatten_val, tree = jax.tree_util.tree_flatten(func_or_object)
+    all_spu_chunks_count = []
+    spu_chunks_idx = 0
 
     for x in flatten_val:
         if isinstance(x, PYUObject):
@@ -145,8 +150,10 @@ def reveal(func_or_object, heu_encoder=None):
             assert isinstance(
                 x.shares_name[0], (ray.ObjectRef, fed.FedObject)
             ), f"shares_name in spu obj should be ObjectRef or FedObject, but got {type(x.shares_name[0])} "
-            all_object_refs.append(x.meta)
-            all_object_refs.extend(x.device.outfeed_shares(x.shares_name))
+            info, shares_chunk = x.device.outfeed_shares(x.shares_name)
+            all_spu_chunks_count.append(len(shares_chunk))
+            all_object_refs.append(info)
+            all_object_refs.extend([s for s in shares_chunk])
         elif isinstance(x, TEEUObject):
             all_object_refs.append(x.data)
             logging.debug(f'Getting teeu data from TEEU {x.device.party}.')
@@ -162,12 +169,14 @@ def reveal(func_or_object, heu_encoder=None):
 
         elif isinstance(x, SPUObject):
             io = SPUIO(x.device.conf, x.device.world_size)
-            meta = all_object[cur_idx]
-            shares = [all_object[cur_idx + i + 1] for i in range(x.device.world_size)]
-            new_idx = cur_idx + x.device.world_size + 1
+            io_info = all_object[cur_idx]
+            cur_idx += 1
+            chunks_count = all_spu_chunks_count[spu_chunks_idx]
+            spu_chunks_idx += 1
+            shares_chunk = all_object[cur_idx : cur_idx + chunks_count]
+            cur_idx += chunks_count
 
-            new_flatten_val.append(io.reconstruct(shares, meta))
-            cur_idx = new_idx
+            new_flatten_val.append(io.reconstruct(shares_chunk, io_info))
         else:
             new_flatten_val.append(x)
 
@@ -205,15 +214,12 @@ def init(
     address: Optional[str] = None,
     cluster_config: Dict = None,
     num_cpus: Optional[int] = None,
+    num_gpus: Optional[int] = None,
     log_to_driver=True,
     omp_num_threads: int = None,
     logging_level: str = 'info',
-    cross_silo_grpc_retry_policy: Dict = None,
-    cross_silo_send_max_retries: int = None,
-    cross_silo_messages_max_size_in_bytes: int = None,
-    cross_silo_serializing_allowed_list: Dict = None,
-    cross_silo_timeout_in_seconds: int = 3600,
-    exit_on_failure_cross_silo_sending: bool = True,
+    cross_silo_comm_backend: str = 'grpc',
+    cross_silo_comm_options: Dict = None,
     enable_waiting_for_other_parties_ready: bool = True,
     tls_config: Dict[str, Dict] = None,
     auth_manager_config: Dict = None,
@@ -240,20 +246,20 @@ def init(
                     'parties': {
                         'alice': {
                             # The address for other parties.
-                            'address': '127.0.0.1:10001',
+                            'address': '127.0.0.1:20001',
                             # (Optional) the listen address, the `address` will
                             # be used if not prodived.
-                            'listen_addr': '0.0.0.0:10001'
+                            'listen_addr': '0.0.0.0:20001'
                         },
                         'bob': {
                             # The address for other parties.
-                            'address': '127.0.0.1:10002',
+                            'address': '127.0.0.1:20002',
                             # (Optional) the listen address, the `address` will
                             # be used if not prodived.
-                            'listen_addr': '0.0.0.0:10002'
+                            'listen_addr': '0.0.0.0:20002'
                         },
                     },
-                    'self_party': alice
+                    'self_party': 'alice'
                 }
 
                 # For bob
@@ -261,20 +267,20 @@ def init(
                     'parties': {
                         'alice': {
                             # The address for other parties.
-                            'address': '127.0.0.1:10001',
+                            'address': '127.0.0.1:20001',
                             # (Optional) the listen address, the `address` will
                             # be used if not prodived.
-                            'listen_addr': '0.0.0.0:10001'
+                            'listen_addr': '0.0.0.0:20001'
                         },
                         'bob': {
                             # The address for other parties.
-                            'address': '127.0.0.1:10002',
+                            'address': '127.0.0.1:20002',
                             # (Optional) the listen address, the `address` will
                             # be used if not prodived.
-                            'listen_addr': '0.0.0.0:10002'
+                            'listen_addr': '0.0.0.0:20002'
                         },
                     },
-                    'self_party': bob
+                    'self_party': 'bob'
                 }
         num_cpus: Number of CPUs the user wishes to assign to each raylet.
         log_to_driver: Whether direct output of worker processes on all nodes
@@ -284,46 +290,74 @@ def init(
         logging_level: optional; works only in production mode.
             the logging level, could be `debug`, `info`, `warning`, `error`,
             `critical`, not case sensititive.
-        cross_silo_grpc_retry_policy: optional, works only in production mode.
-            a dict descibes the retry policy for cross silo rpc call.
-            If None, the following default retry policy will be used.
-            More details please refer to
-            `retry-policy <https://github.com/grpc/proposal/blob/master/A6-client-retries.md#retry-policy>`_.
+        cross_silo_comm_backend: works only in production mode, a string determines
+            which communication backend is used. The default value is 'grpc'.
+            The other available option is 'brpc_link',  which is based on brpc.
+        cross_silo_comm_options: a dict describes the cross-silo communication options.
+            the common options for all cross-silo communication backends.
+                exit_on_sending_failure
+                    whether exit when failure on cross-silo sending. If True, a SIGTERM
+                    will be signaled to self if failed to send cross-silo data. The default
+                    value is True.
+                messages_max_size_in_bytes
+                    The maximum length in bytes of cross-silo messages. The default value
+                    is 500 MB. The size must be strictly less than 2GB when grpc is used.
+                timeout_in_ms
+                    The timeout in miliseconds of a cross-silo RPC call. It's 60000 by default.
+                serializing_allowed_list
+                    A dict describes the package or class list allowed for cross-silo
+                    serializing(deserializating).  It's used for avoiding pickle
+                    deserializing execution attack. E.g.
 
-            .. code:: python
-                {
-                    "maxAttempts": 4,
-                    "initialBackoff": "0.1s",
-                    "maxBackoff": "1s",
-                    "backoffMultiplier": 2,
-                    "retryableStatusCodes": [
-                        "UNAVAILABLE"
-                    ]
-                }
-        cross_silo_send_max_retries: optional, works only in production mode.
-            the max retries for sending data cross silo.
-        cross_silo_messages_max_size_in_bytes: int, works only in production mode.
-            the max number of byte for one transaction.
-            The size must be strictly less than 2GB, i.e. 2 * (1024 ** 3).
-        cross_silo_serializing_allowed_list: optional, works only in production mode.
-            A dict describes the package or class list allowed for cross-silo
-            serializing(deserializating). It's used for avoiding pickle deserializing
-            execution attack when crossing silos. E.g.
+                    .. code:: python
 
-            .. code:: python
-                {
-                    "numpy.core.numeric": ["*"],
-                    "numpy": ["dtype"],
-                }
-        cross_silo_timeout_in_seconds: The timeout in seconds of a cross-silo RPC call.
-            It's 3600 by default.
-        exit_on_failure_cross_silo_sending: optional, works only in production mode.
-            whether exit when failure on cross-silo sending. If True, a SIGTERM
-            will be signaled to self if failed to sending cross-silo data.
+                        {
+                            "numpy.core.numeric": ["*"],
+                            "numpy": ["dtype"],
+                        }
+
+            when cross-silo backend is `grpc`, the following options can be configured additionally.
+                grpc_retry_policy
+                    a dict descibes the retry policy for cross silo rpc call.
+                    More details please refer to
+                    `retry-policy <https://github.com/grpc/proposal/blob/master/A6-client-retries.md#retry-policy>`_.
+
+                    .. code:: python
+
+                        {
+                            "maxAttempts": 4,
+                            "initialBackoff": "0.1s",
+                            "maxBackoff": "1s",
+                            "backoffMultiplier": 2,
+                            "retryableStatusCodes": [
+                                "UNAVAILABLE"
+                            ]
+                        }
+                grpc_channel_options
+                    A list of key-value pairs to configure the underlying gRPC Core
+                    channel or server object, please refer to
+                    `channel_arguments <https://grpc.github.io/grpc/python/glossary.html#term-channel_arguments>`_.
+
+            when cross-silo backend is `brpc_link`, the following options can be configured additionally.
+                1. connect_retry_times
+                2. connect_retry_interval_ms
+                3. recv_timeout_ms
+                4. http_max_payload_size
+                5. http_timeout_ms
+                6. throttle_window_size
+                7. brpc_channel_protocol
+                    please refer to `protocols <https://github.com/apache/brpc/blob/master/docs/en/client.md#protocols>`_.
+                8. brpc_channel_connection_type
+                    please refer to `connection-type <https://github.com/apache/brpc/blob/master/docs/en/client.md#connection-type>`_.
+
         enable_waiting_for_other_parties_ready: wait for other parties ready if True.
-        tls_config: optional, a dict describes the tls certificate and key infomations. E.g.
+            When cross-silo backend is `brpc_link`, you can set `connect_retry_times`
+            and `connect_retry_interval_ms` in `cross_silo_comm_options` to determine
+            the waiting time.
 
+        tls_config: optional, a dict describes the tls certificate and key infomations. E.g.
             .. code:: python
+
                 {
                     'key': 'server key in pem.'
                     'cert': 'server certificate in pem.',
@@ -335,6 +369,7 @@ def init(
             This parameter is for TEE users only. An example,
 
             .. code:: python
+
                 {
                     'host': 'host of authority manager service.'
                     'mr_enclave': 'mr_enclave of authority manager.',
@@ -344,8 +379,9 @@ def init(
             This is required for party who wants to send data to TEEU.
             E.g.
 
-            # For alice
             .. code:: python
+
+                # For alice
                 {
                     'alice': {
                         'public_key': 'RSA public key of alice in pem.',
@@ -353,8 +389,7 @@ def init(
                     }
                 }
 
-            # For bob
-            .. code:: python
+                # For bob
                 {
                     'bob': {
                         'public_key': 'RSA public key of bob in pem.',
@@ -368,6 +403,7 @@ def init(
     """
     set_logging_level(logging_level)
     simluation_mode = True if parties else False
+
     if auth_manager_config and simluation_mode:
         raise InvalidArgumentError(
             'TEE abilities is available only in production mode.'
@@ -382,8 +418,9 @@ def init(
     else:
         local_mode = address == 'local'
     if not local_mode and num_cpus is not None:
-        raise InvalidArgumentError(
-            'When connecting to an existing cluster, num_cpus must not be provided.'
+        num_cpus = None
+        logging.warning(
+            'When connecting to an existing cluster, num_cpus must not be provided. Num_cpus is neglected at this moment.'
         )
     if local_mode and num_cpus is None:
         num_cpus = multiprocess.cpu_count()
@@ -449,12 +486,19 @@ def init(
         ray.init(
             address,
             num_cpus=num_cpus,
+            num_gpus=num_gpus,
             resources=resources,
             log_to_driver=log_to_driver,
             **kwargs,
         )
+        global_state.set_parties(parties=parties)
     else:
         sfd.set_production(True)
+        global _CROSS_SILO_COMM_BACKENDS
+        assert cross_silo_comm_backend.lower() in _CROSS_SILO_COMM_BACKENDS, (
+            'Invalid cross_silo_comm_backend, '
+            f'{_CROSS_SILO_COMM_BACKENDS} are available now.'
+        )
         # cluster mode
         if not cluster_config:
             raise InvalidArgumentError(
@@ -467,33 +511,65 @@ def init(
         if 'parties' not in cluster_config:
             raise InvalidArgumentError('Miss parties in cluster config.')
         self_party = cluster_config['self_party']
-        all_parties = cluster_config['parties']
+        all_parties: Dict = cluster_config['parties']
         if self_party not in all_parties:
             raise InvalidArgumentError(
                 f'Party {self_party} not found in cluster config parties.'
             )
+        for party in all_parties.values():
+            assert (
+                'address' in party
+            ), f'There is no address for party {party} in cluster config.'
+        global_state.set_parties(parties=list(all_parties.keys()))
         global_state.set_self_party(self_party)
 
         if tls_config:
             _parse_tls_config(tls_config, self_party)
 
-        fed.init(
-            address=address,
-            cluster=all_parties,
-            party=self_party,
-            log_to_driver=log_to_driver,
+        ray.init(
+            address,
             num_cpus=num_cpus,
-            logging_level=logging_level,
-            tls_config=tls_config,
-            cross_silo_grpc_retry_policy=cross_silo_grpc_retry_policy,
-            cross_silo_send_max_retries=cross_silo_send_max_retries,
-            cross_silo_serializing_allowed_list=cross_silo_serializing_allowed_list,
-            cross_silo_messages_max_size_in_bytes=cross_silo_messages_max_size_in_bytes,
-            cross_silo_timeout_in_seconds=cross_silo_timeout_in_seconds,
-            exit_on_failure_cross_silo_sending=exit_on_failure_cross_silo_sending,
-            enable_waiting_for_other_parties_ready=enable_waiting_for_other_parties_ready,
+            log_to_driver=log_to_driver,
             **kwargs,
         )
+        cross_silo_comm_options = cross_silo_comm_options or {}
+        if 'exit_on_sending_failure' not in cross_silo_comm_options:
+            cross_silo_comm_options['exit_on_sending_failure'] = True
+        config = {
+            'cross_silo_comm': cross_silo_comm_options,
+            'barrier_on_initializing': enable_waiting_for_other_parties_ready,
+        }
+        receiver_sender_proxy_cls = None
+        if cross_silo_comm_backend.lower() == 'brpc_link':
+            from fed.proxy.brpc_link.link import BrpcLinkSenderReceiverProxy
+
+            receiver_sender_proxy_cls = BrpcLinkSenderReceiverProxy
+            if enable_waiting_for_other_parties_ready:
+                if 'connect_retry_times' not in config['cross_silo_comm']:
+                    config['cross_silo_comm']['connect_retry_times'] = 3600
+                    config['cross_silo_comm']['connect_retry_interval_ms'] = 1000
+        addresses = {}
+        for party, addr in all_parties.items():
+            if party == self_party:
+                addresses[party] = addr.get('listen_addr', addr['address'])
+            else:
+                addresses[party] = addr['address']
+        fed.init(
+            addresses=addresses,
+            party=self_party,
+            config=config,
+            logging_level=logging_level,
+            tls_config=tls_config,
+            receiver_sender_proxy_cls=receiver_sender_proxy_cls,
+        )
+
+
+def barrier():
+    if sfd.production_mode():
+        barriers = []
+        for party in global_state.parties():
+            barriers.append(PYU(party)(lambda: None)())
+        reveal(barriers)
 
 
 def shutdown():
@@ -503,6 +579,7 @@ def shutdown():
     It is ok to run this twice in a row. The primary use case for this function
     is to cleanup state between tests.
     """
+    barrier()
     sfd.shutdown()
 
 

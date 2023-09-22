@@ -16,53 +16,46 @@ syntax = "proto3";
 
 package secretflow.component;
 
-import "secretflow/protos/component/comp_def.proto";
-import "secretflow/protos/component/data_def.proto";
-import "secretflow/protos/component/cluster.proto";
+import "secretflow/protos/component/comp.proto";
+import "secretflow/protos/component/data.proto";
 
-message AttrValue {
-  // prefixes of corresponding param.
-  repeated string prefixes = 1;
-
-  // name of corresponding param.
-  string name = 2;
-
-  // Required for atomic param node.
-  AtomicParameter atomic = 3;
-
-  // Required for union param node.
-  // Name of selected child.
-  string union_selection = 4;
-}
+option java_package = "org.secretflow.proto.component";
 
 // Evaluate a node.
-//   evaluate(NodeEvalParam param) -> NodeEvalResult
+// - comp.evaluate(NodeEvalParam, SFClusterConfig) -> NodeEvalResult
+//
+// NodeEvalParam contains all the information to evaluate a component.
 message NodeEvalParam {
-  // Name of this node, unique per-pipeline.
-  string name = 1;
+  // Domain of the component.
+  string domain = 1;
 
-  // Component(type) of this node.
-  string comp_id = 2;
+  // Name of the component.
+  string name = 2;
 
-  // The attribute value, must match the component def.
-  repeated AttrValue attrs = 3;  // the input attributes.
+  // Version of the component.
+  string version = 3;
 
-  // The input values (all with type DistData)
-  repeated DistData inputs = 4;
+  // The path of attributes.
+  // The attribute path for a TableAttrDef is `{input\|output}/{IoDef
+  // name}/{TableAttrDef name}`.
+  repeated string attr_paths = 4;
 
-  // Output names, if empty engine will rand one.
-  repeated string output_names = 5;
+  // The value of the attribute.
+  // Must match attr_paths.
+  repeated Attribute attrs = 5;
 
-  // Report names, if empty engine will rand one.
-  repeated string report_names = 6;
+  // The input data, the order of inputs must match inputs in ComponentDef.
+  // NOTE: Names of DistData doesn't need to match those of inputs in
+  // ComponentDef definition.
+  repeated DistData inputs = 6;
 
-  SFClusterConfig cluster_config = 7;
+  // The output data uris, the order of output_uris must match outputs in
+  // ComponentDef.
+  repeated string output_uris = 7;
 }
 
+// NodeEvalResult contains outputs of a component evaluation.
 message NodeEvalResult {
-  // Output values.
+  // Output data.
   repeated DistData outputs = 1;
-
-  // Report values.
-  repeated DistData reports = 2;
 }

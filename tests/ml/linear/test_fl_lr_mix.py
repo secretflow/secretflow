@@ -1,6 +1,6 @@
 from dataclasses import dataclass
-from typing import List
 from sys import platform
+from typing import List
 
 import numpy as np
 import pytest
@@ -10,7 +10,7 @@ from sklearn.metrics import roc_auc_score
 
 import secretflow as sf
 import secretflow.distributed as sfd
-from secretflow.data.base import Partition
+from secretflow.data.base import partition
 from secretflow.data.mix import MixDataFrame
 from secretflow.data.split import train_test_split
 from secretflow.data.vertical import VDataFrame
@@ -18,6 +18,8 @@ from secretflow.ml.linear.fl_lr_mix import FlLogisticRegressionMix
 from secretflow.preprocessing.scaler import StandardScaler
 from secretflow.security.aggregation import SecureAggregator
 from tests.cluster import cluster, set_self_party
+
+# from secretflow.ml.linear.interconnection.router_hooks import RouterLrAggrHook
 
 
 @dataclass
@@ -40,7 +42,12 @@ def env(request, sf_party_for_4pc):
         num_cpus=8,
         log_to_driver=True,
         cluster_config=cluster(),
-        exit_on_failure_cross_silo_sending=True,
+        cross_silo_comm_backend='brpc_link',
+        cross_silo_comm_options={
+            'exit_on_sending_failure': True,
+            'http_max_payload_size': 5 * 1024 * 1024,
+            'recv_timeout_ms': 1800 * 1000,
+        },
         enable_waiting_for_other_parties_ready=False,
     )
 
@@ -72,14 +79,14 @@ def env(request, sf_party_for_4pc):
     ]
     x = VDataFrame(
         partitions={
-            devices.alice: Partition(devices.alice(lambda: feat_list[0])()),
-            devices.bob: Partition(devices.bob(lambda: feat_list[1])()),
-            devices.carol: Partition(devices.carol(lambda: feat_list[2])()),
+            devices.alice: partition(devices.alice(lambda: feat_list[0])()),
+            devices.bob: partition(devices.bob(lambda: feat_list[1])()),
+            devices.carol: partition(devices.carol(lambda: feat_list[2])()),
         }
     )
     x = StandardScaler().fit_transform(x)
     y = VDataFrame(
-        partitions={devices.alice: Partition(devices.alice(lambda: label)())}
+        partitions={devices.alice: partition(devices.alice(lambda: label)())}
     )
     x1, x2 = train_test_split(x, train_size=0.5, shuffle=False)
     y1, y2 = train_test_split(y, train_size=0.5, shuffle=False)
@@ -87,7 +94,7 @@ def env(request, sf_party_for_4pc):
     # davy holds same x
     x2_davy = x2.partitions[devices.carol].data.to(devices.davy)
     del x2.partitions[devices.carol]
-    x2.partitions[devices.davy] = Partition(x2_davy)
+    x2.partitions[devices.davy] = partition(x2_davy)
 
     yield devices, {
         'x': MixDataFrame(partitions=[x1, x2]),
@@ -96,6 +103,7 @@ def env(request, sf_party_for_4pc):
     }
     del devices
     sf.shutdown()
+
 
 @pytest.mark.skipif(platform == 'darwin', reason="macOS has accuracy issue")
 def test_model_should_ok_when_fit_dataframe(env):
@@ -121,7 +129,7 @@ def test_model_should_ok_when_fit_dataframe(env):
         learning_rate=0.1,
         aggregators=[aggregator0, aggregator1],
         heus=[devices.heu0, devices.heu1],
-        # aggr_hooks=[RouterLrAggrHook(devices.alice)]
+        # aggr_hooks=[RouterLrAggrHook(devices.alice)],
     )
 
     y_pred = np.concatenate(sf.reveal(model.predict(data['x'])))

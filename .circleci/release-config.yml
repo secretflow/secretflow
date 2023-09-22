@@ -11,6 +11,9 @@ parameters:
   GHA_Event:
     type: string
     default: ""
+  GHA_Meta:
+    type: string
+    default: ""
 
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/2.0/configuration-reference/#jobs
@@ -29,18 +32,18 @@ jobs:
           name: "build package and publish"
           command: |
             conda create -n build python=<< parameters.python_ver >> -y
-            conda activate build  
+            conda activate build
 
             python3 setup.py bdist_wheel
             python3 setup.py clean
             python3 setup.py bdist_wheel --lite
-            
+
             ls dist/*.whl
             python3 -m pip install twine
             python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
   macOS_x64_publish:
     macos:
-      xcode: 13.0.0
+      xcode: 14.2
     environment:
       HOMEBREW_NO_AUTO_UPDATE: 1
     resource_class: macos.x86.medium.gen2
@@ -53,7 +56,7 @@ jobs:
           name: Install dependencies
           command: |
             brew install bazel cmake ninja nasm libomp wget
-            (cd "/usr/local/Cellar/bazel/4.2.1/libexec/bin" && curl -fLO https://releases.bazel.build/5.4.1/release/bazel-5.4.1-darwin-x86_64 && chmod +x bazel-5.4.1-darwin-x86_64)
+            (cd "/usr/local/Cellar/bazel/5.3.2/libexec/bin" && curl -fLO https://releases.bazel.build/5.4.1/release/bazel-5.4.1-darwin-x86_64 && chmod +x bazel-5.4.1-darwin-x86_64)
       - run:
           name: Install Miniconda
           command: |
@@ -99,7 +102,7 @@ jobs:
             conda init bash zsh
       - run:
           name: "build package and publish"
-          command: |            
+          command: |
             conda create -n build python=<< parameters.python_ver >> -y
             conda activate build
 
@@ -110,11 +113,37 @@ jobs:
             ls dist/*.whl
             python3 -m pip install twine
             python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
+  docker_image_publish:
+    docker:
+      - image: cimg/deploy:2023.06.1
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build Docker image
+          command: |
+            # Install miniconda
+            wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+            bash Miniconda3-latest-Linux-x86_64.sh -b
+
+            # get version first
+            printf "from datetime import date\ntoday = date.today()\ndstr = today.strftime(\"%%Y%%m%%d\")\n__version__ = __version__.replace(\"\$\$DATE\$\$\", dstr)\nprint(__version__)" >> secretflow/version.py
+            VERSION=$(~/miniconda3/bin/python secretflow/version.py)
+
+            # restore changed file
+            git checkout secretflow/version.py
+
+            # login docker
+            docker login -u secretflow -p ${DOCKER_DEPLOY_TOKEN}
+
+            # Build image
+            cd docker/release
+            bash ./build.sh -l -v ${VERSION}
+
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
   publish:
-    when: << pipeline.parameters.GHA_Action >>
     jobs:
       - linux_publish:
           matrix:
@@ -129,3 +158,6 @@ workflows:
           matrix:
             parameters:
               python_ver: ["3.8"]
+      - docker_image_publish:
+          requires:
+            - linux_publish
