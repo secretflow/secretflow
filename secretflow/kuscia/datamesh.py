@@ -42,7 +42,7 @@ def create_channel(address: str):
             env_client_key_file, 'rb'
         ) as client_key, open(env_trusted_ca_file, 'rb') as trusted_ca:
             credentials = grpc.ssl_channel_credentials(
-                trusted_ca, client_key, client_cert
+                trusted_ca.read(), client_key.read(), client_cert.read()
             )
             channel = grpc.secure_channel(address, credentials)
     else:

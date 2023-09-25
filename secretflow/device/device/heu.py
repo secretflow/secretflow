@@ -686,3 +686,19 @@ class HEU(Device):
 
     def __call__(self, fn, *, num_returns=None, static_argnames=None):
         raise NotImplementedError("Heu function call is not implemented")
+
+
+def heu_from_base_config(
+    base_heu_config: dict, new_sk_keeper: str, new_evaluators: List[str]
+):
+    """Create a HEU from an existing heu config, except replacing it with new sk keeper and new evaluators"""
+    heu_config = {
+        "sk_keeper": {"party": new_sk_keeper},
+        "evaluators": [{"party": p} for p in new_evaluators],
+        "mode": base_heu_config["mode"],
+        "he_parameters": {
+            "schema": base_heu_config["schema"],
+            "key_pair": {"generate": {"bit_size": base_heu_config["key_size"]}},
+        },
+    }
+    return HEU((heu_config), spu.spu_pb2.FM64)

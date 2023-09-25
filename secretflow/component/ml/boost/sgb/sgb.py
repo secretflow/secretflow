@@ -14,8 +14,6 @@
 import json
 import os
 
-import spu
-
 from secretflow.component.component import Component, IoType
 from secretflow.component.data_utils import (
     DistDataType,
@@ -26,7 +24,7 @@ from secretflow.component.data_utils import (
     model_loads,
     save_prediction_csv,
 )
-from secretflow.device.device.heu import HEU
+from secretflow.device.device.heu import heu_from_base_config
 from secretflow.device.device.pyu import PYU
 from secretflow.device.driver import wait
 from secretflow.ml.boost.sgb_v import Sgb, SgbModel
@@ -330,23 +328,16 @@ def sgb_train_eval_fn(
     train_dataset,
     output_model,
 ):
+    assert ctx.heu_config is not None, "need heu config in SFClusterDesc"
+
     y = load_table(ctx, train_dataset, load_labels=True)
     x = load_table(ctx, train_dataset, load_features=True)
-
-    assert ctx.heu_config is not None, "need heu config in SFClusterDesc"
     label_party = next(iter(y.partitions.keys())).party
-    heu_config = {
-        "sk_keeper": {"party": label_party},
-        "evaluators": [
-            {"party": p.party} for p in x.partitions if p.party != label_party
-        ],
-        "mode": ctx.heu_config["mode"],
-        "he_parameters": {
-            "schema": ctx.heu_config["schema"],
-            "key_pair": {"generate": {"bit_size": ctx.heu_config["key_size"]}},
-        },
-    }
-    heu = HEU((heu_config), spu.spu_pb2.FM64)
+    heu = heu_from_base_config(
+        ctx.heu_config,
+        label_party,
+        [p.party for p in x.partitions if p.party != label_party],
+    )
 
     with ctx.tracer.trace_running():
         sgb = Sgb(heu)
