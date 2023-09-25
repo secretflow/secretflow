@@ -9,7 +9,7 @@ SecretFlow uses Ray as its distributed framework. A Ray cluster consists of a he
 Kuscia is a K8s-based privacy computing task orchestration framework.
 It provides a unified privacy computing foundation that can abstract away heterogeneous infrastructure and protocols.
 
-With Kuscia, you can easily manage and execute SecretFlow jobs through kubectl commands or apis without paying attention to the details of SecretFlow networking.
+With Kuscia, you can easily manage and execute SecretFlow jobs through kubectl commands or apis without paying attention to the details of SecretFlow networking. 
 In addition, Kuscia supports communication security and running SecretFlow jobs concurrently.
 
 If you need to use SecretFlow in your business, it is recommended to deploy and run SecretFlow based on Kuscia.

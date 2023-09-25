@@ -155,9 +155,7 @@ class LogroundTransformer(_FunctionTransformer):
 
     def __init__(self, decimals: int = 6, bias: float = 0.5):
         def _loground(
-            x: Union[pd.DataFrame, "pl.DataFrame"],
-            _decimals: int = 6,
-            _bias: float = 0.5,
+            x: Union[pd.DataFrame, "pl.DataFrame"], _decimals: int = 6, _bias: float = 0.5
         ) -> pd.DataFrame:
             if isinstance(x, pd.DataFrame):
                 return x.add(_bias).apply(np.log2).round(decimals=_decimals)

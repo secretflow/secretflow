@@ -12,6 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
+## [1.2.0.dev230925] - 2023-9-25
+
+### Changed
+- update psi benchmark.
+
+### Fixed
+- fix tls on kuscia.
+
 ## [1.2.0.dev230918] - 2023-9-18
 
 ### Added

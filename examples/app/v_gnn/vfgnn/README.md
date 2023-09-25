@@ -1,8 +1,8 @@
 # VFGNN
 IJCAI-ECAI2022
 ![Alt text](image.png)
-reference:
-[隐语小课](https://zhuanlan.zhihu.com/p/569035607)
+reference:  
+[隐语小课](https://zhuanlan.zhihu.com/p/569035607)  
 [论文链接](https://arxiv.org/abs/2005.11903)
 
 ## How to run
