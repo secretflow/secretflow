@@ -12,6 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
+## [1.2.0.dev230926] - 2023-9-26
+
+### Changed
+- component: expose cross_silo_comm_backend option for secretflow init.
+
+### Fixed
+- SPU device: rm invalid use_link option.
+
 ## [1.2.0.dev230925] - 2023-9-25
 
 ### Changed
