@@ -18,12 +18,12 @@ from typing import Dict, Union
 import numpy as np
 import pandas as pd
 
-from secretflow.data.base import DataFrameBase, Partition
-from secretflow.data.ndarray import FedNdarray, PartitionWay
 from secretflow.device import PYU, reveal
 from secretflow.security.aggregation.aggregator import Aggregator
 from secretflow.security.compare.comparator import Comparator
 from secretflow.utils.errors import InvalidArgumentError
+from ..base import DataFrameBase, PartitionBase
+from ..ndarray import FedNdarray, PartitionWay
 
 
 @dataclass
@@ -47,7 +47,7 @@ class HDataFrame(DataFrameBase):
 
     Examples:
         >>> from secretflow.data.horizontal import read_csv
-        >>> from secretflow.security.aggregation import PlainAggregator, PlainComparator
+        >>> from secretflow.security.aggregation import PlainAggregator
         >>> from secretflow import PYU
         >>> alice = PYU('alice')
         >>> bob = PYU('bob')
@@ -84,7 +84,7 @@ class HDataFrame(DataFrameBase):
         >>> h_df.fillna({'sepal_length': 2})
     """
 
-    partitions: Dict[PYU, Partition] = field(default_factory=dict)
+    partitions: Dict[PYU, PartitionBase] = field(default_factory=dict)
     aggregator: Aggregator = None
     comparator: Comparator = None
 
@@ -247,12 +247,12 @@ class HDataFrame(DataFrameBase):
         )
 
     @property
-    def dtypes(self) -> pd.Series:
+    def dtypes(self):
         """
         Return the dtypes in the DataFrame.
 
         Returns:
-            pd.Series: the data type of each column.
+            dict: the data type of each column.
         """
         self._check_parts()
         return list(self.partitions.values())[0].dtypes
@@ -289,7 +289,7 @@ class HDataFrame(DataFrameBase):
         """Return a tuple representing the dimensionality of the DataFrame."""
         self._check_parts()
         shapes = [part.shape for part in self.partitions.values()]
-        return (sum([shape[0] for shape in shapes]), shapes[0][1])
+        return sum([shape[0] for shape in shapes]), shapes[0][1]
 
     @reveal
     def partition_shape(self):
@@ -443,7 +443,7 @@ class HDataFrame(DataFrameBase):
             )
             for pyu, part in value.partitions.items():
                 self.partitions[pyu][key] = part
-        elif isinstance(value, Partition):
+        elif isinstance(value, PartitionBase):
             assert (
                 value.data.device in self.partitions
             ), f'Partition to assgin is not in this dataframe pyu list.'
@@ -451,3 +451,10 @@ class HDataFrame(DataFrameBase):
         else:
             for part in self.partitions.values():
                 part[key] = value
+
+    def to_pandas(self):
+        return HDataFrame(
+            partitions={pyu: part.to_pandas() for pyu, part in self.partitions.items()},
+            aggregator=self.aggregator,
+            comparator=self.comparator,
+        )

@@ -20,10 +20,8 @@ from typing import Callable, Dict, List, Optional, Tuple, Union
 import jax.numpy as jnp
 import numpy as np
 
-from secretflow.data.io import util as io_util
 from secretflow.device import PYU, SPU, PYUObject, reveal
 from secretflow.utils.errors import InvalidArgumentError
-
 from .math_utils import (
     mean_of_difference_abs,
     mean_of_difference_ratio_abs,
@@ -32,6 +30,7 @@ from .math_utils import (
     sum_of_difference_ratio_abs,
     sum_of_difference_squares,
 )
+from ..io import util as io_util
 
 # 下面的函数是同时支持水平和垂直的。
 __ndarray = "__ndarray_type__"

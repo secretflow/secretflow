@@ -27,7 +27,7 @@ from typing import Callable, Dict, Iterable, List, Tuple, Union
 from multiprocess import cpu_count
 from tqdm import tqdm
 
-from secretflow.data.base import Partition
+from secretflow.data.base import PartitionBase
 from secretflow.data.horizontal import HDataFrame
 from secretflow.data.ndarray import FedNdarray
 from secretflow.data.vertical import VDataFrame
@@ -144,6 +144,11 @@ class SLModel:
     ):
         if isinstance(x, (VDataFrame, FedNdarray)):
             x = [x]
+        for i in range(len(x)):
+            if isinstance(x[i], (VDataFrame, HDataFrame)):
+                x[i] = x[i].to_pandas()
+        if isinstance(y, (VDataFrame)):
+            y = y.to_pandas()
         worker_steps = []
         for device, worker in self._workers.items():
             if device == self.device_y and y is not None:
@@ -169,7 +174,7 @@ class SLModel:
                 xs = (
                     [
                         xi.partitions[device].data  # xi is FedDataframe
-                        if isinstance(xi.partitions[device], Partition)
+                        if isinstance(xi.partitions[device], PartitionBase)
                         else xi.partitions[device]  # xi is FedNdarray
                         for xi in x
                     ]
@@ -203,7 +208,7 @@ class SLModel:
                     if device in self.base_model_dict
                     else [None]
                 )
-                xs = [t.data if isinstance(t, Partition) else t for t in xs]
+                xs = [t.data if isinstance(t, PartitionBase) else t for t in xs]
                 worker.build_dataset_from_numeric(
                     *xs,
                     y=y_partitions,

@@ -82,7 +82,7 @@ def test_compose_sf_cluster_config():
         sf_storage_config,
     )
 
-    assert list(sf_cluster_config.public_config.rayfed_config.addresses) == [
+    assert list(sf_cluster_config.public_config.ray_fed_config.addresses) == [
         "0.0.0.0:1234",
         "1.2.3.4:80",
         "1.2.3.6:2345",

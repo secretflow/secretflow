@@ -4,8 +4,8 @@ import tempfile
 import pandas as pd
 
 from secretflow import reveal
-from secretflow.data.base import Partition
 from secretflow.data.horizontal import HDataFrame, read_csv
+from secretflow.data.base import partition
 
 
 def cleartmp(paths):
@@ -32,11 +32,11 @@ def test_read_csv_and_to_csv_should_ok(sf_production_setup_devices):
 
     df = HDataFrame(
         {
-            sf_production_setup_devices.alice: Partition(
-                sf_production_setup_devices.alice(lambda df: df)(df1)
+            sf_production_setup_devices.alice: partition(
+                sf_production_setup_devices.alice(lambda df: df)(df1), "pandas"
             ),
-            sf_production_setup_devices.bob: Partition(
-                sf_production_setup_devices.bob(lambda df: df)(df2)
+            sf_production_setup_devices.bob: partition(
+                sf_production_setup_devices.bob(lambda df: df)(df2), "pandas"
             ),
         }
     )

@@ -10,7 +10,7 @@ from sklearn.metrics import roc_auc_score
 
 import secretflow as sf
 import secretflow.distributed as sfd
-from secretflow.data.base import Partition
+from secretflow.data.base import partition
 from secretflow.data.mix import MixDataFrame
 from secretflow.data.split import train_test_split
 from secretflow.data.vertical import VDataFrame
@@ -79,14 +79,14 @@ def env(request, sf_party_for_4pc):
     ]
     x = VDataFrame(
         partitions={
-            devices.alice: Partition(devices.alice(lambda: feat_list[0])()),
-            devices.bob: Partition(devices.bob(lambda: feat_list[1])()),
-            devices.carol: Partition(devices.carol(lambda: feat_list[2])()),
+            devices.alice: partition(devices.alice(lambda: feat_list[0])()),
+            devices.bob: partition(devices.bob(lambda: feat_list[1])()),
+            devices.carol: partition(devices.carol(lambda: feat_list[2])()),
         }
     )
     x = StandardScaler().fit_transform(x)
     y = VDataFrame(
-        partitions={devices.alice: Partition(devices.alice(lambda: label)())}
+        partitions={devices.alice: partition(devices.alice(lambda: label)())}
     )
     x1, x2 = train_test_split(x, train_size=0.5, shuffle=False)
     y1, y2 = train_test_split(y, train_size=0.5, shuffle=False)
@@ -94,7 +94,7 @@ def env(request, sf_party_for_4pc):
     # davy holds same x
     x2_davy = x2.partitions[devices.carol].data.to(devices.davy)
     del x2.partitions[devices.carol]
-    x2.partitions[devices.davy] = Partition(x2_davy)
+    x2.partitions[devices.davy] = partition(x2_davy)
 
     yield devices, {
         'x': MixDataFrame(partitions=[x1, x2]),

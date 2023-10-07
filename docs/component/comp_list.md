@@ -6,7 +6,7 @@ SecretFlow Component List
 =========================
 
 
-Last update: Wed Aug 16 15:20:41 2023
+Last update: Mon Sep 18 16:30:27 2023
 
 Version: 0.0.1
 
@@ -402,7 +402,7 @@ linear models for vertical partitioning dataset with mini batch SGD training sol
 |reg_type|Regression type|String|N|Default: logistic. Allowed: ['linear', 'logistic'].|
 |penalty|The penalty(aka regularization term) to be used.|String|N|Default: None. Allowed: ['None', 'l1', 'l2'].|
 |l2_norm|L2 regularization term.|Float|N|Default: 0.5. Range: [0.0, $\infty$).|
-|eps|If the change rate of weights is less than this threshold, the model is considered to be converged, and the training stops early. 0 to disable.|Float|N|Default: 0.001. Range: (0.0, $\infty$).|
+|eps|If the change rate of weights is less than this threshold, the model is considered to be converged, and the training stops early. 0 to disable.|Float|N|Default: 0.001. Range: [0.0, $\infty$).|
 
 #### Inputs
 

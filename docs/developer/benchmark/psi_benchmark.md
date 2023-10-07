@@ -97,6 +97,7 @@ root目录下输入python然后回车；
 ![](./resources/9bab546b-6578-4ff7-b8f7-9f26ab4df46a.png)
 
 ### 四、创建节点并启动集群
+配置示例使用集群模式仿真模式，其它模式请参考secretfow部署文档。
 #### 创建ray header节点
 创建ray header节点，选择一台机器为主机，在主机上执行如下命令，ip替换为主机的内网ip，命名为alice，端口选择一个空闲端口即可
 注意：192.168.0.1 ip为mock的，请替换为实际的ip地址
@@ -145,9 +146,9 @@ python3 generate_psi.py 100000000
 
 #### 限制宽带/延迟
 ```
-#100Mbps 20ms
+#100Mbps 10ms
  tc qdisc add dev eth0 root handle 1: tbf rate 100mbit burst 256kb latency 800ms                                    
- tc qdisc add dev eth0 parent 1:1 handle 10: netem delay 20msec limit 8000 
+ tc qdisc add dev eth0 parent 1:1 handle 10: netem delay 10msec limit 8000 
 
 清除限制
 tc qdisc del dev eth0 root
@@ -245,11 +246,12 @@ if __name__ == '__main__':
 
 ### 五、Benchmark报告
 ![](./resources/7629c228-bc51-4ef7-93e9-9f0c465d025d.png)
+
 目前bechmark数据中，bc22 psi的性能还在进一步工程优化， 单测spu中bc22协议内核的性能对比可以参考
 [pcg psi](https://mp.weixin.qq.com/s?__biz=MzA5NTQ0MTI4OA==&mid=2456927355&idx=1&sn=832269f138e35f031bc2bdcd63f05520&chksm=873a449cb04dcd8a4dacd4cec0ccc7c147219a76f36a6d694f26b7c2a27d03be8f968578fab4&scene=21#wechat_redirect)的介绍。
 
-- ECDH：对网络配置不敏感，对计算资源敏感，通常用于多方数据量均衡时，带宽在100M及以下时计算速度比KKRT快，带宽小于等于100M时推荐；
-- KKRT：网络设置为100Mbps时，带宽成为瓶颈。通常用于两方数据量均衡时，高带宽时计算速度快，带宽大于等于1000M时推荐；
+- ECDH：对网络配置不敏感，对计算资源敏感，适合带宽较低、计算配置较高的使用场景；
+- KKRT：网络设置为100Mbps时，带宽成为瓶颈。通常用于两方数据量均衡时，适合高带宽的使用场景；
 
 
 

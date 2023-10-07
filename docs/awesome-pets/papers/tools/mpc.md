@@ -266,14 +266,6 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   *Marcel Keller*
   CCS 2020, [eprint](https://eprint.iacr.org/2020/521), Kel20
 
-- Generic Compiler for Publicly Verifiable Covert Multi-Party Computation  
-  *Sebastian Faust, Carmit Hazay, David Kretzler, and Benjamin Schlosser*  
-  EUROCRYPT 2021, [eprint](https://eprint.iacr.org/2021/251), FHKS21  
-    
-- Black-Box Transformations from Passive to Covert Security with Public Verifiability   
-  *Ivan Damg˚ard, Claudio Orlandi, and Mark Simkin*  
-  CRYPTO 2020, [eprint](https://eprint.iacr.org/2020/916), DOS20   
-    
 - Covert Security with Public Verifiability: Faster, Leaner, and Simpler
   *Cheng Hong, Jonathan Katz, Vladimir Kolesnikov, Wen-jie Lu, Xiao Wang*
   EuroCrypt 2019, [eprint](https://eprint.iacr.org/2018/1108), HKKL+19

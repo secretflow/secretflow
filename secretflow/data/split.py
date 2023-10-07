@@ -19,9 +19,9 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split as _train_test_split
 
-from secretflow.data.base import Partition
 from secretflow.data.horizontal.dataframe import HDataFrame
 from secretflow.data.ndarray import FedNdarray
+from secretflow.data.base import partition
 from secretflow.data.vertical.dataframe import VDataFrame
 
 
@@ -46,7 +46,7 @@ def train_test_split(
 
     Examples:
         >>> import numpy as np
-        >>> from secret.data.split import train_test_split
+        >>> from secretflow.data.split import train_test_split
         >>> # FedNdarray
         >>> alice_arr = alice(lambda: np.array([[1, 2, 3], [4, 5, 6]]))()
         >>> bob_arr = bob(lambda: np.array([[11, 12, 13], [14, 15, 16]]))()
@@ -89,7 +89,8 @@ def train_test_split(
     assert isinstance(random_state, int), f'random_state must be an integer'
 
     def split(*args, **kwargs) -> Tuple[object, object]:
-        assert type(args[0]) in [np.ndarray, pd.DataFrame]
+        # FIXME: the input may be pl.DataFrame or others.
+        # assert type(args[0]) in [np.ndarray, pd.DataFrame]
         if len(args[0].shape) == 0:
             if type(args[0]) == np.ndarray:
                 return np.array(None), np.array(None)
@@ -114,19 +115,31 @@ def train_test_split(
 
     if isinstance(data, VDataFrame):
         return VDataFrame(
-            partitions={pyu: Partition(data=part) for pyu, part in parts_train.items()},
+            partitions={
+                pyu: partition(data=part, backend=data.partitions[pyu].backend)
+                for pyu, part in parts_train.items()
+            },
             aligned=data.aligned,
         ), VDataFrame(
-            partitions={pyu: Partition(data=part) for pyu, part in parts_test.items()},
+            partitions={
+                pyu: partition(data=part, backend=data.partitions[pyu].backend)
+                for pyu, part in parts_test.items()
+            },
             aligned=data.aligned,
         )
     elif isinstance(data, HDataFrame):
         return HDataFrame(
-            partitions={pyu: Partition(data=part) for pyu, part in parts_train.items()},
+            partitions={
+                pyu: partition(data=part, backend=data.partitions[pyu].backend)
+                for pyu, part in parts_train.items()
+            },
             aggregator=data.aggregator,
             comparator=data.comparator,
         ), HDataFrame(
-            partitions={pyu: Partition(data=part) for pyu, part in parts_test.items()},
+            partitions={
+                pyu: partition(data=part, backend=data.partitions[pyu].backend)
+                for pyu, part in parts_test.items()
+            },
             aggregator=data.aggregator,
             comparator=data.comparator,
         )

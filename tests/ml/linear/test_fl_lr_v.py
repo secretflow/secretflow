@@ -8,7 +8,7 @@ from sklearn.metrics import roc_auc_score
 
 import secretflow as sf
 import secretflow.distributed as sfd
-from secretflow.data.base import Partition
+from secretflow.data.base import partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.ml.linear.fl_lr_v import FlLogisticRegressionVertical
 from secretflow.preprocessing import StandardScaler
@@ -71,14 +71,14 @@ def env(request, sf_party_for_4pc):
     ]
     x = VDataFrame(
         partitions={
-            devices.alice: Partition(devices.alice(lambda: feat_list[0])()),
-            devices.bob: Partition(devices.bob(lambda: feat_list[1])()),
-            devices.carol: Partition(devices.carol(lambda: feat_list[2])()),
+            devices.alice: partition(devices.alice(lambda: feat_list[0])()),
+            devices.bob: partition(devices.bob(lambda: feat_list[1])()),
+            devices.carol: partition(devices.carol(lambda: feat_list[2])()),
         }
     )
     x = StandardScaler().fit_transform(x)
     y = VDataFrame(
-        partitions={devices.alice: Partition(devices.alice(lambda: label)())}
+        partitions={devices.alice: partition(devices.alice(lambda: label)())}
     )
 
     yield devices, {
@@ -159,7 +159,7 @@ def test_fit_should_error_when_mismatch_heu_sk_keeper(env):
     )
     x = data['x'].values
     y = VDataFrame(
-        partitions={devices.bob: Partition(devices.bob(lambda: [1, 2, 3])())}
+        partitions={devices.bob: partition(devices.bob(lambda: [1, 2, 3])())}
     )
 
     # WHEN

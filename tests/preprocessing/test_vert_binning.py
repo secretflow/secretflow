@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 
 import secretflow.distributed as sfd
-from secretflow.data.base import Partition
+from secretflow.data.base import partition
 from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.device.driver import reveal
 from secretflow.preprocessing.binning.vert_woe_binning import VertWoeBinning
@@ -58,10 +58,10 @@ def prod_env_and_data(sf_production_setup_devices):
     normal_data['x2'] = np.random.randint(0, 5, (row_num,))
     v_float_data = VDataFrame(
         {
-            sf_production_setup_devices.alice: Partition(
+            sf_production_setup_devices.alice: partition(
                 data=sf_production_setup_devices.alice(lambda: normal_data)()
             ),
-            sf_production_setup_devices.bob: Partition(
+            sf_production_setup_devices.bob: partition(
                 data=sf_production_setup_devices.bob(
                     lambda: normal_data.drop("y", axis=1)
                 )()
@@ -93,10 +93,10 @@ def prod_env_and_data(sf_production_setup_devices):
 
     v_nan_data = VDataFrame(
         {
-            sf_production_setup_devices.alice: Partition(
+            sf_production_setup_devices.alice: partition(
                 data=sf_production_setup_devices.alice(lambda: nan_str_data)()
             ),
-            sf_production_setup_devices.bob: Partition(
+            sf_production_setup_devices.bob: partition(
                 data=sf_production_setup_devices.bob(
                     lambda: nan_str_data.drop("y", axis=1)
                 )()

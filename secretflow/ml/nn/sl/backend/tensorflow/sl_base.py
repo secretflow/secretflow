@@ -154,6 +154,9 @@ class SLBaseTFModel(SLBaseModel):
             stage: stage of this datset
             random_seed: Prg seed for shuffling
         """
+        assert (
+            x is not None or y is not None
+        ), f"At least one of feature(x) and label(y) is not None."
         data_tuple = []
         has_x = False
         if x is not None:
@@ -223,6 +226,9 @@ class SLBaseTFModel(SLBaseModel):
             stage: stage of this datset
             dataset_builder: dataset build callable function of worker
         """
+        assert (
+            x is not None or y is not None
+        ), f"At least one of feature(x) and label(y) is not None."
         if not dataset_builder:
             return -1
         data_tuple = []

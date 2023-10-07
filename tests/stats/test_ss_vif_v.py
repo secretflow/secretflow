@@ -3,7 +3,7 @@ import pandas as pd
 import sklearn
 from statsmodels.stats.outliers_influence import variance_inflation_factor as vif
 
-from secretflow.data.base import Partition
+from secretflow.data.base import partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.device.driver import reveal
 from secretflow.stats import SSVertVIF
@@ -50,10 +50,10 @@ def test_breast_cancer(sf_production_setup_devices):
     data = pd.DataFrame(nd_data, copy=True)
     vdata = VDataFrame(
         partitions={
-            sf_production_setup_devices.alice: Partition(
+            sf_production_setup_devices.alice: partition(
                 sf_production_setup_devices.alice(lambda: alice_df)()
             ),
-            sf_production_setup_devices.bob: Partition(
+            sf_production_setup_devices.bob: partition(
                 sf_production_setup_devices.bob(lambda: bob_df)()
             ),
         }
@@ -74,10 +74,10 @@ def test_const_col_data(sf_production_setup_devices):
     data = pd.DataFrame(nd_data, copy=True)
     vdata = VDataFrame(
         partitions={
-            sf_production_setup_devices.alice: Partition(
+            sf_production_setup_devices.alice: partition(
                 sf_production_setup_devices.alice(lambda: alice_df)()
             ),
-            sf_production_setup_devices.bob: Partition(
+            sf_production_setup_devices.bob: partition(
                 sf_production_setup_devices.bob(lambda: bob_df)()
             ),
         }
@@ -98,10 +98,10 @@ def test_linear_col_data(sf_production_setup_devices):
     data = pd.DataFrame(nd_data, copy=True)
     vdata = VDataFrame(
         partitions={
-            sf_production_setup_devices.alice: Partition(
+            sf_production_setup_devices.alice: partition(
                 sf_production_setup_devices.alice(lambda: alice_df)()
             ),
-            sf_production_setup_devices.bob: Partition(
+            sf_production_setup_devices.bob: partition(
                 sf_production_setup_devices.bob(lambda: bob_df)()
             ),
         }
