@@ -1,15 +1,28 @@
+# Copyright 2023 Zeping Zhang
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from torch.utils.data import DataLoader, random_split, Subset, ConcatDataset
+from torch.utils.data import DataLoader, random_split
+from torch.utils.tensorboard import SummaryWriter
 from torchvision.datasets import *
 from torchvision.transforms.transforms import *
 from torchvision.transforms.functional import *
 from tqdm import tqdm
-from torchplus.utils import Init, ClassificationAccuracy
-from torchplus.distributed import FederatedAverage
 
 if __name__ == '__main__':
     batch_size = 128
@@ -17,15 +30,24 @@ if __name__ == '__main__':
     log_epoch = 4
     class_num = 10
     client_num = 2
-    root_dir = "D:/log/splitlearning/logZZPMAIN"
+    root_dir = "./log/splitlearning/logZZPMAIN"
+    log_dir = root_dir
     h = 32
     w = 32
 
-    init = Init(seed=9970, log_root_dir=root_dir,
-                backup_filename=__file__, tensorboard=True, comment=f'main split learning MNIST')
-    output_device = init.get_device()
-    writer = init.get_writer()
-    log_dir = init.get_log_dir()
+    def fedavg(m):
+        n = len(m)
+        w = m[0].state_dict()
+        for k in w:
+            for i in range(1, n):
+                w[k] += m[i].state_dict()[k]
+            w[k] = (w[k] / n).to(w[k].dtype)
+        for i in range(n):
+            m[i].load_state_dict(w)
+        return m
+
+    output_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    writer = SummaryWriter(log_dir=log_dir)
     data_workers = 2
 
     transform = Compose([
@@ -142,14 +164,12 @@ if __name__ == '__main__':
                 optimizer_cli_list[client_id].step()
                 optimizer_server.step()
 
-        client_list = FederatedAverage(client_list)
+        client_list = fedavg(client_list)
 
         if epoch_id % log_epoch == 0:
-            train_ca = ClassificationAccuracy(class_num)
             after_softmax = F.softmax(out, dim=-1)
             predict = torch.argmax(after_softmax, dim=-1)
-            train_ca.accumulate(label=label, predict=predict)
-            acc_train = train_ca.get()
+            acc_train=torch.count_nonzero(label==predict)/label.shape[0]
             writer.add_scalar('loss', loss, epoch_id)
             writer.add_scalar('acc_training', acc_train, epoch_id)
             with open(os.path.join(log_dir, f'client_{epoch_id}.pkl'), 'wb') as f:
@@ -161,7 +181,7 @@ if __name__ == '__main__':
                 client_0.eval()
                 r = 0
                 celoss = 0
-                test_ca = ClassificationAccuracy(class_num)
+                acc_test=0
                 for i, (im, label) in enumerate(tqdm(train_dl, desc='testing train')):
                     r += 1
                     im = im.to(output_device)
@@ -172,17 +192,17 @@ if __name__ == '__main__':
                     ce = nn.CrossEntropyLoss()(out, label)
                     after_softmax = F.softmax(out, dim=-1)
                     predict = torch.argmax(after_softmax, dim=-1)
-                    test_ca.accumulate(label=label, predict=predict)
+                    acc_test+=torch.count_nonzero(label==predict)/label.shape[0]
                     celoss += ce
 
                 celossavg = celoss/r
-                acc_test = test_ca.get()
+                acc_test=acc_test/r
                 writer.add_scalar('train loss', celossavg, epoch_id)
                 writer.add_scalar('acc_train', acc_test, epoch_id)
 
                 r = 0
                 celoss = 0
-                test_ca = ClassificationAccuracy(class_num)
+                acc_test=0
                 for i, (im, label) in enumerate(tqdm(test_dl, desc='testing test')):
                     r += 1
                     im = im.to(output_device)
@@ -193,11 +213,11 @@ if __name__ == '__main__':
                     ce = nn.CrossEntropyLoss()(out, label)
                     after_softmax = F.softmax(out, dim=-1)
                     predict = torch.argmax(after_softmax, dim=-1)
-                    test_ca.accumulate(label=label, predict=predict)
+                    acc_test+=torch.count_nonzero(label==predict)/label.shape[0]
                     celoss += ce
 
                 celossavg = celoss/r
-                acc_test = test_ca.get()
+                acc_test=acc_test/r
                 writer.add_scalar('test loss', celossavg, epoch_id)
                 writer.add_scalar('acc_test', acc_test, epoch_id)
 

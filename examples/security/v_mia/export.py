@@ -1,32 +1,41 @@
+# Copyright 2023 Zeping Zhang
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 import torch
 import torch.nn as nn
-from torch.nn.parameter import Parameter
-import torch.nn.functional as F
-import torch.optim as optim
-from torch.utils.data import DataLoader, random_split, Subset, ConcatDataset
+from torch.utils.data import DataLoader
 from torchvision.datasets import *
+from torch.utils.tensorboard import SummaryWriter
 from torchvision.transforms.transforms import *
 from torchvision.transforms.functional import *
+from torchvision.utils import save_image
 from tqdm import tqdm
-from torchplus.utils import Init, save_excel,save_image2
-from torchplus.nn import PixelLoss
 
 if __name__ == '__main__':
     batch_size = 32
     class_num = 10
-    root_dir = "D:/log/splitlearning/logZZPMAIN.test"
-    feature_pkl = "D:/log/splitlearning/logZZPMAIN/Mar19_19-43-15_zzp-asus_main split learning MNIST/client_48.pkl"
-    cls_pkl = "D:/log/splitlearning/logZZPMAIN/Mar19_19-43-15_zzp-asus_main split learning MNIST/server_48.pkl"
-    inv_pkl = "D:/log/splitlearning/logZZPMAIN.attack/Model_Apr23_15-44-47_zzp-asus_mnist attack 50 sfl/myinversion_100.pkl"
+    root_dir = "./log/splitlearning/logZZPMAIN.test"
+    feature_pkl = "/path/to/your/client.pkl"
+    cls_pkl = "/path/to/your/server.pkl"
+    inv_pkl = "/path/to/your/myinversion.pkl"
+    log_dir = root_dir
     h = 32
     w = 32
 
-    init = Init(seed=9970, log_root_dir=root_dir,
-                backup_filename=__file__, tensorboard=True, comment=f'MNIST export')
-    output_device = init.get_device()
-    writer = init.get_writer()
-    log_dir = init.get_log_dir()
+    output_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    writer = SummaryWriter(log_dir=log_dir)
     data_workers = 4
 
     transform = Compose([
@@ -34,9 +43,9 @@ if __name__ == '__main__':
         ToTensor()
     ])
 
-    mnist_train_ds = MNIST(root='E:/datasets', train=True,
+    mnist_train_ds = MNIST(root='./datasets', train=True,
                              transform=transform, download=True)
-    mnist_test_ds = MNIST(root='E:/datasets', train=False,
+    mnist_test_ds = MNIST(root='./datasets', train=False,
                             transform=transform, download=True)
 
     mnist_train_ds_len = len(mnist_train_ds)
@@ -163,8 +172,8 @@ if __name__ == '__main__':
             feature8192 = feature_extractor.forward(im)
             out, feature = cls.forward(feature8192)
             rim = myinversion.forward(feature)
-            save_image2(im.detach(), f'{log_dir}/priv/input/{i}.png', nrow=4)
-            save_image2(rim.detach(), f'{log_dir}/priv/output/{i}.png', nrow=4)
+            save_image(im.detach(), f'{log_dir}/priv/input/{i}.png', nrow=4)
+            save_image(rim.detach(), f'{log_dir}/priv/output/{i}.png', nrow=4)
 
         for i, (im, label) in enumerate(tqdm(test_dl, desc=f'aux')):
             im = im.to(output_device)
@@ -173,7 +182,7 @@ if __name__ == '__main__':
             feature8192 = feature_extractor.forward(im)
             out, feature = cls.forward(feature8192)
             rim = myinversion.forward(feature)
-            save_image2(im.detach(), f'{log_dir}/aux/input/{i}.png', nrow=4)
-            save_image2(rim.detach(), f'{log_dir}/aux/output/{i}.png', nrow=4)
+            save_image(im.detach(), f'{log_dir}/aux/input/{i}.png', nrow=4)
+            save_image(rim.detach(), f'{log_dir}/aux/output/{i}.png', nrow=4)
 
     writer.close()

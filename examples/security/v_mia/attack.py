@@ -1,49 +1,64 @@
+# Copyright 2023 Zeping Zhang
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 import torch
 import torch.nn as nn
-from torch.nn.parameter import Parameter
-import torch.nn.functional as F
 import torch.optim as optim
-from torch.utils.data import DataLoader, random_split, Subset, ConcatDataset
+from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 from torchvision.datasets import *
 from torchvision.transforms.transforms import *
 from torchvision.transforms.functional import *
+from torchvision.utils import save_image
 from tqdm import tqdm
-from torchplus.utils import Init, class_split, save_excel, save_image2
 from piq import SSIMLoss
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     batch_size = 128
     train_epoches = 100
     log_epoch = 4
     class_num = 10
-    root_dir = "D:/log/splitlearning/logZZPMAIN.attack"
-    feature_pkl = "D:/log/splitlearning/logZZPMAIN/Mar19_19-43-15_zzp-asus_main split learning MNIST/client_48.pkl"
-    cls_pkl = "D:/log/splitlearning/logZZPMAIN/Mar19_19-43-15_zzp-asus_main split learning MNIST/server_48.pkl"
+    root_dir = "./log/splitlearning/logZZPMAIN.attack"
+    feature_pkl = "/path/to/your/client.pkl"
+    cls_pkl = "/path/to/your/server.pkl"
+    log_dir = root_dir
+    model_dir = root_dir
     h = 32
     w = 32
     lr = 0.01
     momentum = 0.9
     weight_decay = 0.0005
 
-    init = Init(seed=9970, log_root_dir=root_dir, sep=True,
-                backup_filename=__file__, tensorboard=True, comment=f'mnist attack 50 sfl')
-    output_device = init.get_device()
-    writer = init.get_writer()
-    log_dir, model_dir = init.get_log_dir()
+    output_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    writer = SummaryWriter(log_dir=log_dir)
+
     data_workers = 4
 
-    transform = Compose([
-        Resize((h, w)),
-        # RandomRotation(30),
-        # RandomHorizontalFlip(),
-        ToTensor(),
-    ])
+    transform = Compose(
+        [
+            Resize((h, w)),
+            ToTensor(),
+        ]
+    )
 
-    mnist_train_ds = MNIST(root='E:/datasets', train=True,
-                             transform=transform, download=True)
-    mnist_test_ds = MNIST(root='E:/datasets', train=False,
-                            transform=transform, download=True)
+    mnist_train_ds = MNIST(
+        root="./datasets", train=True, transform=transform, download=True
+    )
+    mnist_test_ds = MNIST(
+        root="./datasets", train=False, transform=transform, download=True
+    )
 
     mnist_train_ds_len = len(mnist_train_ds)
     mnist_test_ds_len = len(mnist_test_ds)
@@ -57,12 +72,21 @@ if __name__ == '__main__':
     print(train_ds_len)
     print(test_ds_len)
 
-    # for evaluate
-    train_dl = DataLoader(dataset=train_ds, batch_size=batch_size,
-                          shuffle=False, num_workers=data_workers, drop_last=False)
-    # for attack
-    test_dl = DataLoader(dataset=test_ds, batch_size=batch_size,
-                         shuffle=True, num_workers=data_workers, drop_last=True)
+    train_dl = DataLoader(
+        dataset=train_ds,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=data_workers,
+        drop_last=False,
+    )
+
+    test_dl = DataLoader(
+        dataset=test_ds,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=data_workers,
+        drop_last=True,
+    )
 
     train_dl_len = len(train_dl)
     test_dl_len = len(test_dl)
@@ -108,7 +132,7 @@ if __name__ == '__main__':
         def forward(self, x):
             feature = self.bottleneck(x)
             out = self.fc(feature)
-            return [out,feature]
+            return [out, feature]
 
     class Inversion(nn.Module):
         def __init__(self, in_channels):
@@ -145,28 +169,32 @@ if __name__ == '__main__':
     cls = CLS(8192, class_num, 50).train(False).to(output_device)
     myinversion = Inversion(50).train(True).to(output_device)
 
-    optimizer = optim.Adam(myinversion.parameters(), lr=0.0002,
-                           betas=(0.5, 0.999), amsgrad=True)
+    optimizer = optim.Adam(
+        myinversion.parameters(), lr=0.0002, betas=(0.5, 0.999), amsgrad=True
+    )
 
     assert os.path.exists(feature_pkl)
-    feature_extractor.load_state_dict(torch.load(
-        open(feature_pkl, 'rb'), map_location=output_device))
+    feature_extractor.load_state_dict(
+        torch.load(open(feature_pkl, "rb"), map_location=output_device)
+    )
 
     assert os.path.exists(cls_pkl)
-    cls.load_state_dict(torch.load(
-        open(cls_pkl, 'rb'), map_location=output_device))
-    
+    cls.load_state_dict(torch.load(open(cls_pkl, "rb"), map_location=output_device))
+
     feature_extractor.requires_grad_(False)
     cls.requires_grad_(False)
 
-    for epoch_id in tqdm(range(1, train_epoches+1), desc='Total Epoch'):
-        for i, (im, label) in enumerate(tqdm(test_dl, desc=f'epoch {epoch_id} ')):
+    os.makedirs(f"{log_dir}/input/", exist_ok=True)
+    os.makedirs(f"{log_dir}/output/", exist_ok=True)
+
+    for epoch_id in tqdm(range(1, train_epoches + 1), desc="Total Epoch"):
+        for i, (im, label) in enumerate(tqdm(test_dl, desc=f"epoch {epoch_id} ")):
             im = im.to(output_device)
             label = label.to(output_device)
             bs, c, h, w = im.shape
             optimizer.zero_grad()
             feature8192 = feature_extractor.forward(im)
-            out,feature=cls.forward(feature8192)
+            out, feature = cls.forward(feature8192)
             rim = myinversion.forward(feature)
             ssim = SSIMLoss()(rim, im)
             loss = ssim
@@ -174,11 +202,13 @@ if __name__ == '__main__':
             optimizer.step()
 
         if epoch_id % log_epoch == 0:
-            writer.add_scalar('loss', loss, epoch_id)
-            writer.add_scalar('ssim', ssim, epoch_id)
-            save_image2(im.detach(), f'{log_dir}/input/{epoch_id}.png')
-            save_image2(rim.detach(), f'{log_dir}/output/{epoch_id}.png')
-            with open(os.path.join(model_dir, f'myinversion_{epoch_id}.pkl'), 'wb') as f:
+            writer.add_scalar("loss", loss, epoch_id)
+            writer.add_scalar("ssim", ssim, epoch_id)
+            save_image(im.detach(), f"{log_dir}/input/{epoch_id}.png")
+            save_image(rim.detach(), f"{log_dir}/output/{epoch_id}.png")
+            with open(
+                os.path.join(model_dir, f"myinversion_{epoch_id}.pkl"), "wb"
+            ) as f:
                 torch.save(myinversion.state_dict(), f)
 
         if epoch_id % log_epoch == 0:
@@ -186,7 +216,7 @@ if __name__ == '__main__':
                 myinversion.eval()
                 r = 0
                 ssimloss = 0
-                for i, (im, label) in enumerate(tqdm(train_dl, desc=f'priv')):
+                for i, (im, label) in enumerate(tqdm(train_dl, desc=f"priv")):
                     r += 1
                     im = im.to(output_device)
                     label = label.to(output_device)
@@ -197,12 +227,12 @@ if __name__ == '__main__':
                     ssim = SSIMLoss()(rim, im)
                     ssimloss += ssim
 
-                ssimlossavg = ssimloss/r
-                writer.add_scalar('priv ssim', ssimlossavg, epoch_id)
+                ssimlossavg = ssimloss / r
+                writer.add_scalar("priv ssim", ssimlossavg, epoch_id)
 
                 r = 0
                 ssimloss = 0
-                for i, (im, label) in enumerate(tqdm(test_dl, desc=f'aux')):
+                for i, (im, label) in enumerate(tqdm(test_dl, desc=f"aux")):
                     r += 1
                     im = im.to(output_device)
                     label = label.to(output_device)
@@ -213,6 +243,6 @@ if __name__ == '__main__':
                     ssim = SSIMLoss()(rim, im)
                     ssimloss += ssim
 
-                ssimlossavg = ssimloss/r
-                writer.add_scalar('aux ssim', ssimlossavg, epoch_id)
+                ssimlossavg = ssimloss / r
+                writer.add_scalar("aux ssim", ssimlossavg, epoch_id)
     writer.close()
