@@ -23,7 +23,7 @@ from torchvision.transforms.functional import *
 from torchvision.utils import save_image
 from tqdm import tqdm
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     batch_size = 32
     class_num = 10
     root_dir = "./log/splitlearning/logZZPMAIN.test"
@@ -38,15 +38,14 @@ if __name__ == '__main__':
     writer = SummaryWriter(log_dir=log_dir)
     data_workers = 4
 
-    transform = Compose([
-        Resize((h, w)),
-        ToTensor()
-    ])
+    transform = Compose([Resize((h, w)), ToTensor()])
 
-    mnist_train_ds = MNIST(root='./datasets', train=True,
-                             transform=transform, download=True)
-    mnist_test_ds = MNIST(root='./datasets', train=False,
-                            transform=transform, download=True)
+    mnist_train_ds = MNIST(
+        root="./datasets", train=True, transform=transform, download=True
+    )
+    mnist_test_ds = MNIST(
+        root="./datasets", train=False, transform=transform, download=True
+    )
 
     mnist_train_ds_len = len(mnist_train_ds)
     mnist_test_ds_len = len(mnist_test_ds)
@@ -60,16 +59,24 @@ if __name__ == '__main__':
     print(train_ds_len)
     print(test_ds_len)
 
-
     # for evaluate
-    train_dl = DataLoader(dataset=train_ds, batch_size=batch_size,
-                          shuffle=False, num_workers=data_workers, drop_last=False)
+    train_dl = DataLoader(
+        dataset=train_ds,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=data_workers,
+        drop_last=False,
+    )
     # for attack
-    test_dl = DataLoader(dataset=test_ds, batch_size=batch_size,
-                         shuffle=False, num_workers=data_workers, drop_last=False)
+    test_dl = DataLoader(
+        dataset=test_ds,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=data_workers,
+        drop_last=False,
+    )
 
     class FeatureExtracter(nn.Module):
-
         def __init__(self):
             super(FeatureExtracter, self).__init__()
             self.conv1 = nn.Conv2d(1, 128, 3, 1, 1)
@@ -148,41 +155,42 @@ if __name__ == '__main__':
     myinversion = Inversion(50).train(False).to(output_device)
 
     assert os.path.exists(feature_pkl)
-    feature_extractor.load_state_dict(torch.load(
-        open(feature_pkl, 'rb'), map_location=output_device))
+    feature_extractor.load_state_dict(
+        torch.load(open(feature_pkl, "rb"), map_location=output_device)
+    )
 
     assert os.path.exists(cls_pkl)
-    cls.load_state_dict(torch.load(
-        open(cls_pkl, 'rb'), map_location=output_device))
+    cls.load_state_dict(torch.load(open(cls_pkl, "rb"), map_location=output_device))
 
     assert os.path.exists(inv_pkl)
-    myinversion.load_state_dict(torch.load(
-        open(inv_pkl, 'rb'), map_location=output_device))
-    
-    os.makedirs(f'{log_dir}/priv/input/', exist_ok=True)
-    os.makedirs(f'{log_dir}/priv/output/', exist_ok=True)
-    os.makedirs(f'{log_dir}/aux/input/', exist_ok=True)
-    os.makedirs(f'{log_dir}/aux/output/', exist_ok=True)
+    myinversion.load_state_dict(
+        torch.load(open(inv_pkl, "rb"), map_location=output_device)
+    )
+
+    os.makedirs(f"{log_dir}/priv/input/", exist_ok=True)
+    os.makedirs(f"{log_dir}/priv/output/", exist_ok=True)
+    os.makedirs(f"{log_dir}/aux/input/", exist_ok=True)
+    os.makedirs(f"{log_dir}/aux/output/", exist_ok=True)
 
     with torch.no_grad():
-        for i, (im, label) in enumerate(tqdm(train_dl, desc=f'priv')):
+        for i, (im, label) in enumerate(tqdm(train_dl, desc=f"priv")):
             im = im.to(output_device)
             label = label.to(output_device)
             bs, c, h, w = im.shape
             feature8192 = feature_extractor.forward(im)
             out, feature = cls.forward(feature8192)
             rim = myinversion.forward(feature)
-            save_image(im.detach(), f'{log_dir}/priv/input/{i}.png', nrow=4)
-            save_image(rim.detach(), f'{log_dir}/priv/output/{i}.png', nrow=4)
+            save_image(im.detach(), f"{log_dir}/priv/input/{i}.png", nrow=4)
+            save_image(rim.detach(), f"{log_dir}/priv/output/{i}.png", nrow=4)
 
-        for i, (im, label) in enumerate(tqdm(test_dl, desc=f'aux')):
+        for i, (im, label) in enumerate(tqdm(test_dl, desc=f"aux")):
             im = im.to(output_device)
             label = label.to(output_device)
             bs, c, h, w = im.shape
             feature8192 = feature_extractor.forward(im)
             out, feature = cls.forward(feature8192)
             rim = myinversion.forward(feature)
-            save_image(im.detach(), f'{log_dir}/aux/input/{i}.png', nrow=4)
-            save_image(rim.detach(), f'{log_dir}/aux/output/{i}.png', nrow=4)
+            save_image(im.detach(), f"{log_dir}/aux/input/{i}.png", nrow=4)
+            save_image(rim.detach(), f"{log_dir}/aux/output/{i}.png", nrow=4)
 
     writer.close()

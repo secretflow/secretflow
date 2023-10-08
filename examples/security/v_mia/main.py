@@ -24,7 +24,7 @@ from torchvision.transforms.transforms import *
 from torchvision.transforms.functional import *
 from tqdm import tqdm
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     batch_size = 128
     train_epoches = 48
     log_epoch = 4
@@ -50,42 +50,82 @@ if __name__ == '__main__':
     writer = SummaryWriter(log_dir=log_dir)
     data_workers = 2
 
-    transform = Compose([
-        Resize((h, w)),
-        RandomHorizontalFlip(),
-        ToTensor(),
-    ])
+    transform = Compose(
+        [
+            Resize((h, w)),
+            RandomHorizontalFlip(),
+            ToTensor(),
+        ]
+    )
 
-    priv_ds = MNIST(root='./data', train=True,
-                    transform=transform, download=True)
-    aux_ds = MNIST(root='./data', train=False,
-                   transform=transform, download=True)
+    priv_ds = MNIST(root="./data", train=True, transform=transform, download=True)
+    aux_ds = MNIST(root="./data", train=False, transform=transform, download=True)
 
     priv_ds_len = len(priv_ds)
     aux_ds_len = len(aux_ds)
 
     priv_ds_0, priv_ds_1 = random_split(
-        priv_ds, [priv_ds_len*1//client_num, priv_ds_len-priv_ds_len*1//client_num])
+        priv_ds,
+        [priv_ds_len * 1 // client_num, priv_ds_len - priv_ds_len * 1 // client_num],
+    )
     aux_ds_0, aux_ds_1 = random_split(
-        aux_ds, [aux_ds_len*1//client_num, aux_ds_len-aux_ds_len*1//client_num])
+        aux_ds,
+        [aux_ds_len * 1 // client_num, aux_ds_len - aux_ds_len * 1 // client_num],
+    )
 
-    train_dl = DataLoader(dataset=priv_ds, batch_size=batch_size,
-                          shuffle=False, num_workers=data_workers, drop_last=False, pin_memory=True)
+    train_dl = DataLoader(
+        dataset=priv_ds,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=data_workers,
+        drop_last=False,
+        pin_memory=True,
+    )
 
-    test_dl = DataLoader(dataset=aux_ds, batch_size=batch_size,
-                         shuffle=False, num_workers=data_workers, drop_last=False, pin_memory=True)
+    test_dl = DataLoader(
+        dataset=aux_ds,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=data_workers,
+        drop_last=False,
+        pin_memory=True,
+    )
 
-    train_dl_0 = DataLoader(dataset=priv_ds_0, batch_size=batch_size,
-                            shuffle=True, num_workers=data_workers, drop_last=True, pin_memory=True)
+    train_dl_0 = DataLoader(
+        dataset=priv_ds_0,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=data_workers,
+        drop_last=True,
+        pin_memory=True,
+    )
 
-    train_dl_1 = DataLoader(dataset=priv_ds_1, batch_size=batch_size,
-                            shuffle=True, num_workers=data_workers, drop_last=True, pin_memory=True)
+    train_dl_1 = DataLoader(
+        dataset=priv_ds_1,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=data_workers,
+        drop_last=True,
+        pin_memory=True,
+    )
 
-    test_dl_0 = DataLoader(dataset=aux_ds_0, batch_size=batch_size,
-                           shuffle=False, num_workers=data_workers, drop_last=False, pin_memory=True)
+    test_dl_0 = DataLoader(
+        dataset=aux_ds_0,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=data_workers,
+        drop_last=False,
+        pin_memory=True,
+    )
 
-    test_dl_1 = DataLoader(dataset=aux_ds_1, batch_size=batch_size,
-                           shuffle=False, num_workers=data_workers, drop_last=False, pin_memory=True)
+    test_dl_1 = DataLoader(
+        dataset=aux_ds_1,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=data_workers,
+        drop_last=False,
+        pin_memory=True,
+    )
 
     train_dl_list = [train_dl_0, train_dl_1]
     test_dl_list = [test_dl_0, test_dl_1]
@@ -139,18 +179,26 @@ if __name__ == '__main__':
 
     client_list = [client_0, client_1]
 
-    optimizer_cli_0 = optim.Adam(client_0.parameters(), lr=0.0002,
-                                 betas=(0.5, 0.999), amsgrad=True)
-    optimizer_cli_1 = optim.Adam(client_1.parameters(), lr=0.0002,
-                                 betas=(0.5, 0.999), amsgrad=True)
-    optimizer_server = optim.Adam(server.parameters(), lr=0.0002,
-                                  betas=(0.5, 0.999), amsgrad=True)
+    optimizer_cli_0 = optim.Adam(
+        client_0.parameters(), lr=0.0002, betas=(0.5, 0.999), amsgrad=True
+    )
+    optimizer_cli_1 = optim.Adam(
+        client_1.parameters(), lr=0.0002, betas=(0.5, 0.999), amsgrad=True
+    )
+    optimizer_server = optim.Adam(
+        server.parameters(), lr=0.0002, betas=(0.5, 0.999), amsgrad=True
+    )
 
     optimizer_cli_list = [optimizer_cli_0, optimizer_cli_1]
 
-    for epoch_id in tqdm(range(1, train_epoches+1), desc='Total Epoch'):
+    for epoch_id in tqdm(range(1, train_epoches + 1), desc="Total Epoch"):
         for client_id in range(client_num):
-            for i, (im, label) in enumerate(tqdm(train_dl_list[client_id], desc=f'Client {client_id} epoch {epoch_id}')):
+            for i, (im, label) in enumerate(
+                tqdm(
+                    train_dl_list[client_id],
+                    desc=f"Client {client_id} epoch {epoch_id}",
+                )
+            ):
                 im = im.to(output_device)
                 label = label.to(output_device)
                 bs, c, h, w = im.shape
@@ -169,20 +217,20 @@ if __name__ == '__main__':
         if epoch_id % log_epoch == 0:
             after_softmax = F.softmax(out, dim=-1)
             predict = torch.argmax(after_softmax, dim=-1)
-            acc_train=torch.count_nonzero(label==predict)/label.shape[0]
-            writer.add_scalar('loss', loss, epoch_id)
-            writer.add_scalar('acc_training', acc_train, epoch_id)
-            with open(os.path.join(log_dir, f'client_{epoch_id}.pkl'), 'wb') as f:
+            acc_train = torch.count_nonzero(label == predict) / label.shape[0]
+            writer.add_scalar("loss", loss, epoch_id)
+            writer.add_scalar("acc_training", acc_train, epoch_id)
+            with open(os.path.join(log_dir, f"client_{epoch_id}.pkl"), "wb") as f:
                 torch.save(client_0.state_dict(), f)
-            with open(os.path.join(log_dir, f'server_{epoch_id}.pkl'), 'wb') as f:
+            with open(os.path.join(log_dir, f"server_{epoch_id}.pkl"), "wb") as f:
                 torch.save(server.state_dict(), f)
 
             with torch.no_grad():
                 client_0.eval()
                 r = 0
                 celoss = 0
-                acc_test=0
-                for i, (im, label) in enumerate(tqdm(train_dl, desc='testing train')):
+                acc_test = 0
+                for i, (im, label) in enumerate(tqdm(train_dl, desc="testing train")):
                     r += 1
                     im = im.to(output_device)
                     label = label.to(output_device)
@@ -192,18 +240,18 @@ if __name__ == '__main__':
                     ce = nn.CrossEntropyLoss()(out, label)
                     after_softmax = F.softmax(out, dim=-1)
                     predict = torch.argmax(after_softmax, dim=-1)
-                    acc_test+=torch.count_nonzero(label==predict)/label.shape[0]
+                    acc_test += torch.count_nonzero(label == predict) / label.shape[0]
                     celoss += ce
 
-                celossavg = celoss/r
-                acc_test=acc_test/r
-                writer.add_scalar('train loss', celossavg, epoch_id)
-                writer.add_scalar('acc_train', acc_test, epoch_id)
+                celossavg = celoss / r
+                acc_test = acc_test / r
+                writer.add_scalar("train loss", celossavg, epoch_id)
+                writer.add_scalar("acc_train", acc_test, epoch_id)
 
                 r = 0
                 celoss = 0
-                acc_test=0
-                for i, (im, label) in enumerate(tqdm(test_dl, desc='testing test')):
+                acc_test = 0
+                for i, (im, label) in enumerate(tqdm(test_dl, desc="testing test")):
                     r += 1
                     im = im.to(output_device)
                     label = label.to(output_device)
@@ -213,12 +261,12 @@ if __name__ == '__main__':
                     ce = nn.CrossEntropyLoss()(out, label)
                     after_softmax = F.softmax(out, dim=-1)
                     predict = torch.argmax(after_softmax, dim=-1)
-                    acc_test+=torch.count_nonzero(label==predict)/label.shape[0]
+                    acc_test += torch.count_nonzero(label == predict) / label.shape[0]
                     celoss += ce
 
-                celossavg = celoss/r
-                acc_test=acc_test/r
-                writer.add_scalar('test loss', celossavg, epoch_id)
-                writer.add_scalar('acc_test', acc_test, epoch_id)
+                celossavg = celoss / r
+                acc_test = acc_test / r
+                writer.add_scalar("test loss", celossavg, epoch_id)
+                writer.add_scalar("acc_test", acc_test, epoch_id)
 
     writer.close()
