@@ -57,11 +57,13 @@ class FLModel:
             server: PYU, Which PYU as a server
             device_list: party list
             model: model definition function
-            aggregator:  Security aggregators can be selected according to the security level
+            aggregator:  Security aggregators can be selected according to the security level, server will do aggregate if aggregator is None
             strategy: Federated training strategy
             consensus_num: Num parties of consensus,Some strategies require multiple parties to reach consensus,
             backend: Engine backend, the backend needs to be consistent with the model type
             random_seed: If specified, the initial value of the model will remain the same, which ensures reproducible
+            server_agg_method: If aggregator is none, server will use server_agg_method to aggregate params, The server_agg_method should be a function
+                that takes in a list of parameter values from different parties and returns the aggregated parameter value list
         """
         if backend == "tensorflow":
             import secretflow.ml.nn.fl.backend.tensorflow.strategy  # noqa
@@ -79,6 +81,7 @@ class FLModel:
             num_gpus=self.num_gpus,
         )
         self.server = server
+        self.device_list = device_list
         self._aggregator = aggregator
         self.consensus_num = consensus_num
         self.kwargs = kwargs
@@ -87,6 +90,7 @@ class FLModel:
         self.backend = backend
         self.dp_strategy = kwargs.get('dp_strategy', None)
         self.simulation = kwargs.get('simulation', False)
+        self.server_agg_method = kwargs.get('server_agg_method', None)
 
     def init_workers(
         self,
@@ -111,13 +115,36 @@ class FLModel:
 
     def initialize_weights(self):
         clients_weights = []
+        initial_weight = None
         for device, worker in self._workers.items():
             weights = worker.get_weights()
             clients_weights.append(weights)
-        initial_weight = self._aggregator.average(clients_weights, axis=0)
-        for device, worker in self._workers.items():
-            weights = initial_weight.to(device) if initial_weight is not None else None
-            worker.set_weights(weights)
+        if self._aggregator is not None:
+            initial_weight = self._aggregator.average(clients_weights, axis=0)
+            for device, worker in self._workers.items():
+                weights = (
+                    initial_weight.to(device) if initial_weight is not None else None
+                )
+                worker.set_weights(weights)
+        else:
+            clients_weights = [weight.to(self.server) for weight in clients_weights]
+
+            if self.server_agg_method is not None:
+                initial_weight = self.server(
+                    self.server_agg_method,
+                    num_returns=len(
+                        self.device_list,
+                    ),
+                )(clients_weights)
+
+                for idx, device in enumerate(self._workers.keys()):
+                    weights = (
+                        initial_weight[idx].to(device) if initial_weight[idx] else None
+                    )
+                    self._workers[device].set_weights(weights)
+            else:
+                raise Exception(f"aggregator and server_agg_method cannot both be none")
+
         return initial_weight
 
     def _handle_file(
@@ -365,6 +392,11 @@ class FLModel:
         logging.info(f"FL Train Params: {params}")
 
         # sanity check
+        if self._aggregator is None:
+            if self.server_agg_method is None or self.server is None:
+                raise Exception(
+                    "When aggregator is none, neither the server nor the server_agg_method can be none"
+                )
         assert isinstance(validation_freq, int) and validation_freq >= 1
         assert isinstance(aggregate_freq, int) and aggregate_freq >= 1
         if dp_spent_step_freq is not None:
@@ -420,12 +452,14 @@ class FLModel:
 
         initial_weight = self.initialize_weights()
         logging.debug(f"initial_weight: {initial_weight}")
-        if self.server:
+        server_weight = None
+        if self.server and isinstance(initial_weight, PYUObject):
             server_weight = initial_weight
         for device, worker in self._workers.items():
             worker.init_training(callbacks, epochs=epochs)
             worker.on_train_begin()
         model_params = None
+        model_params_list = None
         for epoch in range(epochs):
             res = []
             report_list = []
@@ -437,11 +471,13 @@ class FLModel:
                 if verbose == 1:
                     pbar.update(aggregate_freq)
                 client_param_list, sample_num_list = [], []
-                for device, worker in self._workers.items():
+                for idx, device in enumerate(self._workers.keys()):
                     client_params = (
-                        model_params.to(device) if model_params is not None else None
+                        model_params_list[idx].to(device)
+                        if model_params_list is not None
+                        else None
                     )
-                    client_params, sample_num = worker.train_step(
+                    client_params, sample_num = self._workers[device].train_step(
                         client_params,
                         epoch * train_steps_per_epoch + step,
                         aggregate_freq
@@ -452,13 +488,35 @@ class FLModel:
                     client_param_list.append(client_params)
                     sample_num_list.append(sample_num)
                     res.append(client_params)
-
-                model_params = self._aggregator.average(
-                    client_param_list, axis=0, weights=sample_num_list
-                )
+                if self._aggregator is not None:
+                    model_params = self._aggregator.average(
+                        client_param_list, axis=0, weights=sample_num_list
+                    )
+                else:
+                    if self.server is not None:
+                        # server will do aggregation
+                        model_params_list = [
+                            param.to(self.server) for param in client_param_list
+                        ]
+                        model_params_list = self.server(
+                            self.server_agg_method,
+                            num_returns=len(
+                                self.device_list,
+                            ),
+                        )(model_params_list)
+                        model_params_list = [
+                            params.to(device)
+                            for device, params in zip(
+                                self.device_list, model_params_list
+                            )
+                        ]
+                    else:
+                        raise Exception(
+                            "Aggregation can be on either an aggregator or a server, but not none at the same time"
+                        )
 
                 # Do weight sparsify
-                if self.strategy in COMPRESS_STRATEGY:
+                if self.strategy in COMPRESS_STRATEGY and server_weight:
                     if self._res:
                         self._res.to(self.server)
                     agg_update = model_params.to(self.server)
@@ -493,6 +551,13 @@ class FLModel:
                 if len(res) == wait_steps:
                     wait(res)
                     res = []
+                if self._aggregator is not None:
+                    model_params_list = [model_params for _ in self.device_list]
+                    model_params_list = [
+                        params.to(device)
+                        for device, params in zip(self.device_list, model_params_list)
+                    ]
+
             local_metrics_obj = []
             for device, worker in self._workers.items():
                 worker.on_epoch_end(epoch)
