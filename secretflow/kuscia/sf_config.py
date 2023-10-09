@@ -23,7 +23,7 @@ from secretflow.kuscia.datamesh import (
     get_domain_data_source,
 )
 from secretflow.kuscia.ray_config import RayConfig
-from secretflow.kuscia.task_config import KusicaTaskConfig
+from secretflow.kuscia.task_config import KusciaTaskConfig
 from secretflow.protos.component.cluster_pb2 import (
     SFClusterConfig,
     SFClusterDesc,
@@ -34,26 +34,26 @@ from secretflow.protos.component.cluster_pb2 import (
 def compose_sf_cluster_config(
     sf_cluster_desc: SFClusterDesc,
     datamesh_addr: str,
-    kusica_task_cluster_def: ClusterDefine,
-    kusica_task_allocated_ports: AllocatedPorts,
+    kuscia_task_cluster_def: ClusterDefine,
+    kuscia_task_allocated_ports: AllocatedPorts,
     ray_config: RayConfig,
     sf_storage_config: StorageConfig,
     datasource_id: str = None,
 ) -> SFClusterConfig:
-    party_id = kusica_task_cluster_def.self_party_idx
-    party_name = kusica_task_cluster_def.parties[party_id].name
+    party_id = kuscia_task_cluster_def.self_party_idx
+    party_name = kuscia_task_cluster_def.parties[party_id].name
 
     spu_address = {}
     fed_address = {}
 
-    for port in kusica_task_allocated_ports.ports:
+    for port in kuscia_task_allocated_ports.ports:
         if port.name == "spu":
             spu_address["spu"] = {party_name: f"0.0.0.0:{port.port}"}
 
         elif port.name == "fed":
             fed_address = {party_name: f"0.0.0.0:{port.port}"}
 
-    for party in kusica_task_cluster_def.parties:
+    for party in kuscia_task_cluster_def.parties:
         if party.name != party_name:
             for service in party.services:
                 if service.port_name == "fed":
@@ -104,7 +104,7 @@ def compose_sf_cluster_config(
     public_ray_fed_config = SFClusterConfig.RayFedConfig()
     if set(list(sf_cluster_desc.parties)) != set(list(fed_address.keys())):
         raise RuntimeError(
-            "parties in kusica_task doesn't match those in sf_cluster_desc"
+            "parties in kuscia_task doesn't match those in sf_cluster_desc"
         )
     for p in sf_cluster_desc.parties:
         public_ray_fed_config.parties.append(p)
@@ -116,14 +116,14 @@ def compose_sf_cluster_config(
         if device.type.lower() == "spu":
             if device.name not in spu_address:
                 raise RuntimeError(
-                    f"addresses of SPU [{device.name}] are not set in kusica_task."
+                    f"addresses of SPU [{device.name}] are not set in kuscia_task."
                 )
 
             spu_addr = spu_address[device.name]
 
             if set(list(device.parties)) != set(list(spu_addr.keys())):
                 raise RuntimeError(
-                    f"parties of SPU [{device.name}] in kusica_task doesn't match those in sf_cluster_desc"
+                    f"parties of SPU [{device.name}] in kuscia_task doesn't match those in sf_cluster_desc"
                 )
 
             pulic_spu_config = SFClusterConfig.SPUConfig(name=device.name)
@@ -137,7 +137,7 @@ def compose_sf_cluster_config(
 
 
 def get_sf_cluster_config(
-    kuscia_config: KusicaTaskConfig, datamesh_addr: str, datasource_id: str = None
+    kuscia_config: KusciaTaskConfig, datamesh_addr: str, datasource_id: str = None
 ) -> SFClusterConfig:
     return compose_sf_cluster_config(
         kuscia_config.sf_cluster_desc,
