@@ -1,5 +1,5 @@
-import sys
 import os
+import sys
 
 from collaborative.core.client import BaseClient
 

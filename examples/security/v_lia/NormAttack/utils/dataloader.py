@@ -1,6 +1,7 @@
-import sys
 import os
-PROJ_DIR = '/home/kyzhang/myfile/sf/github/Norm_Attack'
+import sys
+
+PROJ_DIR = "/home/kyzhang/myfile/sf/github/Norm_Attack"
 sys.path.append(os.path.join(PROJ_DIR))
 
 

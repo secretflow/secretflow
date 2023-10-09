@@ -1,8 +1,8 @@
 import copy
+import os
+import sys
 from abc import abstractmethod
 
-import sys
-import os
 from utils import accuracy_torch_dataloader
 
 

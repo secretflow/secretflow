@@ -1,12 +1,15 @@
-import sys
 import os
-import torch
-from sklearn.metrics import roc_auc_score, roc_curve, auc
-import matplotlib.pyplot as plt 
-from manager import BaseManager
+import sys
+
 import jax.numpy as jnp
-import tensorflow as tf
+import matplotlib.pyplot as plt
 import numpy as np
+import tensorflow as tf
+import torch
+from sklearn.metrics import auc, roc_auc_score, roc_curve
+
+from manager import BaseManager
+
 """SLModel
 
 """
@@ -15,10 +18,8 @@ import math
 import os
 from typing import Callable, Dict, Iterable, List, Tuple, Union
 
-from multiprocess import cpu_count
-from tqdm import tqdm
-
 import secretflow as sf
+from multiprocess import cpu_count
 from secretflow.data.base import Partition
 from secretflow.data.horizontal import HDataFrame
 from secretflow.data.ndarray import FedNdarray
@@ -30,6 +31,8 @@ from secretflow.ml.nn.sl.agglayer.agg_method import AggMethod
 from secretflow.ml.nn.sl.strategy_dispatcher import dispatch_strategy
 from secretflow.security.privacy import DPStrategy
 from secretflow.utils.random import global_random
+from tqdm import tqdm
+
 
 # torch实现的原版Norm Attack
 def attach_normattack_to_splitnn(
@@ -60,7 +63,6 @@ def attach_normattack_to_splitnn(
             epoch_g_norm = []
             epoch_g_norm_2 = []
             for i, data in enumerate(dataloader, 0):
-
                 inputs, labels = data
                 inputs = inputs.to(self.device)
                 labels = labels.to(self.device)
@@ -72,7 +74,7 @@ def attach_normattack_to_splitnn(
                 grad_from_server = self.extract_intermidiate_gradient(outputs)
                 g_norm = grad_from_server.pow(2).sum(dim=1).sqrt()
                 g_norm_2 = grad_from_server.abs().sum(dim=1)
-                
+
                 epoch_labels.append(labels)
                 epoch_g_norm.append(g_norm)
                 epoch_g_norm_2.append(g_norm_2)
@@ -80,26 +82,36 @@ def attach_normattack_to_splitnn(
             epoch_labels = torch.cat(epoch_labels)
             epoch_g_norm = torch.cat(epoch_g_norm)
             epoch_g_norm_2 = torch.cat(epoch_g_norm_2)
-            
+
             score = roc_auc_score(epoch_labels, epoch_g_norm.view(-1, 1))
             score_2 = roc_auc_score(epoch_labels, epoch_g_norm_2.view(-1, 1))
 
             fpr, tpr, thersholds = roc_curve(epoch_labels, epoch_g_norm.view(-1, 1))
-            fpr_2, tpr_2, thersholds_2 = roc_curve(epoch_labels, epoch_g_norm_2.view(-1, 1))
+            fpr_2, tpr_2, thersholds_2 = roc_curve(
+                epoch_labels, epoch_g_norm_2.view(-1, 1)
+            )
             # print(epoch_labels)
             # print(epoch_g_norm)
-            
+
             roc_auc = auc(fpr, tpr)
             roc_auc_2 = auc(fpr_2, tpr_2)
-            
-            plt.plot(fpr, tpr, 'k-.', label='ROC (area = {0:.2f})'.format(roc_auc), lw=2)
-            plt.plot(fpr_2, tpr_2, 'b--', label='ROC (area = {0:.2f})'.format(roc_auc_2), lw=2)
-            
+
+            plt.plot(
+                fpr, tpr, "k-.", label="ROC (area = {0:.2f})".format(roc_auc), lw=2
+            )
+            plt.plot(
+                fpr_2,
+                tpr_2,
+                "b--",
+                label="ROC (area = {0:.2f})".format(roc_auc_2),
+                lw=2,
+            )
+
             plt.xlim([-0.05, 1.05])  # 设置x、y轴的上下限，以免和边缘重合，更好的观察图像的整体
             plt.ylim([-0.05, 1.05])
-            plt.xlabel('False Positive Rate')
-            plt.ylabel('True Positive Rate')  # 可以使用中文，但需要导入一些库即字体
-            plt.title('ROC Curve')
+            plt.xlabel("False Positive Rate")
+            plt.ylabel("True Positive Rate")  # 可以使用中文，但需要导入一些库即字体
+            plt.title("ROC Curve")
             plt.legend(loc="lower right")
             plt.show()
 
@@ -119,7 +131,7 @@ class NormAttackSplitNNManager(BaseManager):
 
 # SecretFlow版的Norm Attack
 def attach_normattack_to_splitnn_sf(
-    cls, attack_criterion= None, target_client_index=0, device="cpu"
+    cls, attack_criterion=None, target_client_index=0, device="cpu"
 ):
     class NormAttackSplitNNWrapper_sf(cls):
         def __init__(self, *args, **kwargs):
@@ -146,7 +158,7 @@ def attach_normattack_to_splitnn_sf(
                 return [_convert_to_ndarray(d) for d in data]
             else:
                 return _convert_to_ndarray(data)
-            
+
         def extract_intermidiate_gradient(self, outputs):
             self.backward_gradient(outputs.grad)
             return self.clients[self.target_client_index].grad_from_next_client
@@ -287,18 +299,18 @@ def attach_normattack_to_splitnn_sf(
                     # 3. Fusenet do local calculates and return gradients
                     gradients = self._workers[self.device_y].fuse_net(*agg_hiddens)
                     scatter_gradients = self.agglayer.backward(gradients)
-                    
+
                     worker_list = list(self.base_model_dict.keys())
                     client_device = worker_list[0]
                     grad_client = scatter_gradients[client_device]
                     grad_client_np = client_device(self.convert_to_ndarray)(grad_client)
                     grad_np = sf.reveal(grad_client_np)[0]
 
-                    grad_norm_np = jnp.sqrt(jnp.sum(jnp.square(grad_np),axis=1))
-                    
+                    grad_norm_np = jnp.sqrt(jnp.sum(jnp.square(grad_np), axis=1))
+
                     epoch_g_norm.append(grad_norm_np)
 
-                return epoch_g_norm     
+                return epoch_g_norm
 
     return NormAttackSplitNNWrapper_sf
 
