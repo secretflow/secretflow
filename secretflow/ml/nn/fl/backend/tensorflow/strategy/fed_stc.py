@@ -40,8 +40,9 @@ class FedSTC(BaseTFModel):
         self,
         builder_base: Callable[[], tf.keras.Model],
         random_seed=None,
+        **kwargs,
     ):
-        super().__init__(builder_base, random_seed=random_seed)
+        super().__init__(builder_base, random_seed=random_seed, **kwargs)
         self._res = []
 
     def train_step(

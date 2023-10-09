@@ -17,7 +17,7 @@ import multiprocessing
 from dataclasses import dataclass
 from typing import List
 
-from secretflow.kuscia.task_config import KusicaTaskConfig
+from secretflow.kuscia.task_config import KusciaTaskConfig
 
 
 @dataclass
@@ -59,7 +59,7 @@ class RayConfig:
         return ray_cmd
 
     @classmethod
-    def from_kuscia_task_config(cls, config: KusicaTaskConfig):
+    def from_kuscia_task_config(cls, config: KusciaTaskConfig):
         allocated_port = config.task_allocated_ports
         cluster_define = config.task_cluster_def
 
