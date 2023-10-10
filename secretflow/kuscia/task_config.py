@@ -27,7 +27,7 @@ from secretflow.protos.component.evaluation_pb2 import NodeEvalParam
 
 
 @dataclass
-class KusicaTaskConfig:
+class KusciaTaskConfig:
     task_id: str
     task_cluster_def: ClusterDefine
     task_allocated_ports: AllocatedPorts

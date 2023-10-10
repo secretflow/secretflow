@@ -341,7 +341,6 @@ class SPURuntime:
         cluster_def: Dict,
         link_desc: Dict = None,
         log_options: spu_logging.LogOptions = spu_logging.LogOptions(),
-        use_link: bool = True,
         id: str = None,
     ):
         """wrapper of spu.Runtime.
@@ -351,7 +350,6 @@ class SPURuntime:
             cluster_def (Dict): config of spu cluster
             link_desc (Dict, optional): link config. Defaults to None.
             log_options (spu_logging.LogOptions, optional): spu log options.
-            use_link: optional. flag for create brpc link, default True.
         """
         spu_logging.setup_logging(log_options)
 
@@ -369,12 +367,7 @@ class SPURuntime:
                     address = node['listen_address']
             desc.add_party(node['party'], address)
         _fill_link_desc_attrs(link_desc=link_desc, tls_opts=tls_opts, desc=desc)
-
-        if use_link:
-            self.link = spu_link.create_brpc(desc, rank)
-        else:
-            self.link = None
-
+        self.link = spu_link.create_brpc(desc, rank)
         self.conf = json_format.Parse(
             json.dumps(cluster_def['runtime_config']), spu.RuntimeConfig()
         )
@@ -1582,7 +1575,6 @@ class SPU(Device):
         cluster_def: Dict,
         link_desc: Dict = None,
         log_options: spu_logging.LogOptions = spu_logging.LogOptions(),
-        use_link: bool = True,
         id: str = None,
     ):
         """SPU device constructor.
@@ -1668,7 +1660,6 @@ class SPU(Device):
 
                     8. brpc_channel_connection_type refer to `https://github.com/apache/brpc/blob/master/docs/en/client.md#connection-type`
             log_options: Optional. Options of spu logging.
-            use_link: Optional. flag for create brpc link, default True.
         """
         super().__init__(DeviceType.SPU)
         self.cluster_def = cluster_def
@@ -1682,7 +1673,6 @@ class SPU(Device):
         self.actors = {}
         self._task_id = -1
         self.io = SPUIO(self.conf, self.world_size)
-        self.use_link = use_link
         self.id = id
         self.init()
 
@@ -1697,7 +1687,6 @@ class SPU(Device):
                     self.cluster_def,
                     self.link_desc,
                     self.log_options,
-                    self.use_link,
                     self.id,
                 )
             )

@@ -11,7 +11,7 @@ Please feel free to open a pull request.
 Cryptography-based techniques. If you are a beginner in cryptography, and wants to learn about the theory or applications of crypto, please also checkout our [[crypto-for-beginners]](tutorials/crypto-beginner.md) list.
 
 1. [Secure Multi-Party Computation (MPC)](papers/tools/mpc.md)  (Contributors: [@jamie-cui](https://www.github.com/jamie-cui) [@DuanYuFi](https://github.com/DuanYuFi))
-2. [Zero-Knowledge Proof (ZKP)](papers/tools/zkp.md) (Contributors: [@xfap](https://www.github.com/xfap) [@yuzhouwudizuilihai](https://github.com/yuzhouwudizuilihai) [@zlyber](https://api.github.com/users/zlyber) [@rhocos3theta](https://github.com/rhocos3theta) [@Jinstorm](https://github.com/Jinstorm))
+2. [Zero-Knowledge Proof (ZKP)](papers/tools/zkp.md) (Contributors: [@xfap](https://www.github.com/xfap) [@yuzhouwudizuilihai](https://github.com/yuzhouwudizuilihai) [@zlyber](https://api.github.com/users/zlyber) [@rhocos3theta](https://github.com/rhocos3theta))
 3. [Homomorphic Encryption (HE)](papers/tools/he.md) (Contributors: [@zhangwfjh](https://www.github.com/zhangwfjh))
 
 Anonymity-related techniques
@@ -33,7 +33,7 @@ Private Set/Database Operations
 Protecting training/inference data
 
 1. [PPML based on Crypto](papers/applications/ppml/ppml_crypto.md) (Contributors: [@llCurious](https://www.github.com/llCurious))
-2. [Ferderated Learning (FL)](papers/applications/ppml/fl/fl.md) (Contributors: [@zhangxingmeng](https://www.github.com/zhangxingmeng) [@FelixZheng1](https://www.github.com/FelixZheng1) [@Cryptocxf](https://github.com/Cryptocxf) [@Jinstorm](https://github.com/Jinstorm))
+2. [Ferderated Learning (FL)](papers/applications/ppml/fl/fl.md) (Contributors: [@zhangxingmeng](https://www.github.com/zhangxingmeng) [@FelixZheng1](https://www.github.com/FelixZheng1) [@Cryptocxf](https://github.com/Cryptocxf))
 <!-- 3. [Split Learning (SL)](papers/applications/ppml/sl.md) (Contributors: [@yingting6](https://www.github.com/yingting6)) -->
 
 Attacks on machine learning system
