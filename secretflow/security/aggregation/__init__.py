@@ -17,11 +17,12 @@ from .plain_aggregator import PlainAggregator
 from .secure_aggregator import SecureAggregator
 from .sparse_plain_aggregator import SparsePlainAggregator
 from .spu_aggregator import SPUAggregator
-
+from .phe_aggregator import PheAggregator
 __all__ = [
     'Aggregator',
     'SecureAggregator',
     'PlainAggregator',
     'SPUAggregator',
     'SparsePlainAggregator',
+    'PheAggregator',
 ]
