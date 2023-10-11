@@ -35,14 +35,18 @@ class Replay_PYUSLTFModel(SLBaseTFModel):
         builder_base: Callable[[], tf.keras.Model],
         builder_fuse: Callable[[], tf.keras.Model],
         dp_strategy: DPStrategy,
+        compressor: Compressor,
         random_seed: int = None,
         **kwargs,
     ):
-        super().__init__(builder_base, builder_fuse, dp_strategy, random_seed, **kwargs)
+        super().__init__(builder_base, builder_fuse, 
+                         dp_strategy, compressor, 
+                         random_seed, **kwargs)
 
         self.attack_args = kwargs.get('attack_args', None)
         self.train_target_indexes = self.attack_args['train_target_indexes']
         self.valid_poisoning_indexes = self.attack_args['valid_poisoning_indexes']
+        # self.train_target_embeddings = {}
         self.train_target_embeddings = None 
         self.target_len = len(self.attack_args['train_target_indexes'])
         self.record_counter = 0
@@ -72,7 +76,7 @@ class Replay_PYUSLTFModel(SLBaseTFModel):
             if self.record_counter >= self.target_len:
                 self.record_counter -= self.target_len
 
-            embeddings = tf.convert_to_tensor(embeddings_np)
+            # embeddings = tf.convert_to_tensor(embeddings_np)
         return embeddings 
 
     def forward_replay(self, data_indexes, embeddings):
@@ -90,35 +94,58 @@ class Replay_PYUSLTFModel(SLBaseTFModel):
 
         return embeddings 
 
-    def base_forward(self, stage="train") -> ForwardData:
+    def base_forward(self, stage="train", compress: bool = False) -> ForwardData:
         """compute hidden embedding
         Args:
             stage: Which stage of the base forward
+            compress: Whether to compress cross device data.
         Returns: hidden embedding
         """
+
+        assert (
+            self.model_base is not None
+        ), "Base model cannot be none, please give model define or load a trained model"
+
         data_x = None
         self.init_data()
-        training = True
         if stage == "train":
             train_data = next(self.train_set)
-
-            self.train_x, self.train_y, self.train_sample_weight = self.unpack_dataset(
-                train_data, self.train_has_x, self.train_has_y, self.train_has_s_w
-            )
-            data_x = self.train_x
-        elif stage == "eval":
-            training = False
+            if self.train_has_y:
+                if self.train_has_s_w:
+                    data_x = train_data[:-2]
+                    train_y = train_data[-2]
+                    self.train_sample_weight = train_data[-1]
+                else:
+                    data_x = train_data[:-1]
+                    train_y = train_data[-1]
+                # Label differential privacy
+                if self.label_dp is not None:
+                    dp_train_y = self.label_dp(train_y.numpy())
+                    self.train_y = tf.convert_to_tensor(dp_train_y)
+                else:
+                    self.train_y = train_y
+            else:
+                data_x = train_data
+        elif stage in ["eval_test", "eval"]:
             eval_data = next(self.eval_set)
-            self.eval_x, self.eval_y, self.eval_sample_weight = self.unpack_dataset(
-                eval_data, self.eval_has_x, self.eval_has_y, self.eval_has_s_w
-            )
-            data_x = self.eval_x
+            if self.eval_has_y:
+                if self.eval_has_s_w:
+                    data_x = eval_data[:-2]
+                    eval_y = eval_data[-2]
+                    self.eval_sample_weight = eval_data[-1]
+                else:
+                    data_x = eval_data[:-1]
+                    eval_y = eval_data[-1]
+                # Label differential privacy
+                if self.label_dp is not None:
+                    dp_eval_y = self.label_dp(eval_y.numpy())
+                    self.eval_y = tf.convert_to_tensor(dp_eval_y)
+                else:
+                    self.eval_y = eval_y
+            else:
+                data_x = eval_data
         else:
             raise Exception("invalid stage")
-
-        # model_base is none equal to x is none
-        if not self.model_base:
-            return None
 
         # Strip tuple of length one, e.g: (x,) -> x
         # modify: gradient replacement needs features and indexes 
@@ -128,7 +155,10 @@ class Replay_PYUSLTFModel(SLBaseTFModel):
 
         self.tape = tf.GradientTape(persistent=True)
         with self.tape:
-            self.h = self._base_forward_internal(data_x, training=training)
+            self.h = self._base_forward_internal(
+                data_x
+            )
+
         self.data_x = data_x
 
         # modify:
@@ -141,6 +171,56 @@ class Replay_PYUSLTFModel(SLBaseTFModel):
         forward_data = ForwardData()
         if len(self.model_base.losses) > 0:
             forward_data.losses = tf.add_n(self.model_base.losses)
-        # The compressor can only recognize np type but not tensor.
-        forward_data.hidden = self.h.numpy() if tf.is_tensor(self.h) else self.h
+        # TODO: only vaild on no server mode, refactor when use agglayer or server mode.
+        # no need to compress data on model_fuse side
+        if compress and not self.model_fuse:
+            if self.compressor:
+                # modify:
+                forward_data.hidden = self.compressor.compress(attack_h.numpy())
+            else:
+                raise Exception(
+                    "can not find compressor when compress data in base_forward"
+                )
+        else:
+            # modify:
+            forward_data.hidden = attack_h
         return forward_data
+
+    def base_backward(self, gradient, compress: bool = False):
+        """backward on fusenet
+
+        Args:
+            gradient: gradient of fusenet hidden layer
+            compress: Whether to decompress gradient.
+        """
+        return_hiddens = []
+
+        # TODO: only vaild on no server mode, refactor when use agglayer or server mode.
+        # no need to decompress data on model_fuse side
+        if compress and not self.model_fuse:
+            if self.compressor:
+                # bug: gradient might be a list?
+                gradient = self.compressor.decompress(gradient)
+            else:
+                raise Exception(
+                    "can not find compressor when decompress data in base_backward"
+                )
+
+        with self.tape:
+            if len(gradient) == len(self.h):
+                for i in range(len(gradient)):
+                    return_hiddens.append(self.fuse_op(self.h[i], gradient[i]))
+            else:
+                gradient = gradient[0]
+                return_hiddens.append(self.fuse_op(self.h, gradient))
+            # add model.losses into graph
+            return_hiddens.append(self.model_base.losses)
+
+        trainable_vars = self.model_base.trainable_variables
+        gradients = self.tape.gradient(return_hiddens, trainable_vars)
+        self._base_backward_internal(gradients, trainable_vars)
+
+        # clear intermediate results
+        self.tape = None
+        self.h = None
+        self.kwargs = {}

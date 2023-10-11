@@ -20,12 +20,12 @@ These are the poisoning attacks and defenses of split learning, including:
 - Directory `data` keeps the data for split learning
 - Directory `tools` contains some extra utilities may be used in the test
 - Directory `env` is the test environment
-	- `environment.yml`
+	- `environment0.8.3b.yml` and `environment1.2.0.yml`
 - Directory `tips` records some issues have been solved
 # Test
 ```
 **Test Configure**
-- Test environment: `secretflow:0.8.2b3`
+- Test environment: `secretflow:0.8.2b3` or `secretflow:1.2.0`
 - Dataset configure: the dataset configure is `dataset/dataset_config.py`
 - Model configure: the model configure is `test_model/tf_model_config.py`
 - Attack configure: the attack configure is `attack/attack_config.py`
