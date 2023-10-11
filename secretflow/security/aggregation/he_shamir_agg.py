@@ -171,42 +171,30 @@ class SecureAggregator(Aggregator):
 	def average(self, data: List[PYUObject], axis=None):
 		pass
 
-
-
-
-sf.init(['alice', 'bob', 'cindy', 'david'], address='local')
-
-alice, bob, cindy, david = sf.PYU('alice'), sf.PYU('bob'), sf.PYU('cindy'), sf.PYU('david')
-threshold = 1
-trusted_auth = TA(device = alice, participants = [alice, bob, cindy, david], threshold = threshold)
-
-
-aggregator = SecureAggregator(alice, trusted_auth, [alice, bob, cindy, david])
-
-print('parties: alice, bob, cindy, david')
-
-print('threshold:' + str(threshold))
-
-a = alice(lambda : np.random.rand(2, 5))()
-b = bob(lambda : np.random.rand(2, 5))()
-c = cindy(lambda : np.random.rand(2, 5))()
-d = david(lambda : np.random.rand(2, 5))()
-
-
-print('data[alice]:')
-print(sf.reveal(a))
-print('data[bob]:')
-print(sf.reveal(b))
-print('data[cindy]:')
-print(sf.reveal(c))
-print('data[david]:')
-print(sf.reveal(d))
-
-
-
-print('active parties: alice, david')
-
-sum_a_b = aggregator.sum([a, d], axis=0)
-
-print('data[aggregation]:')
-print(sf.reveal(sum_a_b))
+if __name__ == '__main__':
+	sf.init(['alice', 'bob', 'cindy', 'david'], address='local')
+	alice, bob, cindy, david = sf.PYU('alice'), sf.PYU('bob'), sf.PYU('cindy'), sf.PYU('david')
+	threshold = 1
+	trusted_auth = TA(device = alice, participants = [alice, bob, cindy, david], threshold = threshold)
+	aggregator = SecureAggregator(alice, trusted_auth, [alice, bob, cindy, david])
+	print('parties: alice, bob, cindy, david')
+	print('threshold:' + str(threshold))
+	a = alice(lambda : np.random.rand(2, 5))()
+	b = bob(lambda : np.random.rand(2, 5))()
+	c = cindy(lambda : np.random.rand(2, 5))()
+	d = david(lambda : np.random.rand(2, 5))()
+	
+	print('data[alice]:')
+	print(sf.reveal(a))
+	print('data[bob]:')
+	print(sf.reveal(b))
+	print('data[cindy]:')
+	print(sf.reveal(c))
+	print('data[david]:')
+	print(sf.reveal(d))
+	
+	print('active parties: alice, david')
+	
+	sum_a_b = aggregator.sum([a, d], axis=0)
+	print('data[aggregation]:')
+	print(sf.reveal(sum_a_b))
