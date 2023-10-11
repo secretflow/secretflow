@@ -1,8 +1,8 @@
+import random
 from typing import Any, Dict, List, Tuple, Union
-from phe import paillier
 import numpy as np
 import pandas as pd
-import random
+from phe import paillier
 from phe.util import invert, mulmod, powmod, getprimeover, isqrt
 
 import secretflow as sf
