@@ -33,7 +33,7 @@ class BaseTFModel:
         self,
         builder_base: Callable[[], tf.keras.Model],
         random_seed: int = None,
-        **kwargs,
+        num_gpus: float = None,
     ):
         self.train_set = None
         self.eval_set = None
@@ -44,7 +44,6 @@ class BaseTFModel:
         if random_seed is not None:
             tf.keras.utils.set_random_seed(random_seed)
         self.model = builder_base() if builder_base else None
-        self.use_gpu = self.use_gpu = kwargs.get("use_gpu", False)
 
     def build_dataset_from_csv(
         self,

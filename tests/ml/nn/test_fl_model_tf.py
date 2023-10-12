@@ -220,23 +220,13 @@ class TestFedModelCSV:
 
 class TestFedModelTensorflow:
     def keras_model_with_mnist(
-        self,
-        devices,
-        model,
-        data,
-        label,
-        strategy,
-        backend,
-        aggregator=None,
-        **kwargs,
+        self, devices, model, data, label, strategy, backend, **kwargs
     ):
-        if not aggregator:
-            if strategy in COMPRESS_STRATEGY:
-                aggregator = SparsePlainAggregator(devices.carol)
-            else:
-                aggregator = PlainAggregator(devices.carol)
+        if strategy in COMPRESS_STRATEGY:
+            aggregator = SparsePlainAggregator(devices.carol)
         else:
-            aggregator = aggregator
+            aggregator = PlainAggregator(devices.carol)
+
         party_shape = data.partition_shape()
         alice_length = party_shape[devices.alice][0]
         bob_length = party_shape[devices.bob][0]
@@ -248,10 +238,7 @@ class TestFedModelTensorflow:
         # spcify params
         sampler_method = kwargs.get('sampler_method', "batch")
         dp_spent_step_freq = kwargs.get('dp_spent_step_freq', None)
-        server_agg_method = kwargs.get("server_agg_method", None)
         device_list = [devices.alice, devices.bob]
-        num_gpus = kwargs.get("num_gpus", 0)
-        dp_strategy = kwargs.get("dp_strategy", None)
 
         fed_model = FLModel(
             server=devices.carol,
@@ -261,9 +248,7 @@ class TestFedModelTensorflow:
             backend=backend,
             strategy=strategy,
             random_seed=1234,
-            server_agg_method=server_agg_method,
-            num_gpus=num_gpus,
-            dp_strategy=dp_strategy,
+            **kwargs,
         )
         random_seed = 1524
         history = fed_model.fit(
@@ -351,7 +336,6 @@ class TestFedModelTensorflow:
             strategy="fed_avg_w",
             backend="tensorflow",
         )
-
         # test fed avg w with possion sampler
         self.keras_model_with_mnist(
             devices=sf_simulation_setup_devices,
@@ -428,24 +412,6 @@ class TestFedModelTensorflow:
             dp_strategy=dp_strategy_fl,
             dp_spent_step_freq=dp_spent_step_freq,
             backend="tensorflow",
-        )
-
-        def create_server_agg_method():
-            def server_agg_method(model_params_list):
-                return model_params_list
-
-            return server_agg_method
-
-        server_agg_method = create_server_agg_method()
-        self.keras_model_with_mnist(
-            devices=sf_simulation_setup_devices,
-            data=mnist_data,
-            label=mnist_label,
-            model=model,
-            strategy="fed_avg_g",
-            backend="tensorflow",
-            aggregator=None,
-            server_agg_method=server_agg_method,
         )
 
 

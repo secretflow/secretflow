@@ -1,6 +1,6 @@
 from secretflow.kuscia.ray_config import RayConfig
 from secretflow.kuscia.sf_config import compose_sf_cluster_config
-from secretflow.kuscia.task_config import KusciaTaskConfig
+from secretflow.kuscia.task_config import KusicaTaskConfig
 from secretflow.protos.component.cluster_pb2 import SFClusterDesc, StorageConfig
 from kuscia.proto.api.v1alpha1.kusciatask.kuscia_task_pb2 import (
     AllocatedPorts,
@@ -12,13 +12,13 @@ from kuscia.proto.api.v1alpha1.kusciatask.kuscia_task_pb2 import (
 
 
 def test_load_configs():
-    kuscia_request_json = {
+    kusica_request_json = {
         "task_id": "secretflow-task-20230511100309-single-psi",
         "task_cluster_def": '{"parties":[{"name":"alice","services":[{"port_name":"fed","endpoints":["secretflow-task-20230511100309-single-psi-0-fed.alice.svc"]},{"port_name":"global","endpoints":["secretflow-task-20230511100309-single-psi-0-global.alice.svc:8081"]},{"port_name":"spu","endpoints":["secretflow-task-20230511100309-single-psi-0-spu.alice.svc"]}]},{"name":"bob","services":[{"port_name":"spu","endpoints":["secretflow-task-20230511100309-single-psi-0-spu.bob.svc"]},{"port_name":"fed","endpoints":["secretflow-task-20230511100309-single-psi-0-fed.bob.svc"]},{"port_name":"global","endpoints":["secretflow-task-20230511100309-single-psi-0-global.bob.svc:8081"]}]}]}',
         "allocated_ports": '{"ports":[{"name":"spu","port":54509,"scope":"Cluster","protocol":"GRPC"},{"name":"fed","port":8080,"scope":"Cluster","protocol":"GRPC"},{"name":"global","port":8081,"scope":"Domain","protocol":"GRPC"}]}',
     }
 
-    kuscia_config = KusciaTaskConfig.from_json(kuscia_request_json)
+    kuscia_config = KusicaTaskConfig.from_json(kusica_request_json)
 
     assert kuscia_config.task_id == "secretflow-task-20230511100309-single-psi"
     assert len(kuscia_config.task_cluster_def.parties) == 2
@@ -40,7 +40,7 @@ def test_compose_sf_cluster_config():
         ],
     )
 
-    kuscia_task_cluster_def = ClusterDefine(
+    kusica_task_cluster_def = ClusterDefine(
         parties=[
             Party(
                 name="alice",
@@ -62,7 +62,7 @@ def test_compose_sf_cluster_config():
         self_party_idx=0,
     )
 
-    kuscia_task_allocated_ports = AllocatedPorts(
+    kusica_task_allocated_ports = AllocatedPorts(
         ports=[Port(name="fed", port=1234), Port(name="spu", port=1235)]
     )
 
@@ -76,8 +76,8 @@ def test_compose_sf_cluster_config():
     sf_cluster_config = compose_sf_cluster_config(
         sf_cluster_desc,
         "datamesh.local",
-        kuscia_task_cluster_def,
-        kuscia_task_allocated_ports,
+        kusica_task_cluster_def,
+        kusica_task_allocated_ports,
         ray_config,
         sf_storage_config,
     )

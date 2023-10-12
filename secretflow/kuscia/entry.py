@@ -31,7 +31,7 @@ from secretflow.kuscia.datamesh import (
 )
 from secretflow.kuscia.ray_config import RayConfig
 from secretflow.kuscia.sf_config import get_sf_cluster_config
-from secretflow.kuscia.task_config import KusciaTaskConfig
+from secretflow.kuscia.task_config import KusicaTaskConfig
 from secretflow.protos.component.data_pb2 import (
     DistData,
     IndividualTable,
@@ -197,7 +197,7 @@ def postprocess_sf_node_eval_result(
             create_domain_data(stub, domain_data)
 
 
-def try_to_get_datasource_id(task_conf: KusciaTaskConfig):
+def try_to_get_datasource_id(task_conf: KusicaTaskConfig):
     global datasource_id
     party_name = task_conf.party_name
     sf_datasource_config = task_conf.sf_datasource_config
@@ -213,7 +213,7 @@ def try_to_get_datasource_id(task_conf: KusciaTaskConfig):
 @click.argument("task_config_path", type=click.Path(exists=True))
 @click.option("--datamesh_addr", required=False, default=DEFAULT_DATAMESH_ADDRESS)
 def main(task_config_path, datamesh_addr):
-    task_conf = KusciaTaskConfig.from_file(task_config_path)
+    task_conf = KusicaTaskConfig.from_file(task_config_path)
 
     try_to_get_datasource_id(task_conf)
 
