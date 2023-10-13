@@ -152,10 +152,9 @@ class SLBaseTFModel(SLBaseModel):
         self.steps_per_epoch = steps_per_epoch
 
     def get_basenet_output_num(self):
-        if hasattr(self.model_base, 'outputs') and self.model_base.outputs is not None:
+        if hasattr(self.model_base, "outputs") and self.model_base.outputs is not None:
             return len(self.model_base.outputs)
         else:
-
             if hasattr(self.model_base, "output_num"):
                 return self.model_base.output_num()
             else:
@@ -207,12 +206,13 @@ class SLBaseTFModel(SLBaseModel):
         # modify:
         # this shuffle is not really shuffle, only shuffle the blocks
         # every block is sequential
-        # should shuffle before batch 
+        # should shuffle before batch
         data_set = tf.data.Dataset.from_tensor_slices(x)
 
         if shuffle:
-            data_set = data_set.shuffle(buffer_size, seed=random_seed,
-                                        reshuffle_each_iteration=True)
+            data_set = data_set.shuffle(
+                buffer_size, seed=random_seed, reshuffle_each_iteration=True
+            )
 
         data_set = data_set.batch(batch_size).repeat(repeat_count)
 
@@ -254,7 +254,7 @@ class SLBaseTFModel(SLBaseModel):
 
         data_set = dataset_builder(x)
         # Compatible with existing gnn databuilder
-        if hasattr(data_set, 'steps_per_epoch'):
+        if hasattr(data_set, "steps_per_epoch"):
             return data_set.steps_per_epoch
 
         if shuffle:
@@ -396,7 +396,7 @@ class SLBaseTFModel(SLBaseModel):
                 forward_data.hidden = self.compressor.compress(self.h.numpy())
             else:
                 raise Exception(
-                    'can not find compressor when compress data in base_forward'
+                    "can not find compressor when compress data in base_forward"
                 )
         else:
             forward_data.hidden = self.h
@@ -423,7 +423,7 @@ class SLBaseTFModel(SLBaseModel):
                 gradient = self.compressor.decompress(gradient)
             else:
                 raise Exception(
-                    'can not find compressor when decompress data in base_backward'
+                    "can not find compressor when decompress data in base_backward"
                 )
         with self.tape:
             if len(gradient) == len(self.h):
@@ -488,11 +488,10 @@ class SLBaseTFModel(SLBaseModel):
         self.fuse_callbacks.on_train_batch_end(step, self.logs)
 
     def on_validation(self, val_logs):
-        val_logs = {'val_' + name: val for name, val in val_logs.items()}
+        val_logs = {"val_" + name: val for name, val in val_logs.items()}
         self.epoch_logs.update(val_logs)
 
     def on_epoch_end(self, epoch):
-
         self.fuse_callbacks.on_epoch_end(epoch, self.epoch_logs)
         self.training_logs = self.epoch_logs
         return self.epoch_logs
@@ -559,7 +558,7 @@ class SLBaseTFModel(SLBaseModel):
                 )
             else:
                 raise Exception(
-                    'can not find compressor when decompress data in fuse_net'
+                    "can not find compressor when decompress data in fuse_net"
                 )
 
         hiddens = []
@@ -575,7 +574,7 @@ class SLBaseTFModel(SLBaseModel):
         gradient = self._fuse_net_train(hiddens, losses)
 
         for m in self.model_fuse.metrics:
-            logs['train_' + m.name] = m.result().numpy()
+            logs["train_" + m.name] = m.result().numpy()
         self.logs = logs
         # In some strategies, we don't need to return gradient.
         if self.skip_gradient:
@@ -586,7 +585,7 @@ class SLBaseTFModel(SLBaseModel):
             if fuse_sparse_masks:
                 assert len(fuse_sparse_masks) == len(
                     gradient
-                ), f'length of fuse_sparse_masks and gradient mismatch: {len(fuse_sparse_masks)} - {len(gradient)}'
+                ), f"length of fuse_sparse_masks and gradient mismatch: {len(fuse_sparse_masks)} - {len(gradient)}"
 
                 def apply_mask(m, d):
                     if m is not None:
@@ -697,7 +696,7 @@ class SLBaseTFModel(SLBaseModel):
                 hidden_features = self.compressor.decompress(hidden_features)
             else:
                 raise Exception(
-                    'can not find compressor when decompress data in evaluate'
+                    "can not find compressor when decompress data in evaluate"
                 )
         hiddens = []
         for h in hidden_features:
@@ -754,7 +753,7 @@ class SLBaseTFModel(SLBaseModel):
                 )
             else:
                 raise NotImplementedError(
-                    f'Unsupported global metric {m.__class__.__qualname__} for now, please add it.'
+                    f"Unsupported global metric {m.__class__.__qualname__} for now, please add it."
                 )
         return wraped_metrics
 
@@ -787,7 +786,7 @@ class SLBaseTFModel(SLBaseModel):
                 hidden_features = self.compressor.decompress(hidden_features)
             else:
                 raise Exception(
-                    'can not find compressor when decompress data in predict'
+                    "can not find compressor when decompress data in predict"
                 )
 
         hiddens = []
@@ -830,8 +829,7 @@ class SLBaseTFModel(SLBaseModel):
     ):
         Path(model_path).parent.mkdir(parents=True, exist_ok=True)
         assert model_path is not None, "model path cannot be empty"
-        assert save_format in [
-            "onnx", "tf"], "save_format must be 'onnx' or 'tf'"
+        assert save_format in ["onnx", "tf"], "save_format must be 'onnx' or 'tf'"
         if save_format == "onnx":
             return self._export_onnx(model, model_path, **kwargs)
         elif save_format == "tf":
@@ -848,8 +846,8 @@ class SLBaseTFModel(SLBaseModel):
             model, output_path=model_path, **kwargs
         )
         return {
-            'inputs': wrap_onnx_input_output(model_proto.graph.input),
-            'outputs': wrap_onnx_input_output(model_proto.graph.output),
+            "inputs": wrap_onnx_input_output(model_proto.graph.input),
+            "outputs": wrap_onnx_input_output(model_proto.graph.output),
         }
 
     def _export_tf(self, model, model_path, **kwargs):
@@ -860,10 +858,9 @@ class SLBaseTFModel(SLBaseModel):
 
         from .utils import wrap_tf_input_output
 
-        tag_set = 'serve'
-        signature_def_key = 'serving_default'
-        meta_graph_def = saved_model_utils.get_meta_graph_def(
-            model_path, tag_set)
+        tag_set = "serve"
+        signature_def_key = "serving_default"
+        meta_graph_def = saved_model_utils.get_meta_graph_def(model_path, tag_set)
         if signature_def_key not in meta_graph_def.signature_def:
             raise ValueError(
                 f'Could not find signature "{signature_def_key}". Please choose from: '
@@ -872,8 +869,8 @@ class SLBaseTFModel(SLBaseModel):
         inputs = meta_graph_def.signature_def[signature_def_key].inputs
         outputs = meta_graph_def.signature_def[signature_def_key].outputs
         return {
-            'inputs': wrap_tf_input_output(inputs),
-            'outputs': wrap_tf_input_output(outputs),
+            "inputs": wrap_tf_input_output(inputs),
+            "outputs": wrap_tf_input_output(outputs),
         }
 
     def get_privacy_spent(self, step: int, orders=None):
@@ -888,6 +885,7 @@ class SLBaseTFModel(SLBaseModel):
 
     def get_skip_gradient(self):
         return False
+
 
 class IndexSLBaseTFModel(SLBaseTFModel):
     def base_forward(self, stage="train", compress: bool = False) -> ForwardData:
@@ -944,10 +942,14 @@ class IndexSLBaseTFModel(SLBaseTFModel):
             raise Exception("invalid stage")
 
         # Strip tuple of length one, e.g: (x,) -> x
-        # modify: gradient replacement needs features and indexes 
+        # modify: gradient replacement needs features and indexes
         assert len(data_x) >= 2
         data_indexes = data_x[-1]
-        data_x = data_x[0] if isinstance(data_x[:-1], Tuple) and len(data_x[:-1]) == 1 else data_x[:-1]
+        data_x = (
+            data_x[0]
+            if isinstance(data_x[:-1], Tuple) and len(data_x[:-1]) == 1
+            else data_x[:-1]
+        )
 
         self.tape = tf.GradientTape(persistent=True)
         with self.tape:
@@ -966,11 +968,12 @@ class IndexSLBaseTFModel(SLBaseTFModel):
                 forward_data.hidden = self.compressor.compress(self.h.numpy())
             else:
                 raise Exception(
-                    'can not find compressor when compress data in base_forward'
+                    "can not find compressor when compress data in base_forward"
                 )
         else:
             forward_data.hidden = self.h
         return forward_data
+
 
 class ModelPartition(object):
     def __init__(self, model_fn, optim_fn, loss_fn, dataloader_fn):
@@ -984,7 +987,7 @@ class ModelPartition(object):
             k: iter(_dl) for k, _dl in self._dataloader.items()
         }
 
-    def get_one_batch(self, name='train'):
+    def get_one_batch(self, name="train"):
         try:
             x, y = next(self._dataiter[name])
         except StopIteration:
@@ -993,7 +996,7 @@ class ModelPartition(object):
         return x, y
 
     def forward(
-        self, used_name='train', external_input=None
+        self, used_name="train", external_input=None
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         if external_input is None:
             external_input = {}
@@ -1004,7 +1007,7 @@ class ModelPartition(object):
     def zero_grad(self):
         self.optimizer.zero_grad()
 
-    def backward(self, used_name='train', gradients=None, external_input: Dict = None):
+    def backward(self, used_name="train", gradients=None, external_input: Dict = None):
         if gradients is not None:
             self.model.set_gradients(gradients)
         else:
@@ -1035,7 +1038,7 @@ class ModelPartition(object):
         return getattr(self.model, fn_name)(*args, **kwargs)
 
 
-'''
+"""
 @register_strategy(strategy_name='split_nn', backend='tensorflow')
 @proxy(PYUObject)
 class PYUSLTFModel(SLBaseTFModel):
@@ -1044,5 +1047,4 @@ class PYUSLTFModel(SLBaseTFModel):
 @proxy(ft.PYUObject)
 class PYUModel(ModelPartition):
     pass
-'''
-
+"""

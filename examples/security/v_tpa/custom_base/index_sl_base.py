@@ -69,10 +69,14 @@ class IndexSLBaseTFModel(SLBaseTFModel):
             return None
 
         # Strip tuple of length one, e.g: (x,) -> x
-        # modify: gradient replacement needs features and indexes 
+        # modify: gradient replacement needs features and indexes
         assert len(data_x) >= 2
         data_indexes = data_x[-1]
-        data_x = data_x[0] if isinstance(data_x[:-1], Tuple) and len(data_x[:-1]) == 1 else data_x[:-1]
+        data_x = (
+            data_x[0]
+            if isinstance(data_x[:-1], Tuple) and len(data_x[:-1]) == 1
+            else data_x[:-1]
+        )
         # data_x = data_x[0] if isinstance(data_x, Tuple) and len(data_x) == 1 else data_x
 
         self.tape = tf.GradientTape(persistent=True)
@@ -87,7 +91,8 @@ class IndexSLBaseTFModel(SLBaseTFModel):
         forward_data.hidden = self.h.numpy() if tf.is_tensor(self.h) else self.h
         return forward_data
 
-@register_strategy(strategy_name='index_split_nn', backend='tensorflow')
+
+@register_strategy(strategy_name="index_split_nn", backend="tensorflow")
 @proxy(PYUObject)
 class IndexPYUSLTFModel(IndexSLBaseTFModel):
     pass

@@ -25,6 +25,7 @@ from secretflow.utils.compressor import Compressor, SparseCompressor
 from .sl_base import SLBaseTFModel
 import pdb
 
+
 class IndexSLBaseTFModel(SLBaseTFModel):
     def base_forward(self, stage="train", compress: bool = False) -> ForwardData:
         """compute hidden embedding
@@ -80,10 +81,14 @@ class IndexSLBaseTFModel(SLBaseTFModel):
             raise Exception("invalid stage")
 
         # Strip tuple of length one, e.g: (x,) -> x
-        # modify: gradient replacement needs features and indexes 
+        # modify: gradient replacement needs features and indexes
         assert len(data_x) >= 2
         data_indexes = data_x[-1]
-        data_x = data_x[0] if isinstance(data_x[:-1], Tuple) and len(data_x[:-1]) == 1 else data_x[:-1]
+        data_x = (
+            data_x[0]
+            if isinstance(data_x[:-1], Tuple) and len(data_x[:-1]) == 1
+            else data_x[:-1]
+        )
 
         self.tape = tf.GradientTape(persistent=True)
         with self.tape:
@@ -102,13 +107,14 @@ class IndexSLBaseTFModel(SLBaseTFModel):
                 forward_data.hidden = self.compressor.compress(self.h.numpy())
             else:
                 raise Exception(
-                    'can not find compressor when compress data in base_forward'
+                    "can not find compressor when compress data in base_forward"
                 )
         else:
             forward_data.hidden = self.h
         return forward_data
 
-@register_strategy(strategy_name='index_split_nn', backend='tensorflow')
+
+@register_strategy(strategy_name="index_split_nn", backend="tensorflow")
 @proxy(PYUObject)
 class IndexPYUSLTFModel(IndexSLBaseTFModel):
-        pass
+    pass

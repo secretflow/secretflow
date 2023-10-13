@@ -4,6 +4,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
+
 class DropBlock2D(nn.Module):
     r"""Randomly zeroes 2D spatial blocks of the input tensor.
     As described in the paper
@@ -29,10 +30,11 @@ class DropBlock2D(nn.Module):
     def forward(self, x):
         # shape: (bsize, channels, height, width)
 
-        assert x.dim() == 4, \
-            "Expected input with 4 dimensions (bsize, channels, height, width)"
+        assert (
+            x.dim() == 4
+        ), "Expected input with 4 dimensions (bsize, channels, height, width)"
 
-        if not self.training or self.drop_prob == 0.:
+        if not self.training or self.drop_prob == 0.0:
             return x
         else:
             # get gamma value
@@ -56,10 +58,12 @@ class DropBlock2D(nn.Module):
             return out
 
     def _compute_block_mask(self, mask):
-        block_mask = F.max_pool2d(input=mask[:, None, :, :],
-                                  kernel_size=(self.block_size, self.block_size),
-                                  stride=(1, 1),
-                                  padding=self.block_size // 2)
+        block_mask = F.max_pool2d(
+            input=mask[:, None, :, :],
+            kernel_size=(self.block_size, self.block_size),
+            stride=(1, 1),
+            padding=self.block_size // 2,
+        )
 
         if self.block_size % 2 == 0:
             block_mask = block_mask[:, :, :-1, :-1]
@@ -69,7 +73,7 @@ class DropBlock2D(nn.Module):
         return block_mask
 
     def _compute_gamma(self, x):
-        return self.drop_prob / (self.block_size ** 2)
+        return self.drop_prob / (self.block_size**2)
 
 
 class DropBlock3D(DropBlock2D):
@@ -94,10 +98,11 @@ class DropBlock3D(DropBlock2D):
     def forward(self, x):
         # shape: (bsize, channels, depth, height, width)
 
-        assert x.dim() == 5, \
-            "Expected input with 5 dimensions (bsize, channels, depth, height, width)"
+        assert (
+            x.dim() == 5
+        ), "Expected input with 5 dimensions (bsize, channels, depth, height, width)"
 
-        if not self.training or self.drop_prob == 0.:
+        if not self.training or self.drop_prob == 0.0:
             return x
         else:
             # get gamma value
@@ -121,10 +126,12 @@ class DropBlock3D(DropBlock2D):
             return out
 
     def _compute_block_mask(self, mask):
-        block_mask = F.max_pool3d(input=mask[:, None, :, :, :],
-                                  kernel_size=(self.block_size, self.block_size, self.block_size),
-                                  stride=(1, 1, 1),
-                                  padding=self.block_size // 2)
+        block_mask = F.max_pool3d(
+            input=mask[:, None, :, :, :],
+            kernel_size=(self.block_size, self.block_size, self.block_size),
+            stride=(1, 1, 1),
+            padding=self.block_size // 2,
+        )
 
         if self.block_size % 2 == 0:
             block_mask = block_mask[:, :, :-1, :-1, :-1]
@@ -134,4 +141,4 @@ class DropBlock3D(DropBlock2D):
         return block_mask
 
     def _compute_gamma(self, x):
-        return self.drop_prob / (self.block_size ** 3)
+        return self.drop_prob / (self.block_size**3)

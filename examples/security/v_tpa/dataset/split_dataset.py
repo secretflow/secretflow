@@ -2,6 +2,7 @@
 # coding=utf-8
 from torch.utils.data import Dataset
 
+
 class PassiveDataset(Dataset):
     def __init__(self, party_features, party_labels, party_indexes):
         super().__init__()
@@ -15,6 +16,7 @@ class PassiveDataset(Dataset):
 
     def __len__(self):
         return len(self.party_features)
+
 
 class ActiveDataset(PassiveDataset):
     def __init__(self, party_features, party_labels, party_indexes):

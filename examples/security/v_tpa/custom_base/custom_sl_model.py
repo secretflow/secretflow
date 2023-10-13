@@ -43,15 +43,15 @@ from secretflow.utils.random import global_random
 class CustomSLModel:
     def __init__(
         self,
-        base_model_dict: Dict[Device, Callable[[], 'tensorflow.keras.Model']] = {},
+        base_model_dict: Dict[Device, Callable[[], "tensorflow.keras.Model"]] = {},
         device_y: PYU = None,
-        model_fuse: Callable[[], 'tensorflow.keras.Model'] = None,
+        model_fuse: Callable[[], "tensorflow.keras.Model"] = None,
         dp_strategy_dict: Dict[Device, DPStrategy] = None,
         random_seed: int = None,
         backend: str = "tensorflow",
-        strategy='split_nn',
+        strategy="split_nn",
         agg_method: AggMethod = None,
-        device_strategy_dict: Dict[Device, str] = {}, # modify: custom device strategy
+        device_strategy_dict: Dict[Device, str] = {},  # modify: custom device strategy
         **kwargs,
     ):
         """Interface for vertical split learning
@@ -78,9 +78,9 @@ class CustomSLModel:
 
         self.device_y = device_y
         self.dp_strategy_dict = dp_strategy_dict
-        self.simulation = kwargs.get('simulation', False)
-        self.device_agg = kwargs.get('device_agg', None)
-        self.compressor = kwargs.get('compressor', None)
+        self.simulation = kwargs.get("simulation", False)
+        self.device_agg = kwargs.get("device_agg", None)
+        self.compressor = kwargs.get("compressor", None)
         self.base_model_dict = base_model_dict
         self.backend = backend
         self.num_parties = len(base_model_dict)
@@ -92,13 +92,13 @@ class CustomSLModel:
             backend=backend,
             compressor=self.compressor,
         )
-        self.pipeline_size = kwargs.get('pipeline_size', 1)
+        self.pipeline_size = kwargs.get("pipeline_size", 1)
         assert self.pipeline_size >= 1, f"invalid pipeline size: {self.pipeline_size}"
 
         # modify: custom split learning dictionary
         self.device_strategy_dict = device_strategy_dict
-        attack_args = kwargs.get('attack_args', {})
-        defense_args = kwargs.get('defense_args', {})
+        attack_args = kwargs.get("attack_args", {})
+        defense_args = kwargs.get("defense_args", {})
 
         if backend.lower() == "tensorflow":
             import secretflow.ml.nn.sl.backend.tensorflow.strategy  # noqa
@@ -113,7 +113,7 @@ class CustomSLModel:
         for device in worker_list:
             self._workers[device], self.check_skip_grad = dispatch_strategy(
                 # strategy,
-                device_strategy_dict.get(device, 'split_nn'),
+                device_strategy_dict.get(device, "split_nn"),
                 backend=backend,
                 builder_base=base_model_dict[device]
                 if device in base_model_dict.keys()
@@ -124,13 +124,13 @@ class CustomSLModel:
                 if dp_strategy_dict
                 else None,
                 device=device,
-                base_local_steps=kwargs.get('base_local_steps', 1),
-                fuse_local_steps=kwargs.get('fuse_local_steps', 1),
-                bound_param=kwargs.get('bound_param', 0.0),
-                loss_thres=kwargs.get('loss_thres', 0.01),
-                split_steps=kwargs.get('split_steps', 1),
-                max_fuse_local_steps=kwargs.get('max_fuse_local_steps', 1),
-                pipeline_size=kwargs.get('pipeline_size', 1),
+                base_local_steps=kwargs.get("base_local_steps", 1),
+                fuse_local_steps=kwargs.get("fuse_local_steps", 1),
+                bound_param=kwargs.get("bound_param", 0.0),
+                loss_thres=kwargs.get("loss_thres", 0.01),
+                split_steps=kwargs.get("split_steps", 1),
+                max_fuse_local_steps=kwargs.get("max_fuse_local_steps", 1),
+                pipeline_size=kwargs.get("pipeline_size", 1),
                 attack_args=attack_args.get(device, {}),
                 defense_args=defense_args.get(device, {}),
             )
@@ -431,7 +431,7 @@ class CustomSLModel:
                     res = []
             assert (
                 len(hiddens_buf) == 0
-            ), f'hiddens buffer unfinished, len: {len(hiddens_buf)}'
+            ), f"hiddens buffer unfinished, len: {len(hiddens_buf)}"
             if validation and epoch % validation_freq == 0:
                 # validation
                 self._workers[self.device_y].reset_metrics()
@@ -544,7 +544,7 @@ class CustomSLModel:
         ]
         if verbose > 0:
             pbar = tqdm(total=predict_steps)
-            pbar.set_description('Predict Processing:')
+            pbar.set_description("Predict Processing:")
         result = []
         wait_steps = min(min(self.get_cpus()) * 2, 100)
         res = []
@@ -635,7 +635,7 @@ class CustomSLModel:
         self._workers[self.device_y].reset_metrics()
         if verbose > 0:
             pbar = tqdm(total=evaluate_steps)
-            pbar.set_description('Evaluate Processing:')
+            pbar.set_description("Evaluate Processing:")
 
         wait_steps = min(min(self.get_cpus()) * 2, 100)
         for step in range(0, evaluate_steps):
@@ -686,7 +686,7 @@ class CustomSLModel:
         """
         assert isinstance(
             base_model_path, (str, Dict)
-        ), f'Model path accepts string or dict but got {type(base_model_path)}.'
+        ), f"Model path accepts string or dict but got {type(base_model_path)}."
         assert fuse_model_path is not None, "Fuse model path cannot be empty"
         if isinstance(base_model_path, str):
             base_model_path = {
@@ -699,7 +699,7 @@ class CustomSLModel:
                 continue
             assert (
                 device in base_model_path
-            ), f'Should provide a path for device {device}.'
+            ), f"Should provide a path for device {device}."
             assert not base_model_path[device].endswith(
                 "/"
             ), f"model path should be 'a/b/c' not 'a/b/c/'"
@@ -742,7 +742,7 @@ class CustomSLModel:
         """
         assert isinstance(
             base_model_path, (str, Dict)
-        ), f'Model path accepts string or dict but got {type(base_model_path)}.'
+        ), f"Model path accepts string or dict but got {type(base_model_path)}."
         assert fuse_model_path is not None, "Fuse model path cannot be empty"
         if isinstance(base_model_path, str):
             base_model_path = {
@@ -754,7 +754,7 @@ class CustomSLModel:
                 continue
             assert (
                 device in base_model_path
-            ), f'Should provide a path for device {device}.'
+            ), f"Should provide a path for device {device}."
             assert not base_model_path[device].endswith(
                 "/"
             ), f"model path should be 'a/b/c' not 'a/b/c/'"
@@ -797,7 +797,7 @@ class CustomSLModel:
         """
         assert isinstance(
             base_model_path, (str, Dict)
-        ), f'Model path accepts string or dict but got {type(base_model_path)}.'
+        ), f"Model path accepts string or dict but got {type(base_model_path)}."
         assert fuse_model_path is not None, "Fuse model path cannot be empty"
         if isinstance(base_model_path, str):
             base_model_path = {
@@ -811,7 +811,7 @@ class CustomSLModel:
                 continue
             assert (
                 device in base_model_path
-            ), f'Should provide a path for device {device}.'
+            ), f"Should provide a path for device {device}."
             assert not base_model_path[device].endswith(
                 "/"
             ), f"model path should be 'a/b/c' not 'a/b/c/'"

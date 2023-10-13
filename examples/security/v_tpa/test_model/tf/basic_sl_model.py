@@ -5,14 +5,17 @@ import numpy as np
 import copy
 import pdb
 
-def create_passive_model(input_shape, n_class, SplitModel, split_point, party_num, opt_args, compile_args):
+
+def create_passive_model(
+    input_shape, n_class, SplitModel, split_point, party_num, opt_args, compile_args
+):
     def create():
         class Model(keras.Model):
             def __init__(self, input_shape):
                 super().__init__()
 
                 self.in_shape = input_shape
-                self.model, _ = SplitModel(n_class).split(split_point, party_num) 
+                self.model, _ = SplitModel(n_class).split(split_point, party_num)
 
             def call(self, x):
                 x = self.model(x)
@@ -21,50 +24,61 @@ def create_passive_model(input_shape, n_class, SplitModel, split_point, party_nu
         input_feature = keras.Input(shape=input_shape)
         m = Model(input_shape)
         output = m(input_feature)
-        m = keras.Model(inputs=input_feature, outputs=output) 
+        m = keras.Model(inputs=input_feature, outputs=output)
 
         # keras optimizer, legacy
-        '''
+        """
         optimizer = tf.keras.optimizers.get({
             'class_name': opt_args.get('class_name', 'adam'),
             'config': opt_args['config']
         })
-        '''
-        opt_name = opt_args.get('class_name', 'sgd')
-        lr = opt_args['config'].get('learning_rate', 0.01)
-        if opt_name == 'sgd':
+        """
+        opt_name = opt_args.get("class_name", "sgd")
+        lr = opt_args["config"].get("learning_rate", 0.01)
+        if opt_name == "sgd":
             optimizer = tf.keras.optimizers.SGD(learning_rate=lr)
-        elif opt_name == 'adam':
+        elif opt_name == "adam":
             optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
         else:
-            raise 'Invalid Optimizer {}!!!'.format(opt_name)
+            raise "Invalid Optimizer {}!!!".format(opt_name)
 
-        m.compile(loss=compile_args['loss'],
-                      optimizer=optimizer,
-                      metrics=compile_args['metrics'])
-        return m 
+        m.compile(
+            loss=compile_args["loss"],
+            optimizer=optimizer,
+            metrics=compile_args["metrics"],
+        )
+        return m
 
     return create
 
 
-def create_fuse_model(input_shapes, agg, n_class, SplittableModel, split_point, party_num, opt_args, compile_args):
+def create_fuse_model(
+    input_shapes,
+    agg,
+    n_class,
+    SplittableModel,
+    split_point,
+    party_num,
+    opt_args,
+    compile_args,
+):
     def create():
         class FuseModel(keras.Model):
             def __init__(self, input_shapes):
                 super().__init__()
 
                 self.in_shapes = input_shapes
-                _, self.model = SplittableModel(n_class).split(split_point, party_num) 
+                _, self.model = SplittableModel(n_class).split(split_point, party_num)
 
             def call(self, xs):
-                if agg == 'sum':
+                if agg == "sum":
                     x = layers.add(xs)
-                elif agg == 'average':
+                elif agg == "average":
                     x = layers.average(xs)
-                elif agg == 'concatenate':
+                elif agg == "concatenate":
                     x = layers.concatenate(xs)
                 else:
-                    raise 'Invalid aggregatio {}!!!'.format(agg)
+                    raise "Invalid aggregatio {}!!!".format(agg)
                 x = self.model(x)
                 return tf.nn.softmax(x, axis=1)
 
@@ -73,20 +87,21 @@ def create_fuse_model(input_shapes, agg, n_class, SplittableModel, split_point, 
         output = m(input_layers)
         m = keras.Model(inputs=input_layers, outputs=output)
 
-        opt_name = opt_args.get('class_name', 'sgd')
-        lr = opt_args['config'].get('learning_rate', 0.01)
-        if opt_name == 'sgd':
+        opt_name = opt_args.get("class_name", "sgd")
+        lr = opt_args["config"].get("learning_rate", 0.01)
+        if opt_name == "sgd":
             optimizer = tf.keras.optimizers.SGD(learning_rate=lr)
-        elif opt_name == 'adam':
+        elif opt_name == "adam":
             optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
         else:
-            raise 'Invalid Optimizer {}!!!'.format(opt_name)
+            raise "Invalid Optimizer {}!!!".format(opt_name)
 
-        m.compile(loss=compile_args['loss'],
-                      optimizer=optimizer,
-                      metrics=compile_args['metrics'])
+        m.compile(
+            loss=compile_args["loss"],
+            optimizer=optimizer,
+            metrics=compile_args["metrics"],
+        )
 
-        return m 
+        return m
 
     return create
-

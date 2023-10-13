@@ -11,9 +11,19 @@ __all__ = [
 ]
 
 
-METHODS = ['replay', 'grad_replacement']
+METHODS = ["replay", "grad_replacement"]
 # AGGREGATIONS = ['average', 'naive_sum', 'sum', 'concatenate']
-AGGREGATIONS = ['naive_sum']
+AGGREGATIONS = ["naive_sum"]
 TIMES = 10
 PARTY_NUM = 2
-PARTIES = ['alice', 'bob', 'charles', 'david', 'ella', 'filler', 'ganna', 'hellen', 'idiom']
+PARTIES = [
+    "alice",
+    "bob",
+    "charles",
+    "david",
+    "ella",
+    "filler",
+    "ganna",
+    "hellen",
+    "idiom",
+]

@@ -30,6 +30,9 @@ These are the poisoning attacks and defenses of split learning, including:
 - Model configure: the model configure is `test_model/tf_model_config.py`
 - Attack configure: the attack configure is `attack/attack_config.py`
 - Basic configure of split learning: `config.py`
+
+**Note**
+If you want to run the test scripts, please first modify the `data_path` in `dataset/dataset_config.py`.
 ```
 
 

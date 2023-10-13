@@ -44,13 +44,13 @@ import pdb
 class SLModel:
     def __init__(
         self,
-        base_model_dict: Dict[Device, Callable[[], 'tensorflow.keras.Model']] = {},
+        base_model_dict: Dict[Device, Callable[[], "tensorflow.keras.Model"]] = {},
         device_y: PYU = None,
-        model_fuse: Callable[[], 'tensorflow.keras.Model'] = None,
+        model_fuse: Callable[[], "tensorflow.keras.Model"] = None,
         compressor: Compressor = None,
         dp_strategy_dict: Dict[Device, DPStrategy] = None,
         random_seed: int = None,
-        device_strategy_dict: Dict[Device, str] = {}, # modify: custom device strategy
+        device_strategy_dict: Dict[Device, str] = {},  # modify: custom device strategy
         **kwargs,
     ):
         """Interface for vertical split learning
@@ -67,13 +67,13 @@ class SLModel:
         self.device_y = device_y
         self.has_compressor = compressor is not None
         self.dp_strategy_dict = dp_strategy_dict
-        self.simulation = kwargs.get('simulation', False)
+        self.simulation = kwargs.get("simulation", False)
         self.num_parties = len(base_model_dict)
 
         # modify: custom split learning dictionary
         self.device_strategy_dict = device_strategy_dict
-        attack_args = kwargs.get('attack_args', {})
-        defense_args = kwargs.get('defense_args', {})
+        attack_args = kwargs.get("attack_args", {})
+        defense_args = kwargs.get("defense_args", {})
 
         # TODO: add argument `backend`
         import secretflow.ml.nn.sl.backend.tensorflow.strategy  # noqa
@@ -82,8 +82,8 @@ class SLModel:
         for device, model in base_model_dict.items():
             self._workers[device], self.check_skip_grad = dispatch_strategy(
                 # strategy,
-                device_strategy_dict.get(device, 'split_nn'),
-                backend=kwargs.get('backend', 'tensorflow'),
+                device_strategy_dict.get(device, "split_nn"),
+                backend=kwargs.get("backend", "tensorflow"),
                 device=device,
                 builder_base=model,
                 builder_fuse=None if device != device_y else model_fuse,
@@ -92,12 +92,12 @@ class SLModel:
                 dp_strategy=dp_strategy_dict.get(device, None)
                 if dp_strategy_dict
                 else None,
-                base_local_steps=kwargs.get('base_local_steps', 1),
-                fuse_local_steps=kwargs.get('fuse_local_steps', 1),
-                bound_param=kwargs.get('bound_param', 0.0),
-                loss_thres=kwargs.get('loss_thres', 0.01),
-                split_steps=kwargs.get('split_steps', 1),
-                max_fuse_local_steps=kwargs.get('max_fuse_local_steps', 1),
+                base_local_steps=kwargs.get("base_local_steps", 1),
+                fuse_local_steps=kwargs.get("fuse_local_steps", 1),
+                bound_param=kwargs.get("bound_param", 0.0),
+                loss_thres=kwargs.get("loss_thres", 0.01),
+                split_steps=kwargs.get("split_steps", 1),
+                max_fuse_local_steps=kwargs.get("max_fuse_local_steps", 1),
                 attack_args=attack_args.get(device, {}),
                 defense_args=defense_args.get(device, {}),
             )
@@ -346,9 +346,7 @@ class SLModel:
                             idx += self.basenet_output_num[device]
                     else:
                         # modify: not list
-                        worker.base_backward(
-                            gradients, compress=self.has_compressor
-                        )
+                        worker.base_backward(gradients, compress=self.has_compressor)
                 r_count = self._workers[self.device_y].on_train_batch_end(step=step)
                 res.append(r_count)
                 if self.dp_strategy_dict is not None and dp_spent_step_freq is not None:
@@ -452,7 +450,7 @@ class SLModel:
         )
         if verbose > 0:
             pbar = tqdm(total=predict_steps)
-            pbar.set_description('Predict Processing:')
+            pbar.set_description("Predict Processing:")
         result = []
         wait_steps = min(min(self.get_cpus()) * 2, 100)
         res = []
@@ -533,7 +531,7 @@ class SLModel:
         self._workers[self.device_y].reset_metrics()
         if verbose > 0:
             pbar = tqdm(total=evaluate_steps)
-            pbar.set_description('Evaluate Processing:')
+            pbar.set_description("Evaluate Processing:")
 
         wait_steps = min(min(self.get_cpus()) * 2, 100)
         for step in range(0, evaluate_steps):
@@ -582,7 +580,7 @@ class SLModel:
         """
         assert isinstance(
             base_model_path, (str, Dict)
-        ), f'Model path accepts string or dict but got {type(base_model_path)}.'
+        ), f"Model path accepts string or dict but got {type(base_model_path)}."
         assert fuse_model_path is not None, "Fuse model path cannot be empty"
         if isinstance(base_model_path, str):
             base_model_path = {
@@ -593,7 +591,7 @@ class SLModel:
         for device, worker in self._workers.items():
             assert (
                 device in base_model_path
-            ), f'Should provide a path for device {device}.'
+            ), f"Should provide a path for device {device}."
             assert not base_model_path[device].endswith(
                 "/"
             ), f"model path should be 'a/b/c' not 'a/b/c/'"
@@ -636,7 +634,7 @@ class SLModel:
         """
         assert isinstance(
             base_model_path, (str, Dict)
-        ), f'Model path accepts string or dict but got {type(base_model_path)}.'
+        ), f"Model path accepts string or dict but got {type(base_model_path)}."
         assert fuse_model_path is not None, "Fuse model path cannot be empty"
         if isinstance(base_model_path, str):
             base_model_path = {
@@ -647,7 +645,7 @@ class SLModel:
         for device, worker in self._workers.items():
             assert (
                 device in base_model_path
-            ), f'Should provide a path for device {device}.'
+            ), f"Should provide a path for device {device}."
             assert not base_model_path[device].endswith(
                 "/"
             ), f"model path should be 'a/b/c' not 'a/b/c/'"
@@ -690,7 +688,7 @@ class SLModel:
         """
         assert isinstance(
             base_model_path, (str, Dict)
-        ), f'Model path accepts string or dict but got {type(base_model_path)}.'
+        ), f"Model path accepts string or dict but got {type(base_model_path)}."
         assert fuse_model_path is not None, "Fuse model path cannot be empty"
         if isinstance(base_model_path, str):
             base_model_path = {
@@ -702,7 +700,7 @@ class SLModel:
         for device, worker in self._workers.items():
             assert (
                 device in base_model_path
-            ), f'Should provide a path for device {device}.'
+            ), f"Should provide a path for device {device}."
             assert not base_model_path[device].endswith(
                 "/"
             ), f"model path should be 'a/b/c' not 'a/b/c/'"

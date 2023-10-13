@@ -4,6 +4,7 @@ import numpy as np
 import json
 import pdb
 
+
 def asr(preds, truthes, target_class, indexes, hope_indexes):
     # t_indexes = truthes != target_class
     # p_indexes = preds == target_class
@@ -15,7 +16,7 @@ def asr(preds, truthes, target_class, indexes, hope_indexes):
 
 def load_result(file):
     results = []
-    with open(file, 'r') as fp:
+    with open(file, "r") as fp:
         for line in fp:
             r = json.loads(line)
             results.append(r)

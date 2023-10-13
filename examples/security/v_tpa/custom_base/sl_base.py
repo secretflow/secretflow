@@ -115,7 +115,7 @@ class SLBaseTFModel(SLBaseModel):
     def get_basenet_output_num(self):
         if self.model_base:
             if (
-                hasattr(self.model_base, 'outputs')
+                hasattr(self.model_base, "outputs")
                 and self.model_base.outputs is not None
             ):
                 return len(self.model_base.outputs)
@@ -249,7 +249,7 @@ class SLBaseTFModel(SLBaseModel):
 
         data_set = dataset_builder(data_tuple)
         # Compatible with existing gnn databuilder
-        if hasattr(data_set, 'steps_per_epoch'):
+        if hasattr(data_set, "steps_per_epoch"):
             return data_set.steps_per_epoch
 
         if shuffle:
@@ -487,7 +487,7 @@ class SLBaseTFModel(SLBaseModel):
             self.fuse_callbacks.on_train_batch_end(step, self.logs)
 
     def on_validation(self, val_logs):
-        val_logs = {'val_' + name: val for name, val in val_logs.items()}
+        val_logs = {"val_" + name: val for name, val in val_logs.items()}
         self.epoch_logs.update(val_logs)
 
     def on_epoch_end(self, epoch):
@@ -569,7 +569,7 @@ class SLBaseTFModel(SLBaseModel):
         gradient = self._fuse_net_train(hiddens, losses)
 
         for m in self.model_fuse.metrics:
-            logs['train_' + m.name] = m.result().numpy()
+            logs["train_" + m.name] = m.result().numpy()
         self.logs = logs
         # In some strategies, we don't need to return gradient.
         if self.skip_gradient:
@@ -722,7 +722,7 @@ class SLBaseTFModel(SLBaseModel):
                 )
             else:
                 raise NotImplementedError(
-                    f'Unsupported global metric {m.__class__.__qualname__} for now, please add it.'
+                    f"Unsupported global metric {m.__class__.__qualname__} for now, please add it."
                 )
         return wraped_metrics
 
@@ -813,8 +813,8 @@ class SLBaseTFModel(SLBaseModel):
             model, output_path=model_path, **kwargs
         )
         return {
-            'inputs': wrap_onnx_input_output(model_proto.graph.input),
-            'outputs': wrap_onnx_input_output(model_proto.graph.output),
+            "inputs": wrap_onnx_input_output(model_proto.graph.input),
+            "outputs": wrap_onnx_input_output(model_proto.graph.output),
         }
 
     def _export_tf(self, model, model_path, **kwargs):
@@ -825,8 +825,8 @@ class SLBaseTFModel(SLBaseModel):
 
         from .utils import wrap_tf_input_output
 
-        tag_set = 'serve'
-        signature_def_key = 'serving_default'
+        tag_set = "serve"
+        signature_def_key = "serving_default"
         meta_graph_def = saved_model_utils.get_meta_graph_def(model_path, tag_set)
         if signature_def_key not in meta_graph_def.signature_def:
             raise ValueError(
@@ -836,8 +836,8 @@ class SLBaseTFModel(SLBaseModel):
         inputs = meta_graph_def.signature_def[signature_def_key].inputs
         outputs = meta_graph_def.signature_def[signature_def_key].outputs
         return {
-            'inputs': wrap_tf_input_output(inputs),
-            'outputs': wrap_tf_input_output(outputs),
+            "inputs": wrap_tf_input_output(inputs),
+            "outputs": wrap_tf_input_output(outputs),
         }
 
     def get_privacy_spent(self, step: int, orders=None):
@@ -854,9 +854,9 @@ class SLBaseTFModel(SLBaseModel):
         return False
 
 
-'''
+"""
 @register_strategy(strategy_name='split_nn', backend='tensorflow')
 @proxy(PYUObject)
 class PYUSLTFModel(SLBaseTFModel):
     pass
-'''
+"""

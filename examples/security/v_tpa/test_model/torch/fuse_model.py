@@ -6,12 +6,14 @@ import torch.nn.functional as F
 import numpy as np
 import pdb
 
+
 class FuseModelNaive(nn.Module):
     def __init__(self, input_shapes, output_shape):
         super().__init__()
 
     def forward(self, x):
         return x
+
 
 class FuseModelSum(nn.Module):
     def __init__(self, input_shapes, output_shape):
@@ -21,6 +23,7 @@ class FuseModelSum(nn.Module):
     def forward(self, x):
         return self.linear(F.relu(x))
 
+
 class FuseModelCat(nn.Module):
     def __init__(self, input_shapes, output_shape):
         super().__init__()
@@ -29,13 +32,14 @@ class FuseModelCat(nn.Module):
     def forward(self, x):
         return self.linear(F.relu(x))
 
+
 def get_fuse_model(input_shapes, output_shape, aggregation):
-    if aggregation == 'naive_sum':
+    if aggregation == "naive_sum":
         model = FuseModelNaive(input_shapes, output_shape)
-    elif aggregation == 'sum':
+    elif aggregation == "sum":
         model = FuseModelSum(input_shapes, output_shape)
-    elif aggregation == 'concatenate':
+    elif aggregation == "concatenate":
         model = FuseModelCat(input_shapes, output_shape)
     else:
-        raise 'Invalid aggregation method!!!'
+        raise "Invalid aggregation method!!!"
     return model

@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 # coding=utf-8
 import sys
-sys.path.append('..')
+
+sys.path.append("..")
 
 from torch import nn, optim
 import torch.nn.functional as F
 import pdb
+
 
 class PassiveModel(nn.Module):
     def __init__(self, input_shape, output_shape):
@@ -20,8 +22,10 @@ class PassiveModel(nn.Module):
         x = self.linear3(x)
         return x
 
+
 def get_passive_model(input_shape, output_shape):
     return PassiveModel(input_shape, output_shape)
+
 
 def get_optimizer(lr, params):
     return optim.Adam(params, lr=lr)

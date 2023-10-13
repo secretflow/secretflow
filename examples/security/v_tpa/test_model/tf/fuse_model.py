@@ -7,6 +7,7 @@ import tensorflow as tf
 import numpy as np
 import pdb
 
+
 class Identity(keras.layers.Layer):
     def __init__(self, num_outputs, activation=None):
         super().__init__()
@@ -19,14 +20,15 @@ class Identity(keras.layers.Layer):
     def call(self, inputs):
         if self.activation is None:
             return inputs
-        elif self.activation == 'relu':
+        elif self.activation == "relu":
             return tf.nn.relu(inputs)
-        elif self.activation == 'softmax':
+        elif self.activation == "softmax":
             return tf.nn.softmax(inputs)
-        elif self.activation == 'sigmoid':
+        elif self.activation == "sigmoid":
             return tf.nn.sigmoid(inputs)
         else:
             return inputs
+
 
 def create_fuse_model_naive(input_shapes, output_shape, opt_args, compile_args):
     def create():
@@ -47,18 +49,23 @@ def create_fuse_model_naive(input_shapes, output_shape, opt_args, compile_args):
         output = FuseModel(input_shapes, output_shape)(input_layers)
         model = keras.Model(inputs=input_layers, outputs=output)
 
-        optimizer = tf.keras.optimizers.get({
-            'class_name': opt_args.get('class_name', 'sgd'),
-            'config': opt_args['config']
-        })
+        optimizer = tf.keras.optimizers.get(
+            {
+                "class_name": opt_args.get("class_name", "sgd"),
+                "config": opt_args["config"],
+            }
+        )
 
-        model.compile(loss=compile_args['loss'],
-                      optimizer=optimizer,
-                      metrics=compile_args['metrics'])
+        model.compile(
+            loss=compile_args["loss"],
+            optimizer=optimizer,
+            metrics=compile_args["metrics"],
+        )
 
         return model
 
     return create
+
 
 def create_fuse_model_sum(input_shapes, output_shape, opt_args, compile_args):
     def create():
@@ -68,7 +75,7 @@ def create_fuse_model_sum(input_shapes, output_shape, opt_args, compile_args):
 
                 self.in_shapes = input_shapes
                 self.out_shapes = output_shapes
-                self.linear = layers.Dense(output_shape, activation='softmax')
+                self.linear = layers.Dense(output_shape, activation="softmax")
 
             def call(self, xs):
                 x = layers.add(xs)
@@ -79,18 +86,23 @@ def create_fuse_model_sum(input_shapes, output_shape, opt_args, compile_args):
         output = FuseModel(input_shapes, output_shape)(input_layers)
         model = keras.Model(inputs=input_layers, outputs=output)
 
-        optimizer = tf.keras.optimizers.get({
-            'class_name': opt_args.get('class_name', 'sgd'),
-            'config': opt_args['config']
-        })
+        optimizer = tf.keras.optimizers.get(
+            {
+                "class_name": opt_args.get("class_name", "sgd"),
+                "config": opt_args["config"],
+            }
+        )
 
-        model.compile(loss=compile_args['loss'],
-                      optimizer=optimizer,
-                      metrics=compile_args['metrics'])
-        
+        model.compile(
+            loss=compile_args["loss"],
+            optimizer=optimizer,
+            metrics=compile_args["metrics"],
+        )
+
         return model
 
     return create
+
 
 def create_fuse_model_average(input_shapes, output_shape, opt_args, compile_args):
     def create():
@@ -100,7 +112,7 @@ def create_fuse_model_average(input_shapes, output_shape, opt_args, compile_args
 
                 self.in_shapes = input_shapes
                 self.out_shapes = output_shapes
-                self.linear = layers.Dense(output_shape, activation='softmax')
+                self.linear = layers.Dense(output_shape, activation="softmax")
 
             def call(self, xs):
                 x = layers.average(xs)
@@ -111,18 +123,23 @@ def create_fuse_model_average(input_shapes, output_shape, opt_args, compile_args
         output = FuseModel(input_shapes, output_shape)(input_layers)
         model = keras.Model(inputs=input_layers, outputs=output)
 
-        optimizer = tf.keras.optimizers.get({
-            'class_name': opt_args.get('class_name', 'sgd'),
-            'config': opt_args['config']
-        })
+        optimizer = tf.keras.optimizers.get(
+            {
+                "class_name": opt_args.get("class_name", "sgd"),
+                "config": opt_args["config"],
+            }
+        )
 
-        model.compile(loss=compile_args['loss'],
-                      optimizer=optimizer,
-                      metrics=compile_args['metrics'])
-        
+        model.compile(
+            loss=compile_args["loss"],
+            optimizer=optimizer,
+            metrics=compile_args["metrics"],
+        )
+
         return model
 
     return create
+
 
 def create_fuse_model_cat(input_shapes, output_shape, opt_args, compile_args):
     def create():
@@ -136,7 +153,7 @@ def create_fuse_model_cat(input_shapes, output_shape, opt_args, compile_args):
 
                 self.in_shapes = input_shapes
                 self.out_shapes = output_shapes
-                self.linear = layers.Dense(output_shape, activation='softmax')
+                self.linear = layers.Dense(output_shape, activation="softmax")
 
             def call(self, xs):
                 x = layers.concatenate(xs)
@@ -147,28 +164,40 @@ def create_fuse_model_cat(input_shapes, output_shape, opt_args, compile_args):
         output = FuseModel(input_shapes, output_shape)(input_layers)
         model = keras.Model(inputs=input_layers, outputs=output)
 
-        optimizer = tf.keras.optimizers.get({
-            'class_name': opt_args.get('class_name', 'sgd'),
-            'config': opt_args['config']
-        })
+        optimizer = tf.keras.optimizers.get(
+            {
+                "class_name": opt_args.get("class_name", "sgd"),
+                "config": opt_args["config"],
+            }
+        )
 
-        model.compile(loss=compile_args['loss'],
-                      optimizer=optimizer,
-                      metrics=compile_args['metrics'])
-        return model 
-        
+        model.compile(
+            loss=compile_args["loss"],
+            optimizer=optimizer,
+            metrics=compile_args["metrics"],
+        )
+        return model
+
     return create
 
-def get_fuse_model(input_shapes, output_shape, aggregation, opt_args, compile_args):
-    if aggregation == 'naive_sum':
-        model = create_fuse_model_naive(input_shapes, output_shape, opt_args, compile_args)
-    elif aggregation == 'sum':
-        model = create_fuse_model_sum(input_shapes, output_shape, opt_args, compile_args)
-    elif aggregation == 'average':
-        model = create_fuse_model_average(input_shapes, output_shape, opt_args, compile_args)
-    elif aggregation == 'concatenate':
-        model = create_fuse_model_cat(input_shapes, output_shape, opt_args, compile_args)
-    else:
-        raise 'Invalid aggregation method!!!'
-    return model
 
+def get_fuse_model(input_shapes, output_shape, aggregation, opt_args, compile_args):
+    if aggregation == "naive_sum":
+        model = create_fuse_model_naive(
+            input_shapes, output_shape, opt_args, compile_args
+        )
+    elif aggregation == "sum":
+        model = create_fuse_model_sum(
+            input_shapes, output_shape, opt_args, compile_args
+        )
+    elif aggregation == "average":
+        model = create_fuse_model_average(
+            input_shapes, output_shape, opt_args, compile_args
+        )
+    elif aggregation == "concatenate":
+        model = create_fuse_model_cat(
+            input_shapes, output_shape, opt_args, compile_args
+        )
+    else:
+        raise "Invalid aggregation method!!!"
+    return model

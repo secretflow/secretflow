@@ -27,7 +27,8 @@ from secretflow.utils.compressor import Compressor, SparseCompressor
 from .sl_base import SLBaseTFModel
 import pdb
 
-@register_strategy(strategy_name='replay_split_nn', backend='tensorflow')
+
+@register_strategy(strategy_name="replay_split_nn", backend="tensorflow")
 @proxy(PYUObject)
 class Replay_PYUSLTFModel(SLBaseTFModel):
     def __init__(
@@ -40,15 +41,14 @@ class Replay_PYUSLTFModel(SLBaseTFModel):
     ):
         super().__init__(builder_base, builder_fuse, dp_strategy, random_seed, **kwargs)
 
-        self.attack_args = kwargs.get('attack_args', None)
-        self.train_target_indexes = self.attack_args['train_target_indexes']
-        self.valid_poisoning_indexes = self.attack_args['valid_poisoning_indexes']
-        self.train_target_embeddings = None 
-        self.target_len = len(self.attack_args['train_target_indexes'])
+        self.attack_args = kwargs.get("attack_args", None)
+        self.train_target_indexes = self.attack_args["train_target_indexes"]
+        self.valid_poisoning_indexes = self.attack_args["valid_poisoning_indexes"]
+        self.train_target_embeddings = None
+        self.target_len = len(self.attack_args["train_target_indexes"])
         self.record_counter = 0
 
     def forward_record(self, data_indexes, embeddings):
-
         # find out target samples in a batch
         target_set = np.intersect1d(data_indexes, self.train_target_indexes)
         target_offsets = np.where(data_indexes == target_set[:, None])[-1]
@@ -62,18 +62,22 @@ class Replay_PYUSLTFModel(SLBaseTFModel):
             tshape = (tlen,) + embeddings_np.shape[1:]
             batch_embeddings = embeddings_np[target_offsets] + np.random.randn(*tshape)
             batch_embeddings = embeddings_np[target_offsets]
-            embeddings_np[target_offsets] = batch_embeddings 
+            embeddings_np[target_offsets] = batch_embeddings
 
             if self.train_target_embeddings is None:
-                self.train_target_embeddings = np.zeros((self.target_len,) + embeddings.shape[1:])
+                self.train_target_embeddings = np.zeros(
+                    (self.target_len,) + embeddings.shape[1:]
+                )
 
-            self.train_target_embeddings[self.record_counter:self.record_counter+tlen] = batch_embeddings
+            self.train_target_embeddings[
+                self.record_counter : self.record_counter + tlen
+            ] = batch_embeddings
             self.record_counter += tlen
             if self.record_counter >= self.target_len:
                 self.record_counter -= self.target_len
 
             embeddings = tf.convert_to_tensor(embeddings_np)
-        return embeddings 
+        return embeddings
 
     def forward_replay(self, data_indexes, embeddings):
         # find out poison samples in a batch
@@ -84,11 +88,13 @@ class Replay_PYUSLTFModel(SLBaseTFModel):
         # replay target embeddings
         if plen > 0 and len(self.train_target_embeddings) > 0:
             embeddings_np = embeddings.numpy()
-            replay_keys = np.random.choice(np.arange(self.target_len), (plen,), replace=True)
+            replay_keys = np.random.choice(
+                np.arange(self.target_len), (plen,), replace=True
+            )
             embeddings_np[poison_offsets] = self.train_target_embeddings[replay_keys]
             embeddings = tf.convert_to_tensor(embeddings_np)
 
-        return embeddings 
+        return embeddings
 
     def base_forward(self, stage="train") -> ForwardData:
         """compute hidden embedding
@@ -121,10 +127,14 @@ class Replay_PYUSLTFModel(SLBaseTFModel):
             return None
 
         # Strip tuple of length one, e.g: (x,) -> x
-        # modify: gradient replacement needs features and indexes 
+        # modify: gradient replacement needs features and indexes
         assert len(data_x) >= 2
         data_indexes = data_x[-1]
-        data_x = data_x[0] if isinstance(data_x[:-1], Tuple) and len(data_x[:-1]) == 1 else data_x[:-1]
+        data_x = (
+            data_x[0]
+            if isinstance(data_x[:-1], Tuple) and len(data_x[:-1]) == 1
+            else data_x[:-1]
+        )
 
         self.tape = tf.GradientTape(persistent=True)
         with self.tape:

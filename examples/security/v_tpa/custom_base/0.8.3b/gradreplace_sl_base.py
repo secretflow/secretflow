@@ -25,7 +25,8 @@ from secretflow.utils.compressor import Compressor, SparseCompressor
 from .sl_base import SLBaseTFModel
 import pdb
 
-@register_strategy(strategy_name='gradreplace_split_nn', backend='tensorflow')
+
+@register_strategy(strategy_name="gradreplace_split_nn", backend="tensorflow")
 @proxy(PYUObject)
 class GRADReplace_PYUSLTFModel(SLBaseTFModel):
     def __init__(
@@ -37,18 +38,18 @@ class GRADReplace_PYUSLTFModel(SLBaseTFModel):
         random_seed: int = None,
         **kwargs,
     ):
-        super().__init__(builder_base, builder_fuse, 
-                         dp_strategy, compressor, 
-                         random_seed, **kwargs)
+        super().__init__(
+            builder_base, builder_fuse, dp_strategy, compressor, random_seed, **kwargs
+        )
 
-        self.attack_args = kwargs.get('attack_args', {})
-        self.train_poisoning_indexes = self.attack_args['train_poisoning_indexes']
-        self.train_target_indexes = self.attack_args['train_target_indexes']
-        self.train_features = self.attack_args['train_features']
-        self.valid_poisoning_indexes = self.attack_args['valid_poisoning_indexes']
-        self.valid_target_indexes = self.attack_args['valid_target_indexes']
-        self.blurred = self.attack_args['blurred']
-        self.gamma = self.attack_args['gamma']
+        self.attack_args = kwargs.get("attack_args", {})
+        self.train_poisoning_indexes = self.attack_args["train_poisoning_indexes"]
+        self.train_target_indexes = self.attack_args["train_target_indexes"]
+        self.train_features = self.attack_args["train_features"]
+        self.valid_poisoning_indexes = self.attack_args["valid_poisoning_indexes"]
+        self.valid_target_indexes = self.attack_args["valid_target_indexes"]
+        self.blurred = self.attack_args["blurred"]
+        self.gamma = self.attack_args["gamma"]
 
     def forward_replace(self, data_indexes, inputs):
         # find out the poison and target samples in a batch
@@ -64,7 +65,9 @@ class GRADReplace_PYUSLTFModel(SLBaseTFModel):
         if plen > 0 or tlen > 0:
             inputs_np = inputs.numpy()
             if tlen > 0:
-                choices = np.random.choice(self.train_poisoning_indexes, (tlen,), replace=True)
+                choices = np.random.choice(
+                    self.train_poisoning_indexes, (tlen,), replace=True
+                )
                 inputs_np[self.target_offsets] = self.train_features[choices]
 
             if self.blurred and plen > 0:
@@ -148,10 +151,14 @@ class GRADReplace_PYUSLTFModel(SLBaseTFModel):
             raise Exception("invalid stage")
 
         # Strip tuple of length one, e.g: (x,) -> x
-        # modify: gradient replacement needs features and indexes 
+        # modify: gradient replacement needs features and indexes
         assert len(data_x) >= 2
         data_indexes = data_x[-1]
-        data_x = data_x[0] if isinstance(data_x[:-1], Tuple) and len(data_x[:-1]) == 1 else data_x[:-1]
+        data_x = (
+            data_x[0]
+            if isinstance(data_x[:-1], Tuple) and len(data_x[:-1]) == 1
+            else data_x[:-1]
+        )
 
         if stage == "train":
             # replacement attack
@@ -159,9 +166,7 @@ class GRADReplace_PYUSLTFModel(SLBaseTFModel):
 
         self.tape = tf.GradientTape(persistent=True)
         with self.tape:
-            self.h = self._base_forward_internal(
-                data_x
-            )
+            self.h = self._base_forward_internal(data_x)
 
         self.data_x = data_x
 

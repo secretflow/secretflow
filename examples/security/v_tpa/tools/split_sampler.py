@@ -3,6 +3,7 @@
 from torch.utils.data import Sampler
 import random
 
+
 class ShuffleSampler(Sampler):
     def __init__(self, data_source, seed=0):
         self.data_source = data_source
@@ -18,4 +19,3 @@ class ShuffleSampler(Sampler):
 
     def __len__(self):
         return self.n
-

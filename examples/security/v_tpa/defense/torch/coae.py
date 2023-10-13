@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # coding=utf-8
 import sys
-sys.path.append('..')
+
+sys.path.append("..")
 
 import torch
 from torch import nn
@@ -13,6 +14,7 @@ import pdb
 
 eps = 1.0e-35
 
+
 def sharpen(probs, T):
     if len(probs.shape) == 1:
         temp = torch.pow(probs, 1.0 / T)
@@ -22,6 +24,7 @@ def sharpen(probs, T):
         temp_sum = torch.sum(temp, dim=-1, keepdim=True)
         temp = temp / temp_sum
     return temp
+
 
 class CoAE_Loss(_Loss):
     def __init__(self, ew=0.1, pw=10.0, nw=1.0):
@@ -77,14 +80,15 @@ class AutoEncoder(nn.Module):
         y_latent = sharpen(y_latent, self.T)
 
         y_hat = self.decoder(y_latent)
-        return y_latent, y_hat 
+        return y_latent, y_hat
 
-if __name__ == '__main__':
-    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+
+if __name__ == "__main__":
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
     num_classes = 10
     ew = 0.00
-    loss_fn =  CoAE_Loss(ew=ew)
+    loss_fn = CoAE_Loss(ew=ew)
     model = AutoEncoder(num_classes, (6 * num_classes + 2) ** 2).to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=5e-4)
@@ -102,12 +106,17 @@ if __name__ == '__main__':
     y_test = sharpen(F.softmax(y_rand, dim=1), T=T).to(device)
     y_labels_test = torch.argmax(y_test, dim=1).to(device)
 
-    y_onehot = F.one_hot(torch.from_numpy(np.random.randint(num_classes, size=(test_size,))), 
-                         num_classes=num_classes).float().to(device)
+    y_onehot = (
+        F.one_hot(
+            torch.from_numpy(np.random.randint(num_classes, size=(test_size,))),
+            num_classes=num_classes,
+        )
+        .float()
+        .to(device)
+    )
     y_labels_onehot = torch.argmax(y_onehot, dim=1).to(device)
 
     def train_on_batch(y_true):
-
         y_latent, y_hat = model(y_true)
         loss = loss_fn(y_true, y_latent, y_hat)
 
@@ -117,8 +126,9 @@ if __name__ == '__main__':
         return loss, y_latent, y_hat
 
     dataset = TensorDataset(y_train)
-    dataloader = DataLoader(dataset, batch_size=batch_size, 
-                            shuffle=True, pin_memory=True)
+    dataloader = DataLoader(
+        dataset, batch_size=batch_size, shuffle=True, pin_memory=True
+    )
     for i in range(epochs):
         total_loss, batch_count = 0, 0
         for y_true in dataloader:
@@ -127,18 +137,38 @@ if __name__ == '__main__':
             total_loss = total_loss + loss
             batch_count += 1
 
-
         if (i + 1) % 10 == 0:
             with torch.no_grad():
                 y_latent, y_hat = model(y_test)
                 y_latent_onehot, y_hat_onehot = model(y_onehot)
-                acc_p = torch.sum(torch.argmax(y_hat, dim=1) == y_labels_test) / len(y_labels_test)
-                acc_n = torch.sum(torch.argmax(y_latent, dim=1) != y_labels_test) / len(y_labels_test)
-                acc_p_onehot = torch.sum(torch.argmax(y_hat_onehot, dim=1) == y_labels_onehot) / len(y_labels_onehot)
-                acc_n_onehot = torch.sum(torch.argmax(y_latent_onehot, dim=1) != y_labels_onehot) / len(y_labels_onehot)
+                acc_p = torch.sum(torch.argmax(y_hat, dim=1) == y_labels_test) / len(
+                    y_labels_test
+                )
+                acc_n = torch.sum(torch.argmax(y_latent, dim=1) != y_labels_test) / len(
+                    y_labels_test
+                )
+                acc_p_onehot = torch.sum(
+                    torch.argmax(y_hat_onehot, dim=1) == y_labels_onehot
+                ) / len(y_labels_onehot)
+                acc_n_onehot = torch.sum(
+                    torch.argmax(y_latent_onehot, dim=1) != y_labels_onehot
+                ) / len(y_labels_onehot)
                 cur_loss = total_loss / batch_count
-            print('epoch', i + 1, 'acc_p:', acc_p.item(), 'acc_n:', acc_n.item(), 'acc_p_onehot:', acc_p_onehot.item(), 'acc_n_onehot:', acc_n_onehot.item(), 'loss:', cur_loss.item())
+            print(
+                "epoch",
+                i + 1,
+                "acc_p:",
+                acc_p.item(),
+                "acc_n:",
+                acc_n.item(),
+                "acc_p_onehot:",
+                acc_p_onehot.item(),
+                "acc_n_onehot:",
+                acc_n_onehot.item(),
+                "loss:",
+                cur_loss.item(),
+            )
 
-    model_path = '../../trained_model/{}-{:.2f}.pt'.format(num_classes, ew)
-    torch.save({'model_state_dict': model.state_dict()}, model_path)
-    print('end')
+    model_path = "../../trained_model/{}-{:.2f}.pt".format(num_classes, ew)
+    torch.save({"model_state_dict": model.state_dict()}, model_path)
+    print("end")
