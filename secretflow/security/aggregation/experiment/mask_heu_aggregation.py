@@ -21,18 +21,24 @@ class masker:
     def get_mask(self):
         return self.mask
 
-    def add_noisy(self, data, mask_location=-2):
+    def add_noisy(self, data,weight=None, mask_location=-2):
         # 处理张量，返回添加噪声之后的结果，data是梯度向量，是一个list[numpyarray],mask_location表示噪声添加的位置
         data1 = data[mask_location]  # 获取需要保护的位置
         flatten_data = data1.flatten()  # 将张量展开以便于添加噪声
         data_len = len(flatten_data)
         mask = np.random.randint(1, 10, data_len)
         self.mask = mask
+        if weight is not None:
+            self.mask = mask * weight
         for i in range(data_len):  # 添加噪声
             flatten_data[i] = flatten_data[i] + mask[i]
         final_data = flatten_data.reshape(data1.shape)
         data[mask_location] = final_data
+        if weight is not None:
+            for i in range(len(data)):
+                data[i] = data[i] * weight
         return data
+    
 
 
 class mask_heu_aggregator(Aggregator):
@@ -70,32 +76,36 @@ class mask_heu_aggregator(Aggregator):
         }
 
     def average(self, data: List[DeviceObject], axis=None, weights=None):
-        def remove_mask(masked_data: List[np.ndarray], mask=None, mask_location=-2):
-            le = len(data)
-            if len(mask) == 0:
-                results = [np.sum(element) for element in zip(*masked_data)]
-                for i in range(len(results)):
-                    results[i] = results[i] / le
-                if isinstance(masked_data[0], list) == False:
-                    results = np.array(results)
-                return results
+        def remove_mask(masked_data: List, mask=None,weight = None,mask_location=-2):
+            if weight is None:
+                sum_weight = len(mask)
+            else:
+                weightarray = np.array(weight)
+                sum_weight = np.sum(weightarray, axis=axis) 
             # 下面是聚合以及去噪操作
             results = [np.sum(element, axis=axis) for element in zip(*masked_data)]
             mask = np.array(mask)
             mask = mask.reshape(results[self.mask_location].shape)
             results[mask_location] = results[mask_location] - mask
             for i in range(len(results)):
-                results[i] = results[i] / le
+                results[i] = results[i] / sum_weight
             return results
 
-        axis = axis
-        weights = weights  # 这两个变量暂时还用不到，目前只实现fed_avg聚合
         # 将每个参与方的梯度添加噪声
-        for i in range(len(data)):
-            data[i] = self._masker[data[i].device].add_noisy(
-                data[i], mask_location=self.mask_location
-            )
+        if weights is None:
+            for i in range(len(data)):
+                data[i] = self._masker[data[i].device].add_noisy(
+                    data[i],weight=None, mask_location=self.mask_location
+                )
+        else:
+            for i in range(len(data)):
+                data[i] = self._masker[data[i].device].add_noisy(
+                    data[i],weight=weights[i], mask_location=self.mask_location
+                )
+
         masked_data = [d.to(self._device) for d in data]  # 将数据传输至服务器
+        if weights is not None:
+            weights = [w.to(self._device) for w in weights]
         # 对每个参与方的mask进行同态加密
         encrypted_mask = [None] * len(data)
         for i, datum in enumerate(data):
@@ -116,7 +126,7 @@ class mask_heu_aggregator(Aggregator):
         mask_result = mask_result.to(self.sk_keeper)  # 这一步是进行解密操作
         mask_result = mask_result.to(self._device)
         final_result = self._device(remove_mask)(
-            masked_data, mask=mask_result, mask_location=self.mask_location
+            masked_data, mask=mask_result,weight = weights,mask_location=self.mask_location
         )
         return final_result
 
@@ -136,8 +146,6 @@ class mask_heu_aggregator(Aggregator):
             results[self.mask_location] = results[self.mask_location] - mask
             return results
 
-        axis = axis
-        weights = weights  # 这两个变量暂时还用不到
         # 将每个参与方的梯度添加噪声
         for i in range(len(data)):
             data[i] = self._masker[data[i].device].add_noisy(
