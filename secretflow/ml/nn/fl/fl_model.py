@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # *_* coding: utf-8 *_*
 
-# Copyright 2022 Ant Group Co., Ltd.
+# Copyright 2023 Ant Group Co., Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ from secretflow.ml.nn.fl.utils import History
 from secretflow.ml.nn.metrics import Metric, aggregate_metrics
 from secretflow.utils.compressor import sparse_encode
 from secretflow.utils.random import global_random
-
+import secretflow as sf
 
 class FLModel:
     def __init__(
@@ -72,9 +72,9 @@ class FLModel:
         else:
             raise Exception(f"Invalid backend = {backend}")
         self.num_gpus = kwargs.get('num_gpus', 0)
-        self.init_workers(
-            model,
-            device_list=device_list,
+        self.init_workers( # init client
+            model, # torchmodel
+            device_list=device_list, # alice,bob
             strategy=strategy,
             backend=backend,
             random_seed=random_seed,
@@ -84,12 +84,14 @@ class FLModel:
         self.device_list = device_list
         self._aggregator = aggregator
         self.consensus_num = consensus_num
-        self.kwargs = kwargs
-        self.strategy = strategy
+        self.kwargs = kwargs  # prune_end_rate
+        self.strategy = strategy  # string fed_age_W
         self._res: List[np.ndarray] = []
         self.backend = backend
         self.dp_strategy = kwargs.get('dp_strategy', None)
         self.simulation = kwargs.get('simulation', False)
+        self.prune_end_rate = kwargs.get('prune_end_rate', True) # traget prune rate
+        self.prune_percent = kwargs.get('prune_percent', True)  # prune dp increase rate
         self.server_agg_method = kwargs.get('server_agg_method', None)
 
     def init_workers(
@@ -101,7 +103,8 @@ class FLModel:
         random_seed,
         num_gpus,
     ):
-        self._workers = {
+        self.\
+            _workers = {
             device: dispatch_strategy(
                 strategy,
                 backend,
@@ -113,14 +116,14 @@ class FLModel:
             for device in device_list
         }
 
-    def initialize_weights(self):
+    def initialize_weights(self, init_mask):
         clients_weights = []
         initial_weight = None
         for device, worker in self._workers.items():
             weights = worker.get_weights()
             clients_weights.append(weights)
         if self._aggregator is not None:
-            initial_weight = self._aggregator.average(clients_weights, axis=0)
+            initial_weight = self._aggregator.average(clients_weights, prune_mask=init_mask ,axis=0)
             for device, worker in self._workers.items():
                 weights = (
                     initial_weight.to(device) if initial_weight is not None else None
@@ -146,6 +149,15 @@ class FLModel:
                 raise Exception(f"aggregator and server_agg_method cannot both be none")
 
         return initial_weight
+
+    # initialize mask，and initial prune rates
+    def initialize_masks_prune_rates(self):
+        initial_prune_mask = []
+        prune_rate = []
+        for device, worker in self._workers.items():
+            initial_prune_mask.append(worker.make_prune_mask())
+            prune_rate.append(1)  # list to document the pruning rate of each local model
+        return initial_prune_mask, prune_rate
 
     def _handle_file(
         self,
@@ -450,47 +462,72 @@ class FLModel:
             )
         history = History()
 
-        initial_weight = self.initialize_weights()
+        # initial mask, prune_mask_list for all epochs
+        prune_mask_list = []
+        prune_rate_list = []
+        init_mask, init_prune_rate = self.initialize_masks_prune_rates()  # initialize mask and rate
+        prune_mask_list.append(init_mask)
+        prune_rate_list.append(init_prune_rate)
+
+        initial_weight = self.initialize_weights(init_mask)
+
+        # initial server weight
         logging.debug(f"initial_weight: {initial_weight}")
         server_weight = None
+
         if self.server and isinstance(initial_weight, PYUObject):
             server_weight = initial_weight
         for device, worker in self._workers.items():
             worker.init_training(callbacks, epochs=epochs)
             worker.on_train_begin()
+
         model_params = None
         model_params_list = None
         for epoch in range(epochs):
             res = []
             report_list = []
             pbar = tqdm(total=train_steps_per_epoch)
-            # do train
+
             report_list.append(f"epoch: {epoch+1}/{epochs} - ")
             [worker.on_epoch_begin(epoch) for worker in self._workers.values()]
+
             for step in range(0, train_steps_per_epoch, aggregate_freq):
+                is_update_mask = False # update mask and rate
+                if step == train_steps_per_epoch-aggregate_freq:
+                    is_update_mask = True
                 if verbose == 1:
                     pbar.update(aggregate_freq)
                 client_param_list, sample_num_list = [], []
+                # 0, alice  1 bob
+                print('epoch'+str(epoch)+'step'+str(step))
                 for idx, device in enumerate(self._workers.keys()):
                     client_params = (
                         model_params_list[idx].to(device)
                         if model_params_list is not None
                         else None
                     )
-                    client_params, sample_num = self._workers[device].train_step(
+                    client_params, sample_num, new_prune_mask, new_prune_rate= self._workers[device].train_step_with_prune(
                         client_params,
                         epoch * train_steps_per_epoch + step,
                         aggregate_freq
                         if step + aggregate_freq < train_steps_per_epoch
                         else train_steps_per_epoch - step,
+                        prune_mask_list[epoch][idx],  # prune_current_mask
+                        prune_rate_list[epoch][idx],  # prune_current_rate
+                        is_update_mask,
                         **self.kwargs,
                     )
+                    prune_mask_list[epoch][idx] = new_prune_mask # record mask
+                    prune_rate_list[epoch][idx] = new_prune_rate
+
                     client_param_list.append(client_params)
                     sample_num_list.append(sample_num)
                     res.append(client_params)
+
+                # aggregate
                 if self._aggregator is not None:
                     model_params = self._aggregator.average(
-                        client_param_list, axis=0, weights=sample_num_list
+                        client_param_list, prune_mask=prune_mask_list[epoch], axis=0, weights=sample_num_list
                     )
                 else:
                     if self.server is not None:
@@ -611,6 +648,8 @@ class FLModel:
             if sum(stop_trainings) >= self.consensus_num:
                 break
 
+            prune_mask_list.append(prune_mask_list[epoch])  # update mask and rate
+            prune_rate_list.append(prune_rate_list[epoch])
         return history
 
     def predict(
