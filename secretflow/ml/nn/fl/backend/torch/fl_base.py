@@ -207,6 +207,21 @@ class BaseTorchModel(ABC):
         """set weights of client model"""
         self.model.update_weights(weights)
 
+    # mask for model
+    def make_prune_mask(self):
+        step = 0
+        for name, param in self.model.named_parameters():
+            if 'weight' in name:
+                step = step + 1
+        mask = [None] * step
+        step = 0
+        for name, param in self.model.named_parameters():
+            if 'weight' in name:
+                tensor = param.data.cpu().numpy()
+                mask[step] = np.ones_like(tensor)
+                step = step + 1
+        return mask
+
     def set_validation_metrics(self, global_metrics):
         self.epoch_logs.update(global_metrics)
 
