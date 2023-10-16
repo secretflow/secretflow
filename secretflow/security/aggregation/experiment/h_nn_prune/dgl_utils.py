@@ -7,20 +7,6 @@ import torch.nn.functional as F
 
 from secretflow.ml.nn.utils import BaseModule, TorchModel
 
-
-# label to onehot
-def label_to_onehot(target, num_classes=100):
-    target = torch.unsqueeze(target, 1)
-    onehot_target = torch.zeros(target.size(0), num_classes, device=target.device)
-    onehot_target.scatter_(1, target, 1)
-    return onehot_target
-
-
-# cross entropy
-def cross_entropy_for_onehot(pred, target):
-    return torch.mean(torch.sum(-target * F.log_softmax(pred, dim=-1), 1))
-
-
 # init weights
 def weights_init(m):
     if hasattr(m, "weight"):
@@ -46,26 +32,25 @@ class ConvNet(BaseModule):
 
 
 class LeNet(BaseModule):
-    def __init__(self):
+    def __init__(self, channel=1, hidden=588, num_classes=10):
         super(LeNet, self).__init__()
-        act = nn.Sigmoid
         self.body = nn.Sequential(
-            nn.Conv2d(1, 12, kernel_size=5, padding=5 // 2, stride=2),
-            act(),
+            nn.Conv2d(channel, 12, kernel_size=5, padding=5 // 2, stride=2),
+            nn.Sigmoid(),
             nn.Conv2d(12, 12, kernel_size=5, padding=5 // 2, stride=2),
-            act(),
+            nn.Sigmoid(),
             nn.Conv2d(12, 12, kernel_size=5, padding=5 // 2, stride=1),
-            act(),
+            nn.Sigmoid()
         )
-        self.fc = nn.Sequential(nn.Linear(768, 100))
+        self.fc = nn.Sequential(
+            nn.Linear(hidden, num_classes)
+        )
 
     def forward(self, x):
         out = self.body(x)
         out = out.view(out.size(0), -1)
-        # print(out.size())
         out = self.fc(out)
         return out
-
 
 # BasicBlock
 class BasicBlock(BaseModule):

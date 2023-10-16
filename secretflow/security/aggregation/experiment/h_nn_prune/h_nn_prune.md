@@ -1,21 +1,39 @@
-# Security aggregation method based on gradient pruning
+# 基于剪枝的安全聚合方法
 
 [TOC]
 
-### Files
+### 全部文件
 
-Testing file: /test_h_nn.prune.py
+目录：secretflow/security/aggregation/experiment/h_nn_prune
 
-Attached file: /dgl_utils.py
-intermediate file: /dgl
+测试文件： test_h_nn.prune.py
 
-Changed files in h_nn_prune
+附加代码: dgl_utils.py
 
-- fl_model.py,  fl_base.py
-- /backend/torch/init.py,  fed_avg_w_prune.py
-- dgl directory
+中间参数:  dgl
 
-### Normal horizontal federation
+中间文件：/dgl/sf_output
+
+修改文件：
+
+- secretflow/ml/nn/fl/fl_model.py 
+- secretflow/ml/nn/fl/backend/torch/fl_base.py
+- secretflow/ml/nn/fl/backend/torch/strategy/__init__.py
+- secretflow/ml/nn/fl/backend/torch/strategy/fed_avg_w_prune.py 核心文件
+- secretflow/security/aggregation/__init__.py
+- secretflow/security/aggregation/secure_prune_aggregator.py
+
+##### 测试方法
+
+测试文件  test_h_nn.prune.py 和中间文件夹 dgl 放到secretflow并列位置  
+
+修改is_prune变量表示是否运行剪枝
+
+![1697425861178](.\image\run.png)
+
+### 正常联邦学习
+
+is_prune = False
 
 ```python
 sf.init(['alice', 'bob', 'charlie'], address='local')
@@ -42,40 +60,46 @@ model_def = TorchModel(
 
 device_list = [alice, bob]   # device list
 server = charlie  # server
-aggregator = SecureAggregator(server, [alice, bob]) #  secure aggregator
-# training result with original model and strategy without pruning
-fl_model = FLModel(
-    server=server,
-    device_list=device_list,
-    model=model_def,
-    aggregator=aggregator, # secure aggregator
-    strategy='fed_avg_w',  # fed_avg_w fl strategy
-    backend="torch",
-)
-history = fl_model.fit(
-    train_data,
-    train_label,
-    validation_data=(test_data, test_label),
-    epochs=10,
-    batch_size=32,
-    aggregate_freq=1,
-)
-plt.plot(history.global_history['multiclassaccuracy'])
-plt.plot(history.global_history['val_multiclassaccuracy'])
-plt.title('FLModel accuracy')
-plt.ylabel('Accuracy')
-plt.xlabel('Epoch')
-plt.legend(['Train', 'Valid'], loc='upper left')
-plt.savefig('FL_Model_accuracy_convnet_20_32_mnist.jpg')
-plt.show()
+is_prune = False
+
+if is_prune:
+    ……
+else:
+    aggregator = PlainAggregator(alice)
+    # training result with original model and strategy without pruning
+    fl_model = FLModel(
+        server=server,
+        device_list=device_list,
+        model=model_def,
+        aggregator=aggregator,  # secure aggregator
+        strategy='fed_avg_w',  # fl strategy
+        backend="torch",
+        wp_strategy=False,
+    )
+    history = fl_model.fit(
+        train_data,
+        train_label,
+        validation_data=(test_data, test_label),
+        epochs=10,
+        batch_size=32,
+        aggregate_freq=1,
+    )
+    plt.plot(history.global_history['multiclassaccuracy'])
+    plt.plot(history.global_history['val_multiclassaccuracy'])
+    plt.title('FLModel accuracy')
+    plt.ylabel('Accuracy')
+    plt.xlabel('Epoch')
+    plt.legend(['Train', 'Valid'], loc='upper left')
+    plt.savefig('FL_Model_accuracy_convnet_10_32_mnist.jpg')
+    plt.show()
 ```
 
- Total Run Time: 355.6363
+运行时长: 355.6363
 
 ![](.\image\FL_Model_accuracy_convnet_10_32_mnist.jpg)
 
 
-attack verification 
+dgl攻击验证
 
 ```python
 # mnist
@@ -158,44 +182,49 @@ plt.savefig("true_to_valiate.jpg", dpi = 300)
 ……
 ```
 
-attack result: success
+攻击结果: success
 
 ![](.\image\contrast_before_prune(mnist)_2.jpg)
 
-### Horizontal federation with pruning
+### 带剪枝的运行
 
-tesing process:
+测试过程：
 
 ```python
-# # training result with pruning model parameters
-fl_model_prune = FLModel(
-    server=server,
-    device_list=device_list,
-    model=model_def,
-    aggregator=aggregator,
-    strategy='fed_avg_w_prune', # strategy
-    backend="torch",
-    prune_end_rate=0.1, # traget end prune rate (changable)
-    prune_percent=5,  # fix prune speed (changable)
-)
-history_prune = fl_model_prune.fit(
-    train_data,
-    train_label,
-    validation_data=(test_data, test_label),
-    epochs=10,
-    batch_size=32,
-    aggregate_freq=1,
-)
-print('\n Total Run Time: {0:0.4f}'.format(time.time() - start_time))
-# Draw accuracy values for training & validation when prune
-plt.plot(history_prune.global_history["multiclassaccuracy"])
-plt.plot(history_prune.global_history["val_multiclassaccuracy"])
-plt.title("FLModel_prune accuracy")
-plt.ylabel("Accuracy")
-plt.xlabel("Epoch")
-plt.legend(["Train", "Valid"], loc="upper left")
-plt.savefig("./dgl/FL_prune_0.1_5_Model_accuracy_convnet_10_32_mnist.jpg")
-plt.show()
+is_prune = True
+if is_prune:
+    aggregator = SecurePruneAggregator(server, [alice, bob])
+    # training result with pruning model parameters
+    fl_model_prune = FLModel(
+        server=server,
+        device_list=device_list,
+        model=model_def,
+        aggregator=aggregator,
+        strategy="fed_avg_w_prune",
+        backend="torch",
+        wp_strategy =True,
+        prune_end_rate=0.1,
+        prune_percent=5,  # fix prune speed
+    )
+    history_prune = fl_model_prune.fit(
+        train_data,
+        train_label,
+        validation_data=(test_data, test_label),
+        epochs=10,
+        batch_size=32,
+        aggregate_freq=1,
+    )
+    print("\n Total Run Time: {0:0.4f}".format(time.time() - start_time))
+
+    # Draw accuracy values for training & validation when prune
+    plt.plot(history_prune.global_history["multiclassaccuracy"])
+    plt.plot(history_prune.global_history["val_multiclassaccuracy"])
+    plt.title("FLModel_prune accuracy")
+    plt.ylabel("Accuracy")
+    plt.xlabel("Epoch")
+    plt.legend(["Train", "Valid"], loc="upper left")
+    plt.savefig("./dgl/FL_prune_0.1_5_Model_accuracy_convnet_10_32_mnist.jpg")
+    plt.show()
 ```
 
 FL_model.py
@@ -214,6 +243,7 @@ FL_model.py
         **kwargs,  # other parameters specific to strategies
     ):
         ……
+        self.wp_strategy = kwargs.get('wp_strategy', False)
         self.prune_end_rate = kwargs.get('prune_end_rate', True) # traget prune rate
         self.prune_percent = kwargs.get('prune_percent', True)  # prune dp increase rate
  
@@ -225,6 +255,26 @@ FL_model.py
             initial_prune_mask.append(worker.make_prune_mask())
             prune_rate.append(1)  # list to document the pruning rate of each local model
         return initial_prune_mask, prune_rate
+ # initialize weights,if mask exists use mask
+    def initialize_weights(self, init_mask=None):
+        clients_weights = []
+        initial_weight = None
+        for device, worker in self._workers.items():
+            weights = worker.get_weights()
+            clients_weights.append(weights)
+        if self._aggregator is not None:
+            if self.wp_strategy:
+                initial_weight = self._aggregator.average(clients_weights, prune_mask=init_mask ,axis=0)
+            else:
+                initial_weight = self._aggregator.average(clients_weights, axis=0)
+            for device, worker in self._workers.items():
+                weights = (
+                    initial_weight.to(device) if initial_weight is not None else None
+                )
+                worker.set_weights(weights)
+        else:
+            clients_weights = [weight.to(self.server) for weight in clients_weights]
+	……
   
 def fit(
         self,
@@ -252,38 +302,53 @@ def fit(
         wait_steps=100,
     ) -> History:
     	……
-        initial_weight = self.initialize_weights()  # server weights
-        # prune_mask_list for all epochs
-        prune_mask_list =[]
-        prune_rate_list = []
-        # initialize mask and rate
-        init_mask, init_prune_rate = self.initialize_masks_prune_rates()  
-        prune_mask_list.append(init_mask)
-        prune_rate_list.append(init_prune_rate)
-        # print('\n initial mask\n ')
+        # server weights
+          if self.wp_strategy:
+            # initial mask, prune_mask_list for all epochs
+            prune_mask_list = []
+            prune_rate_list = []
+            init_mask, init_prune_rate = self.initialize_masks_prune_rates()  # initialize mask and rate
+            prune_mask_list.append(init_mask)
+            prune_rate_list.append(init_prune_rate)
+        if self.wp_strategy:
+            initial_weight = self.initialize_weights(init_mask)
+        else:
+            initial_weight = self.initialize_weights()
+            
 		……
         for epoch in range(epochs):
             ……
             for step in range(0, train_steps_per_epoch, aggregate_freq):  # step
-                is_update_mask = False # key of mask and rate updating
-                if step == train_steps_per_epoch-aggregate_freq: 
-                    is_update_mask = True
+                if self.wp_strategy:  # key of mask and rate updating
+                    is_update_mask = False 
+                    if step == train_steps_per_epoch-aggregate_freq:
+                        is_update_mask = True
                 for idx, device in enumerate(self._workers.keys()):
                     ……
-                    client_params, sample_num, new_prune_mask, new_prune_rate= 				
-                    self._workers[device].train_step_with_prune(
-                        client_params,
-                        epoch * train_steps_per_epoch + step,
-                        aggregate_freq
-                        if step + aggregate_freq < train_steps_per_epoch
-                        else train_steps_per_epoch - step,
-                        prune_mask_list[epoch][idx],  # prune_current_mask
-                        prune_rate_list[epoch][idx],  # prune_current_rate
-                        is_update_mask,
-                        **self.kwargs,
-                    )
-                    prune_mask_list[epoch][idx] = new_prune_mask # record mask
-                    prune_rate_list[epoch][idx] = new_prune_rate
+                if self.wp_strategy:
+                        client_params, sample_num, new_prune_mask, new_prune_rate= self._workers[device].train_step_with_prune(
+                            client_params,
+                            epoch * train_steps_per_epoch + step,
+                            aggregate_freq
+                            if step + aggregate_freq < train_steps_per_epoch
+                            else train_steps_per_epoch - step,
+                            prune_mask_list[epoch][idx],  # prune_current_mask
+                            prune_rate_list[epoch][idx],  # prune_current_rate
+                            is_update_mask,
+                            **self.kwargs,
+                        )
+                        prune_mask_list[epoch][idx] = new_prune_mask # record mask
+                        prune_rate_list[epoch][idx] = new_prune_rate
+                    else:
+                        client_params, sample_num= self._workers[
+                            device].train_step(
+                            client_params,
+                            epoch * train_steps_per_epoch + step,
+                            aggregate_freq
+                            if step + aggregate_freq < train_steps_per_epoch
+                            else train_steps_per_epoch - step,
+                            **self.kwargs,
+                        )
                 # aggregation……
             ……
           	prune_mask_list.append(prune_mask_list[epoch])  # update mask and rate
@@ -458,13 +523,13 @@ class FedAvgWPrune(BaseTorchModel):
    
 ```
 
-Total Run Time: 311.4674
+运行时长: 311.4674（更短）
 
-Moderate pruning is conducive to the improvement of accuracy and acceleration of convergence.
+运行准确率：有略微提升， 收敛速度相较于无剪枝情况有延迟
 
 ![FL_prune_0.1_5_Model_accuracy_convnet_10_32_mnist](./image/FL_prune_0.1_5_Model_accuracy_convnet_10_32_mnist.jpg)
 
-security verification
+安全性验证：保留运行中梯度进行攻击测试
 
 ```python
 # save gradient in stategy
@@ -475,11 +540,6 @@ security verification
             global first2
             if len(iter_data) == 2:
                 x, y = iter_data
-                # save image
-                if first1 is True:
-                    torch.save(x, "./dgl/sf_output/x.pt")
-                    torch.save(y, "./dgl/sf_output/y.pt")
-                    first1 = False
                 s_w = None
             elif len(iter_data) == 3:
                 x, y, s_w = iter_data
@@ -574,5 +634,11 @@ if is_prune:
 else:
     plt.savefig("./dgl/contrast_before_prune.jpg", dpi=300)
 ```
+
+攻击结果：失败，难以完整还原图像梯度
+
+梯度接近实际梯度，但数据差距变大
+
+![](.\image\result_prune.JPG)
 
 ![](./image\contrast_after_prune(mnist).jpg)

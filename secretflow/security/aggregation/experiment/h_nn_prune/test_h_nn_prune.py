@@ -12,7 +12,7 @@ from torchmetrics import Accuracy, Precision
 from torchvision import datasets, models, transforms
 
 import secretflow as sf
-from dgl_utils import ConvNet, LeNet, ResNet, ResNet34
+from dgl_utils import ConvNet,LeNet
 from secretflow.ml.nn import FLModel
 from secretflow.ml.nn.fl.utils import metric_wrapper, optim_wrapper
 from secretflow.ml.nn.utils import BaseModule, TorchModel
@@ -24,7 +24,7 @@ sf.init(["alice", "bob", "charlie"], address="local")
 alice, bob, charlie = sf.PYU("alice"), sf.PYU("bob"), sf.PYU("charlie")
 
 (train_data, train_label), (test_data, test_label) = load_mnist(
-    parts={alice: 0.5, bob: 0.5},
+    parts={alice: 0.4, bob: 0.6},
     normalized_x=True,
     categorical_y=True,
     is_torch=True,
@@ -44,66 +44,76 @@ model_def = TorchModel(
 
 device_list = [alice, bob]  # device list
 server = charlie  # server
-# aggregator = PlainAggregator(alice)
-aggregator = SecurePruneAggregator(server, [alice, bob])
-
 start_time = time.time()
-# # training result with original model and strategy without pruning
-# fl_model = FLModel(
-#     server=server,
-#     device_list=device_list,
-#     model=model_def,
-#     aggregator=aggregator, # secure aggregator
-#     strategy='fed_avg_w',  # fl strategy
-#     backend="torch",
-# )
-# history = fl_model.fit(
-#     train_data,
-#     train_label,
-#     validation_data=(test_data, test_label),
-#     epochs=10,
-#     batch_size=32,
-#     aggregate_freq=1,
-# )
-# plt.plot(history.global_history['multiclassaccuracy'])
-# plt.plot(history.global_history['val_multiclassaccuracy'])
-# plt.title('FLModel accuracy')
-# plt.ylabel('Accuracy')
-# plt.xlabel('Epoch')
-# plt.legend(['Train', 'Valid'], loc='upper left')
-# plt.savefig('FL_Model_accuracy_convnet_10_32_mnist.jpg')
-# plt.show()
 
-# training result with pruning model parameters
-# fl_model_prune = FLModel(
-#     server=server,
-#     device_list=device_list,
-#     model=model_def,
-#     aggregator=aggregator,
-#     strategy="fed_avg_w_prune",
-#     backend="torch",
-#     prune_end_rate=0.1,
-#     prune_percent=5,  # fix prune speed
-# )
-# history_prune = fl_model_prune.fit(
-#     train_data,
-#     train_label,
-#     validation_data=(test_data, test_label),
-#     epochs=10,
-#     batch_size=32,
-#     aggregate_freq=1,
-# )
-# print("\n Total Run Time: {0:0.4f}".format(time.time() - start_time))
+# flag: if the gradient is from model with purning
+# is_prune = False
+is_prune = True
 
-# Draw accuracy values for training & validation when prune
-# plt.plot(history_prune.global_history["multiclassaccuracy"])
-# plt.plot(history_prune.global_history["val_multiclassaccuracy"])
-# plt.title("FLModel_prune accuracy")
-# plt.ylabel("Accuracy")
-# plt.xlabel("Epoch")
-# plt.legend(["Train", "Valid"], loc="upper left")
-# plt.savefig("./dgl/FL_prune_0.1_5_Model_accuracy_convnet_10_32_mnist.jpg")
-# plt.show()
+if is_prune:
+    print("……………………………………………FL_model_prune……………………………………………………")
+    aggregator = SecurePruneAggregator(server, [alice, bob])
+    # training result with pruning model parameters
+    fl_model_prune = FLModel(
+        server=server,
+        device_list=device_list,
+        model=model_def,
+        aggregator=aggregator,
+        strategy="fed_avg_w_prune",
+        backend="torch",
+        wp_strategy =True,
+        prune_end_rate=0.1,
+        prune_percent=5,  # fix prune speed
+    )
+    history_prune = fl_model_prune.fit(
+        train_data,
+        train_label,
+        validation_data=(test_data, test_label),
+        epochs=10,
+        batch_size=32,
+        aggregate_freq=1,
+    )
+    print("\n Total Run Time: {0:0.4f}".format(time.time() - start_time))
+
+    # Draw accuracy values for training & validation when prune
+    plt.plot(history_prune.global_history["multiclassaccuracy"])
+    plt.plot(history_prune.global_history["val_multiclassaccuracy"])
+    plt.title("FLModel_prune accuracy")
+    plt.ylabel("Accuracy")
+    plt.xlabel("Epoch")
+    plt.legend(["Train", "Valid"], loc="upper left")
+    plt.savefig("./dgl/FL_prune_0.1_5_Model_accuracy_10_32_mnist.jpg")
+    plt.show()
+else:
+    print("……………………………………………FL_model……………………………………………………")
+    aggregator = PlainAggregator(alice)
+    # training result with original model and strategy without pruning
+    fl_model = FLModel(
+        server=server,
+        device_list=device_list,
+        model=model_def,
+        aggregator=aggregator,  # secure aggregator
+        strategy='fed_avg_w',  # fl strategy
+        backend="torch",
+        wp_strategy=False,
+    )
+    history = fl_model.fit(
+        train_data,
+        train_label,
+        validation_data=(test_data, test_label),
+        epochs=10,
+        batch_size=32,
+        aggregate_freq=1,
+    )
+    plt.plot(history.global_history['multiclassaccuracy'])
+    plt.plot(history.global_history['val_multiclassaccuracy'])
+    plt.title('FLModel accuracy')
+    plt.ylabel('Accuracy')
+    plt.xlabel('Epoch')
+    plt.legend(['Train', 'Valid'], loc='upper left')
+    plt.savefig('./dgl/FL_Model_accuracy_10_32_mnist.jpg')
+    plt.show()
+
 
 # dgl attack verification
 tt = transforms.ToPILImage()
@@ -122,16 +132,19 @@ fig2, ax2 = plt.subplots()
 plt.imshow(tt(gt_data[0].cpu()), cmap='gray')
 plt.savefig("./dgl/true_to_valiate.jpg", dpi=300)
 
-net = ConvNet()#LeNet()
+net = ConvNet()
+
 original_dy_dx = []
-criterion = nn.CrossEntropyLoss()  # criterion
-# flag: if the gradient is from model with purning
-is_prune = True
+
+criterion = nn.CrossEntropyLoss()
+
 if is_prune:
+    print("……………………………………………FL_model_prune……………………………………………………")
     for i in range(4):
         tens = torch.from_numpy(np.load("./dgl/sf_output/gradients" + str(i) + ".npy"))
         original_dy_dx.append(tens)
 else:
+    net = LeNet()
     net.apply(weights_init)  # init param
     criterion = nn.CrossEntropyLoss()  # criterion
     pred = net(gt_data)
@@ -150,6 +163,7 @@ optimizer = torch.optim.LBFGS([dummy_data, dummy_label])
 
 # dgl attack
 history = []
+data_diff = []
 for iters in range(300):
     def closure():  # optimize dummy data, calculate dummy grad, grad diff
         optimizer.zero_grad()
@@ -170,9 +184,11 @@ for iters in range(300):
         return grad_diff
 
     optimizer.step(closure)  # optimize closure (gradient diff)
+    data_diff.append(torch.mean((dummy_data - gt_data) ** 2).item())
     if iters % 10 == 0:  #
         current_loss = closure()
-        print(iters, "%.4f" % current_loss.item())
+
+        print(iters, "grad diff=%.4f, data diff = %.4f" % (current_loss.item(), data_diff[-1]))
         history.append(tt(dummy_data[0].cpu()))
 
 # plot the process of dummy data
