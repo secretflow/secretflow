@@ -20,9 +20,8 @@ import copy
 from typing import Tuple
 
 import numpy as np
-import torch
-
 import secretflow as sf
+import torch
 from secretflow.ml.nn.fl.backend.torch.fl_base import BaseTorchModel
 from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
 
@@ -78,6 +77,7 @@ first1 = True
 first2 = True
 global is_update_mask
 
+
 class FedAvgWPrune(BaseTorchModel):
     """
     FedAvgWPrune: A implementation of FedAvg with pruning, where the clients upload their trained model
@@ -107,7 +107,7 @@ class FedAvgWPrune(BaseTorchModel):
                 prune_percent：
             :return: update weight, num_sample, update mask, update rate
         """
-        wp_strategy = kwargs.get('wp_strategy', True)
+        wp_strategy = kwargs.get("wp_strategy", True)
         prune_end_rate = kwargs.get("prune_end_rate")  # prune end rate
         prune_percent = kwargs.get("prune_percent", True)  # prune dp increase rate
         weights, num_sample = self.train_step(
