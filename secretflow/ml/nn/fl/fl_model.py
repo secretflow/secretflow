@@ -90,6 +90,7 @@ class FLModel:
         self.backend = backend
         self.dp_strategy = kwargs.get('dp_strategy', None)
         self.simulation = kwargs.get('simulation', False)
+        self.wp_strategy = kwargs.get('wp_strategy', False)  # if  prune stategy
         self.prune_end_rate = kwargs.get('prune_end_rate', True) # traget prune rate
         self.prune_percent = kwargs.get('prune_percent', True)  # prune dp increase rate
         self.server_agg_method = kwargs.get('server_agg_method', None)
@@ -116,14 +117,18 @@ class FLModel:
             for device in device_list
         }
 
-    def initialize_weights(self, init_mask):
+    # initialize weights,if mask exists use mask
+    def initialize_weights(self, init_mask=None):
         clients_weights = []
         initial_weight = None
         for device, worker in self._workers.items():
             weights = worker.get_weights()
             clients_weights.append(weights)
         if self._aggregator is not None:
-            initial_weight = self._aggregator.average(clients_weights, prune_mask=init_mask ,axis=0)
+            if self.wp_strategy:
+                initial_weight = self._aggregator.average(clients_weights, prune_mask=init_mask ,axis=0)
+            else:
+                initial_weight = self._aggregator.average(clients_weights, axis=0)
             for device, worker in self._workers.items():
                 weights = (
                     initial_weight.to(device) if initial_weight is not None else None
@@ -461,15 +466,17 @@ class FLModel:
                 dataset_builder=dataset_builder,
             )
         history = History()
-
-        # initial mask, prune_mask_list for all epochs
-        prune_mask_list = []
-        prune_rate_list = []
-        init_mask, init_prune_rate = self.initialize_masks_prune_rates()  # initialize mask and rate
-        prune_mask_list.append(init_mask)
-        prune_rate_list.append(init_prune_rate)
-
-        initial_weight = self.initialize_weights(init_mask)
+        if self.wp_strategy:
+            # initial mask, prune_mask_list, rate for all epochs
+            prune_mask_list = []
+            prune_rate_list = []
+            init_mask, init_prune_rate = self.initialize_masks_prune_rates()  # initialize mask and rate
+            prune_mask_list.append(init_mask)
+            prune_rate_list.append(init_prune_rate)
+        if self.wp_strategy:
+            initial_weight = self.initialize_weights(init_mask)
+        else:
+            initial_weight = self.initialize_weights()
 
         # initial server weight
         logging.debug(f"initial_weight: {initial_weight}")
@@ -492,43 +499,59 @@ class FLModel:
             [worker.on_epoch_begin(epoch) for worker in self._workers.values()]
 
             for step in range(0, train_steps_per_epoch, aggregate_freq):
-                is_update_mask = False # update mask and rate
-                if step == train_steps_per_epoch-aggregate_freq:
-                    is_update_mask = True
+                if self.wp_strategy:  # key of mask and rate updating
+                    is_update_mask = False
+                    if step == train_steps_per_epoch-aggregate_freq:
+                        is_update_mask = True
                 if verbose == 1:
                     pbar.update(aggregate_freq)
                 client_param_list, sample_num_list = [], []
                 # 0, alice  1 bob
-                print('epoch'+str(epoch)+'step'+str(step))
                 for idx, device in enumerate(self._workers.keys()):
                     client_params = (
                         model_params_list[idx].to(device)
                         if model_params_list is not None
                         else None
                     )
-                    client_params, sample_num, new_prune_mask, new_prune_rate= self._workers[device].train_step_with_prune(
-                        client_params,
-                        epoch * train_steps_per_epoch + step,
-                        aggregate_freq
-                        if step + aggregate_freq < train_steps_per_epoch
-                        else train_steps_per_epoch - step,
-                        prune_mask_list[epoch][idx],  # prune_current_mask
-                        prune_rate_list[epoch][idx],  # prune_current_rate
-                        is_update_mask,
-                        **self.kwargs,
-                    )
-                    prune_mask_list[epoch][idx] = new_prune_mask # record mask
-                    prune_rate_list[epoch][idx] = new_prune_rate
-
+                    if self.wp_strategy:
+                        # train step with prune
+                        client_params, sample_num, new_prune_mask, new_prune_rate= self._workers[device].train_step_with_prune(
+                            client_params,
+                            epoch * train_steps_per_epoch + step,
+                            aggregate_freq
+                            if step + aggregate_freq < train_steps_per_epoch
+                            else train_steps_per_epoch - step,
+                            prune_mask_list[epoch][idx],  # prune_current_mask
+                            prune_rate_list[epoch][idx],  # prune_current_rate
+                            is_update_mask,
+                            **self.kwargs,
+                        )
+                        prune_mask_list[epoch][idx] = new_prune_mask # record mask
+                        prune_rate_list[epoch][idx] = new_prune_rate
+                    else:
+                        client_params, sample_num= self._workers[
+                            device].train_step(
+                            client_params,
+                            epoch * train_steps_per_epoch + step,
+                            aggregate_freq
+                            if step + aggregate_freq < train_steps_per_epoch
+                            else train_steps_per_epoch - step,
+                            **self.kwargs,
+                        )
                     client_param_list.append(client_params)
                     sample_num_list.append(sample_num)
                     res.append(client_params)
 
                 # aggregate
                 if self._aggregator is not None:
-                    model_params = self._aggregator.average(
-                        client_param_list, prune_mask=prune_mask_list[epoch], axis=0, weights=sample_num_list
-                    )
+                    if self.wp_strategy:
+                        model_params = self._aggregator.average(
+                            client_param_list, prune_mask=prune_mask_list[epoch], axis=0, weights=sample_num_list
+                        )
+                    else:
+                        model_params = self._aggregator.average(
+                            client_param_list, axis=0, weights=sample_num_list
+                        )
                 else:
                     if self.server is not None:
                         # server will do aggregation
@@ -647,9 +670,9 @@ class FLModel:
             ]
             if sum(stop_trainings) >= self.consensus_num:
                 break
-
-            prune_mask_list.append(prune_mask_list[epoch])  # update mask and rate
-            prune_rate_list.append(prune_rate_list[epoch])
+            if self.wp_strategy:
+                prune_mask_list.append(prune_mask_list[epoch])  # update mask and rate
+                prune_rate_list.append(prune_rate_list[epoch])
         return history
 
     def predict(
