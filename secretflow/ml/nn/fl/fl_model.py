@@ -39,14 +39,15 @@ from secretflow.utils.compressor import sparse_encode
 from secretflow.utils.random import global_random
 import secretflow as sf
 
+
 class FLModel:
     def __init__(
         self,
         server=None,
         device_list: List[PYU] = [],
-        model: Union['TorchModel', Callable[[], 'tensorflow.keras.Model']] = None,
+        model: Union["TorchModel", Callable[[], "tensorflow.keras.Model"]] = None,
         aggregator=None,
-        strategy='fed_avg_w',
+        strategy="fed_avg_w",
         consensus_num=1,
         backend="tensorflow",
         random_seed=None,
@@ -71,10 +72,10 @@ class FLModel:
             import secretflow.ml.nn.fl.backend.torch.strategy  # noqa
         else:
             raise Exception(f"Invalid backend = {backend}")
-        self.num_gpus = kwargs.get('num_gpus', 0)
-        self.init_workers( # init client
-            model, # torchmodel
-            device_list=device_list, # alice,bob
+        self.num_gpus = kwargs.get("num_gpus", 0)
+        self.init_workers(  # init client
+            model,  # torchmodel
+            device_list=device_list,  # alice,bob
             strategy=strategy,
             backend=backend,
             random_seed=random_seed,
@@ -88,12 +89,12 @@ class FLModel:
         self.strategy = strategy  # string fed_age_W
         self._res: List[np.ndarray] = []
         self.backend = backend
-        self.dp_strategy = kwargs.get('dp_strategy', None)
-        self.simulation = kwargs.get('simulation', False)
-        self.wp_strategy = kwargs.get('wp_strategy', False)  # if  prune stategy
-        self.prune_end_rate = kwargs.get('prune_end_rate', True) # traget prune rate
-        self.prune_percent = kwargs.get('prune_percent', True)  # prune dp increase rate
-        self.server_agg_method = kwargs.get('server_agg_method', None)
+        self.dp_strategy = kwargs.get("dp_strategy", None)
+        self.simulation = kwargs.get("simulation", False)
+        self.wp_strategy = kwargs.get("wp_strategy", False)  # if  prune stategy
+        self.prune_end_rate = kwargs.get("prune_end_rate", True)  # traget prune rate
+        self.prune_percent = kwargs.get("prune_percent", True)  # prune dp increase rate
+        self.server_agg_method = kwargs.get("server_agg_method", None)
 
     def init_workers(
         self,
@@ -104,8 +105,7 @@ class FLModel:
         random_seed,
         num_gpus,
     ):
-        self.\
-            _workers = {
+        self._workers = {
             device: dispatch_strategy(
                 strategy,
                 backend,
@@ -126,7 +126,9 @@ class FLModel:
             clients_weights.append(weights)
         if self._aggregator is not None:
             if self.wp_strategy:
-                initial_weight = self._aggregator.average(clients_weights, prune_mask=init_mask ,axis=0)
+                initial_weight = self._aggregator.average(
+                    clients_weights, prune_mask=init_mask, axis=0
+                )
             else:
                 initial_weight = self._aggregator.average(clients_weights, axis=0)
             for device, worker in self._workers.items():
@@ -161,7 +163,9 @@ class FLModel:
         prune_rate = []
         for device, worker in self._workers.items():
             initial_prune_mask.append(worker.make_prune_mask())
-            prune_rate.append(1)  # list to document the pruning rate of each local model
+            prune_rate.append(
+                1
+            )  # list to document the pruning rate of each local model
         return initial_prune_mask, prune_rate
 
     def _handle_file(
@@ -233,7 +237,7 @@ class FLModel:
                 ), f"Automatic batchsize is too big(batch_size={batch_size}), variable batchsize in dict is recommended"
             assert (
                 sampling_rate <= 1.0 and sampling_rate > 0.0
-            ), f'invalid sampling rate {sampling_rate}'
+            ), f"invalid sampling rate {sampling_rate}"
             steps_per_epoch = math.ceil(1.0 / sampling_rate)
 
             for device, worker in self._workers.items():
@@ -268,7 +272,7 @@ class FLModel:
     ):
         assert isinstance(
             batch_size, (int, dict)
-        ), f'Batch size shall be int or dict but got {type(batch_size)}.'
+        ), f"Batch size shall be int or dict but got {type(batch_size)}."
         if train_x is not None and train_y is not None:
             assert type(train_x) == type(
                 train_y
@@ -305,7 +309,7 @@ class FLModel:
             assert (
                 batch_size < 1024
             ), f"Automatic batch size is too big(batch_size={batch_size}), variable batch size in dict is recommended"
-        assert sampling_rate <= 1.0 and sampling_rate > 0.0, 'invalid sampling rate'
+        assert sampling_rate <= 1.0 and sampling_rate > 0.0, "invalid sampling rate"
         steps_per_epoch = math.ceil(1.0 / sampling_rate)
 
         for device, worker in self._workers.items():
@@ -364,7 +368,7 @@ class FLModel:
         label_decoder=None,
         max_batch_size=20000,
         prefetch_buffer_size=None,
-        sampler_method='batch',
+        sampler_method="batch",
         random_seed=None,
         dp_spent_step_freq=None,
         audit_log_dir=None,
@@ -419,7 +423,7 @@ class FLModel:
         if dp_spent_step_freq is not None:
             assert (
                 isinstance(dp_spent_step_freq, int) and dp_spent_step_freq >= 1
-            ), 'dp_spent_step_freq should be a integer and greater than or equal to 1!'
+            ), "dp_spent_step_freq should be a integer and greater than or equal to 1!"
 
         # build dataset
         if isinstance(x, Dict):
@@ -470,7 +474,10 @@ class FLModel:
             # initial mask, prune_mask_list, rate for all epochs
             prune_mask_list = []
             prune_rate_list = []
-            init_mask, init_prune_rate = self.initialize_masks_prune_rates()  # initialize mask and rate
+            (
+                init_mask,
+                init_prune_rate,
+            ) = self.initialize_masks_prune_rates()  # initialize mask and rate
             prune_mask_list.append(init_mask)
             prune_rate_list.append(init_prune_rate)
         if self.wp_strategy:
@@ -501,7 +508,7 @@ class FLModel:
             for step in range(0, train_steps_per_epoch, aggregate_freq):
                 if self.wp_strategy:  # key of mask and rate updating
                     is_update_mask = False
-                    if step == train_steps_per_epoch-aggregate_freq:
+                    if step == train_steps_per_epoch - aggregate_freq:
                         is_update_mask = True
                 if verbose == 1:
                     pbar.update(aggregate_freq)
@@ -515,7 +522,12 @@ class FLModel:
                     )
                     if self.wp_strategy:
                         # train step with prune
-                        client_params, sample_num, new_prune_mask, new_prune_rate= self._workers[device].train_step_with_prune(
+                        (
+                            client_params,
+                            sample_num,
+                            new_prune_mask,
+                            new_prune_rate,
+                        ) = self._workers[device].train_step_with_prune(
                             client_params,
                             epoch * train_steps_per_epoch + step,
                             aggregate_freq
@@ -526,11 +538,10 @@ class FLModel:
                             is_update_mask,
                             **self.kwargs,
                         )
-                        prune_mask_list[epoch][idx] = new_prune_mask # record mask
+                        prune_mask_list[epoch][idx] = new_prune_mask  # record mask
                         prune_rate_list[epoch][idx] = new_prune_rate
                     else:
-                        client_params, sample_num= self._workers[
-                            device].train_step(
+                        client_params, sample_num = self._workers[device].train_step(
                             client_params,
                             epoch * train_steps_per_epoch + step,
                             aggregate_freq
@@ -546,7 +557,10 @@ class FLModel:
                 if self._aggregator is not None:
                     if self.wp_strategy:
                         model_params = self._aggregator.average(
-                            client_param_list, prune_mask=prune_mask_list[epoch], axis=0, weights=sample_num_list
+                            client_param_list,
+                            prune_mask=prune_mask_list[epoch],
+                            axis=0,
+                            weights=sample_num_list,
                         )
                     else:
                         model_params = self._aggregator.average(
@@ -585,17 +599,17 @@ class FLModel:
                         do_compress, num_returns=3
                     )(
                         self.strategy,
-                        self.kwargs.get('sparsity', 0.0),
+                        self.kwargs.get("sparsity", 0.0),
                         server_weight,
                         agg_update,
                         self._res,
                     )
                     # Do sparse matrix encoding
-                    if self.strategy == 'fed_stc':
+                    if self.strategy == "fed_stc":
                         model_params = model_params.to(self.server)
                         model_params = self.server(sparse_encode, num_return=1)(
                             data=model_params,
-                            encode_method='coo',
+                            encode_method="coo",
                         )
 
                 # DP operation
@@ -607,7 +621,7 @@ class FLModel:
                         privacy_spent = self.dp_strategy.get_privacy_spent(
                             current_dp_step
                         )
-                        logging.debug(f'DP privacy accountant {privacy_spent}')
+                        logging.debug(f"DP privacy accountant {privacy_spent}")
                 if len(res) == wait_steps:
                     wait(res)
                     res = []
@@ -680,7 +694,7 @@ class FLModel:
         x: Union[HDataFrame, FedNdarray, Dict],
         batch_size=None,
         label_decoder=None,
-        sampler_method='batch',
+        sampler_method="batch",
         random_seed=1234,
         dataset_builder: Dict[PYU, Callable] = None,
     ) -> Dict[PYU, PYUObject]:
@@ -742,7 +756,7 @@ class FLModel:
         sample_weight: Union[HDataFrame, FedNdarray] = None,
         label_decoder=None,
         return_dict=False,
-        sampler_method='batch',
+        sampler_method="batch",
         random_seed=None,
         dataset_builder: Dict[PYU, Callable] = None,
     ) -> Tuple[
@@ -841,14 +855,14 @@ class FLModel:
         """
         assert isinstance(
             model_path, (str, Dict)
-        ), f'Model path accepts string or dict but got {type(model_path)}.'
+        ), f"Model path accepts string or dict but got {type(model_path)}."
 
         if isinstance(model_path, str):
             model_path = {device: model_path for device in self._workers.keys()}
 
         res = []
         for device, worker in self._workers.items():
-            assert device in model_path, f'Should provide a path for device {device}.'
+            assert device in model_path, f"Should provide a path for device {device}."
             assert not model_path[device].endswith(
                 "/"
             ), f"model path should be 'a/b/c' not 'a/b/c/'"
@@ -885,13 +899,13 @@ class FLModel:
         """
         assert isinstance(
             model_path, (str, Dict)
-        ), f'Model path accepts string or dict but got {type(model_path)}.'
+        ), f"Model path accepts string or dict but got {type(model_path)}."
         if isinstance(model_path, str):
             model_path = {device: model_path for device in self._workers.keys()}
 
         res = []
         for device, worker in self._workers.items():
-            assert device in model_path, f'Should provide a path for device {device}.'
+            assert device in model_path, f"Should provide a path for device {device}."
             device_model_path, device_model_name = model_path[device].rsplit("/", 1)
 
             if is_test:
