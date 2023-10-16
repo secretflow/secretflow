@@ -20,13 +20,13 @@ from typing import Callable, Optional, Union
 
 import numpy as np
 import pandas as pd
-import torch
 import torchmetrics
-
 from secretflow.ml.nn.fl.backend.torch.sampler import sampler_data
-from secretflow.ml.nn.utils import TorchModel
 from secretflow.ml.nn.metrics import Default, Mean, Precision, Recall
+from secretflow.ml.nn.utils import TorchModel
 from secretflow.utils.io import rows_count
+
+import torch
 
 
 class BaseTorchModel(ABC):
@@ -64,7 +64,7 @@ class BaseTorchModel(ABC):
             if builder_base.metrics is not None
             else None
         )
-        self.exe_device = torch.device('cuda') if self.use_gpu else torch.device('cpu')
+        self.exe_device = torch.device("cuda") if self.use_gpu else torch.device("cpu")
         if self.use_gpu:
             self.model = self.model.to(self.exe_device)
 
@@ -211,12 +211,12 @@ class BaseTorchModel(ABC):
     def make_prune_mask(self):
         step = 0
         for name, param in self.model.named_parameters():
-            if 'weight' in name:
+            if "weight" in name:
                 step = step + 1
         mask = [None] * step
         step = 0
         for name, param in self.model.named_parameters():
-            if 'weight' in name:
+            if "weight" in name:
                 tensor = param.data.cpu().numpy()
                 mask[step] = np.ones_like(tensor)
                 step = step + 1
@@ -367,7 +367,7 @@ class BaseTorchModel(ABC):
     def transform_metrics(self, logs, stage="train"):
         for m in self.metrics:
             result = m.compute()
-            logs[f'{stage}_{m._get_name().lower()}'] = result
+            logs[f"{stage}_{m._get_name().lower()}"] = result
         return logs
 
     def on_train_end(self):
@@ -385,9 +385,9 @@ class BaseTorchModel(ABC):
         Path(model_path).parent.mkdir(parents=True, exist_ok=True)
         assert model_path is not None, "model path cannot be empty"
         check_point = {
-            'model_state_dict': self.model.state_dict(),
-            'optimizer_state_dict': self.optimizer.state_dict(),
-            'epoch': self.epoch[-1] if self.epoch else 0,
+            "model_state_dict": self.model.state_dict(),
+            "optimizer_state_dict": self.optimizer.state_dict(),
+            "epoch": self.epoch[-1] if self.epoch else 0,
         }
         torch.save(check_point, model_path)
 
@@ -395,9 +395,9 @@ class BaseTorchModel(ABC):
         """load model from state dict, model structure must be defined before load"""
         assert model_path is not None, "model path cannot be empty"
         assert self.model is not None, "model structure must be defined before load"
-        checkpoint = torch.load(model_path, map_location=torch.device('cpu'))
-        self.model.load_state_dict(checkpoint['model_state_dict'])
-        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        checkpoint = torch.load(model_path, map_location=torch.device("cpu"))
+        self.model.load_state_dict(checkpoint["model_state_dict"])
+        self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         if self.use_gpu:
             self.model.to(self.exe_device)
-        return checkpoint['epoch']
+        return checkpoint["epoch"]
