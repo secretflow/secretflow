@@ -4,8 +4,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
 from secretflow.ml.nn.utils import BaseModule, TorchModel
+
 
 # init weights
 def weights_init(m):
@@ -40,17 +40,16 @@ class LeNet(BaseModule):
             nn.Conv2d(12, 12, kernel_size=5, padding=5 // 2, stride=2),
             nn.Sigmoid(),
             nn.Conv2d(12, 12, kernel_size=5, padding=5 // 2, stride=1),
-            nn.Sigmoid()
+            nn.Sigmoid(),
         )
-        self.fc = nn.Sequential(
-            nn.Linear(hidden, num_classes)
-        )
+        self.fc = nn.Sequential(nn.Linear(hidden, num_classes))
 
     def forward(self, x):
         out = self.body(x)
         out = out.view(out.size(0), -1)
         out = self.fc(out)
         return out
+
 
 # BasicBlock
 class BasicBlock(BaseModule):
