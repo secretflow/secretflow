@@ -75,35 +75,35 @@ start_time = time.time()
 # plt.show()
 
 # training result with pruning model parameters
-fl_model_prune = FLModel(
-    server=server,
-    device_list=device_list,
-    model=model_def,
-    aggregator=aggregator,
-    strategy="fed_avg_w_prune",
-    backend="torch",
-    prune_end_rate=0.1,
-    prune_percent=5,  # fix prune speed
-)
-history_prune = fl_model_prune.fit(
-    train_data,
-    train_label,
-    validation_data=(test_data, test_label),
-    epochs=10,
-    batch_size=32,
-    aggregate_freq=1,
-)
-print("\n Total Run Time: {0:0.4f}".format(time.time() - start_time))
+# fl_model_prune = FLModel(
+#     server=server,
+#     device_list=device_list,
+#     model=model_def,
+#     aggregator=aggregator,
+#     strategy="fed_avg_w_prune",
+#     backend="torch",
+#     prune_end_rate=0.1,
+#     prune_percent=5,  # fix prune speed
+# )
+# history_prune = fl_model_prune.fit(
+#     train_data,
+#     train_label,
+#     validation_data=(test_data, test_label),
+#     epochs=10,
+#     batch_size=32,
+#     aggregate_freq=1,
+# )
+# print("\n Total Run Time: {0:0.4f}".format(time.time() - start_time))
 
 # Draw accuracy values for training & validation when prune
-plt.plot(history_prune.global_history["multiclassaccuracy"])
-plt.plot(history_prune.global_history["val_multiclassaccuracy"])
-plt.title("FLModel_prune accuracy")
-plt.ylabel("Accuracy")
-plt.xlabel("Epoch")
-plt.legend(["Train", "Valid"], loc="upper left")
-plt.savefig("./dgl/FL_prune_0.1_5_Model_accuracy_convnet_10_32_mnist.jpg")
-plt.show()
+# plt.plot(history_prune.global_history["multiclassaccuracy"])
+# plt.plot(history_prune.global_history["val_multiclassaccuracy"])
+# plt.title("FLModel_prune accuracy")
+# plt.ylabel("Accuracy")
+# plt.xlabel("Epoch")
+# plt.legend(["Train", "Valid"], loc="upper left")
+# plt.savefig("./dgl/FL_prune_0.1_5_Model_accuracy_convnet_10_32_mnist.jpg")
+# plt.show()
 
 # dgl attack verification
 tt = transforms.ToPILImage()
@@ -122,9 +122,9 @@ fig2, ax2 = plt.subplots()
 plt.imshow(tt(gt_data[0].cpu()), cmap='gray')
 plt.savefig("./dgl/true_to_valiate.jpg", dpi=300)
 
-net = LeNet()
+net = ConvNet()#LeNet()
 original_dy_dx = []
-
+criterion = nn.CrossEntropyLoss()  # criterion
 # flag: if the gradient is from model with purning
 is_prune = True
 if is_prune:
