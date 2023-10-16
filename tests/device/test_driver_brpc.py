@@ -8,7 +8,7 @@ import secretflow as sf
 import secretflow.distributed as sfd
 from secretflow.device.device.spu import SPUObject
 from secretflow.device.driver import reveal, to, wait
-
+from secretflow.distributed.primitive import DISTRIBUTION_MODE
 from tests.cluster import cluster, set_self_party
 from tests.conftest import DeviceInventory, semi2k_cluster
 
@@ -16,7 +16,7 @@ from tests.conftest import DeviceInventory, semi2k_cluster
 @pytest.fixture(scope="module")
 def env(request, sf_party_for_4pc):
     devices = DeviceInventory()
-    sfd.set_production(True)
+    sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.PRODUCTION)
     set_self_party(sf_party_for_4pc)
     sf.init(
         address='local',

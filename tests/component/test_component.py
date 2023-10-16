@@ -1,12 +1,12 @@
 import math
 
 from google.protobuf.json_format import ParseDict
+from secretflow.spec.v1.component_pb2 import AttributeDef, ComponentDef, IoDef
+from secretflow.spec.v1.data_pb2 import DistData
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
 from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import DistDataType
-from secretflow.protos.component.comp_pb2 import AttributeDef, ComponentDef, IoDef
-from secretflow.protos.component.data_pb2 import DistData
-from secretflow.protos.component.evaluation_pb2 import NodeEvalParam
 
 
 def test_float_attr():
@@ -32,10 +32,10 @@ def test_float_attr():
             "atomic": {
                 "is_optional": True,
                 "default_value": {"f": 0.75},
-                "has_lower_bound": True,
+                "lower_bound_enabled": True,
                 "lower_bound_inclusive": True,
                 "lower_bound": {"f": 0.0},
-                "has_upper_bound": True,
+                "upper_bound_enabled": True,
                 "upper_bound_inclusive": True,
                 "upper_bound": {"f": 1.0},
             },
@@ -65,7 +65,7 @@ def test_int_attr():
             "type": "AT_INT",
             "atomic": {
                 "default_value": {"i64": 1},
-                "has_lower_bound": True,
+                "lower_bound_enabled": True,
                 "lower_bound_inclusive": True,
                 "lower_bound": {"i64": 1},
             },
@@ -229,10 +229,10 @@ def test_definition():
                     "atomic": {
                         "is_optional": True,
                         "default_value": {"f": 0.75},
-                        "has_lower_bound": True,
+                        "lower_bound_enabled": True,
                         "lower_bound_inclusive": True,
                         "lower_bound": {"f": 0.0},
-                        "has_upper_bound": True,
+                        "upper_bound_enabled": True,
                         "upper_bound_inclusive": True,
                         "upper_bound": {"f": 1.0},
                     },

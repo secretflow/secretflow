@@ -3,6 +3,34 @@
     "secretflow": "secretflow",
     "First-party SecretFlow components.": "官方SecretFlow组件"
   },
+  "feature/vert_bin_substitution:0.0.1": {
+    "feature": "特征",
+    "vert_bin_substitution": "vert_bin_substitution",
+    "Substitute datasets' value by bin substitution rules.": "用箱替换规则替换数据集的值。",
+    "0.0.1": "0.0.1",
+    "input_data": "input_data",
+    "Vertical partitioning dataset to be substituted.": "要替换的垂直分区数据集。",
+    "bin_rule": "bin_rule",
+    "Input bin substitution rule.": "输入箱替换规则。",
+    "output_data": "output_data",
+    "Output vertical table.": "输出垂直表。"
+  },
+  "feature/vert_binning:0.0.1": {
+    "feature": "特征",
+    "vert_binning": "vert_binning",
+    "Generate equal frequency or equal range binning rules for vertical partitioning datasets.": "为垂直分区数据集生成等频或等范围分箱规则。",
+    "0.0.1": "0.0.1",
+    "binning_method": "binning_method",
+    "How to bin features with numeric types: \"quantile\"(equal frequency)/\"eq_range\"(equal range)": "如何使用数值类型对要素进行装箱：“分位数”（等频）/“eq_range”（相等范围）",
+    "bin_num": "bin_num",
+    "Max bin counts for one features.": "一个要素的最大条柱计数。",
+    "input_data": "input_data",
+    "Input vertical table.": "输入垂直表。",
+    "feature_selects": "feature_selects",
+    "which features should be binned.": "应对哪些要素进行分组。",
+    "bin_rule": "bin_rule",
+    "Output bin rule.": "输出箱规则。"
+  },
   "feature/vert_woe_binning:0.0.1": {
     "feature": "特征工程",
     "vert_woe_binning": "WOE分箱",
@@ -26,20 +54,8 @@
     "Input vertical table.": "输入联合表",
     "feature_selects": "选择特征",
     "which features should be binned.": "应对哪些特征进行分组",
-    "woe_rule": "WOE 规则",
+    "bin_rule": "bin_rule",
     "Output WOE rule.": "输出 WOE 规则"
-  },
-  "feature/vert_woe_substitution:0.0.1": {
-    "feature": "特征工程",
-    "vert_woe_substitution": "WOE转换",
-    "Substitute datasets' value by WOE substitution rules.": "根据WOE分箱规则替换数据集的值",
-    "0.0.1": "0.0.1",
-    "input_data": "输入数据",
-    "Vertical partitioning dataset to be substituted.": "要替换的垂直分割数据集",
-    "woe_rule": "WOE 规则",
-    "Input WOE substitution rule.": "输入WOE分箱规则",
-    "output_data": "输出数据",
-    "Output vertical table.": "输出联合表"
   },
   "ml.eval/biclassification_eval:0.0.1": {
     "ml.eval": "模型评估",
@@ -343,6 +359,8 @@
     "0.0.1": "0.0.1",
     "protocol": "协议",
     "PSI protocol.": "PSI 协议",
+    "sort": "排序",
+    "Sort the output.": "对输出进行排序",
     "bucket_size": "分桶数",
     "Specify the hash bucket size used in PSI. Larger values consume more memory.": "指定 PSI 中使用的哈希桶大小；值越大，占用的内存越多",
     "ecdh_curve_type": "ECDH 曲线类型",

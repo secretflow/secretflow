@@ -2,7 +2,7 @@ import pandas as pd
 import pytest
 from sklearn.datasets import load_iris
 
-from secretflow.data.base import partition
+from secretflow.data import partition
 from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.stats import table_statistics
 

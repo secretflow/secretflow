@@ -123,7 +123,7 @@ def condition_filter_comp_eval_fn(
         ds,
         out_ds,
         VerticalTableWrapper.from_dist_data(in_ds, ds.shape[0]),
-        in_ds.sys_info,
+        in_ds.system_info,
     )
 
     out_db_else = dump_vertical_table(
@@ -131,7 +131,7 @@ def condition_filter_comp_eval_fn(
         else_ds,
         out_ds_else,
         VerticalTableWrapper.from_dist_data(in_ds, else_ds.shape[0]),
-        in_ds.sys_info,
+        in_ds.system_info,
     )
 
     return {"out_ds": out_db, "out_ds_else": out_db_else}

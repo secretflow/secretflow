@@ -1,17 +1,17 @@
 import os
 
 import pandas as pd
-
-from secretflow.component.data_utils import DistDataType
-from secretflow.component.preprocessing.psi import psi_comp
-from secretflow.protos.component.comp_pb2 import Attribute
-from secretflow.protos.component.data_pb2 import (
+from secretflow.spec.v1.component_pb2 import Attribute
+from secretflow.spec.v1.data_pb2 import (
     DistData,
     IndividualTable,
     TableSchema,
     VerticalTable,
 )
-from secretflow.protos.component.evaluation_pb2 import NodeEvalParam
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
+
+from secretflow.component.data_utils import DistDataType
+from secretflow.component.preprocessing.psi import psi_comp
 from tests.conftest import TEST_STORAGE_ROOT
 
 
@@ -21,8 +21,9 @@ def test_psi(comp_prod_sf_cluster_config):
     output_path = "test_psi/psi_output.csv"
     output_path_2 = "test_psi/psi_output_2.csv"
 
-    self_party = comp_prod_sf_cluster_config.private_config.self_party
-    local_fs_wd = comp_prod_sf_cluster_config.private_config.storage_config.local_fs.wd
+    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    self_party = sf_cluster_config.private_config.self_party
+    local_fs_wd = storage_config.local_fs.wd
 
     if self_party == "alice":
         da = pd.DataFrame(
@@ -125,7 +126,7 @@ def test_psi(comp_prod_sf_cluster_config):
                 id_types=["str"],
                 ids=["id1"],
             ),
-            num_lines=-1,
+            line_count=-1,
         ),
     )
 
@@ -137,11 +138,15 @@ def test_psi(comp_prod_sf_cluster_config):
                 id_types=["str"],
                 ids=["id2"],
             ),
-            num_lines=-1,
+            line_count=-1,
         ),
     )
 
-    res = psi_comp.eval(param, comp_prod_sf_cluster_config)
+    res = psi_comp.eval(
+        param=param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
 
     assert len(res.outputs) == 1
 
@@ -213,7 +218,7 @@ def test_psi(comp_prod_sf_cluster_config):
                 id_types=["str"],
                 ids=["id1"],
             ),
-            num_lines=-1,
+            line_count=-1,
         ),
     )
 
@@ -225,11 +230,15 @@ def test_psi(comp_prod_sf_cluster_config):
                 id_types=["str"],
                 ids=["id2"],
             ),
-            num_lines=-1,
+            line_count=-1,
         ),
     )
 
-    res_2 = psi_comp.eval(param_2, comp_prod_sf_cluster_config)
+    res_2 = psi_comp.eval(
+        param=param_2,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
 
     assert len(res_2.outputs) == 1
 

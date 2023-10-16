@@ -6,7 +6,7 @@ import pytest
 from sklearn.preprocessing import FunctionTransformer as SkFunctionTransformer
 
 from secretflow import reveal
-from secretflow.data.base import partition
+from secretflow.data import partition
 from secretflow.data.horizontal.dataframe import HDataFrame
 from secretflow.data.mix.dataframe import MixDataFrame
 from secretflow.data.vertical.dataframe import VDataFrame

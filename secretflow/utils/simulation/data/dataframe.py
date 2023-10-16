@@ -16,8 +16,8 @@ from typing import Callable, Dict, List, Union
 
 import pandas as pd
 
+from secretflow.data import partition
 from secretflow.data.horizontal import HDataFrame
-from secretflow.data.base import partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import PYU
 from secretflow.security.aggregation.aggregator import Aggregator
@@ -76,7 +76,8 @@ def create_df(
     assert parts, 'Parts should not be none or empty!'
 
     if isinstance(source, str):
-        df = pd.read_csv(source, engine="pyarrow")
+        # engin="pyarrow" will lead to stuck in production tests.
+        df = pd.read_csv(source)
     elif isinstance(source, pd.DataFrame):
         df = source
     elif isinstance(source, Callable):
@@ -98,7 +99,7 @@ def create_df(
         return HDataFrame(
             partitions={
                 device: partition(
-                    device(lambda _df: _df.iloc[index[0] : index[1], :])(df)
+                    lambda _df: _df.iloc[index[0] : index[1], :], device=device, _df=df
                 )
                 for device, index in indexes.items()
             },
@@ -109,7 +110,7 @@ def create_df(
         return VDataFrame(
             partitions={
                 device: partition(
-                    device(lambda _df: _df.iloc[:, index[0] : index[1]])(df)
+                    lambda _df: _df.iloc[:, index[0] : index[1]], device=device, _df=df
                 )
                 for device, index in indexes.items()
             }

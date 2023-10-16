@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 
 from secretflow import reveal
-from secretflow.data.base import partition
+from secretflow.data import partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.utils.errors import NotFoundError
 
@@ -200,7 +200,7 @@ def test_skew_should_ok(prod_env_and_data):
     pd.testing.assert_series_equal(value[['b6']], expected_bob[['b6']])
 
 
-def test_quantle_should_ok(prod_env_and_data):
+def test_quantile_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
     value = data['df'].quantile()
@@ -260,7 +260,7 @@ def test_get_non_exist_items_should_error(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN and THEN
     with pytest.raises(NotFoundError, match='does not exist'):
-        data['df']['a1', 'non_exist']
+        _ = data['df']['a1', 'non_exist']
 
 
 def test_get_multi_items_should_ok(prod_env_and_data):

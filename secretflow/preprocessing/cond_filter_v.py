@@ -8,10 +8,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 from functools import reduce
 from typing import Any, Dict, List
 
-from secretflow.data.base import partition
+from secretflow.data import partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.preprocessing.base import _PreprocessBase
 

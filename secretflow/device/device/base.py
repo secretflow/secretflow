@@ -42,6 +42,8 @@ def _name_of_to(device_type: DeviceType):
 
 
 class DeviceObject(ABC):
+    device: 'Device'
+
     def __init__(self, device: Device):
         """Abstraction device object base class.
 

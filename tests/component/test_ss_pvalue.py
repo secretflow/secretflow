@@ -2,16 +2,16 @@ import logging
 import os
 
 import pandas as pd
+from secretflow.spec.v1.component_pb2 import Attribute
+from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
+from secretflow.spec.v1.report_pb2 import Report
 from sklearn.datasets import load_breast_cancer
 from sklearn.preprocessing import StandardScaler
 
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.ml.eval.ss_pvalue import ss_pvalue_comp
 from secretflow.component.ml.linear.ss_sgd import ss_sgd_train_comp
-from secretflow.protos.component.comp_pb2 import Attribute
-from secretflow.protos.component.data_pb2 import DistData, TableSchema, VerticalTable
-from secretflow.protos.component.evaluation_pb2 import NodeEvalParam
-from secretflow.protos.component.report_pb2 import Report
 
 
 def test_ss_pvalue(comp_prod_sf_cluster_config):
@@ -19,8 +19,9 @@ def test_ss_pvalue(comp_prod_sf_cluster_config):
     bob_input_path = "test_ss_pvalue/bob.csv"
     model_path = "test_ss_pvalue/model.sf"
 
-    self_party = comp_prod_sf_cluster_config.private_config.self_party
-    local_fs_wd = comp_prod_sf_cluster_config.private_config.storage_config.local_fs.wd
+    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    self_party = sf_cluster_config.private_config.self_party
+    local_fs_wd = storage_config.local_fs.wd
 
     scaler = StandardScaler()
     ds = load_breast_cancer()
@@ -101,7 +102,11 @@ def test_ss_pvalue(comp_prod_sf_cluster_config):
     )
     train_param.inputs[0].meta.Pack(meta)
 
-    train_res = ss_sgd_train_comp.eval(train_param, comp_prod_sf_cluster_config)
+    train_res = ss_sgd_train_comp.eval(
+        param=train_param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
 
     pv_param = NodeEvalParam(
         domain="ml.eval",
@@ -111,7 +116,11 @@ def test_ss_pvalue(comp_prod_sf_cluster_config):
         output_uris=["report"],
     )
 
-    res = ss_pvalue_comp.eval(pv_param, comp_prod_sf_cluster_config)
+    res = ss_pvalue_comp.eval(
+        param=pv_param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
 
     assert len(res.outputs) == 1
 

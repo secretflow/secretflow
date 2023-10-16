@@ -13,33 +13,17 @@
 # limitations under the License.
 
 
-from kuscia.proto.api.v1alpha1.kusciatask.kuscia_task_pb2 import (
-    AllocatedPorts,
-    ClusterDefine,
-)
-
-from secretflow.kuscia.datamesh import (
-    create_domain_data_source_service_stub,
-    get_domain_data_source,
-)
 from secretflow.kuscia.ray_config import RayConfig
 from secretflow.kuscia.task_config import KusciaTaskConfig
-from secretflow.protos.component.cluster_pb2 import (
-    SFClusterConfig,
-    SFClusterDesc,
-    StorageConfig,
-)
+from secretflow.spec.extend.cluster_pb2 import SFClusterConfig
 
 
-def compose_sf_cluster_config(
-    sf_cluster_desc: SFClusterDesc,
-    datamesh_addr: str,
-    kuscia_task_cluster_def: ClusterDefine,
-    kuscia_task_allocated_ports: AllocatedPorts,
-    ray_config: RayConfig,
-    sf_storage_config: StorageConfig,
-    datasource_id: str = None,
-) -> SFClusterConfig:
+def get_sf_cluster_config(kuscia_config: KusciaTaskConfig) -> SFClusterConfig:
+    sf_cluster_desc = kuscia_config.sf_cluster_desc
+    kuscia_task_cluster_def = kuscia_config.task_cluster_def
+    kuscia_task_allocated_ports = kuscia_config.task_allocated_ports
+    ray_config = RayConfig.from_kuscia_task_config(kuscia_config)
+
     party_id = kuscia_task_cluster_def.self_party_idx
     party_name = kuscia_task_cluster_def.parties[party_id].name
 
@@ -69,35 +53,11 @@ def compose_sf_cluster_config(
                     # add "http://" to force brpc to set the correct Host
                     spu_address["spu"][party.name] = f"http://{service.endpoints[0]}"
 
-    if (
-        sf_storage_config is not None
-        and party_name not in sf_storage_config
-        and datasource_id is None
-    ):
-        raise RuntimeError(
-            f"storage config of party [{party_name}] is missing. It must be provided with sf_storage_config explicitly or be inferred from sf_input_ids with DataMesh services."
-        )
-
-    if sf_storage_config is not None and party_name in sf_storage_config:
-        storage_config = sf_storage_config[party_name]
-    else:
-        # try to get storage config with sf_datasource_config
-        stub = create_domain_data_source_service_stub(datamesh_addr)
-        domain_data_source = get_domain_data_source(stub, datasource_id)
-
-        storage_config = StorageConfig(
-            type="local_fs",
-            local_fs=StorageConfig.LocalFSConfig(
-                wd=domain_data_source.info.localfs.path
-            ),
-        )
-
     res = SFClusterConfig(
         desc=sf_cluster_desc,
         private_config=SFClusterConfig.PrivateConfig(
             self_party=party_name,
             ray_head_addr=f"{ray_config.ray_node_ip_address}:{ray_config.ray_gcs_port}",
-            storage_config=storage_config,
         ),
     )
 
@@ -134,17 +94,3 @@ def compose_sf_cluster_config(
             res.public_config.spu_configs.append(pulic_spu_config)
 
     return res
-
-
-def get_sf_cluster_config(
-    kuscia_config: KusciaTaskConfig, datamesh_addr: str, datasource_id: str = None
-) -> SFClusterConfig:
-    return compose_sf_cluster_config(
-        kuscia_config.sf_cluster_desc,
-        datamesh_addr,
-        kuscia_config.task_cluster_def,
-        kuscia_config.task_allocated_ports,
-        RayConfig.from_kuscia_task_config(kuscia_config),
-        kuscia_config.sf_storage_config,
-        datasource_id,
-    )

@@ -23,18 +23,19 @@ from typing import Dict, List, Union
 
 import cleantext
 import spu
-
-from secretflow.component.data_utils import DistDataType, check_dist_data, check_io_def
-from secretflow.component.eval_param_reader import EvalParamReader
-from secretflow.device.driver import init, shutdown
-from secretflow.protos.component.cluster_pb2 import SFClusterConfig
-from secretflow.protos.component.comp_pb2 import (
+from secretflow.spec.v1.component_pb2 import (
     AttributeDef,
     AttrType,
     ComponentDef,
     IoDef,
 )
-from secretflow.protos.component.evaluation_pb2 import NodeEvalParam, NodeEvalResult
+from secretflow.spec.v1.data_pb2 import StorageConfig
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam, NodeEvalResult
+
+from secretflow.component.data_utils import DistDataType, check_dist_data, check_io_def
+from secretflow.component.eval_param_reader import EvalParamReader
+from secretflow.device.driver import init, shutdown
+from secretflow.spec.extend.cluster_pb2 import SFClusterConfig
 
 
 def clean_text(x: str, no_line_breaks: bool = True) -> str:
@@ -256,12 +257,12 @@ class Component:
             attr.atomic.allowed_values.fs.extend(allowed_values)
 
         if lower_bound is not None:
-            attr.atomic.has_lower_bound = True
+            attr.atomic.lower_bound_enabled = True
             attr.atomic.lower_bound_inclusive = lower_bound_inclusive
             attr.atomic.lower_bound.f = lower_bound
 
         if upper_bound is not None:
-            attr.atomic.has_upper_bound = True
+            attr.atomic.upper_bound_enabled = True
             attr.atomic.upper_bound_inclusive = upper_bound_inclusive
             attr.atomic.upper_bound.f = upper_bound
 
@@ -400,12 +401,12 @@ class Component:
             attr.atomic.allowed_values.i64s.extend(allowed_values)
 
         if lower_bound is not None:
-            attr.atomic.has_lower_bound = True
+            attr.atomic.lower_bound_enabled = True
             attr.atomic.lower_bound_inclusive = lower_bound_inclusive
             attr.atomic.lower_bound.i64 = lower_bound
 
         if upper_bound is not None:
-            attr.atomic.has_upper_bound = True
+            attr.atomic.upper_bound_enabled = True
             attr.atomic.upper_bound_inclusive = upper_bound_inclusive
             attr.atomic.upper_bound.i64 = upper_bound
 
@@ -737,9 +738,8 @@ class Component:
             enable_waiting_for_other_parties_ready=True,
         )
 
-    def _check_storage(self, config: SFClusterConfig):
+    def _check_storage(self, storage: StorageConfig):
         # only local fs is supported at this moment.
-        storage = config.private_config.storage_config
         if storage.type and storage.type != "local_fs":
             raise CompEvalError("only local_fs is supported.")
         return storage.local_fs.wd
@@ -859,6 +859,7 @@ class Component:
     def eval(
         self,
         param: NodeEvalParam,
+        storage_config: StorageConfig = None,
         cluster_config: SFClusterConfig = None,
         tracer_report: bool = False,
     ) -> Union[NodeEvalResult, Dict]:
@@ -879,8 +880,10 @@ class Component:
         # sanity check on sf config
         ctx = CompEvalContext()
 
+        if storage_config is not None:
+            ctx.local_fs_wd = self._check_storage(storage_config)
+
         if cluster_config is not None:
-            ctx.local_fs_wd = self._check_storage(cluster_config)
             ctx.spu_configs, ctx.heu_config = self._extract_device_config(
                 cluster_config
             )

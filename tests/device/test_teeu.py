@@ -10,6 +10,7 @@ import secretflow as sf
 import secretflow.distributed as sfd
 from secretflow.device import global_state
 from secretflow.device.device.teeu import TEEU
+from secretflow.distributed.primitive import DISTRIBUTION_MODE
 from secretflow.utils.testing import unused_tcp_port
 from tests.cluster import cluster, get_self_party, set_self_party
 
@@ -26,7 +27,7 @@ class TeeuTestInventory:
 @pytest.fixture(scope="module")
 def teeu_production_setup_devices(request, sf_party_for_4pc):
     inventory = TeeuTestInventory()
-    sfd.set_production(True)
+    sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.PRODUCTION)
     set_self_party(sf_party_for_4pc)
     self_party = get_self_party()
     if self_party in ('carol', 'davy'):

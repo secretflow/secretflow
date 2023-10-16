@@ -15,7 +15,7 @@
 
 import os
 from secretflow.component.entry import COMP_LIST
-from secretflow.protos.component.comp_pb2 import AttrType, Attribute
+from secretflow.spec.v1.component_pb2 import AttrType, Attribute
 from mdutils.mdutils import MdUtils
 
 import datetime
@@ -33,7 +33,7 @@ mdFile.new_paragraph(f'Version: {COMP_LIST.version}')
 mdFile.new_paragraph(COMP_LIST.desc)
 
 AttrTypeStrMap = {
-    AttrType.AT_UNDEFINED: 'Undefined',
+    AttrType.ATTR_TYPE_UNSPECIFIED: 'Undefined',
     AttrType.AT_FLOAT: 'Float',
     AttrType.AT_INT: 'Integer',
     AttrType.AT_STRING: 'String',
@@ -82,24 +82,24 @@ def get_allowed_atomic_attr_value(at: AttrType, attr: Attribute):
 
 def get_bound(
     at: AttrType,
-    has_lower_bound: bool,
+    lower_bound_enabled: bool,
     lower_bound: Attribute,
     lower_bound_inclusive: bool,
-    has_upper_bound: bool,
+    upper_bound_enabled: bool,
     upper_bound: Attribute,
     upper_bound_inclusive: bool,
 ):
     if at in [AttrType.AT_FLOAT, AttrType.AT_FLOATS, AttrType.AT_INT, AttrType.AT_INTS]:
-        if has_lower_bound or has_upper_bound:
+        if lower_bound_enabled or upper_bound_enabled:
             ret = ''
-            if has_lower_bound:
+            if lower_bound_enabled:
                 ret += '[' if lower_bound_inclusive else '('
                 ret += str(get_atomic_attr_value(at, lower_bound))
                 ret += ', '
             else:
                 ret += '($-\infty$, '
 
-            if has_upper_bound:
+            if upper_bound_enabled:
                 ret += str(get_atomic_attr_value(at, upper_bound))
                 ret += ']' if upper_bound_inclusive else ')'
             else:
@@ -129,8 +129,10 @@ def parse_comp_io(md, io_defs):
                 if attr.col_max_cnt_inclusive > 0:
                     notes_str += f'Max column number to select(inclusive): {attr.col_max_cnt_inclusive}. '
 
-                if len(attr.attrs):
-                    raise NotImplementedError('todo: parse attrs of TableAttrDef.')
+                if len(attr.extra_attrs):
+                    raise NotImplementedError(
+                        'todo: parse extra_attrs of TableAttrDef.'
+                    )
 
         io_table_text.extend(
             [io_def.name, io_def.desc, str(list(io_def.types)), notes_str]
@@ -217,10 +219,10 @@ for domain, comps in comp_map.items():
 
                     bound = get_bound(
                         attr.type,
-                        attr.atomic.has_lower_bound,
+                        attr.atomic.lower_bound_enabled,
                         attr.atomic.lower_bound,
                         attr.atomic.lower_bound_inclusive,
-                        attr.atomic.has_upper_bound,
+                        attr.atomic.upper_bound_enabled,
                         attr.atomic.upper_bound,
                         attr.atomic.upper_bound_inclusive,
                     )

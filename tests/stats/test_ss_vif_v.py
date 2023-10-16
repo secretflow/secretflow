@@ -3,7 +3,7 @@ import pandas as pd
 import sklearn
 from statsmodels.stats.outliers_influence import variance_inflation_factor as vif
 
-from secretflow.data.base import partition
+from secretflow.data import partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.device.driver import reveal
 from secretflow.stats import SSVertVIF
