@@ -213,7 +213,6 @@ setup(
             "tests.*",
         )
     ),
-    setup_requires=["protobuf_distutils"],
     install_requires=install_requires,
     ext_modules=[
         BazelExtension(
@@ -227,11 +226,6 @@ setup(
     dependency_links=dependency_links,
     options={
         "bdist_wheel": {"plat_name": plat_name()},
-        "generate_py_protobufs": {
-            "source_dir": "./secretflow/protos",
-            "proto_root_path": ".",
-            "output_dir": ".",
-        },
     },
     entry_points={
         "console_scripts": [

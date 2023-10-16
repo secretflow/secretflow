@@ -20,7 +20,6 @@ from sklearn.preprocessing import KBinsDiscretizer as SkKBinsDiscretizer
 
 from secretflow.data.horizontal import HDataFrame
 from secretflow.data.mix.dataframe import MixDataFrame, PartitionWay
-from secretflow.data.base import partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.device.driver import reveal
 from secretflow.preprocessing.base import _PreprocessBase
@@ -192,16 +191,14 @@ class KBinsDiscretizer(_PreprocessBase):
     ) -> Union[HDataFrame, VDataFrame]:
         transformed_parts = {}
 
-        def _df_transform(est: SkKBinsDiscretizer, df: pd.DataFrame):
+        def _df_transform(df: pd.DataFrame, est: SkKBinsDiscretizer):
             new_df = df.copy()
             new_df.iloc[:, :] = est.transform(df)
             return new_df
 
         if isinstance(df, HDataFrame):
             for device, part in df.partitions.items():
-                transformed_parts[device] = partition(
-                    device(_df_transform)(est, part.data), part.backend
-                )
+                transformed_parts[device] = part.apply_func(_df_transform, est=est)
         else:
             # VDataFrame
             start_idx = 0
@@ -213,9 +210,7 @@ class KBinsDiscretizer(_PreprocessBase):
                 )
                 est_part.bin_edges_ = est.bin_edges_[start_idx:end_idx]
                 est_part.n_bins_ = est.n_bins_[start_idx:end_idx]
-                transformed_parts[device] = partition(
-                    device(_df_transform)(est_part, part.data), part.backend
-                )
+                transformed_parts[device] = part.apply_func(_df_transform, est=est_part)
                 start_idx = end_idx
 
         new_df = df.copy()

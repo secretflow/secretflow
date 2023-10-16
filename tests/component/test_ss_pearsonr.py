@@ -2,22 +2,23 @@ import logging
 import os
 
 import pandas as pd
+from secretflow.spec.v1.component_pb2 import Attribute
+from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
+from secretflow.spec.v1.report_pb2 import Report
 from sklearn.datasets import load_breast_cancer
 
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.stats.ss_pearsonr import ss_pearsonr_comp
-from secretflow.protos.component.comp_pb2 import Attribute
-from secretflow.protos.component.data_pb2 import DistData, TableSchema, VerticalTable
-from secretflow.protos.component.evaluation_pb2 import NodeEvalParam
-from secretflow.protos.component.report_pb2 import Report
 
 
 def test_ss_pearsonr(comp_prod_sf_cluster_config):
     alice_input_path = "test_ss_pearsonr/alice.csv"
     bob_input_path = "test_ss_pearsonr/bob.csv"
 
-    self_party = comp_prod_sf_cluster_config.private_config.self_party
-    local_fs_wd = comp_prod_sf_cluster_config.private_config.storage_config.local_fs.wd
+    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    self_party = sf_cluster_config.private_config.self_party
+    local_fs_wd = storage_config.local_fs.wd
 
     x = load_breast_cancer()["data"]
     if self_party == "alice":
@@ -73,7 +74,11 @@ def test_ss_pearsonr(comp_prod_sf_cluster_config):
     )
     param.inputs[0].meta.Pack(meta)
 
-    res = ss_pearsonr_comp.eval(param, comp_prod_sf_cluster_config)
+    res = ss_pearsonr_comp.eval(
+        param=param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
 
     assert len(res.outputs) == 1
 

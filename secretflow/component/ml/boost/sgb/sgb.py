@@ -14,6 +14,8 @@
 import json
 import os
 
+from secretflow.spec.v1.data_pb2 import DistData
+
 from secretflow.component.component import Component, IoType
 from secretflow.component.data_utils import (
     DistDataType,
@@ -29,7 +31,6 @@ from secretflow.device.device.pyu import PYU
 from secretflow.device.driver import wait
 from secretflow.ml.boost.sgb_v import Sgb, SgbModel
 from secretflow.ml.boost.sgb_v.model import from_dict
-from secretflow.protos.component.data_pb2 import DistData
 
 sgb_train_comp = Component(
     "sgb_train",
@@ -387,7 +388,7 @@ def sgb_train_eval_fn(
         json.dumps(m_dict),
         ctx.local_fs_wd,
         output_model,
-        train_dataset.sys_info,
+        train_dataset.system_info,
     )
 
     return {"output_model": model_db}
@@ -559,7 +560,7 @@ def sgb_predict_eval_fn(
         label_header=label_header_map,
         party=receiver,
         pred_name=pred_name,
-        num_lines=x.shape[0],
+        line_count=x.shape[0],
         id_keys=id_header,
         label_keys=label_header,
     )

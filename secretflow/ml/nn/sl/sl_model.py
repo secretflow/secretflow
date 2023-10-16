@@ -27,7 +27,7 @@ from typing import Callable, Dict, Iterable, List, Tuple, Union
 from multiprocess import cpu_count
 from tqdm import tqdm
 
-from secretflow.data.base import PartitionBase
+from secretflow.data import Partition
 from secretflow.data.horizontal import HDataFrame
 from secretflow.data.ndarray import FedNdarray
 from secretflow.data.vertical import VDataFrame
@@ -174,7 +174,7 @@ class SLModel:
                 xs = (
                     [
                         xi.partitions[device].data  # xi is FedDataframe
-                        if isinstance(xi.partitions[device], PartitionBase)
+                        if isinstance(xi.partitions[device], Partition)
                         else xi.partitions[device]  # xi is FedNdarray
                         for xi in x
                     ]
@@ -208,7 +208,7 @@ class SLModel:
                     if device in self.base_model_dict
                     else [None]
                 )
-                xs = [t.data if isinstance(t, PartitionBase) else t for t in xs]
+                xs = [t.data if isinstance(t, Partition) else t for t in xs]
                 worker.build_dataset_from_numeric(
                     *xs,
                     y=y_partitions,

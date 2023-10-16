@@ -1,5 +1,6 @@
 import getpass
 import json
+import logging
 import os
 import tempfile
 from dataclasses import dataclass
@@ -7,14 +8,15 @@ from dataclasses import dataclass
 import multiprocess
 import pytest
 import spu
+from secretflow.spec.v1.data_pb2 import StorageConfig
 from xdist.scheduler import LoadScheduling
 
 import secretflow as sf
 import secretflow.distributed as sfd
-from secretflow.protos.component.cluster_pb2 import (
+from secretflow.distributed.primitive import DISTRIBUTION_MODE
+from secretflow.spec.extend.cluster_pb2 import (
     SFClusterConfig,
     SFClusterDesc,
-    StorageConfig,
 )
 from secretflow.utils.testing import unused_tcp_port
 from tests.cluster import cluster, set_self_party
@@ -155,9 +157,35 @@ class DeviceInventory:
 
 
 @pytest.fixture(scope="module", params=[semi2k_cluster])
+def sf_memory_setup_devices(request):
+    devices = DeviceInventory()
+    sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.DEBUG)
+    sf.shutdown()
+    sf.init(
+        ["alice", "bob", "carol", "davy", "spu"],
+        debug_mode=True,
+    )
+
+    devices.alice = sf.PYU("alice")
+    devices.bob = sf.PYU("bob")
+    devices.carol = sf.PYU("carol")
+    devices.davy = sf.PYU("davy")
+
+    logging.warning(f"WARNING:The spu device is actually the pyu device in debug mode")
+    devices.spu = sf.PYU("spu")
+    cluster_def = sf.reveal(devices.alice(request.param)())
+
+    devices.heu = sf.HEU(heu_config, cluster_def["runtime_config"]["field"])
+
+    yield devices
+    del devices
+    sf.shutdown()
+
+
+@pytest.fixture(scope="module", params=[semi2k_cluster])
 def sf_simulation_setup_devices(request):
     devices = DeviceInventory()
-    sfd.set_production(False)
+    sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.SIMULATION)
     sf.shutdown()
     sf.init(
         ["alice", "bob", "carol", "davy"],
@@ -197,7 +225,7 @@ def sf_party_for_4pc(request):
 @pytest.fixture(scope="module")
 def sf_production_setup_devices(request, sf_party_for_4pc):
     devices = DeviceInventory()
-    sfd.set_production(True)
+    sfd.set_distribution_mode(DISTRIBUTION_MODE.PRODUCTION)
     set_self_party(sf_party_for_4pc)
     sf.init(
         address="local",
@@ -245,7 +273,7 @@ def sf_production_setup_devices(request, sf_party_for_4pc):
 @pytest.fixture(scope="module")
 def sf_production_setup_devices_aby3(request, sf_party_for_4pc):
     devices = DeviceInventory()
-    sfd.set_production(True)
+    sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.PRODUCTION)
     set_self_party(sf_party_for_4pc)
     sf.init(
         address="local",
@@ -338,7 +366,7 @@ def comp_prod_sf_cluster_config(request, sf_party_for_4pc):
     )
 
     storage_path = prepare_storage_path(sf_party_for_4pc)
-    config = SFClusterConfig(
+    sf_config = SFClusterConfig(
         desc=desc,
         public_config=SFClusterConfig.PublicConfig(
             ray_fed_config=SFClusterConfig.RayFedConfig(
@@ -364,11 +392,12 @@ def comp_prod_sf_cluster_config(request, sf_party_for_4pc):
         private_config=SFClusterConfig.PrivateConfig(
             self_party=sf_party_for_4pc,
             ray_head_addr="local",
-            storage_config=StorageConfig(
-                type="local_fs",
-                local_fs=StorageConfig.LocalFSConfig(wd=storage_path),
-            ),
         ),
     )
 
-    yield config
+    storage_config = StorageConfig(
+        type="local_fs",
+        local_fs=StorageConfig.LocalFSConfig(wd=storage_path),
+    )
+
+    yield storage_config, sf_config

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-08-16 15:21+0800\n"
+"POT-Creation-Date: 2023-10-14 16:59+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,22 +17,19 @@ msgstr ""
 "Generated-By: Babel 2.12.1\n"
 
 #: ../../component/comp_spec.md:1
-msgid "Component Specification"
-msgstr "组件规范"
+msgid "Extended Specification"
+msgstr "扩展标准"
 
 #: ../../component/comp_spec.md:3
 msgid "Table of Contents"
 msgstr "目录"
 
-#: ../../component/comp_spec.md:6 ../../component/comp_spec.md:98
+#: ../../component/comp_spec.md:6 ../../component/comp_spec.md:38
 msgid "cluster.proto"
 msgstr ""
 
-#: ../../component/comp_spec.md:10 ../../component/comp_spec.md:29
-#: ../../component/comp_spec.md:47 ../../component/comp_spec.md:69
-#: ../../component/comp_spec.md:81 ../../component/comp_spec.md:105
-#: ../../component/comp_spec.md:265 ../../component/comp_spec.md:419
-#: ../../component/comp_spec.md:609 ../../component/comp_spec.md:654
+#: ../../component/comp_spec.md:10 ../../component/comp_spec.md:28
+#: ../../component/comp_spec.md:45 ../../component/comp_spec.md:196
 msgid "Messages"
 msgstr ""
 
@@ -65,158 +62,32 @@ msgid "[SFClusterDesc.DeviceDesc](#sfclusterdescdevicedesc)"
 msgstr ""
 
 #: ../../component/comp_spec.md:18
-msgid "[StorageConfig](#storageconfig)"
+msgid "[SFClusterDesc.RayFedConfig](#sfclusterdescrayfedconfig)"
 msgstr ""
 
-#: ../../component/comp_spec.md:19
-msgid "[StorageConfig.LocalFSConfig](#storageconfiglocalfsconfig)"
-msgstr ""
-
-#: ../../component/comp_spec.md:25 ../../component/comp_spec.md:258
+#: ../../component/comp_spec.md:24 ../../component/comp_spec.md:189
 msgid "data.proto"
 msgstr ""
 
-#: ../../component/comp_spec.md:30
+#: ../../component/comp_spec.md:29
 msgid "[DeviceObjectCollection](#deviceobjectcollection)"
 msgstr ""
 
-#: ../../component/comp_spec.md:31
+#: ../../component/comp_spec.md:30
 msgid "[DeviceObjectCollection.DeviceObject](#deviceobjectcollectiondeviceobject)"
 msgstr ""
 
-#: ../../component/comp_spec.md:32
-msgid "[DistData](#distdata)"
-msgstr ""
-
-#: ../../component/comp_spec.md:33
-msgid "[DistData.DataRef](#distdatadataref)"
-msgstr ""
-
-#: ../../component/comp_spec.md:34
-msgid "[IndividualTable](#individualtable)"
-msgstr ""
-
-#: ../../component/comp_spec.md:35
-msgid "[SystemInfo](#systeminfo)"
-msgstr ""
-
-#: ../../component/comp_spec.md:36
-msgid "[TableSchema](#tableschema)"
-msgstr ""
-
-#: ../../component/comp_spec.md:37
-msgid "[VerticalTable](#verticaltable)"
-msgstr ""
-
-#: ../../component/comp_spec.md:43 ../../component/comp_spec.md:412
-msgid "comp.proto"
+#: ../../component/comp_spec.md:40
+msgid ""
+"Proto file: "
+"[secretflow/protos/secretflow/spec/extend/cluster.proto](https://github.com/secretflow/secretflow/tree/main/secretflow/protos/secretflow/spec/extend/cluster.proto)"
 msgstr ""
 
 #: ../../component/comp_spec.md:48
-msgid "[Attribute](#attribute)"
-msgstr ""
-
-#: ../../component/comp_spec.md:49
-msgid "[AttributeDef](#attributedef)"
-msgstr ""
-
-#: ../../component/comp_spec.md:50
-msgid "[AttributeDef.AtomicAttrDesc](#attributedefatomicattrdesc)"
-msgstr ""
-
-#: ../../component/comp_spec.md:51
-msgid "[AttributeDef.UnionAttrGroupDesc](#attributedefunionattrgroupdesc)"
-msgstr ""
-
-#: ../../component/comp_spec.md:52
-msgid "[CompListDef](#complistdef)"
-msgstr ""
-
-#: ../../component/comp_spec.md:53
-msgid "[ComponentDef](#componentdef)"
-msgstr ""
-
-#: ../../component/comp_spec.md:54
-msgid "[IoDef](#iodef)"
-msgstr ""
-
-#: ../../component/comp_spec.md:55
-msgid "[IoDef.TableAttrDef](#iodeftableattrdef)"
-msgstr ""
-
-#: ../../component/comp_spec.md:59 ../../component/comp_spec.md:254
-#: ../../component/comp_spec.md:408 ../../component/comp_spec.md:577
-#: ../../component/comp_spec.md:643 ../../component/comp_spec.md:779
-msgid "Enums"
-msgstr ""
-
-#: ../../component/comp_spec.md:60
-msgid "[AttrType](#attrtype)"
-msgstr ""
-
-#: ../../component/comp_spec.md:65 ../../component/comp_spec.md:602
-msgid "evaluation.proto"
-msgstr ""
-
-#: ../../component/comp_spec.md:70
-msgid "[NodeEvalParam](#nodeevalparam)"
-msgstr ""
-
-#: ../../component/comp_spec.md:71
-msgid "[NodeEvalResult](#nodeevalresult)"
-msgstr ""
-
-#: ../../component/comp_spec.md:77 ../../component/comp_spec.md:647
-msgid "report.proto"
-msgstr ""
-
-#: ../../component/comp_spec.md:82
-msgid "[Descriptions](#descriptions)"
-msgstr ""
-
-#: ../../component/comp_spec.md:83
-msgid "[Descriptions.Item](#descriptionsitem)"
-msgstr ""
-
-#: ../../component/comp_spec.md:84
-msgid "[Div](#div)"
-msgstr ""
-
-#: ../../component/comp_spec.md:85
-msgid "[Div.Child](#divchild)"
-msgstr ""
-
-#: ../../component/comp_spec.md:86
-msgid "[Report](#report)"
-msgstr ""
-
-#: ../../component/comp_spec.md:87
-msgid "[Tab](#tab)"
-msgstr ""
-
-#: ../../component/comp_spec.md:88
-msgid "[Table](#table)"
-msgstr ""
-
-#: ../../component/comp_spec.md:89
-msgid "[Table.HeaderItem](#tableheaderitem)"
-msgstr ""
-
-#: ../../component/comp_spec.md:90
-msgid "[Table.Row](#tablerow)"
-msgstr ""
-
-#: ../../component/comp_spec.md:100
-msgid ""
-"Proto file: "
-"[secretflow/protos/component/cluster.proto](https://github.com/secretflow/secretflow/tree/main/secretflow/protos/component/cluster.proto)"
-msgstr ""
-
-#: ../../component/comp_spec.md:108
 msgid "SFClusterConfig"
 msgstr ""
 
-#: ../../component/comp_spec.md:109
+#: ../../component/comp_spec.md:49
 msgid ""
 "Runtime Config for a SecretFlow cluster. Besides intrinsic SFClusterDesc,"
 " dynamic network configs are provided."
@@ -270,11 +141,11 @@ msgstr ""
 msgid "Dynamic runtime private configs."
 msgstr "动态运行时私有配置。"
 
-#: ../../component/comp_spec.md:122
+#: ../../component/comp_spec.md:62
 msgid "SFClusterConfig.PrivateConfig"
 msgstr ""
 
-#: ../../component/comp_spec.md:123
+#: ../../component/comp_spec.md:63
 msgid "Different for each party. Private and unique to each party."
 msgstr "对于每个参与方都不同。对于每个参与方是私有且唯一的。"
 
@@ -294,25 +165,17 @@ msgstr ""
 msgid "ray_head_addr"
 msgstr ""
 
-#: ../../component/comp_spec.md
-msgid "storage_config"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "[ StorageConfig](#storageconfig)"
-msgstr ""
-
-#: ../../component/comp_spec.md:136
+#: ../../component/comp_spec.md:75
 msgid "SFClusterConfig.PublicConfig"
 msgstr ""
 
-#: ../../component/comp_spec.md:137
+#: ../../component/comp_spec.md:76
 msgid "Public and shared to all parties."
 msgstr "对所有参与方公开且共享的。"
 
 #: ../../component/comp_spec.md
-msgid "rayfed_config"
-msgstr ""
+msgid "ray_fed_config"
+msgstr "ray_fed 配置。"
 
 #: ../../component/comp_spec.md
 msgid "[ SFClusterConfig.RayFedConfig](#sfclusterconfigrayfedconfig)"
@@ -326,11 +189,11 @@ msgstr ""
 msgid "[repeated SFClusterConfig.SPUConfig](#sfclusterconfigspuconfig)"
 msgstr ""
 
-#: ../../component/comp_spec.md:148
+#: ../../component/comp_spec.md:87
 msgid "SFClusterConfig.RayFedConfig"
 msgstr ""
 
-#: ../../component/comp_spec.md:149
+#: ../../component/comp_spec.md:88
 msgid "Addresses for the RayFed cluster of each party."
 msgstr "每个参与方的 RayFed 集群地址。"
 
@@ -350,11 +213,11 @@ msgstr ""
 msgid "listen_addresses"
 msgstr ""
 
-#: ../../component/comp_spec.md:161
+#: ../../component/comp_spec.md:100
 msgid "SFClusterConfig.SPUConfig"
 msgstr ""
 
-#: ../../component/comp_spec.md:162
+#: ../../component/comp_spec.md:101
 msgid "Contains addresses for one SPU device."
 msgstr "包含一个 SPU 设备的地址。"
 
@@ -366,23 +229,23 @@ msgstr ""
 msgid "Should match SPU name in SFClusterDesc.devices."
 msgstr "应与 SFClusterDesc.devices 中的 SPU 名称匹配"
 
-#: ../../component/comp_spec.md:175
+#: ../../component/comp_spec.md:114
 msgid "SFClusterDesc"
 msgstr ""
 
-#: ../../component/comp_spec.md:176
+#: ../../component/comp_spec.md:115
 msgid "Intrinsic properties of a SecretFlow cluster, including:"
 msgstr "SecretFlow 集群的内在属性，包括"
 
-#: ../../component/comp_spec.md:178
+#: ../../component/comp_spec.md:117
 msgid "Version info."
 msgstr "版本信息。"
 
-#: ../../component/comp_spec.md:179
+#: ../../component/comp_spec.md:118
 msgid "Parties: who participate in the computation."
 msgstr "参与计算的各方。"
 
-#: ../../component/comp_spec.md:180
+#: ../../component/comp_spec.md:119
 msgid "Secret devices including  and their configs."
 msgstr "包括秘密设备及其配置"
 
@@ -418,27 +281,40 @@ msgstr ""
 msgid "Description of secret devices"
 msgstr "秘密设备的描述"
 
-#: ../../component/comp_spec.md:193
+#: ../../component/comp_spec.md
+msgid "[ SFClusterDesc.RayFedConfig](#sfclusterdescrayfedconfig)"
+msgstr ""
+
+#: ../../component/comp_spec.md:133
 msgid "SFClusterDesc.DeviceDesc"
 msgstr ""
 
-#: ../../component/comp_spec.md:194
+#: ../../component/comp_spec.md:134
 msgid "Description for a secret device."
 msgstr "一个秘密设备的描述。"
 
-#: ../../component/comp_spec.md:195
+#: ../../component/comp_spec.md:135
 msgid "PYUs do not need to claim since they are plaintext devices."
 msgstr "PYU 不需要声明，因为它们是明文设备。"
 
-#: ../../component/comp_spec.md:196
+#: ../../component/comp_spec.md:136
 msgid ""
 "Notes for config: At this moment, you have to provide a JSON string for "
 "different devices. We are going to formalize this part in future."
 msgstr "配置说明：目前，您必须为不同的设备提供一个 JSON 字符串。我们将在未来规范化此部分。"
 
-#: ../../component/comp_spec.md:199
+#: ../../component/comp_spec.md:139
 msgid "Example SPU config:"
 msgstr "示例 SPU 配置："
+
+#: ../../component/comp_spec.md:157
+msgid ""
+"Referrences: SPU: https://www.secretflow.org.cn/docs/spu/latest/en-"
+"US/reference/runtime_config#runtimeconfig HEU: "
+"https://www.secretflow.org.cn/docs/secretflow/latest/en-"
+"US/source/secretflow.device.device.device#secretflow.device.device.heu.HEU.__init__"
+msgstr ""
+"参考: [SPU](https://www.secretflow.org.cn/docs/spu/latest/en-US/reference/runtime_config#runtimeconfig) | [HEU](https://www.secretflow.org.cn/docs/secretflow/latest/en-US/source/secretflow.device.device.device#secretflow.device.device.heu.HEU.__init__) 。"
 
 #: ../../component/comp_spec.md
 msgid "Name of the device."
@@ -464,59 +340,35 @@ msgstr ""
 msgid "Specific config for the secret device."
 msgstr "秘密设备的特别配置。"
 
-#: ../../component/comp_spec.md:229
-msgid "StorageConfig"
+#: ../../component/comp_spec.md:174
+msgid "SFClusterDesc.RayFedConfig"
 msgstr ""
 
-#: ../../component/comp_spec.md:230
-msgid "A StorageConfig specifies the root for all data for one party."
-msgstr "StorageConfig 指定了一个参与方的所有数据的根目录。"
+#: ../../component/comp_spec.md
+msgid "cross_silo_comm_backend"
+msgstr ""
 
-#: ../../component/comp_spec.md:231
+#: ../../component/comp_spec.md
 msgid ""
-"At this moment, only local_fs is supported. We would support OSS, "
-"database in future."
-msgstr "目前只支持 local_fs。我们将来会支持 OSS、数据库等。"
-
-#: ../../component/comp_spec.md
-msgid "Supported: local_fs."
-msgstr "可选: local_fs."
-
-#: ../../component/comp_spec.md
-msgid "local_fs"
+"Indicates communication backend of RayFed. Accepted: 'grpc', 'brpc_link' "
+"Dafault is 'grpc'"
 msgstr ""
 
-#: ../../component/comp_spec.md
-msgid "[ StorageConfig.LocalFSConfig](#storageconfiglocalfsconfig)"
+#: ../../component/comp_spec.md:185 ../../component/comp_spec.md:223
+msgid "Enums"
 msgstr ""
 
-#: ../../component/comp_spec.md
-msgid "local_fs config."
-msgstr "local_fs 配置。"
-
-#: ../../component/comp_spec.md:243
-msgid "StorageConfig.LocalFSConfig"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "wd"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "Working directory."
-msgstr "工作目录。"
-
-#: ../../component/comp_spec.md:260
+#: ../../component/comp_spec.md:191
 msgid ""
 "Proto file: "
-"[secretflow/protos/component/data.proto](https://github.com/secretflow/secretflow/tree/main/secretflow/protos/component/data.proto)"
+"[secretflow/protos/secretflow/spec/extend/data.proto](https://github.com/secretflow/secretflow/tree/main/secretflow/protos/secretflow/spec/extend/data.proto)"
 msgstr ""
 
-#: ../../component/comp_spec.md:268
+#: ../../component/comp_spec.md:199
 msgid "DeviceObjectCollection"
 msgstr ""
 
-#: ../../component/comp_spec.md:269
+#: ../../component/comp_spec.md:200
 msgid "Descibes public storage info for a collection of Device Objects."
 msgstr "描述设备对象集合的公共存储信息。"
 
@@ -538,7 +390,7 @@ msgstr ""
 msgid "Any public information."
 msgstr "任何公共信息。"
 
-#: ../../component/comp_spec.md:280
+#: ../../component/comp_spec.md:211
 msgid "DeviceObjectCollection.DeviceObject"
 msgstr ""
 
@@ -557,1149 +409,3 @@ msgstr ""
 #: ../../component/comp_spec.md
 msgid "Index of data_ref in the parent DistData message."
 msgstr "data_ref 在父级 DistData 消息中的索引。"
-
-#: ../../component/comp_spec.md:292
-msgid "DistData"
-msgstr ""
-
-#: ../../component/comp_spec.md:293
-msgid "A public record for a general distributed data."
-msgstr "分布式数据的公共记录。"
-
-#: ../../component/comp_spec.md:295
-msgid "The type of this distributed data, should be meaningful to components."
-msgstr "该分布式数据的类型，应对组件具有意义。"
-
-#: ../../component/comp_spec.md:297
-msgid ""
-"The concrete data format (include public and private parts) is defined by"
-" other protos."
-msgstr "具体的数据格式（包括公共部分和私有部分）由其他协议定义。"
-
-#: ../../component/comp_spec.md:300
-msgid "Suggested names, i.e."
-msgstr "建议的名称，例如"
-
-#: ../../component/comp_spec.md:301
-msgid "sf.table.vertical_table      represent a secretflow vertical table"
-msgstr "sf.table.vertical_table 代表 SecretFlow 垂直表"
-
-#: ../../component/comp_spec.md:302
-msgid "sf.model.*                   represent a secretflow models."
-msgstr "sf.model.* 代表 SecretFlow 模型。"
-
-#: ../../component/comp_spec.md:303
-msgid "sf.rule.*                    represent a secretflow rules."
-msgstr "sf.rule.* 代表 SecretFlow 规则。"
-
-#: ../../component/comp_spec.md
-msgid "The name of this distributed data."
-msgstr "该分布式数据的名称。"
-
-#: ../../component/comp_spec.md
-msgid "sys_info"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "[ SystemInfo](#systeminfo)"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid ""
-"Describe the system information that used to generate this distributed "
-"data."
-msgstr "描述用于生成此分布式数据的系统信息。"
-
-#: ../../component/comp_spec.md
-msgid "meta"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "[ google.protobuf.Any](#googleprotobufany)"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "Public information, known to all parties. i.e. VerticalTable"
-msgstr "公共信息，所有参与方都知道。例如：VerticalTable"
-
-#: ../../component/comp_spec.md
-msgid "data_refs"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "[repeated DistData.DataRef](#distdatadataref)"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "Remote data references."
-msgstr "远程数据引用。"
-
-#: ../../component/comp_spec.md:317
-msgid "DistData.DataRef"
-msgstr ""
-
-#: ../../component/comp_spec.md:318
-msgid "A reference to a data that is stored in the remote path."
-msgstr "引用存储在远程路径中的数据。"
-
-#: ../../component/comp_spec.md
-msgid "uri"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "The path information relative to StorageConfig of the party."
-msgstr "相对于参与方的 StorageConfig 的路径信息。"
-
-#: ../../component/comp_spec.md
-msgid "party"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "The owner party."
-msgstr "拥有方"
-
-#: ../../component/comp_spec.md
-msgid "format"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "The storage format, i.e. csv."
-msgstr "存储类型，例如csv"
-
-#: ../../component/comp_spec.md:330
-msgid "IndividualTable"
-msgstr ""
-
-#: ../../component/comp_spec.md:331
-msgid "IndividualTable describes a table owned by a single party."
-msgstr "IndividualTable 描述属于单个参与方的表。"
-
-#: ../../component/comp_spec.md
-msgid "schema"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "[ TableSchema](#tableschema)"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "num_lines"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "[ int64](#int64)"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "If -1, the number is unknown."
-msgstr "如果是 -1，则表示数字未知。"
-
-#: ../../component/comp_spec.md:342
-msgid "SystemInfo"
-msgstr ""
-
-#: ../../component/comp_spec.md:343
-msgid "Describe the application related to data."
-msgstr "描述与数据相关的应用程序。"
-
-#: ../../component/comp_spec.md:344
-msgid "SCQL, GRM related meta information should be here."
-msgstr "SCQL，GRM 相关的元信息应该在这里。"
-
-#: ../../component/comp_spec.md:345
-msgid "You can add more field here, when another application is added."
-msgstr "当添加另一个应用程序时，您可以在此添加更多字段。"
-
-#: ../../component/comp_spec.md
-msgid "app_name"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "The application name. Supported: `secretflow`"
-msgstr "应用程序名称。支持：secretflow"
-
-#: ../../component/comp_spec.md
-msgid "secretflow"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "For secretflow."
-msgstr "专属于secretflow。"
-
-#: ../../component/comp_spec.md:356
-msgid "TableSchema"
-msgstr ""
-
-#: ../../component/comp_spec.md:357
-msgid "The schema of a table."
-msgstr "表的模式。"
-
-#: ../../component/comp_spec.md:358
-msgid ""
-"A col must be one of `id | feature | label`. By default, it should be a "
-"feature."
-msgstr "Col 必须是 id | feature | label 其中之一。默认情况下，应该是一个 feature。"
-
-#: ../../component/comp_spec.md:360
-msgid "All names must match the regexp `[A-Za-z0-9.][A-Za-z0-9_>./]*`."
-msgstr "所有名称必须匹配正则表达式 [A-Za-z0-9.][A-Za-z0-9_>./]*。"
-
-#: ../../component/comp_spec.md:361
-msgid "All data type must be one of"
-msgstr "所有数据类型必须属于"
-
-#: ../../component/comp_spec.md:362
-msgid "int8"
-msgstr ""
-
-#: ../../component/comp_spec.md:363
-msgid "int16"
-msgstr ""
-
-#: ../../component/comp_spec.md:364
-msgid "int32"
-msgstr ""
-
-#: ../../component/comp_spec.md:365
-msgid "int64"
-msgstr ""
-
-#: ../../component/comp_spec.md:366
-msgid "uint8"
-msgstr ""
-
-#: ../../component/comp_spec.md:367
-msgid "uint16"
-msgstr ""
-
-#: ../../component/comp_spec.md:368
-msgid "uint32"
-msgstr ""
-
-#: ../../component/comp_spec.md:369
-msgid "uint64"
-msgstr ""
-
-#: ../../component/comp_spec.md:370
-msgid "float16"
-msgstr ""
-
-#: ../../component/comp_spec.md:371
-msgid "float32"
-msgstr ""
-
-#: ../../component/comp_spec.md:372
-msgid "float64"
-msgstr ""
-
-#: ../../component/comp_spec.md:373
-msgid "bool"
-msgstr ""
-
-#: ../../component/comp_spec.md:374
-msgid "int"
-msgstr ""
-
-#: ../../component/comp_spec.md:375
-msgid "float"
-msgstr ""
-
-#: ../../component/comp_spec.md:376
-msgid "str"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "ids"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "Id column name(s). Optional, can be empty."
-msgstr "ID 列名。可选，可以为空。"
-
-#: ../../component/comp_spec.md
-msgid "features"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "Feature column name(s)."
-msgstr "特征列名。"
-
-#: ../../component/comp_spec.md
-msgid "labels"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "Label column name(s). Optional, can be empty."
-msgstr "标签列名。可选，可以为空。"
-
-#: ../../component/comp_spec.md
-msgid "id_types"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "Id column data type(s). Len(id) should match len(id_types)."
-msgstr "ID 列的数据类型。len(id) 应该和 len(id_types) 匹配。"
-
-#: ../../component/comp_spec.md
-msgid "feature_types"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid ""
-"Feature column data type(s). Len(features) should match "
-"len(feature_types)."
-msgstr "特征列的数据类型。len(features) 应该和 len(feature_types) 匹配。"
-
-#: ../../component/comp_spec.md
-msgid "label_types"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "Label column data type(s). Len(labels) should match len(label_types)."
-msgstr "标签列的数据类型。len(labels) 应该和 len(label_types) 匹配。"
-
-#: ../../component/comp_spec.md:391
-msgid "VerticalTable"
-msgstr ""
-
-#: ../../component/comp_spec.md:392
-msgid "VerticalTable describes a vertical virtual table from multiple parties."
-msgstr "VerticalTable 描述来自多个参与方的垂直虚拟表。"
-
-#: ../../component/comp_spec.md:393
-msgid "TODO: move this to secretflow/protos/builtin/"
-msgstr "TODO：将此移动到 secretflow/protos/builtin/。"
-
-#: ../../component/comp_spec.md:395
-msgid ""
-"Guide: if some type is only required to be handle inside a specific "
-"system, for instance woe.rule file in engine, we don't need to define a "
-"new type here."
-msgstr "指南：如果某个类型仅需要在特定系统内处理，例如引擎中的 woe.rule 文件，我们不需要在这里定义新类型。"
-
-#: ../../component/comp_spec.md
-msgid "schemas"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "[repeated TableSchema](#tableschema)"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid ""
-"The vertical partitioned slices' schema. Must match data_refs in the "
-"parent DistData message."
-msgstr "垂直分区片的模式。必须与父 DistData 消息中的 data_refs 匹配。"
-
-#: ../../component/comp_spec.md:414
-msgid ""
-"Proto file: "
-"[secretflow/protos/component/comp.proto](https://github.com/secretflow/secretflow/tree/main/secretflow/protos/component/comp.proto)"
-msgstr ""
-
-#: ../../component/comp_spec.md:422
-msgid "Attribute"
-msgstr ""
-
-#: ../../component/comp_spec.md:423
-msgid "The value of an attribute"
-msgstr "属性的值"
-
-#: ../../component/comp_spec.md
-msgid "f"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "[ float](#float)"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "FLOAT"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "i64"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "INT NOTE(junfeng): \"is\" is preserved by Python. Replaced with \"i64\"."
-msgstr "INT NOTE（junfeng）：\"is\" 受 Python 保留。替换为 \"i64\"。"
-
-#: ../../component/comp_spec.md
-msgid "s"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "STRING"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "b"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "[ bool](#bool)"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "BOOL"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "fs"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "[repeated float](#float)"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "FLOATS"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "i64s"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "[repeated int64](#int64)"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "INTS"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "ss"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "STRINGS"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "bs"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "[repeated bool](#bool)"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "BOOLS"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "is_na"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "Indicates the value is missing explicitly."
-msgstr "指示该值明确缺失。"
-
-#: ../../component/comp_spec.md:441
-msgid "AttributeDef"
-msgstr ""
-
-#: ../../component/comp_spec.md:442
-msgid "Describe an attribute."
-msgstr "描述一个属性。"
-
-#: ../../component/comp_spec.md
-msgid "prefixes"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid ""
-"Indicates the ancestors of a node, e.g. `[name_a, name_b, name_c]` means "
-"the path prefixes of current Attribute is `name_a/name_b/name_c/`. Only "
-"`^[a-zA-Z0-9_.-]*$` is allowed. `input` and `output` are reserved."
-msgstr ""
-"表示节点的祖先，例如 `[name_a, name_b, name_c]` 意味着当前属性的路径前缀为 "
-"`name_a/name_b/name_c/` 。仅允许使用 `^[a-zA-Z0-9_.-]*$` ，其中 `input` 和 `output`"
-" 保留。"
-
-#: ../../component/comp_spec.md
-msgid ""
-"Must be unique in the same level just like Linux file systems. Only "
-"`^[a-zA-Z0-9_.-]*$` is allowed. `input` and `output` are reserved."
-msgstr ""
-"在同一级别中必须是唯一的，就像 Linux 文件系统一样。仅允许使用 `^[a-zA-Z0-9_.-]*$` ，其中 `input` 和 "
-"`output` 保留。"
-
-#: ../../component/comp_spec.md
-msgid "[ AttrType](#attrtype)"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "atomic"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "[ AttributeDef.AtomicAttrDesc](#attributedefatomicattrdesc)"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "union"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "[ AttributeDef.UnionAttrGroupDesc](#attributedefunionattrgroupdesc)"
-msgstr ""
-
-#: ../../component/comp_spec.md:457
-msgid "AttributeDef.AtomicAttrDesc"
-msgstr ""
-
-#: ../../component/comp_spec.md:458
-msgid ""
-"Extras for an atomic attribute. Including: `AT_FLOAT | AT_INT | AT_STRING"
-" | AT_BOOL | AT_FLOATS | AT_INTS | AT_STRINGS | AT_BOOLS`."
-msgstr ""
-"原子属性的额外信息，包括： `AT_FLOAT | AT_INT | AT_STRING | AT_BOOL | AT_FLOATS | "
-"AT_INTS | AT_STRINGS | AT_BOOLS` 。"
-
-#: ../../component/comp_spec.md
-msgid "list_min_length_inclusive"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "Only valid when type is `AT_FLOATS | AT_INTS | AT_STRINGS | AT_BOOLS`."
-msgstr "仅当类型为 `AT_FLOATS | AT_INTS | AT_STRINGS | AT_BOOLS` 时有效。"
-
-#: ../../component/comp_spec.md
-msgid "list_max_length_inclusive"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "is_optional"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid ""
-"If True, when Atmoic Attr is not provided or is_na, default_value would "
-"be used. Else, Atmoic Attr must be provided."
-msgstr "如果为True，当Atmoic Attr没有提供或者is_na为True是，default_value将会被使用。否则，Atmoic Attr必须提供。"
-
-#: ../../component/comp_spec.md
-msgid "default_value"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "[ Attribute](#attribute)"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid ""
-"A reasonable default for this attribute if the user does not supply a "
-"value."
-msgstr "如果用户没有提供值，则为此属性提供一个合理的默认值。"
-
-#: ../../component/comp_spec.md
-msgid "allowed_values"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid ""
-"Only valid when type is `AT_FLOAT | AT_INT | AT_STRING | AT_FLOATS | "
-"AT_INTS | AT_STRINGS`. Please use list fields of AtomicParameter, i.e. "
-"`ss`, `i64s`, `fs`. If the attribute is a list, allowed_values is applied"
-" to each element."
-msgstr ""
-"仅当类型为 `AT_FLOAT | AT_INT | AT_STRING | AT_FLOATS | AT_INTS | AT_STRINGS` "
-"时有效。请使用 AtomicParameter 的列表字段，即 `ss、i64s、fs` 。如果属性是列表，则 allowed_values "
-"应用于每个元素。"
-
-#: ../../component/comp_spec.md
-msgid "has_lower_bound"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid ""
-"Only valid when type is `AT_FLOAT | AT_INT | AT_FLOATS | AT_INTS `. If "
-"the attribute is a list, lower_bound is applied to each element."
-msgstr ""
-"仅当类型为 `AT_FLOAT | AT_INT | AT_FLOATS | AT_INTS` 时有效。如果属性是列表，则 lower_bound"
-" 应用于每个元素。"
-
-#: ../../component/comp_spec.md
-msgid "lower_bound"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "lower_bound_inclusive"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "has_upper_bound"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid ""
-"Only valid when type is `AT_FLOAT | AT_INT | AT_FLOATS | AT_INTS `. If "
-"the attribute is a list, upper_bound is applied to each element."
-msgstr ""
-"仅当类型为 `AT_FLOAT | AT_INT | AT_FLOATS | AT_INTS` 时有效。如果属性是列表，则 upper_bound"
-" 应用于每个元素。"
-
-#: ../../component/comp_spec.md
-msgid "upper_bound"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "upper_bound_inclusive"
-msgstr ""
-
-#: ../../component/comp_spec.md:480
-msgid "AttributeDef.UnionAttrGroupDesc"
-msgstr ""
-
-#: ../../component/comp_spec.md:481
-msgid "Extras for a union attribute group."
-msgstr "union attribute group的额外信息。"
-
-#: ../../component/comp_spec.md
-msgid "default_selection"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "The default selected child."
-msgstr "默认选中的子节点。"
-
-#: ../../component/comp_spec.md:491
-msgid "CompListDef"
-msgstr ""
-
-#: ../../component/comp_spec.md:492
-msgid "A list of components"
-msgstr "一个组件列表。"
-
-#: ../../component/comp_spec.md
-msgid "version"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "comps"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "[repeated ComponentDef](#componentdef)"
-msgstr ""
-
-#: ../../component/comp_spec.md:505
-msgid "ComponentDef"
-msgstr ""
-
-#: ../../component/comp_spec.md:506
-msgid "The definition of a comp."
-msgstr "组件的定义。"
-
-#: ../../component/comp_spec.md
-msgid "domain"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "Namespace of the comp."
-msgstr "组件的命名空间。"
-
-#: ../../component/comp_spec.md
-msgid "Should be unique among all comps of the same domain."
-msgstr "应该在同一域中的所有组件中是唯一的。"
-
-#: ../../component/comp_spec.md
-msgid "Version of the comp."
-msgstr "组件版本"
-
-#: ../../component/comp_spec.md
-msgid "attrs"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "[repeated AttributeDef](#attributedef)"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "inputs"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "[repeated IoDef](#iodef)"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "outputs"
-msgstr ""
-
-#: ../../component/comp_spec.md:522
-msgid "IoDef"
-msgstr ""
-
-#: ../../component/comp_spec.md:523
-msgid "Define an input/output for component."
-msgstr "定义组件的输入/输出。"
-
-#: ../../component/comp_spec.md
-msgid "should be unique among all IOs of the component."
-msgstr "应该在组件的所有 IO 中是唯一的。"
-
-#: ../../component/comp_spec.md
-msgid "types"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "Must be one of DistData.type in data.proto"
-msgstr "必须是 data.proto 中的 DistData.type 之一。"
-
-#: ../../component/comp_spec.md
-msgid "[repeated IoDef.TableAttrDef](#iodeftableattrdef)"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid ""
-"Only valid for tables. The attribute path for a TableAttrDef is "
-"`{input|output}/{IoDef name}/{TableAttrDef name}`."
-msgstr ""
-"仅对表格有效。TableAttrDef 的属性路径为 `{input|output}/{IoDef name}/{TableAttrDef "
-"name}` 。"
-
-#: ../../component/comp_spec.md:536
-msgid "IoDef.TableAttrDef"
-msgstr ""
-
-#: ../../component/comp_spec.md:537
-msgid "An extra attribute for a table."
-msgstr "表格的额外属性。"
-
-#: ../../component/comp_spec.md:539
-msgid "If provided in a IoDef, e.g."
-msgstr "如果在 IoDef 中提供，例如："
-
-#: ../../component/comp_spec.md:557
-msgid ""
-"means after a user provide a table as IO, they should also specify cols "
-"as \"feature\":"
-msgstr "意味着用户提供表格作为 IO 数据后，他们还应该指定 cols 作为 \"feature\" ："
-
-#: ../../component/comp_spec.md:559
-msgid "col_min_cnt_inclusive is 1: At least 1 col to be selected."
-msgstr "col_min_cnt_inclusive 为 1：至少选择 1 列。"
-
-#: ../../component/comp_spec.md:560
-msgid ""
-"col_max_cnt_inclusive is 3: At most 3 cols to be selected. And "
-"afterwards, user have to fill an int attribute called bucket_size for "
-"each selected cols."
-msgstr "col_max_cnt_inclusive 为 3：最多选择 3 列。然后，用户必须为每个所选列填写名为 bucket_size 的整数属性。"
-
-#: ../../component/comp_spec.md
-msgid "Must be unique among all attributes for the table."
-msgstr "表格中所有属性必须是唯一的。"
-
-#: ../../component/comp_spec.md
-msgid ""
-"Accepted col data types. Please check DistData.VerticalTable in "
-"data.proto."
-msgstr "接受的列数据类型。请参阅 data.proto 中的 DistData.VerticalTable。"
-
-#: ../../component/comp_spec.md
-msgid "col_min_cnt_inclusive"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "inclusive"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "col_max_cnt_inclusive"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "extra attribute for specified col."
-msgstr "指定列的额外属性。"
-
-#: ../../component/comp_spec.md:580
-msgid "AttrType"
-msgstr ""
-
-#: ../../component/comp_spec.md:581
-msgid "Supported attribute types."
-msgstr "支持的属性类型。"
-
-#: ../../component/comp_spec.md
-msgid "Name"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "Number"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "AT_UNDEFINED"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "0"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "AT_FLOAT"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "1"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "AT_INT"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "2"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "INT"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "AT_STRING"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "3"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "AT_BOOL"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "4"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "AT_FLOATS"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "5"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "AT_INTS"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "6"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "AT_STRINGS"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "7"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "AT_BOOLS"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "8"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "AT_STRUCT_GROUP"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "9"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "AT_UNION_GROUP"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "10"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "AT_SF_TABLE_COL"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "11"
-msgstr ""
-
-#: ../../component/comp_spec.md:604
-msgid ""
-"Proto file: "
-"[secretflow/protos/component/evaluation.proto](https://github.com/secretflow/secretflow/tree/main/secretflow/protos/component/evaluation.proto)"
-msgstr ""
-
-#: ../../component/comp_spec.md:612
-msgid "NodeEvalParam"
-msgstr ""
-
-#: ../../component/comp_spec.md:613
-msgid "Evaluate a node."
-msgstr "执行节点"
-
-#: ../../component/comp_spec.md:614
-msgid "comp.evaluate(NodeEvalParam, SFClusterConfig) -> NodeEvalResult"
-msgstr ""
-
-#: ../../component/comp_spec.md:616
-msgid "NodeEvalParam contains all the information to evaluate a component."
-msgstr "NodeEvalParam 包含评估组件所需的所有信息。"
-
-#: ../../component/comp_spec.md
-msgid "Domain of the component."
-msgstr "组件的域。"
-
-#: ../../component/comp_spec.md
-msgid "Name of the component."
-msgstr "组件的名称。"
-
-#: ../../component/comp_spec.md
-msgid "Version of the component."
-msgstr "组件的版本。"
-
-#: ../../component/comp_spec.md
-msgid "attr_paths"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid ""
-"The path of attributes. The attribute path for a TableAttrDef is "
-"`{input|output}/{IoDef name}/{TableAttrDef name}`."
-msgstr ""
-"属性的路径。TableAttrDef 的属性路径为 `{input|output}/{IoDef name}/{TableAttrDef "
-"name}` 。"
-
-#: ../../component/comp_spec.md
-msgid "[repeated Attribute](#attribute)"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "The value of the attribute. Must match attr_paths."
-msgstr "属性的值。必须与 attr_paths 匹配。"
-
-#: ../../component/comp_spec.md
-msgid "[repeated DistData](#distdata)"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid ""
-"The input data, the order of inputs must match inputs in ComponentDef. "
-"NOTE: Names of DistData doesn't need to match those of inputs in "
-"ComponentDef definition."
-msgstr ""
-"输入数据，输入顺序必须与 ComponentDef 中定义的输入相匹配。注意：DistData 的名称不需要与 ComponentDef "
-"定义中的输入名称匹配。"
-
-#: ../../component/comp_spec.md
-msgid "output_uris"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid ""
-"The output data uris, the order of output_uris must match outputs in "
-"ComponentDef."
-msgstr "输出数据 URI，输出 URI 的顺序必须与 ComponentDef 中定义的输出顺序相匹配。"
-
-#: ../../component/comp_spec.md:632
-msgid "NodeEvalResult"
-msgstr ""
-
-#: ../../component/comp_spec.md:633
-msgid "NodeEvalResult contains outputs of a component evaluation."
-msgstr "NodeEvalResult 包含组件执行的输出。"
-
-#: ../../component/comp_spec.md
-msgid "Output data."
-msgstr "输出数据。"
-
-#: ../../component/comp_spec.md:649
-msgid ""
-"Proto file: "
-"[secretflow/protos/component/report.proto](https://github.com/secretflow/secretflow/tree/main/secretflow/protos/component/report.proto)"
-msgstr ""
-
-#: ../../component/comp_spec.md:657
-msgid "Descriptions"
-msgstr ""
-
-#: ../../component/comp_spec.md:658
-msgid "Displays multiple read-only fields in groups."
-msgstr "以组的形式显示多个只读字段。"
-
-#: ../../component/comp_spec.md
-msgid "Name of the Descriptions."
-msgstr "Descriptions名称"
-
-#: ../../component/comp_spec.md
-msgid "items"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "[repeated Descriptions.Item](#descriptionsitem)"
-msgstr ""
-
-#: ../../component/comp_spec.md:670
-msgid "Descriptions.Item"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "Name of the field."
-msgstr "字段的名称。"
-
-#: ../../component/comp_spec.md
-msgid "Must be one of bool/int/float/str"
-msgstr "必须属于 bool/int/float/str 之一"
-
-#: ../../component/comp_spec.md
-msgid "value"
-msgstr ""
-
-#: ../../component/comp_spec.md:684
-msgid "Div"
-msgstr ""
-
-#: ../../component/comp_spec.md:685
-msgid "A division or a section of a page."
-msgstr "页面的一个部分或一个章节。"
-
-#: ../../component/comp_spec.md
-msgid "Name of the Div."
-msgstr "Div名称"
-
-#: ../../component/comp_spec.md
-msgid "children"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "[repeated Div.Child](#divchild)"
-msgstr ""
-
-#: ../../component/comp_spec.md:697
-msgid "Div.Child"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "Supported: descriptions, table, div."
-msgstr "支持：descriptions, table, div 。"
-
-#: ../../component/comp_spec.md
-msgid "descriptions"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "[ Descriptions](#descriptions)"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "table"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "[ Table](#table)"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "div"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "[ Div](#div)"
-msgstr ""
-
-#: ../../component/comp_spec.md:711
-msgid "Report"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "Name of the Report."
-msgstr "Report 名称"
-
-#: ../../component/comp_spec.md
-msgid "tabs"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "[repeated Tab](#tab)"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "err_code"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "[ int32](#int32)"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "err_detail"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "Structed error detail (JSON encoded message)."
-msgstr "结构化的错误详情（JSON 编码的消息）。"
-
-#: ../../component/comp_spec.md:726
-msgid "Tab"
-msgstr ""
-
-#: ../../component/comp_spec.md:727
-msgid "A page of a report."
-msgstr "report的一页"
-
-#: ../../component/comp_spec.md
-msgid "Name of the Tab."
-msgstr "Tab名称"
-
-#: ../../component/comp_spec.md
-msgid "divs"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "[repeated Div](#div)"
-msgstr ""
-
-#: ../../component/comp_spec.md:739
-msgid "Table"
-msgstr ""
-
-#: ../../component/comp_spec.md:740
-msgid "Displays rows of data."
-msgstr "以行的形式展示数据。"
-
-#: ../../component/comp_spec.md
-msgid "Name of the Table."
-msgstr "Table名称"
-
-#: ../../component/comp_spec.md
-msgid "headers"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "[repeated Table.HeaderItem](#tableheaderitem)"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "rows"
-msgstr ""
-
-#: ../../component/comp_spec.md
-msgid "[repeated Table.Row](#tablerow)"
-msgstr ""
-
-#: ../../component/comp_spec.md:753
-msgid "Table.HeaderItem"
-msgstr ""
-
-#: ../../component/comp_spec.md:766
-msgid "Table.Row"
-msgstr ""

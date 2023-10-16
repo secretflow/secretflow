@@ -15,6 +15,8 @@
 import os
 from typing import List
 
+from secretflow.spec.v1.data_pb2 import DistData, IndividualTable, VerticalTable
+
 from secretflow.component.component import (
     CompEvalError,
     Component,
@@ -29,11 +31,6 @@ from secretflow.component.data_utils import (
 )
 from secretflow.device.device.pyu import PYU
 from secretflow.device.device.spu import SPU
-from secretflow.protos.component.data_pb2 import (
-    DistData,
-    IndividualTable,
-    VerticalTable,
-)
 
 psi_comp = Component(
     "psi",
@@ -48,6 +45,13 @@ psi_comp.str_attr(
     is_optional=True,
     default_value="ECDH_PSI_2PC",
     allowed_values=["ECDH_PSI_2PC", "KKRT_PSI_2PC", "BC22_PSI_2PC"],
+)
+psi_comp.bool_attr(
+    name="sort",
+    desc="Sort the output.",
+    is_list=False,
+    is_optional=True,
+    default_value=False,
 )
 psi_comp.int_attr(
     name="bucket_size",
@@ -135,7 +139,7 @@ def modify_schema(x: DistData, keys: List[str]) -> DistData:
 
     new_meta.schema.labels.extend(list(imeta.schema.labels))
     new_meta.schema.label_types.extend(list(imeta.schema.label_types))
-    new_meta.num_lines = imeta.num_lines
+    new_meta.line_count = imeta.line_count
 
     new_x.meta.Pack(new_meta)
 
@@ -147,6 +151,7 @@ def two_party_balanced_psi_eval_fn(
     *,
     ctx,
     protocol,
+    sort,
     bucket_size,
     ecdh_curve_type,
     receiver_input,
@@ -207,7 +212,7 @@ def two_party_balanced_psi_eval_fn(
                 sender_pyu: os.path.join(local_fs_wd, psi_output),
             },
             receiver=receiver_party,
-            sort=False,
+            sort=sort,
             protocol=protocol,
             bucket_size=bucket_size,
             curve_type=ecdh_curve_type,
@@ -216,7 +221,7 @@ def two_party_balanced_psi_eval_fn(
     output_db = DistData(
         name=psi_output,
         type=str(DistDataType.VERTICAL_TABLE),
-        sys_info=receiver_input.sys_info,
+        system_info=receiver_input.system_info,
         data_refs=[
             DistData.DataRef(
                 uri=psi_output,
@@ -240,7 +245,7 @@ def two_party_balanced_psi_eval_fn(
     )
     vmeta = VerticalTable()
     assert output_db.meta.Unpack(vmeta)
-    vmeta.num_lines = intersection_count
+    vmeta.line_count = intersection_count
     output_db.meta.Pack(vmeta)
 
     return {"psi_output": output_db}

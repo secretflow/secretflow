@@ -5,7 +5,7 @@ from sklearn.metrics import roc_auc_score
 
 from secretflow import reveal
 from secretflow.data import FedNdarray, PartitionWay
-from secretflow.data.base import partition
+from secretflow.data import partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.stats import BiClassificationEval
 

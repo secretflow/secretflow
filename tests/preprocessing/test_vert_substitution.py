@@ -4,11 +4,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from secretflow.data.base import partition
+from secretflow.data import partition
 from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.device.driver import reveal
+from secretflow.preprocessing.binning.vert_bin_substitution import VertBinSubstitution
+from secretflow.preprocessing.binning.vert_binning import VertBinning
 from secretflow.preprocessing.binning.vert_woe_binning import VertWoeBinning
-from secretflow.preprocessing.binning.vert_woe_substitution import VertWOESubstitution
 from secretflow.utils.simulation.datasets import dataset
 
 
@@ -101,7 +102,7 @@ def prod_env_and_data(sf_production_setup_devices):
 def test_binning_nan(prod_env_and_data):
     env, data = prod_env_and_data
     ss_binning = VertWoeBinning(env.spu)
-    woe_rules = ss_binning.binning(
+    bin_rules = ss_binning.binning(
         data['v_nan_data'],
         binning_method="chimerge",
         bin_names={env.alice: ["f1", "f3", "f2"], env.bob: ["f1", "f3", "f2"]},
@@ -109,44 +110,97 @@ def test_binning_nan(prod_env_and_data):
         chimerge_target_bins=4,
     )
 
-    woe_sub = VertWOESubstitution()
-    sub_data = woe_sub.substitution(data['v_nan_data'], woe_rules)
+    woe_sub = VertBinSubstitution()
+    sub_data = woe_sub.substitution(data['v_nan_data'], bin_rules)
     alice_data = reveal(sub_data.partitions[env.alice].data).drop("y", axis=1)
     bob_data = reveal(sub_data.partitions[env.bob].data)
-    rules = {v['name']: v for v in reveal(woe_rules[env.alice])["variables"]}
+    rules = {v['name']: v for v in reveal(bin_rules[env.alice])["variables"]}
 
     assert alice_data.equals(bob_data), str(alice_data) + "\n,,,,,,\n" + str(bob_data)
     f1_categories = list(set(alice_data['f1']))
-    assert np.isin(rules['f1']['woes'], f1_categories).all(), (
-        str(rules['f1']['woes']) + "\n,,,,,,\n" + str(f1_categories)
+    assert np.isin(rules['f1']['filling_values'], f1_categories).all(), (
+        str(rules['f1']['filling_values']) + "\n,,,,,,\n" + str(f1_categories)
     )
-    assert rules['f1']['else_woe'] in f1_categories
+    assert rules['f1']['else_filling_value'] in f1_categories
     f2_categories = list(set(alice_data['f2']))
-    assert np.isin(f2_categories, rules['f2']['woes']).all()
+    assert np.isin(f2_categories, rules['f2']['filling_values']).all()
     f3_categories = list(set(alice_data['f3']))
-    assert np.isin(rules['f3']['woes'], f3_categories).all()
-    assert rules['f3']['else_woe'] in f3_categories
+    assert np.isin(rules['f3']['filling_values'], f3_categories).all()
+    assert rules['f3']['else_filling_value'] in f3_categories
+
+
+def test_binning_nan_vert_binning(prod_env_and_data):
+    env, data = prod_env_and_data
+    vert_binning = VertBinning()
+
+    rules = vert_binning.binning(
+        data['v_nan_data'],
+        binning_method="eq_range",
+        bin_names={env.alice: ["f1", "f3", "f2"], env.bob: ["f1", "f3", "f2"]},
+    )
+
+    bin_sub = VertBinSubstitution()
+    sub_data = bin_sub.substitution(data['v_nan_data'], rules)
+    alice_data = reveal(sub_data.partitions[env.alice].data).drop("y", axis=1)
+    bob_data = reveal(sub_data.partitions[env.bob].data)
+    rules = {v['name']: v for v in reveal(rules[env.alice])["variables"]}
+
+    assert alice_data.equals(bob_data), str(alice_data) + "\n,,,,,,\n" + str(bob_data)
+    f1_categories = list(set(alice_data['f1']))
+    assert np.isin(rules['f1']['filling_values'], f1_categories).all(), (
+        str(rules['f1']['filling_values']) + "\n,,,,,,\n" + str(f1_categories)
+    )
+    assert rules['f1']['else_filling_value'] == -1
+    f2_categories = list(set(alice_data['f2']))
+    assert np.isin(f2_categories, rules['f2']['filling_values']).all()
+    f3_categories = list(set(alice_data['f3']))
+    assert np.isin(rules['f3']['filling_values'], f3_categories).all()
+    assert rules['f3']['else_filling_value'] == -1
+
+
+def test_binning_normal_vert_binning(prod_env_and_data):
+    env, data = prod_env_and_data
+    vert_binning = VertBinning()
+
+    rules = vert_binning.binning(
+        data['v_float_data'],
+        binning_method="eq_range",
+        bin_names={env.alice: ["x1", "x2", "x3"], env.bob: ["x1", "x2", "x3"]},
+    )
+    sub = VertBinSubstitution()
+    sub_data = sub.substitution(data['v_float_data'], rules)
+    alice_data = reveal(sub_data.partitions[env.alice].data).drop("y", axis=1)
+    bob_data = reveal(sub_data.partitions[env.bob].data)
+    rules = {v['name']: v for v in reveal(rules[env.alice])["variables"]}
+
+    assert alice_data.equals(bob_data), str(alice_data) + "\n,,,,,,\n" + str(bob_data)
+    f1_categories = list(set(alice_data['x1']))
+    assert np.isin(rules['x1']['filling_values'], f1_categories).all()
+    f2_categories = list(set(alice_data['x2']))
+    assert np.isin(f2_categories, rules['x2']['filling_values']).all()
+    f3_categories = list(set(alice_data['x3']))
+    assert np.isin(rules['x3']['filling_values'], f3_categories).all()
 
 
 def test_binning_normal(prod_env_and_data):
     env, data = prod_env_and_data
     ss_binning = VertWoeBinning(env.spu)
-    woe_rules = ss_binning.binning(
+    bin_rules = ss_binning.binning(
         data['v_float_data'],
         bin_names={env.alice: ["x1", "x2", "x3"], env.bob: ["x1", "x2", "x3"]},
         label_name="y",
     )
 
-    woe_sub = VertWOESubstitution()
-    sub_data = woe_sub.substitution(data['v_float_data'], woe_rules)
+    woe_sub = VertBinSubstitution()
+    sub_data = woe_sub.substitution(data['v_float_data'], bin_rules)
     alice_data = reveal(sub_data.partitions[env.alice].data).drop("y", axis=1)
     bob_data = reveal(sub_data.partitions[env.bob].data)
-    rules = {v['name']: v for v in reveal(woe_rules[env.alice])["variables"]}
+    rules = {v['name']: v for v in reveal(bin_rules[env.alice])["variables"]}
 
     assert alice_data.equals(bob_data), str(alice_data) + "\n,,,,,,\n" + str(bob_data)
     f1_categories = list(set(alice_data['x1']))
-    assert np.isin(rules['x1']['woes'], f1_categories).all()
+    assert np.isin(rules['x1']['filling_values'], f1_categories).all()
     f2_categories = list(set(alice_data['x2']))
-    assert np.isin(f2_categories, rules['x2']['woes']).all()
+    assert np.isin(f2_categories, rules['x2']['filling_values']).all()
     f3_categories = list(set(alice_data['x3']))
-    assert np.isin(rules['x3']['woes'], f3_categories).all()
+    assert np.isin(rules['x3']['filling_values'], f3_categories).all()

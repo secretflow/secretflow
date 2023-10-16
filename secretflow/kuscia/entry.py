@@ -27,17 +27,20 @@ from secretflow.component.entry import comp_eval
 from secretflow.kuscia.datamesh import (
     create_domain_data,
     create_domain_data_service_stub,
+    create_domain_data_source_service_stub,
     get_domain_data,
+    get_domain_data_source,
 )
 from secretflow.kuscia.ray_config import RayConfig
 from secretflow.kuscia.sf_config import get_sf_cluster_config
 from secretflow.kuscia.task_config import KusciaTaskConfig
-from secretflow.protos.component.data_pb2 import (
+from secretflow.spec.v1.data_pb2 import (
     DistData,
     IndividualTable,
+    StorageConfig,
     VerticalTable,
 )
-from secretflow.protos.component.evaluation_pb2 import NodeEvalParam, NodeEvalResult
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam, NodeEvalResult
 
 _LOG_FORMAT = "%(asctime)s|{}|%(levelname)s|secretflow|%(filename)s:%(funcName)s:%(lineno)d| %(message)s"
 
@@ -209,6 +212,41 @@ def try_to_get_datasource_id(task_conf: KusciaTaskConfig):
         datasource_id = sf_datasource_config[party_name]["id"]
 
 
+def get_storage_config(
+    kuscia_config: KusciaTaskConfig,
+    datamesh_addr: str,
+    datasource_id: str = None,
+) -> StorageConfig:
+    party_id = kuscia_config.task_cluster_def.self_party_idx
+    party_name = kuscia_config.task_cluster_def.parties[party_id].name
+    kuscia_record = kuscia_config.sf_storage_config
+
+    if (
+        kuscia_record is not None
+        and party_name not in kuscia_record
+        and datasource_id is None
+    ):
+        raise RuntimeError(
+            f"storage config of party [{party_name}] is missing. It must be provided with sf_storage_config explicitly or be inferred from sf_input_ids with DataMesh services."
+        )
+
+    if kuscia_record is not None and party_name in kuscia_record:
+        storage_config = kuscia_record[party_name]
+    else:
+        # try to get storage config with sf_datasource_config
+        stub = create_domain_data_source_service_stub(datamesh_addr)
+        domain_data_source = get_domain_data_source(stub, datasource_id)
+
+        storage_config = StorageConfig(
+            type="local_fs",
+            local_fs=StorageConfig.LocalFSConfig(
+                wd=domain_data_source.info.localfs.path
+            ),
+        )
+
+    return storage_config
+
+
 @click.command()
 @click.argument("task_config_path", type=click.Path(exists=True))
 @click.option("--datamesh_addr", required=False, default=DEFAULT_DATAMESH_ADDRESS)
@@ -234,9 +272,11 @@ def main(task_config_path, datamesh_addr):
         task_conf.sf_output_uris,
     )
 
-    sf_cluster_config = get_sf_cluster_config(task_conf, datamesh_addr, datasource_id)
+    sf_cluster_config = get_sf_cluster_config(task_conf)
 
-    res = comp_eval(sf_node_eval_param, sf_cluster_config)
+    storage_config = get_storage_config(task_conf, datamesh_addr, datasource_id)
+
+    res = comp_eval(sf_node_eval_param, storage_config, sf_cluster_config)
 
     postprocess_sf_node_eval_result(
         res,
