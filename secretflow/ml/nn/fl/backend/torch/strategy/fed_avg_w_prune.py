@@ -107,6 +107,7 @@ class FedAvgWPrune(BaseTorchModel):
                 prune_percent：
             :return: update weight, num_sample, update mask, update rate
         """
+        wp_strategy = kwargs.get('wp_strategy', True)
         prune_end_rate = kwargs.get("prune_end_rate")  # prune end rate
         prune_percent = kwargs.get("prune_percent", True)  # prune dp increase rate
         weights, num_sample = self.train_step(
@@ -164,11 +165,6 @@ class FedAvgWPrune(BaseTorchModel):
             global first2
             if len(iter_data) == 2:
                 x, y = iter_data
-                # save image
-                if first1 is True:
-                    torch.save(x, "./dgl/sf_output/x.pt")
-                    torch.save(y, "./dgl/sf_output/y.pt")
-                    first1 = False
                 s_w = None
             elif len(iter_data) == 3:
                 x, y, s_w = iter_data
@@ -194,17 +190,13 @@ class FedAvgWPrune(BaseTorchModel):
             self.optimizer.step()
             local_gradients = self.model.get_gradients()
             # save_gradient
-            if local_gradients_sum is None:
-                if first2 is True:
-                    for i in range(len(local_gradients)):
-                        np.save(
-                            "./dgl/sf_output/gradients" + str(i) + ".npy",
-                            local_gradients[i],
-                        )
-                    first2 = False
-                local_gradients_sum = local_gradients
-            else:
-                local_gradients_sum += local_gradients
+            if first2 is True:
+                for i in range(len(local_gradients)):
+                    np.save(
+                        "./dgl/sf_output/gradients" + str(i) + ".npy",
+                        local_gradients[i],
+                    )
+                first2 = False
 
             for m in self.metrics:
                 m.update(y_pred.cpu(), y_t.cpu())
