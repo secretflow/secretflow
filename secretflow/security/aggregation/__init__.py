@@ -15,15 +15,15 @@
 from .aggregator import Aggregator
 from .plain_aggregator import PlainAggregator
 from .secure_aggregator import SecureAggregator
+from .secure_prune_aggregator import SecurePruneAggregator
 from .sparse_plain_aggregator import SparsePlainAggregator
 from .spu_aggregator import SPUAggregator
-from .secure_prune_aggregator import SecurePruneAggregator
 
 __all__ = [
-    'Aggregator',
-    'SecureAggregator',
-    'PlainAggregator',
-    'SPUAggregator',
-    'SparsePlainAggregator',
-    'SecurePruneAggregator',
+    "Aggregator",
+    "SecureAggregator",
+    "PlainAggregator",
+    "SPUAggregator",
+    "SparsePlainAggregator",
+    "SecurePruneAggregator",
 ]
