@@ -24,6 +24,11 @@ class masker:
     def add_noisy(self, data,weight=None, mask_location=-2):
         #生成噪声self.mask，以及带有噪声的梯度data，他们都乘以了weight
         # data是梯度向量，是一个list[numpyarray],mask_location表示噪声添加的位置
+        islist = isinstance(data,list)
+        if not islist:
+            data = [data]
+        if len(data) < 2:
+            mask_location = 0
         data1 = data[mask_location]  # 获取需要保护的位置
         flatten_data = data1.flatten()  # 将张量展开以便于添加噪声
         data_len = len(flatten_data)
@@ -75,13 +80,14 @@ class mask_heu_aggregator(Aggregator):
             for pyu in participants
         }
 
-    def average(self, data: List[DeviceObject], axis=None, weights=None):
-        def remove_mask(masked_data: List, mask=None,weight = None,mask_location=-2):
+    def average(self, data: List[DeviceObject], axis=0, weights=None):
+        def remove_mask(masked_data: List[DeviceObject], mask=None,weight = None,mask_location=-2):
             sum_weight = np.sum(weight, axis=axis) if weight else len(masked_data)
             # 下面是聚合以及去噪操作
             results = [np.sum(element, axis=axis) for element in zip(*masked_data)]
-            mask = np.array(mask)
-            mask = mask.reshape(results[self.mask_location].shape)
+            if len(sf.reveal(results)) < 2:
+                mask_location = 0
+            mask = mask.reshape(results[mask_location].shape)
             results[mask_location] = results[mask_location] - mask
             for i,datum in enumerate(results):
                 results[i] = datum / sum_weight
@@ -112,8 +118,6 @@ class mask_heu_aggregator(Aggregator):
                 )
 
         masked_data = [d.to(self._device) for d in data]  # 将带有噪声的梯度传输至服务器
-        if weights is not None:
-            weights = [w.to(self._device) for w in weights]
         # 对每个参与方的mask进行同态加密
         encrypted_mask = [None] * len(data)
         for i, datum in enumerate(data):
@@ -139,19 +143,12 @@ class mask_heu_aggregator(Aggregator):
         return final_result
 
     def sum(self, data: List[DeviceObject], axis=None, weights=None):
-        def remove_mask(masked_data: List[np.ndarray], mask=None):
-            le = len(data)
-            if len(mask) == 0:
-                results = [np.sum(element) for element in zip(*masked_data)]
-                for i in range(len(results)):
-                    results[i] = results[i] / le
-                if isinstance(masked_data[0], list) == False:
-                    results = np.array(results)
-                return results
+        def remove_mask(masked_data: List[list], mask=None,mask_location = -2):
             results = [np.sum(element, axis=axis) for element in zip(*masked_data)]
-            mask = np.array(mask)
-            mask = mask.reshape(results[self.mask_location].shape)
-            results[self.mask_location] = results[self.mask_location] - mask
+            if len(sf.reveal(results)) < 2:
+                mask_location = 0
+            mask = mask.reshape(results[mask_location].shape)
+            results[mask_location] = results[mask_location] - mask
             return results
 
         # 将每个参与方的梯度添加噪声
