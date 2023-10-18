@@ -1,6 +1,8 @@
 import pytest
-from mask_heu_aggregation import mask_heu_aggregator
 
+from secretflow.security.aggregation.experiment.mask_heu_aggregation import (
+    mask_heu_aggregator,
+)
 from tests.security.aggregation.test_aggregator_base import AggregatorBase
 
 
