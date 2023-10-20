@@ -1,9 +1,0 @@
-Mask_ Heu_ Aggregation.py presents a new federated learning secure aggregation algorithm, in which participants add noise at some positions of the gradient (the fully connected layer closest to the output layer), perform homomorphic encryption on the noise, and then send the noisy gradient and the noise in the ciphertext state to the server. The server aggregates the noisy gradient in plaintext and the noisy ciphertext in homomorphic addition, Then, the aggregated values of the gradient and plaintext are returned to the participants, who decrypt the noisy aggregated values and subtract them from the noisy gradient aggregated values to obtain a noiseless aggregated result. The specific process is as follows.
-
-1. After the participant generates the gradient locally, they add a mask at some positions of the gradient (the fully connected layer closest to the output layer) and use paillier homomorphic encryption on the mask
-
-2. Participants will send gradients with masks and encrypted masks to the server for aggregation
-
-3. The server aggregates gradients using addition, aggregates masks in ciphertext state using homomorphic addition, and finally returns the aggregation results to the participants
-
-4. The participant decrypts the aggregated values of the mask and ultimately obtains a noise free aggregation result
