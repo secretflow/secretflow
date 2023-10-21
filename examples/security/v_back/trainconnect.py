@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
-
+from PIL import Image
 import torchvision
 import torchvision.transforms as transforms
 
@@ -34,6 +34,12 @@ def imshow(img):
     npimg = img.numpy()
     plt.imshow(np.transpose(npimg, (1, 2, 0)))
     plt.show()
+    
+def imsave(img, filename):
+    npimg = img.numpy()
+    npimg = np.transpose(npimg, (1, 2, 0)) * 255  # 将像素值映射到 0-255 范围
+    image = Image.fromarray(npimg.astype('uint8'))
+    image.save(filename)
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
