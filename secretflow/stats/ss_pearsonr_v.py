@@ -16,6 +16,7 @@ from typing import List
 
 import jax.numpy as jnp
 import numpy as np
+import pandas as pd
 
 import secretflow as sf
 from secretflow.data.vertical import VDataFrame
@@ -49,20 +50,22 @@ class PearsonR:
             vdata : VDataFrame
                 vertical slice dataset.
             standardize: bool
-                if need standardize dataset. dataset must be standardized
+                if you need standardize dataset. dataset must be standardized
                 please keep standardize=True, unless dataset is already standardized.
                 standardize purpose:
                 - reduce the result number of matrix xtx, avoid overflow in secret sharing.
                 - after standardize, the variance is 1 and the mean is 0, which can simplify the calculation.
         """
+
         if standardize:
             scaler = StandardScaler()
             vdata = scaler.fit_transform(vdata)
         obj_list = [d.data.to(self.spu_device) for d in vdata.partitions.values()]
-
         rows = vdata.shape[0]
 
         def spu_xtx(objs: List[np.ndarray]):
+            if isinstance(objs, pd.DataFrame):
+                objs = objs.values
             data = jnp.concatenate(objs, axis=1)
             return jnp.matmul(data.transpose(), data)
 

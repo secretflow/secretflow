@@ -18,9 +18,9 @@
 import json
 
 import click
+from secretflow.spec.v1.component_pb2 import CompListDef
 
 from secretflow.component.entry import COMP_LIST, gen_key
-from secretflow.protos.component.comp_pb2 import CompListDef
 
 ROOT = "."
 
@@ -72,7 +72,7 @@ def gettext(comp_list: CompListDef, archives=None):
             for t_attr in io.attrs:
                 text[t_attr.name] = ""
                 text[t_attr.desc] = ""
-                for t_attr_a in t_attr.attrs:
+                for t_attr_a in t_attr.extra_attrs:
                     text[t_attr_a.name] = ""
                     text[t_attr_a.desc] = ""
 

@@ -15,17 +15,14 @@
 # limitations under the License.
 #
 
-echo "1. Update component spec doc."
+echo "1. Update extend spec doc."
 # comp_spec.tmpl is adapted from https://github.com/pseudomuto/protoc-gen-doc/blob/master/examples/templates/grpc-md.tmpl.
 docker run --rm -v $(pwd)/component/:/out \
                 -v $(pwd)/../:/protos \
                 pseudomuto/protoc-gen-doc \
                 --doc_opt=/out/comp_spec.tmpl,comp_spec.md \
-                protos/secretflow/protos/component/cluster.proto \
-                protos/secretflow/protos/component/data.proto \
-                protos/secretflow/protos/component/comp.proto \
-                protos/secretflow/protos/component/evaluation.proto \
-                protos/secretflow/protos/component/report.proto
+                protos/secretflow/protos/secretflow/spec/extend/cluster.proto \
+                protos/secretflow/protos/secretflow/spec/extend/data.proto
 echo "2. Update comp list doc."
 
 env PYTHONPATH=$PYTHONPATH:$PWD/.. python $PWD/component/update_comp_list.py

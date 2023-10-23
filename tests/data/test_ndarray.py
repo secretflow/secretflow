@@ -7,6 +7,7 @@ import pytest
 import sklearn.metrics
 
 from secretflow import reveal
+from secretflow.data import partition
 from secretflow.data.ndarray import (
     histogram,
     load,
@@ -18,7 +19,6 @@ from secretflow.data.ndarray import (
     subtract,
     tss,
 )
-from secretflow.data.base import partition
 from secretflow.data.split import train_test_split
 from secretflow.data.vertical import VDataFrame
 from secretflow.utils.errors import InvalidArgumentError

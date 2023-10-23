@@ -8,8 +8,9 @@ from sklearn.metrics import roc_auc_score
 
 import secretflow as sf
 import secretflow.distributed as sfd
-from secretflow.data.base import partition
+from secretflow.data import partition
 from secretflow.data.vertical import VDataFrame
+from secretflow.distributed.primitive import DISTRIBUTION_MODE
 from secretflow.ml.linear.fl_lr_v import FlLogisticRegressionVertical
 from secretflow.preprocessing import StandardScaler
 from secretflow.security.aggregation.plain_aggregator import PlainAggregator
@@ -29,7 +30,7 @@ class DeviceInventory:
 @pytest.fixture(scope="module")
 def env(request, sf_party_for_4pc):
     devices = DeviceInventory()
-    sfd.set_production(True)
+    sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.PRODUCTION)
     set_self_party(sf_party_for_4pc)
     sf.init(
         address='local',

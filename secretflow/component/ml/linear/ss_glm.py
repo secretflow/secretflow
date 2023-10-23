@@ -14,14 +14,11 @@
 
 import json
 import os
-
 from typing import Tuple
 
-from secretflow.component.component import (
-    CompEvalError,
-    Component,
-    IoType,
-)
+from secretflow.spec.v1.data_pb2 import DistData
+
+from secretflow.component.component import CompEvalError, Component, IoType
 from secretflow.component.data_utils import (
     DistDataType,
     extract_table_header,
@@ -35,8 +32,7 @@ from secretflow.device.device.pyu import PYU
 from secretflow.device.device.spu import SPU, SPUObject
 from secretflow.device.driver import wait
 from secretflow.ml.linear import SSGLM
-from secretflow.ml.linear.ss_glm.core import get_link, Linker
-from secretflow.protos.component.data_pb2 import DistData
+from secretflow.ml.linear.ss_glm.core import Linker, get_link
 
 ss_glm_train_comp = Component(
     "ss_glm_train",
@@ -295,7 +291,7 @@ def ss_glm_train_eval_fn(
         json.dumps(model_meta),
         local_fs_wd,
         output_model,
-        train_dataset.sys_info,
+        train_dataset.system_info,
     )
 
     return {"output_model": model_db}
@@ -488,7 +484,7 @@ def ss_glm_predict_eval_fn(
         label_header=label_header_map,
         party=receiver,
         pred_name=pred_name,
-        num_lines=x.shape[0],
+        line_count=x.shape[0],
         id_keys=id_header,
         label_keys=label_header,
     )

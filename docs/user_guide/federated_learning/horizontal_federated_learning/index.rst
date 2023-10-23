@@ -1,14 +1,13 @@
 Horizontal Federated Learning
 ==============================
 
-What is Horizontal Federated Learning
--------------------------------------
+**What is Horizontal Federated Learning**
 
-The federated learning here refers specifically to the federated learning of horizontal scenarios. 
-This mode applies to the situation where each participant has the same business but different customer groups are reached. 
-In this case, samples from various parties can be combined to train a joint model with better performance. 
-For example, in the medical scene, each hospital has its own unique patient group, 
-and hospitals in different regions almost do not overlap each other, 
+The federated learning here refers specifically to the federated learning of horizontal scenarios.
+This mode applies to the situation where each participant has the same business but different customer groups are reached.
+In this case, samples from various parties can be combined to train a joint model with better performance.
+For example, in the medical scene, each hospital has its own unique patient group,
+and hospitals in different regions almost do not overlap each other,
 but their examination records for medical records (such as images, blood tests, etc.) are of the same type.
 
 .. image:: ../../../tutorial/resources/federate_learning.png

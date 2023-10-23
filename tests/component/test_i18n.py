@@ -1,11 +1,12 @@
-from secretflow.component.entry import gen_key
-from secretflow.component.i18n import ROOT, gettext
-from secretflow.protos.component.comp_pb2 import (
+from secretflow.spec.v1.component_pb2 import (
     AttributeDef,
     CompListDef,
     ComponentDef,
     IoDef,
 )
+
+from secretflow.component.entry import gen_key
+from secretflow.component.i18n import ROOT, gettext
 
 
 def test_gettext():
@@ -28,7 +29,7 @@ def test_gettext():
                             IoDef.TableAttrDef(
                                 name="key",
                                 desc="key desc",
-                                attrs=[
+                                extra_attrs=[
                                     AttributeDef(name="key attr", desc="key attr desc")
                                 ],
                             )

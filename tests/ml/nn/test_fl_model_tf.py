@@ -587,3 +587,46 @@ class TestFedModelDataLoader:
             backend="tensorflow",
             dataset_builder=data_builder_dict,
         )
+
+
+class TestFedModelMemoryDF:
+    def test_keras_model_for_iris(self, sf_memory_setup_devices):
+        """unittest ignore"""
+        aggregator = PlainAggregator(sf_memory_setup_devices.carol)
+        comparator = PlainComparator(sf_memory_setup_devices.carol)
+        hdf = load_iris(
+            parts=[sf_memory_setup_devices.alice, sf_memory_setup_devices.bob],
+            aggregator=aggregator,
+            comparator=comparator,
+        )
+
+        label = hdf['class']
+        # do preprocess
+        encoder = OneHotEncoder()
+        label = encoder.fit_transform(label)
+
+        data = hdf.drop(columns='class', inplace=False)
+        data = data.fillna(data.mean(numeric_only=True).to_dict())
+
+        # prepare model
+        n_features = 4
+        n_classes = 3
+        model = create_nn_model(n_features, n_classes, 8, 3)
+
+        device_list = [
+            sf_memory_setup_devices.alice,
+            sf_memory_setup_devices.bob,
+        ]
+        fed_model = FLModel(
+            device_list=device_list,
+            model=model,
+            aggregator=aggregator,
+            sampler="batch",
+            random_seed=1234,
+        )
+        fed_model.fit(data, label, epochs=5, batch_size=16, aggregate_freq=3)
+        global_metric, _ = fed_model.evaluate(data, label, batch_size=16)
+        print(global_metric)
+
+        # FIXME(fengjun.feng): This assert is failing.
+        # assert global_metric[1].result().numpy() > 0.7

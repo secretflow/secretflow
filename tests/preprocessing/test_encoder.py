@@ -5,9 +5,10 @@ from sklearn.preprocessing import LabelEncoder as SkLabelEncoder
 from sklearn.preprocessing import OneHotEncoder as SkOneHotEncoder
 from sklearn.utils.validation import column_or_1d
 
-from secretflow.data.base import reveal, partition
-from secretflow.data.horizontal.dataframe import HDataFrame
-from secretflow.data.mix.dataframe import MixDataFrame
+from secretflow import reveal
+from secretflow.data import partition
+from secretflow.data.horizontal import HDataFrame
+from secretflow.data.mix import MixDataFrame
 from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.preprocessing.encoder import LabelEncoder, OneHotEncoder
 from secretflow.security.aggregation.plain_aggregator import PlainAggregator

@@ -121,7 +121,7 @@ def train_test_split_eval_fn(
         train_df,
         train,
         VerticalTableWrapper.from_dist_data(input_data, train_df.shape[0]),
-        input_data.sys_info,
+        input_data.system_info,
     )
 
     test_db = dump_vertical_table(
@@ -129,7 +129,7 @@ def train_test_split_eval_fn(
         test_df,
         test,
         VerticalTableWrapper.from_dist_data(input_data, test_df.shape[0]),
-        input_data.sys_info,
+        input_data.system_info,
     )
 
     return {"train": train_db, "test": test_db}

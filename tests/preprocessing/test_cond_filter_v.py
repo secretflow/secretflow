@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from secretflow.data.base import partition
+from secretflow.data import partition
 from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.preprocessing.cond_filter_v import ConditionFilter
 

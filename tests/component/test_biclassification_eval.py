@@ -4,21 +4,21 @@ import os
 import numpy as np
 import pandas as pd
 from google.protobuf.json_format import MessageToJson
+from secretflow.spec.v1.component_pb2 import Attribute
+from secretflow.spec.v1.data_pb2 import (
+    DistData,
+    IndividualTable,
+    TableSchema,
+    VerticalTable,
+)
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
+from secretflow.spec.v1.report_pb2 import Report
 from sklearn.metrics import roc_auc_score
 
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.ml.eval.biclassification_eval import (
     biclassification_eval_comp,
 )
-from secretflow.protos.component.comp_pb2 import Attribute
-from secretflow.protos.component.data_pb2 import (
-    DistData,
-    IndividualTable,
-    TableSchema,
-    VerticalTable,
-)
-from secretflow.protos.component.evaluation_pb2 import NodeEvalParam
-from secretflow.protos.component.report_pb2 import Report
 
 
 def test_biclassification_eval(comp_prod_sf_cluster_config):
@@ -124,8 +124,9 @@ def test_biclassification_eval(comp_prod_sf_cluster_config):
     alice_true_path = "biclassification_eval/alice_true.csv"
     alice_pred_path = "biclassification_eval/alice_pred.csv"
 
-    self_party = comp_prod_sf_cluster_config.private_config.self_party
-    local_fs_wd = comp_prod_sf_cluster_config.private_config.storage_config.local_fs.wd
+    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    self_party = sf_cluster_config.private_config.self_party
+    local_fs_wd = storage_config.local_fs.wd
 
     if self_party == "alice":
         os.makedirs(os.path.join(local_fs_wd, "biclassification_eval"), exist_ok=True)
@@ -176,7 +177,9 @@ def test_biclassification_eval(comp_prod_sf_cluster_config):
     param.inputs[1].meta.Pack(meta)
 
     res = biclassification_eval_comp.eval(
-        param=param, cluster_config=comp_prod_sf_cluster_config
+        param=param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
     )
     comp_ret = Report()
     res.outputs[0].meta.Unpack(comp_ret)

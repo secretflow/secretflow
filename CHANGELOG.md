@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Removed` for now removed features.
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
+## [1.2.0.dev231016] - 2023-10-16
+### Added
+- Secretflow support debug mode.
+- Add vert binning for equal range bining method
+
+### Changed
+- The data preprocessing module (VDataFrame, Partition) has been refactored, enhancing the data processing performance (primarily targeting the Polars backend).
+
+### Fixed
+- Fix error when flmodel with tf backend use gpu.
+- Fix kuscia adapter
+
 ## [1.2.0.dev231009] - 2023-10-9
 
 ### Added

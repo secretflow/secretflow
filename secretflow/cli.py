@@ -21,10 +21,11 @@ from contextlib import redirect_stderr, redirect_stdout
 
 import click
 from google.protobuf.json_format import MessageToJson
+from secretflow.spec.v1.data_pb2 import StorageConfig
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
 from secretflow.component.entry import COMP_LIST, COMP_MAP, comp_eval
-from secretflow.protos.component.cluster_pb2 import SFClusterConfig
-from secretflow.protos.component.evaluation_pb2 import NodeEvalParam
+from secretflow.spec.extend.cluster_pb2 import SFClusterConfig
 from secretflow.utils.logging import LOG_FORMAT, get_logging_level, set_logging_level
 from secretflow.version import __version__
 
@@ -134,8 +135,9 @@ def inspect(comp_id, all, file):
 @click.option("--log_level", required=False, default="INFO")
 @click.option("--mem_trace", is_flag=True)
 @click.option("--eval_param", required=True, help="base64ed NodeEvalParam binary")
+@click.option("--storage", required=True, help="base64ed Storage binary")
 @click.option("--cluster", required=True, help="base64ed SFClusterConfig binary")
-def run(eval_param, cluster, log_file, result_file, log_level, mem_trace):
+def run(eval_param, storage, cluster, log_file, result_file, log_level, mem_trace):
     def _get_peak_mem() -> float:
         # only works inside docker
         # use docker's default cgroup
@@ -166,6 +168,8 @@ def run(eval_param, cluster, log_file, result_file, log_level, mem_trace):
     try:
         eval = NodeEvalParam()
         eval.ParseFromString(base64.b64decode(eval_param.encode('utf-8')))
+        sto = StorageConfig()
+        sto.ParseFromString(base64.b64decode(storage.encode('utf-8')))
         clu = SFClusterConfig()
         clu.ParseFromString(base64.b64decode(cluster.encode('utf-8')))
     except Exception as e:
@@ -180,9 +184,9 @@ def run(eval_param, cluster, log_file, result_file, log_level, mem_trace):
         if log_file:
             with open(log_file, "w") as f:
                 with redirect_stdout(f), redirect_stderr(f):
-                    result = comp_eval(eval, clu, tracer_report=True)
+                    result = comp_eval(eval, sto, clu, tracer_report=True)
         else:
-            result = comp_eval(eval, clu, tracer_report=True)
+            result = comp_eval(eval, sto, clu, tracer_report=True)
 
         if mem_trace:
             ret["mem_peak"] = _get_peak_mem()

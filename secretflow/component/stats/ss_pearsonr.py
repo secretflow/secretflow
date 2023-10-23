@@ -13,6 +13,9 @@
 # limitations under the License.
 
 import numpy as np
+from secretflow.spec.v1.component_pb2 import Attribute
+from secretflow.spec.v1.data_pb2 import DistData
+from secretflow.spec.v1.report_pb2 import Div, Report, Tab, Table
 
 from secretflow.component.component import (
     CompEvalError,
@@ -22,9 +25,6 @@ from secretflow.component.component import (
 )
 from secretflow.component.data_utils import DistDataType, load_table
 from secretflow.device.device.spu import SPU
-from secretflow.protos.component.comp_pb2 import Attribute
-from secretflow.protos.component.data_pb2 import DistData
-from secretflow.protos.component.report_pb2 import Div, Report, Tab, Table
 from secretflow.stats.ss_pearsonr_v import PearsonR
 
 ss_pearsonr_comp = Component(
@@ -125,7 +125,7 @@ def ss_pearsonr_eval_fn(
     report_dd = DistData(
         name=report,
         type=str(DistDataType.REPORT),
-        sys_info=input_data.sys_info,
+        system_info=input_data.system_info,
     )
     report_dd.meta.Pack(report_mate)
 

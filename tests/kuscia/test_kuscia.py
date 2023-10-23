@@ -1,7 +1,3 @@
-from secretflow.kuscia.ray_config import RayConfig
-from secretflow.kuscia.sf_config import compose_sf_cluster_config
-from secretflow.kuscia.task_config import KusciaTaskConfig
-from secretflow.protos.component.cluster_pb2 import SFClusterDesc, StorageConfig
 from kuscia.proto.api.v1alpha1.kusciatask.kuscia_task_pb2 import (
     AllocatedPorts,
     ClusterDefine,
@@ -9,6 +5,11 @@ from kuscia.proto.api.v1alpha1.kusciatask.kuscia_task_pb2 import (
     Port,
     Service,
 )
+
+from secretflow.kuscia.ray_config import RayConfig
+from secretflow.kuscia.sf_config import get_sf_cluster_config
+from secretflow.kuscia.task_config import KusciaTaskConfig
+from secretflow.spec.extend.cluster_pb2 import SFClusterDesc
 
 
 def test_load_configs():
@@ -32,7 +33,7 @@ def test_load_configs():
     assert ray_config.ray_gcs_port == 8081
 
 
-def test_compose_sf_cluster_config():
+def test_get_sf_cluster_config():
     sf_cluster_desc = SFClusterDesc(
         parties=["alice", "bob", "carol"],
         devices=[
@@ -44,11 +45,16 @@ def test_compose_sf_cluster_config():
         parties=[
             Party(
                 name="alice",
+                services=[
+                    Service(port_name="fed", endpoints=["1.2.3.4"]),
+                    Service(port_name="spu", endpoints=["1.2.3.4"]),
+                    Service(port_name="global", endpoints=["0.0.0.0:1236"]),
+                ],
             ),
             Party(
                 name="bob",
                 services=[
-                    Service(port_name="fed", endpoints=["1.2.3.4"]),
+                    Service(port_name="fed", endpoints=["1.2.3.5"]),
                     Service(port_name="spu", endpoints=["1.2.3.5"]),
                 ],
             ),
@@ -63,28 +69,24 @@ def test_compose_sf_cluster_config():
     )
 
     kuscia_task_allocated_ports = AllocatedPorts(
-        ports=[Port(name="fed", port=1234), Port(name="spu", port=1235)]
+        ports=[
+            Port(name="fed", port=1234),
+            Port(name="spu", port=1235),
+        ]
     )
 
-    ray_config = RayConfig(ray_node_ip_address="0.0.0.0", ray_gcs_port=1236)
-    sf_storage_config = {
-        "alice": StorageConfig(
-            type="local_fs", local_fs=StorageConfig.LocalFSConfig(wd="/tmp/alice")
-        )
-    }
-
-    sf_cluster_config = compose_sf_cluster_config(
-        sf_cluster_desc,
-        "datamesh.local",
-        kuscia_task_cluster_def,
-        kuscia_task_allocated_ports,
-        ray_config,
-        sf_storage_config,
+    kuscia_config = KusciaTaskConfig(
+        task_id="task_id",
+        task_cluster_def=kuscia_task_cluster_def,
+        task_allocated_ports=kuscia_task_allocated_ports,
+        sf_cluster_desc=sf_cluster_desc,
     )
+
+    sf_cluster_config = get_sf_cluster_config(kuscia_config)
 
     assert list(sf_cluster_config.public_config.ray_fed_config.addresses) == [
         "0.0.0.0:1234",
-        "1.2.3.4:80",
+        "1.2.3.5:80",
         "1.2.3.6:2345",
     ]
 
@@ -95,4 +97,3 @@ def test_compose_sf_cluster_config():
 
     assert sf_cluster_config.private_config.self_party == "alice"
     assert sf_cluster_config.private_config.ray_head_addr == "0.0.0.0:1236"
-    assert sf_cluster_config.private_config.storage_config.local_fs.wd == "/tmp/alice"

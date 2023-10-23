@@ -14,6 +14,8 @@
 
 
 import inspect
+import logging
+from enum import Enum, unique
 from functools import partial
 from typing import List, Union
 
@@ -25,19 +27,73 @@ from ray._private import ray_option_utils
 from ray.actor import ActorClass, _inject_tracing_into_class, ray_constants
 from ray.remote_function import RemoteFunction
 
+from secretflow.distributed.memory_api import mem_remote
 from secretflow.utils.ray_compatibility import ray_version_less_than_2_0_0
 
-_production_mode = False
+
+@unique
+class DISTRIBUTION_MODE(Enum):
+    PRODUCTION = 1
+    SIMULATION = 2
+    DEBUG = 3
 
 
-def set_production(mode: bool):
-    global _production_mode
-    _production_mode = mode
+_distribution_mode = DISTRIBUTION_MODE.SIMULATION
+_is_cluster_active = False
+_current_cluster_id = -1
 
 
-def production_mode():
-    global _production_mode
-    return _production_mode
+def set_distribution_mode(mode: DISTRIBUTION_MODE):
+    global _distribution_mode
+    if mode in DISTRIBUTION_MODE:
+        _distribution_mode = mode
+    else:
+        raise Exception(f"Illegal distribute mode, only support ({DISTRIBUTION_MODE})")
+
+
+def get_distribution_mode():
+    global _distribution_mode
+    return _distribution_mode
+
+
+def get_current_cluster_idx():
+    """
+    Get the current secretflow cluster index.
+    In general situation, users will execute sf.init() at the first of their codes,
+    and execute sf.shutdown() at the end.
+    But in some cases, the following code may appear:
+        - sf.init()
+        - do_something_in_sf()
+        - sf.shutdown()
+        - do_something_else()
+        - sf.init()
+        - do_something_in_sf()
+        - sf.shutdown()
+    To ensure some variable can work as expect when it across different clusters,
+    we use an index to indicate diferent active cluster.
+    As shown above, between the first sf.init() and sf.shutdown(), the cluster index is 0,
+    and the between the second sf.init() and sf.shutdown(), the cluster index is 1,
+    In do_something_else(), the cluster index is -1 (no active cluster).
+
+    Returns: The current cluster id, -1 for not active.
+
+    """
+    global _current_cluster_id
+    global _is_cluster_active
+    if _is_cluster_active:
+        return _current_cluster_id
+    else:
+        return -1
+
+
+def active_sf_cluster():
+    """
+    Record the cluster's active status and generate the current cluster index.
+    """
+    global _current_cluster_id
+    global _is_cluster_active
+    _current_cluster_id = _current_cluster_id + 1
+    _is_cluster_active = True
 
 
 def _is_cython(obj):
@@ -57,35 +113,56 @@ def _is_cython(obj):
 
 
 def remote(*args, **kwargs):
-    if production_mode():
+    if get_distribution_mode() == DISTRIBUTION_MODE.PRODUCTION:
         return fed.remote(*args, **kwargs)
-    else:
+    elif get_distribution_mode() == DISTRIBUTION_MODE.SIMULATION:
         return ray_remote(*args, **kwargs)
+    elif get_distribution_mode() == DISTRIBUTION_MODE.DEBUG:
+        return mem_remote(*args, **kwargs)
+    else:
+        raise Exception(f"Illegal distribute mode, only support ({DISTRIBUTION_MODE})")
 
 
 def get(
     object_refs: Union[
         Union[ray.ObjectRef, List[ray.ObjectRef]],
         Union[fed.FedObject, List[fed.FedObject]],
+        Union[object, List[object]],
     ]
 ):
-    if production_mode():
+    if get_distribution_mode() == DISTRIBUTION_MODE.PRODUCTION:
         return fed.get(object_refs)
-    else:
+    elif get_distribution_mode() == DISTRIBUTION_MODE.SIMULATION:
         return ray.get(object_refs)
+    elif get_distribution_mode() == DISTRIBUTION_MODE.DEBUG:
+        return object_refs
+    else:
+        raise Exception(f"Illegal distribute mode, only support ({DISTRIBUTION_MODE})")
 
 
 def kill(actor, *, no_restart=True):
-    if production_mode():
+    if get_distribution_mode() == DISTRIBUTION_MODE.PRODUCTION:
         return fed.kill(actor, no_restart=no_restart)
-    else:
+    elif get_distribution_mode() == DISTRIBUTION_MODE.SIMULATION:
         return ray.kill(actor, no_restart=no_restart)
+    elif get_distribution_mode() == DISTRIBUTION_MODE.DEBUG:
+        logging.warning("Actor be killed")
+    else:
+        raise Exception(f"Illegal distribute mode, only support ({DISTRIBUTION_MODE})")
 
 
 def shutdown():
-    if production_mode():
+    global _is_cluster_active
+    _is_cluster_active = False
+    if get_distribution_mode() == DISTRIBUTION_MODE.PRODUCTION:
         fed.shutdown()
-    ray.shutdown()
+        ray.shutdown()
+    elif get_distribution_mode() == DISTRIBUTION_MODE.SIMULATION:
+        ray.shutdown()
+    elif get_distribution_mode() == DISTRIBUTION_MODE.DEBUG:
+        logging.warning("Shut Down!")
+    else:
+        raise Exception(f"Illegal distribute mode, only support ({DISTRIBUTION_MODE})")
 
 
 def _resolve_args(*args, **kwargs):

@@ -3,9 +3,9 @@ import pandas as pd
 import pytest
 
 from secretflow import reveal
+from secretflow.data import partition
 from secretflow.data.horizontal.dataframe import HDataFrame
 from secretflow.data.mix import MixDataFrame
-from secretflow.data.base import partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.security.aggregation import PlainAggregator
 from secretflow.security.compare import PlainComparator

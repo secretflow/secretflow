@@ -187,11 +187,11 @@ msgstr "WOE编码"
 msgid ""
 "secretflow provides ``VertWoeBinning`` to bin the features into buckets "
 "by quantile or chimerge method, and calculate the woe value and iv value "
-"in each bucket. And ``VertWOESubstitution`` can substitute the features "
+"in each bucket. And ``VertBinSubstitution`` can substitute the features "
 "with the woe value."
 msgstr ""
 "隐语提供了 `VertWoeBinning` "
-"，可以对特征按照数量或者chimerge方法进行分桶，并计算每个分桶的WOE和IV值。**VertWOESubstitution** "
+"，可以对特征按照数量或者chimerge方法进行分桶，并计算每个分桶的WOE和IV值。**VertBinSubstitution** "
 "可以把特征值替换成WOE值。"
 
 #: ../../tutorial/data_preprocessing_with_data_frame.ipynb:921
