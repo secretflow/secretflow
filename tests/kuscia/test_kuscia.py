@@ -1,3 +1,5 @@
+from kuscia.proto.api.v1alpha1.common_pb2 import DataColumn
+from kuscia.proto.api.v1alpha1.datamesh.domaindata_pb2 import DomainData
 from kuscia.proto.api.v1alpha1.kusciatask.kuscia_task_pb2 import (
     AllocatedPorts,
     ClusterDefine,
@@ -6,10 +8,12 @@ from kuscia.proto.api.v1alpha1.kusciatask.kuscia_task_pb2 import (
     Service,
 )
 
+from secretflow.kuscia.entry import convert_domain_data_to_individual_table
 from secretflow.kuscia.ray_config import RayConfig
 from secretflow.kuscia.sf_config import get_sf_cluster_config
 from secretflow.kuscia.task_config import KusciaTaskConfig
 from secretflow.spec.extend.cluster_pb2 import SFClusterDesc
+from secretflow.spec.v1.data_pb2 import DistData, IndividualTable, TableSchema
 
 
 def test_load_configs():
@@ -97,3 +101,42 @@ def test_get_sf_cluster_config():
 
     assert sf_cluster_config.private_config.self_party == "alice"
     assert sf_cluster_config.private_config.ray_head_addr == "0.0.0.0:1236"
+
+
+def test_convert_domain_data_to_individual_table():
+    domain_data = DomainData(
+        name="input",
+        author="alice",
+        relative_uri="x/y/z",
+        type="table",
+        columns=[
+            DataColumn(name="f1", type="int"),
+            DataColumn(name="f2", type="double", comment="feature"),
+            DataColumn(name="id", type="str", comment="id"),
+            DataColumn(name="label", type="int", comment="label"),
+        ],
+    )
+
+    meta = IndividualTable(
+        schema=TableSchema(
+            ids=["id"],
+            features=["f1", "f2"],
+            labels=["label"],
+            id_types=["str"],
+            feature_types=["int", "double"],
+            label_types=["int"],
+        ),
+        line_count=-1,
+    )
+
+    expected_individual_table = DistData(
+        name="input",
+        type="sf.table.individual",
+        data_refs=[DistData.DataRef(uri="x/y/z", party="alice", format="csv")],
+    )
+    expected_individual_table.meta.Pack(meta)
+
+    assert (
+        convert_domain_data_to_individual_table(domain_data)
+        == expected_individual_table
+    )

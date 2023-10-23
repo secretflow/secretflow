@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from secretflow.component.preprocessing.vert_woe_binning import vert_woe_binning_comp
-
 from secretflow.component.ml.boost.sgb.sgb import sgb_predict_comp, sgb_train_comp
 from secretflow.component.ml.boost.ss_xgb.ss_xgb import (
     ss_xgb_predict_comp,
@@ -27,19 +25,21 @@ from secretflow.component.ml.eval.ss_pvalue import ss_pvalue_comp
 from secretflow.component.ml.linear.ss_glm import ss_glm_predict_comp, ss_glm_train_comp
 from secretflow.component.ml.linear.ss_sgd import ss_sgd_predict_comp, ss_sgd_train_comp
 from secretflow.component.preprocessing.feature_filter import feature_filter_comp
-from secretflow.component.preprocessing.vert_binning import (
-    vert_binning_comp,
-    vert_bin_substitution_comp,
-)
 from secretflow.component.preprocessing.psi import psi_comp
 from secretflow.component.preprocessing.train_test_split import train_test_split_comp
+from secretflow.component.preprocessing.vert_binning import (
+    vert_bin_substitution_comp,
+    vert_binning_comp,
+)
+from secretflow.component.preprocessing.vert_woe_binning import vert_woe_binning_comp
 from secretflow.component.stats.ss_pearsonr import ss_pearsonr_comp
 from secretflow.component.stats.ss_vif import ss_vif_comp
 from secretflow.component.stats.table_statistics import table_statistics_comp
+from secretflow.component.stats.groupby_statistics import groupby_statistics_comp
 from secretflow.spec.extend.cluster_pb2 import SFClusterConfig
+from secretflow.spec.v1.component_pb2 import CompListDef, ComponentDef
 from secretflow.spec.v1.data_pb2 import StorageConfig
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam, NodeEvalResult
-from secretflow.spec.v1.component_pb2 import CompListDef, ComponentDef
 
 ALL_COMPONENTS = [
     train_test_split_comp,
@@ -54,6 +54,7 @@ ALL_COMPONENTS = [
     ss_pearsonr_comp,
     ss_pvalue_comp,
     table_statistics_comp,
+    groupby_statistics_comp,
     biclassification_eval_comp,
     prediction_bias_comp,
     sgb_predict_comp,

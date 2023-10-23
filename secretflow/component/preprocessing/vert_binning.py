@@ -13,11 +13,7 @@
 # limitations under the License.
 
 
-from secretflow.component.component import (
-    Component,
-    IoType,
-    TableColParam,
-)
+from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import (
     DistDataType,
     VerticalTableWrapper,
@@ -26,10 +22,10 @@ from secretflow.component.data_utils import (
     model_dumps,
     model_loads,
 )
-
 from secretflow.device.device.pyu import PYUObject
-from secretflow.preprocessing.binning.vert_binning import VertBinning
 from secretflow.preprocessing.binning.vert_bin_substitution import VertBinSubstitution
+from secretflow.preprocessing.binning.vert_binning import VertBinning
+from secretflow.spec.v1.data_pb2 import TableSchema
 
 vert_binning_comp = Component(
     "vert_binning",
@@ -116,7 +112,9 @@ def vert_binning_eval_fn(
             MODEL_MAX_MAJOR_VERSION,
             MODEL_MAX_MINOR_VERSION,
             [o for o in rules.values()],
-            input_data_feature_selects,
+            {
+                "input_data_feature_selects": input_data_feature_selects,
+            },
             ctx.local_fs_wd,
             bin_rule,
             input_data.system_info,
@@ -169,7 +167,7 @@ def vert_bin_substitution_eval_fn(
 
     pyus = {p.party: p for p in input_df.partitions}
 
-    model_objs, feature_selects = model_loads(
+    model_objs, public_info = model_loads(
         bin_rule,
         MODEL_MAX_MAJOR_VERSION,
         MODEL_MAX_MINOR_VERSION,
@@ -191,8 +189,32 @@ def vert_bin_substitution_eval_fn(
     # modify types of feature_selects to float
     for v in vt_wrapper.schema_map.values():
         for i, f in enumerate(list(v.features)):
-            if f in feature_selects:
+            if f in public_info['input_data_feature_selects']:
                 v.feature_types[i] = 'float'
+
+    def move_feature_to_label(schema: TableSchema, label: str) -> TableSchema:
+        new_schema = TableSchema()
+        new_schema.CopyFrom(schema)
+        if label in list(schema.features) and label not in list(schema.labels):
+            new_schema.ClearField('features')
+            new_schema.ClearField('feature_types')
+            for k, v in zip(list(schema.features), list(schema.feature_types)):
+                if k != label:
+                    new_schema.features.append(k)
+                    new_schema.feature_types.append(v)
+                else:
+                    label_type = v
+            new_schema.labels.append(label)
+            new_schema.label_types.append(label_type)
+
+        return new_schema
+
+    # change cols from feature to label according to model public info.
+    if 'input_data_label' in public_info:
+        for k, v in vt_wrapper.schema_map.items():
+            vt_wrapper.schema_map[k] = move_feature_to_label(
+                v, public_info['input_data_label']
+            )
 
     return {
         "output_data": dump_vertical_table(

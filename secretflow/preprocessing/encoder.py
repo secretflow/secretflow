@@ -75,10 +75,12 @@ class LabelEncoder(_PreprocessBase):
         self._columns = df.columns
 
     def _transform(
-        self, df: Union[HDataFrame, VDataFrame]
+        self, df: Union[HDataFrame, VDataFrame], inverse: bool = False
     ) -> Union[HDataFrame, VDataFrame]:
         def _df_transform(
-            _df: Union[pd.DataFrame, "pl.DataFrame"], encoder: SkLabelEncoder
+            _df: Union[pd.DataFrame, "pl.DataFrame"],
+            encoder: SkLabelEncoder,
+            inverse: bool,
         ):
             pl = None
             try:
@@ -86,11 +88,21 @@ class LabelEncoder(_PreprocessBase):
             except ImportError:
                 pass
             if isinstance(_df, pd.DataFrame):
+                if inverse:
+                    return pd.DataFrame(
+                        data=encoder.inverse_transform(column_or_1d(_df))[np.newaxis].T,
+                        columns=_df.columns,
+                    )
                 return pd.DataFrame(
                     data=encoder.transform(column_or_1d(_df))[np.newaxis].T,
                     columns=_df.columns,
                 )
             elif pl is not None and isinstance(_df, pl.DataFrame):
+                if inverse:
+                    return pl.DataFrame(
+                        data=encoder.inverse_transform(column_or_1d(_df))[np.newaxis].T,
+                        schema=_df.columns,
+                    )
                 return pl.DataFrame(
                     data=encoder.transform(column_or_1d(_df))[np.newaxis].T,
                     schema=_df.columns,
@@ -101,11 +113,30 @@ class LabelEncoder(_PreprocessBase):
         transformed_parts = {}
         for device, part in df.partitions.items():
             transformed_parts[device] = part.apply_func(
-                _df_transform, encoder=self._encoder
+                _df_transform, encoder=self._encoder, inverse=inverse
             )
         new_df = df.copy()
         new_df.partitions = transformed_parts
         return new_df
+
+    def inverse_transform(
+        self, df: Union[HDataFrame, VDataFrame, MixDataFrame]
+    ) -> Union[HDataFrame, VDataFrame, MixDataFrame]:
+        """Transform labels to normalized encoding."""
+        assert hasattr(self, '_encoder'), 'Encoder has not been fit yet.'
+        _check_dataframe(df)
+        assert (
+            len(df.columns) == 1
+        ), 'DataFrame to encode should have one and only one column.'
+
+        if isinstance(df, (HDataFrame, VDataFrame)):
+            return self._transform(df, inverse=True)
+        else:
+            return MixDataFrame(
+                partitions=[
+                    self._transform(part, inverse=True) for part in df.partitions
+                ]
+            )
 
     def transform(
         self, df: Union[HDataFrame, VDataFrame, MixDataFrame]

@@ -1,13 +1,4 @@
 import pytest
-from secretflow.spec.v1.component_pb2 import (
-    Attribute,
-    AttributeDef,
-    AttrType,
-    ComponentDef,
-    IoDef,
-)
-from secretflow.spec.v1.data_pb2 import DistData
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
 from secretflow.component.eval_param_reader import (
     EvalParamError,
@@ -17,6 +8,15 @@ from secretflow.component.eval_param_reader import (
     check_table_attr_col_cnt,
     check_upper_bound,
 )
+from secretflow.spec.v1.component_pb2 import (
+    Attribute,
+    AttributeDef,
+    AttrType,
+    ComponentDef,
+    IoDef,
+)
+from secretflow.spec.v1.data_pb2 import DistData
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
 
 def test_check_allowed_values():

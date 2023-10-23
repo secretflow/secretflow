@@ -65,6 +65,7 @@ class PipelineTFModel(SLBaseTFModel):
         ), "Base model cannot be none, please give model define or load a trained model"
 
         data_x = None
+        training = True
         self.init_data()
         if stage == "train":
             train_data = next(self.train_set)
@@ -86,6 +87,7 @@ class PipelineTFModel(SLBaseTFModel):
             else:
                 data_x = train_data
         elif stage == "eval":
+            training = False
             eval_data = next(self.eval_set)
             if self.eval_has_y:
                 if self.eval_has_s_w:
@@ -116,6 +118,7 @@ class PipelineTFModel(SLBaseTFModel):
         with tape:
             h = self._base_forward_internal(
                 data_x,
+                training=training,
             )
         if stage == "train":
             self.h.append(h)

@@ -2,6 +2,12 @@ import logging
 import os
 
 import pandas as pd
+
+from secretflow.component.data_utils import DistDataType
+from secretflow.component.stats.table_statistics import (
+    gen_table_statistic_report,
+    table_statistics_comp,
+)
 from secretflow.spec.v1.data_pb2 import (
     DistData,
     IndividualTable,
@@ -10,12 +16,6 @@ from secretflow.spec.v1.data_pb2 import (
 )
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
-
-from secretflow.component.data_utils import DistDataType
-from secretflow.component.stats.table_statistics import (
-    gen_table_statistic_report,
-    table_statistics_comp,
-)
 from secretflow.stats.table_statistics import table_statistics
 
 
