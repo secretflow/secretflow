@@ -642,3 +642,9 @@ else:
 ![](.\image\result_prune.JPG)
 
 ![](./image\contrast_after_prune(mnist).jpg)
+
+#  References
+
+- A. Li et al., "LotteryFL: Empower Edge Intelligence with Personalized and Communication-Efficient Federated Learning," 2021 IEEE/ACM Symposium on Edge Computing (SEC), San Jose, CA, USA, 2021, pp. 68-79, doi: 10.1145/3453142.3492909.
+- Jiang, Y., Wang, S., Valls, V., Ko, B. J., Lee, W. H., Leung, K. K., & Tassiulas, L. (2022). Model pruning enables efficient federated learning on edge devices. IEEE Transactions on Neural Networks and Learning Systems.
+- Ligeng Zhu, Zhijian Liu, and Song Han. 2019. Deep leakage from gradients. Proceedings of the 33rd International Conference on Neural Information Processing Systems. Curran Associates Inc., Red Hook, NY, USA, Article 1323, 14774–14784.
