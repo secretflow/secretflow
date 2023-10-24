@@ -67,6 +67,7 @@ We hope you enjoy these toturials from SecretFlow developers.
    split_learning_gnn
    mix_lr
    sl_rec_deepfm
+   tensorflow-finetune-inception-v3
 
 .. toctree::
    :maxdepth: 1
