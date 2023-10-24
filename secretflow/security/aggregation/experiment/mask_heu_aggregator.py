@@ -10,7 +10,7 @@ from secretflow.device.device.heu import HEUMoveConfig
 from secretflow.security.aggregation import Aggregator
 
 
-#This class defines the behavior of participants, where mask is added to some positions of the gradient to protect gradient information
+# This class defines the behavior of participants, where mask is added to some positions of the gradient to protect gradient information
 @proxy(PYUObject)
 class Masker:
     def __init__(self, participant, shape=None) -> None:
@@ -27,7 +27,7 @@ class Masker:
             data = [data]
         if len(data) < 2:
             mask_location = 0
-        protect_data = data[mask_location]  #  Obtain the location that needs protection 
+        protect_data = data[mask_location]  #  Obtain the location that needs protection
         flatten_data = protect_data.flatten()  #  Expanding tensors for adding mask
         data_len = len(flatten_data)
         mask = np.random.randint(1, 10, data_len)
@@ -50,7 +50,7 @@ class MaskHeuAggregator(Aggregator):
     """
     Mask_ Heu_ Aggregation presents a new federated learning secure aggregation algorithm, in which
     participants add mask at some positions of the gradient (the fully connected layer closest to the
-    output layer), Then use homomorphic encryption to remove masks from the aggregated values  
+    output layer), Then use homomorphic encryption to remove masks from the aggregated values
 
     The specific process is as follows.
 
@@ -84,14 +84,13 @@ class MaskHeuAggregator(Aggregator):
         >>> sf.reveal(sum_a_b)
             array([[12. 14. 16.]])
     """
-    def __init__(
-        self, device: PYU, participants: List[PYU], mask_location=-2
-    ):
+
+    def __init__(self, device: PYU, participants: List[PYU], mask_location=-2):
         assert len(set(participants)) == len(
             participants
         ), 'Should not have duplicated devices.'
-        self._device = device # The server is used to aggregate gradients 
-        self._participants = set(participants)# The participant
+        self._device = device  # The server is used to aggregate gradients
+        self._participants = set(participants)  # The participant
         self.sk_keeper = participants[0]
         self.evaluators = participants[1:]
         self.evaluators.append(device)
@@ -100,7 +99,7 @@ class MaskHeuAggregator(Aggregator):
         # each representing a certain layer in a neural network.
         # The algorithm adds mask to the last fully connected layer
         # self.mask_location represents the position of the last fully connected layer
-        sk_keeper = {'party': self.sk_keeper.party}# build HEU device
+        sk_keeper = {'party': self.sk_keeper.party}  # build HEU device
         evaluators = [{'party': evaluator.party} for evaluator in self.evaluators]
         heu_config = {
             'sk_keeper': sk_keeper,
@@ -112,17 +111,17 @@ class MaskHeuAggregator(Aggregator):
             },
         }
         self.heu_device = sf.HEU(heu_config, spu.spu_pb2.FM128)
-        
+
         self._Masker = {
             pyu: Masker(participant=pyu.party, shape=None, device=pyu)
             for pyu in participants
-        }# Build entities for each participant 
+        }  # Build entities for each participant
 
     def average(self, data: List[DeviceObject], axis=None, weights=None):
         def remove_mask(
             masked_data: List[DeviceObject], mask=None, weight=None, mask_location=-2
         ):
-            #The server obtains gradient with mask and aggregate values with mask, ultimately obtaining an aggregate result without mask
+            # The server obtains gradient with mask and aggregate values with mask, ultimately obtaining an aggregate result without mask
             is_list = isinstance(masked_data[0], list)
             sum_weight = np.sum(weight, axis=axis) if weight else len(masked_data)
             if is_list:
@@ -164,8 +163,10 @@ class MaskHeuAggregator(Aggregator):
                     data=datum, weight=weights, mask_location=self.mask_location
                 )
 
-        masked_data = [d.to(self._device) for d in data]  #  Transfer gradient with mask to server 
-        #  Perform homomorphic encryption on the masks of each participant 
+        masked_data = [
+            d.to(self._device) for d in data
+        ]  #  Transfer gradient with mask to server
+        #  Perform homomorphic encryption on the masks of each participant
         encrypted_mask = [None] * len(data)
         for i, datum in enumerate(data):
             encrypted_mask[i] = (
@@ -176,13 +177,13 @@ class MaskHeuAggregator(Aggregator):
                     config=HEUMoveConfig(heu_dest_party=self._device.party),
                 )
             )
-        #  Aggregate the encryption results 
+        #  Aggregate the encryption results
         for i in range(len(data)):
             if i == 0:
                 mask_result = encrypted_mask[0]
             else:
                 mask_result = mask_result + encrypted_mask[i]
-        mask_result = mask_result.to(self.sk_keeper)  # decrypt 
+        mask_result = mask_result.to(self.sk_keeper)  # decrypt
         mask_result = mask_result.to(self._device)
         final_result = self._device(remove_mask)(
             masked_data,
@@ -212,8 +213,8 @@ class MaskHeuAggregator(Aggregator):
             data[i] = self._Masker[data[i].device].add_noisy(
                 data[i], mask_location=self.mask_location
             )
-        masked_data = [d.to(self._device) for d in data]  
- 
+        masked_data = [d.to(self._device) for d in data]
+
         encrypted_mask = [None] * len(data)
         for i, datum in enumerate(data):
             encrypted_mask[i] = (
@@ -230,7 +231,7 @@ class MaskHeuAggregator(Aggregator):
                 mask_result = encrypted_mask[0]
             else:
                 mask_result = mask_result + encrypted_mask[i]
-        mask_result = mask_result.to(self.sk_keeper)  
+        mask_result = mask_result.to(self.sk_keeper)
         mask_result = mask_result.to(self._device)
         final_result = self._device(remove_mask)(masked_data, mask=mask_result)
         return final_result
