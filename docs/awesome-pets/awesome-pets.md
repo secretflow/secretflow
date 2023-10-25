@@ -32,7 +32,7 @@ Private Set/Database Operations
 
 Protecting training/inference data
 
-1. [PPML based on Crypto](papers/applications/ppml/ppml_crypto.md) (Contributors: [@llCurious](https://www.github.com/llCurious))
+1. [PPML based on Crypto](papers/applications/ppml/ppml_crypto.md) (Contributors: [@llCurious](https://www.github.com/llCurious) [@Mingbo-Lee](https://github.com/Mingbo-Lee))
 2. [Ferderated Learning (FL)](papers/applications/ppml/fl/fl.md) (Contributors: [@zhangxingmeng](https://www.github.com/zhangxingmeng) [@FelixZheng1](https://www.github.com/FelixZheng1) [@Cryptocxf](https://github.com/Cryptocxf))
 <!-- 3. [Split Learning (SL)](papers/applications/ppml/sl.md) (Contributors: [@yingting6](https://www.github.com/yingting6)) -->
 
