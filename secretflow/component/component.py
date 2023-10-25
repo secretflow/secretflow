@@ -23,19 +23,14 @@ from typing import Dict, List, Union
 
 import cleantext
 import spu
-from secretflow.spec.v1.component_pb2 import (
-    AttributeDef,
-    AttrType,
-    ComponentDef,
-    IoDef,
-)
-from secretflow.spec.v1.data_pb2 import StorageConfig
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam, NodeEvalResult
 
 from secretflow.component.data_utils import DistDataType, check_dist_data, check_io_def
 from secretflow.component.eval_param_reader import EvalParamReader
 from secretflow.device.driver import init, shutdown
 from secretflow.spec.extend.cluster_pb2 import SFClusterConfig
+from secretflow.spec.v1.component_pb2 import AttributeDef, AttrType, ComponentDef, IoDef
+from secretflow.spec.v1.data_pb2 import StorageConfig
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam, NodeEvalResult
 
 
 def clean_text(x: str, no_line_breaks: bool = True) -> str:

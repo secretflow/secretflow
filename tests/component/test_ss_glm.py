@@ -1,14 +1,14 @@
 import os
 
 import pandas as pd
-from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from sklearn.datasets import load_breast_cancer
 from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import StandardScaler
 
 from secretflow.component.ml.linear.ss_glm import ss_glm_predict_comp, ss_glm_train_comp
+from secretflow.spec.v1.component_pb2 import Attribute
+from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from tests.conftest import TEST_STORAGE_ROOT
 
 
@@ -55,6 +55,7 @@ def test_glm(comp_prod_sf_cluster_config):
             "link_type",
             "label_dist_type",
             "optimizer",
+            "input/train_dataset/label",
         ],
         attrs=[
             Attribute(i64=3),
@@ -63,6 +64,7 @@ def test_glm(comp_prod_sf_cluster_config):
             Attribute(s="Logit"),
             Attribute(s="Bernoulli"),
             Attribute(s="SGD"),
+            Attribute(ss=["y"]),
         ],
         inputs=[
             DistData(

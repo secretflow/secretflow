@@ -8,7 +8,7 @@ click  # FEATURE=[lite]
 grpcio==1.56.2   # FEATURE=[lite]
 jax<=0.4.12  # FEATURE=[lite]
 jaxlib<=0.4.12  # FEATURE=[lite]
-kuscia==0.0.1b2  # FEATURE=[lite]
+kuscia==0.0.2.dev231013  # FEATURE=[lite]
 multiprocess  # FEATURE=[lite]
 networkx==2.8.8
 numba==0.57.0  # FEATURE=[lite]
@@ -16,6 +16,7 @@ numpy==1.23.5  # FEATURE=[lite]
 # TODO: onnx and tensorflow have dependency conflicts, waiting for upstream to resolve
 # onnx==1.13.1
 pandas==1.5.3  # FEATURE=[lite]
+polars==0.19.3  # FEATURE=[lite]
 # For security reason.
 protobuf==3.19.6  # FEATURE=[lite]
 pyarrow==11.0.0  # FEATURE=[lite]
@@ -27,7 +28,7 @@ secretflow-rayfed==0.2.0a7 # FEATURE=[lite]
 # For security reason. This is introduced by TensorFlow.
 setuptools>=65.5.1
 sparse>=0.14.0
-spu==0.6.0.dev20230922  # FEATURE=[lite]
+spu==0.6.0.dev20231023  # FEATURE=[lite]
 sf-heu==0.4.4b0  # FEATURE=[lite]
 tensorflow-macos==2.11.0; platform_machine == "arm64" and platform_system == "Darwin"
 tensorflow==2.11.1; platform_machine != "arm64"

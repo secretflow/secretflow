@@ -223,6 +223,11 @@
               "name": "feature_selects",
               "desc": "which features should be binned.",
               "colMinCntInclusive": "1"
+            },
+            {
+              "name": "label",
+              "desc": "Label of input data.",
+              "colMinCntInclusive": "1"
             }
           ]
         }
@@ -1119,6 +1124,14 @@
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "label",
+              "desc": "Label of train dataset.",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
+            }
           ]
         }
       ],
@@ -1337,6 +1350,14 @@
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "label",
+              "desc": "Label of train dataset.",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
+            }
           ]
         }
       ],
@@ -1490,6 +1511,14 @@
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "label",
+              "desc": "Label of train dataset.",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
+            }
           ]
         }
       ],
@@ -1687,6 +1716,14 @@
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "label",
+              "desc": "Label of train dataset.",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
+            }
           ]
         }
       ],
@@ -1806,7 +1843,8 @@
           "attrs": [
             {
               "name": "key",
-              "desc": "Column(s) used to join. If not provided, ids of the dataset will be used."
+              "desc": "Column(s) used to join.",
+              "colMinCntInclusive": "1"
             }
           ]
         },
@@ -1819,7 +1857,8 @@
           "attrs": [
             {
               "name": "key",
-              "desc": "Column(s) used to join. If not provided, ids of the dataset will be used."
+              "desc": "Column(s) used to join.",
+              "colMinCntInclusive": "1"
             }
           ]
         }
@@ -1925,6 +1964,76 @@
           "desc": "Output test dataset.",
           "types": [
             "sf.table.vertical_table"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "stats",
+      "name": "groupby_statistics",
+      "desc": "Get a groupby of statistics, like pandas groupby statistics.\nCurrently only support VDataframe.",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "agg",
+          "desc": "What kind of aggregation statistics we want to do, currently only supports min, max, mean, sum, var, count(number of elements in each group)",
+          "type": "AT_STRING",
+          "atomic": {
+            "allowedValues": {
+              "ss": [
+                "min",
+                "max",
+                "mean",
+                "sum",
+                "var",
+                "count"
+              ]
+            }
+          }
+        },
+        {
+          "name": "max_group_size",
+          "desc": "The maximum number of groups allowed",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "10000"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "input_data",
+          "desc": "Input table.",
+          "types": [
+            "sf.table.vertical_table",
+            "sf.table.individual"
+          ],
+          "attrs": [
+            {
+              "name": "by",
+              "desc": "by what columns should we group the values",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "4"
+            },
+            {
+              "name": "values",
+              "desc": "on which columns should we calculate the statistics",
+              "colMinCntInclusive": "1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "report",
+          "desc": "Output groupby statistics report.",
+          "types": [
+            "sf.report"
           ]
         }
       ]

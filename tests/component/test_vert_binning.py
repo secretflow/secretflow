@@ -5,8 +5,8 @@ from sklearn.datasets import load_breast_cancer
 
 from secretflow.component.data_utils import DistDataType, extract_distdata_info
 from secretflow.component.preprocessing.vert_binning import (
-    vert_binning_comp,
     vert_bin_substitution_comp,
+    vert_binning_comp,
 )
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable

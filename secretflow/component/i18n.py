@@ -18,9 +18,9 @@
 import json
 
 import click
-from secretflow.spec.v1.component_pb2 import CompListDef
 
 from secretflow.component.entry import COMP_LIST, gen_key
+from secretflow.spec.v1.component_pb2 import CompListDef
 
 ROOT = "."
 

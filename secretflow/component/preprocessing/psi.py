@@ -15,8 +15,6 @@
 import os
 from typing import List
 
-from secretflow.spec.v1.data_pb2 import DistData, IndividualTable, VerticalTable
-
 from secretflow.component.component import (
     CompEvalError,
     Component,
@@ -26,11 +24,11 @@ from secretflow.component.component import (
 from secretflow.component.data_utils import (
     DistDataType,
     extract_distdata_info,
-    extract_table_header,
     merge_individuals_to_vtable,
 )
 from secretflow.device.device.pyu import PYU
 from secretflow.device.device.spu import SPU
+from secretflow.spec.v1.data_pb2 import DistData, IndividualTable, VerticalTable
 
 psi_comp = Component(
     "psi",
@@ -78,7 +76,8 @@ psi_comp.io(
     col_params=[
         TableColParam(
             name="key",
-            desc="Column(s) used to join. If not provided, ids of the dataset will be used.",
+            desc="Column(s) used to join.",
+            col_min_cnt_inclusive=1,
         )
     ],
 )
@@ -90,7 +89,8 @@ psi_comp.io(
     col_params=[
         TableColParam(
             name="key",
-            desc="Column(s) used to join. If not provided, ids of the dataset will be used.",
+            desc="Column(s) used to join.",
+            col_min_cnt_inclusive=1,
         )
     ],
 )
@@ -183,18 +183,6 @@ def two_party_balanced_psi_eval_fn(
 
     receiver_pyu = PYU(receiver_party)
     sender_pyu = PYU(sender_party)
-
-    # If receiver_input_key is not provided, try to get receiver_input_key from ids of receiver_input.
-    if len(receiver_input_key) == 0:
-        receiver_input_key = list(
-            extract_table_header(receiver_input, load_ids=True)[receiver_party].keys()
-        )
-
-    # If sender_input_key is not provided, try to get sender_input_key from ids of sender_input.
-    if len(sender_input_key) == 0:
-        sender_input_key = list(
-            extract_table_header(sender_input, load_ids=True)[sender_party].keys()
-        )
 
     with ctx.tracer.trace_running():
         intersection_count = spu.psi_csv(

@@ -23,7 +23,7 @@ from google.protobuf.json_format import MessageToJson
 from kuscia.proto.api.v1alpha1.common_pb2 import DataColumn
 from kuscia.proto.api.v1alpha1.datamesh.domaindata_pb2 import DomainData
 
-from secretflow.component.entry import comp_eval
+from secretflow.component.entry import comp_eval, get_comp_def
 from secretflow.kuscia.datamesh import (
     create_domain_data,
     create_domain_data_service_stub,
@@ -86,10 +86,20 @@ def preprocess_sf_node_eval_param(
 ) -> NodeEvalParam:
     global datasource_id
 
+    comp_def = get_comp_def(param.domain, param.name, param.version)
+
+    assert len(comp_def.inputs) == len(
+        sf_input_ids
+    ), "cnt of sf_input_ids doesn't match cnt of comp_def.inputs."
+    assert len(comp_def.outputs) == len(
+        sf_output_uris
+    ), "cnt of sf_output_uris doesn't match cnt of comp_def.outputs."
+
     # get input DistData from GRM
-    if sf_input_ids is not None and len(sf_input_ids) > 0:
+    if len(sf_input_ids):
+        param.ClearField('inputs')
         stub = create_domain_data_service_stub(datamesh_addr)
-        for id in sf_input_ids:
+        for id, input_def in zip(sf_input_ids, list(comp_def.inputs)):
             domain_data = get_domain_data(stub, id)
 
             if datasource_id is not None and domain_data.datasource_id != datasource_id:
@@ -99,15 +109,55 @@ def preprocess_sf_node_eval_param(
 
             datasource_id = domain_data.datasource_id
 
-            dist_data = json_format.Parse(
-                domain_data.attributes["dist_data"], DistData()
-            )
-            param.inputs.append(dist_data)
+            if domain_data.attributes["dist_data"]:
+                dist_data = json_format.Parse(
+                    domain_data.attributes["dist_data"], DistData()
+                )
+                param.inputs.append(dist_data)
+            else:
+                assert "sf.table.individual" in set(input_def.types)
 
-    if sf_output_uris is not None and len(sf_output_uris) > 0:
+                param.inputs.append(
+                    convert_domain_data_to_individual_table(domain_data)
+                )
+
+    if len(sf_output_uris):
+        param.ClearField('output_uris')
         param.output_uris.extend(sf_output_uris)
 
     return param
+
+
+def convert_domain_data_to_individual_table(
+    domain_data: DomainData,
+) -> IndividualTable:
+    logging.warning(
+        'kuscia adapter has to deduce dist data from domain data at this moment.'
+    )
+    assert domain_data.type == 'table'
+    dist_data = DistData(name=domain_data.name, type="sf.table.individual")
+
+    meta = IndividualTable()
+    for col in domain_data.columns:
+        if not col.comment or col.comment == 'feature':
+            meta.schema.features.append(col.name)
+            meta.schema.feature_types.append(col.type)
+        elif col.comment == 'id':
+            meta.schema.ids.append(col.name)
+            meta.schema.id_types.append(col.type)
+        elif col.comment == 'label':
+            meta.schema.labels.append(col.name)
+            meta.schema.label_types.append(col.type)
+    meta.line_count = -1
+    dist_data.meta.Pack(meta)
+
+    data_ref = DistData.DataRef()
+    data_ref.uri = domain_data.relative_uri
+    data_ref.party = domain_data.author
+    data_ref.format = 'csv'
+    dist_data.data_refs.append(data_ref)
+
+    return dist_data
 
 
 def convert_dist_data_to_domain_data(

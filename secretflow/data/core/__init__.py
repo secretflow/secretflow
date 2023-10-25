@@ -14,7 +14,4 @@
 
 from .partition import Partition, partition
 
-__all__ = [
-    "partition",
-    "Partition",
-]
+__all__ = ["partition", "Partition"]

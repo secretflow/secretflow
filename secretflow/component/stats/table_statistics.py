@@ -13,12 +13,12 @@
 # limitations under the License.
 
 import pandas as pd
-from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import DistData
-from secretflow.spec.v1.report_pb2 import Div, Report, Tab, Table
 
 from secretflow.component.component import Component, IoType
 from secretflow.component.data_utils import DistDataType, load_table
+from secretflow.spec.v1.component_pb2 import Attribute
+from secretflow.spec.v1.data_pb2 import DistData
+from secretflow.spec.v1.report_pb2 import Div, Report, Tab, Table
 from secretflow.stats.table_statistics import table_statistics
 
 table_statistics_comp = Component(

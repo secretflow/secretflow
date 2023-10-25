@@ -1,9 +1,6 @@
 import os
 
 import pandas as pd
-from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from sklearn.datasets import load_breast_cancer
 from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import StandardScaler
@@ -12,6 +9,9 @@ from secretflow.component.ml.boost.ss_xgb.ss_xgb import (
     ss_xgb_predict_comp,
     ss_xgb_train_comp,
 )
+from secretflow.spec.v1.component_pb2 import Attribute
+from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from tests.conftest import TEST_STORAGE_ROOT
 
 
@@ -61,6 +61,7 @@ def test_ss_xgb(comp_prod_sf_cluster_config):
             "colsample_by_tree",
             "sketch_eps",
             "base_score",
+            "input/train_dataset/label",
         ],
         attrs=[
             Attribute(i64=3),
@@ -72,6 +73,7 @@ def test_ss_xgb(comp_prod_sf_cluster_config):
             Attribute(f=1),
             Attribute(f=0.25),
             Attribute(f=0),
+            Attribute(ss=["y"]),
         ],
         inputs=[
             DistData(

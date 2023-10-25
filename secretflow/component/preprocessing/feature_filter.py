@@ -14,11 +14,10 @@
 
 import os
 
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
-
 from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import DistDataType, load_table
 from secretflow.device.driver import wait
+from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 
 feature_filter_comp = Component(
     "feature_filter",

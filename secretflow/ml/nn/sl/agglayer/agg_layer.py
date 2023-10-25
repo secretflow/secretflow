@@ -110,7 +110,7 @@ class AggLayer(object):
             if isinstance(hidden, (List, Tuple)):
                 hidden = [torch.Tensor(d) for d in hidden]
             else:
-                hidden = torch.Tensor(hidden)
+                hidden = torch.Tensor(hidden.tolist())
         else:
             raise InvalidArgumentError(
                 f"Invalid backend, only support 'tensorflow' or 'torch', but got {backend}"
@@ -251,21 +251,24 @@ class AggLayer(object):
             )
         return gradients
 
-    def split_to_parties(self, data: List) -> List[PYUObject]:
+    def split_to_parties(self, data: Union[List, torch.Tensor]) -> List[PYUObject]:
         assert (
             self.basenet_output_num is not None
         ), "Agglayer should know output num of each participates"
-        assert len(data) == sum(
-            self.basenet_output_num.values()
-        ), f"data length in backward = {len(data)} is not consistent with basenet need = {sum(self.basenet_output_num.values())},"
+        if sum(self.basenet_output_num.values()) == 1:
+            return data
+        else:
+            assert len(data) == sum(
+                self.basenet_output_num.values()
+            ), f"data length in backward = {len(data)} is not consistent with basenet need = {sum(self.basenet_output_num.values())},"
 
-        result = []
-        start_idx = 0
-        for p in self.parties:
-            data_slice = data[start_idx : start_idx + self.basenet_output_num[p]]
-            result.append(data_slice)
-            start_idx = start_idx + self.basenet_output_num[p]
-        return result
+            result = []
+            start_idx = 0
+            for p in self.parties:
+                data_slice = data[start_idx : start_idx + self.basenet_output_num[p]]
+                result.append(data_slice)
+                start_idx = start_idx + self.basenet_output_num[p]
+            return result
 
     def collect(self, data: Dict[PYU, DeviceObject]) -> List[DeviceObject]:
         """Collect data from participates

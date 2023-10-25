@@ -15,15 +15,20 @@
 from dataclasses import dataclass
 from typing import Callable, Dict, List, Union
 
+import warnings
+
+import numpy as np
+
 import pandas as pd
+
 from pandas import Index
 
-from secretflow.device import PYU, reveal
+from secretflow.data.core import Partition
+from secretflow.data.base import DataFrameBase
+from secretflow.data.ndarray import FedNdarray, PartitionWay
+from secretflow.device import PYU, reveal, SPU, PYUObject
 from secretflow.utils.errors import InvalidArgumentError, NotFoundError
-
-from ..base import DataFrameBase
-from ..core import Partition
-from ..ndarray import FedNdarray, PartitionWay
+from secretflow.data.groupby import DataFrameGroupBy
 
 
 @dataclass
@@ -720,3 +725,63 @@ class VDataFrame(DataFrameBase):
             {pyu: part.to_pandas() for pyu, part in self.partitions.items()},
             self.aligned,
         )
+
+    def groupby(self, spu: SPU, by: List[str]) -> DataFrameGroupBy:
+        """Group the VDataFrame by the specified columns.
+        To groupby with string columns, use encode the string columns first.
+
+        Args:
+            spu: SPU device used to perform secure groupby.
+            by: a list of column names to group by.
+
+        Returns:
+            A DataFrameGroupBy object.
+        """
+        _, key_cols = self.get_numeric_cols_from_df(by)
+        value_col_names = [col for col in self.columns if col not in by]
+        value_col_names, value_cols = self.get_numeric_cols_from_df(value_col_names)
+
+        if len(value_cols) < len(value_col_names):
+            warnings.warn(
+                "There are some target columns that are of non-numeric dtypes are ignored in values. Encode those columns if we want to include them."
+            )
+        # float types are not recommended to be used as key for numerical considerations.
+
+        key_cols_spu = [key_col.to(spu) for key_col in key_cols]
+        value_cols_spu = [value_col.to(spu) for value_col in value_cols]
+
+        return DataFrameGroupBy(
+            spu,
+            parties=[*self.partitions.keys()],
+            key_cols=key_cols_spu,
+            target_cols=value_cols_spu,
+            target_col_names=value_col_names,
+            n_samples=len(self),
+        )
+
+    def get_numeric_cols_from_df(self, cols: List[str]) -> List[PYUObject]:
+        """Get columns from VDataFrame.
+
+        Args:
+            df: a VDataFrame object.
+            cols: a list of column names.
+
+        Returns:
+            first: a list of str, each of which is a name of numeric column.
+            second: a list of PYUObject, each of which is a np array corresponds to col_names.
+        """
+        col_dtype_map = self.dtypes
+        numeric_col_names = [
+            col_name
+            for col_name in cols
+            if np.issubdtype(col_dtype_map[col_name], np.number)
+        ]
+        return numeric_col_names, [
+            self.get_flat_column(col_name) for col_name in numeric_col_names
+        ]
+
+    def get_flat_column(self, col_name: str) -> PYUObject:
+        """From the VDataFrame, extract a single column in flattened numpy array"""
+        # note there will be only one party since one column belongs to only one party
+        for device, column_df in self[col_name].partitions.items():
+            return device(lambda x: x.to_numpy().reshape(-1))(column_df.data)
