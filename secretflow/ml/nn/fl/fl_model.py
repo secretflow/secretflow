@@ -477,7 +477,7 @@ class FLModel:
                         if model_params_list is not None
                         else None
                     )
-                    client_params, sample_num = self._workers[device].train_step(
+                    client_params, sample_num, V_local, s_local, acc_weights = self._workers[device].train_step(
                         client_params,
                         epoch * train_steps_per_epoch + step,
                         aggregate_freq
@@ -485,6 +485,8 @@ class FLModel:
                         else train_steps_per_epoch - step,
                         **self.kwargs,
                     )
+                    client_params: sf.PYUObject = device(self.refactor_client_params)(client_params, s_local, V_local,
+                                                                                      acc_weights)
                     client_param_list.append(client_params)
                     sample_num_list.append(sample_num)
                     res.append(client_params)
@@ -612,7 +614,26 @@ class FLModel:
                 break
 
         return history
+        
+    def refactor_client_params(self, model_params, s, V, acc_weights):
+        new_prass = []
+        for j in range(len(sf.reveal(acc_weights))):
+            if sf.reveal(acc_weights)[j].shape == 2:
+                params = self.refactor(sf.reveal(model_params)[j], sf.reveal(s)[j], sf.reveal(V)[j])
+                new_prass.append(params)
+            if sf.reveal(acc_weights)[j].shape != 2:
+                params = self.refactor(sf.reveal(model_params)[j], sf.reveal(s)[j], sf.reveal(V)[j])
+                params = params.reshape(sf.reveal(acc_weights)[j].shape)
+                new_prass.append(params)
+        model_params = new_prass
 
+        return model_params
+
+    def refactor(self, U, s, V):
+        smat = np.diag(s)
+        refactor_matrix = np.dot(U, np.dot(smat, V))
+        return refactor_matrix
+    
     def predict(
         self,
         x: Union[HDataFrame, FedNdarray, Dict],
