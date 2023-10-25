@@ -85,6 +85,9 @@ An overview of existing works is illustrated in the table below.
     *H. Qin, D. He, Q. Feng, M. K. Khan, M. Luo and K. -K. R. Choo*
     IEEE Transactions on Knowledge and Data Engineering, [eprint](https://ieeexplore.ieee.org/document/10269692) 
 
+- Secure Multi-party Learning: From Secure Computation to Secure Learning.
+    *HAN Wei-Li SONG Lu-shan RUAN Wen-qiang LIN Guo-peng WANG Zhe-xuan*
+    Chinese Journal of Computers, [eprint in Chinese](http://cjc.ict.ac.cn/online/onlinepaper/hwl-202375100742.pdf)
 
 ## Two-party Computation (2PC)
 
