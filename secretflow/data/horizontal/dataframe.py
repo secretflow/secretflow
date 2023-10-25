@@ -13,17 +13,19 @@
 # limitations under the License.
 
 from dataclasses import dataclass, field
-from typing import Dict, Union
+from typing import Callable, Dict, List, Union
 
 import numpy as np
 import pandas as pd
 
-from secretflow.data.base import DataFrameBase, Partition
-from secretflow.data.ndarray import FedNdarray, PartitionWay
 from secretflow.device import PYU, reveal
 from secretflow.security.aggregation.aggregator import Aggregator
 from secretflow.security.compare.comparator import Comparator
 from secretflow.utils.errors import InvalidArgumentError
+
+from ..base import DataFrameBase
+from ..core.partition import Partition
+from ..ndarray import FedNdarray, PartitionWay
 
 
 @dataclass
@@ -47,7 +49,7 @@ class HDataFrame(DataFrameBase):
 
     Examples:
         >>> from secretflow.data.horizontal import read_csv
-        >>> from secretflow.security.aggregation import PlainAggregator, PlainComparator
+        >>> from secretflow.security.aggregation import PlainAggregator
         >>> from secretflow import PYU
         >>> alice = PYU('alice')
         >>> bob = PYU('bob')
@@ -102,8 +104,7 @@ class HDataFrame(DataFrameBase):
         """
         assert self.aggregator is not None, 'Aggregator should be provided for mean.'
         means = [part.mean(*args, **kwargs) for part in self.partitions.values()]
-        if 'numeric_only' in kwargs:
-            numeric_only = kwargs['numeric_only']
+        numeric_only = kwargs.get('numeric_only', False)
         cnts = [
             part.count(numeric_only=numeric_only) for part in self.partitions.values()
         ]
@@ -247,12 +248,12 @@ class HDataFrame(DataFrameBase):
         )
 
     @property
-    def dtypes(self) -> pd.Series:
+    def dtypes(self):
         """
         Return the dtypes in the DataFrame.
 
         Returns:
-            pd.Series: the data type of each column.
+            dict: the data type of each column.
         """
         self._check_parts()
         return list(self.partitions.values())[0].dtypes
@@ -289,7 +290,7 @@ class HDataFrame(DataFrameBase):
         """Return a tuple representing the dimensionality of the DataFrame."""
         self._check_parts()
         shapes = [part.shape for part in self.partitions.values()]
-        return (sum([shape[0] for shape in shapes]), shapes[0][1])
+        return sum([shape[0] for shape in shapes]), shapes[0][1]
 
     @reveal
     def partition_shape(self):
@@ -451,3 +452,56 @@ class HDataFrame(DataFrameBase):
         else:
             for part in self.partitions.values():
                 part[key] = value
+
+    def index(self) -> list:
+        raise NotImplementedError()
+
+    def value_counts(self, *args, **kwargs) -> pd.Series:
+        raise NotImplementedError()
+
+    def iloc(self, index: Union[int, slice, List[int]]) -> 'HDataFrame':
+        raise NotImplementedError()
+
+    def rename(
+        self,
+        mapper=None,
+        index=None,
+        columns=None,
+        axis=None,
+        copy=True,
+        inplace=False,
+        level=None,
+        errors='ignore',
+    ) -> Union['HDataFrame', None]:
+        raise NotImplementedError()
+
+    def pow(self, *args, **kwargs) -> 'HDataFrame':
+        raise NotImplementedError()
+
+    def round(self, *args, **kwargs) -> 'HDataFrame':
+        raise NotImplementedError()
+
+    def select_dtypes(self, *args, **kwargs) -> 'HDataFrame':
+        raise NotImplementedError()
+
+    def subtract(self, *args, **kwargs) -> 'HDataFrame':
+        raise NotImplementedError()
+
+    def apply_func(
+        self, func: Callable, *, nums_return: int = 1, **kwargs
+    ) -> 'HDataFrame':
+        return HDataFrame(
+            partitions={
+                pyu: part.apply_func(func, nums_return=nums_return, **kwargs)
+                for pyu, part in self.partitions.items()
+            },
+            aggregator=self.aggregator,
+            comparator=self.comparator,
+        )
+
+    def to_pandas(self):
+        return HDataFrame(
+            partitions={pyu: part.to_pandas() for pyu, part in self.partitions.items()},
+            aggregator=self.aggregator,
+            comparator=self.comparator,
+        )

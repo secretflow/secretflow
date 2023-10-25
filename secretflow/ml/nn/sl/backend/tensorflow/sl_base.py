@@ -21,7 +21,7 @@
 import copy
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -76,13 +76,16 @@ class SLBaseTFModel(SLBaseModel):
         self.train_x, self.train_y = None, None
         self.eval_x, self.eval_y = None, None
         self.kwargs = {}
+        self.train_has_x = False
         self.train_has_y = False
         self.train_has_s_w = False
+        self.eval_has_x = False
         self.eval_has_y = False
         self.eval_has_s_w = False
         self.train_sample_weight = None
         self.eval_sample_weight = None
         self.fuse_callbacks = None
+        self.predict_callbacks = None
         self.logs = None
         self.epoch_logs = None
         self.training_logs = None
@@ -110,15 +113,21 @@ class SLBaseTFModel(SLBaseModel):
         self.steps_per_epoch = steps_per_epoch
 
     def get_basenet_output_num(self):
-        if hasattr(self.model_base, 'outputs') and self.model_base.outputs is not None:
-            return len(self.model_base.outputs)
-        else:
-            if hasattr(self.model_base, "output_num"):
-                return self.model_base.output_num()
+        if self.model_base:
+            if (
+                hasattr(self.model_base, 'outputs')
+                and self.model_base.outputs is not None
+            ):
+                return len(self.model_base.outputs)
             else:
-                raise Exception(
-                    "Please define the output_num function in basemodel and return the number of basenet outputs, then try again"
-                )
+                if hasattr(self.model_base, "output_num"):
+                    return self.model_base.output_num()
+                else:
+                    raise Exception(
+                        "Please define the output_num function in basemodel and return the number of basenet outputs, then try again"
+                    )
+        else:
+            return 0
 
     def build_dataset_from_numeric(
         self,
@@ -145,31 +154,52 @@ class SLBaseTFModel(SLBaseModel):
             stage: stage of this datset
             random_seed: Prg seed for shuffling
         """
-        assert x and x[0] is not None, "X can not be None, please check"
-        x = [xi for xi in x]
+        assert (
+            x is not None or y is not None
+        ), f"At least one of feature(x) and label(y) is not None."
+        data_tuple = []
+        has_x = False
+        if x is not None:
+            x = [xi for xi in x if xi is not None]
+            if x:
+                has_x = True
+            data_tuple.extend(x)
         has_y = False
         has_s_w = False
         if y is not None and len(y.shape) > 0:
             has_y = True
-            x.append(y)
+            data_tuple.append(y)
             if s_w is not None and len(s_w.shape) > 0:
                 has_s_w = True
-                x.append(s_w)
+                data_tuple.append(s_w)
 
         # convert pandas.DataFrame to numpy.ndarray
-        x = [t.values if isinstance(t, pd.DataFrame) else t for t in x]
+
+        data_tuple = [
+            t.values if isinstance(t, pd.DataFrame) else t for t in data_tuple
+        ]
+
         # https://github.com/tensorflow/tensorflow/issues/20481
-        x = x[0] if len(x) == 1 else tuple(x)
+        data_tuple = data_tuple[0] if len(data_tuple) == 1 else tuple(data_tuple)
+        if len(data_tuple) > 0:
+            data_set = (
+                tf.data.Dataset.from_tensor_slices(data_tuple)
+                .batch(batch_size)
+                .repeat(repeat_count)
+            )
 
-        data_set = (
-            tf.data.Dataset.from_tensor_slices(x).batch(batch_size).repeat(repeat_count)
-        )
-        if shuffle:
-            data_set = data_set.shuffle(buffer_size, seed=random_seed)
+            if shuffle:
+                data_set = data_set.shuffle(buffer_size, seed=random_seed)
 
-        self.set_dataset_stage(
-            data_set=data_set, stage=stage, has_y=has_y, has_s_w=has_s_w
-        )
+            self.set_dataset_stage(
+                data_set=data_set,
+                stage=stage,
+                has_x=has_x,
+                has_y=has_y,
+                has_s_w=has_s_w,
+            )
+        else:
+            data_set = None
 
     def build_dataset_from_builder(
         self,
@@ -196,18 +226,30 @@ class SLBaseTFModel(SLBaseModel):
             stage: stage of this datset
             dataset_builder: dataset build callable function of worker
         """
-        assert x and x[0] is not None, "X can not be None, please check"
-        x = [xi for xi in x]
+        assert (
+            x is not None or y is not None
+        ), f"At least one of feature(x) and label(y) is not None."
+        if not dataset_builder:
+            return -1
+        data_tuple = []
+        has_x = False
+
+        #  x is (None,) if dont have feature
+        if x[0] is not None:
+            has_x = True
+            x = [xi for xi in x]
+            data_tuple.extend(x)
+
         has_y = False
         has_s_w = False
         if y is not None and len(y.shape) > 0:
             has_y = True
-            x.append(y)
+            data_tuple.append(y)
             if s_w is not None and len(s_w.shape) > 0:
                 has_s_w = True
-                x.append(s_w)
+                data_tuple.append(s_w)
 
-        data_set = dataset_builder(x)
+        data_set = dataset_builder(data_tuple)
         # Compatible with existing gnn databuilder
         if hasattr(data_set, 'steps_per_epoch'):
             return data_set.steps_per_epoch
@@ -237,6 +279,7 @@ class SLBaseTFModel(SLBaseModel):
         self.set_dataset_stage(
             data_set=data_set,
             stage=stage,
+            has_x=has_x,
             has_y=has_y,
             has_s_w=has_s_w,
         )
@@ -251,24 +294,27 @@ class SLBaseTFModel(SLBaseModel):
         self,
         data_set,
         stage="train",
+        has_x=None,
         has_y=None,
         has_s_w=None,
     ):
         data_set = iter(data_set)
         if stage == "train":
             self.train_set = data_set
+            self.train_has_x = has_x
             self.train_has_y = has_y
             self.train_has_s_w = has_s_w
         elif stage == "eval":
             self.eval_set = data_set
+            self.eval_has_x = has_x
             self.eval_has_y = has_y
             self.eval_has_s_w = has_s_w
         else:
             raise Exception(f"Illegal argument stage={stage}")
 
     @tf.function
-    def _base_forward_internal(self, data_x):
-        h = self.model_base(data_x)
+    def _base_forward_internal(self, data_x, training=True):
+        h = self.model_base(data_x, training=training)
 
         # Embedding differential privacy
         if self.embedding_dp is not None:
@@ -278,72 +324,76 @@ class SLBaseTFModel(SLBaseModel):
                 h = self.embedding_dp(h)
         return h
 
+    def unpack_dataset(self, data, has_x, has_y, has_s_w):
+        data_x, data_y, data_s_w = None, None, None
+        # case: only has x or has y, and s_w is none
+        if has_x and not has_y and not has_s_w:
+            data_x = data
+        elif not has_x and not has_s_w and has_y:
+            data_y = data
+        elif not has_x and not has_y:
+            raise Exception("x and y can not be none at same time")
+        elif not has_y and has_s_w:
+            raise Exception("Illegal argument: s_w is illegal if y is none")
+        else:
+            # handle data isinstance of list
+            if has_y:
+                if has_s_w:
+                    data_x = data[:-2] if has_x else None
+                    data_y = data[-2]
+                    data_s_w = data[-1]
+                else:
+                    data_x = data[:-1] if has_x else None
+                    data_y = data[-1]
+                if self.label_dp is not None:
+                    data_y = self.label_dp(data_y.numpy())
+                    data_y = tf.convert_to_tensor(data_y)
+
+        return data_x, data_y, data_s_w
+
     def base_forward(self, stage="train") -> ForwardData:
         """compute hidden embedding
         Args:
             stage: Which stage of the base forward
         Returns: hidden embedding
         """
-
-        assert (
-            self.model_base is not None
-        ), "Base model cannot be none, please give model define or load a trained model"
-
         data_x = None
         self.init_data()
+        training = True
         if stage == "train":
             train_data = next(self.train_set)
-            if self.train_has_y:
-                if self.train_has_s_w:
-                    data_x = train_data[:-2]
-                    train_y = train_data[-2]
-                    self.train_sample_weight = train_data[-1]
-                else:
-                    data_x = train_data[:-1]
-                    train_y = train_data[-1]
-                # Label differential privacy
-                if self.label_dp is not None:
-                    dp_train_y = self.label_dp(train_y.numpy())
-                    self.train_y = tf.convert_to_tensor(dp_train_y)
-                else:
-                    self.train_y = train_y
-            else:
-                data_x = train_data
+
+            self.train_x, self.train_y, self.train_sample_weight = self.unpack_dataset(
+                train_data, self.train_has_x, self.train_has_y, self.train_has_s_w
+            )
+            data_x = self.train_x
         elif stage == "eval":
+            training = False
             eval_data = next(self.eval_set)
-            if self.eval_has_y:
-                if self.eval_has_s_w:
-                    data_x = eval_data[:-2]
-                    eval_y = eval_data[-2]
-                    self.eval_sample_weight = eval_data[-1]
-                else:
-                    data_x = eval_data[:-1]
-                    eval_y = eval_data[-1]
-                # Label differential privacy
-                if self.label_dp is not None:
-                    dp_eval_y = self.label_dp(eval_y.numpy())
-                    self.eval_y = tf.convert_to_tensor(dp_eval_y)
-                else:
-                    self.eval_y = eval_y
-            else:
-                data_x = eval_data
+            self.eval_x, self.eval_y, self.eval_sample_weight = self.unpack_dataset(
+                eval_data, self.eval_has_x, self.eval_has_y, self.eval_has_s_w
+            )
+            data_x = self.eval_x
         else:
             raise Exception("invalid stage")
+
+        # model_base is none equal to x is none
+        if not self.model_base:
+            return None
 
         # Strip tuple of length one, e.g: (x,) -> x
         data_x = data_x[0] if isinstance(data_x, Tuple) and len(data_x) == 1 else data_x
 
         self.tape = tf.GradientTape(persistent=True)
         with self.tape:
-            self.h = self._base_forward_internal(
-                data_x,
-            )
+            self.h = self._base_forward_internal(data_x, training=training)
         self.data_x = data_x
 
         forward_data = ForwardData()
         if len(self.model_base.losses) > 0:
             forward_data.losses = tf.add_n(self.model_base.losses)
-        forward_data.hidden = self.h
+        # The compressor can only recognize np type but not tensor.
+        forward_data.hidden = self.h.numpy() if tf.is_tensor(self.h) else self.h
         return forward_data
 
     def _base_backward_internal(self, gradients, trainable_vars):
@@ -402,6 +452,20 @@ class SLBaseTFModel(SLBaseModel):
         else:
             raise NotImplementedError
 
+    def init_predict(self, callbacks, steps=1, verbose=0):
+        if not isinstance(callbacks, callbacks_module.CallbackList):
+            self.predict_callbacks = callbacks_module.CallbackList(
+                callbacks,
+                add_history=True,
+                add_progbar=verbose != 0,
+                model=self.model_base,
+                verbose=verbose,
+                epochs=1,
+                steps=steps,
+            )
+        else:
+            raise NotImplementedError
+
     def get_stop_training(self):
         return self.model_fuse.stop_training
 
@@ -437,7 +501,25 @@ class SLBaseTFModel(SLBaseModel):
     def on_train_end(self):
         if self.fuse_callbacks:
             self.fuse_callbacks.on_train_end(logs=self.training_logs)
-        return self.model_fuse.history.history
+        if self.model_fuse is not None:
+            return self.model_fuse.history.history
+        return None
+
+    def on_predict_batch_begin(self, batch):
+        if self.predict_callbacks:
+            self.predict_callbacks.on_predict_batch_begin(batch)
+
+    def on_predict_batch_end(self, batch):
+        if self.predict_callbacks:
+            self.predict_callbacks.on_predict_batch_end(batch)
+
+    def on_predict_begin(self):
+        if self.predict_callbacks:
+            self.predict_callbacks.on_predict_begin()
+
+    def on_predict_end(self):
+        if self.predict_callbacks:
+            self.predict_callbacks.on_predict_end()
 
     def set_sample_weight(self, sample_weight, stage="train"):
         if stage == "train":
@@ -449,7 +531,7 @@ class SLBaseTFModel(SLBaseModel):
 
     def fuse_net(
         self,
-        *forward_data: List[ForwardData],
+        forward_data: Union[List[ForwardData], ForwardData],
         _num_returns: int = 2,
     ):
         """Fuses the hidden layer and calculates the reverse gradient
@@ -464,7 +546,9 @@ class SLBaseTFModel(SLBaseModel):
         assert (
             self.model_fuse is not None
         ), "Fuse model cannot be none, please give model define"
-
+        if isinstance(forward_data, ForwardData):
+            forward_data = [forward_data]
+        forward_data[:] = (h for h in forward_data if h is not None)
         for i, h in enumerate(forward_data):
             assert h.hidden is not None, f"hidden cannot be found in forward_data[{i}]"
             if isinstance(h.losses, List) and h.losses[0] is None:
@@ -482,6 +566,7 @@ class SLBaseTFModel(SLBaseModel):
                 hiddens.append(tf.convert_to_tensor(h))
 
         logs = {}
+
         gradient = self._fuse_net_train(hiddens, losses)
 
         for m in self.model_fuse.metrics:
@@ -559,7 +644,7 @@ class SLBaseTFModel(SLBaseModel):
             result[m.name] = m.result()
         return result
 
-    def evaluate(self, *forward_data: List[ForwardData]):
+    def evaluate(self, forward_data: Union[List[ForwardData], ForwardData]):
         """Returns the loss value & metrics values for the model in test mode.
 
         Args:
@@ -572,6 +657,9 @@ class SLBaseTFModel(SLBaseModel):
         assert (
             self.model_fuse is not None
         ), "model cannot be none, please give model define"
+        if isinstance(forward_data, ForwardData):
+            forward_data = [forward_data]
+        forward_data[:] = (h for h in forward_data if h is not None)
         for i, h in enumerate(forward_data):
             assert h.hidden is not None, f"hidden cannot be found in forward_data[{i}]"
             if isinstance(h.losses, List) and h.losses[0] is None:
@@ -643,10 +731,10 @@ class SLBaseTFModel(SLBaseModel):
 
     @tf.function
     def _predict_internal(self, hiddens):
-        y_pred = self.model_fuse(hiddens)
+        y_pred = self.model_fuse(hiddens, training=False)
         return y_pred
 
-    def predict(self, *forward_data: List[ForwardData]):
+    def predict(self, forward_data: Union[List[ForwardData], ForwardData]):
         """Generates output predictions for the input hidden layer features.
 
         Args:
@@ -658,6 +746,9 @@ class SLBaseTFModel(SLBaseModel):
         assert (
             self.model_fuse is not None
         ), "Fuse model cannot be none, please give model define"
+        if isinstance(forward_data, ForwardData):
+            forward_data = [forward_data]
+        forward_data[:] = (h for h in forward_data if h is not None)
         for i, h in enumerate(forward_data):
             assert h.hidden is not None, f"hidden cannot be found in forward_data[{i}]"
             if isinstance(h.losses, List) and h.losses[0] is None:

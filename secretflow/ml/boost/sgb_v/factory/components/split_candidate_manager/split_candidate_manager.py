@@ -12,108 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import heapq
-from dataclasses import dataclass
 from typing import List, Tuple
 
 import numpy as np
+from secretflow.ml.boost.sgb_v.factory.sgb_actor import SGBActor
 
-from secretflow.device import PYUObject, proxy
-
+from .split_candidate_heap import SplitCandidateHeap
 from ..component import Component, Devices
-
-
-@dataclass
-class SplitCandidateInfo:
-    """Each node may contain the following information:
-    1. sample selects (public)
-    2. max gain (label holder private)
-    3. split bucket index (public)
-    """
-
-    # indicate which samples are in this node
-    sample_selects: np.ndarray
-    # max_gain > gamma, because pruned nodes are not candidates.
-    max_gain: float
-    # the index of bucket corresponding to max gain
-    split_bucket: int
-
-
-class SplitCandidate:
-    def __init__(
-        self,
-        node_index: int,
-        sample_selects: np.ndarray,
-        max_gain: float,
-        split_bucket: int,
-    ) -> None:
-        self.node_index = node_index
-        self.info = SplitCandidateInfo(sample_selects, max_gain, split_bucket)
-
-    # for priority heap
-    def __lt__(self, other: "SplitCandidate") -> bool:
-        return self.info.max_gain > other.info.max_gain
-
-    def __eq__(self, other: "SplitCandidate") -> bool:
-        return self.info.max_gain == other.info.max_gain
-
-    def __str__(self):
-        return str(self.node_index)
-
-
-@proxy(PYUObject)
-class SplitCandidateHeap:
-    def __init__(self):
-        self.heap = []
-
-    def push(
-        self,
-        node_index: int,
-        sample_selects: np.ndarray,
-        max_gain: float,
-        split_bucket: int,
-    ):
-        heapq.heappush(
-            self.heap,
-            SplitCandidate(node_index, sample_selects, max_gain, split_bucket),
-        )
-
-    def batch_push(
-        self,
-        node_indices: List[int],
-        node_sample_selects: List[np.ndarray],
-        split_buckets: np.ndarray,
-        split_gains: np.ndarray,
-        gain_is_cost_effective: List[bool],
-    ):
-        for i, effective in enumerate(gain_is_cost_effective):
-            if effective:
-                self.push(
-                    node_indices[i],
-                    node_sample_selects[i],
-                    split_gains[i],
-                    split_buckets[i],
-                )
-
-    def pop(self) -> SplitCandidate:
-        return heapq.heappop(self.heap)
-
-    def extract_best_split_info(self) -> Tuple[int, np.ndarray, int]:
-        best_candidate = self.pop()
-        return (
-            best_candidate.node_index,
-            best_candidate.info.sample_selects,
-            best_candidate.info.split_bucket,
-        )
-
-    def extract_all_nodes(self) -> Tuple[List[int], List[np.ndarray]]:
-        ids = [candidate.node_index for candidate in self.heap]
-        sample_selects = [candidate.info.sample_selects for candidate in self.heap]
-        self.heap = []
-        return ids, sample_selects
-
-    def reset(self):
-        self.heap = []
 
 
 class SplitCandidateManager(Component):
@@ -144,7 +49,16 @@ class SplitCandidateManager(Component):
 
     def set_devices(self, devices: Devices):
         self.label_holder = devices.label_holder
-        self.heap = SplitCandidateHeap(device=self.label_holder)
+
+    def set_actors(self, actors: List[SGBActor]):
+        for actor in actors:
+            if actor.device == self.label_holder:
+                self.heap = actor
+                break
+        self.heap.register_class('SplitCandidateHeap', SplitCandidateHeap)
+
+    def del_actors(self):
+        del self.heap
 
     def batch_push(
         self,
@@ -154,7 +68,9 @@ class SplitCandidateManager(Component):
         split_gains: np.ndarray,
         gain_is_cost_effective: List[bool],
     ):
-        self.heap.batch_push(
+        self.heap.invoke_class_method(
+            'SplitCandidateHeap',
+            'batch_push',
             node_indices,
             node_sample_selects,
             split_buckets,
@@ -169,14 +85,28 @@ class SplitCandidateManager(Component):
         max_gain: float,
         split_bucket: int,
     ):
-        self.heap.push(node_index, sample_selects, max_gain, split_bucket)
+        self.heap.invoke_class_method(
+            'SplitCandidateHeap',
+            'push',
+            node_index,
+            sample_selects,
+            max_gain,
+            split_bucket,
+        )
+
+    def is_no_candidate_left(self) -> bool:
+        return self.heap.invoke_class_method('SplitCandidateHeap', 'is_heap_empty')
 
     def extract_best_split_info(self) -> Tuple[int, np.ndarray, int]:
-        return self.heap.extract_best_split_info()
+        return self.heap.invoke_class_method_three_ret(
+            'SplitCandidateHeap', 'extract_best_split_info'
+        )
 
     def extract_all_nodes(self) -> Tuple[List[int], List[np.ndarray]]:
         """Get all sample ids and sample selects and clean the heap"""
-        return self.heap.extract_all_nodes()
+        return self.heap.invoke_class_method_two_ret(
+            'SplitCandidateHeap', 'extract_all_nodes'
+        )
 
     def reset(self):
-        self.heap.reset()
+        self.heap.invoke_class_method('SplitCandidateHeap', 'reset')

@@ -23,7 +23,6 @@ from typing import Callable, Tuple
 import numpy as np
 import tensorflow as tf
 
-from secretflow.device import PYUObject, proxy
 from secretflow.ml.nn.fl.backend.tensorflow.fl_base import BaseTFModel
 from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
 from secretflow.utils.compressor import STCSparse, sparse_decode, sparse_encode
@@ -41,8 +40,9 @@ class FedSTC(BaseTFModel):
         self,
         builder_base: Callable[[], tf.keras.Model],
         random_seed=None,
+        **kwargs,
     ):
-        super().__init__(builder_base, random_seed=random_seed)
+        super().__init__(builder_base, random_seed=random_seed, **kwargs)
         self._res = []
 
     def train_step(
@@ -143,6 +143,5 @@ class FedSTC(BaseTFModel):
 
 
 @register_strategy(strategy_name='fed_stc', backend='tensorflow')
-@proxy(PYUObject)
 class PYUFedSTC(FedSTC):
     pass

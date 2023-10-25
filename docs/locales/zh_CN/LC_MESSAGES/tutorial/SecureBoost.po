@@ -3,12 +3,11 @@
 # This file is distributed under the same license as the SecretFlow package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2023.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-04-12 18:08+0800\n"
+"POT-Creation-Date: 2023-07-11 13:40+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -68,70 +67,80 @@ msgid ""
 "the encryption of labels and the protection of sensitive information."
 msgstr "特别是，必须指定一个HEU设备以确保SecureBoost中标签的加密和敏感信息的保护。"
 
-#: ../../tutorial/SecureBoost.ipynb:177
+#: ../../tutorial/SecureBoost.ipynb:206
 msgid "Prepare Data"
 msgstr "数据准备"
 
-#: ../../tutorial/SecureBoost.ipynb:179
+#: ../../tutorial/SecureBoost.ipynb:208
 msgid "Basically we are preparing a vertical dataset."
 msgstr "我们将准备一个垂直数据集。"
 
-#: ../../tutorial/SecureBoost.ipynb:216
+#: ../../tutorial/SecureBoost.ipynb:245
 msgid "Prepare Params"
 msgstr "参数准备"
 
-#: ../../tutorial/SecureBoost.ipynb:251
+#: ../../tutorial/SecureBoost.ipynb:363
 msgid "Run Sgb"
 msgstr "运行 Sgb"
 
-#: ../../tutorial/SecureBoost.ipynb:253
+#: ../../tutorial/SecureBoost.ipynb:365
 msgid "We create a Sgb object with heu device and fit the data."
 msgstr "我们使用 heu 设备创建一个 Sgb 对象，并拟合数据。"
 
-#: ../../tutorial/SecureBoost.ipynb:448
+#: ../../tutorial/SecureBoost.ipynb:650
 msgid "Model Evaluation"
 msgstr "模型评估"
 
-#: ../../tutorial/SecureBoost.ipynb:450
+#: ../../tutorial/SecureBoost.ipynb:652
 msgid "Now we can compare the model outputs with true labels."
 msgstr "现在我们可以将模型输出与真实标签进行比较。"
 
-#: ../../tutorial/SecureBoost.ipynb:563
+#: ../../tutorial/SecureBoost.ipynb:700
 msgid "Model Save and Load"
 msgstr "模型保存和加载"
 
-#: ../../tutorial/SecureBoost.ipynb:565
+#: ../../tutorial/SecureBoost.ipynb:702
 msgid ""
 "We can now save the model and load it to use later. Note that the model "
 "is a distributed identity, we will save to and load from multiple "
 "parties."
 msgstr "现在我们可以保存模型, 并在以后使用它。请注意，模型是分布式的，我们将保存到多个参与方，并从多个参与方中加载。"
 
-#: ../../tutorial/SecureBoost.ipynb:567
+#: ../../tutorial/SecureBoost.ipynb:704
 msgid "Let’s first define the paths."
 msgstr "让我们先定义路径。"
 
-#: ../../tutorial/SecureBoost.ipynb:598
+#: ../../tutorial/SecureBoost.ipynb:730
 msgid "Then let’s save the model."
 msgstr "然后让我们保存模型。"
 
-#: ../../tutorial/SecureBoost.ipynb:619
+#: ../../tutorial/SecureBoost.ipynb:752
 msgid "Now you can check the files at specified location."
 msgstr "现在您可以在之前指定的位置检查文件。"
 
-#: ../../tutorial/SecureBoost.ipynb:621
+#: ../../tutorial/SecureBoost.ipynb:754
 msgid "Finally, let’s load the model and do a sanity check."
 msgstr "最后，让我们加载模型并进行一次检查。"
 
-#: ../../tutorial/SecureBoost.ipynb:720
+#: ../../tutorial/SecureBoost.ipynb:785
+msgid "More training Options"
+msgstr "更多训练设置"
+
+#: ../../tutorial/SecureBoost.ipynb:787
+msgid ""
+"What if we want to train a boosting model in lightGBM style? We can do "
+"that by setting leaf_wise training and enable goss."
+msgstr "如果我们想用lightGBM的方式训练树模型怎么办？我们可以设置按叶节点训练并开启GOSS功能。"
+
+#: ../../tutorial/SecureBoost.ipynb:1024
 msgid "Conclusion"
 msgstr "结论"
 
-#: ../../tutorial/SecureBoost.ipynb:722
+#: ../../tutorial/SecureBoost.ipynb:1026
 msgid "Great job on completing the tutorial!"
 msgstr "恭喜您完成了本教程！"
 
-#: ../../tutorial/SecureBoost.ipynb:724
+#: ../../tutorial/SecureBoost.ipynb:1028
 msgid ""
 "In conclusion, we have learned how to use tree models for training in "
 "SecretFlow and explored SecureBoost, a high-performance boosting "
@@ -147,7 +156,7 @@ msgstr ""
 "XGBoost，但重点关注在垂直学习场景中保护敏感标签。通过利用同态加密和 PYUObjects，SecureBoost "
 "允许我们训练强大的分布式森林模型，同时保护数据的隐私和安全。"
 
-#: ../../tutorial/SecureBoost.ipynb:726
+#: ../../tutorial/SecureBoost.ipynb:1030
 msgid ""
 "Thank you for participating in this tutorial, and we hope you found it "
 "informative and helpful!"

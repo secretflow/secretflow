@@ -6,18 +6,19 @@ from sklearn.datasets import load_breast_cancer
 
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.stats.ss_vif import ss_vif_comp
-from secretflow.protos.component.comp_pb2 import Attribute
-from secretflow.protos.component.data_pb2 import DistData, TableSchema, VerticalTable
-from secretflow.protos.component.evaluation_pb2 import NodeEvalParam
-from secretflow.protos.component.report_pb2 import Report
+from secretflow.spec.v1.component_pb2 import Attribute
+from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
+from secretflow.spec.v1.report_pb2 import Report
 
 
 def test_ss_vif(comp_prod_sf_cluster_config):
     alice_input_path = "test_ss_vif/alice.csv"
     bob_input_path = "test_ss_vif/bob.csv"
 
-    self_party = comp_prod_sf_cluster_config.private_config.self_party
-    local_fs_wd = comp_prod_sf_cluster_config.private_config.storage_config.local_fs.wd
+    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    self_party = sf_cluster_config.private_config.self_party
+    local_fs_wd = storage_config.local_fs.wd
 
     x = load_breast_cancer()["data"]
     if self_party == "alice":
@@ -25,7 +26,7 @@ def test_ss_vif(comp_prod_sf_cluster_config):
             os.path.join(local_fs_wd, "test_ss_vif"),
             exist_ok=True,
         )
-        ds = pd.DataFrame(x[:, :15], columns=[f'a{i}' for i in range(15)])
+        ds = pd.DataFrame(x[:, :15], columns=[f"a{i}" for i in range(15)])
         ds.to_csv(os.path.join(local_fs_wd, alice_input_path), index=False)
 
     elif self_party == "bob":
@@ -33,7 +34,7 @@ def test_ss_vif(comp_prod_sf_cluster_config):
             os.path.join(local_fs_wd, "test_ss_vif"),
             exist_ok=True,
         )
-        ds = pd.DataFrame(x[:, 15:], columns=[f'b{i}' for i in range(15)])
+        ds = pd.DataFrame(x[:, 15:], columns=[f"b{i}" for i in range(15)])
         ds.to_csv(os.path.join(local_fs_wd, bob_input_path), index=False)
 
     param = NodeEvalParam(
@@ -62,18 +63,22 @@ def test_ss_vif(comp_prod_sf_cluster_config):
     meta = VerticalTable(
         schemas=[
             TableSchema(
-                types=["f32"] * 15,
+                feature_types=["float32"] * 15,
                 features=[f"a{i}" for i in range(15)],
             ),
             TableSchema(
-                types=["f32"] * 15,
+                feature_types=["float32"] * 15,
                 features=[f"b{i}" for i in range(15)],
             ),
         ],
     )
     param.inputs[0].meta.Pack(meta)
 
-    res = ss_vif_comp.eval(param, comp_prod_sf_cluster_config)
+    res = ss_vif_comp.eval(
+        param=param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
 
     assert len(res.outputs) == 1
 

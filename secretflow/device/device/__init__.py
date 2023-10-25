@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from .base import Device, DeviceObject
-from .heu import HEU
+from .heu import HEU, heu_from_base_config
 from .heu_object import HEUObject
 from .pyu import PYU, PYUObject
 from .register import DeviceType, register

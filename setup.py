@@ -7,6 +7,7 @@ import shutil
 import sys
 from pathlib import Path
 from typing import List
+from datetime import date
 
 import setuptools
 from setuptools import find_packages, setup
@@ -19,7 +20,20 @@ if os.getcwd() != this_directory:
     exit(-1)
 
 
+def add_date_to_version(*filepath):
+    today = date.today()
+    dstr = today.strftime("%Y%m%d")
+    with open(os.path.join(".", *filepath), "r") as fp:
+        content = fp.read()
+
+    content = content.replace("$$DATE$$", dstr)
+
+    with open(os.path.join(".", *filepath), "w+") as fp:
+        fp.write(content)
+
+
 def find_version(*filepath):
+    add_date_to_version(*filepath)
     # Extract version information from filepath
     with open(os.path.join(".", *filepath)) as fp:
         version_match = re.search(
@@ -118,6 +132,9 @@ class BuildBazelExtension(build_ext.build_ext):
             "--compilation_mode=" + ("dbg" if self.debug else "opt"),
         ]
 
+        if platform.machine() == "x86_64":
+            bazel_argv.extend(["--config=avx"])
+
         self.spawn(bazel_argv)
 
         shared_lib_suffix = ".so"
@@ -196,7 +213,6 @@ setup(
             "tests.*",
         )
     ),
-    setup_requires=["protobuf_distutils"],
     install_requires=install_requires,
     ext_modules=[
         BazelExtension(
@@ -210,11 +226,6 @@ setup(
     dependency_links=dependency_links,
     options={
         "bdist_wheel": {"plat_name": plat_name()},
-        "generate_py_protobufs": {
-            "source_dir": "./secretflow/protos",
-            "proto_root_path": ".",
-            "output_dir": ".",
-        },
     },
     entry_points={
         "console_scripts": [

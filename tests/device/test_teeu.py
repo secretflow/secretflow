@@ -10,6 +10,7 @@ import secretflow as sf
 import secretflow.distributed as sfd
 from secretflow.device import global_state
 from secretflow.device.device.teeu import TEEU
+from secretflow.distributed.primitive import DISTRIBUTION_MODE
 from secretflow.utils.testing import unused_tcp_port
 from tests.cluster import cluster, get_self_party, set_self_party
 
@@ -26,7 +27,7 @@ class TeeuTestInventory:
 @pytest.fixture(scope="module")
 def teeu_production_setup_devices(request, sf_party_for_4pc):
     inventory = TeeuTestInventory()
-    sfd.set_production(True)
+    sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.PRODUCTION)
     set_self_party(sf_party_for_4pc)
     self_party = get_self_party()
     if self_party in ('carol', 'davy'):
@@ -117,7 +118,7 @@ def teeu_production_setup_devices(request, sf_party_for_4pc):
 
 
 @pytest.mark.skipif(platform == 'darwin', reason="TEEU does not support macOS")
-def test(teeu_production_setup_devices):
+def test_teeu_function_should_ok(teeu_production_setup_devices):
     def average(data):
         return np.average(data, axis=0)
 
@@ -130,3 +131,26 @@ def test(teeu_production_setup_devices):
     avg_val = sf.reveal(avg_val)
     expected_avg = average(sf.reveal([d1, d2]))
     np.testing.assert_equal(avg_val, expected_avg)
+
+
+@pytest.mark.skipif(platform == 'darwin', reason="TEEU does not support macOS")
+def test_teeu_actor_should_ok(teeu_production_setup_devices):
+    class Model:
+        def __init__(self, x):
+            self.x = x.copy()
+
+        def add(self, data):
+            self.x += data
+            return self.x
+
+    teeu = TEEU(party='carol', mr_enclave='')
+    d1 = teeu_production_setup_devices.alice(lambda: np.random.random([2, 4]))()
+    d2 = teeu_production_setup_devices.bob(lambda: np.random.random([2, 4]))()
+    d1_tee = d1.to(teeu, allow_funcs=Model)
+    d2_tee = d2.to(teeu, allow_funcs=Model)
+    model = teeu(Model)(d1_tee)
+    sum_val = model.add(d2_tee)
+    sum_val = sf.reveal(sum_val)
+    plain_model = Model(sf.reveal(d1))
+    expected_sum = plain_model.add(sf.reveal(d2))
+    np.testing.assert_equal(sum_val, expected_sum)

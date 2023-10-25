@@ -1,0 +1,136 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2022 Ant Group Co., Ltd.
+# This file is distributed under the same license as the SecretFlow package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2023.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: SecretFlow \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-06-15 17:20+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_CN\n"
+"Language-Team: zh_CN <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.11.0\n"
+
+#: ../../tutorial/gpt2_with_spu.ipynb:9
+msgid "GPT-2 private inference with SPU"
+msgstr "使用 SPU 基于 GPT-2 生成文本"
+
+#: ../../tutorial/gpt2_with_spu.ipynb:11
+msgid ""
+"In lab `Neural Network with SPU <./nn_with_spu.ipynb>`__, we have "
+"demonstrated how to use SecretFlow/SPU to train a Neural Network model "
+"privately."
+msgstr "在 `Neural Network with SPU <./nn_with_spu.ipynb>`__ lab 中，我们展示了"
+"如何使用 SecretFlow/SPU 训练一个神经网络模型。"
+
+#: ../../tutorial/gpt2_with_spu.ipynb:13
+msgid ""
+"In this lab, we showcase how to run private inference on a pre-trained "
+"`GPT-2 <https://cdn.openai.com/better-language-"
+"models/language_models_are_unsupervised_multitask_learners.pdf>`__ model "
+"for text generation with SPU."
+msgstr "在本 lab 中，我们展示如何使用 SPU 基于一个预训练的"
+" `GPT-2 <https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf>`__  "
+"模型生成文本。"
+
+
+#: ../../tutorial/gpt2_with_spu.ipynb:15
+msgid ""
+"First, we show how to use JAX and the Hugging Face Transformers library "
+"for text generation with the pre-trained GPT-2 model. After that, we show"
+" how to use SPU for private text generation with minor modifications to "
+"the plaintext counterpart."
+msgstr "首先，我们展示如何使用 JAX 和 Hugging Face transformers 库基于预训练 "
+"GPT-2 模型生成文本。然后，我们展示如何通过少量代码修改在 SPU 上生成文本。"
+
+
+#: ../../tutorial/gpt2_with_spu.ipynb:26
+msgid ""
+"The following codes are demos only. It’s **NOT for production** due to "
+"system security concerns, please **DO NOT** use it directly in "
+"production."
+msgstr "以下代码仅作为示例，请勿在生产环境直接使用。"
+
+#: ../../tutorial/gpt2_with_spu.ipynb:37
+msgid "This tutorial may need more resources than 16c48g."
+msgstr "本教程可能需要比 16c48g 更多的资源。"
+
+#: ../../tutorial/gpt2_with_spu.ipynb:49
+msgid "Text generation using GPT-2 with JAX/FLAX"
+msgstr "使用 JAX/Flax 通过 GPT-2 生成文本"
+
+#: ../../tutorial/gpt2_with_spu.ipynb:52
+msgid "Install the transformers library"
+msgstr "安装 transformers 库"
+
+#: ../../tutorial/gpt2_with_spu.ipynb:73
+msgid ""
+"The JAX version required by transformers is not satisfied with SPU. But "
+"it’s ok to run with the conflicted JAX with SPU in this example."
+msgstr "transformers 库要求的 JAX 版本与 SPU 不一致，但不影响运行本教程的示例。"
+
+#: ../../tutorial/gpt2_with_spu.ipynb:85
+msgid "Load the pre-trained GPT-2 Model"
+msgstr "加载预训练 GPT-2 模型"
+
+#: ../../tutorial/gpt2_with_spu.ipynb:87
+msgid ""
+"Please refer to this `documentation "
+"<https://huggingface.co/docs/transformers/main/en/model_doc/gpt2>`__ for "
+"more details."
+msgstr "请参考 `该文档 "
+"<https://huggingface.co/docs/transformers/main/en/model_doc/gpt2>`__ 获取更多 Flax 运行 GPT-2 的细节。 "
+
+#: ../../tutorial/gpt2_with_spu.ipynb:137
+msgid "Define the text generation function"
+msgstr "定义文本生成函数"
+
+#: ../../tutorial/gpt2_with_spu.ipynb:139
+msgid ""
+"We use a `greedy search strategy <https://huggingface.co/blog/how-to-"
+"generate>`__ for text generation here."
+msgstr "我们使用 `贪心搜索策略 <https://huggingface.co/blog/how-to-"
+"generate>`__ 来生成文本。"
+
+#: ../../tutorial/gpt2_with_spu.ipynb:170
+msgid "Run text generation on CPU"
+msgstr "在 CPU 上生成文本"
+
+#: ../../tutorial/gpt2_with_spu.ipynb:268
+msgid ""
+"Here we generate 10 tokens. Keep the generated text in mind, we are going"
+" to generate text on SPU in the next step."
+msgstr "这里我们生成了 10 个 tokens。请记住生成的文本，我们接下来会在 SPU 上生成文本。"
+
+#: ../../tutorial/gpt2_with_spu.ipynb:280
+msgid "Run text generation on SPU"
+msgstr "在 SPU 上生成文本"
+
+#: ../../tutorial/gpt2_with_spu.ipynb:573
+msgid "Check the SPU output"
+msgstr "检查 SPU 的输出"
+
+#: ../../tutorial/gpt2_with_spu.ipynb:575
+msgid ""
+"As you can see, it’s very easy to run GPT-2 inference on SPU. Now let’s "
+"reveal the generated text from SPU program."
+msgstr "可以发现，在 SPU 上运行 GPT-2 推理非常简单。接下来让我们明文显示 SPU 生成的文本。"
+
+#: ../../tutorial/gpt2_with_spu.ipynb:676
+msgid ""
+"As we can see, the generated text from SPU is exactly same as the "
+"generated text from CPU!"
+msgstr "可以发现，SPU 生成的文本与 CPU 生成的文本是完全一致的！"
+
+#: ../../tutorial/gpt2_with_spu.ipynb:687
+msgid "This is the end of the lab."
+msgstr "本教程到此结束。"
+

@@ -83,7 +83,9 @@ def _predict(
     num_feat = x.shape[1]
     samples = x.shape[0]
     assert samples >= total_batch * batch_size, "total batch is too large"
-    assert w.shape[0] == num_feat + 1, "w shape is mismatch to x"
+    assert (
+        w.shape[0] == num_feat + 1
+    ), f"w shape is mismatch to x, w.shape[0]={w.shape[0]} and num_feat={num_feat}"
     assert len(w.shape) == 1 or w.shape[1] == 1, "w should be list or 1D array"
     w = w.reshape((w.shape[0], 1))
 

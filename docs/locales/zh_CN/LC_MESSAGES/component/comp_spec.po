@@ -1,0 +1,411 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2022 Ant Group Co., Ltd.
+# This file is distributed under the same license as the SecretFlow package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2023.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: SecretFlow \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-10-14 16:59+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.12.1\n"
+
+#: ../../component/comp_spec.md:1
+msgid "Extended Specification"
+msgstr "扩展标准"
+
+#: ../../component/comp_spec.md:3
+msgid "Table of Contents"
+msgstr "目录"
+
+#: ../../component/comp_spec.md:6 ../../component/comp_spec.md:38
+msgid "cluster.proto"
+msgstr ""
+
+#: ../../component/comp_spec.md:10 ../../component/comp_spec.md:28
+#: ../../component/comp_spec.md:45 ../../component/comp_spec.md:196
+msgid "Messages"
+msgstr ""
+
+#: ../../component/comp_spec.md:11
+msgid "[SFClusterConfig](#sfclusterconfig)"
+msgstr ""
+
+#: ../../component/comp_spec.md:12
+msgid "[SFClusterConfig.PrivateConfig](#sfclusterconfigprivateconfig)"
+msgstr ""
+
+#: ../../component/comp_spec.md:13
+msgid "[SFClusterConfig.PublicConfig](#sfclusterconfigpublicconfig)"
+msgstr ""
+
+#: ../../component/comp_spec.md:14
+msgid "[SFClusterConfig.RayFedConfig](#sfclusterconfigrayfedconfig)"
+msgstr ""
+
+#: ../../component/comp_spec.md:15
+msgid "[SFClusterConfig.SPUConfig](#sfclusterconfigspuconfig)"
+msgstr ""
+
+#: ../../component/comp_spec.md:16
+msgid "[SFClusterDesc](#sfclusterdesc)"
+msgstr ""
+
+#: ../../component/comp_spec.md:17
+msgid "[SFClusterDesc.DeviceDesc](#sfclusterdescdevicedesc)"
+msgstr ""
+
+#: ../../component/comp_spec.md:18
+msgid "[SFClusterDesc.RayFedConfig](#sfclusterdescrayfedconfig)"
+msgstr ""
+
+#: ../../component/comp_spec.md:24 ../../component/comp_spec.md:189
+msgid "data.proto"
+msgstr ""
+
+#: ../../component/comp_spec.md:29
+msgid "[DeviceObjectCollection](#deviceobjectcollection)"
+msgstr ""
+
+#: ../../component/comp_spec.md:30
+msgid "[DeviceObjectCollection.DeviceObject](#deviceobjectcollectiondeviceobject)"
+msgstr ""
+
+#: ../../component/comp_spec.md:40
+msgid ""
+"Proto file: "
+"[secretflow/protos/secretflow/spec/extend/cluster.proto](https://github.com/secretflow/secretflow/tree/main/secretflow/protos/secretflow/spec/extend/cluster.proto)"
+msgstr ""
+
+#: ../../component/comp_spec.md:48
+msgid "SFClusterConfig"
+msgstr ""
+
+#: ../../component/comp_spec.md:49
+msgid ""
+"Runtime Config for a SecretFlow cluster. Besides intrinsic SFClusterDesc,"
+" dynamic network configs are provided."
+msgstr "SecretFlow 集群的运行时配置。除了内在的 SFClusterDesc 外，还提供了动态网络配置"
+
+#: ../../component/comp_spec.md
+msgid "Field"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid "Type"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid "Description"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid "desc"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid "[ SFClusterDesc](#sfclusterdesc)"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid "Intrinsic properties."
+msgstr "内在属性。"
+
+#: ../../component/comp_spec.md
+msgid "public_config"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid "[ SFClusterConfig.PublicConfig](#sfclusterconfigpublicconfig)"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid "Dynamic runtime public configs."
+msgstr "动态运行时公共配置。"
+
+#: ../../component/comp_spec.md
+msgid "private_config"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid "[ SFClusterConfig.PrivateConfig](#sfclusterconfigprivateconfig)"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid "Dynamic runtime private configs."
+msgstr "动态运行时私有配置。"
+
+#: ../../component/comp_spec.md:62
+msgid "SFClusterConfig.PrivateConfig"
+msgstr ""
+
+#: ../../component/comp_spec.md:63
+msgid "Different for each party. Private and unique to each party."
+msgstr "对于每个参与方都不同。对于每个参与方是私有且唯一的。"
+
+#: ../../component/comp_spec.md
+msgid "self_party"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid "[ string](#string)"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid "none"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid "ray_head_addr"
+msgstr ""
+
+#: ../../component/comp_spec.md:75
+msgid "SFClusterConfig.PublicConfig"
+msgstr ""
+
+#: ../../component/comp_spec.md:76
+msgid "Public and shared to all parties."
+msgstr "对所有参与方公开且共享的。"
+
+#: ../../component/comp_spec.md
+msgid "ray_fed_config"
+msgstr "ray_fed 配置。"
+
+#: ../../component/comp_spec.md
+msgid "[ SFClusterConfig.RayFedConfig](#sfclusterconfigrayfedconfig)"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid "spu_configs"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid "[repeated SFClusterConfig.SPUConfig](#sfclusterconfigspuconfig)"
+msgstr ""
+
+#: ../../component/comp_spec.md:87
+msgid "SFClusterConfig.RayFedConfig"
+msgstr ""
+
+#: ../../component/comp_spec.md:88
+msgid "Addresses for the RayFed cluster of each party."
+msgstr "每个参与方的 RayFed 集群地址。"
+
+#: ../../component/comp_spec.md
+msgid "parties"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid "[repeated string](#string)"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid "addresses"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid "listen_addresses"
+msgstr ""
+
+#: ../../component/comp_spec.md:100
+msgid "SFClusterConfig.SPUConfig"
+msgstr ""
+
+#: ../../component/comp_spec.md:101
+msgid "Contains addresses for one SPU device."
+msgstr "包含一个 SPU 设备的地址。"
+
+#: ../../component/comp_spec.md
+msgid "name"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid "Should match SPU name in SFClusterDesc.devices."
+msgstr "应与 SFClusterDesc.devices 中的 SPU 名称匹配"
+
+#: ../../component/comp_spec.md:114
+msgid "SFClusterDesc"
+msgstr ""
+
+#: ../../component/comp_spec.md:115
+msgid "Intrinsic properties of a SecretFlow cluster, including:"
+msgstr "SecretFlow 集群的内在属性，包括"
+
+#: ../../component/comp_spec.md:117
+msgid "Version info."
+msgstr "版本信息。"
+
+#: ../../component/comp_spec.md:118
+msgid "Parties: who participate in the computation."
+msgstr "参与计算的各方。"
+
+#: ../../component/comp_spec.md:119
+msgid "Secret devices including  and their configs."
+msgstr "包括秘密设备及其配置"
+
+#: ../../component/comp_spec.md
+msgid "sf_version"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid "SecretFlow version."
+msgstr "SecretFlow版本"
+
+#: ../../component/comp_spec.md
+msgid "py_version"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid "Python version."
+msgstr "Python 版本"
+
+#: ../../component/comp_spec.md
+msgid "Joined entities. e.g. [\"alice\", \"bob\",...]."
+msgstr "参与实体. e.g. [\"alice\", \"bob\",...]."
+
+#: ../../component/comp_spec.md
+msgid "devices"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid "[repeated SFClusterDesc.DeviceDesc](#sfclusterdescdevicedesc)"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid "Description of secret devices"
+msgstr "秘密设备的描述"
+
+#: ../../component/comp_spec.md
+msgid "[ SFClusterDesc.RayFedConfig](#sfclusterdescrayfedconfig)"
+msgstr ""
+
+#: ../../component/comp_spec.md:133
+msgid "SFClusterDesc.DeviceDesc"
+msgstr ""
+
+#: ../../component/comp_spec.md:134
+msgid "Description for a secret device."
+msgstr "一个秘密设备的描述。"
+
+#: ../../component/comp_spec.md:135
+msgid "PYUs do not need to claim since they are plaintext devices."
+msgstr "PYU 不需要声明，因为它们是明文设备。"
+
+#: ../../component/comp_spec.md:136
+msgid ""
+"Notes for config: At this moment, you have to provide a JSON string for "
+"different devices. We are going to formalize this part in future."
+msgstr "配置说明：目前，您必须为不同的设备提供一个 JSON 字符串。我们将在未来规范化此部分。"
+
+#: ../../component/comp_spec.md:139
+msgid "Example SPU config:"
+msgstr "示例 SPU 配置："
+
+#: ../../component/comp_spec.md:157
+msgid ""
+"Referrences: SPU: https://www.secretflow.org.cn/docs/spu/latest/en-"
+"US/reference/runtime_config#runtimeconfig HEU: "
+"https://www.secretflow.org.cn/docs/secretflow/latest/en-"
+"US/source/secretflow.device.device.device#secretflow.device.device.heu.HEU.__init__"
+msgstr ""
+"参考: [SPU](https://www.secretflow.org.cn/docs/spu/latest/en-US/reference/runtime_config#runtimeconfig) | [HEU](https://www.secretflow.org.cn/docs/secretflow/latest/en-US/source/secretflow.device.device.device#secretflow.device.device.heu.HEU.__init__) 。"
+
+#: ../../component/comp_spec.md
+msgid "Name of the device."
+msgstr "设备名称。"
+
+#: ../../component/comp_spec.md
+msgid "type"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid "Supported: SPU, HEU, TEEU."
+msgstr "可选: SPU, HEU, TEEU."
+
+#: ../../component/comp_spec.md
+msgid "Parties of device."
+msgstr "设备组成各方。"
+
+#: ../../component/comp_spec.md
+msgid "config"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid "Specific config for the secret device."
+msgstr "秘密设备的特别配置。"
+
+#: ../../component/comp_spec.md:174
+msgid "SFClusterDesc.RayFedConfig"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid "cross_silo_comm_backend"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid ""
+"Indicates communication backend of RayFed. Accepted: 'grpc', 'brpc_link' "
+"Dafault is 'grpc'"
+msgstr ""
+
+#: ../../component/comp_spec.md:185 ../../component/comp_spec.md:223
+msgid "Enums"
+msgstr ""
+
+#: ../../component/comp_spec.md:191
+msgid ""
+"Proto file: "
+"[secretflow/protos/secretflow/spec/extend/data.proto](https://github.com/secretflow/secretflow/tree/main/secretflow/protos/secretflow/spec/extend/data.proto)"
+msgstr ""
+
+#: ../../component/comp_spec.md:199
+msgid "DeviceObjectCollection"
+msgstr ""
+
+#: ../../component/comp_spec.md:200
+msgid "Descibes public storage info for a collection of Device Objects."
+msgstr "描述设备对象集合的公共存储信息。"
+
+#: ../../component/comp_spec.md
+msgid "objs"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid ""
+"[repeated "
+"DeviceObjectCollection.DeviceObject](#deviceobjectcollectiondeviceobject)"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid "public_info"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid "Any public information."
+msgstr "任何公共信息。"
+
+#: ../../component/comp_spec.md:211
+msgid "DeviceObjectCollection.DeviceObject"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid "Supported: `spu | pyu`"
+msgstr "可选: `spu | pyu`"
+
+#: ../../component/comp_spec.md
+msgid "data_ref_idxs"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid "[repeated int32](#int32)"
+msgstr ""
+
+#: ../../component/comp_spec.md
+msgid "Index of data_ref in the parent DistData message."
+msgstr "data_ref 在父级 DistData 消息中的索引。"

@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 
 from secretflow import reveal
-from secretflow.data.base import Partition
+from secretflow.data import partition
 from secretflow.data.horizontal.dataframe import HDataFrame
 from secretflow.data.mix import MixDataFrame
 from secretflow.data.vertical import VDataFrame
@@ -32,20 +32,20 @@ def prod_env_and_data(sf_production_setup_devices):
 
     h_part0 = VDataFrame(
         {
-            sf_production_setup_devices.alice: Partition(
+            sf_production_setup_devices.alice: partition(
                 data=sf_production_setup_devices.alice(lambda: df_part0.iloc[:4, :])()
             ),
-            sf_production_setup_devices.bob: Partition(
+            sf_production_setup_devices.bob: partition(
                 data=sf_production_setup_devices.bob(lambda: df_part1.iloc[:4, :])()
             ),
         }
     )
     h_part1 = VDataFrame(
         {
-            sf_production_setup_devices.alice: Partition(
+            sf_production_setup_devices.alice: partition(
                 data=sf_production_setup_devices.alice(lambda: df_part0.iloc[4:, :])()
             ),
-            sf_production_setup_devices.bob: Partition(
+            sf_production_setup_devices.bob: partition(
                 data=sf_production_setup_devices.bob(lambda: df_part1.iloc[4:, :])()
             ),
         }
@@ -54,10 +54,10 @@ def prod_env_and_data(sf_production_setup_devices):
 
     v_part0 = HDataFrame(
         {
-            sf_production_setup_devices.alice: Partition(
+            sf_production_setup_devices.alice: partition(
                 data=sf_production_setup_devices.alice(lambda: df_part0.iloc[:4, :])()
             ),
-            sf_production_setup_devices.bob: Partition(
+            sf_production_setup_devices.bob: partition(
                 data=sf_production_setup_devices.bob(lambda: df_part0.iloc[4:, :])()
             ),
         },
@@ -66,10 +66,10 @@ def prod_env_and_data(sf_production_setup_devices):
     )
     v_part1 = HDataFrame(
         {
-            sf_production_setup_devices.alice: Partition(
+            sf_production_setup_devices.alice: partition(
                 data=sf_production_setup_devices.alice(lambda: df_part1.iloc[:4, :])()
             ),
-            sf_production_setup_devices.bob: Partition(
+            sf_production_setup_devices.bob: partition(
                 data=sf_production_setup_devices.bob(lambda: df_part1.iloc[4:, :])()
             ),
         },
@@ -284,14 +284,14 @@ def test_setitem_should_ok_when_hmix(prod_env_and_data):
     )
     part0 = VDataFrame(
         {
-            env.alice: Partition(data=env.alice(lambda: v_alice.iloc[:4, :])()),
-            env.bob: Partition(data=env.bob(lambda: v_bob.iloc[:4, :])()),
+            env.alice: partition(data=env.alice(lambda: v_alice.iloc[:4, :])()),
+            env.bob: partition(data=env.bob(lambda: v_bob.iloc[:4, :])()),
         }
     )
     part1 = VDataFrame(
         {
-            env.alice: Partition(data=env.alice(lambda: v_alice.iloc[4:, :])()),
-            env.bob: Partition(data=env.bob(lambda: v_bob.iloc[4:, :])()),
+            env.alice: partition(data=env.alice(lambda: v_alice.iloc[4:, :])()),
+            env.bob: partition(data=env.bob(lambda: v_bob.iloc[4:, :])()),
         }
     )
     to = MixDataFrame(partitions=[part0, part1])
@@ -331,14 +331,14 @@ def test_setitem_should_ok_when_vmix(prod_env_and_data):
     )
     part0 = HDataFrame(
         {
-            env.alice: Partition(data=env.alice(lambda: v_alice.iloc[:4, :])()),
-            env.bob: Partition(data=env.bob(lambda: v_alice.iloc[4:, :])()),
+            env.alice: partition(data=env.alice(lambda: v_alice.iloc[:4, :])()),
+            env.bob: partition(data=env.bob(lambda: v_alice.iloc[4:, :])()),
         }
     )
     part1 = HDataFrame(
         {
-            env.alice: Partition(data=env.alice(lambda: v_bob.iloc[:4, :])()),
-            env.bob: Partition(data=env.bob(lambda: v_bob.iloc[4:, :])()),
+            env.alice: partition(data=env.alice(lambda: v_bob.iloc[:4, :])()),
+            env.bob: partition(data=env.bob(lambda: v_bob.iloc[4:, :])()),
         }
     )
     to = MixDataFrame(partitions=[part0, part1])
@@ -436,7 +436,7 @@ def test_setitem_should_error_when_wrong_value_type(prod_env_and_data):
         InvalidArgumentError,
         match='Can not assgin a HDataFrame/VDataFrame/Partition to MixDataFrame.',
     ):
-        value['a1'] = Partition(data=env.alice(lambda: to)())
+        value['a1'] = partition(data=env.alice(lambda: to)())
     with pytest.raises(
         InvalidArgumentError,
         match='Can not assgin a HDataFrame/VDataFrame/Partition to MixDataFrame.',

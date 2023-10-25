@@ -8,8 +8,9 @@ from sklearn.metrics import roc_auc_score
 
 import secretflow as sf
 import secretflow.distributed as sfd
-from secretflow.data.base import Partition
+from secretflow.data import partition
 from secretflow.data.vertical import VDataFrame
+from secretflow.distributed.primitive import DISTRIBUTION_MODE
 from secretflow.ml.linear.fl_lr_v import FlLogisticRegressionVertical
 from secretflow.preprocessing import StandardScaler
 from secretflow.security.aggregation.plain_aggregator import PlainAggregator
@@ -29,14 +30,19 @@ class DeviceInventory:
 @pytest.fixture(scope="module")
 def env(request, sf_party_for_4pc):
     devices = DeviceInventory()
-    sfd.set_production(True)
+    sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.PRODUCTION)
     set_self_party(sf_party_for_4pc)
     sf.init(
         address='local',
         num_cpus=8,
         log_to_driver=True,
         cluster_config=cluster(),
-        exit_on_failure_cross_silo_sending=True,
+        cross_silo_comm_backend='brpc_link',
+        cross_silo_comm_options={
+            'exit_on_sending_failure': True,
+            'http_max_payload_size': 5 * 1024 * 1024,
+            'recv_timeout_ms': 1800 * 1000,
+        },
         enable_waiting_for_other_parties_ready=False,
     )
 
@@ -66,14 +72,14 @@ def env(request, sf_party_for_4pc):
     ]
     x = VDataFrame(
         partitions={
-            devices.alice: Partition(devices.alice(lambda: feat_list[0])()),
-            devices.bob: Partition(devices.bob(lambda: feat_list[1])()),
-            devices.carol: Partition(devices.carol(lambda: feat_list[2])()),
+            devices.alice: partition(devices.alice(lambda: feat_list[0])()),
+            devices.bob: partition(devices.bob(lambda: feat_list[1])()),
+            devices.carol: partition(devices.carol(lambda: feat_list[2])()),
         }
     )
     x = StandardScaler().fit_transform(x)
     y = VDataFrame(
-        partitions={devices.alice: Partition(devices.alice(lambda: label)())}
+        partitions={devices.alice: partition(devices.alice(lambda: label)())}
     )
 
     yield devices, {
@@ -154,7 +160,7 @@ def test_fit_should_error_when_mismatch_heu_sk_keeper(env):
     )
     x = data['x'].values
     y = VDataFrame(
-        partitions={devices.bob: Partition(devices.bob(lambda: [1, 2, 3])())}
+        partitions={devices.bob: partition(devices.bob(lambda: [1, 2, 3])())}
     )
 
     # WHEN

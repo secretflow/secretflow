@@ -40,13 +40,13 @@ msgstr "设计思想"
 
 #: ../../developer/design/architecture.md:9
 msgid ""
-"Privacy computing is an emerging interdisciplinary field involving "
+"privacy-preserving computing is an emerging interdisciplinary field involving "
 "cryptography, machine learning, databases, hardware, and other fields. "
 "Based on the practical experience over the past few years, we found that"
 msgstr "隐私计算是一个新兴的跨学科领域，涉及密码学、机器学习、数据库、硬件等多个领域。根据过去几年的实践经验，我们发现"
 
 #: ../../developer/design/architecture.md:12
-msgid "No privacy computing technology is suitable for all scenarios."
+msgid "No privacy-preserving computing technology is suitable for all scenarios."
 msgstr "没有一种隐私计算技术可以适用于所有的场景"
 
 #: ../../developer/design/architecture.md:13
@@ -57,7 +57,7 @@ msgstr "隐私计算学习曲线很高，其他背景用户使用困难"
 
 #: ../../developer/design/architecture.md:14
 msgid ""
-"Privacy computing involves many fields and requires the cooperation of "
+"privacy-preserving computing involves many fields and requires the cooperation of "
 "different domain experts."
 msgstr "隐私计算涉及领域众多，需要领域专家共同协作"
 
@@ -85,7 +85,7 @@ msgid ""
 "the device layer, we work with experts in cryptography, trusted hardware,"
 " hardware acceleration and other fields to continuously improve protocol "
 "security and computing performance. At the same time, SecretFlow provides"
-" a good device interface, and the third-party privacy computing protocol "
+" a good device interface, and the third-party privacy-preserving computing protocol "
 "can be plugged in as a device. At the algorithm layer, a flexible "
 "programming interface is provided for machine learning, and algorithm "
 "developers can easily define their own algorithms."
@@ -102,7 +102,7 @@ msgstr "设备"
 msgid ""
 "The devices of the SecretFlow are divided into physical devices and "
 "logical devices. The physical device is the physical machine of each "
-"participant in the privacy computing, and the logical device is composed "
+"participant in the privacy-preserving computing, and the logical device is composed "
 "of one or more physical devices. A logical device supports a specific set"
 " of computing operators (Device Ops) and has its own specific data "
 "representation (Device Object). Logical devices are divided into two "
@@ -511,10 +511,10 @@ msgstr ""
 #: ../../developer/design/architecture.md:145
 msgid ""
 "Ray is a distributed system suitable for LAN environments. To apply it to"
-" privacy computing scenarios, a lot of security reinforcement and "
+" privacy-preserving computing scenarios, a lot of security reinforcement and "
 "environment adaptation needs to be done. We are in-depth cooperation with"
 " Ant Group's Ray team to create a secure and reliable Ray framework "
-"suitable for privacy computing."
+"suitable for privacy-preserving computing."
 msgstr "Ray是适用于局域网环境的分布式系统，要将其应用于隐私计算场景，需要做许多安全加固和环境适配工作。我们与蚂蚁计算智能Ray内核团队展开深入合作，打造一个安全可靠的、适合隐私计算的Ray框架。"
 
 #: ../../developer/design/architecture.md:148
@@ -544,7 +544,7 @@ msgid ""
 "The abstraction of logical devices provides great flexibility for "
 "algorithm developers. They can freely combine these devices like building"
 " blocks, and customize computations on the devices to build their own "
-"privacy computing algorithms."
+"privacy-preserving computing algorithms."
 msgstr "逻辑设备抽象为算法开发者提供了极大的灵活性，他们可以像积木一样自由组合这些设备，在设备上自定义计算，从而构建自己的隐私计算算法。"
 
 #: ../../developer/design/architecture.md:155

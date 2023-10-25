@@ -55,13 +55,17 @@ LATEST_TAG=secretflow/secretflow-anolis8:latest
 IMAGE_LITE_TAG=secretflow/secretflow-lite-anolis8:${VERSION}
 LATEST_LITE_TAG=secretflow/secretflow-lite-anolis8:latest
 
+# wait pypi to be updated.
+sleep 10s
+
 echo -e "Building ${GREEN}${IMAGE_TAG}${NO_COLOR}"
-docker build . -f anolis.Dockerfile -t ${IMAGE_TAG} --build-arg sf_version=${VERSION}
+(cd ../ && cp *.yml release/ && cp *.json release/)
+docker build . -f anolis.Dockerfile -t ${IMAGE_TAG} --build-arg sf_version=${VERSION} --build-arg config_templates="$(cat config_templates.yml)" --build-arg deploy_templates="$(cat deploy_templates.yml)" --build-arg comp_list="$(cat comp_list.json)" --build-arg translation="$(cat translation.json)"
 echo -e "Finish building ${GREEN}${IMAGE_TAG}${NO_COLOR}"
 docker push ${IMAGE_TAG}
 
 echo -e "Building ${GREEN}${IMAGE_LITE_TAG}${NO_COLOR}"
-docker build . -f anolis-lite.Dockerfile -t ${IMAGE_LITE_TAG} --build-arg sf_version=${VERSION}
+docker build . -f anolis-lite.Dockerfile -t ${IMAGE_LITE_TAG} --build-arg sf_version=${VERSION} --build-arg config_templates="$(cat config_templates.yml)" --build-arg deploy_templates="$(cat deploy_templates.yml)" --build-arg comp_list="$(cat comp_list.json)" --build-arg translation="$(cat translation.json)"
 echo -e "Finish building ${GREEN}${IMAGE_LITE_TAG}${NO_COLOR}"
 docker push ${IMAGE_LITE_TAG}
 

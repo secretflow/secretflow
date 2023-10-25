@@ -24,7 +24,8 @@ class NodeCache:
         self.cache = {}
 
     def reset_node(self, node_index):
-        self.cache.pop(node_index)
+        if node_index in self.cache:
+            self.cache.pop(node_index)
 
     def collect_node_bucket_sum(self, node_index: int, bucket_sum: int):
         """Collect one node's bucket sum.

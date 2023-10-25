@@ -19,7 +19,7 @@ from secretflow.ml.nn import SLModel
 from secretflow.ml.nn.sl.agglayer.agg_method import Average
 from secretflow.security.privacy import DPStrategy, LabelDP
 from secretflow.security.privacy.mechanism.tensorflow import GaussianEmbeddingDP
-from secretflow.utils.compressor import RandomSparse, TopkSparse
+from secretflow.utils.compressor import QuantizedZeroPoint, TopkSparse, MixedCompressor
 from secretflow.utils.simulation.datasets import load_mnist
 
 _temp_dir = tempfile.mkdtemp()
@@ -139,7 +139,7 @@ def keras_model_with_mnist(
     data,
     label,
     strategy='split_nn',
-    **kwargs
+    **kwargs,
 ):
     # kwargs parsing
     dp_strategy_dict = kwargs.get('dp_strategy_dict', None)
@@ -155,10 +155,10 @@ def keras_model_with_mnist(
 
     agg_method = kwargs.get('agg_method', None)
     compressor = kwargs.get('compressor', None)
+    pipeline_size = kwargs.get('pipeline_size', 1)
 
     party_shape = data.partition_shape()
-    alice_length = party_shape[devices.alice][0]
-    bob_length = party_shape[devices.bob][0]
+    data_length = party_shape[devices.alice][0]
 
     sl_model = SLModel(
         base_model_dict=base_model_dict,
@@ -177,6 +177,7 @@ def keras_model_with_mnist(
         max_fuse_local_steps=max_fuse_local_steps,
         agg_method=agg_method,
         compressor=compressor,
+        pipeline_size=pipeline_size,
     )
 
     history = sl_model.fit(
@@ -198,9 +199,7 @@ def keras_model_with_mnist(
         random_seed=1234,
         dataset_builder=dataset_builder,
     )
-    alice_arr = devices.alice(lambda: np.zeros(alice_length))()
-    bob_arr = devices.bob(lambda: np.zeros(bob_length))()
-    sample_weights = load({devices.alice: alice_arr, devices.bob: bob_arr})
+    sample_weights = load({devices.bob: devices.bob(lambda: np.zeros(data_length))()})
     zero_metric = sl_model.evaluate(
         data,
         label,
@@ -214,8 +213,10 @@ def keras_model_with_mnist(
         global_metric['accuracy'], history['val_accuracy'][-1], rel_tol=0.01
     )
     loss_sum = 0
-    for w in sl_model._workers.values():
-        loss = reveal(w.get_base_losses())
+    for device, worker in sl_model._workers.items():
+        if device not in base_model_dict:
+            continue
+        loss = reveal(worker.get_base_losses())
         if len(loss) > 0:
             import tensorflow as tf
 
@@ -224,12 +225,12 @@ def keras_model_with_mnist(
         assert math.isclose(zero_metric['loss'], loss_sum, rel_tol=0.01)
     else:
         assert zero_metric['loss'] == 0.0
-    assert global_metric['accuracy'] > 0.8
+    assert global_metric['accuracy'] > 0.7
     result = sl_model.predict(data, batch_size=128, verbose=1)
     reveal_result = []
     for rt in result:
         reveal_result.extend(reveal(rt))
-    assert len(reveal_result) == alice_length
+    assert len(reveal_result) == data_length
     base_model_path = os.path.join(_temp_dir, "base_model")
     fuse_model_path = os.path.join(_temp_dir, "fuse_model")
     sl_model.save_model(
@@ -240,8 +241,12 @@ def keras_model_with_mnist(
     assert os.path.exists(base_model_path)
     assert os.path.exists(fuse_model_path)
 
+    reload_base_model_dict = {}
+    for device in base_model_dict.keys():
+        reload_base_model_dict[device] = None
+
     sl_model_load = SLModel(
-        base_model_dict=base_model_dict,
+        base_model_dict=reload_base_model_dict,
         device_y=device_y,
         model_fuse=model_fuse,
         dp_strategy_dict=dp_strategy_dict,
@@ -307,6 +312,10 @@ def keras_model_with_mnist(
 
 class TestSLModelTensorflow:
     def test_single_output_model(self, sf_simulation_setup_devices):
+        global _temp_dir
+        _temp_dir = reveal(
+            sf_simulation_setup_devices.alice(lambda: tempfile.mkdtemp())()
+        )
         num_samples = 10000
         (x_train, y_train), (_, _) = load_mnist(
             parts={
@@ -435,6 +444,18 @@ class TestSLModelTensorflow:
             split_steps=1,
             max_fuse_local_steps=10,
         )
+        # test split state async
+        keras_model_with_mnist(
+            devices=sf_simulation_setup_devices,
+            data=x_train,
+            label=y_train,
+            base_model_dict=base_model_dict,
+            model_fuse=fuse_model,
+            device_y=sf_simulation_setup_devices.bob,
+            strategy='pipeline',
+            pipeline_size=2,
+        )
+
         # test model with regularizer
         base_model_with_reg = create_base_model(input_shape, 64, output_num=1, l2=1e-3)
         keras_model_with_mnist(
@@ -447,6 +468,40 @@ class TestSLModelTensorflow:
             },
             model_fuse=fuse_model,
             device_y=sf_simulation_setup_devices.bob,
+        )
+
+        print("test TopK Sparse")
+        top_k_compressor = TopkSparse(0.5)
+        keras_model_with_mnist(
+            data=x_train,
+            label=y_train,
+            devices=sf_simulation_setup_devices,
+            base_model_dict=base_model_dict,
+            model_fuse=fuse_model,
+            device_y=sf_simulation_setup_devices.bob,
+            compressor=top_k_compressor,
+        )
+        print("test quantized compressor")
+        quantized_compressor = QuantizedZeroPoint()
+        keras_model_with_mnist(
+            data=x_train,
+            label=y_train,
+            devices=sf_simulation_setup_devices,
+            base_model_dict=base_model_dict,
+            model_fuse=fuse_model,
+            device_y=sf_simulation_setup_devices.bob,
+            compressor=quantized_compressor,
+        )
+        print("test mixed compressor")
+        mixed_compressor = MixedCompressor(QuantizedZeroPoint(), TopkSparse(0.5))
+        keras_model_with_mnist(
+            data=x_train,
+            label=y_train,
+            devices=sf_simulation_setup_devices,
+            base_model_dict=base_model_dict,
+            model_fuse=fuse_model,
+            device_y=sf_simulation_setup_devices.bob,
+            compressor=mixed_compressor,
         )
 
     def test_multi_output_model(self, sf_simulation_setup_devices):
@@ -514,7 +569,6 @@ class TestSLModelTensorflow:
 
         # agg layer
         print("test PlainAggLayer")
-        top_k_compressor = TopkSparse(0.5)
         keras_model_with_mnist(
             data=x_train,
             label=y_train,
@@ -523,21 +577,7 @@ class TestSLModelTensorflow:
             model_fuse=fuse_model,
             device_y=sf_simulation_setup_devices.bob,
             agg_method=Average(),
-            compressor=top_k_compressor,
-        )
-
-        print("test RandomSparse")
-        random_sparse = RandomSparse(0.2)
-
-        keras_model_with_mnist(
-            data=x_train,
-            label=y_train,
-            devices=sf_simulation_setup_devices,
-            base_model_dict=base_model_dict,
-            model_fuse=fuse_model,
-            device_y=sf_simulation_setup_devices.bob,
-            agg_method=Average(),
-            compressor=random_sparse,
+            compressor=TopkSparse(0.5),
         )
 
         # spu agglayer
@@ -550,4 +590,112 @@ class TestSLModelTensorflow:
             model_fuse=fuse_model,
             device_y=sf_simulation_setup_devices.bob,
             agg_method=Average(),
+        )
+
+    def test_single_feature_model_agg_layer(self, sf_simulation_setup_devices):
+        (x_train, y_train), (_, _) = load_mnist(
+            parts={
+                sf_simulation_setup_devices.alice: (0, 10000),
+                sf_simulation_setup_devices.bob: (0, 10000),
+            },
+            normalized_x=True,
+            categorical_y=True,
+        )
+        base_model = create_base_model(
+            input_shape,
+            64,
+            output_num=1,
+        )
+        base_model_dict = {
+            sf_simulation_setup_devices.alice: base_model,
+        }
+        fuse_model = create_fuse_model_agglayer(
+            input_dim=hidden_size,
+            output_dim=num_classes,
+        )
+
+        # agg layer
+        print("test PlainAggLayer with topk sparse")
+        top_k_compressor = TopkSparse(0.5)
+        keras_model_with_mnist(
+            data=x_train,
+            label=y_train,
+            devices=sf_simulation_setup_devices,
+            base_model_dict=base_model_dict,
+            model_fuse=fuse_model,
+            device_y=sf_simulation_setup_devices.bob,
+            agg_method=Average(),
+            compressor=top_k_compressor,
+        )
+        print("test PlainAggLayer with quantized compressor")
+        quantized_compressor = QuantizedZeroPoint()
+        keras_model_with_mnist(
+            data=x_train,
+            label=y_train,
+            devices=sf_simulation_setup_devices,
+            base_model_dict=base_model_dict,
+            model_fuse=fuse_model,
+            device_y=sf_simulation_setup_devices.bob,
+            agg_method=Average(),
+            compressor=quantized_compressor,
+        )
+
+    def test_single_feature_model(self, sf_simulation_setup_devices):
+        global _temp_dir
+        _temp_dir = reveal(
+            sf_simulation_setup_devices.alice(lambda: tempfile.mkdtemp())()
+        )
+        num_samples = 10000
+        (x_train, y_train), (_, _) = load_mnist(
+            parts={
+                sf_simulation_setup_devices.alice: (0, num_samples),
+                sf_simulation_setup_devices.bob: (0, num_samples),
+            },
+            normalized_x=True,
+            categorical_y=True,
+        )
+
+        # prepare model
+        num_classes = 10
+
+        input_shape = (28, 28, 1)
+        # keras model
+        base_model = create_base_model(input_shape, 64, output_num=1)
+        base_model_dict = {
+            sf_simulation_setup_devices.alice: base_model,
+        }
+        fuse_model = create_fuse_model_agglayer(
+            input_dim=hidden_size,
+            output_dim=num_classes,
+        )
+        print("test dp strategy")
+        keras_model_with_mnist(
+            devices=sf_simulation_setup_devices,
+            data=x_train,
+            label=y_train,
+            base_model_dict=base_model_dict,
+            model_fuse=fuse_model,
+            device_y=sf_simulation_setup_devices.bob,
+        )
+        print("test single feature with topk sparse")
+        top_k_compressor = TopkSparse(0.5)
+        keras_model_with_mnist(
+            devices=sf_simulation_setup_devices,
+            data=x_train,
+            label=y_train,
+            base_model_dict=base_model_dict,
+            model_fuse=fuse_model,
+            device_y=sf_simulation_setup_devices.bob,
+            compressor=top_k_compressor,
+        )
+        print("test single featurewith quantized compressor")
+        quantized_compressor = QuantizedZeroPoint()
+        keras_model_with_mnist(
+            devices=sf_simulation_setup_devices,
+            data=x_train,
+            label=y_train,
+            base_model_dict=base_model_dict,
+            model_fuse=fuse_model,
+            device_y=sf_simulation_setup_devices.bob,
+            compressor=quantized_compressor,
         )

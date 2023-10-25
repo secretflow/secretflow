@@ -10,6 +10,7 @@ For Windows users, you could [install SecretFlow base WSL2](#option-4-from-wsl).
 
 After installation, don't forget to [have a quick try](#a-quick-try) to check if SecretFlow is good to go.
 
+> Additional: For users with available GPU devices, you could [try GPU support](#gpus-support).
 
 ## Environment
 
@@ -115,39 +116,85 @@ pip install -U secretflow
 
 After set up of SecretFlow in WSL, you can use [Pycharm Professional to Configure an interpreter using WSL](https://www.jetbrains.com/help/pycharm/using-wsl-as-a-remote-interpreter.html) or [Visual Studio Code with WSL](https://learn.microsoft.com/en-us/windows/wsl/tutorials/wsl-vscode) to use SecretFlow in Windows Operating System.
 
+## A quick try
 
-## GPUs support
+Try your first SecretFlow program.
+
+Import secretflow package.
+
+```python
+>>> import secretflow as sf
+```
+
+Create a local cluster with parties alice, bob and carol.
+
+```python
+>>> sf.init(parties=['alice', 'bob', 'carol'], address='local')
+```
+
+Create alice's PYU device, which can process alice's data.
+
+```python
+>>> alice_device = sf.PYU('alice')
+```
+
+Let alice say hello world.
+```python
+>>> message_from_alice = alice_device(lambda x:x)("Hello World!")
+```
+
+Print the message.
+```python
+>>> message_from_alice
+<secretflow.device.device.pyu.PYUObject object at 0x7fdec24a15b0>
+```
+
+We see that the message on alice device is a PYU Object at deriver program.
+
+Print the text at the driver by revealing the message.
+
+```python
+>>> print(sf.reveal(message_from_alice))
+Hello World!
+```
+
+## GPU support
 
 ### Before you read
 
-if you don't need the GPU support, please skip this session to [a quick try](#a-quick-try).
+If you don't need to use GPU, please ignore this section and refer to [quick try](#a-quick-try).
 
 ### Introduction
 
-NVIDIA's CUDA and cuDNN are typically used to accelerate the training and testing of Tensoflow and PyTorch deep learning models. Tensoflow and PyTorch are both deep learning backends for SecretFlow.
+NVIDIA's CUDA and cuDNN are typically used to accelerate the training and inference of machine learning models. Tensoflow and PyTorch, two widely-used machine learning frameworks, both intergrate the GPU support. In SecretFlow, PyTorch and Tensorflow are adopted as the backends for Federated Learning, of which the performance can be boosted with GPU support.
 
-[JAX](https://github.com/google/jax) is the frontend highly recommended by the SecretFlow team. JAX can compile and run your NumPy code on accelerators, such as GPUs and TPUs.Now we supply GPUs supports to JAX in SecretFlow.
+If you want to use GPU acceleration in SecretFlow, you need to complete the [Preparations](#preparations) first to set up the environment.
 
+In the following, there are two options to run the GPU-version SecretFlow:
 
-if you want to use GPU acceleration in SecretFlow, you use offical GPU docker image or build the GPU docker image by yourself, However, whichever way you choose, you need to finish the [Preparations](###Preparations).Next, chose [option 1](###Option-1-get-the-GPU-docker-image-from-the-SecretFlow-repository) or [option 2](Option-2-build-the-GPU-docker-image-by-yourself) to get the GPU image. Finally, based on the image to run your container of GPU.
+1. Use the [offical GPU docker image](#option-1-get-the-gpu-docker-image-from-the-secretflow-repository)
+
+2. [Build the GPU docker image by yourself](#option-2-build-the-gpu-docker-image-by-yourself).
+
+After the image is ready, you could [run the container and try GPU support](#run-a-container-and-check-gpu).
 
 ### Preparations
-1. Make sure your NVIDIA driver is available and meet the version requirements as [JAX recommend](https://github.com/google/jax#pip-installation-gpu-cuda-installed-via-pip-easier).
+1. Make sure your NVIDIA driver is available and meet the version requirements:
 
-- The version requirements:
+ Driver version must be >= 525.60.13 for CUDA 12 and >= 450.80.02 for CUDA 11 on Linux.
 
- the driver on the host must be version >= 525.60.13 for CUDA 12 and >= 450.80.02 for CUDA 11 on Linux.
-
-- Run NVIDIA System Management Interface (nvidia-smi) to make sure your NVIDIA driver is available and meet the version requirements.
+You could run NVIDIA System Management Interface (nvidia-smi) to make sure your NVIDIA driver is available and meet the version requirements.
 
 ```bash
 nvidia-smi
 ```
-- Since the GPU packages of PyTorch and TensorFlow are not available now, we only supply the GPU Docker image based on the CUDA11. When the GPU packages of PyTorch and TensorFlow based on the CUDA12 are available, we will supply the GPU Docker image based on the CUDA12.
+> **NOTE**: We currently only supply the GPU Docker image based on CUDA11. When the GPU packages of PyTorch and TensorFlow based on CUDA12 are available, we will supply the GPU Docker image based on CUDA12.
 
 2. Follow the [NVIDIA official guide](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#docker) to setup NVIDIA Container Toolkit on your distributions.
 
-### Option 1: get the GPU docker image from the SecretFlow repository
+After the environment is set up, you could build/run the image.
+
+### Option 1: Get the GPU docker image from the SecretFlow repository
 
 The GPU Docker image of SecretFlow is available on the SecretFlow repository at Dockerhub and you can run the following command to get the latest GPU docker image.
 
@@ -156,46 +203,32 @@ docker pull secretflow/secretflow-gpu
 ```
 For more information, please visit [the GPU docker images at Dockerhub](https://hub.docker.com/r/secretflow/secretflow-gpu).
 
-### Option 2: build the GPU docker image by yourself
-You also can build the Docker image by yourself.
+### Option 2: Build the GPU docker image by yourself
+You could also build the Docker image by yourself.
 
-1. Use a dockerfile file to construct an image
-
-- Download code
+1. Download code
 
 ```bash
 git clone https://github.com/secretflow/secretflow.git
 cd secretflow/docker
 ```
 
-- Construct an image
+2. Use a dockerfile file to construct the image
 
 ```bash
 docker build -f  secretflow-gpu.Dockerfile -t secretflow-gpu .
 ```
 
-### Run an container and Check GPU
-1. Run an container
+### Run a container and Check GPU
+
+1. Run a container
 
 ```bash
 docker container run --runtime=nvidia  -it --gpus all secretflow-gpu bash
 ```
 
-- `--gpus all`: This parameter is essential.
-- `--runtime=nvidia`: This parameter is essential.
+> **NOTE**: The following two parameters are necessary:
+> - `--runtime=nvidia`
+> - `--gpus all`
 
-2. After the container is running, you can use the jupyter notebook [GPU Check](../tutorial/GPU_check.ipynb) to check the callability of JAX, Tensorflow and PyTorch for NVIDIA GPUs inside the container.
-
-## A quick try
-
-Try your first SecretFlow program.
-
-```python
->>> import secretflow as sf
->>> sf.init(['alice', 'bob', 'carol'], address='local')
->>> dev = sf.PYU('alice')
->>> import numpy as np
->>> data = dev(np.random.rand)(3, 4)
->>> data
-<secretflow.device.device.pyu.PYUObject object at 0x7fdec24a15b0>
-```
+2. After the container is running, you can use the jupyter notebook [GPU Check](../tutorial/GPU_check.ipynb) to check the access of Tensorflow and PyTorch for NVIDIA GPUs inside the container.

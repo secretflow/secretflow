@@ -12,28 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+import logging
 from dataclasses import dataclass
-from enum import Enum
 from typing import Union
+
+from heu import phe
 
 from secretflow.data import FedNdarray
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import HEU
+from secretflow.ml.boost.sgb_v.core.params import (
+    TreeGrowingMethod,
+    default_params,
+    get_unused_params,
+    type_and_range_check,
+)
+from secretflow.ml.boost.sgb_v.factory.components.logging import logging_params_names
 
 from ..model import SgbModel
 from .booster import GlobalOrdermapBooster
 from .components import LeafWiseTreeTrainer, LevelWiseTreeTrainer
 
 
-class TreeGrowingMethod(Enum):
-    LEVEL = "level"
-    LEAF = "leaf"
-
-
 @dataclass
 class SGBFactoryParams:
-    tree_growing_method: TreeGrowingMethod = TreeGrowingMethod.LEVEL
+    tree_growing_method: TreeGrowingMethod = default_params.tree_growing_method
 
 
 class SGBFactory:
@@ -46,17 +49,23 @@ class SGBFactory:
         heu: the device for HE computations. must be set before training.
     """
 
-    def __init__(self):
-        self.params_dict = {'tree_growing_method': "level"}
+    def __init__(self, heu=None):
+        # params_dict is either default or user set, should not change by program
+        self.params_dict = {'tree_growing_method': default_params.tree_growing_method}
         self.factory_params = SGBFactoryParams()
-        self.heu = None
+        self.heu = heu
 
     def set_params(self, params: dict):
         """Set params by a dictionary."""
-        tree_grow_method = params.get('tree_growing_method', "level")
-        assert (
-            tree_grow_method == "level" or tree_grow_method == "leaf"
-        ), f"tree growing method must one one of 'level' or 'leaf', got {tree_grow_method}"
+        type_and_range_check(params)
+        unused_params = get_unused_params(params)
+        unused_params -= logging_params_names
+        if len(unused_params) > 0:
+            logging.warning(f"The following params are not effective: {unused_params}")
+
+        tree_grow_method = params.get(
+            'tree_growing_method', default_params.tree_growing_method
+        )
         self.params_dict = params
         self.factory_params.tree_growing_method = TreeGrowingMethod(tree_grow_method)
 
@@ -65,6 +74,22 @@ class SGBFactory:
 
     def _produce(self) -> GlobalOrdermapBooster:
         assert self.heu is not None, "HEU must be set"
+        if self.heu.schema == phe.parse_schema_type("elgamal"):
+            assert self.params_dict.get(
+                'enable_quantization', False
+            ), "When the schema is elgamal, we must enable quantization to avoid runtime errors."
+            assert self.params_dict.get(
+                'quantization_scale', default_params.quantization_scale
+            ) * (
+                1
+                << self.params_dict.get(
+                    'fixed_point_parameter', default_params.fixed_point_parameter
+                )
+            ) < (
+                # this value is set in the HEU, later may become configurable
+                1
+                << 32
+            ), "quantization scale and fix point parameter too large for elgamal scheme, try to set them lower"
         if self.factory_params.tree_growing_method == TreeGrowingMethod.LEVEL:
             tree_trainer = LevelWiseTreeTrainer()
         else:
@@ -112,8 +137,8 @@ class SGBFactory:
     def train(
         self,
         params: dict,
-        dataset: Union[FedNdarray, VDataFrame],
+        dtrain: Union[FedNdarray, VDataFrame],
         label: Union[FedNdarray, VDataFrame],
     ) -> SgbModel:
         self.set_params(params)
-        return self.fit(dataset, label)
+        return self.fit(dtrain, label)

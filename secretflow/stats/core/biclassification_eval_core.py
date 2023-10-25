@@ -28,8 +28,6 @@ class Report:
     Attributes:
         summary_report: SummaryReport
 
-        group_reports: List[GroupReport]
-
         eq_frequent_bin_report: List[EqBinReport]
 
         eq_range_bin_report: List[EqBinReport]
@@ -70,9 +68,10 @@ class PrReport:
         self.fpr = arr[0]
         self.precision = arr[1]
         self.recall = arr[2]
+        self.threshold = arr[3]
 
 
-PR_REPORT_STATISTICS_ENTRY_COUNT = 3
+PR_REPORT_STATISTICS_ENTRY_COUNT = 4
 
 
 class SummaryReport:
@@ -174,7 +173,7 @@ class EqBinReport:
         self.avg_score = arr[16]
 
 
-HEAD_FPR = [0.001, 0.005, 0.01, 0.05, 0.1, 0.2]
+HEAD_FPR_THRESHOLDS = [0.001, 0.005, 0.01, 0.05, 0.1, 0.2]
 
 BIN_REPORT_STATISTICS_ENTRY_COUNT = 17
 
@@ -183,6 +182,7 @@ def gen_all_reports(
     y_true: Union[pd.DataFrame, jnp.array],
     y_score: Union[pd.DataFrame, jnp.array],
     bin_size: int,
+    min_item_cnt_per_bucket: int = None,
 ):
     """Generate all reports.
 
@@ -195,6 +195,8 @@ def gen_all_reports(
             probability of being positive
         bin_size: int
             number of bins to evaluate
+        min_item_cnt_per_bucket: int
+            min item cnt per bucket. If any bucket doesn't meet the requirement, error raises.
     Returns:
 
     """
@@ -205,10 +207,10 @@ def gen_all_reports(
     sorted_label_score_pair_arr = create_sorted_label_score_pair(y_true, y_score)
     pos_count = jnp.sum(y_true)
     eq_frequent_result_arr_list = eq_frequent_bin_evaluate(
-        sorted_label_score_pair_arr, pos_count, bin_size
+        sorted_label_score_pair_arr, pos_count, bin_size, min_item_cnt_per_bucket
     )
     eq_range_result_arr_list = eq_range_bin_evaluate(
-        sorted_label_score_pair_arr, pos_count, bin_size
+        sorted_label_score_pair_arr, pos_count, bin_size, min_item_cnt_per_bucket
     )
     # fill summary report
     # positive has index 2
@@ -231,7 +233,9 @@ def gen_all_reports(
     )
 
     # fill head prs
-    head_prs = gen_pr_reports(sorted_label_score_pair_arr, jnp.array(HEAD_FPR))
+    head_prs = gen_pr_reports(
+        sorted_label_score_pair_arr, jnp.array(HEAD_FPR_THRESHOLDS)
+    )
     return Report(
         eq_frequent_result_arr_list,
         eq_range_result_arr_list,
@@ -247,7 +251,10 @@ def create_sorted_label_score_pair(y_true: jnp.array, y_score: jnp.array):
 
 
 def eq_frequent_bin_evaluate(
-    sorted_pairs: jnp.array, pos_count: int, bin_size: int
+    sorted_pairs: jnp.array,
+    pos_count: int,
+    bin_size: int,
+    min_item_cnt_per_bucket: int = None,
 ) -> List[jnp.array]:
     """Fill eq frequent bin report.
 
@@ -258,6 +265,8 @@ def eq_frequent_bin_evaluate(
             Total number of positive samples
         bin_size: int
             Total number of bins
+        min_item_cnt_per_bucket: int
+            min item cnt per bucket. If any bucket doesn't meet the requirement, error raises.
     Returns:
         bin_reports: List[jnp.array]
 
@@ -268,11 +277,14 @@ def eq_frequent_bin_evaluate(
     split_points = jnp.flip(split_points)
 
     # Each bin has domain (split_left, split_right]
-    return evaluate_bins(sorted_pairs, pos_count, split_points)
+    return evaluate_bins(sorted_pairs, pos_count, split_points, min_item_cnt_per_bucket)
 
 
 def eq_range_bin_evaluate(
-    sorted_pairs: jnp.array, pos_count: int, bin_size: int
+    sorted_pairs: jnp.array,
+    pos_count: int,
+    bin_size: int,
+    min_item_cnt_per_bucket: int = None,
 ) -> List[jnp.array]:
     """Fill eq range bin report.
 
@@ -283,6 +295,8 @@ def eq_range_bin_evaluate(
             Total number of positive samples
         bin_size: int
             Total number of bins
+        min_item_cnt_per_bucket: int
+            min item cnt per bucket. If any bucket doesn't meet the requirement, error raises.
     Returns:
         bin_reports: List[jnp.array]
 
@@ -293,11 +307,11 @@ def eq_range_bin_evaluate(
     split_points = jnp.flip(split_points)
 
     # Each bin has domain (split_left, split_right]
-    return evaluate_bins(sorted_pairs, pos_count, split_points)
+    return evaluate_bins(sorted_pairs, pos_count, split_points, min_item_cnt_per_bucket)
 
 
 def evaluate_bins(
-    sorted_pairs: jnp.array, pos_count: int, split_points
+    sorted_pairs: jnp.array, pos_count: int, split_points, min_item_cnt_per_bucket
 ) -> List[jnp.array]:
     """evaluate bins given sorted pairs, pos_count and split_points (in decreasing order)"""
     n_samples = sorted_pairs.shape[0]
@@ -312,6 +326,13 @@ def evaluate_bins(
             sorted_pairs[end_pos, 1] > split_points[shard]
         ):
             end_pos += 1
+        if min_item_cnt_per_bucket is not None:
+            if (end_pos - start_pos) < min_item_cnt_per_bucket and (
+                end_pos - start_pos
+            ) > 0:
+                raise RuntimeError(
+                    "One bin doesn't meet min_item_cnt_per_bucket requirement."
+                )
         t = bin_evaluate(
             sorted_pairs,
             start_pos,
@@ -463,7 +484,7 @@ def gen_pr_reports(sorted_pairs: jnp.array, thresholds: jnp.array) -> List[jnp.a
         precision = tps[i] / (tps[i] + fps[i])
         recall = tps[i] / n_positive
         false_positive_rate = fps[i] / n_negative
-        pr_report = jnp.array([false_positive_rate, precision, recall])
+        pr_report = jnp.array([false_positive_rate, precision, recall, t])
         result.append(pr_report)
     return result
 

@@ -1,11 +1,16 @@
 common --experimental_repo_remote_exec
 
-build --incompatible_new_actions_api=false 
+build --incompatible_new_actions_api=false
 build --copt=-fdiagnostics-color=always
 build --enable_platform_specific_config
 
 build --cxxopt=-std=c++17
 build --host_cxxopt=-std=c++17
+
+build:avx --copt=-mavx
+build:avx --host_copt=-mavx
+build:avx --copt=-DCHECK_AVX
+build:avx --host_copt=-DCHECK_AVX
 
 # Binary safety flags
 build --copt=-fPIC

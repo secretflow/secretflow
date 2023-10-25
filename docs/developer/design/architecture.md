@@ -6,12 +6,12 @@ SecretFlow is a unified framework for privacy preserving data analysis and machi
 
 ## Design Motivation
 
-Privacy computing is an emerging interdisciplinary field involving cryptography, machine learning, databases, hardware, and other fields.
+privacy-preserving computing is an emerging interdisciplinary field involving cryptography, machine learning, databases, hardware, and other fields.
 Based on the practical experience over the past few years, we found that
 
-1. No privacy computing technology is suitable for all scenarios.
+1. No privacy-preserving computing technology is suitable for all scenarios.
 2. Private computing has a high learning curve and is difficult for users from other backgrounds to use.
-3. Privacy computing involves many fields and requires the cooperation of different domain experts.
+3. Privacy-preserving computing involves many fields and requires the cooperation of different domain experts.
 
 The design goal of SecretFlow is to make it very easy for data scientists and machine learning developers
 to use private computing techniques for data analysis and machine learning without knowing the underlying technical details.
@@ -25,14 +25,14 @@ computational graph consisting of on-device operators and tensor flows between d
 
 SecretFlow is an open framework for developers at different levels. At the device layer, we work with experts in cryptography,
 trusted hardware, hardware acceleration and other fields to continuously improve protocol security and computing performance.
-At the same time, SecretFlow provides a good device interface, and the third-party privacy computing protocol can be plugged in as
+At the same time, SecretFlow provides a good device interface, and the third-party privacy-preserving computing protocol can be plugged in as
 a device. At the algorithm layer, a flexible programming interface is provided for machine learning, and algorithm developers
 can easily define their own algorithms.
 
 ## Device
 
 The devices of the SecretFlow are divided into physical devices and logical devices. The physical device is the physical machine
-of each participant in the privacy computing, and the logical device is composed of one or more physical devices. A logical device
+of each participant in the privacy-preserving computing, and the logical device is composed of one or more physical devices. A logical device
 supports a specific set of computing operators (Device Ops) and has its own specific data representation (Device Object).
 Logical devices are divided into two types: plaintext and ciphertext. The former performs unilateral local computation,
 while the latter performs multi-party private computation.
@@ -142,15 +142,15 @@ The asynchronous scheduling and dynamic execution capabilities provided by Ray m
 
 ![ray](../../_static/ray.svg)
 
-Ray is a distributed system suitable for LAN environments. To apply it to privacy computing scenarios, a lot of security
-reinforcement and environment adaptation needs to be done. We are in-depth cooperation with Ant Group's Ray team to create a secure and reliable Ray framework suitable for privacy computing.
+Ray is a distributed system suitable for LAN environments. To apply it to privacy-preserving computing scenarios, a lot of security
+reinforcement and environment adaptation needs to be done. We are in-depth cooperation with Ant Group's Ray team to create a secure and reliable Ray framework suitable for privacy-preserving computing.
 
-In terms of security reinforcement, we have reinforced the framework as a whole by means of identity authentication, code pre-installation, and code storage. In the future, we will also explore mechanisms such as sandbox isolation, access control, and static graphs to further strengthen Ray's security level. In terms of environment adaptation, in order to adapt to the characteristics of cross-organization network communication, we have promoted the development of related functions such as GCS gRPC communication, domain name support, and weak network disconnection handling. At the same time, we are also exploring the use of Ray ecosystem, such as Mars, Ray Datasets, Ray Train, etc., in privacy computing scenarios.
+In terms of security reinforcement, we have reinforced the framework as a whole by means of identity authentication, code pre-installation, and code storage. In the future, we will also explore mechanisms such as sandbox isolation, access control, and static graphs to further strengthen Ray's security level. In terms of environment adaptation, in order to adapt to the characteristics of cross-organization network communication, we have promoted the development of related functions such as GCS gRPC communication, domain name support, and weak network disconnection handling. At the same time, we are also exploring the use of Ray ecosystem, such as Mars, Ray Datasets, Ray Train, etc., in privacy-preserving computing scenarios.
 
 ## Privacy Preserving Algorithm
 
 The abstraction of logical devices provides great flexibility for algorithm developers. They can freely combine these devices like building blocks,
-and customize computations on the devices to build their own privacy computing algorithms.
+and customize computations on the devices to build their own privacy-preserving computing algorithms.
 
 Here are some algorithms built by our device programming model:
 

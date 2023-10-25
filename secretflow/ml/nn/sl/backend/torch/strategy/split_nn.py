@@ -20,33 +20,38 @@
 
 """
 import copy
-from typing import List
+from typing import List, Union
 
 import torch
 
 from secretflow.device import PYUObject, proxy
 from secretflow.ml.nn.sl.backend.torch.sl_base import SLBaseTorchModel
 from secretflow.ml.nn.sl.strategy_dispatcher import register_strategy
+from secretflow.utils.communicate import ForwardData
 
 
 class SLTorchModel(SLBaseTorchModel):
-    def base_forward(self, stage="train"):
+    def base_forward(self, stage="train") -> ForwardData:
         """compute hidden embedding
         Args:
             stage: Which stage of the base forward
         Returns: hidden embedding
         """
 
-        assert (
-            self.model_base is not None
-        ), "Base model cannot be none, please give model define or load a trained model"
-
         data_x = self.get_batch_data(stage=stage)
+        if not self.model_base:
+            return None
         self.h = self.base_forward_internal(
             data_x,
         )
+        forward_data = ForwardData()
 
-        return self.h
+        # The compressor can only recognize np type but not tensor.
+        forward_data.hidden = (
+            self.h.detach().numpy() if isinstance(self.h, torch.Tensor) else self.h
+        )
+        # The compressor in forward can only recognize np type but not tensor.
+        return forward_data
 
     def base_backward(self, gradient):
         """backward on fusenet
@@ -71,7 +76,8 @@ class SLTorchModel(SLBaseTorchModel):
         # apply gradients for base net
         self.optim_base.zero_grad()
         for rh in return_hiddens:
-            rh.sum().backward(retain_graph=True)
+            if rh.requires_grad:
+                rh.sum().backward(retain_graph=True)
         self.optim_base.step()
 
         # clear intermediate results
@@ -79,7 +85,11 @@ class SLTorchModel(SLBaseTorchModel):
         self.h = None
         self.kwargs = {}
 
-    def fuse_net(self, *hidden_features, _num_returns=2):
+    def fuse_net(
+        self,
+        forward_data: Union[List[ForwardData], ForwardData],
+        _num_returns=2,
+    ):
         """Fuses the hidden layer and calculates the reverse gradient
         only on the side with the label
 
@@ -91,6 +101,15 @@ class SLTorchModel(SLBaseTorchModel):
         assert (
             self.model_fuse is not None
         ), "Fuse model cannot be none, please give model define"
+        if isinstance(forward_data, ForwardData):
+            forward_data = [forward_data]
+        forward_data[:] = (h for h in forward_data if h is not None)
+        for i, h in enumerate(forward_data):
+            assert h.hidden is not None, f"hidden cannot be found in forward_data[{i}]"
+            if isinstance(h.losses, List) and h.losses[0] is None:
+                h.losses = None
+
+        hidden_features = [h.hidden for h in forward_data]
 
         hiddens = []
         for h in hidden_features:
@@ -101,10 +120,12 @@ class SLTorchModel(SLBaseTorchModel):
             else:
                 hiddens.append(torch.tensor(h))
 
+        train_y = self.train_y[0] if len(self.train_y) == 1 else self.train_y
+
         logs = {}
         gradient = self.fuse_net_internal(
             hiddens,
-            self.train_y,
+            train_y,
             self.train_sample_weight,
             logs,
         )

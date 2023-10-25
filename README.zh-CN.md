@@ -24,12 +24,12 @@ SecretFlow是一个统一的框架，用于保护隐私的数据智能和机器�
 
 - [SecretFlow](https://www.secretflow.org.cn/docs/secretflow/zh_CN/)
   - [快速开始](https://www.secretflow.org.cn/docs/secretflow/zh_CN/getting_started/index.html)
-  - [组件](https://www.secretflow.org.cn/docs/secretflow/zh_CN/components/index.html)
+  - [用户指南](https://www.secretflow.org.cn/docs/secretflow/zh_CN/user_guide/index.html)
   - [API文档](https://www.secretflow.org.cn/docs/secretflow/zh_CN/api/index.html)
   - [教程](https://www.secretflow.org.cn/docs/secretflow/zh_CN/tutorial/index.html)
 
 ## 相关项目
-
+- [Kuscia](https://github.com/secretflow/kuscia): 一款基于 K3s 的轻量级隐私计算任务编排框架。
 - [SCQL](https://github.com/secretflow/scql): 允许多个不信任方在不泄露其私人数据的情况下进行联合分析的系统。
 - [SPU](https://github.com/secretflow/spu): 一种可证明、可测量的安全计算设备，在提供计算能力的同时保护您的数据隐私。
 - [HEU](https://github.com/secretflow/heu): 一个高性能的同态加密算法库。

@@ -335,6 +335,7 @@ docs/source
 # test artifacts
 alice.audit
 alice.audit.npy
+audit_alice.*
 bob.audit
 bob.audit.npy
 bob.audit.pk.pickle
@@ -348,6 +349,7 @@ base_bob/
 fuse_model/
 duplicate-keys.*
 selected-keys.*
+
 
 *Miniconda3.sh
 

@@ -23,29 +23,24 @@ from secretflow.component.component import (
 )
 from secretflow.component.data_utils import (
     DistDataType,
-    dump_vertical_table,
     extract_table_header,
     load_table,
     model_dumps,
-    model_loads,
 )
 from secretflow.device.device.heu import HEU
-from secretflow.device.device.pyu import PYUObject
 from secretflow.device.device.spu import SPU
 from secretflow.preprocessing.binning.vert_woe_binning import VertWoeBinning
-from secretflow.preprocessing.binning.vert_woe_substitution import VertWOESubstitution
-from secretflow.protos.component.data_pb2 import VerticalTable
 
 vert_woe_binning_comp = Component(
     "vert_woe_binning",
-    domain="preprocessing",
+    domain="feature",
     version="0.0.1",
     desc="Generate Weight of Evidence (WOE) binning rules for vertical partitioning datasets.",
 )
 
 vert_woe_binning_comp.str_attr(
     name="secure_device_type",
-    desc="Use SPU or HEU to secure bucket summation.",
+    desc="Use SPU(Secure multi-party computation or MPC) or HEU(Homomorphic encryption or HE) to secure bucket summation.",
     is_list=False,
     is_optional=True,
     default_value="spu",
@@ -109,21 +104,26 @@ vert_woe_binning_comp.float_attr(
 vert_woe_binning_comp.io(
     io_type=IoType.INPUT,
     name="input_data",
-    desc="Input dataset for generating rule.",
+    desc="Input vertical table.",
     types=[DistDataType.VERTICAL_TABLE],
     col_params=[
         TableColParam(
             name="feature_selects",
             desc="which features should be binned.",
             col_min_cnt_inclusive=1,
-        )
+        ),
+        TableColParam(
+            name="label",
+            desc="Label of input data.",
+            col_min_cnt_inclusive=1,
+        ),
     ],
 )
 vert_woe_binning_comp.io(
     io_type=IoType.OUTPUT,
-    name="woe_rule",
+    name="bin_rule",
     desc="Output WOE rule.",
-    types=[DistDataType.WOE_RUNNING_RULE],
+    types=[DistDataType.BIN_RUNNING_RULE],
     col_params=None,
 )
 
@@ -145,22 +145,24 @@ def vert_woe_binning_eval_fn(
     chimerge_target_pvalue,
     input_data,
     input_data_feature_selects,
-    woe_rule,
+    input_data_label,
+    bin_rule,
 ):
     input_df = load_table(
         ctx,
         input_data,
         load_features=True,
-        feature_selects=input_data_feature_selects,
         load_labels=True,
+        col_selects=input_data_feature_selects + input_data_label,
     )
 
-    input_info = extract_table_header(input_data, load_labels=True)
-    assert len(input_info) == 1, "only support one party has label"
-    label_party = next(iter(input_info.keys()))
-    smeta = input_info[label_party]
+    label_info = extract_table_header(
+        input_data, load_features=True, load_labels=True, col_selects=input_data_label
+    )
+    assert len(label_info) == 1, "only support one party has label"
+    label_party = next(iter(label_info.keys()))
+    smeta = label_info[label_party]
     assert len(smeta) == 1, "only support one label col"
-    label_name = next(iter(smeta.keys()))
 
     if secure_device_type == "spu":
         if ctx.spu_configs is None or len(ctx.spu_configs) == 0:
@@ -200,7 +202,7 @@ def vert_woe_binning_eval_fn(
             binning_method,
             bin_num,
             bin_names,
-            label_name,
+            input_data_label[0],
             positive_label,
             chimerge_init_bins,
             chimerge_target_bins,
@@ -208,87 +210,18 @@ def vert_woe_binning_eval_fn(
         )
 
         model_dist_data = model_dumps(
-            "woe_rule",
-            DistDataType.WOE_RUNNING_RULE,
+            "bin_rule",
+            DistDataType.BIN_RUNNING_RULE,
             MODEL_MAX_MAJOR_VERSION,
             MODEL_MAX_MINOR_VERSION,
             [o for o in rules.values()],
-            "",
+            {
+                "input_data_feature_selects": input_data_feature_selects,
+                "input_data_label": input_data_label[0],
+            },
             ctx.local_fs_wd,
-            woe_rule,
-            input_data.sys_info,
+            bin_rule,
+            input_data.system_info,
         )
 
-    return {"woe_rule": model_dist_data}
-
-
-vert_woe_substitution_comp = Component(
-    "vert_woe_substitution",
-    domain="preprocessing",
-    version="0.0.1",
-    desc="Substitute datasets' value by WOE substitution rules.",
-)
-
-vert_woe_substitution_comp.io(
-    io_type=IoType.INPUT,
-    name="input_data",
-    desc="Vertical partitioning dataset to be substituted.",
-    types=[DistDataType.VERTICAL_TABLE],
-    col_params=None,
-)
-vert_woe_substitution_comp.io(
-    io_type=IoType.INPUT,
-    name="woe_rule",
-    desc="WOE substitution rule.",
-    types=[DistDataType.WOE_RUNNING_RULE],
-    col_params=None,
-)
-vert_woe_substitution_comp.io(
-    io_type=IoType.OUTPUT,
-    name="output_data",
-    desc="Output substituted dataset.",
-    types=[DistDataType.VERTICAL_TABLE],
-    col_params=None,
-)
-
-
-@vert_woe_substitution_comp.eval_fn
-def vert_woe_substitution_eval_fn(
-    *,
-    ctx,
-    input_data,
-    woe_rule,
-    output_data,
-):
-    input_df = load_table(
-        ctx, input_data, load_features=True, load_labels=True, load_ids=True
-    )
-
-    pyus = {p.party: p for p in input_df.partitions}
-
-    model_objs, _ = model_loads(
-        woe_rule,
-        MODEL_MAX_MAJOR_VERSION,
-        MODEL_MAX_MINOR_VERSION,
-        DistDataType.WOE_RUNNING_RULE,
-        ctx.local_fs_wd,
-        pyus=pyus,
-    )
-
-    woe_rule = {}
-    for obj in model_objs:
-        assert isinstance(obj, PYUObject)
-        woe_rule[obj.device] = obj
-
-    with ctx.tracer.trace_running():
-        output_df = VertWOESubstitution().substitution(input_df, woe_rule)
-
-    meta = VerticalTable()
-    assert input_data.meta.Unpack(meta)
-    meta.num_lines = output_df.shape[0]
-
-    return {
-        "output_data": dump_vertical_table(
-            ctx, output_df, output_data, meta, input_data.sys_info
-        )
-    }
+    return {"bin_rule": model_dist_data}

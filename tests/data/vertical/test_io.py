@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 
 from secretflow import reveal
-from secretflow.data.base import Partition
+from secretflow.data import partition
 from secretflow.data.vertical import VDataFrame, read_csv
 
 
@@ -253,8 +253,8 @@ def test_to_csv_should_ok(prod_env_and_data):
 
     df = VDataFrame(
         {
-            env.alice: Partition(env.alice(lambda df: df)(df1)),
-            env.bob: Partition(env.bob(lambda df: df)(df2)),
+            env.alice: partition(env.alice(lambda df: df)(df1)),
+            env.bob: partition(env.bob(lambda df: df)(df2)),
         }
     )
 

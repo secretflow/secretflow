@@ -14,3 +14,4 @@ linkify-it-py==2.0.0
 sphinx-intl==2.0.1
 autodocsumm==0.2.9
 pydata-sphinx-theme
+mdutils==1.6.0

@@ -23,6 +23,7 @@ import ray
 
 import secretflow.distributed as sfd
 from secretflow.device.driver import reveal
+from secretflow.distributed.primitive import DISTRIBUTION_MODE
 
 from .device import PYU
 
@@ -110,15 +111,10 @@ class Communicator(ABC):
 
 class FedCommunicator(Communicator):
     def __init__(self, partners: List[PYU]):
-        parties = [partner.party for partner in partners]
-        self.cluster = {
-            party: value
-            for party, value in fed.config.get_cluster_config().cluster_addresses.items()
-            if party in parties
-        }
+        self.parties = [partner.party for partner in partners]
 
     def send(self, dest: PYU, data: Any, key: str):
-        assert dest.party in self.cluster, f'Device {dest} is not in this communicator.'
+        assert dest.party in self.parties, f'Device {dest} is not in this communicator.'
         return fed.send(
             dest_party=dest.party,
             data=data,
@@ -347,7 +343,7 @@ class Link:
 def init_link(link: Link, partners: List[Link]):
     if not isinstance(partners, list):
         partners = [partners]
-    if sfd.production_mode():
+    if sfd.get_distribution_mode() == DISTRIBUTION_MODE.PRODUCTION:
         comm = FedCommunicator([partner.device for partner in partners])
         # Use `get` here as a barrier to make sure that initialize is done at first.
         # Note that link should be a `proxy`ed actor.

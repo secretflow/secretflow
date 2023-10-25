@@ -16,6 +16,9 @@ from typing import List
 
 import numpy as np
 
+from secretflow.ml.boost.sgb_v.core.params import default_params
+from secretflow.ml.boost.sgb_v.factory.sgb_actor import SGBActor
+
 from ..component import Component, Devices, print_params
 from .leaf_actor import LeafActor
 
@@ -31,8 +34,8 @@ class LeafManagerParams:
         range: (0, 1]
     """
 
-    reg_lambda: float = 0.1
-    learning_rate: float = 0.3
+    reg_lambda: float = default_params.reg_lambda
+    learning_rate: float = default_params.learning_rate
 
 
 class LeafManager(Component):
@@ -43,14 +46,8 @@ class LeafManager(Component):
         print_params(self.params)
 
     def set_params(self, params: dict):
-        reg_lambda = float(params.get('reg_lambda', 0.1))
-        assert (
-            reg_lambda >= 0 and reg_lambda <= 10000
-        ), f"reg_lambda should in [0, 10000], got {reg_lambda}"
-
-        lr = float(params.get('learning_rate', 0.3))
-        assert lr > 0 and lr <= 1, f"learning_rate should in (0, 1], got {lr}"
-
+        reg_lambda = params.get('reg_lambda', default_params.reg_lambda)
+        lr = params.get('learning_rate', default_params.learning_rate)
         self.params.reg_lambda = reg_lambda
         self.params.learning_rate = lr
 
@@ -59,23 +56,42 @@ class LeafManager(Component):
         params['learning_rate'] = self.params.learning_rate
 
     def set_devices(self, devices: Devices):
-        self.leaf_actor = LeafActor(device=devices.label_holder)
+        self.label_holder = devices.label_holder
+
+    def set_actors(self, actors: List[SGBActor]):
+        for actor in actors:
+            if actor.device == self.label_holder:
+                self.leaf_actor = actor
+                break
+        self.leaf_actor.register_class('LeafActor', LeafActor)
+
+    def del_actors(self):
+        del self.leaf_actor
 
     def clear_leaves(self):
-        self.leaf_actor.clear_leaves()
+        self.leaf_actor.invoke_class_method('LeafActor', 'clear_leaves')
 
     def extend_leaves(
         self, pruned_node_selects: List[np.ndarray], pruned_node_indices: List[int]
     ):
-        self.leaf_actor.extend_leaves(pruned_node_selects, pruned_node_indices)
+        self.leaf_actor.invoke_class_method(
+            'LeafActor', 'extend_leaves', pruned_node_selects, pruned_node_indices
+        )
 
     def get_leaf_selects(self):
-        return self.leaf_actor.get_leaf_selects()
+        return self.leaf_actor.invoke_class_method('LeafActor', 'get_leaf_selects')
 
     def get_leaf_indices(self):
-        return self.leaf_actor.get_leaf_indices()
+        return self.leaf_actor.invoke_class_method('LeafActor', 'get_leaf_indices')
 
     def compute_leaf_weights(self, g, h):
-        return self.leaf_actor.compute_leaf_weights(
-            self.params.reg_lambda, self.params.learning_rate, g, h
+        reg_lambda = self.params.reg_lambda
+        lr = self.params.learning_rate
+        return self.leaf_actor.invoke_class_method(
+            'LeafActor',
+            'compute_leaf_weights',
+            reg_lambda,
+            lr,
+            g,
+            h,
         )

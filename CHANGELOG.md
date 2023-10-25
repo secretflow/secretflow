@@ -11,13 +11,125 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Removed` for now removed features.
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
+## [1.2.0.dev231016] - 2023-10-16
+### Added
+- Secretflow support debug mode.
+- Add vert binning for equal range bining method
+
+### Changed
+- The data preprocessing module (VDataFrame, Partition) has been refactored, enhancing the data processing performance (primarily targeting the Polars backend).
+
+### Fixed
+- Fix error when flmodel with tf backend use gpu.
+- Fix kuscia adapter
+
+## [1.2.0.dev231009] - 2023-10-9
+
+### Added
+- FLModel supports PFL to allow custom aggregation logic on server.
+
+## [1.2.0.dev230926] - 2023-9-26
+
+### Changed
+- component: expose cross_silo_comm_backend option for secretflow init.
+
+### Fixed
+- SPU device: rm invalid use_link option.
+
+## [1.2.0.dev230925] - 2023-9-25
+
+### Changed
+- update psi benchmark.
+
+### Fixed
+- fix tls on kuscia.
+
+## [1.2.0.dev230918] - 2023-9-18
+
+### Added
+- support GLM model transition from MPC version to Federated version.
+- add sparse, quantized and mixed compressor.
+- add polars backend for dataframe and SL model.
+- add DisPFL adn VFGNN example.
+- add cross_silo_comm_backend option to SFClusterConfig.RayFedConfig.
+
+### Fixed
+- fix dataset build in SL.
+
+## [1.1.0b0] - 2023-9-6
+
+### Added
+- SLModel: supports quantization compression algorithm, reducing communication volume by 2-4 times.
+- SLModel: supports pipeline strategy, which can accelerate model training by 2-4 times in most scenarios.
+- SLModel: PyTorch backend supports GPU.
+- SLModel: introduces two attack and defense algorithms, LIA and FIA, for testing model security in the research and development stage.
+- SLModel: supports a mode where one party only provides labels without providing features.
+- Component: GLM train and predict components.
+- Support the usage of brpc link as a backend for cross-silo communication.
+
+### Changed
+- Component: add more parameters for SGB components.
+
+## [1.1.0.dev230825] - 2023-8-25
+
+### Added
+- Stateful task for teeu
+- docs: DeepFM translation
+
+### Changed
+- Switch to shared workflow
+
+## [1.1.0.dev230818] - 2023-8-18
+
+### Added
+- Add five papers in Vertical Federated Learning
+- docs: update references on homomorphic encryption
+- Add new quantized compressor method and tutorial
+
+## [1.1.0.dev230811] - 2023-8-11
+
+### Fixed
+- PSI use psi_csv in psi comp.
+
+### Added
+- GLM train and predict components
+## [1.1.0b0.dev1] - 2023-8-7
+
+### Added
+- Support the usage of brpc link as a backend for cross-silo communication.
+
+## [1.1.0b0.dev0] - 2023-8-7
+
+### Added
+- Label inference attack v3
+
+## [1.0.0b2] - 2023-7-28
+### Changed
+- SGB upgrade: use SGBFactory to replace SGB, update parameters and tutorials. SGB now supports more functionalities.
+- Predict supports callbacks, call the callback function before/after prediction starts and after every step.
+## [1.0.0a1] - 2023-7-26
+### Fixed
+- SLModel fix bug in handling data with databuilder
+- The FLModel solves the problem of the production mode hanging due to a small batch size.
+
+## [1.0.0a0] - 2023-7-3
+### Added
+- SLModel supports AggLayer
+- SLModel（nn/deepfm）supports one party providing features and the other party providing labels.
+- Component Specification and SecretFlow Component List v0.0.1.
+
+### Changed
+- Bump spu to 0.4.1b0
+
+### Fixed
+- Fix logic error when sl base model load from none
 
 ## [0.8.3b0] - 2023-6-14
 ### Added
 - Split learning add application of deepfm for recommendation scenarios.
 - Split learning add pytorch support.
 - Add IO tutorials for federated learning.
-- Reorg DP strategies.
+- Reorg DP strategies
 - SGB and XGB refactor. Add data checks. Improve qcut.
 - Add the preview version of components.
 
@@ -106,7 +218,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.7.18b1] - 2023-1-30
 ### Changed
-- add option whether exit on cross-silo sending.
+- add an option whether exit on cross-silo sending.
 - put all requires in one file except dev.
 
 ### Fix
@@ -188,7 +300,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add SLModel support multi parties(>=2)
 
 ### Changed
-- FLModel support most metrics of regression and classification
+- FLModel supports most metrics of regression and classification
 
 ### Fixed
 - SLModel can be initialized without model.
@@ -197,7 +309,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.7.10] - 2022-10-25
 ### Added
-- Add score card.
+- Add scorecard.
 - Add replace/mode function to DataFrame.
 - Add round function to VDataFrame.
 - Add psi_join_csv and psi_join_df.
@@ -338,7 +450,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sigmoid approximation in python.
 - SS LR.
 - Verical FL LR.
-- Auto ray.get for nested params with pyu objects in proxy decoreted cls.
+- Auto ray.get for nested params with pyu objects in proxy decorated cls.
 - Link desc in spu construction.
 
 ### Changed
@@ -393,7 +505,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - MixLR demo.
 - DP on split learning DNN.
 - XGBoost tutorial.
-- DataFrame and FedNdarray supports astype method.
+- DataFrame and FedNdarray support astype method.
 
 ### Changed
 - Use lfs instead of http file.
@@ -447,7 +559,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## [0.6.4]
-- Fix PPU dtype mismatch causing by JAX 32bit mode.
+- Fix PPU dtype mismatch caused by JAX 32bit mode.
 - Vertical PearsonR.
 
 ## [0.6.3]

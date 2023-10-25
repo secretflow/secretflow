@@ -85,7 +85,7 @@ def cal_delta(orders, rdp, eps: float):
     if len(orders_vec) != len(rdp_vec):
         raise ValueError("Input lists must have the same length.")
     logdeltas = []
-    for (a, r) in zip(orders_vec, rdp_vec):
+    for a, r in zip(orders_vec, rdp_vec):
         if a < 1:
             raise ValueError("Renyi divergence order must be >=1.")
         if r < 0:
@@ -121,7 +121,7 @@ def cal_eps(orders, rdp, delta: float):
         raise ValueError("Input lists must have the same length.")
 
     eps_vec = []
-    for (a, r) in zip(orders_vec, rdp_vec):
+    for a, r in zip(orders_vec, rdp_vec):
         if a < 1:
             raise ValueError("Renyi divergence order must be >=1.")
         if r < 0:

@@ -12,36 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import List
+from numba import njit
 import numpy as np
-
-
-def build_bin_indices_list(node_selects, order_map, bucket_num):
-    return [
-        np.argwhere((order_map[:, f] == bucket) & (node_selects.reshape(-1) == 1))
-        .reshape(
-            -1,
-        )
-        .tolist()
-        for f in range(order_map.shape[1])
-        for bucket in range(bucket_num)
-    ]
-
-
-def batch_select_sum(arr, children_nodes_selects, order_map, bucket_num):
-    return [
-        cumsum_GH(
-            np.vstack(
-                [
-                    arr[indices].sum(axis=0)
-                    for indices in build_bin_indices_list(
-                        node_select, order_map, bucket_num
-                    )
-                ]
-            ),
-            bucket_num,
-        )
-        for node_select in children_nodes_selects
-    ]
 
 
 # regroup the roduct sums
@@ -49,8 +22,49 @@ def regroup_bucket_sums(bucket_sums_list, i):
     return np.concatenate([bucket_sums[i] for bucket_sums in bucket_sums_list], axis=0)
 
 
-def cumsum_GH(x, bucket_num):
-    y = np.zeros(x.shape)
+# if your dataset is small, numba may reduce the performance, you can disable numba by setting environment variable, os.environ["NUMBA_DISABLE_JIT"] = 1
+# numba will speed up the code when the dataset is large and num boost round is large (>5).
+
+
+# this function is used by other njit function, therefore should be njit annotated.
+@njit
+def select_sum(order_map_col, bucket, arr):
+    subset = order_map_col == bucket
+    return arr[subset].sum(axis=0)
+
+
+@njit
+def select_sums(order_map, bucket_num, node_select, arr):
+    node_select = node_select.reshape(-1) == 1
+    order_map = order_map[node_select]
+    arr = arr[node_select]
+    select_sums = np.empty((order_map.shape[1] * bucket_num, 2))
+    for f in range(order_map.shape[1]):
+        for bucket in range(bucket_num):
+            index = f * bucket_num + bucket
+            select_sums[index] = select_sum(order_map[:, f], bucket, arr)
+    return cumsum_GH(select_sums, bucket_num)
+
+
+def batch_select_sum(arr, children_nodes_selects: List, order_map, bucket_num):
+    children_nodes_selects = np.array(children_nodes_selects)
+    return batch_select_sum_inner(arr, children_nodes_selects, order_map, bucket_num)
+
+
+@njit
+def batch_select_sum_inner(
+    arr, children_nodes_selects: np.ndarray, order_map, bucket_num
+):
+    return [
+        select_sums(order_map, bucket_num, children_nodes_selects[i], arr)
+        for i in range(np.int64(children_nodes_selects.shape[0]))
+    ]
+
+
+@njit
+def cumsum_GH(x: np.ndarray, bucket_num: int):
+    y = np.empty(x.shape)
     for i in range(0, x.shape[0], bucket_num):
-        y[i : i + bucket_num] = np.cumsum(x[i : i + bucket_num], 0)
+        for j in range(x.shape[1]):
+            y[i : i + bucket_num, j] = np.cumsum(x[i : i + bucket_num, j])
     return y

@@ -57,11 +57,13 @@ class FLModel:
             server: PYU, Which PYU as a server
             device_list: party list
             model: model definition function
-            aggregator:  Security aggregators can be selected according to the security level
+            aggregator:  Security aggregators can be selected according to the security level, server will do aggregate if aggregator is None
             strategy: Federated training strategy
             consensus_num: Num parties of consensus,Some strategies require multiple parties to reach consensus,
             backend: Engine backend, the backend needs to be consistent with the model type
             random_seed: If specified, the initial value of the model will remain the same, which ensures reproducible
+            server_agg_method: If aggregator is none, server will use server_agg_method to aggregate params, The server_agg_method should be a function
+                that takes in a list of parameter values from different parties and returns the aggregated parameter value list
         """
         if backend == "tensorflow":
             import secretflow.ml.nn.fl.backend.tensorflow.strategy  # noqa
@@ -69,16 +71,18 @@ class FLModel:
             import secretflow.ml.nn.fl.backend.torch.strategy  # noqa
         else:
             raise Exception(f"Invalid backend = {backend}")
+        self.num_gpus = kwargs.get('num_gpus', 0)
         self.init_workers(
             model,
             device_list=device_list,
             strategy=strategy,
             backend=backend,
             random_seed=random_seed,
+            num_gpus=self.num_gpus,
         )
         self.server = server
+        self.device_list = device_list
         self._aggregator = aggregator
-        self.steps_per_epoch = 0
         self.consensus_num = consensus_num
         self.kwargs = kwargs
         self.strategy = strategy
@@ -86,6 +90,7 @@ class FLModel:
         self.backend = backend
         self.dp_strategy = kwargs.get('dp_strategy', None)
         self.simulation = kwargs.get('simulation', False)
+        self.server_agg_method = kwargs.get('server_agg_method', None)
 
     def init_workers(
         self,
@@ -94,6 +99,7 @@ class FLModel:
         strategy,
         backend,
         random_seed,
+        num_gpus,
     ):
         self._workers = {
             device: dispatch_strategy(
@@ -102,19 +108,43 @@ class FLModel:
                 builder_base=model,
                 device=device,
                 random_seed=random_seed,
+                num_gpus=num_gpus,
             )
             for device in device_list
         }
 
     def initialize_weights(self):
         clients_weights = []
+        initial_weight = None
         for device, worker in self._workers.items():
             weights = worker.get_weights()
             clients_weights.append(weights)
-        initial_weight = self._aggregator.average(clients_weights, axis=0)
-        for device, worker in self._workers.items():
-            weights = initial_weight.to(device) if initial_weight is not None else None
-            worker.set_weights(weights)
+        if self._aggregator is not None:
+            initial_weight = self._aggregator.average(clients_weights, axis=0)
+            for device, worker in self._workers.items():
+                weights = (
+                    initial_weight.to(device) if initial_weight is not None else None
+                )
+                worker.set_weights(weights)
+        else:
+            clients_weights = [weight.to(self.server) for weight in clients_weights]
+
+            if self.server_agg_method is not None:
+                initial_weight = self.server(
+                    self.server_agg_method,
+                    num_returns=len(
+                        self.device_list,
+                    ),
+                )(clients_weights)
+
+                for idx, device in enumerate(self._workers.keys()):
+                    weights = (
+                        initial_weight[idx].to(device) if initial_weight[idx] else None
+                    )
+                    self._workers[device].set_weights(weights)
+            else:
+                raise Exception(f"aggregator and server_agg_method cannot both be none")
+
         return initial_weight
 
     def _handle_file(
@@ -151,7 +181,7 @@ class FLModel:
             assert (
                 len(set_steps_per_epochs) == 1
             ), "steps_per_epochs of all parties must be same"
-            self.steps_per_epoch = set_steps_per_epochs.pop()
+            steps_per_epoch = set_steps_per_epochs.pop()
 
         else:
             # get party length
@@ -175,7 +205,7 @@ class FLModel:
                     )
                 if sampling_rate > 1.0:
                     sampling_rate = 1.0
-                    logging.warn(
+                    logging.warning(
                         "Batchsize is too large it will be set to the data size"
                     )
             # check batchsize
@@ -187,7 +217,7 @@ class FLModel:
             assert (
                 sampling_rate <= 1.0 and sampling_rate > 0.0
             ), f'invalid sampling rate {sampling_rate}'
-            self.steps_per_epoch = math.ceil(1.0 / sampling_rate)
+            steps_per_epoch = math.ceil(1.0 / sampling_rate)
 
             for device, worker in self._workers.items():
                 repeat_count = epochs
@@ -203,7 +233,7 @@ class FLModel:
                     stage=stage,
                     label_decoder=label_decoder,
                 )
-        return self.steps_per_epoch
+        return steps_per_epoch
 
     def _handle_data(
         self,
@@ -251,7 +281,7 @@ class FLModel:
                 )
         if sampling_rate > 1.0:
             sampling_rate = 1.0
-            logging.warn("Batch size is too large it will be set to the data size")
+            logging.warning("Batch size is too large it will be set to the data size")
         # check batch size
         for length in parties_length.values():
             batch_size = math.floor(length * sampling_rate)
@@ -259,7 +289,7 @@ class FLModel:
                 batch_size < 1024
             ), f"Automatic batch size is too big(batch_size={batch_size}), variable batch size in dict is recommended"
         assert sampling_rate <= 1.0 and sampling_rate > 0.0, 'invalid sampling rate'
-        self.steps_per_epoch = math.ceil(1.0 / sampling_rate)
+        steps_per_epoch = math.ceil(1.0 / sampling_rate)
 
         for device, worker in self._workers.items():
             repeat_count = epochs
@@ -297,7 +327,7 @@ class FLModel:
                     sampler_method=sampler_method,
                     stage=stage,
                 )
-        return self.steps_per_epoch
+        return steps_per_epoch
 
     def fit(
         self,
@@ -322,6 +352,7 @@ class FLModel:
         dp_spent_step_freq=None,
         audit_log_dir=None,
         dataset_builder: Dict[PYU, Callable] = None,
+        wait_steps=100,
     ) -> History:
         """Horizontal federated training interface
 
@@ -347,6 +378,7 @@ class FLModel:
             dp_spent_step_freq: specifies how many training steps to check the budget of dp
             audit_log_dir: path of audit log dir, checkpoint will be save if audit_log_dir is not None
             dataset_builder: Callable function about hot to build the dataset. must return (dataset, steps_per_epoch)
+            wait_steps: A step size to indicate how many concurrent tasks should be waited, which could prevent the stuck of ray when more tasks join (default 100).
         Returns:
             A history object. It's history.global_history attribute is a
             aggregated record of training loss values and metrics, while
@@ -360,6 +392,11 @@ class FLModel:
         logging.info(f"FL Train Params: {params}")
 
         # sanity check
+        if self._aggregator is None:
+            if self.server_agg_method is None or self.server is None:
+                raise Exception(
+                    "When aggregator is none, neither the server nor the server_agg_method can be none"
+                )
         assert isinstance(validation_freq, int) and validation_freq >= 1
         assert isinstance(aggregate_freq, int) and aggregate_freq >= 1
         if dp_spent_step_freq is not None:
@@ -374,7 +411,7 @@ class FLModel:
             else:
                 valid_x, valid_y = None, None
 
-            self._handle_file(
+            train_steps_per_epoch = self._handle_file(
                 x,
                 y,
                 batch_size=batch_size,
@@ -399,7 +436,7 @@ class FLModel:
             else:
                 valid_x, valid_y = None, None
 
-            self._handle_data(
+            train_steps_per_epoch = self._handle_data(
                 train_x,
                 train_y,
                 sample_weight=sample_weight,
@@ -415,43 +452,71 @@ class FLModel:
 
         initial_weight = self.initialize_weights()
         logging.debug(f"initial_weight: {initial_weight}")
-        if self.server:
+        server_weight = None
+        if self.server and isinstance(initial_weight, PYUObject):
             server_weight = initial_weight
         for device, worker in self._workers.items():
             worker.init_training(callbacks, epochs=epochs)
             worker.on_train_begin()
         model_params = None
+        model_params_list = None
         for epoch in range(epochs):
+            res = []
             report_list = []
-            pbar = tqdm(total=self.steps_per_epoch)
+            pbar = tqdm(total=train_steps_per_epoch)
             # do train
             report_list.append(f"epoch: {epoch+1}/{epochs} - ")
             [worker.on_epoch_begin(epoch) for worker in self._workers.values()]
-            for step in range(0, self.steps_per_epoch, aggregate_freq):
+            for step in range(0, train_steps_per_epoch, aggregate_freq):
                 if verbose == 1:
                     pbar.update(aggregate_freq)
                 client_param_list, sample_num_list = [], []
-                for device, worker in self._workers.items():
+                for idx, device in enumerate(self._workers.keys()):
                     client_params = (
-                        model_params.to(device) if model_params is not None else None
+                        model_params_list[idx].to(device)
+                        if model_params_list is not None
+                        else None
                     )
-                    client_params, sample_num = worker.train_step(
+                    client_params, sample_num = self._workers[device].train_step(
                         client_params,
-                        epoch * self.steps_per_epoch + step,
+                        epoch * train_steps_per_epoch + step,
                         aggregate_freq
-                        if step + aggregate_freq < self.steps_per_epoch
-                        else self.steps_per_epoch - step,
+                        if step + aggregate_freq < train_steps_per_epoch
+                        else train_steps_per_epoch - step,
                         **self.kwargs,
                     )
                     client_param_list.append(client_params)
                     sample_num_list.append(sample_num)
-
-                model_params = self._aggregator.average(
-                    client_param_list, axis=0, weights=sample_num_list
-                )
+                    res.append(client_params)
+                if self._aggregator is not None:
+                    model_params = self._aggregator.average(
+                        client_param_list, axis=0, weights=sample_num_list
+                    )
+                else:
+                    if self.server is not None:
+                        # server will do aggregation
+                        model_params_list = [
+                            param.to(self.server) for param in client_param_list
+                        ]
+                        model_params_list = self.server(
+                            self.server_agg_method,
+                            num_returns=len(
+                                self.device_list,
+                            ),
+                        )(model_params_list)
+                        model_params_list = [
+                            params.to(device)
+                            for device, params in zip(
+                                self.device_list, model_params_list
+                            )
+                        ]
+                    else:
+                        raise Exception(
+                            "Aggregation can be on either an aggregator or a server, but not none at the same time"
+                        )
 
                 # Do weight sparsify
-                if self.strategy in COMPRESS_STRATEGY:
+                if self.strategy in COMPRESS_STRATEGY and server_weight:
                     if self._res:
                         self._res.to(self.server)
                     agg_update = model_params.to(self.server)
@@ -476,13 +541,22 @@ class FLModel:
                 # DP operation
                 if dp_spent_step_freq is not None and self.dp_strategy is not None:
                     current_dp_step = math.ceil(
-                        epoch * self.steps_per_epoch / aggregate_freq
+                        epoch * train_steps_per_epoch / aggregate_freq
                     ) + int(step / aggregate_freq)
                     if current_dp_step % dp_spent_step_freq == 0:
                         privacy_spent = self.dp_strategy.get_privacy_spent(
                             current_dp_step
                         )
                         logging.debug(f'DP privacy accountant {privacy_spent}')
+                if len(res) == wait_steps:
+                    wait(res)
+                    res = []
+                if self._aggregator is not None:
+                    model_params_list = [model_params for _ in self.device_list]
+                    model_params_list = [
+                        params.to(device)
+                        for device, params in zip(self.device_list, model_params_list)
+                    ]
 
             local_metrics_obj = []
             for device, worker in self._workers.items():

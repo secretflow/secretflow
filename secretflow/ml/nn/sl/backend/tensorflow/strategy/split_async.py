@@ -37,9 +37,9 @@ class SLAsyncTFModel(SLBaseTFModel):
         builder_base: Callable[[], tf.keras.Model],
         builder_fuse: Callable[[], tf.keras.Model],
         dp_strategy: DPStrategy,
-        base_local_steps: int,
-        fuse_local_steps: int,
-        bound_param: float,
+        base_local_steps: int = 1,
+        fuse_local_steps: int = 1,
+        bound_param: float = 0.0,
         random_seed: int = None,
         **kwargs,
     ):
@@ -55,8 +55,8 @@ class SLAsyncTFModel(SLBaseTFModel):
         self.bound_param = bound_param
 
     @tf.function
-    def _base_forward_internal(self, data_x, use_dp: bool = True):
-        h = self.model_base(data_x)
+    def _base_forward_internal(self, data_x, use_dp: bool = True, training=True):
+        h = self.model_base(data_x, training=training)
 
         # Embedding differential privacy
         if use_dp and self.embedding_dp is not None:
@@ -79,7 +79,11 @@ class SLAsyncTFModel(SLBaseTFModel):
                 if local_step == 0 and self.h is not None:
                     h = self.h
                 else:
-                    h = self._base_forward_internal(self.data_x, use_dp=False)
+                    h = self._base_forward_internal(
+                        self.data_x,
+                        use_dp=False,
+                        training=True,  # backward will only in training procedure
+                    )
                 if len(gradient) == len(h):
                     for i in range(len(gradient)):
                         return_hiddens.append(self.fuse_op(h[i], gradient[i]))

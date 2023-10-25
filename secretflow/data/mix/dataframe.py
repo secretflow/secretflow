@@ -20,10 +20,11 @@ import numpy as np
 import pandas as pd
 from pandas.core.indexes.base import Index
 
-from secretflow.data.base import Partition
-from secretflow.data.horizontal import HDataFrame
-from secretflow.data.vertical import VDataFrame
 from secretflow.utils.errors import InvalidArgumentError, NotFoundError, UnexpectedError
+
+from ..core.partition import Partition
+from ..horizontal import HDataFrame
+from ..vertical import VDataFrame
 
 
 @unique
@@ -91,6 +92,10 @@ class MixDataFrame:
        or VDataFrame, and shall not be mixed.
     """
 
+    def __init__(self, partitions=None):
+        self.partitions = partitions
+        self.__post__init()
+
     def __post__init(self):
         self._check_partitions(self.partitions)
         if not isinstance(self.partitions, tuple):
@@ -118,9 +123,9 @@ class MixDataFrame:
             if part_type == VDataFrame:
                 assert (
                     part.columns == first_part.columns
-                ).all(), 'All partitions should have same columns when partitioned horizontally.'
+                ), 'All partitions should have same columns when partitioned horizontally.'
             else:
-                len(part) == len(
+                assert len(part) == len(
                     first_part
                 ), 'All partitions should have same length when partitioned vertically.'
 
@@ -152,8 +157,7 @@ class MixDataFrame:
         """
         means = [part.mean(*args, **kwargs) for part in self.partitions]
         if self.partition_way == PartitionWay.HORIZONTAL:
-            if 'numeric_only' in kwargs:
-                numeric_only = kwargs['numeric_only']
+            numeric_only = kwargs.get('numeric_only', False)
             cnts = [part.count(numeric_only=numeric_only) for part in self.partitions]
             return pd.Series(
                 np.average(means, weights=cnts, axis=0), index=means[0].index
@@ -229,11 +233,10 @@ class MixDataFrame:
 
     @property
     def values(self):
-        # TODO
-        pass
+        raise NotImplementedError()
 
     @property
-    def dtypes(self) -> pd.Series:
+    def dtypes(self) -> dict:
         """
         Returns the dtypes in the DataFrame.
 
@@ -282,7 +285,7 @@ class MixDataFrame:
         cols = self.partitions[0].columns
         if self.partition_way == PartitionWay.VERTICAL:
             for part in self.partitions[1:]:
-                cols = cols.append(part.columns)
+                cols.extend(part.columns)
         return cols
 
     @property
@@ -425,8 +428,8 @@ class MixDataFrame:
                 f'{type(value.partitions[0])} differs with {type(self.partitions[0])}.'
             )
             if self.partition_way == PartitionWay.HORIZONTAL:
-                for i, part in enumerate(value.partitions):
-                    self.partitions[i][key] = part
+                for i, part_df in enumerate(value.partitions):
+                    self.partitions[i][key] = part_df
             else:
                 part_key = self._col_index(key)
                 for idx, key in part_key.items():

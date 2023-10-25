@@ -34,6 +34,7 @@ class BaseTorchModel(ABC):
         self,
         builder_base: Callable[[], TorchModel],
         random_seed: int = None,
+        **kwargs,
     ):
         self.train_data_loader = None
         self.eval_data_loader = None
@@ -57,11 +58,15 @@ class BaseTorchModel(ABC):
             if builder_base.optim_fn is not None
             else None
         )
+        self.use_gpu = kwargs.get("use_gpu", False)
         self.metrics = (
             [m() for m in builder_base.metrics]
             if builder_base.metrics is not None
             else None
         )
+        self.exe_device = torch.device('cuda') if self.use_gpu else torch.device('cpu')
+        if self.use_gpu:
+            self.model = self.model.to(self.exe_device)
 
     def build_dataset_from_csv(
         self,
@@ -127,12 +132,12 @@ class BaseTorchModel(ABC):
         if x is None or len(x.shape) == 0:
             raise Exception("Data 'x' cannot be None")
 
-        assert sampling_rate is not None, "Sampling rate cannot be None"
-        if x is not None and y is not None:
+        if y is not None:
             assert (
                 x.shape[0] == y.shape[0]
             ), "The samples of feature is different with label"
 
+        assert sampling_rate is not None, "Sampling rate cannot be None"
         data_set = sampler_data(
             sampler_method,
             x,
@@ -210,7 +215,7 @@ class BaseTorchModel(ABC):
         wraped_metrics = []
         for m in self.metrics:
             if isinstance(m, (torchmetrics.Accuracy)):
-                tp, fp, tn, fn = m._get_final_stats()
+                tp, fp, tn, fn = map(lambda x: x.cpu(), m._get_final_stats())
                 name = m._get_name().lower()
                 correct = float((tp + tn).numpy().sum())
                 total = float((tp + tn + fp + fn).numpy().sum())
@@ -218,7 +223,7 @@ class BaseTorchModel(ABC):
                 wraped_metrics.append(Mean(name, correct, total))
 
             elif isinstance(m, torchmetrics.Precision):
-                tp, fp, tn, fn = m._get_final_stats()
+                tp, fp, tn, fn = map(lambda x: x.cpu(), m._get_final_stats())
                 threshold = m.threshold
 
                 wraped_metrics.append(
@@ -230,7 +235,7 @@ class BaseTorchModel(ABC):
                     )
                 )
             elif isinstance(m, torchmetrics.Recall):
-                tp, fp, tn, fn = m._get_final_stats()
+                tp, fp, tn, fn = map(lambda x: x.cpu(), m._get_final_stats())
                 threshold = m.threshold
                 wraped_metrics.append(
                     Recall(
@@ -242,7 +247,7 @@ class BaseTorchModel(ABC):
                 )
             else:
                 # only do naive aggregate
-                metrics_value = m.compute()
+                metrics_value = m.cpu().compute()
                 wraped_metrics.append(
                     Default(
                         name=m._get_name().lower(),
@@ -250,7 +255,6 @@ class BaseTorchModel(ABC):
                         count=1,
                     )
                 )
-
         return wraped_metrics
 
     def evaluate(self, evaluate_steps=0):
@@ -274,7 +278,13 @@ class BaseTorchModel(ABC):
                 elif len(iter_data) == 3:
                     x, y, s_w = iter_data
                 x = x.float()
+
                 # Step 1: forward pass
+                if self.use_gpu:
+                    x = x.to(self.exe_device)
+                    y = y.to(self.exe_device)
+                    if s_w is not None:
+                        s_w = s_w.to(self.exe_device)
                 y_pred = self.model(x)
 
                 # Step 2: update metrics
@@ -285,8 +295,10 @@ class BaseTorchModel(ABC):
                         y_t = torch.squeeze(y, -1).long()
                     else:
                         y_t = y.argmax(dim=-1)
+                y_t = y_t.to(self.exe_device)
                 for m in self.metrics:
-                    m.update(y_pred, y_t)
+                    m.to(self.exe_device)
+                    m.update(y_pred.cpu(), y_t.cpu())
             result = {}
             self.transform_metrics(result, stage="eval")
         return self.wrap_local_metrics()
@@ -304,6 +316,8 @@ class BaseTorchModel(ABC):
         for _ in range(predict_steps):
             iter_data = next(self.eval_iter)
             x = iter_data[0]
+            if self.use_gpu:
+                x = x.to(self.exe_device)
             y_pred = self.model(x)
             pred_result.extend(y_pred)
         return pred_result
@@ -366,7 +380,9 @@ class BaseTorchModel(ABC):
         """load model from state dict, model structure must be defined before load"""
         assert model_path is not None, "model path cannot be empty"
         assert self.model is not None, "model structure must be defined before load"
-        checkpoint = torch.load(model_path)
+        checkpoint = torch.load(model_path, map_location=torch.device('cpu'))
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        if self.use_gpu:
+            self.model.to(self.exe_device)
         return checkpoint['epoch']

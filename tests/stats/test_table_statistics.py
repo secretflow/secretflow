@@ -2,7 +2,7 @@ import pandas as pd
 import pytest
 from sklearn.datasets import load_iris
 
-from secretflow.data.base import Partition
+from secretflow.data import partition
 from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.stats import table_statistics
 
@@ -20,10 +20,10 @@ def prod_env_and_data(sf_production_setup_devices):
     v_alice, v_bob = data.iloc[:, :2], data.iloc[:, 2:]
     df_v = VDataFrame(
         partitions={
-            sf_production_setup_devices.alice: Partition(
+            sf_production_setup_devices.alice: partition(
                 sf_production_setup_devices.alice(lambda: v_alice)()
             ),
-            sf_production_setup_devices.bob: Partition(
+            sf_production_setup_devices.bob: partition(
                 sf_production_setup_devices.bob(lambda: v_bob)()
             ),
         }

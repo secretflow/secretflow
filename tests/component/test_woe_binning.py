@@ -4,24 +4,23 @@ import pandas as pd
 from sklearn.datasets import load_breast_cancer
 
 from secretflow.component.data_utils import DistDataType, extract_distdata_info
-from secretflow.component.preprocessing.vert_woe_binning import (
-    vert_woe_binning_comp,
-    vert_woe_substitution_comp,
-)
-from secretflow.protos.component.comp_pb2 import Attribute
-from secretflow.protos.component.data_pb2 import DistData, TableSchema, VerticalTable
-from secretflow.protos.component.evaluation_pb2 import NodeEvalParam
+from secretflow.component.preprocessing.vert_binning import vert_bin_substitution_comp
+from secretflow.component.preprocessing.vert_woe_binning import vert_woe_binning_comp
+from secretflow.spec.v1.component_pb2 import Attribute
+from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from tests.conftest import TEST_STORAGE_ROOT
 
 
 def test_woe_binning(comp_prod_sf_cluster_config):
     alice_path = "test_woe_binning/x_alice.csv"
     bob_path = "test_woe_binning/x_bob.csv"
-    rule_path = "test_woe_binning/woe_rule"
+    rule_path = "test_woe_binning/bin_rule"
     output_path = "test_woe_binning/woe.csv"
 
-    self_party = comp_prod_sf_cluster_config.private_config.self_party
-    local_fs_wd = comp_prod_sf_cluster_config.private_config.storage_config.local_fs.wd
+    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    self_party = sf_cluster_config.private_config.self_party
+    local_fs_wd = storage_config.local_fs.wd
 
     ds = load_breast_cancer()
     x, y = ds["data"], ds["target"]
@@ -30,8 +29,8 @@ def test_woe_binning(comp_prod_sf_cluster_config):
             os.path.join(local_fs_wd, "test_woe_binning"),
             exist_ok=True,
         )
-        x = pd.DataFrame(x[:, :15], columns=[f'a{i}' for i in range(15)])
-        y = pd.DataFrame(y, columns=['y'])
+        x = pd.DataFrame(x[:, :15], columns=[f"a{i}" for i in range(15)])
+        y = pd.DataFrame(y, columns=["y"])
         ds = pd.concat([x, y], axis=1)
         ds.to_csv(os.path.join(local_fs_wd, alice_path), index=False)
 
@@ -41,28 +40,30 @@ def test_woe_binning(comp_prod_sf_cluster_config):
             exist_ok=True,
         )
 
-        ds = pd.DataFrame(x[:, 15:], columns=[f'b{i}' for i in range(15)])
+        ds = pd.DataFrame(x[:, 15:], columns=[f"b{i}" for i in range(15)])
         ds.to_csv(os.path.join(local_fs_wd, bob_path), index=False)
 
     bin_param_01 = NodeEvalParam(
-        domain="preprocessing",
+        domain="feature",
         name="vert_woe_binning",
         version="0.0.1",
         attr_paths=[
             "secure_device_type",
             "input/input_data/feature_selects",
+            "input/input_data/label",
         ],
         attrs=[
             Attribute(s="heu"),
             Attribute(ss=[f"a{i}" for i in range(12)] + [f"b{i}" for i in range(11)]),
+            Attribute(ss=["y"]),
         ],
         inputs=[
             DistData(
                 name="input_data",
                 type=str(DistDataType.VERTICAL_TABLE),
                 data_refs=[
-                    DistData.DataRef(uri=alice_path, party="alice", format="csv"),
                     DistData.DataRef(uri=bob_path, party="bob", format="csv"),
+                    DistData.DataRef(uri=alice_path, party="alice", format="csv"),
                 ],
             ),
         ],
@@ -70,24 +71,26 @@ def test_woe_binning(comp_prod_sf_cluster_config):
     )
 
     bin_param_02 = NodeEvalParam(
-        domain="preprocessing",
+        domain="feature",
         name="vert_woe_binning",
         version="0.0.1",
         attr_paths=[
             "secure_device_type",
             "input/input_data/feature_selects",
+            "input/input_data/label",
         ],
         attrs=[
             Attribute(s="spu"),
             Attribute(ss=[f"a{i}" for i in range(11)] + [f"b{i}" for i in range(12)]),
+            Attribute(ss=["y"]),
         ],
         inputs=[
             DistData(
                 name="input_data",
                 type=str(DistDataType.VERTICAL_TABLE),
                 data_refs=[
-                    DistData.DataRef(uri=alice_path, party="alice", format="csv"),
                     DistData.DataRef(uri=bob_path, party="bob", format="csv"),
+                    DistData.DataRef(uri=alice_path, party="alice", format="csv"),
                 ],
             ),
         ],
@@ -97,25 +100,33 @@ def test_woe_binning(comp_prod_sf_cluster_config):
     meta = VerticalTable(
         schemas=[
             TableSchema(
-                types=["f32"] * 15,
-                features=[f"a{i}" for i in range(15)],
-                labels=["y"],
+                feature_types=["float32"] * 15,
+                features=[f"b{i}" for i in range(15)],
             ),
             TableSchema(
-                types=["f32"] * 15,
-                features=[f"b{i}" for i in range(15)],
+                feature_types=["float32"] * 16,
+                features=[f"a{i}" for i in range(15)] + ["y"],
             ),
         ],
     )
     bin_param_01.inputs[0].meta.Pack(meta)
     bin_param_02.inputs[0].meta.Pack(meta)
 
-    bin_res = vert_woe_binning_comp.eval(bin_param_01, comp_prod_sf_cluster_config)
-    bin_res = vert_woe_binning_comp.eval(bin_param_02, comp_prod_sf_cluster_config)
+    bin_res = vert_woe_binning_comp.eval(
+        param=bin_param_01,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
+
+    bin_res = vert_woe_binning_comp.eval(
+        param=bin_param_02,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
 
     sub_param = NodeEvalParam(
-        domain="preprocessing",
-        name="vert_woe_substitution",
+        domain="feature",
+        name="vert_bin_substitution",
         version="0.0.1",
         attr_paths=[],
         attrs=[],
@@ -126,9 +137,22 @@ def test_woe_binning(comp_prod_sf_cluster_config):
         output_uris=[output_path],
     )
 
-    sub_res = vert_woe_substitution_comp.eval(sub_param, comp_prod_sf_cluster_config)
+    sub_res = vert_bin_substitution_comp.eval(
+        param=sub_param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
 
     assert len(sub_res.outputs) == 1
+
+    vt = VerticalTable()
+    assert sub_res.outputs[0].meta.Unpack(vt)
+    import logging
+
+    for s in vt.schemas:
+        logging.warn(f'schema={s}')
+        if 'y' in list(s.labels) or 'y' in list(s.features):
+            assert 'y' in list(s.labels) and 'y' not in list(s.features)
 
     output_info = extract_distdata_info(sub_res.outputs[0])
 

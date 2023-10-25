@@ -16,12 +16,11 @@ from typing import List
 
 import numpy as np
 
-from secretflow.device import PYUObject, proxy
+from secretflow.device import PYUObject
 
-from ....core.split_tree_trainer.shuffler import Shuffler
+from .shuffler_core import Shuffler
 
 
-@proxy(PYUObject)
 class WorkerShuffler:
     def __init__(self, seed: int):
         np.random.seed(seed)

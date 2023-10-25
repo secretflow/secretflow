@@ -12,6 +12,7 @@ Cryptography-based techniques. If you are a beginner in cryptography, and wants 
 
 1. [Secure Multi-Party Computation (MPC)](papers/tools/mpc.md)  (Contributors: [@jamie-cui](https://www.github.com/jamie-cui) [@DuanYuFi](https://github.com/DuanYuFi))
 2. [Zero-Knowledge Proof (ZKP)](papers/tools/zkp.md) (Contributors: [@xfap](https://www.github.com/xfap) [@yuzhouwudizuilihai](https://github.com/yuzhouwudizuilihai) [@zlyber](https://api.github.com/users/zlyber) [@rhocos3theta](https://github.com/rhocos3theta))
+3. [Homomorphic Encryption (HE)](papers/tools/he.md) (Contributors: [@zhangwfjh](https://www.github.com/zhangwfjh))
 
 Anonymity-related techniques
 
@@ -19,7 +20,7 @@ Anonymity-related techniques
 
 Hardware-based solutions
 
-1. [Trusted Execution Environment (TEE)](papers/tools/tee.md) 
+1. [Trusted Execution Environment (TEE)](papers/tools/tee.md)
 
 ### Applications of PETs
 
@@ -50,6 +51,5 @@ Multimedia Privacy and Security
 We're sorry some of the materials are avaliable only in Chinese, we'll try to provide an English version in the future.
 
 1. [Team SecretFlow's Papers](papers/secretflow.md)
-2. [Team SecretFlow's Talks (on bilibili.com)](tutorials/talks.md) 
+2. [Team SecretFlow's Talks (on bilibili.com)](tutorials/talks.md)
 3. [Team SecretFlow's Posts (on wechat)](tutorials/posts.md)
-

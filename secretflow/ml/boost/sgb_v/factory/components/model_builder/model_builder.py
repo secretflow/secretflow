@@ -15,9 +15,10 @@
 from dataclasses import dataclass
 
 from secretflow.device import PYUObject
+from secretflow.ml.boost.sgb_v.core.params import default_params
 
 from ....core.distributed_tree.distributed_tree import DistributedTree
-from ....core.preprocessing.params import RegType
+from ....core.params import RegType
 from ....core.pure_numpy_ops.pred import init_pred
 from ....model import SgbModel
 from ..component import Component, Devices, print_params
@@ -33,8 +34,8 @@ class ModelBuilderParams:
         default: 0
     """
 
-    base_score: float = 0
-    objective: RegType = RegType('logistic')
+    base_score: float = default_params.base_score
+    objective: RegType = default_params.objective
 
 
 class ModelBuilder(Component):
@@ -47,13 +48,10 @@ class ModelBuilder(Component):
         print_params(self.params)
 
     def set_params(self, params: dict):
-        obj = params.get('objective', 'logistic')
-        assert obj in [
-            e.value for e in RegType
-        ], f"objective should in {[e.value for e in RegType]}, got {obj}"
+        obj = params.get('objective', default_params.objective.value)
         obj = RegType(obj)
         self.params.objective = obj
-        self.params.base_score = float(params.get('base_score', 0))
+        self.params.base_score = params.get('base_score', default_params.base_score)
 
     def get_params(self, params: dict):
         params['base_score'] = self.params.base_score
@@ -61,6 +59,12 @@ class ModelBuilder(Component):
 
     def set_devices(self, devices: Devices):
         self.label_holder = devices.label_holder
+
+    def set_actors(self, _):
+        return
+
+    def del_actors(self):
+        return
 
     def init_pred(self, sample_num: int) -> PYUObject:
         base = self.params.base_score

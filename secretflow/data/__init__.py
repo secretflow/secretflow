@@ -12,12 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import horizontal, vertical
+from . import core, horizontal, io, mix, ndarray, vertical
+from .core import Partition, partition
 from .ndarray import FedNdarray, PartitionWay
 
 __all__ = [
     'horizontal',
     'vertical',
+    'mix',
+    'core',
+    'io',
+    'ndarray',
     'FedNdarray',
     'PartitionWay',
+    'partition',
+    'Partition',
 ]

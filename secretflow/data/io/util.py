@@ -17,8 +17,6 @@ from pathlib import Path
 from typing import Union
 from urllib.parse import urlparse
 
-import pandas as pd
-
 
 def open(filepath: Union[str, Path], mode='rb'):
     """Open a oss/http/https file.
@@ -44,42 +42,3 @@ def open(filepath: Union[str, Path], mode='rb'):
 
 def is_local_file(uri: str) -> bool:
     return uri and not urlparse(uri).scheme
-
-
-def read_csv_wrapper(
-    filepath: str, auto_gen_header_prefix: str = "", **kwargs
-) -> pd.DataFrame:
-    """A wrapper of pandas read_csv and supports oss file.
-
-    Args:
-        filepath: the file path.
-        auto_gen_header_prefix: If set, the format of generated headers would be {gen_header_prefix}_{col_idx}.
-        kwargs: all other arguments are same with :py:meth:`pandas.DataFrame.read_csv`.
-
-    Returns:
-        a pandas DataFrame.
-    """
-    if auto_gen_header_prefix:
-        kwargs['header'] = None
-        df = pd.read_csv(open(filepath), **kwargs)
-        df.columns = [
-            "{}_{}".format(auto_gen_header_prefix, i) for i in range(df.shape[1])
-        ]
-        return df
-    else:
-        return pd.read_csv(open(filepath), **kwargs)
-
-
-def to_csv_wrapper(df: pd.DataFrame, filepath, **kwargs):
-    """A wrapper of pandas to_csv and supports oss file.
-
-    Args:
-        filepath: the file path.
-        kwargs: all other arguments are same with :py:meth:`pandas.DataFrame.read_csv`.
-
-    Returns:
-        a pandas DataFrame.
-    """
-    if is_local_file(filepath):
-        Path(filepath).parent.mkdir(parents=True, exist_ok=True)
-    df.to_csv(open(filepath, 'wb'), **kwargs)

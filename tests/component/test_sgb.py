@@ -6,9 +6,9 @@ from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import StandardScaler
 
 from secretflow.component.ml.boost.sgb.sgb import sgb_predict_comp, sgb_train_comp
-from secretflow.protos.component.comp_pb2 import Attribute
-from secretflow.protos.component.data_pb2 import DistData, TableSchema, VerticalTable
-from secretflow.protos.component.evaluation_pb2 import NodeEvalParam
+from secretflow.spec.v1.component_pb2 import Attribute
+from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from tests.conftest import TEST_STORAGE_ROOT
 
 
@@ -18,8 +18,9 @@ def test_sgb(comp_prod_sf_cluster_config):
     model_path = "test_sgb/model.sf"
     predict_path = "test_sgb/predict.csv"
 
-    self_party = comp_prod_sf_cluster_config.private_config.self_party
-    local_fs_wd = comp_prod_sf_cluster_config.private_config.storage_config.local_fs.wd
+    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    self_party = sf_cluster_config.private_config.self_party
+    local_fs_wd = storage_config.local_fs.wd
 
     scaler = StandardScaler()
     ds = load_breast_cancer()
@@ -29,8 +30,8 @@ def test_sgb(comp_prod_sf_cluster_config):
             os.path.join(local_fs_wd, "test_sgb"),
             exist_ok=True,
         )
-        x = pd.DataFrame(x[:, :15], columns=[f'a{i}' for i in range(15)])
-        y = pd.DataFrame(y, columns=['y'])
+        x = pd.DataFrame(x[:, :15], columns=[f"a{i}" for i in range(15)])
+        y = pd.DataFrame(y, columns=["y"])
         ds = pd.concat([x, y], axis=1)
         ds.to_csv(os.path.join(local_fs_wd, alice_path), index=False)
 
@@ -40,11 +41,11 @@ def test_sgb(comp_prod_sf_cluster_config):
             exist_ok=True,
         )
 
-        ds = pd.DataFrame(x[:, 15:], columns=[f'b{i}' for i in range(15)])
+        ds = pd.DataFrame(x[:, 15:], columns=[f"b{i}" for i in range(15)])
         ds.to_csv(os.path.join(local_fs_wd, bob_path), index=False)
 
     train_param = NodeEvalParam(
-        domain="ml.boost",
+        domain="ml.train",
         name="sgb_train",
         version="0.0.1",
         attr_paths=[
@@ -54,10 +55,11 @@ def test_sgb(comp_prod_sf_cluster_config):
             "objective",
             "reg_lambda",
             "gamma",
-            "subsample",
+            "rowsample_by_tree",
             "colsample_by_tree",
             "sketch_eps",
             "base_score",
+            "input/train_dataset/label",
         ],
         attrs=[
             Attribute(i64=3),
@@ -70,6 +72,7 @@ def test_sgb(comp_prod_sf_cluster_config):
             Attribute(f=1),
             Attribute(f=0.25),
             Attribute(f=0),
+            Attribute(ss=["y"]),
         ],
         inputs=[
             DistData(
@@ -87,22 +90,27 @@ def test_sgb(comp_prod_sf_cluster_config):
     meta = VerticalTable(
         schemas=[
             TableSchema(
-                types=["f32"] * 15,
+                feature_types=["float32"] * 15,
                 features=[f"a{i}" for i in range(15)],
                 labels=["y"],
+                label_types=["float32"],
             ),
             TableSchema(
-                types=["f32"] * 15,
+                feature_types=["float32"] * 15,
                 features=[f"b{i}" for i in range(15)],
             ),
         ],
     )
     train_param.inputs[0].meta.Pack(meta)
 
-    train_res = sgb_train_comp.eval(train_param, comp_prod_sf_cluster_config)
+    train_res = sgb_train_comp.eval(
+        param=train_param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
 
     predict_param = NodeEvalParam(
-        domain="ml.boost",
+        domain="ml.predict",
         name="sgb_predict",
         version="0.0.1",
         attr_paths=[
@@ -131,19 +139,24 @@ def test_sgb(comp_prod_sf_cluster_config):
     meta = VerticalTable(
         schemas=[
             TableSchema(
-                types=["f32"] * 15,
+                feature_types=["float32"] * 15,
                 features=[f"a{i}" for i in range(15)],
                 labels=["y"],
+                label_types=["float32"],
             ),
             TableSchema(
-                types=["f32"] * 15,
+                feature_types=["float32"] * 15,
                 features=[f"b{i}" for i in range(15)],
             ),
         ],
     )
     predict_param.inputs[1].meta.Pack(meta)
 
-    predict_res = sgb_predict_comp.eval(predict_param, comp_prod_sf_cluster_config)
+    predict_res = sgb_predict_comp.eval(
+        param=predict_param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
 
     assert len(predict_res.outputs) == 1
 

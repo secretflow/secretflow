@@ -1,0 +1,2127 @@
+{
+  "name": "secretflow",
+  "desc": "First-party SecretFlow components.",
+  "version": "0.0.1",
+  "comps": [
+    {
+      "domain": "feature",
+      "name": "vert_bin_substitution",
+      "desc": "Substitute datasets' value by bin substitution rules.",
+      "version": "0.0.1",
+      "inputs": [
+        {
+          "name": "input_data",
+          "desc": "Vertical partitioning dataset to be substituted.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        },
+        {
+          "name": "bin_rule",
+          "desc": "Input bin substitution rule.",
+          "types": [
+            "sf.rule.binning"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_data",
+          "desc": "Output vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "feature",
+      "name": "vert_binning",
+      "desc": "Generate equal frequency or equal range binning rules for vertical partitioning datasets.",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "binning_method",
+          "desc": "How to bin features with numeric types: \"quantile\"(equal frequency)/\"eq_range\"(equal range)",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "eq_range"
+            },
+            "allowedValues": {
+              "ss": [
+                "eq_range",
+                "quantile"
+              ]
+            }
+          }
+        },
+        {
+          "name": "bin_num",
+          "desc": "Max bin counts for one features.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "10"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "input_data",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "feature_selects",
+              "desc": "which features should be binned.",
+              "colMinCntInclusive": "1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "bin_rule",
+          "desc": "Output bin rule.",
+          "types": [
+            "sf.rule.binning"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "feature",
+      "name": "vert_woe_binning",
+      "desc": "Generate Weight of Evidence (WOE) binning rules for vertical partitioning datasets.",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "secure_device_type",
+          "desc": "Use SPU(Secure multi-party computation or MPC) or HEU(Homomorphic encryption or HE) to secure bucket summation.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "spu"
+            },
+            "allowedValues": {
+              "ss": [
+                "spu",
+                "heu"
+              ]
+            }
+          }
+        },
+        {
+          "name": "binning_method",
+          "desc": "How to bin features with numeric types: \"quantile\"(equal frequency)/\"chimerge\"(ChiMerge from AAAI92-019: https://www.aaai.org/Papers/AAAI/1992/AAAI92-019.pdf)",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "quantile"
+            },
+            "allowedValues": {
+              "ss": [
+                "quantile",
+                "chimerge"
+              ]
+            }
+          }
+        },
+        {
+          "name": "bin_num",
+          "desc": "Max bin counts for one features.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "10"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
+          }
+        },
+        {
+          "name": "positive_label",
+          "desc": "Which value represent positive value in label.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "1"
+            }
+          }
+        },
+        {
+          "name": "chimerge_init_bins",
+          "desc": "Max bin counts for initialization binning in ChiMerge.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "100"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {
+              "i64": "2"
+            }
+          }
+        },
+        {
+          "name": "chimerge_target_bins",
+          "desc": "Stop merging if remaining bin counts is less than or equal to this value.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "10"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {
+              "i64": "2"
+            },
+            "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "chimerge_target_pvalue",
+          "desc": "Stop merging if biggest pvalue of remaining bins is greater than this value.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.1
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 1.0
+            },
+            "upperBoundInclusive": true
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "input_data",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "feature_selects",
+              "desc": "which features should be binned.",
+              "colMinCntInclusive": "1"
+            },
+            {
+              "name": "label",
+              "desc": "Label of input data.",
+              "colMinCntInclusive": "1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "bin_rule",
+          "desc": "Output WOE rule.",
+          "types": [
+            "sf.rule.binning"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "ml.eval",
+      "name": "biclassification_eval",
+      "desc": "Statistics evaluation for a bi-classification model on a dataset.\n1. summary_report: SummaryReport\n2. group_reports: List[GroupReport]\n3. eq_frequent_bin_report: List[EqBinReport]\n4. eq_range_bin_report: List[EqBinReport]\n5. head_report: List[PrReport]\nreports for fpr = 0.001, 0.005, 0.01, 0.05, 0.1, 0.2",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "bucket_size",
+          "desc": "Number of buckets.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "10"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {
+              "i64": "1"
+            },
+            "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "min_item_cnt_per_bucket",
+          "desc": "Min item cnt per bucket. If any bucket doesn't meet the requirement, error raises. For security reasons, we require this parameter to be at least 5.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "5"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {
+              "i64": "5"
+            },
+            "lowerBoundInclusive": true
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "labels",
+          "desc": "Input table with labels",
+          "types": [
+            "sf.table.vertical_table",
+            "sf.table.individual"
+          ],
+          "attrs": [
+            {
+              "name": "col",
+              "desc": "The column name to use in the dataset. If not provided, the label of dataset will be used by default.",
+              "colMaxCntInclusive": "1"
+            }
+          ]
+        },
+        {
+          "name": "predictions",
+          "desc": "Input table with predictions",
+          "types": [
+            "sf.table.vertical_table",
+            "sf.table.individual"
+          ],
+          "attrs": [
+            {
+              "name": "col",
+              "desc": "The column name to use in the dataset. If not provided, the label of dataset will be used by default.",
+              "colMaxCntInclusive": "1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "reports",
+          "desc": "Output report.",
+          "types": [
+            "sf.report"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "ml.eval",
+      "name": "prediction_bias_eval",
+      "desc": "Calculate prediction bias, ie. average of predictions - average of labels.",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "bucket_num",
+          "desc": "Num of bucket.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "10"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {
+              "i64": "1"
+            },
+            "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "min_item_cnt_per_bucket",
+          "desc": "Min item cnt per bucket. If any bucket doesn't meet the requirement, error raises. For security reasons, we require this parameter to be at least 2.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "2"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {
+              "i64": "2"
+            },
+            "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "bucket_method",
+          "desc": "Bucket method.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "equal_width"
+            },
+            "allowedValues": {
+              "ss": [
+                "equal_width",
+                "equal_frequency"
+              ]
+            }
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "labels",
+          "desc": "Input table with labels.",
+          "types": [
+            "sf.table.vertical_table",
+            "sf.table.individual"
+          ],
+          "attrs": [
+            {
+              "name": "col",
+              "desc": "The column name to use in the dataset. If not provided, the label of dataset will be used by default.",
+              "colMaxCntInclusive": "1"
+            }
+          ]
+        },
+        {
+          "name": "predictions",
+          "desc": "Input table with predictions.",
+          "types": [
+            "sf.table.vertical_table",
+            "sf.table.individual"
+          ],
+          "attrs": [
+            {
+              "name": "col",
+              "desc": "The column name to use in the dataset. If not provided, the label of dataset will be used by default.",
+              "colMaxCntInclusive": "1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "result",
+          "desc": "Output report.",
+          "types": [
+            "sf.report"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "ml.eval",
+      "name": "ss_pvalue",
+      "desc": "Calculate P-Value for LR model training on vertical partitioning dataset by using secret sharing.\nFor large dataset(large than 10w samples & 200 features),\nrecommend to use [Ring size: 128, Fxp: 40] options for SPU device.",
+      "version": "0.0.1",
+      "inputs": [
+        {
+          "name": "model",
+          "desc": "Input model.",
+          "types": [
+            "sf.model.ss_sgd"
+          ]
+        },
+        {
+          "name": "input_data",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "report",
+          "desc": "Output P-Value report.",
+          "types": [
+            "sf.report"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "ml.predict",
+      "name": "sgb_predict",
+      "desc": "Predict using SGB model.",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "receiver",
+          "desc": "Party of receiver.",
+          "type": "AT_STRING",
+          "atomic": {}
+        },
+        {
+          "name": "pred_name",
+          "desc": "Name for prediction column",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "pred"
+            }
+          }
+        },
+        {
+          "name": "save_ids",
+          "desc": "Whether to save ids columns into output prediction table. If true, input feature_dataset must contain id columns, and receiver party must be id owner.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "save_label",
+          "desc": "Whether or not to save real label columns into output pred file. If true, input feature_dataset must contain label columns and receiver party must be label owner.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "model",
+          "desc": "model",
+          "types": [
+            "sf.model.sgb"
+          ]
+        },
+        {
+          "name": "feature_dataset",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "pred",
+          "desc": "Output prediction.",
+          "types": [
+            "sf.table.individual"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "ml.predict",
+      "name": "ss_glm_predict",
+      "desc": "Predict using the SSGLM model.",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "receiver",
+          "desc": "Party of receiver.",
+          "type": "AT_STRING",
+          "atomic": {}
+        },
+        {
+          "name": "pred_name",
+          "desc": "Column name for predictions.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "pred"
+            }
+          }
+        },
+        {
+          "name": "save_ids",
+          "desc": "Whether to save ids columns into output prediction table. If true, input feature_dataset must contain id columns, and receiver party must be id owner.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "save_label",
+          "desc": "Whether or not to save real label columns into output pred file. If true, input feature_dataset must contain label columns and receiver party must be label owner.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "offset_col",
+          "desc": "Specify a column to use as the offset",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "model",
+          "desc": "Input model.",
+          "types": [
+            "sf.model.ss_glm"
+          ]
+        },
+        {
+          "name": "feature_dataset",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "pred",
+          "desc": "Output prediction.",
+          "types": [
+            "sf.table.individual"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "ml.predict",
+      "name": "ss_sgd_predict",
+      "desc": "Predict using the SS-SGD model.",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "batch_size",
+          "desc": "The number of training examples utilized in one iteration.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "1024"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
+          }
+        },
+        {
+          "name": "receiver",
+          "desc": "Party of receiver.",
+          "type": "AT_STRING",
+          "atomic": {}
+        },
+        {
+          "name": "pred_name",
+          "desc": "Column name for predictions.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "pred"
+            }
+          }
+        },
+        {
+          "name": "save_ids",
+          "desc": "Whether to save ids columns into output prediction table. If true, input feature_dataset must contain id columns, and receiver party must be id owner.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "save_label",
+          "desc": "Whether or not to save real label columns into output pred file. If true, input feature_dataset must contain label columns and receiver party must be label owner.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "model",
+          "desc": "Input model.",
+          "types": [
+            "sf.model.ss_sgd"
+          ]
+        },
+        {
+          "name": "feature_dataset",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "pred",
+          "desc": "Output prediction.",
+          "types": [
+            "sf.table.individual"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "ml.predict",
+      "name": "ss_xgb_predict",
+      "desc": "Predict using the SS-XGB model.",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "receiver",
+          "desc": "Party of receiver.",
+          "type": "AT_STRING",
+          "atomic": {}
+        },
+        {
+          "name": "pred_name",
+          "desc": "Column name for predictions.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "pred"
+            }
+          }
+        },
+        {
+          "name": "save_ids",
+          "desc": "Whether to save ids columns into output prediction table. If true, input feature_dataset must contain id columns, and receiver party must be id owner.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "save_label",
+          "desc": "Whether or not to save real label columns into output pred file. If true, input feature_dataset must contain label columns and receiver party must be label owner.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "model",
+          "desc": "Input model.",
+          "types": [
+            "sf.model.ss_xgb"
+          ]
+        },
+        {
+          "name": "feature_dataset",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "pred",
+          "desc": "Output prediction.",
+          "types": [
+            "sf.table.individual"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "ml.train",
+      "name": "sgb_train",
+      "desc": "Provides both classification and regression tree boosting (also known as GBDT, GBM)\nfor vertical split dataset setting by using secure boost.\n- SGB is short for SecureBoost. Compared to its safer counterpart SS-XGB, SecureBoost focused on protecting label holder.\n- Check https://arxiv.org/abs/1901.08755.",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "num_boost_round",
+          "desc": "Number of boosting iterations.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "10"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {
+              "i64": "1"
+            },
+            "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "max_depth",
+          "desc": "Maximum depth of a tree.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "5"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {
+              "i64": "1"
+            },
+            "lowerBoundInclusive": true,
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "i64": "16"
+            },
+            "upperBoundInclusive": true
+          }
+        },
+        {
+          "name": "learning_rate",
+          "desc": "Step size shrinkage used in update to prevent overfitting.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.1
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 1.0
+            },
+            "upperBoundInclusive": true
+          }
+        },
+        {
+          "name": "objective",
+          "desc": "Specify the learning objective.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "logistic"
+            },
+            "allowedValues": {
+              "ss": [
+                "linear",
+                "logistic"
+              ]
+            }
+          }
+        },
+        {
+          "name": "reg_lambda",
+          "desc": "L2 regularization term on weights.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.1
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true,
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 10000.0
+            },
+            "upperBoundInclusive": true
+          }
+        },
+        {
+          "name": "gamma",
+          "desc": "Greater than 0 means pre-pruning enabled. If gain of a node is less than this value, it would be pruned.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.1
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true,
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 10000.0
+            },
+            "upperBoundInclusive": true
+          }
+        },
+        {
+          "name": "colsample_by_tree",
+          "desc": "Subsample ratio of columns when constructing each tree.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 1.0
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 1.0
+            },
+            "upperBoundInclusive": true
+          }
+        },
+        {
+          "name": "sketch_eps",
+          "desc": "This roughly translates into O(1 / sketch_eps) number of bins.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.1
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 1.0
+            },
+            "upperBoundInclusive": true
+          }
+        },
+        {
+          "name": "base_score",
+          "desc": "The initial prediction score of all instances, global bias.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {},
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "seed",
+          "desc": "Pseudorandom number generator seed.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "42"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "fixed_point_parameter",
+          "desc": "Any floating point number encoded by heu, will multiply a scale and take the round, scale = 2 ** fixed_point_parameter. larger value may mean more numerical accuracy, but too large will lead to overflow problem.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "20"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {
+              "i64": "1"
+            },
+            "lowerBoundInclusive": true,
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "i64": "100"
+            },
+            "upperBoundInclusive": true
+          }
+        },
+        {
+          "name": "first_tree_with_label_holder_feature",
+          "desc": "Whether to train the first tree with label holder's own features.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "batch_encoding_enabled",
+          "desc": "If use batch encoding optimization.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "b": true
+            }
+          }
+        },
+        {
+          "name": "enable_quantization",
+          "desc": "Whether enable quantization of g and h.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "quantization_scale",
+          "desc": "Scale the sum of g to the specified value.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 10000.0
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true,
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 10000000.0
+            },
+            "upperBoundInclusive": true
+          }
+        },
+        {
+          "name": "max_leaf",
+          "desc": "Maximum leaf of a tree. Only effective if train leaf wise.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "15"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {
+              "i64": "1"
+            },
+            "lowerBoundInclusive": true,
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "i64": "32768"
+            },
+            "upperBoundInclusive": true
+          }
+        },
+        {
+          "name": "rowsample_by_tree",
+          "desc": "Row sub sample ratio of the training instances.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 1.0
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 1.0
+            },
+            "upperBoundInclusive": true
+          }
+        },
+        {
+          "name": "enable_goss",
+          "desc": "Whether to enable GOSS.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "top_rate",
+          "desc": "GOSS-specific parameter. The fraction of large gradients to sample.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.3
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 1.0
+            },
+            "upperBoundInclusive": true
+          }
+        },
+        {
+          "name": "bottom_rate",
+          "desc": "GOSS-specific parameter. The fraction of small gradients to sample.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.5
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 1.0
+            },
+            "upperBoundInclusive": true
+          }
+        },
+        {
+          "name": "early_stop_criterion_g_abs_sum",
+          "desc": "If sum(abs(g)) is lower than or equal to this threshold, training will stop.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {},
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "early_stop_criterion_g_abs_sum_change_ratio",
+          "desc": "If absolute g sum change ratio is lower than or equal to this threshold, training will stop.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {},
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true,
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 1.0
+            },
+            "upperBoundInclusive": true
+          }
+        },
+        {
+          "name": "tree_growing_method",
+          "desc": "How to grow tree?",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "level"
+            }
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "train_dataset",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "label",
+              "desc": "Label of train dataset.",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_model",
+          "desc": "Output model.",
+          "types": [
+            "sf.model.sgb"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "ml.train",
+      "name": "ss_glm_train",
+      "desc": "generalized linear model (GLM) is a flexible generalization of ordinary linear regression.\nThe GLM generalizes linear regression by allowing the linear model to be related to the response\nvariable via a link function and by allowing the magnitude of the variance of each measurement to\nbe a function of its predicted value.",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "epochs",
+          "desc": "The number of complete pass through the training data.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "10"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {
+              "i64": "1"
+            },
+            "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "learning_rate",
+          "desc": "The step size at each iteration in one iteration.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.1
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
+          }
+        },
+        {
+          "name": "batch_size",
+          "desc": "The number of training examples utilized in one iteration.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "1024"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
+          }
+        },
+        {
+          "name": "link_type",
+          "desc": "link function type",
+          "type": "AT_STRING",
+          "atomic": {
+            "allowedValues": {
+              "ss": [
+                "Logit",
+                "Log",
+                "Reciprocal",
+                "Indentity"
+              ]
+            }
+          }
+        },
+        {
+          "name": "label_dist_type",
+          "desc": "label distribution type",
+          "type": "AT_STRING",
+          "atomic": {
+            "allowedValues": {
+              "ss": [
+                "Bernoulli",
+                "Poisson",
+                "Gamma",
+                "Tweedie"
+              ]
+            }
+          }
+        },
+        {
+          "name": "tweedie_power",
+          "desc": "Tweedie distribution power parameter",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 1.0
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true,
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 2.0
+            },
+            "upperBoundInclusive": true
+          }
+        },
+        {
+          "name": "dist_scale",
+          "desc": "A guess value for distribution's scale",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 1.0
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {
+              "f": 1.0
+            },
+            "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "eps",
+          "desc": "If the change rate of weights is less than this threshold, the model is considered to be converged, and the training stops early. 0 to disable.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.0001
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "iter_start_irls",
+          "desc": "run a few rounds of IRLS training as the initialization of w, 0 disable",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {},
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "decay_epoch",
+          "desc": "decay learning interval",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {},
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "decay_rate",
+          "desc": "decay learning rate",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {},
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true,
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 1.0
+            }
+          }
+        },
+        {
+          "name": "optimizer",
+          "desc": "which optimizer to use: IRLS(Iteratively Reweighted Least Squares) or SGD(Stochastic Gradient Descent)",
+          "type": "AT_STRING",
+          "atomic": {
+            "allowedValues": {
+              "ss": [
+                "SGD",
+                "IRLS"
+              ]
+            }
+          }
+        },
+        {
+          "name": "offset_col",
+          "desc": "Specify a column to use as the offset",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "weight_col",
+          "desc": "Specify a column to use for the observation weights",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "train_dataset",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "label",
+              "desc": "Label of train dataset.",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_model",
+          "desc": "Output model.",
+          "types": [
+            "sf.model.ss_glm"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "ml.train",
+      "name": "ss_sgd_train",
+      "desc": "Train both linear and logistic regression\nlinear models for vertical partitioning dataset with mini batch SGD training solver by using secret sharing.\n- SS-SGD is short for secret sharing SGD training.",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "epochs",
+          "desc": "The number of complete pass through the training data.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "10"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {
+              "i64": "1"
+            },
+            "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "learning_rate",
+          "desc": "The step size at each iteration in one iteration.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.1
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
+          }
+        },
+        {
+          "name": "batch_size",
+          "desc": "The number of training examples utilized in one iteration.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "1024"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
+          }
+        },
+        {
+          "name": "sig_type",
+          "desc": "Sigmoid approximation type.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "t1"
+            },
+            "allowedValues": {
+              "ss": [
+                "real",
+                "t1",
+                "t3",
+                "t5",
+                "df",
+                "sr",
+                "mix"
+              ]
+            }
+          }
+        },
+        {
+          "name": "reg_type",
+          "desc": "Regression type",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "logistic"
+            },
+            "allowedValues": {
+              "ss": [
+                "linear",
+                "logistic"
+              ]
+            }
+          }
+        },
+        {
+          "name": "penalty",
+          "desc": "The penalty(aka regularization term) to be used.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "None"
+            },
+            "allowedValues": {
+              "ss": [
+                "None",
+                "l1",
+                "l2"
+              ]
+            }
+          }
+        },
+        {
+          "name": "l2_norm",
+          "desc": "L2 regularization term.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.5
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "eps",
+          "desc": "If the change rate of weights is less than this threshold, the model is considered to be converged, and the training stops early. 0 to disable.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.001
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "train_dataset",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "label",
+              "desc": "Label of train dataset.",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_model",
+          "desc": "Output model.",
+          "types": [
+            "sf.model.ss_sgd"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "ml.train",
+      "name": "ss_xgb_train",
+      "desc": "This method provides both classification and regression tree boosting (also known as GBDT, GBM)\nfor vertical partitioning dataset setting by using secret sharing.\n- SS-XGB is short for secret sharing XGB.\n- More details: https://arxiv.org/pdf/2005.08479.pdf",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "num_boost_round",
+          "desc": "Number of boosting iterations.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "10"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {
+              "i64": "1"
+            },
+            "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "max_depth",
+          "desc": "Maximum depth of a tree.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "5"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {
+              "i64": "1"
+            },
+            "lowerBoundInclusive": true,
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "i64": "16"
+            },
+            "upperBoundInclusive": true
+          }
+        },
+        {
+          "name": "learning_rate",
+          "desc": "Step size shrinkage used in updates to prevent overfitting.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.1
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 1.0
+            },
+            "upperBoundInclusive": true
+          }
+        },
+        {
+          "name": "objective",
+          "desc": "Specify the learning objective.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "logistic"
+            },
+            "allowedValues": {
+              "ss": [
+                "linear",
+                "logistic"
+              ]
+            }
+          }
+        },
+        {
+          "name": "reg_lambda",
+          "desc": "L2 regularization term on weights.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.1
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true,
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 10000.0
+            },
+            "upperBoundInclusive": true
+          }
+        },
+        {
+          "name": "subsample",
+          "desc": "Subsample ratio of the training instances.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.1
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 1.0
+            },
+            "upperBoundInclusive": true
+          }
+        },
+        {
+          "name": "colsample_by_tree",
+          "desc": "Subsample ratio of columns when constructing each tree.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.1
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 1.0
+            },
+            "upperBoundInclusive": true
+          }
+        },
+        {
+          "name": "sketch_eps",
+          "desc": "This roughly translates into O(1 / sketch_eps) number of bins.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.1
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 1.0
+            },
+            "upperBoundInclusive": true
+          }
+        },
+        {
+          "name": "base_score",
+          "desc": "The initial prediction score of all instances, global bias.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {},
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "seed",
+          "desc": "Pseudorandom number generator seed.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "42"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "train_dataset",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "label",
+              "desc": "Label of train dataset.",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_model",
+          "desc": "Output model.",
+          "types": [
+            "sf.model.ss_xgb"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "preprocessing",
+      "name": "feature_filter",
+      "desc": "Drop features from the dataset.",
+      "version": "0.0.1",
+      "inputs": [
+        {
+          "name": "in_ds",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "drop_features",
+              "desc": "Features to drop."
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "out_ds",
+          "desc": "Output vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "preprocessing",
+      "name": "psi",
+      "desc": "PSI between two parties.",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "protocol",
+          "desc": "PSI protocol.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "ECDH_PSI_2PC"
+            },
+            "allowedValues": {
+              "ss": [
+                "ECDH_PSI_2PC",
+                "KKRT_PSI_2PC",
+                "BC22_PSI_2PC"
+              ]
+            }
+          }
+        },
+        {
+          "name": "sort",
+          "desc": "Sort the output.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "bucket_size",
+          "desc": "Specify the hash bucket size used in PSI. Larger values consume more memory.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "1048576"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
+          }
+        },
+        {
+          "name": "ecdh_curve_type",
+          "desc": "Curve type for ECDH PSI.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "CURVE_FOURQ"
+            },
+            "allowedValues": {
+              "ss": [
+                "CURVE_25519",
+                "CURVE_FOURQ",
+                "CURVE_SM2",
+                "CURVE_SECP256K1"
+              ]
+            }
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "receiver_input",
+          "desc": "Individual table for receiver",
+          "types": [
+            "sf.table.individual"
+          ],
+          "attrs": [
+            {
+              "name": "key",
+              "desc": "Column(s) used to join.",
+              "colMinCntInclusive": "1"
+            }
+          ]
+        },
+        {
+          "name": "sender_input",
+          "desc": "Individual table for sender",
+          "types": [
+            "sf.table.individual"
+          ],
+          "attrs": [
+            {
+              "name": "key",
+              "desc": "Column(s) used to join.",
+              "colMinCntInclusive": "1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "psi_output",
+          "desc": "Output vertical table",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "preprocessing",
+      "name": "train_test_split",
+      "desc": "Split datasets into random train and test subsets.\n- Please check: https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "train_size",
+          "desc": "Proportion of the dataset to include in the train subset.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.75
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true,
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 1.0
+            },
+            "upperBoundInclusive": true
+          }
+        },
+        {
+          "name": "test_size",
+          "desc": "Proportion of the dataset to include in the test subset.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.25
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true,
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 1.0
+            },
+            "upperBoundInclusive": true
+          }
+        },
+        {
+          "name": "random_state",
+          "desc": "Specify the random seed of the shuffling.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "1024"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
+          }
+        },
+        {
+          "name": "shuffle",
+          "desc": "Whether to shuffle the data before splitting.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "b": true
+            }
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "input_data",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "train",
+          "desc": "Output train dataset.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        },
+        {
+          "name": "test",
+          "desc": "Output test dataset.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "stats",
+      "name": "groupby_statistics",
+      "desc": "Get a groupby of statistics, like pandas groupby statistics.\nCurrently only support VDataframe.",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "agg",
+          "desc": "What kind of aggregation statistics we want to do, currently only supports min, max, mean, sum, var, count(number of elements in each group)",
+          "type": "AT_STRING",
+          "atomic": {
+            "allowedValues": {
+              "ss": [
+                "min",
+                "max",
+                "mean",
+                "sum",
+                "var",
+                "count"
+              ]
+            }
+          }
+        },
+        {
+          "name": "max_group_size",
+          "desc": "The maximum number of groups allowed",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "10000"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "input_data",
+          "desc": "Input table.",
+          "types": [
+            "sf.table.vertical_table",
+            "sf.table.individual"
+          ],
+          "attrs": [
+            {
+              "name": "by",
+              "desc": "by what columns should we group the values",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "4"
+            },
+            {
+              "name": "values",
+              "desc": "on which columns should we calculate the statistics",
+              "colMinCntInclusive": "1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "report",
+          "desc": "Output groupby statistics report.",
+          "types": [
+            "sf.report"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "stats",
+      "name": "ss_pearsonr",
+      "desc": "Calculate Pearson's product-moment correlation coefficient for vertical partitioning dataset\nby using secret sharing.\n- For large dataset(large than 10w samples & 200 features), recommend to use [Ring size: 128, Fxp: 40] options for SPU device.",
+      "version": "0.0.1",
+      "inputs": [
+        {
+          "name": "input_data",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "feature_selects",
+              "desc": "Specify which features to calculate correlation coefficient with. If empty, all features will be used"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "report",
+          "desc": "Output Pearson's product-moment correlation coefficient report.",
+          "types": [
+            "sf.report"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "stats",
+      "name": "ss_vif",
+      "desc": "Calculate Variance Inflation Factor(VIF) for vertical partitioning dataset\nby using secret sharing.\n- For large dataset(large than 10w samples & 200 features), recommend to use [Ring size: 128, Fxp: 40] options for SPU device.",
+      "version": "0.0.1",
+      "inputs": [
+        {
+          "name": "input_data",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "feature_selects",
+              "desc": "Specify which features to calculate VIF with. If empty, all features will be used."
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "report",
+          "desc": "Output Variance Inflation Factor(VIF) report.",
+          "types": [
+            "sf.report"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "stats",
+      "name": "table_statistics",
+      "desc": "Get a table of statistics,\nincluding each column's\n1. datatype\n2. total_count\n3. count\n4. count_na\n5. min\n6. max\n7. var\n8. std\n9. sem\n10. skewness\n11. kurtosis\n12. q1\n13. q2\n14. q3\n15. moment_2\n16. moment_3\n17. moment_4\n18. central_moment_2\n19. central_moment_3\n20. central_moment_4\n21. sum\n22. sum_2\n23. sum_3\n24. sum_4\n- moment_2 means E[X^2].\n- central_moment_2 means E[(X - mean(X))^2].\n- sum_2 means sum(X^2).",
+      "version": "0.0.1",
+      "inputs": [
+        {
+          "name": "input_data",
+          "desc": "Input table.",
+          "types": [
+            "sf.table.vertical_table",
+            "sf.table.individual"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "report",
+          "desc": "Output table statistics report.",
+          "types": [
+            "sf.report"
+          ]
+        }
+      ]
+    }
+  ]
+}

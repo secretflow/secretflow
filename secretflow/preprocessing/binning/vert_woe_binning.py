@@ -33,7 +33,7 @@ class VertWoeBinning:
     Split all features into bins by equal frequency or ChiMerge.
     Then calculate woe value & iv value for each bin by SS or HE secure device to protect Y label.
 
-    Finally, this method will output binning rules used to substitute features' value into woe by VertWOESubstitution.
+    Finally, this method will output binning rules used to substitute features' value into woe by VertBinSubstitution.
 
     more details about woe/iv value:
     https://www.listendata.com/2015/03/weight-of-evidence-woe-and-information.html
@@ -131,8 +131,8 @@ class VertWoeBinning:
                             "split_points": list[float], # left-open right-close split points
                             "total_counts": list[int], # total samples count in each bins.
                             "else_counts": int, # np.nan samples count
-                            "woes": list[float], # woe values for each bins.
-                            "else_woe": float, # woe value for np.nan samples.
+                            "filling_values": list[float], # woe values for each bins.
+                            "else_filling_value": float, # woe value for np.nan samples.
                         },
                         # ... others feature
                     ],
@@ -208,7 +208,7 @@ class VertWoeBinning:
                 device=device,
             )
 
-        woe_rules: Dict[PYU, PYUObject] = {}
+        bin_rules: Dict[PYU, PYUObject] = {}
 
         # label_holder build woe rules
         label_holder_worker = workers[label_holder_device]
@@ -280,12 +280,12 @@ class VertWoeBinning:
                 ivs, bim_sum_info
             )
             report = worker.participant_build_report(woes.to(device))
-            woe_rules[device] = report
+            bin_rules[device] = report
 
         # feature ivs are in label_holder report, which may be later shared to worker
         label_holder_report = label_holder_worker.generate_iv_report(
             label_holder_report
         )
-        woe_rules[label_holder_device] = label_holder_report
+        bin_rules[label_holder_device] = label_holder_report
 
-        return woe_rules
+        return bin_rules

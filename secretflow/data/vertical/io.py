@@ -14,12 +14,13 @@
 
 from typing import Dict, List, Union
 
-from secretflow.data.base import Partition
-from secretflow.data.io import read_csv_wrapper
-from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.device import PYU, SPU, Device
 from secretflow.utils.errors import InvalidArgumentError
 from secretflow.utils.random import global_random
+
+from ..core import partition
+from ..core.io import read_csv_wrapper
+from .dataframe import VDataFrame
 
 
 def read_csv(
@@ -31,6 +32,7 @@ def read_csv(
     drop_keys: Union[str, List[str], Dict[Device, List[str]]] = None,
     psi_protocl=None,
     no_header: bool = False,
+    backend: str = 'pandas',
 ) -> VDataFrame:
     """Read a comma-separated values (csv) file into VDataFrame.
 
@@ -69,6 +71,8 @@ def read_csv(
             doesn't allow duplicate column names.
         psi_protocl: Specified protocol for PSI. Default 'KKRT_PSI_2PC' for 2
             parties, 'ECDH_PSI_3PC' for 3 parties.
+        no_header: Whether the dataset has the header, defualt to False.
+        backend: The read csv backend, default use Pandas, support Polars as well.
 
     Returns:
         A aligned VDataFrame.
@@ -118,23 +122,24 @@ def read_csv(
     for device, path in filepath_actual.items():
         usecols = dtypes[device].keys() if dtypes is not None else None
         dtype = dtypes[device] if dtypes is not None else None
-        partitions[device] = Partition(
-            device(read_csv_wrapper)(
-                path,
-                auto_gen_header_prefix=str(device) if no_header else "",
-                delimiter=delimiter,
-                usecols=usecols,
-                dtype=dtype,
-            )
+        partitions[device] = partition(
+            data=read_csv_wrapper,
+            device=device,
+            backend=backend,
+            filepath=path,
+            auto_gen_header_prefix=str(device) if no_header else "",
+            delimiter=delimiter,
+            usecols=usecols,
+            dtype=dtype,
+            read_backend=backend,
         )
-
     if drop_keys:
-        for device, partition in partitions.items():
+        for device, part in partitions.items():
             device_drop_key = get_keys(device, drop_keys)
             device_psi_key = get_keys(device, keys)
 
             if device_drop_key is not None:
-                columns_set = set(partition.columns)
+                columns_set = set(part.columns)
                 device_drop_key_set = set(device_drop_key)
                 assert columns_set.issuperset(device_drop_key_set), (
                     f"drop_keys = {device_drop_key_set.difference(columns_set)}"
@@ -148,22 +153,21 @@ def read_csv(
                     f" which are {device_psi_key_set}"
                 )
 
-                partitions[device] = partition.drop(labels=device_drop_key, axis=1)
+                partitions[device] = part.drop(labels=device_drop_key, axis=1)
 
     unique_cols = set()
     length = None
 
     # data columns must be unique across all devices
-    for device, partition in partitions.items():
-        n = len(partition)
-        dtype = partition.dtypes
-
+    for device, part in partitions.items():
+        n = len(part)
+        columns = part.columns
         if length is None:
             length = n
         else:
             assert length == n, f"number of samples must be equal across all devices"
 
-        for col in dtype.index:
+        for col in columns:
             assert col not in unique_cols, f"col {col} duplicate in multiple devices"
             unique_cols.add(col)
     return VDataFrame(partitions)

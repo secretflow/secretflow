@@ -22,9 +22,9 @@ from secretflow.component.component import (
 )
 from secretflow.component.data_utils import DistDataType, load_table
 from secretflow.device.device.spu import SPU
-from secretflow.protos.component.comp_pb2 import Attribute, AttrType
-from secretflow.protos.component.data_pb2 import DistData
-from secretflow.protos.component.report_pb2 import Descriptions, Div, Report, Tab
+from secretflow.spec.v1.component_pb2 import Attribute
+from secretflow.spec.v1.data_pb2 import DistData
+from secretflow.spec.v1.report_pb2 import Descriptions, Div, Report, Tab
 from secretflow.stats.ss_vif_v import VIF
 
 ss_vif_comp = Component(
@@ -34,14 +34,13 @@ ss_vif_comp = Component(
     desc="""Calculate Variance Inflation Factor(VIF) for vertical partitioning dataset
     by using secret sharing.
 
-    For large dataset(large than 10w samples & 200 features),
-    recommend to use [Ring size: 128, Fxp: 40] options for SPU device.
+    - For large dataset(large than 10w samples & 200 features), recommend to use [Ring size: 128, Fxp: 40] options for SPU device.
     """,
 )
 ss_vif_comp.io(
     io_type=IoType.INPUT,
     name="input_data",
-    desc="Input dataset.",
+    desc="Input vertical table.",
     types=[DistDataType.VERTICAL_TABLE],
     col_params=[
         TableColParam(
@@ -53,13 +52,13 @@ ss_vif_comp.io(
 ss_vif_comp.io(
     io_type=IoType.OUTPUT,
     name="report",
-    desc="Output report.",
+    desc="Output Variance Inflation Factor(VIF) report.",
     types=[DistDataType.REPORT],
 )
 
 
 @ss_vif_comp.eval_fn
-def ss_pearsonr_eval_fn(
+def ss_vif_eval_fn(
     *,
     ctx,
     input_data,
@@ -94,7 +93,7 @@ def ss_pearsonr_eval_fn(
     r_desc = Descriptions(
         items=[
             Descriptions.Item(
-                name=feature_names[i], type=AttrType.AT_FLOAT, value=Attribute(f=vif[i])
+                name=feature_names[i], type="float", value=Attribute(f=vif[i])
             )
             for i in range(vif.shape[0])
         ],
@@ -122,7 +121,7 @@ def ss_pearsonr_eval_fn(
     report_dd = DistData(
         name=report,
         type=str(DistDataType.REPORT),
-        sys_info=input_data.sys_info,
+        system_info=input_data.system_info,
     )
     report_dd.meta.Pack(report_mate)
 

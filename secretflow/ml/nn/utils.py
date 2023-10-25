@@ -99,3 +99,31 @@ def optim_wrapper(func, *args, **kwargs):
         return func(params, *args, **kwargs)
 
     return wrapped_func
+
+
+def plot_with_tsne(y_pred, eval_y, file_name):
+    """
+    Helper function to plot the t-SNE figure of output posteriors for nodes.
+    """
+    from sklearn.manifold import TSNE
+    import matplotlib.pyplot as plt
+
+    def plot_with_labels(lowDWeights, labels):
+        plt.cla()
+        X, Y = (
+            lowDWeights[:, 0],
+            lowDWeights[:, 1],
+        )
+        plt.scatter(X, Y, c=labels, label='t-SNE')
+        plt.xlim(X.min(), X.max())
+        plt.ylim(Y.min(), Y.max())
+        plt.title(f'Visualize last layer - {file_name}')
+        import os
+
+        plt.savefig(f"{os.curdir}/{file_name}.pdf")
+
+    tsne = TSNE(perplexity=30, n_components=2, init='pca', n_iter=5000)
+    plot_num = 666
+    low_dim_embs = tsne.fit_transform(y_pred[:plot_num, :])
+    labels = eval_y.argmax(1)[:plot_num]
+    plot_with_labels(low_dim_embs, labels)

@@ -16,6 +16,8 @@ from dataclasses import dataclass
 from typing import List, Union
 
 from secretflow.device import PYUObject
+from secretflow.ml.boost.sgb_v.core.params import default_params
+from secretflow.ml.boost.sgb_v.factory.sgb_actor import SGBActor
 
 from ..component import Component, Devices, print_params
 from .worker_shuffler import WorkerShuffler
@@ -28,7 +30,7 @@ class ShufflerParams:
         default: 1212
     """
 
-    seed: int = 1212
+    seed: int = default_params.seed
 
 
 class Shuffler(Component):
@@ -40,26 +42,34 @@ class Shuffler(Component):
         print_params(self.params)
 
     def set_params(self, params: dict):
-        self.params.seed = int(params.get('seed', 1212))
+        self.params.seed = params.get('seed', default_params.seed)
 
     def get_params(self, params: dict):
         params['seed'] = self.params.seed
 
     def set_devices(self, devices: Devices):
-        self.worker_shufflers = [
-            WorkerShuffler(self.params.seed, device=worker)
-            for worker in devices.workers
-        ]
+        self.workers = devices.workers
         return
+
+    def set_actors(self, actors: List[SGBActor]):
+        self.worker_shufflers = actors
+        for worker in self.worker_shufflers:
+            # may change random state initialie methods latter
+            worker.register_class('WorkerShuffler', WorkerShuffler, self.params.seed)
+
+    def del_actors(self):
+        del self.worker_shufflers
 
     def reset_shuffle_masks(self):
         for ws in self.worker_shufflers:
-            ws.reset_shuffle_mask()
+            ws.invoke_class_method('WorkerShuffler', 'reset_shuffle_mask')
 
     def create_shuffle_mask(
         self, worker_index: int, key: int, bucket_list: List[PYUObject]
     ) -> List[int]:
-        return self.worker_shufflers[worker_index].create_shuffle_mask(key, bucket_list)
+        return self.worker_shufflers[worker_index].invoke_class_method(
+            'WorkerShuffler', 'create_shuffle_mask', key, bucket_list
+        )
 
     def unshuffle_split_buckets(
         self, split_buckets_parition_wise: List[PYUObject]
@@ -73,7 +83,9 @@ class Shuffler(Component):
             List[List[PYUObject]]: unshuffled split buckets
         """
         return [
-            worker_shuffler.undo_shuffle_mask_list_wise(split_buckets)
+            worker_shuffler.invoke_class_method(
+                'WorkerShuffler', 'undo_shuffle_mask_list_wise', split_buckets
+            )
             for worker_shuffler, split_buckets in zip(
                 self.worker_shufflers, split_buckets_parition_wise
             )
@@ -94,7 +106,9 @@ class Shuffler(Component):
             List[List[PYUObject]]: unshuffled split buckets
         """
         return [
-            worker_shuffler.undo_shuffle_mask_with_keys(
+            worker_shuffler.invoke_class_method(
+                'WorkerShuffler',
+                'undo_shuffle_mask_with_keys',
                 split_buckets,
                 keys.to(worker_shuffler.device)
                 if isinstance(keys, PYUObject)

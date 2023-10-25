@@ -5,9 +5,10 @@ from sklearn.preprocessing import LabelEncoder as SkLabelEncoder
 from sklearn.preprocessing import OneHotEncoder as SkOneHotEncoder
 from sklearn.utils.validation import column_or_1d
 
-from secretflow.data.base import Partition, reveal
-from secretflow.data.horizontal.dataframe import HDataFrame
-from secretflow.data.mix.dataframe import MixDataFrame
+from secretflow import reveal
+from secretflow.data import partition
+from secretflow.data.horizontal import HDataFrame
+from secretflow.data.mix import MixDataFrame
 from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.preprocessing.encoder import LabelEncoder, OneHotEncoder
 from secretflow.security.aggregation.plain_aggregator import PlainAggregator
@@ -42,10 +43,10 @@ def prod_env_and_label_encoder_data(sf_production_setup_devices):
     )
     vdf = VDataFrame(
         {
-            sf_production_setup_devices.alice: Partition(
+            sf_production_setup_devices.alice: partition(
                 data=sf_production_setup_devices.alice(lambda: vdf_alice)()
             ),
-            sf_production_setup_devices.bob: Partition(
+            sf_production_setup_devices.bob: partition(
                 data=sf_production_setup_devices.bob(lambda: vdf_bob)()
             ),
         }
@@ -113,10 +114,10 @@ class TestLabelEncoder:
         # GIVEN
         df = pd.DataFrame({'a1': ['A1', 'B1', None, 'D1', None, 'B4', 'C4', 'D4']})
         h_part0 = VDataFrame(
-            {env.alice: Partition(data=env.alice(lambda: df.iloc[:4, :])())}
+            {env.alice: partition(data=env.alice(lambda: df.iloc[:4, :])())}
         )
         h_part1 = VDataFrame(
-            {env.alice: Partition(data=env.alice(lambda: df.iloc[4:, :])())}
+            {env.alice: partition(data=env.alice(lambda: df.iloc[4:, :])())}
         )
         h_mix = MixDataFrame(partitions=[h_part0, h_part1])
 
@@ -146,8 +147,8 @@ class TestLabelEncoder:
         df = pd.DataFrame({'a1': ['A1', 'B1', None, 'D1', None, 'B4', 'C4', 'D4']})
         v_part0 = HDataFrame(
             {
-                env.alice: Partition(data=env.alice(lambda: df.iloc[:4, :])()),
-                env.bob: Partition(data=env.bob(lambda: df.iloc[4:, :])()),
+                env.alice: partition(data=env.alice(lambda: df.iloc[:4, :])()),
+                env.bob: partition(data=env.bob(lambda: df.iloc[4:, :])()),
             },
             aggregator=PlainAggregator(env.carol),
             comparator=PlainComparator(env.carol),
@@ -247,10 +248,10 @@ def prod_env_and_onehot_encoder_data(sf_production_setup_devices):
     vdf_bob = vdf_bob
     vdf = VDataFrame(
         {
-            sf_production_setup_devices.alice: Partition(
+            sf_production_setup_devices.alice: partition(
                 data=sf_production_setup_devices.alice(lambda: vdf_alice)()
             ),
-            sf_production_setup_devices.bob: Partition(
+            sf_production_setup_devices.bob: partition(
                 data=sf_production_setup_devices.bob(lambda: vdf_bob)()
             ),
         }
@@ -321,14 +322,14 @@ class TestOneHotEncoder:
         )
         h_part0 = VDataFrame(
             {
-                env.alice: Partition(data=env.alice(lambda: df_part0.iloc[:4, :])()),
-                env.bob: Partition(data=env.bob(lambda: df_part1.iloc[:4, :])()),
+                env.alice: partition(data=env.alice(lambda: df_part0.iloc[:4, :])()),
+                env.bob: partition(data=env.bob(lambda: df_part1.iloc[:4, :])()),
             }
         )
         h_part1 = VDataFrame(
             {
-                env.alice: Partition(data=env.alice(lambda: df_part0.iloc[4:, :])()),
-                env.bob: Partition(data=env.bob(lambda: df_part1.iloc[4:, :])()),
+                env.alice: partition(data=env.alice(lambda: df_part0.iloc[4:, :])()),
+                env.bob: partition(data=env.bob(lambda: df_part1.iloc[4:, :])()),
             }
         )
         h_mix = MixDataFrame(partitions=[h_part0, h_part1])
@@ -381,16 +382,16 @@ class TestOneHotEncoder:
         )
         v_part0 = HDataFrame(
             {
-                env.alice: Partition(data=env.alice(lambda: df_part0.iloc[:4, :])()),
-                env.bob: Partition(data=env.bob(lambda: df_part0.iloc[4:, :])()),
+                env.alice: partition(data=env.alice(lambda: df_part0.iloc[:4, :])()),
+                env.bob: partition(data=env.bob(lambda: df_part0.iloc[4:, :])()),
             },
             aggregator=PlainAggregator(env.carol),
             comparator=PlainComparator(env.carol),
         )
         v_part1 = HDataFrame(
             {
-                env.alice: Partition(data=env.alice(lambda: df_part1.iloc[:4, :])()),
-                env.bob: Partition(data=env.bob(lambda: df_part1.iloc[4:, :])()),
+                env.alice: partition(data=env.alice(lambda: df_part1.iloc[:4, :])()),
+                env.bob: partition(data=env.bob(lambda: df_part1.iloc[4:, :])()),
             },
             aggregator=PlainAggregator(env.carol),
             comparator=PlainComparator(env.carol),

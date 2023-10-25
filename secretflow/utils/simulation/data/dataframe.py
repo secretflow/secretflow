@@ -16,7 +16,7 @@ from typing import Callable, Dict, List, Union
 
 import pandas as pd
 
-from secretflow.data.base import Partition
+from secretflow.data import partition
 from secretflow.data.horizontal import HDataFrame
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import PYU
@@ -36,7 +36,7 @@ def create_df(
     comparator: Comparator = None,
 ) -> Union[HDataFrame, VDataFrame]:
     """Create a federated dataframe from a single data source.
-
+    TODO: support other backends.
     Args:
         source: the dataset source, shall be a file path or pandas.DataFrame or
             callable (shall returns a pandas.DataFrame).
@@ -76,7 +76,8 @@ def create_df(
     assert parts, 'Parts should not be none or empty!'
 
     if isinstance(source, str):
-        df = pd.read_csv(source, engine="pyarrow")
+        # engin="pyarrow" will lead to stuck in production tests.
+        df = pd.read_csv(source)
     elif isinstance(source, pd.DataFrame):
         df = source
     elif isinstance(source, Callable):
@@ -97,8 +98,8 @@ def create_df(
     if axis == 0:
         return HDataFrame(
             partitions={
-                device: Partition(
-                    device(lambda df: df.iloc[index[0] : index[1], :])(df)
+                device: partition(
+                    lambda _df: _df.iloc[index[0] : index[1], :], device=device, _df=df
                 )
                 for device, index in indexes.items()
             },
@@ -108,8 +109,8 @@ def create_df(
     else:
         return VDataFrame(
             partitions={
-                device: Partition(
-                    device(lambda df: df.iloc[:, index[0] : index[1]])(df)
+                device: partition(
+                    lambda _df: _df.iloc[:, index[0] : index[1]], device=device, _df=df
                 )
                 for device, index in indexes.items()
             }

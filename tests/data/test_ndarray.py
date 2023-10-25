@@ -7,7 +7,7 @@ import pytest
 import sklearn.metrics
 
 from secretflow import reveal
-from secretflow.data.base import Partition
+from secretflow.data import partition
 from secretflow.data.ndarray import (
     histogram,
     load,
@@ -185,8 +185,8 @@ def test_train_test_split_on_vdataframe_should_ok(prod_env_and_data):
     )
     df = VDataFrame(
         {
-            env.alice: Partition(data=env.alice(lambda: df_alice)()),
-            env.bob: Partition(data=env.bob(lambda: df_bob)()),
+            env.alice: partition(data=env.alice(lambda: df_alice)()),
+            env.bob: partition(data=env.bob(lambda: df_bob)()),
         }
     )
     fed_arr = df.values
@@ -227,8 +227,8 @@ def test_shuffle_should_ok(prod_env_and_data):
     )
     df = VDataFrame(
         {
-            env.alice: Partition(data=env.alice(lambda: df_alice)()),
-            env.bob: Partition(data=env.bob(lambda: df_bob)()),
+            env.alice: partition(data=env.alice(lambda: df_alice)()),
+            env.bob: partition(data=env.bob(lambda: df_bob)()),
         }
     )
     fed_arr = df.values

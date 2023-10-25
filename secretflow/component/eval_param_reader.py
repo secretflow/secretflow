@@ -14,14 +14,14 @@
 
 import math
 
-from secretflow.protos.component.comp_pb2 import (
+from secretflow.spec.v1.component_pb2 import (
     Attribute,
     AttributeDef,
     AttrType,
     ComponentDef,
     IoDef,
 )
-from secretflow.protos.component.evaluation_pb2 import NodeEvalParam
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
 
 class EvalParamError(Exception):
@@ -48,7 +48,7 @@ def check_allowed_values(value: Attribute, definition: AttributeDef):
 
 
 def check_lower_bound(value: Attribute, definition: AttributeDef):
-    if not definition.atomic.has_lower_bound:
+    if not definition.atomic.lower_bound_enabled:
         return True
     if definition.type == AttrType.AT_FLOAT:
         return value.f > definition.atomic.lower_bound.f or (
@@ -64,7 +64,7 @@ def check_lower_bound(value: Attribute, definition: AttributeDef):
 
 
 def check_upper_bound(value: Attribute, definition: AttributeDef):
-    if not definition.atomic.has_upper_bound:
+    if not definition.atomic.upper_bound_enabled:
         return True
     if definition.type == AttrType.AT_FLOAT:
         return value.f < definition.atomic.upper_bound.f or (
@@ -92,7 +92,7 @@ def check_table_attr_col_cnt(value: Attribute, definition: IoDef.TableAttrDef):
 
 
 def get_value(value: Attribute, at: AttrType):
-    if at == AttrType.AT_UNDEFINED:
+    if at == AttrType.ATTR_TYPE_UNSPECIFIED:
         raise EvalParamError("Type of Attribute is undefined.")
     elif at == AttrType.AT_FLOAT:
         return value.f
@@ -144,7 +144,8 @@ class EvalParamReader:
             if path in self._instance_attrs:
                 raise EvalParamError(f"attr {path} is duplicate in node def.")
 
-            self._instance_attrs[path] = attr
+            if not attr.is_na:
+                self._instance_attrs[path] = attr
 
         for attr in self._definition.attrs:
             if attr.type not in [
@@ -200,7 +201,7 @@ class EvalParamReader:
             self._instance_inputs[input_def.name] = input_instance
 
             for input_attr in input_def.attrs:
-                if len(input_attr.attrs):
+                if len(input_attr.extra_attrs):
                     raise EvalParamError(
                         "extra attribute is unsupported at this moment."
                     )

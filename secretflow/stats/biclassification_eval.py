@@ -38,6 +38,8 @@ class BiClassificationEval:
                 input of prediction scores
             bucket_size: int
                 input of number of bins in report
+            min_item_cnt_per_bucket: int
+                min item cnt per bucket. If any bucket doesn't meet the requirement, error raises.
     """
 
     # binning, n true positive and false positive sequence calculations all require sorting
@@ -49,6 +51,7 @@ class BiClassificationEval:
         y_true: Union[FedNdarray, VDataFrame],
         y_score: Union[FedNdarray, VDataFrame],
         bucket_size: int,
+        min_item_cnt_per_bucket: int = None,
     ):
         assert isinstance(
             y_true, (FedNdarray, VDataFrame)
@@ -74,7 +77,7 @@ class BiClassificationEval:
         device2 = [*y_true.partitions.keys()][0]
         assert (
             device1 == device2
-        ), "Currently require the device for two inputs are the same"
+        ), "Currently we requires both inputs belongs to the same party and computation happens locally."
         # Later may use spu
 
         self.device = device1
@@ -89,6 +92,7 @@ class BiClassificationEval:
             self.y_score = ([*y_score.partitions.values()][0]).data
 
         self.bucket_size = bucket_size
+        self.min_item_cnt_per_bucket = min_item_cnt_per_bucket
 
     def get_all_reports(self) -> PYUObject:
         """get all reports. The reports contains:
@@ -108,5 +112,5 @@ class BiClassificationEval:
         """
         # possible spu launch and reveal in the future
         return self.device(gen_biclassification_reports)(
-            self.y_true, self.y_score, self.bucket_size
+            self.y_true, self.y_score, self.bucket_size, self.min_item_cnt_per_bucket
         )

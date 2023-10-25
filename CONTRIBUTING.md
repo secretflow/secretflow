@@ -64,6 +64,32 @@ Follow follwing steps to update documentation:
    ```
 3. Update the corresponding `*.po` file.
 4. All `fuzzy` should be removed in `*.po` file, because it won't take effect in the Chinese version of the documentation.
-5. All strings which start with `#~` such as `#~ msgid ` or `#~ msgstr` should be removed, because it is redundant.  
+5. All strings which start with `#~` such as `#~ msgid ` or `#~ msgstr` should be removed, because it is redundant.
 6. Only commit the files which you update and pull request.
 7. If your document is conflict with the main branch of SecretFlow, you are supposed to solve the conflict locally and commit.
+
+
+## Compiling Protocol Buffers
+
+You should use [protoc v3.19.6](https://github.com/protocolbuffers/protobuf/releases/tag/v3.19.6)
+
+
+### Compiling SecretFlow Open Specification
+
+Protocol Buffers resides at submodules/spec/ as git submodules.
+
+```bash
+
+~/protoc-3.19.6/bin/protoc --proto_path submodules/spec/ --python_out . submodules/spec/secretflow/spec/v1/*.proto
+
+```
+
+### Compiling Extended Specification
+
+Protocol Buffers resides at secretflow/protos.
+
+```bash
+~/protoc-3.19.6/bin/protoc --proto_path secretflow/protos/ --python_out . secretflow/protos/secretflow/spec/extend/*.proto
+```
+
+All generated Python code resides at secretflow/spec.

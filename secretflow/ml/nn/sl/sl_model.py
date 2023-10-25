@@ -27,7 +27,7 @@ from typing import Callable, Dict, Iterable, List, Tuple, Union
 from multiprocess import cpu_count
 from tqdm import tqdm
 
-from secretflow.data.base import Partition
+from secretflow.data import Partition
 from secretflow.data.horizontal import HDataFrame
 from secretflow.data.ndarray import FedNdarray
 from secretflow.data.vertical import VDataFrame
@@ -72,15 +72,16 @@ class SLModel:
             split_steps: Only for 'split_state_async' strategy, Number of batches triggering switch state in splitStateAS strategy
             max_fuse_local_steps: Only for 'split_state_async' strategy, Maximum number of rounds for fuse local update in splitStateAS strategy?
             compressor: Define strategy tensor compression algorithms to speed up transmission.
-            device_agg: The party do aggregation,it can be a PYU,SPU,etc.
+            device_agg: The party do aggregation, it can be a PYU, SPU, etc.
+            **kwargs: For custom strategies.
         """
 
         self.device_y = device_y
         self.dp_strategy_dict = dp_strategy_dict
-        self.simulation = kwargs.get('simulation', False)
-        self.device_agg = kwargs.get('device_agg', None)
-        self.compressor = kwargs.get('compressor', None)
-
+        self.simulation = kwargs.pop('simulation', False)
+        self.device_agg = kwargs.pop('device_agg', None)
+        self.compressor = kwargs.pop('compressor', None)
+        self.base_model_dict = base_model_dict
         self.backend = backend
         self.num_parties = len(base_model_dict)
         self.agglayer = AggLayer(
@@ -91,6 +92,8 @@ class SLModel:
             backend=backend,
             compressor=self.compressor,
         )
+        self.pipeline_size = kwargs.get('pipeline_size', 1)
+        assert self.pipeline_size >= 1, f"invalid pipeline size: {self.pipeline_size}"
 
         if backend.lower() == "tensorflow":
             import secretflow.ml.nn.sl.backend.tensorflow.strategy  # noqa
@@ -98,25 +101,24 @@ class SLModel:
             import secretflow.ml.nn.sl.backend.torch.strategy  # noqa
         else:
             raise Exception(f"Invalid backend = {backend}")
-
+        worker_list = list(base_model_dict.keys())
+        if device_y not in worker_list:
+            worker_list.append(device_y)
         self._workers = {}
-        for device, model in base_model_dict.items():
+        for device in worker_list:
             self._workers[device], self.check_skip_grad = dispatch_strategy(
                 strategy,
                 backend=backend,
-                builder_base=model,
+                builder_base=base_model_dict[device]
+                if device in base_model_dict.keys()
+                else None,
                 builder_fuse=None if device != device_y else model_fuse,
                 random_seed=random_seed,
                 dp_strategy=dp_strategy_dict.get(device, None)
                 if dp_strategy_dict
                 else None,
                 device=device,
-                base_local_steps=kwargs.get('base_local_steps', 1),
-                fuse_local_steps=kwargs.get('fuse_local_steps', 1),
-                bound_param=kwargs.get('bound_param', 0.0),
-                loss_thres=kwargs.get('loss_thres', 0.01),
-                split_steps=kwargs.get('split_steps', 1),
-                max_fuse_local_steps=kwargs.get('max_fuse_local_steps', 1),
+                **kwargs,
             )
 
     def handle_data(
@@ -137,6 +139,11 @@ class SLModel:
     ):
         if isinstance(x, (VDataFrame, FedNdarray)):
             x = [x]
+        for i in range(len(x)):
+            if isinstance(x[i], (VDataFrame, HDataFrame)):
+                x[i] = x[i].to_pandas()
+        if isinstance(y, (VDataFrame)):
+            y = y.to_pandas()
         worker_steps = []
         for device, worker in self._workers.items():
             if device == self.device_y and y is not None:
@@ -157,12 +164,27 @@ class SLModel:
                 y_partitions = None
                 s_w_partitions = None
 
-            xs = [xi.partitions[device] for xi in x]
-            xs = [t.data if isinstance(t, Partition) else t for t in xs]
             if dataset_builder:
-                assert (
-                    device in dataset_builder
-                ), f"party={device} does not provide dataset_builder, please check"
+                # in dataset builder mode, xi cannot be none, or else datasetbuilder in worker cannot parse label
+                xs = (
+                    [
+                        xi.partitions[device].data  # xi is FedDataframe
+                        if isinstance(xi.partitions[device], Partition)
+                        else xi.partitions[device]  # xi is FedNdarray
+                        for xi in x
+                    ]
+                    if device in dataset_builder
+                    else [None]
+                )
+                if device not in dataset_builder:
+                    logging.warning("party={device} does not provide dataset_builder")
+                    dataset_partition = None
+                    if device in self.base_model_dict:
+                        raise Exception(
+                            "dataset builder must be supply when base_net is not none"
+                        )
+                else:
+                    dataset_partition = dataset_builder[device]
                 ret = worker.build_dataset_from_builder(
                     *xs,
                     y=y_partitions,
@@ -170,11 +192,18 @@ class SLModel:
                     batch_size=batch_size,
                     random_seed=random_seed,
                     stage=stage,
-                    dataset_builder=dataset_builder[device],
+                    dataset_builder=dataset_partition,
                 )
                 worker_steps.append(ret)
 
             else:
+                # if don't have feature, driver will pass None to device worker
+                xs = (
+                    [xi.partitions[device] for xi in x]
+                    if device in self.base_model_dict
+                    else [None]
+                )
+                xs = [t.data if isinstance(t, Partition) else t for t in xs]
                 worker.build_dataset_from_numeric(
                     *xs,
                     y=y_partitions,
@@ -192,6 +221,9 @@ class SLModel:
         steps_per_epoch = math.ceil(parties_length[0] / batch_size)
         if dataset_builder:
             worker_steps_per_epoch = reveal(worker_steps)
+            worker_steps_per_epoch = [
+                steps for steps in worker_steps_per_epoch if steps != -1
+            ]
             assert (
                 len(set(worker_steps_per_epoch)) == 1
             ), "steps_per_epoch of all parties must be same, Please check whether the batchsize or steps_per_epoch of all parties are consistent"
@@ -237,7 +269,9 @@ class SLModel:
             batch_size: Number of samples per gradient update.
             epochs: Number of epochs to train the model
             verbose: 0, 1. Verbosity mode
-            callbacks: List of `keras.callbacks.Callback` instances.
+            callbacks: List of Callback or Dict[device, Callback]. Callback can be:
+            - `keras.callbacks.Callback` for tensorflow backend
+            - `secretflow.ml.nn.sl.backend.torch.callback.Callback` for torch backend
             validation_data: Data on which to validate
             shuffle: Whether shuffle dataset or not
             validation_freq: specifies how many training epochs to run before a new validation run is performed
@@ -305,8 +339,11 @@ class SLModel:
                 stage="eval",
                 dataset_builder=dataset_builder,
             )
-
-        self._workers[self.device_y].init_training(callbacks, epochs=epochs)
+        if isinstance(callbacks, dict):
+            for dev, callback_builder in callbacks.items():
+                self._workers[dev].init_training(callback_builder, epochs=epochs)
+        else:
+            self._workers[self.device_y].init_training(callbacks, epochs=epochs)
         [worker.on_train_begin() for worker in self._workers.values()]
         wait_steps = min(min(self.get_cpus()) * 2, 100)
         for epoch in range(epochs):
@@ -318,24 +355,33 @@ class SLModel:
             self._workers[self.device_y].reset_metrics()
             [worker.on_epoch_begin(epoch) for worker in self._workers.values()]
 
-            for step in range(0, steps_per_epoch):
-                if verbose == 1:
-                    pbar.update(1)
-                hiddens = {}
-                self._workers[self.device_y].on_train_batch_begin(step=step)
-                for device, worker in self._workers.items():
-                    # 1. Local calculation of basenet
-                    hidden = worker.base_forward(stage="train")
-                    # 2. The results of basenet are sent to fusenet
-                    hiddens[device] = hidden
+            hiddens_buf = [None] * (self.pipeline_size - 1)
+            for step in range(0, steps_per_epoch + self.pipeline_size - 1):
+                if step < steps_per_epoch:
+                    if verbose == 1:
+                        pbar.update(1)
+                    hiddens = {}
+                    self._workers[self.device_y].on_train_batch_begin(step=step)
+                    for device, worker in self._workers.items():
+                        # 1. Local calculation of basenet
+                        hidden = worker.base_forward(stage="train")
+                        # 2. The results of basenet are sent to fusenet
+
+                        hiddens[device] = hidden
+                    hiddens_buf.append(hiddens)
+                # clean up buffer
+                hiddens = hiddens_buf.pop(0)
+                # Async transfer hiddens to label side
+                if hiddens is None:
+                    continue
+                # During pipeline strategy, the backpropagation process of the model will lag n cycles behind the forward propagation process.
+                step = step - self.pipeline_size + 1
+
                 # do agglayer forward
                 agg_hiddens = self.agglayer.forward(hiddens, axis=0)
-                if isinstance(agg_hiddens, PYUObject):
-                    agg_hiddens = [agg_hiddens]
+
                 # 3. Fusenet do local calculates and return gradients
-                gradients = self._workers[self.device_y].fuse_net(
-                    *agg_hiddens,
-                )
+                gradients = self._workers[self.device_y].fuse_net(agg_hiddens)
 
                 # In some strategies, we need to bypass the backpropagation step.
                 skip_gradient = False
@@ -348,10 +394,17 @@ class SLModel:
                     # do agglayer backward
                     scatter_gradients = self.agglayer.backward(gradients)
                     for device, worker in self._workers.items():
-                        worker.base_backward(scatter_gradients[device])
+                        if device in scatter_gradients.keys():
+                            worker.base_backward(scatter_gradients[device])
 
                 r_count = self._workers[self.device_y].on_train_batch_end(step=step)
                 res.append(r_count)
+                [
+                    worker.on_train_batch_end(step=step)
+                    for dev, worker in self._workers.items()
+                    if dev != self.device_y
+                ]
+
                 if self.dp_strategy_dict is not None and dp_spent_step_freq is not None:
                     current_step = epoch * steps_per_epoch + step
                     if current_step % dp_spent_step_freq == 0:
@@ -362,6 +415,9 @@ class SLModel:
                 if len(res) == wait_steps:
                     wait(res)
                     res = []
+            assert (
+                len(hiddens_buf) == 0
+            ), f'hiddens buffer unfinished, len: {len(hiddens_buf)}'
             if validation and epoch % validation_freq == 0:
                 # validation
                 self._workers[self.device_y].reset_metrics()
@@ -372,9 +428,8 @@ class SLModel:
                         hidden = worker.base_forward("eval")
                         hiddens[device] = hidden
                     agg_hiddens = self.agglayer.forward(hiddens, axis=0)
-                    if isinstance(agg_hiddens, PYUObject):
-                        agg_hiddens = [agg_hiddens]
-                    metrics = self._workers[self.device_y].evaluate(*agg_hiddens)
+
+                    metrics = self._workers[self.device_y].evaluate(agg_hiddens)
                     res.append(metrics)
                     if len(res) == wait_steps:
                         wait(res)
@@ -384,11 +439,15 @@ class SLModel:
 
                 # save checkpoint
                 if audit_log_dir is not None:
-                    epoch_base_model_path = os.path.join(
-                        audit_log_dir,
-                        "base_model",
-                        str(epoch),
-                    )
+                    epoch_base_model_path = {
+                        device: os.path.join(
+                            audit_log_dir,
+                            "base_model",
+                            device.party,
+                            str(epoch),
+                        )
+                        for device in self._workers.keys()
+                    }
                     epoch_fuse_model_path = os.path.join(
                         audit_log_dir,
                         "fuse_model",
@@ -401,6 +460,12 @@ class SLModel:
                         **audit_log_params,
                     )
             epoch_log = self._workers[self.device_y].on_epoch_end(epoch)
+            call_res = [
+                worker.on_epoch_end(epoch)
+                for dev, worker in self._workers.items()
+                if dev != self.device_y
+            ]
+            wait(call_res)
             for name, metric in reveal(epoch_log).items():
                 report_list.append(f"{name}:{metric} ")
             report = " ".join(report_list)
@@ -411,6 +476,12 @@ class SLModel:
                 break
 
         history = self._workers[self.device_y].on_train_end()
+        call_res = [
+            worker.on_train_end()
+            for dev, worker in self._workers.items()
+            if dev != self.device_y
+        ]
+        wait(call_res)
         return reveal(history)
 
     def predict(
@@ -423,6 +494,7 @@ class SLModel:
         batch_size=32,
         verbose=0,
         dataset_builder: Callable[[List], Tuple[int, Iterable]] = None,
+        callbacks=None,
     ):
         """Vertical split learning offline prediction interface
 
@@ -437,6 +509,7 @@ class SLModel:
             verbose: 0, 1. Verbosity mode
             dataset_builder: Callable function, its input is `x` or `[x, y]` if y is set, it should return
               steps_per_epoch and iterable dataset. Dataset builder is mainly for building graph dataset.
+            callbacks: List of `keras.callbacks.Callback` instances.
         """
 
         assert (
@@ -451,30 +524,45 @@ class SLModel:
             epochs=1,
             dataset_builder=dataset_builder,
         )
+        [
+            worker.init_predict(callbacks, steps=predict_steps)
+            for worker in self._workers.values()
+        ]
         if verbose > 0:
             pbar = tqdm(total=predict_steps)
             pbar.set_description('Predict Processing:')
         result = []
         wait_steps = min(min(self.get_cpus()) * 2, 100)
         res = []
+        [worker.on_predict_begin() for worker in self._workers.values()]
         for step in range(0, predict_steps):
+            [
+                worker.on_predict_batch_begin(batch=step)
+                for worker in self._workers.values()
+            ]
             forward_data_dict = {}
             for device, worker in self._workers.items():
+                if device not in self.base_model_dict:
+                    continue
                 f_data = worker.base_forward(stage="eval")
                 forward_data_dict[device] = f_data
             agg_hiddens = self.agglayer.forward(forward_data_dict, axis=0)
-            if isinstance(agg_hiddens, PYUObject):
-                agg_hiddens = [agg_hiddens]
+
             if verbose > 0:
                 pbar.update(1)
-            y_pred = self._workers[self.device_y].predict(*agg_hiddens)
+            y_pred = self._workers[self.device_y].predict(agg_hiddens)
             result.append(y_pred)
 
+            [
+                worker.on_predict_batch_end(batch=step)
+                for worker in self._workers.values()
+            ]
             res.append(y_pred)
             if len(res) == wait_steps:
                 wait(res)
                 res = []
         wait(res)
+        [worker.on_predict_end() for worker in self._workers.values()]
         return result
 
     @reveal
@@ -544,9 +632,8 @@ class SLModel:
             if verbose > 0:
                 pbar.update(1)
             agg_hiddens = self.agglayer.forward(hiddens, axis=0)
-            if isinstance(agg_hiddens, PYUObject):
-                agg_hiddens = [agg_hiddens]
-            metrics = self._workers[self.device_y].evaluate(*agg_hiddens)
+
+            metrics = self._workers[self.device_y].evaluate(agg_hiddens)
             if (step + 1) % wait_steps == 0:
                 wait(metrics)
         report_list = [f"{k}:{v}" for k, v in reveal(metrics).items()]
@@ -578,7 +665,7 @@ class SLModel:
             >>>                    is_test=True,)
             >>> # just passing params in
             >>> slmodel.save_model(base_model_path,
-            >>>                    fuse_model_path,)
+            >>>                    fuse_model_path,
             >>>                    is_test=True,
             >>>                    save_traces=True,
             >>>                    save_format='h5')
@@ -589,11 +676,13 @@ class SLModel:
         assert fuse_model_path is not None, "Fuse model path cannot be empty"
         if isinstance(base_model_path, str):
             base_model_path = {
-                device: base_model_path for device in self._workers.keys()
+                device: base_model_path for device in self.base_model_dict.keys()
             }
 
         res = []
         for device, worker in self._workers.items():
+            if device not in self.base_model_dict.keys():
+                continue
             assert (
                 device in base_model_path
             ), f'Should provide a path for device {device}.'
@@ -643,11 +732,12 @@ class SLModel:
         assert fuse_model_path is not None, "Fuse model path cannot be empty"
         if isinstance(base_model_path, str):
             base_model_path = {
-                device: base_model_path for device in self._workers.keys()
+                device: base_model_path for device in self.base_model_dict.keys()
             }
-
         res = []
         for device, worker in self._workers.items():
+            if device not in self.base_model_dict.keys():
+                continue
             assert (
                 device in base_model_path
             ), f'Should provide a path for device {device}.'
@@ -697,12 +787,14 @@ class SLModel:
         assert fuse_model_path is not None, "Fuse model path cannot be empty"
         if isinstance(base_model_path, str):
             base_model_path = {
-                device: base_model_path for device in self._workers.keys()
+                device: base_model_path for device in self.base_model_dict.keys()
             }
 
         res = []
         base_input_output_infos = {}
         for device, worker in self._workers.items():
+            if device not in self.base_model_dict.keys():
+                continue
             assert (
                 device in base_model_path
             ), f'Should provide a path for device {device}.'

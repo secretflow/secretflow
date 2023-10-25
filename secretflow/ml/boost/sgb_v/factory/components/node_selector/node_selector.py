@@ -37,6 +37,12 @@ class NodeSelector(Component):
     def set_devices(self, devices: Devices):
         self.label_holder = devices.label_holder
 
+    def set_actors(self, _):
+        return
+
+    def del_actors(self):
+        return
+
     def root_select(self, sample_num):
         return root_select(samples=sample_num)
 

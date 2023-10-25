@@ -27,9 +27,21 @@ ARG sf_version
 
 ENV version $sf_version
 
-RUN pip install secretflow-lite==${version} && rm -rf /root/.cache
+RUN pip install secretflow-lite==${version} --extra-index-url https://test.pypi.org/simple/ && rm -rf /root/.cache
 
 COPY .nsjail /root/.nsjail
+
+ARG config_templates=""
+LABEL kuscia.secretflow.config-templates=$config_templates
+
+ARG deploy_templates=""
+LABEL kuscia.secretflow.deploy-templates=$deploy_templates
+
+ARG comp_list=""
+LABEL kuscia.secretflow.comp_list=$comp_list
+
+ARG translation=""
+LABEL kuscia.secretflow.translation=$translation
 
 WORKDIR /root
 

@@ -18,13 +18,14 @@ from torchmetrics import Accuracy, Precision, AUROC
 from secretflow.device import reveal
 from secretflow.ml.nn import SLModel
 from secretflow.ml.nn.fl.utils import metric_wrapper, optim_wrapper
+from secretflow.ml.nn.sl.agglayer.agg_method import Average
 from secretflow.ml.nn.utils import TorchModel
 from secretflow.security.privacy import DPStrategy
 from secretflow.security.privacy.mechanism.torch import GaussianEmbeddingDP
 from secretflow.security.privacy.mechanism.label_dp import LabelDP
 from secretflow.utils.compressor import TopkSparse
 from secretflow.utils.simulation.datasets import load_mnist
-from tests.ml.nn.model_def import ConvNetBase, ConvNetFuse
+from tests.ml.nn.model_def import ConvNetBase, ConvNetFuse, ConvNetFuseAgglayer
 
 _temp_dir = tempfile.mkdtemp()
 
@@ -66,7 +67,6 @@ def torch_model_with_mnist(
 ):
     # kwargs parsing
     dp_strategy_dict = kwargs.get('dp_strategy_dict', None)
-    compressor = kwargs.get('compressor', None)
     dataset_builder = kwargs.get('dataset_builder', None)
 
     base_local_steps = kwargs.get('base_local_steps', 1)
@@ -77,6 +77,10 @@ def torch_model_with_mnist(
     split_steps = kwargs.get('split_steps', 1)
     max_fuse_local_steps = kwargs.get('max_fuse_local_steps', 10)
 
+    agg_method = kwargs.get('agg_method', None)
+    compressor = kwargs.get('compressor', None)
+    pipeline_size = kwargs.get('pipeline_size', 1)
+
     party_shape = data.partition_shape()
     alice_length = party_shape[devices.alice][0]
 
@@ -85,7 +89,6 @@ def torch_model_with_mnist(
         device_y=device_y,
         model_fuse=model_fuse,
         dp_strategy_dict=dp_strategy_dict,
-        compressor=compressor,
         simulation=True,
         random_seed=1234,
         backend=backend,
@@ -96,6 +99,9 @@ def torch_model_with_mnist(
         loss_thres=loss_thres,
         split_steps=split_steps,
         max_fuse_local_steps=max_fuse_local_steps,
+        agg_method=agg_method,
+        compressor=compressor,
+        pipeline_size=pipeline_size,
     )
     history = sl_model.fit(
         data,
@@ -284,4 +290,127 @@ class TestSLModelTorch:
             strategy='split_nn',
             backend="torch",
             compressor=top_k_compressor,
+        )
+
+    def test_single_feature_model_agg_layer(self, sf_simulation_setup_devices):
+        alice = sf_simulation_setup_devices.alice
+        bob = sf_simulation_setup_devices.bob
+        (x_train, y_train), (_, _) = load_mnist(
+            parts={
+                sf_simulation_setup_devices.alice: (0, 10000),
+                sf_simulation_setup_devices.bob: (0, 10000),
+            },
+            normalized_x=True,
+            categorical_y=True,
+            is_torch=True,
+        )
+        x_train = x_train.astype(np.float32)
+        y_train = y_train.astype(np.float32)
+        loss_fn = nn.CrossEntropyLoss
+        optim_fn = optim_wrapper(optim.Adam, lr=1e-2)
+        base_model = TorchModel(
+            model_fn=ConvNetBase,
+            loss_fn=loss_fn,
+            optim_fn=optim_fn,
+            metrics=[
+                metric_wrapper(
+                    Accuracy, task="multiclass", num_classes=10, average='micro'
+                ),
+                metric_wrapper(
+                    Precision, task="multiclass", num_classes=10, average='micro'
+                ),
+                metric_wrapper(AUROC, task="multiclass", num_classes=10),
+            ],
+        )
+
+        fuse_model = TorchModel(
+            model_fn=ConvNetFuseAgglayer,
+            loss_fn=loss_fn,
+            optim_fn=optim_fn,
+            metrics=[
+                metric_wrapper(
+                    Accuracy, task="multiclass", num_classes=10, average='micro'
+                ),
+                metric_wrapper(
+                    Precision, task="multiclass", num_classes=10, average='micro'
+                ),
+                metric_wrapper(AUROC, task="multiclass", num_classes=10),
+            ],
+        )
+        base_model_dict = {
+            alice: base_model,
+        }
+
+        # agg layer
+        torch_model_with_mnist(
+            devices=sf_simulation_setup_devices,
+            base_model_dict=base_model_dict,
+            device_y=bob,
+            model_fuse=fuse_model,
+            data=x_train,
+            label=y_train,
+            strategy='split_nn',
+            backend="torch",
+            agg_method=Average(),
+        )
+
+    def test_single_feature_model(self, sf_simulation_setup_devices):
+        alice = sf_simulation_setup_devices.alice
+        bob = sf_simulation_setup_devices.bob
+        num_samples = 10000
+        (_, _), (mnist_data, mnist_label) = load_mnist(
+            parts={
+                sf_simulation_setup_devices.alice: (0, num_samples),
+                sf_simulation_setup_devices.bob: (0, num_samples),
+            },
+            normalized_x=True,
+            categorical_y=True,
+            is_torch=True,
+        )
+        mnist_data = mnist_data.astype(np.float32)
+        mnist_label = mnist_label.astype(np.float32)
+        loss_fn = nn.CrossEntropyLoss
+        optim_fn = optim_wrapper(optim.Adam, lr=1e-2)
+        base_model = TorchModel(
+            model_fn=ConvNetBase,
+            loss_fn=loss_fn,
+            optim_fn=optim_fn,
+            metrics=[
+                metric_wrapper(
+                    Accuracy, task="multiclass", num_classes=10, average='micro'
+                ),
+                metric_wrapper(
+                    Precision, task="multiclass", num_classes=10, average='micro'
+                ),
+                metric_wrapper(AUROC, task="multiclass", num_classes=10),
+            ],
+        )
+
+        fuse_model = TorchModel(
+            model_fn=ConvNetFuseAgglayer,
+            loss_fn=loss_fn,
+            optim_fn=optim_fn,
+            metrics=[
+                metric_wrapper(
+                    Accuracy, task="multiclass", num_classes=10, average='micro'
+                ),
+                metric_wrapper(
+                    Precision, task="multiclass", num_classes=10, average='micro'
+                ),
+                metric_wrapper(AUROC, task="multiclass", num_classes=10),
+            ],
+        )
+        base_model_dict = {
+            alice: base_model,
+        }
+
+        torch_model_with_mnist(
+            devices=sf_simulation_setup_devices,
+            base_model_dict=base_model_dict,
+            device_y=bob,
+            model_fuse=fuse_model,
+            data=mnist_data,
+            label=mnist_label,
+            strategy='split_nn',
+            backend="torch",
         )

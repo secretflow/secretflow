@@ -5,9 +5,10 @@ import pandas as pd
 import pytest
 
 import secretflow.distributed as sfd
-from secretflow.data.base import Partition
+from secretflow.data import partition
 from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.device.driver import reveal
+from secretflow.preprocessing.binning.vert_binning import VertBinning
 from secretflow.preprocessing.binning.vert_woe_binning import VertWoeBinning
 from secretflow.utils.simulation.datasets import dataset
 
@@ -52,13 +53,16 @@ def prod_env_and_data(sf_production_setup_devices):
         dataset('linear'),
         usecols=[f'x{i}' for i in range(1, 11)] + ['y'],
     )
-
+    row_num = normal_data.shape[0]
+    np.random.seed(0)
+    normal_data['x1'] = np.random.randint(0, 2, (row_num,))
+    normal_data['x2'] = np.random.randint(0, 5, (row_num,))
     v_float_data = VDataFrame(
         {
-            sf_production_setup_devices.alice: Partition(
+            sf_production_setup_devices.alice: partition(
                 data=sf_production_setup_devices.alice(lambda: normal_data)()
             ),
-            sf_production_setup_devices.bob: Partition(
+            sf_production_setup_devices.bob: partition(
                 data=sf_production_setup_devices.bob(
                     lambda: normal_data.drop("y", axis=1)
                 )()
@@ -90,10 +94,10 @@ def prod_env_and_data(sf_production_setup_devices):
 
     v_nan_data = VDataFrame(
         {
-            sf_production_setup_devices.alice: Partition(
+            sf_production_setup_devices.alice: partition(
                 data=sf_production_setup_devices.alice(lambda: nan_str_data)()
             ),
-            sf_production_setup_devices.bob: Partition(
+            sf_production_setup_devices.bob: partition(
                 data=sf_production_setup_devices.bob(
                     lambda: nan_str_data.drop("y", axis=1)
                 )()
@@ -127,6 +131,7 @@ def test_binning_nan_chi(prod_env_and_data):
         label_name="y",
         chimerge_target_bins=4,
     )
+
     assert he_report.keys() == ss_report.keys()
     ss_alice = reveal(ss_report[env.alice])
     he_alice = reveal(he_report[env.alice])
@@ -147,6 +152,8 @@ def test_binning_nan(prod_env_and_data):
     env, data = prod_env_and_data
     he_binning = VertWoeBinning(env.heu)
     ss_binning = VertWoeBinning(env.spu)
+    vert_binning = VertBinning()
+
     he_report = he_binning.binning(
         data['v_nan_data'],
         bin_names={env.alice: ["f1", "f3", "f2"], env.bob: ["f1", "f3", "f2"]},
@@ -161,7 +168,17 @@ def test_binning_nan(prod_env_and_data):
         bin_names={env.alice: ["f1", "f3", "f2"], env.bob: ["f1", "f3", "f2"]},
         label_name="y",
     )
+
+    vert_binning_report = vert_binning.binning(
+        data['v_nan_data'],
+        binning_method="eq_range",
+        bin_names={env.alice: ["f1", "f3", "f2"], env.bob: ["f1", "f3", "f2"]},
+    )
+    assert he_report.keys() == vert_binning_report.keys()
     assert he_report.keys() == ss_report.keys()
+
+    print(reveal(vert_binning_report[env.alice]))
+
     ss_alice = reveal(ss_report[env.alice])
     he_alice = reveal(he_report[env.alice])
     ss_bob = reveal(ss_report[env.bob])
@@ -198,6 +215,9 @@ def test_binning_normal(prod_env_and_data):
     env, data = prod_env_and_data
     he_binning = VertWoeBinning(env.heu)
     ss_binning = VertWoeBinning(env.spu)
+
+    vert_binning = VertBinning()
+
     he_report = he_binning.binning(
         data['v_float_data'],
         bin_names={env.alice: ["x1", "x2", "x3"], env.bob: ["x1", "x2", "x3"]},
@@ -208,6 +228,15 @@ def test_binning_normal(prod_env_and_data):
         bin_names={env.alice: ["x1", "x2", "x3"], env.bob: ["x1", "x2", "x3"]},
         label_name="y",
     )
+
+    vert_binning_report = vert_binning.binning(
+        data['v_nan_data'],
+        binning_method="eq_range",
+        bin_names={env.alice: ["f1", "f3", "f2"], env.bob: ["f1", "f3", "f2"]},
+    )
+    assert he_report.keys() == vert_binning_report.keys()
+
+    print(reveal(vert_binning_report[env.alice]))
     assert he_report.keys() == ss_report.keys()
     ss_alice = reveal(ss_report[env.alice])
     he_alice = reveal(he_report[env.alice])

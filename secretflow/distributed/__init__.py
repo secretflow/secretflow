@@ -13,13 +13,24 @@
 # limitations under the License.
 
 
-from .primitive import get, kill, production_mode, remote, set_production, shutdown
+from .primitive import (
+    get,
+    kill,
+    remote,
+    shutdown,
+    set_distribution_mode,
+    get_distribution_mode,
+    get_current_cluster_idx,
+    active_sf_cluster,
+)
 
 __all__ = [
     'get',
     'kill',
-    'production_mode',
     'remote',
-    'set_production',
     'shutdown',
+    'set_distribution_mode',
+    'get_distribution_mode',
+    'get_current_cluster_idx',
+    'active_sf_cluster',
 ]

@@ -19,7 +19,6 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import FunctionTransformer as SkFunctionTransformer
 
-from secretflow.data.base import Partition
 from secretflow.data.horizontal import HDataFrame
 from secretflow.data.mix import MixDataFrame
 from secretflow.data.vertical import VDataFrame
@@ -61,8 +60,8 @@ class _FunctionTransformer(_PreprocessBase):
         self._transformer = SkFunctionTransformer(func=func, kw_args=kw_args)
 
     def _fit(self, df: Union[HDataFrame, VDataFrame]) -> np.ndarray:
-        def _df_fit(df: pd.DataFrame):
-            self._transformer.fit(df)
+        def _df_fit(_df):
+            self._transformer.fit(_df)
 
         for device, part in df.partitions.items():
             device(_df_fit)(part.data)
@@ -81,18 +80,37 @@ class _FunctionTransformer(_PreprocessBase):
     def _transform(
         self, df: Union[HDataFrame, VDataFrame]
     ) -> Union[HDataFrame, VDataFrame]:
-        def _df_transform(transformer: SkFunctionTransformer, df: pd.DataFrame):
-            return pd.DataFrame(
-                data=transformer.transform(df),
-                columns=df.columns,
-            )
+        def _df_transform(_df: pd.DataFrame, transformer: SkFunctionTransformer):
+            transformed_df = transformer.transform(_df)
+            if isinstance(_df, pd.DataFrame):
+                return pd.DataFrame(
+                    data=transformed_df,
+                    columns=_df.columns,
+                )
+            else:
+                try:
+                    import polars as pl
+
+                    if isinstance(_df, pl.DataFrame):
+                        if isinstance(transformed_df, pl.DataFrame):
+                            return transformed_df
+                        else:
+                            return pl.DataFrame(
+                                data=transformer.transform(_df),
+                                schema={
+                                    _df.columns[i]: _df.dtypes[i]
+                                    for i in range(len(_df.columns))
+                                },
+                            )
+                except ImportError:
+                    pass
+                raise RuntimeError(f"Unknown df type {type(_df)}")
 
         transformed_parts = {}
         for device, part in df.partitions.items():
-            transformed_parts[device] = Partition(
-                device(_df_transform)(self._transformer, part.data)
+            transformed_parts[device] = part.apply_func(
+                _df_transform, transformer=self._transformer
             )
-
         new_df = df.copy()
         new_df.partitions = transformed_parts
         return new_df
@@ -136,13 +154,31 @@ class LogroundTransformer(_FunctionTransformer):
 
     def __init__(self, decimals: int = 6, bias: float = 0.5):
         def _loground(
-            x: pd.DataFrame, decimals: int = 6, bias: float = 0.5
+            x: Union[pd.DataFrame, "pl.DataFrame"],
+            _decimals: int = 6,
+            _bias: float = 0.5,
         ) -> pd.DataFrame:
-            return x.add(bias).apply(np.log2).round(decimals=decimals)
+            if isinstance(x, pd.DataFrame):
+                return x.add(_bias).apply(np.log2).round(decimals=_decimals)
+            else:
+                try:
+                    import polars as pl
+
+                    if isinstance(x, pl.DataFrame):
+                        x = x.with_columns(
+                            pl.col(pl.NUMERIC_DTYPES)
+                            .add(_bias)
+                            .apply(np.log2)
+                            .round(_decimals)
+                        )
+                        return x
+                except ImportError:
+                    pass
+                raise RuntimeError(f"Unknown df type {type(x)}")
 
         self._decimals = decimals
         self._bias = bias
-        super().__init__(partial(_loground, decimals=decimals, bias=bias))
+        super().__init__(partial(_loground, _decimals=decimals, _bias=bias))
 
     def get_params(self) -> Dict[str, Any]:
         params = super().get_params()

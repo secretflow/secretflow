@@ -23,7 +23,7 @@ import statsmodels.api as sm
 from sklearn import linear_model
 from sklearn.preprocessing import StandardScaler
 
-from secretflow.data.base import Partition
+from secretflow.data import partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.ml.linear import LinearModel, RegType, SSRegression
 from secretflow.stats import SSPValue
@@ -54,9 +54,9 @@ def _build_splited_ds(pyus, x, y, parties):
         end = start + step if r != parties - 1 else x.shape[1]
         split_x = x[:, start:end]
         pyu_x = pyus[r](lambda: pd.DataFrame(split_x))()
-        fed_x.partitions[pyus[r]] = Partition(data=pyu_x)
+        fed_x.partitions[pyus[r]] = partition(data=pyu_x)
     pyu_y = pyus[parties - 1](lambda: pd.DataFrame(y))()
-    fed_y = VDataFrame({pyus[parties - 1]: Partition(data=pyu_y)})
+    fed_y = VDataFrame({pyus[parties - 1]: partition(data=pyu_y)})
     return fed_x, fed_y
 
 

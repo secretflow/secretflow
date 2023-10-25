@@ -5,9 +5,9 @@ from sklearn.datasets import load_breast_cancer
 
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.preprocessing.feature_filter import feature_filter_comp
-from secretflow.protos.component.comp_pb2 import Attribute
-from secretflow.protos.component.data_pb2 import DistData, TableSchema, VerticalTable
-from secretflow.protos.component.evaluation_pb2 import NodeEvalParam
+from secretflow.spec.v1.component_pb2 import Attribute
+from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from tests.conftest import TEST_STORAGE_ROOT
 
 
@@ -16,8 +16,9 @@ def test_feature_filter(comp_prod_sf_cluster_config):
     bob_input_path = "test_feature_filter/bob.csv"
     output_path = "test_feature_filter/out.csv"
 
-    self_party = comp_prod_sf_cluster_config.private_config.self_party
-    local_fs_wd = comp_prod_sf_cluster_config.private_config.storage_config.local_fs.wd
+    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    self_party = sf_cluster_config.private_config.self_party
+    local_fs_wd = storage_config.local_fs.wd
 
     x = load_breast_cancer()["data"]
     if self_party == "alice":
@@ -25,7 +26,7 @@ def test_feature_filter(comp_prod_sf_cluster_config):
             os.path.join(local_fs_wd, "test_feature_filter"),
             exist_ok=True,
         )
-        ds = pd.DataFrame(x[:, :15], columns=[f'a{i}' for i in range(15)])
+        ds = pd.DataFrame(x[:, :15], columns=[f"a{i}" for i in range(15)])
         ds.to_csv(os.path.join(local_fs_wd, alice_input_path), index=False)
 
     elif self_party == "bob":
@@ -33,7 +34,7 @@ def test_feature_filter(comp_prod_sf_cluster_config):
             os.path.join(local_fs_wd, "test_feature_filter"),
             exist_ok=True,
         )
-        ds = pd.DataFrame(x[:, 15:], columns=[f'b{i}' for i in range(15)])
+        ds = pd.DataFrame(x[:, 15:], columns=[f"b{i}" for i in range(15)])
         ds.to_csv(os.path.join(local_fs_wd, bob_input_path), index=False)
 
     param = NodeEvalParam(
@@ -62,17 +63,21 @@ def test_feature_filter(comp_prod_sf_cluster_config):
     meta = VerticalTable(
         schemas=[
             TableSchema(
-                types=["f32"] * 15,
+                feature_types=["float32"] * 15,
                 features=[f"a{i}" for i in range(15)],
             ),
             TableSchema(
-                types=["f32"] * 15,
+                feature_types=["float32"] * 15,
                 features=[f"b{i}" for i in range(15)],
             ),
         ],
     )
     param.inputs[0].meta.Pack(meta)
-    res = feature_filter_comp.eval(param, comp_prod_sf_cluster_config)
+    res = feature_filter_comp.eval(
+        param=param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
 
     assert len(res.outputs) == 1
 

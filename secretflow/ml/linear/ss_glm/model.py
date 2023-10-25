@@ -372,7 +372,13 @@ class SSGLM:
         spu_o: SPUObject,
         spu_w: SPUObject,
     ) -> SPUObject:
-        spu_model = self.spu(_irls_update_w, static_argnames=('dist', 'link',),)(
+        spu_model = self.spu(
+            _irls_update_w,
+            static_argnames=(
+                'dist',
+                'link',
+            ),
+        )(
             spu_x,
             spu_y,
             spu_o,
@@ -384,13 +390,13 @@ class SSGLM:
 
         return spu_model
 
-    def _next_infeed_batch(self, ds: PYUObject, infeed_step: int) -> PYUObject:
+    def _next_infeed_batch(self, ds: FedNdarray, infeed_step: int) -> FedNdarray:
         being = infeed_step * self.infeed_batch_size
         assert being < self.samples
         end = min(being + self.infeed_batch_size, self.samples)
         return ds[being:end]
 
-    def _to_spu(self, d: PYUObject):
+    def _to_spu(self, d: FedNdarray):
         return [d.partitions[pyu].to(self.spu) for pyu in d.partitions]
 
     def _build_batch_cache(self, infeed_step: int):
@@ -687,7 +693,10 @@ class SSGLM:
                 spu_o = self._to_spu(batch_o)[0]
             else:
                 spu_o = None
-            spu_pred = self.spu(_predict, static_argnames=('link', 'y_scale'),)(
+            spu_pred = self.spu(
+                _predict,
+                static_argnames=('link', 'y_scale'),
+            )(
                 spu_x,
                 spu_o,
                 self.spu_w,
@@ -708,3 +717,126 @@ class SSGLM:
             )
         else:
             return pred
+
+    def spu_w_to_federated(
+        self, federated_template: Union[FedNdarray, VDataFrame], bias_receiver: PYU
+    ) -> Tuple[FedNdarray, PYUObject]:
+        """spu_w is our trained model of shape (num_feature + 1, 1)
+        we are going to split it into federated form.
+
+        Args:
+            federated_template : FedNdarray or VDataFrame. Training data or test data X will do. Used as template to split W.
+            bias_receiver: PYU. Specify which party receive the bias term.
+        """
+        federated_template, (_, num_feat) = self._prepare_dataset(federated_template)
+        assert (
+            self.num_feat == num_feat
+        ), f"federated template must have number of features equal {self.num_feat}"
+        cum_index = 0
+        spu_w = self.spu(lambda x: x.reshape(-1, 1))(self.spu_w)
+        fed_w = {}
+        for party_device, shape in federated_template.partition_shape().items():
+            party_feat_num = shape[1]
+            beg = cum_index
+            end = cum_index + party_feat_num
+            fed_w[party_device] = self.spu(
+                slice_x,
+                static_argnames=('beg', 'end'),
+            )(
+                spu_w, beg=beg, end=end
+            ).to(party_device)
+            cum_index = end
+        return FedNdarray(
+            partitions=fed_w, partition_way=PartitionWay.VERTICAL
+        ), self.spu(
+            slice_x,
+            static_argnames=('beg', 'end'),
+        )(
+            spu_w, beg=num_feat - 1, end=num_feat
+        ).to(
+            bias_receiver
+        )
+
+    def predict_fed_w(
+        self,
+        x: Union[FedNdarray, VDataFrame],
+        fed_w: FedNdarray,
+        bias: PYUObject,
+        o: Union[FedNdarray, VDataFrame] = None,
+        to_pyu: PYU = None,
+    ) -> PYUObject:
+        """
+        Predict using the model in a federated form, suppose all slices collected by to_pyu device.
+        Not MPC prediction.
+
+        Args:
+
+            x : {FedNdarray, VDataFrame} of shape (n_samples, n_features)
+                Predict samples.
+            fed_w: FedNdarray. w in a federated form.
+            bias: PYUObject. bias term.
+            o : {FedNdarray, VDataFrame} of shape (n_samples,).
+                Specify a column to use as the offset as per-row “bias values” use in predict
+            to_pyu : the prediction initiator.
+                if not None predict result is reveal to to_pyu device and save as FedNdarray
+                Default to be bias holder device.
+
+
+        Return:
+            pred scores in PYUObject, shape (n_samples,)
+        """
+        assert hasattr(self, 'spu_w'), 'please fit model first'
+        assert hasattr(self, 'link'), 'please fit model first'
+        assert hasattr(self, 'y_scale'), 'please fit model first'
+
+        x, shape = self._prepare_dataset(x)
+        if o is not None:
+            o, _ = self._prepare_dataset(o)
+        self.samples, self.num_feat = shape
+        infeed_rows = math.ceil((100000 * 100) / self.num_feat)
+        self.infeed_batch_size = infeed_rows
+        infeed_total_batch = math.ceil(self.samples / infeed_rows)
+        if to_pyu is None:
+            to_pyu = bias.device
+
+        preds = []
+        for infeed_step in range(infeed_total_batch):
+            batch_x = self._next_infeed_batch(x, infeed_step)
+            if o is not None:
+                batch_o = self._next_infeed_batch(o, infeed_step)
+            else:
+                batch_o = None
+            dot_products = []
+            logging.info("collecting dot products")
+            for pyu_device, batch_x_slice in batch_x.partitions.items():
+                batch_o_slice = 0 if batch_o is None else batch_o.partitions[pyu_device]
+                dot_products.append(
+                    pyu_device(lambda x, w, o: x @ w + o)(
+                        batch_x_slice,
+                        fed_w.partitions[pyu_device],
+                        batch_o_slice,
+                    ).to(to_pyu)
+                )
+
+            logging.info("collect preds")
+            preds.append(
+                to_pyu(predict_based_on_dot_products, static_argnames=("link",))(
+                    dot_products, bias, self.y_scale, link=self.link
+                )
+            )
+
+        return to_pyu(lambda p: jnp.concatenate(p, axis=0))(preds)
+
+
+def predict_based_on_dot_products(
+    dot_products: List[np.ndarray],
+    bias: float,
+    y_scale: float,
+    link: Linker,
+):
+    pred = np.sum(dot_products, axis=0) + bias
+    return link.response(pred) * y_scale
+
+
+def slice_x(x, beg, end) -> np.ndarray:
+    return x[beg:end, 0]

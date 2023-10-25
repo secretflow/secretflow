@@ -1,5 +1,4 @@
 matplotlib
-protobuf-distutils
 statsmodels==0.13.2
 pytest
 pytest-cov

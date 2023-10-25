@@ -1,0 +1,139 @@
+// Copyright 2023 Ant Group Co., Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package secretflow.spec.extend;
+
+option java_package = "org.secretflow.spec.extend";
+
+// Intrinsic properties of a SecretFlow cluster, including:
+//
+// - Version info.
+// - Parties: who participate in the computation.
+// - Secret devices including  and their configs.
+message SFClusterDesc {
+  // SecretFlow version.
+  string sf_version = 1;
+
+  // Python version.
+  string py_version = 2;
+
+  // Joined entities.
+  // e.g. ["alice", "bob",...].
+  repeated string parties = 3;
+
+  // Description for a secret device.
+  // - PYUs do not need to claim since they are plaintext devices.
+  // - Notes for config:
+  // At this moment, you have to provide a JSON string for different devices.
+  // We are going to formalize this part in future.
+  //   * Example SPU config:
+  //
+  // ```json
+  //   {
+  //     "runtime_config": {
+  //         "protocol": "REF2K",
+  //         "field": "FM64"
+  //     },
+  //     "link_desc": {
+  //         "connect_retry_times": 60,
+  //         "connect_retry_interval_ms": 1000,
+  //         "brpc_channel_protocol": "http",
+  //         "brpc_channel_connection_type": "pooled",
+  //         "recv_timeout_ms": 1200000,
+  //         "http_timeout_ms": 1200000
+  //     }
+  // }
+  // ```
+  // Referrences:
+  // SPU:
+  // https://www.secretflow.org.cn/docs/spu/latest/en-US/reference/runtime_config#runtimeconfig
+  // HEU:
+  // https://www.secretflow.org.cn/docs/secretflow/latest/en-US/source/secretflow.device.device.device#secretflow.device.device.heu.HEU.__init__
+  message DeviceDesc {
+    // Name of the device.
+    string name = 1;
+
+    // Supported: SPU, HEU, TEEU.
+    string type = 2;
+
+    // Parties of device.
+    repeated string parties = 3;
+
+    // Specific config for the secret device.
+    string config = 4;
+  }
+
+  // Description of secret devices
+  repeated DeviceDesc devices = 4;
+
+  message RayFedConfig {
+    // Indicates communication backend of RayFed.
+    // Accepted: 'grpc', 'brpc_link'
+    // Dafault is 'grpc'
+    string cross_silo_comm_backend = 1;
+  }
+
+  RayFedConfig ray_fed_config = 5;
+}
+
+// Runtime Config for a SecretFlow cluster.
+// Besides intrinsic SFClusterDesc, dynamic network configs are provided.
+message SFClusterConfig {
+  // Addresses for the RayFed cluster of each party.
+  message RayFedConfig {
+    repeated string parties = 1;
+
+    repeated string addresses = 2;
+
+    repeated string listen_addresses = 3;
+  }
+
+  // Contains addresses for one SPU device.
+  message SPUConfig {
+    // Should match SPU name in SFClusterDesc.devices.
+    string name = 1;
+
+    repeated string parties = 2;
+
+    repeated string addresses = 3;
+
+    repeated string listen_addresses = 4;
+  }
+
+  // Public and shared to all parties.
+  message PublicConfig {
+    RayFedConfig ray_fed_config = 1;
+
+    repeated SPUConfig spu_configs = 2;
+  }
+
+  // Different for each party.
+  // Private and unique to each party.
+  message PrivateConfig {
+    string self_party = 1;
+
+    string ray_head_addr = 2;
+  }
+
+  // Intrinsic properties.
+  SFClusterDesc desc = 1;
+
+  // Dynamic runtime public configs.
+  PublicConfig public_config = 2;
+
+  // Dynamic runtime private configs.
+  PrivateConfig private_config = 3;
+}

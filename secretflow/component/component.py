@@ -27,18 +27,14 @@ import spu
 from secretflow.component.data_utils import DistDataType, check_dist_data, check_io_def
 from secretflow.component.eval_param_reader import EvalParamReader
 from secretflow.device.driver import init, shutdown
-from secretflow.protos.component.cluster_pb2 import SFClusterConfig
-from secretflow.protos.component.comp_pb2 import (
-    AttributeDef,
-    AttrType,
-    ComponentDef,
-    IoDef,
-)
-from secretflow.protos.component.evaluation_pb2 import NodeEvalParam, NodeEvalResult
+from secretflow.spec.extend.cluster_pb2 import SFClusterConfig
+from secretflow.spec.v1.component_pb2 import AttributeDef, AttrType, ComponentDef, IoDef
+from secretflow.spec.v1.data_pb2 import StorageConfig
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam, NodeEvalResult
 
 
-def clean_text(x: str) -> str:
-    return cleantext.clean(x, lower=False, no_line_breaks=True)
+def clean_text(x: str, no_line_breaks: bool = True) -> str:
+    return cleantext.clean(x.strip(), lower=False, no_line_breaks=no_line_breaks)
 
 
 class CompDeclError(Exception):
@@ -115,7 +111,7 @@ class Component:
         self.name = name
         self.domain = domain
         self.version = version
-        self.desc = clean_text(desc)
+        self.desc = clean_text(desc, no_line_breaks=False)
 
         self.__definition = None
         self.__eval_callback = None
@@ -256,12 +252,12 @@ class Component:
             attr.atomic.allowed_values.fs.extend(allowed_values)
 
         if lower_bound is not None:
-            attr.atomic.has_lower_bound = True
+            attr.atomic.lower_bound_enabled = True
             attr.atomic.lower_bound_inclusive = lower_bound_inclusive
             attr.atomic.lower_bound.f = lower_bound
 
         if upper_bound is not None:
-            attr.atomic.has_upper_bound = True
+            attr.atomic.upper_bound_enabled = True
             attr.atomic.upper_bound_inclusive = upper_bound_inclusive
             attr.atomic.upper_bound.f = upper_bound
 
@@ -340,7 +336,7 @@ class Component:
                             or (lower_bound_inclusive and v == lower_bound)
                         ):
                             raise CompDeclError(
-                                f"default_value {v} fails bound check: lower_bound {lower_bound}, lower_bound_inclusive {lower_bound_inclusive}"
+                                f"attr {name} default_value {v} fails bound check: lower_bound {lower_bound}, lower_bound_inclusive {lower_bound_inclusive}"
                             )
                 else:
                     if not (
@@ -348,7 +344,7 @@ class Component:
                         or (lower_bound_inclusive and default_value == lower_bound)
                     ):
                         raise CompDeclError(
-                            f"default_value {default_value} fails bound check: lower_bound {lower_bound}, lower_bound_inclusive {lower_bound_inclusive}"
+                            f"attr {name} default_value {default_value} fails bound check: lower_bound {lower_bound}, lower_bound_inclusive {lower_bound_inclusive}"
                         )
 
         if default_value is not None:
@@ -360,7 +356,7 @@ class Component:
                             or (upper_bound_inclusive and v == upper_bound)
                         ):
                             raise CompDeclError(
-                                f"default_value {v} fails bound check: upper_bound {upper_bound}, upper_bound_inclusive {upper_bound_inclusive}"
+                                f"attr {name} default_value {v} fails bound check: upper_bound {upper_bound}, upper_bound_inclusive {upper_bound_inclusive}"
                             )
                 else:
                     if not (
@@ -368,7 +364,7 @@ class Component:
                         or (upper_bound_inclusive and default_value == upper_bound)
                     ):
                         raise CompDeclError(
-                            f"default_value {default_value} fails bound check: upper_bound {upper_bound}, upper_bound_inclusive {upper_bound_inclusive}"
+                            f"attr {name} default_value {default_value} fails bound check: upper_bound {upper_bound}, upper_bound_inclusive {upper_bound_inclusive}"
                         )
 
         if (
@@ -400,12 +396,12 @@ class Component:
             attr.atomic.allowed_values.i64s.extend(allowed_values)
 
         if lower_bound is not None:
-            attr.atomic.has_lower_bound = True
+            attr.atomic.lower_bound_enabled = True
             attr.atomic.lower_bound_inclusive = lower_bound_inclusive
             attr.atomic.lower_bound.i64 = lower_bound
 
         if upper_bound is not None:
-            attr.atomic.has_upper_bound = True
+            attr.atomic.upper_bound_enabled = True
             attr.atomic.upper_bound_inclusive = upper_bound_inclusive
             attr.atomic.upper_bound.i64 = upper_bound
 
@@ -639,17 +635,91 @@ class Component:
         return self.__definition
 
     def _setup_sf_cluster(self, config: SFClusterConfig):
+        import multiprocess
+
+        cross_silo_comm_backend = (
+            config.desc.ray_fed_config.cross_silo_comm_backend
+            if len(config.desc.ray_fed_config.cross_silo_comm_backend)
+            else 'grpc'
+        )
+
+        # From https://grpc.github.io/grpc/core/md_doc_statuscodes.html
+        # We take an aggressive strategy that all error code are retriable except OK.
+        # The code could even be inconsistent with the original meaning because the
+        # complex real produciton environment.
+        _GRPC_RETRY_CODES = [
+            'CANCELLED',
+            'UNKNOWN',
+            'INVALID_ARGUMENT',
+            'DEADLINE_EXCEEDED',
+            'NOT_FOUND',
+            'ALREADY_EXISTS',
+            'PERMISSION_DENIED',
+            'RESOURCE_EXHAUSTED',
+            'ABORTED',
+            'OUT_OF_RANGE',
+            'UNIMPLEMENTED',
+            'INTERNAL',
+            'UNAVAILABLE',
+            'DATA_LOSS',
+            'UNAUTHENTICATED',
+        ]
+
+        if cross_silo_comm_backend == 'grpc':
+            cross_silo_comm_options = {
+                'proxy_max_restarts': 3,
+                'grpc_retry_policy': {
+                    # The maximum is 5.
+                    # ref https://github.com/grpc/proposal/blob/master/A6-client-retries.md#validation-of-retrypolicy
+                    "maxAttempts": 5,
+                    "initialBackoff": "2s",
+                    "maxBackoff": "3600s",
+                    "backoffMultiplier": 2,
+                    "retryableStatusCodes": _GRPC_RETRY_CODES,
+                },
+            }
+        elif cross_silo_comm_backend == 'brpc_link':
+            cross_silo_comm_options = {
+                'proxy_max_restarts': 3,
+                'timeout_in_ms': 300 * 1000,
+                # Give recv_timeout_ms a big value, e.g.
+                # The server does nothing but waits for task finish.
+                # To fix the psi timeout, got a week here.
+                'recv_timeout_ms': 7 * 24 * 3600 * 1000,
+                'connect_retry_times': 3600,
+                'connect_retry_interval_ms': 1000,
+                'brpc_channel_protocol': 'http',
+                'brpc_channel_connection_type': 'pooled',
+            }
+
+        else:
+            raise RuntimeError(
+                f"unknown cross_silo_comm_backend: {cross_silo_comm_backend}"
+            )
+
         cluster_config = {
             "parties": {},
             "self_party": config.private_config.self_party,
         }
         for party, addr in zip(
-            list(config.public_config.rayfed_config.parties),
-            list(config.public_config.rayfed_config.addresses),
+            list(config.public_config.ray_fed_config.parties),
+            list(config.public_config.ray_fed_config.addresses),
         ):
-            cluster_config["parties"][party] = {"address": addr}
+            if cross_silo_comm_backend == 'brpc_link':
+                # if port is not present, use default 80 port.
+                if len(addr.split(":")) < 2:
+                    addr += ":80"
 
-        import multiprocess
+                splits = addr.split(":")
+                assert len(splits) == 2, f"addr = {addr}"
+
+                cluster_config["parties"][party] = {
+                    # add "http://" to force brpc to set the correct host
+                    "address": f'http://{addr}',
+                    'listen_addr': f'0.0.0.0:{splits[1]}',
+                }
+            else:
+                cluster_config["parties"][party] = {"address": addr}
 
         init(
             address=config.private_config.ray_head_addr,
@@ -657,11 +727,14 @@ class Component:
             log_to_driver=True,
             cluster_config=cluster_config,
             omp_num_threads=multiprocess.cpu_count(),
+            logging_level='debug',
+            cross_silo_comm_backend=cross_silo_comm_backend,
+            cross_silo_comm_options=cross_silo_comm_options,
+            enable_waiting_for_other_parties_ready=True,
         )
 
-    def _check_storage(self, config: SFClusterConfig):
+    def _check_storage(self, storage: StorageConfig):
         # only local fs is supported at this moment.
-        storage = config.private_config.storage_config
         if storage.type and storage.type != "local_fs":
             raise CompEvalError("only local_fs is supported.")
         return storage.local_fs.wd
@@ -781,6 +854,7 @@ class Component:
     def eval(
         self,
         param: NodeEvalParam,
+        storage_config: StorageConfig = None,
         cluster_config: SFClusterConfig = None,
         tracer_report: bool = False,
     ) -> Union[NodeEvalResult, Dict]:
@@ -801,8 +875,10 @@ class Component:
         # sanity check on sf config
         ctx = CompEvalContext()
 
+        if storage_config is not None:
+            ctx.local_fs_wd = self._check_storage(storage_config)
+
         if cluster_config is not None:
-            ctx.local_fs_wd = self._check_storage(cluster_config)
             ctx.spu_configs, ctx.heu_config = self._extract_device_config(
                 cluster_config
             )
