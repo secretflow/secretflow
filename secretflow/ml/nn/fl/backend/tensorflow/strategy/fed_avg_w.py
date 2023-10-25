@@ -40,7 +40,7 @@ class FedAvgW(BaseTFModel):
         cur_steps: int,
         train_steps: int,
         **kwargs,
-    ) -> Tuple[np.ndarray, int]:
+    ) -> Tuple[Any, int, Any, Any, Any]:
         """Accept ps model params, then do local train
 
         Args:
@@ -51,14 +51,31 @@ class FedAvgW(BaseTFModel):
         Returns:
             Parameters after local training
         """
+
         assert self.model is not None, "Model cannot be none, please give model define"
         if weights is not None:
             self.model.set_weights(weights)
+        acc_weightss = copy.deepcopy(self.model.get_weights())
+        V_local = copy.deepcopy(acc_weightss)
+        s_local = copy.deepcopy(acc_weightss)
+        for l in range(len(acc_weightss)):
+            if len(acc_weightss[l].shape) == 2:
+                U, s, V = self.svd(acc_weightss[l])
+                V_local[l] = V
+                s_local[l] = s
+            else:
+                weightss = acc_weightss[l]
+                weight = weightss.flatten()
+                weight = weight.reshape(2, len(weight) // 2)
+                U, s, V = self.svd(weight)
+                V_local[l] = V
+                s_local[l] = s
         num_sample = 0
         dp_strategy = kwargs.get('dp_strategy', None)
         self.callbacks.on_train_batch_begin(cur_steps)
         logs = {}
         for _ in range(train_steps):
+
             iter_data = next(self.train_set)
             if len(iter_data) == 2:
                 x, y = iter_data
@@ -90,15 +107,29 @@ class FedAvgW(BaseTFModel):
         self.callbacks.on_train_batch_end(cur_steps + train_steps, logs)
         self.logs = logs
         self.epoch_logs = copy.deepcopy(self.logs)
-
         model_weights = self.model.get_weights()
+        for l in range(len(model_weights)):
+            if len(model_weights[l].shape) == 2:
+                U, s, V = self.svd(model_weights[l])
+                model_weights[l] = U
+
+            else:
+                weightss = model_weights[l]
+                weight = weightss.flatten()
+                weight = weight.reshape(2, len(weight) // 2)
+                U, s, V = self.svd(weight)
+                model_weights[l] = U
 
         # DP operation
         if dp_strategy is not None:
             if dp_strategy.model_gdp is not None:
                 model_weights = dp_strategy.model_gdp(model_weights)
 
-        return model_weights, num_sample
+        return model_weights, num_sample, V_local, s_local, acc_weightss
+
+    def svd(self, model_weights):
+        U, s, V = np.linalg.svd(model_weights, full_matrices=False)
+        return U, s, V
 
 
 @register_strategy(strategy_name='fed_avg_w', backend='tensorflow')
