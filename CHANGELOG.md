@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Removed` for now removed features.
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
+## [1.2.0.dev231025] - 2023-10-25
+### Added
+- Support naive sl on torch backend.
+- Add kwargs for custom strategy in sl.
+- Add bst and mmoe in sl applications.
+
+### Changed
+- Input attributes of some components are modified.
+- Convert domain data to individual tables in preprocess_sf_node_eval_param of kuscia adapter.
+
 ## [1.2.0.dev231016] - 2023-10-16
 ### Added
 - Secretflow support debug mode.
