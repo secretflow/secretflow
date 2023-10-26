@@ -18,8 +18,6 @@ import shutil
 from glob import glob
 from os.path import join
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-
 import keras_cv
 import matplotlib.pyplot as plt
 import numpy as np
