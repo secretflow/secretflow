@@ -4,7 +4,7 @@ import secretflow as sf
 from tensorflow import keras
 from tensorflow.keras import layers
 from secretflow.security.aggregation import SPUAggregator, SecureAggregator
-from secretflow.ml.nn import FLModel
+from secretflow.ml.nn.experiment import FLModel
 from secretflow.data.ndarray import load
 from secretflow.utils.simulation.datasets import load_mnist
 
