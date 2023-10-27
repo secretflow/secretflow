@@ -15,7 +15,12 @@
 import json
 import os
 
-from secretflow.component.component import CompEvalError, Component, IoType
+from secretflow.component.component import (
+    CompEvalError,
+    Component,
+    IoType,
+    TableColParam,
+)
 from secretflow.component.data_utils import (
     DistDataType,
     extract_table_header,
@@ -29,7 +34,7 @@ from secretflow.device.device.pyu import PYU
 from secretflow.device.device.spu import SPU, SPUObject
 from secretflow.device.driver import wait
 from secretflow.ml.linear import LinearModel, RegType, SSRegression
-from secretflow.protos.component.data_pb2 import DistData
+from secretflow.spec.v1.data_pb2 import DistData
 from secretflow.utils.sigmoid import SigType
 
 ss_sgd_train_comp = Component(
@@ -120,7 +125,14 @@ ss_sgd_train_comp.io(
     name="train_dataset",
     desc="Input vertical table.",
     types=[DistDataType.VERTICAL_TABLE],
-    col_params=None,
+    col_params=[
+        TableColParam(
+            name="label",
+            desc="Label of train dataset.",
+            col_min_cnt_inclusive=1,
+            col_max_cnt_inclusive=1,
+        )
+    ],
 )
 ss_sgd_train_comp.io(
     io_type=IoType.OUTPUT,
@@ -147,6 +159,7 @@ def ss_sgd_train_eval_fn(
     l2_norm,
     eps,
     train_dataset,
+    train_dataset_label,
     output_model,
 ):
     # only local fs is supported at this moment.
@@ -162,8 +175,20 @@ def ss_sgd_train_eval_fn(
 
     reg = SSRegression(spu)
 
-    y = load_table(ctx, train_dataset, load_labels=True)
-    x = load_table(ctx, train_dataset, load_features=True)
+    y = load_table(
+        ctx,
+        train_dataset,
+        load_labels=True,
+        load_features=True,
+        col_selects=train_dataset_label,
+    )
+    x = load_table(
+        ctx,
+        train_dataset,
+        load_labels=True,
+        load_features=True,
+        col_excludes=train_dataset_label,
+    )
 
     with ctx.tracer.trace_running():
         reg.fit(
@@ -192,7 +217,7 @@ def ss_sgd_train_eval_fn(
         json.dumps(model_meta),
         local_fs_wd,
         output_model,
-        train_dataset.sys_info,
+        train_dataset.system_info,
     )
 
     return {"output_model": model_db}
@@ -383,7 +408,7 @@ def ss_sgd_predict_eval_fn(
         label_header=label_header_map,
         party=receiver,
         pred_name=pred_name,
-        num_lines=x.shape[0],
+        line_count=x.shape[0],
         id_keys=id_header,
         label_keys=label_header,
     )

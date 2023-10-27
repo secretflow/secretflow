@@ -37,16 +37,16 @@ msgstr "基于Kuscia部署"
 
 #: ../../getting_started/deployment.md:9
 msgid ""
-"Kuscia is a K8s-based privacy computing task orchestration framework. It "
-"provides a unified privacy computing foundation that can abstract away "
+"Kuscia is a lightweight privacy-preserving computing task orchestration framework based on K3s. It "
+"provides a unified privacy-preserving computing foundation that can abstract away "
 "heterogeneous infrastructure and protocols."
-msgstr "Kuscia是一款基于K8s的隐私计算任务编排框架，旨在屏蔽异构的基础设施和协议，提供统一的隐私计算底座。"
+msgstr "Kuscia是一款基于K3s的轻量级隐私计算任务编排框架，旨在屏蔽异构的基础设施和协议，提供统一的隐私计算底座。"
 
 #: ../../getting_started/deployment.md:12
 msgid ""
 "With Kuscia, you can easily manage and execute SecretFlow jobs through "
 "kubectl commands or apis without paying attention to the details of "
-"SecretFlow networking.  In addition, Kuscia supports communication "
+"SecretFlow networking. In addition, Kuscia supports communication "
 "security and running SecretFlow jobs concurrently."
 msgstr "使用Kuscia，你可以不需要关注SecretFlow组网的细节，直接通过kubectl命令或者API接口轻松地管理和执行SecretFlow作业。此外，Kuscia还支持通信安全和并发运行SecretFlow作业。"
 

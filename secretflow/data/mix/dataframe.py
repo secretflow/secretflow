@@ -21,7 +21,8 @@ import pandas as pd
 from pandas.core.indexes.base import Index
 
 from secretflow.utils.errors import InvalidArgumentError, NotFoundError, UnexpectedError
-from ..base import PartitionBase
+
+from ..core.partition import Partition
 from ..horizontal import HDataFrame
 from ..vertical import VDataFrame
 
@@ -91,6 +92,10 @@ class MixDataFrame:
        or VDataFrame, and shall not be mixed.
     """
 
+    def __init__(self, partitions=None):
+        self.partitions = partitions
+        self.__post__init()
+
     def __post__init(self):
         self._check_partitions(self.partitions)
         if not isinstance(self.partitions, tuple):
@@ -152,8 +157,7 @@ class MixDataFrame:
         """
         means = [part.mean(*args, **kwargs) for part in self.partitions]
         if self.partition_way == PartitionWay.HORIZONTAL:
-            if 'numeric_only' in kwargs:
-                numeric_only = kwargs['numeric_only']
+            numeric_only = kwargs.get('numeric_only', False)
             cnts = [part.count(numeric_only=numeric_only) for part in self.partitions]
             return pd.Series(
                 np.average(means, weights=cnts, axis=0), index=means[0].index
@@ -229,11 +233,10 @@ class MixDataFrame:
 
     @property
     def values(self):
-        # TODO
-        pass
+        raise NotImplementedError()
 
     @property
-    def dtypes(self) -> pd.Series:
+    def dtypes(self) -> dict:
         """
         Returns the dtypes in the DataFrame.
 
@@ -411,7 +414,7 @@ class MixDataFrame:
             )
 
     def __setitem__(self, key, value):
-        if isinstance(value, (HDataFrame, VDataFrame, PartitionBase)):
+        if isinstance(value, (HDataFrame, VDataFrame, Partition)):
             raise InvalidArgumentError(
                 'Can not assgin a HDataFrame/VDataFrame/Partition to MixDataFrame.'
             )
@@ -425,8 +428,8 @@ class MixDataFrame:
                 f'{type(value.partitions[0])} differs with {type(self.partitions[0])}.'
             )
             if self.partition_way == PartitionWay.HORIZONTAL:
-                for i, part in enumerate(value.partitions):
-                    self.partitions[i][key] = part
+                for i, part_df in enumerate(value.partitions):
+                    self.partitions[i][key] = part_df
             else:
                 part_key = self._col_index(key)
                 for idx, key in part_key.items():

@@ -8,3 +8,4 @@ This mode applies to the situation where multi participants share the same sampl
 
    split_learning
    tree.md
+   SplitRec/index

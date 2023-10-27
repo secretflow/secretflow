@@ -1,0 +1,3 @@
+[submodule "submodules/spec"]
+	path = submodules/spec
+	url = https://github.com/secretflow/spec.git

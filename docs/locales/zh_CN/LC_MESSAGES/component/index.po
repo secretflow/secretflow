@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-07-02 23:05+0800\n"
+"POT-Creation-Date: 2023-10-14 16:59+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -16,98 +16,149 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.12.1\n"
 
-#: ../../component/index.rst:40
+#: ../../component/index.rst:58
 msgid "References"
-msgstr ""
-"参考资料"
+msgstr "参考资料"
 
-#: ../../component/index.rst:47
+#: ../../component/index.rst:65
 msgid "Documentation"
-msgstr ""
-"文档"
+msgstr "文档"
 
 #: ../../component/index.rst:4
 msgid "Component"
-msgstr ""
-"组件"
+msgstr "组件"
 
 #: ../../component/index.rst:6
 msgid ""
-"Both Component Specification and SecretFlow Component List are subject to"
-" modify at this moment."
-msgstr ""
-"当前组件规范和 SecretFlow 组件列表均有可能发生变化。"
+"SecretFlow Component is based on two Specifications. On the one hand, we "
+"obey `SecretFlow Open Specification "
+"<https://www.secretflow.org.cn/docs/spec/latest>`_. On the other, we "
+"defined cluster config and some other data types with Extended "
+"Specification at :doc:`/component/comp_spec`. Extended Specification only"
+" applies on SecretFlow and may not used in other privacy-preserving "
+"applications in SecretFlow ecosystem. The detailed explanation of "
+"Extended Specification is at :doc:`/component/comp_spec_design`."
+msgstr "隐语组件基于两个标准。"
+"首先我们遵守 `隐语开放标准 <https://www.secretflow.org.cn/docs/spec/latest>`_ 。"
+"并且我们通过扩展标准定义了集群定义和其他数据类型，请查看 :doc:`/component/comp_spec` 。"
+"扩展标准仅适用于隐语，并不适用于隐语生态下的其他隐私保护应用。对于扩展标准的详细解释在 :doc:`/component/comp_spec_design` 。"
 
-#: ../../component/index.rst:8
+#: ../../component/index.rst:10
 msgid ""
-"Component Specification is a protocol brought by SecretFlow Ecosystem. It"
-" mainly includes Data, Component and Node Evaluation protocol. Logically,"
-" if you wrap any program with Component Specification, it will be "
-"recognized by Kuscia(Deployment and scheduling of SecretFlow stack) and "
-"SecretFlow Platform [#f1]_ (User Interface and Control Panel) . In the "
-"one word, for system developers, if you wrap your application with "
-"Component Specification, you could utilize other open-source SecretFlow "
-"projects with little effort."
+"We wrapped some commonly used SecretFlow applications as SecretFlow "
+"Component List. However, it is not final and we are updating the list "
+"promptly. The full SecretFlow Component List is available at "
+":doc:`/component/comp_list`."
 msgstr ""
-"组件规范是 SecretFlow 生态系统提出的一种协议。它主要包括数据、组件"
-"和节点执行协议。从逻辑上讲，如果您使用组件规范包装任何程序，它将被"
-" Kuscia(SecretFlow 技术栈的部署和调度系统) 和 SecretFlow 平台"
-" [#f1]_ (用户界面和控制面板) 认可。简而言之，对于系统开发人员，如果您使"
-"用组件规范包装应用程序，您可以轻松地利用其他开源 SecretFlow 项目。"
+"我们将一些常用的SecretFlow 应用程序包装为组件。SecretFlow 组件列表不是最终版本，我们正在不断更新列表。"
+"完整的组件列表在 :doc:`/component/comp_list` 。"
 
-#: ../../component/index.rst:13
+#: ../../component/index.rst:12
 msgid ""
-"Based on Component Specification, we wrapped some commonly used "
-"SecretFlow applications. The SecretFlow Component List is not final, we "
-"are updating the list promptly. Now, you could run SecretFlow "
-"applications with component API or CLI apart from writing Python "
-"programs."
-msgstr ""
-"基于组件规范，我们将一些常用的 SecretFlow 应用程序包装起来。SecretFlow"
-" 组件列表不是最终版本，我们正在及时更新列表。现在，您可以使用组件 API"
-" 或 CLI 运行 SecretFlow 应用程序，而不必编写 Python 程序。"
+"Now, you could run SecretFlow applications with component API or CLI "
+"apart from writing Python programs. Please check "
+":doc:`/component/comp_guide`."
+msgstr "现在除了在Python程序中引入lib, 还还可以使用组件API或者CLI调用隐语程序，请查阅 :doc:`/component/comp_guide` 。"
 
-#: ../../component/index.rst:16
+#: ../../component/index.rst:17
 msgid ""
-"Besides SecretFlow, we are going to wrap other applications including "
-"SCQL and TECC with Component Specification."
-msgstr ""
-"除了 SecretFlow，我们还将使用组件规范包装其他应用，包括 SCQL 和 TECC。"
+"Migration to `SecretFlow Open Specification "
+"<https://www.secretflow.org.cn/docs/spec/latest>`_"
+msgstr "迁移至 `隐语开放标准 <https://www.secretflow.org.cn/docs/spec/latest>`_ "
 
-#: ../../component/index.rst:18
+#: ../../component/index.rst:19
 msgid ""
-"For developers who are not familiar with :doc:`/component/comp_spec`, "
-"they are encouraged to check :doc:`/component/comp_spec_design` first."
-msgstr ""
-"对于不熟悉 :doc:`/component/comp_spec` 的开发人员，建议首先查看 :doc:`/component/comp_spec_design` 。"
+"There are some breaking changes after introduction of **SecretFlow Open "
+"Specification**, including"
+msgstr "引入 **隐语开放标准** 导致了一些不兼容的改动，包括"
 
-#: ../../component/index.rst:20
-msgid ""
-"After that, please check :doc:`/component/comp_list` and corresponding "
-"guides at :doc:`/component/comp_guide`."
+#: ../../component/index.rst:22
+msgid "comp.proto"
 msgstr ""
-"之后，请查看 :doc:`/component/comp_list` 以及 :doc:`/component/comp_guide` 中的相关指南。"
 
 #: ../../component/index.rst:24
-msgid "Footnotes"
-msgstr "脚注"
+msgid "*comp.proto* is renamed to *component.proto*"
+msgstr "*comp.proto* 重命名为 *component.proto*"
 
 #: ../../component/index.rst:25
-msgid "Product name is undecided."
-msgstr "产品名称未定。"
+msgid ""
+"In message *AttrType*, *AT_UNDEFINED* is replaced with "
+"*ATTR_TYPE_UNSPECIFIED*"
+msgstr "在 message *AttrType* 中， *AT_UNDEFINED* 替换为 *ATTR_TYPE_UNSPECIFIED*"
+
+#: ../../component/index.rst:26
+msgid ""
+"In message *Attribute*, *has_lower_bound* is renamed to "
+"*lower_bound_enabled* and *has_upper_bound* is renamed to "
+"*upper_bound_enabled*"
+msgstr ""
+"在 message *Attribute* 中， *has_lower_bound* 重命名为 *lower_bound_enabled*， "
+"*has_upper_bound* 重命名为 *upper_bound_enabled*"
+
+#: ../../component/index.rst:27
+msgid "In message *IoDef.TableAttrDef*, *attrs* is renamed to *extra_attrs*"
+msgstr "在 message *IoDef.TableAttrDef* 中， *attrs* 重命名为 *extra_attrs*"
 
 #: ../../component/index.rst:30
+msgid "data.proto"
+msgstr ""
+
+#: ../../component/index.rst:32
+msgid ""
+"In message *SystemInfo*, *app_name* is renamed to *app* while "
+"*secretflow* (SFClusterDesc) is replaced with *app_meta* (Any)."
+msgstr ""
+"在 message *SystemInfo*, *app_name* 重命名为 *app*， *secretflow* "
+"(SFClusterDesc) 替换为 *app_meta* (Any)"
+
+#: ../../component/index.rst:33
+msgid "Message *StorageConfig* is moved from *cluster.proto*"
+msgstr "Message *StorageConfig* 迁移至 *cluster.proto*"
+
+#: ../../component/index.rst:34
+msgid ""
+"In message *IndividualTable* and *VerticalTable*, *num_lines* is renamed "
+"to *line_count*."
+msgstr ""
+"在 message *IndividualTable* 和 *VerticalTable*， *num_lines* 重命名为 "
+"*line_count* 。"
+
+#: ../../component/index.rst:35
+msgid "In message *DistData*, *sys_info* is renamed to *system_info*."
+msgstr "在 message *DistData*， *sys_info* 重命名为 *system_info* 。"
+
+#: ../../component/index.rst:37
+msgid "We are sorry for inconvenience."
+msgstr "我们对带来的不便感到抱歉。"
+
+#: ../../component/index.rst:40
 msgid "Announcement"
 msgstr "公告"
 
-#: ../../component/index.rst:33
+#: ../../component/index.rst:43
+msgid "October, 2023"
+msgstr ""
+
+#: ../../component/index.rst:45
+msgid ""
+"We officially launched `SecretFlow Open Specification "
+"<https://www.secretflow.org.cn/docs/spec/latest>`_ which contains the "
+"most common parts which are shared by other privacy-preserving "
+"applications."
+msgstr ""
+"我们正式发布了 `隐语开放标准 <https://www.secretflow.org.cn/docs/spec/latest>`_ ， "
+"包含了所有隐私计算应用共享的部分。"
+
+#: ../../component/index.rst:46
+msgid "The remaining part are called Extended Specification."
+msgstr "剩余部分被称为 **扩展标准** 。"
+
+#: ../../component/index.rst:51
 msgid "July, 2023"
 msgstr ""
 
-#: ../../component/index.rst:35
+#: ../../component/index.rst:53
 msgid ""
 "From SecretFlow 1.0.0, we officially launch the first version of "
 "Component Specification and SecretFlow Component List based on it."
-msgstr ""
-"从 SecretFlow 1.0.0 开始，我们正式推出基于组件规范的第一个版本和相"
-"应的 SecretFlow 组件列表。"
+msgstr "从 SecretFlow 1.0.0 开始，我们正式推出基于组件规范的第一个版本和相应的 SecretFlow 组件列表。"

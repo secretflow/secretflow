@@ -7,9 +7,9 @@ from sklearn.preprocessing import StandardScaler
 
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.ml.linear.ss_sgd import ss_sgd_predict_comp, ss_sgd_train_comp
-from secretflow.protos.component.comp_pb2 import Attribute
-from secretflow.protos.component.data_pb2 import DistData, TableSchema, VerticalTable
-from secretflow.protos.component.evaluation_pb2 import NodeEvalParam
+from secretflow.spec.v1.component_pb2 import Attribute
+from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from tests.conftest import TEST_STORAGE_ROOT
 
 
@@ -19,8 +19,9 @@ def test_ss_sgd(comp_prod_sf_cluster_config):
     model_path = "test_ss_sgd/model.sf"
     predict_path = "test_ss_sgd/predict.csv"
 
-    self_party = comp_prod_sf_cluster_config.private_config.self_party
-    local_fs_wd = comp_prod_sf_cluster_config.private_config.storage_config.local_fs.wd
+    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    self_party = sf_cluster_config.private_config.self_party
+    local_fs_wd = storage_config.local_fs.wd
 
     scaler = StandardScaler()
     ds = load_breast_cancer()
@@ -59,6 +60,7 @@ def test_ss_sgd(comp_prod_sf_cluster_config):
             "decay_epoch",
             "decay_rate",
             "strategy",
+            "input/train_dataset/label",
         ],
         attrs=[
             Attribute(i64=3),
@@ -71,6 +73,7 @@ def test_ss_sgd(comp_prod_sf_cluster_config):
             Attribute(i64=2),
             Attribute(f=0.5),
             Attribute(s="policy_sgd"),
+            Attribute(ss=["y"]),
         ],
         inputs=[
             DistData(
@@ -101,7 +104,11 @@ def test_ss_sgd(comp_prod_sf_cluster_config):
     )
     train_param.inputs[0].meta.Pack(meta)
 
-    train_res = ss_sgd_train_comp.eval(train_param, comp_prod_sf_cluster_config)
+    train_res = ss_sgd_train_comp.eval(
+        param=train_param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
 
     predict_param = NodeEvalParam(
         domain="ml.predict",
@@ -148,7 +155,11 @@ def test_ss_sgd(comp_prod_sf_cluster_config):
     )
     predict_param.inputs[1].meta.Pack(meta)
 
-    predict_res = ss_sgd_predict_comp.eval(predict_param, comp_prod_sf_cluster_config)
+    predict_res = ss_sgd_predict_comp.eval(
+        param=predict_param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
 
     assert len(predict_res.outputs) == 1
 

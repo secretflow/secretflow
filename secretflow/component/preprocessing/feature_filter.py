@@ -17,7 +17,7 @@ import os
 from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import DistDataType, load_table
 from secretflow.device.driver import wait
-from secretflow.protos.component.data_pb2 import DistData, TableSchema, VerticalTable
+from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 
 feature_filter_comp = Component(
     "feature_filter",
@@ -51,7 +51,7 @@ def feature_filter_eval_fn(*, ctx, in_ds, in_ds_drop_features, out_ds):
     in_ds.meta.Unpack(in_meta)
 
     out_meta = VerticalTable()
-    out_meta.num_lines = in_meta.num_lines
+    out_meta.line_count = in_meta.line_count
 
     for s in in_meta.schemas:
         s_meta = TableSchema()

@@ -22,9 +22,9 @@ from secretflow.component.component import (
 )
 from secretflow.component.data_utils import DistDataType, load_table
 from secretflow.device.device.spu import SPU
-from secretflow.protos.component.comp_pb2 import Attribute
-from secretflow.protos.component.data_pb2 import DistData
-from secretflow.protos.component.report_pb2 import Descriptions, Div, Report, Tab
+from secretflow.spec.v1.component_pb2 import Attribute
+from secretflow.spec.v1.data_pb2 import DistData
+from secretflow.spec.v1.report_pb2 import Descriptions, Div, Report, Tab
 from secretflow.stats.ss_vif_v import VIF
 
 ss_vif_comp = Component(
@@ -121,7 +121,7 @@ def ss_vif_eval_fn(
     report_dd = DistData(
         name=report,
         type=str(DistDataType.REPORT),
-        sys_info=input_data.sys_info,
+        system_info=input_data.system_info,
     )
     report_dd.meta.Pack(report_mate)
 

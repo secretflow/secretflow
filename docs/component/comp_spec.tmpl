@@ -1,9 +1,9 @@
-# Component Specification
+# Extended Specification
 
 ## Table of Contents
 {{range .Files}}
 
-{{$file_name := .Name}} ### {{.Name | replace "secretflow/protos/component/" ""}}
+{{$file_name := .Name}} ### {{.Name | replace "secretflow/protos/secretflow/spec/extend/" ""}}
 
 {{if .HasServices}}
 - Services
@@ -24,7 +24,7 @@
 
 {{range .Files}}
 
-{{$file_name := .Name}} ## {{.Name | replace "secretflow/protos/component/" ""}}
+{{$file_name := .Name}} ## {{.Name | replace "secretflow/protos/secretflow/spec/extend/" ""}}
 
 Proto file: [{{.Name }}](https://github.com/secretflow/secretflow/tree/main/{{.Name }})
 

@@ -27,7 +27,7 @@ from typing import Callable, Dict, Iterable, List, Tuple, Union
 from multiprocess import cpu_count
 from tqdm import tqdm
 
-from secretflow.data.base import PartitionBase
+from secretflow.data import Partition
 from secretflow.data.horizontal import HDataFrame
 from secretflow.data.ndarray import FedNdarray
 from secretflow.data.vertical import VDataFrame
@@ -72,14 +72,15 @@ class SLModel:
             split_steps: Only for 'split_state_async' strategy, Number of batches triggering switch state in splitStateAS strategy
             max_fuse_local_steps: Only for 'split_state_async' strategy, Maximum number of rounds for fuse local update in splitStateAS strategy?
             compressor: Define strategy tensor compression algorithms to speed up transmission.
-            device_agg: The party do aggregation,it can be a PYU,SPU,etc.
+            device_agg: The party do aggregation, it can be a PYU, SPU, etc.
+            **kwargs: For custom strategies.
         """
 
         self.device_y = device_y
         self.dp_strategy_dict = dp_strategy_dict
-        self.simulation = kwargs.get('simulation', False)
-        self.device_agg = kwargs.get('device_agg', None)
-        self.compressor = kwargs.get('compressor', None)
+        self.simulation = kwargs.pop('simulation', False)
+        self.device_agg = kwargs.pop('device_agg', None)
+        self.compressor = kwargs.pop('compressor', None)
         self.base_model_dict = base_model_dict
         self.backend = backend
         self.num_parties = len(base_model_dict)
@@ -117,13 +118,7 @@ class SLModel:
                 if dp_strategy_dict
                 else None,
                 device=device,
-                base_local_steps=kwargs.get('base_local_steps', 1),
-                fuse_local_steps=kwargs.get('fuse_local_steps', 1),
-                bound_param=kwargs.get('bound_param', 0.0),
-                loss_thres=kwargs.get('loss_thres', 0.01),
-                split_steps=kwargs.get('split_steps', 1),
-                max_fuse_local_steps=kwargs.get('max_fuse_local_steps', 1),
-                pipeline_size=kwargs.get('pipeline_size', 1),
+                **kwargs,
             )
 
     def handle_data(
@@ -174,7 +169,7 @@ class SLModel:
                 xs = (
                     [
                         xi.partitions[device].data  # xi is FedDataframe
-                        if isinstance(xi.partitions[device], PartitionBase)
+                        if isinstance(xi.partitions[device], Partition)
                         else xi.partitions[device]  # xi is FedNdarray
                         for xi in x
                     ]
@@ -208,7 +203,7 @@ class SLModel:
                     if device in self.base_model_dict
                     else [None]
                 )
-                xs = [t.data if isinstance(t, PartitionBase) else t for t in xs]
+                xs = [t.data if isinstance(t, Partition) else t for t in xs]
                 worker.build_dataset_from_numeric(
                     *xs,
                     y=y_partitions,

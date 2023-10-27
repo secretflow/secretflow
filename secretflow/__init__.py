@@ -20,7 +20,6 @@ from . import (
     kuscia,
     ml,
     preprocessing,
-    protos,
     security,
     utils,
 )
@@ -44,7 +43,6 @@ from .device import (
 from .version import __version__  # type: ignore
 
 __all__ = [
-    'protos',
     'kuscia',
     'data',
     'device',

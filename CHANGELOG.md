@@ -11,6 +11,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Removed` for now removed features.
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
+## [1.2.0.dev231016] - 2023-10-16
+### Added
+- Secretflow support debug mode.
+- Add vert binning for equal range bining method
+
+### Changed
+- The data preprocessing module (VDataFrame, Partition) has been refactored, enhancing the data processing performance (primarily targeting the Polars backend).
+
+### Fixed
+- Fix error when flmodel with tf backend use gpu.
+- Fix kuscia adapter
+
+## [1.2.0.dev231009] - 2023-10-9
+
+### Added
+- FLModel supports PFL to allow custom aggregation logic on server.
+
+## [1.2.0.dev230926] - 2023-9-26
+
+### Changed
+- component: expose cross_silo_comm_backend option for secretflow init.
+
+### Fixed
+- SPU device: rm invalid use_link option.
+
+## [1.2.0.dev230925] - 2023-9-25
+
+### Changed
+- update psi benchmark.
+
+### Fixed
+- fix tls on kuscia.
 
 ## [1.2.0.dev230918] - 2023-9-18
 

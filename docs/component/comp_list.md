@@ -6,12 +6,61 @@ SecretFlow Component List
 =========================
 
 
-Last update: Mon Sep 18 16:30:27 2023
+Last update: Sat Oct 14 16:41:07 2023
 
 Version: 0.0.1
 
 First-party SecretFlow components.
 ## feature
+
+### vert_bin_substitution
+
+
+Component version: 0.0.1
+
+Substitute datasets' value by bin substitution rules.
+#### Inputs
+
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|input_data|Vertical partitioning dataset to be substituted.|['sf.table.vertical_table']||
+|bin_rule|Input bin substitution rule.|['sf.rule.binning']||
+
+#### Outputs
+
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|output_data|Output vertical table.|['sf.table.vertical_table']||
+
+### vert_binning
+
+
+Component version: 0.0.1
+
+Generate equal frequency or equal range binning rules for vertical partitioning datasets.
+#### Attrs
+
+
+|Name|Description|Type|Required|Notes|
+| :--- | :--- | :--- | :--- | :--- |
+|binning_method|How to bin features with numeric types: "quantile"(equal frequency)/"eq_range"(equal range)|String|N|Default: eq_range. Allowed: ['eq_range', 'quantile'].|
+|bin_num|Max bin counts for one features.|Integer|N|Default: 10. Range: (0, $\infty$).|
+
+#### Inputs
+
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|input_data|Input vertical table.|['sf.table.vertical_table']|Extra table attributes.(0) feature_selects - which features should be binned. Min column number to select(inclusive): 1. |
+
+#### Outputs
+
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|bin_rule|Output bin rule.|['sf.rule.binning']||
 
 ### vert_woe_binning
 
@@ -44,28 +93,7 @@ Generate Weight of Evidence (WOE) binning rules for vertical partitioning datase
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|woe_rule|Output WOE rule.|['sf.rule.woe_binning']||
-
-### vert_woe_substitution
-
-
-Component version: 0.0.1
-
-Substitute datasets' value by WOE substitution rules.
-#### Inputs
-
-
-|Name|Description|Type(s)|Notes|
-| :--- | :--- | :--- | :--- |
-|input_data|Vertical partitioning dataset to be substituted.|['sf.table.vertical_table']||
-|woe_rule|Input WOE substitution rule.|['sf.rule.woe_binning']||
-
-#### Outputs
-
-
-|Name|Description|Type(s)|Notes|
-| :--- | :--- | :--- | :--- |
-|output_data|Output vertical table.|['sf.table.vertical_table']||
+|bin_rule|Output WOE rule.|['sf.rule.binning']||
 
 ## ml.eval
 
@@ -491,6 +519,7 @@ PSI between two parties.
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
 |protocol|PSI protocol.|String|N|Default: ECDH_PSI_2PC. Allowed: ['ECDH_PSI_2PC', 'KKRT_PSI_2PC', 'BC22_PSI_2PC'].|
+|sort|Sort the output.|Boolean|N|Default: False.|
 |bucket_size|Specify the hash bucket size used in PSI. Larger values consume more memory.|Integer|N|Default: 1048576. Range: (0, $\infty$).|
 |ecdh_curve_type|Curve type for ECDH PSI.|String|N|Default: CURVE_FOURQ. Allowed: ['CURVE_25519', 'CURVE_FOURQ', 'CURVE_SM2', 'CURVE_SECP256K1'].|
 

@@ -9,9 +9,9 @@ from secretflow.component.ml.boost.ss_xgb.ss_xgb import (
     ss_xgb_predict_comp,
     ss_xgb_train_comp,
 )
-from secretflow.protos.component.comp_pb2 import Attribute
-from secretflow.protos.component.data_pb2 import DistData, TableSchema, VerticalTable
-from secretflow.protos.component.evaluation_pb2 import NodeEvalParam
+from secretflow.spec.v1.component_pb2 import Attribute
+from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from tests.conftest import TEST_STORAGE_ROOT
 
 
@@ -21,8 +21,9 @@ def test_ss_xgb(comp_prod_sf_cluster_config):
     model_path = "test_ss_xgb/model.sf"
     predict_path = "test_ss_xgb/predict.csv"
 
-    self_party = comp_prod_sf_cluster_config.private_config.self_party
-    local_fs_wd = comp_prod_sf_cluster_config.private_config.storage_config.local_fs.wd
+    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    self_party = sf_cluster_config.private_config.self_party
+    local_fs_wd = storage_config.local_fs.wd
 
     scaler = StandardScaler()
     ds = load_breast_cancer()
@@ -60,6 +61,7 @@ def test_ss_xgb(comp_prod_sf_cluster_config):
             "colsample_by_tree",
             "sketch_eps",
             "base_score",
+            "input/train_dataset/label",
         ],
         attrs=[
             Attribute(i64=3),
@@ -71,6 +73,7 @@ def test_ss_xgb(comp_prod_sf_cluster_config):
             Attribute(f=1),
             Attribute(f=0.25),
             Attribute(f=0),
+            Attribute(ss=["y"]),
         ],
         inputs=[
             DistData(
@@ -101,7 +104,11 @@ def test_ss_xgb(comp_prod_sf_cluster_config):
     )
     train_param.inputs[0].meta.Pack(meta)
 
-    train_res = ss_xgb_train_comp.eval(train_param, comp_prod_sf_cluster_config)
+    train_res = ss_xgb_train_comp.eval(
+        param=train_param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
 
     predict_param = NodeEvalParam(
         domain="ml.predict",
@@ -146,7 +153,11 @@ def test_ss_xgb(comp_prod_sf_cluster_config):
     )
     predict_param.inputs[1].meta.Pack(meta)
 
-    predict_res = ss_xgb_predict_comp.eval(predict_param, comp_prod_sf_cluster_config)
+    predict_res = ss_xgb_predict_comp.eval(
+        param=predict_param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
 
     assert len(predict_res.outputs) == 1
 

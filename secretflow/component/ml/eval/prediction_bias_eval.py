@@ -15,9 +15,9 @@
 from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import DistDataType, load_table
 from secretflow.device.driver import reveal
-from secretflow.protos.component.comp_pb2 import Attribute
-from secretflow.protos.component.data_pb2 import DistData
-from secretflow.protos.component.report_pb2 import Div, Report, Tab, Table
+from secretflow.spec.v1.component_pb2 import Attribute
+from secretflow.spec.v1.data_pb2 import DistData
+from secretflow.spec.v1.report_pb2 import Div, Report, Tab, Table
 from secretflow.stats.core.prediction_bias_core import PredictionBiasReport
 from secretflow.stats.prediction_bias_eval import prediction_bias_eval
 
@@ -93,7 +93,7 @@ prediction_bias_comp.io(
 )
 
 
-def dump_report(name, sys_info, report: PredictionBiasReport) -> DistData:
+def dump_report(name, system_info, report: PredictionBiasReport) -> DistData:
     table = Table(
         name="Prediction Bias Table",
         desc="Calculate prediction bias, ie. average of predictions - average of labels.",
@@ -185,7 +185,7 @@ def dump_report(name, sys_info, report: PredictionBiasReport) -> DistData:
     report_dd = DistData(
         name=name,
         type=str(DistDataType.REPORT),
-        sys_info=sys_info,
+        system_info=system_info,
     )
     report_dd.meta.Pack(report_meta)
 
@@ -230,4 +230,4 @@ def prediction_bias_eval_fn(
             )
         )
 
-    return {"result": dump_report(result, labels.sys_info, res)}
+    return {"result": dump_report(result, labels.system_info, res)}

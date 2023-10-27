@@ -5,6 +5,100 @@
   "comps": [
     {
       "domain": "feature",
+      "name": "vert_bin_substitution",
+      "desc": "Substitute datasets' value by bin substitution rules.",
+      "version": "0.0.1",
+      "inputs": [
+        {
+          "name": "input_data",
+          "desc": "Vertical partitioning dataset to be substituted.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        },
+        {
+          "name": "bin_rule",
+          "desc": "Input bin substitution rule.",
+          "types": [
+            "sf.rule.binning"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_data",
+          "desc": "Output vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "feature",
+      "name": "vert_binning",
+      "desc": "Generate equal frequency or equal range binning rules for vertical partitioning datasets.",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "binning_method",
+          "desc": "How to bin features with numeric types: \"quantile\"(equal frequency)/\"eq_range\"(equal range)",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "eq_range"
+            },
+            "allowedValues": {
+              "ss": [
+                "eq_range",
+                "quantile"
+              ]
+            }
+          }
+        },
+        {
+          "name": "bin_num",
+          "desc": "Max bin counts for one features.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "10"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "input_data",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "feature_selects",
+              "desc": "which features should be binned.",
+              "colMinCntInclusive": "1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "bin_rule",
+          "desc": "Output bin rule.",
+          "types": [
+            "sf.rule.binning"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "feature",
       "name": "vert_woe_binning",
       "desc": "Generate Weight of Evidence (WOE) binning rules for vertical partitioning datasets.",
       "version": "0.0.1",
@@ -52,7 +146,7 @@
             "defaultValue": {
               "i64": "10"
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {}
           }
         },
@@ -76,7 +170,7 @@
             "defaultValue": {
               "i64": "100"
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {
               "i64": "2"
             }
@@ -91,7 +185,7 @@
             "defaultValue": {
               "i64": "10"
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {
               "i64": "2"
             },
@@ -107,9 +201,9 @@
             "defaultValue": {
               "f": 0.1
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {},
-            "hasUpperBound": true,
+            "upperBoundEnabled": true,
             "upperBound": {
               "f": 1.0
             },
@@ -129,47 +223,21 @@
               "name": "feature_selects",
               "desc": "which features should be binned.",
               "colMinCntInclusive": "1"
+            },
+            {
+              "name": "label",
+              "desc": "Label of input data.",
+              "colMinCntInclusive": "1"
             }
           ]
         }
       ],
       "outputs": [
         {
-          "name": "woe_rule",
+          "name": "bin_rule",
           "desc": "Output WOE rule.",
           "types": [
-            "sf.rule.woe_binning"
-          ]
-        }
-      ]
-    },
-    {
-      "domain": "feature",
-      "name": "vert_woe_substitution",
-      "desc": "Substitute datasets' value by WOE substitution rules.",
-      "version": "0.0.1",
-      "inputs": [
-        {
-          "name": "input_data",
-          "desc": "Vertical partitioning dataset to be substituted.",
-          "types": [
-            "sf.table.vertical_table"
-          ]
-        },
-        {
-          "name": "woe_rule",
-          "desc": "Input WOE substitution rule.",
-          "types": [
-            "sf.rule.woe_binning"
-          ]
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output_data",
-          "desc": "Output vertical table.",
-          "types": [
-            "sf.table.vertical_table"
+            "sf.rule.binning"
           ]
         }
       ]
@@ -189,7 +257,7 @@
             "defaultValue": {
               "i64": "10"
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {
               "i64": "1"
             },
@@ -205,7 +273,7 @@
             "defaultValue": {
               "i64": "5"
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {
               "i64": "5"
             },
@@ -270,7 +338,7 @@
             "defaultValue": {
               "i64": "10"
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {
               "i64": "1"
             },
@@ -286,7 +354,7 @@
             "defaultValue": {
               "i64": "2"
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {
               "i64": "2"
             },
@@ -544,7 +612,7 @@
             "defaultValue": {
               "i64": "1024"
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {}
           }
         },
@@ -693,7 +761,7 @@
             "defaultValue": {
               "i64": "10"
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {
               "i64": "1"
             },
@@ -709,12 +777,12 @@
             "defaultValue": {
               "i64": "5"
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {
               "i64": "1"
             },
             "lowerBoundInclusive": true,
-            "hasUpperBound": true,
+            "upperBoundEnabled": true,
             "upperBound": {
               "i64": "16"
             },
@@ -730,9 +798,9 @@
             "defaultValue": {
               "f": 0.1
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {},
-            "hasUpperBound": true,
+            "upperBoundEnabled": true,
             "upperBound": {
               "f": 1.0
             },
@@ -765,10 +833,10 @@
             "defaultValue": {
               "f": 0.1
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {},
             "lowerBoundInclusive": true,
-            "hasUpperBound": true,
+            "upperBoundEnabled": true,
             "upperBound": {
               "f": 10000.0
             },
@@ -784,10 +852,10 @@
             "defaultValue": {
               "f": 0.1
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {},
             "lowerBoundInclusive": true,
-            "hasUpperBound": true,
+            "upperBoundEnabled": true,
             "upperBound": {
               "f": 10000.0
             },
@@ -803,9 +871,9 @@
             "defaultValue": {
               "f": 1.0
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {},
-            "hasUpperBound": true,
+            "upperBoundEnabled": true,
             "upperBound": {
               "f": 1.0
             },
@@ -821,9 +889,9 @@
             "defaultValue": {
               "f": 0.1
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {},
-            "hasUpperBound": true,
+            "upperBoundEnabled": true,
             "upperBound": {
               "f": 1.0
             },
@@ -837,7 +905,7 @@
           "atomic": {
             "isOptional": true,
             "defaultValue": {},
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {},
             "lowerBoundInclusive": true
           }
@@ -851,7 +919,7 @@
             "defaultValue": {
               "i64": "42"
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {},
             "lowerBoundInclusive": true
           }
@@ -865,12 +933,12 @@
             "defaultValue": {
               "i64": "20"
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {
               "i64": "1"
             },
             "lowerBoundInclusive": true,
-            "hasUpperBound": true,
+            "upperBoundEnabled": true,
             "upperBound": {
               "i64": "100"
             },
@@ -915,10 +983,10 @@
             "defaultValue": {
               "f": 10000.0
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {},
             "lowerBoundInclusive": true,
-            "hasUpperBound": true,
+            "upperBoundEnabled": true,
             "upperBound": {
               "f": 10000000.0
             },
@@ -934,12 +1002,12 @@
             "defaultValue": {
               "i64": "15"
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {
               "i64": "1"
             },
             "lowerBoundInclusive": true,
-            "hasUpperBound": true,
+            "upperBoundEnabled": true,
             "upperBound": {
               "i64": "32768"
             },
@@ -955,9 +1023,9 @@
             "defaultValue": {
               "f": 1.0
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {},
-            "hasUpperBound": true,
+            "upperBoundEnabled": true,
             "upperBound": {
               "f": 1.0
             },
@@ -982,9 +1050,9 @@
             "defaultValue": {
               "f": 0.3
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {},
-            "hasUpperBound": true,
+            "upperBoundEnabled": true,
             "upperBound": {
               "f": 1.0
             },
@@ -1000,9 +1068,9 @@
             "defaultValue": {
               "f": 0.5
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {},
-            "hasUpperBound": true,
+            "upperBoundEnabled": true,
             "upperBound": {
               "f": 1.0
             },
@@ -1016,7 +1084,7 @@
           "atomic": {
             "isOptional": true,
             "defaultValue": {},
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {},
             "lowerBoundInclusive": true
           }
@@ -1028,10 +1096,10 @@
           "atomic": {
             "isOptional": true,
             "defaultValue": {},
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {},
             "lowerBoundInclusive": true,
-            "hasUpperBound": true,
+            "upperBoundEnabled": true,
             "upperBound": {
               "f": 1.0
             },
@@ -1056,6 +1124,14 @@
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "label",
+              "desc": "Label of train dataset.",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
+            }
           ]
         }
       ],
@@ -1084,7 +1160,7 @@
             "defaultValue": {
               "i64": "10"
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {
               "i64": "1"
             },
@@ -1100,7 +1176,7 @@
             "defaultValue": {
               "f": 0.1
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {}
           }
         },
@@ -1113,7 +1189,7 @@
             "defaultValue": {
               "i64": "1024"
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {}
           }
         },
@@ -1156,10 +1232,10 @@
             "defaultValue": {
               "f": 1.0
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {},
             "lowerBoundInclusive": true,
-            "hasUpperBound": true,
+            "upperBoundEnabled": true,
             "upperBound": {
               "f": 2.0
             },
@@ -1175,7 +1251,7 @@
             "defaultValue": {
               "f": 1.0
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {
               "f": 1.0
             },
@@ -1191,7 +1267,7 @@
             "defaultValue": {
               "f": 0.0001
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {},
             "lowerBoundInclusive": true
           }
@@ -1203,7 +1279,7 @@
           "atomic": {
             "isOptional": true,
             "defaultValue": {},
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {},
             "lowerBoundInclusive": true
           }
@@ -1215,7 +1291,7 @@
           "atomic": {
             "isOptional": true,
             "defaultValue": {},
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {},
             "lowerBoundInclusive": true
           }
@@ -1227,10 +1303,10 @@
           "atomic": {
             "isOptional": true,
             "defaultValue": {},
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {},
             "lowerBoundInclusive": true,
-            "hasUpperBound": true,
+            "upperBoundEnabled": true,
             "upperBound": {
               "f": 1.0
             }
@@ -1274,6 +1350,14 @@
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "label",
+              "desc": "Label of train dataset.",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
+            }
           ]
         }
       ],
@@ -1302,7 +1386,7 @@
             "defaultValue": {
               "i64": "10"
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {
               "i64": "1"
             },
@@ -1318,7 +1402,7 @@
             "defaultValue": {
               "f": 0.1
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {}
           }
         },
@@ -1331,7 +1415,7 @@
             "defaultValue": {
               "i64": "1024"
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {}
           }
         },
@@ -1401,7 +1485,7 @@
             "defaultValue": {
               "f": 0.5
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {},
             "lowerBoundInclusive": true
           }
@@ -1415,7 +1499,7 @@
             "defaultValue": {
               "f": 0.001
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {},
             "lowerBoundInclusive": true
           }
@@ -1427,6 +1511,14 @@
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "label",
+              "desc": "Label of train dataset.",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
+            }
           ]
         }
       ],
@@ -1455,7 +1547,7 @@
             "defaultValue": {
               "i64": "10"
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {
               "i64": "1"
             },
@@ -1471,12 +1563,12 @@
             "defaultValue": {
               "i64": "5"
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {
               "i64": "1"
             },
             "lowerBoundInclusive": true,
-            "hasUpperBound": true,
+            "upperBoundEnabled": true,
             "upperBound": {
               "i64": "16"
             },
@@ -1492,9 +1584,9 @@
             "defaultValue": {
               "f": 0.1
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {},
-            "hasUpperBound": true,
+            "upperBoundEnabled": true,
             "upperBound": {
               "f": 1.0
             },
@@ -1527,10 +1619,10 @@
             "defaultValue": {
               "f": 0.1
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {},
             "lowerBoundInclusive": true,
-            "hasUpperBound": true,
+            "upperBoundEnabled": true,
             "upperBound": {
               "f": 10000.0
             },
@@ -1546,9 +1638,9 @@
             "defaultValue": {
               "f": 0.1
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {},
-            "hasUpperBound": true,
+            "upperBoundEnabled": true,
             "upperBound": {
               "f": 1.0
             },
@@ -1564,9 +1656,9 @@
             "defaultValue": {
               "f": 0.1
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {},
-            "hasUpperBound": true,
+            "upperBoundEnabled": true,
             "upperBound": {
               "f": 1.0
             },
@@ -1582,9 +1674,9 @@
             "defaultValue": {
               "f": 0.1
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {},
-            "hasUpperBound": true,
+            "upperBoundEnabled": true,
             "upperBound": {
               "f": 1.0
             },
@@ -1598,7 +1690,7 @@
           "atomic": {
             "isOptional": true,
             "defaultValue": {},
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {},
             "lowerBoundInclusive": true
           }
@@ -1612,7 +1704,7 @@
             "defaultValue": {
               "i64": "42"
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {},
             "lowerBoundInclusive": true
           }
@@ -1624,6 +1716,14 @@
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "label",
+              "desc": "Label of train dataset.",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
+            }
           ]
         }
       ],
@@ -1692,6 +1792,15 @@
           }
         },
         {
+          "name": "sort",
+          "desc": "Sort the output.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
           "name": "bucket_size",
           "desc": "Specify the hash bucket size used in PSI. Larger values consume more memory.",
           "type": "AT_INT",
@@ -1700,7 +1809,7 @@
             "defaultValue": {
               "i64": "1048576"
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {}
           }
         },
@@ -1734,7 +1843,8 @@
           "attrs": [
             {
               "name": "key",
-              "desc": "Column(s) used to join. If not provided, ids of the dataset will be used."
+              "desc": "Column(s) used to join.",
+              "colMinCntInclusive": "1"
             }
           ]
         },
@@ -1747,7 +1857,8 @@
           "attrs": [
             {
               "name": "key",
-              "desc": "Column(s) used to join. If not provided, ids of the dataset will be used."
+              "desc": "Column(s) used to join.",
+              "colMinCntInclusive": "1"
             }
           ]
         }
@@ -1777,10 +1888,10 @@
             "defaultValue": {
               "f": 0.75
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {},
             "lowerBoundInclusive": true,
-            "hasUpperBound": true,
+            "upperBoundEnabled": true,
             "upperBound": {
               "f": 1.0
             },
@@ -1796,10 +1907,10 @@
             "defaultValue": {
               "f": 0.25
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {},
             "lowerBoundInclusive": true,
-            "hasUpperBound": true,
+            "upperBoundEnabled": true,
             "upperBound": {
               "f": 1.0
             },
@@ -1815,7 +1926,7 @@
             "defaultValue": {
               "i64": "1024"
             },
-            "hasLowerBound": true,
+            "lowerBoundEnabled": true,
             "lowerBound": {}
           }
         },
@@ -1853,6 +1964,76 @@
           "desc": "Output test dataset.",
           "types": [
             "sf.table.vertical_table"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "stats",
+      "name": "groupby_statistics",
+      "desc": "Get a groupby of statistics, like pandas groupby statistics.\nCurrently only support VDataframe.",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "agg",
+          "desc": "What kind of aggregation statistics we want to do, currently only supports min, max, mean, sum, var, count(number of elements in each group)",
+          "type": "AT_STRING",
+          "atomic": {
+            "allowedValues": {
+              "ss": [
+                "min",
+                "max",
+                "mean",
+                "sum",
+                "var",
+                "count"
+              ]
+            }
+          }
+        },
+        {
+          "name": "max_group_size",
+          "desc": "The maximum number of groups allowed",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "10000"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "input_data",
+          "desc": "Input table.",
+          "types": [
+            "sf.table.vertical_table",
+            "sf.table.individual"
+          ],
+          "attrs": [
+            {
+              "name": "by",
+              "desc": "by what columns should we group the values",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "4"
+            },
+            {
+              "name": "values",
+              "desc": "on which columns should we calculate the statistics",
+              "colMinCntInclusive": "1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "report",
+          "desc": "Output groupby statistics report.",
+          "types": [
+            "sf.report"
           ]
         }
       ]

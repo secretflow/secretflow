@@ -251,16 +251,16 @@ class VertWoeBinningPyuWorker:
             ret['type'] = "numeric"
             ret['split_points'] = list(split_points)
 
-        ret['woes'] = list()
+        ret['filling_values'] = list()
         ret['total_counts'] = list()
         assert len(total_counts) == len(woes), (
             f"len(total_counts) {len(total_counts)}," f" len(woes) {len(woes)}"
         )
         for i in range(len(woes)):
             ret['total_counts'].append(total_counts[i])
-            ret['woes'].append(woes[i])
+            ret['filling_values'].append(woes[i])
 
-        ret['else_woe'] = else_woe
+        ret['else_filling_value'] = else_woe
         ret['else_counts'] = else_counts
 
         return ret

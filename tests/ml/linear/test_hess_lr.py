@@ -11,6 +11,7 @@ from sklearn.preprocessing import StandardScaler
 import secretflow as sf
 import secretflow.distributed as sfd
 from secretflow.data import FedNdarray, PartitionWay
+from secretflow.distributed.primitive import DISTRIBUTION_MODE
 from secretflow.ml.linear.hess_sgd import HESSLogisticRegression
 from tests.cluster import cluster, set_self_party
 from tests.conftest import heu_config, semi2k_cluster
@@ -30,7 +31,7 @@ class DeviceInventory:
 @pytest.fixture(scope="module")
 def env(request, sf_party_for_4pc):
     devices = DeviceInventory()
-    sfd.set_production(True)
+    sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.PRODUCTION)
     set_self_party(sf_party_for_4pc)
     sf.init(
         address='local',

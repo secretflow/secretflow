@@ -26,9 +26,9 @@ from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.device.device.pyu import PYU, PYUObject
 from secretflow.device.device.spu import SPU, SPUObject
 from secretflow.device.driver import DeviceObject, wait
-from secretflow.protos.component.comp_pb2 import IoDef
-from secretflow.protos.component.data_pb2 import (
-    DeviceObjectCollection,
+from secretflow.spec.extend.data_pb2 import DeviceObjectCollection
+from secretflow.spec.v1.component_pb2 import IoDef
+from secretflow.spec.v1.data_pb2 import (
     DistData,
     IndividualTable,
     SystemInfo,
@@ -64,7 +64,7 @@ class DistDataType(BaseEnum):
     SS_SGD_MODEL = "sf.model.ss_sgd"
     SS_GLM_MODEL = "sf.model.ss_glm"
     SGB_MODEL = "sf.model.sgb"
-    WOE_RUNNING_RULE = "sf.rule.woe_binning"
+    BIN_RUNNING_RULE = "sf.rule.binning"
     SS_XGB_MODEL = "sf.model.ss_xgb"
     REPORT = "sf.report"
 
@@ -142,7 +142,7 @@ def merge_individuals_to_vtable(srcs: List[DistData], dest: DistData) -> DistDat
         imeta = IndividualTable()
         assert s.meta.Unpack(imeta)
         vmeta.schemas.append(imeta.schema)
-        vmeta.num_lines = imeta.num_lines
+        vmeta.line_count = imeta.line_count
 
     dest.meta.Pack(vmeta)
 
@@ -156,6 +156,7 @@ def extract_table_header(
     load_ids: bool = False,
     feature_selects: List[str] = None,
     col_selects: List[str] = None,
+    col_excludes: List[str] = None,
 ) -> Dict[str, Dict[str, np.dtype]]:
     """
     Args:
@@ -164,7 +165,8 @@ def extract_table_header(
         load_labels (bool, optional): Whether to load label cols. Defaults to False.
         load_ids (bool, optional): Whether to load id cols. Defaults to False.
         feature_selects (List[str], optional): Load part of feature cols. Only in effect if load_features is True. Defaults to None.
-        col_selects (List[str], optional): Load part of cols. Applies to all cols. Defaults to None.
+        col_selects (List[str], optional): Load part of cols. Applies to all cols. Defaults to None. Couldn't use with col_excludes.
+        col_excludes (List[str], optional): Load all cols exclude these. Applies to all cols. Defaults to None. Couldn't use with col_selects.
     """
     meta = (
         IndividualTable()
@@ -181,8 +183,14 @@ def extract_table_header(
     if feature_selects is not None:
         feature_selects = set(feature_selects)
 
+    if col_selects is not None and col_excludes is not None:
+        raise AttributeError("col_selects and col_excludes couldn't use together.")
+
     if col_selects is not None:
         col_selects = set(col_selects)
+
+    if col_excludes is not None:
+        col_excludes = set(col_excludes)
 
     ret = dict()
     for slice, dr in zip(schemas, db.data_refs):
@@ -201,6 +209,10 @@ def extract_table_header(
                         continue
                     col_selects.remove(h)
 
+                if col_excludes is not None:
+                    if h in col_excludes:
+                        continue
+
                 t = t.lower()
                 assert (
                     t in SUPPORTED_VTABLE_DATA_TYPE
@@ -213,6 +225,11 @@ def extract_table_header(
                         # label not selected, skip
                         continue
                     col_selects.remove(h)
+
+                if col_excludes is not None:
+                    if h in col_excludes:
+                        continue
+
                 smeta[h] = SUPPORTED_VTABLE_DATA_TYPE[t]
         if load_ids:
             for t, h in zip(slice.id_types, slice.ids):
@@ -221,6 +238,11 @@ def extract_table_header(
                         # id not selected, skip
                         continue
                     col_selects.remove(h)
+
+                if col_excludes is not None:
+                    if h in col_excludes:
+                        continue
+
                 smeta[h] = SUPPORTED_VTABLE_DATA_TYPE[t]
 
         if len(smeta):
@@ -243,6 +265,7 @@ def load_table(
     load_ids: bool = False,
     feature_selects: List[str] = None,  # if None, load all features
     col_selects: List[str] = None,  # if None, load all cols
+    col_excludes: List[str] = None,
 ) -> VDataFrame:
     assert load_features or load_labels or load_ids, "At least one flag should be true"
     assert (
@@ -257,6 +280,7 @@ def load_table(
         load_ids=load_ids,
         feature_selects=feature_selects,
         col_selects=col_selects,
+        col_excludes=col_excludes,
     )
     parties_path_format = extract_distdata_info(db)
     for p in v_headers:
@@ -267,7 +291,7 @@ def load_table(
         assert (
             parties_path_format[p].format.lower() in DataSetFormatSupported
         ), f"Illegal path format: {parties_path_format[p].format.lower()}, path format of party {p} should be in DataSetFormatSupported"
-    # TODO: assert sys_info
+    # TODO: assert system_info
 
     with ctx.tracer.trace_io():
         pyus = {p: PYU(p) for p in v_headers}
@@ -284,7 +308,7 @@ def load_table(
 
 @dataclass
 class VerticalTableWrapper:
-    num_lines: int
+    line_count: int
     schema_map: Dict[str, TableSchema]
 
     def to_vertical_table(self, order: List[str] = None):
@@ -293,15 +317,15 @@ class VerticalTableWrapper:
         else:
             schemas = [self.schema_map[k] for k in order]
 
-        return VerticalTable(schemas=schemas, num_lines=self.num_lines)
+        return VerticalTable(schemas=schemas, line_count=self.line_count)
 
     @classmethod
-    def from_dist_data(cls, data: DistData, num_lines: int = None):
+    def from_dist_data(cls, data: DistData, line_count: int = None):
         meta = VerticalTable()
         assert data.meta.Unpack(meta)
 
         return cls(
-            num_lines=meta.num_lines if num_lines is None else num_lines,
+            line_count=meta.line_count if line_count is None else line_count,
             schema_map={
                 data_ref.party: schema
                 for data_ref, schema in zip(list(data.data_refs), list(meta.schemas))
@@ -314,7 +338,7 @@ def dump_vertical_table(
     v_data: VDataFrame,
     uri: str,
     meta: VerticalTableWrapper,
-    sys_info: SystemInfo,
+    system_info: SystemInfo,
 ) -> DistData:
     assert isinstance(v_data, VDataFrame)
 
@@ -329,7 +353,7 @@ def dump_vertical_table(
     ret = DistData(
         name=uri,
         type=str(DistDataType.VERTICAL_TABLE),
-        sys_info=sys_info,
+        system_info=system_info,
         data_refs=[
             DistData.DataRef(uri=output_uri[p], party=p.party, format="csv")
             for p in output_uri
@@ -349,7 +373,7 @@ def model_dumps(
     public_info: Any,
     storage_root: str,
     dist_data_uri: str,
-    sys_info: SystemInfo,
+    system_info: SystemInfo,
 ) -> DistData:
     objs_uri = []
     objs_party = []
@@ -409,7 +433,7 @@ def model_dumps(
     dist_data = DistData(
         name=model_name,
         type=str(model_type),
-        sys_info=sys_info,
+        system_info=system_info,
         data_refs=[
             DistData.DataRef(uri=uri, party=p, format="pickle")
             for uri, p in zip(objs_uri, objs_party)
@@ -428,8 +452,8 @@ def model_loads(
     storage_root: str,
     pyus: Dict[str, PYU] = None,
     spu: SPU = None,
-    # TODO: assert sys_info
-    # sys_info: SystemInfo = None,
+    # TODO: assert system_info
+    # system_info: SystemInfo = None,
 ) -> Tuple[List[DeviceObject], str]:
     assert dist_data.type == model_type
     model_meta = DeviceObjectCollection()
@@ -513,7 +537,7 @@ def gen_prediction_csv_meta(
     label_header: Dict[str, Dict[str, np.dtype]],
     party: str,
     pred_name: str,
-    num_lines: int = None,
+    line_count: int = None,
     id_keys: List[str] = None,
     label_keys: List[str] = None,
 ) -> IndividualTable:
@@ -531,5 +555,5 @@ def gen_prediction_csv_meta(
             )
             + ["float"],
         ),
-        num_lines=num_lines if num_lines is not None else -1,
+        line_count=line_count if line_count is not None else -1,
     )

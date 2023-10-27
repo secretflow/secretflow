@@ -25,6 +25,7 @@ import ray
 
 import secretflow.distributed as sfd
 from secretflow.device import global_state
+from secretflow.distributed.primitive import DISTRIBUTION_MODE
 from secretflow.utils.errors import InvalidArgumentError
 from secretflow.utils.logging import set_logging_level
 from secretflow.utils.ray_compatibility import ray_version_less_than_2_0_0
@@ -41,7 +42,6 @@ from .device import (
     SPUObject,
     TEEUObject,
 )
-
 
 _CROSS_SILO_COMM_BACKENDS = ['grpc', 'brpc_link']
 
@@ -225,6 +225,7 @@ def init(
     auth_manager_config: Dict = None,
     party_key_pair: Dict[str, Dict] = None,
     tee_simulation: bool = False,
+    debug_mode=False,
     **kwargs,
 ):
     """Connect to an existing Ray cluster or start one and connect to it.
@@ -399,11 +400,16 @@ def init(
         tee_simulation: optional, enable TEE simulation if True.
             When simulation is enabled, the remote attestation for auth manager
             will be ignored. This is for test only and keep it False when for production.
+        debug_mode: Whether to enable debug mode. In debug mode, single-process simulation
+                    will be used instead of ray scheduling, and lazy mode will be changed to
+                    synchronous mode to facilitate debugging.and will use PYU to simulate SPU device
+                    ONLY DEBUG!
+
         **kwargs: see :py:meth:`ray.init` parameters.
     """
     set_logging_level(logging_level)
     simluation_mode = True if parties else False
-
+    sfd.active_sf_cluster()
     if auth_manager_config and simluation_mode:
         raise InvalidArgumentError(
             'TEE abilities is available only in production mode.'
@@ -457,16 +463,6 @@ def init(
     global_state.set_tee_simulation(tee_simulation=tee_simulation)
 
     if simluation_mode:
-        if cluster_config:
-            raise InvalidArgumentError(
-                'Simulation mode is enabled when `parties` is provided, '
-                'but you provide `cluster_config` at the same time. '
-                '`cluster_config` is for production mode only and should be `None` in simulation mode. '
-                'Or if you want to run SecretFlow in product mode, '
-                'please keep `parties` with `None`.'
-            )
-        # Simulation mode
-        sfd.set_production(False)
         if not isinstance(parties, (str, Tuple, List)):
             raise InvalidArgumentError('parties must be str or list of str.')
         if isinstance(parties, str):
@@ -474,26 +470,40 @@ def init(
         else:
             assert len(set(parties)) == len(parties), f'duplicated parties {parties}.'
 
-        if local_mode:
-            resources = {party: num_cpus for party in parties}
+        if debug_mode:
+            # debug mode
+            sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.DEBUG)
         else:
-            resources = None
+            if cluster_config:
+                raise InvalidArgumentError(
+                    'Simulation mode is enabled when `parties` is provided, '
+                    'but you provide `cluster_config` at the same time. '
+                    '`cluster_config` is for production mode only and should be `None` in simulation mode. '
+                    'Or if you want to run SecretFlow in product mode, '
+                    'please keep `parties` with `None`.'
+                )
+            # Simulation mode
+            sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.SIMULATION)
+            if local_mode:
+                resources = {party: num_cpus for party in parties}
+            else:
+                resources = None
 
-        if not address:
-            if omp_num_threads:
+            if not address and omp_num_threads:
                 os.environ['OMP_NUM_THREADS'] = f'{omp_num_threads}'
 
-        ray.init(
-            address,
-            num_cpus=num_cpus,
-            num_gpus=num_gpus,
-            resources=resources,
-            log_to_driver=log_to_driver,
-            **kwargs,
-        )
+            ray.init(
+                address,
+                num_cpus=num_cpus,
+                num_gpus=num_gpus,
+                resources=resources,
+                log_to_driver=log_to_driver,
+                **kwargs,
+            )
         global_state.set_parties(parties=parties)
+
     else:
-        sfd.set_production(True)
+        sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.PRODUCTION)
         global _CROSS_SILO_COMM_BACKENDS
         assert cross_silo_comm_backend.lower() in _CROSS_SILO_COMM_BACKENDS, (
             'Invalid cross_silo_comm_backend, '
@@ -565,7 +575,7 @@ def init(
 
 
 def barrier():
-    if sfd.production_mode():
+    if sfd.get_distribution_mode() == DISTRIBUTION_MODE.PRODUCTION:
         barriers = []
         for party in global_state.parties():
             barriers.append(PYU(party)(lambda: None)())

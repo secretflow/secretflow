@@ -8,15 +8,15 @@ from secretflow.component.eval_param_reader import (
     check_table_attr_col_cnt,
     check_upper_bound,
 )
-from secretflow.protos.component.comp_pb2 import (
+from secretflow.spec.v1.component_pb2 import (
     Attribute,
     AttributeDef,
     AttrType,
     ComponentDef,
     IoDef,
 )
-from secretflow.protos.component.data_pb2 import DistData
-from secretflow.protos.component.evaluation_pb2 import NodeEvalParam
+from secretflow.spec.v1.data_pb2 import DistData
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
 
 def test_check_allowed_values():
@@ -55,7 +55,7 @@ def test_check_lower_bound():
     d1 = AttributeDef(
         type=AttrType.AT_FLOAT,
         atomic=AttributeDef.AtomicAttrDesc(
-            has_lower_bound=True, lower_bound=Attribute(f=1.0)
+            lower_bound_enabled=True, lower_bound=Attribute(f=1.0)
         ),
     )
 
@@ -71,7 +71,7 @@ def test_check_lower_bound():
     d2 = AttributeDef(
         type=AttrType.AT_FLOAT,
         atomic=AttributeDef.AtomicAttrDesc(
-            has_lower_bound=True,
+            lower_bound_enabled=True,
             lower_bound_inclusive=True,
             lower_bound=Attribute(f=1.0),
         ),
@@ -84,7 +84,7 @@ def test_check_lower_bound():
     d3 = AttributeDef(
         type=AttrType.AT_INT,
         atomic=AttributeDef.AtomicAttrDesc(
-            has_lower_bound=True, lower_bound=Attribute(i64=1)
+            lower_bound_enabled=True, lower_bound=Attribute(i64=1)
         ),
     )
 
@@ -100,7 +100,7 @@ def test_check_lower_bound():
     d4 = AttributeDef(
         type=AttrType.AT_INT,
         atomic=AttributeDef.AtomicAttrDesc(
-            has_lower_bound=True,
+            lower_bound_enabled=True,
             lower_bound_inclusive=True,
             lower_bound=Attribute(i64=1),
         ),
@@ -115,7 +115,7 @@ def test_check_upper_bound():
     d1 = AttributeDef(
         type=AttrType.AT_FLOAT,
         atomic=AttributeDef.AtomicAttrDesc(
-            has_upper_bound=True, upper_bound=Attribute(f=1.0)
+            upper_bound_enabled=True, upper_bound=Attribute(f=1.0)
         ),
     )
 
@@ -131,7 +131,7 @@ def test_check_upper_bound():
     d2 = AttributeDef(
         type=AttrType.AT_FLOAT,
         atomic=AttributeDef.AtomicAttrDesc(
-            has_upper_bound=True,
+            upper_bound_enabled=True,
             upper_bound_inclusive=True,
             upper_bound=Attribute(f=1.0),
         ),
@@ -144,7 +144,7 @@ def test_check_upper_bound():
     d3 = AttributeDef(
         type=AttrType.AT_INT,
         atomic=AttributeDef.AtomicAttrDesc(
-            has_upper_bound=True, upper_bound=Attribute(i64=1)
+            upper_bound_enabled=True, upper_bound=Attribute(i64=1)
         ),
     )
 
@@ -160,7 +160,7 @@ def test_check_upper_bound():
     d4 = AttributeDef(
         type=AttrType.AT_INT,
         atomic=AttributeDef.AtomicAttrDesc(
-            has_upper_bound=True,
+            upper_bound_enabled=True,
             upper_bound_inclusive=True,
             upper_bound=Attribute(i64=1),
         ),
