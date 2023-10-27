@@ -37,7 +37,7 @@ class SLStateAsyncTFModel(SLBaseTFModel):
         builder_base: Callable[[], tf.keras.Model],
         builder_fuse: Callable[[], tf.keras.Model],
         dp_strategy: DPStrategy,
-        loss_thres: float = 0,
+        loss_thres: float = 0.01,
         split_steps: int = 1,
         max_fuse_local_steps: int = 1,
         random_seed: int = None,

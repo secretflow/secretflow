@@ -13,14 +13,14 @@
 # limitations under the License.
 
 import numpy as np
-from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import DistData
-from secretflow.spec.v1.report_pb2 import Descriptions, Div, Report, Tab
 
 from secretflow.component.component import CompEvalError, Component, IoType
 from secretflow.component.data_utils import DistDataType, load_table
 from secretflow.component.ml.linear.ss_sgd import load_ss_sgd_model
 from secretflow.device.device.spu import SPU
+from secretflow.spec.v1.component_pb2 import Attribute
+from secretflow.spec.v1.data_pb2 import DistData
+from secretflow.spec.v1.report_pb2 import Descriptions, Div, Report, Tab
 from secretflow.stats.ss_pvalue_v import PValue
 
 ss_pvalue_comp = Component(

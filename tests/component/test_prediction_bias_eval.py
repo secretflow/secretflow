@@ -3,6 +3,9 @@ import math
 import os
 
 import pandas as pd
+
+from secretflow.component.data_utils import DistDataType
+from secretflow.component.ml.eval.prediction_bias_eval import prediction_bias_comp
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import (
     DistData,
@@ -12,9 +15,6 @@ from secretflow.spec.v1.data_pb2 import (
 )
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
-
-from secretflow.component.data_utils import DistDataType
-from secretflow.component.ml.eval.prediction_bias_eval import prediction_bias_comp
 
 
 def test_prediction_bias_eval(comp_prod_sf_cluster_config):

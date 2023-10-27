@@ -1,13 +1,13 @@
 import os
 
 import pandas as pd
-from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from sklearn.datasets import load_breast_cancer
 
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.preprocessing.feature_filter import feature_filter_comp
+from secretflow.spec.v1.component_pb2 import Attribute
+from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from tests.conftest import TEST_STORAGE_ROOT
 
 

@@ -111,7 +111,12 @@ vert_woe_binning_comp.io(
             name="feature_selects",
             desc="which features should be binned.",
             col_min_cnt_inclusive=1,
-        )
+        ),
+        TableColParam(
+            name="label",
+            desc="Label of input data.",
+            col_min_cnt_inclusive=1,
+        ),
     ],
 )
 vert_woe_binning_comp.io(
@@ -140,22 +145,24 @@ def vert_woe_binning_eval_fn(
     chimerge_target_pvalue,
     input_data,
     input_data_feature_selects,
+    input_data_label,
     bin_rule,
 ):
     input_df = load_table(
         ctx,
         input_data,
         load_features=True,
-        feature_selects=input_data_feature_selects,
         load_labels=True,
+        col_selects=input_data_feature_selects + input_data_label,
     )
 
-    input_info = extract_table_header(input_data, load_labels=True)
-    assert len(input_info) == 1, "only support one party has label"
-    label_party = next(iter(input_info.keys()))
-    smeta = input_info[label_party]
+    label_info = extract_table_header(
+        input_data, load_features=True, load_labels=True, col_selects=input_data_label
+    )
+    assert len(label_info) == 1, "only support one party has label"
+    label_party = next(iter(label_info.keys()))
+    smeta = label_info[label_party]
     assert len(smeta) == 1, "only support one label col"
-    label_name = next(iter(smeta.keys()))
 
     if secure_device_type == "spu":
         if ctx.spu_configs is None or len(ctx.spu_configs) == 0:
@@ -195,7 +202,7 @@ def vert_woe_binning_eval_fn(
             binning_method,
             bin_num,
             bin_names,
-            label_name,
+            input_data_label[0],
             positive_label,
             chimerge_init_bins,
             chimerge_target_bins,
@@ -208,7 +215,10 @@ def vert_woe_binning_eval_fn(
             MODEL_MAX_MAJOR_VERSION,
             MODEL_MAX_MINOR_VERSION,
             [o for o in rules.values()],
-            input_data_feature_selects,
+            {
+                "input_data_feature_selects": input_data_feature_selects,
+                "input_data_label": input_data_label[0],
+            },
             ctx.local_fs_wd,
             bin_rule,
             input_data.system_info,

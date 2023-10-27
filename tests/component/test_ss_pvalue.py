@@ -2,16 +2,16 @@ import logging
 import os
 
 import pandas as pd
-from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
-from secretflow.spec.v1.report_pb2 import Report
 from sklearn.datasets import load_breast_cancer
 from sklearn.preprocessing import StandardScaler
 
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.ml.eval.ss_pvalue import ss_pvalue_comp
 from secretflow.component.ml.linear.ss_sgd import ss_sgd_train_comp
+from secretflow.spec.v1.component_pb2 import Attribute
+from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
+from secretflow.spec.v1.report_pb2 import Report
 
 
 def test_ss_pvalue(comp_prod_sf_cluster_config):
@@ -60,6 +60,7 @@ def test_ss_pvalue(comp_prod_sf_cluster_config):
             "decay_epoch",
             "decay_rate",
             "strategy",
+            "input/train_dataset/label",
         ],
         attrs=[
             Attribute(i64=3),
@@ -72,6 +73,7 @@ def test_ss_pvalue(comp_prod_sf_cluster_config):
             Attribute(i64=2),
             Attribute(f=0.5),
             Attribute(s="policy_sgd"),
+            Attribute(ss=["y"]),
         ],
         inputs=[
             DistData(

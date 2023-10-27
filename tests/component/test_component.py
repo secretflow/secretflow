@@ -1,12 +1,12 @@
 import math
 
 from google.protobuf.json_format import ParseDict
-from secretflow.spec.v1.component_pb2 import AttributeDef, ComponentDef, IoDef
-from secretflow.spec.v1.data_pb2 import DistData
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
 from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import DistDataType
+from secretflow.spec.v1.component_pb2 import AttributeDef, ComponentDef, IoDef
+from secretflow.spec.v1.data_pb2 import DistData
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
 
 def test_float_attr():

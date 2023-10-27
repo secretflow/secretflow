@@ -548,7 +548,6 @@ class SLBaseTFModel(SLBaseModel):
         ), "Fuse model cannot be none, please give model define"
         if isinstance(forward_data, ForwardData):
             forward_data = [forward_data]
-        forward_data = list(forward_data)
         forward_data[:] = (h for h in forward_data if h is not None)
         for i, h in enumerate(forward_data):
             assert h.hidden is not None, f"hidden cannot be found in forward_data[{i}]"
@@ -660,7 +659,6 @@ class SLBaseTFModel(SLBaseModel):
         ), "model cannot be none, please give model define"
         if isinstance(forward_data, ForwardData):
             forward_data = [forward_data]
-        forward_data = list(forward_data)
         forward_data[:] = (h for h in forward_data if h is not None)
         for i, h in enumerate(forward_data):
             assert h.hidden is not None, f"hidden cannot be found in forward_data[{i}]"
@@ -750,7 +748,6 @@ class SLBaseTFModel(SLBaseModel):
         ), "Fuse model cannot be none, please give model define"
         if isinstance(forward_data, ForwardData):
             forward_data = [forward_data]
-        forward_data = list(forward_data)
         forward_data[:] = (h for h in forward_data if h is not None)
         for i, h in enumerate(forward_data):
             assert h.hidden is not None, f"hidden cannot be found in forward_data[{i}]"

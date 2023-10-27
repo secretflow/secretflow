@@ -46,6 +46,7 @@ if __name__ == "__main__":
         "batch_size": 512,
         "sig_type": "t1",
         "reg_type": "logistic",
+        "input/train_dataset/label": ["y"],
     }
     # 测试ss_sgd_train
     sslr = TestComp("sslr_train", "ml.train", "ss_sgd_train", "0.0.1", attrs)

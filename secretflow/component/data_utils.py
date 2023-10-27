@@ -20,6 +20,13 @@ from typing import Any, Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
+
+from secretflow.data.vertical import read_csv
+from secretflow.data.vertical.dataframe import VDataFrame
+from secretflow.device.device.pyu import PYU, PYUObject
+from secretflow.device.device.spu import SPU, SPUObject
+from secretflow.device.driver import DeviceObject, wait
+from secretflow.spec.extend.data_pb2 import DeviceObjectCollection
 from secretflow.spec.v1.component_pb2 import IoDef
 from secretflow.spec.v1.data_pb2 import (
     DistData,
@@ -28,13 +35,6 @@ from secretflow.spec.v1.data_pb2 import (
     TableSchema,
     VerticalTable,
 )
-
-from secretflow.data.vertical import read_csv
-from secretflow.data.vertical.dataframe import VDataFrame
-from secretflow.device.device.pyu import PYU, PYUObject
-from secretflow.device.device.spu import SPU, SPUObject
-from secretflow.device.driver import DeviceObject, wait
-from secretflow.spec.extend.data_pb2 import DeviceObjectCollection
 
 
 class MetaEnum(enum.EnumMeta):
@@ -156,6 +156,7 @@ def extract_table_header(
     load_ids: bool = False,
     feature_selects: List[str] = None,
     col_selects: List[str] = None,
+    col_excludes: List[str] = None,
 ) -> Dict[str, Dict[str, np.dtype]]:
     """
     Args:
@@ -164,7 +165,8 @@ def extract_table_header(
         load_labels (bool, optional): Whether to load label cols. Defaults to False.
         load_ids (bool, optional): Whether to load id cols. Defaults to False.
         feature_selects (List[str], optional): Load part of feature cols. Only in effect if load_features is True. Defaults to None.
-        col_selects (List[str], optional): Load part of cols. Applies to all cols. Defaults to None.
+        col_selects (List[str], optional): Load part of cols. Applies to all cols. Defaults to None. Couldn't use with col_excludes.
+        col_excludes (List[str], optional): Load all cols exclude these. Applies to all cols. Defaults to None. Couldn't use with col_selects.
     """
     meta = (
         IndividualTable()
@@ -181,8 +183,14 @@ def extract_table_header(
     if feature_selects is not None:
         feature_selects = set(feature_selects)
 
+    if col_selects is not None and col_excludes is not None:
+        raise AttributeError("col_selects and col_excludes couldn't use together.")
+
     if col_selects is not None:
         col_selects = set(col_selects)
+
+    if col_excludes is not None:
+        col_excludes = set(col_excludes)
 
     ret = dict()
     for slice, dr in zip(schemas, db.data_refs):
@@ -201,6 +209,10 @@ def extract_table_header(
                         continue
                     col_selects.remove(h)
 
+                if col_excludes is not None:
+                    if h in col_excludes:
+                        continue
+
                 t = t.lower()
                 assert (
                     t in SUPPORTED_VTABLE_DATA_TYPE
@@ -213,6 +225,11 @@ def extract_table_header(
                         # label not selected, skip
                         continue
                     col_selects.remove(h)
+
+                if col_excludes is not None:
+                    if h in col_excludes:
+                        continue
+
                 smeta[h] = SUPPORTED_VTABLE_DATA_TYPE[t]
         if load_ids:
             for t, h in zip(slice.id_types, slice.ids):
@@ -221,6 +238,11 @@ def extract_table_header(
                         # id not selected, skip
                         continue
                     col_selects.remove(h)
+
+                if col_excludes is not None:
+                    if h in col_excludes:
+                        continue
+
                 smeta[h] = SUPPORTED_VTABLE_DATA_TYPE[t]
 
         if len(smeta):
@@ -243,6 +265,7 @@ def load_table(
     load_ids: bool = False,
     feature_selects: List[str] = None,  # if None, load all features
     col_selects: List[str] = None,  # if None, load all cols
+    col_excludes: List[str] = None,
 ) -> VDataFrame:
     assert load_features or load_labels or load_ids, "At least one flag should be true"
     assert (
@@ -257,6 +280,7 @@ def load_table(
         load_ids=load_ids,
         feature_selects=feature_selects,
         col_selects=col_selects,
+        col_excludes=col_excludes,
     )
     parties_path_format = extract_distdata_info(db)
     for p in v_headers:
