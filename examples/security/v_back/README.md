@@ -20,4 +20,6 @@ Gu T, Liu K, Dolan-Gavitt B, et al. Badnets: Evaluating backdooring attacks on d
 我们在Cifar10等数据集上进行实验，结果表明我们的方法相比于Badnets，在对抗迁移训练方面有明显提升。
 
 
-在训练中使用Cifar10数据集
+Python 3.8.3 (default, Jul  2 2020, 17:30:36) [MSC v.1916 64 bit (AMD64)] :: Anaconda, Inc. on win32
+torch.__version__ = '1.13.0'
+
