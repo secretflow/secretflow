@@ -21,7 +21,6 @@ from secretflow.device import PYUObject, proxy
 
 from .base import AgentIndex, PartDataFrameBase, PartitionAgentBase
 from .pandas import PdPartDataFrame
-from .polars import PlPartDataFrame
 
 
 def partition_data(source, backend="pandas") -> "PartDataFrameBase":
@@ -82,8 +81,14 @@ class PartitionAgent(PartitionAgentBase):
         working_object = self.working_objects[idx]
         if isinstance(working_object, PdPartDataFrame):
             return "pandas"
-        elif isinstance(working_object, PlPartDataFrame):
-            return "polars"
+        else:
+            try:
+                from secretflow.data.core.polars import PlPartDataFrame
+
+                if isinstance(working_object, PlPartDataFrame):
+                    return "polars"
+            except ImportError:
+                pass
         return "unknown"
 
     def __getitem__(self, idx: AgentIndex, item) -> AgentIndex:
