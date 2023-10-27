@@ -41,7 +41,7 @@ import os
 import pathlib
 import shutil
 from os.path import join
-os.environ["CUDA_VISIBLE_DEVICES"]="-1"
+
 import numpy as np
 import seaborn as sns
 import tensorflow as tf
