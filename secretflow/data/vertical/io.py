@@ -14,12 +14,13 @@
 
 from typing import Dict, List, Union
 
-from secretflow.data.partition.io import read_csv_wrapper
-from secretflow.data.base import partition
-from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.device import PYU, SPU, Device
 from secretflow.utils.errors import InvalidArgumentError
 from secretflow.utils.random import global_random
+
+from ..core import partition
+from ..core.io import read_csv_wrapper
+from .dataframe import VDataFrame
 
 
 def read_csv(
@@ -122,17 +123,16 @@ def read_csv(
         usecols = dtypes[device].keys() if dtypes is not None else None
         dtype = dtypes[device] if dtypes is not None else None
         partitions[device] = partition(
-            device(read_csv_wrapper)(
-                path,
-                auto_gen_header_prefix=str(device) if no_header else "",
-                delimiter=delimiter,
-                usecols=usecols,
-                dtype=dtype,
-                backend=backend,
-            ),
+            data=read_csv_wrapper,
+            device=device,
             backend=backend,
+            filepath=path,
+            auto_gen_header_prefix=str(device) if no_header else "",
+            delimiter=delimiter,
+            usecols=usecols,
+            dtype=dtype,
+            read_backend=backend,
         )
-
     if drop_keys:
         for device, part in partitions.items():
             device_drop_key = get_keys(device, drop_keys)

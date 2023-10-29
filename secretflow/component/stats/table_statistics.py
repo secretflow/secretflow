@@ -16,9 +16,9 @@ import pandas as pd
 
 from secretflow.component.component import Component, IoType
 from secretflow.component.data_utils import DistDataType, load_table
-from secretflow.protos.component.comp_pb2 import Attribute
-from secretflow.protos.component.data_pb2 import DistData
-from secretflow.protos.component.report_pb2 import Div, Report, Tab, Table
+from secretflow.spec.v1.component_pb2 import Attribute
+from secretflow.spec.v1.data_pb2 import DistData
+from secretflow.spec.v1.report_pb2 import Div, Report, Tab, Table
 from secretflow.stats.table_statistics import table_statistics
 
 table_statistics_comp = Component(
@@ -110,11 +110,11 @@ def gen_table_statistic_report(df: pd.DataFrame) -> Report:
     )
 
 
-def dump_table_statistics(name, sys_info, df: pd.DataFrame) -> DistData:
+def dump_table_statistics(name, system_info, df: pd.DataFrame) -> DistData:
     report_mate = gen_table_statistic_report(df)
     res = DistData(
         name=name,
-        sys_info=sys_info,
+        system_info=system_info,
         type=str(DistDataType.REPORT),
         data_refs=[],
     )
@@ -131,4 +131,4 @@ def table_statistics_eval_fn(*, ctx, input_data, report):
     with ctx.tracer.trace_running():
         stat = table_statistics(input_df)
 
-    return {"report": dump_table_statistics(report, input_data.sys_info, stat)}
+    return {"report": dump_table_statistics(report, input_data.system_info, stat)}

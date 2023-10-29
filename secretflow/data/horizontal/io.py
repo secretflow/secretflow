@@ -17,9 +17,10 @@ from typing import Dict
 from secretflow.device import PYU
 from secretflow.security.aggregation.aggregator import Aggregator
 from secretflow.security.compare.comparator import Comparator
+
+from ..core import partition
+from ..core.io import read_csv_wrapper
 from .dataframe import HDataFrame
-from ..base import partition
-from ..partition.io import read_csv_wrapper
 
 
 def read_csv(
@@ -35,7 +36,7 @@ def read_csv(
         filepath: a dict {PYU: file path}.
         aggregator: optionla; the aggregator assigned to the dataframe.
         comparator: optionla; the comparator assigned to the dataframe.
-        backend optionla; the backend of the dataframe, default to 'pandas'.
+        backend: optional; the backend of the dataframe, default to 'pandas'.
         kwargs: all other arguments.
 
     Returns:
@@ -48,7 +49,12 @@ def read_csv(
     df = HDataFrame(aggregator=aggregator, comparator=comparator)
     for device, path in filepath.items():
         df.partitions[device] = partition(
-            device(read_csv_wrapper)(path, backend=backend, **kwargs), backend=backend
+            data=read_csv_wrapper,
+            device=device,
+            backend=backend,
+            filepath=path,
+            read_backend=backend,
+            **kwargs,
         )
     # Check column and dtype.
     dtypes = None

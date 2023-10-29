@@ -33,6 +33,8 @@ class PYUObject(DeviceObject):
         data: Reference to underlying data.
     """
 
+    device: 'PYU'
+
     def __init__(self, device: 'PYU', data: Union[ray.ObjectRef, fed.FedObject]):
         super().__init__(device)
         self.data = data
@@ -145,10 +147,10 @@ class PYU(Device):
             for pos, arg in enumerate(arg_flat)
             if isinstance(arg, ray.ObjectRef)
         }
-
-        actual_vals = ray.get(list(refs.values()))
-        for pos, actual_val in zip(refs.keys(), actual_vals):
-            arg_flat[pos] = actual_val
+        if refs:
+            actual_vals = ray.get(list(refs.values()))
+            for pos, actual_val in zip(refs.keys(), actual_vals):
+                arg_flat[pos] = actual_val
 
         args, kwargs = jax.tree_util.tree_unflatten(arg_tree, arg_flat)
         return fn(*args, **kwargs)

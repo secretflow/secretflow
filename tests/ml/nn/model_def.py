@@ -83,6 +83,21 @@ class ConvNetFuse(BaseModule):
         return x
 
 
+class ConvNetFuseAgglayer(BaseModule):
+    """Small ConvNet basenet for MNIST."""
+
+    def __init__(self):
+        super(ConvNetFuseAgglayer, self).__init__()
+        self.fc1 = nn.Linear(64, 100)
+        self.fc2 = nn.Linear(100, 10)
+
+    def forward(self, x):
+        x = x.view(-1, 64)
+        x = self.fc1(x)
+        x = self.fc2(x)
+        return x
+
+
 class ConvRGBNet(BaseModule):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)

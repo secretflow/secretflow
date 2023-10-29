@@ -16,7 +16,7 @@ import copy
 import random
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -27,6 +27,7 @@ import torchmetrics
 from secretflow.ml.nn.metrics import AUC, Mean, Precision, Recall
 from secretflow.ml.nn.utils import TorchModel
 from secretflow.security.privacy import DPStrategy
+from secretflow.utils.communicate import ForwardData
 
 
 class SLBaseModel(ABC):
@@ -35,11 +36,9 @@ class SLBaseModel(ABC):
         builder_base: Callable[[], TorchModel],
         builder_fuse: Callable[[], TorchModel],
     ):
-        assert builder_base is not None, "builder_base cannot be none"
-
         self.model_base = (
             builder_base.model_fn(**builder_base.kwargs)
-            if builder_base.model_fn
+            if builder_base and builder_base.model_fn
             else None
         )
         self.model_fuse = (
@@ -48,14 +47,16 @@ class SLBaseModel(ABC):
             else None
         )
 
-        self.loss_base = builder_base.loss_fn() if builder_base.loss_fn else None
+        self.loss_base = (
+            builder_base.loss_fn() if builder_base and builder_base.loss_fn else None
+        )
         self.loss_fuse = (
             builder_fuse.loss_fn() if builder_fuse and builder_fuse.loss_fn else None
         )
 
         self.optim_base = (
             builder_base.optim_fn(self.model_base.parameters())
-            if builder_base.optim_fn
+            if builder_base and builder_base.optim_fn
             else None
         )
         self.optim_fuse = (
@@ -157,15 +158,21 @@ class SLBaseTorchModel(SLBaseModel):
 
     # FIXME: 这里需要修改为torch manner
     def get_basenet_output_num(self):
-        if hasattr(self.model_base, 'outputs') and self.model_base.outputs is not None:
-            return len(self.model_base.outputs)
-        else:
-            if hasattr(self.model_base, "output_num"):
-                return self.model_base.output_num()
+        if self.model_base:
+            if (
+                hasattr(self.model_base, 'outputs')
+                and self.model_base.outputs is not None
+            ):
+                return len(self.model_base.outputs)
             else:
-                raise Exception(
-                    "Please define the output_num function in basemodel and return the number of basenet outputs, then try again"
-                )
+                if hasattr(self.model_base, "output_num"):
+                    return self.model_base.output_num()
+                else:
+                    raise Exception(
+                        "Please define the output_num function in basemodel and return the number of basenet outputs, then try again"
+                    )
+        else:
+            return 0
 
     def unpack_dataset(self, data, has_x, has_y, has_s_w):
         data_x, data_y, data_s_w = None, None, None
@@ -199,17 +206,23 @@ class SLBaseTorchModel(SLBaseModel):
         self.init_data()
 
         # init model stat to train
-        self.model_base.train()
 
         if stage == "train":
+            if self.model_base:
+                self.model_base.train()
             train_data = next(self.train_iter)
-            self.train_x, self.train_y, self.train_sample_weight = self.unpack_dataset(
+            (
+                self.train_x,
+                self.train_y,
+                self.train_sample_weight,
+            ) = self.unpack_dataset(
                 train_data, self.train_has_x, self.train_has_y, self.train_has_s_w
             )
             data_x = self.train_x
 
         elif stage == "eval":
-            self.model_base.eval()
+            if self.model_base:
+                self.model_base.eval()
             eval_data = next(self.eval_iter)
 
             self.eval_x, self.eval_y, self.eval_sample_weight = self.unpack_dataset(
@@ -225,6 +238,7 @@ class SLBaseTorchModel(SLBaseModel):
             if isinstance(data_x, (Tuple, List)) and len(data_x) == 1
             else data_x
         )
+
         return data_x
 
     def build_dataset_from_numeric(
@@ -300,10 +314,6 @@ class SLBaseTorchModel(SLBaseModel):
         )
 
     def init_training(self, callbacks, epochs=1, steps=0, verbose=0):
-        assert (
-            self.model_base is not None
-        ), "model cannot be none, please give model define"
-
         if callbacks is not None:
             self.fuse_callbacks = callbacks()
             self.fuse_callbacks.init_model(self.model_base, self.model_fuse)
@@ -447,6 +457,8 @@ class SLBaseTorchModel(SLBaseModel):
         self.model_fuse.train()
         if isinstance(hiddens, List):
             hiddens = [h.requires_grad_() for h in hiddens]
+            if len(hiddens) == 1:
+                hiddens = hiddens[0]
         else:
             hiddens = hiddens.requires_grad_()
 
@@ -581,6 +593,9 @@ class SLBaseTorchModel(SLBaseModel):
     def _evaluate_internal(self, hiddens, eval_y, eval_sample_weight, logs):
         # Step 1: forward pass
         self.model_fuse.eval()
+        if isinstance(hiddens, List) and len(hiddens) == 1:
+            hiddens = hiddens[0]
+
         output = self.model_fuse(hiddens, **self.kwargs)
         if isinstance(output, Tuple) and len(output) > 1:
             y_pred = output[0]
@@ -609,7 +624,10 @@ class SLBaseTorchModel(SLBaseModel):
             result[m.__class__.__name__] = m.compute()
         return result
 
-    def evaluate(self, *hidden_features):
+    def evaluate(
+        self,
+        forward_data: Union[List[ForwardData], ForwardData],
+    ):
         """Returns the loss value & metrics values for the model in test mode.
 
         Args:
@@ -622,24 +640,26 @@ class SLBaseTorchModel(SLBaseModel):
             self.model_fuse is not None
         ), "model cannot be none, please give model define"
 
+        if isinstance(forward_data, ForwardData):
+            forward_data = [forward_data]
+        forward_data[:] = (h for h in forward_data if h is not None)
+
+        hidden_features = [h.hidden for h in forward_data]
+
         hiddens = []
+
         for h in hidden_features:
-            # the evaluate function only recognizes torch.tensor, but inputs may be np type via compression.
+            # h will be list, if basenet is multi output
             if isinstance(h, List):
-                for e in h:
-                    hiddens.append(
-                        torch.as_tensor(e)
-                        if isinstance(e, (np.matrix, np.ndarray))
-                        else e
-                    )
+                for i in range(len(h)):
+                    hiddens.append(torch.tensor(h[i]))
             else:
-                hiddens.append(torch.as_tensor(h)) if isinstance(
-                    h, (np.matrix, np.ndarray)
-                ) else hiddens.append(h)
+                hiddens.append(torch.tensor(h))
+        eval_y = self.eval_y[0] if len(self.eval_y) == 1 else self.eval_y
         result = {}
         metrics = self._evaluate_internal(
             hiddens=hiddens,
-            eval_y=self.eval_y,
+            eval_y=eval_y,
             eval_sample_weight=self.eval_sample_weight,
             logs=result,
         )
@@ -696,6 +716,9 @@ class SLBaseTorchModel(SLBaseModel):
     def _predict_internal(self, hiddens):
         self.model_fuse.eval()
 
+        if isinstance(hiddens, List) and len(hiddens) == 1:
+            hiddens = hiddens[0]
+
         output = self.model_fuse(hiddens, **self.kwargs)
         if isinstance(output, Tuple) and len(output) > 1:
             y_pred = output[0]
@@ -703,7 +726,10 @@ class SLBaseTorchModel(SLBaseModel):
             y_pred = output
         return y_pred
 
-    def predict(self, *hidden_features):
+    def predict(
+        self,
+        forward_data: Union[List[ForwardData], ForwardData],
+    ):
         """Generates output predictions for the input hidden layer features.
 
         Args:
@@ -714,6 +740,13 @@ class SLBaseTorchModel(SLBaseModel):
         assert (
             self.model_fuse is not None
         ), "Fuse model cannot be none, please give model define"
+
+        if isinstance(forward_data, ForwardData):
+            forward_data = [forward_data]
+        forward_data[:] = (h for h in forward_data if h is not None)
+
+        hidden_features = [h.hidden for h in forward_data]
+
         hiddens = []
         for h in hidden_features:
             if isinstance(h, List):

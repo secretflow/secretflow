@@ -24,16 +24,11 @@ from secretflow.component.component import (
 from secretflow.component.data_utils import (
     DistDataType,
     extract_distdata_info,
-    extract_table_header,
     merge_individuals_to_vtable,
 )
 from secretflow.device.device.pyu import PYU
 from secretflow.device.device.spu import SPU
-from secretflow.protos.component.data_pb2 import (
-    DistData,
-    IndividualTable,
-    VerticalTable,
-)
+from secretflow.spec.v1.data_pb2 import DistData, IndividualTable, VerticalTable
 
 psi_comp = Component(
     "psi",
@@ -48,6 +43,13 @@ psi_comp.str_attr(
     is_optional=True,
     default_value="ECDH_PSI_2PC",
     allowed_values=["ECDH_PSI_2PC", "KKRT_PSI_2PC", "BC22_PSI_2PC"],
+)
+psi_comp.bool_attr(
+    name="sort",
+    desc="Sort the output.",
+    is_list=False,
+    is_optional=True,
+    default_value=False,
 )
 psi_comp.int_attr(
     name="bucket_size",
@@ -74,7 +76,8 @@ psi_comp.io(
     col_params=[
         TableColParam(
             name="key",
-            desc="Column(s) used to join. If not provided, ids of the dataset will be used.",
+            desc="Column(s) used to join.",
+            col_min_cnt_inclusive=1,
         )
     ],
 )
@@ -86,7 +89,8 @@ psi_comp.io(
     col_params=[
         TableColParam(
             name="key",
-            desc="Column(s) used to join. If not provided, ids of the dataset will be used.",
+            desc="Column(s) used to join.",
+            col_min_cnt_inclusive=1,
         )
     ],
 )
@@ -135,7 +139,7 @@ def modify_schema(x: DistData, keys: List[str]) -> DistData:
 
     new_meta.schema.labels.extend(list(imeta.schema.labels))
     new_meta.schema.label_types.extend(list(imeta.schema.label_types))
-    new_meta.num_lines = imeta.num_lines
+    new_meta.line_count = imeta.line_count
 
     new_x.meta.Pack(new_meta)
 
@@ -147,6 +151,7 @@ def two_party_balanced_psi_eval_fn(
     *,
     ctx,
     protocol,
+    sort,
     bucket_size,
     ecdh_curve_type,
     receiver_input,
@@ -179,18 +184,6 @@ def two_party_balanced_psi_eval_fn(
     receiver_pyu = PYU(receiver_party)
     sender_pyu = PYU(sender_party)
 
-    # If receiver_input_key is not provided, try to get receiver_input_key from ids of receiver_input.
-    if len(receiver_input_key) == 0:
-        receiver_input_key = list(
-            extract_table_header(receiver_input, load_ids=True)[receiver_party].keys()
-        )
-
-    # If sender_input_key is not provided, try to get sender_input_key from ids of sender_input.
-    if len(sender_input_key) == 0:
-        sender_input_key = list(
-            extract_table_header(sender_input, load_ids=True)[sender_party].keys()
-        )
-
     with ctx.tracer.trace_running():
         intersection_count = spu.psi_csv(
             key={receiver_pyu: receiver_input_key, sender_pyu: sender_input_key},
@@ -207,7 +200,7 @@ def two_party_balanced_psi_eval_fn(
                 sender_pyu: os.path.join(local_fs_wd, psi_output),
             },
             receiver=receiver_party,
-            sort=False,
+            sort=sort,
             protocol=protocol,
             bucket_size=bucket_size,
             curve_type=ecdh_curve_type,
@@ -216,7 +209,7 @@ def two_party_balanced_psi_eval_fn(
     output_db = DistData(
         name=psi_output,
         type=str(DistDataType.VERTICAL_TABLE),
-        sys_info=receiver_input.sys_info,
+        system_info=receiver_input.system_info,
         data_refs=[
             DistData.DataRef(
                 uri=psi_output,
@@ -240,7 +233,7 @@ def two_party_balanced_psi_eval_fn(
     )
     vmeta = VerticalTable()
     assert output_db.meta.Unpack(vmeta)
-    vmeta.num_lines = intersection_count
+    vmeta.line_count = intersection_count
     output_db.meta.Pack(vmeta)
 
     return {"psi_output": output_db}

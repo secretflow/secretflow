@@ -37,9 +37,9 @@ class SLAsyncTFModel(SLBaseTFModel):
         builder_base: Callable[[], tf.keras.Model],
         builder_fuse: Callable[[], tf.keras.Model],
         dp_strategy: DPStrategy,
-        base_local_steps: int,
-        fuse_local_steps: int,
-        bound_param: float,
+        base_local_steps: int = 1,
+        fuse_local_steps: int = 1,
+        bound_param: float = 0.0,
         random_seed: int = None,
         **kwargs,
     ):

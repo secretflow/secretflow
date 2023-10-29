@@ -22,12 +22,13 @@ from kuscia.proto.api.v1alpha1.kusciatask.kuscia_task_pb2 import (
     ClusterDefine,
 )
 
-from secretflow.protos.component.cluster_pb2 import SFClusterDesc, StorageConfig
-from secretflow.protos.component.evaluation_pb2 import NodeEvalParam
+from secretflow.spec.extend.cluster_pb2 import SFClusterDesc
+from secretflow.spec.v1.data_pb2 import StorageConfig
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
 
 @dataclass
-class KusicaTaskConfig:
+class KusciaTaskConfig:
     task_id: str
     task_cluster_def: ClusterDefine
     task_allocated_ports: AllocatedPorts

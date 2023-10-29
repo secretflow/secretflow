@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 from functools import partial
 from typing import Any, Callable, Dict, Union
 
@@ -20,7 +21,6 @@ from sklearn.preprocessing import FunctionTransformer as SkFunctionTransformer
 
 from secretflow.data.horizontal import HDataFrame
 from secretflow.data.mix import MixDataFrame
-from secretflow.data.base import partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.preprocessing.base import _PreprocessBase
 
@@ -80,37 +80,36 @@ class _FunctionTransformer(_PreprocessBase):
     def _transform(
         self, df: Union[HDataFrame, VDataFrame]
     ) -> Union[HDataFrame, VDataFrame]:
-        def _df_transform(transformer: SkFunctionTransformer, df: pd.DataFrame):
-            if isinstance(df, pd.DataFrame):
+        def _df_transform(_df: pd.DataFrame, transformer: SkFunctionTransformer):
+            transformed_df = transformer.transform(_df)
+            if isinstance(_df, pd.DataFrame):
                 return pd.DataFrame(
-                    data=transformer.transform(df),
-                    columns=df.columns,
+                    data=transformed_df,
+                    columns=_df.columns,
                 )
             else:
                 try:
                     import polars as pl
 
-                    if isinstance(df, pl.DataFrame):
-                        transform_df = transformer.transform(df)
-                        return (
-                            transform_df
-                            if isinstance(transform_df, pl.DataFrame)
-                            else pl.DataFrame(
-                                data=transformer.transform(df),
+                    if isinstance(_df, pl.DataFrame):
+                        if isinstance(transformed_df, pl.DataFrame):
+                            return transformed_df
+                        else:
+                            return pl.DataFrame(
+                                data=transformer.transform(_df),
                                 schema={
-                                    df.columns[i]: df.dtypes[i]
-                                    for i in range(len(df.columns))
+                                    _df.columns[i]: _df.dtypes[i]
+                                    for i in range(len(_df.columns))
                                 },
                             )
-                        )
                 except ImportError:
                     pass
-                raise RuntimeError(f"Unknown df type {type(df)}")
+                raise RuntimeError(f"Unknown df type {type(_df)}")
 
         transformed_parts = {}
         for device, part in df.partitions.items():
-            transformed_parts[device] = partition(
-                device(_df_transform)(self._transformer, part.data), part.backend
+            transformed_parts[device] = part.apply_func(
+                _df_transform, transformer=self._transformer
             )
         new_df = df.copy()
         new_df.partitions = transformed_parts
@@ -164,11 +163,10 @@ class LogroundTransformer(_FunctionTransformer):
             else:
                 try:
                     import polars as pl
-                    import polars.selectors as cs
 
                     if isinstance(x, pl.DataFrame):
                         x = x.with_columns(
-                            cs.by_dtype(pl.INTEGER_DTYPES, pl.FLOAT_DTYPES)
+                            pl.col(pl.NUMERIC_DTYPES)
                             .add(_bias)
                             .apply(np.log2)
                             .round(_decimals)

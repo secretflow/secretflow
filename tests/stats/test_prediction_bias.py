@@ -6,7 +6,7 @@ import pytest
 
 from secretflow import reveal
 from secretflow.data import FedNdarray, PartitionWay
-from secretflow.data.base import partition
+from secretflow.data import partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.stats import prediction_bias_eval
 from secretflow.stats.core.prediction_bias_core import PredictionBiasBucketMethod

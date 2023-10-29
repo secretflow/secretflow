@@ -6,15 +6,15 @@ import pandas as pd
 
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.ml.eval.prediction_bias_eval import prediction_bias_comp
-from secretflow.protos.component.comp_pb2 import Attribute
-from secretflow.protos.component.data_pb2 import (
+from secretflow.spec.v1.component_pb2 import Attribute
+from secretflow.spec.v1.data_pb2 import (
     DistData,
     IndividualTable,
     TableSchema,
     VerticalTable,
 )
-from secretflow.protos.component.evaluation_pb2 import NodeEvalParam
-from secretflow.protos.component.report_pb2 import Report
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
+from secretflow.spec.v1.report_pb2 import Report
 
 
 def test_prediction_bias_eval(comp_prod_sf_cluster_config):
@@ -32,8 +32,9 @@ def test_prediction_bias_eval(comp_prod_sf_cluster_config):
     alice_labels_path = "prediction_bias_eval/alice_labels.csv"
     alice_predict_path = "prediction_bias_eval/alice_predict.csv"
 
-    self_party = comp_prod_sf_cluster_config.private_config.self_party
-    local_fs_wd = comp_prod_sf_cluster_config.private_config.storage_config.local_fs.wd
+    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    self_party = sf_cluster_config.private_config.self_party
+    local_fs_wd = storage_config.local_fs.wd
 
     if self_party == "alice":
         os.makedirs(os.path.join(local_fs_wd, "prediction_bias_eval"), exist_ok=True)
@@ -89,7 +90,9 @@ def test_prediction_bias_eval(comp_prod_sf_cluster_config):
     param.inputs[1].meta.Pack(meta)
 
     res = prediction_bias_comp.eval(
-        param=param, cluster_config=comp_prod_sf_cluster_config
+        param=param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
     )
     comp_ret = Report()
     res.outputs[0].meta.Unpack(comp_ret)

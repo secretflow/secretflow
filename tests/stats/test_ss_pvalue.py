@@ -23,7 +23,7 @@ import statsmodels.api as sm
 from sklearn import linear_model
 from sklearn.preprocessing import StandardScaler
 
-from secretflow.data.base import partition
+from secretflow.data import partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.ml.linear import LinearModel, RegType, SSRegression
 from secretflow.stats import SSPValue

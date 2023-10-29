@@ -21,6 +21,7 @@ import jax
 import ray
 
 import secretflow.distributed as sfd
+from secretflow.distributed.primitive import DISTRIBUTION_MODE
 from secretflow.utils.logging import LOG_FORMAT, get_logging_level
 
 from . import link
@@ -31,7 +32,6 @@ _WRAPPABLE_DEVICE_OBJ: Dict[Type[DeviceObject], Type[Device]] = {PYUObject: PYU}
 
 def _actor_wrapper(device_object_type, name, num_returns):
     def wrapper(self, *args, **kwargs):
-        # device object type check and unwrap
         _num_returns = kwargs.pop('_num_returns', num_returns)
         value_flat, value_tree = jax.tree_util.tree_flatten((args, kwargs))
         for i, value in enumerate(value_flat):
@@ -49,9 +49,7 @@ def _actor_wrapper(device_object_type, name, num_returns):
             )
         )
         handle = getattr(self.data, name)
-        # TODO @raofei: 支持public_reveal装饰器
         res = handle.options(num_returns=_num_returns).remote(*args, **kwargs)
-
         if _num_returns == 1:
             return device_object_type(self.device, res)
         else:
@@ -75,7 +73,6 @@ def _cls_wrapper(cls):
                 for pos, actual_val in zip(refs.keys(), actual_vals):
                     arg_flat[pos] = actual_val
                 args, kwargs = jax.tree_util.tree_unflatten(arg_tree, arg_flat)
-
             return method(*args, **kwargs)
 
         return wrapper
@@ -175,7 +172,7 @@ def proxy(
                 if (
                     max_concur is None
                     and _simulation_max_concurrency is not None
-                    and not sfd.production_mode()
+                    and sfd.get_distribution_mode() == DISTRIBUTION_MODE.SIMULATION
                 ):
                     max_concur = _simulation_max_concurrency
 
@@ -210,8 +207,11 @@ def proxy(
                     num_returns = len(sig.return_annotation)
                 else:
                     num_returns = 1
+
             wrapped_method = wraps(method)(
-                _actor_wrapper(device_object_type, name, num_returns)
+                _actor_wrapper(
+                    device_object_type, name, num_returns
+                )  # DeviceObject, method_name, num_returns
             )
             setattr(ActorProxy, name, wrapped_method)
 
@@ -219,7 +219,6 @@ def proxy(
         ActorProxy.__module__ = cls.__module__
         ActorProxy.__name__ = name
         ActorProxy.__qualname__ = name
-
         return ActorProxy
 
     return make_proxy

@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 
 from secretflow import reveal
-from secretflow.data.base import partition
+from secretflow.data import partition
 from secretflow.data.vertical import VDataFrame, read_csv
 
 

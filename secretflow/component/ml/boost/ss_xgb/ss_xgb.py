@@ -14,7 +14,12 @@
 import json
 import os
 
-from secretflow.component.component import CompEvalError, Component, IoType
+from secretflow.component.component import (
+    CompEvalError,
+    Component,
+    IoType,
+    TableColParam,
+)
 from secretflow.component.data_utils import (
     DistDataType,
     extract_table_header,
@@ -29,7 +34,7 @@ from secretflow.device.device.spu import SPU
 from secretflow.device.driver import wait
 from secretflow.ml.boost.ss_xgb_v import Xgb, XgbModel
 from secretflow.ml.boost.ss_xgb_v.core.node_split import RegType
-from secretflow.protos.component.data_pb2 import DistData
+from secretflow.spec.v1.data_pb2 import DistData
 
 ss_xgb_train_comp = Component(
     "ss_xgb_train",
@@ -152,7 +157,14 @@ ss_xgb_train_comp.io(
     name="train_dataset",
     desc="Input vertical table.",
     types=["sf.table.vertical_table"],
-    col_params=None,
+    col_params=[
+        TableColParam(
+            name="label",
+            desc="Label of train dataset.",
+            col_min_cnt_inclusive=1,
+            col_max_cnt_inclusive=1,
+        )
+    ],
 )
 ss_xgb_train_comp.io(
     io_type=IoType.OUTPUT,
@@ -181,6 +193,7 @@ def ss_xgb_train_eval_fn(
     base_score,
     seed,
     train_dataset,
+    train_dataset_label,
     output_model,
 ):
     if ctx.spu_configs is None or len(ctx.spu_configs) == 0:
@@ -191,8 +204,20 @@ def ss_xgb_train_eval_fn(
 
     spu = SPU(spu_config["cluster_def"], spu_config["link_desc"])
 
-    y = load_table(ctx, train_dataset, load_labels=True)
-    x = load_table(ctx, train_dataset, load_features=True)
+    y = load_table(
+        ctx,
+        train_dataset,
+        load_labels=True,
+        load_features=True,
+        col_selects=train_dataset_label,
+    )
+    x = load_table(
+        ctx,
+        train_dataset,
+        load_labels=True,
+        load_features=True,
+        col_excludes=train_dataset_label,
+    )
 
     with ctx.tracer.trace_running():
         sgb = Xgb(spu)
@@ -231,7 +256,7 @@ def ss_xgb_train_eval_fn(
         json.dumps(m_dict),
         ctx.local_fs_wd,
         output_model,
-        train_dataset.sys_info,
+        train_dataset.system_info,
     )
 
     return {"output_model": model_db}
@@ -416,7 +441,7 @@ def ss_xgb_predict_eval_fn(
         label_header=label_header_map,
         party=receiver,
         pred_name=pred_name,
-        num_lines=x.shape[0],
+        line_count=x.shape[0],
         id_keys=id_header,
         label_keys=label_header,
     )

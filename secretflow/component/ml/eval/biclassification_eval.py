@@ -15,9 +15,9 @@
 from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import DistDataType, load_table
 from secretflow.device.driver import reveal
-from secretflow.protos.component.comp_pb2 import Attribute
-from secretflow.protos.component.data_pb2 import DistData
-from secretflow.protos.component.report_pb2 import Descriptions, Div, Report, Tab, Table
+from secretflow.spec.v1.component_pb2 import Attribute
+from secretflow.spec.v1.data_pb2 import DistData
+from secretflow.spec.v1.report_pb2 import Descriptions, Div, Report, Tab, Table
 from secretflow.stats.biclassification_eval import BiClassificationEval
 
 biclassification_eval_comp = Component(
@@ -131,13 +131,15 @@ def biclassification_eval_fn(
             ).get_all_reports()
         )
 
-    return {"reports": dump_biclassification_reports(reports, labels.sys_info, result)}
+    return {
+        "reports": dump_biclassification_reports(reports, labels.system_info, result)
+    }
 
 
-def dump_biclassification_reports(name, sys_info, reports):
+def dump_biclassification_reports(name, system_info, reports):
     ret = DistData(
         name=name,
-        sys_info=sys_info,
+        system_info=system_info,
         type=str(DistDataType.REPORT),
     )
 

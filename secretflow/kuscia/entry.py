@@ -23,21 +23,24 @@ from google.protobuf.json_format import MessageToJson
 from kuscia.proto.api.v1alpha1.common_pb2 import DataColumn
 from kuscia.proto.api.v1alpha1.datamesh.domaindata_pb2 import DomainData
 
-from secretflow.component.entry import comp_eval
+from secretflow.component.entry import comp_eval, get_comp_def
 from secretflow.kuscia.datamesh import (
     create_domain_data,
     create_domain_data_service_stub,
+    create_domain_data_source_service_stub,
     get_domain_data,
+    get_domain_data_source,
 )
 from secretflow.kuscia.ray_config import RayConfig
 from secretflow.kuscia.sf_config import get_sf_cluster_config
-from secretflow.kuscia.task_config import KusicaTaskConfig
-from secretflow.protos.component.data_pb2 import (
+from secretflow.kuscia.task_config import KusciaTaskConfig
+from secretflow.spec.v1.data_pb2 import (
     DistData,
     IndividualTable,
+    StorageConfig,
     VerticalTable,
 )
-from secretflow.protos.component.evaluation_pb2 import NodeEvalParam, NodeEvalResult
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam, NodeEvalResult
 
 _LOG_FORMAT = "%(asctime)s|{}|%(levelname)s|secretflow|%(filename)s:%(funcName)s:%(lineno)d| %(message)s"
 
@@ -83,10 +86,20 @@ def preprocess_sf_node_eval_param(
 ) -> NodeEvalParam:
     global datasource_id
 
+    comp_def = get_comp_def(param.domain, param.name, param.version)
+
+    assert len(comp_def.inputs) == len(
+        sf_input_ids
+    ), "cnt of sf_input_ids doesn't match cnt of comp_def.inputs."
+    assert len(comp_def.outputs) == len(
+        sf_output_uris
+    ), "cnt of sf_output_uris doesn't match cnt of comp_def.outputs."
+
     # get input DistData from GRM
-    if sf_input_ids is not None and len(sf_input_ids) > 0:
+    if len(sf_input_ids):
+        param.ClearField('inputs')
         stub = create_domain_data_service_stub(datamesh_addr)
-        for id in sf_input_ids:
+        for id, input_def in zip(sf_input_ids, list(comp_def.inputs)):
             domain_data = get_domain_data(stub, id)
 
             if datasource_id is not None and domain_data.datasource_id != datasource_id:
@@ -96,15 +109,55 @@ def preprocess_sf_node_eval_param(
 
             datasource_id = domain_data.datasource_id
 
-            dist_data = json_format.Parse(
-                domain_data.attributes["dist_data"], DistData()
-            )
-            param.inputs.append(dist_data)
+            if domain_data.attributes["dist_data"]:
+                dist_data = json_format.Parse(
+                    domain_data.attributes["dist_data"], DistData()
+                )
+                param.inputs.append(dist_data)
+            else:
+                assert "sf.table.individual" in set(input_def.types)
 
-    if sf_output_uris is not None and len(sf_output_uris) > 0:
+                param.inputs.append(
+                    convert_domain_data_to_individual_table(domain_data)
+                )
+
+    if len(sf_output_uris):
+        param.ClearField('output_uris')
         param.output_uris.extend(sf_output_uris)
 
     return param
+
+
+def convert_domain_data_to_individual_table(
+    domain_data: DomainData,
+) -> IndividualTable:
+    logging.warning(
+        'kuscia adapter has to deduce dist data from domain data at this moment.'
+    )
+    assert domain_data.type == 'table'
+    dist_data = DistData(name=domain_data.name, type="sf.table.individual")
+
+    meta = IndividualTable()
+    for col in domain_data.columns:
+        if not col.comment or col.comment == 'feature':
+            meta.schema.features.append(col.name)
+            meta.schema.feature_types.append(col.type)
+        elif col.comment == 'id':
+            meta.schema.ids.append(col.name)
+            meta.schema.id_types.append(col.type)
+        elif col.comment == 'label':
+            meta.schema.labels.append(col.name)
+            meta.schema.label_types.append(col.type)
+    meta.line_count = -1
+    dist_data.meta.Pack(meta)
+
+    data_ref = DistData.DataRef()
+    data_ref.uri = domain_data.relative_uri
+    data_ref.party = domain_data.author
+    data_ref.format = 'csv'
+    dist_data.data_refs.append(data_ref)
+
+    return dist_data
 
 
 def convert_dist_data_to_domain_data(
@@ -197,7 +250,7 @@ def postprocess_sf_node_eval_result(
             create_domain_data(stub, domain_data)
 
 
-def try_to_get_datasource_id(task_conf: KusicaTaskConfig):
+def try_to_get_datasource_id(task_conf: KusciaTaskConfig):
     global datasource_id
     party_name = task_conf.party_name
     sf_datasource_config = task_conf.sf_datasource_config
@@ -209,11 +262,46 @@ def try_to_get_datasource_id(task_conf: KusicaTaskConfig):
         datasource_id = sf_datasource_config[party_name]["id"]
 
 
+def get_storage_config(
+    kuscia_config: KusciaTaskConfig,
+    datamesh_addr: str,
+    datasource_id: str = None,
+) -> StorageConfig:
+    party_id = kuscia_config.task_cluster_def.self_party_idx
+    party_name = kuscia_config.task_cluster_def.parties[party_id].name
+    kuscia_record = kuscia_config.sf_storage_config
+
+    if (
+        kuscia_record is not None
+        and party_name not in kuscia_record
+        and datasource_id is None
+    ):
+        raise RuntimeError(
+            f"storage config of party [{party_name}] is missing. It must be provided with sf_storage_config explicitly or be inferred from sf_input_ids with DataMesh services."
+        )
+
+    if kuscia_record is not None and party_name in kuscia_record:
+        storage_config = kuscia_record[party_name]
+    else:
+        # try to get storage config with sf_datasource_config
+        stub = create_domain_data_source_service_stub(datamesh_addr)
+        domain_data_source = get_domain_data_source(stub, datasource_id)
+
+        storage_config = StorageConfig(
+            type="local_fs",
+            local_fs=StorageConfig.LocalFSConfig(
+                wd=domain_data_source.info.localfs.path
+            ),
+        )
+
+    return storage_config
+
+
 @click.command()
 @click.argument("task_config_path", type=click.Path(exists=True))
 @click.option("--datamesh_addr", required=False, default=DEFAULT_DATAMESH_ADDRESS)
 def main(task_config_path, datamesh_addr):
-    task_conf = KusicaTaskConfig.from_file(task_config_path)
+    task_conf = KusciaTaskConfig.from_file(task_config_path)
 
     try_to_get_datasource_id(task_conf)
 
@@ -234,9 +322,11 @@ def main(task_config_path, datamesh_addr):
         task_conf.sf_output_uris,
     )
 
-    sf_cluster_config = get_sf_cluster_config(task_conf, datamesh_addr, datasource_id)
+    sf_cluster_config = get_sf_cluster_config(task_conf)
 
-    res = comp_eval(sf_node_eval_param, sf_cluster_config)
+    storage_config = get_storage_config(task_conf, datamesh_addr, datasource_id)
+
+    res = comp_eval(sf_node_eval_param, storage_config, sf_cluster_config)
 
     postprocess_sf_node_eval_result(
         res,
