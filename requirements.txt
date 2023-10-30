@@ -16,7 +16,6 @@ numpy==1.23.5  # FEATURE=[lite]
 # TODO: onnx and tensorflow have dependency conflicts, waiting for upstream to resolve
 # onnx==1.13.1
 pandas==1.5.3  # FEATURE=[lite]
-polars==0.19.3  # FEATURE=[lite]
 # For security reason.
 protobuf==3.19.6  # FEATURE=[lite]
 pyarrow==11.0.0  # FEATURE=[lite]
