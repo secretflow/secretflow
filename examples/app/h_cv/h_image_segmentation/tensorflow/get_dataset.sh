@@ -1,0 +1,1 @@
+wget http://saliencydetection.net/duts/download/DUTS-TE.zip && unzip -q DUTS-TE.zip
