@@ -1,0 +1,1 @@
+example of horizontal federated learning for audio classification task implemented by PyTorch.

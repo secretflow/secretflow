@@ -66,6 +66,9 @@ We hope you enjoy these toturials from SecretFlow developers.
    Split_Learning_for_bank_marketing
    split_learning_gnn
    mix_lr
+   sl_rec_deepfm
+   Pytorch-finetune-alexnet
+   tensorflow-finetune-inception-v3
    /user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/sl_rec_deepfm
    /user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF
    /user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_Torch
