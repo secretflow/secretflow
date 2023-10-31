@@ -4,6 +4,7 @@ import torch.nn.functional as F
 
 EXPANSION = 4
 
+
 #输入数据为CIFAR10的32*32*3的数据。
 class Bottleneck(nn.Module):
     def __init__(self, in_planes, planes, stride=1):

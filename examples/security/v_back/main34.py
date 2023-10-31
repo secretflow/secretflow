@@ -16,6 +16,7 @@ from resnet50 import ResNet50
 from resnet34 import ResNet34
 
 
+
 def main():
     # Check GPU, connect to it if it is available
     device = ''

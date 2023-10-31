@@ -20,6 +20,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 device1 = torch.device('cpu')
 cifardata = torch.load('./data/cifar102.pt')
 
+
 def buildpos(x,lable):
     x = x.to(device1)
     lable = lable.to(device1)

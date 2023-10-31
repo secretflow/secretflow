@@ -9,6 +9,8 @@ os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 from torch.autograd import Variable
 
 
+
+
 classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 criterion = nn.CrossEntropyLoss()
 
