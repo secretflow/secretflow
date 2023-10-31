@@ -16,48 +16,69 @@ from resnet50 import ResNet50
 from resnet34 import ResNet34
 
 
-
 def main():
     # Check GPU, connect to it if it is available
-    device = ''
+    device = ""
     if torch.cuda.is_available():
-        device = 'cuda'
+        device = "cuda"
         print("CUDA is available. GPU will be used for training.")
     else:
-        device = 'cpu'
+        device = "cpu"
 
     BEST_ACCURACY = 0
 
     # Preparing Data
     print("==> Prepairing data ...")
     # Transformation on train data
-    transform_train = transforms.Compose([
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-    ])
+    transform_train = transforms.Compose(
+        [
+            transforms.RandomCrop(32, padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        ]
+    )
 
     # transformation on validation data
-    transform_validation = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-    ])
+    transform_validation = transforms.Compose(
+        [
+            transforms.ToTensor(),
+            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        ]
+    )
 
     # Download Train and Validation data and apply transformation
-    train_data = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform_train)
-    validation_data = torchvision.datasets.CIFAR10(root='./data', train=False, download=True,
-                                                   transform=transform_validation)
+    train_data = torchvision.datasets.CIFAR10(
+        root="./data", train=True, download=True, transform=transform_train
+    )
+    validation_data = torchvision.datasets.CIFAR10(
+        root="./data", train=False, download=True, transform=transform_validation
+    )
 
     # Put data into trainloader, specify batch_size
-    train_loader = torch.utils.data.DataLoader(train_data, batch_size=128, shuffle=True, num_workers=2)
-    validation_loader = torch.utils.data.DataLoader(validation_data, batch_size=100, shuffle=True, num_workers=2)
+    train_loader = torch.utils.data.DataLoader(
+        train_data, batch_size=128, shuffle=True, num_workers=2
+    )
+    validation_loader = torch.utils.data.DataLoader(
+        validation_data, batch_size=100, shuffle=True, num_workers=2
+    )
 
-    classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+    classes = (
+        "plane",
+        "car",
+        "bird",
+        "cat",
+        "deer",
+        "dog",
+        "frog",
+        "horse",
+        "ship",
+        "truck",
+    )
 
     # Function to show CIFAR images
     def show_data(image):
-        plt.imshow(np.transpose(image[0], (1, 2, 0)), interpolation='bicubic')
+        plt.imshow(np.transpose(image[0], (1, 2, 0)), interpolation="bicubic")
         plt.show()
 
     # show_data(train_data[0])
@@ -75,9 +96,9 @@ def main():
 
     length_train = len(train_data)
     length_validation = len(validation_data)
-    print('Lentrain: ', length_train)
-    print('Lenval: ', length_validation)
-    print('Lentrainloader: ', len(train_loader))
+    print("Lentrain: ", length_train)
+    print("Lenval: ", length_validation)
+    print("Lentrainloader: ", len(train_loader))
     num_classes = 10
 
     # Training
@@ -85,7 +106,12 @@ def main():
         global BEST_ACCURACY
 
         BEST_ACCURACY = 0
-        dict = {'Train Loss': [], 'Train Acc': [], 'Validation Loss': [], 'Validation Acc': []}
+        dict = {
+            "Train Loss": [],
+            "Train Acc": [],
+            "Validation Loss": [],
+            "Validation Acc": [],
+        }
         for epoch in range(epochs):
             print("\nEpoch:", epoch + 1, "/", epochs)
             cost = 0
@@ -112,11 +138,11 @@ def main():
             my_loss = cost / len(train_loader)
             my_accuracy = 100 * correct / length_train
 
-            dict['Train Loss'].append(my_loss)
-            dict['Train Acc'].append(my_accuracy)
+            dict["Train Loss"].append(my_loss)
+            dict["Train Acc"].append(my_accuracy)
 
-            print('Tain Loss:', my_loss)
-            print('Train Accuracy:', my_accuracy, '%')
+            print("Tain Loss:", my_loss)
+            print("Train Accuracy:", my_accuracy, "%")
 
             cost = 0
             correct = 0
@@ -136,22 +162,22 @@ def main():
             my_loss = cost / len(validation_loader)
             my_accuracy = 100 * correct / length_validation
 
-            dict['Validation Loss'].append(my_loss)
-            dict['Validation Acc'].append(my_accuracy)
+            dict["Validation Loss"].append(my_loss)
+            dict["Validation Acc"].append(my_accuracy)
 
-            print('Validation Loss:', my_loss)
-            print('Validation Accuracy:', my_accuracy, '%')
+            print("Validation Loss:", my_loss)
+            print("Validation Accuracy:", my_accuracy, "%")
 
             # Save the model if you get best accuracy on validation data
             if my_accuracy > BEST_ACCURACY:
                 BEST_ACCURACY = my_accuracy
-                print('Saving the model ...')
+                print("Saving the model ...")
                 model.eval()
-                if not os.path.isdir('model'):
-                    os.mkdir('model')
-                torch.save(model, './model/resnet0034.pt')
+                if not os.path.isdir("model"):
+                    os.mkdir("model")
+                torch.save(model, "./model/resnet0034.pt")
 
-        torch.save(model, './model/resnet34.pt')
+        torch.save(model, "./model/resnet34.pt")
 
         print("TRAINING IS FINISHED !!!")
         return dict
@@ -159,24 +185,23 @@ def main():
     results = train(100)
     print(results)
 
-
     plt.figure(1)
-    plt.plot(results['Train Loss'], 'b', label='training loss')
-    plt.plot(results['Validation Loss'], 'r', label='validation loss')
+    plt.plot(results["Train Loss"], "b", label="training loss")
+    plt.plot(results["Validation Loss"], "r", label="validation loss")
     plt.title("LOSS")
     plt.xlabel("Epochs")
     plt.ylabel("Loss")
-    plt.legend(['training set', 'validation set'], loc='center right')
-    plt.savefig('Loss_ResNet50.png', dpi=300, bbox_inches='tight')
+    plt.legend(["training set", "validation set"], loc="center right")
+    plt.savefig("Loss_ResNet50.png", dpi=300, bbox_inches="tight")
 
     plt.figure(2)
-    plt.plot(results['Train Acc'], 'b', label='training accuracy')
-    plt.plot(results['Validation Acc'], 'r', label='validation accuracy')
+    plt.plot(results["Train Acc"], "b", label="training accuracy")
+    plt.plot(results["Validation Acc"], "r", label="validation accuracy")
     plt.title("ACCURACY")
     plt.xlabel("Epochs")
     plt.ylabel("Accuracy")
-    plt.legend(['training set', 'validation set'], loc='center right')
-    plt.savefig('Accuracy_ResNet50.png', dpi=300, bbox_inches='tight')
+    plt.legend(["training set", "validation set"], loc="center right")
+    plt.savefig("Accuracy_ResNet50.png", dpi=300, bbox_inches="tight")
     plt.show()
     plt.close()
 
@@ -197,5 +222,5 @@ def main():
     """
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -5,14 +5,16 @@ import torch.nn.functional as F
 EXPANSION = 4
 
 
-#输入数据为CIFAR10的32*32*3的数据。
+# 输入数据为CIFAR10的32*32*3的数据。
 class Bottleneck(nn.Module):
     def __init__(self, in_planes, planes, stride=1):
         super(Bottleneck, self).__init__()
         self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=1, bias=False)
         self.bn1 = nn.BatchNorm2d(planes)
 
-        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
+        self.conv2 = nn.Conv2d(
+            planes, planes, kernel_size=3, stride=stride, padding=1, bias=False
+        )
         self.bn2 = nn.BatchNorm2d(planes)
 
         self.conv3 = nn.Conv2d(planes, EXPANSION * planes, kernel_size=1, bias=False)
@@ -21,8 +23,14 @@ class Bottleneck(nn.Module):
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != EXPANSION * planes:
             self.shortcut = nn.Sequential(
-                nn.Conv2d(in_planes, EXPANSION * planes, kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(EXPANSION * planes)
+                nn.Conv2d(
+                    in_planes,
+                    EXPANSION * planes,
+                    kernel_size=1,
+                    stride=stride,
+                    bias=False,
+                ),
+                nn.BatchNorm2d(EXPANSION * planes),
             )
 
     def forward(self, x):
