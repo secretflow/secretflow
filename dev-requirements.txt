@@ -1,7 +1,7 @@
 matplotlib
 statsmodels==0.13.2
 polars==0.19.3
-pytest
-pytest-cov
-pytest-xdist
-pytest-testmon
+pytest==7.3.1
+pytest-cov==4.0.0
+pytest-xdist==3.2.1
+pytest-testmon==2.0.6

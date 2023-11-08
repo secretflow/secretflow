@@ -79,7 +79,7 @@ struct BernoulliNegExp {
   }
 
   template <typename V>
-  double operator()(yacl::crypto::Prg<V> &prg) {
+  int operator()(yacl::crypto::Prg<V> &prg) {
     while (gamma_ > 1) {
       gamma_ -= 1;
 

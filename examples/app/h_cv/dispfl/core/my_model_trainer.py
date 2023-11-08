@@ -172,6 +172,9 @@ class MyModelTrainer(ModelTrainer):
                 momentum=args.momentum,
                 weight_decay=args.wd,
             )
+        else:
+            raise ValueError(f"Optimizer type not supported: {args.client_optimizer}")
+
         # print(f"epochs 共有{args.epochs}")
         for i, epoch in enumerate(range(args.epochs)):
             # print(f"目前正在进行第{i}个epoch的训练， 共{args.epochs}个epoches，当前batch共有{len(train_data)}")
