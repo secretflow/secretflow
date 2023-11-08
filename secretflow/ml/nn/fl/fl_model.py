@@ -558,13 +558,11 @@ class FLModel:
                         for device, params in zip(self.device_list, model_params_list)
                     ]
 
-            local_metrics_obj = []
+            local_metrics = []
             for device, worker in self._workers.items():
                 worker.on_epoch_end(epoch)
-                local_metrics_obj.append(worker.wrap_local_metrics())
-
-            local_metrics = reveal(local_metrics_obj)
-            for local_metric in local_metrics:
+                local_metric = reveal(worker.wrap_local_metrics())
+                local_metrics.append(local_metric)
                 history.record_local_history(party=device.party, metrics=local_metric)
 
             g_metrics = aggregate_metrics(local_metrics)
