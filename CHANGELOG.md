@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Removed` for now removed features.
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
+
+## [1.2.0] - 2023-11-8
+
+### Added
+
+- Add debug mode.
+- Support GLM model transition from MPC version to Federated version.
+- FLModel supports PFL to allow custom aggregation logic on server.
+- Add split learning applications: BST, MMoE.
+- Add sparse, quantized and mixed compressor.
+- Add polars backend for dataframe and SL model to enhance the data processing performance.
+
+### Changed
+
+- Refactor data preprocessing module (VDataFrame, Partition).
+- Doc: rearrange docs for split recommendation suite: SplitRec.
+- Doc: Update PSI benchmark.
+- Component: expose cross_silo_comm_backend option for secretflow init.
+- Component: add vert_binning.
+- Component: migrate to [SecretFlow Open Specification](https://github.com/secretflow/spec).
+
 ## [1.2.0.dev231025] - 2023-10-25
 ### Added
 - Support naive sl on torch backend.
