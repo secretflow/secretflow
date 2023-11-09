@@ -17,6 +17,7 @@ from .plain_aggregator import PlainAggregator
 from .secure_aggregator import SecureAggregator
 from .sparse_plain_aggregator import SparsePlainAggregator
 from .spu_aggregator import SPUAggregator
+from .qpldp_aggregator import QPLDPAggregator
 
 __all__ = [
     'Aggregator',
@@ -24,4 +25,5 @@ __all__ = [
     'PlainAggregator',
     'SPUAggregator',
     'SparsePlainAggregator',
+    'QPLDPAggregator',
 ]
