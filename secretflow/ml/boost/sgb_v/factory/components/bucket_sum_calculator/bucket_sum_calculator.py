@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
@@ -19,7 +18,10 @@ from secretflow.data import FedNdarray
 from secretflow.device import PYU, HEUObject, PYUObject
 from secretflow.ml.boost.sgb_v.factory.sgb_actor import SGBActor
 
-from ....core.pure_numpy_ops.bucket_sum import batch_select_sum, regroup_bucket_sums
+from ....core.pure_numpy_ops.bucket_sum import (
+    batch_select_sum,
+    regroup_bucket_sums,
+)
 from ....core.pure_numpy_ops.grad import split_GH
 from ..cache.level_wise_cache import LevelWiseCache
 from ..component import Composite, Devices, print_params
@@ -130,6 +132,7 @@ class BucketSumCalculator(Composite):
                     order_map_sub.partitions[worker],
                     bucket_num_plus_one,
                 )
+
                 self.components.level_wise_cache.collect_level_node_GH(
                     worker, bucket_sums, is_lefts
                 )

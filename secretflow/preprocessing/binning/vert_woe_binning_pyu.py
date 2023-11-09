@@ -102,12 +102,20 @@ class VertWoeBinningPyuWorker:
             # for number type col, first binning by pd.qcut.
             bin_num = (
                 self.bin_num
-                if self.binning_method == "quantile"
+                if (
+                    self.binning_method == "quantile"
+                    or self.binning_method == "eq_range"
+                )
                 else self.chimerge_init_bins
             )
-            bins, split_points = pd.qcut(
-                f_data, bin_num, labels=False, duplicates='drop', retbins=True
-            )
+            if self.binning_method == "eq_range":
+                bins, split_points = pd.cut(
+                    f_data, bin_num, labels=False, duplicates='drop', retbins=True
+                )
+            else:
+                bins, split_points = pd.qcut(
+                    f_data, bin_num, labels=False, duplicates='drop', retbins=True
+                )
             bin_indices = list()
             assert split_points.size >= 2, f"split_points.size {split_points.size}"
             empty_bins = [0, split_points.size - 1]

@@ -1,13 +1,13 @@
 import logging
 import time
 
-from sklearn.metrics import roc_auc_score
-from sklearn.preprocessing import StandardScaler
-
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.device.driver import reveal, wait
 from secretflow.ml.linear import SSRegression
 from secretflow.utils.simulation.datasets import load_linear
+
+from sklearn.metrics import roc_auc_score
+from sklearn.preprocessing import StandardScaler
 
 
 def _transform(data):

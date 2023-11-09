@@ -69,6 +69,15 @@
             "lowerBoundEnabled": true,
             "lowerBound": {}
           }
+        },
+        {
+          "name": "select_all_features",
+          "desc": "Select all features for binning.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
         }
       ],
       "inputs": [
@@ -81,8 +90,7 @@
           "attrs": [
             {
               "name": "feature_selects",
-              "desc": "which features should be binned.",
-              "colMinCntInclusive": "1"
+              "desc": "which features should be binned."
             }
           ]
         }
@@ -122,7 +130,7 @@
         },
         {
           "name": "binning_method",
-          "desc": "How to bin features with numeric types: \"quantile\"(equal frequency)/\"chimerge\"(ChiMerge from AAAI92-019: https://www.aaai.org/Papers/AAAI/1992/AAAI92-019.pdf)",
+          "desc": "How to bin features with numeric types: \"quantile\"(equal frequency)/\"chimerge\"(ChiMerge from AAAI92-019: https://www.aaai.org/Papers/AAAI/1992/AAAI92-019.pdf)/\"eq_range\"(equal range)",
           "type": "AT_STRING",
           "atomic": {
             "isOptional": true,
@@ -132,7 +140,8 @@
             "allowedValues": {
               "ss": [
                 "quantile",
-                "chimerge"
+                "chimerge",
+                "eq_range"
               ]
             }
           }
@@ -208,6 +217,15 @@
               "f": 1.0
             },
             "upperBoundInclusive": true
+          }
+        },
+        {
+          "name": "select_all_features",
+          "desc": "Select all features for binning.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
           }
         }
       ],
@@ -1769,6 +1787,112 @@
     },
     {
       "domain": "preprocessing",
+      "name": "onehot_encode",
+      "desc": "onehot_encode",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "drop_first",
+          "desc": "If true drop the first category in each feature. If only one category is present, the feature will be dropped entirely",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "min_frequency",
+          "desc": "Specifies the minimum frequency below which a category will be considered infrequent, [0, 1), 0 disable",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {},
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true,
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 1.0
+            }
+          }
+        },
+        {
+          "name": "report_rules",
+          "desc": "Whether to report rule details",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "b": true
+            }
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "input_dataset",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "encode_features",
+              "desc": "Features to encode."
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "out_rules",
+          "desc": "onehot rule",
+          "types": [
+            "sf.rule.onehot_encode"
+          ]
+        },
+        {
+          "name": "report",
+          "desc": "report rules details if report_rules is true",
+          "types": [
+            "sf.report"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "preprocessing",
+      "name": "onehot_substitution",
+      "desc": "onehot_substitution",
+      "version": "0.0.1",
+      "inputs": [
+        {
+          "name": "input_dataset",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        },
+        {
+          "name": "input_rules",
+          "desc": "Input onehot rules",
+          "types": [
+            "sf.rule.onehot_encode"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_dataset",
+          "desc": "output_dataset",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "preprocessing",
       "name": "psi",
       "desc": "PSI between two parties.",
       "version": "0.0.1",
@@ -1972,13 +2096,15 @@
       "domain": "stats",
       "name": "groupby_statistics",
       "desc": "Get a groupby of statistics, like pandas groupby statistics.\nCurrently only support VDataframe.",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "attrs": [
         {
-          "name": "agg",
-          "desc": "What kind of aggregation statistics we want to do, currently only supports min, max, mean, sum, var, count(number of elements in each group)",
-          "type": "AT_STRING",
+          "name": "aggs",
+          "desc": "What kind of aggregation statistics we want to do? Currently only supports min, max, mean, sum, var, count(number of elements in each group). No repeatitions allowed",
+          "type": "AT_STRINGS",
           "atomic": {
+            "listMinLengthInclusive": "1",
+            "listMaxLengthInclusive": "6",
             "allowedValues": {
               "ss": [
                 "min",
@@ -2022,7 +2148,7 @@
             },
             {
               "name": "values",
-              "desc": "on which columns should we calculate the statistics",
+              "desc": "on which columns should we calculate the statistics, only numerical columns are allowed.",
               "colMinCntInclusive": "1"
             }
           ]

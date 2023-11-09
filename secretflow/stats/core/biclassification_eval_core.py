@@ -16,6 +16,8 @@
 
 from typing import List, Tuple, Union
 
+import jax
+
 import jax.numpy as jnp
 import pandas as pd
 
@@ -196,7 +198,7 @@ def gen_all_reports(
         bin_size: int
             number of bins to evaluate
         min_item_cnt_per_bucket: int
-            min item cnt per bucket. If any bucket doesn't meet the requirement, error raises.
+            min item cnt per bucket. If any bucket doesn't meet the requirement, return NaN values.
     Returns:
 
     """
@@ -296,7 +298,7 @@ def eq_range_bin_evaluate(
         bin_size: int
             Total number of bins
         min_item_cnt_per_bucket: int
-            min item cnt per bucket. If any bucket doesn't meet the requirement, error raises.
+            min item cnt per bucket. If any bucket doesn't meet the requirement, will return nan values.
     Returns:
         bin_reports: List[jnp.array]
 
@@ -310,6 +312,12 @@ def eq_range_bin_evaluate(
     return evaluate_bins(sorted_pairs, pos_count, split_points, min_item_cnt_per_bucket)
 
 
+@jax.jit
+def get_end_positions(x, split_points):
+    end_positions = jnp.sum(x[:, None] > split_points, axis=0)
+    return end_positions
+
+
 def evaluate_bins(
     sorted_pairs: jnp.array, pos_count: int, split_points, min_item_cnt_per_bucket
 ) -> List[jnp.array]:
@@ -321,28 +329,44 @@ def evaluate_bins(
     start_pos = 0
     end_pos = 0
     bins = []
-    for shard in range(len(split_points)):
-        while (end_pos < n_samples) and (
-            sorted_pairs[end_pos, 1] > split_points[shard]
+    end_pos_new = get_end_positions(sorted_pairs[:, 1], split_points)
+    for end_pos in end_pos_new:
+        # problematic case
+        if (
+            (min_item_cnt_per_bucket is not None)
+            and (end_pos - start_pos) < min_item_cnt_per_bucket
+            and (end_pos - start_pos) > 0
         ):
-            end_pos += 1
-        if min_item_cnt_per_bucket is not None:
-            if (end_pos - start_pos) < min_item_cnt_per_bucket and (
-                end_pos - start_pos
-            ) > 0:
-                raise RuntimeError(
-                    "One bin doesn't meet min_item_cnt_per_bucket requirement."
-                )
-        t = bin_evaluate(
-            sorted_pairs,
-            start_pos,
-            end_pos,
-            pos_count,
-            neg_count,
-            cumulative_pos_count,
-            cumulative_neg_count,
-        )
-        bin_report_arr, cumulative_pos_count, cumulative_neg_count = t[0], t[1], t[2]
+            # append enpty bin_report_arr
+            t = bin_evaluate(
+                sorted_pairs,
+                start_pos,
+                end_pos,
+                jnp.nan,
+                jnp.nan,
+                jnp.nan,
+                jnp.nan,
+            )
+            bin_report_arr, cumulative_pos_count, cumulative_neg_count = (
+                t[0],
+                t[1],
+                t[2],
+            )
+        else:
+            t = bin_evaluate(
+                sorted_pairs,
+                start_pos,
+                end_pos,
+                pos_count,
+                neg_count,
+                cumulative_pos_count,
+                cumulative_neg_count,
+            )
+            bin_report_arr, cumulative_pos_count, cumulative_neg_count = (
+                t[0],
+                t[1],
+                t[2],
+            )
         bins.append(bin_report_arr)
         start_pos = end_pos
 
@@ -604,8 +628,10 @@ def roc_curve(sorted_pairs: jnp.array) -> Tuple[jnp.array, jnp.array, jnp.array]
     return fpr, tpr, thresholds
 
 
+@jax.jit
 def auc(x, y):
     """Compute Area Under the Curve (AUC) using the trapezoidal rule.
+    X must be monotonic, no checking inside function.
 
     Args:
         x: ndarray of shape (n,)
@@ -616,15 +642,8 @@ def auc(x, y):
         auc: float
             Area Under the Curve
     """
-    direction = 1
-    dx = jnp.diff(x)
-    if jnp.any(dx < 0):
-        if jnp.all(dx <= 0):
-            direction = -1
-        else:
-            raise ValueError("x is neither increasing nor decreasing : {}.".format(x))
-
-    area = direction * jnp.trapz(y, x)
+    x, y = jax.lax.sort([x, y], num_keys=1)
+    area = jnp.abs(jnp.trapz(y, x))
     return area
 
 
@@ -648,16 +667,11 @@ def binary_roc_auc(sorted_pairs: jnp.array) -> float:
     return auc(fpr, tpr)
 
 
+@jax.jit
 def compute_f1_score(
     true_positive: int, false_positive: int, false_negative: int
 ) -> float:
     """Calculate the F1 score."""
-    if true_positive == 0:
-        return 0
-    if (true_positive + false_positive) == 0:
-        return 0
-    if (true_positive + false_negative) == 0:
-        return 0
-    precision = true_positive / (true_positive + false_positive)
-    recall = true_positive / (true_positive + false_negative)
-    return 2 * precision * recall / (precision + recall)
+    precision = jnp.divide(true_positive, (true_positive + false_positive))
+    recall = jnp.divide(true_positive, (true_positive + false_negative))
+    return jnp.divide(2 * precision * recall, (precision + recall))

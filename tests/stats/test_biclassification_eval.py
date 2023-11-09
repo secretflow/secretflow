@@ -1,23 +1,23 @@
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
-from sklearn.metrics import roc_auc_score
 
 from secretflow import reveal
-from secretflow.data import FedNdarray, PartitionWay
-from secretflow.data import partition
+from secretflow.data import FedNdarray, partition, PartitionWay
 from secretflow.data.vertical import VDataFrame
 from secretflow.stats import BiClassificationEval
+from sklearn.metrics import roc_auc_score
 
 
 def test_auc(sf_production_setup_devices):
-    y_true = np.array([0, 0, 1, 1, 1]).reshape((-1, 1))
-    y_pred = np.array([0.1, 0.4, 0.35, 0.8, 0.1]).reshape((-1, 1))
+    np.random.seed(42)
+    y_true = np.round(np.random.random((800000,)).reshape((-1, 1)))
+    y_pred = np.random.random((800000,)).reshape((-1, 1))
     y_pred_jax = jnp.array(y_pred)
     bucket_size = 2
     y_true_pd_dataframe = pd.DataFrame(
         {
-            'y_true': [0, 0, 1, 1, 1],
+            'y_true': y_true.reshape(-1),
         }
     )
 

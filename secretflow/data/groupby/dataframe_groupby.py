@@ -184,17 +184,30 @@ class DataFrameGroupBy:
                 columns=self.target_columns_names,
             )
         else:
-            return pd.Series(data=values, index=self._view_key())
+            return pd.Series(
+                data=values, index=self._view_key(), name=self.target_columns_names[0]
+            )
 
     # NOTE: this is infact not ok. Since SPU cannot differentiate NA from 0.
     # The result is that all columns have the group sample number as counts
-    # hence our count will always return 1 column
     # DOES NOT TRULY SUPPORT THIS CASE FOR NOW.
-    def count(self) -> pd.Series:
+    def count(self) -> Union[pd.Series, pd.DataFrame]:
         segment_ids = self.segment_ids
-        return pd.Series(
-            data=groupby_count_cleartext(reveal(segment_ids)), index=self._view_key()
-        )
+        target_col_num = len(self.target_columns_names)
+        if target_col_num == 1:
+            return pd.Series(
+                data=groupby_count_cleartext(reveal(segment_ids)),
+                index=self._view_key(),
+                name=self.target_columns_names[0],
+            )
+        else:
+            reshaped_column = groupby_count_cleartext(reveal(segment_ids))[
+                :, np.newaxis
+            ]
+            vals = np.repeat(reshaped_column, target_col_num, axis=1)
+            return pd.DataFrame(
+                data=vals, index=self._view_key(), columns=self.target_columns_names
+            )
 
     def sum(self):
         return self._agg('sum')

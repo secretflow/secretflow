@@ -4,7 +4,6 @@ import os
 import numpy as np
 import pandas as pd
 from google.protobuf.json_format import MessageToJson
-from sklearn.metrics import roc_auc_score
 
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.ml.eval.biclassification_eval import (
@@ -19,97 +18,13 @@ from secretflow.spec.v1.data_pb2 import (
 )
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
+from sklearn.metrics import roc_auc_score
 
 
 def test_biclassification_eval(comp_prod_sf_cluster_config):
-    labels = np.array(
-        [
-            0,
-            0,
-            1,
-            1,
-            1,
-            0,
-            0,
-            1,
-            1,
-            1,
-            0,
-            0,
-            1,
-            1,
-            1,
-            0,
-            0,
-            1,
-            1,
-            1,
-            0,
-            0,
-            1,
-            1,
-            1,
-            0,
-            0,
-            1,
-            1,
-            1,
-            0,
-            0,
-            1,
-            1,
-            1,
-            0,
-            0,
-            1,
-            1,
-            1,
-        ]
-    )
-    predictions = np.array(
-        [
-            0.1,
-            0.4,
-            0.35,
-            0.8,
-            0.1,
-            0.1,
-            0.4,
-            0.35,
-            0.8,
-            0.1,
-            0.1,
-            0.4,
-            0.35,
-            0.8,
-            0.1,
-            0.1,
-            0.4,
-            0.35,
-            0.8,
-            0.1,
-            0.1,
-            0.4,
-            0.35,
-            0.8,
-            0.1,
-            0.1,
-            0.4,
-            0.35,
-            0.8,
-            0.1,
-            0.1,
-            0.4,
-            0.35,
-            0.8,
-            0.1,
-            0.1,
-            0.4,
-            0.35,
-            0.8,
-            0.1,
-        ]
-    )
+    np.random.seed(42)
+    labels = np.round(np.random.random((800000,)))
+    predictions = np.random.random((800000,))
     labels_df = pd.DataFrame(
         {
             "labels": labels,

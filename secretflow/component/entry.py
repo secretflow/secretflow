@@ -25,6 +25,10 @@ from secretflow.component.ml.eval.ss_pvalue import ss_pvalue_comp
 from secretflow.component.ml.linear.ss_glm import ss_glm_predict_comp, ss_glm_train_comp
 from secretflow.component.ml.linear.ss_sgd import ss_sgd_predict_comp, ss_sgd_train_comp
 from secretflow.component.preprocessing.feature_filter import feature_filter_comp
+from secretflow.component.preprocessing.onehot_encode import (
+    onehot_encode,
+    onehot_substitution,
+)
 from secretflow.component.preprocessing.psi import psi_comp
 from secretflow.component.preprocessing.train_test_split import train_test_split_comp
 from secretflow.component.preprocessing.vert_binning import (
@@ -32,10 +36,10 @@ from secretflow.component.preprocessing.vert_binning import (
     vert_binning_comp,
 )
 from secretflow.component.preprocessing.vert_woe_binning import vert_woe_binning_comp
+from secretflow.component.stats.groupby_statistics import groupby_statistics_comp
 from secretflow.component.stats.ss_pearsonr import ss_pearsonr_comp
 from secretflow.component.stats.ss_vif import ss_vif_comp
 from secretflow.component.stats.table_statistics import table_statistics_comp
-from secretflow.component.stats.groupby_statistics import groupby_statistics_comp
 from secretflow.spec.extend.cluster_pb2 import SFClusterConfig
 from secretflow.spec.v1.component_pb2 import CompListDef, ComponentDef
 from secretflow.spec.v1.data_pb2 import StorageConfig
@@ -63,6 +67,8 @@ ALL_COMPONENTS = [
     ss_xgb_train_comp,
     ss_glm_predict_comp,
     ss_glm_train_comp,
+    onehot_encode,
+    onehot_substitution,
 ]
 COMP_LIST_NAME = "secretflow"
 COMP_LIST_DESC = "First-party SecretFlow components."
@@ -99,18 +105,24 @@ def get_comp_def(domain: str, name: str, version: str) -> ComponentDef:
     return COMP_MAP[key].definition()
 
 
-# FIXME(junfeng): Should load storage config from .sf_storage JSON file
 def comp_eval(
     param: NodeEvalParam,
     storage_config: StorageConfig,
     cluster_config: SFClusterConfig,
     tracer_report: bool = False,
 ) -> NodeEvalResult:
+    import logging
+
+    logging.warn(f'\n--\n*param* \n\n{param}\n--\n')
+    logging.warn(f'\n--\n*storage_config* \n\n{storage_config}\n--\n')
+    logging.warn(f'\n--\n*cluster_config* \n\n{cluster_config}\n--\n')
     key = gen_key(param.domain, param.name, param.version)
     if key in COMP_MAP:
         comp = COMP_MAP[key]
-        return comp.eval(
+        res = comp.eval(
             param, storage_config, cluster_config, tracer_report=tracer_report
         )
+        logging.warn(f'\n--\n*res* \n\n{res}\n--\n')
+        return res
     else:
         raise RuntimeError("component is not found.")
