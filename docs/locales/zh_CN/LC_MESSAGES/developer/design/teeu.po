@@ -902,11 +902,3 @@ msgstr "每次修改了脚本或者配置文件的内容，都必须先执行 `o
 msgid "Roadmap"
 msgstr "路线图"
 
-#: ../../developer/design/teeu.md:227
-msgid "![roadmap]( resources/tee_roadmap_en.png )"
-msgstr "![roadmap]( resources/tee_roadmap_cn.png )"
-
-#: ../../developer/design/teeu.md:227
-msgid "roadmap"
-msgstr ""
-
