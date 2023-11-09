@@ -68,8 +68,6 @@ jobs:
     steps:
       - checkout
       - when:
-          condition:
-            equal: [ main, << pipeline.git.branch >> ]
           steps:
             - run:
                 name: "Install homebrew dependencies"
