@@ -358,7 +358,7 @@ class SLBaseTorchModel(SLBaseModel):
         has_x = False
 
         #  x is (None,) if dont have feature
-        if x[0] is not None:
+        if x is not None and x[0] is not None:
             has_x = True
             x = [xi for xi in x]
             data_tuple.extend(x)
@@ -414,7 +414,8 @@ class SLBaseTorchModel(SLBaseModel):
         if isinstance(data_set, torch.utils.data.DataLoader):
             import math
 
-            return math.ceil(len(x[0]) / batch_size)
+            total_size = len(x[0]) if x is not None else 0
+            return math.ceil(total_size / batch_size)
         else:
             raise Exception("Unknown databuilder")
 
