@@ -1,7 +1,6 @@
 import os
 
 import pandas as pd
-from sklearn.datasets import load_breast_cancer
 
 from secretflow.component.data_utils import DistDataType, extract_distdata_info
 from secretflow.component.preprocessing.vert_binning import vert_bin_substitution_comp
@@ -9,6 +8,8 @@ from secretflow.component.preprocessing.vert_woe_binning import vert_woe_binning
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
+from sklearn.datasets import load_breast_cancer
+
 from tests.conftest import TEST_STORAGE_ROOT
 
 
@@ -76,11 +77,13 @@ def test_woe_binning(comp_prod_sf_cluster_config):
         version="0.0.1",
         attr_paths=[
             "secure_device_type",
+            "binning_method",
             "input/input_data/feature_selects",
             "input/input_data/label",
         ],
         attrs=[
             Attribute(s="spu"),
+            Attribute(s="eq_range"),
             Attribute(ss=[f"a{i}" for i in range(11)] + [f"b{i}" for i in range(12)]),
             Attribute(ss=["y"]),
         ],

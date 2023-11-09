@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 
 from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import DistDataType, load_table
@@ -131,6 +132,9 @@ def biclassification_eval_fn(
             ).get_all_reports()
         )
 
+    logging.info(
+        f"auc: {result.summary_report.auc}, ks: {result.summary_report.ks}, f1: {result.summary_report.f1_score}"
+    )
     return {
         "reports": dump_biclassification_reports(reports, labels.system_info, result)
     }

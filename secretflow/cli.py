@@ -15,6 +15,7 @@
 import base64
 import json
 import logging
+import gzip
 import os
 import sys
 from contextlib import redirect_stderr, redirect_stdout
@@ -137,7 +138,19 @@ def inspect(comp_id, all, file):
 @click.option("--eval_param", required=True, help="base64ed NodeEvalParam binary")
 @click.option("--storage", required=True, help="base64ed Storage binary")
 @click.option("--cluster", required=True, help="base64ed SFClusterConfig binary")
-def run(eval_param, storage, cluster, log_file, result_file, log_level, mem_trace):
+@click.option(
+    "--compressed_params", is_flag=True, help="compress params before base64 encode"
+)
+def run(
+    eval_param,
+    storage,
+    cluster,
+    log_file,
+    result_file,
+    log_level,
+    mem_trace,
+    compressed_params,
+):
     def _get_peak_mem() -> float:
         # only works inside docker
         # use docker's default cgroup
@@ -167,11 +180,22 @@ def run(eval_param, storage, cluster, log_file, result_file, log_level, mem_trac
     }
     try:
         eval = NodeEvalParam()
-        eval.ParseFromString(base64.b64decode(eval_param.encode('utf-8')))
+        eval_ser = base64.b64decode(eval_param.encode('utf-8'))
+        if compressed_params:
+            eval_ser = gzip.decompress(eval_ser)
+        eval.ParseFromString(eval_ser)
+
         sto = StorageConfig()
-        sto.ParseFromString(base64.b64decode(storage.encode('utf-8')))
+        sto_ser = base64.b64decode(storage.encode('utf-8'))
+        if compressed_params:
+            sto_ser = gzip.decompress(sto_ser)
+        sto.ParseFromString(sto_ser)
+
         clu = SFClusterConfig()
-        clu.ParseFromString(base64.b64decode(cluster.encode('utf-8')))
+        clu_ser = base64.b64decode(cluster.encode('utf-8'))
+        if compressed_params:
+            clu_ser = gzip.decompress(clu_ser)
+        clu.ParseFromString(clu_ser)
     except Exception as e:
         ret["error_msg"] = f"parse argv err: {e}"
         ret["error_code"] = -1  # TODO: use real code

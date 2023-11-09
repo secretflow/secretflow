@@ -19,7 +19,7 @@ import numpy as np
 from heu import phe
 
 from secretflow.data.vertical import VDataFrame
-from secretflow.device import HEU, PYU, SPU, PYUObject
+from secretflow.device import HEU, PYU, PYUObject, SPU
 from secretflow.device.device.heu import HEUMoveConfig
 from secretflow.preprocessing.binning.vert_woe_binning_pyu import (
     VertWoeBinningPyuWorker,
@@ -66,7 +66,7 @@ class VertWoeBinning:
 
         assert (
             label_count == 1
-        ), f"One and only one party can have label, but found {label_count}"
+        ), f"One and only one party can have label, but found {label_count}, label name {label_name}, vdata {vdata.columns}."
 
         return label_holder_device
 
@@ -95,7 +95,7 @@ class VertWoeBinning:
                 for string type feature bin by it's categories.
                 else bin is count for np.nan samples
             binning_method: how to bin number type features.
-                Options: "quantile"(equal frequency)/"chimerge"(ChiMerge from AAAI92-019)
+                Options: "quantile"(equal frequency)/"chimerge"(ChiMerge from AAAI92-019)/"eq_range"(equal range)
                 Default: "quantile"
             bin_num: max bin counts for one features.
                 Range: (0, ∞]
@@ -157,7 +157,8 @@ class VertWoeBinning:
         assert binning_method in (
             "quantile",
             "chimerge",
-        ), f"binning_method only support ('quantile', 'chimerge'), got {binning_method}"
+            "eq_range",
+        ), f"binning_method only support ('quantile', 'chimerge', 'eq_range'), got {binning_method}"
         assert bin_num > 0, f"bin_num range (0, ∞], got {bin_num}"
         assert (
             chimerge_init_bins > 2
@@ -176,7 +177,6 @@ class VertWoeBinning:
         label_holder_audit_log_path = None
 
         if isinstance(self.secure_device, HEU):
-            assert len(bin_names) == 2, "only support two party binning in HEU mode"
             assert self.secure_device.sk_keeper_name() == label_holder_device.party, (
                 f"HEU sk keeper party {self.secure_device.sk_keeper_name()} "
                 "mismatch with label_holder device's party {label_holder_device.party}"

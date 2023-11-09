@@ -66,6 +66,7 @@ class DistDataType(BaseEnum):
     SGB_MODEL = "sf.model.sgb"
     BIN_RUNNING_RULE = "sf.rule.binning"
     SS_XGB_MODEL = "sf.model.ss_xgb"
+    ONEHOT_RULE = "sf.rule.onehot_encode"
     REPORT = "sf.report"
 
 

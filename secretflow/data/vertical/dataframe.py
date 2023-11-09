@@ -11,11 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import logging
 from dataclasses import dataclass
 from typing import Callable, Dict, List, Union
-
-import warnings
 
 import numpy as np
 
@@ -738,13 +736,19 @@ class VDataFrame(DataFrameBase):
             A DataFrameGroupBy object.
         """
         _, key_cols = self.get_numeric_cols_from_df(by)
-        value_col_names = [col for col in self.columns if col not in by]
-        value_col_names, value_cols = self.get_numeric_cols_from_df(value_col_names)
+        assert len(key_cols) < len(
+            self.columns
+        ), "by should have length < column number"
+        value_col_names_prev = [col for col in self.columns if col not in by]
+        value_col_names, value_cols = self.get_numeric_cols_from_df(
+            value_col_names_prev
+        )
 
-        if len(value_cols) < len(value_col_names):
-            warnings.warn(
-                "There are some target columns that are of non-numeric dtypes are ignored in values. Encode those columns if we want to include them."
+        if len(value_col_names) <= len(value_col_names_prev):
+            logging.warning(
+                "There are some target columns that are of non-numeric dtypes. Encode those columns if we want to include them."
             )
+
         # float types are not recommended to be used as key for numerical considerations.
 
         key_cols_spu = [key_col.to(spu) for key_col in key_cols]

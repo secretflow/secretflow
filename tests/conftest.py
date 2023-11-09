@@ -7,18 +7,16 @@ from dataclasses import dataclass
 
 import multiprocess
 import pytest
-import spu
-from secretflow.spec.v1.data_pb2 import StorageConfig
-from xdist.scheduler import LoadScheduling
 
 import secretflow as sf
 import secretflow.distributed as sfd
+import spu
 from secretflow.distributed.primitive import DISTRIBUTION_MODE
-from secretflow.spec.extend.cluster_pb2 import (
-    SFClusterConfig,
-    SFClusterDesc,
-)
+from secretflow.spec.extend.cluster_pb2 import SFClusterConfig, SFClusterDesc
+from secretflow.spec.v1.data_pb2 import StorageConfig
 from secretflow.utils.testing import unused_tcp_port
+from xdist.scheduler import LoadScheduling
+
 from tests.cluster import cluster, set_self_party
 from tests.load import SF_PARTIES, SF_PARTY_PREFIX, SFLoadPartyScheduling
 
@@ -223,6 +221,54 @@ def sf_party_for_4pc(request):
 
 
 @pytest.fixture(scope="module")
+def sf_production_setup_devices_grpc(request, sf_party_for_4pc):
+    devices = DeviceInventory()
+    sfd.set_distribution_mode(DISTRIBUTION_MODE.PRODUCTION)
+    set_self_party(sf_party_for_4pc)
+    sf.init(
+        address="local",
+        num_cpus=32,
+        log_to_driver=True,
+        logging_level='debug',
+        cluster_config=cluster(),
+        enable_waiting_for_other_parties_ready=False,
+    )
+
+    devices.alice = sf.PYU("alice")
+    devices.bob = sf.PYU("bob")
+    devices.carol = sf.PYU("carol")
+    devices.davy = sf.PYU("davy")
+
+    cluster_def = sf.reveal(devices.alice(semi2k_cluster)())
+
+    devices.spu = sf.SPU(
+        cluster_def,
+        link_desc={
+            "connect_retry_times": 60,
+            "connect_retry_interval_ms": 1000,
+        },
+        id='spu1',
+    )
+
+    cluster_def_2 = sf.reveal(devices.alice(aby3_cluster)())
+
+    devices.spu2 = sf.SPU(
+        cluster_def_2,
+        link_desc={
+            "connect_retry_times": 60,
+            "connect_retry_interval_ms": 1000,
+        },
+        id='spu2',
+    )
+
+    devices.heu = sf.HEU(heu_config, cluster_def["runtime_config"]["field"])
+
+    yield devices
+    del devices
+    sf.shutdown()
+
+
+@pytest.fixture(scope="module")
 def sf_production_setup_devices(request, sf_party_for_4pc):
     devices = DeviceInventory()
     sfd.set_distribution_mode(DISTRIBUTION_MODE.PRODUCTION)
@@ -234,6 +280,16 @@ def sf_production_setup_devices(request, sf_party_for_4pc):
         logging_level='debug',
         cluster_config=cluster(),
         enable_waiting_for_other_parties_ready=False,
+        cross_silo_comm_backend="brpc_link",
+        cross_silo_comm_options={
+            'proxy_max_restarts': 3,
+            'timeout_in_ms': 300 * 1000,
+            'recv_timeout_ms': 3600 * 1000,
+            'connect_retry_times': 3600,
+            'connect_retry_interval_ms': 1000,
+            'brpc_channel_protocol': 'http',
+            'brpc_channel_connection_type': 'pooled',
+        },
     )
 
     devices.alice = sf.PYU("alice")
@@ -282,6 +338,16 @@ def sf_production_setup_devices_aby3(request, sf_party_for_4pc):
         logging_level='debug',
         cluster_config=cluster(),
         enable_waiting_for_other_parties_ready=False,
+        cross_silo_comm_backend="brpc_link",
+        cross_silo_comm_options={
+            'proxy_max_restarts': 3,
+            'timeout_in_ms': 300 * 1000,
+            'recv_timeout_ms': 3600 * 1000,
+            'connect_retry_times': 3600,
+            'connect_retry_interval_ms': 1000,
+            'brpc_channel_protocol': 'http',
+            'brpc_channel_connection_type': 'pooled',
+        },
     )
 
     devices.alice = sf.PYU("alice")
@@ -357,7 +423,7 @@ def comp_prod_sf_cluster_config(request, sf_party_for_4pc):
                 config=json.dumps(
                     {
                         "mode": "PHEU",
-                        "schema": "paillier",
+                        "schema": "ou",
                         "key_size": 2048,
                     }
                 ),

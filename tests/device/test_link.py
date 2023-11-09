@@ -4,8 +4,8 @@ import time
 
 import numpy as np
 
-from secretflow.device import PYUObject, proxy, reveal
-from secretflow.device.link import Link, init_link
+from secretflow.device import proxy, PYUObject, reveal
+from secretflow.device.link import init_link, Link
 
 
 @proxy(PYUObject, max_concurrency=2)
@@ -67,8 +67,8 @@ def _test_parameter_server(devices):
     reveal(res)  # wait all tasks done
 
 
-def test_parameter_server_prod(sf_production_setup_devices):
-    _test_parameter_server(sf_production_setup_devices)
+def test_parameter_server_prod(sf_production_setup_devices_grpc):
+    _test_parameter_server(sf_production_setup_devices_grpc)
 
 
 def test_parameter_server_sim(sf_simulation_setup_devices):
