@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
-## [1.2.0.dev231109] - 2023-11-9
+## [1.3.0.dev231109] - 2023-11-9
 
 ### Added
 
@@ -31,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhance sgb.
 - Component: Fix groupby_statistics
 
-## [1.2.0] - 2023-11-8
+## [1.2.0b0] - 2023-11-8
 
 ### Added
 
