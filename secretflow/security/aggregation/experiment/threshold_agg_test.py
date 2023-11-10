@@ -1,4 +1,4 @@
-from he_shamir_agg import *
+from threshold_agg import *
 
 sf.init(['alice', 'bob', 'carol', 'davy'], address='local')
 
@@ -16,7 +16,7 @@ trusted_auth = TA(
 )
 
 
-aggregator = SecureAggregator(alice, trusted_auth, [alice, bob, carol, davy])
+aggregator = ThresholdAggregator(alice, trusted_auth, [alice, bob, carol, davy])
 
 print('parties: alice, bob, carol, davy')
 
@@ -40,13 +40,19 @@ print(sf.reveal(d))
 print()
 print('(Case1) active parties: alice, davy')
 sum_a_d = aggregator.sum([a, d], axis=0)
-print('data[aggregation]:')
+average_a_d = aggregator.average([a, d], axis=0)
+print('data[sum]:')
 print(sf.reveal(sum_a_d))
+print('data[average]:')
+print(sf.reveal(average_a_d))
 print('aggregation failed!')
 
 print()
 print('(Case 2) active parties: alice, bob, davy')
 sum_a_b_d = aggregator.sum([a, b, d], axis=0)
-print('data[aggregation]:')
+average_a_b_d = aggregator.average([a, b, d], axis=0)
+print('data[sum]:')
 print(sf.reveal(sum_a_b_d))
+print('data[average]:')
+print(sf.reveal(average_a_b_d))
 print('aggregation successed!')
