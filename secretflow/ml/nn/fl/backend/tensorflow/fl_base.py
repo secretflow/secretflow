@@ -38,8 +38,9 @@ class BaseTFModel:
         self.train_set = None
         self.eval_set = None
         self.callbacks = None
-        self.logs = None
+        self.logs = None  # store training status for worker side
         self.epoch_logs = None
+        self.wrapped_metrics = []  # store wrapped metrics for global aggregation
         self.training_logs = None
         if random_seed is not None:
             tf.keras.utils.set_random_seed(random_seed)
@@ -217,15 +218,21 @@ class BaseTFModel:
     def set_validation_metrics(self, global_metrics):
         self.epoch_logs.update(global_metrics)
 
-    def wrap_local_metrics(self):
+    def wrap_local_metrics(self, stage="train"):
         wraped_metrics = []
         for m in self.model.metrics:
             if isinstance(m, tf.keras.metrics.Mean):
-                wraped_metrics.append(Mean(m.name, m.total.numpy(), m.count.numpy()))
+                wraped_metrics.append(
+                    Mean(
+                        f"val_{m.name}" if stage == "val" else m.name,
+                        m.total.numpy(),
+                        m.count.numpy(),
+                    )
+                )
             elif isinstance(m, tf.keras.metrics.AUC):
                 wraped_metrics.append(
                     AUC(
-                        m.name,
+                        f"val_{m.name}" if stage == "val" else m.name,
                         m.thresholds,
                         m.true_positives.numpy(),
                         m.true_negatives.numpy(),
@@ -237,7 +244,7 @@ class BaseTFModel:
             elif isinstance(m, tf.keras.metrics.Precision):
                 wraped_metrics.append(
                     Precision(
-                        m.name,
+                        f"val_{m.name}" if stage == "val" else m.name,
                         m.thresholds,
                         m.true_positives.numpy(),
                         m.false_positives.numpy(),
@@ -246,7 +253,7 @@ class BaseTFModel:
             elif isinstance(m, tf.keras.metrics.Recall):
                 wraped_metrics.append(
                     Recall(
-                        m.name,
+                        f"val_{m.name}" if stage == "val" else m.name,
                         m.thresholds,
                         m.true_positives.numpy(),
                         m.false_negatives.numpy(),
@@ -257,6 +264,9 @@ class BaseTFModel:
                     f'Unsupported global metric {m.__class__.__qualname__} for now, please add it.'
                 )
         return wraped_metrics
+
+    def get_local_metrics(self):
+        return self.wrapped_metrics
 
     def evaluate(self, evaluate_steps=0):
         assert evaluate_steps > 0, "evaluate_steps must greater than 0"
@@ -282,7 +292,22 @@ class BaseTFModel:
             result = {}
             for m in self.model.metrics:
                 result[m.name] = m.result().numpy()
-        return self.wrap_local_metrics()
+
+        if self.logs is None:
+            wrapped_metrics = self.wrap_local_metrics()
+            self.wrapped_metrics.extend(wrapped_metrics)
+            return wrapped_metrics
+        else:
+            val_result = {}
+            for k, v in result.items():
+                val_result[f"val_{k}"] = v
+            self.logs.update(val_result)
+            wrapped_metrics = self.wrap_local_metrics(stage="val")
+            self.wrapped_metrics.extend(wrapped_metrics)
+            return wrapped_metrics
+
+    def get_logs(self):
+        return self.logs
 
     def predict(self, predict_steps=0):
         assert (
@@ -307,7 +332,7 @@ class BaseTFModel:
         if not isinstance(callbacks, tf_callbacks.CallbackList):
             self.callbacks = tf_callbacks.CallbackList(
                 callbacks,
-                add_history=True,
+                add_history=False,
                 add_progbar=verbose != 0,
                 model=self.model,
                 verbose=verbose,
@@ -337,6 +362,10 @@ class BaseTFModel:
 
     @abstractmethod
     def train_step(self, weights, cur_steps, train_steps, **kwargs):
+        pass
+
+    @abstractmethod
+    def apply_weights(self, weights, **kwargs):
         pass
 
     def save_model(self, model_path: str):

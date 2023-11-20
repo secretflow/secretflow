@@ -15,6 +15,7 @@
 from typing import Tuple
 
 import numpy as np
+import jax.numpy as jnp
 
 
 from ....core.params import RegType
@@ -83,7 +84,12 @@ class LossComputerActor:
         g_sum_delta_es = self.check_abs_g_sum_change_ratio_early_stop(
             abs_sum_change_ratio_threshold
         )
-        return g_sum_es or g_sum_delta_es
+        early_stop = g_sum_es or g_sum_delta_es
+        if isinstance(early_stop, jnp.ndarray) and early_stop.size == 1:
+            # convert to specified transfer format in ic mode
+            return early_stop.item()
+        else:
+            return early_stop
 
     def scale_gh(
         self, g: np.ndarray, h: np.ndarray, enable_quantization: bool

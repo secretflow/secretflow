@@ -108,7 +108,10 @@ def preprocess_sf_node_eval_param(
         for id, input_def in zip(sf_input_ids, list(comp_def.inputs)):
             domain_data = get_domain_data(domaindata_stub, id)
 
-            if domain_data.datasource_id != datasource.datasource_id:
+            if (
+                domain_data.author == task_conf.party_name
+                and domain_data.datasource_id != datasource.datasource_id
+            ):
                 raise RuntimeError(
                     f"datasource_id of domain_data [{domain_data.domaindata_id}] is {domain_data.datasource_id}, which doesn't match global datasource_id {datasource.datasource_id}"
                 )

@@ -50,6 +50,9 @@ class FedAvgU(BaseTorchModel):
         Returns:
             Parameters after local training
         """
+        refresh_data = kwargs.get("refresh_data", False)
+        if refresh_data:
+            self._reset_data_iter()
         dp_strategy = kwargs.get('dp_strategy', None)
         if updates is not None:
             weights = [np.add(w, u) for w, u in zip(self.get_weights(), updates)]
@@ -86,6 +89,7 @@ class FedAvgU(BaseTorchModel):
                 m.update(y_pred.cpu(), y_t.cpu())
         loss = loss.item()
         logs['train-loss'] = loss
+        self.wrapped_metrics.extend(self.wrap_local_metrics())
         self.logs = self.transform_metrics(logs)
         self.epoch_logs = copy.deepcopy(self.logs)
 
@@ -100,6 +104,16 @@ class FedAvgU(BaseTorchModel):
                 client_updates = dp_strategy.model_gdp(client_updates)
 
         return client_updates, num_sample
+
+    def apply_weights(self, updates, **kwargs):
+        """Accept ps model params, then apply to local model
+
+        Args:
+            updates: global updates from params server
+        """
+        if updates is not None:
+            weights = [np.add(w, u) for w, u in zip(self.get_weights(), updates)]
+            self.set_weights(weights)
 
 
 @register_strategy(strategy_name='fed_avg_u', backend='torch')

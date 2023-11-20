@@ -12,9 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import copy
 import random
-from abc import ABC, abstractmethod
+from abc import ABC
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
@@ -25,63 +24,10 @@ import torch.utils.data as torch_data
 import torchmetrics
 
 from secretflow.ml.nn.metrics import AUC, Mean, Precision, Recall
+from secretflow.ml.nn.sl.base import SLBaseModel
 from secretflow.ml.nn.utils import TorchModel
 from secretflow.security.privacy import DPStrategy
 from secretflow.utils.communicate import ForwardData
-
-
-class SLBaseModel(ABC):
-    def __init__(
-        self,
-        builder_base: Callable[[], TorchModel],
-        builder_fuse: Callable[[], TorchModel],
-    ):
-        self.model_base = (
-            builder_base.model_fn(**builder_base.kwargs)
-            if builder_base and builder_base.model_fn
-            else None
-        )
-        self.model_fuse = (
-            builder_fuse.model_fn(**builder_fuse.kwargs)
-            if builder_fuse and builder_fuse.model_fn
-            else None
-        )
-
-        self.loss_base = (
-            builder_base.loss_fn() if builder_base and builder_base.loss_fn else None
-        )
-        self.loss_fuse = (
-            builder_fuse.loss_fn() if builder_fuse and builder_fuse.loss_fn else None
-        )
-
-        self.optim_base = (
-            builder_base.optim_fn(self.model_base.parameters())
-            if builder_base and builder_base.optim_fn
-            else None
-        )
-        self.optim_fuse = (
-            builder_fuse.optim_fn(self.model_fuse.parameters())
-            if builder_fuse and builder_fuse.optim_fn
-            else None
-        )
-
-        self.metrics_fuse = (
-            [m() for m in builder_fuse.metrics]
-            if builder_fuse and builder_fuse.metrics
-            else None
-        )
-
-    @abstractmethod
-    def base_forward(self):
-        pass
-
-    @abstractmethod
-    def base_backward(self):
-        pass
-
-    @abstractmethod
-    def fuse_net(self, hiddens):
-        pass
 
 
 class FuseOp(torch.autograd.Function):
@@ -96,7 +42,7 @@ class FuseOp(torch.autograd.Function):
         return y * grad_output, y * grad_output
 
 
-class SLBaseTorchModel(SLBaseModel):
+class SLBaseTorchModel(SLBaseModel, ABC):
     def __init__(
         self,
         builder_base: Callable[[], TorchModel],
@@ -134,10 +80,8 @@ class SLBaseTorchModel(SLBaseModel):
         self.train_sample_weight = None
         self.eval_sample_weight = None
         self.fuse_callbacks = None
+        # record all logs of training on workers
         self.logs = None
-        self.epoch_logs = None
-        self.training_logs = None
-        self.history = {}
         self.steps_per_epoch = None
         self.shuffle = False
         if random_seed is not None:
@@ -145,7 +89,41 @@ class SLBaseTorchModel(SLBaseModel):
             self.random_seed = random_seed
         # used in backward propagation gradients from fuse model to base model
         self.fuse_op = FuseOp()
-        super().__init__(builder_base, builder_fuse)
+        self.model_base = (
+            builder_base.model_fn(**builder_base.kwargs)
+            if builder_base and builder_base.model_fn
+            else None
+        )
+        self.model_fuse = (
+            builder_fuse.model_fn(**builder_fuse.kwargs)
+            if builder_fuse and builder_fuse.model_fn
+            else None
+        )
+
+        self.loss_base = (
+            builder_base.loss_fn() if builder_base and builder_base.loss_fn else None
+        )
+        self.loss_fuse = (
+            builder_fuse.loss_fn() if builder_fuse and builder_fuse.loss_fn else None
+        )
+
+        self.optim_base = (
+            builder_base.optim_fn(self.model_base.parameters())
+            if builder_base and builder_base.optim_fn
+            else None
+        )
+        self.optim_fuse = (
+            builder_fuse.optim_fn(self.model_fuse.parameters())
+            if builder_fuse and builder_fuse.optim_fn
+            else None
+        )
+
+        self.metrics_fuse = (
+            [m() for m in builder_fuse.metrics]
+            if builder_fuse and builder_fuse.metrics
+            else None
+        )
+        super().__init__()
 
     def init_data(self):
         self.train_x, self.train_y = None, None
@@ -243,7 +221,7 @@ class SLBaseTorchModel(SLBaseModel):
 
     def build_dataset_from_numeric(
         self,
-        *x: List[np.ndarray],
+        *x: Union[List[np.ndarray], List[pd.DataFrame], np.ndarray, pd.DataFrame],
         y: Optional[np.ndarray] = None,
         s_w: Optional[np.ndarray] = None,
         batch_size=32,
@@ -313,17 +291,9 @@ class SLBaseTorchModel(SLBaseModel):
             has_s_w=has_s_w,
         )
 
-    def init_training(self, callbacks, epochs=1, steps=0, verbose=0):
-        if callbacks is not None:
-            self.fuse_callbacks = callbacks()
-            self.fuse_callbacks.init_model(self.model_base, self.model_fuse)
-
-    def init_predict(self, callbacks, steps=1, verbose=0):
-        pass
-
     def build_dataset_from_builder(
         self,
-        *x: List[np.ndarray],
+        *x: Union[List[np.ndarray], List[pd.DataFrame], str],
         y: Optional[np.ndarray] = None,
         s_w: Optional[np.ndarray] = None,
         batch_size=-1,
@@ -373,6 +343,14 @@ class SLBaseTorchModel(SLBaseModel):
             data_tuple.append(s_w)
 
         data_set = dataset_builder(data_tuple)
+        steps_per_epoch = -1
+        if isinstance(data_set, tuple):
+            assert len(data_set) == 2, (
+                f"If a dataset builder return more than 1 value, "
+                f"it must return 2, one is dataset, another is steps_per_epoch"
+            )
+            steps_per_epoch = data_set[1]
+            data_set = data_set[0]
 
         self.set_dataset_stage(
             data_set=data_set,
@@ -382,6 +360,8 @@ class SLBaseTorchModel(SLBaseModel):
             has_s_w=has_s_w,
         )
 
+        if steps_per_epoch != -1:
+            return steps_per_epoch
         # Compatible with existing gnn databuilder
         if callable(getattr(data_set, '__len__', None)):
             return len(data_set)
@@ -418,6 +398,22 @@ class SLBaseTorchModel(SLBaseModel):
             return math.ceil(total_size / batch_size)
         else:
             raise Exception("Unknown databuilder")
+
+    def build_dataset_from_csv(
+        self,
+        file_path: str,
+        label: str = None,
+        s_w: Optional[np.ndarray] = None,
+        batch_size=-1,
+        shuffle=False,
+        repeat_count=1,
+        random_seed=1234,
+        buffer_size=None,
+        na_value='?',
+        label_decoder=None,
+        stage="train",
+    ):
+        raise NotImplementedError("Does not support build from csv in torch yet.")
 
     def set_dataset_stage(
         self,
@@ -499,93 +495,20 @@ class SLBaseTorchModel(SLBaseModel):
 
         return hiddens_grad
 
-    def get_base_weights(self):
-        return self.model_base.get_weights()
+    def fuse_net(
+        self,
+        forward_data: Union[List[ForwardData], ForwardData],
+        _num_returns=2,
+    ):
+        """Fuses the hidden layer and calculates the reverse gradient
+        only on the side with the label
 
-    def get_fuse_weights(self):
-        return self.model_fuse.get_weights() if self.model_fuse is not None else None
-
-    def get_stop_training(self):
-        return False  # currently not supported
-
-    def on_train_begin(self):
-        self.training_logs = {}
-        self.epoch = []
-
-        if self.fuse_callbacks is not None:
-            self.fuse_callbacks.on_train_begin()
-
-    def on_train_end(self):
-        if self.fuse_callbacks is not None:
-            self.fuse_callbacks.on_train_end()
-
-        return self.history
-
-    def on_epoch_begin(self, epoch):
-        if self.shuffle:
-            # FIXME: need a better way to handle global random state
-            torch.manual_seed(self.random_seed)
-        if self.train_set is not None:
-            self.train_iter = iter(self.train_set)
-
-        if self.eval_set is not None:
-            self.eval_iter = iter(self.eval_set)
-
-        self._current_epoch = epoch
-        if self.model_fuse is not None:
-            self.epoch_logs = {}
-            for m in self.metrics_fuse:
-                m.reset()
-
-        if self.fuse_callbacks is not None:
-            self.fuse_callbacks.on_epoch_begin(epoch)
-
-    def on_epoch_end(self, epoch):
-        self.epoch.append(epoch)
-
-        if self.fuse_callbacks is not None:
-            self.fuse_callbacks.on_epoch_end(epoch)
-
-        if self.epoch_logs is not None:
-            for k, v in self.epoch_logs.items():
-                self.history.setdefault(k, []).append(v)
-            self.training_logs = self.epoch_logs
-            return self.epoch_logs
-
-    def on_train_batch_begin(self, step=None):
-        assert step is not None, "Step cannot be none"
-        if self.fuse_callbacks is not None:
-            self.fuse_callbacks.on_batch_begin(step)
-
-    def on_train_batch_end(self, step=None):
-        assert step is not None, "Step cannot be none"
-        self.epoch_logs = copy.deepcopy(self.logs)
-        if self.fuse_callbacks is not None:
-            self.fuse_callbacks.on_batch_end(step)
-
-    def on_validation(self, val_logs):
-        val_logs = {'val_' + name: val for name, val in val_logs.items()}
-        self.epoch_logs.update(val_logs)
-
-    def on_predict_batch_begin(self, batch):
-        assert batch is not None, "Batch cannot be none"
-
-    def on_predict_batch_end(self, batch):
-        assert batch is not None, "Batch cannot be none"
-
-    def on_predict_begin(self):
+        Args:
+            hidden_features: A list of hidden layers for each party to compute
+        Returns:
+            gradient Of hiddens
+        """
         pass
-
-    def on_predict_end(self):
-        pass
-
-    def set_sample_weight(self, sample_weight, stage="train"):
-        if stage == "train":
-            self.train_sample_weight = sample_weight
-        elif stage == "eval":
-            self.eval_sample_weight = sample_weight
-        else:
-            raise Exception("Illegal Argument")
 
     def reset_metrics(self):
         for m in self.metrics_fuse:
@@ -609,7 +532,7 @@ class SLBaseTorchModel(SLBaseModel):
             y_pred,
             eval_y,
         )
-        logs["val_loss"] = loss.detach().numpy()
+        logs["loss"] = loss.detach().numpy()
 
         # Step 3: update metrics
         for m in self.metrics_fuse:
@@ -620,10 +543,8 @@ class SLBaseTorchModel(SLBaseModel):
             else:
                 m.update(y_pred, eval_y.int())
 
-        result = {}
         for m in self.metrics_fuse:
-            result[m.__class__.__name__] = m.compute()
-        return result
+            logs[m.__class__.__name__] = m.compute().numpy()
 
     def evaluate(
         self,
@@ -657,17 +578,22 @@ class SLBaseTorchModel(SLBaseModel):
             else:
                 hiddens.append(torch.tensor(h))
         eval_y = self.eval_y[0] if len(self.eval_y) == 1 else self.eval_y
-        result = {}
-        metrics = self._evaluate_internal(
+        metrics = {}
+        self._evaluate_internal(
             hiddens=hiddens,
             eval_y=eval_y,
             eval_sample_weight=self.eval_sample_weight,
-            logs=result,
+            logs=metrics,
         )
-
-        for k, v in metrics.items():
-            result[k] = v
-        return result
+        if self.logs is None:
+            self.logs = metrics.copy()
+            return metrics
+        else:
+            val_metrics = {}
+            for k, v in metrics.items():
+                val_metrics[f"val_{k}"] = v
+            self.logs.update(val_metrics)
+            return metrics
 
     # TODO: rewrite in torch way
     def wrap_local_metrics(self):
@@ -764,7 +690,6 @@ class SLBaseTorchModel(SLBaseModel):
         check_point = {
             'model_state_dict': self.model_base.state_dict(),
             'optimizer_state_dict': self.optim_base.state_dict(),
-            'epoch': self.epoch[-1] if self.epoch else 0,
         }
         torch.save(check_point, base_model_path, **kwargs)
 
@@ -774,7 +699,6 @@ class SLBaseTorchModel(SLBaseModel):
         check_point = {
             'model_state_dict': self.model_fuse.state_dict(),
             'optimizer_state_dict': self.optim_fuse.state_dict(),
-            'epoch': self.epoch[-1] if self.epoch else 0,
         }
         torch.save(check_point, fuse_model_path, **kwargs)
 
@@ -833,3 +757,42 @@ class SLBaseTorchModel(SLBaseModel):
         """
         privacy_dict = self.dp_strategy.get_privacy_spent(step, orders)
         return privacy_dict
+
+    def apply(self, func, *args, **kwargs):
+        if callable(func):
+            return func(self, *args, **kwargs)
+        else:
+            raise Exception("applyed method must be callable")
+
+    def get_base_weights(self):
+        return self.model_base.get_weights()
+
+    def get_fuse_weights(self):
+        return self.model_fuse.get_weights() if self.model_fuse is not None else None
+
+    def get_stop_training(self):
+        return False  # currently not supported
+
+    def _reset_data_iter(self, stage):
+        if self.shuffle:
+            # FIXME: need a better way to handle global random state
+            torch.manual_seed(self.random_seed)
+        if stage == "train" and self.train_set is not None:
+            self.train_iter = iter(self.train_set)
+
+        if stage == "eval" and self.eval_set is not None:
+            self.eval_iter = iter(self.eval_set)
+
+    def get_logs(self):
+        return self.logs
+
+    def set_sample_weight(self, sample_weight, stage="train"):
+        if stage == "train":
+            self.train_sample_weight = sample_weight
+        elif stage == "eval":
+            self.eval_sample_weight = sample_weight
+        else:
+            raise Exception("Illegal Argument")
+
+    def get_skip_gradient(self):
+        raise NotImplementedError()

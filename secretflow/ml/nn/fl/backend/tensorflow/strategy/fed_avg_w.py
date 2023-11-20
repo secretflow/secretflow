@@ -44,7 +44,7 @@ class FedAvgW(BaseTFModel):
         """Accept ps model params, then do local train
 
         Args:
-            updates: global updates from params server
+            weights: param from params server
             cur_steps: current train step
             train_steps: local training steps
             kwargs: strategy-specific parameters
@@ -56,7 +56,6 @@ class FedAvgW(BaseTFModel):
             self.model.set_weights(weights)
         num_sample = 0
         dp_strategy = kwargs.get('dp_strategy', None)
-        self.callbacks.on_train_batch_begin(cur_steps)
         logs = {}
         for _ in range(train_steps):
             iter_data = next(self.train_set)
@@ -87,7 +86,7 @@ class FedAvgW(BaseTFModel):
             self.model.compiled_metrics.update_state(y, y_pred)
         for m in self.model.metrics:
             logs[m.name] = m.result().numpy()
-        self.callbacks.on_train_batch_end(cur_steps + train_steps, logs)
+        self.wrapped_metrics.extend(self.wrap_local_metrics())
         self.logs = logs
         self.epoch_logs = copy.deepcopy(self.logs)
 
@@ -99,6 +98,15 @@ class FedAvgW(BaseTFModel):
                 model_weights = dp_strategy.model_gdp(model_weights)
 
         return model_weights, num_sample
+
+    def apply_weights(self, weights, **kwargs):
+        """Accept ps model params, then apply to local model
+
+        Args:
+            weights: param from params server
+        """
+        if weights is not None:
+            self.model.set_weights(weights)
 
 
 @register_strategy(strategy_name='fed_avg_w', backend='tensorflow')

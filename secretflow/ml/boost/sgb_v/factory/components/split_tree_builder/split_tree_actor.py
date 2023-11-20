@@ -120,6 +120,6 @@ class SplitTreeActor:
                 lchild_selects.append(left_child_selects[key])
             else:
                 self.tree.insert_split_node(-1, float("inf"), node_indices[key])
-                lchild_selects.append(np.array([], dtype=np.int8))
+                lchild_selects.append(np.array([], dtype=np.uint8))
 
         return lchild_selects

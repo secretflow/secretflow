@@ -58,6 +58,9 @@ class FedSCR(BaseTorchModel):
             Parameters after local training
         """
         assert self.model is not None, "Model cannot be none, please give model define"
+        refresh_data = kwargs.get("refresh_data", False)
+        if refresh_data:
+            self._reset_data_iter()
         dp_strategy = kwargs.get('dp_strategy', None)
         # prepare for the SCR compression
         threshold = kwargs.get('threshold', 0.0)
@@ -100,6 +103,7 @@ class FedSCR(BaseTorchModel):
         loss = loss.item()
         logs['train-loss'] = loss
         self.logs = self.transform_metrics(logs)
+        self.wrapped_metrics.extend(self.wrap_local_metrics())
         self.epoch_logs = copy.deepcopy(self.logs)
 
         # do SCR compression
@@ -142,6 +146,16 @@ class FedSCR(BaseTorchModel):
             data=sparse_client_updates, encode_method='coo'
         )
         return sparse_client_updates, num_sample
+
+    def apply_weights(self, updates, **kwargs):
+        """Accept ps model params,then update local model
+
+        Args:
+            updates: global updates from params server
+        """
+        if updates is not None:
+            weights = [np.add(w, u) for w, u in zip(self.model_weights, updates)]
+            self.model.update_weights(weights)
 
 
 @register_strategy(strategy_name='fed_scr', backend='torch')

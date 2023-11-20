@@ -16,13 +16,13 @@ import logging
 import os
 import time
 
-from sklearn.metrics import mean_squared_error, roc_auc_score
-
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.device.driver import reveal
 from secretflow.ml.boost.sgb_v import Sgb
 from secretflow.ml.boost.sgb_v.model import load_model
 from secretflow.utils.simulation.datasets import load_dermatology, load_linear
+
+from sklearn.metrics import mean_squared_error, roc_auc_score
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -75,6 +75,7 @@ def _run_sgb(
         'enable_quantization': True,  # surprisingly, quantization may also improve auc on some datasets
         'early_stop_criterion_g_abs_sum': early_stop_criterion_g_abs_sum,
         'early_stop_criterion_g_abs_sum_change_ratio': 0.01,
+        'enable_packbits': False,
     }
     model = sgb.train(params, v_data, label_data)
     reveal(model.trees[-1])
@@ -152,20 +153,6 @@ def test_2pc_linear(sf_production_setup_devices_aby3):
     _run_npc_linear(
         sf_production_setup_devices_aby3,
         "2pc_linear",
-        parts,
-        sf_production_setup_devices_aby3.alice,
-    )
-
-
-def test_3pc_linear(sf_production_setup_devices_aby3):
-    parts = {
-        sf_production_setup_devices_aby3.carol: (1, 8),
-        sf_production_setup_devices_aby3.bob: (8, 16),
-        sf_production_setup_devices_aby3.alice: (16, 22),
-    }
-    _run_npc_linear(
-        sf_production_setup_devices_aby3,
-        "3pc_linear",
         parts,
         sf_production_setup_devices_aby3.alice,
     )

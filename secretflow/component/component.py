@@ -640,7 +640,7 @@ class Component:
         cross_silo_comm_backend = (
             config.desc.ray_fed_config.cross_silo_comm_backend
             if len(config.desc.ray_fed_config.cross_silo_comm_backend)
-            else 'grpc'
+            else 'brpc_link'
         )
 
         # From https://grpc.github.io/grpc/core/md_doc_statuscodes.html

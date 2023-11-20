@@ -22,6 +22,7 @@ from typing import List, Union
 import fed
 import jax
 import ray
+import secretflow.ic.remote as ic
 from ray import Language
 from ray._private import ray_option_utils
 from ray.actor import ActorClass, _inject_tracing_into_class, ray_constants
@@ -36,6 +37,7 @@ class DISTRIBUTION_MODE(Enum):
     PRODUCTION = 1
     SIMULATION = 2
     DEBUG = 3
+    INTERCONNECTION = 4
 
 
 _distribution_mode = DISTRIBUTION_MODE.SIMULATION
@@ -119,6 +121,8 @@ def remote(*args, **kwargs):
         return ray_remote(*args, **kwargs)
     elif get_distribution_mode() == DISTRIBUTION_MODE.DEBUG:
         return mem_remote(*args, **kwargs)
+    elif get_distribution_mode() == DISTRIBUTION_MODE.INTERCONNECTION:
+        return ic.remote(*args, **kwargs)
     else:
         raise Exception(f"Illegal distribute mode, only support ({DISTRIBUTION_MODE})")
 
@@ -136,6 +140,8 @@ def get(
         return ray.get(object_refs)
     elif get_distribution_mode() == DISTRIBUTION_MODE.DEBUG:
         return object_refs
+    elif get_distribution_mode() == DISTRIBUTION_MODE.INTERCONNECTION:
+        return ic.get(object_refs)
     else:
         raise Exception(f"Illegal distribute mode, only support ({DISTRIBUTION_MODE})")
 
@@ -146,6 +152,8 @@ def kill(actor, *, no_restart=True):
     elif get_distribution_mode() == DISTRIBUTION_MODE.SIMULATION:
         return ray.kill(actor, no_restart=no_restart)
     elif get_distribution_mode() == DISTRIBUTION_MODE.DEBUG:
+        logging.warning("Actor be killed")
+    elif get_distribution_mode() == DISTRIBUTION_MODE.INTERCONNECTION:
         logging.warning("Actor be killed")
     else:
         raise Exception(f"Illegal distribute mode, only support ({DISTRIBUTION_MODE})")
@@ -160,6 +168,8 @@ def shutdown():
     elif get_distribution_mode() == DISTRIBUTION_MODE.SIMULATION:
         ray.shutdown()
     elif get_distribution_mode() == DISTRIBUTION_MODE.DEBUG:
+        logging.warning("Shut Down!")
+    elif get_distribution_mode() == DISTRIBUTION_MODE.INTERCONNECTION:
         logging.warning("Shut Down!")
     else:
         raise Exception(f"Illegal distribute mode, only support ({DISTRIBUTION_MODE})")
@@ -273,3 +283,8 @@ def ray_remote(*args, **kwargs):
         return _make_remote(args[0], {})
     assert len(args) == 0 and len(kwargs) > 0, ray_option_utils.remote_args_error_string
     return partial(_make_remote, options=kwargs)
+
+
+# Whether running in interconnection mode
+def in_ic_mode() -> bool:
+    return get_distribution_mode() == DISTRIBUTION_MODE.INTERCONNECTION

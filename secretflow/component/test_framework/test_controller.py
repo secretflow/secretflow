@@ -350,22 +350,23 @@ class TestController(object):
             ret.attr_paths.append(key)
             atomic_param = Attribute()
             value = comp.attrs[key]
-            if isinstance(value, int):
+            # note instance(True, int) will be evaluated to True.
+            if isinstance(value, bool):
+                atomic_param.b = value
+            elif isinstance(value, int):
                 atomic_param.i64 = value
             elif isinstance(value, float):
                 atomic_param.f = value
-            elif isinstance(value, bool):
-                atomic_param.b = value
             elif isinstance(value, str):
                 atomic_param.s = value
             elif isinstance(value, list):
                 if len(value):
-                    if isinstance(value[0], int):
+                    if isinstance(value[0], bool):
+                        atomic_param.bs.extend(value)
+                    elif isinstance(value[0], int):
                         atomic_param.i64s.extend(value)
                     elif isinstance(value[0], float):
                         atomic_param.fs.extend(value)
-                    elif isinstance(value[0], bool):
-                        atomic_param.bs.extend(value)
                     elif isinstance(value[0], str):
                         atomic_param.ss.extend(value)
             else:

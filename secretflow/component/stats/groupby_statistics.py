@@ -58,6 +58,7 @@ groupby_statistics_comp.int_attr(
     is_optional=True,
     default_value=10000,
     lower_bound=0,
+    upper_bound=10001,
 )
 
 groupby_statistics_comp.io(

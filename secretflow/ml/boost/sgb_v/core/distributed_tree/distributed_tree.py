@@ -16,8 +16,12 @@ from typing import Dict
 import numpy as np
 
 from secretflow.device import PYU, PYUObject
-from .split_tree import from_dict as split_tree_from_dict
+from ...core.pure_numpy_ops.node_select import (
+    packbits_node_selects,
+    unpack_node_select_lists,
+)
 from ..pure_numpy_ops.pred import predict_tree_weight
+from .split_tree import from_dict as split_tree_from_dict
 
 
 class DistributedTree:
@@ -28,6 +32,7 @@ class DistributedTree:
         # leaf weight is np.ndarray
         self.leaf_weight = None
         self.label_holder = None
+        self.enable_packbits = False
 
     def insert_split_tree(self, device: PYU, split_tree: PYUObject):
         """insert a split tree owned by deivce
@@ -42,6 +47,9 @@ class DistributedTree:
         """leaf weight is owned by label holder"""
         self.label_holder = label_holder
         self.leaf_weight = leaf_weight
+
+    def set_enable_packbits(self, enable_packbits: bool):
+        self.enable_packbits = enable_packbits
 
     def predict(self, x: Dict[PYU, PYUObject]) -> PYUObject:
         """predict using a single tree. A single tree is actually consists of all split trees.
@@ -62,13 +70,22 @@ class DistributedTree:
         assert self.label_holder is not None, "label holder must exist"
         assert len(self.split_tree_dict) > 0, "number of split tree must be not empty"
 
+        shape = None
         weight_selects = list()
         for pyu, split_tree in self.split_tree_dict.items():
             s = pyu(lambda split_tree, x: split_tree.predict_leaf_select(x))(
                 split_tree, x[pyu].data
             )
-            # worker give selects to label_holder
+            if self.enable_packbits and pyu == self.label_holder:
+                shape = pyu(lambda x: x[0].shape)(s)
+            if self.enable_packbits:
+                s = pyu(packbits_node_selects)(s)
             weight_selects.append(s.to(self.label_holder))
+
+        if self.enable_packbits:
+            weight_selects = self.label_holder(unpack_node_select_lists)(
+                weight_selects, shape
+            )
 
         weight = self.leaf_weight
         pred = self.label_holder(predict_tree_weight)(weight_selects, weight)
