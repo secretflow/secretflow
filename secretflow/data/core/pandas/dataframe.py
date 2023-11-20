@@ -20,8 +20,8 @@ from jax import tree_map
 from pandas import Index
 from pandas._typing import IgnoreRaise
 
-from ...io.util import is_local_file
 from ..base import PartDataFrameBase
+from ...io.util import is_local_file
 
 
 class PdPartDataFrame(PartDataFrameBase):

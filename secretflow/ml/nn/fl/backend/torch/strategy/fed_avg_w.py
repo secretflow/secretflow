@@ -51,6 +51,9 @@ class FedAvgW(BaseTorchModel):
         """
         assert self.model is not None, "Model cannot be none, please give model define"
         self.model.train()
+        refresh_data = kwargs.get("refresh_data", False)
+        if refresh_data:
+            self._reset_data_iter()
         if weights is not None:
             self.model.update_weights(weights)
         num_sample = 0
@@ -91,6 +94,7 @@ class FedAvgW(BaseTorchModel):
         logs['train-loss'] = loss_value
 
         self.logs = self.transform_metrics(logs)
+        self.wrapped_metrics.extend(self.wrap_local_metrics())
         self.epoch_logs = copy.deepcopy(self.logs)
 
         model_weights = self.model.get_weights(return_numpy=True)
@@ -101,6 +105,15 @@ class FedAvgW(BaseTorchModel):
                 model_weights = dp_strategy.model_gdp(model_weights)
 
         return model_weights, num_sample
+
+    def apply_weights(self, weights, **kwargs):
+        """Accept ps model params, then update local model
+
+        Args:
+            weights: global weight from params server
+        """
+        if weights is not None:
+            self.model.update_weights(weights)
 
 
 @register_strategy(strategy_name='fed_avg_w', backend='torch')

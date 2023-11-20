@@ -58,6 +58,9 @@ class FedSTC(BaseTorchModel):
             Parameters after local training
         """
         assert self.model is not None, "Model cannot be none, please give model define"
+        refresh_data = kwargs.get("refresh_data", False)
+        if refresh_data:
+            self._reset_data_iter()
         dp_strategy = kwargs.get('dp_strategy', None)
         # prepare for the STC compression
         sparsity = kwargs.get('sparsity', 0.0)
@@ -103,6 +106,7 @@ class FedSTC(BaseTorchModel):
         logs['train-loss'] = loss
 
         self.logs = self.transform_metrics(logs)
+        self.wrapped_metrics.extend(self.wrap_local_metrics())
         self.epoch_logs = copy.deepcopy(self.logs)
 
         # do STC compression
@@ -143,6 +147,18 @@ class FedSTC(BaseTorchModel):
             data=sparse_client_updates, encode_method='coo'
         )
         return sparse_client_updates, num_sample
+
+    def apply_weights(self, updates, **kwargs):
+        """Accept ps model params,then do local train
+
+        Args:
+            updates: global updates from params server
+        """
+        if updates is not None:
+            # Sparse matrix decoded in the downstream
+            updates = sparse_decode(data=updates)
+            weights = [np.add(w, u) for w, u in zip(self.model_weights, updates)]
+            self.model.update_weights(weights)
 
 
 @register_strategy(strategy_name='fed_stc', backend='torch')

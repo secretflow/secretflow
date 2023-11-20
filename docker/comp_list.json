@@ -2005,7 +2005,7 @@
       "attrs": [
         {
           "name": "train_size",
-          "desc": "Proportion of the dataset to include in the train subset.",
+          "desc": "Proportion of the dataset to include in the train subset. The sum of test_size and train_size should be in the (0, 1] range.",
           "type": "AT_FLOAT",
           "atomic": {
             "isOptional": true,
@@ -2014,17 +2014,15 @@
             },
             "lowerBoundEnabled": true,
             "lowerBound": {},
-            "lowerBoundInclusive": true,
             "upperBoundEnabled": true,
             "upperBound": {
               "f": 1.0
-            },
-            "upperBoundInclusive": true
+            }
           }
         },
         {
           "name": "test_size",
-          "desc": "Proportion of the dataset to include in the test subset.",
+          "desc": "Proportion of the dataset to include in the test subset. The sum of test_size and train_size should be in the (0, 1] range.",
           "type": "AT_FLOAT",
           "atomic": {
             "isOptional": true,
@@ -2033,12 +2031,10 @@
             },
             "lowerBoundEnabled": true,
             "lowerBound": {},
-            "lowerBoundInclusive": true,
             "upperBoundEnabled": true,
             "upperBound": {
               "f": 1.0
-            },
-            "upperBoundInclusive": true
+            }
           }
         },
         {
@@ -2127,7 +2123,11 @@
               "i64": "10000"
             },
             "lowerBoundEnabled": true,
-            "lowerBound": {}
+            "lowerBound": {},
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "i64": "10001"
+            }
           }
         }
       ],

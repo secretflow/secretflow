@@ -119,7 +119,16 @@ class GlobalOrdermapBooster(Composite):
         dataset: Union[FedNdarray, VDataFrame],
         label: Union[FedNdarray, VDataFrame],
     ) -> SgbModel:
-        x, x_shape, y, _ = self.components.preprocessor.validate(dataset, label)
+        import secretflow.distributed as sfd
+
+        if sfd.in_ic_mode():
+            x = dataset
+            y = list(label.partitions.values())[0]
+            y = y.device(lambda y: y.reshape(-1, 1, order='F'))(y)
+            sample_num = y.device(lambda y: y.shape[0])(y)
+        else:
+            x, x_shape, y, _ = self.components.preprocessor.validate(dataset, label)
+            sample_num = x_shape[0]
 
         # set devices
         devices = Devices(y.device, [*x.partitions.keys()], self.heu)
@@ -131,7 +140,7 @@ class GlobalOrdermapBooster(Composite):
         self.set_actors(actors)
         logging.debug("actors are set.")
 
-        pred = self.components.model_builder.init_pred(x_shape[0])
+        pred = self.components.model_builder.init_pred(sample_num)
         logging.debug("pred initialized.")
         self.components.order_map_manager.build_order_map(x)
         logging.debug("ordermap built.")
@@ -147,7 +156,7 @@ class GlobalOrdermapBooster(Composite):
                 self.tree_trainer.set_params(config)
                 logging.info("training the first tree with label holder only.")
             tree = self.tree_trainer.train_tree(
-                tree_index, self.components.order_map_manager, y, pred, x_shape
+                tree_index, self.components.order_map_manager, y, pred, sample_num
             )
             if tree is None:
                 logging.info(

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from typing import List, Tuple
+
 import numpy as np
 
 
@@ -65,8 +66,45 @@ def get_child_select(
         # get right child's select by sub.
         rs = current - ls
         node_index = split_node_indices[i]
-        childs_s.extend([ls, rs])
+        childs_s.extend([ls.astype(np.uint8), rs.astype(np.uint8)])
         l_index = 2 * node_index + 1
         node_indices.extend([l_index, l_index + 1])
         index += 1
     return childs_s, node_indices, pruned_s, pruned_node_indices
+
+
+# TODO(zoupeicheng.zpc): These functions are experimental.
+# improve efficiency of packing and unpacks by parallelization or other encoding method
+# currently it is slow
+
+
+def packbits_node_selects(node_selects: List[np.ndarray]) -> List[np.ndarray]:
+    return [np.packbits(node_select) for node_select in node_selects]
+
+
+def unpackbits_node_selects(
+    node_selects_bits: List[np.ndarray],
+    shape: Tuple[int],
+):
+    shape = np.array(shape)
+    size = np.prod(shape)
+    return [
+        np.unpackbits(node_select_bits, count=size).reshape(shape)
+        for node_select_bits in node_selects_bits
+    ]
+
+
+def unpack_node_select_lists(
+    node_selects_bits: List[List[np.ndarray]], shape: Tuple[int]
+):
+    shape = np.array(shape)
+    size = np.prod(shape)
+    return [
+        [
+            np.unpackbits(node_select_bits, count=size).reshape(shape)
+            if node_select_bits.size > 0
+            else np.array([])
+            for node_select_bits in node_select_bits_l
+        ]
+        for node_select_bits_l in node_selects_bits
+    ]

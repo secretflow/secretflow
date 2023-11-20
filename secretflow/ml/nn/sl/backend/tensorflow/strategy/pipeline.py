@@ -53,7 +53,9 @@ class PipelineTFModel(SLBaseTFModel):
         self.h = []
         self.pre_train_y = []
 
-    def base_forward(self, stage="train", compress: bool = False) -> ForwardData:
+    def base_forward(
+        self, stage="train", step=0, compress: bool = False
+    ) -> ForwardData:
         """compute hidden embedding
         Args:
             stage: Which stage of the base forward

@@ -199,6 +199,10 @@ def wait(objects: Any):
         >>> # synchronization
         >>> sf.wait(alice(some_save_value_function_locally)(alice_value))
     """
+
+    if sfd.in_ic_mode():
+        return
+
     # TODO(@xibin.wxb): support HEUObject
     objs = [
         x

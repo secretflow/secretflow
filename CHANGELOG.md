@@ -12,6 +12,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
+## [1.3.0.dev231120] - 2023-11-20
+
+### Added
+
+- Support file data input in SLModel.
+- Expose copts in SPU devices.
+- Component: Add benchmarks.
+- Add federated callback framework.
+- Add new agg method -- concat,sum.
+- Add ic_mode.
+
+### Changed
+
+- Component: add upper_bound for max_group_size in groupby_statistics.
+- Component: modify test_size and train_size restrictions in train_test_split.
+- Clear legacy history class in FL.
+
+### Fixed
+
+- Kuscia adapter: check datasource only when author matches.
+
+
 ## [1.3.0.dev231109] - 2023-11-9
 
 ### Added

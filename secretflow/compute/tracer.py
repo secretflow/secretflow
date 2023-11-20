@@ -1,11 +1,27 @@
+# Copyright 2023 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from __future__ import annotations
 
+from collections import defaultdict
 from enum import Enum
 from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
 import pyarrow as pa
+import pyarrow.compute as pc
 
 from secretflow.spec.v1 import compute_trace_pb2
 
@@ -15,27 +31,144 @@ class _TracerType(Enum):
     ARROW = 2
 
 
+class _TraceRunner:
+    def __init__(self, dag: List[_Tracer]) -> None:
+        assert dag[0].output_type is _TracerType.TABLE
+        assert dag[0].inputs is None
+        assert dag[-1].output_type is _TracerType.TABLE
+        assert len(set(dag)) == len(dag)
+        assert len(dag) > 1
+        self.dag: List[_Tracer] = dag
+        self.ref_count = defaultdict(int)
+        for t in self.dag:
+            if t.inputs is None:
+                continue
+            for i in t.inputs:
+                if isinstance(i, _Tracer):
+                    self.ref_count[i] += 1
+        assert len(self.ref_count) > 0
+        self.input_features = dag[0].output_schema.names
+        if not isinstance(self.input_features, list):
+            assert isinstance(self.input_features, str)
+            self.input_features = [self.input_features]
+
+    def _get_input(self, t: _Tracer):
+        assert t in self.run_ref_count
+        assert t in self.output_map
+        assert self.run_ref_count[t] > 0
+        self.run_ref_count[t] -= 1
+        ret = self.output_map[t]
+        if self.run_ref_count[t] == 0:
+            del self.output_map[t]
+        return ret
+
+    def get_input_features(self):
+        return self.input_features
+
+    def dump_serving_pb(
+        self, name: str
+    ) -> Tuple[compute_trace_pb2.ComputeTrace, pa.Schema, pa.Schema]:
+        return self.dag[-1].dump_serving_pb(name)
+
+    def run(self, input: Union[pd.DataFrame, pa.Table]) -> pd.DataFrame:
+        assert isinstance(input, (pd.DataFrame, pa.Table))
+        if isinstance(input, pd.DataFrame):
+            input = pa.Table.from_pandas(input)
+
+        assert input.schema == self.dag[0].output_schema
+
+        self.run_ref_count = self.ref_count.copy()
+        self.output_map = dict()
+        self.output_map[self.dag[0]] = input
+
+        for t in self.dag[1:]:
+            assert t not in self.output_map
+
+            if t.operate == compute_trace_pb2.ExtendFunctionName.Name(
+                compute_trace_pb2.EFN_TB_COLUMN
+            ):
+                assert len(t.inputs) == 2
+                assert isinstance(t.inputs[0], _Tracer)
+                input_table = self._get_input(t.inputs[0])
+                assert isinstance(input_table, pa.Table)
+                self.output_map[t] = input_table.column(t.inputs[1])
+            elif t.operate == compute_trace_pb2.ExtendFunctionName.Name(
+                compute_trace_pb2.EFN_TB_ADD_COLUMN
+            ):
+                assert len(t.inputs) == 4
+                assert isinstance(t.inputs[0], _Tracer)
+                assert isinstance(t.inputs[3], _Tracer)
+                input_table = self._get_input(t.inputs[0])
+                input_array = self._get_input(t.inputs[3])
+                assert isinstance(input_table, pa.Table)
+                assert isinstance(input_array, pa.ChunkedArray)
+                self.output_map[t] = input_table.add_column(
+                    t.inputs[1], t.inputs[2], input_array
+                )
+            elif t.operate == compute_trace_pb2.ExtendFunctionName.Name(
+                compute_trace_pb2.EFN_TB_REMOVE_COLUMN
+            ):
+                assert len(t.inputs) == 2
+                assert isinstance(t.inputs[0], _Tracer)
+                input_table = self._get_input(t.inputs[0])
+                assert isinstance(input_table, pa.Table)
+                self.output_map[t] = input_table.remove_column(t.inputs[1])
+            elif t.operate == compute_trace_pb2.ExtendFunctionName.Name(
+                compute_trace_pb2.EFN_TB_SET_COLUMN
+            ):
+                assert len(t.inputs) == 4
+                assert isinstance(t.inputs[0], _Tracer)
+                assert isinstance(t.inputs[3], _Tracer)
+                input_table = self._get_input(t.inputs[0])
+                input_array = self._get_input(t.inputs[3])
+                assert isinstance(input_table, pa.Table)
+                assert isinstance(input_array, pa.ChunkedArray)
+                self.output_map[t] = input_table.set_column(
+                    t.inputs[1], t.inputs[2], input_array
+                )
+            else:
+                py_func = getattr(pc, t.operate)
+                py_inputs = []
+                for i in t.inputs:
+                    if isinstance(i, _Tracer):
+                        array = self._get_input(i)
+                        assert isinstance(array, pa.ChunkedArray), f"got {type(array)}"
+                        py_inputs.append(array)
+                    else:
+                        py_inputs.append(i)
+                py_inputs.extend(t.py_args)
+                array = py_func(*py_inputs, **t.py_kwargs)
+                self.output_map[t] = array
+
+        assert len(self.output_map) == 1
+        assert self.dag[-1] in self.output_map
+        ret_table = self.output_map.pop(self.dag[-1])
+        assert isinstance(ret_table, pa.Table)
+        assert ret_table.schema == self.dag[-1].output_schema
+
+        return ret_table.to_pandas()
+
+
 class _Tracer:
     def __init__(
         self,
         operate: str,
         output_type: _TracerType,
         inputs: List[Union[_Tracer, int, float, str]] = None,
+        py_args: List = None,
+        py_kwargs: Dict = None,
         options: bytes = None,
         output_schema: pa.Schema = None,
     ):
         self.operate = operate
         self.output_type = output_type
         self.inputs = inputs
+        self.py_args = py_args
+        self.py_kwargs = py_kwargs
         self.options = options
         self.output_schema = output_schema
 
-    def dump(
-        self, name: str
-    ) -> Tuple[compute_trace_pb2.ComputeTrace, pa.Schema, pa.Schema]:
-        dag_pb = compute_trace_pb2.ComputeTrace()
-        dag_pb.name = name
-
+    def _flatten_dag(self) -> List[_Tracer]:
         dag_tracers: List[_Tracer] = []
 
         backtrace = [self]
@@ -48,9 +181,27 @@ class _Tracer:
                 if isinstance(i, _Tracer):
                     backtrace.append(i)
 
+        assert len(dag_tracers) > 1
         dag_tracers.reverse()
+        dag_tracers = list(dict.fromkeys(dag_tracers))
         assert dag_tracers[0].output_type is _TracerType.TABLE
         assert dag_tracers[0].inputs is None
+        assert dag_tracers[-1] == self
+        assert dag_tracers[-1].output_type is _TracerType.TABLE
+
+        return dag_tracers
+
+    def dump_runner(self) -> _TraceRunner:
+        return _TraceRunner(self._flatten_dag())
+
+    def dump_serving_pb(
+        self, name: str
+    ) -> Tuple[compute_trace_pb2.ComputeTrace, pa.Schema, pa.Schema]:
+        dag_pb = compute_trace_pb2.ComputeTrace()
+        dag_pb.name = name
+
+        dag_tracers = self._flatten_dag()
+
         dag_input_schema = dag_tracers[0].output_schema
         dag_output_schema = self.output_schema
 
@@ -61,7 +212,8 @@ class _Tracer:
                 # dag input point
                 assert t is dag_tracers[0], "only allow one input in dag"
                 trace_output_id_map[t] = 0
-            elif t not in trace_output_id_map:
+            else:
+                assert t not in trace_output_id_map
                 inputs_pb = []
                 assert len(t.inputs) > 0
                 for i in t.inputs:
@@ -115,8 +267,20 @@ class Table:
         self._table = table
 
     @staticmethod
+    def schema_check(schema: pa.Schema):
+        for dt in schema.types:
+            assert (
+                pa.types.is_boolean(dt)
+                or pa.types.is_floating(dt)
+                or pa.types.is_integer(dt)
+                or pa.types.is_string(dt)
+            ), f"only support bool/float/int/str, got {dt}"
+            assert not pa.types.is_float16(dt), "not support float16 for now"
+
+    @staticmethod
     def from_pyarrow(table: pa.Table):
         assert isinstance(table, pa.Table)
+        Table.schema_check(table.schema)
         return Table(
             table,
             _Tracer("", output_type=_TracerType.TABLE, output_schema=table.schema),
@@ -126,6 +290,7 @@ class Table:
     def from_pandas(pd_: pd.DataFrame):
         assert isinstance(pd_, pd.DataFrame)
         table = pa.Table.from_pandas(pd_)
+        Table.schema_check(table.schema)
         return Table(
             table,
             _Tracer("", output_type=_TracerType.TABLE, output_schema=table.schema),
@@ -145,18 +310,25 @@ class Table:
             pydist[name] = mock_data
 
         table = pa.Table.from_pylist([pydist])
+        Table.schema_check(table.schema)
         return Table(
             table,
             _Tracer("", output_type=_TracerType.TABLE, output_schema=table.schema),
         )
 
     def to_pandas(self) -> pd.DataFrame:
+        Table.schema_check(self._table.schema)
         return self._table.to_pandas()
 
-    def dump_tracer(
+    def dump_serving_pb(
         self, name
     ) -> Tuple[compute_trace_pb2.ComputeTrace, pa.Schema, pa.Schema]:
-        return self._trace.dump(name)
+        Table.schema_check(self._trace.output_schema)
+        return self._trace.dump_serving_pb(name)
+
+    def dump_runner(self) -> _TraceRunner:
+        Table.schema_check(self._trace.output_schema)
+        return self._trace.dump_runner()
 
     # subset of pyarrow.table
     @property
