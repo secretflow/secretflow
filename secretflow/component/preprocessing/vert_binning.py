@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import (
     DistDataType,
@@ -20,12 +19,12 @@ from secretflow.component.data_utils import (
     load_table,
     model_dumps,
     model_loads,
+    move_feature_to_label,
     VerticalTableWrapper,
 )
 from secretflow.device.device.pyu import PYUObject
 from secretflow.preprocessing.binning.vert_bin_substitution import VertBinSubstitution
 from secretflow.preprocessing.binning.vert_binning import VertBinning
-from secretflow.spec.v1.data_pb2 import TableSchema
 
 vert_binning_comp = Component(
     "vert_binning",
@@ -211,23 +210,6 @@ def vert_bin_substitution_eval_fn(
         for i, f in enumerate(list(v.features)):
             if f in public_info['input_data_feature_selects']:
                 v.feature_types[i] = 'float'
-
-    def move_feature_to_label(schema: TableSchema, label: str) -> TableSchema:
-        new_schema = TableSchema()
-        new_schema.CopyFrom(schema)
-        if label in list(schema.features) and label not in list(schema.labels):
-            new_schema.ClearField('features')
-            new_schema.ClearField('feature_types')
-            for k, v in zip(list(schema.features), list(schema.feature_types)):
-                if k != label:
-                    new_schema.features.append(k)
-                    new_schema.feature_types.append(v)
-                else:
-                    label_type = v
-            new_schema.labels.append(label)
-            new_schema.label_types.append(label_type)
-
-        return new_schema
 
     # change cols from feature to label according to model public info.
     if 'input_data_label' in public_info:

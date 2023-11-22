@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import importlib
 import math
+
+from google.protobuf import json_format
 
 from secretflow.spec.v1.component_pb2 import (
     Attribute,
@@ -91,7 +94,7 @@ def check_table_attr_col_cnt(value: Attribute, definition: IoDef.TableAttrDef):
     return True
 
 
-def get_value(value: Attribute, at: AttrType):
+def get_value(value: Attribute, at: AttrType, pb_cls_name: str = None):
     if at == AttrType.ATTR_TYPE_UNSPECIFIED:
         raise EvalParamError("Type of Attribute is undefined.")
     elif at == AttrType.AT_FLOAT:
@@ -110,6 +113,11 @@ def get_value(value: Attribute, at: AttrType):
         return list(value.ss)
     elif at == AttrType.AT_BOOLS:
         return list(value.bs)
+    elif at == AttrType.AT_CUSTOM_PROTOBUF:
+        pb_cls = importlib.import_module("secretflow.spec.extend")
+        for name in pb_cls_name.split("."):
+            pb_cls = getattr(pb_cls, name)
+        return json_format.Parse(value.s, pb_cls())
     else:
         raise EvalParamError(f"unsupported type: {at}.")
 
@@ -157,12 +165,18 @@ class EvalParamReader:
                 AttrType.AT_STRINGS,
                 AttrType.AT_BOOL,
                 AttrType.AT_BOOLS,
+                AttrType.AT_CUSTOM_PROTOBUF,
             ]:
-                raise EvalParamError("only support ATOMIC at this moment.")
+                raise EvalParamError(
+                    "only support ATOMIC and CUSTOM_PROTOBUF at this moment."
+                )
 
             full_name = "/".join(list(attr.prefixes) + [attr.name])
 
             if full_name not in self._instance_attrs:
+                if attr.type is AttrType.AT_CUSTOM_PROTOBUF:
+                    raise EvalParamError(f"CUSTOM_PROTOBUF attr {full_name} not set.")
+
                 # use default value.
                 if not attr.atomic.is_optional:
                     raise EvalParamError(
@@ -179,7 +193,7 @@ class EvalParamReader:
                 raise EvalParamError(f"attr {full_name}: check_upper_bound failed.")
 
             self._instance_attrs[full_name] = get_value(
-                self._instance_attrs[full_name], attr.type
+                self._instance_attrs[full_name], attr.type, attr.custom_protobuf_cls
             )
 
         # input

@@ -95,9 +95,10 @@ def data_builder(data, label, batch_size):
     return prepare_data
 
 
-def test_sl_and_lia(sf_simulation_setup_devices):
-    alice = sf_simulation_setup_devices.alice
-    bob = sf_simulation_setup_devices.bob
+def do_test_sl_and_fia(config: dict, alice, bob):
+    enable_mean = config['enable_mean'] if 'enale_mean' in config else True
+    attack_epochs = config['attack_epochs'] if 'attack_epochs' in config else 60
+    optim_lr = config['optim_lr'] if 'optim_lr' in config else 0.0001
     device_y = alice
 
     tmp_dir = tempfile.TemporaryDirectory()
@@ -289,7 +290,7 @@ def test_sl_and_lia(sf_simulation_setup_devices):
     victim_model_dict = {
         bob: [SLBaseNet, victim_model_save_path],
     }
-    optim_fn = optim_wrapper(optim.Adam, lr=0.0001)
+    optim_fn = optim_wrapper(optim.Adam, lr=optim_lr)
     generator_model = TorchModel(
         model_fn=Generator,
         loss_fn=None,
@@ -310,8 +311,11 @@ def test_sl_and_lia(sf_simulation_setup_devices):
         data_builder=data_buil,
         victim_fea_dim=20,
         attacker_fea_dim=28,
-        enable_mean=True,
+        enable_mean=enable_mean,
         enable_var=True,
+        mean_lambda=1.2,
+        var_lambda=0.25,
+        attack_epochs=attack_epochs,
         victim_mean_feature=bob_mean,
         save_attacker_path=generator_save_path,
     )
@@ -326,4 +330,14 @@ def test_sl_and_lia(sf_simulation_setup_devices):
         random_seed=1234,
         dataset_builder=None,
         callbacks=[fia_callback],
+    )
+    metrics = fia_callback.get_attack_metrics()
+    return metrics
+
+
+def test_sl_and_fia(sf_simulation_setup_devices):
+    alice = sf_simulation_setup_devices.alice
+    bob = sf_simulation_setup_devices.bob
+    do_test_sl_and_fia(
+        {'enable_mean': False, 'attack_epochs': 60, "optim_lr": 0.0001}, alice, bob
     )

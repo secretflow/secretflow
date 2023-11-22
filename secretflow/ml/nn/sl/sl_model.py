@@ -320,6 +320,8 @@ class SLModel:
         dataset_builder: Callable[[List], Tuple[int, Iterable]] = None,
         audit_log_dir: str = None,
         audit_log_params: dict = {},
+        early_stopping_batch_step: int = 0,
+        early_stopping_warmup_step: int = 0,
         random_seed: int = None,
     ):
         """Vertical split learning training interface
@@ -510,7 +512,50 @@ class SLModel:
                         if device in scatter_gradients.keys():
                             worker.base_backward(scatter_gradients[device])
 
-                callbacks.on_train_batch_end(step)
+                # for EarlyStoppingBatch, evalute model every early_stopping_batch_step
+                if (
+                    early_stopping_batch_step > 0
+                    and step > early_stopping_warmup_step
+                    and step % early_stopping_batch_step == 0
+                ):
+                    wait(res)
+                    res = []
+                    # as evaluation will change metrics' state(training stage),
+                    # we temporarily save it here, and recover later
+                    self._workers[self.device_y].staging_metric_states()
+
+                    # validation
+                    self._workers[self.device_y].reset_metrics()
+
+                    callbacks.on_test_begin()
+                    res = []
+                    for val_step in range(0, valid_steps):
+                        callbacks.on_test_batch_begin(batch=val_step)
+                        hiddens = {}  # driver end
+                        for device, worker in self._workers.items():
+                            hidden = worker.base_forward("eval", step=val_step)
+                            hiddens[device] = hidden
+                        agg_hiddens = self.agglayer.forward(hiddens, axis=0)
+
+                        metrics = self._workers[self.device_y].evaluate(agg_hiddens)
+                        res.append(metrics)
+                        if len(res) == wait_steps:
+                            wait(res)
+                            res = []
+                        callbacks.on_test_batch_end(batch=val_step)
+                    wait(res)
+                    callbacks.on_test_end(metrics)
+
+                    callbacks.on_train_batch_end(step)
+
+                    # recover metrics's state(training stage)
+                    self._workers[self.device_y].recover_metric_states()
+
+                    if callbacks.stop_training[0]:
+                        break
+                else:
+                    callbacks.on_train_batch_end(step)
+
                 res.append(gradients)
 
                 if self.dp_strategy_dict is not None and dp_spent_step_freq is not None:
@@ -536,7 +581,7 @@ class SLModel:
                     callbacks.on_test_batch_begin(batch=step)
                     hiddens = {}  # driver end
                     for device, worker in self._workers.items():
-                        hidden = worker.base_forward("eval")
+                        hidden = worker.base_forward("eval", step=step)
                         hiddens[device] = hidden
                     agg_hiddens = self.agglayer.forward(hiddens)
 
@@ -573,7 +618,7 @@ class SLModel:
                     )
             callbacks.on_epoch_end(epoch)
             # TODO: Need EarlystopCallback
-            if callbacks.stop_training:
+            if callbacks.stop_training[0]:
                 break
 
         callbacks.on_train_end()
@@ -729,7 +774,7 @@ class SLModel:
             callbacks.on_test_batch_begin(step)
             hiddens = {}  # driver端
             for device, worker in self._workers.items():
-                hidden = worker.base_forward(stage="eval")
+                hidden = worker.base_forward(stage="eval", step=step)
                 hiddens[device] = hidden
 
             agg_hiddens = self.agglayer.forward(hiddens)

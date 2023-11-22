@@ -101,6 +101,6 @@ def test_groupby_statistics(comp_prod_sf_cluster_config, by, target, aggs):
         true_df = getattr(test_data.groupby(by), agg)()[target].fillna(0).reset_index()
         true_df.columns = by + target
         result_true[agg] = true_df
-    true_ret = gen_groupby_statistic_reports(result_true)
+    true_ret = gen_groupby_statistic_reports(result_true, by)
 
     assert comp_ret == true_ret, f"comp_ret {comp_ret}, \n true {true_ret}"

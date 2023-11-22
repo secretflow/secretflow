@@ -11,11 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from secretflow.device import reveal
-from .callback import Callback
 from tqdm import tqdm
+
 import secretflow as sf
+from secretflow.device import reveal
 from secretflow.ml.nn.metrics import aggregate_metrics
+from .callback import Callback
 
 
 class Progbar(Callback):
@@ -75,7 +76,7 @@ class Progbar(Callback):
             self.progbar.update(update)
         self.steps = batch
 
-    def on_epoch_end(self, epoch, logs):
+    def on_epoch_end(self, epoch=None, logs=None):
         # epoch end output report to logger
         if self.device_y:
             # deal with split learning

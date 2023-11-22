@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Dict
 
 from secretflow.ml.nn.callbacks.callback import Callback
 
@@ -24,7 +23,6 @@ class AttackCallback(Callback):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.attack_outputs: Dict[int, Dict[str, float]] = {}
 
-    def set_attack_outputs(self, attack_outputs):
-        self.attack_outputs = attack_outputs
+    def get_attack_metrics(self):
+        raise NotImplementedError()

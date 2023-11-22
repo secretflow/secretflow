@@ -15,6 +15,7 @@
 """
 This file references code of paper Label Inference Attacks Against Federated Learning on Usenix Security 2022: https://www.usenix.org/conference/usenixsecurity22/presentation/fu-chong
 """
+
 import copy
 import logging
 from typing import Callable
@@ -26,8 +27,7 @@ import torch.optim as optim
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Accuracy, Precision
 
-
-from secretflow.device import PYU, wait, reveal
+from secretflow.device import PYU, reveal, wait
 from secretflow.ml.nn.callbacks.attack import AttackCallback
 
 
@@ -422,6 +422,13 @@ class LabelInferenceAttack(AttackCallback):
         epochs: number of epoch
         load_model_path: path to load model, if it is None it won't load model
         save_model_path: path to save model, if it is None it won't save model
+        T: hyperparam for sharpen in Formula 4 in Appendix
+        alpha: hyperparam for beta distribution in Algorithm 5 in Appendix
+        val_iteration: number of steps in training
+        k: top k accuracy for evaluation
+        lr: learning rate
+        ema_decay: hyperparam in WeightEMA
+        lambda_u: hyperparam for unlabeled loss weight calculation
     """
 
     def __init__(
@@ -434,6 +441,13 @@ class LabelInferenceAttack(AttackCallback):
         attack_epochs: int = 60,
         load_model_path: str = None,
         save_model_path: str = None,
+        T=0.8,
+        alpha=0.75,
+        val_iteration=1024,
+        k=4,
+        lr=2e-3,
+        ema_decay=0.999,
+        lambda_u=50,
         **params,
     ):
         super().__init__(
@@ -448,8 +462,15 @@ class LabelInferenceAttack(AttackCallback):
         self.epochs = attack_epochs
         self.load_model_path = load_model_path
         self.save_model_path = save_model_path
-
+        self.T = T
+        self.alpha = alpha
+        self.val_iteration = val_iteration
+        self.k = k
+        self.lr = lr
+        self.ema_decay = ema_decay
+        self.lambda_u = lambda_u
         self.res = None
+        self.metrics = None
 
     def on_train_end(self, logs=None):
         def label_inference_attack(attack_worker):
@@ -462,16 +483,23 @@ class LabelInferenceAttack(AttackCallback):
                 epochs=self.epochs,
                 load_model_path=self.load_model_path,
                 save_model_path=self.save_model_path,
+                T=self.T,
+                alpha=self.alpha,
+                val_iteration=self.val_iteration,
+                k=self.k,
+                lr=self.lr,
+                ema_decay=self.ema_decay,
+                lambda_u=self.lambda_u,
             )
-            res = attacker.attack()
-            return res
+            ret = attacker.attack()
+            return ret
 
         res = self._workers[self.attack_party].apply(label_inference_attack)
         wait(res)
-        self.res = reveal(res)
+        self.metrics = reveal(res)
 
-    def result(self):
-        return self.res
+    def get_attack_metrics(self):
+        return self.metrics
 
 
 class LabelInferenceAttacker:
@@ -485,6 +513,13 @@ class LabelInferenceAttacker:
         epochs: int = 1,
         load_model_path: str = None,
         save_model_path: str = None,
+        T=0.8,
+        alpha=0.75,
+        val_iteration=1024,
+        k=4,
+        lr=2e-3,
+        ema_decay=0.999,
+        lambda_u=50,
     ):
         self.base_model = base_model
         self.att_model = att_model
@@ -496,6 +531,13 @@ class LabelInferenceAttacker:
             self.att_model,
             self.ema_att_model,
             num_classes,
+            T=T,
+            alpha=alpha,
+            val_iteration=val_iteration,
+            k=k,
+            lr=lr,
+            ema_decay=ema_decay,
+            lambda_u=lambda_u,
         )
 
         self.epochs = epochs
@@ -529,7 +571,6 @@ class LabelInferenceAttacker:
                     test_loss, test_acc = self.evaluate(test_loader)
                     res_metric['val_loss_' + str(loader_idx)] = test_loss
                     res_metric['val_acc_' + str(loader_idx)] = test_acc
-                    # TODO: here to report
                     logging.info(f"test_loss: {test_loss}, test_acc: {test_acc}")
 
         return res_metric

@@ -67,6 +67,7 @@ class DistDataType(BaseEnum):
     BIN_RUNNING_RULE = "sf.rule.binning"
     SS_XGB_MODEL = "sf.model.ss_xgb"
     ONEHOT_RULE = "sf.rule.onehot_encode"
+    PREPROCESSING_RULE = "sf.rule.proprocessing"
     REPORT = "sf.report"
 
 
@@ -158,6 +159,7 @@ def extract_table_header(
     feature_selects: List[str] = None,
     col_selects: List[str] = None,
     col_excludes: List[str] = None,
+    return_schema_names: bool = False,
 ) -> Dict[str, Dict[str, np.dtype]]:
     """
     Args:
@@ -168,6 +170,7 @@ def extract_table_header(
         feature_selects (List[str], optional): Load part of feature cols. Only in effect if load_features is True. Defaults to None.
         col_selects (List[str], optional): Load part of cols. Applies to all cols. Defaults to None. Couldn't use with col_excludes.
         col_excludes (List[str], optional): Load all cols exclude these. Applies to all cols. Defaults to None. Couldn't use with col_selects.
+        return_schema_names (bool, optional): if True, also return schema names Dict[str, List[str]]
     """
     meta = (
         IndividualTable()
@@ -194,8 +197,15 @@ def extract_table_header(
         col_excludes = set(col_excludes)
 
     ret = dict()
+    schema_names = {}
+    labels = {}
+    features = {}
+    ids = {}
     for slice, dr in zip(schemas, db.data_refs):
         smeta = dict()
+        party_labels = []
+        party_features = []
+        party_ids = []
         if load_features:
             for t, h in zip(slice.feature_types, slice.features):
                 if feature_selects is not None:
@@ -218,6 +228,8 @@ def extract_table_header(
                 assert (
                     t in SUPPORTED_VTABLE_DATA_TYPE
                 ), f"The feature type {t} is not supported"
+                if return_schema_names:
+                    party_features.append(h)
                 smeta[h] = SUPPORTED_VTABLE_DATA_TYPE[t]
         if load_labels:
             for t, h in zip(slice.label_types, slice.labels):
@@ -230,7 +242,8 @@ def extract_table_header(
                 if col_excludes is not None:
                     if h in col_excludes:
                         continue
-
+                if return_schema_names:
+                    party_labels.append(h)
                 smeta[h] = SUPPORTED_VTABLE_DATA_TYPE[t]
         if load_ids:
             for t, h in zip(slice.id_types, slice.ids):
@@ -244,17 +257,28 @@ def extract_table_header(
                     if h in col_excludes:
                         continue
 
+                if return_schema_names:
+                    party_ids.append(h)
+
                 smeta[h] = SUPPORTED_VTABLE_DATA_TYPE[t]
 
         if len(smeta):
             ret[dr.party] = smeta
+            labels[dr.party] = party_labels
+            features[dr.party] = party_features
+            ids[dr.party] = party_ids
+
+    schema_names["labels"] = labels
+    schema_names["features"] = features
+    schema_names["ids"] = ids
 
     if feature_selects is not None and len(feature_selects) > 0:
         raise AttributeError(f"unknown features {feature_selects} in feature_selects")
 
     if col_selects is not None and len(col_selects) > 0:
         raise AttributeError(f"unknown cols {col_selects} in col_selects")
-
+    if return_schema_names:
+        return ret, schema_names
     return ret
 
 
@@ -267,22 +291,35 @@ def load_table(
     feature_selects: List[str] = None,  # if None, load all features
     col_selects: List[str] = None,  # if None, load all cols
     col_excludes: List[str] = None,
+    return_schema_names: bool = False,
+    nrows: int = None,
 ) -> VDataFrame:
     assert load_features or load_labels or load_ids, "At least one flag should be true"
     assert (
         db.type.lower() == DistDataType.INDIVIDUAL_TABLE
         or db.type.lower() == DistDataType.VERTICAL_TABLE
     ), f"path format {db.type.lower()} should be sf.table.individual or sf.table.vertical_table"
-
-    v_headers = extract_table_header(
-        db,
-        load_features=load_features,
-        load_labels=load_labels,
-        load_ids=load_ids,
-        feature_selects=feature_selects,
-        col_selects=col_selects,
-        col_excludes=col_excludes,
-    )
+    if return_schema_names:
+        v_headers, schema_names = extract_table_header(
+            db,
+            load_features=load_features,
+            load_labels=load_labels,
+            load_ids=load_ids,
+            feature_selects=feature_selects,
+            col_selects=col_selects,
+            col_excludes=col_excludes,
+            return_schema_names=True,
+        )
+    else:
+        v_headers = extract_table_header(
+            db,
+            load_features=load_features,
+            load_labels=load_labels,
+            load_ids=load_ids,
+            feature_selects=feature_selects,
+            col_selects=col_selects,
+            col_excludes=col_excludes,
+        )
     parties_path_format = extract_distdata_info(db)
     for p in v_headers:
         assert (
@@ -301,10 +338,66 @@ def load_table(
             for p in v_headers
         }
         dtypes = {pyus[p]: v_headers[p] for p in v_headers}
-        vdf = read_csv(filepaths, dtypes=dtypes)
+        vdf = read_csv(filepaths, dtypes=dtypes, nrows=nrows)
         wait(vdf)
-
+    if return_schema_names:
+        return vdf, schema_names
     return vdf
+
+
+def load_table_select_and_exclude_pair(
+    ctx,
+    db: DistData,
+    load_features: bool = False,
+    load_labels: bool = False,
+    load_ids: bool = False,
+    col_selects: List[str] = None,  # if None, load all cols
+    to_pandas: bool = True,
+    nrows: int = None,
+):
+    """
+    Load two tables, one is the selected, another is the complement.
+    """
+    trans_x = load_table(
+        ctx,
+        db,
+        load_features,
+        load_labels,
+        load_ids,
+        col_selects=col_selects,
+        nrows=nrows,
+    )
+
+    remain_x = load_table(
+        ctx,
+        db,
+        load_features=True,
+        load_ids=True,
+        load_labels=True,
+        col_excludes=col_selects,
+        nrows=nrows,
+    )
+    if to_pandas:
+        trans_x = trans_x.to_pandas()
+        remain_x = remain_x.to_pandas()
+    return trans_x, remain_x
+
+
+def move_feature_to_label(schema: TableSchema, label: str) -> TableSchema:
+    new_schema = TableSchema()
+    new_schema.CopyFrom(schema)
+    if label in list(schema.features) and label not in list(schema.labels):
+        new_schema.ClearField('features')
+        new_schema.ClearField('feature_types')
+        for k, v in zip(list(schema.features), list(schema.feature_types)):
+            if k != label:
+                new_schema.features.append(k)
+                new_schema.feature_types.append(v)
+            else:
+                label_type = v
+        new_schema.labels.append(label)
+        new_schema.label_types.append(label_type)
+    return new_schema
 
 
 @dataclass

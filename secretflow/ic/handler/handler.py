@@ -32,8 +32,10 @@ class IcHandler(abc.ABC):
 
     def _handshake(self) -> bool:
         if LinkProxy.self_party == LinkProxy.all_parties[0]:
+            print('++++++++++++ passive handshake +++++++++++++++')
             return self._passive_handshake()
         else:
+            print('++++++++++++ active handshake +++++++++++++++')
             return self._active_handshake()
 
     def _active_handshake(self) -> bool:

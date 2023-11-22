@@ -338,14 +338,13 @@ class SLBaseTFModel(SLBaseModel):
         has_y=None,
         has_s_w=None,
     ):
-        data_set = iter(data_set)
         if stage == "train":
-            self.train_set = data_set
+            self.train_dataset = data_set
             self.train_has_x = has_x
             self.train_has_y = has_y
             self.train_has_s_w = has_s_w
         elif stage == "eval":
-            self.eval_set = data_set
+            self.eval_dataset = data_set
             self.eval_has_x = has_x
             self.eval_has_y = has_y
             self.eval_has_s_w = has_s_w
@@ -379,6 +378,12 @@ class SLBaseTFModel(SLBaseModel):
 
         return data_x, data_y, data_s_w
 
+    def _reset_data_iter(self, stage):
+        if stage == "train":
+            self.train_set = iter(self.train_dataset)
+        elif stage == "eval":
+            self.eval_set = iter(self.eval_dataset)
+
     def base_forward(self, stage="train", step=0) -> ForwardData:
         """compute hidden embedding
         Args:
@@ -389,6 +394,9 @@ class SLBaseTFModel(SLBaseModel):
         data_x = None
         self.init_data()
         training = True
+        if step == 0:
+            self._reset_data_iter(stage=stage)
+
         if stage == "train":
             train_data = next(self.train_set)
 
@@ -505,6 +513,16 @@ class SLBaseTFModel(SLBaseModel):
     def reset_metrics(self):
         self.model_fuse.compiled_metrics.reset_state()
         self.model_fuse.compiled_loss.reset_state()
+
+    def staging_metric_states(self):
+        self.staging_metric_vars = {}
+        for m in self.model_fuse.metrics:
+            self.staging_metric_vars[m.name] = [v.numpy() for v in m.variables]
+
+    def recover_metric_states(self):
+        for m in self.model_fuse.metrics:
+            for i, v in enumerate(m.variables):
+                v.assign(self.staging_metric_vars[m.name][i])
 
     def evaluate(self, forward_data: Union[List[ForwardData], ForwardData]):
         """Returns the loss value & metrics values for the model in test mode.

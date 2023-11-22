@@ -5,12 +5,12 @@ import numpy as np
 import pandas as pd
 
 import secretflow.compute as sc
-from secretflow.component.data_utils import DistDataType
+from secretflow.component.data_utils import DistDataType, VerticalTableWrapper
 from secretflow.component.preprocessing.onehot_encode import (
+    apply_onehot_rule_on_table,
     onehot_encode,
-    onehot_substitution,
 )
-from secretflow.component.preprocessing.table_utils import apply_onehot_rule_on_table
+from secretflow.component.preprocessing.substitution import substitution
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
@@ -138,15 +138,19 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
 
     logging.warn(f"....... \n{report}\n.,......")
 
+    meta = VerticalTableWrapper.from_dist_data(res.outputs[0], 0)
+
+    logging.warn(f"...meta.... \n{meta}\n.,......")
+
     param2 = NodeEvalParam(
         domain="preprocessing",
-        name="onehot_substitution",
+        name="substitution",
         version="0.0.2",
         inputs=[param.inputs[0], res.outputs[1]],
         output_uris=[sub_path],
     )
 
-    res = onehot_substitution.eval(
+    res = substitution.eval(
         param=param2,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,

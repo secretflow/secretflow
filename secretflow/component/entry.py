@@ -24,12 +24,12 @@ from secretflow.component.ml.eval.prediction_bias_eval import prediction_bias_co
 from secretflow.component.ml.eval.ss_pvalue import ss_pvalue_comp
 from secretflow.component.ml.linear.ss_glm import ss_glm_predict_comp, ss_glm_train_comp
 from secretflow.component.ml.linear.ss_sgd import ss_sgd_predict_comp, ss_sgd_train_comp
+from secretflow.component.preprocessing.case_when import case_when
 from secretflow.component.preprocessing.feature_filter import feature_filter_comp
-from secretflow.component.preprocessing.onehot_encode import (
-    onehot_encode,
-    onehot_substitution,
-)
+from secretflow.component.preprocessing.feature_gen import feature_gen_comp
+from secretflow.component.preprocessing.onehot_encode import onehot_encode
 from secretflow.component.preprocessing.psi import psi_comp
+from secretflow.component.preprocessing.substitution import substitution
 from secretflow.component.preprocessing.train_test_split import train_test_split_comp
 from secretflow.component.preprocessing.vert_binning import (
     vert_bin_substitution_comp,
@@ -51,6 +51,7 @@ ALL_COMPONENTS = [
     ss_sgd_train_comp,
     ss_sgd_predict_comp,
     feature_filter_comp,
+    feature_gen_comp,
     vert_binning_comp,
     vert_woe_binning_comp,
     vert_bin_substitution_comp,
@@ -68,7 +69,8 @@ ALL_COMPONENTS = [
     ss_glm_predict_comp,
     ss_glm_train_comp,
     onehot_encode,
-    onehot_substitution,
+    substitution,
+    case_when,
 ]
 COMP_LIST_NAME = "secretflow"
 COMP_LIST_DESC = "First-party SecretFlow components."

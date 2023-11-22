@@ -433,7 +433,6 @@ class SLBaseTorchModel(SLBaseModel, ABC):
             self.eval_has_x = has_x
             self.eval_has_y = has_y
             self.eval_has_s_w = has_s_w
-            self.eval_iter = iter(self.eval_set)
         else:
             raise Exception(f"Illegal argument stage={stage}")
 
@@ -513,6 +512,14 @@ class SLBaseTorchModel(SLBaseModel, ABC):
     def reset_metrics(self):
         for m in self.metrics_fuse:
             m.reset()
+
+    def staging_metric_states(self):
+        # TODO(caibei)
+        raise NotImplementedError()
+
+    def recover_metric_states(self):
+        # TODO(caibei)
+        raise NotImplementedError()
 
     def _evaluate_internal(self, hiddens, eval_y, eval_sample_weight, logs):
         # Step 1: forward pass

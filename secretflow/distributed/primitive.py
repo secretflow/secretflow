@@ -98,6 +98,19 @@ def active_sf_cluster():
     _is_cluster_active = True
 
 
+def get_cluster_avaliable_resources():
+    if get_distribution_mode() == DISTRIBUTION_MODE.DEBUG:
+        raise NotImplementedError(
+            "Need but not implement. This will be used by tune when debug mode."
+        )
+    elif get_distribution_mode() == DISTRIBUTION_MODE.SIMULATION:
+        return ray.available_resources()
+    else:
+        raise NotImplementedError(
+            "Need but not implement. This will be used by tune when production mode."
+        )
+
+
 def _is_cython(obj):
     """Check if an object is a Cython function or method"""
 

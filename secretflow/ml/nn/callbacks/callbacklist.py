@@ -15,14 +15,13 @@ from typing import List
 
 from .attack import AttackCallback
 from .callback import Callback
+from .early_stopping import EarlyStoppingBase
 from .history import History
 from .progbar import Progbar
+from .tune.autoattack import AutoAttackCallback
+from .tune.automl import AutoML
 
-CALLBACK_PRIORITY = [
-    Callback,
-    AttackCallback,
-    # autoattack
-]
+CALLBACK_PRIORITY = [Callback, AutoML, AttackCallback, AutoAttackCallback]
 
 
 def sort_callbacks(callback: Callback):
@@ -51,9 +50,8 @@ class CallbackList:
             )
 
         # callbacks status
-        self.stop_training = False
+        self.stop_training = [False]
         self.history = {}
-        self.attack_outputs = {}
         if isinstance(callbacks, CallbackList):
             raise RuntimeError("Cannot set a CallbackList to CallbaskList.")
 
@@ -66,10 +64,12 @@ class CallbackList:
                 )
             )
         self.callbacks.sort(key=sort_callbacks)
+
+        # for early stopping
         for callback in self.callbacks:
-            if isinstance(callback, AttackCallback):
-                callback.set_attack_outputs(self.attack_outputs)
-            # autoattack set same outputs
+            if isinstance(callback, EarlyStoppingBase):
+                callback.set_stop_training(self.stop_training)
+
         self.set_workers(workers, device_y)
 
         if kwargs:
@@ -115,17 +115,17 @@ class CallbackList:
         for callback in self.callbacks:
             callback.on_epoch_begin(epoch)
 
-    def on_epoch_end(self, epoch=1, logs=None):
+    def on_epoch_end(self, epoch=0, logs=None):
         for callback in self.callbacks:
             callback.on_epoch_end(epoch, logs)
 
-    def on_batch_begin(self):
+    def on_batch_begin(self, batch=0):
         for callback in self.callbacks:
-            callback.on_batch_begin()
+            callback.on_batch_begin(batch)
 
-    def on_batch_end(self):
+    def on_batch_end(self, batch=0):
         for callback in self.callbacks:
-            callback.on_batch_end()
+            callback.on_batch_end(batch)
 
     def on_train_batch_begin(self, batch):
         for callback in self.callbacks:

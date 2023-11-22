@@ -238,6 +238,7 @@ class SgbIcHandler(IcHandler):
         return self._phe.key_size in key_sizes
 
     def _run_algo(self):
+        print('+++++++++++++++ run sgb ++++++++++++++++++')
         params = self._process_params()
         x, y = self._process_dataset()
         model = self._train(params, x, y)
@@ -302,10 +303,9 @@ class SgbIcHandler(IcHandler):
 
     @staticmethod
     def _evaluate(model: SgbModel, x: FedNdarray, y: FedNdarray):
-        print('+++++++++++++++ predict ++++++++++++++++++')
+        print('+++++++++++++++ evaluate ++++++++++++++++++')
         yhat = model.predict(x)
 
-        print('+++++++++++++++ reveal ++++++++++++++++++')
         yhat = reveal(yhat)
         y = reveal(list(y.partitions.values())[0])
 
