@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import inspect
 import json
 import logging
 import math
@@ -19,10 +20,11 @@ import threading
 import time
 from dataclasses import dataclass
 from enum import Enum, unique
-from typing import Dict, List, Union
+from typing import Dict, List, Type, Union
 
 import cleantext
 import spu
+from google.protobuf.message import Message as PbMessage
 
 from secretflow.component.data_utils import DistDataType, check_dist_data, check_io_def
 from secretflow.component.eval_param_reader import EvalParamReader
@@ -546,6 +548,34 @@ class Component:
                 node.atomic.list_max_length_inclusive = list_max_length_inclusive
             else:
                 node.atomic.list_max_length_inclusive = -1
+
+        # append
+        self.__comp_attr_decls.append(node)
+
+    def custom_pb_attr(self, name: str, desc: str, pb_cls: Type[PbMessage]):
+        # sanity checks
+        self._check_reserved_words(name)
+
+        assert inspect.isclass(pb_cls) and issubclass(
+            pb_cls, PbMessage
+        ), f"support protobuf class only, got {pb_cls}"
+
+        extend_path = "secretflow.protos.secretflow.spec.extend."
+        assert pb_cls.__module__.startswith(
+            extend_path
+        ), f"only support protobuf defined under {extend_path} path, got {pb_cls.__module__}"
+
+        cls_name = ".".join(
+            pb_cls.__module__[len(extend_path) :].split(".") + [pb_cls.__name__]
+        )
+
+        # create pb
+        node = AttributeDef(
+            name=name,
+            desc=clean_text(desc),
+            type=AttrType.AT_CUSTOM_PROTOBUF,
+            custom_protobuf_cls=cls_name,
+        )
 
         # append
         self.__comp_attr_decls.append(node)

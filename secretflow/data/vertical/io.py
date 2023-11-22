@@ -14,7 +14,7 @@
 
 from typing import Dict, List, Union
 
-from secretflow.device import PYU, SPU, Device
+from secretflow.device import Device, PYU, SPU
 from secretflow.utils.errors import InvalidArgumentError
 from secretflow.utils.random import global_random
 
@@ -33,6 +33,7 @@ def read_csv(
     psi_protocl=None,
     no_header: bool = False,
     backend: str = 'pandas',
+    nrows: int = None,
 ) -> VDataFrame:
     """Read a comma-separated values (csv) file into VDataFrame.
 
@@ -132,6 +133,7 @@ def read_csv(
             usecols=usecols,
             dtype=dtype,
             read_backend=backend,
+            nrows=nrows,
         )
     if drop_keys:
         for device, part in partitions.items():

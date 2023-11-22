@@ -11,15 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import logging
 from typing import Callable, Dict, List, Union
 
 import numpy as np
 import torch
 
+from secretflow import reveal
 from secretflow.device import PYU, wait
 from secretflow.ml.nn.utils import TorchModel
-
 from secretflow.ml.nn.callbacks.attack import AttackCallback
 
 
@@ -90,6 +91,8 @@ class FeatureInferenceAttack(AttackCallback):
         self.save_attacker_path = save_attacker_path
         self.logs = {}
 
+        self.metrics = None
+
     def on_train_end(self, logs=None):
         def save_victim_model(victim_worker):
             check_point = {'model_state_dict': victim_worker.model_base.state_dict()}
@@ -116,16 +119,17 @@ class FeatureInferenceAttack(AttackCallback):
                 self.load_attacker_path,
                 self.save_attacker_path,
             )
-            self.res = attacker.attack()
-            return self.res
+            ret = attacker.attack()
+            return ret
 
         res = self._workers[self.victim_party].apply(save_victim_model)
         wait(res)
-        res = self._workers[self.attack_party].apply(feature_inference_attack)
-        wait(res)
+        self.metrics = reveal(
+            self._workers[self.attack_party].apply(feature_inference_attack)
+        )
 
-    def result(self):
-        return self.res
+    def get_attack_metrics(self):
+        return self.metrics
 
 
 class FeatureInferenceAttacker:

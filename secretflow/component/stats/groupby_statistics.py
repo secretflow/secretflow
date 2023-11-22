@@ -89,9 +89,12 @@ groupby_statistics_comp.io(
 )
 
 
-def gen_groupby_statistic_reports(agg_df_dict: Dict[str, pd.DataFrame]) -> Report:
+def gen_groupby_statistic_reports(
+    agg_df_dict: Dict[str, pd.DataFrame], input_data_by
+) -> Report:
     r_tables = {
-        agg: gen_groupby_statistic_report(df, agg) for agg, df in agg_df_dict.items()
+        agg: gen_groupby_statistic_report(df, agg, input_data_by)
+        for agg, df in agg_df_dict.items()
     }
     return Report(
         name="groupby statistics",
@@ -115,10 +118,14 @@ def gen_groupby_statistic_reports(agg_df_dict: Dict[str, pd.DataFrame]) -> Repor
     )
 
 
-def gen_groupby_statistic_report(df: pd.DataFrame, agg: str) -> Report:
+def gen_groupby_statistic_report(df: pd.DataFrame, agg: str, input_data_by) -> Report:
     headers, rows = [], []
     for k in df.columns:
-        headers.append(Table.HeaderItem(name=k, desc="", type="str"))
+        headers.append(
+            Table.HeaderItem(
+                name=k, desc="key" if k in input_data_by else "value", type="str"
+            )
+        )
 
     for index, df_row in df.iterrows():
         rows.append(
@@ -137,9 +144,9 @@ def gen_groupby_statistic_report(df: pd.DataFrame, agg: str) -> Report:
 
 
 def dump_groupby_statistics(
-    name, system_info, agg_df_dict: Dict[str, pd.DataFrame]
+    name, system_info, agg_df_dict: Dict[str, pd.DataFrame], input_data_by
 ) -> DistData:
-    report_mate = gen_groupby_statistic_reports(agg_df_dict)
+    report_mate = gen_groupby_statistic_reports(agg_df_dict, input_data_by)
     res = DistData(
         name=name,
         system_info=system_info,
@@ -174,4 +181,8 @@ def groupby_statistics_eval_fn(
             input_df, input_data_by, input_data_values, spu, aggs, max_group_size
         )
     result = {agg: df.reset_index() for agg, df in result.items()}
-    return {"report": dump_groupby_statistics(report, input_data.system_info, result)}
+    return {
+        "report": dump_groupby_statistics(
+            report, input_data.system_info, result, input_data_by
+        )
+    }

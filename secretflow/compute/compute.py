@@ -34,6 +34,8 @@ def __sf_wrapper(py_func, c_func):
             py_options = pc._handle_options(
                 py_func_name, py_options_class, options, py_option_args, kwargs
             )
+
+        if py_options:
             py_options = py_options.serialize().to_pybytes()
 
         return py_options
@@ -43,7 +45,7 @@ def __sf_wrapper(py_func, c_func):
             inputs = args[:arity]
             remain = args[arity:]
         else:
-            inputs = arity
+            inputs = args
             remain = []
 
         assert all(

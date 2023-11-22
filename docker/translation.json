@@ -354,6 +354,18 @@
     "output_model": "输出模型",
     "Output model.": "输出模型"
   },
+  "preprocessing/case_when:0.0.1": {
+    "preprocessing": "预处理",
+    "case_when": "交叉决策",
+    "0.0.1": "0.0.1",
+    "rules": "规则",
+    "input CaseWhen rules": "输入交叉决策规则",
+    "input_dataset": "输入数据集",
+    "Input vertical table.": "输入联合表",
+    "output_dataset": "输出数据集",
+    "out_rules": "输出规则",
+    "case when substitution rule": "预处理替换规则"
+  },
   "preprocessing/feature_filter:0.0.1": {
     "preprocessing": "预处理",
     "feature_filter": "特征过滤",
@@ -366,34 +378,47 @@
     "out_ds": "输出数据集",
     "Output vertical table.": "输出联合表"
   },
-  "preprocessing/onehot_encode:0.0.1": {
+  "preprocessing/feature_gen:0.0.2": {
     "preprocessing": "预处理",
-    "onehot_encode": "onehot编码",
-    "0.0.1": "0.0.1",
-    "drop_first": "丢弃首个分类",
-    "If true drop the first category in each feature. If only one category is present, the feature will be dropped entirely": "如果为 true，则删除每个特征的第一个分类。如果仅存在一个分类，则将完全删除该特征",
-    "min_frequency": "不常见分类频率",
-    "Specifies the minimum frequency below which a category will be considered infrequent, [0, 1), 0 disable": "小于该频率的类别将被视为不常见类别，不常见类别会被合并为一个类别，范围[0， 1）， 0 禁用",
-    "report_rules": "报告规则",
-    "Whether to report rule details": "是否报告规则详细信息并在平台展示",
-    "input_dataset": "输入数据集",
-    "Input vertical table.": "输入垂直表",
-    "encode_features": "选择要编码的特征",
-    "Features to encode.": "选择要编码的特征",
+    "feature_gen": "特征生成",
+    "Generate a new feature based on one original feature and another feature or constant.": "基于一个原始特征和另一个特征或常量生成新特征。",
+    "0.0.2": "0.0.2",
+    "binary_op": "二元操作",
+    "What kind of binary operation we want to do, currently only supports +, -, *, /": "我们想做什么样的二元操作，目前只支持 +、-、*、/",
+    "constant": "常数",
+    "If we have only one feature, we assume, new_feature = binary_op(f1, constant).": "如果我们只有一个特征，我们假设new_feature=binary_op（f1，常数）。",
+    "new_feature_name": "新特征名称",
+    "Name of the newly generated feature.": "新生成特征的名称。",
+    "as_label": "作为标签",
+    "If True, the generated feature will be marked as label in schema.": "如果为True，则生成的特征将在架构中标记为标签。",
+    "in_ds": "输入数据集",
+    "Input vertical table.": "输入垂直表格。",
+    "features": "特征",
+    "Feature(s) to operate on. If two features exist, we assume new_feature = binary_op(f1, f2). Currently two features must be from the same party.": "要操作的功能。如果存在两个功能，我们假设new_Feature=binary_op（f1，f2）。目前，两个功能必须来自同一方。",
+    "out_ds": "输出数据集",
+    "Output vertical table.": "输出垂直表格。",
     "out_rules": "输出规则",
+    "feature gen rule": "特征生成规则"
+  },
+  "preprocessing/onehot_encode:0.0.2": {
+    "preprocessing": "预处理",
+    "onehot_encode": "onehot_encode",
+    "0.0.2": "0.0.2",
+    "drop_first": "丢弃第一个",
+    "If true drop the first category in each feature. If only one category is present, the feature will be dropped entirely": "如果为true，则删除每个特征中的第一个类别。如果只存在一个类别，则该功能将完全删除",
+    "min_frequency": "最小频率",
+    "Specifies the minimum frequency below which a category will be considered infrequent, [0, 1), 0 disable": "指定类别将被视为不频繁的最低频率，[0，1），0禁用",
+    "report_rules": "报告规则",
+    "Whether to report rule details": "是否报告规则详细信息",
+    "input_dataset": "输入数据集",
+    "Input vertical table.": "输入竖排表格。",
+    "encode_features": "编码器功能",
+    "Features to encode.": "要编码的功能。",
+    "output_dataset": "输出数据集",
+    "out_rules": "out_rules",
     "onehot rule": "onehot规则",
     "report": "报告",
-    "report rules details if report_rules is true": "是否报告规则详细信息（如果report_rules为 true）"
-  },
-  "preprocessing/onehot_substitution:0.0.1": {
-    "preprocessing": "预处理",
-    "onehot_substitution": "onehot规则应用",
-    "0.0.1": "0.0.1",
-    "input_dataset": "输入数据集",
-    "Input vertical table.": "输入垂直表",
-    "input_rules": "输入规则",
-    "Input onehot rules": "输入onehot规则",
-    "output_dataset": "输出数据集"
+    "report rules details if report_rules is true": "如果report_rules为true，则报告规则详细信息"
   },
   "preprocessing/psi:0.0.1": {
     "preprocessing": "预处理",
@@ -416,6 +441,17 @@
     "Individual table for sender": "发送方的样本表",
     "psi_output": "PSI输出",
     "Output vertical table": "输出联合表"
+  },
+  "preprocessing/substitution:0.0.2": {
+    "preprocessing": "预处理",
+    "substitution": "替换",
+    "unified substitution component": "统一特征替换组件",
+    "0.0.2": "0.0.2",
+    "input_dataset": "输入数据集",
+    "Input vertical table.": "输入竖排表格。",
+    "input_rules": "输入规则",
+    "Input preprocessing rules": "输入预处理规则",
+    "output_dataset": "输出数据集"
   },
   "preprocessing/train_test_split:0.0.1": {
     "preprocessing": "预处理",

@@ -1757,6 +1757,45 @@
     },
     {
       "domain": "preprocessing",
+      "name": "case_when",
+      "desc": "case_when",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "rules",
+          "desc": "input CaseWhen rules",
+          "type": "AT_CUSTOM_PROTOBUF",
+          "customProtobufCls": "case_when_rules_pb2.CaseWhenRule"
+        }
+      ],
+      "inputs": [
+        {
+          "name": "input_dataset",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_dataset",
+          "desc": "output_dataset",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        },
+        {
+          "name": "out_rules",
+          "desc": "case when substitution rule",
+          "types": [
+            "sf.rule.proprocessing"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "preprocessing",
       "name": "feature_filter",
       "desc": "Drop features from the dataset.",
       "version": "0.0.1",
@@ -1787,9 +1826,93 @@
     },
     {
       "domain": "preprocessing",
+      "name": "feature_gen",
+      "desc": "Generate a new feature based on one original feature and another feature or constant.",
+      "version": "0.0.2",
+      "attrs": [
+        {
+          "name": "binary_op",
+          "desc": "What kind of binary operation we want to do, currently only supports +, -, *, /",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "+"
+            },
+            "allowedValues": {
+              "ss": [
+                "+",
+                "-",
+                "*",
+                "/"
+              ]
+            }
+          }
+        },
+        {
+          "name": "constant",
+          "desc": "If we have only one feature, we assume, new_feature = binary_op(f1, constant).",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "new_feature_name",
+          "desc": "Name of the newly generated feature.",
+          "type": "AT_STRING",
+          "atomic": {}
+        },
+        {
+          "name": "as_label",
+          "desc": "If True, the generated feature will be marked as label in schema.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "in_ds",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "features",
+              "desc": "Feature(s) to operate on. If two features exist, we assume new_feature = binary_op(f1, f2). Currently two features must be from the same party.",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "2"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "out_ds",
+          "desc": "Output vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        },
+        {
+          "name": "out_rules",
+          "desc": "feature gen rule",
+          "types": [
+            "sf.rule.proprocessing"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "preprocessing",
       "name": "onehot_encode",
       "desc": "onehot_encode",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "attrs": [
         {
           "name": "drop_first",
@@ -1845,10 +1968,17 @@
       ],
       "outputs": [
         {
+          "name": "output_dataset",
+          "desc": "output_dataset",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        },
+        {
           "name": "out_rules",
           "desc": "onehot rule",
           "types": [
-            "sf.rule.onehot_encode"
+            "sf.rule.proprocessing"
           ]
         },
         {
@@ -1856,37 +1986,6 @@
           "desc": "report rules details if report_rules is true",
           "types": [
             "sf.report"
-          ]
-        }
-      ]
-    },
-    {
-      "domain": "preprocessing",
-      "name": "onehot_substitution",
-      "desc": "onehot_substitution",
-      "version": "0.0.1",
-      "inputs": [
-        {
-          "name": "input_dataset",
-          "desc": "Input vertical table.",
-          "types": [
-            "sf.table.vertical_table"
-          ]
-        },
-        {
-          "name": "input_rules",
-          "desc": "Input onehot rules",
-          "types": [
-            "sf.rule.onehot_encode"
-          ]
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output_dataset",
-          "desc": "output_dataset",
-          "types": [
-            "sf.table.vertical_table"
           ]
         }
       ]
@@ -1991,6 +2090,37 @@
         {
           "name": "psi_output",
           "desc": "Output vertical table",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "preprocessing",
+      "name": "substitution",
+      "desc": "unified substitution component",
+      "version": "0.0.2",
+      "inputs": [
+        {
+          "name": "input_dataset",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        },
+        {
+          "name": "input_rules",
+          "desc": "Input preprocessing rules",
+          "types": [
+            "sf.rule.proprocessing"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_dataset",
+          "desc": "output_dataset",
           "types": [
             "sf.table.vertical_table"
           ]

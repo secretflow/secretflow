@@ -69,6 +69,9 @@ class PipelineTFModel(SLBaseTFModel):
         data_x = None
         training = True
         self.init_data()
+        if step == 0:
+            self._reset_data_iter(stage=stage)
+
         if stage == "train":
             train_data = next(self.train_set)
             if self.train_has_y:

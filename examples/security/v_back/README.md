@@ -22,5 +22,3 @@ Gu T, Liu K, Dolan-Gavitt B, et al. Badnets: Evaluating backdooring attacks on d
 
 Python 3.8.3 (default, Jul  2 2020, 17:30:36) [MSC v.1916 64 bit (AMD64)] :: Anaconda, Inc. on win32
 torch.__version__ = '1.13.0'
-
-

@@ -186,6 +186,9 @@ class _Tracer:
         dag_tracers = list(dict.fromkeys(dag_tracers))
         assert dag_tracers[0].output_type is _TracerType.TABLE
         assert dag_tracers[0].inputs is None
+        assert all(
+            [d.inputs is not None for d in dag_tracers[1:]]
+        ), "only allow one input in dag"
         assert dag_tracers[-1] == self
         assert dag_tracers[-1].output_type is _TracerType.TABLE
 
@@ -193,6 +196,41 @@ class _Tracer:
 
     def dump_runner(self) -> _TraceRunner:
         return _TraceRunner(self._flatten_dag())
+
+    def column_changes(self) -> Tuple[List, List]:
+        dag = self._flatten_dag()
+        remove_cols = {}
+        append_cols = {}
+
+        def _get_name(t: _Tracer, i: int) -> str:
+            return t.inputs[0].output_schema.field(i).name
+
+        def _append(n: str):
+            assert n not in append_cols
+            append_cols[n] = None
+
+        def _remove(n: str):
+            if n in append_cols:
+                del append_cols[n]
+            else:
+                remove_cols[n] = None
+
+        for t in dag[1:]:
+            if t.operate == compute_trace_pb2.ExtendFunctionName.Name(
+                compute_trace_pb2.EFN_TB_ADD_COLUMN
+            ):
+                _append(t.inputs[2])
+            elif t.operate == compute_trace_pb2.ExtendFunctionName.Name(
+                compute_trace_pb2.EFN_TB_REMOVE_COLUMN
+            ):
+                _remove(_get_name(t, t.inputs[1]))
+            elif t.operate == compute_trace_pb2.ExtendFunctionName.Name(
+                compute_trace_pb2.EFN_TB_SET_COLUMN
+            ):
+                _remove(_get_name(t, t.inputs[1]))
+                _append(t.inputs[2])
+
+        return list(remove_cols), list(append_cols)
 
     def dump_serving_pb(
         self, name: str
@@ -257,6 +295,10 @@ class Array:
         assert isinstance(trace, _Tracer)
         self._arrow = arrow
         self._trace = trace
+
+    @property
+    def dtype(self) -> pa.DataType:
+        return self._arrow.type
 
 
 class Table:
@@ -329,6 +371,9 @@ class Table:
     def dump_runner(self) -> _TraceRunner:
         Table.schema_check(self._trace.output_schema)
         return self._trace.dump_runner()
+
+    def column_changes(self) -> Tuple[List, List]:
+        return self._trace.column_changes()
 
     # subset of pyarrow.table
     @property

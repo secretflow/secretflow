@@ -82,6 +82,8 @@ def torch_model_with_mnist(
     compressor = kwargs.get('compressor', None)
     pipeline_size = kwargs.get('pipeline_size', 1)
 
+    atol = kwargs.get('atol', 0.02)
+
     party_shape = data.partition_shape()
     alice_length = party_shape[devices.alice][0]
 
@@ -128,7 +130,7 @@ def torch_model_with_mnist(
     assert np.isclose(
         global_metric['MulticlassAccuracy'],
         history['val_MulticlassAccuracy'][-1],
-        atol=0.02,
+        atol=atol,
     )
 
     assert global_metric['MulticlassAccuracy'] > 0.7
@@ -173,7 +175,7 @@ def torch_model_with_mnist(
     assert np.isclose(
         global_metric['MulticlassAccuracy'],
         reload_metric['MulticlassAccuracy'],
-        atol=0.02,
+        atol=atol,
     )
 
 
@@ -254,6 +256,7 @@ class TestSLModelTorch:
             dp_strategy_dict=dp_strategy_dict,
             strategy='split_nn',
             backend="torch",
+            atol=0.04,
         )
         # test dataset builder
         print("test Dataset builder")

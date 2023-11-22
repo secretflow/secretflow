@@ -349,8 +349,6 @@ base_bob/
 fuse_model/
 duplicate-keys.*
 selected-keys.*
-
-
 *Miniconda3.sh
 
 # pytest-testmon db
