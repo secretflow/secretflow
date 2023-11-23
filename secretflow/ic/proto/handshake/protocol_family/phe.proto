@@ -1,0 +1,56 @@
+// Copyright 2023 Ant Group Co., Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+import "google/protobuf/any.proto";
+
+package org.interconnection.v2.protocol;
+
+//===================================//
+//  Protos used in HandshakeRequest  //
+//===================================//
+
+message PheProtocolProposal {
+  repeated int32 supported_versions = 1;
+  repeated int32 supported_phe_algos = 2;  // enum PheAlgo
+  repeated google.protobuf.Any supported_phe_params = 3;
+}
+
+enum PheAlgo {
+  PHE_ALGO_UNSPECIFIED = 0;
+  PHE_ALGO_PAILLIER = 1;
+  PHE_ALGO_OU = 2;
+  PHE_ALGO_EC_ELGAMAL = 3;
+}
+
+message PaillierParamsProposal {
+  // common key sizes are 1024/2048/3072
+  // 1024 only used for debug. 1024 比特仅用于联调，禁止用于生产环境
+  repeated int32 key_sizes = 1;
+}
+
+//===================================//
+//  Protos used in HandshakeResponse //
+//===================================//
+
+message PheProtocolResult {
+  int32 version = 1;
+  int32 phe_algo = 2;  // enum PheAlgo
+  google.protobuf.Any phe_param = 3;
+}
+
+message PaillierParamsResult {
+  int32 key_size = 1;
+}

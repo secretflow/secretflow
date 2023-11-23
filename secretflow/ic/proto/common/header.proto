@@ -1,0 +1,42 @@
+// Copyright 2022 Ant Group Co., Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// [Sphinx doc begin anchor: ResponseHeader]
+syntax = "proto3";
+
+package org.interconnection;
+
+// 31100xxx is the white box interconnection code segment
+// 31100xxx 为引擎白盒互联互通号段
+enum ErrorCode {
+  OK = 0;
+
+  GENERIC_ERROR = 31100000;
+  UNEXPECTED_ERROR = 31100001;
+  NETWORK_ERROR = 31100002;
+
+  INVALID_REQUEST = 31100100;
+  INVALID_RESOURCE = 31100101;
+
+  HANDSHAKE_REFUSED = 31100200;
+  UNSUPPORTED_VERSION = 31100201;
+  UNSUPPORTED_ALGO = 31100202;
+  UNSUPPORTED_PARAMS = 31100203;
+}
+
+message ResponseHeader {
+  int32 error_code = 1;
+  string error_msg = 2;
+}
+// [Sphinx doc end anchor: ResponseHeader]
