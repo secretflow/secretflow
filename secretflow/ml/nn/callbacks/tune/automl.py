@@ -17,7 +17,7 @@ from secretflow import reveal
 from secretflow.ml.nn.callbacks.callback import Callback
 
 
-class AutoML(Callback):
+class AutoMLCallback(Callback):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 

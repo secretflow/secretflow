@@ -19,10 +19,10 @@ import pandas as pd
 import secretflow.compute as sc
 from secretflow.component.data_utils import (
     DistDataType,
-    VerticalTableWrapper,
     dump_vertical_table,
     load_table_select_and_exclude_pair,
     model_dumps,
+    VerticalTableWrapper,
 )
 from secretflow.component.preprocessing.core.meta_utils import (
     apply_meta_change,

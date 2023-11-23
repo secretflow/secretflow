@@ -15,7 +15,7 @@
 import numpy as np
 import pyarrow.compute as pc
 
-from .tracer import Array, _Tracer, _TracerType
+from .tracer import _Tracer, _TracerType, Array
 
 
 def __sf_wrapper(py_func, c_func):

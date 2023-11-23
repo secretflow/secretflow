@@ -3,7 +3,7 @@ import tempfile
 
 from secretflow import reveal, tune
 from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.callbacks.tune.automl import AutoML
+from secretflow.ml.nn.callbacks.tune.automl import AutoMLCallback
 from secretflow.security.privacy import DPStrategy, LabelDP
 from secretflow.security.privacy.mechanism.tensorflow import GaussianEmbeddingDP
 from secretflow.utils.simulation.datasets import load_mnist
@@ -82,7 +82,7 @@ def train(config, *, alice, bob):
         pipeline_size=1,
     )
 
-    automl = AutoML()
+    automl = AutoMLCallback()
     history = sl_model.fit(
         x_train,
         y_train,
