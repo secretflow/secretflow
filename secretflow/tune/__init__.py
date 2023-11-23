@@ -12,6 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
+import ray
+
+try:
+    import ray.tune
+
+except ImportError as exc:
+    exc_tb = sys.exc_info()[2]
+    msg = (
+        "Secretflow tune requires ray[tune] which is not installed."
+        f"Please run `pip install ray[tune]=={ray.__version__}` by yourself."
+    )
+    raise type(exc)(msg).with_traceback(exc_tb) from None
+
 from . import train
 from .result_grid import ResultGrid
 from .search import grid_search

@@ -1796,6 +1796,93 @@
     },
     {
       "domain": "preprocessing",
+      "name": "condition_filter",
+      "desc": "Filter the table based on a single column's values and condition.\nWarning: the party responsible for condition filtering will directly send the sample distribution to other participants.\nMalicious participants can obtain the distribution of characteristics by repeatedly calling with different filtering values.\nAudit the usage of this component carefully.",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "comparator",
+          "desc": "Comparator to use for comparison. Must be one of '==','<','<=','>','>=','IN'",
+          "type": "AT_STRING",
+          "atomic": {
+            "allowedValues": {
+              "ss": [
+                "==",
+                "<",
+                "<=",
+                ">",
+                ">=",
+                "IN"
+              ]
+            }
+          }
+        },
+        {
+          "name": "value_type",
+          "desc": "Type of the value to compare with. Must be one of 'FLOAT', 'STR'",
+          "type": "AT_STRING",
+          "atomic": {
+            "allowedValues": {
+              "ss": [
+                "FLOAT",
+                "STR"
+              ]
+            }
+          }
+        },
+        {
+          "name": "bound_value",
+          "desc": "Input a str with values separated by ','. List of values to compare with. If comparator is not 'IN', we only support one element in this list.",
+          "type": "AT_STRING",
+          "atomic": {}
+        },
+        {
+          "name": "float_epsilon",
+          "desc": "Epsilon value for floating point comparison.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "in_ds",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "features",
+              "desc": "Feature(s) to operate on.",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "out_ds",
+          "desc": "Output vertical table that satisfies the condition.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        },
+        {
+          "name": "out_ds_else",
+          "desc": "Output vertical table that does not satisfies the condition.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "preprocessing",
       "name": "feature_filter",
       "desc": "Drop features from the dataset.",
       "version": "0.0.1",
@@ -1902,6 +1989,100 @@
         {
           "name": "out_rules",
           "desc": "feature gen rule",
+          "types": [
+            "sf.rule.proprocessing"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "preprocessing",
+      "name": "fillna",
+      "desc": "fillna",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "strategy",
+          "desc": "The imputation strategy. If \"mean\", then replace missing values using the mean along each column. Can only be used with numeric data. If \"median\", then replace missing values using the median along each column. Can only be used with numeric data. If \"most_frequent\", then replace missing using the most frequent value along each column. Can be used with strings or numeric data. If there is more than one such value, only the smallest is returned. If \"constant\", then replace missing values with fill_value. Can be used with strings or numeric data.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "mean"
+            },
+            "allowedValues": {
+              "ss": [
+                "mean",
+                "median",
+                "most_frequent",
+                "constant"
+              ]
+            }
+          }
+        },
+        {
+          "name": "fill_value_bool",
+          "desc": "For bool type data. If method is 'constant' use this value for filling null.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "fill_value_int",
+          "desc": "For int type data. If method is 'constant' use this value for filling null.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "fill_value_float",
+          "desc": "For float type data. If method is 'constant' use this value for filling null.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "fill_value_str",
+          "desc": "For str type data. If method is 'constant' use this value for filling null.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "input_dataset",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "fill_na_features",
+              "desc": "Features to fill."
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "out_ds",
+          "desc": "Output vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        },
+        {
+          "name": "out_rules",
+          "desc": "fill value rule",
           "types": [
             "sf.rule.proprocessing"
           ]

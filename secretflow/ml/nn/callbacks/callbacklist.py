@@ -11,23 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 from typing import List
 
-from .attack import AttackCallback
 from .callback import Callback
 from .early_stopping import EarlyStoppingBase
 from .history import History
 from .progbar import Progbar
-from .tune.autoattack import AutoAttackCallback
-from .tune.automl import AutoML
-
-CALLBACK_PRIORITY = [Callback, AutoML, AttackCallback, AutoAttackCallback]
-
-
-def sort_callbacks(callback: Callback):
-    for i, cls in enumerate(CALLBACK_PRIORITY[::-1]):
-        if isinstance(callback, cls):
-            return len(CALLBACK_PRIORITY) - i - 1
 
 
 class CallbackList:
@@ -63,7 +53,6 @@ class CallbackList:
                     history=self.history,
                 )
             )
-        self.callbacks.sort(key=sort_callbacks)
 
         # for early stopping
         for callback in self.callbacks:

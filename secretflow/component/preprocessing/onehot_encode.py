@@ -228,7 +228,7 @@ def onehot_encode_eval_fn(
 
             div = Div(
                 name=party,
-                desc="pre party rules",
+                desc="per party rules",
                 children=[
                     Div.Child(type="descriptions", descriptions=d) for d in descs
                 ],
