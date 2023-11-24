@@ -140,6 +140,25 @@ jobs:
             cd docker/release
             bash ./build.sh -l -v ${VERSION}
 
+            # login docker - aliyun
+            docker login -u ${ALIYUN_DOCKER_USERNAME} -p ${ALIYUN_DOCKER_PASSWORD} secretflow-registry.cn-hangzhou.cr.aliyuncs.com
+
+            # secretflow-anolis8:${VERSION}
+            docker tag secretflow/secretflow-anolis8:${VERSION} secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-anolis8:${VERSION}
+            docker push secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-anolis8:${VERSION}
+
+            # secretflow-anolis8:latest
+            docker tag secretflow/secretflow-anolis8:${VERSION} secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-anolis8:latest
+            docker push secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-anolis8:latest
+
+            # secretflow-lite-anolis8:${VERSION}
+            docker tag secretflow/secretflow-lite-anolis8:${VERSION} secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-lite-anolis8:${VERSION}
+            docker push secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-lite-anolis8:${VERSION}
+
+            # secretflow-lite-anolis8:latest
+            docker tag secretflow/secretflow-lite-anolis8:${VERSION} secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-lite-anolis8:latest
+            docker push secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-lite-anolis8:latest
+
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
