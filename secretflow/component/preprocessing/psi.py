@@ -207,7 +207,7 @@ def two_party_balanced_psi_eval_fn(
                 sender_pyu: os.path.join(local_fs_wd, psi_output),
             },
             receiver=receiver_party,
-            sort=False,
+            sort=True,
             protocol=protocol,
             bucket_size=bucket_size,
             curve_type=ecdh_curve_type,
