@@ -55,6 +55,7 @@ def test_glm(comp_prod_sf_cluster_config):
             "link_type",
             "label_dist_type",
             "optimizer",
+            "l2_lambda",
             "input/train_dataset/label",
         ],
         attrs=[
@@ -64,6 +65,7 @@ def test_glm(comp_prod_sf_cluster_config):
             Attribute(s="Logit"),
             Attribute(s="Bernoulli"),
             Attribute(s="SGD"),
+            Attribute(f=0.3),
             Attribute(ss=["y"]),
         ],
         inputs=[

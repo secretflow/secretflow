@@ -21,16 +21,16 @@ from secretflow.component.ml.eval.biclassification_eval import (
     biclassification_eval_comp,
 )
 from secretflow.component.ml.eval.prediction_bias_eval import prediction_bias_comp
+from secretflow.component.ml.eval.regression_eval import regression_eval_comp
 from secretflow.component.ml.eval.ss_pvalue import ss_pvalue_comp
 from secretflow.component.ml.linear.ss_glm import ss_glm_predict_comp, ss_glm_train_comp
 from secretflow.component.ml.linear.ss_sgd import ss_sgd_predict_comp, ss_sgd_train_comp
+from secretflow.component.preprocessing.binary_op import binary_op_comp
 from secretflow.component.preprocessing.case_when import case_when
 from secretflow.component.preprocessing.condition_filter import condition_filter_comp
 from secretflow.component.preprocessing.feature_filter import feature_filter_comp
-from secretflow.component.preprocessing.feature_gen import feature_gen_comp
 from secretflow.component.preprocessing.fillna import fillna
 from secretflow.component.preprocessing.onehot_encode import onehot_encode
-
 from secretflow.component.preprocessing.psi import psi_comp
 from secretflow.component.preprocessing.substitution import substitution
 from secretflow.component.preprocessing.train_test_split import train_test_split_comp
@@ -54,7 +54,7 @@ ALL_COMPONENTS = [
     ss_sgd_train_comp,
     ss_sgd_predict_comp,
     feature_filter_comp,
-    feature_gen_comp,
+    binary_op_comp,
     vert_binning_comp,
     vert_woe_binning_comp,
     vert_bin_substitution_comp,
@@ -65,6 +65,7 @@ ALL_COMPONENTS = [
     table_statistics_comp,
     groupby_statistics_comp,
     biclassification_eval_comp,
+    regression_eval_comp,
     prediction_bias_comp,
     sgb_predict_comp,
     sgb_train_comp,

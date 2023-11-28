@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
+import logging
 
 from secretflow.data.vertical import read_csv
 from secretflow.data.vertical.dataframe import VDataFrame
@@ -435,6 +436,15 @@ def dump_vertical_table(
     system_info: SystemInfo,
 ) -> DistData:
     assert isinstance(v_data, VDataFrame)
+    assert v_data.aligned
+    assert len(v_data.partitions) > 0
+
+    parties_length = {}
+    for device, part in v_data.partitions.items():
+        parties_length[device.party] = len(part)
+    assert (
+        len(set(parties_length.values())) == 1
+    ), f"number of samples must be equal across all devices, got {parties_length}"
 
     with ctx.tracer.trace_io():
         output_uri = {p: uri for p in v_data.partitions}
@@ -443,6 +453,9 @@ def dump_vertical_table(
         }
         wait(v_data.to_csv(output_path, index=False))
         order = [p.party for p in v_data.partitions]
+        logging.info(
+            f"dumped VDataFrame, file uri {output_path}, samples {parties_length}"
+        )
 
     ret = DistData(
         name=uri,

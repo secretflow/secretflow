@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.∏
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from typing import Dict
 
 import numpy as np
@@ -54,15 +53,28 @@ fillna.str_attr(
     allowed_values=SUPPORTED_FILL_NA_METHOD,
 )
 
-
-fillna.bool_attr(
-    name="fill_value_bool",
-    desc="For bool type data. If method is 'constant' use this value for filling null.",
+fillna.str_attr(
+    name="missing_value",
+    desc="Which value should be treat as missing_value? int, float, str, general_na (includes np.nan, None or pandas.NA which are all null in sc.table), default=general_na",
     is_list=False,
     is_optional=True,
-    default_value=False,
+    default_value="general_na",
 )
 
+NA_SUPPORTED_TYPE_DICT = {
+    "general_na": str,
+    "str": str,
+    "int": int,
+    "float": float,
+}
+fillna.str_attr(
+    name="missing_value_type",
+    desc="type of missing value. general_na type indicates np.nan, None or pandas.NA",
+    is_list=False,
+    is_optional=True,
+    default_value="general_na",
+    allowed_values=list(NA_SUPPORTED_TYPE_DICT.keys()),
+)
 
 fillna.int_attr(
     name="fill_value_int",
@@ -121,39 +133,58 @@ MODEL_MAX_MINOR_VERSION = 1
 
 
 def generate_rule_dict_constant(
-    fill_value_bool, fill_value_int, fill_value_float, fill_value_str, df: pd.DataFrame
+    missing_value,
+    fill_value_int,
+    fill_value_float,
+    fill_value_str,
+    df: pd.DataFrame,
 ):
-    rules_dict = {}
     dtypes_map = {
-        "bool": fill_value_bool,
         "int": fill_value_int,
         "float": fill_value_float,
         "str": fill_value_str,
     }
 
+    fill_value_dict = {}
     for dtype in dtypes_map.keys():
         for col in df.select_dtypes(
             include=[SUPPORTED_VTABLE_DATA_TYPE[dtype]]
         ).columns:
-            rules_dict[col] = dtypes_map[dtype]
+            fill_value_dict[col] = dtypes_map[dtype]
+    rules_dict = {}
+    rules_dict["fill_value_rule"] = fill_value_dict
+    rules_dict["missing_value"] = missing_value
     return rules_dict
 
 
-def generate_rule_dict(data, strategy):
-    imputer = SimpleImputer(strategy=strategy)
-    imputer.fit(data)
+def generate_rule_dict(missing_value, data, strategy):
+    # treat all missing_value as missing even if they were not
+    data = data.replace({missing_value: np.nan})
+    # this step will unify all np.nan, pd.NA and None values
+    # just like these NA or null values entered arrow and all becoming null
+    data = data.fillna(np.nan)
 
-    fillna_rules = {
+    imputer = SimpleImputer(missing_values=np.nan, strategy=strategy)
+    imputer.fit(data)
+    fill_value_dict = {
         k: v for k, v in zip(imputer.feature_names_in_, imputer.statistics_)
     }
+    fillna_rules = {"missing_value": missing_value, "fill_value_rule": fill_value_dict}
     return fillna_rules
 
 
 def apply_fillna_rule_on_table(table: sc.Table, rules: Dict) -> sc.Table:
-    for col_name in rules:
-        fill_value = rules[col_name]
+    fill_value_rules = rules["fill_value_rule"]
+    missing_value = rules["missing_value"]
+    is_nan = pd.isna(missing_value)
+    for col_name in fill_value_rules:
+        fill_value = fill_value_rules[col_name]
         col = table.column(col_name)
-        new_col = sc.coalesce(col, fill_value)
+        cond = sc.is_nan(col) if is_nan else sc.equal(col, missing_value)
+        # nan or specified values must be filled
+        new_col = sc.if_else(cond, fill_value, col)
+        # null values may still exist and must also be filled
+        new_col = sc.coalesce(new_col, fill_value)
         table = table.set_column(table.column_names.index(col_name), col_name, new_col)
     return table
 
@@ -163,7 +194,8 @@ def fillna_eval_fn(
     *,
     ctx,
     strategy,
-    fill_value_bool,
+    missing_value,
+    missing_value_type,
     fill_value_int,
     fill_value_float,
     fill_value_str,
@@ -177,6 +209,12 @@ def fillna_eval_fn(
     ), "only support vtable for now"
 
     assert strategy in SUPPORTED_FILL_NA_METHOD, f"unsupported strategy {strategy}"
+    if missing_value_type == "general_na":
+        missing_value = (
+            np.nan
+        )  # all pd.NA, np.nan and None are equivalent for arrow system
+    else:
+        missing_value = NA_SUPPORTED_TYPE_DICT[missing_value_type](missing_value)
 
     def fit(data):
         if strategy in ["mean", "median"]:
@@ -184,10 +222,14 @@ def fillna_eval_fn(
             assert len(numeric_columns) == len(
                 data.columns
             ), f"strategy {strategy} works only on numerical columns, select only numerical columns"
-            fillna_rules = generate_rule_dict(data, strategy)
+            fillna_rules = generate_rule_dict(missing_value, data, strategy)
         else:
             fillna_rules = generate_rule_dict_constant(
-                fill_value_bool, fill_value_int, fill_value_float, fill_value_str, data
+                missing_value,
+                fill_value_int,
+                fill_value_float,
+                fill_value_str,
+                data,
             )
         return fillna_rules
 

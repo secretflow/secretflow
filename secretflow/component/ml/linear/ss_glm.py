@@ -172,6 +172,15 @@ ss_glm_train_comp.str_attr(
     is_optional=True,
     default_value="",
 )
+ss_glm_train_comp.float_attr(
+    name="l2_lambda",
+    desc="L2 regularization term",
+    is_list=False,
+    is_optional=True,
+    default_value=0.1,
+    lower_bound=0,
+    lower_bound_inclusive=True,
+)
 ss_glm_train_comp.io(
     io_type=IoType.INPUT,
     name="train_dataset",
@@ -214,6 +223,7 @@ def ss_glm_train_eval_fn(
     optimizer,
     offset_col,
     weight_col,
+    l2_lambda,
     decay_epoch,
     decay_rate,
     train_dataset,
@@ -229,7 +239,13 @@ def ss_glm_train_eval_fn(
         raise CompEvalError("only support one spu")
     spu_config = next(iter(ctx.spu_configs.values()))
 
-    spu = SPU(spu_config["cluster_def"], spu_config["link_desc"])
+    cluster_def = spu_config["cluster_def"].copy()
+
+    # forced to use 128 ring size & 40 fxp
+    cluster_def["runtime_config"]["field"] = "FM128"
+    cluster_def["runtime_config"]["fxp_fraction_bits"] = 40
+
+    spu = SPU(cluster_def, spu_config["link_desc"])
 
     glm = SSGLM(spu)
 
@@ -265,6 +281,8 @@ def ss_glm_train_eval_fn(
     else:
         weight = None
 
+    l2_lambda = l2_lambda if l2_lambda > 0 else None
+
     with ctx.tracer.trace_running():
         if optimizer == "SGD":
             if decay_epoch == 0 or decay_rate == 0:
@@ -287,6 +305,7 @@ def ss_glm_train_eval_fn(
                 eps=eps,
                 decay_epoch=decay_epoch,
                 decay_rate=decay_rate,
+                l2_lambda=l2_lambda,
             )
         elif optimizer == "IRLS":
             glm.fit_irls(
@@ -300,6 +319,7 @@ def ss_glm_train_eval_fn(
                 tweedie_power=tweedie_power,
                 scale=dist_scale,
                 eps=eps,
+                l2_lambda=l2_lambda,
             )
         else:
             raise CompEvalError(f"Unknown optimizer {optimizer}")
@@ -433,7 +453,13 @@ def ss_glm_predict_eval_fn(
         raise CompEvalError("only support one spu")
     spu_config = next(iter(ctx.spu_configs.values()))
 
-    spu = SPU(spu_config["cluster_def"], spu_config["link_desc"])
+    cluster_def = spu_config["cluster_def"].copy()
+
+    # forced to use 128 ring size & 40 fxp
+    cluster_def["runtime_config"]["field"] = "FM128"
+    cluster_def["runtime_config"]["fxp_fraction_bits"] = 40
+
+    spu = SPU(cluster_def, spu_config["link_desc"])
 
     model = load_ss_glm_model(ctx, spu, model)
 

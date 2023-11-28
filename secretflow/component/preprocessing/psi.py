@@ -49,7 +49,7 @@ psi_comp.bool_attr(
     desc="Sort the output.",
     is_list=False,
     is_optional=True,
-    default_value=False,
+    default_value=True,
 )
 psi_comp.int_attr(
     name="bucket_size",

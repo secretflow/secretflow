@@ -535,7 +535,7 @@ class SLModel:
                         for device, worker in self._workers.items():
                             hidden = worker.base_forward("eval", step=val_step)
                             hiddens[device] = hidden
-                        agg_hiddens = self.agglayer.forward(hiddens, axis=0)
+                        agg_hiddens = self.agglayer.forward(hiddens)
 
                         metrics = self._workers[self.device_y].evaluate(agg_hiddens)
                         res.append(metrics)

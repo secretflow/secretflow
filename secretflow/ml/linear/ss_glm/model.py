@@ -118,6 +118,7 @@ def _sgd_update_w(
     link: Linker,
     dist: Distribution,
     batch_size: int,
+    l2_lambda: float,
 ) -> np.ndarray:
     samples = x.shape[0]
     num_feat = x.shape[1]
@@ -152,7 +153,13 @@ def _sgd_update_w(
         err = pred - y_slice
 
         if isinstance(dist, DistributionBernoulli):
+            if weight is not None:
+                wgt_slice = weight[begin:end, :]
+                err = wgt_slice * err
             grad = jnp.matmul(jnp.transpose(x_slice), err)
+            if l2_lambda is not None:
+                model_l2 = model.at[-1, 0].set(0.0)
+                grad = grad + l2_lambda * model_l2
             step = (learning_rate * grad) / batch_size
             model = model - step
         else:
@@ -163,6 +170,9 @@ def _sgd_update_w(
                 wgt_slice = weight[begin:end, :]
                 temp = wgt_slice * temp
             devp = jnp.matmul(jnp.transpose(x_slice), temp)
+            if l2_lambda is not None:
+                model_l2 = model.at[-1, 0].set(0.0)
+                devp = devp + l2_lambda * model_l2
             model = model - learning_rate * devp / batch_size
 
     return model
@@ -176,6 +186,7 @@ def _irls_update_w(
     model: np.ndarray,
     link: Linker,
     dist: Distribution,
+    l2_lambda: float,
 ) -> np.ndarray:
     y = y.reshape((-1, 1))
 
@@ -208,8 +219,18 @@ def _irls_update_w(
 
     XTW = jnp.transpose(x * W_diag.reshape(-1, 1))
     J = jnp.matmul(XTW, x)
+
+    if l2_lambda is not None:
+        I_m = jnp.identity(x.shape[1]).at[-1, -1].set(0.0)
+        J = J + l2_lambda * I_m
+
     inv_J = newton_matrix_inverse(J, 25)
-    model = jnp.matmul(jnp.matmul(inv_J, XTW), Z)
+
+    if l2_lambda and model is not None:
+        model_l2 = model.at[-1, 0].set(0.0)
+        model = jnp.matmul(inv_J, jnp.matmul(XTW, Z) - l2_lambda * model_l2)
+    else:
+        model = jnp.matmul(jnp.matmul(inv_J, XTW), Z)
 
     return model
 
@@ -248,6 +269,7 @@ class SSGLM:
         eps: float,
         decay_epoch: int,
         decay_rate: float,
+        l2_lambda: float,
     ):
         self.x, (self.samples, self.num_feat) = self._prepare_dataset(x)
         assert self.samples > 0 and self.num_feat > 0, "input dataset is empty"
@@ -333,6 +355,10 @@ class SSGLM:
         self.decay_rate = decay_rate
         self.decay_epoch = decay_epoch
 
+        if l2_lambda is not None:
+            assert 0 < l2_lambda, f"l2_lambda should be greater than 0, got {l2_lambda}"
+        self.l2_lambda = l2_lambda
+
     def _sgd_step(
         self,
         spu_model: SPUObject,
@@ -349,6 +375,7 @@ class SSGLM:
                 'link',
                 'dist',
                 'batch_size',
+                'l2_lambda',
             ),
         )(
             spu_x,
@@ -360,6 +387,7 @@ class SSGLM:
             link=self.link,
             dist=self.dist,
             batch_size=self.sgd_batch_size,
+            l2_lambda=self.l2_lambda,
         )
 
         return spu_model
@@ -377,6 +405,7 @@ class SSGLM:
             static_argnames=(
                 'dist',
                 'link',
+                'l2_lambda',
             ),
         )(
             spu_x,
@@ -386,6 +415,7 @@ class SSGLM:
             spu_model,
             link=self.link,
             dist=self.dist,
+            l2_lambda=self.l2_lambda,
         )
 
         return spu_model
@@ -475,6 +505,7 @@ class SSGLM:
         eps: float = 1e-6,
         decay_epoch: int = None,
         decay_rate: float = None,
+        l2_lambda: float = None,
     ) -> None:
         self._pre_check(
             x,
@@ -492,6 +523,7 @@ class SSGLM:
             eps,
             decay_epoch,
             decay_rate,
+            l2_lambda,
         )
 
         spu_w = None
@@ -522,6 +554,7 @@ class SSGLM:
         tweedie_power: float = 1,
         scale: float = 1,
         eps: float = 1e-4,
+        l2_lambda: float = None,
     ) -> None:
         """
         Fit the model by IRLS(Iteratively reweighted least squares).
@@ -559,7 +592,8 @@ class SSGLM:
                 run a few rounds of irls training as the initialization of w, 0 disable.
             eps : float, default=1e-4
                 If the W's change rate is less than this threshold, the model is considered to be converged, and the training stops early. 0 disable.
-
+            l2_lambda: float, default=None
+                the coefficient of L2 regularization loss is 1/2 * l2_lambda. It needs to be greater than 0.
         """
         self._fit(
             x,
@@ -572,6 +606,7 @@ class SSGLM:
             irls_epochs=epochs,
             scale=scale,
             eps=eps,
+            l2_lambda=l2_lambda,
         )
 
     def fit_sgd(
@@ -591,6 +626,7 @@ class SSGLM:
         eps: float = 1e-4,
         decay_epoch: int = None,
         decay_rate: float = None,
+        l2_lambda: float = None,
     ) -> None:
         """
         Fit the model by SGD(stochastic gradient descent).
@@ -630,7 +666,8 @@ class SSGLM:
                 If the W's change rate is less than this threshold, the model is considered to be converged, and the training stops early. 0 disable.
             decay_epoch / decay_rate : int, default=None
                 decay learning rate, learning_rate * (decay_rate ** floor(epoch / decay_epoch)). None disable
-
+            l2_lambda: float, default=None
+                the coefficient of L2 regularization loss is 1/2 * l2_lambda. It needs to be greater than 0.
         """
         self._fit(
             x,
@@ -648,6 +685,7 @@ class SSGLM:
             eps=eps,
             decay_epoch=decay_epoch,
             decay_rate=decay_rate,
+            l2_lambda=l2_lambda,
         )
 
     def predict(
@@ -752,7 +790,7 @@ class SSGLM:
             slice_x,
             static_argnames=('beg', 'end'),
         )(
-            spu_w, beg=num_feat - 1, end=num_feat
+            spu_w, beg=num_feat, end=num_feat + 1
         ).to(
             bias_receiver
         )

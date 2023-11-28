@@ -252,6 +252,7 @@ def create_bstplus_base_model_alice():
         preprocess_layer = preprocess()
         model = BSTPlusBase(
             preprocess_layer=preprocess_layer,
+            dnn_units_size=[32],
         )
         model.compile(
             loss=tf.keras.losses.binary_crossentropy,
@@ -310,7 +311,7 @@ def create_bstplus_base_model_bob():
             # sequence input
             inputs["sequence_movie_ids"] = tf.keras.Input(
                 name="sequence_movie_ids",
-                shape=(seq_len,),
+                shape=(1,),
                 dtype=tf.string,
             )
 
@@ -325,7 +326,12 @@ def create_bstplus_base_model_bob():
                 mask_token='[PAD]',  # note here!
                 name="item_index_lookup",
             )
-            item_idx = item_lookup_layer(inputs["sequence_movie_ids"])
+
+            seq_split = tf.strings.split(inputs["sequence_movie_ids"], ',').to_tensor(
+                '[PAD]', shape=[None, 1, 4]
+            )
+
+            item_idx = item_lookup_layer(seq_split)
             outputs["sequence_idx"] = item_idx
 
             target_item_idx = item_lookup_layer(inputs['target_movie_id'])
@@ -336,6 +342,7 @@ def create_bstplus_base_model_bob():
         preprocess_layer = preprocess()
         model = BSTPlusBase(
             preprocess_layer=preprocess_layer,
+            dnn_units_size=[32],
             sequence_fea=["sequence_idx"],
             target_fea="target_movie_id",
             item_embedding_dims={"target_movie_id": item_embedding_dims},
@@ -397,6 +404,7 @@ def create_base_model_alice():
         preprocess_layer = preprocess()
         model = BSTBase(
             preprocess_layer=preprocess_layer,
+            dnn_units_size=[32],
         )
         model.compile(
             loss=tf.keras.losses.binary_crossentropy,
@@ -455,15 +463,19 @@ def create_base_model_bob():
             # sequence input
             inputs["sequence_movie_ids"] = tf.keras.Input(
                 name="sequence_movie_ids",
-                shape=(seq_len,),
+                shape=(1,),
                 dtype=tf.string,
+            )
+
+            seq_split = tf.strings.split(inputs["sequence_movie_ids"], ',').to_tensor(
+                '[PAD]', shape=[None, 1, 4]
             )
 
             item_idx = layers.StringLookup(
                 vocabulary=fea_voc["item"],
                 mask_token='[PAD]',  # note here!
                 name="item_index_lookup",
-            )(inputs["sequence_movie_ids"])
+            )(seq_split)
             outputs["sequence_idx"] = item_idx
 
             return tf.keras.Model(inputs=inputs, outputs=outputs)
@@ -471,6 +483,7 @@ def create_base_model_bob():
         preprocess_layer = preprocess()
         model = BSTBase(
             preprocess_layer=preprocess_layer,
+            dnn_units_size=[32],
             sequence_fea=["sequence_idx"],
             item_embedding_dims={"sequence_idx": item_embedding_dims},
             seq_len={"sequence_idx": seq_len},
@@ -539,10 +552,6 @@ def create_dataset_builder_bob(
 ):
     def _parse_bob(row_sample, label):
         import tensorflow as tf
-
-        row_sample["sequence_movie_ids"] = tf.strings.split(
-            row_sample["sequence_movie_ids"], ','
-        ).to_tensor()
 
         y_t = label["label"]
         y = tf.expand_dims(

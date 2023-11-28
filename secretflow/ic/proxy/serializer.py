@@ -12,12 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union, Sequence, List, Any
-import numpy as np
+from typing import Any, List, Sequence, Union
+
 import jax
-import heu.numpy as hnp
-from heu.phe import PublicKey
+import numpy as np
+from heu import numpy as hnp, phe
+
 from secretflow.ic.proto.runtime import data_exchange_pb2 as de
+
+PublicKey = phe.PublicKey
 
 
 def serialize(data: Any) -> bytes:

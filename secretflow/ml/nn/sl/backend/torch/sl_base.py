@@ -84,9 +84,9 @@ class SLBaseTorchModel(SLBaseModel, ABC):
         self.logs = None
         self.steps_per_epoch = None
         self.shuffle = False
+        self.random_seed = random_seed
         if random_seed is not None:
             torch.manual_seed(random_seed)
-            self.random_seed = random_seed
         # used in backward propagation gradients from fuse model to base model
         self.fuse_op = FuseOp()
         self.model_base = (
@@ -781,7 +781,7 @@ class SLBaseTorchModel(SLBaseModel, ABC):
         return False  # currently not supported
 
     def _reset_data_iter(self, stage):
-        if self.shuffle:
+        if self.shuffle and self.random_seed:
             # FIXME: need a better way to handle global random state
             torch.manual_seed(self.random_seed)
         if stage == "train" and self.train_set is not None:

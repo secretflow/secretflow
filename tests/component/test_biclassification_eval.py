@@ -10,12 +10,7 @@ from secretflow.component.ml.eval.biclassification_eval import (
     biclassification_eval_comp,
 )
 from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import (
-    DistData,
-    IndividualTable,
-    TableSchema,
-    VerticalTable,
-)
+from secretflow.spec.v1.data_pb2 import DistData, IndividualTable, TableSchema
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
 from sklearn.metrics import roc_auc_score
@@ -25,19 +20,14 @@ def test_biclassification_eval(comp_prod_sf_cluster_config):
     np.random.seed(42)
     labels = np.round(np.random.random((800000,)))
     predictions = np.random.random((800000,))
-    labels_df = pd.DataFrame(
+    label_pred_df = pd.DataFrame(
         {
             "labels": labels,
-        }
-    )
-    predictions_df = pd.DataFrame(
-        {
             "predictions": predictions,
         }
     )
 
-    alice_true_path = "biclassification_eval/alice_true.csv"
-    alice_pred_path = "biclassification_eval/alice_pred.csv"
+    alice_label_pred_path = "biclassification_eval/alice_label_pred.csv"
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
@@ -45,8 +35,9 @@ def test_biclassification_eval(comp_prod_sf_cluster_config):
 
     if self_party == "alice":
         os.makedirs(os.path.join(local_fs_wd, "biclassification_eval"), exist_ok=True)
-        labels_df.to_csv(os.path.join(local_fs_wd, alice_true_path), index=False)
-        predictions_df.to_csv(os.path.join(local_fs_wd, alice_pred_path), index=False)
+        label_pred_df.to_csv(
+            os.path.join(local_fs_wd, alice_label_pred_path), index=False
+        )
 
     param = NodeEvalParam(
         domain="ml.eval",
@@ -55,8 +46,8 @@ def test_biclassification_eval(comp_prod_sf_cluster_config):
         attr_paths=[
             "bucket_size",
             "min_item_cnt_per_bucket",
-            "input/labels/col",
-            "input/y_score/col",
+            "input/in_ds/label",
+            "input/in_ds/prediction",
         ],
         attrs=[
             Attribute(i64=2),
@@ -66,30 +57,23 @@ def test_biclassification_eval(comp_prod_sf_cluster_config):
         ],
         inputs=[
             DistData(
-                name="labels",
+                name="in_ds",
                 type=str(DistDataType.INDIVIDUAL_TABLE),
                 data_refs=[
-                    DistData.DataRef(uri=alice_true_path, party="alice", format="csv"),
-                ],
-            ),
-            DistData(
-                name="y_score",
-                type=str(DistDataType.VERTICAL_TABLE),
-                data_refs=[
-                    DistData.DataRef(uri=alice_pred_path, party="alice", format="csv"),
+                    DistData.DataRef(
+                        uri=alice_label_pred_path, party="alice", format="csv"
+                    ),
                 ],
             ),
         ],
         output_uris=[""],
     )
     meta = IndividualTable(
-        schema=TableSchema(labels=["labels"], label_types=["float32"]),
+        schema=TableSchema(
+            labels=["labels", "predictions"], label_types=["float32", "float32"]
+        ),
     )
     param.inputs[0].meta.Pack(meta)
-    meta = VerticalTable(
-        schemas=[TableSchema(labels=["predictions"], label_types=["float32"])],
-    )
-    param.inputs[1].meta.Pack(meta)
 
     res = biclassification_eval_comp.eval(
         param=param,

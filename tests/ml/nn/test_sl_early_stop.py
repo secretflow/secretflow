@@ -13,7 +13,7 @@ from secretflow.ml.nn.callbacks.early_stopping import (
     EarlyStoppingEpoch,
 )
 from secretflow.utils.simulation.datasets import load_ml_1m
-from tests.ml.nn.applications.test_sl_deepfm import (
+from tests.ml.nn.sl.applications.test_sl_deepfm import (
     create_base_model_alice,
     create_base_model_bob,
     create_dataset_builder_alice,
