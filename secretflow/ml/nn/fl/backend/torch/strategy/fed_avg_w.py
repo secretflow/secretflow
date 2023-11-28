@@ -15,12 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import copy
 from typing import Tuple
 
 import numpy as np
-import torch
+
 from secretflow.ml.nn.fl.backend.torch.fl_base import BaseTorchModel
 from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
 
@@ -62,34 +61,17 @@ class FedAvgW(BaseTorchModel):
 
         for _ in range(train_steps):
             self.optimizer.zero_grad()
-            iter_data = next(self.train_iter)
-            if len(iter_data) == 2:
-                x, y = iter_data
-                s_w = None
-            elif len(iter_data) == 3:
-                x, y, s_w = iter_data
-            x = x.float()
+
+            x, y, s_w = self.next_batch()
             num_sample += x.shape[0]
-            if len(y.shape) == 1:
-                y_t = y
-            else:
-                if y.shape[-1] == 1:
-                    y_t = torch.squeeze(y, -1).long()
-                else:
-                    y_t = y.argmax(dim=-1)
-            if self.use_gpu:
-                x = x.to(self.exe_device)
-                y_t = y_t.to(self.exe_device)
-                if s_w is not None:
-                    s_w = s_w.to(self.exe_device)
             y_pred = self.model(x)
 
             # do back propagation
-            loss = self.loss(y_pred, y_t)
+            loss = self.loss(y_pred, y)
             loss.backward()
             self.optimizer.step()
             for m in self.metrics:
-                m.update(y_pred.cpu(), y_t.cpu())
+                m.update(y_pred.cpu(), y.cpu())
         loss_value = loss.item()
         logs['train-loss'] = loss_value
 

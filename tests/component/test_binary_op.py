@@ -9,7 +9,7 @@ import pandas as pd
 import pytest
 
 from secretflow.component.data_utils import DistDataType
-from secretflow.component.preprocessing.feature_gen import feature_gen_comp
+from secretflow.component.preprocessing.binary_op import binary_op_comp
 from secretflow.component.preprocessing.substitution import substitution
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
@@ -27,7 +27,7 @@ ops = {"+": operator.add, "-": operator.sub, "*": operator.mul, "/": operator.tr
         "+",
     ],  # "/"
 )
-@pytest.mark.parametrize("features", [["a4"], ["b5", "b6"]])  # ["a1", "a2"],
+@pytest.mark.parametrize("features", [["a4", "a9"], ["b5", "b6"]])  # ["a1", "a2"],
 @pytest.mark.parametrize(
     "as_label",
     [
@@ -35,7 +35,6 @@ ops = {"+": operator.add, "-": operator.sub, "*": operator.mul, "/": operator.tr
         False,
     ],
 )
-@pytest.mark.parametrize("constant", [1])
 @pytest.mark.parametrize(
     "new_feature_name",
     [
@@ -43,19 +42,20 @@ ops = {"+": operator.add, "-": operator.sub, "*": operator.mul, "/": operator.tr
         "c1",
     ],
 )
-def test_feature_gen_sample(
+def test_binary_op_sample(
     comp_prod_sf_cluster_config,
     features,
     binary_op,
-    constant,
     as_label,
     new_feature_name,
 ):
-    alice_input_path = "test_feature_gen/alice.csv"
-    bob_input_path = "test_feature_gen/bob.csv"
-    output_path = "test_feature_gen/out.csv"
-    rule_path = "test_feature_gen/feature_gen.rule"
-    sub_path = "test_feature_gen/substitution.csv"
+    f1, f2 = [features[0]], [features[1]]
+
+    alice_input_path = "test_binary_op/alice.csv"
+    bob_input_path = "test_binary_op/bob.csv"
+    output_path = "test_binary_op/out.csv"
+    rule_path = "test_binary_op/binary_op.rule"
+    sub_path = "test_binary_op/substitution.csv"
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
@@ -67,7 +67,7 @@ def test_feature_gen_sample(
 
     if self_party == "alice":
         os.makedirs(
-            os.path.join(local_fs_wd, "test_feature_gen"),
+            os.path.join(local_fs_wd, "test_binary_op"),
             exist_ok=True,
         )
         ds = pd.DataFrame(x[:, :15], columns=alice_columns)
@@ -75,7 +75,7 @@ def test_feature_gen_sample(
 
     elif self_party == "bob":
         os.makedirs(
-            os.path.join(local_fs_wd, "test_feature_gen"),
+            os.path.join(local_fs_wd, "test_binary_op"),
             exist_ok=True,
         )
         ds = pd.DataFrame(x[:, 15:], columns=bob_columns)
@@ -83,19 +83,19 @@ def test_feature_gen_sample(
 
     param = NodeEvalParam(
         domain="preprocessing",
-        name="feature_gen",
+        name="binary_op",
         version="0.0.2",
         attr_paths=[
-            "input/in_ds/features",
+            "input/in_ds/f1",
+            "input/in_ds/f2",
             "binary_op",
-            "constant",
             "as_label",
             "new_feature_name",
         ],
         attrs=[
-            Attribute(ss=features),
+            Attribute(ss=f1),
+            Attribute(ss=f2),
             Attribute(s=binary_op),
-            Attribute(f=constant),
             Attribute(b=as_label),
             Attribute(s=new_feature_name),
         ],
@@ -130,14 +130,14 @@ def test_feature_gen_sample(
     ) or ((features[0] in bob_columns) and (new_feature_name in alice_columns))
     if bad_case:
         with pytest.raises(AssertionError):
-            res = feature_gen_comp.eval(
+            res = binary_op_comp.eval(
                 param=param,
                 storage_config=storage_config,
                 cluster_config=sf_cluster_config,
             )
         return
     else:
-        res = feature_gen_comp.eval(
+        res = binary_op_comp.eval(
             param=param,
             storage_config=storage_config,
             cluster_config=sf_cluster_config,
@@ -159,10 +159,7 @@ def test_feature_gen_sample(
     assert new_feature_name in df.columns
 
     item_0 = df_in[features[0]]
-    if len(features) > 1:
-        item_1 = df_in[features[1]]
-    else:
-        item_1 = constant
+    item_1 = df_in[features[1]]
 
     expected_result = ops[binary_op](item_0, item_1)
     np.testing.assert_array_almost_equal(

@@ -21,13 +21,13 @@ from secretflow.component.preprocessing.core.table_utils import (
     v_preprocessing_transform,
 )
 
-feature_gen_comp = Component(
-    "feature_gen",
+binary_op_comp = Component(
+    "binary_op",
     domain="preprocessing",
     version="0.0.2",
-    desc="Generate a new feature based on one original feature and another feature or constant.",
+    desc="Perform binary operation binary_op(f1, f2) and assign the result to f3, f3 can be new or old. Currently f1, f2 and f3 all belong to a single party.",
 )
-feature_gen_comp.str_attr(
+binary_op_comp.str_attr(
     name="binary_op",
     desc="What kind of binary operation we want to do, currently only supports +, -, *, /",
     is_list=False,
@@ -36,22 +36,14 @@ feature_gen_comp.str_attr(
     default_value="+",
 )
 
-feature_gen_comp.float_attr(
-    name="constant",
-    desc="If we have only one feature, we assume, new_feature = binary_op(f1, constant).",
-    is_list=False,
-    is_optional=True,
-    default_value=0,
-)
-
-feature_gen_comp.str_attr(
+binary_op_comp.str_attr(
     name="new_feature_name",
     desc="Name of the newly generated feature.",
     is_list=False,
     is_optional=False,
 )
 
-feature_gen_comp.bool_attr(
+binary_op_comp.bool_attr(
     name="as_label",
     desc="If True, the generated feature will be marked as label in schema.",
     is_list=False,
@@ -60,23 +52,29 @@ feature_gen_comp.bool_attr(
 )
 
 
-feature_gen_comp.io(
+binary_op_comp.io(
     io_type=IoType.INPUT,
     name="in_ds",
     desc="Input vertical table.",
     types=[DistDataType.VERTICAL_TABLE],
     col_params=[
         TableColParam(
-            name="features",
-            desc="Feature(s) to operate on. If two features exist, we assume new_feature = binary_op(f1, f2). Currently two features must be from the same party.",
+            name="f1",
+            desc="Feature 1 to operate on.",
             col_min_cnt_inclusive=1,
-            col_max_cnt_inclusive=2,
-        )
+            col_max_cnt_inclusive=1,
+        ),
+        TableColParam(
+            name="f2",
+            desc="Feature 2 to operate on.",
+            col_min_cnt_inclusive=1,
+            col_max_cnt_inclusive=1,
+        ),
     ],
 )
 
 
-feature_gen_comp.io(
+binary_op_comp.io(
     io_type=IoType.OUTPUT,
     name="out_ds",
     desc="Output vertical table.",
@@ -84,7 +82,7 @@ feature_gen_comp.io(
     col_params=None,
 )
 
-feature_gen_comp.io(
+binary_op_comp.io(
     io_type=IoType.OUTPUT,
     name="out_rules",
     desc="feature gen rule",
@@ -101,14 +99,14 @@ OP_MAP = {
 }
 
 
-@feature_gen_comp.eval_fn
-def feature_gen_eval_fn(
+@binary_op_comp.eval_fn
+def binary_op_eval_fn(
     *,
     ctx,
     in_ds,
-    in_ds_features,
+    in_ds_f1,
+    in_ds_f2,
     binary_op,
-    constant,
     as_label,
     new_feature_name,
     out_ds,
@@ -118,6 +116,7 @@ def feature_gen_eval_fn(
     head = load_table(
         ctx, in_ds, load_features=True, load_labels=True, load_ids=True, nrows=1
     )
+    in_ds_features = in_ds_f1 + in_ds_f2
     if new_feature_name in head.columns:
         load_columns = in_ds_features + [new_feature_name]
     else:
@@ -131,11 +130,7 @@ def feature_gen_eval_fn(
             in_ds_features[0] in df.columns
         ), "we should not load tables that need no action."
         arg_0 = df_sc.column(in_ds_features[0])
-        arg_1 = None
-        if len(in_ds_features) > 1:
-            arg_1 = df_sc.column(in_ds_features[1])
-        else:
-            arg_1 = constant
+        arg_1 = df_sc.column(in_ds_features[1])
 
         if new_feature_name in df.columns:
             df_sc = df_sc.set_column(
@@ -157,7 +152,7 @@ def feature_gen_eval_fn(
         _compute_new_table,
         out_ds,
         out_rules,
-        "Feature Generate",
+        "Binary Operation",
     )
 
     return {

@@ -24,8 +24,8 @@ import torch
 import torchmetrics
 
 from secretflow.ml.nn.fl.backend.torch.sampler import sampler_data
-from secretflow.ml.nn.utils import TorchModel
 from secretflow.ml.nn.metrics import Default, Mean, Precision, Recall
+from secretflow.ml.nn.utils import TorchModel
 from secretflow.utils.io import rows_count
 
 
@@ -198,6 +198,32 @@ class BaseTorchModel(ABC):
             raise Exception(f"Illegal argument stage={stage}")
         return step_per_epoch
 
+    def next_batch(self, stage="train"):
+        if stage == "train":
+            iter_data = next(self.train_iter)
+        elif stage == "eval":
+            iter_data = next(self.eval_iter)
+        else:
+            raise Exception(f"Illegal argument stage={stage}")
+
+        if len(iter_data) == 2:
+            x, y = iter_data
+            s_w = None
+        elif len(iter_data) == 3:
+            x, y, s_w = iter_data
+        else:
+            raise ValueError(
+                f"Len of batch data must be 2 or 3 but got {len(iter_data)}"
+            )
+
+        if self.use_gpu:
+            x = x.to(self.exe_device)
+            y = y.to(self.exe_device)
+            if s_w is not None:
+                s_w = s_w.to(self.exe_device)
+
+        return x, y, s_w
+
     def get_rows_count(self, filename):
         return int(rows_count(filename=filename)) - 1  # except header line
 
@@ -280,34 +306,14 @@ class BaseTorchModel(ABC):
             m.reset()
         with torch.no_grad():
             for _ in range(evaluate_steps):
-                iter_data = next(self.eval_iter)
-                if len(iter_data) == 2:
-                    x, y = iter_data
-                    s_w = None
-                elif len(iter_data) == 3:
-                    x, y, s_w = iter_data
-                x = x.float()
-
+                x, y, s_w = self.next_batch(stage="eval")
                 # Step 1: forward pass
-                if self.use_gpu:
-                    x = x.to(self.exe_device)
-                    y = y.to(self.exe_device)
-                    if s_w is not None:
-                        s_w = s_w.to(self.exe_device)
                 y_pred = self.model(x)
 
                 # Step 2: update metrics
-                if len(y.shape) == 1:
-                    y_t = y
-                else:
-                    if y.shape[-1] == 1:
-                        y_t = torch.squeeze(y, -1).long()
-                    else:
-                        y_t = y.argmax(dim=-1)
-                y_t = y_t.to(self.exe_device)
                 for m in self.metrics:
                     m.to(self.exe_device)
-                    m.update(y_pred.cpu(), y_t.cpu())
+                    m.update(y_pred.cpu(), y.cpu())
             result = {}
             self.transform_metrics(result, stage="eval")
         if self.logs is None:

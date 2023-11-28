@@ -15,7 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import copy
 from typing import Tuple
 
@@ -67,22 +66,9 @@ class FedAvgG(BaseTorchModel):
 
         for _ in range(train_steps):
             self.optimizer.zero_grad()
-            iter_data = next(self.train_iter)
-            if len(iter_data) == 2:
-                x, y = iter_data
-                s_w = None
-            elif len(iter_data) == 3:
-                x, y, s_w = iter_data
 
+            x, y, s_w = self.next_batch()
             num_sample += x.shape[0]
-            y_t = y.argmax(dim=-1)
-
-            if self.use_gpu:
-                x = x.to(self.exe_device)
-                y_t = y_t.to(self.exe_device)
-                if s_w is not None:
-                    s_w = s_w.to(self.exe_device)
-
             y_pred = self.model(x)
 
             # do back propagation
@@ -96,7 +82,7 @@ class FedAvgG(BaseTorchModel):
                 local_gradients_sum += local_gradients
 
             for m in self.metrics:
-                m.update(y_pred.cpu(), y_t.cpu())
+                m.update(y_pred.cpu(), y.cpu())
         loss = loss.item()
         logs['train-loss'] = loss
         self.logs = self.transform_metrics(logs)

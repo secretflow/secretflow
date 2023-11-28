@@ -27,9 +27,9 @@ def test_psi(comp_prod_sf_cluster_config):
     if self_party == "alice":
         da = pd.DataFrame(
             {
-                "id1": ["K100", "K200", "K300", "K400", "K500"],
-                "item": ["A", "B", "D", "E", "G"],
-                "feature1": ["AAA", "BBB", "DDD", "EEE", "GGG"],
+                "id1": ["K100", "K300", "K200", "K400", "K500"],
+                "item": ["A", "D", "B", "E", "G"],
+                "feature1": ["AAA", "DDD", "BBB", "EEE", "GGG"],
             }
         )
 
@@ -46,8 +46,8 @@ def test_psi(comp_prod_sf_cluster_config):
     elif self_party == "bob":
         db = pd.DataFrame(
             {
-                "id2": ["K200", "K300", "K400", "K500", "K600", "K700"],
-                "feature2": ["AA", "BB", "CC", "DD", "EE", "FF"],
+                "id2": ["K500", "K200", "K300", "K400", "K600", "K700"],
+                "feature2": ["DD", "AA", "BB", "CC", "EE", "FF"],
             }
         )
 

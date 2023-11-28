@@ -301,31 +301,23 @@
       ],
       "inputs": [
         {
-          "name": "labels",
-          "desc": "Input table with labels",
+          "name": "in_ds",
+          "desc": "Input table with prediction and label, usually is a result from a prediction component.",
           "types": [
             "sf.table.vertical_table",
             "sf.table.individual"
           ],
           "attrs": [
             {
-              "name": "col",
-              "desc": "The column name to use in the dataset. If not provided, the label of dataset will be used by default.",
+              "name": "label",
+              "desc": "The label name to use in the dataset.",
+              "colMinCntInclusive": "1",
               "colMaxCntInclusive": "1"
-            }
-          ]
-        },
-        {
-          "name": "predictions",
-          "desc": "Input table with predictions",
-          "types": [
-            "sf.table.vertical_table",
-            "sf.table.individual"
-          ],
-          "attrs": [
+            },
             {
-              "name": "col",
-              "desc": "The column name to use in the dataset. If not provided, the label of dataset will be used by default.",
+              "name": "prediction",
+              "desc": "The prediction result cplumn name to use in the dataset.",
+              "colMinCntInclusive": "1",
               "colMaxCntInclusive": "1"
             }
           ]
@@ -399,31 +391,23 @@
       ],
       "inputs": [
         {
-          "name": "labels",
-          "desc": "Input table with labels.",
+          "name": "in_ds",
+          "desc": "Input table with prediction and label, usually is a result from a prediction component.",
           "types": [
             "sf.table.vertical_table",
             "sf.table.individual"
           ],
           "attrs": [
             {
-              "name": "col",
-              "desc": "The column name to use in the dataset. If not provided, the label of dataset will be used by default.",
+              "name": "label",
+              "desc": "The label name to use in the dataset.",
+              "colMinCntInclusive": "1",
               "colMaxCntInclusive": "1"
-            }
-          ]
-        },
-        {
-          "name": "predictions",
-          "desc": "Input table with predictions.",
-          "types": [
-            "sf.table.vertical_table",
-            "sf.table.individual"
-          ],
-          "attrs": [
+            },
             {
-              "name": "col",
-              "desc": "The column name to use in the dataset. If not provided, the label of dataset will be used by default.",
+              "name": "prediction",
+              "desc": "The prediction result cplumn name to use in the dataset.",
+              "colMinCntInclusive": "1",
               "colMaxCntInclusive": "1"
             }
           ]
@@ -432,6 +416,68 @@
       "outputs": [
         {
           "name": "result",
+          "desc": "Output report.",
+          "types": [
+            "sf.report"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "ml.eval",
+      "name": "regression_eval",
+      "desc": "Statistics evaluation for a regression model on a dataset.\nContained Statistics:\nR2 Score (r2_score): It is a statistical measure that represents the proportion of the variance in the dependent variable that can be predicted from the independent variables. It ranges from 0 to 1, where a higher value indicates a better fit.\nMean Absolute Error (mean_abs_err): It calculates the average absolute difference between the predicted and actual values. It provides a measure of the average magnitude of the errors.\nMean Absolute Percentage Error (mean_abs_percent_err): It calculates the average absolute percentage difference between the predicted and actual values. It measures the average magnitude of the errors in terms of percentages.\nSum of Squared Errors (sum_squared_errors): It calculates the sum of the squared differences between the predicted and actual values. It provides an overall measure of the model's performance.\nMean Squared Error (mean_squared_errors): It calculates the average of the squared differences between the predicted and actual values. It is widely used as a loss function in regression problems.\nRoot Mean Squared Error (root_mean_squared_errors): It is the square root of the mean squared error. It provides a measure of the average magnitude of the errors in the original scale of the target variable.\nMean of True Values (y_true_mean): It calculates the average of the actual values in the target variable. It can be useful for establishing a baseline for the model's performance.\nMean of Predicted Values (y_pred_mean): It calculates the average of the predicted values. It can be compared with the y_true_mean to get an idea of the model's bias.\nResidual Histograms (residual_hists): It represents the distribution of the differences between the predicted and actual values. It helps to understand the spread and pattern of the errors.",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "bucket_size",
+          "desc": "Number of buckets for residual histogram.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "10"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {
+              "i64": "1"
+            },
+            "lowerBoundInclusive": true,
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "i64": "10000"
+            },
+            "upperBoundInclusive": true
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "in_ds",
+          "desc": "Input table with prediction and label, usually is a result from a prediction component.",
+          "types": [
+            "sf.table.vertical_table",
+            "sf.table.individual"
+          ],
+          "attrs": [
+            {
+              "name": "label",
+              "desc": "The label name to use in the dataset.",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
+            },
+            {
+              "name": "prediction",
+              "desc": "The prediction result cplumn name to use in the dataset.",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "reports",
           "desc": "Output report.",
           "types": [
             "sf.report"
@@ -1360,6 +1406,20 @@
             "isOptional": true,
             "defaultValue": {}
           }
+        },
+        {
+          "name": "l2_lambda",
+          "desc": "L2 regularization term",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.1
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true
+          }
         }
       ],
       "inputs": [
@@ -1757,6 +1817,87 @@
     },
     {
       "domain": "preprocessing",
+      "name": "binary_op",
+      "desc": "Perform binary operation binary_op(f1, f2) and assign the result to f3, f3 can be new or old. Currently f1, f2 and f3 all belong to a single party.",
+      "version": "0.0.2",
+      "attrs": [
+        {
+          "name": "binary_op",
+          "desc": "What kind of binary operation we want to do, currently only supports +, -, *, /",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "+"
+            },
+            "allowedValues": {
+              "ss": [
+                "+",
+                "-",
+                "*",
+                "/"
+              ]
+            }
+          }
+        },
+        {
+          "name": "new_feature_name",
+          "desc": "Name of the newly generated feature.",
+          "type": "AT_STRING",
+          "atomic": {}
+        },
+        {
+          "name": "as_label",
+          "desc": "If True, the generated feature will be marked as label in schema.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "in_ds",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "f1",
+              "desc": "Feature 1 to operate on.",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
+            },
+            {
+              "name": "f2",
+              "desc": "Feature 2 to operate on.",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "out_ds",
+          "desc": "Output vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        },
+        {
+          "name": "out_rules",
+          "desc": "feature gen rule",
+          "types": [
+            "sf.rule.proprocessing"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "preprocessing",
       "name": "case_when",
       "desc": "case_when",
       "version": "0.0.1",
@@ -1913,90 +2054,6 @@
     },
     {
       "domain": "preprocessing",
-      "name": "feature_gen",
-      "desc": "Generate a new feature based on one original feature and another feature or constant.",
-      "version": "0.0.2",
-      "attrs": [
-        {
-          "name": "binary_op",
-          "desc": "What kind of binary operation we want to do, currently only supports +, -, *, /",
-          "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "s": "+"
-            },
-            "allowedValues": {
-              "ss": [
-                "+",
-                "-",
-                "*",
-                "/"
-              ]
-            }
-          }
-        },
-        {
-          "name": "constant",
-          "desc": "If we have only one feature, we assume, new_feature = binary_op(f1, constant).",
-          "type": "AT_FLOAT",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {}
-          }
-        },
-        {
-          "name": "new_feature_name",
-          "desc": "Name of the newly generated feature.",
-          "type": "AT_STRING",
-          "atomic": {}
-        },
-        {
-          "name": "as_label",
-          "desc": "If True, the generated feature will be marked as label in schema.",
-          "type": "AT_BOOL",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {}
-          }
-        }
-      ],
-      "inputs": [
-        {
-          "name": "in_ds",
-          "desc": "Input vertical table.",
-          "types": [
-            "sf.table.vertical_table"
-          ],
-          "attrs": [
-            {
-              "name": "features",
-              "desc": "Feature(s) to operate on. If two features exist, we assume new_feature = binary_op(f1, f2). Currently two features must be from the same party.",
-              "colMinCntInclusive": "1",
-              "colMaxCntInclusive": "2"
-            }
-          ]
-        }
-      ],
-      "outputs": [
-        {
-          "name": "out_ds",
-          "desc": "Output vertical table.",
-          "types": [
-            "sf.table.vertical_table"
-          ]
-        },
-        {
-          "name": "out_rules",
-          "desc": "feature gen rule",
-          "types": [
-            "sf.rule.proprocessing"
-          ]
-        }
-      ]
-    },
-    {
-      "domain": "preprocessing",
       "name": "fillna",
       "desc": "fillna",
       "version": "0.0.1",
@@ -2021,12 +2078,33 @@
           }
         },
         {
-          "name": "fill_value_bool",
-          "desc": "For bool type data. If method is 'constant' use this value for filling null.",
-          "type": "AT_BOOL",
+          "name": "missing_value",
+          "desc": "Which value should be treat as missing_value? int, float, str, general_na (includes np.nan, None or pandas.NA which are all null in sc.table), default=general_na",
+          "type": "AT_STRING",
           "atomic": {
             "isOptional": true,
-            "defaultValue": {}
+            "defaultValue": {
+              "s": "general_na"
+            }
+          }
+        },
+        {
+          "name": "missing_value_type",
+          "desc": "type of missing value. general_na type indicates np.nan, None or pandas.NA",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "general_na"
+            },
+            "allowedValues": {
+              "ss": [
+                "general_na",
+                "str",
+                "int",
+                "float"
+              ]
+            }
           }
         },
         {
@@ -2201,7 +2279,9 @@
           "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
-            "defaultValue": {}
+            "defaultValue": {
+              "b": true
+            }
           }
         },
         {

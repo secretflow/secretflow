@@ -37,9 +37,7 @@ msgstr "基于Kuscia部署"
 
 #: ../../getting_started/deployment.md:9
 msgid ""
-"Kuscia is a lightweight privacy-preserving computing task orchestration framework based on K3s. It "
-"provides a unified privacy-preserving computing foundation that can abstract away "
-"heterogeneous infrastructure and protocols."
+"Kuscia is a lightweight privacy-preserving computing task orchestration framework based on K3s. It provides a unified privacy-preserving computing foundation that can abstract away heterogeneous infrastructure and protocols."
 msgstr "Kuscia是一款基于K3s的轻量级隐私计算任务编排框架，旨在屏蔽异构的基础设施和协议，提供统一的隐私计算底座。"
 
 #: ../../getting_started/deployment.md:12

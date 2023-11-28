@@ -1,9 +1,39 @@
+# Model zoo for unittest
+
 from torch import nn as nn
 from torch.nn import functional as F
 
 from secretflow.ml.nn.utils import BaseModule
 
 
+# Tensorflow Model
+# mnist model
+def mnist_conv_model():
+    from tensorflow import keras
+    from tensorflow.keras import layers
+
+    input_shape = (28, 28, 1)
+    # Create model
+    model = keras.Sequential(
+        [
+            keras.Input(shape=input_shape),
+            layers.Conv2D(32, kernel_size=(3, 3), activation="relu"),
+            layers.MaxPooling2D(pool_size=(2, 2)),
+            layers.Conv2D(64, kernel_size=(3, 3), activation="relu"),
+            layers.MaxPooling2D(pool_size=(2, 2)),
+            layers.Flatten(),
+            layers.Dropout(0.5),
+            layers.Dense(10, activation="softmax"),
+        ]
+    )
+    # Compile model
+    model.compile(
+        loss='categorical_crossentropy', optimizer='adam', metrics=["accuracy"]
+    )
+    return model
+
+
+# Torch Model
 class MlpNet(BaseModule):
     """Small mlp network for Iris"""
 
@@ -34,8 +64,8 @@ class ConvNet(BaseModule):
     def forward(self, x):
         x = F.relu(F.max_pool2d(self.conv1(x), 3))
         x = x.view(-1, self.fc_in_dim)
-        x = self.fc(x)
-        return F.softmax(x, dim=1)
+        x = F.relu(self.fc(x))
+        return x
 
 
 class ConvRGBNet(BaseModule):

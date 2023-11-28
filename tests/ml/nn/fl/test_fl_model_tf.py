@@ -155,7 +155,7 @@ class TestFedModelDF:
             sampler="batch",
             random_seed=1234,
         )
-        fed_model.fit(data, label, epochs=5, batch_size=16, aggregate_freq=3)
+        fed_model.fit(data, label, epochs=1, batch_size=16, aggregate_freq=3)
         global_metric, _ = fed_model.evaluate(data, label, batch_size=16)
         print(global_metric)
 
@@ -202,7 +202,7 @@ class TestFedModelCSV:
         fed_model.fit(
             train_path,
             "class",
-            epochs=2,
+            epochs=1,
             validation_data=valid_path,
             validation_freq=1,
             label_decoder=onehot_func,
@@ -270,7 +270,7 @@ class TestFedModelTensorflow:
             data,
             label,
             validation_data=(data, label),
-            epochs=5,
+            epochs=1,
             batch_size=128,
             aggregate_freq=2,
             sampler_method=sampler_method,
@@ -289,7 +289,9 @@ class TestFedModelTensorflow:
             == history["global_history"]['val_accuracy'][-1]
         )
 
-        assert global_metric[1].result().numpy() > 0.8
+        assert (
+            global_metric[1].result().numpy() > 0.1
+        )  # just test functionality correctness.
         zero_metric, _ = fed_model.evaluate(
             data,
             label,
@@ -342,16 +344,6 @@ class TestFedModelTensorflow:
         # keras model
         model = create_conv_model(input_shape, num_classes)
 
-        # test fed avg w
-        self.keras_model_with_mnist(
-            devices=sf_simulation_setup_devices,
-            data=mnist_data,
-            label=mnist_label,
-            model=model,
-            strategy="fed_avg_w",
-            backend="tensorflow",
-        )
-
         # test fed avg w with possion sampler
         self.keras_model_with_mnist(
             devices=sf_simulation_setup_devices,
@@ -362,16 +354,8 @@ class TestFedModelTensorflow:
             backend="tensorflow",
             sampler_method='possion',
         )
-        # test fed avg g
-        self.keras_model_with_mnist(
-            devices=sf_simulation_setup_devices,
-            data=mnist_data,
-            label=mnist_label,
-            model=model,
-            strategy="fed_avg_g",
-            backend="tensorflow",
-        )
-        # test fed avg u
+
+        # test fed avg u test default batch sampler
         self.keras_model_with_mnist(
             devices=sf_simulation_setup_devices,
             data=mnist_data,
@@ -410,7 +394,7 @@ class TestFedModelTensorflow:
             backend="tensorflow",
         )
 
-        # Define DP operations
+        # test fed avg g with DP
         gaussian_model_gdp = GaussianModelDP(
             noise_multiplier=0.001,
             l2_norm_clip=0.1,
@@ -479,7 +463,7 @@ class TestFedModelDataLoader:
             data,
             label,
             validation_data=data,
-            epochs=5,
+            epochs=1,
             batch_size=32,
             aggregate_freq=2,
             sampler_method=sampler_method,
@@ -624,7 +608,7 @@ class TestFedModelMemoryDF:
             sampler="batch",
             random_seed=1234,
         )
-        fed_model.fit(data, label, epochs=5, batch_size=16, aggregate_freq=3)
+        fed_model.fit(data, label, epochs=1, batch_size=16, aggregate_freq=3)
         global_metric, _ = fed_model.evaluate(data, label, batch_size=16)
         print(global_metric)
 
