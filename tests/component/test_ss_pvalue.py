@@ -61,6 +61,7 @@ def test_ss_pvalue(comp_prod_sf_cluster_config):
             "decay_rate",
             "strategy",
             "input/train_dataset/label",
+            "input/train_dataset/feature_selects",
         ],
         attrs=[
             Attribute(i64=3),
@@ -74,6 +75,7 @@ def test_ss_pvalue(comp_prod_sf_cluster_config):
             Attribute(f=0.5),
             Attribute(s="policy_sgd"),
             Attribute(ss=["y"]),
+            Attribute(ss=[f"a{i}" for i in range(15)] + [f"b{i}" for i in range(15)]),
         ],
         inputs=[
             DistData(

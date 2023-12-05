@@ -19,6 +19,7 @@ from secretflow.component.data_utils import (
     DistDataType,
     extract_table_header,
     gen_prediction_csv_meta,
+    get_model_public_info,
     load_table,
     model_dumps,
     model_loads,
@@ -285,11 +286,16 @@ sgb_train_comp.io(
     types=[DistDataType.VERTICAL_TABLE],
     col_params=[
         TableColParam(
+            name="feature_selects",
+            desc="which features should be used for training.",
+            col_min_cnt_inclusive=1,
+        ),
+        TableColParam(
             name="label",
             desc="Label of train dataset.",
             col_min_cnt_inclusive=1,
             col_max_cnt_inclusive=1,
-        )
+        ),
     ],
 )
 sgb_train_comp.io(
@@ -335,6 +341,7 @@ def sgb_train_eval_fn(
     train_dataset,
     train_dataset_label,
     output_model,
+    train_dataset_feature_selects,
 ):
     assert ctx.heu_config is not None, "need heu config in SFClusterDesc"
 
@@ -350,8 +357,10 @@ def sgb_train_eval_fn(
         train_dataset,
         load_labels=True,
         load_features=True,
+        col_selects=train_dataset_feature_selects,
         col_excludes=train_dataset_label,
     )
+
     label_party = next(iter(y.partitions.keys())).party
     heu = heu_from_base_config(
         ctx.heu_config,
@@ -395,6 +404,8 @@ def sgb_train_eval_fn(
     leaf_weights = m_dict.pop("leaf_weights")
     split_trees = m_dict.pop("split_trees")
     m_dict["label_holder"] = m_dict["label_holder"].party
+    m_dict["feature_selects"] = x.columns
+    m_dict["label_col"] = train_dataset_label
 
     m_objs = sum([leaf_weights, *split_trees.values()], [])
 
@@ -521,7 +532,14 @@ def sgb_predict_eval_fn(
     save_ids,
     save_label,
 ):
-    x = load_table(ctx, feature_dataset, load_features=True)
+    model_public_info = get_model_public_info(model)
+    x = load_table(
+        ctx,
+        feature_dataset,
+        load_features=True,
+        load_labels=True,
+        col_selects=model_public_info['feature_selects'],
+    )
     pyus = {p.party: p for p in x.partitions.keys()}
 
     model = load_sgb_model(ctx, pyus, model)
@@ -545,9 +563,20 @@ def sgb_predict_eval_fn(
             id_data = None
 
         if save_label:
-            label_df = load_table(ctx, feature_dataset, load_labels=True)
+            label_df = load_table(
+                ctx,
+                feature_dataset,
+                load_features=True,
+                load_labels=True,
+                col_selects=model_public_info['label_col'],
+            )
             assert pyu in label_df.partitions
-            label_header_map = extract_table_header(feature_dataset, load_labels=True)
+            label_header_map = extract_table_header(
+                feature_dataset,
+                load_features=True,
+                load_labels=True,
+                col_selects=model_public_info['label_col'],
+            )
             assert receiver in label_header_map
             label_header = list(label_header_map[receiver].keys())
             label_data = label_df.partitions[pyu].data

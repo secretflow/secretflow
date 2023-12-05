@@ -188,14 +188,18 @@ def extract_table_header(
     if feature_selects is not None:
         feature_selects = set(feature_selects)
 
-    if col_selects is not None and col_excludes is not None:
-        raise AttributeError("col_selects and col_excludes couldn't use together.")
-
     if col_selects is not None:
         col_selects = set(col_selects)
 
     if col_excludes is not None:
         col_excludes = set(col_excludes)
+
+    if col_selects is not None and col_excludes is not None:
+        intersection = set.intersection(col_selects, col_excludes)
+
+        assert (
+            len(intersection) == 0
+        ), f'The following items are in both col_selects and col_excludes : {intersection}, which is not allowed.'
 
     ret = dict()
     schema_names = {}
@@ -549,6 +553,13 @@ def model_dumps(
     dist_data.meta.Pack(model_meta)
 
     return dist_data
+
+
+def get_model_public_info(dist_data: DistData):
+    model_meta = DeviceObjectCollection()
+    assert dist_data.meta.Unpack(model_meta)
+    model_info = json.loads(model_meta.public_info)
+    return json.loads(model_info["public_info"])
 
 
 def model_loads(

@@ -69,15 +69,6 @@
             "lowerBoundEnabled": true,
             "lowerBound": {}
           }
-        },
-        {
-          "name": "select_all_features",
-          "desc": "Select all features for binning.",
-          "type": "AT_BOOL",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {}
-          }
         }
       ],
       "inputs": [
@@ -90,7 +81,8 @@
           "attrs": [
             {
               "name": "feature_selects",
-              "desc": "which features should be binned."
+              "desc": "which features should be binned.",
+              "colMinCntInclusive": "1"
             }
           ]
         }
@@ -218,15 +210,6 @@
             },
             "upperBoundInclusive": true
           }
-        },
-        {
-          "name": "select_all_features",
-          "desc": "Select all features for binning.",
-          "type": "AT_BOOL",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {}
-          }
         }
       ],
       "inputs": [
@@ -245,7 +228,8 @@
             {
               "name": "label",
               "desc": "Label of input data.",
-              "colMinCntInclusive": "1"
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
             }
           ]
         }
@@ -620,15 +604,6 @@
           "name": "save_label",
           "desc": "Whether or not to save real label columns into output pred file. If true, input feature_dataset must contain label columns and receiver party must be label owner.",
           "type": "AT_BOOL",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {}
-          }
-        },
-        {
-          "name": "offset_col",
-          "desc": "Specify a column to use as the offset",
-          "type": "AT_STRING",
           "atomic": {
             "isOptional": true,
             "defaultValue": {}
@@ -1191,6 +1166,11 @@
           ],
           "attrs": [
             {
+              "name": "feature_selects",
+              "desc": "which features should be used for training.",
+              "colMinCntInclusive": "1"
+            },
+            {
               "name": "label",
               "desc": "Label of train dataset.",
               "colMinCntInclusive": "1",
@@ -1390,24 +1370,6 @@
           }
         },
         {
-          "name": "offset_col",
-          "desc": "Specify a column to use as the offset",
-          "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {}
-          }
-        },
-        {
-          "name": "weight_col",
-          "desc": "Specify a column to use for the observation weights",
-          "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {}
-          }
-        },
-        {
           "name": "l2_lambda",
           "desc": "L2 regularization term",
           "type": "AT_FLOAT",
@@ -1420,6 +1382,15 @@
             "lowerBound": {},
             "lowerBoundInclusive": true
           }
+        },
+        {
+          "name": "report_weights",
+          "desc": "If this option is set to true, model will be revealed and model details are visible to all parties",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
         }
       ],
       "inputs": [
@@ -1430,6 +1401,21 @@
             "sf.table.vertical_table"
           ],
           "attrs": [
+            {
+              "name": "feature_selects",
+              "desc": "which features should be used for training.",
+              "colMinCntInclusive": "1"
+            },
+            {
+              "name": "offset",
+              "desc": "Specify a column to use as the offset",
+              "colMaxCntInclusive": "1"
+            },
+            {
+              "name": "weight",
+              "desc": "Specify a column to use for the observation weights",
+              "colMaxCntInclusive": "1"
+            },
             {
               "name": "label",
               "desc": "Label of train dataset.",
@@ -1445,6 +1431,13 @@
           "desc": "Output model.",
           "types": [
             "sf.model.ss_glm"
+          ]
+        },
+        {
+          "name": "report",
+          "desc": "If report_weights is true, report model details",
+          "types": [
+            "sf.report"
           ]
         }
       ]
@@ -1591,6 +1584,11 @@
             "sf.table.vertical_table"
           ],
           "attrs": [
+            {
+              "name": "feature_selects",
+              "desc": "which features should be used for training.",
+              "colMinCntInclusive": "1"
+            },
             {
               "name": "label",
               "desc": "Label of train dataset.",
@@ -1796,6 +1794,11 @@
             "sf.table.vertical_table"
           ],
           "attrs": [
+            {
+              "name": "feature_selects",
+              "desc": "which features should be used for training.",
+              "colMinCntInclusive": "1"
+            },
             {
               "name": "label",
               "desc": "Label of train dataset.",

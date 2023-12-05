@@ -22,7 +22,6 @@ message WoeBins {
   message VariableBins {
     message Bin {
       string label = 1;
-      // how to calculate woe/iv
       float woe = 2;
       float iv = 3;
       uint64 total_count = 4;
