@@ -26,6 +26,7 @@ from secretflow.component.data_utils import (
     DistDataType,
     extract_table_header,
     gen_prediction_csv_meta,
+    get_model_public_info,
     load_table,
     model_dumps,
     model_loads,
@@ -33,10 +34,12 @@ from secretflow.component.data_utils import (
 )
 from secretflow.device.device.pyu import PYU
 from secretflow.device.device.spu import SPU, SPUObject
-from secretflow.device.driver import wait
+from secretflow.device.driver import wait, reveal
 from secretflow.ml.linear import SSGLM
 from secretflow.ml.linear.ss_glm.core import Linker, get_link
 from secretflow.spec.v1.data_pb2 import DistData
+from secretflow.spec.v1.component_pb2 import Attribute
+from secretflow.spec.v1.report_pb2 import Descriptions, Div, Report, Tab
 
 ss_glm_train_comp = Component(
     "ss_glm_train",
@@ -158,20 +161,6 @@ ss_glm_train_comp.str_attr(
     is_optional=False,
     allowed_values=["SGD", "IRLS"],
 )
-ss_glm_train_comp.str_attr(
-    name="offset_col",
-    desc="Specify a column to use as the offset",
-    is_list=False,
-    is_optional=True,
-    default_value="",
-)
-ss_glm_train_comp.str_attr(
-    name="weight_col",
-    desc="Specify a column to use for the observation weights",
-    is_list=False,
-    is_optional=True,
-    default_value="",
-)
 ss_glm_train_comp.float_attr(
     name="l2_lambda",
     desc="L2 regularization term",
@@ -181,6 +170,13 @@ ss_glm_train_comp.float_attr(
     lower_bound=0,
     lower_bound_inclusive=True,
 )
+ss_glm_train_comp.bool_attr(
+    name="report_weights",
+    desc="If this option is set to true, model will be revealed and model details are visible to all parties",
+    is_list=False,
+    is_optional=True,
+    default_value=False,
+)
 ss_glm_train_comp.io(
     io_type=IoType.INPUT,
     name="train_dataset",
@@ -188,11 +184,28 @@ ss_glm_train_comp.io(
     types=[DistDataType.VERTICAL_TABLE],
     col_params=[
         TableColParam(
+            name="feature_selects",
+            desc="which features should be used for training.",
+            col_min_cnt_inclusive=1,
+        ),
+        TableColParam(
+            name="offset",
+            desc="Specify a column to use as the offset",
+            col_min_cnt_inclusive=0,
+            col_max_cnt_inclusive=1,
+        ),
+        TableColParam(
+            name="weight",
+            desc="Specify a column to use for the observation weights",
+            col_min_cnt_inclusive=0,
+            col_max_cnt_inclusive=1,
+        ),
+        TableColParam(
             name="label",
             desc="Label of train dataset.",
             col_min_cnt_inclusive=1,
             col_max_cnt_inclusive=1,
-        )
+        ),
     ],
 )
 ss_glm_train_comp.io(
@@ -200,6 +213,12 @@ ss_glm_train_comp.io(
     name="output_model",
     desc="Output model.",
     types=[DistDataType.SS_GLM_MODEL],
+)
+ss_glm_train_comp.io(
+    io_type=IoType.OUTPUT,
+    name="report",
+    desc="If report_weights is true, report model details",
+    types=[DistDataType.REPORT],
 )
 
 # current version 0.1
@@ -221,14 +240,17 @@ def ss_glm_train_eval_fn(
     eps,
     iter_start_irls,
     optimizer,
-    offset_col,
-    weight_col,
     l2_lambda,
+    report_weights,
+    train_dataset_offset,
+    train_dataset_weight,
     decay_epoch,
     decay_rate,
     train_dataset,
     train_dataset_label,
     output_model,
+    train_dataset_feature_selects,
+    report,
 ):
     # only local fs is supported at this moment.
     local_fs_wd = ctx.local_fs_wd
@@ -249,6 +271,10 @@ def ss_glm_train_eval_fn(
 
     glm = SSGLM(spu)
 
+    assert (
+        train_dataset_label[0] not in train_dataset_feature_selects
+    ), f"col {train_dataset_label[0]} used in both label and features"
+
     y = load_table(
         ctx,
         train_dataset,
@@ -256,28 +282,43 @@ def ss_glm_train_eval_fn(
         load_features=True,
         col_selects=train_dataset_label,
     )
+
     x = load_table(
         ctx,
         train_dataset,
         load_labels=True,
         load_features=True,
-        col_excludes=train_dataset_label,
+        col_selects=train_dataset_feature_selects,
     )
-    if offset_col:
+
+    col_selects = x.columns
+    if train_dataset_offset:
         assert (
-            offset_col in x.columns
-        ), f"can't find offset_col {offset_col} in train_dataset"
-        offset = x[offset_col]
-        x.drop(columns=offset_col, inplace=True)
+            train_dataset_offset[0] not in train_dataset_feature_selects
+        ), f"col {train_dataset_offset[0]} used in both offset and features"
+        offset = load_table(
+            ctx,
+            train_dataset,
+            load_labels=True,
+            load_features=True,
+            col_selects=train_dataset_offset,
+        )
+        offset_col = train_dataset_offset[0]
     else:
         offset = None
+        offset_col = ""
 
-    if weight_col:
+    if train_dataset_weight:
         assert (
-            weight_col in x.columns
-        ), f"can't find weight_col {weight_col} in train_dataset"
-        weight = x[weight_col]
-        x.drop(columns=weight_col, inplace=True)
+            train_dataset_weight[0] not in train_dataset_feature_selects
+        ), f"col {train_dataset_weight[0]} used in both weight and features"
+        weight = load_table(
+            ctx,
+            train_dataset,
+            load_labels=True,
+            load_features=True,
+            col_selects=train_dataset_weight,
+        )
     else:
         weight = None
 
@@ -324,7 +365,13 @@ def ss_glm_train_eval_fn(
         else:
             raise CompEvalError(f"Unknown optimizer {optimizer}")
 
-    model_meta = {"link": glm.link.link_type().value, "y_scale": glm.y_scale}
+    model_meta = {
+        "link": glm.link.link_type().value,
+        "y_scale": glm.y_scale,
+        "col_selects": col_selects,
+        "offset_col": offset_col,
+        "label_col": train_dataset_label,
+    }
 
     model_db = model_dumps(
         "ss_glm",
@@ -338,7 +385,62 @@ def ss_glm_train_eval_fn(
         train_dataset.system_info,
     )
 
-    return {"output_model": model_db}
+    if report_weights:
+        weights = list(map(float, list(reveal(glm.spu_w))))
+        named_weight = {}
+        for _, features in x.partition_columns.items():
+            party_weight = weights[: len(features)]
+            named_weight.update({f: w for f, w in zip(features, party_weight)})
+            weights = weights[len(features) :]
+        assert len(weights) == 1
+
+        w_desc = Descriptions(
+            items=[
+                Descriptions.Item(
+                    name="_intercept_", type="float", value=Attribute(f=weights[-1])
+                ),
+                Descriptions.Item(
+                    name="_y_scale_", type="float", value=Attribute(f=glm.y_scale)
+                ),
+            ]
+            + [
+                Descriptions.Item(name=f, type="float", value=Attribute(f=w))
+                for f, w in named_weight.items()
+            ],
+        )
+
+        report_mate = Report(
+            name="weights",
+            desc="weights",
+            tabs=[
+                Tab(
+                    divs=[
+                        Div(
+                            children=[
+                                Div.Child(
+                                    type="descriptions",
+                                    descriptions=w_desc,
+                                )
+                            ],
+                        )
+                    ],
+                )
+            ],
+        )
+    else:
+        report_mate = Report(
+            name="weights",
+            desc="weights",
+        )
+
+    report_dd = DistData(
+        name=report,
+        type=str(DistDataType.REPORT),
+        system_info=train_dataset.system_info,
+    )
+    report_dd.meta.Pack(report_mate)
+
+    return {"output_model": model_db, "report": report_dd}
 
 
 ss_glm_predict_comp = Component(
@@ -380,13 +482,6 @@ ss_glm_predict_comp.bool_attr(
     is_list=False,
     is_optional=True,
     default_value=False,
-)
-ss_glm_predict_comp.str_attr(
-    name="offset_col",
-    desc="Specify a column to use as the offset",
-    is_list=False,
-    is_optional=True,
-    default_value="",
 )
 ss_glm_predict_comp.io(
     io_type=IoType.INPUT,
@@ -431,7 +526,11 @@ def load_ss_glm_model(ctx, spu, model) -> Tuple[SPUObject, Linker, float]:
         and "y_scale" in model_meta
     ), f"model meta format err {model_meta}"
 
-    return model_objs[0], get_link(model_meta["link"]), float(model_meta["y_scale"])
+    return (
+        model_objs[0],
+        get_link(model_meta["link"]),
+        float(model_meta["y_scale"]),
+    )
 
 
 @ss_glm_predict_comp.eval_fn
@@ -439,7 +538,6 @@ def ss_glm_predict_eval_fn(
     *,
     ctx,
     feature_dataset,
-    offset_col,
     model,
     receiver,
     pred_name,
@@ -461,19 +559,28 @@ def ss_glm_predict_eval_fn(
 
     spu = SPU(cluster_def, spu_config["link_desc"])
 
-    model = load_ss_glm_model(ctx, spu, model)
+    model_public_info = get_model_public_info(model)
 
     glm = SSGLM(spu)
-    glm.spu_w, glm.link, glm.y_scale = model
+    glm.spu_w, glm.link, glm.y_scale = load_ss_glm_model(ctx, spu, model)
 
-    x = load_table(ctx, feature_dataset, load_features=True)
+    x = load_table(
+        ctx,
+        feature_dataset,
+        load_features=True,
+        col_selects=model_public_info['col_selects'],
+    )
+
+    offset_col = model_public_info['offset_col']
 
     if offset_col:
-        assert (
-            offset_col in x.columns
-        ), f"can't find offset_col {offset_col} in train_dataset"
-        offset = x[offset_col]
-        x.drop(columns=offset_col, inplace=True)
+        offset = load_table(
+            ctx,
+            feature_dataset,
+            load_labels=True,
+            load_features=True,
+            col_selects=[offset_col],
+        )
     else:
         offset = None
 
@@ -500,9 +607,20 @@ def ss_glm_predict_eval_fn(
             id_data = None
 
         if save_label:
-            label_df = load_table(ctx, feature_dataset, load_labels=True)
+            label_df = load_table(
+                ctx,
+                feature_dataset,
+                load_features=True,
+                load_labels=True,
+                col_selects=model_public_info['label_col'],
+            )
             assert pyu in label_df.partitions
-            label_header_map = extract_table_header(feature_dataset, load_labels=True)
+            label_header_map = extract_table_header(
+                feature_dataset,
+                load_features=True,
+                load_labels=True,
+                col_selects=model_public_info['label_col'],
+            )
             assert receiver in label_header_map
             label_header = list(label_header_map[receiver].keys())
             label_data = label_df.partitions[pyu].data

@@ -12,6 +12,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
+
+## [1.3.0.dev231205] - 2023-12-05
+
+### Changed
+- Add feature selection in all model predict comps.
+
+### Fixed
+- Fix pvalue & more readable assert msg.
+
+
 ## [1.3.0.dev231128] - 2023-11-28
 
 ### Added

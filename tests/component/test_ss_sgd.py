@@ -4,6 +4,11 @@ import os
 import numpy as np
 import pandas as pd
 from google.protobuf.json_format import MessageToJson
+from sklearn.datasets import load_breast_cancer
+from sklearn.metrics import r2_score
+from sklearn.preprocessing import StandardScaler
+from tests.conftest import TEST_STORAGE_ROOT
+
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.ml.eval.regression_eval import regression_eval_comp
 from secretflow.component.ml.linear.ss_sgd import ss_sgd_predict_comp, ss_sgd_train_comp
@@ -16,11 +21,6 @@ from secretflow.spec.v1.data_pb2 import (
 )
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
-from sklearn.datasets import load_breast_cancer
-from sklearn.metrics import r2_score
-from sklearn.preprocessing import StandardScaler
-
-from tests.conftest import TEST_STORAGE_ROOT
 
 
 def get_train_param(alice_path, bob_path, model_path):
@@ -40,6 +40,7 @@ def get_train_param(alice_path, bob_path, model_path):
             "decay_rate",
             "strategy",
             "input/train_dataset/label",
+            "input/train_dataset/feature_selects",
         ],
         attrs=[
             Attribute(i64=3),
@@ -53,6 +54,7 @@ def get_train_param(alice_path, bob_path, model_path):
             Attribute(f=0.5),
             Attribute(s="policy_sgd"),
             Attribute(ss=["y"]),
+            Attribute(ss=[f"a{i}" for i in range(15)] + [f"b{i}" for i in range(15)]),
         ],
         inputs=[
             DistData(

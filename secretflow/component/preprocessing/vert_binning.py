@@ -15,12 +15,12 @@
 from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import (
     DistDataType,
+    VerticalTableWrapper,
     dump_vertical_table,
     load_table,
     model_dumps,
     model_loads,
     move_feature_to_label,
-    VerticalTableWrapper,
 )
 from secretflow.device.device.pyu import PYUObject
 from secretflow.preprocessing.binning.vert_bin_substitution import VertBinSubstitution
@@ -51,15 +51,6 @@ vert_binning_comp.int_attr(
     lower_bound=0,
     lower_bound_inclusive=False,
 )
-
-vert_binning_comp.bool_attr(
-    name="select_all_features",
-    desc="Select all features for binning.",
-    is_list=False,
-    is_optional=True,
-    default_value=False,
-)
-
 vert_binning_comp.io(
     io_type=IoType.INPUT,
     name="input_data",
@@ -69,7 +60,7 @@ vert_binning_comp.io(
         TableColParam(
             name="feature_selects",
             desc="which features should be binned.",
-            col_min_cnt_inclusive=0,
+            col_min_cnt_inclusive=1,
         )
     ],
 )
@@ -92,30 +83,17 @@ def vert_binning_eval_fn(
     ctx,
     binning_method,
     bin_num,
-    select_all_features,
     input_data,
     input_data_feature_selects,
     bin_rule,
 ):
-    assert (
-        select_all_features or len(input_data_feature_selects) > 0
-    ), "select at least one feature"
-    if select_all_features:
-        input_df = load_table(
-            ctx,
-            input_data,
-            load_features=True,
-            load_labels=False,
-        )
-        input_data_feature_selects = input_df.columns
-    else:
-        input_df = load_table(
-            ctx,
-            input_data,
-            load_features=True,
-            feature_selects=input_data_feature_selects,
-            load_labels=False,
-        )
+    input_df = load_table(
+        ctx,
+        input_data,
+        load_features=True,
+        feature_selects=input_data_feature_selects,
+        load_labels=False,
+    )
     with ctx.tracer.trace_running():
         bining = VertBinning()
         col_index = input_df._col_index(input_data_feature_selects)

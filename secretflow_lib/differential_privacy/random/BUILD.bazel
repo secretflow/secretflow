@@ -1,6 +1,8 @@
+load("@yacl//bazel:yacl.bzl", "yacl_cc_library", "yacl_cc_test")
+
 package(default_visibility = ["//visibility:public"])
 
-cc_library(
+yacl_cc_library(
     name = "distributions",
     hdrs = ["distributions.h"],
     deps = [
@@ -9,14 +11,12 @@ cc_library(
     ],
 )
 
-cc_test(
+yacl_cc_test(
     name = "distributions_test",
     srcs = ["distributions_test.cc"],
     linkopts = ["-lm"],
     deps = [
         ":distributions",
-        "@com_github_gperftools_gperftools//:gperftools",
-        "@com_google_googletest//:gtest_main",
         "@yacl//yacl/crypto/tools:prg",
     ],
 )
