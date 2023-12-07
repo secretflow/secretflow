@@ -57,7 +57,8 @@ then run the image.
 docker run -it secretflow/secretflow-anolis8:${version}
 
 ```
-
+In some cases, you may use this parameter --network host
+The reason for recommendation can be referred to [here](https://www.secretflow.org.cn/docs/secretflow/latest/zh-Hans/getting_started/deployment#recommended-host-network)
 ## Option 3: from source
 
 1. Download code and set up Python virtual environment.
