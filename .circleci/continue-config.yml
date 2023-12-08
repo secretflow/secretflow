@@ -17,7 +17,6 @@ jobs:
     resource_class: 2xlarge+
     # Add steps to the job
     # See: https://circleci.com/docs/2.0/configuration-reference/#steps
-    shell: /bin/bash --login -eo pipefail
     steps:
        # Kill the whole ci after 1hr
       - run:
@@ -35,6 +34,7 @@ jobs:
           name: "Restore pip cache"
           key: &pip-cache pip-{{ checksum "requirements.txt" }}-{{ checksum "dev-requirements.txt" }}
       - run:
+          shell: /bin/bash --login -eo pipefail
           name: "Install python deps"
           command: |
             conda init
