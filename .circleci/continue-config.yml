@@ -15,6 +15,7 @@ jobs:
     docker:
       - image: secretflow/ubuntu-base-ci:latest
     resource_class: 2xlarge+
+    shell: /bin/bash --login -eo pipefail
     # Add steps to the job
     # See: https://circleci.com/docs/2.0/configuration-reference/#steps
     steps:
@@ -34,11 +35,11 @@ jobs:
           name: "Restore pip cache"
           key: &pip-cache pip-{{ checksum "requirements.txt" }}-{{ checksum "dev-requirements.txt" }}
       - run:
-          shell: /bin/bash --login -eo pipefail
           name: "Install python deps"
           command: |
-            conda init
-            conda activate py3.8
+            ~/miniconda3/bin/conda env list
+            ~/miniconda3/bin/conda init
+            ~/miniconda3/bin/conda activate py3.8
             sed -i "s/tensorflow==/tensorflow-cpu==/g" requirements.txt
             pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
             pip install -r dev-requirements.txt
