@@ -37,9 +37,9 @@ jobs:
       - run:
           name: "Install python deps"
           command: |
-            less ~/.bashrc
+            tail -n 10 ~/.bashrc
             source ~/.bashrc
-            conda activate py3.8
+            which python
             sed -i "s/tensorflow==/tensorflow-cpu==/g" requirements.txt
             pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
             pip install -r dev-requirements.txt
