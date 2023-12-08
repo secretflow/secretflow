@@ -37,6 +37,7 @@ jobs:
       - run:
           name: "Install python deps"
           command: |
+            less ~/.bashrc
             source ~/.bashrc
             conda activate py3.8
             sed -i "s/tensorflow==/tensorflow-cpu==/g" requirements.txt
