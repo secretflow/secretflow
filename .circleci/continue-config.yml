@@ -38,7 +38,6 @@ jobs:
           name: "Install python deps"
           command: |
             tail -n 10 ~/.bashrc
-            source ~/.bashrc
             which python
             sed -i "s/tensorflow==/tensorflow-cpu==/g" requirements.txt
             pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
