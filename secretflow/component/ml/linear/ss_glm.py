@@ -26,6 +26,7 @@ from secretflow.component.data_utils import (
     DistDataType,
     extract_table_header,
     gen_prediction_csv_meta,
+    generate_random_string,
     get_model_public_info,
     load_table,
     model_dumps,
@@ -34,11 +35,11 @@ from secretflow.component.data_utils import (
 )
 from secretflow.device.device.pyu import PYU
 from secretflow.device.device.spu import SPU, SPUObject
-from secretflow.device.driver import wait, reveal
+from secretflow.device.driver import reveal, wait
 from secretflow.ml.linear import SSGLM
-from secretflow.ml.linear.ss_glm.core import Linker, get_link
-from secretflow.spec.v1.data_pb2 import DistData
+from secretflow.ml.linear.ss_glm.core import get_link, Linker
 from secretflow.spec.v1.component_pb2 import Attribute
+from secretflow.spec.v1.data_pb2 import DistData
 from secretflow.spec.v1.report_pb2 import Descriptions, Div, Report, Tab
 
 ss_glm_train_comp = Component(
@@ -365,12 +366,20 @@ def ss_glm_train_eval_fn(
         else:
             raise CompEvalError(f"Unknown optimizer {optimizer}")
 
+    feature_names = x.columns
+    party_features_length = {
+        device.party: len(columns) for device, columns in x.partition_columns.items()
+    }
+
     model_meta = {
         "link": glm.link.link_type().value,
         "y_scale": glm.y_scale,
         "col_selects": col_selects,
         "offset_col": offset_col,
         "label_col": train_dataset_label,
+        "feature_names": feature_names,
+        "party_features_length": party_features_length,
+        "model_hash": generate_random_string(next(iter(x.partition_columns.keys()))),
     }
 
     model_db = model_dumps(
@@ -471,7 +480,7 @@ ss_glm_predict_comp.bool_attr(
     ),
     is_list=False,
     is_optional=True,
-    default_value=False,
+    default_value=True,
 )
 ss_glm_predict_comp.bool_attr(
     name="save_label",

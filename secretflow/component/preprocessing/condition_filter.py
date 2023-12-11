@@ -20,7 +20,7 @@ from secretflow.component.data_utils import (
     load_table,
     VerticalTableWrapper,
 )
-from secretflow.preprocessing.cond_filter_v import ConditionFilter
+from secretflow.preprocessing.cond_filter_v import ConditionFilter, conversion_mapping
 
 condition_filter_comp = Component(
     "condition_filter",
@@ -43,10 +43,10 @@ condition_filter_comp.str_attr(
 
 condition_filter_comp.str_attr(
     name="value_type",
-    desc="Type of the value to compare with. Must be one of 'FLOAT', 'STR'",
+    desc=f"Type of the value to compare with. Must be one of {list(conversion_mapping.keys())}",
     is_list=False,
     is_optional=False,
-    allowed_values=['FLOAT', 'STR'],
+    allowed_values=list(conversion_mapping.keys()),
 )
 condition_filter_comp.str_attr(
     name="bound_value",
@@ -56,7 +56,7 @@ condition_filter_comp.str_attr(
 )
 condition_filter_comp.float_attr(
     name="float_epsilon",
-    desc="Epsilon value for floating point comparison.",
+    desc="Epsilon value for floating point comparison. WARNING: due to floating point representation in computers, set this number slightly larger if you want filter out the values exactly at desired boundary. for example, abs(1.001 - 1.002) is slightly larger than 0.001, and therefore may not be filter out using == and epsilson = 0.001",
     is_list=False,
     is_optional=False,
     lower_bound=0,

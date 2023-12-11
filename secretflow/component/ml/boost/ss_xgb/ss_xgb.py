@@ -300,7 +300,7 @@ ss_xgb_predict_comp.bool_attr(
     ),
     is_list=False,
     is_optional=True,
-    default_value=False,
+    default_value=True,
 )
 ss_xgb_predict_comp.bool_attr(
     name="save_label",

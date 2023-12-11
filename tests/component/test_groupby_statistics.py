@@ -3,11 +3,17 @@ import os
 
 import pandas as pd
 import pytest
+from google.protobuf.json_format import MessageToJson
 
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.stats.groupby_statistics import (
     gen_groupby_statistic_reports,
     groupby_statistics_comp,
+    STR_TO_ENUM,
+)
+from secretflow.spec.extend.groupby_aggregation_config_pb2 import (
+    ColumnQuery,
+    GroupbyAggregationConfig,
 )
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, IndividualTable, TableSchema
@@ -15,18 +21,23 @@ from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
 
 
+def value_agg_pairs_to_pb(value_agg_pairs) -> GroupbyAggregationConfig:
+    config = GroupbyAggregationConfig()
+    for value, agg in value_agg_pairs:
+        col_query = ColumnQuery()
+        col_query.function = STR_TO_ENUM[agg]
+        col_query.column_name = value
+        config.column_queries.append(col_query)
+    return config
+
+
 # note that the report does not support approximatedly equal yet, we only test easy case, for more numeric tests see tests for groupby in tests/data/
 # note nan values are zeros for spu.
 @pytest.mark.parametrize("by", [["a"], ["a", "b"]])
 @pytest.mark.parametrize(
-    "target",
-    [
-        ["c"],
-        ["c", "d"],
-    ],
+    "value_agg_pairs", [[("c", "sum")], [("c", "count"), ("d", "sum")]]
 )
-@pytest.mark.parametrize("aggs", [["sum"], ["count", "sum"]])
-def test_groupby_statistics(comp_prod_sf_cluster_config, by, target, aggs):
+def test_groupby_statistics(comp_prod_sf_cluster_config, by, value_agg_pairs):
     """
     This test shows that table statistics works on both pandas and VDataFrame,
         i.e. all APIs align and the result is correct.
@@ -57,15 +68,10 @@ def test_groupby_statistics(comp_prod_sf_cluster_config, by, target, aggs):
         domain="stats",
         name="groupby_statistics",
         version="0.0.2",
-        attr_paths=[
-            "input/input_data/by",
-            "input/input_data/values",
-            "aggs",
-        ],
+        attr_paths=["input/input_data/by", "aggregation_config"],
         attrs=[
             Attribute(ss=by),
-            Attribute(ss=target),
-            Attribute(ss=aggs),
+            Attribute(s=MessageToJson(value_agg_pairs_to_pb(value_agg_pairs))),
         ],
         inputs=[
             DistData(
@@ -97,10 +103,10 @@ def test_groupby_statistics(comp_prod_sf_cluster_config, by, target, aggs):
     logging.info(comp_ret)
 
     result_true = {}
-    for agg in aggs:
-        true_df = getattr(test_data.groupby(by), agg)()[target].fillna(0).reset_index()
-        true_df.columns = by + target
-        result_true[agg] = true_df
+    for value, agg in value_agg_pairs:
+        true_df = getattr(test_data.groupby(by), agg)()[value].fillna(0).reset_index()
+        true_df.columns = by + [value]
+        result_true[value + "_" + agg] = true_df
     true_ret = gen_groupby_statistic_reports(result_true, by)
 
     assert comp_ret == true_ret, f"comp_ret {comp_ret}, \n true {true_ret}"

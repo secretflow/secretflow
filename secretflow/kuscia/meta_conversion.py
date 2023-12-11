@@ -59,14 +59,16 @@ def convert_dist_data_to_domain_data(
     domaindata_id: str, datasource_id: str, x: DistData, output_uri: str, party: str
 ) -> DomainData:
     def convert_data_type(dist_data_type: str) -> str:
-        if "table" in dist_data_type:
+        if dist_data_type.startswith("sf.table"):
             return "table"
-        elif "model" in dist_data_type:
+        elif dist_data_type.startswith("sf.model"):
             return "model"
-        elif "rule" in dist_data_type:
+        elif dist_data_type.startswith("sf.rule"):
             return "rule"
-        elif "report" in dist_data_type:
+        elif dist_data_type.startswith("sf.report"):
             return "report"
+        elif dist_data_type.startswith("sf.read_data"):
+            return "read_data"
         return "unknown"
 
     def get_data_columns(x: DistData, party: str) -> List[DataColumn]:

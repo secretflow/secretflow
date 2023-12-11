@@ -24,8 +24,13 @@ from secretflow.component.component import (
 from secretflow.component.data_utils import (
     DistDataType,
     extract_table_header,
+    generate_random_string,
     load_table,
     model_dumps,
+)
+from secretflow.component.preprocessing.vert_binning import (
+    BINNING_RULE_MAX_MAJOR_VERSION,
+    BINNING_RULE_MAX_MINOR_VERSION,
 )
 from secretflow.device.device.heu import HEU
 from secretflow.device.device.spu import SPU
@@ -128,10 +133,6 @@ vert_woe_binning_comp.io(
     col_params=None,
 )
 
-# current version 0.1
-MODEL_MAX_MAJOR_VERSION = 0
-MODEL_MAX_MINOR_VERSION = 1
-
 
 @vert_woe_binning_comp.eval_fn
 def vert_woe_binning_eval_fn(
@@ -213,12 +214,13 @@ def vert_woe_binning_eval_fn(
         model_dist_data = model_dumps(
             "bin_rule",
             DistDataType.BIN_RUNNING_RULE,
-            MODEL_MAX_MAJOR_VERSION,
-            MODEL_MAX_MINOR_VERSION,
+            BINNING_RULE_MAX_MAJOR_VERSION,
+            BINNING_RULE_MAX_MINOR_VERSION,
             [o for o in rules.values()],
             {
                 "input_data_feature_selects": input_data_feature_selects,
                 "input_data_label": input_data_label[0],
+                "model_hash": generate_random_string(next(iter(rules.keys()))),
             },
             ctx.local_fs_wd,
             bin_rule,

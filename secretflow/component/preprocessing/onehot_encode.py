@@ -70,7 +70,7 @@ onehot_encode.io(
     name="input_dataset",
     desc="Input vertical table.",
     types=[DistDataType.VERTICAL_TABLE],
-    col_params=[TableColParam(name="encode_features", desc="Features to encode.")],
+    col_params=[TableColParam(name="features", desc="Features to encode.")],
 )
 
 onehot_encode.io(
@@ -129,7 +129,7 @@ def onehot_encode_eval_fn(
     min_frequency,
     report_rules,
     input_dataset,
-    input_dataset_encode_features,
+    input_dataset_features,
     out_rules,
     output_dataset,
     report,
@@ -195,7 +195,7 @@ def onehot_encode_eval_fn(
     (output_dd, model_dd, dist_rules_obj) = v_preprocessing_transform(
         ctx,
         input_dataset,
-        input_dataset_encode_features,
+        input_dataset_features,
         onehot_fit_transform,
         output_dataset,
         out_rules,
