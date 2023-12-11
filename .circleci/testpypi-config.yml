@@ -21,7 +21,7 @@ parameters:
 jobs:
   linux_publish:
     docker:
-      - image: registry.hub.docker.com/secretflow/release-ci:0.7
+      - image: registry.hub.docker.com/secretflow/release-ci:latest
     resource_class: 2xlarge
     parameters:
       python_ver:

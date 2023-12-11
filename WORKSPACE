@@ -5,7 +5,8 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 git_repository(
     name = "yacl",
     commit = "6ba8bd5f02035176ec4daaca1c1269195a1b1b4e",
-    remote = "https://github.com/secretflow/yacl.git",
+    # OPENSOURCE-CLEANUP SUB git@gitlab.alipay-inc.com:secretflow/yacl.git https://github.com/secretflow/yacl.git
+    remote = "git@gitlab.alipay-inc.com:secretflow/yacl.git",
 )
 
 load("@yacl//bazel:repositories.bzl", "yacl_deps")

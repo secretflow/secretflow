@@ -29,8 +29,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Add secretflow tuner for automl and autoattack.
-- Add IO component including read, write and identity.
-- Change groupby component to by-query style.
 
 ## [1.3.0.dev231120] - 2023-11-20
 
