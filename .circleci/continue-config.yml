@@ -45,7 +45,7 @@ jobs:
       - run:
           name: "unit test"
           command: |
-            source ~/miniconda3/bin/activatepy3.8
+            source ~/miniconda3/bin/activate py3.8
             bazel build //secretflow_lib/binding/...
             cp bazel-bin/secretflow_lib/binding/_lib.so secretflow/security/privacy/
             pytest --testmon --env prod -n auto --junitxml=results.xml -v --capture=no --cov=secretflow/ --cov-report=xml:coverage.xml tests/
