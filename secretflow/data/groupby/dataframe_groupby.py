@@ -13,29 +13,24 @@
 # limitations under the License.
 from typing import List, Union
 
-import numpy as np
 import jax.numpy as jnp
-import pandas as pd
 
-from secretflow.device import (
-    PYU,
-    reveal,
-    SPU,
-    SPUObject,
-    SPUCompilerNumReturnsPolicy,
-)
+import numpy as np
+import pandas as pd
 from spu.ops.groupby import (
     groupby,
-    groupby_sum_via_shuffle,
     groupby_agg_postprocess,
-    groupby_max_via_shuffle,
-    groupby_min_via_shuffle,
-    groupby_mean_via_shuffle,
     groupby_count_cleartext,
+    groupby_max_via_shuffle,
+    groupby_mean_via_shuffle,
+    groupby_min_via_shuffle,
+    groupby_sum_via_shuffle,
     groupby_var_via_shuffle,
     shuffle_cols,
     view_key_postprocessing,
 )
+
+from secretflow.device import PYU, reveal, SPU, SPUCompilerNumReturnsPolicy, SPUObject
 
 
 def get_agg_fun(agg):
@@ -161,12 +156,23 @@ class DataFrameGroupBy:
         keys = view_key_postprocessing(keys, self.num_groups)
         return matrix_to_cols(keys)
 
-    def _agg(self, fn_name: str) -> Union[pd.DataFrame, pd.Series]:
+    def _agg(
+        self, fn_name: str, target_col_names: List[str] = None
+    ) -> Union[pd.DataFrame, pd.Series]:
         """Apply aggregation function to the groupby segregation intermediate results.
         Note that the current implementation will directly return the aggregation result.
-
         """
-        cols = self.target_columns_sorted
+        col_names = (
+            self.target_columns_names if target_col_names is None else target_col_names
+        )
+        for col_name in col_names:
+            assert (
+                col_name in self.target_columns_names
+            ), f"{col_name} not in {self.target_columns_names}"
+        cols = [
+            self.target_columns_sorted[self.target_columns_names.index(col_name)]
+            for col_name in col_names
+        ]
         secret_order = self.gen_secret_random_order()
 
         segment_end_marks = self.seg_end_marks
@@ -191,14 +197,19 @@ class DataFrameGroupBy:
     # NOTE: this is infact not ok. Since SPU cannot differentiate NA from 0.
     # The result is that all columns have the group sample number as counts
     # DOES NOT TRULY SUPPORT THIS CASE FOR NOW.
-    def count(self) -> Union[pd.Series, pd.DataFrame]:
+    def count(
+        self, target_col_names: List[str] = None
+    ) -> Union[pd.Series, pd.DataFrame]:
         segment_ids = self.segment_ids
-        target_col_num = len(self.target_columns_names)
+        target_col_names = (
+            self.target_columns_names if target_col_names is None else target_col_names
+        )
+        target_col_num = len(target_col_names)
         if target_col_num == 1:
             return pd.Series(
                 data=groupby_count_cleartext(reveal(segment_ids)),
                 index=self._view_key(),
-                name=self.target_columns_names[0],
+                name=target_col_names[0],
             )
         else:
             reshaped_column = groupby_count_cleartext(reveal(segment_ids))[
@@ -206,23 +217,23 @@ class DataFrameGroupBy:
             ]
             vals = np.repeat(reshaped_column, target_col_num, axis=1)
             return pd.DataFrame(
-                data=vals, index=self._view_key(), columns=self.target_columns_names
+                data=vals, index=self._view_key(), columns=target_col_names
             )
 
-    def sum(self):
-        return self._agg('sum')
+    def sum(self, target_col_names: List[str] = None):
+        return self._agg('sum', target_col_names)
 
-    def mean(self):
-        return self._agg('mean')
+    def mean(self, target_col_names: List[str] = None):
+        return self._agg('mean', target_col_names)
 
-    def var(self):
-        return self._agg('var')
+    def var(self, target_col_names: List[str] = None):
+        return self._agg('var', target_col_names)
 
-    def max(self):
-        return self._agg('max')
+    def max(self, target_col_names: List[str] = None):
+        return self._agg('max', target_col_names)
 
-    def min(self):
-        return self._agg('min')
+    def min(self, target_col_names: List[str] = None):
+        return self._agg('min', target_col_names)
 
 
 def matrix_to_cols(matrix):

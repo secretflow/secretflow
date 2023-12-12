@@ -46,7 +46,7 @@ psi_comp.str_attr(
 )
 psi_comp.bool_attr(
     name="sort",
-    desc="Sort the output.",
+    desc="Sort the output. Warning: disable this feature may lead to errors in the following components. DO NOT CHOOSE FALSE if you want to append other components",
     is_list=False,
     is_optional=True,
     default_value=True,

@@ -118,3 +118,13 @@ def test_fit_transform_valid_df(prod_env_and_data):
     np.testing.assert_equal(type(result), VDataFrame)
     data_len = result.count().max()
     np.testing.assert_equal(data_len, 2)
+
+
+def test_fit_transform_valid_df_2(prod_env_and_data):
+    filter = ConditionFilter("b6", "==", "FLOAT", ["1"], 0.1)
+    env, data = prod_env_and_data
+    df = data['vdf']
+    result = filter.fit_transform(df)
+    np.testing.assert_equal(type(result), VDataFrame)
+    data_len = result.count().max()
+    np.testing.assert_equal(data_len, 1)

@@ -3,6 +3,8 @@ import os
 import pandas as pd
 
 from secretflow.component.data_utils import DistDataType, extract_distdata_info
+
+from secretflow.component.io.io import io_read_data
 from secretflow.component.preprocessing.vert_binning import vert_bin_substitution_comp
 from secretflow.component.preprocessing.vert_woe_binning import vert_woe_binning_comp
 from secretflow.spec.v1.component_pb2 import Attribute
@@ -18,6 +20,7 @@ def test_woe_binning(comp_prod_sf_cluster_config):
     bob_path = "test_woe_binning/x_bob.csv"
     rule_path = "test_woe_binning/bin_rule"
     output_path = "test_woe_binning/woe.csv"
+    read_data_path = "test_woe_binning/read_data"
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
@@ -171,3 +174,21 @@ def test_woe_binning(comp_prod_sf_cluster_config):
 
     # logging.warn(f"alice_out \n{alice_out}\n....\n")
     # logging.warn(f"bob_out \n{bob_out}\n....\n")
+
+    read_param = NodeEvalParam(
+        domain="io",
+        name="read_data",
+        version="0.0.1",
+        attr_paths=[],
+        attrs=[],
+        inputs=[bin_res.outputs[0]],
+        output_uris=[read_data_path],
+    )
+
+    read_res = io_read_data.eval(
+        param=read_param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
+
+    assert len(read_res.outputs) == 1

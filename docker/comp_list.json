@@ -245,6 +245,120 @@
       ]
     },
     {
+      "domain": "io",
+      "name": "identity",
+      "desc": "map any input to output",
+      "version": "0.0.1",
+      "inputs": [
+        {
+          "name": "input_data",
+          "desc": "Input dist data",
+          "types": [
+            "sf.model.ss_glm",
+            "sf.model.ss_glm",
+            "sf.model.sgb",
+            "sf.model.ss_xgb",
+            "sf.model.ss_sgd",
+            "sf.rule.binning",
+            "sf.rule.preprocessing",
+            "sf.read_data"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_data",
+          "desc": "Output dist data",
+          "types": [
+            "sf.model.ss_glm",
+            "sf.model.ss_glm",
+            "sf.model.sgb",
+            "sf.model.ss_xgb",
+            "sf.model.ss_sgd",
+            "sf.rule.binning",
+            "sf.rule.preprocessing",
+            "sf.read_data"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "io",
+      "name": "read_data",
+      "desc": "read model or rules from sf cluster",
+      "version": "0.0.1",
+      "inputs": [
+        {
+          "name": "input_dd",
+          "desc": "Input dist data",
+          "types": [
+            "sf.rule.binning",
+            "sf.model.ss_glm"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_data",
+          "desc": "Output rules or models in DistData.meta",
+          "types": [
+            "sf.read_data"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "io",
+      "name": "write_data",
+      "desc": "write model or rules back to sf cluster",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "write_data",
+          "desc": "rule or model protobuf by json formate",
+          "type": "AT_STRING",
+          "atomic": {}
+        },
+        {
+          "name": "write_data_type",
+          "desc": "which rule or model is writing",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "sf.rule.binning"
+            },
+            "allowedValues": {
+              "ss": [
+                "sf.rule.binning",
+                "sf.model.ss_glm"
+              ]
+            }
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "input_dd",
+          "desc": "Input dist data. Rule reconstructions may need hidden info in original rule for security considerations.",
+          "types": [
+            "sf.rule.binning",
+            "sf.model.ss_glm"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_model",
+          "desc": "Output rules or models in sf cluster format",
+          "types": [
+            "sf.rule.binning",
+            "sf.model.ss_glm"
+          ]
+        }
+      ]
+    },
+    {
       "domain": "ml.eval",
       "name": "biclassification_eval",
       "desc": "Statistics evaluation for a bi-classification model on a dataset.\n1. summary_report: SummaryReport\n2. group_reports: List[GroupReport]\n3. eq_frequent_bin_report: List[EqBinReport]\n4. eq_range_bin_report: List[EqBinReport]\n5. head_report: List[PrReport]\nreports for fpr = 0.001, 0.005, 0.01, 0.05, 0.1, 0.2",
@@ -538,7 +652,9 @@
           "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
-            "defaultValue": {}
+            "defaultValue": {
+              "b": true
+            }
           }
         }
       ],
@@ -597,7 +713,9 @@
           "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
-            "defaultValue": {}
+            "defaultValue": {
+              "b": true
+            }
           }
         },
         {
@@ -678,7 +796,9 @@
           "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
-            "defaultValue": {}
+            "defaultValue": {
+              "b": true
+            }
           }
         },
         {
@@ -746,7 +866,9 @@
           "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
-            "defaultValue": {}
+            "defaultValue": {
+              "b": true
+            }
           }
         },
         {
@@ -1894,7 +2016,7 @@
           "name": "out_rules",
           "desc": "feature gen rule",
           "types": [
-            "sf.rule.proprocessing"
+            "sf.rule.preprocessing"
           ]
         }
       ]
@@ -1933,7 +2055,7 @@
           "name": "out_rules",
           "desc": "case when substitution rule",
           "types": [
-            "sf.rule.proprocessing"
+            "sf.rule.preprocessing"
           ]
         }
       ]
@@ -1963,13 +2085,13 @@
         },
         {
           "name": "value_type",
-          "desc": "Type of the value to compare with. Must be one of 'FLOAT', 'STR'",
+          "desc": "Type of the value to compare with. Must be one of ['STRING', 'FLOAT']",
           "type": "AT_STRING",
           "atomic": {
             "allowedValues": {
               "ss": [
-                "FLOAT",
-                "STR"
+                "STRING",
+                "FLOAT"
               ]
             }
           }
@@ -1982,7 +2104,7 @@
         },
         {
           "name": "float_epsilon",
-          "desc": "Epsilon value for floating point comparison.",
+          "desc": "Epsilon value for floating point comparison. WARNING: due to floating point representation in computers, set this number slightly larger if you want filter out the values exactly at desired boundary. for example, abs(1.001 - 1.002) is slightly larger than 0.001, and therefore may not be filter out using == and epsilson = 0.001",
           "type": "AT_FLOAT",
           "atomic": {
             "lowerBoundEnabled": true,
@@ -2165,7 +2287,7 @@
           "name": "out_rules",
           "desc": "fill value rule",
           "types": [
-            "sf.rule.proprocessing"
+            "sf.rule.preprocessing"
           ]
         }
       ]
@@ -2222,7 +2344,7 @@
           ],
           "attrs": [
             {
-              "name": "encode_features",
+              "name": "features",
               "desc": "Features to encode."
             }
           ]
@@ -2240,7 +2362,7 @@
           "name": "out_rules",
           "desc": "onehot rule",
           "types": [
-            "sf.rule.proprocessing"
+            "sf.rule.preprocessing"
           ]
         },
         {
@@ -2278,7 +2400,7 @@
         },
         {
           "name": "sort",
-          "desc": "Sort the output.",
+          "desc": "Sort the output. Warning: disable this feature may lead to errors in the following components. DO NOT CHOOSE FALSE if you want to append other components",
           "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
@@ -2377,7 +2499,7 @@
           "name": "input_rules",
           "desc": "Input preprocessing rules",
           "types": [
-            "sf.rule.proprocessing"
+            "sf.rule.preprocessing"
           ]
         }
       ],
@@ -2489,23 +2611,10 @@
       "version": "0.0.2",
       "attrs": [
         {
-          "name": "aggs",
-          "desc": "What kind of aggregation statistics we want to do? Currently only supports min, max, mean, sum, var, count(number of elements in each group). No repeatitions allowed",
-          "type": "AT_STRINGS",
-          "atomic": {
-            "listMinLengthInclusive": "1",
-            "listMaxLengthInclusive": "6",
-            "allowedValues": {
-              "ss": [
-                "min",
-                "max",
-                "mean",
-                "sum",
-                "var",
-                "count"
-              ]
-            }
-          }
+          "name": "aggregation_config",
+          "desc": "input groupby aggregation config",
+          "type": "AT_CUSTOM_PROTOBUF",
+          "customProtobufCls": "groupby_aggregation_config_pb2.GroupbyAggregationConfig"
         },
         {
           "name": "max_group_size",
@@ -2539,11 +2648,6 @@
               "desc": "by what columns should we group the values",
               "colMinCntInclusive": "1",
               "colMaxCntInclusive": "4"
-            },
-            {
-              "name": "values",
-              "desc": "on which columns should we calculate the statistics, only numerical columns are allowed.",
-              "colMinCntInclusive": "1"
             }
           ]
         }

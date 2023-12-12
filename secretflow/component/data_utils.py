@@ -11,22 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import enum
 import json
+import logging
 import os
+import uuid
 from dataclasses import dataclass
 from typing import Any, Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
-import logging
 
 from secretflow.data.vertical import read_csv
 from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.device.device.pyu import PYU, PYUObject
 from secretflow.device.device.spu import SPU, SPUObject
-from secretflow.device.driver import DeviceObject, wait
+from secretflow.device.driver import DeviceObject, reveal, wait
 from secretflow.spec.extend.data_pb2 import DeviceObjectCollection
 from secretflow.spec.v1.component_pb2 import IoDef
 from secretflow.spec.v1.data_pb2 import (
@@ -60,16 +60,22 @@ class BaseEnum(enum.Enum, metaclass=MetaEnum):
 
 @enum.unique
 class DistDataType(BaseEnum):
+    # tables
     VERTICAL_TABLE = "sf.table.vertical_table"
     INDIVIDUAL_TABLE = "sf.table.individual"
+    # models
     SS_SGD_MODEL = "sf.model.ss_sgd"
     SS_GLM_MODEL = "sf.model.ss_glm"
     SGB_MODEL = "sf.model.sgb"
-    BIN_RUNNING_RULE = "sf.rule.binning"
     SS_XGB_MODEL = "sf.model.ss_xgb"
-    ONEHOT_RULE = "sf.rule.onehot_encode"
-    PREPROCESSING_RULE = "sf.rule.proprocessing"
+    # binning rule
+    BIN_RUNNING_RULE = "sf.rule.binning"
+    # others preprocessing rules
+    PREPROCESSING_RULE = "sf.rule.preprocessing"
+    # report
     REPORT = "sf.report"
+    # read data
+    READ_DATA = "sf.read_data"
 
 
 @enum.unique
@@ -594,11 +600,15 @@ def model_loads(
     objs = []
     for save_obj in model_meta.objs:
         if save_obj.type == "pyu":
-            assert pyus is not None
             assert len(save_obj.data_ref_idxs) == 1
             data_ref = dist_data.data_refs[save_obj.data_ref_idxs[0]]
             party = data_ref.party
-            assert party in pyus
+            if pyus is not None:
+                assert party in pyus
+                pyu = pyus[party]
+            else:
+                pyu = PYU(party)
+
             assert data_ref.format == "pickle"
 
             def loads(path: str) -> Any:
@@ -608,7 +618,7 @@ def model_loads(
                     # TODO: not secure, may change to json loads/dumps?
                     return pickle.loads(f.read())
 
-            objs.append(pyus[party](loads)(os.path.join(storage_root, data_ref.uri)))
+            objs.append(pyu(loads)(os.path.join(storage_root, data_ref.uri)))
         elif save_obj.type == "spu":
             # TODO: only support one spu for now
             assert spu is not None
@@ -675,3 +685,11 @@ def gen_prediction_csv_meta(
         ),
         line_count=line_count if line_count is not None else -1,
     )
+
+
+def any_pyu_from_spu_config(config: dict):
+    return PYU(config["nodes"][0]["party"])
+
+
+def generate_random_string(pyu: PYU):
+    return reveal(pyu(lambda: str(uuid.uuid4()))())

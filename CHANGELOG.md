@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
+## [1.3.0.dev231211] - 2023-12-11
+### Added
+- Add IO component including read, write and identity.
+- Change groupby component to by-query style.
 
 ## [1.3.0.dev231205] - 2023-12-05
 
@@ -20,7 +24,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fix pvalue & more readable assert msg.
-
 
 ## [1.3.0.dev231128] - 2023-11-28
 

@@ -17,8 +17,9 @@ from secretflow.component.data_utils import DistDataType, load_table
 from secretflow.device.driver import reveal
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData
-from secretflow.spec.v1.report_pb2 import Div, Report, Tab, Table
+from secretflow.spec.v1.report_pb2 import Descriptions, Div, Report, Tab, Table
 from secretflow.stats.regression_eval import RegressionEval
+
 
 regression_eval_comp = Component(
     name="regression_eval",
@@ -185,6 +186,24 @@ def get_histogram_div_from_gression_eval_report(
     )
 
 
+STATS_DESC = """
+    R2 Score (r2_score): It is a statistical measure that represents the proportion of the variance in the dependent variable that can be predicted from the independent variables. It ranges from 0 to 1, where a higher value indicates a better fit.
+
+    Mean Absolute Error (mean_abs_err): It calculates the average absolute difference between the predicted and actual values. It provides a measure of the average magnitude of the errors.
+
+    Mean Absolute Percentage Error (mean_abs_percent_err): It calculates the average absolute percentage difference between the predicted and actual values. It measures the average magnitude of the errors in terms of percentages.
+
+    Sum of Squared Errors (sum_squared_errors): It calculates the sum of the squared differences between the predicted and actual values. It provides an overall measure of the model's performance.
+
+    Mean Squared Error (mean_squared_errors): It calculates the average of the squared differences between the predicted and actual values. It is widely used as a loss function in regression problems.
+
+    Root Mean Squared Error (root_mean_squared_errors): It is the square root of the mean squared error. It provides a measure of the average magnitude of the errors in the original scale of the target variable.
+
+    Mean of True Values (y_true_mean): It calculates the average of the actual values in the target variable. It can be useful for establishing a baseline for the model's performance.
+
+    Mean of Predicted Values (y_pred_mean): It calculates the average of the predicted values. It can be compared with the y_true_mean to get an idea of the model's bias."""
+
+
 def get_attributes_div_from_regression_eval_report(
     regression_result: RegressionEval,
 ):
@@ -198,40 +217,25 @@ def get_attributes_div_from_regression_eval_report(
         "y_true_mean",
         "y_pred_mean",
     ], reveal(regression_result.result_as_list()[:-1])
-    headers = [
-        Table.HeaderItem(
-            name=header_name,
-            type="float",
+
+    items = []
+    for header_name, value in zip(header_names, values):
+        items.append(
+            Descriptions.Item(
+                name=f"{header_name}",
+                type="float",
+                value=Attribute(f=value),
+            )
         )
-        for header_name in header_names
-    ]
-    rows = [Table.Row(name="calculated_results", items=list_to_attr_list(values))]
+    desc = Descriptions(name="calculated_results", desc=f"{STATS_DESC}", items=items)
+
     return Div(
         name="metrics",
         desc="statistical metrics",
         children=[
             Div.Child(
-                type="table",
-                table=Table(
-                    name="evaluation statistics",
-                    desc="""R2 Score (r2_score): It is a statistical measure that represents the proportion of the variance in the dependent variable that can be predicted from the independent variables. It ranges from 0 to 1, where a higher value indicates a better fit.
-
-            Mean Absolute Error (mean_abs_err): It calculates the average absolute difference between the predicted and actual values. It provides a measure of the average magnitude of the errors.
-
-            Mean Absolute Percentage Error (mean_abs_percent_err): It calculates the average absolute percentage difference between the predicted and actual values. It measures the average magnitude of the errors in terms of percentages.
-
-            Sum of Squared Errors (sum_squared_errors): It calculates the sum of the squared differences between the predicted and actual values. It provides an overall measure of the model's performance.
-
-            Mean Squared Error (mean_squared_errors): It calculates the average of the squared differences between the predicted and actual values. It is widely used as a loss function in regression problems.
-
-            Root Mean Squared Error (root_mean_squared_errors): It is the square root of the mean squared error. It provides a measure of the average magnitude of the errors in the original scale of the target variable.
-
-            Mean of True Values (y_true_mean): It calculates the average of the actual values in the target variable. It can be useful for establishing a baseline for the model's performance.
-
-            Mean of Predicted Values (y_pred_mean): It calculates the average of the predicted values. It can be compared with the y_true_mean to get an idea of the model's bias.""",
-                    headers=headers,
-                    rows=rows,
-                ),
+                type="descriptions",
+                descriptions=desc,
             ),
         ],
     )

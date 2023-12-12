@@ -15,6 +15,7 @@ from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
+
 from tests.conftest import TEST_STORAGE_ROOT
 
 
@@ -76,7 +77,7 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
         attr_paths=[
             "drop_first",
             "min_frequency",
-            "input/input_dataset/encode_features",
+            "input/input_dataset/features",
         ],
         attrs=[
             Attribute(b=True),

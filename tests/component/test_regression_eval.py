@@ -82,6 +82,6 @@ def test_regression_eval(comp_prod_sf_cluster_config):
 
     np.testing.assert_almost_equal(
         r2_score(labels.reshape(-1, 1), predictions.reshape(-1, 1)),
-        comp_ret.tabs[0].divs[0].children[0].table.rows[0].items[0].f,
+        comp_ret.tabs[0].divs[0].children[0].descriptions.items[0].value.f,
         decimal=5,
     )

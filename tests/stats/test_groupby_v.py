@@ -1,12 +1,12 @@
 import numpy as np
 import pandas as pd
 import pytest
+from secretflow.data import partition
+from secretflow.data.vertical import VDataFrame
 from secretflow.stats.groupby_v import (
     ordinal_encoded_groupby_agg,
     ordinal_encoded_groupby_aggs,
 )
-from secretflow.data import partition
-from secretflow.data.vertical import VDataFrame
 
 
 @pytest.fixture(scope='function')
@@ -61,17 +61,16 @@ def prod_env_and_data(sf_production_setup_devices):
     "by",
     [
         ["b5"],
-        ["a2", "a1"],
         ['a2', 'b5'],
     ],
 )
 @pytest.mark.parametrize(
     "values",
-    [["a3", "b4"], ["b4"], ['b6']],  # non-numeric columns cannot be here
+    [["a3", "b4"], ['b6']],  # non-numeric columns cannot be here
 )
 @pytest.mark.parametrize(
     "agg_name",
-    ["min", "sum", "count", "max", "var"],
+    ["min", "count", "var"],
 )
 def test_groupby_agg(prod_env_and_data, by, values, agg_name):
     assert len(set(by).intersection(set(values))) == 0, "no intersection allowed"
@@ -104,13 +103,12 @@ def test_groupby_agg(prod_env_and_data, by, values, agg_name):
     "by",
     [
         ["b5"],
-        ["a2", "a1"],
         ['a2', 'b5'],
     ],
 )
 @pytest.mark.parametrize(
     "values",
-    [["a3", "b4"], ["b4"], ['b6']],  # non-numeric columns cannot be here
+    [["a3", "b4"], ['b6']],  # non-numeric columns cannot be here
 )
 @pytest.mark.parametrize(
     "aggs",

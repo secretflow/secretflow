@@ -159,6 +159,7 @@ def read_csv(
 
     unique_cols = set()
 
+    # data columns must be unique across all devices
     if len(partitions):
         parties_length = {}
         for device, part in partitions.items():
@@ -167,7 +168,6 @@ def read_csv(
             len(set(parties_length.values())) == 1
         ), f"number of samples must be equal across all devices, got {parties_length}, input uri {filepath_actual}"
 
-    # data columns must be unique across all devices
     for device, part in partitions.items():
         for col in part.columns:
             assert col not in unique_cols, f"col {col} duplicate in multiple devices"

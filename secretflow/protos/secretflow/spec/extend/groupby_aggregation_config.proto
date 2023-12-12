@@ -18,21 +18,20 @@ package secretflow.spec.extend;
 
 option java_package = "org.secretflow.spec.extend";
 
-message WoeBins {
-  message VariableBins {
-    message Bin {
-      string label = 1;
-      float woe = 2;
-      float iv = 3;
-      uint64 total_count = 4;
-      uint64 negative_count = 5;
-    }
-
-    string feature_name = 1;
-    int32 bin_count = 2;
-    float iv = 3;
-    repeated Bin bins = 4;
-    string party_name = 5;
+message ColumnQuery {
+  enum AggregationFunction {
+    INVAL = 0;
+    SUM = 1;
+    MEAN = 2;
+    VAR = 3;
+    MIN = 4;
+    MAX = 5;
+    COUNT = 6;
   }
-  repeated VariableBins variable_ivs = 1;
+  AggregationFunction function = 1;
+  string column_name = 2;
+}
+
+message GroupbyAggregationConfig {
+  repeated ColumnQuery column_queries = 1;
 }

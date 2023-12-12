@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from secretflow.component.io.identity import identity
+from secretflow.component.io.io import io_read_data, io_write_data
 from secretflow.component.ml.boost.sgb.sgb import sgb_predict_comp, sgb_train_comp
 from secretflow.component.ml.boost.ss_xgb.ss_xgb import (
     ss_xgb_predict_comp,
@@ -77,6 +79,9 @@ ALL_COMPONENTS = [
     substitution,
     case_when,
     fillna,
+    io_read_data,
+    io_write_data,
+    identity,
 ]
 COMP_LIST_NAME = "secretflow"
 COMP_LIST_DESC = "First-party SecretFlow components."
@@ -109,7 +114,7 @@ COMP_LIST, COMP_MAP = generate_comp_list()
 
 def get_comp_def(domain: str, name: str, version: str) -> ComponentDef:
     key = gen_key(domain, name, version)
-    assert key in COMP_MAP
+    assert key in COMP_MAP, f"key {key} is not in compute map {COMP_MAP}"
     return COMP_MAP[key].definition()
 
 

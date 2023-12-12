@@ -4,10 +4,6 @@ import os
 import numpy as np
 import pandas as pd
 from google.protobuf.json_format import MessageToJson
-from sklearn.datasets import load_breast_cancer
-from sklearn.metrics import r2_score
-from sklearn.preprocessing import StandardScaler
-from tests.conftest import TEST_STORAGE_ROOT
 
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.ml.eval.regression_eval import regression_eval_comp
@@ -21,6 +17,11 @@ from secretflow.spec.v1.data_pb2 import (
 )
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
+from sklearn.datasets import load_breast_cancer
+from sklearn.metrics import r2_score
+from sklearn.preprocessing import StandardScaler
+
+from tests.conftest import TEST_STORAGE_ROOT
 
 
 def get_train_param(alice_path, bob_path, model_path):
@@ -227,6 +228,6 @@ def test_ss_sgd(comp_prod_sf_cluster_config):
     r2_score_ = r2_score(input_y["y"], output_y["pred"])
     np.testing.assert_almost_equal(
         r2_score_,
-        comp_ret.tabs[0].divs[0].children[0].table.rows[0].items[0].f,
+        comp_ret.tabs[0].divs[0].children[0].descriptions.items[0].value.f,
         decimal=5,
     )

@@ -15,12 +15,13 @@
 from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import (
     DistDataType,
-    VerticalTableWrapper,
     dump_vertical_table,
+    generate_random_string,
     load_table,
     model_dumps,
     model_loads,
     move_feature_to_label,
+    VerticalTableWrapper,
 )
 from secretflow.device.device.pyu import PYUObject
 from secretflow.preprocessing.binning.vert_bin_substitution import VertBinSubstitution
@@ -73,8 +74,8 @@ vert_binning_comp.io(
 )
 
 # current version 0.1
-MODEL_MAX_MAJOR_VERSION = 0
-MODEL_MAX_MINOR_VERSION = 1
+BINNING_RULE_MAX_MAJOR_VERSION = 0
+BINNING_RULE_MAX_MINOR_VERSION = 1
 
 
 @vert_binning_comp.eval_fn
@@ -106,11 +107,12 @@ def vert_binning_eval_fn(
         model_dist_data = model_dumps(
             "bin_rule",
             DistDataType.BIN_RUNNING_RULE,
-            MODEL_MAX_MAJOR_VERSION,
-            MODEL_MAX_MINOR_VERSION,
+            BINNING_RULE_MAX_MAJOR_VERSION,
+            BINNING_RULE_MAX_MINOR_VERSION,
             [o for o in rules.values()],
             {
                 "input_data_feature_selects": input_data_feature_selects,
+                "model_hash": generate_random_string(next(iter(rules.keys()))),
             },
             ctx.local_fs_wd,
             bin_rule,
@@ -166,8 +168,8 @@ def vert_bin_substitution_eval_fn(
 
     model_objs, public_info = model_loads(
         bin_rule,
-        MODEL_MAX_MAJOR_VERSION,
-        MODEL_MAX_MINOR_VERSION,
+        BINNING_RULE_MAX_MAJOR_VERSION,
+        BINNING_RULE_MAX_MINOR_VERSION,
         DistDataType.BIN_RUNNING_RULE,
         ctx.local_fs_wd,
         pyus=pyus,

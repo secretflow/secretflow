@@ -462,7 +462,7 @@ sgb_predict_comp.bool_attr(
     ),
     is_list=False,
     is_optional=True,
-    default_value=False,
+    default_value=True,
 )
 sgb_predict_comp.io(
     io_type=IoType.INPUT, name="model", desc="model", types=["sf.model.sgb"]
