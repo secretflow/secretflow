@@ -13,7 +13,7 @@ The cross-domain recommendation model cooperates user data from different domain
 
 - Effectiveness: Can complex models like DeepFM be directly applied in the Split Learning framework?
 - Efficiency: Will the communication during the forward and backward computation of each batch severely reduce training efficiency?
-- Security: Can the intermediate communication data cause information leakage and security issues?
+- Security: Can the intermediate communication data cause information leakage and security issues? 
 
 .. image:: split_learning_eng.png
 
@@ -33,7 +33,7 @@ SplitRec provides encapsulations for Split DeepFM, BST, MMoe, and other models.
       :link: effectiveness/sl_rec_deepfm
       :link-type: doc
 
-        SplitRec provides split version of DeepFM model, which combines the power of factorization machines and deep learning for recommandation.
+        SplitRec provides split version of DeepFM model, which combines the power of factorization machines and deep learning for recommandation. 
 
     .. grid-item-card:: BST (Tensorflow)
       :link: effectiveness/BST_TF
@@ -51,7 +51,7 @@ SplitRec provides encapsulations for Split DeepFM, BST, MMoe, and other models.
       :link: effectiveness/mmoe_tf
       :link-type: doc
 
-        SplitRec provides split version of Multi-gate Mixture-of-Experts model, which is a typical multi-task model for recommandation.
+        SplitRec provides split version of Multi-gate Mixture-of-Experts model, which is a typical multi-task model for recommandation. 
 
 
 Efficiency

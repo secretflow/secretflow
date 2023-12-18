@@ -40,6 +40,10 @@ if __name__ == "__main__":
     ds_split = TestComp("ds_split", "preprocessing", "train_test_split", "0.0.1", attrs)
     aci_pipe.add_comp(ds_split, ["ff.0"])
 
+    feature_selects = [f"alice{c}" for c in range(15)] + [f"bob{c}" for c in range(15)]
+    feature_selects.remove("alice1")
+    feature_selects.remove("bob9")
+
     attrs = {
         "epochs": 2,
         "learning_rate": 0.1,
@@ -47,6 +51,7 @@ if __name__ == "__main__":
         "sig_type": "t1",
         "reg_type": "logistic",
         "input/train_dataset/label": ["y"],
+        "input/train_dataset/feature_selects": feature_selects,
     }
     # 测试ss_sgd_train
     sslr = TestComp("sslr_train", "ml.train", "ss_sgd_train", "0.0.1", attrs)

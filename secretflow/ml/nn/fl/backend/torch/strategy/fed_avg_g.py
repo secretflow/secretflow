@@ -15,7 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import copy
 from typing import Tuple
 
@@ -50,6 +49,9 @@ class FedAvgG(BaseTorchModel):
             Parameters after local training
         """
         assert self.model is not None, "Model cannot be none, please give model define"
+        refresh_data = kwargs.get("refresh_data", False)
+        if refresh_data:
+            self._reset_data_iter()
         dp_strategy = kwargs.get('dp_strategy', None)
 
         if gradients is not None:
@@ -64,22 +66,9 @@ class FedAvgG(BaseTorchModel):
 
         for _ in range(train_steps):
             self.optimizer.zero_grad()
-            iter_data = next(self.train_iter)
-            if len(iter_data) == 2:
-                x, y = iter_data
-                s_w = None
-            elif len(iter_data) == 3:
-                x, y, s_w = iter_data
 
+            x, y, s_w = self.next_batch()
             num_sample += x.shape[0]
-            y_t = y.argmax(dim=-1)
-
-            if self.use_gpu:
-                x = x.to(self.exe_device)
-                y_t = y_t.to(self.exe_device)
-                if s_w is not None:
-                    s_w = s_w.to(self.exe_device)
-
             y_pred = self.model(x)
 
             # do back propagation
@@ -93,18 +82,31 @@ class FedAvgG(BaseTorchModel):
                 local_gradients_sum += local_gradients
 
             for m in self.metrics:
-                m.update(y_pred.cpu(), y_t.cpu())
+                m.update(y_pred.cpu(), y.cpu())
         loss = loss.item()
         logs['train-loss'] = loss
         self.logs = self.transform_metrics(logs)
+        self.wrapped_metrics.extend(self.wrap_local_metrics())
         self.epoch_logs = copy.deepcopy(self.logs)
 
         # DP operation
         if dp_strategy is not None:
             if dp_strategy.model_gdp is not None:
                 local_gradients_sum = dp_strategy.model_gdp(local_gradients_sum)
-
+        # print(local_gradients_sum)
         return local_gradients_sum, num_sample
+
+    def apply_weights(self, gradients, **kwargs):
+        """Accept ps model gradients, then apply to model
+
+        Args:
+            gradients: global gradients from params server
+        """
+        if gradients is not None:
+            parameters = self.model.parameters()
+            # print(f'apply weights: {gradients}')
+            self.model.set_gradients(gradients, parameters)
+            self.optimizer.step()
 
 
 @register_strategy(strategy_name='fed_avg_g', backend='torch')

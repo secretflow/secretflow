@@ -53,6 +53,9 @@ class DistributionBernoulli(Distribution):
     def deviance(
         self, preds: np.ndarray, labels: np.ndarray, weights: np.ndarray = None
     ) -> np.ndarray:
+        assert (
+            preds.shape == labels.shape
+        ), f"the shape of predictions {preds.shape} should be the same as the shape of labels {labels.shape}"
         unit_deviance = labels * jnp.log(preds) + (1 - labels) * jnp.log(1 - preds)
         if weights is not None:
             return -2 / self._scale * jnp.sum(weights * unit_deviance)
@@ -70,6 +73,9 @@ class DistributionPoisson(Distribution):
     def deviance(
         self, preds: np.ndarray, labels: np.ndarray, weights: np.ndarray = None
     ) -> np.ndarray:
+        assert (
+            preds.shape == labels.shape
+        ), f"the shape of predictions {preds.shape} should be the same as the shape of labels {labels.shape}"
         unit_deviance = labels * jnp.log(_clean(labels / preds)) - (labels - preds)
         if weights is not None:
             return 2 / self._scale * jnp.sum(weights * unit_deviance)
@@ -87,6 +93,9 @@ class DistributionGamma(Distribution):
     def deviance(
         self, preds: np.ndarray, labels: np.ndarray, weights: np.ndarray = None
     ) -> np.ndarray:
+        assert (
+            preds.shape == labels.shape
+        ), f"the shape of predictions {preds.shape} should be the same as the shape of labels {labels.shape}"
         unit_deviance = -jnp.log(_clean(labels / preds)) + (labels - preds) / preds
         if weights is not None:
             return 2 / self._scale * jnp.sum(weights * unit_deviance)
@@ -111,6 +120,9 @@ class DistributionTweedie(Distribution):
     def deviance(
         self, preds: np.ndarray, labels: np.ndarray, weights: np.ndarray = None
     ) -> np.ndarray:
+        assert (
+            preds.shape == labels.shape
+        ), f"the shape of predictions {preds.shape} should be the same as the shape of labels {labels.shape}"
         if self._power == 0:
             dev = jnp.square(preds - labels)
             if weights is not None:

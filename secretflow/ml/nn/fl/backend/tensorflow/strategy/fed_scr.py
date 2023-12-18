@@ -75,7 +75,6 @@ class FedSCR(BaseTFModel):
             server_weight = _add(current_weight, updates)
             self.model.set_weights(server_weight)
         num_sample = 0
-        self.callbacks.on_train_batch_begin(cur_steps)
         logs = {}
         self.model_weights = self.model.get_weights()
         for _ in range(train_steps):
@@ -106,7 +105,7 @@ class FedSCR(BaseTFModel):
             self.model.compiled_metrics.update_state(y, y_pred)
         for m in self.model.metrics:
             logs[m.name] = m.result().numpy()
-        self.callbacks.on_train_batch_end(cur_steps + train_steps, logs)
+        self.wrapped_metrics.extend(self.wrap_local_metrics())
         self.logs = logs
         self.epoch_logs = copy.deepcopy(self.logs)
         if self._res:
@@ -142,6 +141,22 @@ class FedSCR(BaseTFModel):
             data=sparse_client_updates, encode_method='coo'
         )
         return sparse_client_updates, num_sample
+
+    def apply_weights(self, updates, **kwargs):
+        """Accept ps model params,then apply to local model
+
+        Args:
+            updates: global updates from params server
+        """
+
+        def _add(matrices_a: List, matrices_b: List):
+            results = [np.add(a, b) for a, b in zip(matrices_a, matrices_b)]
+            return results
+
+        if updates is not None:
+            current_weight = self.model.get_weights()
+            server_weight = _add(current_weight, updates)
+            self.model.set_weights(server_weight)
 
 
 @register_strategy(strategy_name='fed_scr', backend='tensorflow')

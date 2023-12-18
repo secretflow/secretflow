@@ -26,3 +26,4 @@ msgid ""
 "parallelism to improve training efficiency. The specific user manuals are"
 " as follows:"
 msgstr "我们提供了量化压缩、流水并行等策略来提升训练效率，具体使用手册如下"
+

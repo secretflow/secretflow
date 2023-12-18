@@ -73,7 +73,6 @@ class FedSTC(BaseTFModel):
             weights = [np.add(w, u) for w, u in zip(self.model_weights, updates)]
             self.model.set_weights(weights)
         num_sample = 0
-        self.callbacks.on_train_batch_begin(cur_steps)
         logs = {}
         self.model_weights = self.model.get_weights()
         for _ in range(train_steps):
@@ -104,7 +103,7 @@ class FedSTC(BaseTFModel):
             self.model.compiled_metrics.update_state(y, y_pred)
         for m in self.model.metrics:
             logs[m.name] = m.result().numpy()
-        self.callbacks.on_train_batch_end(cur_steps + train_steps, logs)
+        self.wrapped_metrics.extend(self.wrap_local_metrics())
         self.logs = logs
         self.epoch_logs = copy.deepcopy(self.logs)
         if self._res:
@@ -140,6 +139,18 @@ class FedSTC(BaseTFModel):
             data=sparse_client_updates, encode_method='coo'
         )
         return sparse_client_updates, num_sample
+
+    def apply_weights(self, updates, **kwargs):
+        """Accept ps model params,then do local train
+
+        Args:
+            updates: global updates from params server
+        """
+        if updates is not None:
+            # Sparse matrix decoded in the downstream
+            updates = sparse_decode(data=updates)
+            weights = [np.add(w, u) for w, u in zip(self.model_weights, updates)]
+            self.model.set_weights(weights)
 
 
 @register_strategy(strategy_name='fed_stc', backend='tensorflow')

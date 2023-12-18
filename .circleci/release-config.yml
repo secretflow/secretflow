@@ -20,7 +20,7 @@ parameters:
 jobs:
   linux_publish:
     docker:
-      - image: registry.hub.docker.com/secretflow/release-ci:0.7
+      - image: registry.hub.docker.com/secretflow/release-ci:latest
     resource_class: 2xlarge
     parameters:
       python_ver:
@@ -55,8 +55,7 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            brew install bazel cmake ninja nasm libomp wget
-            (cd "/usr/local/Cellar/bazel/5.3.2/libexec/bin" && curl -fLO https://releases.bazel.build/5.4.1/release/bazel-5.4.1-darwin-x86_64 && chmod +x bazel-5.4.1-darwin-x86_64)
+            brew install bazelisk cmake ninja nasm libomp wget
       - run:
           name: Install Miniconda
           command: |

@@ -41,3 +41,9 @@ def ray_version_less_than_2_0_0():
     import ray
 
     return _compare_version_strings(_RAY_VERSION_2_0_0_STR, ray.__version__)
+
+
+def ray_version_less_than(version: str):
+    import ray
+
+    return _compare_version_strings(version, ray.__version__)

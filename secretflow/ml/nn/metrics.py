@@ -16,7 +16,7 @@
 """keras global evaluation metrics
 
 """
-import logging
+import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List
@@ -56,8 +56,8 @@ class Default(Metric):
         return Default(self.name, self.total, self.count)
 
     def result(self):
-        logging.warning(
-            "Please pay attention to local metrics, global only do naive aggregation "
+        warnings.warn(
+            "Please pay attention to local metrics, global only do naive aggregation."
         )
         import tensorflow as tf
 

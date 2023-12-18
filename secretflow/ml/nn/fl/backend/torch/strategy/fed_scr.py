@@ -15,15 +15,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import copy
 from typing import Callable, Tuple
 
 import numpy as np
 
 from secretflow.ml.nn.fl.backend.torch.fl_base import BaseTorchModel
-from secretflow.ml.nn.utils import TorchModel
 from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
+from secretflow.ml.nn.utils import TorchModel
 from secretflow.utils.compressor import SCRSparse, sparse_encode
 
 
@@ -58,6 +57,9 @@ class FedSCR(BaseTorchModel):
             Parameters after local training
         """
         assert self.model is not None, "Model cannot be none, please give model define"
+        refresh_data = kwargs.get("refresh_data", False)
+        if refresh_data:
+            self._reset_data_iter()
         dp_strategy = kwargs.get('dp_strategy', None)
         # prepare for the SCR compression
         threshold = kwargs.get('threshold', 0.0)
@@ -73,22 +75,9 @@ class FedSCR(BaseTorchModel):
 
         for _ in range(train_steps):
             self.optimizer.zero_grad()
-            iter_data = next(self.train_iter)
-            if len(iter_data) == 2:
-                x, y = iter_data
-                s_w = None
-            elif len(iter_data) == 3:
-                x, y, s_w = iter_data
 
+            x, y, s_w = self.next_batch()
             num_sample += x.shape[0]
-            y_t = y.argmax(dim=-1)
-
-            if self.use_gpu:
-                x = x.to(self.exe_device)
-                y_t = y_t.to(self.exe_device)
-                if s_w is not None:
-                    s_w = s_w.to(self.exe_device)
-
             y_pred = self.model(x)
 
             # do back propagation
@@ -96,10 +85,11 @@ class FedSCR(BaseTorchModel):
             loss.backward()
             self.optimizer.step()
             for m in self.metrics:
-                m.update(y_pred.cpu(), y_t.cpu())
+                m.update(y_pred.cpu(), y.cpu())
         loss = loss.item()
         logs['train-loss'] = loss
         self.logs = self.transform_metrics(logs)
+        self.wrapped_metrics.extend(self.wrap_local_metrics())
         self.epoch_logs = copy.deepcopy(self.logs)
 
         # do SCR compression
@@ -142,6 +132,16 @@ class FedSCR(BaseTorchModel):
             data=sparse_client_updates, encode_method='coo'
         )
         return sparse_client_updates, num_sample
+
+    def apply_weights(self, updates, **kwargs):
+        """Accept ps model params,then update local model
+
+        Args:
+            updates: global updates from params server
+        """
+        if updates is not None:
+            weights = [np.add(w, u) for w, u in zip(self.model_weights, updates)]
+            self.model.update_weights(weights)
 
 
 @register_strategy(strategy_name='fed_scr', backend='torch')

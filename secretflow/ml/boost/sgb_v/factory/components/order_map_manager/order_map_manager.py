@@ -143,16 +143,14 @@ class OrderMapManager(Component):
     def batch_compute_left_child_selects_each_party(
         self,
         split_feature_buckets_each_party: List[PYUObject],
-        sampled_indices: Union[PYUObject, List[int], None] = None,
+        sampled_indices: Union[List[int], None] = None,
     ) -> List[PYUObject]:
         return [
             actor.invoke_class_method(
                 'OrderMapActor',
                 'batch_compute_left_child_selects',
                 queries,
-                sampled_indices.to(actor.device)
-                if isinstance(sampled_indices, PYUObject)
-                else sampled_indices,
+                sampled_indices,
             )
             for actor, queries in zip(
                 self.order_map_actors, split_feature_buckets_each_party

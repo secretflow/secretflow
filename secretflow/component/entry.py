@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from secretflow.component.io.identity import identity
+from secretflow.component.io.io import io_read_data, io_write_data
 from secretflow.component.ml.boost.sgb.sgb import sgb_predict_comp, sgb_train_comp
 from secretflow.component.ml.boost.ss_xgb.ss_xgb import (
     ss_xgb_predict_comp,
@@ -21,15 +23,18 @@ from secretflow.component.ml.eval.biclassification_eval import (
     biclassification_eval_comp,
 )
 from secretflow.component.ml.eval.prediction_bias_eval import prediction_bias_comp
+from secretflow.component.ml.eval.regression_eval import regression_eval_comp
 from secretflow.component.ml.eval.ss_pvalue import ss_pvalue_comp
 from secretflow.component.ml.linear.ss_glm import ss_glm_predict_comp, ss_glm_train_comp
 from secretflow.component.ml.linear.ss_sgd import ss_sgd_predict_comp, ss_sgd_train_comp
+from secretflow.component.preprocessing.binary_op import binary_op_comp
+from secretflow.component.preprocessing.case_when import case_when
+from secretflow.component.preprocessing.condition_filter import condition_filter_comp
 from secretflow.component.preprocessing.feature_filter import feature_filter_comp
-from secretflow.component.preprocessing.onehot_encode import (
-    onehot_encode,
-    onehot_substitution,
-)
+from secretflow.component.preprocessing.fillna import fillna
+from secretflow.component.preprocessing.onehot_encode import onehot_encode
 from secretflow.component.preprocessing.psi import psi_comp
+from secretflow.component.preprocessing.substitution import substitution
 from secretflow.component.preprocessing.train_test_split import train_test_split_comp
 from secretflow.component.preprocessing.vert_binning import (
     vert_bin_substitution_comp,
@@ -51,15 +56,18 @@ ALL_COMPONENTS = [
     ss_sgd_train_comp,
     ss_sgd_predict_comp,
     feature_filter_comp,
+    binary_op_comp,
     vert_binning_comp,
     vert_woe_binning_comp,
     vert_bin_substitution_comp,
+    condition_filter_comp,
     ss_vif_comp,
     ss_pearsonr_comp,
     ss_pvalue_comp,
     table_statistics_comp,
     groupby_statistics_comp,
     biclassification_eval_comp,
+    regression_eval_comp,
     prediction_bias_comp,
     sgb_predict_comp,
     sgb_train_comp,
@@ -68,7 +76,12 @@ ALL_COMPONENTS = [
     ss_glm_predict_comp,
     ss_glm_train_comp,
     onehot_encode,
-    onehot_substitution,
+    substitution,
+    case_when,
+    fillna,
+    io_read_data,
+    io_write_data,
+    identity,
 ]
 COMP_LIST_NAME = "secretflow"
 COMP_LIST_DESC = "First-party SecretFlow components."
@@ -101,7 +114,7 @@ COMP_LIST, COMP_MAP = generate_comp_list()
 
 def get_comp_def(domain: str, name: str, version: str) -> ComponentDef:
     key = gen_key(domain, name, version)
-    assert key in COMP_MAP
+    assert key in COMP_MAP, f"key {key} is not in compute map {COMP_MAP}"
     return COMP_MAP[key].definition()
 
 

@@ -69,15 +69,6 @@
             "lowerBoundEnabled": true,
             "lowerBound": {}
           }
-        },
-        {
-          "name": "select_all_features",
-          "desc": "Select all features for binning.",
-          "type": "AT_BOOL",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {}
-          }
         }
       ],
       "inputs": [
@@ -90,7 +81,8 @@
           "attrs": [
             {
               "name": "feature_selects",
-              "desc": "which features should be binned."
+              "desc": "which features should be binned.",
+              "colMinCntInclusive": "1"
             }
           ]
         }
@@ -218,15 +210,6 @@
             },
             "upperBoundInclusive": true
           }
-        },
-        {
-          "name": "select_all_features",
-          "desc": "Select all features for binning.",
-          "type": "AT_BOOL",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {}
-          }
         }
       ],
       "inputs": [
@@ -245,7 +228,8 @@
             {
               "name": "label",
               "desc": "Label of input data.",
-              "colMinCntInclusive": "1"
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
             }
           ]
         }
@@ -256,6 +240,120 @@
           "desc": "Output WOE rule.",
           "types": [
             "sf.rule.binning"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "io",
+      "name": "identity",
+      "desc": "map any input to output",
+      "version": "0.0.1",
+      "inputs": [
+        {
+          "name": "input_data",
+          "desc": "Input dist data",
+          "types": [
+            "sf.model.ss_glm",
+            "sf.model.ss_glm",
+            "sf.model.sgb",
+            "sf.model.ss_xgb",
+            "sf.model.ss_sgd",
+            "sf.rule.binning",
+            "sf.rule.preprocessing",
+            "sf.read_data"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_data",
+          "desc": "Output dist data",
+          "types": [
+            "sf.model.ss_glm",
+            "sf.model.ss_glm",
+            "sf.model.sgb",
+            "sf.model.ss_xgb",
+            "sf.model.ss_sgd",
+            "sf.rule.binning",
+            "sf.rule.preprocessing",
+            "sf.read_data"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "io",
+      "name": "read_data",
+      "desc": "read model or rules from sf cluster",
+      "version": "0.0.1",
+      "inputs": [
+        {
+          "name": "input_dd",
+          "desc": "Input dist data",
+          "types": [
+            "sf.rule.binning",
+            "sf.model.ss_glm"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_data",
+          "desc": "Output rules or models in DistData.meta",
+          "types": [
+            "sf.read_data"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "io",
+      "name": "write_data",
+      "desc": "write model or rules back to sf cluster",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "write_data",
+          "desc": "rule or model protobuf by json formate",
+          "type": "AT_STRING",
+          "atomic": {}
+        },
+        {
+          "name": "write_data_type",
+          "desc": "which rule or model is writing",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "sf.rule.binning"
+            },
+            "allowedValues": {
+              "ss": [
+                "sf.rule.binning",
+                "sf.model.ss_glm"
+              ]
+            }
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "input_dd",
+          "desc": "Input dist data. Rule reconstructions may need hidden info in original rule for security considerations.",
+          "types": [
+            "sf.rule.binning",
+            "sf.model.ss_glm"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_model",
+          "desc": "Output rules or models in sf cluster format",
+          "types": [
+            "sf.rule.binning",
+            "sf.model.ss_glm"
           ]
         }
       ]
@@ -301,31 +399,23 @@
       ],
       "inputs": [
         {
-          "name": "labels",
-          "desc": "Input table with labels",
+          "name": "in_ds",
+          "desc": "Input table with prediction and label, usually is a result from a prediction component.",
           "types": [
             "sf.table.vertical_table",
             "sf.table.individual"
           ],
           "attrs": [
             {
-              "name": "col",
-              "desc": "The column name to use in the dataset. If not provided, the label of dataset will be used by default.",
+              "name": "label",
+              "desc": "The label name to use in the dataset.",
+              "colMinCntInclusive": "1",
               "colMaxCntInclusive": "1"
-            }
-          ]
-        },
-        {
-          "name": "predictions",
-          "desc": "Input table with predictions",
-          "types": [
-            "sf.table.vertical_table",
-            "sf.table.individual"
-          ],
-          "attrs": [
+            },
             {
-              "name": "col",
-              "desc": "The column name to use in the dataset. If not provided, the label of dataset will be used by default.",
+              "name": "prediction",
+              "desc": "The prediction result cplumn name to use in the dataset.",
+              "colMinCntInclusive": "1",
               "colMaxCntInclusive": "1"
             }
           ]
@@ -399,31 +489,23 @@
       ],
       "inputs": [
         {
-          "name": "labels",
-          "desc": "Input table with labels.",
+          "name": "in_ds",
+          "desc": "Input table with prediction and label, usually is a result from a prediction component.",
           "types": [
             "sf.table.vertical_table",
             "sf.table.individual"
           ],
           "attrs": [
             {
-              "name": "col",
-              "desc": "The column name to use in the dataset. If not provided, the label of dataset will be used by default.",
+              "name": "label",
+              "desc": "The label name to use in the dataset.",
+              "colMinCntInclusive": "1",
               "colMaxCntInclusive": "1"
-            }
-          ]
-        },
-        {
-          "name": "predictions",
-          "desc": "Input table with predictions.",
-          "types": [
-            "sf.table.vertical_table",
-            "sf.table.individual"
-          ],
-          "attrs": [
+            },
             {
-              "name": "col",
-              "desc": "The column name to use in the dataset. If not provided, the label of dataset will be used by default.",
+              "name": "prediction",
+              "desc": "The prediction result cplumn name to use in the dataset.",
+              "colMinCntInclusive": "1",
               "colMaxCntInclusive": "1"
             }
           ]
@@ -432,6 +514,68 @@
       "outputs": [
         {
           "name": "result",
+          "desc": "Output report.",
+          "types": [
+            "sf.report"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "ml.eval",
+      "name": "regression_eval",
+      "desc": "Statistics evaluation for a regression model on a dataset.\nContained Statistics:\nR2 Score (r2_score): It is a statistical measure that represents the proportion of the variance in the dependent variable that can be predicted from the independent variables. It ranges from 0 to 1, where a higher value indicates a better fit.\nMean Absolute Error (mean_abs_err): It calculates the average absolute difference between the predicted and actual values. It provides a measure of the average magnitude of the errors.\nMean Absolute Percentage Error (mean_abs_percent_err): It calculates the average absolute percentage difference between the predicted and actual values. It measures the average magnitude of the errors in terms of percentages.\nSum of Squared Errors (sum_squared_errors): It calculates the sum of the squared differences between the predicted and actual values. It provides an overall measure of the model's performance.\nMean Squared Error (mean_squared_errors): It calculates the average of the squared differences between the predicted and actual values. It is widely used as a loss function in regression problems.\nRoot Mean Squared Error (root_mean_squared_errors): It is the square root of the mean squared error. It provides a measure of the average magnitude of the errors in the original scale of the target variable.\nMean of True Values (y_true_mean): It calculates the average of the actual values in the target variable. It can be useful for establishing a baseline for the model's performance.\nMean of Predicted Values (y_pred_mean): It calculates the average of the predicted values. It can be compared with the y_true_mean to get an idea of the model's bias.\nResidual Histograms (residual_hists): It represents the distribution of the differences between the predicted and actual values. It helps to understand the spread and pattern of the errors.",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "bucket_size",
+          "desc": "Number of buckets for residual histogram.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "10"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {
+              "i64": "1"
+            },
+            "lowerBoundInclusive": true,
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "i64": "10000"
+            },
+            "upperBoundInclusive": true
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "in_ds",
+          "desc": "Input table with prediction and label, usually is a result from a prediction component.",
+          "types": [
+            "sf.table.vertical_table",
+            "sf.table.individual"
+          ],
+          "attrs": [
+            {
+              "name": "label",
+              "desc": "The label name to use in the dataset.",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
+            },
+            {
+              "name": "prediction",
+              "desc": "The prediction result cplumn name to use in the dataset.",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "reports",
           "desc": "Output report.",
           "types": [
             "sf.report"
@@ -508,7 +652,9 @@
           "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
-            "defaultValue": {}
+            "defaultValue": {
+              "b": true
+            }
           }
         }
       ],
@@ -567,22 +713,15 @@
           "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
-            "defaultValue": {}
+            "defaultValue": {
+              "b": true
+            }
           }
         },
         {
           "name": "save_label",
           "desc": "Whether or not to save real label columns into output pred file. If true, input feature_dataset must contain label columns and receiver party must be label owner.",
           "type": "AT_BOOL",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {}
-          }
-        },
-        {
-          "name": "offset_col",
-          "desc": "Specify a column to use as the offset",
-          "type": "AT_STRING",
           "atomic": {
             "isOptional": true,
             "defaultValue": {}
@@ -657,7 +796,9 @@
           "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
-            "defaultValue": {}
+            "defaultValue": {
+              "b": true
+            }
           }
         },
         {
@@ -725,7 +866,9 @@
           "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
-            "defaultValue": {}
+            "defaultValue": {
+              "b": true
+            }
           }
         },
         {
@@ -1145,6 +1288,11 @@
           ],
           "attrs": [
             {
+              "name": "feature_selects",
+              "desc": "which features should be used for training.",
+              "colMinCntInclusive": "1"
+            },
+            {
               "name": "label",
               "desc": "Label of train dataset.",
               "colMinCntInclusive": "1",
@@ -1344,18 +1492,23 @@
           }
         },
         {
-          "name": "offset_col",
-          "desc": "Specify a column to use as the offset",
-          "type": "AT_STRING",
+          "name": "l2_lambda",
+          "desc": "L2 regularization term",
+          "type": "AT_FLOAT",
           "atomic": {
             "isOptional": true,
-            "defaultValue": {}
+            "defaultValue": {
+              "f": 0.1
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true
           }
         },
         {
-          "name": "weight_col",
-          "desc": "Specify a column to use for the observation weights",
-          "type": "AT_STRING",
+          "name": "report_weights",
+          "desc": "If this option is set to true, model will be revealed and model details are visible to all parties",
+          "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
             "defaultValue": {}
@@ -1371,6 +1524,21 @@
           ],
           "attrs": [
             {
+              "name": "feature_selects",
+              "desc": "which features should be used for training.",
+              "colMinCntInclusive": "1"
+            },
+            {
+              "name": "offset",
+              "desc": "Specify a column to use as the offset",
+              "colMaxCntInclusive": "1"
+            },
+            {
+              "name": "weight",
+              "desc": "Specify a column to use for the observation weights",
+              "colMaxCntInclusive": "1"
+            },
+            {
               "name": "label",
               "desc": "Label of train dataset.",
               "colMinCntInclusive": "1",
@@ -1385,6 +1553,13 @@
           "desc": "Output model.",
           "types": [
             "sf.model.ss_glm"
+          ]
+        },
+        {
+          "name": "report",
+          "desc": "If report_weights is true, report model details",
+          "types": [
+            "sf.report"
           ]
         }
       ]
@@ -1531,6 +1706,11 @@
             "sf.table.vertical_table"
           ],
           "attrs": [
+            {
+              "name": "feature_selects",
+              "desc": "which features should be used for training.",
+              "colMinCntInclusive": "1"
+            },
             {
               "name": "label",
               "desc": "Label of train dataset.",
@@ -1737,6 +1917,11 @@
           ],
           "attrs": [
             {
+              "name": "feature_selects",
+              "desc": "which features should be used for training.",
+              "colMinCntInclusive": "1"
+            },
+            {
               "name": "label",
               "desc": "Label of train dataset.",
               "colMinCntInclusive": "1",
@@ -1751,6 +1936,213 @@
           "desc": "Output model.",
           "types": [
             "sf.model.ss_xgb"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "preprocessing",
+      "name": "binary_op",
+      "desc": "Perform binary operation binary_op(f1, f2) and assign the result to f3, f3 can be new or old. Currently f1, f2 and f3 all belong to a single party.",
+      "version": "0.0.2",
+      "attrs": [
+        {
+          "name": "binary_op",
+          "desc": "What kind of binary operation we want to do, currently only supports +, -, *, /",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "+"
+            },
+            "allowedValues": {
+              "ss": [
+                "+",
+                "-",
+                "*",
+                "/"
+              ]
+            }
+          }
+        },
+        {
+          "name": "new_feature_name",
+          "desc": "Name of the newly generated feature.",
+          "type": "AT_STRING",
+          "atomic": {}
+        },
+        {
+          "name": "as_label",
+          "desc": "If True, the generated feature will be marked as label in schema.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "in_ds",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "f1",
+              "desc": "Feature 1 to operate on.",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
+            },
+            {
+              "name": "f2",
+              "desc": "Feature 2 to operate on.",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "out_ds",
+          "desc": "Output vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        },
+        {
+          "name": "out_rules",
+          "desc": "feature gen rule",
+          "types": [
+            "sf.rule.preprocessing"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "preprocessing",
+      "name": "case_when",
+      "desc": "case_when",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "rules",
+          "desc": "input CaseWhen rules",
+          "type": "AT_CUSTOM_PROTOBUF",
+          "customProtobufCls": "case_when_rules_pb2.CaseWhenRule"
+        }
+      ],
+      "inputs": [
+        {
+          "name": "input_dataset",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_dataset",
+          "desc": "output_dataset",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        },
+        {
+          "name": "out_rules",
+          "desc": "case when substitution rule",
+          "types": [
+            "sf.rule.preprocessing"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "preprocessing",
+      "name": "condition_filter",
+      "desc": "Filter the table based on a single column's values and condition.\nWarning: the party responsible for condition filtering will directly send the sample distribution to other participants.\nMalicious participants can obtain the distribution of characteristics by repeatedly calling with different filtering values.\nAudit the usage of this component carefully.",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "comparator",
+          "desc": "Comparator to use for comparison. Must be one of '==','<','<=','>','>=','IN'",
+          "type": "AT_STRING",
+          "atomic": {
+            "allowedValues": {
+              "ss": [
+                "==",
+                "<",
+                "<=",
+                ">",
+                ">=",
+                "IN"
+              ]
+            }
+          }
+        },
+        {
+          "name": "value_type",
+          "desc": "Type of the value to compare with. Must be one of ['STRING', 'FLOAT']",
+          "type": "AT_STRING",
+          "atomic": {
+            "allowedValues": {
+              "ss": [
+                "STRING",
+                "FLOAT"
+              ]
+            }
+          }
+        },
+        {
+          "name": "bound_value",
+          "desc": "Input a str with values separated by ','. List of values to compare with. If comparator is not 'IN', we only support one element in this list.",
+          "type": "AT_STRING",
+          "atomic": {}
+        },
+        {
+          "name": "float_epsilon",
+          "desc": "Epsilon value for floating point comparison. WARNING: due to floating point representation in computers, set this number slightly larger if you want filter out the values exactly at desired boundary. for example, abs(1.001 - 1.002) is slightly larger than 0.001, and therefore may not be filter out using == and epsilson = 0.001",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "in_ds",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "features",
+              "desc": "Feature(s) to operate on.",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "out_ds",
+          "desc": "Output vertical table that satisfies the condition.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        },
+        {
+          "name": "out_ds_else",
+          "desc": "Output vertical table that does not satisfies the condition.",
+          "types": [
+            "sf.table.vertical_table"
           ]
         }
       ]
@@ -1787,9 +2179,124 @@
     },
     {
       "domain": "preprocessing",
+      "name": "fillna",
+      "desc": "fillna",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "strategy",
+          "desc": "The imputation strategy. If \"mean\", then replace missing values using the mean along each column. Can only be used with numeric data. If \"median\", then replace missing values using the median along each column. Can only be used with numeric data. If \"most_frequent\", then replace missing using the most frequent value along each column. Can be used with strings or numeric data. If there is more than one such value, only the smallest is returned. If \"constant\", then replace missing values with fill_value. Can be used with strings or numeric data.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "mean"
+            },
+            "allowedValues": {
+              "ss": [
+                "mean",
+                "median",
+                "most_frequent",
+                "constant"
+              ]
+            }
+          }
+        },
+        {
+          "name": "missing_value",
+          "desc": "Which value should be treat as missing_value? int, float, str, general_na (includes np.nan, None or pandas.NA which are all null in sc.table), default=general_na",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "general_na"
+            }
+          }
+        },
+        {
+          "name": "missing_value_type",
+          "desc": "type of missing value. general_na type indicates np.nan, None or pandas.NA",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "general_na"
+            },
+            "allowedValues": {
+              "ss": [
+                "general_na",
+                "str",
+                "int",
+                "float"
+              ]
+            }
+          }
+        },
+        {
+          "name": "fill_value_int",
+          "desc": "For int type data. If method is 'constant' use this value for filling null.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "fill_value_float",
+          "desc": "For float type data. If method is 'constant' use this value for filling null.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "fill_value_str",
+          "desc": "For str type data. If method is 'constant' use this value for filling null.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "input_dataset",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "fill_na_features",
+              "desc": "Features to fill."
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "out_ds",
+          "desc": "Output vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        },
+        {
+          "name": "out_rules",
+          "desc": "fill value rule",
+          "types": [
+            "sf.rule.preprocessing"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "preprocessing",
       "name": "onehot_encode",
       "desc": "onehot_encode",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "attrs": [
         {
           "name": "drop_first",
@@ -1837,47 +2344,9 @@
           ],
           "attrs": [
             {
-              "name": "encode_features",
+              "name": "features",
               "desc": "Features to encode."
             }
-          ]
-        }
-      ],
-      "outputs": [
-        {
-          "name": "out_rules",
-          "desc": "onehot rule",
-          "types": [
-            "sf.rule.onehot_encode"
-          ]
-        },
-        {
-          "name": "report",
-          "desc": "report rules details if report_rules is true",
-          "types": [
-            "sf.report"
-          ]
-        }
-      ]
-    },
-    {
-      "domain": "preprocessing",
-      "name": "onehot_substitution",
-      "desc": "onehot_substitution",
-      "version": "0.0.1",
-      "inputs": [
-        {
-          "name": "input_dataset",
-          "desc": "Input vertical table.",
-          "types": [
-            "sf.table.vertical_table"
-          ]
-        },
-        {
-          "name": "input_rules",
-          "desc": "Input onehot rules",
-          "types": [
-            "sf.rule.onehot_encode"
           ]
         }
       ],
@@ -1887,6 +2356,20 @@
           "desc": "output_dataset",
           "types": [
             "sf.table.vertical_table"
+          ]
+        },
+        {
+          "name": "out_rules",
+          "desc": "onehot rule",
+          "types": [
+            "sf.rule.preprocessing"
+          ]
+        },
+        {
+          "name": "report",
+          "desc": "report rules details if report_rules is true",
+          "types": [
+            "sf.report"
           ]
         }
       ]
@@ -1917,11 +2400,13 @@
         },
         {
           "name": "sort",
-          "desc": "Sort the output.",
+          "desc": "Sort the output. Warning: disable this feature may lead to errors in the following components. DO NOT CHOOSE FALSE if you want to append other components",
           "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
-            "defaultValue": {}
+            "defaultValue": {
+              "b": true
+            }
           }
         },
         {
@@ -1999,13 +2484,44 @@
     },
     {
       "domain": "preprocessing",
+      "name": "substitution",
+      "desc": "unified substitution component",
+      "version": "0.0.2",
+      "inputs": [
+        {
+          "name": "input_dataset",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        },
+        {
+          "name": "input_rules",
+          "desc": "Input preprocessing rules",
+          "types": [
+            "sf.rule.preprocessing"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_dataset",
+          "desc": "output_dataset",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "preprocessing",
       "name": "train_test_split",
       "desc": "Split datasets into random train and test subsets.\n- Please check: https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html",
       "version": "0.0.1",
       "attrs": [
         {
           "name": "train_size",
-          "desc": "Proportion of the dataset to include in the train subset.",
+          "desc": "Proportion of the dataset to include in the train subset. The sum of test_size and train_size should be in the (0, 1] range.",
           "type": "AT_FLOAT",
           "atomic": {
             "isOptional": true,
@@ -2014,17 +2530,15 @@
             },
             "lowerBoundEnabled": true,
             "lowerBound": {},
-            "lowerBoundInclusive": true,
             "upperBoundEnabled": true,
             "upperBound": {
               "f": 1.0
-            },
-            "upperBoundInclusive": true
+            }
           }
         },
         {
           "name": "test_size",
-          "desc": "Proportion of the dataset to include in the test subset.",
+          "desc": "Proportion of the dataset to include in the test subset. The sum of test_size and train_size should be in the (0, 1] range.",
           "type": "AT_FLOAT",
           "atomic": {
             "isOptional": true,
@@ -2033,12 +2547,10 @@
             },
             "lowerBoundEnabled": true,
             "lowerBound": {},
-            "lowerBoundInclusive": true,
             "upperBoundEnabled": true,
             "upperBound": {
               "f": 1.0
-            },
-            "upperBoundInclusive": true
+            }
           }
         },
         {
@@ -2099,23 +2611,10 @@
       "version": "0.0.2",
       "attrs": [
         {
-          "name": "aggs",
-          "desc": "What kind of aggregation statistics we want to do? Currently only supports min, max, mean, sum, var, count(number of elements in each group). No repeatitions allowed",
-          "type": "AT_STRINGS",
-          "atomic": {
-            "listMinLengthInclusive": "1",
-            "listMaxLengthInclusive": "6",
-            "allowedValues": {
-              "ss": [
-                "min",
-                "max",
-                "mean",
-                "sum",
-                "var",
-                "count"
-              ]
-            }
-          }
+          "name": "aggregation_config",
+          "desc": "input groupby aggregation config",
+          "type": "AT_CUSTOM_PROTOBUF",
+          "customProtobufCls": "groupby_aggregation_config_pb2.GroupbyAggregationConfig"
         },
         {
           "name": "max_group_size",
@@ -2127,7 +2626,11 @@
               "i64": "10000"
             },
             "lowerBoundEnabled": true,
-            "lowerBound": {}
+            "lowerBound": {},
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "i64": "10001"
+            }
           }
         }
       ],
@@ -2145,11 +2648,6 @@
               "desc": "by what columns should we group the values",
               "colMinCntInclusive": "1",
               "colMaxCntInclusive": "4"
-            },
-            {
-              "name": "values",
-              "desc": "on which columns should we calculate the statistics, only numerical columns are allowed.",
-              "colMinCntInclusive": "1"
             }
           ]
         }

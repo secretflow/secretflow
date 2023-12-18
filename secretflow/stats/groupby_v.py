@@ -1,13 +1,14 @@
-import pandas as pd
+from typing import Dict, List, Tuple, Union
+
 import numpy as np
+import pandas as pd
 
 from secretflow import reveal
 from secretflow.data import partition
 from secretflow.data.groupby import DataFrameGroupBy
 from secretflow.data.vertical import VDataFrame
-from secretflow.preprocessing.encoder import VOrdinalEncoder
-from typing import List, Union
 from secretflow.device import SPU
+from secretflow.preprocessing.encoder import VOrdinalEncoder
 
 
 def ordinal_encoded_groupby(
@@ -69,6 +70,30 @@ def ordinal_encoded_groupby_agg(
         agg,
     )()
     return ordinal_encoded_postprocess(df, stat, encoder, by, values)
+
+
+def ordinal_encoded_groupby_value_agg_pairs(
+    df: VDataFrame,
+    by: List[str],
+    value_agg_pairs: List[Tuple[str, str]],
+    spu: SPU,
+    max_group_size: int = None,
+) -> Dict[Tuple[str, str], pd.DataFrame]:
+    """apply ordinal encoder df before doing groupby
+    df columns must be of unifrom type"""
+    values = list(set([pair[0] for pair in value_agg_pairs]))
+
+    df_groupby, encoder = ordinal_encoded_groupby(df, by, values, spu, max_group_size)
+    results = {}
+    for value, agg in value_agg_pairs:
+        stat = getattr(
+            df_groupby,
+            agg,
+        )(values)
+        results[(value, agg)] = ordinal_encoded_postprocess(
+            df, stat, encoder, by, [value]
+        )
+    return results
 
 
 def ordinal_encoded_groupby_aggs(

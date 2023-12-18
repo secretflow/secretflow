@@ -13,14 +13,14 @@
 # limitations under the License.
 
 
-from secretflow.component.component import Component, IoType
+from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import (
     DistDataType,
-    VerticalTableWrapper,
     dump_vertical_table,
     load_table,
+    VerticalTableWrapper,
 )
-from secretflow.preprocessing.cond_filter_v import ConditionFilter
+from secretflow.preprocessing.cond_filter_v import ConditionFilter, conversion_mapping
 
 condition_filter_comp = Component(
     "condition_filter",
@@ -33,34 +33,30 @@ condition_filter_comp = Component(
     """,
 )
 
-
-condition_filter_comp.str_attr(
-    name="field_name",
-    desc="Name of the column to filter on.",
-    is_list=False,
-    is_optional=False,
-)
 condition_filter_comp.str_attr(
     name="comparator",
-    desc="Comparator to use for comparison. Must be one of 'EQ','LT','LE','GT','GE','IN'",
+    desc="Comparator to use for comparison. Must be one of '==','<','<=','>','>=','IN'",
     is_list=False,
     is_optional=False,
+    allowed_values=['==', '<', '<=', '>', '>=', 'IN'],
 )
+
 condition_filter_comp.str_attr(
     name="value_type",
-    desc="Type of the value to compare with. Must be one of 'FLOAT', 'STR'",
+    desc=f"Type of the value to compare with. Must be one of {list(conversion_mapping.keys())}",
     is_list=False,
     is_optional=False,
+    allowed_values=list(conversion_mapping.keys()),
 )
 condition_filter_comp.str_attr(
     name="bound_value",
-    desc="List of values to compare with. If comparator is not 'IN', we only support one element in this list.",
+    desc="Input a str with values separated by ','. List of values to compare with. If comparator is not 'IN', we only support one element in this list.",
     is_optional=False,
-    is_list=True,
+    is_list=False,
 )
 condition_filter_comp.float_attr(
     name="float_epsilon",
-    desc="Epsilon value for floating point comparison.",
+    desc="Epsilon value for floating point comparison. WARNING: due to floating point representation in computers, set this number slightly larger if you want filter out the values exactly at desired boundary. for example, abs(1.001 - 1.002) is slightly larger than 0.001, and therefore may not be filter out using == and epsilson = 0.001",
     is_list=False,
     is_optional=False,
     lower_bound=0,
@@ -72,7 +68,14 @@ condition_filter_comp.io(
     name="in_ds",
     desc="Input vertical table.",
     types=[DistDataType.VERTICAL_TABLE],
-    col_params=None,
+    col_params=[
+        TableColParam(
+            name="features",
+            desc="Feature(s) to operate on.",
+            col_min_cnt_inclusive=1,
+            col_max_cnt_inclusive=1,
+        )
+    ],
 )
 
 condition_filter_comp.io(
@@ -94,25 +97,25 @@ condition_filter_comp.io(
 def condition_filter_comp_eval_fn(
     *,
     ctx,
-    field_name,
     comparator,
     value_type,
     bound_value,
     float_epsilon,
     in_ds,
+    in_ds_features,
     out_ds,
     out_ds_else,
 ):
     # Load data from train_dataset
     x = load_table(ctx, in_ds, load_features=True, load_ids=True, load_labels=True)
-
+    bound_value_list = bound_value.split(",")
     # Initialize and run training algorithm
     with ctx.tracer.trace_running():
         filter = ConditionFilter(
-            field_name=field_name,
+            field_name=in_ds_features[0],
             comparator=comparator,
             value_type=value_type,
-            bound_value=bound_value,
+            bound_value=bound_value_list,
             float_epsilon=float_epsilon,
         )
         ds = filter.fit_transform(x)

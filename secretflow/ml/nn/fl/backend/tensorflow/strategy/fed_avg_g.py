@@ -59,7 +59,6 @@ class FedAvgG(BaseTFModel):
             # if gradients is not None, apply back propagation
             self.model.optimizer.apply_gradients(zip(gradients, trainable_vars))
         num_sample = 0
-        self.callbacks.on_train_batch_begin(cur_steps)
         logs = {}
 
         local_gradients_sum = None
@@ -96,8 +95,9 @@ class FedAvgG(BaseTFModel):
 
         for m in self.model.metrics:
             logs[m.name] = m.result().numpy()
-        self.callbacks.on_train_batch_end(cur_steps + train_steps, logs)
+        self.wrapped_metrics.extend(self.wrap_local_metrics())
         self.logs = logs
+
         self.epoch_logs = copy.deepcopy(self.logs)
 
         # DP operation
@@ -105,6 +105,17 @@ class FedAvgG(BaseTFModel):
             if dp_strategy.model_gdp is not None:
                 local_gradients_sum = dp_strategy.model_gdp(local_gradients_sum)
         return local_gradients_sum, num_sample
+
+    def apply_weights(self, gradients, **kwargs):
+        """Accept ps model params,then apply to local model
+
+        Args:
+            gradients: global gradients from params server
+        """
+        trainable_vars = self.model.trainable_variables
+        if gradients is not None:
+            # if gradients is not None, apply back propagation
+            self.model.optimizer.apply_gradients(zip(gradients, trainable_vars))
 
 
 @register_strategy(strategy_name='fed_avg_g', backend='tensorflow')

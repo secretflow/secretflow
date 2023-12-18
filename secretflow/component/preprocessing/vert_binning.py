@@ -12,20 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import (
     DistDataType,
     dump_vertical_table,
+    generate_random_string,
     load_table,
     model_dumps,
     model_loads,
+    move_feature_to_label,
     VerticalTableWrapper,
 )
 from secretflow.device.device.pyu import PYUObject
 from secretflow.preprocessing.binning.vert_bin_substitution import VertBinSubstitution
 from secretflow.preprocessing.binning.vert_binning import VertBinning
-from secretflow.spec.v1.data_pb2 import TableSchema
 
 vert_binning_comp = Component(
     "vert_binning",
@@ -52,15 +52,6 @@ vert_binning_comp.int_attr(
     lower_bound=0,
     lower_bound_inclusive=False,
 )
-
-vert_binning_comp.bool_attr(
-    name="select_all_features",
-    desc="Select all features for binning.",
-    is_list=False,
-    is_optional=True,
-    default_value=False,
-)
-
 vert_binning_comp.io(
     io_type=IoType.INPUT,
     name="input_data",
@@ -70,7 +61,7 @@ vert_binning_comp.io(
         TableColParam(
             name="feature_selects",
             desc="which features should be binned.",
-            col_min_cnt_inclusive=0,
+            col_min_cnt_inclusive=1,
         )
     ],
 )
@@ -83,8 +74,8 @@ vert_binning_comp.io(
 )
 
 # current version 0.1
-MODEL_MAX_MAJOR_VERSION = 0
-MODEL_MAX_MINOR_VERSION = 1
+BINNING_RULE_MAX_MAJOR_VERSION = 0
+BINNING_RULE_MAX_MINOR_VERSION = 1
 
 
 @vert_binning_comp.eval_fn
@@ -93,30 +84,17 @@ def vert_binning_eval_fn(
     ctx,
     binning_method,
     bin_num,
-    select_all_features,
     input_data,
     input_data_feature_selects,
     bin_rule,
 ):
-    assert (
-        select_all_features or len(input_data_feature_selects) > 0
-    ), "select at least one feature"
-    if select_all_features:
-        input_df = load_table(
-            ctx,
-            input_data,
-            load_features=True,
-            load_labels=False,
-        )
-        input_data_feature_selects = input_df.columns
-    else:
-        input_df = load_table(
-            ctx,
-            input_data,
-            load_features=True,
-            feature_selects=input_data_feature_selects,
-            load_labels=False,
-        )
+    input_df = load_table(
+        ctx,
+        input_data,
+        load_features=True,
+        feature_selects=input_data_feature_selects,
+        load_labels=False,
+    )
     with ctx.tracer.trace_running():
         bining = VertBinning()
         col_index = input_df._col_index(input_data_feature_selects)
@@ -129,11 +107,12 @@ def vert_binning_eval_fn(
         model_dist_data = model_dumps(
             "bin_rule",
             DistDataType.BIN_RUNNING_RULE,
-            MODEL_MAX_MAJOR_VERSION,
-            MODEL_MAX_MINOR_VERSION,
+            BINNING_RULE_MAX_MAJOR_VERSION,
+            BINNING_RULE_MAX_MINOR_VERSION,
             [o for o in rules.values()],
             {
                 "input_data_feature_selects": input_data_feature_selects,
+                "model_hash": generate_random_string(next(iter(rules.keys()))),
             },
             ctx.local_fs_wd,
             bin_rule,
@@ -189,8 +168,8 @@ def vert_bin_substitution_eval_fn(
 
     model_objs, public_info = model_loads(
         bin_rule,
-        MODEL_MAX_MAJOR_VERSION,
-        MODEL_MAX_MINOR_VERSION,
+        BINNING_RULE_MAX_MAJOR_VERSION,
+        BINNING_RULE_MAX_MINOR_VERSION,
         DistDataType.BIN_RUNNING_RULE,
         ctx.local_fs_wd,
         pyus=pyus,
@@ -211,23 +190,6 @@ def vert_bin_substitution_eval_fn(
         for i, f in enumerate(list(v.features)):
             if f in public_info['input_data_feature_selects']:
                 v.feature_types[i] = 'float'
-
-    def move_feature_to_label(schema: TableSchema, label: str) -> TableSchema:
-        new_schema = TableSchema()
-        new_schema.CopyFrom(schema)
-        if label in list(schema.features) and label not in list(schema.labels):
-            new_schema.ClearField('features')
-            new_schema.ClearField('feature_types')
-            for k, v in zip(list(schema.features), list(schema.feature_types)):
-                if k != label:
-                    new_schema.features.append(k)
-                    new_schema.feature_types.append(v)
-                else:
-                    label_type = v
-            new_schema.labels.append(label)
-            new_schema.label_types.append(label_type)
-
-        return new_schema
 
     # change cols from feature to label according to model public info.
     if 'input_data_label' in public_info:

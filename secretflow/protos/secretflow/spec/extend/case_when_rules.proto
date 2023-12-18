@@ -1,0 +1,78 @@
+// Copyright 2023 Ant Group Co., Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package secretflow.spec.extend;
+
+option java_package = "org.secretflow.spec.extend";
+
+message CaseWhenRule {
+  message ValueExpr {
+    enum ValueType {
+      INVAL = 0;
+      CONST_INT = 1;    // a int constant, fill in i
+      CONST_FLOAT = 2;  // a float constant, fill in f
+      CONST_STR = 3;    // a str constant, fill in s
+      COLUMN = 4;       // use another column by column_name
+    }
+    ValueType type = 1;
+    string column_name = 2;
+    int64 i = 3;
+    double f = 4;
+    string s = 5;
+  }
+
+  message Cond {
+    // left operator of CondOp
+    string cond_column = 1;
+
+    enum CondOp {
+      INVAL = 0;
+      EQ = 1;  // ==
+      NE = 2;  // !=
+      LT = 3;  // <
+      LE = 4;  // <=
+      GT = 5;  // >
+      GE = 6;  //>=
+    }
+    CondOp op = 2;
+    // right operator of CondOp
+    ValueExpr cond_value = 3;
+  }
+
+  message When {
+    // len(conds) >= 1
+    repeated Cond conds = 1;
+
+    enum ConnectType {
+      INVAL = 0;
+      AND = 1;
+      OR = 2;
+    }
+    // how to connect this cond to previous cond
+    // use AND / OR to connect more than one conds
+    // len(connections) == len(conds) - 1
+    repeated ConnectType connections = 2;
+
+    ValueExpr then = 3;
+  }
+
+  // len(whens) >= 1
+  repeated When whens = 1;
+  ValueExpr else_value = 2;
+  string output_column = 3;
+  double float_epsilon = 4;
+  bool as_label = 5;
+}

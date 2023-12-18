@@ -15,14 +15,15 @@ from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
 from secretflow.data import FedNdarray
-from secretflow.device import PYU, HEUObject, PYUObject
+from secretflow.device import HEUObject, PYU, PYUObject
 from secretflow.ml.boost.sgb_v.factory.sgb_actor import SGBActor
 
-from ....core.pure_numpy_ops.bucket_sum import (
-    batch_select_sum,
-    regroup_bucket_sums,
-)
+from ....core.pure_numpy_ops.bucket_sum import batch_select_sum, regroup_bucket_sums
 from ....core.pure_numpy_ops.grad import split_GH
+from ....core.pure_numpy_ops.node_select import (
+    packbits_node_selects,
+    unpackbits_node_selects,
+)
 from ..cache.level_wise_cache import LevelWiseCache
 from ..component import Composite, Devices, print_params
 from ..gradient_encryptor import GradientEncryptor
@@ -35,9 +36,12 @@ class BucketSumCalculatorParams:
     """
     'label_holder_feature_only': bool. if true, non-label holder will not do bucket sum
         default: False
+    'enable_packbits': bool. if true, turn on packbits transmission.
+        default: False
     """
 
     label_holder_feature_only: bool = False
+    enable_packbits: bool = False
 
 
 @dataclass
@@ -60,10 +64,12 @@ class BucketSumCalculator(Composite):
         self.params.label_holder_feature_only = bool(
             params.get('label_holder_feature_only', False)
         )
+        self.params.enable_packbits = bool(params.get('enable_packbits', False))
 
     def get_params(self, params: dict):
         LoggingTools.logging_params_write_dict(params, self.logging_params)
         params['label_holder_feature_only'] = self.params.label_holder_feature_only
+        params['enable_packbits'] = self.params.enable_packbits
 
     def set_devices(self, devices: Devices):
         super().set_devices(devices)
@@ -82,27 +88,42 @@ class BucketSumCalculator(Composite):
         self,
         shuffler: Shuffler,
         encrypted_gh_dict: Dict[PYU, HEUObject],
-        children_split_node_selects: List[PYUObject],
+        children_split_node_selects: PYUObject,  # inner type is List[np.array]
         is_lefts: List[bool],
         order_map_sub: FedNdarray,
         bucket_num: int,
         bucket_lists: List[PYUObject],
         gradient_encryptor: GradientEncryptor,
         node_num: int,
+        node_select_shape: Tuple[int, int],
     ) -> Tuple[PYUObject, PYUObject]:
         bucket_sums_list = [[] for _ in range(self.party_num)]
         bucket_num_plus_one = bucket_num + 1
         shuffler.reset_shuffle_masks()
         self.components.level_wise_cache.reset_level_caches()
+        enable = self.params.enable_packbits
+        if enable:
+            children_split_node_selects_bits = self.label_holder(packbits_node_selects)(
+                children_split_node_selects
+            )
         for i, worker in enumerate(self.workers):
             if worker != self.label_holder:
                 if self.params.label_holder_feature_only:
                     continue
                 else:
+                    if enable:
+                        children_split_node_selects_worker = worker(
+                            unpackbits_node_selects
+                        )(
+                            children_split_node_selects_bits.to(worker),
+                            node_select_shape,
+                        )
+                    else:
+                        children_split_node_selects_worker = children_split_node_selects
                     bucket_sums = encrypted_gh_dict[
                         worker
                     ].batch_feature_wise_bucket_sum(
-                        children_split_node_selects,
+                        children_split_node_selects_worker,
                         order_map_sub.partitions[worker],
                         bucket_num_plus_one,
                         True,

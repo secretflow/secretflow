@@ -8,6 +8,7 @@ from secretflow.component.preprocessing.condition_filter import condition_filter
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
+
 from tests.conftest import TEST_STORAGE_ROOT
 
 
@@ -66,17 +67,17 @@ def test_condition_filter(comp_prod_sf_cluster_config):
         name="condition_filter",
         version="0.0.1",
         attr_paths=[
-            'field_name',
+            'input/in_ds/features',
             'comparator',
             'value_type',
             'bound_value',
             'float_epsilon',
         ],
         attrs=[
-            Attribute(s='b4'),
-            Attribute(s='LT'),
+            Attribute(ss=['b4']),
+            Attribute(s='<'),
             Attribute(s='FLOAT'),
-            Attribute(ss=['11']),
+            Attribute(s='11'),
             Attribute(f=0.01),
         ],
         inputs=[

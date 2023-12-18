@@ -106,4 +106,4 @@ class OrderMapActor:
                 self.ordermap_context.get_order_map()[sampled_indices, feature]
                 <= split_point_index
             )
-        return candidate.astype(np.int8).reshape(1, length)
+        return candidate.astype(np.uint8).reshape(1, length)

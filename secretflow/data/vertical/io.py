@@ -14,7 +14,7 @@
 
 from typing import Dict, List, Union
 
-from secretflow.device import PYU, SPU, Device
+from secretflow.device import Device, PYU, SPU
 from secretflow.utils.errors import InvalidArgumentError
 from secretflow.utils.random import global_random
 
@@ -33,6 +33,7 @@ def read_csv(
     psi_protocl=None,
     no_header: bool = False,
     backend: str = 'pandas',
+    nrows: int = None,
 ) -> VDataFrame:
     """Read a comma-separated values (csv) file into VDataFrame.
 
@@ -132,6 +133,7 @@ def read_csv(
             usecols=usecols,
             dtype=dtype,
             read_backend=backend,
+            nrows=nrows,
         )
     if drop_keys:
         for device, part in partitions.items():
@@ -156,18 +158,18 @@ def read_csv(
                 partitions[device] = part.drop(labels=device_drop_key, axis=1)
 
     unique_cols = set()
-    length = None
 
     # data columns must be unique across all devices
-    for device, part in partitions.items():
-        n = len(part)
-        columns = part.columns
-        if length is None:
-            length = n
-        else:
-            assert length == n, f"number of samples must be equal across all devices"
+    if len(partitions):
+        parties_length = {}
+        for device, part in partitions.items():
+            parties_length[device.party] = len(part)
+        assert (
+            len(set(parties_length.values())) == 1
+        ), f"number of samples must be equal across all devices, got {parties_length}, input uri {filepath_actual}"
 
-        for col in columns:
+    for device, part in partitions.items():
+        for col in part.columns:
             assert col not in unique_cols, f"col {col} duplicate in multiple devices"
             unique_cols.add(col)
     return VDataFrame(partitions)

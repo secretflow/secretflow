@@ -144,3 +144,4 @@ msgstr ""
 #: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/efficiency/sl_compressor.ipynb:2021
 msgid "本教程使用明文聚合来做演示，同时没有考虑隐藏层的泄露问题，SecretFlow提供了聚合层AggLayer，通过MPC,TEE,HE，以及DP等方式规避隐层明文传输泄露的问题。如果您感兴趣，可以看相关文档。"
 msgstr ""
+

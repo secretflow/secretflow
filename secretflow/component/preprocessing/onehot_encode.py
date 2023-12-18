@@ -13,32 +13,27 @@
 # limitations under the License.
 
 
+from typing import Dict
+
 import numpy as np
-import pandas as pd
 from sklearn.preprocessing import OneHotEncoder
 
 import secretflow.compute as sc
 from secretflow.component.component import Component, IoType, TableColParam
-from secretflow.component.data_utils import (
-    DistDataType,
-    VerticalTableWrapper,
-    dump_vertical_table,
-    load_table,
-    model_dumps,
-    model_loads,
+from secretflow.component.data_utils import DistDataType
+from secretflow.component.preprocessing.core.table_utils import (
+    float_almost_equal,
+    v_preprocessing_transform,
 )
-from secretflow.data.core import partition
 from secretflow.device.driver import reveal
 from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema
+from secretflow.spec.v1.data_pb2 import DistData
 from secretflow.spec.v1.report_pb2 import Descriptions, Div, Report, Tab
-
-from .table_utils import apply_onehot_rule_on_table
 
 onehot_encode = Component(
     "onehot_encode",
     domain="preprocessing",
-    version="0.0.1",
+    version="0.0.2",
     desc="onehot_encode",
 )
 
@@ -75,14 +70,22 @@ onehot_encode.io(
     name="input_dataset",
     desc="Input vertical table.",
     types=[DistDataType.VERTICAL_TABLE],
-    col_params=[TableColParam(name="encode_features", desc="Features to encode.")],
+    col_params=[TableColParam(name="features", desc="Features to encode.")],
+)
+
+onehot_encode.io(
+    io_type=IoType.OUTPUT,
+    name="output_dataset",
+    desc="output_dataset",
+    types=[DistDataType.VERTICAL_TABLE],
+    col_params=None,
 )
 
 onehot_encode.io(
     io_type=IoType.OUTPUT,
     name="out_rules",
     desc="onehot rule",
-    types=[DistDataType.ONEHOT_RULE],
+    types=[DistDataType.PREPROCESSING_RULE],
     col_params=None,
 )
 
@@ -94,9 +97,28 @@ onehot_encode.io(
 )
 
 
-# current version 0.1
-MODEL_MAX_MAJOR_VERSION = 0
-MODEL_MAX_MINOR_VERSION = 1
+def apply_onehot_rule_on_table(table: sc.Table, additional_info: Dict) -> sc.Table:
+    for col_name in additional_info:
+        col_additional_info = additional_info[col_name]
+        col = table.column(col_name)
+        table = table.remove_column(col_name)
+        for idx, rule in enumerate(col_additional_info):
+            assert len(rule)
+            onehot_cond = None
+            for v in rule:
+                if isinstance(v, float) or isinstance(v, np.floating):
+                    cond = float_almost_equal(col, v)
+                else:
+                    cond = sc.equal(col, v)
+                if onehot_cond is None:
+                    onehot_cond = cond
+                else:
+                    onehot_cond = sc.or_(onehot_cond, cond)
+
+            new_col = sc.if_else(onehot_cond, np.float32(1), np.float32(0))
+            table = table.append_column(f"{col_name}_{idx}", new_col)
+
+    return table
 
 
 @onehot_encode.eval_fn
@@ -107,25 +129,19 @@ def onehot_encode_eval_fn(
     min_frequency,
     report_rules,
     input_dataset,
-    input_dataset_encode_features,
+    input_dataset_features,
     out_rules,
+    output_dataset,
     report,
 ):
     assert (
         input_dataset.type == DistDataType.VERTICAL_TABLE
     ), "only support vtable for now"
 
-    x = load_table(
-        ctx,
-        input_dataset,
-        load_features=True,
-        feature_selects=input_dataset_encode_features,
-    ).to_pandas()
-
     drop = 'first' if drop_first else None
     min_frequency = min_frequency if min_frequency > 0 else None
 
-    def fit(data):
+    def _fit(trans_data):
         enc = OneHotEncoder(
             drop=drop,
             min_frequency=min_frequency,
@@ -133,11 +149,16 @@ def onehot_encode_eval_fn(
             dtype=np.float32,
             sparse=False,
         )
-        enc.fit(data)
+        enc.fit(trans_data)
 
+        categories = enc.categories_
+        assert len(categories) == len(trans_data.columns)
+        infrequent_categories = getattr(
+            enc, "infrequent_categories_", [None] * len(categories)
+        )
         onehot_rules = {}
         for col_name, category, infrequent_category in zip(
-            data.columns, enc.categories_, enc.infrequent_categories_
+            trans_data.columns, categories, infrequent_categories
         ):
             col_rules = []
 
@@ -162,26 +183,31 @@ def onehot_encode_eval_fn(
                 col_rules.append(list(infrequent_category))
 
             onehot_rules[col_name] = col_rules
-
         return onehot_rules
 
-    rules_obj = [pyu(fit)(x.partitions[pyu].data) for pyu in x.partitions]
+    def onehot_fit_transform(trans_data):
+        onehot_rules = _fit(trans_data)
+        trans_data = apply_onehot_rule_on_table(
+            sc.Table.from_pandas(trans_data), onehot_rules
+        )
+        return trans_data, [], onehot_rules
 
-    model_dd = model_dumps(
-        "onehot",
-        DistDataType.ONEHOT_RULE,
-        MODEL_MAX_MAJOR_VERSION,
-        MODEL_MAX_MINOR_VERSION,
-        rules_obj,
-        "",
-        ctx.local_fs_wd,
+    (output_dd, model_dd, dist_rules_obj) = v_preprocessing_transform(
+        ctx,
+        input_dataset,
+        input_dataset_features,
+        onehot_fit_transform,
+        output_dataset,
         out_rules,
-        input_dataset.system_info,
+        "OneHot Encode",
+        load_ids=False,
+        assert_one_party=False,
     )
 
+    # build report
     if report_rules:
         divs = []
-        for party_rules in rules_obj:
+        for party_rules in dist_rules_obj:
             party = party_rules.device.party
             onehot_rules = reveal(party_rules)
 
@@ -202,7 +228,7 @@ def onehot_encode_eval_fn(
 
             div = Div(
                 name=party,
-                desc="pre party rules",
+                desc="per party rules",
                 children=[
                     Div.Child(type="descriptions", descriptions=d) for d in descs
                 ],
@@ -222,127 +248,8 @@ def onehot_encode_eval_fn(
     )
     report_dd.meta.Pack(report_mate)
 
-    return {"out_rules": model_dd, "report": report_dd}
-
-
-onehot_substitution = Component(
-    "onehot_substitution",
-    domain="preprocessing",
-    version="0.0.1",
-    desc="onehot_substitution",
-)
-
-onehot_substitution.io(
-    io_type=IoType.INPUT,
-    name="input_dataset",
-    desc="Input vertical table.",
-    types=[DistDataType.VERTICAL_TABLE],
-    col_params=None,
-)
-
-onehot_substitution.io(
-    io_type=IoType.INPUT,
-    name="input_rules",
-    desc="Input onehot rules",
-    types=[DistDataType.ONEHOT_RULE],
-    col_params=None,
-)
-
-onehot_substitution.io(
-    io_type=IoType.OUTPUT,
-    name="output_dataset",
-    desc="output_dataset",
-    types=[DistDataType.VERTICAL_TABLE],
-    col_params=None,
-)
-
-
-@onehot_substitution.eval_fn
-def onehot_substitution_eval_fn(
-    *,
-    ctx,
-    input_dataset,
-    input_rules,
-    output_dataset,
-):
-    assert (
-        input_dataset.type == DistDataType.VERTICAL_TABLE
-    ), "only support vtable for now"
-
-    x = load_table(
-        ctx,
-        input_dataset,
-        load_features=True,
-        load_ids=True,
-        load_labels=True,
-    ).to_pandas()
-    pyus = {p.party: p for p in x.partitions.keys()}
-
-    rules_obj, _ = model_loads(
-        input_rules,
-        MODEL_MAX_MAJOR_VERSION,
-        MODEL_MAX_MINOR_VERSION,
-        DistDataType.ONEHOT_RULE,
-        # only local fs is supported at this moment.
-        ctx.local_fs_wd,
-        pyus=pyus,
-    )
-
-    assert set([o.device for o in rules_obj]).issubset(set(x.partitions.keys()))
-
-    def transform(data, rules):
-        trans_columns = list(rules.keys())
-        assert set(trans_columns).issubset(
-            set(data.columns)
-        ), f"can not find rule keys {trans_columns} in dataset columns {data.columns}"
-        append_columns = []
-
-        if len(trans_columns) > 0:
-            trans_data = data[trans_columns]
-            remain_data = data.drop(trans_columns, axis=1)
-
-            trans_data = apply_onehot_rule_on_table(
-                sc.Table.from_pandas(trans_data), rules
-            ).to_pandas()
-
-            append_columns = list(trans_data.columns)
-            data = pd.concat([remain_data, trans_data], axis=1)
-
-        return data, trans_columns, append_columns
-
-    cols_change = {}
-    for r in rules_obj:
-        pyu = r.device
-        new_data, drop_key, append_key = pyu(transform, num_returns=3)(
-            x.partitions[pyu].data, r
-        )
-        x.partitions[pyu] = partition(new_data)
-        cols_change[pyu.party] = reveal([drop_key, append_key])
-
-    meta = VerticalTableWrapper.from_dist_data(input_dataset, x.shape[0])
-
-    for party in cols_change:
-        drop_key, append_key = cols_change[party]
-        table_schema = meta.schema_map[party]
-        new_schema = TableSchema()
-        new_schema.CopyFrom(table_schema)
-        new_schema.features[:] = []
-        new_schema.feature_types[:] = []
-        for idx in range(len(table_schema.features)):
-            if table_schema.features[idx] not in drop_key:
-                new_schema.features.append(table_schema.features[idx])
-                new_schema.feature_types.append(table_schema.feature_types[idx])
-        for new_k in append_key:
-            new_schema.features.append(new_k)
-            new_schema.feature_types.append("float32")
-        meta.schema_map[party] = new_schema
-
-    output_dd = dump_vertical_table(
-        ctx,
-        x,
-        output_dataset,
-        meta,
-        input_dataset.system_info,
-    )
-
-    return {"output_dataset": output_dd}
+    return {
+        "out_rules": model_dd,
+        "output_dataset": output_dd,
+        "report": report_dd,
+    }
