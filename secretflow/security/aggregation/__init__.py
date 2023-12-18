@@ -24,8 +24,6 @@ from .plain_aggregator import PlainAggregator
 from .secure_aggregator import SecureAggregator
 from .sparse_plain_aggregator import SparsePlainAggregator
 from .spu_aggregator import SPUAggregator
-from .lldp_aggregator import LLDPAggregator
-from .ldp_aggregator import LDPAggregator
 
 __all__ = [
     'Aggregator',
@@ -33,6 +31,4 @@ __all__ = [
     'PlainAggregator',
     'SPUAggregator',
     'SparsePlainAggregator',
-    'LLDPAggregator',
-    'LDPAggregator',
 ]
