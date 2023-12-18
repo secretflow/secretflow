@@ -25,17 +25,17 @@ from secretflow.data import FedNdarray, PartitionWay
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import (
     PYU,
-    SPU,
     PYUObject,
+    SPU,
     SPUCompilerNumReturnsPolicy,
     SPUObject,
     wait,
 )
+from secretflow.ml.boost.core.data_preprocess import prepare_dataset, validate
 
 from .core import node_split as split_fn
 from .core.node_split import RegType
 from .core.tree_worker import XgbTreeWorker as Worker
-from secretflow.ml.boost.core.data_preprocess import prepare_dataset, validate
 
 
 class XgbModel:
@@ -94,17 +94,13 @@ class XgbModel:
         ), f"{len(x.partitions)}, {self.trees[0]}"
         self.workers = [Worker(0, device=pyu) for pyu in x.partitions]
         self.x = x.partitions
-        preds = []
+        pred = 0
         for idx in range(len(self.trees)):
-            pred = self._tree_pred(self.trees[idx], self.weights[idx])
-            wait([pred])
-            preds.append(pred)
+            pred = self.spu(lambda x, y: jnp.add(x, y))(
+                self._tree_pred(self.trees[idx], self.weights[idx]), pred
+            )
 
-        pred = self.spu(
-            lambda ps, base: (
-                jnp.sum(jnp.concatenate(ps, axis=0), axis=0) + base
-            ).reshape(-1, 1)
-        )(preds, self.base)
+        pred = self.spu(lambda x, y: jnp.add(x, y).reshape(-1, 1))(pred, self.base)
 
         if self.objective == RegType.Logistic:
             pred = self.spu(split_fn.sigmoid)(pred)

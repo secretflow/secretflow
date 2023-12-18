@@ -27,7 +27,7 @@ from secretflow.ml.boost.sgb_v.core.params import default_params
 
 from ...model import SgbModel
 from ..components import DataPreprocessor, ModelBuilder, OrderMapManager, TreeTrainer
-from ..components.component import Composite, Devices, print_params
+from ..components.component import Composite, Devices, label_have_feature, print_params
 from ..sgb_actor import SGBActor
 
 
@@ -129,13 +129,20 @@ class GlobalOrdermapBooster(Composite):
         else:
             x, x_shape, y, _ = self.components.preprocessor.validate(dataset, label)
             sample_num = x_shape[0]
-
         # set devices
         devices = Devices(y.device, [*x.partitions.keys()], self.heu)
-        self.set_devices(devices)
-
-        # set actors
         actors = [SGBActor(device=device) for device in devices.workers]
+        if not label_have_feature(devices):
+            logging.warning(
+                "label holder has no feature, setting first tree with label holder to be False."
+            )
+            # disable train using label holder's device
+            self.set_params({"first_tree_with_label_holder_feature": False})
+            # add label holder to actors
+            actors.append(SGBActor(device=devices.label_holder))
+        self.set_devices(devices)
+        # set actors
+
         logging.debug("actors are created.")
         self.set_actors(actors)
         logging.debug("actors are set.")

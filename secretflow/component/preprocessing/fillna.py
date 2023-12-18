@@ -49,7 +49,7 @@ fillna.str_attr(
     """,
     is_list=False,
     is_optional=True,
-    default_value="mean",
+    default_value="constant",
     allowed_values=SUPPORTED_FILL_NA_METHOD,
 )
 
@@ -58,7 +58,7 @@ fillna.str_attr(
     desc="Which value should be treat as missing_value? int, float, str, general_na (includes np.nan, None or pandas.NA which are all null in sc.table), default=general_na",
     is_list=False,
     is_optional=True,
-    default_value="general_na",
+    default_value="custom_missing_value",
 )
 
 NA_SUPPORTED_TYPE_DICT = {
@@ -223,7 +223,9 @@ def fillna_eval_fn(
                 data.columns
             ), f"strategy {strategy} works only on numerical columns, select only numerical columns"
             fillna_rules = generate_rule_dict(missing_value, data, strategy)
-        else:
+        elif strategy == "most_frequent":
+            fillna_rules = generate_rule_dict(missing_value, data, strategy)
+        elif strategy == "constant":
             fillna_rules = generate_rule_dict_constant(
                 missing_value,
                 fill_value_int,
@@ -231,6 +233,8 @@ def fillna_eval_fn(
                 fill_value_str,
                 data,
             )
+        else:
+            assert ValueError(f"Unsupported strategy {strategy}")
         return fillna_rules
 
     def fillna_fit_transform(trans_data):

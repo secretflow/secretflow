@@ -14,9 +14,9 @@
 
 from typing import Tuple
 
-import numpy as np
 import jax.numpy as jnp
 
+import numpy as np
 
 from ....core.params import RegType
 from ....core.pure_numpy_ops.grad import (

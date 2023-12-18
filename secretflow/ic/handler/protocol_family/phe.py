@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-from secretflow.ic.proto.handshake.protocol_family import phe_pb2
+from interconnection.handshake.protocol_family import phe_pb2
 
 
 class PheConfig:

@@ -67,7 +67,12 @@ def calculate_woe_from_ratios(rp: float, rn: float):
     return np.log(rp / rn)
 
 
-def calculate_bin_ratios(bin_iv: float, bin_woe: float) -> Tuple[float, float]:
+FLOAT_TOLERANCE = 1e-6
+
+
+def calculate_bin_ratios(
+    bin_iv: float, bin_woe: float, bin_total: int, feature_total: int
+) -> Tuple[float, float]:
     """
     Calculate two ratios: rp = bin_pos/total_positive, rn = bin_negative/total negative.
 
@@ -79,6 +84,10 @@ def calculate_bin_ratios(bin_iv: float, bin_woe: float) -> Tuple[float, float]:
         bin_woe = log((bin_positives / total_positives) / (bin_negatives / total_negatives))
         bin_iv = ((bin_positives / total_positives) - (bin_negatives / total_negatives)) * bin_woe
     """
+    if abs(bin_woe) <= FLOAT_TOLERANCE:
+        x = bin_total * 1.0 / feature_total
+        y = x
+        return x, y
     D = bin_iv / bin_woe
     y = D / (np.exp(bin_woe) - 1)
     x = y + D
@@ -98,10 +107,13 @@ def compute_bin_ratios(merged_rule: Dict) -> Dict:
         woes = variable["filling_values"]
         ivs = feature_iv["ivs"]
         num_bins = len(bin_counts)
+        feature_total = sum(bin_counts)
         bin_ratios = [
             calculate_bin_ratios(
                 bin_woe=woes[i],
                 bin_iv=ivs[i],
+                bin_total=bin_counts[i],
+                feature_total=feature_total,
             )
             for i in range(num_bins)
         ]

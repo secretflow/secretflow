@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 from typing import Dict, List, Union
 
-from secretflow.device import Device, PYU, SPU
+from secretflow.device import PYU, SPU, Device, reveal
 from secretflow.utils.errors import InvalidArgumentError
 from secretflow.utils.random import global_random
 
 from ..core import partition
-from ..core.io import read_csv_wrapper
+from ..core.io import read_csv_wrapper, read_file_meta
 from .dataframe import VDataFrame
 
 
@@ -164,9 +165,14 @@ def read_csv(
         parties_length = {}
         for device, part in partitions.items():
             parties_length[device.party] = len(part)
-        assert (
-            len(set(parties_length.values())) == 1
-        ), f"number of samples must be equal across all devices, got {parties_length}, input uri {filepath_actual}"
+        if len(set(parties_length.values())) > 1:
+            file_metas = {}
+            for pyu in filepath_actual:
+                file_metas[pyu] = reveal(pyu(read_file_meta)(filepath_actual[pyu]))
+            raise AssertionError(
+                f"number of samples must be equal across all devices, got {parties_length}, "
+                f"input uri {filepath_actual}, input file meta {file_metas}"
+            )
 
     for device, part in partitions.items():
         for col in part.columns:

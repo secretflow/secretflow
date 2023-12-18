@@ -90,12 +90,12 @@ An overview of existing works is illustrated in the table below.
     Chinese Journal of Computers, [eprint in Chinese](http://cjc.ict.ac.cn/online/onlinepaper/hwl-202375100742.pdf)
 
 - When Machine Learning Meets Privacy: A Survey and Outlook.
-    *Bo Liu, Ming Ding, Sina Shaham, Wenny Rahayu, Farhad Farokhi, and Zihuai Lin* 
+    *Bo Liu, Ming Ding, Sina Shaham, Wenny Rahayu, Farhad Farokhi, and Zihuai Lin*
     ACM Computing Surveys (CSUR), [eprint](https://arxiv.org/pdf/2011.11819.pdf)
 
 
 - Privacy-preserving machine learning: Methods, challenges and directions.
-    *Xu R, Baracaldo N, Joshi J* 
+    *Xu R, Baracaldo N, Joshi J*
     arXiv preprint arXiv, [eprint](https://arxiv.org/pdf/2108.04417.pdf)
 
 ## Two-party Computation (2PC)

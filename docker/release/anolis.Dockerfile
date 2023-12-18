@@ -19,7 +19,7 @@ COPY --from=builder /bin/nsjail /usr/local/bin/
 COPY --from=python /root/miniconda3/envs/secretflow/bin/ /usr/local/bin/
 COPY --from=python /root/miniconda3/envs/secretflow/lib/ /usr/local/lib/
 
-RUN yum install -y protobuf libnl3 && yum clean all
+RUN yum install -y protobuf libnl3 libgomp && yum clean all
 
 RUN grep -rl '#!/root/miniconda3/envs/secretflow/bin' /usr/local/bin/ | xargs sed -i -e 's/#!\/root\/miniconda3\/envs\/secretflow/#!\/usr\/local/g'
 
