@@ -7,30 +7,22 @@ import pandas as pd
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.ml.eval.prediction_bias_eval import prediction_bias_comp
 from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import (
-    DistData,
-    IndividualTable,
-    TableSchema,
-    VerticalTable,
-)
+from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
 
 
 def test_prediction_bias_eval(comp_prod_sf_cluster_config):
-    labels_df = pd.DataFrame(
+    labels = [1, 0, 0, 0, 0, 1, 1, 1]
+    predictions = [0.9, 0.1, 0.2, 0.3, 0.4, 0.5, 0.7, 0.8]
+    label_pred_df = pd.DataFrame(
         {
-            "labels": [1, 0, 0, 0, 0, 1, 1, 1],
-        }
-    )
-    predictions_df = pd.DataFrame(
-        {
-            "predictions": [0.9, 0.1, 0.2, 0.3, 0.4, 0.5, 0.7, 0.8],
+            "labels": labels,
+            "predictions": predictions,
         }
     )
 
-    alice_labels_path = "prediction_bias_eval/alice_labels.csv"
-    alice_predict_path = "prediction_bias_eval/alice_predict.csv"
+    alice_label_pred_path = "prediction_bias_eval/alice_label_predict.csv"
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
@@ -38,33 +30,35 @@ def test_prediction_bias_eval(comp_prod_sf_cluster_config):
 
     if self_party == "alice":
         os.makedirs(os.path.join(local_fs_wd, "prediction_bias_eval"), exist_ok=True)
-        labels_df.to_csv(os.path.join(local_fs_wd, alice_labels_path), index=False)
-        predictions_df.to_csv(
-            os.path.join(local_fs_wd, alice_predict_path), index=False
+        label_pred_df.to_csv(
+            os.path.join(local_fs_wd, alice_label_pred_path), index=False
         )
 
     param = NodeEvalParam(
         domain="ml.eval",
         name="prediction_bias_eval",
         version="0.0.1",
-        attr_paths=["bucket_num", "min_item_cnt_per_bucket", "bucket_method"],
-        attrs=[Attribute(i64=4), Attribute(i64=2), Attribute(s='equal_frequency')],
+        attr_paths=[
+            "bucket_num",
+            "min_item_cnt_per_bucket",
+            "bucket_method",
+            "input/in_ds/label",
+            "input/in_ds/prediction",
+        ],
+        attrs=[
+            Attribute(i64=4),
+            Attribute(i64=2),
+            Attribute(s='equal_frequency'),
+            Attribute(ss=["labels"]),
+            Attribute(ss=["predictions"]),
+        ],
         inputs=[
             DistData(
-                name="labels",
+                name="in_ds",
                 type=str(DistDataType.VERTICAL_TABLE),
                 data_refs=[
                     DistData.DataRef(
-                        uri=alice_labels_path, party="alice", format="csv"
-                    ),
-                ],
-            ),
-            DistData(
-                name="predictions",
-                type=str(DistDataType.INDIVIDUAL_TABLE),
-                data_refs=[
-                    DistData.DataRef(
-                        uri=alice_predict_path, party="alice", format="csv"
+                        uri=alice_label_pred_path, party="alice", format="csv"
                     ),
                 ],
             ),
@@ -75,19 +69,12 @@ def test_prediction_bias_eval(comp_prod_sf_cluster_config):
     meta = VerticalTable(
         schemas=[
             TableSchema(
-                label_types=["float32"],
-                labels=["labels"],
+                label_types=["float32", "float32"],
+                labels=["labels", "predictions"],
             )
         ],
     )
     param.inputs[0].meta.Pack(meta)
-    meta = IndividualTable(
-        schema=TableSchema(
-            label_types=["float32"],
-            labels=["predictions"],
-        ),
-    )
-    param.inputs[1].meta.Pack(meta)
 
     res = prediction_bias_comp.eval(
         param=param,

@@ -25,7 +25,6 @@ import os
 from typing import Callable, Dict, Iterable, List, Tuple, Union
 
 from multiprocess import cpu_count
-from tqdm import tqdm
 
 from secretflow.data import Partition
 from secretflow.data.horizontal import HDataFrame
@@ -35,9 +34,11 @@ from secretflow.device import PYU, Device, reveal, wait
 from secretflow.device.device.pyu import PYUObject
 from secretflow.ml.nn.sl.agglayer.agg_layer import AggLayer
 from secretflow.ml.nn.sl.agglayer.agg_method import AggMethod
+from secretflow.ml.nn.sl.base import SLBaseModel
 from secretflow.ml.nn.sl.strategy_dispatcher import dispatch_strategy
 from secretflow.security.privacy import DPStrategy
 from secretflow.utils.random import global_random
+from secretflow.ml.nn.callbacks.callbacklist import CallbackList
 
 
 class SLModel:
@@ -104,7 +105,8 @@ class SLModel:
         worker_list = list(base_model_dict.keys())
         if device_y not in worker_list:
             worker_list.append(device_y)
-        self._workers = {}
+        self._workers: Dict[PYU, SLBaseModel] = {}
+        self.history = None
         for device in worker_list:
             self._workers[device], self.check_skip_grad = dispatch_strategy(
                 strategy,
@@ -234,19 +236,83 @@ class SLModel:
         self._workers[self.device_y].set_steps_per_epoch(steps_per_epoch)
         return steps_per_epoch
 
+    def handle_file(
+        self,
+        train_dict: Dict[PYU, str],
+        label: str = None,
+        sample_weight: Union[FedNdarray, VDataFrame] = None,
+        batch_size=32,
+        shuffle=False,
+        epochs=1,
+        stage="train",
+        random_seed=1234,
+        dataset_builder: Dict = None,
+    ):
+        worker_steps = []
+        for device, worker in self._workers.items():
+            s_w_partitions = (
+                sample_weight.partitions[device] if sample_weight is not None else None
+            )
+            if dataset_builder:
+                if device not in dataset_builder:
+                    logging.warning("party={device} does not provide dataset_builder")
+                    dataset_partition = None
+                    if device in self.base_model_dict:
+                        raise Exception(
+                            "dataset builder must be supply when base_net is not none"
+                        )
+                else:
+                    dataset_partition = dataset_builder[device]
+                ret = worker.build_dataset_from_builder(
+                    train_dict[device],
+                    y=label if self.device_y == device else None,
+                    s_w=s_w_partitions,
+                    batch_size=batch_size,
+                    random_seed=random_seed,
+                    stage=stage,
+                    dataset_builder=dataset_partition,
+                )
+                worker_steps.append(ret)
+
+            else:
+                ret = worker.build_dataset_from_csv(
+                    file_path=train_dict[device],
+                    label=label if self.device_y == device else None,
+                    s_w=s_w_partitions,
+                    batch_size=batch_size,
+                    shuffle=shuffle,
+                    repeat_count=epochs,
+                    random_seed=random_seed,
+                    stage=stage,
+                )
+                worker_steps.append(ret)
+        worker_steps_per_epoch = reveal(worker_steps)
+        worker_steps_per_epoch = [
+            steps for steps in worker_steps_per_epoch if steps != -1
+        ]
+        assert len(set(worker_steps_per_epoch)) == 1, (
+            "steps_per_epoch of all parties must be same, "
+            "Please check whether the batchsize or steps_per_epoch of all parties are consistent"
+        )
+        steps_per_epoch = worker_steps_per_epoch[0]
+        self._workers[self.device_y].set_steps_per_epoch(steps_per_epoch)
+
+        return steps_per_epoch
+
     def fit(
         self,
         x: Union[
             VDataFrame,
             FedNdarray,
             List[Union[HDataFrame, VDataFrame, FedNdarray]],
+            Dict[PYU, str],
         ],
-        y: Union[VDataFrame, FedNdarray, PYUObject],
+        y: Union[VDataFrame, FedNdarray, PYUObject, str],
         batch_size=32,
         epochs=1,
         verbose=1,
         callbacks=None,
-        validation_data=None,
+        validation_data: Tuple = None,
         shuffle=False,
         sample_weight=None,
         validation_freq=1,
@@ -254,6 +320,8 @@ class SLModel:
         dataset_builder: Callable[[List], Tuple[int, Iterable]] = None,
         audit_log_dir: str = None,
         audit_log_params: dict = {},
+        early_stopping_batch_step: int = 0,
+        early_stopping_warmup_step: int = 0,
         random_seed: int = None,
     ):
         """Vertical split learning training interface
@@ -264,15 +332,22 @@ class SLModel:
             - VDataFrame: a vertically aligned dataframe.
             - FedNdArray: a vertically aligned ndarray.
             - List[Union[HDataFrame, VDataFrame, FedNdarray]]: list of dataframe or ndarray.
+            - Dict[PYU, str]: dict of PYU and its input data file path, for performance, dtypes need to be provided.
 
-            y: Target data. It could be a VDataFrame or FedNdarray which has only one partition, or a PYUObject.
+            y: Target data. It could be:
+            - VDataFrame.
+            - FedNdarray which has only one partition.
+            - PYUObject.
+            - str: when x is a Dict file path, y is the label name of the input dataset.
+
             batch_size: Number of samples per gradient update.
             epochs: Number of epochs to train the model
             verbose: 0, 1. Verbosity mode
-            callbacks: List of Callback or Dict[device, Callback]. Callback can be:
-            - `keras.callbacks.Callback` for tensorflow backend
-            - `secretflow.ml.nn.sl.backend.torch.callback.Callback` for torch backend
-            validation_data: Data on which to validate
+            callbacks: List of Callback or Dict[device, Callback]. Callback can be secretflow.ml.nn.callbacks:
+            validation_data: of Data on which to validate, it could be:
+            - A tuple of (test_data, test_label) with the data of type VDataFrame or FedNdarray.
+            - A tuple of (test_data, test_label, valid_sample_weight)
+            - A tuple of (Dict[PYU, str], str) when requires the file inputs just like x and y..
             shuffle: Whether shuffle dataset or not
             validation_freq: specifies how many training epochs to run before a new validation run is performed
             sample_weight: weights for the training samples
@@ -282,18 +357,19 @@ class SLModel:
             audit_log_dir: If audit_log_dir is set, audit model will be enabled
             audit_log_params: Kwargs for saving audit model, eg: {'save_traces'=True, 'save_format'='h5'}
             random_seed: seed for prg, will only affect dataset shuffle
+            dtypes: Dict[PYU, Dict[str, Dtype]]
         """
         if random_seed is None:
             random_seed = global_random(self.device_y, 100000)
 
+        # record parameters
         params = locals()
         logging.info(f"SL Train Params: {params}")
+
         # sanity check
         assert (
             isinstance(batch_size, int) and batch_size > 0
         ), f"batch_size should be integer > 0"
-        assert isinstance(validation_freq, int) and validation_freq >= 1
-        assert len(self._workers) == 2, "split learning only support 2 parties"
         assert isinstance(validation_freq, int) and validation_freq >= 1
         if dp_spent_step_freq is not None:
             assert isinstance(dp_spent_step_freq, int) and dp_spent_step_freq >= 1
@@ -304,69 +380,108 @@ class SLModel:
             for device, worker in self._workers.items()
         }
         self.agglayer.set_basenet_output_num(self.basenet_output_num)
+
         # build dataset
         train_x, train_y = x, y
+        if isinstance(train_x, Dict):
+            assert isinstance(train_y, str), (
+                f"When the input x is type of Dict, the data will read from files, "
+                f"and y must be a label name with type str."
+            )
+            steps_per_epoch = self.handle_file(
+                train_x,
+                train_y,
+                sample_weight=sample_weight,
+                batch_size=batch_size,
+                shuffle=shuffle,
+                epochs=epochs,
+                stage="train",
+                random_seed=random_seed,
+                dataset_builder=dataset_builder,
+            )
+        else:
+            steps_per_epoch = self.handle_data(
+                train_x,
+                train_y,
+                sample_weight=sample_weight,
+                batch_size=batch_size,
+                shuffle=shuffle,
+                epochs=epochs,
+                stage="train",
+                random_seed=random_seed,
+                dataset_builder=dataset_builder,
+            )
+        validation = False
         if validation_data is not None:
+            assert isinstance(validation_data, tuple) and (
+                len(validation_data) == 2 or len(validation_data) == 3
+            ), f"validation_data must be tuple type with (test_x, test_y) or (test_x, test_y, valid_sample_weight)."
+            validation = True
             logging.debug("validation_data provided")
             if len(validation_data) == 2:
                 valid_x, valid_y = validation_data
                 valid_sample_weight = None
             else:
                 valid_x, valid_y, valid_sample_weight = validation_data
+            assert (
+                valid_x is not None and valid_y is not None
+            ), f"Neither x nor y in validation data cannot be None."
+            if isinstance(valid_x, Dict):
+                assert isinstance(valid_y, str), (
+                    f"When the input x is type of Dict, the data will read from files, "
+                    f"and y must be a label name with type str."
+                )
+                valid_steps = self.handle_file(
+                    valid_x,
+                    valid_y,
+                    sample_weight=valid_sample_weight,
+                    batch_size=batch_size,
+                    epochs=epochs,
+                    stage="eval",
+                    dataset_builder=dataset_builder,
+                )
+            else:
+                valid_steps = self.handle_data(
+                    valid_x,
+                    valid_y,
+                    sample_weight=valid_sample_weight,
+                    batch_size=batch_size,
+                    epochs=epochs,
+                    stage="eval",
+                    dataset_builder=dataset_builder,
+                )
         else:
             valid_x, valid_y, valid_sample_weight = None, None, None
-        steps_per_epoch = self.handle_data(
-            train_x,
-            train_y,
-            sample_weight=sample_weight,
-            batch_size=batch_size,
-            shuffle=shuffle,
-            epochs=epochs,
-            stage="train",
-            random_seed=random_seed,
-            dataset_builder=dataset_builder,
-        )
-        validation = False
 
-        if valid_x is not None and valid_y is not None:
-            validation = True
-            valid_steps = self.handle_data(
-                valid_x,
-                valid_y,
-                sample_weight=valid_sample_weight,
-                batch_size=batch_size,
-                epochs=epochs,
-                stage="eval",
-                dataset_builder=dataset_builder,
-            )
-        if isinstance(callbacks, dict):
-            for dev, callback_builder in callbacks.items():
-                self._workers[dev].init_training(callback_builder, epochs=epochs)
-        else:
-            self._workers[self.device_y].init_training(callbacks, epochs=epochs)
-        [worker.on_train_begin() for worker in self._workers.values()]
         wait_steps = min(min(self.get_cpus()) * 2, 100)
+        # setup callback list
+        callbacks = CallbackList(
+            callbacks=callbacks,
+            add_history=True,
+            add_progbar=verbose != 0,
+            workers=self._workers,
+            device_y=self.device_y,
+            epochs=epochs,
+            verbose=verbose,
+            steps=steps_per_epoch,
+        )
+
+        callbacks.on_train_begin()
         for epoch in range(epochs):
             res = []
             report_list = []
             report_list.append(f"epoch: {epoch+1}/{epochs} - ")
-            if verbose == 1:
-                pbar = tqdm(total=steps_per_epoch)
             self._workers[self.device_y].reset_metrics()
-            [worker.on_epoch_begin(epoch) for worker in self._workers.values()]
+            callbacks.on_epoch_begin(epoch=epoch)
 
             hiddens_buf = [None] * (self.pipeline_size - 1)
             for step in range(0, steps_per_epoch + self.pipeline_size - 1):
                 if step < steps_per_epoch:
-                    if verbose == 1:
-                        pbar.update(1)
                     hiddens = {}
-                    self._workers[self.device_y].on_train_batch_begin(step=step)
+                    callbacks.on_train_batch_begin(step)
                     for device, worker in self._workers.items():
                         # 1. Local calculation of basenet
-                        hidden = worker.base_forward(stage="train")
-                        # 2. The results of basenet are sent to fusenet
-
+                        hidden = worker.base_forward(stage="train", step=step)
                         hiddens[device] = hidden
                     hiddens_buf.append(hiddens)
                 # clean up buffer
@@ -378,7 +493,7 @@ class SLModel:
                 step = step - self.pipeline_size + 1
 
                 # do agglayer forward
-                agg_hiddens = self.agglayer.forward(hiddens, axis=0)
+                agg_hiddens = self.agglayer.forward(hiddens)
 
                 # 3. Fusenet do local calculates and return gradients
                 gradients = self._workers[self.device_y].fuse_net(agg_hiddens)
@@ -397,13 +512,51 @@ class SLModel:
                         if device in scatter_gradients.keys():
                             worker.base_backward(scatter_gradients[device])
 
-                r_count = self._workers[self.device_y].on_train_batch_end(step=step)
-                res.append(r_count)
-                [
-                    worker.on_train_batch_end(step=step)
-                    for dev, worker in self._workers.items()
-                    if dev != self.device_y
-                ]
+                # for EarlyStoppingBatch, evalute model every early_stopping_batch_step
+                if (
+                    early_stopping_batch_step > 0
+                    and step > early_stopping_warmup_step
+                    and step % early_stopping_batch_step == 0
+                ):
+                    wait(res)
+                    res = []
+                    # as evaluation will change metrics' state(training stage),
+                    # we temporarily save it here, and recover later
+                    self._workers[self.device_y].staging_metric_states()
+
+                    # validation
+                    self._workers[self.device_y].reset_metrics()
+
+                    callbacks.on_test_begin()
+                    res = []
+                    for val_step in range(0, valid_steps):
+                        callbacks.on_test_batch_begin(batch=val_step)
+                        hiddens = {}  # driver end
+                        for device, worker in self._workers.items():
+                            hidden = worker.base_forward("eval", step=val_step)
+                            hiddens[device] = hidden
+                        agg_hiddens = self.agglayer.forward(hiddens)
+
+                        metrics = self._workers[self.device_y].evaluate(agg_hiddens)
+                        res.append(metrics)
+                        if len(res) == wait_steps:
+                            wait(res)
+                            res = []
+                        callbacks.on_test_batch_end(batch=val_step)
+                    wait(res)
+                    callbacks.on_test_end(metrics)
+
+                    callbacks.on_train_batch_end(step)
+
+                    # recover metrics's state(training stage)
+                    self._workers[self.device_y].recover_metric_states()
+
+                    if callbacks.stop_training[0]:
+                        break
+                else:
+                    callbacks.on_train_batch_end(step)
+
+                res.append(gradients)
 
                 if self.dp_strategy_dict is not None and dp_spent_step_freq is not None:
                     current_step = epoch * steps_per_epoch + step
@@ -419,25 +572,29 @@ class SLModel:
                 len(hiddens_buf) == 0
             ), f'hiddens buffer unfinished, len: {len(hiddens_buf)}'
             if validation and epoch % validation_freq == 0:
+                callbacks.on_test_begin()
                 # validation
                 self._workers[self.device_y].reset_metrics()
+
                 res = []
                 for step in range(0, valid_steps):
+                    callbacks.on_test_batch_begin(batch=step)
                     hiddens = {}  # driver end
                     for device, worker in self._workers.items():
-                        hidden = worker.base_forward("eval")
+                        hidden = worker.base_forward("eval", step=step)
                         hiddens[device] = hidden
-                    agg_hiddens = self.agglayer.forward(hiddens, axis=0)
+                    agg_hiddens = self.agglayer.forward(hiddens)
 
                     metrics = self._workers[self.device_y].evaluate(agg_hiddens)
                     res.append(metrics)
                     if len(res) == wait_steps:
                         wait(res)
                         res = []
+                    callbacks.on_test_batch_end(batch=step)
                 wait(res)
-                self._workers[self.device_y].on_validation(metrics)
-
+                callbacks.on_test_end(metrics)
                 # save checkpoint
+                # TODO: Use checkpoint callback rewrite this logic @Juxing
                 if audit_log_dir is not None:
                     epoch_base_model_path = {
                         device: os.path.join(
@@ -459,30 +616,13 @@ class SLModel:
                         is_test=self.simulation,
                         **audit_log_params,
                     )
-            epoch_log = self._workers[self.device_y].on_epoch_end(epoch)
-            call_res = [
-                worker.on_epoch_end(epoch)
-                for dev, worker in self._workers.items()
-                if dev != self.device_y
-            ]
-            wait(call_res)
-            for name, metric in reveal(epoch_log).items():
-                report_list.append(f"{name}:{metric} ")
-            report = " ".join(report_list)
-            if verbose == 1:
-                pbar.set_postfix_str(report)
-                pbar.close()
-            if reveal(self._workers[self.device_y].get_stop_training()):
+            callbacks.on_epoch_end(epoch)
+            # TODO: Need EarlystopCallback
+            if callbacks.stop_training[0]:
                 break
 
-        history = self._workers[self.device_y].on_train_end()
-        call_res = [
-            worker.on_train_end()
-            for dev, worker in self._workers.items()
-            if dev != self.device_y
-        ]
-        wait(call_res)
-        return reveal(history)
+        callbacks.on_train_end()
+        return callbacks.history
 
     def predict(
         self,
@@ -524,45 +664,42 @@ class SLModel:
             epochs=1,
             dataset_builder=dataset_builder,
         )
-        [
-            worker.init_predict(callbacks, steps=predict_steps)
-            for worker in self._workers.values()
-        ]
-        if verbose > 0:
-            pbar = tqdm(total=predict_steps)
-            pbar.set_description('Predict Processing:')
+
+        # setup callback list
+        callbacks = CallbackList(
+            callbacks=callbacks,
+            add_history=True,
+            add_progbar=verbose != 0,
+            workers=self._workers,
+            device_y=self.device_y,
+            verbose=verbose,
+            steps=predict_steps,
+        )
         result = []
         wait_steps = min(min(self.get_cpus()) * 2, 100)
         res = []
-        [worker.on_predict_begin() for worker in self._workers.values()]
+        callbacks.on_predict_begin()
         for step in range(0, predict_steps):
-            [
-                worker.on_predict_batch_begin(batch=step)
-                for worker in self._workers.values()
-            ]
+            callbacks.on_predict_batch_begin(step)
             forward_data_dict = {}
             for device, worker in self._workers.items():
                 if device not in self.base_model_dict:
                     continue
-                f_data = worker.base_forward(stage="eval")
+                f_data = worker.base_forward(stage="eval", step=step)
                 forward_data_dict[device] = f_data
-            agg_hiddens = self.agglayer.forward(forward_data_dict, axis=0)
 
-            if verbose > 0:
-                pbar.update(1)
+            agg_hiddens = self.agglayer.forward(forward_data_dict)
+
             y_pred = self._workers[self.device_y].predict(agg_hiddens)
             result.append(y_pred)
 
-            [
-                worker.on_predict_batch_end(batch=step)
-                for worker in self._workers.values()
-            ]
+            callbacks.on_predict_batch_end(batch=step)
             res.append(y_pred)
             if len(res) == wait_steps:
                 wait(res)
                 res = []
         wait(res)
-        [worker.on_predict_end() for worker in self._workers.values()]
+        callbacks.on_predict_end()
         return result
 
     @reveal
@@ -579,6 +716,7 @@ class SLModel:
         verbose=1,
         dataset_builder: Dict = None,
         random_seed: int = None,
+        callbacks=None,
     ):
         """Vertical split learning evaluate interface
 
@@ -597,6 +735,7 @@ class SLModel:
             verbose: Verbosity mode. 0 = silent, 1 = progress bar.
             dataset_builder: Callable function, its input is `x` or `[x, y]` if y is set, it should return dataset.
             random_seed: Seed for prgs, will only affect shuffle
+            callbacks: List of `secretflow.ml.nn.callbacks.Callback` instances.
         Returns:
             metrics: federate evaluate result
         """
@@ -619,28 +758,33 @@ class SLModel:
         )
         metrics = None
         self._workers[self.device_y].reset_metrics()
-        if verbose > 0:
-            pbar = tqdm(total=evaluate_steps)
-            pbar.set_description('Evaluate Processing:')
 
+        callbacks = CallbackList(
+            callbacks=callbacks,
+            add_history=True,
+            add_progbar=verbose != 0,
+            workers=self._workers,
+            device_y=self.device_y,
+            verbose=verbose,
+            steps=evaluate_steps,
+        )
+        callbacks.on_test_begin()
         wait_steps = min(min(self.get_cpus()) * 2, 100)
         for step in range(0, evaluate_steps):
+            callbacks.on_test_batch_begin(step)
             hiddens = {}  # driver端
             for device, worker in self._workers.items():
-                hidden = worker.base_forward(stage="eval")
+                hidden = worker.base_forward(stage="eval", step=step)
                 hiddens[device] = hidden
-            if verbose > 0:
-                pbar.update(1)
-            agg_hiddens = self.agglayer.forward(hiddens, axis=0)
+
+            agg_hiddens = self.agglayer.forward(hiddens)
 
             metrics = self._workers[self.device_y].evaluate(agg_hiddens)
             if (step + 1) % wait_steps == 0:
                 wait(metrics)
-        report_list = [f"{k}:{v}" for k, v in reveal(metrics).items()]
-        report = " ".join(report_list)
-        if verbose == 1:
-            pbar.set_postfix_str(report)
-            pbar.close()
+            callbacks.on_test_batch_end(batch=step)
+
+        callbacks.on_test_end(metrics)
         return metrics
 
     def save_model(

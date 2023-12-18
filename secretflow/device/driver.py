@@ -199,6 +199,10 @@ def wait(objects: Any):
         >>> # synchronization
         >>> sf.wait(alice(some_save_value_function_locally)(alice_value))
     """
+
+    if sfd.in_ic_mode():
+        return
+
     # TODO(@xibin.wxb): support HEUObject
     objs = [
         x
@@ -485,6 +489,7 @@ def init(
             # Simulation mode
             sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.SIMULATION)
             if local_mode:
+                # party resources is not for scheduler cpus, but set num_cpus for convenient.
                 resources = {party: num_cpus for party in parties}
             else:
                 resources = None

@@ -442,8 +442,9 @@ class SPURuntime:
         for name in flatten_names:
             shares.append(self.runtime.get_var(name))
 
-        import cloudpickle as pickle
         from pathlib import Path
+
+        import cloudpickle as pickle
 
         # create parent folders.
         file = Path(path)
@@ -1535,7 +1536,7 @@ def _generate_output_uuid():
     return f'output-{uuid.uuid4()}'
 
 
-def _spu_compile(fn, *meta_args, **meta_kwargs):
+def _spu_compile(fn, copts, *meta_args, **meta_kwargs):
     meta_args, meta_kwargs = jax.tree_util.tree_map(
         lambda x: ray.get(x) if isinstance(x, ray.ObjectRef) else x,
         (meta_args, meta_kwargs),
@@ -1562,6 +1563,9 @@ def _spu_compile(fn, *meta_args, **meta_kwargs):
             lambda output_flat: [
                 _generate_output_uuid() for _ in range(len(output_flat))
             ],
+            static_argnums=(),
+            static_argnames=None,
+            copts=copts,
         )
     except Exception:
         raise ray.exceptions.WorkerCrashedError()
@@ -1741,6 +1745,7 @@ class SPU(Device):
         static_argnames: Union[str, Iterable[str], None] = None,
         num_returns_policy: SPUCompilerNumReturnsPolicy = SPUCompilerNumReturnsPolicy.SINGLE,
         user_specified_num_returns: int = 1,
+        copts: spu_pb2.CompilerOptions = spu_pb2.CompilerOptions(),
     ):
         def wrapper(*args, **kwargs):
             # handle static_argnames of func
@@ -1762,7 +1767,7 @@ class SPU(Device):
                 sfd.remote(_spu_compile)
                 .party(self.cluster_def['nodes'][0]['party'])
                 .options(num_returns=2)
-                .remote(fn, *meta_args, **meta_kwargs)
+                .remote(fn, copts, *meta_args, **meta_kwargs)
             )
 
             if num_returns_policy == SPUCompilerNumReturnsPolicy.FROM_COMPILER:

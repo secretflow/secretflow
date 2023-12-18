@@ -59,29 +59,22 @@ prediction_bias_comp.str_attr(
 
 prediction_bias_comp.io(
     io_type=IoType.INPUT,
-    name="labels",
-    desc="Input table with labels.",
+    name="in_ds",
+    desc="Input table with prediction and label, usually is a result from a prediction component.",
     types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
     col_params=[
         TableColParam(
-            name="col",
-            desc="The column name to use in the dataset. If not provided, the label of dataset will be used by default.",
+            name="label",
+            desc="The label name to use in the dataset.",
+            col_min_cnt_inclusive=1,
             col_max_cnt_inclusive=1,
-        )
-    ],
-)
-
-prediction_bias_comp.io(
-    io_type=IoType.INPUT,
-    name="predictions",
-    desc="Input table with predictions.",
-    types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
-    col_params=[
+        ),
         TableColParam(
-            name="col",
-            desc="The column name to use in the dataset. If not provided, the label of dataset will be used by default.",
+            name="prediction",
+            desc="The prediction result cplumn name to use in the dataset.",
+            col_min_cnt_inclusive=1,
             col_max_cnt_inclusive=1,
-        )
+        ),
     ],
 )
 
@@ -199,30 +192,23 @@ def prediction_bias_eval_fn(
     bucket_num,
     min_item_cnt_per_bucket,
     bucket_method,
-    labels,
-    labels_col,
-    predictions,
-    predictions_col,
+    in_ds,
+    in_ds_label,
+    in_ds_prediction,
     result,
 ):
-    labels_data = load_table(
+    label_prediction_df = load_table(
         ctx,
-        labels,
+        in_ds,
         load_labels=True,
-        col_selects=labels_col if len(labels_col) else None,
-    )
-    predictions_data = load_table(
-        ctx,
-        predictions,
-        load_labels=True,
-        col_selects=predictions_col if len(predictions_col) else None,
+        col_selects=in_ds_label + in_ds_prediction,
     )
 
     with ctx.tracer.trace_running():
         res = reveal(
             prediction_bias_eval(
-                prediction=predictions_data,
-                label=labels_data,
+                prediction=label_prediction_df[in_ds_prediction],
+                label=label_prediction_df[in_ds_label],
                 bucket_num=bucket_num,
                 absolute=True,
                 bucket_method=bucket_method,
@@ -230,4 +216,4 @@ def prediction_bias_eval_fn(
             )
         )
 
-    return {"result": dump_report(result, labels.system_info, res)}
+    return {"result": dump_report(result, in_ds.system_info, res)}

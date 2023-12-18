@@ -24,8 +24,8 @@ import torch
 import torchmetrics
 
 from secretflow.ml.nn.fl.backend.torch.sampler import sampler_data
-from secretflow.ml.nn.utils import TorchModel
 from secretflow.ml.nn.metrics import Default, Mean, Precision, Recall
+from secretflow.ml.nn.utils import TorchModel
 from secretflow.utils.io import rows_count
 
 
@@ -40,9 +40,10 @@ class BaseTorchModel(ABC):
         self.eval_data_loader = None
         self.callbacks = None
         self.logs = None
-        self.epoch = None
+        self.training_logs = {}
+        self.epoch = []
         self.epoch_logs = None
-        self.training_logs = None
+        self.wrapped_metrics = []  # store wrapped metrics for global aggregation
         self.history = {}
         self.train_set = None
         self.eval_set = None
@@ -197,6 +198,32 @@ class BaseTorchModel(ABC):
             raise Exception(f"Illegal argument stage={stage}")
         return step_per_epoch
 
+    def next_batch(self, stage="train"):
+        if stage == "train":
+            iter_data = next(self.train_iter)
+        elif stage == "eval":
+            iter_data = next(self.eval_iter)
+        else:
+            raise Exception(f"Illegal argument stage={stage}")
+
+        if len(iter_data) == 2:
+            x, y = iter_data
+            s_w = None
+        elif len(iter_data) == 3:
+            x, y, s_w = iter_data
+        else:
+            raise ValueError(
+                f"Len of batch data must be 2 or 3 but got {len(iter_data)}"
+            )
+
+        if self.use_gpu:
+            x = x.to(self.exe_device)
+            y = y.to(self.exe_device)
+            if s_w is not None:
+                s_w = s_w.to(self.exe_device)
+
+        return x, y, s_w
+
     def get_rows_count(self, filename):
         return int(rows_count(filename=filename)) - 1  # except header line
 
@@ -210,13 +237,15 @@ class BaseTorchModel(ABC):
     def set_validation_metrics(self, global_metrics):
         self.epoch_logs.update(global_metrics)
 
-    def wrap_local_metrics(self):
+    def wrap_local_metrics(self, stage="train"):
         # TODO: use pytorch to rewrite
         wraped_metrics = []
         for m in self.metrics:
             if isinstance(m, (torchmetrics.Accuracy)):
                 tp, fp, tn, fn = map(lambda x: x.cpu(), m._get_final_stats())
                 name = m._get_name().lower()
+                name = (f"val_{name}" if stage == "val" else name,)
+
                 correct = float((tp + tn).numpy().sum())
                 total = float((tp + tn + fp + fn).numpy().sum())
 
@@ -228,7 +257,9 @@ class BaseTorchModel(ABC):
 
                 wraped_metrics.append(
                     Precision(
-                        m._get_name().lower(),
+                        f"val_{m._get_name().lower()}"
+                        if stage == "val"
+                        else m._get_name().lower(),
                         [threshold],
                         [float(tp.numpy().sum())],
                         [float(fp.numpy().sum())],
@@ -239,7 +270,9 @@ class BaseTorchModel(ABC):
                 threshold = m.threshold
                 wraped_metrics.append(
                     Recall(
-                        m._get_name().lower(),
+                        f"val_{m._get_name().lower()}"
+                        if stage == "val"
+                        else m._get_name().lower(),
                         [threshold],
                         tp.numpy().sum(),
                         fn.numpy().sum(),
@@ -250,7 +283,9 @@ class BaseTorchModel(ABC):
                 metrics_value = m.cpu().compute()
                 wraped_metrics.append(
                     Default(
-                        name=m._get_name().lower(),
+                        f"val_{m._get_name().lower()}"
+                        if stage == "val"
+                        else m._get_name().lower(),
                         total=metrics_value,
                         count=1,
                     )
@@ -271,37 +306,26 @@ class BaseTorchModel(ABC):
             m.reset()
         with torch.no_grad():
             for _ in range(evaluate_steps):
-                iter_data = next(self.eval_iter)
-                if len(iter_data) == 2:
-                    x, y = iter_data
-                    s_w = None
-                elif len(iter_data) == 3:
-                    x, y, s_w = iter_data
-                x = x.float()
-
+                x, y, s_w = self.next_batch(stage="eval")
                 # Step 1: forward pass
-                if self.use_gpu:
-                    x = x.to(self.exe_device)
-                    y = y.to(self.exe_device)
-                    if s_w is not None:
-                        s_w = s_w.to(self.exe_device)
                 y_pred = self.model(x)
 
                 # Step 2: update metrics
-                if len(y.shape) == 1:
-                    y_t = y
-                else:
-                    if y.shape[-1] == 1:
-                        y_t = torch.squeeze(y, -1).long()
-                    else:
-                        y_t = y.argmax(dim=-1)
-                y_t = y_t.to(self.exe_device)
                 for m in self.metrics:
                     m.to(self.exe_device)
-                    m.update(y_pred.cpu(), y_t.cpu())
+                    m.update(y_pred.cpu(), y.cpu())
             result = {}
             self.transform_metrics(result, stage="eval")
-        return self.wrap_local_metrics()
+        if self.logs is None:
+            self.wrapped_metrics.extend(self.wrap_local_metrics())
+            return self.wrap_local_metrics()
+        else:
+            val_result = {}
+            for k, v in result.items():
+                val_result[f"val_{k}"] = v
+            self.logs.update(val_result)
+            self.wrapped_metrics.extend(self.wrap_local_metrics(stage="val"))
+            return self.wrap_local_metrics(stage="val")
 
     def predict(
         self,
@@ -321,6 +345,18 @@ class BaseTorchModel(ABC):
             y_pred = self.model(x)
             pred_result.extend(y_pred)
         return pred_result
+
+    def _reset_data_iter(self):
+        for m in self.metrics:
+            m.reset()
+        self.train_iter = iter(self.train_set)
+
+    def get_local_metrics(self):
+        return self.wrapped_metrics
+
+    def get_logs(self):
+        print(self.logs)
+        return self.logs
 
     def init_training(self, callbacks, epochs=1, steps=0, verbose=0):
         assert self.model is not None, "model cannot be none, please give model define"
@@ -363,6 +399,10 @@ class BaseTorchModel(ABC):
 
     @abstractmethod
     def train_step(self, weights, cur_steps, train_steps, **kwargs):
+        pass
+
+    @abstractmethod
+    def apply_weights(self, weights, **kwargs):
         pass
 
     def save_model(self, model_path: str):

@@ -22,6 +22,7 @@ from . import (
     preprocessing,
     security,
     utils,
+    ic,
 )
 from .device import (
     HEU,
@@ -50,6 +51,7 @@ __all__ = [
     'preprocessing',
     'security',
     'utils',
+    'ic',
     'HEU',
     'PYU',
     'SPU',

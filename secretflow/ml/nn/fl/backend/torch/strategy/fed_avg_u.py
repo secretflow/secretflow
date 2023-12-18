@@ -15,7 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import copy
 from typing import Tuple
 
@@ -50,6 +49,9 @@ class FedAvgU(BaseTorchModel):
         Returns:
             Parameters after local training
         """
+        refresh_data = kwargs.get("refresh_data", False)
+        if refresh_data:
+            self._reset_data_iter()
         dp_strategy = kwargs.get('dp_strategy', None)
         if updates is not None:
             weights = [np.add(w, u) for w, u in zip(self.get_weights(), updates)]
@@ -60,22 +62,9 @@ class FedAvgU(BaseTorchModel):
         model_weights = self.get_weights()
         for _ in range(train_steps):
             self.optimizer.zero_grad()
-            iter_data = next(self.train_iter)
-            if len(iter_data) == 2:
-                x, y = iter_data
-                s_w = None
-            elif len(iter_data) == 3:
-                x, y, s_w = iter_data
+
+            x, y, s_w = self.next_batch()
             num_sample += x.shape[0]
-
-            y_t = y.argmax(dim=-1)
-
-            if self.use_gpu:
-                x = x.to(self.exe_device)
-                y_t = y_t.to(self.exe_device)
-                if s_w is not None:
-                    s_w = s_w.to(self.exe_device)
-
             y_pred = self.model(x)
 
             # do back propagation
@@ -83,9 +72,10 @@ class FedAvgU(BaseTorchModel):
             loss.backward()
             self.optimizer.step()
             for m in self.metrics:
-                m.update(y_pred.cpu(), y_t.cpu())
+                m.update(y_pred.cpu(), y.cpu())
         loss = loss.item()
         logs['train-loss'] = loss
+        self.wrapped_metrics.extend(self.wrap_local_metrics())
         self.logs = self.transform_metrics(logs)
         self.epoch_logs = copy.deepcopy(self.logs)
 
@@ -100,6 +90,16 @@ class FedAvgU(BaseTorchModel):
                 client_updates = dp_strategy.model_gdp(client_updates)
 
         return client_updates, num_sample
+
+    def apply_weights(self, updates, **kwargs):
+        """Accept ps model params, then apply to local model
+
+        Args:
+            updates: global updates from params server
+        """
+        if updates is not None:
+            weights = [np.add(w, u) for w, u in zip(self.get_weights(), updates)]
+            self.set_weights(weights)
 
 
 @register_strategy(strategy_name='fed_avg_u', backend='torch')

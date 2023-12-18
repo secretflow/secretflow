@@ -285,7 +285,7 @@ class CustomSLModel:
             verbose: 0, 1. Verbosity mode
             callbacks: List of Callback or Dict[device, Callback]. Callback can be:
             - `keras.callbacks.Callback` for tensorflow backend
-            - `secretflow.ml.nn.sl.backend.torch.callback.Callback` for torch backend
+            - `from secretflow.ml.nn.callbacks.callback.Callback` for torch backend
             validation_data: Data on which to validate
             shuffle: Whether shuffle dataset or not
             validation_freq: specifies how many training epochs to run before a new validation run is performed

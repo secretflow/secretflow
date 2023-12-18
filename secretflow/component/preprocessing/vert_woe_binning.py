@@ -24,8 +24,13 @@ from secretflow.component.component import (
 from secretflow.component.data_utils import (
     DistDataType,
     extract_table_header,
+    generate_random_string,
     load_table,
     model_dumps,
+)
+from secretflow.component.preprocessing.vert_binning import (
+    BINNING_RULE_MAX_MAJOR_VERSION,
+    BINNING_RULE_MAX_MINOR_VERSION,
 )
 from secretflow.device.device.heu import HEU
 from secretflow.device.device.spu import SPU
@@ -101,15 +106,6 @@ vert_woe_binning_comp.float_attr(
     upper_bound=1,
     upper_bound_inclusive=True,
 )
-
-vert_woe_binning_comp.bool_attr(
-    name="select_all_features",
-    desc="Select all features for binning.",
-    is_list=False,
-    is_optional=True,
-    default_value=False,
-)
-
 vert_woe_binning_comp.io(
     io_type=IoType.INPUT,
     name="input_data",
@@ -125,6 +121,7 @@ vert_woe_binning_comp.io(
             name="label",
             desc="Label of input data.",
             col_min_cnt_inclusive=1,
+            col_max_cnt_inclusive=1,
         ),
     ],
 )
@@ -135,10 +132,6 @@ vert_woe_binning_comp.io(
     types=[DistDataType.BIN_RUNNING_RULE],
     col_params=None,
 )
-
-# current version 0.1
-MODEL_MAX_MAJOR_VERSION = 0
-MODEL_MAX_MINOR_VERSION = 1
 
 
 @vert_woe_binning_comp.eval_fn
@@ -152,36 +145,18 @@ def vert_woe_binning_eval_fn(
     chimerge_init_bins,
     chimerge_target_bins,
     chimerge_target_pvalue,
-    select_all_features,
     input_data,
     input_data_feature_selects,
     input_data_label,
     bin_rule,
 ):
-    assert (
-        select_all_features or len(input_data_feature_selects) > 0
-    ), "select at least one feature"
-    if select_all_features:
-        input_df = load_table(
-            ctx,
-            input_data,
-            load_features=True,
-            load_labels=True,
-        )
-        input_data_feature_selects = input_df.columns
-        input_data_feature_selects = [
-            feature_name
-            for feature_name in input_data_feature_selects
-            if feature_name != input_data_label
-        ]
-    else:
-        input_df = load_table(
-            ctx,
-            input_data,
-            load_features=True,
-            col_selects=input_data_feature_selects + input_data_label,
-            load_labels=True,
-        )
+    input_df = load_table(
+        ctx,
+        input_data,
+        load_features=True,
+        col_selects=input_data_feature_selects + input_data_label,
+        load_labels=True,
+    )
 
     label_info = extract_table_header(
         input_data, load_features=True, load_labels=True, col_selects=input_data_label
@@ -239,12 +214,13 @@ def vert_woe_binning_eval_fn(
         model_dist_data = model_dumps(
             "bin_rule",
             DistDataType.BIN_RUNNING_RULE,
-            MODEL_MAX_MAJOR_VERSION,
-            MODEL_MAX_MINOR_VERSION,
+            BINNING_RULE_MAX_MAJOR_VERSION,
+            BINNING_RULE_MAX_MINOR_VERSION,
             [o for o in rules.values()],
             {
                 "input_data_feature_selects": input_data_feature_selects,
                 "input_data_label": input_data_label[0],
+                "model_hash": generate_random_string(next(iter(rules.keys()))),
             },
             ctx.local_fs_wd,
             bin_rule,

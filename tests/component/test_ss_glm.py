@@ -4,18 +4,19 @@ import pandas as pd
 from sklearn.datasets import load_breast_cancer
 from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import StandardScaler
+from tests.conftest import TEST_STORAGE_ROOT
 
 from secretflow.component.ml.linear.ss_glm import ss_glm_predict_comp, ss_glm_train_comp
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
-from tests.conftest import TEST_STORAGE_ROOT
 
 
 def test_glm(comp_prod_sf_cluster_config):
     alice_path = "test_glm/x_alice.csv"
     bob_path = "test_glm/x_bob.csv"
     model_path = "test_glm/model.sf"
+    report_path = "test_glm/model.report"
     predict_path = "test_glm/predict.csv"
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
@@ -55,7 +56,12 @@ def test_glm(comp_prod_sf_cluster_config):
             "link_type",
             "label_dist_type",
             "optimizer",
+            "l2_lambda",
+            "report_weights",
             "input/train_dataset/label",
+            "input/train_dataset/feature_selects",
+            "input/train_dataset/offset",
+            "input/train_dataset/weight",
         ],
         attrs=[
             Attribute(i64=3),
@@ -64,7 +70,12 @@ def test_glm(comp_prod_sf_cluster_config):
             Attribute(s="Logit"),
             Attribute(s="Bernoulli"),
             Attribute(s="SGD"),
+            Attribute(f=0.3),
+            Attribute(b=True),
             Attribute(ss=["y"]),
+            Attribute(ss=[f"a{i}" for i in range(15)] + [f"b{i}" for i in range(15)]),
+            Attribute(ss=[]),
+            Attribute(ss=[]),
         ],
         inputs=[
             DistData(
@@ -76,7 +87,7 @@ def test_glm(comp_prod_sf_cluster_config):
                 ],
             ),
         ],
-        output_uris=[model_path],
+        output_uris=[model_path, report_path],
     )
 
     meta = VerticalTable(

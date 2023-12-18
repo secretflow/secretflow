@@ -35,27 +35,27 @@ train_test_split_comp = Component(
 
 train_test_split_comp.float_attr(
     name="train_size",
-    desc="Proportion of the dataset to include in the train subset.",
+    desc="Proportion of the dataset to include in the train subset. The sum of test_size and train_size should be in the (0, 1] range.",
     is_list=False,
     is_optional=True,
     default_value=0.75,
     allowed_values=None,
     lower_bound=0.0,
     upper_bound=1.0,
-    lower_bound_inclusive=True,
-    upper_bound_inclusive=True,
+    lower_bound_inclusive=False,
+    upper_bound_inclusive=False,
 )
 train_test_split_comp.float_attr(
     name="test_size",
-    desc="Proportion of the dataset to include in the test subset.",
+    desc="Proportion of the dataset to include in the test subset. The sum of test_size and train_size should be in the (0, 1] range.",
     is_list=False,
     is_optional=True,
     default_value=0.25,
     allowed_values=None,
     lower_bound=0.0,
     upper_bound=1.0,
-    lower_bound_inclusive=True,
-    upper_bound_inclusive=True,
+    lower_bound_inclusive=False,
+    upper_bound_inclusive=False,
 )
 train_test_split_comp.int_attr(
     name="random_state",

@@ -16,13 +16,12 @@ from secretflow.data import partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.preprocessing.base import _PreprocessBase
 
-# comparator is one of [EQ, LT, LE, GT, GE, IN]
 comparator_mapping = {
-    'EQ': lambda x, y: x == y,
-    'LT': lambda x, y: x < y,
-    'LE': lambda x, y: x <= y,
-    'GT': lambda x, y: x > y,
-    'GE': lambda x, y: x >= y,
+    '==': lambda x, y: x == y,
+    '<': lambda x, y: x < y,
+    '<=': lambda x, y: x <= y,
+    '>': lambda x, y: x > y,
+    '>=': lambda x, y: x >= y,
     'IN': lambda x, y: x.isin(y),
 }
 
@@ -84,7 +83,7 @@ class ConditionFilter(_PreprocessBase):
         # Apply the condition filter on the DataFrame
         condition_func = comparator_mapping[self.comparator]
         if self.value_type == 'FLOAT' and self.float_epsilon > 0:
-            if self.comparator == 'EQ':
+            if self.comparator == '==':
                 condition_func = series_close_producer(self.float_epsilon)
             elif self.comparator == 'IN':
                 condition_func = series_float_isin_producer(self.float_epsilon)
@@ -135,7 +134,7 @@ class ConditionFilter(_PreprocessBase):
 
 def series_close_producer(epsilon=1e-6):
     def series_close(x, y):
-        return (x - y).abs() < epsilon
+        return (x - y).abs() <= epsilon
 
     return series_close
 

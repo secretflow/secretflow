@@ -111,6 +111,8 @@ class SGBParams:
         range [0, 1]
     'tree_growing_method': how to grow tree?
         default: level-wise
+    'enable_packbits': bool. if true, turn on packbits transmission.
+        default: False
     """
 
     # security or encryption related params
@@ -142,6 +144,7 @@ class SGBParams:
     early_stop_criterion_g_abs_sum: float = 0.0
     early_stop_criterion_g_abs_sum_change_ratio: float = 0.0
     tree_growing_method: TreeGrowingMethod = TreeGrowingMethod.LEVEL
+    enable_packbits: bool = False
 
 
 default_params = SGBParams()

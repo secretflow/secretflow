@@ -20,7 +20,7 @@
 
 """
 import copy
-from typing import List, Union
+from typing import List, Union, Optional
 
 import torch
 
@@ -31,13 +31,15 @@ from secretflow.utils.communicate import ForwardData
 
 
 class SLTorchModel(SLBaseTorchModel):
-    def base_forward(self, stage="train") -> ForwardData:
+    def base_forward(self, stage="train", step=0, **kwargs) -> Optional[ForwardData]:
         """compute hidden embedding
         Args:
             stage: Which stage of the base forward
         Returns: hidden embedding
         """
 
+        if step == 0:
+            self._reset_data_iter(stage=stage)
         data_x = self.get_batch_data(stage=stage)
         if not self.model_base:
             return None
@@ -130,7 +132,7 @@ class SLTorchModel(SLBaseTorchModel):
             logs,
         )
         for m in self.metrics_fuse:
-            logs['train_' + m.__class__.__name__] = m.compute()
+            logs['train_' + m.__class__.__name__] = m.compute().numpy()
         self.logs = copy.deepcopy(logs)
 
         return gradient

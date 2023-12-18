@@ -22,6 +22,8 @@ from .primitive import (
     get_distribution_mode,
     get_current_cluster_idx,
     active_sf_cluster,
+    in_ic_mode,
+    get_cluster_avaliable_resources,
 )
 
 __all__ = [
@@ -33,4 +35,6 @@ __all__ = [
     'get_distribution_mode',
     'get_current_cluster_idx',
     'active_sf_cluster',
+    'in_ic_mode',
+    'get_cluster_avaliable_resources',
 ]

@@ -23,7 +23,7 @@ import torch.optim as optim
 from torchvision.transforms import Normalize
 from model_stylegan2 import Generator
 
-from secretflow.ml.nn.sl.backend.torch.callback import Callback
+from secretflow.ml.nn.callbacks.callback import Callback
 
 
 class DeNormalize(torch.nn.Module):

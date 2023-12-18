@@ -342,32 +342,22 @@ class AggLayer(object):
     def forward(
         self,
         data: Dict[PYU, DeviceObject],
-        axis=0,
-        weights=None,
     ) -> DeviceObject:
         """Forward aggregate the embeddings calculated by all parties according to the agg_method
 
         Args:
             data: A dict contain PYU and ForwardData
-            axis: Along which axis will the merge be done, default 0
-            weights: weight of each side, default to be none
         Returns:
             agg_data_tensor: return aggregated result in tensor type
         """
         assert data, 'Data to aggregate should not be None or empty!'
         if self.agg_method:
             server_data = self.collect(data)
-            if isinstance(weights, (list, tuple)):
-                weights = [
-                    w.to(self.device_agg) if isinstance(w, DeviceObject) else w
-                    for w in weights
-                ]
             self.hiddens = server_data
             # agg hiddens
             agg_hiddens = self.device_agg(
                 self.agg_method.forward,
-                static_argnames="axis",
-            )(*server_data, axis=axis, weights=weights)
+            )(*server_data)
 
             # send to device y
             agg_hiddens = agg_hiddens.to(self.device_y)
@@ -418,13 +408,11 @@ class AggLayer(object):
     def backward(
         self,
         gradient: DeviceObject,
-        weights=None,
     ) -> Dict[PYU, DeviceObject]:
         """Backward split the gradients to all parties according to the agg_method
 
         Args:
             gradient: Gradient, tensor format calculated from fusenet
-            weights: Weights of each side, default to be none
         Returns:
             scatter_gragient: Return gradients computed following the agg_method.backward and send to each parties
         """
@@ -442,11 +430,6 @@ class AggLayer(object):
             if isinstance(gradient, DeviceObject):
                 gradient = gradient.to(self.device_agg)
 
-            if isinstance(weights, (Tuple, List)):
-                weights = [
-                    w.to(self.device_agg) if isinstance(w, DeviceObject) else w
-                    for w in weights
-                ]
             # convert to numpy
             gradient_numpy = self.device_agg(self.convert_to_ndarray)(gradient)
             if isinstance(gradient_numpy, DeviceObject):
@@ -460,7 +443,6 @@ class AggLayer(object):
                     user_specified_num_returns=len(self.parties),
                 )(
                     *gradient_numpy,
-                    weights=weights,
                     inputs=self.hiddens,
                     parties_num=len(self.parties),
                 )
@@ -470,7 +452,6 @@ class AggLayer(object):
                     num_returns=len(self.parties),
                 )(
                     *gradient_numpy,
-                    weights=weights,
                     inputs=self.hiddens,
                     parties_num=len(self.parties),
                 )

@@ -14,6 +14,7 @@
 
 import json
 import os
+from typing import List, Tuple
 
 from secretflow.component.component import (
     CompEvalError,
@@ -127,11 +128,16 @@ ss_sgd_train_comp.io(
     types=[DistDataType.VERTICAL_TABLE],
     col_params=[
         TableColParam(
+            name="feature_selects",
+            desc="which features should be used for training.",
+            col_min_cnt_inclusive=1,
+        ),
+        TableColParam(
             name="label",
             desc="Label of train dataset.",
             col_min_cnt_inclusive=1,
             col_max_cnt_inclusive=1,
-        )
+        ),
     ],
 )
 ss_sgd_train_comp.io(
@@ -161,6 +167,7 @@ def ss_sgd_train_eval_fn(
     train_dataset,
     train_dataset_label,
     output_model,
+    train_dataset_feature_selects,
 ):
     # only local fs is supported at this moment.
     local_fs_wd = ctx.local_fs_wd
@@ -175,6 +182,10 @@ def ss_sgd_train_eval_fn(
 
     reg = SSRegression(spu)
 
+    assert (
+        train_dataset_label[0] not in train_dataset_feature_selects
+    ), f"col {train_dataset_label[0]} used in both label and features"
+
     y = load_table(
         ctx,
         train_dataset,
@@ -182,12 +193,12 @@ def ss_sgd_train_eval_fn(
         load_features=True,
         col_selects=train_dataset_label,
     )
+
     x = load_table(
         ctx,
         train_dataset,
-        load_labels=True,
         load_features=True,
-        col_excludes=train_dataset_label,
+        col_selects=train_dataset_feature_selects,
     )
 
     with ctx.tracer.trace_running():
@@ -206,7 +217,12 @@ def ss_sgd_train_eval_fn(
 
     model = reg.save_model()
 
-    model_meta = {"reg_type": model.reg_type.value, "sig_type": model.sig_type.value}
+    model_meta = {
+        "reg_type": model.reg_type.value,
+        "sig_type": model.sig_type.value,
+        "feature_selects": x.columns,
+        "label_col": train_dataset_label,
+    }
 
     model_db = model_dumps(
         "ss_sgd",
@@ -260,7 +276,7 @@ ss_sgd_predict_comp.bool_attr(
     ),
     is_list=False,
     is_optional=True,
-    default_value=False,
+    default_value=True,
 )
 ss_sgd_predict_comp.bool_attr(
     name="save_label",
@@ -294,7 +310,7 @@ ss_sgd_predict_comp.io(
 )
 
 
-def load_ss_sgd_model(ctx, spu, model) -> LinearModel:
+def load_ss_sgd_model(ctx, spu, model) -> Tuple[LinearModel, List[str]]:
     model_objs, model_meta_str = model_loads(
         model,
         MODEL_MAX_MAJOR_VERSION,
@@ -320,7 +336,7 @@ def load_ss_sgd_model(ctx, spu, model) -> LinearModel:
         sig_type=SigType(model_meta["sig_type"]),
     )
 
-    return model
+    return model, model_meta
 
 
 @ss_sgd_predict_comp.eval_fn
@@ -344,12 +360,17 @@ def ss_sgd_predict_eval_fn(
 
     spu = SPU(spu_config["cluster_def"], spu_config["link_desc"])
 
-    model = load_ss_sgd_model(ctx, spu, model)
+    model, model_meta = load_ss_sgd_model(ctx, spu, model)
 
     reg = SSRegression(spu)
     reg.load_model(model)
 
-    x = load_table(ctx, feature_dataset, load_features=True)
+    x = load_table(
+        ctx,
+        feature_dataset,
+        load_features=True,
+        col_selects=model_meta["feature_selects"],
+    )
 
     with ctx.tracer.trace_running():
         pyu = PYU(receiver)
@@ -374,9 +395,20 @@ def ss_sgd_predict_eval_fn(
             id_data = None
 
         if save_label:
-            label_df = load_table(ctx, feature_dataset, load_labels=True)
+            label_df = load_table(
+                ctx,
+                feature_dataset,
+                load_features=True,
+                load_labels=True,
+                col_selects=model_meta['label_col'],
+            )
             assert pyu in label_df.partitions
-            label_header_map = extract_table_header(feature_dataset, load_labels=True)
+            label_header_map = extract_table_header(
+                feature_dataset,
+                load_features=True,
+                load_labels=True,
+                col_selects=model_meta['label_col'],
+            )
             assert receiver in label_header_map
             label_header = list(label_header_map[receiver].keys())
             label_data = label_df.partitions[pyu].data

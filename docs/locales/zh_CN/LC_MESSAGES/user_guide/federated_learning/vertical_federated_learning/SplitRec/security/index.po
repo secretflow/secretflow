@@ -25,3 +25,4 @@ msgid ""
 "We provide attack algorithms such as label inference attack and feature "
 "inference attack. The specific user manuals are as follows:"
 msgstr "我们提供了标签推理攻击、特征推理攻击等攻击算法，具体使用手册如下"
+

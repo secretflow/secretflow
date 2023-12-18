@@ -13,18 +13,18 @@ jobs:
     # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
     # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
     docker:
-      - image: registry.hub.docker.com/secretflow/ubuntu-base-ci:0.4
+      - image: secretflow/ubuntu-base-ci:latest
     resource_class: 2xlarge+
+    shell: /bin/bash --login -eo pipefail
     # Add steps to the job
     # See: https://circleci.com/docs/2.0/configuration-reference/#steps
-    shell: /bin/bash --login -eo pipefail
     steps:
        # Kill the whole ci after 1hr
       - run:
           name: Cancel build after set time
           background: true
           command: |
-            sleep 3600
+            sleep 7200
             echo "Canceling workflow as too much time has elapsed"
             curl -X POST --header "Content-Type: application/json" "https://circleci.com/api/v2/workflow/${CIRCLE_WORKFLOW_ID}/cancel?circle-token=${BUILD_TIMER_TOKEN}"
       - checkout
@@ -37,6 +37,7 @@ jobs:
       - run:
           name: "Install python deps"
           command: |
+            source ~/miniconda3/bin/activate py3.8
             sed -i "s/tensorflow==/tensorflow-cpu==/g" requirements.txt
             pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
             pip install -r dev-requirements.txt
@@ -44,6 +45,7 @@ jobs:
       - run:
           name: "unit test"
           command: |
+            source ~/miniconda3/bin/activate py3.8
             bazel build //secretflow_lib/binding/...
             cp bazel-bin/secretflow_lib/binding/_lib.so secretflow/security/privacy/
             pytest --testmon --env prod -n auto --junitxml=results.xml -v --capture=no --cov=secretflow/ --cov-report=xml:coverage.xml tests/
@@ -67,39 +69,43 @@ jobs:
     resource_class: macos.m1.large.gen1
     steps:
       - checkout
-      - run:
-          name: "Install homebrew dependencies"
-          command: |
-            brew install bazel cmake ninja libomp wget
-            (cd /opt/homebrew/Cellar/bazel/*.*.*/libexec/bin && curl -fLO https://github.com/bazelbuild/bazel/releases/download/5.4.1/bazel-5.4.1-darwin-arm64 && chmod +x bazel-5.4.1-darwin-arm64)
-      - run:
-          name: "Install Miniconda"
-          command: |
-            wget https://repo.anaconda.com/miniconda/Miniconda3-py38_23.1.0-1-MacOSX-arm64.sh -O ~/miniconda.sh
-            bash ~/miniconda.sh -b -p $HOME/miniconda
-            source $HOME/miniconda/bin/activate
-            conda init bash zsh
-            conda install grpcio onnx -y
-            pip install -r requirements.txt
-            pip install -r dev-requirements.txt
-            pip install onnx==1.13.1 protobuf==3.20.3
-      - restore_cache:
-          name: Restore pytest testmondata
-          key: testmondata-{{ arch }}-{{ .Branch }}-
-      - run:
-          name: "build and test"
-          command: |
-            set -ex
-            bazel build //secretflow_lib/binding/...
-            cp bazel-bin/secretflow_lib/binding/_lib.so secretflow/security/privacy/
-            pytest --testmon --env prod -n auto --junitxml=results.xml -v --capture=no --cov=secretflow/ --cov-report=xml:coverage.xml tests/
-      - save_cache:
-          key: testmondata-{{ arch }}-{{ .Branch }}-{{ .Revision }}
-          paths:
-            - .testmondata
-          when: always
-      - store_test_results:
-          path: ./results.xml
+      - when:
+          condition:
+            equal: [ main, << pipeline.git.branch >> ]
+          steps:
+            - run:
+                name: "Install homebrew dependencies"
+                command: |
+                  brew install bazel cmake ninja libomp wget
+                  (cd /opt/homebrew/Cellar/bazel/*.*.*/libexec/bin && curl -fLO https://github.com/bazelbuild/bazel/releases/download/5.4.1/bazel-5.4.1-darwin-arm64 && chmod +x bazel-5.4.1-darwin-arm64)
+            - run:
+                name: "Install Miniconda"
+                command: |
+                  wget https://repo.anaconda.com/miniconda/Miniconda3-py38_23.1.0-1-MacOSX-arm64.sh -O ~/miniconda.sh
+                  bash ~/miniconda.sh -b -p $HOME/miniconda
+                  source $HOME/miniconda/bin/activate
+                  conda init bash zsh
+                  conda install grpcio onnx -y
+                  pip install -r requirements.txt
+                  pip install -r dev-requirements.txt
+                  pip install onnx==1.13.1 protobuf==3.20.3
+            - restore_cache:
+                name: Restore pytest testmondata
+                key: testmondata-{{ arch }}-{{ .Branch }}-
+            - run:
+                name: "build and test"
+                command: |
+                  set -ex
+                  bazel build //secretflow_lib/binding/...
+                  cp bazel-bin/secretflow_lib/binding/_lib.so secretflow/security/privacy/
+                  pytest --testmon --env prod -n auto --junitxml=results.xml -v --capture=no --cov=secretflow/ --cov-report=xml:coverage.xml tests/
+            - save_cache:
+                key: testmondata-{{ arch }}-{{ .Branch }}-{{ .Revision }}
+                paths:
+                  - .testmondata
+                when: always
+            - store_test_results:
+                path: ./results.xml
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:

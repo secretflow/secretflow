@@ -6,8 +6,7 @@ SecretFlow uses Ray as its distributed framework. A Ray cluster consists of a he
 
 ## Deploy based on Kuscia
 
-Kuscia is a lightweight privacy-preserving computing task orchestration framework based on K3s.
-It provides a unified privacy-preserving computing foundation that can abstract away heterogeneous infrastructure and protocols.
+Kuscia is a lightweight privacy-preserving computing task orchestration framework based on K3s. It provides a unified privacy-preserving computing foundation that can abstract away heterogeneous infrastructure and protocols.
 
 With Kuscia, you can easily manage and execute SecretFlow jobs through kubectl commands or apis without paying attention to the details of SecretFlow networking.
 In addition, Kuscia supports communication security and running SecretFlow jobs concurrently.
@@ -632,7 +631,7 @@ sf.init(address='alice ray head node address', cluster_config=cluster_config)
 ray start --head --node-ip-address="ip" --port="port" --include-dashboard=False --disable-usage-stats
 ```
 Head node starts successfully if you see "Ray runtime started." in the screen output. 
-So far, Alice's Ray cluster has been successfully built.
+So far, bob's Ray cluster has been successfully built.
 
 
 Then `bob` initializes SecretFlow with a cluster config almost same as `alice` except for `self_party` and ray address and runs the code.
