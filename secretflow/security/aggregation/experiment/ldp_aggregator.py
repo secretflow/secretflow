@@ -93,17 +93,16 @@ class LDPAggregator(Aggregator):
                 results = []
                 client_num = len(data)
                 for j in range(client_num):
-                    # print(j)
-                    # data_list=data[j]
+
                     delta = math.exp(-3)
                     epsilon = [80, 80, 40, 40, 30, 30]  ##卷积层不加噪，后三层加噪
                     data_list_l = data[j][:4]
                     data_list_r = data[j][4:]
                     for i in range(len(data_list_r)):
                         sigma = math.sqrt(2 * math.log(1.25 / delta)) / epsilon[i]
-                        # print("sigma:", sigma)
+
                         noise = np.random.normal(0, sigma, data_list_r[i].shape)
-                        # add_noise_data[i]=data_list_r[i] + noise
+
                         data_list_r[i] = data_list_r[i] + noise
                     data_list = data_list_l + data_list_r
                     client_list.append(data_list)

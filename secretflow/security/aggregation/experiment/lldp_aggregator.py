@@ -105,15 +105,14 @@ class LLDPAggregator(Aggregator):
                 results = []
                 client_num = len(data)
                 for j in range(client_num):
-                    # print(j)
-                    # data_list=data[j]
+
                     delta = math.exp(-3)
                     epsilon = [80, 80, 40, 40, 30, 30]  ##卷积层不加噪，后三层加噪
                     data_list_l = data[j][:4]
                     data_list_r = data[j][4:]
                     sensitivity = getSensitivity(data_list_r)
                     sigma = math.sqrt(2 * math.log(1.25 / delta)) / 28
-                    # print("sigma:", sigma)
+
                     noise = np.random.normal(0, sigma, 1622986)
                     add_noise_data = [0] * 6
                     index = 0
