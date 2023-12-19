@@ -66,21 +66,21 @@ class SLAsyncTFModel(SLBaseTFModel):
                 h = self.embedding_dp(h)
         return h
 
-    def base_backward(self, gradient):
+    def base_backward(self):
         """backward on fusenet
 
         Args:
             gradient: gradient of fusenet hidden layer
         """
-
+        gradient = self._gradient
         for local_step in range(self.base_local_steps):
             return_hiddens = []
             with self.tape:
-                if local_step == 0 and self.h is not None:
-                    h = self.h
+                if local_step == 0 and self._h is not None:
+                    h = self._h
                 else:
                     h = self._base_forward_internal(
-                        self.data_x,
+                        self._data_x,
                         use_dp=False,
                         training=True,  # backward will only in training procedure
                     )
@@ -99,12 +99,12 @@ class SLAsyncTFModel(SLBaseTFModel):
 
         # clear intermediate results
         self.tape = None
-        self.h = None
-        self.data_x = None
+        self._h = None
+        self._data_x = None
         self.kwargs = {}
 
     def _fuse_net_train(self, hiddens, losses=[]):
-        self.hiddens = copy.deepcopy(hiddens)
+        self._hiddens = copy.deepcopy(hiddens)
         return self._fuse_net_async_internal(
             hiddens,
             losses,
@@ -164,7 +164,7 @@ class SLAsyncTFModel(SLBaseTFModel):
                     hidden_layer_gradients = [
                         grad + bound_param * (layer_var - h)
                         for grad, layer_var, h in zip(
-                            hidden_layer_gradients, hiddens, self.hiddens
+                            hidden_layer_gradients, hiddens, self._hiddens
                         )
                     ]
                 hiddens = [

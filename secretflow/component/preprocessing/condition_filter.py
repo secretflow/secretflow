@@ -58,9 +58,10 @@ condition_filter_comp.float_attr(
     name="float_epsilon",
     desc="Epsilon value for floating point comparison. WARNING: due to floating point representation in computers, set this number slightly larger if you want filter out the values exactly at desired boundary. for example, abs(1.001 - 1.002) is slightly larger than 0.001, and therefore may not be filter out using == and epsilson = 0.001",
     is_list=False,
-    is_optional=False,
+    is_optional=True,
     lower_bound=0,
     lower_bound_inclusive=True,
+    default_value=0.000001,
 )
 
 condition_filter_comp.io(

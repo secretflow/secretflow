@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from dataclasses import dataclass
-from typing import Tuple, Union, List
+from typing import List, Tuple, Union
 
 import numpy as np
 

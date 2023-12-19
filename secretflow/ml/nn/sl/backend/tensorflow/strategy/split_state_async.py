@@ -90,6 +90,7 @@ class SLStateAsyncTFModel(SLBaseTFModel):
 
             # Step 1: forward pass
             y_pred = self.model_fuse(hiddens, training=True, **self.kwargs)
+
             # Step 2: loss calculation, the loss function is configured in `compile()`.
             loss = self.model_fuse.compiled_loss(
                 train_y,
@@ -97,7 +98,7 @@ class SLStateAsyncTFModel(SLBaseTFModel):
                 sample_weight=train_sample_weight,
                 regularization_losses=self.model_fuse.losses + losses,
             )
-
+        self._pred_y = y_pred
         # Step3: compute gradients
         trainable_vars = self.model_fuse.trainable_variables
         gradients = tape.gradient(loss, trainable_vars)

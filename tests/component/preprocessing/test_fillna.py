@@ -3,9 +3,10 @@ import os
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from secretflow.component.data_utils import DistDataType
-from secretflow.component.preprocessing.fillna import fillna
+from secretflow.component.preprocessing.fillna import fillna, SUPPORTED_FILL_NA_METHOD
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
@@ -13,7 +14,8 @@ from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from tests.conftest import TEST_STORAGE_ROOT
 
 
-def test_fillna(comp_prod_sf_cluster_config):
+@pytest.mark.parametrize("strategy", SUPPORTED_FILL_NA_METHOD)
+def test_fillna(comp_prod_sf_cluster_config, strategy):
     alice_input_path = "test_fillna/alice.csv"
     bob_input_path = "test_fillna/bob.csv"
     rule_path = "test_fillna/fillna.rule"
@@ -72,7 +74,7 @@ def test_fillna(comp_prod_sf_cluster_config):
             'input/input_dataset/fill_na_features',
         ],
         attrs=[
-            Attribute(s="constant"),
+            Attribute(s=strategy),
             Attribute(f=99.0),
             Attribute(ss=["a2", "b4", "b5"]),
         ],

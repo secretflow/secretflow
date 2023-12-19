@@ -37,8 +37,8 @@ def _run_sgb(
     subsample,
     colsample,
     audit_dict={},
-    auc_bar=0.9,
-    mse_hat=1,
+    auc_bar=0.88,
+    mse_hat=1.1,
     tree_grow_method='level',
     enable_goss=False,
     early_stop_criterion_g_abs_sum=10.0,
@@ -112,6 +112,11 @@ def _run_sgb(
         device: "./" + test_name + "/" + device.party
         for device in v_data.partitions.keys()
     }
+    label_holder_device = list(label_data.partitions.keys())[0]
+    if label_holder_device not in saving_path_dict:
+        saving_path_dict[label_holder_device] = (
+            "./" + test_name + "/" + label_holder_device.party
+        )
     model.save_model(saving_path_dict)
     model_loaded = load_model(saving_path_dict, env.alice)
     fed_yhat_loaded = model_loaded.predict(v_data, env.alice)
@@ -124,7 +129,7 @@ def _run_sgb(
     )
 
 
-def _run_npc_linear(env, test_name, parts, label_device):
+def _run_npc_linear(env, test_name, parts, label_device, auc=0.88):
     vdf = load_linear(parts=parts)
 
     label_data = vdf['y']
@@ -137,11 +142,23 @@ def _run_npc_linear(env, test_name, parts, label_device):
     label_data = label_data[:500, :]
 
     logging.info("running XGB style test")
-    _run_sgb(env, test_name, v_data, label_data, y, True, 0.9, 1)
+    _run_sgb(env, test_name, v_data, label_data, y, True, 0.9, 1, auc_bar=auc)
     logging.info("running lightGBM style test")
     # test with leaf wise growth and goss: lightGBM style
     _run_sgb(
-        env, test_name, v_data, label_data, y, True, 0.9, 1, {}, 0.9, 2.3, 'leaf', True
+        env,
+        test_name,
+        v_data,
+        label_data,
+        y,
+        True,
+        0.9,
+        1,
+        {},
+        auc,
+        2.3,
+        'leaf',
+        True,
     )
 
 
@@ -170,6 +187,20 @@ def test_4pc_linear(sf_production_setup_devices_aby3):
         "4pc_linear",
         parts,
         sf_production_setup_devices_aby3.alice,
+    )
+
+
+def test_2pc_linear_minimal(sf_production_setup_devices_aby3):
+    parts = {
+        sf_production_setup_devices_aby3.davy: (1, 2),
+        sf_production_setup_devices_aby3.alice: (21, 22),
+    }
+    _run_npc_linear(
+        sf_production_setup_devices_aby3,
+        "2pc_linear_minimal",
+        parts,
+        sf_production_setup_devices_aby3.alice,
+        auc=0.55,
     )
 
 

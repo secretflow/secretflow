@@ -54,7 +54,7 @@ class SLBaseTFModel(SLBaseModel):
         self.eval_set = None
         self.valid_set = None
         self.tape = None
-        self.h = None
+        self._h = None
         self.train_x, self.train_y = None, None
         self.eval_x, self.eval_y = None, None
         self.kwargs = {}
@@ -68,8 +68,13 @@ class SLBaseTFModel(SLBaseModel):
         self.eval_sample_weight = None
         self.fuse_callbacks = None
         self.predict_callbacks = None
+        self._data_x = None
+        self._gradient = None
+        self._training = True
+        self._pre_train_y = []
         # record training status
         self.logs = None
+        self._pred_y = None
         self.steps_per_epoch = None
         self.skip_gradient = False
         if random_seed is not None:
@@ -294,7 +299,7 @@ class SLBaseTFModel(SLBaseModel):
     def build_dataset_from_csv(
         self,
         file_path: str,
-        label: str = None,
+        label: Optional[str] = None,
         s_w: Optional[np.ndarray] = None,
         batch_size=-1,
         shuffle=False,
@@ -305,6 +310,10 @@ class SLBaseTFModel(SLBaseModel):
         label_decoder=None,
         stage="train",
     ):
+        assert label is None or isinstance(label, str), (
+            f"Got input label type {type(label)}, but default csv builder need str insead. "
+            f"Try use your own dataset builder"
+        )
         data_set = tf.data.experimental.make_csv_dataset(
             file_path,
             batch_size=batch_size,
@@ -378,59 +387,67 @@ class SLBaseTFModel(SLBaseModel):
 
         return data_x, data_y, data_s_w
 
-    def _reset_data_iter(self, stage):
+    def reset_data_iter(self, stage):
         if stage == "train":
             self.train_set = iter(self.train_dataset)
         elif stage == "eval":
             self.eval_set = iter(self.eval_dataset)
+        self._pre_train_y = []
 
-    def base_forward(self, stage="train", step=0) -> ForwardData:
-        """compute hidden embedding
-        Args:
-            stage: Which stage of the base forward
-        Returns: hidden embedding
-        """
+    def recv_gradient(self, gradient):
+        self._gradient = gradient
 
-        data_x = None
+    def get_batch_data(self, stage="train"):
         self.init_data()
-        training = True
-        if step == 0:
-            self._reset_data_iter(stage=stage)
-
+        self._training = True
         if stage == "train":
             train_data = next(self.train_set)
 
             self.train_x, self.train_y, self.train_sample_weight = self.unpack_dataset(
                 train_data, self.train_has_x, self.train_has_y, self.train_has_s_w
             )
-            data_x = self.train_x
+            self._data_x = self.train_x
+            self._pre_train_y.append(self.train_y)
         elif stage == "eval":
-            training = False
+            self._training = False
             eval_data = next(self.eval_set)
             self.eval_x, self.eval_y, self.eval_sample_weight = self.unpack_dataset(
                 eval_data, self.eval_has_x, self.eval_has_y, self.eval_has_s_w
             )
-            data_x = self.eval_x
+            self._data_x = self.eval_x
         else:
             raise Exception("invalid stage")
+
+    def base_forward(self) -> ForwardData:
+        """compute hidden embedding
+        Args:
+            stage: Which stage of the base forward
+        Returns: hidden embedding
+        """
 
         # model_base is none equal to x is none
         if not self.model_base:
             return None
 
         # Strip tuple of length one, e.g: (x,) -> x
-        data_x = data_x[0] if isinstance(data_x, Tuple) and len(data_x) == 1 else data_x
+        self._data_x = (
+            self._data_x[0]
+            if isinstance(self._data_x, Tuple) and len(self._data_x) == 1
+            else self._data_x
+        )
 
         self.tape = tf.GradientTape(persistent=True)
         with self.tape:
-            self.h = self._base_forward_internal(data_x, training=training)
-        self.data_x = data_x
+            self._h = self._base_forward_internal(self._data_x, training=self._training)
 
+    def pack_forward_data(self):
+        if not self.model_base:
+            return None
         forward_data = ForwardData()
         if len(self.model_base.losses) > 0:
             forward_data.losses = tf.add_n(self.model_base.losses)
         # The compressor can only recognize np type but not tensor.
-        forward_data.hidden = self.h.numpy() if tf.is_tensor(self.h) else self.h
+        forward_data.hidden = self._h.numpy() if tf.is_tensor(self._h) else self._h
         return forward_data
 
     def fuse_net(
@@ -481,7 +498,7 @@ class SLBaseTFModel(SLBaseModel):
             return [None] * _num_returns
         return gradient
 
-    def base_backward(self, gradient):
+    def base_backward(self):
         """backward on fusenet
 
         Args:
@@ -491,12 +508,12 @@ class SLBaseTFModel(SLBaseModel):
         return_hiddens = []
 
         with self.tape:
-            if len(gradient) == len(self.h):
-                for i in range(len(gradient)):
-                    return_hiddens.append(self.fuse_op(self.h[i], gradient[i]))
+            if len(self._gradient) == len(self._h):
+                for i in range(len(self._gradient)):
+                    return_hiddens.append(self.fuse_op(self._h[i], self._gradient[i]))
             else:
-                gradient = gradient[0]
-                return_hiddens.append(self.fuse_op(self.h, gradient))
+                self._gradient = self._gradient[0]
+                return_hiddens.append(self.fuse_op(self._h, self._gradient))
             # add model.losses into graph
             return_hiddens.append(self.model_base.losses)
 
@@ -507,7 +524,7 @@ class SLBaseTFModel(SLBaseModel):
 
         # clear intermediate results
         self.tape = None
-        self.h = None
+        self._h = None
         self.kwargs = {}
 
     def reset_metrics(self):
@@ -670,6 +687,7 @@ class SLBaseTFModel(SLBaseModel):
 
             # Step 1: forward pass
             y_pred = self.model_fuse(hiddens, training=True, **self.kwargs)
+            self._pred_y = y_pred
             # Step 2: loss calculation, the loss function is configured in `compile()`.
             # if isinstance(self.model_fuse.loss, tfutils.custom_loss):
             #     self.model_fuse.loss.with_kwargs(kwargs)

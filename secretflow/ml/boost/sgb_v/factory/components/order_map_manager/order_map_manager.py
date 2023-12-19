@@ -47,6 +47,7 @@ class OrderMapManager(Component):
         self.logging_params = LoggingParams()
         self.buckets = eps_inverse(self.params.sketch_eps)
         self.order_map_actors = []
+        self.workers = []
 
     def show_params(self):
         print_params(self.params)
@@ -71,8 +72,12 @@ class OrderMapManager(Component):
     def set_devices(self, devices: Devices):
         self.workers = devices.workers
 
-    def set_actors(self, actors: SGBActor):
-        self.order_map_actors = actors
+    def set_actors(self, actors: List[SGBActor]):
+        assert len(self.workers) > 0, "workers must be set"
+        # worker actors only
+        self.order_map_actors = [
+            actor for actor in actors if actor.device in self.workers
+        ]
         for i, actor in enumerate(self.order_map_actors):
             actor.register_class('OrderMapActor', OrderMapActor, i)
 

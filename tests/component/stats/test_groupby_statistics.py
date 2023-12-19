@@ -67,7 +67,7 @@ def test_groupby_statistics(comp_prod_sf_cluster_config, by, value_agg_pairs):
     param = NodeEvalParam(
         domain="stats",
         name="groupby_statistics",
-        version="0.0.2",
+        version="0.0.3",
         attr_paths=["input/input_data/by", "aggregation_config"],
         attrs=[
             Attribute(ss=by),

@@ -12,9 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import platform
 from typing import Union
 
 import pandas as pd
+
+
+def read_file_meta(path: str):
+    ret = {}
+    ret["ctime"] = os.path.getctime(path)
+    ret["mtime"] = os.path.getmtime(path)
+    ret["size"] = os.path.getsize(path)
+    if platform.system() == 'Linux':
+        ret["inode"] = os.stat(path).st_ino
+    return ret
 
 
 def read_csv_wrapper(

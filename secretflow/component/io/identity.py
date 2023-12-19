@@ -16,9 +16,7 @@ import json
 
 from secretflow.component.component import CompEvalError, Component, IoType
 from secretflow.component.data_utils import DistDataType, model_dumps, model_loads
-
 from secretflow.device.device.spu import SPU
-
 from secretflow.spec.extend.data_pb2 import DeviceObjectCollection
 from secretflow.spec.v1.data_pb2 import DistData
 
@@ -41,14 +39,14 @@ identity = Component(
 identity.io(
     io_type=IoType.INPUT,
     name="input_data",
-    desc="Input dist data",
+    desc="Input data",
     types=IDENTITY_SUPPORTED_TYPES,
 )
 
 identity.io(
     io_type=IoType.OUTPUT,
     name="output_data",
-    desc="Output dist data",
+    desc="Output data",
     types=IDENTITY_SUPPORTED_TYPES,
 )
 

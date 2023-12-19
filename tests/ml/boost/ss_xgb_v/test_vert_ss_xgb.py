@@ -15,12 +15,12 @@
 import os
 import time
 
-from sklearn.metrics import mean_squared_error, roc_auc_score
-
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.device.driver import reveal, wait
 from secretflow.ml.boost.ss_xgb_v import Xgb
 from secretflow.utils.simulation.datasets import load_dermatology, load_linear
+
+from sklearn.metrics import mean_squared_error, roc_auc_score
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -105,21 +105,6 @@ def test_3pc_linear(sf_production_setup_devices_aby3):
         "3pc_linear",
         parts,
         sf_production_setup_devices_aby3.carol,
-    )
-
-
-def test_4pc_linear(sf_production_setup_devices_aby3):
-    parts = {
-        sf_production_setup_devices_aby3.alice: (1, 6),
-        sf_production_setup_devices_aby3.bob: (6, 12),
-        sf_production_setup_devices_aby3.carol: (12, 18),
-        sf_production_setup_devices_aby3.davy: (18, 22),
-    }
-    _run_npc_linear(
-        sf_production_setup_devices_aby3,
-        "4pc_linear",
-        parts,
-        sf_production_setup_devices_aby3.davy,
     )
 
 

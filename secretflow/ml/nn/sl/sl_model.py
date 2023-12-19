@@ -239,7 +239,7 @@ class SLModel:
     def handle_file(
         self,
         train_dict: Dict[PYU, str],
-        label: str = None,
+        label: Union[str, List[str], Tuple[str]] = None,
         sample_weight: Union[FedNdarray, VDataFrame] = None,
         batch_size=32,
         shuffle=False,
@@ -307,7 +307,7 @@ class SLModel:
             List[Union[HDataFrame, VDataFrame, FedNdarray]],
             Dict[PYU, str],
         ],
-        y: Union[VDataFrame, FedNdarray, PYUObject, str],
+        y: Union[VDataFrame, FedNdarray, PYUObject, str, List[str], Tuple[str]],
         batch_size=32,
         epochs=1,
         verbose=1,
@@ -384,9 +384,9 @@ class SLModel:
         # build dataset
         train_x, train_y = x, y
         if isinstance(train_x, Dict):
-            assert isinstance(train_y, str), (
+            assert isinstance(train_y, (str, List, Tuple)), (
                 f"When the input x is type of Dict, the data will read from files, "
-                f"and y must be a label name with type str."
+                f"and y must be a label name with type str/List[str]/Tuple[str]."
             )
             steps_per_epoch = self.handle_file(
                 train_x,
@@ -473,27 +473,29 @@ class SLModel:
             report_list.append(f"epoch: {epoch+1}/{epochs} - ")
             self._workers[self.device_y].reset_metrics()
             callbacks.on_epoch_begin(epoch=epoch)
-
-            hiddens_buf = [None] * (self.pipeline_size - 1)
+            [worker.reset_data_iter(stage="train") for worker in self._workers.values()]
+            f_data_buf = [None] * (self.pipeline_size - 1)
             for step in range(0, steps_per_epoch + self.pipeline_size - 1):
                 if step < steps_per_epoch:
-                    hiddens = {}
+                    f_datas = {}
                     callbacks.on_train_batch_begin(step)
                     for device, worker in self._workers.items():
                         # 1. Local calculation of basenet
-                        hidden = worker.base_forward(stage="train", step=step)
-                        hiddens[device] = hidden
-                    hiddens_buf.append(hiddens)
+                        worker.get_batch_data(stage="train")
+                        worker.base_forward()
+                        f_data = worker.pack_forward_data()
+                        f_datas[device] = f_data
+                    f_data_buf.append(f_datas)
                 # clean up buffer
-                hiddens = hiddens_buf.pop(0)
+                f_datas = f_data_buf.pop(0)
                 # Async transfer hiddens to label side
-                if hiddens is None:
+                if f_datas is None:
                     continue
                 # During pipeline strategy, the backpropagation process of the model will lag n cycles behind the forward propagation process.
                 step = step - self.pipeline_size + 1
 
                 # do agglayer forward
-                agg_hiddens = self.agglayer.forward(hiddens)
+                agg_hiddens = self.agglayer.forward(f_datas)
 
                 # 3. Fusenet do local calculates and return gradients
                 gradients = self._workers[self.device_y].fuse_net(agg_hiddens)
@@ -510,7 +512,8 @@ class SLModel:
                     scatter_gradients = self.agglayer.backward(gradients)
                     for device, worker in self._workers.items():
                         if device in scatter_gradients.keys():
-                            worker.base_backward(scatter_gradients[device])
+                            worker.recv_gradient(scatter_gradients[device])
+                            worker.base_backward()
 
                 # for EarlyStoppingBatch, evalute model every early_stopping_batch_step
                 if (
@@ -529,13 +532,19 @@ class SLModel:
 
                     callbacks.on_test_begin()
                     res = []
+                    [
+                        worker.reset_data_iter(stage="eval")
+                        for worker in self._workers.values()
+                    ]
                     for val_step in range(0, valid_steps):
                         callbacks.on_test_batch_begin(batch=val_step)
-                        hiddens = {}  # driver end
+                        f_datas = {}  # driver end
                         for device, worker in self._workers.items():
-                            hidden = worker.base_forward("eval", step=val_step)
-                            hiddens[device] = hidden
-                        agg_hiddens = self.agglayer.forward(hiddens)
+                            worker.get_batch_data(stage="eval")
+                            worker.base_forward()
+                            f_data = worker.pack_forward_data()
+                            f_datas[device] = f_data
+                        agg_hiddens = self.agglayer.forward(f_datas)
 
                         metrics = self._workers[self.device_y].evaluate(agg_hiddens)
                         res.append(metrics)
@@ -569,21 +578,26 @@ class SLModel:
                     wait(res)
                     res = []
             assert (
-                len(hiddens_buf) == 0
-            ), f'hiddens buffer unfinished, len: {len(hiddens_buf)}'
+                len(f_data_buf) == 0
+            ), f'hiddens buffer unfinished, len: {len(f_data_buf)}'
             if validation and epoch % validation_freq == 0:
                 callbacks.on_test_begin()
                 # validation
                 self._workers[self.device_y].reset_metrics()
-
+                [
+                    worker.reset_data_iter(stage="eval")
+                    for worker in self._workers.values()
+                ]
                 res = []
                 for step in range(0, valid_steps):
                     callbacks.on_test_batch_begin(batch=step)
-                    hiddens = {}  # driver end
+                    f_datas = {}  # driver end
                     for device, worker in self._workers.items():
-                        hidden = worker.base_forward("eval", step=step)
-                        hiddens[device] = hidden
-                    agg_hiddens = self.agglayer.forward(hiddens)
+                        worker.get_batch_data(stage="eval")
+                        worker.base_forward()
+                        f_data = worker.pack_forward_data()
+                        f_datas[device] = f_data
+                    agg_hiddens = self.agglayer.forward(f_datas)
 
                     metrics = self._workers[self.device_y].evaluate(agg_hiddens)
                     res.append(metrics)
@@ -679,13 +693,16 @@ class SLModel:
         wait_steps = min(min(self.get_cpus()) * 2, 100)
         res = []
         callbacks.on_predict_begin()
+        [worker.reset_data_iter(stage="eval") for worker in self._workers.values()]
         for step in range(0, predict_steps):
             callbacks.on_predict_batch_begin(step)
             forward_data_dict = {}
             for device, worker in self._workers.items():
                 if device not in self.base_model_dict:
                     continue
-                f_data = worker.base_forward(stage="eval", step=step)
+                worker.get_batch_data(stage="eval")
+                worker.base_forward()
+                f_data = worker.pack_forward_data()
                 forward_data_dict[device] = f_data
 
             agg_hiddens = self.agglayer.forward(forward_data_dict)
@@ -769,15 +786,18 @@ class SLModel:
             steps=evaluate_steps,
         )
         callbacks.on_test_begin()
+        [worker.reset_data_iter(stage="eval") for worker in self._workers.values()]
         wait_steps = min(min(self.get_cpus()) * 2, 100)
         for step in range(0, evaluate_steps):
             callbacks.on_test_batch_begin(step)
-            hiddens = {}  # driver端
+            f_datas = {}  # driver端
             for device, worker in self._workers.items():
-                hidden = worker.base_forward(stage="eval", step=step)
-                hiddens[device] = hidden
+                worker.get_batch_data(stage="eval")
+                worker.base_forward()
+                f_data = worker.pack_forward_data()
+                f_datas[device] = f_data
 
-            agg_hiddens = self.agglayer.forward(hiddens)
+            agg_hiddens = self.agglayer.forward(f_datas)
 
             metrics = self._workers[self.device_y].evaluate(agg_hiddens)
             if (step + 1) % wait_steps == 0:
