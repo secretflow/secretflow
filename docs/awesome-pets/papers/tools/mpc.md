@@ -27,7 +27,7 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
 ### Books
 
 - A Pragmatic Introduction to Secure Multi-Party Computation
-  *David Evans; Vladimir Kolesnikov; Mike Rosulek*
+  *David Evans, Vladimir Kolesnikov, Mike Rosulek*
   [eprint](https://www.cs.virginia.edu/~evans/pragmaticmpc/pragmaticmpc.pdf)
 
 ## Offline Techniques
