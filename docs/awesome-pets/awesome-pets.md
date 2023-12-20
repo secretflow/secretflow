@@ -10,7 +10,7 @@ Please feel free to open a pull request.
 
 Cryptography-based techniques. If you are a beginner in cryptography, and wants to learn about the theory or applications of crypto, please also checkout our [[crypto-for-beginners]](tutorials/crypto-beginner.md) list.
 
-1. [Secure Multi-Party Computation (MPC)](papers/tools/mpc.md)  (Contributors: [@jamie-cui](https://www.github.com/jamie-cui) [@DuanYuFi](https://github.com/DuanYuFi))
+1. [Secure Multi-Party Computation (MPC)](papers/tools/mpc.md)  (Contributors: [@jamie-cui](https://www.github.com/jamie-cui) [@DuanYuFi](https://github.com/DuanYuFi)[@Mingbo-Lee](https://github.com/Mingbo-Lee))
 2. [Zero-Knowledge Proof (ZKP)](papers/tools/zkp.md) (Contributors: [@xfap](https://www.github.com/xfap) [@yuzhouwudizuilihai](https://github.com/yuzhouwudizuilihai) [@zlyber](https://api.github.com/users/zlyber) [@rhocos3theta](https://github.com/rhocos3theta))
 3. [Homomorphic Encryption (HE)](papers/tools/he.md) (Contributors: [@zhangwfjh](https://www.github.com/zhangwfjh))
 
