@@ -14,5 +14,5 @@
 from .qpldp_aggregator import QPLDPAggregator
 
 __all__ = [
-    'QPLDPAggregator',
+    "QPLDPAggregator",
 ]

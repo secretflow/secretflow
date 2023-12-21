@@ -1,7 +1,7 @@
-from typing import List
 import math
-import numpy as np
+from typing import List
 
+import numpy as np
 from secretflow.device import PYU, DeviceObject, PYUObject
 from secretflow.security.aggregation.aggregator import Aggregator
 
@@ -89,18 +89,15 @@ class QPLDPAggregator(Aggregator):
             ]
 
         def _average(*data, axis, weights):  ##打包成一个元组
-
             results = []
             grad = []
             gradient = []
             if isinstance(data[0], (list, tuple)):
-
                 client_num = len(data)
                 ##梯度数据是一个list
                 for i in range(client_num):
                     grad.clear()
                     for j in range(len(data[0])):
-
                         grad.append(np.around(data[i][j], decimals=5))  ##量化操作减小通信开销
 
                     gradient.append(grad)
