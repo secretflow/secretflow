@@ -81,11 +81,13 @@ def get_pred_param(alice_path, bob_path, train_res, predict_path):
             "receiver",
             "save_ids",
             "save_label",
+            "batch_size",
         ],
         attrs=[
             Attribute(s="alice"),
             Attribute(b=False),
             Attribute(b=True),
+            Attribute(i64=50),
         ],
         inputs=[
             train_res.outputs[0],
@@ -205,6 +207,11 @@ def test_sgb(comp_prod_sf_cluster_config):
 
     input_y = pd.read_csv(os.path.join(TEST_STORAGE_ROOT, "alice", alice_path))
     output_y = pd.read_csv(os.path.join(TEST_STORAGE_ROOT, "alice", predict_path))
+
+    output_it = IndividualTable()
+
+    assert predict_res.outputs[0].meta.Unpack(output_it)
+    assert output_it.line_count == input_y.shape[0]
 
     # label & pred
     assert output_y.shape[1] == 2

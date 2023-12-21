@@ -291,6 +291,7 @@ class PartitionAgent(PartitionAgentBase):
         """Save DataFrame to csv file."""
         working_object = self.working_objects[idx]
         working_object.to_csv(filepath, **kwargs)
+        return True
 
     def iloc(self, idx: AgentIndex, index: Union[int, slice, List[int]]) -> AgentIndex:
         working_object = self.working_objects[idx]

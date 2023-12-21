@@ -31,31 +31,20 @@ from secretflow.utils.communicate import ForwardData
 
 
 class SLTorchModel(SLBaseTorchModel):
-    def base_forward(self, stage="train", step=0, **kwargs) -> Optional[ForwardData]:
+    def base_forward(self) -> Optional[ForwardData]:
         """compute hidden embedding
         Args:
             stage: Which stage of the base forward
         Returns: hidden embedding
         """
 
-        if step == 0:
-            self._reset_data_iter(stage=stage)
-        data_x = self.get_batch_data(stage=stage)
         if not self.model_base:
             return None
-        self.h = self.base_forward_internal(
-            data_x,
+        self._h = self.base_forward_internal(
+            self._data_x,
         )
-        forward_data = ForwardData()
 
-        # The compressor can only recognize np type but not tensor.
-        forward_data.hidden = (
-            self.h.detach().numpy() if isinstance(self.h, torch.Tensor) else self.h
-        )
-        # The compressor in forward can only recognize np type but not tensor.
-        return forward_data
-
-    def base_backward(self, gradient):
+    def base_backward(self):
         """backward on fusenet
 
         Args:
@@ -64,16 +53,16 @@ class SLTorchModel(SLBaseTorchModel):
 
         return_hiddens = []
 
-        if len(gradient) == len(self.h):
-            for i in range(len(gradient)):
-                return_hiddens.append(self.fuse_op.apply(self.h[i], gradient[i]))
+        if len(self._gradient) == len(self._h):
+            for i in range(len(self._gradient)):
+                return_hiddens.append(self.fuse_op.apply(self._h[i], self._gradient[i]))
         else:
-            gradient = (
-                gradient[0]
-                if isinstance(gradient[0], torch.Tensor)
-                else torch.tensor(gradient[0])
+            self._gradient = (
+                self._gradient[0]
+                if isinstance(self._gradient[0], torch.Tensor)
+                else torch.tensor(self._gradient[0])
             )
-            return_hiddens.append(self.fuse_op.apply(self.h, gradient))
+            return_hiddens.append(self.fuse_op.apply(self._h, self._gradient))
 
         # apply gradients for base net
         self.optim_base.zero_grad()
@@ -84,7 +73,7 @@ class SLTorchModel(SLBaseTorchModel):
 
         # clear intermediate results
         self.tape = None
-        self.h = None
+        self._h = None
         self.kwargs = {}
 
     def fuse_net(

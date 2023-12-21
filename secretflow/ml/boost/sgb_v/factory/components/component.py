@@ -28,6 +28,10 @@ class Devices:
     heu: HEU
 
 
+def label_have_feature(devices: Devices):
+    return devices.label_holder in devices.workers
+
+
 class Component(abc.ABC):
     @abc.abstractmethod
     def show_params(self):

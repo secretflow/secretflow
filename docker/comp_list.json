@@ -252,9 +252,8 @@
       "inputs": [
         {
           "name": "input_data",
-          "desc": "Input dist data",
+          "desc": "Input data",
           "types": [
-            "sf.model.ss_glm",
             "sf.model.ss_glm",
             "sf.model.sgb",
             "sf.model.ss_xgb",
@@ -268,9 +267,8 @@
       "outputs": [
         {
           "name": "output_data",
-          "desc": "Output dist data",
+          "desc": "Output data",
           "types": [
-            "sf.model.ss_glm",
             "sf.model.ss_glm",
             "sf.model.sgb",
             "sf.model.ss_xgb",
@@ -654,6 +652,17 @@
             "isOptional": true,
             "defaultValue": {
               "b": true
+            }
+          }
+        },
+        {
+          "name": "batch_size",
+          "desc": "Prediction batch size",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "100000"
             }
           }
         }
@@ -2149,6 +2158,52 @@
     },
     {
       "domain": "preprocessing",
+      "name": "feature_calculate",
+      "desc": "Generate a new feature by performing calculations on an origin feature",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "rules",
+          "desc": "input CalculateOpRules rules",
+          "type": "AT_CUSTOM_PROTOBUF",
+          "customProtobufCls": "calculate_rules_pb2.CalculateOpRules"
+        }
+      ],
+      "inputs": [
+        {
+          "name": "in_ds",
+          "desc": "Input vertical table",
+          "types": [
+            "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "features",
+              "desc": "Feature(s) to operate on",
+              "colMinCntInclusive": "1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "out_ds",
+          "desc": "output_dataset",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        },
+        {
+          "name": "out_rules",
+          "desc": "feature calculate rule",
+          "types": [
+            "sf.rule.preprocessing"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "preprocessing",
       "name": "feature_filter",
       "desc": "Drop features from the dataset.",
       "version": "0.0.1",
@@ -2190,7 +2245,7 @@
           "atomic": {
             "isOptional": true,
             "defaultValue": {
-              "s": "mean"
+              "s": "constant"
             },
             "allowedValues": {
               "ss": [
@@ -2209,7 +2264,7 @@
           "atomic": {
             "isOptional": true,
             "defaultValue": {
-              "s": "general_na"
+              "s": "custom_missing_value"
             }
           }
         },
@@ -2608,7 +2663,7 @@
       "domain": "stats",
       "name": "groupby_statistics",
       "desc": "Get a groupby of statistics, like pandas groupby statistics.\nCurrently only support VDataframe.",
-      "version": "0.0.2",
+      "version": "0.0.3",
       "attrs": [
         {
           "name": "aggregation_config",

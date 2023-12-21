@@ -56,7 +56,11 @@ class SplitTreeBuilder(Component):
         self.label_holder = devices.label_holder
 
     def set_actors(self, actors: List[SGBActor]):
-        self.split_tree_builder_actors = actors
+        assert len(self.workers) > 0, "workers must be set"
+        # worker actors only
+        self.split_tree_builder_actors = [
+            actor for actor in actors if actor.device in self.workers
+        ]
         for i, actor in enumerate(self.split_tree_builder_actors):
             actor.register_class('SplitTreeActor', SplitTreeActor, i)
 

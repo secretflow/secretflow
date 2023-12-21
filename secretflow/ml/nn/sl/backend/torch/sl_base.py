@@ -67,7 +67,7 @@ class SLBaseTorchModel(SLBaseModel, ABC):
         self.eval_iter = None
         self.valid_iter = None
         self.tape = None
-        self.h = None
+        self._h = None
         self.train_x, self.train_y = None, None
         self.eval_x, self.eval_y = None, None
         self.kwargs = {}
@@ -80,6 +80,9 @@ class SLBaseTorchModel(SLBaseModel, ABC):
         self.train_sample_weight = None
         self.eval_sample_weight = None
         self.fuse_callbacks = None
+        self._data_x = None  # get_batch_data output
+        self._gradient = None
+        self._pred_y = None
         # record all logs of training on workers
         self.logs = None
         self.steps_per_epoch = None
@@ -152,6 +155,21 @@ class SLBaseTorchModel(SLBaseModel, ABC):
         else:
             return 0
 
+    def recv_gradient(self, gradient):
+        self._gradient = gradient
+
+    def pack_forward_data(self):
+        if not self.model_base:
+            return None
+        forward_data = ForwardData()
+
+        # The compressor can only recognize np type but not tensor.
+        forward_data.hidden = (
+            self._h.detach().numpy() if isinstance(self._h, torch.Tensor) else self._h
+        )
+        # The compressor in forward can only recognize np type but not tensor.
+        return forward_data
+
     def unpack_dataset(self, data, has_x, has_y, has_s_w):
         data_x, data_y, data_s_w = None, None, None
         # case: only has x or has y, and s_w is none
@@ -180,7 +198,6 @@ class SLBaseTorchModel(SLBaseModel, ABC):
         return data_x, data_y, data_s_w
 
     def get_batch_data(self, stage="train"):
-        data_x = None
         self.init_data()
 
         # init model stat to train
@@ -196,7 +213,7 @@ class SLBaseTorchModel(SLBaseModel, ABC):
             ) = self.unpack_dataset(
                 train_data, self.train_has_x, self.train_has_y, self.train_has_s_w
             )
-            data_x = self.train_x
+            self._data_x = self.train_x
 
         elif stage == "eval":
             if self.model_base:
@@ -206,18 +223,18 @@ class SLBaseTorchModel(SLBaseModel, ABC):
             self.eval_x, self.eval_y, self.eval_sample_weight = self.unpack_dataset(
                 eval_data, self.eval_has_x, self.eval_has_y, self.eval_has_s_w
             )
-            data_x = self.eval_x
+            self._data_x = self.eval_x
         else:
             raise Exception("invalid stage")
 
         # Strip tuple of length one, e.g: (x,) -> x
-        data_x = (
-            data_x[0]
-            if isinstance(data_x, (Tuple, List)) and len(data_x) == 1
-            else data_x
+        self._data_x = (
+            self._data_x[0]
+            if isinstance(self._data_x, (Tuple, List)) and len(self._data_x) == 1
+            else self._data_x
         )
 
-        return data_x
+        return self._data_x
 
     def build_dataset_from_numeric(
         self,
@@ -459,7 +476,7 @@ class SLBaseTorchModel(SLBaseModel, ABC):
             hiddens = hiddens.requires_grad_()
 
         y_pred = self.model_fuse(hiddens, **self.kwargs)
-
+        self._pred_y = y_pred
         # Step 2: loss calculation.
         # NOTE: Refer to https://stackoverflow.com/questions/67730325/using-weights-in-crossentropyloss-and-bceloss-pytorch to use sample weight
         # custom loss will be re-open in the next version
@@ -780,7 +797,7 @@ class SLBaseTorchModel(SLBaseModel, ABC):
     def get_stop_training(self):
         return False  # currently not supported
 
-    def _reset_data_iter(self, stage):
+    def reset_data_iter(self, stage):
         if self.shuffle and self.random_seed:
             # FIXME: need a better way to handle global random state
             torch.manual_seed(self.random_seed)

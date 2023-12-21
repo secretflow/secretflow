@@ -18,7 +18,7 @@ import jax
 import numpy as np
 from heu import numpy as hnp, phe
 
-from secretflow.ic.proto.runtime import data_exchange_pb2 as de
+from interconnection.runtime import data_exchange_pb2 as de
 
 PublicKey = phe.PublicKey
 

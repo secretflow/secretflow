@@ -300,6 +300,9 @@ class Array:
     def dtype(self) -> pa.DataType:
         return self._arrow.type
 
+    def to_pandas(self) -> pd.Series:
+        return self._arrow.to_pandas()
+
 
 class Table:
     def __init__(self, table: pa.Table, trace: _Tracer):
