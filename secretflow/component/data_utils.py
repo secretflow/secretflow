@@ -22,6 +22,7 @@ from typing import Any, Dict, List, Tuple
 import numpy as np
 import pandas as pd
 
+from secretflow.data.core.io import read_file_meta
 from secretflow.data.vertical import read_csv
 from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.device.device.pyu import PYU, PYUObject
@@ -463,8 +464,11 @@ def dump_vertical_table(
         }
         wait(v_data.to_csv(output_path, index=False))
         order = [p.party for p in v_data.partitions]
+        file_metas = {}
+        for pyu in output_path:
+            file_metas[pyu] = reveal(pyu(read_file_meta)(output_path[pyu]))
         logging.info(
-            f"dumped VDataFrame, file uri {output_path}, samples {parties_length}"
+            f"dumped VDataFrame, file uri {output_path}, samples {parties_length}, file meta {file_metas}"
         )
 
     ret = DistData(
@@ -647,6 +651,7 @@ def save_prediction_csv(
     label_keys: List[str] = None,
     id_df: pd.DataFrame = None,
     id_keys: List[str] = None,
+    try_append: bool = False,
 ) -> None:
     x = pd.DataFrame(pred_df, columns=[pred_key])
 
@@ -657,7 +662,15 @@ def save_prediction_csv(
         id = pd.DataFrame(id_df, columns=id_keys)
         x = pd.concat([x, id], axis=1)
 
-    x.to_csv(path, index=False)
+    import os
+
+    if try_append:
+        if not os.path.isfile(path):
+            x.to_csv(path, index=False)
+        else:
+            x.to_csv(path, mode='a', header=False, index=False)
+    else:
+        x.to_csv(path, index=False)
 
 
 def gen_prediction_csv_meta(

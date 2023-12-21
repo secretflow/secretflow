@@ -21,16 +21,17 @@ from polars.datatypes import DataTypeClass
 
 def read_polars_csv(filepath, *args, **kwargs):
     if 'delimiter' in kwargs and kwargs['delimiter'] is not None:
-        kwargs['separator'] = kwargs['delimiter']
+        kwargs['separator'] = kwargs.pop('delimiter')
     if 'usecols' in kwargs and kwargs['usecols'] is not None:
         # polars only recognized list columns but not dictkeys.
-        kwargs['columns'] = list(kwargs['usecols'])
+        kwargs['columns'] = list(kwargs.pop('usecols'))
     if 'dtype' in kwargs and kwargs['dtype'] is not None:
         pl_dtypes = {}
-        for col, dt in kwargs['dtype'].items():
+        for col, dt in kwargs.pop('dtype').items():
             pl_dtypes[col] = infer_pl_dtype(dt)
         kwargs['dtypes'] = pl_dtypes
-    del kwargs['delimiter'], kwargs['dtype'], kwargs['usecols']
+    if 'nrows' in kwargs and kwargs['nrows'] is not None:
+        kwargs['n_rows'] = kwargs.pop('nrows')
     df = pl.read_csv(filepath, *args, **kwargs)
     if len(df.columns) == 1:
         # for compatibility of pandas, single columns will drop null when read.

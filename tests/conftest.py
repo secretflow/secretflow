@@ -158,7 +158,7 @@ class DeviceInventory:
 def sf_memory_setup_devices(request):
     devices = DeviceInventory()
     sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.DEBUG)
-    sf.shutdown()
+    sf.shutdown(barrier_on_shutdown=True)
     sf.init(
         ["alice", "bob", "carol", "davy", "spu"],
         debug_mode=True,
@@ -177,14 +177,14 @@ def sf_memory_setup_devices(request):
 
     yield devices
     del devices
-    sf.shutdown()
+    sf.shutdown(barrier_on_shutdown=True)
 
 
 @pytest.fixture(scope="module", params=[semi2k_cluster])
 def sf_simulation_setup_devices(request):
     devices = DeviceInventory()
     sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.SIMULATION)
-    sf.shutdown()
+    sf.shutdown(barrier_on_shutdown=True)
     sf.init(
         ["alice", "bob", "carol", "davy"],
         address="local",
@@ -212,7 +212,7 @@ def sf_simulation_setup_devices(request):
 
     yield devices
     del devices
-    sf.shutdown()
+    sf.shutdown(barrier_on_shutdown=True)
 
 
 @pytest.fixture(scope="session", params=SF_PARTIES)
@@ -229,7 +229,7 @@ def sf_production_setup_devices_grpc(request, sf_party_for_4pc):
         address="local",
         num_cpus=32,
         log_to_driver=True,
-        logging_level='debug',
+        logging_level='info',
         cluster_config=cluster(),
         enable_waiting_for_other_parties_ready=False,
     )
@@ -265,7 +265,7 @@ def sf_production_setup_devices_grpc(request, sf_party_for_4pc):
 
     yield devices
     del devices
-    sf.shutdown()
+    sf.shutdown(barrier_on_shutdown=True)
 
 
 @pytest.fixture(scope="module")
@@ -277,7 +277,7 @@ def sf_production_setup_devices(request, sf_party_for_4pc):
         address="local",
         num_cpus=32,
         log_to_driver=True,
-        logging_level='debug',
+        logging_level='info',
         cluster_config=cluster(),
         enable_waiting_for_other_parties_ready=False,
         cross_silo_comm_backend="brpc_link",
@@ -323,7 +323,7 @@ def sf_production_setup_devices(request, sf_party_for_4pc):
 
     yield devices
     del devices
-    sf.shutdown()
+    sf.shutdown(barrier_on_shutdown=True)
 
 
 @pytest.fixture(scope="module")
@@ -335,7 +335,7 @@ def sf_production_setup_devices_aby3(request, sf_party_for_4pc):
         address="local",
         num_cpus=32,
         log_to_driver=True,
-        logging_level='debug',
+        logging_level='info',
         cluster_config=cluster(),
         enable_waiting_for_other_parties_ready=False,
         cross_silo_comm_backend="brpc_link",
@@ -381,7 +381,7 @@ def sf_production_setup_devices_aby3(request, sf_party_for_4pc):
 
     yield devices
     del devices
-    sf.shutdown()
+    sf.shutdown(barrier_on_shutdown=True)
 
 
 TEST_STORAGE_ROOT = os.path.join(tempfile.gettempdir(), getpass.getuser())

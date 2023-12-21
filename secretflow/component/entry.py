@@ -30,6 +30,7 @@ from secretflow.component.ml.linear.ss_sgd import ss_sgd_predict_comp, ss_sgd_tr
 from secretflow.component.preprocessing.binary_op import binary_op_comp
 from secretflow.component.preprocessing.case_when import case_when
 from secretflow.component.preprocessing.condition_filter import condition_filter_comp
+from secretflow.component.preprocessing.feature_calculate import feature_calculate
 from secretflow.component.preprocessing.feature_filter import feature_filter_comp
 from secretflow.component.preprocessing.fillna import fillna
 from secretflow.component.preprocessing.onehot_encode import onehot_encode
@@ -81,8 +82,10 @@ ALL_COMPONENTS = [
     fillna,
     io_read_data,
     io_write_data,
+    feature_calculate,
     identity,
 ]
+
 COMP_LIST_NAME = "secretflow"
 COMP_LIST_DESC = "First-party SecretFlow components."
 COMP_LIST_VERSION = "0.0.1"
@@ -114,7 +117,7 @@ COMP_LIST, COMP_MAP = generate_comp_list()
 
 def get_comp_def(domain: str, name: str, version: str) -> ComponentDef:
     key = gen_key(domain, name, version)
-    assert key in COMP_MAP, f"key {key} is not in compute map {COMP_MAP}"
+    assert key in COMP_MAP, f"key {key} is not in component list {COMP_LIST}"
     return COMP_MAP[key].definition()
 
 

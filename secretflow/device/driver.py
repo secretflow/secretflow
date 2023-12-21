@@ -587,14 +587,22 @@ def barrier():
         reveal(barriers)
 
 
-def shutdown():
+def shutdown(barrier_on_shutdown=True):
     """Disconnect the worker, and terminate processes started by secretflow.init().
 
     This will automatically run at the end when a Python process that uses Ray exits.
     It is ok to run this twice in a row. The primary use case for this function
     is to cleanup state between tests.
+
+     Args:
+        barrier_on_shutdown: whether barrier on shutdown. It's useful in some cases
+            , e.g., reusing the port between multi secretflow tasks. Possible side
+            effects that may come with it at the same time, e.g., alice exits
+            accidently and bob will wait forever since alice will never give bob a
+            feedback. The default value is True.
     """
-    barrier()
+    if barrier_on_shutdown:
+        barrier()
     sfd.shutdown()
 
 

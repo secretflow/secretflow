@@ -264,7 +264,7 @@ class Partition(DataFrameBase):
             return Partition(self.part_agent, data_idx, self.device, self.backend)
 
     def to_csv(self, filepath, **kwargs):
-        self.part_agent.to_csv(self.agent_idx, filepath, **kwargs)
+        return self.part_agent.to_csv(self.agent_idx, filepath, **kwargs)
 
     def iloc(self, index: Union[int, slice, List[int]]) -> 'Partition':
         data_idx = self.part_agent.iloc(self.agent_idx, index)

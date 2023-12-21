@@ -21,10 +21,10 @@ from secretflow.ml.boost.sgb_v import Sgb, SgbModel
 from google.protobuf import any_pb2
 from secretflow.ic.handler.protocol_family import phe
 from secretflow.ic.handler.algo import xgb
-from secretflow.ic.proto.common import header_pb2
-from secretflow.ic.proto.handshake import entry_pb2
-from secretflow.ic.proto.handshake.algos import sgb_pb2
-from secretflow.ic.proto.handshake.protocol_family import phe_pb2
+from interconnection.common import header_pb2
+from interconnection.handshake import entry_pb2
+from interconnection.handshake.algos import sgb_pb2
+from interconnection.handshake.protocol_family import phe_pb2
 from secretflow.ic.proxy import LinkProxy
 from secretflow.ic.handler.handler import IcHandler
 from secretflow.ic.handler import util

@@ -14,9 +14,11 @@
 import json
 import os
 
+from secretflow.component.batch_reader import SimpleVerticalBatchReader
 from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import (
     DistDataType,
+    extract_distdata_info,
     extract_table_header,
     gen_prediction_csv_meta,
     get_model_public_info,
@@ -481,6 +483,13 @@ sgb_predict_comp.io(
     types=[DistDataType.INDIVIDUAL_TABLE],
     col_params=None,
 )
+sgb_predict_comp.int_attr(
+    name="batch_size",
+    desc="Prediction batch size",
+    is_list=False,
+    is_optional=True,
+    default_value=100000,
+)
 
 
 def load_sgb_model(ctx, pyus, model) -> SgbModel:
@@ -531,88 +540,96 @@ def sgb_predict_eval_fn(
     pred,
     save_ids,
     save_label,
+    batch_size,
 ):
     model_public_info = get_model_public_info(model)
-    x = load_table(
-        ctx,
+
+    v_headers = extract_table_header(
         feature_dataset,
         load_features=True,
         load_labels=True,
         col_selects=model_public_info['feature_selects'],
     )
-    pyus = {p.party: p for p in x.partitions.keys()}
 
-    model = load_sgb_model(ctx, pyus, model)
+    parties_path_format = extract_distdata_info(feature_dataset)
+    filepaths = {
+        p: os.path.join(ctx.local_fs_wd, parties_path_format[p].uri) for p in v_headers
+    }
 
+    cols = {k: list(v.keys()) for k, v in v_headers.items()}
+
+    feature_reader = SimpleVerticalBatchReader(filepaths, batch_size, cols, True)
+
+    pyus = {p: PYU(p) for p in v_headers.keys()}
+    sgb_model = load_sgb_model(ctx, pyus, model)
+
+    if save_ids:
+        id_header_map = extract_table_header(feature_dataset, load_ids=True)
+        assert receiver in id_header_map
+        id_header = list(id_header_map[receiver].keys())
+        id_reader = SimpleVerticalBatchReader(
+            filepaths, batch_size, id_header_map, True
+        )
+    else:
+        id_header_map = None
+        id_header = None
+        id_reader = None
+
+    if save_label:
+        label_header_map = extract_table_header(
+            feature_dataset,
+            load_features=True,
+            load_labels=True,
+            col_selects=model_public_info['label_col'],
+        )
+        assert receiver in label_header_map
+        label_header = list(label_header_map[receiver].keys())
+        label_reader = SimpleVerticalBatchReader(
+            filepaths, batch_size, label_header_map, True
+        )
+    else:
+        label_header_map = None
+        label_header = None
+        label_reader = None
+
+    try_append = False
     with ctx.tracer.trace_running():
-        pyu = PYU(receiver)
-        pyu_y = model.predict(x, pyu)
-
+        receiver_pyu = PYU(receiver)
         y_path = os.path.join(ctx.local_fs_wd, pred)
+        for batch in feature_reader:
+            new_batch = {PYU(party): batch[party] for party in v_headers}
+            pyu_y = sgb_model.predict(new_batch, receiver_pyu)
 
-        if save_ids:
-            id_df = load_table(ctx, feature_dataset, load_ids=True)
-            assert pyu in id_df.partitions
-            id_header_map = extract_table_header(feature_dataset, load_ids=True)
-            assert receiver in id_header_map
-            id_header = list(id_header_map[receiver].keys())
-            id_data = id_df.partitions[pyu].data
-        else:
-            id_header_map = None
-            id_header = None
-            id_data = None
+            wait(
+                receiver_pyu(save_prediction_csv)(
+                    pyu_y.partitions[receiver_pyu],
+                    pred_name,
+                    y_path,
+                    next(label_reader)[receiver] if label_reader else None,
+                    label_header,
+                    next(id_reader)[receiver] if id_reader else None,
+                    id_header,
+                    try_append,
+                )
+            )
+            try_append = True
 
-        if save_label:
-            label_df = load_table(
-                ctx,
-                feature_dataset,
-                load_features=True,
-                load_labels=True,
-                col_selects=model_public_info['label_col'],
-            )
-            assert pyu in label_df.partitions
-            label_header_map = extract_table_header(
-                feature_dataset,
-                load_features=True,
-                load_labels=True,
-                col_selects=model_public_info['label_col'],
-            )
-            assert receiver in label_header_map
-            label_header = list(label_header_map[receiver].keys())
-            label_data = label_df.partitions[pyu].data
-        else:
-            label_header_map = None
-            label_header = None
-            label_data = None
-
-        wait(
-            pyu(save_prediction_csv)(
-                pyu_y.partitions[pyu],
-                pred_name,
-                y_path,
-                label_data,
-                label_header,
-                id_data,
-                id_header,
-            )
+        y_db = DistData(
+            name=pred_name,
+            type=str(DistDataType.INDIVIDUAL_TABLE),
+            data_refs=[DistData.DataRef(uri=pred, party=receiver, format="csv")],
         )
 
-    y_db = DistData(
-        name=pred_name,
-        type=str(DistDataType.INDIVIDUAL_TABLE),
-        data_refs=[DistData.DataRef(uri=pred, party=receiver, format="csv")],
-    )
+        meta = gen_prediction_csv_meta(
+            id_header=id_header_map,
+            label_header=label_header_map,
+            party=receiver,
+            pred_name=pred_name,
+            line_count=feature_reader.total_read_cnt(),
+            id_keys=id_header,
+            label_keys=label_header,
+        )
 
-    meta = gen_prediction_csv_meta(
-        id_header=id_header_map,
-        label_header=label_header_map,
-        party=receiver,
-        pred_name=pred_name,
-        line_count=x.shape[0],
-        id_keys=id_header,
-        label_keys=label_header,
-    )
+        y_db.meta.Pack(meta)
 
-    y_db.meta.Pack(meta)
-
-    return {"pred": y_db}
+        return {"pred": y_db}

@@ -29,28 +29,28 @@ message CalculateOpRules {
     NORMALIZATION = 2;
     // len(operands) == 2, [min, max]
     RANGE_LIMIT = 3;
-    // len(operands) == 3, [unary_op(+ - * /), value, value_is_right]
-    // value_is_right ∈ [true, false]
-    // if value_is_right == true, column unary_op value
-    // if value_is_right == false, value unary_op column
+    // len(operands) == 3, [(+ -), unary_op(+ - * /), value]
+    // if operandsp[0] == "+", column unary_op value
+    // if operandsp[0] == "-", value unary_op column
     UNARY = 4;
     // len(operands) == 0
-    ROUND = 5;
+    RECIPROCAL = 5;
+    // len(operands) == 0
+    ROUND = 6;
     // len(operands) == 1, [bias]
-    LOG_ROUND = 6;
+    LOG_ROUND = 7;
     // len(operands) == 0
-    SQRT = 7;
+    SQRT = 8;
     // len(operands) == 2, [log_base, bias]
-    LOG = 8;
+    LOG = 9;
     // len(operands) == 0
-    EXP = 9;
-    // len(operands) == 0
-    CONCAT = 10;
+    EXP = 10;
     // len(operands) == 0
     LENGTH = 11;
     // len(operands) == 2, [start_pos, length]
     SUBSTR = 12;
   }
+
   OpType op = 1;
 
   repeated string operands = 2;

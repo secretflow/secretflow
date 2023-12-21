@@ -64,15 +64,14 @@ class DistributedTree:
         Returns:
             PYUObject: _description_
         """
-        assert len(self.split_tree_dict) == len(
-            x
-        ), "data parition number should match split tree number"
         assert self.label_holder is not None, "label holder must exist"
         assert len(self.split_tree_dict) > 0, "number of split tree must be not empty"
 
         shape = None
         weight_selects = list()
         for pyu, split_tree in self.split_tree_dict.items():
+            if pyu not in x:
+                continue
             s = pyu(lambda split_tree, x: split_tree.predict_leaf_select(x))(
                 split_tree, x[pyu].data
             )

@@ -34,7 +34,7 @@ def teeu_production_setup_devices(request, sf_party_for_4pc):
         sf.init(
             address='local',
             cluster_config=cluster(),
-            logging_level='debug',
+            logging_level='info',
             num_cpus=8,
             log_to_driver=True,
             tee_simulation=True,

@@ -36,7 +36,7 @@ from secretflow.stats.groupby_v import ordinal_encoded_groupby_value_agg_pairs
 groupby_statistics_comp = Component(
     name="groupby_statistics",
     domain="stats",
-    version="0.0.2",
+    version="0.0.3",
     desc="""Get a groupby of statistics, like pandas groupby statistics.
     Currently only support VDataframe.
     """,

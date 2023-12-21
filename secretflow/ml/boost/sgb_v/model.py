@@ -11,23 +11,24 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import json
+import os
 from pathlib import Path
-from typing import Dict, Union, List
+from typing import Dict, List, Union
 
 import jax.numpy as jnp
 
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import PYU, PYUObject, reveal, wait
-
-from .core.distributed_tree.distributed_tree import DistributedTree
-from .core.distributed_tree.distributed_tree import from_dict as dt_from_dict
-from .core.params import RegType
 from secretflow.ml.boost.core.data_preprocess import prepare_dataset
-from .core.pure_numpy_ops.pred import sigmoid
 
+from .core.distributed_tree.distributed_tree import (
+    DistributedTree,
+    from_dict as dt_from_dict,
+)
+from .core.params import RegType
+from .core.pure_numpy_ops.pred import sigmoid
 
 common_path_postfix = "/common.json"
 leaf_weight_postfix = "/leaf_weight.json"
@@ -56,7 +57,7 @@ class SgbModel:
 
     def predict(
         self,
-        dtrain: Union[FedNdarray, VDataFrame],
+        dtrain: Union[FedNdarray, VDataFrame, Dict[PYU, PYUObject]],
         to_pyu: PYU = None,
     ) -> Union[PYUObject, FedNdarray]:
         """
@@ -76,18 +77,20 @@ class SgbModel:
         """
         if len(self.trees) == 0:
             return None
-        x, _ = prepare_dataset(dtrain)
-        x = x.partitions
-        preds = []
-        for tree in self.trees:
-            pred = tree.predict(x)
-            preds.append(pred)
 
-        pred = self.label_holder(
-            lambda ps, base: (
-                jnp.sum(jnp.concatenate(ps, axis=1), axis=1) + base
-            ).reshape(-1, 1)
-        )(preds, self.base)
+        pred = 0
+        if isinstance(dtrain, dict):
+            x = dtrain
+        else:
+            x, _ = prepare_dataset(dtrain)
+            x = x.partitions
+
+        for tree in self.trees:
+            pred = self.label_holder(lambda x, y: jnp.add(x, y))(tree.predict(x), pred)
+
+        pred = self.label_holder(lambda x, y: jnp.add(x, y).reshape(-1, 1))(
+            pred, self.base
+        )
 
         if self.objective == RegType.Logistic:
             pred = self.label_holder(sigmoid)(pred)
@@ -162,9 +165,12 @@ class SgbModel:
         finish_split_trees = []
         for device, path in device_path_dict.items():
             split_tree_path = path + split_tree_postfix
-            finish_split_trees.append(
-                device(json_dump)(model_dict['split_trees'][device], split_tree_path)
-            )
+            if device in model_dict['split_trees']:
+                finish_split_trees.append(
+                    device(json_dump)(
+                        model_dict['split_trees'][device], split_tree_path
+                    )
+                )
 
         # no real content, handler for wait
         r = (finish_common, finish_leaf, finish_split_trees)
@@ -198,6 +204,10 @@ def from_dict(model_dict: Dict) -> SgbModel:
     return sm
 
 
+def check_file_exists(path):
+    return True if os.path.isfile(path) else False
+
+
 def from_json_to_dict(
     device_path_dict: Dict,
     label_holder: PYU,
@@ -220,6 +230,12 @@ def from_json_to_dict(
             leaf_weight_path
         )
     ]
+    # check split trees
+    split_devices = {}
+    for device, path in device_path_dict.items():
+        if reveal(device(check_file_exists)(path + split_tree_postfix)):
+            split_devices[device] = path
+
     return {
         'label_holder': label_holder,
         'common': common_params,
@@ -230,7 +246,7 @@ def from_json_to_dict(
                     path + split_tree_postfix
                 )
             ]
-            for device, path in device_path_dict.items()
+            for device, path in split_devices.items()
         },
     }
 
