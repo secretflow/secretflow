@@ -90,7 +90,6 @@ class LLDPAggregator(Aggregator):
             ]
 
         def _average(*data, axis, weights):  ##打包成一个元组
-
             client_list = []
 
             def getSensitivity(w, max=0, min=0):
@@ -105,7 +104,6 @@ class LLDPAggregator(Aggregator):
                 results = []
                 client_num = len(data)
                 for j in range(client_num):
-
                     delta = math.exp(-3)
                     epsilon = [80, 80, 40, 40, 30, 30]  ##卷积层不加噪，后三层加噪
                     data_list_l = data[j][:4]

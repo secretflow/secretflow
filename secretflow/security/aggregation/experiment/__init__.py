@@ -14,4 +14,4 @@
 from .ldp_aggregator import LDPAggregator
 from .lldp_aggregator import LLDPAggregator
 
-__all__ = ['LDPAggregator', 'LLDPAggregator']
+__all__ = ["LDPAggregator", "LLDPAggregator"]

@@ -9,26 +9,26 @@ from secretflow.security.aggregation.aggregator import Aggregator
 class LDPAggregator(Aggregator):
     """Aggregator based on local differential privacy.
 
-       The computation will be performed in plaintext.
+    The computation will be performed in plaintext.
 
-       Examples:
-         >>> # Alice and bob are both pyu instances.
-         >>> aggregator = LDPAggregator(alice)
-         >>> a = alice(lambda : np.random.rand(2, 5))()
-         >>> b = bob(lambda : np.random.rand(2, 5))()
-         >>> sum_a_b = aggregator.sum([a, b], axis=0)
-         >>> # Get the result.
-         >>> sf.reveal(sum_a_b)
-         array([[0.5954927 , 0.9381409 , 0.99397117, 1.551537  , 0.32698634],
-           [1.288345  , 1.1820003 , 1.1769378 , 0.7396539 , 1.215364  ]],
-           dtype=float32)
-         >>> average_a_b = aggregator.average([a, b], axis=0)
-         >>> sf.reveal(average_a_b)
-         array([[0.29774636, 0.46907046, 0.49698558, 0.7757685 , 0.16349317],
-           [0.6441725 , 0.59100014, 0.5884689 , 0.36982694, 0.607682  ]],
-           dtype=float32)
+    Examples:
+      >>> # Alice and bob are both pyu instances.
+      >>> aggregator = LDPAggregator(alice)
+      >>> a = alice(lambda : np.random.rand(2, 5))()
+      >>> b = bob(lambda : np.random.rand(2, 5))()
+      >>> sum_a_b = aggregator.sum([a, b], axis=0)
+      >>> # Get the result.
+      >>> sf.reveal(sum_a_b)
+      array([[0.5954927 , 0.9381409 , 0.99397117, 1.551537  , 0.32698634],
+        [1.288345  , 1.1820003 , 1.1769378 , 0.7396539 , 1.215364  ]],
+        dtype=float32)
+      >>> average_a_b = aggregator.average([a, b], axis=0)
+      >>> sf.reveal(average_a_b)
+      array([[0.29774636, 0.46907046, 0.49698558, 0.7757685 , 0.16349317],
+        [0.6441725 , 0.59100014, 0.5884689 , 0.36982694, 0.607682  ]],
+        dtype=float32)
 
-       """
+    """
 
     def __init__(self, device: PYU):
         assert isinstance(device, PYU), f"Accepts PYU only but got {type(device)}."
@@ -87,13 +87,11 @@ class LDPAggregator(Aggregator):
             ]
 
         def _average(*data, axis, weights):  ##打包成一个元组
-
             client_list = []
             if isinstance(data[0], (list, tuple)):
                 results = []
                 client_num = len(data)
                 for j in range(client_num):
-
                     delta = math.exp(-3)
                     epsilon = [80, 80, 40, 40, 30, 30]  ##卷积层不加噪，后三层加噪
                     data_list_l = data[j][:4]
