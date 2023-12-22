@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
-## [1.3.0.dev231218] - 2023-12-18
+## [1.3.0.dev231219] - 2023-12-19
 ### Added
 - Make barrier_on_shutdown optional.
 - Support SGB label holder without features.
