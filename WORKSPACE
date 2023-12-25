@@ -4,7 +4,7 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
 git_repository(
     name = "yacl",
-    commit = "816ac40ead311507ade19d521e1069b065747b63",
+    commit = "2b7d8882c78f07bd9e78217b7f9ca13135781e65",
     remote = "https://github.com/secretflow/yacl.git",
 )
 
