@@ -15,6 +15,7 @@
 
 import inspect
 import logging
+import multiprocessing
 from enum import Enum, unique
 from functools import partial
 from typing import List, Union
@@ -100,9 +101,13 @@ def active_sf_cluster():
 
 def get_cluster_avaliable_resources():
     if get_distribution_mode() == DISTRIBUTION_MODE.DEBUG:
-        raise NotImplementedError(
-            "Need but not implement. This will be used by tune when debug mode."
-        )
+        from secretflow.device import global_state
+
+        parties = global_state.parties()
+        cpu_counts = multiprocessing.cpu_count()
+        avaliable_resources = {party: cpu_counts for party in parties}
+        avaliable_resources['CPU'] = cpu_counts
+        return avaliable_resources
     elif get_distribution_mode() == DISTRIBUTION_MODE.SIMULATION:
         return ray.available_resources()
     else:

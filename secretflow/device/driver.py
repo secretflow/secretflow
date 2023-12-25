@@ -544,6 +544,7 @@ def init(
         ray.init(
             address,
             num_cpus=num_cpus,
+            num_gpus=num_gpus,
             log_to_driver=log_to_driver,
             **kwargs,
         )

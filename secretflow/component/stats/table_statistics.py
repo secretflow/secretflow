@@ -32,26 +32,28 @@ table_statistics_comp = Component(
     2. total_count
     3. count
     4. count_na
-    5. min
-    6. max
-    7. var
-    8. std
-    9. sem
-    10. skewness
-    11. kurtosis
-    12. q1
-    13. q2
-    14. q3
-    15. moment_2
-    16. moment_3
-    17. moment_4
-    18. central_moment_2
-    19. central_moment_3
-    20. central_moment_4
-    21. sum
-    22. sum_2
-    23. sum_3
-    24. sum_4
+    5. na_ratio
+    6. min
+    7. max
+    8. mean
+    9. var
+    10. std
+    11. sem
+    12. skewness
+    13. kurtosis
+    14. q1
+    15. q2
+    16. q3
+    17. moment_2
+    18. moment_3
+    19. moment_4
+    20. central_moment_2
+    21. central_moment_3
+    22. central_moment_4
+    23. sum
+    24. sum_2
+    25. sum_3
+    26. sum_4
 
     - moment_2 means E[X^2].
     - central_moment_2 means E[(X - mean(X))^2].

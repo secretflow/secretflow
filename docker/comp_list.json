@@ -4,30 +4,319 @@
   "version": "0.0.1",
   "comps": [
     {
-      "domain": "feature",
-      "name": "vert_bin_substitution",
-      "desc": "Substitute datasets' value by bin substitution rules.",
+      "domain": "data_filter",
+      "name": "condition_filter",
+      "desc": "Filter the table based on a single column's values and condition.\nWarning: the party responsible for condition filtering will directly send the sample distribution to other participants.\nMalicious participants can obtain the distribution of characteristics by repeatedly calling with different filtering values.\nAudit the usage of this component carefully.",
       "version": "0.0.1",
-      "inputs": [
+      "attrs": [
         {
-          "name": "input_data",
-          "desc": "Vertical partitioning dataset to be substituted.",
-          "types": [
-            "sf.table.vertical_table"
-          ]
+          "name": "comparator",
+          "desc": "Comparator to use for comparison. Must be one of '==','<','<=','>','>=','IN'",
+          "type": "AT_STRING",
+          "atomic": {
+            "allowedValues": {
+              "ss": [
+                "==",
+                "<",
+                "<=",
+                ">",
+                ">=",
+                "IN"
+              ]
+            }
+          }
         },
         {
-          "name": "bin_rule",
-          "desc": "Input bin substitution rule.",
+          "name": "value_type",
+          "desc": "Type of the value to compare with. Must be one of ['STRING', 'FLOAT']",
+          "type": "AT_STRING",
+          "atomic": {
+            "allowedValues": {
+              "ss": [
+                "STRING",
+                "FLOAT"
+              ]
+            }
+          }
+        },
+        {
+          "name": "bound_value",
+          "desc": "Input a str with values separated by ','. List of values to compare with. If comparator is not 'IN', we only support one element in this list.",
+          "type": "AT_STRING",
+          "atomic": {}
+        },
+        {
+          "name": "float_epsilon",
+          "desc": "Epsilon value for floating point comparison. WARNING: due to floating point representation in computers, set this number slightly larger if you want filter out the values exactly at desired boundary. for example, abs(1.001 - 1.002) is slightly larger than 0.001, and therefore may not be filter out using == and epsilson = 0.001",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 1e-06
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "in_ds",
+          "desc": "Input vertical table.",
           "types": [
-            "sf.rule.binning"
+            "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "features",
+              "desc": "Feature(s) to operate on.",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
+            }
           ]
         }
       ],
       "outputs": [
         {
-          "name": "output_data",
+          "name": "out_ds",
+          "desc": "Output vertical table that satisfies the condition.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        },
+        {
+          "name": "out_ds_else",
+          "desc": "Output vertical table that does not satisfies the condition.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "data_filter",
+      "name": "feature_filter",
+      "desc": "Drop features from the dataset.",
+      "version": "0.0.1",
+      "inputs": [
+        {
+          "name": "in_ds",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "drop_features",
+              "desc": "Features to drop."
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "out_ds",
           "desc": "Output vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "data_prep",
+      "name": "psi",
+      "desc": "PSI between two parties.",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "protocol",
+          "desc": "PSI protocol.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "ECDH_PSI_2PC"
+            },
+            "allowedValues": {
+              "ss": [
+                "ECDH_PSI_2PC",
+                "KKRT_PSI_2PC",
+                "BC22_PSI_2PC"
+              ]
+            }
+          }
+        },
+        {
+          "name": "sort",
+          "desc": "Sort the output. Warning: disable this feature may lead to errors in the following components. DO NOT CHOOSE FALSE if you want to append other components",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "b": true
+            }
+          }
+        },
+        {
+          "name": "bucket_size",
+          "desc": "Specify the hash bucket size used in PSI. Larger values consume more memory.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "1048576"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
+          }
+        },
+        {
+          "name": "ecdh_curve_type",
+          "desc": "Curve type for ECDH PSI.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "CURVE_FOURQ"
+            },
+            "allowedValues": {
+              "ss": [
+                "CURVE_25519",
+                "CURVE_FOURQ",
+                "CURVE_SM2",
+                "CURVE_SECP256K1"
+              ]
+            }
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "receiver_input",
+          "desc": "Individual table for receiver",
+          "types": [
+            "sf.table.individual"
+          ],
+          "attrs": [
+            {
+              "name": "key",
+              "desc": "Column(s) used to join.",
+              "colMinCntInclusive": "1"
+            }
+          ]
+        },
+        {
+          "name": "sender_input",
+          "desc": "Individual table for sender",
+          "types": [
+            "sf.table.individual"
+          ],
+          "attrs": [
+            {
+              "name": "key",
+              "desc": "Column(s) used to join.",
+              "colMinCntInclusive": "1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "psi_output",
+          "desc": "Output vertical table",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "data_prep",
+      "name": "train_test_split",
+      "desc": "Split datasets into random train and test subsets.\n- Please check: https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "train_size",
+          "desc": "Proportion of the dataset to include in the train subset. The sum of test_size and train_size should be in the (0, 1] range.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.75
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 1.0
+            }
+          }
+        },
+        {
+          "name": "test_size",
+          "desc": "Proportion of the dataset to include in the test subset. The sum of test_size and train_size should be in the (0, 1] range.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.25
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 1.0
+            }
+          }
+        },
+        {
+          "name": "random_state",
+          "desc": "Specify the random seed of the shuffling.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "1024"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
+          }
+        },
+        {
+          "name": "shuffle",
+          "desc": "Whether to shuffle the data before splitting.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "b": true
+            }
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "input_data",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "train",
+          "desc": "Output train dataset.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        },
+        {
+          "name": "test",
+          "desc": "Output test dataset.",
           "types": [
             "sf.table.vertical_table"
           ]
@@ -412,7 +701,7 @@
             },
             {
               "name": "prediction",
-              "desc": "The prediction result cplumn name to use in the dataset.",
+              "desc": "The prediction result column name to use in the dataset.",
               "colMinCntInclusive": "1",
               "colMaxCntInclusive": "1"
             }
@@ -616,7 +905,7 @@
       "domain": "ml.predict",
       "name": "sgb_predict",
       "desc": "Predict using SGB model.",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "attrs": [
         {
           "name": "receiver",
@@ -652,17 +941,6 @@
             "isOptional": true,
             "defaultValue": {
               "b": true
-            }
-          }
-        },
-        {
-          "name": "batch_size",
-          "desc": "Prediction batch size",
-          "type": "AT_INT",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "i64": "100000"
             }
           }
         }
@@ -2071,93 +2349,6 @@
     },
     {
       "domain": "preprocessing",
-      "name": "condition_filter",
-      "desc": "Filter the table based on a single column's values and condition.\nWarning: the party responsible for condition filtering will directly send the sample distribution to other participants.\nMalicious participants can obtain the distribution of characteristics by repeatedly calling with different filtering values.\nAudit the usage of this component carefully.",
-      "version": "0.0.1",
-      "attrs": [
-        {
-          "name": "comparator",
-          "desc": "Comparator to use for comparison. Must be one of '==','<','<=','>','>=','IN'",
-          "type": "AT_STRING",
-          "atomic": {
-            "allowedValues": {
-              "ss": [
-                "==",
-                "<",
-                "<=",
-                ">",
-                ">=",
-                "IN"
-              ]
-            }
-          }
-        },
-        {
-          "name": "value_type",
-          "desc": "Type of the value to compare with. Must be one of ['STRING', 'FLOAT']",
-          "type": "AT_STRING",
-          "atomic": {
-            "allowedValues": {
-              "ss": [
-                "STRING",
-                "FLOAT"
-              ]
-            }
-          }
-        },
-        {
-          "name": "bound_value",
-          "desc": "Input a str with values separated by ','. List of values to compare with. If comparator is not 'IN', we only support one element in this list.",
-          "type": "AT_STRING",
-          "atomic": {}
-        },
-        {
-          "name": "float_epsilon",
-          "desc": "Epsilon value for floating point comparison. WARNING: due to floating point representation in computers, set this number slightly larger if you want filter out the values exactly at desired boundary. for example, abs(1.001 - 1.002) is slightly larger than 0.001, and therefore may not be filter out using == and epsilson = 0.001",
-          "type": "AT_FLOAT",
-          "atomic": {
-            "lowerBoundEnabled": true,
-            "lowerBound": {},
-            "lowerBoundInclusive": true
-          }
-        }
-      ],
-      "inputs": [
-        {
-          "name": "in_ds",
-          "desc": "Input vertical table.",
-          "types": [
-            "sf.table.vertical_table"
-          ],
-          "attrs": [
-            {
-              "name": "features",
-              "desc": "Feature(s) to operate on.",
-              "colMinCntInclusive": "1",
-              "colMaxCntInclusive": "1"
-            }
-          ]
-        }
-      ],
-      "outputs": [
-        {
-          "name": "out_ds",
-          "desc": "Output vertical table that satisfies the condition.",
-          "types": [
-            "sf.table.vertical_table"
-          ]
-        },
-        {
-          "name": "out_ds_else",
-          "desc": "Output vertical table that does not satisfies the condition.",
-          "types": [
-            "sf.table.vertical_table"
-          ]
-        }
-      ]
-    },
-    {
-      "domain": "preprocessing",
       "name": "feature_calculate",
       "desc": "Generate a new feature by performing calculations on an origin feature",
       "version": "0.0.1",
@@ -2198,36 +2389,6 @@
           "desc": "feature calculate rule",
           "types": [
             "sf.rule.preprocessing"
-          ]
-        }
-      ]
-    },
-    {
-      "domain": "preprocessing",
-      "name": "feature_filter",
-      "desc": "Drop features from the dataset.",
-      "version": "0.0.1",
-      "inputs": [
-        {
-          "name": "in_ds",
-          "desc": "Input vertical table.",
-          "types": [
-            "sf.table.vertical_table"
-          ],
-          "attrs": [
-            {
-              "name": "drop_features",
-              "desc": "Features to drop."
-            }
-          ]
-        }
-      ],
-      "outputs": [
-        {
-          "name": "out_ds",
-          "desc": "Output vertical table.",
-          "types": [
-            "sf.table.vertical_table"
           ]
         }
       ]
@@ -2431,114 +2592,6 @@
     },
     {
       "domain": "preprocessing",
-      "name": "psi",
-      "desc": "PSI between two parties.",
-      "version": "0.0.1",
-      "attrs": [
-        {
-          "name": "protocol",
-          "desc": "PSI protocol.",
-          "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "s": "ECDH_PSI_2PC"
-            },
-            "allowedValues": {
-              "ss": [
-                "ECDH_PSI_2PC",
-                "KKRT_PSI_2PC",
-                "BC22_PSI_2PC"
-              ]
-            }
-          }
-        },
-        {
-          "name": "sort",
-          "desc": "Sort the output. Warning: disable this feature may lead to errors in the following components. DO NOT CHOOSE FALSE if you want to append other components",
-          "type": "AT_BOOL",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "b": true
-            }
-          }
-        },
-        {
-          "name": "bucket_size",
-          "desc": "Specify the hash bucket size used in PSI. Larger values consume more memory.",
-          "type": "AT_INT",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "i64": "1048576"
-            },
-            "lowerBoundEnabled": true,
-            "lowerBound": {}
-          }
-        },
-        {
-          "name": "ecdh_curve_type",
-          "desc": "Curve type for ECDH PSI.",
-          "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "s": "CURVE_FOURQ"
-            },
-            "allowedValues": {
-              "ss": [
-                "CURVE_25519",
-                "CURVE_FOURQ",
-                "CURVE_SM2",
-                "CURVE_SECP256K1"
-              ]
-            }
-          }
-        }
-      ],
-      "inputs": [
-        {
-          "name": "receiver_input",
-          "desc": "Individual table for receiver",
-          "types": [
-            "sf.table.individual"
-          ],
-          "attrs": [
-            {
-              "name": "key",
-              "desc": "Column(s) used to join.",
-              "colMinCntInclusive": "1"
-            }
-          ]
-        },
-        {
-          "name": "sender_input",
-          "desc": "Individual table for sender",
-          "types": [
-            "sf.table.individual"
-          ],
-          "attrs": [
-            {
-              "name": "key",
-              "desc": "Column(s) used to join.",
-              "colMinCntInclusive": "1"
-            }
-          ]
-        }
-      ],
-      "outputs": [
-        {
-          "name": "psi_output",
-          "desc": "Output vertical table",
-          "types": [
-            "sf.table.vertical_table"
-          ]
-        }
-      ]
-    },
-    {
-      "domain": "preprocessing",
       "name": "substitution",
       "desc": "unified substitution component",
       "version": "0.0.2",
@@ -2570,89 +2623,29 @@
     },
     {
       "domain": "preprocessing",
-      "name": "train_test_split",
-      "desc": "Split datasets into random train and test subsets.\n- Please check: https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html",
+      "name": "vert_bin_substitution",
+      "desc": "Substitute datasets' value by bin substitution rules.",
       "version": "0.0.1",
-      "attrs": [
-        {
-          "name": "train_size",
-          "desc": "Proportion of the dataset to include in the train subset. The sum of test_size and train_size should be in the (0, 1] range.",
-          "type": "AT_FLOAT",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "f": 0.75
-            },
-            "lowerBoundEnabled": true,
-            "lowerBound": {},
-            "upperBoundEnabled": true,
-            "upperBound": {
-              "f": 1.0
-            }
-          }
-        },
-        {
-          "name": "test_size",
-          "desc": "Proportion of the dataset to include in the test subset. The sum of test_size and train_size should be in the (0, 1] range.",
-          "type": "AT_FLOAT",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "f": 0.25
-            },
-            "lowerBoundEnabled": true,
-            "lowerBound": {},
-            "upperBoundEnabled": true,
-            "upperBound": {
-              "f": 1.0
-            }
-          }
-        },
-        {
-          "name": "random_state",
-          "desc": "Specify the random seed of the shuffling.",
-          "type": "AT_INT",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "i64": "1024"
-            },
-            "lowerBoundEnabled": true,
-            "lowerBound": {}
-          }
-        },
-        {
-          "name": "shuffle",
-          "desc": "Whether to shuffle the data before splitting.",
-          "type": "AT_BOOL",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "b": true
-            }
-          }
-        }
-      ],
       "inputs": [
         {
           "name": "input_data",
-          "desc": "Input vertical table.",
+          "desc": "Vertical partitioning dataset to be substituted.",
           "types": [
             "sf.table.vertical_table"
+          ]
+        },
+        {
+          "name": "bin_rule",
+          "desc": "Input bin substitution rule.",
+          "types": [
+            "sf.rule.binning"
           ]
         }
       ],
       "outputs": [
         {
-          "name": "train",
-          "desc": "Output train dataset.",
-          "types": [
-            "sf.table.vertical_table"
-          ]
-        },
-        {
-          "name": "test",
-          "desc": "Output test dataset.",
+          "name": "output_data",
+          "desc": "Output vertical table.",
           "types": [
             "sf.table.vertical_table"
           ]
@@ -2780,7 +2773,7 @@
     {
       "domain": "stats",
       "name": "table_statistics",
-      "desc": "Get a table of statistics,\nincluding each column's\n1. datatype\n2. total_count\n3. count\n4. count_na\n5. min\n6. max\n7. var\n8. std\n9. sem\n10. skewness\n11. kurtosis\n12. q1\n13. q2\n14. q3\n15. moment_2\n16. moment_3\n17. moment_4\n18. central_moment_2\n19. central_moment_3\n20. central_moment_4\n21. sum\n22. sum_2\n23. sum_3\n24. sum_4\n- moment_2 means E[X^2].\n- central_moment_2 means E[(X - mean(X))^2].\n- sum_2 means sum(X^2).",
+      "desc": "Get a table of statistics,\nincluding each column's\n1. datatype\n2. total_count\n3. count\n4. count_na\n5. na_ratio\n6. min\n7. max\n8. mean\n9. var\n10. std\n11. sem\n12. skewness\n13. kurtosis\n14. q1\n15. q2\n16. q3\n17. moment_2\n18. moment_3\n19. moment_4\n20. central_moment_2\n21. central_moment_3\n22. central_moment_4\n23. sum\n24. sum_2\n25. sum_3\n26. sum_4\n- moment_2 means E[X^2].\n- central_moment_2 means E[(X - mean(X))^2].\n- sum_2 means sum(X^2).",
       "version": "0.0.1",
       "inputs": [
         {

@@ -27,9 +27,9 @@ from secretflow.device import (
     SPUObject,
     register,
 )
-from secretflow.utils.progress import ProgressData
 from secretflow.device.device.base import register_to
 from secretflow.device.device.heu import HEUMoveConfig
+from secretflow.utils.progress import ProgressData
 
 
 @register_to(DeviceType.SPU, DeviceType.PYU)
@@ -50,6 +50,7 @@ def spu_to_pyu(self: SPUObject, pyu: Device, config: HEUMoveConfig = None):
     )
 
 
+# WARNING: you may need to wait spu to spu for following applications
 @register_to(DeviceType.SPU, DeviceType.SPU)
 def spu_to_spu(self: SPUObject, spu: SPU):
     assert isinstance(spu, SPU), f'Expect an SPU but got {type(spu)}.'
@@ -578,5 +579,48 @@ def pir_memory_query(
             )
         )
 
+    # wait for all tasks done
+    return sfd.get(res)
+
+
+@register(DeviceType.SPU)
+def psi_v2(
+    device: SPU,
+    keys: Dict[str, List[str]],
+    input_path: Dict[str, str],
+    output_path: Dict[str, str],
+    receiver: str,
+    broadcast_result: bool = True,
+    protocol: str = 'PROTOCOL_KKRT',
+    ecdh_curve: str = 'CURVE_FOURQ',
+    advanced_join_type: str = "ADVANCED_JOIN_TYPE_UNSPECIFIED",
+    left_side: str = "ROLE_RECEIVER",
+    skip_duplicates_check: bool = False,
+    disable_alignment: bool = False,
+    check_hash_digest: bool = False,
+):
+    assert isinstance(device, SPU), 'device must be SPU device'
+
+    assert device.world_size == 2, 'only 2pc is allowed.'
+    assert receiver in device.actors, f'receiver {receiver} is not found in spu nodes.'
+
+    res = []
+    for party, actor in device.actors.items():
+        res.append(
+            actor.psi_v2.remote(
+                keys[party],
+                input_path[party],
+                output_path[party],
+                receiver,
+                broadcast_result,
+                protocol,
+                ecdh_curve,
+                advanced_join_type,
+                left_side,
+                skip_duplicates_check,
+                disable_alignment,
+                check_hash_digest,
+            )
+        )
     # wait for all tasks done
     return sfd.get(res)

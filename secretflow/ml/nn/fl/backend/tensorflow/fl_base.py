@@ -18,7 +18,7 @@ import math
 from abc import abstractmethod
 from pathlib import Path
 from typing import Callable, Optional, Union
-
+import logging
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -26,6 +26,14 @@ import tensorflow as tf
 from secretflow.ml.nn.fl.backend.tensorflow.sampler import sampler_data
 from secretflow.ml.nn.metrics import AUC, Mean, Precision, Recall
 from secretflow.utils.io import rows_count
+
+gpus = tf.config.list_physical_devices('GPU')
+if gpus:
+    try:
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+    except RuntimeError as e:
+        logging.error(e)
 
 
 class BaseTFModel:

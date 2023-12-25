@@ -224,7 +224,7 @@ def test_ss_sgd(comp_prod_sf_cluster_config):
     )
     comp_ret = Report()
     eval_res.outputs[0].meta.Unpack(comp_ret)
-    logging.warn(MessageToJson(comp_ret))
+    logging.warning(MessageToJson(comp_ret))
     r2_score_ = r2_score(input_y["y"], output_y["pred"])
     np.testing.assert_almost_equal(
         r2_score_,

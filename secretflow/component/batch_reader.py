@@ -101,7 +101,7 @@ class SimpleVerticalBatchReader:
         to_numpy=False,
     ) -> None:
         self.readers = {}
-        assert len(paths) > 1, "Cnt of parties should be greater than 1."
+        assert len(paths) > 0, "At least one party should be included."
         for party, path in paths.items():
             pyu = PYU(party)
             self.readers[party] = pyu(

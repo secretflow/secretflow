@@ -20,14 +20,14 @@ if __name__ == "__main__":
         "input/sender_input/key": ["id1"],
     }
     # 测试psi
-    psi = TestComp("psi_test", "preprocessing", "psi", "0.0.1", attrs)
+    psi = TestComp("psi_test", "data_prep", "psi", "0.0.1", attrs)
     aci_pipe.add_comp(psi, ["DAGInput.alice", "DAGInput.bob"])
 
     attrs = {
         "input/in_ds/drop_features": ["alice1", "bob9"],
     }
     # 测试feature_filter
-    feature_filter = TestComp("ff", "preprocessing", "feature_filter", "0.0.1", attrs)
+    feature_filter = TestComp("ff", "data_filter", "feature_filter", "0.0.1", attrs)
     aci_pipe.add_comp(feature_filter, ["psi_test.0"])
 
     attrs = {
@@ -37,7 +37,7 @@ if __name__ == "__main__":
         "shuffle": False,
     }
     # 测试train_test_split
-    ds_split = TestComp("ds_split", "preprocessing", "train_test_split", "0.0.1", attrs)
+    ds_split = TestComp("ds_split", "data_prep", "train_test_split", "0.0.1", attrs)
     aci_pipe.add_comp(ds_split, ["ff.0"])
 
     feature_selects = [f"alice{c}" for c in range(15)] + [f"bob{c}" for c in range(15)]
