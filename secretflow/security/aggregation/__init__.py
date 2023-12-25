@@ -1,6 +1,6 @@
 '''
-Descripttion: 
-version: 
+Descripttion:
+version:
 Author: bloom0705
 LastEditors: bloom0705
 E-mail: 809127446@qq.com

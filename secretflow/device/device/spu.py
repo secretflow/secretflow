@@ -1513,6 +1513,58 @@ class SPURuntime:
             'data_count': report.data_count,
         }
 
+    def psi_v2(
+        self,
+        keys: List[str],
+        input_path: str,
+        output_path: str,
+        receiver: str,
+        broadcast_result: bool = True,
+        protocol: str = 'PROTOCOL_KKRT',
+        ecdh_curve: str = 'CURVE_FOURQ',
+        advanced_join_type: str = "ADVANCED_JOIN_TYPE_UNSPECIFIED",
+        left_side: str = "ROLE_RECEIVER",
+        skip_duplicates_check: bool = False,
+        disable_alignment: bool = False,
+        check_hash_digest: bool = False,
+    ):
+        config = spu.psi_v2_pb2.PsiConfig(
+            protocol_config=spu.psi_v2_pb2.ProtocolConfig(
+                protocol=spu.psi_v2_pb2.Protocol.Value(protocol),
+                role=spu.psi_v2_pb2.ROLE_RECEIVER
+                if receiver == self.party
+                else spu.psi_v2_pb2.ROLE_SENDER,
+                broadcast_result=broadcast_result,
+            ),
+            input_config=spu.psi_v2_pb2.InputConfig(
+                type=spu.psi_v2_pb2.IO_TYPE_FILE_CSV,
+                path=input_path,
+            ),
+            output_config=spu.psi_v2_pb2.OutputConfig(
+                type=spu.psi_v2_pb2.IO_TYPE_FILE_CSV,
+                path=output_path,
+            ),
+            self_link_party=self.party,
+            keys=keys,
+            advanced_join_type=spu.psi_v2_pb2.PsiConfig.AdvancedJoinType.Value(
+                advanced_join_type
+            ),
+            left_side=spu.psi_v2_pb2.Role.Value(left_side),
+            skip_duplicates_check=skip_duplicates_check,
+            disable_alignment=disable_alignment,
+            check_hash_digest=check_hash_digest,
+        )
+
+        if protocol == 'PROTOCOL_ECDH':
+            config.protocol_config.ecdh_config.curve = spu.psi_pb2.CurveType.Value(
+                ecdh_curve
+            )
+
+        report = spu.psi.psi_v2(config, self.link)
+        from google.protobuf.json_format import MessageToJson
+
+        return MessageToJson(report)
+
 
 def _argnames_partial_except(fn, static_argnames, kwargs):
     if static_argnames is None:
@@ -2241,4 +2293,76 @@ class SPU(Device):
             server,
             config,
             protocol,
+        )
+
+    def psi_v2(
+        self,
+        keys: Dict[str, List[str]],
+        input_path: Dict[str, str],
+        output_path: Dict[str, str],
+        receiver: str,
+        broadcast_result: bool = True,
+        protocol: str = 'PROTOCOL_KKRT',
+        ecdh_curve: str = 'CURVE_FOURQ',
+        advanced_join_type: str = "ADVANCED_JOIN_TYPE_UNSPECIFIED",
+        left_side: str = "ROLE_RECEIVER",
+        skip_duplicates_check: bool = False,
+        disable_alignment: bool = False,
+        check_hash_digest: bool = False,
+    ):
+        """Private set intersection V2 API.
+        Please check https://www.secretflow.org.cn/docs/psi/latest/en-US/reference/psi_v2_config for details.
+
+        Args:
+            keys (Dict[str, List[str]]): Keys for intersection from both parties.
+            input_path (Dict[str, str]): Input paths from both parties.
+            output_path (Dict[str, str]): Output paths from both parties.
+            receiver (str): Name of receiver party.
+            broadcast_result (bool, optional): Whether to reveal result to sender. Defaults to True.
+            protocol (str, optional): PSI protocol. Defaults to 'PROTOCOL_KKRT'. Allowed values: 'PROTOCOL_ECDH', 'PROTOCOL_KKRT', 'PROTOCOL_RR22'
+            ecdh_curve (str, optional): Curve for ECDH protocol. Only valid if ECDH is selected. Defaults to 'CURVE_FOURQ'. Allowed values: 'CURVE_25519', 'CURVE_FOURQ', 'CURVE_SM2', 'CURVE_SECP256K1'
+            advanced_join_type (str, optional): Advanced Join allow duplicate keys.. Defaults to "ADVANCED_JOIN_TYPE_UNSPECIFIED". Allowed values: 'ADVANCED_JOIN_TYPE_UNSPECIFIED', 'ADVANCED_JOIN_TYPE_INNER_JOIN', 'ADVANCED_JOIN_TYPE_LEFT_JOIN', 'ADVANCED_JOIN_TYPE_RIGHT_JOIN', 'ADVANCED_JOIN_TYPE_FULL_JOIN', 'ADVANCED_JOIN_TYPE_DIFFERENCE'
+            left_side (str, optional): Required if advanced_join_type is selected. Defaults to "ROLE_RECEIVER". Allowed values: 'ROLE_RECEIVER', 'ROLE_SENDER'
+            skip_duplicates_check (bool, optional): If true, the check of duplicated items will be skiped. Defaults to False.
+            disable_alignment (bool, optional): It true, output is not promised to be aligned. Defaults to False.
+            check_hash_digest (bool, optional): Check if hash digest of keys from parties are equal to determine whether to early-stop. Defaults to False.
+
+        Returns:
+            Dict: PSI report.
+        """
+
+        assert protocol in ['PROTOCOL_ECDH', 'PROTOCOL_KKRT', 'PROTOCOL_RR22']
+
+        if protocol == 'PROTOCOL_ECDH':
+            assert ecdh_curve in [
+                'CURVE_25519',
+                'CURVE_FOURQ',
+                'CURVE_SM2',
+                'CURVE_SECP256K1',
+            ]
+        assert advanced_join_type in [
+            'ADVANCED_JOIN_TYPE_UNSPECIFIED',
+            'ADVANCED_JOIN_TYPE_INNER_JOIN',
+            'ADVANCED_JOIN_TYPE_LEFT_JOIN',
+            'ADVANCED_JOIN_TYPE_RIGHT_JOIN',
+            'ADVANCED_JOIN_TYPE_FULL_JOIN',
+            'ADVANCED_JOIN_TYPE_DIFFERENCE',
+        ]
+        assert left_side in ['ROLE_RECEIVER', 'ROLE_SENDER']
+
+        return dispatch(
+            'psi_v2',
+            self,
+            keys,
+            input_path,
+            output_path,
+            receiver,
+            broadcast_result,
+            protocol,
+            ecdh_curve,
+            advanced_join_type,
+            left_side,
+            skip_duplicates_check,
+            disable_alignment,
+            check_hash_digest,
         )

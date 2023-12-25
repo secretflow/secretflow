@@ -25,7 +25,6 @@ import torch
 import torch.nn.functional as F
 import torchaudio
 from torch import nn, optim
-from torchinfo import summary
 from torchmetrics import Accuracy, Precision
 from torchvision import datasets, transforms
 
@@ -35,6 +34,8 @@ from secretflow.ml.nn.fl.utils import metric_wrapper, optim_wrapper
 from secretflow.ml.nn.utils import BaseModule, TorchModel
 from secretflow.security.aggregation import SecureAggregator
 
+# ATTENTION: need install audio backend
+# pip install -r https://raw.githubusercontent.com/MicrosoftDocs/pytorchfundamentals/main/audio-pytorch/install-packages.txt
 default_dir = os.getcwd()
 folder = 'data'
 print(f'Data directory will be: {default_dir}/{folder}')
@@ -60,11 +61,11 @@ print(f'Label Names: {labels}')
 
 
 filename = "./data/SpeechCommands/speech_commands_v0.02/yes/00f0204f_nohash_0.wav"
-waveform, sample_rate = torchaudio.load(filepath=filename, num_frames=3)
+waveform, sample_rate = torchaudio.load(uri=filename, num_frames=3)
 print(f'waveform tensor with 3 frames:  {waveform} \n')
-waveform, sample_rate = torchaudio.load(filepath=filename, num_frames=3, frame_offset=2)
+waveform, sample_rate = torchaudio.load(uri=filename, num_frames=3, frame_offset=2)
 print(f'waveform tensor with 2 frame_offsets: {waveform} \n')
-waveform, sample_rate = torchaudio.load(filepath=filename)
+waveform, sample_rate = torchaudio.load(uri=filename)
 print(f'waveform tensor:  {waveform}')
 
 
@@ -398,9 +399,6 @@ for t in range(epochs):
     train(train_dataloader, model, cost, optimizer)
     test(test_dataloader, model)
 print('Done!')
-
-
-summary(model, input_size=(15, 3, 201, 81))
 
 
 model.eval()

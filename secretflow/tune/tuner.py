@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import logging
+from functools import wraps
 from typing import Any, Callable, Dict, List, Optional
 
 import ray.tune as tune
@@ -21,8 +22,29 @@ from ray.air import RunConfig
 import secretflow.distributed as sfd
 from secretflow.device import global_state
 
+from ..distributed.primitive import DISTRIBUTION_MODE
 from .result_grid import ResultGrid
 from .tune_config import TuneConfig
+
+
+def trainable_wrapper(trainable: Callable, global_params: Dict):
+    """
+    Wrapper function for trainable functions.
+    This function is used to launch hyperparameter tuning jobs.
+    Args:
+        trainable: Then trainable to be tuned.
+        global_params: Global parameters for the trainable function.
+    Returns:
+        A dictionary containing the results of the training.
+    """
+
+    @wraps(trainable)
+    def wrapper(config: Dict):
+        if 'distribution_mode' in global_params:
+            sfd.set_distribution_mode(global_params['distribution_mode'])
+        return trainable(config)
+
+    return wrapper
 
 
 class Tuner:
@@ -84,14 +106,36 @@ class Tuner:
         tune_config: Optional[TuneConfig] = None,
         run_config: Optional[RunConfig] = None,
     ):
-        tune_resources = self._init_resources(cluster_resources)
-        trainable = tune.with_resources(trainable, resources=tune_resources)
+        trainable = self._handle_global_params(trainable)
+        trainable = self._construct_trainable_with_resources(
+            trainable, cluster_resources
+        )
         self.ray_tune = tune.Tuner(
             trainable,
             param_space=param_space,
             tune_config=tune_config,
             run_config=run_config,
         )
+
+    def _handle_global_params(self, traiable):
+        """
+        sf.init will set some global parameters in driver side,
+        which will not be passed to worker when use tuner to tune sf.
+        So we need to reset these paraeters again.
+        This function will wrapper the global parameters and set them.
+        """
+        global_params = {'distribution_mode': sfd.get_distribution_mode()}
+        return trainable_wrapper(traiable, global_params)
+
+    def _construct_trainable_with_resources(self, trainable, cluster_resources):
+        distribution_mode = sfd.get_distribution_mode()
+        if distribution_mode == DISTRIBUTION_MODE.DEBUG:
+            return trainable
+        elif distribution_mode == DISTRIBUTION_MODE.SIMULATION:
+            tune_resources = self._init_resources(cluster_resources)
+            return tune.with_resources(trainable, resources=tune_resources)
+        else:
+            raise NotImplementedError()
 
     def _init_resources(self, cluster_resources):
         avaliable_resources = sfd.get_cluster_avaliable_resources()

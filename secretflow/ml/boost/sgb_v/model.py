@@ -51,6 +51,9 @@ class SgbModel:
         self.objective = objective
         self.base = base
         self.trees: List[DistributedTree] = list()
+        # useful for dumping to a complete model or check data shape before predict.
+        # TODO(zoupeicheng.zpc): check input data columns count match
+        self.partition_column_counts = {}
 
     def _insert_distributed_tree(self, tree: DistributedTree):
         self.trees.append(tree)
@@ -116,6 +119,7 @@ class SgbModel:
                 'objective': self.objective.value,
                 'base': self.base,
                 'tree_num': len(self.trees),
+                'partition_column_counts': self.partition_column_counts,
             },
             'leaf_weights': [
                 tree_dict['leaf_weight'] for tree_dict in distributed_tree_dicts
@@ -128,6 +132,10 @@ class SgbModel:
                 for device in device_list
             },
         }
+
+    def sync_partition_columns_to_all_distributed_trees(self):
+        for tree in self.trees:
+            tree.partition_column_counts = self.partition_column_counts
 
     def save_model(self, device_path_dict: Dict, wait_before_proceed=True):
         """Save model to different parties
@@ -186,6 +194,7 @@ def from_dict(model_dict: Dict) -> SgbModel:
         RegType(model_dict['common']['objective']),
         model_dict['common']['base'],
     )
+    sm.partition_column_counts = model_dict['common']['partition_column_counts']
     device_list = [*model_dict['split_trees'].keys()]
 
     def build_split_tree_dict(i):
@@ -197,6 +206,9 @@ def from_dict(model_dict: Dict) -> SgbModel:
                 'split_tree_dict': build_split_tree_dict(i),
                 'leaf_weight': leaf_weight,
                 'label_holder': model_dict['label_holder'],
+                'partition_column_counts': model_dict['common'][
+                    'partition_column_counts'
+                ],
             }
         )
         for i, leaf_weight in enumerate(model_dict['leaf_weights'])

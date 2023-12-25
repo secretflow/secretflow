@@ -134,7 +134,7 @@ if __name__ == '__main__':
         "input/receiver_input/key": ["id1"],
         "input/sender_input/key": ["id2"],
     }
-    psi = TestComp("psi_test", "preprocessing", "psi", "0.0.1", attrs)
+    psi = TestComp("psi_test", "data_prep", "psi", "0.0.1", attrs)
     # 将psi增加到pipe中，并使用DataCase中准备的DAGInput.xx单方数据集作为输入，这里是整个DAG的起点
     demo_pipe.add_comp(psi, ["DAGInput.alice", "DAGInput.bob"])
 
@@ -142,7 +142,7 @@ if __name__ == '__main__':
     attrs = {
         "input/in_ds/drop_features": ["x1", "x9"],
     }
-    feature_filter = TestComp("ff", "preprocessing", "feature_filter", "0.0.1", attrs)
+    feature_filter = TestComp("ff", "data_filter", "feature_filter", "0.0.1", attrs)
     # 添加进pipe， 使用 psi的第0个输出作为输入
     demo_pipe.add_comp(feature_filter, ["psi_test.0"])
 
@@ -153,7 +153,7 @@ if __name__ == '__main__':
         "random_state": 42,
         "shuffle": False,
     }
-    ds_split = TestComp("ds_split", "preprocessing", "train_test_split", "0.0.1", attrs)
+    ds_split = TestComp("ds_split", "data_prep", "train_test_split", "0.0.1", attrs)
     # 添加进pipe，使用特征过滤的第0个输出作为输入
     demo_pipe.add_comp(ds_split, ["ff.0"])
 

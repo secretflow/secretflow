@@ -32,13 +32,13 @@ from secretflow.data.ndarray import FedNdarray
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import PYU, Device, reveal, wait
 from secretflow.device.device.pyu import PYUObject
+from secretflow.ml.nn.callbacks.callbacklist import CallbackList
 from secretflow.ml.nn.sl.agglayer.agg_layer import AggLayer
 from secretflow.ml.nn.sl.agglayer.agg_method import AggMethod
 from secretflow.ml.nn.sl.base import SLBaseModel
 from secretflow.ml.nn.sl.strategy_dispatcher import dispatch_strategy
 from secretflow.security.privacy import DPStrategy
 from secretflow.utils.random import global_random
-from secretflow.ml.nn.callbacks.callbacklist import CallbackList
 
 
 class SLModel:
@@ -165,7 +165,6 @@ class SLModel:
             else:
                 y_partitions = None
                 s_w_partitions = None
-
             if dataset_builder:
                 # in dataset builder mode, xi cannot be none, or else datasetbuilder in worker cannot parse label
                 xs = (
@@ -179,7 +178,7 @@ class SLModel:
                     else [None]
                 )
                 if device not in dataset_builder:
-                    logging.warning("party={device} does not provide dataset_builder")
+                    logging.warning(f"party={device} does not provide dataset_builder")
                     dataset_partition = None
                     if device in self.base_model_dict:
                         raise Exception(
@@ -217,7 +216,6 @@ class SLModel:
                     stage=stage,
                     random_seed=random_seed,
                 )
-
         parties_length = [shape[0] for shape in x[0].partition_shape().values()]
         assert len(set(parties_length)) == 1, "length of all parties must be same"
         steps_per_epoch = math.ceil(parties_length[0] / batch_size)
@@ -226,9 +224,10 @@ class SLModel:
             worker_steps_per_epoch = [
                 steps for steps in worker_steps_per_epoch if steps != -1
             ]
-            assert (
-                len(set(worker_steps_per_epoch)) == 1
-            ), "steps_per_epoch of all parties must be same, Please check whether the batchsize or steps_per_epoch of all parties are consistent"
+            assert len(set(worker_steps_per_epoch)) == 1, (
+                f"steps_per_epoch of all parties must be same, got {set(worker_steps_per_epoch)}."
+                "Please check whether the batchsize or steps_per_epoch of all parties are consistent"
+            )
             # set worker_steps_per_epoch[0] to steps_per_epoch if databuilder return steps_per_epoch else use driver calculate result
             if worker_steps_per_epoch[0] > 0:
                 steps_per_epoch = worker_steps_per_epoch[0]
@@ -411,6 +410,7 @@ class SLModel:
                 random_seed=random_seed,
                 dataset_builder=dataset_builder,
             )
+
         validation = False
         if validation_data is not None:
             assert isinstance(validation_data, tuple) and (
@@ -454,6 +454,7 @@ class SLModel:
             valid_x, valid_y, valid_sample_weight = None, None, None
 
         wait_steps = min(min(self.get_cpus()) * 2, 100)
+
         # setup callback list
         callbacks = CallbackList(
             callbacks=callbacks,
@@ -467,6 +468,7 @@ class SLModel:
         )
 
         callbacks.on_train_begin()
+
         for epoch in range(epochs):
             res = []
             report_list = []
@@ -479,6 +481,7 @@ class SLModel:
                 if step < steps_per_epoch:
                     f_datas = {}
                     callbacks.on_train_batch_begin(step)
+                    callbacks.on_before_base_forward()
                     for device, worker in self._workers.items():
                         # 1. Local calculation of basenet
                         worker.get_batch_data(stage="train")
@@ -510,6 +513,7 @@ class SLModel:
                 if not skip_gradient:
                     # do agglayer backward
                     scatter_gradients = self.agglayer.backward(gradients)
+                    callbacks.after_agglayer_backward(scatter_gradients)
                     for device, worker in self._workers.items():
                         if device in scatter_gradients.keys():
                             worker.recv_gradient(scatter_gradients[device])

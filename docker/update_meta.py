@@ -9,7 +9,7 @@ from secretflow.component.entry import COMP_LIST
 from secretflow.component.i18n import gettext
 
 LANG = "zh"
-TRANSLATOR = "bing"
+TRANSLATOR = "baidu"
 this_directory = os.path.abspath(os.path.dirname(__file__))
 COMP_LIST_FILE = os.path.join(this_directory, 'comp_list.json')
 TRANSLATION_FILE = os.path.join(this_directory, 'translation.json')

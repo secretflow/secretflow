@@ -26,8 +26,8 @@ def table_statistics(table: Union[pd.DataFrame, VDataFrame]) -> pd.DataFrame:
         table: Union[pd.DataFrame, VDataFrame]
     Returns:
         table_statistics: pd.DataFrame
-            including each column's datatype, total_count, count, count_na, min, max,
-            var, std, sem, skewness, kurtosis, q1, q2, q3, moment_2, moment_3, moment_4,
+            including each column's datatype, total_count, count, count_na, na_ratio, min, max, mean
+            var, std, sem, skew, kurtosis, q1, q2, q3, moment_2, moment_3, moment_4,
             central_moment_2, central_moment_3, central_moment_4, sum, sum_2, sum_3 and sum_4.
 
             moment_2 means E[X^2].

@@ -18,8 +18,8 @@ from google.protobuf.json_format import Parse
 
 from secretflow.component.component import CompEvalError, Component, IoType
 from secretflow.component.data_utils import (
-    any_pyu_from_spu_config,
     DistDataType,
+    any_pyu_from_spu_config,
     generate_random_string,
     model_dumps,
     model_loads,
@@ -34,15 +34,15 @@ from secretflow.component.io.core.linear_model.ss_glm import (
 )
 from secretflow.component.ml.linear.ss_glm import (
     MODEL_MAX_MAJOR_VERSION as GLM_MAX_MAJOR_VERSION,
+)
+from secretflow.component.ml.linear.ss_glm import (
     MODEL_MAX_MINOR_VERSION as GLM_MAX_MINOR_VERSION,
 )
-
-from secretflow.component.preprocessing.vert_binning import (
+from secretflow.component.preprocessing.binning.vert_binning import (
     BINNING_RULE_MAX_MAJOR_VERSION,
     BINNING_RULE_MAX_MINOR_VERSION,
 )
 from secretflow.device.device.spu import SPU
-
 from secretflow.spec.extend.bin_data_pb2 import Bins
 from secretflow.spec.extend.linear_model_pb2 import LinearModel
 from secretflow.spec.v1.data_pb2 import DistData
@@ -78,11 +78,11 @@ io_read_data.io(
 def io_read_data_eval_fn(*, ctx, input_dd, output_data):
     if input_dd.type == DistDataType.BIN_RUNNING_RULE:
         model_objs, public_info = model_loads(
+            ctx,
             input_dd,
             BINNING_RULE_MAX_MAJOR_VERSION,
             BINNING_RULE_MAX_MINOR_VERSION,
             DistDataType.BIN_RUNNING_RULE,
-            ctx.local_fs_wd,
         )
 
         read_data = bin_rule_to_pb(model_objs, public_info)
@@ -101,11 +101,11 @@ def io_read_data_eval_fn(*, ctx, input_dd, output_data):
 
         spu = SPU(cluster_def, spu_config["link_desc"])
         model_objs, public_info = model_loads(
+            ctx,
             input_dd,
             GLM_MAX_MAJOR_VERSION,
             GLM_MAX_MINOR_VERSION,
             DistDataType.SS_GLM_MODEL,
-            ctx.local_fs_wd,
             spu=spu,
         )
         read_data = ss_glm_to_linear_model_pb(model_objs, public_info)
@@ -179,11 +179,11 @@ io_write_data.io(
 def io_write_data_eval_fn(*, ctx, write_data, write_data_type, input_dd, output_model):
     if write_data_type == str(DistDataType.BIN_RUNNING_RULE):
         model_objs, public_info = model_loads(
+            ctx,
             input_dd,
             BINNING_RULE_MAX_MAJOR_VERSION,
             BINNING_RULE_MAX_MINOR_VERSION,
             DistDataType.BIN_RUNNING_RULE,
-            ctx.local_fs_wd,
         )
         bin_rules = Parse(write_data, Bins())
         rule_objs = bin_rule_from_pb_and_old_rule(model_objs, public_info, bin_rules)
@@ -191,13 +191,13 @@ def io_write_data_eval_fn(*, ctx, write_data, write_data_type, input_dd, output_
         info_dict = public_info
         info_dict["model_hash"] = generate_random_string(model_objs[0].device)
         output_model_dd = model_dumps(
+            ctx,
             "bin_rule",
             DistDataType.BIN_RUNNING_RULE,
             BINNING_RULE_MAX_MAJOR_VERSION,
             BINNING_RULE_MAX_MINOR_VERSION,
             rule_objs,
             info_dict,
-            ctx.local_fs_wd,
             output_model,
             input_dd.system_info,
         )
@@ -216,11 +216,11 @@ def io_write_data_eval_fn(*, ctx, write_data, write_data_type, input_dd, output_
 
         spu = SPU(cluster_def, spu_config["link_desc"])
         model_objs, public_info = model_loads(
+            ctx,
             input_dd,
             GLM_MAX_MAJOR_VERSION,
             GLM_MAX_MINOR_VERSION,
             DistDataType.SS_GLM_MODEL,
-            ctx.local_fs_wd,
             spu=spu,
         )
         new_model_objs = ss_glm_from_pb_and_old_model(
@@ -231,13 +231,13 @@ def io_write_data_eval_fn(*, ctx, write_data, write_data_type, input_dd, output_
             any_pyu_from_spu_config(cluster_def)
         )
         output_model_dd = model_dumps(
+            ctx,
             "ss_glm",
             DistDataType.SS_GLM_MODEL,
             GLM_MAX_MAJOR_VERSION,
             GLM_MAX_MINOR_VERSION,
             new_model_objs,
             json.dumps(info_dict),
-            ctx.local_fs_wd,
             output_model,
             input_dd.system_info,
         )

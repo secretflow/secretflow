@@ -2,6 +2,7 @@ import math
 from typing import List
 
 import numpy as np
+
 from secretflow.device import PYU, DeviceObject, PYUObject
 from secretflow.security.aggregation.aggregator import Aggregator
 
@@ -86,14 +87,14 @@ class LDPAggregator(Aggregator):
                 w.to(self.device) if isinstance(w, DeviceObject) else w for w in weights
             ]
 
-        def _average(*data, axis, weights):  ##打包成一个元组
+        def _average(*data, axis, weights):  # 打包成一个元组
             client_list = []
             if isinstance(data[0], (list, tuple)):
                 results = []
                 client_num = len(data)
                 for j in range(client_num):
                     delta = math.exp(-3)
-                    epsilon = [80, 80, 40, 40, 30, 30]  ##卷积层不加噪，后三层加噪
+                    epsilon = [80, 80, 40, 40, 30, 30]  # 卷积层不加噪，后三层加噪
                     data_list_l = data[j][:4]
                     data_list_r = data[j][4:]
                     for i in range(len(data_list_r)):

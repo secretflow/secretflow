@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import logging
 from typing import Dict
 
 import pandas as pd
@@ -32,6 +32,7 @@ from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData
 from secretflow.spec.v1.report_pb2 import Div, Report, Tab, Table
 from secretflow.stats.groupby_v import ordinal_encoded_groupby_value_agg_pairs
+from secretflow.utils.consistent_ops import unique_list
 
 groupby_statistics_comp = Component(
     name="groupby_statistics",
@@ -194,28 +195,36 @@ def groupby_statistics_eval_fn(
 
     spu = SPU(spu_config["cluster_def"], spu_config["link_desc"])
 
+    logging.info("set up complete")
+
     input_df = load_table(
         ctx,
         input_data,
         load_features=True,
         load_labels=True,
         load_ids=True,
-        col_selects=input_data_by + list(set(value_columns)),
+        col_selects=input_data_by + unique_list(value_columns),
     )
     value_agg_pair = [
         (col_query.column_name, map_enum_type_to_agg(col_query.function))
         for col_query in aggregation_config.column_queries
     ]
+    logging.info("input loading complete")
     with ctx.tracer.trace_running():
+        logging.info("begin ordinal encoding groupby")
         result = ordinal_encoded_groupby_value_agg_pairs(
             input_df, input_data_by, value_agg_pair, spu, max_group_size
         )
-    result = {
-        value_agg[0] + "_" + value_agg[1]: df.reset_index()
-        for value_agg, df in result.items()
-    }
-    return {
+        logging.info("ordinal encoded complete")
+        result = {
+            value_agg[0] + "_" + value_agg[1]: df.reset_index()
+            for value_agg, df in result.items()
+        }
+        logging.info("groupby result collection complete")
+    res = {
         "report": dump_groupby_statistics(
             report, input_data.system_info, result, input_data_by
         )
     }
+    logging.info("dumping report complete")
+    return res
