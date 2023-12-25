@@ -153,11 +153,11 @@ msgstr "用例"
 msgid ""
 "A local cluster(Standalone Mode) needs to be initialized as the running "
 "environment for this example. See `Deployment "
-"<../../getting_started/deployment.html>`_ and refer to the 'Cluster "
+"<https://www.secretflow.org.cn/docs/secretflow/latest/en-US/getting_started/deployment.html>`_ and refer to the 'Cluster "
 "Mode'."
 msgstr ""
 "在本示例中使用单节点模式做示范。集群模式的部署方式： `Deployment "
-"<../../getting_started/deployment.html>`_ "
+"<https://www.secretflow.org.cn/docs/secretflow/latest/zh-Hans/getting_started/deployment.html>`_ "
 
 #: ../../user_guide/mpc_ml/linear_model.rst:66
 msgid ""

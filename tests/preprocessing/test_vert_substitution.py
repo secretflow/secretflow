@@ -204,3 +204,30 @@ def test_binning_normal(prod_env_and_data):
     assert np.isin(f2_categories, rules['x2']['filling_values']).all()
     f3_categories = list(set(alice_data['x3']))
     assert np.isin(rules['x3']['filling_values'], f3_categories).all()
+
+
+def test_binning_normal_single(prod_env_and_data):
+    env, data = prod_env_and_data
+    ss_binning = VertWoeBinning(env.spu)
+    bin_rules = ss_binning.binning(
+        data['v_float_data'],
+        bin_names={env.alice: ["x1", "x2", "x3"]},
+        label_name="y",
+    )
+
+    woe_sub = VertBinSubstitution()
+    sub_data = woe_sub.substitution(data['v_float_data'], bin_rules)
+    alice_data = reveal(sub_data.partitions[env.alice].data).drop("y", axis=1)
+    bob_data = reveal(sub_data.partitions[env.bob].data)
+    rules = {v['name']: v for v in reveal(bin_rules[env.alice])["variables"]}
+
+    f1_categories = list(set(alice_data['x1']))
+    assert np.isin(rules['x1']['filling_values'], f1_categories).all()
+    f2_categories = list(set(alice_data['x2']))
+    assert np.isin(f2_categories, rules['x2']['filling_values']).all()
+    f3_categories = list(set(alice_data['x3']))
+    assert np.isin(rules['x3']['filling_values'], f3_categories).all()
+
+    np.testing.assert_array_equal(
+        bob_data.values, reveal(data['v_float_data'].partitions[env.bob].data).values
+    )

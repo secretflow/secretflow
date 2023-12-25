@@ -1,5 +1,5 @@
-import tempfile
 import logging
+import tempfile
 
 import pandas as pd
 import pytest
@@ -317,6 +317,58 @@ def test_psi_csv_prod(prod_env_and_model):
 def test_psi_csv_sim(sim_env_and_model):
     devices, data = sim_env_and_model
     _test_psi_csv(devices, data)
+
+
+def _test_psi_v2(devices, data):
+    with tempfile.TemporaryDirectory() as data_dir:
+        input_path = {
+            'alice': f"{data_dir}/alice_2.csv",
+            'bob': f"{data_dir}/bob_2.csv",
+        }
+        output_path = {
+            'alice': f"{data_dir}/alice_psi_2.csv",
+            'bob': f"{data_dir}/bob_psi_2.csv",
+        }
+
+        sf.reveal(
+            devices.alice(lambda df, save_path: df.to_csv(save_path, index=False))(
+                data["da"], input_path['alice']
+            )
+        )
+        sf.reveal(
+            devices.bob(lambda df, save_path: df.to_csv(save_path, index=False))(
+                data["db"], input_path['bob']
+            )
+        )
+
+        devices.spu.psi_v2(
+            keys={'alice': ["c1", "c2"], 'bob': ["c1", "c2"]},
+            input_path=input_path,
+            output_path=output_path,
+            receiver="alice",
+            broadcast_result=True,
+            protocol='PROTOCOL_ECDH',
+            ecdh_curve='CURVE_25519',
+        )
+
+        expected = pd.DataFrame({"c1": ["K1", "K4"], "c2": ["A1", "A4"], "c3": [1, 4]})
+
+        pd.testing.assert_frame_equal(
+            sf.reveal(devices.alice(pd.read_csv)(output_path['alice'])), expected
+        )
+        pd.testing.assert_frame_equal(
+            sf.reveal(devices.bob(pd.read_csv)(output_path['bob'])), expected
+        )
+
+
+def test_psi_v2_prod(prod_env_and_model):
+    devices, data = prod_env_and_model
+    _test_psi_v2(devices, data)
+
+
+def test_psi_v2_sim(sim_env_and_model):
+    devices, data = sim_env_and_model
+    _test_psi_v2(devices, data)
 
 
 def _test_unbalanced_psi_csv(devices, data):

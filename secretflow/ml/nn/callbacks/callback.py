@@ -82,7 +82,19 @@ class Callback:
     def before_agglayer(self):
         pass
 
-    def after_agglayer(self):
+    def after_agglayer(self, scatter_gradients):
+        pass
+
+    def before_agglayer_forward(self, hiddens=None):
+        pass
+
+    def after_agglayer_forward(self, hiddens=None):
+        pass
+
+    def before_agglayer_backward(self, gradients=None):
+        pass
+
+    def after_agglayer_backward(self, gradients=None):
         pass
 
     def on_before_base_forward(self):

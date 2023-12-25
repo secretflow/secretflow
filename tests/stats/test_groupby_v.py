@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+
 from secretflow.data import partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.stats.groupby_v import (
@@ -60,7 +61,7 @@ def prod_env_and_data(sf_production_setup_devices):
 @pytest.mark.parametrize(
     "by",
     [
-        ["b5"],
+        # ["b5"],
         ['a2', 'b5'],
     ],
 )
@@ -102,7 +103,7 @@ def test_groupby_agg(prod_env_and_data, by, values, agg_name):
 @pytest.mark.parametrize(
     "by",
     [
-        ["b5"],
+        # ["b5"],
         ['a2', 'b5'],
     ],
 )

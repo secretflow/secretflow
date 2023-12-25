@@ -76,18 +76,16 @@ def get_pred_param(alice_path, bob_path, train_res, predict_path):
     return NodeEvalParam(
         domain="ml.predict",
         name="sgb_predict",
-        version="0.0.1",
+        version="0.0.2",
         attr_paths=[
             "receiver",
             "save_ids",
             "save_label",
-            "batch_size",
         ],
         attrs=[
             Attribute(s="alice"),
             Attribute(b=False),
             Attribute(b=True),
-            Attribute(i64=50),
         ],
         inputs=[
             train_res.outputs[0],
@@ -235,7 +233,7 @@ def test_sgb(comp_prod_sf_cluster_config):
     )
     comp_ret = Report()
     eval_res.outputs[0].meta.Unpack(comp_ret)
-    logging.warn(MessageToJson(comp_ret))
+    logging.warning(MessageToJson(comp_ret))
     np.testing.assert_almost_equal(
         auc,
         comp_ret.tabs[0].divs[0].children[0].descriptions.items[3].value.f,

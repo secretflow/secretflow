@@ -19,10 +19,10 @@ import pandas as pd
 import secretflow.compute as sc
 from secretflow.component.data_utils import (
     DistDataType,
+    VerticalTableWrapper,
     dump_vertical_table,
     load_table_select_and_exclude_pair,
     model_dumps,
-    VerticalTableWrapper,
 )
 from secretflow.component.preprocessing.core.meta_utils import (
     apply_meta_change,
@@ -159,13 +159,13 @@ def v_preprocessing_transform(
 
     # build rules for onehot_substitution
     model_dd = model_dumps(
+        ctx,
         rules_name,
         DistDataType.PREPROCESSING_RULE,
         PREPROCESSING_RULE_MAX_MAJOR_VERSION,
         PREPROCESSING_RULE_MAX_MINOR_VERSION,
         runner_objs,
         dict_to_str(meta_change_dict),
-        ctx.local_fs_wd,
         out_rules,
         in_ds.system_info,
     )
