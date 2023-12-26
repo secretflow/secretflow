@@ -71,7 +71,7 @@ class FedPer(BaseTorchModel):
             y_pred = self.model(x)
 
             # do back propagation
-            loss = self.loss(y_pred, y.long())
+            loss = self.loss(y_pred)
             loss.backward()
             self.optimizer.step()
             for m in self.metrics:
