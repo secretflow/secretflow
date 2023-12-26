@@ -14,7 +14,6 @@
 from typing import List, Union
 
 import jax.numpy as jnp
-
 import numpy as np
 import pandas as pd
 from spu.ops.groupby import (
@@ -30,7 +29,7 @@ from spu.ops.groupby import (
     view_key_postprocessing,
 )
 
-from secretflow.device import PYU, reveal, SPU, SPUCompilerNumReturnsPolicy, SPUObject
+from secretflow.device import PYU, SPU, SPUCompilerNumReturnsPolicy, SPUObject, reveal
 
 
 def get_agg_fun(agg):
@@ -60,6 +59,7 @@ class DataFrameGroupBy:
         parties: List[PYU],
         key_cols: List[SPUObject],
         target_cols: List[SPUObject],
+        key_col_names: List[str],
         target_col_names: List[str],
         n_samples: int,
     ):
@@ -83,6 +83,9 @@ class DataFrameGroupBy:
         self.spu = spu
         assert len(key_cols) > 0, "number of key cols must be >0"
         assert len(target_cols) > 0, "number of target cols must be >0"
+        assert len(key_col_names) == len(
+            key_cols
+        ), f"key cols number must match, get key name number{len(key_col_names)}, key number  {len(key_cols)}"
         key_columns_sorted, target_columns_sorted, segment_ids, seg_end_marks = spu(
             groupby, num_returns_policy=SPUCompilerNumReturnsPolicy.FROM_COMPILER
         )(key_cols, target_cols)
@@ -92,6 +95,8 @@ class DataFrameGroupBy:
         self.segment_ids = segment_ids
         self.seg_end_marks = seg_end_marks
         self.target_columns_names = target_col_names
+        self.key_col_names = key_col_names
+        self.num_key_cols = len(key_cols)
         self.n_samples = n_samples
         self.num_groups = int(reveal(spu(lambda x: x[-1] + 1)(segment_ids)))
 
@@ -147,14 +152,19 @@ class DataFrameGroupBy:
             )
         return agg_result
 
-    def _view_key(self):
+    def _view_key(self, to_list=True):
         key_cols = self.key_columns_sorted
         secret_order = self.gen_secret_random_order()
 
         segment_end_marks = self.seg_end_marks
+
         keys = reveal(self.spu(shuffle_cols)(key_cols, segment_end_marks, secret_order))
         keys = view_key_postprocessing(keys, self.num_groups)
-        return matrix_to_cols(keys)
+        assert keys.shape[1] == len(self.key_col_names), f"{keys}"
+        if to_list:
+            return matrix_to_cols(keys)
+        else:
+            return keys
 
     def _agg(
         self, fn_name: str, target_col_names: List[str] = None
@@ -165,6 +175,7 @@ class DataFrameGroupBy:
         col_names = (
             self.target_columns_names if target_col_names is None else target_col_names
         )
+
         for col_name in col_names:
             assert (
                 col_name in self.target_columns_names
@@ -183,16 +194,7 @@ class DataFrameGroupBy:
         )(cols, segment_end_marks, segment_ids, secret_order)
 
         values = self._reveal_and_postprocess_value(agg_result)
-        if len(values.shape) == 2:
-            return pd.DataFrame(
-                data=values,
-                index=self._view_key(),
-                columns=self.target_columns_names,
-            )
-        else:
-            return pd.Series(
-                data=values, index=self._view_key(), name=self.target_columns_names[0]
-            )
+        return self.to_df(values, col_names)
 
     # NOTE: this is infact not ok. Since SPU cannot differentiate NA from 0.
     # The result is that all columns have the group sample number as counts
@@ -205,20 +207,46 @@ class DataFrameGroupBy:
             self.target_columns_names if target_col_names is None else target_col_names
         )
         target_col_num = len(target_col_names)
-        if target_col_num == 1:
-            return pd.Series(
-                data=groupby_count_cleartext(reveal(segment_ids)),
-                index=self._view_key(),
-                name=target_col_names[0],
-            )
+        if (target_col_num == 1) and (self.num_key_cols == 1):
+            values = groupby_count_cleartext(reveal(segment_ids))
+
         else:
             reshaped_column = groupby_count_cleartext(reveal(segment_ids))[
                 :, np.newaxis
             ]
-            vals = np.repeat(reshaped_column, target_col_num, axis=1)
-            return pd.DataFrame(
-                data=vals, index=self._view_key(), columns=target_col_names
+            values = np.repeat(reshaped_column, target_col_num, axis=1)
+        return self.to_df(values, target_col_names, cast_type=np.int32)
+
+    def to_df(self, values, target_col_names, cast_type=None):
+        if isinstance(target_col_names, tuple):
+            target_col_names = list(target_col_names)
+        target_col_num = len(target_col_names)
+        by_keys = self._view_key(to_list=False)
+        assert by_keys.shape[1] == len(
+            self.key_col_names
+        ), f"by key data {by_keys}, key names {self.key_col_names}"
+
+        if (target_col_num == 1) and (self.num_key_cols == 1):
+            if cast_type is not None:
+                values = values.astype(cast_type)
+            return pd.Series(
+                data=values,
+                index=by_keys.reshape((-1)),
+                name=target_col_names[0],
             )
+        else:
+            if len(by_keys.shape) < 2:
+                by_keys = by_keys.reshape((-1, 1))
+            if len(values.shape) < 2:
+                values = values.reshape((-1, 1))
+            all_values = np.concatenate([by_keys, values], axis=1)
+            df = pd.DataFrame(
+                data=all_values, columns=self.key_col_names + target_col_names
+            )
+            df.set_index(self.key_col_names, inplace=True)
+            if cast_type is not None:
+                df[target_col_names] = df[target_col_names].astype(cast_type)
+            return df
 
     def sum(self, target_col_names: List[str] = None):
         return self._agg('sum', target_col_names)

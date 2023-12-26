@@ -20,17 +20,18 @@ from typing import List
 
 import click
 from google.protobuf import json_format
+from kuscia.proto.api.v1alpha1.common_pb2 import FileFormat
 from kuscia.proto.api.v1alpha1.datamesh.domaindatasource_pb2 import DomainDataSource
 
 from secretflow.component.entry import comp_eval, get_comp_def
 from secretflow.kuscia.datamesh import (
     create_channel,
+    create_dm_flight_client,
     create_domain_data_in_dm,
     create_domain_data_in_dp,
     create_domain_data_service_stub,
     create_domain_data_source_service_stub,
     get_csv_from_dp,
-    create_dm_flight_client,
     get_domain_data,
     get_domain_data_source,
     put_data_to_dp,
@@ -224,10 +225,12 @@ def postprocess_sf_node_eval_result(
                 for data_ref in list(dist_data.data_refs):
                     if data_ref.party == task_conf.party_name:
                         create_domain_data_in_dp(
-                            dm_flight_client, datasource.datasource_id, domain_data
+                            dm_flight_client, domain_data, FileFormat.CSV
                         )
                         path = os.path.join(storage_config.local_fs.wd, data_ref.uri)
-                        put_data_to_dp(dm_flight_client, domain_data_id, path)
+                        put_data_to_dp(
+                            dm_flight_client, domain_data_id, path, FileFormat.CSV
+                        )
 
         if not datasource.access_directly:
             dm_flight_client.close()

@@ -27,21 +27,37 @@ from secretflow.component.ml.eval.regression_eval import regression_eval_comp
 from secretflow.component.ml.eval.ss_pvalue import ss_pvalue_comp
 from secretflow.component.ml.linear.ss_glm import ss_glm_predict_comp, ss_glm_train_comp
 from secretflow.component.ml.linear.ss_sgd import ss_sgd_predict_comp, ss_sgd_train_comp
-from secretflow.component.preprocessing.binary_op import binary_op_comp
-from secretflow.component.preprocessing.case_when import case_when
-from secretflow.component.preprocessing.condition_filter import condition_filter_comp
-from secretflow.component.preprocessing.feature_calculate import feature_calculate
-from secretflow.component.preprocessing.feature_filter import feature_filter_comp
-from secretflow.component.preprocessing.fillna import fillna
-from secretflow.component.preprocessing.onehot_encode import onehot_encode
-from secretflow.component.preprocessing.psi import psi_comp
-from secretflow.component.preprocessing.substitution import substitution
-from secretflow.component.preprocessing.train_test_split import train_test_split_comp
-from secretflow.component.preprocessing.vert_binning import (
+from secretflow.component.preprocessing.binning.vert_binning import (
     vert_bin_substitution_comp,
     vert_binning_comp,
 )
-from secretflow.component.preprocessing.vert_woe_binning import vert_woe_binning_comp
+from secretflow.component.preprocessing.binning.vert_woe_binning import (
+    vert_woe_binning_comp,
+)
+from secretflow.component.preprocessing.data_prep.psi import psi_comp
+from secretflow.component.preprocessing.data_prep.train_test_split import (
+    train_test_split_comp,
+)
+from secretflow.component.preprocessing.filter.condition_filter import (
+    condition_filter_comp,
+)
+from secretflow.component.preprocessing.filter.feature_filter import feature_filter_comp
+from secretflow.component.preprocessing.unified_single_party_ops.binary_op import (
+    binary_op_comp,
+)
+from secretflow.component.preprocessing.unified_single_party_ops.case_when import (
+    case_when,
+)
+from secretflow.component.preprocessing.unified_single_party_ops.feature_calculate import (
+    feature_calculate,
+)
+from secretflow.component.preprocessing.unified_single_party_ops.fillna import fillna
+from secretflow.component.preprocessing.unified_single_party_ops.onehot_encode import (
+    onehot_encode,
+)
+from secretflow.component.preprocessing.unified_single_party_ops.substitution import (
+    substitution,
+)
 from secretflow.component.stats.groupby_statistics import groupby_statistics_comp
 from secretflow.component.stats.ss_pearsonr import ss_pearsonr_comp
 from secretflow.component.stats.ss_vif import ss_vif_comp
@@ -129,16 +145,16 @@ def comp_eval(
 ) -> NodeEvalResult:
     import logging
 
-    logging.warn(f'\n--\n*param* \n\n{param}\n--\n')
-    logging.warn(f'\n--\n*storage_config* \n\n{storage_config}\n--\n')
-    logging.warn(f'\n--\n*cluster_config* \n\n{cluster_config}\n--\n')
+    logging.warning(f'\n--\n*param* \n\n{param}\n--\n')
+    logging.warning(f'\n--\n*storage_config* \n\n{storage_config}\n--\n')
+    logging.warning(f'\n--\n*cluster_config* \n\n{cluster_config}\n--\n')
     key = gen_key(param.domain, param.name, param.version)
     if key in COMP_MAP:
         comp = COMP_MAP[key]
         res = comp.eval(
             param, storage_config, cluster_config, tracer_report=tracer_report
         )
-        logging.warn(f'\n--\n*res* \n\n{res}\n--\n')
+        logging.warning(f'\n--\n*res* \n\n{res}\n--\n')
         return res
     else:
         raise RuntimeError("component is not found.")

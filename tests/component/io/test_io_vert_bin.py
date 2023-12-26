@@ -7,7 +7,7 @@ import pytest
 from google.protobuf.json_format import MessageToJson, Parse
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.io.io import io_read_data, io_write_data
-from secretflow.component.preprocessing.vert_binning import vert_binning_comp
+from secretflow.component.preprocessing.binning.vert_binning import vert_binning_comp
 from secretflow.spec.extend.bin_data_pb2 import Bins
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable

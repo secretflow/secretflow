@@ -91,20 +91,24 @@ class VertBinSubstitution:
             new_vdata: vertical slice dataset after substituted.
         """
         works: Dict[PYU, VertBinSubstitutionPyuWorker] = {}
+        # all rules must corresponds to some party
         for device in rules:
             assert (
                 device in vdata.partitions.keys()
             ), f"device {device} not exist in vdata"
             works[device] = VertBinSubstitutionPyuWorker(device=device)
 
-        new_vdata = VDataFrame(
-            {
-                d: partition(
+        # but some party may have no substitution rule
+        def sub_if_exists(d):
+            return (
+                partition(
                     data=works[d].sub(vdata.partitions[d].data, rules[d]),
                     backend=vdata.partitions[d].backend,
                 )
-                for d in rules
-            }
-        )
+                if d in rules
+                else vdata.partitions[d]
+            )
+
+        new_vdata = VDataFrame({d: sub_if_exists(d) for d in vdata.partitions.keys()})
 
         return new_vdata

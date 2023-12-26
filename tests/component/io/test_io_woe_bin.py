@@ -5,14 +5,17 @@ import os
 import pandas as pd
 import pytest
 from google.protobuf.json_format import MessageToJson, Parse
+from sklearn.datasets import load_breast_cancer
+
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.io.io import io_read_data, io_write_data
-from secretflow.component.preprocessing.vert_woe_binning import vert_woe_binning_comp
+from secretflow.component.preprocessing.binning.vert_woe_binning import (
+    vert_woe_binning_comp,
+)
 from secretflow.spec.extend.bin_data_pb2 import Bins
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
-from sklearn.datasets import load_breast_cancer
 
 
 @pytest.fixture
@@ -57,7 +60,7 @@ def vert_woe_bin_rule(comp_prod_sf_cluster_config):
         ],
         attrs=[
             Attribute(ss=[f"a{i}" for i in range(2)] + [f"b{i}" for i in range(2)]),
-            Attribute(i64=4),
+            Attribute(i64=8),
             Attribute(ss=["y"]),
         ],
         inputs=[

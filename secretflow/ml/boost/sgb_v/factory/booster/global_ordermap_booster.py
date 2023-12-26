@@ -153,6 +153,7 @@ class GlobalOrdermapBooster(Composite):
         logging.debug("ordermap built.")
         self.components.model_builder.init_model()
         logging.debug("model initialized.")
+        self.components.model_builder.set_parition_shapes(x)
 
         for tree_index in range(self.params.num_boost_round):
             start = time.perf_counter()
