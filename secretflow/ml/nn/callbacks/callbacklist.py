@@ -144,9 +144,25 @@ class CallbackList:
         for callback in self.callbacks:
             callback.before_agglayer()
 
-    def after_agglayer(self):
+    def after_agglayer(self, scatter_gradients):
         for callback in self.callbacks:
-            callback.after_agglayer()
+            callback.after_agglayer(scatter_gradients)
+
+    def before_agglayer_forward(self, hiddens=None):
+        for callback in self.callbacks:
+            callback.before_agglayer_forward(hiddens=hiddens)
+
+    def after_agglayer_forward(self, hiddens=None):
+        for callback in self.callbacks:
+            callback.after_agglayer_forward(hiddens=hiddens)
+
+    def before_agglayer_backward(self, gradients=None):
+        for callback in self.callbacks:
+            callback.before_agglayer_backward(gradients=gradients)
+
+    def after_agglayer_backward(self, gradients=None):
+        for callback in self.callbacks:
+            callback.after_agglayer_backward(gradients=gradients)
 
     def on_before_base_forward(self):
         for callback in self.callbacks:

@@ -37,7 +37,7 @@ from secretflow.device.device.pyu import PYU
 from secretflow.device.device.spu import SPU, SPUObject
 from secretflow.device.driver import reveal, wait
 from secretflow.ml.linear import SSGLM
-from secretflow.ml.linear.ss_glm.core import get_link, Linker
+from secretflow.ml.linear.ss_glm.core import Linker, get_link
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData
 from secretflow.spec.v1.report_pb2 import Descriptions, Div, Report, Tab
@@ -253,9 +253,6 @@ def ss_glm_train_eval_fn(
     train_dataset_feature_selects,
     report,
 ):
-    # only local fs is supported at this moment.
-    local_fs_wd = ctx.local_fs_wd
-
     if ctx.spu_configs is None or len(ctx.spu_configs) == 0:
         raise CompEvalError("spu config is not found.")
     if len(ctx.spu_configs) > 1:
@@ -383,13 +380,13 @@ def ss_glm_train_eval_fn(
     }
 
     model_db = model_dumps(
+        ctx,
         "ss_glm",
         DistDataType.SS_GLM_MODEL,
         MODEL_MAX_MAJOR_VERSION,
         MODEL_MAX_MINOR_VERSION,
         [glm.spu_w],
         json.dumps(model_meta),
-        local_fs_wd,
         output_model,
         train_dataset.system_info,
     )
@@ -516,12 +513,11 @@ ss_glm_predict_comp.io(
 
 def load_ss_glm_model(ctx, spu, model) -> Tuple[SPUObject, Linker, float]:
     model_objs, model_meta_str = model_loads(
+        ctx,
         model,
         MODEL_MAX_MAJOR_VERSION,
         MODEL_MAX_MINOR_VERSION,
         DistDataType.SS_GLM_MODEL,
-        # only local fs is supported at this moment.
-        ctx.local_fs_wd,
         spu=spu,
     )
     assert len(model_objs) == 1 and isinstance(

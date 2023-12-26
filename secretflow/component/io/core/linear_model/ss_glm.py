@@ -12,23 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import json
+import logging
 from typing import List
 
 import numpy as np
 
 from secretflow.device import SPUObject
 from secretflow.device.driver import reveal
-
 from secretflow.spec.extend.linear_model_pb2 import FeatureWeight, LinearModel
 
 
 def ss_glm_to_linear_model_pb(
     ss_glm_model: List[SPUObject], public_info: str
 ) -> LinearModel:
-    """Convert SSGLM to Linear Model.
+    """
+    WARNING: THIS MODEL IS NOT SAFE, ALL MODEL INFO IS REVEALED AND LABEL INFO IS AT GREAT RISK
+    DO NOT USE THIS UNLESS YOU UNDERSTAND THIS RISK.
+    Convert SSGLM to Linear Model.
     ss_glm_model: list of SPUObject represents glm model.
     public_info: str, model meta in json format
     """
+    logging.warning(
+        "DANGER! WARNING! WE ARE REVEALING SS GLM MODEL. ALL MODEL INFO IS REVEALED. THE LABEL INFO IS AT GREAT RISK!"
+    )
     w: np.ndarray = reveal(ss_glm_model[0]).reshape((-1,))
     info_dict = json.loads(public_info)
     feature_names = info_dict["feature_names"]

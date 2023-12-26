@@ -14,7 +14,6 @@
 from typing import Dict, List
 
 import numpy as np
-
 from google.protobuf.json_format import MessageToJson, Parse
 
 from secretflow.component.io.core.bins.bin_utils import (
@@ -31,11 +30,11 @@ from secretflow.component.io.core.bins.woe_bin_utils import (
     dispath_rules,
     merge_rules,
 )
-
 from secretflow.device import PYUObject
 from secretflow.device.driver import reveal
-
 from secretflow.spec.extend.bin_data_pb2 import Bin, Bins, VariableBins
+
+MIN_SECURE_BIN_NUM = 5
 
 
 def woe_feature_to_pb(
@@ -193,8 +192,10 @@ def feature_modify_woe_bin_rule(
         new_split_points.append(last_seen_right_bound)
         new_total_counts.append(cached_total_counts)
         new_bin_ratio_pairs.append(cached_bin_ratio_pair)
-    # check bin size > 2
-    assert len(new_split_points) > 2, "bin size should be greater than 2"
+    # check bin size >= MIN_SECURE_BIN_NUM
+    assert (
+        len(new_split_points) >= MIN_SECURE_BIN_NUM
+    ), f"bin size should be at least {MIN_SECURE_BIN_NUM} for security reasons"
 
     feature_rule["filling_values"] = [
         calculate_woe_from_ratios(rp, rn) for (rp, rn) in new_bin_ratio_pairs
@@ -260,7 +261,7 @@ def woe_bin_rule_from_pb_and_old_rule(
     # step 2.2
     # note that bins pb must be serialized to json before passing into ray
     updated_merged_rule_object = label_holder_device(party_modify_woe_bin_rule)(
-        merged_rule_with_bin_ratios_object, MessageToJson(bins)
+        merged_rule_with_bin_ratios_object, MessageToJson(bins, indent=0)
     )
 
     # step 3

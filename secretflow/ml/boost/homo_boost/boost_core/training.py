@@ -18,16 +18,17 @@
 import copy
 import logging
 import os
-from typing import Dict, List, Union, Optional, Sequence
+from typing import Dict, List, Optional, Sequence, Union
 
 import xgboost.core as xgb_core
-from xgboost.core import Metric, Objective
 from xgboost.callback import (
-    TrainingCallback,
     CallbackContainer,
-    EvaluationMonitor,
     EarlyStopping,
+    EvaluationMonitor,
+    TrainingCallback,
 )
+from xgboost.core import Metric, Objective
+
 import secretflow.device.link as link
 from secretflow.data.horizontal import HDataFrame
 from secretflow.ml.boost.homo_boost.boost_core.core import FedBooster
@@ -40,7 +41,7 @@ def _configure_custom_metric(
         link = (
             "https://xgboost.readthedocs.io/en/latest/tutorials/custom_metric_obj.html"
         )
-        logging.warn(
+        logging.warning(
             "`feval` is deprecated, use `custom_metric` instead.  They have "
             "different behavior when custom objective is also used."
             f"See {link} for details on the `custom_metric`."

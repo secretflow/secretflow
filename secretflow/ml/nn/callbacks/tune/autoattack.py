@@ -107,8 +107,8 @@ class AutoAttackCallback(Callback):
     def before_agglayer(self):
         self.attack_callback.before_agglayer()
 
-    def after_agglayer(self):
-        self.attack_callback.after_agglayer()
+    def after_agglayer(self, scatter_gradients):
+        self.attack_callback.after_agglayer(scatter_gradients)
 
     def on_before_base_forward(self):
         self.attack_callback.on_before_base_forward()

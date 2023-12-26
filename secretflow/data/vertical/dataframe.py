@@ -21,12 +21,13 @@ import pandas as pd
 
 from pandas import Index
 
-from secretflow.data.core import Partition
 from secretflow.data.base import DataFrameBase
-from secretflow.data.ndarray import FedNdarray, PartitionWay
-from secretflow.device import PYU, reveal, SPU, PYUObject
-from secretflow.utils.errors import InvalidArgumentError, NotFoundError
+
+from secretflow.data.core import Partition
 from secretflow.data.groupby import DataFrameGroupBy
+from secretflow.data.ndarray import FedNdarray, PartitionWay
+from secretflow.device import PYU, PYUObject, reveal, SPU
+from secretflow.utils.errors import InvalidArgumentError, NotFoundError
 
 
 @dataclass
@@ -738,7 +739,7 @@ class VDataFrame(DataFrameBase):
         _, key_cols = self.get_numeric_cols_from_df(by)
         assert len(key_cols) < len(
             self.columns
-        ), "by should have length < column number"
+        ), "by should have length < column number, yet got {key_cols}, available_cols are {self.columns}"
         value_col_names_prev = [col for col in self.columns if col not in by]
         value_col_names, value_cols = self.get_numeric_cols_from_df(
             value_col_names_prev
@@ -759,6 +760,7 @@ class VDataFrame(DataFrameBase):
             parties=[*self.partitions.keys()],
             key_cols=key_cols_spu,
             target_cols=value_cols_spu,
+            key_col_names=by,
             target_col_names=value_col_names,
             n_samples=len(self),
         )

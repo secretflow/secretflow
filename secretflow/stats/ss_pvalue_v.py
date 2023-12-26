@@ -166,7 +166,7 @@ class PValue:
         square = square.flatten()
         for idx in range(square.size):
             if square[idx] < 0:
-                logging.warn(
+                logging.warning(
                     f"square_mat has negative value {square[idx]} at feature {idx}"
                     "\nPlease check :\n1. if this feature is a const column or has strong correlation."
                     "\n2. if input model is converged."

@@ -169,9 +169,6 @@ def ss_sgd_train_eval_fn(
     output_model,
     train_dataset_feature_selects,
 ):
-    # only local fs is supported at this moment.
-    local_fs_wd = ctx.local_fs_wd
-
     if ctx.spu_configs is None or len(ctx.spu_configs) == 0:
         raise CompEvalError("spu config is not found.")
     if len(ctx.spu_configs) > 1:
@@ -225,13 +222,13 @@ def ss_sgd_train_eval_fn(
     }
 
     model_db = model_dumps(
+        ctx,
         "ss_sgd",
         DistDataType.SS_SGD_MODEL,
         MODEL_MAX_MAJOR_VERSION,
         MODEL_MAX_MINOR_VERSION,
         [model.weights],
         json.dumps(model_meta),
-        local_fs_wd,
         output_model,
         train_dataset.system_info,
     )
@@ -312,12 +309,11 @@ ss_sgd_predict_comp.io(
 
 def load_ss_sgd_model(ctx, spu, model) -> Tuple[LinearModel, List[str]]:
     model_objs, model_meta_str = model_loads(
+        ctx,
         model,
         MODEL_MAX_MAJOR_VERSION,
         MODEL_MAX_MINOR_VERSION,
         DistDataType.SS_SGD_MODEL,
-        # only local fs is supported at this moment.
-        ctx.local_fs_wd,
         spu=spu,
     )
     assert len(model_objs) == 1 and isinstance(

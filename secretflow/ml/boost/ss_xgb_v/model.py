@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import logging
 import math
 import time
@@ -474,12 +473,14 @@ class Xgb:
 
         # merge GH to spu 0
         level_GHs = [GH.to(self.spu[0]) for GH in level_GHs]
+        wait(level_GHs)
 
         spu_split_buckets = self.spu[0](
             split_fn.find_best_split_bucket,
             static_argnames="reg_lambda",
         )(level_GHs, reg_lambda=self.reg_lambda)
 
+        wait(spu_split_buckets)
         lchild_ss = []
         for worker in self.workers:
             # In the final tree model, which party hold the split feature for tree nodes is public information.

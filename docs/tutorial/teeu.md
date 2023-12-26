@@ -117,7 +117,7 @@ First, you need to modify the configuration items in the code.
   - `host` is the listening address of the AuthManager service
   - `ca_cert` is the CA certificate address of AuthManager, if AuthManager does not start with TLS, no configuration is required.
 
-Suppose we save the code as demo.py, and then execute `python demo.py` on Alice's machine.
+Suppose we save the code as `demo.py`, and then execute `python demo.py` on Alice's machine.
 
 ```python
 import secretflow as sf
@@ -206,7 +206,7 @@ First, you need to modify the configuration items in the code.
 - `host` is the listening address of the AuthManager service
 - `ca_cert` is the CA certificate address of AuthManager, if AuthManager does not start tls, no configuration is required.
 
-Suppose we save the code as demo.py, and then execute `python demo.py` on Bob's machine.
+Suppose we save the code as `demo.py`, and then execute `python demo.py` on Bob's machine.
 
 ```python
 import secretflow as sf
@@ -744,7 +744,7 @@ Add the SecretFlow initialization related code in front of the secure aggregatio
   - `mrenclave` is the MRENCLAVE of the AuthManager module, you should have obtained this value in the step of deploying AuthManager.
 - Use the MRENCLAVE of TEEU obtained earlier, fill in the correct value: `teeu = TEEU('carol', mr_enclave='mr_enclave of TEEU')`
 
-After the configuration is complete, suppose we save the code as demo.py, and then execute `python demo.py` on Alice's machine.
+After the configuration is complete, suppose we save the code as `demo.py`, and then execute `python demo.py` on Alice's machine.
 
 ```python
 import secretflow as sf
@@ -832,7 +832,7 @@ Similar to Alice, add the SecretFlow initialization code in front of the secure 
   - `mrenclave` is the MRENCLAVE of the AuthManager module, you should have obtained this value in the step of deploying AuthManager.
 - Use the MRENCLAVE of TEEU obtained earlier, fill in the correct value: `teeu = TEEU('carol', mr_enclave='mr_enclave of TEEU')`
 
-After the configuration is complete, suppose we save the code as demo.py, and then execute `python demo.py` on Bob's machine.
+After the configuration is complete, suppose we save the code as `demo.py`, and then execute `python demo.py` on Bob's machine.
 
 ```python
 import secretflow as sf

@@ -33,6 +33,8 @@ class DistributedTree:
         self.leaf_weight = None
         self.label_holder = None
         self.enable_packbits = False
+        # in sgb training, this is set by model builder
+        self.partition_column_counts = {}
 
     def insert_split_tree(self, device: PYU, split_tree: PYUObject):
         """insert a split tree owned by deivce
@@ -102,6 +104,7 @@ class DistributedTree:
                 self.leaf_weight
             ),
             'label_holder': self.label_holder,
+            'partition_column_counts': self.partition_column_counts,
         }
 
 
@@ -113,4 +116,5 @@ def from_dict(tree_content: Dict) -> DistributedTree:
     }
     dt.label_holder = tree_content['label_holder']
     dt.leaf_weight = dt.label_holder(np.array)(tree_content['leaf_weight'])
+    dt.partition_column_counts = tree_content['partition_column_counts']
     return dt

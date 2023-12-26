@@ -12,7 +12,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
-## [1.3.0.dev231218] - 2023-12-18
+## [1.4.0.dev231225] - 2023-12-25
+### Added
+- Add DataProxy binary writer.
+- Add PSI v2 APIs.
+- Add sl_deepfm_torch, sl_dnn_tf and sl_dnn_torch applications.
+- Support sgb conversion into a single model.
+- Support debug mode in tuner.
+- Docs: Update installation and deployment docs.
+- Docs: Add fl gpu docs.
+- Docs: Add debug mode docs.
+
+### Changed
+- Component: onehot_encode component limits size of col_rules.
+- Component: sgb_predict component rm batch_size param.
+
+### Fixed
+- Fix pytorch_audio_classification example and tutorial.
+- Fix bin substitution for incomplete rule.
+- Fix sgb_predict component when all features come from a party.
+
+## [1.3.0.dev231219] - 2023-12-19
 ### Added
 - Make barrier_on_shutdown optional.
 - Support SGB label holder without features.

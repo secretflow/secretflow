@@ -66,21 +66,21 @@ def identity_eval_fn(*, ctx, input_data: DistData, output_data):
     model_info = json.loads(model_meta.public_info)
 
     objs, public_info = model_loads(
+        ctx,
         input_data,
         model_info["major_version"],
         model_info["minor_version"],
         input_data.type,
-        ctx.local_fs_wd,
         spu=spu,
     )
     output_data_dd = model_dumps(
+        ctx,
         input_data.name,
         input_data.type,
         model_info["major_version"],
         model_info["minor_version"],
         objs,
         public_info,
-        ctx.local_fs_wd,
         output_data,
         input_data.system_info,
     )

@@ -258,13 +258,13 @@ def ss_xgb_train_eval_fn(
         split_trees.extend([t[p] for t in model.trees])
 
     model_db = model_dumps(
+        ctx,
         "sgb",
         DistDataType.SS_XGB_MODEL,
         MODEL_MAX_MAJOR_VERSION,
         MODEL_MAX_MINOR_VERSION,
         [*model.weights, *split_trees],
         json.dumps(m_dict),
-        ctx.local_fs_wd,
         output_model,
         train_dataset.system_info,
     )
@@ -336,12 +336,11 @@ ss_xgb_predict_comp.io(
 
 def load_ss_xgb_model(ctx, spu, pyus, model) -> XgbModel:
     model_objs, model_meta_str = model_loads(
+        ctx,
         model,
         MODEL_MAX_MAJOR_VERSION,
         MODEL_MAX_MINOR_VERSION,
         DistDataType.SS_XGB_MODEL,
-        # only local fs is supported at this moment.
-        ctx.local_fs_wd,
         pyus=pyus,
         spu=spu,
     )
