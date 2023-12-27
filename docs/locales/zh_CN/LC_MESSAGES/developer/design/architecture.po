@@ -296,7 +296,7 @@ msgid ""
 "[XLA](https://www.tensorflow.org/xla/architecture), such as JAX, "
 "TensorFlow, PyTorch. Similarly, users can also dispatch functions based "
 "on these front-end to a specified device for execution through `@device`."
-msgstr "对于密文设备PPU、HEU、TEE，它们的前端可以是任何支持XLA 的框架， 如JAX, TensorFlow"
+msgstr "对于密文设备SPU、HEU、TEE，它们的前端可以是任何支持XLA 的框架， 如JAX, TensorFlow"
 
 #: ../../developer/design/architecture.md:67
 msgid ""
@@ -331,7 +331,7 @@ msgid ""
 "making the back-end implementation more concise and clean."
 msgstr ""
 "用户自定义函数首先转换成XLA HLO "
-"Computation，由XLA进行设备无关的代码优化和分析，并发往后端设备。后端设备进一步执行代码优化和分析，并生成最终的可执行代码。可执行代码或由设备的虚拟机解释执行(PPU,"
+"Computation，由XLA进行设备无关的代码优化和分析，并发往后端设备。后端设备进一步执行代码优化和分析，并生成最终的可执行代码。可执行代码或由设备的虚拟机解释执行(SPU,"
 " HEU)，或由硬件直接执行(TEE)。使用XLA HLO作为IR，使得我们可以复用XLA前端和设备无关代码优化，同时使得后端实现更加简洁干净。"
 
 #: ../../developer/design/architecture.md:91
