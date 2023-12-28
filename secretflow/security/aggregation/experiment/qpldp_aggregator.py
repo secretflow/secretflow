@@ -96,11 +96,12 @@ class QPLDPAggregator(Aggregator):
                 client_num = len(data)
                 ##梯度数据是一个list
                 for i in range(client_num):
-                    grad.clear()
+                    grad = []
                     for j in range(len(data[0])):
                         grad.append(np.around(data[i][j], decimals=5))  ##量化操作减小通信开销
 
                     gradient.append(grad)
+                gradient = np.array(gradient, dtype=np.float32)
 
                 ##设定PSI服务器，set值是PSI的计算结果。一个数组，里面元素为1的位置代表属于交集元素
 
