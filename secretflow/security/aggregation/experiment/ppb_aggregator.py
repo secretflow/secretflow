@@ -103,9 +103,9 @@ class _WorkerOperator:
 
     def torch_float_to_binary(self, local_weight):  # torch转成二进制
         return [
-            bin(int((abs(i + self._bias_of_weight) * self._expand_of_weight)))[2:].zfill(
-                self._len_after_encode
-            )
+            bin(int((abs(i + self._bias_of_weight) * self._expand_of_weight)))[
+                2:
+            ].zfill(self._len_after_encode)
             for i in local_weight.flatten().tolist()
         ]
 
@@ -410,4 +410,3 @@ class PPBAggregator(Aggregator):
             added_weight_list, self._local_weight_shape, self._size_of_per_col
         )
         return dec_list
-    

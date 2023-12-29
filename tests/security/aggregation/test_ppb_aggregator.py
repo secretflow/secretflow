@@ -1,4 +1,5 @@
 import pytest
+
 from secretflow.security.aggregation.experiment.ppb_aggregator import PPBAggregator
 from tests.security.aggregation.test_aggregator_base import AggregatorBase
 
