@@ -410,3 +410,4 @@ class PPBAggregator(Aggregator):
             added_weight_list, self._local_weight_shape, self._size_of_per_col
         )
         return dec_list
+    
