@@ -49,7 +49,7 @@ class _WorkerOperator:
         self._public_key = public_key
         self._kit = phe.setup(self._public_key)
         self._encryptor = self._kit.encryptor()
-        self._is_weights = None
+        self._is_weights = None 
 
     def is_weights(self, data):
         if isinstance(data, (list, tuple)):
