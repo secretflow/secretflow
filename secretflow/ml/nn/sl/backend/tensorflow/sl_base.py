@@ -487,7 +487,6 @@ class SLBaseTFModel(SLBaseModel):
                 hiddens.append(tf.convert_to_tensor(h))
 
         logs = {}
-
         gradient = self._fuse_net_train(hiddens, losses)
 
         for m in self.model_fuse.metrics:

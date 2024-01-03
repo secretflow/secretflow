@@ -166,7 +166,8 @@ def proxy(
                 )
 
                 if not issubclass(cls, link.Link):
-                    del kwargs['device']
+                    kwargs.pop('device', None)
+                    kwargs.pop('production_mode', None)
 
                 max_concur = max_concurrency
                 if (

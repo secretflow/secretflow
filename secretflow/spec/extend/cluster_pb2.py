@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$secretflow/spec/extend/cluster.proto\x12\x16secretflow.spec.extend\"\xd3\x02\n\rSFClusterDesc\x12\x12\n\nsf_version\x18\x01 \x01(\t\x12\x12\n\npy_version\x18\x02 \x01(\t\x12\x0f\n\x07parties\x18\x03 \x03(\t\x12\x41\n\x07\x64\x65vices\x18\x04 \x03(\x0b\x32\x30.secretflow.spec.extend.SFClusterDesc.DeviceDesc\x12J\n\x0eray_fed_config\x18\x05 \x01(\x0b\x32\x32.secretflow.spec.extend.SFClusterDesc.RayFedConfig\x1aI\n\nDeviceDesc\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\x12\x0f\n\x07parties\x18\x03 \x03(\t\x12\x0e\n\x06\x63onfig\x18\x04 \x01(\t\x1a/\n\x0cRayFedConfig\x12\x1f\n\x17\x63ross_silo_comm_backend\x18\x01 \x01(\t\"\xec\x04\n\x0fSFClusterConfig\x12\x33\n\x04\x64\x65sc\x18\x01 \x01(\x0b\x32%.secretflow.spec.extend.SFClusterDesc\x12K\n\rpublic_config\x18\x02 \x01(\x0b\x32\x34.secretflow.spec.extend.SFClusterConfig.PublicConfig\x12M\n\x0eprivate_config\x18\x03 \x01(\x0b\x32\x35.secretflow.spec.extend.SFClusterConfig.PrivateConfig\x1aL\n\x0cRayFedConfig\x12\x0f\n\x07parties\x18\x01 \x03(\t\x12\x11\n\taddresses\x18\x02 \x03(\t\x12\x18\n\x10listen_addresses\x18\x03 \x03(\t\x1aW\n\tSPUConfig\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07parties\x18\x02 \x03(\t\x12\x11\n\taddresses\x18\x03 \x03(\t\x12\x18\n\x10listen_addresses\x18\x04 \x03(\t\x1a\xa4\x01\n\x0cPublicConfig\x12L\n\x0eray_fed_config\x18\x01 \x01(\x0b\x32\x34.secretflow.spec.extend.SFClusterConfig.RayFedConfig\x12\x46\n\x0bspu_configs\x18\x02 \x03(\x0b\x32\x31.secretflow.spec.extend.SFClusterConfig.SPUConfig\x1a:\n\rPrivateConfig\x12\x12\n\nself_party\x18\x01 \x01(\t\x12\x15\n\rray_head_addr\x18\x02 \x01(\tB\x1c\n\x1aorg.secretflow.spec.extendb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$secretflow/spec/extend/cluster.proto\x12\x16secretflow.spec.extend\"\xd3\x02\n\rSFClusterDesc\x12\x12\n\nsf_version\x18\x01 \x01(\t\x12\x12\n\npy_version\x18\x02 \x01(\t\x12\x0f\n\x07parties\x18\x03 \x03(\t\x12\x41\n\x07\x64\x65vices\x18\x04 \x03(\x0b\x32\x30.secretflow.spec.extend.SFClusterDesc.DeviceDesc\x12J\n\x0eray_fed_config\x18\x05 \x01(\x0b\x32\x32.secretflow.spec.extend.SFClusterDesc.RayFedConfig\x1aI\n\nDeviceDesc\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\x12\x0f\n\x07parties\x18\x03 \x03(\t\x12\x0e\n\x06\x63onfig\x18\x04 \x01(\t\x1a/\n\x0cRayFedConfig\x12\x1f\n\x17\x63ross_silo_comm_backend\x18\x01 \x01(\t\"\x89\x05\n\x0fSFClusterConfig\x12\x33\n\x04\x64\x65sc\x18\x01 \x01(\x0b\x32%.secretflow.spec.extend.SFClusterDesc\x12K\n\rpublic_config\x18\x02 \x01(\x0b\x32\x34.secretflow.spec.extend.SFClusterConfig.PublicConfig\x12M\n\x0eprivate_config\x18\x03 \x01(\x0b\x32\x35.secretflow.spec.extend.SFClusterConfig.PrivateConfig\x1aL\n\x0cRayFedConfig\x12\x0f\n\x07parties\x18\x01 \x03(\t\x12\x11\n\taddresses\x18\x02 \x03(\t\x12\x18\n\x10listen_addresses\x18\x03 \x03(\t\x1aW\n\tSPUConfig\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07parties\x18\x02 \x03(\t\x12\x11\n\taddresses\x18\x03 \x03(\t\x12\x18\n\x10listen_addresses\x18\x04 \x03(\t\x1a\xc1\x01\n\x0cPublicConfig\x12L\n\x0eray_fed_config\x18\x01 \x01(\x0b\x32\x34.secretflow.spec.extend.SFClusterConfig.RayFedConfig\x12\x46\n\x0bspu_configs\x18\x02 \x03(\x0b\x32\x31.secretflow.spec.extend.SFClusterConfig.SPUConfig\x12\x1b\n\x13\x62\x61rrier_on_shutdown\x18\x03 \x01(\x08\x1a:\n\rPrivateConfig\x12\x12\n\nself_party\x18\x01 \x01(\t\x12\x15\n\rray_head_addr\x18\x02 \x01(\tB\x1c\n\x1aorg.secretflow.spec.extendb\x06proto3')
 
 
 
@@ -99,13 +99,13 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _SFCLUSTERDESC_RAYFEDCONFIG._serialized_start=357
   _SFCLUSTERDESC_RAYFEDCONFIG._serialized_end=404
   _SFCLUSTERCONFIG._serialized_start=407
-  _SFCLUSTERCONFIG._serialized_end=1027
+  _SFCLUSTERCONFIG._serialized_end=1056
   _SFCLUSTERCONFIG_RAYFEDCONFIG._serialized_start=635
   _SFCLUSTERCONFIG_RAYFEDCONFIG._serialized_end=711
   _SFCLUSTERCONFIG_SPUCONFIG._serialized_start=713
   _SFCLUSTERCONFIG_SPUCONFIG._serialized_end=800
   _SFCLUSTERCONFIG_PUBLICCONFIG._serialized_start=803
-  _SFCLUSTERCONFIG_PUBLICCONFIG._serialized_end=967
-  _SFCLUSTERCONFIG_PRIVATECONFIG._serialized_start=969
-  _SFCLUSTERCONFIG_PRIVATECONFIG._serialized_end=1027
+  _SFCLUSTERCONFIG_PUBLICCONFIG._serialized_end=996
+  _SFCLUSTERCONFIG_PRIVATECONFIG._serialized_start=998
+  _SFCLUSTERCONFIG_PRIVATECONFIG._serialized_end=1056
 # @@protoc_insertion_point(module_scope)

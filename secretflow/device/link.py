@@ -22,6 +22,7 @@ import fed
 import ray
 
 import secretflow.distributed as sfd
+from fed.actor_with_comm import ActorWithComm
 from secretflow.device.driver import reveal
 from secretflow.distributed.primitive import DISTRIBUTION_MODE
 
@@ -182,7 +183,7 @@ class RayCommunicator(Communicator):
         return list(vals.values())[0] if is_single else list(vals.values())
 
 
-class Link:
+class Link(ActorWithComm):
     """A helper class for communication inside actor between several actors.
 
     You should not use this class directly but inherit it and decorate your
@@ -212,7 +213,7 @@ class Link:
     >>>
     """
 
-    def __init__(self, device: PYU, key_prefix: str = ''):
+    def __init__(self, device: PYU, production_mode: bool = True, key_prefix: str = ''):
         """Initialize
 
         Args:
@@ -224,6 +225,8 @@ class Link:
         self._server = None
         self._key_prefix = key_prefix
         self._comm = None
+        if production_mode:
+            super().__init__()
 
     def initialize(
         self, comm_or_links: Union[Communicator, Dict[PYU, ray.actor.ActorHandle]]

@@ -103,6 +103,9 @@ class Callback:
     def on_after_base_forward(self):
         pass
 
+    def on_before_base_backward(self):
+        pass
+
     def on_before_fuse_net(self):
         pass
 

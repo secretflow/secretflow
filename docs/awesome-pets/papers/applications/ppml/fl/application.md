@@ -234,7 +234,7 @@ Keywords: Split Learning + Sparsification
 - [Subgraph Federated Learning with Missing Neighbor Generation](https://arxiv.org/pdf/2106.13430)
 
 
-### Federated Learning for Multimodal Learning 
+### Federated Learning for Multimodal Learning
 
 - [FedMultimodal: A Benchmark For Multimodal Federated Learning](https://arxiv.org/pdf/2306.09486.pdf)
 
