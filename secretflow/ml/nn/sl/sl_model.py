@@ -481,11 +481,18 @@ class SLModel:
                 if step < steps_per_epoch:
                     f_datas = {}
                     callbacks.on_train_batch_begin(step)
-                    callbacks.on_before_base_forward()
-                    for device, worker in self._workers.items():
-                        # 1. Local calculation of basenet
+
+                    [
                         worker.get_batch_data(stage="train")
-                        worker.base_forward()
+                        for worker in self._workers.values()
+                    ]
+
+                    callbacks.on_before_base_forward()
+                    # 1. Local calculation of basenet
+                    [worker.base_forward() for worker in self._workers.values()]
+                    callbacks.on_after_base_forward()
+
+                    for device, worker in self._workers.items():
                         f_data = worker.pack_forward_data()
                         f_datas[device] = f_data
                     f_data_buf.append(f_datas)
@@ -513,11 +520,18 @@ class SLModel:
                 if not skip_gradient:
                     # do agglayer backward
                     scatter_gradients = self.agglayer.backward(gradients)
-                    callbacks.after_agglayer_backward(scatter_gradients)
-                    for device, worker in self._workers.items():
-                        if device in scatter_gradients.keys():
-                            worker.recv_gradient(scatter_gradients[device])
-                            worker.base_backward()
+
+                    [
+                        worker.recv_gradient(scatter_gradients[device])
+                        for device, worker in self._workers.items()
+                        if device in scatter_gradients.keys()
+                    ]
+                    callbacks.on_before_base_backward()
+                    [
+                        worker.base_backward()
+                        for device, worker in self._workers.items()
+                        if device in scatter_gradients.keys()
+                    ]
 
                 # for EarlyStoppingBatch, evalute model every early_stopping_batch_step
                 if (
@@ -543,9 +557,18 @@ class SLModel:
                     for val_step in range(0, valid_steps):
                         callbacks.on_test_batch_begin(batch=val_step)
                         f_datas = {}  # driver end
-                        for device, worker in self._workers.items():
+
+                        [
                             worker.get_batch_data(stage="eval")
-                            worker.base_forward()
+                            for worker in self._workers.values()
+                        ]
+
+                        callbacks.on_before_base_forward()
+                        # 1. Local calculation of basenet
+                        [worker.base_forward() for worker in self._workers.values()]
+                        callbacks.on_after_base_forward()
+
+                        for device, worker in self._workers.items():
                             f_data = worker.pack_forward_data()
                             f_datas[device] = f_data
                         agg_hiddens = self.agglayer.forward(f_datas)
@@ -596,9 +619,17 @@ class SLModel:
                 for step in range(0, valid_steps):
                     callbacks.on_test_batch_begin(batch=step)
                     f_datas = {}  # driver end
-                    for device, worker in self._workers.items():
+                    [
                         worker.get_batch_data(stage="eval")
-                        worker.base_forward()
+                        for worker in self._workers.values()
+                    ]
+
+                    callbacks.on_before_base_forward()
+                    # 1. Local calculation of basenet
+                    [worker.base_forward() for worker in self._workers.values()]
+                    callbacks.on_after_base_forward()
+
+                    for device, worker in self._workers.items():
                         f_data = worker.pack_forward_data()
                         f_datas[device] = f_data
                     agg_hiddens = self.agglayer.forward(f_datas)
@@ -701,11 +732,25 @@ class SLModel:
         for step in range(0, predict_steps):
             callbacks.on_predict_batch_begin(step)
             forward_data_dict = {}
+
+            [
+                worker.get_batch_data(stage="eval")
+                for device, worker in self._workers.items()
+                if device in self.base_model_dict
+            ]
+
+            callbacks.on_before_base_forward()
+            # 1. Local calculation of basenet
+            [
+                worker.base_forward()
+                for device, worker in self._workers.items()
+                if device in self.base_model_dict
+            ]
+            callbacks.on_after_base_forward()
+
             for device, worker in self._workers.items():
                 if device not in self.base_model_dict:
                     continue
-                worker.get_batch_data(stage="eval")
-                worker.base_forward()
                 f_data = worker.pack_forward_data()
                 forward_data_dict[device] = f_data
 
@@ -795,9 +840,18 @@ class SLModel:
         for step in range(0, evaluate_steps):
             callbacks.on_test_batch_begin(step)
             f_datas = {}  # driver端
-            for device, worker in self._workers.items():
+
+            [
                 worker.get_batch_data(stage="eval")
-                worker.base_forward()
+                for device, worker in self._workers.items()
+            ]
+
+            callbacks.on_before_base_forward()
+            # 1. Local calculation of basenet
+            [worker.base_forward() for device, worker in self._workers.items()]
+            callbacks.on_after_base_forward()
+
+            for device, worker in self._workers.items():
                 f_data = worker.pack_forward_data()
                 f_datas[device] = f_data
 
