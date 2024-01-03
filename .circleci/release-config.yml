@@ -135,6 +135,16 @@ jobs:
             # login docker
             docker login -u secretflow -p ${DOCKER_DEPLOY_TOKEN}
 
+            # Build base image
+            BASE_IMAGE=$(head -1 docker/release/python.Dockerfile|tr -d ' #')
+            NOT_EXIST=$(docker manifest inspect $BASE_IMAGE > /dev/null 2>&1; echo $?)
+            if [ $NOT_EXIST -eq 1 ]
+            then
+              echo "building base image: $BASE_IMAGE"
+              docker build -t $BASE_IMAGE -f docker/release/python.Dockerfile .
+              docker push $BASE_IMAGE
+            fi
+
             # Build image
             cd docker/release
             bash ./build.sh -l -v ${VERSION}
@@ -157,7 +167,7 @@ jobs:
             # secretflow-lite-anolis8:latest
             docker tag secretflow/secretflow-lite-anolis8:${VERSION} secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-lite-anolis8:latest
             docker push secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-lite-anolis8:latest
-            
+
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
