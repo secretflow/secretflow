@@ -172,6 +172,10 @@ class CallbackList:
         for callback in self.callbacks:
             callback.on_after_base_forward()
 
+    def on_before_base_backward(self):
+        for callback in self.callbacks:
+            callback.on_before_base_backward()
+
     def on_before_fuse_net(self):
         for callback in self.callbacks:
             callback.on_before_fuse_net()

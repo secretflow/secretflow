@@ -9,7 +9,7 @@ RUN cd / && git clone https://github.com/google/nsjail.git \
     && cd /nsjail && git checkout 3.3 -b v3.3 \
     && make && mv /nsjail/nsjail /bin
 
-FROM secretflow/anolis8-python:3.8.15 as python
+FROM secretflow/anolis8-python:3.8.18 as python
 
 FROM openanolis/anolisos:8.8
 

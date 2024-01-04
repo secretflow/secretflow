@@ -352,4 +352,4 @@ selected-keys.*
 *Miniconda3.sh
 
 # pytest-testmon db
-.testmondata
+.testmondata*

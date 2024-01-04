@@ -82,11 +82,13 @@ class SLBaseTorchModel(SLBaseModel, ABC):
         self.fuse_callbacks = None
         self._data_x = None  # get_batch_data output
         self._gradient = None
+        self._training = True
         self._pred_y = None
         # record all logs of training on workers
         self.logs = None
         self.steps_per_epoch = None
         self.shuffle = False
+        self._callback_store = {}
         self.random_seed = random_seed
         if random_seed is not None:
             torch.manual_seed(random_seed)
@@ -463,6 +465,14 @@ class SLBaseTorchModel(SLBaseModel, ABC):
             else:
                 h = self.embedding_dp(h)
 
+        # cannot change h because backward will use h
+        if not self._training:
+            if isinstance(h, List):
+                tmp_h = [hi.detach() for hi in h]
+            else:
+                tmp_h = h.detach()
+            return tmp_h
+
         return h
 
     def fuse_net_internal(self, hiddens, train_y, train_sample_weight, logs):
@@ -669,7 +679,6 @@ class SLBaseTorchModel(SLBaseModel, ABC):
 
         if isinstance(hiddens, List) and len(hiddens) == 1:
             hiddens = hiddens[0]
-
         output = self.model_fuse(hiddens, **self.kwargs)
         if isinstance(output, Tuple) and len(output) > 1:
             y_pred = output[0]
@@ -803,9 +812,11 @@ class SLBaseTorchModel(SLBaseModel, ABC):
             torch.manual_seed(self.random_seed)
         if stage == "train" and self.train_set is not None:
             self.train_iter = iter(self.train_set)
+            self._training = True
 
         if stage == "eval" and self.eval_set is not None:
             self.eval_iter = iter(self.eval_set)
+            self._training = False
 
     def get_logs(self):
         return self.logs

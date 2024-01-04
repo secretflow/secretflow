@@ -118,6 +118,8 @@ message SFClusterConfig {
     RayFedConfig ray_fed_config = 1;
 
     repeated SPUConfig spu_configs = 2;
+
+    bool barrier_on_shutdown = 3;
   }
 
   // Different for each party.
