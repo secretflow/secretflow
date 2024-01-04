@@ -1,7 +1,7 @@
-import pytest
-import secretflow as sf
 import numpy as np
+import pytest
 
+import secretflow as sf
 from secretflow.security.aggregation.experiment.qpldp_aggregator import QPLDPAggregator
 from tests.security.aggregation.test_aggregator_base import AggregatorBase
 
@@ -12,7 +12,10 @@ class TestQPLDPAggregator(AggregatorBase):
         yield sf_production_setup_devices, QPLDPAggregator(
             sf_production_setup_devices.carol,
         )
-    def test_average_on_list_with_weights_should_ok(test_average_on_list_with_weights_should_ok):
+
+    def test_average_on_list_with_weights_should_ok(
+        test_average_on_list_with_weights_should_ok,
+    ):
         env, aggregator = env_and_aggregator
         # GIVEN
         a = env.alice(
@@ -38,6 +41,7 @@ class TestQPLDPAggregator(AggregatorBase):
         np.testing.assert_almost_equal(
             avg[1], np.array([[27, 28, 29], [30, 31, 32]]), decimal=1
         )
+
     def test_average_on_list_without_weights_should_ok(self, env_and_aggregator):
         env, aggregator = env_and_aggregator
         # GIVEN
