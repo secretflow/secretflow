@@ -20,7 +20,6 @@ from typing import Any, List, Union
 import numpy as np
 import torch
 from heu import phe
-from more_itertools import flatten
 
 import secretflow as sf
 from secretflow.device import PYU, DeviceObject, PYUObject, proxy
@@ -185,6 +184,13 @@ class _AggregatorOperator:
                     )
             return enc_add_list
 
+    def flatten(self,iterable):
+        for item in iterable:
+            if isinstance(item, (list, tuple)):
+                yield from self.flatten(item)
+            else:
+                yield item
+
     def homo_dec_list_without_average(
         self, enc_add_list, local_weight_shape, size_of_per_col
     ):  # 解密整个加密聚合后的列表，不取均值
@@ -206,7 +212,7 @@ class _AggregatorOperator:
                             ),
                         )
                     )
-                dec_list[index] = list(flatten(dec_list[index]))
+                dec_list[index] = list(self.flatten(dec_list[index]))
                 dec_list[index] = torch.tensor(
                     [
                         (
@@ -227,7 +233,7 @@ class _AggregatorOperator:
                         ),
                     )
                 )
-            dec_list = list(flatten(dec_list))
+            dec_list = list(self.flatten(dec_list))
             dec_list = torch.tensor(
                 [
                     (
