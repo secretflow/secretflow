@@ -94,7 +94,7 @@ class QPLDPAggregator(Aggregator):
             gradient = []
             if isinstance(data[0], (list, tuple)):
                 client_num = len(data)
-                ##梯度数据是一个list
+                # 梯度数据是一个list
                 for i in range(client_num):
                     grad = []
                     for j in range(len(data[0])):
@@ -103,7 +103,7 @@ class QPLDPAggregator(Aggregator):
                     gradient.append(grad)
                 gradient = np.array(gradient, dtype=np.float32)
 
-                ##设定PSI服务器，set值是PSI的计算结果。一个数组，里面元素为1的位置代表属于交集元素
+                # 设定PSI服务器，set值是PSI的计算结果。一个数组，里面元素为1的位置代表属于交集元素
 
                 set = np.zeros((gradient[0][-2].shape), dtype=np.float32)
                 for i in range(len(gradient[0][-2])):
@@ -113,7 +113,7 @@ class QPLDPAggregator(Aggregator):
                                 set[i][j] = 1
                             else:
                                 break
-                # #使用PSI得到交集并添加噪声(FL+Quantization+PSI+LDP)set里元素为零的位置的参数加噪
+                # 使用PSI得到交集并添加噪声(FL+Quantization+PSI+LDP)set里元素为零的位置的参数加噪
 
                 for k in range(client_num):
                     for i in range(len(set)):
@@ -122,7 +122,7 @@ class QPLDPAggregator(Aggregator):
                             if set[i][j] == 1:
                                 noise[i][j] = 0
                     gradient[k][-2] += noise
-                # #(FL+Quantization+PSI+LDP)仅对模型倒数第二层进行扰动
+                # (FL+Quantization+PSI+LDP)仅对模型倒数第二层进行扰动
 
                 for elements in zip(*gradient):
                     avg = np.average(elements, axis=axis, weights=weights)
