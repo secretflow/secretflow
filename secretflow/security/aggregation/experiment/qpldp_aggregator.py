@@ -113,7 +113,7 @@ class QPLDPAggregator(Aggregator):
                                 set[i][j] = 1
                             else:
                                 break
-                # 使用PSI得到交集并添加噪声(FL+Quantization+PSI+LDP)set里元素为零的位置的参数加噪
+                # #使用PSI得到交集并添加噪声(FL+Quantization+PSI+LDP)set里元素为零的位置的参数加噪
 
                 for k in range(client_num):
                     for i in range(len(set)):
