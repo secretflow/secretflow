@@ -9,15 +9,11 @@ from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
 
 class FedDYN(BaseTorchModel):
     def initialize(self, *args, **kwargs):
-        self.gradL = self.model.get_gradients() # 客户端梯度
-        self.alpha = 0.1 # FedDYN算法超参数，可以从 [0.1, 0.01, 0.001] 中选择
+        self.gradL = self.model.get_gradients()  # 客户端梯度
+        self.alpha = 0.1  # FedDYN算法超参数，可以从 [0.1, 0.01, 0.001] 中选择
 
     def train_step(
-        self,
-        weights: np.ndarray,
-        cur_steps: int,
-        train_steps: int,
-        **kwargs,
+        self, weights: np.ndarray, cur_steps: int, train_steps: int, **kwargs,
     ) -> Tuple[np.ndarray, int]:
         """Accept ps model params, then do local train
 
@@ -30,7 +26,9 @@ class FedDYN(BaseTorchModel):
             Parameters after local training
         """
         if weights is None:
-            assert self.model is not None, "Model cannot be none, please give model define"
+            assert (
+                self.model is not None
+            ), "Model cannot be none, please give model define"
             self.model.train()
             refresh_data = kwargs.get("refresh_data", False)
             if refresh_data:
@@ -38,7 +36,7 @@ class FedDYN(BaseTorchModel):
             if weights is not None:
                 self.model.update_weights(weights)
             num_sample = 0
-            dp_strategy = kwargs.get('dp_strategy', None)
+            dp_strategy = kwargs.get("dp_strategy", None)
             logs = {}
 
             for _ in range(train_steps):
@@ -55,7 +53,7 @@ class FedDYN(BaseTorchModel):
                 for m in self.metrics:
                     m.update(y_pred.cpu(), y.cpu())
             loss_value = loss.item()
-            logs['train-loss'] = loss_value
+            logs["train-loss"] = loss_value
 
             self.logs = self.transform_metrics(logs)
             self.wrapped_metrics.extend(self.wrap_local_metrics())
@@ -75,15 +73,15 @@ class FedDYN(BaseTorchModel):
         if refresh_data:
             self._reset_data_iter()
         # global parameters
-        self.model.update_weights(weights) # 本地模型初始化为全局模型
-        src_model = copy.deepcopy(self.model) # 记录全局模型
+        self.model.update_weights(weights)  # 本地模型初始化为全局模型
+        src_model = copy.deepcopy(self.model)  # 记录全局模型
 
         for p in src_model.parameters():
             p.requires_grad = False
 
         self.model.train()
         num_sample = 0
-        dp_strategy = kwargs.get('dp_strategy', None)
+        dp_strategy = kwargs.get("dp_strategy", None)
         logs = {}
 
         for _ in range(train_steps):
@@ -113,10 +111,12 @@ class FedDYN(BaseTorchModel):
             # do back propagation
             loss = self.loss(y_pred, y_t.long())
 
-            l1 = loss # 第一个子式 L_k(sita)
-            l2 = 0 # 第二个子式
-            l3 = 0 # 第三个子式 ||sita - sita_t-1||^2
-            for pgl, pm, ps in zip(self.gradL, self.model.parameters(), src_model.parameters()):
+            l1 = loss  # 第一个子式 L_k(sita)
+            l2 = 0  # 第二个子式
+            l3 = 0  # 第三个子式 ||sita - sita_t-1||^2
+            for pgl, pm, ps in zip(
+                self.gradL, self.model.parameters(), src_model.parameters()
+            ):
                 # pgl 表示客户端梯度， pm 表示客户端模型， ps 表示服务器模型
                 pgl = torch.Tensor(pgl)
                 l2 += torch.dot(pgl.view(-1), pm.view(-1))
@@ -130,7 +130,9 @@ class FedDYN(BaseTorchModel):
 
         # update grad_L
         new_gradL = []
-        for pgl, pm, ps in zip(self.gradL, self.model.parameters(), src_model.parameters()):
+        for pgl, pm, ps in zip(
+            self.gradL, self.model.parameters(), src_model.parameters()
+        ):
             pgl = torch.Tensor(pgl)
             break
             pgl = pgl - self.alpha * (pm - ps)
@@ -139,7 +141,7 @@ class FedDYN(BaseTorchModel):
         self.gradL = copy.deepcopy(new_gradL)
 
         loss_value = loss.item()
-        logs['train-loss'] = loss_value
+        logs["train-loss"] = loss_value
 
         self.logs = self.transform_metrics(logs)
         self.wrapped_metrics.extend(self.wrap_local_metrics())
@@ -164,6 +166,6 @@ class FedDYN(BaseTorchModel):
             self.model.update_weights(weights)
 
 
-@register_strategy(strategy_name='fed_dyn', backend='torch')
+@register_strategy(strategy_name="fed_dyn", backend="torch")
 class PYUFedDYN(FedDYN):
     pass

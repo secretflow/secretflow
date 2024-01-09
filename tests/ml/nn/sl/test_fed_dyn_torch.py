@@ -1,12 +1,14 @@
-import torch
-from torch import nn
 import unittest
+
+import torch
 import torch.optim as optim
+from secretflow.ml.nn.fl.backend.torch.strategy.fed_dyn import FedDYN
+from secretflow.ml.nn.utils import BaseModule
+from torch import nn
 from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader, TensorDataset
 from torchmetrics import Accuracy, Precision, Recall
-from secretflow.ml.nn.fl.backend.torch.strategy.fed_dyn import FedDYN
-from secretflow.ml.nn.utils import BaseModule
+
 
 class MNIST_Model(BaseModule):
     def __init__(self):
@@ -16,7 +18,7 @@ class MNIST_Model(BaseModule):
             nn.Linear(784, 200),
             nn.ReLU(),
             nn.Linear(200, 100),
-            nn.ReLU()
+            nn.ReLU(),
         )
         self.head = nn.Linear(100, 10)
 
@@ -25,13 +27,13 @@ class MNIST_Model(BaseModule):
         x = self.head(x)
         return x
 
+
 class TestFedDYN:
     def test_fed_dyn_local_step(self, sf_simulation_setup_devices):
-
         class ConvNetBuilder:
             def __init__(self):
                 self.metrics = [
-                    lambda: Accuracy(task="multiclass", num_classes=10, average='macro')
+                    lambda: Accuracy(task="multiclass", num_classes=10, average="macro")
                 ]
 
             def model_fn(self):
@@ -49,8 +51,12 @@ class TestFedDYN:
 
         # Prepare dataset
         x_test = torch.rand(128, 1, 28, 28)  # Randomly generated data
-        y_test = torch.randint(0, 10, (128,))  # Randomly generated labels for a 10-class task
-        test_loader = DataLoader(TensorDataset(x_test, y_test), batch_size=32, shuffle=True)
+        y_test = torch.randint(
+            0, 10, (128,)
+        )  # Randomly generated labels for a 10-class task
+        test_loader = DataLoader(
+            TensorDataset(x_test, y_test), batch_size=32, shuffle=True
+        )
         fed_dyn_worker.train_set = iter(test_loader)
         fed_dyn_worker.train_iter = iter(fed_dyn_worker.train_set)
 
@@ -65,11 +71,14 @@ class TestFedDYN:
 
         # Assert the sample number and length of gradients
         assert num_sample == 32  # Batch size
-        assert len(gradients) == len(list(fed_dyn_worker.model.parameters()))  # Number of model parameters
+        assert len(gradients) == len(
+            list(fed_dyn_worker.model.parameters())
+        )  # Number of model parameters
 
         # Perform another training step to test cumulative behavior
         _, num_sample = fed_dyn_worker.train_step(gradients, cur_steps=1, train_steps=2)
         assert num_sample == 64  # Cumulative batch size over two steps
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()
