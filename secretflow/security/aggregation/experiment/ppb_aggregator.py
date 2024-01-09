@@ -184,7 +184,7 @@ class _AggregatorOperator:
                     )
             return enc_add_list
 
-    def flatten(self,iterable):
+    def flatten(self, iterable):
         for item in iterable:
             if isinstance(item, (list, tuple)):
                 yield from self.flatten(item)
