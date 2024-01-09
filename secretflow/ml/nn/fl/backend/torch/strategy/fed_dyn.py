@@ -2,6 +2,7 @@ import copy
 from typing import Tuple
 
 import numpy as np
+
 import torch
 from secretflow.ml.nn.fl.backend.torch.fl_base import BaseTorchModel
 from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
@@ -111,9 +112,9 @@ class FedDYN(BaseTorchModel):
             # do back propagation
             loss = self.loss(y_pred, y_t.long())
 
-            l1 = loss  # 第一个子式 L_k(sita)
+            l1 = loss  # 第一个子式 L_k(theta)
             l2 = 0  # 第二个子式
-            l3 = 0  # 第三个子式 ||sita - sita_t-1||^2
+            l3 = 0  # 第三个子式 ||theta - theta_t-1||^2
             for pgl, pm, ps in zip(
                 self.gradL, self.model.parameters(), src_model.parameters()
             ):
@@ -134,11 +135,12 @@ class FedDYN(BaseTorchModel):
             self.gradL, self.model.parameters(), src_model.parameters()
         ):
             pgl = torch.Tensor(pgl)
-            break
-            pgl = pgl - self.alpha * (pm - ps)
-            new_gradL.append(pgl)
+            ori_shape = pgl.size()
+            pgl_tmp = pgl.view(-1) - self.alpha * (pm.view(-1) - ps.view(-1))
+            pgl_tmp = pgl_tmp.view(ori_shape)
+            new_gradL.append(pgl_tmp.detach().clone())
         # self.gradL = self.gradL - self.alpha * (self.model - src_model)
-        self.gradL = copy.deepcopy(new_gradL)
+        self.gradL = new_gradL
 
         loss_value = loss.item()
         logs["train-loss"] = loss_value
