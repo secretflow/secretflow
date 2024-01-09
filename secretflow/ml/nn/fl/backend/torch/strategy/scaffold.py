@@ -3,19 +3,13 @@ from typing import Tuple
 
 import numpy as np
 import torch
-
 from secretflow.ml.nn.fl.backend.torch.fl_base import BaseTorchModel
 from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
 
 
 class Scaffold(BaseTorchModel):
-
     def train_step(
-        self,
-        weights: np.ndarray,
-        cur_steps: int,
-        train_steps: int,
-        **kwargs,
+        self, weights: np.ndarray, cur_steps: int, train_steps: int, **kwargs,
     ) -> Tuple[np.ndarray, int]:
         """Accept ps model params, then do local train
 
@@ -31,14 +25,14 @@ class Scaffold(BaseTorchModel):
         self.model.train()
         # 在自己的模型中定义c和cg，如1.py line35所示
         if self.model.c is None:
-            self.model.c = self.model.zeros_like() # 定义控制变量c
+            self.model.c = self.model.zeros_like()  # 定义控制变量c
         refresh_data = kwargs.get("refresh_data", False)
         if refresh_data:
             self._reset_data_iter()
         if weights is not None:
             self.model.update_weights(weights)
         num_sample = 0
-        dp_strategy = kwargs.get('dp_strategy', None)
+        dp_strategy = kwargs.get("dp_strategy", None)
         logs = {}
 
         for _ in range(train_steps):
@@ -88,7 +82,7 @@ class Scaffold(BaseTorchModel):
         for i, it in enumerate(self.model.c):
             it = torch.Tensor(model_weights[i]) - self.model.cg[i] + it
         loss_value = loss.item()
-        logs['train-loss'] = loss_value
+        logs["train-loss"] = loss_value
 
         self.logs = self.transform_metrics(logs)
         self.wrapped_metrics.extend(self.wrap_local_metrics())
@@ -112,6 +106,7 @@ class Scaffold(BaseTorchModel):
         if weights is not None:
             self.model.update_weights(weights)
 
-@register_strategy(strategy_name='scaffold', backend='torch')
+
+@register_strategy(strategy_name="scaffold", backend="torch")
 class PYUScaffold(Scaffold):
     pass
