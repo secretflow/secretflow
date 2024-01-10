@@ -105,6 +105,7 @@ class TableColParam:
 class CompEvalContext:
     local_fs_wd: str = None
     spu_configs: Dict = None
+    cluster_config: SFClusterConfig = None
     tracer = CompTracer()
 
 
@@ -905,6 +906,8 @@ class Component:
         # sanity check on sf config
         ctx = CompEvalContext()
 
+        ctx.cluster_config = cluster_config
+
         if storage_config is not None:
             ctx.local_fs_wd = self._check_storage(storage_config)
 
@@ -943,14 +946,17 @@ class Component:
             if cluster_config is not None:
                 shutdown()
 
+        logging.info(f"{param}, getting eval return complete.")
         # check output
         for output in definition.outputs:
             check_dist_data(ret[output.name], output)
 
+        logging.info(f"{param}, check_dist_data complete.")
         res = NodeEvalResult(
             outputs=[ret[output.name] for output in definition.outputs]
         )
 
+        logging.info(f"{param}, NodeEvalResult wrapping complete.")
         if tracer_report:
             return {"eval_result": res, "tracer_report": ctx.tracer.report()}
         else:

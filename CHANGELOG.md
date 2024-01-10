@@ -12,7 +12,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
-## [1.3.0.dev231218] - 2023-12-18
+## [1.3.0b0] - 2024-1-10
+### Added
+- Add secretflow tuner for automl and autoattack.
+- SLModel & FLModel: Add federated callback framework.
+- SLModel: Support training on file data with mutiple labels.
+- SLModel: Support file data input.
+- SLModel: Add new agg method `concat`, `sum`.
+- SLModel: Add DeepFM(torch), ResNet and VGG application.
+- Support SGB label holder without features
+- Add ic_mode with package interconnection protobuf files.
+- Expose copts in SPU devices.
+- Component: Add feature calculate component to generate new features by performing calculations on original features.
+- Component: Support SGB prediction on big dataset.
+- Component: Add IO component including read, write and identity.
+- Component: Change groupby component to by-query style.
+- Component: Support eq_range binning.
+- Component: Support TLS in nsjail.
+- Component: Add test framework.
+- Component: Add benchmarks.
+- Component: Adapt to DataProxy.
+
+### Changed
+- SGB optimize memory usage in prediction.
+- Component: Bump groupby statistics version.
+- Component: Select features in binning.
+- Component: biclassification_eval return nan values if min_item_cnt_per_bucket doesn't match.
+- Component: add upper_bound for max_group_size in groupby_statistics.
+- Component: modify test_size and train_size restrictions in train_test_split.
+- Component: Improve translation.
+- Make barrier_on_shutdown optional.
+
+## [1.3.0.dev231219] - 2023-12-19
 ### Added
 - Make barrier_on_shutdown optional.
 - Support SGB label holder without features.

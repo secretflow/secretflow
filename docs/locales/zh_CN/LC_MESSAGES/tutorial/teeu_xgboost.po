@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-04-24 19:12+0800\n"
+"POT-Creation-Date: 2023-12-19 09:45+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -174,26 +174,26 @@ msgstr "假设Alice和Bob拥有相同的特征空间，但是样本空间互不�
 msgid "The core code of the above case is as follows."
 msgstr "上述案例的核心代码如下。"
 
-#: ../../tutorial/teeu_xgboost.md:140
+#: ../../tutorial/teeu_xgboost.md:142
 msgid "Alice runs the code"
 msgstr "Alice运行代码"
 
-#: ../../tutorial/teeu_xgboost.md:142 ../../tutorial/teeu_xgboost.md:273
+#: ../../tutorial/teeu_xgboost.md:144 ../../tutorial/teeu_xgboost.md:278
 msgid "Start the ray master node"
 msgstr "启动 ray 主节点"
 
-#: ../../tutorial/teeu_xgboost.md:144
+#: ../../tutorial/teeu_xgboost.md:146
 msgid ""
 "You should modify the following command to match the actual situation, as"
 " it currently assumes that Alice's Ray master node is listening at "
 "192.168.0.10:10000."
 msgstr "下列命令假设Alice的ray主节点监听地址为 192.168.0.10:10000，请根据实际情况修改。"
 
-#: ../../tutorial/teeu_xgboost.md:150 ../../tutorial/teeu_xgboost.md:280
+#: ../../tutorial/teeu_xgboost.md:152 ../../tutorial/teeu_xgboost.md:285
 msgid "Generate a public-private key pair"
 msgstr "生成公私钥对"
 
-#: ../../tutorial/teeu_xgboost.md:152
+#: ../../tutorial/teeu_xgboost.md:154
 msgid ""
 "As Alice's data needs to be encrypted and sent to TEEU, it is imperative "
 "to generate a pair of public and private keys. Below, you may find the "
@@ -204,56 +204,56 @@ msgstr ""
 "因为 Alice 的数据需要加密发送给 TEEU，所以需要事先生成一对公私钥。您可以执行下列代码生成公私钥，公私钥以 pem "
 "格式分别存放在当前目录的 private_key.pem，public_key.pem。"
 
-#: ../../tutorial/teeu_xgboost.md:159
+#: ../../tutorial/teeu_xgboost.md:161
 msgid "Execute code"
 msgstr "执行代码"
 
-#: ../../tutorial/teeu_xgboost.md:161
+#: ../../tutorial/teeu_xgboost.md:163
 msgid ""
 "Add the SecretFlow initialization related code in front of the code to "
 "get the following code. First, you need to modify the configuration items"
 " in the code."
 msgstr "在代码的前面加上SecretFlow初始化相关代码，得到下列的代码。首先您需要对代码中的配置项进行修改。"
 
-#: ../../tutorial/teeu_xgboost.md:163
+#: ../../tutorial/teeu_xgboost.md:165
 msgid ""
 "The code assumes that Alice's communication address is "
 "192.168.0.10:20001, please modify it according to the actual situation"
 msgstr "代码中假设 Alice 通信地址为 192.168.0.10:20001，请您根据实际情况修改"
 
-#: ../../tutorial/teeu_xgboost.md:164 ../../tutorial/teeu_xgboost.md:294
-#: ../../tutorial/teeu_xgboost.md:413
+#: ../../tutorial/teeu_xgboost.md:166 ../../tutorial/teeu_xgboost.md:299
+#: ../../tutorial/teeu_xgboost.md:421
 msgid "You need to fill in the correct `auth_manager_config`"
 msgstr "您需要填写填充正确的 `auth_manager_config`"
 
-#: ../../tutorial/teeu_xgboost.md:165 ../../tutorial/teeu_xgboost.md:295
+#: ../../tutorial/teeu_xgboost.md:167 ../../tutorial/teeu_xgboost.md:300
 msgid "`host` is the listening address of the AuthManager service"
 msgstr "`host`为 AuthManager 的服务监听地址"
 
-#: ../../tutorial/teeu_xgboost.md:166
+#: ../../tutorial/teeu_xgboost.md:168
 msgid ""
 "`ca_cert` is the CA certificate address of AuthManager, if AuthManager "
 "does not start with TLS, no configuration is required."
 msgstr "`ca_cert`为 AuthManager 的 CA 证书地址，如果 AuthManager 未启动 TLS，则不需要配置。"
 
-#: ../../tutorial/teeu_xgboost.md:168
+#: ../../tutorial/teeu_xgboost.md:170
 msgid ""
-"Suppose we save the code as demo.py, and then execute `python demo.py` on"
-" Alice's machine."
-msgstr "假设我们把代码保存为 demo.py，然后在 Alice 的机器上执行 `python demo.py`。"
+"Suppose we save the code as `demo.py`, and then execute `python demo.py` "
+"on Alice's machine."
+msgstr "假设我们把代码保存为 `demo.py`，然后在 Alice 的机器上执行 `python demo.py`。"
 
-#: ../../tutorial/teeu_xgboost.md:271
+#: ../../tutorial/teeu_xgboost.md:276
 msgid "Bob runs the code"
 msgstr "Bob 运行代码"
 
-#: ../../tutorial/teeu_xgboost.md:275
+#: ../../tutorial/teeu_xgboost.md:280
 msgid ""
 "You should modify the following command to match the actual situation, as"
 " it currently assumes that Bob's Ray master node is listening at "
 "192.168.0.20:10000."
 msgstr "下列命令假设 Bob 的Ray主节点监听在 192.168.0.20:10000，请根据实际情况修改。"
 
-#: ../../tutorial/teeu_xgboost.md:282
+#: ../../tutorial/teeu_xgboost.md:287
 msgid ""
 "As Bob's data needs to be encrypted and sent to TEEU, it is imperative to"
 " generate a pair of public and private keys. Below, you may find the code"
@@ -264,90 +264,90 @@ msgstr ""
 "因为 Bob 的数据需要加密发送给 TEEU，所以需要事先生成一对公私钥。您可以执行下列代码生成公私钥，公私钥以 pem 格式分别存放在当前目录的"
 " private_key.pem，public_key.pem。"
 
-#: ../../tutorial/teeu_xgboost.md:288
+#: ../../tutorial/teeu_xgboost.md:293
 msgid "Run the code"
 msgstr "运行代码"
 
-#: ../../tutorial/teeu_xgboost.md:290
+#: ../../tutorial/teeu_xgboost.md:295
 msgid ""
 "Similar to Alice, add the SecretFlow initialization code in front of the "
 "code to get the following code. First, you need to modify the "
 "configuration items in the code."
 msgstr "与 Alice 类似，在代码前面加上 SecretFlow 初始化相关代码，得到下列的代码"
 
-#: ../../tutorial/teeu_xgboost.md:293
+#: ../../tutorial/teeu_xgboost.md:298
 msgid ""
-"The code assumes that Bob's communication address is "
-"192.168.0.20:20001, please modify it according to the actual situation"
+"The code assumes that Bob's communication address is 192.168.0.20:20001, "
+"please modify it according to the actual situation"
 msgstr "代码中假设 Bob 通信地址为 192.168.0.20:20001，请您根据实际情况修改"
 
-#: ../../tutorial/teeu_xgboost.md:296
+#: ../../tutorial/teeu_xgboost.md:301
 msgid ""
 "`ca_cert` is the CA certificate address of AuthManager, if AuthManager "
 "does not start tls, no configuration is required."
 msgstr "`ca_cert`为 AuthManager 的 CA 证书地址，如果 AuthManager 未启动 TLS，则不需要配置。"
 
-#: ../../tutorial/teeu_xgboost.md:298
+#: ../../tutorial/teeu_xgboost.md:303
 msgid ""
-"Suppose we save the code as demo.py, and then execute `python demo.py` on"
-" Bob's machine."
-msgstr "假设我们把代码保存为 demo.py，然后在Bob的机器上执行 `python demo.py`。"
+"Suppose we save the code as `demo.py`, and then execute `python demo.py` "
+"on Bob's machine."
+msgstr "假设我们把代码保存为 `demo.py`，然后在Bob的机器上执行 `python demo.py`。"
 
-#: ../../tutorial/teeu_xgboost.md:401
+#: ../../tutorial/teeu_xgboost.md:409
 msgid "Carol runs code (executed in TEE)"
 msgstr "Carol 运行代码（在TEE中执行）"
 
-#: ../../tutorial/teeu_xgboost.md:403
+#: ../../tutorial/teeu_xgboost.md:411
 msgid "Run the SecretFlow TEE image firstly."
 msgstr "启动容器"
 
-#: ../../tutorial/teeu_xgboost.md:409
+#: ../../tutorial/teeu_xgboost.md:417
 msgid ""
 "Similarly, add the SecretFlow initialization code in front of the code to"
 " get the following code. Unlike the previous one, Carol's code needs to "
 "run in TEE, so some extra steps are required. First, you need to modify "
 "the configuration items in the code."
 msgstr ""
-"类似地，在代码前面加上 SecretFlow 初始化相关代码，得到下列的代码。但是与前面有所区别，因为Carol"
-"是在TEE中运行，因此需要一些额外的步骤。首先，你需要修改代码中的配置项。"
+"类似地，在代码前面加上 SecretFlow "
+"初始化相关代码，得到下列的代码。但是与前面有所区别，因为Carol是在TEE中运行，因此需要一些额外的步骤。首先，你需要修改代码中的配置项。"
 
-#: ../../tutorial/teeu_xgboost.md:412
+#: ../../tutorial/teeu_xgboost.md:420
 msgid ""
 "In the code, it is assumed that Carol's communication address is "
 "192.168.0.30:20001, please modify it according to the actual situation"
 msgstr "代码中假设 Carol 通信地址为 192.168.0.30:20001，请您根据实际情况修改"
 
-#: ../../tutorial/teeu_xgboost.md:414
+#: ../../tutorial/teeu_xgboost.md:422
 msgid "`host` is the listen address of AuthManager"
 msgstr "`host`为 AuthManager 的服务监听地址"
 
-#: ../../tutorial/teeu_xgboost.md:415
+#: ../../tutorial/teeu_xgboost.md:423
 msgid ""
 "`ca_cert` is the CA certificate path of AuthManager, if AuthManager does "
 "not enable TLS, no configuration is required."
 msgstr "`ca_cert` 为 AuthManager 的 CA 证书地址，如果 AuthManager 未启动 TLS，则不需要配置。"
 
-#: ../../tutorial/teeu_xgboost.md:417
+#: ../../tutorial/teeu_xgboost.md:425
 msgid ""
 "After modification, please save the file to "
 "`/root/occlum_instance/image/root/demo.py`."
 msgstr "修改完毕后，请把该文件保存至 /root/occlum_instance/image/root/demo.py"
 
-#: ../../tutorial/teeu_xgboost.md:527
+#: ../../tutorial/teeu_xgboost.md:535
 msgid "Then we run the script with the following command."
 msgstr "然后我们通过下列命令运行脚本。"
 
-#: ../../tutorial/teeu_xgboost.md:535
+#: ../../tutorial/teeu_xgboost.md:545
 msgid ""
 "You can check model file at `/root/occlum_instance/model.json` when "
 "finished."
 msgstr "当运行结束后，您可以在 `/root/occlum_instance/model.json` 查阅模型文件。"
 
-#: ../../tutorial/teeu_xgboost.md:537
+#: ../../tutorial/teeu_xgboost.md:547
 msgid "1.2 Non-simulation mode"
 msgstr "1.2 非仿真模式"
 
-#: ../../tutorial/teeu_xgboost.md:539
+#: ../../tutorial/teeu_xgboost.md:549
 msgid ""
 "When it is necessary to use the real TEE environment to protect the "
 "confidentiality and integrity of the data in the computing process, the "
@@ -362,7 +362,7 @@ msgstr ""
 "提供的安全机制将被开启。开启非仿真模式，用户需要持有当前 Secretflow TEEU 支持的 TEE 硬件，当前 Secretflow 仅支持"
 " Intel SGX2.0，未来会支持更多 TEE 种类。"
 
-#: ../../tutorial/teeu_xgboost.md:541
+#: ../../tutorial/teeu_xgboost.md:551
 msgid ""
 "Please check [Non-simulation](./teeu.md#summary) for running in non-"
 "simulation mode."

@@ -7,16 +7,16 @@ from google.protobuf.json_format import MessageToJson
 
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.stats.groupby_statistics import (
+    STR_TO_ENUM,
     gen_groupby_statistic_reports,
     groupby_statistics_comp,
-    STR_TO_ENUM,
 )
 from secretflow.spec.extend.groupby_aggregation_config_pb2 import (
     ColumnQuery,
     GroupbyAggregationConfig,
 )
 from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import DistData, IndividualTable, TableSchema
+from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
 
@@ -43,6 +43,7 @@ def test_groupby_statistics(comp_prod_sf_cluster_config, by, value_agg_pairs):
         i.e. all APIs align and the result is correct.
     """
     alice_input_path = "test_groupby_statistics/alice.csv"
+    bob_input_path = "test_groupby_statistics/bob.csv"
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
@@ -60,10 +61,15 @@ def test_groupby_statistics(comp_prod_sf_cluster_config, by, value_agg_pairs):
     test_data["a"] = test_data["a"].astype("string")
 
     if self_party == "alice":
-        df_alice = test_data
+        df_alice = test_data[["a", "c"]]
         os.makedirs(os.path.join(local_fs_wd, "test_groupby_statistics"), exist_ok=True)
         df_alice.to_csv(os.path.join(local_fs_wd, alice_input_path), index=False)
+    elif self_party == "bob":
+        df_bob = test_data[["b", "d"]]
+        os.makedirs(os.path.join(local_fs_wd, "test_groupby_statistics"), exist_ok=True)
+        df_bob.to_csv(os.path.join(local_fs_wd, bob_input_path), index=False)
 
+    logging.info("data preparation complete")
     param = NodeEvalParam(
         domain="stats",
         name="groupby_statistics",
@@ -76,20 +82,29 @@ def test_groupby_statistics(comp_prod_sf_cluster_config, by, value_agg_pairs):
         inputs=[
             DistData(
                 name="input_data",
-                type=str(DistDataType.INDIVIDUAL_TABLE),
+                type=str(DistDataType.VERTICAL_TABLE),
                 data_refs=[
-                    DistData.DataRef(uri=alice_input_path, party="alice", format="csv")
+                    DistData.DataRef(uri=alice_input_path, party="alice", format="csv"),
+                    DistData.DataRef(uri=bob_input_path, party="bob", format="csv"),
                 ],
             )
         ],
         output_uris=[""],
     )
-    meta = IndividualTable(
-        schema=TableSchema(
-            feature_types=["str", "float32", "float32", "float32"],
-            features=["a", "b", "c", "d"],
-        )
+
+    meta = VerticalTable(
+        schemas=[
+            TableSchema(
+                feature_types=["str", "float32"],
+                features=["a", "c"],
+            ),
+            TableSchema(
+                feature_types=["float32", "float32"],
+                features=["b", "d"],
+            ),
+        ],
     )
+
     param.inputs[0].meta.Pack(meta)
 
     res = groupby_statistics_comp.eval(

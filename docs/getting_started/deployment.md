@@ -1,5 +1,10 @@
 # Deployment
+**SecretFlow provides two deployment options: simulation and production. The distinctions between them are outlined in the accompanying table. Please review the details thoughtfully and select the deployment approach that best suits your requirements.**
 
+|Deployment Mode|Scenarios|How to deploy Ray|How to run code|Code difference|
+|-|-|-|-|-|
+|Simulation|Conducting experiments in the local network environment of a single organization.|A Ray cluster composed of simulated nodes.|Run code once on any node.|Fill `parties` parameter in `sf.init`.|
+|Production|Formal production environments, such as collaboration among multiple institutions.|Each institution deploys its own independent Ray cluster.|Every institution needs to execute the code simultaneously.|Fill `cluster_config` parameter in `sf.init`, and the rest of the code is identical to that in simulation mode.|
 
 ## Pre-knowledge: about Ray
 SecretFlow uses Ray as its distributed framework. A Ray cluster consists of a head node and zero or several slave nodes, for more information about Ray, please visit [Ray official website](https://docs.ray.io/).

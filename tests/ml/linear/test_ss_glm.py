@@ -84,6 +84,7 @@ def _run_test(
     logging.info(f"{test_name} deviance: {deviance}")
 
     fed_w, bias = model.spu_w_to_federated(v_data, devices.alice)
+    wait([*list(fed_w.partitions.values()), bias])
     yhat = reveal(model.predict_fed_w(v_data, fed_w, bias))
     assert yhat.shape[0] == y.shape[0], f"{yhat.shape} == {y.shape}"
     deviance = get_dist(dist, 1, 1).deviance(yhat, y, None)

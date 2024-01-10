@@ -116,9 +116,9 @@ def gen_data():
     return x, y
 
 # Alice generates its samples.
-x_a, y_a = alice(gen_data(), num_returns=2)()
+x_a, y_a = alice(gen_data, num_returns=2)()
 # Bob generates its samples.
-x_b, y_b = alice(gen_data(), num_returns=2)()
+x_b, y_b = alice(gen_data, num_returns=2)()
 
 from secretflow.device import TEEU
 
@@ -167,7 +167,7 @@ First, you need to modify the configuration items in the code.
   - `host` is the listening address of the AuthManager service
   - `ca_cert` is the CA certificate address of AuthManager, if AuthManager does not start with TLS, no configuration is required.
 
-Suppose we save the code as demo.py, and then execute `python demo.py` on Alice's machine.
+Suppose we save the code as `demo.py`, and then execute `python demo.py` on Alice's machine.
 
 ```python
 import secretflow as sf
@@ -251,9 +251,9 @@ def gen_data():
     return x, y
 
 # Alice generates its samples.
-x_a, y_a = alice(gen_data(), num_returns=2)()
+x_a, y_a = alice(gen_data, num_returns=2)()
 # Bob generates its samples.
-x_b, y_b = alice(gen_data(), num_returns=2)()
+x_b, y_b = alice(gen_data, num_returns=2)()
 
 from secretflow.device import TEEU
 
@@ -300,7 +300,7 @@ First, you need to modify the configuration items in the code.
 - `host` is the listening address of the AuthManager service
 - `ca_cert` is the CA certificate address of AuthManager, if AuthManager does not start tls, no configuration is required.
 
-Suppose we save the code as demo.py, and then execute `python demo.py` on Bob's machine.
+Suppose we save the code as `demo.py`, and then execute `python demo.py` on Bob's machine.
 
 ```python
 import secretflow as sf
@@ -384,9 +384,9 @@ def gen_data():
     return x, y
 
 # Alice generates its samples.
-x_a, y_a = alice(gen_data(), num_returns=2)()
+x_a, y_a = alice(gen_data, num_returns=2)()
 # Bob generates its samples.
-x_b, y_b = alice(gen_data(), num_returns=2)()
+x_b, y_b = alice(gen_data, num_returns=2)()
 
 from secretflow.device import TEEU
 
@@ -510,9 +510,9 @@ def gen_data():
     return x, y
 
 # Alice generates its samples.
-x_a, y_a = alice(gen_data(), num_returns=2)()
+x_a, y_a = alice(gen_data, num_returns=2)()
 # Bob generates its samples.
-x_b, y_b = alice(gen_data(), num_returns=2)()
+x_b, y_b = alice(gen_data, num_returns=2)()
 
 from secretflow.device import TEEU
 
