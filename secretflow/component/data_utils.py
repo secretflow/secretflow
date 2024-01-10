@@ -486,16 +486,18 @@ def dump_vertical_table(
 
 
 def model_dumps(
+    ctx,
     model_name: str,
     model_type: str,
     major_version: int,
     minor_version: int,
     objs: List[DeviceObject],
     public_info: Any,
-    storage_root: str,
     dist_data_uri: str,
     system_info: SystemInfo,
 ) -> DistData:
+    # TODO: only local fs is supported at this moment.
+    storage_root = ctx.local_fs_wd
     objs_uri = []
     objs_party = []
     saved_objs = []
@@ -573,16 +575,18 @@ def get_model_public_info(dist_data: DistData):
 
 
 def model_loads(
+    ctx,
     dist_data: DistData,
     max_major_version: int,
     max_minor_version: int,
     model_type: str,
-    storage_root: str,
     pyus: Dict[str, PYU] = None,
     spu: SPU = None,
     # TODO: assert system_info
     # system_info: SystemInfo = None,
 ) -> Tuple[List[DeviceObject], str]:
+    # TODO: only local fs is supported at this moment.
+    storage_root = ctx.local_fs_wd
     assert dist_data.type == model_type
     model_meta = DeviceObjectCollection()
     assert dist_data.meta.Unpack(model_meta)

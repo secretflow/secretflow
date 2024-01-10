@@ -16,6 +16,7 @@
 import os
 
 import grpc
+import pyarrow as pa
 import pyarrow.csv as csv
 import pyarrow.flight as flight
 from google.protobuf.any_pb2 import Any
@@ -38,6 +39,7 @@ from kuscia.proto.api.v1alpha1.datamesh.flightdm_pb2 import (
     ActionCreateDomainDataResponse,
     CommandDomainDataQuery,
     CommandDomainDataUpdate,
+    ContentType,
     CSVWriteOptions,
     FileWriteOptions,
 )
@@ -163,6 +165,7 @@ def get_csv_from_dp(
     flight_reader = dp_flight_client.do_get(ticket=ticket).to_reader()
 
     # NOTE(junfeng): use pandas to write csv since pyarrow will add quotes in headers.
+    # FIXME: BUG io should running in pyu device context, not in driver context.
     for batch in flight_reader:
         batch_pd = batch.to_pandas()
         batch_pd.to_csv(
@@ -177,8 +180,8 @@ def get_csv_from_dp(
 
 def create_domain_data_in_dp(
     dm_flight_client,
-    datasource_id: str,
     domain_data: DomainData,
+    file_format: FileFormat,
 ):
     create_domain_data_request = CreateDomainDataRequest(
         # NOTE: rm
@@ -191,8 +194,7 @@ def create_domain_data_in_dp(
         # partition=data.partition,
         columns=domain_data.columns,
         vendor=domain_data.vendor,
-        file_format=FileFormat.CSV,
-        # file_format=FileFormat.UNKNOWN,
+        file_format=file_format,
     )
 
     action_create_domain_data_request = ActionCreateDomainDataRequest(
@@ -214,13 +216,47 @@ def create_domain_data_in_dp(
         assert action_response.response.status.message == "success"
 
 
-def put_data_to_dp(dm_flight_client, domaindata_id: str, file_local_path: str):
-    command_domain_data_update = CommandDomainDataUpdate(
-        domaindata_id=domaindata_id,
-        file_write_options=FileWriteOptions(
-            csv_options=CSVWriteOptions(field_delimiter=",")
-        ),
-    )
+def put_data_to_dp(
+    dm_flight_client,
+    domaindata_id: str,
+    file_local_path: str,
+    file_format: FileFormat,
+):
+    if file_format == FileFormat.CSV:
+        command_domain_data_update = CommandDomainDataUpdate(
+            domaindata_id=domaindata_id,
+            file_write_options=FileWriteOptions(
+                csv_options=CSVWriteOptions(field_delimiter=",")
+            ),
+        )
+        # FIXME: BUG io should running in pyu device context, not in driver context.
+        reader = csv.open_csv(file_local_path)
+        schema = reader.schema
+    elif file_format == FileFormat.BINARY:
+        command_domain_data_update = CommandDomainDataUpdate(
+            domaindata_id=domaindata_id,
+            content_type=ContentType.RAW,
+        )
+        bin_col_name = "bin_data"
+
+        # FIXME: BUG io should running in pyu device context, not in driver context.
+        def _bin_reader():
+            # 1MB
+            read_chunks = 8
+            chunks = []
+            with open(file_local_path, "rb") as f:
+                for chunk in iter(lambda: f.read(1024 * 128), b''):
+                    chunks.append(chunk)
+                    if len(chunks) >= read_chunks:
+                        yield pa.record_batch([pa.array(chunks)], names=[bin_col_name])
+                        chunks = []
+                if len(chunks):
+                    yield pa.record_batch([pa.array(chunks)], names=[bin_col_name])
+
+        reader = _bin_reader()
+        schema = pa.schema([(bin_col_name, pa.binary())])
+    else:
+        raise AttributeError(f"unknown file_format {file_format}")
 
     any = Any()
     any.Pack(command_domain_data_update)
@@ -233,9 +269,6 @@ def put_data_to_dp(dm_flight_client, domaindata_id: str, file_local_path: str):
 
     dp_uri = flight_info.endpoints[0].locations[0]
     ticket = flight_info.endpoints[0].ticket
-
-    reader = csv.open_csv(file_local_path)
-    schema = reader.schema
 
     dp_flight_client = flight.connect(dp_uri, generic_options=DEFAULT_GENERIC_OPTIONS)
 

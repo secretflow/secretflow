@@ -164,19 +164,19 @@ jobs:
 workflows:
   publish:
     jobs:
-      # - linux_publish:
-      #     matrix:
-      #       parameters:
-      #         # python_ver: ["3.8", "3.9", "3.10", "3.11"]
-      #         python_ver: ["3.8"]
-      # - macOS_x64_publish:
-      #     matrix:
-      #       parameters:
-      #         python_ver: ["3.8"]
-      # - macOS_arm64_publish:
-      #     matrix:
-      #       parameters:
-      #         python_ver: ["3.8"]
-      - docker_image_publish
-          # requires:
-          #   - linux_publish
+      - linux_publish:
+          matrix:
+            parameters:
+              # python_ver: ["3.8", "3.9", "3.10", "3.11"]
+              python_ver: ["3.8"]
+      - macOS_x64_publish:
+          matrix:
+            parameters:
+              python_ver: ["3.8"]
+      - macOS_arm64_publish:
+          matrix:
+            parameters:
+              python_ver: ["3.8"]
+      - docker_image_publish:
+          requires:
+            - linux_publish

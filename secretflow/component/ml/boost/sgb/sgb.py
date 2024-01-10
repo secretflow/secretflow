@@ -34,6 +34,8 @@ from secretflow.ml.boost.sgb_v import Sgb, SgbModel
 from secretflow.ml.boost.sgb_v.model import from_dict
 from secretflow.spec.v1.data_pb2 import DistData
 
+DEFAULT_PREDICT_BATCH_SIZE = 10000
+
 sgb_train_comp = Component(
     "sgb_train",
     domain="ml.train",
@@ -412,13 +414,13 @@ def sgb_train_eval_fn(
     m_objs = sum([leaf_weights, *split_trees.values()], [])
 
     model_db = model_dumps(
+        ctx,
         "sgb",
         DistDataType.SGB_MODEL,
         MODEL_MAX_MAJOR_VERSION,
         MODEL_MAX_MINOR_VERSION,
         m_objs,
         json.dumps(m_dict),
-        ctx.local_fs_wd,
         output_model,
         train_dataset.system_info,
     )
@@ -429,7 +431,7 @@ def sgb_train_eval_fn(
 sgb_predict_comp = Component(
     "sgb_predict",
     domain="ml.predict",
-    version="0.0.1",
+    version="0.0.2",
     desc="Predict using SGB model.",
 )
 sgb_predict_comp.str_attr(
@@ -483,23 +485,15 @@ sgb_predict_comp.io(
     types=[DistDataType.INDIVIDUAL_TABLE],
     col_params=None,
 )
-sgb_predict_comp.int_attr(
-    name="batch_size",
-    desc="Prediction batch size",
-    is_list=False,
-    is_optional=True,
-    default_value=100000,
-)
 
 
 def load_sgb_model(ctx, pyus, model) -> SgbModel:
     model_objs, model_meta_str = model_loads(
+        ctx,
         model,
         MODEL_MAX_MAJOR_VERSION,
         MODEL_MAX_MINOR_VERSION,
         DistDataType.SGB_MODEL,
-        # only local fs is supported at this moment.
-        ctx.local_fs_wd,
         pyus=pyus,
     )
 
@@ -540,11 +534,10 @@ def sgb_predict_eval_fn(
     pred,
     save_ids,
     save_label,
-    batch_size,
 ):
     model_public_info = get_model_public_info(model)
 
-    v_headers = extract_table_header(
+    v_header_map = extract_table_header(
         feature_dataset,
         load_features=True,
         load_labels=True,
@@ -552,23 +545,33 @@ def sgb_predict_eval_fn(
     )
 
     parties_path_format = extract_distdata_info(feature_dataset)
-    filepaths = {
-        p: os.path.join(ctx.local_fs_wd, parties_path_format[p].uri) for p in v_headers
+    feature_filepaths = {
+        p: os.path.join(ctx.local_fs_wd, parties_path_format[p].uri)
+        for p in v_header_map
     }
 
-    cols = {k: list(v.keys()) for k, v in v_headers.items()}
+    cols = {k: list(v.keys()) for k, v in v_header_map.items()}
 
-    feature_reader = SimpleVerticalBatchReader(filepaths, batch_size, cols, True)
+    feature_reader = SimpleVerticalBatchReader(
+        feature_filepaths, DEFAULT_PREDICT_BATCH_SIZE, cols, True
+    )
 
-    pyus = {p: PYU(p) for p in v_headers.keys()}
+    pyus = {p: PYU(p) for p in ctx.cluster_config.desc.parties}
+
     sgb_model = load_sgb_model(ctx, pyus, model)
 
     if save_ids:
         id_header_map = extract_table_header(feature_dataset, load_ids=True)
         assert receiver in id_header_map
         id_header = list(id_header_map[receiver].keys())
+
+        id_filepaths = {
+            p: os.path.join(ctx.local_fs_wd, parties_path_format[p].uri)
+            for p in id_header_map
+        }
+
         id_reader = SimpleVerticalBatchReader(
-            filepaths, batch_size, id_header_map, True
+            id_filepaths, DEFAULT_PREDICT_BATCH_SIZE, id_header_map, True
         )
     else:
         id_header_map = None
@@ -584,8 +587,12 @@ def sgb_predict_eval_fn(
         )
         assert receiver in label_header_map
         label_header = list(label_header_map[receiver].keys())
+        label_filepath = {
+            p: os.path.join(ctx.local_fs_wd, parties_path_format[p].uri)
+            for p in label_header_map
+        }
         label_reader = SimpleVerticalBatchReader(
-            filepaths, batch_size, label_header_map, True
+            label_filepath, DEFAULT_PREDICT_BATCH_SIZE, label_header_map, True
         )
     else:
         label_header_map = None
@@ -597,17 +604,16 @@ def sgb_predict_eval_fn(
         receiver_pyu = PYU(receiver)
         y_path = os.path.join(ctx.local_fs_wd, pred)
         for batch in feature_reader:
-            new_batch = {PYU(party): batch[party] for party in v_headers}
+            new_batch = {PYU(party): batch[party] for party in v_header_map}
             pyu_y = sgb_model.predict(new_batch, receiver_pyu)
-
             wait(
                 receiver_pyu(save_prediction_csv)(
                     pyu_y.partitions[receiver_pyu],
                     pred_name,
                     y_path,
-                    next(label_reader)[receiver] if label_reader else None,
+                    next(label_reader)[receiver] if save_label else None,
                     label_header,
-                    next(id_reader)[receiver] if id_reader else None,
+                    next(id_reader)[receiver] if save_ids else None,
                     id_header,
                     try_append,
                 )

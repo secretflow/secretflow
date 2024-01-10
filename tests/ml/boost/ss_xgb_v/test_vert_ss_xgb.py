@@ -15,12 +15,12 @@
 import os
 import time
 
+from sklearn.metrics import mean_squared_error, roc_auc_score
+
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.device.driver import reveal, wait
 from secretflow.ml.boost.ss_xgb_v import Xgb
 from secretflow.utils.simulation.datasets import load_dermatology, load_linear
-
-from sklearn.metrics import mean_squared_error, roc_auc_score
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 

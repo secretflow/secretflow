@@ -82,7 +82,7 @@ def test_biclassification_eval(comp_prod_sf_cluster_config):
     )
     comp_ret = Report()
     res.outputs[0].meta.Unpack(comp_ret)
-    logging.warn(MessageToJson(comp_ret))
+    logging.warning(MessageToJson(comp_ret))
     np.testing.assert_almost_equal(
         roc_auc_score(labels.reshape(-1, 1), predictions.reshape(-1, 1)),
         comp_ret.tabs[0].divs[0].children[0].descriptions.items[3].value.f,

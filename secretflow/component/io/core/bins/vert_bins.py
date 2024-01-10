@@ -189,7 +189,7 @@ def normal_bin_rule_from_pb_and_old_rule(
         # Iterate through each variable in the data
         party_name = rules[i].device.party
         party_variable_list = [
-            MessageToJson(variable_bin)
+            MessageToJson(variable_bin, indent=0)
             for variable_bin in variable_bins
             if variable_bin.party_name == party_name
         ]

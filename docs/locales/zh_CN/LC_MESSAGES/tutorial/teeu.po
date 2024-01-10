@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-05-17 15:46+0800\n"
+"POT-Creation-Date: 2023-12-19 09:45+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -259,9 +259,9 @@ msgstr "`ca_cert`为 AuthManager 的 CA 证书地址，如果 AuthManager 未启
 
 #: ../../tutorial/teeu.md:120
 msgid ""
-"Suppose we save the code as demo.py, and then execute `python demo.py` on"
-" Alice's machine."
-msgstr "假设我们把代码保存为 demo.py，然后在 Alice 的机器上执行 `python demo.py`。"
+"Suppose we save the code as `demo.py`, and then execute `python demo.py` "
+"on Alice's machine."
+msgstr "假设我们把代码保存为 `demo.py`，然后在 Alice 的机器上执行 `python demo.py`。"
 
 #: ../../tutorial/teeu.md:182 ../../tutorial/teeu.md:806
 msgid "Bob runs the code"
@@ -311,9 +311,9 @@ msgstr "`ca_cert`为 AuthManager 的 CA 证书地址，如果 AuthManager 未启
 
 #: ../../tutorial/teeu.md:209
 msgid ""
-"Suppose we save the code as demo.py, and then execute `python demo.py` on"
-" Bob's machine."
-msgstr "假设我们把代码保存为 demo.py，然后在Bob的机器上执行 `python demo.py`。"
+"Suppose we save the code as `demo.py`, and then execute `python demo.py` "
+"on Bob's machine."
+msgstr "假设我们把代码保存为 `demo.py`，然后在Bob的机器上执行 `python demo.py`。"
 
 #: ../../tutorial/teeu.md:272 ../../tutorial/teeu.md:534
 msgid "Carol runs code (executed in TEE)"
@@ -691,9 +691,9 @@ msgstr ""
 
 #: ../../tutorial/teeu.md:747
 msgid ""
-"After the configuration is complete, suppose we save the code as demo.py,"
-" and then execute `python demo.py` on Alice's machine."
-msgstr "配置完成后，假设我们把代码保存为 demo.py，然后在 Alice 的机器上执行 `python demo.py`。"
+"After the configuration is complete, suppose we save the code as "
+"`demo.py`, and then execute `python demo.py` on Alice's machine."
+msgstr "配置完成后，假设我们把代码保存为 `demo.py`，然后在 Alice 的机器上执行 `python demo.py`。"
 
 #: ../../tutorial/teeu.md:827
 msgid ""
@@ -710,9 +710,9 @@ msgstr "代码中假设 Bob 通信地址为 192.168.0.20:20001，请您根据实
 
 #: ../../tutorial/teeu.md:835
 msgid ""
-"After the configuration is complete, suppose we save the code as demo.py,"
-" and then execute `python demo.py` on Bob's machine."
-msgstr "配置完成后，假设我们把代码保存为 demo.py，然后在 Bob 的机器上执行 `python demo.py`。"
+"After the configuration is complete, suppose we save the code as "
+"`demo.py`, and then execute `python demo.py` on Bob's machine."
+msgstr "配置完成后，假设我们把代码保存为 `demo.py`，然后在 Bob 的机器上执行 `python demo.py`。"
 
 #: ../../tutorial/teeu.md:894
 msgid "Summary"
