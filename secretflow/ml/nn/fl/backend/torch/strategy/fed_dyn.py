@@ -2,6 +2,7 @@ import copy
 from typing import Tuple
 
 import numpy as np
+
 import torch
 from secretflow.ml.nn.fl.backend.torch.fl_base import BaseTorchModel
 from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
@@ -9,8 +10,8 @@ from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
 
 class FedDYN(BaseTorchModel):
     def initialize(self, *args, **kwargs):
-        self.gradL = self.model.get_gradients()  # 客户端梯度
-        self.alpha = 0.1  # FedDYN算法超参数，可以从 [0.1, 0.01, 0.001] 中选择
+        self.gradL = self.model.get_gradients()  # client gradient
+        self.alpha = 0.1  # FedDYN algorithm hyperparameters, can be selected from [0.1, 0.01, 0.001]
 
     def train_step(
         self, weights: np.ndarray, cur_steps: int, train_steps: int, **kwargs,
@@ -73,8 +74,10 @@ class FedDYN(BaseTorchModel):
         if refresh_data:
             self._reset_data_iter()
         # global parameters
-        self.model.update_weights(weights)  # 本地模型初始化为全局模型
-        src_model = copy.deepcopy(self.model)  # 记录全局模型
+        self.model.update_weights(
+            weights
+        )  # The local model is initialized to the global model
+        src_model = copy.deepcopy(self.model)  # Record global model
 
         for p in src_model.parameters():
             p.requires_grad = False
@@ -111,13 +114,13 @@ class FedDYN(BaseTorchModel):
             # do back propagation
             loss = self.loss(y_pred, y_t.long())
 
-            l1 = loss  # 第一个子式 L_k(theta)
-            l2 = 0  # 第二个子式
-            l3 = 0  # 第三个子式 ||theta - theta_t-1||^2
+            l1 = loss  # the first sub-formula   L_k(theta)
+            l2 = 0  # the second sub-formula
+            l3 = 0  # the third sub-formula      ||theta - theta_t-1||^2
             for pgl, pm, ps in zip(
                 self.gradL, self.model.parameters(), src_model.parameters()
             ):
-                # pgl 表示客户端梯度， pm 表示客户端模型， ps 表示服务器模型
+                # pgl represents client gradient, pm represents client model, ps represents server model
                 pgl = torch.Tensor(pgl)
                 l2 += torch.dot(pgl.view(-1), pm.view(-1))
                 l3 += torch.sum(torch.pow(pm - ps, 2))
