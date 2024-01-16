@@ -3,9 +3,11 @@
 set -e
 
 show_help() {
-    echo "Usage: bash build.sh [OPTION]... -v {the_version}"
+    echo "Usage: bash build.sh [OPTION]... -v {version}"
     echo "  -v  --version"
     echo "          the version to build with."
+    echo "  -r  --reg"
+    echo "          docker reg to upload."
     echo "  -l --latest"
     echo "          tag this version as latest."
     echo "  -u --upload"
@@ -17,6 +19,8 @@ if [[ "$#" -lt 2 ]]; then
     exit
 fi
 
+DOCKER_REG="secretflow"
+
 while [[ "$#" -ge 1 ]]; do
     case $1 in
         -v|--version)
@@ -24,6 +28,17 @@ while [[ "$#" -ge 1 ]]; do
             shift
             if [[ "$#" -eq 0 ]]; then
                 echo "Version shall not be empty."
+                echo ""
+                show_help
+                exit 1
+            fi
+            shift
+        ;;
+        -r|--reg)
+            DOCKER_REG="$2"
+            shift
+            if [[ "$#" -eq 0 ]]; then
+                echo "Docker reg shall not be empty."
                 echo ""
                 show_help
                 exit 1
@@ -53,9 +68,6 @@ fi
 
 GREEN="\033[32m"
 NO_COLOR="\033[0m"
-
-DOCKER_REG="secretflow"
-
 
 IMAGE_TAG=${DOCKER_REG}/sf-dev-anolis8:${VERSION}
 LATEST_TAG=${DOCKER_REG}/sf-dev-anolis8:latest

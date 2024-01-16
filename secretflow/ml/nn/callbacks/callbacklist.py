@@ -140,14 +140,6 @@ class CallbackList:
         for callback in self.callbacks:
             callback.on_predict_batch_end(batch)
 
-    def before_agglayer(self):
-        for callback in self.callbacks:
-            callback.before_agglayer()
-
-    def after_agglayer(self, scatter_gradients):
-        for callback in self.callbacks:
-            callback.after_agglayer(scatter_gradients)
-
     def before_agglayer_forward(self, hiddens=None):
         for callback in self.callbacks:
             callback.before_agglayer_forward(hiddens=hiddens)

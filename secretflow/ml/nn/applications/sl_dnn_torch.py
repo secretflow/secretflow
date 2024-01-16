@@ -31,6 +31,7 @@ class DnnBase(BaseModule):
         dnn_units_size: List[int],
         sparse_feas_indexes: Optional[List[int]] = None,
         embedding_dim=16,
+        preprocess_layer=None,
         *args,
         **kwargs,
     ):
@@ -69,6 +70,7 @@ class DnnBase(BaseModule):
             else:
                 input_shape += input_dim
         dnn_layer = []
+        self.preprocess_layer = preprocess_layer
         for units in dnn_units_size:
             dnn_layer.append(nn.Linear(input_shape, units))
             dnn_layer.append(nn.ReLU())
@@ -76,6 +78,8 @@ class DnnBase(BaseModule):
         self._dnn = nn.Sequential(*(dnn_layer[:-1]))
 
     def forward(self, x):
+        if self.preprocess_layer is not None:
+            x = self.preprocess_layer(x)
         x = [x] if not isinstance(x, List) else x
         cat_feas = None
         # handle sparse feas

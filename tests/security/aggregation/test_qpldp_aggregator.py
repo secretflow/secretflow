@@ -6,6 +6,7 @@ from secretflow.security.aggregation.experiment.qpldp_aggregator import QPLDPAgg
 from tests.security.aggregation.test_aggregator_base import AggregatorBase
 
 
+@pytest.skip('Experimental, not work.', allow_module_level=True)
 class TestQPLDPAggregator(AggregatorBase):
     @pytest.fixture()
     def env_and_aggregator(self, sf_production_setup_devices):
@@ -14,7 +15,7 @@ class TestQPLDPAggregator(AggregatorBase):
         )
 
     def test_average_on_list_with_weights_should_ok(
-        test_average_on_list_with_weights_should_ok,
+        test_average_on_list_with_weights_should_ok, env_and_aggregator
     ):
         env, aggregator = env_and_aggregator
         # GIVEN

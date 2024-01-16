@@ -80,6 +80,8 @@ class SLBaseTorchModel(SLBaseModel, ABC):
         self.train_sample_weight = None
         self.eval_sample_weight = None
         self.fuse_callbacks = None
+        self.cur_epoch = None
+
         self._data_x = None  # get_batch_data output
         self._gradient = None
         self._training = True
@@ -199,7 +201,8 @@ class SLBaseTorchModel(SLBaseModel, ABC):
 
         return data_x, data_y, data_s_w
 
-    def get_batch_data(self, stage="train"):
+    def get_batch_data(self, stage="train", epoch=1):
+        self.cur_epoch = epoch
         self.init_data()
 
         # init model stat to train
@@ -820,6 +823,16 @@ class SLBaseTorchModel(SLBaseModel, ABC):
 
     def get_logs(self):
         return self.logs
+
+    def get_steps_per_epoch(self):
+        return self.steps_per_epoch
+
+    def get_traing_status(self):
+        status = {
+            'epoch': self.cur_epoch,
+            'stage': "train" if self._training else "eval",
+        }
+        return status
 
     def set_sample_weight(self, sample_weight, stage="train"):
         if stage == "train":

@@ -992,12 +992,10 @@ def load_creditcard(
     if isinstance(parts, List):
         assert len(parts) == 2
         parts = {parts[0]: (0, 25), parts[1]: (25, 30)}
-
     filepath = get_dataset(_DATASETS['creditcard'])
     raw_df = pd.read_csv(filepath)
     raw_df_neg = raw_df[raw_df["Class"] == 0]
     raw_df_pos = raw_df[raw_df["Class"] == 1]
-
     down_df_neg = raw_df_neg  # .sample(40000)
     down_df = pd.concat([down_df_neg, raw_df_pos])
     neg, pos = np.bincount(down_df["Class"])
@@ -1005,7 +1003,7 @@ def load_creditcard(
     # You don't want the `Time` column.
     cleaned_df.pop("Time")
     # The `Amount` column covers a huge range. Convert to log-space.
-    eps = 0.001
+    eps = 0.001  # 0 => 0.1
     cleaned_df["Log Ammount"] = np.log(cleaned_df.pop("Amount") + eps)
     alice_data_index = [
         col

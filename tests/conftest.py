@@ -8,8 +8,6 @@ from dataclasses import dataclass
 import multiprocess
 import pytest
 import spu
-from tests.cluster import cluster, set_self_party
-from tests.load import SF_PARTIES, SF_PARTY_PREFIX, SFLoadPartyScheduling
 from xdist.scheduler import LoadScheduling
 
 import secretflow as sf
@@ -18,6 +16,8 @@ from secretflow.distributed.primitive import DISTRIBUTION_MODE
 from secretflow.spec.extend.cluster_pb2 import SFClusterConfig, SFClusterDesc
 from secretflow.spec.v1.data_pb2 import StorageConfig
 from secretflow.utils.testing import unused_tcp_port
+from tests.cluster import cluster, set_self_party
+from tests.load import SF_PARTIES, SF_PARTY_PREFIX, SFLoadPartyScheduling
 
 
 def pytest_addoption(parser):
@@ -405,7 +405,10 @@ def comp_prod_sf_cluster_config(request, sf_party_for_4pc):
                 parties=["alice", "bob"],
                 config=json.dumps(
                     {
-                        "runtime_config": {"protocol": "REF2K", "field": "FM64"},
+                        "runtime_config": {
+                            "protocol": "REF2K",
+                            "field": "FM64",
+                        },
                         "link_desc": {
                             "connect_retry_times": 60,
                             "connect_retry_interval_ms": 1000,

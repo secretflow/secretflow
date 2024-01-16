@@ -1,4 +1,3 @@
-import math
 from typing import List
 
 import numpy as np
@@ -88,7 +87,7 @@ class QPLDPAggregator(Aggregator):
                 w.to(self.device) if isinstance(w, DeviceObject) else w for w in weights
             ]
 
-        def _average(*data, axis, weights):  ##打包成一个元组
+        def _average(*data, axis, weights):  # 打包成一个元组
             results = []
             grad = []
             gradient = []
@@ -98,7 +97,7 @@ class QPLDPAggregator(Aggregator):
                 for i in range(client_num):
                     grad = []
                     for j in range(len(data[0])):
-                        grad.append(np.around(data[i][j], decimals=5))  ##量化操作减小通信开销
+                        grad.append(np.around(data[i][j], decimals=5))  # 量化操作减小通信开销
 
                     gradient.append(grad)
                 gradient = np.array(gradient, dtype=np.float32)
@@ -113,7 +112,7 @@ class QPLDPAggregator(Aggregator):
                                 set[i][j] = 1
                             else:
                                 break
-                # #使用PSI得到交集并添加噪声(FL+Quantization+PSI+LDP)set里元素为零的位置的参数加噪
+                # 使用PSI得到交集并添加噪声(FL+Quantization+PSI+LDP)set里元素为零的位置的参数加噪
 
                 for k in range(client_num):
                     for i in range(len(set)):

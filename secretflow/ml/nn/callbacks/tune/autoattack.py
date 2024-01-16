@@ -104,12 +104,6 @@ class AutoAttackCallback(Callback):
     def on_predict_batch_end(self, batch):
         self.attack_callback.on_predict_batch_end(batch)
 
-    def before_agglayer(self):
-        self.attack_callback.before_agglayer()
-
-    def after_agglayer(self, scatter_gradients):
-        self.attack_callback.after_agglayer(scatter_gradients)
-
     def on_before_base_forward(self):
         self.attack_callback.on_before_base_forward()
 
@@ -121,3 +115,15 @@ class AutoAttackCallback(Callback):
 
     def on_after_fuse_net(self):
         self.attack_callback.on_after_fuse_net()
+
+    def before_agglayer_forward(self, hiddens=None):
+        self.attack_callback.before_agglayer_forward(hiddens=hiddens)
+
+    def after_agglayer_forward(self, hiddens=None):
+        self.attack_callback.after_agglayer_forward(hiddens=hiddens)
+
+    def before_agglayer_backward(self, gradients=None):
+        self.attack_callback.before_agglayer_backward(gradients=gradients)
+
+    def after_agglayer_backward(self, gradients=None):
+        self.attack_callback.after_agglayer_backward(gradients=gradients)

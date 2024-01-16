@@ -1,6 +1,6 @@
 # 在隐语联邦学习中使用GPU
-隐语联邦学习是一个开放的专注隐私保护的联邦学习框架，目标是帮助开发和研究人员构建和部署机器学习模型。同时在整个过程中确保数据隐私和安全。
-隐语联邦学习可以支持任意类型的神经网络模型，GPU的使用可以加快训练效率。
+隐语联邦学习是一个开放的专注隐私保护的联邦学习框架，目标是帮助开发和研究人员构建和部署机器学习模型。同时在整个过程中确保数据隐私和安全。  
+隐语联邦学习可以支持任意类型的神经网络模型，GPU的使用可以加快训练效率。  
 本篇文档将会介绍如何在隐语环境中使用gpu来加速训练。
 ## 文档目标和预期读者
 对GPU加速有需求的用户
@@ -11,7 +11,7 @@
 
 
 ## 环境准备
-环境要求
+环境要求  
 **Tensorflow**：
 * tensorflow==2.11.1
 * cuDNN>=8.1 # 参考tensorflow官网建议
@@ -24,8 +24,8 @@
 
 本文基于的cuda版本是
 `CUDA==12.2`
-`cudnn==8.9`
-tensorflow和pytorch都安装gpu版本即可。
+`cudnn==8.9`  
+tensorflow和pytorch都安装gpu版本即可。  
 配置完环境后执行
 ```
 >>> tf.config.list_physical_devices('GPU')
@@ -37,16 +37,16 @@ True
 ```
 来验证下是否正确安装成功。
 ## 配置secretflow来使用GPU
-机器学习引擎配置成功后，距离可以在secretflow中使用还差一步。但也已经很接近了。
+机器学习引擎配置成功后，距离可以在secretflow中使用还差一步。但也已经很接近了。  
 首先我们了解一个前置知识，secretflow的部署模式分为三种
 - Debug_Mode
 - Simulation_mode
-- Production_mode
+- Production_mode  
 
 
 在Debug Mode中，在上面配置好引擎环境后就可以开始玩耍了，secretflow可以直接调度到gpu资源，无需关注本文其余内容。
-在Simulation和Production模式下，我们还必须将 GPU 资源的相关信息明确告知 Ray，这样 GPU 资源才能被 Ray 的工作节点（Worker）所利用。
-*Ray 参考文档*：[Ray support GPU document](https://docs.ray.io/en/latest/ray-core/tasks/using-ray-with-gpus.html)
+在Simulation和Production模式下，我们还必须将 GPU 资源的相关信息明确告知 Ray，这样 GPU 资源才能被 Ray 的工作节点（Worker）所利用。  
+*Ray 参考文档*：[Ray support GPU document](https://docs.ray.io/en/latest/ray-core/tasks/using-ray-with-gpus.html)  
 
 
 ```
@@ -70,7 +70,7 @@ def use_gpu():
 
 ```
 
-### 隐语封装
+### 隐语封装  
 从ray的例子中可以看到我们需要在两个地方设置num_gpus：
 - ray.init:声明可用资源
 - remote参数：分配worker可用的资源。
@@ -88,7 +88,7 @@ def use_gpu():
 在`sf.init`中配置num_gpus
 ```python
 sf.init(
-    ['alice', 'bob', 'charlie'],
+    ['alice', 'bob', 'charlie'], 
     address="local",
     num_gpus=2, # 配置num_gpus资源
     log_to_driver=False,)
@@ -106,7 +106,7 @@ sf.init(
             dp_strategy=dp_strategy,
         )
 ```
-Done！
+Done！  
 这样在具体执行时候就可以执行的时候调用到gpu资源了。
 #### 其他细节
 其他的模型方面的细节，我们已经都包装好了，用户直接使用即可，无需关心。
