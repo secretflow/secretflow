@@ -5,8 +5,8 @@
 - Simulation mode
 - Producation mode
 
-Simulation mode 是使用单一的ray集群来进行调度，可以部署在单机上，也可以部署在多机环境，部署和使用难度都相对比较低。  
-Production mode 则是使用多个ray集群来进行调度，借助隐语和Ray社区合作开发的RayFed进行安全的数据交换。来解决生产环境数据安全问题。  
+Simulation mode 是使用单一的ray集群来进行调度，可以部署在单机上，也可以部署在多机环境，部署和使用难度都相对比较低。
+Production mode 则是使用多个ray集群来进行调度，借助隐语和Ray社区合作开发的RayFed进行安全的数据交换。来解决生产环境数据安全问题。
 1. simulation模式是构建在ray之上的，ray是异步lazy模式运行的，这就导致在debug的时候打印的log顺序和逻辑顺序之间不对应。
 2. 而且由于ray是lazy执行的，会导致真正的错误信息会被埋没在大量的log中。淹没掉真正有效的报错信息。
 3. 无法通过打断点的方式进行开发，对于各种数据结构之间的转换理解会比较困难。
