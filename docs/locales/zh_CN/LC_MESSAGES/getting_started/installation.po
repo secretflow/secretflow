@@ -428,3 +428,4 @@ msgid ""
 msgstr ""
 "容器运行后，您可以使用 jupyter 笔记本 [GPU Check](../tutorial/GPU_check.ipynb) 检查容器内 "
 "Tensorflow 和 PyTorch 对于 NVIDIA GPU 的可调用性。"
+

@@ -506,10 +506,11 @@ class SLModel:
 
                 # do agglayer forward
                 agg_hiddens = self.agglayer.forward(f_datas)
+                callbacks.after_agglayer_forward(agg_hiddens)
 
                 # 3. Fusenet do local calculates and return gradients
                 gradients = self._workers[self.device_y].fuse_net(agg_hiddens)
-
+                callbacks.before_agglayer_backward(gradients)
                 # In some strategies, we need to bypass the backpropagation step.
                 skip_gradient = False
                 if self.check_skip_grad:
@@ -633,6 +634,7 @@ class SLModel:
                         f_data = worker.pack_forward_data()
                         f_datas[device] = f_data
                     agg_hiddens = self.agglayer.forward(f_datas)
+                    callbacks.after_agglayer_forward(agg_hiddens)
 
                     metrics = self._workers[self.device_y].evaluate(agg_hiddens)
                     res.append(metrics)

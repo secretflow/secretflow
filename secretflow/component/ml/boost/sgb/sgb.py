@@ -560,10 +560,16 @@ def sgb_predict_eval_fn(
 
     sgb_model = load_sgb_model(ctx, pyus, model)
 
+    addition_headers = {}
+    saved_ids = []
+    saved_labels = []
+
     if save_ids:
         id_header_map = extract_table_header(feature_dataset, load_ids=True)
         assert receiver in id_header_map
         id_header = list(id_header_map[receiver].keys())
+        saved_ids.extend(id_header)
+        addition_headers.update(id_header_map[receiver])
 
         id_filepaths = {
             p: os.path.join(ctx.local_fs_wd, parties_path_format[p].uri)
@@ -571,7 +577,7 @@ def sgb_predict_eval_fn(
         }
 
         id_reader = SimpleVerticalBatchReader(
-            id_filepaths, DEFAULT_PREDICT_BATCH_SIZE, id_header_map, True
+            id_filepaths, DEFAULT_PREDICT_BATCH_SIZE, id_header_map
         )
     else:
         id_header_map = None
@@ -587,12 +593,14 @@ def sgb_predict_eval_fn(
         )
         assert receiver in label_header_map
         label_header = list(label_header_map[receiver].keys())
+        saved_ids.extend(label_header)
+        addition_headers.update(label_header_map[receiver])
         label_filepath = {
             p: os.path.join(ctx.local_fs_wd, parties_path_format[p].uri)
             for p in label_header_map
         }
         label_reader = SimpleVerticalBatchReader(
-            label_filepath, DEFAULT_PREDICT_BATCH_SIZE, label_header_map, True
+            label_filepath, DEFAULT_PREDICT_BATCH_SIZE, label_header_map
         )
     else:
         label_header_map = None
@@ -606,15 +614,21 @@ def sgb_predict_eval_fn(
         for batch in feature_reader:
             new_batch = {PYU(party): batch[party] for party in v_header_map}
             pyu_y = sgb_model.predict(new_batch, receiver_pyu)
+            addition_df = []
+            addition_keys = []
+            if save_label:
+                addition_df.append(next(label_reader)[receiver])
+                addition_keys.extend(label_header)
+            if save_ids:
+                addition_df.append(next(id_reader)[receiver])
+                addition_keys.extend(id_header)
             wait(
                 receiver_pyu(save_prediction_csv)(
                     pyu_y.partitions[receiver_pyu],
                     pred_name,
                     y_path,
-                    next(label_reader)[receiver] if save_label else None,
-                    label_header,
-                    next(id_reader)[receiver] if save_ids else None,
-                    id_header,
+                    addition_df,
+                    addition_keys,
                     try_append,
                 )
             )
@@ -627,13 +641,12 @@ def sgb_predict_eval_fn(
         )
 
         meta = gen_prediction_csv_meta(
-            id_header=id_header_map,
-            label_header=label_header_map,
-            party=receiver,
-            pred_name=pred_name,
-            line_count=feature_reader.total_read_cnt(),
-            id_keys=id_header,
-            label_keys=label_header,
+            addition_headers,
+            saved_ids,
+            saved_labels,
+            [],  # TODO: support addition columns.
+            pred_name,
+            feature_reader.total_read_cnt(),
         )
 
         y_db.meta.Pack(meta)

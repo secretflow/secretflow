@@ -37,7 +37,6 @@ class SLTorchModel(SLBaseTorchModel):
             stage: Which stage of the base forward
         Returns: hidden embedding
         """
-
         if not self.model_base:
             return None
         self._h = self.base_forward_internal(

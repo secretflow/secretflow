@@ -10,17 +10,15 @@ if __name__ == "__main__":
     aci_pipe = PipelineCase("aci_pipe")
 
     attrs = {
-        "protocol": "ECDH_PSI_2PC",
+        "protocol": "PROTOCOL_ECDH",
         "receiver": "alice",
-        "sort": True,
-        "broadcast_result": True,
-        "bucket_size": 1048576,
-        "ecdh_curve_type": "CURVE_FOURQ",
+        "disable_alignment": False,
+        "ecdh_curve": "CURVE_FOURQ",
         "input/receiver_input/key": ["id0"],
         "input/sender_input/key": ["id1"],
     }
     # 测试psi
-    psi = TestComp("psi_test", "data_prep", "psi", "0.0.1", attrs)
+    psi = TestComp("psi_test", "data_prep", "psi", "0.0.2", attrs)
     aci_pipe.add_comp(psi, ["DAGInput.alice", "DAGInput.bob"])
 
     attrs = {
