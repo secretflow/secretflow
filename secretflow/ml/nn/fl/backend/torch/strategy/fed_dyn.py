@@ -14,7 +14,7 @@ class FedDYN(BaseTorchModel):
         self.alpha = 0.1  # FedDYN algorithm hyperparameters, can be selected from [0.1, 0.01, 0.001]
 
     def train_step(
-        self, weights: np.ndarray, cur_steps: int, train_steps: int, **kwargs,
+        self, weights: np.ndarray, cur_steps: int, train_steps: int, **kwarg
     ) -> Tuple[np.ndarray, int]:
         """Accept ps model params, then do local train
 
@@ -114,9 +114,9 @@ class FedDYN(BaseTorchModel):
             # do back propagation
             loss = self.loss(y_pred, y_t.long())
 
-            l1 = loss  # the first sub-formula   L_k(theta)
-            l2 = 0  # the second sub-formula
-            l3 = 0  # the third sub-formula      ||theta - theta_t-1||^2
+            l1 = loss  # first sub-formula L_k(theta)
+            l2 = 0  # second sub-formula
+            l3 = 0  # The third sub-formula ||theta - theta_t-1||^2
             for pgl, pm, ps in zip(
                 self.gradL, self.model.parameters(), src_model.parameters()
             ):
