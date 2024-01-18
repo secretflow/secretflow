@@ -2,6 +2,7 @@ import copy
 from typing import Tuple
 
 import numpy as np
+
 import torch
 from secretflow.ml.nn.fl.backend.torch.fl_base import BaseTorchModel
 from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
@@ -9,7 +10,7 @@ from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
 
 class Scaffold(BaseTorchModel):
     def train_step(
-        self, weights: np.ndarray, cur_steps: int, train_steps: int, **kwargs,
+        self, weights: np.ndarray, cur_steps: int, train_steps: int, **kwargs
     ) -> Tuple[np.ndarray, int]:
         """Accept ps model params, then do local train
 
@@ -21,11 +22,18 @@ class Scaffold(BaseTorchModel):
         Returns:
             Parameters after local training
         """
+        # Define Scaffold hyperparameters here
+        self.model.cg = []
+        self.model.c = []
+        for param in self.model.parameters():
+            self.model.cg.append(torch.zeros_like(param))
+            self.model.c.append(torch.zeros_like(param))
+        self.model.eta_l = 0.01
+
         assert self.model is not None, "Model cannot be none, please give model define"
         self.model.train()
-        # 在自己的模型中定义c和cg，如1.py line35所示
         if self.model.c is None:
-            self.model.c = self.model.zeros_like()  # 定义控制变量c
+            self.model.c = self.model.zeros_like()
         refresh_data = kwargs.get("refresh_data", False)
         if refresh_data:
             self._reset_data_iter()
@@ -66,7 +74,7 @@ class Scaffold(BaseTorchModel):
             for m in self.metrics:
                 m.update(y_pred.cpu(), y_t.cpu())
             local_gradients = self.model.get_gradients()
-            # 更新本地模型参数
+            # Update local model parameters
             for i, it in enumerate(local_gradients):
 
                 it = (torch.Tensor(it) + self.model.c[i] - self.model.cg[i]).tolist()
@@ -76,7 +84,7 @@ class Scaffold(BaseTorchModel):
                 local_gradients[i] = local_gradients[i] * self.model.eta_l
                 model_weights[i] -= local_gradients[i]
 
-        # 本地训练完成后更新c
+        # Update c after local training is completed
         for i in range(len(model_weights)):
             model_weights[i] *= 1 / train_steps / self.model.eta_l
         for i, it in enumerate(self.model.c):
