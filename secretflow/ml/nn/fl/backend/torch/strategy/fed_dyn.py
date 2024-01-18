@@ -14,7 +14,7 @@ class FedDYN(BaseTorchModel):
         self.alpha = 0.1  # FedDYN algorithm hyperparameters, can be selected from [0.1, 0.01, 0.001]
 
     def train_step(
-        self, weights: np.ndarray, cur_steps: int, train_steps: int, **kwarg
+        self, weights: np.ndarray, cur_steps: int, train_steps: int, **kwargs
     ) -> Tuple[np.ndarray, int]:
         """Accept ps model params, then do local train
 
