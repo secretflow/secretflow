@@ -363,6 +363,10 @@ def sf_production_setup_devices_aby3(request, sf_party_for_4pc):
         link_desc={
             "connect_retry_times": 60,
             "connect_retry_interval_ms": 1000,
+            "brpc_channel_protocol": "http",
+            "brpc_channel_connection_type": "pooled",
+            "recv_timeout_ms": 2000 * 1000,
+            "http_timeout_ms": 2000 * 1000,
         },
         id='spu1',
     )

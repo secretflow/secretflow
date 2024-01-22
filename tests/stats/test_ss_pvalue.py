@@ -149,7 +149,7 @@ def test_ss_lr_logistic(prod_env_and_data):
     sslr.fit(x, y, 3, 0.3, 128, 't1', 'logistic', 'l2', 0.5)
     model = sslr.save_model()
     sspv = SSPValue(env.spu)
-    pvalues = sspv.pvalues(x, y, model)
+    pvalues = sspv.pvalues(x, y, model, infeed_elements_limit=1000)
     print(f" test_ss_lr_logistic {pvalues}\n")
 
 
@@ -164,5 +164,5 @@ def test_ss_lr_linear(prod_env_and_data):
     sslr.fit(x, y, 3, 0.3, 128, 't1', 'linear', 'l2', 0.5)
     model = sslr.save_model()
     sspv = SSPValue(env.spu)
-    pvalues = sspv.pvalues(x, y, model)
+    pvalues = sspv.pvalues(x, y, model, infeed_elements_limit=1000)
     print(f" test_ss_lr_linear {pvalues}\n")

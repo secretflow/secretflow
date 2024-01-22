@@ -11,18 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from typing import List
+import math
 
 import jax.numpy as jnp
-import numpy as np
 
 import secretflow as sf
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import SPU
 from secretflow.preprocessing.scaler import StandardScaler
-
-from .core.utils import newton_matrix_inverse
+from secretflow.stats.core.utils import newton_matrix_inverse
+from secretflow.utils.blocked_ops import block_compute_vdata
 
 
 class VIF:
@@ -61,7 +59,12 @@ class VIF:
     def __init__(self, device: SPU):
         self.spu_device = device
 
-    def vif(self, vdata: VDataFrame, standardize: bool = True):
+    def vif(
+        self,
+        vdata: VDataFrame,
+        standardize: bool = True,
+        infeed_elements_limit: int = 20000000,
+    ):
         """
         Attributes:
 
@@ -78,17 +81,21 @@ class VIF:
         if standardize:
             scaler = StandardScaler()
             vdata = scaler.fit_transform(vdata)
-        obj_list = [d.data.to(self.spu_device) for d in vdata.partitions.values()]
 
         rows = vdata.shape[0]
+        cols = vdata.shape[1]
+        row_number = max([math.ceil(infeed_elements_limit / cols), 1])
 
-        def spu_vif(objs: List[np.ndarray]):
-            data = jnp.concatenate(objs, axis=1)
-            xtx = jnp.matmul(data.transpose(), data)
-            x_inv = newton_matrix_inverse(xtx)
-            x_diagonal = jnp.diagonal(x_inv)
-            return x_diagonal
+        spu = self.spu_device
 
-        spu_obj = self.spu_device(spu_vif)(obj_list)
-        x_diagonal = sf.reveal(spu_obj)
-        return x_diagonal * (rows - 1)
+        xTx = block_compute_vdata(
+            vdata, row_number, spu, lambda x: x.T @ x, lambda x, y: x + y
+        )
+
+        x_inv = spu(newton_matrix_inverse)(xTx)
+
+        def compute_diag(x, multiplier):
+            return jnp.diagonal(x) * multiplier
+
+        result = sf.reveal(spu(compute_diag)(x_inv, rows - 1))
+        return result

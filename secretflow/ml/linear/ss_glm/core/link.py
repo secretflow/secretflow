@@ -14,7 +14,7 @@ class LinkType(Enum):
     Logit = 'Logit'
     Log = 'Log'
     Reciprocal = 'Reciprocal'
-    Indentity = 'Indentity'
+    Identity = 'Identity'
 
 
 class Linker(ABC):
@@ -89,10 +89,10 @@ class LinkReciprocal(Linker):
         return 1 / self.response_derivative(mu)
 
 
-class LinkIndentity(Linker):
+class LinkIdentity(Linker):
     @staticmethod
     def link_type() -> Linker:
-        return LinkType.Indentity
+        return LinkType.Identity
 
     def link(self, mu: np.ndarray) -> np.ndarray:
         return mu
@@ -120,7 +120,7 @@ def get_link(t: Union[LinkType, str]) -> Linker:
         return LinkLog()
     elif t is LinkType.Reciprocal:
         return LinkReciprocal()
-    elif t is LinkType.Indentity:
-        return LinkIndentity()
+    elif t is LinkType.Identity:
+        return LinkIdentity()
     else:
         raise InvalidArgumentError(f'Unsupported link: {t}')

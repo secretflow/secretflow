@@ -12,19 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .tracer import Array, Table, TraceRunner
+from .model_export import model_export_comp
 
-__all__ = ["Array", "Table", "TraceRunner"]
-
-
-def __init_sf_func():
-    import importlib
-
-    g = globals()
-    c = importlib.import_module("secretflow.compute.compute")
-    sf_funcs = c._gen_sf_funcs()
-    for name, func in sf_funcs.items():
-        g[name] = func
-
-
-__init_sf_func()
+__all__ = [model_export_comp]

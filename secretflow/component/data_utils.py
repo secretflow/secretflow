@@ -78,6 +78,8 @@ class DistDataType(BaseEnum):
     REPORT = "sf.report"
     # read data
     READ_DATA = "sf.read_data"
+    # serving model file
+    SERVING_MODEL = "sf.serving.model"
 
 
 @enum.unique

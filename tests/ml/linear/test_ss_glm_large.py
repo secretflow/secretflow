@@ -222,7 +222,6 @@ def _run_test(devices, test_name, X, df, link, dist, l2_lambda=None, power=1.9):
 
 def test_mtpl2(sf_production_setup_devices_aby3):
     X, df = prepare_data()
-
     _run_test(
         devices=sf_production_setup_devices_aby3,
         test_name="mtpl2",

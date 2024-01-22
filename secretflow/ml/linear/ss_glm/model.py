@@ -600,7 +600,7 @@ class SSGLM:
             epochs : int
                 iteration rounds.
             link : str
-                Specify a link function (Logit, Log, Reciprocal, Indentity)
+                Specify a link function (Logit, Log, Reciprocal, Identity)
             dist : str
                 Specify a probability distribution (Bernoulli, Poisson, Gamma, Tweedie)
             tweedie_power : float
@@ -676,7 +676,7 @@ class SSGLM:
             epochs : int
                 iteration rounds.
             link : str
-                Specify a link function (Logit, Log, Reciprocal, Indentity)
+                Specify a link function (Logit, Log, Reciprocal, Identity)
             dist : str
                 Specify a probability distribution (Bernoulli, Poisson, Gamma, Tweedie)
             tweedie_power : float

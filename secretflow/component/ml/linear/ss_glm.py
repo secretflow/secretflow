@@ -82,7 +82,7 @@ ss_glm_train_comp.str_attr(
     desc="link function type",
     is_list=False,
     is_optional=False,
-    allowed_values=["Logit", "Log", "Reciprocal", "Indentity"],
+    allowed_values=["Logit", "Log", "Reciprocal", "Identity"],
 )
 ss_glm_train_comp.str_attr(
     name="label_dist_type",
@@ -291,6 +291,7 @@ def ss_glm_train_eval_fn(
 
     glm = SSGLM(spu)
 
+    assert len(train_dataset_label) == 1
     assert (
         train_dataset_label[0] not in train_dataset_feature_selects
     ), f"col {train_dataset_label[0]} used in both label and features"
@@ -311,7 +312,6 @@ def ss_glm_train_eval_fn(
         col_selects=train_dataset_feature_selects,
     )
 
-    col_selects = x.columns
     if train_dataset_offset:
         assert (
             train_dataset_offset[0] not in train_dataset_feature_selects
@@ -397,7 +397,6 @@ def ss_glm_train_eval_fn(
     model_meta = {
         "link": glm.link.link_type().value,
         "y_scale": glm.y_scale,
-        "col_selects": col_selects,
         "offset_col": offset_col,
         "label_col": train_dataset_label,
         "feature_names": feature_names,
@@ -606,7 +605,7 @@ def ss_glm_predict_eval_fn(
         ctx,
         feature_dataset,
         load_features=True,
-        col_selects=model_public_info['col_selects'],
+        col_selects=model_public_info['feature_names'],
     )
 
     offset_col = model_public_info['offset_col']

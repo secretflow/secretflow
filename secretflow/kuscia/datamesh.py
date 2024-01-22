@@ -99,9 +99,7 @@ def create_domain_data_in_dm(stub: DomainDataServiceStub, data: DomainData):
     )
 
     if ret.status.code != 0:
-        raise RuntimeError(
-            f"create_domain_data failed for {data.domaindata_id}: status = {ret.status}"
-        )
+        raise RuntimeError(f"create_domain_data failed for {data} : ret = {ret}")
 
 
 def create_domain_data_source_service_stub(channel):
@@ -114,9 +112,7 @@ def get_domain_data_source(
     ret = stub.QueryDomainDataSource(QueryDomainDataSourceRequest(datasource_id=id))
 
     if ret.status.code != 0:
-        raise RuntimeError(
-            f"get_domain_data_source failed for {id}: status = {ret.status}"
-        )
+        raise RuntimeError(f"get_domain_data_source failed for {id}: ret = {ret}")
 
     return ret.data
 
@@ -140,14 +136,24 @@ def create_dm_flight_client(dm_address: str):
         return dm_flight_client
 
 
-def get_csv_from_dp(
+def get_file_from_dp(
     dm_flight_client,
     domain_data_id: str,
     output_file_path: str,
+    file_format: FileFormat,
 ):
-    domain_data_query = CommandDomainDataQuery(
-        domaindata_id=domain_data_id,
-    )
+    if file_format == FileFormat.CSV:
+        domain_data_query = CommandDomainDataQuery(
+            domaindata_id=domain_data_id,
+            content_type=ContentType.Table,
+        )
+    elif file_format == FileFormat.BINARY:
+        domain_data_query = CommandDomainDataQuery(
+            domaindata_id=domain_data_id,
+            content_type=ContentType.RAW,
+        )
+    else:
+        raise AttributeError(f"unknown file_format {file_format}")
 
     any = Any()
     any.Pack(domain_data_query)
@@ -164,16 +170,27 @@ def get_csv_from_dp(
     dp_flight_client = flight.connect(dp_uri, generic_options=DEFAULT_GENERIC_OPTIONS)
     flight_reader = dp_flight_client.do_get(ticket=ticket).to_reader()
 
-    # NOTE(junfeng): use pandas to write csv since pyarrow will add quotes in headers.
-    # FIXME: BUG io should running in pyu device context, not in driver context.
-    for batch in flight_reader:
-        batch_pd = batch.to_pandas()
-        batch_pd.to_csv(
-            output_file_path,
-            index=False,
-            mode='a',
-            header=not os.path.exists(output_file_path),
-        )
+    if file_format == FileFormat.CSV:
+        # NOTE(junfeng): use pandas to write csv since pyarrow will add quotes in headers.
+        # FIXME: BUG io should running in pyu device context, not in driver context.
+        for batch in flight_reader:
+            batch_pd = batch.to_pandas()
+            batch_pd.to_csv(
+                output_file_path,
+                index=False,
+                mode='a',
+                header=not os.path.exists(output_file_path),
+            )
+    elif file_format == FileFormat.BINARY:
+        with open(output_file_path, "wb") as f:
+            for batch in flight_reader:
+                assert batch.num_columns == 1
+                array = batch.column(0)
+                assert array.type == pa.binary()
+                for r in array:
+                    f.write(r.as_py())
+    else:
+        raise AttributeError(f"unknown file_format {file_format}")
 
     dp_flight_client.close()
 
@@ -216,7 +233,7 @@ def create_domain_data_in_dp(
         assert action_response.response.status.message == "success"
 
 
-def put_data_to_dp(
+def put_file_to_dp(
     dm_flight_client,
     domaindata_id: str,
     file_local_path: str,
@@ -237,7 +254,7 @@ def put_data_to_dp(
             domaindata_id=domaindata_id,
             content_type=ContentType.RAW,
         )
-        bin_col_name = "bin_data"
+        bin_col_name = "binary_data"
 
         # FIXME: BUG io should running in pyu device context, not in driver context.
         def _bin_reader():

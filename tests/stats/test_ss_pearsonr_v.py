@@ -44,7 +44,7 @@ def test_pearsonr(prod_env_and_data):
     v_pearsonr = SSVertPearsonR(env.spu)
     scaler = StandardScaler()
     std_data = scaler.fit_transform(data)
-    ss_pearsonr_1 = v_pearsonr.pearsonr(data)
+    ss_pearsonr_1 = v_pearsonr.pearsonr(data, infeed_elements_limit=1000)
     ss_pearsonr_2 = v_pearsonr.pearsonr(std_data, False)
     expected = scipy_pearsonr()
     np.testing.assert_almost_equal(ss_pearsonr_1, expected, decimal=2)

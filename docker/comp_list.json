@@ -368,7 +368,7 @@
       "domain": "feature",
       "name": "vert_binning",
       "desc": "Generate equal frequency or equal range binning rules for vertical partitioning datasets.",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "attrs": [
         {
           "name": "binning_method",
@@ -397,7 +397,19 @@
               "i64": "10"
             },
             "lowerBoundEnabled": true,
-            "lowerBound": {}
+            "lowerBound": {
+              "i64": "2"
+            },
+            "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "report_rules",
+          "desc": "Whether report binning rules.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
           }
         }
       ],
@@ -424,6 +436,13 @@
           "types": [
             "sf.rule.binning"
           ]
+        },
+        {
+          "name": "report",
+          "desc": "report rules details if report_rules is true",
+          "types": [
+            "sf.report"
+          ]
         }
       ]
     },
@@ -431,7 +450,7 @@
       "domain": "feature",
       "name": "vert_woe_binning",
       "desc": "Generate Weight of Evidence (WOE) binning rules for vertical partitioning datasets.",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "attrs": [
         {
           "name": "secure_device_type",
@@ -540,6 +559,15 @@
             },
             "upperBoundInclusive": true
           }
+        },
+        {
+          "name": "report_rules",
+          "desc": "Whether report binning rules.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
         }
       ],
       "inputs": [
@@ -570,6 +598,13 @@
           "desc": "Output WOE rule.",
           "types": [
             "sf.rule.binning"
+          ]
+        },
+        {
+          "name": "report",
+          "desc": "report rules details if report_rules is true",
+          "types": [
+            "sf.report"
           ]
         }
       ]
@@ -1715,7 +1750,7 @@
                 "Logit",
                 "Log",
                 "Reciprocal",
-                "Indentity"
+                "Identity"
               ]
             }
           }
@@ -2314,6 +2349,61 @@
           "desc": "Output model.",
           "types": [
             "sf.model.ss_xgb"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "model",
+      "name": "model_export",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "model_name",
+          "desc": "model's name",
+          "type": "AT_STRING",
+          "atomic": {}
+        },
+        {
+          "name": "model_desc",
+          "desc": "Describe what the model does",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "input_datasets",
+          "desc": "all components' input data id",
+          "type": "AT_STRINGS",
+          "atomic": {
+            "listMaxLengthInclusive": "-1"
+          }
+        },
+        {
+          "name": "output_datasets",
+          "desc": "all components' output data id",
+          "type": "AT_STRINGS",
+          "atomic": {
+            "listMaxLengthInclusive": "-1"
+          }
+        },
+        {
+          "name": "component_eval_params",
+          "desc": "all components' params in json format",
+          "type": "AT_STRINGS",
+          "atomic": {
+            "listMaxLengthInclusive": "-1"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "package_output",
+          "desc": "output tar package uri",
+          "types": [
+            "sf.serving.model"
           ]
         }
       ]
