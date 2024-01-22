@@ -1,0 +1,58 @@
+# See https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners 
+# for more info about CODEOWNERS file
+
+* @rivertalk @zhouaihui @6fj @ian-huu @da-niao-dan @zhangxingmeng @warriorpaw @icavan
+
+secretflow/data/ @rivertalk @warriorpaw @ian-huu @zhouaihui @icavan
+
+secretflow/device/ @rivertalk @warriorpaw @ian-huu @zhouaihui @usafchn @icavan
+
+secretflow/preprocessing/ @rivertalk @warriorpaw @ian-huu @oeqqwq @zhouaihui
+
+secretflow/security/ @Jamie-Cui @warriorpaw @ian-huu @icavan @rivertalk
+
+secretflow/ml/boost/homo_boost/ @ian-huu
+
+secretflow/ml/boost/ @warriorpaw @rivertalk @ian-huu @icavan
+
+secretflow/ml/linear/ @warriorpaw @zhouaihui @ian-huu @rivertalk @icavan
+
+secretflow/ml/nn/ @ian-huu @rivertalk @icavan
+
+secretflow/stats/ @rivertalk @warriorpaw @da-niao-dan @icavan
+
+secretflow/distributed/ @rivertalk @warriorpaw @ian-huu @zhouaihui @zhangxingmeng @icavan
+
+secretflow/protos/ @rivertalk @warriorpaw @ian-huu @6fj
+
+secretflow/kuscia/ @UniqueMarvin @rivertalk @warriorpaw @ian-huu @icavan
+
+secretflow/component/ @rivertalk @warriorpaw @6fj @da-niao-dan @icavan
+
+secretflow/compute/ @rivertalk @warriorpaw @oeqqwq @ian-huu @icavan
+
+secretflow/ic/ @rivertalk @warriorpaw @ian-huu @zhouaihui @longshan-ant @usafchn @icavan
+
+secretflow/tune/ @ian-huu @icavan
+
+tests/data/ @rivertalk @warriorpaw @ian-huu @zhouaihui @icavan
+
+tests/device/ @rivertalk @warriorpaw @ian-huu @zhouaihui @usafchn @icavan
+
+tests/preprocessing/ @rivertalk @warriorpaw @ian-huu @oeqqwq @zhouaihui
+
+tests/security/ @Jamie-Cui @warriorpaw @ian-huu @icavan @rivertalk
+
+tests/ml/boost/ @warriorpaw @rivertalk @ian-huu @icavan
+
+tests/ml/linear/ @warriorpaw @zhouaihui @ian-huu @rivertalk @icavan
+
+tests/ml/nn/ @ian-huu @rivertalk @icavan
+
+tests/stats/ @rivertalk @warriorpaw @da-niao-dan @icavan
+
+tests/kuscia/ @UniqueMarvin @rivertalk @warriorpaw @ian-huu @icavan
+
+tests/component/ @rivertalk @warriorpaw @6fj @da-niao-dan @icavan
+
+tests/tuner/ @ian-huu @icavan
