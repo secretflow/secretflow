@@ -5,11 +5,11 @@
 
 secretflow/data/ @rivertalk @warriorpaw @ian-huu @zhouaihui @icavan
 
-secretflow/device/ @rivertalk @warriorpaw @ian-huu @zhouaihui @yuwen.lyf @icavan
+secretflow/device/ @rivertalk @warriorpaw @ian-huu @zhouaihui @usafchn @icavan
 
-secretflow/preprocessing/ @rivertalk @warriorpaw @ian-huu @ruidong.qrd @zhouaihui
+secretflow/preprocessing/ @rivertalk @warriorpaw @ian-huu @oeqqwq @zhouaihui
 
-secretflow/security/ @shanzhu.cjm @warriorpaw @ian-huu @icavan @rivertalk
+secretflow/security/ @Jamie-Cui @warriorpaw @ian-huu @icavan @rivertalk
 
 secretflow/ml/boost/homo_boost/ @ian-huu
 
@@ -29,19 +29,19 @@ secretflow/kuscia/ @UniqueMarvin @rivertalk @warriorpaw @ian-huu @icavan
 
 secretflow/component/ @rivertalk @warriorpaw @6fj @da-niao-dan @icavan
 
-secretflow/compute/ @rivertalk @warriorpaw @ruidong.qrd @ian-huu @icavan
+secretflow/compute/ @rivertalk @warriorpaw @oeqqwq @ian-huu @icavan
 
-secretflow/ic/ @rivertalk @warriorpaw @ian-huu @zhouaihui @xiaol.huxl @yuwen.lyf @icavan
+secretflow/ic/ @rivertalk @warriorpaw @ian-huu @zhouaihui @longshan-ant @usafchn @icavan
 
 secretflow/tune/ @ian-huu @icavan
 
 tests/data/ @rivertalk @warriorpaw @ian-huu @zhouaihui @icavan
 
-tests/device/ @rivertalk @warriorpaw @ian-huu @zhouaihui @yuwen.lyf @icavan
+tests/device/ @rivertalk @warriorpaw @ian-huu @zhouaihui @usafchn @icavan
 
-tests/preprocessing/ @rivertalk @warriorpaw @ian-huu @ruidong.qrd @zhouaihui
+tests/preprocessing/ @rivertalk @warriorpaw @ian-huu @oeqqwq @zhouaihui
 
-tests/security/ @shanzhu.cjm @warriorpaw @ian-huu @icavan @rivertalk
+tests/security/ @Jamie-Cui @warriorpaw @ian-huu @icavan @rivertalk
 
 tests/ml/boost/ @warriorpaw @rivertalk @ian-huu @icavan
 
