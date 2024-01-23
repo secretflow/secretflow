@@ -205,6 +205,8 @@ def ss_xgb_train_eval_fn(
 
     spu = SPU(spu_config["cluster_def"], spu_config["link_desc"])
 
+    assert len(train_dataset_label) == 1
+
     y = load_table(
         ctx,
         train_dataset,

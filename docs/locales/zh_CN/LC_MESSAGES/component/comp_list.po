@@ -962,8 +962,8 @@ msgid "link function type"
 msgstr ""
 
 #: ../../component/comp_list.md
-msgid "Default: . Allowed: ['Logit', 'Log', 'Reciprocal', 'Indentity']."
-msgstr "默认: None. 可选: ['Logit', 'Log', 'Reciprocal', 'Indentity']."
+msgid "Default: . Allowed: ['Logit', 'Log', 'Reciprocal', 'Identity']."
+msgstr "默认: None. 可选: ['Logit', 'Log', 'Reciprocal', 'Identity']."
 
 #: ../../component/comp_list.md
 msgid "label_dist_type"

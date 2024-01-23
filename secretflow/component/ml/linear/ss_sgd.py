@@ -174,6 +174,8 @@ def ss_sgd_train_eval_fn(
 
     reg = SSRegression(spu)
 
+    assert len(train_dataset_label) == 1
+
     assert (
         train_dataset_label[0] not in train_dataset_feature_selects
     ), f"col {train_dataset_label[0]} used in both label and features"
@@ -208,12 +210,15 @@ def ss_sgd_train_eval_fn(
         )
 
     model = reg.save_model()
-
+    party_features_length = {
+        device.party: len(columns) for device, columns in x.partition_columns.items()
+    }
     model_meta = {
         "reg_type": model.reg_type.value,
         "sig_type": model.sig_type.value,
         "feature_selects": x.columns,
         "label_col": train_dataset_label,
+        "party_features_length": party_features_length,
     }
 
     model_db = model_dumps(

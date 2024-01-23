@@ -11,17 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from typing import List
-
-import jax.numpy as jnp
-import numpy as np
-import pandas as pd
+import math
 
 import secretflow as sf
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import SPU
 from secretflow.preprocessing.scaler import StandardScaler
+from secretflow.utils.blocked_ops import block_compute_vdata
 
 
 class PearsonR:
@@ -43,7 +39,12 @@ class PearsonR:
     def __init__(self, device: SPU):
         self.spu_device = device
 
-    def pearsonr(self, vdata: VDataFrame, standardize: bool = True):
+    def pearsonr(
+        self,
+        vdata: VDataFrame,
+        standardize: bool = True,
+        infeed_elements_limit: int = 20000000,
+    ):
         """
         Attributes:
 
@@ -60,15 +61,14 @@ class PearsonR:
         if standardize:
             scaler = StandardScaler()
             vdata = scaler.fit_transform(vdata)
-        obj_list = [d.data.to(self.spu_device) for d in vdata.partitions.values()]
         rows = vdata.shape[0]
+        cols = vdata.shape[1]
+        row_number = max([math.ceil(infeed_elements_limit / cols), 1])
 
-        def spu_xtx(objs: List[np.ndarray]):
-            if isinstance(objs, pd.DataFrame):
-                objs = objs.values
-            data = jnp.concatenate(objs, axis=1)
-            return jnp.matmul(data.transpose(), data)
+        spu = self.spu_device
 
-        spu_obj = self.spu_device(spu_xtx)(obj_list)
-        xtx = sf.reveal(spu_obj)
+        xTx = block_compute_vdata(
+            vdata, row_number, spu, lambda x: x.T @ x, lambda x, y: x + y
+        )
+        xtx = sf.reveal(xTx)
         return xtx / (rows - 1)

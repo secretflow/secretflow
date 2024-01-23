@@ -20,7 +20,7 @@ def _statsmodels_vif(data):
 
 def _run_vif(env, vdata, data):
     v_vif = SSVertVIF(env.spu)
-    ss_vif = v_vif.vif(vdata)
+    ss_vif = v_vif.vif(vdata, infeed_elements_limit=1000)
     vif = _statsmodels_vif(data)
     # for nan/inf value in statsmodels' results, see NOTICE of SSVertVIF.
     ss_vif = np.select([ss_vif > 1000], [1000], ss_vif)

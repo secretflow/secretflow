@@ -13,6 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Security` in case of vulnerabilities.
 
 
+## [v1.4.0.dev240122] - 2024-01-22
+### Added
+- Add a new feature of chunked computation to control the memory peak.
+- The binning component supports displaying binning rules.
+-
+### Fixed
+- Fix a bug that occurs when saving the SGB model fails when the number of trees in the model is 1.
+- Fix bin rule report.
+
 ## [1.4.0.dev240116] - 2024-01-16
 ### Added
 - sgb/ss_xgb/ss_glm/ss_sgd can save specified columns with result now.

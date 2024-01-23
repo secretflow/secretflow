@@ -52,7 +52,7 @@ INIT_DOCKER_TEMPLATE = (
 
 DOCKER_INSTALL_WHL = (
     "pip uninstall {whl} -y && "
-    "pip install {whl} -i https://mirrors.bfsu.edu.cn/pypi/web/simple"
+    "pip install {whl} -i https://mirrors.bfsu.edu.cn/pypi/web/simple "
 )
 
 RESTART_DOCKER_TEMPLATE = "docker restart {docker}"

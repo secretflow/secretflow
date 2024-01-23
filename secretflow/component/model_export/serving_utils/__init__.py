@@ -12,19 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .tracer import Array, Table, TraceRunner
+from .preprocessing_converter import preprocessing_converter
+from .serving_graph import DispatchType
+from .train_model_converter import train_model_converter
+from .graph_builder_manager import GraphBuilderManager
 
-__all__ = ["Array", "Table", "TraceRunner"]
-
-
-def __init_sf_func():
-    import importlib
-
-    g = globals()
-    c = importlib.import_module("secretflow.compute.compute")
-    sf_funcs = c._gen_sf_funcs()
-    for name, func in sf_funcs.items():
-        g[name] = func
-
-
-__init_sf_func()
+__all__ = [
+    GraphBuilderManager,
+    DispatchType,
+    preprocessing_converter,
+    train_model_converter,
+]

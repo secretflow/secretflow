@@ -80,7 +80,7 @@ def produce_meta_change(
             party_meta_change.new_labels.extend(
                 create_add_columns(append_keys, fixed_type, ref_dtypes)
             )
-        meta_change_dict[party] = MessageToJson(party_meta_change)
+        meta_change_dict[party] = MessageToJson(party_meta_change, indent=0)
     return meta_change_dict
 
 
