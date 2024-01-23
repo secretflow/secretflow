@@ -16,7 +16,7 @@ secretflow/security/ @Jamie-Cui @warriorpaw
 tests/security/ @Jamie-Cui @warriorpaw
 
 secretflow/ml/boost/ @warriorpaw @da-niao-dan
-secretflow/ml/boost/ @warriorpaw @da-niao-dan
+tests/ml/boost/ @warriorpaw @da-niao-dan
 
 secretflow/ml/boost/homo_boost/ @ian-huu
 tests/ml/boost/homo_boost/ @ian-huu
