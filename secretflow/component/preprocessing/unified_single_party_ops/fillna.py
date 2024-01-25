@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.∏
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 from typing import Dict
 
 import numpy as np
@@ -19,8 +20,7 @@ from sklearn.impute import SimpleImputer
 
 import secretflow.compute as sc
 from secretflow.component.component import Component, IoType, TableColParam
-from secretflow.component.data_utils import DistDataType, SUPPORTED_VTABLE_DATA_TYPE
-
+from secretflow.component.data_utils import SUPPORTED_VTABLE_DATA_TYPE, DistDataType
 from secretflow.component.preprocessing.core.table_utils import (
     v_preprocessing_transform,
 )
@@ -52,15 +52,6 @@ fillna.str_attr(
     default_value="constant",
     allowed_values=SUPPORTED_FILL_NA_METHOD,
 )
-
-fillna.str_attr(
-    name="missing_value",
-    desc="Which value should be treat as missing_value? int, float, str, general_na (includes np.nan, None or pandas.NA which are all null in sc.table), default=general_na",
-    is_list=False,
-    is_optional=True,
-    default_value="custom_missing_value",
-)
-
 NA_SUPPORTED_TYPE_DICT = {
     "general_na": str,
     "str": str,
@@ -69,12 +60,27 @@ NA_SUPPORTED_TYPE_DICT = {
 }
 fillna.str_attr(
     name="missing_value_type",
-    desc="type of missing value. general_na type indicates np.nan, None or pandas.NA",
+    desc="type of missing value. general_na type indicates that only np.nan, None or pandas.NA will be treated as missing values. When the type is not general_na, the type casted missing_value_type(missing_value) will also be treated as missing value as well, \
+    in addition to general_na values.",
     is_list=False,
     is_optional=True,
     default_value="general_na",
     allowed_values=list(NA_SUPPORTED_TYPE_DICT.keys()),
 )
+
+fillna.str_attr(
+    name="missing_value",
+    desc="Which value should be treat as missing_value? If missing value type is 'general_na', \
+    this field will be ignored, and any np.nan, pd.NA, etc value will be treated as missing value. \
+    Otherwise, the type casted missing_value_type(missing_value) will also be treated as missing value as well, \
+    in addition to general_na values. \
+    In case the cast is not successful, general_na will be used instead. \
+    default value is 'custom_missing_value'.",
+    is_list=False,
+    is_optional=True,
+    default_value="custom_missing_value",
+)
+
 
 fillna.int_attr(
     name="fill_value_int",
@@ -214,7 +220,13 @@ def fillna_eval_fn(
             np.nan
         )  # all pd.NA, np.nan and None are equivalent for arrow system
     else:
-        missing_value = NA_SUPPORTED_TYPE_DICT[missing_value_type](missing_value)
+        try:
+            missing_value = NA_SUPPORTED_TYPE_DICT[missing_value_type](missing_value)
+        except ValueError:
+            logging.warning(
+                f"{missing_value} cannot be casted to {missing_value_type}, resort to general na only."
+            )
+            missing_value = np.nan
 
     def fit(data):
         if strategy in ["mean", "median"]:

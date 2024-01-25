@@ -98,6 +98,16 @@ _DATASETS = {
         'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/drive_cleaned/drive_cleaned_demo.csv',
         'b461458e642596e934f6b8f6d5d4040fdfc21467c83ed79c86a3e6ef8e777bca',
     ),
+    'criteo': _Dataset(
+        'criteo.csv',
+        '',
+        'cf2e006731ff4530bd59ebc9b7452621bd31f5d0a219ec71c6af09ec8ec9a5ad',
+    ),
+    'creditcard': _Dataset(
+        'creditcard.csv',
+        'https://storage.googleapis.com/download.tensorflow.org/data/creditcard.csv',
+        '76274b691b16a6c49d3f159c883398e03ccd6d1ee12d9d8ee38f4b4b98551a89',
+    ),
 }
 
 
@@ -895,4 +905,124 @@ def load_ml_1m(
         fed_csv,
         keys="ID",
         drop_keys="ID",
+    )
+
+
+def load_criteo(
+    parts: Union[List[PYU], Dict[PYU, Union[float, Tuple]]],
+    axis=1,
+    aggregator: Aggregator = None,
+    comparator: Comparator = None,
+) -> Union[VDataFrame, HDataFrame]:
+    filepath = get_dataset(_DATASETS['criteo'])
+    dtypes = {'Label': 'int'}
+    dtypes.update({f'I{i}': 'float' for i in range(1, 14)})
+    dtypes.update({f'C{i}': 'str' for i in range(1, 27)})
+    df = pd.read_csv(
+        filepath, sep='\t', header=None, names=list(dtypes.keys()), dtype=dtypes
+    )
+    if isinstance(parts, List):
+        assert len(parts) == 2
+        parts = {parts[0]: (14, 40), parts[1]: (0, 14)}
+    return create_df(
+        source=df,
+        parts=parts,
+        axis=axis,
+        shuffle=False,
+        aggregator=aggregator,
+        comparator=comparator,
+    )
+
+
+def load_cifar10(
+    parts: List[PYU], data_dir: str = None, axis=0, aggregator=None, comparator=None
+) -> ((FedNdarray, FedNdarray), (FedNdarray, FedNdarray)):
+    from torchvision import datasets, transforms
+    import torch.utils.data as torch_data
+
+    assert axis == 0, f"only support axis = 0 split cifar10 yet."
+    assert len(parts) == 2
+    alice, bob = parts[0], parts[1]
+    if data_dir is None:
+        data_dir = _CACHE_DIR + "/cifar10"
+    train_dataset = datasets.CIFAR10(
+        data_dir, True, transform=transforms.ToTensor(), download=True
+    )
+    train_loader = torch_data.DataLoader(
+        dataset=train_dataset, batch_size=128, shuffle=False
+    )
+    test_dataset = datasets.CIFAR10(
+        data_dir, False, transform=transforms.ToTensor(), download=True
+    )
+    test_loader = torch_data.DataLoader(
+        dataset=test_dataset, batch_size=128, shuffle=False
+    )
+    train_np = np.array(train_loader.dataset)
+    train_plain_data = np.array([t[0].numpy() for t in train_np])
+    train_plain_label = np.array([t[1] for t in train_np])
+    train_data = FedNdarray(
+        partitions={
+            alice: alice(lambda x: x[:, :, :, 0:16])(train_plain_data),
+            bob: bob(lambda x: x[:, :, :, 16:32])(train_plain_data),
+        },
+        partition_way=PartitionWay.VERTICAL,
+    )
+    train_label = bob(lambda x: x)(train_plain_label)
+    test_np = np.array(test_loader.dataset)
+    test_plain_data = np.array([t[0].numpy() for t in test_np])
+    test_plain_label = np.array([t[1] for t in test_np])
+    test_data = FedNdarray(
+        partitions={
+            alice: alice(lambda x: x[:, :, :, 0:16])(test_plain_data),
+            bob: bob(lambda x: x[:, :, :, 16:32])(test_plain_data),
+        },
+        partition_way=PartitionWay.VERTICAL,
+    )
+    test_label = bob(lambda x: x)(test_plain_label)
+    return (train_data, train_label), (test_data, test_label)
+
+
+def load_creditcard(
+    parts: Union[List[PYU], Dict[PYU, Union[float, Tuple]]],
+    axis=1,
+    num_sample: int = 284160,
+    aggregator: Aggregator = None,
+    comparator: Comparator = None,
+):
+    if isinstance(parts, List):
+        assert len(parts) == 2
+        parts = {parts[0]: (0, 25), parts[1]: (25, 30)}
+    filepath = get_dataset(_DATASETS['creditcard'])
+    raw_df = pd.read_csv(filepath)
+    raw_df_neg = raw_df[raw_df["Class"] == 0]
+    raw_df_pos = raw_df[raw_df["Class"] == 1]
+    down_df_neg = raw_df_neg  # .sample(40000)
+    down_df = pd.concat([down_df_neg, raw_df_pos])
+    neg, pos = np.bincount(down_df["Class"])
+    cleaned_df = down_df.copy()
+    # You don't want the `Time` column.
+    cleaned_df.pop("Time")
+    # The `Amount` column covers a huge range. Convert to log-space.
+    eps = 0.001  # 0 => 0.1
+    cleaned_df["Log Ammount"] = np.log(cleaned_df.pop("Amount") + eps)
+    alice_data_index = [
+        col
+        for col in cleaned_df.columns
+        if col != "Class"
+        and col != "V1"
+        and col != "V2"
+        and col != "V3"
+        and col != "V4"
+    ]
+    alice_data = cleaned_df[alice_data_index]
+    bob_data = cleaned_df[["V1", "V2", "V3", "V4", "Class"]]
+    df = pd.concat([alice_data, bob_data], axis=1)
+    df = df[-num_sample:]
+    return create_df(
+        source=df,
+        parts=parts,
+        axis=axis,
+        aggregator=aggregator,
+        comparator=comparator,
+        shuffle=False,
     )

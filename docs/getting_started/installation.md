@@ -119,7 +119,7 @@ conda activate sf
 ```
 
 - use pip to install SecretFlow.
-
+    
     - Full edition
     ```
     pip install -U secretflow

@@ -12,6 +12,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
+
+## [v1.4.0.dev240122] - 2024-01-22
+### Added
+- Add a new feature of chunked computation to control the memory peak.
+- The binning component supports displaying binning rules.
+-
+### Fixed
+- Fix a bug that occurs when saving the SGB model fails when the number of trees in the model is 1.
+- Fix bin rule report.
+
+## [1.4.0.dev240116] - 2024-01-16
+### Added
+- sgb/ss_xgb/ss_glm/ss_sgd can save specified columns with result now.
+- ss_glm: expose two params infeed size and newton.
+- SplitLearning
+  - Add a defense method against data reconstruction attacks.
+  - Adapt replay attack and gradreplace attack for deepfm.
+  - Add expoit attack.
+
+### Changed
+- Component: update fillna descriptions.
+
+### Fixed
+- Fix SS-GLM toturial.
+
+## [1.4.0.dev240103] - 2024-1-3
+### Added
+- Add grad replace attack and replay attack.
+- Add autoattack benchmark examples.
+- Expose job_name param in sf.init.
+
+### Changed
+- Bump rayfed version: optimizing Error Propagation and Capture.
+- Component: woe_bins requires at least 5 bins to read.
+- Component: add barrier_on_shutdown as sf cluster config.
+
 ## [1.4.0.dev231225] - 2023-12-25
 ### Added
 - Add DataProxy binary writer.

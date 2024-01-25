@@ -1,17 +1,28 @@
+import logging
 import os
+import pickle
 
+import numpy as np
 import pandas as pd
+from sklearn.datasets import load_breast_cancer
 
-from secretflow.component.data_utils import DistDataType, extract_distdata_info
+from secretflow.component.data_utils import (
+    DistDataType,
+    extract_distdata_info,
+    extract_table_header,
+)
+from secretflow.component.model_export.serving_utils.preprocessing_converter import (
+    binning_rules_to_sc,
+)
 from secretflow.component.preprocessing.binning.vert_binning import (
     vert_bin_substitution_comp,
     vert_binning_comp,
 )
+from secretflow.compute import Table
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
-from sklearn.datasets import load_breast_cancer
-
+from secretflow.spec.v1.report_pb2 import Report
 from tests.conftest import TEST_STORAGE_ROOT
 
 
@@ -19,6 +30,7 @@ def test_vert_binning(comp_prod_sf_cluster_config):
     alice_path = "test_vert_binning/x_alice.csv"
     bob_path = "test_vert_binning/x_bob.csv"
     rule_path = "test_vert_binning/bin_rule"
+    report_path = "test_vert_binning/report"
     output_path = "test_vert_binning/vert.csv"
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
@@ -49,12 +61,11 @@ def test_vert_binning(comp_prod_sf_cluster_config):
     bin_param_01 = NodeEvalParam(
         domain="feature",
         name="vert_binning",
-        version="0.0.1",
-        attr_paths=[
-            "input/input_data/feature_selects",
-        ],
+        version="0.0.2",
+        attr_paths=["input/input_data/feature_selects", "report_rules"],
         attrs=[
             Attribute(ss=[f"a{i}" for i in range(12)] + [f"b{i}" for i in range(11)]),
+            Attribute(b=True),
         ],
         inputs=[
             DistData(
@@ -66,18 +77,17 @@ def test_vert_binning(comp_prod_sf_cluster_config):
                 ],
             ),
         ],
-        output_uris=[rule_path],
+        output_uris=[rule_path, report_path],
     )
 
     bin_param_02 = NodeEvalParam(
         domain="feature",
         name="vert_binning",
-        version="0.0.1",
-        attr_paths=[
-            "input/input_data/feature_selects",
-        ],
+        version="0.0.2",
+        attr_paths=["input/input_data/feature_selects", "report_rules"],
         attrs=[
             Attribute(ss=[f"a{i}" for i in range(11)] + [f"b{i}" for i in range(12)]),
+            Attribute(b=True),
         ],
         inputs=[
             DistData(
@@ -89,7 +99,7 @@ def test_vert_binning(comp_prod_sf_cluster_config):
                 ],
             ),
         ],
-        output_uris=[rule_path],
+        output_uris=[rule_path, report_path],
     )
 
     meta = VerticalTable(
@@ -108,18 +118,23 @@ def test_vert_binning(comp_prod_sf_cluster_config):
     )
     bin_param_01.inputs[0].meta.Pack(meta)
     bin_param_02.inputs[0].meta.Pack(meta)
-
+    """
     bin_res = vert_binning_comp.eval(
         param=bin_param_01,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
     )
+    """
     bin_res = vert_binning_comp.eval(
         param=bin_param_02,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
     )
 
+    assert len(bin_res.outputs) == 2
+    comp_ret = Report()
+    bin_res.outputs[1].meta.Unpack(comp_ret)
+    logging.info("bin_res.outputs[1]: %s", comp_ret)
     sub_param = NodeEvalParam(
         domain="preprocessing",
         name="vert_bin_substitution",
@@ -151,7 +166,54 @@ def test_vert_binning(comp_prod_sf_cluster_config):
     )
     assert alice_out.shape[0] == bob_out.shape[0]
 
-    # import logging
+    v_headers = extract_table_header(
+        bin_param_01.inputs[0],
+        load_features=True,
+        load_labels=True,
+        load_ids=True,
+    )
 
-    # logging.warning(f"alice_out \n{alice_out}\n....\n")
-    # logging.warning(f"bob_out \n{bob_out}\n....\n")
+    output_header = extract_table_header(
+        sub_res.outputs[0],
+        load_features=True,
+        load_labels=True,
+        load_ids=True,
+    )
+
+    if self_party == "alice":
+        alice_input = pd.read_csv(
+            os.path.join(TEST_STORAGE_ROOT, "alice", alice_path), dtype=np.float32
+        )
+
+        alice_rule = os.path.join(TEST_STORAGE_ROOT, "alice", rule_path, "0")
+        with open(alice_rule, "rb") as f:
+            alice_rule = pickle.loads(f.read())
+
+        alice_table = binning_rules_to_sc(alice_rule, v_headers["alice"])
+        alice_runner = alice_table.dump_runner()
+        alice_table_out = alice_runner.run(alice_input)
+
+        assert np.isclose(alice_table_out.values, alice_out.values).all()
+
+        table = Table.from_schema(output_header["alice"])
+
+        assert table.schema == alice_table.schema
+
+    if self_party == "bob":
+        bob_input = pd.read_csv(
+            os.path.join(TEST_STORAGE_ROOT, "bob", bob_path), dtype=np.float32
+        )
+
+        bob_rule = os.path.join(TEST_STORAGE_ROOT, "bob", rule_path, "1")
+        with open(bob_rule, "rb") as f:
+            bob_rule = pickle.loads(f.read())
+
+        bob_table = binning_rules_to_sc(bob_rule, v_headers["bob"])
+        bob_runner = bob_table.dump_runner()
+        bob_table_out = bob_runner.run(bob_input)
+
+        assert np.isclose(bob_table_out.values, bob_out.values).all()
+
+        table = Table.from_schema(output_header["bob"])
+
+        assert table.schema == bob_table.schema

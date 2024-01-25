@@ -68,6 +68,7 @@ class SLBaseTFModel(SLBaseModel):
         self.eval_sample_weight = None
         self.fuse_callbacks = None
         self.predict_callbacks = None
+        self.cur_epoch = None
         self._data_x = None
         self._gradient = None
         self._training = True
@@ -397,7 +398,8 @@ class SLBaseTFModel(SLBaseModel):
     def recv_gradient(self, gradient):
         self._gradient = gradient
 
-    def get_batch_data(self, stage="train"):
+    def get_batch_data(self, stage="train", epoch=1):
+        self.cur_epoch = epoch
         self.init_data()
         self._training = True
         if stage == "train":
@@ -487,7 +489,6 @@ class SLBaseTFModel(SLBaseModel):
                 hiddens.append(tf.convert_to_tensor(h))
 
         logs = {}
-
         gradient = self._fuse_net_train(hiddens, losses)
 
         for m in self.model_fuse.metrics:
@@ -872,6 +873,16 @@ class SLBaseTFModel(SLBaseModel):
 
     def get_logs(self):
         return self.logs
+
+    def get_steps_per_epoch(self):
+        return self.steps_per_epoch
+
+    def get_traing_status(self):
+        status = {
+            'epoch': self.cur_epoch,
+            'stage': "train" if self._training else "eval",
+        }
+        return status
 
 
 @register_strategy(strategy_name='split_nn', backend='tensorflow')

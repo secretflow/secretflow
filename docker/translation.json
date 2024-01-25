@@ -37,26 +37,32 @@
     "out_ds": "输出数据集",
     "Output vertical table.": "输出联合表"
   },
-  "data_prep/psi:0.0.1": {
+  "data_prep/psi:0.0.2": {
     "data_prep": "数据准备",
     "psi": "隐私求交",
     "PSI between two parties.": "双方之间的PSI",
-    "0.0.1": "0.0.1",
+    "0.0.2": "0.0.2",
     "protocol": "协议",
-    "PSI protocol.": "PSI 协议",
-    "sort": "排序",
-    "Sort the output. Warning: disable this feature may lead to errors in the following components. DO NOT CHOOSE FALSE if you want to append other components": "对输出进行排序。警告：禁用此功能可能会导致后续组件出现错误。如果要附加其他组件，请不要选择FALSE",
-    "bucket_size": "分桶数",
-    "Specify the hash bucket size used in PSI. Larger values consume more memory.": "指定 PSI 中使用的哈希桶大小；值越大，占用的内存越多",
-    "ecdh_curve_type": "ECDH 曲线类型",
-    "Curve type for ECDH PSI.": "ECDH PSI 的曲线类型",
+    "PSI protocol.": "PSI协议",
+    "disable_alignment": "禁用对齐",
+    "It true, output is not promised to be aligned. Warning: enable this option may lead to errors in the following components. DO NOT TURN ON if you want to append other components.": "如果打开，双方输出不承诺对齐。警告：启用此选项可能会导致后续组件出现错误。如果要附加其他组件，请不要打开该选项。",
+    "skip_duplicates_check": "禁用重复值检查",
+    "If true, the check of duplicated items will be skiped.": "如果为true，将跳过重复值检查",
+    "check_hash_digest": "检查hash摘要",
+    "Check if hash digest of keys from parties are equal to determine whether to early-stop.": "检查各方求交键的哈希摘要是否相等，以确定是否提前停止",
+    "advanced_join_type": "高级求交选项",
+    "Advanced Join allow duplicate keys.": "高级加入允许求交键重复",
+    "left_side": "左方",
+    "Required if advanced_join_type is selected.": "如果选择了【高级求交选项】，则为必需项。",
+    "ecdh_curve": "ECDH 曲线类型",
+    "Curve type for ECDH PSI.": "ECDH PSI的曲线类型。",
     "receiver_input": "接收方的输入",
-    "Individual table for receiver": "接收方的样本表",
+    "Individual table for receiver": "接收方的输入",
     "key": "主键",
     "Column(s) used to join.": "用于求交的列",
     "sender_input": "发送方的输入",
     "Individual table for sender": "发送方的样本表",
-    "psi_output": "PSI输出",
+    "psi_output": "PSI 输出",
     "Output vertical table": "输出联合表"
   },
   "data_prep/train_test_split:0.0.1": {
@@ -79,7 +85,7 @@
     "test": "测试数据子集",
     "Output test dataset.": "输出测试数据子集"
   },
-  "feature/vert_binning:0.0.1": {
+  "feature/vert_binning:0.0.2": {
     "feature": "特征",
     "vert_binning": "常规分箱",
     "Generate equal frequency or equal range binning rules for vertical partitioning datasets.": "为垂直分区数据集生成等频或等距分箱规则",
@@ -88,14 +94,18 @@
     "How to bin features with numeric types: \"quantile\"(equal frequency)/\"eq_range\"(equal range)": "如何对特征进行分箱：“quantile”（等频）/“eq_range”（等距）",
     "bin_num": "bin_num",
     "Max bin counts for one features.": "一个特征的最大分箱数",
+    "report_rules": "报告规则",
+    "Whether report binning rules.": "是否有报表装箱规则。",
     "input_data": "输入数据集",
     "Input vertical table.": "输入垂直表",
     "feature_selects": "特征列",
     "which features should be binned.": "应对哪些特征进行分箱",
     "bin_rule": "分箱规则",
-    "Output bin rule.": "输出分箱规则"
+    "Output bin rule.": "输出分箱规则",
+    "report": "报告",
+    "report rules details if report_rules is true": "如果report_rules为true，则报告规则详细信息"
   },
-  "feature/vert_woe_binning:0.0.1": {
+  "feature/vert_woe_binning:0.0.2": {
     "feature": "特征",
     "vert_woe_binning": "WOE分箱",
     "Generate Weight of Evidence (WOE) binning rules for vertical partitioning datasets.": "为垂直分割数据集生成 Weight of Evidence （WOE） 分箱规则",
@@ -114,6 +124,8 @@
     "Stop merging if remaining bin counts is less than or equal to this value.": "在 ChiMerge 中如果剩余箱计数小于或等于此值，则停止合并",
     "chimerge_target_pvalue": "chimerge目标 p-value 值",
     "Stop merging if biggest pvalue of remaining bins is greater than this value.": "在 ChiMerge 中如果剩余分箱的最大 p-value 大于此值，则停止合并",
+    "report_rules": "报告规则",
+    "Whether report binning rules.": "是否有报表装箱规则。",
     "input_data": "输入数据集",
     "Input vertical table.": "输入联合表",
     "feature_selects": "特征列",
@@ -121,7 +133,9 @@
     "label": "标签",
     "Label of input data.": "输入数据的标签",
     "bin_rule": "分箱规则",
-    "Output WOE rule.": "输出 WOE 规则"
+    "Output WOE rule.": "输出 WOE 规则",
+    "report": "报告",
+    "report rules details if report_rules is true": "如果report_rules为true，则报告规则详细信息"
   },
   "io/identity:0.0.1": {
     "io": "IO系列",
@@ -190,7 +204,7 @@
     "label": "标签",
     "The label name to use in the dataset.": "要在数据集中使用的标签名称。",
     "prediction": "预测",
-    "The prediction result cplumn name to use in the dataset.": "要在数据集中使用的预测结果列名称。",
+    "The prediction result column name to use in the dataset.": "要在数据集中使用的预测结果列名。",
     "result": "结果",
     "Output report.": "输出报告"
   },
@@ -206,7 +220,7 @@
     "label": "标签",
     "The label name to use in the dataset.": "要在数据集中使用的标签名称。",
     "prediction": "预测",
-    "The prediction result cplumn name to use in the dataset.": "要在数据集中使用的预测结果列名称。",
+    "The prediction result column name to use in the dataset.": "要在数据集中使用的预测结果列名。",
     "reports": "报告",
     "Output report.": "输出报告。"
   },
@@ -258,6 +272,8 @@
     "Input model.": "输入模型",
     "feature_dataset": "特征数据集",
     "Input vertical table.": "输入联合表",
+    "saved_features": "保存特征列",
+    "which features should be saved with prediction result": "哪些特征应该与预测结果一起保存",
     "pred": "预测",
     "Output prediction.": "输出预测结果表"
   },
@@ -280,6 +296,8 @@
     "Input model.": "输入模型",
     "feature_dataset": "特征数据集",
     "Input vertical table.": "输入联合表",
+    "saved_features": "保存特征列",
+    "which features should be saved with prediction result": "哪些特征应该与预测结果一起保存",
     "pred": "预测",
     "Output prediction.": "输出预测结果表"
   },
@@ -300,6 +318,8 @@
     "Input model.": "输入模型",
     "feature_dataset": "特征数据集",
     "Input vertical table.": "输入联合表",
+    "saved_features": "保存特征列",
+    "which features should be saved with prediction result": "哪些特征应该与预测结果一起保存",
     "pred": "预测",
     "Output prediction.": "输出预测结果表"
   },
@@ -394,6 +414,10 @@
     "which optimizer to use: IRLS(Iteratively Reweighted Least Squares) or SGD(Stochastic Gradient Descent)": "使用哪个优化器：IRLS（迭代加权最小二乘法）或SGD（随机梯度下降法）",
     "l2_lambda": "l2_lambda",
     "L2 regularization term": "L2正则系数",
+    "infeed_batch_size_limit": "输入批次大小限制",
+    "size of a single block, default to 10w * 100. increase the size will increase memory cost, but may decrease running time. Suggested to be as large as possible. (too large leads to OOM)": "单个块的大小，默认为10w * 100。增加大小将增加内存成本，但可能会减少运行时间。建议尽可能大。（过大导致内存溢出）",
+    "newton_iter": "牛顿迭代次数",
+    "number of rounds for newton matrix inverse iterations, increase may increase accuracy, but also increase running time. Suggested to be as small as possible. (too small or too large both lead to bad accuracy)": "牛顿矩阵逆迭代次数，增加可以提高精度，但也会增加运行时间。建议尽可能小。（过小或过大都会导致精度差）",
     "report_weights": "模型报告",
     "If this option is set to true, model will be revealed and model details are visible to all parties": "如果此选项设置为true，模型会被转换到明文，并且模型的详细信息对各方都可见",
     "train_dataset": "训练数据集",
@@ -475,6 +499,24 @@
     "output_model": "输出模型",
     "Output model.": "输出模型"
   },
+  "model/model_export:0.0.1": {
+    "model": "模型",
+    "model_export": "模型导出",
+    "": "",
+    "0.0.1": "0.0.1",
+    "model_name": "模型名称",
+    "model's name": "模型名称",
+    "model_desc": "模型描述",
+    "Describe what the model does": "描述模型的作用",
+    "input_datasets": "输入数据集",
+    "all components' input data id": "所有组件的输入数据id",
+    "output_datasets": "输出数据集",
+    "all components' output data id": "所有组件的输出数据id",
+    "component_eval_params": "组件执行参数",
+    "all components' params in json format": "所有组件json格式的执行参数",
+    "package_output": "打包输出",
+    "output tar package uri": "输出tar包的uri"
+  },
   "preprocessing/binary_op:0.0.2": {
     "preprocessing": "预处理",
     "binary_op": "二元操作",
@@ -530,10 +572,10 @@
     "0.0.1": "0.0.1",
     "strategy": "填充缺失值的方式",
     "The imputation strategy. If \"mean\", then replace missing values using the mean along each column. Can only be used with numeric data. If \"median\", then replace missing values using the median along each column. Can only be used with numeric data. If \"most_frequent\", then replace missing using the most frequent value along each column. Can be used with strings or numeric data. If there is more than one such value, only the smallest is returned. If \"constant\", then replace missing values with fill_value. Can be used with strings or numeric data.": "插补策略。如果为“平均值”，则使用每列的平均值替换缺失值。只能与数字数据一起使用。如果为“中值”，则使用每列的中值替换缺失值。只能与数字数据一起使用。如果为“众数”，则使用每列中最频繁的值替换缺失的值。可以与字符串或数字数据一起使用。如果存在多个这样的值，则只返回最小的值。如果为“自定义值”，则用fill_value替换缺失的值。可以与字符串或数字数据一起使用。",
-    "missing_value": "缺失值",
-    "Which value should be treat as missing_value? int, float, str, general_na (includes np.nan, None or pandas.NA which are all null in sc.table), default=general_na": "哪个值应该被视为missing_value？int、float、str、general_na（包括sc.table中全部为null的np.nan、None或pandas.na），default=general_na",
     "missing_value_type": "缺失值类型",
-    "type of missing value. general_na type indicates np.nan, None or pandas.NA": "缺失值的类型。general_na表示np.nan、None和pandas.NA等所有None值",
+    "type of missing value. general_na type indicates that only np.nan, None or pandas.NA will be treated as missing values. When the type is not general_na, the type casted missing_value_type(missing_value) will also be treated as missing value as well, in addition to general_na values.": "缺失值的类型。general_na类型表示只有np.nan、None或pandas.NA将被视为缺失值。当类型不是general_na时，除了general_na值之外，类型转换后的missing_value_type(missing_value)也将被视为缺失值",
+    "missing_value": "缺失值",
+    "Which value should be treat as missing_value? If missing value type is 'general_na', this field will be ignored, and any np.nan, pd.NA, etc value will be treated as missing value. Otherwise, the type casted missing_value_type(missing_value) will also be treated as missing value as well, in addition to general_na values. In case the cast is not successful, general_na will be used instead. default value is 'custom_missing_value'.": "哪个值应该被视为缺失值？如果缺失值类型是'general_na'，则此字段将被忽略，并且任何np.nan、pd.NA等值都将被视为缺失值。否则，除了general_na值之外，类型转换后的missing_value_type(missing_value)也将被视为缺失值。如果转换不成功，则将使用general_na作为缺失值。默认值为'custom_missing_value'。",
     "fill_value_int": "整数类型填充值",
     "For int type data. If method is 'constant' use this value for filling null.": "对于整数类型的数据，如果方法是“常量”，使用此值来填充null",
     "fill_value_float": "浮点类型填充值",

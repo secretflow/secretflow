@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-12-19 04:02+0000\n"
+"POT-Creation-Date: 2024-01-04 03:36+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -26,7 +26,7 @@ msgid ""
 "The distinctions between them are outlined in the accompanying table. "
 "Please review the details thoughtfully and select the deployment approach"
 " that best suits your requirements.**"
-msgstr "SecretFlow提供了仿真和生产两种部署模式，两者的对比如下表所示。建议您认真阅读说明，根据需求选择适合您的部署方式。"
+msgstr "**SecretFlow提供了仿真和生产两种部署模式，两者的对比如下表所示。建议您认真阅读说明，根据需求选择适合您的部署方式。**"
 
 #: ../../getting_started/deployment.md
 msgid "Deployment Mode"
@@ -248,7 +248,7 @@ msgstr "请将 `ip:port` 更换为主节点的 `node-ip-address` 和 `port`。"
 #: ../../getting_started/deployment.md:78
 msgid ""
 "The node starts successfully if you see \"Ray runtime started.\" in the "
-"screen output.  A Ray cluster consisting of two Ray nodes has been built "
+"screen output. A Ray cluster consisting of two Ray nodes has been built "
 "by now, while the head node simulates `alice` and the slave node "
 "simulates `bob`."
 msgstr ""
@@ -269,8 +269,8 @@ msgstr "启动SecretFlow"
 
 #: ../../getting_started/deployment.md:84
 msgid ""
-"Now you can start SecretFlow and run your code.  The following code shows"
-" that alice and bob each execute a function that returns the input value."
+"Now you can start SecretFlow and run your code. The following code shows "
+"that alice and bob each execute a function that returns the input value."
 msgstr "现在你可以启动SecretFlow。下面这段代码表示alice和bob分别执行了一个返回输入值的函数。"
 
 #: ../../getting_started/deployment.md:88
@@ -771,7 +771,7 @@ msgstr "alice首先启动ray集群。注意这里的命令是启动Ray的主节�
 #: ../../getting_started/deployment.md:595
 msgid ""
 "Head node starts successfully if you see \"Ray runtime started.\" in the "
-"screen output.  So far, Alice's Ray cluster has been successfully built."
+"screen output. So far, Alice's Ray cluster has been successfully built."
 msgstr "屏幕输出中显示\"Ray runtime started.\"，则说明Ray的主节点启动成功。至此alice的Ray集群已经创建完成。"
 
 #: ../../getting_started/deployment.md:598
@@ -837,7 +837,7 @@ msgstr "bob首先启动ray集群"
 #: ../../getting_started/deployment.md:638
 msgid ""
 "Head node starts successfully if you see \"Ray runtime started.\" in the "
-"screen output.  So far, bob's Ray cluster has been successfully built."
+"screen output. So far, bob's Ray cluster has been successfully built."
 msgstr "屏幕输出中显示\"Ray runtime started.\"，则说明Ray的主节点启动成功。至此bob的Ray集群已经创建完成。"
 
 #: ../../getting_started/deployment.md:642

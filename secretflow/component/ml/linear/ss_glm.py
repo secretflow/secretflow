@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import json
-import os
 from typing import Tuple
 
 from secretflow.component.component import (
@@ -24,18 +23,16 @@ from secretflow.component.component import (
 )
 from secretflow.component.data_utils import (
     DistDataType,
-    extract_table_header,
-    gen_prediction_csv_meta,
     generate_random_string,
     get_model_public_info,
     load_table,
     model_dumps,
     model_loads,
-    save_prediction_csv,
+    save_prediction_dd,
 )
 from secretflow.device.device.pyu import PYU
 from secretflow.device.device.spu import SPU, SPUObject
-from secretflow.device.driver import reveal, wait
+from secretflow.device.driver import reveal
 from secretflow.ml.linear import SSGLM
 from secretflow.ml.linear.ss_glm.core import Linker, get_link
 from secretflow.spec.v1.component_pb2 import Attribute
@@ -85,7 +82,7 @@ ss_glm_train_comp.str_attr(
     desc="link function type",
     is_list=False,
     is_optional=False,
-    allowed_values=["Logit", "Log", "Reciprocal", "Indentity"],
+    allowed_values=["Logit", "Log", "Reciprocal", "Identity"],
 )
 ss_glm_train_comp.str_attr(
     name="label_dist_type",
@@ -171,6 +168,29 @@ ss_glm_train_comp.float_attr(
     lower_bound=0,
     lower_bound_inclusive=True,
 )
+
+ss_glm_train_comp.int_attr(
+    name="infeed_batch_size_limit",
+    desc="""size of a single block, default to 10w * 100. increase the size will increase memory cost,
+        but may decrease running time. Suggested to be as large as possible. (too large leads to OOM) """,
+    is_list=False,
+    is_optional=True,
+    default_value=10000000,
+    lower_bound=1000,
+    lower_bound_inclusive=True,
+)
+
+ss_glm_train_comp.int_attr(
+    name="newton_iter",
+    desc="""number of rounds for newton matrix inverse iterations, increase may increase accuracy,
+    but also increase running time. Suggested to be as small as possible. (too small or too large both lead to bad accuracy)""",
+    is_list=False,
+    is_optional=True,
+    default_value=25,
+    lower_bound=1,
+    lower_bound_inclusive=True,
+)
+
 ss_glm_train_comp.bool_attr(
     name="report_weights",
     desc="If this option is set to true, model will be revealed and model details are visible to all parties",
@@ -242,6 +262,8 @@ def ss_glm_train_eval_fn(
     iter_start_irls,
     optimizer,
     l2_lambda,
+    infeed_batch_size_limit,
+    newton_iter,
     report_weights,
     train_dataset_offset,
     train_dataset_weight,
@@ -269,6 +291,7 @@ def ss_glm_train_eval_fn(
 
     glm = SSGLM(spu)
 
+    assert len(train_dataset_label) == 1
     assert (
         train_dataset_label[0] not in train_dataset_feature_selects
     ), f"col {train_dataset_label[0]} used in both label and features"
@@ -289,7 +312,6 @@ def ss_glm_train_eval_fn(
         col_selects=train_dataset_feature_selects,
     )
 
-    col_selects = x.columns
     if train_dataset_offset:
         assert (
             train_dataset_offset[0] not in train_dataset_feature_selects
@@ -345,6 +367,8 @@ def ss_glm_train_eval_fn(
                 decay_epoch=decay_epoch,
                 decay_rate=decay_rate,
                 l2_lambda=l2_lambda,
+                infeed_batch_size_limit=infeed_batch_size_limit,
+                newton_iter=newton_iter,
             )
         elif optimizer == "IRLS":
             glm.fit_irls(
@@ -359,6 +383,8 @@ def ss_glm_train_eval_fn(
                 scale=dist_scale,
                 eps=eps,
                 l2_lambda=l2_lambda,
+                infeed_batch_size_limit=infeed_batch_size_limit,
+                newton_iter=newton_iter,
             )
         else:
             raise CompEvalError(f"Unknown optimizer {optimizer}")
@@ -371,7 +397,6 @@ def ss_glm_train_eval_fn(
     model_meta = {
         "link": glm.link.link_type().value,
         "y_scale": glm.y_scale,
-        "col_selects": col_selects,
         "offset_col": offset_col,
         "label_col": train_dataset_label,
         "feature_names": feature_names,
@@ -500,7 +525,13 @@ ss_glm_predict_comp.io(
     name="feature_dataset",
     desc="Input vertical table.",
     types=[DistDataType.VERTICAL_TABLE],
-    col_params=None,
+    col_params=[
+        TableColParam(
+            name="saved_features",
+            desc="which features should be saved with prediction result",
+            col_min_cnt_inclusive=0,
+        )
+    ],
 )
 ss_glm_predict_comp.io(
     io_type=IoType.OUTPUT,
@@ -543,6 +574,7 @@ def ss_glm_predict_eval_fn(
     *,
     ctx,
     feature_dataset,
+    feature_dataset_saved_features,
     model,
     receiver,
     pred_name,
@@ -573,7 +605,7 @@ def ss_glm_predict_eval_fn(
         ctx,
         feature_dataset,
         load_features=True,
-        col_selects=model_public_info['col_selects'],
+        col_selects=model_public_info['feature_names'],
     )
 
     offset_col = model_public_info['offset_col']
@@ -597,71 +629,16 @@ def ss_glm_predict_eval_fn(
             to_pyu=pyu,
         )
 
-        y_path = os.path.join(ctx.local_fs_wd, pred)
-
-        if save_ids:
-            id_df = load_table(ctx, feature_dataset, load_ids=True)
-            assert pyu in id_df.partitions
-            id_header_map = extract_table_header(feature_dataset, load_ids=True)
-            assert receiver in id_header_map
-            id_header = list(id_header_map[receiver].keys())
-            id_data = id_df.partitions[pyu].data
-        else:
-            id_header_map = None
-            id_header = None
-            id_data = None
-
-        if save_label:
-            label_df = load_table(
-                ctx,
-                feature_dataset,
-                load_features=True,
-                load_labels=True,
-                col_selects=model_public_info['label_col'],
-            )
-            assert pyu in label_df.partitions
-            label_header_map = extract_table_header(
-                feature_dataset,
-                load_features=True,
-                load_labels=True,
-                col_selects=model_public_info['label_col'],
-            )
-            assert receiver in label_header_map
-            label_header = list(label_header_map[receiver].keys())
-            label_data = label_df.partitions[pyu].data
-        else:
-            label_header_map = None
-            label_header = None
-            label_data = None
-
-        wait(
-            pyu(save_prediction_csv)(
-                pyu_y.partitions[pyu],
-                pred_name,
-                y_path,
-                label_data,
-                label_header,
-                id_data,
-                id_header,
-            )
+    with ctx.tracer.trace_io():
+        y_db = save_prediction_dd(
+            ctx,
+            pred,
+            pyu_y,
+            pred_name,
+            feature_dataset,
+            feature_dataset_saved_features,
+            model_public_info['label_col'] if save_label else [],
+            save_ids,
         )
-
-    y_db = DistData(
-        name=pred_name,
-        type=str(DistDataType.INDIVIDUAL_TABLE),
-        data_refs=[DistData.DataRef(uri=pred, party=receiver, format="csv")],
-    )
-
-    meta = gen_prediction_csv_meta(
-        id_header=id_header_map,
-        label_header=label_header_map,
-        party=receiver,
-        pred_name=pred_name,
-        line_count=x.shape[0],
-        id_keys=id_header,
-        label_keys=label_header,
-    )
-
-    y_db.meta.Pack(meta)
 
     return {"pred": y_db}

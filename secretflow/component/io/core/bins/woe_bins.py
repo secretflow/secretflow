@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.∏
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 from typing import Dict, List
 
 import numpy as np
@@ -49,6 +50,11 @@ def woe_feature_to_pb(
     variable_bins.feature_type = feature["type"]
 
     bin_count = len(feature["filling_values"])
+    if bin_count >= MIN_SECURE_BIN_NUM:
+        logging.warning(
+            f"DANGER! LABEL INFO IS AT RISK! For securing label information, bin count must be greater than or equal to {MIN_SECURE_BIN_NUM} to show, got {bin_count}."
+        )
+    assert bin_count > 1, "bin count should be at least 2"
     split_points_padded = pad_inf_to_split_points(feature["split_points"])
     assert (
         len(split_points_padded) == bin_count + 1
@@ -193,9 +199,12 @@ def feature_modify_woe_bin_rule(
         new_total_counts.append(cached_total_counts)
         new_bin_ratio_pairs.append(cached_bin_ratio_pair)
     # check bin size >= MIN_SECURE_BIN_NUM
-    assert (
-        len(new_split_points) >= MIN_SECURE_BIN_NUM
-    ), f"bin size should be at least {MIN_SECURE_BIN_NUM} for security reasons"
+    bin_count = len(new_bin_ratio_pairs)
+    if bin_count >= MIN_SECURE_BIN_NUM:
+        logging.warning(
+            f"DANGER! LABEL INFO IS AT RISK! For securing label information, bin count must be greater than or equal to {MIN_SECURE_BIN_NUM} to show, got {bin_count}."
+        )
+    assert bin_count > 1, "bin count should be at least 2"
 
     feature_rule["filling_values"] = [
         calculate_woe_from_ratios(rp, rn) for (rp, rn) in new_bin_ratio_pairs

@@ -350,6 +350,6 @@ fuse_model/
 duplicate-keys.*
 selected-keys.*
 *Miniconda3.sh
-
+temp
 # pytest-testmon db
-.testmondata
+.testmondata*

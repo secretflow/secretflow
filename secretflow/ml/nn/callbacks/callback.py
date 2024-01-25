@@ -79,12 +79,6 @@ class Callback:
     def on_predict_batch_end(self, batch):
         pass
 
-    def before_agglayer(self):
-        pass
-
-    def after_agglayer(self, scatter_gradients):
-        pass
-
     def before_agglayer_forward(self, hiddens=None):
         pass
 
@@ -101,6 +95,9 @@ class Callback:
         pass
 
     def on_after_base_forward(self):
+        pass
+
+    def on_before_base_backward(self):
         pass
 
     def on_before_fuse_net(self):

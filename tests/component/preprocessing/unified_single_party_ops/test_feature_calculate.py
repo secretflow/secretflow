@@ -247,7 +247,7 @@ def _build_test():
 
     bob_data = test_data_bob.copy()
     bob_feature = ['b1']
-    bob_data['b1'] = bob_data['b1'].round() * 1.0
+    bob_data['b1'] = bob_data['b1'].round()
 
     names.append("round")
     tests.append(rule)

@@ -65,10 +65,12 @@ def convert_dist_data_to_domain_data(
             return "model"
         elif dist_data_type.startswith("sf.rule"):
             return "rule"
-        elif dist_data_type.startswith("sf.report"):
+        elif dist_data_type == "sf.report":
             return "report"
-        elif dist_data_type.startswith("sf.read_data"):
+        elif dist_data_type == "sf.read_data":
             return "read_data"
+        elif dist_data_type == "sf.serving.model":
+            return "serving_model"
         return "unknown"
 
     def get_data_columns(x: DistData, party: str) -> List[DataColumn]:
@@ -114,7 +116,7 @@ def convert_dist_data_to_domain_data(
     )
 
     domain_data.attributes["dist_data"] = MessageToJson(
-        x, including_default_value_fields=True
+        x, including_default_value_fields=True, indent=0
     )
     domain_data.columns.extend(get_data_columns(x, party))
 

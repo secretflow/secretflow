@@ -22,6 +22,7 @@ from typing import Any, Dict, List, Tuple
 import numpy as np
 import pandas as pd
 
+from secretflow.data import FedNdarray
 from secretflow.data.core.io import read_file_meta
 from secretflow.data.vertical import read_csv
 from secretflow.data.vertical.dataframe import VDataFrame
@@ -77,6 +78,8 @@ class DistDataType(BaseEnum):
     REPORT = "sf.report"
     # read data
     READ_DATA = "sf.read_data"
+    # serving model file
+    SERVING_MODEL = "sf.serving.model"
 
 
 @enum.unique
@@ -651,20 +654,17 @@ def save_prediction_csv(
     pred_df: pd.DataFrame,
     pred_key: str,
     path: str,
-    label_df: pd.DataFrame = None,
-    label_keys: List[str] = None,
-    id_df: pd.DataFrame = None,
-    id_keys: List[str] = None,
+    addition_df: List[pd.DataFrame] = None,
+    addition_keys: List[str] = None,
     try_append: bool = False,
 ) -> None:
     x = pd.DataFrame(pred_df, columns=[pred_key])
 
-    if label_df is not None:
-        label = pd.DataFrame(label_df, columns=label_keys)
-        x = pd.concat([x, label], axis=1)
-    if id_df is not None:
-        id = pd.DataFrame(id_df, columns=id_keys)
-        x = pd.concat([x, id], axis=1)
+    if addition_df:
+        assert addition_keys
+        addition_data = pd.concat(addition_df, axis=1)
+        addition_data.columns = addition_keys
+        x = pd.concat([x, addition_data], axis=1)
 
     import os
 
@@ -678,30 +678,118 @@ def save_prediction_csv(
 
 
 def gen_prediction_csv_meta(
-    id_header: Dict[str, Dict[str, np.dtype]],
-    label_header: Dict[str, Dict[str, np.dtype]],
-    party: str,
+    addition_headers: Dict[str, np.dtype],
+    saved_ids: List[str],
+    saved_labels: List[str],
+    saved_features: List[str],
     pred_name: str,
     line_count: int = None,
-    id_keys: List[str] = None,
-    label_keys: List[str] = None,
 ) -> IndividualTable:
     return IndividualTable(
         schema=TableSchema(
-            ids=id_keys if id_keys is not None else [],
-            id_types=[REVERSE_DATA_TYPE_MAP[id_header[party][k]] for k in id_keys]
-            if id_keys is not None
-            else [],
-            labels=(label_keys if label_keys is not None else []) + [pred_name],
-            label_types=(
-                [REVERSE_DATA_TYPE_MAP[label_header[party][k]] for k in label_keys]
-                if label_keys is not None
-                else []
-            )
+            ids=saved_ids,
+            id_types=[REVERSE_DATA_TYPE_MAP[addition_headers[k]] for k in saved_ids],
+            labels=saved_labels + [pred_name],
+            label_types=[
+                REVERSE_DATA_TYPE_MAP[addition_headers[k]] for k in saved_labels
+            ]
             + ["float"],
+            feature_types=[
+                REVERSE_DATA_TYPE_MAP[addition_headers[k]] for k in saved_features
+            ],
+            features=saved_features,
         ),
         line_count=line_count if line_count is not None else -1,
     )
+
+
+# TODO: support streaming pred
+def save_prediction_dd(
+    ctx,
+    uri: str,
+    pyu_pred: FedNdarray,
+    pred_name: str,
+    feature_dataset,
+    saved_features: List[str],
+    saved_labels: List[str],
+    save_ids: bool,
+) -> DistData:
+    assert len(pyu_pred.partitions) == 1
+    pyu = list(pyu_pred.partitions.keys())[0]
+
+    addition_df = []
+    addition_headers = {}
+    saved_ids = []
+
+    def _named_features(features_name: List[str]):
+        header = extract_table_header(
+            feature_dataset,
+            load_ids=True,
+            load_features=True,
+            load_labels=True,
+            col_selects=features_name,
+        )
+        assert (
+            len(header) == 1 and pyu.party in header
+        ), f"The feature column {features_name} to be saved can only belong to receiver party {pyu.party}"
+        addition_headers.update(header[pyu.party])
+        df = load_table(
+            ctx,
+            feature_dataset,
+            load_ids=True,
+            load_features=True,
+            load_labels=True,
+            col_selects=features_name,
+        )
+        addition_df.append(df.partitions[pyu].data)
+
+    if save_ids:
+        id_header = extract_table_header(feature_dataset, load_ids=True)
+        assert (
+            pyu.party in id_header
+        ), f"can not find id col for receiver party {pyu.party}, {id_header}"
+        addition_headers.update(id_header[pyu.party])
+        saved_ids = list(id_header[pyu.party].keys())
+        _named_features(saved_ids)
+
+    if saved_features:
+        _named_features(saved_features)
+    else:
+        saved_features = []
+
+    if saved_labels:
+        _named_features(saved_labels)
+    else:
+        saved_labels = []
+
+    wait(
+        pyu(save_prediction_csv)(
+            pyu_pred.partitions[pyu],
+            pred_name,
+            os.path.join(ctx.local_fs_wd, uri),
+            addition_df,
+            list(addition_headers.keys()),
+        )
+    )
+
+    pred_db = DistData(
+        name=pred_name,
+        type=str(DistDataType.INDIVIDUAL_TABLE),
+        data_refs=[DistData.DataRef(uri=uri, party=pyu.party, format="csv")],
+    )
+
+    meta = gen_prediction_csv_meta(
+        addition_headers=addition_headers,
+        saved_ids=saved_ids,
+        saved_labels=saved_labels,
+        saved_features=saved_features,
+        pred_name=pred_name,
+        line_count=pyu_pred.shape[0],
+    )
+
+    pred_db.meta.Pack(meta)
+
+    return pred_db
 
 
 def any_pyu_from_spu_config(config: dict):

@@ -134,7 +134,7 @@ y_b_teeu = y_b.to(teeu, allow_funcs=xgb_demo)
 
 # Run xgb_demo.
 res = teeu(xgb_demo)([x_a_teeu, x_b_teeu], [y_a_teeu, y_b_teeu])
-
+error = sf.reveal(res)
 print(f'Train error: {error}')
 
 ```
@@ -268,7 +268,7 @@ y_b_teeu = y_b.to(teeu, allow_funcs=xgb_demo)
 
 # Run xgb_demo.
 res = teeu(xgb_demo)([x_a_teeu, x_b_teeu], [y_a_teeu, y_b_teeu])
-
+error = sf.reveal(res)
 print(f'Train error: {error}')
 
 ```
@@ -401,7 +401,7 @@ y_b_teeu = y_b.to(teeu, allow_funcs=xgb_demo)
 
 # Run xgb_demo.
 res = teeu(xgb_demo)([x_a_teeu, x_b_teeu], [y_a_teeu, y_b_teeu])
-
+error = sf.reveal(res)
 print(f'Train error: {error}')
 
 ```
@@ -527,7 +527,7 @@ y_b_teeu = y_b.to(teeu, allow_funcs=xgb_demo)
 
 # Run xgb_demo.
 res = teeu(xgb_demo)([x_a_teeu, x_b_teeu], [y_a_teeu, y_b_teeu])
-
+error = sf.reveal(res)
 print(f'Train error: {error}')
 
 ```

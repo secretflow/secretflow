@@ -1,9 +1,9 @@
+import copy
 import logging
 import time
 
 import numpy as np
 from sklearn.preprocessing import StandardScaler
-import copy
 
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.device.driver import reveal, wait
@@ -55,6 +55,7 @@ def _run_test(
     # deviance = get_dist(dist, 1, 1).deviance(yhat, y, None)
     logging.info(f"{test_name} deviance: {deviance}")
 
+    start = time.time()
     model.fit_irls(
         v_data,
         label_data_copy,

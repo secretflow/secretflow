@@ -384,7 +384,7 @@ be a function of its predicted value.
 |epochs|The number of complete pass through the training data.|Integer|N|Default: 10. Range: [1, $\infty$).|
 |learning_rate|The step size at each iteration in one iteration.|Float|N|Default: 0.1. Range: (0.0, $\infty$).|
 |batch_size|The number of training examples utilized in one iteration.|Integer|N|Default: 1024. Range: (0, $\infty$).|
-|link_type|link function type|String|Y|Default: . Allowed: ['Logit', 'Log', 'Reciprocal', 'Indentity'].|
+|link_type|link function type|String|Y|Default: . Allowed: ['Logit', 'Log', 'Reciprocal', 'Identity'].|
 |label_dist_type|label distribution type|String|Y|Default: . Allowed: ['Bernoulli', 'Poisson', 'Gamma', 'Tweedie'].|
 |tweedie_power|Tweedie distribution power parameter|Float|N|Default: 1.0. Range: [0.0, 2.0].|
 |dist_scale|A guess value for distribution's scale|Float|N|Default: 1.0. Range: [1.0, $\infty$).|

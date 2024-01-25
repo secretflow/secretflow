@@ -13,5 +13,6 @@
 # limitations under the License.
 from .ldp_aggregator import LDPAggregator
 from .lldp_aggregator import LLDPAggregator
+from .qpldp_aggregator import QPLDPAggregator
 
-__all__ = ["LDPAggregator", "LLDPAggregator"]
+__all__ = ["LDPAggregator", "LLDPAggregator", "QPLDPAggregator"]

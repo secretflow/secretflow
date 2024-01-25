@@ -75,13 +75,13 @@ Replace `ip:port` with the `node-ip-address` and `port` of head node please.
 ray start --address="ip:port" --resources='{"bob": 16}' --disable-usage-stats
 ```
 
-The node starts successfully if you see "Ray runtime started." in the screen output. 
+The node starts successfully if you see "Ray runtime started." in the screen output.
 A Ray cluster consisting of two Ray nodes has been built by now, while the head node simulates `alice` and the slave node simulates `bob`.
 
 You can repeat the step above to start more nodes with using other parties as resources tag as you like.
 
 #### Start SecretFlow
-Now you can start SecretFlow and run your code. 
+Now you can start SecretFlow and run your code.
 The following code shows that alice and bob each execute a function that returns the input value.
 
 ---
@@ -129,9 +129,9 @@ A typical SPU config is as follows.
 **Tips**
 
 1. Replace `address` in `sf.init` with the `node-ip-address` and `port` of head node please.
-2. Fill `address` of `alice` with the address which can be accessed by `bob` and choose **an unused port** different with Ray. 
+2. Fill `address` of `alice` with the address which can be accessed by `bob` and choose **an unused port** different with Ray.
 3. `listen_addr` of `alice` can use the same port of alice `address`.
-4. Fill `address` of `bob` with the ip which can be accessed by `alice` and choose **an unused port** different with Ray. 
+4. Fill `address` of `bob` with the ip which can be accessed by `alice` and choose **an unused port** different with Ray.
 5. `listen_addr` of `bob` can use the same port of bob `address`.
 
 ---
@@ -342,7 +342,7 @@ The following steps are expected to be done in different distributions to set up
         all versions of Python in different distributions should be exactly same.
 
         ```bash
-        conda create --name secretflow python==3.8.15
+        conda create --name secretflow python==3.8.18
         ```
 
    - Activate the virtual environment of SecretFlow
@@ -510,7 +510,7 @@ We use `ray_ip` and `ray_port` to start SecretFlow in first distribution with th
 
 ```bash
 (secretflow) alice@DESKTOP-SAOB7DQ:~$ python
-Python 3.8.15 (default, Nov 24 2022, 15:19:38)
+Python 3.8.18 (default, Nov 24 2022, 15:19:38)
 [GCC 11.2.0] :: Anaconda, Inc. on linux
 Type "help", "copyright", "credits" or "license" for more information.
 >>> import secretflow as sf
@@ -572,7 +572,7 @@ The architecture of the production mode is shown in the figure below.
 
 ![simulation_comm](resources/rayfed_comm_en.png)
 
-The following will guide you to deploy SecretFlow for production. 
+The following will guide you to deploy SecretFlow for production.
 
 ### Setup a SecretFlow cluster crossing silo
 
@@ -592,7 +592,7 @@ Please keep in mind that alice and bob should run the code simultaneously.
 ```bash
 ray start --head --node-ip-address="ip" --port="port" --include-dashboard=False --disable-usage-stats
 ```
-Head node starts successfully if you see "Ray runtime started." in the screen output. 
+Head node starts successfully if you see "Ray runtime started." in the screen output.
 So far, Alice's Ray cluster has been successfully built.
 
 Then `alice` initializes SecretFlow with a cluster config and runs the code.
@@ -601,7 +601,7 @@ Then `alice` initializes SecretFlow with a cluster config and runs the code.
 **Tips**
 1. Replace `ip:port` in `sf.init` with the `node-ip-address` and `port` of head node please.
 2. Fill `address` of `alice` with the address which can be accessed by `bob`. Remember to choose an unused port different with port of Ray and SPU.
-3. Fill `address` of `bob` with the address which can be accessed by `alice`. Remember to choose an unused port different with port of Ray and SPU. 
+3. Fill `address` of `bob` with the address which can be accessed by `alice`. Remember to choose an unused port different with port of Ray and SPU.
 4. Note that `self_party` is `alice`.
 5. Please note that `sf.init` does not need to provide the `parties` parameter, but needs to provide a `cluster_config` to describe the communication address and port between the two organizations.
 6. To ensure `ports` of `alice` and `bob` can be accessed by each other and the firewall of the system isn't disabled, you are supposed to add the 'address' of `alice` and `bob` into the IP whitelist of each other.
@@ -635,7 +635,7 @@ sf.init(address='alice ray head node address', cluster_config=cluster_config)
 ```bash
 ray start --head --node-ip-address="ip" --port="port" --include-dashboard=False --disable-usage-stats
 ```
-Head node starts successfully if you see "Ray runtime started." in the screen output. 
+Head node starts successfully if you see "Ray runtime started." in the screen output.
 So far, bob's Ray cluster has been successfully built.
 
 
@@ -644,9 +644,9 @@ Then `bob` initializes SecretFlow with a cluster config almost same as `alice` e
 ---
 **Tips**
 1. Replace `address` in `sf.init` with the `node-ip-address` and `port` of head node please. Note, here is bob’s head node address, please don’t fill in alice’s.
-2. Fill `address` of `alice` with the address which can be accessed by `bob`. Remember to choose an unused port different with port of Ray and SPU. 
-3. Fill `address` of `bob` with the address which can be accessed by `alice`. Remember to choose an unused port different with port of Ray and SPU. 
-4. Note that `self_party` is `bob`. 
+2. Fill `address` of `alice` with the address which can be accessed by `bob`. Remember to choose an unused port different with port of Ray and SPU.
+3. Fill `address` of `bob` with the address which can be accessed by `alice`. Remember to choose an unused port different with port of Ray and SPU.
+4. Note that `self_party` is `bob`.
 5. Please note that `sf.init` does not need to provide the `parties` parameter, but needs to provide a `cluster_config` to describe the communication address and port between the two organizations.
 6. To ensure `ports` of `alice` and `bob` can be accessed by each other and the firewall of the system isn't disabled, you are supposed to add the 'address' of `alice` and `bob` into the IP whitelist of each other.
 7. The `telnet` command is typically used to test the accessibility of a port.
@@ -696,8 +696,8 @@ In order to avoid problems such as connection timeout caused by the startup time
         "key": "server key of alice in pem",
     }
 
-    sf.init(address='ip:port', 
-            cluster_config=cluster_config, 
+    sf.init(address='ip:port',
+            cluster_config=cluster_config,
             tls_config=tls_config
     )
     ```
@@ -710,8 +710,8 @@ In order to avoid problems such as connection timeout caused by the startup time
         "key": "server key of bob in pem",
     }
 
-    sf.init(address='ip:port', 
-            cluster_config=cluster_config, 
+    sf.init(address='ip:port',
+            cluster_config=cluster_config,
             tls_config=tls_config
     )
     ```
@@ -726,8 +726,8 @@ In order to avoid problems such as connection timeout caused by the startup time
         "numpy": ["dtype"],
     }
 
-    sf.init(address='ip:port', 
-            cluster_config=cluster_config, 
+    sf.init(address='ip:port',
+            cluster_config=cluster_config,
             cross_silo_serializing_allowed_list=allowed_list
     )
     ```

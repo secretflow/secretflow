@@ -11,26 +11,32 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Dict
 
 from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import (
     DistDataType,
+    VerticalTableWrapper,
     dump_vertical_table,
     generate_random_string,
     load_table,
     model_dumps,
     model_loads,
     move_feature_to_label,
-    VerticalTableWrapper,
 )
-from secretflow.device.device.pyu import PYUObject
+from secretflow.component.io.core.bins.bin_utils import pad_inf_to_split_points
+from secretflow.device.device.pyu import PYU, PYUObject
+from secretflow.device.driver import reveal
 from secretflow.preprocessing.binning.vert_bin_substitution import VertBinSubstitution
 from secretflow.preprocessing.binning.vert_binning import VertBinning
+from secretflow.spec.v1.component_pb2 import Attribute
+from secretflow.spec.v1.data_pb2 import DistData
+from secretflow.spec.v1.report_pb2 import Div, Report, Tab, Table
 
 vert_binning_comp = Component(
     "vert_binning",
     domain="feature",
-    version="0.0.1",
+    version="0.0.2",
     desc="Generate equal frequency or equal range binning rules for vertical partitioning datasets.",
 )
 
@@ -43,15 +49,25 @@ vert_binning_comp.str_attr(
     default_value="eq_range",
     allowed_values=["eq_range", "quantile"],
 )
+
 vert_binning_comp.int_attr(
     name="bin_num",
     desc="Max bin counts for one features.",
     is_list=False,
     is_optional=True,
     default_value=10,
-    lower_bound=0,
-    lower_bound_inclusive=False,
+    lower_bound=2,
+    lower_bound_inclusive=True,
 )
+
+vert_binning_comp.bool_attr(
+    name="report_rules",
+    desc="Whether report binning rules.",
+    is_list=False,
+    is_optional=True,
+    default_value=False,
+)
+
 vert_binning_comp.io(
     io_type=IoType.INPUT,
     name="input_data",
@@ -73,9 +89,124 @@ vert_binning_comp.io(
     col_params=None,
 )
 
+vert_binning_comp.io(
+    io_type=IoType.OUTPUT,
+    name="report",
+    desc="report rules details if report_rules is true",
+    types=[DistDataType.REPORT],
+)
+
 # current version 0.1
+# only update if bin rule ser-de process changes
 BINNING_RULE_MAX_MAJOR_VERSION = 0
 BINNING_RULE_MAX_MINOR_VERSION = 1
+
+
+def gen_one_col_table(rule_dict: dict) -> Table:
+    headers = [
+        Table.HeaderItem(
+            name="from",
+            desc="'from' can be range or nan values or single string.\
+                bin rule map 'from' value to 'to' value",
+            type="str",
+        ),
+        Table.HeaderItem(
+            name="to",
+            desc="'to' value is a float. bin rule map 'from' value to 'to' value",
+            type="str",
+        ),
+    ]
+    rows = []
+    if rule_dict["type"] == "numeric":
+        split_points = pad_inf_to_split_points(rule_dict["split_points"])
+        for i in range(len(split_points) - 1):
+            from_val = f"({split_points[i]}, {split_points[i+1]}]"
+            to_val = str(rule_dict["filling_values"][i])
+            rows.append(
+                Table.Row(
+                    name=f"{i}", items=[Attribute(s=from_val), Attribute(s=to_val)]
+                )
+            )
+        rows.append(
+            Table.Row(
+                name=f"{len(split_points)-1}",
+                items=[
+                    Attribute(s="nan values"),
+                    Attribute(s=str(rule_dict["else_filling_value"])),
+                ],
+            )
+        )
+    else:
+        categories = rule_dict["categories"]
+        for i in range(len(categories)):
+            from_val = f"{categories[i]}"
+            to_val = rule_dict["filling_values"][i]
+            rows.append(
+                Table.Row(
+                    name=f"{i}", items=[Attribute(s=from_val), Attribute(s=to_val)]
+                )
+            )
+        rows.append(
+            Table.Row(
+                name=f"{len(categories)}",
+                items=[
+                    Attribute(s="nan values"),
+                    Attribute(s=str(rule_dict.get("else_filling_value", "null"))),
+                ],
+            )
+        )
+    r_table = Table(
+        headers=headers,
+        rows=rows,
+        name=f"{rule_dict['name']}",
+        desc=f"rule for {rule_dict['name']} (type:{rule_dict['type']})",
+    )
+    return r_table
+
+
+def gen_bin_rules_report(rules: Dict[PYU, PYUObject]) -> Report:
+    tabs = []
+    for rule in rules.values():
+        rule = reveal(rule)
+        variable_data_list = rule["variables"] if "variables" in rule else []
+        for variable_data in variable_data_list:
+            tabs.append(
+                Tab(
+                    name=variable_data["name"],
+                    desc=f"bin rules for {variable_data['name']}",
+                    divs=[
+                        Div(
+                            children=[
+                                Div.Child(
+                                    type="Table",
+                                    table=gen_one_col_table(variable_data),
+                                )
+                            ],
+                        )
+                    ],
+                )
+            )
+    report_mate = Report(
+        name="bin rule reports",
+        desc="report for bin rules for each feature",
+        tabs=tabs,
+    )
+    return report_mate
+
+
+def dump_binning_rules(
+    name, system_info, rules: Dict[PYU, PYUObject], report_rules: bool
+) -> DistData:
+    res = DistData(
+        name=name,
+        system_info=system_info,
+        type=str(DistDataType.REPORT),
+        data_refs=[],
+    )
+    if report_rules:
+        report_mate = gen_bin_rules_report(rules)
+        res.meta.Pack(report_mate)
+    return res
 
 
 @vert_binning_comp.eval_fn
@@ -84,9 +215,11 @@ def vert_binning_eval_fn(
     ctx,
     binning_method,
     bin_num,
+    report_rules,
     input_data,
     input_data_feature_selects,
     bin_rule,
+    report,
 ):
     input_df = load_table(
         ctx,
@@ -118,8 +251,14 @@ def vert_binning_eval_fn(
             bin_rule,
             input_data.system_info,
         )
+        report_dist_data = dump_binning_rules(
+            report,
+            input_data.system_info,
+            rules,
+            report_rules,
+        )
 
-    return {"bin_rule": model_dist_data}
+    return {"bin_rule": model_dist_data, "report": report_dist_data}
 
 
 vert_bin_substitution_comp = Component(

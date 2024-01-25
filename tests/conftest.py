@@ -7,16 +7,15 @@ from dataclasses import dataclass
 
 import multiprocess
 import pytest
+import spu
+from xdist.scheduler import LoadScheduling
 
 import secretflow as sf
 import secretflow.distributed as sfd
-import spu
 from secretflow.distributed.primitive import DISTRIBUTION_MODE
 from secretflow.spec.extend.cluster_pb2 import SFClusterConfig, SFClusterDesc
 from secretflow.spec.v1.data_pb2 import StorageConfig
 from secretflow.utils.testing import unused_tcp_port
-from xdist.scheduler import LoadScheduling
-
 from tests.cluster import cluster, set_self_party
 from tests.load import SF_PARTIES, SF_PARTY_PREFIX, SFLoadPartyScheduling
 
@@ -158,7 +157,7 @@ class DeviceInventory:
 def sf_memory_setup_devices(request):
     devices = DeviceInventory()
     sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.DEBUG)
-    sf.shutdown(barrier_on_shutdown=True)
+    sf.shutdown()
     sf.init(
         ["alice", "bob", "carol", "davy", "spu"],
         debug_mode=True,
@@ -177,14 +176,14 @@ def sf_memory_setup_devices(request):
 
     yield devices
     del devices
-    sf.shutdown(barrier_on_shutdown=True)
+    sf.shutdown()
 
 
 @pytest.fixture(scope="module", params=[semi2k_cluster])
 def sf_simulation_setup_devices(request):
     devices = DeviceInventory()
     sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.SIMULATION)
-    sf.shutdown(barrier_on_shutdown=True)
+    sf.shutdown()
     sf.init(
         ["alice", "bob", "carol", "davy"],
         address="local",
@@ -212,7 +211,7 @@ def sf_simulation_setup_devices(request):
 
     yield devices
     del devices
-    sf.shutdown(barrier_on_shutdown=True)
+    sf.shutdown()
 
 
 @pytest.fixture(scope="session", params=SF_PARTIES)
@@ -265,7 +264,7 @@ def sf_production_setup_devices_grpc(request, sf_party_for_4pc):
 
     yield devices
     del devices
-    sf.shutdown(barrier_on_shutdown=True)
+    sf.shutdown()
 
 
 @pytest.fixture(scope="module")
@@ -304,6 +303,7 @@ def sf_production_setup_devices(request, sf_party_for_4pc):
         link_desc={
             "connect_retry_times": 60,
             "connect_retry_interval_ms": 1000,
+            'recv_timeout_ms': 600 * 1000,
         },
         id='spu1',
     )
@@ -315,6 +315,7 @@ def sf_production_setup_devices(request, sf_party_for_4pc):
         link_desc={
             "connect_retry_times": 60,
             "connect_retry_interval_ms": 1000,
+            "recv_timeout_ms": 120000,
         },
         id='spu2',
     )
@@ -323,7 +324,7 @@ def sf_production_setup_devices(request, sf_party_for_4pc):
 
     yield devices
     del devices
-    sf.shutdown(barrier_on_shutdown=True)
+    sf.shutdown()
 
 
 @pytest.fixture(scope="module")
@@ -362,6 +363,10 @@ def sf_production_setup_devices_aby3(request, sf_party_for_4pc):
         link_desc={
             "connect_retry_times": 60,
             "connect_retry_interval_ms": 1000,
+            "brpc_channel_protocol": "http",
+            "brpc_channel_connection_type": "pooled",
+            "recv_timeout_ms": 2000 * 1000,
+            "http_timeout_ms": 2000 * 1000,
         },
         id='spu1',
     )
@@ -381,7 +386,7 @@ def sf_production_setup_devices_aby3(request, sf_party_for_4pc):
 
     yield devices
     del devices
-    sf.shutdown(barrier_on_shutdown=True)
+    sf.shutdown()
 
 
 TEST_STORAGE_ROOT = os.path.join(tempfile.gettempdir(), getpass.getuser())
@@ -404,7 +409,10 @@ def comp_prod_sf_cluster_config(request, sf_party_for_4pc):
                 parties=["alice", "bob"],
                 config=json.dumps(
                     {
-                        "runtime_config": {"protocol": "REF2K", "field": "FM64"},
+                        "runtime_config": {
+                            "protocol": "REF2K",
+                            "field": "FM64",
+                        },
                         "link_desc": {
                             "connect_retry_times": 60,
                             "connect_retry_interval_ms": 1000,
@@ -454,6 +462,7 @@ def comp_prod_sf_cluster_config(request, sf_party_for_4pc):
                     ],
                 )
             ],
+            barrier_on_shutdown=True,
         ),
         private_config=SFClusterConfig.PrivateConfig(
             self_party=sf_party_for_4pc,

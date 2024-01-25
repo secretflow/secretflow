@@ -1,0 +1,52 @@
+# See https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners 
+# for more info about CODEOWNERS file
+
+* @ian-huu @warriorpaw @rivertalk
+
+secretflow/data/ @warriorpaw @ian-huu
+tests/data/ @warriorpaw @ian-huu
+
+secretflow/device/ @warriorpaw @ian-huu @zhouaihui @usafchn
+tests/device/ @warriorpaw @ian-huu @zhouaihui @usafchn
+
+secretflow/preprocessing/ @warriorpaw @ian-huu
+tests/preprocessing/ @warriorpaw @ian-huu
+
+secretflow/security/ @Jamie-Cui @warriorpaw
+tests/security/ @Jamie-Cui @warriorpaw
+
+secretflow/ml/boost/ @warriorpaw @da-niao-dan
+tests/ml/boost/ @warriorpaw @da-niao-dan
+
+secretflow/ml/boost/homo_boost/ @ian-huu
+tests/ml/boost/homo_boost/ @ian-huu
+
+secretflow/ml/linear/ @warriorpaw @ian-huu
+tests/ml/linear/ @warriorpaw @ian-huu
+
+secretflow/ml/nn/ @ian-huu
+tests/ml/nn/ @ian-huu
+
+secretflow/stats/ @warriorpaw @da-niao-dan
+tests/stats/ @warriorpaw @da-niao-dan
+
+secretflow/distributed/  @zhouaihui @ian-huu
+tests/distributed/  @zhouaihui @ian-huu
+
+secretflow/protos/ @rivertalk
+
+secretflow/kuscia/ @UniqueMarvin
+tests/kuscia/ @UniqueMarvin
+
+secretflow/component/ @warriorpaw @6fj
+tests/component/ @warriorpaw @6fj
+
+secretflow/compute/ @warriorpaw @oeqqwq
+tests/compute/ @warriorpaw @oeqqwq
+
+secretflow/ic/ @usafchn
+
+secretflow/tune/ @ian-huu
+tests/tuner/ @ian-huu
+
+examples @ian-huu @rivertalk
