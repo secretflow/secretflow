@@ -18,7 +18,6 @@ from typing import Any, List, Union
 import jax.numpy as jnp
 import numpy as np
 
-from secretflow.utils.communicate import ForwardData
 from secretflow.utils.errors import InvalidArgumentError
 
 
@@ -44,12 +43,8 @@ class Compressor(ABC):
             Union[Any, List[Any]]: compressed data.
         """
         is_list = True
-
-        if isinstance(data, ForwardData):
-            hidden = data.hidden
-        else:
-            hidden = data
-
+        # TODO:@xiaonan single model + compressor, data=None will be passed here.
+        hidden = data
         if isinstance(hidden, (np.ndarray, jnp.ndarray)):
             is_list = False
             hidden = [hidden]
@@ -57,11 +52,7 @@ class Compressor(ABC):
             raise InvalidArgumentError(f'invalid data: {type(hidden)}')
         out = list(map(lambda d: self._compress_one(d, **kwargs), hidden))
         out = out if is_list else out[0]
-        if isinstance(data, ForwardData):
-            data.hidden = out
-        else:
-            data = out
-        return data
+        return out
 
     def decompress(
         self, data: Union[Any, List[Any]]
@@ -75,11 +66,7 @@ class Compressor(ABC):
             Union[np.ndarray, List[np.ndarray]]: decompressed data.
         """
         is_list = True
-        if isinstance(data, ForwardData):
-            hidden = data.hidden
-        else:
-            hidden = data
-
+        hidden = data
         if not isinstance(hidden, list):
             is_list = False
             hidden = [hidden]
@@ -87,11 +74,7 @@ class Compressor(ABC):
             raise InvalidArgumentError(f'invalid data: {type(hidden)}')
         hidden = list(map(self._decompress_one, hidden))
         hidden = hidden if is_list else hidden[0]
-        if isinstance(data, ForwardData):
-            data.hidden = hidden
-        else:
-            data = hidden
-        return data
+        return hidden
 
     def iscompressed(self, data: Union[Any, List[Any]]) -> Union[bool, List[bool]]:
         """Checks whether data or data array has been compressed.

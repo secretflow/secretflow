@@ -25,7 +25,6 @@ from typing import Callable
 
 import tensorflow as tf
 
-from secretflow.device import PYUObject, proxy
 from secretflow.ml.nn.sl.backend.tensorflow.sl_base import SLBaseTFModel
 from secretflow.ml.nn.sl.strategy_dispatcher import register_strategy
 from secretflow.security.privacy import DPStrategy
@@ -144,6 +143,5 @@ class SLStateAsyncTFModel(SLBaseTFModel):
 @register_strategy(
     strategy_name='split_state_async', backend='tensorflow', check_skip_grad=True
 )
-@proxy(PYUObject)
 class PYUSLStateAsyncTFModel(SLStateAsyncTFModel):
     pass

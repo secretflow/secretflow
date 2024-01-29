@@ -14,10 +14,11 @@
 import enum
 import json
 import logging
+import math
 import os
 import uuid
 from dataclasses import dataclass
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -355,6 +356,7 @@ def load_table(
         dtypes = {pyus[p]: v_headers[p] for p in v_headers}
         vdf = read_csv(filepaths, dtypes=dtypes, nrows=nrows)
         wait(vdf)
+        assert math.prod(vdf.shape), "empty dataset is not allowed"
     if return_schema_names:
         return vdf, schema_names
     return vdf
@@ -452,6 +454,7 @@ def dump_vertical_table(
     assert isinstance(v_data, VDataFrame)
     assert v_data.aligned
     assert len(v_data.partitions) > 0
+    assert math.prod(v_data.shape), "empty dataset is not allowed"
 
     parties_length = {}
     for device, part in v_data.partitions.items():
@@ -654,11 +657,15 @@ def save_prediction_csv(
     pred_df: pd.DataFrame,
     pred_key: str,
     path: str,
-    addition_df: List[pd.DataFrame] = None,
+    addition_df: Union[List[pd.DataFrame], List[np.array]] = None,
     addition_keys: List[str] = None,
     try_append: bool = False,
 ) -> None:
     x = pd.DataFrame(pred_df, columns=[pred_key])
+
+    addition_df = [
+        df if isinstance(df, pd.DataFrame) else pd.DataFrame(df) for df in addition_df
+    ]
 
     if addition_df:
         assert addition_keys
@@ -703,25 +710,94 @@ def gen_prediction_csv_meta(
     )
 
 
-# TODO: support streaming pred
+class SimpleVerticalBatchReader:
+    def __init__(
+        self,
+        ctx,
+        db: DistData,
+        col_selects: List[str],
+        batch_size: int = 50000,
+    ) -> None:
+        assert len(col_selects), "empty dataset is not allowed"
+        assert (
+            db.type.lower() == DistDataType.INDIVIDUAL_TABLE
+            or db.type.lower() == DistDataType.VERTICAL_TABLE
+        ), f"path format {db.type.lower()} should be sf.table.individual or sf.table.vertical_table"
+
+        v_headers = extract_table_header(
+            db,
+            load_features=True,
+            load_labels=True,
+            load_ids=True,
+            col_selects=col_selects,
+        )
+
+        parties_path_format = extract_distdata_info(db)
+
+        pyus = {p: PYU(p) for p in v_headers}
+        self.filepaths = {
+            pyus[p]: os.path.join(ctx.local_fs_wd, parties_path_format[p].uri)
+            for p in v_headers
+        }
+        self.dtypes = {pyus[p]: v_headers[p] for p in v_headers}
+        self.batch_size = batch_size
+        self.total_read_cnt = 0
+        self.col_selects = col_selects
+
+    def __iter__(self):
+        return self
+
+    def __next__(self) -> VDataFrame:
+        df = self.next(self.batch_size)
+
+        if df.shape[0] == 0:
+            assert self.total_read_cnt, "empty dataset is not allowed"
+            # end
+            raise StopIteration
+
+        return df
+
+    def next(self, batch_size) -> VDataFrame:
+        assert batch_size > 0
+        df = read_csv(
+            self.filepaths,
+            dtypes=self.dtypes,
+            nrows=batch_size,
+            skip_rows_after_header=self.total_read_cnt,
+        )
+
+        if df.shape[0]:
+            df = df[self.col_selects]
+            self.total_read_cnt += df.shape[0]
+
+        return df
+
+
 def save_prediction_dd(
     ctx,
     uri: str,
-    pyu_pred: FedNdarray,
+    pyu: PYU,
+    pyu_preds: Union[List[FedNdarray], FedNdarray],
     pred_name: str,
     feature_dataset,
     saved_features: List[str],
     saved_labels: List[str],
     save_ids: bool,
 ) -> DistData:
-    assert len(pyu_pred.partitions) == 1
-    pyu = list(pyu_pred.partitions.keys())[0]
-
-    addition_df = []
+    # TODO: read all cols in one reader.
+    addition_reader: List[SimpleVerticalBatchReader] = []
     addition_headers = {}
     saved_ids = []
 
+    if isinstance(pyu_preds, FedNdarray):
+        pyu_preds = [pyu_preds]
+
     def _named_features(features_name: List[str]):
+        for f in features_name:
+            assert (
+                f not in addition_headers
+            ), f"do not select {f} as saved feature, repeated with id or label"
+
         header = extract_table_header(
             feature_dataset,
             load_ids=True,
@@ -731,46 +807,62 @@ def save_prediction_dd(
         )
         assert (
             len(header) == 1 and pyu.party in header
-        ), f"The feature column {features_name} to be saved can only belong to receiver party {pyu.party}"
+        ), f"The saved feature {features_name} can only belong to receiver party {pyu.party}, got {header.keys()}"
+
         addition_headers.update(header[pyu.party])
-        df = load_table(
-            ctx,
-            feature_dataset,
-            load_ids=True,
-            load_features=True,
-            load_labels=True,
-            col_selects=features_name,
+        addition_reader.append(
+            SimpleVerticalBatchReader(
+                ctx, feature_dataset, list(header[pyu.party].keys())
+            )
         )
-        addition_df.append(df.partitions[pyu].data)
 
     if save_ids:
         id_header = extract_table_header(feature_dataset, load_ids=True)
         assert (
             pyu.party in id_header
         ), f"can not find id col for receiver party {pyu.party}, {id_header}"
-        addition_headers.update(id_header[pyu.party])
         saved_ids = list(id_header[pyu.party].keys())
         _named_features(saved_ids)
-
-    if saved_features:
-        _named_features(saved_features)
-    else:
-        saved_features = []
 
     if saved_labels:
         _named_features(saved_labels)
     else:
         saved_labels = []
 
-    wait(
-        pyu(save_prediction_csv)(
-            pyu_pred.partitions[pyu],
-            pred_name,
-            os.path.join(ctx.local_fs_wd, uri),
-            addition_df,
-            list(addition_headers.keys()),
+    if saved_features:
+        _named_features(saved_features)
+    else:
+        saved_features = []
+
+    append = False
+    line_count = 0
+    for pyu_pred in pyu_preds:
+        assert len(pyu_pred.partitions) == 1
+        assert pyu in pyu_pred.partitions
+
+        pred_rows = pyu_pred.shape[0]
+        assert pred_rows > 0
+        line_count += pred_rows
+
+        addition_df = []
+        for r in addition_reader:
+            pyu_df = r.next(pred_rows)
+            assert len(pyu_df.partitions) == 1
+            assert pyu in pyu_df.partitions
+            assert pyu_df.shape[0] == pred_rows
+            addition_df.append(pyu_df.partitions[pyu].values)
+
+        wait(
+            pyu(save_prediction_csv)(
+                pyu_pred.partitions[pyu],
+                pred_name,
+                os.path.join(ctx.local_fs_wd, uri),
+                addition_df,
+                list(addition_headers.keys()),
+                append,
+            )
         )
-    )
+        append = True
 
     pred_db = DistData(
         name=pred_name,
@@ -778,13 +870,15 @@ def save_prediction_dd(
         data_refs=[DistData.DataRef(uri=uri, party=pyu.party, format="csv")],
     )
 
+    assert line_count, "empty dataset is not allowed"
+
     meta = gen_prediction_csv_meta(
         addition_headers=addition_headers,
         saved_ids=saved_ids,
         saved_labels=saved_labels,
         saved_features=saved_features,
         pred_name=pred_name,
-        line_count=pyu_pred.shape[0],
+        line_count=line_count,
     )
 
     pred_db.meta.Pack(meta)

@@ -16,6 +16,3 @@ Run export.py to export both the private images and auxiliary images.
 
 The MNIST dataset is used in this demo. We use the official MNIST handle in torchvision, which will automatically download the dataset. Other datasets can also be used by simply changing the handle into `ImageFolder`.
 
-## Results
-
-<img src="image/README/1696738288276.png" width = "400" height = "600" alt="图片名称" align=center />

@@ -12,6 +12,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
+## [v1.4.0.dev240129] - 2024-01-29
+### Added
+- Split learning in PyTorch supports GPU in debug mode.
+- Split learning in PyTorch supports pipeline strategy.
+- Sparse compression supports the compression of multi-dimensional data, such as images.
+- SLModel supports input in the form of file names and allows for multiple label inputs.
+
+- Component: prediction operator results can now save feature columns.
+- Component: binning operators can now view reports directly.
+- Component: binning rule modification is supported.
+- Component: support model exports, support both online and offline prediction.
+
+### Fixed
+- fix: bump rayfed to 0.2.0a18 to fix shutdown lock.
+- Component: improve GLM training accuracy.
+- Component: reduce GLM training memory and computation cost.
 
 ## [v1.4.0.dev240122] - 2024-01-22
 ### Added

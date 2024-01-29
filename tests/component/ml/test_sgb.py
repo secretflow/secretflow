@@ -7,9 +7,7 @@ from google.protobuf.json_format import MessageToJson
 from sklearn.datasets import load_breast_cancer
 from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import StandardScaler
-from tests.conftest import TEST_STORAGE_ROOT
 
-from secretflow.component.data_utils import DistDataType
 from secretflow.component.ml.boost.sgb.sgb import sgb_predict_comp, sgb_train_comp
 from secretflow.component.ml.eval.biclassification_eval import (
     biclassification_eval_comp,
@@ -23,6 +21,7 @@ from secretflow.spec.v1.data_pb2 import (
 )
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
+from tests.conftest import TEST_STORAGE_ROOT
 
 
 def get_train_param(alice_path, bob_path, model_path):
@@ -81,11 +80,13 @@ def get_pred_param(alice_path, bob_path, train_res, predict_path):
             "receiver",
             "save_ids",
             "save_label",
+            "input/feature_dataset/saved_features",
         ],
         attrs=[
             Attribute(s="alice"),
             Attribute(b=False),
             Attribute(b=True),
+            Attribute(ss=[f"a12", "a1", "a6"]),
         ],
         inputs=[
             train_res.outputs[0],
@@ -102,7 +103,7 @@ def get_pred_param(alice_path, bob_path, train_res, predict_path):
     )
 
 
-def get_eval_param(predict_path):
+def get_eval_param(input_dd):
     return NodeEvalParam(
         domain="ml.eval",
         name="biclassification_eval",
@@ -119,15 +120,7 @@ def get_eval_param(predict_path):
             Attribute(ss=["y"]),
             Attribute(ss=["pred"]),
         ],
-        inputs=[
-            DistData(
-                name="in_ds",
-                type=str(DistDataType.INDIVIDUAL_TABLE),
-                data_refs=[
-                    DistData.DataRef(uri=predict_path, party="alice", format="csv"),
-                ],
-            ),
-        ],
+        inputs=[input_dd],
         output_uris=[""],
     )
 
@@ -212,19 +205,32 @@ def test_sgb(comp_prod_sf_cluster_config):
     assert output_it.line_count == input_y.shape[0]
 
     # label & pred
-    assert output_y.shape[1] == 2
+    assert output_y.shape[1] == 5
+
+    np.testing.assert_almost_equal(
+        input_y["a1"].values, output_y["a1"].values, decimal=4
+    )
+    np.testing.assert_almost_equal(
+        input_y["a6"].values, output_y["a6"].values, decimal=4
+    )
+    np.testing.assert_almost_equal(
+        input_y["a12"].values, output_y["a12"].values, decimal=4
+    )
 
     assert input_y.shape[0] == output_y.shape[0]
 
     auc = roc_auc_score(input_y["y"], output_y["pred"])
     assert auc > 0.99, f"auc {auc}"
 
+    output_it = IndividualTable()
+
+    assert predict_res.outputs[0].meta.Unpack(output_it)
+    assert output_it.line_count == input_y.shape[0]
+
+    logging.warning(f"pred .......")
+
     # eval using biclassification eval
-    eval_param = get_eval_param(predict_path)
-    eval_meta = IndividualTable(
-        schema=TableSchema(labels=["y", "pred"], label_types=["float32", "float32"]),
-    )
-    eval_param.inputs[0].meta.Pack(eval_meta)
+    eval_param = get_eval_param(predict_res.outputs[0])
 
     eval_res = biclassification_eval_comp.eval(
         param=eval_param,

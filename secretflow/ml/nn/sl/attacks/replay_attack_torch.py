@@ -108,13 +108,13 @@ class ReplayAttack(AttackCallback):
                         np.arange(target_len), (plen,), replace=True
                     )
                     if isinstance(attack_worker._h, torch.Tensor):
-                        hiddens_np = attack_worker._h.numpy()
+                        hiddens_np = attack_worker._h.detach().numpy()
                         hiddens_np[poison_offsets] = att_info['train_target_hiddens'][
                             0
                         ][replay_keys]
                         attack_worker._h = torch.tensor(hiddens_np)
                     else:
-                        hiddens_np = [h.numpy() for h in attack_worker._h]
+                        hiddens_np = [h.detach().numpy() for h in attack_worker._h]
                         for idx, hid in enumerate(attack_worker._h):
                             hiddens_np = hid.numpy()
                             hiddens_np[poison_offsets] = att_info[

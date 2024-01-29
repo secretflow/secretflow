@@ -26,7 +26,6 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 
-from secretflow.device import PYUObject, proxy
 from secretflow.ml.nn.metrics import AUC, Mean, Precision, Recall
 from secretflow.ml.nn.sl.base import SLBaseModel
 from secretflow.ml.nn.sl.strategy_dispatcher import register_strategy
@@ -237,7 +236,7 @@ class SLBaseTFModel(SLBaseModel):
         has_y = False
         has_s_w = False
         if y is not None:
-            if isinstance(y, str) or len(y.shape) > 0:
+            if isinstance(y, (str, list, tuple)) or len(y.shape) > 0:
                 has_y = True
                 # label name inside file path
                 data_tuple.append(y)
@@ -388,7 +387,7 @@ class SLBaseTFModel(SLBaseModel):
 
         return data_x, data_y, data_s_w
 
-    def reset_data_iter(self, stage):
+    def reset_data_iter(self, stage='train'):
         if stage == "train":
             self.train_set = iter(self.train_dataset)
         elif stage == "eval":
@@ -420,7 +419,7 @@ class SLBaseTFModel(SLBaseModel):
         else:
             raise Exception("invalid stage")
 
-    def base_forward(self) -> ForwardData:
+    def base_forward(self, stage: str = 'train', **kwargs):
         """compute hidden embedding
         Args:
             stage: Which stage of the base forward
@@ -448,8 +447,13 @@ class SLBaseTFModel(SLBaseModel):
         forward_data = ForwardData()
         if len(self.model_base.losses) > 0:
             forward_data.losses = tf.add_n(self.model_base.losses)
+        if isinstance(self._h, tf.Tensor):
+            forward_data.hidden = tf.stop_gradient(self._h)
+        elif isinstance(self._h, list):
+            forward_data.hidden = [tf.stop_gradient(h) for h in self._h]
+        else:
+            raise RuntimeError(f"Unknown type of self._h {type(self._h)}")
         # The compressor can only recognize np type but not tensor.
-        forward_data.hidden = self._h.numpy() if tf.is_tensor(self._h) else self._h
         return forward_data
 
     def fuse_net(
@@ -478,16 +482,16 @@ class SLBaseTFModel(SLBaseModel):
                 h.losses = None
         # get reg losses:
         losses = [h.losses for h in forward_data if h.losses is not None]
-        hidden_features = [h.hidden for h in forward_data]
         hiddens = []
-        for h in hidden_features:
+
+        for fd in forward_data:
+            h = fd.hidden
             # h will be list, if basenet is multi output
             if isinstance(h, List):
                 for i in range(len(h)):
-                    hiddens.append(tf.convert_to_tensor(h[i]))
+                    hiddens.append(h[i])
             else:
-                hiddens.append(tf.convert_to_tensor(h))
-
+                hiddens.append(h)
         logs = {}
         gradient = self._fuse_net_train(hiddens, losses)
 
@@ -569,9 +573,9 @@ class SLBaseTFModel(SLBaseModel):
         for h in hidden_features:
             if isinstance(h, List):
                 for i in range(len(h)):
-                    hiddens.append(tf.convert_to_tensor(h[i]))
+                    hiddens.append(h[i])
             else:
-                hiddens.append(tf.convert_to_tensor(h))
+                hiddens.append(h)
         metrics = self._evaluate_internal(
             hiddens=hiddens,
             eval_y=self.eval_y,
@@ -741,9 +745,9 @@ class SLBaseTFModel(SLBaseModel):
         for h in hidden_features:
             if isinstance(h, List):
                 for i in range(len(h)):
-                    hiddens.append(tf.convert_to_tensor(h[i]))
+                    hiddens.append(h[i])
             else:
-                hiddens.append(tf.convert_to_tensor(h))
+                hiddens.append(h)
         y_pred = self._predict_internal(hiddens)
         return y_pred
 
@@ -886,6 +890,5 @@ class SLBaseTFModel(SLBaseModel):
 
 
 @register_strategy(strategy_name='split_nn', backend='tensorflow')
-@proxy(PYUObject)
 class PYUSLTFModel(SLBaseTFModel):
     pass

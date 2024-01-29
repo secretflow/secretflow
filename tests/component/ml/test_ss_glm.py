@@ -137,7 +137,7 @@ def test_glm(comp_prod_sf_cluster_config):
             Attribute(s="alice"),
             Attribute(b=True),
             Attribute(b=True),
-            Attribute(ss=["a2", "a10"]),
+            Attribute(ss=["a10", "a2"]),
         ],
         inputs=[train_res.outputs[0], train_param.inputs[0]],
         output_uris=[predict_path],
@@ -165,7 +165,7 @@ def test_glm(comp_prod_sf_cluster_config):
 
     if self_party == "alice":
         for n in ["a2", "a10", "y"]:
-            np.allclose(ds[n].values, output_y[n].values)
+            assert np.allclose(ds[n].values, output_y[n].values)
         assert np.all(ds["id1"].values == output_y["id1"].values)
 
     assert input_y.shape[0] == output_y.shape[0]

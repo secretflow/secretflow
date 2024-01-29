@@ -12,7 +12,7 @@ We hope you enjoy these toturials from SecretFlow developers.
 .. toctree::
    :maxdepth: 1
    :caption: IO
-   
+
    FedDataFrameDataLoader
    FedNdarrayDataLoader
    CustomDataLoaderTF
@@ -87,8 +87,9 @@ We hope you enjoy these toturials from SecretFlow developers.
 .. toctree::
    :maxdepth: 1
    :caption: 培训资料
-   
+
    practical_case_walkthrough_using_sf_with_spu
+   programming_guide
 
 
 .. toctree::

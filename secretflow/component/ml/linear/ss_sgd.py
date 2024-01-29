@@ -375,18 +375,19 @@ def ss_sgd_predict_eval_fn(
         col_selects=model_meta["feature_selects"],
     )
 
+    receiver_pyu = PYU(receiver)
     with ctx.tracer.trace_running():
-        pyu = PYU(receiver)
         pyu_y = reg.predict(
             x=x,
             batch_size=batch_size,
-            to_pyu=pyu,
+            to_pyu=receiver_pyu,
         )
 
     with ctx.tracer.trace_io():
         y_db = save_prediction_dd(
             ctx,
             pred,
+            receiver_pyu,
             pyu_y,
             pred_name,
             feature_dataset,

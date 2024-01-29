@@ -21,11 +21,9 @@ from typing import Callable, Tuple
 
 import tensorflow as tf
 
-from secretflow.device import PYUObject, proxy
 from secretflow.ml.nn.sl.backend.tensorflow.sl_base import SLBaseTFModel
 from secretflow.ml.nn.sl.strategy_dispatcher import register_strategy
 from secretflow.security.privacy import DPStrategy
-from secretflow.ml.nn.sl.backend.tensorflow.utils import ForwardData
 
 
 class PipelineTFModel(SLBaseTFModel):
@@ -54,7 +52,7 @@ class PipelineTFModel(SLBaseTFModel):
         self.hidden_list = []
         self._pre_train_y = []
 
-    def reset_data_iter(self, stage):
+    def reset_data_iter(self, stage='train'):
         if stage == "train":
             self.train_set = iter(self.train_dataset)
         elif stage == "eval":
@@ -67,9 +65,7 @@ class PipelineTFModel(SLBaseTFModel):
         self.hidden_list = []
         self._pre_train_y = []
 
-    def base_forward(
-        self, stage="train", step=0, compress: bool = False
-    ) -> ForwardData:
+    def base_forward(self, stage="train", step=0, compress: bool = False):
         """compute hidden embedding
         Args:
             stage: Which stage of the base forward
@@ -144,6 +140,5 @@ class PipelineTFModel(SLBaseTFModel):
 
 
 @register_strategy(strategy_name='pipeline', backend='tensorflow')
-@proxy(PYUObject)
 class PYUPipelineTFModel(PipelineTFModel):
     pass

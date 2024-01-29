@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# *_* coding: utf-8 *_*
-
 # Copyright 2023 Ant Group Co., Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,18 +17,17 @@
 
 """
 import copy
-from typing import List, Union, Optional
+from typing import List, Union
 
 import torch
 
-from secretflow.device import PYUObject, proxy
 from secretflow.ml.nn.sl.backend.torch.sl_base import SLBaseTorchModel
 from secretflow.ml.nn.sl.strategy_dispatcher import register_strategy
 from secretflow.utils.communicate import ForwardData
 
 
 class SLTorchModel(SLBaseTorchModel):
-    def base_forward(self) -> Optional[ForwardData]:
+    def base_forward(self, stage: str = 'train', **kwargs):
         """compute hidden embedding
         Args:
             stage: Which stage of the base forward
@@ -47,14 +43,18 @@ class SLTorchModel(SLBaseTorchModel):
         """backward on fusenet
 
         Args:
-            gradient: gradient of fusenet hidden layer
+            self.gradient: gradient of fusenet hidden layer
         """
 
         return_hiddens = []
-
         if len(self._gradient) == len(self._h):
             for i in range(len(self._gradient)):
-                return_hiddens.append(self.fuse_op.apply(self._h[i], self._gradient[i]))
+                grad = (
+                    self._gradient[i]
+                    if isinstance(self._gradient[i], torch.Tensor)
+                    else torch.tensor(self._gradient[i])
+                )
+                return_hiddens.append(self.fuse_op.apply(self._h[i], grad))
         else:
             self._gradient = (
                 self._gradient[0]
@@ -71,7 +71,6 @@ class SLTorchModel(SLBaseTorchModel):
         self.optim_base.step()
 
         # clear intermediate results
-        self.tape = None
         self._h = None
         self.kwargs = {}
 
@@ -84,35 +83,38 @@ class SLTorchModel(SLBaseTorchModel):
         only on the side with the label
 
         Args:
-            hidden_features: A list of hidden layers for each party to compute
+            forward_data: A list of hidden layers for each party to compute.
+            _num_returns: the return nums.
         Returns:
             gradient Of hiddens
         """
         assert (
             self.model_fuse is not None
         ), "Fuse model cannot be none, please give model define"
+
         if isinstance(forward_data, ForwardData):
             forward_data = [forward_data]
         forward_data[:] = (h for h in forward_data if h is not None)
+
         for i, h in enumerate(forward_data):
             assert h.hidden is not None, f"hidden cannot be found in forward_data[{i}]"
             if isinstance(h.losses, List) and h.losses[0] is None:
                 h.losses = None
 
-        hidden_features = [h.hidden for h in forward_data]
-
         hiddens = []
-        for h in hidden_features:
+        for fd in forward_data:
+            h = fd.hidden
             # h will be list, if basenet is multi output
             if isinstance(h, List):
                 for i in range(len(h)):
-                    hiddens.append(torch.tensor(h[i]))
+                    hiddens.append(h[i])
             else:
-                hiddens.append(torch.tensor(h))
-
+                hiddens.append(h)
+        hiddens = self.to_exec_device(hiddens)
         train_y = self.train_y[0] if len(self.train_y) == 1 else self.train_y
 
         logs = {}
+
         gradient = self.fuse_net_internal(
             hiddens,
             train_y,
@@ -120,13 +122,11 @@ class SLTorchModel(SLBaseTorchModel):
             logs,
         )
         for m in self.metrics_fuse:
-            logs['train_' + m.__class__.__name__] = m.compute().numpy()
+            logs['train_' + m.__class__.__name__] = m.compute().cpu().numpy()
         self.logs = copy.deepcopy(logs)
-
         return gradient
 
 
 @register_strategy(strategy_name='split_nn', backend='torch')
-@proxy(PYUObject)
 class PYUSLTorchModel(SLTorchModel):
     pass

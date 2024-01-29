@@ -87,13 +87,13 @@ def create_ndarray(
     if shuffle:
         arr = np.random.default_rng(random_state).shuffle(arr)
 
-    total_num = arr.shape[0] if axis == 0 else arr.shape[1]
+    # always use last dim when axis = 1. For picture 4 dim situations.
+    total_num = arr.shape[0] if axis == 0 else arr.shape[-1]
     assert total_num >= len(
         parts
     ), f'Total samples/columns {total_num} is less than parts number {len(parts)}.'
 
     indexes = cal_indexes(parts=parts, total_num=total_num)
-
     if axis == 0:
         return FedNdarray(
             partitions={
@@ -105,7 +105,7 @@ def create_ndarray(
     else:
         return FedNdarray(
             partitions={
-                device: device(lambda df: df[:, index[0] : index[1]])(arr)
+                device: device(lambda df: df[..., index[0] : index[1]])(arr)
                 for device, index in indexes.items()
             },
             partition_way=PartitionWay.VERTICAL,

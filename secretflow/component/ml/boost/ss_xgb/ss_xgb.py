@@ -409,14 +409,15 @@ def ss_xgb_predict_eval_fn(
 
     model = load_ss_xgb_model(ctx, spu, pyus, model)
 
+    receiver_pyu = PYU(receiver)
     with ctx.tracer.trace_running():
-        pyu = PYU(receiver)
-        pyu_y = model.predict(x, pyu)
+        pyu_y = model.predict(x, receiver_pyu)
 
     with ctx.tracer.trace_io():
         y_db = save_prediction_dd(
             ctx,
             pred,
+            receiver_pyu,
             pyu_y,
             pred_name,
             feature_dataset,

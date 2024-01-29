@@ -176,44 +176,6 @@
           }
         },
         {
-          "name": "advanced_join_type",
-          "desc": "Advanced Join allow duplicate keys.",
-          "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "s": "ADVANCED_JOIN_TYPE_UNSPECIFIED"
-            },
-            "allowedValues": {
-              "ss": [
-                "ADVANCED_JOIN_TYPE_UNSPECIFIED",
-                "ADVANCED_JOIN_TYPE_INNER_JOIN",
-                "ADVANCED_JOIN_TYPE_LEFT_JOIN",
-                "ADVANCED_JOIN_TYPE_RIGHT_JOIN",
-                "ADVANCED_JOIN_TYPE_FULL_JOIN",
-                "ADVANCED_JOIN_TYPE_DIFFERENCE"
-              ]
-            }
-          }
-        },
-        {
-          "name": "left_side",
-          "desc": "Required if advanced_join_type is selected.",
-          "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "s": "ROLE_RECEIVER"
-            },
-            "allowedValues": {
-              "ss": [
-                "ROLE_RECEIVER",
-                "ROLE_SENDER"
-              ]
-            }
-          }
-        },
-        {
           "name": "ecdh_curve",
           "desc": "Curve type for ECDH PSI.",
           "type": "AT_STRING",
@@ -1034,6 +996,12 @@
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "saved_features",
+              "desc": "which features should be saved with prediction result"
+            }
           ]
         }
       ],

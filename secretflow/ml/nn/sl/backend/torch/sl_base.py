@@ -17,6 +17,7 @@ from abc import ABC
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
+import jax.tree_util
 import numpy as np
 import pandas as pd
 import torch
@@ -54,6 +55,7 @@ class SLBaseTorchModel(SLBaseModel, ABC):
     ):
         num_gpus = kwargs.get("num_gpus", 0)
         self.use_gpu = num_gpus > 0
+        self.exec_device = torch.device('cuda') if self.use_gpu else torch.device('cpu')
         self.dp_strategy = dp_strategy
         self.embedding_dp = (
             self.dp_strategy.embedding_dp if dp_strategy is not None else None
@@ -66,7 +68,6 @@ class SLBaseTorchModel(SLBaseModel, ABC):
         self.train_iter = None
         self.eval_iter = None
         self.valid_iter = None
-        self.tape = None
         self._h = None
         self.train_x, self.train_y = None, None
         self.eval_x, self.eval_y = None, None
@@ -130,6 +131,9 @@ class SLBaseTorchModel(SLBaseModel, ABC):
             if builder_fuse and builder_fuse.metrics
             else None
         )
+        self.model_base = self.to_exec_device(self.model_base)
+        self.model_fuse = self.to_exec_device(self.model_fuse)
+        self.metrics_fuse = self.to_exec_device(self.metrics_fuse)
         super().__init__()
 
     def init_data(self):
@@ -166,12 +170,12 @@ class SLBaseTorchModel(SLBaseModel, ABC):
         if not self.model_base:
             return None
         forward_data = ForwardData()
-
-        # The compressor can only recognize np type but not tensor.
-        forward_data.hidden = (
-            self._h.detach().numpy() if isinstance(self._h, torch.Tensor) else self._h
-        )
-        # The compressor in forward can only recognize np type but not tensor.
+        if isinstance(self._h, torch.Tensor):
+            forward_data.hidden = self._h.detach()
+        elif isinstance(self._h, list):
+            forward_data.hidden = [h.detach() for h in self._h]
+        else:
+            raise RuntimeError(f"Unknown type of self._h {type(self._h)}")
         return forward_data
 
     def unpack_dataset(self, data, has_x, has_y, has_s_w):
@@ -201,7 +205,10 @@ class SLBaseTorchModel(SLBaseModel, ABC):
 
         return data_x, data_y, data_s_w
 
-    def get_batch_data(self, stage="train", epoch=1):
+    def to_exec_device(self, x: Optional[Union[List, torch.Tensor, torch.nn.Module]]):
+        return jax.tree_util.tree_map(lambda c: c.to(self.exec_device), x)
+
+    def get_batch_data(self, stage="train", epoch=0):
         self.cur_epoch = epoch
         self.init_data()
 
@@ -238,7 +245,13 @@ class SLBaseTorchModel(SLBaseModel, ABC):
             if isinstance(self._data_x, (Tuple, List)) and len(self._data_x) == 1
             else self._data_x
         )
-
+        self._data_x = self.to_exec_device(self._data_x)
+        self.train_x = self.to_exec_device(self.train_x)
+        self.train_y = self.to_exec_device(self.train_y)
+        self.train_sample_weight = self.to_exec_device(self.train_sample_weight)
+        self.eval_x = self.to_exec_device(self.eval_x)
+        self.eval_y = self.to_exec_device(self.eval_y)
+        self.eval_sample_weight = self.to_exec_device(self.eval_sample_weight)
         return self._data_x
 
     def build_dataset_from_numeric(
@@ -256,15 +269,15 @@ class SLBaseTorchModel(SLBaseModel, ABC):
         """build torch.data.Dataset
 
         Args:
-            x: feature, FedNdArray or HDataFrame
-            y: label, FedNdArray or HDataFrame
-            s_w: sample weight, FedNdArray or HDataFrame
-            batch_size: Number of samples per gradient update
-            buffer_size: buffer size for shuffling
-            shuffle: whether shuffle the dataset or not
-            repeat_count: num of repeats
-            stage: stage of this datset
-            random_seed: Prg seed for shuffling
+            x: feature, FedNdArray or HDataFrame.
+            y: label, FedNdArray or HDataFrame.
+            s_w: sample weight, FedNdArray or HDataFrame.
+            batch_size: Number of samples per gradient update.
+            buffer_size: buffer size for shuffling.
+            shuffle: whether shuffle the dataset or not.
+            repeat_count: num of repeats.
+            stage: stage of this datset.
+            random_seed: Prg seed for shuffling.
         """
         assert (
             x is not None or y is not None
@@ -468,14 +481,6 @@ class SLBaseTorchModel(SLBaseModel, ABC):
             else:
                 h = self.embedding_dp(h)
 
-        # cannot change h because backward will use h
-        if not self._training:
-            if isinstance(h, List):
-                tmp_h = [hi.detach() for hi in h]
-            else:
-                tmp_h = h.detach()
-            return tmp_h
-
         return h
 
     def fuse_net_internal(self, hiddens, train_y, train_sample_weight, logs):
@@ -497,8 +502,7 @@ class SLBaseTorchModel(SLBaseModel, ABC):
             y_pred,
             train_y,
         )
-
-        logs["train_loss"] = loss.detach().numpy()
+        logs["train_loss"] = loss.cpu().detach().numpy()
 
         if isinstance(hiddens, List):
             for h in hiddens:
@@ -530,7 +534,8 @@ class SLBaseTorchModel(SLBaseModel, ABC):
         _num_returns=2,
     ):
         """Fuses the hidden layer and calculates the reverse gradient
-        only on the side with the label
+        only on the side with the label.
+        Note: convert to gpu if needed.
 
         Args:
             hidden_features: A list of hidden layers for each party to compute
@@ -569,7 +574,7 @@ class SLBaseTorchModel(SLBaseModel, ABC):
             y_pred,
             eval_y,
         )
-        logs["loss"] = loss.detach().numpy()
+        logs["loss"] = loss.cpu().detach().numpy()
 
         # Step 3: update metrics
         for m in self.metrics_fuse:
@@ -581,7 +586,7 @@ class SLBaseTorchModel(SLBaseModel, ABC):
                 m.update(y_pred, eval_y.int())
 
         for m in self.metrics_fuse:
-            logs[m.__class__.__name__] = m.compute().numpy()
+            logs[m.__class__.__name__] = m.compute().cpu().numpy()
 
     def evaluate(
         self,
@@ -611,9 +616,10 @@ class SLBaseTorchModel(SLBaseModel, ABC):
             # h will be list, if basenet is multi output
             if isinstance(h, List):
                 for i in range(len(h)):
-                    hiddens.append(torch.tensor(h[i]))
+                    hiddens.append(h[i])
             else:
-                hiddens.append(torch.tensor(h))
+                hiddens.append(h)
+        hiddens = self.to_exec_device(hiddens)
         eval_y = self.eval_y[0] if len(self.eval_y) == 1 else self.eval_y
         metrics = {}
         self._evaluate_internal(
@@ -714,9 +720,10 @@ class SLBaseTorchModel(SLBaseModel, ABC):
         for h in hidden_features:
             if isinstance(h, List):
                 for i in range(len(h)):
-                    hiddens.append(torch.tensor(h[i]))
+                    hiddens.append(h[i])
             else:
-                hiddens.append(torch.tensor(h))
+                hiddens.append(h)
+        hiddens = self.to_exec_device(hiddens)
         y_pred = self._predict_internal(hiddens)
         return y_pred
 
@@ -748,6 +755,7 @@ class SLBaseTorchModel(SLBaseModel, ABC):
         checkpoint = torch.load(base_model_path)
         self.model_base.load_state_dict(checkpoint['model_state_dict'])
         self.optim_base.load_state_dict(checkpoint['optimizer_state_dict'])
+        self.model_base = self.to_exec_device(self.model_base)
 
     def load_fuse_model(self, fuse_model_path: str, **kwargs):
         assert fuse_model_path is not None, "model path cannot be empty"
@@ -758,6 +766,7 @@ class SLBaseTorchModel(SLBaseModel, ABC):
         checkpoint = torch.load(fuse_model_path)
         self.model_fuse.load_state_dict(checkpoint['model_state_dict'])
         self.optim_fuse.load_state_dict(checkpoint['optimizer_state_dict'])
+        self.model_fuse = self.to_exec_device(self.model_fuse)
 
     def export_base_model(self, model_path: str, save_format: str = "onnx", **kwargs):
         return self._export_model(self.model_base, model_path, save_format, **kwargs)
