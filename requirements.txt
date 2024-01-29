@@ -8,7 +8,7 @@ click  # FEATURE=[lite]
 grpcio==1.56.2   # FEATURE=[lite]
 jax<=0.4.12  # FEATURE=[lite]
 jaxlib<=0.4.12  # FEATURE=[lite]
-kuscia==0.0.2.dev240103  # FEATURE=[lite]
+kuscia==0.0.2.dev231025  # FEATURE=[lite]
 multiprocess  # FEATURE=[lite]
 networkx==2.8.8
 numba==0.57.0  # FEATURE=[lite]
