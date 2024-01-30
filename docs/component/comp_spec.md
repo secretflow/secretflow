@@ -80,6 +80,7 @@ Public and shared to all parties.
 | ----- | ---- | ----------- |
 | ray_fed_config | [ SFClusterConfig.RayFedConfig](#sfclusterconfigrayfedconfig) | none |
 | spu_configs | [repeated SFClusterConfig.SPUConfig](#sfclusterconfigspuconfig) | none |
+| barrier_on_shutdown | [ bool](#bool) | none |
  <!-- end Fields -->
  <!-- end HasFields -->
 

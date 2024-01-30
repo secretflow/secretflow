@@ -12,5 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from .split_nn import PYUSLTorchModel
+from .pipeline import PYUPipelineTorchModel
 
-__all__ = [PYUSLTorchModel]
+__all__ = [PYUSLTorchModel, PYUPipelineTorchModel]

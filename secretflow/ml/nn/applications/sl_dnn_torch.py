@@ -59,10 +59,12 @@ class DnnBase(BaseModule):
         self._has_sparse_feas = not len(self._sparse_feas_index) == 0
         self._has_dense_feas = not len(self._dense_feas_index) == 0
         if self._has_sparse_feas:
-            self._embedding_features_layer = [
-                nn.Embedding(input_dims[idx], embedding_dim)
-                for idx in self._sparse_feas_index
-            ]
+            self._embedding_features_layer = nn.ModuleList(
+                [
+                    nn.Embedding(input_dims[idx], embedding_dim)
+                    for idx in self._sparse_feas_index
+                ]
+            )
         input_shape = 0
         for i, input_dim in enumerate(input_dims):
             if i in self._sparse_feas_index:

@@ -7,7 +7,6 @@ from kuscia.proto.api.v1alpha1.kusciatask.kuscia_task_pb2 import (
     Port,
     Service,
 )
-
 from secretflow.kuscia.entry import convert_domain_data_to_individual_table
 from secretflow.kuscia.ray_config import RayConfig
 from secretflow.kuscia.sf_config import get_sf_cluster_config
@@ -119,12 +118,8 @@ def test_convert_domain_data_to_individual_table():
 
     meta = IndividualTable(
         schema=TableSchema(
-            ids=["id"],
-            features=["f1", "f2"],
-            labels=["label"],
-            id_types=["str"],
-            feature_types=["int", "double"],
-            label_types=["int"],
+            features=["f1", "f2", "id", "label"],
+            feature_types=["int", "double", "str", "int"],
         ),
         line_count=-1,
     )

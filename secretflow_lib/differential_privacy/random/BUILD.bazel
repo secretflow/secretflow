@@ -14,7 +14,10 @@ yacl_cc_library(
 yacl_cc_test(
     name = "distributions_test",
     srcs = ["distributions_test.cc"],
-    linkopts = ["-lm"],
+    linkopts = [
+        "-lm",
+        "-ldl",
+    ],
     deps = [
         ":distributions",
         "@yacl//yacl/crypto/tools:prg",

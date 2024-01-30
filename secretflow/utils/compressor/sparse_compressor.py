@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import abstractmethod
-
-from secretflow.utils.compressor.base import Compressor, CompressedData
-from scipy import sparse
-import numpy as np
 from typing import List
+
+import numpy as np
+from scipy import sparse
+
+from secretflow.utils.compressor.base import CompressedData, Compressor
 
 
 class SparseCompressedData(CompressedData):
@@ -25,17 +26,27 @@ class SparseCompressedData(CompressedData):
     so we do not construct coo_matrix at the beginning.
     """
 
-    def __init__(self, compressed_data, sparse_rate: float, row, col, shape):
+    def __init__(
+        self, compressed_data, sparse_rate: float, row, col, shape, origin_shape
+    ):
         super().__init__(compressed_data)
         self.sparse_rate = sparse_rate
         self.row = row
         self.col = col
         self.shape = shape
+        self.origin_shape = origin_shape
 
-    def to_csr(self):
-        return sparse.coo_matrix(
-            (self.compressed_data, (self.row, self.col)), shape=self.shape
-        ).tocsr()
+    def to_dense_numpy(self):
+        dense_arr = (
+            sparse.coo_matrix(
+                (self.compressed_data, (self.row, self.col)), shape=self.shape
+            )
+            .tocsr()
+            .toarray()
+        )
+        if len(self.origin_shape) > 2:
+            dense_arr = np.reshape(dense_arr, self.origin_shape)
+        return dense_arr
 
     def get_sparse_mask(self):
         """We can simply use self.to_csr() != 0 to get a sparse_mask in sparse compressor. However, when use mixed
@@ -59,20 +70,25 @@ class SparseCompressor(Compressor):
             0 <= sparse_rate <= 1
         ), f'sparse rate should between 0 and 1, but get {sparse_rate}'
         self.sparse_rate = sparse_rate
-        self.fuse_sparse_masks = []
 
     def _decompress_one(self, data: SparseCompressedData):
-        return data.to_csr().todense()
+        return data.to_dense_numpy()
 
     def _compress_one(self, data, sparse_mask=None) -> SparseCompressedData:
+        origin_shape = data.shape
+
+        if len(origin_shape) > 2:
+            data = np.reshape(data, (origin_shape[0], -1))
         if sparse_mask is not None:
             d = sparse_mask.multiply(data)
-            return SparseCompressedData(d.data, self.sparse_rate, d.row, d.col, d.shape)
+            return SparseCompressedData(
+                d.data, self.sparse_rate, d.row, d.col, d.shape, origin_shape
+            )
         else:
-            return self._do_compress_one(data)
+            return self._do_compress_one(data, origin_shape)
 
     @abstractmethod
-    def _do_compress_one(self, data):
+    def _do_compress_one(self, data, origin_shape):
         raise NotImplementedError()
 
 
@@ -82,7 +98,7 @@ class RandomSparse(SparseCompressor):
     def __init__(self, sparse_rate: float):
         super().__init__(sparse_rate)
 
-    def _do_compress_one(self, data) -> SparseCompressedData:
+    def _do_compress_one(self, data, origin_shape) -> SparseCompressedData:
         data_shape = data.shape
         data_flat = data.flatten()
         data_len = data_flat.shape[0]
@@ -91,7 +107,9 @@ class RandomSparse(SparseCompressor):
         mask_index = rng.choice(data_len, mask_num, replace=False)
         row, col = np.unravel_index(mask_index, data_shape)
         target_data = data_flat[mask_index]
-        return SparseCompressedData(target_data, self.sparse_rate, row, col, data_shape)
+        return SparseCompressedData(
+            target_data, self.sparse_rate, row, col, data_shape, origin_shape
+        )
 
 
 class TopkSparse(SparseCompressor):
@@ -100,7 +118,7 @@ class TopkSparse(SparseCompressor):
     def __init__(self, sparse_rate: float):
         super().__init__(sparse_rate)
 
-    def _do_compress_one(self, data, sparse_mask=None):
+    def _do_compress_one(self, data, origin_shape):
         data_shape = data.shape
         data_flat = data.flatten()
         data_len = data_flat.shape[0]
@@ -108,7 +126,9 @@ class TopkSparse(SparseCompressor):
         mask_index = np.argpartition(np.abs(data), -mask_num, axis=None)[-mask_num:]
         row, col = np.unravel_index(mask_index, data_shape)
         target_data = data_flat[mask_index]
-        return SparseCompressedData(target_data, self.sparse_rate, row, col, data_shape)
+        return SparseCompressedData(
+            target_data, self.sparse_rate, row, col, data_shape, origin_shape
+        )
 
 
 class STCSparse:

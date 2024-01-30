@@ -32,6 +32,20 @@ def block_compute(blocked_inputs, compute_device, block_func, aggregation_func):
     return agg_result
 
 
+def stateful_block_compute(
+    blocked_inputs, compute_device, block_func, aggregation_func, initial_state
+):
+    agg_result = None
+    for block in blocked_inputs:
+        # assumed block is already in compute device
+        block_result = compute_device(block_func)(block)
+        if agg_result is None:
+            agg_result = compute_device(aggregation_func)(initial_state, block_result)
+        else:
+            agg_result = compute_device(aggregation_func)(agg_result, block_result)
+    return agg_result
+
+
 def stack_vdata_blocks(blocks: List[np.ndarray]):
     return jnp.concatenate(blocks, axis=1)
 
@@ -63,7 +77,9 @@ def cut_vdata(
             yield target_device(stack_vdata_blocks)(blocks)
 
 
-def cut_device_object(obj, row_size: int, target_device: Device):
+def cut_device_object(
+    obj, row_size: int, target_device: Device, add_constant: DeviceObject = None
+):
     m = reveal(obj.device(lambda x: x.shape[0])(obj))
     for i in range(0, m, row_size):
         end = min(i + row_size, m)
@@ -73,7 +89,10 @@ def cut_device_object(obj, row_size: int, target_device: Device):
             )(obj, i=i, end=end)
         else:
             block = obj.device(lambda x, i, end: x[i:end])(obj, i=i, end=end)
-        yield target_device(lambda x: x)(block.to(target_device))
+        if add_constant is not None:
+            yield target_device(lambda x: x)(block.to(target_device)), add_constant
+        else:
+            yield target_device(lambda x: x)(block.to(target_device))
 
 
 def block_compute_vdata(

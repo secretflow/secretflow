@@ -23,6 +23,8 @@ The following documents will help you understand the design ideas and principles
    design/flmodel
    design/strategy
    design/programming_in_secretflow
+   design/fed_callbacks
+   design/agg_layer
 
 .. toctree::
    :maxdepth: 1

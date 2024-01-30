@@ -7,6 +7,7 @@ If the description is long, the first line should be a short summary that makes 
 separated from the rest by a newline
 
 """
+import logging
 import math
 import os
 import tempfile
@@ -762,8 +763,26 @@ class TestSLModelTensorflow:
         )
 
 
-class TestSLModelTensorflowCsv:
-    def create_csv_base_model(self, col_names: list):
+def random_csv_data(alice, bob, multi_labels=False) -> dict:
+    train_feature = np.random.uniform(0, 1, [1024, 8])
+    coef = np.random.uniform(0, 1, [8])
+    _, alice_path = tempfile.mkstemp()
+    _, bob_path = tempfile.mkstemp()
+    pd.DataFrame(train_feature[:, :4]).to_csv(alice_path, index=False)
+    bob_df = pd.DataFrame(train_feature[:, 4:]).rename(columns={0: 4, 1: 5, 2: 6, 3: 7})
+    label_df = pd.DataFrame(coef)
+    bob_df["label"] = label_df
+    if multi_labels:
+        bob_df['label2'] = label_df
+    bob_df.to_csv(bob_path, index=False)
+    return {
+        alice: alice_path,
+        bob: bob_path,
+    }
+
+
+class TestSLModelTensorflowFileInput:
+    def create_base_model(self, col_names: list):
         # Create model
         def create_model():
             import tensorflow as tf
@@ -791,19 +810,15 @@ class TestSLModelTensorflowCsv:
 
         return create_model
 
-    def create_csv_fuse_model(self):
+    def create_fuse_model(self):
         def create_model():
             import tensorflow as tf
             from tensorflow import keras
 
             #  input
             input_layers = [
-                keras.Input(
-                    1,
-                ),
-                keras.Input(
-                    1,
-                ),
+                keras.Input(1),
+                keras.Input(1),
             ]
             output = tf.nn.sigmoid(input_layers[0] + input_layers[1])
             model = keras.Model(inputs=input_layers, outputs=output)
@@ -817,46 +832,89 @@ class TestSLModelTensorflowCsv:
 
         return create_model
 
-    def test_csv_data_input(self, sf_simulation_setup_devices):
-        train_feature = np.random.uniform(0, 1, [1024, 8])
-        coef = np.random.uniform(0, 1, [8])
-        _, alice_path = tempfile.mkstemp()
-        _, bob_path = tempfile.mkstemp()
-        pd.DataFrame(train_feature[:, :4]).to_csv(alice_path, index=False)
-        bob_df = pd.DataFrame(train_feature[:, 4:]).rename(
-            columns={0: 4, 1: 5, 2: 6, 3: 7}
-        )
-        label_df = pd.DataFrame(coef)
-        bob_df["label"] = label_df
-        bob_df.to_csv(bob_path, index=False)
+    def create_dataset_builder(self, num_labels=0):
+        def dataset_builder(x):
+            import tensorflow as tf
+
+            label = None
+            if num_labels > 0:
+                labels = x[1] if isinstance(x[1], (list, tuple)) else [x[1]]
+                logging.warning(
+                    f"x1 = {x[1]}, labels = {labels} len(labels) == num_labels = {len(labels) == num_labels}"
+                )
+                assert len(labels) == num_labels and all(
+                    isinstance(lb, str) for lb in labels
+                )
+                label = x[1][0] if isinstance(x[1], (list, tuple)) else x[1]
+            data_set = tf.data.experimental.make_csv_dataset(
+                x[0],
+                batch_size=train_batch_size,
+                label_name=label,
+                header=True,
+                num_epochs=1,
+            )
+            return data_set
+
+        return dataset_builder
+
+    def demo_model_with_demo_data(
+        self, devices, label_names=None, dataset_builder_dict=None
+    ):
         base_model_dict = {
-            sf_simulation_setup_devices.alice: self.create_csv_base_model(
-                col_names=["0", "1", "2", "3"]
-            ),
-            sf_simulation_setup_devices.bob: self.create_csv_base_model(
-                col_names=["4", "5", "6", "7"]
-            ),
+            devices.alice: self.create_base_model(col_names=["0", "1", "2", "3"]),
+            devices.bob: self.create_base_model(col_names=["4", "5", "6", "7"]),
         }
-        model_fuse = self.create_csv_fuse_model()
+        model_fuse = self.create_fuse_model()
         sl_model = SLModel(
             base_model_dict=base_model_dict,
-            device_y=sf_simulation_setup_devices.bob,
+            device_y=devices.bob,
             model_fuse=model_fuse,
             simulation=True,
             random_seed=1234,
             backend="tensorflow",
         )
-        file_pathes = {
-            sf_simulation_setup_devices.alice: alice_path,
-            sf_simulation_setup_devices.bob: bob_path,
-        }
-
+        multi_labels = True if isinstance(label_names, (list, tuple)) else False
+        file_pathes = random_csv_data(devices.alice, devices.bob, multi_labels)
         sl_model.fit(
             file_pathes,
-            "label",
-            validation_data=(file_pathes, "label"),
+            label_names,
+            validation_data=(file_pathes, label_names),
             epochs=2,
             batch_size=64,
             shuffle=False,
             random_seed=1234,
+            dataset_builder=dataset_builder_dict,
+        )
+
+    def test_file_input_single_label(self, sf_simulation_setup_devices):
+        self.demo_model_with_demo_data(sf_simulation_setup_devices, "label")
+
+    def test_file_input_single_label_with_dataset_builder(
+        self, sf_simulation_setup_devices
+    ):
+        dataset_builder_dict = {
+            sf_simulation_setup_devices.alice: self.create_dataset_builder(
+                num_labels=0
+            ),
+            sf_simulation_setup_devices.bob: self.create_dataset_builder(num_labels=1),
+        }
+        self.demo_model_with_demo_data(
+            sf_simulation_setup_devices,
+            'label',
+            dataset_builder_dict=dataset_builder_dict,
+        )
+
+    def test_file_input_multi_label_with_dataset_builder(
+        self, sf_simulation_setup_devices
+    ):
+        dataset_builder_dict = {
+            sf_simulation_setup_devices.alice: self.create_dataset_builder(
+                num_labels=0
+            ),
+            sf_simulation_setup_devices.bob: self.create_dataset_builder(num_labels=2),
+        }
+        self.demo_model_with_demo_data(
+            sf_simulation_setup_devices,
+            ['label', 'label2'],
+            dataset_builder_dict=dataset_builder_dict,
         )

@@ -35,8 +35,8 @@ from secretflow.device.device.pyu import PYU
 from secretflow.security.aggregation import Aggregator
 from secretflow.security.compare import Comparator
 from secretflow.utils.hash import sha256sum
+from secretflow.utils.simulation.data import create_ndarray
 from secretflow.utils.simulation.data.dataframe import create_df, create_vdf
-from secretflow.utils.simulation.data.ndarray import create_ndarray
 
 _CACHE_DIR = os.path.join(os.path.expanduser('~'), '.secretflow/datasets')
 
@@ -315,7 +315,8 @@ def load_mnist(
     parts: Union[List[PYU], Dict[PYU, Union[float, Tuple]]],
     normalized_x: bool = True,
     categorical_y: bool = False,
-    is_torch: bool = False,
+    is_torch=False,
+    axis: int = 0,
 ) -> Tuple[Tuple[FedNdarray, FedNdarray], Tuple[FedNdarray, FedNdarray]]:
     """Load mnist dataset to federated ndarrays.
 
@@ -331,11 +332,13 @@ def load_mnist(
             2) an interval in tuple closed on the left-side and open on the right-side.
         normalized_x: optional, normalize x if True. Default to True.
         categorical_y: optional, do one hot encoding to y if True. Default to True.
-
+        is_torch: torch need new axis.
+        axis: the axis of the data, 0 for HORIZONTAL, 1 for VERTICAL.
     Returns:
         A tuple consists of two tuples, (x_train, y_train) and (x_test, y_test).
     """
     filepath = get_dataset(_DATASETS['mnist'])
+    alice, bob = list(parts.keys())[0], list(parts.keys())[1]
     with np.load(filepath) as f:
         x_train, y_train = f['x_train'], f['y_train']
         x_test, y_test = f['x_test'], f['y_test']
@@ -350,14 +353,40 @@ def load_mnist(
         y_train = encoder.fit_transform(y_train.reshape(-1, 1))
         y_test = encoder.fit_transform(y_test.reshape(-1, 1))
 
+    if isinstance(parts, list):
+        parts = (
+            {alice: (0, 14), bob: (14, 28)}
+            if axis == 1
+            else {alice: (0, 30000), bob: (30000, 60000)}
+        )
+    train_label = (
+        create_ndarray(y_train, parts=parts, axis=axis)
+        if axis == 0
+        else FedNdarray(
+            partitions={
+                device: device(lambda df: df)(y_train) for device in parts.keys()
+            },
+            partition_way=PartitionWay.VERTICAL,
+        )
+    )
+    test_label = (
+        create_ndarray(y_test, parts=parts, axis=axis)
+        if axis == 0
+        else FedNdarray(
+            partitions={
+                device: device(lambda df: df)(y_test) for device in parts.keys()
+            },
+            partition_way=PartitionWay.VERTICAL,
+        )
+    )
     return (
         (
-            create_ndarray(x_train, parts=parts, axis=0, is_torch=is_torch),
-            create_ndarray(y_train, parts=parts, axis=0),
+            create_ndarray(x_train, parts=parts, axis=axis, is_torch=is_torch),
+            train_label,
         ),
         (
-            create_ndarray(x_test, parts=parts, axis=0, is_torch=is_torch),
-            create_ndarray(y_test, parts=parts, axis=0),
+            create_ndarray(x_test, parts=parts, axis=axis, is_torch=is_torch),
+            test_label,
         ),
     )
 
@@ -913,13 +942,19 @@ def load_criteo(
     axis=1,
     aggregator: Aggregator = None,
     comparator: Comparator = None,
+    num_samples: int = 410000,
 ) -> Union[VDataFrame, HDataFrame]:
     filepath = get_dataset(_DATASETS['criteo'])
     dtypes = {'Label': 'int'}
     dtypes.update({f'I{i}': 'float' for i in range(1, 14)})
     dtypes.update({f'C{i}': 'str' for i in range(1, 27)})
     df = pd.read_csv(
-        filepath, sep='\t', header=None, names=list(dtypes.keys()), dtype=dtypes
+        filepath,
+        sep='\t',
+        header=None,
+        names=list(dtypes.keys()),
+        dtype=dtypes,
+        nrows=num_samples,
     )
     if isinstance(parts, List):
         assert len(parts) == 2
@@ -935,12 +970,12 @@ def load_criteo(
 
 
 def load_cifar10(
-    parts: List[PYU], data_dir: str = None, axis=0, aggregator=None, comparator=None
+    parts: List[PYU], data_dir: str = None, axis=1, aggregator=None, comparator=None
 ) -> ((FedNdarray, FedNdarray), (FedNdarray, FedNdarray)):
-    from torchvision import datasets, transforms
     import torch.utils.data as torch_data
+    from torchvision import datasets, transforms
 
-    assert axis == 0, f"only support axis = 0 split cifar10 yet."
+    assert axis == 1, f"only support axis = 1 split cifar10 yet."
     assert len(parts) == 2
     alice, bob = parts[0], parts[1]
     if data_dir is None:

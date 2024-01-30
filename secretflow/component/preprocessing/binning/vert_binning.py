@@ -115,6 +115,11 @@ def gen_one_col_table(rule_dict: dict) -> Table:
             desc="'to' value is a float. bin rule map 'from' value to 'to' value",
             type="str",
         ),
+        Table.HeaderItem(
+            name="count",
+            desc="Number of samples that fall into each bin",
+            type="str",
+        ),
     ]
     rows = []
     if rule_dict["type"] == "numeric":
@@ -122,9 +127,15 @@ def gen_one_col_table(rule_dict: dict) -> Table:
         for i in range(len(split_points) - 1):
             from_val = f"({split_points[i]}, {split_points[i+1]}]"
             to_val = str(rule_dict["filling_values"][i])
+            count = str(rule_dict["total_counts"][i])
             rows.append(
                 Table.Row(
-                    name=f"{i}", items=[Attribute(s=from_val), Attribute(s=to_val)]
+                    name=f"{i}",
+                    items=[
+                        Attribute(s=from_val),
+                        Attribute(s=to_val),
+                        Attribute(s=count),
+                    ],
                 )
             )
         rows.append(
@@ -133,6 +144,7 @@ def gen_one_col_table(rule_dict: dict) -> Table:
                 items=[
                     Attribute(s="nan values"),
                     Attribute(s=str(rule_dict["else_filling_value"])),
+                    Attribute(s=str(rule_dict["else_counts"])),
                 ],
             )
         )
@@ -141,9 +153,15 @@ def gen_one_col_table(rule_dict: dict) -> Table:
         for i in range(len(categories)):
             from_val = f"{categories[i]}"
             to_val = rule_dict["filling_values"][i]
+            count = str(rule_dict["total_counts"][i])
             rows.append(
                 Table.Row(
-                    name=f"{i}", items=[Attribute(s=from_val), Attribute(s=to_val)]
+                    name=f"{i}",
+                    items=[
+                        Attribute(s=from_val),
+                        Attribute(s=to_val),
+                        Attribute(s=count),
+                    ],
                 )
             )
         rows.append(
@@ -152,6 +170,7 @@ def gen_one_col_table(rule_dict: dict) -> Table:
                 items=[
                     Attribute(s="nan values"),
                     Attribute(s=str(rule_dict.get("else_filling_value", "null"))),
+                    Attribute(s=str(rule_dict.get("else_counts", "0"))),
                 ],
             )
         )
@@ -178,7 +197,7 @@ def gen_bin_rules_report(rules: Dict[PYU, PYUObject]) -> Report:
                         Div(
                             children=[
                                 Div.Child(
-                                    type="Table",
+                                    type="table",
                                     table=gen_one_col_table(variable_data),
                                 )
                             ],

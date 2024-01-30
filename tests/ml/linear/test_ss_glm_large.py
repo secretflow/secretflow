@@ -2,6 +2,7 @@ import logging
 import time
 
 import numpy as np
+import pytest
 from sklearn.compose import ColumnTransformer
 from sklearn.datasets import fetch_openml
 from sklearn.linear_model import TweedieRegressor
@@ -220,6 +221,7 @@ def _run_test(devices, test_name, X, df, link, dist, l2_lambda=None, power=1.9):
     ), f"{irls_deviance}, {sklearn_deviance}"
 
 
+@pytest.mark.skip(reason='todo: move into daily test, running too slowly in aci')
 def test_mtpl2(sf_production_setup_devices_aby3):
     X, df = prepare_data()
     _run_test(

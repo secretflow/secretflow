@@ -4,13 +4,17 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
 git_repository(
     name = "yacl",
-    commit = "ea6e1ea567903804f17525fe04ede706815ece38",
+    commit = "e3401da07d8aa2f3fe2238e8563e5f573036a594",
     remote = "https://github.com/secretflow/yacl.git",
 )
 
 load("@yacl//bazel:repositories.bzl", "yacl_deps")
 
 yacl_deps()
+
+load("@rules_python//python:repositories.bzl", "py_repositories")
+
+py_repositories()
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
