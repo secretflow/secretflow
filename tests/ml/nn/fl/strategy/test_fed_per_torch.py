@@ -36,19 +36,19 @@ class TestFedPer:
         fed_per_worker.train_iter = iter(fed_per_worker.train_set)
 
         # Perform a training step
-        gradients = None
-        gradients, num_sample = fed_per_worker.train_step(
-            gradients, cur_steps=0, train_steps=1
+        weights = None
+        weights, num_sample = fed_per_worker.train_step(
+            weights, cur_steps=0, train_steps=1
         )
 
         # Apply weights update
-        fed_per_worker.apply_weights(gradients)
+        fed_per_worker.apply_weights(weights)
 
-        # Assert the sample number and length of gradients
+        # Assert the sample number and length of weights
         assert num_sample == 32  # Batch size
-        assert len(gradients) == len(list(fed_per_worker.model.parameters()))  # Number of model parameters
+        assert len(weights) == len(list(fed_per_worker.model.parameters()))  # Number of model parameters
 
         # Perform another training step to test cumulative behavior
-        _, num_sample = fed_per_worker.train_step(gradients, cur_steps=1, train_steps=2)
+        _, num_sample = fed_per_worker.train_step(weights, cur_steps=1, train_steps=2)
         assert num_sample == 64  # Cumulative batch size over two steps
 
