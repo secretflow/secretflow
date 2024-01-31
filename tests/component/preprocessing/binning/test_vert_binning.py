@@ -1,6 +1,8 @@
+import logging
 import os
 
 import pandas as pd
+from sklearn.datasets import load_breast_cancer
 
 from secretflow.component.data_utils import DistDataType, extract_distdata_info
 from secretflow.component.preprocessing.binning.vert_binning import (
@@ -10,8 +12,7 @@ from secretflow.component.preprocessing.binning.vert_binning import (
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
-from sklearn.datasets import load_breast_cancer
-
+from secretflow.spec.v1.report_pb2 import Report
 from tests.conftest import TEST_STORAGE_ROOT
 
 
@@ -19,6 +20,7 @@ def test_vert_binning(comp_prod_sf_cluster_config):
     alice_path = "test_vert_binning/x_alice.csv"
     bob_path = "test_vert_binning/x_bob.csv"
     rule_path = "test_vert_binning/bin_rule"
+    report_path = "test_vert_binning/report"
     output_path = "test_vert_binning/vert.csv"
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
@@ -49,12 +51,11 @@ def test_vert_binning(comp_prod_sf_cluster_config):
     bin_param_01 = NodeEvalParam(
         domain="feature",
         name="vert_binning",
-        version="0.0.1",
-        attr_paths=[
-            "input/input_data/feature_selects",
-        ],
+        version="0.0.2",
+        attr_paths=["input/input_data/feature_selects", "report_rules"],
         attrs=[
             Attribute(ss=[f"a{i}" for i in range(12)] + [f"b{i}" for i in range(11)]),
+            Attribute(b=True),
         ],
         inputs=[
             DistData(
@@ -66,18 +67,17 @@ def test_vert_binning(comp_prod_sf_cluster_config):
                 ],
             ),
         ],
-        output_uris=[rule_path],
+        output_uris=[rule_path, report_path],
     )
 
     bin_param_02 = NodeEvalParam(
         domain="feature",
         name="vert_binning",
-        version="0.0.1",
-        attr_paths=[
-            "input/input_data/feature_selects",
-        ],
+        version="0.0.2",
+        attr_paths=["input/input_data/feature_selects", "report_rules"],
         attrs=[
             Attribute(ss=[f"a{i}" for i in range(11)] + [f"b{i}" for i in range(12)]),
+            Attribute(b=True),
         ],
         inputs=[
             DistData(
@@ -89,7 +89,7 @@ def test_vert_binning(comp_prod_sf_cluster_config):
                 ],
             ),
         ],
-        output_uris=[rule_path],
+        output_uris=[rule_path, report_path],
     )
 
     meta = VerticalTable(
@@ -120,6 +120,10 @@ def test_vert_binning(comp_prod_sf_cluster_config):
         cluster_config=sf_cluster_config,
     )
 
+    assert len(bin_res.outputs) == 2
+    comp_ret = Report()
+    bin_res.outputs[1].meta.Unpack(comp_ret)
+    logging.info("bin_res.outputs[1]: %s", comp_ret)
     sub_param = NodeEvalParam(
         domain="preprocessing",
         name="vert_bin_substitution",

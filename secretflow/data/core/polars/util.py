@@ -30,13 +30,36 @@ def read_polars_csv(filepath, *args, **kwargs):
         for col, dt in kwargs.pop('dtype').items():
             pl_dtypes[col] = infer_pl_dtype(dt)
         kwargs['dtypes'] = pl_dtypes
-    if 'nrows' in kwargs and kwargs['nrows'] is not None:
+    if 'nrows' in kwargs:
         kwargs['n_rows'] = kwargs.pop('nrows')
-    df = pl.read_csv(filepath, *args, **kwargs)
+    if 'header' in kwargs and kwargs['header'] is None:
+        # no header from pandas
+        kwargs['has_header'] = False
+
+    kwargs.pop('delimiter', None)
+    kwargs.pop('usecols', None)
+    kwargs.pop('dtype', None)
+    kwargs.pop('header', None)
+
+    skiprows = kwargs.pop('skip_rows_after_header', None)
+    if skiprows is not None:
+        assert isinstance(skiprows, int)
+        kwargs['skip_rows_after_header'] = skiprows
+        try:
+            df = pl.read_csv(filepath, *args, **kwargs)
+        except pl.NoDataError:
+            # skip ending with empty df, not exception
+            df = pl.DataFrame()
+    else:
+        df = pl.read_csv(filepath, *args, **kwargs)
+
     if len(df.columns) == 1:
         # for compatibility of pandas, single columns will drop null when read.
         df = df.drop_nulls()
-    return df
+    if 'columns' in kwargs and kwargs['columns'] is not None:
+        return df[kwargs['columns']]
+    else:
+        return df
 
 
 def infer_pl_dtype(tp):

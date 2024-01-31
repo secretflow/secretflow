@@ -64,32 +64,33 @@ psi_comp.bool_attr(
     is_optional=True,
     default_value=False,
 )
-psi_comp.str_attr(
-    name="advanced_join_type",
-    desc="Advanced Join allow duplicate keys. ",
-    is_list=False,
-    is_optional=True,
-    default_value="ADVANCED_JOIN_TYPE_UNSPECIFIED",
-    allowed_values=[
-        'ADVANCED_JOIN_TYPE_UNSPECIFIED',
-        'ADVANCED_JOIN_TYPE_INNER_JOIN',
-        'ADVANCED_JOIN_TYPE_LEFT_JOIN',
-        'ADVANCED_JOIN_TYPE_RIGHT_JOIN',
-        'ADVANCED_JOIN_TYPE_FULL_JOIN',
-        'ADVANCED_JOIN_TYPE_DIFFERENCE',
-    ],
-)
-psi_comp.str_attr(
-    name="left_side",
-    desc="Required if advanced_join_type is selected.",
-    is_list=False,
-    is_optional=True,
-    default_value="ROLE_RECEIVER",
-    allowed_values=[
-        "ROLE_RECEIVER",
-        "ROLE_SENDER",
-    ],
-)
+# temporally dsiabled since fillna component is not ready for integer NA values.
+# psi_comp.str_attr(
+#     name="advanced_join_type",
+#     desc="Advanced Join allow duplicate keys. ",
+#     is_list=False,
+#     is_optional=True,
+#     default_value="ADVANCED_JOIN_TYPE_UNSPECIFIED",
+#     allowed_values=[
+#         'ADVANCED_JOIN_TYPE_UNSPECIFIED',
+#         'ADVANCED_JOIN_TYPE_INNER_JOIN',
+#         'ADVANCED_JOIN_TYPE_LEFT_JOIN',
+#         'ADVANCED_JOIN_TYPE_RIGHT_JOIN',
+#         'ADVANCED_JOIN_TYPE_FULL_JOIN',
+#         'ADVANCED_JOIN_TYPE_DIFFERENCE',
+#     ],
+# )
+# psi_comp.str_attr(
+#     name="left_side",
+#     desc="Required if advanced_join_type is selected.",
+#     is_list=False,
+#     is_optional=True,
+#     default_value="ROLE_RECEIVER",
+#     allowed_values=[
+#         "ROLE_RECEIVER",
+#         "ROLE_SENDER",
+#     ],
+# )
 psi_comp.str_attr(
     name="ecdh_curve",
     desc="Curve type for ECDH PSI.",
@@ -185,8 +186,6 @@ def two_party_balanced_psi_eval_fn(
     skip_duplicates_check,
     check_hash_digest,
     ecdh_curve,
-    advanced_join_type,
-    left_side,
     receiver_input,
     receiver_input_key,
     sender_input,
@@ -233,8 +232,6 @@ def two_party_balanced_psi_eval_fn(
             broadcast_result=True,
             protocol=protocol,
             ecdh_curve=ecdh_curve,
-            advanced_join_type=advanced_join_type,
-            left_side=left_side,
             skip_duplicates_check=skip_duplicates_check,
             disable_alignment=disable_alignment,
             check_hash_digest=check_hash_digest,

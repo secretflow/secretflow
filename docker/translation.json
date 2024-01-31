@@ -50,10 +50,6 @@
     "If true, the check of duplicated items will be skiped.": "如果为true，将跳过重复值检查",
     "check_hash_digest": "检查hash摘要",
     "Check if hash digest of keys from parties are equal to determine whether to early-stop.": "检查各方求交键的哈希摘要是否相等，以确定是否提前停止",
-    "advanced_join_type": "高级求交选项",
-    "Advanced Join allow duplicate keys.": "高级加入允许求交键重复",
-    "left_side": "左方",
-    "Required if advanced_join_type is selected.": "如果选择了【高级求交选项】，则为必需项。",
     "ecdh_curve": "ECDH 曲线类型",
     "Curve type for ECDH PSI.": "ECDH PSI的曲线类型。",
     "receiver_input": "接收方的输入",
@@ -85,27 +81,31 @@
     "test": "测试数据子集",
     "Output test dataset.": "输出测试数据子集"
   },
-  "feature/vert_binning:0.0.1": {
+  "feature/vert_binning:0.0.2": {
     "feature": "特征",
     "vert_binning": "常规分箱",
     "Generate equal frequency or equal range binning rules for vertical partitioning datasets.": "为垂直分区数据集生成等频或等距分箱规则",
-    "0.0.1": "0.0.1",
+    "0.0.2": "0.0.2",
     "binning_method": "分箱方式",
     "How to bin features with numeric types: \"quantile\"(equal frequency)/\"eq_range\"(equal range)": "如何对特征进行分箱：“quantile”（等频）/“eq_range”（等距）",
     "bin_num": "bin_num",
     "Max bin counts for one features.": "一个特征的最大分箱数",
+    "report_rules": "报告规则",
+    "Whether report binning rules.": "是否有报表装箱规则。",
     "input_data": "输入数据集",
     "Input vertical table.": "输入垂直表",
     "feature_selects": "特征列",
     "which features should be binned.": "应对哪些特征进行分箱",
     "bin_rule": "分箱规则",
-    "Output bin rule.": "输出分箱规则"
+    "Output bin rule.": "输出分箱规则",
+    "report": "报告",
+    "report rules details if report_rules is true": "如果report_rules为true，则报告规则详细信息"
   },
-  "feature/vert_woe_binning:0.0.1": {
+  "feature/vert_woe_binning:0.0.2": {
     "feature": "特征",
     "vert_woe_binning": "WOE分箱",
     "Generate Weight of Evidence (WOE) binning rules for vertical partitioning datasets.": "为垂直分割数据集生成 Weight of Evidence （WOE） 分箱规则",
-    "0.0.1": "0.0.1",
+    "0.0.2": "0.0.2",
     "secure_device_type": "安全设备类型",
     "Use SPU(Secure multi-party computation or MPC) or HEU(Homomorphic encryption or HE) to secure bucket summation.": "使用 SPU（安全多方计算, MPC）或 HEU（同态加密, HE）来保护桶求和",
     "binning_method": "分箱方式",
@@ -120,6 +120,8 @@
     "Stop merging if remaining bin counts is less than or equal to this value.": "在 ChiMerge 中如果剩余箱计数小于或等于此值，则停止合并",
     "chimerge_target_pvalue": "chimerge目标 p-value 值",
     "Stop merging if biggest pvalue of remaining bins is greater than this value.": "在 ChiMerge 中如果剩余分箱的最大 p-value 大于此值，则停止合并",
+    "report_rules": "报告规则",
+    "Whether report binning rules.": "是否有报表装箱规则。",
     "input_data": "输入数据集",
     "Input vertical table.": "输入联合表",
     "feature_selects": "特征列",
@@ -127,7 +129,9 @@
     "label": "标签",
     "Label of input data.": "输入数据的标签",
     "bin_rule": "分箱规则",
-    "Output WOE rule.": "输出 WOE 规则"
+    "Output WOE rule.": "输出 WOE 规则",
+    "report": "报告",
+    "report rules details if report_rules is true": "如果report_rules为true，则报告规则详细信息"
   },
   "io/identity:0.0.1": {
     "io": "IO系列",
@@ -244,6 +248,8 @@
     "model": "模型",
     "feature_dataset": "特征数据集",
     "Input vertical table.": "输入联合表",
+    "saved_features": "保存特征列",
+    "which features should be saved with prediction result": "哪些特征应该与预测结果一起保存",
     "pred": "预测",
     "Output prediction.": "输出预测结果表"
   },

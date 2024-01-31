@@ -46,7 +46,10 @@ def read_csv_wrapper(
 
     def _read_csv(_filepath, _backend, *_args, **_kwargs):
         if _backend == "pandas":
-            return pd.read_csv(open(_filepath), *_args, **_kwargs)
+            from secretflow.data.core.pandas.util import read_pandas_csv
+
+            return read_pandas_csv(_filepath, *_args, **_kwargs)
+
         elif _backend == "polars":
             from secretflow.data.core.polars.util import read_polars_csv
 

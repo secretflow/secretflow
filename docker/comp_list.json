@@ -176,44 +176,6 @@
           }
         },
         {
-          "name": "advanced_join_type",
-          "desc": "Advanced Join allow duplicate keys.",
-          "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "s": "ADVANCED_JOIN_TYPE_UNSPECIFIED"
-            },
-            "allowedValues": {
-              "ss": [
-                "ADVANCED_JOIN_TYPE_UNSPECIFIED",
-                "ADVANCED_JOIN_TYPE_INNER_JOIN",
-                "ADVANCED_JOIN_TYPE_LEFT_JOIN",
-                "ADVANCED_JOIN_TYPE_RIGHT_JOIN",
-                "ADVANCED_JOIN_TYPE_FULL_JOIN",
-                "ADVANCED_JOIN_TYPE_DIFFERENCE"
-              ]
-            }
-          }
-        },
-        {
-          "name": "left_side",
-          "desc": "Required if advanced_join_type is selected.",
-          "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "s": "ROLE_RECEIVER"
-            },
-            "allowedValues": {
-              "ss": [
-                "ROLE_RECEIVER",
-                "ROLE_SENDER"
-              ]
-            }
-          }
-        },
-        {
           "name": "ecdh_curve",
           "desc": "Curve type for ECDH PSI.",
           "type": "AT_STRING",
@@ -368,7 +330,7 @@
       "domain": "feature",
       "name": "vert_binning",
       "desc": "Generate equal frequency or equal range binning rules for vertical partitioning datasets.",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "attrs": [
         {
           "name": "binning_method",
@@ -397,7 +359,19 @@
               "i64": "10"
             },
             "lowerBoundEnabled": true,
-            "lowerBound": {}
+            "lowerBound": {
+              "i64": "2"
+            },
+            "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "report_rules",
+          "desc": "Whether report binning rules.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
           }
         }
       ],
@@ -424,6 +398,13 @@
           "types": [
             "sf.rule.binning"
           ]
+        },
+        {
+          "name": "report",
+          "desc": "report rules details if report_rules is true",
+          "types": [
+            "sf.report"
+          ]
         }
       ]
     },
@@ -431,7 +412,7 @@
       "domain": "feature",
       "name": "vert_woe_binning",
       "desc": "Generate Weight of Evidence (WOE) binning rules for vertical partitioning datasets.",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "attrs": [
         {
           "name": "secure_device_type",
@@ -540,6 +521,15 @@
             },
             "upperBoundInclusive": true
           }
+        },
+        {
+          "name": "report_rules",
+          "desc": "Whether report binning rules.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
         }
       ],
       "inputs": [
@@ -570,6 +560,13 @@
           "desc": "Output WOE rule.",
           "types": [
             "sf.rule.binning"
+          ]
+        },
+        {
+          "name": "report",
+          "desc": "report rules details if report_rules is true",
+          "types": [
+            "sf.report"
           ]
         }
       ]
@@ -999,6 +996,12 @@
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "saved_features",
+              "desc": "which features should be saved with prediction result"
+            }
           ]
         }
       ],
