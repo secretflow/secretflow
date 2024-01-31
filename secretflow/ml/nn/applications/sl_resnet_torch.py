@@ -78,7 +78,7 @@ class BasicBlock(nn.Module):
 class ResNetBase(nn.Module):
     def __init__(
         self,
-        block: BasicBlock,
+        block: type(BasicBlock),
         layers: List[int],
         input_channels: int = 3,
         zero_init_residual: bool = False,

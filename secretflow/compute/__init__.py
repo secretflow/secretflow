@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .tracer import Array, Table
+from .tracer import Array, Table, TraceRunner
 
-__all__ = ["Array", "Table"]
+__all__ = ["Array", "Table", "TraceRunner"]
 
 
 def __init_sf_func():

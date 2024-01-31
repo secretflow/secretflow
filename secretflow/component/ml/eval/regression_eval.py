@@ -74,7 +74,7 @@ regression_eval_comp.io(
         ),
         TableColParam(
             name="prediction",
-            desc="The prediction result cplumn name to use in the dataset.",
+            desc="The prediction result column name to use in the dataset.",
             col_min_cnt_inclusive=1,
             col_max_cnt_inclusive=1,
         ),

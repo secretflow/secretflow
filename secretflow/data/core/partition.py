@@ -111,11 +111,11 @@ class Partition(DataFrameBase):
 
     def __del__(self):
         """
-        When a partition id deleted, we should make shure that the data corresponding to partition's agent_idx
-        in the part_agent actor is also deleted. So we need to explicit call the del_object ont eh part_agent.
+        When a partition id deleted, we should make sure that the data corresponding to partition's agent_idx
+        in the part_agent actor is also deleted. So we need to explicitly call the del_object on the part_agent.
         However, in following cases, when the varible 'temp' is deleted, the first cluster is already shutdown,
-        calling the 'del_object()' on the actor in a died cluster will cause unrecoverable errors.
-        Therefore, the partition record the cluter index to which it belongs.
+        calling the 'del_object()' on the actor in a dead cluster will cause unrecoverable errors.
+        Therefore, the partition record the cluster index to which it belongs.
         When the current active cluster is not which the partition belongs, the __del__ do nothing.
             - sf.init()
             - temp = Partition(xx)

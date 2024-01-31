@@ -23,10 +23,8 @@ from secretflow.data.vertical import VDataFrame
 from secretflow.device import PYU, PYUObject, reveal, wait
 from secretflow.ml.boost.core.data_preprocess import prepare_dataset
 
-from .core.distributed_tree.distributed_tree import (
-    DistributedTree,
-    from_dict as dt_from_dict,
-)
+from .core.distributed_tree.distributed_tree import DistributedTree
+from .core.distributed_tree.distributed_tree import from_dict as dt_from_dict
 from .core.params import RegType
 from .core.pure_numpy_ops.pred import sigmoid
 
@@ -237,29 +235,41 @@ def from_json_to_dict(
 
     # load leaf weight
     leaf_weight_path = device_path_dict[label_holder] + leaf_weight_postfix
-    leaf_weights = [
-        *label_holder(json_load, num_returns=common_params['tree_num'])(
-            leaf_weight_path
-        )
-    ]
+    if common_params['tree_num'] > 1:
+        leaf_weights = [
+            *label_holder(json_load, num_returns=common_params['tree_num'])(
+                leaf_weight_path
+            )
+        ]
+    else:
+        leaf_weights = [label_holder(lambda x: json_load(x)[0])(leaf_weight_path)]
     # check split trees
     split_devices = {}
     for device, path in device_path_dict.items():
         if reveal(device(check_file_exists)(path + split_tree_postfix)):
             split_devices[device] = path
 
-    return {
-        'label_holder': label_holder,
-        'common': common_params,
-        'leaf_weights': leaf_weights,
-        'split_trees': {
+    if common_params['tree_num'] > 1:
+        split_tree_dict = {
             device: [
                 *device(json_load, num_returns=common_params['tree_num'])(
                     path + split_tree_postfix
                 )
             ]
             for device, path in split_devices.items()
-        },
+        }
+
+    else:
+        split_tree_dict = {
+            device: [device(lambda x: json_load(x)[0])(path + split_tree_postfix)]
+            for device, path in split_devices.items()
+        }
+
+    return {
+        'label_holder': label_holder,
+        'common': common_params,
+        'leaf_weights': leaf_weights,
+        'split_trees': split_tree_dict,
     }
 
 

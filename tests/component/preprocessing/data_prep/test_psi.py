@@ -1,7 +1,6 @@
 import os
 
 import pandas as pd
-
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.preprocessing.data_prep.psi import psi_comp
 from secretflow.spec.v1.component_pb2 import Attribute
@@ -78,21 +77,17 @@ def test_psi(comp_prod_sf_cluster_config):
     param = NodeEvalParam(
         domain="data_prep",
         name="psi",
-        version="0.0.1",
+        version="0.0.2",
         attr_paths=[
             "protocol",
-            "sort",
-            "broadcast_result",
-            "bucket_size",
+            "disable_alignment",
             "ecdh_curve_type",
             "input/receiver_input/key",
             "input/sender_input/key",
         ],
         attrs=[
-            Attribute(s="ECDH_PSI_2PC"),
-            Attribute(b=True),
-            Attribute(b=True),
-            Attribute(i64=1048576),
+            Attribute(s="PROTOCOL_ECDH"),
+            Attribute(b=False),
             Attribute(s="CURVE_FOURQ"),
             Attribute(ss=["id1"]),
             Attribute(ss=["id2"]),
@@ -163,6 +158,7 @@ def test_psi(comp_prod_sf_cluster_config):
     assert res.outputs[0].meta.Unpack(output_vt)
     assert len(output_vt.schemas) == 2
 
+    assert output_vt.line_count == 4
     assert output_vt.schemas[0].ids == ["id1"]
     assert output_vt.schemas[0].features == ["item", "feature1"]
     assert output_vt.schemas[1].ids == ["id2"]

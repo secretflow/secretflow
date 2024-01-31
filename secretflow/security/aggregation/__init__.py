@@ -1,10 +1,3 @@
-'''
-Descripttion:
-version:
-Author: bloom0705
-LastEditors: bloom0705
-E-mail: 809127446@qq.com
-'''
 # Copyright 2022 Ant Group Co., Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");

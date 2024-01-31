@@ -81,12 +81,14 @@ def get_pred_param(alice_path, bob_path, train_res, predict_path):
             "receiver",
             "save_ids",
             "save_label",
+            "input/feature_dataset/saved_features",
         ],
         attrs=[
             Attribute(i64=128),
             Attribute(s="alice"),
             Attribute(b=False),
             Attribute(b=True),
+            Attribute(ss=["a2", "a10"]),
         ],
         inputs=[
             train_res.outputs[0],
@@ -206,7 +208,7 @@ def test_ss_sgd(comp_prod_sf_cluster_config):
     output_y = pd.read_csv(os.path.join(TEST_STORAGE_ROOT, "alice", predict_path))
 
     # label & pred
-    assert output_y.shape[1] == 2
+    assert output_y.shape[1] == 4
 
     assert input_y.shape[0] == output_y.shape[0]
 

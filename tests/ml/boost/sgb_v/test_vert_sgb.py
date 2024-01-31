@@ -16,13 +16,13 @@ import logging
 import os
 import time
 
+from sklearn.metrics import mean_squared_error, roc_auc_score
+
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.device.driver import reveal
 from secretflow.ml.boost.sgb_v import Sgb
 from secretflow.ml.boost.sgb_v.model import load_model
 from secretflow.utils.simulation.datasets import load_dermatology, load_linear
-
-from sklearn.metrics import mean_squared_error, roc_auc_score
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -228,6 +228,19 @@ def test_breast_cancer(sf_production_setup_devices_aby3):
             )
         },
         partition_way=PartitionWay.VERTICAL,
+    )
+
+    _run_sgb(
+        sf_production_setup_devices_aby3,
+        "breast_cancer",
+        v_data,
+        label_data,
+        y,
+        True,
+        1,
+        0.9,
+        num_boost_round=0,
+        auc_bar=0.5,
     )
 
     _run_sgb(

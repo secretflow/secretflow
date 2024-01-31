@@ -185,7 +185,7 @@ struct NormalDiscrete<T, typename std::enable_if<
     std::binomial_distribution<> binomial(1, 0.5);
     // generate a new generator for std::binomial_distribution
     // TODO: Adapt the official PRG interface of cpp11 for Prg
-    yacl::crypto::Prg<uint128_t> rd(0, yacl::crypto::PRG_MODE::kNistAesCtrDrbg);
+    yacl::crypto::Prg<uint128_t> rd(0, yacl::crypto::PRG_MODE::kAesEcb);
     std::mt19937 gen(rd());
 
     while (true) {

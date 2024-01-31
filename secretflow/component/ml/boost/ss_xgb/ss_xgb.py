@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import json
-import os
 
 from secretflow.component.component import (
     CompEvalError,
@@ -22,20 +21,16 @@ from secretflow.component.component import (
 )
 from secretflow.component.data_utils import (
     DistDataType,
-    extract_table_header,
-    gen_prediction_csv_meta,
     get_model_public_info,
     load_table,
     model_dumps,
     model_loads,
-    save_prediction_csv,
+    save_prediction_dd,
 )
 from secretflow.device.device.pyu import PYU
 from secretflow.device.device.spu import SPU
-from secretflow.device.driver import wait
 from secretflow.ml.boost.ss_xgb_v import Xgb, XgbModel
 from secretflow.ml.boost.ss_xgb_v.core.node_split import RegType
-from secretflow.spec.v1.data_pb2 import DistData
 
 ss_xgb_train_comp = Component(
     "ss_xgb_train",
@@ -210,6 +205,8 @@ def ss_xgb_train_eval_fn(
 
     spu = SPU(spu_config["cluster_def"], spu_config["link_desc"])
 
+    assert len(train_dataset_label) == 1
+
     y = load_table(
         ctx,
         train_dataset,
@@ -323,7 +320,13 @@ ss_xgb_predict_comp.io(
     name="feature_dataset",
     desc="Input vertical table.",
     types=["sf.table.vertical_table"],
-    col_params=None,
+    col_params=[
+        TableColParam(
+            name="saved_features",
+            desc="which features should be saved with prediction result",
+            col_min_cnt_inclusive=0,
+        )
+    ],
 )
 ss_xgb_predict_comp.io(
     io_type=IoType.OUTPUT,
@@ -378,6 +381,7 @@ def ss_xgb_predict_eval_fn(
     *,
     ctx,
     feature_dataset,
+    feature_dataset_saved_features,
     model,
     receiver,
     pred_name,
@@ -409,70 +413,16 @@ def ss_xgb_predict_eval_fn(
         pyu = PYU(receiver)
         pyu_y = model.predict(x, pyu)
 
-        y_path = os.path.join(ctx.local_fs_wd, pred)
-
-    if save_ids:
-        id_df = load_table(ctx, feature_dataset, load_ids=True)
-        assert pyu in id_df.partitions
-        id_header_map = extract_table_header(feature_dataset, load_ids=True)
-        assert receiver in id_header_map
-        id_header = list(id_header_map[receiver].keys())
-        id_data = id_df.partitions[pyu].data
-    else:
-        id_header_map = None
-        id_header = None
-        id_data = None
-
-    if save_label:
-        label_df = load_table(
+    with ctx.tracer.trace_io():
+        y_db = save_prediction_dd(
             ctx,
-            feature_dataset,
-            load_features=True,
-            load_labels=True,
-            col_selects=model_public_info['label_col'],
-        )
-        assert pyu in label_df.partitions
-        label_header_map = extract_table_header(
-            feature_dataset,
-            load_features=True,
-            load_labels=True,
-            col_selects=model_public_info['label_col'],
-        )
-        assert receiver in label_header_map
-        label_header = list(label_header_map[receiver].keys())
-        label_data = label_df.partitions[pyu].data
-    else:
-        label_header_map = None
-        label_header = None
-        label_data = None
-
-    wait(
-        pyu(save_prediction_csv)(
-            pyu_y.partitions[pyu],
+            pred,
+            pyu_y,
             pred_name,
-            y_path,
-            label_data,
-            label_header,
-            id_data,
-            id_header,
+            feature_dataset,
+            feature_dataset_saved_features,
+            model_public_info['label_col'] if save_label else [],
+            save_ids,
         )
-    )
-
-    y_db = DistData(
-        name=pred_name,
-        type=str(DistDataType.INDIVIDUAL_TABLE),
-        data_refs=[DistData.DataRef(uri=pred, party=receiver, format="csv")],
-    )
-
-    meta = gen_prediction_csv_meta(
-        id_header=id_header_map,
-        label_header=label_header_map,
-        party=receiver,
-        pred_name=pred_name,
-        line_count=x.shape[0],
-        id_keys=id_header,
-        label_keys=label_header,
-    )
-    y_db.meta.Pack(meta)
 
     return {"pred": y_db}

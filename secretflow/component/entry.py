@@ -27,6 +27,7 @@ from secretflow.component.ml.eval.regression_eval import regression_eval_comp
 from secretflow.component.ml.eval.ss_pvalue import ss_pvalue_comp
 from secretflow.component.ml.linear.ss_glm import ss_glm_predict_comp, ss_glm_train_comp
 from secretflow.component.ml.linear.ss_sgd import ss_sgd_predict_comp, ss_sgd_train_comp
+from secretflow.component.model_export import model_export_comp
 from secretflow.component.preprocessing.binning.vert_binning import (
     vert_bin_substitution_comp,
     vert_binning_comp,
@@ -100,6 +101,7 @@ ALL_COMPONENTS = [
     io_write_data,
     feature_calculate,
     identity,
+    model_export_comp,
 ]
 
 COMP_LIST_NAME = "secretflow"
@@ -133,7 +135,9 @@ COMP_LIST, COMP_MAP = generate_comp_list()
 
 def get_comp_def(domain: str, name: str, version: str) -> ComponentDef:
     key = gen_key(domain, name, version)
-    assert key in COMP_MAP, f"key {key} is not in component list {COMP_LIST}"
+    assert (
+        key in COMP_MAP
+    ), f"key {key} is not in component list {list(COMP_MAP.keys())}"
     return COMP_MAP[key].definition()
 
 

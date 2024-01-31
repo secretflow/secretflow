@@ -37,11 +37,12 @@ class HomoBooster(link.Link):
     def __init__(
         self,
         device: PYU = None,
+        production_mode: bool = True,
         clients: List[PYU] = None,
         server: PYU = None,
         msg_id_prefix='',
     ):
-        super().__init__(device, msg_id_prefix)
+        super().__init__(device, production_mode, msg_id_prefix)
         self.clients = clients
         self.server = server
         self.device = device

@@ -23,6 +23,7 @@ def vert_woe_bin_rule(comp_prod_sf_cluster_config):
     alice_path = "test_io/x_alice.csv"
     bob_path = "test_io/x_bob.csv"
     rule_path = "test_io/bin_rule"
+    report_path = "test_io/report"
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
@@ -52,7 +53,7 @@ def vert_woe_bin_rule(comp_prod_sf_cluster_config):
     bin_param_01 = NodeEvalParam(
         domain="feature",
         name="vert_woe_binning",
-        version="0.0.1",
+        version="0.0.2",
         attr_paths=[
             "input/input_data/feature_selects",
             "bin_num",
@@ -73,7 +74,7 @@ def vert_woe_bin_rule(comp_prod_sf_cluster_config):
                 ],
             ),
         ],
-        output_uris=[rule_path],
+        output_uris=[rule_path, report_path],
     )
 
     meta = VerticalTable(

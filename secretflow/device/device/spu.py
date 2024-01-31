@@ -33,19 +33,18 @@ import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 import ray
+import secretflow.distributed as sfd
 import spu
 import spu.libspu.link as spu_link
 import spu.libspu.logging as spu_logging
 import spu.utils.frontend as spu_fe
 from google.protobuf import json_format
 from heu import phe
-from spu import pir, psi, spu_pb2
-from spu.utils.distributed import dtype_spu_to_np, shape_spu_to_np
-
-import secretflow.distributed as sfd
 from secretflow.utils.errors import InvalidArgumentError
 from secretflow.utils.ndarray_bigint import BigintNdArray
 from secretflow.utils.progress import ProgressData
+from spu import pir, psi, spu_pb2
+from spu.utils.distributed import dtype_spu_to_np, shape_spu_to_np
 
 from .base import Device, DeviceObject, DeviceType
 from .pyu import PYUObject
@@ -1561,9 +1560,12 @@ class SPURuntime:
             )
 
         report = spu.psi.psi_v2(config, self.link)
-        from google.protobuf.json_format import MessageToJson
 
-        return MessageToJson(report)
+        return {
+            'party': self.party,
+            'original_count': report.original_count,
+            'intersection_count': report.intersection_count,
+        }
 
 
 def _argnames_partial_except(fn, static_argnames, kwargs):
@@ -2321,7 +2323,7 @@ class SPU(Device):
             broadcast_result (bool, optional): Whether to reveal result to sender. Defaults to True.
             protocol (str, optional): PSI protocol. Defaults to 'PROTOCOL_KKRT'. Allowed values: 'PROTOCOL_ECDH', 'PROTOCOL_KKRT', 'PROTOCOL_RR22'
             ecdh_curve (str, optional): Curve for ECDH protocol. Only valid if ECDH is selected. Defaults to 'CURVE_FOURQ'. Allowed values: 'CURVE_25519', 'CURVE_FOURQ', 'CURVE_SM2', 'CURVE_SECP256K1'
-            advanced_join_type (str, optional): Advanced Join allow duplicate keys.. Defaults to "ADVANCED_JOIN_TYPE_UNSPECIFIED". Allowed values: 'ADVANCED_JOIN_TYPE_UNSPECIFIED', 'ADVANCED_JOIN_TYPE_INNER_JOIN', 'ADVANCED_JOIN_TYPE_LEFT_JOIN', 'ADVANCED_JOIN_TYPE_RIGHT_JOIN', 'ADVANCED_JOIN_TYPE_FULL_JOIN', 'ADVANCED_JOIN_TYPE_DIFFERENCE'
+            advanced_join_type (str, optional): Advanced Join allow duplicate keys. Defaults to "ADVANCED_JOIN_TYPE_UNSPECIFIED". Allowed values: 'ADVANCED_JOIN_TYPE_UNSPECIFIED', 'ADVANCED_JOIN_TYPE_INNER_JOIN', 'ADVANCED_JOIN_TYPE_LEFT_JOIN', 'ADVANCED_JOIN_TYPE_RIGHT_JOIN', 'ADVANCED_JOIN_TYPE_FULL_JOIN', 'ADVANCED_JOIN_TYPE_DIFFERENCE'
             left_side (str, optional): Required if advanced_join_type is selected. Defaults to "ROLE_RECEIVER". Allowed values: 'ROLE_RECEIVER', 'ROLE_SENDER'
             skip_duplicates_check (bool, optional): If true, the check of duplicated items will be skiped. Defaults to False.
             disable_alignment (bool, optional): It true, output is not promised to be aligned. Defaults to False.

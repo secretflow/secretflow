@@ -9,7 +9,7 @@ RUN cd / && git clone https://github.com/google/nsjail.git \
     && cd /nsjail && git checkout 3.3 -b v3.3 \
     && make && mv /nsjail/nsjail /bin
 
-FROM secretflow/anolis8-python:3.8.15 as python
+FROM secretflow/anolis8-python:3.8.18 as python
 
 FROM openanolis/anolisos:8.8
 
@@ -26,7 +26,7 @@ RUN grep -rl '#!/root/miniconda3/envs/secretflow/bin' /usr/local/bin/ | xargs se
 COPY *.whl /tmp/
 
 RUN pip install -i https://mirrors.aliyun.com/pypi/simple/  kuscia
-RUN pip install -i https://mirrors.aliyun.com/pypi/simple/  /tmp/*.whl && rm -rf /root/.cache
+RUN pip install -i https://mirrors.aliyun.com/pypi/simple/  --extra-index-url https://artifacts.antgroup-inc.cn/artifact/repositories/simple-dev/ /tmp/*.whl && rm -rf /root/.cache
 
 COPY .nsjail /root/.nsjail
 

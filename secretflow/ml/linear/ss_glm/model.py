@@ -20,6 +20,7 @@ from typing import List, Tuple, Union
 import jax.numpy as jnp
 import numpy as np
 
+import secretflow as sf
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import PYU, SPU, PYUObject, SPUObject, wait
@@ -178,7 +179,7 @@ def _sgd_update_w(
     return model
 
 
-def _irls_update_w(
+def _irls_calculate_partials(
     x: np.ndarray,
     y: np.ndarray,
     offset: np.ndarray,
@@ -186,8 +187,7 @@ def _irls_update_w(
     model: np.ndarray,
     link: Linker,
     dist: Distribution,
-    l2_lambda: float,
-) -> np.ndarray:
+) -> Tuple[np.ndarray, np.ndarray]:
     y = y.reshape((-1, 1))
 
     if offset is not None:
@@ -219,18 +219,22 @@ def _irls_update_w(
 
     XTW = jnp.transpose(x * W_diag.reshape(-1, 1))
     J = jnp.matmul(XTW, x)
+    XTWZ = jnp.matmul(XTW, Z)
+    return J, XTWZ
 
+
+def _irls_update_w_from_accumulated_partials(J, XTWZ, model, l2_lambda, newton_iter):
     if l2_lambda is not None:
-        I_m = jnp.identity(x.shape[1]).at[-1, -1].set(0.0)
+        I_m = jnp.identity(J.shape[0]).at[-1, -1].set(0.0)
         J = J + l2_lambda * I_m
 
-    inv_J = newton_matrix_inverse(J, 25)
+    inv_J = newton_matrix_inverse(J, newton_iter)
 
     if l2_lambda and model is not None:
         model_l2 = model.at[-1, 0].set(0.0)
-        model = jnp.matmul(inv_J, jnp.matmul(XTW, Z) - l2_lambda * model_l2)
+        model = jnp.matmul(inv_J, XTWZ - l2_lambda * model_l2)
     else:
-        model = jnp.matmul(jnp.matmul(inv_J, XTW), Z)
+        model = jnp.matmul(inv_J, XTWZ)
 
     return model
 
@@ -270,6 +274,8 @@ class SSGLM:
         decay_epoch: int,
         decay_rate: float,
         l2_lambda: float,
+        infeed_batch_size_limit: int,
+        newton_iter: int,
     ):
         self.x, (self.samples, self.num_feat) = self._prepare_dataset(x)
         assert self.samples > 0 and self.num_feat > 0, "input dataset is empty"
@@ -294,6 +300,7 @@ class SSGLM:
             else:
                 return y, 1
 
+        self.newton_iter = newton_iter
         y_device = list(self.y.partitions.keys())[0]
         y, y_scale = y_device(normalize_y)(self.y.partitions[y_device])
         self.y.partitions[y_device] = y
@@ -337,7 +344,7 @@ class SSGLM:
         assert sgd_batch_size > 0, f"sgd_batch_size should >0"
         self.sgd_batch_size = sgd_batch_size
         # for large dataset, batch infeed data for each 10w*100d size.
-        infeed_rows = math.ceil((100000 * 100) / self.num_feat)
+        infeed_rows = math.ceil(infeed_batch_size_limit / self.num_feat)
         # align to sgd_batch_size, for algorithm accuracy
         infeed_rows = (
             int((infeed_rows + sgd_batch_size - 1) / sgd_batch_size) * sgd_batch_size
@@ -392,34 +399,6 @@ class SSGLM:
 
         return spu_model
 
-    def _irls_step(
-        self,
-        spu_model: SPUObject,
-        spu_x: SPUObject,
-        spu_y: SPUObject,
-        spu_o: SPUObject,
-        spu_w: SPUObject,
-    ) -> SPUObject:
-        spu_model = self.spu(
-            _irls_update_w,
-            static_argnames=(
-                'dist',
-                'link',
-                'l2_lambda',
-            ),
-        )(
-            spu_x,
-            spu_y,
-            spu_o,
-            spu_w,
-            spu_model,
-            link=self.link,
-            dist=self.dist,
-            l2_lambda=self.l2_lambda,
-        )
-
-        return spu_model
-
     def _next_infeed_batch(self, ds: FedNdarray, infeed_step: int) -> FedNdarray:
         being = infeed_step * self.infeed_batch_size
         assert being < self.samples
@@ -462,14 +441,54 @@ class SSGLM:
         return sgd_lr
 
     def _epoch(self, spu_model: SPUObject, epoch_idx: int) -> SPUObject:
-        for infeed_step in range(self.infeed_total_batch):
-            if epoch_idx == 0:
-                self._build_batch_cache(infeed_step)
-            spu_x, spu_y, spu_o, spu_w = self.batch_cache[infeed_step]
+        if epoch_idx < self.irls_epochs:
+            for infeed_step in range(self.infeed_total_batch):
+                if epoch_idx == 0:
+                    self._build_batch_cache(infeed_step)
+                spu_x, spu_y, spu_o, spu_w = self.batch_cache[infeed_step]
+                logging.info("irls calculating partials...")
+                new_J, new_XTWZ = self.spu(
+                    _irls_calculate_partials,
+                    static_argnames=(
+                        'link',
+                        'dist',
+                    ),
+                    num_returns_policy=sf.device.SPUCompilerNumReturnsPolicy.FROM_COMPILER,
+                )(
+                    spu_x,
+                    spu_y,
+                    spu_o,
+                    spu_w,
+                    spu_model,
+                    link=self.link,
+                    dist=self.dist,
+                )
+                wait([new_J, new_XTWZ])
+                if infeed_step == 0:
+                    J = new_J
+                    XTWZ = new_XTWZ
+                else:
+                    J = self.spu(lambda x, y: x + y)(new_J, J)
+                    wait(J)
+                    XTWZ = self.spu(lambda x, y: x + y)(new_XTWZ, XTWZ)
+                    wait(XTWZ)
 
-            if epoch_idx < self.irls_epochs:
-                spu_model = self._irls_step(spu_model, spu_x, spu_y, spu_o, spu_w)
-            else:
+            logging.info("irls updating weights...")
+            spu_model = self.spu(
+                _irls_update_w_from_accumulated_partials,
+                static_argnames=('l2_lambda', 'newton_iter'),
+            )(
+                J,
+                XTWZ,
+                spu_model,
+                l2_lambda=self.l2_lambda,
+                newton_iter=self.newton_iter,
+            )
+        else:
+            for infeed_step in range(self.infeed_total_batch):
+                if epoch_idx == 0:
+                    self._build_batch_cache(infeed_step)
+                spu_x, spu_y, spu_o, spu_w = self.batch_cache[infeed_step]
                 sgd_lr = self._get_sgd_learning_rate(epoch_idx - self.irls_epochs)
                 spu_model = self._sgd_step(
                     spu_model,
@@ -506,6 +525,9 @@ class SSGLM:
         decay_epoch: int = None,
         decay_rate: float = None,
         l2_lambda: float = None,
+        # 10w * 100d
+        infeed_batch_size_limit: int = 10000000,
+        newton_iter: int = 25,
     ) -> None:
         self._pre_check(
             x,
@@ -524,6 +546,8 @@ class SSGLM:
             decay_epoch,
             decay_rate,
             l2_lambda,
+            infeed_batch_size_limit,
+            newton_iter,
         )
 
         spu_w = None
@@ -555,6 +579,9 @@ class SSGLM:
         scale: float = 1,
         eps: float = 1e-4,
         l2_lambda: float = None,
+        # 10w * 100d
+        infeed_batch_size_limit: int = 10000000,
+        newton_iter: int = 25,
     ) -> None:
         """
         Fit the model by IRLS(Iteratively reweighted least squares).
@@ -573,7 +600,7 @@ class SSGLM:
             epochs : int
                 iteration rounds.
             link : str
-                Specify a link function (Logit, Log, Reciprocal, Indentity)
+                Specify a link function (Logit, Log, Reciprocal, Identity)
             dist : str
                 Specify a probability distribution (Bernoulli, Poisson, Gamma, Tweedie)
             tweedie_power : float
@@ -607,6 +634,8 @@ class SSGLM:
             scale=scale,
             eps=eps,
             l2_lambda=l2_lambda,
+            infeed_batch_size_limit=infeed_batch_size_limit,
+            newton_iter=newton_iter,
         )
 
     def fit_sgd(
@@ -627,6 +656,8 @@ class SSGLM:
         decay_epoch: int = None,
         decay_rate: float = None,
         l2_lambda: float = None,
+        infeed_batch_size_limit: int = 10000000,
+        newton_iter: int = 25,
     ) -> None:
         """
         Fit the model by SGD(stochastic gradient descent).
@@ -645,7 +676,7 @@ class SSGLM:
             epochs : int
                 iteration rounds.
             link : str
-                Specify a link function (Logit, Log, Reciprocal, Indentity)
+                Specify a link function (Logit, Log, Reciprocal, Identity)
             dist : str
                 Specify a probability distribution (Bernoulli, Poisson, Gamma, Tweedie)
             tweedie_power : float
@@ -686,6 +717,8 @@ class SSGLM:
             decay_epoch=decay_epoch,
             decay_rate=decay_rate,
             l2_lambda=l2_lambda,
+            infeed_batch_size_limit=infeed_batch_size_limit,
+            newton_iter=newton_iter,
         )
 
     def predict(
@@ -693,6 +726,8 @@ class SSGLM:
         x: Union[FedNdarray, VDataFrame],
         o: Union[FedNdarray, VDataFrame] = None,
         to_pyu: PYU = None,
+        # 10w * 100d
+        infeed_batch_size_limit: int = 10000000,
     ) -> Union[SPUObject, PYUObject]:
         """
         Predict using the model.
@@ -718,7 +753,7 @@ class SSGLM:
         if o is not None:
             o, _ = self._prepare_dataset(o)
         self.samples, self.num_feat = shape
-        infeed_rows = math.ceil((100000 * 100) / self.num_feat)
+        infeed_rows = math.ceil(infeed_batch_size_limit / self.num_feat)
         self.infeed_batch_size = infeed_rows
         infeed_total_batch = math.ceil(self.samples / infeed_rows)
 
@@ -802,6 +837,7 @@ class SSGLM:
         bias: PYUObject,
         o: Union[FedNdarray, VDataFrame] = None,
         to_pyu: PYU = None,
+        infeed_batch_size_limit: int = 10000000,
     ) -> PYUObject:
         """
         Predict using the model in a federated form, suppose all slices collected by to_pyu device.
@@ -831,7 +867,7 @@ class SSGLM:
         if o is not None:
             o, _ = self._prepare_dataset(o)
         self.samples, self.num_feat = shape
-        infeed_rows = math.ceil((100000 * 100) / self.num_feat)
+        infeed_rows = math.ceil(infeed_batch_size_limit / self.num_feat)
         self.infeed_batch_size = infeed_rows
         infeed_total_batch = math.ceil(self.samples / infeed_rows)
         if to_pyu is None:

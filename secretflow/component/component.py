@@ -561,7 +561,7 @@ class Component:
             pb_cls, PbMessage
         ), f"support protobuf class only, got {pb_cls}"
 
-        extend_path = "secretflow.protos.secretflow.spec.extend."
+        extend_path = "secretflow.spec.extend."
         assert pb_cls.__module__.startswith(
             extend_path
         ), f"only support protobuf defined under {extend_path} path, got {pb_cls.__module__}"
@@ -944,7 +944,9 @@ class Component:
             raise e from None
         finally:
             if cluster_config is not None:
-                shutdown()
+                shutdown(
+                    barrier_on_shutdown=cluster_config.public_config.barrier_on_shutdown
+                )
 
         logging.info(f"{param}, getting eval return complete.")
         # check output

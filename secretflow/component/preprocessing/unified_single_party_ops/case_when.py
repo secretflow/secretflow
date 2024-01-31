@@ -190,7 +190,7 @@ def case_when_eval_fn(
 
     rule_features = get_rule_features(rules)
 
-    str_rule = MessageToJson(rules)
+    str_rule = MessageToJson(rules, indent=0)
 
     def _transform(data: pd.DataFrame):
         import secretflow.spec.extend.case_when_rules_pb2 as pb

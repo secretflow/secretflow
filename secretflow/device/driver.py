@@ -222,6 +222,7 @@ def init(
     log_to_driver=True,
     omp_num_threads: int = None,
     logging_level: str = 'info',
+    job_name: str = None,
     cross_silo_comm_backend: str = 'grpc',
     cross_silo_comm_options: Dict = None,
     enable_waiting_for_other_parties_ready: bool = True,
@@ -295,15 +296,24 @@ def init(
         logging_level: optional; works only in production mode.
             the logging level, could be `debug`, `info`, `warning`, `error`,
             `critical`, not case sensititive.
+        job_bame: options; the job name of the current job which takes effect in
+            production mode only. If the job name is not provided, an default fixed
+            name will be assigned, therefore messages of all anonymous jobs will be
+            mixed together, which should be used in the single job scenario. Note that,
+            the job name must be identical in all parties, otherwise, messages will be
+            mismatched.
         cross_silo_comm_backend: works only in production mode, a string determines
             which communication backend is used. The default value is 'grpc'.
             The other available option is 'brpc_link',  which is based on brpc.
         cross_silo_comm_options: a dict describes the cross-silo communication options.
             the common options for all cross-silo communication backends.
                 exit_on_sending_failure
-                    whether exit when failure on cross-silo sending. If True, a SIGTERM
-                    will be signaled to self if failed to send cross-silo data. The default
-                    value is True.
+                    Whether exit when failure on cross-silo sending. If True, a signal
+                    will be signaled to self and exit then. The default value is True.
+                sending_failure_handler
+                    This callback will be called if cross-silo sending failed and
+                    exit_on_sending_failure is True. The input param of this callable is
+                    the sending error.
                 messages_max_size_in_bytes
                     The maximum length in bytes of cross-silo messages. The default value
                     is 500 MB. The size must be strictly less than 2GB when grpc is used.
@@ -551,6 +561,9 @@ def init(
         cross_silo_comm_options = cross_silo_comm_options or {}
         if 'exit_on_sending_failure' not in cross_silo_comm_options:
             cross_silo_comm_options['exit_on_sending_failure'] = True
+        sending_failure_handler = cross_silo_comm_options.pop(
+            'sending_failure_handler', None
+        )
         config = {
             'cross_silo_comm': cross_silo_comm_options,
             'barrier_on_initializing': enable_waiting_for_other_parties_ready,
@@ -577,6 +590,8 @@ def init(
             logging_level=logging_level,
             tls_config=tls_config,
             receiver_sender_proxy_cls=receiver_sender_proxy_cls,
+            sending_failure_handler=sending_failure_handler,
+            job_name=job_name,
         )
 
 

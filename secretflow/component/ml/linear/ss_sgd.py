@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import json
-import os
 from typing import List, Tuple
 
 from secretflow.component.component import (
@@ -24,18 +23,14 @@ from secretflow.component.component import (
 )
 from secretflow.component.data_utils import (
     DistDataType,
-    extract_table_header,
-    gen_prediction_csv_meta,
     load_table,
     model_dumps,
     model_loads,
-    save_prediction_csv,
+    save_prediction_dd,
 )
 from secretflow.device.device.pyu import PYU
 from secretflow.device.device.spu import SPU, SPUObject
-from secretflow.device.driver import wait
 from secretflow.ml.linear import LinearModel, RegType, SSRegression
-from secretflow.spec.v1.data_pb2 import DistData
 from secretflow.utils.sigmoid import SigType
 
 ss_sgd_train_comp = Component(
@@ -179,6 +174,8 @@ def ss_sgd_train_eval_fn(
 
     reg = SSRegression(spu)
 
+    assert len(train_dataset_label) == 1
+
     assert (
         train_dataset_label[0] not in train_dataset_feature_selects
     ), f"col {train_dataset_label[0]} used in both label and features"
@@ -213,12 +210,15 @@ def ss_sgd_train_eval_fn(
         )
 
     model = reg.save_model()
-
+    party_features_length = {
+        device.party: len(columns) for device, columns in x.partition_columns.items()
+    }
     model_meta = {
         "reg_type": model.reg_type.value,
         "sig_type": model.sig_type.value,
         "feature_selects": x.columns,
         "label_col": train_dataset_label,
+        "party_features_length": party_features_length,
     }
 
     model_db = model_dumps(
@@ -296,7 +296,13 @@ ss_sgd_predict_comp.io(
     name="feature_dataset",
     desc="Input vertical table.",
     types=[DistDataType.VERTICAL_TABLE],
-    col_params=None,
+    col_params=[
+        TableColParam(
+            name="saved_features",
+            desc="which features should be saved with prediction result",
+            col_min_cnt_inclusive=0,
+        )
+    ],
 )
 ss_sgd_predict_comp.io(
     io_type=IoType.OUTPUT,
@@ -341,6 +347,7 @@ def ss_sgd_predict_eval_fn(
     ctx,
     batch_size,
     feature_dataset,
+    feature_dataset_saved_features,
     model,
     receiver,
     pred_name,
@@ -376,71 +383,16 @@ def ss_sgd_predict_eval_fn(
             to_pyu=pyu,
         )
 
-        y_path = os.path.join(ctx.local_fs_wd, pred)
-
-        if save_ids:
-            id_df = load_table(ctx, feature_dataset, load_ids=True)
-            assert pyu in id_df.partitions
-            id_header_map = extract_table_header(feature_dataset, load_ids=True)
-            assert receiver in id_header_map
-            id_header = list(id_header_map[receiver].keys())
-            id_data = id_df.partitions[pyu].data
-        else:
-            id_header_map = None
-            id_header = None
-            id_data = None
-
-        if save_label:
-            label_df = load_table(
-                ctx,
-                feature_dataset,
-                load_features=True,
-                load_labels=True,
-                col_selects=model_meta['label_col'],
-            )
-            assert pyu in label_df.partitions
-            label_header_map = extract_table_header(
-                feature_dataset,
-                load_features=True,
-                load_labels=True,
-                col_selects=model_meta['label_col'],
-            )
-            assert receiver in label_header_map
-            label_header = list(label_header_map[receiver].keys())
-            label_data = label_df.partitions[pyu].data
-        else:
-            label_header_map = None
-            label_header = None
-            label_data = None
-
-        wait(
-            pyu(save_prediction_csv)(
-                pyu_y.partitions[pyu],
-                pred_name,
-                y_path,
-                label_data,
-                label_header,
-                id_data,
-                id_header,
-            )
+    with ctx.tracer.trace_io():
+        y_db = save_prediction_dd(
+            ctx,
+            pred,
+            pyu_y,
+            pred_name,
+            feature_dataset,
+            feature_dataset_saved_features,
+            model_meta["label_col"] if save_label else [],
+            save_ids,
         )
-
-    y_db = DistData(
-        name=pred_name,
-        type=str(DistDataType.INDIVIDUAL_TABLE),
-        data_refs=[DistData.DataRef(uri=pred, party=receiver, format="csv")],
-    )
-
-    meta = gen_prediction_csv_meta(
-        id_header=id_header_map,
-        label_header=label_header_map,
-        party=receiver,
-        pred_name=pred_name,
-        line_count=x.shape[0],
-        id_keys=id_header,
-        label_keys=label_header,
-    )
-
-    y_db.meta.Pack(meta)
 
     return {"pred": y_db}
