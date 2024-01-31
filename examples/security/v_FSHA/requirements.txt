@@ -1,0 +1,16 @@
+# This file may be used to create an environment using:
+# $ conda create --name <env> --file <this file>
+# platform: linux-64
+python=3.6
+tensorflow
+jupyter
+notebook
+tqdm=4.59.0
+matplotlib
+scikit-learn
+tensorflow-datasets
+cudatoolkit=10.0
+cudnn=7
+tensorflow-gpu==2.0.0
+opencv
+tensorflow_privacy

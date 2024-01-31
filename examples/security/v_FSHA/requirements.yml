@@ -1,0 +1,21 @@
+name: GradientsScrutinizer
+channels:
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/pytorch/linux-64/
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/pytorch/
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main/
+  - defaults
+dependencies:
+  - python=3.6
+  - tensorflow
+  - jupyter
+  - notebook
+  - tqdm=4.59.0
+  - matplotlib
+  - scikit-learn
+  - tensorflow-datasets
+  - cudatoolkit=10.0
+  - cudnn=7
+  - tensorflow-gpu==2.0.0
+  - opencv
+prefix: /home/fujiayun/miniconda3/envs/VSL
