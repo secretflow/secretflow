@@ -11,16 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from .base import Compressor, CompressedData
-from .sparse_compressor import (
-    RandomSparse,
-    TopkSparse,
-    sparse_decode,
-    sparse_encode,
-    STCSparse,
-    SCRSparse,
-    SparseCompressor,
-)
+from .base import CompressedData, Compressor
+from .mixed_compressor import MixedCompressor
 from .quantized_compressor import (
     QuantizedCompressor,
     QuantizedFP,
@@ -28,4 +20,12 @@ from .quantized_compressor import (
     QuantizedLSTM,
     QuantizedZeroPoint,
 )
-from .mixed_compressor import MixedCompressor
+from .sparse_compressor import (
+    RandomSparse,
+    SCRSparse,
+    SparseCompressor,
+    STCSparse,
+    TopkSparse,
+    sparse_decode,
+    sparse_encode,
+)

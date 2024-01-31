@@ -13,12 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-from secretflow.component.entry import COMP_LIST
-from secretflow.spec.v1.component_pb2 import AttrType, Attribute
-from mdutils.mdutils import MdUtils
-
 import datetime
+import os
+
+from mdutils.mdutils import MdUtils
+from secretflow.component.entry import COMP_LIST
+from secretflow.spec.v1.component_pb2 import Attribute, AttrType
 
 this_directory = os.path.abspath(os.path.dirname(__file__))
 
@@ -45,6 +45,7 @@ AttrTypeStrMap = {
     AttrType.AT_STRUCT_GROUP: 'Special type. Struct group. You must fill in all children.',
     AttrType.AT_UNION_GROUP: 'Special type. Union group. You must select one children to fill in.',
     AttrType.AT_SF_TABLE_COL: 'Special type. SecretFlow table column name.',
+    AttrType.AT_CUSTOM_PROTOBUF: 'Special type. SecretFlow customized Protocol Buffers message.',
 }
 
 
@@ -113,35 +114,49 @@ def get_bound(
         return None
 
 
-def parse_comp_io(md, io_defs):
+def parse_comp_io(md, io_defs, is_input):
     io_table_text = ['Name', 'Description', 'Type(s)', 'Notes']
+    row_cnt = 1
     for io_def in io_defs:
+        row_cnt += 1
         notes_str = ''
         if len(io_def.attrs):
-            notes_str += "Extra table attributes."
-            for i, attr in enumerate(list(io_def.attrs)):
-                notes_str += f'({i}) {attr.name} - {attr.desc} '
-                if len(attr.types):
-                    notes_str += f"Accepted column types: {list(attr.types)}"
+            notes_str += "Pleae fill in extra table attributes."
+            io_table_text.extend(
+                [io_def.name, io_def.desc, str(list(io_def.types)), notes_str]
+            )
+            for _, attr in enumerate(list(io_def.attrs)):
+                col_attr_name = '/'.join(
+                    ['input' if is_input else 'output', io_def.name, attr.name]
+                )
+                col_attr_desc = attr.desc
 
+                col_notes_str = (
+                    f"You need to select some columns of table {io_def.name}. "
+                )
                 if attr.col_min_cnt_inclusive > 0:
-                    notes_str += f'Min column number to select(inclusive): {attr.col_min_cnt_inclusive}. '
+                    col_notes_str += f'Min column number to select(inclusive): {attr.col_min_cnt_inclusive}. '
                 if attr.col_max_cnt_inclusive > 0:
-                    notes_str += f'Max column number to select(inclusive): {attr.col_max_cnt_inclusive}. '
+                    col_notes_str += f'Max column number to select(inclusive): {attr.col_max_cnt_inclusive}. '
 
-                if len(attr.extra_attrs):
-                    raise NotImplementedError(
-                        'todo: parse extra_attrs of TableAttrDef.'
-                    )
-
-        io_table_text.extend(
-            [io_def.name, io_def.desc, str(list(io_def.types)), notes_str]
-        )
+                io_table_text.extend(
+                    [
+                        col_attr_name,
+                        col_attr_desc,
+                        'String List(Set value with other Component Attributes)',
+                        col_notes_str,
+                    ]
+                )
+                row_cnt += 1
+        else:
+            io_table_text.extend(
+                [io_def.name, io_def.desc, str(list(io_def.types)), notes_str]
+            )
 
     md.new_line()
     md.new_table(
         columns=4,
-        rows=len(io_defs) + 1,
+        rows=row_cnt,
         text=io_table_text,
         text_align='left',
     )
@@ -191,6 +206,7 @@ for domain, comps in comp_map.items():
                     AttrType.AT_INTS,
                     AttrType.AT_STRINGS,
                     AttrType.AT_BOOLS,
+                    AttrType.AT_CUSTOM_PROTOBUF,
                 ]:
                     if attr.type in [
                         AttrType.AT_FLOATS,
@@ -203,10 +219,10 @@ for domain, comps in comp_map.items():
                         if attr.atomic.list_max_length_inclusive > 0:
                             notes_str += f'Max length(inclusive): {attr.atomic.list_max_length_inclusive}. '
 
-                    default_value = get_atomic_attr_value(
-                        attr.type, attr.atomic.default_value
-                    )
-                    if default_value is not None:
+                    if attr.atomic.is_optional:
+                        default_value = get_atomic_attr_value(
+                            attr.type, attr.atomic.default_value
+                        )
                         notes_str += f'Default: {default_value}. '
 
                     allowed_value = get_allowed_atomic_attr_value(
@@ -249,13 +265,13 @@ for domain, comps in comp_map.items():
                 title='Inputs',
             )
 
-            parse_comp_io(mdFile, comp_def.inputs)
+            parse_comp_io(mdFile, comp_def.inputs, True)
         if len(comp_def.outputs):
             mdFile.new_header(
                 level=4,
                 title='Outputs',
             )
-            parse_comp_io(mdFile, comp_def.outputs)
+            parse_comp_io(mdFile, comp_def.outputs, False)
 
 
 mdFile.create_md_file()

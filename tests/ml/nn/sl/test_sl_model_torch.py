@@ -132,8 +132,11 @@ def torch_model_with_mnist(
         history['val_MulticlassAccuracy'][-1],
         atol=atol,
     )
+    if pipeline_size <= 1:
+        assert global_metric['MulticlassAccuracy'] > 0.7
+    else:
+        assert global_metric['MulticlassAccuracy'] > 0.5
 
-    assert global_metric['MulticlassAccuracy'] > 0.7
     result = sl_model.predict(data, batch_size=128, verbose=1)
     reveal_result = []
     for rt in result:
@@ -293,6 +296,19 @@ class TestSLModelTorch:
             strategy='split_nn',
             backend="torch",
             compressor=top_k_compressor,
+        )
+
+        # pipeline
+        torch_model_with_mnist(
+            devices=sf_simulation_setup_devices,
+            base_model_dict=base_model_dict,
+            device_y=bob,
+            model_fuse=fuse_model,
+            data=mnist_data,
+            label=mnist_label,
+            strategy='pipeline',
+            backend="torch",
+            pipeline_size=2,
         )
 
     def test_single_feature_model_agg_layer(self, sf_simulation_setup_devices):

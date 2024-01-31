@@ -24,6 +24,8 @@ OS: CentOS 7, Ubuntu 18.04
 
 CPU/Memory: recommended minimum requirement is 8C16G.
 
+> **_Note:_** macOS x64 support is scheduled to deprecate later this year.
+
 ## Option 1: from pypi
 For users who want to try SecretFlow, you can install [the current release](https://pypi.org/project/secretflow/).
 

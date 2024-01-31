@@ -25,3 +25,10 @@ def optim_wrapper(func, *args, **kwargs):
         return func(params, *args, **kwargs)
 
     return wrapped_func
+
+
+def loss_wrapper(func, *args, **kwargs):
+    def wrapped_func():
+        return func(*args, **kwargs)
+
+    return wrapped_func

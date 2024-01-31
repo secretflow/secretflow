@@ -17,7 +17,6 @@ from typing import List
 from google.protobuf.json_format import MessageToJson
 from kuscia.proto.api.v1alpha1.common_pb2 import DataColumn
 from kuscia.proto.api.v1alpha1.datamesh.domaindata_pb2 import DomainData
-
 from secretflow.spec.v1.data_pb2 import DistData, IndividualTable, VerticalTable
 
 
@@ -34,15 +33,8 @@ def convert_domain_data_to_individual_table(
 
     meta = IndividualTable()
     for col in domain_data.columns:
-        if not col.comment or col.comment == 'feature':
-            meta.schema.features.append(col.name)
-            meta.schema.feature_types.append(col.type)
-        elif col.comment == 'id':
-            meta.schema.ids.append(col.name)
-            meta.schema.id_types.append(col.type)
-        elif col.comment == 'label':
-            meta.schema.labels.append(col.name)
-            meta.schema.label_types.append(col.type)
+        meta.schema.features.append(col.name)
+        meta.schema.feature_types.append(col.type)
     meta.line_count = -1
     dist_data.meta.Pack(meta)
 

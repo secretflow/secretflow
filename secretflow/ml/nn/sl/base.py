@@ -25,11 +25,27 @@ class SLBaseModel(ABC):
         pass
 
     @abstractmethod
-    def base_forward(self, stage: str, **kwargs):
+    def base_forward(self, stage: str = 'train', **kwargs):
         pass
 
     @abstractmethod
-    def base_backward(self, gradient):
+    def reset_data_iter(self, stage='train'):
+        pass
+
+    @abstractmethod
+    def recv_gradient(self, gradients):
+        pass
+
+    @abstractmethod
+    def get_batch_data(self, stage="train", epoch=0):
+        pass
+
+    @abstractmethod
+    def pack_forward_data(self):
+        pass
+
+    @abstractmethod
+    def base_backward(self):
         pass
 
     @abstractmethod

@@ -621,18 +621,19 @@ def ss_glm_predict_eval_fn(
     else:
         offset = None
 
+    receiver_pyu = PYU(receiver)
     with ctx.tracer.trace_running():
-        pyu = PYU(receiver)
         pyu_y = glm.predict(
             x=x,
             o=offset,
-            to_pyu=pyu,
+            to_pyu=receiver_pyu,
         )
 
     with ctx.tracer.trace_io():
         y_db = save_prediction_dd(
             ctx,
             pred,
+            receiver_pyu,
             pyu_y,
             pred_name,
             feature_dataset,

@@ -20,18 +20,20 @@
 
 """
 import logging
-import math
 import os
 from typing import Callable, Dict, Iterable, List, Tuple, Union
 
+import math
 from multiprocess import cpu_count
 
+import secretflow.distributed as sfd
 from secretflow.data import Partition
 from secretflow.data.horizontal import HDataFrame
 from secretflow.data.ndarray import FedNdarray
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import PYU, Device, reveal, wait
 from secretflow.device.device.pyu import PYUObject
+from secretflow.distributed.primitive import DISTRIBUTION_MODE
 from secretflow.ml.nn.callbacks.callbacklist import CallbackList
 from secretflow.ml.nn.sl.agglayer.agg_layer import AggLayer
 from secretflow.ml.nn.sl.agglayer.agg_method import AggMethod
@@ -107,6 +109,11 @@ class SLModel:
             worker_list.append(device_y)
         self._workers: Dict[PYU, SLBaseModel] = {}
         self.history = None
+        num_gpus = kwargs.get('num_gpus', None)
+        if num_gpus and sfd.get_distribution_mode() != DISTRIBUTION_MODE.DEBUG:
+            raise NotImplementedError(
+                "SLModel only support to use gpu in debug mode, try start with debug mode in sf.init()"
+            )
         for device in worker_list:
             self._workers[device], self.check_skip_grad = dispatch_strategy(
                 strategy,
@@ -427,7 +434,7 @@ class SLModel:
                 valid_x is not None and valid_y is not None
             ), f"Neither x nor y in validation data cannot be None."
             if isinstance(valid_x, Dict):
-                assert isinstance(valid_y, str), (
+                assert isinstance(valid_y, (str, List, Tuple)), (
                     f"When the input x is type of Dict, the data will read from files, "
                     f"and y must be a label name with type str."
                 )
@@ -483,7 +490,7 @@ class SLModel:
                     callbacks.on_train_batch_begin(step)
 
                     [
-                        worker.get_batch_data(stage="train")
+                        worker.get_batch_data(stage="train", epoch=epoch)
                         for worker in self._workers.values()
                     ]
 
@@ -505,6 +512,7 @@ class SLModel:
                 step = step - self.pipeline_size + 1
 
                 # do agglayer forward
+                callbacks.before_agglayer_forward(hiddens=f_datas)
                 agg_hiddens = self.agglayer.forward(f_datas)
                 callbacks.after_agglayer_forward(agg_hiddens)
 
@@ -521,7 +529,7 @@ class SLModel:
                 if not skip_gradient:
                     # do agglayer backward
                     scatter_gradients = self.agglayer.backward(gradients)
-
+                    callbacks.after_agglayer_backward(scatter_gradients)
                     [
                         worker.recv_gradient(scatter_gradients[device])
                         for device, worker in self._workers.items()
@@ -560,7 +568,7 @@ class SLModel:
                         f_datas = {}  # driver end
 
                         [
-                            worker.get_batch_data(stage="eval")
+                            worker.get_batch_data(stage="eval", epoch=epoch)
                             for worker in self._workers.values()
                         ]
 
@@ -621,7 +629,7 @@ class SLModel:
                     callbacks.on_test_batch_begin(batch=step)
                     f_datas = {}  # driver end
                     [
-                        worker.get_batch_data(stage="eval")
+                        worker.get_batch_data(stage="eval", epoch=epoch)
                         for worker in self._workers.values()
                     ]
 
@@ -633,6 +641,7 @@ class SLModel:
                     for device, worker in self._workers.items():
                         f_data = worker.pack_forward_data()
                         f_datas[device] = f_data
+                    callbacks.before_agglayer_forward(agg_hiddens)
                     agg_hiddens = self.agglayer.forward(f_datas)
                     callbacks.after_agglayer_forward(agg_hiddens)
 
@@ -736,7 +745,7 @@ class SLModel:
             forward_data_dict = {}
 
             [
-                worker.get_batch_data(stage="eval")
+                worker.get_batch_data(stage="eval", epoch=0)
                 for device, worker in self._workers.items()
                 if device in self.base_model_dict
             ]
@@ -755,7 +764,7 @@ class SLModel:
                     continue
                 f_data = worker.pack_forward_data()
                 forward_data_dict[device] = f_data
-
+            callbacks.before_agglayer_forward(forward_data_dict)
             agg_hiddens = self.agglayer.forward(forward_data_dict)
 
             y_pred = self._workers[self.device_y].predict(agg_hiddens)
@@ -844,7 +853,7 @@ class SLModel:
             f_datas = {}  # driver端
 
             [
-                worker.get_batch_data(stage="eval")
+                worker.get_batch_data(stage="eval", epoch=0)
                 for device, worker in self._workers.items()
             ]
 

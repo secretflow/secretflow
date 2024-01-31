@@ -58,7 +58,7 @@ class SgbModel:
 
     def predict(
         self,
-        dtrain: Union[FedNdarray, VDataFrame, Dict[PYU, PYUObject]],
+        dtrain: Union[FedNdarray, VDataFrame],
         to_pyu: PYU = None,
     ) -> Union[PYUObject, FedNdarray]:
         """
@@ -80,11 +80,8 @@ class SgbModel:
             return None
 
         pred = 0
-        if isinstance(dtrain, dict):
-            x = dtrain
-        else:
-            x, _ = prepare_dataset(dtrain)
-            x = x.partitions
+        x, _ = prepare_dataset(dtrain)
+        x = x.partitions
 
         for tree in self.trees:
             pred = self.label_holder(lambda x, y: jnp.add(x, y))(tree.predict(x), pred)
