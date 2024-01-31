@@ -1,3 +1,4 @@
+import logging
 import os
 
 import pandas as pd
@@ -14,6 +15,7 @@ from secretflow.component.preprocessing.binning.vert_woe_binning import (
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
+from secretflow.spec.v1.report_pb2 import Report
 from tests.conftest import TEST_STORAGE_ROOT
 
 
@@ -23,6 +25,7 @@ def test_woe_binning(comp_prod_sf_cluster_config):
     rule_path = "test_woe_binning/bin_rule"
     output_path = "test_woe_binning/woe.csv"
     read_data_path = "test_woe_binning/read_data"
+    report_path = "test_vert_binning/report"
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
@@ -52,16 +55,18 @@ def test_woe_binning(comp_prod_sf_cluster_config):
     bin_param_01 = NodeEvalParam(
         domain="feature",
         name="vert_woe_binning",
-        version="0.0.1",
+        version="0.0.2",
         attr_paths=[
             "secure_device_type",
             "input/input_data/feature_selects",
             "input/input_data/label",
+            "report_rules",
         ],
         attrs=[
             Attribute(s="heu"),
             Attribute(ss=[f"a{i}" for i in range(12)] + [f"b{i}" for i in range(11)]),
             Attribute(ss=["y"]),
+            Attribute(b=True),
         ],
         inputs=[
             DistData(
@@ -73,24 +78,26 @@ def test_woe_binning(comp_prod_sf_cluster_config):
                 ],
             ),
         ],
-        output_uris=[rule_path],
+        output_uris=[rule_path, report_path],
     )
 
     bin_param_02 = NodeEvalParam(
         domain="feature",
         name="vert_woe_binning",
-        version="0.0.1",
+        version="0.0.2",
         attr_paths=[
             "secure_device_type",
             "binning_method",
             "input/input_data/feature_selects",
             "input/input_data/label",
+            "report_rules",
         ],
         attrs=[
             Attribute(s="spu"),
             Attribute(s="eq_range"),
             Attribute(ss=[f"a{i}" for i in range(11)] + [f"b{i}" for i in range(12)]),
             Attribute(ss=["y"]),
+            Attribute(b=True),
         ],
         inputs=[
             DistData(
@@ -102,7 +109,7 @@ def test_woe_binning(comp_prod_sf_cluster_config):
                 ],
             ),
         ],
-        output_uris=[rule_path],
+        output_uris=[rule_path, report_path],
     )
 
     meta = VerticalTable(
@@ -132,6 +139,11 @@ def test_woe_binning(comp_prod_sf_cluster_config):
         cluster_config=sf_cluster_config,
     )
 
+    assert len(bin_res.outputs) == 2
+    comp_ret = Report()
+    bin_res.outputs[1].meta.Unpack(comp_ret)
+    logging.info("bin_res.outputs[1]: %s", comp_ret)
+
     sub_param = NodeEvalParam(
         domain="preprocessing",
         name="vert_bin_substitution",
@@ -155,7 +167,6 @@ def test_woe_binning(comp_prod_sf_cluster_config):
 
     vt = VerticalTable()
     assert sub_res.outputs[0].meta.Unpack(vt)
-    import logging
 
     for s in vt.schemas:
         logging.warning(f'schema={s}')
@@ -171,8 +182,6 @@ def test_woe_binning(comp_prod_sf_cluster_config):
         os.path.join(TEST_STORAGE_ROOT, "bob", output_info["bob"].uri)
     )
     assert alice_out.shape[0] == bob_out.shape[0]
-
-    # import logging
 
     # logging.warning(f"alice_out \n{alice_out}\n....\n")
     # logging.warning(f"bob_out \n{bob_out}\n....\n")

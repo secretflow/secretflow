@@ -5,6 +5,8 @@ import os
 import pandas as pd
 import pytest
 from google.protobuf.json_format import MessageToJson, Parse
+from sklearn.datasets import load_breast_cancer
+
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.io.io import io_read_data, io_write_data
 from secretflow.component.preprocessing.binning.vert_binning import vert_binning_comp
@@ -12,7 +14,6 @@ from secretflow.spec.extend.bin_data_pb2 import Bins
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
-from sklearn.datasets import load_breast_cancer
 
 
 @pytest.fixture
@@ -20,6 +21,7 @@ def vert_bin_rule(comp_prod_sf_cluster_config):
     alice_path = "test_io/x_alice.csv"
     bob_path = "test_io/x_bob.csv"
     rule_path = "test_io/bin_rule"
+    report_path = "test_io/report"
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
@@ -49,7 +51,7 @@ def vert_bin_rule(comp_prod_sf_cluster_config):
     bin_param_01 = NodeEvalParam(
         domain="feature",
         name="vert_binning",
-        version="0.0.1",
+        version="0.0.2",
         attr_paths=["input/input_data/feature_selects", "bin_num"],
         attrs=[
             Attribute(ss=[f"a{i}" for i in range(2)] + [f"b{i}" for i in range(2)]),
@@ -65,7 +67,7 @@ def vert_bin_rule(comp_prod_sf_cluster_config):
                 ],
             ),
         ],
-        output_uris=[rule_path],
+        output_uris=[rule_path, report_path],
     )
 
     meta = VerticalTable(

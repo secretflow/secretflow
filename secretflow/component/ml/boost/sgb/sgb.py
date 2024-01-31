@@ -12,27 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import json
-import os
 
-from secretflow.component.batch_reader import SimpleVerticalBatchReader
 from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import (
     DistDataType,
-    extract_distdata_info,
-    extract_table_header,
-    gen_prediction_csv_meta,
+    SimpleVerticalBatchReader,
     get_model_public_info,
     load_table,
     model_dumps,
     model_loads,
-    save_prediction_csv,
+    save_prediction_dd,
 )
 from secretflow.device.device.heu import heu_from_base_config
 from secretflow.device.device.pyu import PYU
-from secretflow.device.driver import wait
 from secretflow.ml.boost.sgb_v import Sgb, SgbModel
 from secretflow.ml.boost.sgb_v.model import from_dict
-from secretflow.spec.v1.data_pb2 import DistData
 
 DEFAULT_PREDICT_BATCH_SIZE = 10000
 
@@ -476,7 +470,13 @@ sgb_predict_comp.io(
     name="feature_dataset",
     desc="Input vertical table.",
     types=[DistDataType.VERTICAL_TABLE],
-    col_params=None,
+    col_params=[
+        TableColParam(
+            name="saved_features",
+            desc="which features should be saved with prediction result",
+            col_min_cnt_inclusive=0,
+        )
+    ],
 )
 sgb_predict_comp.io(
     io_type=IoType.OUTPUT,
@@ -528,6 +528,7 @@ def sgb_predict_eval_fn(
     *,
     ctx,
     feature_dataset,
+    feature_dataset_saved_features,
     model,
     receiver,
     pred_name,
@@ -537,118 +538,33 @@ def sgb_predict_eval_fn(
 ):
     model_public_info = get_model_public_info(model)
 
-    v_header_map = extract_table_header(
-        feature_dataset,
-        load_features=True,
-        load_labels=True,
-        col_selects=model_public_info['feature_selects'],
-    )
-
-    parties_path_format = extract_distdata_info(feature_dataset)
-    feature_filepaths = {
-        p: os.path.join(ctx.local_fs_wd, parties_path_format[p].uri)
-        for p in v_header_map
-    }
-
-    cols = {k: list(v.keys()) for k, v in v_header_map.items()}
-
     feature_reader = SimpleVerticalBatchReader(
-        feature_filepaths, DEFAULT_PREDICT_BATCH_SIZE, cols, True
+        ctx,
+        feature_dataset,
+        model_public_info['feature_selects'],
     )
 
     pyus = {p: PYU(p) for p in ctx.cluster_config.desc.parties}
 
     sgb_model = load_sgb_model(ctx, pyus, model)
 
-    addition_headers = {}
-    saved_ids = []
-    saved_labels = []
+    receiver_pyu = PYU(receiver)
 
-    if save_ids:
-        id_header_map = extract_table_header(feature_dataset, load_ids=True)
-        assert receiver in id_header_map
-        id_header = list(id_header_map[receiver].keys())
-        saved_ids.extend(id_header)
-        addition_headers.update(id_header_map[receiver])
+    def batch_pred():
+        with ctx.tracer.trace_running():
+            for batch in feature_reader:
+                yield sgb_model.predict(batch, receiver_pyu)
 
-        id_filepaths = {
-            p: os.path.join(ctx.local_fs_wd, parties_path_format[p].uri)
-            for p in id_header_map
-        }
+    y_db = save_prediction_dd(
+        ctx,
+        pred,
+        receiver_pyu,
+        batch_pred(),
+        pred_name,
+        feature_dataset,
+        feature_dataset_saved_features,
+        model_public_info['label_col'] if save_label else [],
+        save_ids,
+    )
 
-        id_reader = SimpleVerticalBatchReader(
-            id_filepaths, DEFAULT_PREDICT_BATCH_SIZE, id_header_map
-        )
-    else:
-        id_header_map = None
-        id_header = None
-        id_reader = None
-
-    if save_label:
-        label_header_map = extract_table_header(
-            feature_dataset,
-            load_features=True,
-            load_labels=True,
-            col_selects=model_public_info['label_col'],
-        )
-        assert receiver in label_header_map
-        label_header = list(label_header_map[receiver].keys())
-        saved_ids.extend(label_header)
-        addition_headers.update(label_header_map[receiver])
-        label_filepath = {
-            p: os.path.join(ctx.local_fs_wd, parties_path_format[p].uri)
-            for p in label_header_map
-        }
-        label_reader = SimpleVerticalBatchReader(
-            label_filepath, DEFAULT_PREDICT_BATCH_SIZE, label_header_map
-        )
-    else:
-        label_header_map = None
-        label_header = None
-        label_reader = None
-
-    try_append = False
-    with ctx.tracer.trace_running():
-        receiver_pyu = PYU(receiver)
-        y_path = os.path.join(ctx.local_fs_wd, pred)
-        for batch in feature_reader:
-            new_batch = {PYU(party): batch[party] for party in v_header_map}
-            pyu_y = sgb_model.predict(new_batch, receiver_pyu)
-            addition_df = []
-            addition_keys = []
-            if save_label:
-                addition_df.append(next(label_reader)[receiver])
-                addition_keys.extend(label_header)
-            if save_ids:
-                addition_df.append(next(id_reader)[receiver])
-                addition_keys.extend(id_header)
-            wait(
-                receiver_pyu(save_prediction_csv)(
-                    pyu_y.partitions[receiver_pyu],
-                    pred_name,
-                    y_path,
-                    addition_df,
-                    addition_keys,
-                    try_append,
-                )
-            )
-            try_append = True
-
-        y_db = DistData(
-            name=pred_name,
-            type=str(DistDataType.INDIVIDUAL_TABLE),
-            data_refs=[DistData.DataRef(uri=pred, party=receiver, format="csv")],
-        )
-
-        meta = gen_prediction_csv_meta(
-            addition_headers,
-            saved_ids,
-            saved_labels,
-            [],  # TODO: support addition columns.
-            pred_name,
-            feature_reader.total_read_cnt(),
-        )
-
-        y_db.meta.Pack(meta)
-
-        return {"pred": y_db}
+    return {"pred": y_db}
