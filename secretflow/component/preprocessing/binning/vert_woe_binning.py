@@ -31,6 +31,7 @@ from secretflow.component.data_utils import (
 from secretflow.component.preprocessing.binning.vert_binning import (
     BINNING_RULE_MAX_MAJOR_VERSION,
     BINNING_RULE_MAX_MINOR_VERSION,
+    dump_binning_rules,
 )
 from secretflow.device.device.heu import HEU
 from secretflow.device.device.spu import SPU
@@ -39,7 +40,7 @@ from secretflow.preprocessing.binning.vert_woe_binning import VertWoeBinning
 vert_woe_binning_comp = Component(
     "vert_woe_binning",
     domain="feature",
-    version="0.0.1",
+    version="0.0.2",
     desc="Generate Weight of Evidence (WOE) binning rules for vertical partitioning datasets.",
 )
 
@@ -125,12 +126,28 @@ vert_woe_binning_comp.io(
         ),
     ],
 )
+
+vert_woe_binning_comp.bool_attr(
+    name="report_rules",
+    desc="Whether report binning rules.",
+    is_list=False,
+    is_optional=True,
+    default_value=False,
+)
+
 vert_woe_binning_comp.io(
     io_type=IoType.OUTPUT,
     name="bin_rule",
     desc="Output WOE rule.",
     types=[DistDataType.BIN_RUNNING_RULE],
     col_params=None,
+)
+
+vert_woe_binning_comp.io(
+    io_type=IoType.OUTPUT,
+    name="report",
+    desc="report rules details if report_rules is true",
+    types=[DistDataType.REPORT],
 )
 
 
@@ -148,7 +165,9 @@ def vert_woe_binning_eval_fn(
     input_data,
     input_data_feature_selects,
     input_data_label,
+    report_rules,
     bin_rule,
+    report,
 ):
     input_df = load_table(
         ctx,
@@ -226,5 +245,11 @@ def vert_woe_binning_eval_fn(
             bin_rule,
             input_data.system_info,
         )
+        report_dist_data = dump_binning_rules(
+            report,
+            input_data.system_info,
+            rules,
+            report_rules,
+        )
 
-    return {"bin_rule": model_dist_data}
+    return {"bin_rule": model_dist_data, "report": report_dist_data}

@@ -198,7 +198,10 @@ class EvalParamReader:
 
         # input
         if len(self._instance.inputs) != len(self._definition.inputs):
-            raise EvalParamError("number of input does not match.")
+            # help user debug
+            raise EvalParamError(
+                f"number of input does not match. self:{len(self._instance.inputs)}, def:{len(self._definition.inputs)}"
+            )
 
         self._instance_inputs = {}
         for input_instance, input_def in zip(

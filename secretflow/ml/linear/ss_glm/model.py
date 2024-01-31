@@ -185,6 +185,7 @@ def _irls_calculate_partials(
     offset: np.ndarray,
     weight: np.ndarray,
     model: np.ndarray,
+    start_mu: np.ndarray,
     link: Linker,
     dist: Distribution,
 ) -> Tuple[np.ndarray, np.ndarray]:
@@ -204,7 +205,8 @@ def _irls_calculate_partials(
         else:
             mu = link.response(eta)
     else:
-        mu = dist.starting_mu(y)
+        # for correctness, start_mu should be provided
+        mu = start_mu
         eta = link.link(mu)
         if offset is not None:
             eta = eta - offset
@@ -305,6 +307,7 @@ class SSGLM:
         y, y_scale = y_device(normalize_y)(self.y.partitions[y_device])
         self.y.partitions[y_device] = y
         self.y_scale = reveal(y_scale)
+        self.y_device = y_device
 
         if o is not None:
             self.offset, shape = self._prepare_dataset(o)
@@ -399,11 +402,29 @@ class SSGLM:
 
         return spu_model
 
-    def _next_infeed_batch(self, ds: FedNdarray, infeed_step: int) -> FedNdarray:
-        being = infeed_step * self.infeed_batch_size
-        assert being < self.samples
-        end = min(being + self.infeed_batch_size, self.samples)
-        return ds[being:end]
+    def _next_infeed_batch(
+        self,
+        ds: Union[SPUObject, FedNdarray, PYUObject],
+        infeed_step: int,
+        samples: int = None,
+        infeed_batch_size: int = None,
+    ) -> Union[SPUObject, FedNdarray, PYUObject]:
+        if samples is None:
+            samples = self.samples
+        if infeed_batch_size is None:
+            infeed_batch_size = self.infeed_batch_size
+
+        begin = infeed_step * infeed_batch_size
+        assert begin < samples
+        end = min(begin + infeed_batch_size, samples)
+        if isinstance(ds, FedNdarray):
+            return ds[begin:end]
+        elif isinstance(ds, SPUObject):
+            return self.spu(lambda ds: ds[begin:end])(ds)
+        elif isinstance(ds, PYUObject):
+            return ds.device(lambda x, begin, end: x[begin:end])(ds, begin, end)
+        else:
+            raise TypeError(f'unsupported type of ds: {type(ds)}')
 
     def _to_spu(self, d: FedNdarray):
         return [d.partitions[pyu].to(self.spu) for pyu in d.partitions]
@@ -441,10 +462,18 @@ class SSGLM:
         return sgd_lr
 
     def _epoch(self, spu_model: SPUObject, epoch_idx: int) -> SPUObject:
+        dist = self.dist
+        start_mu_slice = None
+        if epoch_idx == 0:
+            y = self.y.partitions[self.y_device]
+            start_mu = self.y_device(
+                lambda dist, y: dist.starting_mu(y).reshape(-1, 1)
+            )(dist, y)
         if epoch_idx < self.irls_epochs:
             for infeed_step in range(self.infeed_total_batch):
                 if epoch_idx == 0:
                     self._build_batch_cache(infeed_step)
+                    start_mu_slice = self._next_infeed_batch(start_mu, infeed_step)
                 spu_x, spu_y, spu_o, spu_w = self.batch_cache[infeed_step]
                 logging.info("irls calculating partials...")
                 new_J, new_XTWZ = self.spu(
@@ -460,6 +489,7 @@ class SSGLM:
                     spu_o,
                     spu_w,
                     spu_model,
+                    start_mu_slice,
                     link=self.link,
                     dist=self.dist,
                 )
