@@ -21,8 +21,12 @@ class FedPer(BaseTorchModel):
             Kp: The number of parameters to exclude
 
         """
-        state_dict = self.model.state_dict()  # Get the state dictionary of the current model
-        keys = list(state_dict.keys())[:-Kp]  # Exclude the key for the last Kp parameters
+        state_dict = (
+            self.model.state_dict()
+        )  # Get the state dictionary of the current model
+        keys = list(state_dict.keys())[
+            :-Kp
+        ]  # Exclude the key for the last Kp parameters
         weights_dict = {}
 
         for k, v in zip(keys, weights):
@@ -33,13 +37,12 @@ class FedPer(BaseTorchModel):
         state_dict.update(weights_dict)
         self.model.load_state_dict(state_dict)
 
-
     def train_step(
-            self,
-            weights: np.ndarray,
-            cur_steps: int,
-            train_steps: int,
-            **kwargs,
+        self,
+        weights: np.ndarray,
+        cur_steps: int,
+        train_steps: int,
+        **kwargs,
     ) -> Tuple[np.ndarray, int]:
         """Accept ps model params, then do local train
 
@@ -54,7 +57,9 @@ class FedPer(BaseTorchModel):
         assert self.model is not None, "Model cannot be none, please give model define"
         self.model.train()
         refresh_data = kwargs.get("refresh_data", False)
-        Kp = kwargs.get('Kp', 2)  # The default Kp is 2, which is the weight and bias of the fully connected layer
+        Kp = kwargs.get(
+            'Kp', 2
+        )  # The default Kp is 2, which is the weight and bias of the fully connected layer
         if refresh_data:
             self._reset_data_iter()
         if weights is not None:
@@ -91,7 +96,6 @@ class FedPer(BaseTorchModel):
                 model_weights = dp_strategy.model_gdp(model_weights)
         return model_weights, num_sample
 
-
     def apply_weights(self, weights, **kwargs):
         """Accept ps model params, then update local model
 
@@ -102,6 +106,7 @@ class FedPer(BaseTorchModel):
         Kp = kwargs.get('Kp', 2)
         if weights is not None:
             self.update_weights_withoutkp(weights, Kp)
+
 
 @register_strategy(strategy_name='fed_per', backend='torch')
 class PYUFedPer(FedPer):
