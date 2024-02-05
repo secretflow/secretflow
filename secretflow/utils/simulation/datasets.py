@@ -100,8 +100,8 @@ _DATASETS = {
     ),
     'criteo': _Dataset(
         'criteo.csv',
-        '',
-        'cf2e006731ff4530bd59ebc9b7452621bd31f5d0a219ec71c6af09ec8ec9a5ad',
+        'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/criteo/criteo.csv',
+        '5e6bc83ed1413a6cef82e82f91fe2584514a6084b889d24178ce8adc7397c849',
     ),
     'creditcard': _Dataset(
         'creditcard.csv',
@@ -338,11 +338,9 @@ def load_mnist(
         A tuple consists of two tuples, (x_train, y_train) and (x_test, y_test).
     """
     filepath = get_dataset(_DATASETS['mnist'])
-    alice, bob = list(parts.keys())[0], list(parts.keys())[1]
     with np.load(filepath) as f:
         x_train, y_train = f['x_train'], f['y_train']
         x_test, y_test = f['x_test'], f['y_test']
-
     if normalized_x:
         x_train, x_test = x_train / 255, x_test / 255
 
@@ -352,41 +350,14 @@ def load_mnist(
         encoder = OneHotEncoder(sparse=False)
         y_train = encoder.fit_transform(y_train.reshape(-1, 1))
         y_test = encoder.fit_transform(y_test.reshape(-1, 1))
-
-    if isinstance(parts, list):
-        parts = (
-            {alice: (0, 14), bob: (14, 28)}
-            if axis == 1
-            else {alice: (0, 30000), bob: (30000, 60000)}
-        )
-    train_label = (
-        create_ndarray(y_train, parts=parts, axis=axis)
-        if axis == 0
-        else FedNdarray(
-            partitions={
-                device: device(lambda df: df)(y_train) for device in parts.keys()
-            },
-            partition_way=PartitionWay.VERTICAL,
-        )
-    )
-    test_label = (
-        create_ndarray(y_test, parts=parts, axis=axis)
-        if axis == 0
-        else FedNdarray(
-            partitions={
-                device: device(lambda df: df)(y_test) for device in parts.keys()
-            },
-            partition_way=PartitionWay.VERTICAL,
-        )
-    )
     return (
         (
             create_ndarray(x_train, parts=parts, axis=axis, is_torch=is_torch),
-            train_label,
+            create_ndarray(y_train, parts=parts, axis=axis, is_label=True),
         ),
         (
             create_ndarray(x_test, parts=parts, axis=axis, is_torch=is_torch),
-            test_label,
+            create_ndarray(y_test, parts=parts, axis=axis, is_label=True),
         ),
     )
 

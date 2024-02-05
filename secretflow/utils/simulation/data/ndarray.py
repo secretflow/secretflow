@@ -30,6 +30,7 @@ def create_ndarray(
     random_state: int = None,
     allow_pickle: bool = False,
     is_torch: bool = False,
+    is_label: bool = False,
 ) -> FedNdarray:
     """Create a federated ndarray from a single data source.
 
@@ -47,7 +48,8 @@ def create_ndarray(
         shuffle: optional, if suffule the dataset before split.
         random_state: optional, the random state for shuffle.
         allow_pickle: the np.load argument when source is a  file path.
-
+        is_torch: torch mode need a new axis.
+        is_label: if the input data is label and axis = 1, then we do not need to split.
     Returns:
         a FedNdrray.
 
@@ -105,7 +107,9 @@ def create_ndarray(
     else:
         return FedNdarray(
             partitions={
-                device: device(lambda df: df[..., index[0] : index[1]])(arr)
+                device: device(
+                    lambda df: df if is_label else df[..., index[0] : index[1]]
+                )(arr)
                 for device, index in indexes.items()
             },
             partition_way=PartitionWay.VERTICAL,

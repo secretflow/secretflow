@@ -44,9 +44,11 @@ def _run_test(
         iter_start_irls=1,
         batch_size=batch_size,
         l2_lambda=l2_lambda,
+        stopping_rounds=0,
     )
     logging.info(f"{test_name} sgb train time: {time.time() - start}")
     start = time.time()
+
     spu_yhat = model.predict(v_data)
     yhat = reveal(spu_yhat)
     assert yhat.shape[0] == y.shape[0], f"{yhat.shape} == {y.shape}"
@@ -61,12 +63,15 @@ def _run_test(
         label_data_copy,
         None,
         None,
-        3,
+        10,
         link,
         dist,
         1,
         1,
         l2_lambda=l2_lambda,
+        stopping_rounds=1,
+        stopping_tolerance=0.001,
+        report_metric=False,
     )
     logging.info(f"{test_name} irls train time: {time.time() - start}")
     start = time.time()

@@ -115,6 +115,15 @@ class XgbModel:
         else:
             return pred
 
+    def get_objective(self):
+        return self.objective
+
+    def get_trees(self):
+        return self.trees
+
+    def get_weights(self):
+        return self.weights
+
 
 class Xgb:
     """

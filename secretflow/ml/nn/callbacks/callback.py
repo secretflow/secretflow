@@ -79,29 +79,40 @@ class Callback:
     def on_predict_batch_end(self, batch):
         pass
 
-    def before_agglayer_forward(self, hiddens=None):
+    def on_agglayer_forward_begin(self, hiddens=None):
         pass
 
-    def after_agglayer_forward(self, hiddens=None):
+    def on_agglayer_forward_end(self, hiddens=None):
         pass
 
-    def before_agglayer_backward(self, gradients=None):
+    def on_agglayer_backward_begin(self, gradients=None):
         pass
 
-    def after_agglayer_backward(self, gradients=None):
+    def on_agglayer_backward_end(self, gradients=None):
         pass
 
-    def on_before_base_forward(self):
+    def on_base_forward_begin(self):
         pass
 
-    def on_after_base_forward(self):
+    def on_base_forward_end(self):
         pass
 
-    def on_before_base_backward(self):
+    def on_base_backward_begin(self):
         pass
 
-    def on_before_fuse_net(self):
+    def on_base_backward_end(self):
         pass
 
-    def on_after_fuse_net(self):
+    def on_fuse_forward_begin(self):
+        pass
+
+    def on_fuse_forward_end(self):
+        """this hook is not working for now."""
+        pass
+
+    def on_fuse_backward_begin(self):
+        """this hook is not working for now."""
+        pass
+
+    def on_fuse_backward_end(self):
         pass

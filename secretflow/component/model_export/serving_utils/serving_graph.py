@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import io
 import tarfile
-from typing import Any, List, Union
+from typing import Any, List
 
 import numpy as np
 import secretflow_serving_lib as sfs
@@ -84,25 +84,26 @@ def __init_ops():
 
             return ret
 
-        def op_fun(self: _Execution, unique_node_name, **kwargs):
+        def op_fun(self: _Execution, unique_node_name, node_parents, **kwargs):
             # check if kwargs match to op_def
             input_keys = set(kwargs)
             op_kwargs = dict()
             for attr in op_def.attrs:
                 if attr.name not in kwargs:
                     assert attr.is_optional, f"missing necessary attr {attr.name}"
-                input_keys.remove(attr.name)
+                else:
+                    input_keys.remove(attr.name)
 
-                try:
-                    op_kwargs[attr.name] = get_op_attr(
-                        attr.type, kwargs[attr.name], attr.name
-                    )
-                except Exception as e:
-                    raise AssertionError(
-                        f"get_op_attr err {e} on attr.name {attr.name}, "
-                        f"attr.type {sfs.attr_pb2.AttrType.Name(attr.type)}, "
-                        f"attr {kwargs[attr.name]}, attr type {type(kwargs[attr.name])}"
-                    )
+                    try:
+                        op_kwargs[attr.name] = get_op_attr(
+                            attr.type, kwargs[attr.name], attr.name
+                        )
+                    except Exception as e:
+                        raise AssertionError(
+                            f"get_op_attr err {e} on attr.name {attr.name}, "
+                            f"attr.type {sfs.attr_pb2.AttrType.Name(attr.type)}, "
+                            f"attr {kwargs[attr.name]}, attr type {type(kwargs[attr.name])}"
+                        )
             assert len(input_keys) == 0, f"unknown attr {input_keys}"
 
             if (
@@ -113,11 +114,16 @@ def __init_ops():
                     op_def.tag.mergeable
                 ), f"first op in Execution need be mergeable if exec is not DP_ALL type"
 
+            if not op_def.tag.variable_inputs:
+                assert (
+                    len(node_parents) == len(op_def.inputs) or len(node_parents) == 0
+                ), f"num of node({unique_node_name}) parents not match the op({unique_node_name})'s num of inputs, {len(node_parents)} vs {len(op_def.inputs)}"
+
             exec_node = sfs.graph_pb2.NodeDef()
             exec_node.name = unique_node_name
             exec_node.op = op_def.name
-            if self.node_list:
-                exec_node.parents.append(self.node_list[-1].name)
+            exec_node.parents.extend(node_parents)
+
             exec_node.op_version = op_def.version
             for k, v in op_kwargs.items():
                 exec_node.attr_values[k].CopyFrom(v)
@@ -144,13 +150,9 @@ class _Graph:
     def __init__(self):
         self.executions: List[_Execution] = []
 
-    def add(self, exec_phase: _Execution, inputs: Union[None, List[_Execution]]):
+    def add(self, exec_phase: _Execution):
         assert exec_phase not in self.executions
         assert exec_phase.node_list
-        if inputs:
-            for input in inputs:
-                assert input in self.executions
-                exec_phase.node_list[0].parents.append(input.node_list[-1].name)
         self.executions.append(exec_phase)
 
     def save(self) -> sfs.graph_pb2.GraphDef:
@@ -176,10 +178,12 @@ class GraphBuilder:
         # first exec must be DP_ALL
         self.executions.append(_Execution("DP_ALL", False, False))
 
-    def add_node(self, node_name: str, op: str, **kwargs) -> None:
+    def add_node(
+        self, node_name: str, node_parents: List[str], op: str, **kwargs
+    ) -> None:
         e_op = getattr(self.executions[-1], op, None)
         assert e_op, f"not exist op {op}"
-        e_op(node_name, **kwargs)
+        e_op(node_name, node_parents, **kwargs)
 
     def new_execution(self, dp_type: str, session_run: bool, specific_flag: bool):
         assert not session_run, "not session_run for now"
@@ -189,11 +193,7 @@ class GraphBuilder:
         graph = _Graph()
 
         for i, exec in enumerate(self.executions):
-            if i == 0:
-                graph.add(exec, None)
-            else:
-                # only support one input exec for now
-                graph.add(exec, [self.executions[i - 1]])
+            graph.add(exec)
 
         mb = sfs.bundle_pb2.ModelBundle()
         mb.name = name

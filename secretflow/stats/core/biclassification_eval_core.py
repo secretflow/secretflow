@@ -17,7 +17,6 @@
 from typing import List, Tuple, Union
 
 import jax
-
 import jax.numpy as jnp
 import pandas as pd
 

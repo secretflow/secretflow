@@ -5,16 +5,16 @@ import os
 import pandas as pd
 import pytest
 from google.protobuf.json_format import MessageToJson
+from sklearn.datasets import load_breast_cancer
+from sklearn.preprocessing import StandardScaler
+
 from secretflow.component.io.identity import identity
 from secretflow.component.io.io import io_read_data
 from secretflow.component.ml.linear.ss_glm import ss_glm_train_comp
 from secretflow.spec.extend.linear_model_pb2 import LinearModel
-
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
-from sklearn.datasets import load_breast_cancer
-from sklearn.preprocessing import StandardScaler
 
 
 @pytest.fixture
@@ -53,7 +53,7 @@ def glm_model(comp_prod_sf_cluster_config):
     train_param = NodeEvalParam(
         domain="ml.train",
         name="ss_glm_train",
-        version="0.0.1",
+        version="0.0.2",
         attr_paths=[
             "epochs",
             "learning_rate",

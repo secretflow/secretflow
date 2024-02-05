@@ -49,10 +49,24 @@ class SLFuseModel(BaseModule):
 
 
 class Generator(nn.Module):
-    def __init__(self, latent_dim=48, target_dim=20):
+    def __init__(self, attack_dim, victim_dim):
         super().__init__()
+        self.attack_dim = attack_dim
+        self.victim_dim = victim_dim
+        self.reshape = len(attack_dim) > 1
+
+        input_shape = 1
+        for aa in attack_dim:
+            input_shape *= aa
+
+        output_shape = 1
+        for vv in victim_dim:
+            output_shape *= vv
+
+        input_shape += output_shape
+
         self.net = nn.Sequential(
-            nn.Linear(latent_dim, 600),
+            nn.Linear(input_shape, 600),
             nn.LayerNorm(600),
             nn.ReLU(),
             nn.Linear(600, 200),
@@ -61,12 +75,19 @@ class Generator(nn.Module):
             nn.Linear(200, 100),
             nn.LayerNorm(100),
             nn.ReLU(),
-            nn.Linear(100, target_dim),
+            nn.Linear(100, output_shape),
             nn.Sigmoid(),
         )
 
-    def forward(self, x):
-        return self.net(x)
+    def forward(self, x: torch.Tensor):
+        if self.reshape:  # pic input
+            bs = x.size(0)
+            x = x.reshape(bs, -1)
+            r = self.net(x)
+            r = r.reshape([bs] + self.victim_dim)
+            return r
+        else:
+            return self.net(x)
 
 
 def data_builder(data, label, batch_size):
@@ -288,7 +309,7 @@ def do_test_sl_and_fia(config: dict, alice, bob):
     batch_size = 64
     victim_model_save_path = fia_path + '/sl_model_victim'
     victim_model_dict = {
-        bob: [SLBaseNet, victim_model_save_path],
+        bob: [TorchModel(model_fn=SLBaseNet), victim_model_save_path],
     }
     optim_fn = optim_wrapper(optim.Adam, lr=optim_lr)
     generator_model = TorchModel(
@@ -296,6 +317,8 @@ def do_test_sl_and_fia(config: dict, alice, bob):
         loss_fn=None,
         optim_fn=optim_fn,
         metrics=None,
+        attack_dim=[28],
+        victim_dim=[20],
     )
 
     data_buil = data_builder(pred_fea, pred_label, batch_size)
@@ -309,8 +332,8 @@ def do_test_sl_and_fia(config: dict, alice, bob):
         base_model_list=[alice, bob],
         generator_model_wrapper=generator_model,
         data_builder=data_buil,
-        victim_fea_dim=20,
-        attacker_fea_dim=28,
+        victim_fea_dim=[20],
+        attacker_fea_dim=[28],
         enable_mean=enable_mean,
         enable_var=True,
         mean_lambda=1.2,
@@ -339,5 +362,5 @@ def test_sl_and_fia(sf_simulation_setup_devices):
     alice = sf_simulation_setup_devices.alice
     bob = sf_simulation_setup_devices.bob
     do_test_sl_and_fia(
-        {'enable_mean': False, 'attack_epochs': 60, "optim_lr": 0.0001}, alice, bob
+        {'enable_mean': False, 'attack_epochs': 2, "optim_lr": 0.0001}, alice, bob
     )

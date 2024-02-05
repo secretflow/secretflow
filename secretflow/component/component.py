@@ -105,6 +105,7 @@ class TableColParam:
 class CompEvalContext:
     local_fs_wd: str = None
     spu_configs: Dict = None
+    initiator_party: str = None
     cluster_config: SFClusterConfig = None
     tracer = CompTracer()
 
@@ -127,6 +128,133 @@ class Component:
         RESERVED = ["input", "output"]
         if word in RESERVED:
             raise CompDeclError(f"{word} is a reserved word.")
+
+    def struct_attr_group(self, name: str, desc: str, group: List[int]):
+        """Define a struct attr group with a group of attrs.
+
+        Args:
+            name (str): name of the struct attr and the group prefix.
+            desc (str): description of the struct attr group.
+            group (List[int]): group of attrs, must be nested and defined
+                within the group.
+
+        Returns:
+            int: length of the group, including self and all descendants.
+
+        Examples:
+            >>> comp.struct_attr_group(
+            >>>     name="group_name",
+            >>>     desc="group desc.",
+            >>>     group=[
+            >>>         # attrs must be defined inside the group.
+            >>>         comp.str_attr(
+            >>>             name="attr1",
+            >>>             desc="attr1 desc.",
+            >>>             is_list=False,
+            >>>             is_optional=False,
+            >>>             default_value="val1",
+            >>>         ),
+            >>>         comp.str_attr(
+            >>>             name="attr2",
+            >>>             desc="attr2 desc.",
+            >>>             is_list=False,
+            >>>             is_optional=True,
+            >>>             default_value="val2",
+            >>>         ),
+            >>>     ],
+            >>> )
+        """
+        # TODO(ian-huu): update component spec documentation to explain the group api usage.
+
+        # sanity checks
+        self._check_reserved_words(name)
+
+        if len(group) < 2:
+            raise CompDeclError(f"struct attr group too short.")
+
+        # create pb
+        attr = AttributeDef(
+            name=name,
+            desc=clean_text(desc),
+            type=AttrType.AT_STRUCT_GROUP,
+        )
+
+        group_len = sum(map(lambda x: x or 1, group))
+        group_index = len(self.__comp_attr_decls) - group_len
+        group_decls = self.__comp_attr_decls[group_index:]
+        self.__comp_attr_decls = self.__comp_attr_decls[:group_index]
+
+        for decl in group_decls:
+            assert isinstance(decl, AttributeDef)
+            decl.prefixes.insert(0, name)
+
+        self.__comp_attr_decls.append(attr)
+        self.__comp_attr_decls.extend(group_decls)
+        return group_len + 1
+
+    def union_attr_group(self, name: str, desc: str, group: List[int]):
+        """Define a union attr group with a group of attrs, the first attr in group
+            will be the default selection.
+
+        Args:
+            name (str): name of the union attr and the group prefix.
+            desc (str): description of the union attr group.
+            group (List[int]): group of attrs, must be nested and defined
+                within the group.
+
+        Returns:
+            int: length of the group, including self and all descendants.
+
+        Examples:
+            >>> comp.union_attr_group(
+            >>>     name="group_name",
+            >>>     desc="group desc.",
+            >>>     group=[
+            >>>         # attrs must be defined inside the group.
+            >>>         comp.str_attr(
+            >>>             name="attr1",
+            >>>             desc="attr1 desc.",
+            >>>             is_list=False,
+            >>>             is_optional=False,
+            >>>             default_value="val1",
+            >>>         ),
+            >>>         comp.str_attr(
+            >>>             name="attr2",
+            >>>             desc="attr2 desc.",
+            >>>             is_list=False,
+            >>>             is_optional=True,
+            >>>             default_value="val2",
+            >>>         ),
+            >>>     ],
+            >>> )
+        """
+        # sanity checks
+        self._check_reserved_words(name)
+
+        if len(group) < 2:
+            raise CompDeclError(f"union attr group too short.")
+
+        # create pb
+        attr = AttributeDef(
+            name=name,
+            desc=clean_text(desc),
+            type=AttrType.AT_UNION_GROUP,
+        )
+
+        group_len = sum(map(lambda x: x or 1, group))
+        group_index = len(self.__comp_attr_decls) - group_len
+        group_decls = self.__comp_attr_decls[group_index:]
+        self.__comp_attr_decls = self.__comp_attr_decls[:group_index]
+
+        for decl in group_decls:
+            assert isinstance(decl, AttributeDef)
+            decl.prefixes.insert(0, name)
+
+        attr.union.default_selection = group_decls[0].name
+
+        self.__comp_attr_decls.append(attr)
+        self.__comp_attr_decls.extend(group_decls)
+        return group_len + 1
 
     def float_attr(
         self,
@@ -636,9 +764,10 @@ class Component:
             )
 
             for a in self.__comp_attr_decls:
-                if a.name in self.__argnames:
+                args_full_name = "_".join(list(a.prefixes) + [a.name])
+                if args_full_name in self.__argnames:
                     raise CompDeclError(f"attr {a.name} is duplicate.")
-                self.__argnames.add(a.name)
+                self.__argnames.add(args_full_name)
                 new_a = comp_def.attrs.add()
                 new_a.CopyFrom(a)
 
@@ -920,7 +1049,23 @@ class Component:
         kwargs = {"ctx": ctx}
 
         for a in definition.attrs:
-            kwargs[a.name] = reader.get_attr(name=a.name)
+            if a.type not in [
+                AttrType.AT_FLOAT,
+                AttrType.AT_FLOATS,
+                AttrType.AT_INT,
+                AttrType.AT_INTS,
+                AttrType.AT_STRING,
+                AttrType.AT_STRINGS,
+                AttrType.AT_BOOL,
+                AttrType.AT_BOOLS,
+                AttrType.AT_CUSTOM_PROTOBUF,
+            ]:
+                continue
+
+            attr_full_name = "/".join(list(a.prefixes) + [a.name])
+            args_full_name = "_".join(list(a.prefixes) + [a.name])
+
+            kwargs[args_full_name] = reader.get_attr(name=attr_full_name)
 
         for input in definition.inputs:
             kwargs[input.name] = reader.get_input(name=input.name)

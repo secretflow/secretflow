@@ -299,12 +299,13 @@ class SLBaseTorchModel(SLBaseModel, ABC):
 
         has_y = False
         has_s_w = False
-        if y is not None and len(y.shape) > 0:
-            has_y = True
-            data_tuple.append(y)
-            if s_w is not None and len(s_w.shape) > 0:
-                has_s_w = True
-                data_tuple.append(s_w)
+        if y is not None:
+            if isinstance(y, (str, list, tuple)) or len(y.shape) > 0:
+                has_y = True
+                data_tuple.append(y)
+                if s_w is not None and len(s_w.shape) > 0:
+                    has_s_w = True
+                    data_tuple.append(s_w)
 
         # convert pandas.DataFrame to torch.tensor
         data_tuple = [
@@ -370,9 +371,10 @@ class SLBaseTorchModel(SLBaseModel, ABC):
 
         has_y = False
         has_s_w = False
-        if y is not None and len(y.shape) > 0:
-            has_y = True
-            data_tuple.append(y)
+        if y is not None:
+            if isinstance(y, (str, list, tuple)) or len(y.shape) > 0:
+                has_y = True
+                data_tuple.append(y)
         if s_w is not None and len(s_w.shape) > 0:
             has_s_w = True
             data_tuple.append(s_w)
@@ -404,7 +406,8 @@ class SLBaseTorchModel(SLBaseModel, ABC):
             return data_set.steps_per_epoch
 
         # Infer batch size
-        batch_data = next(iter(data_set))
+        ds_iter = iter(data_set)
+        batch_data = next(ds_iter)
 
         if isinstance(batch_data, Tuple):
             batch_data = batch_data[0]
@@ -416,9 +419,17 @@ class SLBaseTorchModel(SLBaseModel, ABC):
         if isinstance(batch_data, torch.Tensor):
             batch_size_inf = batch_data.shape[0]
             if batch_size > 0:
-                assert (
-                    batch_size_inf == batch_size
-                ), f"The batchsize from 'fit' is {batch_size}, but the batchsize derived from datasetbuilder is {batch_size_inf}, please check"
+                ok = False
+                if batch_size_inf < batch_size:
+                    try:
+                        next(ds_iter)
+                    except StopIteration:
+                        # no next batch, its ok if batch_size_inf < batch_size
+                        ok = True
+                if not ok:
+                    assert (
+                        batch_size_inf == batch_size
+                    ), f"The batchsize from 'fit' is {batch_size}, but the batchsize derived from datasetbuilder is {batch_size_inf}, please check"
             else:
                 batch_size = batch_size_inf
         else:

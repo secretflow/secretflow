@@ -8,6 +8,7 @@ from secretflow.component.stats.table_statistics import (
     gen_table_statistic_report,
     table_statistics_comp,
 )
+from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import (
     DistData,
     IndividualTable,
@@ -48,9 +49,11 @@ def test_table_statistics_comp(comp_prod_sf_cluster_config):
     param = NodeEvalParam(
         domain="stats",
         name="table_statistics",
-        version="0.0.1",
-        attr_paths=[],
-        attrs=[],
+        version="0.0.2",
+        attr_paths=["input/input_data/features"],
+        attrs=[
+            Attribute(ss=["a", "b", "c", "d"]),
+        ],
         inputs=[
             DistData(
                 name="input_data",
@@ -112,9 +115,11 @@ def test_table_statistics_individual_comp(comp_prod_sf_cluster_config):
     param = NodeEvalParam(
         domain="stats",
         name="table_statistics",
-        version="0.0.1",
-        attr_paths=[],
-        attrs=[],
+        version="0.0.2",
+        attr_paths=["input/input_data/features"],
+        attrs=[
+            Attribute(ss=["a", "b", "c", "d"]),
+        ],
         inputs=[
             DistData(
                 name="input_data",

@@ -182,6 +182,12 @@ class SgbModel:
             return None
         return r
 
+    def get_trees(self):
+        return self.trees
+
+    def get_objective(self):
+        return self.objective
+
 
 def from_dict(model_dict: Dict) -> SgbModel:
     sm = SgbModel(
