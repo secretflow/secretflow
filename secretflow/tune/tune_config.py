@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
-
 import ray.air
 from ray import tune
 
@@ -26,11 +24,8 @@ class RunConfig(ray.air.RunConfig):
     def __init__(self, **kwargs):
         if ray_version_less_than("2.5.0"):
             if "storage_path" in kwargs:
-                logging.warning(
-                    f"ray ({ray.__version__}) does not support storage_path in RunConfig, "
-                    f"please install ray with version greater than 2.5.0"
-                )
-                kwargs.pop("storage_path")
+                local_dir = kwargs.pop("storage_path")
+                kwargs["local_dir"] = local_dir
                 super().__init__(**kwargs)
         else:
             super().__init__(**kwargs)

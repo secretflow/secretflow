@@ -104,26 +104,38 @@ class AutoAttackCallback(Callback):
     def on_predict_batch_end(self, batch):
         self.attack_callback.on_predict_batch_end(batch)
 
-    def on_before_base_forward(self):
-        self.attack_callback.on_before_base_forward()
+    def on_base_forward_begin(self):
+        self.attack_callback.on_base_forward_begin()
 
-    def on_after_base_forward(self):
-        self.attack_callback.on_after_base_forward()
+    def on_base_forward_end(self):
+        self.attack_callback.on_base_forward_end()
 
-    def on_before_fuse_net(self):
-        self.attack_callback.on_before_fuse_net()
+    def on_base_backward_begin(self):
+        self.attack_callback.on_base_backward_begin()
 
-    def on_after_fuse_net(self):
-        self.attack_callback.on_after_fuse_net()
+    def on_base_backward_end(self):
+        self.attack_callback.on_base_backward_end()
 
-    def before_agglayer_forward(self, hiddens=None):
-        self.attack_callback.before_agglayer_forward(hiddens=hiddens)
+    def on_fuse_forward_begin(self):
+        self.attack_callback.on_fuse_forward_begin()
 
-    def after_agglayer_forward(self, hiddens=None):
-        self.attack_callback.after_agglayer_forward(hiddens=hiddens)
+    def on_fuse_forward_end(self):
+        self.attack_callback.on_fuse_forward_end()
 
-    def before_agglayer_backward(self, gradients=None):
-        self.attack_callback.before_agglayer_backward(gradients=gradients)
+    def on_fuse_backward_begin(self):
+        self.attack_callback.on_fuse_backward_begin()
 
-    def after_agglayer_backward(self, gradients=None):
-        self.attack_callback.after_agglayer_backward(gradients=gradients)
+    def on_fuse_backward_end(self):
+        self.attack_callback.on_fuse_backward_end()
+
+    def on_agglayer_forward_begin(self, hiddens=None):
+        self.attack_callback.on_agglayer_forward_begin(hiddens=hiddens)
+
+    def on_agglayer_forward_end(self, hiddens=None):
+        self.attack_callback.on_agglayer_forward_end(hiddens=hiddens)
+
+    def on_agglayer_backward_begin(self, gradients=None):
+        self.attack_callback.on_agglayer_backward_begin(gradients=gradients)
+
+    def on_agglayer_backward_end(self, gradients=None):
+        self.attack_callback.on_agglayer_backward_end(gradients=gradients)

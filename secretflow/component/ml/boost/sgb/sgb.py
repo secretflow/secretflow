@@ -404,6 +404,10 @@ def sgb_train_eval_fn(
     m_dict["label_holder"] = m_dict["label_holder"].party
     m_dict["feature_selects"] = x.columns
     m_dict["label_col"] = train_dataset_label
+    party_features_length = {
+        device.party: len(columns) for device, columns in x.partition_columns.items()
+    }
+    m_dict["party_features_length"] = party_features_length
 
     m_objs = sum([leaf_weights, *split_trees.values()], [])
 
@@ -487,16 +491,7 @@ sgb_predict_comp.io(
 )
 
 
-def load_sgb_model(ctx, pyus, model) -> SgbModel:
-    model_objs, model_meta_str = model_loads(
-        ctx,
-        model,
-        MODEL_MAX_MAJOR_VERSION,
-        MODEL_MAX_MINOR_VERSION,
-        DistDataType.SGB_MODEL,
-        pyus=pyus,
-    )
-
+def build_sgb_model(pyus, model_objs, model_meta_str) -> SgbModel:
     model_meta = json.loads(model_meta_str)
     assert (
         isinstance(model_meta, dict)
@@ -521,6 +516,19 @@ def load_sgb_model(ctx, pyus, model) -> SgbModel:
 
     model = from_dict(model_meta)
     return model
+
+
+def load_sgb_model(ctx, pyus, model) -> SgbModel:
+    model_objs, model_meta_str = model_loads(
+        ctx,
+        model,
+        MODEL_MAX_MAJOR_VERSION,
+        MODEL_MAX_MINOR_VERSION,
+        DistDataType.SGB_MODEL,
+        pyus=pyus,
+    )
+
+    return build_sgb_model(pyus, model_objs, model_meta_str)
 
 
 @sgb_predict_comp.eval_fn

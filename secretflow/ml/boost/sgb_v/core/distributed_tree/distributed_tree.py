@@ -107,6 +107,12 @@ class DistributedTree:
             'partition_column_counts': self.partition_column_counts,
         }
 
+    def get_split_tree_dict(self):
+        return self.split_tree_dict
+
+    def get_leaf_weight(self):
+        return self.leaf_weight
+
 
 def from_dict(tree_content: Dict) -> DistributedTree:
     dt = DistributedTree()

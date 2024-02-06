@@ -45,6 +45,7 @@ class GradReplaceAttack(AttackCallback):
         gamma: int,
         batch_size: int,
         blurred: bool = False,
+        exec_device: str = 'cpu',
         **params,
     ):
         super().__init__(
@@ -60,6 +61,7 @@ class GradReplaceAttack(AttackCallback):
 
         self.target_offsets = None
         self.poison_offsets = None
+        self.exec_device = exec_device
 
     def on_train_batch_begin(self, batch):
         data_idx = [
@@ -68,11 +70,10 @@ class GradReplaceAttack(AttackCallback):
 
         target_set = np.intersect1d(data_idx, self.target_idx)
         self.target_offsets = np.where(np.isin(data_idx, target_set))[0]
-
         poison_set = np.intersect1d(data_idx, self.poison_idx)
         self.poison_offsets = np.where(np.isin(data_idx, poison_set))[0]
 
-    def on_before_base_forward(self):
+    def on_base_forward_begin(self):
         def replace_input(
             attack_worker, target_offsets, poison_offsets, poison_input, blurred
         ):
@@ -81,37 +82,46 @@ class GradReplaceAttack(AttackCallback):
                 if t_len > 0:
                     # poison x -> target x
                     if isinstance(attack_worker._data_x, torch.Tensor):
+                        if isinstance(poison_input, list):
+                            assert len(poison_input) == 1
+                            poison_input = poison_input[0]
                         choices = np.random.choice(
                             len(poison_input), (t_len,), replace=True
                         )
-                        data_np = attack_worker._data_x.numpy()
+                        data_np = attack_worker._data_x.cpu().numpy()
                         data_np[target_offsets] = poison_input[choices]
-                        attack_worker._data_x = torch.from_numpy(data_np)
+                        attack_worker._data_x = torch.from_numpy(data_np).to(
+                            self.exec_device
+                        )
                     else:
                         choices = np.random.choice(
                             len(poison_input[0]), (t_len,), replace=True
                         )
-                        data_np = [data.numpy() for data in attack_worker._data_x]
+                        data_np = [data.cpu().numpy() for data in attack_worker._data_x]
                         for i in range(len(data_np)):
                             data_np[i][target_offsets] = poison_input[i][choices]
                         attack_worker._data_x = [
-                            torch.from_numpy(data) for data in data_np
+                            torch.from_numpy(data).to(self.exec_device)
+                            for data in data_np
                         ]
 
                 p_len = len(poison_offsets)
                 if blurred and p_len > 0:
                     if isinstance(attack_worker._data_x, torch.Tensor):
-                        data_np = attack_worker._data_x.numpy()
+                        data_np = attack_worker._data_x.cpu().numpy()
                         rnd_shape = (p_len,) + list(data_np.shape[1:])
                         data_np[poison_offsets] = np.random.randn(*rnd_shape)
-                        attack_worker._data_x = torch.from_numpy(data_np)
+                        attack_worker._data_x = torch.from_numpy(data_np).to(
+                            self.exec_device
+                        )
                     else:
-                        data_np = [data.numpy() for data in attack_worker._data_x]
+                        data_np = [data.cpu().numpy() for data in attack_worker._data_x]
                         for i in range(len(data_np)):
                             rnd_shape = (p_len,) + list(data_np[i].shape[1:])
                             data_np[i][poison_offsets] = np.random.randn(*rnd_shape)
                         attack_worker._data_x = [
-                            torch.from_numpy(data) for data in data_np
+                            torch.from_numpy(data).to(self.exec_device)
+                            for data in data_np
                         ]
 
         if len(self.target_offsets) > 0 or (
@@ -125,14 +135,16 @@ class GradReplaceAttack(AttackCallback):
                 self.blurred,
             )
 
-    def on_before_base_backward(self):
+    def on_base_backward_begin(self):
         def replace_gradient(attack_worker, target_offsets, poison_offsets):
             # target grad -> poison grad
             choice = np.random.choice(target_offsets, (1,), replace=True)
             for idx, grad in enumerate(attack_worker._gradient):
-                grad_np = grad.numpy()
+                grad_np = grad.cpu().numpy()
                 grad_np[poison_offsets] = self.gamma * grad_np[choice]
-                attack_worker._gradient[idx] = torch.from_numpy(grad_np)
+                attack_worker._gradient[idx] = torch.from_numpy(grad_np).to(
+                    self.exec_device
+                )
 
         if len(self.target_offsets) > 0 and len(self.poison_offsets) > 0:
             self._workers[self.attack_party].apply(
@@ -145,7 +157,7 @@ class GradReplaceAttack(AttackCallback):
             preds_plain.append(torch.argmax(pred, dim=1))
         preds_plain = torch.cat(preds_plain, dim=0)
 
-        pred_np: np.ndarray = preds_plain.numpy()
+        pred_np: np.ndarray = preds_plain.cpu().numpy()
         poison_pred = pred_np[eval_poison_set]
         poison_pred = poison_pred == target_class
         nums_poison_true = sum(poison_pred)

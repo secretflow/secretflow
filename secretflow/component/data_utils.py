@@ -71,6 +71,7 @@ class DistDataType(BaseEnum):
     SS_GLM_MODEL = "sf.model.ss_glm"
     SGB_MODEL = "sf.model.sgb"
     SS_XGB_MODEL = "sf.model.ss_xgb"
+    SL_NN_MODEL = "sf.model.sl_nn"
     # binning rule
     BIN_RUNNING_RULE = "sf.rule.binning"
     # others preprocessing rules
@@ -618,7 +619,7 @@ def model_loads(
             data_ref = dist_data.data_refs[save_obj.data_ref_idxs[0]]
             party = data_ref.party
             if pyus is not None:
-                assert party in pyus
+                assert party in pyus, f"party {party} not in '{','.join(pyus.keys())}'"
                 pyu = pyus[party]
             else:
                 pyu = PYU(party)

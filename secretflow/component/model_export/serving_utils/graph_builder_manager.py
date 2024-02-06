@@ -25,15 +25,32 @@ class GraphBuilderManager:
         pyu_builder_actor = proxy(PYUObject)(GraphBuilder)
         self.graph_builders = {p: pyu_builder_actor(device=p) for p in pyus}
         self.pyus = pyus
+        self.node_names = []
 
-    def add_node(self, node_name: str, op: str, party_kwargs: Dict[PYU, Dict]):
+    def add_node(
+        self,
+        node_name: str,
+        op: str,
+        party_kwargs: Dict[PYU, Dict] = None,
+        parents: List[str] = None,
+    ):
         assert set(party_kwargs) == set(self.graph_builders)
         waits = []
         for pyu in party_kwargs:
             builder = self.graph_builders[pyu]
             kwargs = party_kwargs[pyu]
-            waits.append(builder.add_node(node_name, op, **kwargs))
+            node_parnents = parents
+            if node_parnents is None:
+                node_parnents = [self.node_names[-1]] if self.node_names else []
+            waits.append(builder.add_node(node_name, node_parnents, op, **kwargs))
         wait(waits)
+        self.node_names.append(node_name)
+
+    def get_last_node_name(self):
+        if len(self.node_names):
+            return self.node_names[-1]
+        else:
+            return None
 
     def new_execution(
         self,

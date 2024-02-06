@@ -17,6 +17,7 @@ import datetime
 import os
 
 from mdutils.mdutils import MdUtils
+
 from secretflow.component.entry import COMP_LIST
 from secretflow.spec.v1.component_pb2 import Attribute, AttrType
 
@@ -223,6 +224,9 @@ for domain, comps in comp_map.items():
                         default_value = get_atomic_attr_value(
                             attr.type, attr.atomic.default_value
                         )
+                        if isinstance(default_value, str) and "\n" in default_value:
+                            default_value = default_value.replace("\n", "\\n")
+                            default_value = f"`{default_value}`"
                         notes_str += f'Default: {default_value}. '
 
                     allowed_value = get_allowed_atomic_attr_value(
@@ -244,6 +248,9 @@ for domain, comps in comp_map.items():
                     )
                     if bound is not None:
                         notes_str += f'Range: {bound}. '
+                elif attr.type in [AttrType.AT_STRUCT_GROUP, AttrType.AT_UNION_GROUP]:
+                    # do nothing for groups
+                    pass
                 else:
                     raise NotImplementedError('todo: parse other attr types.')
 

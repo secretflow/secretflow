@@ -6,7 +6,7 @@ SecretFlow Component List
 =========================
 
 
-Last update: Thu Jan 25 12:56:50 2024
+Last update: Sun Feb  4 11:57:19 2024
 
 Version: 0.0.1
 
@@ -442,6 +442,41 @@ Predict using SGB model.
 | :--- | :--- | :--- | :--- |
 |pred|Output prediction.|['sf.table.individual']||
 
+### slnn_predict
+
+
+Component version: 0.0.1
+
+Predict using the SLNN model.
+This component is not enabled by default, it requires the use of the full version
+of secretflow image and setting the ENABLE_NN environment variable to true.
+#### Attrs
+
+
+|Name|Description|Type|Required|Notes|
+| :--- | :--- | :--- | :--- | :--- |
+|batch_size|The number of examples per batch.|Integer|N|Default: 8192. Range: (0, $\infty$).|
+|receiver|Party of receiver.|String|Y||
+|pred_name|Column name for predictions.|String|N|Default: pred.|
+|save_ids|Whether to save ids columns into output prediction table. If true, input feature_dataset must contain id columns, and receiver party must be id owner.|Boolean|N|Default: False.|
+|save_label|Whether or not to save real label columns into output pred file. If true, input feature_dataset must contain label columns and receiver party must be label owner.|Boolean|N|Default: False.|
+
+#### Inputs
+
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|model|Input model.|['sf.model.sl_nn']||
+|feature_dataset|Input vertical table.|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
+|input/feature_dataset/saved_features|which features should be saved with prediction result|String List(Set value with other Component Attributes)|You need to select some columns of table feature_dataset. |
+
+#### Outputs
+
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|pred|Output prediction.|['sf.table.individual']||
+
 ### ss_glm_predict
 
 
@@ -595,10 +630,64 @@ for vertical split dataset setting by using secure boost.
 | :--- | :--- | :--- | :--- |
 |output_model|Output model.|['sf.model.sgb']||
 
-### ss_glm_train
+### slnn_train
 
 
 Component version: 0.0.1
+
+Train nn models for vertical partitioning dataset by split learning.
+This component is not enabled by default, it requires the use of the full version
+of secretflow image and setting the ENABLE_NN environment variable to true.
+Since it is necessary to define the model structure using python code,
+although the range of syntax and APIs that can be used has been restricted,
+there are still potential security risks. It is recommended to use it in
+conjunction with process sandboxes such as nsjail.
+#### Attrs
+
+
+|Name|Description|Type|Required|Notes|
+| :--- | :--- | :--- | :--- | :--- |
+|models|Define the models for training.|String|Y||
+|epochs|The number of complete pass through the training data.|Integer|N|Default: 10. Range: [1, $\infty$).|
+|learning_rate|The step size at each iteration in one iteration.|Float|N|Default: 0.001. Range: (0.0, $\infty$).|
+|batch_size|The number of training examples utilized in one iteration.|Integer|N|Default: 512. Range: (0, $\infty$).|
+|validattion_prop|The proportion of validation set to total data set.|Float|N|Default: 0.1. Range: [0.0, 1.0).|
+|loss|Loss function.|Special type. Union group. You must select one children to fill in.|N/A||
+|loss/builtin|Builtin loss function.|String|N|Default: mean_squared_error. Allowed: ['binary_crossentropy', 'categorical_crossentropy', 'mean_squared_error', 'mean_squared_logarithmic_error', 'mean_absolute_error', 'mean_absolute_percentage_error', 'cosine_similarity', 'huber', 'kl_divergence', 'log_cosh', 'poisson', 'binary_focal_crossentropy', 'sparse_categorical_crossentropy', 'hinge', 'categorical_hinge', 'squared_hinge'].|
+|loss/custom|Custom loss function.|String|N|Default: `def loss(y_true, y_pred):\n    return tf.keras.losses.mean_squared_error(y_true, y_pred)\n\n\ncompile_loss(loss)\n\n`.|
+|optimizer|Optimizer.|Special type. Struct group. You must fill in all children.|N/A||
+|optimizer/name|Optimizer name.|String|Y|Allowed: ['Adam', 'SGD', 'RMSprop', 'AdamW', 'Adamax', 'Nadam', 'Adagrad', 'Adadelta', 'Adafactor', 'Ftrl', 'Lion'].|
+|optimizer/params|Additional optimizer parameters in JSON format.|String|N|Default: .|
+|metrics|Metrics.|String List|N|Max length(inclusive): 10. Default: ['AUC']. Allowed: ['AUC', 'Accuracy', 'Precision', 'Recall', 'BinaryAccuracy', 'BinaryCrossentropy', 'CategoricalAccuracy', 'CategoricalCrossentropy', 'CosineSimilarity', 'FalseNegatives', 'FalsePositives', 'TrueNegatives', 'TruePositives', 'KLDivergence', 'LogCoshError', 'MeanAbsoluteError', 'MeanAbsolutePercentageError', 'MeanRelativeError', 'MeanSquaredError', 'MeanSquaredLogarithmicError', 'Hinge', 'SquaredHinge', 'CategoricalHinge', 'BinaryIoU', 'IoU', 'MeanIoU', 'OneHotIoU', 'OneHotMeanIoU', 'Poisson', 'PrecisionAtRecall', 'RecallAtPrecision', 'RootMeanSquaredError', 'SensitivityAtSpecificity', 'SparseCategoricalAccuracy', 'SparseCategoricalCrossentropy', 'SparseTopKCategoricalAccuracy', 'SpecificityAtSensitivity', 'TopKCategoricalAccuracy'].|
+|model_input_scheme|Input scheme of base model, tensor: merge all features into one tensor; tensor_dict: each feature as a tensor.|String|Y|Allowed: ['tensor', 'tensor_dict'].|
+|strategy|Split learning strategy.|Special type. Struct group. You must fill in all children.|N/A||
+|strategy/name|Split learning strategy name.|String|N|Default: pipeline. Allowed: ['pipeline', 'split_nn', 'split_async', 'split_state_async'].|
+|strategy/params|Additional strategy parameters in JSON format.|String|N|Default: {"pipeline_size":2}.|
+|compressor|Compressor for hiddens and gradients.|Special type. Struct group. You must fill in all children.|N/A||
+|compressor/name|Compressor name.|String|N|Default: . Allowed: ['', 'topk_sparse', 'random_sparse', 'stc_sparse', 'scr_sparse', 'quantized_fp', 'quantized_lstm', 'quantized_kmeans', 'quantized_zeropoint', 'mixed_compressor'].|
+|compressor/params|Additional compressor parameters in JSON format.|String|N|Default: .|
+
+#### Inputs
+
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|train_dataset|Input vertical table.|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
+|input/train_dataset/feature_selects|which features should be used for training.|String List(Set value with other Component Attributes)|You need to select some columns of table train_dataset. Min column number to select(inclusive): 1. |
+|input/train_dataset/label|Label of train dataset.|String List(Set value with other Component Attributes)|You need to select some columns of table train_dataset. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
+
+#### Outputs
+
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|output_model|Output model.|['sf.model.sl_nn']||
+|reports|Output report.|['sf.report']||
+
+### ss_glm_train
+
+
+Component version: 0.0.2
 
 generalized linear model (GLM) is a flexible generalization of ordinary linear regression.
 The GLM generalizes linear regression by allowing the linear model to be related to the response
@@ -616,14 +705,18 @@ be a function of its predicted value.
 |label_dist_type|label distribution type|String|Y|Allowed: ['Bernoulli', 'Poisson', 'Gamma', 'Tweedie'].|
 |tweedie_power|Tweedie distribution power parameter|Float|N|Default: 1.0. Range: [0.0, 2.0].|
 |dist_scale|A guess value for distribution's scale|Float|N|Default: 1.0. Range: [1.0, $\infty$).|
-|eps|If the change rate of weights is less than this threshold, the model is considered to be converged, and the training stops early. 0 to disable.|Float|N|Default: 0.0001. Range: [0.0, $\infty$).|
 |iter_start_irls|run a few rounds of IRLS training as the initialization of w, 0 disable|Integer|N|Default: 0. Range: [0, $\infty$).|
 |decay_epoch|decay learning interval|Integer|N|Default: 0. Range: [0, $\infty$).|
 |decay_rate|decay learning rate|Float|N|Default: 0.0. Range: [0.0, 1.0).|
 |optimizer|which optimizer to use: IRLS(Iteratively Reweighted Least Squares) or SGD(Stochastic Gradient Descent)|String|Y|Allowed: ['SGD', 'IRLS'].|
 |l2_lambda|L2 regularization term|Float|N|Default: 0.1. Range: [0.0, $\infty$).|
 |infeed_batch_size_limit|size of a single block, default to 10w * 100. increase the size will increase memory cost, but may decrease running time. Suggested to be as large as possible. (too large leads to OOM)|Integer|N|Default: 10000000. Range: [1000, $\infty$).|
-|newton_iter|number of rounds for newton matrix inverse iterations, increase may increase accuracy, but also increase running time. Suggested to be as small as possible. (too small or too large both lead to bad accuracy)|Integer|N|Default: 25. Range: [1, $\infty$).|
+|fraction_of_validation_set|fraction of training set to be used as the validation set. ineffective for 'weight' stopping_metric|Float|N|Default: 0.2. Range: (0.0, 1.0).|
+|random_state|random state for validation split|Integer|N|Default: 1212. Range: [0, $\infty$).|
+|stopping_metric|use what metric as the condition for early stop? Must be one of ['deviance', 'MSE', 'RMSE', 'AUC', 'weight']. only logit link supports AUC metric (note that AUC is very, very expansive in MPC)|String|N|Default: deviance. Allowed: ['deviance', 'MSE', 'RMSE', 'AUC', 'weight'].|
+|stopping_rounds|If the model is not improving for stopping_rounds, the training process will be stopped, for 'weight' stopping metric, stopping_rounds is fixed to be 1|Integer|N|Default: 0. Range: [0, 100].|
+|stopping_tolerance|the model is considered as not improving, if the metric is not improved by tolerance over best metric in history. If metric is 'weight' and tolerance == 0, then early stop is disabled.|Float|N|Default: 0.001. Range: [0.0, 1.0).|
+|report_metric|Whether to report the value of stopping metric. Only effective if early stop is enabled. If this option is set to true, metric will be revealed and logged.|Boolean|N|Default: False.|
 |report_weights|If this option is set to true, model will be revealed and model details are visible to all parties|Boolean|N|Default: False.|
 
 #### Inputs
@@ -1030,7 +1123,7 @@ by using secret sharing.
 ### table_statistics
 
 
-Component version: 0.0.1
+Component version: 0.0.2
 
 Get a table of statistics,
 including each column's
@@ -1068,7 +1161,8 @@ including each column's
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_data|Input table.|['sf.table.vertical_table', 'sf.table.individual']||
+|input_data|Input table.|['sf.table.vertical_table', 'sf.table.individual']|Pleae fill in extra table attributes.|
+|input/input_data/features|perform statistics on these columns|String List(Set value with other Component Attributes)|You need to select some columns of table input_data. Min column number to select(inclusive): 1. |
 
 #### Outputs
   

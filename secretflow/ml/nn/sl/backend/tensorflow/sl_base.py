@@ -269,7 +269,8 @@ class SLBaseTFModel(SLBaseModel):
         if hasattr(data_set, 'steps_per_epoch'):
             return data_set.steps_per_epoch
         # The dataset builder does not return steps, Infer batch size
-        batch_data = next(iter(data_set))
+        ds_iter = iter(data_set)
+        batch_data = next(ds_iter)
         if isinstance(batch_data, Tuple):
             batch_data = batch_data[0]
         if isinstance(batch_data, Dict):
@@ -278,9 +279,17 @@ class SLBaseTFModel(SLBaseModel):
         if isinstance(batch_data, tf.Tensor):
             batch_size_inf = batch_data.shape[0]
             if batch_size > 0:
-                assert (
-                    batch_size_inf == batch_size
-                ), f"The batchsize from 'fit' is {batch_size}, but the batchsize derived from datasetbuilder is {batch_size_inf}, please check"
+                ok = False
+                if batch_size_inf < batch_size:
+                    try:
+                        next(ds_iter)
+                    except StopIteration:
+                        # no next batch, its ok if batch_size_inf < batch_size
+                        ok = True
+                if not ok:
+                    assert (
+                        batch_size_inf == batch_size
+                    ), f"The batchsize from 'fit' is {batch_size}, but the batchsize derived from datasetbuilder is {batch_size_inf}, please check"
             else:
                 batch_size = batch_size_inf
         else:

@@ -12,6 +12,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
+## [v1.4.0.dev240205] - 2024-02-05
+### Added
+- Add Criteo(100M) Dataset.
+- Add split learning nn component.
+- Add sgb & ss_xgb model export.
+- Split learning support prediction for file input.
+- GPU support for split learning attack algorithm.
+
+### Changed
+- Unify nn Callback naming.
+
 ## [v1.4.0.dev240129] - 2024-01-29
 ### Added
 - Split learning in PyTorch supports GPU in debug mode.

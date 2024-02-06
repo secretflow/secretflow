@@ -13,6 +13,11 @@ from sklearn.datasets import load_breast_cancer
 from sklearn.preprocessing import StandardScaler
 
 from secretflow.component.data_utils import DistDataType
+from secretflow.component.ml.boost.sgb.sgb import sgb_predict_comp, sgb_train_comp
+from secretflow.component.ml.boost.ss_xgb.ss_xgb import (
+    ss_xgb_predict_comp,
+    ss_xgb_train_comp,
+)
 from secretflow.component.ml.linear.ss_glm import ss_glm_predict_comp, ss_glm_train_comp
 from secretflow.component.ml.linear.ss_sgd import ss_sgd_predict_comp, ss_sgd_train_comp
 from secretflow.component.model_export import model_export_comp
@@ -36,8 +41,8 @@ from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from tests.conftest import TEST_STORAGE_ROOT
 
 
-def eval_export(comp_params, comp_res, storage_config, sf_cluster_config):
-    export_model_path = "test_model_export/s_model.tar.gz"
+def eval_export(dir, comp_params, comp_res, storage_config, sf_cluster_config):
+    export_model_path = os.path.join(dir, "s_model.tar.gz")
 
     input_datasets = []
     output_datasets = []
@@ -365,7 +370,7 @@ def test_model_export(comp_prod_sf_cluster_config):
     train_param = NodeEvalParam(
         domain="ml.train",
         name="ss_glm_train",
-        version="0.0.1",
+        version="0.0.2",
         attr_paths=[
             "epochs",
             "learning_rate",
@@ -436,6 +441,7 @@ def test_model_export(comp_prod_sf_cluster_config):
 
     # by train comp
     eval_export(
+        "test_model_export",
         [sub_param, cal_sub_param, onehot_param, train_param],
         [sub_res, cal_sub_res, onehot_res, train_res],
         storage_config,
@@ -444,6 +450,7 @@ def test_model_export(comp_prod_sf_cluster_config):
 
     # by pred comp
     eval_export(
+        "test_model_export",
         [sub_param, cal_sub_param, onehot_param, predict_param],
         [sub_res, cal_sub_res, onehot_res, predict_res],
         storage_config,
@@ -451,7 +458,7 @@ def test_model_export(comp_prod_sf_cluster_config):
     )
 
 
-def get_train_param(alice_path, bob_path, model_path):
+def get_ss_sgd_train_param(alice_path, bob_path, model_path):
     return NodeEvalParam(
         domain="ml.train",
         name="ss_sgd_train",
@@ -526,7 +533,7 @@ def get_eval_param(predict_path):
     )
 
 
-def get_meta_and_dump_data(comp_prod_sf_cluster_config, alice_path, bob_path):
+def get_meta_and_dump_data(dir, comp_prod_sf_cluster_config, alice_path, bob_path):
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
     local_fs_wd = storage_config.local_fs.wd
@@ -535,7 +542,7 @@ def get_meta_and_dump_data(comp_prod_sf_cluster_config, alice_path, bob_path):
     x, y = scaler.fit_transform(ds["data"]), ds["target"]
     if self_party == "alice":
         os.makedirs(
-            os.path.join(local_fs_wd, "test_ss_sgd"),
+            os.path.join(local_fs_wd, dir),
             exist_ok=True,
         )
         x = pd.DataFrame(x[:, :15], columns=[f"a{i}" for i in range(15)])
@@ -545,7 +552,7 @@ def get_meta_and_dump_data(comp_prod_sf_cluster_config, alice_path, bob_path):
 
     elif self_party == "bob":
         os.makedirs(
-            os.path.join(local_fs_wd, "test_ss_sgd"),
+            os.path.join(local_fs_wd, dir),
             exist_ok=True,
         )
 
@@ -608,8 +615,10 @@ def test_ss_sgd_export(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
 
-    train_param = get_train_param(alice_path, bob_path, model_path)
-    meta = get_meta_and_dump_data(comp_prod_sf_cluster_config, alice_path, bob_path)
+    train_param = get_ss_sgd_train_param(alice_path, bob_path, model_path)
+    meta = get_meta_and_dump_data(
+        "test_ss_sgd", comp_prod_sf_cluster_config, alice_path, bob_path
+    )
     train_param.inputs[0].meta.Pack(meta)
 
     train_res = ss_sgd_train_comp.eval(
@@ -631,6 +640,7 @@ def test_ss_sgd_export(comp_prod_sf_cluster_config):
 
     # by train comp
     eval_export(
+        "test_ss_sgd",
         [train_param],
         [train_res],
         storage_config,
@@ -639,6 +649,292 @@ def test_ss_sgd_export(comp_prod_sf_cluster_config):
 
     # by pred comp
     eval_export(
+        "test_ss_sgd",
+        [predict_param],
+        [predict_res],
+        storage_config,
+        sf_cluster_config,
+    )
+
+
+def test_sgb_export(comp_prod_sf_cluster_config):
+    alice_path = "test_sgb/x_alice.csv"
+    bob_path = "test_sgb/x_bob.csv"
+
+    bin_rule_path = "test_sgb/bin_rule"
+    bin_output = "test_sgb/vert.csv"
+    bin_report_path = "test_sgb/bin_report.json"
+
+    model_path = "test_sgb/model.sf"
+    predict_path = "test_sgb/predict.csv"
+
+    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+
+    # binning
+    bin_param = NodeEvalParam(
+        domain="feature",
+        name="vert_binning",
+        version="0.0.2",
+        attr_paths=[
+            "input/input_data/feature_selects",
+            "bin_num",
+        ],
+        attrs=[
+            Attribute(ss=[f"a{i}" for i in range(2)] + [f"b{i}" for i in range(2)]),
+            Attribute(i64=4),
+        ],
+        inputs=[
+            DistData(
+                name="input_data",
+                type=str(DistDataType.VERTICAL_TABLE),
+                data_refs=[
+                    DistData.DataRef(uri=alice_path, party="alice", format="csv"),
+                    DistData.DataRef(uri=bob_path, party="bob", format="csv"),
+                ],
+            ),
+        ],
+        output_uris=[bin_rule_path, bin_report_path],
+    )
+
+    meta = get_meta_and_dump_data(
+        "test_sgb", comp_prod_sf_cluster_config, alice_path, bob_path
+    )
+    bin_param.inputs[0].meta.Pack(meta)
+
+    bin_res = vert_binning_comp.eval(
+        param=bin_param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
+
+    # sub
+    sub_param = NodeEvalParam(
+        domain="preprocessing",
+        name="vert_bin_substitution",
+        version="0.0.1",
+        attr_paths=[],
+        attrs=[],
+        inputs=[
+            bin_param.inputs[0],
+            bin_res.outputs[0],
+        ],
+        output_uris=[bin_output],
+    )
+
+    sub_res = vert_bin_substitution_comp.eval(
+        param=sub_param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
+
+    assert len(sub_res.outputs) == 1
+
+    # sgb
+    train_param = NodeEvalParam(
+        domain="ml.train",
+        name="sgb_train",
+        version="0.0.1",
+        attr_paths=[
+            "num_boost_round",
+            "max_depth",
+            "learning_rate",
+            "objective",
+            "reg_lambda",
+            "gamma",
+            "rowsample_by_tree",
+            "colsample_by_tree",
+            "sketch_eps",
+            "base_score",
+            "input/train_dataset/label",
+            "input/train_dataset/feature_selects",
+        ],
+        attrs=[
+            Attribute(i64=3),
+            Attribute(i64=3),
+            Attribute(f=0.3),
+            Attribute(s="logistic"),
+            Attribute(f=0.1),
+            Attribute(f=0),
+            Attribute(f=1),
+            Attribute(f=1),
+            Attribute(f=0.25),
+            Attribute(f=0),
+            Attribute(ss=["y"]),
+            Attribute(ss=[f"a{i}" for i in range(15)] + [f"b{i}" for i in range(15)]),
+        ],
+        inputs=[
+            sub_res.outputs[0],
+        ],
+        output_uris=[model_path],
+    )
+
+    train_param.inputs[0].meta.Pack(meta)
+
+    train_res = sgb_train_comp.eval(
+        param=train_param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
+
+    predict_param = NodeEvalParam(
+        domain="ml.predict",
+        name="sgb_predict",
+        version="0.0.2",
+        attr_paths=[
+            "receiver",
+            "save_ids",
+            "save_label",
+        ],
+        attrs=[
+            Attribute(s="alice"),
+            Attribute(b=False),
+            Attribute(b=True),
+        ],
+        inputs=[train_res.outputs[0], sub_res.outputs[0]],
+        output_uris=[predict_path],
+    )
+    predict_param.inputs[1].meta.Pack(meta)
+
+    predict_res = sgb_predict_comp.eval(
+        param=predict_param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
+
+    assert len(predict_res.outputs) == 1
+
+    # by train comp
+    eval_export(
+        "test_sgb",
+        [sub_param, train_param],
+        [sub_res, train_res],
+        storage_config,
+        sf_cluster_config,
+    )
+
+    # by pred comp
+    eval_export(
+        "test_sgb",
+        [sub_param, predict_param],
+        [sub_res, predict_res],
+        storage_config,
+        sf_cluster_config,
+    )
+
+
+def test_ss_xgb_export(comp_prod_sf_cluster_config):
+    alice_path = "test_xgb/x_alice.csv"
+    bob_path = "test_xgb/x_bob.csv"
+    model_path = "test_xgb/model.sf"
+    predict_path = "test_xgb/predict.csv"
+
+    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+
+    train_param = NodeEvalParam(
+        domain="ml.train",
+        name="ss_xgb_train",
+        version="0.0.1",
+        attr_paths=[
+            "num_boost_round",
+            "max_depth",
+            "learning_rate",
+            "objective",
+            "reg_lambda",
+            "subsample",
+            "colsample_by_tree",
+            "sketch_eps",
+            "base_score",
+            "input/train_dataset/label",
+            "input/train_dataset/feature_selects",
+        ],
+        attrs=[
+            Attribute(i64=3),
+            Attribute(i64=3),
+            Attribute(f=0.3),
+            Attribute(s="logistic"),
+            Attribute(f=0.1),
+            Attribute(f=1),
+            Attribute(f=1),
+            Attribute(f=0.25),
+            Attribute(f=0),
+            Attribute(ss=["y"]),
+            Attribute(ss=[f"a{i}" for i in range(15)] + [f"b{i}" for i in range(15)]),
+        ],
+        inputs=[
+            DistData(
+                name="train_dataset",
+                type="sf.table.vertical_table",
+                data_refs=[
+                    DistData.DataRef(uri=alice_path, party="alice", format="csv"),
+                    DistData.DataRef(uri=bob_path, party="bob", format="csv"),
+                ],
+            ),
+        ],
+        output_uris=[model_path],
+    )
+
+    meta = get_meta_and_dump_data(
+        "test_xgb", comp_prod_sf_cluster_config, alice_path, bob_path
+    )
+    train_param.inputs[0].meta.Pack(meta)
+
+    train_res = ss_xgb_train_comp.eval(
+        param=train_param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
+
+    predict_param = NodeEvalParam(
+        domain="ml.predict",
+        name="ss_xgb_predict",
+        version="0.0.1",
+        attr_paths=[
+            "receiver",
+            "save_ids",
+            "save_label",
+            "input/feature_dataset/saved_features",
+        ],
+        attrs=[
+            Attribute(s="alice"),
+            Attribute(b=False),
+            Attribute(b=True),
+            Attribute(ss=["a2", "a10"]),
+        ],
+        inputs=[
+            train_res.outputs[0],
+            DistData(
+                name="train_dataset",
+                type="sf.table.vertical_table",
+                data_refs=[
+                    DistData.DataRef(uri=alice_path, party="alice", format="csv"),
+                    DistData.DataRef(uri=bob_path, party="bob", format="csv"),
+                ],
+            ),
+        ],
+        output_uris=[predict_path],
+    )
+    predict_param.inputs[1].meta.Pack(meta)
+
+    predict_res = ss_xgb_predict_comp.eval(
+        param=predict_param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
+
+    assert len(predict_res.outputs) == 1
+
+    # by train comp
+    eval_export(
+        "test_xgb",
+        [train_param],
+        [train_res],
+        storage_config,
+        sf_cluster_config,
+    )
+
+    # by pred comp
+    eval_export(
+        "test_xgb",
         [predict_param],
         [predict_res],
         storage_config,

@@ -132,6 +132,160 @@ def test_bool_attr():
     assert msg == expected_msg
 
 
+def test_struct_attr_group():
+    comp = Component("test")
+    comp.struct_attr_group(
+        name="level0",
+        desc="level0",
+        group=[
+            comp.bool_attr(
+                name="bool0",
+                desc="",
+                is_list=False,
+                is_optional=True,
+                default_value=True,
+            ),
+            comp.struct_attr_group(
+                name="level1",
+                desc="level1",
+                group=[
+                    comp.bool_attr(
+                        name="bool1",
+                        desc="",
+                        is_list=False,
+                        is_optional=True,
+                        default_value=True,
+                    ),
+                    comp.bool_attr(
+                        name="bool2",
+                        desc="",
+                        is_list=False,
+                        is_optional=True,
+                        default_value=True,
+                    ),
+                ],
+            ),
+        ],
+    )
+
+    msg = comp.definition()
+
+    expected_msg = ParseDict(
+        {
+            "name": "test",
+            "attrs": [
+                {"name": "level0", "desc": "level0", "type": "AT_STRUCT_GROUP"},
+                {
+                    "prefixes": ["level0"],
+                    "name": "bool0",
+                    "type": "AT_BOOL",
+                    "atomic": {"isOptional": True, "defaultValue": {"b": True}},
+                },
+                {
+                    "prefixes": ["level0"],
+                    "name": "level1",
+                    "desc": "level1",
+                    "type": "AT_STRUCT_GROUP",
+                },
+                {
+                    "prefixes": ["level0", "level1"],
+                    "name": "bool1",
+                    "type": "AT_BOOL",
+                    "atomic": {"isOptional": True, "defaultValue": {"b": True}},
+                },
+                {
+                    "prefixes": ["level0", "level1"],
+                    "name": "bool2",
+                    "type": "AT_BOOL",
+                    "atomic": {"isOptional": True, "defaultValue": {"b": True}},
+                },
+            ],
+        },
+        ComponentDef(),
+    )
+    assert msg == expected_msg
+
+
+def test_union_attr_group():
+    comp = Component("test")
+    comp.union_attr_group(
+        name="level0",
+        desc="level0",
+        group=[
+            comp.bool_attr(
+                name="bool0",
+                desc="",
+                is_list=False,
+                is_optional=True,
+                default_value=True,
+            ),
+            comp.union_attr_group(
+                name="level1",
+                desc="level1",
+                group=[
+                    comp.bool_attr(
+                        name="bool1",
+                        desc="",
+                        is_list=False,
+                        is_optional=True,
+                        default_value=True,
+                    ),
+                    comp.bool_attr(
+                        name="bool2",
+                        desc="",
+                        is_list=False,
+                        is_optional=True,
+                        default_value=True,
+                    ),
+                ],
+            ),
+        ],
+    )
+
+    msg = comp.definition()
+
+    expected_msg = ParseDict(
+        {
+            "name": "test",
+            "attrs": [
+                {
+                    "name": "level0",
+                    "desc": "level0",
+                    "type": "AT_UNION_GROUP",
+                    "union": {"defaultSelection": "bool0"},
+                },
+                {
+                    "prefixes": ["level0"],
+                    "name": "bool0",
+                    "type": "AT_BOOL",
+                    "atomic": {"isOptional": True, "defaultValue": {"b": True}},
+                },
+                {
+                    "prefixes": ["level0"],
+                    "name": "level1",
+                    "desc": "level1",
+                    "type": "AT_UNION_GROUP",
+                    "union": {"defaultSelection": "bool1"},
+                },
+                {
+                    "prefixes": ["level0", "level1"],
+                    "name": "bool1",
+                    "type": "AT_BOOL",
+                    "atomic": {"isOptional": True, "defaultValue": {"b": True}},
+                },
+                {
+                    "prefixes": ["level0", "level1"],
+                    "name": "bool2",
+                    "type": "AT_BOOL",
+                    "atomic": {"isOptional": True, "defaultValue": {"b": True}},
+                },
+            ],
+        },
+        ComponentDef(),
+    )
+    assert msg == expected_msg
+
+
 def test_table_io():
     comp = Component("test")
     comp.io(
