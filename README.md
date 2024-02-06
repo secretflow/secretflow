@@ -33,7 +33,7 @@ it provides:
 
 ## SecretFlow Related Projects
 
-- [Kuscia](https://github.com/secretflow/kuscia): A lightweight privacy-preserving computing task orchestration framework based on K3s.
+- [Kuscia](https://github.com/secretflow/kuscia): A lightweight privacy-preserving computing task orchestration framework based on K8s.
 - [SCQL](https://github.com/secretflow/scql): A system that allows multiple distrusting parties to run joint analysis without revealing their private data.
 - [SPU](https://github.com/secretflow/spu): A provable, measurable secure computation device, which provides computation ability while keeping your private data protected.
 - [HEU](https://github.com/secretflow/heu): A high-performance homomorphic encryption algorithm library.
