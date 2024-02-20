@@ -27,6 +27,8 @@ from secretflow.component.ml.eval.regression_eval import regression_eval_comp
 from secretflow.component.ml.eval.ss_pvalue import ss_pvalue_comp
 from secretflow.component.ml.linear.ss_glm import ss_glm_predict_comp, ss_glm_train_comp
 from secretflow.component.ml.linear.ss_sgd import ss_sgd_predict_comp, ss_sgd_train_comp
+from secretflow.component.ml.nn.sl.sl_predict import slnn_predict_comp
+from secretflow.component.ml.nn.sl.sl_train import slnn_train_comp
 from secretflow.component.model_export import model_export_comp
 from secretflow.component.preprocessing.binning.vert_binning import (
     vert_bin_substitution_comp,
@@ -93,6 +95,8 @@ ALL_COMPONENTS = [
     ss_xgb_train_comp,
     ss_glm_predict_comp,
     ss_glm_train_comp,
+    slnn_train_comp,
+    slnn_predict_comp,
     onehot_encode,
     substitution,
     case_when,

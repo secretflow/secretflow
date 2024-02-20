@@ -16,7 +16,6 @@ from typing import Dict, List, Tuple, Union
 
 import jax.numpy as jnp
 import numpy as np
-import tensorflow as tf
 import torch
 from sklearn.metrics import roc_auc_score
 
@@ -28,8 +27,8 @@ def convert_to_ndarray(*data: List) -> Union[List[jnp.ndarray], jnp.ndarray]:
     def _convert_to_ndarray(hidden):
         # processing data
         if not isinstance(hidden, jnp.ndarray):
-            if isinstance(hidden, (tf.Tensor, torch.Tensor)):
-                hidden = jnp.array(hidden.numpy())
+            if isinstance(hidden, torch.Tensor):
+                hidden = jnp.array(hidden.detach().cpu().numpy())
             if isinstance(hidden, np.ndarray):
                 hidden = jnp.array(hidden)
         return hidden
@@ -87,7 +86,7 @@ class NormAttack(AttackCallback):
         self.all_g_norm[epoch] = []
         self.epoch = epoch
 
-    def after_agglayer_backward(self, gradients=None):
+    def on_agglayer_backward_end(self, gradients=None):
         my_grad = gradients[self.attack_party]
         grad_norm_np = self._workers[self.attack_party].apply(norm_attack, my_grad)
         self.all_g_norm[self.epoch].append(grad_norm_np)

@@ -37,6 +37,7 @@ class ReplayAttack(AttackCallback):
         target_idx: List[int],
         poison_idx: List[int],
         batch_size: int,
+        exec_device: str = 'cpu',
         **params,
     ):
         super().__init__(
@@ -49,6 +50,7 @@ class ReplayAttack(AttackCallback):
 
         self.target_offsets = None
         self.poison_offsets = None
+        self.exec_device = exec_device
 
     def on_train_begin(self, logs=None):
         def init_callback_store(attack_worker, target_len):
@@ -71,7 +73,7 @@ class ReplayAttack(AttackCallback):
         poison_set = np.intersect1d(data_idx, self.poison_idx)
         self.poison_offsets = np.where(np.isin(data_idx, poison_set))[0]
 
-    def on_after_base_forward(self):
+    def on_base_forward_end(self):
         def record_and_replay(
             attack_worker, target_len, target_offsets, poison_offsets
         ):
@@ -81,9 +83,9 @@ class ReplayAttack(AttackCallback):
                 # record target embeddings
                 if tlen > 0:
                     if isinstance(attack_worker._h, torch.Tensor):
-                        hidden_np = [attack_worker._h.detach().numpy()]
+                        hidden_np = [attack_worker._h.detach().cpu().numpy()]
                     else:
-                        hidden_np = [h.detach().numpy() for h in attack_worker._h]
+                        hidden_np = [h.detach().cpu().numpy() for h in attack_worker._h]
                     batch_hiddens = [h[target_offsets] for h in hidden_np]
 
                     cnt = att_info['record_counter']
@@ -108,19 +110,23 @@ class ReplayAttack(AttackCallback):
                         np.arange(target_len), (plen,), replace=True
                     )
                     if isinstance(attack_worker._h, torch.Tensor):
-                        hiddens_np = attack_worker._h.detach().numpy()
+                        hiddens_np = attack_worker._h.detach().cpu().numpy()
                         hiddens_np[poison_offsets] = att_info['train_target_hiddens'][
                             0
                         ][replay_keys]
-                        attack_worker._h = torch.tensor(hiddens_np)
+                        attack_worker._h = torch.tensor(hiddens_np).to(self.exec_device)
                     else:
-                        hiddens_np = [h.detach().numpy() for h in attack_worker._h]
+                        hiddens_np = [
+                            h.detach().cpu().numpy() for h in attack_worker._h
+                        ]
                         for idx, hid in enumerate(attack_worker._h):
-                            hiddens_np = hid.numpy()
+                            hiddens_np = hid.cpu().numpy()
                             hiddens_np[poison_offsets] = att_info[
                                 'train_target_hiddens'
                             ][idx][replay_keys]
-                            attack_worker._h[idx] = torch.tensor(hiddens_np)
+                            attack_worker._h[idx] = torch.tensor(hiddens_np).to(
+                                self.exec_device
+                            )
 
         if len(self.target_offsets) > 0 or len(self.poison_offsets) > 0:
             self._workers[self.attack_party].apply(
@@ -136,7 +142,7 @@ class ReplayAttack(AttackCallback):
             preds_plain.append(torch.argmax(pred, dim=1))
         preds_plain = torch.cat(preds_plain, dim=0)
 
-        pred_np: np.ndarray = preds_plain.numpy()
+        pred_np: np.ndarray = preds_plain.cpu().numpy()
         poison_pred = pred_np[eval_poison_set]
         poison_pred = poison_pred == target_class
         nums_poison_true = sum(poison_pred)

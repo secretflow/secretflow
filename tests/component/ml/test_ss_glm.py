@@ -1,7 +1,9 @@
+import logging
 import os
+from collections import defaultdict
+
 import numpy as np
 import pandas as pd
-from collections import defaultdict
 from sklearn.datasets import load_breast_cancer
 from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import StandardScaler
@@ -10,6 +12,7 @@ from secretflow.component.ml.linear.ss_glm import ss_glm_predict_comp, ss_glm_tr
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
+from secretflow.spec.v1.report_pb2 import Report
 from tests.conftest import TEST_STORAGE_ROOT
 
 
@@ -51,7 +54,7 @@ def test_glm(comp_prod_sf_cluster_config):
     train_param = NodeEvalParam(
         domain="ml.train",
         name="ss_glm_train",
-        version="0.0.1",
+        version="0.0.2",
         attr_paths=[
             "epochs",
             "learning_rate",
@@ -61,12 +64,13 @@ def test_glm(comp_prod_sf_cluster_config):
             "optimizer",
             "l2_lambda",
             "infeed_batch_size_limit",
-            "newton_iter",
+            "stopping_rounds",
             "report_weights",
             "input/train_dataset/label",
             "input/train_dataset/feature_selects",
             "input/train_dataset/offset",
             "input/train_dataset/weight",
+            "report_metric",
         ],
         attrs=[
             Attribute(i64=3),
@@ -77,12 +81,13 @@ def test_glm(comp_prod_sf_cluster_config):
             Attribute(s="SGD"),
             Attribute(f=0.3),
             Attribute(i64=50000 * 100),
-            Attribute(i64=21),
+            Attribute(i64=1),
             Attribute(b=True),
             Attribute(ss=["y"]),
             Attribute(ss=[f"a{i}" for i in range(15)] + [f"b{i}" for i in range(15)]),
             Attribute(ss=[]),
             Attribute(ss=[]),
+            Attribute(b=True),
         ],
         inputs=[
             DistData(
@@ -122,6 +127,10 @@ def test_glm(comp_prod_sf_cluster_config):
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
     )
+
+    comp_ret = Report()
+    train_res.outputs[1].meta.Unpack(comp_ret)
+    logging.info(comp_ret)
 
     predict_param = NodeEvalParam(
         domain="ml.predict",

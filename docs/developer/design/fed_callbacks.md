@@ -21,7 +21,7 @@
 我们的联邦callback从大的来说分位两层，callbacklist和callbacks。callbacklist是slmodel来调用各个callback的handler。
 
 我们联邦全局callback是一个driver层的概念，和slmodel是平级概念。方便从中心视角来组织统一的callback逻辑。
-SLModel是整个训练流的逻辑中心，SLModel会持有一个`Callbacklist`的对象，作为从训练逻辑到旁路逻辑的入口。`Callbacklist`持有很多个逻辑埋点，每一个埋点对应`Callback`的相应埋点。例如`on_epoch_begin`,`on_epoch_end`, `before_agglayer_forward`,`after_agglayer_forward`等。具体每个callback实现继承callback，然后根据需要重写某几个函数。
+SLModel是整个训练流的逻辑中心，SLModel会持有一个`Callbacklist`的对象，作为从训练逻辑到旁路逻辑的入口。`Callbacklist`持有很多个逻辑埋点，每一个埋点对应`Callback`的相应埋点。例如`on_epoch_begin`,`on_epoch_end`, `on_agglayer_forward_begin`,`on_agglayer_forward_end`等。具体每个callback实现继承callback，然后根据需要重写某几个函数。
 callback和slmodel共享了很多参数，最重要的是`Workers`，Callback拥有训练流中的`Workers`对象，所以callback不但可以处理很多中心端的控制逻辑，还可以控制训练的`Worker`来完成一些和模型绑定的行为，比如获取一些模型内部的状态，或者对某些状态进行修改。一些需要穿透到worker的local操作，也可以通过worker对象提供的`apply`函数来进行执行。这些逻辑会被注入到worker中，进行执行，但请注意，apply的逻辑不会提供任何返回。
 
 ![Alt text](./resources/callback_slmodel.svg)
@@ -157,31 +157,34 @@ def on_predict_batch_begin(self, batch):
 def on_predict_batch_end(self, batch):
     pass
 
-def after_agglayer(self, scatter_gradients):
+def on_agglayer_forward_begin(self, hiddens=None):
     pass
 
-def before_agglayer_forward(self, hiddens=None):
+def on_agglayer_forward_end(self, hiddens=None):
     pass
 
-def after_agglayer_forward(self, hiddens=None):
+def on_agglayer_backward_begin(self, gradients=None):
     pass
 
-def before_agglayer_backward(self, gradients=None):
+def on_agglayer_backward_end(self, gradients=None):
     pass
 
-def after_agglayer_backward(self, gradients=None):
+def on_base_forward_begin(self):
     pass
 
-def on_before_base_forward(self):
+def on_base_forward_end(self):
     pass
 
-def on_after_base_forward(self):
+def on_base_backward_begin(self):
     pass
 
-def on_before_fuse_net(self):
+def on_base_backward_end(self):
     pass
 
-def on_after_fuse_net(self):
+def on_fuse_forward_begin(self):
+    pass
+
+def on_fuse_backward_end(self):
     pass
 
 ```
@@ -195,6 +198,6 @@ def on_after_fuse_net(self):
 3. apply中定义的方法，可以通过placeholder来使用worker的内部属性。
 4. 挑选合适的埋点函数进行重写，callback框架会在正确的时机进行调用。
 
-# 总结
+## 总结
 
 我们在联邦框架的基础上提供了联邦callback的框架，从一个大的多方全局视角提供了callback的能力。在callback层面统一了不同后端。提供callback框架后，我们可以将训练代码和非训练代码进行解耦，同时为用户在自定义需求的支持上提供了更方便直接的模式。

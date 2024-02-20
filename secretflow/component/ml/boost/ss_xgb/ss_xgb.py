@@ -250,13 +250,18 @@ def ss_xgb_train_eval_fn(
         "feature_selects": x.columns,
         "label_col": train_dataset_label,
     }
+    party_features_length = {
+        device.party: len(columns) for device, columns in x.partition_columns.items()
+    }
+    m_dict["party_features_length"] = party_features_length
+
     split_trees = []
     for p in x.partitions.keys():
         split_trees.extend([t[p] for t in model.trees])
 
     model_db = model_dumps(
         ctx,
-        "sgb",
+        "xgb",
         DistDataType.SS_XGB_MODEL,
         MODEL_MAX_MAJOR_VERSION,
         MODEL_MAX_MINOR_VERSION,
@@ -337,17 +342,7 @@ ss_xgb_predict_comp.io(
 )
 
 
-def load_ss_xgb_model(ctx, spu, pyus, model) -> XgbModel:
-    model_objs, model_meta_str = model_loads(
-        ctx,
-        model,
-        MODEL_MAX_MAJOR_VERSION,
-        MODEL_MAX_MINOR_VERSION,
-        DistDataType.SS_XGB_MODEL,
-        pyus=pyus,
-        spu=spu,
-    )
-
+def build_ss_xgb_model(model_objs, model_meta_str, spu) -> XgbModel:
     model_meta = json.loads(model_meta_str)
     assert (
         isinstance(model_meta, dict)
@@ -374,6 +369,20 @@ def load_ss_xgb_model(ctx, spu, pyus, model) -> XgbModel:
     model.trees = trees
 
     return model
+
+
+def load_ss_xgb_model(ctx, spu, pyus, model) -> XgbModel:
+    model_objs, model_meta_str = model_loads(
+        ctx,
+        model,
+        MODEL_MAX_MAJOR_VERSION,
+        MODEL_MAX_MINOR_VERSION,
+        DistDataType.SS_XGB_MODEL,
+        pyus=pyus,
+        spu=spu,
+    )
+
+    return build_ss_xgb_model(model_objs, model_meta_str, spu)
 
 
 @ss_xgb_predict_comp.eval_fn

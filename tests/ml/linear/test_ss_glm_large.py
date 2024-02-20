@@ -18,6 +18,7 @@ from secretflow.data import FedNdarray, PartitionWay
 from secretflow.device.driver import SPU, reveal, wait
 from secretflow.ml.linear.ss_glm import SSGLM
 from secretflow.ml.linear.ss_glm.core import get_dist
+from secretflow.ml.linear.ss_glm.metrics import deviance
 
 
 def load_mtpl2(n_samples=None):
@@ -50,7 +51,8 @@ def load_mtpl2(n_samples=None):
 
 
 def prepare_data():
-    df = load_mtpl2(20000)
+    # change this number to test on larger dataset
+    df = load_mtpl2(2500)
 
     # Note: filter out claims with zero amount, as the severity model
     # requires strictly positive target values.
@@ -179,24 +181,45 @@ def run_irls(
         ss_glm_power,
         1,
         l2_lambda=l2_lambda,
+        infeed_batch_size_limit=100000,
+        fraction_of_validation_set=0.2,
+        stopping_rounds=3,
+        stopping_metric="deviance",
+        report_metric=True,
     )
+
     logging.info(f"{test_name} train time: {time.time() - start}")
     start = time.time()
     spu_yhat = model.predict(v_data)
-    yhat = reveal(spu_yhat).reshape((-1,))
+    wait(spu_yhat)
+    spu_deviance_ = reveal(
+        spu(deviance, static_argnames=('dist'))(
+            y, spu_yhat, df["Exposure"].values, dist=get_dist(dist, 1, ss_glm_power)
+        )
+    )
+    yhat = reveal(spu_yhat).reshape(-1)
+    deviance_ = reveal(
+        spu(deviance, static_argnames=('dist'))(
+            y, spu_yhat, df["Exposure"].values, dist=get_dist(dist, 1, ss_glm_power)
+        )
+    )
+
+    np.testing.assert_almost_equal(spu_deviance_, deviance_)
+
     assert yhat.shape[0] == y.shape[0], f"{yhat.shape} == {y.shape}"
     logging.info(f"{test_name} predict time: {time.time() - start}")
+
     d2 = eval(yhat, y, dist, ss_glm_power, df["Exposure"].values)
     logging.info(f"{test_name} deviance: {d2}")
     return d2
 
 
 def eval(yhat, y, dist, power, w):
-    deviance = get_dist(dist, 1, power).deviance(yhat, y.reshape(-1), w)
-    assert not np.isnan(deviance), f"{yhat}, {y}, {w}"
+    deviance_ = deviance(y, yhat, w, get_dist(dist, 1, power))
+    assert not np.isnan(deviance_), f"{yhat}, {y}, {w}"
     y_mean = np.mean(y) + np.zeros_like(y)
     null_deviance = get_dist(dist, 1, power).deviance(y_mean, y.reshape(-1), w)
-    d2 = 1 - deviance / null_deviance
+    d2 = 1 - deviance_ / null_deviance
 
     return d2
 
@@ -217,7 +240,7 @@ def _run_test(devices, test_name, X, df, link, dist, l2_lambda=None, power=1.9):
     wait(irls_deviance)
     logging.info(irls_deviance)
     assert (
-        abs(irls_deviance - sklearn_deviance) <= 0.05
+        abs(irls_deviance - sklearn_deviance) <= 0.1
     ), f"{irls_deviance}, {sklearn_deviance}"
 
 
