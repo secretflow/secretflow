@@ -115,17 +115,17 @@ def gen_data():
                            n_classes=num_classes)
     return x, y
 
-# Alice generates its samples.
-x_a, y_a = alice(gen_data, num_returns=2)()
-# Bob generates its samples.
-x_b, y_b = bob(gen_data, num_returns=2)()
-
 from secretflow.device import TEEU
 
 # mrenclave can be omitted in simulation mode.
 alice = sf.PYU('alice')
 bob = sf.PYU('bob')
 teeu = TEEU('carol', mr_enclave='')
+
+# Alice generates its samples.
+x_a, y_a = alice(gen_data, num_returns=2)()
+# Bob generates its samples.
+x_b, y_b = bob(gen_data, num_returns=2)()
 
 # Transfer data to teeu.
 x_a_teeu = x_a.to(teeu, allow_funcs=xgb_demo)
@@ -252,17 +252,17 @@ def gen_data():
                            n_classes=num_classes)
     return x, y
 
-# Alice generates its samples.
-x_a, y_a = alice(gen_data, num_returns=2)()
-# Bob generates its samples.
-x_b, y_b = bob(gen_data, num_returns=2)()
-
 from secretflow.device import TEEU
 
 # mrenclave can be omitted in simulation mode.
 alice = sf.PYU('alice')
 bob = sf.PYU('bob')
 teeu = TEEU('carol', mr_enclave='')
+
+# Alice generates its samples.
+x_a, y_a = alice(gen_data, num_returns=2)()
+# Bob generates its samples.
+x_b, y_b = bob(gen_data, num_returns=2)()
 
 # Transfer data to teeu.
 x_a_teeu = x_a.to(teeu, allow_funcs=xgb_demo)
@@ -388,17 +388,17 @@ def gen_data():
                            n_classes=num_classes)
     return x, y
 
-# Alice generates its samples.
-x_a, y_a = alice(gen_data, num_returns=2)()
-# Bob generates its samples.
-x_b, y_b = bob(gen_data, num_returns=2)()
-
 from secretflow.device import TEEU
 
 # mrenclave can be omitted in simulation mode.
 alice = sf.PYU('alice')
 bob = sf.PYU('bob')
 teeu = TEEU('carol', mr_enclave='')
+
+# Alice generates its samples.
+x_a, y_a = alice(gen_data, num_returns=2)()
+# Bob generates its samples.
+x_b, y_b = bob(gen_data, num_returns=2)()
 
 # Transfer data to teeu.
 x_a_teeu = x_a.to(teeu, allow_funcs=xgb_demo)
@@ -517,17 +517,17 @@ def gen_data():
                            n_classes=num_classes)
     return x, y
 
-# Alice generates its samples.
-x_a, y_a = alice(gen_data, num_returns=2)()
-# Bob generates its samples.
-x_b, y_b = bob(gen_data, num_returns=2)()
-
 from secretflow.device import TEEU
 
 # mrenclave can be omitted in simulation mode.
 alice = sf.PYU('alice')
 bob = sf.PYU('bob')
 teeu = TEEU('carol', mr_enclave='')
+
+# Alice generates its samples.
+x_a, y_a = alice(gen_data, num_returns=2)()
+# Bob generates its samples.
+x_b, y_b = bob(gen_data, num_returns=2)()
 
 # Transfer data to teeu.
 x_a_teeu = x_a.to(teeu, allow_funcs=xgb_demo)
