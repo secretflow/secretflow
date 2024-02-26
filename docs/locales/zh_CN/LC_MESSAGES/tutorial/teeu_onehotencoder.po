@@ -1,0 +1,368 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2022 Ant Group Co., Ltd.
+# This file is distributed under the same license as the SecretFlow package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2024.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: SecretFlow \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-02-26 17:06+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.14.0\n"
+
+#: ../../tutorial/teeu_onehotencoder.md:1
+msgid "TEEU Example: OneHotEncoder"
+msgstr "TEE示例：OneHotEncoder"
+
+#: ../../tutorial/teeu_onehotencoder.md:3
+msgid "**Tips**"
+msgstr "提示"
+
+#: ../../tutorial/teeu_onehotencoder.md:5
+msgid ""
+"Before reading this article, it is strongly recommended to read [TEEU "
+"Getting Started Guide](./teeu.md) at first."
+msgstr "在阅读本文之前，强烈推荐先阅读 [TEEU上手指南](./teeu.md) 。"
+
+#: ../../tutorial/teeu_onehotencoder.md:9
+msgid ""
+"TEEU (`TEE` processing `U`nit) is a TEE device in SecretFlow. Through "
+"TEEU, users can conveniently put data in TEE for calculation, and achieve"
+" the purpose of protecting data integrity and security."
+msgstr ""
+"TEEU(`TEE` processing `U`nit)是 SecretFlow 中的 TEE 设备，通过 "
+"TEEU，用户可以方便的把数据放在TEE内进行计算，并且达到保护数据完整和安全的目的"
+
+#: ../../tutorial/teeu_onehotencoder.md:11
+msgid ""
+"This article will demonstrate how to run OneHotEncoder in TEEU for "
+"processing."
+msgstr "本文将演示如何在TEEU中使用OneHotEncoder进行预处理。"
+
+#: ../../tutorial/teeu_onehotencoder.md:13
+msgid "1.1 Simulation mode"
+msgstr "1.1 仿真模式"
+
+#: ../../tutorial/teeu_onehotencoder.md:15
+msgid ""
+"To facilitate users who do not have access to a real TEE environment, "
+"SecretFlow offers a TEEU simulation mode. This feature allows users to "
+"try out TEEU functions on an ordinary machine. Code writing and usage in "
+"the simulation mode are almost same with the non-simulation mode, so it "
+"is recommended to use the simulation mode for quick experimental "
+"verification first."
+msgstr ""
+"为了方便用户在没有真实 TEE 环境的情况下对 TEEU 进行尝试，SecretFlow 提供了 TEEU "
+"仿真模式，这意味着您可以在普通机器上仍然可以尝试 TEEU "
+"的功能。在仿真模式下，代码编写和使用体感与非仿真模式几乎无差别，因此建议可以先使用仿真模式进行快速实验验证。"
+
+#: ../../tutorial/teeu_onehotencoder.md:18
+msgid ""
+"Note that since the real TEE environment is not used, the simulation mode"
+" lacks security features that depend on the TEE environment, such as "
+"remote attestation and memory encryption isolation, and cannot protect "
+"data integrity and confidentiality. Simulation mode is not secure and "
+"should not be used in production, keep this in mind."
+msgstr ""
+"注意，由于并没有使用真正的 TEE 环境，因此仿真模式缺乏远程认证和内存加密隔离等依赖 TEE "
+"环境的安全特性，无法保护数据的完整性与机密性。仿真模式并不是安全的，不能用于生产上，请牢记这一点。"
+
+#: ../../tutorial/teeu_onehotencoder.md:20
+msgid "Pre-work"
+msgstr "前置工作"
+
+#: ../../tutorial/teeu_onehotencoder.md:22
+msgid "Understand the SecretFlow deployment of multi-ray cluster mode"
+msgstr "了解多ray集群模式的SecretFlow部署"
+
+#: ../../tutorial/teeu_onehotencoder.md:24
+msgid ""
+"For security reasons, Ray running in TEE is an independent cluster, so "
+"currently SecretFlow only supports the use of TEEU in multiple Ray "
+"cluster mode. You can read the [SecretFlow Deployment "
+"Documentation](../getting_started/deployment.md#production) in advance to"
+" understand the deployment of multiple Ray clusters."
+msgstr ""
+"出于安全原因，运行在 TEE 里的 Ray 是独立的集群，因此目前 SecretFlow 仅支持在多个 Ray 集群模式下使用 "
+"TEEU。您可以事先阅读[SecretFlow部署文档](../getting_started/deployment.md#production)了解多个"
+" Ray 集群的部署。"
+
+#: ../../tutorial/teeu_onehotencoder.md:26
+msgid "Prepare to run the simulated TEEU machine"
+msgstr "准备运行仿真 TEEU 的机器"
+
+#: ../../tutorial/teeu_onehotencoder.md:28
+msgid ""
+"At present, SecretFlow TEEU only provides docker images. Due to some "
+"limitations of the basic technology, TEE programs currently require a "
+"large amount of memory to run successfully. You need to ensure that the "
+"available memory for the Docker container is at least 30GB or more, "
+"depending on the size of the data to be processed in TEEU."
+msgstr ""
+"目前 SecretFlow TEEU 仅提供 docker 镜像，由于基础技术的一些限制，目前 TEE 程序需要较大内存才能运行成功，您需要确保 "
+"docker 容器可使用内存至少大于 30GB 或者可能更大，取决于TEEU要处理的数据大小。"
+
+#: ../../tutorial/teeu_onehotencoder.md:30
+msgid "Deploy AuthManager"
+msgstr "部署 AuthManager"
+
+#: ../../tutorial/teeu_onehotencoder.md:32
+msgid "AuthManager is the module responsible for authorization management."
+msgstr "AuthManager是负责授权管理的模块。"
+
+#: ../../tutorial/teeu_onehotencoder.md:34
+msgid "Download the docker image"
+msgstr "下载 docker 镜像"
+
+#: ../../tutorial/teeu_onehotencoder.md:39
+msgid "Enter the docker image"
+msgstr "进入 docker 镜像"
+
+#: ../../tutorial/teeu_onehotencoder.md:44
+msgid "(Optional) Configure TLS"
+msgstr "（可选）配置 TLS"
+
+#: ../../tutorial/teeu_onehotencoder.md:46
+msgid ""
+"AuthManager enables TLS by default. If you only use it for local "
+"simulation, you can turn off TLS by set `enable_tls` to `false` in "
+"`/root/occlum_release/config.yaml`."
+msgstr ""
+"AuthManager 默认启用 TLS，如果您只是为了本机仿真，可以关闭TLS功能，具体方法为编辑 config.yaml 文件，将 "
+"`enable_tls` 设置为 false。"
+
+#: ../../tutorial/teeu_onehotencoder.md:48
+msgid "Start the service"
+msgstr "启动服务"
+
+#: ../../tutorial/teeu_onehotencoder.md:54
+msgid ""
+"The default port is 8835. Feel free to modify the `port` in config.yaml "
+"if port conflicts."
+msgstr "默认端口号是8835。如果发生端口冲突，请修改为其他未占用端口。"
+
+#: ../../tutorial/teeu_onehotencoder.md:56
+msgid "Example: OneHotEncoder in TEEU"
+msgstr "示例：TEEU中运行OneHotEncoder"
+
+#: ../../tutorial/teeu_onehotencoder.md:58
+msgid ""
+"Next, we will demonstrate how to combine data from multiple parties in "
+"TEEU, and then use OneHotEncoder to process it."
+msgstr "接下来，我们将演示如何在TEEU中合并多方的数据并且使用OneHotEncoder预处理。"
+
+#: ../../tutorial/teeu_onehotencoder.md:60
+msgid "Example code"
+msgstr "示例代码"
+
+#: ../../tutorial/teeu_onehotencoder.md:62
+msgid ""
+"Assuming that Alice and Bob have the same feature space, but the sample "
+"space does not overlap with each other, and each has some user features, "
+"Alice and Bob intend to use TEEU to safely combine their samples and use "
+"OneHotEncoder to process data's label. At the same time, Carol acts as "
+"the provider of TEEU."
+msgstr "假设Alice和Bob拥有相同的特征空间，但是样本空间互不重叠，各自拥有部分用户的特征，Alice和Bob打算使用TEEU安全地对他们的样本进行合并并且使用OneHotEncoder预处理数据标签。与此同时，Carol作为TEEU的提供方。"
+
+#: ../../tutorial/teeu_onehotencoder.md:64
+msgid "The core code of the above case is as follows."
+msgstr "上述案例的核心代码如下。"
+
+#: ../../tutorial/teeu_onehotencoder.md:122
+msgid "Alice runs the code"
+msgstr "Alice运行代码"
+
+#: ../../tutorial/teeu_onehotencoder.md:124
+#: ../../tutorial/teeu_onehotencoder.md:239
+msgid "Start the ray master node"
+msgstr "启动 ray 主节点"
+
+#: ../../tutorial/teeu_onehotencoder.md:126
+msgid ""
+"You should modify the following command to match the actual situation, as"
+" it currently assumes that Alice's Ray master node is listening at "
+"192.168.0.10:10000."
+msgstr "下列命令假设Alice的ray主节点监听地址为 192.168.0.10:10000，请根据实际情况修改。"
+
+#: ../../tutorial/teeu_onehotencoder.md:132
+#: ../../tutorial/teeu_onehotencoder.md:246
+msgid "Generate a public-private key pair"
+msgstr "生成公私钥对"
+
+#: ../../tutorial/teeu_onehotencoder.md:134
+msgid ""
+"As Alice's data needs to be encrypted and sent to TEEU, it is imperative "
+"to generate a pair of public and private keys. Below, you may find the "
+"code that, upon execution, generates the public and private keys, which "
+"will be stored in the current directory in PEM format as "
+"\"private_key.pem\" and \"public_key.pem\", respectively."
+msgstr ""
+"因为 Alice 的数据需要加密发送给 TEEU，所以需要事先生成一对公私钥。您可以执行下列代码生成公私钥，公私钥以 pem "
+"格式分别存放在当前目录的 private_key.pem，public_key.pem。"
+
+#: ../../tutorial/teeu_onehotencoder.md:141
+msgid "Execute code"
+msgstr "执行代码"
+
+#: ../../tutorial/teeu_onehotencoder.md:143
+msgid ""
+"Add the SecretFlow initialization related code in front of the code to "
+"get the following code. First, you need to modify the configuration items"
+" in the code."
+msgstr "在代码的前面加上SecretFlow初始化相关代码，得到下列的代码。首先您需要对代码中的配置项进行修改。"
+
+#: ../../tutorial/teeu_onehotencoder.md:145
+msgid ""
+"The code assumes that Alice's communication address is "
+"192.168.0.10:20001, please modify it according to the actual situation"
+msgstr "代码中假设 Alice 通信地址为 192.168.0.10:20001，请您根据实际情况修改"
+
+#: ../../tutorial/teeu_onehotencoder.md:146
+#: ../../tutorial/teeu_onehotencoder.md:260
+#: ../../tutorial/teeu_onehotencoder.md:363
+msgid "You need to fill in the correct `auth_manager_config`"
+msgstr "您需要填写填充正确的 `auth_manager_config`"
+
+#: ../../tutorial/teeu_onehotencoder.md:147
+#: ../../tutorial/teeu_onehotencoder.md:261
+msgid "`host` is the listening address of the AuthManager service"
+msgstr "`host`为 AuthManager 的服务监听地址"
+
+#: ../../tutorial/teeu_onehotencoder.md:148
+msgid ""
+"`ca_cert` is the CA certificate address of AuthManager, if AuthManager "
+"does not start with TLS, no configuration is required."
+msgstr "`ca_cert`为 AuthManager 的 CA 证书地址，如果 AuthManager 未启动 TLS，则不需要配置。"
+
+#: ../../tutorial/teeu_onehotencoder.md:150
+msgid ""
+"Suppose we save the code as `demo.py`, and then execute `python demo.py` "
+"on Alice's machine."
+msgstr "假设我们把代码保存为 `demo.py`，然后在 Alice 的机器上执行 `python demo.py`。"
+
+#: ../../tutorial/teeu_onehotencoder.md:237
+msgid "Bob runs the code"
+msgstr "Bob 运行代码"
+
+#: ../../tutorial/teeu_onehotencoder.md:241
+msgid ""
+"You should modify the following command to match the actual situation, as"
+" it currently assumes that Bob's Ray master node is listening at "
+"192.168.0.20:10000."
+msgstr "下列命令假设 Bob 的Ray主节点监听在 192.168.0.20:10000，请根据实际情况修改。"
+
+#: ../../tutorial/teeu_onehotencoder.md:248
+msgid ""
+"As Bob's data needs to be encrypted and sent to TEEU, it is imperative to"
+" generate a pair of public and private keys. Below, you may find the code"
+" that, upon execution, generates the public and private keys, which will "
+"be stored in the current directory in PEM format as \"private_key.pem\" "
+"and \"public_key.pem\", respectively."
+msgstr ""
+"因为 Bob 的数据需要加密发送给 TEEU，所以需要事先生成一对公私钥。您可以执行下列代码生成公私钥，公私钥以 pem 格式分别存放在当前目录的"
+" private_key.pem，public_key.pem。"
+
+#: ../../tutorial/teeu_onehotencoder.md:254
+msgid "Run the code"
+msgstr "运行代码"
+
+#: ../../tutorial/teeu_onehotencoder.md:256
+msgid ""
+"Similar to Alice, add the SecretFlow initialization code in front of the "
+"code to get the following code. First, you need to modify the "
+"configuration items in the code."
+msgstr "与 Alice 类似，在代码前面加上 SecretFlow 初始化相关代码，得到下列的代码"
+
+#: ../../tutorial/teeu_onehotencoder.md:259
+msgid ""
+"The code assumes that Bob's communication address is 192.168.0.20:20001, "
+"please modify it according to the actual situation"
+msgstr "代码中假设 Bob 通信地址为 192.168.0.20:20001，请您根据实际情况修改"
+
+#: ../../tutorial/teeu_onehotencoder.md:262
+msgid ""
+"`ca_cert` is the CA certificate address of AuthManager, if AuthManager "
+"does not start tls, no configuration is required."
+msgstr "`ca_cert`为 AuthManager 的 CA 证书地址，如果 AuthManager 未启动 TLS，则不需要配置。"
+
+#: ../../tutorial/teeu_onehotencoder.md:264
+msgid ""
+"Suppose we save the code as `demo.py`, and then execute `python demo.py` "
+"on Bob's machine."
+msgstr "假设我们把代码保存为 `demo.py`，然后在Bob的机器上执行 `python demo.py`。"
+
+#: ../../tutorial/teeu_onehotencoder.md:351
+msgid "Carol runs code (executed in TEE)"
+msgstr "Carol 运行代码（在TEE中执行）"
+
+#: ../../tutorial/teeu_onehotencoder.md:353
+msgid "Run the SecretFlow TEE image firstly."
+msgstr "启动容器"
+
+#: ../../tutorial/teeu_onehotencoder.md:359
+msgid ""
+"Similarly, add the SecretFlow initialization code in front of the code to"
+" get the following code. Unlike the previous one, Carol's code needs to "
+"run in TEE, so some extra steps are required. First, you need to modify "
+"the configuration items in the code."
+msgstr ""
+"类似地，在代码前面加上 SecretFlow "
+"初始化相关代码，得到下列的代码。但是与前面有所区别，因为Carol是在TEE中运行，因此需要一些额外的步骤。首先，你需要修改代码中的配置项。"
+
+#: ../../tutorial/teeu_onehotencoder.md:362
+msgid ""
+"In the code, it is assumed that Carol's communication address is "
+"192.168.0.30:20001, please modify it according to the actual situation"
+msgstr "代码中假设 Carol 通信地址为 192.168.0.30:20001，请您根据实际情况修改"
+
+#: ../../tutorial/teeu_onehotencoder.md:364
+msgid "`host` is the listen address of AuthManager"
+msgstr "`host`为 AuthManager 的服务监听地址"
+
+#: ../../tutorial/teeu_onehotencoder.md:365
+msgid ""
+"`ca_cert` is the CA certificate path of AuthManager, if AuthManager does "
+"not enable TLS, no configuration is required."
+msgstr "`ca_cert` 为 AuthManager 的 CA 证书地址，如果 AuthManager 未启动 TLS，则不需要配置。"
+
+#: ../../tutorial/teeu_onehotencoder.md:367
+msgid ""
+"After modification, please save the file to "
+"`/root/occlum_instance/image/root/demo.py`."
+msgstr "修改完毕后，请把该文件保存至 /root/occlum_instance/image/root/demo.py"
+
+#: ../../tutorial/teeu_onehotencoder.md:456
+msgid "Then we run the script with the following command."
+msgstr "然后我们通过下列命令运行脚本。"
+
+#: ../../tutorial/teeu_onehotencoder.md:466
+msgid "1.2 Non-simulation mode"
+msgstr "1.2 非仿真模式"
+
+#: ../../tutorial/teeu_onehotencoder.md:468
+msgid ""
+"When it is necessary to use the real TEE environment to protect the "
+"confidentiality and integrity of the data in the computing process, the "
+"user needs to enable the non-simulation mode, and at this time, the "
+"security mechanisms provided by the TEE such as remote attestation and "
+"memory encryption will be enabled. To enable the non-simulation mode, the"
+" user needs to have the TEE hardware supported by the current SecretFlow "
+"TEEU. Currently, SecretFlow only supports Intel SGX2.0, and more TEE "
+"types will be supported in the future."
+msgstr ""
+"当需要使用真实的 TEE 环境保护计算过程中数据的机密性和完整性时，用户需要开启非仿真模式，此时远程认证以及内存加密等由 TEE "
+"提供的安全机制将被开启。开启非仿真模式，用户需要持有当前 Secretflow TEEU 支持的 TEE 硬件，当前 Secretflow 仅支持"
+" Intel SGX2.0，未来会支持更多 TEE 种类。"
+
+#: ../../tutorial/teeu_onehotencoder.md:470
+msgid ""
+"Please check [Non-simulation](./teeu.md#summary) for running in non-"
+"simulation mode."
+msgstr "请查阅 [Non-simulation](./teeu.md#summary) 了解如何在非仿真模式下运行。"
