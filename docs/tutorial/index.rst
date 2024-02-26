@@ -48,6 +48,7 @@ We hope you enjoy these toturials from SecretFlow developers.
 
    teeu
    teeu_xgboost
+   teeu_onehotencoder
 
 .. toctree::
    :maxdepth: 1
