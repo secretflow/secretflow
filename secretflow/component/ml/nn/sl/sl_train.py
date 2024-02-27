@@ -36,7 +36,6 @@ from .base import (
     ModelMeta,
     mkdtemp,
 )
-from .training import saver, trainer
 
 slnn_train_comp = Component(
     "slnn_train",
@@ -259,6 +258,9 @@ def slnn_train_eval_fn(
     reports,
 ):
     check_enabled_or_fail()
+
+    # import after enabling check to avoid missing dependencies
+    from .training import saver, trainer
 
     assert (
         train_dataset_label[0] not in train_dataset_feature_selects

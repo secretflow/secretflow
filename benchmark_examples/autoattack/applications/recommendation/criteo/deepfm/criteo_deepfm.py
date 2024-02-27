@@ -27,13 +27,38 @@ bob_dense_features = ['I' + str(i) for i in range(1, 14)]
 
 
 class CriteoDeepfm(CriteoBase):
-    def __init__(self, config, alice, bob):
+    def __init__(self, config, alice, bob, hidden_size=64):
         super().__init__(
-            config, alice, bob, epoch=3, train_batch_size=512, hidden_size=64
+            config,
+            alice,
+            bob,
+            epoch=3,
+            train_batch_size=512,
+            hidden_size=hidden_size,
+            dnn_base_units_size_alice=[256, hidden_size],
+            dnn_base_units_size_bob=None,
+            dnn_fuse_units_size=[64, 1],
+            deepfm_embedding_dim=4,
         )
 
-    def _create_base_model_alice(self):
-        model = TorchModel(
+    def hidden_size_range(self):
+        return [32, 64, 128]
+
+    def dnn_base_units_size_range_alice(self):
+        return [
+            [256, 128, -1],
+            [256, -1],
+            [-1],
+        ]
+
+    def dnn_fuse_units_size_range(self):
+        return [[64, 1], [64, 64, 1], [64, 64, 64, 1]]
+
+    def deepfm_embedding_dim_range(self):
+        return [8, 16]
+
+    def create_base_model_alice(self):
+        return TorchModel(
             model_fn=DeepFMBase,
             loss_fn=nn.BCELoss,
             optim_fn=optim_wrapper(torch.optim.Adam, lr=1e-2),
@@ -42,13 +67,13 @@ class CriteoDeepfm(CriteoBase):
                 metric_wrapper(AUROC, task="binary"),
             ],
             input_dims=self.alice_input_dims,
-            dnn_units_size=[200, 100, self.hidden_size],
+            dnn_units_size=self.dnn_base_units_size_alice,
             continuous_feas_index=self.alice_dense_indexes,
+            fm_embedding_dim=self.deepfm_embedding_dim,
         )
-        return model
 
-    def _create_base_model_bob(self):
-        model = TorchModel(
+    def create_base_model_bob(self):
+        return TorchModel(
             model_fn=DeepFMBase,
             loss_fn=nn.BCELoss,
             optim_fn=optim_wrapper(torch.optim.Adam, lr=1e-2),
@@ -57,12 +82,12 @@ class CriteoDeepfm(CriteoBase):
                 metric_wrapper(AUROC, task="binary"),
             ],
             input_dims=self.bob_input_dims,
-            dnn_units_size=[200, 100, self.hidden_size],
+            dnn_units_size=self.dnn_base_units_size_bob,
             continuous_feas_index=self.bob_dense_indexes,
+            fm_embedding_dim=self.deepfm_embedding_dim,
         )
-        return model
 
-    def _create_fuse_model(self):
+    def create_fuse_model(self):
         return TorchModel(
             model_fn=DeepFMFuse,
             loss_fn=nn.BCELoss,
@@ -73,5 +98,8 @@ class CriteoDeepfm(CriteoBase):
                 metric_wrapper(AUROC, task="binary"),
             ],
             input_dims=[self.hidden_size, self.hidden_size],
-            dnn_units_size=[64, 1],
+            dnn_units_size=self.dnn_fuse_units_size,
         )
+
+    def support_attacks(self):
+        return ['norm', 'replay', 'replace']

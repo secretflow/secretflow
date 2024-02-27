@@ -25,9 +25,7 @@ from secretflow.component.io.core.bins.woe_bins import (
     woe_bin_rule_from_pb_and_old_rule,
     woe_bin_rule_to_pb,
 )
-
 from secretflow.device import PYUObject
-
 from secretflow.spec.extend.bin_data_pb2 import Bins
 
 

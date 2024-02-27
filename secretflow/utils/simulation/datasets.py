@@ -16,6 +16,7 @@ import hashlib
 import os
 import pickle
 import random
+import uuid
 import zipfile
 from collections import namedtuple
 from pathlib import Path
@@ -876,7 +877,9 @@ def load_ml_1m(
 
     fed_csv = {}
     for device, columns in part.items():
-        file_name = os.path.join(data_dir, device.party + ".csv")
+        file_name = os.path.join(
+            data_dir, device.party + f"_{uuid.uuid4().int}" + ".csv"
+        )
         fed_csv[device] = file_name
         _csv_writer = open(file_name, "w")
         csv_writer_container[device] = _csv_writer
@@ -900,12 +903,16 @@ def load_ml_1m(
             break
     for w in csv_writer_container.values():
         w.close()
-
-    return v_read_csv(
-        fed_csv,
-        keys="ID",
-        drop_keys="ID",
-    )
+    try:
+        vdf = v_read_csv(
+            fed_csv,
+            keys="ID",
+            drop_keys="ID",
+        )
+    finally:
+        for v in fed_csv.values():
+            os.remove(v)
+    return vdf
 
 
 def load_criteo(

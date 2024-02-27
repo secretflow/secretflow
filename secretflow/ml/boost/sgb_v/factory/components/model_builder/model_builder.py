@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from dataclasses import dataclass
-
 from typing import Union
 
 from secretflow.data import FedNdarray

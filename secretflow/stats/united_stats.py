@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+import logging
 from typing import List, Tuple
 
 import jax.numpy as jnp
@@ -115,6 +117,8 @@ def _sort(arrs: List[PYUObject]) -> List[PYUObject]:
 # from LeetCode "find the median in two sorted arrays"
 # log(min(m, n)) time complexity
 # WARNING: this is not MPC safe when array elements contain repetitions
+# not MPC safe for 3 parties, TODO: fix this.
+# currently support 2 or 3 parties
 def united_median(
     arrs: List[PYUObject], compute_device: Device, sorted: bool = False
 ) -> DeviceObject:
@@ -128,14 +132,86 @@ def united_median(
         DeviceObject: median in device.
     """
     # currently assume there are only 2 parties
-    assert 2 == len(arrs), 'united_median requires exactly two parties'
+    assert 2 == len(arrs) or 3 == len(
+        arrs
+    ), 'united_median requires exactly two or three parties'
+
+    if len(arrs) == 2:
+        sizes = reveal([obj.device(lambda x: x.size)(obj) for obj in arrs])
+        if sizes[0] > sizes[1]:
+            arrs[0], arrs[1] = arrs[1], arrs[0]
+            sizes[0], sizes[1] = sizes[1], sizes[0]
+        if not sorted:
+            arrs = _sort(arrs)
+
+        m, n = sizes[0], sizes[1]
+
+        median1, median2 = _find_partitions_rank_r_in_two_sorted_arrs(
+            arrs, (m + n + 1) // 2, compute_device
+        )
+        return (
+            compute_device(lambda x, y: (x + y) / 2)(median1, median2)
+            if (m + n) % 2 == 0
+            else median1
+        )
+    if len(arrs) == 3:
+        logging.warning(
+            "The current support for 3 parties is only experimental, do not use it in production!"
+        )
+        sizes = reveal([obj.device(lambda x: x.size)(obj) for obj in arrs])
+        assert (
+            sizes[0] <= sizes[1] and sizes[1] <= sizes[2]
+        ), "assumed sizes of arrays are sorted from smallest to largest"
+        if not sorted:
+            arrs = _sort(arrs)
+        m, n, p = sizes[0], sizes[1], sizes[2]
+        left, right = 0, m
+        infinty = np.inf
+        median1, median2 = 0, 0
+        while left <= right:
+            i = (left + right) // 2
+            j = (m + n + p + 1) // 2 - i
+            nums_im1 = (
+                -infinty
+                if i <= 0
+                else arrs[0]
+                .device(lambda arr, i: arr[i])(arrs[0], i - 1)
+                .to(compute_device)
+            )
+            nums_i = (
+                infinty
+                if i >= m
+                else arrs[0]
+                .device(lambda arr, i: arr[i])(arrs[0], i)
+                .to(compute_device)
+            )
+            nums_jm1, nums_j = _find_partitions_rank_r_in_two_sorted_arrs(
+                arrs[1:], j, compute_device
+            )
+            if reveal(
+                compute_device(lambda a, b: jnp.less_equal(a, b))(nums_im1, nums_j)
+            ):
+                median1, median2 = compute_device(lambda a, b: jnp.maximum(a, b))(
+                    nums_im1, nums_jm1
+                ), compute_device(lambda a, b: jnp.minimum(a, b))(nums_i, nums_j)
+                left = i + 1
+            else:
+                right = i - 1
+
+        return (
+            compute_device(lambda x, y: (x + y) / 2)(median1, median2)
+            if (m + n + p) % 2 == 0
+            else median1
+        )
+
+
+def _find_partitions_rank_r_in_two_sorted_arrs(
+    arrs: List[PYUObject], rank: int, compute_device: Device
+) -> Tuple[DeviceObject, DeviceObject]:
+    assert 2 == len(arrs), 'requires exactly two parties'
 
     sizes = reveal([obj.device(lambda x: x.size)(obj) for obj in arrs])
-    if sizes[0] > sizes[1]:
-        arrs[0], arrs[1] = arrs[1], arrs[0]
-        sizes[0], sizes[1] = sizes[1], sizes[0]
-    if not sorted:
-        arrs = _sort(arrs)
+    assert sizes[0] <= sizes[1], "assume size of first array is smaller than second one"
 
     infinty = np.inf
     m, n = sizes[0], sizes[1]
@@ -148,30 +224,30 @@ def united_median(
         # left partition includes nums1[0 .. i-1] and nums2[0 .. j-1]
         # right partition includes nums1[i .. m-1] and nums2[j .. n-1]
         i = (left + right) // 2
-        j = (m + n + 1) // 2 - i
+        j = rank - i
         # nums_im1, nums_i, nums_jm1, nums_j represents nums1[i-1], nums1[i], nums2[j-1], nums2[j]
         nums_im1 = (
             -infinty
-            if i == 0
+            if i <= 0
             else arrs[0]
             .device(lambda arr, i: arr[i])(arrs[0], i - 1)
             .to(compute_device)
         )
         nums_i = (
             infinty
-            if i == m
+            if i >= m
             else arrs[0].device(lambda arr, i: arr[i])(arrs[0], i).to(compute_device)
         )
         nums_jm1 = (
             -infinty
-            if j == 0
+            if j <= 0
             else arrs[1]
             .device(lambda arr, i: arr[i])(arrs[1], j - 1)
             .to(compute_device)
         )
         nums_j = (
             infinty
-            if j == n
+            if j >= n
             else arrs[1].device(lambda arr, i: arr[i])(arrs[1], j).to(compute_device)
         )
 
@@ -182,9 +258,4 @@ def united_median(
             left = i + 1
         else:
             right = i - 1
-
-    return (
-        compute_device(lambda x, y: (x + y) / 2)(median1, median2)
-        if (m + n) % 2 == 0
-        else median1
-    )
+    return median1, median2

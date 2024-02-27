@@ -257,9 +257,11 @@ class BaseTorchModel(ABC):
 
                 wraped_metrics.append(
                     Precision(
-                        f"val_{m._get_name().lower()}"
-                        if stage == "val"
-                        else m._get_name().lower(),
+                        (
+                            f"val_{m._get_name().lower()}"
+                            if stage == "val"
+                            else m._get_name().lower()
+                        ),
                         [threshold],
                         [float(tp.numpy().sum())],
                         [float(fp.numpy().sum())],
@@ -270,9 +272,11 @@ class BaseTorchModel(ABC):
                 threshold = m.threshold
                 wraped_metrics.append(
                     Recall(
-                        f"val_{m._get_name().lower()}"
-                        if stage == "val"
-                        else m._get_name().lower(),
+                        (
+                            f"val_{m._get_name().lower()}"
+                            if stage == "val"
+                            else m._get_name().lower()
+                        ),
                         [threshold],
                         tp.numpy().sum(),
                         fn.numpy().sum(),
@@ -283,9 +287,11 @@ class BaseTorchModel(ABC):
                 metrics_value = m.cpu().compute()
                 wraped_metrics.append(
                     Default(
-                        f"val_{m._get_name().lower()}"
-                        if stage == "val"
-                        else m._get_name().lower(),
+                        (
+                            f"val_{m._get_name().lower()}"
+                            if stage == "val"
+                            else m._get_name().lower()
+                        ),
                         total=metrics_value,
                         count=1,
                     )

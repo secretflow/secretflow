@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from typing import Callable, Dict, List, Union
+import random
 
 import pandas as pd
 
@@ -23,7 +24,13 @@ from secretflow.device import PYU
 from secretflow.security.aggregation.aggregator import Aggregator
 from secretflow.security.compare.comparator import Comparator
 from secretflow.utils.errors import InvalidArgumentError
-from secretflow.utils.simulation.data._utils import cal_indexes
+
+from secretflow.utils.simulation.data._utils import (
+    SPLIT_METHOD,
+    iid_partition,
+    dirichlet_partition,
+    label_skew_partition,
+)
 
 
 def create_df(
@@ -34,6 +41,9 @@ def create_df(
     random_state: int = None,
     aggregator: Aggregator = None,
     comparator: Comparator = None,
+    split_method: SPLIT_METHOD = SPLIT_METHOD.IID,
+    label_column: str = None,
+    **kwargs,
 ) -> Union[HDataFrame, VDataFrame]:
     """Create a federated dataframe from a single data source.
     TODO: support other backends.
@@ -54,6 +64,7 @@ def create_df(
             please refer to `secretflow.data.horizontal.HDataFrame`.
         comparator:  optional, shall be provided only when axis is 0. For details,
             please refer to `secretflow.data.horizontal.HDataFrame`.
+        kwargs: optional, will accept params for other split method, such as dirichlet_partition and laebl_skew.
 
     Returns:
         Union[HDataFrame, VDataFrame]: return a HDataFrame if axis is 0 else
@@ -71,10 +82,15 @@ def create_df(
 
     >>> # Create a HDataFrame with a given index.
     >>> hdf = create_df(df, {alice: (0, 1), bob: (1, 4)})
+
+    >>> # Create a HDataFrame with DIRICHLET partition method.
+    >>> hdf = create_df(df, [alice,bob], axis=0, split_method=SPLIT_METHOD.DIRICHLET, num_classes=2, alpha=10000)
+
+    >>> # Create a HDataFrame with LABEL_SKEW partition method.
+    >>> hdf = create_df(df, [alice,bob], axis=0, split_method=SPLIT_METHOD.LABEL_SKEW, label_column='f3', skew_ratio=0.5)
     """
 
     assert parts, 'Parts should not be none or empty!'
-
     if isinstance(source, str):
         # engin="pyarrow" will lead to stuck in production tests.
         df = pd.read_csv(source)
@@ -89,28 +105,65 @@ def create_df(
         raise InvalidArgumentError(
             f'Unknown source type, expect a file or dataframe or callable but got {type(source)}'
         )
-
+    if not random_state:
+        random_state = random.randint(0, 100000)
     if shuffle:
         df = df.sample(frac=1, random_state=random_state)
 
     total_num = len(df) if axis == 0 else len(df.columns)
-    indexes = cal_indexes(parts, total_num)
+    if split_method == SPLIT_METHOD.IID:
+        indexes = iid_partition(
+            parts=parts,
+            total_num=total_num,
+            shuffle=shuffle,
+            random_seed=random_state,
+        )
+
+    elif split_method == SPLIT_METHOD.DIRICHLET:
+        assert axis == 0, "dirichlet only support horizontal partition"
+        num_classes = kwargs.pop("num_classes", 0)
+        alpha = kwargs.pop("alpha", 10000)
+        target = df[label_column].values
+        assert num_classes > 0, "dirichlet partition must supply num_classes"
+
+        indexes = dirichlet_partition(
+            parts=parts,
+            targets=target,
+            num_classes=num_classes,
+            alpha=alpha,
+            random_seed=random_state,
+        )
+    elif split_method == SPLIT_METHOD.LABEL_SCREW:
+        assert axis == 0, "label screw only support horizontal partition"
+        num_classes = kwargs.pop('num_classes', 0)
+        max_class_nums = kwargs.pop('max_class_nums', num_classes)
+
+        assert num_classes > 0, "dirichlet partition must supply num_classes"
+        target = df[label_column].values
+        indexes = label_skew_partition(
+            parts=parts,
+            targets=target,
+            num_classes=num_classes,
+            max_class_nums=max_class_nums,
+            random_seed=random_state,
+        )
     if axis == 0:
         return HDataFrame(
             partitions={
-                device: partition(
-                    lambda _df: _df.iloc[index[0] : index[1], :], device=device, _df=df
-                )
+                device: partition(lambda _df: _df.loc[index, :], device=device, _df=df)
                 for device, index in indexes.items()
             },
             aggregator=aggregator,
             comparator=comparator,
         )
     else:
+        columns = df.columns
         return VDataFrame(
             partitions={
                 device: partition(
-                    lambda _df: _df.iloc[:, index[0] : index[1]], device=device, _df=df
+                    lambda _df: _df.loc[:, [columns[idx] for idx in index]],
+                    device=device,
+                    _df=df,
                 )
                 for device, index in indexes.items()
             }
@@ -123,6 +176,7 @@ def create_hdf(
     shuffle: bool = False,
     aggregator: Aggregator = None,
     comparator: Comparator = None,
+    random_seed: int = None,
 ) -> HDataFrame:
     """Create a HDataFrame from a single dataset source.
 
@@ -135,6 +189,7 @@ def create_hdf(
         shuffle=shuffle,
         aggregator=aggregator,
         comparator=comparator,
+        random_state=random_seed,
     )
 
 
@@ -142,9 +197,16 @@ def create_vdf(
     source: Union[str, pd.DataFrame, Callable],
     parts: Union[List[PYU], Dict[PYU, Union[float, tuple]]],
     shuffle: bool = False,
+    random_seed: int = None,
 ) -> VDataFrame:
     """Create a VDataFrame from a single dataset source.
 
     Refer to :py:func:`~.create_df` for full documentation.
     """
-    return create_df(source=source, parts=parts, axis=1, shuffle=shuffle)
+    return create_df(
+        source=source,
+        parts=parts,
+        axis=1,
+        shuffle=shuffle,
+        random_state=random_seed,
+    )

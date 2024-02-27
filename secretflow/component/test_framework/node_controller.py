@@ -13,11 +13,11 @@
 # limitations under the License.
 
 import base64
+import gzip
 import json
 import logging
 import math
 import os
-import gzip
 import shutil
 import socket
 import subprocess

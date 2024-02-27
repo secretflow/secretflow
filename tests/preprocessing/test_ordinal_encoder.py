@@ -1,13 +1,10 @@
 import numpy as np
 import pandas as pd
 import pytest
-from sklearn.preprocessing import (
-    OrdinalEncoder as SkOrdinalEncoder,
-)
+from sklearn.preprocessing import OrdinalEncoder as SkOrdinalEncoder
 
 from secretflow import reveal
 from secretflow.data import partition
-
 from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.preprocessing.encoder import VOrdinalEncoder as OrdinalEncoder
 from secretflow.security.aggregation.plain_aggregator import PlainAggregator

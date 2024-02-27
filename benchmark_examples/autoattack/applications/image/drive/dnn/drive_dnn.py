@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import logging
-from typing import List, Optional, Union
 
 import numpy as np
 import torch
@@ -22,10 +21,8 @@ from torch.utils.data import DataLoader, TensorDataset
 from torchmetrics import Accuracy, Precision
 
 from benchmark_examples.autoattack import global_config
-from benchmark_examples.autoattack.applications.base import TrainBase
+from benchmark_examples.autoattack.applications.base import ApplicationBase
 from secretflow.data.ndarray import FedNdarray, PartitionWay
-from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.callbacks.callback import Callback
 from secretflow.ml.nn.fl.utils import metric_wrapper, optim_wrapper
 from secretflow.ml.nn.utils import BaseModule, TorchModel
 
@@ -62,40 +59,22 @@ class SLFuseModel(BaseModule):
         return self.dense(x)
 
 
-class DriveDnn(TrainBase):
+class DriveDnn(ApplicationBase):
     def __init__(self, config, alice, bob):
-        self.hidden_size = 64
-        super().__init__(config, alice, bob, alice, 2, train_batch_size=64)
-
-    def train(self, callbacks: Optional[Union[List[Callback], Callback]] = None):
-        base_model_dict = {
-            self.alice: self.alice_base_model,
-            self.bob: self.bob_base_model,
-        }
-        sl_model = SLModel(
-            base_model_dict=base_model_dict,
-            device_y=self.device_y,
-            model_fuse=self.fuse_model,
-            dp_strategy_dict=None,
-            compressor=None,
-            simulation=True,
-            random_seed=1234,
-            backend='torch',
-            strategy='split_nn',
-        )
-        sl_model.fit(
-            self.train_data,
-            self.train_label,
-            validation_data=(self.test_data, self.test_label),
-            epochs=3,
-            batch_size=self.train_batch_size,
-            shuffle=False,
-            random_seed=1234,
-            dataset_builder=None,
-            callbacks=callbacks,
+        super().__init__(
+            config,
+            alice,
+            bob,
+            device_y=alice,
+            total_fea_nums=48,
+            alice_fea_nums=28,
+            num_classes=2,
+            epoch=1,
+            train_batch_size=64,
+            hidden_size=64,
         )
 
-    def _prepare_data(
+    def prepare_data(
         self,
     ):
         full_data_table = np.genfromtxt(
@@ -135,24 +114,23 @@ class DriveDnn(TrainBase):
         test_label = label_left[random_selection]
         self.pred_fea = sample_left[~random_selection]
         self.pred_label = label_left[~random_selection]
-        train_data = FedNdarray(
+        self.train_data = FedNdarray(
             partitions={
                 self.alice: self.alice(lambda x: x[:, :28])(train_sample),
                 self.bob: self.bob(lambda x: x[:, 28:])(train_sample),
             },
             partition_way=PartitionWay.VERTICAL,
         )
-        test_data = FedNdarray(
+        self.test_data = FedNdarray(
             partitions={
                 self.alice: self.alice(lambda x: x[:, :28])(test_sample),
                 self.bob: self.bob(lambda x: x[:, 28:])(test_sample),
             },
             partition_way=PartitionWay.VERTICAL,
         )
-        train_label = self.device_y(lambda x: x)(train_label)
-        test_label = self.device_y(lambda x: x)(test_label)
+        self.train_label = self.device_y(lambda x: x)(train_label)
+        self.test_label = self.device_y(lambda x: x)(test_label)
         self.mean_attr = mean_attr
-        return (train_data, train_label, test_data, test_label)
 
     def create_base_model(self, input_dim, output_dim):
         loss_fn = nn.CrossEntropyLoss
@@ -171,13 +149,13 @@ class DriveDnn(TrainBase):
             ],
         )
 
-    def _create_base_model_alice(self):
+    def create_base_model_alice(self):
         return self.create_base_model(28, self.hidden_size)
 
-    def _create_base_model_bob(self):
+    def create_base_model_bob(self):
         return self.create_base_model(20, self.hidden_size)
 
-    def _create_fuse_model(self):
+    def create_fuse_model(self):
         loss_fn = nn.CrossEntropyLoss
         optim_fn = optim_wrapper(torch.optim.Adam)
         return TorchModel(
@@ -197,27 +175,44 @@ class DriveDnn(TrainBase):
     def support_attacks(self):
         return ['fia']
 
+    def alice_feature_nums_range(self) -> list:
+        return [28]
+
     def fia_auxiliary_data_builder(self):
+        pred_fea = self.pred_fea
+        batch_size = self.train_batch_size
+
         def prepare_data():
-            print('prepare_data num: ', self.pred_fea.shape)
-            alice_data = self.pred_fea[:, :28]
-            bob_data = self.pred_fea[:, 28:]
+            alice_data = pred_fea[:, :28]
+            bob_data = pred_fea[:, 28:]
 
             alice_dataset = TensorDataset(torch.tensor(alice_data))
             alice_dataloader = DataLoader(
                 dataset=alice_dataset,
                 shuffle=False,
-                batch_size=self.train_batch_size,
+                batch_size=batch_size,
             )
 
             bob_dataset = TensorDataset(torch.tensor(bob_data))
             bob_dataloader = DataLoader(
                 dataset=bob_dataset,
                 shuffle=False,
-                batch_size=self.train_batch_size,
+                batch_size=batch_size,
             )
 
             dataloader_dict = {'alice': alice_dataloader, 'bob': bob_dataloader}
             return dataloader_dict, dataloader_dict
 
         return prepare_data
+
+    def fia_victim_mean_attr(self):
+        return self.mean_attr[28:]
+
+    def fia_victim_model_dict(self, victim_model_save_path):
+        return {self.device_f: [self.create_base_model_bob(), victim_model_save_path]}
+
+    def fia_victim_input_shape(self):
+        return [self.bob_fea_nums]
+
+    def fia_attack_input_shape(self):
+        return [self.alice_fea_nums]

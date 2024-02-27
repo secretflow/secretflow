@@ -337,11 +337,28 @@ def get_storage_config(
     datasource: DomainDataSource,
 ) -> StorageConfig:
     if datasource.access_directly:
-        storage_config = StorageConfig(
-            type="local_fs",
-            local_fs=StorageConfig.LocalFSConfig(wd=datasource.info.localfs.path),
-        )
+        if datasource.type == "localfs":
+            storage_config = StorageConfig(
+                type="local_fs",
+                local_fs=StorageConfig.LocalFSConfig(wd=datasource.info.localfs.path),
+            )
+        elif datasource.type == "oss":
+            storage_config = StorageConfig(
+                type="s3",
+                s3=StorageConfig.S3Config(
+                    endpoint=datasource.info.oss.endpoint,
+                    bucket=datasource.info.oss.bucket,
+                    prefix=datasource.info.oss.prefix,
+                    access_key_id=datasource.info.oss.access_key_id,
+                    access_key_secret=datasource.info.oss.access_key_secret,
+                    virtual_host=datasource.info.oss.virtualhost,
+                    version=datasource.info.oss.version,
+                ),
+            )
+        else:
+            raise AttributeError(f"unsupported datasource.type {datasource.type}")
     else:
+        # TODO: move DP io into comp storage.
         default_localfs_path = os.path.join(
             TEMP_STORAGE_ROOT,
             f"sf_{kuscia_config.task_id}_{kuscia_config.party_name}",

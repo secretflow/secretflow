@@ -23,8 +23,10 @@ from secretflow.component.component import (
 )
 from secretflow.component.data_utils import (
     DistDataType,
+    download_files,
     extract_distdata_info,
     merge_individuals_to_vtable,
+    upload_files,
 )
 from secretflow.device.device.spu import SPU
 from secretflow.spec.v1.data_pb2 import DistData, IndividualTable, VerticalTable
@@ -198,14 +200,22 @@ def two_party_balanced_psi_eval_fn(
     sender_path_format = extract_distdata_info(sender_input)
     sender_party = list(sender_path_format.keys())[0]
 
-    # only local fs is supported at this moment.
-    local_fs_wd = ctx.local_fs_wd
-
     if ctx.spu_configs is None or len(ctx.spu_configs) == 0:
         raise CompEvalError("spu config is not found.")
     if len(ctx.spu_configs) > 1:
         raise CompEvalError("only support one spu")
     spu_config = next(iter(ctx.spu_configs.values()))
+
+    input_path = {
+        receiver_party: os.path.join(
+            ctx.data_dir, receiver_path_format[receiver_party].uri
+        ),
+        sender_party: os.path.join(ctx.data_dir, sender_path_format[sender_party].uri),
+    }
+    output_path = {
+        receiver_party: os.path.join(ctx.data_dir, psi_output),
+        sender_party: os.path.join(ctx.data_dir, psi_output),
+    }
 
     import logging
 
@@ -213,21 +223,19 @@ def two_party_balanced_psi_eval_fn(
 
     spu = SPU(spu_config["cluster_def"], spu_config["link_desc"])
 
+    uri = {
+        receiver_party: receiver_path_format[receiver_party].uri,
+        sender_party: sender_path_format[sender_party].uri,
+    }
+
+    with ctx.tracer.trace_io():
+        download_files(ctx, uri, input_path)
+
     with ctx.tracer.trace_running():
         report = spu.psi_v2(
             keys={receiver_party: receiver_input_key, sender_party: sender_input_key},
-            input_path={
-                receiver_party: os.path.join(
-                    local_fs_wd, receiver_path_format[receiver_party].uri
-                ),
-                sender_party: os.path.join(
-                    local_fs_wd, sender_path_format[sender_party].uri
-                ),
-            },
-            output_path={
-                receiver_party: os.path.join(local_fs_wd, psi_output),
-                sender_party: os.path.join(local_fs_wd, psi_output),
-            },
+            input_path=input_path,
+            output_path=output_path,
             receiver=receiver_party,
             broadcast_result=True,
             protocol=protocol,
@@ -235,6 +243,11 @@ def two_party_balanced_psi_eval_fn(
             skip_duplicates_check=skip_duplicates_check,
             disable_alignment=disable_alignment,
             check_hash_digest=check_hash_digest,
+        )
+
+    with ctx.tracer.trace_io():
+        upload_files(
+            ctx, {receiver_party: psi_output, sender_party: psi_output}, output_path
         )
 
     output_db = DistData(

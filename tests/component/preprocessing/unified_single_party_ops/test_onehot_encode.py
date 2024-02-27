@@ -1,5 +1,4 @@
 import logging
-import os
 
 import numpy as np
 import pandas as pd
@@ -13,11 +12,11 @@ from secretflow.component.preprocessing.unified_single_party_ops.onehot_encode i
 from secretflow.component.preprocessing.unified_single_party_ops.substitution import (
     substitution,
 )
+from secretflow.component.storage import ComponentStorage
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
-from tests.conftest import TEST_STORAGE_ROOT
 
 
 def test_onehot_encode(comp_prod_sf_cluster_config):
@@ -30,7 +29,7 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    local_fs_wd = storage_config.local_fs.wd
+    comp_storage = ComponentStorage(storage_config)
 
     if self_party == "alice":
         df_alice = pd.DataFrame(
@@ -42,14 +41,8 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
                 "y": [0] * 17,
             }
         )
-
-        os.makedirs(
-            os.path.join(local_fs_wd, "test_onehot_encode"),
-            exist_ok=True,
-        )
-
         df_alice.to_csv(
-            os.path.join(local_fs_wd, alice_input_path),
+            comp_storage.get_writer(alice_input_path),
             index=False,
         )
     elif self_party == "bob":
@@ -60,14 +53,8 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
                 "b5": [i for i in range(17)],
             }
         )
-
-        os.makedirs(
-            os.path.join(local_fs_wd, "test_onehot_encode"),
-            exist_ok=True,
-        )
-
         df_bob.to_csv(
-            os.path.join(local_fs_wd, bob_input_path),
+            comp_storage.get_writer(bob_input_path),
             index=False,
         )
 
@@ -122,11 +109,6 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
     )
     param.inputs[0].meta.Pack(meta)
 
-    os.makedirs(
-        os.path.join(local_fs_wd, "test_onehot_encode"),
-        exist_ok=True,
-    )
-
     res = onehot_encode.eval(
         param=param,
         storage_config=storage_config,
@@ -160,22 +142,22 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
 
     assert len(res.outputs) == 1
 
-    a_out = pd.read_csv(os.path.join(TEST_STORAGE_ROOT, "alice", sub_path))
-    inplace_a_out = pd.read_csv(
-        os.path.join(TEST_STORAGE_ROOT, "alice", inplace_encode_path)
-    )
+    if "alice" == sf_cluster_config.private_config.self_party:
+        comp_storage = ComponentStorage(storage_config)
+        a_out = pd.read_csv(comp_storage.get_reader(sub_path))
+        inplace_a_out = pd.read_csv(comp_storage.get_reader(inplace_encode_path))
 
-    logging.warning(f"....... \n{a_out}\n.,......")
+        logging.warning(f"....... \n{a_out}\n.,......")
 
-    assert a_out.equals(inplace_a_out)
+        assert a_out.equals(inplace_a_out)
 
-    b_out = pd.read_csv(os.path.join(TEST_STORAGE_ROOT, "bob", sub_path))
-    inplace_b_out = pd.read_csv(
-        os.path.join(TEST_STORAGE_ROOT, "bob", inplace_encode_path)
-    )
+    if "alice" == sf_cluster_config.private_config.self_party:
+        comp_storage = ComponentStorage(storage_config)
+        b_out = pd.read_csv(comp_storage.get_reader(sub_path))
+        inplace_b_out = pd.read_csv(comp_storage.get_reader(inplace_encode_path))
 
-    assert b_out.equals(inplace_b_out)
-    logging.warning(f"....... \n{b_out}\n.,......")
+        assert b_out.equals(inplace_b_out)
+        logging.warning(f"....... \n{b_out}\n.,......")
 
     # example for how to trace compte without real data
     # for example, we only knows the schema of input

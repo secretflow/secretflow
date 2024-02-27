@@ -30,12 +30,12 @@ from secretflow.data.horizontal import HDataFrame
 from secretflow.data.ndarray import FedNdarray
 from secretflow.device import PYU, reveal, wait
 from secretflow.device.device.pyu import PYUObject
+from secretflow.ml.nn.callbacks.callbacklist import CallbackList
 from secretflow.ml.nn.fl.compress import COMPRESS_STRATEGY, do_compress
 from secretflow.ml.nn.fl.strategy_dispatcher import dispatch_strategy
 from secretflow.ml.nn.metrics import Metric, aggregate_metrics
 from secretflow.utils.compressor import sparse_encode
 from secretflow.utils.random import global_random
-from secretflow.ml.nn.callbacks.callbacklist import CallbackList
 
 
 class FLModel:
@@ -491,9 +491,11 @@ class FLModel:
                     client_params, sample_num = self._workers[device].train_step(
                         client_params,
                         epoch * train_steps_per_epoch + step,
-                        aggregate_freq
-                        if step + aggregate_freq < train_steps_per_epoch
-                        else train_steps_per_epoch - step,
+                        (
+                            aggregate_freq
+                            if step + aggregate_freq < train_steps_per_epoch
+                            else train_steps_per_epoch - step
+                        ),
                         **self.kwargs,
                     )
                     client_param_list.append(client_params)

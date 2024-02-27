@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # coding=utf-8
+import pdb
+
 import numpy as np
 import torch
-import pdb
 
 
 class BadNetsBaseDataset:

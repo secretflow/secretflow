@@ -13,19 +13,19 @@
 # limitations under the License.
 
 
-from typing import Dict, List, Union
+from typing import Callable, Dict, List, Union
 
-from secretflow.device import PYU, SPU, Device, reveal
+from secretflow.device import PYU, SPU, Device
 from secretflow.utils.errors import InvalidArgumentError
 from secretflow.utils.random import global_random
 
 from ..core import partition
-from ..core.io import read_csv_wrapper, read_file_meta
+from ..core.io import read_csv_wrapper
 from .dataframe import VDataFrame
 
 
 def read_csv(
-    filepath: Dict[PYU, str],
+    filepath: Dict[PYU, Union[str, Callable]],
     delimiter=",",
     usecols: Dict[PYU, List[str]] = None,
     dtypes: Dict[PYU, Dict[str, type]] = None,
@@ -90,6 +90,9 @@ def read_csv(
     assert spu is None or drop_keys is not None, f"drop_keys required when spu provided"
     if spu is not None:
         assert len(filepath) <= 3, f"only support 2 or 3 parties for now"
+    assert spu is None or all(
+        [isinstance(p, str) for p in filepath.values()]
+    ), "psi only support local file path"
 
     def get_keys(
         device: Device, x: Union[str, List[str], Dict[Device, List[str]]] = None
@@ -181,12 +184,9 @@ def read_csv(
         for device, part in partitions.items():
             parties_length[device.party] = len(part)
         if len(set(parties_length.values())) > 1:
-            file_metas = {}
-            for pyu in filepath_actual:
-                file_metas[pyu] = reveal(pyu(read_file_meta)(filepath_actual[pyu]))
             raise AssertionError(
                 f"number of samples must be equal across all devices, got {parties_length}, "
-                f"input uri {filepath_actual}, input file meta {file_metas}"
+                f"input uri {filepath_actual}"
             )
 
     for device, part in partitions.items():

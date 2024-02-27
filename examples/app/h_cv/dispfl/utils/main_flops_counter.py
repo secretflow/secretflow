@@ -36,9 +36,11 @@ def print_model_param_nums(model=None):
         model = torchvision.models.alexnet()
     total = sum(
         [
-            (param != 0).sum()
-            if len(param.size()) == 4 or len(param.size()) == 2
-            else 0
+            (
+                (param != 0).sum()
+                if len(param.size()) == 4 or len(param.size()) == 2
+                else 0
+            )
             for name, param in model.named_parameters()
         ]
     )

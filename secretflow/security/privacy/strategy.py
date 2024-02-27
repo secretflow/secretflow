@@ -11,20 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Union
-from secretflow.security.privacy.mechanism.tensorflow.layers import (
-    GaussianEmbeddingDP as tf_embedding_dp,
-)
-from secretflow.security.privacy.mechanism.torch.layers import (
-    GaussianEmbeddingDP as torch_embedding_dp,
-)
+
+from secretflow.security.privacy.accounting.budget_accountant import BudgetAccountant
 from secretflow.security.privacy.mechanism.label_dp import LabelDP
 
 
 class DPStrategy:
     def __init__(
         self,
-        embedding_dp: Union[tf_embedding_dp, torch_embedding_dp] = None,
+        embedding_dp: BudgetAccountant = None,
         label_dp: LabelDP = None,
         accountant_type='rdp',
         sampling_type=None,

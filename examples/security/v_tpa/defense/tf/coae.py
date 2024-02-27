@@ -4,14 +4,15 @@ import sys
 
 sys.path.append("..")
 
-import torch
-import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras.models import Sequential
-from tensorflow.keras import layers
-import tensorflow.keras.backend as F
-import numpy as np
 import pdb
+
+import numpy as np
+import tensorflow as tf
+import tensorflow.keras.backend as F
+import torch
+from tensorflow import keras
+from tensorflow.keras import layers
+from tensorflow.keras.models import Sequential
 
 eps = 1.0e-35
 

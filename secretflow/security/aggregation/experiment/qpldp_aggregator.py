@@ -1,12 +1,12 @@
 from typing import List
 
 import numpy as np
+
 from secretflow.device import PYU, DeviceObject, PYUObject
 from secretflow.security.aggregation.aggregator import Aggregator
 
 
 class QPLDPAggregator(Aggregator):
-
     """Aggregator based on Quantization-PSI-LDP.
     The computation will be performed in QPLDPtext.
 
@@ -97,7 +97,9 @@ class QPLDPAggregator(Aggregator):
                 for i in range(client_num):
                     grad = []
                     for j in range(len(data[0])):
-                        grad.append(np.around(data[i][j], decimals=5))  # 量化操作减小通信开销
+                        grad.append(
+                            np.around(data[i][j], decimals=5)
+                        )  # 量化操作减小通信开销
 
                     gradient.append(grad)
                 gradient = np.array(gradient, dtype=np.float32)

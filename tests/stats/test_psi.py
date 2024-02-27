@@ -4,8 +4,7 @@ import pandas as pd
 import pytest
 
 from secretflow import reveal
-from secretflow.data import FedNdarray, PartitionWay
-from secretflow.data import partition
+from secretflow.data import FedNdarray, PartitionWay, partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.stats import psi_eval
 from secretflow.stats.core.utils import equal_range

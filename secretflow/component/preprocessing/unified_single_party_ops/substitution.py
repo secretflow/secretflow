@@ -18,10 +18,10 @@ import pandas as pd
 from secretflow.component.component import Component, IoType
 from secretflow.component.data_utils import (
     DistDataType,
+    VerticalTableWrapper,
     dump_vertical_table,
     load_table,
     model_loads,
-    VerticalTableWrapper,
 )
 from secretflow.component.preprocessing.core.meta_utils import (
     apply_meta_change,
@@ -32,7 +32,6 @@ from secretflow.component.preprocessing.core.version import (
     PREPROCESSING_RULE_MAX_MINOR_VERSION,
 )
 from secretflow.data.core import partition
-
 
 substitution = Component(
     "substitution",

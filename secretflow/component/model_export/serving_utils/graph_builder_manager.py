@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 from typing import Dict, List
 
 from secretflow.device import PYU, PYUObject, proxy, wait
@@ -69,10 +68,7 @@ class GraphBuilderManager:
         wait(waits)
 
     def dump_tar_files(self, name, desc, ctx, uri) -> None:
-        # TODO: only local fs is supported at this moment.
-        storage_root = ctx.local_fs_wd
-        uri = os.path.join(storage_root, uri)
         waits = []
         for b in self.graph_builders.values():
-            waits.append(b.dump_serving_tar(name, desc, uri))
+            waits.append(b.dump_serving_tar(name, desc, uri, ctx.comp_storage))
         wait(waits)
