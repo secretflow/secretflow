@@ -2,7 +2,7 @@
 
 **Tips**
 
-Before reading this article, it is strongly recommended to read [TEEU Getting Started Guide](./teeu.md) at first.
+Before reading this article, it is strongly recommended to read [TEEU Getting Started Guide](../teeu.md) at first.
 
 ---
 
@@ -21,7 +21,7 @@ Note that since the real TEE environment is not used, the simulation mode lacks 
 
 #### Understand the SecretFlow deployment of multi-ray cluster mode
 
-For security reasons, Ray running in TEE is an independent cluster, so currently SecretFlow only supports the use of TEEU in multiple Ray cluster mode. You can read the [SecretFlow Deployment Documentation](../getting_started/deployment.md#production) in advance to understand the deployment of multiple Ray clusters.
+For security reasons, Ray running in TEE is an independent cluster, so currently SecretFlow only supports the use of TEEU in multiple Ray cluster mode. You can read the [SecretFlow Deployment Documentation](../../getting_started/deployment.md#production) in advance to understand the deployment of multiple Ray clusters.
 
 #### Prepare to run the simulated TEEU machine
 
@@ -467,4 +467,4 @@ occlum run /bin/python /root/demo.py
 
 When it is necessary to use the real TEE environment to protect the confidentiality and integrity of the data in the computing process, the user needs to enable the non-simulation mode, and at this time, the security mechanisms provided by the TEE such as remote attestation and memory encryption will be enabled. To enable the non-simulation mode, the user needs to have the TEE hardware supported by the current SecretFlow TEEU. Currently, SecretFlow only supports Intel SGX2.0, and more TEE types will be supported in the future.
 
-Please check [Non-simulation](./teeu.md#summary) for running in non-simulation mode.
+Please check [Non-simulation](../teeu.md#summary) for running in non-simulation mode.
