@@ -46,6 +46,8 @@ We hope you enjoy these toturials from SecretFlow developers.
    :maxdepth: 2
    :caption: TEEU
 
+   teeu
+   teeu_xgboost
    teeu/index
 
 .. toctree::
