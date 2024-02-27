@@ -43,12 +43,10 @@ We hope you enjoy these toturials from SecretFlow developers.
    gpt2_with_puma
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: TEEU
 
-   teeu
-   teeu_xgboost
-   teeu_onehotencoder
+   teeu/index
 
 .. toctree::
    :maxdepth: 1
