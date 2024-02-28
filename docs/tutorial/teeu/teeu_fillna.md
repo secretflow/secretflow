@@ -83,7 +83,7 @@ def gen_data():
 
 def fill(data_tee):
     data = pd.concat(data_tee)
-    return data.fillna(method='pad',axis=0)
+    return data.fillna(method='pad', axis=0)
 
 alice = sf.PYU('alice')
 bob = sf.PYU('bob')
@@ -187,7 +187,7 @@ def gen_data():
 
 def fill(data_tee):
     data = pd.concat(data_tee)
-    return data.fillna(method='pad',axis=0)
+    return data.fillna(method='pad', axis=0)
 
 alice = sf.PYU('alice')
 bob = sf.PYU('bob')
@@ -290,7 +290,7 @@ def gen_data():
 
 def fill(data_tee):
     data = pd.concat(data_tee)
-    return data.fillna(method='pad',axis=0)
+    return data.fillna(method='pad', axis=0)
 
 alice = sf.PYU('alice')
 bob = sf.PYU('bob')
@@ -386,7 +386,7 @@ def gen_data():
 
 def fill(data_tee):
     data = pd.concat(data_tee)
-    return data.fillna(method='pad',axis=0)
+    return data.fillna(method='pad', axis=0)
 
 alice = sf.PYU('alice')
 bob = sf.PYU('bob')
