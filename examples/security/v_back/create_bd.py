@@ -1,14 +1,13 @@
+import os
+
+import matplotlib.pyplot as plt
+import numpy as np
 import torch
 import torch.nn as nn
-
-import numpy as np
-import matplotlib.pyplot as plt
-import os
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 from torch.autograd import Variable
-
 
 classes = (
     "plane",

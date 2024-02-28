@@ -24,8 +24,8 @@ from secretflow.data import FedNdarray, PartitionWay
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import (
     PYU,
-    PYUObject,
     SPU,
+    PYUObject,
     SPUCompilerNumReturnsPolicy,
     SPUObject,
     wait,

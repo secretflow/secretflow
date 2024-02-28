@@ -4,11 +4,12 @@ import sys
 
 sys.path.append("..")
 
+import pdb
+
 import torch.nn as nn
 import torch.nn.functional as F
 from tools.dp_utils import NaiveLayer
 from torchsummary import summary
-import pdb
 
 
 class ResidualBlock(nn.Module):

@@ -16,6 +16,7 @@ from typing import Dict
 import numpy as np
 
 from secretflow.device import PYU, PYUObject
+
 from ...core.pure_numpy_ops.node_select import (
     packbits_node_selects,
     unpack_node_select_lists,

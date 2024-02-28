@@ -8,7 +8,6 @@ from secretflow.security.aggregation.aggregator import Aggregator
 
 
 class LLDPAggregator(Aggregator):
-
     """Aggregator based on Layer-wise LDP.
 
     The computation will be performed in LLDPtext.

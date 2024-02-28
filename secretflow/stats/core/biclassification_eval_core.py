@@ -247,7 +247,9 @@ def gen_all_reports(
 
 def create_sorted_label_score_pair(y_true: jnp.array, y_score: jnp.array):
     """produce an n * 2 shaped array with the second column as the sorted scores, in decreasing order"""
-    unsorted_array = jnp.concatenate([y_true, y_score], axis=1)
+    unsorted_array = jnp.concatenate(
+        [y_true.reshape(-1, 1), y_score.reshape(-1, 1)], axis=1
+    )
     return unsorted_array[jnp.argsort(unsorted_array[:, 1])[::-1]]
 
 

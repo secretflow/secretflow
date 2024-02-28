@@ -21,42 +21,41 @@
 # run
 # 3. python tests/ml/nn/test_sl_gnn.py --mode vfgnn_train --num-epochs 5 --n-party 2 --fuse_model_layers 1 --init_mode identity
 
-import logging
 import argparse
+import logging
 import math
+import time
+
+import dgl
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+import torchmetrics
 
 import secretflow as sf
+from examples.app.v_gnn.vfgnn.gnn_utils import (
+    GraphEvalLoader,
+    GraphTrainLoader,
+    construct_dgl_graph_from_numpy,
+    load_data_sf,
+    load_data_sl,
+)
+from examples.app.v_gnn.vfgnn.sl_vfgnn_model import (
+    SAGE,
+    VFGNN,
+    BaseModel,
+    FuseModel,
+    evaluate_sage_target,
+    evaluate_vfgnn_target,
+)
 from secretflow.ml.nn import SLModel
 from secretflow.ml.nn.utils import (
     TorchModel,
     metric_wrapper,
     optim_wrapper,
     plot_with_tsne,
-)
-
-import dgl
-import numpy as np
-import time
-import torch
-import torch.nn.functional as F
-import torch.nn as nn
-import torch.optim as optim
-import torchmetrics
-
-from examples.app.v_gnn.vfgnn.sl_vfgnn_model import (
-    SAGE,
-    evaluate_sage_target,
-    VFGNN,
-    evaluate_vfgnn_target,
-    BaseModel,
-    FuseModel,
-)
-from examples.app.v_gnn.vfgnn.gnn_utils import (
-    load_data_sl,
-    load_data_sf,
-    construct_dgl_graph_from_numpy,
-    GraphTrainLoader,
-    GraphEvalLoader,
 )
 
 
@@ -548,9 +547,9 @@ def vfgnn_train(dataset, args):
                     average='micro',
                 ),
             ],
-            in_feats=in_feat
-            if args.init_mode == 'identity'
-            else args.init_model_num_hidden,
+            in_feats=(
+                in_feat if args.init_mode == 'identity' else args.init_model_num_hidden
+            ),
             n_classes=args.n_classes,
             base_model_num_hidden=args.base_model_num_hidden,
             base_model_layers=args.base_model_layers,

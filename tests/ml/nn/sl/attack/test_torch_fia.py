@@ -10,9 +10,7 @@ from torchmetrics import Accuracy, Precision
 from secretflow.data.ndarray import FedNdarray, PartitionWay
 from secretflow.ml.nn import SLModel
 from secretflow.ml.nn.fl.utils import metric_wrapper, optim_wrapper
-from secretflow.ml.nn.sl.attacks.fia_torch import (
-    FeatureInferenceAttack,
-)
+from secretflow.ml.nn.sl.attacks.fia_torch import FeatureInferenceAttack
 from secretflow.ml.nn.utils import BaseModule, TorchModel
 
 

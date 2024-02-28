@@ -107,9 +107,11 @@ class SplitTreeBuilder(Component):
             actor.invoke_class_method(
                 'SplitTreeActor',
                 'split_buckets_to_paritition',
-                split_buckets.to(actor.device)
-                if isinstance(split_buckets, PYUObject)
-                else [sb.to(actor.device) for sb in split_buckets],
+                (
+                    split_buckets.to(actor.device)
+                    if isinstance(split_buckets, PYUObject)
+                    else [sb.to(actor.device) for sb in split_buckets]
+                ),
             )
             for actor in self.split_tree_builder_actors
         ]

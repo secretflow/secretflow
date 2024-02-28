@@ -22,14 +22,13 @@ import jax.tree_util
 import numpy as np
 import ray
 import spu
-from heu import numpy as hnp
-from heu import phe
+from heu import numpy as hnp, phe
 
 import secretflow.distributed as sfd
 from secretflow.utils.errors import PartyNotFoundError
 
 from .base import Device, DeviceType
-from .spu import SPUIOInfo, SPUValueMeta
+from .spu import SPU_PROTOCOLS_MAP, SPUIOInfo, SPUValueMeta
 from .type_traits import (
     heu_datatype_to_numpy,
     heu_datatype_to_spu,
@@ -462,7 +461,9 @@ class HEUEvaluator(HEUActor):
         bound = self.hekit.public_key().plaintext_bound() / phe.Plaintext(
             self.hekit.get_schema(), 2
         )
-        masks = [hnp.random.randint(-bound, bound, data.shape)]
+        masks = [
+            hnp.random.randint(-bound, bound, data.shape) for _ in evaluator_parties
+        ]
         data_with_mask: hnp.CiphertextArray = data
         for m in masks:
             data_with_mask = self.evaluator.sub(data_with_mask, m)
@@ -478,12 +479,12 @@ class HEUEvaluator(HEUActor):
             chunk.total_bytes = len(chunk.content)
             shares_chunk.append(chunk.SerializeToString())
 
-            meta = spu.spu_pb2.ValueMetaProto()
-            meta.visibility = spu.Visibility.VIS_SECRET
-            meta.data_type = heu_datatype_to_spu(self.cleartext_type)
-            meta.storage_type = f"semi2k.AShr<{spu.FieldType.Name(spu_field_type)}>"
-            meta.shape.dims.extend(tuple(mask.shape))
-            io_info = SPUIOInfo(0, 1, meta.SerializeToString())
+        meta = spu.spu_pb2.ValueMetaProto()
+        meta.visibility = spu.Visibility.VIS_SECRET
+        meta.data_type = heu_datatype_to_spu(self.cleartext_type)
+        meta.storage_type = f"{SPU_PROTOCOLS_MAP[spu_protocol]}.AShr<{spu.FieldType.Name(spu_field_type)}>"
+        meta.shape.dims.extend(tuple(mask.shape))
+        io_info = SPUIOInfo(0, 1, meta.SerializeToString())
 
         value_meta = SPUValueMeta(
             data.shape,

@@ -136,8 +136,7 @@ def test_runtime_module_container():
 
 def test_subscript_wrapper():
     # callable
-    def func():
-        ...
+    def func(): ...
 
     class Obj(object):
         def __getitem__(self, key):

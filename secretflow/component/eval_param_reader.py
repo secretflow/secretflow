@@ -27,8 +27,7 @@ from secretflow.spec.v1.component_pb2 import (
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
 
-class EvalParamError(Exception):
-    ...
+class EvalParamError(Exception): ...
 
 
 def check_allowed_values(value: Attribute, definition: AttributeDef):

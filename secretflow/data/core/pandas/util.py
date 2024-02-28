@@ -30,12 +30,12 @@ def read_pandas_csv(filepath, *args, **kwargs):
 
         kwargs['skiprows'] = skip_rows
         try:
-            df = pd.read_csv(open(filepath), *args, **kwargs)
+            df = pd.read_csv(filepath, *args, **kwargs)
         except pd.errors.EmptyDataError:
             # skip ending with empty df, not exception
             df = pd.DataFrame()
     else:
-        df = pd.read_csv(open(filepath), *args, **kwargs)
+        df = pd.read_csv(filepath, *args, **kwargs)
 
     if 'usecols' in kwargs and kwargs['usecols'] is not None:
         return df[kwargs['usecols']]

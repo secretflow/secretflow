@@ -1,11 +1,10 @@
-import torch
-from data_reconstruction_attack import *
-
 import argparse
 import os
+
+import torch
 import torch.backends.cudnn as cudnn
 import torchvision.utils as vutils
-
+from data_reconstruction_attack import *
 from model_resnet import ResNet18
 from model_stylegan2 import Generator
 

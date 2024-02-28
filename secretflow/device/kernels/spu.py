@@ -109,9 +109,11 @@ def spu_to_heu(self: SPUObject, heu: Device, config: HEUMoveConfig = None):
         for (p, actor), chunks in zip(self.device.actors.items(), chunks_pre_party)
     }
     shards = [
-        heu.get_participant(p).encrypt.remote(shard, config.heu_audit_log)
-        if p != config.heu_dest_party
-        else shard
+        (
+            heu.get_participant(p).encrypt.remote(shard, config.heu_audit_log)
+            if p != config.heu_dest_party
+            else shard
+        )
         for p, shard in shards.items()
     ]
     data = heu.get_participant(config.heu_dest_party).a2h_sum_shards.remote(*shards)

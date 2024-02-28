@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from jax.tree_util import tree_flatten, tree_unflatten
+
 from secretflow.ic.proxy import LinkProxy
 from secretflow.ic.remote.ic_object import IcObject
-from jax.tree_util import tree_flatten, tree_unflatten
 
 
 def resolve_dependencies(current_party, *args, **kwargs):

@@ -21,9 +21,9 @@
 # SOFTWARE.
 
 
+import math
 import random
 
-import math
 import numpy as np
 import torch.utils.data as data
 import torchvision.transforms as transforms

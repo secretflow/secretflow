@@ -21,14 +21,14 @@
 # SOFTWARE.
 
 
+import math
 import random
 
-import math
 import numpy as np
 import torch.utils.data as data
 import torchvision.transforms as transforms
 
-from .datasets import tiny_truncated, tiny
+from .datasets import tiny, tiny_truncated
 
 
 def record_net_data_stats(y_train, net_dataidx_map, logger):

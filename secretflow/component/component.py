@@ -16,6 +16,7 @@ import inspect
 import json
 import logging
 import math
+import os
 import threading
 import time
 from dataclasses import dataclass
@@ -28,6 +29,7 @@ from google.protobuf.message import Message as PbMessage
 
 from secretflow.component.data_utils import DistDataType, check_dist_data, check_io_def
 from secretflow.component.eval_param_reader import EvalParamReader
+from secretflow.component.storage import ComponentStorage
 from secretflow.device.driver import init, shutdown
 from secretflow.spec.extend.cluster_pb2 import SFClusterConfig
 from secretflow.spec.v1.component_pb2 import AttributeDef, AttrType, ComponentDef, IoDef
@@ -39,12 +41,10 @@ def clean_text(x: str, no_line_breaks: bool = True) -> str:
     return cleantext.clean(x.strip(), lower=False, no_line_breaks=no_line_breaks)
 
 
-class CompDeclError(Exception):
-    ...
+class CompDeclError(Exception): ...
 
 
-class CompEvalError(Exception):
-    ...
+class CompEvalError(Exception): ...
 
 
 class CompTracer:
@@ -103,7 +103,8 @@ class TableColParam:
 
 @dataclass
 class CompEvalContext:
-    local_fs_wd: str = None
+    data_dir: str = None
+    comp_storage: ComponentStorage = None
     spu_configs: Dict = None
     initiator_party: str = None
     cluster_config: SFClusterConfig = None
@@ -893,12 +894,6 @@ class Component:
             enable_waiting_for_other_parties_ready=True,
         )
 
-    def _check_storage(self, storage: StorageConfig):
-        # only local fs is supported at this moment.
-        if storage.type and storage.type != "local_fs":
-            raise CompEvalError("only local_fs is supported.")
-        return storage.local_fs.wd
-
     def _parse_runtime_config(self, key: str, raw: str):
         if key == "protocol":
             if raw == "REF2K":
@@ -962,9 +957,11 @@ class Component:
                         {
                             "party": p,
                             "address": addresses.addresses[idx],
-                            "listen_address": addresses.listen_addresses[idx]
-                            if len(addresses.listen_addresses)
-                            else "",
+                            "listen_address": (
+                                addresses.listen_addresses[idx]
+                                if len(addresses.listen_addresses)
+                                else ""
+                            ),
                         }
                         for idx, p in enumerate(list(addresses.parties))
                     ]
@@ -984,9 +981,8 @@ class Component:
                         if k not in SUPPORTED_RUNTIME_CONFIG_ITEM:
                             logging.warning(f"runtime config item {k} is not parsed.")
                         else:
-                            cluster_def["runtime_config"][
-                                k
-                            ] = self._parse_runtime_config(k, v)
+                            rt = self._parse_runtime_config(k, v)
+                            cluster_def["runtime_config"][k] = rt
 
                 spu_configs[device.name] = {"cluster_def": cluster_def}
 
@@ -1037,8 +1033,14 @@ class Component:
 
         ctx.cluster_config = cluster_config
 
-        if storage_config is not None:
-            ctx.local_fs_wd = self._check_storage(storage_config)
+        assert storage_config is not None
+        ctx.comp_storage = ComponentStorage(storage_config)
+        if storage_config.type == "local_fs":
+            ctx.data_dir = storage_config.local_fs.wd
+        else:
+            # FIXME: is this ok ?
+            self_party = cluster_config.private_config.self_party
+            ctx.data_dir = os.path.join(os.getcwd(), f"data_{os.getpid()}_{self_party}")
 
         if cluster_config is not None:
             ctx.spu_configs, ctx.heu_config = self._extract_device_config(

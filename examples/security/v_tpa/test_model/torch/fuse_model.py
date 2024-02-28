@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # coding=utf-8
-import torch
-from torch import nn
-import torch.nn.functional as F
-import numpy as np
 import pdb
+
+import numpy as np
+import torch
+import torch.nn.functional as F
+from torch import nn
 
 
 class FuseModelNaive(nn.Module):

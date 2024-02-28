@@ -19,7 +19,6 @@ import pandas as pd
 from sklearn.preprocessing import LabelEncoder as SkLabelEncoder
 from sklearn.preprocessing import OneHotEncoder as SkOneHotEncoder
 from sklearn.preprocessing import OrdinalEncoder as SkOrdinalEncoder
-
 from sklearn.utils.validation import column_or_1d
 
 from secretflow.data.horizontal import HDataFrame
