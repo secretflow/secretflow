@@ -74,8 +74,8 @@ def gen_data():
     from sklearn.datasets import make_classification
 
     num_classes = 2
-    x, y = make_classification(n_samples=1000, n_informative=5,
-                           n_classes=num_classes)
+    x, y = make_classification(n_samples=1000, n_informative=5, 
+                               n_classes=num_classes)
     return x, y
 
 
@@ -220,8 +220,8 @@ def gen_data():
     from sklearn.datasets import make_classification
 
     num_classes = 2
-    x, y = make_classification(n_samples=1000, n_informative=5,
-                           n_classes=num_classes)
+    x, y = make_classification(n_samples=1000, n_informative=5, 
+                               n_classes=num_classes)
     return x, y
 
 
@@ -365,8 +365,8 @@ def gen_data():
     from sklearn.datasets import make_classification
 
     num_classes = 2
-    x, y = make_classification(n_samples=1000, n_informative=5,
-                           n_classes=num_classes)
+    x, y = make_classification(n_samples=1000, n_informative=5, 
+                               n_classes=num_classes)
     return x, y
 
 
@@ -503,8 +503,8 @@ def gen_data():
     from sklearn.datasets import make_classification
 
     num_classes = 2
-    x, y = make_classification(n_samples=1000, n_informative=5,
-                           n_classes=num_classes)
+    x, y = make_classification(n_samples=1000, n_informative=5, 
+                               n_classes=num_classes)
     return x, y
 
 
