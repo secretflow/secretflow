@@ -17,9 +17,7 @@ import os
 import numpy as np
 
 from secretflow.device.driver import reveal
-from secretflow.ml.boost.sgb_v.core.pure_numpy_ops.bucket_sum import (
-    batch_select_sum,
-)
+from secretflow.ml.boost.sgb_v.core.pure_numpy_ops.bucket_sum import batch_select_sum
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 

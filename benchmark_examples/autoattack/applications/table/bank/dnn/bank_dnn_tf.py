@@ -15,7 +15,7 @@
 import logging
 from typing import List, Optional, Union
 
-from benchmark_examples.autoattack.applications.base import TrainBase
+from benchmark_examples.autoattack.applications.base import ApplicationBase
 from secretflow.data.split import train_test_split
 from secretflow.ml.nn import SLModel
 from secretflow.ml.nn.applications.sl_dnn_tf import DnnBase, DnnFuse
@@ -24,7 +24,7 @@ from secretflow.preprocessing import LabelEncoder, MinMaxScaler
 from secretflow.utils.simulation.datasets import load_bank_marketing
 
 
-class BankDnn(TrainBase):
+class BankDnn(ApplicationBase):
     def train(self, callbacks: Optional[Union[List[Callback], Callback]] = None):
         pass
 

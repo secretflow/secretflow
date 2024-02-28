@@ -165,11 +165,6 @@ class LeafWiseTreeTrainer(TreeTrainer):
 
         logging.debug("g h computed.")
 
-        self.should_stop = reveal(self.components.loss_computer.check_early_stop())
-        if self.should_stop:
-            logging.debug("early stopped.")
-            return
-        logging.debug("not early stopped.")
         self.components.loss_computer.compute_scales()
 
         g, h = self.components.loss_computer.scale_gh(g, h)
@@ -196,8 +191,6 @@ class LeafWiseTreeTrainer(TreeTrainer):
         self.train_tree_context_setup(
             cur_tree_num, order_map_manager, y, pred, sample_num
         )
-        if self.should_stop:
-            return None
         logging.info("begin train tree.")
         row_num = self.node_select_shape[1]
         root_select = self.components.node_selector.root_select(row_num)

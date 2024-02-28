@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # coding=utf-8
+import pdb
+
+import numpy as np
+import tensorflow as tf
+import tensorflow.keras.backend as K
 from tensorflow import keras, nn, optimizers
 from tensorflow.keras import layers
-import tensorflow.keras.backend as K
-import tensorflow as tf
-import numpy as np
-import pdb
 
 
 class Identity(keras.layers.Layer):

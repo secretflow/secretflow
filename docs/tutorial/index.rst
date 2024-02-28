@@ -37,6 +37,7 @@ We hope you enjoy these toturials from SecretFlow developers.
 
    spu_basics
    lr_with_spu
+   ss_glm
    nn_with_spu
    gpt2_with_spu
    numpy_with_spu

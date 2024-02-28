@@ -1,0 +1,362 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2022 Ant Group Co., Ltd.
+# This file is distributed under the same license as the SecretFlow package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2024.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: SecretFlow \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-02-21 11:52+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.12.1\n"
+
+#: ../../developer/benchmark/overall_benchmark.md:1
+msgid "SecretFlow Benchmark Results"
+msgstr "SecretFlow 基准测试结果"
+
+#: ../../developer/benchmark/overall_benchmark.md:3
+msgid "Latest update time:"
+msgstr "最新更新时间："
+
+#: ../../developer/benchmark/overall_benchmark.md:5
+msgid ""
+"The benchmarks were conducted on a standard environment on Alibaba "
+"ecs.r8i.8xlarge instance, with 32 vCPU cores (16 real CPUs with "
+"hyperthreading) and 256G memory."
+msgstr ""
+"基准测试是在阿里巴巴 ecs.r8i.8xlarge 实例的标准环境下进行的，拥有 32 个 vCPU 核心（16 个带超线程的实际 CPU）和 "
+"256G 内存。"
+
+#: ../../developer/benchmark/overall_benchmark.md:7
+msgid "Each party will use one instance of machine."
+msgstr "每个参与方将使用一台机器实例。"
+
+#: ../../developer/benchmark/overall_benchmark.md:9
+msgid "**CPU**: Intel(R) Xeon(R) Platinum 8269CY CPU @ 2.50GHz"
+msgstr "**CPU**：英特尔(R) 至强(R) Platinum 8269CY CPU @ 2.50GHz"
+
+#: ../../developer/benchmark/overall_benchmark.md:10
+msgid "**RAM**: 256GB"
+msgstr "**内存**：256GB"
+
+#: ../../developer/benchmark/overall_benchmark.md:11
+msgid "**OS**: CentOS 7.9 64bit"
+msgstr "**操作系统**：CentOS 7.9 64位"
+
+#: ../../developer/benchmark/overall_benchmark.md:12
+msgid "**Disk**: 200GB"
+msgstr "**磁盘**：200GB"
+
+#: ../../developer/benchmark/overall_benchmark.md:14
+msgid "Network Condition:"
+msgstr "网络条件："
+
+#: ../../developer/benchmark/overall_benchmark.md:16
+msgid "**Bandwidth**: Limited to 100 Mbps"
+msgstr "**带宽**：限制为 100 Mbps"
+
+#: ../../developer/benchmark/overall_benchmark.md:17
+msgid "**Burst Size**: 256 KB"
+msgstr "**突发大小**：256 KB"
+
+#: ../../developer/benchmark/overall_benchmark.md:18
+msgid "**Buffer Latency**: 800 ms"
+msgstr "**缓冲延迟**：800 ms"
+
+#: ../../developer/benchmark/overall_benchmark.md:19
+msgid "**Fixed Delay**: 50 ms"
+msgstr "**固定延迟**：50 ms"
+
+#: ../../developer/benchmark/overall_benchmark.md:20
+msgid "**Queue Limit**: 8000 packets"
+msgstr "**队列限制**：8000 个数据包"
+
+#: ../../developer/benchmark/overall_benchmark.md:22
+msgid "Extra Notes"
+msgstr "额外说明"
+
+#: ../../developer/benchmark/overall_benchmark.md:24
+msgid ""
+"Semi2k protocol relies on a trusted third party, it should not be "
+"considered a MPC safe 2pc protocol."
+msgstr "Semi2k 协议依赖于一个可信的第三方，不应被视为一个安全的 MPC 2pc 协议。"
+
+#: ../../developer/benchmark/overall_benchmark.md:23
+msgid "Basic Operation Benchmark"
+msgstr "基本操作基准测试"
+
+#: ../../developer/benchmark/overall_benchmark.md:25
+#: ../../developer/benchmark/overall_benchmark.md:35
+msgid "Each party holds 100000000 size random data"
+msgstr "每个参与方持有 100000000 大小的随机数据"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "Task"
+msgstr "任务"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "2 party semi2k Time (s)"
+msgstr "2 方 semi2k 时间（秒）"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "2 party cheetah Time (s)"
+msgstr "2 方 cheetah 时间（秒）"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "3 party aby3 Time (s)"
+msgstr "3 方 aby3 时间（秒）"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "element-wise addition"
+msgstr "逐元素加法"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "292.81814"
+msgstr "292.81814"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "283.83696"
+msgstr "283.83696"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "1621.0594"
+msgstr "1621.0594"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "element-wise multiplication"
+msgstr "逐元素乘法"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "522.32634"
+msgstr "522.32634"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "3836.5489"
+msgstr ""
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "2641.75911"
+msgstr "2641.75911"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "element-wise less comparison"
+msgstr "逐元素小于比较"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "813.28057"
+msgstr "813.28057"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "-"
+msgstr "-"
+
+#: ../../developer/benchmark/overall_benchmark.md:33
+msgid "United Statistiсs Operation Benchmark"
+msgstr "联合统计操作基准测试"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "variance (reveal mean)"
+msgstr "方差（揭示均值）"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "3.43896"
+msgstr "3.43896"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "59.45547"
+msgstr ""
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "variance (protect mean)"
+msgstr "方差（保护均值）"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "1607.76037"
+msgstr "1607.76037"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "4295.96"
+msgstr ""
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "median"
+msgstr "中位数"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "27.40997"
+msgstr "27.40997"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "91.70969"
+msgstr "91.70969"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "1079.87955"
+msgstr ""
+
+#: ../../developer/benchmark/overall_benchmark.md:43
+msgid "Feature Engineering Operation Benchmark"
+msgstr "特征工程操作基准测试"
+
+#: ../../developer/benchmark/overall_benchmark.md:45
+#: ../../developer/benchmark/overall_benchmark.md:55
+msgid ""
+"In 2-party setting, each party holds 800000 lines of data with 1500 "
+"features and the first party holds the label."
+msgstr "在2方设置中，每一方持有 800000 行数据，每行含有 1500 个特征，第一方持有标签。"
+
+#: ../../developer/benchmark/overall_benchmark.md:47
+#: ../../developer/benchmark/overall_benchmark.md:57
+msgid ""
+"In 3-party setting, each party holds 800000 lines of data with 1000 "
+"features and the first party holds the label."
+msgstr "在3方设置中，每一方持有 800000 行数据，每行含有 1000 个特征，第一方持有标签。"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "WOE and IV Computation"
+msgstr "WOE 和 IV 计算"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "449.15"
+msgstr "449.15"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "434.46"
+msgstr "434.46"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "505.04"
+msgstr "505.04"
+
+#: ../../developer/benchmark/overall_benchmark.md:53
+msgid "Machine Learning Algorithm Benchmark"
+msgstr "机器学习算法基准测试"
+
+#: ../../developer/benchmark/overall_benchmark.md:59
+msgid "Classification algorithms are used as examples."
+msgstr "以分类算法为例。"
+
+#: ../../developer/benchmark/overall_benchmark.md:61
+msgid ""
+"The training time is the best training time for the algorithm to reach "
+"convergence compared to the best cleartext model (hyperparameter tuning "
+"may affect the result). In addition, train auc must be within 0.02 away "
+"from the cleartext model. Refer to benchmark_examples folder in source "
+"code for more parameter details."
+msgstr ""
+"训练时间是算法达到收敛的最佳训练时间，与最佳明文模型相比（超参数调整可能会影响结果）。此外，训练的 AUC 必须在明文模型的 0.02 "
+"范围内。有关更多参数细节，请参考源代码中的 benchmark_examples 文件夹。"
+
+#: ../../developer/benchmark/overall_benchmark.md:63
+msgid "The inference time is the prediction time on training data."
+msgstr "推断时间是在训练数据上的预测时间。"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "LR Training   (with SS-SGD)"
+msgstr "LR 训练（使用 SS-SGD）"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "693.57"
+msgstr "693.57"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "1244.53"
+msgstr "1244.53"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "1155.78"
+msgstr "1155.78"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "XGB Training  (with SGB)"
+msgstr "XGB 训练（使用 SGB）"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "4175.76"
+msgstr "4175.76"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "4176.54"
+msgstr "4176.54"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "4568.08"
+msgstr "4568.08"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "NN Training   (split learning)"
+msgstr "神经网络训练（使用拆分学习）"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "6844"
+msgstr "6844"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "2477"
+msgstr "2477"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "LR Inference  (with SS-SGD)"
+msgstr "LR 推断（使用 SS-SGD）"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "261.31"
+msgstr "261.31"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "300"
+msgstr "300"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "260.7"
+msgstr "260.7"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "XGB Inference (with SGB)"
+msgstr "XGB 推断（使用 SGB）"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "56.83"
+msgstr "56.83"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "54.5"
+msgstr "54.5"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "37.73"
+msgstr "37.73"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "NN Inference  (split learning)"
+msgstr "神经网络推断（使用拆分学习）"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "5"
+msgstr "5"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "3"
+msgstr "3"
+
+#~ msgid "NN Training"
+#~ msgstr "神经网络训练"
+
+#~ msgid "NN Inference"
+#~ msgstr "神经网络推断"
+
+#~ msgid "**Burst Size**: 256 KB"
+#~ msgstr "**突发大小**：256 KB"
+
+#~ msgid "**Buffer Latency**: 800 ms"
+#~ msgstr "**缓冲延迟**：800 ms"
+
+#~ msgid "**Queue Limit**: 8000 packets"
+#~ msgstr "**队列限制**：8000 个数据包"

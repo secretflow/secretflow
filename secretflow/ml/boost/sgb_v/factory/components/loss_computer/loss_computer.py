@@ -40,23 +40,11 @@ class LossComputerParams:
     'quantization_scale': only effective if quanization enabled. Scale the sum of g to the specified value.
         default: 10000.0
         range: [0, 10000000.0]
-    'early_stop_criterion_g_abs_sum': if sum(abs(g)) is lower than or equal to this threadshold, training will stop.
-        default: 0.0
-        range [0.0, inf)
-    'early_stop_criterion_g_abs_sum_change_ratio': if absolute g sum change ratio is lower than or equal to this threadshold, training will stop.
-        default: 0.0
-        range [0, 1]
     """
 
     objective: RegType = default_params.objective
     enable_quantization: bool = default_params.enable_quantization
     quantization_scale: float = default_params.quantization_scale
-    early_stop_criterion_g_abs_sum: float = (
-        default_params.early_stop_criterion_g_abs_sum
-    )
-    early_stop_criterion_g_abs_sum_change_ratio: float = (
-        default_params.early_stop_criterion_g_abs_sum_change_ratio
-    )
 
 
 class LossComputer(Component):
@@ -84,21 +72,7 @@ class LossComputer(Component):
             'quantization_scale', default_params.quantization_scale
         )
 
-        early_stop_criterion_g_abs_sum = params.get(
-            'early_stop_criterion_g_abs_sum',
-            default_params.early_stop_criterion_g_abs_sum,
-        )
-
-        early_stop_criterion_g_abs_sum_change_ratio = params.get(
-            'early_stop_criterion_g_abs_sum_change_ratio',
-            default_params.early_stop_criterion_g_abs_sum_change_ratio,
-        )
-
         self.params.quantization_scale = quantization_scale
-        self.params.early_stop_criterion_g_abs_sum = early_stop_criterion_g_abs_sum
-        self.params.early_stop_criterion_g_abs_sum_change_ratio = (
-            early_stop_criterion_g_abs_sum_change_ratio
-        )
         self.params.objective = obj
 
         self.logging_params = LoggingTools.logging_params_from_dict(params)
@@ -107,12 +81,6 @@ class LossComputer(Component):
         params['objective'] = self.params.objective
         params['enable_quantization'] = self.params.enable_quantization
         params['quantization_scale'] = self.params.quantization_scale
-        params[
-            'early_stop_criterion_g_abs_sum'
-        ] = self.params.early_stop_criterion_g_abs_sum
-        params[
-            'early_stop_criterion_g_abs_sum_change_ratio'
-        ] = self.params.early_stop_criterion_g_abs_sum_change_ratio
         LoggingTools.logging_params_write_dict(params, self.logging_params)
 
     def set_devices(self, devices: Devices):
@@ -148,18 +116,6 @@ class LossComputer(Component):
         scaling = self.params.quantization_scale
         return self.actor.invoke_class_method(
             'LossComputerActor', 'compute_scales', scaling
-        )
-
-    def check_early_stop(self) -> PYUObject:
-        abs_sum_threshold = self.params.early_stop_criterion_g_abs_sum
-        abs_sum_change_ratio_threshold = (
-            self.params.early_stop_criterion_g_abs_sum_change_ratio
-        )
-        return self.actor.invoke_class_method(
-            'LossComputerActor',
-            'check_early_stop',
-            abs_sum_threshold,
-            abs_sum_change_ratio_threshold,
         )
 
     def scale_gh(self, g: PYUObject, h: PYUObject) -> Tuple[PYUObject, PYUObject]:

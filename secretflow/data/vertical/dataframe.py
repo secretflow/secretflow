@@ -16,17 +16,14 @@ from dataclasses import dataclass
 from typing import Callable, Dict, List, Union
 
 import numpy as np
-
 import pandas as pd
-
 from pandas import Index
 
 from secretflow.data.base import DataFrameBase
-
 from secretflow.data.core import Partition
 from secretflow.data.groupby import DataFrameGroupBy
 from secretflow.data.ndarray import FedNdarray, PartitionWay
-from secretflow.device import PYU, PYUObject, reveal, SPU
+from secretflow.device import PYU, SPU, PYUObject, reveal
 from secretflow.utils.errors import InvalidArgumentError, NotFoundError
 
 
@@ -581,7 +578,7 @@ class VDataFrame(DataFrameBase):
                 downcast=downcast,
             )
 
-    def to_csv(self, fileuris: Dict[PYU, str], **kwargs):
+    def to_csv(self, fileuris: Dict[PYU, Union[str, Callable]], **kwargs):
         """Write object to a comma-separated values (csv) file.
 
         Args:

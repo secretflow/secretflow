@@ -476,6 +476,9 @@ def init(
 
     global_state.set_tee_simulation(tee_simulation=tee_simulation)
 
+    if 'include_dashboard' not in kwargs:
+        kwargs['include_dashboard'] = False
+
     if simluation_mode:
         if not isinstance(parties, (str, Tuple, List)):
             raise InvalidArgumentError('parties must be str or list of str.')

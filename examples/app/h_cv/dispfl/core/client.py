@@ -22,14 +22,15 @@
 
 
 import copy
+import math
 import os
 import time
 
-import math
 import numpy as np
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3"
 import torch
+
 from secretflow import PYUObject, proxy
 
 

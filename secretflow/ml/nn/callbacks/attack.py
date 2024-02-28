@@ -24,5 +24,5 @@ class AttackCallback(Callback):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def get_attack_metrics(self):
+    def get_attack_metrics(self, *args, **kwargs):
         raise NotImplementedError()

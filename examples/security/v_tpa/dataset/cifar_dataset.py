@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # coding=utf-8
-from .base_dataset import BaseDataset
-from .split_dataset import PassiveDataset, ActiveDataset
-from torchvision import transforms, datasets
 import torch
+from torchvision import datasets, transforms
+
+from .base_dataset import BaseDataset
+from .split_dataset import ActiveDataset, PassiveDataset
 
 
 class CIFARDataset(BaseDataset):

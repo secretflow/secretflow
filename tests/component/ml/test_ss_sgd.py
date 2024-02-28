@@ -1,13 +1,16 @@
 import logging
-import os
 
 import numpy as np
 import pandas as pd
 from google.protobuf.json_format import MessageToJson
+from sklearn.datasets import load_breast_cancer
+from sklearn.metrics import r2_score
+from sklearn.preprocessing import StandardScaler
 
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.ml.eval.regression_eval import regression_eval_comp
 from secretflow.component.ml.linear.ss_sgd import ss_sgd_predict_comp, ss_sgd_train_comp
+from secretflow.component.storage import ComponentStorage
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import (
     DistData,
@@ -17,11 +20,6 @@ from secretflow.spec.v1.data_pb2 import (
 )
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
-from sklearn.datasets import load_breast_cancer
-from sklearn.metrics import r2_score
-from sklearn.preprocessing import StandardScaler
-
-from tests.conftest import TEST_STORAGE_ROOT
 
 
 def get_train_param(alice_path, bob_path, model_path):
@@ -136,28 +134,19 @@ def get_eval_param(predict_path):
 def get_meta_and_dump_data(comp_prod_sf_cluster_config, alice_path, bob_path):
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    local_fs_wd = storage_config.local_fs.wd
+    comp_storage = ComponentStorage(storage_config)
     scaler = StandardScaler()
     ds = load_breast_cancer()
     x, y = scaler.fit_transform(ds["data"]), ds["target"]
     if self_party == "alice":
-        os.makedirs(
-            os.path.join(local_fs_wd, "test_ss_sgd"),
-            exist_ok=True,
-        )
         x = pd.DataFrame(x[:, :15], columns=[f"a{i}" for i in range(15)])
         y = pd.DataFrame(y, columns=["y"])
         ds = pd.concat([x, y], axis=1)
-        ds.to_csv(os.path.join(local_fs_wd, alice_path), index=False)
+        ds.to_csv(comp_storage.get_writer(alice_path), index=False)
 
     elif self_party == "bob":
-        os.makedirs(
-            os.path.join(local_fs_wd, "test_ss_sgd"),
-            exist_ok=True,
-        )
-
         ds = pd.DataFrame(x[:, 15:], columns=[f"b{i}" for i in range(15)])
-        ds.to_csv(os.path.join(local_fs_wd, bob_path), index=False)
+        ds.to_csv(comp_storage.get_writer(bob_path), index=False)
 
     return VerticalTable(
         schemas=[
@@ -204,13 +193,17 @@ def test_ss_sgd(comp_prod_sf_cluster_config):
 
     assert len(predict_res.outputs) == 1
 
-    input_y = pd.read_csv(os.path.join(TEST_STORAGE_ROOT, "alice", alice_path))
-    output_y = pd.read_csv(os.path.join(TEST_STORAGE_ROOT, "alice", predict_path))
+    if "alice" == sf_cluster_config.private_config.self_party:
+        comp_storage = ComponentStorage(storage_config)
+        input_y = pd.read_csv(comp_storage.get_reader(alice_path))
+        output_y = pd.read_csv(comp_storage.get_reader(predict_path))
 
-    # label & pred
-    assert output_y.shape[1] == 4
+        # label & pred
+        assert output_y.shape[1] == 4
 
-    assert input_y.shape[0] == output_y.shape[0]
+        assert input_y.shape[0] == output_y.shape[0]
+
+        r2_score_ = r2_score(input_y["y"], output_y["pred"])
 
     # eval using biclassification eval
     eval_param = get_eval_param(predict_path)
@@ -227,9 +220,10 @@ def test_ss_sgd(comp_prod_sf_cluster_config):
     comp_ret = Report()
     eval_res.outputs[0].meta.Unpack(comp_ret)
     logging.warning(MessageToJson(comp_ret))
-    r2_score_ = r2_score(input_y["y"], output_y["pred"])
-    np.testing.assert_almost_equal(
-        r2_score_,
-        comp_ret.tabs[0].divs[0].children[0].descriptions.items[0].value.f,
-        decimal=5,
-    )
+
+    if "alice" == sf_cluster_config.private_config.self_party:
+        np.testing.assert_almost_equal(
+            r2_score_,
+            comp_ret.tabs[0].divs[0].children[0].descriptions.items[0].value.f,
+            decimal=5,
+        )

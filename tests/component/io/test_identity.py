@@ -1,20 +1,20 @@
 import json
 import logging
-import os
 
 import pandas as pd
 import pytest
 from google.protobuf.json_format import MessageToJson
-from sklearn.datasets import load_breast_cancer
-from sklearn.preprocessing import StandardScaler
 
 from secretflow.component.io.identity import identity
 from secretflow.component.io.io import io_read_data
 from secretflow.component.ml.linear.ss_glm import ss_glm_train_comp
+from secretflow.component.storage import ComponentStorage
 from secretflow.spec.extend.linear_model_pb2 import LinearModel
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
+from sklearn.datasets import load_breast_cancer
+from sklearn.preprocessing import StandardScaler
 
 
 @pytest.fixture
@@ -26,29 +26,20 @@ def glm_model(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    local_fs_wd = storage_config.local_fs.wd
+    comp_storage = ComponentStorage(storage_config)
 
     scaler = StandardScaler()
     ds = load_breast_cancer()
     x, y = scaler.fit_transform(ds["data"]), ds["target"]
     if self_party == "alice":
-        os.makedirs(
-            os.path.join(local_fs_wd, "test_glm"),
-            exist_ok=True,
-        )
         x = pd.DataFrame(x[:, :15], columns=[f"a{i}" for i in range(15)])
         y = pd.DataFrame(y, columns=["y"])
         ds = pd.concat([x, y], axis=1)
-        ds.to_csv(os.path.join(local_fs_wd, alice_path), index=False)
+        ds.to_csv(comp_storage.get_writer(alice_path), index=False)
 
     elif self_party == "bob":
-        os.makedirs(
-            os.path.join(local_fs_wd, "test_glm"),
-            exist_ok=True,
-        )
-
         ds = pd.DataFrame(x[:, 15:], columns=[f"b{i}" for i in range(15)])
-        ds.to_csv(os.path.join(local_fs_wd, bob_path), index=False)
+        ds.to_csv(comp_storage.get_writer(bob_path), index=False)
 
     train_param = NodeEvalParam(
         domain="ml.train",
@@ -70,7 +61,7 @@ def glm_model(comp_prod_sf_cluster_config):
         ],
         attrs=[
             Attribute(i64=3),
-            Attribute(f=0.3),
+            Attribute(f=0.25),
             Attribute(i64=128),
             Attribute(s="Logit"),
             Attribute(s="Bernoulli"),

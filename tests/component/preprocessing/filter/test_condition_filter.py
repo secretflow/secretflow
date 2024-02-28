@@ -1,5 +1,3 @@
-import os
-
 import numpy as np
 import pandas as pd
 
@@ -7,10 +5,10 @@ from secretflow.component.data_utils import DistDataType, extract_distdata_info
 from secretflow.component.preprocessing.filter.condition_filter import (
     condition_filter_comp,
 )
+from secretflow.component.storage import ComponentStorage
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
-from tests.conftest import TEST_STORAGE_ROOT
 
 
 def test_condition_filter(comp_prod_sf_cluster_config):
@@ -21,7 +19,7 @@ def test_condition_filter(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    local_fs_wd = storage_config.local_fs.wd
+    comp_storage = ComponentStorage(storage_config)
 
     if self_party == "alice":
         df_alice = pd.DataFrame(
@@ -33,14 +31,8 @@ def test_condition_filter(comp_prod_sf_cluster_config):
                 "y": [0, 1, 1, 0],
             }
         )
-
-        os.makedirs(
-            os.path.join(local_fs_wd, "test_condition_filter"),
-            exist_ok=True,
-        )
-
         df_alice.to_csv(
-            os.path.join(local_fs_wd, alice_input_path),
+            comp_storage.get_writer(alice_input_path),
             index=False,
         )
     elif self_party == "bob":
@@ -52,14 +44,8 @@ def test_condition_filter(comp_prod_sf_cluster_config):
                 "b6": [3, 1, 9, 4],
             }
         )
-
-        os.makedirs(
-            os.path.join(local_fs_wd, "test_condition_filter"),
-            exist_ok=True,
-        )
-
         df_bob.to_csv(
-            os.path.join(local_fs_wd, bob_input_path),
+            comp_storage.get_writer(bob_input_path),
             index=False,
         )
 
@@ -117,11 +103,6 @@ def test_condition_filter(comp_prod_sf_cluster_config):
     )
     param.inputs[0].meta.Pack(meta)
 
-    os.makedirs(
-        os.path.join(local_fs_wd, "test_condition_filter"),
-        exist_ok=True,
-    )
-
     res = condition_filter_comp.eval(
         param=param,
         storage_config=storage_config,
@@ -133,27 +114,16 @@ def test_condition_filter(comp_prod_sf_cluster_config):
     ds_info = extract_distdata_info(res.outputs[0])
     else_ds_info = extract_distdata_info(res.outputs[1])
 
-    ds_alice = pd.read_csv(
-        os.path.join(TEST_STORAGE_ROOT, "alice", ds_info["alice"].uri)
-    )
-    ds_bob = pd.read_csv(os.path.join(TEST_STORAGE_ROOT, "bob", ds_info["bob"].uri))
+    if self_party == "alice":
+        ds_alice = pd.read_csv(comp_storage.get_reader(ds_info["alice"].uri))
+        ds_else_alice = pd.read_csv(comp_storage.get_reader(else_ds_info["alice"].uri))
+        np.testing.assert_equal(ds_alice.shape[0], 2)
+        assert list(ds_alice["id1"]) == [1, 4]
+        assert list(ds_else_alice["id1"]) == [2, 3]
 
-    ds_else_alice = pd.read_csv(
-        os.path.join(TEST_STORAGE_ROOT, "alice", else_ds_info["alice"].uri)
-    )
-    ds_else_bob = pd.read_csv(
-        os.path.join(TEST_STORAGE_ROOT, "bob", else_ds_info["bob"].uri)
-    )
-    pd.testing.assert_series_equal(
-        ds_alice["id1"],
-        ds_bob["id2"],
-        check_names=False,
-    )
-    pd.testing.assert_series_equal(
-        ds_else_alice["id1"],
-        ds_else_bob["id2"],
-        check_names=False,
-    )
-
-    np.testing.assert_equal(ds_alice.shape[0], 2)
-    np.testing.assert_equal(ds_else_bob.shape[0], 2)
+    if self_party == "bob":
+        ds_bob = pd.read_csv(comp_storage.get_reader(ds_info["bob"].uri))
+        ds_else_bob = pd.read_csv(comp_storage.get_reader(else_ds_info["bob"].uri))
+        np.testing.assert_equal(ds_else_bob.shape[0], 2)
+        assert list(ds_bob["id2"]) == [1, 4]
+        assert list(ds_else_bob["id2"]) == [2, 3]

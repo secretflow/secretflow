@@ -24,7 +24,6 @@ import numpy as np
 import pandas as pd
 
 from secretflow.data import FedNdarray
-from secretflow.data.core.io import read_file_meta
 from secretflow.data.vertical import read_csv
 from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.device.device.pyu import PYU, PYUObject
@@ -351,13 +350,29 @@ def load_table(
     with ctx.tracer.trace_io():
         pyus = {p: PYU(p) for p in v_headers}
         filepaths = {
-            pyus[p]: os.path.join(ctx.local_fs_wd, parties_path_format[p].uri)
+            pyus[p]: lambda uri=parties_path_format[p].uri: ctx.comp_storage.get_reader(
+                uri
+            )
             for p in v_headers
         }
         dtypes = {pyus[p]: v_headers[p] for p in v_headers}
+        file_metas = {
+            pyus[p]: pyus[p](
+                lambda uri=parties_path_format[p].uri: ctx.comp_storage.get_file_meta(
+                    uri
+                )
+            )()
+            for p in v_headers
+        }
+        file_metas = reveal(file_metas)
+        logging.info(
+            f"try load VDataFrame, file uri {parties_path_format}, file meta {file_metas}"
+        )
         vdf = read_csv(filepaths, dtypes=dtypes, nrows=nrows)
         wait(vdf)
-        assert math.prod(vdf.shape), "empty dataset is not allowed"
+        shape = vdf.shape
+        logging.info(f"loaded VDataFrame, shape {shape}")
+        assert math.prod(shape), "empty dataset is not allowed"
     if return_schema_names:
         return vdf, schema_names
     return vdf
@@ -467,13 +482,16 @@ def dump_vertical_table(
     with ctx.tracer.trace_io():
         output_uri = {p: uri for p in v_data.partitions}
         output_path = {
-            p: os.path.join(ctx.local_fs_wd, output_uri[p]) for p in output_uri
+            p: lambda uri=output_uri[p]: ctx.comp_storage.get_writer(uri)
+            for p in output_uri
         }
         wait(v_data.to_csv(output_path, index=False))
         order = [p.party for p in v_data.partitions]
-        file_metas = {}
-        for pyu in output_path:
-            file_metas[pyu] = reveal(pyu(read_file_meta)(output_path[pyu]))
+        file_metas = {
+            p: p(lambda uri=output_uri[p]: ctx.comp_storage.get_file_meta(uri))()
+            for p in output_uri
+        }
+        file_metas = reveal(file_metas)
         logging.info(
             f"dumped VDataFrame, file uri {output_path}, samples {parties_length}, file meta {file_metas}"
         )
@@ -503,8 +521,6 @@ def model_dumps(
     dist_data_uri: str,
     system_info: SystemInfo,
 ) -> DistData:
-    # TODO: only local fs is supported at this moment.
-    storage_root = ctx.local_fs_wd
     objs_uri = []
     objs_party = []
     saved_objs = []
@@ -512,20 +528,14 @@ def model_dumps(
         if isinstance(obj, PYUObject):
             device: PYU = obj.device
             uri = f"{dist_data_uri}/{i}"
-            path = os.path.join(storage_root, uri)
 
-            def dumps(path: str, obj: Any):
+            def dumps(comp_storage, uri: str, obj: Any):
                 import pickle
-                from pathlib import Path
 
-                # create parent folders.
-                file = Path(path)
-                file.parent.mkdir(parents=True, exist_ok=True)
+                with comp_storage.get_writer(uri) as w:
+                    pickle.dump(obj, w)
 
-                with open(path, "wb") as f:
-                    f.write(pickle.dumps(obj))
-
-            wait(device(dumps)(path, obj))
+            wait(device(dumps)(ctx.comp_storage, uri, obj))
 
             saved_obj = DeviceObjectCollection.DeviceObject(
                 type="pyu", data_ref_idxs=[len(objs_uri)]
@@ -535,10 +545,12 @@ def model_dumps(
             objs_party.append(device.party)
         elif isinstance(obj, SPUObject):
             device: SPU = obj.device
-            uris = [f"{dist_data_uri}/{i}" for party in device.actors.keys()]
-            spu_paths = [os.path.join(storage_root, uri) for uri in uris]
+            uris = [f"{dist_data_uri}/{i}" for _ in device.actors]
 
-            wait(device.dump(obj, spu_paths))
+            device.dump(
+                obj,
+                [lambda uri=uri: ctx.comp_storage.get_writer(uri) for uri in uris],
+            )
 
             saved_obj = DeviceObjectCollection.DeviceObject(
                 type="spu", data_ref_idxs=[len(objs_uri) + p for p in range(len(uris))]
@@ -592,8 +604,6 @@ def model_loads(
     # TODO: assert system_info
     # system_info: SystemInfo = None,
 ) -> Tuple[List[DeviceObject], str]:
-    # TODO: only local fs is supported at this moment.
-    storage_root = ctx.local_fs_wd
     assert dist_data.type == model_type
     model_meta = DeviceObjectCollection()
     assert dist_data.meta.Unpack(model_meta)
@@ -626,14 +636,14 @@ def model_loads(
 
             assert data_ref.format == "pickle"
 
-            def loads(path: str) -> Any:
+            def loads(comp_storage, path: str) -> Any:
                 import pickle
 
-                with open(path, "rb") as f:
+                with comp_storage.get_reader(path) as r:
                     # TODO: not secure, may change to json loads/dumps?
-                    return pickle.loads(f.read())
+                    return pickle.load(r)
 
-            objs.append(pyu(loads)(os.path.join(storage_root, data_ref.uri)))
+            objs.append(pyu(loads)(ctx.comp_storage, data_ref.uri))
         elif save_obj.type == "spu":
             # TODO: only support one spu for now
             assert spu is not None
@@ -644,7 +654,8 @@ def model_loads(
                 assert data_ref.format == "pickle"
                 party = data_ref.party
                 assert party not in full_paths
-                full_paths[party] = os.path.join(storage_root, data_ref.uri)
+                uri = data_ref.uri
+                full_paths[party] = lambda uri=uri: ctx.comp_storage.get_reader(uri)
             assert set(full_paths.keys()) == set(spu.actors.keys())
             spu_paths = [full_paths[party] for party in spu.actors.keys()]
             objs.append(spu.load(spu_paths))
@@ -683,6 +694,65 @@ def save_prediction_csv(
             x.to_csv(path, mode='a', header=False, index=False)
     else:
         x.to_csv(path, index=False)
+
+
+def download_files(
+    ctx,
+    remote_fns: Dict[Union[str, PYU], str],
+    local_fns: Dict[Union[str, PYU], Union[str, DistdataInfo]],
+    overwrite: bool = True,
+):
+    pyu_remotes = {
+        p.party if isinstance(p, PYU) else p: remote_fns[p] for p in remote_fns
+    }
+    pyu_locals = {}
+    for p in local_fns:
+        k = p.party if isinstance(p, PYU) else p
+        v = local_fns[p] if isinstance(local_fns[p], str) else local_fns[p].uri
+        pyu_locals[k] = v
+
+    assert set(pyu_remotes.keys()) == set(
+        pyu_locals.keys()
+    ), f"{pyu_remotes} <> {pyu_locals}"
+
+    def download_file(comp_storage, uri, output_path):
+        if not overwrite and os.path.exists(output_path):
+            # skip download
+            assert os.path.isfile(output_path)
+        else:
+            comp_storage.download_file(uri, output_path)
+
+    waits = []
+    for p in pyu_remotes:
+        remote_fn = pyu_remotes[p]
+        local_fn = pyu_locals[p]
+        waits.append(PYU(p)(download_file)(ctx.comp_storage, remote_fn, local_fn))
+
+    wait(waits)
+
+
+def upload_files(
+    ctx,
+    remote_fns: Dict[Union[str, PYU], str],
+    local_fns: Dict[Union[str, PYU], str],
+):
+    pyu_remotes = {
+        p.party if isinstance(p, PYU) else p: remote_fns[p] for p in remote_fns
+    }
+    pyu_locals = {p.party if isinstance(p, PYU) else p: local_fns[p] for p in local_fns}
+
+    assert set(pyu_remotes.keys()) == set(
+        pyu_locals.keys()
+    ), f"{pyu_remotes} <> {pyu_locals}"
+
+    waits = []
+    for p in pyu_remotes:
+        waits.append(
+            PYU(p)(lambda c, r, l: c.upload_file(r, l))(
+                ctx.comp_storage, pyu_remotes[p], pyu_locals[p]
+            )
+        )
+    wait(waits)
 
 
 def gen_prediction_csv_meta(
@@ -737,9 +807,14 @@ class SimpleVerticalBatchReader:
 
         pyus = {p: PYU(p) for p in v_headers}
         self.filepaths = {
-            pyus[p]: os.path.join(ctx.local_fs_wd, parties_path_format[p].uri)
+            pyus[p]: os.path.join(ctx.data_dir, parties_path_format[p].uri)
             for p in v_headers
         }
+
+        remote_uri = {p: parties_path_format[p].uri for p in v_headers}
+
+        download_files(ctx, remote_uri, self.filepaths, False)
+
         self.dtypes = {pyus[p]: v_headers[p] for p in v_headers}
         self.batch_size = batch_size
         self.total_read_cnt = 0
@@ -837,6 +912,7 @@ def save_prediction_dd(
 
     append = False
     line_count = 0
+    local_path = os.path.join(ctx.data_dir, uri)
     for pyu_pred in pyu_preds:
         assert len(pyu_pred.partitions) == 1
         assert pyu in pyu_pred.partitions
@@ -857,13 +933,15 @@ def save_prediction_dd(
             pyu(save_prediction_csv)(
                 pyu_pred.partitions[pyu],
                 pred_name,
-                os.path.join(ctx.local_fs_wd, uri),
+                local_path,
                 addition_df,
                 list(addition_headers.keys()),
                 append,
             )
         )
         append = True
+
+    upload_files(ctx, {pyu: uri}, {pyu: local_path})
 
     pred_db = DistData(
         name=pred_name,

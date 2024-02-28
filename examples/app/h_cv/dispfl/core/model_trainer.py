@@ -24,10 +24,8 @@
 from abc import ABC, abstractmethod
 
 import torch
-from ..utils.main_flops_counter import (
-    count_training_flops,
-    count_inference_flops,
-)
+
+from ..utils.main_flops_counter import count_inference_flops, count_training_flops
 
 
 class ModelTrainer(ABC):

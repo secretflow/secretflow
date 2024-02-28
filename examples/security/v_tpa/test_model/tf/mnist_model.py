@@ -4,11 +4,12 @@ import sys
 
 sys.path.append("..")
 
+import pdb
+
+import numpy as np
+import tensorflow as tf
 from tensorflow import keras, nn, optimizers
 from tensorflow.keras import layers
-import tensorflow as tf
-import numpy as np
-import pdb
 
 
 def create_passive_model(input_shape, output_shape, opt_args, compile_args):

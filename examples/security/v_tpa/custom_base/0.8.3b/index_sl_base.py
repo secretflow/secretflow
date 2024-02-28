@@ -1,4 +1,5 @@
 import copy
+import pdb
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Callable, Dict, Iterator, List, Optional, Tuple, Union
@@ -23,7 +24,6 @@ from secretflow.utils.compressor import Compressor, SparseCompressor
 
 # from secretflow.ml.nn.sl.backend.tensorflow.sl_base import SLBaseTFModel
 from .sl_base import SLBaseTFModel
-import pdb
 
 
 class IndexSLBaseTFModel(SLBaseTFModel):

@@ -124,15 +124,17 @@ class Sampler(Component):
         if self.params.label_holder_feature_only:
             col_choices, total_buckets = zip(
                 *[
-                    self.sample_actors[fb.device].invoke_class_method_two_ret(
-                        'SampleActor',
-                        'generate_one_partition_col_choices',
-                        colsample,
-                        fb,
-                    )
-                    if fb.device == self.label_holder
-                    else self.sample_actors[fb.device].invoke_class_method_two_ret(
-                        'SampleActor', 'generate_one_partition_col_choices', 0, fb
+                    (
+                        self.sample_actors[fb.device].invoke_class_method_two_ret(
+                            'SampleActor',
+                            'generate_one_partition_col_choices',
+                            colsample,
+                            fb,
+                        )
+                        if fb.device == self.label_holder
+                        else self.sample_actors[fb.device].invoke_class_method_two_ret(
+                            'SampleActor', 'generate_one_partition_col_choices', 0, fb
+                        )
                     )
                     for fb in feature_buckets
                 ]
@@ -239,9 +241,11 @@ class Sampler(Component):
                 partitions={
                     pyu: pyu(lambda x, y, z: x[y, :][:, z])(
                         partition,
-                        row_choices.to(pyu)
-                        if isinstance(row_choices, PYUObject)
-                        else row_choices,
+                        (
+                            row_choices.to(pyu)
+                            if isinstance(row_choices, PYUObject)
+                            else row_choices
+                        ),
                         col_choices[i],
                     )
                     for i, (pyu, partition) in enumerate(X.partitions.items())
@@ -263,9 +267,11 @@ class Sampler(Component):
                 partitions={
                     pyu: pyu(lambda x, y: x[y, :])(
                         partition,
-                        row_choices.to(pyu)
-                        if isinstance(row_choices, PYUObject)
-                        else row_choices,
+                        (
+                            row_choices.to(pyu)
+                            if isinstance(row_choices, PYUObject)
+                            else row_choices
+                        ),
                     )
                     for pyu, partition in X.partitions.items()
                 },

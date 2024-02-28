@@ -12,103 +12,83 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
-from typing import List, Optional, Union
+from typing import Callable, Optional, Tuple
 
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, TensorDataset
+from sklearn.preprocessing import MinMaxScaler
+from torch.utils.data import DataLoader, Dataset
 from torchmetrics import AUROC, Accuracy, Precision
 
-from benchmark_examples.autoattack.applications.base import TrainBase
+from benchmark_examples.autoattack.applications.table.bank.bank_base import BankBase
+from benchmark_examples.autoattack.utils.dataset_utils import (
+    create_custom_dataset_builder,
+)
 from secretflow import reveal
-from secretflow.data.split import train_test_split
-from secretflow.ml.nn import SLModel
 from secretflow.ml.nn.applications.sl_dnn_torch import DnnBase, DnnFuse
-from secretflow.ml.nn.callbacks.callback import Callback
 from secretflow.ml.nn.utils import TorchModel, metric_wrapper, optim_wrapper
-from secretflow.preprocessing import LabelEncoder, MinMaxScaler
-from secretflow.utils.simulation.datasets import load_bank_marketing
 
 
-class BankDnn(TrainBase):
+class AliceDataset(Dataset):
+    def __init__(self, x, loss='binary'):
+        df = x[0]
+        label = x[1]
+        for feat in df.columns:
+            mms = MinMaxScaler()
+            df[feat] = mms.fit_transform(df[[feat]])
+        if loss == "binary":
+            self.label = torch.tensor(label.values.astype(np.float32))
+        else:
+            self.label = torch.tensor(label['y'].values)
+
+        self.tensor = torch.tensor(df.values.astype(np.float32))
+
+    def __getitem__(self, index):
+        return self.tensor[index], self.label[index]
+
+    def __len__(self):
+        return self.tensor.size(0)
+
+
+# CMDataset = AliceDataset
+
+
+class BobDataset(Dataset):
+    def __init__(self, x, tuple_type=False):
+        df = x[0]
+        for feat in df.columns:
+            mms = MinMaxScaler()
+            df[feat] = mms.fit_transform(df[[feat]])
+        self.tensor = torch.tensor(df.values.astype(np.float32))
+        self.tuple_type = tuple_type
+
+    def __getitem__(self, index):
+        return tuple((self.tensor[index],)) if self.tuple_type else self.tensor[index]
+
+    def __len__(self):
+        return self.tensor.size(0)
+
+
+class BankDnn(BankBase):
     def __init__(
         self,
         config,
         alice,
         bob,
-        epoch=10,
-        train_batch_size=128,
         hidden_size=64,
-        alice_fea_nums=4,
     ):
-        self.hidden_size = config.get('hidden_size', hidden_size)
-        self.alice_fea_nums = config.get('alice_fea_nums', alice_fea_nums)
-        self.bob_fea_nums = 16 - self.alice_fea_nums
-        self.dnn_units_size = [100, self.hidden_size]
         super().__init__(
-            config, alice, bob, alice, 2, epoch=epoch, train_batch_size=train_batch_size
+            config,
+            alice,
+            bob,
+            hidden_size=hidden_size,
+            dnn_base_units_size_alice=[100, hidden_size],
+            dnn_base_units_size_bob=[100, hidden_size],
+            dnn_fuse_units_size=[1],
         )
 
-    def train(self, callbacks: Optional[Union[List[Callback], Callback]] = None):
-        base_model_dict = {
-            self.alice: self.alice_base_model,
-            self.bob: self.bob_base_model,
-        }
-        sl_model = SLModel(
-            base_model_dict=base_model_dict,
-            device_y=self.device_y,
-            model_fuse=self.fuse_model,
-            backend='torch',
-        )
-        history = sl_model.fit(
-            self.train_data,
-            self.train_label,
-            validation_data=(self.test_data, self.test_label),
-            epochs=self.epoch,
-            batch_size=self.train_batch_size,
-            shuffle=False,
-            verbose=1,
-            validation_freq=1,
-            callbacks=callbacks,
-        )
-        logging.warning(history['val_BinaryAccuracy'])
-
-    def _prepare_data(self):
-        data = load_bank_marketing(
-            parts={
-                self.alice: (0, self.alice_fea_nums),
-                self.bob: (self.alice_fea_nums, 16),
-            },
-            axis=1,
-        )
-        label = load_bank_marketing(parts={self.alice: (16, 17)}, axis=1)
-
-        encoder = LabelEncoder()
-        data['job'] = encoder.fit_transform(data['job'])
-        data['marital'] = encoder.fit_transform(data['marital'])
-        data['education'] = encoder.fit_transform(data['education'])
-        data['default'] = encoder.fit_transform(data['default'])
-        data['housing'] = encoder.fit_transform(data['housing'])
-        data['loan'] = encoder.fit_transform(data['loan'])
-        data['contact'] = encoder.fit_transform(data['contact'])
-        data['poutcome'] = encoder.fit_transform(data['poutcome'])
-        data['month'] = encoder.fit_transform(data['month'])
-        label = encoder.fit_transform(label).astype(np.float32)
-        scaler = MinMaxScaler()
-        data = scaler.fit_transform(data).astype(np.float32)  # 因为模型是32的
-        random_state = 1234
-        train_data, test_data = train_test_split(
-            data, train_size=0.8, random_state=random_state
-        )
-        train_label, test_label = train_test_split(
-            label, train_size=0.8, random_state=random_state
-        )
-
-        return train_data, train_label, test_data, test_label
-
-    def create_base_model(self, input_dim):
+    def create_base_model(self, input_dim, dnn_units_size):
         model = TorchModel(
             model_fn=DnnBase,
             loss_fn=nn.BCELoss,
@@ -119,17 +99,19 @@ class BankDnn(TrainBase):
                 metric_wrapper(AUROC, task="binary"),
             ],
             input_dims=[input_dim],
-            dnn_units_size=self.dnn_units_size,
+            dnn_units_size=dnn_units_size,
         )
         return model
 
-    def _create_base_model_alice(self):
-        return self.create_base_model(self.alice_fea_nums)
+    def create_base_model_alice(self):
+        return self.create_base_model(
+            self.alice_fea_nums, self.dnn_base_units_size_alice
+        )
 
-    def _create_base_model_bob(self):
-        return self.create_base_model(self.bob_fea_nums)
+    def create_base_model_bob(self):
+        return self.create_base_model(self.bob_fea_nums, self.dnn_base_units_size_bob)
 
-    def _create_fuse_model(self):
+    def create_fuse_model(self):
         return TorchModel(
             model_fn=DnnFuse,
             loss_fn=nn.BCELoss,
@@ -140,23 +122,72 @@ class BankDnn(TrainBase):
                 metric_wrapper(AUROC, task="binary"),
             ],
             input_dims=[self.hidden_size, self.hidden_size],
-            dnn_units_size=[1],
+            dnn_units_size=self.dnn_fuse_units_size,
             output_func=nn.Sigmoid,
         )
 
+    def create_dataset_builder_alice(self, *args, **kwargs):
+        return create_custom_dataset_builder(AliceDataset, self.train_batch_size)
+
+    def create_dataset_builder_bob(self, *args, **kwargs):
+        return create_custom_dataset_builder(BobDataset, self.train_batch_size)
+
+    def create_predict_dataset_builder_alice(
+        self, *args, **kwargs
+    ) -> Optional[Callable]:
+        return create_custom_dataset_builder(BobDataset, self.train_batch_size)
+
+    def create_predict_dataset_builder_bob(self, *args, **kwargs) -> Optional[Callable]:
+        return create_custom_dataset_builder(BobDataset, self.train_batch_size)
+
     def support_attacks(self):
-        return ['norm', 'lia']
+        return ['norm', 'lia', 'fia', 'replay', 'replace', 'exploit']
+
+    def dnn_base_units_size_range_alice(self) -> Optional[list]:
+        return [
+            [128, -1],
+            [-1],
+            [128, 128, -1],
+        ]
+
+    def dnn_base_units_size_range_bob(self) -> Optional[list]:
+        # since alice = bob
+        return None
+
+    def dnn_fuse_units_size_range(self) -> Optional[list]:
+        return [[1], [256, 128, 1], [128, 1]]
+
+    def lia_auxiliary_model(self, ema=False):
+        from benchmark_examples.autoattack.attacks.lia import BottomModelPlus
+
+        bottom_model = DnnBase(
+            input_dims=[self.alice_fea_nums],
+            dnn_units_size=self.dnn_base_units_size_alice,
+        )
+        model = BottomModelPlus(
+            bottom_model,
+            size_bottom_out=self.dnn_base_units_size_alice[-1],
+            num_classes=2,
+        )
+
+        if ema:
+            for param in model.parameters():
+                param.detach_()
+
+        return model
 
     def lia_auxiliary_data_builder(self, batch_size=16, file_path=None):
+        train = self.plain_bob_train_data
+        tr_label = self.plain_train_label
+        test = reveal(self.test_data.partitions[self.bob].data)
+        tst_label = reveal(self.test_label.partitions[self.alice].data)
+
         def split_some_data(df, label):
             df['y'] = label['y']
-            df = df.sample(frac=1, random_state=42)[: int(len(df) * 0.2)]
-            label = df['y']
+            df = df.sample(n=50, random_state=42)
+            label = df[['y']]
             df = df.drop(columns=['y'])
-            logging.warning(f"label shape = {torch.LongTensor(label.values).shape}")
-            datasets = TensorDataset(
-                torch.tensor(df.values), torch.LongTensor(label.values)
-            )
+            datasets = AliceDataset([df, label], loss='multi-class')
             return DataLoader(
                 datasets,
                 batch_size=batch_size,
@@ -166,15 +197,8 @@ class BankDnn(TrainBase):
             )
 
         def prepare_data():
-            train = reveal(self.train_data.partitions[self.bob].data)
-            tr_label = reveal(self.train_label.partitions[self.alice].data)
-            test = reveal(self.test_data.partitions[self.bob].data)
-            tst_label = reveal(self.test_label.partitions[self.alice].data)
-            logging.warning(f"test label = {tst_label}")
             train_complete_trainloader = DataLoader(
-                TensorDataset(
-                    torch.tensor(train.values), torch.LongTensor(tr_label['y'].values)
-                ),
+                AliceDataset([train, tr_label], loss='multi-class'),
                 batch_size=batch_size,
                 shuffle=True,
                 num_workers=0,
@@ -184,9 +208,7 @@ class BankDnn(TrainBase):
             tr_label['y'] = -1
             train_unlabeled_dataloader = split_some_data(train, tr_label)
             test_loader = DataLoader(
-                TensorDataset(
-                    torch.tensor(test.values), torch.LongTensor(tst_label['y'].values)
-                ),
+                AliceDataset([test, tst_label], loss='multi-class'),
                 batch_size=batch_size,
                 shuffle=True,
                 num_workers=0,
@@ -201,18 +223,74 @@ class BankDnn(TrainBase):
 
         return prepare_data
 
-    def lia_auxiliary_model(self, ema=False):
-        from benchmark_examples.autoattack.attacks.lia import BottomModelPlus
+    def fia_auxiliary_data_builder(self):
+        alice_train = self.plain_alice_train_data.sample(frac=0.4, random_state=42)
+        bob_train = self.plain_bob_train_data.sample(frac=0.4, random_state=42)
+        train_batch_size = self.train_batch_size
 
-        bottom_model = DnnBase(
-            input_dims=[self.alice_fea_nums], dnn_units_size=self.dnn_units_size
+        def _prepare_data():
+            alice_dataset = BobDataset([alice_train], tuple_type=True)
+            bob_dataset = BobDataset([bob_train], tuple_type=True)
+            alice_dataloader = DataLoader(
+                dataset=alice_dataset, shuffle=False, batch_size=train_batch_size
+            )
+            bob_dataloader = DataLoader(
+                dataset=bob_dataset, shuffle=False, batch_size=train_batch_size
+            )
+            dataloader_dict = {'alice': alice_dataloader, 'bob': bob_dataloader}
+            return dataloader_dict, dataloader_dict
+
+        return _prepare_data
+
+    def fia_victim_mean_attr(self):
+        df = self.plain_bob_train_data.sample(frac=0.4, random_state=42)
+        mms = MinMaxScaler()
+        for feat in df.columns:
+            df[feat] = mms.fit_transform(df[[feat]])
+        return df.values.mean(axis=0)
+
+    def fia_victim_model_dict(self, victim_model_save_path):
+        return {self.device_f: [self.create_base_model_bob(), victim_model_save_path]}
+
+    def fia_victim_input_shape(self):
+        return list(self.plain_bob_train_data.shape[1:])
+
+    def fia_attack_input_shape(self):
+        return list(self.plain_alice_train_data.shape[1:])
+
+    def replay_auxiliary_attack_configs(
+        self, target_nums: int = 15
+    ) -> Tuple[int, np.ndarray, np.ndarray]:
+        target_class = 1
+        poison_class = 0
+        target_indexes = np.where(np.array(self.plain_train_label) == target_class)[0]
+        target_set = np.random.choice(target_indexes, target_nums, replace=False)
+        eval_indexes = np.where(np.array(self.plain_test_label) == poison_class)[0]
+        eval_poison_set = np.random.choice(eval_indexes, 100, replace=False)
+        return target_class, target_set, eval_poison_set
+
+    def replace_auxiliary_attack_configs(self, target_nums: int = 15):
+        plain_train_label = np.array(self.plain_train_label)
+        plain_test_label = np.array(self.plain_test_label)
+        plain_bob_train_data = self.plain_bob_train_data.copy()
+        mms = MinMaxScaler()
+        for feat in plain_bob_train_data.columns:
+            plain_bob_train_data[feat] = mms.fit_transform(plain_bob_train_data[[feat]])
+        plain_bob_train_data = plain_bob_train_data.values
+        target_class = 1
+        target_indexes = np.where(plain_train_label == target_class)[0]
+        target_set = np.random.choice(target_indexes, target_nums, replace=False)
+        train_poison_set = np.random.choice(
+            range(len(plain_train_label)), 100, replace=False
         )
-        model = BottomModelPlus(
-            bottom_model, size_bottom_out=self.dnn_units_size[-1], num_classes=2
+        train_poison_np = np.stack(plain_bob_train_data[train_poison_set])
+        eval_poison_set = np.random.choice(
+            range(len(plain_test_label)), 100, replace=False
         )
-
-        if ema:
-            for param in model.parameters():
-                param.detach_()
-
-        return model
+        return (
+            target_class,
+            target_set,
+            train_poison_set,
+            train_poison_np,
+            eval_poison_set,
+        )

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding=utf-8
-from .nuswide_dataset import NUSWIDEDataset
 from .badnets_base_dataset import BadNetsBaseDataset
+from .nuswide_dataset import NUSWIDEDataset
 
 
 class MirrorNUSWIDEDataset(NUSWIDEDataset, BadNetsBaseDataset):

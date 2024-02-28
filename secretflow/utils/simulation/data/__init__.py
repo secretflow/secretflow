@@ -14,6 +14,7 @@
 
 from .dataframe import create_df, create_hdf, create_vdf
 from .ndarray import create_ndarray
+from ._utils import SPLIT_METHOD
 
 __ALL__ = [
     'create_df',

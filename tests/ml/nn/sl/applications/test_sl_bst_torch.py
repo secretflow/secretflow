@@ -134,9 +134,11 @@ def generate_data():
     )
 
     ratings_data_transformed.movie_ids = ratings_data_transformed.movie_ids.apply(
-        lambda x: ",".join(x[:-1])
-        if '0' not in x
-        else ",".join(x[: x.index('0') - 1] + x[x.index('0') :])
+        lambda x: (
+            ",".join(x[:-1])
+            if '0' not in x
+            else ",".join(x[: x.index('0') - 1] + x[x.index('0') :])
+        )
     )
 
     ratings_data_transformed['label'] = ratings_data_transformed.ratings.apply(
@@ -166,12 +168,10 @@ def generate_data():
 
     # encoder: str to id
     le = LabelEncoder()
-    ratings_data_transformed[
-        ['user_id', 'gender', 'age_group', 'occupation']
-    ] = ratings_data_transformed[
-        ['user_id', 'gender', 'age_group', 'occupation']
-    ].apply(
-        le.fit_transform
+    ratings_data_transformed[['user_id', 'gender', 'age_group', 'occupation']] = (
+        ratings_data_transformed[
+            ['user_id', 'gender', 'age_group', 'occupation']
+        ].apply(le.fit_transform)
     )
     fea_emb_input_size['user_id'] = len(ratings_data_transformed['user_id'].unique())
     fea_emb_input_size['gender'] = len(ratings_data_transformed['gender'].unique())

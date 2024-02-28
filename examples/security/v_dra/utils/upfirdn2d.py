@@ -1,11 +1,10 @@
-from collections import abc
 import os
+from collections import abc
 
 import torch
-from torch.nn import functional as F
 from torch.autograd import Function
+from torch.nn import functional as F
 from torch.utils.cpp_extension import load
-
 
 module_path = os.path.dirname(__file__)
 upfirdn2d_op = load(
