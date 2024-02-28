@@ -5,6 +5,7 @@ import os
 
 import translators as ts
 from google.protobuf.json_format import MessageToJson
+
 from secretflow.component.entry import COMP_LIST
 from secretflow.component.i18n import gettext
 

@@ -171,7 +171,9 @@ class PdPartDataFrame(PartDataFrameBase):
             return PdPartDataFrame(data)
 
     def to_csv(self, filepath, **kwargs):
-        if is_local_file(filepath):
+        if callable(filepath):
+            filepath = filepath()
+        elif is_local_file(filepath):
             Path(filepath).parent.mkdir(parents=True, exist_ok=True)
         self.data.to_csv(filepath, **kwargs)
 

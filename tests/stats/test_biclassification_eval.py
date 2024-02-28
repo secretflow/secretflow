@@ -1,12 +1,12 @@
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
+from sklearn.metrics import roc_auc_score
 
 from secretflow import reveal
-from secretflow.data import FedNdarray, partition, PartitionWay
+from secretflow.data import FedNdarray, PartitionWay, partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.stats import BiClassificationEval
-from sklearn.metrics import roc_auc_score
 
 
 def test_auc(sf_production_setup_devices):

@@ -34,11 +34,11 @@ from secretflow.component.preprocessing.unified_single_party_ops.onehot_encode i
 from secretflow.component.preprocessing.unified_single_party_ops.substitution import (
     substitution,
 )
+from secretflow.component.storage import ComponentStorage
 from secretflow.spec.extend.calculate_rules_pb2 import CalculateOpRules
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
-from tests.conftest import TEST_STORAGE_ROOT
 
 
 def eval_export(dir, comp_params, comp_res, storage_config, sf_cluster_config):
@@ -93,40 +93,44 @@ def eval_export(dir, comp_params, comp_res, storage_config, sf_cluster_config):
 
     assert len(export_res.outputs) == 1
 
-    alice_tar = os.path.join(TEST_STORAGE_ROOT, "alice", export_model_path)
-    bob_tar = os.path.join(TEST_STORAGE_ROOT, "bob", export_model_path)
-
     expected_files = {"model_file", "MANIFEST"}
+    comp_storage = ComponentStorage(storage_config)
 
-    # alice
-    tar_files = dict()
-    with tarfile.open(alice_tar, "r:gz") as tar:
-        for member in tar:
-            tar_files[member.name] = tar.extractfile(member.name).read()
+    if "alice" == sf_cluster_config.private_config.self_party:
+        tar_files = dict()
+        with tarfile.open(
+            fileobj=comp_storage.get_reader(export_model_path),
+            mode="r:gz",
+        ) as tar:
+            for member in tar:
+                tar_files[member.name] = tar.extractfile(member.name).read()
 
-    assert expected_files == set(tar_files), f"alice_files {tar_files.keys()}"
+        assert expected_files == set(tar_files), f"alice_files {tar_files.keys()}"
 
-    mm = json_format.Parse(tar_files["MANIFEST"], sfs.bundle_pb2.ModelManifest())
-    logging.warn(f"alice MANIFEST ............ \n{mm}\n ............ \n")
+        mm = json_format.Parse(tar_files["MANIFEST"], sfs.bundle_pb2.ModelManifest())
+        logging.warn(f"alice MANIFEST ............ \n{mm}\n ............ \n")
 
-    mb = sfs.bundle_pb2.ModelBundle()
-    mb.ParseFromString(tar_files["model_file"])
-    logging.warn(f"alice model_file ............ \n{mb}\n ............ \n")
+        mb = sfs.bundle_pb2.ModelBundle()
+        mb.ParseFromString(tar_files["model_file"])
+        logging.warn(f"alice model_file ............ \n{mb}\n ............ \n")
 
-    # bob
-    tar_files = dict()
-    with tarfile.open(bob_tar, "r:gz") as tar:
-        for member in tar:
-            tar_files[member.name] = tar.extractfile(member.name).read()
+    if "bob" == sf_cluster_config.private_config.self_party:
+        tar_files = dict()
+        with tarfile.open(
+            fileobj=comp_storage.get_reader(export_model_path),
+            mode="r:gz",
+        ) as tar:
+            for member in tar:
+                tar_files[member.name] = tar.extractfile(member.name).read()
 
-    assert expected_files == set(tar_files), f"alice_files {tar_files.keys()}"
+        assert expected_files == set(tar_files), f"alice_files {tar_files.keys()}"
 
-    mm = json_format.Parse(tar_files["MANIFEST"], sfs.bundle_pb2.ModelManifest())
-    logging.warn(f"bob MANIFEST ............ \n{mm}\n ............ \n")
+        mm = json_format.Parse(tar_files["MANIFEST"], sfs.bundle_pb2.ModelManifest())
+        logging.warn(f"bob MANIFEST ............ \n{mm}\n ............ \n")
 
-    mb = sfs.bundle_pb2.ModelBundle()
-    mb.ParseFromString(tar_files["model_file"])
-    logging.warn(f"bob model_file ............ \n{mb}\n ............ \n")
+        mb = sfs.bundle_pb2.ModelBundle()
+        mb.ParseFromString(tar_files["model_file"])
+        logging.warn(f"bob model_file ............ \n{mb}\n ............ \n")
 
 
 def test_model_export(comp_prod_sf_cluster_config):
@@ -152,16 +156,11 @@ def test_model_export(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    local_fs_wd = storage_config.local_fs.wd
-
-    os.makedirs(
-        os.path.join(local_fs_wd, "test_model_export"),
-        exist_ok=True,
-    )
+    comp_storage = ComponentStorage(storage_config)
 
     def build_dataset():
         random.seed(42)
-        data_len = 2048
+        data_len = 32
 
         # f1 - f16, random data with random weight
         def _rand():
@@ -208,11 +207,11 @@ def test_model_export(comp_prod_sf_cluster_config):
     data = build_dataset()
     if self_party == "alice":
         ds = data[[f"f{i+1}" for i in range(8)] + ["b1", "o1", "y"]]
-        ds.to_csv(os.path.join(local_fs_wd, alice_input_path), index=False)
+        ds.to_csv(comp_storage.get_writer(alice_input_path), index=False)
 
     elif self_party == "bob":
         ds = data[[f"f{i + 9}" for i in range(8)] + ["b2", "o2"]]
-        ds.to_csv(os.path.join(local_fs_wd, bob_input_path), index=False)
+        ds.to_csv(comp_storage.get_writer(bob_input_path), index=False)
 
     # binning
     bin_param = NodeEvalParam(
@@ -388,7 +387,7 @@ def test_model_export(comp_prod_sf_cluster_config):
         attrs=[
             Attribute(i64=1),
             Attribute(f=0.3),
-            Attribute(i64=128),
+            Attribute(i64=32),
             Attribute(s="Logit"),
             Attribute(s="Bernoulli"),
             Attribute(s="SGD"),
@@ -480,7 +479,7 @@ def get_ss_sgd_train_param(alice_path, bob_path, model_path):
         attrs=[
             Attribute(i64=1),
             Attribute(f=0.3),
-            Attribute(i64=128),
+            Attribute(i64=32),
             Attribute(s="t1"),
             Attribute(s="logistic"),
             Attribute(s="l2"),
@@ -536,28 +535,19 @@ def get_eval_param(predict_path):
 def get_meta_and_dump_data(dir, comp_prod_sf_cluster_config, alice_path, bob_path):
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    local_fs_wd = storage_config.local_fs.wd
+    comp_storage = ComponentStorage(storage_config)
     scaler = StandardScaler()
     ds = load_breast_cancer()
     x, y = scaler.fit_transform(ds["data"]), ds["target"]
     if self_party == "alice":
-        os.makedirs(
-            os.path.join(local_fs_wd, dir),
-            exist_ok=True,
-        )
-        x = pd.DataFrame(x[:, :15], columns=[f"a{i}" for i in range(15)])
-        y = pd.DataFrame(y, columns=["y"])
+        x = pd.DataFrame(x[:32, :15], columns=[f"a{i}" for i in range(15)])
+        y = pd.DataFrame(y[:32], columns=["y"])
         ds = pd.concat([x, y], axis=1)
-        ds.to_csv(os.path.join(local_fs_wd, alice_path), index=False)
+        ds.to_csv(comp_storage.get_writer(alice_path), index=False)
 
     elif self_party == "bob":
-        os.makedirs(
-            os.path.join(local_fs_wd, dir),
-            exist_ok=True,
-        )
-
-        ds = pd.DataFrame(x[:, 15:], columns=[f"b{i}" for i in range(15)])
-        ds.to_csv(os.path.join(local_fs_wd, bob_path), index=False)
+        ds = pd.DataFrame(x[:32, 15:], columns=[f"b{i}" for i in range(15)])
+        ds.to_csv(comp_storage.get_writer(bob_path), index=False)
 
     return VerticalTable(
         schemas=[
@@ -587,7 +577,7 @@ def get_pred_param(alice_path, bob_path, train_res, predict_path):
             "save_label",
         ],
         attrs=[
-            Attribute(i64=128),
+            Attribute(i64=32),
             Attribute(s="alice"),
             Attribute(b=False),
             Attribute(b=True),
@@ -733,7 +723,7 @@ def test_sgb_export(comp_prod_sf_cluster_config):
     train_param = NodeEvalParam(
         domain="ml.train",
         name="sgb_train",
-        version="0.0.1",
+        version="0.0.2",
         attr_paths=[
             "num_boost_round",
             "max_depth",

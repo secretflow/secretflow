@@ -23,12 +23,12 @@ from typing import List, Union
 import fed
 import jax
 import ray
-import secretflow.ic.remote as ic
 from ray import Language
 from ray._private import ray_option_utils
 from ray.actor import ActorClass, _inject_tracing_into_class, ray_constants
 from ray.remote_function import RemoteFunction
 
+import secretflow.ic.remote as ic
 from secretflow.distributed.memory_api import mem_remote
 from secretflow.utils.ray_compatibility import ray_version_less_than_2_0_0
 

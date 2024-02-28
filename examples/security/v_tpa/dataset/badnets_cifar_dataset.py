@@ -4,11 +4,13 @@ import sys
 
 sys.path.append("..")
 
-import torch
 import pdb
+
+import torch
 from attack.badnets.trigger import inject_cifar_trigger
+
 from .mirror_cifar_dataset import MirrorCIFARDataset
-from .split_dataset import PassiveDataset, ActiveDataset
+from .split_dataset import ActiveDataset, PassiveDataset
 
 
 class BadNetsCIFARDataset(MirrorCIFARDataset):

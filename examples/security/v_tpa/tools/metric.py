@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # coding=utf-8
-import numpy as np
 import json
 import pdb
+
+import numpy as np
 
 
 def asr(preds, truthes, target_class, indexes, hope_indexes):

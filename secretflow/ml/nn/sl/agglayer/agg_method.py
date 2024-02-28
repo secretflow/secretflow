@@ -96,9 +96,9 @@ class Average(AggMethod):
                 jnp.average(
                     jnp.array(element),
                     axis=self.axis,
-                    weights=jnp.array(self.weights)
-                    if self.weights is not None
-                    else None,
+                    weights=(
+                        jnp.array(self.weights) if self.weights is not None else None
+                    ),
                 )
                 for element in zip(*data)
             ]

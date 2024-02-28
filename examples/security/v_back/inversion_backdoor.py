@@ -1,31 +1,26 @@
+import os
+
+import matplotlib.pylab as plt2
+import matplotlib.pyplot as plt
+import numpy as np
 import torch
-from torch.utils.data import DataLoader
-from torchvision import datasets
-
-import torch.nn as nn
-import torch.optim as optim
-import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
-
-
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
-
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.pylab as plt2
-import os
+from torch.utils.data import DataLoader
+from torchvision import datasets
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 import random
 
-from torch.autograd import Variable
-
-from resnet50 import ResNet50
-from resnet34 import ResNet34
-
 from imageio import imsave
+from resnet34 import ResNet34
+from resnet50 import ResNet50
+from torch.autograd import Variable
 
 criterion = nn.CrossEntropyLoss()
 

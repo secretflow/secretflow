@@ -4,9 +4,9 @@ import sys
 
 sys.path.append("..")
 
+from .tf.cifar10_model import get_passive_model as cifar_passive_model
 from .tf.mnist_model import get_passive_model as mnist_passive_model
 from .tf.nuswide_model import get_passive_model as nuswide_passive_model
-from .tf.cifar10_model import get_passive_model as cifar_passive_model
 
 MODELS = {
     "cifar10": {

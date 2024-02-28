@@ -11,10 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import logging
 from typing import List, Optional, Tuple, Union
 
-from benchmark_examples.autoattack.applications.base import TrainBase
+from benchmark_examples.autoattack.applications.base import ApplicationBase
 from secretflow.data.split import train_test_split
 from secretflow.data.vertical import VDataFrame
 from secretflow.ml.nn import SLModel
@@ -49,7 +50,7 @@ GENRES_VOCAB = [
 ]
 
 
-class MovielensDnn(TrainBase):
+class MovielensDnn(ApplicationBase):
     def train(self, callbacks: Optional[Union[List[Callback], Callback]] = None):
         pass
 

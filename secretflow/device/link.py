@@ -20,9 +20,9 @@ from typing import Any, Dict, List, Union
 
 import fed
 import ray
+from fed.actor_with_comm import ActorWithComm
 
 import secretflow.distributed as sfd
-from fed.actor_with_comm import ActorWithComm
 from secretflow.device.driver import reveal
 from secretflow.distributed.primitive import DISTRIBUTION_MODE
 

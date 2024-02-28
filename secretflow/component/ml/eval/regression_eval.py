@@ -20,7 +20,6 @@ from secretflow.spec.v1.data_pb2 import DistData
 from secretflow.spec.v1.report_pb2 import Descriptions, Div, Report, Tab, Table
 from secretflow.stats.regression_eval import RegressionEval
 
-
 regression_eval_comp = Component(
     name="regression_eval",
     domain="ml.eval",

@@ -12,60 +12,65 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
 from abc import ABC
-from typing import List, Optional, Union
+from typing import Tuple
 
+import numpy as np
 import torch
+from torch.utils.data import DataLoader, TensorDataset
 from torchvision import datasets, transforms
 
-from benchmark_examples.autoattack.applications.base import TrainBase
-from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.callbacks.callback import Callback
+from benchmark_examples.autoattack.applications.base import ApplicationBase
+from benchmark_examples.autoattack.utils.dataset_utils import sample_ndarray
+from secretflow import reveal
 
 from .data_utils import CIFAR10Labeled, CIFAR10Unlabeled, label_index_split
 
 
-class Cifar10TrainBase(TrainBase, ABC):
-    def __init__(self, config, alice, bob, epoch=1, train_batch_size=128):
+class Cifar10ApplicationBase(ApplicationBase, ABC):
+    def __init__(
+        self,
+        config,
+        alice,
+        bob,
+        epoch=10,
+        train_batch_size=128,
+        hidden_size=10,
+        dnn_fuse_units_size=None,
+    ):
         super().__init__(
-            config, alice, bob, bob, 10, epoch=epoch, train_batch_size=train_batch_size
+            config,
+            alice,
+            bob,
+            device_y=bob,
+            total_fea_nums=32 * 32 * 3,
+            alice_fea_nums=32 * 16 * 3,
+            num_classes=10,
+            epoch=epoch,
+            train_batch_size=train_batch_size,
+            hidden_size=hidden_size,
+            dnn_fuse_units_size=dnn_fuse_units_size,
         )
+        self.plain_alice_train_data: np.ndarray
+        self.plain_bob_train_data: np.ndarray
+        self.plain_train_label: np.ndarray
 
-    def train(self, callbacks: Optional[Union[List[Callback], Callback]] = None):
-        sl_model = SLModel(
-            base_model_dict={
-                self.alice: self.alice_base_model,
-                self.bob: self.bob_base_model,
-            },
-            device_y=self.device_y,
-            model_fuse=self.fuse_model,
-            simulation=True,
-            random_seed=1234,
-            backend='torch',
-            strategy='split_nn',
-        )
-        history = sl_model.fit(
-            x=self.train_data,
-            y=self.train_label,
-            validation_data=(self.test_data, self.test_label),
-            epochs=self.epoch,
-            batch_size=self.train_batch_size,
-            shuffle=False,
-            random_seed=1234,
-            dataset_builder=None,
-            callbacks=callbacks,
-        )
-        logging.warning(history)
-
-    def _prepare_data(self):
+    def prepare_data(self):
         from secretflow.utils.simulation import datasets
 
-        (train_data, train_label), (test_data, test_label) = datasets.load_cifar10(
+        (self.train_data, self.train_label), (
+            self.test_data,
+            self.test_label,
+        ) = datasets.load_cifar10(
             [self.alice, self.bob],
         )
+        self.plain_alice_train_data = reveal(self.train_data.partitions[self.alice])
+        self.plain_bob_train_data = reveal(self.train_data.partitions[self.bob])
+        self.plain_train_label = reveal(self.train_label)
+        self.plain_test_label = reveal(self.test_label)
 
-        return train_data, train_label, test_data, test_label
+    def alice_feature_nums_range(self) -> list:
+        return [32 * 16 * 3]
 
     def lia_auxiliary_data_builder(
         self, batch_size=16, file_path="~/.secretflow/datasets/cifar10"
@@ -141,3 +146,72 @@ class Cifar10TrainBase(TrainBase, ABC):
             )
 
         return prepare_data
+
+    def fia_auxiliary_data_builder(self):
+        def _prepare_data():
+            alice_train = self.plain_alice_train_data
+            bob_train = self.plain_bob_train_data
+            alice_train = sample_ndarray(alice_train)
+            bob_train = sample_ndarray(bob_train)
+
+            alice_dataset = TensorDataset(torch.tensor(alice_train))
+            bob_dataset = TensorDataset(torch.tensor(bob_train))
+            alice_dataloader = DataLoader(
+                dataset=alice_dataset, shuffle=False, batch_size=self.train_batch_size
+            )
+            bob_dataloader = DataLoader(
+                dataset=bob_dataset, shuffle=False, batch_size=self.train_batch_size
+            )
+            dataloader_dict = {'alice': alice_dataloader, 'bob': bob_dataloader}
+            return dataloader_dict, dataloader_dict
+
+        return _prepare_data
+
+    def fia_victim_mean_attr(self):
+        alice_train = self.plain_alice_train_data.reshape(
+            (self.plain_alice_train_data.shape[0], -1)
+        )
+
+        return sample_ndarray(alice_train).mean(axis=0)
+
+    def fia_victim_input_shape(self):
+        return list(self.plain_alice_train_data.shape[1:])
+
+    def fia_attack_input_shape(self):
+        return list(self.plain_bob_train_data.shape[1:])
+
+    def fia_victim_model_dict(self, victim_model_save_path):
+        return {self.device_f: [self.create_base_model_alice(), victim_model_save_path]}
+
+    def replay_auxiliary_attack_configs(
+        self, target_nums: int = 15
+    ) -> Tuple[int, np.ndarray, np.ndarray]:
+        target_class = 8
+        poison_class = 1
+        target_indexes = np.where(np.array(self.plain_train_label) == target_class)[0]
+        target_set = np.random.choice(target_indexes, target_nums, replace=False)
+
+        eval_indexes = np.where(np.array(self.plain_test_label) == poison_class)[0]
+        eval_poison_set = np.random.choice(eval_indexes, 100, replace=False)
+        return target_class, target_set, eval_poison_set
+
+    def replace_auxiliary_attack_configs(self, target_nums: int = 15):
+        target_class = 8
+        target_indexes = np.where(np.array(self.plain_train_label) == target_class)[0]
+        target_set = np.random.choice(target_indexes, target_nums, replace=False)
+
+        train_poison_set = np.random.choice(
+            range(len(self.plain_train_label)), 100, replace=False
+        )
+        train_poison_np = np.stack(self.plain_alice_train_data[train_poison_set])
+
+        eval_poison_set = np.random.choice(
+            range(len(self.plain_test_label)), 100, replace=False
+        )
+        return (
+            target_class,
+            target_set,
+            train_poison_set,
+            train_poison_np,
+            eval_poison_set,
+        )

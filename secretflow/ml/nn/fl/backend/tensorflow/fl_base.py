@@ -14,11 +14,12 @@
 
 
 import collections
+import logging
 import math
 from abc import abstractmethod
 from pathlib import Path
 from typing import Callable, Optional, Union
-import logging
+
 import numpy as np
 import pandas as pd
 import tensorflow as tf

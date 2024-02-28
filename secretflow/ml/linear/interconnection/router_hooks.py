@@ -17,16 +17,14 @@
 
 import logging
 import pickle
-
 from typing import List
 
 import numpy as np
 from anyconn_core import AppConfig
 from heu import phe
-from router import Pack, RC
+from router import RC, Pack
 
-from secretflow.device import proxy, PYUObject
-
+from secretflow.device import PYUObject, proxy
 
 router_table = {
     "rs_01": {"rs": ["rs_02"], "rc": ["rc_01", "rc_03"]},

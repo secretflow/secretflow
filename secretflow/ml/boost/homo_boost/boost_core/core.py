@@ -99,12 +99,12 @@ class FedBooster(xgb_core.Booster):
             reg_lambda=params['lambda'] if 'lambda' in params else 0.1,
             reg_alpha=params['alpha'] if 'alpha' in params else 0.0,
             gamma=params['gamma'] if 'gamma' in params else 1e-4,
-            colsample_bytree=params['colsample_bytree']
-            if 'colsample_bytree' in params
-            else 1.0,
-            colsample_byleval=params['colsample_bylevel']
-            if 'colsample_bylevel' in params
-            else 1.0,
+            colsample_bytree=(
+                params['colsample_bytree'] if 'colsample_bytree' in params else 1.0
+            ),
+            colsample_byleval=(
+                params['colsample_bylevel'] if 'colsample_bylevel' in params else 1.0
+            ),
             base_score=params['base_score'] if 'base_score' in params else 0.5,
             random_state=params['random_state'] if 'random_state' in params else 1234,
             num_parallel=params['n_thread'] if 'n_thread' in params else None,

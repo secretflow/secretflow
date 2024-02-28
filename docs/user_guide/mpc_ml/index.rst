@@ -10,3 +10,4 @@ through the MPC security protocol and HE homomorphic encryption.
    linear_model
    decision_tree
    feature_eng.ipynb
+   generalized_linear_model

@@ -12,25 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import platform
+
 from typing import Union
 
 import pandas as pd
 
 
-def read_file_meta(path: str):
-    ret = {}
-    ret["ctime"] = os.path.getctime(path)
-    ret["mtime"] = os.path.getmtime(path)
-    ret["size"] = os.path.getsize(path)
-    if platform.system() == 'Linux':
-        ret["inode"] = os.stat(path).st_ino
-    return ret
-
-
 def read_csv_wrapper(
-    filepath: str, auto_gen_header_prefix: str = "", read_backend="pandas", **kwargs
+    filepath: Union[str, callable],
+    auto_gen_header_prefix: str = "",
+    read_backend="pandas",
+    **kwargs,
 ) -> Union[pd.DataFrame, "pl.DataFrame"]:
     """A wrapper of pandas read_csv and supports oss file.
 
@@ -57,8 +49,12 @@ def read_csv_wrapper(
         else:
             raise RuntimeError(f"Unknown data backend {_backend}")
 
+    if callable(filepath):
+        filepath = filepath()
+
     if auto_gen_header_prefix:
         kwargs['header'] = None
+
         df = _read_csv(filepath, read_backend, **kwargs)
         df.columns = [
             "{}_{}".format(auto_gen_header_prefix, i) for i in range(df.shape[1])
