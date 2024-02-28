@@ -1,21 +1,18 @@
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import torch.nn.functional as F
-import torch.backends.cudnn as cudnn
+import os
+import random
 
+import matplotlib.pylab as plt2
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+import torch.backends.cudnn as cudnn
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
-
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.pylab as plt2
-import os
-
-from resnet50 import ResNet50
 from resnet34 import ResNet34
-
-import random
+from resnet50 import ResNet50
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device1 = torch.device("cpu")

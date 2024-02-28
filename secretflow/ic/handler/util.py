@@ -14,7 +14,7 @@
 
 import logging
 import math
-from typing import Optional, Any, Type
+from typing import Any, Optional, Type
 
 
 def extract_req_algo_params(

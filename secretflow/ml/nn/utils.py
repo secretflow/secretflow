@@ -106,8 +106,8 @@ def plot_with_tsne(y_pred, eval_y, file_name):
     """
     Helper function to plot the t-SNE figure of output posteriors for nodes.
     """
-    from sklearn.manifold import TSNE
     import matplotlib.pyplot as plt
+    from sklearn.manifold import TSNE
 
     def plot_with_labels(lowDWeights, labels):
         plt.cla()

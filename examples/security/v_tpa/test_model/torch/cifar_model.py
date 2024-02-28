@@ -4,8 +4,8 @@ import sys
 
 sys.path.append("..")
 
-from torch import optim
 from model.resnet_cifar import ResNetCIFAR10
+from torch import optim
 
 
 def get_passive_model(input_shape, output_shape, option=10):

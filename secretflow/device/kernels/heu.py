@@ -16,15 +16,15 @@ from heu import numpy as hnp
 from spu import spu_pb2
 
 from secretflow.device import (
-    HEU,
-    PYU,
-    SPU,
     DeviceObject,
     DeviceType,
+    HEU,
     HEUObject,
+    PYU,
     PYUObject,
-    SPUObject,
     register,
+    SPU,
+    SPUObject,
 )
 from secretflow.device.device.base import register_to
 from secretflow.device.device.heu import HEUMoveConfig
@@ -87,8 +87,9 @@ def heu_to_spu(self: HEUObject, spu: SPU):
 
     evaluator_parties = [ev for ev in heu.evaluator_names() if ev in spu.actors.keys()]
 
-    # protocol is restricted to SEMI2K.
-    assert spu.conf.protocol == spu_pb2.SEMI2K
+    # protocol is restricted to SEMI2K and CHEETAH.
+    # ABY3 and other protocols are not currently supported。
+    assert spu.conf.protocol == spu_pb2.SEMI2K or spu.conf.protocol == spu_pb2.CHEETAH
 
     res = (
         heu.get_participant(self.location)

@@ -3,6 +3,7 @@ import os
 from typing import Dict, List, Tuple
 
 import pandas as pd
+
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.test_framework.test_case import (
     ClusterCase,

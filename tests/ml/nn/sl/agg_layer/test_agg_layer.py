@@ -3,7 +3,7 @@ import tensorflow as tf
 
 import secretflow as sf
 from secretflow.ml.nn.sl.agglayer.agg_layer import AggLayer
-from secretflow.ml.nn.sl.agglayer.agg_method import Average, Sum, Concat
+from secretflow.ml.nn.sl.agglayer.agg_method import Average, Concat, Sum
 from secretflow.utils.communicate import ForwardData
 
 

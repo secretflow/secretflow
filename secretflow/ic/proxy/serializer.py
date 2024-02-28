@@ -16,8 +16,8 @@ from typing import Any, List, Sequence, Union
 
 import jax
 import numpy as np
-from heu import numpy as hnp, phe
-
+from heu import numpy as hnp
+from heu import phe
 from interconnection.runtime import data_exchange_pb2 as de
 
 PublicKey = phe.PublicKey

@@ -13,9 +13,10 @@
 # limitations under the License.
 
 from typing import List, Union
+
 import jax.tree_util
-import ray
 import numpy as np
+import ray
 
 from secretflow.device.device.pyu import PYUObject
 

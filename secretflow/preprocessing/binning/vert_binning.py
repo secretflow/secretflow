@@ -14,9 +14,9 @@
 
 
 from typing import Dict, List
+
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import PYU, PYUObject
-
 from secretflow.preprocessing.binning.vert_binning_pyu import VertBinningPyuWorker
 
 

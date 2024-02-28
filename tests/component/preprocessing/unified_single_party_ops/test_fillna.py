@@ -1,5 +1,4 @@
 import logging
-import os
 
 import numpy as np
 import pandas as pd
@@ -10,10 +9,10 @@ from secretflow.component.preprocessing.unified_single_party_ops.fillna import (
     SUPPORTED_FILL_NA_METHOD,
     fillna,
 )
+from secretflow.component.storage import ComponentStorage
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
-from tests.conftest import TEST_STORAGE_ROOT
 
 
 @pytest.mark.parametrize("strategy", SUPPORTED_FILL_NA_METHOD)
@@ -25,26 +24,20 @@ def test_fillna(comp_prod_sf_cluster_config, strategy):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    local_fs_wd = storage_config.local_fs.wd
+    comp_storage = ComponentStorage(storage_config)
 
     if self_party == "alice":
         df_alice = pd.DataFrame(
             {
                 "id1": [str(i) for i in range(17)],
-                "a1": ["K"] + ["F"] * 14 + ["M", "N"],
+                "a1": ["K"] + ["F"] * 14 + [np.nan, "N"],
                 "a2": [0.1, np.nan, 0.3] * 5 + [0.4] * 2,
-                "a3": [1] * 17,
+                "a3": [1] * 16 + [0],
                 "y": [0] * 17,
             }
         )
-
-        os.makedirs(
-            os.path.join(local_fs_wd, "test_fillna"),
-            exist_ok=True,
-        )
-
         df_alice.to_csv(
-            os.path.join(local_fs_wd, alice_input_path),
+            comp_storage.get_writer(alice_input_path),
             index=False,
         )
     elif self_party == "bob":
@@ -55,14 +48,8 @@ def test_fillna(comp_prod_sf_cluster_config, strategy):
                 "b5": [i for i in range(17)],
             }
         )
-
-        os.makedirs(
-            os.path.join(local_fs_wd, "test_fillna"),
-            exist_ok=True,
-        )
-
         df_bob.to_csv(
-            os.path.join(local_fs_wd, bob_input_path),
+            comp_storage.get_writer(bob_input_path),
             index=False,
         )
 
@@ -74,11 +61,21 @@ def test_fillna(comp_prod_sf_cluster_config, strategy):
             'strategy',
             'fill_value_float',
             'input/input_dataset/fill_na_features',
+            'missing_value',
+            'missing_value_type',
         ],
         attrs=[
             Attribute(s=strategy),
             Attribute(f=99.0),
-            Attribute(ss=["a2", "b4", "b5"]),
+            Attribute(
+                ss=(
+                    ["a1", "a2", "b4", "b5"]
+                    if strategy == "most_frequent"
+                    else ["a2", "b4", "b5"]
+                )
+            ),
+            Attribute(s="axt"),
+            Attribute(s="general_na"),
         ],
         inputs=[
             DistData(
@@ -116,11 +113,6 @@ def test_fillna(comp_prod_sf_cluster_config, strategy):
     )
     param.inputs[0].meta.Pack(meta)
 
-    os.makedirs(
-        os.path.join(local_fs_wd, "test_fillna"),
-        exist_ok=True,
-    )
-
     res = fillna.eval(
         param=param,
         storage_config=storage_config,
@@ -129,13 +121,28 @@ def test_fillna(comp_prod_sf_cluster_config, strategy):
 
     assert len(res.outputs) == 2
 
-    a_out = pd.read_csv(os.path.join(TEST_STORAGE_ROOT, "alice", sub_path))
+    if self_party == "alice":
+        a_out = pd.read_csv(comp_storage.get_reader(sub_path))
+        logging.warning(f"....... \n{a_out}\n.,......")
 
-    logging.warning(f"....... \n{a_out}\n.,......")
+        if strategy == "most_frequent":
+            assert (
+                a_out.isnull().sum().sum() == 0
+            ), f"DataFrame contains NaN values, {a_out}"
+        else:
+            assert (
+                a_out.isnull().sum().sum() == 1
+            ), f"DataFrame contains more than should be NaN values, {a_out}"
 
-    b_out = pd.read_csv(os.path.join(TEST_STORAGE_ROOT, "bob", sub_path))
+    if self_party == "bob":
+        b_out = pd.read_csv(comp_storage.get_reader(sub_path))
+        logging.warning(f"....... \n{b_out}\n.,......")
 
-    logging.warning(f"....... \n{b_out}\n.,......")
-
-    assert a_out.isnull().sum().sum() == 0, "DataFrame contains NaN values"
-    assert b_out.isnull().sum().sum() == 0, "DataFrame contains NaN values"
+        if strategy == "most_frequent":
+            assert (
+                b_out.isnull().sum().sum() == 0
+            ), f"DataFrame contains NaN values, {b_out}"
+        else:
+            assert (
+                b_out.isnull().sum().sum() == 0
+            ), f"DataFrame contains more than should be NaN values, {b_out}"

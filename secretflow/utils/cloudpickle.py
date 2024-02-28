@@ -228,9 +228,9 @@ class CodePositionIndependentCloudPickler(Pickler):
     _dispatch_table[types.CellType] = cloudpickle_fast._cell_reduce
     # Use custom code reducer.
     _dispatch_table[types.CodeType] = _code_reduce
-    _dispatch_table[
-        types.GetSetDescriptorType
-    ] = cloudpickle_fast._getset_descriptor_reduce
+    _dispatch_table[types.GetSetDescriptorType] = (
+        cloudpickle_fast._getset_descriptor_reduce
+    )
     _dispatch_table[types.ModuleType] = cloudpickle_fast._module_reduce
     _dispatch_table[types.MethodType] = cloudpickle_fast._method_reduce
     _dispatch_table[types.MappingProxyType] = cloudpickle_fast._mappingproxy_reduce
@@ -240,9 +240,9 @@ class CodePositionIndependentCloudPickler(Pickler):
     _dispatch_table[_collections_abc.dict_values] = cloudpickle_fast._dict_values_reduce
     _dispatch_table[_collections_abc.dict_items] = cloudpickle_fast._dict_items_reduce
     _dispatch_table[type(OrderedDict().keys())] = cloudpickle_fast._odict_keys_reduce
-    _dispatch_table[
-        type(OrderedDict().values())
-    ] = cloudpickle_fast._odict_values_reduce
+    _dispatch_table[type(OrderedDict().values())] = (
+        cloudpickle_fast._odict_values_reduce
+    )
     _dispatch_table[type(OrderedDict().items())] = cloudpickle_fast._odict_items_reduce
 
     dispatch_table = ChainMap(_dispatch_table, copyreg.dispatch_table)

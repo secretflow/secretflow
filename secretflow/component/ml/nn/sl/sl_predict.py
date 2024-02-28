@@ -28,7 +28,6 @@ from secretflow.device.device.pyu import PYU, PYUObject
 from ..core.utils import check_enabled_or_fail
 from .base import MODEL_MAX_MAJOR_VERSION, MODEL_MAX_MINOR_VERSION, ModelMeta, mkdtemp
 from .compile.compile import ModelConfig
-from .training import predictor, saver
 
 slnn_predict_comp = Component(
     "slnn_predict",
@@ -134,6 +133,8 @@ def load_slnn_model(
         and len(model_meta.feature_names) > 0
     )
 
+    from .training import saver
+
     model = saver.load(model_objs, model_meta.parts, tmpdirs)
 
     return model, model_meta
@@ -154,6 +155,9 @@ def ss_slnn_predict_eval_fn(
     save_label,
 ):
     check_enabled_or_fail()
+
+    # import after enabling check to avoid missing dependencies
+    from .training import predictor
 
     receiver_pyu = PYU(receiver)
 

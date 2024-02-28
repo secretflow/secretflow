@@ -11,11 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from tqdm import tqdm
 
 import secretflow as sf
 from secretflow.device import reveal
 from secretflow.ml.nn.metrics import aggregate_metrics
+
 from .callback import Callback
 
 
@@ -110,5 +110,7 @@ class Progbar(Callback):
             self.progbar.close()
 
     def _reset_progbar(self, target):
+        from tqdm import tqdm
+
         self.steps = 0
         self.progbar = tqdm(total=target) if self.verbose == 1 else None

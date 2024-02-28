@@ -24,6 +24,8 @@ import secretflow_serving_lib as sfs
 from google.protobuf import json_format
 from secretflow_serving_lib.graph_pb2 import DispatchType
 
+from secretflow.component.storage import ComponentStorage
+
 
 class _Execution:
     def __init__(self, dis_type: str, session_run: bool, specific_flag: bool):
@@ -189,11 +191,17 @@ class GraphBuilder:
         assert not session_run, "not session_run for now"
         self.executions.append(_Execution(dp_type, session_run, specific_flag))
 
-    def dump_serving_tar(self, name: str, desc: str, uri: str) -> None:
+    def dump_serving_tar(
+        self,
+        name: str,
+        desc: str,
+        uri: str,
+        comp_storage: ComponentStorage,
+    ) -> None:
         graph = _Graph()
 
-        for i, exec in enumerate(self.executions):
-            graph.add(exec)
+        for execution in self.executions:
+            graph.add(execution)
 
         mb = sfs.bundle_pb2.ModelBundle()
         mb.name = name
@@ -218,5 +226,5 @@ class GraphBuilder:
             info.mode = int('0666', base=8)
             tar.addfile(info, io.BytesIO(initial_bytes=mb_data))
 
-        with open(uri, "wb") as f:
+        with comp_storage.get_writer(uri) as f:
             f.write(fh.getvalue())

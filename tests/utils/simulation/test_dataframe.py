@@ -1,10 +1,12 @@
 import pandas as pd
 import pytest
+import numpy as np
 
 from secretflow import reveal
 from secretflow.utils.errors import InvalidArgumentError
 from secretflow.utils.simulation.data.dataframe import create_df
 from secretflow.utils.simulation.datasets import dataset
+from secretflow.utils.simulation.data import SPLIT_METHOD
 
 
 @pytest.fixture(scope='module')
@@ -31,6 +33,84 @@ def test_create_hdataframe_should_ok_when_input_dataframe(
     pd.testing.assert_frame_equal(
         df, pd.concat([reveal(part.data) for part in hdf.partitions.values()])
     )
+
+
+def test_create_hdataframe_dirichlet_sample_method_should_ok_when_input_dataframe(
+    sf_production_setup_devices, df
+):
+    from sklearn.preprocessing import LabelEncoder
+
+    new_df = df.copy()
+    label_encoder = LabelEncoder()
+    new_df["class"] = label_encoder.fit_transform(new_df["class"])
+
+    # WHEN
+    hdf = create_df(
+        new_df,
+        parts=[
+            sf_production_setup_devices.alice,
+            sf_production_setup_devices.bob,
+            sf_production_setup_devices.carol,
+        ],
+        axis=0,
+        num_classes=4,
+        alpha=100,
+        random_state=1234,
+        label_column="class",
+        split_method=SPLIT_METHOD.DIRICHLET,
+    )
+    num_classes = reveal(hdf.partitions[sf_production_setup_devices.alice].data)[
+        "class"
+    ].values
+    # fmt: off
+    expect_classes = np.array(
+        [
+            0,0,0,0,0,0,1,1,2,0,
+            1,0,2,2,2,2,0,1,1,2,
+            1,0,2,0,0,1,1,1,2,1,
+            1,0,0,2,0,0,0,1,2,0,
+            2,0,1,1,1,2,2,0,2,1,
+        ]
+    )
+    # fmt: on
+    np.testing.assert_array_equal(expect_classes, num_classes)
+    # THEN
+    assert len(hdf.partitions) == 3
+
+
+def test_create_hdataframe_label_skew_sample_method_should_ok_when_input_dataframe(
+    sf_production_setup_devices,
+    df,
+):
+    from sklearn.preprocessing import LabelEncoder
+
+    new_df = df.copy()
+    label_encoder = LabelEncoder()
+    new_df["class"] = label_encoder.fit_transform(new_df["class"])
+    max_class_nums = 2
+    # WHEN
+    hdf = create_df(
+        new_df,
+        parts=[
+            sf_production_setup_devices.alice,
+            sf_production_setup_devices.bob,
+            sf_production_setup_devices.carol,
+        ],
+        axis=0,
+        num_classes=3,
+        max_class_nums=max_class_nums,
+        random_state=1234,
+        label_column="class",
+        split_method=SPLIT_METHOD.LABEL_SCREW,
+    )
+
+    # THEN
+    assert len(hdf.partitions) == 3
+
+    num_classes = np.unique(
+        reveal(hdf.partitions[sf_production_setup_devices.alice].data)["class"].values
+    )
+    assert len(num_classes) == max_class_nums
 
 
 def test_create_hdataframe_should_ok_when_input_file(df, sf_production_setup_devices):
@@ -102,7 +182,7 @@ def test_create_hdataframe_should_ok_when_specify_percentage(
 
 def test_create_vdataframe_should_ok(df, sf_production_setup_devices):
     # WHEN
-    hdf = create_df(
+    vdf = create_df(
         df,
         parts=[
             sf_production_setup_devices.alice,
@@ -113,10 +193,10 @@ def test_create_vdataframe_should_ok(df, sf_production_setup_devices):
     )
 
     # THEN
-    assert len(hdf.partitions) == 3
+    assert len(vdf.partitions) == 3
     pd.testing.assert_frame_equal(
         df,
-        pd.concat([reveal(part.data) for part in hdf.partitions.values()], axis=1),
+        pd.concat([reveal(part.data) for part in vdf.partitions.values()], axis=1),
     )
 
 

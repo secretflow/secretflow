@@ -18,10 +18,10 @@ import numpy as np
 from heu import numpy as hnp
 
 from secretflow.device import PYU, PYUObject
-
 from secretflow.ml.boost.sgb_v.core.distributed_tree.distributed_tree import (
     DistributedTree,
 )
+
 from .core.pure_numpy_ops.pred import predict_tree_weight
 
 # supports merging a distributed tree into a single tree, and thereby supports standalone deployment.

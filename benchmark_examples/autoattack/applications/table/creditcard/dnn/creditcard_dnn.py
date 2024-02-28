@@ -12,84 +12,67 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple
 
 import numpy as np
 import torch
 import torch.nn as nn
 from torchmetrics import Accuracy
 
-from benchmark_examples.autoattack.applications.base import TrainBase
+import secretflow as sf
+from benchmark_examples.autoattack.applications.base import ApplicationBase
 from secretflow.data.split import train_test_split
-from secretflow.ml.nn import SLModel
 from secretflow.ml.nn.applications.sl_dnn_torch import DnnBase, DnnFuse
-from secretflow.ml.nn.callbacks.callback import Callback
 from secretflow.ml.nn.utils import TorchModel, metric_wrapper, optim_wrapper
 from secretflow.preprocessing import StandardScaler
 from secretflow.utils.simulation.datasets import load_creditcard
 
 
-class CreditcardDnn(TrainBase):
+class CreditcardDnn(ApplicationBase):
     def __init__(self, config, alice, bob):
-        super().__init__(config, alice, bob, bob, 2, epoch=2, train_batch_size=1024)
-
-    def train(self, callbacks: Optional[Union[List[Callback], Callback]] = None):
-        base_model_dict = {
-            self.alice: self.alice_base_model,
-            self.bob: self.bob_base_model,
-        }
-        # Define DP operations
-        sl_model = SLModel(
-            base_model_dict=base_model_dict,
-            device_y=self.device_y,
-            model_fuse=self.fuse_model,
-            backend='torch',
+        super().__init__(
+            config,
+            alice,
+            bob,
+            device_y=bob,
+            total_fea_nums=29,
+            alice_fea_nums=25,
+            num_classes=2,
+            epoch=2,
+            train_batch_size=1024,
+            hidden_size=28,
+            dnn_base_units_size_alice=[int(28 / 2), 28],
+            dnn_base_units_size_bob=[4],
+            dnn_fuse_units_size=[1],
         )
-        history = sl_model.fit(
-            self.train_data,
-            self.train_label,
-            validation_data=(self.test_data, self.test_label),
-            epochs=self.epoch,
-            batch_size=self.train_batch_size,
-            shuffle=False,
-            verbose=1,
-            validation_freq=1,
-            callbacks=callbacks,
-        )
-        logging.warning(history['val_BinaryAccuracy'])
 
-    def _prepare_data(self):
+    def prepare_data(self):
         data = load_creditcard({self.alice: (0, 25), self.bob: (25, 29)})
         label = load_creditcard({self.bob: (29, 30)}).astype(np.float32)
         scaler = StandardScaler()
         data = scaler.fit_transform(data).astype(np.float32)
         random_state = 1234
-        train_data, test_data = train_test_split(
+        self.train_data, self.test_data = train_test_split(
             data, train_size=0.8, random_state=random_state
         )
-        train_label, test_label = train_test_split(
+        self.train_label, self.test_label = train_test_split(
             label, train_size=0.8, random_state=random_state
         )
-        return train_data, train_label, test_data, test_label
 
-    def _create_base_model_alice(self):
-        model = TorchModel(
+    def create_base_model_alice(self):
+        return TorchModel(
             model_fn=DnnBase,
             loss_fn=nn.BCELoss,
             optim_fn=optim_wrapper(torch.optim.Adam),
             metrics=[
                 metric_wrapper(Accuracy, task="binary"),
-                # metric_wrapper(Precision, task="binary"),
-                # metric_wrapper(AUROC, task="binary"),
             ],
             input_dims=[25],
-            dnn_units_size=[int(28 / 2), 28],
+            dnn_units_size=self.dnn_base_units_size_alice,
         )
-        return model
 
-    def _create_base_model_bob(self):
-        model = TorchModel(
+    def create_base_model_bob(self):
+        return TorchModel(
             model_fn=DnnBase,
             loss_fn=nn.BCELoss,
             optim_fn=optim_wrapper(torch.optim.Adam),
@@ -97,22 +80,52 @@ class CreditcardDnn(TrainBase):
                 metric_wrapper(Accuracy, task="binary"),
             ],
             input_dims=[4],
-            dnn_units_size=[4],
+            dnn_units_size=self.dnn_base_units_size_bob,
         )
-        return model
 
-    def _create_fuse_model(self):
-        model = TorchModel(
+    def create_fuse_model(self):
+        return TorchModel(
             model_fn=DnnFuse,
             loss_fn=nn.BCELoss,
             optim_fn=optim_wrapper(torch.optim.Adam),
             metrics=[
                 metric_wrapper(Accuracy, task="binary"),
             ],
-            input_dims=[28, 4],
+            input_dims=[self.hidden_size, 4],
             dnn_units_size=[1],
         )
-        return model
 
     def support_attacks(self):
-        return ['norm']
+        return ['norm', 'exploit']
+
+    def alice_feature_nums_range(self) -> list:
+        return [25]
+
+    def hidden_size_range(self) -> list:
+        return [28, 64]
+
+    def dnn_base_units_size_range_alice(self) -> Optional[list]:
+        return [
+            [-0.5, -1],
+            [-1],
+            [
+                -0.5,
+                -1,
+                -1,
+            ],
+        ]
+
+    def dnn_base_units_size_range_bob(self) -> Optional[List[List[int]]]:
+        return [[4]]
+
+    def dnn_fuse_units_size_range(self) -> Optional[list]:
+        return [
+            [1],
+            [-1, 1],
+            [-1, -1, 1],
+        ]
+
+    def exploit_label_counts(self) -> Tuple[int, int]:
+        label = sf.reveal(self.train_label.partitions[self.bob].data)
+        neg, pos = np.bincount(label['Class'])
+        return neg, pos

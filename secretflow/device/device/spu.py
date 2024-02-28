@@ -33,18 +33,19 @@ import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 import ray
-import secretflow.distributed as sfd
 import spu
 import spu.libspu.link as spu_link
 import spu.libspu.logging as spu_logging
 import spu.utils.frontend as spu_fe
 from google.protobuf import json_format
 from heu import phe
+from spu import pir, psi, spu_pb2
+from spu.utils.distributed import dtype_spu_to_np, shape_spu_to_np
+
+import secretflow.distributed as sfd
 from secretflow.utils.errors import InvalidArgumentError
 from secretflow.utils.ndarray_bigint import BigintNdArray
 from secretflow.utils.progress import ProgressData
-from spu import pir, psi, spu_pb2
-from spu.utils.distributed import dtype_spu_to_np, shape_spu_to_np
 
 from .base import Device, DeviceObject, DeviceType
 from .pyu import PYUObject
@@ -61,6 +62,12 @@ _LINK_DESC_NAMES = [
     'brpc_channel_protocol',
     'brpc_channel_connection_type',
 ]
+
+SPU_PROTOCOLS_MAP = {
+    spu.spu_pb2.SEMI2K: 'semi2k',
+    spu.spu_pb2.CHEETAH: 'cheetah',
+    spu.spu_pb2.ABY3: 'aby3',
+}
 
 
 def _fill_link_ssl_opts(tls_opts: Dict, link_ssl_opts: spu_link.SSLOptions):
@@ -435,28 +442,39 @@ class SPURuntime:
             assert isinstance(name, str)
             self.runtime.del_var(name)
 
-    def dump(self, meta: Any, val: Any, path: str):
+    def dump(self, meta: Any, val: Any, path: Union[str, Callable]):
         flatten_names, _ = jax.tree_util.tree_flatten(val)
         shares = []
         for name in flatten_names:
             shares.append(self.runtime.get_var(name))
 
-        from pathlib import Path
-
         import cloudpickle as pickle
 
-        # create parent folders.
-        file = Path(path)
-        file.parent.mkdir(parents=True, exist_ok=True)
+        if isinstance(path, str):
+            from pathlib import Path
 
-        with open(path, 'wb') as f:
-            pickle.dump({'meta': meta, 'shares': shares}, f)
+            # create parent folders.
+            file = Path(path)
+            file.parent.mkdir(parents=True, exist_ok=True)
+            with open(path, 'wb') as f:
+                pickle.dump({'meta': meta, 'shares': shares}, f)
+        else:
+            assert callable(path)
+            with path() as w:
+                pickle.dump({'meta': meta, 'shares': shares}, w)
 
-    def load(self, path: str) -> Any:
+        return None
+
+    def load(self, path: Union[str, Callable]) -> Any:
         import cloudpickle as pickle
 
-        with open(path, 'rb') as f:
-            record = pickle.load(f)
+        if isinstance(path, str):
+            with open(path, 'rb') as f:
+                record = pickle.load(f)
+        else:
+            assert callable(path)
+            with path() as f:
+                record = pickle.load(f)
 
         meta = record['meta']
         shares = record['shares']
@@ -1530,9 +1548,11 @@ class SPURuntime:
         config = spu.psi_v2_pb2.PsiConfig(
             protocol_config=spu.psi_v2_pb2.ProtocolConfig(
                 protocol=spu.psi_v2_pb2.Protocol.Value(protocol),
-                role=spu.psi_v2_pb2.ROLE_RECEIVER
-                if receiver == self.party
-                else spu.psi_v2_pb2.ROLE_SENDER,
+                role=(
+                    spu.psi_v2_pb2.ROLE_RECEIVER
+                    if receiver == self.party
+                    else spu.psi_v2_pb2.ROLE_SENDER
+                ),
                 broadcast_result=broadcast_result,
             ),
             input_config=spu.psi_v2_pb2.InputConfig(
@@ -1774,14 +1794,14 @@ class SPU(Device):
 
         return jax.tree_util.tree_map(place, (args, kwargs))
 
-    def dump(self, obj: SPUObject, paths: List[str]):
+    def dump(self, obj: SPUObject, paths: List[Union[str, Callable]]):
         assert obj.device == self, "obj must be owned by this device."
         ret = []
         for i, actor in enumerate(self.actors.values()):
             ret.append(actor.dump.remote(obj.meta, obj.shares_name[i], paths[i]))
-        return ret
+        sfd.get(ret)
 
-    def load(self, paths: List[str]) -> SPUObject:
+    def load(self, paths: List[Union[str, Callable]]) -> SPUObject:
         outputs = [None] * self.world_size
         for i, actor in enumerate(self.actors.values()):
             actor_out = actor.load.options(num_returns=2).remote(paths[i])

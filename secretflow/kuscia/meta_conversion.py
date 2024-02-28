@@ -17,6 +17,7 @@ from typing import List
 from google.protobuf.json_format import MessageToJson
 from kuscia.proto.api.v1alpha1.common_pb2 import DataColumn
 from kuscia.proto.api.v1alpha1.datamesh.domaindata_pb2 import DomainData
+
 from secretflow.spec.v1.data_pb2 import DistData, IndividualTable, VerticalTable
 
 

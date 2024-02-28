@@ -56,6 +56,12 @@ class SgbModel:
     def _insert_distributed_tree(self, tree: DistributedTree):
         self.trees.append(tree)
 
+    def __getitem__(self, index) -> 'SgbModel':
+        model = SgbModel(self.label_holder, self.objective, self.base)
+        model.trees = self.trees[index]
+        model.partition_column_counts = self.partition_column_counts
+        return model
+
     def predict(
         self,
         dtrain: Union[FedNdarray, VDataFrame],

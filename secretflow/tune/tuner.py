@@ -195,7 +195,6 @@ class Tuner:
                     else:
                         resources[k] += v
             cluster_resources = resources
-
         self._check_resources_input(cluster_resources, avaliable_resources)
         return cluster_resources
 
@@ -227,22 +226,22 @@ class Tuner:
         cluster_resources = []
         # When use sart ray cluster with node nums > 1, we cannot run a trail coross differnt nodes,
         #  so we should keep the resource usage less than it in one node.
-        node_nums = 1
+        node_nums = 0
         for k in avaliable_resources:
             if "node" in k:
                 node_nums += 1
+        node_nums = 1 if node_nums == 0 else node_nums
         for party in parties:
-            party_resources = {
-                party: max(avaliable_resources[party] / node_nums - 2, 1)
-            }
+            party_resources = {party: max(avaliable_resources[party] / node_nums, 0)}
             for res_name, avalia in avaliable_resources.items():
                 if (
                     res_name not in parties
                     and 'memory' not in res_name
                     and 'node' not in res_name
+                    and 'accelerator_type' not in res_name
                 ):
                     party_resources[res_name] = max(
-                        int(avalia / node_nums / len(parties)) - 1, 1
+                        avalia / node_nums / len(parties), 0
                     )
             cluster_resources.append(party_resources)
         return cluster_resources
@@ -267,13 +266,20 @@ class Tuner:
             }
         )
         # record all resource avaliable and each worker usage.
+        missing_resources = []
         for i, cluster_resource in enumerate(cluster_resources):
             for r, v in cluster_resource.items():
-                assert (
-                    r in resource_usage
-                ), f"Got unknown resource name {r}, avaliable names contains {avaliable_resources.keys()}"
+                if r not in resource_usage:
+                    missing_resources.append(r)
+                    continue
                 resource_usage[r]["res_worker_" + str(i)] = v
                 resource_usage[r]['res_per_trail'] += v
+        if len(missing_resources) > 0:
+            logging.warning(
+                f"Got unknown required resources {missing_resources}, "
+                f"avaliable names contains {avaliable_resources.keys()}. "
+                f"Missing resources will be ignored."
+            )
         # check if the usage exeeds the avaliable limit.
         for r, v in resource_usage.items():
             assert (
