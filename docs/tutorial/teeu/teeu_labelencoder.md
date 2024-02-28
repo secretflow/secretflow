@@ -86,12 +86,12 @@ def gen_data():
 
     num_classes = 3
     # Only used y in LabelEncoder
-    x, y = make_classification(n_samples=1000, n_informative=5,
-                           n_classes=num_classes)
+    x, y = make_classification(n_samples=1000, n_informative=5, 
+                               n_classes=num_classes)
     y_str = y.astype(str)
     for i in range(num_classes):
         label = 'label_' + str(i)
-        index = np.where(y_str==str(i))
+        index = np.where(y_str == str(i))
         y_str[index] = label
     return x, y_str
 
@@ -201,12 +201,12 @@ def gen_data():
 
     num_classes = 3
     # Only used y in LabelEncoder
-    x, y = make_classification(n_samples=1000, n_informative=5,
-                           n_classes=num_classes)
+    x, y = make_classification(n_samples=1000, n_informative=5, 
+                               n_classes=num_classes)
     y_str = y.astype(str)
     for i in range(num_classes):
         label = 'label_' + str(i)
-        index = np.where(y_str==str(i))
+        index = np.where(y_str == str(i))
         y_str[index] = label
     return x, y_str
 
@@ -315,12 +315,12 @@ def gen_data():
 
     num_classes = 3
     # Only used y in LabelEncoder
-    x, y = make_classification(n_samples=1000, n_informative=5,
-                           n_classes=num_classes)
+    x, y = make_classification(n_samples=1000, n_informative=5, 
+                               n_classes=num_classes)
     y_str = y.astype(str)
     for i in range(num_classes):
         label = 'label_' + str(i)
-        index = np.where(y_str==str(i))
+        index = np.where(y_str == str(i))
         y_str[index] = label
     return x, y_str
 
@@ -420,12 +420,12 @@ def gen_data():
 
     num_classes = 3
     # Only used y in LabelEncoder
-    x, y = make_classification(n_samples=1000, n_informative=5,
-                           n_classes=num_classes)
+    x, y = make_classification(n_samples=1000, n_informative=5, 
+                               n_classes=num_classes)
     y_str = y.astype(str)
     for i in range(num_classes):
         label = 'label_' + str(i)
-        index = np.where(y_str==str(i))
+        index = np.where(y_str == str(i))
         y_str[index] = label
     return x, y_str
 
