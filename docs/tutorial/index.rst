@@ -49,6 +49,9 @@ We hope you enjoy these toturials from SecretFlow developers.
 
    teeu
    teeu_xgboost
+   teeu/teeu_fillna
+   teeu/teeu_onehotencoder
+   teeu/teeu_regression
 
 .. toctree::
    :maxdepth: 1
