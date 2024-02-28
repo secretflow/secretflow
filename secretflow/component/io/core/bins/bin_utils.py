@@ -17,7 +17,6 @@ import numpy as np
 
 from secretflow.device import PYUObject
 from secretflow.device.driver import reveal
-
 from secretflow.spec.extend.bin_data_pb2 import VariableBins
 
 

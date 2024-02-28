@@ -1,6 +1,7 @@
-import secretflow as sf
 from data.dataset import load_ml_1m
 from model.deepfm_model import DeepFMbase, DeepFMfuse
+
+import secretflow as sf
 from secretflow.ml.nn import SLModel
 
 # In case you have a running secretflow runtime already.

@@ -1,6 +1,7 @@
+import pytest
+
 from secretflow.security.compare.plain_comparator import PlainComparator
 from tests.security.compare.test_comparator_base import ComparatorBase
-import pytest
 
 
 class TestPlainComparator(ComparatorBase):

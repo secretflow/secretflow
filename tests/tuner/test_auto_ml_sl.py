@@ -100,14 +100,14 @@ def train(config, *, alice, bob):
     return {'accuracy': history['val_accuracy'][-1]}
 
 
-def test_automl(sf_simulation_setup_devices):
+def test_automl(sf_tune_simulation_setup_devices):
     search_space = {
         'train_batch_size': tune.grid_search([32, 512]),
     }
     trainable = tune.with_parameters(
         train,
-        alice=sf_simulation_setup_devices.alice,
-        bob=sf_simulation_setup_devices.bob,
+        alice=sf_tune_simulation_setup_devices.alice,
+        bob=sf_tune_simulation_setup_devices.bob,
     )
     tuner = tune.Tuner(
         trainable,

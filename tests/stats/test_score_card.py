@@ -49,7 +49,7 @@ def test_sc(prod_env_and_data):
     assert scord.shape[0] == 10
     assert len(scord.partitions) == 1
     scord1 = sf.reveal(list(scord.partitions.items())[0])
-    print(f"pred \n{data['pred1']}\n -> \n{scord1}")
+    print(f"pred  \n{data['pred1']}\n -> \n{scord1}")
 
     scord = data['sc'].transform(data['ds2'])
     assert scord.shape[0] == 20

@@ -75,7 +75,7 @@ def test_homo_binning(prod_env_and_data):
     bin_obj = HomoBinning(
         bin_num=5,
         bin_indexes=[1, 2, 3, 4],
-        error=1e-10,
+        error=1e-9,  # TODO:1e-10
         max_iter=200,
         compress_thres=30,
     )

@@ -5,10 +5,8 @@ import sys
 sys.path.append("..")
 
 from torch import nn, optim
-from . import mnist_model
-from . import nuswide_model
-from . import cifar_model
-from . import gtsrb_model
+
+from . import cifar_model, gtsrb_model, mnist_model, nuswide_model
 
 MODELS = {
     "mnist": {

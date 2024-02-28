@@ -13,7 +13,9 @@
 # limitations under the License.
 
 import logging
+from typing import List, Optional, Union
 
+import jax
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -22,10 +24,12 @@ import torch.optim as optim
 from torchmetrics import Accuracy, Precision
 
 import secretflow as sf
+from benchmark_examples.autoattack import global_config
 from benchmark_examples.autoattack.applications.image.cifar10.cifar10_base import (
-    Cifar10TrainBase,
+    Cifar10ApplicationBase,
 )
 from secretflow.ml.nn import SLModel
+from secretflow.ml.nn.callbacks.callback import Callback
 from secretflow.ml.nn.fl.utils import metric_wrapper, optim_wrapper
 from secretflow.ml.nn.utils import TorchModel
 
@@ -190,6 +194,12 @@ class TopModelForCifar10(nn.Module):
         return F.log_softmax(x, dim=1)
 
 
+def to_exec_device(
+    x: Optional[Union[List, torch.Tensor, torch.nn.Module]], exec_device
+):
+    return jax.tree_util.tree_map(lambda c: c.to(exec_device), x)
+
+
 def correct_counter(output, target, batch_size, topk=(1, 5)):
     tensor_target = torch.Tensor(target)
     dataset = torch.utils.data.TensorDataset(tensor_target)
@@ -201,6 +211,9 @@ def correct_counter(output, target, batch_size, topk=(1, 5)):
     for idx, tt in enumerate(dataloader):
         for i, k in enumerate(topk):
             _, pred = output[idx].topk(k, 1, True, True)
+            if global_config.is_use_gpu():
+                pred = to_exec_device(pred, "cuda")
+                tt = to_exec_device(tt, "cuda")
             correct_k = torch.eq(pred, tt[0].view(-1, 1)).sum().float().item()
             correct_counts[i] += correct_k
 
@@ -208,18 +221,9 @@ def correct_counter(output, target, batch_size, topk=(1, 5)):
     return correct_counts
 
 
-class Cifar10Resnet20(Cifar10TrainBase):
+class Cifar10Resnet20(Cifar10ApplicationBase):
     def __init__(self, config, alice, bob):
         super().__init__(config, alice, bob, bob)
-
-    def _prepare_data(self):
-        from secretflow.utils.simulation import datasets
-
-        (train_data, train_label), (test_data, test_label) = datasets.load_cifar10(
-            [self.alice, self.bob],
-        )
-
-        return train_data, train_label, test_data, test_label
 
     def create_base_model(self):
         loss_fn = nn.CrossEntropyLoss
@@ -238,13 +242,13 @@ class Cifar10Resnet20(Cifar10TrainBase):
             ],
         )
 
-    def _create_base_model_alice(self):
+    def create_base_model_alice(self):
         return self.create_base_model()
 
-    def _create_base_model_bob(self):
+    def create_base_model_bob(self):
         return self.create_base_model()
 
-    def _create_fuse_model(self):
+    def create_fuse_model(self):
         loss_fn = nn.CrossEntropyLoss
         optim_fn = optim_wrapper(optim.SGD, lr=1e-2, momentum=0.9, weight_decay=5e-4)
         return TorchModel(
@@ -261,23 +265,26 @@ class Cifar10Resnet20(Cifar10TrainBase):
             ],
         )
 
-    def train(self, callbacks=None):
+    def _train(
+        self, callbacks: Optional[Union[List[Callback], Callback]] = None, **kwargs
+    ):
         base_model_dict = {
-            self.alice: self.alice_base_model,
-            self.bob: self.bob_base_model,
+            self.alice: self.create_base_model_alice(),
+            self.bob: self.create_base_model_bob(),
         }
-        sl_model = SLModel(
+        self.sl_model = SLModel(
             base_model_dict=base_model_dict,
             device_y=self.device_y,
-            model_fuse=self.fuse_model,
+            model_fuse=self.create_fuse_model(),
             dp_strategy_dict=None,
             compressor=None,
             simulation=True,
             random_seed=1234,
             backend='torch',
             strategy='split_nn',
+            num_gpus=0.001 if global_config.is_use_gpu() else 0,
         )
-        history = sl_model.fit(
+        history = self.sl_model.fit(
             self.train_data,
             self.train_label,
             validation_data=(self.test_data, self.test_label),
@@ -290,15 +297,18 @@ class Cifar10Resnet20(Cifar10TrainBase):
         )
 
         pred_bs = 128
-        result = sl_model.predict(self.train_data, batch_size=pred_bs, verbose=1)
+        result = self.sl_model.predict(self.train_data, batch_size=pred_bs, verbose=1)
         cor_count = self.bob(correct_counter)(
             result, self.train_label, batch_size=pred_bs, topk=(1, 4)
         )
         sf.wait(cor_count)
-        logging.warning(history)
+        logging.warning(
+            f"RESULT: {type(self).__name__} {type(callbacks).__name__} training history = {history}"
+        )
+        return history
 
     def support_attacks(self):
-        return ['lia']
+        return ['lia', 'replay', 'replace']
 
     def lia_auxiliary_model(self, ema=False):
         from benchmark_examples.autoattack.attacks.lia import BottomModelPlus

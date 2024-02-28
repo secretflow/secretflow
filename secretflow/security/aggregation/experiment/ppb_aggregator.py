@@ -399,9 +399,11 @@ class PPBAggregator(Aggregator):
             self._worker_operator[data_operate[i].device].add_weights(
                 data_operate[i],
                 weights[i],
-                total_weights.to(data_operate[i].device)
-                if isinstance(total_weights, DeviceObject)
-                else total_weights,
+                (
+                    total_weights.to(data_operate[i].device)
+                    if isinstance(total_weights, DeviceObject)
+                    else total_weights
+                ),
             )
             for i in range(self._amount_of_party)
         ]

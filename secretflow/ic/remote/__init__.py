@@ -13,6 +13,6 @@
 # limitations under the License.
 
 
-from secretflow.ic.remote.api import remote, get
+from secretflow.ic.remote.api import get, remote
 
 __all__ = ["remote", "get"]

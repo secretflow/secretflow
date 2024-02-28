@@ -4,8 +4,8 @@ import sys
 
 sys.path.append("..")
 
-from .mnist_dataset import MNISTDataset
 from .badnets_base_dataset import BadNetsBaseDataset
+from .mnist_dataset import MNISTDataset
 
 
 class MirrorMNISTDataset(MNISTDataset, BadNetsBaseDataset):

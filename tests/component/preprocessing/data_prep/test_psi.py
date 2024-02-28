@@ -1,8 +1,8 @@
-import os
-
 import pandas as pd
+
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.preprocessing.data_prep.psi import psi_comp
+from secretflow.component.storage import ComponentStorage
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import (
     DistData,
@@ -11,7 +11,6 @@ from secretflow.spec.v1.data_pb2 import (
     VerticalTable,
 )
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
-from tests.conftest import TEST_STORAGE_ROOT
 
 
 def test_psi(comp_prod_sf_cluster_config):
@@ -21,7 +20,7 @@ def test_psi(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    local_fs_wd = storage_config.local_fs.wd
+    comp_storage = ComponentStorage(storage_config)
 
     if self_party == "alice":
         da = pd.DataFrame(
@@ -32,13 +31,8 @@ def test_psi(comp_prod_sf_cluster_config):
             }
         )
 
-        os.makedirs(
-            os.path.join(local_fs_wd, "test_psi"),
-            exist_ok=True,
-        )
-
         da.to_csv(
-            os.path.join(local_fs_wd, receiver_input_path),
+            comp_storage.get_writer(receiver_input_path),
             index=False,
         )
 
@@ -50,13 +44,8 @@ def test_psi(comp_prod_sf_cluster_config):
             }
         )
 
-        os.makedirs(
-            os.path.join(local_fs_wd, "test_psi"),
-            exist_ok=True,
-        )
-
         db.to_csv(
-            os.path.join(local_fs_wd, sender_input_path),
+            comp_storage.get_writer(sender_input_path),
             index=False,
         )
 
@@ -144,14 +133,20 @@ def test_psi(comp_prod_sf_cluster_config):
 
     assert len(res.outputs) == 1
 
-    pd.testing.assert_frame_equal(
-        expected_result_a,
-        pd.read_csv(os.path.join(TEST_STORAGE_ROOT, "alice", output_path)),
-    )
-    pd.testing.assert_frame_equal(
-        expected_result_b,
-        pd.read_csv(os.path.join(TEST_STORAGE_ROOT, "bob", output_path)),
-    )
+    if "alice" == sf_cluster_config.private_config.self_party:
+        comp_storage = ComponentStorage(storage_config)
+        pd.testing.assert_frame_equal(
+            expected_result_a,
+            pd.read_csv(comp_storage.get_reader(output_path)),
+        )
+    if "bob" == sf_cluster_config.private_config.self_party:
+        comp_storage = ComponentStorage(storage_config)
+        csv_b = pd.read_csv(comp_storage.get_reader(output_path))
+
+        pd.testing.assert_frame_equal(
+            expected_result_b,
+            csv_b,
+        )
 
     output_vt = VerticalTable()
 

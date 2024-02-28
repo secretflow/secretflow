@@ -5,9 +5,9 @@ import posixpath
 import re
 import shutil
 import sys
+from datetime import date
 from pathlib import Path
 from typing import List
-from datetime import date
 
 import setuptools
 from setuptools import find_packages, setup

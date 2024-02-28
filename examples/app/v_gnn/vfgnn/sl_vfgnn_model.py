@@ -14,14 +14,14 @@
 import os
 
 os.environ['DGLBACKEND'] = 'pytorch'
+import math  # noqa
+from typing import List  # noqa
+
 import dgl  # noqa
+import dgl.nn.pytorch as dglnn  # noqa
 import torch  # noqa
 import torch.nn as nn  # noqa
 import torch.nn.functional as F  # noqa
-import dgl.nn.pytorch as dglnn  # noqa
-
-from typing import List  # noqa
-import math  # noqa
 
 
 class SAGE(nn.Module):
@@ -210,9 +210,11 @@ class VFGNN(nn.Module):
         base_models = nn.ModuleList()
         for i in range(len(self.in_feats)):
             base_model = BaseModel(
-                self.in_feats[i]
-                if self.init_mode == 'identity'
-                else self.init_model_num_hidden,
+                (
+                    self.in_feats[i]
+                    if self.init_mode == 'identity'
+                    else self.init_model_num_hidden
+                ),
                 self.n_classes,
                 self.base_model_num_hidden,
                 self.base_model_layers,

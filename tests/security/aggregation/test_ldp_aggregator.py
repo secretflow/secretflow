@@ -1,8 +1,6 @@
 import pytest
 
-from secretflow.security.aggregation.experiment.ldp_aggregator import (
-    LDPAggregator,
-)
+from secretflow.security.aggregation.experiment.ldp_aggregator import LDPAggregator
 from tests.security.aggregation.test_aggregator_base import AggregatorBase
 
 

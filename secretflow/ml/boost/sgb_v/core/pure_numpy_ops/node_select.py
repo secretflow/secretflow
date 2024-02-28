@@ -101,9 +101,11 @@ def unpack_node_select_lists(
     size = np.prod(shape)
     return [
         [
-            np.unpackbits(node_select_bits, count=size).reshape(shape)
-            if node_select_bits.size > 0
-            else np.array([])
+            (
+                np.unpackbits(node_select_bits, count=size).reshape(shape)
+                if node_select_bits.size > 0
+                else np.array([])
+            )
             for node_select_bits in node_select_bits_l
         ]
         for node_select_bits_l in node_selects_bits

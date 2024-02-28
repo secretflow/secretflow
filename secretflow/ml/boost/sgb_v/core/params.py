@@ -11,8 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from enum import Enum, unique
+
+import numpy as np
 
 
 @unique
@@ -103,15 +105,27 @@ class SGBParams:
         range: ['linear', 'logistic']
     'base_score': The initial prediction score of all instances, global bias.
         default: 0
-    'early_stop_criterion_g_abs_sum': if sum(abs(g)) is lower than or equal to this threadshold, training will stop.
-        default: 0.0
-        range [0.0, inf)
-    'early_stop_criterion_g_abs_sum_change_ratio': if absolute g sum change ratio is lower than or equal to this threadshold, training will stop.
-        default: 0.0
-        range [0, 1]
     'tree_growing_method': how to grow tree?
         default: level-wise
     'enable_packbits': bool. if true, turn on packbits transmission.
+        default: False
+    'eval_metric': str. evaluation metric name, must be one of 'roc_auc', 'mse' or 'rmse' Note if objective is not logistic, auc may not work.
+        default: 'roc_auc'
+    'enable_monitor': bool. whether enable model monitor call back.
+        default: False
+    'enable_early_stop': bool. whether enable early stop call back.
+        default: False
+    'validation_fraction': float. the fraction to use as the validation set.
+    Only effective if early stop enabled.
+        default: 0.1
+        range: (0, 1)
+    'stopping_rounds': int. if more than `stopping_rounds` consecutive rounds without improvement, training will stop.
+    Only effective if early stop enabled.
+        default: 1
+    'stopping_tolerance': float. if the difference between current score and past best score is smaller than this threshold,
+    then model is considered not inproving. Only effective if early stop enabled.
+        default: 0.001
+    'save_best_model': bool. whether save best model on validation set during training, only effective if early stop enabled.
         default: False
     """
 
@@ -141,10 +155,17 @@ class SGBParams:
     sketch_eps: float = 0.1
     objective: RegType = RegType('logistic')
     base_score: float = 0.0
-    early_stop_criterion_g_abs_sum: float = 0.0
-    early_stop_criterion_g_abs_sum_change_ratio: float = 0.0
     tree_growing_method: TreeGrowingMethod = TreeGrowingMethod.LEVEL
     enable_packbits: bool = False
+
+    # callback params
+    eval_metric: str = 'roc_auc'
+    enable_monitor: bool = False
+    enable_early_stop: bool = False
+    validation_fraction: float = 0.1
+    stopping_rounds: int = 1
+    stopping_tolerance: float = 0.001
+    save_best_model: bool = False
 
 
 default_params = SGBParams()
@@ -185,8 +206,9 @@ numeric_params_range = {
     'top_rate': (0, 1, False, False),
     'bottom_rate': (0, 1, False, False),
     'sketch_eps': (0, 1, False, True),
-    'early_stop_criterion_g_abs_sum': (0.0, float('inf'), True, False),
-    'early_stop_criterion_g_abs_sum_change_ratio': (0, 1, True, True),
+    'validation_fraction': (0, 1, False, False),
+    'stopping_rounds': (1, 1024, True, True),
+    'stopping_tolerance': (0, np.inf, True, False),
 }
 
 categorical_params_options = {

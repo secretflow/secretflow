@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
 
 from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import (
@@ -121,6 +122,16 @@ def condition_filter_comp_eval_fn(
         )
         ds = filter.fit_transform(x)
         else_ds = filter.get_else_table()
+
+    assert math.prod(
+        ds.shape
+    ), f"empty dataset is not allowed, yet the table satisfied the condition is empty, \
+    skip this condition filter step and use alternative pipeline please."
+
+    assert math.prod(
+        else_ds.shape
+    ), f"empty dataset is not allowed, yet the table not satisfied the condition is empty, \
+    skip this condition filter step and use alternative pipeline please."
 
     out_db = dump_vertical_table(
         ctx,

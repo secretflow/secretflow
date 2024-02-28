@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from jax.tree_util import tree_flatten
+
+from secretflow.ic.proxy import LinkProxy
 from secretflow.ic.remote import util
 from secretflow.ic.remote.ic_object import IcObject
-from secretflow.ic.proxy import LinkProxy
-from jax.tree_util import tree_flatten
 
 
 class IcCallHolder:

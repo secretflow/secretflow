@@ -4,9 +4,10 @@ import sys
 
 sys.path.append("..")
 
-from torch import nn, optim
-import torch.nn.functional as F
 import pdb
+
+import torch.nn.functional as F
+from torch import nn, optim
 
 
 class PassiveModel(nn.Module):

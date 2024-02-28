@@ -16,13 +16,13 @@ import logging
 import os
 import time
 
-from sklearn.metrics import mean_squared_error, roc_auc_score
-
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.device.driver import reveal
 from secretflow.ml.boost.sgb_v import Sgb
 from secretflow.ml.boost.sgb_v.model import load_model
 from secretflow.utils.simulation.datasets import load_dermatology, load_linear
+
+from sklearn.metrics import mean_squared_error, roc_auc_score
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -41,7 +41,6 @@ def _run_sgb(
     mse_hat=1.1,
     tree_grow_method='level',
     enable_goss=False,
-    early_stop_criterion_g_abs_sum=10.0,
     num_boost_round=2,
     num_tree_cap=2,
 ):
@@ -73,9 +72,14 @@ def _run_sgb(
         'first_tree_with_label_holder_feature': True,
         'enable_goss': enable_goss,
         'enable_quantization': True,  # surprisingly, quantization may also improve auc on some datasets
-        'early_stop_criterion_g_abs_sum': early_stop_criterion_g_abs_sum,
-        'early_stop_criterion_g_abs_sum_change_ratio': 0.01,
         'enable_packbits': False,
+        'eval_metric': 'roc_auc' if logistic else 'mse',
+        'enable_monitor': True,
+        'enable_early_stop': True,
+        'validation_fraction': 0.1,
+        'stopping_rounds': 1,
+        'stopping_tolerance': 0.01,
+        'save_best_model': False,
     }
     model = sgb.train(params, v_data, label_data)
     reveal(model.trees[-1])
@@ -268,7 +272,6 @@ def test_breast_cancer(sf_production_setup_devices_aby3):
         0.9,
         2.3,
         'leaf',
-        early_stop_criterion_g_abs_sum=100,
         num_boost_round=10,
         num_tree_cap=3,
     )

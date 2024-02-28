@@ -189,9 +189,9 @@ class AggLayer(object):
             ), f'length of fuse_sparse_masks and gradient mismatch: {len(fuse_sparse_masks)} - {len(data)}'
             working_data = list(
                 map(
-                    lambda d, mask, compressed: compressor.compress(d, sparse_mask=mask)
-                    if compressed
-                    else d,
+                    lambda d, mask, compressed: (
+                        compressor.compress(d, sparse_mask=mask) if compressed else d
+                    ),
                     working_data,
                     fuse_sparse_masks,
                     iscompressed,
@@ -311,9 +311,9 @@ class AggLayer(object):
         if isinstance(self.device_agg, COMPRESS_DEVICE_LIST) and self.compressor:
             server_data = [
                 self.device_agg(
-                    lambda compressor, d: compressor.decompress(d)
-                    if compressor.iscompressed(d)
-                    else d
+                    lambda compressor, d: (
+                        compressor.decompress(d) if compressor.iscompressed(d) else d
+                    )
                 )(self.compressor, d)
                 for d in server_data
             ]
