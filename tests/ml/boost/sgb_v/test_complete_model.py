@@ -91,7 +91,6 @@ def _run_sgb(
     mse_hat=1,
     tree_grow_method='level',
     enable_goss=False,
-    early_stop_criterion_g_abs_sum=10.0,
     num_boost_round=2,
     num_tree_cap=2,
 ):
@@ -123,8 +122,6 @@ def _run_sgb(
         'first_tree_with_label_holder_feature': True,
         'enable_goss': enable_goss,
         'enable_quantization': True,  # surprisingly, quantization may also improve auc on some datasets
-        'early_stop_criterion_g_abs_sum': early_stop_criterion_g_abs_sum,
-        'early_stop_criterion_g_abs_sum_change_ratio': 0.01,
         'enable_packbits': False,
     }
     model = sgb.train(params, v_data, label_data)

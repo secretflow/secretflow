@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
-from heu import phe
 
 import secretflow.device as ft
+from heu import phe
 from secretflow import reveal
 from secretflow.device.device.heu import HEUMoveConfig
 

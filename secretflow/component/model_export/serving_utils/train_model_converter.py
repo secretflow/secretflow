@@ -17,10 +17,6 @@ import json
 from typing import Dict, List
 
 import numpy as np
-from secretflow.component.ml.boost.sgb import sgb
-from secretflow.component.ml.boost.ss_xgb.ss_xgb import (
-    build_ss_xgb_model,
-)
 
 import secretflow.component.ml.linear.ss_glm as glm
 import secretflow.component.ml.linear.ss_sgd as sgd
@@ -29,10 +25,12 @@ from secretflow.component.data_utils import (
     extract_table_header,
     model_loads,
 )
+from secretflow.component.ml.boost.sgb import sgb
+from secretflow.component.ml.boost.ss_xgb.ss_xgb import build_ss_xgb_model
 from secretflow.device import PYU, SPU, PYUObject, SPUObject
-from secretflow.ml.boost.ss_xgb_v.core.xgb_tree import XgbTree
 from secretflow.ml.boost.sgb_v.core.params import RegType as SgbRegType
 from secretflow.ml.boost.ss_xgb_v.core.node_split import RegType as SSXgbRegType
+from secretflow.ml.boost.ss_xgb_v.core.xgb_tree import XgbTree
 from secretflow.ml.linear import RegType
 from secretflow.spec.v1.data_pb2 import DistData
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam

@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # coding=utf-8
-from torch.utils.data import Sampler
 import random
+
+from torch.utils.data import Sampler
 
 
 class ShuffleSampler(Sampler):

@@ -25,7 +25,6 @@ import numpy as np
 import torch.utils.data as data
 from torchvision.datasets import CIFAR10
 
-
 # IMG_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif', '.tiff', '.webp')
 #
 #

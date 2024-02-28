@@ -5,13 +5,18 @@ import sys
 sys.path.append("..")
 sys.path.append("../..")
 
+import pdb
+
+import numpy as np
+import tensorflow as tf
+from model.tf.resnet_cifar import (
+    ResNetCIFAR10,
+    Splittable_ResNetCIFAR10,
+    dist_weights,
+    split_options,
+)
 from tensorflow import keras, nn, optimizers
 from tensorflow.keras import layers
-import tensorflow as tf
-import numpy as np
-from model.tf.resnet_cifar import ResNetCIFAR10, Splittable_ResNetCIFAR10
-from model.tf.resnet_cifar import split_options, dist_weights
-import pdb
 
 
 class Splittable_Model(Splittable_ResNetCIFAR10):

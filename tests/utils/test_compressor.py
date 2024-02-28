@@ -2,15 +2,15 @@ import numpy as np
 import numpy.testing as npt
 
 from secretflow.utils.compressor import (
-    SparseCompressor,
+    MixedCompressor,
     QuantizedCompressor,
-    TopkSparse,
-    RandomSparse,
     QuantizedFP,
     QuantizedKmeans,
     QuantizedLSTM,
     QuantizedZeroPoint,
-    MixedCompressor,
+    RandomSparse,
+    SparseCompressor,
+    TopkSparse,
 )
 from secretflow.utils.compressor.mixed_compressor import MixedCompressedData
 from secretflow.utils.compressor.quantized_compressor import QuantizedCompressedData

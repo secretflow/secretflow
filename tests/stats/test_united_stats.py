@@ -24,6 +24,20 @@ def prod_env_and_data(sf_production_setup_devices):
     ]
 
 
+@pytest.fixture(scope='module')
+def prod_env_and_data_3_party(sf_production_setup_devices):
+    np.random.seed(22)
+    y_true = np.round(np.random.random((TEST_SIZE,)).reshape(-1))
+    y_pred = np.random.random((TEST_SIZE,)).reshape(-1)
+    y_additional = np.random.random((TEST_SIZE,)).reshape(-1)
+    yield sf_production_setup_devices, [
+        sf_production_setup_devices.alice(lambda x: x)(y_true),
+        sf_production_setup_devices.bob(lambda x: x)(y_pred),
+        sf_production_setup_devices.carol(lambda x: x)(y_additional),
+        np.concatenate([y_true, y_pred, y_additional]),
+    ]
+
+
 def test_united_mean(prod_env_and_data):
     env, data = prod_env_and_data
     y_true, y_pred, y_total = data[0], data[1], data[2]
@@ -55,4 +69,12 @@ def test_united_median(prod_env_and_data):
     y_true, y_pred, y_total = data[0], data[1], data[2]
     true_med = np.median(y_total)
     med_val = reveal(united_median([y_true, y_pred], env.spu))
+    np.testing.assert_almost_equal(true_med, med_val, decimal=6)
+
+
+def test_united_median_3_party(prod_env_and_data_3_party):
+    env, data = prod_env_and_data_3_party
+    y_true, y_pred, y_additional, y_total = data[0], data[1], data[2], data[3]
+    true_med = np.median(y_total)
+    med_val = reveal(united_median([y_true, y_pred, y_additional], env.spu))
     np.testing.assert_almost_equal(true_med, med_val, decimal=6)

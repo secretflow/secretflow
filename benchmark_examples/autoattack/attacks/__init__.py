@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .fia import auto_fia, fia
-from .lia import auto_lia, lia
-from .norm import auto_norm, norm
+from .exploit import ExploitAttackCase as exploit
+from .fia import FiaAttackCase as fia
+from .lia import LiaAttackCase as lia
+from .norm import NormAttackCase as norm
+from .replace import ReplaceAttackCase as replace
+from .replay import ReplayAttackCase as replay
+
+__all__ = ['exploit', 'fia', 'lia', 'norm', 'replace', 'replay']

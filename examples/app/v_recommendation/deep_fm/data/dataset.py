@@ -3,9 +3,10 @@ import random
 from collections import namedtuple
 from pathlib import Path
 from typing import Dict, List
-from secretflow.utils.simulation.datasets import unzip, get_dataset
+
 from secretflow.data.vertical import read_csv as v_read_csv
 from secretflow.device.device.pyu import PYU
+from secretflow.utils.simulation.datasets import get_dataset, unzip
 
 _CACHE_DIR = os.path.join(os.path.expanduser('~'), '.secretflow/datasets')
 

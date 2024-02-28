@@ -13,8 +13,8 @@
 # limitations under the License.
 
 from .biclassification_eval import BiClassificationEval
-from .psi_eval import psi_eval
 from .prediction_bias_eval import prediction_bias_eval
+from .psi_eval import psi_eval
 from .regression_eval import RegressionEval
 from .score_card import ScoreCard
 from .ss_pearsonr_v import PearsonR as SSVertPearsonR

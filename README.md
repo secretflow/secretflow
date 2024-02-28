@@ -30,7 +30,6 @@ it provides:
   - [API Reference](https://www.secretflow.org.cn/docs/secretflow/en/api/index.html)
   - [Tutorial](https://www.secretflow.org.cn/docs/secretflow/en/tutorial/index.html)
 
-
 ## SecretFlow Related Projects
 
 - [Kuscia](https://github.com/secretflow/kuscia): A lightweight privacy-preserving computing task orchestration framework based on K3s.
@@ -53,10 +52,13 @@ We also provide a curated list of papers and SecretFlow's tutorials on Privacy-E
 
 Please check [AWESOME-PETS.md](./docs/awesome-pets/awesome-pets.md)
 
-
 ## Contributing
 
 Please check [CONTRIBUTING.md](./CONTRIBUTING.md)
+
+## Benchmarks
+
+Please check [OVERALL_BENCHMARK.md](./docs/developer/benchmark/overall_benchmark.md)
 
 ## Disclaimer
 

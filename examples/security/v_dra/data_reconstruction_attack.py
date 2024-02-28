@@ -20,8 +20,8 @@ import logging
 
 import torch
 import torch.optim as optim
-from torchvision.transforms import Normalize
 from model_stylegan2 import Generator
+from torchvision.transforms import Normalize
 
 from secretflow.ml.nn.callbacks.callback import Callback
 

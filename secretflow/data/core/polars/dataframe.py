@@ -346,7 +346,9 @@ class PlPartDataFrame(PartDataFrameBase):
 
     def to_csv(self, filepath, **kwargs):
         self._collect()
-        if is_local_file(filepath):
+        if callable(filepath):
+            filepath = filepath()
+        elif is_local_file(filepath):
             Path(filepath).parent.mkdir(parents=True, exist_ok=True)
         self.df.write_csv(filepath)
 
@@ -432,9 +434,11 @@ class PlPartDataFrame(PartDataFrameBase):
             for df in dfs:
                 assert isinstance(df, (pl.DataFrame, pd.DataFrame))
             return [
-                PlPartDataFrame(df)
-                if isinstance(df, pl.DataFrame)
-                else PdPartDataFrame(df)
+                (
+                    PlPartDataFrame(df)
+                    if isinstance(df, pl.DataFrame)
+                    else PdPartDataFrame(df)
+                )
                 for df in dfs
             ]
         else:

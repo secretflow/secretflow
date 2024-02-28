@@ -16,6 +16,7 @@ from typing import Dict
 
 import numpy as np
 import pandas as pd
+import pyarrow as pa
 from sklearn.impute import SimpleImputer
 
 import secretflow.compute as sc
@@ -186,11 +187,30 @@ def apply_fillna_rule_on_table(table: sc.Table, rules: Dict) -> sc.Table:
     for col_name in fill_value_rules:
         fill_value = fill_value_rules[col_name]
         col = table.column(col_name)
-        cond = sc.is_nan(col) if is_nan else sc.equal(col, missing_value)
-        # nan or specified values must be filled
-        new_col = sc.if_else(cond, fill_value, col)
+
+        if is_nan and not pa.types.is_string(col.dtype):
+            cond = sc.is_nan(col)
+            col = sc.if_else(cond, fill_value, col)
+        else:
+            try:
+                if pa.types.is_string(col.dtype):
+                    missing_value = str(missing_value)
+                if pa.types.is_integer(col.dtype):
+                    missing_value = int(missing_value)
+                if pa.types.is_floating(col.dtype):
+                    missing_value = float(missing_value)
+                if pa.types.is_boolean(col.dtype):
+                    missing_value = bool(missing_value)
+                cond = sc.equal(col, missing_value)
+                if pa.types.is_string(col.dtype):
+                    cond = sc.or_(cond, sc.equal(col, "NaN"))
+                col = sc.if_else(cond, fill_value, col)
+            except ValueError:
+                logging.warning(
+                    f"pyarrow does not support mixed dtypes, missing value {missing_value} cannot apply to col {col_name}, use multiple fillna if possible"
+                )
         # null values may still exist and must also be filled
-        new_col = sc.coalesce(new_col, fill_value)
+        new_col = sc.coalesce(col, fill_value)
         table = table.set_column(table.column_names.index(col_name), col_name, new_col)
     return table
 

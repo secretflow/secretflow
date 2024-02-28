@@ -11,7 +11,6 @@ separated from the rest by a newline
 import tensorflow as tf
 
 from secretflow.ml.nn.fl.backend.tensorflow.strategy.fed_avg_g import FedAvgG
-
 from tests.ml.nn.fl.model_def import mnist_conv_model
 
 

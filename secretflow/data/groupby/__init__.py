@@ -14,5 +14,4 @@
 
 from .dataframe_groupby import DataFrameGroupBy
 
-
 __all__ = ["DataFrameGroupBy"]

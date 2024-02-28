@@ -1,5 +1,3 @@
-import os
-
 import pandas as pd
 from google.protobuf.json_format import MessageToJson
 
@@ -10,11 +8,11 @@ from secretflow.component.preprocessing.unified_single_party_ops.case_when impor
 from secretflow.component.preprocessing.unified_single_party_ops.substitution import (
     substitution,
 )
+from secretflow.component.storage import ComponentStorage
 from secretflow.spec.extend.case_when_rules_pb2 import CaseWhenRule
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
-from tests.conftest import TEST_STORAGE_ROOT
 
 
 def _build_test():
@@ -162,7 +160,7 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    local_fs_wd = storage_config.local_fs.wd
+    comp_storage = ComponentStorage(storage_config)
 
     if self_party == "alice":
         df_alice = pd.DataFrame(
@@ -177,14 +175,8 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
                 "y": [0] * 10,
             }
         )
-
-        os.makedirs(
-            os.path.join(local_fs_wd, "test_onehot_encode"),
-            exist_ok=True,
-        )
-
         df_alice.to_csv(
-            os.path.join(local_fs_wd, alice_input_path),
+            comp_storage.get_writer(alice_input_path),
             index=False,
         )
     elif self_party == "bob":
@@ -195,14 +187,8 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
                 "b5": [i for i in range(10)],
             }
         )
-
-        os.makedirs(
-            os.path.join(local_fs_wd, "test_onehot_encode"),
-            exist_ok=True,
-        )
-
         df_bob.to_csv(
-            os.path.join(local_fs_wd, bob_input_path),
+            comp_storage.get_writer(bob_input_path),
             index=False,
         )
 
@@ -259,11 +245,6 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
     )
     param.inputs[0].meta.Pack(meta)
 
-    os.makedirs(
-        os.path.join(local_fs_wd, "test_onehot_encode"),
-        exist_ok=True,
-    )
-
     for n, t, e in zip(*_build_test()):
         param.attrs[0].s = MessageToJson(t)
 
@@ -275,15 +256,15 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
 
         assert len(res.outputs) == 2
 
-        a_out = pd.read_csv(
-            os.path.join(TEST_STORAGE_ROOT, "alice", inplace_encode_path)
-        )
-        z = a_out["z"]
-        e = pd.Series(e)
+        if "alice" == sf_cluster_config.private_config.self_party:
+            comp_storage = ComponentStorage(storage_config)
+            a_out = pd.read_csv(comp_storage.get_reader(inplace_encode_path))
+            z = a_out["z"]
+            e = pd.Series(e)
 
-        assert z.equals(
-            e
-        ), f"{n}\n===z===\n{z}\n===e===\n{e}\n===r===\n{param.attrs[0].s}"
+            assert z.equals(
+                e
+            ), f"{n}\n===z===\n{z}\n===e===\n{e}\n===r===\n{param.attrs[0].s}"
 
         param2 = NodeEvalParam(
             domain="preprocessing",
@@ -299,8 +280,9 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
             cluster_config=sf_cluster_config,
         )
 
-        sub_out = pd.read_csv(os.path.join(TEST_STORAGE_ROOT, "alice", sub_path))
+        if "alice" == sf_cluster_config.private_config.self_party:
+            sub_out = pd.read_csv(comp_storage.get_reader(sub_path))
 
-        assert a_out.equals(sub_out)
+            assert a_out.equals(sub_out)
 
         assert len(res.outputs) == 1

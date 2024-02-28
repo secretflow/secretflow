@@ -14,5 +14,4 @@
 
 from .global_ordermap_booster import GlobalOrdermapBooster
 
-
 __all__ = ['GlobalOrdermapBooster']

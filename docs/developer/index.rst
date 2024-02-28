@@ -41,5 +41,6 @@ The following documents will help you understand the design ideas and principles
    :maxdepth: 1
    :caption: Benchmark
 
+   benchmark/overall_benchmark
    benchmark/psi_benchmark
    benchmark/ubpsi_benchmark

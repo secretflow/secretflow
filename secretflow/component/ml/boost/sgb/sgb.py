@@ -16,15 +16,16 @@ import json
 from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import (
     DistDataType,
-    SimpleVerticalBatchReader,
     get_model_public_info,
     load_table,
     model_dumps,
     model_loads,
     save_prediction_dd,
+    SimpleVerticalBatchReader,
 )
 from secretflow.device.device.heu import heu_from_base_config
 from secretflow.device.device.pyu import PYU
+from secretflow.ml.boost.core.metric import METRICS
 from secretflow.ml.boost.sgb_v import Sgb, SgbModel
 from secretflow.ml.boost.sgb_v.model import from_dict
 
@@ -33,7 +34,7 @@ DEFAULT_PREDICT_BATCH_SIZE = 10000
 sgb_train_comp = Component(
     "sgb_train",
     domain="ml.train",
-    version="0.0.1",
+    version="0.0.2",
     desc="""Provides both classification and regression tree boosting (also known as GBDT, GBM)
     for vertical split dataset setting by using secure boost.
 
@@ -249,32 +250,85 @@ sgb_train_comp.float_attr(
     lower_bound_inclusive=False,
     upper_bound_inclusive=True,
 )
-sgb_train_comp.float_attr(
-    name="early_stop_criterion_g_abs_sum",
-    desc="If sum(abs(g)) is lower than or equal to this threshold, training will stop.",
-    is_list=False,
-    is_optional=True,
-    default_value=0.0,
-    lower_bound=0.0,
-    lower_bound_inclusive=True,
-)
-sgb_train_comp.float_attr(
-    name="early_stop_criterion_g_abs_sum_change_ratio",
-    desc="If absolute g sum change ratio is lower than or equal to this threshold, training will stop.",
-    is_list=False,
-    is_optional=True,
-    default_value=0.0,
-    lower_bound=0,
-    upper_bound=1,
-    lower_bound_inclusive=True,
-    upper_bound_inclusive=True,
-)
 sgb_train_comp.str_attr(
     name="tree_growing_method",
     desc="How to grow tree?",
     is_list=False,
     is_optional=True,
     default_value="level",
+)
+
+sgb_train_comp.bool_attr(
+    name="enable_monitor",
+    desc="Whether to enable monitering performance during training.",
+    is_list=False,
+    is_optional=True,
+    default_value=False,
+)
+
+sgb_train_comp.bool_attr(
+    name="enable_early_stop",
+    desc="Whether to enable early stop during training.",
+    is_list=False,
+    is_optional=True,
+    default_value=False,
+)
+
+sgb_train_comp.str_attr(
+    name="eval_metric",
+    desc=f"Use what metric for monitoring and early stop? Currently support {list(METRICS.keys())}",
+    is_list=False,
+    is_optional=True,
+    default_value="roc_auc",
+    allowed_values=list(METRICS.keys()),
+)
+
+sgb_train_comp.float_attr(
+    name="validation_fraction",
+    desc="Early stop specific paramter. Only effective if early stop enabled. The fraction of samples to use as validation set.",
+    is_list=False,
+    is_optional=True,
+    default_value=0.1,
+    lower_bound=0,
+    upper_bound=1,
+    lower_bound_inclusive=False,
+    upper_bound_inclusive=False,
+)
+
+# 'stopping_tolerance': float. if the difference between current score and past best score is smaller than this threshold,
+# then model is considered not inproving. Only effective if early stop enabled.
+#     default: 0.001
+# 'save_best_model': bool. whether save best model on validation set during training, only effective if early stop enabled.
+#     default: False
+sgb_train_comp.int_attr(
+    name="stopping_rounds",
+    desc="""Early stop specific paramter. If more than `stopping_rounds` consecutive rounds without improvement, training will stop.
+    Only effective if early stop enabled""",
+    is_list=False,
+    is_optional=True,
+    default_value=1,
+    lower_bound=1,
+    upper_bound=1024,
+    lower_bound_inclusive=True,
+    upper_bound_inclusive=True,
+)
+
+sgb_train_comp.float_attr(
+    name="stopping_tolerance",
+    desc="Early stop specific paramter. If metric on validation set is no longer improving by at least this amount, ten consider not improving.",
+    is_list=False,
+    is_optional=True,
+    default_value=0.001,
+    lower_bound=0,
+    lower_bound_inclusive=False,
+)
+
+sgb_train_comp.bool_attr(
+    name="save_best_model",
+    desc="Whether to save the best model on validation set during training.",
+    is_list=False,
+    is_optional=True,
+    default_value=False,
 )
 
 sgb_train_comp.io(
@@ -332,10 +386,15 @@ def sgb_train_eval_fn(
     enable_goss,
     enable_quantization,
     batch_encoding_enabled,
-    early_stop_criterion_g_abs_sum_change_ratio,
-    early_stop_criterion_g_abs_sum,
     tree_growing_method,
     first_tree_with_label_holder_feature,
+    enable_monitor,
+    enable_early_stop,
+    eval_metric,
+    validation_fraction,
+    stopping_rounds,
+    stopping_tolerance,
+    save_best_model,
     train_dataset,
     train_dataset_label,
     output_model,
@@ -389,10 +448,15 @@ def sgb_train_eval_fn(
                 'enable_goss': enable_goss,
                 'enable_quantization': enable_quantization,
                 'batch_encoding_enabled': batch_encoding_enabled,
-                'early_stop_criterion_g_abs_sum_change_ratio': early_stop_criterion_g_abs_sum_change_ratio,
-                'early_stop_criterion_g_abs_sum': early_stop_criterion_g_abs_sum,
                 'tree_growing_method': tree_growing_method,
                 'first_tree_with_label_holder_feature': first_tree_with_label_holder_feature,
+                "enable_monitor": enable_monitor,
+                "enable_early_stop": enable_early_stop,
+                "eval_metric": eval_metric,
+                "validation_fraction": validation_fraction,
+                "stopping_rounds": stopping_rounds,
+                "stopping_tolerance": stopping_tolerance,
+                "save_best_model": save_best_model,
             },
             dtrain=x,
             label=y,

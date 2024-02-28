@@ -13,5 +13,5 @@
 # limitations under the License.
 
 from .biclassification_eval_core import gen_all_reports as gen_biclassification_reports
-from .psi_core import psi
 from .prediction_bias_core import prediction_bias
+from .psi_core import psi

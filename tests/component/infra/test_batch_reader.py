@@ -5,11 +5,18 @@ import numpy as np
 import pandas as pd
 from sklearn.datasets import load_breast_cancer
 from sklearn.preprocessing import StandardScaler
-from secretflow.data.vertical.dataframe import VDataFrame
+
 from secretflow import reveal, wait
-from secretflow.component.data_utils import SimpleVerticalBatchReader
 from secretflow.component.component import CompEvalContext
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
+from secretflow.component.data_utils import SimpleVerticalBatchReader
+from secretflow.component.storage import ComponentStorage
+from secretflow.data.vertical.dataframe import VDataFrame
+from secretflow.spec.v1.data_pb2 import (
+    DistData,
+    StorageConfig,
+    TableSchema,
+    VerticalTable,
+)
 
 
 def test_works(sf_production_setup_devices):
@@ -20,14 +27,14 @@ def test_works(sf_production_setup_devices):
     x, y = scaler.fit_transform(ds["data"]), ds["target"]
 
     expected_row_cnt = x.shape[0]
-    local_fs_wd = os.path.join("/", "tmp", f"{os.getuid()}")
+    data_dir = os.path.join("/", "tmp", f"{os.getuid()}")
     paths = {
         'alice': os.path.join("alice", "test_batch_reader", "alice.csv"),
         'bob': os.path.join("bob", "test_batch_reader", "bob.csv"),
     }
 
     def create_alice_data(p, x, y):
-        p = os.path.join(local_fs_wd, p)
+        p = os.path.join(data_dir, p)
         os.makedirs(
             os.path.dirname(p),
             exist_ok=True,
@@ -40,8 +47,8 @@ def test_works(sf_production_setup_devices):
     wait(alice(create_alice_data)(paths["alice"], x, y))
 
     def create_bob_data(p, x):
-        p = os.path.join(local_fs_wd, p)
-        os.path.join(local_fs_wd, p)
+        p = os.path.join(data_dir, p)
+        os.path.join(data_dir, p)
         os.makedirs(
             os.path.dirname(p),
             exist_ok=True,
@@ -81,7 +88,15 @@ def test_works(sf_production_setup_devices):
     )
     input_ds.meta.Pack(meta)
 
-    ctx = CompEvalContext(local_fs_wd=local_fs_wd)
+    ctx = CompEvalContext(
+        data_dir=data_dir,
+        comp_storage=ComponentStorage(
+            StorageConfig(
+                type="local_fs",
+                local_fs=StorageConfig.LocalFSConfig(wd=data_dir),
+            )
+        ),
+    )
 
     reader = SimpleVerticalBatchReader(
         ctx,

@@ -12,18 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
 
-from . import (
-    component,
-    data,
-    device,
-    kuscia,
-    ml,
-    preprocessing,
-    security,
-    utils,
-    ic,
-)
+if sys.version_info.major == 3 and sys.version_info.minor == 8:
+    # python 3.8
+    import pkg_resources
+
+    package_name = 'secretflow-ray'
+    try:
+        cool_package_dist_info = pkg_resources.get_distribution(package_name)
+    except pkg_resources.DistributionNotFound:
+        # Not found.
+        pass
+    else:
+        print(
+            "The secretflow-ray package is now deprecated.\n"
+            "Please uninstall secretflow-ray before proceeding.\n"
+            "Follow the commands below to complete the uninstallation process.\n"
+            "> pip uninstall secretflow-ray\n"
+            "> pip uninstall ray\n"
+            "> pip install ray"
+        )
+        exit(1)
+
+
+from . import component, data, device, ic, kuscia, ml, preprocessing, security, utils
 from .device import (
     HEU,
     PYU,

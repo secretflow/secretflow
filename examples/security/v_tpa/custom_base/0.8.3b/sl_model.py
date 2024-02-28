@@ -23,6 +23,7 @@
 import logging
 import math
 import os
+import pdb
 from typing import Callable, Dict, Iterable, List, Tuple, Union
 
 from multiprocess import cpu_count
@@ -38,7 +39,6 @@ from secretflow.ml.nn.sl.strategy_dispatcher import dispatch_strategy
 from secretflow.security.privacy import DPStrategy
 from secretflow.utils.compressor import Compressor
 from secretflow.utils.random import global_random
-import pdb
 
 
 class SLModel:
@@ -89,9 +89,9 @@ class SLModel:
                 builder_fuse=None if device != device_y else model_fuse,
                 compressor=compressor,
                 random_seed=random_seed,
-                dp_strategy=dp_strategy_dict.get(device, None)
-                if dp_strategy_dict
-                else None,
+                dp_strategy=(
+                    dp_strategy_dict.get(device, None) if dp_strategy_dict else None
+                ),
                 base_local_steps=kwargs.get("base_local_steps", 1),
                 fuse_local_steps=kwargs.get("fuse_local_steps", 1),
                 bound_param=kwargs.get("bound_param", 0.0),

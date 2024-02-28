@@ -4,11 +4,13 @@ import sys
 
 sys.path.append("..")
 
-import torch
 import pdb
+
+import torch
 from attack.badnets.trigger import inject_mnist_trigger, inject_white_trigger
+
 from .mirror_mnist_dataset import MirrorMNISTDataset
-from .split_dataset import PassiveDataset, ActiveDataset
+from .split_dataset import ActiveDataset, PassiveDataset
 
 
 class BadNetsMNISTDataset(MirrorMNISTDataset):

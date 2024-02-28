@@ -32,7 +32,8 @@ addresses = {"alice": "127.0.0.1:9963", "bob": "127.0.0.1:9964"}
 
 
 def run_add(party: str):
-    from api import remote, get
+    from api import get, remote
+
     from secretflow.ic.proxy import LinkProxy
 
     LinkProxy.init(addresses=addresses, self_party=party)

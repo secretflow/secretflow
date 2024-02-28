@@ -110,9 +110,11 @@ class Shuffler(Component):
                 'WorkerShuffler',
                 'undo_shuffle_mask_with_keys',
                 split_buckets,
-                keys.to(worker_shuffler.device)
-                if isinstance(keys, PYUObject)
-                else [k.to(worker_shuffler.device) for k in keys],
+                (
+                    keys.to(worker_shuffler.device)
+                    if isinstance(keys, PYUObject)
+                    else [k.to(worker_shuffler.device) for k in keys]
+                ),
             )
             for worker_shuffler, split_buckets in zip(
                 self.worker_shufflers, split_buckets_parition_wise

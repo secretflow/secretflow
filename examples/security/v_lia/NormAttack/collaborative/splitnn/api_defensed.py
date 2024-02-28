@@ -2,7 +2,6 @@ import os
 import sys
 
 import torch
-
 from collaborative.core.api import BaseFedAPI
 
 

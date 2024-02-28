@@ -13,9 +13,7 @@ import secretflow as sf
 from secretflow.data.ndarray import FedNdarray, PartitionWay
 from secretflow.ml.nn import SLModel
 from secretflow.ml.nn.fl.utils import metric_wrapper, optim_wrapper
-from secretflow.ml.nn.sl.attacks.lia_torch import (
-    LabelInferenceAttack,
-)
+from secretflow.ml.nn.sl.attacks.lia_torch import LabelInferenceAttack
 from secretflow.ml.nn.utils import TorchModel
 from tests.ml.nn.sl.attack.data_util import (
     CIFAR10Labeled,

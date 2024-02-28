@@ -1,6 +1,5 @@
 import json
 import logging
-import os
 
 import pandas as pd
 import pytest
@@ -12,6 +11,7 @@ from secretflow.component.io.io import io_read_data, io_write_data
 from secretflow.component.preprocessing.binning.vert_woe_binning import (
     vert_woe_binning_comp,
 )
+from secretflow.component.storage import ComponentStorage
 from secretflow.spec.extend.bin_data_pb2 import Bins
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
@@ -27,28 +27,19 @@ def vert_woe_bin_rule(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    local_fs_wd = storage_config.local_fs.wd
+    comp_storage = ComponentStorage(storage_config)
 
     ds = load_breast_cancer()
     x, y = ds["data"], ds["target"]
     if self_party == "alice":
-        os.makedirs(
-            os.path.join(local_fs_wd, "test_io"),
-            exist_ok=True,
-        )
         x = pd.DataFrame(x[:, :15], columns=[f"a{i}" for i in range(15)])
         y = pd.DataFrame(y, columns=["y"])
         ds = pd.concat([x, y], axis=1)
-        ds.to_csv(os.path.join(local_fs_wd, alice_path), index=False)
+        ds.to_csv(comp_storage.get_writer(alice_path), index=False)
 
     elif self_party == "bob":
-        os.makedirs(
-            os.path.join(local_fs_wd, "test_io"),
-            exist_ok=True,
-        )
-
         ds = pd.DataFrame(x[:, 15:], columns=[f"b{i}" for i in range(15)])
-        ds.to_csv(os.path.join(local_fs_wd, bob_path), index=False)
+        ds.to_csv(comp_storage.get_writer(bob_path), index=False)
 
     bin_param_01 = NodeEvalParam(
         domain="feature",
