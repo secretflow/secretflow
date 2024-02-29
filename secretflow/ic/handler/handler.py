@@ -14,11 +14,9 @@
 
 import abc
 import logging
-from typing import List, Tuple
-
-from interconnection.common.header_pb2 import OK
+from typing import Tuple, List
 from interconnection.handshake.entry_pb2 import HandshakeRequest, HandshakeResponse
-
+from interconnection.common.header_pb2 import OK
 from secretflow.ic.proxy import LinkProxy
 
 

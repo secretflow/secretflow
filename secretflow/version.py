@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.5.0.dev$$DATE$$"
+__version__ = "1.5.0.dev20240229"

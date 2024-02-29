@@ -12,14 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import functools
 import inspect
-from typing import List, Union
-
+import functools
+from typing import Union, List
 from secretflow.ic.proxy import LinkProxy
-from secretflow.ic.remote.ic_object import IcObject
-from secretflow.ic.remote.remote_class import IcRemoteClass
 from secretflow.ic.remote.remote_function import IcRemoteFunction
+from secretflow.ic.remote.remote_class import IcRemoteClass
+from secretflow.ic.remote.ic_object import IcObject
 
 
 def remote(*args, **kwargs):

@@ -13,11 +13,9 @@
 # limitations under the License.
 
 import logging
-from typing import Any, Dict
-
 import spu.libspu.link as link
-
-from secretflow.ic.proxy.serializer import deserialize, serialize
+from typing import Dict, Any
+from secretflow.ic.proxy.serializer import serialize, deserialize
 
 
 class LinkProxy:

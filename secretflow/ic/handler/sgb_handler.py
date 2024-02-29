@@ -12,24 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Tuple
-
+from typing import Tuple, List
+import secretflow as sf
 import spu
+from secretflow.data import FedNdarray, PartitionWay
+from secretflow.device.driver import reveal
+from secretflow.ml.boost.sgb_v import Sgb, SgbModel
 from google.protobuf import any_pb2
+from secretflow.ic.handler.protocol_family import phe
+from secretflow.ic.handler.algo import xgb
 from interconnection.common import header_pb2
 from interconnection.handshake import entry_pb2
 from interconnection.handshake.algos import sgb_pb2
 from interconnection.handshake.protocol_family import phe_pb2
-
-import secretflow as sf
-from secretflow.data import FedNdarray, PartitionWay
-from secretflow.device.driver import reveal
-from secretflow.ic.handler import util
-from secretflow.ic.handler.algo import xgb
-from secretflow.ic.handler.handler import IcHandler
-from secretflow.ic.handler.protocol_family import phe
 from secretflow.ic.proxy import LinkProxy
-from secretflow.ml.boost.sgb_v import Sgb, SgbModel
+from secretflow.ic.handler.handler import IcHandler
+from secretflow.ic.handler import util
 
 
 class SgbIcHandler(IcHandler):
