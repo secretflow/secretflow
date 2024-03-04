@@ -59,7 +59,7 @@ msgid "一、测试机型"
 msgstr ""
 
 #: ../../developer/benchmark/ubpsi_benchmark.md:16
-msgid "Python：3.8"
+msgid "Python：3.10"
 msgstr ""
 
 #: ../../developer/benchmark/ubpsi_benchmark.md:17

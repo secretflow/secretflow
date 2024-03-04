@@ -175,9 +175,6 @@ class Tuner:
             )
             ray.init()
         avaliable_resources = ray.available_resources()
-        for party in global_state.parties():
-            if party not in avaliable_resources:
-                avaliable_resources[party] = avaliable_resources['CPU']
         if cluster_resources is None or isinstance(cluster_resources, List):
             if isinstance(cluster_resources, List):
                 logging.warning(
@@ -186,7 +183,9 @@ class Tuner:
                     f"{cluster_resources}"
                 )
             else:
-                cluster_resources = self._default_cluster_resource(avaliable_resources)
+                cluster_resources = self._default_cluster_resource(
+                    avaliable_resources, is_debug=True
+                )
             resources = {}
             for res in cluster_resources:
                 for k, v in res.items():
@@ -212,8 +211,7 @@ class Tuner:
         )
         return tune_resources
 
-    @staticmethod
-    def _default_cluster_resource(avaliable_resources):
+    def _default_cluster_resource(self, avaliable_resources, is_debug=False):
         logging.warning(
             f"Tuner() got arguments cluster_resources=None. "
             f"The Tuner will defaultly use as many as cluster resources in each experiment."
@@ -224,27 +222,43 @@ class Tuner:
         )
         parties = global_state.parties()
         cluster_resources = []
-        # When use sart ray cluster with node nums > 1, we cannot run a trail coross differnt nodes,
+        # When use sart ray cluster with node nums > 1, we cannot run one trail coross differnt nodes,
         #  so we should keep the resource usage less than it in one node.
-        node_nums = 0
-        for k in avaliable_resources:
-            if "node" in k:
-                node_nums += 1
-        node_nums = 1 if node_nums == 0 else node_nums
-        for party in parties:
-            party_resources = {party: max(avaliable_resources[party] / node_nums, 0)}
-            for res_name, avalia in avaliable_resources.items():
-                if (
-                    res_name not in parties
-                    and 'memory' not in res_name
-                    and 'node' not in res_name
-                    and 'accelerator_type' not in res_name
-                ):
-                    party_resources[res_name] = max(
-                        avalia / node_nums / len(parties), 0
-                    )
-            cluster_resources.append(party_resources)
+        node_nums = len(ray.nodes())
+        if is_debug:
+            trail_resources = {
+                res_name: avalia
+                for res_name, avalia in avaliable_resources.items()
+                if self._is_consumable_resource(res_name)
+            }
+            cluster_resources.append(trail_resources)
+        else:
+            for party in parties:
+                party_resources = {
+                    party: max(avaliable_resources[party] / node_nums, 0)
+                }
+                for res_name, avalia in avaliable_resources.items():
+                    if (
+                        self._is_consumable_resource(res_name)
+                        and res_name not in parties
+                    ):
+                        party_resources[res_name] = max(
+                            avalia / node_nums / len(parties), 0
+                        )
+                cluster_resources.append(party_resources)
         return cluster_resources
+
+    @staticmethod
+    def _is_consumable_resource(resource_name: str) -> bool:
+        """Check if the resource name is a consumable resource."""
+        if (
+            'node:' not in resource_name
+            and 'accelerator_type' not in resource_name
+            and resource_name != 'memory'
+            and resource_name != 'object_store_memory'
+        ):
+            return True
+        return False
 
     @staticmethod
     def _check_resources_input(

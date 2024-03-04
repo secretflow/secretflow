@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import logging
+import os.path
+import uuid
 
 import torch.nn as nn
 import torch.nn.functional as F
@@ -116,40 +118,43 @@ class LiaAttackCase(AttackCase):
 
         data_buil = self.app.lia_auxiliary_data_builder()
         # for precision unittest
-        model_save_path = './lia_model'
+        model_save_path = f'./lia_model + {uuid.uuid4().int}'
+        try:
+            lia_cb = LabelInferenceAttack(
+                self.app.device_f,
+                model,
+                ema_model,
+                self.app.num_classes,
+                data_buil,
+                attack_epochs=1 if is_simple_test() else 10,
+                save_model_path=model_save_path,
+                T=self.config.get('T', 0.8),
+                alpha=self.config.get('alpha', 0.75),
+                val_iteration=self.config.get('val_iteration', 1024),
+                k=4 if self.app.num_classes == 10 else 2,
+                lr=self.config.get('lr', 2e-3),
+                ema_decay=self.config.get('ema_decay', 0.999),
+                lambda_u=self.config.get('lambda_u', 50),
+                exec_device='cuda' if global_config.is_use_gpu() else 'cpu',
+            )
 
-        lia_cb = LabelInferenceAttack(
-            self.app.device_f,
-            model,
-            ema_model,
-            self.app.num_classes,
-            data_buil,
-            attack_epochs=1 if is_simple_test() else 2,
-            save_model_path=model_save_path,
-            T=self.config.get('T', 0.8),
-            alpha=self.config.get('alpha', 0.75),
-            val_iteration=self.config.get('val_iteration', 1024),
-            k=4 if self.app.num_classes == 10 else 2,
-            lr=self.config.get('lr', 2e-3),
-            ema_decay=self.config.get('ema_decay', 0.999),
-            lambda_u=self.config.get('lambda_u', 50),
-            exec_device='cuda' if global_config.is_use_gpu() else 'cpu',
-        )
-
-        history = self.app.train(lia_cb)
-        logging.warning(
-            f"RESULT: {type(self.app).__name__} lia attack metrics = {lia_cb.get_attack_metrics()}"
-        )
-        return history, lia_cb.get_attack_metrics()
+            history = self.app.train(lia_cb)
+            logging.warning(
+                f"RESULT: {type(self.app).__name__} lia attack metrics = {lia_cb.get_attack_metrics()}"
+            )
+            return history, lia_cb.get_attack_metrics()
+        finally:
+            if os.path.exists(model_save_path):
+                os.remove(model_save_path)
 
     def attack_search_space(self):
         return {
-            'T': tune.search.grid_search([0.7, 0.75, 0.8]),  # near 0.8
-            'alpha': tune.search.grid_search([0.8, 0.9, 0.9999]),  # (0,1) near 0.9
-            'val_iteration': 1024,  # 1 -
-            'lr': tune.search.grid_search([2e-5, 2e-3, 2e-1]),
-            'ema_decay': tune.search.grid_search([0.9, 0.99, 0.999]),
-            'lambda_u': tune.search.grid_search([40, 50, 60]),  # 40 - 60
+            'T': tune.search.grid_search([0.7, 0.8]),  # near 0.8
+            'alpha': tune.search.grid_search([0.9, 0.999]),  # (0,1) near 0.9
+            # 'val_iteration': 1024,  # 1 -
+            'lr': tune.search.grid_search([2e-4, 2e-3]),
+            'ema_decay': tune.search.grid_search([0.8, 0.9, 0.999]),
+            'lambda_u': tune.search.grid_search([40, 60]),  # 40 - 60
         }
 
     def metric_name(self):

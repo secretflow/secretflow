@@ -403,8 +403,11 @@ class SLBaseTFModel(SLBaseModel):
             self.eval_set = iter(self.eval_dataset)
         self._pre_train_y = []
 
-    def recv_gradient(self, gradient):
+    def get_gradient(self, gradient):
         self._gradient = gradient
+
+    def set_gradient(self):
+        return self._gradient
 
     def get_batch_data(self, stage="train", epoch=1):
         self.cur_epoch = epoch
@@ -510,7 +513,7 @@ class SLBaseTFModel(SLBaseModel):
         # In some strategies, we don't need to return gradient.
         if self.skip_gradient:
             return [None] * _num_returns
-        return gradient
+        self._gradient = gradient
 
     def base_backward(self):
         """backward on fusenet

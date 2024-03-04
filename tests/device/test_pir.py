@@ -78,89 +78,18 @@ def test_pir(set_up):
             setup_path=setup_path,
             num_per_query=1,
             label_max_len=20,
+            bucket_size=1000000,
         )
 
         pir_result_path = f"{data_dir}/pir_out.csv"
-
-        alice_config = {
-            "input_path": input_path[env.alice],
-            "key_columns": key_columns,
-            "output_path": pir_result_path,
-        }
-
-        bob_config = {
-            "oprf_key_path": oprf_key_path,
-            "setup_path": setup_path,
-        }
-
-        query_config = {
-            env.alice: alice_config,
-            env.bob: bob_config,
-        }
 
         env.spu.pir_query(
             server="bob",
-            config=query_config,
-        )
-
-        result_a = pd.DataFrame(
-            {
-                "id": [453108121117357944, 425053662810955002],
-                "date": ["2008-11-22", "2000-01-07"],
-                "age": [46, 44],
-            }
-        )
-        pd.testing.assert_frame_equal(
-            sf.reveal(env.alice(pd.read_csv)(pir_result_path)), result_a
-        )
-
-
-@pytest.mark.skip(reason="wait spu pir memory server ready")
-def test_memory_pir(set_up):
-    env, da, db = set_up
-    with tempfile.TemporaryDirectory() as data_dir:
-        input_path = {
-            env.alice: f"{data_dir}/alice.csv",
-            env.bob: f"{data_dir}/bob.csv",
-        }
-
-        sf.reveal(
-            env.alice(lambda df, save_path: df.to_csv(save_path, index=False))(
-                da, input_path[env.alice]
-            )
-        )
-        sf.reveal(
-            env.bob(lambda df, save_path: df.to_csv(save_path, index=False))(
-                db, input_path[env.bob]
-            )
-        )
-        key_columns = ["id"]
-        label_columns = ["date", "age"]
-
-        pir_result_path = f"{data_dir}/pir_out.csv"
-
-        alice_config = {
-            "input_path": input_path[env.alice],
-            "key_columns": key_columns,
-            "output_path": pir_result_path,
-        }
-
-        bob_config = {
-            "input_path": input_path[env.bob],
-            "key_columns": key_columns,
-            "label_columns": label_columns,
-            "num_per_query": 1,
-            "label_max_len": 20,
-        }
-
-        query_config = {
-            env.alice: alice_config,
-            env.bob: bob_config,
-        }
-
-        env.spu.pir_memory_query(
-            server="bob",
-            config=query_config,
+            client='alice',
+            server_setup_path=setup_path,
+            client_key_columns=key_columns,
+            client_input_path=input_path[env.alice],
+            client_output_path=pir_result_path,
         )
 
         result_a = pd.DataFrame(

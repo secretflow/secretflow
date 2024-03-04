@@ -6,7 +6,7 @@ Before reading this article, it is strongly recommended to read [TEEU Getting St
 
 ---
 
-TEEU (`TEE` processing `U`nit) is a TEE device in SecretFlow. Through TEEU, users can conveniently put data in TEE for calculation, and achieve the purpose of protecting data integrity and security. 
+TEEU (`TEE` processing `U`nit) is a TEE device in SecretFlow. Through TEEU, users can conveniently put data in TEE for calculation, and achieve the purpose of protecting data integrity and security.
 
 This article will demonstrate how to run OneHotEncoder in TEEU for processing.
 

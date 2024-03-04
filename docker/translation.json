@@ -605,7 +605,9 @@
     "component_eval_params": "组件执行参数",
     "The eval parameters (in JSON format) for all components to be exported. Their order must remain consistent with the sequence in which the components were executed.": "待导出的所有组件的eval参数（JSON格式）。其顺序必须与执行组件的顺序保持一致。",
     "package_output": "打包输出",
-    "output tar package uri": "输出tar包的uri"
+    "output tar package uri": "输出tar包的uri",
+    "report": "报告",
+    "report dumped model's input schemas": "报表转储模型的输入架构"
   },
   "preprocessing/binary_op:0.0.2": {
     "preprocessing": "预处理",

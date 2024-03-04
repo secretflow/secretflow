@@ -185,6 +185,11 @@ def prediction_bias(
             if absolute:
                 bias = jnp.abs(bias)
 
+            if left_endpoint.ndim != 0:
+                left_endpoint = left_endpoint[0]
+            if right_endpoint.ndim != 0:
+                right_endpoint = right_endpoint[0]
+
             report.buckets.append(
                 BucketPredictionBiasReport(
                     left_endpoint=float(left_endpoint),

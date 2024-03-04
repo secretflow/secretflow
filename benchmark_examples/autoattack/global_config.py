@@ -42,6 +42,12 @@ _BENCHMARK_ATTACK = 'all'
 _NUM_CPUS = None
 # When using distributed computing, indicate the total amount of GPU resources
 _NUM_GPUS = None
+# When there is an existing ray cluster to connectiong, we can set the address in config file.
+# Generally, this value does not require and ray will auto search,
+# but if there are multiple ray clusters, a clear address is required.
+_RAY_CLUSTER_ADDRESS = None
+# To achieve reproducibility.
+_RANDOM_SEED = None
 _TUNER_START_TIME = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 
 
@@ -78,6 +84,8 @@ def init_globalconfig(**kwargs):
         f"_NUM_GPUS: {_NUM_GPUS}\n"
         f"_DATASETS_PATH: {_DATASETS_PATH}\n"
         f"_AUTOATTACK_PATH: {_AUTOATTACK_PATH}\n"
+        f"_RAY_CLUSTER_ADDRESS: {_RAY_CLUSTER_ADDRESS}\n"
+        f"_RANDOM_SEED:{_RANDOM_SEED}"
     )
 
 
@@ -93,6 +101,8 @@ def _init_global_config_by_config_file(config_file: str):
     global _BENCHMRAK_MODE
     global _NUM_CPUS
     global _NUM_GPUS
+    global _RAY_CLUSTER_ADDRESS
+    global _RANDOM_SEED
     config_file = os.path.abspath(config_file)
     try:
         import yaml
@@ -114,6 +124,7 @@ def _init_global_config_by_config_file(config_file: str):
                 _IS_SIMPLE_TEST = _get_not_none(applications, 'simple', _IS_SIMPLE_TEST)
                 _USE_GPU = _get_not_none(applications, 'use_gpu', _USE_GPU)
                 _DEBUG_MODE = _get_not_none(applications, 'debug_mode', _DEBUG_MODE)
+                _RANDOM_SEED = _get_not_none(applications, 'random_seed', _RANDOM_SEED)
             paths = config.get('paths', None)
             if paths:
                 _DATASETS_PATH = _get_not_none(paths, 'datasets', _DATASETS_PATH)
@@ -124,7 +135,11 @@ def _init_global_config_by_config_file(config_file: str):
             if resources:
                 _NUM_CPUS = _get_not_none(resources, 'num_cpus', _NUM_CPUS)
                 _NUM_GPUS = _get_not_none(resources, 'num_gpus', _NUM_GPUS)
-
+            ray_config = config.get('ray', None)
+            if ray_config:
+                _RAY_CLUSTER_ADDRESS = _get_not_none(
+                    ray_config, 'address', _RAY_CLUSTER_ADDRESS
+                )
     except ImportError:
         raise ImportError(
             'PyYAML is required when set config files, try "pip insatll pyyaml" first.'
@@ -143,6 +158,8 @@ def _init_global_config_by_kwargs(**kwargs):
     global _BENCHMRAK_MODE
     global _NUM_CPUS
     global _NUM_GPUS
+    global _RAY_CLUSTER_ADDRESS
+    global _RANDOM_SEED
     _BENCHMRAK_MODE = kwargs.get('mode', _BENCHMRAK_MODE)
     _BENCHMARK_DATASET = kwargs.get('dataset', _BENCHMARK_DATASET)
     _BENCHMARK_MODEL = kwargs.get('model', _BENCHMARK_MODEL)
@@ -154,6 +171,8 @@ def _init_global_config_by_kwargs(**kwargs):
     _AUTOATTACK_PATH = kwargs.get('autoattack_path', _AUTOATTACK_PATH)
     _NUM_CPUS = kwargs.get('num_cpus', _NUM_CPUS)
     _NUM_GPUS = kwargs.get('num_gpus', _NUM_GPUS)
+    _RAY_CLUSTER_ADDRESS = kwargs.get('ray_cluster_address', _RAY_CLUSTER_ADDRESS)
+    _RANDOM_SEED = kwargs.get('random_seed', _RANDOM_SEED)
 
 
 def get_dataset_path() -> str:
@@ -234,3 +253,13 @@ def get_cur_experiment_result_path():
     global _TUNER_START_TIME
     global _AUTOATTACK_PATH
     return _AUTOATTACK_PATH + "/" + _TUNER_START_TIME
+
+
+def get_ray_cluster_address():
+    global _RAY_CLUSTER_ADDRESS
+    return _RAY_CLUSTER_ADDRESS
+
+
+def get_random_seed():
+    global _RANDOM_SEED
+    return _RANDOM_SEED

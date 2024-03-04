@@ -437,19 +437,21 @@ def bin_evaluate(
         true_positive, false_positive, false_negative, true_negative
     )
 
-    f1_score = float(f1_score)
+    f1_score = float(f1_score[0])
     lift = float(precision * (total_pos_count + total_neg_count) / total_pos_count)
     predicted_positive_ratio = float(pos_count / total_pos_count)
     predicted_negative_ratio = float(neg_count / total_neg_count)
     cumulative_percent_of_positive = float(
-        (pos_count + cumulative_pos_count) / total_pos_count
+        ((pos_count + cumulative_pos_count) / total_pos_count)[0]
     )
     cumulative_percent_of_negative = float(
-        (neg_count + cumulative_neg_count) / total_neg_count
+        ((neg_count + cumulative_neg_count) / total_neg_count)[0]
     )
     total_cumulative_percent = float(
-        (pos_count + cumulative_pos_count + neg_count + cumulative_neg_count)
-        / (total_pos_count + total_neg_count)
+        (
+            (pos_count + cumulative_pos_count + neg_count + cumulative_neg_count)
+            / (total_pos_count + total_neg_count)
+        )[0]
     )
     ks = abs(float(cumulative_percent_of_positive - cumulative_percent_of_negative))
 
@@ -521,7 +523,7 @@ def precision_recall_false_positive_rate(
     precision = true_positive / (true_positive + false_positive)
     recall = true_positive / (true_positive + false_negative)
     false_positive_rate = false_positive / (false_positive + true_negative)
-    return float(precision), float(recall), float(false_positive_rate)
+    return float(precision[0]), float(recall[0]), float(false_positive_rate[0])
 
 
 def confusion_matrix_from_cum_counts(
@@ -644,7 +646,7 @@ def auc(x, y):
             Area Under the Curve
     """
     x, y = jax.lax.sort([x, y], num_keys=1)
-    area = jnp.abs(jnp.trapz(y, x))
+    area = jnp.abs(jax.scipy.integrate.trapezoid(y, x))
     return area
 
 
