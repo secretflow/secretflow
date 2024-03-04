@@ -69,6 +69,7 @@ from secretflow.spec.extend.cluster_pb2 import SFClusterConfig
 from secretflow.spec.v1.component_pb2 import CompListDef, ComponentDef
 from secretflow.spec.v1.data_pb2 import StorageConfig
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam, NodeEvalResult
+from secretflow.version import build_message
 
 ALL_COMPONENTS = [
     train_test_split_comp,
@@ -153,6 +154,7 @@ def comp_eval(
 ) -> NodeEvalResult:
     import logging
 
+    logging.warning(f"\n--\n{build_message()}\n--\n")
     logging.warning(f'\n--\n*param* \n\n{param}\n--\n')
     logging.warning(f'\n--\n*storage_config* \n\n{storage_config}\n--\n')
     logging.warning(f'\n--\n*cluster_config* \n\n{cluster_config}\n--\n')

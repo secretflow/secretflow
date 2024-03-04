@@ -31,11 +31,11 @@ class MovielensDeepfm(MovielensBase):
             config,
             alice,
             bob,
-            epoch=10,
+            epoch=4,
             train_batch_size=128,
             hidden_size=hidden_size,
             dnn_base_units_size_alice=[256, hidden_size],
-            dnn_base_units_size_bob=None,
+            dnn_base_units_size_bob=[256, hidden_size],
             dnn_fuse_units_size=[256, 256, 32],
             deepfm_embedding_dim=4,
         )
@@ -95,7 +95,7 @@ class MovielensDeepfm(MovielensBase):
         return None
 
     def dnn_fuse_units_size_range(self) -> Optional[List[List[int]]]:
-        return [[256], [256, 32], [256, 256, 32]]
+        return [[256, 32], [256, 256, 32]]
 
     def deepfm_embedding_dim_range(self) -> Optional[List[int]]:
         return [4]

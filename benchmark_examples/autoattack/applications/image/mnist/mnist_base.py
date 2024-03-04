@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from abc import ABC
-from typing import Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np
 import torch.utils.data
@@ -57,7 +57,7 @@ class MnistBase(ApplicationBase, ABC):
             parts=parts,
             is_torch=is_torch,
             normalized_x=normalized_x,
-            axis=1,
+            axis=3,
         )
 
         self.train_data = train_data.astype(np.float32)
@@ -194,3 +194,9 @@ class MnistBase(ApplicationBase, ABC):
             train_poison_np,
             eval_poison_set,
         )
+
+    def resources_consumes(self) -> List[Dict]:
+        return [
+            {'alice': 0.5, 'CPU': 0.5, 'GPU': 0.005, 'gpu_mem': 6 * 1024 * 1024 * 1024},
+            {'bob': 0.5, 'CPU': 0.5, 'GPU': 0.005, 'gpu_mem': 6 * 1024 * 1024 * 1024},
+        ]

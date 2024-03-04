@@ -6,7 +6,7 @@ Before reading this article, it is strongly recommended to read [TEEU Getting St
 
 ---
 
-TEEU (`TEE` processing `U`nit) is a TEE device in SecretFlow. Through TEEU, users can conveniently put data in TEE for calculation, and achieve the purpose of protecting data integrity and security. 
+TEEU (`TEE` processing `U`nit) is a TEE device in SecretFlow. Through TEEU, users can conveniently put data in TEE for calculation, and achieve the purpose of protecting data integrity and security.
 
 This article will demonstrate how to run LinerRegression in TEEU for model training.
 
@@ -74,7 +74,7 @@ def gen_data():
     from sklearn.datasets import make_classification
 
     num_classes = 2
-    x, y = make_classification(n_samples=1000, n_informative=5, 
+    x, y = make_classification(n_samples=1000, n_informative=5,
                                n_classes=num_classes)
     return x, y
 
@@ -220,7 +220,7 @@ def gen_data():
     from sklearn.datasets import make_classification
 
     num_classes = 2
-    x, y = make_classification(n_samples=1000, n_informative=5, 
+    x, y = make_classification(n_samples=1000, n_informative=5,
                                n_classes=num_classes)
     return x, y
 
@@ -365,7 +365,7 @@ def gen_data():
     from sklearn.datasets import make_classification
 
     num_classes = 2
-    x, y = make_classification(n_samples=1000, n_informative=5, 
+    x, y = make_classification(n_samples=1000, n_informative=5,
                                n_classes=num_classes)
     return x, y
 
@@ -503,7 +503,7 @@ def gen_data():
     from sklearn.datasets import make_classification
 
     num_classes = 2
-    x, y = make_classification(n_samples=1000, n_informative=5, 
+    x, y = make_classification(n_samples=1000, n_informative=5,
                                n_classes=num_classes)
     return x, y
 

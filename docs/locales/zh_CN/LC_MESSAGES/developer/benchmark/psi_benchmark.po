@@ -150,7 +150,7 @@ msgid "一、测试机型环境"
 msgstr ""
 
 #: ../../developer/benchmark/psi_benchmark.md:37
-msgid "Python：3.8"
+msgid "Python：3.10"
 msgstr ""
 
 #: ../../developer/benchmark/psi_benchmark.md:38

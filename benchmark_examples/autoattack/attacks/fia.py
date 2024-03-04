@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import logging
+import os.path
+import uuid
 
 import torch
 import torch.nn as nn
@@ -71,54 +73,59 @@ class Generator(nn.Module):
 class FiaAttackCase(AttackCase):
     def _attack(self):
         self.app.prepare_data()
-        victim_model_save_path = './sl_model_victim'
-
-        victim_model_dict = self.app.fia_victim_model_dict(victim_model_save_path)
-        optim_fn = optim_wrapper(optim.Adam, lr=self.config.get('optim_lr', 0.0001))
-        generator_model = TorchModel(
-            model_fn=Generator,
-            loss_fn=None,
-            optim_fn=optim_fn,
-            metrics=None,
-            attack_dim=self.app.fia_attack_input_shape(),
-            victim_dim=self.app.fia_victim_input_shape(),
-        )
-        data_buil = self.app.fia_auxiliary_data_builder()
-        generator_save_path = './generator'
-        logging.warning(
-            f"in this fia trail, the gloabdsk use gpu = {global_config.is_use_gpu()}"
-        )
-        fia_callback = FeatureInferenceAttack(
-            victim_model_path=victim_model_save_path,
-            attack_party=self.app.device_y,
-            victim_party=self.app.device_f,
-            victim_model_dict=victim_model_dict,
-            base_model_list=[self.alice, self.bob],
-            generator_model_wrapper=generator_model,
-            data_builder=data_buil,
-            victim_fea_dim=self.app.fia_victim_input_shape(),
-            attacker_fea_dim=self.app.fia_attack_input_shape(),
-            enable_mean=self.config.get('enale_mean', False),
-            enable_var=True,
-            mean_lambda=1.2,
-            var_lambda=0.25,
-            attack_epochs=self.config.get(
-                'attack_epochs', 1 if is_simple_test() else 2
-            ),
-            victim_mean_feature=self.app.fia_victim_mean_attr(),
-            save_attacker_path=generator_save_path,
-            exec_device='cuda' if global_config.is_use_gpu() else 'cpu',
-        )
-        history = self.app.train(fia_callback)
-        logging.warning(
-            f"RESULT: {type(self.app).__name__} fia attack metrics = {fia_callback.get_attack_metrics()}"
-        )
-        return history, fia_callback.get_attack_metrics()
+        victim_model_save_path = f'./sl_model_victim + {uuid.uuid4().int}'
+        generator_save_path = f'./generator + {uuid.uuid4().int}'
+        try:
+            victim_model_dict = self.app.fia_victim_model_dict(victim_model_save_path)
+            optim_fn = optim_wrapper(optim.Adam, lr=self.config.get('optim_lr', 0.0001))
+            generator_model = TorchModel(
+                model_fn=Generator,
+                loss_fn=None,
+                optim_fn=optim_fn,
+                metrics=None,
+                attack_dim=self.app.fia_attack_input_shape(),
+                victim_dim=self.app.fia_victim_input_shape(),
+            )
+            data_buil = self.app.fia_auxiliary_data_builder()
+            logging.warning(
+                f"in this fia trail, the gloabdsk use gpu = {global_config.is_use_gpu()}"
+            )
+            fia_callback = FeatureInferenceAttack(
+                victim_model_path=victim_model_save_path,
+                attack_party=self.app.device_y,
+                victim_party=self.app.device_f,
+                victim_model_dict=victim_model_dict,
+                base_model_list=[self.alice, self.bob],
+                generator_model_wrapper=generator_model,
+                data_builder=data_buil,
+                victim_fea_dim=self.app.fia_victim_input_shape(),
+                attacker_fea_dim=self.app.fia_attack_input_shape(),
+                enable_mean=self.config.get('enale_mean', False),
+                enable_var=True,
+                mean_lambda=1.2,
+                var_lambda=0.25,
+                attack_epochs=self.config.get(
+                    'attack_epochs', 1 if is_simple_test() else 5
+                ),
+                victim_mean_feature=self.app.fia_victim_mean_attr(),
+                save_attacker_path=generator_save_path,
+                exec_device='cuda' if global_config.is_use_gpu() else 'cpu',
+            )
+            history = self.app.train(fia_callback)
+            logging.warning(
+                f"RESULT: {type(self.app).__name__} fia attack metrics = {fia_callback.get_attack_metrics()}"
+            )
+            return history, fia_callback.get_attack_metrics()
+        finally:
+            if os.path.exists(victim_model_save_path):
+                os.remove(victim_model_save_path)
+            if os.path.exists(generator_save_path):
+                os.remove(generator_save_path)
 
     def attack_search_space(self):
         return {
-            'attack_epochs': tune.search.grid_search([2, 5]),  # < 120
-            'optim_lr': tune.search.grid_search([1e-4, 1e-3, 1e-2]),
+            # 'attack_epochs': tune.search.grid_search([2, 5]),  # < 120
+            'optim_lr': tune.search.grid_search([1e-3, 1e-4]),
         }
 
     def metric_name(self):

@@ -95,9 +95,9 @@ _DATASETS = {
         '8f0f1aba42c7be5818dc43d96913713a2ffc1c0d9dc09bef30d0432d2c102b49',
     ),
     'drive_cleaned': _Dataset(
-        'drive_cleaned_demo.csv',
-        'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/drive_cleaned/drive_cleaned_demo.csv',
-        'b461458e642596e934f6b8f6d5d4040fdfc21467c83ed79c86a3e6ef8e777bca',
+        'drive_cleaned.csv',
+        'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/drive_cleaned/drive_cleaned.csv',
+        '324477fec24716097fbf0338d792d254f2a1d5f87faefb23f1842ecbb035930e',
     ),
     'criteo': _Dataset(
         'criteo.csv',

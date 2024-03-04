@@ -22,9 +22,6 @@ from benchmark_examples.autoattack.applications.recommendation.criteo.criteo_bas
 from secretflow.ml.nn.applications.sl_deepfm_torch import DeepFMBase, DeepFMFuse
 from secretflow.ml.nn.utils import TorchModel, metric_wrapper, optim_wrapper
 
-alice_sparse_features = ['C' + str(i) for i in range(1, 27)]
-bob_dense_features = ['I' + str(i) for i in range(1, 14)]
-
 
 class CriteoDeepfm(CriteoBase):
     def __init__(self, config, alice, bob, hidden_size=64):
@@ -32,17 +29,14 @@ class CriteoDeepfm(CriteoBase):
             config,
             alice,
             bob,
-            epoch=3,
+            epoch=1,
             train_batch_size=512,
             hidden_size=hidden_size,
             dnn_base_units_size_alice=[256, hidden_size],
-            dnn_base_units_size_bob=None,
-            dnn_fuse_units_size=[64, 1],
+            dnn_base_units_size_bob=[256, hidden_size],
+            dnn_fuse_units_size=[64],
             deepfm_embedding_dim=4,
         )
-
-    def hidden_size_range(self):
-        return [32, 64, 128]
 
     def dnn_base_units_size_range_alice(self):
         return [
@@ -52,7 +46,7 @@ class CriteoDeepfm(CriteoBase):
         ]
 
     def dnn_fuse_units_size_range(self):
-        return [[64, 1], [64, 64, 1], [64, 64, 64, 1]]
+        return [[64], [64, 64]]
 
     def deepfm_embedding_dim_range(self):
         return [8, 16]
@@ -61,7 +55,7 @@ class CriteoDeepfm(CriteoBase):
         return TorchModel(
             model_fn=DeepFMBase,
             loss_fn=nn.BCELoss,
-            optim_fn=optim_wrapper(torch.optim.Adam, lr=1e-2),
+            optim_fn=optim_wrapper(torch.optim.Adam, lr=1e-3),
             metrics=[
                 metric_wrapper(Accuracy, task="binary"),
                 metric_wrapper(AUROC, task="binary"),
@@ -76,7 +70,7 @@ class CriteoDeepfm(CriteoBase):
         return TorchModel(
             model_fn=DeepFMBase,
             loss_fn=nn.BCELoss,
-            optim_fn=optim_wrapper(torch.optim.Adam, lr=1e-2),
+            optim_fn=optim_wrapper(torch.optim.Adam, lr=1e-3),
             metrics=[
                 metric_wrapper(Accuracy, task="binary"),
                 metric_wrapper(AUROC, task="binary"),
@@ -91,7 +85,7 @@ class CriteoDeepfm(CriteoBase):
         return TorchModel(
             model_fn=DeepFMFuse,
             loss_fn=nn.BCELoss,
-            optim_fn=optim_wrapper(torch.optim.Adam, lr=1e-2),
+            optim_fn=optim_wrapper(torch.optim.Adam, lr=1e-3),
             metrics=[
                 metric_wrapper(Accuracy, task="binary"),
                 metric_wrapper(Precision, task="binary"),

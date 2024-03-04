@@ -14,19 +14,23 @@
 
 
 import json
-from typing import Dict, List
+from collections import Counter
+from typing import Dict, List, Set
 
 import numpy as np
 
+import secretflow.component.ml.boost.ss_xgb.ss_xgb as xgb
 import secretflow.component.ml.linear.ss_glm as glm
 import secretflow.component.ml.linear.ss_sgd as sgd
 from secretflow.component.data_utils import (
     DistDataType,
     extract_table_header,
     model_loads,
+    model_meta_info,
 )
 from secretflow.component.ml.boost.sgb import sgb
 from secretflow.component.ml.boost.ss_xgb.ss_xgb import build_ss_xgb_model
+from secretflow.compute import Table
 from secretflow.device import PYU, SPU, PYUObject, SPUObject
 from secretflow.ml.boost.sgb_v.core.params import RegType as SgbRegType
 from secretflow.ml.boost.ss_xgb_v.core.node_split import RegType as SSXgbRegType
@@ -100,25 +104,42 @@ def linear_model_converter(
     yhat_scale: float,
     link_type: str,
     pred_name: str,
+    traced_input: Dict[str, Set[str]],
 ):
-    assert set(party_features_length) == set(input_schema)
+    assert set(party_features_length).issubset(set(input_schema))
+    assert len(party_features_length) > 0
     spu = spu_w.device
     party_pos = 0
+    party_dot_input_schemas = dict()
+    party_dot_output_schemas = dict()
+    party_merge_input_schemas = dict()
+    party_merge_output_schemas = dict()
     party_dot_kwargs = dict()
     party_merge_kwargs = dict()
-    for party, f_len in party_features_length.items():
-        assert party in input_schema
+    for party, input_features in input_schema.items():
         pyu = PYU(party)
 
-        input_features = input_schema[party]
-        party_features = feature_names[party_pos : party_pos + f_len]
-        assert set(party_features).issubset(set(input_features))
-        pyu_w = reveal_to_pyu(spu, spu_w, party_pos, party_pos + f_len, pyu)
-        party_pos += f_len
+        assert party in traced_input
+
+        if party in party_features_length:
+            f_len = party_features_length[party]
+
+            party_features = feature_names[party_pos : party_pos + f_len]
+            assert set(party_features).issubset(set(input_features))
+            pyu_w = reveal_to_pyu(spu, spu_w, party_pos, party_pos + f_len, pyu)
+            party_pos += f_len
+        else:
+            party_features = []
+            pyu_w = pyu(lambda: [])()
 
         if offset_col in input_features:
             party_features.append(offset_col)
-            pyu_w = pyu(lambda w: w.append(1.0))(pyu_w)
+
+            def append_one(w):
+                w.append(1.0)
+                return w
+
+            pyu_w = pyu(append_one)(pyu_w)
 
         if label_col in input_features:
             intercept = reveal_to_pyu(
@@ -127,6 +148,15 @@ def linear_model_converter(
             intercept = pyu(lambda i: i[0])(intercept)
         else:
             intercept = 0
+
+        assert set(party_features).issubset(traced_input[party])
+
+        party_dot_input_schemas[pyu] = Table.from_schema(
+            {f: input_features[f] for f in party_features}
+        ).dump_serving_pb("tmp")[1]
+        party_dot_output_schemas[pyu] = Table.from_schema(
+            {"partial_y": np.float32}
+        ).dump_serving_pb("tmp")[1]
 
         party_dot_kwargs[pyu] = {
             "feature_names": party_features,
@@ -138,6 +168,13 @@ def linear_model_converter(
             "intercept": intercept,
         }
 
+        party_merge_input_schemas[pyu] = Table.from_schema(
+            {"partial_y": np.float32}
+        ).dump_serving_pb("tmp")[1]
+        party_merge_output_schemas[pyu] = Table.from_schema(
+            {"pred_name": np.float32}
+        ).dump_serving_pb("tmp")[1]
+
         party_merge_kwargs[pyu] = {
             "yhat_scale": yhat_scale,
             "link_function": link_type,
@@ -145,7 +182,48 @@ def linear_model_converter(
             "output_col_name": pred_name,
         }
 
-    return party_dot_kwargs, party_merge_kwargs
+    return (
+        party_dot_kwargs,
+        party_merge_kwargs,
+        party_dot_input_schemas,
+        party_dot_output_schemas,
+        party_merge_input_schemas,
+        party_merge_output_schemas,
+    )
+
+
+def ss_glm_schema_info(
+    input_schema: Dict[str, Dict[str, np.dtype]],
+    model_ds: DistData,
+):
+    model_meta_str = model_meta_info(
+        model_ds,
+        glm.MODEL_MAX_MAJOR_VERSION,
+        glm.MODEL_MAX_MINOR_VERSION,
+        DistDataType.SS_GLM_MODEL,
+    )
+    meta = json.loads(model_meta_str)
+
+    feature_names = meta["feature_names"]
+    party_features_length: Dict[str, int] = meta["party_features_length"]
+    offset_col = meta["offset_col"]
+
+    party_used_schemas = {}
+    party_pos = 0
+    for party, input_features in input_schema.items():
+        if party in party_features_length:
+            f_len = party_features_length[party]
+            used_schemas = feature_names[party_pos : party_pos + f_len]
+            party_pos += f_len
+        else:
+            used_schemas = []
+
+        if offset_col in input_features:
+            used_schemas.append(offset_col)
+
+        party_used_schemas[party] = {"used": set(used_schemas)}
+
+    return party_used_schemas
 
 
 def ss_glm_converter(
@@ -156,6 +234,7 @@ def ss_glm_converter(
     input_schema: Dict[str, Dict[str, np.dtype]],
     model_ds: DistData,
     pred_name: str,
+    traced_input: Dict[str, Set[str]],
 ):
     cluster_def = spu_config["cluster_def"].copy()
     cluster_def["runtime_config"]["field"] = "FM128"
@@ -182,7 +261,14 @@ def ss_glm_converter(
     assert meta["link"] in SS_GLM_LINK_MAP
     label_col = label_col[0]
 
-    party_dot_kwargs, party_merge_kwargs = linear_model_converter(
+    (
+        party_dot_kwargs,
+        party_merge_kwargs,
+        party_dot_input_schemas,
+        party_dot_output_schemas,
+        party_merge_input_schemas,
+        party_merge_output_schemas,
+    ) = linear_model_converter(
         party_features_length,
         input_schema,
         feature_names,
@@ -192,11 +278,54 @@ def ss_glm_converter(
         yhat_scale,
         SS_GLM_LINK_MAP[meta["link"]],
         pred_name,
+        traced_input,
     )
 
-    builder.add_node(f"ss_glm_{node_id}_dot", "dot_product", party_dot_kwargs)
+    builder.add_node(
+        f"ss_glm_{node_id}_dot",
+        "dot_product",
+        party_dot_input_schemas,
+        party_dot_output_schemas,
+        party_dot_kwargs,
+    )
     builder.new_execution("DP_ANYONE")
-    builder.add_node(f"ss_glm_{node_id}_merge_y", "merge_y", party_merge_kwargs)
+    builder.add_node(
+        f"ss_glm_{node_id}_merge_y",
+        "merge_y",
+        party_merge_input_schemas,
+        party_merge_output_schemas,
+        party_merge_kwargs,
+    )
+
+
+def ss_sgd_schema_info(
+    input_schema: Dict[str, Dict[str, np.dtype]],
+    model_ds: DistData,
+):
+    model_meta_str = model_meta_info(
+        model_ds,
+        sgd.MODEL_MAX_MAJOR_VERSION,
+        sgd.MODEL_MAX_MINOR_VERSION,
+        DistDataType.SS_SGD_MODEL,
+    )
+    meta = json.loads(model_meta_str)
+
+    feature_names = meta["feature_selects"]
+    party_features_length: Dict[str, int] = meta["party_features_length"]
+
+    party_used_schemas = {}
+    party_pos = 0
+    for party, _ in input_schema.items():
+        if party in party_features_length:
+            f_len = party_features_length[party]
+            used_schemas = feature_names[party_pos : party_pos + f_len]
+            party_pos += f_len
+        else:
+            used_schemas = []
+
+        party_used_schemas[party] = {"used": set(used_schemas)}
+
+    return party_used_schemas
 
 
 def ss_sgd_converter(
@@ -207,6 +336,7 @@ def ss_sgd_converter(
     input_schema: Dict[str, Dict[str, np.dtype]],
     model_ds: DistData,
     pred_name: str,
+    traced_input: Dict[str, Set[str]],
 ):
     spu = SPU(spu_config["cluster_def"], spu_config["link_desc"])
     model_objs, model_meta_str = model_loads(
@@ -233,7 +363,14 @@ def ss_sgd_converter(
     else:
         link_type = SS_SGD_LINK_MAP[sig_type]
 
-    party_dot_kwargs, party_merge_kwargs = linear_model_converter(
+    (
+        party_dot_kwargs,
+        party_merge_kwargs,
+        party_dot_input_schemas,
+        party_dot_output_schemas,
+        party_merge_input_schemas,
+        party_merge_output_schemas,
+    ) = linear_model_converter(
         party_features_length,
         input_schema,
         feature_names,
@@ -243,27 +380,60 @@ def ss_sgd_converter(
         1.0,
         link_type,
         pred_name,
+        traced_input,
     )
 
-    builder.add_node(f"ss_glm_{node_id}_dot", "dot_product", party_dot_kwargs)
+    builder.add_node(
+        f"ss_sgd_{node_id}_dot",
+        "dot_product",
+        party_dot_input_schemas,
+        party_dot_output_schemas,
+        party_dot_kwargs,
+    )
     builder.new_execution("DP_ANYONE")
-    builder.add_node(f"ss_glm_{node_id}_merge_y", "merge_y", party_merge_kwargs)
+    builder.add_node(
+        f"ss_sgd_{node_id}_merge_y",
+        "merge_y",
+        party_merge_input_schemas,
+        party_merge_output_schemas,
+        party_merge_kwargs,
+    )
 
 
-def build_tree_attrs(node_ids, split_feature_indices, split_values):
-    leaf_flags = [False] * len(node_ids)
+def build_tree_attrs(
+    node_ids, split_feature_indices, split_values, tree_leaf_indices=None
+):
+    assert len(node_ids) > 0, f"Too few nodes to form a tree structure."
+
     lchild_ids = [idx * 2 + 1 for idx in node_ids]
     rchild_ids = [idx * 2 + 2 for idx in node_ids]
 
+    def _deal_leaf_node(
+        child_node_id, node_ids, leaf_node_ids, split_feature_indices, split_values
+    ):
+        if child_node_id not in node_ids:
+            # add leaf node
+            leaf_node_ids.append(child_node_id)
+            split_feature_indices.append(-1)
+            split_values.append(0)
+
     leaf_node_ids = []
     for child_pos in range(len(lchild_ids)):
-        if lchild_ids[child_pos] not in node_ids:
-            # add leaf node
-            assert rchild_ids[child_pos] not in node_ids
-            leaf_node_ids.extend([lchild_ids[child_pos], rchild_ids[child_pos]])
-            leaf_flags.extend([True, True])
-            split_feature_indices.extend([-1, -1])
-            split_values.extend([0, 0])
+        _deal_leaf_node(
+            lchild_ids[child_pos],
+            node_ids,
+            leaf_node_ids,
+            split_feature_indices,
+            split_values,
+        )
+        _deal_leaf_node(
+            rchild_ids[child_pos],
+            node_ids,
+            leaf_node_ids,
+            split_feature_indices,
+            split_values,
+        )
+
     for pos in range(len(leaf_node_ids)):
         lchild_ids.append(-1)
         rchild_ids.append(-1)
@@ -272,20 +442,61 @@ def build_tree_attrs(node_ids, split_feature_indices, split_values):
     assert (
         len(node_ids) == len(lchild_ids)
         and len(node_ids) == len(rchild_ids)
-        and len(node_ids) == len(leaf_flags)
         and len(node_ids) == len(split_feature_indices)
         and len(node_ids) == len(split_values)
     ), f"len of node_ids lchild_ids rchild_ids leaf_flags split_feature_indices split_values mismatch, {len(node_ids)} vs {len(lchild_ids)} vs {len(rchild_ids)} vs {len(leaf_flags)} vs {len(split_feature_indices)} vs {len(split_values)}"
 
-    return (
-        node_ids,
-        lchild_ids,
-        rchild_ids,
-        leaf_flags,
-        split_feature_indices,
-        split_values,
-        leaf_node_ids,
+    if tree_leaf_indices is not None:
+        assert Counter(leaf_node_ids) == Counter(
+            tree_leaf_indices
+        ), f"`leaf_node_ids`({leaf_node_ids}) and `tree_leaf_indices`({tree_leaf_indices}) do not have the same elements."
+        return (
+            node_ids,
+            lchild_ids,
+            rchild_ids,
+            split_feature_indices,
+            split_values,
+            tree_leaf_indices,
+        )
+    else:
+        return (
+            node_ids,
+            lchild_ids,
+            rchild_ids,
+            split_feature_indices,
+            split_values,
+            leaf_node_ids,
+        )
+
+
+def ss_xgb_schema_info(
+    input_schema: Dict[str, Dict[str, np.dtype]],
+    model_ds: DistData,
+):
+    model_meta_str = model_meta_info(
+        model_ds,
+        xgb.MODEL_MAX_MAJOR_VERSION,
+        xgb.MODEL_MAX_MINOR_VERSION,
+        DistDataType.SS_XGB_MODEL,
     )
+    meta = json.loads(model_meta_str)
+
+    party_features_length: Dict[str, int] = meta["party_features_length"]
+    feature_names = meta["feature_selects"]
+
+    party_used_schemas = {}
+    party_pos = 0
+    for party, _ in input_schema.items():
+        if party in party_features_length:
+            f_len = party_features_length[party]
+            used_schemas = feature_names[party_pos : party_pos + f_len]
+            party_pos += f_len
+        else:
+            used_schemas = []
+
+        party_used_schemas[party] = {"used": set(used_schemas)}
+
+    return party_used_schemas
 
 
 def ss_xgb_converter(
@@ -296,6 +507,7 @@ def ss_xgb_converter(
     input_schema: Dict[str, Dict[str, np.dtype]],
     model_ds: DistData,
     pred_name: str,
+    traced_input: Dict[str, Set[str]],
 ):
     spu = SPU(spu_config["cluster_def"], spu_config["link_desc"])
     pyus = {p: PYU(p) for p in ctx.cluster_config.desc.parties}
@@ -303,8 +515,8 @@ def ss_xgb_converter(
     model_objs, model_meta_str = model_loads(
         ctx,
         model_ds,
-        sgb.MODEL_MAX_MAJOR_VERSION,
-        sgb.MODEL_MAX_MINOR_VERSION,
+        xgb.MODEL_MAX_MAJOR_VERSION,
+        xgb.MODEL_MAX_MINOR_VERSION,
         DistDataType.SS_XGB_MODEL,
         pyus,
         spu=spu,
@@ -318,6 +530,9 @@ def ss_xgb_converter(
     label_col = model_meta["label_col"]
     assert len(label_col) == 1
     label_col = label_col[0]
+
+    assert set(party_features_length).issubset(set(input_schema))
+    assert len(party_features_length) > 0
 
     if model.get_objective() == SSXgbRegType.Logistic:
         # refer to `SgbModel.predict`
@@ -333,6 +548,9 @@ def ss_xgb_converter(
     party_specific_flag = {}
     all_merge_kwargs = []
     tree_select_names = []
+
+    party_predict_inputs = dict()
+    party_predict_outputs = dict()
     party_predict_kwargs = dict()
     for tree_pos in range(tree_num):
         tree_dict = trees[tree_pos]
@@ -340,34 +558,54 @@ def ss_xgb_converter(
 
         party_pos = 0
         party_select_kwargs = dict()
+        party_select_inputs = dict()
+        party_select_outputs = dict()
         party_merge_kwargs = dict()
-        for party, f_len in party_features_length.items():
+        party_merge_inputs = dict()
+        party_merge_outputs = dict()
+        for party, input_features in input_schema.items():
             assert party in input_schema
             pyu = pyus[party]
+            assert party in traced_input
 
-            input_features = input_schema[party]
-            party_features = feature_names[party_pos : party_pos + f_len]
-            assert set(party_features).issubset(set(input_features))
-            party_pos += f_len
+            if party in party_features_length:
+                f_len = party_features_length[party]
+                party_features = feature_names[party_pos : party_pos + f_len]
+                assert set(party_features).issubset(set(input_features))
+                party_pos += f_len
 
-            tree = tree_dict[pyu]
+                tree = tree_dict[pyu]
 
-            # refer to `hnp.tree_predict`
-            def build_xgb_tree_attrs(tree: XgbTree):
-                node_ids = [i for i in range(len(tree.split_features))]
-                split_feature_indices = tree.split_features
-                split_values = tree.split_values
+                # refer to `hnp.tree_predict`
+                def build_xgb_tree_attrs(tree: XgbTree):
+                    node_ids = [i for i in range(len(tree.split_features))]
+                    split_feature_indices = tree.split_features
+                    split_values = tree.split_values
 
-                return build_tree_attrs(node_ids, split_feature_indices, split_values)
+                    return build_tree_attrs(
+                        node_ids, split_feature_indices, split_values
+                    )
 
-            pyu_tree_attr_list = pyu(build_xgb_tree_attrs, num_returns=7)(tree)
+                pyu_tree_attr_list = pyu(build_xgb_tree_attrs, num_returns=6)(tree)
+            else:
+                party_features = []
+                pyu_tree_attr_list = [[]] * 6
+
             pyu_node_ids = pyu_tree_attr_list[0]
             pyu_lchild_ids = pyu_tree_attr_list[1]
             pyu_rchild_ids = pyu_tree_attr_list[2]
-            pyu_leaf_flags = pyu_tree_attr_list[3]
-            pyu_split_feature_indices = pyu_tree_attr_list[4]
-            pyu_split_values = pyu_tree_attr_list[5]
-            pyu_leaf_node_ids = pyu_tree_attr_list[6]
+            pyu_split_feature_indices = pyu_tree_attr_list[3]
+            pyu_split_values = pyu_tree_attr_list[4]
+            pyu_leaf_node_ids = pyu_tree_attr_list[5]
+
+            assert set(party_features).issubset(traced_input[party])
+
+            party_select_inputs[pyu] = Table.from_schema(
+                {f: input_features[f] for f in party_features}
+            ).dump_serving_pb("tmp")[1]
+            party_select_outputs[pyu] = Table.from_schema(
+                {"selects": np.float32}
+            ).dump_serving_pb("tmp")[1]
 
             party_select_kwargs[pyu] = {
                 "input_feature_names": party_features,
@@ -381,8 +619,15 @@ def ss_xgb_converter(
                 "rchild_ids": pyu_rchild_ids,
                 "split_feature_idxs": pyu_split_feature_indices,
                 "split_values": pyu_split_values,
-                "leaf_flags": pyu_leaf_flags,
+                "leaf_node_ids": pyu_leaf_node_ids,
             }
+
+            party_merge_inputs[pyu] = Table.from_schema(
+                {"selects": np.float32}
+            ).dump_serving_pb("tmp")[1]
+            party_merge_outputs[pyu] = Table.from_schema(
+                {"weights": np.float32}
+            ).dump_serving_pb("tmp")[1]
 
             party_merge_kwargs[pyu] = {
                 "input_col_name": "selects",
@@ -392,7 +637,6 @@ def ss_xgb_converter(
             if label_col in input_features:
                 pyu_w = pyu(lambda w: list(w))(spu_w.to(pyu))
                 party_specific_flag[pyu] = True
-                party_merge_kwargs[pyu]["leaf_node_ids"] = pyu_leaf_node_ids
                 party_merge_kwargs[pyu]["leaf_weights"] = pyu_w
 
         all_merge_kwargs.append(party_merge_kwargs)
@@ -400,12 +644,20 @@ def ss_xgb_converter(
         builder.add_node(
             select_node_name,
             "tree_select",
+            party_select_inputs,
+            party_select_outputs,
             party_select_kwargs,
             [select_parent_node] if select_parent_node else [],
         )
         tree_select_names.append(select_node_name)
 
-    for party in party_features_length.keys():
+    for party in input_schema.keys():
+        party_predict_inputs[pyus[party]] = Table.from_schema(
+            {"weights": np.float32}
+        ).dump_serving_pb("tmp")[1]
+        party_predict_outputs[pyus[party]] = Table.from_schema(
+            {pred_name: np.float32}
+        ).dump_serving_pb("tmp")[1]
         party_predict_kwargs[pyus[party]] = {
             "input_col_name": "weights",
             "output_col_name": pred_name,
@@ -424,6 +676,8 @@ def ss_xgb_converter(
         builder.add_node(
             n_name,
             "tree_merge",
+            party_merge_inputs,
+            party_merge_outputs,
             party_merge_kwargs,
             parents,
         )
@@ -433,9 +687,41 @@ def ss_xgb_converter(
     builder.add_node(
         f"xgb_{node_id}_predict",
         "tree_ensemble_predict",
+        party_predict_inputs,
+        party_predict_outputs,
         party_predict_kwargs,
         predict_parent_node_names,
     )
+
+
+def sgb_schema_info(
+    input_schema: Dict[str, Dict[str, np.dtype]],
+    model_ds: DistData,
+):
+    model_meta_str = model_meta_info(
+        model_ds,
+        sgb.MODEL_MAX_MAJOR_VERSION,
+        sgb.MODEL_MAX_MINOR_VERSION,
+        DistDataType.SGB_MODEL,
+    )
+    meta = json.loads(model_meta_str)
+
+    party_features_length = meta["party_features_length"]
+    feature_names = meta["feature_selects"]
+
+    party_used_schemas = {}
+    party_pos = 0
+    for party, _ in input_schema.items():
+        if party in party_features_length:
+            f_len = party_features_length[party]
+            used_schemas = feature_names[party_pos : party_pos + f_len]
+            party_pos += f_len
+        else:
+            used_schemas = []
+
+        party_used_schemas[party] = {"used": set(used_schemas)}
+
+    return party_used_schemas
 
 
 def sgb_converter(
@@ -445,6 +731,7 @@ def sgb_converter(
     input_schema: Dict[str, Dict[str, np.dtype]],
     model_ds: DistData,
     pred_name: str,
+    traced_input: Dict[str, Set[str]],
 ):
     pyus = {p: PYU(p) for p in ctx.cluster_config.desc.parties}
 
@@ -467,6 +754,9 @@ def sgb_converter(
     assert len(label_col) == 1
     label_col = label_col[0]
 
+    assert set(party_features_length).issubset(set(input_schema))
+    assert len(party_features_length) > 0
+
     if sgb_model.get_objective() == SgbRegType.Logistic:
         # refer to `SgbModel.predict`
         algo_func = SS_SGD_LINK_MAP[SigType.SR]
@@ -480,6 +770,8 @@ def sgb_converter(
     party_specific_flag = {}
     all_merge_kwargs = []
     tree_select_names = []
+    party_predict_inputs = dict()
+    party_predict_outputs = dict()
     party_predict_kwargs = dict()
     for tree_pos in range(tree_num):
         dist_tree = dist_trees[tree_pos]
@@ -487,35 +779,57 @@ def sgb_converter(
 
         party_pos = 0
         party_select_kwargs = dict()
+        party_select_inputs = dict()
+        party_select_outputs = dict()
         party_merge_kwargs = dict()
-        for party, f_len in party_features_length.items():
-            assert party in input_schema
+        party_merge_inputs = dict()
+        party_merge_outputs = dict()
+        for party, input_features in input_schema.items():
             pyu = pyus[party]
+            assert party in traced_input
 
-            input_features = input_schema[party]
-            party_features = feature_names[party_pos : party_pos + f_len]
-            assert set(party_features).issubset(set(input_features))
-            party_pos += f_len
+            if party in party_features_length:
+                f_len = party_features_length[party]
+                party_features = feature_names[party_pos : party_pos + f_len]
+                assert set(party_features).issubset(set(input_features))
+                party_pos += f_len
 
-            # split tree
-            split_tree = split_tree_dict[pyu]
+                # split tree
+                assert pyu in split_tree_dict
+                split_tree = split_tree_dict[pyu]
 
-            # refer to `hnp.tree_predict_with_indices`
-            def build_sgb_tree_attrs(tree):
-                node_ids = tree.split_indices
-                split_feature_indices = tree.split_features
-                split_values = tree.split_values
+                # refer to `hnp.tree_predict_with_indices`
+                def build_sgb_tree_attrs(tree):
+                    node_ids = tree.split_indices
+                    split_feature_indices = tree.split_features
+                    split_values = tree.split_values
 
-                return build_tree_attrs(node_ids, split_feature_indices, split_values)
+                    return build_tree_attrs(
+                        node_ids, split_feature_indices, split_values
+                    )
 
-            pyu_tree_attr_list = pyu(build_sgb_tree_attrs, num_returns=7)(split_tree)
+                pyu_tree_attr_list = pyu(build_sgb_tree_attrs, num_returns=6)(
+                    split_tree
+                )
+            else:
+                party_features = []
+                pyu_tree_attr_list = [[]] * 6
+
             pyu_node_ids = pyu_tree_attr_list[0]
             pyu_lchild_ids = pyu_tree_attr_list[1]
             pyu_rchild_ids = pyu_tree_attr_list[2]
-            pyu_leaf_flags = pyu_tree_attr_list[3]
-            pyu_split_feature_indices = pyu_tree_attr_list[4]
-            pyu_split_values = pyu_tree_attr_list[5]
-            pyu_leaf_node_ids = pyu_tree_attr_list[6]
+            pyu_split_feature_indices = pyu_tree_attr_list[3]
+            pyu_split_values = pyu_tree_attr_list[4]
+            pyu_leaf_node_ids = pyu_tree_attr_list[5]
+
+            assert set(party_features).issubset(traced_input[party])
+
+            party_select_inputs[pyu] = Table.from_schema(
+                {f: input_features[f] for f in party_features}
+            ).dump_serving_pb("tmp")[1]
+            party_select_outputs[pyu] = Table.from_schema(
+                {"selects": np.float32}
+            ).dump_serving_pb("tmp")[1]
 
             party_select_kwargs[pyu] = {
                 "input_feature_names": party_features,
@@ -529,8 +843,15 @@ def sgb_converter(
                 "rchild_ids": pyu_rchild_ids,
                 "split_feature_idxs": pyu_split_feature_indices,
                 "split_values": pyu_split_values,
-                "leaf_flags": pyu_leaf_flags,
+                "leaf_node_ids": pyu_leaf_node_ids,
             }
+
+            party_merge_inputs[pyu] = Table.from_schema(
+                {"selects": np.float32}
+            ).dump_serving_pb("tmp")[1]
+            party_merge_outputs[pyu] = Table.from_schema(
+                {"weights": np.float32}
+            ).dump_serving_pb("tmp")[1]
 
             party_merge_kwargs[pyu] = {
                 "input_col_name": "selects",
@@ -539,7 +860,6 @@ def sgb_converter(
             party_specific_flag[pyu] = False
             if label_col in input_features:
                 party_specific_flag[pyu] = True
-                party_merge_kwargs[pyu]["leaf_node_ids"] = pyu_leaf_node_ids
                 party_merge_kwargs[pyu]["leaf_weights"] = pyu(
                     lambda weight: list(weight)
                 )(dist_tree.get_leaf_weight())
@@ -549,12 +869,20 @@ def sgb_converter(
         builder.add_node(
             select_node_name,
             "tree_select",
+            party_select_inputs,
+            party_select_outputs,
             party_select_kwargs,
             [select_parent_node] if select_parent_node else [],
         )
         tree_select_names.append(select_node_name)
 
-    for party in party_features_length.keys():
+    for party in input_schema.keys():
+        party_predict_inputs[pyus[party]] = Table.from_schema(
+            {"weights": np.float32}
+        ).dump_serving_pb("tmp")[1]
+        party_predict_outputs[pyus[party]] = Table.from_schema(
+            {pred_name: np.float32}
+        ).dump_serving_pb("tmp")[1]
         party_predict_kwargs[pyus[party]] = {
             "input_col_name": "weights",
             "output_col_name": pred_name,
@@ -573,6 +901,8 @@ def sgb_converter(
         builder.add_node(
             n_name,
             "tree_merge",
+            party_merge_inputs,
+            party_merge_outputs,
             party_merge_kwargs,
             parents,
         )
@@ -582,97 +912,155 @@ def sgb_converter(
     builder.add_node(
         f"sgb_{node_id}_predict",
         "tree_ensemble_predict",
+        party_predict_inputs,
+        party_predict_outputs,
         party_predict_kwargs,
         predict_parent_node_names,
     )
 
 
-def train_model_converter(
-    ctx,
-    builder: GraphBuilderManager,
-    node_id: int,
-    spu_config,
-    param: NodeEvalParam,
-    in_ds: List[DistData],
-    out_ds: List[DistData],
-):
-    in_dataset = [d for d in in_ds if d.type == DistDataType.VERTICAL_TABLE]
-    assert len(in_dataset) == 1
-    in_dataset = in_dataset[0]
+class TrainModelConverter:
+    def __init__(
+        self,
+        ctx,
+        builder: GraphBuilderManager,
+        node_id: int,
+        spu_config,
+        param: NodeEvalParam,
+        in_ds: List[DistData],
+        out_ds: List[DistData],
+    ):
+        self.ctx = ctx
+        self.builder = builder
+        self.node_id = node_id
+        self.spu_config = spu_config
+        self.param = param
+        in_dataset = [d for d in in_ds if d.type == DistDataType.VERTICAL_TABLE]
+        assert len(in_dataset) == 1
+        self.in_dataset = in_dataset[0]
 
-    input_schema = extract_table_header(
-        in_dataset, load_features=True, load_ids=True, load_labels=True
-    )
+        self.input_schema = extract_table_header(
+            self.in_dataset, load_features=True, load_ids=True, load_labels=True
+        )
 
-    assert set(input_schema) == set([p.party for p in builder.pyus])
+        assert set(self.input_schema) == set([p.party for p in builder.pyus])
 
-    if param.name in ["ss_glm_predict", "ss_glm_train"]:
-        # SS_GLM_MODEL
-        if param.name == "ss_glm_train":
-            model_ds = [d for d in out_ds if d.type == DistDataType.SS_GLM_MODEL]
+        if param.name in ["ss_glm_predict", "ss_glm_train"]:
+            # SS_GLM_MODEL
+            if param.name == "ss_glm_train":
+                model_ds = [d for d in out_ds if d.type == DistDataType.SS_GLM_MODEL]
+            else:
+                model_ds = [d for d in in_ds if d.type == DistDataType.SS_GLM_MODEL]
+            assert len(model_ds) == 1
+            self.model_ds = model_ds[0]
+        elif param.name in ["ss_sgd_train", "ss_sgd_predict"]:
+            # SS_SGD_MODEL
+            if param.name == "ss_sgd_train":
+                model_ds = [d for d in out_ds if d.type == DistDataType.SS_SGD_MODEL]
+            else:
+                model_ds = [d for d in in_ds if d.type == DistDataType.SS_SGD_MODEL]
+            assert len(model_ds) == 1
+            self.model_ds = model_ds[0]
+        elif param.name in ["sgb_train", "sgb_predict"]:
+            # SGB_MODEL
+            if param.name == "sgb_train":
+                model_ds = [d for d in out_ds if d.type == DistDataType.SGB_MODEL]
+            else:
+                model_ds = [d for d in in_ds if d.type == DistDataType.SGB_MODEL]
+            assert len(model_ds) == 1
+            self.model_ds = model_ds[0]
+        elif param.name in ["ss_xgb_train", "ss_xgb_predict"]:
+            # SGB_MODEL
+            if param.name == "ss_xgb_train":
+                model_ds = [d for d in out_ds if d.type == DistDataType.SS_XGB_MODEL]
+            else:
+                model_ds = [d for d in in_ds if d.type == DistDataType.SS_XGB_MODEL]
+            assert len(model_ds) == 1
+            self.model_ds = model_ds[0]
         else:
-            model_ds = [d for d in in_ds if d.type == DistDataType.SS_GLM_MODEL]
-        assert len(model_ds) == 1
-        model_ds = model_ds[0]
-        ss_glm_converter(
-            ctx,
-            node_id,
-            builder,
-            spu_config,
-            input_schema,
-            model_ds,
-            "pred_y",
-        )
-    elif param.name in ["ss_sgd_train", "ss_sgd_predict"]:
-        # SS_SGD_MODEL
-        if param.name == "ss_sgd_train":
-            model_ds = [d for d in out_ds if d.type == DistDataType.SS_SGD_MODEL]
+            # TODO others model
+            raise AttributeError(f"not support param.name {param.name}")
+
+    def schema_info(self) -> Dict[str, Dict[str, Set[str]]]:
+        if self.param.name in ["ss_glm_predict", "ss_glm_train"]:
+            # SS_GLM_MODEL
+            return ss_glm_schema_info(
+                self.input_schema,
+                self.model_ds,
+            )
+        elif self.param.name in ["ss_sgd_train", "ss_sgd_predict"]:
+            # SS_SGD_MODEL
+            return ss_sgd_schema_info(
+                self.input_schema,
+                self.model_ds,
+            )
+        elif self.param.name in ["sgb_train", "sgb_predict"]:
+            # SGB_MODEL
+            return sgb_schema_info(
+                self.input_schema,
+                self.model_ds,
+            )
+        elif self.param.name in ["ss_xgb_train", "ss_xgb_predict"]:
+            # SGB_MODEL
+            return ss_xgb_schema_info(
+                self.input_schema,
+                self.model_ds,
+            )
         else:
-            model_ds = [d for d in in_ds if d.type == DistDataType.SS_SGD_MODEL]
-        assert len(model_ds) == 1
-        model_ds = model_ds[0]
-        ss_sgd_converter(
-            ctx,
-            node_id,
-            builder,
-            spu_config,
-            input_schema,
-            model_ds,
-            "pred_y",
-        )
-    elif param.name in ["sgb_train", "sgb_predict"]:
-        # SGB_MODEL
-        if param.name == "sgb_train":
-            model_ds = [d for d in out_ds if d.type == DistDataType.SGB_MODEL]
+            # TODO others model
+            raise AttributeError(f"not support param.name {self.param.name}")
+
+    def convert(
+        self, traced_input: Dict[str, Set[str]], traced_output: Dict[str, Set[str]]
+    ):
+        assert len(traced_output) == 0
+        if self.param.name in ["ss_glm_predict", "ss_glm_train"]:
+            # SS_GLM_MODEL
+            ss_glm_converter(
+                self.ctx,
+                self.node_id,
+                self.builder,
+                self.spu_config,
+                self.input_schema,
+                self.model_ds,
+                "pred_y",
+                traced_input,
+            )
+        elif self.param.name in ["ss_sgd_train", "ss_sgd_predict"]:
+            # SS_SGD_MODEL
+            ss_sgd_converter(
+                self.ctx,
+                self.node_id,
+                self.builder,
+                self.spu_config,
+                self.input_schema,
+                self.model_ds,
+                "pred_y",
+                traced_input,
+            )
+        elif self.param.name in ["sgb_train", "sgb_predict"]:
+            # SGB_MODEL
+            sgb_converter(
+                self.ctx,
+                self.node_id,
+                self.builder,
+                self.input_schema,
+                self.model_ds,
+                "pred_y",
+                traced_input,
+            )
+        elif self.param.name in ["ss_xgb_train", "ss_xgb_predict"]:
+            # SGB_MODEL
+            ss_xgb_converter(
+                self.ctx,
+                self.node_id,
+                self.builder,
+                self.spu_config,
+                self.input_schema,
+                self.model_ds,
+                "pred_y",
+                traced_input,
+            )
         else:
-            model_ds = [d for d in in_ds if d.type == DistDataType.SGB_MODEL]
-        assert len(model_ds) == 1
-        model_ds = model_ds[0]
-        sgb_converter(
-            ctx,
-            node_id,
-            builder,
-            input_schema,
-            model_ds,
-            "pred_y",
-        )
-    elif param.name in ["ss_xgb_train", "ss_xgb_predict"]:
-        # SGB_MODEL
-        if param.name == "ss_xgb_train":
-            model_ds = [d for d in out_ds if d.type == DistDataType.SS_XGB_MODEL]
-        else:
-            model_ds = [d for d in in_ds if d.type == DistDataType.SS_XGB_MODEL]
-        assert len(model_ds) == 1
-        model_ds = model_ds[0]
-        ss_xgb_converter(
-            ctx,
-            node_id,
-            builder,
-            spu_config,
-            input_schema,
-            model_ds,
-            "pred_y",
-        )
-    else:
-        # TODO others model
-        raise AttributeError(f"not support param.name {param.name}")
+            # TODO others model
+            raise AttributeError(f"not support param.name {self.param.name}")

@@ -33,7 +33,7 @@ class SLBaseModel(ABC):
         pass
 
     @abstractmethod
-    def recv_gradient(self, gradients):
+    def get_gradient(self, gradients):
         pass
 
     @abstractmethod

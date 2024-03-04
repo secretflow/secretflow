@@ -14,6 +14,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
+## [v1.5.0.dev240304] - 2024-03-04
+
+### Added
+
+- Add gradient_average callback in SL.
+
+### Fixed
+
+- Fix tuner default resource allocate.
+
+### Changed
+
+- Boost the speed of autoattack benchmark.
+- Upgrade to Python 3.10.
+
 ## [v1.5.0.dev240227] - 2024-02-27
 
 ### Added

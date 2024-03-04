@@ -12,10 +12,10 @@ def get_self_party() -> str:
 
 
 _parties = {
-    'alice': {'address': '127.0.0.1:23041'},
-    'bob': {'address': '127.0.0.1:23042'},
-    'carol': {'address': '127.0.0.1:23043'},
-    'davy': {'address': '127.0.0.1:23044'},
+    'alice': {'address': '127.0.0.1:63841'},
+    'bob': {'address': '127.0.0.1:63942'},
+    'carol': {'address': '127.0.0.1:63743'},
+    'davy': {'address': '127.0.0.1:63644'},
 }
 
 

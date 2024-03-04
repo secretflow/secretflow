@@ -147,7 +147,6 @@ class BankDnn(BankBase):
         return [
             [128, -1],
             [-1],
-            [128, 128, -1],
         ]
 
     def dnn_base_units_size_range_bob(self) -> Optional[list]:
@@ -155,7 +154,7 @@ class BankDnn(BankBase):
         return None
 
     def dnn_fuse_units_size_range(self) -> Optional[list]:
-        return [[1], [256, 128, 1], [128, 1]]
+        return [[1], [128, 1]]
 
     def lia_auxiliary_model(self, ema=False):
         from benchmark_examples.autoattack.attacks.lia import BottomModelPlus

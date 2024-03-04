@@ -232,7 +232,7 @@ def two_party_balanced_psi_eval_fn(
         download_files(ctx, uri, input_path)
 
     with ctx.tracer.trace_running():
-        report = spu.psi_v2(
+        report = spu.psi(
             keys={receiver_party: receiver_input_key, sender_party: sender_input_key},
             input_path=input_path,
             output_path=output_path,

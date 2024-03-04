@@ -36,8 +36,18 @@ class TraceRunner:
         assert dag[0].inputs is None
         assert dag[-1].output_type is _TracerType.TABLE
         assert len(set(dag)) == len(dag)
-        assert len(dag) > 1
+        assert len(dag) > 0
+
+        self.input_features = dag[0].output_schema.names
+        if not isinstance(self.input_features, list):
+            assert isinstance(self.input_features, str)
+            self.input_features = [self.input_features]
+
         self.dag: List[_Tracer] = dag
+        if len(self.dag) == 1:
+            # nothing to do
+            return
+
         self.ref_count = defaultdict(int)
         for t in self.dag:
             if t.inputs is None:
@@ -46,10 +56,6 @@ class TraceRunner:
                 if isinstance(i, _Tracer):
                     self.ref_count[i] += 1
         assert len(self.ref_count) > 0
-        self.input_features = dag[0].output_schema.names
-        if not isinstance(self.input_features, list):
-            assert isinstance(self.input_features, str)
-            self.input_features = [self.input_features]
 
     def _get_input(self, t: _Tracer):
         assert t in self.run_ref_count
@@ -69,8 +75,16 @@ class TraceRunner:
     ) -> Tuple[compute_trace_pb2.ComputeTrace, pa.Schema, pa.Schema]:
         return self.dag[-1].dump_serving_pb(name)
 
+    def column_changes(self) -> Tuple[List, List, List]:
+        return self.dag[-1].column_changes()
+
     def run(self, input: Union[pd.DataFrame, pa.Table]) -> pd.DataFrame:
         assert isinstance(input, (pd.DataFrame, pa.Table))
+
+        if len(self.dag) == 1:
+            # nothing to do
+            return input.to_pandas() if isinstance(input, pa.Table) else input
+
         if isinstance(input, pd.DataFrame):
             input = pa.Table.from_pandas(input)
 
@@ -272,26 +286,35 @@ class _Tracer:
     def dump_runner(self) -> TraceRunner:
         return TraceRunner(self._flatten_dag())
 
-    def column_changes(self) -> Tuple[List, List]:
+    def column_changes(self) -> Tuple[List, List, List]:
         dag = self._flatten_dag()
-        remove_cols = {}
-        append_cols = {}
+        used_inputs = set()
+        remove_cols = set()
+        append_cols = set()
 
         def _get_name(t: _Tracer, i: int) -> str:
             return t.inputs[0].output_schema.field(i).name
 
         def _append(n: str):
             assert n not in append_cols
-            append_cols[n] = None
+            append_cols.add(n)
+
+        def _use(n: str):
+            if n not in append_cols:
+                used_inputs.add(n)
 
         def _remove(n: str):
             if n in append_cols:
-                del append_cols[n]
+                append_cols.remove(n)
             else:
-                remove_cols[n] = None
+                remove_cols.add(n)
 
         for t in dag[1:]:
             if t.operate == compute_trace_pb2.ExtendFunctionName.Name(
+                compute_trace_pb2.EFN_TB_COLUMN
+            ):
+                _use(_get_name(t, t.inputs[1]))
+            elif t.operate == compute_trace_pb2.ExtendFunctionName.Name(
                 compute_trace_pb2.EFN_TB_ADD_COLUMN
             ):
                 _append(t.inputs[2])
@@ -305,7 +328,7 @@ class _Tracer:
                 _remove(_get_name(t, t.inputs[1]))
                 _append(t.inputs[2])
 
-        return list(remove_cols), list(append_cols)
+        return list(remove_cols), list(append_cols), list(used_inputs)
 
     def dump_serving_pb(
         self, name: str
@@ -412,7 +435,9 @@ class Table:
         pydist = {}
 
         for name, dtype in schema.items():
-            if dtype == object or dtype == str:
+            if isinstance(dtype, np.dtype):
+                dtype = dtype.type
+            if dtype in [object, str, np.object_]:
                 mock_data = ""
             else:
                 mock_data = dtype()
@@ -439,7 +464,7 @@ class Table:
         Table.schema_check(self._trace.output_schema)
         return self._trace.dump_runner()
 
-    def column_changes(self) -> Tuple[List, List]:
+    def column_changes(self) -> Tuple[List, List, List]:
         return self._trace.column_changes()
 
     # subset of pyarrow.table

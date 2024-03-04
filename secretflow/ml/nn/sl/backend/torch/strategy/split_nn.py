@@ -124,7 +124,7 @@ class SLTorchModel(SLBaseTorchModel):
         for m in self.metrics_fuse:
             logs['train_' + m.__class__.__name__] = m.compute().cpu().numpy()
         self.logs = copy.deepcopy(logs)
-        return gradient
+        self._gradient = gradient
 
 
 @register_strategy(strategy_name='split_nn', backend='torch')

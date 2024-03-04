@@ -14,11 +14,14 @@
 
 import copy
 import logging
+import os.path
 import time
 from typing import List, Union
 
 import click
 import pandas as pd
+
+from benchmark_examples.autoattack.utils.timer import readable_time
 
 try:
     import secretflow as sf
@@ -92,21 +95,38 @@ class Benchmark:
             is_find
         ), f"provide app {dataset}:{model} is not in the implemented applications."
         rows = len(applications)
-        dataum = {col: ['....'] * rows for col in columns + self.candidates}
-        dataum['datasets'] = [application[0] for application in applications]
-        dataum['models'] = [application[1] for application in applications]
-        self.experiments = pd.DataFrame(dataum)
+        datum = {col: ['....'] * rows for col in columns + self.candidates}
+        apps = list(applications.keys())
+        # Sort according to the order of user input dataset and model
+        if isinstance(dataset, list):
+            apps.sort(
+                key=lambda a: dataset.index(a[0]) * 100
+                + (model.index(a[1]) if isinstance(model, list) else 0)
+            )
+        datum['datasets'] = [application[0] for application in apps]
+        datum['models'] = [application[1] for application in apps]
+        self.experiments = pd.DataFrame(datum)
         self.print_candidates()
-        self.log_file = (
-            global_config.get_cur_experiment_result_path() + "/final_result.md"
+        if not os.path.exists(global_config.get_cur_experiment_result_path()):
+            os.makedirs(global_config.get_cur_experiment_result_path())
+        self.log_file = open(
+            global_config.get_cur_experiment_result_path() + "/final_result.md", "a"
         )
-        self.log_file_simple = (
-            global_config.get_cur_experiment_result_path() + "/final_result_simple.md"
+        self.log_file_simple = open(
+            global_config.get_cur_experiment_result_path() + "/final_result_simple.md",
+            "a",
         )
 
+    def __del__(self):
+        try:
+            self.log_file.close()
+            self.log_file_simple.close()
+        except Exception:
+            pass
+
     def print_candidates(self):
-        logging.warning("All Candidate Dataset/Model/Attask:")
-        logging.warning(self.experiments.to_markdown())
+        logging.warning("All candidate Datasets/Models/Attacks:")
+        logging.warning(f"\n{self.experiments.to_markdown()}")
 
     @staticmethod
     def custom_result(result, metric_names) -> dict:
@@ -118,7 +138,7 @@ class Benchmark:
             # if metrics start with 'app_' then it is an origin application train metric like auc.
             if 'app_' in k:
                 r[k] = v
-        r['error'] = '-' if result.error is None else f"{str(result.error)}"
+        r['error'] = '-' if result.error is None else "Error"
         return r
 
     def custom_results(self, results, metric_names: list):
@@ -136,29 +156,37 @@ class Benchmark:
 
     def log_root_full_result(self, ds, md, at, r):
         # record to full result log
-        with open(self.log_file, 'a') as f:
-            f.write(f"\n\n\nExperiments {ds}, {md}, {at} autoattack results:\n")
-            for br, mn, mnd in zip(r.best_results, r.metric_names, r.metric_modes):
-                f.write(f"\nBest results for metric {mn} (mode={r.metric_modes}):\n")
-                f.write(br.metrics_dataframe.to_markdown())
-                f.write("\n")
-            f.write(f"\n\nResult Grid:\n")
-            f.write(r.results.get_dataframe().to_markdown())
-            if r.results.num_errors > 0:
-                f.write(f"\nThere are {r.results.num_errors} Errors:\n")
-                for error in r.results.errors:
-                    f.write(f"{error}\n")
+        self.log_file.write(f"\n\n\nExperiments {ds}, {md}, {at} autoattack results:\n")
+        for br, mn, mnd in zip(r.best_results, r.metric_names, r.metric_modes):
+            self.log_file.write(
+                f"\nBest results for metric {mn} (mode={r.metric_modes}):\n"
+            )
+            self.log_file.write(br.metrics_dataframe.to_markdown())
+            self.log_file.write("\n")
+        self.log_file.write(f"\n\nResult Grid:\n")
+        self.log_file.write(r.results.get_dataframe().to_markdown())
+        if r.results.num_errors > 0:
+            self.log_file.write(f"\nThere are {r.results.num_errors} Errors:\n")
+            for error in r.results.errors:
+                self.log_file.write(f"{error}\n")
 
     def log_root_simple_result(self, ds, md, at, r):
         # record to simple result log.
-        with open(self.log_file_simple, 'a') as f:
-            f.write(f"\n\n\nExperiments {ds}, {md}, {at} autoattack results:\n")
-            for br, mn, mnd in zip(r.best_results, r.metric_names, r.metric_modes):
-                f.write(f"\nBest results for metric {mn} (mode={r.metric_modes}):\n")
-                f.write(f"{self.custom_results([br], [mn]).to_markdown()}")
-                f.write("\n")
-            f.write(f"\n\nResult Grid:\n")
-            f.write(f"{self.custom_results(r.results, r.metric_names).to_markdown()}")
+        self.log_file_simple.write(
+            f"\n\n\nExperiments {ds}, {md}, {at} autoattack results:\n"
+        )
+        for br, mn, mnd in zip(r.best_results, r.metric_names, r.metric_modes):
+            self.log_file_simple.write(
+                f"\nBest results for metric {mn} (mode={r.metric_modes}):\n\n"
+            )
+            self.log_file_simple.write(
+                f"{self.custom_results([br], [mn]).to_markdown()}"
+            )
+            self.log_file_simple.write("\n")
+        self.log_file_simple.write(f"\n\nResult Grid:\n\n")
+        self.log_file_simple.write(
+            f"{self.custom_results(r.results, r.metric_names).to_markdown()}"
+        )
 
     @staticmethod
     def log_case_result_csv(ds, md, at, r):
@@ -186,15 +214,14 @@ class Benchmark:
 
     def log_final_result(self):
         for log_file in [self.log_file_simple, self.log_file]:
-            with open(log_file, 'a') as f:
-                f.write(f"\n\n\nAll Experiments records:\n")
-                f.write(f"{self.experiments.to_markdown()}")
+            log_file.write(f"\n\n\nAll Experiments records:\n\n")
+            log_file.write(f"{self.experiments.to_markdown()}")
 
     def run_case(self, dataset, model, attack: str):
         start = time.time()
         try:
             results = main.run_case(dataset, model, attack)
-            ret = str(int(time.time() - start)) + "s"
+            ret = readable_time(time.time() - start)
             self.log_results(dataset, model, attack, results)
             if 'auto' in attack:
                 if results.results.num_errors > 0:
@@ -221,11 +248,12 @@ class Benchmark:
             logging.error(
                 f"failed to run experiments on {dataset}/{model}/{attack} ...", e
             )
-            return f'Error({str(int(time.time() - start))}s)'
+            return f'Error({readable_time(time.time() - start)})'
 
     def run(
         self,
     ):
+        start_time = time.time()
         for ds_md_i in range(self.experiments.shape[0]):
             ds = self.experiments.loc[ds_md_i, 'datasets']
             md = self.experiments.loc[ds_md_i, 'models']
@@ -236,7 +264,9 @@ class Benchmark:
                 ret = self.run_case(ds, md, at)
                 self.experiments.at[ds_md_i, at] = ret
                 logging.info(f"Finish experiment on {ds}/{md}/{at} ...")
-        logging.info("All experiments is finish.")
+        logging.info(
+            f"All experiments is finish, total time cost: {readable_time(time.time() - start_time)}s"
+        )
         self.print_candidates()
         self.log_final_result()
 
@@ -247,50 +277,55 @@ class Benchmark:
     type=click.STRING,
     required=False,
     default=None,
-    help='benchmark mode like train/attack/auto, default train.',
+    help='Benchmark mode like "train/attack/auto", default to "train".',
 )
 @click.option(
     '--dataset',
     type=click.STRING,
     required=False,
     default=None,
-    help='dataset target like all/bank/criteo,.etc, default all.',
+    help='Dataset target like "all/bank/criteo",.etc, default to all.',
 )
 @click.option(
     '--model',
     type=click.STRING,
     required=False,
     default=None,
-    help='model target like all/dnn/deepfm,.etc, default all.',
+    help='Model target like "all/dnn/deepfm",.etc, default to "all".',
 )
 @click.option(
     '--attack',
     type=click.STRING,
     required=False,
     default=None,
-    help='attack target like all/fia/lia,.etc, default all.',
+    help='Attack target like "all/fia/lia",.etc, default to "all".',
 )
-@click.option("--simple", is_flag=True, default=None, help='whether use simple test.')
+@click.option(
+    "--simple",
+    is_flag=True,
+    default=None,
+    help='Whether to use simple testing for easy debugging.',
+)
 @click.option(
     "--datasets_path",
     type=click.STRING,
     required=False,
     default=None,
-    help='datasets path, default "~/.secretflow/datasets"',
+    help='Datasets load path, default to "~/.secretflow/datasets"',
 )
 @click.option(
     "--autoattack_storage_path",
     type=click.STRING,
     required=False,
     default=None,
-    help='autoattack results store path, default "~/.secretflow/datasets"',
+    help='Autoattack results storage path, default to "~/.secretflow/datasets"',
 )
 @click.option(
     "--use_gpu",
     is_flag=True,
     required=False,
     default=None,
-    help="wheter use GPU to accelerate",
+    help="Whether to use GPU, default to False",
 )
 @click.option(
     "--config",
@@ -303,7 +338,21 @@ class Benchmark:
     "--debug_mode",
     type=click.BOOL,
     required=False,
-    help='whether use debug mode or not.',
+    help='Wheter to run secretflow on the debug mode.',
+)
+@click.option(
+    "--ray_cluster_address",
+    type=click.STRING,
+    required=False,
+    default=None,
+    help="The existing ray cluster address to connect.",
+)
+@click.option(
+    "--random_seed",
+    type=click.STRING,
+    required=False,
+    default=None,
+    help="To achieve reproducible.",
 )
 def run(
     mode,
@@ -316,7 +365,10 @@ def run(
     use_gpu,
     config,
     debug_mode,
+    ray_cluster_address,
+    random_seed,
 ):
+    """Run your autoattack benchmark."""
     global_config.init_globalconfig(
         mode=mode,
         dataset=dataset,
@@ -328,6 +380,8 @@ def run(
         use_gpu=use_gpu,
         config=config,
         debug_mode=debug_mode,
+        ray_cluster_address=ray_cluster_address,
+        random_seed=random_seed,
     )
     benchmark = Benchmark(
         benchmark_mode=global_config.get_benchmrak_mode(),

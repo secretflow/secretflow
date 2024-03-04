@@ -63,11 +63,11 @@ class TestMemTune:
     def test_mem_tune_with_custom_resources(self, sf_tune_memory_setup_devices):
         _do_tunning(
             sf_tune_memory_setup_devices,
-            cluster_resources=[{'alice': 1, 'CPU': 1}, {'bob': 1, 'CPU': 1}],
+            cluster_resources=[{'CPU': 2}],
         )
         _do_tunning(
             sf_tune_memory_setup_devices,
-            cluster_resources={'alice': 1, 'bob': 1, 'CPU': 2},
+            cluster_resources={'CPU': 2},
         )
 
     def test_mem_tume_store_results(self, sf_tune_memory_setup_devices):
@@ -81,16 +81,16 @@ class TestMemTune:
 
 
 class TestSimTune:
-    def test_mem_tune_with_default_resources(self, sf_tune_simulation_setup_devices):
+    def test_sim_tune_with_default_resources(self, sf_tune_simulation_setup_devices):
         _do_tunning(sf_tune_simulation_setup_devices)
 
-    def test_mem_tune_with_custom_resources(self, sf_tune_simulation_setup_devices):
+    def test_sim_tune_with_custom_resources(self, sf_tune_simulation_setup_devices):
         _do_tunning(
             sf_tune_simulation_setup_devices,
             cluster_resources=[{'alice': 1, 'CPU': 1}, {'bob': 1, 'CPU': 1}],
         )
 
-    def test_mem_tume_store_results(self, sf_tune_simulation_setup_devices):
+    def test_sim_tume_store_results(self, sf_tune_simulation_setup_devices):
         name = uuid.uuid4().hex
         _do_tunning(
             sf_tune_simulation_setup_devices,

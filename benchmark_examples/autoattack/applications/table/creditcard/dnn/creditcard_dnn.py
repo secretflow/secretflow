@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -41,7 +41,7 @@ class CreditcardDnn(ApplicationBase):
             epoch=2,
             train_batch_size=1024,
             hidden_size=28,
-            dnn_base_units_size_alice=[int(28 / 2), 28],
+            dnn_base_units_size_alice=[int(28 / 2), -1],
             dnn_base_units_size_bob=[4],
             dnn_fuse_units_size=[1],
         )
@@ -108,11 +108,7 @@ class CreditcardDnn(ApplicationBase):
         return [
             [-0.5, -1],
             [-1],
-            [
-                -0.5,
-                -1,
-                -1,
-            ],
+            [-0.5, -1, -1],
         ]
 
     def dnn_base_units_size_range_bob(self) -> Optional[List[List[int]]]:
@@ -121,7 +117,6 @@ class CreditcardDnn(ApplicationBase):
     def dnn_fuse_units_size_range(self) -> Optional[list]:
         return [
             [1],
-            [-1, 1],
             [-1, -1, 1],
         ]
 
@@ -129,3 +124,9 @@ class CreditcardDnn(ApplicationBase):
         label = sf.reveal(self.train_label.partitions[self.bob].data)
         neg, pos = np.bincount(label['Class'])
         return neg, pos
+
+    def resources_consumes(self) -> List[Dict]:
+        return [
+            {'alice': 0.5, 'CPU': 0.5, 'GPU': 0.001, 'gpu_mem': 400 * 1024 * 1024},
+            {'bob': 0.5, 'CPU': 0.5, 'GPU': 0.001, 'gpu_mem': 400 * 1024 * 1024},
+        ]

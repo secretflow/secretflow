@@ -13,7 +13,9 @@
 # limitations under the License.
 
 import logging
+from typing import Dict, List
 
+import filelock
 import numpy as np
 import torch
 import torch.nn as nn
@@ -69,7 +71,7 @@ class DriveDnn(ApplicationBase):
             total_fea_nums=48,
             alice_fea_nums=28,
             num_classes=2,
-            epoch=1,
+            epoch=10,
             train_batch_size=64,
             hidden_size=64,
         )
@@ -77,16 +79,15 @@ class DriveDnn(ApplicationBase):
     def prepare_data(
         self,
     ):
-        full_data_table = np.genfromtxt(
-            global_config.get_dataset_path() + "/drive/drive_cleaned.csv",
-            delimiter=',',
-        )
+        from secretflow.utils.simulation.datasets import get_dataset, _DATASETS
+
+        path = get_dataset(_DATASETS['drive_cleaned'])
+        full_data_table = np.genfromtxt(path, delimiter=',')
         samples = full_data_table[:, :-1].astype(np.float32)
         # permuate columns
         batch, columns = samples.shape
         print(batch, columns)
         permu_cols = torch.randperm(columns)
-        logging.info("Dataset column permutation is: \n %s", permu_cols)
         samples = samples[:, permu_cols]
 
         labels = full_data_table[:, -1].astype(np.long)
@@ -216,3 +217,15 @@ class DriveDnn(ApplicationBase):
 
     def fia_attack_input_shape(self):
         return [self.alice_fea_nums]
+
+    def resources_consumes(self) -> List[Dict]:
+        # use 1 gpu per trail.
+        return [
+            {
+                'alice': 0.5,
+                'CPU': 0.5,
+                'GPU': 0.001,
+                'gpu_mem': 1.5 * 1024 * 1024 * 1024,
+            },
+            {'bob': 0.5, 'CPU': 0.5, 'GPU': 0.001, 'gpu_mem': 1.5 * 1024 * 1024 * 1024},
+        ]

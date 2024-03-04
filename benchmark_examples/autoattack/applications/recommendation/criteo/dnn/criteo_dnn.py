@@ -31,7 +31,7 @@ class CriteoDnn(CriteoBase):
             config,
             alice,
             bob,
-            epoch=3,
+            epoch=1,
             train_batch_size=512,
             hidden_size=hidden_size,
             dnn_base_units_size_alice=[200, 100, hidden_size],
@@ -90,7 +90,7 @@ class CriteoDnn(CriteoBase):
         return ['norm', 'replay', 'replace', 'exploit']
 
     def dnn_base_units_size_range_alice(self) -> Optional[list]:
-        return [[200, 100, -1]]
+        return [[200, 100, -1], [-1]]
 
     def dnn_base_units_size_range_bob(self) -> Optional[list]:
         return None
