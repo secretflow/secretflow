@@ -32,7 +32,6 @@ class Cifar10Resnet18(Cifar10ApplicationBase):
             config,
             alice,
             bob,
-            epoch=1,
             train_batch_size=128,
             hidden_size=512,
             dnn_fuse_units_size=[512 * 2],
@@ -57,7 +56,10 @@ class Cifar10Resnet18(Cifar10ApplicationBase):
         )
 
     def dnn_fuse_units_size_range(self):
-        return [[512 * 2], [512 * 2, 512], [512 * 2, 512, 512]]
+        return [
+            [512 * 2],
+            [512 * 2, 512],
+        ]
 
     def create_base_model_alice(self):
         return self._create_base_model()

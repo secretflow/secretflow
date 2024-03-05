@@ -46,7 +46,7 @@ class ReplayAttackCase(AttackCase):
 
     def attack_search_space(self):
         return {
-            'target_nums': tune.search.grid_search([10, 50, 100]),
+            'target_nums': tune.search.grid_search([50, 100]),
         }
 
     def metric_name(self):

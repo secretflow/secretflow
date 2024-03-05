@@ -6,7 +6,7 @@ Before reading this article, it is strongly recommended to read [TEEU Getting St
 
 ---
 
-TEEU (`TEE` processing `U`nit) is a TEE device in SecretFlow. Through TEEU, users can conveniently put data in TEE for calculation, and achieve the purpose of protecting data integrity and security. 
+TEEU (`TEE` processing `U`nit) is a TEE device in SecretFlow. Through TEEU, users can conveniently put data in TEE for calculation, and achieve the purpose of protecting data integrity and security.
 
 This article will demonstrate how to run LabelEncoder in TEEU for processing.
 
@@ -86,7 +86,7 @@ def gen_data():
 
     num_classes = 3
     # Only used y in LabelEncoder
-    x, y = make_classification(n_samples=1000, n_informative=5, 
+    x, y = make_classification(n_samples=1000, n_informative=5,
                                n_classes=num_classes)
     y_str = y.astype(str)
     for i in range(num_classes):
@@ -201,7 +201,7 @@ def gen_data():
 
     num_classes = 3
     # Only used y in LabelEncoder
-    x, y = make_classification(n_samples=1000, n_informative=5, 
+    x, y = make_classification(n_samples=1000, n_informative=5,
                                n_classes=num_classes)
     y_str = y.astype(str)
     for i in range(num_classes):
@@ -315,7 +315,7 @@ def gen_data():
 
     num_classes = 3
     # Only used y in LabelEncoder
-    x, y = make_classification(n_samples=1000, n_informative=5, 
+    x, y = make_classification(n_samples=1000, n_informative=5,
                                n_classes=num_classes)
     y_str = y.astype(str)
     for i in range(num_classes):
@@ -420,7 +420,7 @@ def gen_data():
 
     num_classes = 3
     # Only used y in LabelEncoder
-    x, y = make_classification(n_samples=1000, n_informative=5, 
+    x, y = make_classification(n_samples=1000, n_informative=5,
                                n_classes=num_classes)
     y_str = y.astype(str)
     for i in range(num_classes):

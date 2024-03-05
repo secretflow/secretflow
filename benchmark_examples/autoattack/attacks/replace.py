@@ -54,7 +54,7 @@ class ReplaceAttackCase(AttackCase):
         search_space = {
             # blurred does not support embedding layer, so shutdown,
             # 'blurred': tune.search.grid_search([True, False]),
-            'gamma': tune.search.grid_search([10, 20, 30]),  # 1 - 20
+            'gamma': tune.search.grid_search([10, 30]),  # 1 - 20
         }
         return search_space
 

@@ -53,6 +53,7 @@ class Cifar10VGG16(Cifar10ApplicationBase):
             [512 * 3 * 3 * 2, 4096],
             [512 * 3 * 3 * 2, 4096, 4096],
             [512 * 3 * 3 * 2, 4096, 4096, 4096],
+            [512 * 3 * 3 * 2, 4096, 4096, 4096, 4096],
         ]
 
     def create_base_model_alice(self):

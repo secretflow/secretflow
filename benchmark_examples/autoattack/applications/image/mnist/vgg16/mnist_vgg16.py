@@ -32,7 +32,7 @@ from secretflow.ml.nn.utils import TorchModel, metric_wrapper, optim_wrapper
 from secretflow.utils.simulation.datasets import _CACHE_DIR
 
 vgg_resize = 112
-half_vgg_resize = int(vgg_resize / 2)
+half_vgg_resize = vgg_resize // 2
 
 
 def vgg_transform():
@@ -249,7 +249,7 @@ class MnistVGG16(MnistBase):
         )
 
     def alice_feature_nums_range(self) -> list:
-        return [3 * vgg_resize * vgg_resize / 2]
+        return [3 * vgg_resize * vgg_resize // 2]
 
     def hidden_size_range(self) -> list:
         return [4608]
@@ -259,6 +259,7 @@ class MnistVGG16(MnistBase):
             [512 * 3 * 3 * 2, 4096],
             [512 * 3 * 3 * 2, 4096, 4096],
             [512 * 3 * 3 * 2, 4096, 4096, 4096],
+            [512 * 3 * 3 * 2, 4096, 4096, 4096, 4096],
         ]
 
     def support_attacks(self):
@@ -280,6 +281,7 @@ class MnistVGG16(MnistBase):
         loader = DataLoader(
             self.sample_alice_dataset, batch_size=len(self.sample_alice_dataset)
         )
+        # self.sample_alice_dataset return a list (since list_return=True), so we need to get the [0].
         np_data = next(iter(loader))[0].numpy()
         return np_data.reshape((np_data.shape[0], -1)).mean(axis=0)
 
@@ -369,7 +371,8 @@ class MnistVGG16(MnistBase):
         train_poison_dataloader = DataLoader(
             train_poison_dataset, batch_size=len(train_poison_set)
         )
-        train_poison_np = next(iter(train_poison_dataloader))[0].numpy()
+        # train_poison_dataset return a tensor but not list, so do not use [0] to convert.
+        train_poison_np = next(iter(train_poison_dataloader)).numpy()
         eval_poison_set = np.random.choice(
             range(len(self.plain_test_label)), 100, replace=False
         )

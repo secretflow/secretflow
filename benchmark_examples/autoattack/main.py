@@ -20,7 +20,7 @@ import click
 
 from benchmark_examples.autoattack.applications.base import ApplicationBase
 from benchmark_examples.autoattack.attacks.base import AttackCase
-from secretflow.tune.tune_config import RunConfig
+from secretflow.tune.tune_config import RunConfig, TuneConfig
 
 try:
     import secretflow as sf
@@ -62,6 +62,7 @@ def show_helps():
 
 def init_ray():
     ray.init(
+        address=global_config.get_ray_cluster_address(),
         log_to_driver=True,
     )
 
@@ -118,8 +119,9 @@ def do_attack(dataset: str, model: str, attack: str, alice: PYU, bob: PYU):
 
 def do_autoattack(dataset: str, model: str, attack: str, alice: PYU, bob: PYU):
     App = dispatch.dispatch_application(dataset, model)
+    config_app: ApplicationBase = App({}, alice, bob)
     Attack = dispatch.dispatch_attack(attack)
-    if attack not in App({}, alice, bob).support_attacks():
+    if attack not in config_app.support_attacks():
         raise NotSupportedError(
             f"Attack {attack} not supported in app {App.__name__}! "
             f"If not correct, check the implement of 'support_attacks' in class {App.__name__}"
@@ -135,14 +137,20 @@ def do_autoattack(dataset: str, model: str, attack: str, alice: PYU, bob: PYU):
         [metric_modes] if not isinstance(metric_modes, list) else metric_modes
     )
     assert len(metric_names) == len(metric_modes)
-    cluster_resources = [{'alice': 1, 'CPU': 1}, {'bob': 1, 'CPU': 1}]
-    if global_config.is_use_gpu():
+    cluster_resources = config_app.resources_consumes()
+    if not global_config.is_use_gpu():
         cluster_resources = [
-            {'alice': 1, 'CPU': 1, 'GPU': 0.5},
-            {'bob': 1, 'CPU': 1, 'GPU': 0.5},
+            {k: v for k, v in cr.items() if k not in ['GPU', 'gpu_mem']}
+            for cr in cluster_resources
+        ]
+    if global_config.is_debug_mode():
+        cluster_resources = [
+            {k: v for k, v in cr.items() if k not in _PARTIES}
+            for cr in cluster_resources
         ]
     tuner = tune.Tuner(
         attack_case.attack,
+        tune_config=TuneConfig(max_concurrent_trials=300),
         run_config=RunConfig(
             storage_path=global_config.get_cur_experiment_result_path(),
             name=f"{dataset}_{model}_{attack}",
@@ -184,21 +192,53 @@ def run_case(dataset: str, model: str, attack: str):
 @click.argument("dataset_name", type=click.STRING, required=True)
 @click.argument("model_name", type=click.STRING, required=True)
 @click.argument("run_mode", type=click.STRING, required=True)
-@click.option("--simple", is_flag=True, default=None, help='whether use simple test.')
-@click.option("--debug_mode", type=click.BOOL, required=False)
+@click.option(
+    "--simple",
+    is_flag=True,
+    default=None,
+    help='Whether to use simple testing for easy debugging.',
+)
+@click.option(
+    "--debug_mode",
+    type=click.BOOL,
+    required=False,
+    help='Wheter to run secretflow on the debug mode.',
+)
 @click.option(
     "--datasets_path",
     type=click.STRING,
     required=False,
     default=None,
+    help='Datasets load path, default to "~/.secretflow/datasets"',
 )
 @click.option(
     "--autoattack_storage_path",
     type=click.STRING,
     required=False,
     default=os.path.join(os.path.expanduser('~'), '.secretflow/workspace'),
+    help='Autoattack results storage path, default to "~/.secretflow/datasets"',
 )
-@click.option("--use_gpu", is_flag=True, required=False, default=False)
+@click.option(
+    "--use_gpu",
+    is_flag=True,
+    required=False,
+    default=False,
+    help="Whether to use GPU, default to False",
+)
+@click.option(
+    "--ray_cluster_address",
+    type=click.STRING,
+    required=False,
+    default=None,
+    help="The existing ray cluster address to connect.",
+)
+@click.option(
+    "--random_seed",
+    type=click.STRING,
+    required=False,
+    default=None,
+    help="To achieve reproducible.",
+)
 def run(
     dataset_name,
     model_name,
@@ -208,7 +248,10 @@ def run(
     datasets_path,
     autoattack_storage_path,
     use_gpu,
+    ray_cluster_address,
+    random_seed,
 ):
+    """Run single case with dataset, model and attack(or autoattack)."""
     try:
         global_config.init_globalconfig(
             datasets_path=datasets_path,
@@ -216,6 +259,8 @@ def run(
             simple=simple,
             use_gpu=use_gpu,
             debug_mode=debug_mode,
+            ray_cluster_address=ray_cluster_address,
+            random_seed=random_seed,
         )
         run_case(dataset_name, model_name, run_mode)
     except Exception as e:

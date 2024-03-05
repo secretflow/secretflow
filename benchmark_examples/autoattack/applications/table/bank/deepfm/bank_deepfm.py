@@ -67,11 +67,11 @@ class BankDeepfm(BankBase):
             config,
             alice,
             bob,
-            hidden_size=hidden_size,
-            dnn_base_units_size_alice=[100, hidden_size],
-            dnn_base_units_size_bob=[100, hidden_size],
-            dnn_fuse_units_size=[64],
-            deepfm_embedding_dim=4,
+            hidden_size=32,
+            dnn_base_units_size_alice=[128, -1],
+            dnn_base_units_size_bob=[128, -1],
+            dnn_fuse_units_size=[64, 64],
+            deepfm_embedding_dim=8,
         )
 
     def create_base_model_alice(self):
@@ -85,6 +85,7 @@ class BankDeepfm(BankBase):
             ],
             input_dims=[v for v in self.alice_fea_classes.values()],
             dnn_units_size=self.dnn_base_units_size_alice,
+            fm_embedding_dim=self.deepfm_embedding_dim,
         )
         return model
 
@@ -146,7 +147,7 @@ class BankDeepfm(BankBase):
         return None
 
     def dnn_fuse_units_size_range(self):
-        return [[64], [64, 64], [64, 64, 64]]
+        return [[64], [64, 64]]
 
     def deepfm_embedding_dim_range(self):
         return [8, 16]

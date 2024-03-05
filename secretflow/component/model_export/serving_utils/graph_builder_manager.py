@@ -14,6 +14,8 @@
 
 from typing import Dict, List
 
+import pyarrow as pa
+
 from secretflow.device import PYU, PYUObject, proxy, wait
 
 from .serving_graph import GraphBuilder
@@ -30,10 +32,14 @@ class GraphBuilderManager:
         self,
         node_name: str,
         op: str,
-        party_kwargs: Dict[PYU, Dict] = None,
+        input_schemas: Dict[PYU, pa.Schema],
+        output_schemas: Dict[PYU, pa.Schema],
+        party_kwargs: Dict[PYU, Dict],
         parents: List[str] = None,
     ):
         assert set(party_kwargs) == set(self.graph_builders)
+        assert set(input_schemas) == set(self.graph_builders)
+        assert set(output_schemas) == set(self.graph_builders)
         waits = []
         for pyu in party_kwargs:
             builder = self.graph_builders[pyu]
@@ -41,7 +47,16 @@ class GraphBuilderManager:
             node_parnents = parents
             if node_parnents is None:
                 node_parnents = [self.node_names[-1]] if self.node_names else []
-            waits.append(builder.add_node(node_name, node_parnents, op, **kwargs))
+            waits.append(
+                builder.add_node(
+                    node_name,
+                    node_parnents,
+                    op,
+                    input_schemas[pyu],
+                    output_schemas[pyu],
+                    **kwargs
+                )
+            )
         wait(waits)
         self.node_names.append(node_name)
 

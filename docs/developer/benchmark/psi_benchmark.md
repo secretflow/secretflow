@@ -34,7 +34,7 @@ SecretFlow SPU 实现了半诚实模型下的两方和三方PSI协议，密钥�
     - 隐语实现了自研的基于 ECDH 的三方 PSI 协议，注意我们实现的这个协议会泄漏两方交集大小，请自行判断是否满足使用场景的安全性，本次benchmark选用的曲线是Curve25519。
 ## 复现方式
 ### 一、测试机型环境
-- Python：3.8
+- Python：3.10
 - pip: >= 19.3
 - OS: CentOS 7
 - CPU/Memory: 推荐最低配置是 8C16G
@@ -70,7 +70,7 @@ conda --version
 ### 三、安装secretflow
 ```
 # 创建干净的python环境
-conda create -n sf-benchmark python=3.8
+conda create -n sf-benchmark python=3.10
 
 # 进入benchmark 环境
 conda activate sf-benchmark

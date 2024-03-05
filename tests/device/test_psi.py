@@ -341,7 +341,7 @@ def _test_psi_v2(devices, data):
             )
         )
 
-        devices.spu.psi_v2(
+        devices.spu.psi(
             keys={'alice': ["c1", "c2"], 'bob': ["c1", "c2"]},
             input_path=input_path,
             output_path=output_path,
@@ -420,9 +420,21 @@ def _test_unbalanced_psi_csv(devices, data):
             ecdh_secret_key_path=secret_key_path,
         )
 
-        gen_cache_report = devices.bob(spu.psi.gen_cache_for_2pc_ub_psi)(
-            gen_cache_config
+        def gen_cache_for_2pc_ub_psi_func(byte_str: str):
+            config = spu.psi.BucketPsiConfig()
+            config.ParseFromString(byte_str)
+            report = spu.psi.gen_cache_for_2pc_ub_psi(config)
+            return report.SerializeToString()
+
+        gen_cache_report_str = sf.reveal(
+            devices.bob(gen_cache_for_2pc_ub_psi_func)(
+                gen_cache_config.SerializeToString()
+            )
         )
+
+        gen_cache_report = spu.psi.PsiResultReport()
+        gen_cache_report.ParseFromString(gen_cache_report_str)
+
         print(f"gen_cache_report={sf.reveal(gen_cache_report)}")
 
         # transfer cache

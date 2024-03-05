@@ -50,7 +50,10 @@ class MnistResnet18(MnistBase):
         )
 
     def dnn_fuse_units_size_range(self):
-        return [[512 * 2], [512 * 2, 512], [512 * 2, 512, 512]]
+        return [
+            [512 * 2],
+            [512 * 2, 512, 512, 512],
+        ]
 
     def create_base_model_alice(self):
         return self._create_base_model()

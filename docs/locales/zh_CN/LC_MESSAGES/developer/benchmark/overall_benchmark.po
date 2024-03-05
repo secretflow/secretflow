@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-02-21 11:52+0800\n"
+"POT-Creation-Date: 2024-02-29 11:39+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -22,8 +22,8 @@ msgid "SecretFlow Benchmark Results"
 msgstr "SecretFlow 基准测试结果"
 
 #: ../../developer/benchmark/overall_benchmark.md:3
-msgid "Latest update time:"
-msgstr "最新更新时间："
+msgid "Latest update time: 2024/02/21"
+msgstr "最新更新时间：2024/02/21"
 
 #: ../../developer/benchmark/overall_benchmark.md:5
 msgid ""
@@ -63,47 +63,21 @@ msgid "**Bandwidth**: Limited to 100 Mbps"
 msgstr "**带宽**：限制为 100 Mbps"
 
 #: ../../developer/benchmark/overall_benchmark.md:17
-msgid "**Burst Size**: 256 KB"
-msgstr "**突发大小**：256 KB"
-
-#: ../../developer/benchmark/overall_benchmark.md:18
-msgid "**Buffer Latency**: 800 ms"
-msgstr "**缓冲延迟**：800 ms"
-
-#: ../../developer/benchmark/overall_benchmark.md:19
 msgid "**Fixed Delay**: 50 ms"
 msgstr "**固定延迟**：50 ms"
 
-#: ../../developer/benchmark/overall_benchmark.md:20
-msgid "**Queue Limit**: 8000 packets"
-msgstr "**队列限制**：8000 个数据包"
-
-#: ../../developer/benchmark/overall_benchmark.md:22
-msgid "Extra Notes"
-msgstr "额外说明"
-
-#: ../../developer/benchmark/overall_benchmark.md:24
-msgid ""
-"Semi2k protocol relies on a trusted third party, it should not be "
-"considered a MPC safe 2pc protocol."
-msgstr "Semi2k 协议依赖于一个可信的第三方，不应被视为一个安全的 MPC 2pc 协议。"
-
-#: ../../developer/benchmark/overall_benchmark.md:23
+#: ../../developer/benchmark/overall_benchmark.md:19
 msgid "Basic Operation Benchmark"
 msgstr "基本操作基准测试"
 
-#: ../../developer/benchmark/overall_benchmark.md:25
-#: ../../developer/benchmark/overall_benchmark.md:35
+#: ../../developer/benchmark/overall_benchmark.md:21
+#: ../../developer/benchmark/overall_benchmark.md:31
 msgid "Each party holds 100000000 size random data"
 msgstr "每个参与方持有 100000000 大小的随机数据"
 
 #: ../../developer/benchmark/overall_benchmark.md
 msgid "Task"
 msgstr "任务"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "2 party semi2k Time (s)"
-msgstr "2 方 semi2k 时间（秒）"
 
 #: ../../developer/benchmark/overall_benchmark.md
 msgid "2 party cheetah Time (s)"
@@ -114,12 +88,12 @@ msgid "3 party aby3 Time (s)"
 msgstr "3 方 aby3 时间（秒）"
 
 #: ../../developer/benchmark/overall_benchmark.md
-msgid "element-wise addition"
-msgstr "逐元素加法"
+msgid "semi2k(TFP)  Time (s)"
+msgstr "semi2k(TFP) 时间（秒）"
 
 #: ../../developer/benchmark/overall_benchmark.md
-msgid "292.81814"
-msgstr "292.81814"
+msgid "element-wise addition"
+msgstr "逐元素加法"
 
 #: ../../developer/benchmark/overall_benchmark.md
 msgid "283.83696"
@@ -130,12 +104,12 @@ msgid "1621.0594"
 msgstr "1621.0594"
 
 #: ../../developer/benchmark/overall_benchmark.md
-msgid "element-wise multiplication"
-msgstr "逐元素乘法"
+msgid "292.81814"
+msgstr "292.81814"
 
 #: ../../developer/benchmark/overall_benchmark.md
-msgid "522.32634"
-msgstr "522.32634"
+msgid "element-wise multiplication"
+msgstr "逐元素乘法"
 
 #: ../../developer/benchmark/overall_benchmark.md
 msgid "3836.5489"
@@ -146,18 +120,26 @@ msgid "2641.75911"
 msgstr "2641.75911"
 
 #: ../../developer/benchmark/overall_benchmark.md
+msgid "522.32634"
+msgstr ""
+
+#: ../../developer/benchmark/overall_benchmark.md
 msgid "element-wise less comparison"
 msgstr "逐元素小于比较"
 
 #: ../../developer/benchmark/overall_benchmark.md
-msgid "813.28057"
-msgstr "813.28057"
+msgid "3355.8496"
+msgstr ""
 
 #: ../../developer/benchmark/overall_benchmark.md
 msgid "-"
-msgstr "-"
+msgstr ""
 
-#: ../../developer/benchmark/overall_benchmark.md:33
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "813.28057"
+msgstr ""
+
+#: ../../developer/benchmark/overall_benchmark.md:29
 msgid "United Statistiсs Operation Benchmark"
 msgstr "联合统计操作基准测试"
 
@@ -166,11 +148,15 @@ msgid "variance (reveal mean)"
 msgstr "方差（揭示均值）"
 
 #: ../../developer/benchmark/overall_benchmark.md
-msgid "3.43896"
-msgstr "3.43896"
+msgid "59.45547"
+msgstr ""
 
 #: ../../developer/benchmark/overall_benchmark.md
-msgid "59.45547"
+msgid "5.78"
+msgstr ""
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "3.43896"
 msgstr ""
 
 #: ../../developer/benchmark/overall_benchmark.md
@@ -178,11 +164,15 @@ msgid "variance (protect mean)"
 msgstr "方差（保护均值）"
 
 #: ../../developer/benchmark/overall_benchmark.md
-msgid "1607.76037"
-msgstr "1607.76037"
+msgid "OOM"
+msgstr ""
 
 #: ../../developer/benchmark/overall_benchmark.md
 msgid "4295.96"
+msgstr ""
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "1607.76037"
 msgstr ""
 
 #: ../../developer/benchmark/overall_benchmark.md
@@ -190,16 +180,26 @@ msgid "median"
 msgstr "中位数"
 
 #: ../../developer/benchmark/overall_benchmark.md
-msgid "27.40997"
-msgstr "27.40997"
-
-#: ../../developer/benchmark/overall_benchmark.md
 msgid "91.70969"
-msgstr "91.70969"
+msgstr ""
 
 #: ../../developer/benchmark/overall_benchmark.md
 msgid "1079.87955"
 msgstr ""
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "27.40997"
+msgstr ""
+
+#: ../../developer/benchmark/overall_benchmark.md:39
+msgid ""
+"Note: variance (reveal mean) allow revealing mean value when computing "
+"variance, which is practical for some applications."
+msgstr "注意：方差（揭示均值）允许在计算方差时揭示均值，这对某些应用来说是实际的。"
+
+#: ../../developer/benchmark/overall_benchmark.md:41
+msgid "Note: cheetah performance may need further optimization."
+msgstr "注意：cheetah性能可能需要进一步优化。"
 
 #: ../../developer/benchmark/overall_benchmark.md:43
 msgid "Feature Engineering Operation Benchmark"
@@ -220,20 +220,24 @@ msgid ""
 msgstr "在3方设置中，每一方持有 800000 行数据，每行含有 1000 个特征，第一方持有标签。"
 
 #: ../../developer/benchmark/overall_benchmark.md
-msgid "WOE and IV Computation"
-msgstr "WOE 和 IV 计算"
+msgid "2 party Time (s)"
+msgstr "2 方时间（秒）"
 
 #: ../../developer/benchmark/overall_benchmark.md
-msgid "449.15"
-msgstr "449.15"
+msgid "3 party Time (s)"
+msgstr "3 方时间（秒）"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "WOE and IV (OU)"
+msgstr "WOE 和 IV (OU)"
 
 #: ../../developer/benchmark/overall_benchmark.md
 msgid "434.46"
-msgstr "434.46"
+msgstr ""
 
 #: ../../developer/benchmark/overall_benchmark.md
 msgid "505.04"
-msgstr "505.04"
+msgstr ""
 
 #: ../../developer/benchmark/overall_benchmark.md:53
 msgid "Machine Learning Algorithm Benchmark"
@@ -263,32 +267,56 @@ msgid "LR Training   (with SS-SGD)"
 msgstr "LR 训练（使用 SS-SGD）"
 
 #: ../../developer/benchmark/overall_benchmark.md
-msgid "693.57"
-msgstr "693.57"
-
-#: ../../developer/benchmark/overall_benchmark.md
 msgid "1244.53"
-msgstr "1244.53"
+msgstr ""
 
 #: ../../developer/benchmark/overall_benchmark.md
 msgid "1155.78"
-msgstr "1155.78"
+msgstr ""
 
 #: ../../developer/benchmark/overall_benchmark.md
-msgid "XGB Training  (with SGB)"
-msgstr "XGB 训练（使用 SGB）"
+msgid "693.57"
+msgstr ""
 
 #: ../../developer/benchmark/overall_benchmark.md
-msgid "4175.76"
-msgstr "4175.76"
+msgid "LR Inference  (with SS-SGD)"
+msgstr "LR 推断（使用 SS-SGD）"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "300"
+msgstr ""
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "260.7"
+msgstr ""
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "261.31"
+msgstr ""
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "XGB Training  (with SGB OU)"
+msgstr "XGB 训练（使用 SGB OU）"
 
 #: ../../developer/benchmark/overall_benchmark.md
 msgid "4176.54"
-msgstr "4176.54"
+msgstr ""
 
 #: ../../developer/benchmark/overall_benchmark.md
 msgid "4568.08"
-msgstr "4568.08"
+msgstr ""
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "XGB Inference (with SGB OU)"
+msgstr "XGB 推断（使用 SGB OU）"
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "54.5"
+msgstr ""
+
+#: ../../developer/benchmark/overall_benchmark.md
+msgid "37.73"
+msgstr ""
 
 #: ../../developer/benchmark/overall_benchmark.md
 msgid "NN Training   (split learning)"
@@ -303,38 +331,6 @@ msgid "2477"
 msgstr "2477"
 
 #: ../../developer/benchmark/overall_benchmark.md
-msgid "LR Inference  (with SS-SGD)"
-msgstr "LR 推断（使用 SS-SGD）"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "261.31"
-msgstr "261.31"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "300"
-msgstr "300"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "260.7"
-msgstr "260.7"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "XGB Inference (with SGB)"
-msgstr "XGB 推断（使用 SGB）"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "56.83"
-msgstr "56.83"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "54.5"
-msgstr "54.5"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "37.73"
-msgstr "37.73"
-
-#: ../../developer/benchmark/overall_benchmark.md
 msgid "NN Inference  (split learning)"
 msgstr "神经网络推断（使用拆分学习）"
 
@@ -346,17 +342,43 @@ msgstr "5"
 msgid "3"
 msgstr "3"
 
-#~ msgid "NN Training"
-#~ msgstr "神经网络训练"
+#: ../../developer/benchmark/overall_benchmark.md:77
+msgid ""
+"Note that XGB and NN pipelines are not affected by MPC protocols because "
+"they use other privacy computation technologies."
+msgstr "请注意，XGB 和 NN 流程不受 MPC 协议影响，因为它们使用其他隐私计算技术。"
 
-#~ msgid "NN Inference"
-#~ msgstr "神经网络推断"
+#: ../../developer/benchmark/overall_benchmark.md:79
+msgid "Benchmark scripts"
+msgstr "基准测试脚本"
 
-#~ msgid "**Burst Size**: 256 KB"
-#~ msgstr "**突发大小**：256 KB"
+#: ../../developer/benchmark/overall_benchmark.md:81
+msgid "The replication process can be found in the following folders:"
+msgstr "复现过程可以在以下文件夹中找到："
 
-#~ msgid "**Buffer Latency**: 800 ms"
-#~ msgstr "**缓冲延迟**：800 ms"
+#: ../../developer/benchmark/overall_benchmark.md:83
+msgid ""
+"For basic operations and united statistics, see source code "
+"`secretflow/benchmark_examples/sf_basic_ops_test` folder for more "
+"details. For feature engineering and machine learning, see source code "
+"`secretflow/benchmark_examples/sf_component_test` folder for more "
+"details."
+msgstr ""
+"对于基本操作和统一统计，请查看源代码 `secretflow/benchmark_examples/sf_basic_ops_test` "
+"文件夹以获取更多详情。对于特征工程和机器学习，请查看源代码 "
+"`secretflow/benchmark_examples/sf_component_test` 文件夹以获取更多详情。"
 
-#~ msgid "**Queue Limit**: 8000 packets"
-#~ msgstr "**队列限制**：8000 个数据包"
+#: ../../developer/benchmark/overall_benchmark.md:86
+msgid "Extra Notes"
+msgstr "额外说明"
+
+#: ../../developer/benchmark/overall_benchmark.md:88
+msgid ""
+"Semi2k protocol relies on a trusted third party, it should not be "
+"considered a pure 2pc MPC protocol. Semi2k needs a trusted third party "
+"(TTP) or trusted first party (TFP). In general, it should not be used for"
+" pure 2 party situation in production."
+msgstr ""
+"Semi2k 协议依赖于一个可信的第三方，因此它不应该被视为纯粹的二方计算（2pc MPC）协议。Semi2k "
+"需要一个可信的第三方(TTP)或可信的第一方(TFP)。通常情况下，它不应该在生产环境中用于纯粹的两方情形。"
+

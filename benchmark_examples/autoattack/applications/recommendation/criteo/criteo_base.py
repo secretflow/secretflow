@@ -14,7 +14,7 @@
 
 from abc import ABC
 from collections import OrderedDict
-from typing import Callable, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -34,32 +34,32 @@ all_features = ['I' + str(i) for i in range(1, 14)] + [
 ]
 sparse_classes = OrderedDict(
     {
-        'C1': 971,
-        'C2': 525,
-        'C3': 151956,
-        'C4': 67777,
-        'C5': 222,
-        'C6': 14,
-        'C7': 9879,
-        'C8': 456,
+        'C1': 1261,
+        'C2': 531,
+        'C3': 321439,
+        'C4': 120965,
+        'C5': 267,
+        'C6': 16,
+        'C7': 10863,
+        'C8': 563,
         'C9': 3,
-        'C10': 21399,
-        'C11': 4418,
-        'C12': 132753,
-        'C13': 3015,
+        'C10': 30792,
+        'C11': 4731,
+        'C12': 268488,
+        'C13': 3068,
         'C14': 26,
-        'C15': 7569,
-        'C16': 105768,
+        'C15': 8934,
+        'C16': 205924,
         'C17': 10,
-        'C18': 3412,
-        'C19': 1680,
+        'C18': 3881,
+        'C19': 1855,
         'C20': 4,
-        'C21': 121067,
-        'C22': 14,
+        'C21': 240748,
+        'C22': 16,
         'C23': 15,
-        'C24': 26889,
-        'C25': 60,
-        'C26': 20490,
+        'C24': 41283,
+        'C25': 70,
+        'C26': 30956,
     }
 )
 
@@ -139,7 +139,7 @@ class CriteoBase(ApplicationBase, ABC):
         config,
         alice,
         bob,
-        epoch=2,
+        epoch=1,
         train_batch_size=64,
         hidden_size=64,
         alice_fea_nums=13,
@@ -201,7 +201,7 @@ class CriteoBase(ApplicationBase, ABC):
 
     def prepare_data(self):
         random_state = 1234
-        num_samples = 1000 if is_simple_test() else 410000
+        num_samples = 1000 if is_simple_test() else 1000000
         # need to read label, so + 1
         data = datasets.load_criteo(
             {
@@ -211,6 +211,7 @@ class CriteoBase(ApplicationBase, ABC):
             num_samples=num_samples,
         )
         label = datasets.load_criteo({self.bob: (0, 1)}, num_samples=num_samples)
+
         self.train_data, self.test_data = train_test_split(
             data, train_size=0.8, random_state=random_state
         )
@@ -220,9 +221,9 @@ class CriteoBase(ApplicationBase, ABC):
         self.plain_alice_train_data = reveal(
             self.train_data.partitions[self.alice].data
         )
-        self.plain_bob_train_data = reveal(self.train_data.partitions[self.bob].data)
         self.plain_train_label = reveal(self.train_label.partitions[self.bob].data)
         self.plain_test_label = reveal(self.test_label.partitions[self.bob].data)
+        self.plain_bob_train_data = reveal(self.train_data.partitions[self.bob].data)
 
     def create_dataset_builder_alice(self):
         train_batch_size = self.train_batch_size
@@ -263,6 +264,9 @@ class CriteoBase(ApplicationBase, ABC):
     def alice_feature_nums_range(self) -> list:
         # support range 1 - 37
         return [2, 5, 13, 18, 37]
+
+    def hidden_size_range(self) -> Optional[list]:
+        return [32, 64]
 
     def fia_auxiliary_data_builder(self):
         alice_train = self.plain_alice_train_data.sample(frac=0.4, random_state=42)
@@ -347,3 +351,9 @@ class CriteoBase(ApplicationBase, ABC):
     def exploit_label_counts(self) -> Tuple[int, int]:
         neg, pos = np.bincount(self.plain_train_label['Label'])
         return neg, pos
+
+    def resources_consumes(self) -> List[Dict]:
+        return [
+            {'alice': 0.5, 'CPU': 0.5, 'GPU': 0.001, 'gpu_mem': 4 * 1024 * 1024 * 1024},
+            {'bob': 0.5, 'CPU': 0.5, 'GPU': 0.001, 'gpu_mem': 4 * 1024 * 1024 * 1024},
+        ]

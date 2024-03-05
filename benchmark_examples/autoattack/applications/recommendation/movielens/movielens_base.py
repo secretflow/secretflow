@@ -14,7 +14,7 @@
 
 from abc import ABC
 from collections import OrderedDict
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -163,7 +163,7 @@ class MovielensBase(ApplicationBase, ABC):
         config,
         alice,
         bob,
-        epoch=5,
+        epoch=4,
         train_batch_size=128,
         hidden_size=64,
         alice_fea_nums=4,
@@ -286,9 +286,6 @@ class MovielensBase(ApplicationBase, ABC):
     def support_attacks(self) -> list:
         return ['replay', 'replace']
 
-    def embedding_dim_range(self) -> Optional[List[int]]:
-        return []
-
     def replay_auxiliary_attack_configs(
         self, target_nums: int = 15
     ) -> Tuple[int, np.ndarray, np.ndarray]:
@@ -333,3 +330,10 @@ class MovielensBase(ApplicationBase, ABC):
             train_poison_np,
             eval_poison_set,
         )
+
+    def resources_consumes(self) -> List[Dict]:
+        # 500MB
+        return [
+            {'alice': 0.5, 'CPU': 0.5, 'GPU': 0.001, 'gpu_mem': 4 * 1024 * 1024 * 1024},
+            {'bob': 0.5, 'CPU': 0.5, 'GPU': 0.001, 'gpu_mem': 4 * 1024 * 1024 * 1024},
+        ]
