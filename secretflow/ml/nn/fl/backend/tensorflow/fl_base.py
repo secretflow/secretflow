@@ -42,7 +42,7 @@ class BaseTFModel:
         self,
         builder_base: Callable[[], tf.keras.Model],
         random_seed: int = None,
-        skip_bn: bool = True,
+        skip_bn: bool = False,
         **kwargs,
     ):
         self.train_set = None
