@@ -32,20 +32,25 @@ class BaseModule(ABC, nn.Module):
         pass
 
     def get_weights_not_bn(self, return_numpy=False):
+        clean_state_dict = {}
+        for k, v in self.state_dict().items():
+            layername = k.split('.')[0]
+            if getattr(self, layername).__class__.__name__ != 'BatchNorm2d':
+                clean_state_dict[k] = torch.Tensor(v)
         if not return_numpy:
-            return {k: v.cpu() for k, v in self.state_dict().items() if 'bn' not in k}
+            return {k: v.cpu() for k, v in clean_state_dict.items()}
         else:
             weights_list = []
-            for k, v in self.state_dict().items():
-                if 'bn' not in k:
-                    weights_list.append(v.cpu().numpy())
+            for k, v in clean_state_dict.items():
+                weights_list.append(v.cpu().numpy())
             return [e.copy() for e in weights_list]
 
     def update_weights_not_bn(self, weights):
         keys = self.state_dict().keys()
         weights_dict = {}
         for k, v in zip(keys, weights):
-            if 'bn' not in k:
+            layername = k.split('.')[0]
+            if getattr(self, layername).__class__.__name__ != 'BatchNorm2d':
                 weights_dict[k] = torch.Tensor(np.copy(v))
 
         self.load_state_dict(weights_dict, strict=False)
