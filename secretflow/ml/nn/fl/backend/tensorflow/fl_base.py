@@ -230,11 +230,7 @@ class BaseTFModel:
         return params
 
     def set_weights_not_bn(self, weights):
-        updated_weights = []
-
-        # An index to keep track of which weight to use next from the provided list.
         index = 0
-
         # Iterate through all layers of the model
         for layer in self.model.layers:
             if not isinstance(layer, tf.keras.layers.BatchNormalization):
@@ -243,9 +239,6 @@ class BaseTFModel:
                 new_weights = weights[index : index + num_params]
                 layer.set_weights(new_weights)
                 index += num_params  # Increment the index by the number of parameters in the current layer.
-            else:
-                # For BN layers, retain the current weights
-                updated_weights.extend(layer.get_weights())
 
         if index != len(weights):
             raise ValueError(
