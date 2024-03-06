@@ -87,6 +87,35 @@ def create_conv_model(input_shape, num_classes, name='model'):
     return create_model
 
 
+def create_conv_model_with_bn(input_shape, num_classes, name='model'):
+    def create_model():
+        from tensorflow import keras
+        from tensorflow.keras import layers
+
+        # Create model
+        model = keras.Sequential(
+            [
+                keras.Input(shape=input_shape),
+                layers.Conv2D(32, kernel_size=(3, 3), activation="relu"),
+                tf.keras.layers.BatchNormalization(),
+                layers.MaxPooling2D(pool_size=(2, 2)),
+                layers.Conv2D(64, kernel_size=(3, 3), activation="relu"),
+                tf.keras.layers.BatchNormalization(),
+                layers.MaxPooling2D(pool_size=(2, 2)),
+                layers.Flatten(),
+                layers.Dropout(0.5),
+                layers.Dense(num_classes, activation="softmax"),
+            ]
+        )
+        # Compile model
+        model.compile(
+            loss='categorical_crossentropy', optimizer='adam', metrics=["accuracy"]
+        )
+        return model
+
+    return create_model
+
+
 # model define for flower recognaiton
 def create_conv_flower_model(input_shape, num_classes, name='model'):
     def create_model():
@@ -252,7 +281,7 @@ class TestFedModelTensorflow:
         device_list = [devices.alice, devices.bob]
         num_gpus = kwargs.get("num_gpus", 0)
         dp_strategy = kwargs.get("dp_strategy", None)
-
+        skip_bn = kwargs.get("skip_bn", False)
         fed_model = FLModel(
             server=devices.carol,
             device_list=device_list,
@@ -264,6 +293,7 @@ class TestFedModelTensorflow:
             server_agg_method=server_agg_method,
             num_gpus=num_gpus,
             dp_strategy=dp_strategy,
+            skip_bn=skip_bn,
         )
         random_seed = 1524
         history = fed_model.fit(
@@ -430,6 +460,20 @@ class TestFedModelTensorflow:
             backend="tensorflow",
             aggregator=None,
             server_agg_method=server_agg_method,
+        )
+
+        # test FedBN
+        model_bn = create_conv_model_with_bn(input_shape, num_classes)
+
+        self.keras_model_with_mnist(
+            devices=sf_simulation_setup_devices,
+            data=mnist_data,
+            label=mnist_label,
+            model=model_bn,
+            strategy="fed_avg_g",
+            backend="tensorflow",
+            aggregator=None,
+            skip_bn=True,
         )
 
 

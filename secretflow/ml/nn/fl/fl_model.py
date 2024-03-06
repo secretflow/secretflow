@@ -49,6 +49,7 @@ class FLModel:
         consensus_num=1,
         backend="tensorflow",
         random_seed=None,
+        skip_bn=False,
         **kwargs,  # other parameters specific to strategies
     ):
         """Interface for horizontal federated learning
@@ -63,6 +64,7 @@ class FLModel:
             random_seed: If specified, the initial value of the model will remain the same, which ensures reproducible
             server_agg_method: If aggregator is none, server will use server_agg_method to aggregate params, The server_agg_method should be a function
                 that takes in a list of parameter values from different parties and returns the aggregated parameter value list
+            skip_bn: Whether to skip batch normalization layers when aggregate models
         """
         if backend == "tensorflow":
             import secretflow.ml.nn.fl.backend.tensorflow.strategy  # noqa
@@ -78,6 +80,7 @@ class FLModel:
             backend=backend,
             random_seed=random_seed,
             num_gpus=self.num_gpus,
+            skip_bn=skip_bn,
         )
         self.server = server
         self.device_list = device_list
@@ -99,6 +102,7 @@ class FLModel:
         backend,
         random_seed,
         num_gpus,
+        skip_bn,
     ):
         self._workers = {
             device: dispatch_strategy(
@@ -108,6 +112,7 @@ class FLModel:
                 device=device,
                 random_seed=random_seed,
                 num_gpus=num_gpus,
+                skip_bn=skip_bn,
             )
             for device in device_list
         }
