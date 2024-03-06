@@ -42,6 +42,7 @@ class BaseTFModel:
         self,
         builder_base: Callable[[], tf.keras.Model],
         random_seed: int = None,
+        skip_bn: bool = True,
         **kwargs,
     ):
         self.train_set = None
@@ -55,6 +56,7 @@ class BaseTFModel:
             tf.keras.utils.set_random_seed(random_seed)
         self.model = builder_base() if builder_base else None
         self.use_gpu = self.use_gpu = kwargs.get("use_gpu", False)
+        self.skip_bn = skip_bn
 
     def build_dataset_from_csv(
         self,
@@ -217,12 +219,51 @@ class BaseTFModel:
     def get_rows_count(self, filename):
         return int(rows_count(filename=filename)) - 1  # except header line
 
+    def get_weights_not_bn(self):
+        params = []
+        for layer in self.model.layers:
+            # Check if the layer is not a BatchNormalization layer
+            if not isinstance(layer, tf.keras.layers.BatchNormalization):
+                # Get the weights (numpy arrays) of the layer
+                weights = layer.get_weights()
+                params.extend(weights)
+        return params
+
+    def set_weights_not_bn(self, weights):
+        updated_weights = []
+
+        # An index to keep track of which weight to use next from the provided list.
+        index = 0
+
+        # Iterate through all layers of the model
+        for layer in self.model.layers:
+            if not isinstance(layer, tf.keras.layers.BatchNormalization):
+                # This layer is not a BN layer, so update its weights from the provided list.
+                num_params = len(layer.trainable_weights)
+                new_weights = weights[index : index + num_params]
+                layer.set_weights(new_weights)
+                index += num_params  # Increment the index by the number of parameters in the current layer.
+            else:
+                # For BN layers, retain the current weights
+                updated_weights.extend(layer.get_weights())
+
+        if index != len(weights):
+            raise ValueError(
+                "Provided weights list does not match the model's non-BN layers."
+            )
+
     def get_weights(self):
-        return self.model.get_weights()
+        if self.skip_bn:
+            return self.get_weights_not_bn()
+        else:
+            return self.model.get_weights()
 
     def set_weights(self, weights):
         """set weights of client model"""
-        self.model.set_weights(weights)
+        if self.skip_bn:
+            self.set_weights_not_bn(weights)
+        else:
+            self.model.set_weights(weights)
 
     def set_validation_metrics(self, global_metrics):
         self.epoch_logs.update(global_metrics)

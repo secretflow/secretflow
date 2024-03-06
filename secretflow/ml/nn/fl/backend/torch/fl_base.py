@@ -34,6 +34,7 @@ class BaseTorchModel(ABC):
         self,
         builder_base: Callable[[], TorchModel],
         random_seed: int = None,
+        skip_bn: bool = False,
         **kwargs,
     ):
         self.train_data_loader = None
@@ -47,6 +48,7 @@ class BaseTorchModel(ABC):
         self.history = {}
         self.train_set = None
         self.eval_set = None
+        self.skip_bn = skip_bn
         if random_seed is not None:
             torch.manual_seed(random_seed)
         assert builder_base is not None, "Builder_base cannot be none"
@@ -228,11 +230,17 @@ class BaseTorchModel(ABC):
         return int(rows_count(filename=filename)) - 1  # except header line
 
     def get_weights(self):
-        return self.model.get_weights(return_numpy=True)
+        if self.skip_bn:
+            return self.model.get_weights_not_bn(return_numpy=True)
+        else:
+            return self.model.get_weights(return_numpy=True)
 
     def set_weights(self, weights):
         """set weights of client model"""
-        self.model.update_weights(weights)
+        if self.skip_bn:
+            self.model.update_weights_not_bn(weights)
+        else:
+            self.model.update_weights(weights)
 
     def set_validation_metrics(self, global_metrics):
         self.epoch_logs.update(global_metrics)

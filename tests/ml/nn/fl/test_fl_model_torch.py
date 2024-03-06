@@ -25,7 +25,7 @@ from secretflow.preprocessing.encoder import OneHotEncoder
 from secretflow.security.aggregation import PlainAggregator, SparsePlainAggregator
 from secretflow.security.privacy import DPStrategyFL, GaussianModelDP
 from secretflow.utils.simulation.datasets import load_iris, load_mnist
-from tests.ml.nn.fl.model_def import ConvNet, ConvRGBNet, MlpNet
+from tests.ml.nn.fl.model_def import ConvNet, ConvRGBNet, MlpNet, ConvNetBN
 
 _temp_dir = tempfile.mkdtemp()
 
@@ -54,6 +54,7 @@ def _torch_model_with_mnist(
     # spcify params
     dp_spent_step_freq = kwargs.get('dp_spent_step_freq', None)
     num_gpus = kwargs.get("num_gpus", 0)
+    skip_bn = kwargs.get("skip_bn", False)
     fl_model = FLModel(
         server=server,
         device_list=device_list,
@@ -63,6 +64,7 @@ def _torch_model_with_mnist(
         backend=backend,
         random_seed=1234,
         num_gpus=num_gpus,
+        skip_bn=skip_bn,
     )
     history = fl_model.fit(
         data,
@@ -226,6 +228,33 @@ class TestFLModelTorchMnist:
             threshold=0.9,
             dp_strategy=dp_strategy_fl,
             dp_spent_step_freq=dp_spent_step_freq,
+        )
+
+        # Test FedBN
+        model_def_bn = TorchModel(
+            model_fn=ConvNetBN,
+            loss_fn=loss_fn,
+            optim_fn=optim_fn,
+            metrics=[
+                metric_wrapper(
+                    Accuracy, task="multiclass", num_classes=10, average='micro'
+                ),
+                metric_wrapper(
+                    Precision, task="multiclass", num_classes=10, average='micro'
+                ),
+            ],
+        )
+        _torch_model_with_mnist(
+            devices=sf_simulation_setup_devices,
+            model_def=model_def_bn,
+            data=mnist_data,
+            label=mnist_label,
+            strategy='fed_stc',
+            backend="torch",
+            threshold=0.9,
+            dp_strategy=dp_strategy_fl,
+            dp_spent_step_freq=dp_spent_step_freq,
+            skip_bn=True,
         )
 
 

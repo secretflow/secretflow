@@ -31,6 +31,25 @@ class BaseModule(ABC, nn.Module):
     def forward(self, x):
         pass
 
+    def get_weights_not_bn(self, return_numpy=False):
+        if not return_numpy:
+            return {k: v.cpu() for k, v in self.state_dict().items() if 'bn' not in k}
+        else:
+            weights_list = []
+            for k, v in self.state_dict().items():
+                if 'bn' not in k:
+                    weights_list.append(v.cpu().numpy())
+            return [e.copy() for e in weights_list]
+
+    def update_weights_not_bn(self, weights):
+        keys = self.state_dict().keys()
+        weights_dict = {}
+        for k, v in zip(keys, weights):
+            if 'bn' not in k:
+                weights_dict[k] = torch.Tensor(np.copy(v))
+
+        self.load_state_dict(weights_dict, strict=False)
+
     def get_weights(self, return_numpy=False):
         if not return_numpy:
             return {k: v.cpu() for k, v in self.state_dict().items()}
@@ -39,9 +58,6 @@ class BaseModule(ABC, nn.Module):
             for v in self.state_dict().values():
                 weights_list.append(v.cpu().numpy())
             return [e.copy() for e in weights_list]
-
-    def set_weights(self, weights):
-        self.load_state_dict(weights)
 
     def update_weights(self, weights):
         keys = self.state_dict().keys()
