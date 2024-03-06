@@ -24,6 +24,7 @@ import torch
 from torch import nn, optim
 from torch.nn.modules.loss import _Loss as BaseTorchLoss
 from torchmetrics import Metric
+from torch.nn.modules.batchnorm import _BatchNorm
 
 
 class BaseModule(ABC, nn.Module):
@@ -35,7 +36,7 @@ class BaseModule(ABC, nn.Module):
         clean_state_dict = {}
         for k, v in self.state_dict().items():
             layername = k.split('.')[0]
-            if getattr(self, layername).__class__.__name__ != 'BatchNorm2d':
+            if not isinstance(getattr(self, layername), _BatchNorm):
                 clean_state_dict[k] = torch.Tensor(v)
         if not return_numpy:
             return {k: v.cpu() for k, v in clean_state_dict.items()}
@@ -50,7 +51,7 @@ class BaseModule(ABC, nn.Module):
         weights_dict = {}
         for k, v in zip(keys, weights):
             layername = k.split('.')[0]
-            if getattr(self, layername).__class__.__name__ != 'BatchNorm2d':
+            if not isinstance(getattr(self, layername), _BatchNorm):
                 weights_dict[k] = torch.Tensor(np.copy(v))
 
         self.load_state_dict(weights_dict, strict=False)
