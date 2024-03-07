@@ -58,8 +58,10 @@ workflows:
             secretflow/maths/*            sf_maths       true
             secretflow/security/*         sf_security    true
             secretflow/ml/boost/*         sf_ml_boost    true
+            secretflow/ml/linear/*        sf_ml_linear   true
             secretflow/utils/*            sf_utils       true
-            tests/ml/boost/*              test_boost     true
+            tests/ml/boost/*              test_ml_boost  true
+            tests/ml/linear/*             test_ml_linear true
   publish-workflow:
     when:
       equal: ["publish_pypi", << pipeline.parameters.GHA_Meta >>]
