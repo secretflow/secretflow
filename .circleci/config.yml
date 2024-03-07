@@ -58,12 +58,11 @@ workflows:
             secretflow/security/*         infra              true
             secretflow/utils/*            infra              true
             secretflow/maths/*            sf_maths           true
-            secretflow/ml/boost/*         sf_ml_boost        true
-            secretflow/ml/linear/*        sf_ml_linear       true
+            secretflow/ml/*               sf_ml              true
             secretflow/preprocessing/*    sf_preprocessing   true
             secretflow/stats/*            sf_stats           true
-            tests/ml/boost/*              test_ml_boost      true
-            tests/ml/linear/*             test_ml_linear     true
+            secretflow/component/*        sf_component       true
+            tests/ml/*                    test_ml            true
             tests/preprocessing/*         test_preprocessing true
             tests/stats/*                 test_stats         true
             tests/data/*                  test_infra         true
@@ -71,6 +70,8 @@ workflows:
             tests/security/*              test_infra         true
             tests/utils/*                 test_infra         true
             tests/kuscia/*                test_infra         true
+            tests/component/*             test_component     true
+            
   publish-workflow:
     when:
       equal: ["publish_pypi", << pipeline.parameters.GHA_Meta >>]

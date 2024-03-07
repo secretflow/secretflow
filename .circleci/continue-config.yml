@@ -11,10 +11,7 @@ parameters:
   sf_maths:
     type: boolean
     default: false
-  sf_ml_boost:
-    type: boolean
-    default: false
-  sf_ml_linear:
+  sf_ml:
     type: boolean
     default: false
   sf_preprocessing:
@@ -26,10 +23,10 @@ parameters:
   sf_utils:
     type: boolean
     default: false
-  test_ml_boost:
+  sf_component:
     type: boolean
     default: false
-  test_ml_linear:
+  test_ml:
     type: boolean
     default: false
   test_preprocessing:
@@ -41,6 +38,10 @@ parameters:
   test_infra:
     type: boolean
     default: false
+  test_component:
+    type: boolean
+    default: false
+
 
 jobs:
   linux_build:
@@ -57,6 +58,9 @@ jobs:
           condition:
               << pipeline.parameters.base >>
           steps:
+            - restore_cache:
+                name: restore pip cache
+                key: &pip-cache pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
             - run:
                 name: "build shared library"
                 command: |
@@ -69,10 +73,13 @@ jobs:
                   sed -i "s/tensorflow==/tensorflow-cpu==/g" requirements.txt
                   pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
             - persist_to_workspace:
-                root: /root
+                root: /root/project/
                 paths: 
-                  - project/artifacts
-                  - miniconda3/lib/python3.10/site-packages
+                  - artifacts
+            - save_cache:
+                key: *pip-cache
+                paths:
+                  - /root/miniconda3/lib/python3.10/site-packages
   macos_build:
     macos:
       xcode: 15.1
@@ -111,7 +118,7 @@ jobs:
             - persist_to_workspace:
                 root: $HOME/miniconda/lib/python3.10/
                 paths: site-packages
-  linux_ml_boost_test:
+  linux_ml_test:
     docker:
       - image: secretflow/ubuntu-base-ci:latest
     parameters:
@@ -127,15 +134,18 @@ jobs:
                 - << pipeline.parameters.base >>
                 - << pipeline.parameters.infra >>
                 - << pipeline.parameters.sf_maths >>
-                - << pipeline.parameters.sf_ml_boost >>
+                - << pipeline.parameters.sf_ml >>
                 - << pipeline.parameters.sf_utils >>
-                - << pipeline.parameters.test_ml_boost >>
+                - << pipeline.parameters.test_ml >>
           steps:
             - restore_cache:
                 name: Restore pytest testmondata
-                key: testmondata-ml_boost_{{ arch }}-{{ .Branch }}-
+                key: testmondata-ml_{{ arch }}-{{ .Branch }}-
+            - restore_cache:
+                name: restore pip cache
+                key: pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
             - attach_workspace:
-                at: /root
+                at: /root/project/
             - run:
                 name: "Run tests"
                 command: |
@@ -144,50 +154,9 @@ jobs:
                   cp artifacts/_lib_$arch.so  secretflow/security/privacy/
                   mv secretflow/security/privacy/_lib_$arch.so secretflow/security/privacy/_lib.so
                   pip install -r dev-requirements.txt
-                  pytest --testmon --env prod  -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  tests/ml/boost/
+                  pytest --testmon --env prod  -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  --ignore=tests/ml/nn/ tests/ml/
             - save_cache:
-                key: testmondata-ml_boost_{{ arch }}-{{ .Branch }}-{{ .Revision }}
-                paths:
-                  - .testmondata
-                when: always
-            - store_test_results:
-                path: ./results.xml
-  linux_ml_linear_test:
-    docker:
-      - image: secretflow/ubuntu-base-ci:latest
-    parameters:
-      resource_class:
-        type: string
-    resource_class: << parameters.resource_class >>
-    shell: /bin/bash --login -eo pipefail
-    steps:
-      - checkout
-      - when:
-          condition:
-            or:
-                - << pipeline.parameters.base >>
-                - << pipeline.parameters.infra >>
-                - << pipeline.parameters.sf_maths >>
-                - << pipeline.parameters.sf_ml_linear >>
-                - << pipeline.parameters.sf_utils >>
-                - << pipeline.parameters.test_ml_linear >>
-          steps:
-            - restore_cache:
-                name: Restore pytest testmondata
-                key: testmondata-ml_linear_{{ arch }}-{{ .Branch }}-
-            - attach_workspace:
-                at: /root
-            - run:
-                name: "Run tests"
-                command: |
-                  conda init
-                  arch=$(uname -i)
-                  cp artifacts/_lib_$arch.so  secretflow/security/privacy/
-                  mv secretflow/security/privacy/_lib_$arch.so secretflow/security/privacy/_lib.so
-                  pip install -r dev-requirements.txt
-                  pytest --testmon --env prod  -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  tests/ml/linear/
-            - save_cache:
-                key: testmondata-ml_linear_{{ arch }}-{{ .Branch }}-{{ .Revision }}
+                key: testmondata-ml_{{ arch }}-{{ .Branch }}-{{ .Revision }}
                 paths:
                   - .testmondata
                 when: always
@@ -216,8 +185,11 @@ jobs:
             - restore_cache:
                 name: Restore pytest testmondata
                 key: testmondata-preprocessing_{{ arch }}-{{ .Branch }}-
+            - restore_cache:
+                name: restore pip cache
+                key: pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
             - attach_workspace:
-                at: /root
+                at: /root/project/
             - run:
                 name: "Run tests"
                 command: |
@@ -257,8 +229,11 @@ jobs:
             - restore_cache:
                 name: Restore pytest testmondata
                 key: testmondata-stats_{{ arch }}-{{ .Branch }}-
+            - restore_cache:
+                name: restore pip cache
+                key: pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
             - attach_workspace:
-                at: /root
+                at: /root/project/
             - run:
                 name: "Run tests"
                 command: |
@@ -295,8 +270,11 @@ jobs:
             - restore_cache:
                 name: Restore pytest testmondata
                 key: testmondata-infra_{{ arch }}-{{ .Branch }}-
+            - restore_cache:
+                name: restore pip cache
+                key: pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
             - attach_workspace:
-                at: /root
+                at: /root/project/
             - run:
                 name: "Run tests"
                 command: |
@@ -313,6 +291,93 @@ jobs:
                 when: always
             - store_test_results:
                 path: ./results.xml
+  linux_component_test:
+    docker:
+      - image: secretflow/ubuntu-base-ci:latest
+    parameters:
+      resource_class:
+        type: string
+    resource_class: << parameters.resource_class >>
+    shell: /bin/bash --login -eo pipefail
+    steps:
+      - checkout
+      - when:
+          condition:
+            or:
+                - << pipeline.parameters.base >>
+                - << pipeline.parameters.sf_ml >>
+                - << pipeline.parameters.sf_stats >>
+                - << pipeline.parameters.sf_preprocessing >>
+                - << pipeline.parameters.test_component >>
+          steps:
+            - restore_cache:
+                name: Restore pytest testmondata
+                key: testmondata-component_{{ arch }}-{{ .Branch }}-
+            - restore_cache:
+                name: restore pip cache
+                key: pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
+            - attach_workspace:
+                at: /root/project/
+            - run:
+                name: "Run tests"
+                command: |
+                  conda init
+                  arch=$(uname -i)
+                  cp artifacts/_lib_$arch.so  secretflow/security/privacy/
+                  mv secretflow/security/privacy/_lib_$arch.so secretflow/security/privacy/_lib.so
+                  pip install -r dev-requirements.txt
+                  pytest --testmon --env prod  -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  tests/component/
+            - save_cache:
+                key: testmondata-component_{{ arch }}-{{ .Branch }}-{{ .Revision }}
+                paths:
+                  - .testmondata
+                when: always
+            - store_test_results:
+                path: ./results.xml
+  linux_ml_sim_test:
+    docker:
+      - image: secretflow/ubuntu-base-ci:latest
+    parameters:
+      resource_class:
+        type: string
+    resource_class: << parameters.resource_class >>
+    shell: /bin/bash --login -eo pipefail
+    steps:
+      - checkout
+      - when:
+          condition:
+            or:
+                - << pipeline.parameters.base >>
+                - << pipeline.parameters.infra >>
+                - << pipeline.parameters.sf_maths >>
+                - << pipeline.parameters.sf_ml >>
+                - << pipeline.parameters.sf_utils >>
+                - << pipeline.parameters.test_ml >>
+          steps:
+            - restore_cache:
+                name: Restore pytest testmondata
+                key: testmondata-ml_sim_{{ arch }}-{{ .Branch }}-
+            - restore_cache:
+                name: restore pip cache
+                key: pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
+            - attach_workspace:
+                at: /root/project/
+            - run:
+                name: "Run tests"
+                command: |
+                  conda init
+                  arch=$(uname -i)
+                  cp artifacts/_lib_$arch.so  secretflow/security/privacy/
+                  mv secretflow/security/privacy/_lib_$arch.so secretflow/security/privacy/_lib.so
+                  pip install -r dev-requirements.txt
+                  pytest --testmon --env sim -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml tests/ml/
+            - save_cache:
+                key: testmondata-ml_sim_{{ arch }}-{{ .Branch }}-{{ .Revision }}
+                paths:
+                  - .testmondata
+                when: always
+            - store_test_results:
+                path: ./results.xml
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
@@ -323,13 +388,13 @@ workflows:
             parameters:
               resource_class: ["2xlarge"]
       # - macos_build
-      - linux_ml_boost_test:
+      - linux_ml_test:
           matrix:
             parameters:
               resource_class: ["2xlarge+"]
           requires:
             - linux_build
-      - linux_ml_linear_test:
+      - linux_ml_sim_test:
           matrix:
             parameters:
               resource_class: ["2xlarge+"]
@@ -348,6 +413,12 @@ workflows:
           requires:
             - linux_build
       - linux_infra_test:
+          matrix:
+            parameters:
+              resource_class: ["2xlarge+"]
+          requires:
+            - linux_build
+      - linux_component_test:
           matrix:
             parameters:
               resource_class: ["2xlarge+"]
