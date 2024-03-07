@@ -26,6 +26,9 @@ parameters:
   sf_component:
     type: boolean
     default: false
+  sf_any:
+    type: boolean
+    default: false
   test_ml:
     type: boolean
     default: false
@@ -39,6 +42,9 @@ parameters:
     type: boolean
     default: false
   test_component:
+    type: boolean
+    default: false
+  test_any:
     type: boolean
     default: false
 
@@ -62,14 +68,19 @@ jobs:
                 name: restore pip cache
                 key: &pip-cache pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
             - run:
-                name: "build shared library"
+                name: build shared library
                 command: |
-                  pwd
                   conda init
                   arch=$(uname -i)
                   mkdir -p artifacts
                   bazel build //secretflow_lib/binding/... -c opt
                   mv bazel-bin/secretflow_lib/binding/_lib.so artifacts/_lib_$arch.so
+            - run:
+                name: Install python deps
+                command: |
+                  conda init
+                  arch=$(uname -i)
+                  mkdir -p artifacts
                   sed -i "s/tensorflow==/tensorflow-cpu==/g" requirements.txt
                   pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
             - persist_to_workspace:
@@ -378,6 +389,48 @@ jobs:
                 when: always
             - store_test_results:
                 path: ./results.xml
+  linux_other_sim_test:
+    docker:
+      - image: secretflow/ubuntu-base-ci:latest
+    parameters:
+      resource_class:
+        type: string
+    resource_class: << parameters.resource_class >>
+    shell: /bin/bash --login -eo pipefail
+    steps:
+      - checkout
+      - when:
+          condition:
+            or:
+                - << pipeline.parameters.base >>
+                - << pipeline.parameters.sf_any >>
+                - << pipeline.parameters.test_any >>
+          steps:
+            - restore_cache:
+                name: Restore pytest testmondata
+                key: testmondata-other_sim_{{ arch }}-{{ .Branch }}-
+            - restore_cache:
+                name: restore pip cache
+                key: pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
+            - attach_workspace:
+                at: /root/project/
+            - run:
+                name: "Run tests"
+                command: |
+                  conda init
+                  arch=$(uname -i)
+                  cp artifacts/_lib_$arch.so  secretflow/security/privacy/
+                  mv secretflow/security/privacy/_lib_$arch.so secretflow/security/privacy/_lib.so
+                  pip install -r dev-requirements.txt
+                  pytest --testmon --env sim -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml --ignore=tests/ml/ tests/
+            - save_cache:
+                key: testmondata-other_sim_{{ arch }}-{{ .Branch }}-{{ .Revision }}
+                paths:
+                  - .testmondata
+                when: always
+            - store_test_results:
+                path: ./results.xml
+
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
@@ -424,5 +477,9 @@ workflows:
               resource_class: ["2xlarge+"]
           requires:
             - linux_build
-          
-
+      - linux_other_sim_test:
+          matrix:
+            parameters:
+              resource_class: ["2xlarge+"]
+          requires:
+            - linux_build
