@@ -64,8 +64,8 @@ jobs:
                 root: .
                 paths: artifacts
             - persist_to_workspace:
-                root: /root/miniconda3/lib/python3.10/
-                path: site-packages
+                root: ~
+                path: miniconda3/lib/python3.10/site-packages
   macos_build:
     macos:
       xcode: 15.1
