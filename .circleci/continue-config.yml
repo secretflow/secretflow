@@ -82,12 +82,15 @@ commands:
             arch=$(uname -i)
             cp artifacts/_lib_$arch.so  secretflow/security/privacy/
             mv secretflow/security/privacy/_lib_$arch.so secretflow/security/privacy/_lib.so
-  run_py_test:
+  pytest_wrapper:
     parameters:
-      py_test_folders:
+      target_folder:
         type: string
       testmon_prefix:
         type: string
+      mode:
+        type: string
+        default: "sim"
     steps:
       - restore_cache:
           name: Restore pytest testmondata
@@ -104,7 +107,7 @@ commands:
           name: "Run tests"
           command: |
             conda init
-            pytest --testmon --env prod  -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  << parameters.py_test_folders >>
+            pytest --testmon --env <<parameters.mode>>  -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  << parameters.target_folder >>
       - store_test_results:
           path: ./results.xml
       - save_cache:
@@ -118,15 +121,15 @@ commands:
       - when:
           condition:
             or:
-                - << pipeline.parameters.base >>
-                - << pipeline.parameters.infra >>
-                - << pipeline.parameters.sf_maths >>
-                - << pipeline.parameters.sf_ml >>
-                - << pipeline.parameters.sf_utils >>
-                - << pipeline.parameters.test_ml >>
+              - << pipeline.parameters.base >>
+              - << pipeline.parameters.infra >>
+              - << pipeline.parameters.sf_maths >>
+              - << pipeline.parameters.sf_ml >>
+              - << pipeline.parameters.sf_utils >>
+              - << pipeline.parameters.test_ml >>
           steps:
-            - run_py_test:
-                py_test_folders: --ignore=tests/ml/nn/ tests/ml/
+            - pytest_wrapper:
+                target_folder: --ignore=tests/ml/nn/ tests/ml/
                 testmon_prefix: ml
   run_preprocessing_test:
     steps:
@@ -134,16 +137,76 @@ commands:
       - when:
           condition:
             or:
-                - << pipeline.parameters.base >>
-                - << pipeline.parameters.infra >>
-                - << pipeline.parameters.sf_maths >>
-                - << pipeline.parameters.sf_preprocessing >>
-                - << pipeline.parameters.sf_utils >>
-                - << pipeline.parameters.test_preprocessing >>
+              - << pipeline.parameters.base >>
+              - << pipeline.parameters.infra >>
+              - << pipeline.parameters.sf_maths >>
+              - << pipeline.parameters.sf_preprocessing >>
+              - << pipeline.parameters.sf_utils >>
+              - << pipeline.parameters.test_preprocessing >>
           steps:
-            - run_py_test:
-                py_test_folders: tests/preprocessing/ 
+            - pytest_wrapper:
+                target_folder: tests/preprocessing/ 
                 testmon_prefix: preprocessing
+  run_stats_test:
+    steps:
+      - kill_countdown
+      - when:
+          condition:
+            or:
+              - << pipeline.parameters.base >>
+              - << pipeline.parameters.infra >>
+              - << pipeline.parameters.sf_maths >>
+              - << pipeline.parameters.sf_stats >>
+              - << pipeline.parameters.sf_utils >>
+              - << pipeline.parameters.test_stats >>
+          steps:
+            - pytest_wrapper:
+                target_folder: tests/stats/ 
+                testmon_prefix: stats
+  run_infra_test:
+    steps:
+      - kill_countdown
+      - when:
+          condition:
+            or:
+              - << pipeline.parameters.base >>
+              - << pipeline.parameters.infra >>
+              - << pipeline.parameters.test_infra >>
+          steps:
+            - pytest_wrapper:
+                target_folder: tests/data/ tests/device/ tests/security/ tests/utils/ tests/kuscia/
+                testmon_prefix: infra
+  run_ml_sim_test:
+    steps:
+      - kill_countdown
+      - when:
+          condition:
+            or:
+              - << pipeline.parameters.base >>
+              - << pipeline.parameters.infra >>
+              - << pipeline.parameters.sf_maths >>
+              - << pipeline.parameters.sf_ml >>
+              - << pipeline.parameters.sf_utils >>
+              - << pipeline.parameters.test_ml >>
+          steps:
+            - pytest_wrapper:
+                target_folder: tests/ml/
+                testmon_prefix: ml_sim
+                mode: "sim"
+  run_other_sim_test:
+    steps:
+      - kill_countdown
+      - when:
+          condition:
+            or:
+              - << pipeline.parameters.base >>
+              - << pipeline.parameters.sf_any >>
+              - << pipeline.parameters.test_any >>
+          steps:
+            - pytest_wrapper:
+                target_folder: --ignore=tests/ml/ tests/
+                testmon_prefix: other_sim
+                mode: "sim"
 jobs:
   linux_build:
     parameters:
@@ -262,40 +325,8 @@ jobs:
       resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - when:
-          condition:
-            or:
-                - << pipeline.parameters.base >>
-                - << pipeline.parameters.infra >>
-                - << pipeline.parameters.sf_maths >>
-                - << pipeline.parameters.sf_stats >>
-                - << pipeline.parameters.sf_utils >>
-                - << pipeline.parameters.test_stats >>
-          steps:
-            - restore_cache:
-                name: Restore pytest testmondata
-                key: testmondata-stats_{{ arch }}-{{ .Branch }}-
-            - restore_cache:
-                name: restore pip cache
-                key: pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
-            - attach_workspace:
-                at: /root/project/
-            - run:
-                name: "Run tests"
-                command: |
-                  conda init
-                  arch=$(uname -i)
-                  cp artifacts/_lib_$arch.so  secretflow/security/privacy/
-                  mv secretflow/security/privacy/_lib_$arch.so secretflow/security/privacy/_lib.so
-                  pip install -r dev-requirements.txt
-                  pytest --testmon --env prod  -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  tests/stats/
-            - save_cache:
-                key: testmondata-stats_{{ arch }}-{{ .Branch }}-{{ .Revision }}
-                paths:
-                  - .testmondata
-                when: always
-            - store_test_results:
-                path: ./results.xml
+      - restore_artifacts_linux
+      - run_stats_test
   linux_infra_test:
     parameters:
       resource_class:
@@ -305,37 +336,8 @@ jobs:
       resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - when:
-          condition:
-            or:
-                - << pipeline.parameters.base >>
-                - << pipeline.parameters.infra >>
-                - << pipeline.parameters.test_infra >>
-          steps:
-            - restore_cache:
-                name: Restore pytest testmondata
-                key: testmondata-infra_{{ arch }}-{{ .Branch }}-
-            - restore_cache:
-                name: restore pip cache
-                key: pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
-            - attach_workspace:
-                at: /root/project/
-            - run:
-                name: "Run tests"
-                command: |
-                  conda init
-                  arch=$(uname -i)
-                  cp artifacts/_lib_$arch.so  secretflow/security/privacy/
-                  mv secretflow/security/privacy/_lib_$arch.so secretflow/security/privacy/_lib.so
-                  pip install -r dev-requirements.txt
-                  pytest --testmon --env prod  -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  tests/data/ tests/device/ tests/security/ tests/utils/ tests/kuscia/
-            - save_cache:
-                key: testmondata-infra_{{ arch }}-{{ .Branch }}-{{ .Revision }}
-                paths:
-                  - .testmondata
-                when: always
-            - store_test_results:
-                path: ./results.xml
+      - restore_artifacts_linux
+      - run_infra_test
   linux_component_test:
     parameters:
       resource_class:
@@ -387,40 +389,8 @@ jobs:
       resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - when:
-          condition:
-            or:
-                - << pipeline.parameters.base >>
-                - << pipeline.parameters.infra >>
-                - << pipeline.parameters.sf_maths >>
-                - << pipeline.parameters.sf_ml >>
-                - << pipeline.parameters.sf_utils >>
-                - << pipeline.parameters.test_ml >>
-          steps:
-            - restore_cache:
-                name: Restore pytest testmondata
-                key: testmondata-ml_sim_{{ arch }}-{{ .Branch }}-
-            - restore_cache:
-                name: restore pip cache
-                key: pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
-            - attach_workspace:
-                at: /root/project/
-            - run:
-                name: "Run tests"
-                command: |
-                  conda init
-                  arch=$(uname -i)
-                  cp artifacts/_lib_$arch.so  secretflow/security/privacy/
-                  mv secretflow/security/privacy/_lib_$arch.so secretflow/security/privacy/_lib.so
-                  pip install -r dev-requirements.txt
-                  pytest --testmon --env sim -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml tests/ml/
-            - save_cache:
-                key: testmondata-ml_sim_{{ arch }}-{{ .Branch }}-{{ .Revision }}
-                paths:
-                  - .testmondata
-                when: always
-            - store_test_results:
-                path: ./results.xml
+      - restore_artifacts_linux
+      - run_ml_sim_test
   linux_other_sim_test:
     parameters:
       resource_class:
@@ -430,37 +400,8 @@ jobs:
       resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - when:
-          condition:
-            or:
-                - << pipeline.parameters.base >>
-                - << pipeline.parameters.sf_any >>
-                - << pipeline.parameters.test_any >>
-          steps:
-            - restore_cache:
-                name: Restore pytest testmondata
-                key: testmondata-other_sim_{{ arch }}-{{ .Branch }}-
-            - restore_cache:
-                name: restore pip cache
-                key: pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
-            - attach_workspace:
-                at: /root/project/
-            - run:
-                name: "Run tests"
-                command: |
-                  conda init
-                  arch=$(uname -i)
-                  cp artifacts/_lib_$arch.so  secretflow/security/privacy/
-                  mv secretflow/security/privacy/_lib_$arch.so secretflow/security/privacy/_lib.so
-                  pip install -r dev-requirements.txt
-                  pytest --testmon --env sim -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml --ignore=tests/ml/ tests/
-            - save_cache:
-                key: testmondata-other_sim_{{ arch }}-{{ .Branch }}-{{ .Revision }}
-                paths:
-                  - .testmondata
-                when: always
-            - store_test_results:
-                path: ./results.xml
+      - restore_artifacts_linux
+      - run_other_sim_test
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
