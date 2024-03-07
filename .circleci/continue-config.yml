@@ -73,7 +73,10 @@ jobs:
     steps:
       - checkout
       - when:
-          condition: << pipeline.parameters.cpp >>
+          condition: 
+            or:
+              - << pipeline.parameters.cpp >>
+              - << pipeline.parameters.workflow >>
           steps:
             - run:
                 name: "build shared library"
@@ -95,3 +98,4 @@ workflows:
             parameters:
               resource_class: ["2xlarge", "arm.2xlarge"]
       - macos_build
+
