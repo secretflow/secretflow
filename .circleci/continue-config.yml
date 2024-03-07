@@ -48,7 +48,6 @@ parameters:
     type: boolean
     default: false
 
-
 jobs:
   linux_build:
     docker:
@@ -83,6 +82,7 @@ jobs:
                   mkdir -p artifacts
                   sed -i "s/tensorflow==/tensorflow-cpu==/g" requirements.txt
                   pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
+                  git checkout requirements.txt
             - persist_to_workspace:
                 root: /root/project/
                 paths: 
