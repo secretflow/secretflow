@@ -5,22 +5,10 @@ parameters:
   base:
     type: boolean
     default: false
-  sf_data:
-    type: boolean
-    default: false
-  sf_device:
-    type: boolean
-    default: false
-  sf_distributed:
-    type: boolean
-    default: false
-  sf_kuscia:
+  infra:
     type: boolean
     default: false
   sf_maths:
-    type: boolean
-    default: false
-  sf_security:
     type: boolean
     default: false
   sf_ml_boost:
@@ -30,6 +18,9 @@ parameters:
     type: boolean
     default: false
   sf_preprocessing:
+    type: boolean
+    default: false
+  sf_stats:
     type: boolean
     default: false
   sf_utils:
@@ -42,6 +33,12 @@ parameters:
     type: boolean
     default: false
   test_preprocessing:
+    type: boolean
+    default: false
+  test_stats:
+    type: boolean
+    default: false
+  test_infra:
     type: boolean
     default: false
 
@@ -128,12 +125,8 @@ jobs:
           condition:
             or:
                 - << pipeline.parameters.base >>
-                - << pipeline.parameters.sf_data >>
-                - << pipeline.parameters.sf_device >>
-                - << pipeline.parameters.sf_distributed >>
-                - << pipeline.parameters.sf_kuscia >>
+                - << pipeline.parameters.infra >>
                 - << pipeline.parameters.sf_maths >>
-                - << pipeline.parameters.sf_security >>
                 - << pipeline.parameters.sf_ml_boost >>
                 - << pipeline.parameters.sf_utils >>
                 - << pipeline.parameters.test_ml_boost >>
@@ -173,12 +166,8 @@ jobs:
           condition:
             or:
                 - << pipeline.parameters.base >>
-                - << pipeline.parameters.sf_data >>
-                - << pipeline.parameters.sf_device >>
-                - << pipeline.parameters.sf_distributed >>
-                - << pipeline.parameters.sf_kuscia >>
+                - << pipeline.parameters.infra >>
                 - << pipeline.parameters.sf_maths >>
-                - << pipeline.parameters.sf_security >>
                 - << pipeline.parameters.sf_ml_linear >>
                 - << pipeline.parameters.sf_utils >>
                 - << pipeline.parameters.test_ml_linear >>
@@ -218,12 +207,8 @@ jobs:
           condition:
             or:
                 - << pipeline.parameters.base >>
-                - << pipeline.parameters.sf_data >>
-                - << pipeline.parameters.sf_device >>
-                - << pipeline.parameters.sf_distributed >>
-                - << pipeline.parameters.sf_kuscia >>
+                - << pipeline.parameters.infra >>
                 - << pipeline.parameters.sf_maths >>
-                - << pipeline.parameters.sf_security >>
                 - << pipeline.parameters.sf_preprocessing >>
                 - << pipeline.parameters.sf_utils >>
                 - << pipeline.parameters.test_preprocessing >>
@@ -244,6 +229,85 @@ jobs:
                   pytest --testmon --env prod  -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  tests/preprocessing/
             - save_cache:
                 key: testmondata-preprocessing_{{ arch }}-{{ .Branch }}-{{ .Revision }}
+                paths:
+                  - .testmondata
+                when: always
+            - store_test_results:
+                path: ./results.xml
+  linux_stats_test:
+    docker:
+      - image: secretflow/ubuntu-base-ci:latest
+    parameters:
+      resource_class:
+        type: string
+    resource_class: << parameters.resource_class >>
+    shell: /bin/bash --login -eo pipefail
+    steps:
+      - checkout
+      - when:
+          condition:
+            or:
+                - << pipeline.parameters.base >>
+                - << pipeline.parameters.infra >>
+                - << pipeline.parameters.sf_maths >>
+                - << pipeline.parameters.sf_stats >>
+                - << pipeline.parameters.sf_utils >>
+                - << pipeline.parameters.test_stats >>
+          steps:
+            - restore_cache:
+                name: Restore pytest testmondata
+                key: testmondata-stats_{{ arch }}-{{ .Branch }}-
+            - attach_workspace:
+                at: /root
+            - run:
+                name: "Run tests"
+                command: |
+                  conda init
+                  arch=$(uname -i)
+                  cp artifacts/_lib_$arch.so  secretflow/security/privacy/
+                  mv secretflow/security/privacy/_lib_$arch.so secretflow/security/privacy/_lib.so
+                  pip install -r dev-requirements.txt
+                  pytest --testmon --env prod  -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  tests/stats/
+            - save_cache:
+                key: testmondata-stats_{{ arch }}-{{ .Branch }}-{{ .Revision }}
+                paths:
+                  - .testmondata
+                when: always
+            - store_test_results:
+                path: ./results.xml
+  linux_infra_test:
+    docker:
+      - image: secretflow/ubuntu-base-ci:latest
+    parameters:
+      resource_class:
+        type: string
+    resource_class: << parameters.resource_class >>
+    shell: /bin/bash --login -eo pipefail
+    steps:
+      - checkout
+      - when:
+          condition:
+            or:
+                - << pipeline.parameters.base >>
+                - << pipeline.parameters.infra >>
+                - << pipeline.parameters.test_infra >>
+          steps:
+            - restore_cache:
+                name: Restore pytest testmondata
+                key: testmondata-infra_{{ arch }}-{{ .Branch }}-
+            - attach_workspace:
+                at: /root
+            - run:
+                name: "Run tests"
+                command: |
+                  conda init
+                  arch=$(uname -i)
+                  cp artifacts/_lib_$arch.so  secretflow/security/privacy/
+                  mv secretflow/security/privacy/_lib_$arch.so secretflow/security/privacy/_lib.so
+                  pip install -r dev-requirements.txt
+                  pytest --testmon --env prod  -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  tests/data/ tests/device/ tests/security/ tests/utils/ tests/kuscia/
+            - save_cache:
+                key: testmondata-infra_{{ arch }}-{{ .Branch }}-{{ .Revision }}
                 paths:
                   - .testmondata
                 when: always
@@ -272,6 +336,18 @@ workflows:
           requires:
             - linux_build
       - linux_preprocessing_test:
+          matrix:
+            parameters:
+              resource_class: ["2xlarge+"]
+          requires:
+            - linux_build
+      - linux_stats_test:
+          matrix:
+            parameters:
+              resource_class: ["2xlarge+"]
+          requires:
+            - linux_build
+      - linux_infra_test:
           matrix:
             parameters:
               resource_class: ["2xlarge+"]
