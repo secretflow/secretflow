@@ -62,11 +62,10 @@ jobs:
                   # pip install -r requirements.txt
                   pip install -r dev-requirements.txt
             - persist_to_workspace:
-                root: .
-                paths: artifacts
-            - persist_to_workspace:
-                root: /root/miniconda3/lib/python3.10
-                paths: site-packages
+                root: /root
+                paths: 
+                  - project/artifacts
+                  - miniconda3/lib/python3.10/site-packages
   macos_build:
     macos:
       xcode: 15.1
@@ -133,9 +132,7 @@ jobs:
                 name: Restore pytest testmondata
                 key: testmondata-ml_boost_{{ arch }}-{{ .Branch }}-
             - attach_workspace:
-                at: artifacts
-            - attach_workspace:
-                at: /root/miniconda3/lib/python3.10/site-packages
+                at: /root
             - run:
                 name: "Run tests"
                 command: |
