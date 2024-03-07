@@ -164,5 +164,7 @@ workflows:
           matrix:
             parameters:
               resource_class: ["2xlarge"]
+          requires:
+            - linux_build
           
 
