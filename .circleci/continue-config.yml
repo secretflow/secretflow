@@ -207,6 +207,28 @@ commands:
                 target_folder: --ignore=tests/ml/ tests/
                 testmon_prefix: other_sim
                 mode: "sim"
+  run_component_test_wrapper:
+    parameters:
+      target_folder:
+        type: string
+      testmon_prefix:
+        type: string
+    steps:
+      - kill_countdown
+      - when:
+          condition:
+            or:
+              - << pipeline.parameters.base >>
+              - << pipeline.parameters.sf_ml >>
+              - << pipeline.parameters.sf_stats >>
+              - << pipeline.parameters.sf_preprocessing >>
+              - << pipeline.parameters.test_component >>
+          steps:
+            - pytest_wrapper:
+                target_folder: <<parameters.target_folder>>
+                testmon_prefix: <<parameters.testmon_prefix>>
+                mode: "sim"
+
 jobs:
   linux_build:
     parameters:
@@ -338,7 +360,7 @@ jobs:
       - checkout
       - restore_artifacts_linux
       - run_infra_test
-  linux_component_test:
+  linux_component_infra_test:
     parameters:
       resource_class:
         type: string
@@ -347,39 +369,62 @@ jobs:
       resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - when:
-          condition:
-            or:
-                - << pipeline.parameters.base >>
-                - << pipeline.parameters.sf_ml >>
-                - << pipeline.parameters.sf_stats >>
-                - << pipeline.parameters.sf_preprocessing >>
-                - << pipeline.parameters.test_component >>
-          steps:
-            - restore_cache:
-                name: Restore pytest testmondata
-                key: testmondata-component_{{ arch }}-{{ .Branch }}-
-            - restore_cache:
-                name: restore pip cache
-                key: pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
-            - attach_workspace:
-                at: /root/project/
-            - run:
-                name: "Run tests"
-                command: |
-                  conda init
-                  arch=$(uname -i)
-                  cp artifacts/_lib_$arch.so  secretflow/security/privacy/
-                  mv secretflow/security/privacy/_lib_$arch.so secretflow/security/privacy/_lib.so
-                  pip install -r dev-requirements.txt
-                  pytest --testmon --env prod  -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  tests/component/
-            - save_cache:
-                key: testmondata-component_{{ arch }}-{{ .Branch }}-{{ .Revision }}
-                paths:
-                  - .testmondata
-                when: always
-            - store_test_results:
-                path: ./results.xml
+      - restore_artifacts_linux
+      - run_component_test_wrapper:
+          target_folder: tests/component/infra/
+          testmon_prefix: component_infra
+  linux_component_io_test:
+    parameters:
+      resource_class:
+        type: string
+    executor:
+      name: linux_executor
+      resource_class: << parameters.resource_class >>
+    steps:
+      - checkout
+      - restore_artifacts_linux
+      - run_component_test_wrapper:
+          target_folder: tests/component/io/
+          testmon_prefix: component_io
+  linux_component_ml_test:
+    parameters:
+      resource_class:
+        type: string
+    executor:
+      name: linux_executor
+      resource_class: << parameters.resource_class >>
+    steps:
+      - checkout
+      - restore_artifacts_linux
+      - run_component_test_wrapper:
+          target_folder: tests/component/ml/
+          testmon_prefix: component_ml
+  linux_component_stats_test:
+    parameters:
+      resource_class:
+        type: string
+    executor:
+      name: linux_executor
+      resource_class: << parameters.resource_class >>
+    steps:
+      - checkout
+      - restore_artifacts_linux
+      - run_component_test_wrapper:
+          target_folder: tests/component/stats/
+          testmon_prefix: component_stats
+  linux_component_preprocessing_test:
+    parameters:
+      resource_class:
+        type: string
+    executor:
+      name: linux_executor
+      resource_class: << parameters.resource_class >>
+    steps:
+      - checkout
+      - restore_artifacts_linux
+      - run_component_test_wrapper:
+          target_folder: tests/component/preprocessing
+          testmon_prefix: component_processing
   linux_ml_sim_test:
     parameters:
       resource_class:
@@ -443,7 +488,31 @@ workflows:
               resource_class: ["2xlarge+"]
           requires:
             - linux_build
-      - linux_component_test:
+      - linux_component_infra_test:
+          matrix:
+            parameters:
+              resource_class: ["2xlarge+"]
+          requires:
+            - linux_build
+      - linux_component_io_test:
+          matrix:
+            parameters:
+              resource_class: ["2xlarge+"]
+          requires:
+            - linux_build
+      - linux_component_ml_test:
+          matrix:
+            parameters:
+              resource_class: ["2xlarge+"]
+          requires:
+            - linux_build
+      - linux_component_stats_test:
+          matrix:
+            parameters:
+              resource_class: ["2xlarge+"]
+          requires:
+            - linux_build
+      - linux_component_preprocessing_test:
           matrix:
             parameters:
               resource_class: ["2xlarge+"]
