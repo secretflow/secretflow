@@ -62,7 +62,7 @@ jobs:
                 name: "build shared library"
                 command: |
                   arch=$(uname -i)
-                  mkdir -s artifacts
+                  mkdir -p artifacts
                   bazel build //secretflow_lib/binding/...
                   mv bazel-bin/secretflow_lib/binding/_lib.so artifacts/_lib_$arch.so
                   ls -la artifacts
@@ -89,7 +89,7 @@ jobs:
             - run:
                 name: "build shared library"
                 command: |
-                  mkdir -s artifacts
+                  mkdir -p artifacts
                   bazel build //secretflow_lib/binding/...
                   mv bazel-bin/secretflow_lib/binding/_lib.so artifacts/_lib_mac.so
                   ls -la artifacts
