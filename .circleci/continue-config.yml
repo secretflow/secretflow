@@ -62,13 +62,14 @@ jobs:
                 name: "build shared library"
                 command: |
                   arch=$(uname -i)
+                  mkdir -s artifacts
                   bazel build //secretflow_lib/binding/...
-                  cp bazel-bin/secretflow_lib/binding/_lib.so build/lib/_lib_$arch.so
-                  ls -la build/lib
+                  mv bazel-bin/secretflow_lib/binding/_lib.so artifacts/_lib_$arch.so
+                  ls -la artifacts
             - persist_to_workspace:
-                root: build
+                root: .
                 paths:
-                  - lib
+                  - artifacts
   macos_build:
     macos:
       xcode: 15.1
@@ -88,13 +89,14 @@ jobs:
             - run:
                 name: "build shared library"
                 command: |
+                  mkdir -s artifacts
                   bazel build //secretflow_lib/binding/...
-                  cp bazel-bin/secretflow_lib/binding/_lib.so build/lib/_lib_mac.so
-                  ls -la build/lib
+                  mv bazel-bin/secretflow_lib/binding/_lib.so artifacts/_lib_mac.so
+                  ls -la artifacts
             - persist_to_workspace:
-                root: build
+                root: .
                 paths:
-                  - lib
+                  - artifacts
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
