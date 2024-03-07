@@ -33,8 +33,6 @@ parameters:
     type: boolean
     default: false
 
-# Define a job to be invoked later in a workflow.
-# See: https://circleci.com/docs/2.0/configuration-reference/#jobs
 jobs:
   linux_build:
     docker:
@@ -59,7 +57,7 @@ jobs:
                   mkdir -p artifacts
                   bazel build //secretflow_lib/binding/... -c opt
                   mv bazel-bin/secretflow_lib/binding/_lib.so artifacts/_lib_$arch.so
-                  # pip install -r requirements.txt
+                  pip install -r requirements.txt
                   pip install -r dev-requirements.txt
             - persist_to_workspace:
                 root: /root
@@ -136,6 +134,7 @@ jobs:
             - run:
                 name: "Run tests"
                 command: |
+                  conda init
                   arch=$(uname -i)
                   cp artifacts/_lib_$arch.so  secretflow/security/privacy/
                   mv secretflow/security/privacy/_lib_$arch.so secretflow/security/privacy/_lib.so
