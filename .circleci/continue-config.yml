@@ -64,7 +64,7 @@ jobs:
                 root: .
                 paths: artifacts
             - persist_to_workspace:
-                root: /root/miniconda3/lib/python3.10
+                root: /root/miniconda3/lib/python3.10/
                 path: site-packages
   macos_build:
     macos:
@@ -102,7 +102,7 @@ jobs:
                 paths:
                   - artifacts
             - persist_to_workspace:
-                root: $HOME/miniconda/lib/python3.10
+                root: $HOME/miniconda/lib/python3.10/
                 paths: site-packages
   linux_ml_boost_test:
     docker:
@@ -128,18 +128,27 @@ jobs:
                 - << pipeline.parameters.sf_utils >>
                 - << pipeline.parameters.test_boost >>
           steps:
+            - restore_cache:
+                name: Restore pytest testmondata
+                key: testmondata-ml_boost_{{ arch }}-{{ .Branch }}-
+            - attach_workspace:
+                at: 
+                  - artifacts
+                  - /root/miniconda3/lib/python3.10/site-packages
             - run:
-                name: "install python dependencies"
+                name: "Run tests"
                 command: |
                   arch=$(uname -i)
-                  mkdir -p artifacts
-                  bazel build //secretflow_lib/binding/... -c opt
-                  mv bazel-bin/secretflow_lib/binding/_lib.so artifacts/_lib_$arch.so
-                  ls -la artifacts
-            - persist_to_workspace:
-                root: .
+                  cp artifacts/_lib_$arch.so  secretflow/security/privacy/
+                  mv secretflow/security/privacy/_lib_$arch.so secretflow/security/privacy/_lib.so
+                  pytest --testmon --env prod  -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  tests/ml/boost/
+            - save_cache:
+                key: testmondata-ml_boost_{{ arch }}-{{ .Branch }}-{{ .Revision }}
                 paths:
-                  - artifacts
+                  - .testmondata
+                when: always
+            - store_test_results:
+                path: ./results.xml
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
@@ -149,11 +158,11 @@ workflows:
       - linux_build:
           matrix:
             parameters:
-              resource_class: ["2xlarge", "arm.2xlarge"]
+              resource_class: ["2xlarge"]
       - macos_build
-      # - linux_ml_boost_test:
-      #     matrix:
-      #       parameters:
-      #         resource_class: ["2xlarge", "arm.2xlarge"]
+      - linux_ml_boost_test:
+          matrix:
+            parameters:
+              resource_class: ["2xlarge"]
           
 
