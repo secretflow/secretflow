@@ -132,9 +132,9 @@ jobs:
                 name: Restore pytest testmondata
                 key: testmondata-ml_boost_{{ arch }}-{{ .Branch }}-
             - attach_workspace:
-                at: 
-                  - artifacts
-                  - /root/miniconda3/lib/python3.10/site-packages
+                at: artifacts
+            - attach_workspace:
+                at: /root/miniconda3/lib/python3.10/site-packages
             - run:
                 name: "Run tests"
                 command: |
