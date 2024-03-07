@@ -48,15 +48,82 @@ parameters:
     type: boolean
     default: false
 
-jobs:
-  linux_build:
-    docker:
-      - image: secretflow/ubuntu-base-ci:latest
+executors:
+  linux_executor: # declares a reusable executor
     parameters:
       resource_class:
         type: string
+    docker:
+      - image: secretflow/ubuntu-base-ci:latest
     resource_class: << parameters.resource_class >>
     shell: /bin/bash --login -eo pipefail
+  macos_executor:
+    macos:
+      xcode: 15.1.0
+    resource_class: macos.m1.large.gen1
+
+commands:
+  restore_artifacts_linux:
+    steps:
+      - attach_workspace:
+          at: /root/project/
+      - run:
+          name: copy library
+          command: |
+            arch=$(uname -i)
+            cp artifacts/_lib_$arch.so  secretflow/security/privacy/
+            mv secretflow/security/privacy/_lib_$arch.so secretflow/security/privacy/_lib.so
+  run_py_test:
+    parameters:
+      py_test_folders:
+        type: string
+        default: ""
+    steps:
+      - run:
+          name: "Run tests"
+          command: |
+            conda init
+            pip install -r dev-requirements.txt
+            pytest --testmon --env prod  -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  << parameters.py_test_folders >>
+  run_ml_test:
+    steps:
+      - run:
+          name: echo
+          command: echo "Run conditional workflow"
+      - when:
+          condition:
+            or:
+                - << pipeline.parameters.base >>
+                - << pipeline.parameters.infra >>
+                - << pipeline.parameters.sf_maths >>
+                - << pipeline.parameters.sf_ml >>
+                - << pipeline.parameters.sf_utils >>
+                - << pipeline.parameters.test_ml >>
+          steps:
+            - restore_cache:
+                name: Restore pytest testmondata
+                key: testmondata-ml_{{ arch }}-{{ .Branch }}-
+            - restore_cache:
+                name: restore pip cache
+                key: pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
+            - run_py_test:
+                py_test_folders: --ignore=tests/ml/nn/ tests/ml/ 
+            - save_cache:
+                key: testmondata-ml_{{ arch }}-{{ .Branch }}-{{ .Revision }}
+                paths:
+                  - .testmondata
+                when: always
+            - store_test_results:
+                path: ./results.xml
+
+jobs:
+  linux_build:
+    parameters:
+      resource_class:
+        type: string
+    executor:
+      name: linux_executor
+      resource_class: << parameters.resource_class >>
     steps:
       - checkout
       - when:
@@ -92,9 +159,7 @@ jobs:
                 paths:
                   - /root/miniconda3/lib/python3.10/site-packages
   macos_build:
-    macos:
-      xcode: 15.1
-    resource_class: macos.m1.medium.gen1
+    executor: macos_executor
     steps:
       - checkout
       - when:
@@ -112,11 +177,19 @@ jobs:
                   bash ~/miniconda.sh -b -p $HOME/miniconda
                   source $HOME/miniconda/bin/activate
                   conda init zsh
+            - restore_cache:
+                name: restore pip cache
+                key: &pip-cache pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
+            - run:
+                name: Install python dependencies
+                command: |
+                  conda init
                   pip install -r requirements.txt
                   pip install -r dev-requirements.txt
             - run:
                 name: "build shared library"
                 command: |
+                  conda init
                   mkdir -p artifacts
                   bazel build //secretflow_lib/binding/... -c opt
                   mv bazel-bin/secretflow_lib/binding/_lib.so artifacts/_lib_mac.so
@@ -126,61 +199,28 @@ jobs:
                 root: .
                 paths:
                   - artifacts
-            - persist_to_workspace:
-                root: $HOME/miniconda/lib/python3.10/
-                paths: site-packages
+            - save_cache:
+                key: *pip-cache
+                paths:
+                  - $HOME/miniconda/lib/python3.10/site-packages
   linux_ml_test:
-    docker:
-      - image: secretflow/ubuntu-base-ci:latest
     parameters:
       resource_class:
         type: string
-    resource_class: << parameters.resource_class >>
-    shell: /bin/bash --login -eo pipefail
+    executor:
+      name: linux_executor
+      resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - when:
-          condition:
-            or:
-                - << pipeline.parameters.base >>
-                - << pipeline.parameters.infra >>
-                - << pipeline.parameters.sf_maths >>
-                - << pipeline.parameters.sf_ml >>
-                - << pipeline.parameters.sf_utils >>
-                - << pipeline.parameters.test_ml >>
-          steps:
-            - restore_cache:
-                name: Restore pytest testmondata
-                key: testmondata-ml_{{ arch }}-{{ .Branch }}-
-            - restore_cache:
-                name: restore pip cache
-                key: pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
-            - attach_workspace:
-                at: /root/project/
-            - run:
-                name: "Run tests"
-                command: |
-                  conda init
-                  arch=$(uname -i)
-                  cp artifacts/_lib_$arch.so  secretflow/security/privacy/
-                  mv secretflow/security/privacy/_lib_$arch.so secretflow/security/privacy/_lib.so
-                  pip install -r dev-requirements.txt
-                  pytest --testmon --env prod  -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  --ignore=tests/ml/nn/ tests/ml/
-            - save_cache:
-                key: testmondata-ml_{{ arch }}-{{ .Branch }}-{{ .Revision }}
-                paths:
-                  - .testmondata
-                when: always
-            - store_test_results:
-                path: ./results.xml
+      - restore_artifacts_linux
+      - run_ml_test
   linux_preprocessing_test:
-    docker:
-      - image: secretflow/ubuntu-base-ci:latest
     parameters:
       resource_class:
         type: string
-    resource_class: << parameters.resource_class >>
-    shell: /bin/bash --login -eo pipefail
+    executor:
+      name: linux_executor
+      resource_class: << parameters.resource_class >>
     steps:
       - checkout
       - when:
@@ -218,13 +258,12 @@ jobs:
             - store_test_results:
                 path: ./results.xml
   linux_stats_test:
-    docker:
-      - image: secretflow/ubuntu-base-ci:latest
     parameters:
       resource_class:
         type: string
-    resource_class: << parameters.resource_class >>
-    shell: /bin/bash --login -eo pipefail
+    executor:
+      name: linux_executor
+      resource_class: << parameters.resource_class >>
     steps:
       - checkout
       - when:
@@ -262,13 +301,12 @@ jobs:
             - store_test_results:
                 path: ./results.xml
   linux_infra_test:
-    docker:
-      - image: secretflow/ubuntu-base-ci:latest
     parameters:
       resource_class:
         type: string
-    resource_class: << parameters.resource_class >>
-    shell: /bin/bash --login -eo pipefail
+    executor:
+      name: linux_executor
+      resource_class: << parameters.resource_class >>
     steps:
       - checkout
       - when:
@@ -303,13 +341,12 @@ jobs:
             - store_test_results:
                 path: ./results.xml
   linux_component_test:
-    docker:
-      - image: secretflow/ubuntu-base-ci:latest
     parameters:
       resource_class:
         type: string
-    resource_class: << parameters.resource_class >>
-    shell: /bin/bash --login -eo pipefail
+    executor:
+      name: linux_executor
+      resource_class: << parameters.resource_class >>
     steps:
       - checkout
       - when:
@@ -346,13 +383,12 @@ jobs:
             - store_test_results:
                 path: ./results.xml
   linux_ml_sim_test:
-    docker:
-      - image: secretflow/ubuntu-base-ci:latest
     parameters:
       resource_class:
         type: string
-    resource_class: << parameters.resource_class >>
-    shell: /bin/bash --login -eo pipefail
+    executor:
+      name: linux_executor
+      resource_class: << parameters.resource_class >>
     steps:
       - checkout
       - when:
@@ -390,13 +426,12 @@ jobs:
             - store_test_results:
                 path: ./results.xml
   linux_other_sim_test:
-    docker:
-      - image: secretflow/ubuntu-base-ci:latest
     parameters:
       resource_class:
         type: string
-    resource_class: << parameters.resource_class >>
-    shell: /bin/bash --login -eo pipefail
+    executor:
+      name: linux_executor
+      resource_class: << parameters.resource_class >>
     steps:
       - checkout
       - when:
