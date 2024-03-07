@@ -28,7 +28,7 @@ parameters:
     default: false
   sf_ml_linear:
     type: boolean
-    default: 
+    default: false
   sf_preprocessing:
     type: boolean
     default: false
