@@ -62,8 +62,10 @@ jobs:
                   pip install -r dev-requirements.txt
             - persist_to_workspace:
                 root: .
-                paths:
-                  - artifacts
+                paths: artifacts
+            - persist_to_workspace:
+                root: /root/miniconda3/lib/python3.10
+                path: site-packages
   macos_build:
     macos:
       xcode: 15.1
@@ -79,6 +81,15 @@ jobs:
                 command: |
                   brew install bazelisk cmake ninja libomp wget
             - run:
+                name: "Install Miniconda"
+                command: |
+                  wget https://repo.anaconda.com/miniconda/Miniconda3-py310_24.1.2-0-MacOSX-arm64.sh -O ~/miniconda.sh
+                  bash ~/miniconda.sh -b -p $HOME/miniconda
+                  source $HOME/miniconda/bin/activate
+                  conda init zsh
+                  pip install -r requirements.txt
+                  pip install -r dev-requirements.txt
+            - run:
                 name: "build shared library"
                 command: |
                   mkdir -p artifacts
@@ -90,6 +101,9 @@ jobs:
                 root: .
                 paths:
                   - artifacts
+            - persist_to_workspace:
+                root: $HOME/miniconda/lib/python3.10
+                paths: site-packages
   linux_ml_boost_test:
     docker:
       - image: secretflow/ubuntu-base-ci:latest
