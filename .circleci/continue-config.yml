@@ -63,6 +63,15 @@ executors:
     resource_class: macos.m1.large.gen1
 
 commands:
+  kill_countdown:
+    steps:
+      - run:
+          name: Cancel job after set time
+          background: true
+          command: |
+            sleep 3600
+            echo "Canceling workflow as too much time has elapsed"
+            curl -X POST --header "Content-Type: application/json" "https://circleci.com/api/v2/workflow/${CIRCLE_WORKFLOW_ID}/cancel?circle-token=${BUILD_TIMER_TOKEN}"
   restore_artifacts_linux:
     steps:
       - attach_workspace:
@@ -77,19 +86,35 @@ commands:
     parameters:
       py_test_folders:
         type: string
-        default: ""
+      testmon_prefix:
+        type: string
     steps:
+      - restore_cache:
+          name: Restore pytest testmondata
+          key: testmondata_<<parameters.testmon_prefix>>_{{ arch }}_{{ .Branch }}_
+      - restore_cache:
+          name: restore pip cache
+          key: pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
+      - run:
+          name: Install test tools
+          command: |
+            conda init
+            pip install -r dev-requirements.txt
       - run:
           name: "Run tests"
           command: |
             conda init
-            pip install -r dev-requirements.txt
             pytest --testmon --env prod  -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  << parameters.py_test_folders >>
+      - store_test_results:
+          path: ./results.xml
+      - save_cache:
+          key: testmondata_<<parameters.testmon_prefix>>_{{ arch }}_{{ .Branch }}_{{ .Revision }}
+          paths:
+            - .testmondata
+          when: always
   run_ml_test:
     steps:
-      - run:
-          name: echo
-          command: echo "Run conditional workflow"
+      - kill_countdown
       - when:
           condition:
             or:
@@ -100,22 +125,25 @@ commands:
                 - << pipeline.parameters.sf_utils >>
                 - << pipeline.parameters.test_ml >>
           steps:
-            - restore_cache:
-                name: Restore pytest testmondata
-                key: testmondata-ml_{{ arch }}-{{ .Branch }}-
-            - restore_cache:
-                name: restore pip cache
-                key: pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
             - run_py_test:
-                py_test_folders: --ignore=tests/ml/nn/ tests/ml/ 
-            - save_cache:
-                key: testmondata-ml_{{ arch }}-{{ .Branch }}-{{ .Revision }}
-                paths:
-                  - .testmondata
-                when: always
-            - store_test_results:
-                path: ./results.xml
-
+                py_test_folders: --ignore=tests/ml/nn/ tests/ml/
+                testmon_prefix: ml
+  run_preprocessing_test:
+    steps:
+      - kill_countdown
+      - when:
+          condition:
+            or:
+                - << pipeline.parameters.base >>
+                - << pipeline.parameters.infra >>
+                - << pipeline.parameters.sf_maths >>
+                - << pipeline.parameters.sf_preprocessing >>
+                - << pipeline.parameters.sf_utils >>
+                - << pipeline.parameters.test_preprocessing >>
+          steps:
+            - run_py_test:
+                py_test_folders: tests/preprocessing/ 
+                testmon_prefix: preprocessing
 jobs:
   linux_build:
     parameters:
@@ -223,40 +251,8 @@ jobs:
       resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - when:
-          condition:
-            or:
-                - << pipeline.parameters.base >>
-                - << pipeline.parameters.infra >>
-                - << pipeline.parameters.sf_maths >>
-                - << pipeline.parameters.sf_preprocessing >>
-                - << pipeline.parameters.sf_utils >>
-                - << pipeline.parameters.test_preprocessing >>
-          steps:
-            - restore_cache:
-                name: Restore pytest testmondata
-                key: testmondata-preprocessing_{{ arch }}-{{ .Branch }}-
-            - restore_cache:
-                name: restore pip cache
-                key: pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
-            - attach_workspace:
-                at: /root/project/
-            - run:
-                name: "Run tests"
-                command: |
-                  conda init
-                  arch=$(uname -i)
-                  cp artifacts/_lib_$arch.so  secretflow/security/privacy/
-                  mv secretflow/security/privacy/_lib_$arch.so secretflow/security/privacy/_lib.so
-                  pip install -r dev-requirements.txt
-                  pytest --testmon --env prod  -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  tests/preprocessing/
-            - save_cache:
-                key: testmondata-preprocessing_{{ arch }}-{{ .Branch }}-{{ .Revision }}
-                paths:
-                  - .testmondata
-                when: always
-            - store_test_results:
-                path: ./results.xml
+      - restore_artifacts_linux
+      - run_preprocessing_test
   linux_stats_test:
     parameters:
       resource_class:
