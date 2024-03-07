@@ -17,8 +17,8 @@ version: 2.1
 setup: true
 
 orbs:
-  path-filtering: circleci/path-filtering@0.1.4
-  continuation: circleci/continuation@0.3.1
+  path-filtering: circleci/path-filtering@1.0.0
+  continuation: circleci/continuation@1.0.0
 
 parameters:
   GHA_Actor:
@@ -45,14 +45,21 @@ workflows:
           base-revision: main
           config-path: .circleci/continue-config.yml
           mapping: |
-            secretflow/.* build-and-run true
-            secretflow_lib/.* build-and-run true
-            tests/.* build-and-run true
-            .bazelrc build-and-run true
-            requirements.txt build-and-run true
-            requirements-dev.txt build-and-run true
-            WORKSPACE build-and-run true
-            .circleci/continue-config.yml build-and-run true
+            secretflow_lib/.*             cpp            true
+            WORKSPACE                     cpp            true
+            .bazelrc                      cpp            true
+            requirements.txt              requirements   true
+            requirements-dev.txt          requirements   true
+            .circleci/continue-config.yml workflow       true
+            secretflow/data/*             sf_data        true
+            secretflow/device/*           sf_device      true
+            secretflow/distributed/*      sf_distributed true
+            secreflow/kuscia/*            sf_kuscia      true
+            secretflow/maths/*            sf_maths       true
+            secretflow/security/*         sf_security    true
+            secretflow/ml/boost/*         sf_ml_boost    true
+            secretflow/utils/*            sf_utils       true
+            tests/ml/boost/*              test_boost     true
   publish-workflow:
     when:
       equal: ["publish_pypi", << pipeline.parameters.GHA_Meta >>]
