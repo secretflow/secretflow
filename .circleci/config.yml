@@ -45,12 +45,12 @@ workflows:
           base-revision: main
           config-path: .circleci/continue-config.yml
           mapping: |
-            secretflow_lib/.*             cpp            true
-            WORKSPACE                     cpp            true
-            .bazelrc                      cpp            true
-            requirements.txt              requirements   true
-            requirements-dev.txt          requirements   true
-            .circleci/continue-config.yml workflow       true
+            secretflow_lib/.*             base           true
+            WORKSPACE                     base           true
+            .bazelrc                      base           true
+            requirements.txt              base           true
+            requirements-dev.txt          base           true
+            .circleci/continue-config.yml base           true
             secretflow/data/*             sf_data        true
             secretflow/device/*           sf_device      true
             secretflow/distributed/*      sf_distributed true

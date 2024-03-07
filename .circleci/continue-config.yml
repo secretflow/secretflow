@@ -2,13 +2,7 @@
 # See: https://circleci.com/docs/2.0/configuration-reference
 version: 2.1
 parameters:
-  cpp:
-    type: boolean
-    default: false
-  requirements:
-    type: boolean
-    default: false
-  workflow:
+  base:
     type: boolean
     default: false
   sf_data:
@@ -54,18 +48,17 @@ jobs:
       - checkout
       - when:
           condition:
-            or:
-                - << pipeline.parameters.cpp >>
-                - << pipeline.parameters.workflow >>
+              << pipeline.parameters.base >>
           steps:
             - run:
                 name: "build shared library"
                 command: |
                   arch=$(uname -i)
                   mkdir -p artifacts
-                  bazel build //secretflow_lib/binding/...
+                  bazel build //secretflow_lib/binding/... -c opt
                   mv bazel-bin/secretflow_lib/binding/_lib.so artifacts/_lib_$arch.so
-                  ls -la artifacts
+                  pip install -r requirements.txt
+                  pip install -r dev-requirements.txt
             - persist_to_workspace:
                 root: .
                 paths:
@@ -73,14 +66,12 @@ jobs:
   macos_build:
     macos:
       xcode: 15.1
-    resource_class: macos.m1.large.gen1
+    resource_class: macos.m1.medium.gen1
     steps:
       - checkout
       - when:
           condition: 
-            or:
-              - << pipeline.parameters.cpp >>
-              - << pipeline.parameters.workflow >>
+              << pipeline.parameters.base >>
           steps:
             - run:
                 name: "Install homebrew dependencies"
@@ -90,13 +81,51 @@ jobs:
                 name: "build shared library"
                 command: |
                   mkdir -p artifacts
-                  bazel build //secretflow_lib/binding/...
+                  bazel build //secretflow_lib/binding/... -c opt
                   mv bazel-bin/secretflow_lib/binding/_lib.so artifacts/_lib_mac.so
+                  pip install -r requirements.txt
+                  pip install -r dev-requirements.txt
+            - persist_to_workspace:
+                root: .
+                paths:
+                  - artifacts
+  linux_ml_boost_test:
+    docker:
+      - image: secretflow/ubuntu-base-ci:latest
+    parameters:
+      resource_class:
+        type: string
+    resource_class: << parameters.resource_class >>
+    shell: /bin/bash --login -eo pipefail
+    steps:
+      - checkout
+      - when:
+          condition:
+            or:
+                - << pipeline.parameters.base >>
+                - << pipeline.parameters.sf_data >>
+                - << pipeline.parameters.sf_device >>
+                - << pipeline.parameters.sf_distributed >>
+                - << pipeline.parameters.sf_kuscia >>
+                - << pipeline.parameters.sf_maths >>
+                - << pipeline.parameters.sf_security >>
+                - << pipeline.parameters.sf_ml_boost >>
+                - << pipeline.parameters.sf_utils >>
+                - << pipeline.parameters.test_boost >>
+          steps:
+            - run:
+                name: "install python dependencies"
+                command: |
+                  arch=$(uname -i)
+                  mkdir -p artifacts
+                  bazel build //secretflow_lib/binding/... -c opt
+                  mv bazel-bin/secretflow_lib/binding/_lib.so artifacts/_lib_$arch.so
                   ls -la artifacts
             - persist_to_workspace:
                 root: .
                 paths:
                   - artifacts
+
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
@@ -107,4 +136,9 @@ workflows:
             parameters:
               resource_class: ["2xlarge", "arm.2xlarge"]
       - macos_build
+      # - linux_ml_boost_test:
+      #     matrix:
+      #       parameters:
+      #         resource_class: ["2xlarge", "arm.2xlarge"]
+          
 
