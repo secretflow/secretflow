@@ -28,6 +28,9 @@ parameters:
     default: false
   sf_ml_linear:
     type: boolean
+    default: 
+  sf_preprocessing:
+    type: boolean
     default: false
   sf_utils:
     type: boolean
@@ -36,6 +39,9 @@ parameters:
     type: boolean
     default: false
   test_ml_linear:
+    type: boolean
+    default: false
+  test_preprocessing:
     type: boolean
     default: false
 
@@ -198,7 +204,51 @@ jobs:
                 when: always
             - store_test_results:
                 path: ./results.xml
-
+  linux_preprocessing_test:
+    docker:
+      - image: secretflow/ubuntu-base-ci:latest
+    parameters:
+      resource_class:
+        type: string
+    resource_class: << parameters.resource_class >>
+    shell: /bin/bash --login -eo pipefail
+    steps:
+      - checkout
+      - when:
+          condition:
+            or:
+                - << pipeline.parameters.base >>
+                - << pipeline.parameters.sf_data >>
+                - << pipeline.parameters.sf_device >>
+                - << pipeline.parameters.sf_distributed >>
+                - << pipeline.parameters.sf_kuscia >>
+                - << pipeline.parameters.sf_maths >>
+                - << pipeline.parameters.sf_security >>
+                - << pipeline.parameters.sf_preprocessing >>
+                - << pipeline.parameters.sf_utils >>
+                - << pipeline.parameters.test_preprocessing >>
+          steps:
+            - restore_cache:
+                name: Restore pytest testmondata
+                key: testmondata-preprocessing_{{ arch }}-{{ .Branch }}-
+            - attach_workspace:
+                at: /root
+            - run:
+                name: "Run tests"
+                command: |
+                  conda init
+                  arch=$(uname -i)
+                  cp artifacts/_lib_$arch.so  secretflow/security/privacy/
+                  mv secretflow/security/privacy/_lib_$arch.so secretflow/security/privacy/_lib.so
+                  pip install -r dev-requirements.txt
+                  pytest --testmon --env prod  -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  tests/preprocessing/
+            - save_cache:
+                key: testmondata-preprocessing_{{ arch }}-{{ .Branch }}-{{ .Revision }}
+                paths:
+                  - .testmondata
+                when: always
+            - store_test_results:
+                path: ./results.xml
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
@@ -212,13 +262,19 @@ workflows:
       - linux_ml_boost_test:
           matrix:
             parameters:
-              resource_class: ["2xlarge"]
+              resource_class: ["2xlarge+"]
           requires:
             - linux_build
       - linux_ml_linear_test:
           matrix:
             parameters:
-              resource_class: ["2xlarge"]
+              resource_class: ["2xlarge+"]
+          requires:
+            - linux_build
+      - linux_preprocessing_test:
+          matrix:
+            parameters:
+              resource_class: ["2xlarge+"]
           requires:
             - linux_build
           
