@@ -74,6 +74,7 @@ We hope you enjoy these toturials from SecretFlow developers.
    sl_rec_deepfm
    Pytorch-finetune-alexnet
    tensorflow-finetune-inception-v3
+   Transforming_SingleModel_to_SecretFlow_Federated_Learning
    /user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/sl_rec_deepfm
    /user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF
    /user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_Torch
