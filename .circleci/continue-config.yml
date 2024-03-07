@@ -136,7 +136,7 @@ jobs:
                 - << pipeline.parameters.sf_security >>
                 - << pipeline.parameters.sf_ml_boost >>
                 - << pipeline.parameters.sf_utils >>
-                - << pipeline.parameters.test_boost >>
+                - << pipeline.parameters.test_ml_boost >>
           steps:
             - restore_cache:
                 name: Restore pytest testmondata
