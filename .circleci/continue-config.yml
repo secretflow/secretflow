@@ -53,7 +53,10 @@ jobs:
     steps:
       - checkout
       - when:
-          condition: << pipeline.parameters.cpp >>
+          condition:
+            or:
+                - << pipeline.parameters.cpp >>
+                - << pipeline.parameters.workflow >>
           steps:
             - run:
                 name: "build shared library"
@@ -78,6 +81,10 @@ jobs:
               - << pipeline.parameters.cpp >>
               - << pipeline.parameters.workflow >>
           steps:
+            - run:
+                name: "Install homebrew dependencies"
+                command: |
+                  brew install bazelisk cmake ninja libomp wget
             - run:
                 name: "build shared library"
                 command: |
