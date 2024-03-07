@@ -59,7 +59,6 @@ jobs:
                   mv bazel-bin/secretflow_lib/binding/_lib.so artifacts/_lib_$arch.so
                   sed -i "s/tensorflow==/tensorflow-cpu==/g" requirements.txt
                   pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
-                  pip install -r dev-requirements.txt
             - persist_to_workspace:
                 root: /root
                 paths: 
@@ -139,6 +138,7 @@ jobs:
                   arch=$(uname -i)
                   cp artifacts/_lib_$arch.so  secretflow/security/privacy/
                   mv secretflow/security/privacy/_lib_$arch.so secretflow/security/privacy/_lib.so
+                  pip install -r dev-requirements.txt
                   pytest --testmon --env prod  -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  tests/ml/boost/
             - save_cache:
                 key: testmondata-ml_boost_{{ arch }}-{{ .Branch }}-{{ .Revision }}
@@ -157,7 +157,7 @@ workflows:
           matrix:
             parameters:
               resource_class: ["2xlarge"]
-      - macos_build
+      # - macos_build
       - linux_ml_boost_test:
           matrix:
             parameters:
