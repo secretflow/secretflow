@@ -53,6 +53,7 @@ jobs:
             - run:
                 name: "build shared library"
                 command: |
+                  conda init
                   arch=$(uname -i)
                   mkdir -p artifacts
                   bazel build //secretflow_lib/binding/... -c opt
