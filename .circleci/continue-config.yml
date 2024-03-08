@@ -83,7 +83,7 @@ commands:
             wget https://repo.anaconda.com/miniconda/Miniconda3-py310_24.1.2-0-MacOSX-arm64.sh -O ~/miniconda.sh
             bash ~/miniconda.sh -b -p $HOME/miniconda
             source $HOME/miniconda/bin/activate
-            conda init zsh
+            conda init zsh bash
   restore_artifacts_macos:
     steps:
       - attach_workspace:

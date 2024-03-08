@@ -569,7 +569,7 @@ def comp_prod_sf_cluster_config(request, sf_party_for_4pc):
         arch = "amd64"
         if platform.system() == "Darwin":
             system = "darwin"
-        if platform.machine() == 'arm64':
+        if platform.machine() == "arm64":
             arch = "arm64"
         urllib.request.urlretrieve(
             f"https://dl.min.io/server/minio/release/{system}-{arch}/minio",
