@@ -303,7 +303,7 @@ jobs:
             - run:
                 name: "Install homebrew dependencies"
                 command: |
-                  brew install bazelisk cmake ninja libomp wget
+                  brew install bazelisk cmake ninja libomp wget protobuf@3
             - run:
                 name: "Install Miniconda"
                 command: |
