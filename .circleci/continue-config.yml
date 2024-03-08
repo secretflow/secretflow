@@ -124,6 +124,7 @@ commands:
           command: |
             conda init
             pip install -r dev-requirements.txt
+            pip install --force-reinstall pytest
       - run:
           name: "Run tests"
           command: |
