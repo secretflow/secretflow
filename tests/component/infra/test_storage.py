@@ -18,14 +18,14 @@ def build_s3_config():
 
     minio_server = os.path.join(minio_path, "minio")
 
-    os = "linux"
+    system = "linux"
     arch = "amd64"
     if platform.system() == "Darwin":
-        os = "darwin"
+        system = "darwin"
     if platform.machine() == 'arm64':
         arch = "arm64"
     urllib.request.urlretrieve(
-        f"https://dl.min.io/server/minio/release/{os}-{arch}/minio",
+        f"https://dl.min.io/server/minio/release/{system}-{arch}/minio",
         minio_server,
     )
 

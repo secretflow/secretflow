@@ -565,14 +565,14 @@ def comp_prod_sf_cluster_config(request, sf_party_for_4pc):
 
     minio_server = os.path.join(minio_path, "minio")
     if not os.path.exists(minio_server) or not os.path.isfile(minio_server):
-        os = "linux"
+        system = "linux"
         arch = "amd64"
         if platform.system() == "Darwin":
-            os = "darwin"
+            system = "darwin"
         if platform.machine() == 'arm64':
             arch = "arm64"
         urllib.request.urlretrieve(
-            f"https://dl.min.io/server/minio/release/{os}-{arch}/minio",
+            f"https://dl.min.io/server/minio/release/{system}-{arch}/minio",
             minio_server,
         )
         st = os.stat(minio_server)
