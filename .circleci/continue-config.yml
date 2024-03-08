@@ -128,6 +128,7 @@ commands:
       - run:
           name: "Run tests"
           command: |
+            set -ex
             conda init
             pytest --testmon --env <<parameters.mode>>  -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  << parameters.target_folder >>
             status=$?
