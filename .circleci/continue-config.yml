@@ -484,6 +484,86 @@ jobs:
       - macos_pre_setup
       - restore_artifacts_macos
       - run_ml_test
+  macos_preprocessing_test:
+    executor: macos_executor
+    steps:
+      - checkout
+      - macos_pre_setup
+      - restore_artifacts_macos
+      - run_preprocessing_test
+  macos_stats_test:
+    executor: macos_executor
+    steps:
+      - checkout
+      - macos_pre_setup
+      - restore_artifacts_macos
+      - run_stats_test
+  macos_infra_test:
+    executor: macos_executor
+    steps:
+      - checkout
+      - macos_pre_setup
+      - restore_artifacts_macos
+      - run_infra_test
+  macos_component_infra_test:
+    executor: macos_executor
+    steps:
+      - checkout
+      - macos_pre_setup
+      - restore_artifacts_macos
+      - run_component_test_wrapper:
+          target_folder: tests/component/infra/
+          testmon_prefix: component_infra
+  macos_component_io_test:
+    executor: macos_executor
+    steps:
+      - checkout
+      - macos_pre_setup
+      - restore_artifacts_macos
+      - run_component_test_wrapper:
+          target_folder: tests/component/io/
+          testmon_prefix: component_io
+  macos_component_ml_test:
+    executor: macos_executor
+    steps:
+      - checkout
+      - macos_pre_setup
+      - restore_artifacts_macos
+      - run_component_test_wrapper:
+          target_folder: tests/component/ml/
+          testmon_prefix: component_ml
+  macos_component_stats_test:
+    executor: macos_executor
+    steps:
+      - checkout
+      - macos_pre_setup
+      - restore_artifacts_macos
+      - run_component_test_wrapper:
+          target_folder: tests/component/stats/
+          testmon_prefix: component_stats
+  macos_component_preprocessing_test:
+    executor: macos_executor
+    steps:
+      - checkout
+      - macos_pre_setup
+      - restore_artifacts_macos
+      - run_component_test_wrapper:
+          target_folder: tests/component/preprocessing
+          testmon_prefix: component_processing
+  macos_ml_sim_test:
+    executor: macos_executor
+    steps:
+      - checkout
+      - macos_pre_setup
+      - restore_artifacts_macos
+      - run_ml_sim_test
+  macos_other_sim_test:
+    executor: macos_executor
+    steps:
+      - checkout
+      - macos_pre_setup
+      - restore_artifacts_macos
+      - run_other_sim_test
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
@@ -562,5 +642,35 @@ workflows:
             - linux_build-<<matrix.resource_class>>
       - macos_build
       - macos_ml_test:
+          requires:
+            - macos_build
+      - macos_preprocessing_test:
+          requires:
+            - macos_build
+      - macos_stats_test:
+          requires:
+            - macos_build
+      - macos_infra_test:
+          requires:
+            - macos_build
+      - macos_component_infra_test:
+          requires:
+            - macos_build
+      - macos_component_io_test:
+          requires:
+            - macos_build
+      - macos_component_ml_test:
+          requires:
+            - macos_build
+      - macos_component_stats_test:
+          requires:
+            - macos_build
+      - macos_component_preprocessing_test:
+          requires:
+            - macos_build
+      - macos_ml_sim_test:
+          requires:
+            - macos_build
+      - macos_other_sim_test:
           requires:
             - macos_build
