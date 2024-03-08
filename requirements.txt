@@ -31,7 +31,7 @@ setuptools>=65.5.1  # FEATURE=[lite]
 # For security reason.
 certifi>=2023.7.22  # FEATURE=[lite]
 sparse>=0.14.0
-spu==0.8.0.dev20240227  # FEATURE=[lite]
+spu==0.8.0b0 # FEATURE=[lite]
 sf-heu==0.5.0.b0 # FEATURE=[lite]
 secretflow_serving_lib==0.2.0dev20240227; platform_system != "Darwin" # FEATURE=[lite]
 tensorflow-macos>=2.11,<2.12; platform_system == "Darwin"
