@@ -481,6 +481,7 @@ workflows:
   build_and_test:
     jobs:
       - linux_build:
+          name: linux_build-<<matrix.resource_class>>
           matrix:
             parameters:
               resource_class: ["2xlarge", "arm.2xlarge"]
