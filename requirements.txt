@@ -14,7 +14,7 @@ networkx==2.8.8
 numba==0.57.0  # FEATURE=[lite]
 numpy==1.23.5  # FEATURE=[lite]
 # TODO: onnx and tensorflow have dependency conflicts, waiting for upstream to resolve
-# onnx==1.13.1
+onnx==1.13.1
 pandas==1.5.3  # FEATURE=[lite]
 tabulate # FEATURE=[lite]
 # For security reason.
