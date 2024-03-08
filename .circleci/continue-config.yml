@@ -72,6 +72,27 @@ commands:
             sleep 3600
             echo "Canceling workflow as too much time has elapsed"
             curl -X POST --header "Content-Type: application/json" "https://circleci.com/api/v2/workflow/${CIRCLE_WORKFLOW_ID}/cancel?circle-token=${BUILD_TIMER_TOKEN}"
+  macos_pre_setup:
+    steps:
+      - run:
+          name: Install brew dependencies
+          command: brew install wget libomp
+      - run:
+          name: Install miniconda
+          command: |
+            wget https://repo.anaconda.com/miniconda/Miniconda3-py310_24.1.2-0-MacOSX-arm64.sh -O ~/miniconda.sh
+            bash ~/miniconda.sh -b -p $HOME/miniconda
+            source $HOME/miniconda/bin/activate
+            conda init zsh
+  restore_artifacts_macos:
+    steps:
+      - attach_workspace:
+          at: /root/project/
+      - run:
+          name: copy library
+          command: |
+            cp artifacts/_lib_$arch.so  secretflow/security/privacy/
+            mv secretflow/security/privacy/_lib_macos.so secretflow/security/privacy/_lib.so
   restore_artifacts_linux:
     steps:
       - attach_workspace:
@@ -305,7 +326,7 @@ jobs:
                   conda init
                   mkdir -p artifacts
                   bazel build //secretflow_lib/binding/... -c opt
-                  mv bazel-bin/secretflow_lib/binding/_lib.so artifacts/_lib_mac.so
+                  mv bazel-bin/secretflow_lib/binding/_lib.so artifacts/_lib_macos.so
                   pip install -r requirements.txt
                   pip install -r dev-requirements.txt
             - persist_to_workspace:
@@ -447,7 +468,13 @@ jobs:
       - checkout
       - restore_artifacts_linux
       - run_other_sim_test
-
+  macos_ml_test:
+    executor: macos_executor
+    steps:
+      - checkout
+      - macos_pre_setup
+      - restore_artifacts_macos
+      - run_ml_test
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
@@ -457,7 +484,6 @@ workflows:
           matrix:
             parameters:
               resource_class: ["2xlarge", "arm.2xlarge"]
-      # - macos_build
       - linux_ml_test:
           matrix:
             parameters:
@@ -524,3 +550,7 @@ workflows:
               resource_class: ["2xlarge+", "arm.2xlarge"]
           requires:
             - linux_build
+      - macos_build
+      - macos_ml_test:
+          requires:
+            - macos_build
