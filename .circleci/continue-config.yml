@@ -87,7 +87,7 @@ commands:
   restore_artifacts_macos:
     steps:
       - attach_workspace:
-          at: /root/project/
+          at: .
       - run:
           name: copy library
           command: |
@@ -96,7 +96,7 @@ commands:
   restore_artifacts_linux:
     steps:
       - attach_workspace:
-          at: /root/project/
+          at: .
       - run:
           name: copy library
           command: |
@@ -283,7 +283,7 @@ jobs:
                   mkdir -p artifacts
                   pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
             - persist_to_workspace:
-                root: /root/project/
+                root: .
                 paths: 
                   - artifacts
             - save_cache:
