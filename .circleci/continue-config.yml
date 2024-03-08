@@ -281,9 +281,7 @@ jobs:
                   conda init
                   arch=$(uname -i)
                   mkdir -p artifacts
-                  sed -i "s/tensorflow==/tensorflow-cpu==/g" requirements.txt
                   pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
-                  git checkout requirements.txt
             - persist_to_workspace:
                 root: /root/project/
                 paths: 
