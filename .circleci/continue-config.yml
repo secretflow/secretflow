@@ -129,6 +129,15 @@ commands:
           command: |
             conda init
             pytest --testmon --env <<parameters.mode>>  -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  << parameters.target_folder >>
+            status=$?
+            # return test status
+            # https://docs.pytest.org/en/7.1.x/reference/exit-codes.html
+            # Exit code 5 No tests were collected
+            if [ $status -eq 0 ] || [ $status -eq 5 ];then
+              exit 0
+            else
+              exit $status
+            fi
       - store_test_results:
           path: ./results.xml
       - save_cache:
@@ -318,7 +327,6 @@ jobs:
                 command: |
                   conda init
                   pip install -r requirements.txt
-                  pip install -r dev-requirements.txt
             - run:
                 name: "build shared library"
                 command: |
