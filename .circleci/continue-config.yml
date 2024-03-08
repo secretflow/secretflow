@@ -318,7 +318,6 @@ jobs:
                 name: Install python dependencies
                 command: |
                   conda init
-                  pip install onnx==1.13.1
                   pip install -r requirements.txt
                   pip install -r dev-requirements.txt
             - run:
