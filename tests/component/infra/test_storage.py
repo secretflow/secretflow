@@ -22,7 +22,7 @@ def build_s3_config():
     arch = "amd64"
     if platform.system() == "Darwin":
         system = "darwin"
-    if platform.machine() == "arm64":
+    if platform.machine() == "arm64" or platform.machine() == "aarch64":
         arch = "arm64"
     urllib.request.urlretrieve(
         f"https://dl.min.io/server/minio/release/{system}-{arch}/minio",
