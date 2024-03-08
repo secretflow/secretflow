@@ -489,67 +489,67 @@ workflows:
             parameters:
               resource_class: ["2xlarge+", "arm.2xlarge"]
           requires:
-            - linux_build
+            - linux_build-<<parameters.resource_class>>
       - linux_ml_sim_test:
           matrix:
             parameters:
               resource_class: ["2xlarge+", "arm.2xlarge"]
           requires:
-            - linux_build
+            - linux_build-<<parameters.resource_class>>
       - linux_preprocessing_test:
           matrix:
             parameters:
               resource_class: ["2xlarge+", "arm.2xlarge"]
           requires:
-            - linux_build
+            - linux_build-<<parameters.resource_class>>
       - linux_stats_test:
           matrix:
             parameters:
               resource_class: ["2xlarge+", "arm.2xlarge"]
           requires:
-            - linux_build
+            - linux_build-<<parameters.resource_class>>
       - linux_infra_test:
           matrix:
             parameters:
               resource_class: ["2xlarge+", "arm.2xlarge"]
           requires:
-            - linux_build
+            - linux_build-<<parameters.resource_class>>
       - linux_component_infra_test:
           matrix:
             parameters:
               resource_class: ["2xlarge+", "arm.2xlarge"]
           requires:
-            - linux_build
+            - linux_build-<<parameters.resource_class>>
       - linux_component_io_test:
           matrix:
             parameters:
               resource_class: ["2xlarge+", "arm.2xlarge"]
           requires:
-            - linux_build
+            - linux_build-<<parameters.resource_class>>
       - linux_component_ml_test:
           matrix:
             parameters:
               resource_class: ["2xlarge+", "arm.2xlarge"]
           requires:
-            - linux_build
+            - linux_build-<<parameters.resource_class>>
       - linux_component_stats_test:
           matrix:
             parameters:
               resource_class: ["2xlarge+", "arm.2xlarge"]
           requires:
-            - linux_build
+            - linux_build-<<parameters.resource_class>>
       - linux_component_preprocessing_test:
           matrix:
             parameters:
               resource_class: ["2xlarge+", "arm.2xlarge"]
           requires:
-            - linux_build
+            - linux_build-<<parameters.resource_class>>
       - linux_other_sim_test:
           matrix:
             parameters:
               resource_class: ["2xlarge+", "arm.2xlarge"]
           requires:
-            - linux_build
+            - linux_build-<<parameters.resource_class>>
       - macos_build
       - macos_ml_test:
           requires:
