@@ -91,7 +91,7 @@ commands:
       - run:
           name: copy library
           command: |
-            cp artifacts/_lib_$arch.so  secretflow/security/privacy/
+            cp artifacts/_lib_macos.so  secretflow/security/privacy/
             mv secretflow/security/privacy/_lib_macos.so secretflow/security/privacy/_lib.so
   restore_artifacts_linux:
     steps:
@@ -335,7 +335,7 @@ jobs:
             - save_cache:
                 key: *pip-cache
                 paths:
-                  - $HOME/miniconda/lib/python3.10/site-packages
+                  - /Users/distiller/miniconda/lib/python3.10/site-packages
   linux_ml_test:
     parameters:
       resource_class:

@@ -10,6 +10,7 @@ import urllib
 from dataclasses import dataclass
 
 import multiprocess
+import plaform
 import pytest
 
 import secretflow as sf
@@ -564,8 +565,17 @@ def comp_prod_sf_cluster_config(request, sf_party_for_4pc):
 
     minio_server = os.path.join(minio_path, "minio")
     if not os.path.exists(minio_server) or not os.path.isfile(minio_server):
+        arch = "linux-amd64"
+        if plaform.system() == "Darwin":
+            if plaform.machine() == 'arm64':
+                arch = "darwin-arm64"
+            else:
+                arch = "darwin-amd64"
+        else:
+            if plaform.machine() == 'arm64':
+                arch = "linux-arm64"
         urllib.request.urlretrieve(
-            "https://dl.min.io/server/minio/release/linux-amd64/minio",
+            f"https://dl.min.io/server/minio/release/{arch}/minio",
             minio_server,
         )
         st = os.stat(minio_server)
