@@ -3,7 +3,7 @@ import torch.optim as optim
 from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader, TensorDataset
 from torchmetrics import Accuracy, Precision, Recall
-from secretflow.ml.nn.fl.backend.torch.strategy.fed_per import FedPer
+from secretflow.ml.nn.experimental.fl.backend.torch.strategy.fed_per import FedPer
 from tests.ml.nn.fl.model_def import ConvNet
 
 
