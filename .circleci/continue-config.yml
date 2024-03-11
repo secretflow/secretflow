@@ -128,18 +128,8 @@ commands:
       - run:
           name: "Run tests"
           command: |
-            set -ex
             conda init
-            pytest --testmon --env <<parameters.mode>>  -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  << parameters.target_folder >>
-            status=$?
-            # return test status
-            # https://docs.pytest.org/en/7.1.x/reference/exit-codes.html
-            # Exit code 5 No tests were collected
-            if [ $status -eq 0 ] || [ $status -eq 5 ];then
-              exit 0
-            else
-              exit $status
-            fi
+            pytest --suppress-no-test-exit-code --testmon --env <<parameters.mode>>  -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  << parameters.target_folder >>
       - store_test_results:
           path: ./results.xml
       - save_cache:
@@ -271,81 +261,73 @@ jobs:
       resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - when:
-          condition:
-              << pipeline.parameters.base >>
-          steps:
-            - restore_cache:
-                name: restore pip cache
-                key: &pip-cache pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
-            - run:
-                name: build shared library
-                command: |
-                  conda init
-                  arch=$(uname -i)
-                  mkdir -p artifacts
-                  bazel build //secretflow_lib/binding/... -c opt
-                  mv bazel-bin/secretflow_lib/binding/_lib.so artifacts/_lib_$arch.so
-            - run:
-                name: Install python deps
-                command: |
-                  conda init
-                  arch=$(uname -i)
-                  mkdir -p artifacts
-                  pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
-            - persist_to_workspace:
-                root: .
-                paths: 
-                  - artifacts
-            - save_cache:
-                key: *pip-cache
-                paths:
-                  - /root/miniconda3/lib/python3.10/site-packages
+      - restore_cache:
+          name: restore pip cache
+          key: &pip-cache pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
+      - run:
+          name: build shared library
+          command: |
+            conda init
+            arch=$(uname -i)
+            mkdir -p artifacts
+            bazel build //secretflow_lib/binding/... -c opt
+            mv bazel-bin/secretflow_lib/binding/_lib.so artifacts/_lib_$arch.so
+      - run:
+          name: Install python deps
+          command: |
+            conda init
+            arch=$(uname -i)
+            mkdir -p artifacts
+            pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
+      - persist_to_workspace:
+          root: .
+          paths: 
+            - artifacts
+      - save_cache:
+          key: *pip-cache
+          paths:
+            - /root/miniconda3/lib/python3.10/site-packages
   macos_build:
     executor: macos_executor
     steps:
       - checkout
-      - when:
-          condition: 
-              << pipeline.parameters.base >>
-          steps:
-            - run:
-                name: "Install homebrew dependencies"
-                command: |
-                  brew install bazelisk cmake ninja libomp wget protobuf@3
-                  echo 'export PATH="/opt/homebrew/opt/protobuf@3/bin:$PATH"' >> /Users/distiller/.bash_profile
-            - run:
-                name: "Install Miniconda"
-                command: |
-                  wget https://repo.anaconda.com/miniconda/Miniconda3-py310_24.1.2-0-MacOSX-arm64.sh -O ~/miniconda.sh
-                  bash ~/miniconda.sh -b -p $HOME/miniconda
-                  source $HOME/miniconda/bin/activate
-                  conda init zsh bash
-            - restore_cache:
-                name: restore pip cache
-                key: &pip-cache pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
-            - run:
-                name: Install python dependencies
-                command: |
-                  conda init
-                  pip install -r requirements.txt
-            - run:
-                name: "build shared library"
-                command: |
-                  conda init
-                  mkdir -p artifacts
-                  bazel build //secretflow_lib/binding/... -c opt
-                  mv bazel-bin/secretflow_lib/binding/_lib.so artifacts/_lib_macos.so
-                  pip install -r requirements.txt
-                  pip install -r dev-requirements.txt
-            - persist_to_workspace:
-                root: .
-                paths:
-                  - artifacts
-            - save_cache:
-                key: *pip-cache
-                paths:
-                  - /Users/distiller/miniconda/lib/python3.10/site-packages
+      - run:
+          name: "Install homebrew dependencies"
+          command: |
+            brew install bazelisk cmake ninja libomp wget protobuf@3
+            echo 'export PATH="/opt/homebrew/opt/protobuf@3/bin:$PATH"' >> /Users/distiller/.bash_profile
+      - run:
+          name: "Install Miniconda"
+          command: |
+            wget https://repo.anaconda.com/miniconda/Miniconda3-py310_24.1.2-0-MacOSX-arm64.sh -O ~/miniconda.sh
+            bash ~/miniconda.sh -b -p $HOME/miniconda
+            source $HOME/miniconda/bin/activate
+            conda init zsh bash
+      - restore_cache:
+          name: restore pip cache
+          key: &pip-cache pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
+      - run:
+          name: Install python dependencies
+          command: |
+            conda init
+            pip install -r requirements.txt
+      - run:
+          name: "build shared library"
+          command: |
+            conda init
+            mkdir -p artifacts
+            bazel build //secretflow_lib/binding/... -c opt
+            mv bazel-bin/secretflow_lib/binding/_lib.so artifacts/_lib_macos.so
+            pip install -r requirements.txt
+            pip install -r dev-requirements.txt
+      - persist_to_workspace:
+          root: .
+          paths:
+            - artifacts
+      - save_cache:
+          key: *pip-cache
+          paths:
+            - /Users/distiller/miniconda/lib/python3.10/site-packages
   linux_ml_test:
     parameters:
       resource_class:
