@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from abc import ABC
-from typing import Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np
 import torch
@@ -33,7 +33,7 @@ class Cifar10ApplicationBase(ApplicationBase, ABC):
         config,
         alice,
         bob,
-        epoch=10,
+        epoch=20,
         train_batch_size=128,
         hidden_size=10,
         dnn_fuse_units_size=None,
@@ -215,3 +215,10 @@ class Cifar10ApplicationBase(ApplicationBase, ABC):
             train_poison_np,
             eval_poison_set,
         )
+
+    def resources_consumes(self) -> List[Dict]:
+        # use 1 gpu per trail.
+        return [
+            {'alice': 0.5, 'CPU': 0.5, 'GPU': 0.005, 'gpu_mem': 6 * 1024 * 1024 * 1024},
+            {'bob': 0.5, 'CPU': 0.5, 'GPU': 0.005, 'gpu_mem': 6 * 1024 * 1024 * 1024},
+        ]

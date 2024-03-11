@@ -194,8 +194,7 @@ class PipelineTorchModel(SLBaseTorchModel):
         for m in self.metrics_fuse:
             logs['train_' + m.__class__.__name__] = m.compute().numpy()
         self.logs = logs
-
-        return gradient
+        self._gradient = gradient
 
 
 @register_strategy(strategy_name='pipeline', backend='torch')

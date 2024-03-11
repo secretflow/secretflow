@@ -24,12 +24,37 @@ import torch
 from torch import nn, optim
 from torch.nn.modules.loss import _Loss as BaseTorchLoss
 from torchmetrics import Metric
+from torch.nn.modules.batchnorm import _BatchNorm
 
 
 class BaseModule(ABC, nn.Module):
     @abstractmethod
     def forward(self, x):
         pass
+
+    def get_weights_not_bn(self, return_numpy=False):
+        clean_state_dict = {}
+        for k, v in self.state_dict().items():
+            layername = k.split('.')[0]
+            if not isinstance(getattr(self, layername), _BatchNorm):
+                clean_state_dict[k] = torch.Tensor(v)
+        if not return_numpy:
+            return {k: v.cpu() for k, v in clean_state_dict.items()}
+        else:
+            weights_list = []
+            for k, v in clean_state_dict.items():
+                weights_list.append(v.cpu().numpy())
+            return [e.copy() for e in weights_list]
+
+    def update_weights_not_bn(self, weights):
+        keys = self.state_dict().keys()
+        weights_dict = {}
+        for k, v in zip(keys, weights):
+            layername = k.split('.')[0]
+            if not isinstance(getattr(self, layername), _BatchNorm):
+                weights_dict[k] = torch.Tensor(np.copy(v))
+
+        self.load_state_dict(weights_dict, strict=False)
 
     def get_weights(self, return_numpy=False):
         if not return_numpy:
@@ -39,9 +64,6 @@ class BaseModule(ABC, nn.Module):
             for v in self.state_dict().values():
                 weights_list.append(v.cpu().numpy())
             return [e.copy() for e in weights_list]
-
-    def set_weights(self, weights):
-        self.load_state_dict(weights)
 
     def update_weights(self, weights):
         keys = self.state_dict().keys()

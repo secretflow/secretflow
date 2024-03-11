@@ -81,7 +81,7 @@ class AttackCase(ABC):
             Application search space + attack search space.
         """
         search_space = {
-            'train_batch_size': [64, 128, 256],
+            'train_batch_size': [64, 128],
             'alice_fea_nums': self.config_app.alice_feature_nums_range(),
             'hidden_size': self.config_app.hidden_size_range(),
             'dnn_base_units_size_alice': self.config_app.dnn_base_units_size_range_alice(),
@@ -116,14 +116,18 @@ class AttackCase(ABC):
         app_search_space.update(attack_search_space)
 
         for k, v in search_space.items():
-            if v is not None and isinstance(v, list):
-                if len(v) > 1:
-                    app_search_space[k] = tune.search.grid_search(v)
-            else:
+            if isinstance(v, list):
+                app_search_space[k] = tune.search.grid_search(v)
+            elif v is not None:
                 # need any config even is None, since None will rewrite the default configs.
                 app_search_space[k] = v
+        total_trial_nums = 1
+        for v in search_space.values():
+            if v is not None and isinstance(v, list):
+                total_trial_nums *= len(v)
         logging.warning(
-            f"The {type(self.config_app).__name__} {type(self).__name__} search space is {app_search_space}"
+            f"Search space (with total {total_trial_nums} trails) of "
+            f"{type(self.config_app).__name__} {type(self).__name__} is {app_search_space}"
         )
         return app_search_space
 

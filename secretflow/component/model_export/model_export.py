@@ -14,8 +14,10 @@
 
 import base64
 import uuid
-from typing import List
+from collections import defaultdict
+from typing import Dict, List, Set
 
+import numpy as np
 from google.protobuf import json_format
 
 from secretflow.component.component import CompEvalError, Component, IoType
@@ -23,11 +25,12 @@ from secretflow.component.data_utils import DistDataType, extract_table_header
 from secretflow.device import PYU, reveal
 from secretflow.spec.v1.data_pb2 import DistData
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
+from secretflow.spec.v1.report_pb2 import Report
 
 from .serving_utils import (
     GraphBuilderManager,
-    preprocessing_converter,
-    train_model_converter,
+    PreprocessingConverter,
+    TrainModelConverter,
 )
 
 model_export_comp = Component(
@@ -97,6 +100,13 @@ model_export_comp.io(
     types=[DistDataType.SERVING_MODEL],
 )
 
+model_export_comp.io(
+    io_type=IoType.OUTPUT,
+    name="report",
+    desc="report dumped model's input schemas",
+    types=[DistDataType.REPORT],
+)
+
 
 def get_comp_def(domain: str, name: str, version: str):
     from secretflow.component.entry import get_comp_def
@@ -115,16 +125,56 @@ def get_init_pyus(input_datasets, component_eval_params) -> List[PYU]:
     )
     assert len(v_headers) > 0
 
-    return [PYU(p) for p in v_headers]
+    return [PYU(p) for p in v_headers], v_headers
 
 
 class CompConverter:
-    def __init__(self, ctx, pyus: List[PYU], spu_config):
+    def __init__(
+        self,
+        ctx,
+        pyus: List[PYU],
+        spu_config,
+        input_schemas: Dict[str, Dict[str, np.dtype]],
+    ):
         self.ctx = ctx
         self.graph_builders = GraphBuilderManager(pyus)
         self.phase = "init"
         self.node_id = 0
         self.spu_config = spu_config
+        self.input_schemas = {
+            p: {c for c in v.keys()} for p, v in input_schemas.items()
+        }
+        self.converters = []
+        self.schema_infos_cache = []
+        self.used_schemas = defaultdict(set)
+        self.deleted_schemas = defaultdict(set)
+        self.derived_schemas = defaultdict(set)
+
+    def _update_preprocessing_schema_info(
+        self, schema_info: Dict[str, Dict[str, Set[str]]]
+    ):
+        for party in schema_info:
+            used = schema_info[party]["used"]
+            deleted = schema_info[party]["deleted"]
+            derived = schema_info[party]["derived"]
+            used = used - self.deleted_schemas[party]
+            used = used - self.derived_schemas[party]
+            self.used_schemas[party].update(used)
+            self.deleted_schemas[party].update(deleted)
+            self.derived_schemas[party] = self.derived_schemas[party] - deleted
+            self.derived_schemas[party].update(derived)
+
+    def _updata_train_shcema_info(self, schema_info: Dict[str, List[str]]):
+        for party in schema_info:
+            used = schema_info[party]["used"]
+            used = used - self.deleted_schemas[party]
+            used = used - self.derived_schemas[party]
+            self.used_schemas[party].update(used)
+            assert party in self.input_schemas
+            assert self.used_schemas[party].issubset(self.input_schemas[party])
+        # schema trace is over
+        del self.deleted_schemas
+        del self.derived_schemas
 
     def convert_comp(
         self, param: NodeEvalParam, in_ds: List[DistData], out_ds: List[DistData]
@@ -148,7 +198,7 @@ class CompConverter:
         self.node_id += 1
         if param.domain == "preprocessing":
             self.phase = "preprocessing"
-            preprocessing_converter(
+            converter = PreprocessingConverter(
                 ctx=self.ctx,
                 builder=self.graph_builders,
                 node_id=self.node_id,
@@ -156,9 +206,13 @@ class CompConverter:
                 in_ds=in_ds,
                 out_ds=out_ds,
             )
+            schema_info = converter.schema_info()
+            self._update_preprocessing_schema_info(schema_info)
+            self.converters.append(converter)
+            self.schema_infos_cache.append(schema_info)
         elif param.domain in ["ml.train", "ml.predict"]:
             self.phase = "ml"
-            train_model_converter(
+            converter = TrainModelConverter(
                 ctx=self.ctx,
                 builder=self.graph_builders,
                 node_id=self.node_id,
@@ -167,11 +221,34 @@ class CompConverter:
                 in_ds=in_ds,
                 out_ds=out_ds,
             )
+            schema_info = converter.schema_info()
+            self._updata_train_shcema_info(schema_info)
+            self.converters.append(converter)
+            self.schema_infos_cache.append(schema_info)
         else:
             # TODO: postprocessing
             raise AttributeError(f"not support domain {param.domain}")
 
     def dump_tar_files(self, name, desc, uri) -> None:
+        assert self.phase in ["ml", "postprocessing"]
+        traced_input = self.used_schemas
+        for i, c in enumerate(self.converters):
+            schema_info = self.schema_infos_cache[i]
+            for party in traced_input:
+                assert party in schema_info
+                assert schema_info[party]["used"].issubset(traced_input[party])
+
+            traced_output = dict()
+            if isinstance(c, PreprocessingConverter):
+                for party in traced_input:
+                    traced_output[party] = (
+                        traced_input[party] - schema_info[party]["deleted"]
+                    )
+                    traced_output[party].update(schema_info[party]["derived"])
+
+            c.convert(traced_input, traced_output)
+            traced_input = traced_output
+
         self.graph_builders.dump_tar_files(name, desc, self.ctx, uri)
 
 
@@ -185,6 +262,7 @@ def model_export_comp_fn(
     output_datasets,
     component_eval_params,
     package_output,
+    report,
 ):
     if ctx.spu_configs is None or len(ctx.spu_configs) == 0:
         raise CompEvalError("spu config is not found.")
@@ -203,8 +281,8 @@ def model_export_comp_fn(
     # TODO: assert system_info
     system_info = input_datasets[0].system_info
 
-    pyus = get_init_pyus(input_datasets, component_eval_params)
-    builder = CompConverter(ctx, pyus, spu_config)
+    pyus, complete_schemas = get_init_pyus(input_datasets, component_eval_params)
+    builder = CompConverter(ctx, pyus, spu_config, complete_schemas)
 
     for param in component_eval_params:
         comp_def = get_comp_def(param.domain, param.name, param.version)
@@ -231,4 +309,18 @@ def model_export_comp_fn(
         ],
     )
 
-    return {"package_output": model_dd}
+    used = builder.used_schemas
+
+    report_mate = Report(
+        name="used schemas",
+        desc=",".join([s for ss in used.values() for s in ss]),
+    )
+
+    report_dd = DistData(
+        name=report,
+        type=str(DistDataType.REPORT),
+        system_info=system_info,
+    )
+    report_dd.meta.Pack(report_mate)
+
+    return {"package_output": model_dd, "report": report_dd}

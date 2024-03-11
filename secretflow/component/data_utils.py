@@ -593,6 +593,35 @@ def get_model_public_info(dist_data: DistData):
     return json.loads(model_info["public_info"])
 
 
+def model_meta_info(
+    dist_data: DistData,
+    max_major_version: int,
+    max_minor_version: int,
+    model_type: str,
+    # TODO: assert system_info
+    # system_info: SystemInfo = None,
+) -> Tuple[List[DeviceObject], str]:
+    assert dist_data.type == model_type
+    model_meta = DeviceObjectCollection()
+    assert dist_data.meta.Unpack(model_meta)
+
+    model_info = json.loads(model_meta.public_info)
+
+    assert (
+        isinstance(model_info, dict)
+        and "major_version" in model_info
+        and "minor_version" in model_info
+        and "public_info" in model_info
+    )
+
+    assert (
+        max_major_version >= model_info["major_version"]
+        and max_minor_version >= model_info["minor_version"]
+    ), "not support model version"
+
+    return model_info["public_info"]
+
+
 def model_loads(
     ctx,
     dist_data: DistData,

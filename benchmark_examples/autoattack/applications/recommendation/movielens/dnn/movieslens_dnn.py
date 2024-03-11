@@ -31,11 +31,11 @@ class MovielensDnn(MovielensBase):
             config,
             alice,
             bob,
-            epoch=10,
+            epoch=4,
             train_batch_size=128,
             hidden_size=hidden_size,
             dnn_base_units_size_alice=[256, hidden_size],
-            dnn_base_units_size_bob=None,
+            dnn_base_units_size_bob=[256, hidden_size],
             dnn_fuse_units_size=[1],
             dnn_embedding_dim=16,
         )
@@ -87,14 +87,17 @@ class MovielensDnn(MovielensBase):
             output_func=nn.Sigmoid,
         )
 
-    def dnn_base_units_size_range_alice(self) -> Optional[list]:
-        return [[100, 64]]
+    def hidden_size_range(self) -> list:
+        return [64, 128]
+
+    def dnn_base_units_size_range_alice(self) -> Optional[List[List[int]]]:
+        return [[256, -1], [256, 128, -1]]
 
     def dnn_base_units_size_range_bob(self) -> Optional[list]:
         return None
 
     def dnn_fuse_units_size_range(self) -> Optional[list]:
-        return [[1]]
+        return [[1], [256, 128, 1]]
 
     def dnn_embedding_dim_range(self) -> Optional[List[int]]:
-        return [16]
+        return [8]

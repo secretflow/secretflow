@@ -2966,6 +2966,13 @@
           "types": [
             "sf.serving.model"
           ]
+        },
+        {
+          "name": "report",
+          "desc": "report dumped model's input schemas",
+          "types": [
+            "sf.report"
+          ]
         }
       ]
     },

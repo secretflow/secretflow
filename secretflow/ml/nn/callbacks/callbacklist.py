@@ -53,7 +53,6 @@ class CallbackList:
                     history=self.history,
                 )
             )
-
         # for early stopping
         for callback in self.callbacks:
             if isinstance(callback, EarlyStoppingBase):

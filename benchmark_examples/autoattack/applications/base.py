@@ -114,6 +114,21 @@ class ApplicationBaseAPI(object):
         """
         pass
 
+    @abstractmethod
+    def resources_consumes(self) -> List[Dict]:
+        """
+        How much this application requires to consume.
+        Must contain 'alice', 'bob', 'CPU', 'GPU'.
+        The value of GPU can represent the percentage of GPU memory used.
+        Returns:
+            A list of dict like:
+            [
+                {'alice': 1, 'CPU': 1, 'GPU': 0.1},
+                {'bob': 1, 'CPU': 1, 'GPU': 1},
+            ]
+        """
+        pass
+
     def hidden_size_range(self) -> Optional[list]:
         """
         To automate the hidden size.
@@ -361,10 +376,11 @@ class ApplicationBase(ApplicationBaseAPI, ABC):
             dnn_base_units_size_bob_
         )
         if (
-            self.dnn_base_units_size_bob is None
-            and self.dnn_base_units_size_alice is not None
+            'dnn_base_units_size_bob' not in config
+            and 'dnn_base_units_size_alice' in config
         ):
-            # when find bob side is None in tunning, then consider bob side same with alice side.
+            # when find bob side's dnn units size is not exists in config but alice exists,
+            # then consider bob side same with alice side.
             self.dnn_base_units_size_bob = self.dnn_base_units_size_alice
         self.dnn_fuse_units_size = config.get(
             'dnn_fuse_units_size', dnn_fuse_units_size
@@ -398,7 +414,7 @@ class ApplicationBase(ApplicationBaseAPI, ABC):
         """
         The user does not know the hidden size before tune dnn units size,
         so the units size is replaced by -1.
-        If find negative value, this function will replace them into self.hidden_size.
+        When find negative value, this function will replace them into self.hidden_size.
         For example, -1 will be replacedd by hidden_size, -2 will be replaced by 2 * hidden_size.
         Args:
             units_size: List of int of dnn units size.
@@ -441,6 +457,7 @@ class ApplicationBase(ApplicationBaseAPI, ABC):
             model_fuse=self.create_fuse_model(),
             backend='torch',
             num_gpus=0.001 if global_config.is_use_gpu() else 0,
+            random_seed=global_config.get_random_seed(),
         )
         shuffle = kwargs.get('shuffle', False)
         history = self.sl_model.fit(
@@ -528,7 +545,7 @@ class ApplicationBase(ApplicationBaseAPI, ABC):
     def get_device_f_fea_nums(self):
         assert (
             self.alice_fea_nums >= 0 and self.bob_fea_nums >= 0
-        ), f"alice/bob's fea_nums need to init in ApplicationBase subcalss! got {self.abob_fea_numslice_fea_nums}, {self.bob_fea_nums}"
+        ), f"alice/bob's fea_nums need to init in ApplicationBase subcalss! got {self.alice_fea_nums}, {self.bob_fea_nums}"
         return self.alice_fea_nums if self.device_f == self.alice else self.bob_fea_nums
 
     def get_total_fea_nums(self):

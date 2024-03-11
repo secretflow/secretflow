@@ -62,7 +62,27 @@ class ConvNet(BaseModule):
         self.fc = nn.Linear(self.fc_in_dim, 10)
 
     def forward(self, x):
-        x = F.relu(F.max_pool2d(self.conv1(x), 3))
+        x = self.conv1(x)
+        x = F.relu(F.max_pool2d(x, 3))
+        x = x.view(-1, self.fc_in_dim)
+        x = F.relu(self.fc(x))
+        return x
+
+
+class ConvNetBN(BaseModule):
+    """Small ConvNet with BN for MNIST."""
+
+    def __init__(self):
+        super(ConvNetBN, self).__init__()
+        self.conv1 = nn.Conv2d(1, 3, kernel_size=3)
+        self.bn = nn.BatchNorm2d(3)
+        self.fc_in_dim = 192
+        self.fc = nn.Linear(self.fc_in_dim, 10)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.bn(x)  # Apply BatchNorm after conv1
+        x = F.relu(F.max_pool2d(x, 3))
         x = x.view(-1, self.fc_in_dim)
         x = F.relu(self.fc(x))
         return x

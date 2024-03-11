@@ -17,8 +17,8 @@ version: 2.1
 setup: true
 
 orbs:
-  path-filtering: circleci/path-filtering@0.1.4
-  continuation: circleci/continuation@0.3.1
+  path-filtering: circleci/path-filtering@1.0.0
+  continuation: circleci/continuation@1.0.0
 
 parameters:
   GHA_Actor:
@@ -45,14 +45,34 @@ workflows:
           base-revision: main
           config-path: .circleci/continue-config.yml
           mapping: |
-            secretflow/.* build-and-run true
-            secretflow_lib/.* build-and-run true
-            tests/.* build-and-run true
-            .bazelrc build-and-run true
-            requirements.txt build-and-run true
-            requirements-dev.txt build-and-run true
-            WORKSPACE build-and-run true
-            .circleci/continue-config.yml build-and-run true
+            secretflow_lib/.*             base               true
+            WORKSPACE                     base               true
+            .bazelrc                      base               true
+            requirements.txt              base               true
+            requirements-dev.txt          base               true
+            .circleci/continue-config.yml base               true
+            secretflow/data/*             infra              true
+            secretflow/device/*           infra              true
+            secretflow/distributed/*      infra              true
+            secreflow/kuscia/*            infra              true
+            secretflow/security/*         infra              true
+            secretflow/utils/*            infra              true
+            secretflow/maths/*            sf_maths           true
+            secretflow/ml/*               sf_ml              true
+            secretflow/preprocessing/*    sf_preprocessing   true
+            secretflow/stats/*            sf_stats           true
+            secretflow/component/*        sf_component       true
+            secretflow/*                  sf_any             true
+            tests/ml/*                    test_ml            true
+            tests/preprocessing/*         test_preprocessing true
+            tests/stats/*                 test_stats         true
+            tests/data/*                  test_infra         true
+            tests/device/*                test_infra         true
+            tests/security/*              test_infra         true
+            tests/utils/*                 test_infra         true
+            tests/kuscia/*                test_infra         true
+            tests/component/*             test_component     true
+            tests/*                       test_any           true
   publish-workflow:
     when:
       equal: ["publish_pypi", << pipeline.parameters.GHA_Meta >>]

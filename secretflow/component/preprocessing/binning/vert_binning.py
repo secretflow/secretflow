@@ -339,14 +339,16 @@ def vert_bin_substitution_eval_fn(
         bin_rule[obj.device] = obj
 
     with ctx.tracer.trace_running():
-        output_df = VertBinSubstitution().substitution(input_df, bin_rule)
+        output_df, changed_columns = VertBinSubstitution().substitution(
+            input_df, bin_rule
+        )
 
     vt_wrapper = VerticalTableWrapper.from_dist_data(input_data, output_df.shape[0])
 
     # modify types of feature_selects to float
     for v in vt_wrapper.schema_map.values():
         for i, f in enumerate(list(v.features)):
-            if f in public_info['input_data_feature_selects']:
+            if f in changed_columns:
                 v.feature_types[i] = 'float32'
 
     # change cols from feature to label according to model public info.

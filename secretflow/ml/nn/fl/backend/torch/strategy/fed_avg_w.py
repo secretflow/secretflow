@@ -54,7 +54,7 @@ class FedAvgW(BaseTorchModel):
         if refresh_data:
             self._reset_data_iter()
         if weights is not None:
-            self.model.update_weights(weights)
+            self.set_weights(weights)
         num_sample = 0
         dp_strategy = kwargs.get('dp_strategy', None)
         logs = {}
@@ -95,7 +95,7 @@ class FedAvgW(BaseTorchModel):
             weights: global weight from params server
         """
         if weights is not None:
-            self.model.update_weights(weights)
+            self.set_weights(weights)
 
 
 @register_strategy(strategy_name='fed_avg_w', backend='torch')

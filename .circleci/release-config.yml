@@ -43,9 +43,7 @@ jobs:
             python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
   macOS_x64_publish:
     macos:
-      xcode: 14.2
-    environment:
-      HOMEBREW_NO_AUTO_UPDATE: 1
+      xcode: 15.1
     resource_class: macos.x86.medium.gen2
     parameters:
       python_ver:
@@ -78,9 +76,7 @@ jobs:
             python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
   macOS_arm64_publish:
     macos:
-      xcode: 14.2
-    environment:
-      HOMEBREW_NO_AUTO_UPDATE: 1
+      xcode: 15.1
     resource_class: macos.m1.large.gen1
     parameters:
       python_ver:
@@ -90,11 +86,11 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            brew install bazel cmake ninja libomp wget bazelisk
+            brew install cmake ninja libomp wget bazelisk
       - run:
           name: Install Miniconda
           command: |
-            wget https://repo.anaconda.com/miniconda/Miniconda3-py38_23.1.0-1-MacOSX-arm64.sh -O ~/miniconda.sh
+            wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.sh -O ~/miniconda.sh
             bash ~/miniconda.sh -b -p $HOME/miniconda
             source $HOME/miniconda/bin/activate
             conda init bash zsh
@@ -176,16 +172,15 @@ workflows:
       - linux_publish:
           matrix:
             parameters:
-              # python_ver: ["3.8", "3.9", "3.10", "3.11"]
-              python_ver: ["3.8"]
+              python_ver: ["3.9", "3.10", "3.11"]
       - macOS_x64_publish:
           matrix:
             parameters:
-              python_ver: ["3.8"]
+              python_ver: ["3.9", "3.10", "3.11"]
       - macOS_arm64_publish:
           matrix:
             parameters:
-              python_ver: ["3.8"]
+              python_ver: ["3.9", "3.10", "3.11"]
       - docker_image_publish:
           requires:
             - linux_publish

@@ -520,8 +520,9 @@ class SLModel:
                 # 3. Fusenet do local calculates and return gradients
                 callbacks.on_fuse_forward_begin()
                 # TODO(ian-huu): split fuse_net forward and backward for callbacks
-                gradients = self._workers[self.device_y].fuse_net(agg_hiddens)
+                self._workers[self.device_y].fuse_net(agg_hiddens)
                 callbacks.on_fuse_backward_end()
+                gradients = self._workers[self.device_y].set_gradient()
                 # In some strategies, we need to bypass the backpropagation step.
                 skip_gradient = False
                 if self.check_skip_grad:
@@ -535,7 +536,7 @@ class SLModel:
                     scatter_gradients = self.agglayer.backward(gradients)
                     callbacks.on_agglayer_backward_end(scatter_gradients)
                     [
-                        worker.recv_gradient(scatter_gradients[device])
+                        worker.get_gradient(scatter_gradients[device])
                         for device, worker in self._workers.items()
                         if device in scatter_gradients.keys()
                     ]

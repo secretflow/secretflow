@@ -163,8 +163,11 @@ class SLBaseTorchModel(SLBaseModel, ABC):
         else:
             return 0
 
-    def recv_gradient(self, gradient):
+    def get_gradient(self, gradient):
         self._gradient = gradient
+
+    def set_gradient(self):
+        return self._gradient
 
     def pack_forward_data(self):
         if not self.model_base:

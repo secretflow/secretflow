@@ -243,7 +243,10 @@ class TestController(object):
             if self.ver_case.source == "public"
             else self.ver_case.whl_paths
         )
-        ret.py_version = "3.8"
+
+        import sys
+
+        ret.py_version = sys.version
         ret.parties.extend(self.nodes.keys())
 
         spu = SFClusterDesc.DeviceDesc()

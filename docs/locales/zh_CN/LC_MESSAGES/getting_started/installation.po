@@ -71,7 +71,7 @@ msgid "Environment"
 msgstr "环境"
 
 #: ../../getting_started/installation.md:19
-msgid "Python：3.8"
+msgid "Python：3.10"
 msgstr ""
 
 #: ../../getting_started/installation.md:21
@@ -102,9 +102,9 @@ msgstr "请安装 [当前release](https://pypi.org/project/secretflow/) 。"
 
 #: ../../getting_started/installation.md:32
 msgid ""
-"Note that it requires python version == 3.8, you can create a virtual "
+"Note that it requires python version == 3.10, you can create a virtual "
 "environment with conda if not satisfied."
-msgstr "请注意python版本需要是3.8，你可以用conda构建一个虚拟环境。"
+msgstr "请注意python版本需要是3.10，你可以用conda构建一个虚拟环境。"
 
 #: ../../getting_started/installation.md:39
 msgid "After that, please use pip to install SecretFlow."

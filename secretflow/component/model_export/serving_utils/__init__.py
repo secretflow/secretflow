@@ -13,13 +13,13 @@
 # limitations under the License.
 
 from .graph_builder_manager import GraphBuilderManager
-from .preprocessing_converter import preprocessing_converter
+from .preprocessing_converter import PreprocessingConverter
 from .serving_graph import DispatchType
-from .train_model_converter import train_model_converter
+from .train_model_converter import TrainModelConverter
 
 __all__ = [
     GraphBuilderManager,
     DispatchType,
-    preprocessing_converter,
-    train_model_converter,
+    PreprocessingConverter,
+    TrainModelConverter,
 ]

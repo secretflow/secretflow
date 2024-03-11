@@ -14,7 +14,7 @@
 
 from abc import ABC
 from collections import OrderedDict
-from typing import Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np
 
@@ -131,8 +131,14 @@ class BankBase(ApplicationBase, ABC):
         return [1, 5, 9, 10, 15]
 
     def hidden_size_range(self) -> list:
-        return [32, 64, 128]
+        return [32, 64]
 
     def exploit_label_counts(self) -> Tuple[int, int]:
         neg, pos = np.bincount(self.plain_train_label['y'])
         return neg, pos
+
+    def resources_consumes(self) -> List[Dict]:
+        return [
+            {'alice': 0.5, 'CPU': 0.5, 'GPU': 0.001, 'gpu_mem': 500 * 1024 * 1024},
+            {'bob': 0.5, 'CPU': 0.5, 'GPU': 0.001, 'gpu_mem': 500 * 1024 * 1024},
+        ]

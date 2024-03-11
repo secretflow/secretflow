@@ -1,7 +1,7 @@
 # application configurations.
 applications:
   # which target to run (train/attack/auto).
-  mode: train
+  mode: auto
   # which dataset to run (all/bank/...)
   dataset: all
   # which model to run (all/bank/...)
@@ -14,13 +14,22 @@ applications:
   use_gpu: false
   # whether using debug mode to run sf or not
   debug_mode: true
+  # a random seed can be set to achieve reproducibility
+  random_seed: ~
+# path configurations.
 paths:
   # the dataset store path, you can put the datasets here, or will auto download.
   datasets: ~
   # the autoattack result store path.
   autoattack_path: ~
+# Resources configurations.
+# Only needed when using sim mode and need to indicate the cpu/gpu nums manually.
 resources:
   # how many CPUs do all your machines add up to.
   num_cpus: ~
   # how many CPUs do all your machines add up to (need applications.use_gpu = true).
-  num_gpus: ~
+  num_gpus: 2
+# When there are multiple ray clusters in your machine, specify one to connect.
+ray:
+  # the existing ray cluster's address for connection (ip:port).
+  address: ~
