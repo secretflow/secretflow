@@ -2,113 +2,675 @@
 # See: https://circleci.com/docs/2.0/configuration-reference
 version: 2.1
 parameters:
-  build-and-run:
+  base:
+    type: boolean
+    default: false
+  infra:
+    type: boolean
+    default: false
+  sf_maths:
+    type: boolean
+    default: false
+  sf_ml:
+    type: boolean
+    default: false
+  sf_preprocessing:
+    type: boolean
+    default: false
+  sf_stats:
+    type: boolean
+    default: false
+  sf_utils:
+    type: boolean
+    default: false
+  sf_component:
+    type: boolean
+    default: false
+  sf_any:
+    type: boolean
+    default: false
+  test_ml:
+    type: boolean
+    default: false
+  test_preprocessing:
+    type: boolean
+    default: false
+  test_stats:
+    type: boolean
+    default: false
+  test_infra:
+    type: boolean
+    default: false
+  test_component:
+    type: boolean
+    default: false
+  test_any:
     type: boolean
     default: false
 
-# Define a job to be invoked later in a workflow.
-# See: https://circleci.com/docs/2.0/configuration-reference/#jobs
-jobs:
-  linux_ut:
-    # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
-    # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
+executors:
+  linux_executor: # declares a reusable executor
+    parameters:
+      resource_class:
+        type: string
     docker:
       - image: secretflow/ubuntu-base-ci:latest
-    resource_class: 2xlarge+
+    resource_class: << parameters.resource_class >>
     shell: /bin/bash --login -eo pipefail
-    # Add steps to the job
-    # See: https://circleci.com/docs/2.0/configuration-reference/#steps
+  macos_executor:
+    macos:
+      xcode: 15.1.0
+    resource_class: macos.m1.large.gen1
+
+commands:
+  kill_countdown:
     steps:
-       # Kill the whole ci after 1hr
       - run:
-          name: Cancel build after set time
+          name: Cancel job after set time
           background: true
           command: |
-            sleep 7200
+            sleep 3600
             echo "Canceling workflow as too much time has elapsed"
             curl -X POST --header "Content-Type: application/json" "https://circleci.com/api/v2/workflow/${CIRCLE_WORKFLOW_ID}/cancel?circle-token=${BUILD_TIMER_TOKEN}"
-      - checkout
+  macos_pre_setup:
+    steps:
+      - run:
+          name: Install brew dependencies
+          command: brew install wget libomp
+      - run:
+          name: Install miniconda
+          command: |
+            wget https://repo.anaconda.com/miniconda/Miniconda3-py310_24.1.2-0-MacOSX-arm64.sh -O ~/miniconda.sh
+            bash ~/miniconda.sh -b -p $HOME/miniconda
+            source $HOME/miniconda/bin/activate
+            conda init zsh bash
+  restore_artifacts_macos:
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          name: copy library
+          command: |
+            cp artifacts/_lib_macos.so  secretflow/security/privacy/
+            mv secretflow/security/privacy/_lib_macos.so secretflow/security/privacy/_lib.so
+  restore_artifacts_linux:
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          name: copy library
+          command: |
+            arch=$(uname -i)
+            cp artifacts/_lib_$arch.so  secretflow/security/privacy/
+            mv secretflow/security/privacy/_lib_$arch.so secretflow/security/privacy/_lib.so
+  pytest_wrapper:
+    parameters:
+      target_folder:
+        type: string
+      testmon_prefix:
+        type: string
+      mode:
+        type: string
+        default: "sim"
+    steps:
       - restore_cache:
           name: Restore pytest testmondata
-          key: testmondata-{{ arch }}-{{ .Branch }}-
+          key: testmondata_<<parameters.testmon_prefix>>_{{ arch }}_{{ .Branch }}_
       - restore_cache:
-          name: "Restore pip cache"
-          key: &pip-cache pip-{{ checksum "requirements.txt" }}-{{ checksum "dev-requirements.txt" }}
+          name: restore pip cache
+          key: pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
       - run:
-          name: "Install python deps"
+          name: Install test tools
           command: |
-            sed -i "s/tensorflow==/tensorflow-cpu==/g" requirements.txt
-            pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
+            conda init
             pip install -r dev-requirements.txt
-            pip install onnx==1.13.1 protobuf==3.20.3
+            pip install --force-reinstall pytest
       - run:
-          name: "unit test"
+          name: "Run tests"
           command: |
-            bazel build //secretflow_lib/binding/...
-            cp bazel-bin/secretflow_lib/binding/_lib.so secretflow/security/privacy/
-            pytest --testmon --env prod -n auto --junitxml=results.xml -v --capture=no --cov=secretflow/ --cov-report=xml:coverage.xml tests/
-            ls -la
+            set -ex
+            conda init
+            pytest --testmon --env <<parameters.mode>>  -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  << parameters.target_folder >>
+            status=$?
+            # return test status
+            # https://docs.pytest.org/en/7.1.x/reference/exit-codes.html
+            # Exit code 5 No tests were collected
+            if [ $status -eq 0 ] || [ $status -eq 5 ];then
+              exit 0
+            else
+              exit $status
+            fi
+      - store_test_results:
+          path: ./results.xml
       - save_cache:
-          key: testmondata-{{ arch }}-{{ .Branch }}-{{ .Revision }}
+          key: testmondata_<<parameters.testmon_prefix>>_{{ arch }}_{{ .Branch }}_{{ .Revision }}
           paths:
             - .testmondata
           when: always
-      - save_cache:
-          key: *pip-cache
-          paths:
-            - /root/miniconda3/lib/python3.10/site-packages
-      - store_test_results:
-          path: ./results.xml
-  macos_ut:
-    macos:
-      xcode: 15.1
-    environment:
-      HOMEBREW_NO_AUTO_UPDATE: 1
-    resource_class: macos.m1.large.gen1
+  run_ml_test:
+    steps:
+      - kill_countdown
+      - when:
+          condition:
+            or:
+              - << pipeline.parameters.base >>
+              - << pipeline.parameters.infra >>
+              - << pipeline.parameters.sf_maths >>
+              - << pipeline.parameters.sf_ml >>
+              - << pipeline.parameters.sf_utils >>
+              - << pipeline.parameters.test_ml >>
+          steps:
+            - pytest_wrapper:
+                target_folder: --ignore=tests/ml/nn/ tests/ml/
+                testmon_prefix: ml
+  run_preprocessing_test:
+    steps:
+      - kill_countdown
+      - when:
+          condition:
+            or:
+              - << pipeline.parameters.base >>
+              - << pipeline.parameters.infra >>
+              - << pipeline.parameters.sf_maths >>
+              - << pipeline.parameters.sf_preprocessing >>
+              - << pipeline.parameters.sf_utils >>
+              - << pipeline.parameters.test_preprocessing >>
+          steps:
+            - pytest_wrapper:
+                target_folder: tests/preprocessing/ 
+                testmon_prefix: preprocessing
+  run_stats_test:
+    steps:
+      - kill_countdown
+      - when:
+          condition:
+            or:
+              - << pipeline.parameters.base >>
+              - << pipeline.parameters.infra >>
+              - << pipeline.parameters.sf_maths >>
+              - << pipeline.parameters.sf_stats >>
+              - << pipeline.parameters.sf_utils >>
+              - << pipeline.parameters.test_stats >>
+          steps:
+            - pytest_wrapper:
+                target_folder: tests/stats/ 
+                testmon_prefix: stats
+  run_infra_test:
+    steps:
+      - kill_countdown
+      - when:
+          condition:
+            or:
+              - << pipeline.parameters.base >>
+              - << pipeline.parameters.infra >>
+              - << pipeline.parameters.test_infra >>
+          steps:
+            - pytest_wrapper:
+                target_folder: tests/data/ tests/device/ tests/security/ tests/utils/ tests/kuscia/
+                testmon_prefix: infra
+  run_ml_sim_test:
+    steps:
+      - kill_countdown
+      - when:
+          condition:
+            or:
+              - << pipeline.parameters.base >>
+              - << pipeline.parameters.infra >>
+              - << pipeline.parameters.sf_maths >>
+              - << pipeline.parameters.sf_ml >>
+              - << pipeline.parameters.sf_utils >>
+              - << pipeline.parameters.test_ml >>
+          steps:
+            - pytest_wrapper:
+                target_folder: tests/ml/
+                testmon_prefix: ml_sim
+                mode: "sim"
+  run_other_sim_test:
+    steps:
+      - kill_countdown
+      - when:
+          condition:
+            or:
+              - << pipeline.parameters.base >>
+              - << pipeline.parameters.sf_any >>
+              - << pipeline.parameters.test_any >>
+          steps:
+            - pytest_wrapper:
+                target_folder: --ignore=tests/ml/ tests/
+                testmon_prefix: other_sim
+                mode: "sim"
+  run_component_test_wrapper:
+    parameters:
+      target_folder:
+        type: string
+      testmon_prefix:
+        type: string
+    steps:
+      - kill_countdown
+      - when:
+          condition:
+            or:
+              - << pipeline.parameters.base >>
+              - << pipeline.parameters.sf_ml >>
+              - << pipeline.parameters.sf_stats >>
+              - << pipeline.parameters.sf_preprocessing >>
+              - << pipeline.parameters.test_component >>
+          steps:
+            - pytest_wrapper:
+                target_folder: <<parameters.target_folder>>
+                testmon_prefix: <<parameters.testmon_prefix>>
+                mode: "sim"
+
+jobs:
+  linux_build:
+    parameters:
+      resource_class:
+        type: string
+    executor:
+      name: linux_executor
+      resource_class: << parameters.resource_class >>
     steps:
       - checkout
       - when:
           condition:
-            equal: [ main, << pipeline.git.branch >> ]
+              << pipeline.parameters.base >>
+          steps:
+            - restore_cache:
+                name: restore pip cache
+                key: &pip-cache pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
+            - run:
+                name: build shared library
+                command: |
+                  conda init
+                  arch=$(uname -i)
+                  mkdir -p artifacts
+                  bazel build //secretflow_lib/binding/... -c opt
+                  mv bazel-bin/secretflow_lib/binding/_lib.so artifacts/_lib_$arch.so
+            - run:
+                name: Install python deps
+                command: |
+                  conda init
+                  arch=$(uname -i)
+                  mkdir -p artifacts
+                  pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
+            - persist_to_workspace:
+                root: .
+                paths: 
+                  - artifacts
+            - save_cache:
+                key: *pip-cache
+                paths:
+                  - /root/miniconda3/lib/python3.10/site-packages
+  macos_build:
+    executor: macos_executor
+    steps:
+      - checkout
+      - when:
+          condition: 
+              << pipeline.parameters.base >>
           steps:
             - run:
                 name: "Install homebrew dependencies"
                 command: |
-                  brew install bazel cmake ninja libomp wget
-                  (cd /opt/homebrew/Cellar/bazel/*.*.*/libexec/bin && curl -fLO https://github.com/bazelbuild/bazel/releases/download/5.4.1/bazel-5.4.1-darwin-arm64 && chmod +x bazel-5.4.1-darwin-arm64)
+                  brew install bazelisk cmake ninja libomp wget protobuf@3
+                  echo 'export PATH="/opt/homebrew/opt/protobuf@3/bin:$PATH"' >> /Users/distiller/.bash_profile
             - run:
                 name: "Install Miniconda"
                 command: |
-                  wget https://repo.anaconda.com/miniconda/Miniconda3-py38_23.1.0-1-MacOSX-arm64.sh -O ~/miniconda.sh
+                  wget https://repo.anaconda.com/miniconda/Miniconda3-py310_24.1.2-0-MacOSX-arm64.sh -O ~/miniconda.sh
                   bash ~/miniconda.sh -b -p $HOME/miniconda
                   source $HOME/miniconda/bin/activate
-                  conda init bash zsh
-                  conda install grpcio onnx -y
+                  conda init zsh bash
+            - restore_cache:
+                name: restore pip cache
+                key: &pip-cache pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
+            - run:
+                name: Install python dependencies
+                command: |
+                  conda init
+                  pip install -r requirements.txt
+            - run:
+                name: "build shared library"
+                command: |
+                  conda init
+                  mkdir -p artifacts
+                  bazel build //secretflow_lib/binding/... -c opt
+                  mv bazel-bin/secretflow_lib/binding/_lib.so artifacts/_lib_macos.so
                   pip install -r requirements.txt
                   pip install -r dev-requirements.txt
-                  pip install onnx==1.13.1 protobuf==3.20.3
-            - restore_cache:
-                name: Restore pytest testmondata
-                key: testmondata-{{ arch }}-{{ .Branch }}-
-            - run:
-                name: "build and test"
-                command: |
-                  set -ex
-                  bazel build //secretflow_lib/binding/...
-                  cp bazel-bin/secretflow_lib/binding/_lib.so secretflow/security/privacy/
-                  pytest --testmon --env prod -n auto --junitxml=results.xml -v --capture=no --cov=secretflow/ --cov-report=xml:coverage.xml tests/
-            - save_cache:
-                key: testmondata-{{ arch }}-{{ .Branch }}-{{ .Revision }}
+            - persist_to_workspace:
+                root: .
                 paths:
-                  - .testmondata
-                when: always
-            - store_test_results:
-                path: ./results.xml
+                  - artifacts
+            - save_cache:
+                key: *pip-cache
+                paths:
+                  - /Users/distiller/miniconda/lib/python3.10/site-packages
+  linux_ml_test:
+    parameters:
+      resource_class:
+        type: string
+    executor:
+      name: linux_executor
+      resource_class: << parameters.resource_class >>
+    steps:
+      - checkout
+      - restore_artifacts_linux
+      - run_ml_test
+  linux_preprocessing_test:
+    parameters:
+      resource_class:
+        type: string
+    executor:
+      name: linux_executor
+      resource_class: << parameters.resource_class >>
+    steps:
+      - checkout
+      - restore_artifacts_linux
+      - run_preprocessing_test
+  linux_stats_test:
+    parameters:
+      resource_class:
+        type: string
+    executor:
+      name: linux_executor
+      resource_class: << parameters.resource_class >>
+    steps:
+      - checkout
+      - restore_artifacts_linux
+      - run_stats_test
+  linux_infra_test:
+    parameters:
+      resource_class:
+        type: string
+    executor:
+      name: linux_executor
+      resource_class: << parameters.resource_class >>
+    steps:
+      - checkout
+      - restore_artifacts_linux
+      - run_infra_test
+  linux_component_infra_test:
+    parameters:
+      resource_class:
+        type: string
+    executor:
+      name: linux_executor
+      resource_class: << parameters.resource_class >>
+    steps:
+      - checkout
+      - restore_artifacts_linux
+      - run_component_test_wrapper:
+          target_folder: tests/component/infra/
+          testmon_prefix: component_infra
+  linux_component_io_test:
+    parameters:
+      resource_class:
+        type: string
+    executor:
+      name: linux_executor
+      resource_class: << parameters.resource_class >>
+    steps:
+      - checkout
+      - restore_artifacts_linux
+      - run_component_test_wrapper:
+          target_folder: tests/component/io/
+          testmon_prefix: component_io
+  linux_component_ml_test:
+    parameters:
+      resource_class:
+        type: string
+    executor:
+      name: linux_executor
+      resource_class: << parameters.resource_class >>
+    steps:
+      - checkout
+      - restore_artifacts_linux
+      - run_component_test_wrapper:
+          target_folder: tests/component/ml/
+          testmon_prefix: component_ml
+  linux_component_stats_test:
+    parameters:
+      resource_class:
+        type: string
+    executor:
+      name: linux_executor
+      resource_class: << parameters.resource_class >>
+    steps:
+      - checkout
+      - restore_artifacts_linux
+      - run_component_test_wrapper:
+          target_folder: tests/component/stats/
+          testmon_prefix: component_stats
+  linux_component_preprocessing_test:
+    parameters:
+      resource_class:
+        type: string
+    executor:
+      name: linux_executor
+      resource_class: << parameters.resource_class >>
+    steps:
+      - checkout
+      - restore_artifacts_linux
+      - run_component_test_wrapper:
+          target_folder: tests/component/preprocessing
+          testmon_prefix: component_processing
+  linux_ml_sim_test:
+    parameters:
+      resource_class:
+        type: string
+    executor:
+      name: linux_executor
+      resource_class: << parameters.resource_class >>
+    steps:
+      - checkout
+      - restore_artifacts_linux
+      - run_ml_sim_test
+  linux_other_sim_test:
+    parameters:
+      resource_class:
+        type: string
+    executor:
+      name: linux_executor
+      resource_class: << parameters.resource_class >>
+    steps:
+      - checkout
+      - restore_artifacts_linux
+      - run_other_sim_test
+  macos_ml_test:
+    executor: macos_executor
+    steps:
+      - checkout
+      - macos_pre_setup
+      - restore_artifacts_macos
+      - run_ml_test
+  macos_preprocessing_test:
+    executor: macos_executor
+    steps:
+      - checkout
+      - macos_pre_setup
+      - restore_artifacts_macos
+      - run_preprocessing_test
+  macos_stats_test:
+    executor: macos_executor
+    steps:
+      - checkout
+      - macos_pre_setup
+      - restore_artifacts_macos
+      - run_stats_test
+  macos_infra_test:
+    executor: macos_executor
+    steps:
+      - checkout
+      - macos_pre_setup
+      - restore_artifacts_macos
+      - run_infra_test
+  macos_component_infra_test:
+    executor: macos_executor
+    steps:
+      - checkout
+      - macos_pre_setup
+      - restore_artifacts_macos
+      - run_component_test_wrapper:
+          target_folder: tests/component/infra/
+          testmon_prefix: component_infra
+  macos_component_io_test:
+    executor: macos_executor
+    steps:
+      - checkout
+      - macos_pre_setup
+      - restore_artifacts_macos
+      - run_component_test_wrapper:
+          target_folder: tests/component/io/
+          testmon_prefix: component_io
+  macos_component_ml_test:
+    executor: macos_executor
+    steps:
+      - checkout
+      - macos_pre_setup
+      - restore_artifacts_macos
+      - run_component_test_wrapper:
+          target_folder: tests/component/ml/
+          testmon_prefix: component_ml
+  macos_component_stats_test:
+    executor: macos_executor
+    steps:
+      - checkout
+      - macos_pre_setup
+      - restore_artifacts_macos
+      - run_component_test_wrapper:
+          target_folder: tests/component/stats/
+          testmon_prefix: component_stats
+  macos_component_preprocessing_test:
+    executor: macos_executor
+    steps:
+      - checkout
+      - macos_pre_setup
+      - restore_artifacts_macos
+      - run_component_test_wrapper:
+          target_folder: tests/component/preprocessing
+          testmon_prefix: component_processing
+  macos_ml_sim_test:
+    executor: macos_executor
+    steps:
+      - checkout
+      - macos_pre_setup
+      - restore_artifacts_macos
+      - run_ml_sim_test
+  macos_other_sim_test:
+    executor: macos_executor
+    steps:
+      - checkout
+      - macos_pre_setup
+      - restore_artifacts_macos
+      - run_other_sim_test
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
-  unittest:
-    when: << pipeline.parameters.build-and-run >>
+  build_and_test:
     jobs:
-      - linux_ut
-      - macos_ut
+      - linux_build:
+          name: linux_build-<<matrix.resource_class>>
+          matrix:
+            parameters:
+              resource_class: ["2xlarge+", "arm.2xlarge"]
+      - linux_ml_test:
+          matrix:
+            parameters:
+              resource_class: ["2xlarge+", "arm.2xlarge"]
+          requires:
+            - linux_build-<<matrix.resource_class>>
+      - linux_ml_sim_test:
+          matrix:
+            parameters:
+              resource_class: ["2xlarge+", "arm.2xlarge"]
+          requires:
+            - linux_build-<<matrix.resource_class>>
+      - linux_preprocessing_test:
+          matrix:
+            parameters:
+              resource_class: ["2xlarge+", "arm.2xlarge"]
+          requires:
+            - linux_build-<<matrix.resource_class>>
+      - linux_stats_test:
+          matrix:
+            parameters:
+              resource_class: ["2xlarge+", "arm.2xlarge"]
+          requires:
+            - linux_build-<<matrix.resource_class>>
+      - linux_infra_test:
+          matrix:
+            parameters:
+              resource_class: ["2xlarge+", "arm.2xlarge"]
+          requires:
+            - linux_build-<<matrix.resource_class>>
+      - linux_component_infra_test:
+          matrix:
+            parameters:
+              resource_class: ["2xlarge+", "arm.2xlarge"]
+          requires:
+            - linux_build-<<matrix.resource_class>>
+      - linux_component_io_test:
+          matrix:
+            parameters:
+              resource_class: ["2xlarge+", "arm.2xlarge"]
+          requires:
+            - linux_build-<<matrix.resource_class>>
+      - linux_component_ml_test:
+          matrix:
+            parameters:
+              resource_class: ["2xlarge+", "arm.2xlarge"]
+          requires:
+            - linux_build-<<matrix.resource_class>>
+      - linux_component_stats_test:
+          matrix:
+            parameters:
+              resource_class: ["2xlarge+", "arm.2xlarge"]
+          requires:
+            - linux_build-<<matrix.resource_class>>
+      - linux_component_preprocessing_test:
+          matrix:
+            parameters:
+              resource_class: ["2xlarge+", "arm.2xlarge"]
+          requires:
+            - linux_build-<<matrix.resource_class>>
+      - linux_other_sim_test:
+          matrix:
+            parameters:
+              resource_class: ["2xlarge+", "arm.2xlarge"]
+          requires:
+            - linux_build-<<matrix.resource_class>>
+      - macos_build
+      - macos_ml_test:
+          requires:
+            - macos_build
+      - macos_preprocessing_test:
+          requires:
+            - macos_build
+      - macos_stats_test:
+          requires:
+            - macos_build
+      - macos_infra_test:
+          requires:
+            - macos_build
+      - macos_component_infra_test:
+          requires:
+            - macos_build
+      - macos_component_io_test:
+          requires:
+            - macos_build
+      - macos_component_ml_test:
+          requires:
+            - macos_build
+      - macos_component_stats_test:
+          requires:
+            - macos_build
+      - macos_component_preprocessing_test:
+          requires:
+            - macos_build
+      - macos_ml_sim_test:
+          requires:
+            - macos_build
+      - macos_other_sim_test:
+          requires:
+            - macos_build

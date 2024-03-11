@@ -5,7 +5,7 @@
 # Avoid thead pool fork issue, see https://github.com/grpc/grpc/issues/31772
 clean-text  # FEATURE=[lite]
 click  # FEATURE=[lite]
-grpcio==1.56.2   # FEATURE=[lite]
+grpcio==1.56.2  # FEATURE=[lite]
 jax[cpu]>=0.4.16  # FEATURE=[lite]
 jaxlib>=0.4.16  # FEATURE=[lite]
 kuscia==0.0.2.dev240103  # FEATURE=[lite]
@@ -22,8 +22,8 @@ protobuf==3.19.6  # FEATURE=[lite]
 pyarrow==14.0.2  # FEATURE=[lite]
 s3fs==2024.2.0 # FEATURE=[lite]
 scikit-learn==1.3.2  # FEATURE=[lite]
-sdc-apis==0.1.0b0; platform_system != "Darwin"  # FEATURE=[lite]
-sdc-sdk==0.1.0b0; platform_system != "Darwin"  # FEATURE=[lite]
+sdc-apis==0.1.0b0; platform_machine == "x86_64"  # FEATURE=[lite]
+sdc-sdk==0.1.0b0; platform_machine == "x86_64"  # FEATURE=[lite]
 ray==2.9.1  # FEATURE=[lite]
 secretflow-rayfed==0.2.1a1 # FEATURE=[lite]
 # For security reason.
@@ -31,11 +31,11 @@ setuptools>=65.5.1  # FEATURE=[lite]
 # For security reason.
 certifi>=2023.7.22  # FEATURE=[lite]
 sparse>=0.14.0
-spu==0.8.0.dev20240227  # FEATURE=[lite]
+spu==0.8.0b0 # FEATURE=[lite]
 sf-heu==0.5.0.b0 # FEATURE=[lite]
-secretflow_serving_lib==0.2.0dev20240227 # FEATURE=[lite]
-tensorflow-macos==2.11.0; platform_machine == "arm64" and platform_system == "Darwin"
-tensorflow==2.11.1; platform_machine != "arm64"
+secretflow_serving_lib==0.2.0dev20240227; platform_system != "Darwin" # FEATURE=[lite]
+tensorflow-macos>=2.11,<2.12; platform_system == "Darwin"
+tensorflow>=2.11,<2.12; platform_system != "Darwin"
 tf2onnx>=1.13.0
 tqdm
 validator.py==1.3.0
