@@ -14,7 +14,7 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   - [OT-based PSI](#ot-based-psi)
   - [VOLE-based PSI](#vole-based-psi)
   - [Other Variants](#other-variants)
-  - [Attacks](#other-variants)
+  - [Attacks](#Attacks)
 
 ## PKC-based PSI
 
