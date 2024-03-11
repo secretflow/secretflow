@@ -14,6 +14,7 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
   - [OT-based PSI](#ot-based-psi)
   - [VOLE-based PSI](#vole-based-psi)
   - [Other Variants](#other-variants)
+  - [Attacks](#other-variants)
 
 ## PKC-based PSI
 
@@ -97,6 +98,10 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
 
 ## VOLE-based PSI
 
+- Near-Optimal Oblivious Key-Value Stores for Efficient PSI, PSU and Volume-Hiding Multi-Maps
+  *Alexander Bienstock, Sarvar Patel, Joon Young Seo, Kevin Yeo*
+  USENIX Security 2023, [eprint](https://www.usenix.org/conference/usenixsecurity23/presentation/bienstock), BPSY23
+
 - Blazing Fast PSI from Improved OKVS and Subfield VOLE
   *Peter Rindal, Srinivasan Raghuraman*
   CCS 2022, [eprint](https://eprint.iacr.org/2022/320)
@@ -138,3 +143,20 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
 - Malicious Secure, Structure-Aware Private Set Intersection
   *Gayathri Garimella, Mike Rosulek, Jaspal Singh*
   CRYPTO 2023, [eprint](https://eprint.iacr.org/2023/1166), GRS23
+
+- Batch PIR and Labeled PSI with Oblivious Ciphertext Compression
+  *Alexander Bienstock, Sarvar Patel, Joon Young Seo, Kevin Yeo*
+  USENIX Security 2024, [eprint](https://eprint.iacr.org/2024/215), BPSY24
+
+- Fuzzy Private Set Intersection with Large Hyperballs
+  *Aron van Baarsen, Sihang Pu*
+  EUROCRYPT 2024, [eprint](https://eprint.iacr.org/2024/330), BP24
+
+## Attacks
+- AnonPSI: An Anonymity Assessment Framework for PSI
+  *Bo Jiang, Jian Du, Qiang Yan*
+  NDSS 24, [eprint](https://eprint.iacr.org/2024/104), JDY24
+  
+- Birds of a Feather Flock Together: How Set Bias Helps to Deanonymize You via Revealed Intersection Sizes
+  *Xiaojie Guo, Ye Han, Zheli Liu, Ding Wang, Yan Jia, Jin Li*
+  USENIX Security 2022, [eprint](https://www.usenix.org/conference/usenixsecurity22/presentation/guo), GHLW+22
