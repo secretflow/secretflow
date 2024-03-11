@@ -1,6 +1,7 @@
 import logging
 import os
 import pickle
+import platform
 import stat
 import subprocess
 import tempfile
@@ -16,10 +17,18 @@ def build_s3_config():
     os.makedirs(minio_path, exist_ok=True)
 
     minio_server = os.path.join(minio_path, "minio")
+
+    system = "linux"
+    arch = "amd64"
+    if platform.system() == "Darwin":
+        system = "darwin"
+    if platform.machine() == "arm64" or platform.machine() == "aarch64":
+        arch = "arm64"
     urllib.request.urlretrieve(
-        "https://dl.min.io/server/minio/release/linux-amd64/minio",
+        f"https://dl.min.io/server/minio/release/{system}-{arch}/minio",
         minio_server,
     )
+
     st = os.stat(minio_server)
     os.chmod(minio_server, st.st_mode | stat.S_IEXEC)
 
