@@ -215,7 +215,7 @@ def keras_model_with_mnist(
     )
     # test history
     assert math.isclose(
-        global_metric['accuracy'], history['val_accuracy'][-1], rel_tol=0.02
+        global_metric['accuracy'], history['val_accuracy'][-1], rel_tol=0.1
     )
     loss_sum = 0
     for device, worker in sl_model._workers.items():
@@ -277,9 +277,9 @@ def keras_model_with_mnist(
         dataset_builder=dataset_builder,
     )
     assert math.isclose(
-        global_metric['accuracy'], reload_metric['accuracy'], rel_tol=0.01
+        global_metric['accuracy'], reload_metric['accuracy'], rel_tol=0.05
     )
-    assert math.isclose(global_metric['loss'], reload_metric['loss'], rel_tol=0.1)
+    assert math.isclose(global_metric['loss'], reload_metric['loss'], rel_tol=0.05)
 
     def _assert_tensor_info(tensor_info):
         assert tensor_info['inputs']

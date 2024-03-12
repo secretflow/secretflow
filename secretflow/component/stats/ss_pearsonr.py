@@ -87,7 +87,7 @@ def ss_pearsonr_eval_fn(
         ctx,
         input_data,
         load_features=True,
-        feature_selects=feature_selects,
+        col_selects=feature_selects,
     )
 
     with ctx.tracer.trace_running():

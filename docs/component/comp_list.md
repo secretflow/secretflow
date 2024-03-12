@@ -33,7 +33,7 @@ Audit the usage of this component carefully.
 |float_epsilon|Epsilon value for floating point comparison. WARNING: due to floating point representation in computers, set this number slightly larger if you want filter out the values exactly at desired boundary. for example, abs(1.001 - 1.002) is slightly larger than 0.001, and therefore may not be filter out using == and epsilson = 0.001|Float|N|Default: 0.0. Range: [0.0, $\infty$).|
 
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -41,7 +41,7 @@ Audit the usage of this component carefully.
 |input/in_ds/features|Feature(s) to operate on.|String List(Set value with other Component Attributes)|You need to select some columns of table in_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -146,7 +146,7 @@ Component version: 0.0.2
 
 Generate equal frequency or equal range binning rules for vertical partitioning datasets.
 #### Attrs
-  
+
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -155,7 +155,7 @@ Generate equal frequency or equal range binning rules for vertical partitioning 
 |report_rules|Whether report binning rules.|Boolean|N|Default: False.|
 
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -163,7 +163,7 @@ Generate equal frequency or equal range binning rules for vertical partitioning 
 |input/input_data/feature_selects|which features should be binned.|String List(Set value with other Component Attributes)|You need to select some columns of table input_data. Min column number to select(inclusive): 1. |
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -177,7 +177,7 @@ Component version: 0.0.2
 
 Generate Weight of Evidence (WOE) binning rules for vertical partitioning datasets.
 #### Attrs
-  
+
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -191,7 +191,7 @@ Generate Weight of Evidence (WOE) binning rules for vertical partitioning datase
 |report_rules|Whether report binning rules.|Boolean|N|Default: False.|
 
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -200,7 +200,7 @@ Generate Weight of Evidence (WOE) binning rules for vertical partitioning datase
 |input/input_data/label|Label of input data.|String List(Set value with other Component Attributes)|You need to select some columns of table input_data. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -292,7 +292,7 @@ Statistics evaluation for a bi-classification model on a dataset.
 5. head_report: List[PrReport]
 reports for fpr = 0.001, 0.005, 0.01, 0.05, 0.1, 0.2
 #### Attrs
-  
+
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -300,7 +300,7 @@ reports for fpr = 0.001, 0.005, 0.01, 0.05, 0.1, 0.2
 |min_item_cnt_per_bucket|Min item cnt per bucket. If any bucket doesn't meet the requirement, error raises. For security reasons, we require this parameter to be at least 5.|Integer|N|Default: 5. Range: [5, $\infty$).|
 
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -309,7 +309,7 @@ reports for fpr = 0.001, 0.005, 0.01, 0.05, 0.1, 0.2
 |input/in_ds/prediction|The prediction result column name to use in the dataset.|String List(Set value with other Component Attributes)|You need to select some columns of table in_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -322,7 +322,7 @@ Component version: 0.0.1
 
 Calculate prediction bias, ie. average of predictions - average of labels.
 #### Attrs
-  
+
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -331,7 +331,7 @@ Calculate prediction bias, ie. average of predictions - average of labels.
 |bucket_method|Bucket method.|String|N|Default: equal_width. Allowed: ['equal_width', 'equal_frequency'].|
 
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -340,7 +340,7 @@ Calculate prediction bias, ie. average of predictions - average of labels.
 |input/in_ds/prediction|The prediction result column name to use in the dataset.|String List(Set value with other Component Attributes)|You need to select some columns of table in_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -394,7 +394,7 @@ Calculate P-Value for LR model training on vertical partitioning dataset by usin
 For large dataset(large than 10w samples & 200 features),
 recommend to use [Ring size: 128, Fxp: 40] options for SPU device.
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -402,7 +402,7 @@ recommend to use [Ring size: 128, Fxp: 40] options for SPU device.
 |input_data|Input vertical table.|['sf.table.vertical_table']||
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -417,7 +417,7 @@ Component version: 0.0.2
 
 Predict using SGB model.
 #### Attrs
-  
+
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -427,7 +427,7 @@ Predict using SGB model.
 |save_label|Whether or not to save real label columns into output pred file. If true, input feature_dataset must contain label columns and receiver party must be label owner.|Boolean|N|Default: True.|
 
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -436,7 +436,7 @@ Predict using SGB model.
 |input/feature_dataset/saved_features|which features should be saved with prediction result|String List(Set value with other Component Attributes)|You need to select some columns of table feature_dataset. |
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -484,7 +484,7 @@ Component version: 0.0.1
 
 Predict using the SSGLM model.
 #### Attrs
-  
+
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -494,7 +494,7 @@ Predict using the SSGLM model.
 |save_label|Whether or not to save real label columns into output pred file. If true, input feature_dataset must contain label columns and receiver party must be label owner.|Boolean|N|Default: False.|
 
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -503,7 +503,7 @@ Predict using the SSGLM model.
 |input/feature_dataset/saved_features|which features should be saved with prediction result|String List(Set value with other Component Attributes)|You need to select some columns of table feature_dataset. |
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -516,7 +516,7 @@ Component version: 0.0.1
 
 Predict using the SS-SGD model.
 #### Attrs
-  
+
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -527,7 +527,7 @@ Predict using the SS-SGD model.
 |save_label|Whether or not to save real label columns into output pred file. If true, input feature_dataset must contain label columns and receiver party must be label owner.|Boolean|N|Default: False.|
 
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -536,7 +536,7 @@ Predict using the SS-SGD model.
 |input/feature_dataset/saved_features|which features should be saved with prediction result|String List(Set value with other Component Attributes)|You need to select some columns of table feature_dataset. |
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -549,7 +549,7 @@ Component version: 0.0.1
 
 Predict using the SS-XGB model.
 #### Attrs
-  
+
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -559,7 +559,7 @@ Predict using the SS-XGB model.
 |save_label|Whether or not to save real label columns into output pred file. If true, input feature_dataset must contain label columns and receiver party must be label owner.|Boolean|N|Default: False.|
 
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -568,7 +568,7 @@ Predict using the SS-XGB model.
 |input/feature_dataset/saved_features|which features should be saved with prediction result|String List(Set value with other Component Attributes)|You need to select some columns of table feature_dataset. |
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -586,7 +586,7 @@ for vertical split dataset setting by using secure boost.
 - SGB is short for SecureBoost. Compared to its safer counterpart SS-XGB, SecureBoost focused on protecting label holder.
 - Check https://arxiv.org/abs/1901.08755.
 #### Attrs
-  
+
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -615,7 +615,7 @@ for vertical split dataset setting by using secure boost.
 |tree_growing_method|How to grow tree?|String|N|Default: level.|
 
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -624,7 +624,7 @@ for vertical split dataset setting by using secure boost.
 |input/train_dataset/label|Label of train dataset.|String List(Set value with other Component Attributes)|You need to select some columns of table train_dataset. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -694,7 +694,7 @@ The GLM generalizes linear regression by allowing the linear model to be related
 variable via a link function and by allowing the magnitude of the variance of each measurement to
 be a function of its predicted value.
 #### Attrs
-  
+
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -720,7 +720,7 @@ be a function of its predicted value.
 |report_weights|If this option is set to true, model will be revealed and model details are visible to all parties|Boolean|N|Default: False.|
 
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -731,7 +731,7 @@ be a function of its predicted value.
 |input/train_dataset/label|Label of train dataset.|String List(Set value with other Component Attributes)|You need to select some columns of table train_dataset. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -747,7 +747,7 @@ Train both linear and logistic regression
 linear models for vertical partitioning dataset with mini batch SGD training solver by using secret sharing.
 - SS-SGD is short for secret sharing SGD training.
 #### Attrs
-  
+
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -761,7 +761,7 @@ linear models for vertical partitioning dataset with mini batch SGD training sol
 |eps|If the change rate of weights is less than this threshold, the model is considered to be converged, and the training stops early. 0 to disable.|Float|N|Default: 0.001. Range: [0.0, $\infty$).|
 
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -770,7 +770,7 @@ linear models for vertical partitioning dataset with mini batch SGD training sol
 |input/train_dataset/label|Label of train dataset.|String List(Set value with other Component Attributes)|You need to select some columns of table train_dataset. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -786,7 +786,7 @@ for vertical partitioning dataset setting by using secret sharing.
 - SS-XGB is short for secret sharing XGB.
 - More details: https://arxiv.org/pdf/2005.08479.pdf
 #### Attrs
-  
+
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -802,7 +802,7 @@ for vertical partitioning dataset setting by using secret sharing.
 |seed|Pseudorandom number generator seed.|Integer|N|Default: 42. Range: [0, $\infty$).|
 
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -811,7 +811,7 @@ for vertical partitioning dataset setting by using secret sharing.
 |input/train_dataset/label|Label of train dataset.|String List(Set value with other Component Attributes)|You need to select some columns of table train_dataset. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -861,7 +861,7 @@ Perform binary operation binary_op(f1, f2) and assign the result to f3, f3 can b
 |as_label|If True, the generated feature will be marked as label in schema.|Boolean|N|Default: False.|
 
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -870,7 +870,7 @@ Perform binary operation binary_op(f1, f2) and assign the result to f3, f3 can b
 |input/in_ds/f2|Feature 2 to operate on.|String List(Set value with other Component Attributes)|You need to select some columns of table in_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -884,21 +884,21 @@ Component version: 0.0.1
 
 case_when
 #### Attrs
-  
+
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
 |rules|input CaseWhen rules|Special type. SecretFlow customized Protocol Buffers message.|Y||
 
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
 |input_dataset|Input vertical table.|['sf.table.vertical_table']||
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -912,14 +912,14 @@ Component version: 0.0.1
 
 Generate a new feature by performing calculations on an origin feature
 #### Attrs
-  
+
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
 |rules|input CalculateOpRules rules|Special type. SecretFlow customized Protocol Buffers message.|Y||
 
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -927,7 +927,7 @@ Generate a new feature by performing calculations on an origin feature
 |input/in_ds/features|Feature(s) to operate on|String List(Set value with other Component Attributes)|You need to select some columns of table in_ds. Min column number to select(inclusive): 1. |
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -1083,7 +1083,7 @@ Calculate Pearson's product-moment correlation coefficient for vertical partitio
 by using secret sharing.
 - For large dataset(large than 10w samples & 200 features), recommend to use [Ring size: 128, Fxp: 40] options for SPU device.
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -1091,7 +1091,7 @@ by using secret sharing.
 |input/input_data/feature_selects|Specify which features to calculate correlation coefficient with. If empty, all features will be used|String List(Set value with other Component Attributes)|You need to select some columns of table input_data. |
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -1106,7 +1106,7 @@ Calculate Variance Inflation Factor(VIF) for vertical partitioning dataset
 by using secret sharing.
 - For large dataset(large than 10w samples & 200 features), recommend to use [Ring size: 128, Fxp: 40] options for SPU device.
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -1114,7 +1114,7 @@ by using secret sharing.
 |input/input_data/feature_selects|Specify which features to calculate VIF with. If empty, all features will be used.|String List(Set value with other Component Attributes)|You need to select some columns of table input_data. |
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -1157,7 +1157,7 @@ including each column's
 - central_moment_2 means E[(X - mean(X))^2].
 - sum_2 means sum(X^2).
 #### Inputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -1165,7 +1165,7 @@ including each column's
 |input/input_data/features|perform statistics on these columns|String List(Set value with other Component Attributes)|You need to select some columns of table input_data. Min column number to select(inclusive): 1. |
 
 #### Outputs
-  
+
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |

@@ -26,6 +26,24 @@ Each party holds 100000000 size random data
 | element-wise multiplication   | 3836.5489                | 2641.75911            | 522.32634               |
 | element-wise less comparison  | 3355.8496                | -                     | 813.28057               |
 
+## PSI and PIR Operation Benchmark
+
+PSI benchmark table
+
+| Party       | Balance Status | Latency | Time (s) | Time (h) | Algorithm |
+|-------------|----------------|---------|--------|---------|-----------|
+| Two-party   | Balanced       | 50msec |  6948   | 1:55:48 | ECDH     |
+| Two-party   | Unbalanced     | 50msec |  1619   | 0:26:59 | ECDH     |
+| Three-party |  Balanced      | 50msec | 18836   | 5:13:56 | ECDH_3PC |
+| Three-party |  Unbalanced    | 50msec |  9556   | 2:39:16 | ECDH_3PC |
+
+PIR benchmark table (only 2 party setting)
+
+|Query ID Count| Indistinguishability | Latency | Time (s) | Time (h) | Algorithm   |
+|--------------|----------------------|---------|--------|---------|-------------|
+| 10000        |  Million Level       | 50msec  | 3686   | 1:01:26 | KeywordPIR  |
+| 1            |  Million Level       | 50msec  | 51     | 0:00:51 | KeywordPIR  |
+
 ## United Statistiсs Operation Benchmark
 
 Each party holds 100000000 size random data

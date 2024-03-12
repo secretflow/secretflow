@@ -68,6 +68,7 @@ We hope you enjoy these toturials from SecretFlow developers.
    Federated_Learning_with_Pytorch_backend
    Federated_Xgboost
    SecureBoost
+   secureboost_analysis
    Split_Learning_for_bank_marketing
    split_learning_gnn
    mix_lr

@@ -9,9 +9,8 @@ from torchmetrics import Accuracy, Precision
 
 from secretflow.data.ndarray import FedNdarray, PartitionWay
 from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.fl.utils import metric_wrapper, optim_wrapper
 from secretflow.ml.nn.sl.attacks.fia_torch import FeatureInferenceAttack
-from secretflow.ml.nn.utils import BaseModule, TorchModel
+from secretflow.ml.nn.utils import BaseModule, TorchModel, metric_wrapper, optim_wrapper
 
 
 class SLBaseNet(BaseModule):
@@ -305,10 +304,6 @@ def do_test_sl_and_fia(config: dict, alice, bob):
     )
 
     batch_size = 64
-    victim_model_save_path = fia_path + '/sl_model_victim'
-    victim_model_dict = {
-        bob: [TorchModel(model_fn=SLBaseNet), victim_model_save_path],
-    }
     optim_fn = optim_wrapper(optim.Adam, lr=optim_lr)
     generator_model = TorchModel(
         model_fn=Generator,
@@ -323,10 +318,8 @@ def do_test_sl_and_fia(config: dict, alice, bob):
     generator_save_path = fia_path + '/generator'
 
     fia_callback = FeatureInferenceAttack(
-        victim_model_path=victim_model_save_path,
         attack_party=alice,
         victim_party=bob,
-        victim_model_dict=victim_model_dict,
         base_model_list=[alice, bob],
         generator_model_wrapper=generator_model,
         data_builder=data_buil,

@@ -9,4 +9,3 @@ This reference manual details modules, objects and functions included in SecretF
    :maxdepth: 3
 
    ../source/modules.rst
-   

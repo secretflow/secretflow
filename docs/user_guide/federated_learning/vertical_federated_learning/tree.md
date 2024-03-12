@@ -6,7 +6,7 @@ In vertical federated learning scenarios, data is partitioned vertically accordi
 
 Original paper: [SecureBoost](https://arxiv.org/abs/1901.08755)  
 
-In vertical federated learning scenarios, each party has data with the same samples, but different feature spaces. SecureBoost prioritizes the protection of label holder's information and is designed to be as accurate as the original XGBoost algorithm. 
+In vertical federated learning scenarios, each party has data with the same samples, but different feature spaces. SecureBoost prioritizes the protection of label holder's information and is designed to be as accurate as the original XGBoost algorithm.
 
 When compared to its MPC technology-powered counterpart, secret sharing-based XGB, SecureBoost is often faster. More specifically, SecureBoost is computationally more expensive than ss_xgb, but the latter is often bound by network bandwidth. In other words, SecureBoost is much faster when we have more CPU power but less network resources.
 
@@ -17,6 +17,8 @@ Since secretflow 1.0, we further optimized the performance and supported some ad
 ## Tutorial
 
 Please check out this simple [tutorial](../../../tutorial/SecureBoost.ipynb).
+
+Refer to this [notebook](../../../tutorial/secureboost_analysis.ipynb) for comparison between SGB and original cleartext XGBoost.
 
 ## Security Warning
 

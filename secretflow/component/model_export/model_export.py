@@ -164,14 +164,17 @@ class CompConverter:
             self.derived_schemas[party] = self.derived_schemas[party] - deleted
             self.derived_schemas[party].update(derived)
 
-    def _updata_train_shcema_info(self, schema_info: Dict[str, List[str]]):
+    def _updata_train_schema_info(self, schema_info: Dict[str, List[str]]):
         for party in schema_info:
             used = schema_info[party]["used"]
             used = used - self.deleted_schemas[party]
             used = used - self.derived_schemas[party]
             self.used_schemas[party].update(used)
             assert party in self.input_schemas
-            assert self.used_schemas[party].issubset(self.input_schemas[party])
+            assert self.used_schemas[party].issubset(
+                self.input_schemas[party]
+            ), f"used_schemas: {self.used_schemas[party]}, input_schemas: {self.input_schemas[party]}"
+
         # schema trace is over
         del self.deleted_schemas
         del self.derived_schemas
@@ -222,7 +225,7 @@ class CompConverter:
                 out_ds=out_ds,
             )
             schema_info = converter.schema_info()
-            self._updata_train_shcema_info(schema_info)
+            self._updata_train_schema_info(schema_info)
             self.converters.append(converter)
             self.schema_infos_cache.append(schema_info)
         else:

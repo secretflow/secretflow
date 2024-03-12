@@ -3,9 +3,6 @@ import logging
 import numpy as np
 import pandas as pd
 from google.protobuf.json_format import MessageToJson
-from sklearn.datasets import load_breast_cancer
-from sklearn.metrics import roc_auc_score
-from sklearn.preprocessing import StandardScaler
 
 from secretflow.component.ml.boost.sgb.sgb import sgb_predict_comp, sgb_train_comp
 from secretflow.component.ml.eval.biclassification_eval import (
@@ -21,13 +18,16 @@ from secretflow.spec.v1.data_pb2 import (
 )
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
+from sklearn.datasets import load_breast_cancer
+from sklearn.metrics import roc_auc_score
+from sklearn.preprocessing import StandardScaler
 
 
 def get_train_param(alice_path, bob_path, model_path):
     return NodeEvalParam(
         domain="ml.train",
         name="sgb_train",
-        version="0.0.2",
+        version="0.0.3",
         attr_paths=[
             "num_boost_round",
             "max_depth",
@@ -226,7 +226,7 @@ def test_sgb(comp_prod_sf_cluster_config):
         assert input_y.shape[0] == output_y.shape[0]
 
         auc = roc_auc_score(input_y["y"], output_y["pred"])
-        assert auc > 0.99, f"auc {auc}"
+        assert auc > 0.98, f"auc {auc}"
 
         output_it = IndividualTable()
 

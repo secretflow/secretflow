@@ -74,7 +74,7 @@ def onehot_encoder(data_tee):
     from sklearn.preprocessing import OneHotEncoder
 
     data = np.concatenate((data_tee))
-    enc = OneHotEncoder(sparse=False)
+    enc = OneHotEncoder(sparse_output=False)
     result = enc.fit_transform(data.reshape(-1, 1))
     return result
 
@@ -188,7 +188,7 @@ def onehot_encoder(data_tee):
     from sklearn.preprocessing import OneHotEncoder
 
     data = np.concatenate((data_tee))
-    enc = OneHotEncoder(sparse=False)
+    enc = OneHotEncoder(sparse_output=False)
     result = enc.fit_transform(data.reshape(-1, 1))
     return result
 
@@ -302,7 +302,7 @@ def onehot_encoder(data_tee):
     from sklearn.preprocessing import OneHotEncoder
 
     data = np.concatenate((data_tee))
-    enc = OneHotEncoder(sparse=False)
+    enc = OneHotEncoder(sparse_output=False)
     result = enc.fit_transform(data.reshape(-1, 1))
     return result
 
@@ -407,7 +407,7 @@ def onehot_encoder(data_tee):
     from sklearn.preprocessing import OneHotEncoder
 
     data = np.concatenate((data_tee))
-    enc = OneHotEncoder(sparse=False)
+    enc = OneHotEncoder(sparse_output=False)
     result = enc.fit_transform(data.reshape(-1, 1))
     return result
 

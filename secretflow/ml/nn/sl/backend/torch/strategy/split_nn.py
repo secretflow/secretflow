@@ -114,7 +114,6 @@ class SLTorchModel(SLBaseTorchModel):
         train_y = self.train_y[0] if len(self.train_y) == 1 else self.train_y
 
         logs = {}
-
         gradient = self.fuse_net_internal(
             hiddens,
             train_y,

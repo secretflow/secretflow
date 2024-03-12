@@ -16,13 +16,13 @@ from typing import Dict
 from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import (
     DistDataType,
-    VerticalTableWrapper,
     dump_vertical_table,
     generate_random_string,
     load_table,
     model_dumps,
     model_loads,
     move_feature_to_label,
+    VerticalTableWrapper,
 )
 from secretflow.component.io.core.bins.bin_utils import pad_inf_to_split_points
 from secretflow.device.device.pyu import PYU, PYUObject
@@ -244,7 +244,7 @@ def vert_binning_eval_fn(
         ctx,
         input_data,
         load_features=True,
-        feature_selects=input_data_feature_selects,
+        col_selects=input_data_feature_selects,
         load_labels=False,
     )
     with ctx.tracer.trace_running():

@@ -13,14 +13,15 @@
 # limitations under the License.
 
 import logging
-from typing import Callable, Dict, List, Union
+from typing import Callable, Dict, List
 
 import numpy as np
 import torch
 
 from secretflow import reveal
-from secretflow.device import PYU, wait
+from secretflow.device import PYU
 from secretflow.ml.nn.callbacks.attack import AttackCallback
+from secretflow.ml.nn.sl.backend.torch.sl_base import SLBaseTorchModel
 from secretflow.ml.nn.utils import TorchModel
 
 
@@ -46,10 +47,8 @@ class FeatureInferenceAttack(AttackCallback):
 
     def __init__(
         self,
-        victim_model_path,
         attack_party: PYU,
         victim_party: PYU,
-        victim_model_dict: Dict[PYU, List[Union[TorchModel, str]]],
         base_model_list: List[PYU],
         generator_model_wrapper: TorchModel,
         data_builder: Callable,
@@ -70,12 +69,11 @@ class FeatureInferenceAttack(AttackCallback):
         super().__init__(
             **params,
         )
-        self.victim_model_path = victim_model_path
         self.attack_party = attack_party
         self.victim_party = victim_party
 
         # for attacker
-        self.victim_model_dict = {k.party: v for k, v in victim_model_dict.items()}
+        self.victim_model_dict = {}
         self.base_model_list = [p.party for p in base_model_list]
         self.generator_model_wrapper = generator_model_wrapper
         self.data_builder = data_builder
@@ -96,9 +94,8 @@ class FeatureInferenceAttack(AttackCallback):
         self.metrics = None
 
     def on_train_end(self, logs=None):
-        def save_victim_model(victim_worker):
-            check_point = {'model_state_dict': victim_worker.model_base.state_dict()}
-            torch.save(check_point, self.victim_model_path)
+        def get_victim_model(victim_worker: SLBaseTorchModel):
+            return victim_worker.model_base
 
         def feature_inference_attack(attack_worker):
             attacker = FeatureInferenceAttacker(
@@ -118,15 +115,13 @@ class FeatureInferenceAttack(AttackCallback):
                 self.var_lambda,
                 self.victim_mean_feature,
                 self.attack_epochs,
-                self.load_attacker_path,
-                self.save_attacker_path,
                 self.exec_device,
             )
             ret = attacker.attack()
             return ret
 
-        res = self._workers[self.victim_party].apply(save_victim_model)
-        wait(res)
+        victim_model = reveal(self._workers[self.victim_party].apply(get_victim_model))
+        self.victim_model_dict[self.victim_party.party] = victim_model
         self.metrics = reveal(
             self._workers[self.attack_party].apply(feature_inference_attack)
         )
@@ -140,7 +135,7 @@ class FeatureInferenceAttacker:
         self,
         attacker_base_model: torch.nn.Module,
         attacker_fuse_model: torch.nn.Module,
-        victim_model_dict: Dict[str, List[Union[TorchModel, str]]],
+        victim_model_dict: Dict[str, torch.nn.Module],
         base_model_list: List[str],
         attack_party: str,
         generator_model_wrapper: TorchModel,
@@ -154,9 +149,9 @@ class FeatureInferenceAttacker:
         var_lambda: float = 0.25,
         victim_mean_feature: np.ndarray = None,
         epochs: int = 60,
+        exec_device: str = 'cpu',
         load_model_path: str = None,
         save_model_path: str = None,
-        exec_device: str = 'cpu',
     ):
         super().__init__()
 
@@ -220,10 +215,7 @@ class FeatureInferenceAttacker:
             if key == self.attack_party:
                 self.base_models[key] = self.attacker_base_model
             else:
-                vmodel_def: TorchModel = self.victim_model_dict[key][0]
-                self.base_models[key] = vmodel_def.model_fn(**vmodel_def.kwargs)
-                checkpoint = torch.load(self.victim_model_dict[key][1])
-                self.base_models[key].load_state_dict(checkpoint['model_state_dict'])
+                self.base_models[key] = self.victim_model_dict[key]
             self.base_models[key] = self.base_models[key].to(self.exec_device)
 
         # prepare data
