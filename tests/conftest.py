@@ -92,7 +92,7 @@ heu_config = {
     # The HEU working mode, choose from PHEU / LHEU / FHEU_ROUGH / FHEU
     "mode": "PHEU",
     "he_parameters": {
-        "schema": "paillier",
+        "schema": "ou",
         "key_pair": {"generate": {"bit_size": 2048}},
     },
 }

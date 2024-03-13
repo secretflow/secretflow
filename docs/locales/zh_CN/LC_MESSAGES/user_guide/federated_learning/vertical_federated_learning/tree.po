@@ -7,14 +7,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-07-11 13:40+0800\n"
+"POT-Creation-Date: 2024-03-07 16:31+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.12.1\n"
+"Generated-By: Babel 2.14.0\n"
 
 #: ../../user_guide/federated_learning/vertical_federated_learning/tree.md:1
 msgid "Vertically Federated XGB (SecureBoost)"
@@ -63,8 +63,9 @@ msgid ""
 "Since secretflow 1.0, we further optimized the performance and supported "
 "some advanced training features including lightGBM style (leaf wise and "
 "GOSS) training, train the first tree with label holder's data only, etc."
-msgstr "自secretflow 1.0版本开始，我们进一步优化了性能，并支持了一些高级训练功能，包括lightGBM风格（叶子优先和GOSS）训练，"
-"仅使用标签持有者的数据训练第一棵树等。"
+msgstr ""
+"自secretflow "
+"1.0版本开始，我们进一步优化了性能，并支持了一些高级训练功能，包括lightGBM风格（叶子优先和GOSS）训练，仅使用标签持有者的数据训练第一棵树等。"
 
 #: ../../user_guide/federated_learning/vertical_federated_learning/tree.md:17
 msgid "Tutorial"
@@ -77,10 +78,17 @@ msgid ""
 msgstr "请查看这个简单的[教程](../../../tutorial/SecureBoost.ipynb)"
 
 #: ../../user_guide/federated_learning/vertical_federated_learning/tree.md:21
+msgid ""
+"Refer to this [notebook](../../../tutorial/secureboost_analysis.ipynb) "
+"for comparison between SGB and original cleartext XGBoost."
+msgstr "请参考这个[笔记本](../../../tutorial/secureboost_analysis.ipynb)来比较 SGB 和原始明文 XGBoost。"
+
+
+#: ../../user_guide/federated_learning/vertical_federated_learning/tree.md:23
 msgid "Security Warning"
 msgstr "安全提示"
 
-#: ../../user_guide/federated_learning/vertical_federated_learning/tree.md:23
+#: ../../user_guide/federated_learning/vertical_federated_learning/tree.md:25
 msgid ""
 "Please note that the federated tree model algorithm "
 "[SecureBoost](https://arxiv.org/abs/1901.08755) is not a provably secure "

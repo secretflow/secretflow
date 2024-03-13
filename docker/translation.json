@@ -345,11 +345,11 @@
     "pred": "预测",
     "Output prediction.": "输出预测结果表"
   },
-  "ml.train/sgb_train:0.0.2": {
+  "ml.train/sgb_train:0.0.3": {
     "ml.train": "模型训练",
     "sgb_train": "SecureBoost训练",
     "Provides both classification and regression tree boosting (also known as GBDT, GBM)\nfor vertical split dataset setting by using secure boost.\n- SGB is short for SecureBoost. Compared to its safer counterpart SS-XGB, SecureBoost focused on protecting label holder.\n- Check https://arxiv.org/abs/1901.08755.": "使用Secure Boosting为垂直拆分数据集设置提供分类和回归树Boosting(也称为 GBDT、GBM)SGB是SecureBoost的缩写与更安全的SS-XGB相比, SecureBoost专注于保护标签持有人\n - 详细信息请参阅: https: //arxiv.org/abs/1901.08755",
-    "0.0.2": "0.0.2",
+    "0.0.3": "0.0.3",
     "num_boost_round": "训练轮数",
     "Number of boosting iterations.": "Boosting迭代次数",
     "max_depth": "最大深度",

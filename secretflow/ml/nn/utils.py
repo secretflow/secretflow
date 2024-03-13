@@ -17,7 +17,7 @@
 
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Type, Callable, Any
 
 import numpy as np
 import torch
@@ -97,29 +97,36 @@ class BaseModule(ABC, nn.Module):
 class TorchModel:
     def __init__(
         self,
-        model_fn: type(BaseModule) = None,
-        loss_fn: type(BaseTorchLoss) = None,
-        optim_fn: optim.Optimizer = None,
-        metrics: List[Metric] = [],
+        model_fn: Type[BaseModule | nn.Module] = None,
+        loss_fn: Callable[[], BaseTorchLoss] = None,
+        optim_fn: Callable[[Any], optim.Optimizer] = None,
+        metrics: List[Callable[[], Metric]] = None,
         **kwargs,
     ):
         self.model_fn = model_fn
-        self.loss_fn: BaseTorchLoss = loss_fn
-        self.optim_fn: optim.Optimizer = optim_fn
-        self.metrics: List[Metric] = metrics
+        self.loss_fn: Callable[[], BaseTorchLoss] = loss_fn
+        self.optim_fn: Callable[[Any], optim.Optimizer] = optim_fn
+        self.metrics: List[Callable[[], Metric]] = metrics if metrics else []
         self.kwargs = kwargs
 
 
-def metric_wrapper(func, *args, **kwargs):
+def metric_wrapper(func, *args, **kwargs) -> Callable[[], Metric]:
     def wrapped_func():
         return func(*args, **kwargs)
 
     return wrapped_func
 
 
-def optim_wrapper(func, *args, **kwargs):
+def optim_wrapper(func, *args, **kwargs) -> Callable[[Any], optim.Optimizer]:
     def wrapped_func(params):
         return func(params, *args, **kwargs)
+
+    return wrapped_func
+
+
+def loss_wrapper(func, *args, **kwargs) -> Callable[[], BaseTorchLoss]:
+    def wrapped_func():
+        return func(*args, **kwargs)
 
     return wrapped_func
 

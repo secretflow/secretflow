@@ -32,18 +32,18 @@ class CallbackList:
         add_progbar=False,
         **kwargs,
     ):
+        if isinstance(callbacks, CallbackList):
+            raise RuntimeError("Cannot set a CallbackList to CallbaskList.")
         if callbacks is None:
             self.callbacks: List[Callback] = []
+        elif isinstance(callbacks, List):
+            self.callbacks = callbacks.copy()
         else:
-            self.callbacks: List[Callback] = (
-                callbacks if isinstance(callbacks, List) else [callbacks]
-            )
+            self.callbacks = [callbacks]
 
         # callbacks status
         self.stop_training = [False]
         self.history = {}
-        if isinstance(callbacks, CallbackList):
-            raise RuntimeError("Cannot set a CallbackList to CallbaskList.")
 
         if add_progbar:
             self.callbacks.append(Progbar())

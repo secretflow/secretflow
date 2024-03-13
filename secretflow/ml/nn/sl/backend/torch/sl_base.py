@@ -46,8 +46,8 @@ class FuseOp(torch.autograd.Function):
 class SLBaseTorchModel(SLBaseModel, ABC):
     def __init__(
         self,
-        builder_base: Callable[[], TorchModel],
-        builder_fuse: Callable[[], TorchModel],
+        builder_base: TorchModel,
+        builder_fuse: TorchModel,
         dp_strategy: DPStrategy,
         random_seed: int = None,
         *args,
@@ -97,6 +97,8 @@ class SLBaseTorchModel(SLBaseModel, ABC):
             torch.manual_seed(random_seed)
         # used in backward propagation gradients from fuse model to base model
         self.fuse_op = FuseOp()
+        self.builder_base = builder_base
+        self.builder_fuse = builder_fuse
         self.model_base = (
             builder_base.model_fn(**builder_base.kwargs)
             if builder_base and builder_base.model_fn
@@ -163,10 +165,10 @@ class SLBaseTorchModel(SLBaseModel, ABC):
         else:
             return 0
 
-    def get_gradient(self, gradient):
+    def set_gradients(self, gradient):
         self._gradient = gradient
 
-    def set_gradient(self):
+    def get_gradients(self):
         return self._gradient
 
     def pack_forward_data(self):

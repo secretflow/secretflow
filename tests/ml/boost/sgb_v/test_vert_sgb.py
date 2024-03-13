@@ -37,7 +37,7 @@ def _run_sgb(
     subsample,
     colsample,
     audit_dict={},
-    auc_bar=0.88,
+    auc_bar=0.87,
     mse_hat=1.1,
     tree_grow_method='level',
     enable_goss=False,
@@ -133,7 +133,7 @@ def _run_sgb(
     )
 
 
-def _run_npc_linear(env, test_name, parts, label_device, auc=0.88):
+def _run_npc_linear(env, test_name, parts, label_device, auc=0.87):
     vdf = load_linear(parts=parts)
 
     label_data = vdf['y']

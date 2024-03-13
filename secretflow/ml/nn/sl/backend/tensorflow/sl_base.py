@@ -403,10 +403,10 @@ class SLBaseTFModel(SLBaseModel):
             self.eval_set = iter(self.eval_dataset)
         self._pre_train_y = []
 
-    def get_gradient(self, gradient):
+    def set_gradients(self, gradient):
         self._gradient = gradient
 
-    def set_gradient(self):
+    def get_gradients(self):
         return self._gradient
 
     def get_batch_data(self, stage="train", epoch=1):
@@ -485,6 +485,7 @@ class SLBaseTFModel(SLBaseModel):
         assert (
             self.model_fuse is not None
         ), "Fuse model cannot be none, please give model define"
+
         if isinstance(forward_data, ForwardData):
             forward_data = [forward_data]
         forward_data[:] = (h for h in forward_data if h is not None)
@@ -648,7 +649,6 @@ class SLBaseTFModel(SLBaseModel):
                 )
         return wraped_metrics
 
-    @tf.function
     def _base_forward_internal(self, data_x, training=True):
         h = self.model_base(data_x, training=training)
 

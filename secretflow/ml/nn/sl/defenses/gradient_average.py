@@ -21,38 +21,54 @@ class GradientAverage(Callback):
     """
     Implemention of gradient averaging to defense against label leaking attack.
     This callback will average the gradient of each party by batch before sending it back to its own party.
+    This is only used when the model is biclassification.
     """
 
-    def __init__(self, backend: str = "tensorflow", **kwargs):
+    def __init__(self, backend: str = "tensorflow", exec_device='cpu', **kwargs):
         self.backend = backend.lower()
-
+        self.exec_device = exec_device
         super().__init__(**kwargs)
 
     def on_fuse_backward_end(self):
         def average_gradient(worker):
 
             gradient = worker._gradient
+
+            def _avg_grad(g):
+
+                row_averages = np.mean(g, axis=0)
+                average_data = np.tile(row_averages, g.shape[0]).reshape(g.shape)
+                return average_data
+
             if self.backend == "tensorflow":
+                import tensorflow as tf
+
                 gradient = (
-                    [g.numpy() for g in gradient]
+                    [_avg_grad(g.numpy()) for g in gradient]
                     if isinstance(gradient, list)
-                    else gradient
+                    else _avg_grad(gradient.numpy())
+                )
+                gradient_tensor = (
+                    [tf.convert_to_tensor(g) for g in gradient]
+                    if isinstance(gradient, list)
+                    else tf.convert_to_tensor(gradient)
                 )
             else:
-                gradient = (
-                    [g.detach().numpy() for g in gradient]
-                    if isinstance(gradient, list)
-                    else gradient
-                )
+                import torch
 
+                gradient = (
+                    [_avg_grad(g.cpu().numpy()) for g in gradient]
+                    if isinstance(gradient, list)
+                    else _avg_grad(gradient.detach().cpu().numpy())
+                )
+                gradient_tensor = (
+                    [torch.tensor(g).to(self.exec_device) for g in gradient]
+                    if isinstance(gradient, list)
+                    else torch.tensor(gradient).to(self.exec_device)
+                )
             if gradient is None:
                 raise Exception("No gradient received from label party.")
 
-            nd_data = np.array(gradient)
-            row_averages = np.mean(nd_data, axis=0)
-            average_data = np.tile(row_averages, nd_data.shape[0]).reshape(
-                nd_data.shape
-            )
-            worker._gradient = average_data
+            worker._gradient = gradient_tensor
 
         self._workers[self.device_y].apply(average_gradient)

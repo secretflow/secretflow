@@ -23,9 +23,13 @@ from secretflow.data.ndarray import FedNdarray, PartitionWay
 from secretflow.ml.nn import SLModel
 from secretflow.ml.nn.applications.sl_dnn_torch import DnnBase
 from secretflow.ml.nn.applications.sl_resnet_torch import NaiveSumSoftmax
-from secretflow.ml.nn.fl.utils import loss_wrapper, metric_wrapper, optim_wrapper
 from secretflow.ml.nn.sl.defenses.mixup import Mixuplayer, Mixuploss
-from secretflow.ml.nn.utils import TorchModel
+from secretflow.ml.nn.utils import (
+    TorchModel,
+    loss_wrapper,
+    metric_wrapper,
+    optim_wrapper,
+)
 
 
 class TabDatasetLeft(Dataset):
@@ -85,7 +89,7 @@ def test_mixup(sf_simulation_setup_devices):
     mixup_lam = 0.5
     mixup_seed = 42
     mixup_layer = Mixuplayer(lam=mixup_lam, perm_seed=mixup_seed)
-    loss = nn.CrossEntropyLoss()
+    loss = nn.CrossEntropyLoss
     loss_fn = loss_wrapper(Mixuploss, loss_fn=loss, lam=0.5, perm_seed=mixup_seed)
     optim_fn = optim_wrapper(torch.optim.Adam, lr=1e-3)
     alice = sf_simulation_setup_devices.alice

@@ -311,7 +311,6 @@ class SLBaseTFModel(SLBaseModel):
         else:
             raise Exception(f"Illegal argument stage={stage}")
 
-    @tf.function
     def _base_forward_internal(self, data_x, training=True):
         h = self.model_base(data_x, training=training)
 
