@@ -42,6 +42,7 @@ header: # <1>
     - '**/.condarc'
     - '**/*.tmpl'
     - '**/*.policy'
+    - '**/*_pb2.py'
     - 'LICENSE'
     - 'NOTICE'
     - '.bazelversion'
