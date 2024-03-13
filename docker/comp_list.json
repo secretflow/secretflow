@@ -1347,7 +1347,7 @@
       "domain": "ml.train",
       "name": "sgb_train",
       "desc": "Provides both classification and regression tree boosting (also known as GBDT, GBM)\nfor vertical split dataset setting by using secure boost.\n- SGB is short for SecureBoost. Compared to its safer counterpart SS-XGB, SecureBoost focused on protecting label holder.\n- Check https://arxiv.org/abs/1901.08755.",
-      "version": "0.0.2",
+      "version": "0.0.3",
       "attrs": [
         {
           "name": "num_boost_round",
@@ -1447,7 +1447,7 @@
           "atomic": {
             "isOptional": true,
             "defaultValue": {
-              "f": 0.1
+              "f": 1.0
             },
             "lowerBoundEnabled": true,
             "lowerBound": {},
@@ -1765,11 +1765,10 @@
           "type": "AT_FLOAT",
           "atomic": {
             "isOptional": true,
-            "defaultValue": {
-              "f": 0.001
-            },
+            "defaultValue": {},
             "lowerBoundEnabled": true,
-            "lowerBound": {}
+            "lowerBound": {},
+            "lowerBoundInclusive": true
           }
         },
         {

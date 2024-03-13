@@ -206,7 +206,10 @@ def ss_xgb_train_eval_fn(
     spu = SPU(spu_config["cluster_def"], spu_config["link_desc"])
 
     assert len(train_dataset_label) == 1
-
+    assert (
+        len(set(train_dataset_label).intersection(set(train_dataset_feature_selects)))
+        == 0
+    ), f"expect no intersection between label and features, got {train_dataset_label} and {train_dataset_feature_selects}"
     y = load_table(
         ctx,
         train_dataset,
@@ -221,7 +224,6 @@ def ss_xgb_train_eval_fn(
         load_labels=True,
         load_features=True,
         col_selects=train_dataset_feature_selects,
-        col_excludes=train_dataset_label,
     )
 
     with ctx.tracer.trace_running():

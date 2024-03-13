@@ -39,6 +39,7 @@ from secretflow.ml.linear import RegType
 from secretflow.spec.v1.data_pb2 import DistData
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.utils.sigmoid import SigType
+from secretflow_serving_lib.link_function_pb2 import LinkFunctionType
 
 from .graph_builder_manager import GraphBuilderManager
 
@@ -60,21 +61,21 @@ SF_TYPE_TO_SERVING_TYPE = {
 }
 
 SS_GLM_LINK_MAP = {
-    "Logit": "LF_SIGMOID_SR",
-    "Log": "LF_LOG",
-    "Reciprocal": "LF_RECIPROCAL",
-    "Identity": "LF_IDENTITY",
+    "Logit": LinkFunctionType.LF_SIGMOID_SR,
+    "Log": LinkFunctionType.LF_EXP,
+    "Reciprocal": LinkFunctionType.LF_RECIPROCAL,
+    "Identity": LinkFunctionType.LF_IDENTITY,
 }
 
 
 SS_SGD_LINK_MAP = {
-    SigType.REAL: "LF_SIGMOID_RAW",
-    SigType.T1: "LF_SIGMOID_T1",
-    SigType.T3: "LF_SIGMOID_T3",
-    SigType.T5: "LF_SIGMOID_T5",
-    SigType.DF: "LF_SIGMOID_DF",
-    SigType.SR: "LF_SIGMOID_SR",
-    SigType.MIX: "LF_SIGMOID_SEGLS",
+    SigType.REAL: LinkFunctionType.LF_SIGMOID_RAW,
+    SigType.T1: LinkFunctionType.LF_SIGMOID_T1,
+    SigType.T3: LinkFunctionType.LF_SIGMOID_T3,
+    SigType.T5: LinkFunctionType.LF_SIGMOID_T5,
+    SigType.DF: LinkFunctionType.LF_SIGMOID_DF,
+    SigType.SR: LinkFunctionType.LF_SIGMOID_SR,
+    SigType.MIX: LinkFunctionType.LF_SIGMOID_SEGLS,
 }
 
 
@@ -102,12 +103,13 @@ def linear_model_converter(
     label_col: str,
     offset_col: str,
     yhat_scale: float,
-    link_type: str,
+    link_type: LinkFunctionType,
     pred_name: str,
     traced_input: Dict[str, Set[str]],
 ):
     assert set(party_features_length).issubset(set(input_schema))
     assert len(party_features_length) > 0
+
     spu = spu_w.device
     party_pos = 0
     party_dot_input_schemas = dict()
@@ -177,7 +179,7 @@ def linear_model_converter(
 
         party_merge_kwargs[pyu] = {
             "yhat_scale": yhat_scale,
-            "link_function": link_type,
+            "link_function": LinkFunctionType.Name(link_type),
             "input_col_name": "partial_y",
             "output_col_name": pred_name,
         }
@@ -359,7 +361,7 @@ def ss_sgd_converter(
     label_col = label_col[0]
 
     if reg_type == RegType.Linear:
-        link_type = "LF_IDENTITY"
+        link_type = LinkFunctionType.LF_IDENTITY
     else:
         link_type = SS_SGD_LINK_MAP[sig_type]
 
@@ -535,10 +537,11 @@ def ss_xgb_converter(
     assert len(party_features_length) > 0
 
     if model.get_objective() == SSXgbRegType.Logistic:
-        # refer to `SgbModel.predict`
-        algo_func = SS_SGD_LINK_MAP[SigType.SR]
+        # refer to `XgbModel.predict`
+        algo_func_type = LinkFunctionType.LF_SIGMOID_SR
     else:
-        algo_func = "LF_IDENTITY"
+        algo_func_type = LinkFunctionType.LF_IDENTITY
+    algo_func = LinkFunctionType.Name(algo_func_type)
 
     trees = model.get_trees()
     spu_ws = model.get_weights()
@@ -759,9 +762,10 @@ def sgb_converter(
 
     if sgb_model.get_objective() == SgbRegType.Logistic:
         # refer to `SgbModel.predict`
-        algo_func = SS_SGD_LINK_MAP[SigType.SR]
+        algo_func_type = LinkFunctionType.LF_SIGMOID_SR
     else:
-        algo_func = "LF_IDENTITY"
+        algo_func_type = LinkFunctionType.LF_IDENTITY
+    algo_func = LinkFunctionType.Name(algo_func_type)
 
     select_parent_node = builder.get_last_node_name()
 

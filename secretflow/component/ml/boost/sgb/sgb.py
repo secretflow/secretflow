@@ -34,7 +34,7 @@ DEFAULT_PREDICT_BATCH_SIZE = 10000
 sgb_train_comp = Component(
     "sgb_train",
     domain="ml.train",
-    version="0.0.2",
+    version="0.0.3",
     desc="""Provides both classification and regression tree boosting (also known as GBDT, GBM)
     for vertical split dataset setting by using secure boost.
 
@@ -101,7 +101,7 @@ sgb_train_comp.float_attr(
     desc="Greater than 0 means pre-pruning enabled. If gain of a node is less than this value, it would be pruned.",
     is_list=False,
     is_optional=True,
-    default_value=0.1,
+    default_value=1,
     lower_bound=0,
     upper_bound=10000,
     lower_bound_inclusive=True,
@@ -295,11 +295,6 @@ sgb_train_comp.float_attr(
     upper_bound_inclusive=False,
 )
 
-# 'stopping_tolerance': float. if the difference between current score and past best score is smaller than this threshold,
-# then model is considered not inproving. Only effective if early stop enabled.
-#     default: 0.001
-# 'save_best_model': bool. whether save best model on validation set during training, only effective if early stop enabled.
-#     default: False
 sgb_train_comp.int_attr(
     name="stopping_rounds",
     desc="""Early stop specific paramter. If more than `stopping_rounds` consecutive rounds without improvement, training will stop.
@@ -318,9 +313,9 @@ sgb_train_comp.float_attr(
     desc="Early stop specific paramter. If metric on validation set is no longer improving by at least this amount, ten consider not improving.",
     is_list=False,
     is_optional=True,
-    default_value=0.001,
+    default_value=0.0,
     lower_bound=0,
-    lower_bound_inclusive=False,
+    lower_bound_inclusive=True,
 )
 
 sgb_train_comp.bool_attr(
@@ -401,7 +396,10 @@ def sgb_train_eval_fn(
     train_dataset_feature_selects,
 ):
     assert ctx.heu_config is not None, "need heu config in SFClusterDesc"
-
+    assert (
+        len(set(train_dataset_label).intersection(set(train_dataset_feature_selects)))
+        == 0
+    ), f"expect no intersection between label and features, got {train_dataset_label} and {train_dataset_feature_selects}"
     y = load_table(
         ctx,
         train_dataset,
@@ -415,8 +413,8 @@ def sgb_train_eval_fn(
         load_labels=True,
         load_features=True,
         col_selects=train_dataset_feature_selects,
-        col_excludes=train_dataset_label,
     )
+    assert len(x.columns) > 0
 
     label_party = next(iter(y.partitions.keys())).party
     heu = heu_from_base_config(
@@ -609,7 +607,7 @@ def sgb_predict_eval_fn(
     save_label,
 ):
     model_public_info = get_model_public_info(model)
-
+    assert len(model_public_info['feature_selects']) > 0
     feature_reader = SimpleVerticalBatchReader(
         ctx,
         feature_dataset,

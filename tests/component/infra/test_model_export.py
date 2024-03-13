@@ -10,8 +10,6 @@ import pandas as pd
 import pytest
 import secretflow_serving_lib as sfs
 from google.protobuf import json_format
-from sklearn.datasets import load_breast_cancer
-from sklearn.preprocessing import StandardScaler
 
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.ml.boost.sgb.sgb import sgb_predict_comp, sgb_train_comp
@@ -41,6 +39,8 @@ from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
+from sklearn.datasets import load_breast_cancer
+from sklearn.preprocessing import StandardScaler
 
 
 def eval_export(
@@ -827,7 +827,7 @@ def test_sgb_export(comp_prod_sf_cluster_config, features_in_one_party):
     train_param = NodeEvalParam(
         domain="ml.train",
         name="sgb_train",
-        version="0.0.2",
+        version="0.0.3",
         attr_paths=[
             "num_boost_round",
             "max_depth",

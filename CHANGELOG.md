@@ -14,6 +14,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
+## [v1.5.0.dev240312] - 2024-03-12
+
+### Added
+
+- SL: grad_average is supported on GPU.
+- SL: mix_up defence can be called through callback.
+- Simulation: add some unpartitioned datasets.
+
+### Fixed
+
+- Fix order in componet load table.
+
+### Changed
+
+- Serving: Update serving linkfunc type.
+- FL: rename get/set_gradients methods
+- SGX: improve doc for the accuracy analysis.
+- SL: import fia attack.
+
 ## [v1.5.0.dev240304] - 2024-03-04
 
 ### Added

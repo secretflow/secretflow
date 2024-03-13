@@ -16,9 +16,8 @@ from torchmetrics import AUROC, Accuracy, Precision
 
 from secretflow.device import reveal
 from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.fl.utils import metric_wrapper, optim_wrapper
 from secretflow.ml.nn.sl.agglayer.agg_method import Average
-from secretflow.ml.nn.utils import TorchModel
+from secretflow.ml.nn.utils import TorchModel, metric_wrapper, optim_wrapper
 from secretflow.security.privacy import DPStrategy
 from secretflow.security.privacy.mechanism.label_dp import LabelDP
 from secretflow.security.privacy.mechanism.torch import GaussianEmbeddingDP

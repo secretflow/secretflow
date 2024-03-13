@@ -109,7 +109,7 @@ class LossFunction(object):
         # Label is a vector of class indices for each input example
         labels = dtrain.get_label()
         # When objective=softprob, preds has shape (N, K)
-        labels = OneHotEncoder(sparse=False).fit_transform(labels.reshape(-1, 1))
+        labels = OneHotEncoder(sparse_output=False).fit_transform(labels.reshape(-1, 1))
         prob = _softmax(preds)
         grad = (prob - labels).astype(np.float64)
         hess = (2.0 * prob * (1.0 - prob)).astype(np.float64)

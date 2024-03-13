@@ -136,7 +136,9 @@ class DnnFuse(BaseModule):
         self._output_func = output_func() if output_func else None
 
     def forward(self, x):
-        x = torch.cat(x, dim=1)
+        if isinstance(x, list):
+            x = torch.cat(x, dim=1)
+
         x = self._dnn(x)
         if self._output_func:
             x = self._output_func(x)

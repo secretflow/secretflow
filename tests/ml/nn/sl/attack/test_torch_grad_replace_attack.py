@@ -12,9 +12,8 @@ from secretflow.ml.nn.applications.sl_resnet_torch import (
     NaiveSumSoftmax,
     ResNetBase,
 )
-from secretflow.ml.nn.fl.utils import metric_wrapper, optim_wrapper
 from secretflow.ml.nn.sl.attacks.grad_replace_attack_torch import GradReplaceAttack
-from secretflow.ml.nn.utils import TorchModel
+from secretflow.ml.nn.utils import TorchModel, metric_wrapper, optim_wrapper
 
 
 class ImageDatasetLeft(Dataset):
