@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 def forward_replacement(
     embeddings, batch_indexes, poisoning_indexes, target_indexes, blurred=False
 ):
