@@ -39,6 +39,8 @@ header: # <1>
     - '**/*.whl'
     - '**/*.rst_t'
     - '**/*.lds'
+    - '**/.condarc'
+    - '**/*.tmpl'
     - 'LICENSE'
     - 'NOTICE'
     - '.bazelversion'
