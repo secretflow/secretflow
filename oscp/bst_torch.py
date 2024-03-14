@@ -8,6 +8,7 @@ sf.shutdown()
 sf.init(['alice', 'bob'], address="local", log_to_driver=False)
 alice, bob = sf.PYU('alice'), sf.PYU('bob')
 
+import logging
 import os
 import shutil
 from pathlib import Path
@@ -17,20 +18,15 @@ dataset_download_dir = data_dir + '/data_download'
 gen_data_path = data_dir + '/data_sl_bst'
 fea_emb_input_size = {}
 
-import logging
+fm = "%(asctime)s %(levelname)s [%(name)s] [%(filename)s] [%(funcName)s:%(lineno)d]"
+# 设置日志级别 打印日志
+logging.basicConfig(
+    level=logging.DEBUG,
+    format=fm,
+    filename="/root/develop/Open_Source/ant-sf/secretflow/oscp/testlog/log01.log",
+)
+# 基本用法
 
-from secretflow.utils.logging import LOG_FORMAT, get_logging_level, set_logging_level
-
-
-def _init_log(self_party: str, logging_level: str):
-    set_logging_level(logging_level)
-    logging.basicConfig(
-        level=get_logging_level(),
-        format=LOG_FORMAT,
-        filename=self_party + '.log',
-        filemode='w',
-        force=True,
-    )
 
 
 def generate_data():

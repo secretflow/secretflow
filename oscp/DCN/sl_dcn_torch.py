@@ -5,12 +5,8 @@ import torch
 from torch import nn as nn
 from torch.nn import functional as F
 
+import secretflow as sf
 from secretflow.ml.nn.utils import BaseModule
-
-fm = "%(asctime)s %(levelname)s [%(name)s] [%(filename)s] [%(funcName)s:%(lineno)d]"
-# 设置日志级别 打印日志
-logging.basicConfig(level=logging.DEBUG, format=fm, filename="testlog//log01.log")
-# 基本用法
 
 
 class CatEmbeddingSqrt(nn.Module):
@@ -20,24 +16,26 @@ class CatEmbeddingSqrt(nn.Module):
     输出shape: [batch_size,d_out]
     """
 
-    def __init__(self, categories: List[int], d_embed_max: int = 100):
+    def __init__(self, categories: List[int], d_embed_list: List[int]):
         super().__init__()
+        self.d_embed_list = d_embed_list
         self.categories = categories
-        self.d_embed_list = [min(max(int(x**0.5), 2), d_embed_max) for x in categories]
         self.embedding_list = nn.ModuleList(
             [
                 nn.Embedding(self.categories[i], self.d_embed_list[i])
-                for i in range(len(categories))
+                for i in range(len(d_embed_list))
             ]
         )
-        self.d_cat_sum = sum(self.d_embed_list)
 
     def forward(self, x_cat: torch.Tensor) -> torch.Tensor:
         """
         param x_cat: Long tensor of size ``(batch_size, d_in)``
         """
         x_out = torch.cat(
-            [self.embedding_list[i](x_cat[:, i]) for i in range(len(self.categories))],
+            [
+                self.embedding_list[i](x_cat[:, i])
+                for i in range(len(self.d_embed_list))
+            ],
             dim=1,
         )
         return x_out
@@ -79,11 +77,13 @@ class Cross(nn.Module):
 
 
 class DCNBase(BaseModule):
+
     def __init__(
         self,
         d_numerical: int,
-        categories: List[int],
+        d_embed_dict: Dict,
         d_embed_max: int = 8,
+        d_in: int = 256,
         n_cross: int = 2,
         mlp_layers: List[int] = [128, 64, 32],
         mlp_dropout: float = 0.25,
@@ -91,26 +91,29 @@ class DCNBase(BaseModule):
         super(DCNBase, self).__init__()
         '''
         d_numerical: 数值特征的维度
-        categories: 离散特征的类别数
+        categories: 离散特征的类别数以及每个类别的最大值
         d_embed_max: 离散特征的embedding维度上限
         '''
+        d_embed_list = d_embed_dict.get("d_embed_list")
+        categories = d_embed_dict.get("categorical")
+        assert len(categories) == len(d_embed_list)
 
         if d_numerical is None:
             d_numerical = 0
-        if categories is None:
-            categories = []
+        if d_embed_list is None:
+            d_embed_list = []
 
-        self.categories = categories
+        self.d_embed_list = d_embed_list
 
         # embedding
         self.cat_embedding = (
-            CatEmbeddingSqrt(categories, d_embed_max) if categories else None
+            CatEmbeddingSqrt(categories, d_embed_list) if d_embed_list else None
         )
 
         # deep
         self.d_in = d_numerical
         if self.cat_embedding:
-            self.d_in += self.cat_embedding.d_cat_sum
+            self.d_in = d_in
 
         self.deep = Deep(self.d_in, mlp_layers, mlp_dropout)
 
@@ -125,16 +128,7 @@ class DCNBase(BaseModule):
         x_num : numerical features
         x_cat : categorical features
         """
-        logging.debug("x:{}".format(x))
-
         x_num, x_cat = x
-        logging.debug(
-            "x_num:{}".format(x_num),
-            "x_cat:{}".format(x_cat),
-            "x_num 's size:{}".format(x_num.size()),
-            "x_cat 's size:{}".format(x_cat.size()),
-        )
-        # embedding
         x_total = []
         if x_num is not None:
             x_total.append(x_num)
@@ -153,15 +147,24 @@ class DCNBase(BaseModule):
         x_cross_deep = torch.cat([x_cross, x_deep], dim=-1)
         return x_cross_deep
 
+    def output_num(self):
+        """Define the number of tensors returned by basenet"""
+        return 1
+
 
 class DCNFuse(BaseModule):
-    def __init__(self, n_classes=2, deep_dim_out=9, cross_dim_out=32):
-        super(DCNFuse, self).__init__()
 
-        self.stack = nn.Linear(2 * (deep_dim_out + cross_dim_out), n_classes)
-        self.out = nn.Softmax(dim=1)
+    def __init__(self, n_classes=2, total_fuse_dim=32):
+        super(DCNFuse, self).__init__()
+        self.n_classes = n_classes
+        self.stack = nn.Linear(total_fuse_dim, n_classes)
+        # self.out = nn.Softmax(dim=1)
 
     def forward(self, x):
         fuse_input = torch.cat(x, dim=1)
+        stack_out = self.stack(fuse_input)
+        # if self.n_classes == 1:
+        #     x_out = stack_out.squeeze(-1)
+        x_out = F.sigmoid(stack_out)
 
-        return self.out(self.stack(fuse_input))
+        return x_out
