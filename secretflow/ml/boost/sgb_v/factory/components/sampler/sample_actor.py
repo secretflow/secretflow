@@ -17,7 +17,6 @@ from typing import List, Tuple, Union
 
 import numpy as np
 
-
 # handle order map building for one party
 
 

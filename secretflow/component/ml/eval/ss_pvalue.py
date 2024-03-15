@@ -74,9 +74,12 @@ def ss_pearsonr_eval_fn(
     x = load_table(
         ctx,
         input_data,
+        partitions_order=list(model_meta["party_features_length"].keys()),
         load_features=True,
-        col_selects=model_meta["feature_selects"],
+        col_selects=model_meta["feature_names"],
     )
+    assert x.columns == model_meta["feature_names"]
+
     y = load_table(
         ctx,
         input_data,

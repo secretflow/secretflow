@@ -18,6 +18,7 @@ from dataclasses import dataclass, fields
 from typing import List
 
 from secretflow.device import HEU, PYU
+
 from ..sgb_actor import SGBActor
 
 

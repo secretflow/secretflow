@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .preprocessing_converter import preprocessing_converter
-from .serving_graph import DispatchType
-from .train_model_converter import train_model_converter
 from .graph_builder_manager import GraphBuilderManager
+from .preprocessing_converter import PreprocessingConverter
+from .serving_graph import DispatchType
+from .train_model_converter import TrainModelConverter
 
 __all__ = [
     GraphBuilderManager,
     DispatchType,
-    preprocessing_converter,
-    train_model_converter,
+    PreprocessingConverter,
+    TrainModelConverter,
 ]

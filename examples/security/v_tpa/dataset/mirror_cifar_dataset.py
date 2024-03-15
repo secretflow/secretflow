@@ -4,8 +4,8 @@ import sys
 
 sys.path.append("..")
 
-from .cifar_dataset import CIFARDataset
 from .badnets_base_dataset import BadNetsBaseDataset
+from .cifar_dataset import CIFARDataset
 
 
 class MirrorCIFARDataset(CIFARDataset, BadNetsBaseDataset):

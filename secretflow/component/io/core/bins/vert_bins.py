@@ -19,10 +19,8 @@ from secretflow.component.io.core.bins.bin_utils import (
     pad_inf_to_split_points,
     strip_inf_from_split_points,
 )
-
 from secretflow.device import PYUObject
 from secretflow.device.driver import reveal
-
 from secretflow.spec.extend.bin_data_pb2 import Bin, Bins, VariableBins
 
 

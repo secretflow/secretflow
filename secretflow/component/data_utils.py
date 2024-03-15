@@ -166,10 +166,10 @@ def merge_individuals_to_vtable(srcs: List[DistData], dest: DistData) -> DistDat
 
 def extract_table_header(
     db: DistData,
+    partitions_order: List[str] = None,
     load_features: bool = False,
     load_labels: bool = False,
     load_ids: bool = False,
-    feature_selects: List[str] = None,
     col_selects: List[str] = None,
     col_excludes: List[str] = None,
     return_schema_names: bool = False,
@@ -180,8 +180,7 @@ def extract_table_header(
         load_features (bool, optional): Whether to load feature cols. Defaults to False.
         load_labels (bool, optional): Whether to load label cols. Defaults to False.
         load_ids (bool, optional): Whether to load id cols. Defaults to False.
-        feature_selects (List[str], optional): Load part of feature cols. Only in effect if load_features is True. Defaults to None.
-        col_selects (List[str], optional): Load part of cols. Applies to all cols. Defaults to None. Couldn't use with col_excludes.
+        col_selects (List[str], optional): Load part of cols. Applies to all cols. Defaults to None.
         col_excludes (List[str], optional): Load all cols exclude these. Applies to all cols. Defaults to None. Couldn't use with col_selects.
         return_schema_names (bool, optional): if True, also return schema names Dict[str, List[str]]
     """
@@ -196,19 +195,18 @@ def extract_table_header(
         if db.type.lower() == DistDataType.INDIVIDUAL_TABLE
         else meta.schemas
     )
-
-    if feature_selects is not None:
-        feature_selects = set(feature_selects)
-
+    col_selects_set = None
     if col_selects is not None:
-        col_selects = set(col_selects)
+        col_selects_set = set(col_selects)
+        assert len(col_selects) == len(
+            col_selects_set
+        ), f"no repetition allowed in col_selects, got {col_selects}"
 
     if col_excludes is not None:
         col_excludes = set(col_excludes)
 
-    if col_selects is not None and col_excludes is not None:
-        intersection = set.intersection(col_selects, col_excludes)
-
+    if col_selects_set is not None and col_excludes is not None:
+        intersection = set.intersection(col_selects_set, col_excludes)
         assert (
             len(intersection) == 0
         ), f'The following items are in both col_selects and col_excludes : {intersection}, which is not allowed.'
@@ -225,17 +223,11 @@ def extract_table_header(
         party_ids = []
         if load_features:
             for t, h in zip(slice.feature_types, slice.features):
-                if feature_selects is not None:
-                    if h not in feature_selects:
+                if col_selects_set is not None:
+                    if h not in col_selects_set:
                         # feature not selected, skip
                         continue
-                    feature_selects.remove(h)
-
-                if col_selects is not None:
-                    if h not in col_selects:
-                        # feature not selected, skip
-                        continue
-                    col_selects.remove(h)
+                    col_selects_set.remove(h)
 
                 if col_excludes is not None:
                     if h in col_excludes:
@@ -250,25 +242,26 @@ def extract_table_header(
                 smeta[h] = SUPPORTED_VTABLE_DATA_TYPE[t]
         if load_labels:
             for t, h in zip(slice.label_types, slice.labels):
-                if col_selects is not None:
-                    if h not in col_selects:
+                if col_selects_set is not None:
+                    if h not in col_selects_set:
                         # label not selected, skip
                         continue
-                    col_selects.remove(h)
+                    col_selects_set.remove(h)
 
                 if col_excludes is not None:
                     if h in col_excludes:
                         continue
+
                 if return_schema_names:
                     party_labels.append(h)
                 smeta[h] = SUPPORTED_VTABLE_DATA_TYPE[t]
         if load_ids:
             for t, h in zip(slice.id_types, slice.ids):
-                if col_selects is not None:
-                    if h not in col_selects:
+                if col_selects_set is not None:
+                    if h not in col_selects_set:
                         # id not selected, skip
                         continue
-                    col_selects.remove(h)
+                    col_selects_set.remove(h)
 
                 if col_excludes is not None:
                     if h in col_excludes:
@@ -279,21 +272,33 @@ def extract_table_header(
 
                 smeta[h] = SUPPORTED_VTABLE_DATA_TYPE[t]
 
+        # reorder items according to col selects
+        if col_selects is not None and len(col_selects) > 0:
+            party_labels = [i for i in col_selects if i in party_labels]
+            party_features = [i for i in col_selects if i in party_features]
+            party_ids = [i for i in col_selects if i in party_ids]
+            ordered_smeta = {i: smeta[i] for i in col_selects if i in smeta}
+            smeta = ordered_smeta
+
         if len(smeta):
             ret[dr.party] = smeta
             labels[dr.party] = party_labels
             features[dr.party] = party_features
             ids[dr.party] = party_ids
 
-    schema_names["labels"] = labels
-    schema_names["features"] = features
-    schema_names["ids"] = ids
+    def reorder_partitions(d: Dict[str, Any]):
+        if partitions_order is None:
+            return d
+        assert set(partitions_order) == set(d.keys())
+        return {k: d[k] for k in partitions_order}
 
-    if feature_selects is not None and len(feature_selects) > 0:
-        raise AttributeError(f"unknown features {feature_selects} in feature_selects")
+    ret = reorder_partitions(ret)
+    schema_names["labels"] = reorder_partitions(labels)
+    schema_names["features"] = reorder_partitions(features)
+    schema_names["ids"] = reorder_partitions(ids)
 
-    if col_selects is not None and len(col_selects) > 0:
-        raise AttributeError(f"unknown cols {col_selects} in col_selects")
+    if col_selects_set is not None and len(col_selects_set) > 0:
+        raise AttributeError(f"unknown cols {col_selects_set} in col_selects")
     if return_schema_names:
         return ret, schema_names
     return ret
@@ -302,10 +307,11 @@ def extract_table_header(
 def load_table(
     ctx,
     db: DistData,
+    *,
+    partitions_order: List[str] = None,
     load_features: bool = False,
     load_labels: bool = False,
     load_ids: bool = False,
-    feature_selects: List[str] = None,  # if None, load all features
     col_selects: List[str] = None,  # if None, load all cols
     col_excludes: List[str] = None,
     return_schema_names: bool = False,
@@ -319,10 +325,10 @@ def load_table(
     if return_schema_names:
         v_headers, schema_names = extract_table_header(
             db,
+            partitions_order=partitions_order,
             load_features=load_features,
             load_labels=load_labels,
             load_ids=load_ids,
-            feature_selects=feature_selects,
             col_selects=col_selects,
             col_excludes=col_excludes,
             return_schema_names=True,
@@ -330,10 +336,10 @@ def load_table(
     else:
         v_headers = extract_table_header(
             db,
+            partitions_order=partitions_order,
             load_features=load_features,
             load_labels=load_labels,
             load_ids=load_ids,
-            feature_selects=feature_selects,
             col_selects=col_selects,
             col_excludes=col_excludes,
         )
@@ -357,7 +363,10 @@ def load_table(
         dtypes = {pyus[p]: v_headers[p] for p in v_headers}
         vdf = read_csv(filepaths, dtypes=dtypes, nrows=nrows)
         wait(vdf)
-        assert math.prod(vdf.shape), "empty dataset is not allowed"
+        shape = vdf.shape
+        logging.info(f"loaded VDataFrame, shape {shape}")
+        assert math.prod(shape), "empty dataset is not allowed"
+
     if return_schema_names:
         return vdf, schema_names
     return vdf
@@ -379,9 +388,9 @@ def load_table_select_and_exclude_pair(
     trans_x = load_table(
         ctx,
         db,
-        load_features,
-        load_labels,
-        load_ids,
+        load_features=load_features,
+        load_labels=load_labels,
+        load_ids=load_ids,
         col_selects=col_selects,
         nrows=nrows,
     )
@@ -538,7 +547,7 @@ def model_dumps(
             uris = [f"{dist_data_uri}/{i}" for party in device.actors.keys()]
             spu_paths = [os.path.join(storage_root, uri) for uri in uris]
 
-            wait(device.dump(obj, spu_paths))
+            device.dump(obj, spu_paths)
 
             saved_obj = DeviceObjectCollection.DeviceObject(
                 type="spu", data_ref_idxs=[len(objs_uri) + p for p in range(len(uris))]
@@ -579,6 +588,35 @@ def get_model_public_info(dist_data: DistData):
     assert dist_data.meta.Unpack(model_meta)
     model_info = json.loads(model_meta.public_info)
     return json.loads(model_info["public_info"])
+
+
+def model_meta_info(
+    dist_data: DistData,
+    max_major_version: int,
+    max_minor_version: int,
+    model_type: str,
+    # TODO: assert system_info
+    # system_info: SystemInfo = None,
+) -> Tuple[List[DeviceObject], str]:
+    assert dist_data.type == model_type
+    model_meta = DeviceObjectCollection()
+    assert dist_data.meta.Unpack(model_meta)
+
+    model_info = json.loads(model_meta.public_info)
+
+    assert (
+        isinstance(model_info, dict)
+        and "major_version" in model_info
+        and "minor_version" in model_info
+        and "public_info" in model_info
+    )
+
+    assert (
+        max_major_version >= model_info["major_version"]
+        and max_minor_version >= model_info["minor_version"]
+    ), "not support model version"
+
+    return model_info["public_info"]
 
 
 def model_loads(
@@ -716,10 +754,12 @@ class SimpleVerticalBatchReader:
         self,
         ctx,
         db: DistData,
-        col_selects: List[str],
+        *,
+        partitions_order: List[str] = None,
+        col_selects: List[str] = None,
         batch_size: int = 50000,
     ) -> None:
-        assert len(col_selects), "empty dataset is not allowed"
+        assert len(col_selects) > 0, "empty dataset is not allowed"
         assert (
             db.type.lower() == DistDataType.INDIVIDUAL_TABLE
             or db.type.lower() == DistDataType.VERTICAL_TABLE
@@ -727,6 +767,7 @@ class SimpleVerticalBatchReader:
 
         v_headers = extract_table_header(
             db,
+            partitions_order=partitions_order,
             load_features=True,
             load_labels=True,
             load_ids=True,
@@ -768,7 +809,6 @@ class SimpleVerticalBatchReader:
         )
 
         if df.shape[0]:
-            df = df[self.col_selects]
             self.total_read_cnt += df.shape[0]
 
         return df
@@ -813,7 +853,9 @@ def save_prediction_dd(
         addition_headers.update(header[pyu.party])
         addition_reader.append(
             SimpleVerticalBatchReader(
-                ctx, feature_dataset, list(header[pyu.party].keys())
+                ctx,
+                feature_dataset,
+                col_selects=list(header[pyu.party].keys()),
             )
         )
 

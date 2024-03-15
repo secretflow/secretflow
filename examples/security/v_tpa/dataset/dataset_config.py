@@ -4,15 +4,15 @@ import sys
 
 sys.path.append(".")
 
-from .mnist_dataset import MNISTDataset
-from .badnets_mnist_dataset import BadNetsMNISTDataset
-from .mirror_mnist_dataset import MirrorMNISTDataset
-from .nuswide_dataset import NUSWIDEDataset
-from .badnets_nuswide_dataset import BadNetsNUSWIDEDataset
-from .mirror_nuswide_dataset import MirrorNUSWIDEDataset
-from .cifar_dataset import CIFARDataset
 from .badnets_cifar_dataset import BadNetsCIFARDataset
+from .badnets_mnist_dataset import BadNetsMNISTDataset
+from .badnets_nuswide_dataset import BadNetsNUSWIDEDataset
+from .cifar_dataset import CIFARDataset
 from .mirror_cifar_dataset import MirrorCIFARDataset
+from .mirror_mnist_dataset import MirrorMNISTDataset
+from .mirror_nuswide_dataset import MirrorNUSWIDEDataset
+from .mnist_dataset import MNISTDataset
+from .nuswide_dataset import NUSWIDEDataset
 
 DATASETS = {
     "cifar10": {

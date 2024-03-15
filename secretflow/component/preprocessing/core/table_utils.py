@@ -85,7 +85,7 @@ def v_preprocessing_transform(
         assert trans_data is not None
         trans_data, add_labels, additional_info = transform_func(trans_data)
         runner = trans_data.dump_runner()
-        drop_columns, add_columns = trans_data.column_changes()
+        drop_columns, add_columns, _ = trans_data.column_changes()
         add_labels = [] if add_labels is None else add_labels
         assert set(add_labels).issubset(set(add_columns))
         add_features = [c for c in add_columns if c not in set(add_labels)]

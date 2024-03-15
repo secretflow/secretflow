@@ -19,7 +19,7 @@ import numpy as np
 from heu import phe
 
 from secretflow.data.vertical import VDataFrame
-from secretflow.device import HEU, PYU, PYUObject, SPU
+from secretflow.device import HEU, PYU, SPU, PYUObject
 from secretflow.device.device.heu import HEUMoveConfig
 from secretflow.preprocessing.binning.vert_woe_binning_pyu import (
     VertWoeBinningPyuWorker,

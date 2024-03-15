@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 # coding=utf-8
-from .split_dataset import PassiveDataset, ActiveDataset
-from .mirror_nuswide_dataset import MirrorNUSWIDEDataset
-import torch
 import pdb
+
+import torch
+
+from .mirror_nuswide_dataset import MirrorNUSWIDEDataset
+from .split_dataset import ActiveDataset, PassiveDataset
 
 
 class BadNetsNUSWIDEDataset(MirrorNUSWIDEDataset):

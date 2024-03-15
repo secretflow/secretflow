@@ -121,9 +121,9 @@ def load(
         if meta.get("fuse", False):
             result[pyu] = ModelConfig(
                 server_fuse_path=model_config.server_fuse_path,
-                server_base_path=model_config.server_base_path
-                if meta.get("base", False)
-                else None,
+                server_base_path=(
+                    model_config.server_base_path if meta.get("base", False) else None
+                ),
             )
         else:
             result[pyu] = ModelConfig(client_base_path=model_config.client_base_path)

@@ -16,7 +16,7 @@ from torch import nn, optim
 from torchmetrics import AUROC, Accuracy, Precision
 
 from benchmark_examples.autoattack.applications.image.cifar10.cifar10_base import (
-    Cifar10TrainBase,
+    Cifar10ApplicationBase,
 )
 from secretflow.ml.nn.applications.sl_resnet_torch import (
     BasicBlock,
@@ -26,9 +26,17 @@ from secretflow.ml.nn.applications.sl_resnet_torch import (
 from secretflow.ml.nn.utils import TorchModel, metric_wrapper, optim_wrapper
 
 
-class Cifar10Resnet18(Cifar10TrainBase):
+class Cifar10Resnet18(Cifar10ApplicationBase):
     def __init__(self, config, alice, bob):
-        super().__init__(config, alice, bob, epoch=1, train_batch_size=128)
+        super().__init__(
+            config,
+            alice,
+            bob,
+            epoch=1,
+            train_batch_size=128,
+            hidden_size=512,
+            dnn_fuse_units_size=[512 * 2],
+        )
 
     def _create_base_model(self):
         return TorchModel(
@@ -48,13 +56,16 @@ class Cifar10Resnet18(Cifar10TrainBase):
             layers=[2, 2, 2, 2],
         )
 
-    def _create_base_model_alice(self):
+    def dnn_fuse_units_size_range(self):
+        return [[512 * 2], [512 * 2, 512], [512 * 2, 512, 512]]
+
+    def create_base_model_alice(self):
         return self._create_base_model()
 
-    def _create_base_model_bob(self):
+    def create_base_model_bob(self):
         return self._create_base_model()
 
-    def _create_fuse_model(self):
+    def create_fuse_model(self):
         return TorchModel(
             model_fn=ResNetFuse,
             loss_fn=nn.CrossEntropyLoss,
@@ -68,16 +79,17 @@ class Cifar10Resnet18(Cifar10TrainBase):
                 ),
                 metric_wrapper(AUROC, task="multiclass", num_classes=10),
             ],
+            dnn_units_size=self.dnn_fuse_units_size,
         )
 
     def support_attacks(self):
-        return ['lia']
+        return ['lia', 'fia', 'replay', 'replace']
 
     def lia_auxiliary_model(self, ema=False):
         from benchmark_examples.autoattack.attacks.lia import BottomModelPlus
 
         bottom_model = ResNetBase(block=BasicBlock, layers=[2, 2, 2, 2])
-        model = BottomModelPlus(bottom_model, size_bottom_out=512)
+        model = BottomModelPlus(bottom_model, size_bottom_out=self.hidden_size)
 
         if ema:
             for param in model.parameters():

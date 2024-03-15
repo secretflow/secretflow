@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
 from secretflow.data import FedNdarray
-from secretflow.device import HEUObject, PYU, PYUObject
+from secretflow.device import PYU, HEUObject, PYUObject
 from secretflow.ml.boost.sgb_v.factory.sgb_actor import SGBActor
 
 from ....core.pure_numpy_ops.bucket_sum import batch_select_sum, regroup_bucket_sums

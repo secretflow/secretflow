@@ -18,6 +18,7 @@ import time
 
 import numpy as np
 import pytest
+from sklearn.metrics import mean_squared_error, roc_auc_score
 
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.device.driver import reveal
@@ -29,7 +30,6 @@ from secretflow.ml.boost.sgb_v.core.distributed_tree.distributed_tree import (
     DistributedTree,
 )
 from secretflow.ml.boost.sgb_v.model import load_model
-from sklearn.metrics import mean_squared_error, roc_auc_score
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 

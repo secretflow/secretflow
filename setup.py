@@ -4,10 +4,12 @@ import platform
 import posixpath
 import re
 import shutil
+import subprocess
 import sys
+import time
+from datetime import date
 from pathlib import Path
 from typing import List
-from datetime import date
 
 import setuptools
 from setuptools import find_packages, setup
@@ -20,20 +22,42 @@ if os.getcwd() != this_directory:
     exit(-1)
 
 
-def add_date_to_version(*filepath):
+def get_commit_id() -> str:
+    commit_id = (
+        subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
+    )
+    dirty = subprocess.check_output(['git', 'diff', '--stat']).decode('ascii').strip()
+
+    if dirty:
+        commit_id = f"{commit_id}-dirty"
+
+    return commit_id
+
+
+def complete_version_file(*filepath):
     today = date.today()
     dstr = today.strftime("%Y%m%d")
     with open(os.path.join(".", *filepath), "r") as fp:
         content = fp.read()
 
     content = content.replace("$$DATE$$", dstr)
+    content = content.replace("$$BUILD_TIME$$", time.strftime('%b %d %Y, %X'))
+    try:
+        content = content.replace("$$COMMIT_ID$$", get_commit_id())
+    except:
+        pass
+
+    if "SF_BUILD_DOCKER_NAME" in os.environ:
+        content = content.replace(
+            "$$DOCKER_VERSION$$", os.environ["SF_BUILD_DOCKER_NAME"]
+        )
 
     with open(os.path.join(".", *filepath), "w+") as fp:
         fp.write(content)
 
 
 def find_version(*filepath):
-    add_date_to_version(*filepath)
+    complete_version_file(*filepath)
     # Extract version information from filepath
     with open(os.path.join(".", *filepath)) as fp:
         version_match = re.search(

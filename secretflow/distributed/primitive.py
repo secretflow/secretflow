@@ -23,12 +23,12 @@ from typing import List, Union
 import fed
 import jax
 import ray
-import secretflow.ic.remote as ic
 from ray import Language
 from ray._private import ray_option_utils
 from ray.actor import ActorClass, _inject_tracing_into_class, ray_constants
 from ray.remote_function import RemoteFunction
 
+import secretflow.ic.remote as ic
 from secretflow.distributed.memory_api import mem_remote
 from secretflow.utils.ray_compatibility import ray_version_less_than_2_0_0
 
@@ -177,12 +177,25 @@ def kill(actor, *, no_restart=True):
         raise Exception(f"Illegal distribute mode, only support ({DISTRIBUTION_MODE})")
 
 
-def shutdown():
+def shutdown(on_error=None):
+    """Shutdown the secretflow environment.
+
+    Args:
+        on_error: optional; this is useful only in production mode (using RayFed).
+            This parameter indicates whether an error has occurred on your main
+            thread. Rayfed is desigend to reliably send all data to peers, but will
+            cease transmission if an error is detected. However, Rayfed is not equipped
+            to automatically identify errors under all circumstances, particularly
+            those that affect only one party independently of others. Should you
+            encounter such an error, please notify Rayfed upon shutdown, and it will
+            discontinue any ongoing data transmissions if
+            `continue_waiting_for_data_sending_on_error` is not True.
+    """
     global _is_cluster_active
     _is_cluster_active = False
     if get_distribution_mode() == DISTRIBUTION_MODE.PRODUCTION:
-        fed.shutdown()
-        ray.shutdown()
+        fed.shutdown(on_error=on_error)
+        ray.shutdown(_exiting_interpreter=True)
     elif get_distribution_mode() == DISTRIBUTION_MODE.SIMULATION:
         ray.shutdown()
     elif get_distribution_mode() == DISTRIBUTION_MODE.DEBUG:

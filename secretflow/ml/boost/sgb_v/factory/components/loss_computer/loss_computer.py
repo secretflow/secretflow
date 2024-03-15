@@ -107,12 +107,12 @@ class LossComputer(Component):
         params['objective'] = self.params.objective
         params['enable_quantization'] = self.params.enable_quantization
         params['quantization_scale'] = self.params.quantization_scale
-        params[
-            'early_stop_criterion_g_abs_sum'
-        ] = self.params.early_stop_criterion_g_abs_sum
-        params[
-            'early_stop_criterion_g_abs_sum_change_ratio'
-        ] = self.params.early_stop_criterion_g_abs_sum_change_ratio
+        params['early_stop_criterion_g_abs_sum'] = (
+            self.params.early_stop_criterion_g_abs_sum
+        )
+        params['early_stop_criterion_g_abs_sum_change_ratio'] = (
+            self.params.early_stop_criterion_g_abs_sum_change_ratio
+        )
         LoggingTools.logging_params_write_dict(params, self.logging_params)
 
     def set_devices(self, devices: Devices):

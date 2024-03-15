@@ -713,9 +713,11 @@ def ss_glm_predict_eval_fn(
     x = load_table(
         ctx,
         feature_dataset,
+        partitions_order=list(model_public_info["party_features_length"].keys()),
         load_features=True,
         col_selects=model_public_info['feature_names'],
     )
+    assert x.columns == model_public_info["feature_names"]
 
     offset_col = model_public_info['offset_col']
 

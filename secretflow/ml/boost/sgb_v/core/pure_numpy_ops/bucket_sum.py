@@ -13,8 +13,9 @@
 # limitations under the License.
 
 from typing import List
-from numba import njit, prange
+
 import numpy as np
+from numba import njit, prange
 
 
 # regroup the roduct sums

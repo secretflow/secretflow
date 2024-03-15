@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # coding=utf-8
+import pdb
 import pickle
 
-from tensorflow.keras.models import Sequential, Model
 from tensorflow.keras.layers import Dense
+from tensorflow.keras.models import Model, Sequential
 from tensorflow.python.keras.layers import deserialize, serialize
 from tensorflow.python.keras.saving import saving_utils
-import pdb
 
 
 def unpack(model, training_config, model_config, weights):

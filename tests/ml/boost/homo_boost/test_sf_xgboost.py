@@ -144,10 +144,18 @@ def test_homo_xgboost_cn(sf_production_setup_devices_grpc):
     bin_num = 10
 
     data1 = gen_data(
-        data_size // 2, num_feature, use_random=True, data_bin_num=bin_num, prefix="特征"
+        data_size // 2,
+        num_feature,
+        use_random=True,
+        data_bin_num=bin_num,
+        prefix="特征",
     )
     data2 = gen_data(
-        data_size // 2, num_feature, use_random=True, data_bin_num=bin_num, prefix="特征"
+        data_size // 2,
+        num_feature,
+        use_random=True,
+        data_bin_num=bin_num,
+        prefix="特征",
     )
     dfs = [data1, data2]
 

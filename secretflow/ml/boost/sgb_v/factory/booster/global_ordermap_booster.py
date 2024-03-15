@@ -81,9 +81,9 @@ class GlobalOrdermapBooster(Composite):
 
     def _get_booster_params(self, params: dict):
         params['num_boost_round'] = self.params.num_boost_round
-        params[
-            'first_tree_with_label_holder_feature'
-        ] = self.params.first_tree_with_label_holder_feature
+        params['first_tree_with_label_holder_feature'] = (
+            self.params.first_tree_with_label_holder_feature
+        )
 
     def show_params(self):
         super().show_params()

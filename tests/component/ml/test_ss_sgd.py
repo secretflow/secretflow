@@ -4,6 +4,9 @@ import os
 import numpy as np
 import pandas as pd
 from google.protobuf.json_format import MessageToJson
+from sklearn.datasets import load_breast_cancer
+from sklearn.metrics import r2_score
+from sklearn.preprocessing import StandardScaler
 
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.ml.eval.regression_eval import regression_eval_comp
@@ -17,10 +20,6 @@ from secretflow.spec.v1.data_pb2 import (
 )
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
-from sklearn.datasets import load_breast_cancer
-from sklearn.metrics import r2_score
-from sklearn.preprocessing import StandardScaler
-
 from tests.conftest import TEST_STORAGE_ROOT
 
 

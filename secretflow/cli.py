@@ -13,28 +13,28 @@
 # limitations under the License.
 
 import base64
+import gzip
 import json
 import logging
-import gzip
 import os
 import sys
 from contextlib import redirect_stderr, redirect_stdout
 
 import click
 from google.protobuf.json_format import MessageToJson
-from secretflow.spec.v1.data_pb2 import StorageConfig
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
 from secretflow.component.entry import COMP_LIST, COMP_MAP, comp_eval
 from secretflow.spec.extend.cluster_pb2 import SFClusterConfig
+from secretflow.spec.v1.data_pb2 import StorageConfig
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.utils.logging import LOG_FORMAT, get_logging_level, set_logging_level
-from secretflow.version import __version__
+from secretflow.version import build_message
 
 
 def print_version(ctx, param, value):
     if not value or ctx.resilient_parsing:
         return
-    click.echo(f"SecretFlow version {__version__}.")
+    click.echo(build_message())
     ctx.exit()
 
 

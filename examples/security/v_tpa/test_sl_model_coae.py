@@ -1,29 +1,28 @@
 #!/usr/bin/env python
 # coding=utf-8
-import secretflow as sf
+import pdb
+
+import numpy as np
+import pandas as pd
 import tensorflow as tf
+import torch
+from attack.attack_config import BADNETS_ARGS, POISONING_ARGS
+from config import AGGREGATIONS, METHODS, PARTIES, PARTY_NUM, TIMES
 
 # from secretflow.ml.nn import SLModel
 from custom_base.custom_sl_model import CustomSLModel
-from secretflow.data.ndarray import load
-from secretflow.device import reveal
-
-import torch
-import numpy as np
-from torch.nn import functional as F
-import pandas as pd
-
-import pdb
-from tqdm import *
-
+from dataset.dataset_config import DATASETS
+from defense.tf.coae import AutoEncoder, CoAE_Loss
 from test_model.tf.fuse_model import get_fuse_model
 from test_model.tf_model_config import MODELS
-from dataset.dataset_config import DATASETS
-from attack.attack_config import BADNETS_ARGS, POISONING_ARGS
-from config import METHODS, AGGREGATIONS, TIMES, PARTIES, PARTY_NUM
-from tools.metric import asr
 from tools.logger import config_logger, print_log
-from defense.tf.coae import AutoEncoder, CoAE_Loss
+from tools.metric import asr
+from torch.nn import functional as F
+from tqdm import *
+
+import secretflow as sf
+from secretflow.data.ndarray import load
+from secretflow.device import reveal
 
 config_logger(fname="./logs/baseline_coae.log")
 
@@ -70,18 +69,18 @@ for ew in [0.001, 0.003, 0.005, 0.007, 0.010, 0.1]:
                         dst_dataset = ds_config["badnets"](
                             ds_name, ds_path, ds_args, BADNETS_ARGS
                         )
-                        POISONING_ARGS[
-                            "train_poisoning_indexes"
-                        ] = dst_dataset.get_train_poisoning_indexes()
-                        POISONING_ARGS[
-                            "valid_poisoning_indexes"
-                        ] = dst_dataset.get_valid_poisoning_indexes()
-                        POISONING_ARGS[
-                            "train_target_indexes"
-                        ] = dst_dataset.get_train_target_indexes()
-                        POISONING_ARGS[
-                            "valid_target_indexes"
-                        ] = dst_dataset.get_valid_target_indexes()
+                        POISONING_ARGS["train_poisoning_indexes"] = (
+                            dst_dataset.get_train_poisoning_indexes()
+                        )
+                        POISONING_ARGS["valid_poisoning_indexes"] = (
+                            dst_dataset.get_valid_poisoning_indexes()
+                        )
+                        POISONING_ARGS["train_target_indexes"] = (
+                            dst_dataset.get_train_target_indexes()
+                        )
+                        POISONING_ARGS["valid_target_indexes"] = (
+                            dst_dataset.get_valid_target_indexes()
+                        )
 
                         (
                             train_passive_datas,
@@ -163,9 +162,11 @@ for ew in [0.001, 0.003, 0.005, 0.007, 0.010, 0.1]:
                                 "valid_target_indexes"
                             ],
                             "blurred": blurred,
-                            "gamma": POISONING_ARGS["gamma"]
-                            if method == "grad_replacement"
-                            else 1.0,
+                            "gamma": (
+                                POISONING_ARGS["gamma"]
+                                if method == "grad_replacement"
+                                else 1.0
+                            ),
                         }
 
                         for fname, data in data_files.items():

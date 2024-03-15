@@ -33,18 +33,19 @@ import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 import ray
-import secretflow.distributed as sfd
 import spu
 import spu.libspu.link as spu_link
 import spu.libspu.logging as spu_logging
 import spu.utils.frontend as spu_fe
 from google.protobuf import json_format
 from heu import phe
+from spu import pir, psi, spu_pb2
+from spu.utils.distributed import dtype_spu_to_np, shape_spu_to_np
+
+import secretflow.distributed as sfd
 from secretflow.utils.errors import InvalidArgumentError
 from secretflow.utils.ndarray_bigint import BigintNdArray
 from secretflow.utils.progress import ProgressData
-from spu import pir, psi, spu_pb2
-from spu.utils.distributed import dtype_spu_to_np, shape_spu_to_np
 
 from .base import Device, DeviceObject, DeviceType
 from .pyu import PYUObject
@@ -451,6 +452,8 @@ class SPURuntime:
 
         with open(path, 'wb') as f:
             pickle.dump({'meta': meta, 'shares': shares}, f)
+
+        return None
 
     def load(self, path: str) -> Any:
         import cloudpickle as pickle
@@ -1530,9 +1533,11 @@ class SPURuntime:
         config = spu.psi_v2_pb2.PsiConfig(
             protocol_config=spu.psi_v2_pb2.ProtocolConfig(
                 protocol=spu.psi_v2_pb2.Protocol.Value(protocol),
-                role=spu.psi_v2_pb2.ROLE_RECEIVER
-                if receiver == self.party
-                else spu.psi_v2_pb2.ROLE_SENDER,
+                role=(
+                    spu.psi_v2_pb2.ROLE_RECEIVER
+                    if receiver == self.party
+                    else spu.psi_v2_pb2.ROLE_SENDER
+                ),
                 broadcast_result=broadcast_result,
             ),
             input_config=spu.psi_v2_pb2.InputConfig(
@@ -1779,7 +1784,7 @@ class SPU(Device):
         ret = []
         for i, actor in enumerate(self.actors.values()):
             ret.append(actor.dump.remote(obj.meta, obj.shares_name[i], paths[i]))
-        return ret
+        sfd.get(ret)
 
     def load(self, paths: List[str]) -> SPUObject:
         outputs = [None] * self.world_size
