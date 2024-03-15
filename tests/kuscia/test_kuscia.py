@@ -7,6 +7,7 @@ from kuscia.proto.api.v1alpha1.kusciatask.kuscia_task_pb2 import (
     Port,
     Service,
 )
+
 from secretflow.kuscia.entry import convert_domain_data_to_individual_table
 from secretflow.kuscia.ray_config import RayConfig
 from secretflow.kuscia.sf_config import get_sf_cluster_config

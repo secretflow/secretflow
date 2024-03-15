@@ -15,10 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-"""SLModel
-
-"""
 import logging
 import math
 import os
@@ -118,14 +114,16 @@ class SLModel:
             self._workers[device], self.check_skip_grad = dispatch_strategy(
                 strategy,
                 backend=backend,
-                builder_base=base_model_dict[device]
-                if device in base_model_dict.keys()
-                else None,
+                builder_base=(
+                    base_model_dict[device]
+                    if device in base_model_dict.keys()
+                    else None
+                ),
                 builder_fuse=None if device != device_y else model_fuse,
                 random_seed=random_seed,
-                dp_strategy=dp_strategy_dict.get(device, None)
-                if dp_strategy_dict
-                else None,
+                dp_strategy=(
+                    dp_strategy_dict.get(device, None) if dp_strategy_dict else None
+                ),
                 device=device,
                 **kwargs,
             )
@@ -176,9 +174,11 @@ class SLModel:
                 # in dataset builder mode, xi cannot be none, or else datasetbuilder in worker cannot parse label
                 xs = (
                     [
-                        xi.partitions[device].data  # xi is FedDataframe
-                        if isinstance(xi.partitions[device], Partition)
-                        else xi.partitions[device]  # xi is FedNdarray
+                        (
+                            xi.partitions[device].data  # xi is FedDataframe
+                            if isinstance(xi.partitions[device], Partition)
+                            else xi.partitions[device]
+                        )  # xi is FedNdarray
                         for xi in x
                     ]
                     if device in dataset_builder

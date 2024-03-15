@@ -2,11 +2,13 @@ import sys
 
 sys.path.append("..")
 
-from tensorflow.keras import layers
-from tensorflow import keras, nn
-import tensorflow.keras.backend as F
+import copy
+import pdb
+
 import tensorflow as tf
-import pdb, copy
+import tensorflow.keras.backend as F
+from tensorflow import keras, nn
+from tensorflow.keras import layers
 
 
 class Identity(keras.layers.Layer):

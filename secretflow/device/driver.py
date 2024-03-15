@@ -603,7 +603,7 @@ def barrier():
         reveal(barriers)
 
 
-def shutdown(barrier_on_shutdown=True):
+def shutdown(barrier_on_shutdown=True, on_error=None):
     """Disconnect the worker, and terminate processes started by secretflow.init().
 
     This will automatically run at the end when a Python process that uses Ray exits.
@@ -616,10 +616,19 @@ def shutdown(barrier_on_shutdown=True):
             effects that may come with it at the same time, e.g., alice exits
             accidently and bob will wait forever since alice will never give bob a
             feedback. The default value is True.
+        on_error: optional; this is useful only in production mode (using RayFed).
+            This parameter indicates whether an error has occurred on your main
+            thread. Rayfed is desigend to reliably send all data to peers, but will
+            cease transmission if an error is detected. However, Rayfed is not equipped
+            to automatically identify errors under all circumstances, particularly
+            those that affect only one party independently of others. Should you
+            encounter such an error, please notify Rayfed upon shutdown, and it will
+            discontinue any ongoing data transmissions if
+            `continue_waiting_for_data_sending_on_error` is not True.
     """
     if barrier_on_shutdown:
         barrier()
-    sfd.shutdown()
+    sfd.shutdown(on_error=on_error)
 
 
 def _parse_tls_config(

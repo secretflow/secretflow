@@ -7,7 +7,8 @@ cd src_copied
 
 
 
-
+conda init
+source ~/.bashrc
 conda create -n build python=3.8 -y
 conda activate build
 

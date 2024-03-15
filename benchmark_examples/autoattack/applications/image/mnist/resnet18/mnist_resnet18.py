@@ -26,7 +26,9 @@ from secretflow.ml.nn.utils import TorchModel, metric_wrapper, optim_wrapper
 
 class MnistResnet18(MnistBase):
     def __init__(self, config, alice, bob):
-        super().__init__(config, alice, bob)
+        super().__init__(
+            config, alice, bob, hidden_size=512, dnn_fuse_units_size=[512 * 2]
+        )
 
     def _create_base_model(self):
         return TorchModel(
@@ -47,13 +49,16 @@ class MnistResnet18(MnistBase):
             input_channels=1,  # black pic
         )
 
-    def _create_base_model_alice(self):
+    def dnn_fuse_units_size_range(self):
+        return [[512 * 2], [512 * 2, 512], [512 * 2, 512, 512]]
+
+    def create_base_model_alice(self):
         return self._create_base_model()
 
-    def _create_base_model_bob(self):
+    def create_base_model_bob(self):
         return self._create_base_model()
 
-    def _create_fuse_model(self):
+    def create_fuse_model(self):
         return TorchModel(
             model_fn=ResNetFuse,
             loss_fn=nn.CrossEntropyLoss,
@@ -67,4 +72,28 @@ class MnistResnet18(MnistBase):
                 ),
                 metric_wrapper(AUROC, task="multiclass", num_classes=10),
             ],
+            dnn_units_size=self.dnn_fuse_units_size,
         )
+
+    def alice_feature_nums_range(self) -> list:
+        return [1 * 28 * 14]
+
+    def hidden_size_range(self) -> list:
+        return [512]
+
+    def support_attacks(self):
+        return ['lia', 'replay', 'fia', 'replace']
+
+    def lia_auxiliary_model(self, ema=False):
+        from benchmark_examples.autoattack.attacks.lia import BottomModelPlus
+
+        bottom_model = ResNetBase(
+            block=BasicBlock, layers=[2, 2, 2, 2], input_channels=1
+        )
+        model = BottomModelPlus(bottom_model, size_bottom_out=512)
+
+        if ema:
+            for param in model.parameters():
+                param.detach_()
+
+        return model

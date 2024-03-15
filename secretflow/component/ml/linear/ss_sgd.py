@@ -216,7 +216,7 @@ def ss_sgd_train_eval_fn(
     model_meta = {
         "reg_type": model.reg_type.value,
         "sig_type": model.sig_type.value,
-        "feature_selects": x.columns,
+        "feature_names": x.columns,
         "label_col": train_dataset_label,
         "party_features_length": party_features_length,
     }
@@ -371,9 +371,12 @@ def ss_sgd_predict_eval_fn(
     x = load_table(
         ctx,
         feature_dataset,
+        partitions_order=list(model_meta["party_features_length"].keys()),
         load_features=True,
-        col_selects=model_meta["feature_selects"],
+        col_selects=model_meta["feature_names"],
     )
+
+    assert x.columns == model_meta["feature_names"]
 
     receiver_pyu = PYU(receiver)
     with ctx.tracer.trace_running():

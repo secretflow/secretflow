@@ -1,9 +1,10 @@
-from tensorflow import keras, nn, optimizers
-from tensorflow.keras import layers
-import tensorflow as tf
-import numpy as np
 import copy
 import pdb
+
+import numpy as np
+import tensorflow as tf
+from tensorflow import keras, nn, optimizers
+from tensorflow.keras import layers
 
 
 def create_passive_model(

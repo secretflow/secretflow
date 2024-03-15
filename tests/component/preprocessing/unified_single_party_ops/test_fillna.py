@@ -31,9 +31,9 @@ def test_fillna(comp_prod_sf_cluster_config, strategy):
         df_alice = pd.DataFrame(
             {
                 "id1": [str(i) for i in range(17)],
-                "a1": ["K"] + ["F"] * 14 + ["M", "N"],
+                "a1": ["K"] + ["F"] * 14 + [np.nan, "N"],
                 "a2": [0.1, np.nan, 0.3] * 5 + [0.4] * 2,
-                "a3": [1] * 17,
+                "a3": [1] * 16 + [0],
                 "y": [0] * 17,
             }
         )
@@ -74,11 +74,21 @@ def test_fillna(comp_prod_sf_cluster_config, strategy):
             'strategy',
             'fill_value_float',
             'input/input_dataset/fill_na_features',
+            'missing_value',
+            'missing_value_type',
         ],
         attrs=[
             Attribute(s=strategy),
             Attribute(f=99.0),
-            Attribute(ss=["a2", "b4", "b5"]),
+            Attribute(
+                ss=(
+                    ["a1", "a2", "b4", "b5"]
+                    if strategy == "most_frequent"
+                    else ["a2", "b4", "b5"]
+                )
+            ),
+            Attribute(s="axt"),
+            Attribute(s="general_na"),
         ],
         inputs=[
             DistData(
@@ -137,5 +147,17 @@ def test_fillna(comp_prod_sf_cluster_config, strategy):
 
     logging.warning(f"....... \n{b_out}\n.,......")
 
-    assert a_out.isnull().sum().sum() == 0, "DataFrame contains NaN values"
-    assert b_out.isnull().sum().sum() == 0, "DataFrame contains NaN values"
+    if strategy == "most_frequent":
+        assert (
+            a_out.isnull().sum().sum() == 0
+        ), f"DataFrame contains NaN values, {a_out}"
+        assert (
+            b_out.isnull().sum().sum() == 0
+        ), f"DataFrame contains NaN values, {b_out}"
+    else:
+        assert (
+            a_out.isnull().sum().sum() == 1
+        ), f"DataFrame contains more than should be NaN values, {a_out}"
+        assert (
+            b_out.isnull().sum().sum() == 0
+        ), f"DataFrame contains NaN values, {b_out}"

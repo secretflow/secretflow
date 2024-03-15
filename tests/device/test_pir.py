@@ -1,8 +1,9 @@
+import tempfile
+
 import pandas as pd
 import pytest
 
 import secretflow as sf
-import tempfile
 
 
 @pytest.fixture()

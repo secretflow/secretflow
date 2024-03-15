@@ -7,6 +7,7 @@ import tarfile
 
 import numpy as np
 import pandas as pd
+import pytest
 import secretflow_serving_lib as sfs
 from google.protobuf import json_format
 from sklearn.datasets import load_breast_cancer
@@ -38,11 +39,15 @@ from secretflow.spec.extend.calculate_rules_pb2 import CalculateOpRules
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
+from secretflow.spec.v1.report_pb2 import Report
 from tests.conftest import TEST_STORAGE_ROOT
 
 
-def eval_export(dir, comp_params, comp_res, storage_config, sf_cluster_config):
+def eval_export(
+    dir, comp_params, comp_res, storage_config, sf_cluster_config, expected_input
+):
     export_model_path = os.path.join(dir, "s_model.tar.gz")
+    report_path = os.path.join(dir, "report")
 
     input_datasets = []
     output_datasets = []
@@ -82,7 +87,7 @@ def eval_export(dir, comp_params, comp_res, storage_config, sf_cluster_config):
             Attribute(ss=output_datasets),
             Attribute(ss=component_eval_params),
         ],
-        output_uris=[export_model_path],
+        output_uris=[export_model_path, report_path],
     )
 
     export_res = model_export_comp.eval(
@@ -91,7 +96,13 @@ def eval_export(dir, comp_params, comp_res, storage_config, sf_cluster_config):
         cluster_config=sf_cluster_config,
     )
 
-    assert len(export_res.outputs) == 1
+    assert len(export_res.outputs) == 2
+
+    report_dd = export_res.outputs[1]
+    report = Report()
+    assert report_dd.meta.Unpack(report)
+    used_schemas = report.desc.split(",")
+    assert set(used_schemas) == set(expected_input)
 
     alice_tar = os.path.join(TEST_STORAGE_ROOT, "alice", export_model_path)
     bob_tar = os.path.join(TEST_STORAGE_ROOT, "bob", export_model_path)
@@ -110,7 +121,7 @@ def eval_export(dir, comp_params, comp_res, storage_config, sf_cluster_config):
     logging.warn(f"alice MANIFEST ............ \n{mm}\n ............ \n")
 
     mb = sfs.bundle_pb2.ModelBundle()
-    mb.ParseFromString(tar_files["model_file"])
+    mb = json_format.Parse(tar_files["model_file"], sfs.bundle_pb2.ModelBundle())
     logging.warn(f"alice model_file ............ \n{mb}\n ............ \n")
 
     # bob
@@ -124,61 +135,68 @@ def eval_export(dir, comp_params, comp_res, storage_config, sf_cluster_config):
     mm = json_format.Parse(tar_files["MANIFEST"], sfs.bundle_pb2.ModelManifest())
     logging.warn(f"bob MANIFEST ............ \n{mm}\n ............ \n")
 
-    mb = sfs.bundle_pb2.ModelBundle()
-    mb.ParseFromString(tar_files["model_file"])
+    mb = json_format.Parse(tar_files["model_file"], sfs.bundle_pb2.ModelBundle())
     logging.warn(f"bob model_file ............ \n{mb}\n ............ \n")
 
 
-def test_model_export(comp_prod_sf_cluster_config):
-    alice_input_path = "test_model_export/alice.csv"
-    bob_input_path = "test_model_export/bob.csv"
+@pytest.mark.parametrize("features_in_one_party", [False, True])
+def test_model_export(comp_prod_sf_cluster_config, features_in_one_party):
+    work_path = f"test_model_export_{features_in_one_party}"
+    alice_input_path = f"{work_path}/alice.csv"
+    bob_input_path = f"{work_path}/bob.csv"
 
-    bin_rule_path = "test_model_export/bin_rule"
-    report_path = "test_model_export/bin_report"
-    bin_output = "test_model_export/vert.csv"
+    bin_rule_path = f"{work_path}/bin_rule"
+    report_path = f"{work_path}/bin_report"
+    bin_output = f"{work_path}/vert.csv"
 
-    cal_output = "test_model_export/cal.csv"
-    cal_rule = "test_model_export/rule.csv"
-    cal_sub_output = "test_model_export/cal_sub.csv"
+    cal_output = f"{work_path}/cal.csv"
+    cal_rule = f"{work_path}/rule.csv"
+    cal_sub_output = f"{work_path}/cal_sub.csv"
 
-    onehot_encode_output = "test_model_export/onehot.csv"
-    onehot_rule_path = "test_model_export/onehot.rule"
-    onehot_report_path = "test_model_export/onehot.report"
+    onehot_encode_output = f"{work_path}/onehot.csv"
+    onehot_rule_path = f"{work_path}/onehot.rule"
+    onehot_report_path = f"{work_path}/onehot.report"
 
-    ss_glm_model_path = "test_model_export/model.sf"
-    ss_glm_report_path = "test_model_export/model.report"
+    ss_glm_model_path = f"{work_path}/model.sf"
+    ss_glm_report_path = f"{work_path}/model.report"
 
-    ss_glm_predict_path = "test_model_export/predict.csv"
+    ss_glm_predict_path = f"{work_path}/predict.csv"
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
     local_fs_wd = storage_config.local_fs.wd
 
     os.makedirs(
-        os.path.join(local_fs_wd, "test_model_export"),
+        os.path.join(local_fs_wd, work_path),
         exist_ok=True,
     )
 
     def build_dataset():
         random.seed(42)
-        data_len = 2048
+        data_len = 32
 
-        # f1 - f16, random data with random weight
+        # f1 - f8, random data with random weight
         def _rand():
             return (random.random() - 0.5) * 2
 
         data = {}
-        weight = [_rand() for _ in range(16)]
-        for i in range(16):
+        weight = [_rand() for _ in range(8)]
+        for i in range(8):
             data[f"f{i+1}"] = [_rand() for _ in range(data_len)]
+
         # b1/b2, binning col, weight = 0.1
         data[f"b1"] = [random.random() / 2 for _ in range(data_len)]
         data[f"b2"] = [random.random() / 2 for _ in range(data_len)]
         weight.append(0.1)
         weight.append(0.1)
-        data = pd.DataFrame(data)
         weight = pd.Series(weight)
-        y = data.values.dot(weight)
+        y = pd.DataFrame(data).values.dot(weight)
+
+        # unused1 / unused2 is unused.... test input trace
+        for i in range(2):
+            data[f"unused{i+1}"] = [_rand() for _ in range(data_len)]
+
+        data = pd.DataFrame(data)
 
         # o1/o2, onehot col
         def add_onehot(name, y, data):
@@ -207,12 +225,25 @@ def test_model_export(comp_prod_sf_cluster_config):
 
     data = build_dataset()
     if self_party == "alice":
-        ds = data[[f"f{i+1}" for i in range(8)] + ["b1", "o1", "y"]]
-        ds.to_csv(os.path.join(local_fs_wd, alice_input_path), index=False)
+        if features_in_one_party:
+            #  alice has y
+            ds = data[["y"]]
+            ds.to_csv(os.path.join(local_fs_wd, alice_input_path), index=False)
+        else:
+            ds = data[[f"f{i+1}" for i in range(4)] + ["b1", "o1", "y", "unused1"]]
+            ds.to_csv(os.path.join(local_fs_wd, alice_input_path), index=False)
 
     elif self_party == "bob":
-        ds = data[[f"f{i + 9}" for i in range(8)] + ["b2", "o2"]]
-        ds.to_csv(os.path.join(local_fs_wd, bob_input_path), index=False)
+        if features_in_one_party:
+            #  bob has all features
+            ds = data[
+                [f"f{i + 1}" for i in range(8)]
+                + ["b1", "b2", "o1", "o2", "unused1", "unused2"]
+            ]
+            ds.to_csv(os.path.join(local_fs_wd, bob_input_path), index=False)
+        else:
+            ds = data[[f"f{i + 5}" for i in range(4)] + ["b2", "o2", "unused2"]]
+            ds.to_csv(os.path.join(local_fs_wd, bob_input_path), index=False)
 
     # binning
     bin_param = NodeEvalParam(
@@ -240,20 +271,37 @@ def test_model_export(comp_prod_sf_cluster_config):
         output_uris=[bin_rule_path, report_path],
     )
 
-    meta = VerticalTable(
-        schemas=[
-            TableSchema(
-                feature_types=["float32"] * 9 + ["str"],
-                features=[f"f{i + 9}" for i in range(8)] + ["b2", "o2"],
-            ),
-            TableSchema(
-                feature_types=["float32"] * 9 + ["str"],
-                features=[f"f{i+1}" for i in range(8)] + ["b1", "o1"],
-                label_types=["float32"],
-                labels=["y"],
-            ),
-        ],
-    )
+    if features_in_one_party:
+        meta = VerticalTable(
+            schemas=[
+                TableSchema(
+                    feature_types=["float32"] * 12 + ["str"] * 2,
+                    features=[f"f{i + 1}" for i in range(8)]
+                    + ["unused1", "unused2", "b1", "b2", "o1", "o2"],
+                ),
+                TableSchema(
+                    feature_types=[],
+                    features=[],
+                    label_types=["float32"],
+                    labels=["y"],
+                ),
+            ],
+        )
+    else:
+        meta = VerticalTable(
+            schemas=[
+                TableSchema(
+                    feature_types=["float32"] * 6 + ["str"],
+                    features=[f"f{i + 5}" for i in range(4)] + ["unused2", "b2", "o2"],
+                ),
+                TableSchema(
+                    feature_types=["float32"] * 6 + ["str"],
+                    features=[f"f{i+1}" for i in range(4)] + ["unused1", "b1", "o1"],
+                    label_types=["float32"],
+                    labels=["y"],
+                ),
+            ],
+        )
     bin_param.inputs[0].meta.Pack(meta)
 
     bin_res = vert_binning_comp.eval(
@@ -366,6 +414,11 @@ def test_model_export(comp_prod_sf_cluster_config):
     for s in onehot_meta.schemas:
         all_onehot_features.extend(list(s.features))
 
+    all_onehot_features.remove("unused1")
+    all_onehot_features.remove("unused2")
+    all_onehot_features.remove("f1")
+    all_onehot_features.remove("o1_1")
+
     # ss_glm
     train_param = NodeEvalParam(
         domain="ml.train",
@@ -388,7 +441,7 @@ def test_model_export(comp_prod_sf_cluster_config):
         attrs=[
             Attribute(i64=1),
             Attribute(f=0.3),
-            Attribute(i64=128),
+            Attribute(i64=32),
             Attribute(s="Logit"),
             Attribute(s="Bernoulli"),
             Attribute(s="SGD"),
@@ -396,12 +449,14 @@ def test_model_export(comp_prod_sf_cluster_config):
             Attribute(b=True),
             Attribute(ss=["y"]),
             Attribute(ss=all_onehot_features),
-            Attribute(ss=[]),
+            Attribute(ss=["f1"]),
             Attribute(ss=[]),
         ],
         inputs=[onehot_res.outputs[0]],
         output_uris=[ss_glm_model_path, ss_glm_report_path],
     )
+
+    expected_input = [f"f{i + 1}" for i in range(8)] + ["b1", "b2", "o1", "o2"]
 
     train_res = ss_glm_train_comp.eval(
         param=train_param,
@@ -441,20 +496,22 @@ def test_model_export(comp_prod_sf_cluster_config):
 
     # by train comp
     eval_export(
-        "test_model_export",
+        work_path,
         [sub_param, cal_sub_param, onehot_param, train_param],
         [sub_res, cal_sub_res, onehot_res, train_res],
         storage_config,
         sf_cluster_config,
+        expected_input,
     )
 
     # by pred comp
     eval_export(
-        "test_model_export",
+        work_path,
         [sub_param, cal_sub_param, onehot_param, predict_param],
         [sub_res, cal_sub_res, onehot_res, predict_res],
         storage_config,
         sf_cluster_config,
+        expected_input,
     )
 
 
@@ -480,7 +537,7 @@ def get_ss_sgd_train_param(alice_path, bob_path, model_path):
         attrs=[
             Attribute(i64=1),
             Attribute(f=0.3),
-            Attribute(i64=128),
+            Attribute(i64=32),
             Attribute(s="t1"),
             Attribute(s="logistic"),
             Attribute(s="l2"),
@@ -489,7 +546,7 @@ def get_ss_sgd_train_param(alice_path, bob_path, model_path):
             Attribute(f=0.5),
             Attribute(s="policy_sgd"),
             Attribute(ss=["y"]),
-            Attribute(ss=[f"a{i}" for i in range(15)] + [f"b{i}" for i in range(15)]),
+            Attribute(ss=[f"a{i}" for i in range(4)] + [f"b{i}" for i in range(4)]),
         ],
         inputs=[
             DistData(
@@ -533,46 +590,71 @@ def get_eval_param(predict_path):
     )
 
 
-def get_meta_and_dump_data(dir, comp_prod_sf_cluster_config, alice_path, bob_path):
+def get_meta_and_dump_data(
+    dir, comp_prod_sf_cluster_config, alice_path, bob_path, features_in_one_party
+):
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
     local_fs_wd = storage_config.local_fs.wd
     scaler = StandardScaler()
     ds = load_breast_cancer()
     x, y = scaler.fit_transform(ds["data"]), ds["target"]
+    os.makedirs(
+        os.path.join(local_fs_wd, dir),
+        exist_ok=True,
+    )
     if self_party == "alice":
-        os.makedirs(
-            os.path.join(local_fs_wd, dir),
-            exist_ok=True,
-        )
-        x = pd.DataFrame(x[:, :15], columns=[f"a{i}" for i in range(15)])
-        y = pd.DataFrame(y, columns=["y"])
-        ds = pd.concat([x, y], axis=1)
-        ds.to_csv(os.path.join(local_fs_wd, alice_path), index=False)
+        if features_in_one_party:
+            ds = pd.DataFrame(y[:32], columns=["y"])
+            ds.to_csv(os.path.join(local_fs_wd, alice_path), index=False)
+        else:
+            x = pd.DataFrame(x[:32, :15], columns=[f"a{i}" for i in range(15)])
+            y = pd.DataFrame(y[:32], columns=["y"])
+            ds = pd.concat([x, y], axis=1)
+            ds.to_csv(os.path.join(local_fs_wd, alice_path), index=False)
 
     elif self_party == "bob":
-        os.makedirs(
-            os.path.join(local_fs_wd, dir),
-            exist_ok=True,
+        if features_in_one_party:
+            ds = pd.DataFrame(
+                x[:32, :],
+                columns=[f"a{i}" for i in range(15)] + [f"b{i}" for i in range(15)],
+            )
+            ds.to_csv(os.path.join(local_fs_wd, bob_path), index=False)
+        else:
+            ds = pd.DataFrame(x[:32, 15:], columns=[f"b{i}" for i in range(15)])
+            ds.to_csv(os.path.join(local_fs_wd, bob_path), index=False)
+
+    if features_in_one_party:
+        return VerticalTable(
+            schemas=[
+                TableSchema(
+                    feature_types=[],
+                    features=[],
+                    labels=["y"],
+                    label_types=["float32"],
+                ),
+                TableSchema(
+                    feature_types=["float32"] * 30,
+                    features=[f"a{i}" for i in range(15)]
+                    + [f"b{i}" for i in range(15)],
+                ),
+            ],
         )
-
-        ds = pd.DataFrame(x[:, 15:], columns=[f"b{i}" for i in range(15)])
-        ds.to_csv(os.path.join(local_fs_wd, bob_path), index=False)
-
-    return VerticalTable(
-        schemas=[
-            TableSchema(
-                feature_types=["float32"] * 15,
-                features=[f"a{i}" for i in range(15)],
-                labels=["y"],
-                label_types=["float32"],
-            ),
-            TableSchema(
-                feature_types=["float32"] * 15,
-                features=[f"b{i}" for i in range(15)],
-            ),
-        ],
-    )
+    else:
+        return VerticalTable(
+            schemas=[
+                TableSchema(
+                    feature_types=["float32"] * 15,
+                    features=[f"a{i}" for i in range(15)],
+                    labels=["y"],
+                    label_types=["float32"],
+                ),
+                TableSchema(
+                    feature_types=["float32"] * 15,
+                    features=[f"b{i}" for i in range(15)],
+                ),
+            ],
+        )
 
 
 def get_pred_param(alice_path, bob_path, train_res, predict_path):
@@ -587,7 +669,7 @@ def get_pred_param(alice_path, bob_path, train_res, predict_path):
             "save_label",
         ],
         attrs=[
-            Attribute(i64=128),
+            Attribute(i64=32),
             Attribute(s="alice"),
             Attribute(b=False),
             Attribute(b=True),
@@ -607,17 +689,23 @@ def get_pred_param(alice_path, bob_path, train_res, predict_path):
     )
 
 
-def test_ss_sgd_export(comp_prod_sf_cluster_config):
-    alice_path = "test_ss_sgd/x_alice.csv"
-    bob_path = "test_ss_sgd/x_bob.csv"
-    model_path = "test_ss_sgd/model.sf"
-    predict_path = "test_ss_sgd/predict.csv"
+@pytest.mark.parametrize("features_in_one_party", [True, False])
+def test_ss_sgd_export(comp_prod_sf_cluster_config, features_in_one_party):
+    work_path = f"test_ss_sgd_{features_in_one_party}"
+    alice_path = f"{work_path}/x_alice.csv"
+    bob_path = f"{work_path}/x_bob.csv"
+    model_path = f"{work_path}/model.sf"
+    predict_path = f"{work_path}/predict.csv"
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
 
     train_param = get_ss_sgd_train_param(alice_path, bob_path, model_path)
     meta = get_meta_and_dump_data(
-        "test_ss_sgd", comp_prod_sf_cluster_config, alice_path, bob_path
+        work_path,
+        comp_prod_sf_cluster_config,
+        alice_path,
+        bob_path,
+        features_in_one_party,
     )
     train_param.inputs[0].meta.Pack(meta)
 
@@ -638,35 +726,41 @@ def test_ss_sgd_export(comp_prod_sf_cluster_config):
 
     assert len(predict_res.outputs) == 1
 
+    expected_input = [f"a{i}" for i in range(4)] + [f"b{i}" for i in range(4)]
+
     # by train comp
     eval_export(
-        "test_ss_sgd",
+        work_path,
         [train_param],
         [train_res],
         storage_config,
         sf_cluster_config,
+        expected_input,
     )
 
     # by pred comp
     eval_export(
-        "test_ss_sgd",
+        work_path,
         [predict_param],
         [predict_res],
         storage_config,
         sf_cluster_config,
+        expected_input,
     )
 
 
-def test_sgb_export(comp_prod_sf_cluster_config):
-    alice_path = "test_sgb/x_alice.csv"
-    bob_path = "test_sgb/x_bob.csv"
+@pytest.mark.parametrize("features_in_one_party", [True, False])
+def test_sgb_export(comp_prod_sf_cluster_config, features_in_one_party):
+    work_path = f"test_sgb_{features_in_one_party}"
+    alice_path = f"{work_path}/x_alice.csv"
+    bob_path = f"{work_path}/x_bob.csv"
 
-    bin_rule_path = "test_sgb/bin_rule"
-    bin_output = "test_sgb/vert.csv"
-    bin_report_path = "test_sgb/bin_report.json"
+    bin_rule_path = f"{work_path}/bin_rule"
+    bin_output = f"{work_path}/vert.csv"
+    bin_report_path = f"{work_path}/bin_report.json"
 
-    model_path = "test_sgb/model.sf"
-    predict_path = "test_sgb/predict.csv"
+    model_path = f"{work_path}/model.sf"
+    predict_path = f"{work_path}/predict.csv"
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
 
@@ -697,7 +791,11 @@ def test_sgb_export(comp_prod_sf_cluster_config):
     )
 
     meta = get_meta_and_dump_data(
-        "test_sgb", comp_prod_sf_cluster_config, alice_path, bob_path
+        work_path,
+        comp_prod_sf_cluster_config,
+        alice_path,
+        bob_path,
+        features_in_one_party,
     )
     bin_param.inputs[0].meta.Pack(meta)
 
@@ -754,13 +852,13 @@ def test_sgb_export(comp_prod_sf_cluster_config):
             Attribute(f=0.3),
             Attribute(s="logistic"),
             Attribute(f=0.1),
-            Attribute(f=0),
+            Attribute(f=0.5),
             Attribute(f=1),
             Attribute(f=1),
             Attribute(f=0.25),
             Attribute(f=0),
             Attribute(ss=["y"]),
-            Attribute(ss=[f"a{i}" for i in range(15)] + [f"b{i}" for i in range(15)]),
+            Attribute(ss=[f"a{i}" for i in range(4)] + [f"b{i}" for i in range(4)]),
         ],
         inputs=[
             sub_res.outputs[0],
@@ -803,30 +901,36 @@ def test_sgb_export(comp_prod_sf_cluster_config):
 
     assert len(predict_res.outputs) == 1
 
+    expected_input = [f"a{i}" for i in range(4)] + [f"b{i}" for i in range(4)]
+
     # by train comp
     eval_export(
-        "test_sgb",
+        work_path,
         [sub_param, train_param],
         [sub_res, train_res],
         storage_config,
         sf_cluster_config,
+        expected_input,
     )
 
     # by pred comp
     eval_export(
-        "test_sgb",
+        work_path,
         [sub_param, predict_param],
         [sub_res, predict_res],
         storage_config,
         sf_cluster_config,
+        expected_input,
     )
 
 
-def test_ss_xgb_export(comp_prod_sf_cluster_config):
-    alice_path = "test_xgb/x_alice.csv"
-    bob_path = "test_xgb/x_bob.csv"
-    model_path = "test_xgb/model.sf"
-    predict_path = "test_xgb/predict.csv"
+@pytest.mark.parametrize("features_in_one_party", [True, False])
+def test_ss_xgb_export(comp_prod_sf_cluster_config, features_in_one_party):
+    work_path = f"test_xgb_{features_in_one_party}"
+    alice_path = f"{work_path}/x_alice.csv"
+    bob_path = f"{work_path}/x_bob.csv"
+    model_path = f"{work_path}/model.sf"
+    predict_path = f"{work_path}/predict.csv"
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
 
@@ -858,7 +962,7 @@ def test_ss_xgb_export(comp_prod_sf_cluster_config):
             Attribute(f=0.25),
             Attribute(f=0),
             Attribute(ss=["y"]),
-            Attribute(ss=[f"a{i}" for i in range(15)] + [f"b{i}" for i in range(15)]),
+            Attribute(ss=[f"a{i}" for i in range(4)] + [f"b{i}" for i in range(4)]),
         ],
         inputs=[
             DistData(
@@ -874,7 +978,11 @@ def test_ss_xgb_export(comp_prod_sf_cluster_config):
     )
 
     meta = get_meta_and_dump_data(
-        "test_xgb", comp_prod_sf_cluster_config, alice_path, bob_path
+        work_path,
+        comp_prod_sf_cluster_config,
+        alice_path,
+        bob_path,
+        features_in_one_party,
     )
     train_param.inputs[0].meta.Pack(meta)
 
@@ -892,13 +1000,11 @@ def test_ss_xgb_export(comp_prod_sf_cluster_config):
             "receiver",
             "save_ids",
             "save_label",
-            "input/feature_dataset/saved_features",
         ],
         attrs=[
             Attribute(s="alice"),
             Attribute(b=False),
             Attribute(b=True),
-            Attribute(ss=["a2", "a10"]),
         ],
         inputs=[
             train_res.outputs[0],
@@ -923,20 +1029,24 @@ def test_ss_xgb_export(comp_prod_sf_cluster_config):
 
     assert len(predict_res.outputs) == 1
 
+    expected_input = [f"a{i}" for i in range(4)] + [f"b{i}" for i in range(4)]
+
     # by train comp
     eval_export(
-        "test_xgb",
+        work_path,
         [train_param],
         [train_res],
         storage_config,
         sf_cluster_config,
+        expected_input,
     )
 
     # by pred comp
     eval_export(
-        "test_xgb",
+        work_path,
         [predict_param],
         [predict_res],
         storage_config,
         sf_cluster_config,
+        expected_input,
     )

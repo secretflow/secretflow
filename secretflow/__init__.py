@@ -13,17 +13,7 @@
 # limitations under the License.
 
 
-from . import (
-    component,
-    data,
-    device,
-    kuscia,
-    ml,
-    preprocessing,
-    security,
-    utils,
-    ic,
-)
+from . import component, data, device, ic, kuscia, ml, preprocessing, security, utils
 from .device import (
     HEU,
     PYU,

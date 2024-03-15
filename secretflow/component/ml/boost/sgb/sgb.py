@@ -342,7 +342,10 @@ def sgb_train_eval_fn(
     train_dataset_feature_selects,
 ):
     assert ctx.heu_config is not None, "need heu config in SFClusterDesc"
-
+    assert (
+        len(set(train_dataset_label).intersection(set(train_dataset_feature_selects)))
+        == 0
+    ), f"expect no intersection between label and features, got {train_dataset_label} and {train_dataset_feature_selects}"
     y = load_table(
         ctx,
         train_dataset,
@@ -356,8 +359,8 @@ def sgb_train_eval_fn(
         load_labels=True,
         load_features=True,
         col_selects=train_dataset_feature_selects,
-        col_excludes=train_dataset_label,
     )
+    assert len(x.columns) > 0
 
     label_party = next(iter(y.partitions.keys())).party
     heu = heu_from_base_config(
@@ -402,7 +405,7 @@ def sgb_train_eval_fn(
     leaf_weights = m_dict.pop("leaf_weights")
     split_trees = m_dict.pop("split_trees")
     m_dict["label_holder"] = m_dict["label_holder"].party
-    m_dict["feature_selects"] = x.columns
+    m_dict["feature_names"] = x.columns
     m_dict["label_col"] = train_dataset_label
     party_features_length = {
         device.party: len(columns) for device, columns in x.partition_columns.items()
@@ -545,11 +548,12 @@ def sgb_predict_eval_fn(
     save_label,
 ):
     model_public_info = get_model_public_info(model)
-
+    assert len(model_public_info["feature_names"]) > 0
     feature_reader = SimpleVerticalBatchReader(
         ctx,
         feature_dataset,
-        model_public_info['feature_selects'],
+        partitions_order=list(model_public_info["party_features_length"].keys()),
+        col_selects=model_public_info["feature_names"],
     )
 
     pyus = {p: PYU(p) for p in ctx.cluster_config.desc.parties}

@@ -16,7 +16,6 @@
 from dataclasses import dataclass
 from typing import Dict, List
 
-
 _SELF_PARTY: str = None
 
 _PARTIES: List = None

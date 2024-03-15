@@ -432,9 +432,11 @@ class PlPartDataFrame(PartDataFrameBase):
             for df in dfs:
                 assert isinstance(df, (pl.DataFrame, pd.DataFrame))
             return [
-                PlPartDataFrame(df)
-                if isinstance(df, pl.DataFrame)
-                else PdPartDataFrame(df)
+                (
+                    PlPartDataFrame(df)
+                    if isinstance(df, pl.DataFrame)
+                    else PdPartDataFrame(df)
+                )
                 for df in dfs
             ]
         else:

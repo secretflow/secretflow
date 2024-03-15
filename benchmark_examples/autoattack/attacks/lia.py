@@ -13,17 +13,16 @@
 # limitations under the License.
 
 import logging
-from typing import Dict, Optional
 
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
 
 from benchmark_examples.autoattack import global_config
-from benchmark_examples.autoattack.applications.base import TrainBase
+from benchmark_examples.autoattack.attacks.base import AttackCase
+from benchmark_examples.autoattack.global_config import is_simple_test
 from secretflow import tune
 from secretflow.ml.nn.sl.attacks.lia_torch import LabelInferenceAttack
-from secretflow.tune.tune_config import RunConfig
 
 
 def weights_init_ones(m):
@@ -109,57 +108,52 @@ class BottomModelPlus(nn.Module):
         return x
 
 
-def lia(config: Optional[Dict], *, alice, bob, app: TrainBase):
-    if config is None:
-        config = {}
+class LiaAttackCase(AttackCase):
+    def _attack(self):
+        self.app.prepare_data()
+        model = self.app.lia_auxiliary_model(ema=False)
+        ema_model = self.app.lia_auxiliary_model(ema=True)
 
-    model = app.lia_auxiliary_model(ema=False)
-    ema_model = app.lia_auxiliary_model(ema=True)
+        data_buil = self.app.lia_auxiliary_data_builder()
+        # for precision unittest
+        model_save_path = './lia_model'
 
-    data_buil = app.lia_auxiliary_data_builder()
-    # for precision unittest
-    # data_buil = data_builder(batch_size=16, file_path=data_file_path)
-    model_save_path = './lia_model'
+        lia_cb = LabelInferenceAttack(
+            self.app.device_f,
+            model,
+            ema_model,
+            self.app.num_classes,
+            data_buil,
+            attack_epochs=1 if is_simple_test() else 2,
+            save_model_path=model_save_path,
+            T=self.config.get('T', 0.8),
+            alpha=self.config.get('alpha', 0.75),
+            val_iteration=self.config.get('val_iteration', 1024),
+            k=4 if self.app.num_classes == 10 else 2,
+            lr=self.config.get('lr', 2e-3),
+            ema_decay=self.config.get('ema_decay', 0.999),
+            lambda_u=self.config.get('lambda_u', 50),
+            exec_device='cuda' if global_config.is_use_gpu() else 'cpu',
+        )
 
-    lia_cb = LabelInferenceAttack(
-        alice if app.device_y == bob else bob,
-        model,
-        ema_model,
-        app.num_classes,
-        data_buil,
-        attack_epochs=1,
-        save_model_path=model_save_path,
-        T=config.get('T', 0.8),
-        alpha=config.get('alpha', 0.75),
-        val_iteration=config.get('val_iteration', 1024),
-        k=4 if app.num_classes == 10 else 2,
-        lr=config.get('lr', 2e-3),
-        ema_decay=config.get('ema_decay', 0.999),
-        lambda_u=config.get('lambda_u', 50),
-    )
-    app.train(lia_cb)
-    logging.warning(f"lia cb attack metrics = {lia_cb.get_attack_metrics()}")
-    return lia_cb.get_attack_metrics()
+        history = self.app.train(lia_cb)
+        logging.warning(
+            f"RESULT: {type(self.app).__name__} lia attack metrics = {lia_cb.get_attack_metrics()}"
+        )
+        return history, lia_cb.get_attack_metrics()
 
+    def attack_search_space(self):
+        return {
+            'T': tune.search.grid_search([0.7, 0.75, 0.8]),  # near 0.8
+            'alpha': tune.search.grid_search([0.8, 0.9, 0.9999]),  # (0,1) near 0.9
+            'val_iteration': 1024,  # 1 -
+            'lr': tune.search.grid_search([2e-5, 2e-3, 2e-1]),
+            'ema_decay': tune.search.grid_search([0.9, 0.99, 0.999]),
+            'lambda_u': tune.search.grid_search([40, 50, 60]),  # 40 - 60
+        }
 
-def auto_lia(alice, bob, app: TrainBase):
-    search_space = {
-        'T': tune.search.uniform(0.7, 1.0),  # 别是负值 0.8附近可能好 0.7 - 1
-        'alpha': tune.search.uniform(0.8, 0.9999),  # 0 - 1 之间，0.9附近可能好
-        'val_iteration': 1024,  # 整数 1 - 无穷
-        'lr': tune.search.loguniform(2e-5, 2e-1),
-        'ema_decay': tune.search.uniform(0.9, 1.0),
-        'lambda_u': tune.search.grid_search([40, 45, 50, 60]),
-    }
-    trainable = tune.with_parameters(lia, alice=alice, bob=bob, app=app)
-    tuner = tune.Tuner(
-        trainable,
-        run_config=RunConfig(
-            storage_path=global_config.get_autoattack_path(),
-            name=f"{type(app).__name__}_lia",
-        ),
-        param_space=search_space,
-    )
-    results = tuner.fit()
-    result_config = results.get_best_result(metric="val_acc_0", mode="max").config
-    logging.warning(f"the best acc = {result_config}")
+    def metric_name(self):
+        return 'val_acc_0'
+
+    def metric_mode(self):
+        return 'max'

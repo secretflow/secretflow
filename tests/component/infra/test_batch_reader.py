@@ -5,10 +5,11 @@ import numpy as np
 import pandas as pd
 from sklearn.datasets import load_breast_cancer
 from sklearn.preprocessing import StandardScaler
-from secretflow.data.vertical.dataframe import VDataFrame
+
 from secretflow import reveal, wait
-from secretflow.component.data_utils import SimpleVerticalBatchReader
 from secretflow.component.component import CompEvalContext
+from secretflow.component.data_utils import SimpleVerticalBatchReader
+from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 
 
@@ -86,17 +87,19 @@ def test_works(sf_production_setup_devices):
     reader = SimpleVerticalBatchReader(
         ctx,
         input_ds,
-        col_selects=["a3", "a1", "a10", "b1", "b10", "b7"],
+        partitions_order=["bob", "alice"],
+        col_selects=["a3", "b7", "b1", "a1", "a10", "b10"],  # out of order
         batch_size=47,
     )
 
     def _assert_df(df: VDataFrame, row_cnt):
+        assert list(df.partitions.keys())[0].party == "bob"
         alice_nd = reveal(df.partitions[alice].values)
         bob_nd = reveal(df.partitions[bob].values)
 
         assert bob_nd.shape[0] == alice_nd.shape[0]
 
-        expected_x = x[row_cnt : row_cnt + alice_nd.shape[0], [3, 1, 10, 16, 25, 22]]
+        expected_x = x[row_cnt : row_cnt + alice_nd.shape[0], [22, 16, 25, 3, 1, 10]]
 
         row_cnt += alice_nd.shape[0]
 
@@ -105,11 +108,12 @@ def test_works(sf_production_setup_devices):
         assert bob_nd.shape[1] == 3
 
         if df.shape[0]:
-            assert df.columns == ["a3", "a1", "a10", "b1", "b10", "b7"]
+            # ordered by partitions_order
+            assert df.columns == ["b7", "b1", "b10", "a3", "a1", "a10"]
 
         assert row_cnt == reader.total_read_cnt
 
-        batch_x = np.concatenate([alice_nd, bob_nd], axis=1)
+        batch_x = np.concatenate([bob_nd, alice_nd], axis=1)
 
         np.testing.assert_almost_equal(expected_x, batch_x, decimal=4)
 

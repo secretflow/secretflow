@@ -20,6 +20,7 @@ import tarfile
 from typing import Any, List
 
 import numpy as np
+import pyarrow as pa
 import secretflow_serving_lib as sfs
 from google.protobuf import json_format
 from secretflow_serving_lib.graph_pb2 import DispatchType
@@ -177,10 +178,47 @@ class GraphBuilder:
         self.executions = []
         # first exec must be DP_ALL
         self.executions.append(_Execution("DP_ALL", False, False))
+        self.node_schemas = {}
+
+    def _check_node_schemas(
+        self,
+        node_name: str,
+        node_parents: List[str],
+        in_schema: pa.Schema,
+        out_schema: pa.Schema,
+    ):
+        assert node_name not in self.node_schemas
+        self.node_schemas[node_name] = out_schema
+        if not node_parents:
+            return
+        in_names = set(in_schema.names)
+        for p in node_parents:
+            assert p in self.node_schemas
+            p_out = self.node_schemas[p]
+            assert in_names.issubset(
+                set(p_out.names)
+            ), f"names mismatch current {node_name} input {in_names} , parent {p} output {set(p_out.names)}"
+            for in_name in in_names:
+                assert p_out.field(in_name).type == in_schema.field(in_name).type, (
+                    f"type mismatch for field {in_name}, current {node_name} input {in_schema.field(in_name)},"
+                    f"parent {p} output {p_out.field(in_name)}"
+                )
 
     def add_node(
-        self, node_name: str, node_parents: List[str], op: str, **kwargs
+        self,
+        node_name: str,
+        node_parents: List[str],
+        op: str,
+        graph_build_input_schemas: pa.Schema,
+        graph_build_output_schemas: pa.Schema,
+        **kwargs,
     ) -> None:
+        self._check_node_schemas(
+            node_name,
+            node_parents,
+            graph_build_input_schemas,
+            graph_build_output_schemas,
+        )
         e_op = getattr(self.executions[-1], op, None)
         assert e_op, f"not exist op {op}"
         e_op(node_name, node_parents, **kwargs)
@@ -199,11 +237,11 @@ class GraphBuilder:
         mb.name = name
         mb.desc = desc
         mb.graph.CopyFrom(graph.save())
-        mb_data = mb.SerializeToString()
+        mb_data = json_format.MessageToJson(mb, indent=0).encode("utf-8")
 
         mm = sfs.bundle_pb2.ModelManifest()
         mm.bundle_path = "model_file"
-        mm.bundle_format = sfs.bundle_pb2.FF_PB
+        mm.bundle_format = sfs.bundle_pb2.FF_JSON
         mm_data = json_format.MessageToJson(mm, indent=0).encode("utf-8")
 
         fh = io.BytesIO()

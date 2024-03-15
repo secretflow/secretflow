@@ -12,4 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.4.0.dev$$DATE$$"
+__version__ = "1.4.0b0"
+__commit_id__ = "$$COMMIT_ID$$"
+__docker_version__ = "$$DOCKER_VERSION$$"
+__build_time__ = "$$BUILD_TIME$$"
+
+
+def build_message():
+    msg = []
+    msg.append(f"Secretflow {__version__}")
+
+    if "$$" not in __commit_id__:
+        msg.append(f"Build time ({__build_time__}) with commit id: {__commit_id__}")
+    else:
+        msg.append(f"Build time ({__build_time__})")
+
+    if "$$" not in __docker_version__:
+        msg.append(f"Distribution inside docker: {__docker_version__}")
+
+    return "\n".join(msg)

@@ -3,15 +3,15 @@ import tempfile
 from dataclasses import dataclass
 
 import numpy as np
+import pytest
+
+import secretflow as sf
 import secretflow.distributed as sfd
 from secretflow.device import global_state
 from secretflow.device.device.teeu import TEEU
 from secretflow.distributed.primitive import DISTRIBUTION_MODE
 from secretflow.utils.testing import unused_tcp_port
 from tests.cluster import cluster, get_self_party, set_self_party
-
-import pytest
-import secretflow as sf
 
 
 @dataclass

@@ -82,7 +82,7 @@ def get_rule_features(rules: CaseWhenRule) -> List[str]:
 
     _get_value_f(rules.else_value)
 
-    return fs
+    return list(set(fs))
 
 
 def apply_case_when_rule(table: sc.Table, rules: CaseWhenRule) -> sc.Table:

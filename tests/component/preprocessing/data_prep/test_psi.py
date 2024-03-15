@@ -1,6 +1,7 @@
 import os
 
 import pandas as pd
+
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.preprocessing.data_prep.psi import psi_comp
 from secretflow.spec.v1.component_pb2 import Attribute

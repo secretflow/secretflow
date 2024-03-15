@@ -39,12 +39,10 @@ def clean_text(x: str, no_line_breaks: bool = True) -> str:
     return cleantext.clean(x.strip(), lower=False, no_line_breaks=no_line_breaks)
 
 
-class CompDeclError(Exception):
-    ...
+class CompDeclError(Exception): ...
 
 
-class CompEvalError(Exception):
-    ...
+class CompEvalError(Exception): ...
 
 
 class CompTracer:
@@ -962,9 +960,11 @@ class Component:
                         {
                             "party": p,
                             "address": addresses.addresses[idx],
-                            "listen_address": addresses.listen_addresses[idx]
-                            if len(addresses.listen_addresses)
-                            else "",
+                            "listen_address": (
+                                addresses.listen_addresses[idx]
+                                if len(addresses.listen_addresses)
+                                else ""
+                            ),
                         }
                         for idx, p in enumerate(list(addresses.parties))
                     ]
@@ -984,9 +984,9 @@ class Component:
                         if k not in SUPPORTED_RUNTIME_CONFIG_ITEM:
                             logging.warning(f"runtime config item {k} is not parsed.")
                         else:
-                            cluster_def["runtime_config"][
-                                k
-                            ] = self._parse_runtime_config(k, v)
+                            cluster_def["runtime_config"][k] = (
+                                self._parse_runtime_config(k, v)
+                            )
 
                 spu_configs[device.name] = {"cluster_def": cluster_def}
 
@@ -1081,16 +1081,19 @@ class Component:
 
         if cluster_config is not None:
             self._setup_sf_cluster(cluster_config)
+        on_error = None
         try:
             ret = self.__eval_callback(**kwargs)
         except Exception as e:
+            on_error = True
             logging.error(f"eval on {param} failed, error <{e}>")
             # TODO: use error_code in report
             raise e from None
         finally:
             if cluster_config is not None:
                 shutdown(
-                    barrier_on_shutdown=cluster_config.public_config.barrier_on_shutdown
+                    barrier_on_shutdown=cluster_config.public_config.barrier_on_shutdown,
+                    on_error=on_error,
                 )
 
         logging.info(f"{param}, getting eval return complete.")

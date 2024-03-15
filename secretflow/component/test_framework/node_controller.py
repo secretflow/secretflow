@@ -13,11 +13,11 @@
 # limitations under the License.
 
 import base64
+import gzip
 import json
 import logging
 import math
 import os
-import gzip
 import shutil
 import socket
 import subprocess
@@ -185,7 +185,7 @@ class NodeController(object):
             docker_version = sf_version.version
         else:
             # install whl inside secretflow-anolis8:latest
-            docker_version = "latest"
+            docker_version = "1.4.0.dev24011601"
 
         cmd += DOCKER_IMAGE.format(version=docker_version)
         self._exec_cmd(cmd)

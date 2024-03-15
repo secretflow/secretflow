@@ -64,7 +64,9 @@ class BasicBlock(nn.Module):
 
     # 定义前向传播函数，输入图像为x，输出图像为out
     def forward(self, x):
-        out = F.relu(self.bn1(self.conv1(x)))  # 第一个卷积和第一个批归一化后用ReLU函数激活
+        out = F.relu(
+            self.bn1(self.conv1(x))
+        )  # 第一个卷积和第一个批归一化后用ReLU函数激活
         out = self.bn2(self.conv2(out))
         out += self.shortcut(x)  # 第二个卷积和第二个批归一化后与捷径相加
         out = F.relu(out)  # 两个卷积路径输出与捷径输出相加后用ReLU激活
@@ -111,7 +113,9 @@ class ResNet(nn.Module):
 
     # 定义前向传播函数，输入图像为x，输出预测数据
     def forward(self, x):
-        out = F.relu(self.bn1(self.conv1(x)))  # 第一个卷积和第一个批归一化后用ReLU函数激活
+        out = F.relu(
+            self.bn1(self.conv1(x))
+        )  # 第一个卷积和第一个批归一化后用ReLU函数激活
         out = self.layer1(out)  # 第一层传播
         out = self.layer2(out)  # 第二层传播
         out = self.layer3(out)  # 第三层传播
@@ -199,7 +203,9 @@ class tiny_ResNet(nn.Module):
 
     # 定义前向传播函数，输入图像为x，输出预测数据
     def forward(self, x):
-        out = F.relu(self.bn1(self.conv1(x)))  # 第一个卷积和第一个批归一化后用ReLU函数激活
+        out = F.relu(
+            self.bn1(self.conv1(x))
+        )  # 第一个卷积和第一个批归一化后用ReLU函数激活
         out = self.layer1(out)  # 第一层传播
         out = self.layer2(out)  # 第二层传播
         out = self.layer3(out)  # 第三层传播

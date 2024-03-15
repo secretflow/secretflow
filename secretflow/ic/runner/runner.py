@@ -13,10 +13,11 @@
 # limitations under the License.
 
 import logging
+
 import secretflow.distributed as sfd
 from secretflow.distributed.primitive import DISTRIBUTION_MODE
-from secretflow.utils.logging import set_logging_level, get_logging_level, LOG_FORMAT
 from secretflow.ic.proxy import LinkProxy
+from secretflow.utils.logging import LOG_FORMAT, get_logging_level, set_logging_level
 
 
 def _init_log(self_party: str, logging_level: str):

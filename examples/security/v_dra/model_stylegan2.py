@@ -1,15 +1,14 @@
-import math
-import random
 import functools
+import math
 import operator
+import random
 from tkinter import image_names
 
 import torch
 from torch import nn
-from torch.nn import functional as F
 from torch.autograd import Function
-
-from utils import FusedLeakyReLU, fused_leaky_relu, upfirdn2d, conv2d_gradfix
+from torch.nn import functional as F
+from utils import FusedLeakyReLU, conv2d_gradfix, fused_leaky_relu, upfirdn2d
 
 
 class PixelNorm(nn.Module):

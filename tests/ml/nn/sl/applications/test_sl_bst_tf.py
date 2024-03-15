@@ -114,9 +114,11 @@ def generate_data(plus=True):
 
     if plus:
         ratings_data_transformed.movie_ids = ratings_data_transformed.movie_ids.apply(
-            lambda x: ",".join(x[:-1])
-            if '[PAD]' not in x
-            else ",".join(x[: x.index('[PAD]') - 1] + x[x.index('[PAD]') :])
+            lambda x: (
+                ",".join(x[:-1])
+                if '[PAD]' not in x
+                else ",".join(x[: x.index('[PAD]') - 1] + x[x.index('[PAD]') :])
+            )
         )
     else:
         ratings_data_transformed.movie_ids = ratings_data_transformed.movie_ids.apply(
