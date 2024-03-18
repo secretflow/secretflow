@@ -1,19 +1,8 @@
-import logging
-
 import torch
 from dataset import CriteoDataset
 from torch.utils.data import DataLoader, Dataset
 
 import secretflow as sf
-
-fm = "%(asctime)s %(levelname)s [%(name)s] [%(filename)s] [%(funcName)s:%(lineno)d]"
-# 设置日志级别 打印日志
-logging.basicConfig(
-    level=logging.DEBUG,
-    format=fm,
-    filename="/root/develop/Open_Source/ant-sf/secretflow/oscp/testlog/log01.log",
-)
-# 基本用法
 
 
 class AliceDataset(Dataset):
@@ -38,11 +27,7 @@ class AliceDataset(Dataset):
         )
 
         label = torch.tensor(self.label_df.values, dtype=torch.float)
-        logging.debug(
-            "xnum特征: {}, xcat特征: {}, y标签: {}".format(
-                sf.reveal(x_num), sf.reveal(x_cat), label
-            )
-        )
+
         return (x_num[index], x_cat[index]), label[index]
 
     def __len__(self):
@@ -70,14 +55,13 @@ class BobDataset(Dataset):
         )
         # x_cat = torch.tensor([int(self.df['C'])])
 
-        logging.debug("xnum特征: {}, xcat特征: {}".format(x_num, x_cat))
         return (x_num[index], x_cat[index])
 
     def __len__(self):
         return len(self.df)
 
 
-gen_data_path = r'/root/develop/ant-sf/secretflow/OSCP/DCN/dcn_split'
+gen_data_path = r'/root/develop/Open_Source/ant-sf/secretflow/oscp/DCN/data'
 
 
 def create_dataset_builder_alice(batch_size=32):
@@ -187,7 +171,7 @@ def compute_base_fuse_model_kwargs(d_embed_max):
     bob_d_in,
     alice_mlp_layers,
     bob_mlp_layers,
-) = compute_base_fuse_model_kwargs(8)
+) = compute_base_fuse_model_kwargs(d_embed_max=8)
 
 
 # 构建模型
@@ -270,16 +254,6 @@ base_model_bob = TorchModel(
     ],
 )
 
-# fuse_model = TorchModel(
-#     model_fn=create_fuse_model(),
-#     loss_fn=loss_fn,
-#     optim_fn=optim_fn,
-#     metrics=[
-#         metric_wrapper(Accuracy, task="multiclass", num_classes=2, average='micro'),
-#         metric_wrapper(Precision, task="multiclass", num_classes=2, average='micro'),
-#         metric_wrapper(AUROC, task="multiclass", num_classes=2),
-#     ],
-# )
 
 fuse_model = TorchModel(
     model_fn=create_fuse_model(),
@@ -310,19 +284,30 @@ from secretflow.data.vertical import read_csv
 
 vdf = read_csv(
     {
-        alice: '/root/develop/Open_Source/ant-sf/secretflow/oscp/DCN/dcn_split/train_alice.csv',
-        bob: '/root/develop/Open_Source/ant-sf/secretflow/oscp/DCN/dcn_split/train_bob.csv',
+        alice: '/root/develop/Open_Source/ant-sf/secretflow/oscp/DCN/data/train_alice.csv',
+        bob: '/root/develop/Open_Source/ant-sf/secretflow/oscp/DCN/data/train_bob.csv',
     },
     delimiter='|',
 )
 label = vdf["label"]
 data = vdf.drop(columns=["label"])
 
+val_vdf = read_csv(
+    {
+        alice: '/root/develop/Open_Source/ant-sf/secretflow/oscp/DCN/data/val_alice.csv',
+        bob: '/root/develop/Open_Source/ant-sf/secretflow/oscp/DCN/data/val_bob.csv',
+    },
+    delimiter='|',
+)
+
+val_label = val_vdf["label"]
+val_data = val_vdf.drop(columns=["label"])
+
 epoch = 10
 history = sl_model.fit(
     data,
     label,
-    validation_data=(data, label),
+    validation_data=(val_data, val_label),
     epochs=epoch,
     batch_size=batch_size,
     shuffle=False,
