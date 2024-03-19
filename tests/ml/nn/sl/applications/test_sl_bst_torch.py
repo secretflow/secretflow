@@ -385,7 +385,7 @@ def train_sl_bst_torch(sf_simulation_setup_devices, mode):
             bob: gen_data_path + '/train_data_bob.csv',
         },
         delimiter='|',
-        nrows=sample_nums
+        nrows=sample_nums,
     )
     label = vdf["label"]
     data = vdf.drop(columns=["label"])
