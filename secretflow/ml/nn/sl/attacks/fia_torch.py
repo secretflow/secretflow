@@ -21,8 +21,8 @@ import torch
 from secretflow import reveal
 from secretflow.device import PYU
 from secretflow.ml.nn.callbacks.attack import AttackCallback
+from secretflow.ml.nn.core.torch import TorchModel
 from secretflow.ml.nn.sl.backend.torch.sl_base import SLBaseTorchModel
-from secretflow.ml.nn.utils import TorchModel
 
 
 class FeatureInferenceAttack(AttackCallback):

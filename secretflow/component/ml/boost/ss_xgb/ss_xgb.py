@@ -249,7 +249,7 @@ def ss_xgb_train_eval_fn(
         "objective": model.objective.value,
         "base": model.base,
         "tree_num": len(model.weights),
-        "feature_selects": x.columns,
+        "feature_names": x.columns,
         "label_col": train_dataset_label,
     }
     party_features_length = {
@@ -413,9 +413,13 @@ def ss_xgb_predict_eval_fn(
     x = load_table(
         ctx,
         feature_dataset,
+        partitions_order=list(model_public_info["party_features_length"].keys()),
         load_features=True,
-        col_selects=model_public_info['feature_selects'],
+        col_selects=model_public_info['feature_names'],
     )
+
+    assert x.columns == model_public_info["feature_names"]
+
     pyus = {p.party: p for p in x.partitions.keys()}
 
     model = load_ss_xgb_model(ctx, spu, pyus, model)

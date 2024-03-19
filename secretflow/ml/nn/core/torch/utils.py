@@ -1,11 +1,10 @@
-#!/bin/bash
 # Copyright 2024 Ant Group Co., Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#      https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,15 +13,22 @@
 # limitations under the License.
 
 
-set -ex
+def metric_wrapper(func, *args, **kwargs):
+    def wrapped_func():
+        return func(*args, **kwargs)
 
-cp -r src src_copied
-cd src_copied
+    return wrapped_func
 
 
-conda create -n build python=3.10 -y
-conda activate build
+def optim_wrapper(func, *args, **kwargs):
+    def wrapped_func(params):
+        return func(params, *args, **kwargs)
 
-python3 setup.py bdist_wheel --lite
+    return wrapped_func
 
-cp dist/* ../src/docker/dev/
+
+def loss_wrapper(func, *args, **kwargs):
+    def wrapped_func():
+        return func(*args, **kwargs)
+
+    return wrapped_func

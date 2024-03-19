@@ -16,30 +16,26 @@ import torch
 import torch.optim as optim
 from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader, TensorDataset
-from torchmetrics import Accuracy, Precision, Recall
+from torchmetrics import Accuracy
+
+from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
 from secretflow.ml.nn.experimental.fl.backend.torch.strategy.fed_per import FedPer
 from tests.ml.nn.fl.model_def import ConvNet
 
 
 class TestFedPer:
     def test_fed_per_local_step(self, sf_simulation_setup_devices):
-        class ConvNetBuilder:
-            def __init__(self):
-                self.metrics = [
-                    lambda: Accuracy(task="multiclass", num_classes=10, average='macro')
-                ]
-
-            def model_fn(self):
-                return ConvNet()
-
-            def loss_fn(self):
-                return CrossEntropyLoss()
-
-            def optim_fn(self, parameters):
-                return optim.Adam(parameters)
-
         # Initialize FedPer strategy with ConvNet model
-        conv_net_builder = ConvNetBuilder()
+        conv_net_builder = TorchModel(
+            model_fn=ConvNet,
+            loss_fn=CrossEntropyLoss,
+            optim_fn=optim_wrapper(optim.Adam),
+            metrics=[
+                metric_wrapper(
+                    Accuracy, task="multiclass", num_classes=10, average='macro'
+                )
+            ],
+        )
         fed_per_worker = FedPer(builder_base=conv_net_builder)
 
         # Prepare dataset

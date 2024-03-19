@@ -194,9 +194,9 @@ def plat_name():
     if sys.platform == "darwin":
         # Due to a bug in conda x64 python, platform tag has to be 10_16 for X64 wheel
         if platform.machine() == "x86_64":
-            plat_name = "macosx_10_16_x86_64"
+            plat_name = "macosx_12_0_x86_64"
         else:
-            plat_name = "macosx_11_0_arm64"
+            plat_name = "macosx_12_0_arm64"
 
     return plat_name
 

@@ -72,6 +72,8 @@ class SparseCompressor(Compressor):
         self.sparse_rate = sparse_rate
 
     def _decompress_one(self, data: SparseCompressedData):
+        if not self.iscompressed(data):
+            return data
         return data.to_dense_numpy()
 
     def _compress_one(self, data, sparse_mask=None) -> SparseCompressedData:
@@ -100,6 +102,9 @@ class RandomSparse(SparseCompressor):
 
     def _do_compress_one(self, data, origin_shape) -> SparseCompressedData:
         data_shape = data.shape
+        if len(data_shape) == 0:
+            # do not compress scalar
+            return data
         data_flat = data.flatten()
         data_len = data_flat.shape[0]
         mask_num = round((1 - self.sparse_rate) * data_len)
@@ -120,6 +125,9 @@ class TopkSparse(SparseCompressor):
 
     def _do_compress_one(self, data, origin_shape):
         data_shape = data.shape
+        if len(data_shape) == 0:
+            # do not compress scalar
+            return data
         data_flat = data.flatten()
         data_len = data_flat.shape[0]
         mask_num = round((1 - self.sparse_rate) * data_len)

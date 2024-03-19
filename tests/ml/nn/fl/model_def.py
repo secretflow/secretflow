@@ -14,10 +14,12 @@
 
 # Model zoo for unittest
 
-from torch import nn as nn
+import torch
+from torch import nn, optim
 from torch.nn import functional as F
+from torchmetrics import MeanSquaredError
 
-from secretflow.ml.nn.utils import BaseModule
+from secretflow.ml.nn.core.torch import BaseModule
 
 
 # Tensorflow Model
@@ -122,3 +124,60 @@ class ConvRGBNet(BaseModule):
 
     def forward(self, xb):
         return self.network(xb)
+
+
+class VAE(BaseModule):
+    def __init__(self):
+        super().__init__()
+
+        self.fc1 = nn.Linear(784, 400)
+        self.fc21 = nn.Linear(400, 20)
+        self.fc22 = nn.Linear(400, 20)
+        self.fc3 = nn.Linear(20, 400)
+        self.fc4 = nn.Linear(400, 784)
+
+    def encode(self, x):
+        h1 = F.relu(self.fc1(x))
+        return self.fc21(h1), self.fc22(h1)
+
+    def reparameterize(self, mu, logvar):
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(std)
+        return mu + eps * std
+
+    def decode(self, z):
+        h3 = F.relu(self.fc3(z))
+        return torch.sigmoid(self.fc4(h3))
+
+    def forward(self, x):
+        mu, logvar = self.encode(x.view(-1, 784))
+        z = self.reparameterize(mu, logvar)
+        return self.decode(z), mu, logvar
+
+    def loss_function(self, recon_x, x, mu, logvar):
+        BCE = F.binary_cross_entropy(recon_x, x.view(-1, 784), reduction='sum')
+        KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+
+        return BCE + KLD
+
+    def training_step(self, batch, batch_idx: int, dataloader_idx: int = 0, **kwargs):
+        x, y = batch
+        recon_batch, mu, logvar = self(x)
+        loss = self.loss_function(recon_batch, x, mu, logvar)
+
+        decoded = recon_batch.view(x.shape[0], 1, 28, 28)
+        for m in self.metrics:
+            m.update(decoded, x)
+
+        return loss
+
+    def configure_optimizers(self):
+        optimizer = optim.Adam(self.parameters(), lr=1e-3)
+        return optimizer
+
+    def configure_metrics(self):
+        return [MeanSquaredError()]
+
+    def configure_loss(self):
+        """no use here, we use custom training step and loss calculation."""
+        return None

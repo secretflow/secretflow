@@ -30,14 +30,20 @@ from torchmetrics import AUROC, Accuracy, Precision
 
 from secretflow.device import reveal
 from secretflow.ml.nn import SLModel
+from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
 from secretflow.ml.nn.sl.agglayer.agg_method import Average
-from secretflow.ml.nn.utils import TorchModel, metric_wrapper, optim_wrapper
 from secretflow.security.privacy import DPStrategy
 from secretflow.security.privacy.mechanism.label_dp import LabelDP
 from secretflow.security.privacy.mechanism.torch import GaussianEmbeddingDP
 from secretflow.utils.compressor import TopkSparse
 from secretflow.utils.simulation.datasets import load_mnist
-from tests.ml.nn.sl.model_def import ConvNetBase, ConvNetFuse, ConvNetFuseAgglayer
+from tests.ml.nn.sl.model_def import (
+    ConvNetBase,
+    ConvNetFuse,
+    ConvNetFuseAgglayer,
+    ConvNetRegBase,
+    ConvNetRegFuse,
+)
 
 _temp_dir = tempfile.mkdtemp()
 
@@ -444,4 +450,89 @@ class TestSLModelTorch:
             label=mnist_label,
             strategy='split_nn',
             backend="torch",
+        )
+
+    def test_torch_model_custom_loss(self, sf_simulation_setup_devices):
+        alice = sf_simulation_setup_devices.alice
+        bob = sf_simulation_setup_devices.bob
+        (_, _), (mnist_data, mnist_label) = load_mnist(
+            parts={
+                sf_simulation_setup_devices.alice: (0, num_samples),
+                sf_simulation_setup_devices.bob: (0, num_samples),
+            },
+            normalized_x=True,
+            categorical_y=True,
+            is_torch=True,
+        )
+        mnist_data = mnist_data.astype(np.float32)
+        mnist_label = mnist_label.astype(np.float32)
+
+        fuse_model = ConvNetRegFuse
+        base_model_dict = {
+            alice: ConvNetRegBase,
+            bob: ConvNetRegBase,
+        }
+        dataset_buidler_dict = {
+            sf_simulation_setup_devices.alice: create_dataset_builder(
+                batch_size=train_batch_size,
+            ),
+            sf_simulation_setup_devices.bob: create_dataset_builder(
+                batch_size=train_batch_size,
+            ),
+        }
+
+        # Define DP operations
+        gaussian_embedding_dp = GaussianEmbeddingDP(
+            noise_multiplier=0.5,
+            l2_norm_clip=1.0,
+            batch_size=128,
+            num_samples=num_samples,
+            is_secure_generator=False,
+        )
+        dp_strategy_alice = DPStrategy(embedding_dp=gaussian_embedding_dp)
+        label_dp = LabelDP(eps=64.0)
+        dp_strategy_bob = DPStrategy(label_dp=label_dp)
+        dp_strategy_dict = {
+            sf_simulation_setup_devices.alice: dp_strategy_alice,
+            sf_simulation_setup_devices.bob: dp_strategy_bob,
+        }
+        # Test sl with dp
+        torch_model_with_mnist(
+            devices=sf_simulation_setup_devices,
+            base_model_dict=base_model_dict,
+            device_y=bob,
+            model_fuse=fuse_model,
+            data=mnist_data,
+            label=mnist_label,
+            dp_strategy_dict=dp_strategy_dict,
+            strategy='split_nn',
+            backend="torch",
+            atol=0.05,
+        )
+        # Test sl with dataset builder and compressor
+        top_k_compressor = TopkSparse(0.5)
+        torch_model_with_mnist(
+            devices=sf_simulation_setup_devices,
+            base_model_dict=base_model_dict,
+            device_y=bob,
+            model_fuse=fuse_model,
+            data=mnist_data,
+            label=mnist_label,
+            strategy='split_nn',
+            backend="torch",
+            compressor=top_k_compressor,
+            dataset_builder=dataset_buidler_dict,
+        )
+        # Test sl with pipeline
+        torch_model_with_mnist(
+            devices=sf_simulation_setup_devices,
+            base_model_dict=base_model_dict,
+            device_y=bob,
+            model_fuse=fuse_model,
+            data=mnist_data,
+            label=mnist_label,
+            strategy='pipeline',
+            pipeline_size=2,
+            backend="torch",
+            dataset_builder=dataset_buidler_dict,
         )

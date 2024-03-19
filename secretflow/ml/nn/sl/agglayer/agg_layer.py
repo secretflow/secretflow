@@ -17,6 +17,7 @@
 """
 from typing import Dict, List, Optional, Tuple, Union
 
+import jax
 import jax.numpy as jnp
 import numpy as np
 
@@ -106,17 +107,11 @@ class AggLayer(object):
         if backend == "tensorflow":
             import tensorflow as tf
 
-            if isinstance(hidden, (List, Tuple)):
-                hidden = [tf.convert_to_tensor(d) for d in hidden]
-            else:
-                hidden = tf.convert_to_tensor(hidden)
+            hidden = jax.tree_map(lambda h: tf.convert_to_tensor(h), hidden)
         elif backend == "torch":
             import torch
 
-            if isinstance(hidden, (List, Tuple)):
-                hidden = [torch.Tensor(d.tolist()) for d in hidden]
-            else:
-                hidden = torch.Tensor(hidden.tolist())
+            hidden = jax.tree_map(lambda h: torch.tensor(h.tolist()), hidden)
         else:
             raise InvalidArgumentError(
                 f"Invalid backend, only support 'tensorflow' or 'torch', but got {backend}"
@@ -238,12 +233,13 @@ class AggLayer(object):
             compute_data if isinstance(compute_data, list) else [compute_data]
         )
         is_compress: list = compressor.iscompressed(working_data)
-        # is_compress must be all True or all False, since they came from same data.
-        assert all(is_compressed) or not any(is_compressed)
         fuse_sparse_mask = [None] * len(working_data)
-        if all(is_compress):
+        if any(is_compress):
             if isinstance(compressor, (SparseCompressor, MixedCompressor)):
-                fuse_sparse_mask = [wd.get_sparse_mask() for wd in working_data]
+                fuse_sparse_mask = [
+                    wd.get_sparse_mask() if is_compress[idx] else None
+                    for idx, wd in enumerate(working_data)
+                ]
             working_data = compressor.decompress(working_data)
         working_data = AggLayer.convert_to_tensor(working_data, backend)
         fuse_sparse_masks += fuse_sparse_mask
