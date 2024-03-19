@@ -17,7 +17,6 @@
 """
 from typing import Dict, List, Optional, Tuple, Union
 
-import jax
 import jax.numpy as jnp
 import numpy as np
 
@@ -107,11 +106,17 @@ class AggLayer(object):
         if backend == "tensorflow":
             import tensorflow as tf
 
-            hidden = jax.tree_map(lambda h: tf.convert_to_tensor(h), hidden)
+            if isinstance(hidden, (List, Tuple)):
+                hidden = [tf.convert_to_tensor(d) for d in hidden]
+            else:
+                hidden = tf.convert_to_tensor(hidden)
         elif backend == "torch":
             import torch
 
-            hidden = jax.tree_map(lambda h: torch.tensor(h.tolist()), hidden)
+            if isinstance(hidden, (List, Tuple)):
+                hidden = [torch.Tensor(d.tolist()) for d in hidden]
+            else:
+                hidden = torch.Tensor(hidden.tolist())
         else:
             raise InvalidArgumentError(
                 f"Invalid backend, only support 'tensorflow' or 'torch', but got {backend}"
@@ -169,7 +174,7 @@ class AggLayer(object):
         working_data = (
             compute_data if isinstance(compute_data, list) else [compute_data]
         )
-        working_data = AggLayer.convert_to_ndarray(working_data, backend=backend)
+        # working_data = AggLayer.convert_to_ndarray(working_data, backend=backend)
         if iscompressed is None:
             # if not set which to compress, then all data need to be compressed.
             iscompressed = [True] * len(working_data)
@@ -185,7 +190,12 @@ class AggLayer(object):
             working_data = list(
                 map(
                     lambda d, mask, compressed: (
-                        compressor.compress(d, sparse_mask=mask) if compressed else d
+                        compressor.compress(
+                            AggLayer.convert_to_ndarray(d, backend=backend),
+                            sparse_mask=mask,
+                        )
+                        if compressed
+                        else d
                     ),
                     working_data,
                     fuse_sparse_masks,
@@ -195,7 +205,13 @@ class AggLayer(object):
         else:
             working_data = list(
                 map(
-                    lambda d, compressed: compressor.compress(d) if compressed else d,
+                    lambda d, compressed: (
+                        compressor.compress(
+                            AggLayer.convert_to_ndarray(d, backend=backend)
+                        )
+                        if compressed
+                        else d
+                    ),
                     working_data,
                     iscompressed,
                 )
@@ -233,13 +249,12 @@ class AggLayer(object):
             compute_data if isinstance(compute_data, list) else [compute_data]
         )
         is_compress: list = compressor.iscompressed(working_data)
+        # is_compress must be all True or all False, since they came from same data.
+        assert all(is_compressed) or not any(is_compressed)
         fuse_sparse_mask = [None] * len(working_data)
-        if any(is_compress):
+        if all(is_compress):
             if isinstance(compressor, (SparseCompressor, MixedCompressor)):
-                fuse_sparse_mask = [
-                    wd.get_sparse_mask() if is_compress[idx] else None
-                    for idx, wd in enumerate(working_data)
-                ]
+                fuse_sparse_mask = [wd.get_sparse_mask() for wd in working_data]
             working_data = compressor.decompress(working_data)
         working_data = AggLayer.convert_to_tensor(working_data, backend)
         fuse_sparse_masks += fuse_sparse_mask
@@ -483,6 +498,8 @@ class AggLayer(object):
                     self.fuse_sparse_masks,
                     self.is_compressed,
                 )
+                # print(f"after do compress = {sf.reveal(gradient)[0].shape}")
+
             # split gradients to parties by index
             # TODO: In GPU mode, specifying num_gpus is required for executing remote functions.
             #  However, even if you specify the GPU, it can still result in serious performance issues.
@@ -501,5 +518,6 @@ class AggLayer(object):
                     gradient = gradient.to(device)
                 if self.compressor and device != self.device_y:
                     gradient = device(self.compressor.decompress)(gradient)
+                # print(f"gradient type = {type(sf.reveal(gradient)[0])}")
                 scatter_g[device] = gradient
         return scatter_g
