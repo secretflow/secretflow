@@ -26,7 +26,6 @@ from secretflow.data.vertical import read_csv
 from secretflow.ml.nn import SLModel
 from secretflow.ml.nn.applications.sl_bst_torch import BSTBase, BSTBasePlus, BSTfuse
 from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
-from secretflow.utils.simulation.datasets import load_ml_1m
 
 tmp_dir = tempfile.TemporaryDirectory()
 lia_path = tmp_dir.name
@@ -378,14 +377,13 @@ def create_fuse_model(mode="ori"):
 def train_sl_bst_torch(sf_simulation_setup_devices, mode):
     alice = sf_simulation_setup_devices.alice
     bob = sf_simulation_setup_devices.bob
-    sample_nums = 100
+
     vdf = read_csv(
         {
             alice: gen_data_path + '/train_data_alice.csv',
             bob: gen_data_path + '/train_data_bob.csv',
         },
         delimiter='|',
-        nrows=sample_nums,
     )
     label = vdf["label"]
     data = vdf.drop(columns=["label"])

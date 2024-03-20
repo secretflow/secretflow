@@ -169,7 +169,6 @@ class AggLayer(object):
         working_data = (
             compute_data if isinstance(compute_data, list) else [compute_data]
         )
-        # working_data = AggLayer.convert_to_ndarray(working_data, backend=backend)
         if iscompressed is None:
             # if not set which to compress, then all data need to be compressed.
             iscompressed = [True] * len(working_data)
@@ -483,7 +482,6 @@ class AggLayer(object):
                 )
             scatter_g = self.scatter(p_gradient)
         else:
-            # default branch, input gradients is from fusenet, belong to device_y
             assert (
                 gradient.device == self.device_y
             ), "The device of gradients(PYUObject) must located on party device_y "
@@ -496,7 +494,6 @@ class AggLayer(object):
                     self.fuse_sparse_masks,
                     self.is_compressed,
                 )
-                # print(f"after do compress = {sf.reveal(gradient)[0].shape}")
 
             # split gradients to parties by index
             # TODO: In GPU mode, specifying num_gpus is required for executing remote functions.
@@ -516,6 +513,5 @@ class AggLayer(object):
                     gradient = gradient.to(device)
                 if self.compressor and device != self.device_y:
                     gradient = device(self.compressor.decompress)(gradient)
-                # print(f"gradient type = {type(sf.reveal(gradient)[0])}")
                 scatter_g[device] = gradient
         return scatter_g
