@@ -245,11 +245,11 @@ class GraphBuilder:
         mb.name = name
         mb.desc = desc
         mb.graph.CopyFrom(graph.save())
-        mb_data = mb.SerializeToString()
+        mb_data = json_format.MessageToJson(mb, indent=0).encode("utf-8")
 
         mm = sfs.bundle_pb2.ModelManifest()
         mm.bundle_path = "model_file"
-        mm.bundle_format = sfs.bundle_pb2.FF_PB
+        mm.bundle_format = sfs.bundle_pb2.FF_JSON
         mm_data = json_format.MessageToJson(mm, indent=0).encode("utf-8")
 
         fh = io.BytesIO()

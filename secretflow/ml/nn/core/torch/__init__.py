@@ -1,11 +1,10 @@
-#!/bin/bash
 # Copyright 2024 Ant Group Co., Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#      https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,15 +13,14 @@
 # limitations under the License.
 
 
-set -ex
+from .module import BaseModule, BuilderType, TorchModel
+from .utils import loss_wrapper, metric_wrapper, optim_wrapper
 
-cp -r src src_copied
-cd src_copied
-
-
-conda create -n build python=3.10 -y
-conda activate build
-
-python3 setup.py bdist_wheel --lite
-
-cp dist/* ../src/docker/dev/
+__all__ = [
+    'BuilderType',
+    'BaseModule',
+    'TorchModel',
+    'loss_wrapper',
+    'metric_wrapper',
+    'optim_wrapper',
+]

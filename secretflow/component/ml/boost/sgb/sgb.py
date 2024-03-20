@@ -464,7 +464,7 @@ def sgb_train_eval_fn(
     leaf_weights = m_dict.pop("leaf_weights")
     split_trees = m_dict.pop("split_trees")
     m_dict["label_holder"] = m_dict["label_holder"].party
-    m_dict["feature_selects"] = x.columns
+    m_dict["feature_names"] = x.columns
     m_dict["label_col"] = train_dataset_label
     party_features_length = {
         device.party: len(columns) for device, columns in x.partition_columns.items()
@@ -607,11 +607,12 @@ def sgb_predict_eval_fn(
     save_label,
 ):
     model_public_info = get_model_public_info(model)
-    assert len(model_public_info['feature_selects']) > 0
+    assert len(model_public_info["feature_names"]) > 0
     feature_reader = SimpleVerticalBatchReader(
         ctx,
         feature_dataset,
-        model_public_info['feature_selects'],
+        partitions_order=list(model_public_info["party_features_length"].keys()),
+        col_selects=model_public_info["feature_names"],
     )
 
     pyus = {p: PYU(p) for p in ctx.cluster_config.desc.parties}

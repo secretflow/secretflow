@@ -136,7 +136,7 @@ def eval_export(
         logging.warn(f"alice MANIFEST ............ \n{mm}\n ............ \n")
 
         mb = sfs.bundle_pb2.ModelBundle()
-        mb.ParseFromString(tar_files["model_file"])
+        mb = json_format.Parse(tar_files["model_file"], sfs.bundle_pb2.ModelBundle())
         logging.warn(f"alice model_file ............ \n{mb}\n ............ \n")
 
     if "bob" == sf_cluster_config.private_config.self_party:
@@ -153,8 +153,7 @@ def eval_export(
         mm = json_format.Parse(tar_files["MANIFEST"], sfs.bundle_pb2.ModelManifest())
         logging.warn(f"bob MANIFEST ............ \n{mm}\n ............ \n")
 
-        mb = sfs.bundle_pb2.ModelBundle()
-        mb.ParseFromString(tar_files["model_file"])
+        mb = json_format.Parse(tar_files["model_file"], sfs.bundle_pb2.ModelBundle())
         logging.warn(f"bob model_file ............ \n{mb}\n ............ \n")
 
 

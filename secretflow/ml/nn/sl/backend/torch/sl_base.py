@@ -24,11 +24,13 @@ import torch
 import torch.utils.data as torch_data
 import torchmetrics
 
+from secretflow.ml.nn.core.torch import BuilderType, module
 from secretflow.ml.nn.metrics import AUC, Mean, Precision, Recall
 from secretflow.ml.nn.sl.base import SLBaseModel
-from secretflow.ml.nn.utils import TorchModel
 from secretflow.security.privacy import DPStrategy
 from secretflow.utils.communicate import ForwardData
+
+ListType = (List, Tuple)
 
 
 class FuseOp(torch.autograd.Function):
@@ -46,13 +48,15 @@ class FuseOp(torch.autograd.Function):
 class SLBaseTorchModel(SLBaseModel, ABC):
     def __init__(
         self,
-        builder_base: TorchModel,
-        builder_fuse: TorchModel,
+        builder_base: BuilderType,
+        builder_fuse: BuilderType,
         dp_strategy: DPStrategy,
         random_seed: int = None,
         *args,
         **kwargs,
     ):
+        super().__init__()
+
         num_gpus = kwargs.get("num_gpus", 0)
         self.use_gpu = num_gpus > 0
         self.exec_device = torch.device('cuda') if self.use_gpu else torch.device('cpu')
@@ -82,6 +86,8 @@ class SLBaseTorchModel(SLBaseModel, ABC):
         self.eval_sample_weight = None
         self.fuse_callbacks = None
         self.cur_epoch = None
+        self.steps_per_epoch = None
+        self.cur_step = None
 
         self._data_x = None  # get_batch_data output
         self._gradient = None
@@ -89,7 +95,6 @@ class SLBaseTorchModel(SLBaseModel, ABC):
         self._pred_y = None
         # record all logs of training on workers
         self.logs = None
-        self.steps_per_epoch = None
         self.shuffle = False
         self._callback_store = {}
         self.random_seed = random_seed
@@ -97,46 +102,8 @@ class SLBaseTorchModel(SLBaseModel, ABC):
             torch.manual_seed(random_seed)
         # used in backward propagation gradients from fuse model to base model
         self.fuse_op = FuseOp()
-        self.builder_base = builder_base
-        self.builder_fuse = builder_fuse
-        self.model_base = (
-            builder_base.model_fn(**builder_base.kwargs)
-            if builder_base and builder_base.model_fn
-            else None
-        )
-        self.model_fuse = (
-            builder_fuse.model_fn(**builder_fuse.kwargs)
-            if builder_fuse and builder_fuse.model_fn
-            else None
-        )
-
-        self.loss_base = (
-            builder_base.loss_fn() if builder_base and builder_base.loss_fn else None
-        )
-        self.loss_fuse = (
-            builder_fuse.loss_fn() if builder_fuse and builder_fuse.loss_fn else None
-        )
-
-        self.optim_base = (
-            builder_base.optim_fn(self.model_base.parameters())
-            if builder_base and builder_base.optim_fn
-            else None
-        )
-        self.optim_fuse = (
-            builder_fuse.optim_fn(self.model_fuse.parameters())
-            if builder_fuse and builder_fuse.optim_fn
-            else None
-        )
-
-        self.metrics_fuse = (
-            [m() for m in builder_fuse.metrics]
-            if builder_fuse and builder_fuse.metrics
-            else None
-        )
-        self.model_base = self.to_exec_device(self.model_base)
-        self.model_fuse = self.to_exec_device(self.model_fuse)
-        self.metrics_fuse = self.to_exec_device(self.metrics_fuse)
-        super().__init__()
+        self.model_base = module.build(builder_base, self.exec_device)
+        self.model_fuse = module.build(builder_fuse, self.exec_device)
 
     def init_data(self):
         self.train_x, self.train_y = None, None
@@ -177,11 +144,41 @@ class SLBaseTorchModel(SLBaseModel, ABC):
         forward_data = ForwardData()
         if isinstance(self._h, torch.Tensor):
             forward_data.hidden = self._h.detach()
-        elif isinstance(self._h, list):
+        elif isinstance(self._h, ListType):
             forward_data.hidden = [h.detach() for h in self._h]
         else:
             raise RuntimeError(f"Unknown type of self._h {type(self._h)}")
         return forward_data
+
+    def unpack_forward_data(
+        self, forward_data: Union[ForwardData, List[ForwardData]]
+    ) -> Union[torch.Tensor, List[torch.Tensor]]:
+        if isinstance(forward_data, ForwardData):
+            forward_data = [forward_data]
+        forward_data[:] = (h for h in forward_data if h is not None)
+
+        for i, h in enumerate(forward_data):
+            assert h.hidden is not None, f"hidden cannot be found in forward_data[{i}]"
+            if isinstance(h.losses, ListType) and h.losses[0] is None:
+                h.losses = None
+
+        hiddens = []
+        for fd in forward_data:
+            h = fd.hidden
+            # h will be list, if basenet is multi output
+            if isinstance(h, ListType):
+                for i in range(len(h)):
+                    if isinstance(h[i], torch.Tensor):
+                        hiddens.append(h[i])
+                    else:
+                        hiddens.append(torch.tensor(h[i]))
+            else:
+                if isinstance(h, torch.Tensor):
+                    hiddens.append(h)
+                else:
+                    hiddens.append(torch.tensor(h))
+        hiddens = self.to_exec_device(hiddens)
+        return hiddens
 
     def unpack_dataset(self, data, has_x, has_y, has_s_w):
         data_x, data_y, data_s_w = None, None, None
@@ -247,7 +244,7 @@ class SLBaseTorchModel(SLBaseModel, ABC):
         # Strip tuple of length one, e.g: (x,) -> x
         self._data_x = (
             self._data_x[0]
-            if isinstance(self._data_x, (Tuple, List)) and len(self._data_x) == 1
+            if isinstance(self._data_x, ListType) and len(self._data_x) == 1
             else self._data_x
         )
         self._data_x = self.to_exec_device(self._data_x)
@@ -386,7 +383,7 @@ class SLBaseTorchModel(SLBaseModel, ABC):
 
         data_set = dataset_builder(data_tuple)
         steps_per_epoch = -1
-        if isinstance(data_set, tuple):
+        if isinstance(data_set, ListType):
             assert len(data_set) == 2, (
                 f"If a dataset builder return more than 1 value, "
                 f"it must return 2, one is dataset, another is steps_per_epoch"
@@ -414,7 +411,7 @@ class SLBaseTorchModel(SLBaseModel, ABC):
         ds_iter = iter(data_set)
         batch_data = next(ds_iter)
 
-        if isinstance(batch_data, Tuple):
+        if isinstance(batch_data, ListType):
             batch_data = batch_data[0]
         if isinstance(batch_data, Dict):
             batch_data = list(batch_data.values())[0]
@@ -492,52 +489,62 @@ class SLBaseTorchModel(SLBaseModel, ABC):
 
         # Embedding differential privacy
         if self.embedding_dp is not None:
-            if isinstance(h, List):
-                h = [self.embedding_dp(hi) for hi in h]
+            if isinstance(h, ListType):
+                h = [self.embedding_dp(hi) if len(hi.shape) > 0 else hi for hi in h]
             else:
-                h = self.embedding_dp(h)
+                h = self.embedding_dp(h) if len(h.shape) > 0 else h
 
         return h
 
-    def fuse_net_internal(self, hiddens, train_y, train_sample_weight, logs):
+    def base_backward_hidden_internal(self, hiddens):
+        return_hiddens = []
+        if len(self._gradient) == len(hiddens):
+            for i in range(len(self._gradient)):
+                grad = (
+                    self._gradient[i]
+                    if isinstance(self._gradient[i], torch.Tensor)
+                    else torch.tensor(self._gradient[i])
+                )
+                hid = self.fuse_op.apply(hiddens[i], grad)
+                if hid.requires_grad:
+                    return_hiddens.append(hid.sum())
+        else:
+            self._gradient = (
+                self._gradient[0]
+                if isinstance(self._gradient[0], torch.Tensor)
+                else torch.tensor(self._gradient[0])
+            )
+            hid = self.fuse_op.apply(hiddens, self._gradient)
+            if hid.requires_grad:
+                return_hiddens.append(hid.sum())
+
+        return return_hiddens
+
+    def fuse_net_internal(self, hiddens, train_y, train_sample_weight, logs: Dict):
         # Step 1: forward pass
         self.model_fuse.train()
-        if isinstance(hiddens, List):
-            hiddens = [h.requires_grad_() for h in hiddens]
+        if isinstance(hiddens, ListType):
+            for h in hiddens:
+                h.requires_grad_()
+                h.retain_grad()
             if len(hiddens) == 1:
                 hiddens = hiddens[0]
         else:
-            hiddens = hiddens.requires_grad_()
-
-        y_pred = self.model_fuse(hiddens, **self.kwargs)
-        self._pred_y = y_pred
-        # Step 2: loss calculation.
-        # NOTE: Refer to https://stackoverflow.com/questions/67730325/using-weights-in-crossentropyloss-and-bceloss-pytorch to use sample weight
-        # custom loss will be re-open in the next version
-        loss = self.loss_fuse(
-            y_pred,
-            train_y,
-        )
-        logs["train_loss"] = loss.cpu().detach().numpy()
-
-        if isinstance(hiddens, List):
-            for h in hiddens:
-                h.retain_grad()
-        else:
+            hiddens.requires_grad_()
             hiddens.retain_grad()
-        self.optim_fuse.zero_grad()
-        loss.backward()
-        self.optim_fuse.step()
 
-        # Step4: update metrics
-        for m in self.metrics_fuse:
-            if len(train_y.shape) > 1 and train_y.shape[1] > 1:
-                m.update(y_pred, train_y.int().argmax(-1))
-            else:
-                m.update(y_pred, train_y.int())
+        loss = self.model_fuse.training_step(
+            (hiddens, train_y), 0, sample_weight=train_sample_weight
+        )
+        if self.model_fuse.automatic_optimization:
+            self.model_fuse.backward_step(loss)
 
-        # Step5: calculate the gradients for the inputs
-        if isinstance(hiddens, List):
+            logs["train_loss"] = loss.detach().cpu().numpy()
+
+        logs.update(self.model_fuse.logs)
+
+        # calculate the gradients for the inputs
+        if isinstance(hiddens, ListType):
             hiddens_grad = [h.grad for h in hiddens]
         else:
             hiddens_grad = hiddens.grad
@@ -561,7 +568,7 @@ class SLBaseTorchModel(SLBaseModel, ABC):
         pass
 
     def reset_metrics(self):
-        for m in self.metrics_fuse:
+        for m in self.model_fuse.metrics:
             m.reset()
 
     def staging_metric_states(self):
@@ -572,36 +579,19 @@ class SLBaseTorchModel(SLBaseModel, ABC):
         # TODO(caibei)
         raise NotImplementedError()
 
-    def _evaluate_internal(self, hiddens, eval_y, eval_sample_weight, logs):
-        # Step 1: forward pass
+    def _evaluate_internal(self, hiddens, eval_y, eval_sample_weight, logs: Dict):
         self.model_fuse.eval()
-        if isinstance(hiddens, List) and len(hiddens) == 1:
+        if isinstance(hiddens, ListType) and len(hiddens) == 1:
             hiddens = hiddens[0]
 
-        output = self.model_fuse(hiddens, **self.kwargs)
-        if isinstance(output, Tuple) and len(output) > 1:
-            y_pred = output[0]
-        else:
-            y_pred = output
-
-        # Step 2: update loss
-        # custom loss will be re-open in the next version
-        loss = self.loss_fuse(
-            y_pred,
-            eval_y,
+        loss = self.model_fuse.validation_step(
+            (hiddens, eval_y), 0, sample_weight=eval_sample_weight
         )
-        logs["loss"] = loss.cpu().detach().numpy()
+        if loss and isinstance(loss, torch.Tensor):
+            logs["loss"] = loss.detach().cpu().numpy()
 
-        # Step 3: update metrics
-        for m in self.metrics_fuse:
-            if (
-                len(eval_y.shape) > 1 and eval_y.shape[1] > 1
-            ):  # in case eval_y is of shape [batch_size, 1]
-                m.update(y_pred, eval_y.argmax(-1))
-            else:
-                m.update(y_pred, eval_y.int())
-
-        for m in self.metrics_fuse:
+        logs.update(self.model_fuse.logs)
+        for m in self.model_fuse.metrics:
             logs[m.__class__.__name__] = m.compute().cpu().numpy()
 
     def evaluate(
@@ -630,7 +620,7 @@ class SLBaseTorchModel(SLBaseModel, ABC):
 
         for h in hidden_features:
             # h will be list, if basenet is multi output
-            if isinstance(h, List):
+            if isinstance(h, ListType):
                 for i in range(len(h)):
                     hiddens.append(h[i])
             else:
@@ -657,7 +647,7 @@ class SLBaseTorchModel(SLBaseModel, ABC):
     # TODO: rewrite in torch way
     def wrap_local_metrics(self):
         wraped_metrics = []
-        for m in self.metrics_fuse:
+        for m in self.model_fuse.metrics:
             if isinstance(m, torchmetrics.MeanMetric):
                 wraped_metrics.append(Mean(m.__class__.__name__, m.total, m.count))
             elif isinstance(m, torchmetrics.AUC):
@@ -702,10 +692,10 @@ class SLBaseTorchModel(SLBaseModel, ABC):
     def _predict_internal(self, hiddens):
         self.model_fuse.eval()
 
-        if isinstance(hiddens, List) and len(hiddens) == 1:
+        if isinstance(hiddens, ListType) and len(hiddens) == 1:
             hiddens = hiddens[0]
         output = self.model_fuse(hiddens, **self.kwargs)
-        if isinstance(output, Tuple) and len(output) > 1:
+        if isinstance(output, ListType) and len(output) > 1:
             y_pred = output[0]
         else:
             y_pred = output
@@ -734,7 +724,7 @@ class SLBaseTorchModel(SLBaseModel, ABC):
 
         hiddens = []
         for h in hidden_features:
-            if isinstance(h, List):
+            if isinstance(h, ListType):
                 for i in range(len(h)):
                     hiddens.append(h[i])
             else:
@@ -748,7 +738,7 @@ class SLBaseTorchModel(SLBaseModel, ABC):
         assert base_model_path is not None, "model path cannot be empty"
         check_point = {
             'model_state_dict': self.model_base.state_dict(),
-            'optimizer_state_dict': self.optim_base.state_dict(),
+            'optimizer_state_dict': self.model_base.optimizers_state_dict(),
         }
         torch.save(check_point, base_model_path, **kwargs)
 
@@ -757,7 +747,7 @@ class SLBaseTorchModel(SLBaseModel, ABC):
         assert fuse_model_path is not None, "model path cannot be empty"
         check_point = {
             'model_state_dict': self.model_fuse.state_dict(),
-            'optimizer_state_dict': self.optim_fuse.state_dict(),
+            'optimizer_state_dict': self.model_fuse.optimizers_state_dict(),
         }
         torch.save(check_point, fuse_model_path, **kwargs)
 
@@ -770,7 +760,7 @@ class SLBaseTorchModel(SLBaseModel, ABC):
 
         checkpoint = torch.load(base_model_path)
         self.model_base.load_state_dict(checkpoint['model_state_dict'])
-        self.optim_base.load_state_dict(checkpoint['optimizer_state_dict'])
+        self.model_base.load_optimizers_state_dict(checkpoint['optimizer_state_dict'])
         self.model_base = self.to_exec_device(self.model_base)
 
     def load_fuse_model(self, fuse_model_path: str, **kwargs):
@@ -781,7 +771,7 @@ class SLBaseTorchModel(SLBaseModel, ABC):
 
         checkpoint = torch.load(fuse_model_path)
         self.model_fuse.load_state_dict(checkpoint['model_state_dict'])
-        self.optim_fuse.load_state_dict(checkpoint['optimizer_state_dict'])
+        self.model_fuse.load_optimizers_state_dict(checkpoint['optimizer_state_dict'])
         self.model_fuse = self.to_exec_device(self.model_fuse)
 
     def export_base_model(self, model_path: str, save_format: str = "onnx", **kwargs):

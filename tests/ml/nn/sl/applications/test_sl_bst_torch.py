@@ -25,7 +25,7 @@ from torchmetrics import AUROC, Accuracy, Precision
 from secretflow.data.vertical import read_csv
 from secretflow.ml.nn import SLModel
 from secretflow.ml.nn.applications.sl_bst_torch import BSTBase, BSTBasePlus, BSTfuse
-from secretflow.ml.nn.utils import TorchModel, metric_wrapper, optim_wrapper
+from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
 
 tmp_dir = tempfile.TemporaryDirectory()
 lia_path = tmp_dir.name

@@ -17,6 +17,7 @@ from typing import Dict, List, Set, Tuple
 
 import numpy as np
 import pyarrow as pa
+from google.protobuf import json_format
 
 from secretflow.component.data_utils import (
     DistDataType,
@@ -65,12 +66,12 @@ def dump_runner(
     assert traced_input == set(dag_input_schema.names)
     assert traced_output == set(dag_output_schema.names)
 
-    dag_pb = dag_pb.SerializeToString()
+    dag_json = json_format.MessageToJson(dag_pb, indent=0).encode("utf-8")
     dag_input_schema_ser = dag_input_schema.serialize().to_pybytes()
     dag_output_schema_ser = dag_output_schema.serialize().to_pybytes()
 
     return (
-        dag_pb,
+        dag_json,
         dag_input_schema,
         dag_output_schema,
         dag_input_schema_ser,
@@ -99,12 +100,12 @@ def build_empty_dag(
 
     assert traced_output == set(dag_output_schema.names)
 
-    dag_pb = dag_pb.SerializeToString()
+    dag_json = json_format.MessageToJson(dag_pb, indent=0).encode("utf-8")
     dag_input_schema_ser = dag_input_schema.serialize().to_pybytes()
     dag_output_schema_ser = dag_output_schema.serialize().to_pybytes()
 
     return (
-        dag_pb,
+        dag_json,
         dag_input_schema,
         dag_output_schema,
         dag_input_schema_ser,
@@ -163,7 +164,7 @@ def generic_preprocessing_converter(
             "input_schema_bytes": in_schema_ser,
             "output_schema_bytes": out_schema_ser,
             "trace_content": dag,
-            "content_json_flag": False,
+            "content_json_flag": True,
         }
 
     builder.add_node(
@@ -225,12 +226,12 @@ def dump_binning_rules(
 
     assert traced_output == set(dag_output_schema.names)
 
-    dag_pb = dag_pb.SerializeToString()
+    dag_json = json_format.MessageToJson(dag_pb, indent=0).encode("utf-8")
     dag_input_schema_ser = dag_input_schema.serialize().to_pybytes()
     dag_output_schema_ser = dag_output_schema.serialize().to_pybytes()
 
     return (
-        dag_pb,
+        dag_json,
         dag_input_schema,
         dag_output_schema,
         dag_input_schema_ser,
@@ -297,7 +298,7 @@ def binning_converter(
             "input_schema_bytes": in_schema_ser,
             "output_schema_bytes": out_schema_ser,
             "trace_content": dag,
-            "content_json_flag": False,
+            "content_json_flag": True,
         }
 
     builder.add_node(

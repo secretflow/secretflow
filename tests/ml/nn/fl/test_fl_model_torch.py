@@ -32,13 +32,14 @@ from torchmetrics import Accuracy, Precision
 
 from secretflow.device import reveal
 from secretflow.ml.nn import FLModel
+from secretflow.ml.nn.core.torch import TorchModel
 from secretflow.ml.nn.fl.compress import COMPRESS_STRATEGY
 from secretflow.ml.nn.utils import TorchModel, metric_wrapper, optim_wrapper
 from secretflow.preprocessing.encoder import OneHotEncoder
 from secretflow.security.aggregation import PlainAggregator, SparsePlainAggregator
 from secretflow.security.privacy import DPStrategyFL, GaussianModelDP
 from secretflow.utils.simulation.datasets import load_iris, load_mnist
-from tests.ml.nn.fl.model_def import ConvNet, ConvRGBNet, MlpNet, ConvNetBN
+from tests.ml.nn.fl.model_def import VAE, ConvNet, ConvNetBN, ConvRGBNet, MlpNet
 
 _temp_dir = tempfile.mkdtemp()
 
@@ -509,3 +510,44 @@ class TestFLModelTorchDataBuilder:
         fl_model.save_model(model_path=model_path, is_test=True)
         # FIXME(fengjun.feng)
         # assert os.path.exists(model_path) != None
+
+
+class TestFLModelTorchCustomVAELoss:
+    def test_torch_model_custom_vae_loss(self, sf_simulation_setup_devices):
+        (_, _), (mnist_data, mnist_label) = load_mnist(
+            parts={
+                sf_simulation_setup_devices.alice: 0.4,
+                sf_simulation_setup_devices.bob: 0.6,
+            },
+            normalized_x=True,
+            categorical_y=True,
+            is_torch=True,
+        )
+
+        device_list = [
+            sf_simulation_setup_devices.alice,
+            sf_simulation_setup_devices.bob,
+        ]
+        server = sf_simulation_setup_devices.carol
+
+        aggregator = PlainAggregator(server)
+
+        fl_model = FLModel(
+            server=server,
+            device_list=device_list,
+            model=VAE,
+            aggregator=aggregator,
+            strategy="fed_avg_w",
+            backend="torch",
+            random_seed=1234,
+        )
+        history = fl_model.fit(
+            mnist_data,
+            mnist_label,
+            validation_data=(mnist_data, mnist_label),
+            epochs=1,
+            batch_size=128,
+            aggregate_freq=2,
+        )
+
+        assert history["global_history"]["val_meansquarederror"][0] < 0.1
