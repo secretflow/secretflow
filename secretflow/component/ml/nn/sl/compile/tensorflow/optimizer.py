@@ -24,6 +24,7 @@ def compile_optimizer(name: str, params_str: str, learning_rate: float):
 
     if learning_rate > 0:
         params["learning_rate"] = learning_rate
+        params["is_legacy_optimizer"] = False
 
     config = {"class_name": str(name).strip(), "config": params}
 
@@ -31,4 +32,5 @@ def compile_optimizer(name: str, params_str: str, learning_rate: float):
 
 
 def get_optimizer(config):
-    return tf.keras.optimizers.get(config)
+    is_legacy_optimizer = config["config"].pop("is_legacy_optimizer", False)
+    return tf.keras.optimizers.get(config, use_legacy_optimizer = is_legacy_optimizer)
