@@ -33,4 +33,4 @@ def compile_optimizer(name: str, params_str: str, learning_rate: float):
 
 def get_optimizer(config):
     is_legacy_optimizer = config["config"].pop("is_legacy_optimizer", False)
-    return tf.keras.optimizers.get(config, use_legacy_optimizer = is_legacy_optimizer)
+    return tf.keras.optimizers.get(config, use_legacy_optimizer=is_legacy_optimizer)
