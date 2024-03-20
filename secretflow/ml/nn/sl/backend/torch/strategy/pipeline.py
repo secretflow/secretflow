@@ -16,13 +16,13 @@
 """ Pipeline split learning strategy
 
 """
-from typing import Callable, List, Optional, Union
+from typing import List, Optional, Union
 
 import torch
 
+from secretflow.ml.nn.core.torch import BuilderType, module
 from secretflow.ml.nn.sl.backend.torch.sl_base import SLBaseTorchModel
 from secretflow.ml.nn.sl.strategy_dispatcher import register_strategy
-from secretflow.ml.nn.utils import TorchModel
 from secretflow.security.privacy import DPStrategy
 from secretflow.utils.communicate import ForwardData
 
@@ -30,8 +30,8 @@ from secretflow.utils.communicate import ForwardData
 class PipelineTorchModel(SLBaseTorchModel):
     def __init__(
         self,
-        builder_base: Callable[[], TorchModel],
-        builder_fuse: Callable[[], TorchModel],
+        builder_base: BuilderType,
+        builder_fuse: BuilderType,
         dp_strategy: DPStrategy,
         random_seed: int = None,
         pipeline_size: int = 1,
@@ -48,11 +48,7 @@ class PipelineTorchModel(SLBaseTorchModel):
         self.pipeline_size = pipeline_size
 
         # for backward to get gradient
-        self.model_base_copy = (
-            builder_base.model_fn(**builder_base.kwargs)
-            if builder_base and builder_base.model_fn
-            else None
-        )
+        self.model_base_copy = module.build(builder_base, self.exec_device)
 
         self.pre_param_list = []
         self.hidden_list = []
@@ -115,32 +111,21 @@ class PipelineTorchModel(SLBaseTorchModel):
     def base_backward(self):
         """backward on fusenet"""
 
-        return_hiddens = []
-
-        hid = self.hidden_list.pop(0)
-        pre_param = self.pre_param_list.pop(0)
-        if len(self._gradient) == len(hid):
-            for i in range(len(self._gradient)):
-                return_hiddens.append(self.fuse_op.apply(hid[i], self._gradient[i]))
-        else:
-            self._gradient = (
-                self._gradient[0]
-                if isinstance(self._gradient[0], torch.Tensor)
-                else torch.tensor(self._gradient[0])
-            )
-            return_hiddens.append(self.fuse_op.apply(hid, self._gradient))
+        hiddens = self.hidden_list.pop(0)
+        return_hiddens = self.base_backward_hidden_internal(hiddens)
 
         # apply gradients for base net
-        self.optim_base.zero_grad()
+        optimizer = self.model_base.optimizers()
+        optimizer.zero_grad()
         for rh in return_hiddens:
-            if rh.requires_grad:
-                rh.sum().backward(retain_graph=True)
+            rh.backward(retain_graph=True)
 
+        pre_param = self.pre_param_list.pop(0)
         # copy gradient from pre_param -> model's param
         for name, param in self.model_base.named_parameters():
             param.grad = pre_param[name].grad
 
-        self.optim_base.step()
+        optimizer.step()
 
         self._h = None
 
@@ -161,24 +146,8 @@ class PipelineTorchModel(SLBaseTorchModel):
         assert (
             self.model_fuse is not None
         ), "Fuse model cannot be none, please give model define"
-        if isinstance(forward_data, ForwardData):
-            forward_data = [forward_data]
-        forward_data[:] = (h for h in forward_data if h is not None)
-        for i, h in enumerate(forward_data):
-            assert h.hidden is not None, f"hidden cannot be found in forward_data[{i}]"
-            if isinstance(h.losses, List) and h.losses[0] is None:
-                h.losses = None
 
-        hidden_features = [h.hidden for h in forward_data]
-
-        hiddens = []
-        for h in hidden_features:
-            # h will be list, if basenet is multi output
-            if isinstance(h, List):
-                for i in range(len(h)):
-                    hiddens.append(torch.tensor(h[i]))
-            else:
-                hiddens.append(torch.tensor(h))
+        hiddens = self.unpack_forward_data(forward_data)
 
         train_y = self.pre_train_y.pop(0)
         train_y = train_y[0] if len(train_y) == 1 else train_y
@@ -191,8 +160,8 @@ class PipelineTorchModel(SLBaseTorchModel):
             train_sample_weight,
             logs,
         )
-        for m in self.metrics_fuse:
-            logs['train_' + m.__class__.__name__] = m.compute().numpy()
+        for m in self.model_fuse.metrics:
+            logs['train_' + m.__class__.__name__] = m.compute().cpu().numpy()
         self.logs = logs
         self._gradient = gradient
 

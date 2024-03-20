@@ -15,9 +15,10 @@
 
 import json
 from collections import Counter
-from typing import Dict, List, Set
+from typing import Dict, List, Set, Tuple
 
 import numpy as np
+from secretflow_serving_lib.link_function_pb2 import LinkFunctionType
 
 import secretflow.component.ml.boost.ss_xgb.ss_xgb as xgb
 import secretflow.component.ml.linear.ss_glm as glm
@@ -39,7 +40,6 @@ from secretflow.ml.linear import RegType
 from secretflow.spec.v1.data_pb2 import DistData
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.utils.sigmoid import SigType
-from secretflow_serving_lib.link_function_pb2 import LinkFunctionType
 
 from .graph_builder_manager import GraphBuilderManager
 
@@ -84,6 +84,23 @@ def sf_type_to_serving_str(t: np.dtype) -> str:
     return SF_TYPE_TO_SERVING_TYPE[t]
 
 
+def get_party_features_info(
+    meta,
+) -> Tuple[Dict[str, List[str]], Dict[str, Tuple[int, int]]]:
+    party_features_length: Dict[str, int] = meta["party_features_length"]
+    feature_names = meta["feature_names"]
+    party_features_name: Dict[str, List[str]] = dict()
+    party_features_pos: Dict[str, Tuple[int, int]] = dict()
+    party_pos = 0
+    for party, f_len in party_features_length.items():
+        party_features = feature_names[party_pos : party_pos + f_len]
+        party_features_name[party] = party_features
+        party_features_pos[party] = (party_pos, party_pos + f_len)
+        party_pos += f_len
+
+    return party_features_name, party_features_pos
+
+
 def reveal_to_pyu(
     spu: SPU, spu_w: SPUObject, start: int, end: int, to: PYU
 ) -> PYUObject:
@@ -96,7 +113,8 @@ def reveal_to_pyu(
 
 
 def linear_model_converter(
-    party_features_length: Dict[str, int],
+    party_features_name: Dict[str, List[str]],
+    party_features_pos: Dict[str, Tuple[int, int]],
     input_schema: Dict[str, Dict[str, np.dtype]],
     feature_names: List[str],
     spu_w: SPUObject,
@@ -107,11 +125,11 @@ def linear_model_converter(
     pred_name: str,
     traced_input: Dict[str, Set[str]],
 ):
-    assert set(party_features_length).issubset(set(input_schema))
-    assert len(party_features_length) > 0
+    assert set(party_features_name).issubset(set(input_schema))
+    assert set(party_features_name) == set(party_features_pos)
+    assert len(party_features_name) > 0
 
     spu = spu_w.device
-    party_pos = 0
     party_dot_input_schemas = dict()
     party_dot_output_schemas = dict()
     party_merge_input_schemas = dict()
@@ -123,13 +141,11 @@ def linear_model_converter(
 
         assert party in traced_input
 
-        if party in party_features_length:
-            f_len = party_features_length[party]
-
-            party_features = feature_names[party_pos : party_pos + f_len]
+        if party in party_features_name:
+            party_features = party_features_name[party]
             assert set(party_features).issubset(set(input_features))
-            pyu_w = reveal_to_pyu(spu, spu_w, party_pos, party_pos + f_len, pyu)
-            party_pos += f_len
+            start, end = party_features_pos[party]
+            pyu_w = reveal_to_pyu(spu, spu_w, start, end, pyu)
         else:
             party_features = []
             pyu_w = pyu(lambda: [])()
@@ -206,17 +222,13 @@ def ss_glm_schema_info(
     )
     meta = json.loads(model_meta_str)
 
-    feature_names = meta["feature_names"]
-    party_features_length: Dict[str, int] = meta["party_features_length"]
     offset_col = meta["offset_col"]
+    party_features_name, _ = get_party_features_info(meta)
 
     party_used_schemas = {}
-    party_pos = 0
     for party, input_features in input_schema.items():
-        if party in party_features_length:
-            f_len = party_features_length[party]
-            used_schemas = feature_names[party_pos : party_pos + f_len]
-            party_pos += f_len
+        if party in party_features_name:
+            used_schemas = party_features_name[party]
         else:
             used_schemas = []
 
@@ -255,7 +267,7 @@ def ss_glm_converter(
     spu_w = model_objs[0]
 
     feature_names = meta["feature_names"]
-    party_features_length: Dict[str, int] = meta["party_features_length"]
+    party_features_name, party_features_pos = get_party_features_info(meta)
     offset_col = meta["offset_col"]
     label_col = meta["label_col"]
     yhat_scale = meta["y_scale"]
@@ -271,7 +283,8 @@ def ss_glm_converter(
         party_merge_input_schemas,
         party_merge_output_schemas,
     ) = linear_model_converter(
-        party_features_length,
+        party_features_name,
+        party_features_pos,
         input_schema,
         feature_names,
         spu_w,
@@ -311,17 +324,12 @@ def ss_sgd_schema_info(
         DistDataType.SS_SGD_MODEL,
     )
     meta = json.loads(model_meta_str)
-
-    feature_names = meta["feature_selects"]
-    party_features_length: Dict[str, int] = meta["party_features_length"]
+    party_features_name, _ = get_party_features_info(meta)
 
     party_used_schemas = {}
-    party_pos = 0
     for party, _ in input_schema.items():
-        if party in party_features_length:
-            f_len = party_features_length[party]
-            used_schemas = feature_names[party_pos : party_pos + f_len]
-            party_pos += f_len
+        if party in party_features_name:
+            used_schemas = party_features_name[party]
         else:
             used_schemas = []
 
@@ -352,8 +360,8 @@ def ss_sgd_converter(
     meta = json.loads(model_meta_str)
     spu_w = model_objs[0]
 
-    feature_names = meta["feature_selects"]
-    party_features_length: Dict[str, int] = meta["party_features_length"]
+    feature_names = meta["feature_names"]
+    party_features_name, party_features_pos = get_party_features_info(meta)
     reg_type = RegType(meta["reg_type"])
     sig_type = SigType(meta["sig_type"])
     label_col = meta["label_col"]
@@ -373,7 +381,8 @@ def ss_sgd_converter(
         party_merge_input_schemas,
         party_merge_output_schemas,
     ) = linear_model_converter(
-        party_features_length,
+        party_features_name,
+        party_features_pos,
         input_schema,
         feature_names,
         spu_w,
@@ -483,16 +492,12 @@ def ss_xgb_schema_info(
     )
     meta = json.loads(model_meta_str)
 
-    party_features_length: Dict[str, int] = meta["party_features_length"]
-    feature_names = meta["feature_selects"]
+    party_features_name, _ = get_party_features_info(meta)
 
     party_used_schemas = {}
-    party_pos = 0
-    for party, _ in input_schema.items():
-        if party in party_features_length:
-            f_len = party_features_length[party]
-            used_schemas = feature_names[party_pos : party_pos + f_len]
-            party_pos += f_len
+    for party in input_schema:
+        if party in party_features_name:
+            used_schemas = party_features_name[party]
         else:
             used_schemas = []
 
@@ -526,15 +531,14 @@ def ss_xgb_converter(
     model_meta = json.loads(model_meta_str)
     model = build_ss_xgb_model(model_objs, model_meta_str, spu)
 
-    party_features_length: Dict[str, int] = model_meta["party_features_length"]
-    feature_names = model_meta["feature_selects"]
+    party_features_name, _ = get_party_features_info(model_meta)
     tree_num = model_meta["tree_num"]
     label_col = model_meta["label_col"]
     assert len(label_col) == 1
     label_col = label_col[0]
 
-    assert set(party_features_length).issubset(set(input_schema))
-    assert len(party_features_length) > 0
+    assert set(party_features_name).issubset(set(input_schema))
+    assert len(party_features_name) > 0
 
     if model.get_objective() == SSXgbRegType.Logistic:
         # refer to `XgbModel.predict`
@@ -559,7 +563,6 @@ def ss_xgb_converter(
         tree_dict = trees[tree_pos]
         spu_w = spu_ws[tree_pos]
 
-        party_pos = 0
         party_select_kwargs = dict()
         party_select_inputs = dict()
         party_select_outputs = dict()
@@ -571,11 +574,9 @@ def ss_xgb_converter(
             pyu = pyus[party]
             assert party in traced_input
 
-            if party in party_features_length:
-                f_len = party_features_length[party]
-                party_features = feature_names[party_pos : party_pos + f_len]
+            if party in party_features_name:
+                party_features = party_features_name[party]
                 assert set(party_features).issubset(set(input_features))
-                party_pos += f_len
 
                 tree = tree_dict[pyu]
 
@@ -708,17 +709,12 @@ def sgb_schema_info(
         DistDataType.SGB_MODEL,
     )
     meta = json.loads(model_meta_str)
-
-    party_features_length = meta["party_features_length"]
-    feature_names = meta["feature_selects"]
+    party_features_name, _ = get_party_features_info(meta)
 
     party_used_schemas = {}
-    party_pos = 0
-    for party, _ in input_schema.items():
-        if party in party_features_length:
-            f_len = party_features_length[party]
-            used_schemas = feature_names[party_pos : party_pos + f_len]
-            party_pos += f_len
+    for party in input_schema:
+        if party in party_features_name:
+            used_schemas = party_features_name[party]
         else:
             used_schemas = []
 
@@ -750,15 +746,15 @@ def sgb_converter(
 
     sgb_model = sgb.build_sgb_model(pyus, model_objs, model_meta_str)
 
-    party_features_length: Dict[str, int] = model_meta["party_features_length"]
-    feature_names = model_meta["feature_selects"]
+    party_features_name, _ = get_party_features_info(model_meta)
+
     tree_num = model_meta["common"]["tree_num"]
     label_col = model_meta["label_col"]
     assert len(label_col) == 1
     label_col = label_col[0]
 
-    assert set(party_features_length).issubset(set(input_schema))
-    assert len(party_features_length) > 0
+    assert set(party_features_name).issubset(set(input_schema))
+    assert len(party_features_name) > 0
 
     if sgb_model.get_objective() == SgbRegType.Logistic:
         # refer to `SgbModel.predict`
@@ -781,7 +777,6 @@ def sgb_converter(
         dist_tree = dist_trees[tree_pos]
         split_tree_dict = dist_tree.get_split_tree_dict()
 
-        party_pos = 0
         party_select_kwargs = dict()
         party_select_inputs = dict()
         party_select_outputs = dict()
@@ -792,11 +787,9 @@ def sgb_converter(
             pyu = pyus[party]
             assert party in traced_input
 
-            if party in party_features_length:
-                f_len = party_features_length[party]
-                party_features = feature_names[party_pos : party_pos + f_len]
+            if party in party_features_name:
+                party_features = party_features_name[party]
                 assert set(party_features).issubset(set(input_features))
-                party_pos += f_len
 
                 # split tree
                 assert pyu in split_tree_dict

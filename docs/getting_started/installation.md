@@ -24,7 +24,7 @@ OS: CentOS 7, Ubuntu 20.04
 
 CPU/Memory: recommended minimum requirement is 8C16G.
 
-> **_Note:_** macOS x64 support is scheduled to deprecate later this year.
+> **_Note:_** Due to CI resource limitation, macOS x64 prebuild binary is no longer available.
 
 ## Option 1: from pypi
 For users who want to try SecretFlow, you can install [the current release](https://pypi.org/project/secretflow/).

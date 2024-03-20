@@ -122,6 +122,8 @@ def binary_op_eval_fn(
     else:
         load_columns = in_ds_features
 
+    load_columns = list(set(load_columns))
+
     def _compute_new_table(
         df: pd.DataFrame,
     ) -> sc.Table:

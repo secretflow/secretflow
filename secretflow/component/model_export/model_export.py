@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import base64
+import logging
 import uuid
 from collections import defaultdict
 from typing import Dict, List, Set
@@ -210,6 +211,12 @@ class CompConverter:
                 out_ds=out_ds,
             )
             schema_info = converter.schema_info()
+            logging.info(
+                f"comp:\n ====== \n{param}\n ====== \n"
+                f"in_ds:\n ====== \n{in_ds}\n ====== \n"
+                f"out_ds: \n ====== \n{out_ds}\n ====== \n"
+                f"schema_info:\n ====== \n{schema_info}\n ====== \n"
+            )
             self._update_preprocessing_schema_info(schema_info)
             self.converters.append(converter)
             self.schema_infos_cache.append(schema_info)
@@ -225,6 +232,12 @@ class CompConverter:
                 out_ds=out_ds,
             )
             schema_info = converter.schema_info()
+            logging.info(
+                f"comp:\n ====== \n{param}\n ====== \n"
+                f"in_ds:\n ====== \n{in_ds}\n ====== \n"
+                f"out_ds: \n ====== \n{out_ds}\n ====== \n"
+                f"schema_info:\n ====== \n{schema_info}\n ====== \n"
+            )
             self._updata_train_schema_info(schema_info)
             self.converters.append(converter)
             self.schema_infos_cache.append(schema_info)

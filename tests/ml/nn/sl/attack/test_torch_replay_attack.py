@@ -26,8 +26,8 @@ from secretflow.ml.nn.applications.sl_resnet_torch import (
     NaiveSumSoftmax,
     ResNetBase,
 )
+from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
 from secretflow.ml.nn.sl.attacks.replay_attack_torch import ReplayAttack
-from secretflow.ml.nn.utils import TorchModel, metric_wrapper, optim_wrapper
 
 batch_size = 8
 

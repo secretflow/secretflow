@@ -23,13 +23,13 @@ from secretflow.data.ndarray import FedNdarray, PartitionWay
 from secretflow.ml.nn import SLModel
 from secretflow.ml.nn.applications.sl_dnn_torch import DnnBase
 from secretflow.ml.nn.applications.sl_resnet_torch import NaiveSumSoftmax
-from secretflow.ml.nn.sl.defenses.mixup import Mixuplayer, Mixuploss
-from secretflow.ml.nn.utils import (
+from secretflow.ml.nn.core.torch import (
     TorchModel,
     loss_wrapper,
     metric_wrapper,
     optim_wrapper,
 )
+from secretflow.ml.nn.sl.defenses.mixup import Mixuplayer, Mixuploss
 
 
 class TabDatasetLeft(Dataset):

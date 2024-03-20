@@ -14,6 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
+## [v1.5.0.dev240315] - 2024-03-15
+
+### Added
+
+- SL: custom trainning step supported by lightning style base module.
+
+# Removed
+
+- No longer providing x64 macOS binary packages.
+
 ## [v1.5.0.dev240312] - 2024-03-12
 
 ### Added
