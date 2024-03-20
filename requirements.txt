@@ -46,4 +46,4 @@ torch==2.1.1
 torchmetrics==0.11.4
 torchvision==0.16.1
 torchaudio==2.1.1
-interconnection==0.1.0b1 # FEATURE=[lite]
+interconnection==0.2.0.dev0 # FEATURE=[lite]
