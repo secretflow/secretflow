@@ -24,7 +24,7 @@ def compile_optimizer(name: str, params_str: str, learning_rate: float):
 
     if learning_rate > 0:
         params["learning_rate"] = learning_rate
-        params["is_legacy_optimizer"] = False
+        params["use_legacy_optimizer"] = False
 
     config = {"class_name": str(name).strip(), "config": params}
 
