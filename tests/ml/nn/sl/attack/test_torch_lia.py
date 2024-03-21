@@ -181,9 +181,8 @@ def do_test_sl_and_lia(config, alice, bob):
 
     model_save_path = lia_path + '/lia_model'
 
-    train_np = np.array(train_loader.dataset)
-    train_data = np.array([t[0].numpy() for t in train_np])
-    train_label = np.array([t[1] for t in train_np])
+    train_data = train_dataset.data.numpy()
+    train_label = np.array(train_dataset.targets)
 
     # put into FedNdarray
     fed_data = FedNdarray(
