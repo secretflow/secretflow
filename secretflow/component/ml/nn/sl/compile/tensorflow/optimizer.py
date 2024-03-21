@@ -13,8 +13,13 @@
 # limitations under the License.
 
 import json
+import platform
 
 import tensorflow as tf
+
+
+def is_arm_mac():
+    return platform.system() == "Darwin" and platform.processor() == "arm"
 
 
 def compile_optimizer(name: str, params_str: str, learning_rate: float):
@@ -24,6 +29,9 @@ def compile_optimizer(name: str, params_str: str, learning_rate: float):
 
     if learning_rate > 0:
         params["learning_rate"] = learning_rate
+
+    if not is_arm_mac():
+        params["is_legacy_optimizer"] = False
 
     config = {"class_name": str(name).strip(), "config": params}
 

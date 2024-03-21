@@ -111,7 +111,10 @@ def test_compile_optimizer():
 
     opt_obj = optimizer.get_optimizer(opt)
 
-    assert isinstance(opt_obj, tf.keras.optimizers.experimental.Adam)
+    assert isinstance(
+        opt_obj,
+        (tf.keras.optimizers.experimental.Adam, tf.keras.optimizers.legacy.Adam),
+    )
 
 
 def test_compile_all_safe_only():
