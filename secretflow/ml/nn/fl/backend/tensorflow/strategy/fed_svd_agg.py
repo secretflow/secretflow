@@ -18,7 +18,7 @@
 
 import collections
 import copy
-from typing import Tuple
+from typing import Tuple, Any
 
 import numpy as np
 import tensorflow as tf
@@ -27,7 +27,7 @@ from secretflow.ml.nn.fl.backend.tensorflow.fl_base import BaseTFModel
 from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
 
 
-class FedAvgW(BaseTFModel):
+class FedAvgS(BaseTFModel):
     """
     FedAvgW: A naive implementation of FedAvg, where the clients upload their trained model
     weights to the server for averaging and update their local models via the aggregated weights
@@ -44,7 +44,7 @@ class FedAvgW(BaseTFModel):
         """Accept ps model params, then do local train
 
         Args:
-            weights: param from params server
+            updates: global updates from params server
             cur_steps: current train step
             train_steps: local training steps
             kwargs: strategy-specific parameters
@@ -55,16 +55,16 @@ class FedAvgW(BaseTFModel):
         assert self.model is not None, "Model cannot be none, please give model define"
         if weights is not None:
             self.model.set_weights(weights)
-        acc_weightss = copy.deepcopy(self.model.get_weights())
-        V_local = copy.deepcopy(acc_weightss)
-        s_local = copy.deepcopy(acc_weightss)
-        for l in range(len(acc_weightss)):
-            if len(acc_weightss[l].shape) == 2:
-                U, s, V = self.svd(acc_weightss[l])
+        global_weightss = copy.deepcopy(self.model.get_weights())
+        V_local = copy.deepcopy(global_weightss)
+        s_local = copy.deepcopy(global_weightss)
+        for l in range(len(global_weightss)):
+            if len(global_weightss[l].shape) == 2:
+                U, s, V = self.svd(global_weightss[l])
                 V_local[l] = V
                 s_local[l] = s
             else:
-                weightss = acc_weightss[l]
+                weightss = global_weightss[l]
                 weight = weightss.flatten()
                 weight = weight.reshape(2, len(weight) // 2)
                 U, s, V = self.svd(weight)
@@ -72,6 +72,7 @@ class FedAvgW(BaseTFModel):
                 s_local[l] = s
         num_sample = 0
         dp_strategy = kwargs.get('dp_strategy', None)
+        self.callbacks.on_train_batch_begin(cur_steps)
         logs = {}
         for _ in range(train_steps):
 
@@ -103,7 +104,7 @@ class FedAvgW(BaseTFModel):
             self.model.compiled_metrics.update_state(y, y_pred)
         for m in self.model.metrics:
             logs[m.name] = m.result().numpy()
-        self.wrapped_metrics.extend(self.wrap_local_metrics())
+        self.callbacks.on_train_batch_end(cur_steps + train_steps, logs)
         self.logs = logs
         self.epoch_logs = copy.deepcopy(self.logs)
         model_weights = self.model.get_weights()
@@ -124,22 +125,14 @@ class FedAvgW(BaseTFModel):
             if dp_strategy.model_gdp is not None:
                 model_weights = dp_strategy.model_gdp(model_weights)
 
-        return model_weights, num_sample, V_local, s_local, acc_weightss
+        return model_weights, num_sample, V_local, s_local, global_weightss
 
     def svd(self, model_weights):
         U, s, V = np.linalg.svd(model_weights, full_matrices=False)
         return U, s, V
 
-    def apply_weights(self, weights, **kwargs):
-        """Accept ps model params, then apply to local model
 
-        Args:
-            weights: param from params server
-        """
-        if weights is not None:
-            self.model.set_weights(weights)
-
-
-@register_strategy(strategy_name='fed_avg_w', backend='tensorflow')
-class PYUFedAvgW(FedAvgW):
+@register_strategy(strategy_name='fed_svd_agg', backend='tensorflow')
+class PYUFedAvgS(FedAvgS):
     pass
+

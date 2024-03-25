@@ -25,7 +25,6 @@ import os
 from typing import Callable, Dict, List, Tuple, Union
 import secretflow as sf
 import numpy as np
-import tensorflow as tf
 from tqdm import tqdm
 
 from secretflow.data.horizontal import HDataFrame
@@ -42,27 +41,29 @@ from secretflow.utils.random import global_random
 
 class FLModel:
     def __init__(
-            self,
-            server=None,
-            device_list: List[PYU] = [],
-            model: Union['TorchModel', Callable[[], 'tensorflow.keras.Model']] = None,
-            aggregator=None,
-            strategy='fed_svd_agg',
-            consensus_num=1,
-            backend="tensorflow",
-            random_seed=None,
-            **kwargs,  # other parameters specific to strategies
+        self,
+        server=None,
+        device_list: List[PYU] = [],
+        model: Union['TorchModel', Callable[[], 'tensorflow.keras.Model']] = None,
+        aggregator=None,
+        strategy='fed_avg_w',
+        consensus_num=1,
+        backend="tensorflow",
+        random_seed=None,
+        **kwargs,  # other parameters specific to strategies
     ):
         """Interface for horizontal federated learning
         Attributes:
             server: PYU, Which PYU as a server
             device_list: party list
             model: model definition function
-            aggregator:  Security aggregators can be selected according to the security level
+            aggregator:  Security aggregators can be selected according to the security level, server will do aggregate if aggregator is None
             strategy: Federated training strategy
             consensus_num: Num parties of consensus,Some strategies require multiple parties to reach consensus,
             backend: Engine backend, the backend needs to be consistent with the model type
             random_seed: If specified, the initial value of the model will remain the same, which ensures reproducible
+            server_agg_method: If aggregator is none, server will use server_agg_method to aggregate params, The server_agg_method should be a function
+                that takes in a list of parameter values from different parties and returns the aggregated parameter value list
         """
         if backend == "tensorflow":
             import secretflow.ml.nn.fl.backend.tensorflow.strategy  # noqa
@@ -80,6 +81,7 @@ class FLModel:
             num_gpus=self.num_gpus,
         )
         self.server = server
+        self.device_list = device_list
         self._aggregator = aggregator
         self.consensus_num = consensus_num
         self.kwargs = kwargs
@@ -88,15 +90,16 @@ class FLModel:
         self.backend = backend
         self.dp_strategy = kwargs.get('dp_strategy', None)
         self.simulation = kwargs.get('simulation', False)
+        self.server_agg_method = kwargs.get('server_agg_method', None)
 
     def init_workers(
-            self,
-            model,
-            device_list,
-            strategy,
-            backend,
-            random_seed,
-            num_gpus,
+        self,
+        model,
+        device_list,
+        strategy,
+        backend,
+        random_seed,
+        num_gpus,
     ):
         self._workers = {
             device: dispatch_strategy(
@@ -112,35 +115,58 @@ class FLModel:
 
     def initialize_weights(self):
         clients_weights = []
+        initial_weight = None
         for device, worker in self._workers.items():
             weights = worker.get_weights()
             clients_weights.append(weights)
-        initial_weight = self._aggregator.average(clients_weights, axis=0)
-        for device, worker in self._workers.items():
-            weights = initial_weight.to(device) if initial_weight is not None else None
-            worker.set_weights(weights)
+        if self._aggregator is not None:
+            initial_weight = self._aggregator.average(clients_weights, axis=0)
+            for device, worker in self._workers.items():
+                weights = (
+                    initial_weight.to(device) if initial_weight is not None else None
+                )
+                worker.set_weights(weights)
+        else:
+            clients_weights = [weight.to(self.server) for weight in clients_weights]
+
+            if self.server_agg_method is not None:
+                initial_weight = self.server(
+                    self.server_agg_method,
+                    num_returns=len(
+                        self.device_list,
+                    ),
+                )(clients_weights)
+
+                for idx, device in enumerate(self._workers.keys()):
+                    weights = (
+                        initial_weight[idx].to(device) if initial_weight[idx] else None
+                    )
+                    self._workers[device].set_weights(weights)
+            else:
+                raise Exception(f"aggregator and server_agg_method cannot both be none")
+
         return initial_weight
 
     def _handle_file(
-            self,
-            train_dict: Dict[PYU, str],
-            label: str = None,
-            batch_size: Union[int, Dict[PYU, int]] = 32,
-            sampling_rate=None,
-            shuffle=False,
-            random_seed=1234,
-            epochs=1,
-            stage="train",
-            label_decoder=None,
-            max_batch_size=20000,
-            prefetch_buffer_size=None,
-            dataset_builder=None,
+        self,
+        train_dict: Dict[PYU, str],
+        label: str = None,
+        batch_size: Union[int, Dict[PYU, int]] = 32,
+        sampling_rate=None,
+        shuffle=False,
+        random_seed=1234,
+        epochs=1,
+        stage="train",
+        label_decoder=None,
+        max_batch_size=20000,
+        prefetch_buffer_size=None,
+        dataset_builder=None,
     ):
         if dataset_builder:
             steps_per_epochs = []
             for device, worker in self._workers.items():
                 assert (
-                        device in dataset_builder
+                    device in dataset_builder
                 ), f"party={device} does not provide dataset_builder, please check"
                 steps_per_epoch = worker.build_dataset_from_builder(
                     dataset_builder[device],
@@ -153,7 +179,7 @@ class FLModel:
                 steps_per_epochs.append(steps_per_epoch)
             set_steps_per_epochs = set(reveal(steps_per_epochs))
             assert (
-                    len(set_steps_per_epochs) == 1
+                len(set_steps_per_epochs) == 1
             ), "steps_per_epochs of all parties must be same"
             steps_per_epoch = set_steps_per_epochs.pop()
 
@@ -186,10 +212,10 @@ class FLModel:
             for length in parties_length.values():
                 batch_size = math.floor(length * sampling_rate)
                 assert (
-                        batch_size < max_batch_size
+                    batch_size < max_batch_size
                 ), f"Automatic batchsize is too big(batch_size={batch_size}), variable batchsize in dict is recommended"
             assert (
-                    sampling_rate <= 1.0 and sampling_rate > 0.0
+                sampling_rate <= 1.0 and sampling_rate > 0.0
             ), f'invalid sampling rate {sampling_rate}'
             steps_per_epoch = math.ceil(1.0 / sampling_rate)
 
@@ -210,18 +236,18 @@ class FLModel:
         return steps_per_epoch
 
     def _handle_data(
-            self,
-            train_x: Union[HDataFrame, FedNdarray],
-            train_y: Union[HDataFrame, FedNdarray] = None,
-            batch_size: Union[int, Dict[PYU, int]] = 32,
-            sampling_rate=None,
-            shuffle=False,
-            random_seed=1234,
-            epochs=1,
-            sample_weight: Union[FedNdarray, HDataFrame] = None,
-            dataset_builder: Callable = None,
-            sampler_method="batch",
-            stage="train",
+        self,
+        train_x: Union[HDataFrame, FedNdarray],
+        train_y: Union[HDataFrame, FedNdarray] = None,
+        batch_size: Union[int, Dict[PYU, int]] = 32,
+        sampling_rate=None,
+        shuffle=False,
+        random_seed=1234,
+        epochs=1,
+        sample_weight: Union[FedNdarray, HDataFrame] = None,
+        dataset_builder: Callable = None,
+        sampler_method="batch",
+        stage="train",
     ):
         assert isinstance(
             batch_size, (int, dict)
@@ -260,7 +286,7 @@ class FLModel:
         for length in parties_length.values():
             batch_size = math.floor(length * sampling_rate)
             assert (
-                    batch_size < 1024
+                batch_size < 1024
             ), f"Automatic batch size is too big(batch_size={batch_size}), variable batch size in dict is recommended"
         assert sampling_rate <= 1.0 and sampling_rate > 0.0, 'invalid sampling rate'
         steps_per_epoch = math.ceil(1.0 / sampling_rate)
@@ -278,7 +304,7 @@ class FLModel:
 
             if dataset_builder:
                 assert (
-                        device in dataset_builder
+                    device in dataset_builder
                 ), f"party={device} does not provide dataset_builder, please check"
 
                 worker.build_dataset_from_builder(
@@ -304,29 +330,29 @@ class FLModel:
         return steps_per_epoch
 
     def fit(
-            self,
-            x: Union[HDataFrame, FedNdarray, Dict[PYU, str]],
-            y: Union[HDataFrame, FedNdarray, str],
-            batch_size: Union[int, Dict[PYU, int]] = 32,
-            batch_sampling_rate: float = None,
-            epochs: int = 1,
-            verbose: int = 1,
-            callbacks=None,
-            validation_data=None,
-            shuffle=False,
-            class_weight=None,
-            sample_weight=None,
-            validation_freq=1,
-            aggregate_freq=1,
-            label_decoder=None,
-            max_batch_size=20000,
-            prefetch_buffer_size=None,
-            sampler_method='batch',
-            random_seed=None,
-            dp_spent_step_freq=None,
-            audit_log_dir=None,
-            dataset_builder: Dict[PYU, Callable] = None,
-            wait_steps=100,
+        self,
+        x: Union[HDataFrame, FedNdarray, Dict[PYU, str]],
+        y: Union[HDataFrame, FedNdarray, str],
+        batch_size: Union[int, Dict[PYU, int]] = 32,
+        batch_sampling_rate: float = None,
+        epochs: int = 1,
+        verbose: int = 1,
+        callbacks=None,
+        validation_data=None,
+        shuffle=False,
+        class_weight=None,
+        sample_weight=None,
+        validation_freq=1,
+        aggregate_freq=1,
+        label_decoder=None,
+        max_batch_size=20000,
+        prefetch_buffer_size=None,
+        sampler_method='batch',
+        random_seed=None,
+        dp_spent_step_freq=None,
+        audit_log_dir=None,
+        dataset_builder: Dict[PYU, Callable] = None,
+        wait_steps=100,
     ) -> History:
         """Horizontal federated training interface
 
@@ -366,11 +392,16 @@ class FLModel:
         logging.info(f"FL Train Params: {params}")
 
         # sanity check
+        if self._aggregator is None:
+            if self.server_agg_method is None or self.server is None:
+                raise Exception(
+                    "When aggregator is none, neither the server nor the server_agg_method can be none"
+                )
         assert isinstance(validation_freq, int) and validation_freq >= 1
         assert isinstance(aggregate_freq, int) and aggregate_freq >= 1
         if dp_spent_step_freq is not None:
             assert (
-                    isinstance(dp_spent_step_freq, int) and dp_spent_step_freq >= 1
+                isinstance(dp_spent_step_freq, int) and dp_spent_step_freq >= 1
             ), 'dp_spent_step_freq should be a integer and greater than or equal to 1!'
 
         # build dataset
@@ -421,31 +452,32 @@ class FLModel:
 
         initial_weight = self.initialize_weights()
         logging.debug(f"initial_weight: {initial_weight}")
-        if self.server:
+        server_weight = None
+        if self.server and isinstance(initial_weight, PYUObject):
             server_weight = initial_weight
         for device, worker in self._workers.items():
             worker.init_training(callbacks, epochs=epochs)
             worker.on_train_begin()
         model_params = None
+        model_params_list = None
         for epoch in range(epochs):
             res = []
             report_list = []
-            client_param_local = []
-            s = []
-            V = []
             pbar = tqdm(total=train_steps_per_epoch)
             # do train
-            report_list.append(f"epoch: {epoch + 1}/{epochs} - ")
+            report_list.append(f"epoch: {epoch+1}/{epochs} - ")
             [worker.on_epoch_begin(epoch) for worker in self._workers.values()]
             for step in range(0, train_steps_per_epoch, aggregate_freq):
                 if verbose == 1:
                     pbar.update(aggregate_freq)
-                client_param_list, sample_num_list, s, V = [], [], [], []
-                for device, worker in self._workers.items():
+                client_param_list, sample_num_list = [], []
+                for idx, device in enumerate(self._workers.keys()):
                     client_params = (
-                        model_params.to(device) if model_params is not None else None
+                        model_params_list[idx].to(device)
+                        if model_params_list is not None
+                        else None
                     )
-                    client_params, sample_num, V_local, s_local, acc_weights = worker.train_step(
+                    client_params, sample_num, V_local, s_local, acc_weights = self._workers[device].train_step(
                         client_params,
                         epoch * train_steps_per_epoch + step,
                         aggregate_freq
@@ -458,12 +490,35 @@ class FLModel:
                     client_param_list.append(client_params)
                     sample_num_list.append(sample_num)
                     res.append(client_params)
-                model_paramss = self._aggregator.average(
-                    client_param_list, axis=0, weights=sample_num_list
-                )
+                if self._aggregator is not None:
+                    model_params = self._aggregator.average(
+                        client_param_list, axis=0, weights=sample_num_list
+                    )
+                else:
+                    if self.server is not None:
+                        # server will do aggregation
+                        model_params_list = [
+                            param.to(self.server) for param in client_param_list
+                        ]
+                        model_params_list = self.server(
+                            self.server_agg_method,
+                            num_returns=len(
+                                self.device_list,
+                            ),
+                        )(model_params_list)
+                        model_params_list = [
+                            params.to(device)
+                            for device, params in zip(
+                                self.device_list, model_params_list
+                            )
+                        ]
+                    else:
+                        raise Exception(
+                            "Aggregation can be on either an aggregator or a server, but not none at the same time"
+                        )
 
                 # Do weight sparsify
-                if self.strategy in COMPRESS_STRATEGY:
+                if self.strategy in COMPRESS_STRATEGY and server_weight:
                     if self._res:
                         self._res.to(self.server)
                     agg_update = model_params.to(self.server)
@@ -498,6 +553,13 @@ class FLModel:
                 if len(res) == wait_steps:
                     wait(res)
                     res = []
+                if self._aggregator is not None:
+                    model_params_list = [model_params for _ in self.device_list]
+                    model_params_list = [
+                        params.to(device)
+                        for device, params in zip(self.device_list, model_params_list)
+                    ]
+
             local_metrics_obj = []
             for device, worker in self._workers.items():
                 worker.on_epoch_end(epoch)
@@ -552,7 +614,7 @@ class FLModel:
                 break
 
         return history
-
+        
     def refactor_client_params(self, model_params, s, V, acc_weights):
         new_prass = []
         for j in range(len(sf.reveal(acc_weights))):
@@ -571,15 +633,15 @@ class FLModel:
         smat = np.diag(s)
         refactor_matrix = np.dot(U, np.dot(smat, V))
         return refactor_matrix
-
+    
     def predict(
-            self,
-            x: Union[HDataFrame, FedNdarray, Dict],
-            batch_size=None,
-            label_decoder=None,
-            sampler_method='batch',
-            random_seed=1234,
-            dataset_builder: Dict[PYU, Callable] = None,
+        self,
+        x: Union[HDataFrame, FedNdarray, Dict],
+        batch_size=None,
+        label_decoder=None,
+        sampler_method='batch',
+        random_seed=1234,
+        dataset_builder: Dict[PYU, Callable] = None,
     ) -> Dict[PYU, PYUObject]:
         """Horizontal federated offline prediction interface
 
@@ -632,16 +694,16 @@ class FLModel:
         return result
 
     def evaluate(
-            self,
-            x: Union[HDataFrame, FedNdarray, Dict],
-            y: Union[HDataFrame, FedNdarray, str] = None,
-            batch_size: Union[int, Dict[PYU, int]] = 32,
-            sample_weight: Union[HDataFrame, FedNdarray] = None,
-            label_decoder=None,
-            return_dict=False,
-            sampler_method='batch',
-            random_seed=None,
-            dataset_builder: Dict[PYU, Callable] = None,
+        self,
+        x: Union[HDataFrame, FedNdarray, Dict],
+        y: Union[HDataFrame, FedNdarray, str] = None,
+        batch_size: Union[int, Dict[PYU, int]] = 32,
+        sample_weight: Union[HDataFrame, FedNdarray] = None,
+        label_decoder=None,
+        return_dict=False,
+        sampler_method='batch',
+        random_seed=None,
+        dataset_builder: Dict[PYU, Callable] = None,
     ) -> Tuple[
         Union[List[Metric], Dict[str, Metric]],
         Union[Dict[str, List[Metric]], Dict[str, Dict[str, Metric]]],
@@ -724,10 +786,10 @@ class FLModel:
             return g_metrics, local_metrics
 
     def save_model(
-            self,
-            model_path: Union[str, Dict[PYU, str]],
-            is_test=False,
-            saved_model=False,
+        self,
+        model_path: Union[str, Dict[PYU, str]],
+        is_test=False,
+        saved_model=False,
     ):
         """Horizontal federated save model interface
 
@@ -767,11 +829,11 @@ class FLModel:
         wait(res)
 
     def load_model(
-            self,
-            model_path: Union[str, Dict[PYU, str]],
-            is_test=False,
-            saved_model=False,
-            force_all_participate=False,
+        self,
+        model_path: Union[str, Dict[PYU, str]],
+        is_test=False,
+        saved_model=False,
+        force_all_participate=False,
     ):
         """Horizontal federated load model interface
 
