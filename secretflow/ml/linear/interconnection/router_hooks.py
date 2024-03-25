@@ -15,18 +15,16 @@
 
 # Please read the https://github.com/secretflow/interconnection-impl/tree/main/router/README.md for the details.
 
-from router import RC, Pack
-from anyconn_core import AppConfig
-
+import logging
+import pickle
 from typing import List
 
 import numpy as np
+from anyconn_core import AppConfig
 from heu import phe
+from router import RC, Pack
 
 from secretflow.device import PYUObject, proxy
-import logging
-import pickle
-
 
 router_table = {
     "rs_01": {"rs": ["rs_02"], "rc": ["rc_01", "rc_03"]},
@@ -57,7 +55,7 @@ class WeightArbiter:
     def __init__(self):
         self.kit = phe.setup(phe.SchemaType.ZPaillier, 2048)
         # You can get the public key by following method:
-        logging.warn(
+        logging.warning(
             f"\033[33m ================== Initialize Arbiter RC ===================\033[0m"
         )
         self.public_key = self.kit.public_key()
@@ -68,7 +66,7 @@ class WeightArbiter:
         self.round = 0
 
     def sync_with_rs(self, flatten_weights: List[float]):
-        logging.warn(
+        logging.warning(
             f"\033[33m ================== ROUND {self.round} ===================\033[0m"
         )
         # secretflow sends its own weights to secret-sharing platform
@@ -106,9 +104,9 @@ class WeightArbiter:
             router_table=self.router_table,
         )
         self.rc.send(w1_pack)
-        logging.warn(f"\033[33m ROUND {self.round} rc send w1_int:{w1_int} \033[0m")
+        logging.warning(f"\033[33m ROUND {self.round} rc send w1_int:{w1_int} \033[0m")
         self.rc.send(w2_pack)
-        logging.warn(f"\033[33m ROUND {self.round} rc send w2_int:{w2_int} \033[0m")
+        logging.warning(f"\033[33m ROUND {self.round} rc send w2_int:{w2_int} \033[0m")
 
         # secretflow receives aggregated global weights from secret-sharing platform.
         pk_buffer = pickle.dumps(self.public_key).decode('latin1')
@@ -128,10 +126,12 @@ class WeightArbiter:
             router_table=self.router_table,
         )
         self.rc.send(pubkey_pack)
-        logging.warn(f"\033[33m ROUND {self.round} pk_buffer {self.public_key} \033[0m")
+        logging.warning(
+            f"\033[33m ROUND {self.round} pk_buffer {self.public_key} \033[0m"
+        )
 
         packs = self.rc.recv(timeout=180)
-        logging.warn(
+        logging.warning(
             f"\033[33m ROUND {self.round} recv packs {[pack.uid for pack in packs]} \033[0m"
         )
         pack = packs[0]
@@ -142,7 +142,7 @@ class WeightArbiter:
         global_weight = [
             data / 2**40 for data in result
         ]  # right shift 40 bits to recovery from big int
-        logging.warn(
+        logging.warning(
             f"\033[33m ROUND {self.round} recv global_weight:{global_weight} \033[0m"
         )
 

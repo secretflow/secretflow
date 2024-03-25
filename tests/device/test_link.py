@@ -1,3 +1,17 @@
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import logging
 import random
 import time
@@ -6,13 +20,14 @@ import numpy as np
 
 from secretflow.device import PYUObject, proxy, reveal
 from secretflow.device.link import Link, init_link
+from secretflow.distributed.primitive import DISTRIBUTION_MODE, get_distribution_mode
 
 
 @proxy(PYUObject, max_concurrency=2)
 class Worker(Link):
-    def __init__(self, device=None, ps_device=None):
+    def __init__(self, device=None, production_mode=True, ps_device=None):
         self._ps_device = ps_device
-        super().__init__(device)
+        super().__init__(device, production_mode)
 
     def run(self, epochs, steps_per_epoch):
         for epoch in range(epochs):
@@ -29,9 +44,9 @@ class Worker(Link):
 
 @proxy(PYUObject, _simulation_max_concurrency=2)
 class ParameterServer(Link):
-    def __init__(self, device=None, worker_device=None):
+    def __init__(self, device=None, production_mode=True, worker_device=None):
         self._worker_device = worker_device
-        super().__init__(device)
+        super().__init__(device, production_mode)
 
     def run(self, epochs, steps_per_epoch):
         for epoch in range(epochs):
@@ -44,14 +59,28 @@ class ParameterServer(Link):
 
 
 def _test_parameter_server(devices):
+    production_mode = get_distribution_mode() == DISTRIBUTION_MODE.PRODUCTION
+
     ps = ParameterServer(
-        device=devices.davy, worker_device=[devices.alice, devices.bob, devices.carol]
+        device=devices.davy,
+        production_mode=production_mode,
+        worker_device=[devices.alice, devices.bob, devices.carol],
     )
 
     workers = [
-        Worker(device=devices.alice, ps_device=devices.davy),
-        Worker(device=devices.bob, ps_device=devices.davy),
-        Worker(device=devices.carol, ps_device=devices.davy),
+        Worker(
+            device=devices.alice,
+            production_mode=production_mode,
+            ps_device=devices.davy,
+        ),
+        Worker(
+            device=devices.bob, production_mode=production_mode, ps_device=devices.davy
+        ),
+        Worker(
+            device=devices.carol,
+            production_mode=production_mode,
+            ps_device=devices.davy,
+        ),
     ]
 
     # 集群组网
@@ -67,8 +96,8 @@ def _test_parameter_server(devices):
     reveal(res)  # wait all tasks done
 
 
-def test_parameter_server_prod(sf_production_setup_devices):
-    _test_parameter_server(sf_production_setup_devices)
+def test_parameter_server_prod(sf_production_setup_devices_grpc):
+    _test_parameter_server(sf_production_setup_devices_grpc)
 
 
 def test_parameter_server_sim(sf_simulation_setup_devices):

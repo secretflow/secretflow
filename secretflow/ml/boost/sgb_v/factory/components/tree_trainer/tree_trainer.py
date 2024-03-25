@@ -36,7 +36,7 @@ class TreeTrainer(Composite):
 
     @abc.abstractmethod
     def train_tree(
-        self, cur_tree_num, order_map_manager, y, pred, x_shape
+        self, cur_tree_num, order_map_manager, y, pred, sample_num
     ) -> DistributedTree:
         """train on training data"""
         pass

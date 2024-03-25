@@ -13,7 +13,9 @@
 # limitations under the License.
 
 from dataclasses import dataclass
+from typing import Union
 
+from secretflow.data import FedNdarray
 from secretflow.device import PYUObject
 from secretflow.ml.boost.sgb_v.core.params import default_params
 
@@ -66,7 +68,7 @@ class ModelBuilder(Component):
     def del_actors(self):
         return
 
-    def init_pred(self, sample_num: int) -> PYUObject:
+    def init_pred(self, sample_num: Union[PYUObject, int]) -> PYUObject:
         base = self.params.base_score
         return self.label_holder(init_pred)(base=base, samples=sample_num)
 
@@ -78,8 +80,15 @@ class ModelBuilder(Component):
     def insert_tree(self, tree: DistributedTree):
         self.model._insert_distributed_tree(tree)
 
+    def set_parition_shapes(self, x: FedNdarray):
+        shapes = x.partition_shape()
+        self.model.partition_column_counts = {
+            device.party: shape[1] for device, shape in shapes.items()
+        }
+
     def get_tree_num(self) -> int:
         return len(self.model.trees)
 
     def finish(self) -> SgbModel:
+        self.model.sync_partition_columns_to_all_distributed_trees()
         return self.model

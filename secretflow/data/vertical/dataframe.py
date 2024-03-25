@@ -11,24 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import logging
 from dataclasses import dataclass
 from typing import Callable, Dict, List, Union
 
-import warnings
-
 import numpy as np
-
 import pandas as pd
-
 from pandas import Index
 
-from secretflow.data.core import Partition
 from secretflow.data.base import DataFrameBase
-from secretflow.data.ndarray import FedNdarray, PartitionWay
-from secretflow.device import PYU, reveal, SPU, PYUObject
-from secretflow.utils.errors import InvalidArgumentError, NotFoundError
+from secretflow.data.core import Partition
 from secretflow.data.groupby import DataFrameGroupBy
+from secretflow.data.ndarray import FedNdarray, PartitionWay
+from secretflow.device import PYU, SPU, PYUObject, reveal
+from secretflow.utils.errors import InvalidArgumentError, NotFoundError
 
 
 @dataclass
@@ -582,7 +578,7 @@ class VDataFrame(DataFrameBase):
                 downcast=downcast,
             )
 
-    def to_csv(self, fileuris: Dict[PYU, str], **kwargs):
+    def to_csv(self, fileuris: Dict[PYU, Union[str, Callable]], **kwargs):
         """Write object to a comma-separated values (csv) file.
 
         Args:
@@ -738,13 +734,19 @@ class VDataFrame(DataFrameBase):
             A DataFrameGroupBy object.
         """
         _, key_cols = self.get_numeric_cols_from_df(by)
-        value_col_names = [col for col in self.columns if col not in by]
-        value_col_names, value_cols = self.get_numeric_cols_from_df(value_col_names)
+        assert len(key_cols) < len(
+            self.columns
+        ), "by should have length < column number, yet got {key_cols}, available_cols are {self.columns}"
+        value_col_names_prev = [col for col in self.columns if col not in by]
+        value_col_names, value_cols = self.get_numeric_cols_from_df(
+            value_col_names_prev
+        )
 
-        if len(value_cols) < len(value_col_names):
-            warnings.warn(
-                "There are some target columns that are of non-numeric dtypes are ignored in values. Encode those columns if we want to include them."
+        if len(value_col_names) <= len(value_col_names_prev):
+            logging.warning(
+                "There are some target columns that are of non-numeric dtypes. Encode those columns if we want to include them."
             )
+
         # float types are not recommended to be used as key for numerical considerations.
 
         key_cols_spu = [key_col.to(spu) for key_col in key_cols]
@@ -755,6 +757,7 @@ class VDataFrame(DataFrameBase):
             parties=[*self.partitions.keys()],
             key_cols=key_cols_spu,
             target_cols=value_cols_spu,
+            key_col_names=by,
             target_col_names=value_col_names,
             n_samples=len(self),
         )

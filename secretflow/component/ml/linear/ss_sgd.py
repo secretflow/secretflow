@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import json
-import os
+from typing import List, Tuple
 
 from secretflow.component.component import (
     CompEvalError,
@@ -23,18 +23,14 @@ from secretflow.component.component import (
 )
 from secretflow.component.data_utils import (
     DistDataType,
-    extract_table_header,
-    gen_prediction_csv_meta,
     load_table,
     model_dumps,
     model_loads,
-    save_prediction_csv,
+    save_prediction_dd,
 )
 from secretflow.device.device.pyu import PYU
 from secretflow.device.device.spu import SPU, SPUObject
-from secretflow.device.driver import wait
 from secretflow.ml.linear import LinearModel, RegType, SSRegression
-from secretflow.spec.v1.data_pb2 import DistData
 from secretflow.utils.sigmoid import SigType
 
 ss_sgd_train_comp = Component(
@@ -127,11 +123,16 @@ ss_sgd_train_comp.io(
     types=[DistDataType.VERTICAL_TABLE],
     col_params=[
         TableColParam(
+            name="feature_selects",
+            desc="which features should be used for training.",
+            col_min_cnt_inclusive=1,
+        ),
+        TableColParam(
             name="label",
             desc="Label of train dataset.",
             col_min_cnt_inclusive=1,
             col_max_cnt_inclusive=1,
-        )
+        ),
     ],
 )
 ss_sgd_train_comp.io(
@@ -161,10 +162,8 @@ def ss_sgd_train_eval_fn(
     train_dataset,
     train_dataset_label,
     output_model,
+    train_dataset_feature_selects,
 ):
-    # only local fs is supported at this moment.
-    local_fs_wd = ctx.local_fs_wd
-
     if ctx.spu_configs is None or len(ctx.spu_configs) == 0:
         raise CompEvalError("spu config is not found.")
     if len(ctx.spu_configs) > 1:
@@ -175,6 +174,12 @@ def ss_sgd_train_eval_fn(
 
     reg = SSRegression(spu)
 
+    assert len(train_dataset_label) == 1
+
+    assert (
+        train_dataset_label[0] not in train_dataset_feature_selects
+    ), f"col {train_dataset_label[0]} used in both label and features"
+
     y = load_table(
         ctx,
         train_dataset,
@@ -182,12 +187,12 @@ def ss_sgd_train_eval_fn(
         load_features=True,
         col_selects=train_dataset_label,
     )
+
     x = load_table(
         ctx,
         train_dataset,
-        load_labels=True,
         load_features=True,
-        col_excludes=train_dataset_label,
+        col_selects=train_dataset_feature_selects,
     )
 
     with ctx.tracer.trace_running():
@@ -205,17 +210,25 @@ def ss_sgd_train_eval_fn(
         )
 
     model = reg.save_model()
-
-    model_meta = {"reg_type": model.reg_type.value, "sig_type": model.sig_type.value}
+    party_features_length = {
+        device.party: len(columns) for device, columns in x.partition_columns.items()
+    }
+    model_meta = {
+        "reg_type": model.reg_type.value,
+        "sig_type": model.sig_type.value,
+        "feature_names": x.columns,
+        "label_col": train_dataset_label,
+        "party_features_length": party_features_length,
+    }
 
     model_db = model_dumps(
+        ctx,
         "ss_sgd",
         DistDataType.SS_SGD_MODEL,
         MODEL_MAX_MAJOR_VERSION,
         MODEL_MAX_MINOR_VERSION,
         [model.weights],
         json.dumps(model_meta),
-        local_fs_wd,
         output_model,
         train_dataset.system_info,
     )
@@ -260,7 +273,7 @@ ss_sgd_predict_comp.bool_attr(
     ),
     is_list=False,
     is_optional=True,
-    default_value=False,
+    default_value=True,
 )
 ss_sgd_predict_comp.bool_attr(
     name="save_label",
@@ -283,7 +296,13 @@ ss_sgd_predict_comp.io(
     name="feature_dataset",
     desc="Input vertical table.",
     types=[DistDataType.VERTICAL_TABLE],
-    col_params=None,
+    col_params=[
+        TableColParam(
+            name="saved_features",
+            desc="which features should be saved with prediction result",
+            col_min_cnt_inclusive=0,
+        )
+    ],
 )
 ss_sgd_predict_comp.io(
     io_type=IoType.OUTPUT,
@@ -294,14 +313,13 @@ ss_sgd_predict_comp.io(
 )
 
 
-def load_ss_sgd_model(ctx, spu, model) -> LinearModel:
+def load_ss_sgd_model(ctx, spu, model) -> Tuple[LinearModel, List[str]]:
     model_objs, model_meta_str = model_loads(
+        ctx,
         model,
         MODEL_MAX_MAJOR_VERSION,
         MODEL_MAX_MINOR_VERSION,
         DistDataType.SS_SGD_MODEL,
-        # only local fs is supported at this moment.
-        ctx.local_fs_wd,
         spu=spu,
     )
     assert len(model_objs) == 1 and isinstance(
@@ -320,7 +338,7 @@ def load_ss_sgd_model(ctx, spu, model) -> LinearModel:
         sig_type=SigType(model_meta["sig_type"]),
     )
 
-    return model
+    return model, model_meta
 
 
 @ss_sgd_predict_comp.eval_fn
@@ -329,6 +347,7 @@ def ss_sgd_predict_eval_fn(
     ctx,
     batch_size,
     feature_dataset,
+    feature_dataset_saved_features,
     model,
     receiver,
     pred_name,
@@ -344,75 +363,40 @@ def ss_sgd_predict_eval_fn(
 
     spu = SPU(spu_config["cluster_def"], spu_config["link_desc"])
 
-    model = load_ss_sgd_model(ctx, spu, model)
+    model, model_meta = load_ss_sgd_model(ctx, spu, model)
 
     reg = SSRegression(spu)
     reg.load_model(model)
 
-    x = load_table(ctx, feature_dataset, load_features=True)
+    x = load_table(
+        ctx,
+        feature_dataset,
+        partitions_order=list(model_meta["party_features_length"].keys()),
+        load_features=True,
+        col_selects=model_meta["feature_names"],
+    )
 
+    assert x.columns == model_meta["feature_names"]
+
+    receiver_pyu = PYU(receiver)
     with ctx.tracer.trace_running():
-        pyu = PYU(receiver)
         pyu_y = reg.predict(
             x=x,
             batch_size=batch_size,
-            to_pyu=pyu,
+            to_pyu=receiver_pyu,
         )
 
-        y_path = os.path.join(ctx.local_fs_wd, pred)
-
-        if save_ids:
-            id_df = load_table(ctx, feature_dataset, load_ids=True)
-            assert pyu in id_df.partitions
-            id_header_map = extract_table_header(feature_dataset, load_ids=True)
-            assert receiver in id_header_map
-            id_header = list(id_header_map[receiver].keys())
-            id_data = id_df.partitions[pyu].data
-        else:
-            id_header_map = None
-            id_header = None
-            id_data = None
-
-        if save_label:
-            label_df = load_table(ctx, feature_dataset, load_labels=True)
-            assert pyu in label_df.partitions
-            label_header_map = extract_table_header(feature_dataset, load_labels=True)
-            assert receiver in label_header_map
-            label_header = list(label_header_map[receiver].keys())
-            label_data = label_df.partitions[pyu].data
-        else:
-            label_header_map = None
-            label_header = None
-            label_data = None
-
-        wait(
-            pyu(save_prediction_csv)(
-                pyu_y.partitions[pyu],
-                pred_name,
-                y_path,
-                label_data,
-                label_header,
-                id_data,
-                id_header,
-            )
+    with ctx.tracer.trace_io():
+        y_db = save_prediction_dd(
+            ctx,
+            pred,
+            receiver_pyu,
+            pyu_y,
+            pred_name,
+            feature_dataset,
+            feature_dataset_saved_features,
+            model_meta["label_col"] if save_label else [],
+            save_ids,
         )
-
-    y_db = DistData(
-        name=pred_name,
-        type=str(DistDataType.INDIVIDUAL_TABLE),
-        data_refs=[DistData.DataRef(uri=pred, party=receiver, format="csv")],
-    )
-
-    meta = gen_prediction_csv_meta(
-        id_header=id_header_map,
-        label_header=label_header_map,
-        party=receiver,
-        pred_name=pred_name,
-        line_count=x.shape[0],
-        id_keys=id_header,
-        label_keys=label_header,
-    )
-
-    y_db.meta.Pack(meta)
 
     return {"pred": y_db}

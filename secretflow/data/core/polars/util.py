@@ -21,21 +21,45 @@ from polars.datatypes import DataTypeClass
 
 def read_polars_csv(filepath, *args, **kwargs):
     if 'delimiter' in kwargs and kwargs['delimiter'] is not None:
-        kwargs['separator'] = kwargs['delimiter']
+        kwargs['separator'] = kwargs.pop('delimiter')
     if 'usecols' in kwargs and kwargs['usecols'] is not None:
         # polars only recognized list columns but not dictkeys.
-        kwargs['columns'] = list(kwargs['usecols'])
+        kwargs['columns'] = list(kwargs.pop('usecols'))
     if 'dtype' in kwargs and kwargs['dtype'] is not None:
         pl_dtypes = {}
-        for col, dt in kwargs['dtype'].items():
+        for col, dt in kwargs.pop('dtype').items():
             pl_dtypes[col] = infer_pl_dtype(dt)
         kwargs['dtypes'] = pl_dtypes
-    del kwargs['delimiter'], kwargs['dtype'], kwargs['usecols']
-    df = pl.read_csv(filepath, *args, **kwargs)
+    if 'nrows' in kwargs:
+        kwargs['n_rows'] = kwargs.pop('nrows')
+    if 'header' in kwargs and kwargs['header'] is None:
+        # no header from pandas
+        kwargs['has_header'] = False
+
+    kwargs.pop('delimiter', None)
+    kwargs.pop('usecols', None)
+    kwargs.pop('dtype', None)
+    kwargs.pop('header', None)
+
+    skiprows = kwargs.pop('skip_rows_after_header', None)
+    if skiprows is not None:
+        assert isinstance(skiprows, int)
+        kwargs['skip_rows_after_header'] = skiprows
+        try:
+            df = pl.read_csv(filepath, *args, **kwargs)
+        except pl.NoDataError:
+            # skip ending with empty df, not exception
+            df = pl.DataFrame()
+    else:
+        df = pl.read_csv(filepath, *args, **kwargs)
+
     if len(df.columns) == 1:
         # for compatibility of pandas, single columns will drop null when read.
         df = df.drop_nulls()
-    return df
+    if 'columns' in kwargs and kwargs['columns'] is not None:
+        return df[kwargs['columns']]
+    else:
+        return df
 
 
 def infer_pl_dtype(tp):

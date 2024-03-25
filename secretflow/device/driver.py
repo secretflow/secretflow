@@ -199,6 +199,10 @@ def wait(objects: Any):
         >>> # synchronization
         >>> sf.wait(alice(some_save_value_function_locally)(alice_value))
     """
+
+    if sfd.in_ic_mode():
+        return
+
     # TODO(@xibin.wxb): support HEUObject
     objs = [
         x
@@ -218,6 +222,7 @@ def init(
     log_to_driver=True,
     omp_num_threads: int = None,
     logging_level: str = 'info',
+    job_name: str = None,
     cross_silo_comm_backend: str = 'grpc',
     cross_silo_comm_options: Dict = None,
     enable_waiting_for_other_parties_ready: bool = True,
@@ -291,15 +296,24 @@ def init(
         logging_level: optional; works only in production mode.
             the logging level, could be `debug`, `info`, `warning`, `error`,
             `critical`, not case sensititive.
+        job_bame: options; the job name of the current job which takes effect in
+            production mode only. If the job name is not provided, an default fixed
+            name will be assigned, therefore messages of all anonymous jobs will be
+            mixed together, which should be used in the single job scenario. Note that,
+            the job name must be identical in all parties, otherwise, messages will be
+            mismatched.
         cross_silo_comm_backend: works only in production mode, a string determines
             which communication backend is used. The default value is 'grpc'.
             The other available option is 'brpc_link',  which is based on brpc.
         cross_silo_comm_options: a dict describes the cross-silo communication options.
             the common options for all cross-silo communication backends.
                 exit_on_sending_failure
-                    whether exit when failure on cross-silo sending. If True, a SIGTERM
-                    will be signaled to self if failed to send cross-silo data. The default
-                    value is True.
+                    Whether exit when failure on cross-silo sending. If True, a signal
+                    will be signaled to self and exit then. The default value is True.
+                sending_failure_handler
+                    This callback will be called if cross-silo sending failed and
+                    exit_on_sending_failure is True. The input param of this callable is
+                    the sending error.
                 messages_max_size_in_bytes
                     The maximum length in bytes of cross-silo messages. The default value
                     is 500 MB. The size must be strictly less than 2GB when grpc is used.
@@ -462,6 +476,9 @@ def init(
 
     global_state.set_tee_simulation(tee_simulation=tee_simulation)
 
+    if 'include_dashboard' not in kwargs:
+        kwargs['include_dashboard'] = False
+
     if simluation_mode:
         if not isinstance(parties, (str, Tuple, List)):
             raise InvalidArgumentError('parties must be str or list of str.')
@@ -485,6 +502,7 @@ def init(
             # Simulation mode
             sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.SIMULATION)
             if local_mode:
+                # party resources is not for scheduler cpus, but set num_cpus for convenient.
                 resources = {party: num_cpus for party in parties}
             else:
                 resources = None
@@ -539,12 +557,16 @@ def init(
         ray.init(
             address,
             num_cpus=num_cpus,
+            num_gpus=num_gpus,
             log_to_driver=log_to_driver,
             **kwargs,
         )
         cross_silo_comm_options = cross_silo_comm_options or {}
         if 'exit_on_sending_failure' not in cross_silo_comm_options:
             cross_silo_comm_options['exit_on_sending_failure'] = True
+        sending_failure_handler = cross_silo_comm_options.pop(
+            'sending_failure_handler', None
+        )
         config = {
             'cross_silo_comm': cross_silo_comm_options,
             'barrier_on_initializing': enable_waiting_for_other_parties_ready,
@@ -571,6 +593,8 @@ def init(
             logging_level=logging_level,
             tls_config=tls_config,
             receiver_sender_proxy_cls=receiver_sender_proxy_cls,
+            sending_failure_handler=sending_failure_handler,
+            job_name=job_name,
         )
 
 
@@ -582,14 +606,22 @@ def barrier():
         reveal(barriers)
 
 
-def shutdown():
+def shutdown(barrier_on_shutdown=True):
     """Disconnect the worker, and terminate processes started by secretflow.init().
 
     This will automatically run at the end when a Python process that uses Ray exits.
     It is ok to run this twice in a row. The primary use case for this function
     is to cleanup state between tests.
+
+     Args:
+        barrier_on_shutdown: whether barrier on shutdown. It's useful in some cases
+            , e.g., reusing the port between multi secretflow tasks. Possible side
+            effects that may come with it at the same time, e.g., alice exits
+            accidently and bob will wait forever since alice will never give bob a
+            feedback. The default value is True.
     """
-    barrier()
+    if barrier_on_shutdown:
+        barrier()
     sfd.shutdown()
 
 

@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import logging
 import math
 import time
@@ -31,11 +30,11 @@ from secretflow.device import (
     SPUObject,
     wait,
 )
+from secretflow.ml.boost.core.data_preprocess import prepare_dataset, validate
 
 from .core import node_split as split_fn
 from .core.node_split import RegType
 from .core.tree_worker import XgbTreeWorker as Worker
-from secretflow.ml.boost.core.data_preprocess import prepare_dataset, validate
 
 
 class XgbModel:
@@ -94,17 +93,13 @@ class XgbModel:
         ), f"{len(x.partitions)}, {self.trees[0]}"
         self.workers = [Worker(0, device=pyu) for pyu in x.partitions]
         self.x = x.partitions
-        preds = []
+        pred = 0
         for idx in range(len(self.trees)):
-            pred = self._tree_pred(self.trees[idx], self.weights[idx])
-            wait([pred])
-            preds.append(pred)
+            pred = self.spu(lambda x, y: jnp.add(x, y))(
+                self._tree_pred(self.trees[idx], self.weights[idx]), pred
+            )
 
-        pred = self.spu(
-            lambda ps, base: (
-                jnp.sum(jnp.concatenate(ps, axis=0), axis=0) + base
-            ).reshape(-1, 1)
-        )(preds, self.base)
+        pred = self.spu(lambda x, y: jnp.add(x, y).reshape(-1, 1))(pred, self.base)
 
         if self.objective == RegType.Logistic:
             pred = self.spu(split_fn.sigmoid)(pred)
@@ -119,6 +114,15 @@ class XgbModel:
             )
         else:
             return pred
+
+    def get_objective(self):
+        return self.objective
+
+    def get_trees(self):
+        return self.trees
+
+    def get_weights(self):
+        return self.weights
 
 
 class Xgb:
@@ -478,12 +482,14 @@ class Xgb:
 
         # merge GH to spu 0
         level_GHs = [GH.to(self.spu[0]) for GH in level_GHs]
+        wait(level_GHs)
 
         spu_split_buckets = self.spu[0](
             split_fn.find_best_split_bucket,
             static_argnames="reg_lambda",
         )(level_GHs, reg_lambda=self.reg_lambda)
 
+        wait(spu_split_buckets)
         lchild_ss = []
         for worker in self.workers:
             # In the final tree model, which party hold the split feature for tree nodes is public information.

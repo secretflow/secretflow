@@ -11,16 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import logging
 from typing import Any, List
 
-from secretflow.utils.compressor import SparseCompressor, CompressedData
-from secretflow.utils.compressor.base import Compressor
-from secretflow.utils.compressor.quantized_compressor import (
-    QuantizedCompressor,
-    QuantizedCompressedData,
-)
-from secretflow.utils.compressor.sparse_compressor import SparseCompressedData
+from .base import CompressedData, Compressor
+from .quantized_compressor import QuantizedCompressedData, QuantizedCompressor
+from .sparse_compressor import SparseCompressedData, SparseCompressor
 
 
 class MixedCompressedData(CompressedData):

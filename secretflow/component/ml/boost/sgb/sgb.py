@@ -12,29 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import json
-import os
 
 from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import (
     DistDataType,
-    extract_table_header,
-    gen_prediction_csv_meta,
+    get_model_public_info,
     load_table,
     model_dumps,
     model_loads,
-    save_prediction_csv,
+    save_prediction_dd,
+    SimpleVerticalBatchReader,
 )
 from secretflow.device.device.heu import heu_from_base_config
 from secretflow.device.device.pyu import PYU
-from secretflow.device.driver import wait
+from secretflow.ml.boost.core.metric import METRICS
 from secretflow.ml.boost.sgb_v import Sgb, SgbModel
 from secretflow.ml.boost.sgb_v.model import from_dict
-from secretflow.spec.v1.data_pb2 import DistData
+
+DEFAULT_PREDICT_BATCH_SIZE = 10000
 
 sgb_train_comp = Component(
     "sgb_train",
     domain="ml.train",
-    version="0.0.1",
+    version="0.0.3",
     desc="""Provides both classification and regression tree boosting (also known as GBDT, GBM)
     for vertical split dataset setting by using secure boost.
 
@@ -101,7 +101,7 @@ sgb_train_comp.float_attr(
     desc="Greater than 0 means pre-pruning enabled. If gain of a node is less than this value, it would be pruned.",
     is_list=False,
     is_optional=True,
-    default_value=0.1,
+    default_value=1,
     lower_bound=0,
     upper_bound=10000,
     lower_bound_inclusive=True,
@@ -250,32 +250,80 @@ sgb_train_comp.float_attr(
     lower_bound_inclusive=False,
     upper_bound_inclusive=True,
 )
-sgb_train_comp.float_attr(
-    name="early_stop_criterion_g_abs_sum",
-    desc="If sum(abs(g)) is lower than or equal to this threshold, training will stop.",
-    is_list=False,
-    is_optional=True,
-    default_value=0.0,
-    lower_bound=0.0,
-    lower_bound_inclusive=True,
-)
-sgb_train_comp.float_attr(
-    name="early_stop_criterion_g_abs_sum_change_ratio",
-    desc="If absolute g sum change ratio is lower than or equal to this threshold, training will stop.",
-    is_list=False,
-    is_optional=True,
-    default_value=0.0,
-    lower_bound=0,
-    upper_bound=1,
-    lower_bound_inclusive=True,
-    upper_bound_inclusive=True,
-)
 sgb_train_comp.str_attr(
     name="tree_growing_method",
     desc="How to grow tree?",
     is_list=False,
     is_optional=True,
     default_value="level",
+)
+
+sgb_train_comp.bool_attr(
+    name="enable_monitor",
+    desc="Whether to enable monitering performance during training.",
+    is_list=False,
+    is_optional=True,
+    default_value=False,
+)
+
+sgb_train_comp.bool_attr(
+    name="enable_early_stop",
+    desc="Whether to enable early stop during training.",
+    is_list=False,
+    is_optional=True,
+    default_value=False,
+)
+
+sgb_train_comp.str_attr(
+    name="eval_metric",
+    desc=f"Use what metric for monitoring and early stop? Currently support {list(METRICS.keys())}",
+    is_list=False,
+    is_optional=True,
+    default_value="roc_auc",
+    allowed_values=list(METRICS.keys()),
+)
+
+sgb_train_comp.float_attr(
+    name="validation_fraction",
+    desc="Early stop specific paramter. Only effective if early stop enabled. The fraction of samples to use as validation set.",
+    is_list=False,
+    is_optional=True,
+    default_value=0.1,
+    lower_bound=0,
+    upper_bound=1,
+    lower_bound_inclusive=False,
+    upper_bound_inclusive=False,
+)
+
+sgb_train_comp.int_attr(
+    name="stopping_rounds",
+    desc="""Early stop specific paramter. If more than `stopping_rounds` consecutive rounds without improvement, training will stop.
+    Only effective if early stop enabled""",
+    is_list=False,
+    is_optional=True,
+    default_value=1,
+    lower_bound=1,
+    upper_bound=1024,
+    lower_bound_inclusive=True,
+    upper_bound_inclusive=True,
+)
+
+sgb_train_comp.float_attr(
+    name="stopping_tolerance",
+    desc="Early stop specific paramter. If metric on validation set is no longer improving by at least this amount, ten consider not improving.",
+    is_list=False,
+    is_optional=True,
+    default_value=0.0,
+    lower_bound=0,
+    lower_bound_inclusive=True,
+)
+
+sgb_train_comp.bool_attr(
+    name="save_best_model",
+    desc="Whether to save the best model on validation set during training.",
+    is_list=False,
+    is_optional=True,
+    default_value=False,
 )
 
 sgb_train_comp.io(
@@ -285,11 +333,16 @@ sgb_train_comp.io(
     types=[DistDataType.VERTICAL_TABLE],
     col_params=[
         TableColParam(
+            name="feature_selects",
+            desc="which features should be used for training.",
+            col_min_cnt_inclusive=1,
+        ),
+        TableColParam(
             name="label",
             desc="Label of train dataset.",
             col_min_cnt_inclusive=1,
             col_max_cnt_inclusive=1,
-        )
+        ),
     ],
 )
 sgb_train_comp.io(
@@ -328,16 +381,25 @@ def sgb_train_eval_fn(
     enable_goss,
     enable_quantization,
     batch_encoding_enabled,
-    early_stop_criterion_g_abs_sum_change_ratio,
-    early_stop_criterion_g_abs_sum,
     tree_growing_method,
     first_tree_with_label_holder_feature,
+    enable_monitor,
+    enable_early_stop,
+    eval_metric,
+    validation_fraction,
+    stopping_rounds,
+    stopping_tolerance,
+    save_best_model,
     train_dataset,
     train_dataset_label,
     output_model,
+    train_dataset_feature_selects,
 ):
     assert ctx.heu_config is not None, "need heu config in SFClusterDesc"
-
+    assert (
+        len(set(train_dataset_label).intersection(set(train_dataset_feature_selects)))
+        == 0
+    ), f"expect no intersection between label and features, got {train_dataset_label} and {train_dataset_feature_selects}"
     y = load_table(
         ctx,
         train_dataset,
@@ -350,8 +412,10 @@ def sgb_train_eval_fn(
         train_dataset,
         load_labels=True,
         load_features=True,
-        col_excludes=train_dataset_label,
+        col_selects=train_dataset_feature_selects,
     )
+    assert len(x.columns) > 0
+
     label_party = next(iter(y.partitions.keys())).party
     heu = heu_from_base_config(
         ctx.heu_config,
@@ -382,10 +446,15 @@ def sgb_train_eval_fn(
                 'enable_goss': enable_goss,
                 'enable_quantization': enable_quantization,
                 'batch_encoding_enabled': batch_encoding_enabled,
-                'early_stop_criterion_g_abs_sum_change_ratio': early_stop_criterion_g_abs_sum_change_ratio,
-                'early_stop_criterion_g_abs_sum': early_stop_criterion_g_abs_sum,
                 'tree_growing_method': tree_growing_method,
                 'first_tree_with_label_holder_feature': first_tree_with_label_holder_feature,
+                "enable_monitor": enable_monitor,
+                "enable_early_stop": enable_early_stop,
+                "eval_metric": eval_metric,
+                "validation_fraction": validation_fraction,
+                "stopping_rounds": stopping_rounds,
+                "stopping_tolerance": stopping_tolerance,
+                "save_best_model": save_best_model,
             },
             dtrain=x,
             label=y,
@@ -395,17 +464,23 @@ def sgb_train_eval_fn(
     leaf_weights = m_dict.pop("leaf_weights")
     split_trees = m_dict.pop("split_trees")
     m_dict["label_holder"] = m_dict["label_holder"].party
+    m_dict["feature_names"] = x.columns
+    m_dict["label_col"] = train_dataset_label
+    party_features_length = {
+        device.party: len(columns) for device, columns in x.partition_columns.items()
+    }
+    m_dict["party_features_length"] = party_features_length
 
     m_objs = sum([leaf_weights, *split_trees.values()], [])
 
     model_db = model_dumps(
+        ctx,
         "sgb",
         DistDataType.SGB_MODEL,
         MODEL_MAX_MAJOR_VERSION,
         MODEL_MAX_MINOR_VERSION,
         m_objs,
         json.dumps(m_dict),
-        ctx.local_fs_wd,
         output_model,
         train_dataset.system_info,
     )
@@ -416,7 +491,7 @@ def sgb_train_eval_fn(
 sgb_predict_comp = Component(
     "sgb_predict",
     domain="ml.predict",
-    version="0.0.1",
+    version="0.0.2",
     desc="Predict using SGB model.",
 )
 sgb_predict_comp.str_attr(
@@ -451,7 +526,7 @@ sgb_predict_comp.bool_attr(
     ),
     is_list=False,
     is_optional=True,
-    default_value=False,
+    default_value=True,
 )
 sgb_predict_comp.io(
     io_type=IoType.INPUT, name="model", desc="model", types=["sf.model.sgb"]
@@ -461,7 +536,13 @@ sgb_predict_comp.io(
     name="feature_dataset",
     desc="Input vertical table.",
     types=[DistDataType.VERTICAL_TABLE],
-    col_params=None,
+    col_params=[
+        TableColParam(
+            name="saved_features",
+            desc="which features should be saved with prediction result",
+            col_min_cnt_inclusive=0,
+        )
+    ],
 )
 sgb_predict_comp.io(
     io_type=IoType.OUTPUT,
@@ -472,17 +553,7 @@ sgb_predict_comp.io(
 )
 
 
-def load_sgb_model(ctx, pyus, model) -> SgbModel:
-    model_objs, model_meta_str = model_loads(
-        model,
-        MODEL_MAX_MAJOR_VERSION,
-        MODEL_MAX_MINOR_VERSION,
-        DistDataType.SGB_MODEL,
-        # only local fs is supported at this moment.
-        ctx.local_fs_wd,
-        pyus=pyus,
-    )
-
+def build_sgb_model(pyus, model_objs, model_meta_str) -> SgbModel:
     model_meta = json.loads(model_meta_str)
     assert (
         isinstance(model_meta, dict)
@@ -509,11 +580,25 @@ def load_sgb_model(ctx, pyus, model) -> SgbModel:
     return model
 
 
+def load_sgb_model(ctx, pyus, model) -> SgbModel:
+    model_objs, model_meta_str = model_loads(
+        ctx,
+        model,
+        MODEL_MAX_MAJOR_VERSION,
+        MODEL_MAX_MINOR_VERSION,
+        DistDataType.SGB_MODEL,
+        pyus=pyus,
+    )
+
+    return build_sgb_model(pyus, model_objs, model_meta_str)
+
+
 @sgb_predict_comp.eval_fn
 def sgb_predict_eval_fn(
     *,
     ctx,
     feature_dataset,
+    feature_dataset_saved_features,
     model,
     receiver,
     pred_name,
@@ -521,69 +606,36 @@ def sgb_predict_eval_fn(
     save_ids,
     save_label,
 ):
-    x = load_table(ctx, feature_dataset, load_features=True)
-    pyus = {p.party: p for p in x.partitions.keys()}
-
-    model = load_sgb_model(ctx, pyus, model)
-
-    with ctx.tracer.trace_running():
-        pyu = PYU(receiver)
-        pyu_y = model.predict(x, pyu)
-
-        y_path = os.path.join(ctx.local_fs_wd, pred)
-
-        if save_ids:
-            id_df = load_table(ctx, feature_dataset, load_ids=True)
-            assert pyu in id_df.partitions
-            id_header_map = extract_table_header(feature_dataset, load_ids=True)
-            assert receiver in id_header_map
-            id_header = list(id_header_map[receiver].keys())
-            id_data = id_df.partitions[pyu].data
-        else:
-            id_header_map = None
-            id_header = None
-            id_data = None
-
-        if save_label:
-            label_df = load_table(ctx, feature_dataset, load_labels=True)
-            assert pyu in label_df.partitions
-            label_header_map = extract_table_header(feature_dataset, load_labels=True)
-            assert receiver in label_header_map
-            label_header = list(label_header_map[receiver].keys())
-            label_data = label_df.partitions[pyu].data
-        else:
-            label_header_map = None
-            label_header = None
-            label_data = None
-
-        wait(
-            pyu(save_prediction_csv)(
-                pyu_y.partitions[pyu],
-                pred_name,
-                y_path,
-                label_data,
-                label_header,
-                id_data,
-                id_header,
-            )
-        )
-
-    y_db = DistData(
-        name=pred_name,
-        type=str(DistDataType.INDIVIDUAL_TABLE),
-        data_refs=[DistData.DataRef(uri=pred, party=receiver, format="csv")],
+    model_public_info = get_model_public_info(model)
+    assert len(model_public_info["feature_names"]) > 0
+    feature_reader = SimpleVerticalBatchReader(
+        ctx,
+        feature_dataset,
+        partitions_order=list(model_public_info["party_features_length"].keys()),
+        col_selects=model_public_info["feature_names"],
     )
 
-    meta = gen_prediction_csv_meta(
-        id_header=id_header_map,
-        label_header=label_header_map,
-        party=receiver,
-        pred_name=pred_name,
-        line_count=x.shape[0],
-        id_keys=id_header,
-        label_keys=label_header,
-    )
+    pyus = {p: PYU(p) for p in ctx.cluster_config.desc.parties}
 
-    y_db.meta.Pack(meta)
+    sgb_model = load_sgb_model(ctx, pyus, model)
+
+    receiver_pyu = PYU(receiver)
+
+    def batch_pred():
+        with ctx.tracer.trace_running():
+            for batch in feature_reader:
+                yield sgb_model.predict(batch, receiver_pyu)
+
+    y_db = save_prediction_dd(
+        ctx,
+        pred,
+        receiver_pyu,
+        batch_pred(),
+        pred_name,
+        feature_dataset,
+        feature_dataset_saved_features,
+        model_public_info['label_col'] if save_label else [],
+        save_ids,
+    )
 
     return {"pred": y_db}

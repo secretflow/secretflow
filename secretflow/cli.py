@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import base64
+import gzip
 import json
 import logging
 import os
@@ -21,19 +22,19 @@ from contextlib import redirect_stderr, redirect_stdout
 
 import click
 from google.protobuf.json_format import MessageToJson
-from secretflow.spec.v1.data_pb2 import StorageConfig
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
 from secretflow.component.entry import COMP_LIST, COMP_MAP, comp_eval
 from secretflow.spec.extend.cluster_pb2 import SFClusterConfig
+from secretflow.spec.v1.data_pb2 import StorageConfig
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.utils.logging import LOG_FORMAT, get_logging_level, set_logging_level
-from secretflow.version import __version__
+from secretflow.version import build_message
 
 
 def print_version(ctx, param, value):
     if not value or ctx.resilient_parsing:
         return
-    click.echo(f"SecretFlow version {__version__}.")
+    click.echo(build_message())
     ctx.exit()
 
 
@@ -137,7 +138,19 @@ def inspect(comp_id, all, file):
 @click.option("--eval_param", required=True, help="base64ed NodeEvalParam binary")
 @click.option("--storage", required=True, help="base64ed Storage binary")
 @click.option("--cluster", required=True, help="base64ed SFClusterConfig binary")
-def run(eval_param, storage, cluster, log_file, result_file, log_level, mem_trace):
+@click.option(
+    "--compressed_params", is_flag=True, help="compress params before base64 encode"
+)
+def run(
+    eval_param,
+    storage,
+    cluster,
+    log_file,
+    result_file,
+    log_level,
+    mem_trace,
+    compressed_params,
+):
     def _get_peak_mem() -> float:
         # only works inside docker
         # use docker's default cgroup
@@ -167,11 +180,22 @@ def run(eval_param, storage, cluster, log_file, result_file, log_level, mem_trac
     }
     try:
         eval = NodeEvalParam()
-        eval.ParseFromString(base64.b64decode(eval_param.encode('utf-8')))
+        eval_ser = base64.b64decode(eval_param.encode('utf-8'))
+        if compressed_params:
+            eval_ser = gzip.decompress(eval_ser)
+        eval.ParseFromString(eval_ser)
+
         sto = StorageConfig()
-        sto.ParseFromString(base64.b64decode(storage.encode('utf-8')))
+        sto_ser = base64.b64decode(storage.encode('utf-8'))
+        if compressed_params:
+            sto_ser = gzip.decompress(sto_ser)
+        sto.ParseFromString(sto_ser)
+
         clu = SFClusterConfig()
-        clu.ParseFromString(base64.b64decode(cluster.encode('utf-8')))
+        clu_ser = base64.b64decode(cluster.encode('utf-8'))
+        if compressed_params:
+            clu_ser = gzip.decompress(clu_ser)
+        clu.ParseFromString(clu_ser)
     except Exception as e:
         ret["error_msg"] = f"parse argv err: {e}"
         ret["error_code"] = -1  # TODO: use real code

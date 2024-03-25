@@ -1,3 +1,17 @@
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -44,9 +58,9 @@ def prod_env_and_data(sf_production_setup_devices):
 
 
 def test_constructor_valid_values():
-    filter = ConditionFilter("field1", "EQ", "STRING", ["value"], 0.1)
+    filter = ConditionFilter("field1", "==", "STRING", ["value"], 0.1)
     np.testing.assert_equal(filter.field_name, "field1")
-    np.testing.assert_equal(filter.comparator, "EQ")
+    np.testing.assert_equal(filter.comparator, "==")
     np.testing.assert_equal(filter.value_type, "STRING")
     np.testing.assert_equal(filter.bound_value, ["value"])
     np.testing.assert_equal(filter.float_epsilon, 0.1)
@@ -59,12 +73,12 @@ def test_constructor_invalid_comparator():
 
 def test_constructor_invalid_value_type():
     with np.testing.assert_raises(ValueError):
-        ConditionFilter("field1", "EQ", "INVALID", ["value"], 0.1)
+        ConditionFilter("field1", "==", "INVALID", ["value"], 0.1)
 
 
 def test_constructor_invalid_bound_value():
     with np.testing.assert_raises(ValueError):
-        ConditionFilter("field1", "EQ", "STRING", ["value1", "value2"], 0.1)
+        ConditionFilter("field1", "==", "STRING", ["value1", "value2"], 0.1)
 
 
 def test_fit_valid_df(prod_env_and_data):
@@ -78,7 +92,7 @@ def test_fit_valid_df(prod_env_and_data):
 
 
 def test_transform_valid_df(prod_env_and_data):
-    filter = ConditionFilter("a3", "LT", "FLOAT", ["3.14"], 0.1)
+    filter = ConditionFilter("a3", "<", "FLOAT", ["3.14"], 0.1)
     env, data = prod_env_and_data
     df = data['vdf']
     filter = filter.fit(df)
@@ -89,7 +103,7 @@ def test_transform_valid_df(prod_env_and_data):
 
 
 def test_transform_valid_df_float(prod_env_and_data):
-    filter = ConditionFilter("b4", "EQ", "FLOAT", ["10.1"], 0.1)
+    filter = ConditionFilter("b4", "==", "FLOAT", ["10.1"], 0.1)
     env, data = prod_env_and_data
     df = data['vdf']
     filter = filter.fit(df)
@@ -111,10 +125,20 @@ def test_transform_valid_df_float_in(prod_env_and_data):
 
 
 def test_fit_transform_valid_df(prod_env_and_data):
-    filter = ConditionFilter("b4", "LT", "FLOAT", ["11"], 0.1)
+    filter = ConditionFilter("b4", "<", "FLOAT", ["11"], 0.1)
     env, data = prod_env_and_data
     df = data['vdf']
     result = filter.fit_transform(df)
     np.testing.assert_equal(type(result), VDataFrame)
     data_len = result.count().max()
     np.testing.assert_equal(data_len, 2)
+
+
+def test_fit_transform_valid_df_2(prod_env_and_data):
+    filter = ConditionFilter("b6", "==", "FLOAT", ["1"], 0.1)
+    env, data = prod_env_and_data
+    df = data['vdf']
+    result = filter.fit_transform(df)
+    np.testing.assert_equal(type(result), VDataFrame)
+    data_len = result.count().max()
+    np.testing.assert_equal(data_len, 1)

@@ -47,6 +47,7 @@ class OrderMapManager(Component):
         self.logging_params = LoggingParams()
         self.buckets = eps_inverse(self.params.sketch_eps)
         self.order_map_actors = []
+        self.workers = []
 
     def show_params(self):
         print_params(self.params)
@@ -71,8 +72,12 @@ class OrderMapManager(Component):
     def set_devices(self, devices: Devices):
         self.workers = devices.workers
 
-    def set_actors(self, actors: SGBActor):
-        self.order_map_actors = actors
+    def set_actors(self, actors: List[SGBActor]):
+        assert len(self.workers) > 0, "workers must be set"
+        # worker actors only
+        self.order_map_actors = [
+            actor for actor in actors if actor.device in self.workers
+        ]
         for i, actor in enumerate(self.order_map_actors):
             actor.register_class('OrderMapActor', OrderMapActor, i)
 
@@ -143,16 +148,14 @@ class OrderMapManager(Component):
     def batch_compute_left_child_selects_each_party(
         self,
         split_feature_buckets_each_party: List[PYUObject],
-        sampled_indices: Union[PYUObject, List[int], None] = None,
+        sampled_indices: Union[List[int], None] = None,
     ) -> List[PYUObject]:
         return [
             actor.invoke_class_method(
                 'OrderMapActor',
                 'batch_compute_left_child_selects',
                 queries,
-                sampled_indices.to(actor.device)
-                if isinstance(sampled_indices, PYUObject)
-                else sampled_indices,
+                sampled_indices,
             )
             for actor, queries in zip(
                 self.order_map_actors, split_feature_buckets_each_party

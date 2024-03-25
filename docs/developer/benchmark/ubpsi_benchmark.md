@@ -13,7 +13,7 @@
 
 ### 一、测试机型
 
-- Python：3.8
+- Python：3.10
 - pip: >= 19.3
 - OS: CentOS 7
 - CPU/Memory: 推荐最低配置是 8C16G
@@ -50,7 +50,7 @@ conda --version
 ### 三、安装secretflow
 
 ```
-conda create -n sf-benchmark python=3.8
+conda create -n sf-benchmark python=3.10
 ​
 conda activate sf-benchmark
 ​

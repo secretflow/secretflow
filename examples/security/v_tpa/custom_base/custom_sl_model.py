@@ -115,14 +115,16 @@ class CustomSLModel:
                 # strategy,
                 device_strategy_dict.get(device, "split_nn"),
                 backend=backend,
-                builder_base=base_model_dict[device]
-                if device in base_model_dict.keys()
-                else None,
+                builder_base=(
+                    base_model_dict[device]
+                    if device in base_model_dict.keys()
+                    else None
+                ),
                 builder_fuse=None if device != device_y else model_fuse,
                 random_seed=random_seed,
-                dp_strategy=dp_strategy_dict.get(device, None)
-                if dp_strategy_dict
-                else None,
+                dp_strategy=(
+                    dp_strategy_dict.get(device, None) if dp_strategy_dict else None
+                ),
                 device=device,
                 base_local_steps=kwargs.get("base_local_steps", 1),
                 fuse_local_steps=kwargs.get("fuse_local_steps", 1),
@@ -182,9 +184,11 @@ class CustomSLModel:
                 # in dataset builder mode, xi cannot be none, or else datasetbuilder in worker cannot parse label
                 xs = (
                     [
-                        xi.partitions[device].data  # xi is FedDataframe
-                        if isinstance(xi.partitions[device], PartitionBase)
-                        else xi.partitions[device]  # xi is FedNdarray
+                        (
+                            xi.partitions[device].data  # xi is FedDataframe
+                            if isinstance(xi.partitions[device], PartitionBase)
+                            else xi.partitions[device]
+                        )  # xi is FedNdarray
                         for xi in x
                     ]
                     if device in dataset_builder
@@ -285,7 +289,7 @@ class CustomSLModel:
             verbose: 0, 1. Verbosity mode
             callbacks: List of Callback or Dict[device, Callback]. Callback can be:
             - `keras.callbacks.Callback` for tensorflow backend
-            - `secretflow.ml.nn.sl.backend.torch.callback.Callback` for torch backend
+            - `from secretflow.ml.nn.callbacks.callback.Callback` for torch backend
             validation_data: Data on which to validate
             shuffle: Whether shuffle dataset or not
             validation_freq: specifies how many training epochs to run before a new validation run is performed

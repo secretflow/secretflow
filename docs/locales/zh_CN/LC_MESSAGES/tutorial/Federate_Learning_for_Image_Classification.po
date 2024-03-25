@@ -217,7 +217,7 @@ msgid ""
 "combined, a model with an accuracy close to 0.995 can be obtained. In "
 "addition, the generalization performance of the model jointly trained "
 "with multi-party data will also be better."
-msgstr "上面两个实验模拟了一个典型的水平联邦场景的训练问题，Alice和Bob拥有类型的图片，每一方只有样本的一部分数据，但是双方的训练目的是一致的如果Alice只用自己的一方数据来训练模型，能够得到一个精确度0.945的模型，但是如果联合Bob的数据之后，可以获得一个精确度接近0.995的模型，而且多方数据联合训练的模型的泛化性能也会更好。"
+msgstr "上面两个实验模拟了一个典型的水平联邦场景的训练问题，Alice和Bob拥有类型的图片，每一方只有样本的一部分数据，但是双方的训练目的是一致的如果Alice只用自己的一方数据来训练模型，能够得到一个精确度0.969的模型，但是如果联合Bob的数据之后，可以获得一个精确度接近0.983的模型，而且多方数据联合训练的模型的泛化性能也会更好。"
 
 #: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:872
 msgid "Conclusion"

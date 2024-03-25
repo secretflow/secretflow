@@ -22,6 +22,8 @@ class BSTBase(tf.keras.Model):
     def __init__(
         self,
         preprocess_layer: tf.keras.Model,
+        dnn_units_size,
+        dnn_activation="relu",
         sequence_fea: List[str] = [],
         item_embedding_dims: Dict[str, int] = {},
         seq_len: Dict[str, int] = {},
@@ -46,10 +48,23 @@ class BSTBase(tf.keras.Model):
         self.preprocess = preprocess_layer
         self.sequence_fea = sequence_fea
 
-        self._seq_len = 0
+        self.dnn_units_size = dnn_units_size
+        self.dnn_activation = dnn_activation
+        self.item_embedding_dims = item_embedding_dims
+        self.seq_len = seq_len
+        self.item_voc_size = item_voc_size
+        self.num_head = num_head
+        self.dropout_rate = dropout_rate
+
+        self._dense_internal = tf.keras.Sequential(
+            [
+                tf.keras.layers.Dense(units, activation=self.dnn_activation)
+                for units in self.dnn_units_size
+            ]
+        )
+
         # item embedding
         if len(sequence_fea) > 0:
-            self._seq_len = seq_len
             self._item_embedding_encoder = {}
             self._position_embedding_encoder = {}
             self._attention_layer = {}
@@ -91,6 +106,8 @@ class BSTBase(tf.keras.Model):
                 emb_sqz = tf.squeeze(preprocess_data[key], [1])
                 encoded_fea.append(emb_sqz)
             else:
+                preprocess_data[key] = tf.squeeze(preprocess_data[key], [1])
+
                 mask = self._item_embedding_encoder[key].compute_mask(
                     preprocess_data[key]
                 )
@@ -98,7 +115,7 @@ class BSTBase(tf.keras.Model):
                     preprocess_data[key]
                 )
 
-                positions = tf.range(start=0, limit=self._seq_len[key], delta=1)
+                positions = tf.range(start=0, limit=self.seq_len[key], delta=1)
                 encodded_positions = self._position_embedding_encoder[key](positions)
 
                 encoded_sequence_items = encoded_sequence_items + encodded_positions
@@ -136,11 +153,10 @@ class BSTBase(tf.keras.Model):
 
                 encoded_fea.append(features)
 
-        if len(encoded_fea) == 1:
-            return encoded_fea
-        else:
-            out = tf.concat(encoded_fea, axis=-1)
-            return [out]
+        if len(encoded_fea) > 1:
+            encoded_fea = tf.concat(encoded_fea, axis=-1)
+        out = self._dense_internal(encoded_fea)
+        return [out]
 
     def output_num(self):
         """Define the number of tensors returned by basenet"""
@@ -148,10 +164,24 @@ class BSTBase(tf.keras.Model):
 
     def get_config(self):
         config = {
-            "seq_len": self._seq_len,
+            "seq_len": self.seq_len,
+            "dnn_units_size": self.dnn_units_size,
+            "dnn_activation": self.dnn_activation,
+            "preprocess_layer": self.preprocess.get_config(),
+            "item_embedding_dims": self.item_embedding_dims,
+            "item_voc_size": self.item_voc_size,
+            "num_head": self.num_head,
+            "dropout_rate": self.dropout_rate,
         }
         base_config = super(BSTBase, self).get_config()
         return {**base_config, **config}
+
+    @classmethod
+    def from_config(cls, config):
+        config["preprocess_layer"] = tf.keras.Model.from_config(
+            config["preprocess_layer"]
+        )
+        return cls(**config)
 
 
 class AttentionSequencePoolingLayer(layers.Layer):
@@ -205,11 +235,28 @@ class AttentionSequencePoolingLayer(layers.Layer):
 
         return outputs
 
+    def get_config(self):
+        config = {
+            "att_hidden_units": self.att_hidden_units,
+            "att_activation": self.att_activation,
+            "weight_normalization": self.weight_normalization,
+            "return_score": self.return_score,
+        }
+
+        base_config = super(AttentionSequencePoolingLayer, self).get_config()
+        return {**base_config, **config}
+
+    @classmethod
+    def from_config(cls, config):
+        return cls(**config)
+
 
 class BSTPlusBase(tf.keras.Model):
     def __init__(
         self,
         preprocess_layer: tf.keras.Model,
+        dnn_units_size,
+        dnn_activation="relu",
         sequence_fea: List[str] = [],
         target_fea: str = None,
         item_embedding_dims: Dict[str, int] = {},
@@ -221,6 +268,7 @@ class BSTPlusBase(tf.keras.Model):
         use_res=True,
         use_feed_forward=True,
         use_layer_norm=False,
+        sequence_pooling_param={},
         **kwargs,
     ):
         """Split learning version of BST
@@ -240,15 +288,29 @@ class BSTPlusBase(tf.keras.Model):
         self.sequence_fea = sequence_fea
         self.target_fea = None
 
+        self.item_embedding_dims = item_embedding_dims
+        self.item_voc_size = item_voc_size
+        self.num_head = num_head
+        self.dropout_rate = dropout_rate
+
         self.use_positional_encoding = use_positional_encoding
         self.use_res = use_res
         self.use_feed_forward = use_feed_forward
         self.use_layer_norm = use_layer_norm
 
-        self._seq_len = 0
+        self.dnn_units_size = dnn_units_size
+        self.dnn_activation = dnn_activation
+        self._dense_internal = tf.keras.Sequential(
+            [
+                tf.keras.layers.Dense(units, activation=self.dnn_activation)
+                for units in self.dnn_units_size
+            ]
+        )
+
+        self.sequence_pooling_param = sequence_pooling_param
+        self.seq_len = seq_len
         # item embedding
         if len(sequence_fea) > 0:
-            self._seq_len = seq_len
             self._position_embedding_encoder = {}
             self._attention_layer = {}
             self._normalize_layer = {}
@@ -294,7 +356,19 @@ class BSTPlusBase(tf.keras.Model):
 
                 self._dropout_layer[fea] = layers.Dropout(dropout_rate[fea])
 
-                self._target_attention[fea] = AttentionSequencePoolingLayer()
+                if fea not in sequence_pooling_param:
+                    self._target_attention[fea] = AttentionSequencePoolingLayer()
+                else:
+                    self._target_attention[fea] = AttentionSequencePoolingLayer(
+                        att_hidden_units=sequence_pooling_param[fea][
+                            'att_hidden_units'
+                        ],
+                        att_activation=sequence_pooling_param[fea]['att_activation'],
+                        weight_normalization=sequence_pooling_param[fea][
+                            'weight_normalization'
+                        ],
+                        return_score=sequence_pooling_param[fea]['return_score'],
+                    )
 
     def call(self, inputs, **kwargs):
         preprocess_data = self.preprocess(inputs, training=True)
@@ -311,6 +385,8 @@ class BSTPlusBase(tf.keras.Model):
                     encoded_fea.append(emb_sqz)
             else:
                 # prepare inputs for mhsa
+                preprocess_data[key] = tf.squeeze(preprocess_data[key], [1])
+
                 mask = self._item_embedding_encoder.compute_mask(preprocess_data[key])
                 mask = tf.stop_gradient(mask)  # maybe no need
                 encoded_sequence_items = self._item_embedding_encoder(
@@ -318,14 +394,19 @@ class BSTPlusBase(tf.keras.Model):
                 )
 
                 if self.use_positional_encoding:
-                    positions = tf.range(start=0, limit=self._seq_len[key], delta=1)
+                    positions = tf.range(start=0, limit=self.seq_len[key], delta=1)
                     encodded_positions = self._position_embedding_encoder[key](
                         positions
                     )
 
                     encoded_sequence_items = encoded_sequence_items + encodded_positions
 
-                mask_expand = mask[:, tf.newaxis, tf.newaxis, :]
+                    mask_expand = mask[:, tf.newaxis, tf.newaxis, :]
+                else:
+                    mask_q = mask[:, :, tf.newaxis]
+                    mask_k = mask[:, tf.newaxis, :]
+                    mask_expand = mask_q & mask_k
+
                 # mhsa
                 attention_output = self._attention_layer[key](
                     encoded_sequence_items,
@@ -364,11 +445,10 @@ class BSTPlusBase(tf.keras.Model):
 
                 encoded_fea.append(target_output)
 
-        if len(encoded_fea) == 1:
-            return encoded_fea
-        else:
-            out = tf.concat(encoded_fea, axis=-1)
-            return [out]
+        if len(encoded_fea) > 1:
+            encoded_fea = tf.concat(encoded_fea, axis=-1)
+        out = self._dense_internal(encoded_fea)
+        return [out]
 
     def output_num(self):
         """Define the number of tensors returned by basenet"""
@@ -376,10 +456,31 @@ class BSTPlusBase(tf.keras.Model):
 
     def get_config(self):
         config = {
-            "seq_len": self._seq_len,
+            "preprocess_layer": self.preprocess.get_config(),
+            "sequence_fea": self.sequence_fea,
+            "target_fea: str": self.target_fea,
+            "item_embedding_dims": self.item_embedding_dims,
+            "seq_len": self.seq_len,
+            "item_voc_size": self.item_voc_size,
+            "num_head": self.num_head,
+            "dropout_rate": self.dropout_rate,
+            "use_positional_encoding": self.use_positional_encoding,
+            "use_res": self.use_res,
+            "use_feed_forward": self.use_feed_forward,
+            "use_layer_norm": self.use_layer_norm,
+            "dnn_units_size": self.dnn_units_size,
+            "dnn_activation": self.dnn_activation,
+            "sequence_pooling_param": self.sequence_pooling_param,
         }
         base_config = super(BSTPlusBase, self).get_config()
         return {**base_config, **config}
+
+    @classmethod
+    def from_config(cls, config):
+        config["preprocess_layer"] = tf.keras.Model.from_config(
+            config["preprocess_layer"]
+        )
+        return cls(**config)
 
 
 class BSTFuse(tf.keras.Model):
@@ -408,3 +509,7 @@ class BSTFuse(tf.keras.Model):
         }
         base_config = super(BSTFuse, self).get_config()
         return {**base_config, **config}
+
+    @classmethod
+    def from_config(cls, config):
+        return cls(**config)

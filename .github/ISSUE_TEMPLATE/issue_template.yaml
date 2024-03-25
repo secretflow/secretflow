@@ -53,7 +53,7 @@ body:
     attributes:
       label: Python version
       description: 
-      placeholder: e.g., 3.8.13
+      placeholder: e.g., 3.10.13
     validations:
       required: true
   - type: input

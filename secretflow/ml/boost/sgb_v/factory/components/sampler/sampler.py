@@ -124,15 +124,17 @@ class Sampler(Component):
         if self.params.label_holder_feature_only:
             col_choices, total_buckets = zip(
                 *[
-                    self.sample_actors[fb.device].invoke_class_method_two_ret(
-                        'SampleActor',
-                        'generate_one_partition_col_choices',
-                        colsample,
-                        fb,
-                    )
-                    if fb.device == self.label_holder
-                    else self.sample_actors[fb.device].invoke_class_method_two_ret(
-                        'SampleActor', 'generate_one_partition_col_choices', 0, fb
+                    (
+                        self.sample_actors[fb.device].invoke_class_method_two_ret(
+                            'SampleActor',
+                            'generate_one_partition_col_choices',
+                            colsample,
+                            fb,
+                        )
+                        if fb.device == self.label_holder
+                        else self.sample_actors[fb.device].invoke_class_method_two_ret(
+                            'SampleActor', 'generate_one_partition_col_choices', 0, fb
+                        )
                     )
                     for fb in feature_buckets
                 ]
@@ -152,7 +154,7 @@ class Sampler(Component):
         return col_choices, total_buckets
 
     def generate_row_choices(
-        self, row_num: int, g: PYUObject
+        self, row_num: Union[PYUObject, int], g: PYUObject
     ) -> Tuple[Union[None, np.ndarray], Union[None, np.ndarray]]:
         """Sample rows,
         either in a goss style or normal style based on config
@@ -179,7 +181,7 @@ class Sampler(Component):
             )
             return choices, None
 
-    def _should_row_subsampling(self) -> bool:
+    def should_row_subsampling(self) -> bool:
         return self.params.rowsample_by_tree < 1 or self.params.enable_goss
 
     def _apply_vector_sampling(
@@ -233,15 +235,17 @@ class Sampler(Component):
         """
         X_sub = X
         # sample cols and rows of bucket_map
-        if self.params.colsample_by_tree < 1 and self._should_row_subsampling():
+        if self.params.colsample_by_tree < 1 and self.should_row_subsampling():
             # sub choices is stored in context owned by label_holder and shared to all workers.
             X_sub = FedNdarray(
                 partitions={
                     pyu: pyu(lambda x, y, z: x[y, :][:, z])(
                         partition,
-                        row_choices.to(pyu)
-                        if isinstance(row_choices, PYUObject)
-                        else row_choices,
+                        (
+                            row_choices.to(pyu)
+                            if isinstance(row_choices, PYUObject)
+                            else row_choices
+                        ),
                         col_choices[i],
                     )
                     for i, (pyu, partition) in enumerate(X.partitions.items())
@@ -258,14 +262,16 @@ class Sampler(Component):
                 partition_way=PartitionWay.VERTICAL,
             )
         # only sample rows
-        elif self._should_row_subsampling():
+        elif self.should_row_subsampling():
             X_sub = FedNdarray(
                 partitions={
                     pyu: pyu(lambda x, y: x[y, :])(
                         partition,
-                        row_choices.to(pyu)
-                        if isinstance(row_choices, PYUObject)
-                        else row_choices,
+                        (
+                            row_choices.to(pyu)
+                            if isinstance(row_choices, PYUObject)
+                            else row_choices
+                        ),
                     )
                     for pyu, partition in X.partitions.items()
                 },

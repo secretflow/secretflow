@@ -1,23 +1,37 @@
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 from sklearn.metrics import roc_auc_score
 
 from secretflow import reveal
-from secretflow.data import FedNdarray, PartitionWay
-from secretflow.data import partition
+from secretflow.data import FedNdarray, PartitionWay, partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.stats import BiClassificationEval
 
 
 def test_auc(sf_production_setup_devices):
-    y_true = np.array([0, 0, 1, 1, 1]).reshape((-1, 1))
-    y_pred = np.array([0.1, 0.4, 0.35, 0.8, 0.1]).reshape((-1, 1))
+    np.random.seed(42)
+    y_true = np.round(np.random.random((800000,)).reshape((-1, 1)))
+    y_pred = np.random.random((800000,)).reshape((-1, 1))
     y_pred_jax = jnp.array(y_pred)
     bucket_size = 2
     y_true_pd_dataframe = pd.DataFrame(
         {
-            'y_true': [0, 0, 1, 1, 1],
+            'y_true': y_true.reshape(-1),
         }
     )
 

@@ -18,6 +18,7 @@ from dataclasses import dataclass, fields
 from typing import List
 
 from secretflow.device import HEU, PYU
+
 from ..sgb_actor import SGBActor
 
 
@@ -26,6 +27,10 @@ class Devices:
     label_holder: PYU
     workers: List[PYU]
     heu: HEU
+
+
+def label_have_feature(devices: Devices):
+    return devices.label_holder in devices.workers
 
 
 class Component(abc.ABC):

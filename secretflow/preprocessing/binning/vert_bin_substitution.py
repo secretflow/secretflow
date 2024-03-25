@@ -12,19 +12,50 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict
+from typing import Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
 
+import secretflow.compute as sc
+from secretflow.compute import Table
 from secretflow.data import partition
 from secretflow.data.vertical import VDataFrame
-from secretflow.device import PYU, PYUObject, proxy
+from secretflow.device import PYU, PYUObject, reveal, wait
 
 
-@proxy(PYUObject)
-class VertBinSubstitutionPyuWorker:
-    def sub(self, data: pd.DataFrame, r: Dict) -> pd.DataFrame:
+def binning_rules_to_sc(rules: Dict, input_schema: Dict[str, np.dtype]) -> sc.Table:
+    rules = {v['name']: v for v in rules["variables"]}
+    assert set(rules).issubset(set(input_schema))
+
+    table = Table.from_schema(input_schema)
+
+    for v in rules:
+        col = table.column(v)
+        rule = rules[v]
+        conds = []
+        if rule["type"] == "string":
+            conds = [sc.equal(col, c) for c in rule["categories"]]
+        else:
+            split_points = rule["split_points"]
+            if len(split_points) == 0:
+                conds = []
+            else:
+                conds = [sc.less_equal(col, c) for c in split_points]
+                conds.append(sc.greater(col, split_points[-1]))
+
+        if conds:
+            cases = rule["filling_values"] + [rule["else_filling_value"]]
+            cases = list(map(np.float32, cases))
+            new_col = sc.case_when(sc.make_struct(*conds), *cases)
+            table = table.set_column(table.column_names.index(v), v, new_col)
+
+    return table
+
+
+class VertBinSubstitution:
+    @staticmethod
+    def _sub(data: pd.DataFrame, r: Dict) -> Tuple[pd.DataFrame, List[str]]:
         """
         PYU functions for binning substitution.
 
@@ -45,38 +76,12 @@ class VertBinSubstitutionPyuWorker:
             str(data.columns),
         )
 
-        for v in rules:
-            col_data = data[v]
-            rule = rules[v]
-            if rule["type"] == "string":
-                condlist = [col_data == c for c in rule["categories"]]
-                choicelist = rule["filling_values"]
-                data[v] = np.select(condlist, choicelist, rule["else_filling_value"])
-            else:
-                condlist = list()
-                split_points = rule["split_points"]
-                # if no effective split points, we do no transformation
-                if len(split_points) == 0:
-                    continue
-                for i in range(len(split_points)):
-                    if i == 0:
-                        condlist.append(col_data <= split_points[i])
-                    else:
-                        condlist.append(
-                            (col_data > split_points[i - 1])
-                            & (col_data <= split_points[i])
-                        )
-                if len(split_points) > 0:
-                    condlist.append(col_data > split_points[-1])
-                choicelist = rule["filling_values"]
-                assert len(choicelist) == len(split_points) + 1, f"{choicelist}"
-                assert len(condlist) == len(split_points) + 1, f"{condlist}"
-                data[v] = np.select(condlist, choicelist, rule["else_filling_value"])
+        rules_table = binning_rules_to_sc(r, dict(data.dtypes))
+        changed_columns = rules_table.column_changes()[1]
+        data = rules_table.dump_runner().run(data)
 
-        return data
+        return data, changed_columns
 
-
-class VertBinSubstitution:
     def substitution(
         self, vdata: VDataFrame, rules: Dict[PYU, PYUObject]
     ) -> VDataFrame:
@@ -90,21 +95,34 @@ class VertBinSubstitution:
         Returns:
             new_vdata: vertical slice dataset after substituted.
         """
-        works: Dict[PYU, VertBinSubstitutionPyuWorker] = {}
+        pyu_new_data = {}
+        pyu_changed_columns = {}
         for device in rules:
+            # all rules must corresponds to some party
             assert (
                 device in vdata.partitions.keys()
             ), f"device {device} not exist in vdata"
-            works[device] = VertBinSubstitutionPyuWorker(device=device)
+            new_data, changed_columns = device(VertBinSubstitution._sub)(
+                vdata.partitions[device].data, rules[device]
+            )
+            pyu_new_data[device] = new_data
+            pyu_changed_columns[device] = changed_columns
 
-        new_vdata = VDataFrame(
-            {
-                d: partition(
-                    data=works[d].sub(vdata.partitions[d].data, rules[d]),
+        wait(pyu_new_data)
+        pyu_changed_columns = reveal(pyu_changed_columns)
+        changed_columns = {c for pc in pyu_changed_columns.values() for c in pc}
+
+        # but some party may have no substitution rule
+        def sub_if_exists(d):
+            return (
+                partition(
+                    data=pyu_new_data[d],
                     backend=vdata.partitions[d].backend,
                 )
-                for d in rules
-            }
-        )
+                if d in pyu_new_data
+                else vdata.partitions[d]
+            )
 
-        return new_vdata
+        new_vdata = VDataFrame({d: sub_if_exists(d) for d in vdata.partitions.keys()})
+
+        return new_vdata, changed_columns

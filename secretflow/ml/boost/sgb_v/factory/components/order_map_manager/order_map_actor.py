@@ -69,11 +69,13 @@ class OrderMapActor:
         sampled_indices: Union[List[int], None] = None,
     ) -> List[Union[None, np.ndarray]]:
         return [
-            self.compute_left_child_selects(
-                split_feature_bucket[0], split_feature_bucket[1], sampled_indices
+            (
+                self.compute_left_child_selects(
+                    split_feature_bucket[0], split_feature_bucket[1], sampled_indices
+                )
+                if split_feature_bucket is not None
+                else None
             )
-            if split_feature_bucket is not None
-            else None
             for split_feature_bucket in split_feature_buckets
         ]
 
@@ -106,4 +108,4 @@ class OrderMapActor:
                 self.ordermap_context.get_order_map()[sampled_indices, feature]
                 <= split_point_index
             )
-        return candidate.astype(np.int8).reshape(1, length)
+        return candidate.astype(np.uint8).reshape(1, length)

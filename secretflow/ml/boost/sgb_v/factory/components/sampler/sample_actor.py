@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Union, Tuple
+import math
+from typing import List, Tuple, Union
 
 import numpy as np
-import math
-
 
 # handle order map building for one party
 
@@ -28,9 +27,10 @@ class SampleActor:
     def generate_one_partition_col_choices(
         self, colsample, feature_buckets: List[int]
     ) -> Tuple[Union[None, np.ndarray], int]:
-        if colsample < 1:
+        # if we only have one column left, do not sample
+        if colsample < 1 and sum(feature_buckets) > 1:
             feature_num = len(feature_buckets)
-            choices = math.ceil(feature_num * colsample)
+            choices = max([math.ceil(feature_num * colsample), 1])
             col_choices = np.sort(self.rng.choice(feature_num, choices, replace=False))
 
             buckets_count = 0

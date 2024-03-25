@@ -47,3 +47,9 @@ class HttpNotOkError(Exception):
     """Raise if http code is not 200"""
 
     pass
+
+
+class NotSupportedError(Exception):
+    """Raise when trigger a notsupport operation."""
+
+    pass

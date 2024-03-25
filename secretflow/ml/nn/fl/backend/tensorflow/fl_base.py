@@ -14,6 +14,7 @@
 
 
 import collections
+import logging
 import math
 from abc import abstractmethod
 from pathlib import Path
@@ -27,24 +28,35 @@ from secretflow.ml.nn.fl.backend.tensorflow.sampler import sampler_data
 from secretflow.ml.nn.metrics import AUC, Mean, Precision, Recall
 from secretflow.utils.io import rows_count
 
+gpus = tf.config.list_physical_devices('GPU')
+if gpus:
+    try:
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+    except RuntimeError as e:
+        logging.error(e)
+
 
 class BaseTFModel:
     def __init__(
         self,
         builder_base: Callable[[], tf.keras.Model],
         random_seed: int = None,
+        skip_bn: bool = False,
         **kwargs,
     ):
         self.train_set = None
         self.eval_set = None
         self.callbacks = None
-        self.logs = None
+        self.logs = None  # store training status for worker side
         self.epoch_logs = None
+        self.wrapped_metrics = []  # store wrapped metrics for global aggregation
         self.training_logs = None
         if random_seed is not None:
             tf.keras.utils.set_random_seed(random_seed)
         self.model = builder_base() if builder_base else None
         self.use_gpu = self.use_gpu = kwargs.get("use_gpu", False)
+        self.skip_bn = skip_bn
 
     def build_dataset_from_csv(
         self,
@@ -207,25 +219,63 @@ class BaseTFModel:
     def get_rows_count(self, filename):
         return int(rows_count(filename=filename)) - 1  # except header line
 
+    def get_weights_not_bn(self):
+        params = []
+        for layer in self.model.layers:
+            # Check if the layer is not a BatchNormalization layer
+            if not isinstance(layer, tf.keras.layers.BatchNormalization):
+                # Get the weights (numpy arrays) of the layer
+                weights = layer.get_weights()
+                params.extend(weights)
+        return params
+
+    def set_weights_not_bn(self, weights):
+        index = 0
+        # Iterate through all layers of the model
+        for layer in self.model.layers:
+            if not isinstance(layer, tf.keras.layers.BatchNormalization):
+                # This layer is not a BN layer, so update its weights from the provided list.
+                num_params = len(layer.trainable_weights)
+                new_weights = weights[index : index + num_params]
+                layer.set_weights(new_weights)
+                index += num_params  # Increment the index by the number of parameters in the current layer.
+
+        if index != len(weights):
+            raise ValueError(
+                "Provided weights list does not match the model's non-BN layers."
+            )
+
     def get_weights(self):
-        return self.model.get_weights()
+        if self.skip_bn:
+            return self.get_weights_not_bn()
+        else:
+            return self.model.get_weights()
 
     def set_weights(self, weights):
         """set weights of client model"""
-        self.model.set_weights(weights)
+        if self.skip_bn:
+            self.set_weights_not_bn(weights)
+        else:
+            self.model.set_weights(weights)
 
     def set_validation_metrics(self, global_metrics):
         self.epoch_logs.update(global_metrics)
 
-    def wrap_local_metrics(self):
+    def wrap_local_metrics(self, stage="train"):
         wraped_metrics = []
         for m in self.model.metrics:
             if isinstance(m, tf.keras.metrics.Mean):
-                wraped_metrics.append(Mean(m.name, m.total.numpy(), m.count.numpy()))
+                wraped_metrics.append(
+                    Mean(
+                        f"val_{m.name}" if stage == "val" else m.name,
+                        m.total.numpy(),
+                        m.count.numpy(),
+                    )
+                )
             elif isinstance(m, tf.keras.metrics.AUC):
                 wraped_metrics.append(
                     AUC(
-                        m.name,
+                        f"val_{m.name}" if stage == "val" else m.name,
                         m.thresholds,
                         m.true_positives.numpy(),
                         m.true_negatives.numpy(),
@@ -237,7 +287,7 @@ class BaseTFModel:
             elif isinstance(m, tf.keras.metrics.Precision):
                 wraped_metrics.append(
                     Precision(
-                        m.name,
+                        f"val_{m.name}" if stage == "val" else m.name,
                         m.thresholds,
                         m.true_positives.numpy(),
                         m.false_positives.numpy(),
@@ -246,7 +296,7 @@ class BaseTFModel:
             elif isinstance(m, tf.keras.metrics.Recall):
                 wraped_metrics.append(
                     Recall(
-                        m.name,
+                        f"val_{m.name}" if stage == "val" else m.name,
                         m.thresholds,
                         m.true_positives.numpy(),
                         m.false_negatives.numpy(),
@@ -257,6 +307,9 @@ class BaseTFModel:
                     f'Unsupported global metric {m.__class__.__qualname__} for now, please add it.'
                 )
         return wraped_metrics
+
+    def get_local_metrics(self):
+        return self.wrapped_metrics
 
     def evaluate(self, evaluate_steps=0):
         assert evaluate_steps > 0, "evaluate_steps must greater than 0"
@@ -282,7 +335,22 @@ class BaseTFModel:
             result = {}
             for m in self.model.metrics:
                 result[m.name] = m.result().numpy()
-        return self.wrap_local_metrics()
+
+        if self.logs is None:
+            wrapped_metrics = self.wrap_local_metrics()
+            self.wrapped_metrics.extend(wrapped_metrics)
+            return wrapped_metrics
+        else:
+            val_result = {}
+            for k, v in result.items():
+                val_result[f"val_{k}"] = v
+            self.logs.update(val_result)
+            wrapped_metrics = self.wrap_local_metrics(stage="val")
+            self.wrapped_metrics.extend(wrapped_metrics)
+            return wrapped_metrics
+
+    def get_logs(self):
+        return self.logs
 
     def predict(self, predict_steps=0):
         assert (
@@ -307,7 +375,7 @@ class BaseTFModel:
         if not isinstance(callbacks, tf_callbacks.CallbackList):
             self.callbacks = tf_callbacks.CallbackList(
                 callbacks,
-                add_history=True,
+                add_history=False,
                 add_progbar=verbose != 0,
                 model=self.model,
                 verbose=verbose,
@@ -337,6 +405,10 @@ class BaseTFModel:
 
     @abstractmethod
     def train_step(self, weights, cur_steps, train_steps, **kwargs):
+        pass
+
+    @abstractmethod
+    def apply_weights(self, weights, **kwargs):
         pass
 
     def save_model(self, model_path: str):

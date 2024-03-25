@@ -108,21 +108,6 @@ def test_3pc_linear(sf_production_setup_devices_aby3):
     )
 
 
-def test_4pc_linear(sf_production_setup_devices_aby3):
-    parts = {
-        sf_production_setup_devices_aby3.alice: (1, 6),
-        sf_production_setup_devices_aby3.bob: (6, 12),
-        sf_production_setup_devices_aby3.carol: (12, 18),
-        sf_production_setup_devices_aby3.davy: (18, 22),
-    }
-    _run_npc_linear(
-        sf_production_setup_devices_aby3,
-        "4pc_linear",
-        parts,
-        sf_production_setup_devices_aby3.davy,
-    )
-
-
 def test_breast_cancer(sf_production_setup_devices_aby3):
     from sklearn.datasets import load_breast_cancer
 

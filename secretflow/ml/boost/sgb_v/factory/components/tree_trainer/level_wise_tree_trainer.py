@@ -107,7 +107,7 @@ class LevelWiseTreeTrainer(TreeTrainer):
         order_map_manager: OrderMapManager,
         y: PYUObject,
         pred: Union[PYUObject, np.ndarray],
-        x_shape: Tuple[int, int],
+        sample_num: Union[PYUObject, int],
     ):
         logging.info("train tree context set up.")
         # reset caches
@@ -126,7 +126,7 @@ class LevelWiseTreeTrainer(TreeTrainer):
         )
         g, h = self.components.loss_computer.compute_gh(y, pred)
         row_choices, weight = self.components.sampler.generate_row_choices(
-            x_shape[0], g
+            sample_num, g
         )
 
         order_map = order_map_manager.get_order_map()
@@ -134,7 +134,17 @@ class LevelWiseTreeTrainer(TreeTrainer):
         self.order_map_sub = self.components.sampler.apply_v_fed_sampling(
             order_map, row_choices, col_choices
         )
-        self.row_choices = row_choices
+        if self.components.sampler.should_row_subsampling():
+            self.row_choices = reveal(row_choices)
+        else:
+            # Avoid transmission of None object in ic_mode
+            self.row_choices = None
+
+        self.node_select_shape = (
+            1,
+            reveal(sample_num) if self.row_choices is None else self.row_choices.size,
+        )
+
         self.bucket_num = order_map_manager.buckets
         logging.debug("sub sampled (per tree).")
 
@@ -148,11 +158,6 @@ class LevelWiseTreeTrainer(TreeTrainer):
         self.components.loss_computer.compute_abs_sums(g, h)
         logging.debug("g h computed.")
 
-        self.should_stop = reveal(self.components.loss_computer.check_early_stop())
-        if self.should_stop:
-            logging.debug("early stopped.")
-            return
-        logging.debug("not early stopped.")
         self.components.loss_computer.compute_scales()
 
         g, h = self.components.loss_computer.scale_gh(g, h)
@@ -174,13 +179,13 @@ class LevelWiseTreeTrainer(TreeTrainer):
         order_map_manager: OrderMapManager,
         y: PYUObject,
         pred: Union[PYUObject, np.ndarray],
-        x_shape: Tuple[int, int],
+        sample_num: Union[PYUObject, int],
     ) -> DistributedTree:
-        self.train_tree_context_setup(cur_tree_num, order_map_manager, y, pred, x_shape)
-        if self.should_stop:
-            return None
+        self.train_tree_context_setup(
+            cur_tree_num, order_map_manager, y, pred, sample_num
+        )
         logging.info("begin train tree.")
-        row_num = self.order_map_sub.shape[0]
+        row_num = self.node_select_shape[1]
         g, h = self.g, self.h
         root_select = self.components.node_selector.root_select(row_num)
 
@@ -209,6 +214,9 @@ class LevelWiseTreeTrainer(TreeTrainer):
         weight = self.components.leaf_manager.compute_leaf_weights(g, h)
         leaf_node_indices = self.components.leaf_manager.get_leaf_indices()
         tree = DistributedTree()
+        tree.set_enable_packbits(
+            self.components.bucket_sum_calculator.params.enable_packbits
+        )
         self.components.split_tree_builder.insert_split_trees_into_distributed_tree(
             tree, leaf_node_indices
         )
@@ -258,12 +266,14 @@ class LevelWiseTreeTrainer(TreeTrainer):
         split_points = order_map_manager.batch_query_split_points_each_party(
             split_feature_buckets_each_party
         )
+        select_shape = self.node_select_shape
         lchild_ss = self.components.split_tree_builder.do_split_list_wise_each_party(
             split_feature_buckets_each_party,
             split_points,
             left_selects_each_party,
             gain_is_cost_effective,
             split_node_indices,
+            select_shape,
         )
         (
             childs_s,
@@ -319,6 +329,7 @@ class LevelWiseTreeTrainer(TreeTrainer):
             self.bucket_lists,
             self.components.gradient_encryptor,
             node_num,
+            self.node_select_shape,
         )
         level_nodes_G, level_nodes_H = self.components.loss_computer.reverse_scale_gh(
             level_nodes_G, level_nodes_H

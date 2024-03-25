@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import importlib
 import math
+
+from google.protobuf import json_format
 
 from secretflow.spec.v1.component_pb2 import (
     Attribute,
@@ -24,8 +27,7 @@ from secretflow.spec.v1.component_pb2 import (
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
 
-class EvalParamError(Exception):
-    ...
+class EvalParamError(Exception): ...
 
 
 def check_allowed_values(value: Attribute, definition: AttributeDef):
@@ -91,7 +93,7 @@ def check_table_attr_col_cnt(value: Attribute, definition: IoDef.TableAttrDef):
     return True
 
 
-def get_value(value: Attribute, at: AttrType):
+def get_value(value: Attribute, at: AttrType, pb_cls_name: str = None):
     if at == AttrType.ATTR_TYPE_UNSPECIFIED:
         raise EvalParamError("Type of Attribute is undefined.")
     elif at == AttrType.AT_FLOAT:
@@ -110,6 +112,11 @@ def get_value(value: Attribute, at: AttrType):
         return list(value.ss)
     elif at == AttrType.AT_BOOLS:
         return list(value.bs)
+    elif at == AttrType.AT_CUSTOM_PROTOBUF:
+        pb_cls = importlib.import_module("secretflow.spec.extend")
+        for name in pb_cls_name.split("."):
+            pb_cls = getattr(pb_cls, name)
+        return json_format.Parse(value.s, pb_cls())
     else:
         raise EvalParamError(f"unsupported type: {at}.")
 
@@ -136,6 +143,13 @@ class EvalParamReader:
                 f"version inst:'{self._instance.version}' def:'{self._definition.version}' does not match."
             )
 
+        # union groups
+        union_group_selection = {}
+        for attr in self._definition.attrs:
+            if attr.type == AttrType.AT_UNION_GROUP:
+                full_name = "/".join(list(attr.prefixes) + [attr.name])
+                union_group_selection[full_name] = None
+
         # attrs
         self._instance_attrs = {}
         for path, attr in zip(
@@ -147,6 +161,16 @@ class EvalParamReader:
             if not attr.is_na:
                 self._instance_attrs[path] = attr
 
+            for union_name, attr_name in union_group_selection.items():
+                if not path.startswith(union_name):
+                    continue
+                new_attr_name = path[len(union_name) + 1 :].split("/")[0]
+                if attr_name and attr_name != new_attr_name:
+                    raise EvalParamError(
+                        f"union group {union_name}: one attr is required, but god '{attr_name}' and '{new_attr_name}'."
+                    )
+                union_group_selection[union_name] = new_attr_name
+
         for attr in self._definition.attrs:
             if attr.type not in [
                 AttrType.AT_FLOAT,
@@ -157,12 +181,37 @@ class EvalParamReader:
                 AttrType.AT_STRINGS,
                 AttrType.AT_BOOL,
                 AttrType.AT_BOOLS,
+                AttrType.AT_STRUCT_GROUP,
+                AttrType.AT_UNION_GROUP,
+                AttrType.AT_CUSTOM_PROTOBUF,
             ]:
-                raise EvalParamError("only support ATOMIC at this moment.")
+                raise EvalParamError(
+                    "only support ATOMIC, CUSTOM_PROTOBUF and GROUPs at this moment."
+                )
+            if attr.type in [AttrType.AT_STRUCT_GROUP, AttrType.AT_UNION_GROUP]:
+                continue
 
             full_name = "/".join(list(attr.prefixes) + [attr.name])
+            full_prefix = None
+            skip = False
+            for prefix in attr.prefixes:
+                full_prefix = f"{full_prefix}/{prefix}" if full_prefix else prefix
+                if full_prefix in union_group_selection:
+                    selection = f"{full_prefix}/{union_group_selection[full_prefix]}"
+                    if full_name != selection and not full_name.startswith(
+                        f"{selection}/"
+                    ):
+                        skip = True
+                        break
+            if skip:
+                # not in union group selection, set value to None instead of default value.
+                self._instance_attrs[full_name] = None
+                continue
 
             if full_name not in self._instance_attrs:
+                if attr.type is AttrType.AT_CUSTOM_PROTOBUF:
+                    raise EvalParamError(f"CUSTOM_PROTOBUF attr {full_name} not set.")
+
                 # use default value.
                 if not attr.atomic.is_optional:
                     raise EvalParamError(
@@ -179,12 +228,15 @@ class EvalParamReader:
                 raise EvalParamError(f"attr {full_name}: check_upper_bound failed.")
 
             self._instance_attrs[full_name] = get_value(
-                self._instance_attrs[full_name], attr.type
+                self._instance_attrs[full_name], attr.type, attr.custom_protobuf_cls
             )
 
         # input
         if len(self._instance.inputs) != len(self._definition.inputs):
-            raise EvalParamError("number of input does not match.")
+            # help user debug
+            raise EvalParamError(
+                f"number of input does not match. self:{len(self._instance.inputs)}, def:{len(self._definition.inputs)}"
+            )
 
         self._instance_inputs = {}
         for input_instance, input_def in zip(

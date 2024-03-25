@@ -20,22 +20,22 @@ Preliminaries
 We use the same definition for dp in randomized mechanisms as [1]: A
 randomized mechanism :math:`M: D \rightarrow R` , with domain :math:`D`
 and range :math:`R` satisfies :math:`(\epsilon, \delta)`-differential
-privacy, if for any two adjacent inputs :math:`d, d^{\prime} \in D` 
+privacy, if for any two adjacent inputs :math:`d, d^{\prime} \in D`
 and for any subset of outputs :math:`S \subseteq R` it holds that
 :math:`P[M(d) \in S] \leq e^{\epsilon} \operatorname{Pr}\left[M\left(d^{\prime}\right) \in S\right]+\delta`
 . In this definition, :math:`\delta` accounts for the
 probability that plain :math:`\epsilon` -differential privacy is broken.
 
-The Gaussian mechanism (GM) approximates a real valued 
+The Gaussian mechanism (GM) approximates a real valued
 function :math:`f` : :math:`D \rightarrow R` with a differentially
 private mechanism. Specifically, a GM adds Gaussian noise calibrated to
 the functions data set sensitivity :math:`S_{f}` . This sensitivity is
 defined as the maximum of the absolute distance
 :math:`\left\|f(d)-f\left(d^{\prime}\right)\right\|_{2}` , where
 :math:`d^{\prime}` and :math:`d` are two adjacent inputs. A GM is then defined
-as :math:`M(d)=f(d)+\mathcal{N}\left(0, \sigma^{2} S_{f}^{2}\right)` where :math:`\sigma` is noise multiplier. 
+as :math:`M(d)=f(d)+\mathcal{N}\left(0, \sigma^{2} S_{f}^{2}\right)` where :math:`\sigma` is noise multiplier.
 
-It is well known that :math:`\sigma` or :math:`\epsilon` can be fixed and evaluate an inquiry to the GM about a single approximation of 
+It is well known that :math:`\sigma` or :math:`\epsilon` can be fixed and evaluate an inquiry to the GM about a single approximation of
 :math:`f(d)`. For example, we assume that :math:`\epsilon` is fixed. Then, we can then bound the probability that :math:`\epsilon` -dp is
 broken according to: :math:`\delta \leq \frac{4}{5} \exp \left(-(\sigma \epsilon)^{2} / 2 \right)`
 (Theorem 3.22 in [2]). It should be noted that :math:`\delta` is

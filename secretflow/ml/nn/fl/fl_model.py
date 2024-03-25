@@ -25,15 +25,14 @@ import os
 from typing import Callable, Dict, List, Tuple, Union
 
 import numpy as np
-from tqdm import tqdm
 
 from secretflow.data.horizontal import HDataFrame
 from secretflow.data.ndarray import FedNdarray
 from secretflow.device import PYU, reveal, wait
 from secretflow.device.device.pyu import PYUObject
+from secretflow.ml.nn.callbacks.callbacklist import CallbackList
 from secretflow.ml.nn.fl.compress import COMPRESS_STRATEGY, do_compress
 from secretflow.ml.nn.fl.strategy_dispatcher import dispatch_strategy
-from secretflow.ml.nn.fl.utils import History
 from secretflow.ml.nn.metrics import Metric, aggregate_metrics
 from secretflow.utils.compressor import sparse_encode
 from secretflow.utils.random import global_random
@@ -50,6 +49,7 @@ class FLModel:
         consensus_num=1,
         backend="tensorflow",
         random_seed=None,
+        skip_bn=False,
         **kwargs,  # other parameters specific to strategies
     ):
         """Interface for horizontal federated learning
@@ -64,6 +64,7 @@ class FLModel:
             random_seed: If specified, the initial value of the model will remain the same, which ensures reproducible
             server_agg_method: If aggregator is none, server will use server_agg_method to aggregate params, The server_agg_method should be a function
                 that takes in a list of parameter values from different parties and returns the aggregated parameter value list
+            skip_bn: Whether to skip batch normalization layers when aggregate models
         """
         if backend == "tensorflow":
             import secretflow.ml.nn.fl.backend.tensorflow.strategy  # noqa
@@ -79,6 +80,7 @@ class FLModel:
             backend=backend,
             random_seed=random_seed,
             num_gpus=self.num_gpus,
+            skip_bn=skip_bn,
         )
         self.server = server
         self.device_list = device_list
@@ -100,6 +102,7 @@ class FLModel:
         backend,
         random_seed,
         num_gpus,
+        skip_bn,
     ):
         self._workers = {
             device: dispatch_strategy(
@@ -109,6 +112,7 @@ class FLModel:
                 device=device,
                 random_seed=random_seed,
                 num_gpus=num_gpus,
+                skip_bn=skip_bn,
             )
             for device in device_list
         }
@@ -353,7 +357,7 @@ class FLModel:
         audit_log_dir=None,
         dataset_builder: Dict[PYU, Callable] = None,
         wait_steps=100,
-    ) -> History:
+    ) -> Dict:
         """Horizontal federated training interface
 
         Args:
@@ -448,28 +452,34 @@ class FLModel:
                 sampler_method=sampler_method,
                 dataset_builder=dataset_builder,
             )
-        history = History()
+        # setup callback list
+        callbacks = CallbackList(
+            callbacks=callbacks,
+            add_history=True,
+            add_progbar=verbose != 0,
+            workers=self._workers,
+            device_y=None,
+            epochs=epochs,
+            verbose=verbose,
+            steps=train_steps_per_epoch,
+        )
 
         initial_weight = self.initialize_weights()
         logging.debug(f"initial_weight: {initial_weight}")
         server_weight = None
         if self.server and isinstance(initial_weight, PYUObject):
             server_weight = initial_weight
-        for device, worker in self._workers.items():
-            worker.init_training(callbacks, epochs=epochs)
-            worker.on_train_begin()
+        callbacks.on_train_begin()
         model_params = None
         model_params_list = None
         for epoch in range(epochs):
             res = []
             report_list = []
-            pbar = tqdm(total=train_steps_per_epoch)
             # do train
             report_list.append(f"epoch: {epoch+1}/{epochs} - ")
-            [worker.on_epoch_begin(epoch) for worker in self._workers.values()]
+            callbacks.on_epoch_begin(epoch=epoch)
             for step in range(0, train_steps_per_epoch, aggregate_freq):
-                if verbose == 1:
-                    pbar.update(aggregate_freq)
+                callbacks.on_train_batch_begin(batch=step)
                 client_param_list, sample_num_list = [], []
                 for idx, device in enumerate(self._workers.keys()):
                     client_params = (
@@ -477,12 +487,20 @@ class FLModel:
                         if model_params_list is not None
                         else None
                     )
+                    # refresh data-iter
+                    if step == 0:
+                        self.kwargs["refresh_data"] = True
+                    else:
+                        self.kwargs["refresh_data"] = False
+
                     client_params, sample_num = self._workers[device].train_step(
                         client_params,
                         epoch * train_steps_per_epoch + step,
-                        aggregate_freq
-                        if step + aggregate_freq < train_steps_per_epoch
-                        else train_steps_per_epoch - step,
+                        (
+                            aggregate_freq
+                            if step + aggregate_freq < train_steps_per_epoch
+                            else train_steps_per_epoch - step
+                        ),
                         **self.kwargs,
                     )
                     client_param_list.append(client_params)
@@ -557,20 +575,20 @@ class FLModel:
                         params.to(device)
                         for device, params in zip(self.device_list, model_params_list)
                     ]
+                callbacks.on_train_batch_end(batch=step)
+
+            # last batch
+            for idx, device in enumerate(self._workers.keys()):
+                client_params = model_params_list[idx].to(device)
+                self._workers[device].apply_weights(client_params)
+            model_params_list = None
 
             local_metrics_obj = []
             for device, worker in self._workers.items():
-                worker.on_epoch_end(epoch)
                 local_metrics_obj.append(worker.wrap_local_metrics())
 
-            local_metrics = reveal(local_metrics_obj)
-            for local_metric in local_metrics:
-                history.record_local_history(party=device.party, metrics=local_metric)
-
-            g_metrics = aggregate_metrics(local_metrics)
-            history.record_global_history(g_metrics)
-
             if epoch % validation_freq == 0 and valid_x is not None:
+                callbacks.on_test_begin()
                 global_eval, local_eval = self.evaluate(
                     valid_x,
                     valid_y,
@@ -584,12 +602,7 @@ class FLModel:
                 )
                 for device, worker in self._workers.items():
                     worker.set_validation_metrics(global_eval)
-                    history.record_local_history(
-                        party=device.party,
-                        metrics=local_eval[device.party].values(),
-                        stage="val",
-                    )
-                history.record_global_history(metrics=global_eval.values(), stage="val")
+
                 # save checkpoint
                 if audit_log_dir is not None:
                     epoch_model_path = os.path.join(
@@ -598,20 +611,16 @@ class FLModel:
                     self.save_model(
                         model_path=epoch_model_path, is_test=self.simulation
                     )
+                callbacks.on_test_end()
 
-            for name, metric in history.global_history.items():
-                report_list.append(f"{name}:{metric[-1]} ")
-            report = " ".join(report_list)
-            if verbose == 1:
-                pbar.set_postfix_str(report)
-                pbar.close()
             stop_trainings = [
                 reveal(worker.get_stop_training()) for worker in self._workers.values()
             ]
             if sum(stop_trainings) >= self.consensus_num:
                 break
-
-        return history
+            callbacks.on_epoch_end(epoch=epoch)
+        callbacks.on_train_end()
+        return callbacks.history
 
     def predict(
         self,
@@ -636,6 +645,7 @@ class FLModel:
         """
         if not random_seed:
             random_seed = global_random([*self._workers][0], 100000)
+
         if isinstance(x, Dict):
             predict_steps = self._handle_file(
                 x,

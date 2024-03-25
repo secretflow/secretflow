@@ -71,7 +71,13 @@ def ss_vif_eval_fn(
         raise CompEvalError("only support one spu")
     spu_config = next(iter(ctx.spu_configs.values()))
 
-    spu = SPU(spu_config["cluster_def"], spu_config["link_desc"])
+    cluster_def = spu_config["cluster_def"].copy()
+
+    # forced to use 128 ring size & 40 fxp
+    cluster_def["runtime_config"]["field"] = "FM128"
+    cluster_def["runtime_config"]["fxp_fraction_bits"] = 40
+
+    spu = SPU(cluster_def, spu_config["link_desc"])
 
     feature_selects = (
         input_data_feature_selects if len(input_data_feature_selects) else None
@@ -81,7 +87,7 @@ def ss_vif_eval_fn(
         ctx,
         input_data,
         load_features=True,
-        feature_selects=feature_selects,
+        col_selects=feature_selects,
     )
     with ctx.tracer.trace_running():
         vif: np.ndarray = VIF(spu).vif(x)

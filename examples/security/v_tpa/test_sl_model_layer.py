@@ -1,31 +1,44 @@
 #!/usr/bin/env python
 # coding=utf-8
-import secretflow as sf
-import tensorflow as tf
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import copy
+import pdb
+
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+import torch
+from attack.attack_config import BADNETS_ARGS, POISONING_ARGS
+from config import AGGREGATIONS, METHODS, PARTIES, PARTY_NUM, TIMES
 
 # # # from secretflow.ml.nn import SLModel
 from custom_base.custom_sl_model import CustomSLModel
-from secretflow.data.ndarray import load
-from secretflow.device import reveal
-
-import torch
-import numpy as np
-from torch.nn import functional as F
-import pandas as pd
-
-import pdb
-from tqdm import *
-
+from dataset.dataset_config import DATASETS
+from test_model.tf.basic_sl_model import create_fuse_model, create_passive_model
+from test_model.tf.cifar10_model import Splittable_Model, split_options
 from test_model.tf.fuse_model import get_fuse_model
 from test_model.tf_model_config import MODELS
-from dataset.dataset_config import DATASETS
-from attack.attack_config import BADNETS_ARGS, POISONING_ARGS
-from config import METHODS, AGGREGATIONS, TIMES, PARTIES, PARTY_NUM
-from tools.metric import asr
 from tools.logger import config_logger, print_log
-from test_model.tf.cifar10_model import Splittable_Model, split_options
-from test_model.tf.basic_sl_model import create_passive_model, create_fuse_model
+from tools.metric import asr
+from torch.nn import functional as F
+from tqdm import *
+
+import secretflow as sf
+from secretflow.data.ndarray import load
+from secretflow.device import reveal
 
 config_logger(fname="./logs/baseline_layer.log")
 party_num = PARTY_NUM
@@ -73,18 +86,18 @@ for split_point in split_options:
                         dst_dataset = ds_config["badnets"](
                             ds_name, ds_path, ds_args, BADNETS_ARGS
                         )
-                        POISONING_ARGS[
-                            "train_poisoning_indexes"
-                        ] = dst_dataset.get_train_poisoning_indexes()
-                        POISONING_ARGS[
-                            "valid_poisoning_indexes"
-                        ] = dst_dataset.get_valid_poisoning_indexes()
-                        POISONING_ARGS[
-                            "train_target_indexes"
-                        ] = dst_dataset.get_train_target_indexes()
-                        POISONING_ARGS[
-                            "valid_target_indexes"
-                        ] = dst_dataset.get_valid_target_indexes()
+                        POISONING_ARGS["train_poisoning_indexes"] = (
+                            dst_dataset.get_train_poisoning_indexes()
+                        )
+                        POISONING_ARGS["valid_poisoning_indexes"] = (
+                            dst_dataset.get_valid_poisoning_indexes()
+                        )
+                        POISONING_ARGS["train_target_indexes"] = (
+                            dst_dataset.get_train_target_indexes()
+                        )
+                        POISONING_ARGS["valid_target_indexes"] = (
+                            dst_dataset.get_valid_target_indexes()
+                        )
 
                         (
                             train_passive_datas,

@@ -1,10 +1,10 @@
 Linear Models
 ==============
 
-Linear model is a kind of statistical model with simple form and very widely used. 
+Linear model is a kind of statistical model with simple form and very widely used.
 Under the protection of a multi-party secure computing protocol, SecretFlow
 implements provably secure linear regression and binary classification
-regression through 
+regression through
 `minibatch Stochastic Gradient Descent (SGD) method <https://d2l.ai/chapter_optimization/minibatch-sgd.html#minibatches>`_
 for vertically partitioned dataset setting.
 
@@ -17,7 +17,7 @@ Normal:
 L2 penalty:
 
 :math:`{\theta^{t+1}} \leftarrow {\theta^t} - \frac{\alpha}{m}  ({X}^T ({X}{\theta^t} - {y}) + \lambda {w^t})`
-where 
+where
 :math:`w^t_0 = 0, w^t_j = \theta^t_j`
 :math:`j = 1, \cdots, n`
 
@@ -38,7 +38,7 @@ According to the different CPU/bandwidth of the running environment, you can cho
 
 SS-SGD
 -------
- 
+
 The SS-SGD module :py:meth:`~secretflow.ml.linear.ss_sgd.model.SSRegression`
 provides both linear and logistic regression linear models
 for vertical split dataset setting by using secret sharing with mini
@@ -60,8 +60,8 @@ with optional L2 regularization.
 Example
 ++++++++
 
-A local cluster(Standalone Mode) needs to be initialized as the running environment for this example. 
-See `Deployment <../../getting_started/deployment.html>`_ and refer to the 'Cluster Mode'.
+A local cluster(Standalone Mode) needs to be initialized as the running environment for this example.
+See `Deployment <https://www.secretflow.org.cn/docs/secretflow/latest/en-US/getting_started/deployment.html>`_ and refer to the 'Cluster Mode'.
 
 For more detail about parameter settings, see API :py:meth:`~secretflow.ml.linear.ss_sgd.model.SSRegression`
 
@@ -185,7 +185,7 @@ Taking binary regression as an example, the main process is as follows:
 
     Step 2: Using mini-batch gradient descent, repeat the following steps until the target number of iterations is reached
 
-    - Step 2.1: Calculate the predicted value: pred = sigmoid(batch_x * w). 
+    - Step 2.1: Calculate the predicted value: pred = sigmoid(batch_x * w).
       The sigmoid can be approximated using Taylor expansion, piecewise function, inverse square sigmoid function, etc.
     - Step 2.2: Calculate: err = pred - y
     - Step 2.3: Calculate the gradient: grad = batch_x.transpose() * err
@@ -219,8 +219,8 @@ and some engineering optimizations are carried out.
 Example
 ++++++++
 
-A local cluster(Standalone Mode) needs to be initialized as the running environment for this example. 
-See `Deployment <../../getting_started/deployment.html>`_ and refer to the 'Cluster Mode'.
+A local cluster(Standalone Mode) needs to be initialized as the running environment for this example.
+See `Deployment <https://www.secretflow.org.cn/docs/secretflow/latest/en-US/getting_started/deployment.html>`_ and refer to the 'Cluster Mode'.
 
 For more details about API, see :py:meth:`~secretflow.ml.linear.hess_sgd.model.HESSLogisticRegression`
 

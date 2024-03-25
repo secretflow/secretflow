@@ -12,35 +12,55 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from dataclasses import dataclass
 from typing import List, Union
 
 from secretflow.device import PYUObject
 from secretflow.ml.boost.sgb_v.factory.sgb_actor import SGBActor
 
 from ....core.distributed_tree.distributed_tree import DistributedTree
-from ..component import Component, Devices
+from ....core.pure_numpy_ops.node_select import (
+    packbits_node_selects,
+    unpack_node_select_lists,
+)
+from ..component import Component, Devices, print_params
 from .split_tree_actor import SplitTreeActor
+
+
+@dataclass
+class SplitTreeBuilderParams:
+    """
+    'enable_packbits': bool. if true, turn on packbits transmission.
+        default: False
+    """
+
+    enable_packbits: bool = False
 
 
 class SplitTreeBuilder(Component):
     def __init__(self) -> None:
+        self.params = SplitTreeBuilderParams()
         return
 
     def show_params(self):
-        return
+        print_params(self.params)
 
-    def set_params(self, _):
-        return
+    def set_params(self, params: dict):
+        self.params.enable_packbits = bool(params.get('enable_packbits', False))
 
-    def get_params(self, _):
-        return
+    def get_params(self, params: dict):
+        params['enable_packbits'] = self.params.enable_packbits
 
     def set_devices(self, devices: Devices):
         self.workers = devices.workers
         self.label_holder = devices.label_holder
 
     def set_actors(self, actors: List[SGBActor]):
-        self.split_tree_builder_actors = actors
+        assert len(self.workers) > 0, "workers must be set"
+        # worker actors only
+        self.split_tree_builder_actors = [
+            actor for actor in actors if actor.device in self.workers
+        ]
         for i, actor in enumerate(self.split_tree_builder_actors):
             actor.register_class('SplitTreeActor', SplitTreeActor, i)
 
@@ -87,9 +107,11 @@ class SplitTreeBuilder(Component):
             actor.invoke_class_method(
                 'SplitTreeActor',
                 'split_buckets_to_paritition',
-                split_buckets.to(actor.device)
-                if isinstance(split_buckets, PYUObject)
-                else [sb.to(actor.device) for sb in split_buckets],
+                (
+                    split_buckets.to(actor.device)
+                    if isinstance(split_buckets, PYUObject)
+                    else [sb.to(actor.device) for sb in split_buckets]
+                ),
             )
             for actor in self.split_tree_builder_actors
         ]
@@ -122,6 +144,7 @@ class SplitTreeBuilder(Component):
         left_child_selects: List[PYUObject],
         gain_is_cost_effective: List[bool],
         node_indices: Union[List[int], PYUObject],
+        select_shape: PYUObject,
     ) -> List[List[int]]:
         """insert split points to split trees
 
@@ -136,7 +159,9 @@ class SplitTreeBuilder(Component):
             left_child_selects: left child selects for the new split nodes.
         """
         lchild_selects = []
-        for i, _ in enumerate(self.workers):
+        label_holder = self.label_holder
+        enable = self.params.enable_packbits
+        for i, worker in enumerate(self.workers):
             split_node_indices_here = (
                 node_indices.to(self.workers[i])
                 if isinstance(node_indices, PYUObject)
@@ -155,7 +180,16 @@ class SplitTreeBuilder(Component):
                 gain_is_cost_effective,
                 split_node_indices_here,
             )
-            lchild_selects.append(selects.to(self.label_holder))
+            if enable:
+                selects_in_bits = worker(packbits_node_selects)(selects)
+                lchild_selects.append(selects_in_bits.to(self.label_holder))
+            else:
+                lchild_selects.append(selects.to(self.label_holder))
+        if enable:
+            lchild_selects = label_holder(unpack_node_select_lists)(
+                lchild_selects, select_shape
+            )
+
         return lchild_selects
 
     def insert_split_trees_into_distributed_tree(

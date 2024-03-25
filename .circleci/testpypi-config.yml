@@ -21,7 +21,7 @@ parameters:
 jobs:
   linux_publish:
     docker:
-      - image: registry.hub.docker.com/secretflow/release-ci:0.7
+      - image: registry.hub.docker.com/secretflow/release-ci:latest
     resource_class: 2xlarge
     parameters:
       python_ver:
@@ -78,8 +78,7 @@ workflows:
       - linux_publish:
           matrix:
             parameters:
-              # python_ver: ["3.8", "3.9", "3.10", "3.11"]
-              python_ver: ["3.8"]
+              python_ver: ["3.9", "3.10", "3.11"]
       - docker_image_publish:
           requires:
             - linux_publish

@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .model import SgbModel
+from .core.params import SGBParams, get_classic_lightGBM_params, get_classic_XGB_params
 from .factory import SGBFactory as Sgb
-from .core.params import get_classic_lightGBM_params, get_classic_XGB_params, SGBParams
+from .model import SgbModel
 
 __all__ = [
     'SgbModel',

@@ -14,7 +14,7 @@
 
 import pandas as pd
 
-from secretflow.component.component import Component, IoType
+from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import DistDataType, load_table
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData
@@ -24,7 +24,7 @@ from secretflow.stats.table_statistics import table_statistics
 table_statistics_comp = Component(
     name="table_statistics",
     domain="stats",
-    version="0.0.1",
+    version="0.0.2",
     desc="""Get a table of statistics,
     including each column's
 
@@ -32,26 +32,28 @@ table_statistics_comp = Component(
     2. total_count
     3. count
     4. count_na
-    5. min
-    6. max
-    7. var
-    8. std
-    9. sem
-    10. skewness
-    11. kurtosis
-    12. q1
-    13. q2
-    14. q3
-    15. moment_2
-    16. moment_3
-    17. moment_4
-    18. central_moment_2
-    19. central_moment_3
-    20. central_moment_4
-    21. sum
-    22. sum_2
-    23. sum_3
-    24. sum_4
+    5. na_ratio
+    6. min
+    7. max
+    8. mean
+    9. var
+    10. std
+    11. sem
+    12. skewness
+    13. kurtosis
+    14. q1
+    15. q2
+    16. q3
+    17. moment_2
+    18. moment_3
+    19. moment_4
+    20. central_moment_2
+    21. central_moment_3
+    22. central_moment_4
+    23. sum
+    24. sum_2
+    25. sum_3
+    26. sum_4
 
     - moment_2 means E[X^2].
     - central_moment_2 means E[(X - mean(X))^2].
@@ -65,7 +67,13 @@ table_statistics_comp.io(
     name="input_data",
     desc="Input table.",
     types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
-    col_params=None,
+    col_params=[
+        TableColParam(
+            name="features",
+            desc="perform statistics on these columns",
+            col_min_cnt_inclusive=1,
+        ),
+    ],
 )
 table_statistics_comp.io(
     io_type=IoType.OUTPUT,
@@ -123,9 +131,14 @@ def dump_table_statistics(name, system_info, df: pd.DataFrame) -> DistData:
 
 
 @table_statistics_comp.eval_fn
-def table_statistics_eval_fn(*, ctx, input_data, report):
+def table_statistics_eval_fn(*, ctx, input_data, input_data_features, report):
     input_df = load_table(
-        ctx, input_data, load_features=True, load_labels=True, load_ids=True
+        ctx,
+        input_data,
+        load_features=True,
+        load_labels=True,
+        load_ids=True,
+        col_selects=input_data_features,
     )
 
     with ctx.tracer.trace_running():

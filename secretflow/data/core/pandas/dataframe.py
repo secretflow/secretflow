@@ -20,8 +20,8 @@ from jax import tree_map
 from pandas import Index
 from pandas._typing import IgnoreRaise
 
-from ..base import PartDataFrameBase
 from ...io.util import is_local_file
+from ..base import PartDataFrameBase
 
 
 class PdPartDataFrame(PartDataFrameBase):
@@ -171,7 +171,9 @@ class PdPartDataFrame(PartDataFrameBase):
             return PdPartDataFrame(data)
 
     def to_csv(self, filepath, **kwargs):
-        if is_local_file(filepath):
+        if callable(filepath):
+            filepath = filepath()
+        elif is_local_file(filepath):
             Path(filepath).parent.mkdir(parents=True, exist_ok=True)
         self.data.to_csv(filepath, **kwargs)
 

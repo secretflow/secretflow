@@ -27,9 +27,9 @@ from secretflow.device import (
     SPUObject,
     register,
 )
-from secretflow.utils.progress import ProgressData
 from secretflow.device.device.base import register_to
 from secretflow.device.device.heu import HEUMoveConfig
+from secretflow.utils.progress import ProgressData
 
 
 @register_to(DeviceType.SPU, DeviceType.PYU)
@@ -50,6 +50,7 @@ def spu_to_pyu(self: SPUObject, pyu: Device, config: HEUMoveConfig = None):
     )
 
 
+# WARNING: you may need to wait spu to spu for following applications
 @register_to(DeviceType.SPU, DeviceType.SPU)
 def spu_to_spu(self: SPUObject, spu: SPU):
     assert isinstance(spu, SPU), f'Expect an SPU but got {type(spu)}.'
@@ -108,9 +109,11 @@ def spu_to_heu(self: SPUObject, heu: Device, config: HEUMoveConfig = None):
         for (p, actor), chunks in zip(self.device.actors.items(), chunks_pre_party)
     }
     shards = [
-        heu.get_participant(p).encrypt.remote(shard, config.heu_audit_log)
-        if p != config.heu_dest_party
-        else shard
+        (
+            heu.get_participant(p).encrypt.remote(shard, config.heu_audit_log)
+            if p != config.heu_dest_party
+            else shard
+        )
         for p, shard in shards.items()
     ]
     data = heu.get_participant(config.heu_dest_party).a2h_sum_shards.remote(*shards)
@@ -479,23 +482,23 @@ def pir_setup(
     setup_path: str,
     num_per_query: int,
     label_max_len: int,
-    protocol="KEYWORD_PIR_LABELED_PSI",
+    bucket_size: int,
 ):
-    assert isinstance(device, SPU), f'device must be SPU device'
-    assert isinstance(server, str), f'server must be str'
-    assert isinstance(input_path, str), f'input_path must be str'
+    assert isinstance(device, SPU), 'device must be SPU device'
+    assert isinstance(server, str), 'server must be str'
+    assert isinstance(input_path, str), 'input_path must be str'
     assert isinstance(
         key_columns, (str, List, Dict)
-    ), f'invalid key_columns, must be str of list of str or dict of list str'
+    ), 'invalid key_columns, must be str of list of str or dict of list str'
     assert isinstance(
         label_columns, (str, List, Dict)
-    ), f'invalid label_columns, must be str of list of str or dict of list str'
-    assert isinstance(oprf_key_path, str), f'oprf_key_path must be str '
-    assert isinstance(setup_path, str), f'setup_path must be str '
-    assert isinstance(num_per_query, int), f'num_per_query must be int'
-    assert isinstance(label_max_len, int), f'label_max_len must be int'
+    ), 'invalid label_columns, must be str of list of str or dict of list str'
+    assert isinstance(oprf_key_path, str), 'oprf_key_path must be str '
+    assert isinstance(setup_path, str), 'setup_path must be str '
+    assert isinstance(num_per_query, int), 'num_per_query must be int'
+    assert isinstance(label_max_len, int), 'label_max_len must be int'
 
-    assert server in device.actors.keys(), f'invalid server party name {server}'
+    assert server in device.actors.keys(), f'invalid server party name: {server}'
 
     res = []
 
@@ -510,7 +513,7 @@ def pir_setup(
             setup_path,
             num_per_query,
             label_max_len,
-            protocol,
+            bucket_size,
         )
     )
 
@@ -522,61 +525,91 @@ def pir_setup(
 def pir_query(
     device: SPU,
     server: str,
-    config: Dict[Device, Dict],
-    protocol="KEYWORD_PIR_LABELED_PSI",
+    client: str,
+    server_setup_path: str,
+    client_key_columns: Union[str, List[str]],
+    client_input_path: str,
+    client_output_path: str,
 ):
-    assert isinstance(device, SPU), f'device must be SPU device'
-    assert isinstance(server, str), f'server must be str'
-    assert isinstance(config, Dict), f'config must be str'
+    assert isinstance(device, SPU), 'device must be SPU device'
+    assert isinstance(server, str), 'server must be str'
+    assert isinstance(client, str), 'server must be str'
 
-    assert server in device.actors.keys(), f'invalid server party name {server}'
+    assert server in device.actors.keys(), 'invalid server party name: {server}'
+    assert client in device.actors.keys(), 'invalid server party name: {client}'
 
     assert 2 == len(
         device.actors
     ), f'unexpected number({len(device.actors)}) of partys, should be 2'
 
     res = []
-    for dev, iconfig in config.items():
-        actor = device.actors[dev.party]
-        res.append(
-            actor.pir_query.remote(
-                server,
-                iconfig,
-                protocol,
-            )
+
+    server_actor = device.actors[server]
+    res.append(
+        server_actor.pir_query.remote(
+            server,
+            client,
+            server_setup_path,
+            client_key_columns,
+            client_input_path,
+            client_output_path,
         )
+    )
+
+    client_actor = device.actors[client]
+    res.append(
+        client_actor.pir_query.remote(
+            server,
+            client,
+            server_setup_path,
+            client_key_columns,
+            client_input_path,
+            client_output_path,
+        )
+    )
 
     # wait for all tasks done
     return sfd.get(res)
 
 
 @register(DeviceType.SPU)
-def pir_memory_query(
+def psi(
     device: SPU,
-    server: str,
-    config: Dict[Device, Dict],
-    protocol="KEYWORD_PIR_LABELED_PSI",
+    keys: Dict[str, List[str]],
+    input_path: Dict[str, str],
+    output_path: Dict[str, str],
+    receiver: str,
+    broadcast_result: bool = True,
+    protocol: str = 'PROTOCOL_KKRT',
+    ecdh_curve: str = 'CURVE_FOURQ',
+    advanced_join_type: str = "ADVANCED_JOIN_TYPE_UNSPECIFIED",
+    left_side: str = "ROLE_RECEIVER",
+    skip_duplicates_check: bool = False,
+    disable_alignment: bool = False,
+    check_hash_digest: bool = False,
 ):
-    assert isinstance(device, SPU), f'device must be SPU device'
-    assert isinstance(server, str), f'server must be str'
-    assert isinstance(config, Dict), f'config must be str'
+    assert isinstance(device, SPU), 'device must be SPU device'
 
-    assert server in device.actors.keys(), f'invalid server party name {server}'
-
-    assert 2 == len(
-        device.actors
-    ), f'unexpected number({len(device.actors)}) of partys, should be 2'
+    assert device.world_size == 2, 'only 2pc is allowed.'
+    assert receiver in device.actors, f'receiver {receiver} is not found in spu nodes.'
 
     res = []
-    for dev, iconfig in config.items():
-        actor = device.actors[dev.party]
+    for party, actor in device.actors.items():
         res.append(
-            actor.pir_memory_query.remote(
-                server,
-                iconfig,
+            actor.psi.remote(
+                keys[party],
+                input_path[party],
+                output_path[party],
+                receiver,
+                broadcast_result,
                 protocol,
+                ecdh_curve,
+                advanced_join_type,
+                left_side,
+                skip_duplicates_check,
+                disable_alignment,
+                check_hash_digest,
             )
         )
-
     # wait for all tasks done
     return sfd.get(res)

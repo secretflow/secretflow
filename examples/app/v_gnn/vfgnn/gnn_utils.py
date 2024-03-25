@@ -12,26 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numpy as np
-import dgl
-import networkx as nx
-
-import torch
-import scipy
+import logging
 import math
-from collections import defaultdict
-
-from pathlib import Path
-import zipfile
 import os
 import pickle
 import tempfile
-import logging
+import zipfile
+from collections import defaultdict
+from pathlib import Path
 
-from secretflow.utils.simulation.datasets import dataset
-from secretflow.data.ndarray import FedNdarray, PartitionWay
-
+import dgl
+import networkx as nx
+import numpy as np
+import scipy
+import torch
 from torch.utils.data import DataLoader, TensorDataset
+
+from secretflow.data.ndarray import FedNdarray, PartitionWay
+from secretflow.utils.simulation.datasets import dataset
 
 
 class GraphTrainLoader(DataLoader):

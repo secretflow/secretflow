@@ -126,7 +126,7 @@ msgstr "垂直DataFrame"
 
 #: ../../user_guide/preprocessing/DataFrame.ipynb:779
 msgid "Create a DataFrame consisting of vertically partitioned data."
-msgstr "创建一个由水平切分数据组成的DataFrame。"
+msgstr "创建一个由垂直切分数据组成的DataFrame。"
 
 #: ../../user_guide/preprocessing/DataFrame.ipynb:805
 msgid "Data analysis"

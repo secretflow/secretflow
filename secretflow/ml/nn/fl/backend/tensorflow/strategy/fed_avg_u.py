@@ -60,7 +60,6 @@ class FedAvgU(BaseTFModel):
             self.model.set_weights(weights)
 
         num_sample = 0
-        self.callbacks.on_train_batch_begin(cur_steps)
 
         logs = {}
         self.model_weights = self.model.get_weights()
@@ -93,7 +92,7 @@ class FedAvgU(BaseTFModel):
             self.model.compiled_metrics.update_state(y, y_pred)
         for m in self.model.metrics:
             logs[m.name] = m.result().numpy()
-        self.callbacks.on_train_batch_end(cur_steps + train_steps, logs)
+        self.wrapped_metrics.extend(self.wrap_local_metrics())
         self.logs = logs
         self.epoch_logs = copy.deepcopy(self.logs)
 
@@ -108,6 +107,16 @@ class FedAvgU(BaseTFModel):
                 client_updates = dp_strategy.model_gdp(client_updates)
 
         return client_updates, num_sample
+
+    def apply_weights(self, updates, **kwargs):
+        """Accept ps model params, then apply to local model
+
+        Args:
+            updates: global updates from params server
+        """
+        if updates is not None:
+            weights = [np.add(w, u) for w, u in zip(self.model_weights, updates)]
+            self.model.set_weights(weights)
 
 
 @register_strategy(strategy_name='fed_avg_u', backend='tensorflow')

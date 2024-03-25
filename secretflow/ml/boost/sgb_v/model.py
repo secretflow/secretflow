@@ -11,23 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import json
+import os
 from pathlib import Path
-from typing import Dict, Union, List
+from typing import Dict, List, Union
 
 import jax.numpy as jnp
 
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import PYU, PYUObject, reveal, wait
+from secretflow.ml.boost.core.data_preprocess import prepare_dataset
 
 from .core.distributed_tree.distributed_tree import DistributedTree
 from .core.distributed_tree.distributed_tree import from_dict as dt_from_dict
 from .core.params import RegType
-from secretflow.ml.boost.core.data_preprocess import prepare_dataset
 from .core.pure_numpy_ops.pred import sigmoid
-
 
 common_path_postfix = "/common.json"
 leaf_weight_postfix = "/leaf_weight.json"
@@ -50,9 +49,18 @@ class SgbModel:
         self.objective = objective
         self.base = base
         self.trees: List[DistributedTree] = list()
+        # useful for dumping to a complete model or check data shape before predict.
+        # TODO(zoupeicheng.zpc): check input data columns count match
+        self.partition_column_counts = {}
 
     def _insert_distributed_tree(self, tree: DistributedTree):
         self.trees.append(tree)
+
+    def __getitem__(self, index) -> 'SgbModel':
+        model = SgbModel(self.label_holder, self.objective, self.base)
+        model.trees = self.trees[index]
+        model.partition_column_counts = self.partition_column_counts
+        return model
 
     def predict(
         self,
@@ -76,18 +84,17 @@ class SgbModel:
         """
         if len(self.trees) == 0:
             return None
+
+        pred = 0
         x, _ = prepare_dataset(dtrain)
         x = x.partitions
-        preds = []
-        for tree in self.trees:
-            pred = tree.predict(x)
-            preds.append(pred)
 
-        pred = self.label_holder(
-            lambda ps, base: (
-                jnp.sum(jnp.concatenate(ps, axis=1), axis=1) + base
-            ).reshape(-1, 1)
-        )(preds, self.base)
+        for tree in self.trees:
+            pred = self.label_holder(lambda x, y: jnp.add(x, y))(tree.predict(x), pred)
+
+        pred = self.label_holder(lambda x, y: jnp.add(x, y).reshape(-1, 1))(
+            pred, self.base
+        )
 
         if self.objective == RegType.Logistic:
             pred = self.label_holder(sigmoid)(pred)
@@ -113,6 +120,7 @@ class SgbModel:
                 'objective': self.objective.value,
                 'base': self.base,
                 'tree_num': len(self.trees),
+                'partition_column_counts': self.partition_column_counts,
             },
             'leaf_weights': [
                 tree_dict['leaf_weight'] for tree_dict in distributed_tree_dicts
@@ -125,6 +133,10 @@ class SgbModel:
                 for device in device_list
             },
         }
+
+    def sync_partition_columns_to_all_distributed_trees(self):
+        for tree in self.trees:
+            tree.partition_column_counts = self.partition_column_counts
 
     def save_model(self, device_path_dict: Dict, wait_before_proceed=True):
         """Save model to different parties
@@ -162,9 +174,12 @@ class SgbModel:
         finish_split_trees = []
         for device, path in device_path_dict.items():
             split_tree_path = path + split_tree_postfix
-            finish_split_trees.append(
-                device(json_dump)(model_dict['split_trees'][device], split_tree_path)
-            )
+            if device in model_dict['split_trees']:
+                finish_split_trees.append(
+                    device(json_dump)(
+                        model_dict['split_trees'][device], split_tree_path
+                    )
+                )
 
         # no real content, handler for wait
         r = (finish_common, finish_leaf, finish_split_trees)
@@ -173,6 +188,12 @@ class SgbModel:
             return None
         return r
 
+    def get_trees(self):
+        return self.trees
+
+    def get_objective(self):
+        return self.objective
+
 
 def from_dict(model_dict: Dict) -> SgbModel:
     sm = SgbModel(
@@ -180,6 +201,7 @@ def from_dict(model_dict: Dict) -> SgbModel:
         RegType(model_dict['common']['objective']),
         model_dict['common']['base'],
     )
+    sm.partition_column_counts = model_dict['common']['partition_column_counts']
     device_list = [*model_dict['split_trees'].keys()]
 
     def build_split_tree_dict(i):
@@ -191,11 +213,18 @@ def from_dict(model_dict: Dict) -> SgbModel:
                 'split_tree_dict': build_split_tree_dict(i),
                 'leaf_weight': leaf_weight,
                 'label_holder': model_dict['label_holder'],
+                'partition_column_counts': model_dict['common'][
+                    'partition_column_counts'
+                ],
             }
         )
         for i, leaf_weight in enumerate(model_dict['leaf_weights'])
     ]
     return sm
+
+
+def check_file_exists(path):
+    return True if os.path.isfile(path) else False
 
 
 def from_json_to_dict(
@@ -215,23 +244,41 @@ def from_json_to_dict(
 
     # load leaf weight
     leaf_weight_path = device_path_dict[label_holder] + leaf_weight_postfix
-    leaf_weights = [
-        *label_holder(json_load, num_returns=common_params['tree_num'])(
-            leaf_weight_path
-        )
-    ]
-    return {
-        'label_holder': label_holder,
-        'common': common_params,
-        'leaf_weights': leaf_weights,
-        'split_trees': {
+    if common_params['tree_num'] > 1:
+        leaf_weights = [
+            *label_holder(json_load, num_returns=common_params['tree_num'])(
+                leaf_weight_path
+            )
+        ]
+    else:
+        leaf_weights = [label_holder(lambda x: json_load(x)[0])(leaf_weight_path)]
+    # check split trees
+    split_devices = {}
+    for device, path in device_path_dict.items():
+        if reveal(device(check_file_exists)(path + split_tree_postfix)):
+            split_devices[device] = path
+
+    if common_params['tree_num'] > 1:
+        split_tree_dict = {
             device: [
                 *device(json_load, num_returns=common_params['tree_num'])(
                     path + split_tree_postfix
                 )
             ]
-            for device, path in device_path_dict.items()
-        },
+            for device, path in split_devices.items()
+        }
+
+    else:
+        split_tree_dict = {
+            device: [device(lambda x: json_load(x)[0])(path + split_tree_postfix)]
+            for device, path in split_devices.items()
+        }
+
+    return {
+        'label_holder': label_holder,
+        'common': common_params,
+        'leaf_weights': leaf_weights,
+        'split_trees': split_tree_dict,
     }
 
 

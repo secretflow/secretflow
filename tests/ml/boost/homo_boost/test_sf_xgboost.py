@@ -1,3 +1,17 @@
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 import tempfile
 
@@ -48,7 +62,7 @@ def gen_data(data_num, feature_num, use_random=True, data_bin_num=10, prefix="x"
     return data_with_label
 
 
-def test_homo_xgboost(sf_production_setup_devices):
+def test_homo_xgboost(sf_production_setup_devices_grpc):
     data_size = 300000
     num_feature = 10
     bin_num = 10
@@ -58,21 +72,24 @@ def test_homo_xgboost(sf_production_setup_devices):
     dfs = [data1, data2]
 
     file_uris = {
-        sf_production_setup_devices.alice: f'{_temp_dir}/test_alice.csv',
-        sf_production_setup_devices.bob: f'{_temp_dir}/test_bob.csv',
+        sf_production_setup_devices_grpc.alice: f'{_temp_dir}/test_alice.csv',
+        sf_production_setup_devices_grpc.bob: f'{_temp_dir}/test_bob.csv',
     }
     for df, file_uri in zip(dfs, file_uris.values()):
         df.to_csv(file_uri, index=False)
 
     hdf = h_read_csv(
         file_uris,
-        aggregator=PlainAggregator(sf_production_setup_devices.carol),
-        comparator=PlainComparator(sf_production_setup_devices.carol),
+        aggregator=PlainAggregator(sf_production_setup_devices_grpc.carol),
+        comparator=PlainComparator(sf_production_setup_devices_grpc.carol),
     )
 
     bst = SFXgboost(
-        server=sf_production_setup_devices.davy,
-        clients=[sf_production_setup_devices.alice, sf_production_setup_devices.bob],
+        server=sf_production_setup_devices_grpc.davy,
+        clients=[
+            sf_production_setup_devices_grpc.alice,
+            sf_production_setup_devices_grpc.bob,
+        ],
     )
     params = {
         'max_depth': 4,
@@ -93,15 +110,15 @@ def test_homo_xgboost(sf_production_setup_devices):
 
     bst.train(hdf, hdf, params=params, num_boost_round=4)
     model_path = {
-        sf_production_setup_devices.alice: "./test_xgboost_alice.json",
-        sf_production_setup_devices.bob: "./test_xgboost_bob.json",
+        sf_production_setup_devices_grpc.alice: "./test_xgboost_alice.json",
+        sf_production_setup_devices_grpc.bob: "./test_xgboost_bob.json",
     }
     bst.save_model(model_path)
     for path in model_path.values():
         assert os.path.isfile(path)
     dump_path = {
-        sf_production_setup_devices.alice: "./test_xgboost_alice.dump",
-        sf_production_setup_devices.bob: "./test_xgboost_bob.dump",
+        sf_production_setup_devices_grpc.alice: "./test_xgboost_alice.dump",
+        sf_production_setup_devices_grpc.bob: "./test_xgboost_bob.dump",
     }
     bst.dump_model(dump_path)
     for path in dump_path.values():
@@ -109,8 +126,11 @@ def test_homo_xgboost(sf_production_setup_devices):
     result = bst.eval(model_path=model_path, hdata=hdf, params=params)
     print(result)
     bst_ft = SFXgboost(
-        server=sf_production_setup_devices.davy,
-        clients=[sf_production_setup_devices.alice, sf_production_setup_devices.bob],
+        server=sf_production_setup_devices_grpc.davy,
+        clients=[
+            sf_production_setup_devices_grpc.alice,
+            sf_production_setup_devices_grpc.bob,
+        ],
     )
 
     bst_ft.train(
@@ -132,35 +152,46 @@ def test_homo_xgboost(sf_production_setup_devices):
             pass
 
 
-def test_homo_xgboost_cn(sf_production_setup_devices):
+def test_homo_xgboost_cn(sf_production_setup_devices_grpc):
     data_size = 300000
     num_feature = 10
     bin_num = 10
 
     data1 = gen_data(
-        data_size // 2, num_feature, use_random=True, data_bin_num=bin_num, prefix="特征"
+        data_size // 2,
+        num_feature,
+        use_random=True,
+        data_bin_num=bin_num,
+        prefix="特征",
     )
     data2 = gen_data(
-        data_size // 2, num_feature, use_random=True, data_bin_num=bin_num, prefix="特征"
+        data_size // 2,
+        num_feature,
+        use_random=True,
+        data_bin_num=bin_num,
+        prefix="特征",
     )
     dfs = [data1, data2]
 
     file_uris = {
-        sf_production_setup_devices.alice: f'{_temp_dir}/test_alice_cn.csv',
-        sf_production_setup_devices.bob: f'{_temp_dir}/test_bob_cn.csv',
+        sf_production_setup_devices_grpc.alice: f'{_temp_dir}/test_alice_cn.csv',
+        sf_production_setup_devices_grpc.bob: f'{_temp_dir}/test_bob_cn.csv',
     }
     for df, file_uri in zip(dfs, file_uris.values()):
         df.to_csv(file_uri, index=False)
 
     hdf = h_read_csv(
         file_uris,
-        aggregator=PlainAggregator(sf_production_setup_devices.carol),
-        comparator=PlainComparator(sf_production_setup_devices.carol),
+        aggregator=PlainAggregator(sf_production_setup_devices_grpc.carol),
+        comparator=PlainComparator(sf_production_setup_devices_grpc.carol),
     )
 
     bst = SFXgboost(
-        server=sf_production_setup_devices.davy,
-        clients=[sf_production_setup_devices.alice, sf_production_setup_devices.bob],
+        server=sf_production_setup_devices_grpc.davy,
+        clients=[
+            sf_production_setup_devices_grpc.alice,
+            sf_production_setup_devices_grpc.bob,
+        ],
     )
     params = {
         'max_depth': 4,
@@ -181,15 +212,15 @@ def test_homo_xgboost_cn(sf_production_setup_devices):
     }
     bst.train(hdf, hdf, params=params, num_boost_round=2)
     model_path = {
-        sf_production_setup_devices.alice: "./test_xgboost_alice_cn.json",
-        sf_production_setup_devices.bob: "./test_xgboost_bob_cn.json",
+        sf_production_setup_devices_grpc.alice: "./test_xgboost_alice_cn.json",
+        sf_production_setup_devices_grpc.bob: "./test_xgboost_bob_cn.json",
     }
     bst.save_model(model_path)
     for path in model_path.values():
         assert os.path.isfile(path)
     dump_path = {
-        sf_production_setup_devices.alice: "./test_xgboost_alice_cn.dump",
-        sf_production_setup_devices.bob: "./test_xgboost_bob_cn.dump",
+        sf_production_setup_devices_grpc.alice: "./test_xgboost_alice_cn.dump",
+        sf_production_setup_devices_grpc.bob: "./test_xgboost_bob_cn.dump",
     }
     bst.dump_model(dump_path)
     for path in dump_path.values():
@@ -197,8 +228,11 @@ def test_homo_xgboost_cn(sf_production_setup_devices):
     result = bst.eval(model_path=model_path, hdata=hdf, params=params)
     print(result)
     bst_ft = SFXgboost(
-        server=sf_production_setup_devices.davy,
-        clients=[sf_production_setup_devices.alice, sf_production_setup_devices.bob],
+        server=sf_production_setup_devices_grpc.davy,
+        clients=[
+            sf_production_setup_devices_grpc.alice,
+            sf_production_setup_devices_grpc.bob,
+        ],
     )
 
     bst_ft.train(

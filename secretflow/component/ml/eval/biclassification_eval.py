@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 
 from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import DistDataType, load_table
@@ -58,31 +59,25 @@ biclassification_eval_comp.int_attr(
     lower_bound_inclusive=True,
 )
 
-biclassification_eval_comp.io(
-    io_type=IoType.INPUT,
-    name="labels",
-    desc="Input table with labels",
-    types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
-    col_params=[
-        TableColParam(
-            name="col",
-            desc="The column name to use in the dataset. If not provided, the label of dataset will be used by default.",
-            col_max_cnt_inclusive=1,
-        )
-    ],
-)
 
 biclassification_eval_comp.io(
     io_type=IoType.INPUT,
-    name="predictions",
-    desc="Input table with predictions",
+    name="in_ds",
+    desc="Input table with prediction and label, usually is a result from a prediction component.",
     types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
     col_params=[
         TableColParam(
-            name="col",
-            desc="The column name to use in the dataset. If not provided, the label of dataset will be used by default.",
+            name="label",
+            desc="The label name to use in the dataset.",
+            col_min_cnt_inclusive=1,
             col_max_cnt_inclusive=1,
-        )
+        ),
+        TableColParam(
+            name="prediction",
+            desc="The prediction result column name to use in the dataset.",
+            col_min_cnt_inclusive=1,
+            col_max_cnt_inclusive=1,
+        ),
     ],
 )
 
@@ -99,40 +94,35 @@ biclassification_eval_comp.io(
 def biclassification_eval_fn(
     *,
     ctx,
-    labels,
-    labels_col,
-    predictions,
-    predictions_col,
+    in_ds,
+    in_ds_label,
+    in_ds_prediction,
     bucket_size,
     min_item_cnt_per_bucket,
     reports,
 ):
-    labels_df = load_table(
+    label_prediction_df = load_table(
         ctx,
-        labels,
+        in_ds,
         load_labels=True,
-        col_selects=labels_col if len(labels_col) else None,
-    )
-
-    predictions_df = load_table(
-        ctx,
-        predictions,
-        load_labels=True,
-        col_selects=predictions_col if len(predictions_col) else None,
+        col_selects=in_ds_label + in_ds_prediction,
     )
 
     with ctx.tracer.trace_running():
         result = reveal(
             BiClassificationEval(
-                y_true=labels_df,
-                y_score=predictions_df,
+                y_true=label_prediction_df[in_ds_label],
+                y_score=label_prediction_df[in_ds_prediction],
                 bucket_size=bucket_size,
                 min_item_cnt_per_bucket=min_item_cnt_per_bucket,
             ).get_all_reports()
         )
 
+    logging.info(
+        f"auc: {result.summary_report.auc}, ks: {result.summary_report.ks}, f1: {result.summary_report.f1_score}"
+    )
     return {
-        "reports": dump_biclassification_reports(reports, labels.system_info, result)
+        "reports": dump_biclassification_reports(reports, in_ds.system_info, result)
     }
 
 

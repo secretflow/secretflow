@@ -20,7 +20,7 @@ from pandas.api.types import is_numeric_dtype
 
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.data.vertical import VDataFrame
-from secretflow.device import PYUObject, wait
+from secretflow.device import PYUObject, reveal, wait
 
 
 def prepare_dataset(
@@ -49,8 +49,11 @@ def prepare_dataset(
 
     shape = ds.shape
     assert math.prod(shape), f"not support empty dataset, shape {shape}"
-
     return ds, shape
+
+
+def non_empty(x, worker):
+    return worker(lambda x: x.size > 0)(x)
 
 
 def validate(
@@ -59,9 +62,21 @@ def validate(
     x, x_shape = prepare_dataset(dataset)
     y, y_shape = prepare_dataset(label)
     assert len(x_shape) == 2, "only support 2D-array on dtrain"
+
     data_check_task = [
         worker(data_checks)(x_val, worker) for worker, x_val in x.partitions.items()
     ]
+
+    data_not_emmpty = reveal(
+        [non_empty(x_val, worker) for worker, x_val in x.partitions.items()]
+    )
+    to_remove_devices = []
+    for i, empty_device in enumerate(x.partitions.keys()):
+        if not data_not_emmpty[i]:
+            to_remove_devices.append(empty_device)
+
+    for device in to_remove_devices:
+        x.partitions.pop(device)
 
     assert len(y_shape) == 1 or y_shape[1] == 1, "label only support one label col"
     samples = y_shape[0]
@@ -71,6 +86,7 @@ def validate(
     y = list(y.partitions.values())[0]
     y = y.device(lambda y: y.reshape(-1, 1, order='F'))(y)
     y_shape = (samples, 1)
+    assert samples > 0, "cannot have empty samples"
     wait(data_check_task)
     return x, x_shape, y, y_shape
 

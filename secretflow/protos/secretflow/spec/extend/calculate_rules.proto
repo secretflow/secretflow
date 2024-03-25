@@ -1,0 +1,59 @@
+// Copyright 2023 Ant Group Co., Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package secretflow.spec.extend;
+
+option java_package = "org.secretflow.spec.extend";
+
+// input columns set by Component::io::col_params
+message CalculateOpRules {
+  enum OpType {
+    // inval type
+    INVAL = 0;
+    // len(operands) == 0
+    STANDARDIZE = 1;
+    // len(operands) == 0
+    NORMALIZATION = 2;
+    // len(operands) == 2, [min, max]
+    RANGE_LIMIT = 3;
+    // len(operands) == 3, [(+ -), unary_op(+ - * /), value]
+    // if operandsp[0] == "+", column unary_op value
+    // if operandsp[0] == "-", value unary_op column
+    UNARY = 4;
+    // len(operands) == 0
+    RECIPROCAL = 5;
+    // len(operands) == 0
+    ROUND = 6;
+    // len(operands) == 1, [bias]
+    LOG_ROUND = 7;
+    // len(operands) == 0
+    SQRT = 8;
+    // len(operands) == 2, [log_base, bias]
+    LOG = 9;
+    // len(operands) == 0
+    EXP = 10;
+    // len(operands) == 0
+    LENGTH = 11;
+    // len(operands) == 2, [start_pos, length]
+    SUBSTR = 12;
+  }
+
+  OpType op = 1;
+
+  repeated string operands = 2;
+
+  string new_col_name = 3;
+}

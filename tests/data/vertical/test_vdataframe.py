@@ -1,3 +1,17 @@
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -491,46 +505,28 @@ def test_fillna(prod_env_and_data):
     )
 
 
-def _help_test_groupby_agg(prod_env_and_data, agg_name):
+@pytest.mark.parametrize("agg_name", ['sum', 'count', 'min', 'max', 'mean', "var"])
+def test_groupby_agg(prod_env_and_data, agg_name):
     env, data = prod_env_and_data
     # GIVEN
     df = data['df'][['a1', 'a2', 'a3', 'b4', 'b5', 'b6']].fillna(value=0, inplace=False)
+    df[["a3", "b4", "b6"]] = (
+        df[["a3", "b4", "b6"]].fillna(value=0, inplace=False).astype(float)
+    )
     df_cleartext = data['df_cleartext'].fillna(value=0, inplace=False)
 
     our_values = getattr(df.groupby(env.spu, ['a3'])['b6', 'b4'], agg_name)()
-    true_values = getattr(df_cleartext.groupby(['a3'])['b6', 'b4'], agg_name)()
-    np.testing.assert_array_almost_equal(our_values, true_values)
+    true_values = getattr(df_cleartext.groupby(['a3'])['b6', 'b4'], agg_name)().fillna(
+        value=0, inplace=False
+    )
+    if agg_name in ["mean", "var"]:
+        decimal = 3
+    else:
+        decimal = 6
+    np.testing.assert_array_almost_equal(our_values, true_values, decimal=decimal)
 
     our_values = getattr(df.groupby(env.spu, ['a3'])['b6'], agg_name)()
-    true_values = getattr(df_cleartext.groupby(['a3'])['b6'], agg_name)()
-    np.testing.assert_array_almost_equal(our_values, true_values)
-
-
-def test_groupby_sum_should_ok(prod_env_and_data):
-    _help_test_groupby_agg(prod_env_and_data, 'sum')
-
-
-def test_groupby_min_should_ok(prod_env_and_data):
-    _help_test_groupby_agg(prod_env_and_data, 'min')
-
-
-def test_groupby_max_should_ok(prod_env_and_data):
-    _help_test_groupby_agg(prod_env_and_data, 'min')
-
-
-def test_groupby_var_should_ok(prod_env_and_data):
-    _help_test_groupby_agg(prod_env_and_data, 'min')
-
-
-def test_groupby_count_should_ok(prod_env_and_data):
-    env, data = prod_env_and_data
-    df = data['df'][['a1', 'a2', 'a3', 'b4', 'b5', 'b6']].fillna(value=0, inplace=False)
-
-    our_values = df.groupby(env.spu, ['a3'])['b6'].count()
-    true_values = (
-        data['df_cleartext']
-        .fillna(value=0, inplace=False)
-        .groupby(['a3'])['b6']
-        .count()
+    true_values = getattr(df_cleartext.groupby(['a3'])['b6'], agg_name)().fillna(
+        value=0, inplace=False
     )
-    np.testing.assert_array_almost_equal(our_values, true_values)
+    np.testing.assert_array_almost_equal(our_values, true_values, decimal=decimal)

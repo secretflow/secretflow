@@ -1,3 +1,18 @@
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import copy
 import logging
 import time
 
@@ -8,7 +23,6 @@ from secretflow.data import FedNdarray, PartitionWay
 from secretflow.device.driver import reveal, wait
 from secretflow.ml.linear.ss_glm import SSGLM
 from secretflow.ml.linear.ss_glm.core import get_dist
-from secretflow.utils.simulation.datasets import load_linear
 
 
 def _transform(data):
@@ -23,8 +37,12 @@ def _wait_io(inputs):
     wait(wait_objs)
 
 
-def _run_test(devices, test_name, v_data, label_data, y, batch_size, link, dist):
+def _run_test(
+    devices, test_name, v_data, label_data, y, batch_size, link, dist, l2_lambda=None
+):
     model = SSGLM(devices.spu)
+    label_data_copy = copy.deepcopy(label_data)
+
     start = time.time()
     model.fit_sgd(
         v_data,
@@ -39,26 +57,35 @@ def _run_test(devices, test_name, v_data, label_data, y, batch_size, link, dist)
         0.3,
         iter_start_irls=1,
         batch_size=batch_size,
+        l2_lambda=l2_lambda,
+        stopping_rounds=0,
     )
     logging.info(f"{test_name} sgb train time: {time.time() - start}")
     start = time.time()
+
     spu_yhat = model.predict(v_data)
     yhat = reveal(spu_yhat)
     assert yhat.shape[0] == y.shape[0], f"{yhat.shape} == {y.shape}"
     logging.info(f"{test_name} predict time: {time.time() - start}")
-    deviance = get_dist(dist, 1, 1).deviance(yhat, y, None)
+    deviance = get_dist(dist, 1, 1.65).deviance(yhat, y.reshape(-1, 1), None)
+    # deviance = get_dist(dist, 1, 1).deviance(yhat, y, None)
     logging.info(f"{test_name} deviance: {deviance}")
 
+    start = time.time()
     model.fit_irls(
         v_data,
-        label_data,
+        label_data_copy,
         None,
         None,
-        3,
+        10,
         link,
         dist,
         1,
         1,
+        l2_lambda=l2_lambda,
+        stopping_rounds=1,
+        stopping_tolerance=0.001,
+        report_metric=False,
     )
     logging.info(f"{test_name} irls train time: {time.time() - start}")
     start = time.time()
@@ -66,17 +93,18 @@ def _run_test(devices, test_name, v_data, label_data, y, batch_size, link, dist)
     yhat = reveal(spu_yhat)
     assert yhat.shape[0] == y.shape[0], f"{yhat.shape} == {y.shape}"
     logging.info(f"{test_name} predict time: {time.time() - start}")
-    deviance = get_dist(dist, 1, 1).deviance(yhat, y, None)
+    deviance = get_dist(dist, 1, 1.65).deviance(yhat, y.reshape(-1, 1), None)
     logging.info(f"{test_name} deviance: {deviance}")
 
     fed_yhat = model.predict(v_data, to_pyu=devices.alice)
     assert len(fed_yhat.partitions) == 1 and devices.alice in fed_yhat.partitions
     yhat = reveal(fed_yhat.partitions[devices.alice])
     assert yhat.shape[0] == y.shape[0], f"{yhat.shape} == {y.shape}"
-    deviance = get_dist(dist, 1, 1).deviance(yhat, y, None)
+    deviance = get_dist(dist, 1, 1.65).deviance(yhat, y.reshape(-1, 1), None)
     logging.info(f"{test_name} deviance: {deviance}")
 
     fed_w, bias = model.spu_w_to_federated(v_data, devices.alice)
+    wait([*list(fed_w.partitions.values()), bias])
     yhat = reveal(model.predict_fed_w(v_data, fed_w, bias))
     assert yhat.shape[0] == y.shape[0], f"{yhat.shape} == {y.shape}"
     deviance = get_dist(dist, 1, 1).deviance(yhat, y, None)
@@ -122,32 +150,7 @@ def test_breast_cancer(sf_production_setup_devices_aby3):
         128,
         'Logit',
         'Bernoulli',
-    )
-
-
-def test_linear(sf_production_setup_devices_aby3):
-    start = time.time()
-    vdf = load_linear(
-        parts={
-            sf_production_setup_devices_aby3.alice: (1, 11),
-            sf_production_setup_devices_aby3.bob: (11, 22),
-        }
-    )
-    label_data = vdf['y']
-    v_data = vdf.drop(columns="y")
-    y = reveal(label_data.partitions[sf_production_setup_devices_aby3.bob].data).values
-    _wait_io([v_data.values, label_data.values])
-    logging.info(f"IO times: {time.time() - start}s")
-
-    _run_test(
-        sf_production_setup_devices_aby3,
-        "linear",
-        v_data,
-        label_data,
-        y,
-        32,
-        'Logit',
-        'Bernoulli',
+        l2_lambda=1.0,
     )
 
 

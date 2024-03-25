@@ -4,30 +4,322 @@
   "version": "0.0.1",
   "comps": [
     {
-      "domain": "feature",
-      "name": "vert_bin_substitution",
-      "desc": "Substitute datasets' value by bin substitution rules.",
+      "domain": "data_filter",
+      "name": "condition_filter",
+      "desc": "Filter the table based on a single column's values and condition.\nWarning: the party responsible for condition filtering will directly send the sample distribution to other participants.\nMalicious participants can obtain the distribution of characteristics by repeatedly calling with different filtering values.\nAudit the usage of this component carefully.",
       "version": "0.0.1",
-      "inputs": [
+      "attrs": [
         {
-          "name": "input_data",
-          "desc": "Vertical partitioning dataset to be substituted.",
-          "types": [
-            "sf.table.vertical_table"
-          ]
+          "name": "comparator",
+          "desc": "Comparator to use for comparison. Must be one of '==','<','<=','>','>=','IN'",
+          "type": "AT_STRING",
+          "atomic": {
+            "allowedValues": {
+              "ss": [
+                "==",
+                "<",
+                "<=",
+                ">",
+                ">=",
+                "IN"
+              ]
+            }
+          }
         },
         {
-          "name": "bin_rule",
-          "desc": "Input bin substitution rule.",
+          "name": "value_type",
+          "desc": "Type of the value to compare with. Must be one of ['STRING', 'FLOAT']",
+          "type": "AT_STRING",
+          "atomic": {
+            "allowedValues": {
+              "ss": [
+                "STRING",
+                "FLOAT"
+              ]
+            }
+          }
+        },
+        {
+          "name": "bound_value",
+          "desc": "Input a str with values separated by ','. List of values to compare with. If comparator is not 'IN', we only support one element in this list.",
+          "type": "AT_STRING",
+          "atomic": {}
+        },
+        {
+          "name": "float_epsilon",
+          "desc": "Epsilon value for floating point comparison. WARNING: due to floating point representation in computers, set this number slightly larger if you want filter out the values exactly at desired boundary. for example, abs(1.001 - 1.002) is slightly larger than 0.001, and therefore may not be filter out using == and epsilson = 0.001",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 1e-06
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "in_ds",
+          "desc": "Input vertical table.",
           "types": [
-            "sf.rule.binning"
+            "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "features",
+              "desc": "Feature(s) to operate on.",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
+            }
           ]
         }
       ],
       "outputs": [
         {
-          "name": "output_data",
+          "name": "out_ds",
+          "desc": "Output vertical table that satisfies the condition.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        },
+        {
+          "name": "out_ds_else",
+          "desc": "Output vertical table that does not satisfies the condition.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "data_filter",
+      "name": "feature_filter",
+      "desc": "Drop features from the dataset.",
+      "version": "0.0.1",
+      "inputs": [
+        {
+          "name": "in_ds",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "drop_features",
+              "desc": "Features to drop."
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "out_ds",
           "desc": "Output vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "data_prep",
+      "name": "psi",
+      "desc": "PSI between two parties.",
+      "version": "0.0.2",
+      "attrs": [
+        {
+          "name": "protocol",
+          "desc": "PSI protocol.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "PROTOCOL_RR22"
+            },
+            "allowedValues": {
+              "ss": [
+                "PROTOCOL_RR22",
+                "PROTOCOL_ECDH",
+                "PROTOCOL_KKRT"
+              ]
+            }
+          }
+        },
+        {
+          "name": "disable_alignment",
+          "desc": "It true, output is not promised to be aligned. Warning: enable this option may lead to errors in the following components. DO NOT TURN ON if you want to append other components.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "skip_duplicates_check",
+          "desc": "If true, the check of duplicated items will be skiped.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "check_hash_digest",
+          "desc": "Check if hash digest of keys from parties are equal to determine whether to early-stop.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "ecdh_curve",
+          "desc": "Curve type for ECDH PSI.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "CURVE_FOURQ"
+            },
+            "allowedValues": {
+              "ss": [
+                "CURVE_25519",
+                "CURVE_FOURQ",
+                "CURVE_SM2",
+                "CURVE_SECP256K1"
+              ]
+            }
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "receiver_input",
+          "desc": "Individual table for receiver",
+          "types": [
+            "sf.table.individual"
+          ],
+          "attrs": [
+            {
+              "name": "key",
+              "desc": "Column(s) used to join.",
+              "colMinCntInclusive": "1"
+            }
+          ]
+        },
+        {
+          "name": "sender_input",
+          "desc": "Individual table for sender",
+          "types": [
+            "sf.table.individual"
+          ],
+          "attrs": [
+            {
+              "name": "key",
+              "desc": "Column(s) used to join.",
+              "colMinCntInclusive": "1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "psi_output",
+          "desc": "Output vertical table",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "data_prep",
+      "name": "train_test_split",
+      "desc": "Split datasets into random train and test subsets.\n- Please check: https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "train_size",
+          "desc": "Proportion of the dataset to include in the train subset. The sum of test_size and train_size should be in the (0, 1] range.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.75
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 1.0
+            }
+          }
+        },
+        {
+          "name": "test_size",
+          "desc": "Proportion of the dataset to include in the test subset. The sum of test_size and train_size should be in the (0, 1] range.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.25
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 1.0
+            }
+          }
+        },
+        {
+          "name": "random_state",
+          "desc": "Specify the random seed of the shuffling.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "1024"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
+          }
+        },
+        {
+          "name": "shuffle",
+          "desc": "Whether to shuffle the data before splitting.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "b": true
+            }
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "input_data",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "train",
+          "desc": "Output train dataset.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        },
+        {
+          "name": "test",
+          "desc": "Output test dataset.",
           "types": [
             "sf.table.vertical_table"
           ]
@@ -38,7 +330,7 @@
       "domain": "feature",
       "name": "vert_binning",
       "desc": "Generate equal frequency or equal range binning rules for vertical partitioning datasets.",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "attrs": [
         {
           "name": "binning_method",
@@ -67,7 +359,19 @@
               "i64": "10"
             },
             "lowerBoundEnabled": true,
-            "lowerBound": {}
+            "lowerBound": {
+              "i64": "2"
+            },
+            "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "report_rules",
+          "desc": "Whether report binning rules.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
           }
         }
       ],
@@ -94,6 +398,13 @@
           "types": [
             "sf.rule.binning"
           ]
+        },
+        {
+          "name": "report",
+          "desc": "report rules details if report_rules is true",
+          "types": [
+            "sf.report"
+          ]
         }
       ]
     },
@@ -101,7 +412,7 @@
       "domain": "feature",
       "name": "vert_woe_binning",
       "desc": "Generate Weight of Evidence (WOE) binning rules for vertical partitioning datasets.",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "attrs": [
         {
           "name": "secure_device_type",
@@ -122,7 +433,7 @@
         },
         {
           "name": "binning_method",
-          "desc": "How to bin features with numeric types: \"quantile\"(equal frequency)/\"chimerge\"(ChiMerge from AAAI92-019: https://www.aaai.org/Papers/AAAI/1992/AAAI92-019.pdf)",
+          "desc": "How to bin features with numeric types: \"quantile\"(equal frequency)/\"chimerge\"(ChiMerge from AAAI92-019: https://www.aaai.org/Papers/AAAI/1992/AAAI92-019.pdf)/\"eq_range\"(equal range)",
           "type": "AT_STRING",
           "atomic": {
             "isOptional": true,
@@ -132,7 +443,8 @@
             "allowedValues": {
               "ss": [
                 "quantile",
-                "chimerge"
+                "chimerge",
+                "eq_range"
               ]
             }
           }
@@ -209,6 +521,15 @@
             },
             "upperBoundInclusive": true
           }
+        },
+        {
+          "name": "report_rules",
+          "desc": "Whether report binning rules.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
         }
       ],
       "inputs": [
@@ -227,7 +548,8 @@
             {
               "name": "label",
               "desc": "Label of input data.",
-              "colMinCntInclusive": "1"
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
             }
           ]
         }
@@ -238,6 +560,125 @@
           "desc": "Output WOE rule.",
           "types": [
             "sf.rule.binning"
+          ]
+        },
+        {
+          "name": "report",
+          "desc": "report rules details if report_rules is true",
+          "types": [
+            "sf.report"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "io",
+      "name": "identity",
+      "desc": "map any input to output",
+      "version": "0.0.1",
+      "inputs": [
+        {
+          "name": "input_data",
+          "desc": "Input data",
+          "types": [
+            "sf.model.ss_glm",
+            "sf.model.sgb",
+            "sf.model.ss_xgb",
+            "sf.model.ss_sgd",
+            "sf.rule.binning",
+            "sf.rule.preprocessing",
+            "sf.read_data"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_data",
+          "desc": "Output data",
+          "types": [
+            "sf.model.ss_glm",
+            "sf.model.sgb",
+            "sf.model.ss_xgb",
+            "sf.model.ss_sgd",
+            "sf.rule.binning",
+            "sf.rule.preprocessing",
+            "sf.read_data"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "io",
+      "name": "read_data",
+      "desc": "read model or rules from sf cluster",
+      "version": "0.0.1",
+      "inputs": [
+        {
+          "name": "input_dd",
+          "desc": "Input dist data",
+          "types": [
+            "sf.rule.binning",
+            "sf.model.ss_glm"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_data",
+          "desc": "Output rules or models in DistData.meta",
+          "types": [
+            "sf.read_data"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "io",
+      "name": "write_data",
+      "desc": "write model or rules back to sf cluster",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "write_data",
+          "desc": "rule or model protobuf by json formate",
+          "type": "AT_STRING",
+          "atomic": {}
+        },
+        {
+          "name": "write_data_type",
+          "desc": "which rule or model is writing",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "sf.rule.binning"
+            },
+            "allowedValues": {
+              "ss": [
+                "sf.rule.binning",
+                "sf.model.ss_glm"
+              ]
+            }
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "input_dd",
+          "desc": "Input dist data. Rule reconstructions may need hidden info in original rule for security considerations.",
+          "types": [
+            "sf.rule.binning",
+            "sf.model.ss_glm"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_model",
+          "desc": "Output rules or models in sf cluster format",
+          "types": [
+            "sf.rule.binning",
+            "sf.model.ss_glm"
           ]
         }
       ]
@@ -283,31 +724,23 @@
       ],
       "inputs": [
         {
-          "name": "labels",
-          "desc": "Input table with labels",
+          "name": "in_ds",
+          "desc": "Input table with prediction and label, usually is a result from a prediction component.",
           "types": [
             "sf.table.vertical_table",
             "sf.table.individual"
           ],
           "attrs": [
             {
-              "name": "col",
-              "desc": "The column name to use in the dataset. If not provided, the label of dataset will be used by default.",
+              "name": "label",
+              "desc": "The label name to use in the dataset.",
+              "colMinCntInclusive": "1",
               "colMaxCntInclusive": "1"
-            }
-          ]
-        },
-        {
-          "name": "predictions",
-          "desc": "Input table with predictions",
-          "types": [
-            "sf.table.vertical_table",
-            "sf.table.individual"
-          ],
-          "attrs": [
+            },
             {
-              "name": "col",
-              "desc": "The column name to use in the dataset. If not provided, the label of dataset will be used by default.",
+              "name": "prediction",
+              "desc": "The prediction result column name to use in the dataset.",
+              "colMinCntInclusive": "1",
               "colMaxCntInclusive": "1"
             }
           ]
@@ -381,31 +814,23 @@
       ],
       "inputs": [
         {
-          "name": "labels",
-          "desc": "Input table with labels.",
+          "name": "in_ds",
+          "desc": "Input table with prediction and label, usually is a result from a prediction component.",
           "types": [
             "sf.table.vertical_table",
             "sf.table.individual"
           ],
           "attrs": [
             {
-              "name": "col",
-              "desc": "The column name to use in the dataset. If not provided, the label of dataset will be used by default.",
+              "name": "label",
+              "desc": "The label name to use in the dataset.",
+              "colMinCntInclusive": "1",
               "colMaxCntInclusive": "1"
-            }
-          ]
-        },
-        {
-          "name": "predictions",
-          "desc": "Input table with predictions.",
-          "types": [
-            "sf.table.vertical_table",
-            "sf.table.individual"
-          ],
-          "attrs": [
+            },
             {
-              "name": "col",
-              "desc": "The column name to use in the dataset. If not provided, the label of dataset will be used by default.",
+              "name": "prediction",
+              "desc": "The prediction result column name to use in the dataset.",
+              "colMinCntInclusive": "1",
               "colMaxCntInclusive": "1"
             }
           ]
@@ -414,6 +839,68 @@
       "outputs": [
         {
           "name": "result",
+          "desc": "Output report.",
+          "types": [
+            "sf.report"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "ml.eval",
+      "name": "regression_eval",
+      "desc": "Statistics evaluation for a regression model on a dataset.\nContained Statistics:\nR2 Score (r2_score): It is a statistical measure that represents the proportion of the variance in the dependent variable that can be predicted from the independent variables. It ranges from 0 to 1, where a higher value indicates a better fit.\nMean Absolute Error (mean_abs_err): It calculates the average absolute difference between the predicted and actual values. It provides a measure of the average magnitude of the errors.\nMean Absolute Percentage Error (mean_abs_percent_err): It calculates the average absolute percentage difference between the predicted and actual values. It measures the average magnitude of the errors in terms of percentages.\nSum of Squared Errors (sum_squared_errors): It calculates the sum of the squared differences between the predicted and actual values. It provides an overall measure of the model's performance.\nMean Squared Error (mean_squared_errors): It calculates the average of the squared differences between the predicted and actual values. It is widely used as a loss function in regression problems.\nRoot Mean Squared Error (root_mean_squared_errors): It is the square root of the mean squared error. It provides a measure of the average magnitude of the errors in the original scale of the target variable.\nMean of True Values (y_true_mean): It calculates the average of the actual values in the target variable. It can be useful for establishing a baseline for the model's performance.\nMean of Predicted Values (y_pred_mean): It calculates the average of the predicted values. It can be compared with the y_true_mean to get an idea of the model's bias.\nResidual Histograms (residual_hists): It represents the distribution of the differences between the predicted and actual values. It helps to understand the spread and pattern of the errors.",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "bucket_size",
+          "desc": "Number of buckets for residual histogram.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "10"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {
+              "i64": "1"
+            },
+            "lowerBoundInclusive": true,
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "i64": "10000"
+            },
+            "upperBoundInclusive": true
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "in_ds",
+          "desc": "Input table with prediction and label, usually is a result from a prediction component.",
+          "types": [
+            "sf.table.vertical_table",
+            "sf.table.individual"
+          ],
+          "attrs": [
+            {
+              "name": "label",
+              "desc": "The label name to use in the dataset.",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
+            },
+            {
+              "name": "prediction",
+              "desc": "The prediction result column name to use in the dataset.",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "reports",
           "desc": "Output report.",
           "types": [
             "sf.report"
@@ -456,7 +943,7 @@
       "domain": "ml.predict",
       "name": "sgb_predict",
       "desc": "Predict using SGB model.",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "attrs": [
         {
           "name": "receiver",
@@ -490,7 +977,9 @@
           "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
-            "defaultValue": {}
+            "defaultValue": {
+              "b": true
+            }
           }
         }
       ],
@@ -507,6 +996,99 @@
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "saved_features",
+              "desc": "which features should be saved with prediction result"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "pred",
+          "desc": "Output prediction.",
+          "types": [
+            "sf.table.individual"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "ml.predict",
+      "name": "slnn_predict",
+      "desc": "Predict using the SLNN model.\nThis component is not enabled by default, it requires the use of the full version\nof secretflow image and setting the ENABLE_NN environment variable to true.",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "batch_size",
+          "desc": "The number of examples per batch.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "8192"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
+          }
+        },
+        {
+          "name": "receiver",
+          "desc": "Party of receiver.",
+          "type": "AT_STRING",
+          "atomic": {}
+        },
+        {
+          "name": "pred_name",
+          "desc": "Column name for predictions.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "pred"
+            }
+          }
+        },
+        {
+          "name": "save_ids",
+          "desc": "Whether to save ids columns into output prediction table. If true, input feature_dataset must contain id columns, and receiver party must be id owner.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "save_label",
+          "desc": "Whether or not to save real label columns into output pred file. If true, input feature_dataset must contain label columns and receiver party must be label owner.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "model",
+          "desc": "Input model.",
+          "types": [
+            "sf.model.sl_nn"
+          ]
+        },
+        {
+          "name": "feature_dataset",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "saved_features",
+              "desc": "which features should be saved with prediction result"
+            }
           ]
         }
       ],
@@ -549,22 +1131,15 @@
           "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
-            "defaultValue": {}
+            "defaultValue": {
+              "b": true
+            }
           }
         },
         {
           "name": "save_label",
           "desc": "Whether or not to save real label columns into output pred file. If true, input feature_dataset must contain label columns and receiver party must be label owner.",
           "type": "AT_BOOL",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {}
-          }
-        },
-        {
-          "name": "offset_col",
-          "desc": "Specify a column to use as the offset",
-          "type": "AT_STRING",
           "atomic": {
             "isOptional": true,
             "defaultValue": {}
@@ -584,6 +1159,12 @@
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "saved_features",
+              "desc": "which features should be saved with prediction result"
+            }
           ]
         }
       ],
@@ -639,7 +1220,9 @@
           "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
-            "defaultValue": {}
+            "defaultValue": {
+              "b": true
+            }
           }
         },
         {
@@ -665,6 +1248,12 @@
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "saved_features",
+              "desc": "which features should be saved with prediction result"
+            }
           ]
         }
       ],
@@ -707,7 +1296,9 @@
           "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
-            "defaultValue": {}
+            "defaultValue": {
+              "b": true
+            }
           }
         },
         {
@@ -733,6 +1324,12 @@
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "saved_features",
+              "desc": "which features should be saved with prediction result"
+            }
           ]
         }
       ],
@@ -750,7 +1347,7 @@
       "domain": "ml.train",
       "name": "sgb_train",
       "desc": "Provides both classification and regression tree boosting (also known as GBDT, GBM)\nfor vertical split dataset setting by using secure boost.\n- SGB is short for SecureBoost. Compared to its safer counterpart SS-XGB, SecureBoost focused on protecting label holder.\n- Check https://arxiv.org/abs/1901.08755.",
-      "version": "0.0.1",
+      "version": "0.0.3",
       "attrs": [
         {
           "name": "num_boost_round",
@@ -850,7 +1447,7 @@
           "atomic": {
             "isOptional": true,
             "defaultValue": {
-              "f": 0.1
+              "f": 1.0
             },
             "lowerBoundEnabled": true,
             "lowerBound": {},
@@ -1078,8 +1675,93 @@
           }
         },
         {
-          "name": "early_stop_criterion_g_abs_sum",
-          "desc": "If sum(abs(g)) is lower than or equal to this threshold, training will stop.",
+          "name": "tree_growing_method",
+          "desc": "How to grow tree?",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "level"
+            }
+          }
+        },
+        {
+          "name": "enable_monitor",
+          "desc": "Whether to enable monitering performance during training.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "enable_early_stop",
+          "desc": "Whether to enable early stop during training.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "eval_metric",
+          "desc": "Use what metric for monitoring and early stop? Currently support ['roc_auc', 'rmse', 'mse']",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "roc_auc"
+            },
+            "allowedValues": {
+              "ss": [
+                "roc_auc",
+                "rmse",
+                "mse"
+              ]
+            }
+          }
+        },
+        {
+          "name": "validation_fraction",
+          "desc": "Early stop specific paramter. Only effective if early stop enabled. The fraction of samples to use as validation set.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.1
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 1.0
+            }
+          }
+        },
+        {
+          "name": "stopping_rounds",
+          "desc": "Early stop specific paramter. If more than 'stopping_rounds' consecutive rounds without improvement, training will stop. Only effective if early stop enabled",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "1"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {
+              "i64": "1"
+            },
+            "lowerBoundInclusive": true,
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "i64": "1024"
+            },
+            "upperBoundInclusive": true
+          }
+        },
+        {
+          "name": "stopping_tolerance",
+          "desc": "Early stop specific paramter. If metric on validation set is no longer improving by at least this amount, ten consider not improving.",
           "type": "AT_FLOAT",
           "atomic": {
             "isOptional": true,
@@ -1090,31 +1772,12 @@
           }
         },
         {
-          "name": "early_stop_criterion_g_abs_sum_change_ratio",
-          "desc": "If absolute g sum change ratio is lower than or equal to this threshold, training will stop.",
-          "type": "AT_FLOAT",
+          "name": "save_best_model",
+          "desc": "Whether to save the best model on validation set during training.",
+          "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
-            "defaultValue": {},
-            "lowerBoundEnabled": true,
-            "lowerBound": {},
-            "lowerBoundInclusive": true,
-            "upperBoundEnabled": true,
-            "upperBound": {
-              "f": 1.0
-            },
-            "upperBoundInclusive": true
-          }
-        },
-        {
-          "name": "tree_growing_method",
-          "desc": "How to grow tree?",
-          "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "s": "level"
-            }
+            "defaultValue": {}
           }
         }
       ],
@@ -1126,6 +1789,11 @@
             "sf.table.vertical_table"
           ],
           "attrs": [
+            {
+              "name": "feature_selects",
+              "desc": "which features should be used for training.",
+              "colMinCntInclusive": "1"
+            },
             {
               "name": "label",
               "desc": "Label of train dataset.",
@@ -1147,9 +1815,382 @@
     },
     {
       "domain": "ml.train",
+      "name": "slnn_train",
+      "desc": "Train nn models for vertical partitioning dataset by split learning.\nThis component is not enabled by default, it requires the use of the full version\nof secretflow image and setting the ENABLE_NN environment variable to true.\nSince it is necessary to define the model structure using python code,\nalthough the range of syntax and APIs that can be used has been restricted,\nthere are still potential security risks. It is recommended to use it in\nconjunction with process sandboxes such as nsjail.",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "models",
+          "desc": "Define the models for training.",
+          "type": "AT_STRING",
+          "atomic": {
+            "defaultValue": {
+              "s": "# pre imported:\n# import tensorflow as tf\n# from tensorflow import Module, keras\n# from tensorflow.keras import Model, layers\n# from tensorflow.keras.layers import Layer\n# from secretflow.ml.nn import applications as apps\n\ndef create_base_model(input_dim, output_dim):\n    model = keras.Sequential(\n        [\n            keras.Input(shape=input_dim),\n            layers.Dense(100, activation=\"relu\"),\n            layers.Dense(output_dim, activation=\"relu\"),\n        ]\n    )\n    return model\n\ndef create_fuse_model(input_dim):\n    input_layers = [keras.Input(input_dim), keras.Input(input_dim)]\n    merged_layer = layers.concatenate(input_layers)\n    fuse_layer = layers.Dense(64, activation='relu')(merged_layer)\n    output = layers.Dense(1, activation='sigmoid')(fuse_layer)\n    return keras.Model(inputs=input_layers, outputs=output)\n\nhidden_size = 64\n\nfit(\n    client_base=create_base_model(12, hidden_size),\n    server_base=create_base_model(4, hidden_size),\n    server_fuse=create_fuse_model(hidden_size),\n)\n"
+            }
+          }
+        },
+        {
+          "name": "epochs",
+          "desc": "The number of complete pass through the training data.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "10"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {
+              "i64": "1"
+            },
+            "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "learning_rate",
+          "desc": "The step size at each iteration in one iteration.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.001
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
+          }
+        },
+        {
+          "name": "batch_size",
+          "desc": "The number of training examples utilized in one iteration.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "512"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
+          }
+        },
+        {
+          "name": "validattion_prop",
+          "desc": "The proportion of validation set to total data set.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.1
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true,
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 1.0
+            }
+          }
+        },
+        {
+          "name": "loss",
+          "desc": "Loss function.",
+          "type": "AT_UNION_GROUP",
+          "union": {
+            "defaultSelection": "builtin"
+          }
+        },
+        {
+          "prefixes": [
+            "loss"
+          ],
+          "name": "builtin",
+          "desc": "Builtin loss function.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "mean_squared_error"
+            },
+            "allowedValues": {
+              "ss": [
+                "binary_crossentropy",
+                "categorical_crossentropy",
+                "mean_squared_error",
+                "mean_squared_logarithmic_error",
+                "mean_absolute_error",
+                "mean_absolute_percentage_error",
+                "cosine_similarity",
+                "huber",
+                "kl_divergence",
+                "log_cosh",
+                "poisson",
+                "binary_focal_crossentropy",
+                "sparse_categorical_crossentropy",
+                "hinge",
+                "categorical_hinge",
+                "squared_hinge"
+              ]
+            }
+          }
+        },
+        {
+          "prefixes": [
+            "loss"
+          ],
+          "name": "custom",
+          "desc": "Custom loss function.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "def loss(y_true, y_pred):\n    return tf.keras.losses.mean_squared_error(y_true, y_pred)\n\n\ncompile_loss(loss)\n\n"
+            }
+          }
+        },
+        {
+          "name": "optimizer",
+          "desc": "Optimizer.",
+          "type": "AT_STRUCT_GROUP"
+        },
+        {
+          "prefixes": [
+            "optimizer"
+          ],
+          "name": "name",
+          "desc": "Optimizer name.",
+          "type": "AT_STRING",
+          "atomic": {
+            "defaultValue": {
+              "s": "Adam"
+            },
+            "allowedValues": {
+              "ss": [
+                "Adam",
+                "SGD",
+                "RMSprop",
+                "AdamW",
+                "Adamax",
+                "Nadam",
+                "Adagrad",
+                "Adadelta",
+                "Adafactor",
+                "Ftrl",
+                "Lion"
+              ]
+            }
+          }
+        },
+        {
+          "prefixes": [
+            "optimizer"
+          ],
+          "name": "params",
+          "desc": "Additional optimizer parameters in JSON format.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "metrics",
+          "desc": "Metrics.",
+          "type": "AT_STRINGS",
+          "atomic": {
+            "listMaxLengthInclusive": "10",
+            "isOptional": true,
+            "defaultValue": {
+              "ss": [
+                "AUC"
+              ]
+            },
+            "allowedValues": {
+              "ss": [
+                "AUC",
+                "Accuracy",
+                "Precision",
+                "Recall",
+                "BinaryAccuracy",
+                "BinaryCrossentropy",
+                "CategoricalAccuracy",
+                "CategoricalCrossentropy",
+                "CosineSimilarity",
+                "FalseNegatives",
+                "FalsePositives",
+                "TrueNegatives",
+                "TruePositives",
+                "KLDivergence",
+                "LogCoshError",
+                "MeanAbsoluteError",
+                "MeanAbsolutePercentageError",
+                "MeanRelativeError",
+                "MeanSquaredError",
+                "MeanSquaredLogarithmicError",
+                "Hinge",
+                "SquaredHinge",
+                "CategoricalHinge",
+                "BinaryIoU",
+                "IoU",
+                "MeanIoU",
+                "OneHotIoU",
+                "OneHotMeanIoU",
+                "Poisson",
+                "PrecisionAtRecall",
+                "RecallAtPrecision",
+                "RootMeanSquaredError",
+                "SensitivityAtSpecificity",
+                "SparseCategoricalAccuracy",
+                "SparseCategoricalCrossentropy",
+                "SparseTopKCategoricalAccuracy",
+                "SpecificityAtSensitivity",
+                "TopKCategoricalAccuracy"
+              ]
+            }
+          }
+        },
+        {
+          "name": "model_input_scheme",
+          "desc": "Input scheme of base model, tensor: merge all features into one tensor; tensor_dict: each feature as a tensor.",
+          "type": "AT_STRING",
+          "atomic": {
+            "defaultValue": {
+              "s": "tensor"
+            },
+            "allowedValues": {
+              "ss": [
+                "tensor",
+                "tensor_dict"
+              ]
+            }
+          }
+        },
+        {
+          "name": "strategy",
+          "desc": "Split learning strategy.",
+          "type": "AT_STRUCT_GROUP"
+        },
+        {
+          "prefixes": [
+            "strategy"
+          ],
+          "name": "name",
+          "desc": "Split learning strategy name.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "pipeline"
+            },
+            "allowedValues": {
+              "ss": [
+                "pipeline",
+                "split_nn",
+                "split_async",
+                "split_state_async"
+              ]
+            }
+          }
+        },
+        {
+          "prefixes": [
+            "strategy"
+          ],
+          "name": "params",
+          "desc": "Additional strategy parameters in JSON format.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "{\"pipeline_size\":2}"
+            }
+          }
+        },
+        {
+          "name": "compressor",
+          "desc": "Compressor for hiddens and gradients.",
+          "type": "AT_STRUCT_GROUP"
+        },
+        {
+          "prefixes": [
+            "compressor"
+          ],
+          "name": "name",
+          "desc": "Compressor name.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {},
+            "allowedValues": {
+              "ss": [
+                "",
+                "topk_sparse",
+                "random_sparse",
+                "stc_sparse",
+                "scr_sparse",
+                "quantized_fp",
+                "quantized_lstm",
+                "quantized_kmeans",
+                "quantized_zeropoint",
+                "mixed_compressor"
+              ]
+            }
+          }
+        },
+        {
+          "prefixes": [
+            "compressor"
+          ],
+          "name": "params",
+          "desc": "Additional compressor parameters in JSON format.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "train_dataset",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "feature_selects",
+              "desc": "which features should be used for training.",
+              "colMinCntInclusive": "1"
+            },
+            {
+              "name": "label",
+              "desc": "Label of train dataset.",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_model",
+          "desc": "Output model.",
+          "types": [
+            "sf.model.sl_nn"
+          ]
+        },
+        {
+          "name": "reports",
+          "desc": "Output report.",
+          "types": [
+            "sf.report"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "ml.train",
       "name": "ss_glm_train",
       "desc": "generalized linear model (GLM) is a flexible generalization of ordinary linear regression.\nThe GLM generalizes linear regression by allowing the linear model to be related to the response\nvariable via a link function and by allowing the magnitude of the variance of each measurement to\nbe a function of its predicted value.",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "attrs": [
         {
           "name": "epochs",
@@ -1203,7 +2244,7 @@
                 "Logit",
                 "Log",
                 "Reciprocal",
-                "Indentity"
+                "Identity"
               ]
             }
           }
@@ -1255,20 +2296,6 @@
             "lowerBound": {
               "f": 1.0
             },
-            "lowerBoundInclusive": true
-          }
-        },
-        {
-          "name": "eps",
-          "desc": "If the change rate of weights is less than this threshold, the model is considered to be converged, and the training stops early. 0 to disable.",
-          "type": "AT_FLOAT",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "f": 0.0001
-            },
-            "lowerBoundEnabled": true,
-            "lowerBound": {},
             "lowerBoundInclusive": true
           }
         },
@@ -1326,18 +2353,134 @@
           }
         },
         {
-          "name": "offset_col",
-          "desc": "Specify a column to use as the offset",
+          "name": "l2_lambda",
+          "desc": "L2 regularization term",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.1
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "infeed_batch_size_limit",
+          "desc": "size of a single block, default to 10w * 100. increase the size will increase memory cost, but may decrease running time. Suggested to be as large as possible. (too large leads to OOM)",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "10000000"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {
+              "i64": "1000"
+            },
+            "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "fraction_of_validation_set",
+          "desc": "fraction of training set to be used as the validation set. ineffective for 'weight' stopping_metric",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.2
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 1.0
+            }
+          }
+        },
+        {
+          "name": "random_state",
+          "desc": "random state for validation split",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "1212"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "stopping_metric",
+          "desc": "use what metric as the condition for early stop? Must be one of ['deviance', 'MSE', 'RMSE', 'AUC', 'weight']. only logit link supports AUC metric (note that AUC is very, very expansive in MPC)",
           "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "deviance"
+            },
+            "allowedValues": {
+              "ss": [
+                "deviance",
+                "MSE",
+                "RMSE",
+                "AUC",
+                "weight"
+              ]
+            }
+          }
+        },
+        {
+          "name": "stopping_rounds",
+          "desc": "If the model is not improving for stopping_rounds, the training process will be stopped, for 'weight' stopping metric, stopping_rounds is fixed to be 1",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {},
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true,
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "i64": "100"
+            },
+            "upperBoundInclusive": true
+          }
+        },
+        {
+          "name": "stopping_tolerance",
+          "desc": "the model is considered as not improving, if the metric is not improved by tolerance over best metric in history. If metric is 'weight' and tolerance == 0, then early stop is disabled.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.001
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true,
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 1.0
+            }
+          }
+        },
+        {
+          "name": "report_metric",
+          "desc": "Whether to report the value of stopping metric. Only effective if early stop is enabled. If this option is set to true, metric will be revealed and logged.",
+          "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
             "defaultValue": {}
           }
         },
         {
-          "name": "weight_col",
-          "desc": "Specify a column to use for the observation weights",
-          "type": "AT_STRING",
+          "name": "report_weights",
+          "desc": "If this option is set to true, model will be revealed and model details are visible to all parties",
+          "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
             "defaultValue": {}
@@ -1353,6 +2496,21 @@
           ],
           "attrs": [
             {
+              "name": "feature_selects",
+              "desc": "which features should be used for training.",
+              "colMinCntInclusive": "1"
+            },
+            {
+              "name": "offset",
+              "desc": "Specify a column to use as the offset",
+              "colMaxCntInclusive": "1"
+            },
+            {
+              "name": "weight",
+              "desc": "Specify a column to use for the observation weights",
+              "colMaxCntInclusive": "1"
+            },
+            {
               "name": "label",
               "desc": "Label of train dataset.",
               "colMinCntInclusive": "1",
@@ -1367,6 +2525,13 @@
           "desc": "Output model.",
           "types": [
             "sf.model.ss_glm"
+          ]
+        },
+        {
+          "name": "report",
+          "desc": "If report_weights is true, report model details",
+          "types": [
+            "sf.report"
           ]
         }
       ]
@@ -1513,6 +2678,11 @@
             "sf.table.vertical_table"
           ],
           "attrs": [
+            {
+              "name": "feature_selects",
+              "desc": "which features should be used for training.",
+              "colMinCntInclusive": "1"
+            },
             {
               "name": "label",
               "desc": "Label of train dataset.",
@@ -1719,6 +2889,11 @@
           ],
           "attrs": [
             {
+              "name": "feature_selects",
+              "desc": "which features should be used for training.",
+              "colMinCntInclusive": "1"
+            },
+            {
               "name": "label",
               "desc": "Label of train dataset.",
               "colMinCntInclusive": "1",
@@ -1738,10 +2913,109 @@
       ]
     },
     {
-      "domain": "preprocessing",
-      "name": "feature_filter",
-      "desc": "Drop features from the dataset.",
+      "domain": "model",
+      "name": "model_export",
+      "desc": "The model_export component supports converting and packaging the rule files generated by preprocessing and postprocessing components, as well as the model files generated by model operators, into a Secretflow-Serving model package. The list of components to be exported must contain exactly one model train or model predict component, and may include zero or multiple preprocessing and postprocessing components.",
       "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "model_name",
+          "desc": "model's name",
+          "type": "AT_STRING",
+          "atomic": {}
+        },
+        {
+          "name": "model_desc",
+          "desc": "Describe what the model does",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "input_datasets",
+          "desc": "The input data IDs for all components to be exported. Their order must remain consistent with the sequence in which the components were executed.",
+          "type": "AT_STRINGS",
+          "atomic": {
+            "listMaxLengthInclusive": "-1"
+          }
+        },
+        {
+          "name": "output_datasets",
+          "desc": "The output data IDs for all components to be exported. Their order must remain consistent with the sequence in which the components were executed.",
+          "type": "AT_STRINGS",
+          "atomic": {
+            "listMaxLengthInclusive": "-1"
+          }
+        },
+        {
+          "name": "component_eval_params",
+          "desc": "The eval parameters (in JSON format) for all components to be exported. Their order must remain consistent with the sequence in which the components were executed.",
+          "type": "AT_STRINGS",
+          "atomic": {
+            "listMaxLengthInclusive": "-1"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "package_output",
+          "desc": "output tar package uri",
+          "types": [
+            "sf.serving.model"
+          ]
+        },
+        {
+          "name": "report",
+          "desc": "report dumped model's input schemas",
+          "types": [
+            "sf.report"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "preprocessing",
+      "name": "binary_op",
+      "desc": "Perform binary operation binary_op(f1, f2) and assign the result to f3, f3 can be new or old. Currently f1, f2 and f3 all belong to a single party.",
+      "version": "0.0.2",
+      "attrs": [
+        {
+          "name": "binary_op",
+          "desc": "What kind of binary operation we want to do, currently only supports +, -, *, /",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "+"
+            },
+            "allowedValues": {
+              "ss": [
+                "+",
+                "-",
+                "*",
+                "/"
+              ]
+            }
+          }
+        },
+        {
+          "name": "new_feature_name",
+          "desc": "Name of the newly generated feature.",
+          "type": "AT_STRING",
+          "atomic": {}
+        },
+        {
+          "name": "as_label",
+          "desc": "If True, the generated feature will be marked as label in schema.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        }
+      ],
       "inputs": [
         {
           "name": "in_ds",
@@ -1751,8 +3025,16 @@
           ],
           "attrs": [
             {
-              "name": "drop_features",
-              "desc": "Features to drop."
+              "name": "f1",
+              "desc": "Feature 1 to operate on.",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
+            },
+            {
+              "name": "f2",
+              "desc": "Feature 2 to operate on.",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
             }
           ]
         }
@@ -1764,100 +3046,79 @@
           "types": [
             "sf.table.vertical_table"
           ]
+        },
+        {
+          "name": "out_rules",
+          "desc": "feature gen rule",
+          "types": [
+            "sf.rule.preprocessing"
+          ]
         }
       ]
     },
     {
       "domain": "preprocessing",
-      "name": "psi",
-      "desc": "PSI between two parties.",
+      "name": "case_when",
+      "desc": "case_when",
       "version": "0.0.1",
       "attrs": [
         {
-          "name": "protocol",
-          "desc": "PSI protocol.",
-          "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "s": "ECDH_PSI_2PC"
-            },
-            "allowedValues": {
-              "ss": [
-                "ECDH_PSI_2PC",
-                "KKRT_PSI_2PC",
-                "BC22_PSI_2PC"
-              ]
-            }
-          }
-        },
-        {
-          "name": "sort",
-          "desc": "Sort the output.",
-          "type": "AT_BOOL",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {}
-          }
-        },
-        {
-          "name": "bucket_size",
-          "desc": "Specify the hash bucket size used in PSI. Larger values consume more memory.",
-          "type": "AT_INT",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "i64": "1048576"
-            },
-            "lowerBoundEnabled": true,
-            "lowerBound": {}
-          }
-        },
-        {
-          "name": "ecdh_curve_type",
-          "desc": "Curve type for ECDH PSI.",
-          "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "s": "CURVE_FOURQ"
-            },
-            "allowedValues": {
-              "ss": [
-                "CURVE_25519",
-                "CURVE_FOURQ",
-                "CURVE_SM2",
-                "CURVE_SECP256K1"
-              ]
-            }
-          }
+          "name": "rules",
+          "desc": "input CaseWhen rules",
+          "type": "AT_CUSTOM_PROTOBUF",
+          "customProtobufCls": "case_when_rules_pb2.CaseWhenRule"
         }
       ],
       "inputs": [
         {
-          "name": "receiver_input",
-          "desc": "Individual table for receiver",
+          "name": "input_dataset",
+          "desc": "Input vertical table.",
           "types": [
-            "sf.table.individual"
-          ],
-          "attrs": [
-            {
-              "name": "key",
-              "desc": "Column(s) used to join.",
-              "colMinCntInclusive": "1"
-            }
+            "sf.table.vertical_table"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_dataset",
+          "desc": "output_dataset",
+          "types": [
+            "sf.table.vertical_table"
           ]
         },
         {
-          "name": "sender_input",
-          "desc": "Individual table for sender",
+          "name": "out_rules",
+          "desc": "case when substitution rule",
           "types": [
-            "sf.table.individual"
+            "sf.rule.preprocessing"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "preprocessing",
+      "name": "feature_calculate",
+      "desc": "Generate a new feature by performing calculations on an origin feature",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "rules",
+          "desc": "input CalculateOpRules rules",
+          "type": "AT_CUSTOM_PROTOBUF",
+          "customProtobufCls": "calculate_rules_pb2.CalculateOpRules"
+        }
+      ],
+      "inputs": [
+        {
+          "name": "in_ds",
+          "desc": "Input vertical table",
+          "types": [
+            "sf.table.vertical_table"
           ],
           "attrs": [
             {
-              "name": "key",
-              "desc": "Column(s) used to join.",
+              "name": "features",
+              "desc": "Feature(s) to operate on",
               "colMinCntInclusive": "1"
             }
           ]
@@ -1865,74 +3126,170 @@
       ],
       "outputs": [
         {
-          "name": "psi_output",
-          "desc": "Output vertical table",
+          "name": "out_ds",
+          "desc": "output_dataset",
           "types": [
             "sf.table.vertical_table"
+          ]
+        },
+        {
+          "name": "out_rules",
+          "desc": "feature calculate rule",
+          "types": [
+            "sf.rule.preprocessing"
           ]
         }
       ]
     },
     {
       "domain": "preprocessing",
-      "name": "train_test_split",
-      "desc": "Split datasets into random train and test subsets.\n- Please check: https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html",
+      "name": "fillna",
+      "desc": "fillna",
       "version": "0.0.1",
       "attrs": [
         {
-          "name": "train_size",
-          "desc": "Proportion of the dataset to include in the train subset.",
-          "type": "AT_FLOAT",
+          "name": "strategy",
+          "desc": "The imputation strategy. If \"mean\", then replace missing values using the mean along each column. Can only be used with numeric data. If \"median\", then replace missing values using the median along each column. Can only be used with numeric data. If \"most_frequent\", then replace missing using the most frequent value along each column. Can be used with strings or numeric data. If there is more than one such value, only the smallest is returned. If \"constant\", then replace missing values with fill_value. Can be used with strings or numeric data.",
+          "type": "AT_STRING",
           "atomic": {
             "isOptional": true,
             "defaultValue": {
-              "f": 0.75
+              "s": "constant"
             },
-            "lowerBoundEnabled": true,
-            "lowerBound": {},
-            "lowerBoundInclusive": true,
-            "upperBoundEnabled": true,
-            "upperBound": {
-              "f": 1.0
-            },
-            "upperBoundInclusive": true
+            "allowedValues": {
+              "ss": [
+                "mean",
+                "median",
+                "most_frequent",
+                "constant"
+              ]
+            }
           }
         },
         {
-          "name": "test_size",
-          "desc": "Proportion of the dataset to include in the test subset.",
-          "type": "AT_FLOAT",
+          "name": "missing_value_type",
+          "desc": "type of missing value. general_na type indicates that only np.nan, None or pandas.NA will be treated as missing values. When the type is not general_na, the type casted missing_value_type(missing_value) will also be treated as missing value as well, in addition to general_na values.",
+          "type": "AT_STRING",
           "atomic": {
             "isOptional": true,
             "defaultValue": {
-              "f": 0.25
+              "s": "general_na"
             },
-            "lowerBoundEnabled": true,
-            "lowerBound": {},
-            "lowerBoundInclusive": true,
-            "upperBoundEnabled": true,
-            "upperBound": {
-              "f": 1.0
-            },
-            "upperBoundInclusive": true
+            "allowedValues": {
+              "ss": [
+                "general_na",
+                "str",
+                "int",
+                "float"
+              ]
+            }
           }
         },
         {
-          "name": "random_state",
-          "desc": "Specify the random seed of the shuffling.",
+          "name": "missing_value",
+          "desc": "Which value should be treat as missing_value? If missing value type is 'general_na', this field will be ignored, and any np.nan, pd.NA, etc value will be treated as missing value. Otherwise, the type casted missing_value_type(missing_value) will also be treated as missing value as well, in addition to general_na values. In case the cast is not successful, general_na will be used instead. default value is 'custom_missing_value'.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "custom_missing_value"
+            }
+          }
+        },
+        {
+          "name": "fill_value_int",
+          "desc": "For int type data. If method is 'constant' use this value for filling null.",
           "type": "AT_INT",
           "atomic": {
             "isOptional": true,
-            "defaultValue": {
-              "i64": "1024"
-            },
-            "lowerBoundEnabled": true,
-            "lowerBound": {}
+            "defaultValue": {}
           }
         },
         {
-          "name": "shuffle",
-          "desc": "Whether to shuffle the data before splitting.",
+          "name": "fill_value_float",
+          "desc": "For float type data. If method is 'constant' use this value for filling null.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "fill_value_str",
+          "desc": "For str type data. If method is 'constant' use this value for filling null.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "input_dataset",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "fill_na_features",
+              "desc": "Features to fill."
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "out_ds",
+          "desc": "Output vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        },
+        {
+          "name": "out_rules",
+          "desc": "fill value rule",
+          "types": [
+            "sf.rule.preprocessing"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "preprocessing",
+      "name": "onehot_encode",
+      "desc": "onehot_encode",
+      "version": "0.0.2",
+      "attrs": [
+        {
+          "name": "drop_first",
+          "desc": "If true drop the first category in each feature. If only one category is present, the feature will be dropped entirely",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "min_frequency",
+          "desc": "Specifies the minimum frequency below which a category will be considered infrequent, [0, 1), 0 disable",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {},
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true,
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 1.0
+            }
+          }
+        },
+        {
+          "name": "report_rules",
+          "desc": "Whether to report rule details",
           "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
@@ -1944,24 +3301,99 @@
       ],
       "inputs": [
         {
-          "name": "input_data",
+          "name": "input_dataset",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "features",
+              "desc": "Features to encode."
+            }
           ]
         }
       ],
       "outputs": [
         {
-          "name": "train",
-          "desc": "Output train dataset.",
+          "name": "output_dataset",
+          "desc": "output_dataset",
           "types": [
             "sf.table.vertical_table"
           ]
         },
         {
-          "name": "test",
-          "desc": "Output test dataset.",
+          "name": "out_rules",
+          "desc": "onehot rule",
+          "types": [
+            "sf.rule.preprocessing"
+          ]
+        },
+        {
+          "name": "report",
+          "desc": "report rules details if report_rules is true",
+          "types": [
+            "sf.report"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "preprocessing",
+      "name": "substitution",
+      "desc": "unified substitution component",
+      "version": "0.0.2",
+      "inputs": [
+        {
+          "name": "input_dataset",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        },
+        {
+          "name": "input_rules",
+          "desc": "Input preprocessing rules",
+          "types": [
+            "sf.rule.preprocessing"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_dataset",
+          "desc": "output_dataset",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "preprocessing",
+      "name": "vert_bin_substitution",
+      "desc": "Substitute datasets' value by bin substitution rules.",
+      "version": "0.0.1",
+      "inputs": [
+        {
+          "name": "input_data",
+          "desc": "Vertical partitioning dataset to be substituted.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        },
+        {
+          "name": "bin_rule",
+          "desc": "Input bin substitution rule.",
+          "types": [
+            "sf.rule.binning"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_data",
+          "desc": "Output vertical table.",
           "types": [
             "sf.table.vertical_table"
           ]
@@ -1972,24 +3404,13 @@
       "domain": "stats",
       "name": "groupby_statistics",
       "desc": "Get a groupby of statistics, like pandas groupby statistics.\nCurrently only support VDataframe.",
-      "version": "0.0.1",
+      "version": "0.0.3",
       "attrs": [
         {
-          "name": "agg",
-          "desc": "What kind of aggregation statistics we want to do, currently only supports min, max, mean, sum, var, count(number of elements in each group)",
-          "type": "AT_STRING",
-          "atomic": {
-            "allowedValues": {
-              "ss": [
-                "min",
-                "max",
-                "mean",
-                "sum",
-                "var",
-                "count"
-              ]
-            }
-          }
+          "name": "aggregation_config",
+          "desc": "input groupby aggregation config",
+          "type": "AT_CUSTOM_PROTOBUF",
+          "customProtobufCls": "groupby_aggregation_config_pb2.GroupbyAggregationConfig"
         },
         {
           "name": "max_group_size",
@@ -2001,7 +3422,11 @@
               "i64": "10000"
             },
             "lowerBoundEnabled": true,
-            "lowerBound": {}
+            "lowerBound": {},
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "i64": "10001"
+            }
           }
         }
       ],
@@ -2019,11 +3444,6 @@
               "desc": "by what columns should we group the values",
               "colMinCntInclusive": "1",
               "colMaxCntInclusive": "4"
-            },
-            {
-              "name": "values",
-              "desc": "on which columns should we calculate the statistics",
-              "colMinCntInclusive": "1"
             }
           ]
         }
@@ -2101,8 +3521,8 @@
     {
       "domain": "stats",
       "name": "table_statistics",
-      "desc": "Get a table of statistics,\nincluding each column's\n1. datatype\n2. total_count\n3. count\n4. count_na\n5. min\n6. max\n7. var\n8. std\n9. sem\n10. skewness\n11. kurtosis\n12. q1\n13. q2\n14. q3\n15. moment_2\n16. moment_3\n17. moment_4\n18. central_moment_2\n19. central_moment_3\n20. central_moment_4\n21. sum\n22. sum_2\n23. sum_3\n24. sum_4\n- moment_2 means E[X^2].\n- central_moment_2 means E[(X - mean(X))^2].\n- sum_2 means sum(X^2).",
-      "version": "0.0.1",
+      "desc": "Get a table of statistics,\nincluding each column's\n1. datatype\n2. total_count\n3. count\n4. count_na\n5. na_ratio\n6. min\n7. max\n8. mean\n9. var\n10. std\n11. sem\n12. skewness\n13. kurtosis\n14. q1\n15. q2\n16. q3\n17. moment_2\n18. moment_3\n19. moment_4\n20. central_moment_2\n21. central_moment_3\n22. central_moment_4\n23. sum\n24. sum_2\n25. sum_3\n26. sum_4\n- moment_2 means E[X^2].\n- central_moment_2 means E[(X - mean(X))^2].\n- sum_2 means sum(X^2).",
+      "version": "0.0.2",
       "inputs": [
         {
           "name": "input_data",
@@ -2110,6 +3530,13 @@
           "types": [
             "sf.table.vertical_table",
             "sf.table.individual"
+          ],
+          "attrs": [
+            {
+              "name": "features",
+              "desc": "perform statistics on these columns",
+              "colMinCntInclusive": "1"
+            }
           ]
         }
       ],

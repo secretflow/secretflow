@@ -1,7 +1,22 @@
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from typing import Tuple
 
 import jax.numpy as jnp
 import numpy as np
+from spu import spu_pb2
 
 import secretflow as sf
 from secretflow.device.device.spu import SPUCompilerNumReturnsPolicy
@@ -262,4 +277,22 @@ def test_matmul(sf_production_setup_devices):
     # FIXME: precision is not good.
     np.testing.assert_almost_equal(
         sf.reveal(x) @ sf.reveal(y), sf.reveal(z_), decimal=3
+    )
+
+
+def test_copts(sf_production_setup_devices):
+    # PYU
+    x = sf_production_setup_devices.alice(np.random.rand)(3, 4)
+    y = sf_production_setup_devices.bob(np.random.rand)(3, 4)
+
+    # SPU
+    copts = spu_pb2.CompilerOptions()
+    copts.xla_pp_kind = 2
+
+    z_ = sf_production_setup_devices.spu2(lambda a, b: a + b, copts=copts)(
+        x.to(sf_production_setup_devices.spu2), y.to(sf_production_setup_devices.spu2)
+    )
+
+    np.testing.assert_almost_equal(
+        sf.reveal(x) + sf.reveal(y), sf.reveal(z_), decimal=3
     )

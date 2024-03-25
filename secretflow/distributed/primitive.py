@@ -15,6 +15,7 @@
 
 import inspect
 import logging
+import multiprocessing
 from enum import Enum, unique
 from functools import partial
 from typing import List, Union
@@ -27,6 +28,7 @@ from ray._private import ray_option_utils
 from ray.actor import ActorClass, _inject_tracing_into_class, ray_constants
 from ray.remote_function import RemoteFunction
 
+import secretflow.ic.remote as ic
 from secretflow.distributed.memory_api import mem_remote
 from secretflow.utils.ray_compatibility import ray_version_less_than_2_0_0
 
@@ -36,6 +38,7 @@ class DISTRIBUTION_MODE(Enum):
     PRODUCTION = 1
     SIMULATION = 2
     DEBUG = 3
+    INTERCONNECTION = 4
 
 
 _distribution_mode = DISTRIBUTION_MODE.SIMULATION
@@ -96,6 +99,23 @@ def active_sf_cluster():
     _is_cluster_active = True
 
 
+def get_cluster_avaliable_resources():
+    if get_distribution_mode() == DISTRIBUTION_MODE.DEBUG:
+        from secretflow.device import global_state
+
+        parties = global_state.parties()
+        cpu_counts = multiprocessing.cpu_count()
+        avaliable_resources = {party: cpu_counts for party in parties}
+        avaliable_resources['CPU'] = cpu_counts
+        return avaliable_resources
+    elif get_distribution_mode() == DISTRIBUTION_MODE.SIMULATION:
+        return ray.available_resources()
+    else:
+        raise NotImplementedError(
+            "Need but not implement. This will be used by tune when production mode."
+        )
+
+
 def _is_cython(obj):
     """Check if an object is a Cython function or method"""
 
@@ -119,6 +139,8 @@ def remote(*args, **kwargs):
         return ray_remote(*args, **kwargs)
     elif get_distribution_mode() == DISTRIBUTION_MODE.DEBUG:
         return mem_remote(*args, **kwargs)
+    elif get_distribution_mode() == DISTRIBUTION_MODE.INTERCONNECTION:
+        return ic.remote(*args, **kwargs)
     else:
         raise Exception(f"Illegal distribute mode, only support ({DISTRIBUTION_MODE})")
 
@@ -136,6 +158,8 @@ def get(
         return ray.get(object_refs)
     elif get_distribution_mode() == DISTRIBUTION_MODE.DEBUG:
         return object_refs
+    elif get_distribution_mode() == DISTRIBUTION_MODE.INTERCONNECTION:
+        return ic.get(object_refs)
     else:
         raise Exception(f"Illegal distribute mode, only support ({DISTRIBUTION_MODE})")
 
@@ -146,6 +170,8 @@ def kill(actor, *, no_restart=True):
     elif get_distribution_mode() == DISTRIBUTION_MODE.SIMULATION:
         return ray.kill(actor, no_restart=no_restart)
     elif get_distribution_mode() == DISTRIBUTION_MODE.DEBUG:
+        logging.warning("Actor be killed")
+    elif get_distribution_mode() == DISTRIBUTION_MODE.INTERCONNECTION:
         logging.warning("Actor be killed")
     else:
         raise Exception(f"Illegal distribute mode, only support ({DISTRIBUTION_MODE})")
@@ -160,6 +186,8 @@ def shutdown():
     elif get_distribution_mode() == DISTRIBUTION_MODE.SIMULATION:
         ray.shutdown()
     elif get_distribution_mode() == DISTRIBUTION_MODE.DEBUG:
+        logging.warning("Shut Down!")
+    elif get_distribution_mode() == DISTRIBUTION_MODE.INTERCONNECTION:
         logging.warning("Shut Down!")
     else:
         raise Exception(f"Illegal distribute mode, only support ({DISTRIBUTION_MODE})")
@@ -273,3 +301,8 @@ def ray_remote(*args, **kwargs):
         return _make_remote(args[0], {})
     assert len(args) == 0 and len(kwargs) > 0, ray_option_utils.remote_args_error_string
     return partial(_make_remote, options=kwargs)
+
+
+# Whether running in interconnection mode
+def in_ic_mode() -> bool:
+    return get_distribution_mode() == DISTRIBUTION_MODE.INTERCONNECTION

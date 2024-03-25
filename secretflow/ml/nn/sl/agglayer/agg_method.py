@@ -52,7 +52,6 @@ class AggMethod(ABC):
         self,
         *gradients,
         parties_num,
-        weights,
         inputs,
     ) -> List:
         if isinstance(gradients, tuple) and len(gradients) == 1:
@@ -61,7 +60,7 @@ class AggMethod(ABC):
         g_backward = grad(
             wrapped_forward, argnums=tuple([a for a in range(parties_num)])
         )
-        df_dx = g_backward(*inputs, weights=weights)
+        df_dx = g_backward(*inputs)
         gradients_list = []
         if isinstance(gradients, (tuple, list)):
             for dx in df_dx:
@@ -78,15 +77,15 @@ class AggMethod(ABC):
 class Average(AggMethod):
     """Built-in Average Aggregation Method."""
 
-    def __init__(self) -> None:
+    def __init__(self, axis=0, weights=None) -> None:
         super().__init__()
         self.g_func = None
+        self.axis = axis
+        self.weights = weights
 
     def forward(
         self,
         *data,
-        axis=0,
-        weights=None,
     ):
         # Here we use jax to ensure that both PYU and SPU can be supported, and support autograd to generate backward funciton
         if isinstance(data, tuple) and len(data) == 1:
@@ -96,15 +95,111 @@ class Average(AggMethod):
             agg_data = [
                 jnp.average(
                     jnp.array(element),
-                    axis=axis,
-                    weights=jnp.array(weights) if weights is not None else None,
+                    axis=self.axis,
+                    weights=(
+                        jnp.array(self.weights) if self.weights is not None else None
+                    ),
                 )
                 for element in zip(*data)
             ]
         else:
             agg_data = jnp.average(
                 jnp.array(data),
-                axis=axis,
-                weights=jnp.array(weights) if weights is not None else None,
+                axis=self.axis,
+                weights=jnp.array(self.weights) if self.weights is not None else None,
             )
         return agg_data
+
+
+class Sum(AggMethod):
+    """Built-in Sum Aggregation Method."""
+
+    def __init__(self, axis=0) -> None:
+        super().__init__()
+        self.g_func = None
+        self.axis = axis
+
+    def forward(
+        self,
+        *data,
+    ):
+        # Here we use jax to ensure that both PYU and SPU can be supported, and support autograd to generate backward funciton
+        if isinstance(data, tuple) and len(data) == 1:
+            data = list(data)
+        self.inputs = data[0]
+        if isinstance(data[0], (list, tuple)):
+            agg_data = [
+                jnp.sum(
+                    jnp.array(element),
+                    axis=self.axis,
+                )
+                for element in zip(*data)
+            ]
+        else:
+            agg_data = jnp.sum(
+                jnp.array(data),
+                axis=self.axis,
+            )
+        return agg_data
+
+
+class Concat(AggMethod):
+    """Built-in Sum Aggregation Method."""
+
+    def __init__(self, axis=1) -> None:
+        super().__init__()
+        self.g_func = None
+        self.axis = axis
+
+    def forward(
+        self,
+        *data,
+    ):
+        # Here we use jax to ensure that both PYU and SPU can be supported, and support autograd to generate backward funciton
+        if isinstance(data, tuple) and len(data) == 1:
+            data = list(data)
+        self.inputs = data[0]
+        if isinstance(data[0], (list, tuple)):
+            agg_data = [
+                jnp.concatenate(
+                    jnp.array(element),
+                    axis=self.axis,
+                )
+                for element in zip(*data)
+            ]
+        else:
+            jnp_array = [jnp.array(d) for d in data]
+            agg_data = jnp.concatenate(
+                jnp_array,
+                axis=self.axis,
+            )
+        return agg_data
+
+    # rewrite backward since gradients and dx shapes are not aligned
+    def backward(self, *gradients, parties_num, inputs) -> List:
+        if isinstance(gradients, tuple) and len(gradients) == 1:
+            gradients = gradients[0]
+        wrapped_forward = auto_grad(self.forward)
+        g_backward = grad(
+            wrapped_forward, argnums=tuple([a for a in range(parties_num)])
+        )
+        df_dx = g_backward(*inputs)
+        gradients_list = []
+        split_point = []
+        start = 0
+        for dx in df_dx:
+            split_point.append(start + dx.shape[self.axis])
+            start = start + dx.shape[self.axis]
+        split_point.pop(-1)
+        if isinstance(gradients, (tuple, list)):
+            split_gradients = []
+            for g in gradients:
+                split_gradients.append(jnp.split(g, split_point, axis=self.axis))
+
+            for item in zip(*split_gradients):
+                gradients_list.append(list(item))
+
+        else:
+            gradients_list = list(jnp.split(gradients, split_point, axis=self.axis))
+
+        return gradients_list

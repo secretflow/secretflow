@@ -1,3 +1,17 @@
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from io import StringIO
 
 import numpy as np
@@ -67,6 +81,11 @@ def prod_env_and_data(sf_production_setup_devices):
                     lambda: normal_data.drop("y", axis=1)
                 )()
             ),
+            sf_production_setup_devices.carol: partition(
+                data=sf_production_setup_devices.carol(
+                    lambda: normal_data.drop("y", axis=1)
+                )()
+            ),
         }
     )
 
@@ -99,6 +118,11 @@ def prod_env_and_data(sf_production_setup_devices):
             ),
             sf_production_setup_devices.bob: partition(
                 data=sf_production_setup_devices.bob(
+                    lambda: nan_str_data.drop("y", axis=1)
+                )()
+            ),
+            sf_production_setup_devices.carol: partition(
+                data=sf_production_setup_devices.carol(
                     lambda: nan_str_data.drop("y", axis=1)
                 )()
             ),
@@ -220,19 +244,31 @@ def test_binning_normal(prod_env_and_data):
 
     he_report = he_binning.binning(
         data['v_float_data'],
-        bin_names={env.alice: ["x1", "x2", "x3"], env.bob: ["x1", "x2", "x3"]},
+        bin_names={
+            env.alice: ["x1", "x2", "x3"],
+            env.bob: ["x1", "x2", "x3"],
+            env.carol: ["x1", "x2", "x3"],
+        },
         label_name="y",
     )
     ss_report = ss_binning.binning(
         data['v_float_data'],
-        bin_names={env.alice: ["x1", "x2", "x3"], env.bob: ["x1", "x2", "x3"]},
+        bin_names={
+            env.alice: ["x1", "x2", "x3"],
+            env.bob: ["x1", "x2", "x3"],
+            env.carol: ["x1", "x2", "x3"],
+        },
         label_name="y",
     )
 
     vert_binning_report = vert_binning.binning(
         data['v_nan_data'],
         binning_method="eq_range",
-        bin_names={env.alice: ["f1", "f3", "f2"], env.bob: ["f1", "f3", "f2"]},
+        bin_names={
+            env.alice: ["f1", "f3", "f2"],
+            env.bob: ["f1", "f3", "f2"],
+            env.carol: ["f1", "f3", "f2"],
+        },
     )
     assert he_report.keys() == vert_binning_report.keys()
 
@@ -242,15 +278,13 @@ def test_binning_normal(prod_env_and_data):
     he_alice = reveal(he_report[env.alice])
     ss_bob = reveal(ss_report[env.bob])
     he_bob = reveal(he_report[env.bob])
-    print("ss_alice to ss_alice")
-    print(ss_alice)
+    ss_carol = reveal(ss_report[env.carol])
+    he_carol = reveal(he_report[env.carol])
     woe_almost_equal(ss_alice, he_alice)
-    print("ss_bob to ss_alice")
-    print(ss_bob)
     woe_almost_equal(ss_bob, he_alice)
-    print("ss_bob to ss_alice")
-    print(he_bob)
+    woe_almost_equal(ss_carol, he_carol)
     woe_almost_equal(he_bob, he_alice)
+    woe_almost_equal(he_carol, he_alice)
 
 
 def test_binning_normal_chimerge(prod_env_and_data):
@@ -282,4 +316,30 @@ def test_binning_normal_chimerge(prod_env_and_data):
     woe_almost_equal(ss_bob, he_alice)
     print("chi_bob to chi_alice")
     print(he_bob)
+    woe_almost_equal(he_bob, he_alice)
+
+
+def test_binning_normal_eq_range(prod_env_and_data):
+    env, data = prod_env_and_data
+    he_binning = VertWoeBinning(env.heu)
+    ss_binning = VertWoeBinning(env.spu)
+    he_report = he_binning.binning(
+        data['v_float_data'],
+        binning_method="eq_range",
+        bin_names={env.alice: ["x1", "x2", "x3"], env.bob: ["x1", "x2", "x3"]},
+        label_name="y",
+    )
+    ss_report = ss_binning.binning(
+        data['v_float_data'],
+        binning_method="eq_range",
+        bin_names={env.alice: ["x1", "x2", "x3"], env.bob: ["x1", "x2", "x3"]},
+        label_name="y",
+    )
+    assert he_report.keys() == ss_report.keys()
+    ss_alice = reveal(ss_report[env.alice])
+    he_alice = reveal(he_report[env.alice])
+    ss_bob = reveal(ss_report[env.bob])
+    he_bob = reveal(he_report[env.bob])
+    woe_almost_equal(ss_alice, he_alice)
+    woe_almost_equal(ss_bob, he_alice)
     woe_almost_equal(he_bob, he_alice)

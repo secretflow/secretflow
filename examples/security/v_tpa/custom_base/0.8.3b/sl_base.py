@@ -19,6 +19,7 @@
 """sl model base
 """
 import copy
+import pdb
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Callable, Dict, Iterator, List, Optional, Tuple, Union
@@ -40,7 +41,6 @@ from secretflow.ml.nn.sl.backend.tensorflow.utils import ForwardData
 from secretflow.ml.nn.sl.strategy_dispatcher import register_strategy
 from secretflow.security.privacy import DPStrategy
 from secretflow.utils.compressor import Compressor, SparseCompressor
-import pdb
 
 
 class SLBaseModel(ABC):
@@ -549,9 +549,9 @@ class SLBaseTFModel(SLBaseModel):
                 # decompress
                 hidden_features = list(
                     map(
-                        lambda d, compressed: self.compressor.decompress(d)
-                        if compressed
-                        else d,
+                        lambda d, compressed: (
+                            self.compressor.decompress(d) if compressed else d
+                        ),
                         hidden_features,
                         iscompressed,
                     )
@@ -596,9 +596,9 @@ class SLBaseTFModel(SLBaseModel):
             else:
                 gradient = list(
                     map(
-                        lambda d, compressed: self.compressor.compress(d)
-                        if compressed
-                        else d
+                        lambda d, compressed: (
+                            self.compressor.compress(d) if compressed else d
+                        )
                     ),
                     gradient,
                     iscompressed,

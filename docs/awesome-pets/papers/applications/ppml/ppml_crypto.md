@@ -70,7 +70,7 @@ An overview of existing works is illustrated in the table below.
 > Note: one paper may be included in several categories (e.g. a paper that supports training naturally supports inference).
 
 ## Table of Contents
-
+- [Survey](#survey)
 - [2PC](#two-party-computation-2pc)
   * [Inference](#2pc-infer)
   * [Training](#2pc-train)
@@ -79,6 +79,24 @@ An overview of existing works is illustrated in the table below.
   * [Training](#3pc-train)
 - [4PC](#four-party-computation-4pc)
   * [Training](#4pc-train)
+
+## Survey
+- Cryptographic Primitives in Privacy-Preserving Machine Learning: A Survey.
+    *H. Qin, D. He, Q. Feng, M. K. Khan, M. Luo and K. -K. R. Choo*
+    IEEE Transactions on Knowledge and Data Engineering, [eprint](https://ieeexplore.ieee.org/document/10269692)
+
+- Secure Multi-party Learning: From Secure Computation to Secure Learning.
+    *HAN Wei-Li SONG Lu-shan RUAN Wen-qiang LIN Guo-peng WANG Zhe-xuan*
+    Chinese Journal of Computers, [eprint in Chinese](http://cjc.ict.ac.cn/online/onlinepaper/hwl-202375100742.pdf)
+
+- When Machine Learning Meets Privacy: A Survey and Outlook.
+    *Bo Liu, Ming Ding, Sina Shaham, Wenny Rahayu, Farhad Farokhi, and Zihuai Lin*
+    ACM Computing Surveys (CSUR), [eprint](https://arxiv.org/pdf/2011.11819.pdf)
+
+
+- Privacy-preserving machine learning: Methods, challenges and directions.
+    *Xu R, Baracaldo N, Joshi J*
+    arXiv preprint arXiv, [eprint](https://arxiv.org/pdf/2108.04417.pdf)
 
 ## Two-party Computation (2PC)
 

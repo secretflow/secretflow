@@ -104,3 +104,4 @@ msgid ""
 "本篇示例介绍了隐语拆分学习中流水线并行的使用方法。与一般拆分学习的使用方法一样，只需在定义 SLModel 时指定 "
 "strategy=‘pipeline’ 并设置 pipeline_num 即可。"
 msgstr ""
+

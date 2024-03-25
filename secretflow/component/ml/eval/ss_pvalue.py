@@ -69,10 +69,24 @@ def ss_pearsonr_eval_fn(
 
     spu = SPU(spu_config["cluster_def"], spu_config["link_desc"])
 
-    model = load_ss_sgd_model(ctx, spu, model)
+    model, model_meta = load_ss_sgd_model(ctx, spu, model)
 
-    x = load_table(ctx, input_data, load_features=True)
-    y = load_table(ctx, input_data, load_labels=True)
+    x = load_table(
+        ctx,
+        input_data,
+        partitions_order=list(model_meta["party_features_length"].keys()),
+        load_features=True,
+        col_selects=model_meta["feature_names"],
+    )
+    assert x.columns == model_meta["feature_names"]
+
+    y = load_table(
+        ctx,
+        input_data,
+        load_features=True,
+        load_labels=True,
+        col_selects=model_meta['label_col'],
+    )
 
     with ctx.tracer.trace_running():
         pv: np.ndarray = PValue(spu).pvalues(x, y, model)

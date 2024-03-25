@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .split_candidate_manager import SplitCandidateManager
 from .split_candidate_heap import SplitCandidate
+from .split_candidate_manager import SplitCandidateManager
 
 __all__ = ['SplitCandidateManager', 'SplitCandidate']

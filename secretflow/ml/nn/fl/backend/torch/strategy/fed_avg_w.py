@@ -15,12 +15,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import copy
 from typing import Tuple
 
 import numpy as np
 import torch
+
 from secretflow.ml.nn.fl.backend.torch.fl_base import BaseTorchModel
 from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
 
@@ -51,46 +51,30 @@ class FedAvgW(BaseTorchModel):
         """
         assert self.model is not None, "Model cannot be none, please give model define"
         self.model.train()
+        refresh_data = kwargs.get("refresh_data", False)
+        if refresh_data:
+            self._reset_data_iter()
         if weights is not None:
-            self.model.update_weights(weights)
+            self.set_weights(weights)
         num_sample = 0
         dp_strategy = kwargs.get('dp_strategy', None)
         logs = {}
+        loss: torch.Tensor = None
 
-        for _ in range(train_steps):
-            self.optimizer.zero_grad()
-            iter_data = next(self.train_iter)
-            if len(iter_data) == 2:
-                x, y = iter_data
-                s_w = None
-            elif len(iter_data) == 3:
-                x, y, s_w = iter_data
-            x = x.float()
+        for step in range(train_steps):
+            x, y, s_w = self.next_batch()
             num_sample += x.shape[0]
-            if len(y.shape) == 1:
-                y_t = y
-            else:
-                if y.shape[-1] == 1:
-                    y_t = torch.squeeze(y, -1).long()
-                else:
-                    y_t = y.argmax(dim=-1)
-            if self.use_gpu:
-                x = x.to(self.exe_device)
-                y_t = y_t.to(self.exe_device)
-                if s_w is not None:
-                    s_w = s_w.to(self.exe_device)
-            y_pred = self.model(x)
 
-            # do back propagation
-            loss = self.loss(y_pred, y_t)
-            loss.backward()
-            self.optimizer.step()
-            for m in self.metrics:
-                m.update(y_pred.cpu(), y_t.cpu())
+            loss = self.model.training_step((x, y), cur_steps + step, sample_weight=s_w)
+
+            if self.model.automatic_optimization:
+                self.model.backward_step(loss)
+
         loss_value = loss.item()
         logs['train-loss'] = loss_value
 
         self.logs = self.transform_metrics(logs)
+        self.wrapped_metrics.extend(self.wrap_local_metrics())
         self.epoch_logs = copy.deepcopy(self.logs)
 
         model_weights = self.model.get_weights(return_numpy=True)
@@ -101,6 +85,15 @@ class FedAvgW(BaseTorchModel):
                 model_weights = dp_strategy.model_gdp(model_weights)
 
         return model_weights, num_sample
+
+    def apply_weights(self, weights, **kwargs):
+        """Accept ps model params, then update local model
+
+        Args:
+            weights: global weight from params server
+        """
+        if weights is not None:
+            self.set_weights(weights)
 
 
 @register_strategy(strategy_name='fed_avg_w', backend='torch')

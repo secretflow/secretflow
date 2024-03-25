@@ -1,3 +1,17 @@
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import logging
 
 from secretflow.component.test_framework.test_case import PipelineCase, TestComp
@@ -10,24 +24,22 @@ if __name__ == "__main__":
     aci_pipe = PipelineCase("aci_pipe")
 
     attrs = {
-        "protocol": "ECDH_PSI_2PC",
+        "protocol": "PROTOCOL_ECDH",
         "receiver": "alice",
-        "sort": True,
-        "broadcast_result": True,
-        "bucket_size": 1048576,
-        "ecdh_curve_type": "CURVE_FOURQ",
+        "disable_alignment": False,
+        "ecdh_curve": "CURVE_FOURQ",
         "input/receiver_input/key": ["id0"],
         "input/sender_input/key": ["id1"],
     }
     # 测试psi
-    psi = TestComp("psi_test", "preprocessing", "psi", "0.0.1", attrs)
+    psi = TestComp("psi_test", "data_prep", "psi", "0.0.2", attrs)
     aci_pipe.add_comp(psi, ["DAGInput.alice", "DAGInput.bob"])
 
     attrs = {
         "input/in_ds/drop_features": ["alice1", "bob9"],
     }
     # 测试feature_filter
-    feature_filter = TestComp("ff", "preprocessing", "feature_filter", "0.0.1", attrs)
+    feature_filter = TestComp("ff", "data_filter", "feature_filter", "0.0.1", attrs)
     aci_pipe.add_comp(feature_filter, ["psi_test.0"])
 
     attrs = {
@@ -37,8 +49,12 @@ if __name__ == "__main__":
         "shuffle": False,
     }
     # 测试train_test_split
-    ds_split = TestComp("ds_split", "preprocessing", "train_test_split", "0.0.1", attrs)
+    ds_split = TestComp("ds_split", "data_prep", "train_test_split", "0.0.1", attrs)
     aci_pipe.add_comp(ds_split, ["ff.0"])
+
+    feature_selects = [f"alice{c}" for c in range(15)] + [f"bob{c}" for c in range(15)]
+    feature_selects.remove("alice1")
+    feature_selects.remove("bob9")
 
     attrs = {
         "epochs": 2,
@@ -47,6 +63,7 @@ if __name__ == "__main__":
         "sig_type": "t1",
         "reg_type": "logistic",
         "input/train_dataset/label": ["y"],
+        "input/train_dataset/feature_selects": feature_selects,
     }
     # 测试ss_sgd_train
     sslr = TestComp("sslr_train", "ml.train", "ss_sgd_train", "0.0.1", attrs)

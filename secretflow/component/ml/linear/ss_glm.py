@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import json
-import os
 from typing import Tuple
 
 from secretflow.component.component import (
@@ -24,24 +23,27 @@ from secretflow.component.component import (
 )
 from secretflow.component.data_utils import (
     DistDataType,
-    extract_table_header,
-    gen_prediction_csv_meta,
+    generate_random_string,
+    get_model_public_info,
     load_table,
     model_dumps,
     model_loads,
-    save_prediction_csv,
+    save_prediction_dd,
 )
 from secretflow.device.device.pyu import PYU
 from secretflow.device.device.spu import SPU, SPUObject
-from secretflow.device.driver import wait
+from secretflow.device.driver import reveal
 from secretflow.ml.linear import SSGLM
 from secretflow.ml.linear.ss_glm.core import Linker, get_link
+from secretflow.ml.linear.ss_glm.model import STOPPING_METRICS
+from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData
+from secretflow.spec.v1.report_pb2 import Descriptions, Div, Report, Tab, Table
 
 ss_glm_train_comp = Component(
     "ss_glm_train",
     domain="ml.train",
-    version="0.0.1",
+    version="0.0.2",
     desc="""generalized linear model (GLM) is a flexible generalization of ordinary linear regression.
     The GLM generalizes linear regression by allowing the linear model to be related to the response
     variable via a link function and by allowing the magnitude of the variance of each measurement to
@@ -81,7 +83,7 @@ ss_glm_train_comp.str_attr(
     desc="link function type",
     is_list=False,
     is_optional=False,
-    allowed_values=["Logit", "Log", "Reciprocal", "Indentity"],
+    allowed_values=["Logit", "Log", "Reciprocal", "Identity"],
 )
 ss_glm_train_comp.str_attr(
     name="label_dist_type",
@@ -110,17 +112,8 @@ ss_glm_train_comp.float_attr(
     lower_bound=1,
     lower_bound_inclusive=True,
 )
-ss_glm_train_comp.float_attr(
-    name="eps",
-    desc="""If the change rate of weights is less than this threshold,
-            the model is considered to be converged,
-            and the training stops early. 0 to disable.""",
-    is_list=False,
-    is_optional=True,
-    default_value=0.0001,
-    lower_bound=0,
-    lower_bound_inclusive=True,
-)
+
+
 ss_glm_train_comp.int_attr(
     name="iter_start_irls",
     desc="""run a few rounds of IRLS training as the initialization of w,
@@ -158,19 +151,104 @@ ss_glm_train_comp.str_attr(
     is_optional=False,
     allowed_values=["SGD", "IRLS"],
 )
-ss_glm_train_comp.str_attr(
-    name="offset_col",
-    desc="Specify a column to use as the offset",
+ss_glm_train_comp.float_attr(
+    name="l2_lambda",
+    desc="L2 regularization term",
     is_list=False,
     is_optional=True,
-    default_value="",
+    default_value=0.1,
+    lower_bound=0,
+    lower_bound_inclusive=True,
 )
-ss_glm_train_comp.str_attr(
-    name="weight_col",
-    desc="Specify a column to use for the observation weights",
+
+ss_glm_train_comp.int_attr(
+    name="infeed_batch_size_limit",
+    desc="""size of a single block, default to 10w * 100. increase the size will increase memory cost,
+        but may decrease running time. Suggested to be as large as possible. (too large leads to OOM) """,
     is_list=False,
     is_optional=True,
-    default_value="",
+    default_value=10000000,
+    lower_bound=1000,
+    lower_bound_inclusive=True,
+)
+
+
+ss_glm_train_comp.float_attr(
+    name="fraction_of_validation_set",
+    desc="fraction of training set to be used as the validation set. ineffective for 'weight' stopping_metric",
+    is_list=False,
+    is_optional=True,
+    default_value=0.2,
+    lower_bound=0,
+    lower_bound_inclusive=False,
+    upper_bound=1,
+    upper_bound_inclusive=False,
+)
+
+ss_glm_train_comp.int_attr(
+    name="random_state",
+    desc="""random state for validation split""",
+    is_list=False,
+    is_optional=True,
+    default_value=1212,
+    lower_bound=0,
+    lower_bound_inclusive=True,
+)
+
+ss_glm_train_comp.str_attr(
+    name="stopping_metric",
+    desc=f"""use what metric as the condition for early stop?  Must be one of {STOPPING_METRICS}.
+    only logit link supports AUC metric (note that AUC is very, very expansive in MPC)
+    """,
+    is_list=False,
+    is_optional=True,
+    default_value='deviance',
+    allowed_values=STOPPING_METRICS,
+)
+
+ss_glm_train_comp.int_attr(
+    name="stopping_rounds",
+    desc="""If the model is not improving for stopping_rounds, the training process will be stopped,
+            for 'weight' stopping metric, stopping_rounds is fixed to be 1
+    """,
+    is_list=False,
+    is_optional=True,
+    default_value=0,
+    lower_bound=0,
+    lower_bound_inclusive=True,
+    upper_bound=100,
+    upper_bound_inclusive=True,
+)
+ss_glm_train_comp.float_attr(
+    name="stopping_tolerance",
+    desc="""the model is considered as not improving, if the metric is not improved by tolerance over best metric in history.
+    If metric is 'weight' and tolerance == 0, then early stop is disabled.
+    """,
+    is_list=False,
+    is_optional=True,
+    default_value=0.001,
+    lower_bound=0,
+    lower_bound_inclusive=True,
+    upper_bound=1,
+    upper_bound_inclusive=False,
+)
+
+ss_glm_train_comp.bool_attr(
+    name="report_metric",
+    desc="""Whether to report the value of stopping metric.
+    Only effective if early stop is enabled.
+    If this option is set to true, metric will be revealed and logged.""",
+    is_list=False,
+    is_optional=True,
+    default_value=False,
+)
+
+ss_glm_train_comp.bool_attr(
+    name="report_weights",
+    desc="If this option is set to true, model will be revealed and model details are visible to all parties",
+    is_list=False,
+    is_optional=True,
+    default_value=False,
 )
 ss_glm_train_comp.io(
     io_type=IoType.INPUT,
@@ -179,11 +257,28 @@ ss_glm_train_comp.io(
     types=[DistDataType.VERTICAL_TABLE],
     col_params=[
         TableColParam(
+            name="feature_selects",
+            desc="which features should be used for training.",
+            col_min_cnt_inclusive=1,
+        ),
+        TableColParam(
+            name="offset",
+            desc="Specify a column to use as the offset",
+            col_min_cnt_inclusive=0,
+            col_max_cnt_inclusive=1,
+        ),
+        TableColParam(
+            name="weight",
+            desc="Specify a column to use for the observation weights",
+            col_min_cnt_inclusive=0,
+            col_max_cnt_inclusive=1,
+        ),
+        TableColParam(
             name="label",
             desc="Label of train dataset.",
             col_min_cnt_inclusive=1,
             col_max_cnt_inclusive=1,
-        )
+        ),
     ],
 )
 ss_glm_train_comp.io(
@@ -192,10 +287,16 @@ ss_glm_train_comp.io(
     desc="Output model.",
     types=[DistDataType.SS_GLM_MODEL],
 )
+ss_glm_train_comp.io(
+    io_type=IoType.OUTPUT,
+    name="report",
+    desc="If report_weights is true, report model details",
+    types=[DistDataType.REPORT],
+)
 
-# current version 0.1
+# current version 0.3
 MODEL_MAX_MAJOR_VERSION = 0
-MODEL_MAX_MINOR_VERSION = 1
+MODEL_MAX_MINOR_VERSION = 3
 
 
 @ss_glm_train_comp.eval_fn
@@ -209,29 +310,47 @@ def ss_glm_train_eval_fn(
     label_dist_type,
     tweedie_power,
     dist_scale,
-    eps,
     iter_start_irls,
     optimizer,
-    offset_col,
-    weight_col,
+    l2_lambda,
+    infeed_batch_size_limit,
+    fraction_of_validation_set,
+    random_state,
+    stopping_metric,
+    stopping_rounds,
+    stopping_tolerance,
+    report_metric,
+    report_weights,
+    train_dataset_offset,
+    train_dataset_weight,
     decay_epoch,
     decay_rate,
     train_dataset,
     train_dataset_label,
     output_model,
+    train_dataset_feature_selects,
+    report,
 ):
-    # only local fs is supported at this moment.
-    local_fs_wd = ctx.local_fs_wd
-
     if ctx.spu_configs is None or len(ctx.spu_configs) == 0:
         raise CompEvalError("spu config is not found.")
     if len(ctx.spu_configs) > 1:
         raise CompEvalError("only support one spu")
     spu_config = next(iter(ctx.spu_configs.values()))
 
-    spu = SPU(spu_config["cluster_def"], spu_config["link_desc"])
+    cluster_def = spu_config["cluster_def"].copy()
+
+    # forced to use 128 ring size & 40 fxp
+    cluster_def["runtime_config"]["field"] = "FM128"
+    cluster_def["runtime_config"]["fxp_fraction_bits"] = 40
+
+    spu = SPU(cluster_def, spu_config["link_desc"])
 
     glm = SSGLM(spu)
+
+    assert len(train_dataset_label) == 1
+    assert (
+        train_dataset_label[0] not in train_dataset_feature_selects
+    ), f"col {train_dataset_label[0]} used in both label and features"
 
     y = load_table(
         ctx,
@@ -240,30 +359,46 @@ def ss_glm_train_eval_fn(
         load_features=True,
         col_selects=train_dataset_label,
     )
+
     x = load_table(
         ctx,
         train_dataset,
         load_labels=True,
         load_features=True,
-        col_excludes=train_dataset_label,
+        col_selects=train_dataset_feature_selects,
     )
-    if offset_col:
+
+    if train_dataset_offset:
         assert (
-            offset_col in x.columns
-        ), f"can't find offset_col {offset_col} in train_dataset"
-        offset = x[offset_col]
-        x.drop(columns=offset_col, inplace=True)
+            train_dataset_offset[0] not in train_dataset_feature_selects
+        ), f"col {train_dataset_offset[0]} used in both offset and features"
+        offset = load_table(
+            ctx,
+            train_dataset,
+            load_labels=True,
+            load_features=True,
+            col_selects=train_dataset_offset,
+        )
+        offset_col = train_dataset_offset[0]
     else:
         offset = None
+        offset_col = ""
 
-    if weight_col:
+    if train_dataset_weight:
         assert (
-            weight_col in x.columns
-        ), f"can't find weight_col {weight_col} in train_dataset"
-        weight = x[weight_col]
-        x.drop(columns=weight_col, inplace=True)
+            train_dataset_weight[0] not in train_dataset_feature_selects
+        ), f"col {train_dataset_weight[0]} used in both weight and features"
+        weight = load_table(
+            ctx,
+            train_dataset,
+            load_labels=True,
+            load_features=True,
+            col_selects=train_dataset_weight,
+        )
     else:
         weight = None
+
+    l2_lambda = l2_lambda if l2_lambda > 0 else None
 
     with ctx.tracer.trace_running():
         if optimizer == "SGD":
@@ -284,9 +419,16 @@ def ss_glm_train_eval_fn(
                 learning_rate=learning_rate,
                 batch_size=batch_size,
                 iter_start_irls=iter_start_irls,
-                eps=eps,
                 decay_epoch=decay_epoch,
                 decay_rate=decay_rate,
+                l2_lambda=l2_lambda,
+                infeed_batch_size_limit=infeed_batch_size_limit,
+                fraction_of_validation_set=fraction_of_validation_set,
+                random_state=random_state,
+                stopping_metric=stopping_metric,
+                stopping_rounds=stopping_rounds,
+                stopping_tolerance=stopping_tolerance,
+                report_metric=report_metric,
             )
         elif optimizer == "IRLS":
             glm.fit_irls(
@@ -299,26 +441,146 @@ def ss_glm_train_eval_fn(
                 dist=label_dist_type,
                 tweedie_power=tweedie_power,
                 scale=dist_scale,
-                eps=eps,
+                l2_lambda=l2_lambda,
+                infeed_batch_size_limit=infeed_batch_size_limit,
+                fraction_of_validation_set=fraction_of_validation_set,
+                random_state=random_state,
+                stopping_metric=stopping_metric,
+                stopping_rounds=stopping_rounds,
+                stopping_tolerance=stopping_tolerance,
+                report_metric=report_metric,
             )
         else:
             raise CompEvalError(f"Unknown optimizer {optimizer}")
 
-    model_meta = {"link": glm.link.link_type().value, "y_scale": glm.y_scale}
+    feature_names = x.columns
+    party_features_length = {
+        device.party: len(columns) for device, columns in x.partition_columns.items()
+    }
+
+    model_meta = {
+        "link": glm.link.link_type().value,
+        "y_scale": glm.y_scale,
+        "offset_col": offset_col,
+        "label_col": train_dataset_label,
+        "feature_names": feature_names,
+        "party_features_length": party_features_length,
+        "model_hash": generate_random_string(next(iter(x.partition_columns.keys()))),
+    }
 
     model_db = model_dumps(
+        ctx,
         "ss_glm",
         DistDataType.SS_GLM_MODEL,
         MODEL_MAX_MAJOR_VERSION,
         MODEL_MAX_MINOR_VERSION,
         [glm.spu_w],
         json.dumps(model_meta),
-        local_fs_wd,
         output_model,
         train_dataset.system_info,
     )
+    tabs = []
+    if report_weights:
+        tabs.append(
+            Tab(
+                name="weights",
+                desc="model weights",
+                divs=[
+                    Div(
+                        children=[
+                            Div.Child(
+                                type="descriptions",
+                                descriptions=build_weight_desc(glm, x),
+                            )
+                        ],
+                    )
+                ],
+            )
+        )
 
-    return {"output_model": model_db}
+    effective_train = (report_metric == 'weight' and stopping_tolerance > 0) or (
+        report_metric != 'weight' and stopping_rounds > 0
+    )
+
+    if report_metric and effective_train:
+        tabs.append(
+            Tab(
+                name="metrics",
+                desc="metrics of trainig for each epoch",
+                divs=[
+                    Div(
+                        children=[
+                            Div.Child(
+                                type="Table",
+                                table=build_metric_table(glm),
+                            )
+                        ],
+                    )
+                ],
+            )
+        )
+    report_mate = Report(
+        name="weights and metrics",
+        desc="model weights report and metrics report",
+        tabs=tabs,
+    )
+
+    report_dd = DistData(
+        name=report,
+        type=str(DistDataType.REPORT),
+        system_info=train_dataset.system_info,
+    )
+    report_dd.meta.Pack(report_mate)
+
+    return {"output_model": model_db, "report": report_dd}
+
+
+def build_weight_desc(glm, x):
+    weights = list(map(float, list(reveal(glm.spu_w))))
+    named_weight = {}
+    for _, features in x.partition_columns.items():
+        party_weight = weights[: len(features)]
+        named_weight.update({f: w for f, w in zip(features, party_weight)})
+        weights = weights[len(features) :]
+    assert len(weights) == 1
+
+    w_desc = Descriptions(
+        items=[
+            Descriptions.Item(
+                name="_intercept_", type="float", value=Attribute(f=weights[-1])
+            ),
+            Descriptions.Item(
+                name="_y_scale_", type="float", value=Attribute(f=glm.y_scale)
+            ),
+        ]
+        + [
+            Descriptions.Item(name=f, type="float", value=Attribute(f=w))
+            for f, w in named_weight.items()
+        ],
+    )
+    return w_desc
+
+
+def build_metric_table(glm):
+    metric_logs = glm.train_metric_history
+    assert isinstance(metric_logs, list)
+    assert len(metric_logs) >= 1, "must train the model for at least 1 round"
+    headers, rows = [], []
+    for k in metric_logs[0].keys():
+        headers.append(Table.HeaderItem(name=k, desc="", type="str"))
+
+    for i, log in enumerate(metric_logs):
+        rows.append(
+            Table.Row(name=f"{i}", items=[Attribute(s=str(log[k])) for k in log.keys()])
+        )
+
+    metric_table = Table(
+        name="metrics log",
+        desc="metrics for training and validation set at each epoch (indexed from 1)",
+        headers=headers,
+        rows=rows,
+    )
+    return metric_table
 
 
 ss_glm_predict_comp = Component(
@@ -349,7 +611,7 @@ ss_glm_predict_comp.bool_attr(
     ),
     is_list=False,
     is_optional=True,
-    default_value=False,
+    default_value=True,
 )
 ss_glm_predict_comp.bool_attr(
     name="save_label",
@@ -360,13 +622,6 @@ ss_glm_predict_comp.bool_attr(
     is_list=False,
     is_optional=True,
     default_value=False,
-)
-ss_glm_predict_comp.str_attr(
-    name="offset_col",
-    desc="Specify a column to use as the offset",
-    is_list=False,
-    is_optional=True,
-    default_value="",
 )
 ss_glm_predict_comp.io(
     io_type=IoType.INPUT,
@@ -379,7 +634,13 @@ ss_glm_predict_comp.io(
     name="feature_dataset",
     desc="Input vertical table.",
     types=[DistDataType.VERTICAL_TABLE],
-    col_params=None,
+    col_params=[
+        TableColParam(
+            name="saved_features",
+            desc="which features should be saved with prediction result",
+            col_min_cnt_inclusive=0,
+        )
+    ],
 )
 ss_glm_predict_comp.io(
     io_type=IoType.OUTPUT,
@@ -392,12 +653,11 @@ ss_glm_predict_comp.io(
 
 def load_ss_glm_model(ctx, spu, model) -> Tuple[SPUObject, Linker, float]:
     model_objs, model_meta_str = model_loads(
+        ctx,
         model,
         MODEL_MAX_MAJOR_VERSION,
         MODEL_MAX_MINOR_VERSION,
         DistDataType.SS_GLM_MODEL,
-        # only local fs is supported at this moment.
-        ctx.local_fs_wd,
         spu=spu,
     )
     assert len(model_objs) == 1 and isinstance(
@@ -411,7 +671,11 @@ def load_ss_glm_model(ctx, spu, model) -> Tuple[SPUObject, Linker, float]:
         and "y_scale" in model_meta
     ), f"model meta format err {model_meta}"
 
-    return model_objs[0], get_link(model_meta["link"]), float(model_meta["y_scale"])
+    return (
+        model_objs[0],
+        get_link(model_meta["link"]),
+        float(model_meta["y_scale"]),
+    )
 
 
 @ss_glm_predict_comp.eval_fn
@@ -419,7 +683,7 @@ def ss_glm_predict_eval_fn(
     *,
     ctx,
     feature_dataset,
-    offset_col,
+    feature_dataset_saved_features,
     model,
     receiver,
     pred_name,
@@ -433,86 +697,60 @@ def ss_glm_predict_eval_fn(
         raise CompEvalError("only support one spu")
     spu_config = next(iter(ctx.spu_configs.values()))
 
-    spu = SPU(spu_config["cluster_def"], spu_config["link_desc"])
+    cluster_def = spu_config["cluster_def"].copy()
 
-    model = load_ss_glm_model(ctx, spu, model)
+    # forced to use 128 ring size & 40 fxp
+    cluster_def["runtime_config"]["field"] = "FM128"
+    cluster_def["runtime_config"]["fxp_fraction_bits"] = 40
+
+    spu = SPU(cluster_def, spu_config["link_desc"])
+
+    model_public_info = get_model_public_info(model)
 
     glm = SSGLM(spu)
-    glm.spu_w, glm.link, glm.y_scale = model
+    glm.spu_w, glm.link, glm.y_scale = load_ss_glm_model(ctx, spu, model)
 
-    x = load_table(ctx, feature_dataset, load_features=True)
+    x = load_table(
+        ctx,
+        feature_dataset,
+        partitions_order=list(model_public_info["party_features_length"].keys()),
+        load_features=True,
+        col_selects=model_public_info['feature_names'],
+    )
+    assert x.columns == model_public_info["feature_names"]
+
+    offset_col = model_public_info['offset_col']
 
     if offset_col:
-        assert (
-            offset_col in x.columns
-        ), f"can't find offset_col {offset_col} in train_dataset"
-        offset = x[offset_col]
-        x.drop(columns=offset_col, inplace=True)
+        offset = load_table(
+            ctx,
+            feature_dataset,
+            load_labels=True,
+            load_features=True,
+            col_selects=[offset_col],
+        )
     else:
         offset = None
 
+    receiver_pyu = PYU(receiver)
     with ctx.tracer.trace_running():
-        pyu = PYU(receiver)
         pyu_y = glm.predict(
             x=x,
             o=offset,
-            to_pyu=pyu,
+            to_pyu=receiver_pyu,
         )
 
-        y_path = os.path.join(ctx.local_fs_wd, pred)
-
-        if save_ids:
-            id_df = load_table(ctx, feature_dataset, load_ids=True)
-            assert pyu in id_df.partitions
-            id_header_map = extract_table_header(feature_dataset, load_ids=True)
-            assert receiver in id_header_map
-            id_header = list(id_header_map[receiver].keys())
-            id_data = id_df.partitions[pyu].data
-        else:
-            id_header_map = None
-            id_header = None
-            id_data = None
-
-        if save_label:
-            label_df = load_table(ctx, feature_dataset, load_labels=True)
-            assert pyu in label_df.partitions
-            label_header_map = extract_table_header(feature_dataset, load_labels=True)
-            assert receiver in label_header_map
-            label_header = list(label_header_map[receiver].keys())
-            label_data = label_df.partitions[pyu].data
-        else:
-            label_header_map = None
-            label_header = None
-            label_data = None
-
-        wait(
-            pyu(save_prediction_csv)(
-                pyu_y.partitions[pyu],
-                pred_name,
-                y_path,
-                label_data,
-                label_header,
-                id_data,
-                id_header,
-            )
+    with ctx.tracer.trace_io():
+        y_db = save_prediction_dd(
+            ctx,
+            pred,
+            receiver_pyu,
+            pyu_y,
+            pred_name,
+            feature_dataset,
+            feature_dataset_saved_features,
+            model_public_info['label_col'] if save_label else [],
+            save_ids,
         )
-
-    y_db = DistData(
-        name=pred_name,
-        type=str(DistDataType.INDIVIDUAL_TABLE),
-        data_refs=[DistData.DataRef(uri=pred, party=receiver, format="csv")],
-    )
-
-    meta = gen_prediction_csv_meta(
-        id_header=id_header_map,
-        label_header=label_header_map,
-        party=receiver,
-        pred_name=pred_name,
-        line_count=x.shape[0],
-        id_keys=id_header,
-        label_keys=label_header,
-    )
-
-    y_db.meta.Pack(meta)
 
     return {"pred": y_db}

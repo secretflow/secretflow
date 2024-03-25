@@ -1,5 +1,19 @@
-import tempfile
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import logging
+import tempfile
 
 import pandas as pd
 import pytest
@@ -319,6 +333,58 @@ def test_psi_csv_sim(sim_env_and_model):
     _test_psi_csv(devices, data)
 
 
+def _test_psi_v2(devices, data):
+    with tempfile.TemporaryDirectory() as data_dir:
+        input_path = {
+            'alice': f"{data_dir}/alice_2.csv",
+            'bob': f"{data_dir}/bob_2.csv",
+        }
+        output_path = {
+            'alice': f"{data_dir}/alice_psi_2.csv",
+            'bob': f"{data_dir}/bob_psi_2.csv",
+        }
+
+        sf.reveal(
+            devices.alice(lambda df, save_path: df.to_csv(save_path, index=False))(
+                data["da"], input_path['alice']
+            )
+        )
+        sf.reveal(
+            devices.bob(lambda df, save_path: df.to_csv(save_path, index=False))(
+                data["db"], input_path['bob']
+            )
+        )
+
+        devices.spu.psi(
+            keys={'alice': ["c1", "c2"], 'bob': ["c1", "c2"]},
+            input_path=input_path,
+            output_path=output_path,
+            receiver="alice",
+            broadcast_result=True,
+            protocol='PROTOCOL_ECDH',
+            ecdh_curve='CURVE_25519',
+        )
+
+        expected = pd.DataFrame({"c1": ["K1", "K4"], "c2": ["A1", "A4"], "c3": [1, 4]})
+
+        pd.testing.assert_frame_equal(
+            sf.reveal(devices.alice(pd.read_csv)(output_path['alice'])), expected
+        )
+        pd.testing.assert_frame_equal(
+            sf.reveal(devices.bob(pd.read_csv)(output_path['bob'])), expected
+        )
+
+
+def test_psi_v2_prod(prod_env_and_model):
+    devices, data = prod_env_and_model
+    _test_psi_v2(devices, data)
+
+
+def test_psi_v2_sim(sim_env_and_model):
+    devices, data = sim_env_and_model
+    _test_psi_v2(devices, data)
+
+
 def _test_unbalanced_psi_csv(devices, data):
     with tempfile.TemporaryDirectory() as data_dir:
         input_path = {
@@ -368,9 +434,21 @@ def _test_unbalanced_psi_csv(devices, data):
             ecdh_secret_key_path=secret_key_path,
         )
 
-        gen_cache_report = devices.bob(spu.psi.gen_cache_for_2pc_ub_psi)(
-            gen_cache_config
+        def gen_cache_for_2pc_ub_psi_func(byte_str: str):
+            config = spu.psi.BucketPsiConfig()
+            config.ParseFromString(byte_str)
+            report = spu.psi.gen_cache_for_2pc_ub_psi(config)
+            return report.SerializeToString()
+
+        gen_cache_report_str = sf.reveal(
+            devices.bob(gen_cache_for_2pc_ub_psi_func)(
+                gen_cache_config.SerializeToString()
+            )
         )
+
+        gen_cache_report = spu.psi.PsiResultReport()
+        gen_cache_report.ParseFromString(gen_cache_report_str)
+
         print(f"gen_cache_report={sf.reveal(gen_cache_report)}")
 
         # transfer cache

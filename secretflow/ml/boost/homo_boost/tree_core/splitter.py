@@ -94,7 +94,7 @@ class Splitter(object):
                             reg_lambda=reg_lambda, reg_alpha=reg_alpha, decimal=decimal
                         )
                     except ValueError:
-                        logging.warn(
+                        logging.warning(
                             "criterion_params' first criterion_params should be numeric"
                         )
                         self.criterion = XgboostCriterion()

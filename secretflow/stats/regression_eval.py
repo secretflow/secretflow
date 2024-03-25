@@ -85,5 +85,18 @@ class RegressionEval:
         self.y_true_mean = mean(self.y_true, self.spu)
         self.y_pred_mean = mean(self.y_pred, self.spu)
         self.residual_hist = residual_histogram(
-            self.y_true, self.y_pred, self.spu, bins=self.bins
+            self.y_true, self.y_pred, bins=self.bins, spu_device=self.spu
         )
+
+    def result_as_list(self):
+        return [
+            self.r2_score,
+            self.mean_abs_err,
+            self.mean_abs_percent_err,
+            self.sum_squared_errors,
+            self.mean_squared_errors,
+            self.root_mean_squared_errors,
+            self.y_true_mean,
+            self.y_pred_mean,
+            self.residual_hist,
+        ]

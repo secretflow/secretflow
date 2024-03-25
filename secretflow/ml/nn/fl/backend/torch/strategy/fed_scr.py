@@ -15,14 +15,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import copy
 from typing import Callable, Tuple
 
 import numpy as np
+import torch
 
+from secretflow.ml.nn.core.torch import BuilderType
 from secretflow.ml.nn.fl.backend.torch.fl_base import BaseTorchModel
-from secretflow.ml.nn.utils import TorchModel
 from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
 from secretflow.utils.compressor import SCRSparse, sparse_encode
 
@@ -35,8 +35,8 @@ class FedSCR(BaseTorchModel):
     FedSCR will treat the updates in this structure as less important and filter them out.
     """
 
-    def __init__(self, builder_base: Callable[[], TorchModel], random_seed):
-        super().__init__(builder_base, random_seed=random_seed)
+    def __init__(self, builder_base: BuilderType, random_seed, skip_bn):
+        super().__init__(builder_base, random_seed=random_seed, skip_bn=skip_bn)
         self._res = []
 
     def train_step(
@@ -58,6 +58,9 @@ class FedSCR(BaseTorchModel):
             Parameters after local training
         """
         assert self.model is not None, "Model cannot be none, please give model define"
+        refresh_data = kwargs.get("refresh_data", False)
+        if refresh_data:
+            self._reset_data_iter()
         dp_strategy = kwargs.get('dp_strategy', None)
         # prepare for the SCR compression
         threshold = kwargs.get('threshold', 0.0)
@@ -65,41 +68,25 @@ class FedSCR(BaseTorchModel):
         # update current weights
         if updates is not None:
             weights = [np.add(w, u) for w, u in zip(self.model_weights, updates)]
-            self.model.update_weights(weights)
+            self.set_weights(weights)
         num_sample = 0
         logs = {}
+        loss: torch.Tensor = None
         # store current weights for residual computing
-        self.model_weights = self.model.get_weights(return_numpy=True)
+        self.model_weights = self.get_weights()
 
-        for _ in range(train_steps):
-            self.optimizer.zero_grad()
-            iter_data = next(self.train_iter)
-            if len(iter_data) == 2:
-                x, y = iter_data
-                s_w = None
-            elif len(iter_data) == 3:
-                x, y, s_w = iter_data
-
+        for step in range(train_steps):
+            x, y, s_w = self.next_batch()
             num_sample += x.shape[0]
-            y_t = y.argmax(dim=-1)
 
-            if self.use_gpu:
-                x = x.to(self.exe_device)
-                y_t = y_t.to(self.exe_device)
-                if s_w is not None:
-                    s_w = s_w.to(self.exe_device)
+            loss = self.model.training_step((x, y), cur_steps + step, sample_weight=s_w)
+            if self.model.automatic_optimization:
+                self.model.backward_step(loss)
 
-            y_pred = self.model(x)
-
-            # do back propagation
-            loss = self.loss(y_pred, y)
-            loss.backward()
-            self.optimizer.step()
-            for m in self.metrics:
-                m.update(y_pred.cpu(), y_t.cpu())
         loss = loss.item()
         logs['train-loss'] = loss
         self.logs = self.transform_metrics(logs)
+        self.wrapped_metrics.extend(self.wrap_local_metrics())
         self.epoch_logs = copy.deepcopy(self.logs)
 
         # do SCR compression
@@ -107,7 +94,7 @@ class FedSCR(BaseTorchModel):
             client_updates = [
                 np.add(np.subtract(new_w, old_w), res_u)
                 for new_w, old_w, res_u in zip(
-                    self.model.get_weights(return_numpy=True),
+                    self.get_weights(),
                     self.model_weights,
                     self._res,
                 )
@@ -116,9 +103,7 @@ class FedSCR(BaseTorchModel):
             # initial training res is zero
             client_updates = [
                 np.subtract(new_w, old_w)
-                for new_w, old_w in zip(
-                    self.model.get_weights(return_numpy=True), self.model_weights
-                )
+                for new_w, old_w in zip(self.get_weights(), self.model_weights)
             ]
 
         # DP operation
@@ -136,12 +121,22 @@ class FedSCR(BaseTorchModel):
             np.subtract(dense_u, sparse_u)
             for dense_u, sparse_u in zip(client_updates, sparse_client_updates)
         ]
-        self.model.update_weights(self.model_weights)
+        self.set_weights(self.model_weights)
         # do sparse encoding
         sparse_client_updates = sparse_encode(
             data=sparse_client_updates, encode_method='coo'
         )
         return sparse_client_updates, num_sample
+
+    def apply_weights(self, updates, **kwargs):
+        """Accept ps model params,then update local model
+
+        Args:
+            updates: global updates from params server
+        """
+        if updates is not None:
+            weights = [np.add(w, u) for w, u in zip(self.model_weights, updates)]
+            self.set_weights(weights)
 
 
 @register_strategy(strategy_name='fed_scr', backend='torch')

@@ -2,12 +2,12 @@ FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu20.04
 
 RUN  apt-get update \
      && apt-get install -y libcudnn8=8.6.0.163-1+cuda11.8 --allow-downgrades --allow-change-held-packages  \
-     && apt-get install -y python3.8 --allow-downgrades --allow-change-held-packages   \
+     && apt-get install -y python3.10 --allow-downgrades --allow-change-held-packages   \
      && apt-get install -y python3-pip --allow-downgrades --allow-change-held-packages
 
-RUN if [ ! -e /usr/bin/python ]; then ln -sf /usr/bin/python3.8 /usr/bin/python; fi
+RUN if [ ! -e /usr/bin/python ]; then ln -sf /usr/bin/python3.10 /usr/bin/python; fi
 
-RUN if [ ! -e /usr/bin/python3 ]; then ln -sf /usr/bin/python3.8 /usr/bin/python3; fi
+RUN if [ ! -e /usr/bin/python3 ]; then ln -sf /usr/bin/python3.10 /usr/bin/python3; fi
 
 #install the dependencies of cuda11
 #you are supposed to  add the mirror source of pypi to accelerate installation of nvidia packages of cuda11,

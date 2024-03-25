@@ -20,6 +20,7 @@ from secretflow.data.horizontal.dataframe import HDataFrame
 from secretflow.device import reveal
 from secretflow.device.device import PYU
 from secretflow.device.link import init_link
+from secretflow.distributed.primitive import DISTRIBUTION_MODE, get_distribution_mode
 from secretflow.ml.boost.homo_boost.homo_booster_worker import HomoBooster
 from secretflow.preprocessing.binning.homo_binning import HomoBinning
 from secretflow.utils.random import global_random
@@ -32,10 +33,12 @@ class SFXgboost:
         self.fed_bst = {}
         self._workers = []
         msg_id_prefix = str(global_random(self.server, 100000000))
+        production_mode = get_distribution_mode() == DISTRIBUTION_MODE.PRODUCTION
         for client in self.clients:
             self._workers.append(
                 HomoBooster(
                     device=client,
+                    production_mode=production_mode,
                     clients=self.clients,
                     server=self.server,
                     msg_id_prefix=msg_id_prefix,
@@ -44,6 +47,7 @@ class SFXgboost:
         self._workers.append(
             HomoBooster(
                 device=self.server,
+                production_mode=production_mode,
                 clients=self.clients,
                 server=self.server,
                 msg_id_prefix=msg_id_prefix,

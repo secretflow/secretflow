@@ -15,7 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import copy
 from typing import List, Tuple
 
@@ -65,47 +64,37 @@ class FedProx(BaseTorchModel):
             Parameters after local training
         """
         assert self.model is not None, "Model cannot be none, please give model define"
-
+        assert (
+            self.model.automatic_optimization
+        ), "automatic_optimization must be True in FedProx"
+        refresh_data = kwargs.get("refresh_data", False)
+        if refresh_data:
+            self._reset_data_iter()
         if weights is not None:
-            self.model.update_weights(weights)
+            self.set_weights(weights)
         num_sample = 0
         dp_strategy = kwargs.get('dp_strategy', None)
         logs = {}
+        loss: torch.Tensor = None
 
         mu = kwargs.get('mu', 0.0)
 
-        for _ in range(train_steps):
-            self.optimizer.zero_grad()
-            iter_data = next(self.train_iter)
-            if len(iter_data) == 2:
-                x, y = iter_data
-                s_w = None
-            elif len(iter_data) == 3:
-                x, y, s_w = iter_data
-
+        for step in range(train_steps):
+            x, y, s_w = self.next_batch()
             num_sample += x.shape[0]
-            y_t = y.argmax(dim=-1)
 
-            if self.use_gpu:
-                x = x.to(self.exe_device)
-                y_t = y_t.to(self.exe_device)
-                if s_w is not None:
-                    s_w = s_w.to(self.exe_device)
-            y_pred = self.model(x)
-
-            # do back propagation
-            loss = self.loss(y_pred, y)
+            loss = self.model.training_step((x, y), cur_steps + step, sample_weight=s_w)
             if weights is not None:
                 w_norm = self.w_norm(weights, list(self.model.parameters()))
                 loss += mu / 2 * w_norm
-            loss.backward()
-            self.optimizer.step()
-            for m in self.metrics:
-                m.update(y_pred.cpu(), y_t.cpu())
+
+            self.model.backward_step(loss)
+
         loss = loss.item()
         logs['train-loss'] = loss
 
         self.logs = self.transform_metrics(logs)
+        self.wrapped_metrics.extend(self.wrap_local_metrics())
         self.epoch_logs = copy.deepcopy(self.logs)
 
         model_weights = self.model.get_weights(return_numpy=True)
@@ -115,6 +104,15 @@ class FedProx(BaseTorchModel):
                 model_weights = dp_strategy.model_gdp(model_weights)
 
         return model_weights, num_sample
+
+    def apply_weights(self, weights, **kwargs):
+        """Accept ps model params,then update local model
+
+        Args:
+            weights: global weight from params server
+        """
+        if weights is not None:
+            self.set_weights(weights)
 
 
 @register_strategy(strategy_name='fed_prox', backend='torch')
