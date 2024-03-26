@@ -14,13 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-"""module docstring - short summary
-
-If the description is long, the first line should be a short summary that makes sense on its own,
-separated from the rest by a newline
-
-"""
 import os
 import tempfile
 

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import tensorflow as tf
 import torch
 from torch import nn as nn
 from torch import optim
@@ -165,3 +166,146 @@ class ConvNetRegFuse(BaseModule):
 
     def configure_loss(self):
         return nn.CrossEntropyLoss()
+
+
+def create_base_model(input_dim, output_dim, output_num, name='base_model', l2=None):
+    # Create model
+    def create_model():
+        from tensorflow import keras
+
+        inputs = keras.Input(shape=input_dim)
+        conv = keras.layers.Conv2D(filters=2, kernel_size=(3, 3))(inputs)
+        pooling = keras.layers.MaxPooling2D()(conv)
+        flatten = keras.layers.Flatten()(pooling)
+        dropout = keras.layers.Dropout(0.5)(flatten)
+        regularizer = keras.regularizers.L2(l2=l2) if l2 else None
+        output_layers = [
+            keras.layers.Dense(output_dim, kernel_regularizer=regularizer)(dropout)
+            for _ in range(output_num)
+        ]
+
+        model = keras.Model(inputs, output_layers)
+
+        # Compile model
+        model.compile(
+            loss='categorical_crossentropy', optimizer='adam', metrics=["accuracy"]
+        )
+        return model  # need wrap
+
+    return create_model
+
+
+def create_fuse_model(input_dim, output_dim, party_nums, input_num, name='fuse_model'):
+    def create_model():
+        from tensorflow import keras
+        from tensorflow.keras import layers
+
+        # input
+        input_layers = []
+        for i in range(party_nums * input_num):
+            input_layers.append(
+                keras.Input(
+                    input_dim,
+                )
+            )
+        # user define hidden process logic
+        merged_layer = layers.concatenate(input_layers)
+        fuse_layer = layers.Dense(64, activation='relu')(merged_layer)
+        output = layers.Dense(output_dim, activation='softmax')(fuse_layer)
+        # Create model
+        model = keras.Model(inputs=input_layers, outputs=output)
+        # Compile model
+        model.compile(
+            loss=['categorical_crossentropy'],
+            optimizer='adam',
+            metrics=["accuracy"],
+        )
+        return model
+
+    return create_model
+
+
+def create_fuse_model_agglayer(input_dim, output_dim, name='fuse_model'):
+    def create_model():
+        from tensorflow import keras
+        from tensorflow.keras import layers
+
+        input_layer = keras.Input(input_dim)
+        fuse_layer = layers.Dense(64, activation='relu')(input_layer)
+        output = layers.Dense(output_dim, activation='softmax')(fuse_layer)
+        # Create model
+        model = keras.Model(inputs=input_layer, outputs=output)
+        # Compile model
+        model.compile(
+            loss=['categorical_crossentropy'],
+            optimizer='adam',
+            metrics=["accuracy"],
+        )
+        return model
+
+    return create_model
+
+
+class FuseCustomLossModel(tf.keras.Model):
+    def __init__(self, output_dim):
+        super().__init__()
+        self.output_dim = output_dim
+
+        self.fuse_layer = tf.keras.layers.Dense(64, activation="relu")
+        self.output_layer = tf.keras.layers.Dense(output_dim, activation="softmax")
+
+        self.loss_tracker = tf.keras.metrics.Mean(name="loss")
+        self.loss_fn = tf.keras.losses.CategoricalCrossentropy()
+
+    @property
+    def metrics(self):
+        return super().metrics + [self.loss_tracker]
+
+    def reset_metrics(self):
+        super().reset_metrics()
+        self.loss_tracker.reset_state()
+
+    def call(self, inputs, training=None):
+        concat_inputs = tf.concat(inputs, axis=1)
+        fused = self.fuse_layer(concat_inputs)
+        out = self.output_layer(fused)
+        # 1. you can calculate your loss in `call` and set compiled loss to None if needed.
+        vars = self.trainable_variables
+        reg_loss = 1e-4 * tf.add_n([tf.nn.l2_loss(v) for v in vars])
+        self.add_loss(reg_loss)
+        return out
+
+    def compute_loss(self, x=None, y=None, y_pred=None, sample_weight=None):
+        # 2. or override `compute_loss` to do custom loss calculation.
+        loss = self.loss_fn(y, y_pred)
+        self.loss_tracker.update_state(loss)
+        if len(self.losses) > 0:
+            loss += tf.add_n(self.losses)
+        return loss
+
+    def compute_metrics(self, x, y, y_pred, sample_weight):
+        self.compiled_metrics.update_state(y, y_pred, sample_weight)
+        return self.get_metrics_result()
+
+    def get_config(self):
+        return {"output_dim": self.output_dim}
+
+
+def create_fuse_model_custom_loss(
+    input_dim, output_dim, party_nums, input_num, name='fuse_model'
+):
+    def create_model():
+        import tensorflow as tf
+
+        model = FuseCustomLossModel(output_dim)
+        # Compile model
+        model.compile(
+            optimizer='adam',
+            metrics=["accuracy"],
+            loss=None,
+        )
+        # call to build
+        model([tf.zeros(shape=(1, input_dim)) for _ in range(party_nums * input_num)])
+        return model
+
+    return create_model

@@ -7,14 +7,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-07-03 17:24+0800\n"
+"POT-Creation-Date: 2024-03-19 12:20+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.12.1\n"
+"Generated-By: Babel 2.14.0\n"
 
 #: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:9
 msgid "Split Learning—Bank Marketing"
@@ -61,7 +61,7 @@ msgid ""
 msgstr "拆分学习的核心思想是将网络结构进行拆分，每个设备（机构）只保留一部分网络结构，所有设备的子网络结构组合在一起，构成一个完整的网络模型。在训练过程中，不同的设备（机构）只对本地的网络结构进行前向或反向计算，并将计算结果传递给下一个设备，多个设备端通过联合模型，完成训练，直到收敛为止。"
 
 #: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:58
-msgid "|f77df2d3e858488b8f9214fd1cc9f993|"
+msgid "|44ddc2de9e8441478f81f58aacd3e82e|"
 msgstr ""
 
 #: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:60
@@ -170,36 +170,36 @@ msgstr ""
 "原始数据被拆分为bank_alice和bank_bob，分别存在alice和bob两方。这里的csv是仅经过拆分没有做预处理的原始数据，我们将使用secretflow"
 " preprocess进行FedData预处理。"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:187
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:188
 msgid "prepare data"
 msgstr "数据准备"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:211
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:212
 msgid ""
 "We assume that Alice is a new bank, and they only have the basic "
 "information of the user and purchased the label of financial products "
 "from other bank."
 msgstr "我们假设Alice是一个新银行，他们只有用户的基本信息，和是否从其他银行购买过理财产品的label"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:427
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:428
 msgid ""
 "Bob is an old bank, they have the user’s account balance, house, loan, "
 "and recent marketing feedback."
 msgstr "Bob端是一个老银行，他们有用户的账户余额，是否有房，是否有贷款，以及最近的营销反馈"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:768
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:783
 msgid "Create Secretflow Environment"
 msgstr "环境的搭建"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:779
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:794
 msgid "Create 2 entities in the Secretflow environment [Alice, Bob]"
 msgstr "环境的搭建"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:780
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:795
 msgid "Where ‘Alice’ and ‘Bob’ are two ``PYU``."
 msgstr "Alice 和 bob 是两个 PYU 。"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:781
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:796
 msgid ""
 "Once you’ve constructed the two objects, you can happily start Splitting "
 "Learning."
@@ -207,35 +207,35 @@ msgstr ""
 "在 Secretflow 环境中创建 2 个实体 [Alice, Bob]，其中 'Alice' 和 'Bob' 是两个 PYU。 "
 "一旦您构建了这两个对象，您可以愉快地开始拆分学习"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:793
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:808
 msgid "Import Dependency"
 msgstr "引入依赖"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:816
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:831
 msgid "Prepare Data"
 msgstr "准备数据"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:827
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:842
 msgid "**Build Federated Table**"
 msgstr "创建联邦表"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:829
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:844
 msgid ""
 "Federated table is a virtual concept that cross multiple parties, We "
 "define ``VDataFrame`` for vertical setting ."
 msgstr "联邦表是一个跨多方的虚拟概念，我们定义 ``VDataFrame`` 用于垂直场景设置。"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:831
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:846
 msgid ""
 "The data of all parties in a federated table is stored locally and is not"
 " allowed to go out of the domain."
 msgstr "联邦表中各方的数据存储在本地，不允许出域。"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:833
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:848
 msgid "No one has access to data store except the party that owns the data."
 msgstr "除了拥有数据的一方之外，没有人可以访问数据存储。"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:835
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:850
 msgid ""
 "Any operation performed on the federated table is scheduled by the driver"
 " to each worker, and the execution instructions are delivered layer by "
@@ -246,19 +246,19 @@ msgstr ""
 "联邦表的任何操作都会由driver调度给每个worker，执行指令会逐层传递，直到特定worker的Python Runtime。 "
 "框架确保只有当worker的 worker.device 和 Object.device 相同时，才能够操作数据。"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:837
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:852
 msgid ""
 "Federated tables are designed for managing and manipulating multi-party "
 "data from a central perspective."
 msgstr "联邦表旨在从中心角度管理和操作多方数据。"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:839
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:854
 msgid ""
 "Interfaces to ``Federated Tables`` are aligned to ``pandas.DataFrame`` to"
 " reduce the cost of multi-party data operations."
 msgstr "``Federated Table`` 的接口与 pandas.DataFrame 对齐，以降低多方数据操作的成本。"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:841
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:856
 msgid ""
 "The SecretFlow framework provides Plain&Ciphertext hybrid programming "
 "capabilities. Vertical federated tables are built using ``SPU``, and "
@@ -268,15 +268,15 @@ msgstr ""
 "SecretFlow 框架提供 Plain&Ciphertext （明密文）混合编程能力。垂直联邦表是使用 ``SPU`` 构建的， ``MPC-"
 "PSI`` 用于安全地获取来自各方的交集和对齐数据。"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:843
-msgid "|0eee772231924abe9444a083eeeb399f|"
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:858
+msgid "|36fc4ec4bc994d90bf10fe6886c24300|"
 msgstr ""
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:845
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:860
 msgid "vdataframe.png"
 msgstr ""
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:857
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:872
 msgid ""
 "VDataFrame provides ``read_csv`` interface similar to pandas, the "
 "difference is that ``secretflow.read_csv`` receives a dictionary that "
@@ -287,21 +287,21 @@ msgstr ""
 "接收一个定义双方数据路径的字典。我们可以使用 ``secretflow.vertical.read_csv`` 来构建 "
 "``VDataFrame`` 。"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:875
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:890
 msgid "Create spu object"
 msgstr "创建spu 对象"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:912
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:927
 msgid ""
 "``data`` is a vertically federated table. It only has the ``Schema`` of "
 "all the data globally."
 msgstr "`data` 为构建好的垂直联邦表，它从全局上只拥有所有数据的 `Schema` "
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:923
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:938
 msgid "Let’s examine the data management of ``VDF`` more closely."
 msgstr "我们进一步来看一下VDF的数据管理"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:925
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:940
 msgid ""
 "As shown in the example, the ``age`` field belongs to ``Alice``, so the "
 "corresponding column can be obtained from ``Alice``\\ ’s partition. "
@@ -309,33 +309,33 @@ msgid ""
 "error will be reported."
 msgstr "通过一个实例可以看出，age这个字段是属于alice的，所以在alice方的partition可以得到对应的列，但是bob方想要去获取age的时候会报`KeyError`错误。"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:927
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:942
 msgid ""
 "We have a concept called Partition, which is a defined data fragment. "
 "Each partition has its own device to which it belongs, and only the "
 "device to which it belongs can operate on its data."
 msgstr "这里有一个Partition的概念，是我们定义的一个数据分片，每个Partition都会有自己的device归属，只有归属的device才可以操作数据。"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:983
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:998
 msgid "Next, we perform data preprocessing on the ``VDataFrame``."
 msgstr "我们接着对生成的联邦表做数据预处理。"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:984
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:999
 msgid ""
 "We use LabelEncoder and MinMaxScaler as examples. These two preprocessing"
 " functions have corresponding concepts in SkLearn, and their usage "
 "methods are similar to those in **sklearn**."
 msgstr "我们这里以LabelEncoder和MinMaxScaler为例，这两个预处理函数在`sklearn`中有对应的概念，它们的使用方法和sklearn中是类似的"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1063
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1078
 msgid "Standardize data via MinMaxScaler"
 msgstr "通过MinMaxScaler做数据标准化"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1121
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1135
 msgid "Next we divide the data set into train-set and test-set."
 msgstr "接着我们将数据集划分成训练集（train-set）和测试集（test-set）"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1145
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1164
 msgid ""
 "**Summary:** At this stage, we have finished defining ``federated "
 "tables``, performing ``data preprocessing``, and partitioning the "
@@ -351,58 +351,58 @@ msgstr ""
 "，同时定义了对于联邦表的预处理操作（它在逻辑上对等 `sklearn`） "
 "，您在使用过程中遇到问题，可以参考我们的文档以及API介绍，进一步了解其他的功能"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1158
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1177
 msgid "Introduce Model"
 msgstr "模型介绍"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1169
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1188
 msgid ""
 "**local version**: For this task, a simple DNN can be trained to take in "
 "16-dimensional features, process them through a neural network, and "
 "output the probability of positive and negative samples."
 msgstr "**单机版本**：\"对于该任务一个基本的DNN就可以完成，输入16维特征，经过一个DNN网络，输出对于正负样本的概率。\""
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1171
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1190
 msgid "**Federate version**:"
 msgstr "创建联邦表"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1173
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1192
 msgid "Alice:"
 msgstr ""
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1175
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1194
 msgid ""
 "base_net: Input 4-dimensional feature and go through a DNN network to get"
 " hidden."
 msgstr "base\\_net:输入4维特征，经过一个dnn网络得到hidden. "
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1177
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1196
 msgid ""
 "fuse_net: Receive hidden features calculated by Alice and Bob, input them"
 " to fusenet for feature fusion, and complete the forward process and "
 "backward process."
 msgstr "fuse\\_net:接收\\_alice,以及bob计算得到的hidden特征，输入这些特征到fuse\\_net，进行特征融合，送入之后的网络完成整个前向传播过程和反向传播过程。"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1179
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1198
 msgid "Bob:"
 msgstr ""
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1181
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1200
 msgid ""
 "base_net: Input 12-dimensional features, get hidden through a DNN "
 "network, and then send hidden to Alice to complete the following "
 "operation."
 msgstr "base\\_net:输入12维特征，经过一个dnn网络得到hidden，然后将hidden发送给alice方，完成接下来的运算。"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1193
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1212
 msgid "Define Model"
 msgstr "定义模型"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1204
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1223
 msgid "Next, we will start creating the federated model."
 msgstr "接下来，我们开始创建联邦模型。"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1206
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1225
 msgid ""
 "We have defined the SLTFModel and SLTorchModel, which are used to build "
 "split learning for vertically partitioned data. We have also created a "
@@ -413,20 +413,20 @@ msgstr ""
 "接下来我们开始创建我们定义的联邦模型 `SLTFModel` 和 `SLTorchModel(WIP，工作正在进行)` "
 ",用于构建垂直场景的拆分学习，我们定义了简单易用的可扩展接口，可以很方便的将您已有的模型，转换成SF—Model，进而进行垂直场景联邦建模。"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1217
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1236
 msgid ""
 "Split learning is to break up a model so that one part is executed "
 "locally on the data and the other part is executed on the label side. "
 "First let’s define the locally executed model – base_model."
 msgstr "拆分学习即将一个模型拆分开来，一部分放在数据的本地执行，另外一部分放在有label的一方。首先我们来定义本地执行的模型——base_model"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1258
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1280
 msgid ""
 "We use create_base_model to create their base models for ‘Alice’ and "
 "‘Bob’, respectively."
 msgstr "我们使用create_base_model分别为 `Alice` 和 `Bob` 创建他们的base model"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1419
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1441
 msgid ""
 "Next we define the side with the label, or the server-side model – "
 "fuse_model In the definition of fuse_model, we need to correctly define "
@@ -434,84 +434,84 @@ msgid ""
 "configurations of your existing Keras model."
 msgstr "接下来我们定义有label的一方，或者server端的模型——fuse_model。在fuse_model的定义中，我们需要正确的定义loss，optimizer，metrics。这里可以兼容所有您已有的Keras模型的配置"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1590
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1619
 msgid "Create Split Learning Model"
 msgstr "创建拆分学习模型"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1592
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1621
 msgid "Secretflow provides the split learning model ``SLModel``."
 msgstr "创建拆分学习模型"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1593
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1622
 msgid "To initial SLModel only need 3 parameters."
 msgstr "我们需要三个参数来初始化SLModel"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1595
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1624
 msgid ""
 "base_model_dict: A dictionary needs to be passed in all clients "
 "participating in the training along with base_model mappings"
 msgstr "base\\_model_dict：一个字典，它需要传入参与训练的所有client以及base_model映射。"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1596
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1625
 msgid "device_y: PYU, which device has label"
 msgstr "device\\_y：PYU对象，哪一方持有label"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1597
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1626
 msgid "model_fuse: The fusion model"
 msgstr "model\\_fuse：融合模型，具体的优化器以及损失函数都在这个模型中进行定义"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1608
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:1637
 msgid "Define base_model_dict."
 msgstr "定义 base\\_model\\_dict"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2246
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2279
 msgid "Let’s visualize the training process"
 msgstr "我们来可视化训练过程"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2332
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2365
 msgid "Let’s call the evaluation function"
 msgstr "我们来调用一下评估函数，看下训练效果怎么样"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2379
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2412
 msgid "Compare to local model"
 msgstr "和单方模型的对比"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2393
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2426
 msgid ""
 "Here, we use the same model structure as the one used in the split "
 "learning example, but only the model structure for Alice is used in this "
 "case. The code for defining the model is shown below."
 msgstr "在这里，我们使用与分裂学习示例中相同的模型结构，但仅在这种情况下使用 Alice 的模型结构。定义模型的代码如下所示。"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2394
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2427
 msgid "#### Data"
 msgstr "数据"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2395
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2428
 msgid ""
 "The data also use kaggle’s anti-fraud data. Here, we just use Alice’s "
 "data of the new bank."
 msgstr "数据也使用 Kaggle 的反欺诈数据集。在这里，我们只使用 Alice 的新银行数据。"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2396
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2429
 msgid ""
 "1. The total sample size was 11162, including 8929 training set and 2233 "
 "test set."
 msgstr "样本量总计11162个，其中训练集8929， 测试集2233"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2397
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2430
 msgid "2. The feature dimension is 4."
 msgstr "2. 特征维度为4。"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2439
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2475
 msgid "Data process"
 msgstr "数据处理"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2717
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2762
 msgid "Summary"
 msgstr "小结"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2719
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2764
 msgid ""
 "The above two experiments simulate a typical vertical scene training "
 "problem. Alice and Bob have the same sample group, but each side has only"
@@ -523,24 +523,24 @@ msgstr ""
 "上面两个实验模拟了一个典型的垂直场景的训练问题，Alice和Bob拥有相同的样本群体，但每一方只有样本的一部分特征数据，如果Alice只用自己的一方数据来训练模型，能够得到一个准确率为0.583,auc"
 " 分数为0.53的模型，但是如果联合Bob的数据之后，可以获得一个准确率为0.893，auc分数为0.883的模型。"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2731
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2776
 msgid "Conclusion"
 msgstr "总结"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2742
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2787
 msgid ""
 "This tutorial introduces what is split learning and how to do it in "
 "secretFlow."
 msgstr "本篇教程，我们介绍了什么是拆分学习，以及如何在SecretFlow框架下进行拆分学习"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2743
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2788
 msgid ""
 "It can be seen from the experimental data that split learning has "
 "significant advantages in expanding sample dimension and improving model "
 "effect through joint multi-party training."
 msgstr "从实验数据可以看出，拆分学习在扩充样本维度，通过联合多方训练提升模型效果方面有显著优势"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2744
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2789
 msgid ""
 "This tutorial uses plaintext aggregation to demonstrate, without "
 "considering the leakage problem of hidden layer. Secretflow provides "
@@ -549,15 +549,8 @@ msgid ""
 "refer to relevant documents."
 msgstr "本教程使用明文聚合来做演示，同时没有考虑隐藏层的泄露问题，SecretFlow提供了聚合层AggLayer，通过MPC,TEE,HE，以及DP等方式规避隐层明文传输泄露的问题。如果您感兴趣，可以看相关文档。"
 
-#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2745
+#: ../../tutorial/Split_Learning_for_bank_marketing.ipynb:2790
 msgid ""
 "Next, you may want to try different data sets, you need to vertically "
 "shard the data first and then follow the flow of this tutorial."
 msgstr "下一步，您可能想尝试不同的数据集，您需要先将数据集进行垂直切分，然后按照本教程的流程进行"
-
-#~ msgid "|bdd1dcea0344408b80e0993fde0acc38|"
-#~ msgstr ""
-
-#~ msgid "|b881fa65fd7b4114b06952402c4c2729|"
-#~ msgstr ""
-

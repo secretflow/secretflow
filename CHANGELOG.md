@@ -14,6 +14,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
+## [v1.5.0.dev240326] - 2024-03-26
+
+### Added
+
+- Add preprocess_layer for SL ResNet, SL VGG and SL DeepFM.
+- SL/FL tf backend support custom loss.
+
+### Changed
+
+- Upgrade torch version to 2.1.2, torchmetrics version to 1.3.2, torchvision version to 0.16.2, torchaudio version to 2.1.2.
+
+
 ## [v1.5.0.dev240315] - 2024-03-15
 
 ### Added

@@ -88,8 +88,7 @@ def infer_pl_dtype(tp):
         np.int64: pl.Int64,
         np.bool8: pl.Boolean,
         np.string_: str,
-        np.str0: str,
-        np.str: str,
+        np.str_: str,
     }
     if tp in np_relation:
         return np_relation[tp]

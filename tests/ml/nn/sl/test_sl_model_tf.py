@@ -14,13 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-"""module docstring - short summary
-
-If the description is long, the first line should be a short summary that makes sense on its own,
-separated from the rest by a newline
-
-"""
 import logging
 import math
 import os
@@ -39,6 +32,14 @@ from secretflow.security.privacy import DPStrategy, LabelDP
 from secretflow.security.privacy.mechanism.tensorflow import GaussianEmbeddingDP
 from secretflow.utils.compressor import MixedCompressor, QuantizedZeroPoint, TopkSparse
 from secretflow.utils.simulation.datasets import load_mnist
+
+from .model_def import (
+    FuseCustomLossModel,
+    create_base_model,
+    create_fuse_model,
+    create_fuse_model_agglayer,
+    create_fuse_model_custom_loss,
+)
 
 _temp_dir = tempfile.mkdtemp()
 
@@ -60,84 +61,6 @@ def create_dataset_builder(
         return data_set
 
     return dataset_builder
-
-
-def create_base_model(input_dim, output_dim, output_num, name='base_model', l2=None):
-    # Create model
-    def create_model():
-        from tensorflow import keras
-
-        inputs = keras.Input(shape=input_dim)
-        conv = keras.layers.Conv2D(filters=2, kernel_size=(3, 3))(inputs)
-        pooling = keras.layers.MaxPooling2D()(conv)
-        flatten = keras.layers.Flatten()(pooling)
-        dropout = keras.layers.Dropout(0.5)(flatten)
-        regularizer = keras.regularizers.L2(l2=l2) if l2 else None
-        output_layers = [
-            keras.layers.Dense(output_dim, kernel_regularizer=regularizer)(dropout)
-            for _ in range(output_num)
-        ]
-
-        model = keras.Model(inputs, output_layers)
-
-        # Compile model
-        model.compile(
-            loss='categorical_crossentropy', optimizer='adam', metrics=["accuracy"]
-        )
-        return model  # need wrap
-
-    return create_model
-
-
-def create_fuse_model(input_dim, output_dim, party_nums, input_num, name='fuse_model'):
-    def create_model():
-        from tensorflow import keras
-        from tensorflow.keras import layers
-
-        # input
-        input_layers = []
-        for i in range(party_nums * input_num):
-            input_layers.append(
-                keras.Input(
-                    input_dim,
-                )
-            )
-        # user define hidden process logic
-        merged_layer = layers.concatenate(input_layers)
-        fuse_layer = layers.Dense(64, activation='relu')(merged_layer)
-        output = layers.Dense(output_dim, activation='softmax')(fuse_layer)
-        # Create model
-        model = keras.Model(inputs=input_layers, outputs=output)
-        # Compile model
-        model.compile(
-            loss=['categorical_crossentropy'],
-            optimizer='adam',
-            metrics=["accuracy"],
-        )
-        return model
-
-    return create_model
-
-
-def create_fuse_model_agglayer(input_dim, output_dim, name='fuse_model'):
-    def create_model():
-        from tensorflow import keras
-        from tensorflow.keras import layers
-
-        input_layer = keras.Input(input_dim)
-        fuse_layer = layers.Dense(64, activation='relu')(input_layer)
-        output = layers.Dense(output_dim, activation='softmax')(fuse_layer)
-        # Create model
-        model = keras.Model(inputs=input_layer, outputs=output)
-        # Compile model
-        model.compile(
-            loss=['categorical_crossentropy'],
-            optimizer='adam',
-            metrics=["accuracy"],
-        )
-        return model
-
-    return create_model
 
 
 num_classes = 10
@@ -174,6 +97,7 @@ def keras_model_with_mnist(
     agg_method = kwargs.get('agg_method', None)
     compressor = kwargs.get('compressor', None)
     pipeline_size = kwargs.get('pipeline_size', 1)
+    skip_sw = kwargs.get("skip_sw", False)
 
     party_shape = data.partition_shape()
     data_length = party_shape[devices.alice][0]
@@ -208,7 +132,7 @@ def keras_model_with_mnist(
         random_seed=1234,
         dataset_builder=dataset_builder,
         audit_log_dir=_temp_dir,
-        audit_log_params={'save_format': 'h5'},
+        audit_log_params={'save_format': 'tf'},
     )
     global_metric = sl_model.evaluate(
         data,
@@ -217,34 +141,38 @@ def keras_model_with_mnist(
         random_seed=1234,
         dataset_builder=dataset_builder,
     )
-
-    sample_weights = load({devices.bob: devices.bob(lambda: np.zeros(data_length))()})
-    zero_metric = sl_model.evaluate(
-        data,
-        label,
-        sample_weight=sample_weights,
-        batch_size=eval_batch_size,
-        random_seed=1234,
-        dataset_builder=dataset_builder,
-    )
     # test history
     assert math.isclose(
         global_metric['accuracy'], history['val_accuracy'][-1], rel_tol=0.1
     )
-    loss_sum = 0
-    for device, worker in sl_model._workers.items():
-        if device not in base_model_dict:
-            continue
-        loss = reveal(worker.get_base_losses())
-        if len(loss) > 0:
-            import tensorflow as tf
-
-            loss_sum += tf.add_n(loss).numpy()
-    if loss_sum != 0:
-        assert math.isclose(zero_metric['loss'], loss_sum, rel_tol=0.01)
-    else:
-        assert zero_metric['loss'] == 0.0
     assert global_metric['accuracy'] > acc_threshold
+
+    if not skip_sw:
+        sample_weights = load(
+            {devices.bob: devices.bob(lambda: np.zeros(data_length))()}
+        )
+        zero_metric = sl_model.evaluate(
+            data,
+            label,
+            sample_weight=sample_weights,
+            batch_size=eval_batch_size,
+            random_seed=1234,
+            dataset_builder=dataset_builder,
+        )
+        loss_sum = 0
+        for device, worker in sl_model._workers.items():
+            if device not in base_model_dict:
+                continue
+            loss = reveal(worker.get_base_losses())
+            if len(loss) > 0:
+                import tensorflow as tf
+
+                loss_sum += tf.add_n(loss).numpy()
+        if loss_sum != 0:
+            assert math.isclose(zero_metric['loss'], loss_sum, rel_tol=0.01)
+        else:
+            assert zero_metric['loss'] == 0.0
+
     result = sl_model.predict(data, batch_size=128, verbose=1)
     reveal_result = []
     for rt in result:
@@ -256,6 +184,7 @@ def keras_model_with_mnist(
         base_model_path=base_model_path,
         fuse_model_path=fuse_model_path,
         is_test=True,
+        save_format='tf',
     )
     assert os.path.exists(base_model_path)
     assert os.path.exists(fuse_model_path)
@@ -282,6 +211,7 @@ def keras_model_with_mnist(
         base_model_path=base_model_path,
         fuse_model_path=fuse_model_path,
         is_test=True,
+        fuse_custom_objects={"FuseCustomLossModel": FuseCustomLossModel},
     )
     reload_metric = sl_model_load.evaluate(
         data,
@@ -566,7 +496,7 @@ class TestSLModelTensorflow:
     def test_pipeline_strategy(
         self, sf_simulation_setup_devices, sf_mnist_data, sf_single_output_model
     ):
-        # test split state async
+        # test pipeline
         keras_model_with_mnist(
             devices=sf_simulation_setup_devices,
             data=sf_mnist_data.x_train,
@@ -774,6 +704,25 @@ class TestSLModelTensorflow:
             model_fuse=sf_single_feature_model.fuse_model,
             device_y=sf_simulation_setup_devices.bob,
             compressor=quantized_compressor,
+        )
+
+    def test_tf_custom_loss(
+        self, sf_simulation_setup_devices, sf_mnist_data, sf_single_output_model
+    ):
+        fuse_model = create_fuse_model_custom_loss(
+            input_dim=hidden_size,
+            input_num=1,
+            party_nums=len(sf_single_output_model.base_model_dict),
+            output_dim=num_classes,
+        )
+        keras_model_with_mnist(
+            devices=sf_simulation_setup_devices,
+            data=sf_mnist_data.x_train,
+            label=sf_mnist_data.y_train,
+            base_model_dict=sf_single_output_model.base_model_dict,
+            model_fuse=fuse_model,
+            device_y=sf_simulation_setup_devices.bob,
+            skip_sw=True,
         )
 
 

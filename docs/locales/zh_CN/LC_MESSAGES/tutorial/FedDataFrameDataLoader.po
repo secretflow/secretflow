@@ -7,14 +7,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-07-19 22:21+0800\n"
+"POT-Creation-Date: 2024-03-19 12:20+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.12.1\n"
+"Generated-By: Babel 2.14.0\n"
 
 #: ../../tutorial/FedDataFrameDataLoader.ipynb:9
 msgid "Loading CSV data in SecretFlow"
@@ -57,8 +57,8 @@ msgid ""
 "<https://www.secretflow.org.cn/docs/secretflow/en/source/secretflow.data.horizontal.html#secretflow.data.horizontal.read_csv>`__"
 " available."
 msgstr ""
-"对于水平场景有 ``secretflow.horizontal.read_csv`` "
-"`API <https://www.secretflow.org.cn/docs/secretflow/en/source/secretflow.data.horizontal.html#secretflow.data.horizontal.read_csv>`__"
+"对于水平场景有 ``secretflow.horizontal.read_csv`` `API "
+"<https://www.secretflow.org.cn/docs/secretflow/en/source/secretflow.data.horizontal.html#secretflow.data.horizontal.read_csv>`__"
 " 。"
 
 #: ../../tutorial/FedDataFrameDataLoader.ipynb:123
@@ -67,8 +67,8 @@ msgid ""
 "<https://www.secretflow.org.cn/docs/secretflow/en/source/secretflow.data.horizontal.html#secretflow.data.vertical.read_csv>`__"
 " available."
 msgstr ""
-"对于垂直场景有 ``secretflow.vertical.read_csv`` "
-"`API <https://www.secretflow.org.cn/docs/secretflow/en/source/secretflow.data.horizontal.html#secretflow.data.vertical.read_csv>`__"
+"对于垂直场景有 ``secretflow.vertical.read_csv`` `API "
+"<https://www.secretflow.org.cn/docs/secretflow/en/source/secretflow.data.horizontal.html#secretflow.data.vertical.read_csv>`__"
 " 。"
 
 #: ../../tutorial/FedDataFrameDataLoader.ipynb:125
@@ -121,7 +121,7 @@ msgid ""
 msgstr "接口方面和 ``pandas.DataFrame`` 对齐，以降低多方数据操作的成本。"
 
 #: ../../tutorial/FedDataFrameDataLoader.ipynb:145
-msgid "|b4e593b315f549a8a1e7ebdcfe39c03a|"
+msgid "|8f528cd6e39c4664af0d1dde73094e81|"
 msgstr ""
 
 #: ../../tutorial/FedDataFrameDataLoader.ipynb:147
@@ -172,7 +172,7 @@ msgstr ""
 "``aggregator``\\ 和\\ ``comparator``,我们可以在计算的时候指定\\ ``安全聚合器``\\ 和\\ "
 "``安全比较器``\\ 来对数据隐私进行保护。"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:432
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:429
 msgid ""
 "The resulting hdf is a FedDataFrame, and we can now perform some data "
 "processing on it. For reference, `Data Preprocessing with FedDataFrame "
@@ -183,21 +183,21 @@ msgstr ""
 "<https://www.secretflow.org.cn/docs/secretflow/en/tutorial/data_preprocessing_with_data_frame.html>`__\\"
 " ："
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:454
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:451
 msgid ""
 "The obtained ``data`` and ``label`` can be inputted into FLModel or "
 "SLModel for modeling purposes."
 msgstr "得到的\\ ``data``\\ 和\\ ``label``\\ 即可以作为输入传入FLModel或者SLModel进行建模。"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:465
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:462
 msgid "SecretFlow provides ``train_test_split`` to split data."
 msgstr "隐语提供了train_test_split可以对数据进行拆分。"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:521
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:520
 msgid "Loading CSV Data Example for Vertical Scenario"
 msgstr "接下来我们以垂直为例介绍如何加载csv数据"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:532
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:531
 msgid ""
 "First, prepare the CSV data files for two parties. In a vertical "
 "scenario, it is not required that the schema of the data from both "
@@ -205,15 +205,15 @@ msgid ""
 "interface."
 msgstr "首先准备好两方的数据csv文件,垂直场景两方数据并不强制要求对齐，我们在\\ ``read_csv``\\ 接口中提供了PSI的能力。 "
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:534
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:533
 msgid "Alice: datapath (The local path accessible on Alice’s machine)"
 msgstr "Alice: datapath (alice机器能访问到的本地路径)"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:535
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:534
 msgid "Bob: datapath (The local path accessible on Bob’s machine)"
 msgstr "Bob: datapath (bob机器能访问到的本地路径)"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:546
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:545
 msgid ""
 "In a vertical scenario, the schema of the data from both parties is not "
 "consistent, but each party has all the data of each column. No comparator"
@@ -224,23 +224,23 @@ msgstr ""
 "垂直场景是各方的schema不同，但是每一方都拥有每一个column的全部数据。不再需要比较器和聚合器。但是各方数据不一定是对齐的，我们需要在读取时候通过\\"
 " ``PSI``\\ 来进行数据对齐。"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:548
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:547
 msgid "path_dict: data path"
 msgstr "path_dict：数据路径"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:549
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:548
 msgid "spu: spu device used for intersection"
 msgstr "spu: 用于求交使用的spu设备"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:550
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:549
 msgid "keys: keys for intersection (support multi-column intersection)"
 msgstr "keys: 用于求交的keys（支持多列求交）"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:551
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:550
 msgid "drop_keys: ID column name to be deleted after intersection"
 msgstr "drop_keys: 求交后需要删去的ID列名"
 
-#: ../../tutorial/FedDataFrameDataLoader.ipynb:763
+#: ../../tutorial/FedDataFrameDataLoader.ipynb:761
 msgid "We can also use ``train_test_split`` to split data."
 msgstr "同样这里也可以通过train_test_split来进行切分。"
 

@@ -7,14 +7,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-01-26 03:20+0000\n"
+"POT-Creation-Date: 2024-03-19 12:20+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.11.0\n"
+"Generated-By: Babel 2.14.0\n"
 
 #: ../../getting_started/installation.md:1
 msgid "Installation"
@@ -79,7 +79,7 @@ msgid "pip: >= 19.3"
 msgstr ""
 
 #: ../../getting_started/installation.md:23
-msgid "OS: CentOS 7, Ubuntu 18.04"
+msgid "OS: CentOS 7, Ubuntu 20.04"
 msgstr ""
 
 #: ../../getting_started/installation.md:25
@@ -87,8 +87,10 @@ msgid "CPU/Memory: recommended minimum requirement is 8C16G."
 msgstr "CPU/Memory: 推荐最低配置是 8C16G."
 
 #: ../../getting_started/installation.md:27
-msgid "**_Note:_** macOS x64 support is scheduled to deprecate later this year."
-msgstr "**_提示:_** 计划今年停止支持maxOS x64。"
+msgid ""
+"**_Note:_** Due to CI resource limitation, macOS x64 prebuild binary is "
+"no longer available."
+msgstr "由于 CI 资源限制, macOS x64 安装包已不再提供."
 
 #: ../../getting_started/installation.md:29
 msgid "Option 1: from pypi"
@@ -431,4 +433,3 @@ msgid ""
 msgstr ""
 "容器运行后，您可以使用 jupyter 笔记本 [GPU Check](../tutorial/GPU_check.ipynb) 检查容器内 "
 "Tensorflow 和 PyTorch 对于 NVIDIA GPU 的可调用性。"
-

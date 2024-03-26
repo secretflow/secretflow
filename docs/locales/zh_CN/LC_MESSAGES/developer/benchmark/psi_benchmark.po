@@ -8,14 +8,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-06-05 16:25+0800\n"
+"POT-Creation-Date: 2024-03-19 12:20+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.12.1\n"
+"Generated-By: Babel 2.14.0\n"
 
 #: ../../developer/benchmark/psi_benchmark.md:1
 msgid "隐语PSI Benchmark白皮书"
@@ -204,102 +204,109 @@ msgid "四、创建节点并启动集群"
 msgstr ""
 
 #: ../../developer/benchmark/psi_benchmark.md:100
-msgid "创建ray header节点"
+msgid "配置示例使用集群模式仿真模式，其它模式请参考secretfow部署文档。"
 msgstr ""
 
 #: ../../developer/benchmark/psi_benchmark.md:101
+msgid "创建ray header节点"
+msgstr ""
+
+#: ../../developer/benchmark/psi_benchmark.md:102
 msgid ""
 "创建ray header节点，选择一台机器为主机，在主机上执行如下命令，ip替换为主机的内网ip，命名为alice，端口选择一个空闲端口即可 "
 "注意：192.168.0.1 ip为mock的，请替换为实际的ip地址"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:107
+#: ../../developer/benchmark/psi_benchmark.md:108
 msgid "创建从属节点"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:108
+#: ../../developer/benchmark/psi_benchmark.md:109
 msgid "创建从属节点，在bob机器执行如下命令，ip依然填alice机器的内网ip，命名为bob，端口不变"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:113
+#: ../../developer/benchmark/psi_benchmark.md:114
 msgid "创建从属节点，在carol机器执行如下命令，ip依然填alice机器的内网ip，命名为carol，端口不变"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:118
+#: ../../developer/benchmark/psi_benchmark.md:119
 msgid "验证节点是否启动"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:119
+#: ../../developer/benchmark/psi_benchmark.md:120
 msgid "在python中测试节点是否启动成功，任意选一台机器输入python，执行下列代码，参数中address为头节点(alice)的地址，拿alice机器来验证，每输入一行下列代码回车一次："
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:128
+#: ../../developer/benchmark/psi_benchmark.md:129
 msgid ""
 "如下图就代表节点创建成功了 ![](./resources/3386cb76-53c1-4df6-ae5e-a26314609d5c.png) "
 "同时我们也可以通过ray status去看节点的状态，前提是先进入sf环境（conda activate sf-benchmark） "
 "![](./resources/e63ba232-025b-4b4f-9c57-d61d80cc8a1f.png)"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:133
+#: ../../developer/benchmark/psi_benchmark.md:134
 msgid "生成数据"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:135
+#: ../../developer/benchmark/psi_benchmark.md:136
 msgid ""
 "把[generate_psi.py](https://github.com/secretflow/spu/blob/main/libspu/psi/tools/generate_psi.py)脚本传到alice机器的root目录下"
 " 执行如下代码"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:144
+#: ../../developer/benchmark/psi_benchmark.md:145
 msgid ""
 "把生成的psi_1.csv "
 "cp到benchmark目录下，再通过scp的命令把psi_2.csv/psi_3.csv分别移到bob的benchmark目录下跟carol的benchark目录下"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:146
+#: ../../developer/benchmark/psi_benchmark.md:147
 msgid "限制宽带/延迟"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:157
+#: ../../developer/benchmark/psi_benchmark.md:158
 msgid "Benchmark脚本"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:158
+#: ../../developer/benchmark/psi_benchmark.md:159
 msgid "支持的PSI协议列表："
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:159
+#: ../../developer/benchmark/psi_benchmark.md:160
 msgid "ECDH_PSI_2PC"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:160
+#: ../../developer/benchmark/psi_benchmark.md:161
 msgid "KKRT_PSI_2PC"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:161
+#: ../../developer/benchmark/psi_benchmark.md:162
 msgid "BC22_PSI_2PC"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:162
+#: ../../developer/benchmark/psi_benchmark.md:163
 msgid "ECDH_PSI_3PC"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:246
+#: ../../developer/benchmark/psi_benchmark.md:247
 msgid "五、Benchmark报告"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:247
+#: ../../developer/benchmark/psi_benchmark.md:248
+msgid "![](./resources/7629c228-bc51-4ef7-93e9-9f0c465d025d.png)"
+msgstr ""
+
+#: ../../developer/benchmark/psi_benchmark.md:250
 msgid ""
-"![](./resources/7629c228-bc51-4ef7-93e9-9f0c465d025d.png) "
 "目前bechmark数据中，bc22 psi的性能还在进一步工程优化， 单测spu中bc22协议内核的性能对比可以参考 [pcg "
 "psi](https://mp.weixin.qq.com/s?__biz=MzA5NTQ0MTI4OA==&mid=2456927355&idx=1&sn=832269f138e35f031bc2bdcd63f05520&chksm=873a449cb04dcd8a4dacd4cec0ccc7c147219a76f36a6d694f26b7c2a27d03be8f968578fab4&scene=21#wechat_redirect)的介绍。"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:251
-msgid "ECDH：对网络配置不敏感，对计算资源敏感，通常用于多方数据量均衡时，带宽在100M及以下时计算速度比KKRT快，带宽小于等于100M时推荐；"
+#: ../../developer/benchmark/psi_benchmark.md:253
+msgid "ECDH：对网络配置不敏感，对计算资源敏感，适合带宽较低、计算配置较高的使用场景；"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:252
-msgid "KKRT：网络设置为100Mbps时，带宽成为瓶颈。通常用于两方数据量均衡时，高带宽时计算速度快，带宽大于等于1000M时推荐；"
+#: ../../developer/benchmark/psi_benchmark.md:254
+msgid "KKRT：网络设置为100Mbps时，带宽成为瓶颈。通常用于两方数据量均衡时，适合高带宽的使用场景；"
 msgstr ""
 

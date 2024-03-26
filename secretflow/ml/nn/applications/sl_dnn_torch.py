@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Optional, Union
+from typing import Callable, List, Optional, Union
 
 import torch
 import torch.nn as nn
 
-from secretflow.ml.nn.utils import BaseModule
+from secretflow.ml.nn.core.torch import BaseModule
 
 
 class DnnBase(BaseModule):
@@ -31,7 +31,7 @@ class DnnBase(BaseModule):
         dnn_units_size: List[int],
         sparse_feas_indexes: Optional[List[int]] = None,
         embedding_dim=16,
-        preprocess_layer=None,
+        preprocess_layer: Optional[Callable[..., nn.Module]] = None,
         *args,
         **kwargs,
     ):

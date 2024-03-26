@@ -21,7 +21,7 @@ from secretflow.ml.nn.callbacks.tune.automl import AutoMLCallback
 from secretflow.security.privacy import DPStrategy, LabelDP
 from secretflow.security.privacy.mechanism.tensorflow import GaussianEmbeddingDP
 from secretflow.utils.simulation.datasets import load_mnist
-from tests.ml.nn.sl.test_sl_model_tf import create_base_model, create_fuse_model
+from tests.ml.nn.sl.model_def import create_base_model, create_fuse_model
 
 _temp_dir = tempfile.mkdtemp()
 

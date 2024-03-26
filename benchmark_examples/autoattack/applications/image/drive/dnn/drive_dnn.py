@@ -25,8 +25,12 @@ from torchmetrics import Accuracy, Precision
 from benchmark_examples.autoattack import global_config
 from benchmark_examples.autoattack.applications.base import ApplicationBase
 from secretflow.data.ndarray import FedNdarray, PartitionWay
-from secretflow.ml.nn.fl.utils import metric_wrapper, optim_wrapper
-from secretflow.ml.nn.utils import BaseModule, TorchModel
+from secretflow.ml.nn.core.torch import (
+    BaseModule,
+    TorchModel,
+    metric_wrapper,
+    optim_wrapper,
+)
 
 
 class SLBaseNet(BaseModule):
@@ -79,7 +83,7 @@ class DriveDnn(ApplicationBase):
     def prepare_data(
         self,
     ):
-        from secretflow.utils.simulation.datasets import get_dataset, _DATASETS
+        from secretflow.utils.simulation.datasets import _DATASETS, get_dataset
 
         path = get_dataset(_DATASETS['drive_cleaned'])
         full_data_table = np.genfromtxt(path, delimiter=',')

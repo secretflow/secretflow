@@ -24,9 +24,8 @@ from benchmark_examples.autoattack import global_config
 from benchmark_examples.autoattack.attacks.base import AttackCase
 from benchmark_examples.autoattack.global_config import is_simple_test
 from secretflow import tune
-from secretflow.ml.nn.fl.utils import optim_wrapper
+from secretflow.ml.nn.core.torch import TorchModel, optim_wrapper
 from secretflow.ml.nn.sl.attacks.fia_torch import FeatureInferenceAttack
-from secretflow.ml.nn.utils import TorchModel
 
 
 class Generator(nn.Module):

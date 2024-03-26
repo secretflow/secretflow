@@ -14,14 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-"""module docstring - short summary
-
-If the description is long, the first line should be a short summary that makes sense on its own,
-separated from the rest by a newline
-
-"""
-
 import os
 import tempfile
 
@@ -32,9 +24,8 @@ from torchmetrics import Accuracy, Precision
 
 from secretflow.device import reveal
 from secretflow.ml.nn import FLModel
-from secretflow.ml.nn.core.torch import TorchModel
+from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
 from secretflow.ml.nn.fl.compress import COMPRESS_STRATEGY
-from secretflow.ml.nn.utils import TorchModel, metric_wrapper, optim_wrapper
 from secretflow.preprocessing.encoder import OneHotEncoder
 from secretflow.security.aggregation import PlainAggregator, SparsePlainAggregator
 from secretflow.security.privacy import DPStrategyFL, GaussianModelDP

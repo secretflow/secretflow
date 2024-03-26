@@ -30,8 +30,7 @@ from benchmark_examples.autoattack.applications.image.cifar10.cifar10_base impor
 )
 from secretflow.ml.nn import SLModel
 from secretflow.ml.nn.callbacks.callback import Callback
-from secretflow.ml.nn.fl.utils import metric_wrapper, optim_wrapper
-from secretflow.ml.nn.utils import TorchModel
+from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
 
 
 def weights_init(m):

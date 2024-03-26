@@ -17,9 +17,6 @@ import torch
 from torch import Tensor, nn
 from torch.nn.modules.loss import _Loss as BaseTorchLoss
 
-from secretflow.ml.nn.callbacks.callback import Callback
-from secretflow.ml.nn.sl.backend.torch.sl_base import SLBaseTorchModel
-
 
 def _get_perm_index(batch_size, seed):
     torch.manual_seed(seed)
@@ -99,30 +96,3 @@ class Mixuploss(BaseTorchLoss):
             input, target[index]
         )
         return loss
-
-
-class MixupDefense(Callback):
-    def __init__(self, lam=0.5, perm_seed=42, **kwargs):
-        super().__init__(**kwargs)
-        self.lam = lam
-        self.perm_seed = perm_seed
-
-    @staticmethod
-    def inject_mixup(worker: SLBaseTorchModel, lam, perm_seed):
-        worker.model_base = (
-            worker.builder_base.model_fn(
-                **worker.builder_base.kwargs,
-                preprocess_layer=Mixuplayer(lam, perm_seed)
-            )
-            if worker.builder_base and worker.builder_base.model_fn
-            else None
-        )
-        worker.loss_fuse = (
-            Mixuploss(worker.builder_fuse.loss_fn, lam, perm_seed)
-            if worker.builder_fuse and worker.builder_fuse.loss_fn
-            else None
-        )
-
-    def on_train_begin(self, logs=None):
-        for worker in self._workers.values():
-            worker.apply(self.inject_mixup, self.lam, self.perm_seed)

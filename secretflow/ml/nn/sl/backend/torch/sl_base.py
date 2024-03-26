@@ -102,6 +102,8 @@ class SLBaseTorchModel(SLBaseModel, ABC):
             torch.manual_seed(random_seed)
         # used in backward propagation gradients from fuse model to base model
         self.fuse_op = FuseOp()
+        self.builder_base = builder_base
+        self.builder_fuse = builder_fuse
         self.model_base = module.build(builder_base, self.exec_device)
         self.model_fuse = module.build(builder_fuse, self.exec_device)
 
