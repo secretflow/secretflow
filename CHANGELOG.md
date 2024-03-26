@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Add preprocess_layer for SL ResNet, SL VGG and SL DeepFM.
+- SL/FL tf backend support custom loss.
 
 ### Changed
 
