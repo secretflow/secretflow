@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Optional, Union
+from typing import Callable, List, Optional, Union
 
 import torch
 import torch.nn as nn
 
-from secretflow.ml.nn.utils import BaseModule
+from secretflow.ml.nn.core.torch import BaseModule
 
 
 class DeepFMBase(BaseModule):
@@ -29,6 +29,7 @@ class DeepFMBase(BaseModule):
         fm_embedding_dim: int = 4,
         fm_embedding_init_range: float = 0.1,
         fm_w_init_range: float = 0.1,
+        preprocess_layer: Optional[Callable[..., nn.Module]] = None,
         *args,
         **kwargs,
     ):
@@ -44,6 +45,7 @@ class DeepFMBase(BaseModule):
             **kwargs:
         """
         super().__init__(*args, **kwargs)
+        self.preprocess_layer = preprocess_layer
         input_dims = [input_dims] if not isinstance(input_dims, List) else input_dims
         self._input_size = len(input_dims)
         self._dnn_units_size = dnn_units_size
@@ -96,6 +98,8 @@ class DeepFMBase(BaseModule):
         self._dnn_layer = nn.Sequential(*dnn_layer[:-1])
 
     def forward(self, x):
+        if self.preprocess_layer is not None:
+            x = self.preprocess_layer(x)
         x = [x] if not isinstance(x, List) else x
         assert len(x) == self._input_size
 

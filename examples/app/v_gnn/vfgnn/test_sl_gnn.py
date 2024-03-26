@@ -51,12 +51,8 @@ from examples.app.v_gnn.vfgnn.sl_vfgnn_model import (
     evaluate_vfgnn_target,
 )
 from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.utils import (
-    TorchModel,
-    metric_wrapper,
-    optim_wrapper,
-    plot_with_tsne,
-)
+from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
+from secretflow.ml.nn.utils import plot_with_tsne
 
 
 def local_train(dataset, args):

@@ -8,14 +8,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-06-21 10:04+0800\n"
+"POT-Creation-Date: 2024-03-19 12:20+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.12.1\n"
+"Generated-By: Babel 2.14.0\n"
 
 #: ../../tutorial/risk_control_scenario.ipynb:9
 msgid "隐语SecretFlow金融风控全链路能力展示"
@@ -26,7 +26,7 @@ msgid "This tutorial is only available in Chinese."
 msgstr ""
 
 #: ../../tutorial/risk_control_scenario.ipynb:22
-msgid "Last updated: May 12, 2023"
+msgid "Last updated: Oct 7, 2023"
 msgstr ""
 
 #: ../../tutorial/risk_control_scenario.ipynb:24
@@ -58,27 +58,27 @@ msgid "样本对齐"
 msgstr ""
 
 #: ../../tutorial/risk_control_scenario.ipynb:56
-#: ../../tutorial/risk_control_scenario.ipynb:1845
+#: ../../tutorial/risk_control_scenario.ipynb:1937
 msgid "特征预处理"
 msgstr ""
 
 #: ../../tutorial/risk_control_scenario.ipynb:57
-#: ../../tutorial/risk_control_scenario.ipynb:4289
+#: ../../tutorial/risk_control_scenario.ipynb:4387
 msgid "数据分析"
 msgstr ""
 
 #: ../../tutorial/risk_control_scenario.ipynb:58
-#: ../../tutorial/risk_control_scenario.ipynb:8014
+#: ../../tutorial/risk_control_scenario.ipynb:8102
 msgid "模型训练"
 msgstr ""
 
 #: ../../tutorial/risk_control_scenario.ipynb:59
-#: ../../tutorial/risk_control_scenario.ipynb:8617
+#: ../../tutorial/risk_control_scenario.ipynb:8757
 msgid "模型预测"
 msgstr ""
 
 #: ../../tutorial/risk_control_scenario.ipynb:60
-#: ../../tutorial/risk_control_scenario.ipynb:8774
+#: ../../tutorial/risk_control_scenario.ipynb:8907
 msgid "模型评估"
 msgstr ""
 
@@ -127,781 +127,781 @@ msgid ""
 "<../developer/design/architecture.md>`__."
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:153
+#: ../../tutorial/risk_control_scenario.ipynb:177
 msgid ""
 "在上面的log中，你应该发现，在\\ **spu**\\ 的创建过程中，alice和bob两边都各有一个 **SPURuntime** "
 "被建立并互相创建连接。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:165
+#: ../../tutorial/risk_control_scenario.ipynb:189
 msgid "数据集"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:167
+#: ../../tutorial/risk_control_scenario.ipynb:191
 msgid ""
 "本次实验我们采用的原始数据是来自UCI的\\ `Bank Marketing Data Set "
 "<https://archive.ics.uci.edu/ml/datasets/bank+marketing>`__. "
 "这个数据集汇集了一家葡萄牙银行机构电话营销的结果。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:169
+#: ../../tutorial/risk_control_scenario.ipynb:193
 msgid "我们添加了\\ **uid**\\ 这一列用于接下来隐私求交的实验。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:171
+#: ../../tutorial/risk_control_scenario.ipynb:195
 msgid "我们首先看一下数据集所包含的信息。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:629
+#: ../../tutorial/risk_control_scenario.ipynb:652
 msgid "该数据集包含了45211个样本，每一个样本代表了一个目标客户。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:631
+#: ../../tutorial/risk_control_scenario.ipynb:654
 msgid "每个样本包含16个feature，我们这里简单描述一下这个数据集所有的feature。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:634
-#: ../../tutorial/risk_control_scenario.ipynb:2754
+#: ../../tutorial/risk_control_scenario.ipynb:657
+#: ../../tutorial/risk_control_scenario.ipynb:2843
 msgid "feature"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:634
-#: ../../tutorial/risk_control_scenario.ipynb:2754
+#: ../../tutorial/risk_control_scenario.ipynb:657
+#: ../../tutorial/risk_control_scenario.ipynb:2843
 msgid "描述"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:634
+#: ../../tutorial/risk_control_scenario.ipynb:657
 msgid "取值"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:636
+#: ../../tutorial/risk_control_scenario.ipynb:659
 msgid "uid"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:636
+#: ../../tutorial/risk_control_scenario.ipynb:659
 msgid "客户编码"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:636
-#: ../../tutorial/risk_control_scenario.ipynb:638
-#: ../../tutorial/risk_control_scenario.ipynb:656
-#: ../../tutorial/risk_control_scenario.ipynb:658
-#: ../../tutorial/risk_control_scenario.ipynb:660
-#: ../../tutorial/risk_control_scenario.ipynb:662
-#: ../../tutorial/risk_control_scenario.ipynb:664
+#: ../../tutorial/risk_control_scenario.ipynb:659
+#: ../../tutorial/risk_control_scenario.ipynb:661
+#: ../../tutorial/risk_control_scenario.ipynb:679
+#: ../../tutorial/risk_control_scenario.ipynb:681
+#: ../../tutorial/risk_control_scenario.ipynb:683
+#: ../../tutorial/risk_control_scenario.ipynb:685
+#: ../../tutorial/risk_control_scenario.ipynb:687
 msgid "数字"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:638
+#: ../../tutorial/risk_control_scenario.ipynb:661
 msgid "age"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:638
+#: ../../tutorial/risk_control_scenario.ipynb:661
 msgid "年龄"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:640
+#: ../../tutorial/risk_control_scenario.ipynb:663
 msgid "job"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:640
+#: ../../tutorial/risk_control_scenario.ipynb:663
 msgid "工作类型"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:640
+#: ../../tutorial/risk_control_scenario.ipynb:663
 msgid ""
 "‘admin.’,‘blue-collar’,‘entrepreneur’,‘housemaid’,‘management’,‘retired"
 "’,‘self-"
 "employed’,‘services’,‘student’,‘technician’,‘unemployed’,‘unknown’"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:642
+#: ../../tutorial/risk_control_scenario.ipynb:665
 msgid "marital"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:642
+#: ../../tutorial/risk_control_scenario.ipynb:665
 msgid "婚姻状况"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:642
+#: ../../tutorial/risk_control_scenario.ipynb:665
 msgid "‘divorced’,‘married’,‘single’,‘unknown’"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:644
-#: ../../tutorial/risk_control_scenario.ipynb:2756
+#: ../../tutorial/risk_control_scenario.ipynb:667
+#: ../../tutorial/risk_control_scenario.ipynb:2845
 msgid "education"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:644
-#: ../../tutorial/risk_control_scenario.ipynb:2756
+#: ../../tutorial/risk_control_scenario.ipynb:667
+#: ../../tutorial/risk_control_scenario.ipynb:2845
 msgid "教育状况"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:644
+#: ../../tutorial/risk_control_scenario.ipynb:667
 msgid "‘tertiary’, ‘secondary’, ‘unknown’, ‘primary’"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:646
-#: ../../tutorial/risk_control_scenario.ipynb:2758
+#: ../../tutorial/risk_control_scenario.ipynb:669
+#: ../../tutorial/risk_control_scenario.ipynb:2847
 msgid "default"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:646
-#: ../../tutorial/risk_control_scenario.ipynb:2758
+#: ../../tutorial/risk_control_scenario.ipynb:669
+#: ../../tutorial/risk_control_scenario.ipynb:2847
 msgid "是否有不良信用记录"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:646
-#: ../../tutorial/risk_control_scenario.ipynb:648
-#: ../../tutorial/risk_control_scenario.ipynb:650
+#: ../../tutorial/risk_control_scenario.ipynb:669
+#: ../../tutorial/risk_control_scenario.ipynb:671
+#: ../../tutorial/risk_control_scenario.ipynb:673
 msgid "‘no’,‘yes’,‘unknown’"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:648
-#: ../../tutorial/risk_control_scenario.ipynb:2760
+#: ../../tutorial/risk_control_scenario.ipynb:671
+#: ../../tutorial/risk_control_scenario.ipynb:2849
 msgid "housing"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:648
-#: ../../tutorial/risk_control_scenario.ipynb:2760
+#: ../../tutorial/risk_control_scenario.ipynb:671
+#: ../../tutorial/risk_control_scenario.ipynb:2849
 msgid "是否有房贷"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:650
-#: ../../tutorial/risk_control_scenario.ipynb:2762
+#: ../../tutorial/risk_control_scenario.ipynb:673
+#: ../../tutorial/risk_control_scenario.ipynb:2851
 msgid "loan"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:650
-#: ../../tutorial/risk_control_scenario.ipynb:2762
+#: ../../tutorial/risk_control_scenario.ipynb:673
+#: ../../tutorial/risk_control_scenario.ipynb:2851
 msgid "是否有个人贷款"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:652
+#: ../../tutorial/risk_control_scenario.ipynb:675
 msgid "contact"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:652
+#: ../../tutorial/risk_control_scenario.ipynb:675
 msgid "联系方式"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:652
+#: ../../tutorial/risk_control_scenario.ipynb:675
 msgid "‘cellular’,‘telephone’"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:654
-#: ../../tutorial/risk_control_scenario.ipynb:2764
+#: ../../tutorial/risk_control_scenario.ipynb:677
+#: ../../tutorial/risk_control_scenario.ipynb:2853
 msgid "month"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:654
-#: ../../tutorial/risk_control_scenario.ipynb:2764
+#: ../../tutorial/risk_control_scenario.ipynb:677
+#: ../../tutorial/risk_control_scenario.ipynb:2853
 msgid "上次联系月份"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:654
+#: ../../tutorial/risk_control_scenario.ipynb:677
 msgid "‘jan’, ‘feb’, ‘mar’, …, ‘nov’, ‘dec’"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:656
+#: ../../tutorial/risk_control_scenario.ipynb:679
 msgid "day"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:656
+#: ../../tutorial/risk_control_scenario.ipynb:679
 msgid "上次联系月日"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:658
+#: ../../tutorial/risk_control_scenario.ipynb:681
 msgid "duration"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:658
+#: ../../tutorial/risk_control_scenario.ipynb:681
 msgid "上次沟通时间"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:660
+#: ../../tutorial/risk_control_scenario.ipynb:683
 msgid "campaign"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:660
+#: ../../tutorial/risk_control_scenario.ipynb:683
 msgid "本次活动已经沟通的次数"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:662
+#: ../../tutorial/risk_control_scenario.ipynb:685
 msgid "pdays"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:662
+#: ../../tutorial/risk_control_scenario.ipynb:685
 msgid "距离上次沟通经过的天数"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:664
+#: ../../tutorial/risk_control_scenario.ipynb:687
 msgid "previous"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:664
+#: ../../tutorial/risk_control_scenario.ipynb:687
 msgid "在本次活动之前已经沟通的次数"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:666
+#: ../../tutorial/risk_control_scenario.ipynb:689
 msgid "poutcome"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:666
+#: ../../tutorial/risk_control_scenario.ipynb:689
 msgid "之前活动的结果"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:666
+#: ../../tutorial/risk_control_scenario.ipynb:689
 msgid "‘unknown’, ‘failure’, ‘other’, ‘success’"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:678
+#: ../../tutorial/risk_control_scenario.ipynb:701
 msgid "每个样本的label - y表示对于目标客户的营销结果（是否签订了定额存款合同），取值是’yes’,‘no’。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:680
+#: ../../tutorial/risk_control_scenario.ipynb:703
 msgid "我们假定以上16个feature由两个机构分别掌握，具体如下。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:682
+#: ../../tutorial/risk_control_scenario.ipynb:705
 msgid "alice: age, job, marital, education, default, balance, housing, loan"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:683
+#: ../../tutorial/risk_control_scenario.ipynb:706
 msgid "bob: contact, day, month, duration, campaign, pdays, previous, poutcome, y"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:694
+#: ../../tutorial/risk_control_scenario.ipynb:717
 msgid ""
 "在真实业务场景中, "
 "alice和bob所掌握的数据可能是没有对齐的，为了模拟这种情况，我们将数据集shuffle之后，再随机各取90%来模拟这个状况。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:1307
+#: ../../tutorial/risk_control_scenario.ipynb:1328
 msgid "我们这里将df_alice和df_bob保存为文件，作为alice和bob两方的原始输入。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:1309
+#: ../../tutorial/risk_control_scenario.ipynb:1330
 msgid "至此，我们完成了所有实验准备工作。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:1337
+#: ../../tutorial/risk_control_scenario.ipynb:1357
 msgid "样本对齐（隐私求交）"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:1348
+#: ../../tutorial/risk_control_scenario.ipynb:1368
 msgid ""
 "显然，第一步我们需要将两边的数据对齐。 隐私求交（\\ `Private Set Intersection "
 "<https://en.wikipedia.org/wiki/Private_set_intersection>`__)是一种密码学方法，可以获取两个集合的交集，而不泄露任何其他信息。"
 " 在隐语中，SPU设备支持三种隐私求交算法:"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:1350
+#: ../../tutorial/risk_control_scenario.ipynb:1370
 msgid ""
 "`ECDH <https://ieeexplore.ieee.org/document/6234849/>`__\\ ：半诚实模型, "
 "基于公钥密码学，原本适用于小数据集，但是隐语优化后已经能支持10亿量级的数据。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:1351
+#: ../../tutorial/risk_control_scenario.ipynb:1371
 msgid ""
 "`KKRT <https://eprint.iacr.org/2016/799.pdf>`__\\ ：半诚实模型, 基于布谷鸟哈希（Cuckoo "
 "Hashing）以及高效不经意传输扩展（OT Extension），适用于大数据集（比如千万数据集）。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:1352
+#: ../../tutorial/risk_control_scenario.ipynb:1372
 msgid ""
 "`BC22PCG <https://eprint.iacr.org/2022/334>`__\\ ：半诚实模型, "
 "基于随机相关函数生成器，适用于大数据集。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:1354
+#: ../../tutorial/risk_control_scenario.ipynb:1374
 msgid "由于我们这里的数据集较小，我们这里采用的是ECDH方法。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:1366
+#: ../../tutorial/risk_control_scenario.ipynb:1386
 msgid "方式一：将隐私求交结果保存至文件"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:1368
+#: ../../tutorial/risk_control_scenario.ipynb:1388
 msgid ""
 "在一些应用场景场景中，alice和bob可能在隐私求交之后将结果直接保存至文件中，之后再进行后续操作。这个时候，请调用\\ "
 "**psi_csv**\\ 接口。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:1370
+#: ../../tutorial/risk_control_scenario.ipynb:1390
 msgid "在以下代码中，我们分别制定了两边需要求交的key以及输入和输出路径。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:1372
+#: ../../tutorial/risk_control_scenario.ipynb:1392
 msgid "我们需要指定双方的输入文件和输出文件路径。对于ECDH来说，由于双方的地位是平等的，receiver并没有实际含义，你可以任意指定。我们需要设定正确的protocol。sort设为true之后，join的结果将会被排序。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:1374
+#: ../../tutorial/risk_control_scenario.ipynb:1394
 msgid "请阅读 psi_csv 的文档。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:1598
+#: ../../tutorial/risk_control_scenario.ipynb:1611
 msgid "方式二：将求交结果保存至VDataFrame"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:1600
+#: ../../tutorial/risk_control_scenario.ipynb:1613
 msgid "VDataFrame是隐语中保存垂直切分数据的数据结构，在接下来的任务中，我们将会不断使用VDataFrame的数据结构。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:1602
+#: ../../tutorial/risk_control_scenario.ipynb:1615
 msgid ""
 "由于在本次实验中，经过隐私求交之后，我们还有后续操作，所以我们在这里使用 **data.vertical.read_csv** "
 "来将原始数据隐私求交之后的结果直接转化为VDataFrame。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:1604
+#: ../../tutorial/risk_control_scenario.ipynb:1617
 msgid "请阅读data.vertical.read_csv的文档。很多参数和psi_csv是一致的，这里不再赘述。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:1828
-#: ../../tutorial/risk_control_scenario.ipynb:4262
+#: ../../tutorial/risk_control_scenario.ipynb:1920
+#: ../../tutorial/risk_control_scenario.ipynb:4360
 msgid "更多"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:1830
+#: ../../tutorial/risk_control_scenario.ipynb:1922
 msgid "我们在这里展示的是两方单键的隐私求交，隐语也支持三方和多键的隐私求交技术，想要了解更多信息，你可以："
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:1832
+#: ../../tutorial/risk_control_scenario.ipynb:1924
 msgid ""
 "阅读这篇\\ `文档 "
 "<https://www.secretflow.org.cn/docs/spu/en/development/psi.html>`__\\ "
 "了解隐语SPU的隐私求交能力。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:1833
+#: ../../tutorial/risk_control_scenario.ipynb:1925
 msgid "阅读该\\ `教程 <./PSI_On_SPU.ipynb>`__\\ 了解使用的例子。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:1847
+#: ../../tutorial/risk_control_scenario.ipynb:1939
 msgid "一般情况下，我们都需要对用于建模的数据进行预处理，合理的预处理对模型训练效果非常关键。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:1858
+#: ../../tutorial/risk_control_scenario.ipynb:1950
 msgid ""
 "在开始特征预处理之前，我们先使用 **stats.table_statistics.table_statistics** "
 "来查看一下特征总体情况，我们会在后面专门讨论全表统计模块。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:2731
+#: ../../tutorial/risk_control_scenario.ipynb:2820
 msgid "在接下来，我们将会展示隐语以下特征预处理能力："
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:2733
-#: ../../tutorial/risk_control_scenario.ipynb:2749
+#: ../../tutorial/risk_control_scenario.ipynb:2822
+#: ../../tutorial/risk_control_scenario.ipynb:2838
 msgid "值替换"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:2734
-#: ../../tutorial/risk_control_scenario.ipynb:2957
+#: ../../tutorial/risk_control_scenario.ipynb:2823
+#: ../../tutorial/risk_control_scenario.ipynb:3045
 msgid "缺失值填充"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:2735
+#: ../../tutorial/risk_control_scenario.ipynb:2824
 msgid "WOE分组/分箱转换"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:2736
+#: ../../tutorial/risk_control_scenario.ipynb:2825
 msgid "one-hot编码"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:2737
-#: ../../tutorial/risk_control_scenario.ipynb:3799
+#: ../../tutorial/risk_control_scenario.ipynb:2826
+#: ../../tutorial/risk_control_scenario.ipynb:3901
 msgid "标准化"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:2751
+#: ../../tutorial/risk_control_scenario.ipynb:2840
 msgid "我们先对以下特征做值替换："
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:2754
+#: ../../tutorial/risk_control_scenario.ipynb:2843
 msgid "取值和值替换规则"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:2756
+#: ../../tutorial/risk_control_scenario.ipynb:2845
 msgid "‘tertiary’ -> 3, ‘secondary’ -> 2, ‘unknown’ -> 0, ‘primary’ -> 1"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:2758
-#: ../../tutorial/risk_control_scenario.ipynb:2760
-#: ../../tutorial/risk_control_scenario.ipynb:2762
+#: ../../tutorial/risk_control_scenario.ipynb:2847
+#: ../../tutorial/risk_control_scenario.ipynb:2849
+#: ../../tutorial/risk_control_scenario.ipynb:2851
 msgid "‘no’ -> 0,‘yes’ -> 1,‘unknown’ -> NaN"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:2764
+#: ../../tutorial/risk_control_scenario.ipynb:2853
 msgid "‘jan’ -> 1, ‘feb’ -> 2, ‘mar’ -> 3, …, ‘nov’ -> 11, ‘dec’ ->12"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:2766
+#: ../../tutorial/risk_control_scenario.ipynb:2855
 msgid "y"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:2766
+#: ../../tutorial/risk_control_scenario.ipynb:2855
 msgid "label"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:2766
+#: ../../tutorial/risk_control_scenario.ipynb:2855
 msgid "‘yes’ -> 1,‘no’ -> 0"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:2778
+#: ../../tutorial/risk_control_scenario.ipynb:2867
 msgid ""
 "替换完之后，我们使用 **sf.reveal** 来查看效果，请注意在生产中，\\ **sf.reveal** "
 "将会直接泄露数据，需要严格限制和进行审计。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:2780
+#: ../../tutorial/risk_control_scenario.ipynb:2869
 msgid "在生产中，请严格限制\\ **sf.reveal**\\ 的使用。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:2943
-#: ../../tutorial/risk_control_scenario.ipynb:3097
-#: ../../tutorial/risk_control_scenario.ipynb:3332
-#: ../../tutorial/risk_control_scenario.ipynb:3785
-#: ../../tutorial/risk_control_scenario.ipynb:4248
-#: ../../tutorial/risk_control_scenario.ipynb:7671
-#: ../../tutorial/risk_control_scenario.ipynb:7886
-#: ../../tutorial/risk_control_scenario.ipynb:8000
-#: ../../tutorial/risk_control_scenario.ipynb:8065
-#: ../../tutorial/risk_control_scenario.ipynb:8197
-#: ../../tutorial/risk_control_scenario.ipynb:8318
-#: ../../tutorial/risk_control_scenario.ipynb:8603
-#: ../../tutorial/risk_control_scenario.ipynb:8655
-#: ../../tutorial/risk_control_scenario.ipynb:8758
-#: ../../tutorial/risk_control_scenario.ipynb:9201
+#: ../../tutorial/risk_control_scenario.ipynb:3031
+#: ../../tutorial/risk_control_scenario.ipynb:3184
+#: ../../tutorial/risk_control_scenario.ipynb:3435
+#: ../../tutorial/risk_control_scenario.ipynb:3887
+#: ../../tutorial/risk_control_scenario.ipynb:4346
+#: ../../tutorial/risk_control_scenario.ipynb:7767
+#: ../../tutorial/risk_control_scenario.ipynb:7981
+#: ../../tutorial/risk_control_scenario.ipynb:8088
+#: ../../tutorial/risk_control_scenario.ipynb:8152
+#: ../../tutorial/risk_control_scenario.ipynb:8284
+#: ../../tutorial/risk_control_scenario.ipynb:8379
+#: ../../tutorial/risk_control_scenario.ipynb:8743
+#: ../../tutorial/risk_control_scenario.ipynb:8795
+#: ../../tutorial/risk_control_scenario.ipynb:8891
+#: ../../tutorial/risk_control_scenario.ipynb:9331
 msgid "安全性讨论"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:2945
+#: ../../tutorial/risk_control_scenario.ipynb:3033
 msgid "值替换操作由数据所有者的PYU Device执行，不会泄露数据。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:2959
+#: ../../tutorial/risk_control_scenario.ipynb:3047
 msgid "接下来我们对缺失值进行填充。我们在这里均填充了众数，其他可选的策略还包括平均数、中位数等。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:2961
+#: ../../tutorial/risk_control_scenario.ipynb:3049
 msgid "其他可能的处理方法包括删除缺省的行, 或者可以使用数据完整的行作为训练集，以此来预测缺失值。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:2963
+#: ../../tutorial/risk_control_scenario.ipynb:3051
 msgid "替换完之后，我们使用 **sf.reveal** 来查看效果。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:3099
+#: ../../tutorial/risk_control_scenario.ipynb:3186
 msgid "所填充的缺失值由属于数据所有者的PYU Device执行，并在接下来的缺失值操作中由数据所有者的PYU Device使用，不会泄露数据。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:3111
+#: ../../tutorial/risk_control_scenario.ipynb:3198
 msgid "woe分箱"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:3113
+#: ../../tutorial/risk_control_scenario.ipynb:3200
 msgid "woe分箱用于将连续值替换为离散值。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:3115
+#: ../../tutorial/risk_control_scenario.ipynb:3202
 msgid ""
 "将连续型特征离散化的一个好处是可以有效地克服数据中隐藏的缺陷： "
 "使模型结果更加稳定。例如，数据中的极端值是影响模型效果的一个重要因素。极端值导致模型参数过高或过低，或导致模型被虚假现象“迷惑”，把原来不存在的关系作为重要模式来学习。而离散化可以有效地减弱极端值和异常值的影响。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:3117
+#: ../../tutorial/risk_control_scenario.ipynb:3204
 msgid "变量duration的75%分位数远小于最大值，而且该变量的标准差相对也比较大。因此需要对变量duration进行离散化。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:3334
+#: ../../tutorial/risk_control_scenario.ipynb:3437
 msgid "woe分桶需要利用alice和bob两边的数据，因此相关的计算需要使用\\ **SPU device**\\ 确保原始数据不被泄露。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:3346
+#: ../../tutorial/risk_control_scenario.ipynb:3449
 msgid "One Hot编码"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:3357
+#: ../../tutorial/risk_control_scenario.ipynb:3460
 msgid "one-hot编码适用于将类型编码转化为数值编码。 对于job、marital等特征我们需要one-hot编码。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:3787
+#: ../../tutorial/risk_control_scenario.ipynb:3889
 msgid "one-hot编码操作由数据所有者的PYU Device执行，不会泄露数据。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:3801
+#: ../../tutorial/risk_control_scenario.ipynb:3903
 msgid "特征之间数值差距太大会使得模型收敛困难，我们一般先对数值进行标准化。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:4250
+#: ../../tutorial/risk_control_scenario.ipynb:4348
 msgid "标准化操作由数据所有者的PYU Device执行，不会泄露数据。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:4264
+#: ../../tutorial/risk_control_scenario.ipynb:4362
 msgid ""
 "隐语还支持其他更多的特征预处理能力，请参考这篇\\ `文档 "
 "<./data_preprocessing_with_data_frame.ipynb>`__."
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:4275
+#: ../../tutorial/risk_control_scenario.ipynb:4373
 msgid "至此，我们已经完成了所有特征预处理工作。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:4277
+#: ../../tutorial/risk_control_scenario.ipynb:4375
 msgid "本文主要目的是为了展示隐语的预处理能力，本文对于数据预处理方法的使用可能是有争议的，敬请谅解。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:4300
+#: ../../tutorial/risk_control_scenario.ipynb:4398
 msgid "在建模之前，我们有必要分析一下我们所使用的数据，以便确认是否需要重复特征预处理的过程。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:4302
+#: ../../tutorial/risk_control_scenario.ipynb:4400
 msgid "下面我们将会展示隐语以下数据分析能力:"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:4304
-#: ../../tutorial/risk_control_scenario.ipynb:4318
+#: ../../tutorial/risk_control_scenario.ipynb:4402
+#: ../../tutorial/risk_control_scenario.ipynb:4416
 msgid "全表统计"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:4305
-#: ../../tutorial/risk_control_scenario.ipynb:7685
+#: ../../tutorial/risk_control_scenario.ipynb:4403
+#: ../../tutorial/risk_control_scenario.ipynb:7781
 msgid "相关系数矩阵"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:4306
-#: ../../tutorial/risk_control_scenario.ipynb:7900
+#: ../../tutorial/risk_control_scenario.ipynb:4404
+#: ../../tutorial/risk_control_scenario.ipynb:7995
 msgid "VIF指标计算"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:4320
+#: ../../tutorial/risk_control_scenario.ipynb:4418
 msgid "我们提供了类似于 **pd.DataFrame.describe** 来展示所有特征的基本统计信息。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:4322
+#: ../../tutorial/risk_control_scenario.ipynb:4420
 msgid "在特征预处理的过程中，你可以不断调用全表统计来关注预处理效果。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:7673
+#: ../../tutorial/risk_control_scenario.ipynb:7769
 msgid "请注意，全表统计会暴露数据整体统计结果，其背后实际上蕴含了\\ **sf.reveal**,请谨慎使用。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:7687
+#: ../../tutorial/risk_control_scenario.ipynb:7783
 msgid "我们接下来计算特征和特征之间，特征和标签之间的相关系数矩阵。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:7689
+#: ../../tutorial/risk_control_scenario.ipynb:7785
 msgid "计算相关系数矩阵时，one-hot编码各列无需参与计算。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:7888
+#: ../../tutorial/risk_control_scenario.ipynb:7983
 msgid "相关系数矩阵的计算需要利用alice和bob两边的数据，因此相关的计算需要使用\\ **SPU device**\\ 确保原始数据不被泄露。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:7902
+#: ../../tutorial/risk_control_scenario.ipynb:7997
 msgid "隐语还支持VIF的计算来进行多重共线性检验。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:7904
+#: ../../tutorial/risk_control_scenario.ipynb:7999
 msgid "计算VIF指标时，one-hot编码各列无需参与计算。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8002
+#: ../../tutorial/risk_control_scenario.ipynb:8090
 msgid "VIF指标的计算需要利用alice和bob两边的数据，因此相关的计算需要使用\\ **SPU device**\\ 确保原始数据不被泄露。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8016
+#: ../../tutorial/risk_control_scenario.ipynb:8104
 msgid "接下来，我们将会分别训练一个逻辑回归模型和一个XGB模型。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8028
+#: ../../tutorial/risk_control_scenario.ipynb:8116
 msgid "随机分割"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8030
+#: ../../tutorial/risk_control_scenario.ipynb:8118
 msgid "在训练之前，我们需要将数据分割为训练集和验证集。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8032
+#: ../../tutorial/risk_control_scenario.ipynb:8120
 msgid "其中train_x和train_y为训练集的特征和标签。test_x和test_y为训练集的特征和标签。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8067
+#: ../../tutorial/risk_control_scenario.ipynb:8154
 msgid "随机分割时，每一方会共享随机数种子，并由每一方数据的owner分别执行各自的数据分割并且确保最终分割结果仍然是对齐的。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8079
+#: ../../tutorial/risk_control_scenario.ipynb:8166
 msgid "PSI（人群稳定性分析）"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8081
+#: ../../tutorial/risk_control_scenario.ipynb:8168
 msgid "样本稳定指数是衡量样本变化所产生的偏移量的一种重要指标，通常用来衡量样本的稳定程度，比如样本在两个月份之间的变化是否稳定。通常变量的PSI值在0.1以下表示变化不太显著，在0.1到0.25之间表示有比较显著的变化，大于0.25表示变量变化比较剧烈，需要特殊关注。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8083
+#: ../../tutorial/risk_control_scenario.ipynb:8170
 msgid "接下来以\\ ``balance``\\ 为例子，确认两次抽样的样本分布是否接近。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8085
+#: ../../tutorial/risk_control_scenario.ipynb:8172
 msgid "根据业务需求，PSI分析也可以在数据分析或者特征预处理的时候进行。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8199
+#: ../../tutorial/risk_control_scenario.ipynb:8286
 msgid "PSI分析是一个单方运算，由数据owner的PYU Device执行计算。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8211
-#: ../../tutorial/risk_control_scenario.ipynb:8631
+#: ../../tutorial/risk_control_scenario.ipynb:8298
+#: ../../tutorial/risk_control_scenario.ipynb:8771
 msgid "逻辑回归模型"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8213
+#: ../../tutorial/risk_control_scenario.ipynb:8300
 msgid "使用 **ml.linear.ss_sgd.SSRegression** 可以进行密态逻辑回归模型的训练。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8215
-#: ../../tutorial/risk_control_scenario.ipynb:8345
+#: ../../tutorial/risk_control_scenario.ipynb:8302
+#: ../../tutorial/risk_control_scenario.ipynb:8406
 msgid "请参考相关的API文档。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8306
+#: ../../tutorial/risk_control_scenario.ipynb:8367
 msgid ""
 "你可能会对为何上面的语句很快就执行完毕感到困惑，原因是在隐语中，语句都是lazy "
 "evaluation的，在上面的例子中，直到lr_model被真正被使用的时候，\\ **lr_model.fit**\\ 才会被执行。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8320
+#: ../../tutorial/risk_control_scenario.ipynb:8381
 msgid "SSRegression的训练基于SPU Device，双方的原始数据将会被保护。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8332
-#: ../../tutorial/risk_control_scenario.ipynb:8671
+#: ../../tutorial/risk_control_scenario.ipynb:8393
+#: ../../tutorial/risk_control_scenario.ipynb:8811
 msgid "XGBoost模型"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8343
+#: ../../tutorial/risk_control_scenario.ipynb:8404
 msgid "使用 **ml.boost.ss_xgb_v.Xgb** 可以进行密态XGBoost模型的训练。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8591
+#: ../../tutorial/risk_control_scenario.ipynb:8731
 msgid "Xgb.train将会直接执行，请耐心等待。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8605
+#: ../../tutorial/risk_control_scenario.ipynb:8745
 msgid "Xgb的训练基于SPU Device，双方的原始数据将会被保护。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8619
+#: ../../tutorial/risk_control_scenario.ipynb:8759
 msgid "接下来，我们将会分别利用刚刚训练好的模型来预测测试集。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8633
-#: ../../tutorial/risk_control_scenario.ipynb:8673
+#: ../../tutorial/risk_control_scenario.ipynb:8773
+#: ../../tutorial/risk_control_scenario.ipynb:8813
 msgid "由于在我们的场景下，数据集标签的持有者是bob，因此我们在这里将预测结果\\ **reveal**\\ 给bob."
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8657
+#: ../../tutorial/risk_control_scenario.ipynb:8797
 msgid "逻辑回归的预测基于SPU Device，双方的原始数据将会被保护。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8659
-#: ../../tutorial/risk_control_scenario.ipynb:8762
+#: ../../tutorial/risk_control_scenario.ipynb:8799
+#: ../../tutorial/risk_control_scenario.ipynb:8895
 msgid "当设置\\ **to_pyu**\\ ，预测结果将会被reveal给该方，否则将仍然保持秘密分享的状态。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8760
+#: ../../tutorial/risk_control_scenario.ipynb:8893
 msgid "XGBoost模型的预测基于SPU Device，双方的原始数据将会被保护。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8776
+#: ../../tutorial/risk_control_scenario.ipynb:8909
 msgid "接下来，我们将利用测试数据集对模型效果进行评估，包括："
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8778
-#: ../../tutorial/risk_control_scenario.ipynb:8793
+#: ../../tutorial/risk_control_scenario.ipynb:8911
+#: ../../tutorial/risk_control_scenario.ipynb:8926
 msgid "二分类评估"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8779
+#: ../../tutorial/risk_control_scenario.ipynb:8912
 msgid "PVA"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8780
-#: ../../tutorial/risk_control_scenario.ipynb:9045
+#: ../../tutorial/risk_control_scenario.ipynb:8913
+#: ../../tutorial/risk_control_scenario.ipynb:9176
 msgid "P-Value"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8781
-#: ../../tutorial/risk_control_scenario.ipynb:9124
+#: ../../tutorial/risk_control_scenario.ipynb:8914
+#: ../../tutorial/risk_control_scenario.ipynb:9255
 msgid "评分卡转换"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8795
+#: ../../tutorial/risk_control_scenario.ipynb:8928
 msgid "隐语中对二分类的评估有集成的支持。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8797
+#: ../../tutorial/risk_control_scenario.ipynb:8930
 msgid ""
 "``BiClassificationEval`` 将计算 ``AUC``, ``KS``, ``F1 Score``, ``Lift``, "
 "``K-S``, ``Gain``, ``Precision``, ``Recall`` 等统计数值， 并提供（基于prediction "
 "score的）等频和等距分箱的统计报告和总报告。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8799
+#: ../../tutorial/risk_control_scenario.ipynb:8932
 msgid ""
 "不同分桶中评估模型的预测的\\ ``threshold``\\ 不同。总报告中依赖\\ ``threshold``\\ "
 "的统计取的是各个分桶的最佳值。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8801
+#: ../../tutorial/risk_control_scenario.ipynb:8934
 msgid "详情可以参考API文档。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8953
+#: ../../tutorial/risk_control_scenario.ipynb:9082
 msgid "预测偏差"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:8955
+#: ../../tutorial/risk_control_scenario.ipynb:9084
 msgid "结果由\\ ``abs(mean(Acutal) - mean(Prediction))``\\ 计算获得, 值越小越好。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:9047
+#: ../../tutorial/risk_control_scenario.ipynb:9178
 msgid "双方可通过p-value的值来判断参数是否显著，即该自变量是否可以有效预测因变量的变异, 从而判定对应的解释变量是否应包括在模型中。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:9126
+#: ../../tutorial/risk_control_scenario.ipynb:9257
 msgid "严格来说，评分卡转化是对预测结果的后续处理，并不属于模型评估。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:9128
+#: ../../tutorial/risk_control_scenario.ipynb:9259
 msgid ""
 "我们将 ``y = 1`` 的概率设为\\ ``p``\\ ， ``odds = p / (1 - p)``, "
 "评分卡设定的分值刻度可以通过将分值表示为比率对数的线性表达式来定义，即可表示为下式："
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:9130
+#: ../../tutorial/risk_control_scenario.ipynb:9261
 msgid "``Score = A - B log(odds)``\\ ， A 和 B 是可以设定的常数。隐语中提供了评分卡转换功能，详情可以参考API文档。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:9203
+#: ../../tutorial/risk_control_scenario.ipynb:9333
 msgid "以上所有模型评估的方法均为单方运算，由label拥有者的PYU Device进行运算。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:9215
+#: ../../tutorial/risk_control_scenario.ipynb:9345
 msgid "实验结束"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:9217
+#: ../../tutorial/risk_control_scenario.ipynb:9347
 msgid "最后，我们需要清理临时文件，并关闭隐语cluster。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:9248
+#: ../../tutorial/risk_control_scenario.ipynb:9378
 msgid "恭喜！你已经完成了隐语金融风控全链路的全部实验内容。"
 msgstr ""
 
-#: ../../tutorial/risk_control_scenario.ipynb:9250
+#: ../../tutorial/risk_control_scenario.ipynb:9380
 msgid ""
 "如果你对本实验有任何建议和问题，请在\\ `Github Issues "
 "<https://github.com/secretflow/secretflow/issues>`__\\ 上联系我们。"

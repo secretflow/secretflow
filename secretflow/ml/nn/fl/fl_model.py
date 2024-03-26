@@ -823,6 +823,7 @@ class FLModel:
         is_test=False,
         saved_model=False,
         force_all_participate=False,
+        **kwargs,
     ):
         """Horizontal federated load model interface
 
@@ -830,6 +831,8 @@ class FLModel:
             model_path: model path
             is_test: whether is test mode
             saved_model: bool Whether to load from savedmodel or torchscript format
+            custom_objects: Optional, tf/keras only. Dictionary mapping names (strings) to custom
+                classes or functions of the model to be considered during deserialization
         """
         assert isinstance(
             model_path, (str, Dict)
@@ -853,7 +856,8 @@ class FLModel:
             else:
                 res.append(
                     worker.load_model(
-                        os.path.join(device_model_path, device_model_name)
+                        os.path.join(device_model_path, device_model_name),
+                        **kwargs,
                     )
                 )
         checks = reveal(res)

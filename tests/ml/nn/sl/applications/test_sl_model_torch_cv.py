@@ -22,7 +22,7 @@ from secretflow.ml.nn.applications.sl_resnet_torch import (
     ResNetFuse,
 )
 from secretflow.ml.nn.applications.sl_vgg_torch import VGGBase, VGGFuse
-from secretflow.ml.nn.utils import BaseModule
+from secretflow.ml.nn.core.torch import BaseModule
 
 
 class SimSLVGG16(BaseModule):

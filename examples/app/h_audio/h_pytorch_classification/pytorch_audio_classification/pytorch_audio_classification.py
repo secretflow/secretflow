@@ -30,7 +30,12 @@ from torchvision import datasets, transforms
 
 import secretflow as sf
 from secretflow.ml.nn import FLModel
-from secretflow.ml.nn.utils import BaseModule, TorchModel, metric_wrapper, optim_wrapper
+from secretflow.ml.nn.core.torch import (
+    BaseModule,
+    TorchModel,
+    metric_wrapper,
+    optim_wrapper,
+)
 from secretflow.security.aggregation import SecureAggregator
 
 # ATTENTION: need install audio backend

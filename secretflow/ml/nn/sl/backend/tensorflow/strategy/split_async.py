@@ -131,11 +131,10 @@ class SLAsyncTFModel(SLBaseTFModel):
                 # Step 1: forward pass
                 y_pred = self.model_fuse(hiddens, training=True, **self.kwargs)
                 # Step 2: loss calculation, the loss function is configured in `compile()`.
-                loss = self.model_fuse.compiled_loss(
-                    train_y,
-                    y_pred,
-                    sample_weight=train_sample_weight,
-                    regularization_losses=self.model_fuse.losses + losses,
+                # add losses manually, same as call `add_loss(losses)` in `call`
+                self.model_fuse._eager_losses.extend(losses)
+                loss = self.model_fuse.compute_loss(
+                    hiddens, train_y, y_pred, train_sample_weight
                 )
 
             # Step3: compute gradients
@@ -146,8 +145,8 @@ class SLAsyncTFModel(SLBaseTFModel):
             del tape
             lr = self.model_fuse.optimizer.lr
             # Step4: update metrics
-            self.model_fuse.compiled_metrics.update_state(
-                train_y, y_pred, sample_weight=train_sample_weight
+            self.model_fuse.compute_metrics(
+                hiddens, train_y, y_pred, train_sample_weight
             )
             # step5: accumulate gradients of embeddings
             if len(accumulated_gradients) == 0:

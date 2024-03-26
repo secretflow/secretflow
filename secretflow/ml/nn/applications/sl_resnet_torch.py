@@ -53,8 +53,10 @@ class BasicBlock(nn.Module):
         base_width: int = 64,
         dilation: int = 1,
         norm_layer: Optional[Callable[..., nn.Module]] = None,
+        preprocess_layer: Optional[Callable[..., nn.Module]] = None,
     ) -> None:
         super().__init__()
+        self.preprocess_layer = preprocess_layer
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
         if groups != 1 or base_width != 64:
@@ -71,6 +73,8 @@ class BasicBlock(nn.Module):
         self.stride = stride
 
     def forward(self, x: Tensor) -> Tensor:
+        if self.preprocess_layer is not None:
+            x = self.preprocess_layer(x)
         identity = x
 
         out = self.conv1(x)

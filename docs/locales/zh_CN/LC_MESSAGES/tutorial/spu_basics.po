@@ -7,14 +7,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-07-03 17:24+0800\n"
+"POT-Creation-Date: 2024-03-19 12:20+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.12.1\n"
+"Generated-By: Babel 2.14.0\n"
 
 #: ../../tutorial/spu_basics.ipynb:9
 msgid "SPU Basics"
@@ -80,60 +80,60 @@ msgid "an SPU device based on *alice*, *bob* and *carol*"
 msgstr "一个基于 *alice* , *bob* 和 *carol* 的SPU设备"
 
 #: ../../tutorial/spu_basics.ipynb:44
-msgid "|ddd88ec4cd2c45fd9ce0022cf8621caf|"
+msgid "|8a74838ece324147883253bfd72f952a|"
 msgstr ""
 
 #: ../../tutorial/spu_basics.ipynb:46
 msgid "spu_basics_devices.png"
 msgstr ""
 
-#: ../../tutorial/spu_basics.ipynb:101
+#: ../../tutorial/spu_basics.ipynb:100
 msgid "Create a 3PC ABY3 SPU device"
 msgstr "创建一个基于三方ABY3协议的SPU设备"
 
-#: ../../tutorial/spu_basics.ipynb:112
+#: ../../tutorial/spu_basics.ipynb:111
 msgid ""
 "After that, let’s create an SPU device with `ABY3 "
 "<https://eprint.iacr.org/2018/403.pdf>`__ protocol."
 msgstr "之后，我们创建一个基于 `ABY3 <https://eprint.iacr.org/2018/403.pdf>`__ 协议的SPU设备。"
 
-#: ../../tutorial/spu_basics.ipynb:114
+#: ../../tutorial/spu_basics.ipynb:113
 msgid ""
 "``sf.utils.testing.cluster_def`` is a helper method to create a config by"
 " finding unused ports."
 msgstr "``sf.utils.testing.cluster_def`` 是一个helper通过寻找未占用的端口来创建一个设置。"
 
-#: ../../tutorial/spu_basics.ipynb:172
+#: ../../tutorial/spu_basics.ipynb:170
 msgid ""
 "Then let’s use *aby3_config* to create an SPU device and check its "
 "cluster_def."
 msgstr "随后我们用 *aby3\\_config* 来创建一个SPU设备并检查其 cluster\\_def 。"
 
-#: ../../tutorial/spu_basics.ipynb:230
+#: ../../tutorial/spu_basics.ipynb:227
 msgid "Lastly, let’s create two PYU devices."
 msgstr "最后，我们创建两个PYU设备。"
 
-#: ../../tutorial/spu_basics.ipynb:253
+#: ../../tutorial/spu_basics.ipynb:249
 msgid "Pass Values to SPU device"
 msgstr "向SPU设备传值"
 
-#: ../../tutorial/spu_basics.ipynb:255
+#: ../../tutorial/spu_basics.ipynb:251
 msgid ""
 "Before talking about computation with SPU device, let’s understand how to"
 " pass a Python object or a PYUObject to SPU device."
 msgstr "在讨论利用SPU设备计算之前，我们需要理解如何将一个 Python object / PYUObject 传给一个SPU设备。"
 
-#: ../../tutorial/spu_basics.ipynb:267
+#: ../../tutorial/spu_basics.ipynb:263
 msgid "SPUObject"
 msgstr ""
 
-#: ../../tutorial/spu_basics.ipynb:269
+#: ../../tutorial/spu_basics.ipynb:265
 msgid ""
 "A Python object or a PYUObject could be transferred into an SPUObject and"
 " secret-shared by SPU nodes."
 msgstr "PYU Object可以转化到 SPU Object被SPU节点来共享秘密。"
 
-#: ../../tutorial/spu_basics.ipynb:271
+#: ../../tutorial/spu_basics.ipynb:267
 msgid ""
 "**sf.device.SPUIO** is the helper class to do the job. You don’t need to "
 "call this method in your code. We just use it to demonstrate the "
@@ -142,43 +142,43 @@ msgstr ""
 "**sf.device.SPUIO** "
 "是执行该任务的辅助类。您不需要在代码中调用此方法。我们只是使用它来向你演示SPUObjects的结构和发生的一切。"
 
-#: ../../tutorial/spu_basics.ipynb:273
+#: ../../tutorial/spu_basics.ipynb:269
 msgid "Each SPUObject has two fields:"
 msgstr "每一个SPUObject包含两个成员："
 
-#: ../../tutorial/spu_basics.ipynb:275
+#: ../../tutorial/spu_basics.ipynb:271
 msgid "meta: The structure of the origin object."
 msgstr "meta: 原始对象的结构。"
 
-#: ../../tutorial/spu_basics.ipynb:276
+#: ../../tutorial/spu_basics.ipynb:272
 msgid "shares: The secret sharing of the origin object."
 msgstr "shares: 原始对象的秘密分享。"
 
-#: ../../tutorial/spu_basics.ipynb:340
+#: ../../tutorial/spu_basics.ipynb:336
 msgid "Let’s check meta first."
 msgstr "我们首先查看meta。"
 
-#: ../../tutorial/spu_basics.ipynb:395
+#: ../../tutorial/spu_basics.ipynb:391
 msgid ""
 "I guess you could find meta preserves the structure of origin data and "
 "replaces the digits/arrays with **SPUValueMeta**:"
 msgstr "我猜你已经发现meta保留了原始数据的结构，只是将数字和数列替换为 **SPUValueMeta** 。"
 
-#: ../../tutorial/spu_basics.ipynb:397
+#: ../../tutorial/spu_basics.ipynb:393
 msgid "data_type, indicates whether the value is integer or fixed points."
 msgstr "data\\_type, 代表了值是整数还是定点数。"
 
-#: ../../tutorial/spu_basics.ipynb:398
+#: ../../tutorial/spu_basics.ipynb:394
 msgid "visibility, indicates whether the value is a secret or a public content."
 msgstr "visibility，代表了值是密文还是明文。"
 
-#: ../../tutorial/spu_basics.ipynb:399
+#: ../../tutorial/spu_basics.ipynb:395
 msgid ""
 "storage_type, indicates attributes of value, e.g. MPC protocol(ABY3 in "
 "our case), field size(128 bits in our case), etc"
 msgstr "storage\\_type，代表了值的属性，比如MPC协议（这里是ABY3），field size（我们这里是128位），等等。"
 
-#: ../../tutorial/spu_basics.ipynb:401
+#: ../../tutorial/spu_basics.ipynb:397
 #, fuzzy
 msgid ""
 "Then let’s check shares of bank_account_spu. Since we are passing data to"
@@ -188,7 +188,7 @@ msgstr ""
 "随后我们检查bank\\_account\\_spu的 *shares* 。 "
 "由于我们将数据传递至一个3PC的SPU设备。我们将会得到有3个分片，我们将会检查第1个分片。"
 
-#: ../../tutorial/spu_basics.ipynb:458
+#: ../../tutorial/spu_basics.ipynb:454
 msgid ""
 "You should find a piece of shares of SPU Object is very similar to meta "
 "and origin data. It still preserves the structure of origin data while "
@@ -198,11 +198,11 @@ msgstr ""
 "你应该发现一个SPU "
 "Object的分片非常类似于meta和原始数据。它仍保留原始数据的结构，但数字被编码的密文替换了（如果你想，可以试着猜测原始数据）。"
 
-#: ../../tutorial/spu_basics.ipynb:460
+#: ../../tutorial/spu_basics.ipynb:456
 msgid "Well, let’s reconstruct the origin Python object from SPU object."
 msgstr "好的，让我们从SPU对象重构原始的Python对象。"
 
-#: ../../tutorial/spu_basics.ipynb:510
+#: ../../tutorial/spu_basics.ipynb:506
 msgid ""
 "If you compare **bank_account_hat** with origin **bank_account**, you "
 "should find all the digits in **bank_account_hat** have become "
@@ -211,15 +211,15 @@ msgstr ""
 "如果你将 **bank_account_hat** 和原始的 **bank_account** 进行比较，你应该会发现 "
 "**bank_account_hat** 中的所有数字都已经变成了 **numpy.array** ，但值被保留了。"
 
-#: ../../tutorial/spu_basics.ipynb:522
+#: ../../tutorial/spu_basics.ipynb:518
 msgid "Pass a PYU Object from PYU to SPU"
 msgstr "将一个PYU Object从PYU传给SPU"
 
-#: ../../tutorial/spu_basics.ipynb:524
+#: ../../tutorial/spu_basics.ipynb:520
 msgid "First, we create a PYU object with a PYU device."
 msgstr "首先，我们用一个PYU设备创建一个PYU object。"
 
-#: ../../tutorial/spu_basics.ipynb:576
+#: ../../tutorial/spu_basics.ipynb:571
 msgid ""
 "Then let’s pass debit_amount_pyu from PYU to SPU. We will get an SPU "
 "object as result. Under the hood, **alice** calls "
@@ -230,23 +230,23 @@ msgstr ""
 "**sf.device.SPUIO.make_shares** 来获取 **meta** 和 **shares** "
 "，以备将它们发送给SPU设备的节点。"
 
-#: ../../tutorial/spu_basics.ipynb:625
+#: ../../tutorial/spu_basics.ipynb:619
 msgid "Let’s check meta of debit_amount_spu."
 msgstr "我们检查一下debit\\_amount\\_spu的meta。"
 
-#: ../../tutorial/spu_basics.ipynb:672
+#: ../../tutorial/spu_basics.ipynb:665
 msgid ""
 "Oh no, it’s a Ray ObjectRef located at alice part. So how about shares of"
 " debit_amount_spu?"
 msgstr "不，它是一个在alice一边的Ray ObjectRef。debit\\_amount\\_spu的shares是怎样的呢？"
 
-#: ../../tutorial/spu_basics.ipynb:725
+#: ../../tutorial/spu_basics.ipynb:717
 msgid ""
 "So you get a list of ObjectRef! Since it’s located at alice part, we "
 "couldn’t check the value at host."
 msgstr "你会得到一个ObjectRef列表。因为它在alice这一侧，我们无法在host检查它的值。"
 
-#: ../../tutorial/spu_basics.ipynb:736
+#: ../../tutorial/spu_basics.ipynb:728
 msgid ""
 "But if you are really curious, we could use **sf.reveal** to check the "
 "origin value. Be careful to use **sf.reveal** in production! When "
@@ -257,45 +257,45 @@ msgstr ""
 "**SPUObjects** 上应用 **sf.reveal** 时，**sf.device.SPUIO.reconstruct** "
 "将会被自动调用。"
 
-#: ../../tutorial/spu_basics.ipynb:822
+#: ../../tutorial/spu_basics.ipynb:813
 msgid "Pass a Python Object from Host to SPU"
 msgstr "将一个Python Object从Host传到SPU"
 
-#: ../../tutorial/spu_basics.ipynb:824
+#: ../../tutorial/spu_basics.ipynb:815
 msgid "Let’s pass a dict from Host to SPU device."
 msgstr "让我们将一个字典从HOST传给SPU设备。"
 
-#: ../../tutorial/spu_basics.ipynb:826
+#: ../../tutorial/spu_basics.ipynb:817
 msgid ""
 "NOTE: I know it looks weird. At this moment, if you want to pass a Python"
 " object to SPU device, you have to pass it to a PYU."
 msgstr "注：我知道这看起来很奇怪。目前，如果你想把一个Python对象传递给SPU设备，你必须先将它传递给一个PYU。"
 
-#: ../../tutorial/spu_basics.ipynb:849
+#: ../../tutorial/spu_basics.ipynb:839
 msgid "Summary"
 msgstr "总结"
 
-#: ../../tutorial/spu_basics.ipynb:851
+#: ../../tutorial/spu_basics.ipynb:841
 msgid ""
 "This is the first part of Data Flow with SPU device, at this moment, you "
 "should be aware of the following facts."
 msgstr "这是使用 SPU 设备的数据流的第一部分，此时，您应该了解以下事实。"
 
-#: ../../tutorial/spu_basics.ipynb:853
+#: ../../tutorial/spu_basics.ipynb:843
 msgid "A Python Object/PYU Object could be transferred to an SPU Object."
 msgstr "Python Object/PYU Object可以转化到 SPU Object。"
 
-#: ../../tutorial/spu_basics.ipynb:854
+#: ../../tutorial/spu_basics.ipynb:844
 msgid "An SPU Object consists of meta and shares."
 msgstr "一个SPU Object 包含了meta 和 shares。"
 
-#: ../../tutorial/spu_basics.ipynb:855
+#: ../../tutorial/spu_basics.ipynb:845
 msgid ""
 "**sf.to** and **sf.reveal** calls **sf.device.SPUIO** to transfer between"
 " SPUObjects and Python objects."
 msgstr "**sf.to** 和 **sf.reveal** 调用 **sf.device.SPUIO** 来在SPU对象和Python对象之间转换数据。"
 
-#: ../../tutorial/spu_basics.ipynb:856
+#: ../../tutorial/spu_basics.ipynb:846
 msgid ""
 "Just converting to SPU Object won’t trigger data flow from PYU to SPU. "
 "e.g. When you transferred a PYU object to an SPU object. All the field of"
@@ -306,11 +306,11 @@ msgstr ""
 "仅仅转化为SPU Object不会触发从PYU至SPU的数据流动，比如当你将一个PYU Object转化为SPU Object时。SPU "
 "object所有内容包括meta和shares仍然位于PYU设备。shares只会在计算发生的时候将会被发送到SPU设备的各方。简单的来说，数据流动是lazy的。"
 
-#: ../../tutorial/spu_basics.ipynb:868
+#: ../../tutorial/spu_basics.ipynb:858
 msgid "Computation with SPU Device"
 msgstr "使用 SPU 设备进行计算"
 
-#: ../../tutorial/spu_basics.ipynb:870
+#: ../../tutorial/spu_basics.ipynb:860
 msgid ""
 "Since we have two SPU objects - *bank_account_spu* and *debit_amount_spu*"
 " as inputs. Let’s try to do some computation with SPU device."
@@ -318,7 +318,7 @@ msgstr ""
 "因为我们有两个 SPU Object - *bank\\_account\\_spu* 和 *debit\\_amount\\_spu* "
 "作为输入。 让我们尝试使用 SPU 设备进行一些计算。"
 
-#: ../../tutorial/spu_basics.ipynb:931
+#: ../../tutorial/spu_basics.ipynb:920
 msgid ""
 "*new_bank_account_spu* is also a **SPUObject**. But it’s a bit different "
 "from *debit_amount_spu*!"
@@ -326,11 +326,11 @@ msgstr ""
 "*new\\_bank\\_account\\_spu* 也是一个 **SPU Object** 。 但它与 "
 "*debit\\_amount\\_spu* 有点不同！"
 
-#: ../../tutorial/spu_basics.ipynb:933
+#: ../../tutorial/spu_basics.ipynb:922
 msgid "*debit_amount_spu* is located at alice, so only alice could check value."
 msgstr "*debit\\_amount\\_spu* 位于 alice，因此只有 alice 可以检查值。"
 
-#: ../../tutorial/spu_basics.ipynb:934
+#: ../../tutorial/spu_basics.ipynb:923
 msgid ""
 "*new_bank_account_spu* is located at spu, each party of spu have a piece "
 "of shares. And you couldn’t check the value directly without *sf.reveal*."
@@ -338,15 +338,15 @@ msgstr ""
 "*new\\_bank\\_account\\_spu* 位于spu，spu的每一方都有一份shares。 如果没有 *sf.reveal* "
 "，您将无法直接检查该值。"
 
-#: ../../tutorial/spu_basics.ipynb:945
+#: ../../tutorial/spu_basics.ipynb:934
 msgid "Well, but what happened behind computation of SPU device?"
 msgstr "好吧，但是 SPU 设备的计算背后发生了什么？"
 
-#: ../../tutorial/spu_basics.ipynb:957
+#: ../../tutorial/spu_basics.ipynb:946
 msgid "Step 1: Compile Python(Jax) Code to SPU Executable"
 msgstr "步骤1：将Python（Jax）代码编译为SPU可执行文件"
 
-#: ../../tutorial/spu_basics.ipynb:959
+#: ../../tutorial/spu_basics.ipynb:948
 msgid ""
 "The Python function (*deduce_from_account* in our case) and metas of all "
 "inputs (*bank_account_spu* and *debit_amount_spu*) would be sent to one "
@@ -357,73 +357,73 @@ msgstr ""
 "*deduce\\_from\\_account*）和所有输入的元数据（*bank\\_account\\_spu* 和 "
 "*debit\\_amount\\_spu*）将被发送到 SPU 设备。然后使用 SPU 编译器将它们编译为 *SPU Executable*。"
 
-#: ../../tutorial/spu_basics.ipynb:961
-msgid "|f9c6075139854c4dbb78e33f214b2f8c|"
+#: ../../tutorial/spu_basics.ipynb:950
+msgid "|9655b6d8ff6f419589c44264ed813015|"
 msgstr ""
 
-#: ../../tutorial/spu_basics.ipynb:963
+#: ../../tutorial/spu_basics.ipynb:952
 msgid "spu_basics_compiler.png"
 msgstr ""
 
-#: ../../tutorial/spu_basics.ipynb:974
+#: ../../tutorial/spu_basics.ipynb:963
 msgid "Step 2: Distribute the SPU Executable and Shares to SPU parties."
 msgstr "步骤2：将SPU可执行文件和秘密分享分配给SPU参与方。"
 
-#: ../../tutorial/spu_basics.ipynb:976
+#: ../../tutorial/spu_basics.ipynb:965
 msgid "Each party of SPU device would get:"
 msgstr "SPU 设备的每一方将获得："
 
-#: ../../tutorial/spu_basics.ipynb:978
+#: ../../tutorial/spu_basics.ipynb:967
 msgid "one copy of SPU Executable"
 msgstr "一份 SPU Executable"
 
-#: ../../tutorial/spu_basics.ipynb:979
+#: ../../tutorial/spu_basics.ipynb:968
 msgid "one piece of each SPU Object share"
 msgstr "每个 SPU object一份share"
 
-#: ../../tutorial/spu_basics.ipynb:981
-msgid "|f4743519d9c64974b2eca8bee1f51670|"
+#: ../../tutorial/spu_basics.ipynb:970
+msgid "|556ba0f1926146bf9bb1b746f402b1a2|"
 msgstr ""
 
-#: ../../tutorial/spu_basics.ipynb:983
+#: ../../tutorial/spu_basics.ipynb:972
 msgid "spu_basics_distribute.png"
 msgstr ""
 
-#: ../../tutorial/spu_basics.ipynb:994
+#: ../../tutorial/spu_basics.ipynb:983
 msgid "Step 3: Run SPU Executable and Assembly SPU Object"
 msgstr "步骤3：运行SPU可执行文件并组装SPU对象"
 
-#: ../../tutorial/spu_basics.ipynb:996
+#: ../../tutorial/spu_basics.ipynb:985
 msgid "Then each party of SPU device would execute SPU Executable."
 msgstr "然后 SPU 设备的每一方将执行 SPU Executation。"
 
-#: ../../tutorial/spu_basics.ipynb:998
+#: ../../tutorial/spu_basics.ipynb:987
 msgid ""
 "In the end, each party of SPU device would own a piece of output SPU "
 "Objects and a copy of meta."
 msgstr "最后，SPU 设备的每一方都将拥有一个输出 SPU Object的一份share和一个meta。"
 
-#: ../../tutorial/spu_basics.ipynb:1000
+#: ../../tutorial/spu_basics.ipynb:989
 msgid "Then SecretFlow framework would use them to assembly SPU Objects."
 msgstr "然后 SecretFlow 框架将使用它们来组装 SPU Object。"
 
-#: ../../tutorial/spu_basics.ipynb:1012
+#: ../../tutorial/spu_basics.ipynb:1001
 msgid "Get Value from SPU Device"
 msgstr "从 SPU 设备中获取值"
 
-#: ../../tutorial/spu_basics.ipynb:1014
+#: ../../tutorial/spu_basics.ipynb:1003
 msgid ""
 "But in the end, we need to get value from spu, we couldn’t always keep "
 "*SPUObject* as secret!"
 msgstr "但最后，我们需要从 spu 中获取值，我们不能总是将 *SPUObject* 当作密文！"
 
-#: ../../tutorial/spu_basics.ipynb:1016
+#: ../../tutorial/spu_basics.ipynb:1005
 msgid ""
 "Most common way of handling *SPUObject* is pass the secret to one party. "
 "This party is not necessarily one of parties consisting of SPU device."
 msgstr "处理 *SPUObject* 的最常见方法是将秘密传递给一方。 该方不一定是由 SPU 设备组成的各方之一。"
 
-#: ../../tutorial/spu_basics.ipynb:1065
+#: ../../tutorial/spu_basics.ipynb:1053
 msgid ""
 "We just pass *new_bank_account_spu* to **pyu**, then it becomes a "
 "*PYUObject*! And it’s owned by dave. Let’s check the value of "
@@ -432,7 +432,7 @@ msgstr ""
 "我们只是将 *new\\_bank\\account\\spu* 传递给 **pyu** ，然后它就变成了 *PYUObject* ！ "
 "它归dave所有。 让我们检查 *new\\_bank\\_account\\_pyu* 的值。"
 
-#: ../../tutorial/spu_basics.ipynb:1115
+#: ../../tutorial/spu_basics.ipynb:1102
 msgid ""
 "We could also pass *SPUObject* to host directly. The magic is "
 "*sf.reveal*. And again, be careful in production!"
@@ -440,143 +440,134 @@ msgstr ""
 "我们也可以直接将 *SPUObject* 传递给host。 利用神奇的 *sf.reveal* 。 再次提醒在生产环境中要小心使用 "
 "*sf.reveal* ！"
 
-#: ../../tutorial/spu_basics.ipynb:1166
+#: ../../tutorial/spu_basics.ipynb:1152
 msgid "Advanced Topic: Use Different MPC Protocol"
 msgstr "进阶主题：使用不同的 MPC 协议"
 
-#: ../../tutorial/spu_basics.ipynb:1168
+#: ../../tutorial/spu_basics.ipynb:1154
 msgid ""
 "At this moment, SPU device supports multiple MPC protocol besides ABY3. "
 "It’s easy to use different MPC protocol - just set the proper field in "
 "cluster def."
 msgstr "目前SPU设备支持ABY3之外的多种MPC协议。 使用不同的 MPC 协议很容易 - 只需在 cluster def 中设置适当的字段。"
 
-#: ../../tutorial/spu_basics.ipynb:1170
+#: ../../tutorial/spu_basics.ipynb:1156
 msgid ""
 "For instance, if someone would like to use 2PC protocol - Cheetah, You "
 "should prepare another cluster def:"
 msgstr "例如，如果有人想使用 2PC 协议 - Cheetah，你应该准备另一个集群 def："
 
-#: ../../tutorial/spu_basics.ipynb:1232
+#: ../../tutorial/spu_basics.ipynb:1217
 msgid "Then you could create an SPU device with *cheetah_config*."
 msgstr "然后你可以用 *cheetah\\_config* 创建一个 SPU 设备。"
 
-#: ../../tutorial/spu_basics.ipynb:1254
+#: ../../tutorial/spu_basics.ipynb:1238
 msgid "Let’s check the *cluster_def* of spu_device2."
 msgstr "让我们检查一下 spu\\_device2 的 *cluster\\_def*。"
 
-#: ../../tutorial/spu_basics.ipynb:1307
+#: ../../tutorial/spu_basics.ipynb:1290
 msgid "We could use *spu_device2* to check famous Yao’s Millionaires’ problem."
 msgstr "我们可以使用 *spu\\_device2* 来检查著名的姚氏百万富翁问题。"
 
-#: ../../tutorial/spu_basics.ipynb:1340
+#: ../../tutorial/spu_basics.ipynb:1322
 msgid "We use *spu_device2* to check if *carol* is richer."
 msgstr "我们使用 *spu\\_device2* 来检查 *carol* 是否更富有。"
 
-#: ../../tutorial/spu_basics.ipynb:1447
+#: ../../tutorial/spu_basics.ipynb:1428
 msgid "Advanced Topic: Multiple Returns from SPU Computation"
 msgstr "进阶主题：从SPU 计算得到多个返回值"
 
-#: ../../tutorial/spu_basics.ipynb:1449
+#: ../../tutorial/spu_basics.ipynb:1430
 msgid ""
 "In most cases, we have multiple returns from the function executed by SPU"
 " device."
 msgstr "在大多数情况下，我们从 SPU 设备执行的函数中获得多个返回值。"
 
-#: ../../tutorial/spu_basics.ipynb:1451
+#: ../../tutorial/spu_basics.ipynb:1432
 msgid "For instance,"
 msgstr "例如，"
 
-#: ../../tutorial/spu_basics.ipynb:1474
+#: ../../tutorial/spu_basics.ipynb:1454
 msgid "There are multiple options to handle this."
 msgstr "有多种选择可以处理这个问题。"
 
-#: ../../tutorial/spu_basics.ipynb:1477
+#: ../../tutorial/spu_basics.ipynb:1457
 msgid "Option 1: Treat All Returns as Single"
 msgstr "选项 1：将所有返回值视为单一返回值"
 
-#: ../../tutorial/spu_basics.ipynb:1479
+#: ../../tutorial/spu_basics.ipynb:1459
 msgid "This is the default behavior of SPU. Let’s see."
 msgstr "这是 SPU 的默认行为。 让我们来看看。"
 
-#: ../../tutorial/spu_basics.ipynb:1528
+#: ../../tutorial/spu_basics.ipynb:1507
 msgid "We could see we only get a single *SPUObject*. Let’s reveal it."
 msgstr "我们可以看到我们只得到一个*SPUObject*。 让我们揭示它。"
 
-#: ../../tutorial/spu_basics.ipynb:1575
+#: ../../tutorial/spu_basics.ipynb:1553
 msgid "So single_output itself actually represents a tuple."
 msgstr "所以 single\\_output 本身实际上代表一个元组。"
 
-#: ../../tutorial/spu_basics.ipynb:1587
+#: ../../tutorial/spu_basics.ipynb:1565
 msgid "Option 2: Decide Return Nums on the Fly"
 msgstr "选项 2：即时决定返回值数量"
 
-#: ../../tutorial/spu_basics.ipynb:1589
+#: ../../tutorial/spu_basics.ipynb:1567
 msgid "We can also instruct SPU to decide return numbers for us."
 msgstr "我们还可以指示 SPU 为我们决定返回值数量。"
 
-#: ../../tutorial/spu_basics.ipynb:1645
+#: ../../tutorial/spu_basics.ipynb:1622
 msgid "let’s check two outputs respectively."
 msgstr "让我们分别检查两个输出。"
 
-#: ../../tutorial/spu_basics.ipynb:1696
+#: ../../tutorial/spu_basics.ipynb:1672
 msgid "Option 3: Decide Return Nums Manually"
 msgstr "选项 3：手动确定返回值数量"
 
-#: ../../tutorial/spu_basics.ipynb:1698
+#: ../../tutorial/spu_basics.ipynb:1674
 msgid "If possible, you could also set return nums manually."
 msgstr "如果可能，您还可以手动设置返回值数量。"
 
-#: ../../tutorial/spu_basics.ipynb:1754
+#: ../../tutorial/spu_basics.ipynb:1729
 msgid "let’s also check two outputs respectively."
 msgstr "让我们分别检查两个输出。"
 
-#: ../../tutorial/spu_basics.ipynb:1803
+#: ../../tutorial/spu_basics.ipynb:1778
 msgid "Let’s summarize what we have:"
 msgstr "让我们总结一下我们所拥有的结论："
 
-#: ../../tutorial/spu_basics.ipynb:1805
+#: ../../tutorial/spu_basics.ipynb:1780
 msgid "Be default, SPU treats all the returns as a single return"
 msgstr "默认情况下，SPU 将所有返回值视为单个返回值。"
 
-#: ../../tutorial/spu_basics.ipynb:1806
+#: ../../tutorial/spu_basics.ipynb:1781
 msgid ""
 "Since SPU compiler generates the SPU executable, it can figure out return"
 " nums. However, the options results some latency since we have to make "
 "compilation blocked."
 msgstr "由于 SPU 编译器生成 SPU 可执行文件，它可以计算出返回值数量。 但是，这个选项会导致一些延迟，因为我们必须使编译工作阻塞。"
 
-#: ../../tutorial/spu_basics.ipynb:1807
+#: ../../tutorial/spu_basics.ipynb:1782
 msgid ""
 "If you want to avoid latency, we can provide return nums manually. But "
 "you have to make sure you provide the right nums, otherwise, the program "
 "would complain!"
 msgstr "如果您想避免延迟，我们可以手动提供返回值数量。 但是你必须确保你提供了正确的数字，否则程序会报错！"
 
-#: ../../tutorial/spu_basics.ipynb:1819
+#: ../../tutorial/spu_basics.ipynb:1794
 msgid "What’s Next?"
 msgstr "下一步是什么"
 
-#: ../../tutorial/spu_basics.ipynb:1821
+#: ../../tutorial/spu_basics.ipynb:1796
 msgid ""
 "After learning basics of SPU, you may check some advanced tutorials with "
 "SPU:"
 msgstr "在学习了 SPU 的基础知识后，您可以查看一些 SPU 高级教程："
 
-#: ../../tutorial/spu_basics.ipynb:1823
+#: ../../tutorial/spu_basics.ipynb:1798
 msgid "`Logistic Regression with SPU <./lr_with_spu.ipynb>`__"
 msgstr ""
 
-#: ../../tutorial/spu_basics.ipynb:1824
+#: ../../tutorial/spu_basics.ipynb:1799
 msgid "`Neural Network with SPU <./nn_with_spu.ipynb>`__"
 msgstr ""
-
-#~ msgid "|64c6624197a3416589214740c00b1cf3|"
-#~ msgstr ""
-
-#~ msgid "|bbff8438d50a4f41ab9dc243539f807d|"
-#~ msgstr ""
-
-#~ msgid "|aaa961d489b84185b8a63d74de131108|"
-#~ msgstr ""
 

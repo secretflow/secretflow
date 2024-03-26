@@ -410,7 +410,7 @@ class BaseTorchModel(ABC):
         }
         torch.save(check_point, model_path)
 
-    def load_model(self, model_path: str):
+    def load_model(self, model_path: str, **kwargs):
         """load model from state dict, model structure must be defined before load"""
         assert model_path is not None, "model path cannot be empty"
         assert self.model is not None, "model structure must be defined before load"

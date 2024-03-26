@@ -669,24 +669,14 @@ class SLBaseTFModel(SLBaseModel):
         y_pred = self.model_fuse(hiddens, training=False, **self.kwargs)
 
         # Step 2: update loss
-        # custom loss will be re-open in the next version
-        # if isinstance(self.model_fuse.loss, tfutils.custom_loss):
-        #     self.model_fuse.loss.with_kwargs(kwargs)
-        self.model_fuse.compiled_loss(
-            eval_y,
-            y_pred,
-            sample_weight=eval_sample_weight,
-            regularization_losses=self.model_fuse.losses + losses,
-        )
+        # add losses manually, same as call `add_loss(losses)` in `call`
+        self.model_fuse._eager_losses.extend(losses)
+        self.model_fuse.compute_loss(hiddens, eval_y, y_pred, eval_sample_weight)
         # Step 3: update metrics
-        self.model_fuse.compiled_metrics.update_state(
-            eval_y, y_pred, sample_weight=eval_sample_weight
+        metrics = self.model_fuse.compute_metrics(
+            hiddens, eval_y, y_pred, eval_sample_weight
         )
-
-        result = {}
-        for m in self.model_fuse.metrics:
-            result[m.name] = m.result()
-        return result
+        return metrics
 
     def _fuse_net_train(self, hiddens, losses=[]):
         return self._fuse_net_internal(
@@ -706,13 +696,10 @@ class SLBaseTFModel(SLBaseModel):
             y_pred = self.model_fuse(hiddens, training=True, **self.kwargs)
             self._pred_y = y_pred
             # Step 2: loss calculation, the loss function is configured in `compile()`.
-            # if isinstance(self.model_fuse.loss, tfutils.custom_loss):
-            #     self.model_fuse.loss.with_kwargs(kwargs)
-            loss = self.model_fuse.compiled_loss(
-                train_y,
-                y_pred,
-                sample_weight=train_sample_weight,
-                regularization_losses=self.model_fuse.losses + losses,
+            # add losses manually, same as call `add_loss(losses)` in `call`
+            self.model_fuse._eager_losses.extend(losses)
+            loss = self.model_fuse.compute_loss(
+                hiddens, train_y, y_pred, train_sample_weight
             )
 
         # Step3: compute gradients
@@ -721,9 +708,7 @@ class SLBaseTFModel(SLBaseModel):
         self.model_fuse.optimizer.apply_gradients(zip(gradients, trainable_vars))
 
         # Step4: update metrics
-        self.model_fuse.compiled_metrics.update_state(
-            train_y, y_pred, sample_weight=train_sample_weight
-        )
+        self.model_fuse.compute_metrics(hiddens, train_y, y_pred, train_sample_weight)
 
         return tape.gradient(loss, hiddens)
 

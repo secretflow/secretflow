@@ -14,14 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-"""module docstring - short summary
-
-If the description is long, the first line should be a short summary that makes sense on its own,
-separated from the rest by a newline
-
-"""
-
 import functools
 import os
 import tempfile
@@ -38,6 +30,8 @@ from secretflow.security.aggregation import PlainAggregator, SparsePlainAggregat
 from secretflow.security.compare import PlainComparator
 from secretflow.security.privacy import DPStrategyFL, GaussianModelDP
 from secretflow.utils.simulation.datasets import load_iris, load_mnist
+
+from .model_def import CVAE, cvae_model
 
 _temp_dir = tempfile.mkdtemp()
 
@@ -63,6 +57,34 @@ def create_nn_model(input_dim, output_dim, nodes, n=1, name='model'):
         for i in range(n):
             model.add(layers.Dense(nodes, input_dim=input_dim, activation='relu'))
         model.add(layers.Dense(output_dim, activation='softmax'))
+
+        # Compile model
+        model.compile(
+            loss='categorical_crossentropy', optimizer='adam', metrics=["accuracy"]
+        )
+        return model
+
+    return create_model
+
+
+# model define for mlp
+def create_nn_model_multi_input(input_features, output_dim, nodes, n=1, name='model'):
+    def create_model():
+        import tensorflow as tf
+        from tensorflow import keras
+
+        # Create model
+        model = keras.Sequential(name=name)
+        input_layers = {}
+        for fn in input_features:
+            input_layers[fn] = keras.Input(shape=(1,))
+
+        h = tf.concat(list(input_layers.values()), axis=1)
+        for _ in range(n):
+            h = keras.layers.Dense(nodes, activation='relu')(h)
+
+        output = keras.layers.Dense(output_dim, activation='softmax')(h)
+        model = keras.Model(inputs=input_layers, outputs=output)
 
         # Compile model
         model.compile(
@@ -232,10 +254,11 @@ class TestFedModelCSV:
             return x, one_hot_label
 
         # prepare model
-        n_features = 4
+        input_features = train_data.columns
+        input_features.remove("class")
         n_classes = 3
         onehot_func = functools.partial(label_decoder, num_class=n_classes)
-        model = create_nn_model(n_features, n_classes, 8, 3)
+        model = create_nn_model_multi_input(input_features, n_classes, 8, 3)
         device_list = [
             sf_simulation_setup_devices.alice,
             sf_simulation_setup_devices.bob,
@@ -672,3 +695,146 @@ class TestFedModelMemoryDF:
 
         # FIXME(fengjun.feng): This assert is failing.
         # assert global_metric[1].result().numpy() > 0.7
+
+
+class TestFedModelTensorflowCustomLoss:
+    def keras_model_with_mnist(
+        self,
+        devices,
+        model,
+        data,
+        label,
+        strategy,
+        backend,
+        aggregator=None,
+        **kwargs,
+    ):
+        if not aggregator:
+            if strategy in COMPRESS_STRATEGY:
+                aggregator = SparsePlainAggregator(devices.carol)
+            else:
+                aggregator = PlainAggregator(devices.carol)
+        else:
+            aggregator = aggregator
+        party_shape = data.partition_shape()
+        alice_length = party_shape[devices.alice][0]
+        bob_length = party_shape[devices.bob][0]
+
+        alice_arr = devices.alice(lambda: np.zeros(alice_length))()
+        bob_arr = devices.bob(lambda: np.zeros(bob_length))()
+        sample_weights = load({devices.alice: alice_arr, devices.bob: bob_arr})
+
+        # spcify params
+        sampler_method = kwargs.get('sampler_method', "batch")
+        dp_spent_step_freq = kwargs.get('dp_spent_step_freq', None)
+        server_agg_method = kwargs.get("server_agg_method", None)
+        device_list = [devices.alice, devices.bob]
+        num_gpus = kwargs.get("num_gpus", 0)
+        dp_strategy = kwargs.get("dp_strategy", None)
+        skip_bn = kwargs.get("skip_bn", False)
+        fed_model = FLModel(
+            server=devices.carol,
+            device_list=device_list,
+            model=model,
+            aggregator=aggregator,
+            backend=backend,
+            strategy=strategy,
+            random_seed=1234,
+            server_agg_method=server_agg_method,
+            num_gpus=num_gpus,
+            dp_strategy=dp_strategy,
+            skip_bn=skip_bn,
+        )
+        random_seed = 1524
+        history = fed_model.fit(
+            data,
+            label,
+            validation_data=(data, label),
+            epochs=1,
+            batch_size=128,
+            aggregate_freq=2,
+            sampler_method=sampler_method,
+            random_seed=random_seed,
+            dp_spent_step_freq=dp_spent_step_freq,
+        )
+        global_metric, _ = fed_model.evaluate(
+            data,
+            label,
+            batch_size=128,
+            sampler_method=sampler_method,
+            random_seed=random_seed,
+        )
+
+        assert np.isclose(
+            global_metric[0].result().numpy(),
+            history["global_history"]['val_mean_squared_error'][-1],
+            atol=1e-3,
+        )
+
+        assert global_metric[0].result() < 0.1
+        g_metric, _ = fed_model.evaluate(
+            data,
+            label,
+            sample_weight=sample_weights,
+            batch_size=128,
+            sampler_method=sampler_method,
+            random_seed=random_seed,
+        )
+        # test sample_weight validation
+        assert g_metric[0].result() < 0.1
+        result = fed_model.predict(data, batch_size=128, random_seed=random_seed)
+        # steps * output_num
+        assert len(reveal(result[devices.alice])) == 64
+
+        model_path_test = os.path.join(_temp_dir, "base_model")
+        fed_model.save_model(model_path=model_path_test, is_test=True)
+        model_path_dict = {
+            devices.alice: os.path.join(_temp_dir, "alice_model"),
+            devices.bob: os.path.join(_temp_dir, "bob_model"),
+        }
+        fed_model.save_model(model_path=model_path_dict, is_test=False)
+
+        # test load model
+        fed_model.load_model(
+            model_path=model_path_test, is_test=True, custom_objects={"CVAE": CVAE}
+        )
+        fed_model.load_model(
+            model_path=model_path_dict, is_test=False, custom_objects={"CVAE": CVAE}
+        )
+        reload_metric, _ = fed_model.evaluate(
+            data,
+            label,
+            batch_size=128,
+            sampler_method=sampler_method,
+            random_seed=random_seed,
+        )
+        np.testing.assert_allclose(
+            [m.result().numpy() for m in global_metric],
+            [m.result().numpy() for m in reload_metric],
+            atol=1e-3,
+        )
+
+    def test_keras_model_custom_loss(self, sf_simulation_setup_devices):
+        (_, _), (mnist_data, _) = load_mnist(
+            parts={
+                sf_simulation_setup_devices.alice: 0.4,
+                sf_simulation_setup_devices.bob: 0.6,
+            },
+            normalized_x=True,
+            categorical_y=True,
+        )
+        mnist_data = mnist_data.astype(np.float32)
+
+        # keras model
+        model = cvae_model()
+
+        # test fed avg w with possion sampler
+        self.keras_model_with_mnist(
+            devices=sf_simulation_setup_devices,
+            data=mnist_data,
+            label=mnist_data,
+            model=model,
+            strategy="fed_avg_w",
+            backend="tensorflow",
+            sampler_method='possion',
+        )
