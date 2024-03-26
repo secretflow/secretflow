@@ -88,7 +88,7 @@ class HESSLogisticRegression:
         self._scale = spu_fxp_precision(spu.cluster_def['runtime_config']['field'])
 
     def _data_check(
-        self, x: Union[FedNdarray, VDataFrame]
+        self, x: Union[FedNdarray, VDataFrame], check_shape: bool = True
     ) -> Tuple[PYUObject, PYUObject]:
         assert isinstance(
             x, (FedNdarray, VDataFrame)
@@ -102,10 +102,11 @@ class HESSLogisticRegression:
 
         x_shapes = list(x.partition_shape().values())
 
-        assert x_shapes[0][0] > x_shapes[0][1] and x_shapes[1][0] > x_shapes[1][1], (
-            "samples is too small: ",
-            "1. Model will not converge; 2.Y label may leak to other parties.",
-        )
+        if check_shape:
+            assert x_shapes[0][0] > x_shapes[0][1] and x_shapes[1][0] > x_shapes[1][1], (
+                "samples is too small: ",
+                "1. Model will not converge; 2.Y label may leak to other parties.",
+            )
 
         x1, x2 = None, None
         for device, partition in x.partitions.items():
@@ -346,7 +347,7 @@ class HESSLogisticRegression:
         Returns:
             PYUObject: probability of the sample for each class in the model.
         """
-        ds = self._data_check(x)
+        ds = self._data_check(x, check_shape=False)
         shapes = x.partition_shape()
         samples = list(shapes.values())[0][0]
         total_batch = int(samples / 1024)
