@@ -12,262 +12,161 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import argparse
 import os
 import platform
-import posixpath
-import re
 import shutil
-import subprocess
-import sys
-import time
-from datetime import date
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import List
+from posixpath import relpath
+from textwrap import dedent
 
-import setuptools
-from setuptools import find_packages, setup
-from setuptools.command import build_ext
-
-this_directory = os.path.abspath(os.path.dirname(__file__))
-
-if os.getcwd() != this_directory:
-    print("You must run setup.py from the project root")
-    exit(-1)
+from setuptools import Extension, find_packages, setup
+from setuptools.command.build_ext import build_ext
 
 
-def get_commit_id() -> str:
-    commit_id = (
-        subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
-    )
-    dirty = subprocess.check_output(['git', 'diff', '--stat']).decode('ascii').strip()
-
-    if dirty:
-        commit_id = f"{commit_id}-dirty"
-
-    return commit_id
-
-
-def complete_version_file(*filepath):
-    today = date.today()
-    dstr = today.strftime("%Y%m%d")
-    with open(os.path.join(".", *filepath), "r") as fp:
-        content = fp.read()
-
-    content = content.replace("$$DATE$$", dstr)
-    content = content.replace("$$BUILD_TIME$$", time.strftime('%b %d %Y, %X'))
-    try:
-        content = content.replace("$$COMMIT_ID$$", get_commit_id())
-    except:
-        pass
-
-    if "SF_BUILD_DOCKER_NAME" in os.environ:
-        content = content.replace(
-            "$$DOCKER_VERSION$$", os.environ["SF_BUILD_DOCKER_NAME"]
-        )
-
-    with open(os.path.join(".", *filepath), "w+") as fp:
-        fp.write(content)
-
-
-def find_version(*filepath):
-    complete_version_file(*filepath)
-    # Extract version information from filepath
-    with open(os.path.join(".", *filepath)) as fp:
-        version_match = re.search(
-            r"^__version__ = ['\"]([^'\"]*)['\"]", fp.read(), re.M
-        )
-        if version_match:
-            return version_match.group(1)
-        print("Unable to find version string.")
-        exit(-1)
-
-
-def filter_requirements(requirements: List[str], custom_feature: str):
-    """A lite feature in comment should be something like "# FEATURE=[lite]"."""
-    filtered_reqs = []
-    for r in requirements:
-        comment_symbol_idx = r.find("#")
-        if comment_symbol_idx == -1:
-            continue
-
-        comment = r[comment_symbol_idx + 1 :]
-        feature_match = re.search(r"FEATURE=\[([0-9A-Za-z,]+)\]", comment)
-        if not feature_match:
-            continue
-        features = feature_match.group(1).split(",")
-        if custom_feature in features:
-            filtered_reqs.append(r[:comment_symbol_idx].strip())
-
-    return filtered_reqs
-
-
-def read_requirements(custom_feature: str = None):
-    requirements = []
-    dependency_links = []
-    with open("./requirements.txt") as file:
-        requirements = file.read().splitlines()
-    if custom_feature:
-        requirements = filter_requirements(requirements, custom_feature)
-    for r in requirements:
-        if r.startswith("--extra-index-url"):
-            requirements.remove(r)
-            dependency_links.append(r)
-    print("Requirements: ", requirements)
-    print("Dependency: ", dependency_links)
-    return requirements, dependency_links
-
-
-# [ref](https://github.com/perwin/pyimfit/blob/master/setup.py)
-# Modified cleanup command to remove dist subdirectory
-# Based on: https://stackoverflow.com/questions/1710839/custom-distutils-commands
-class CleanCommand(setuptools.Command):
-    description = "custom clean command that forcefully removes dist directories"
-    user_options = []
-
-    def initialize_options(self):
-        pass
-
-    def finalize_options(self):
-        pass
-
-    def run(self):
-        directories_to_clean = ["./build"]
-
-        for dir in directories_to_clean:
-            if os.path.exists(dir):
-                shutil.rmtree(dir)
-
-
-# [ref](https://github.com/google/trimmed_match/blob/master/setup.py)
-class BazelExtension(setuptools.Extension):
+# https://github.com/google/trimmed_match/blob/master/setup.py
+class BazelExtension(Extension):
     """A C/C++ extension that is defined as a Bazel BUILD target."""
 
-    def __init__(self, bazel_target, ext_name):
+    def __init__(self, bazel_target: str, ext_name: str):
         self._bazel_target = bazel_target
-        self._relpath, self._target_name = posixpath.relpath(bazel_target, "//").split(
-            ":"
-        )
-        setuptools.Extension.__init__(self, ext_name, sources=[])
+        self._relpath, self._target_name = relpath(bazel_target, "//").split(":")
+        super().__init__(ext_name, sources=[])
 
 
-class BuildBazelExtension(build_ext.build_ext):
+class BuildBazelExtension(build_ext):
     """A command that runs Bazel to build a C/C++ extension."""
 
     def run(self):
         for ext in self.extensions:
             self.bazel_build(ext)
-        build_ext.build_ext.run(self)
 
-    def bazel_build(self, ext):
-        Path(self.build_temp).mkdir(parents=True, exist_ok=True)
+    def bazel_build(self, ext: BazelExtension):
+        # .so file expected on this path
+        module_path = self.get_ext_fullpath(ext.name)
 
-        bazel_argv = [
+        if self.inplace:
+            module_relpath = self.get_ext_filename(ext.name)
+            if module_path.endswith(module_relpath):
+                source_root = module_path[: -len(module_relpath)]
+            else:
+                source_root = self.build_temp
+        else:
+            source_root = self.build_temp
+
+        source_root = Path(source_root)
+        source_root.mkdir(parents=True, exist_ok=True)
+
+        bazel_prefix = source_root.joinpath("bazel-")
+
+        cmd = [
             "bazel",
             "build",
-            ext._bazel_target + ".so",
-            "--symlink_prefix=" + os.path.join(self.build_temp, "bazel-"),
-            "--compilation_mode=" + ("dbg" if self.debug else "opt"),
+            ext._bazel_target,
+            "--symlink_prefix=" + str(bazel_prefix),
+            "--compilation_mode=" + ('dbg' if self.debug else 'opt'),
         ]
 
         if platform.machine() == "x86_64":
-            bazel_argv.extend(["--config=avx"])
+            cmd.extend(["--config=avx"])
 
-        self.spawn(bazel_argv)
+        self.spawn(cmd)
 
-        shared_lib_suffix = ".so"
-        ext_bazel_bin_path = os.path.join(
-            self.build_temp,
-            "bazel-bin",
+        bazel_bin_path = bazel_prefix.with_name('bazel-bin').joinpath(
             ext._relpath,
-            ext._target_name + shared_lib_suffix,
+            ext._target_name,
         )
 
-        ext_dest_path = self.get_ext_fullpath(ext.name)
-        Path(ext_dest_path).parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(ext_bazel_bin_path, ext_dest_path)
+        Path(module_path).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(bazel_bin_path, module_path)
 
 
-def plat_name():
-    # Default Linux platform tag
-    plat_name = "manylinux2014_x86_64"
-    if sys.platform == "darwin":
-        # Due to a bug in conda x64 python, platform tag has to be 10_16 for X64 wheel
-        if platform.machine() == "x86_64":
-            plat_name = "macosx_12_0_x86_64"
-        else:
-            plat_name = "macosx_12_0_arm64"
-
-    return plat_name
+def version_scheme(version) -> str:
+    version.timestamp = datetime.now(timezone.utc).isoformat()
+    version.commit = version.node[1:]
+    return version.tag.public
 
 
-def long_description():
-    with open(os.path.join(this_directory, "README.md"), encoding="utf-8") as f:
-        return f.read()
+def local_scheme(version) -> str:
+    if version.distance or version.dirty:
+        return f"+{version.node}.dirty"
+    elif version.distance:
+        return f"+{version.node}"
+    else:
+        return ""
 
 
-argparser = argparse.ArgumentParser()
-argparser.add_argument(
-    "--lite", action="store_true", help="Build SecretFlow lite", required=False
-)
-args, unknowns = argparser.parse_known_args()
-sys.argv = [sys.argv[0]] + unknowns
+def version_file_template():
+    now = datetime.now(timezone.utc)
+    info = {
+        "year": now.year,
+        "timestamp": now.strftime("%b %d %Y at %X %Z"),
+        "docker_version": os.environ.get("SF_BUILD_DOCKER_NAME", "?"),
+    }
+    content = dedent(
+        """
+        # Copyright %(year)d Ant Group Co., Ltd.
+        #
+        # Licensed under the Apache License, Version 2.0 (the "License");
+        # you may not use this file except in compliance with the License.
+        # You may obtain a copy of the License at
+        #
+        #   http://www.apache.org/licenses/LICENSE-2.0
+        #
+        # Unless required by applicable law or agreed to in writing, software
+        # distributed under the License is distributed on an "AS IS" BASIS,
+        # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+        # See the License for the specific language governing permissions and
+        # limitations under the License.
+
+        # file generated by setuptools_scm
+        # DO NOT CHANGE, DO NOT TRACK IN VERSION CONTROL
+
+        __version__ = {version!r}
+        __commit_id__ = {scm_version.node!r}[1:]
+        __docker_version__ = %(docker_version)r
+        __build_time__ = %(timestamp)r
 
 
-package_name = "secretflow"
-description = "SecretFlow"
-# Feature is used to filter the requirements.
-custom_feature = None
+        def build_message():
+            msg = [
+                f"Secretflow {{__version__}}",
+                f"Commit {{__commit_id__}}",
+                f"Built on {{__build_time__}}",
+            ]
+            if __docker_version__ != "?":
+                msg.append(f"Docker version {{__docker_version__}}")
+            return "\\n".join(msg)
+        """
+    )
+    content = content.strip() + "\n"
+    return content % info
 
 
-if args.lite:
-    """
-    The primary distinction between secretflow-lite and non-lite lies in
-    the inclusion of traditional machine learning only. Specifically, lite
-    does not incorporate deep learning dependency packages due to their
-    significant size.
-    """
-    package_name = "secretflow-lite"
-    custom_feature = "lite"
-    description = "SecretFlow Lite"
-
-install_requires, dependency_links = read_requirements(custom_feature)
-
-setup(
-    name=package_name,
-    version=find_version("secretflow", "version.py"),
-    license="Apache 2.0",
-    description=description,
-    long_description=long_description(),
-    long_description_content_type="text/markdown",
-    author="SCI Center",
-    author_email="secretflow-contact@service.alipay.com",
-    url="https://github.com/secretflow/secretflow",
-    packages=find_packages(
-        exclude=(
-            "examples",
-            "examples.*",
-            "tests",
-            "tests.*",
-        )
-    ),
-    install_requires=install_requires,
-    ext_modules=[
-        BazelExtension(
-            "//secretflow_lib/binding:_lib", "secretflow/security/privacy/_lib"
+if __name__ == "__main__":
+    setup(
+        packages=find_packages(
+            exclude=(
+                "examples",
+                "examples.*",
+                "tests",
+                "tests.*",
+            )
         ),
-    ],
-    extras_require={"dev": ["pylint"]},
-    cmdclass=dict(
-        build_ext=BuildBazelExtension, clean=CleanCommand, cleanall=CleanCommand
-    ),
-    dependency_links=dependency_links,
-    options={
-        "bdist_wheel": {"plat_name": plat_name()},
-    },
-    entry_points={
-        "console_scripts": [
-            "secretflow = secretflow.cli:cli",
+        cmdclass={
+            "build_ext": BuildBazelExtension,
+        },
+        ext_modules=[
+            BazelExtension(
+                "//secretflow_lib/binding:_lib.so",
+                "secretflow.security.privacy._lib",
+            ),
         ],
-    },
-)
+        use_scm_version=dict(
+            version_scheme=version_scheme,
+            local_scheme=local_scheme,
+            version_file="secretflow/version.py",
+            version_file_template=version_file_template(),
+            fallback_version="0.0.0",
+        ),
+    )

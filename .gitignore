@@ -353,3 +353,8 @@ selected-keys.*
 temp
 # pytest-testmon db
 .testmondata*
+
+# generated during build
+secretflow/version.py
+
+.python-version

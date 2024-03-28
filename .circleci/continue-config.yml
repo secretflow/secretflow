@@ -117,14 +117,8 @@ commands:
           name: Restore pytest testmondata
           key: testmondata_<<parameters.testmon_prefix>>_{{ arch }}_{{ .Branch }}_
       - restore_cache:
-          name: restore pip cache
-          key: pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
-      - run:
-          name: Install test tools
-          command: |
-            conda init
-            pip install -r dev-requirements.txt
-            pip install --force-reinstall pytest
+          name: restore site-packages
+          key: pip-{{ arch }}-{{ .Branch }}-{{ checksum "pyproject.toml" }}
       - run:
           name: "Run tests"
           command: |
@@ -262,23 +256,20 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          name: restore pip cache
-          key: &pip-cache pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
+          name: restore site-packages
+          key: &pip-cache pip-{{ arch }}-{{ .Branch }}-{{ checksum "pyproject.toml" }}
       - run:
-          name: build shared library
+          name: build
           command: |
             conda init
-            arch=$(uname -i)
-            mkdir -p artifacts
-            bazel build //secretflow_lib/binding/... -c opt
-            mv bazel-bin/secretflow_lib/binding/_lib.so artifacts/_lib_$arch.so
+            python -m pip install --upgrade pip build auditwheel
+            python -m build --sdist --wheel --outdir dist
+            python -m auditwheel repair dist/*.whl --wheel-dir dist/wheelhouse
       - run:
-          name: Install python deps
+          name: install
           command: |
             conda init
-            arch=$(uname -i)
-            mkdir -p artifacts
-            pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
+            pip install "secretflow[dev,full]>=1.0.0.dev0" --find-links dist/wheelhouse
       - persist_to_workspace:
           root: .
           paths: 
@@ -307,19 +298,16 @@ jobs:
           name: restore pip cache
           key: &pip-cache pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
       - run:
-          name: Install python dependencies
+          name: build
           command: |
             conda init
-            pip install -r requirements.txt
+            python -m pip install --upgrade pip build
+            python -m build --sdist --wheel --outdir dist
       - run:
-          name: "build shared library"
+          name: install
           command: |
             conda init
-            mkdir -p artifacts
-            bazel build //secretflow_lib/binding/... -c opt
-            mv bazel-bin/secretflow_lib/binding/_lib.so artifacts/_lib_macos.so
-            pip install -r requirements.txt
-            pip install -r dev-requirements.txt
+            pip install "secretflow[dev,full]>=1.0.0.dev0" --find-links dist
       - persist_to_workspace:
           root: .
           paths:
