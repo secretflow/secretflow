@@ -262,18 +262,13 @@ jobs:
           name: build
           command: |
             conda init
-            python -m pip install --upgrade pip build auditwheel
+            python -m pip install --upgrade pip build
             python -m build --sdist --wheel --outdir dist
-            python -m auditwheel repair dist/*.whl --wheel-dir dist/wheelhouse
       - run:
           name: install
           command: |
             conda init
-            pip install "secretflow[dev,full]>=1.0.0.dev0" --find-links dist/wheelhouse
-      - persist_to_workspace:
-          root: .
-          paths: 
-            - artifacts
+            pip install "secretflow[dev,full]>=1.0.0.dev0" --find-links dist
       - save_cache:
           key: *pip-cache
           paths:
@@ -308,10 +303,6 @@ jobs:
           command: |
             conda init
             pip install "secretflow[dev,full]>=1.0.0.dev0" --find-links dist
-      - persist_to_workspace:
-          root: .
-          paths:
-            - artifacts
       - save_cache:
           key: *pip-cache
           paths:
