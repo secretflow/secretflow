@@ -94,18 +94,31 @@ commands:
         type: string
         default: "sim"
     steps:
-      - attach_workspace:
-          at: /tmp/venv
       - restore_cache:
           name: Restore pytest testmondata
           key: testmondata_<<parameters.testmon_prefix>>_{{ arch }}_{{ .Branch }}_
+      - restore_cache:
+          name: Restore pip cache
+          keys:
+            - pip-{{ arch }}-{{ .Branch }}-{{ checksum "pyproject.toml" }}
+            - pip-{{ arch }}-{{ .Branch }}
+      - attach_workspace:
+          name: Load built wheels
+          at: /tmp/wheelhouse
+      - run:
+          name: Install deps
+          command: |
+            conda run -n base python3 -m pip install \
+              --cache-dir /tmp/cache/pip \
+              --find-links /tmp/wheelhouse \
+              "secretflow[dev,full]>=1.0.0.dev0"
       - run:
           name: Run tests
           command: |
             # so that Python uses the installed version instead of the one on CWD
             rm -rf secretflow
 
-            conda run -p /tmp/venv python3 -m pytest --suppress-no-test-exit-code \
+            conda run -n base python3 -m pytest --suppress-no-test-exit-code \
               --testmon \
               --env <<parameters.mode>> \
               -n auto \
@@ -122,6 +135,7 @@ commands:
           paths:
             - .testmondata
           when: always
+
   run_ml_test:
     steps:
       - kill_countdown
@@ -248,40 +262,20 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Create venv
-          command: |
-            conda create -y -p /tmp/venv -c conda-forge python=3.10
-      - restore_cache:
-          name: Restore pip cache
-          keys:
-            - pip-{{ arch }}-{{ .Branch }}-{{ checksum "pyproject.toml" }}
-            - pip-{{ arch }}-{{ .Branch }}
-      - run:
           name: Build wheel
           command: |
-            conda run -p /tmp/venv python3 -m pip install \
-              --cache-dir /tmp/.cache/pip \
-              --upgrade \
-              pip build
-
-            conda run -p /tmp/venv python3 -m build --sdist --wheel --outdir dist
-      - run:
-          name: Install deps
-          command: |
-            conda run -p /tmp/venv python3 -m pip install \
-              --cache-dir /tmp/.cache/pip \
-              --find-links dist \
-              "secretflow[dev,full]>=1.0.0.dev0"
+            conda run python3 -m pip install --upgrade pip build
+            conda run python3 -m build --sdist --wheel --outdir /tmp/wheelhouse
       - persist_to_workspace:
-          name: Persist venv
-          root: /tmp/venv
+          name: Save built wheels
+          root: /tmp/wheelhouse
           paths:
             - "*"
       - save_cache:
           name: Save pip cache
           key: pip-{{ arch }}-{{ .Branch }}-{{ checksum "pyproject.toml" }}
           paths:
-            - /tmp/.cache/pip
+            - /tmp/cache/pip
   macos_build:
     executor: macos_executor
     steps:
@@ -299,39 +293,20 @@ jobs:
             source $HOME/miniconda/bin/activate
             conda init zsh bash
       - run:
-          name: Create venv
-          command: |
-            conda create -y -p /tmp/venv -c conda-forge python=3.10
-      - restore_cache:
-          name: Restore pip cache
-          keys:
-            - pip-{{ arch }}-{{ .Branch }}-{{ checksum "pyproject.toml" }}
-            - pip-{{ arch }}-{{ .Branch }}
-      - run:
           name: Build wheel
           command: |
-            conda run -p /tmp/venv python3 -m pip install \
-              --cache-dir /tmp/.cache/pip \
-              --upgrade \
-              pip build
-
-            conda run -p /tmp/venv python3 -m build --sdist --wheel --outdir dist
-      - run:
-          name: Install deps
-          command: |
-            conda run -p /tmp/venv python3 -m pip install \
-              --cache-dir /tmp/.cache/pip \
-              --find-links dist \
-              "secretflow[dev,full]>=1.0.0.dev0"
+            conda run python3 -m pip install --upgrade pip build
+            conda run python3 -m build --sdist --wheel --outdir /tmp/wheelhouse
       - persist_to_workspace:
-          name: Persist venv
-          root: /tmp/venv
+          name: Save built wheels
+          root: /tmp/wheelhouse
           paths:
             - "*"
       - save_cache:
           key: pip-{{ arch }}-{{ .Branch }}-{{ checksum "pyproject.toml" }}
           paths:
-            - /tmp/.cache/pip
+            - /tmp/cache/pip
+
   linux_ml_test:
     parameters:
       resource_class:
