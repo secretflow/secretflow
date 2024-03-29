@@ -94,19 +94,18 @@ commands:
         type: string
         default: "sim"
     steps:
+      - attach_workspace:
+          at: /tmp/venv
       - restore_cache:
           name: Restore pytest testmondata
           key: testmondata_<<parameters.testmon_prefix>>_{{ arch }}_{{ .Branch }}_
-      - restore_cache:
-          name: restore site-packages
-          key: pip-{{ arch }}-{{ .Branch }}-{{ checksum "pyproject.toml" }}
       - run:
-          name: "Run tests"
+          name: Run tests
           command: |
-            conda init
-            python -m pip install pytest
+            # so that Python uses the installed version instead of the one on CWD
             rm -rf secretflow
-            python -m pytest --suppress-no-test-exit-code \
+
+            conda run -p /tmp/venv python3 -m pytest --suppress-no-test-exit-code \
               --testmon \
               --env <<parameters.mode>> \
               -n auto \
@@ -182,7 +181,8 @@ commands:
               - << pipeline.parameters.test_infra >>
           steps:
             - pytest_wrapper:
-                target_folder: tests/data/ tests/device/ tests/security/ tests/utils/ tests/kuscia/
+                target_folder: tests/data/ tests/device/ tests/security/ tests/utils/
+                  tests/kuscia/
                 testmon_prefix: infra
   run_ml_sim_test:
     steps:
@@ -247,58 +247,91 @@ jobs:
       resource_class: << parameters.resource_class >>
     steps:
       - checkout
+      - run:
+          name: Create venv
+          command: |
+            conda create -y -p /tmp/venv -c conda-forge python=3.10
       - restore_cache:
-          name: restore site-packages
-          key: &pip-cache pip-{{ arch }}-{{ .Branch }}-{{ checksum "pyproject.toml" }}
+          name: Restore pip cache
+          keys:
+            - pip-{{ arch }}-{{ .Branch }}-{{ checksum "pyproject.toml" }}
+            - pip-{{ arch }}-{{ .Branch }}
       - run:
-          name: build
+          name: Build wheel
           command: |
-            conda init
-            python -m pip install --upgrade pip build
-            python -m build --sdist --wheel --outdir dist
+            conda run -p /tmp/venv python3 -m pip install \
+              --cache-dir /tmp/.cache/pip \
+              --upgrade \
+              pip build
+
+            conda run -p /tmp/venv python3 -m build --sdist --wheel --outdir dist
       - run:
-          name: install
+          name: Install deps
           command: |
-            conda init
-            pip install "secretflow[dev,full]>=1.0.0.dev0" --find-links dist
-      - save_cache:
-          key: *pip-cache
+            conda run -p /tmp/venv python3 -m pip install \
+              --cache-dir /tmp/.cache/pip \
+              --find-links dist \
+              "secretflow[dev,full]>=1.0.0.dev0"
+      - persist_to_workspace:
+          name: Persist venv
+          root: /tmp/venv
           paths:
-            - /root/miniconda3/lib/python3.10/site-packages
+            - "*"
+      - save_cache:
+          name: Save pip cache
+          key: pip-{{ arch }}-{{ .Branch }}-{{ checksum "pyproject.toml" }}
+          paths:
+            - /tmp/.cache/pip
   macos_build:
     executor: macos_executor
     steps:
       - checkout
       - run:
-          name: "Install homebrew dependencies"
+          name: Install Homebrew dependencies
           command: |
             brew install bazelisk cmake ninja libomp wget protobuf@3
             echo 'export PATH="/opt/homebrew/opt/protobuf@3/bin:$PATH"' >> /Users/distiller/.bash_profile
       - run:
-          name: "Install Miniconda"
+          name: Install Miniconda
           command: |
             wget https://repo.anaconda.com/miniconda/Miniconda3-py310_24.1.2-0-MacOSX-arm64.sh -O ~/miniconda.sh
             bash ~/miniconda.sh -b -p $HOME/miniconda
             source $HOME/miniconda/bin/activate
             conda init zsh bash
+      - run:
+          name: Create venv
+          command: |
+            conda create -y -p /tmp/venv -c conda-forge python=3.10
       - restore_cache:
-          name: restore pip cache
-          key: &pip-cache pip-{{ arch }}-{{ .Branch }}-{{ checksum "pyproject.toml" }}
+          name: Restore pip cache
+          keys:
+            - pip-{{ arch }}-{{ .Branch }}-{{ checksum "pyproject.toml" }}
+            - pip-{{ arch }}-{{ .Branch }}
       - run:
-          name: build
+          name: Build wheel
           command: |
-            conda init
-            python -m pip install --upgrade pip build
-            python -m build --sdist --wheel --outdir dist
+            conda run -p /tmp/venv python3 -m pip install \
+              --cache-dir /tmp/.cache/pip \
+              --upgrade \
+              pip build
+
+            conda run -p /tmp/venv python3 -m build --sdist --wheel --outdir dist
       - run:
-          name: install
+          name: Install deps
           command: |
-            conda init
-            pip install "secretflow[dev,full]>=1.0.0.dev0" --find-links dist
-      - save_cache:
-          key: *pip-cache
+            conda run -p /tmp/venv python3 -m pip install \
+              --cache-dir /tmp/.cache/pip \
+              --find-links dist \
+              "secretflow[dev,full]>=1.0.0.dev0"
+      - persist_to_workspace:
+          name: Persist venv
+          root: /tmp/venv
           paths:
-            - /Users/distiller/miniconda/lib/python3.10/site-packages
+            - "*"
+      - save_cache:
+          key: pip-{{ arch }}-{{ .Branch }}-{{ checksum "pyproject.toml" }}
+          paths:
+            - /tmp/.cache/pip
   linux_ml_test:
     parameters:
       resource_class:

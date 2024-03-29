@@ -88,7 +88,7 @@ def version_scheme(version) -> str:
 
 
 def local_scheme(version) -> str:
-    if version.distance or version.dirty:
+    if version.distance and version.dirty:
         return f"+{version.node}.dirty"
     elif version.distance:
         return f"+{version.node}"
