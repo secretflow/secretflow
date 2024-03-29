@@ -100,8 +100,8 @@ commands:
       - restore_cache:
           name: Restore pip cache
           keys:
-            - pip-{{ arch }}-{{ .Branch }}-{{ checksum "pyproject.toml" }}
-            - pip-{{ arch }}-{{ .Branch }}
+            - pip-download-cache-{{ arch }}-{{ .Branch }}-{{ checksum "pyproject.toml" }}
+            - pip-download-cache-{{ arch }}-{{ .Branch }}
       - attach_workspace:
           name: Load built wheels
           at: /tmp/wheelhouse
@@ -135,6 +135,11 @@ commands:
           paths:
             - .testmondata
           when: always
+      - save_cache:
+          name: Save pip cache
+          key: pip-download-cache-{{ arch }}-{{ .Branch }}-{{ checksum "pyproject.toml" }}
+          paths:
+            - /tmp/cache/pip
 
   run_ml_test:
     steps:
@@ -264,18 +269,13 @@ jobs:
       - run:
           name: Build wheel
           command: |
-            conda run python3 -m pip install --upgrade pip build
-            conda run python3 -m build --sdist --wheel --outdir /tmp/wheelhouse
+            conda run -n base python3 -m pip install --upgrade pip build
+            conda run -n base python3 -m build --sdist --wheel --outdir /tmp/wheelhouse
       - persist_to_workspace:
           name: Save built wheels
           root: /tmp/wheelhouse
           paths:
             - "*"
-      - save_cache:
-          name: Save pip cache
-          key: pip-{{ arch }}-{{ .Branch }}-{{ checksum "pyproject.toml" }}
-          paths:
-            - /tmp/cache/pip
   macos_build:
     executor: macos_executor
     steps:
@@ -295,17 +295,13 @@ jobs:
       - run:
           name: Build wheel
           command: |
-            conda run python3 -m pip install --upgrade pip build
-            conda run python3 -m build --sdist --wheel --outdir /tmp/wheelhouse
+            conda run -n base python3 -m pip install --upgrade pip build
+            conda run -n base python3 -m build --sdist --wheel --outdir /tmp/wheelhouse
       - persist_to_workspace:
           name: Save built wheels
           root: /tmp/wheelhouse
           paths:
             - "*"
-      - save_cache:
-          key: pip-{{ arch }}-{{ .Branch }}-{{ checksum "pyproject.toml" }}
-          paths:
-            - /tmp/cache/pip
 
   linux_ml_test:
     parameters:
