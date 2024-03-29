@@ -84,25 +84,6 @@ commands:
             bash ~/miniconda.sh -b -p $HOME/miniconda
             source $HOME/miniconda/bin/activate
             conda init zsh bash
-  restore_artifacts_macos:
-    steps:
-      - attach_workspace:
-          at: .
-      - run:
-          name: copy library
-          command: |
-            cp artifacts/_lib_macos.so  secretflow/security/privacy/
-            mv secretflow/security/privacy/_lib_macos.so secretflow/security/privacy/_lib.so
-  restore_artifacts_linux:
-    steps:
-      - attach_workspace:
-          at: .
-      - run:
-          name: copy library
-          command: |
-            arch=$(uname -i)
-            cp artifacts/_lib_$arch.so  secretflow/security/privacy/
-            mv secretflow/security/privacy/_lib_$arch.so secretflow/security/privacy/_lib.so
   pytest_wrapper:
     parameters:
       target_folder:
@@ -117,19 +98,36 @@ commands:
           name: Restore pytest testmondata
           key: testmondata_<<parameters.testmon_prefix>>_{{ arch }}_{{ .Branch }}_
       - restore_cache:
-          name: restore pip cache
-          key: pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
+          name: Restore pip cache
+          keys:
+            - pip-download-cache-{{ arch }}-{{ .Branch }}-{{ checksum "pyproject.toml" }}
+            - pip-download-cache-{{ arch }}-{{ .Branch }}
+      - attach_workspace:
+          name: Load built wheels
+          at: /tmp/wheelhouse
       - run:
-          name: Install test tools
+          name: Install deps
           command: |
-            conda init
-            pip install -r dev-requirements.txt
-            pip install --force-reinstall pytest
+            conda run -n base python3 -m pip install \
+              --cache-dir /tmp/cache/pip \
+              --find-links /tmp/wheelhouse \
+              "secretflow[dev,full]>=1.0.0.dev0"
       - run:
-          name: "Run tests"
+          name: Run tests
           command: |
-            conda init
-            pytest --suppress-no-test-exit-code --testmon --env <<parameters.mode>>  -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  << parameters.target_folder >>
+            # so that Python uses the installed version instead of the one on CWD
+            rm -rf secretflow
+
+            conda run -n base python3 -m pytest --suppress-no-test-exit-code \
+              --testmon \
+              --env <<parameters.mode>> \
+              -n auto \
+              --junitxml=results.xml \
+              -v -x \
+              --capture=no \
+              --cov=secretflow/ \
+              --cov-report=xml:coverage.xml \
+              << parameters.target_folder >>
       - store_test_results:
           path: ./results.xml
       - save_cache:
@@ -137,6 +135,12 @@ commands:
           paths:
             - .testmondata
           when: always
+      - save_cache:
+          name: Save pip cache
+          key: pip-download-cache-{{ arch }}-{{ .Branch }}-{{ checksum "pyproject.toml" }}
+          paths:
+            - /tmp/cache/pip
+
   run_ml_test:
     steps:
       - kill_countdown
@@ -167,7 +171,7 @@ commands:
               - << pipeline.parameters.test_preprocessing >>
           steps:
             - pytest_wrapper:
-                target_folder: tests/preprocessing/ 
+                target_folder: tests/preprocessing/
                 testmon_prefix: preprocessing
   run_stats_test:
     steps:
@@ -183,7 +187,7 @@ commands:
               - << pipeline.parameters.test_stats >>
           steps:
             - pytest_wrapper:
-                target_folder: tests/stats/ 
+                target_folder: tests/stats/
                 testmon_prefix: stats
   run_infra_test:
     steps:
@@ -196,7 +200,8 @@ commands:
               - << pipeline.parameters.test_infra >>
           steps:
             - pytest_wrapper:
-                target_folder: tests/data/ tests/device/ tests/security/ tests/utils/ tests/kuscia/
+                target_folder: tests/data/ tests/device/ tests/security/ tests/utils/
+                  tests/kuscia/
                 testmon_prefix: infra
   run_ml_sim_test:
     steps:
@@ -261,73 +266,43 @@ jobs:
       resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - restore_cache:
-          name: restore pip cache
-          key: &pip-cache pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
       - run:
-          name: build shared library
+          name: Build wheel
           command: |
-            conda init
-            arch=$(uname -i)
-            mkdir -p artifacts
-            bazel build //secretflow_lib/binding/... -c opt
-            mv bazel-bin/secretflow_lib/binding/_lib.so artifacts/_lib_$arch.so
-      - run:
-          name: Install python deps
-          command: |
-            conda init
-            arch=$(uname -i)
-            mkdir -p artifacts
-            pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
+            conda run -n base python3 -m pip install --upgrade pip build
+            conda run -n base python3 -m build --sdist --wheel --outdir /tmp/wheelhouse
       - persist_to_workspace:
-          root: .
-          paths: 
-            - artifacts
-      - save_cache:
-          key: *pip-cache
+          name: Save built wheels
+          root: /tmp/wheelhouse
           paths:
-            - /root/miniconda3/lib/python3.10/site-packages
+            - "*"
   macos_build:
     executor: macos_executor
     steps:
       - checkout
       - run:
-          name: "Install homebrew dependencies"
+          name: Install Homebrew dependencies
           command: |
             brew install bazelisk cmake ninja libomp wget protobuf@3
             echo 'export PATH="/opt/homebrew/opt/protobuf@3/bin:$PATH"' >> /Users/distiller/.bash_profile
       - run:
-          name: "Install Miniconda"
+          name: Install Miniconda
           command: |
             wget https://repo.anaconda.com/miniconda/Miniconda3-py310_24.1.2-0-MacOSX-arm64.sh -O ~/miniconda.sh
             bash ~/miniconda.sh -b -p $HOME/miniconda
             source $HOME/miniconda/bin/activate
             conda init zsh bash
-      - restore_cache:
-          name: restore pip cache
-          key: &pip-cache pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
       - run:
-          name: Install python dependencies
+          name: Build wheel
           command: |
-            conda init
-            pip install -r requirements.txt
-      - run:
-          name: "build shared library"
-          command: |
-            conda init
-            mkdir -p artifacts
-            bazel build //secretflow_lib/binding/... -c opt
-            mv bazel-bin/secretflow_lib/binding/_lib.so artifacts/_lib_macos.so
-            pip install -r requirements.txt
-            pip install -r dev-requirements.txt
+            conda run -n base python3 -m pip install --upgrade pip build
+            conda run -n base python3 -m build --sdist --wheel --outdir /tmp/wheelhouse
       - persist_to_workspace:
-          root: .
+          name: Save built wheels
+          root: /tmp/wheelhouse
           paths:
-            - artifacts
-      - save_cache:
-          key: *pip-cache
-          paths:
-            - /Users/distiller/miniconda/lib/python3.10/site-packages
+            - "*"
+
   linux_ml_test:
     parameters:
       resource_class:
@@ -337,7 +312,6 @@ jobs:
       resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - restore_artifacts_linux
       - run_ml_test
   linux_preprocessing_test:
     parameters:
@@ -348,7 +322,6 @@ jobs:
       resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - restore_artifacts_linux
       - run_preprocessing_test
   linux_stats_test:
     parameters:
@@ -359,7 +332,6 @@ jobs:
       resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - restore_artifacts_linux
       - run_stats_test
   linux_infra_test:
     parameters:
@@ -370,7 +342,6 @@ jobs:
       resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - restore_artifacts_linux
       - run_infra_test
   linux_component_infra_test:
     parameters:
@@ -381,7 +352,6 @@ jobs:
       resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - restore_artifacts_linux
       - run_component_test_wrapper:
           target_folder: tests/component/infra/
           testmon_prefix: component_infra
@@ -394,7 +364,6 @@ jobs:
       resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - restore_artifacts_linux
       - run_component_test_wrapper:
           target_folder: tests/component/io/
           testmon_prefix: component_io
@@ -407,7 +376,6 @@ jobs:
       resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - restore_artifacts_linux
       - run_component_test_wrapper:
           target_folder: tests/component/ml/
           testmon_prefix: component_ml
@@ -420,7 +388,6 @@ jobs:
       resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - restore_artifacts_linux
       - run_component_test_wrapper:
           target_folder: tests/component/stats/
           testmon_prefix: component_stats
@@ -433,7 +400,6 @@ jobs:
       resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - restore_artifacts_linux
       - run_component_test_wrapper:
           target_folder: tests/component/preprocessing
           testmon_prefix: component_processing
@@ -446,7 +412,6 @@ jobs:
       resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - restore_artifacts_linux
       - run_ml_sim_test
   linux_other_sim_test:
     parameters:
@@ -457,42 +422,36 @@ jobs:
       resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - restore_artifacts_linux
       - run_other_sim_test
   macos_ml_test:
     executor: macos_executor
     steps:
       - checkout
       - macos_pre_setup
-      - restore_artifacts_macos
       - run_ml_test
   macos_preprocessing_test:
     executor: macos_executor
     steps:
       - checkout
       - macos_pre_setup
-      - restore_artifacts_macos
       - run_preprocessing_test
   macos_stats_test:
     executor: macos_executor
     steps:
       - checkout
       - macos_pre_setup
-      - restore_artifacts_macos
       - run_stats_test
   macos_infra_test:
     executor: macos_executor
     steps:
       - checkout
       - macos_pre_setup
-      - restore_artifacts_macos
       - run_infra_test
   macos_component_infra_test:
     executor: macos_executor
     steps:
       - checkout
       - macos_pre_setup
-      - restore_artifacts_macos
       - run_component_test_wrapper:
           target_folder: tests/component/infra/
           testmon_prefix: component_infra
@@ -501,7 +460,6 @@ jobs:
     steps:
       - checkout
       - macos_pre_setup
-      - restore_artifacts_macos
       - run_component_test_wrapper:
           target_folder: tests/component/io/
           testmon_prefix: component_io
@@ -510,7 +468,6 @@ jobs:
     steps:
       - checkout
       - macos_pre_setup
-      - restore_artifacts_macos
       - run_component_test_wrapper:
           target_folder: tests/component/ml/
           testmon_prefix: component_ml
@@ -519,7 +476,6 @@ jobs:
     steps:
       - checkout
       - macos_pre_setup
-      - restore_artifacts_macos
       - run_component_test_wrapper:
           target_folder: tests/component/stats/
           testmon_prefix: component_stats
@@ -528,7 +484,6 @@ jobs:
     steps:
       - checkout
       - macos_pre_setup
-      - restore_artifacts_macos
       - run_component_test_wrapper:
           target_folder: tests/component/preprocessing
           testmon_prefix: component_processing
@@ -537,14 +492,12 @@ jobs:
     steps:
       - checkout
       - macos_pre_setup
-      - restore_artifacts_macos
       - run_ml_sim_test
   macos_other_sim_test:
     executor: macos_executor
     steps:
       - checkout
       - macos_pre_setup
-      - restore_artifacts_macos
       - run_other_sim_test
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows

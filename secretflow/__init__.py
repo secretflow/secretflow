@@ -54,7 +54,7 @@ from .device import (
     to,
     wait,
 )
-from .version import __version__  # type: ignore
+from .version import __version__
 
 __all__ = [
     'kuscia',
@@ -81,4 +81,5 @@ __all__ = [
     'to',
     'wait',
     'component',
+    '__version__',
 ]

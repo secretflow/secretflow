@@ -23,16 +23,16 @@ orbs:
 parameters:
   GHA_Actor:
     type: string
-    default: ""
+    default: ''
   GHA_Action:
     type: string
-    default: ""
+    default: ''
   GHA_Event:
     type: string
-    default: ""
+    default: ''
   GHA_Meta:
     type: string
-    default: ""
+    default: ''
 
 workflows:
   unittest-workflow:
@@ -48,8 +48,7 @@ workflows:
             secretflow_lib/.*             base               true
             WORKSPACE                     base               true
             .bazelrc                      base               true
-            requirements.txt              base               true
-            dev-requirements.txt          base               true
+            pyproject.toml                base               true
             circleci/continue-config.yml  base               true
             .circleci/continue-config.yml base               true
             secretflow/data/*             infra              true
@@ -76,13 +75,13 @@ workflows:
             tests/*                       test_any           true
   publish-workflow:
     when:
-      equal: ["publish_pypi", << pipeline.parameters.GHA_Meta >>]
+      equal: ['publish_pypi', << pipeline.parameters.GHA_Meta >>]
     jobs:
       - continuation/continue:
           configuration_path: .circleci/release-config.yml
   testpypi-workflow:
     when:
-      equal: ["publish_testpypi", << pipeline.parameters.GHA_Meta >>]
+      equal: ['publish_testpypi', << pipeline.parameters.GHA_Meta >>]
     jobs:
       - continuation/continue:
           configuration_path: .circleci/testpypi-config.yml
