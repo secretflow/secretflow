@@ -81,6 +81,9 @@ class DistDataType(BaseEnum):
     READ_DATA = "sf.read_data"
     # serving model file
     SERVING_MODEL = "sf.serving.model"
+    # checkpoints
+    SS_GLM_CHECKPOINT = "sf.checkpoint.ss_glm"
+    SS_SGD_CHECKPOINT = "sf.checkpoint.ss_sgd"
 
 
 @enum.unique
@@ -407,19 +410,22 @@ def load_table_select_and_exclude_pair(
         col_selects=col_selects,
         nrows=nrows,
     )
-
-    remain_x = load_table(
-        ctx,
-        db,
-        load_features=True,
-        load_ids=True,
-        load_labels=True,
-        col_excludes=col_selects,
-        nrows=nrows,
-    )
+    try:
+        remain_x = load_table(
+            ctx,
+            db,
+            load_features=True,
+            load_ids=True,
+            load_labels=True,
+            col_excludes=col_selects,
+            nrows=nrows,
+        )
+    except AssertionError:
+        remain_x = None
     if to_pandas:
         trans_x = trans_x.to_pandas()
-        remain_x = remain_x.to_pandas()
+        if remain_x is not None:
+            remain_x = remain_x.to_pandas()
     return trans_x, remain_x
 
 
@@ -454,7 +460,9 @@ class VerticalTableWrapper:
         return VerticalTable(schemas=schemas, line_count=self.line_count)
 
     @classmethod
-    def from_dist_data(cls, data: DistData, line_count: int = None):
+    def from_dist_data(
+        cls, data: DistData, line_count: int = None, feature_selects: List[str] = None
+    ):
         meta = VerticalTable()
         assert data.meta.Unpack(meta)
 
@@ -474,7 +482,7 @@ def dump_vertical_table(
     meta: VerticalTableWrapper,
     system_info: SystemInfo,
 ) -> DistData:
-    assert isinstance(v_data, VDataFrame)
+    assert isinstance(v_data, VDataFrame), f"{type(v_data)} is not a VDataFrame"
     assert v_data.aligned
     assert len(v_data.partitions) > 0
     assert math.prod(v_data.shape), "empty dataset is not allowed"

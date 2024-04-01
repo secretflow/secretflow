@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
+from typing import List, Union
 
 import secretflow as sf
 from secretflow.data.vertical import VDataFrame
-from secretflow.device import SPU
+from secretflow.device import PYU, SPU, DeviceObject
 from secretflow.preprocessing.scaler import StandardScaler
 from secretflow.utils.blocked_ops import block_compute_vdata
 
@@ -36,20 +37,20 @@ class PearsonR:
         device: SPU Device
     """
 
-    def __init__(self, device: SPU):
-        self.spu_device = device
+    def __init__(self, device: Union[SPU, PYU]):
+        self.device = device
 
     def pearsonr(
         self,
-        vdata: VDataFrame,
+        data: Union[VDataFrame, DeviceObject],
         standardize: bool = True,
         infeed_elements_limit: int = 20000000,
     ):
         """
         Attributes:
 
-            vdata : VDataFrame
-                vertical slice dataset.
+            data : VDataFrame or DeviceObject
+                vertical slice dataset or pyu object of dataframe liked
             standardize: bool
                 if you need standardize dataset. dataset must be standardized
                 please keep standardize=True, unless dataset is already standardized.
@@ -60,15 +61,16 @@ class PearsonR:
 
         if standardize:
             scaler = StandardScaler()
-            vdata = scaler.fit_transform(vdata)
+            vdata = scaler.fit_transform(data)
+        else:
+            vdata = data
         rows = vdata.shape[0]
         cols = vdata.shape[1]
         row_number = max([math.ceil(infeed_elements_limit / cols), 1])
 
-        spu = self.spu_device
-
         xTx = block_compute_vdata(
-            vdata, row_number, spu, lambda x: x.T @ x, lambda x, y: x + y
+            vdata, row_number, self.device, lambda x: x.T @ x, lambda x, y: x + y
         )
+
         xtx = sf.reveal(xTx)
         return xtx / (rows - 1)

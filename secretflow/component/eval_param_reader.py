@@ -14,9 +14,10 @@
 
 import importlib
 import math
+from dataclasses import dataclass
+from typing import List
 
 from google.protobuf import json_format
-
 from secretflow.spec.v1.component_pb2 import (
     Attribute,
     AttributeDef,
@@ -108,7 +109,7 @@ def get_value(value: Attribute, at: AttrType, pb_cls_name: str = None):
         return list(value.fs)
     elif at == AttrType.AT_INTS:
         return list(value.i64s)
-    elif at == AttrType.AT_STRINGS:
+    elif at == AttrType.AT_STRINGS or at == AttrType.AT_PARTY:
         return list(value.ss)
     elif at == AttrType.AT_BOOLS:
         return list(value.bs)
@@ -184,6 +185,7 @@ class EvalParamReader:
                 AttrType.AT_STRUCT_GROUP,
                 AttrType.AT_UNION_GROUP,
                 AttrType.AT_CUSTOM_PROTOBUF,
+                AttrType.AT_PARTY,
             ]:
                 raise EvalParamError(
                     "only support ATOMIC, CUSTOM_PROTOBUF and GROUPs at this moment."

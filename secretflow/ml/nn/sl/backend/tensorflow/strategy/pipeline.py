@@ -17,11 +17,11 @@
 
 """pipeline split learning strategy
 """
-from typing import Callable, Tuple
+from typing import Callable
 
 import tensorflow as tf
 
-from secretflow.ml.nn.sl.backend.tensorflow.sl_base import SLBaseTFModel
+from secretflow.ml.nn.sl.backend.tensorflow.sl_base import ListType, SLBaseTFModel
 from secretflow.ml.nn.sl.strategy_dispatcher import register_strategy
 from secretflow.security.privacy import DPStrategy
 
@@ -50,6 +50,7 @@ class PipelineTFModel(SLBaseTFModel):
         self.fuse_tape = []
         self._h = []
         self.hidden_list = []
+        self.base_loss_list = []
         self._pre_train_y = []
 
     def reset_data_iter(self, stage='train'):
@@ -63,6 +64,7 @@ class PipelineTFModel(SLBaseTFModel):
         self.fuse_tape = []
         self._h = []
         self.hidden_list = []
+        self.base_loss_list = []
         self._pre_train_y = []
 
     def base_forward(self, stage="train", step=0, compress: bool = False):
@@ -79,7 +81,7 @@ class PipelineTFModel(SLBaseTFModel):
         # Strip tuple of length one, e.g: (x,) -> x
         self._data_x = (
             self._data_x[0]
-            if isinstance(self._data_x, Tuple) and len(self._data_x) == 1
+            if isinstance(self._data_x, ListType) and len(self._data_x) == 1
             else self._data_x
         )
 
@@ -94,6 +96,7 @@ class PipelineTFModel(SLBaseTFModel):
             )
         if stage == "train":
             self.hidden_list.append(self._h)
+            self.base_loss_list.append(self._base_losses)
 
     def base_backward(self):
         """backward on fusenet
@@ -101,20 +104,14 @@ class PipelineTFModel(SLBaseTFModel):
         Args:
             gradient: gradient of fusenet hidden layer
         """
-        return_hiddens = []
-        gradient = self._gradient
         # TODO: only vaild on no server mode, refactor when use agglayer or server mode.
         # no need to decompress data on model_fuse side
         pre_tape = self.base_tape.pop(0)
-        with pre_tape:
-            h = self.hidden_list.pop(0)
-            if len(gradient) == len(h):
-                for i in range(len(gradient)):
-                    return_hiddens.append(self.fuse_op(h[i], gradient[i]))
-            else:
-                gradient = gradient[0]
-                return_hiddens.append(self.fuse_op(h, gradient))
-            return_hiddens.append(self.model_base.losses)
+        hiddens = self.hidden_list.pop(0)
+        base_losses = self.base_loss_list.pop(0)
+        return_hiddens = self._base_backward_hidden_internal(
+            pre_tape, hiddens, self._gradient, base_losses
+        )
 
         now_value = [var.read_value() for var in self.model_base.trainable_variables]
         pre_value = self.trainable_vars.pop(0)
@@ -127,6 +124,9 @@ class PipelineTFModel(SLBaseTFModel):
             var.assign(now_value[idx])
         self._base_backward_internal(gradients, self.model_base.trainable_variables)
 
+        self.tape = None
+        self._h = None
+        self._base_losses = None
         self.kwargs = {}
 
     def _fuse_net_train(self, hiddens, losses=[]):

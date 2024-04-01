@@ -52,10 +52,9 @@ class SLBaseTorchModel(SLBaseModel, ABC):
         builder_fuse: BuilderType,
         dp_strategy: DPStrategy,
         random_seed: int = None,
-        *args,
         **kwargs,
     ):
-        super().__init__()
+        super().__init__(**kwargs)
 
         num_gpus = kwargs.get("num_gpus", 0)
         self.use_gpu = num_gpus > 0
@@ -73,6 +72,7 @@ class SLBaseTorchModel(SLBaseModel, ABC):
         self.eval_iter = None
         self.valid_iter = None
         self._h = None
+        self._base_losses = None
         self.train_x, self.train_y = None, None
         self.eval_x, self.eval_y = None, None
         self.kwargs = {}
@@ -419,7 +419,6 @@ class SLBaseTorchModel(SLBaseModel, ABC):
             batch_data = list(batch_data.values())[0]
 
         # FIXME: the batch size handle has problem.
-        # Besides, the steps_per_epoch should use ceil rather than floor
         if isinstance(batch_data, torch.Tensor):
             batch_size_inf = batch_data.shape[0]
             if batch_size > 0:
@@ -486,8 +485,14 @@ class SLBaseTorchModel(SLBaseModel, ABC):
         else:
             raise Exception(f"Illegal argument stage={stage}")
 
-    def base_forward_internal(self, data_x):
-        h = self.model_base(data_x)
+    def base_forward_internal(self, data_x, model=None):
+        if model is None:
+            model = self.model_base
+        if self.use_base_loss:
+            h, losses = model.forward_step((data_x, None), 0)
+            self._base_losses = losses if isinstance(losses, ListType) else [losses]
+        else:
+            h = model(data_x)
 
         # Embedding differential privacy
         if self.embedding_dp is not None:
@@ -498,7 +503,7 @@ class SLBaseTorchModel(SLBaseModel, ABC):
 
         return h
 
-    def base_backward_hidden_internal(self, hiddens):
+    def base_backward_hidden_internal(self, hiddens, base_losses=None):
         return_hiddens = []
         if len(self._gradient) == len(hiddens):
             for i in range(len(self._gradient)):
@@ -519,6 +524,13 @@ class SLBaseTorchModel(SLBaseModel, ABC):
             hid = self.fuse_op.apply(hiddens, self._gradient)
             if hid.requires_grad:
                 return_hiddens.append(hid.sum())
+
+        if self.use_base_loss:
+            if base_losses is None:
+                base_losses = self._base_losses
+
+            if base_losses is not None:
+                return_hiddens.extend(base_losses)
 
         return return_hiddens
 

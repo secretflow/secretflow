@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
+from typing import Union
 
 import jax.numpy as jnp
 
 import secretflow as sf
 from secretflow.data.vertical import VDataFrame
-from secretflow.device import SPU
+from secretflow.device import PYU, SPU
 from secretflow.preprocessing.scaler import StandardScaler
 from secretflow.stats.core.utils import newton_matrix_inverse
 from secretflow.utils.blocked_ops import block_compute_vdata
@@ -56,8 +57,8 @@ class VIF:
         device: SPU Device
     """
 
-    def __init__(self, device: SPU):
-        self.spu_device = device
+    def __init__(self, device: Union[SPU, PYU]):
+        self.device = device
 
     def vif(
         self,
@@ -86,16 +87,14 @@ class VIF:
         cols = vdata.shape[1]
         row_number = max([math.ceil(infeed_elements_limit / cols), 1])
 
-        spu = self.spu_device
-
         xTx = block_compute_vdata(
-            vdata, row_number, spu, lambda x: x.T @ x, lambda x, y: x + y
+            vdata, row_number, self.device, lambda x: x.T @ x, lambda x, y: x + y
         )
 
-        x_inv = spu(newton_matrix_inverse)(xTx)
+        x_inv = self.device(newton_matrix_inverse)(xTx)
 
         def compute_diag(x, multiplier):
             return jnp.diagonal(x) * multiplier
 
-        result = sf.reveal(spu(compute_diag)(x_inv, rows - 1))
+        result = sf.reveal(self.device(compute_diag)(x_inv, rows - 1))
         return result

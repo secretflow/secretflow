@@ -128,7 +128,7 @@
       "domain": "data_prep",
       "name": "psi",
       "desc": "PSI between two parties.",
-      "version": "0.0.2",
+      "version": "0.0.3",
       "attrs": [
         {
           "name": "protocol",
@@ -173,6 +173,51 @@
           "atomic": {
             "isOptional": true,
             "defaultValue": {}
+          }
+        },
+        {
+          "name": "left_side",
+          "desc": "Required if advanced_join_type is selected.",
+          "type": "AT_PARTY",
+          "atomic": {
+            "listMaxLengthInclusive": "-1"
+          }
+        },
+        {
+          "name": "join_type",
+          "desc": "Advanced Join types allow duplicate keys.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "ADVANCED_JOIN_TYPE_UNSPECIFIED"
+            },
+            "allowedValues": {
+              "ss": [
+                "ADVANCED_JOIN_TYPE_UNSPECIFIED",
+                "ADVANCED_JOIN_TYPE_INNER_JOIN",
+                "ADVANCED_JOIN_TYPE_LEFT_JOIN",
+                "ADVANCED_JOIN_TYPE_RIGHT_JOIN",
+                "ADVANCED_JOIN_TYPE_FULL_JOIN",
+                "ADVANCED_JOIN_TYPE_DIFFERENCE"
+              ]
+            }
+          }
+        },
+        {
+          "name": "missing_value",
+          "desc": "Missing value for some advanced join types.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "NA"
+            },
+            "allowedValues": {
+              "ss": [
+                "NA"
+              ]
+            }
           }
         },
         {
@@ -1687,7 +1732,7 @@
         },
         {
           "name": "enable_monitor",
-          "desc": "Whether to enable monitering performance during training.",
+          "desc": "Whether to enable monitoring performance during training.",
           "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
@@ -1723,7 +1768,7 @@
         },
         {
           "name": "validation_fraction",
-          "desc": "Early stop specific paramter. Only effective if early stop enabled. The fraction of samples to use as validation set.",
+          "desc": "Early stop specific parameter. Only effective if early stop enabled. The fraction of samples to use as validation set.",
           "type": "AT_FLOAT",
           "atomic": {
             "isOptional": true,
@@ -1740,7 +1785,7 @@
         },
         {
           "name": "stopping_rounds",
-          "desc": "Early stop specific paramter. If more than 'stopping_rounds' consecutive rounds without improvement, training will stop. Only effective if early stop enabled",
+          "desc": "Early stop specific parameter. If more than 'stopping_rounds' consecutive rounds without improvement, training will stop. Only effective if early stop enabled",
           "type": "AT_INT",
           "atomic": {
             "isOptional": true,
@@ -1761,7 +1806,7 @@
         },
         {
           "name": "stopping_tolerance",
-          "desc": "Early stop specific paramter. If metric on validation set is no longer improving by at least this amount, ten consider not improving.",
+          "desc": "Early stop specific parameter. If metric on validation set is no longer improving by at least this amount, then consider not improving.",
           "type": "AT_FLOAT",
           "atomic": {
             "isOptional": true,
@@ -3468,7 +3513,8 @@
           "name": "input_data",
           "desc": "Input vertical table.",
           "types": [
-            "sf.table.vertical_table"
+            "sf.table.vertical_table",
+            "sf.table.individual"
           ],
           "attrs": [
             {
@@ -3498,7 +3544,8 @@
           "name": "input_data",
           "desc": "Input vertical table.",
           "types": [
-            "sf.table.vertical_table"
+            "sf.table.vertical_table",
+            "sf.table.individual"
           ],
           "attrs": [
             {

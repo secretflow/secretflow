@@ -13,8 +13,9 @@
 # limitations under the License.
 
 import json
-from typing import Tuple
+from typing import Dict, List, Tuple
 
+from secretflow.component.checkpoint import CompCheckpoint
 from secretflow.component.component import (
     CompEvalError,
     Component,
@@ -299,6 +300,73 @@ MODEL_MAX_MAJOR_VERSION = 0
 MODEL_MAX_MINOR_VERSION = 3
 
 
+@ss_glm_train_comp.enable_checkpoint
+class SSGLMCheckpoint(CompCheckpoint):
+    def associated_arg_names(self) -> List[str]:
+        return [
+            "epochs",
+            "learning_rate",
+            "batch_size",
+            "link_type",
+            "label_dist_type",
+            "tweedie_power",
+            "dist_scale",
+            "iter_start_irls",
+            "optimizer",
+            "l2_lambda",
+            "fraction_of_validation_set",
+            "random_state",
+            "stopping_metric",
+            "stopping_rounds",
+            "stopping_tolerance",
+            "decay_epoch",
+            "decay_rate",
+            "train_dataset",
+            "train_dataset_label",
+            "train_dataset_offset",
+            "train_dataset_weight",
+            "train_dataset_feature_selects",
+        ]
+
+
+def dump_ss_glm_checkpoint(
+    ctx,
+    uri: str,
+    checkpoint: Tuple[Dict, List[SPUObject]],
+    system_info,
+) -> DistData:
+    train_state, spu_objs = checkpoint
+    return model_dumps(
+        ctx,
+        "ss_glm",
+        DistDataType.SS_GLM_CHECKPOINT,
+        MODEL_MAX_MAJOR_VERSION,
+        MODEL_MAX_MINOR_VERSION,
+        spu_objs,
+        json.dumps(train_state),
+        uri,
+        system_info,
+    )
+
+
+def load_ss_glm_checkpoint(
+    ctx,
+    cp: DistData,
+    spu: SPU,
+) -> Tuple[Dict, List[SPUObject]]:
+    spu_objs, model_meta_str = model_loads(
+        ctx,
+        cp,
+        MODEL_MAX_MAJOR_VERSION,
+        MODEL_MAX_MINOR_VERSION,
+        DistDataType.SS_GLM_CHECKPOINT,
+        spu=spu,
+    )
+    train_state = json.loads(model_meta_str)
+
+    return train_state, spu_objs
+
+
 @ss_glm_train_comp.eval_fn
 def ss_glm_train_eval_fn(
     *,
@@ -344,6 +412,12 @@ def ss_glm_train_eval_fn(
     cluster_def["runtime_config"]["fxp_fraction_bits"] = 40
 
     spu = SPU(cluster_def, spu_config["link_desc"])
+
+    checkpoint = None
+    if ctx.comp_checkpoint:
+        cp_dd = ctx.comp_checkpoint.load()
+        if cp_dd:
+            checkpoint = load_ss_glm_checkpoint(ctx, cp_dd, spu)
 
     glm = SSGLM(spu)
 
@@ -400,6 +474,11 @@ def ss_glm_train_eval_fn(
 
     l2_lambda = l2_lambda if l2_lambda > 0 else None
 
+    def epoch_callback(epoch, cp: Tuple[Dict, List[SPUObject]]):
+        cp_uri = f"{output_model}_checkpoint_{epoch}"
+        cp_dd = dump_ss_glm_checkpoint(ctx, cp_uri, cp, train_dataset.system_info)
+        ctx.comp_checkpoint.save(epoch, cp_dd)
+
     with ctx.tracer.trace_running():
         if optimizer == "SGD":
             if decay_epoch == 0 or decay_rate == 0:
@@ -429,6 +508,8 @@ def ss_glm_train_eval_fn(
                 stopping_rounds=stopping_rounds,
                 stopping_tolerance=stopping_tolerance,
                 report_metric=report_metric,
+                epoch_callback=epoch_callback if ctx.comp_checkpoint else None,
+                recovery_checkpoint=checkpoint,
             )
         elif optimizer == "IRLS":
             glm.fit_irls(
@@ -449,6 +530,8 @@ def ss_glm_train_eval_fn(
                 stopping_rounds=stopping_rounds,
                 stopping_tolerance=stopping_tolerance,
                 report_metric=report_metric,
+                epoch_callback=epoch_callback if ctx.comp_checkpoint else None,
+                recovery_checkpoint=checkpoint,
             )
         else:
             raise CompEvalError(f"Unknown optimizer {optimizer}")

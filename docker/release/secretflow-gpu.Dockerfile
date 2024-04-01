@@ -1,9 +1,10 @@
 FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu20.04
 
-RUN  apt-get update \
+RUN  export DEBIAN_FRONTEND=noninteractive && \
+     apt-get update \
      && apt-get install -y libcudnn8=8.6.0.163-1+cuda11.8 --allow-downgrades --allow-change-held-packages  \
      && apt-get install -y python3.10 --allow-downgrades --allow-change-held-packages   \
-     && apt-get install -y python3-pip --allow-downgrades --allow-change-held-packages
+     && apt-get install -y python3-pip --allow-downgrades --allow-change-held-packages --no-install-recommends \
 
 RUN if [ ! -e /usr/bin/python ]; then ln -sf /usr/bin/python3.10 /usr/bin/python; fi
 

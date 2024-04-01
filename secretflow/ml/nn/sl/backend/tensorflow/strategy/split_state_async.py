@@ -91,8 +91,6 @@ class SLStateAsyncTFModel(SLBaseTFModel):
             y_pred = self.model_fuse(hiddens, training=True, **self.kwargs)
 
             # Step 2: loss calculation, the loss function is configured in `compile()`.
-            # add losses manually, same as call `add_loss(losses)` in `call`
-            self.model_fuse._eager_losses.extend(losses)
             loss = self.model_fuse.compute_loss(
                 hiddens, train_y, y_pred, train_sample_weight
             )

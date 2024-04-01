@@ -26,7 +26,7 @@ from typing import Dict, List, Type, Union
 import cleantext
 import spu
 from google.protobuf.message import Message as PbMessage
-
+from secretflow.component.checkpoint import CompCheckpoint
 from secretflow.component.data_utils import DistDataType, check_dist_data, check_io_def
 from secretflow.component.eval_param_reader import EvalParamReader
 from secretflow.component.storage import ComponentStorage
@@ -105,6 +105,7 @@ class TableColParam:
 class CompEvalContext:
     data_dir: str = None
     comp_storage: ComponentStorage = None
+    comp_checkpoint: CompCheckpoint = None
     spu_configs: Dict = None
     initiator_party: str = None
     cluster_config: SFClusterConfig = None
@@ -120,6 +121,7 @@ class Component:
 
         self.__definition = None
         self.__eval_callback = None
+        self.__checkpoint_cls = None
         self.__comp_attr_decls = []
         self.__input_io_decls = []
         self.__output_io_decls = []
@@ -625,6 +627,40 @@ class Component:
         # append
         self.__comp_attr_decls.append(node)
 
+    def party_attr(
+        self,
+        name: str,
+        desc: str,
+        list_min_length_inclusive: int = None,
+        list_max_length_inclusive: int = None,
+    ):
+        # sanity checks
+        self._check_reserved_words(name)
+
+        # create pb
+        node = AttributeDef(name=name, desc=clean_text(desc), type=AttrType.AT_PARTY)
+
+        if (
+            list_min_length_inclusive is not None
+            and list_max_length_inclusive is not None
+            and list_min_length_inclusive > list_max_length_inclusive
+        ):
+            raise CompDeclError(
+                f"list_min_length_inclusive {list_min_length_inclusive} should not be greater than list_max_length_inclusive {list_max_length_inclusive}."
+            )
+
+        if list_min_length_inclusive is not None:
+            node.atomic.list_min_length_inclusive = list_min_length_inclusive
+        else:
+            node.atomic.list_min_length_inclusive = 0
+
+        if list_max_length_inclusive is not None:
+            node.atomic.list_max_length_inclusive = list_max_length_inclusive
+        else:
+            node.atomic.list_max_length_inclusive = -1
+        # append
+        self.__comp_attr_decls.append(node)
+
     def bool_attr(
         self,
         name: str,
@@ -754,6 +790,11 @@ class Component:
 
         self.__eval_callback = f
         return decorator
+
+    def enable_checkpoint(self, cls):
+        assert issubclass(cls, CompCheckpoint)
+        self.__checkpoint_cls = cls
+        return cls
 
     def definition(self):
         if self.__definition is None:
@@ -1048,7 +1089,7 @@ class Component:
             )
 
         reader = EvalParamReader(instance=param, definition=definition)
-        kwargs = {"ctx": ctx}
+        kwargs = dict()
 
         for a in definition.attrs:
             if a.type not in [
@@ -1061,6 +1102,7 @@ class Component:
                 AttrType.AT_BOOL,
                 AttrType.AT_BOOLS,
                 AttrType.AT_CUSTOM_PROTOBUF,
+                AttrType.AT_PARTY,
             ]:
                 continue
 
@@ -1069,8 +1111,10 @@ class Component:
 
             kwargs[args_full_name] = reader.get_attr(name=attr_full_name)
 
+        input_names = []
         for input in definition.inputs:
             kwargs[input.name] = reader.get_input(name=input.name)
+            input_names.append(input.name)
 
             for input_attr in input.attrs:
                 input_attr_full_name = "_".join([input.name, input_attr.name])
@@ -1083,8 +1127,13 @@ class Component:
 
         if cluster_config is not None:
             self._setup_sf_cluster(cluster_config)
+
         try:
-            ret = self.__eval_callback(**kwargs)
+            if param.checkpoint_uri and self.__checkpoint_cls:
+                ctx.comp_checkpoint = self.__checkpoint_cls(
+                    kwargs, input_names, param.checkpoint_uri, storage_config
+                )
+            ret = self.__eval_callback(ctx=ctx, **kwargs)
         except Exception as e:
             logging.error(f"eval on {param} failed, error <{e}>")
             # TODO: use error_code in report

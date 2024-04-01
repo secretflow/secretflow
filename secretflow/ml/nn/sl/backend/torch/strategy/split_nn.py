@@ -50,6 +50,7 @@ class SLTorchModel(SLBaseTorchModel):
 
         # clear intermediate results
         self._h = None
+        self._base_losses = None
         self.kwargs = {}
 
     def fuse_net(
