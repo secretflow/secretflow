@@ -14,6 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
+## [v1.5.0.dev240401] - 2024-04-01
+
+### Added
+- Add FSHA attach
+- Support duplicate keys in psi comp
+- Add sl/fl tf backend support custom loss
+### Fixed
+- Resolve gpu docker install error
+- Fix woe bin export err
+
 ## [v1.5.0.dev240326] - 2024-03-26
 
 ### Added
@@ -32,7 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - SL: custom trainning step supported by lightning style base module.
 
-# Removed
+### Removed
 
 - No longer providing x64 macOS binary packages.
 

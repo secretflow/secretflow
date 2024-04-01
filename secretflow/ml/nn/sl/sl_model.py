@@ -72,6 +72,7 @@ class SLModel:
             max_fuse_local_steps: Only for 'split_state_async' strategy, Maximum number of rounds for fuse local update in splitStateAS strategy?
             compressor: Define strategy tensor compression algorithms to speed up transmission.
             device_agg: The party do aggregation, it can be a PYU, SPU, etc.
+            use_base_loss: Optimize base model with base model local loss and return gradients.
             **kwargs: For custom strategies.
         """
 

@@ -30,7 +30,8 @@ import scipy
 
 from secretflow.data.horizontal import HDataFrame
 from secretflow.data.ndarray import FedNdarray, PartitionWay
-from secretflow.data.vertical import read_csv as v_read_csv, VDataFrame
+from secretflow.data.vertical import VDataFrame
+from secretflow.data.vertical import read_csv as v_read_csv
 from secretflow.device.device.pyu import PYU
 from secretflow.security.aggregation import Aggregator
 from secretflow.security.compare import Comparator
@@ -1001,17 +1002,17 @@ def load_cifar10(
         data_dir, True, transform=transforms.ToTensor(), download=True
     )
     train_loader = torch_data.DataLoader(
-        dataset=train_dataset, batch_size=128, shuffle=False
+        dataset=train_dataset, batch_size=len(train_dataset), shuffle=False
     )
     test_dataset = datasets.CIFAR10(
         data_dir, False, transform=transforms.ToTensor(), download=True
     )
     test_loader = torch_data.DataLoader(
-        dataset=test_dataset, batch_size=128, shuffle=False
+        dataset=test_dataset, batch_size=len(test_dataset), shuffle=False
     )
-    train_np = np.array(train_loader.dataset)
-    train_plain_data = np.array([t[0].numpy() for t in train_np])
-    train_plain_label = np.array([t[1] for t in train_np])
+    train_data, train_labels = next(iter(train_loader))
+    train_plain_data = train_data.numpy()
+    train_plain_label = train_labels.numpy()
     train_data = FedNdarray(
         partitions={
             alice: alice(lambda x: x[:, :, :, 0:16])(train_plain_data),
@@ -1020,9 +1021,9 @@ def load_cifar10(
         partition_way=PartitionWay.VERTICAL,
     )
     train_label = bob(lambda x: x)(train_plain_label)
-    test_np = np.array(test_loader.dataset)
-    test_plain_data = np.array([t[0].numpy() for t in test_np])
-    test_plain_label = np.array([t[1] for t in test_np])
+    test_data, test_labels = next(iter(test_loader))
+    test_plain_data = test_data.numpy()
+    test_plain_label = test_labels.numpy()
     test_data = FedNdarray(
         partitions={
             alice: alice(lambda x: x[:, :, :, 0:16])(test_plain_data),

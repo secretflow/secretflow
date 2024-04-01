@@ -16,7 +16,7 @@ from secretflow.spec.v1 import component_pb2 as secretflow_dot_spec_dot_v1_dot_c
 from secretflow.spec.v1 import data_pb2 as secretflow_dot_spec_dot_v1_dot_data__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n#secretflow/spec/v1/evaluation.proto\x12\x12secretflow.spec.v1\x1a\"secretflow/spec/v1/component.proto\x1a\x1dsecretflow/spec/v1/data.proto\"\xc3\x01\n\rNodeEvalParam\x12\x0e\n\x06\x64omain\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0f\n\x07version\x18\x03 \x01(\t\x12\x12\n\nattr_paths\x18\x04 \x03(\t\x12,\n\x05\x61ttrs\x18\x05 \x03(\x0b\x32\x1d.secretflow.spec.v1.Attribute\x12,\n\x06inputs\x18\x06 \x03(\x0b\x32\x1c.secretflow.spec.v1.DistData\x12\x13\n\x0boutput_uris\x18\x07 \x03(\t\"?\n\x0eNodeEvalResult\x12-\n\x07outputs\x18\x01 \x03(\x0b\x32\x1c.secretflow.spec.v1.DistDataB+\n\x16\x63om.secretflow.spec.v1B\x0f\x45valuationProtoP\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n#secretflow/spec/v1/evaluation.proto\x12\x12secretflow.spec.v1\x1a\"secretflow/spec/v1/component.proto\x1a\x1dsecretflow/spec/v1/data.proto\"\xdb\x01\n\rNodeEvalParam\x12\x0e\n\x06\x64omain\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0f\n\x07version\x18\x03 \x01(\t\x12\x12\n\nattr_paths\x18\x04 \x03(\t\x12,\n\x05\x61ttrs\x18\x05 \x03(\x0b\x32\x1d.secretflow.spec.v1.Attribute\x12,\n\x06inputs\x18\x06 \x03(\x0b\x32\x1c.secretflow.spec.v1.DistData\x12\x13\n\x0boutput_uris\x18\x07 \x03(\t\x12\x16\n\x0e\x63heckpoint_uri\x18\x08 \x01(\t\"?\n\x0eNodeEvalResult\x12-\n\x07outputs\x18\x01 \x03(\x0b\x32\x1c.secretflow.spec.v1.DistDataB+\n\x16\x63om.secretflow.spec.v1B\x0f\x45valuationProtoP\x01\x62\x06proto3')
 
 
 
@@ -41,7 +41,7 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   DESCRIPTOR._options = None
   DESCRIPTOR._serialized_options = b'\n\026com.secretflow.spec.v1B\017EvaluationProtoP\001'
   _NODEEVALPARAM._serialized_start=127
-  _NODEEVALPARAM._serialized_end=322
-  _NODEEVALRESULT._serialized_start=324
-  _NODEEVALRESULT._serialized_end=387
+  _NODEEVALPARAM._serialized_end=346
+  _NODEEVALRESULT._serialized_start=348
+  _NODEEVALRESULT._serialized_end=411
 # @@protoc_insertion_point(module_scope)

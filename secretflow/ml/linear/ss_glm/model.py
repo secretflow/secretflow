@@ -15,7 +15,7 @@
 import logging
 import math
 import time
-from typing import List, Tuple, Union
+from typing import Callable, Dict, List, NoReturn, Tuple, Union
 
 import jax.numpy as jnp
 import numpy as np
@@ -534,6 +534,9 @@ class SSGLM:
         else:
             raise NotImplementedError("only train/val cache supported")
 
+        if infeed_step in self.batch_cache[cache_name]:
+            return self.batch_cache[cache_name][infeed_step]
+
         x = self._next_infeed_batch(x, infeed_step, samples)
         y = self._next_infeed_batch(y, infeed_step, samples)
 
@@ -555,6 +558,7 @@ class SSGLM:
             spu_w = None
 
         self.batch_cache[cache_name][infeed_step] = (spu_x, spu_y, spu_o, spu_w)
+        return spu_x, spu_y, spu_o, spu_w
 
     def _get_sgd_learning_rate(self, epoch_idx: int):
         if self.decay_rate is not None:
@@ -567,18 +571,18 @@ class SSGLM:
 
     def _epoch(self, spu_model: SPUObject, epoch_idx: int) -> SPUObject:
         dist = self.dist
-        start_mu_slice = None
-        if epoch_idx == 0:
-            y = self.y.partitions[self.y_device]
-            start_mu = self.y_device(
-                lambda dist, y: dist.starting_mu(y).reshape(-1, 1)
-            )(dist, y)
         if epoch_idx < self.irls_epochs:
+            if epoch_idx == 0:
+                y = self.y.partitions[self.y_device]
+                start_mu = self.y_device(
+                    lambda dist, y: dist.starting_mu(y).reshape(-1, 1)
+                )(dist, y)
             for infeed_step in range(self.infeed_total_batch):
+                spu_x, spu_y, spu_o, spu_w = self._build_batch_cache(infeed_step)
                 if epoch_idx == 0:
-                    self._build_batch_cache(infeed_step)
                     start_mu_slice = self._next_infeed_batch(start_mu, infeed_step)
-                spu_x, spu_y, spu_o, spu_w = self.batch_cache["train"][infeed_step]
+                else:
+                    start_mu_slice = None
                 logging.info("irls calculating partials...")
                 new_J, new_XTWZ = self.spu(
                     _irls_calculate_partials,
@@ -622,9 +626,7 @@ class SSGLM:
             )
         else:
             for infeed_step in range(self.infeed_total_batch):
-                if epoch_idx == 0:
-                    self._build_batch_cache(infeed_step)
-                spu_x, spu_y, spu_o, spu_w = self.batch_cache["train"][infeed_step]
+                spu_x, spu_y, spu_o, spu_w = self._build_batch_cache(infeed_step)
                 sgd_lr = self._get_sgd_learning_rate(epoch_idx - self.irls_epochs)
                 spu_model = self._sgd_step(
                     spu_model,
@@ -670,7 +672,6 @@ class SSGLM:
         self,
         stopping_metric: str,
         dist: Distribution,
-        epoch: int,
         dataset_type: str = 'val',
     ):
         assert dataset_type in ['val', 'train']
@@ -681,9 +682,7 @@ class SSGLM:
         )
         samples = self.samples_val if dataset_type == 'val' else self.samples
         assert stopping_metric in SUPPORTED_METRICS
-        if epoch == 0:
-            for infeed_step in range(infeed_total_batch):
-                self._build_batch_cache(infeed_step, cache_name=dataset_type)
+
         y_pred = self._predict_on_dataset(dataset=dataset_type)
 
         if stopping_metric == 'deviance':
@@ -716,7 +715,9 @@ class SSGLM:
                 metric = 0
                 # deviance can be calculated by batches
                 for infeed_step in range(infeed_total_batch):
-                    _, spu_y, _, spu_w = self.batch_cache[dataset_type][infeed_step]
+                    _, spu_y, _, spu_w = self._build_batch_cache(
+                        infeed_step, dataset_type
+                    )
                     spu_y_pred = self._next_infeed_batch(y_pred, infeed_step, samples)
                     spu_y = self.spu(lambda y, scale: y * scale)(spu_y, self.y_scale)
 
@@ -727,6 +728,7 @@ class SSGLM:
                         dist=dist,
                     )
                     metric = self.spu(lambda x, y: x + y)(metric, metric_)
+                    wait(metric)
         # in all other cases, metric can be calculated by y device
         else:
             y = (
@@ -738,14 +740,12 @@ class SSGLM:
                 y, y_pred.to(self.y_device)
             )
         # we have deviced to reveal the metric
-        return reveal(metric)
+        return float(reveal(metric))
 
     def _check_early_stop(
         self,
         stopping_metric,
         stopping_tolerance,
-        old_w,
-        spu_w,
         stopping_rounds,
         dist,
         scale,
@@ -756,19 +756,17 @@ class SSGLM:
         if (
             stopping_metric == "weight"
             and stopping_tolerance > 0
-            and self._convergence(old_w, spu_w, epoch_idx, report_metric)
+            and self._convergence(self.old_w, self.spu_w, epoch_idx, report_metric)
         ):
             logging.info("early stop")
             return True
 
         if stopping_metric != "weight" and stopping_rounds > 0:
-            self.spu_w = spu_w
             start = time.time()
             dist_ = get_dist(dist, scale, power)
             metric = self._metric(
                 stopping_metric,
                 dist_,
-                epoch_idx,
                 dataset_type='val',
             )
 
@@ -776,7 +774,6 @@ class SSGLM:
                 train_metric = self._metric(
                     stopping_metric,
                     dist_,
-                    epoch_idx,
                     dataset_type='train',
                 )
 
@@ -788,16 +785,16 @@ class SSGLM:
             stopped = (
                 False
                 if epoch_idx < stopping_rounds
-                else np.all(self.improvement_history <= stopping_tolerance)
+                else all([i <= stopping_tolerance for i in self.improvement_history])
             )
 
             if self.best_metric is None:
                 self.best_metric = metric
-                self.best_spu_w = spu_w
+                self.best_spu_w = self.spu_w
             else:
                 remain_best = BETTER_DEF[stopping_metric](self.best_metric, metric)
                 self.best_metric = self.best_metric if remain_best else metric
-                self.best_spu_w = self.best_spu_w if remain_best else spu_w
+                self.best_spu_w = self.best_spu_w if remain_best else self.spu_w
             validation_time_cost = time.time() - start
             logging.info(
                 f"epoch {epoch_idx + 1} validation time cost: {validation_time_cost}"
@@ -817,6 +814,51 @@ class SSGLM:
                 )
             return stopped
         return False
+
+    def _epoch_callback(
+        self,
+        epoch_idx: int,
+        epoch_callback: Callable[[int, Tuple[Dict, List[SPUObject]]], NoReturn],
+    ) -> None:
+        train_state = dict()
+        train_state["epoch_idx"] = epoch_idx
+        save_w = [self.spu_w]
+
+        if hasattr(self, "improvement_history"):
+            # metric early stop enabled
+            train_state["improvement_history"] = self.improvement_history
+            train_state["best_metric"] = self.best_metric
+            train_state["best_spu_w"] = len(save_w)
+            save_w.append(self.best_spu_w)
+
+        if hasattr(self, "train_metric_history"):
+            train_state["train_metric_history"] = self.train_metric_history
+
+        train_state["total_w"] = len(save_w)
+
+        logging.info(f"epoch callback dumped checkpoint:\n{train_state}")
+
+        epoch_callback(epoch_idx, (train_state, save_w))
+
+    def _recovery_from_checkpoint(
+        self, recovery_checkpoint: Tuple[Dict, List[SPUObject]]
+    ):
+        train_state, save_w = recovery_checkpoint
+        assert "total_w" in train_state and train_state["total_w"] == len(save_w)
+        self.spu_w = save_w[0]
+
+        if "improvement_history" in train_state:
+            self.improvement_history = train_state["improvement_history"]
+            self.best_metric = train_state["best_metric"]
+            self.best_spu_w = save_w[train_state["best_spu_w"]]
+
+        if "train_metric_history" in train_state:
+            self.train_metric_history = train_state["train_metric_history"]
+
+        assert "epoch_idx" in train_state
+
+        logging.info(f"recovered from checkpoint:\n{train_state}")
+        return train_state["epoch_idx"] + 1
 
     def _fit(
         self,
@@ -843,6 +885,8 @@ class SSGLM:
         stopping_tolerance: float = 0.001,
         report_metric: bool = False,
         random_state: int = 1212,
+        epoch_callback: Callable[[int, Tuple[Dict, List[SPUObject]]], NoReturn] = None,
+        recovery_checkpoint: Tuple[Dict, List[SPUObject]] = None,
     ) -> None:
         self._pre_check(
             x,
@@ -868,28 +912,31 @@ class SSGLM:
             random_state,
         )
 
-        spu_w = None
+        self.spu_w = None
 
         self.batch_cache = {"train": {}, "val": {}}
         if report_metric:
             self.train_metric_history = []
 
         if stopping_rounds > 0 and stopping_metric != "weight":
-            self.improvement_history = np.zeros((stopping_rounds,))
+            self.improvement_history = [0] * stopping_rounds
             self.best_metric = None
             self.best_spu_w = None
 
-        for epoch_idx in range(self.epochs):
+        if recovery_checkpoint:
+            start_idx = self._recovery_from_checkpoint(recovery_checkpoint)
+        else:
+            start_idx = 0
+
+        for epoch_idx in range(start_idx, self.epochs):
             start = time.time()
-            old_w = spu_w
-            spu_w = self._epoch(spu_w, epoch_idx)
-            wait([spu_w])
+            self.old_w = self.spu_w
+            self.spu_w = self._epoch(self.spu_w, epoch_idx)
+            wait([self.spu_w])
             logging.info(f"epoch {epoch_idx + 1} train times: {time.time() - start}s")
             stopped = self._check_early_stop(
                 stopping_metric,
                 stopping_tolerance,
-                old_w,
-                spu_w,
                 stopping_rounds,
                 dist,
                 scale,
@@ -900,11 +947,12 @@ class SSGLM:
             if stopped:
                 # not improving by tolerance for all stopping_rounds, stop!
                 logging.info("early stop triggered")
-                spu_w = self.best_spu_w
+                self.spu_w = self.best_spu_w
                 break
+            if epoch_callback:
+                self._epoch_callback(epoch_idx, epoch_callback)
 
         self.batch_cache = {"train": {}, "val": {}}
-        self.spu_w = spu_w
 
     def fit_irls(
         self,
@@ -926,6 +974,8 @@ class SSGLM:
         stopping_rounds: int = 0,
         stopping_tolerance: float = 0.001,
         report_metric: bool = False,
+        epoch_callback: Callable[[int, Tuple[Dict, List[SPUObject]]], NoReturn] = None,
+        recovery_checkpoint: Tuple[Dict, List[SPUObject]] = None,
     ) -> None:
         """
         Fit the model by IRLS(Iteratively reweighted least squares).
@@ -970,6 +1020,8 @@ class SSGLM:
             for 'weight' stopping metric, stopping_rounds is fixed to be 1
             stopping_tolerance: float, default=0.001. the model is considered as not improving, if the metric is not improved by tolerance over best metric in history.
             report_metric: bool, default=False. Whether to report the value of stopping metric. Not effective for weight change rate.
+            epoch_callback: callable, default=None. It will be called once at the end of each epoch, and the parameters are epoch count and internal state and model at the end of this epoch.
+            recovery_checkpoint: Tuple[Dict, SPUObject], default=None. Use saved internal state and model to warm start training.
         """
         self._fit(
             x,
@@ -989,6 +1041,8 @@ class SSGLM:
             stopping_rounds=stopping_rounds,
             stopping_tolerance=stopping_tolerance,
             report_metric=report_metric,
+            epoch_callback=epoch_callback,
+            recovery_checkpoint=recovery_checkpoint,
         )
 
     def fit_sgd(
@@ -1015,6 +1069,8 @@ class SSGLM:
         stopping_rounds: int = 0,
         stopping_tolerance: float = 0.001,
         report_metric: bool = False,
+        epoch_callback: Callable[[int, Tuple[Dict, List[SPUObject]]], NoReturn] = None,
+        recovery_checkpoint: Tuple[Dict, List[SPUObject]] = None,
     ) -> None:
         """
         Fit the model by SGD(stochastic gradient descent).
@@ -1060,6 +1116,8 @@ class SSGLM:
             for 'weight' stopping metric, stopping_rounds is fixed to be 1.
             stopping_tolerance: float, default=0.001. the model will stop if the ratio between the best moving average and reference moving average is less than 1 - tolerance
             report_metric: bool, default=False. Whether to report the value of stopping metric. Not effective for weight change rate.
+            epoch_callback: callable, default=None. It will be called once at the end of each epoch, and the parameters are epoch count and internal state and model at the end of this epoch.
+            recovery_checkpoint: Tuple[Dict, SPUObject], default=None. Use saved internal state and model to warm start training.
         """
         self._fit(
             x,
@@ -1084,6 +1142,8 @@ class SSGLM:
             stopping_rounds=stopping_rounds,
             stopping_tolerance=stopping_tolerance,
             report_metric=report_metric,
+            epoch_callback=epoch_callback,
+            recovery_checkpoint=recovery_checkpoint,
         )
 
     def _predict_on_dataset(self, dataset: str = 'val') -> Union[SPUObject, PYUObject]:
@@ -1098,10 +1158,9 @@ class SSGLM:
 
         spu_preds = []
         for infeed_step in range(infeed_total_batch):
-            assert (
-                infeed_step in self.batch_cache[dataset]
-            ), f'{dataset} batch {infeed_step} not found'
-            spu_x, _, spu_o, _ = self.batch_cache[dataset][infeed_step]
+            spu_x, _, spu_o, _ = self._build_batch_cache(
+                infeed_step, cache_name=dataset
+            )
             spu_pred = self.spu(
                 _predict_on_padded_array,
                 static_argnames=('link', 'y_scale'),
@@ -1112,6 +1171,7 @@ class SSGLM:
                 y_scale=self.y_scale,
                 link=self.link,
             )
+            wait(spu_pred)
             spu_preds.append(spu_pred)
 
         pred = self.spu(lambda p: jnp.concatenate(p, axis=0))(spu_preds)

@@ -22,6 +22,7 @@ import subprocess
 import tempfile
 import time
 import urllib
+import uuid
 from dataclasses import dataclass
 
 import multiprocess
@@ -496,7 +497,7 @@ TEST_STORAGE_ROOT = os.path.join(tempfile.gettempdir(), getpass.getuser())
 
 
 def prepare_storage_path(party):
-    storage_path = os.path.join(TEST_STORAGE_ROOT, party)
+    storage_path = os.path.join(TEST_STORAGE_ROOT, party, str(uuid.uuid4()))
     os.makedirs(storage_path, exist_ok=True)
     return storage_path
 

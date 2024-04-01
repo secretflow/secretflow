@@ -26,21 +26,22 @@ from secretflow.device import PYU, PYUObject, reveal, wait
 
 def binning_rules_to_sc(rules: Dict, input_schema: Dict[str, np.dtype]) -> sc.Table:
     rules = {v['name']: v for v in rules["variables"]}
-    assert set(rules).issubset(set(input_schema))
-
     table = Table.from_schema(input_schema)
 
     for v in rules:
-        col = table.column(v)
         rule = rules[v]
         conds = []
         if rule["type"] == "string":
+            assert v in input_schema
+            col = table.column(v)
             conds = [sc.equal(col, c) for c in rule["categories"]]
         else:
             split_points = rule["split_points"]
             if len(split_points) == 0:
                 conds = []
             else:
+                assert v in input_schema
+                col = table.column(v)
                 conds = [sc.less_equal(col, c) for c in split_points]
                 conds.append(sc.greater(col, split_points[-1]))
 

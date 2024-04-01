@@ -216,11 +216,14 @@ class LocalStorageImpl(StorageImplBase):
         return ret
 
 
+SUPPORTED_STORAGE = {
+    "s3": S3StorageImpl,
+    "local_fs": LocalStorageImpl,
+}
+
+
 def BuildStorageImpl(config: StorageConfig) -> StorageImplBase:
-    if config.type.lower() == "s3":
-        return S3StorageImpl(config)
-    elif config.type.lower() == "local_fs":
-        return LocalStorageImpl(config)
-    else:
-        # TODO: kuscia data proxy impl
-        raise AttributeError(f"unsupported StorageConfig type {config.type}")
+    s_type = config.type.lower()
+    assert s_type in SUPPORTED_STORAGE, f"unsupported StorageConfig type {config.type}"
+
+    return SUPPORTED_STORAGE[s_type](config)

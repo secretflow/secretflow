@@ -34,7 +34,7 @@ from secretflow.spec.v1.data_pb2 import DistData, IndividualTable, VerticalTable
 psi_comp = Component(
     "psi",
     domain="data_prep",
-    version="0.0.2",
+    version="0.0.3",
     desc="PSI between two parties.",
 )
 psi_comp.str_attr(
@@ -66,33 +66,34 @@ psi_comp.bool_attr(
     is_optional=True,
     default_value=False,
 )
-# temporally dsiabled since fillna component is not ready for integer NA values.
-# psi_comp.str_attr(
-#     name="advanced_join_type",
-#     desc="Advanced Join allow duplicate keys. ",
-#     is_list=False,
-#     is_optional=True,
-#     default_value="ADVANCED_JOIN_TYPE_UNSPECIFIED",
-#     allowed_values=[
-#         'ADVANCED_JOIN_TYPE_UNSPECIFIED',
-#         'ADVANCED_JOIN_TYPE_INNER_JOIN',
-#         'ADVANCED_JOIN_TYPE_LEFT_JOIN',
-#         'ADVANCED_JOIN_TYPE_RIGHT_JOIN',
-#         'ADVANCED_JOIN_TYPE_FULL_JOIN',
-#         'ADVANCED_JOIN_TYPE_DIFFERENCE',
-#     ],
-# )
-# psi_comp.str_attr(
-#     name="left_side",
-#     desc="Required if advanced_join_type is selected.",
-#     is_list=False,
-#     is_optional=True,
-#     default_value="ROLE_RECEIVER",
-#     allowed_values=[
-#         "ROLE_RECEIVER",
-#         "ROLE_SENDER",
-#     ],
-# )
+psi_comp.party_attr(
+    name="left_side", desc="Required if advanced_join_type is selected."
+)
+psi_comp.str_attr(
+    name="join_type",
+    desc="Advanced Join types allow duplicate keys.",
+    is_list=False,
+    is_optional=True,
+    default_value="ADVANCED_JOIN_TYPE_UNSPECIFIED",
+    allowed_values=[
+        "ADVANCED_JOIN_TYPE_UNSPECIFIED",
+        "ADVANCED_JOIN_TYPE_INNER_JOIN",
+        "ADVANCED_JOIN_TYPE_LEFT_JOIN",
+        "ADVANCED_JOIN_TYPE_RIGHT_JOIN",
+        "ADVANCED_JOIN_TYPE_FULL_JOIN",
+        "ADVANCED_JOIN_TYPE_DIFFERENCE",
+    ],
+)
+psi_comp.str_attr(
+    name="missing_value",
+    desc="Missing value for some advanced join types.",
+    is_list=False,
+    is_optional=True,
+    default_value="NA",
+    allowed_values=[
+        "NA",
+    ],
+)
 psi_comp.str_attr(
     name="ecdh_curve",
     desc="Curve type for ECDH PSI.",
@@ -188,6 +189,9 @@ def two_party_balanced_psi_eval_fn(
     skip_duplicates_check,
     check_hash_digest,
     ecdh_curve,
+    join_type,
+    left_side,
+    missing_value,
     receiver_input,
     receiver_input_key,
     sender_input,
@@ -199,6 +203,13 @@ def two_party_balanced_psi_eval_fn(
     receiver_party = list(receiver_path_format.keys())[0]
     sender_path_format = extract_distdata_info(sender_input)
     sender_party = list(sender_path_format.keys())[0]
+
+    assert left_side[0] in [
+        receiver_party,
+        sender_party,
+    ], f'left side {left_side[0]} is invalid.'
+
+    assert missing_value == 'NA'
 
     if ctx.spu_configs is None or len(ctx.spu_configs) == 0:
         raise CompEvalError("spu config is not found.")
@@ -240,6 +251,10 @@ def two_party_balanced_psi_eval_fn(
             broadcast_result=True,
             protocol=protocol,
             ecdh_curve=ecdh_curve,
+            advanced_join_type=join_type,
+            left_side=(
+                'ROLE_RECEIVER' if left_side[0] == receiver_party else 'ROLE_SENDER'
+            ),
             skip_duplicates_check=skip_duplicates_check,
             disable_alignment=disable_alignment,
             check_hash_digest=check_hash_digest,

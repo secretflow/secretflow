@@ -13,9 +13,10 @@
 # limitations under the License.
 
 import json
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 from secretflow.component.component import (
+    CompCheckpoint,
     CompEvalError,
     Component,
     IoType,
@@ -31,6 +32,7 @@ from secretflow.component.data_utils import (
 from secretflow.device.device.pyu import PYU
 from secretflow.device.device.spu import SPU, SPUObject
 from secretflow.ml.linear import LinearModel, RegType, SSRegression
+from secretflow.spec.v1.data_pb2 import DistData
 from secretflow.utils.sigmoid import SigType
 
 ss_sgd_train_comp = Component(
@@ -147,6 +149,62 @@ MODEL_MAX_MAJOR_VERSION = 0
 MODEL_MAX_MINOR_VERSION = 1
 
 
+@ss_sgd_train_comp.enable_checkpoint
+class SSSGDCheckpoint(CompCheckpoint):
+    def associated_arg_names(self) -> List[str]:
+        return [
+            "epochs",
+            "learning_rate",
+            "batch_size",
+            "sig_type",
+            "reg_type",
+            "penalty",
+            "l2_norm",
+            "eps",
+            "train_dataset",
+            "train_dataset_feature_selects",
+            "train_dataset_label",
+        ]
+
+
+def load_ss_sgd_checkpoint(
+    ctx,
+    cp: DistData,
+    spu: SPU,
+) -> Tuple[Dict, List[SPUObject]]:
+    spu_objs, model_meta_str = model_loads(
+        ctx,
+        cp,
+        MODEL_MAX_MAJOR_VERSION,
+        MODEL_MAX_MINOR_VERSION,
+        DistDataType.SS_SGD_CHECKPOINT,
+        spu=spu,
+    )
+    train_state = json.loads(model_meta_str)
+
+    return train_state, spu_objs
+
+
+def dump_ss_sgd_checkpoint(
+    ctx,
+    uri: str,
+    epoch_checkpoint: Tuple[Dict, List[SPUObject]],
+    system_info,
+) -> DistData:
+    train_state, spu_objs = epoch_checkpoint
+    return model_dumps(
+        ctx,
+        "ss_sgd",
+        DistDataType.SS_SGD_CHECKPOINT,
+        MODEL_MAX_MAJOR_VERSION,
+        MODEL_MAX_MINOR_VERSION,
+        spu_objs,
+        json.dumps(train_state),
+        uri,
+        system_info,
+    )
+
+
 @ss_sgd_train_comp.eval_fn
 def ss_sgd_train_eval_fn(
     *,
@@ -172,6 +230,12 @@ def ss_sgd_train_eval_fn(
 
     spu = SPU(spu_config["cluster_def"], spu_config["link_desc"])
 
+    checkpoint = None
+    if ctx.comp_checkpoint:
+        cp_dd = ctx.comp_checkpoint.load()
+        if cp_dd:
+            checkpoint = load_ss_sgd_checkpoint(ctx, cp_dd, spu)
+
     reg = SSRegression(spu)
 
     assert len(train_dataset_label) == 1
@@ -195,6 +259,13 @@ def ss_sgd_train_eval_fn(
         col_selects=train_dataset_feature_selects,
     )
 
+    def epoch_callback(epoch, check_point: Tuple[Dict, List[SPUObject]]):
+        cp_uri = f"{output_model}_checkpoint_{epoch}"
+        cp_dd = dump_ss_sgd_checkpoint(
+            ctx, cp_uri, check_point, train_dataset.system_info
+        )
+        ctx.comp_checkpoint.save(epoch, cp_dd)
+
     with ctx.tracer.trace_running():
         reg.fit(
             x=x,
@@ -207,6 +278,8 @@ def ss_sgd_train_eval_fn(
             penalty=penalty,
             l2_norm=l2_norm,
             eps=eps,
+            epoch_callback=epoch_callback if ctx.comp_checkpoint else None,
+            recovery_checkpoint=checkpoint,
         )
 
     model = reg.save_model()

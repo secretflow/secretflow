@@ -57,7 +57,10 @@ def cut_vdata(
     pad_ones: bool = False,
 ):
     if isinstance(vdf, VDataFrame):
-        vdf = [part.data for part in vdf.partitions.values()]
+        vdf = [
+            part.data.device(lambda x: x.to_numpy())(part.data)
+            for part in vdf.partitions.values()
+        ]
     assert isinstance(vdf, list), f"{vdf}"
     assert len(vdf) > 0
     assert isinstance(vdf[0], PYUObject), "only support pyu object now"

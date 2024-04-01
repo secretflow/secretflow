@@ -159,19 +159,7 @@ def keras_model_with_mnist(
             random_seed=1234,
             dataset_builder=dataset_builder,
         )
-        loss_sum = 0
-        for device, worker in sl_model._workers.items():
-            if device not in base_model_dict:
-                continue
-            loss = reveal(worker.get_base_losses())
-            if len(loss) > 0:
-                import tensorflow as tf
-
-                loss_sum += tf.add_n(loss).numpy()
-        if loss_sum != 0:
-            assert math.isclose(zero_metric['loss'], loss_sum, rel_tol=0.01)
-        else:
-            assert zero_metric['loss'] == 0.0
+        assert zero_metric['loss'] == 0.0
 
     result = sl_model.predict(data, batch_size=128, verbose=1)
     reveal_result = []

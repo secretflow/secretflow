@@ -16,12 +16,12 @@ import json
 from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import (
     DistDataType,
+    SimpleVerticalBatchReader,
     get_model_public_info,
     load_table,
     model_dumps,
     model_loads,
     save_prediction_dd,
-    SimpleVerticalBatchReader,
 )
 from secretflow.device.device.heu import heu_from_base_config
 from secretflow.device.device.pyu import PYU
@@ -260,7 +260,7 @@ sgb_train_comp.str_attr(
 
 sgb_train_comp.bool_attr(
     name="enable_monitor",
-    desc="Whether to enable monitering performance during training.",
+    desc="Whether to enable monitoring performance during training.",
     is_list=False,
     is_optional=True,
     default_value=False,
@@ -285,7 +285,7 @@ sgb_train_comp.str_attr(
 
 sgb_train_comp.float_attr(
     name="validation_fraction",
-    desc="Early stop specific paramter. Only effective if early stop enabled. The fraction of samples to use as validation set.",
+    desc="Early stop specific parameter. Only effective if early stop enabled. The fraction of samples to use as validation set.",
     is_list=False,
     is_optional=True,
     default_value=0.1,
@@ -297,7 +297,7 @@ sgb_train_comp.float_attr(
 
 sgb_train_comp.int_attr(
     name="stopping_rounds",
-    desc="""Early stop specific paramter. If more than `stopping_rounds` consecutive rounds without improvement, training will stop.
+    desc="""Early stop specific parameter. If more than `stopping_rounds` consecutive rounds without improvement, training will stop.
     Only effective if early stop enabled""",
     is_list=False,
     is_optional=True,
@@ -310,7 +310,7 @@ sgb_train_comp.int_attr(
 
 sgb_train_comp.float_attr(
     name="stopping_tolerance",
-    desc="Early stop specific paramter. If metric on validation set is no longer improving by at least this amount, ten consider not improving.",
+    desc="Early stop specific parameter. If metric on validation set is no longer improving by at least this amount, then consider not improving.",
     is_list=False,
     is_optional=True,
     default_value=0.0,
