@@ -74,13 +74,44 @@ sleep 10s
 
 echo -e "Building ${GREEN}${IMAGE_TAG}${NO_COLOR}"
 (cd ../ && cp *.yml release/ && cp *.json release/)
-docker build . -f anolis.Dockerfile -t ${IMAGE_TAG} --build-arg sf_version=${VERSION} --build-arg config_templates="$(cat config_templates.yml)" --build-arg deploy_templates="$(cat deploy_templates.yml)" --build-arg comp_list="$(cat comp_list.json)" --build-arg translation="$(cat translation.json)"
-echo -e "Finish building ${GREEN}${IMAGE_TAG}${NO_COLOR}"
-docker push ${IMAGE_TAG}
+# 启用或切换到特定的 docker buildx 构建器（如果尚未创建，请先创建）
+docker buildx create --name mybuilder
+docker buildx use mybuilder
 
-echo -e "Building ${GREEN}${IMAGE_LITE_TAG}${NO_COLOR}"
-docker build . -f anolis-lite.Dockerfile -t ${IMAGE_LITE_TAG} --build-arg sf_version=${VERSION} --build-arg config_templates="$(cat config_templates.yml)" --build-arg deploy_templates="$(cat deploy_templates.yml)" --build-arg comp_list="$(cat comp_list.json)" --build-arg translation="$(cat translation.json)"
-echo -e "Finish building ${GREEN}${IMAGE_LITE_TAG}${NO_COLOR}"
+# 设置环境变量
+
+# 构建多平台镜像
+docker buildx build \
+  --platform linux/arm64,linux/amd64 \
+  -f anolis.Dockerfile \
+  -t ${IMAGE_TAG} \
+  --build-arg sf_version=${VERSION} \
+  --build-arg config_templates="$(cat config_templates.yml)" \
+  --build-arg deploy_templates="$(cat deploy_templates.yml)" \
+  --build-arg comp_list="$(cat comp_list.json)" \
+  --build-arg translation="$(cat translation.json)" \
+  .
+
+# 输出构建完成信息
+echo -e "Finish building ${GREEN}${IMAGE_TAG} for linux/arm64 and linux/amd64${NO_COLOR}"
+
+# 构建多平台镜像
+docker buildx build \
+  --platform linux/arm64,linux/amd64 \
+  -f anolis-lite.Dockerfile . \
+  -t ${IMAGE_LITE_TAG} \
+  --build-arg sf_version=${VERSION} \
+  --build-arg config_templates="$(cat config_templates.yml)" \
+  --build-arg deploy_templates="$(cat deploy_templates.yml)" \
+  --build-arg comp_list="$(cat comp_list.json)" \
+  --build-arg translation="$(cat translation.json)" \
+  .
+
+# 输出构建完成信息
+echo -e "Finish building ${GREEN}${IMAGE_LITE_TAG} for linux/arm64 and linux/amd64${NO_COLOR}"
+
+# 推送多平台镜像到 Docker Hub 或其他仓库
+docker push ${IMAGE_TAG}
 docker push ${IMAGE_LITE_TAG}
 
 if [[ LATEST -eq 1 ]]; then
