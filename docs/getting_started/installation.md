@@ -244,11 +244,11 @@ docker build -f  secretflow-gpu.Dockerfile -t secretflow-gpu .
 1. Run a container
 
 ```bash
-docker container run --runtime=nvidia  -it --gpus all secretflow-gpu bash
+docker run -it --gpus all secretflow-gpu bash
 ```
 
 > **NOTE**: The following two parameters are necessary:
-> - `--runtime=nvidia`
+> - You should install `nvidia-container-toolkit` and restart docker daemon to enable GPU support.
 > - `--gpus all`
 
 2. After the container is running, you can use the jupyter notebook [GPU Check](../tutorial/GPU_check.ipynb) to check the access of Tensorflow and PyTorch for NVIDIA GPUs inside the container.
