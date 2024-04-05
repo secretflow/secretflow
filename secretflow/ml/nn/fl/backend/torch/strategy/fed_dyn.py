@@ -10,7 +10,7 @@ from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
 
 class FedDYN(BaseTorchModel):
     def initialize(self, *args, **kwargs):
-        self.gradL = self.model.get_gradients()  # client gradient
+        self.grad_l = self.model.get_gradients()  # client gradient
         self.alpha = 0.1  # FedDYN algorithm hyperparameters, can be selected from [0.1, 0.01, 0.001]
 
     def train_step(
