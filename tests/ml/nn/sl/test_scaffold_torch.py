@@ -39,24 +39,24 @@ class TestScaffold(unittest.TestCase):
         # Initialize Scaffold strategy with ConvNet model
         class ConvNetBuilder:
             def __init__(self):
-                # 初始化时，定义一个空的指标列表
+                # Initialize with an empty indicator list
                 self.metrics = [
                     lambda: Accuracy(task="multiclass", num_classes=10, average="macro")
                 ]
 
             def model_fn(self):
-                # 返回 ConvNet 模型的实例
+                # Return an instance of the ConvNet model
                 return My_Model()
 
             def loss_fn(self):
-                # 返回损失函数
+                # Return the loss
                 return CrossEntropyLoss()
 
             def optim_fn(self, parameters):
-                # 返回优化器
+                # Return optim
                 return optim.Adam(parameters)
 
-        # 使用 ConvNetBuilder 初始化 FedPer
+        # Initialize Scaffold strategy with ConvNet model
         conv_net_builder = ConvNetBuilder()
         scaffold_worker = Scaffold(builder_base=conv_net_builder)
 
