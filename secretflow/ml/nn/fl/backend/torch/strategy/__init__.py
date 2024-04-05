@@ -18,7 +18,11 @@ from .fed_avg_w import PYUFedAvgW
 from .fed_prox import PYUFedProx
 from .fed_scr import PYUFedSCR
 from .fed_stc import PYUFedSTC
+<<<<<<< HEAD
 from .scaffold import PYUScaffold
+=======
+from .fed_dyn import PYUFedDYN
+>>>>>>> d00395049371d51ac8c100c6982bbef3e302be57
 
 __all__ = [
     'PYUFedAvgW',
@@ -27,5 +31,9 @@ __all__ = [
     'PYUFedProx',
     'PYUFedSCR',
     'PYUFedSTC',
+<<<<<<< HEAD
     'PYUScaffold',
+=======
+    'PYUFedDYN',
+>>>>>>> d00395049371d51ac8c100c6982bbef3e302be57
 ]
