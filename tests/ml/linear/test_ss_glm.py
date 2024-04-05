@@ -1,9 +1,23 @@
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import copy
 import logging
 import time
 
 import numpy as np
 from sklearn.preprocessing import StandardScaler
-import copy
 
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.device.driver import reveal, wait
@@ -44,9 +58,11 @@ def _run_test(
         iter_start_irls=1,
         batch_size=batch_size,
         l2_lambda=l2_lambda,
+        stopping_rounds=0,
     )
     logging.info(f"{test_name} sgb train time: {time.time() - start}")
     start = time.time()
+
     spu_yhat = model.predict(v_data)
     yhat = reveal(spu_yhat)
     assert yhat.shape[0] == y.shape[0], f"{yhat.shape} == {y.shape}"
@@ -55,17 +71,21 @@ def _run_test(
     # deviance = get_dist(dist, 1, 1).deviance(yhat, y, None)
     logging.info(f"{test_name} deviance: {deviance}")
 
+    start = time.time()
     model.fit_irls(
         v_data,
         label_data_copy,
         None,
         None,
-        3,
+        10,
         link,
         dist,
         1,
         1,
         l2_lambda=l2_lambda,
+        stopping_rounds=1,
+        stopping_tolerance=0.001,
+        report_metric=False,
     )
     logging.info(f"{test_name} irls train time: {time.time() - start}")
     start = time.time()

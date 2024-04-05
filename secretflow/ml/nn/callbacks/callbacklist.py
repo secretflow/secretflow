@@ -32,18 +32,18 @@ class CallbackList:
         add_progbar=False,
         **kwargs,
     ):
+        if isinstance(callbacks, CallbackList):
+            raise RuntimeError("Cannot set a CallbackList to CallbaskList.")
         if callbacks is None:
             self.callbacks: List[Callback] = []
+        elif isinstance(callbacks, List):
+            self.callbacks = callbacks.copy()
         else:
-            self.callbacks: List[Callback] = (
-                callbacks if isinstance(callbacks, List) else [callbacks]
-            )
+            self.callbacks = [callbacks]
 
         # callbacks status
         self.stop_training = [False]
         self.history = {}
-        if isinstance(callbacks, CallbackList):
-            raise RuntimeError("Cannot set a CallbackList to CallbaskList.")
 
         if add_progbar:
             self.callbacks.append(Progbar())
@@ -53,7 +53,6 @@ class CallbackList:
                     history=self.history,
                 )
             )
-
         # for early stopping
         for callback in self.callbacks:
             if isinstance(callback, EarlyStoppingBase):
@@ -140,42 +139,50 @@ class CallbackList:
         for callback in self.callbacks:
             callback.on_predict_batch_end(batch)
 
-    def before_agglayer(self):
+    def on_agglayer_forward_begin(self, hiddens=None):
         for callback in self.callbacks:
-            callback.before_agglayer()
+            callback.on_agglayer_forward_begin(hiddens=hiddens)
 
-    def after_agglayer(self, scatter_gradients):
+    def on_agglayer_forward_end(self, hiddens=None):
         for callback in self.callbacks:
-            callback.after_agglayer(scatter_gradients)
+            callback.on_agglayer_forward_end(hiddens=hiddens)
 
-    def before_agglayer_forward(self, hiddens=None):
+    def on_agglayer_backward_begin(self, gradients=None):
         for callback in self.callbacks:
-            callback.before_agglayer_forward(hiddens=hiddens)
+            callback.on_agglayer_backward_begin(gradients=gradients)
 
-    def after_agglayer_forward(self, hiddens=None):
+    def on_agglayer_backward_end(self, gradients=None):
         for callback in self.callbacks:
-            callback.after_agglayer_forward(hiddens=hiddens)
+            callback.on_agglayer_backward_end(gradients=gradients)
 
-    def before_agglayer_backward(self, gradients=None):
+    def on_base_forward_begin(self):
         for callback in self.callbacks:
-            callback.before_agglayer_backward(gradients=gradients)
+            callback.on_base_forward_begin()
 
-    def after_agglayer_backward(self, gradients=None):
+    def on_base_forward_end(self):
         for callback in self.callbacks:
-            callback.after_agglayer_backward(gradients=gradients)
+            callback.on_base_forward_end()
 
-    def on_before_base_forward(self):
+    def on_base_backward_begin(self):
         for callback in self.callbacks:
-            callback.on_before_base_forward()
+            callback.on_base_backward_begin()
 
-    def on_after_base_forward(self):
+    def on_base_backward_end(self):
         for callback in self.callbacks:
-            callback.on_after_base_forward()
+            callback.on_base_backward_end()
 
-    def on_before_fuse_net(self):
+    def on_fuse_forward_begin(self):
         for callback in self.callbacks:
-            callback.on_before_fuse_net()
+            callback.on_fuse_forward_begin()
 
-    def on_after_fuse_net(self):
+    def on_fuse_forward_end(self):
         for callback in self.callbacks:
-            callback.on_after_fuse_net()
+            callback.on_fuse_forward_end()
+
+    def on_fuse_backward_begin(self):
+        for callback in self.callbacks:
+            callback.on_fuse_backward_begin()
+
+    def on_fuse_backward_end(self):
+        for callback in self.callbacks:
+            callback.on_fuse_backward_end()

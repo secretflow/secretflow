@@ -21,15 +21,35 @@ from secretflow.utils.communicate import ForwardData
 
 
 class SLBaseModel(ABC):
-    def __init__(self):
+    def __init__(self, **kwargs):
+        self.use_base_loss = kwargs.get("use_base_loss", False)
+
+    @abstractmethod
+    def base_forward(self, stage: str = 'train', **kwargs):
         pass
 
     @abstractmethod
-    def base_forward(self, stage: str, **kwargs):
+    def reset_data_iter(self, stage='train'):
         pass
 
     @abstractmethod
-    def base_backward(self, gradient):
+    def get_gradients(self):
+        pass
+
+    @abstractmethod
+    def set_gradients(self, gradients):
+        pass
+
+    @abstractmethod
+    def get_batch_data(self, stage="train", epoch=0):
+        pass
+
+    @abstractmethod
+    def pack_forward_data(self):
+        pass
+
+    @abstractmethod
+    def base_backward(self):
         pass
 
     @abstractmethod

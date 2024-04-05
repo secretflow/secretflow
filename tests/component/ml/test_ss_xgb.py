@@ -1,15 +1,27 @@
-import os
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import pandas as pd
 from sklearn.datasets import load_breast_cancer
 from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import StandardScaler
-from tests.conftest import TEST_STORAGE_ROOT
 
 from secretflow.component.ml.boost.ss_xgb.ss_xgb import (
     ss_xgb_predict_comp,
     ss_xgb_train_comp,
 )
+from secretflow.component.storage import ComponentStorage
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
@@ -23,29 +35,20 @@ def test_ss_xgb(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    local_fs_wd = storage_config.local_fs.wd
+    comp_storage = ComponentStorage(storage_config)
 
     scaler = StandardScaler()
     ds = load_breast_cancer()
     x, y = scaler.fit_transform(ds["data"]), ds["target"]
     if self_party == "alice":
-        os.makedirs(
-            os.path.join(local_fs_wd, "test_ss_xgb"),
-            exist_ok=True,
-        )
         x = pd.DataFrame(x[:, :15], columns=[f"a{i}" for i in range(15)])
         y = pd.DataFrame(y, columns=["y"])
         ds = pd.concat([x, y], axis=1)
-        ds.to_csv(os.path.join(local_fs_wd, alice_path), index=False)
+        ds.to_csv(comp_storage.get_writer(alice_path), index=False)
 
     elif self_party == "bob":
-        os.makedirs(
-            os.path.join(local_fs_wd, "test_ss_xgb"),
-            exist_ok=True,
-        )
-
         ds = pd.DataFrame(x[:, 15:], columns=[f"b{i}" for i in range(15)])
-        ds.to_csv(os.path.join(local_fs_wd, bob_path), index=False)
+        ds.to_csv(comp_storage.get_writer(bob_path), index=False)
 
     train_param = NodeEvalParam(
         domain="ml.train",
@@ -120,11 +123,13 @@ def test_ss_xgb(comp_prod_sf_cluster_config):
             "receiver",
             "save_ids",
             "save_label",
+            "input/feature_dataset/saved_features",
         ],
         attrs=[
             Attribute(s="alice"),
             Attribute(b=False),
             Attribute(b=True),
+            Attribute(ss=["a2", "a10"]),
         ],
         inputs=[
             train_res.outputs[0],
@@ -163,13 +168,15 @@ def test_ss_xgb(comp_prod_sf_cluster_config):
 
     assert len(predict_res.outputs) == 1
 
-    input_y = pd.read_csv(os.path.join(TEST_STORAGE_ROOT, "alice", alice_path))
-    output_y = pd.read_csv(os.path.join(TEST_STORAGE_ROOT, "alice", predict_path))
+    if "alice" == sf_cluster_config.private_config.self_party:
+        comp_storage = ComponentStorage(storage_config)
+        input_y = pd.read_csv(comp_storage.get_reader(alice_path))
+        output_y = pd.read_csv(comp_storage.get_reader(predict_path))
 
-    # label & pred
-    assert output_y.shape[1] == 2
+        # label & pred
+        assert output_y.shape[1] == 4
 
-    assert input_y.shape[0] == output_y.shape[0]
+        assert input_y.shape[0] == output_y.shape[0]
 
-    auc = roc_auc_score(input_y["y"], output_y["pred"])
-    assert auc > 0.99, f"auc {auc}"
+        auc = roc_auc_score(input_y["y"], output_y["pred"])
+        assert auc > 0.99, f"auc {auc}"

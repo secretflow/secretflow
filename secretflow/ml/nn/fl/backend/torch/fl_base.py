@@ -23,17 +23,18 @@ import pandas as pd
 import torch
 import torchmetrics
 
+from secretflow.ml.nn.core.torch import BuilderType, module
 from secretflow.ml.nn.fl.backend.torch.sampler import sampler_data
 from secretflow.ml.nn.metrics import Default, Mean, Precision, Recall
-from secretflow.ml.nn.utils import TorchModel
 from secretflow.utils.io import rows_count
 
 
 class BaseTorchModel(ABC):
     def __init__(
         self,
-        builder_base: Callable[[], TorchModel],
+        builder_base: BuilderType,
         random_seed: int = None,
+        skip_bn: bool = False,
         **kwargs,
     ):
         self.train_data_loader = None
@@ -47,27 +48,13 @@ class BaseTorchModel(ABC):
         self.history = {}
         self.train_set = None
         self.eval_set = None
+        self.skip_bn = skip_bn
         if random_seed is not None:
             torch.manual_seed(random_seed)
         assert builder_base is not None, "Builder_base cannot be none"
-        self.model = (
-            builder_base.model_fn() if builder_base.model_fn is not None else None
-        )
-        self.loss = builder_base.loss_fn() if builder_base.loss_fn is not None else None
-        self.optimizer = (
-            builder_base.optim_fn(self.model.parameters())
-            if builder_base.optim_fn is not None
-            else None
-        )
         self.use_gpu = kwargs.get("use_gpu", False)
-        self.metrics = (
-            [m() for m in builder_base.metrics]
-            if builder_base.metrics is not None
-            else None
-        )
         self.exe_device = torch.device('cuda') if self.use_gpu else torch.device('cpu')
-        if self.use_gpu:
-            self.model = self.model.to(self.exe_device)
+        self.model = module.build(builder_base, self.exe_device)
 
     def build_dataset_from_csv(
         self,
@@ -228,19 +215,29 @@ class BaseTorchModel(ABC):
         return int(rows_count(filename=filename)) - 1  # except header line
 
     def get_weights(self):
-        return self.model.get_weights(return_numpy=True)
+        if self.skip_bn:
+            return self.model.get_weights_not_bn(return_numpy=True)
+        else:
+            return self.model.get_weights(return_numpy=True)
 
     def set_weights(self, weights):
         """set weights of client model"""
-        self.model.update_weights(weights)
+        if self.skip_bn:
+            self.model.update_weights_not_bn(weights)
+        else:
+            self.model.update_weights(weights)
 
     def set_validation_metrics(self, global_metrics):
         self.epoch_logs.update(global_metrics)
 
+    def reset_metrics(self):
+        for m in self.model.metrics:
+            m.reset()
+
     def wrap_local_metrics(self, stage="train"):
         # TODO: use pytorch to rewrite
         wraped_metrics = []
-        for m in self.metrics:
+        for m in self.model.metrics:
             if isinstance(m, (torchmetrics.Accuracy)):
                 tp, fp, tn, fn = map(lambda x: x.cpu(), m._get_final_stats())
                 name = m._get_name().lower()
@@ -257,9 +254,11 @@ class BaseTorchModel(ABC):
 
                 wraped_metrics.append(
                     Precision(
-                        f"val_{m._get_name().lower()}"
-                        if stage == "val"
-                        else m._get_name().lower(),
+                        (
+                            f"val_{m._get_name().lower()}"
+                            if stage == "val"
+                            else m._get_name().lower()
+                        ),
                         [threshold],
                         [float(tp.numpy().sum())],
                         [float(fp.numpy().sum())],
@@ -270,9 +269,11 @@ class BaseTorchModel(ABC):
                 threshold = m.threshold
                 wraped_metrics.append(
                     Recall(
-                        f"val_{m._get_name().lower()}"
-                        if stage == "val"
-                        else m._get_name().lower(),
+                        (
+                            f"val_{m._get_name().lower()}"
+                            if stage == "val"
+                            else m._get_name().lower()
+                        ),
                         [threshold],
                         tp.numpy().sum(),
                         fn.numpy().sum(),
@@ -283,9 +284,11 @@ class BaseTorchModel(ABC):
                 metrics_value = m.cpu().compute()
                 wraped_metrics.append(
                     Default(
-                        f"val_{m._get_name().lower()}"
-                        if stage == "val"
-                        else m._get_name().lower(),
+                        (
+                            f"val_{m._get_name().lower()}"
+                            if stage == "val"
+                            else m._get_name().lower()
+                        ),
                         total=metrics_value,
                         count=1,
                     )
@@ -296,24 +299,17 @@ class BaseTorchModel(ABC):
         assert evaluate_steps > 0, "Evaluate_steps must greater than 0"
         assert self.model is not None, "Model cannot be none, please give model define"
         assert (
-            len(self.metrics) > 0
+            len(self.model.metrics) > 0
         ), "Metric cannot be none, please give metric by 'TorchModel'"
         self.model.eval()
 
         # reset all metrics
         self.eval_iter = iter(self.eval_set)
-        for m in self.metrics:
-            m.reset()
+        self.reset_metrics()
         with torch.no_grad():
-            for _ in range(evaluate_steps):
+            for step in range(evaluate_steps):
                 x, y, s_w = self.next_batch(stage="eval")
-                # Step 1: forward pass
-                y_pred = self.model(x)
-
-                # Step 2: update metrics
-                for m in self.metrics:
-                    m.to(self.exe_device)
-                    m.update(y_pred.cpu(), y.cpu())
+                self.model.validation_step((x, y), step, sample_weight=s_w)
             result = {}
             self.transform_metrics(result, stage="eval")
         if self.logs is None:
@@ -347,8 +343,7 @@ class BaseTorchModel(ABC):
         return pred_result
 
     def _reset_data_iter(self):
-        for m in self.metrics:
-            m.reset()
+        self.reset_metrics()
         self.train_iter = iter(self.train_set)
 
     def get_local_metrics(self):
@@ -370,8 +365,7 @@ class BaseTorchModel(ABC):
     def on_epoch_begin(self, epoch):
         self._current_epoch = epoch
         self.epoch_logs = {}
-        for m in self.metrics:
-            m.reset()
+        self.reset_metrics()
         if self.train_set is not None:
             self.train_iter = iter(self.train_set)
         if self.eval_set is not None:
@@ -386,7 +380,7 @@ class BaseTorchModel(ABC):
         return self.epoch_logs
 
     def transform_metrics(self, logs, stage="train"):
-        for m in self.metrics:
+        for m in self.model.metrics:
             result = m.compute()
             logs[f'{stage}_{m._get_name().lower()}'] = result
         return logs
@@ -411,18 +405,18 @@ class BaseTorchModel(ABC):
         assert model_path is not None, "model path cannot be empty"
         check_point = {
             'model_state_dict': self.model.state_dict(),
-            'optimizer_state_dict': self.optimizer.state_dict(),
+            'optimizer_state_dict': self.model.optimizers_state_dict(),
             'epoch': self.epoch[-1] if self.epoch else 0,
         }
         torch.save(check_point, model_path)
 
-    def load_model(self, model_path: str):
+    def load_model(self, model_path: str, **kwargs):
         """load model from state dict, model structure must be defined before load"""
         assert model_path is not None, "model path cannot be empty"
         assert self.model is not None, "model structure must be defined before load"
         checkpoint = torch.load(model_path, map_location=torch.device('cpu'))
         self.model.load_state_dict(checkpoint['model_state_dict'])
-        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        self.model.load_optimizers_state_dict(checkpoint['optimizer_state_dict'])
         if self.use_gpu:
             self.model.to(self.exe_device)
         return checkpoint['epoch']

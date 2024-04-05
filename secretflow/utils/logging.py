@@ -16,7 +16,7 @@ from logging import _checkLevel
 
 _LOGGING_LEVEL = 'INFO'
 
-LOG_FORMAT = '%(asctime)s,%(msecs)d %(levelname)s [%(filename)s:%(funcName)s:%(lineno)d] %(message)s'
+LOG_FORMAT = '%(asctime)s,%(msecs)03d %(levelname)s [%(filename)s:%(funcName)s:%(lineno)d] %(message)s'
 
 
 def set_logging_level(level: str):

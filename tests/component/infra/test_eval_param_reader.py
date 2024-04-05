@@ -1,5 +1,20 @@
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import pytest
 
+from secretflow.component.component import Component
 from secretflow.component.eval_param_reader import (
     EvalParamError,
     EvalParamReader,
@@ -215,6 +230,72 @@ def test_node_reader_duplicate_param_in_instance():
     definition = ComponentDef(domain="domain_a", name="x", version="v1")
     with pytest.raises(EvalParamError, match="attr .*is duplicate in node def."):
         EvalParamReader(instance, definition)
+
+
+def test_node_reader_union_group_selection():
+    instance_error = NodeEvalParam(
+        domain="domain_a",
+        name="x",
+        version="v1",
+        attr_paths=["a/b/c", "a/b/d", "a/e"],
+        attrs=[Attribute(), Attribute(), Attribute()],
+    )
+    instance_ok = NodeEvalParam(
+        domain="domain_a",
+        name="x",
+        version="v1",
+        attr_paths=["a/b/c", "a/b/d"],
+        attrs=[Attribute(s="c"), Attribute(s="d")],
+    )
+    comp = Component(name="x", domain="domain_a", version="v1")
+    comp.union_attr_group(
+        name="a",
+        desc="",
+        group=[
+            comp.struct_attr_group(
+                name="b",
+                desc="",
+                group=[
+                    comp.str_attr(
+                        name="c",
+                        desc="",
+                        is_list=False,
+                        is_optional=True,
+                        default_value="default",
+                    ),
+                    comp.str_attr(
+                        name="d",
+                        desc="",
+                        is_list=False,
+                        is_optional=True,
+                        default_value="default",
+                    ),
+                ],
+            ),
+            comp.str_attr(
+                name="e",
+                desc="",
+                is_list=False,
+                is_optional=True,
+                default_value="default",
+            ),
+        ],
+    )
+
+    # error
+    with pytest.raises(
+        EvalParamError,
+        match="union group a: one attr is required, but god 'b' and 'e'.",
+    ):
+        EvalParamReader(instance_error, comp.definition())
+
+    # ok
+    reader = EvalParamReader(instance_ok, comp.definition())
+    assert (
+        reader.get_attr("a/b/c") == "c"
+        and reader.get_attr("a/b/d") == "d"
+        and reader.get_attr("a/e") is None
+    )
 
 
 def test_node_reader_param_not_set():

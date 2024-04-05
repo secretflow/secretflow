@@ -1,14 +1,26 @@
-import os
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import pandas as pd
 from sklearn.datasets import load_breast_cancer
 
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.preprocessing.filter.feature_filter import feature_filter_comp
+from secretflow.component.storage import ComponentStorage
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
-from tests.conftest import TEST_STORAGE_ROOT
 
 
 def test_feature_filter(comp_prod_sf_cluster_config):
@@ -18,24 +30,16 @@ def test_feature_filter(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    local_fs_wd = storage_config.local_fs.wd
+    comp_storage = ComponentStorage(storage_config)
 
     x = load_breast_cancer()["data"]
     if self_party == "alice":
-        os.makedirs(
-            os.path.join(local_fs_wd, "test_feature_filter"),
-            exist_ok=True,
-        )
         ds = pd.DataFrame(x[:, :15], columns=[f"a{i}" for i in range(15)])
-        ds.to_csv(os.path.join(local_fs_wd, alice_input_path), index=False)
+        ds.to_csv(comp_storage.get_writer(alice_input_path), index=False)
 
     elif self_party == "bob":
-        os.makedirs(
-            os.path.join(local_fs_wd, "test_feature_filter"),
-            exist_ok=True,
-        )
         ds = pd.DataFrame(x[:, 15:], columns=[f"b{i}" for i in range(15)])
-        ds.to_csv(os.path.join(local_fs_wd, bob_input_path), index=False)
+        ds.to_csv(comp_storage.get_writer(bob_input_path), index=False)
 
     param = NodeEvalParam(
         domain="data_filter",
@@ -81,12 +85,14 @@ def test_feature_filter(comp_prod_sf_cluster_config):
 
     assert len(res.outputs) == 1
 
-    a_out = pd.read_csv(os.path.join(TEST_STORAGE_ROOT, "alice", output_path))
-    assert a_out.shape[1] == 13
-    assert "a1" not in a_out.columns
-    assert "a3" not in a_out.columns
+    if self_party == "alice":
+        a_out = pd.read_csv(comp_storage.get_reader(output_path))
+        assert a_out.shape[1] == 13
+        assert "a1" not in a_out.columns
+        assert "a3" not in a_out.columns
 
-    b_out = pd.read_csv(os.path.join(TEST_STORAGE_ROOT, "bob", output_path))
-    assert b_out.shape[1] == 13
-    assert "b1" not in b_out.columns
-    assert "b13" not in b_out.columns
+    if self_party == "alice":
+        b_out = pd.read_csv(comp_storage.get_reader(output_path))
+        assert b_out.shape[1] == 13
+        assert "b1" not in b_out.columns
+        assert "b13" not in b_out.columns

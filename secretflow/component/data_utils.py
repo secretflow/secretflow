@@ -14,15 +14,16 @@
 import enum
 import json
 import logging
+import math
 import os
 import uuid
 from dataclasses import dataclass
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
 
-from secretflow.data.core.io import read_file_meta
+from secretflow.data import FedNdarray
 from secretflow.data.vertical import read_csv
 from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.device.device.pyu import PYU, PYUObject
@@ -69,6 +70,7 @@ class DistDataType(BaseEnum):
     SS_GLM_MODEL = "sf.model.ss_glm"
     SGB_MODEL = "sf.model.sgb"
     SS_XGB_MODEL = "sf.model.ss_xgb"
+    SL_NN_MODEL = "sf.model.sl_nn"
     # binning rule
     BIN_RUNNING_RULE = "sf.rule.binning"
     # others preprocessing rules
@@ -77,6 +79,11 @@ class DistDataType(BaseEnum):
     REPORT = "sf.report"
     # read data
     READ_DATA = "sf.read_data"
+    # serving model file
+    SERVING_MODEL = "sf.serving.model"
+    # checkpoints
+    SS_GLM_CHECKPOINT = "sf.checkpoint.ss_glm"
+    SS_SGD_CHECKPOINT = "sf.checkpoint.ss_sgd"
 
 
 @enum.unique
@@ -161,10 +168,10 @@ def merge_individuals_to_vtable(srcs: List[DistData], dest: DistData) -> DistDat
 
 def extract_table_header(
     db: DistData,
+    partitions_order: List[str] = None,
     load_features: bool = False,
     load_labels: bool = False,
     load_ids: bool = False,
-    feature_selects: List[str] = None,
     col_selects: List[str] = None,
     col_excludes: List[str] = None,
     return_schema_names: bool = False,
@@ -175,8 +182,7 @@ def extract_table_header(
         load_features (bool, optional): Whether to load feature cols. Defaults to False.
         load_labels (bool, optional): Whether to load label cols. Defaults to False.
         load_ids (bool, optional): Whether to load id cols. Defaults to False.
-        feature_selects (List[str], optional): Load part of feature cols. Only in effect if load_features is True. Defaults to None.
-        col_selects (List[str], optional): Load part of cols. Applies to all cols. Defaults to None. Couldn't use with col_excludes.
+        col_selects (List[str], optional): Load part of cols. Applies to all cols. Defaults to None.
         col_excludes (List[str], optional): Load all cols exclude these. Applies to all cols. Defaults to None. Couldn't use with col_selects.
         return_schema_names (bool, optional): if True, also return schema names Dict[str, List[str]]
     """
@@ -191,19 +197,18 @@ def extract_table_header(
         if db.type.lower() == DistDataType.INDIVIDUAL_TABLE
         else meta.schemas
     )
-
-    if feature_selects is not None:
-        feature_selects = set(feature_selects)
-
+    col_selects_set = None
     if col_selects is not None:
-        col_selects = set(col_selects)
+        col_selects_set = set(col_selects)
+        assert len(col_selects) == len(
+            col_selects_set
+        ), f"no repetition allowed in col_selects, got {col_selects}"
 
     if col_excludes is not None:
         col_excludes = set(col_excludes)
 
-    if col_selects is not None and col_excludes is not None:
-        intersection = set.intersection(col_selects, col_excludes)
-
+    if col_selects_set is not None and col_excludes is not None:
+        intersection = set.intersection(col_selects_set, col_excludes)
         assert (
             len(intersection) == 0
         ), f'The following items are in both col_selects and col_excludes : {intersection}, which is not allowed.'
@@ -220,17 +225,11 @@ def extract_table_header(
         party_ids = []
         if load_features:
             for t, h in zip(slice.feature_types, slice.features):
-                if feature_selects is not None:
-                    if h not in feature_selects:
+                if col_selects_set is not None:
+                    if h not in col_selects_set:
                         # feature not selected, skip
                         continue
-                    feature_selects.remove(h)
-
-                if col_selects is not None:
-                    if h not in col_selects:
-                        # feature not selected, skip
-                        continue
-                    col_selects.remove(h)
+                    col_selects_set.remove(h)
 
                 if col_excludes is not None:
                     if h in col_excludes:
@@ -245,25 +244,26 @@ def extract_table_header(
                 smeta[h] = SUPPORTED_VTABLE_DATA_TYPE[t]
         if load_labels:
             for t, h in zip(slice.label_types, slice.labels):
-                if col_selects is not None:
-                    if h not in col_selects:
+                if col_selects_set is not None:
+                    if h not in col_selects_set:
                         # label not selected, skip
                         continue
-                    col_selects.remove(h)
+                    col_selects_set.remove(h)
 
                 if col_excludes is not None:
                     if h in col_excludes:
                         continue
+
                 if return_schema_names:
                     party_labels.append(h)
                 smeta[h] = SUPPORTED_VTABLE_DATA_TYPE[t]
         if load_ids:
             for t, h in zip(slice.id_types, slice.ids):
-                if col_selects is not None:
-                    if h not in col_selects:
+                if col_selects_set is not None:
+                    if h not in col_selects_set:
                         # id not selected, skip
                         continue
-                    col_selects.remove(h)
+                    col_selects_set.remove(h)
 
                 if col_excludes is not None:
                     if h in col_excludes:
@@ -274,21 +274,33 @@ def extract_table_header(
 
                 smeta[h] = SUPPORTED_VTABLE_DATA_TYPE[t]
 
+        # reorder items according to col selects
+        if col_selects is not None and len(col_selects) > 0:
+            party_labels = [i for i in col_selects if i in party_labels]
+            party_features = [i for i in col_selects if i in party_features]
+            party_ids = [i for i in col_selects if i in party_ids]
+            ordered_smeta = {i: smeta[i] for i in col_selects if i in smeta}
+            smeta = ordered_smeta
+
         if len(smeta):
             ret[dr.party] = smeta
             labels[dr.party] = party_labels
             features[dr.party] = party_features
             ids[dr.party] = party_ids
 
-    schema_names["labels"] = labels
-    schema_names["features"] = features
-    schema_names["ids"] = ids
+    def reorder_partitions(d: Dict[str, Any]):
+        if partitions_order is None:
+            return d
+        assert set(partitions_order) == set(d.keys())
+        return {k: d[k] for k in partitions_order}
 
-    if feature_selects is not None and len(feature_selects) > 0:
-        raise AttributeError(f"unknown features {feature_selects} in feature_selects")
+    ret = reorder_partitions(ret)
+    schema_names["labels"] = reorder_partitions(labels)
+    schema_names["features"] = reorder_partitions(features)
+    schema_names["ids"] = reorder_partitions(ids)
 
-    if col_selects is not None and len(col_selects) > 0:
-        raise AttributeError(f"unknown cols {col_selects} in col_selects")
+    if col_selects_set is not None and len(col_selects_set) > 0:
+        raise AttributeError(f"unknown cols {col_selects_set} in col_selects")
     if return_schema_names:
         return ret, schema_names
     return ret
@@ -297,10 +309,11 @@ def extract_table_header(
 def load_table(
     ctx,
     db: DistData,
+    *,
+    partitions_order: List[str] = None,
     load_features: bool = False,
     load_labels: bool = False,
     load_ids: bool = False,
-    feature_selects: List[str] = None,  # if None, load all features
     col_selects: List[str] = None,  # if None, load all cols
     col_excludes: List[str] = None,
     return_schema_names: bool = False,
@@ -314,10 +327,10 @@ def load_table(
     if return_schema_names:
         v_headers, schema_names = extract_table_header(
             db,
+            partitions_order=partitions_order,
             load_features=load_features,
             load_labels=load_labels,
             load_ids=load_ids,
-            feature_selects=feature_selects,
             col_selects=col_selects,
             col_excludes=col_excludes,
             return_schema_names=True,
@@ -325,10 +338,10 @@ def load_table(
     else:
         v_headers = extract_table_header(
             db,
+            partitions_order=partitions_order,
             load_features=load_features,
             load_labels=load_labels,
             load_ids=load_ids,
-            feature_selects=feature_selects,
             col_selects=col_selects,
             col_excludes=col_excludes,
         )
@@ -346,12 +359,30 @@ def load_table(
     with ctx.tracer.trace_io():
         pyus = {p: PYU(p) for p in v_headers}
         filepaths = {
-            pyus[p]: os.path.join(ctx.local_fs_wd, parties_path_format[p].uri)
+            pyus[p]: lambda uri=parties_path_format[p].uri: ctx.comp_storage.get_reader(
+                uri
+            )
             for p in v_headers
         }
         dtypes = {pyus[p]: v_headers[p] for p in v_headers}
+        file_metas = {
+            pyus[p]: pyus[p](
+                lambda uri=parties_path_format[p].uri: ctx.comp_storage.get_file_meta(
+                    uri
+                )
+            )()
+            for p in v_headers
+        }
+        file_metas = reveal(file_metas)
+        logging.info(
+            f"try load VDataFrame, file uri {parties_path_format}, file meta {file_metas}"
+        )
         vdf = read_csv(filepaths, dtypes=dtypes, nrows=nrows)
         wait(vdf)
+        shape = vdf.shape
+        logging.info(f"loaded VDataFrame, shape {shape}")
+        assert math.prod(shape), "empty dataset is not allowed"
+
     if return_schema_names:
         return vdf, schema_names
     return vdf
@@ -373,25 +404,28 @@ def load_table_select_and_exclude_pair(
     trans_x = load_table(
         ctx,
         db,
-        load_features,
-        load_labels,
-        load_ids,
+        load_features=load_features,
+        load_labels=load_labels,
+        load_ids=load_ids,
         col_selects=col_selects,
         nrows=nrows,
     )
-
-    remain_x = load_table(
-        ctx,
-        db,
-        load_features=True,
-        load_ids=True,
-        load_labels=True,
-        col_excludes=col_selects,
-        nrows=nrows,
-    )
+    try:
+        remain_x = load_table(
+            ctx,
+            db,
+            load_features=True,
+            load_ids=True,
+            load_labels=True,
+            col_excludes=col_selects,
+            nrows=nrows,
+        )
+    except AssertionError:
+        remain_x = None
     if to_pandas:
         trans_x = trans_x.to_pandas()
-        remain_x = remain_x.to_pandas()
+        if remain_x is not None:
+            remain_x = remain_x.to_pandas()
     return trans_x, remain_x
 
 
@@ -426,7 +460,9 @@ class VerticalTableWrapper:
         return VerticalTable(schemas=schemas, line_count=self.line_count)
 
     @classmethod
-    def from_dist_data(cls, data: DistData, line_count: int = None):
+    def from_dist_data(
+        cls, data: DistData, line_count: int = None, feature_selects: List[str] = None
+    ):
         meta = VerticalTable()
         assert data.meta.Unpack(meta)
 
@@ -446,9 +482,10 @@ def dump_vertical_table(
     meta: VerticalTableWrapper,
     system_info: SystemInfo,
 ) -> DistData:
-    assert isinstance(v_data, VDataFrame)
+    assert isinstance(v_data, VDataFrame), f"{type(v_data)} is not a VDataFrame"
     assert v_data.aligned
     assert len(v_data.partitions) > 0
+    assert math.prod(v_data.shape), "empty dataset is not allowed"
 
     parties_length = {}
     for device, part in v_data.partitions.items():
@@ -460,13 +497,16 @@ def dump_vertical_table(
     with ctx.tracer.trace_io():
         output_uri = {p: uri for p in v_data.partitions}
         output_path = {
-            p: os.path.join(ctx.local_fs_wd, output_uri[p]) for p in output_uri
+            p: lambda uri=output_uri[p]: ctx.comp_storage.get_writer(uri)
+            for p in output_uri
         }
         wait(v_data.to_csv(output_path, index=False))
         order = [p.party for p in v_data.partitions]
-        file_metas = {}
-        for pyu in output_path:
-            file_metas[pyu] = reveal(pyu(read_file_meta)(output_path[pyu]))
+        file_metas = {
+            p: p(lambda uri=output_uri[p]: ctx.comp_storage.get_file_meta(uri))()
+            for p in output_uri
+        }
+        file_metas = reveal(file_metas)
         logging.info(
             f"dumped VDataFrame, file uri {output_path}, samples {parties_length}, file meta {file_metas}"
         )
@@ -496,8 +536,6 @@ def model_dumps(
     dist_data_uri: str,
     system_info: SystemInfo,
 ) -> DistData:
-    # TODO: only local fs is supported at this moment.
-    storage_root = ctx.local_fs_wd
     objs_uri = []
     objs_party = []
     saved_objs = []
@@ -505,20 +543,14 @@ def model_dumps(
         if isinstance(obj, PYUObject):
             device: PYU = obj.device
             uri = f"{dist_data_uri}/{i}"
-            path = os.path.join(storage_root, uri)
 
-            def dumps(path: str, obj: Any):
+            def dumps(comp_storage, uri: str, obj: Any):
                 import pickle
-                from pathlib import Path
 
-                # create parent folders.
-                file = Path(path)
-                file.parent.mkdir(parents=True, exist_ok=True)
+                with comp_storage.get_writer(uri) as w:
+                    pickle.dump(obj, w)
 
-                with open(path, "wb") as f:
-                    f.write(pickle.dumps(obj))
-
-            wait(device(dumps)(path, obj))
+            wait(device(dumps)(ctx.comp_storage, uri, obj))
 
             saved_obj = DeviceObjectCollection.DeviceObject(
                 type="pyu", data_ref_idxs=[len(objs_uri)]
@@ -528,10 +560,12 @@ def model_dumps(
             objs_party.append(device.party)
         elif isinstance(obj, SPUObject):
             device: SPU = obj.device
-            uris = [f"{dist_data_uri}/{i}" for party in device.actors.keys()]
-            spu_paths = [os.path.join(storage_root, uri) for uri in uris]
+            uris = [f"{dist_data_uri}/{i}" for _ in device.actors]
 
-            wait(device.dump(obj, spu_paths))
+            device.dump(
+                obj,
+                [lambda uri=uri: ctx.comp_storage.get_writer(uri) for uri in uris],
+            )
 
             saved_obj = DeviceObjectCollection.DeviceObject(
                 type="spu", data_ref_idxs=[len(objs_uri) + p for p in range(len(uris))]
@@ -574,6 +608,35 @@ def get_model_public_info(dist_data: DistData):
     return json.loads(model_info["public_info"])
 
 
+def model_meta_info(
+    dist_data: DistData,
+    max_major_version: int,
+    max_minor_version: int,
+    model_type: str,
+    # TODO: assert system_info
+    # system_info: SystemInfo = None,
+) -> Tuple[List[DeviceObject], str]:
+    assert dist_data.type == model_type
+    model_meta = DeviceObjectCollection()
+    assert dist_data.meta.Unpack(model_meta)
+
+    model_info = json.loads(model_meta.public_info)
+
+    assert (
+        isinstance(model_info, dict)
+        and "major_version" in model_info
+        and "minor_version" in model_info
+        and "public_info" in model_info
+    )
+
+    assert (
+        max_major_version >= model_info["major_version"]
+        and max_minor_version >= model_info["minor_version"]
+    ), "not support model version"
+
+    return model_info["public_info"]
+
+
 def model_loads(
     ctx,
     dist_data: DistData,
@@ -585,8 +648,6 @@ def model_loads(
     # TODO: assert system_info
     # system_info: SystemInfo = None,
 ) -> Tuple[List[DeviceObject], str]:
-    # TODO: only local fs is supported at this moment.
-    storage_root = ctx.local_fs_wd
     assert dist_data.type == model_type
     model_meta = DeviceObjectCollection()
     assert dist_data.meta.Unpack(model_meta)
@@ -612,21 +673,21 @@ def model_loads(
             data_ref = dist_data.data_refs[save_obj.data_ref_idxs[0]]
             party = data_ref.party
             if pyus is not None:
-                assert party in pyus
+                assert party in pyus, f"party {party} not in '{','.join(pyus.keys())}'"
                 pyu = pyus[party]
             else:
                 pyu = PYU(party)
 
             assert data_ref.format == "pickle"
 
-            def loads(path: str) -> Any:
+            def loads(comp_storage, path: str) -> Any:
                 import pickle
 
-                with open(path, "rb") as f:
+                with comp_storage.get_reader(path) as r:
                     # TODO: not secure, may change to json loads/dumps?
-                    return pickle.loads(f.read())
+                    return pickle.load(r)
 
-            objs.append(pyu(loads)(os.path.join(storage_root, data_ref.uri)))
+            objs.append(pyu(loads)(ctx.comp_storage, data_ref.uri))
         elif save_obj.type == "spu":
             # TODO: only support one spu for now
             assert spu is not None
@@ -637,7 +698,8 @@ def model_loads(
                 assert data_ref.format == "pickle"
                 party = data_ref.party
                 assert party not in full_paths
-                full_paths[party] = os.path.join(storage_root, data_ref.uri)
+                uri = data_ref.uri
+                full_paths[party] = lambda uri=uri: ctx.comp_storage.get_reader(uri)
             assert set(full_paths.keys()) == set(spu.actors.keys())
             spu_paths = [full_paths[party] for party in spu.actors.keys()]
             objs.append(spu.load(spu_paths))
@@ -651,20 +713,21 @@ def save_prediction_csv(
     pred_df: pd.DataFrame,
     pred_key: str,
     path: str,
-    label_df: pd.DataFrame = None,
-    label_keys: List[str] = None,
-    id_df: pd.DataFrame = None,
-    id_keys: List[str] = None,
+    addition_df: Union[List[pd.DataFrame], List[np.array]] = None,
+    addition_keys: List[str] = None,
     try_append: bool = False,
 ) -> None:
     x = pd.DataFrame(pred_df, columns=[pred_key])
 
-    if label_df is not None:
-        label = pd.DataFrame(label_df, columns=label_keys)
-        x = pd.concat([x, label], axis=1)
-    if id_df is not None:
-        id = pd.DataFrame(id_df, columns=id_keys)
-        x = pd.concat([x, id], axis=1)
+    addition_df = [
+        df if isinstance(df, pd.DataFrame) else pd.DataFrame(df) for df in addition_df
+    ]
+
+    if addition_df:
+        assert addition_keys
+        addition_data = pd.concat(addition_df, axis=1)
+        addition_data.columns = addition_keys
+        x = pd.concat([x, addition_data], axis=1)
 
     import os
 
@@ -677,31 +740,277 @@ def save_prediction_csv(
         x.to_csv(path, index=False)
 
 
+def download_files(
+    ctx,
+    remote_fns: Dict[Union[str, PYU], str],
+    local_fns: Dict[Union[str, PYU], Union[str, DistdataInfo]],
+    overwrite: bool = True,
+):
+    pyu_remotes = {
+        p.party if isinstance(p, PYU) else p: remote_fns[p] for p in remote_fns
+    }
+    pyu_locals = {}
+    for p in local_fns:
+        k = p.party if isinstance(p, PYU) else p
+        v = local_fns[p] if isinstance(local_fns[p], str) else local_fns[p].uri
+        pyu_locals[k] = v
+
+    assert set(pyu_remotes.keys()) == set(
+        pyu_locals.keys()
+    ), f"{pyu_remotes} <> {pyu_locals}"
+
+    def download_file(comp_storage, uri, output_path):
+        if not overwrite and os.path.exists(output_path):
+            # skip download
+            assert os.path.isfile(output_path)
+        else:
+            comp_storage.download_file(uri, output_path)
+
+    waits = []
+    for p in pyu_remotes:
+        remote_fn = pyu_remotes[p]
+        local_fn = pyu_locals[p]
+        waits.append(PYU(p)(download_file)(ctx.comp_storage, remote_fn, local_fn))
+
+    wait(waits)
+
+
+def upload_files(
+    ctx,
+    remote_fns: Dict[Union[str, PYU], str],
+    local_fns: Dict[Union[str, PYU], str],
+):
+    pyu_remotes = {
+        p.party if isinstance(p, PYU) else p: remote_fns[p] for p in remote_fns
+    }
+    pyu_locals = {p.party if isinstance(p, PYU) else p: local_fns[p] for p in local_fns}
+
+    assert set(pyu_remotes.keys()) == set(
+        pyu_locals.keys()
+    ), f"{pyu_remotes} <> {pyu_locals}"
+
+    waits = []
+    for p in pyu_remotes:
+        waits.append(
+            PYU(p)(lambda c, r, l: c.upload_file(r, l))(
+                ctx.comp_storage, pyu_remotes[p], pyu_locals[p]
+            )
+        )
+    wait(waits)
+
+
 def gen_prediction_csv_meta(
-    id_header: Dict[str, Dict[str, np.dtype]],
-    label_header: Dict[str, Dict[str, np.dtype]],
-    party: str,
+    addition_headers: Dict[str, np.dtype],
+    saved_ids: List[str],
+    saved_labels: List[str],
+    saved_features: List[str],
     pred_name: str,
     line_count: int = None,
-    id_keys: List[str] = None,
-    label_keys: List[str] = None,
 ) -> IndividualTable:
     return IndividualTable(
         schema=TableSchema(
-            ids=id_keys if id_keys is not None else [],
-            id_types=[REVERSE_DATA_TYPE_MAP[id_header[party][k]] for k in id_keys]
-            if id_keys is not None
-            else [],
-            labels=(label_keys if label_keys is not None else []) + [pred_name],
-            label_types=(
-                [REVERSE_DATA_TYPE_MAP[label_header[party][k]] for k in label_keys]
-                if label_keys is not None
-                else []
-            )
+            ids=saved_ids,
+            id_types=[REVERSE_DATA_TYPE_MAP[addition_headers[k]] for k in saved_ids],
+            labels=saved_labels + [pred_name],
+            label_types=[
+                REVERSE_DATA_TYPE_MAP[addition_headers[k]] for k in saved_labels
+            ]
             + ["float"],
+            feature_types=[
+                REVERSE_DATA_TYPE_MAP[addition_headers[k]] for k in saved_features
+            ],
+            features=saved_features,
         ),
         line_count=line_count if line_count is not None else -1,
     )
+
+
+class SimpleVerticalBatchReader:
+    def __init__(
+        self,
+        ctx,
+        db: DistData,
+        *,
+        partitions_order: List[str] = None,
+        col_selects: List[str] = None,
+        batch_size: int = 50000,
+    ) -> None:
+        assert len(col_selects) > 0, "empty dataset is not allowed"
+        assert (
+            db.type.lower() == DistDataType.INDIVIDUAL_TABLE
+            or db.type.lower() == DistDataType.VERTICAL_TABLE
+        ), f"path format {db.type.lower()} should be sf.table.individual or sf.table.vertical_table"
+
+        v_headers = extract_table_header(
+            db,
+            partitions_order=partitions_order,
+            load_features=True,
+            load_labels=True,
+            load_ids=True,
+            col_selects=col_selects,
+        )
+
+        parties_path_format = extract_distdata_info(db)
+
+        pyus = {p: PYU(p) for p in v_headers}
+        self.filepaths = {
+            pyus[p]: os.path.join(ctx.data_dir, parties_path_format[p].uri)
+            for p in v_headers
+        }
+
+        remote_uri = {p: parties_path_format[p].uri for p in v_headers}
+
+        download_files(ctx, remote_uri, self.filepaths, False)
+
+        self.dtypes = {pyus[p]: v_headers[p] for p in v_headers}
+        self.batch_size = batch_size
+        self.total_read_cnt = 0
+        self.col_selects = col_selects
+
+    def __iter__(self):
+        return self
+
+    def __next__(self) -> VDataFrame:
+        df = self.next(self.batch_size)
+
+        if df.shape[0] == 0:
+            assert self.total_read_cnt, "empty dataset is not allowed"
+            # end
+            raise StopIteration
+
+        return df
+
+    def next(self, batch_size) -> VDataFrame:
+        assert batch_size > 0
+        df = read_csv(
+            self.filepaths,
+            dtypes=self.dtypes,
+            nrows=batch_size,
+            skip_rows_after_header=self.total_read_cnt,
+        )
+
+        if df.shape[0]:
+            self.total_read_cnt += df.shape[0]
+
+        return df
+
+
+def save_prediction_dd(
+    ctx,
+    uri: str,
+    pyu: PYU,
+    pyu_preds: Union[List[FedNdarray], FedNdarray],
+    pred_name: str,
+    feature_dataset,
+    saved_features: List[str],
+    saved_labels: List[str],
+    save_ids: bool,
+) -> DistData:
+    # TODO: read all cols in one reader.
+    addition_reader: List[SimpleVerticalBatchReader] = []
+    addition_headers = {}
+    saved_ids = []
+
+    if isinstance(pyu_preds, FedNdarray):
+        pyu_preds = [pyu_preds]
+
+    def _named_features(features_name: List[str]):
+        for f in features_name:
+            assert (
+                f not in addition_headers
+            ), f"do not select {f} as saved feature, repeated with id or label"
+
+        header = extract_table_header(
+            feature_dataset,
+            load_ids=True,
+            load_features=True,
+            load_labels=True,
+            col_selects=features_name,
+        )
+        assert (
+            len(header) == 1 and pyu.party in header
+        ), f"The saved feature {features_name} can only belong to receiver party {pyu.party}, got {header.keys()}"
+
+        addition_headers.update(header[pyu.party])
+        addition_reader.append(
+            SimpleVerticalBatchReader(
+                ctx,
+                feature_dataset,
+                col_selects=list(header[pyu.party].keys()),
+            )
+        )
+
+    if save_ids:
+        id_header = extract_table_header(feature_dataset, load_ids=True)
+        assert (
+            pyu.party in id_header
+        ), f"can not find id col for receiver party {pyu.party}, {id_header}"
+        saved_ids = list(id_header[pyu.party].keys())
+        _named_features(saved_ids)
+
+    if saved_labels:
+        _named_features(saved_labels)
+    else:
+        saved_labels = []
+
+    if saved_features:
+        _named_features(saved_features)
+    else:
+        saved_features = []
+
+    append = False
+    line_count = 0
+    local_path = os.path.join(ctx.data_dir, uri)
+    for pyu_pred in pyu_preds:
+        assert len(pyu_pred.partitions) == 1
+        assert pyu in pyu_pred.partitions
+
+        pred_rows = pyu_pred.shape[0]
+        assert pred_rows > 0
+        line_count += pred_rows
+
+        addition_df = []
+        for r in addition_reader:
+            pyu_df = r.next(pred_rows)
+            assert len(pyu_df.partitions) == 1
+            assert pyu in pyu_df.partitions
+            assert pyu_df.shape[0] == pred_rows
+            addition_df.append(pyu_df.partitions[pyu].values)
+
+        wait(
+            pyu(save_prediction_csv)(
+                pyu_pred.partitions[pyu],
+                pred_name,
+                local_path,
+                addition_df,
+                list(addition_headers.keys()),
+                append,
+            )
+        )
+        append = True
+
+    upload_files(ctx, {pyu: uri}, {pyu: local_path})
+
+    pred_db = DistData(
+        name=pred_name,
+        type=str(DistDataType.INDIVIDUAL_TABLE),
+        data_refs=[DistData.DataRef(uri=uri, party=pyu.party, format="csv")],
+    )
+
+    assert line_count, "empty dataset is not allowed"
+
+    meta = gen_prediction_csv_meta(
+        addition_headers=addition_headers,
+        saved_ids=saved_ids,
+        saved_labels=saved_labels,
+        saved_features=saved_features,
+        pred_name=pred_name,
+        line_count=line_count,
+    )
+
+    pred_db.meta.Pack(meta)
+
+    return pred_db
 
 
 def any_pyu_from_spu_config(config: dict):

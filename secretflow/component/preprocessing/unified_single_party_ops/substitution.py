@@ -8,7 +8,7 @@
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.∏
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
@@ -18,10 +18,10 @@ import pandas as pd
 from secretflow.component.component import Component, IoType
 from secretflow.component.data_utils import (
     DistDataType,
+    VerticalTableWrapper,
     dump_vertical_table,
     load_table,
     model_loads,
-    VerticalTableWrapper,
 )
 from secretflow.component.preprocessing.core.meta_utils import (
     apply_meta_change,
@@ -32,7 +32,6 @@ from secretflow.component.preprocessing.core.version import (
     PREPROCESSING_RULE_MAX_MINOR_VERSION,
 )
 from secretflow.data.core import partition
-
 
 substitution = Component(
     "substitution",

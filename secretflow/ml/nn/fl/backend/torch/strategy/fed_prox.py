@@ -64,33 +64,32 @@ class FedProx(BaseTorchModel):
             Parameters after local training
         """
         assert self.model is not None, "Model cannot be none, please give model define"
+        assert (
+            self.model.automatic_optimization
+        ), "automatic_optimization must be True in FedProx"
         refresh_data = kwargs.get("refresh_data", False)
         if refresh_data:
             self._reset_data_iter()
         if weights is not None:
-            self.model.update_weights(weights)
+            self.set_weights(weights)
         num_sample = 0
         dp_strategy = kwargs.get('dp_strategy', None)
         logs = {}
+        loss: torch.Tensor = None
 
         mu = kwargs.get('mu', 0.0)
 
-        for _ in range(train_steps):
-            self.optimizer.zero_grad()
-
+        for step in range(train_steps):
             x, y, s_w = self.next_batch()
             num_sample += x.shape[0]
-            y_pred = self.model(x)
 
-            # do back propagation
-            loss = self.loss(y_pred, y)
+            loss = self.model.training_step((x, y), cur_steps + step, sample_weight=s_w)
             if weights is not None:
                 w_norm = self.w_norm(weights, list(self.model.parameters()))
                 loss += mu / 2 * w_norm
-            loss.backward()
-            self.optimizer.step()
-            for m in self.metrics:
-                m.update(y_pred.cpu(), y.cpu())
+
+            self.model.backward_step(loss)
+
         loss = loss.item()
         logs['train-loss'] = loss
 
@@ -113,7 +112,7 @@ class FedProx(BaseTorchModel):
             weights: global weight from params server
         """
         if weights is not None:
-            self.model.update_weights(weights)
+            self.set_weights(weights)
 
 
 @register_strategy(strategy_name='fed_prox', backend='torch')

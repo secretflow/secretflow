@@ -8,7 +8,7 @@
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.∏
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Dict, List
@@ -19,10 +19,8 @@ from secretflow.component.io.core.bins.bin_utils import (
     pad_inf_to_split_points,
     strip_inf_from_split_points,
 )
-
 from secretflow.device import PYUObject
 from secretflow.device.driver import reveal
-
 from secretflow.spec.extend.bin_data_pb2 import Bin, Bins, VariableBins
 
 

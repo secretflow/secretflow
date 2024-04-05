@@ -13,15 +13,16 @@
 # limitations under the License.
 
 import logging
-from typing import Callable, Dict, List, Union
+from typing import Callable, Dict, List
 
 import numpy as np
 import torch
 
 from secretflow import reveal
-from secretflow.device import PYU, wait
-from secretflow.ml.nn.utils import TorchModel
+from secretflow.device import PYU
 from secretflow.ml.nn.callbacks.attack import AttackCallback
+from secretflow.ml.nn.core.torch import TorchModel
+from secretflow.ml.nn.sl.backend.torch.sl_base import SLBaseTorchModel
 
 
 class FeatureInferenceAttack(AttackCallback):
@@ -46,15 +47,13 @@ class FeatureInferenceAttack(AttackCallback):
 
     def __init__(
         self,
-        victim_model_path,
         attack_party: PYU,
         victim_party: PYU,
-        victim_model_dict: Dict[PYU, List[Union[torch.nn.Module, str]]],
         base_model_list: List[PYU],
         generator_model_wrapper: TorchModel,
         data_builder: Callable,
-        victim_fea_dim: int,
-        attacker_fea_dim: int,
+        victim_fea_dim: List[int],
+        attacker_fea_dim: List[int],
         generator_enable_attacker_fea: bool = True,
         enable_mean: bool = False,
         enable_var: bool = False,
@@ -64,17 +63,17 @@ class FeatureInferenceAttack(AttackCallback):
         attack_epochs: int = 60,
         load_attacker_path: str = None,
         save_attacker_path: str = None,
+        exec_device: str = 'cpu',
         **params,
     ):
         super().__init__(
             **params,
         )
-        self.victim_model_path = victim_model_path
         self.attack_party = attack_party
         self.victim_party = victim_party
 
         # for attacker
-        self.victim_model_dict = {k.party: v for k, v in victim_model_dict.items()}
+        self.victim_model_dict = {}
         self.base_model_list = [p.party for p in base_model_list]
         self.generator_model_wrapper = generator_model_wrapper
         self.data_builder = data_builder
@@ -90,13 +89,13 @@ class FeatureInferenceAttack(AttackCallback):
         self.load_attacker_path = load_attacker_path
         self.save_attacker_path = save_attacker_path
         self.logs = {}
+        self.exec_device = exec_device
 
         self.metrics = None
 
     def on_train_end(self, logs=None):
-        def save_victim_model(victim_worker):
-            check_point = {'model_state_dict': victim_worker.model_base.state_dict()}
-            torch.save(check_point, self.victim_model_path)
+        def get_victim_model(victim_worker: SLBaseTorchModel):
+            return victim_worker.model_base
 
         def feature_inference_attack(attack_worker):
             attacker = FeatureInferenceAttacker(
@@ -116,14 +115,13 @@ class FeatureInferenceAttack(AttackCallback):
                 self.var_lambda,
                 self.victim_mean_feature,
                 self.attack_epochs,
-                self.load_attacker_path,
-                self.save_attacker_path,
+                self.exec_device,
             )
             ret = attacker.attack()
             return ret
 
-        res = self._workers[self.victim_party].apply(save_victim_model)
-        wait(res)
+        victim_model = reveal(self._workers[self.victim_party].apply(get_victim_model))
+        self.victim_model_dict[self.victim_party.party] = victim_model
         self.metrics = reveal(
             self._workers[self.attack_party].apply(feature_inference_attack)
         )
@@ -137,13 +135,13 @@ class FeatureInferenceAttacker:
         self,
         attacker_base_model: torch.nn.Module,
         attacker_fuse_model: torch.nn.Module,
-        victim_model_dict: Dict[str, List[Union[torch.nn.Module, str]]],
+        victim_model_dict: Dict[str, torch.nn.Module],
         base_model_list: List[str],
         attack_party: str,
         generator_model_wrapper: TorchModel,
         data_builder: Callable,
-        victim_fea_dim: int,
-        attacker_fea_dim: int,
+        victim_fea_dim: List[int],
+        attacker_fea_dim: List[int],
         generator_enable_attacker_fea: bool = True,
         enable_mean: bool = False,
         enable_var: bool = False,
@@ -151,6 +149,7 @@ class FeatureInferenceAttacker:
         var_lambda: float = 0.25,
         victim_mean_feature: np.ndarray = None,
         epochs: int = 60,
+        exec_device: str = 'cpu',
         load_model_path: str = None,
         save_model_path: str = None,
     ):
@@ -158,6 +157,7 @@ class FeatureInferenceAttacker:
 
         # we get all parties' base_model
         # victim's base_model: victim's base model will be saved first, then we load it
+        # worker's model does not need to tocpu or gpu
         self.attacker_base_model = attacker_base_model
         self.attacker_fuse_model = attacker_fuse_model
         self.base_models = {}
@@ -168,12 +168,21 @@ class FeatureInferenceAttacker:
 
         # build generator
         # reproducible, set seed here
-        self.generator_model = generator_model_wrapper.model_fn()
+        self.generator_model = generator_model_wrapper.model_fn(
+            **generator_model_wrapper.kwargs
+        ).to(exec_device)
         self.generator_optimizer = generator_model_wrapper.optim_fn(
             self.generator_model.parameters()
         )
 
         self.generator_enable_attacker_fea = generator_enable_attacker_fea
+        assert len(attacker_fea_dim) == len(
+            victim_fea_dim
+        ), "attacker_fea_dim and victim_fea_dim should have same dimension"
+        for i in range(len(attacker_fea_dim) - 1):
+            assert (
+                attacker_fea_dim[i] == victim_fea_dim[i]
+            ), "attacker_fea_dim and victim_fea_dim should have same shape except last dim"
         self.attacker_fea_dim = attacker_fea_dim
         self.victim_fea_dim = victim_fea_dim
 
@@ -194,6 +203,7 @@ class FeatureInferenceAttacker:
 
         self.load_model_path = load_model_path
         self.save_model_path = save_model_path
+        self.exec_device = exec_device
 
     def attack(self):
         """Begin attack."""
@@ -205,9 +215,8 @@ class FeatureInferenceAttacker:
             if key == self.attack_party:
                 self.base_models[key] = self.attacker_base_model
             else:
-                self.base_models[key] = self.victim_model_dict[key][0]()
-                checkpoint = torch.load(self.victim_model_dict[key][1])
-                self.base_models[key].load_state_dict(checkpoint['model_state_dict'])
+                self.base_models[key] = self.victim_model_dict[key]
+            self.base_models[key] = self.base_models[key].to(self.exec_device)
 
         # prepare data
         train_loaders, test_loader = self.data_builder()
@@ -244,7 +253,7 @@ class FeatureInferenceAttacker:
                 else:
                     assert batch_num == len(
                         train_loaders[key]
-                    ), f'train_loaders length should be same'
+                    ), f'train_loaders length {len(train_loaders[key])} and batch_num {batch_num} should be same'
                 train_data_iter[key] = iter(train_loaders[key])
                 self.base_models[key].eval()
             self.attacker_fuse_model.eval()
@@ -260,25 +269,30 @@ class FeatureInferenceAttacker:
                 for base_key in self.base_model_list:
                     if base_key == self.attack_party:
                         [attacker_fea] = next(train_data_iter[base_key])
+                        attacker_fea = attacker_fea.to(self.exec_device)
                         hid = self.base_models[base_key](attacker_fea)
                         hiddens.append(hid)
                     else:
                         [fea] = next(train_data_iter[base_key])
+                        fea = fea.to(self.exec_device)
                         hid = self.base_models[base_key](fea)
                         hiddens.append(hid)
-
                 y_groundtruth = self.attacker_fuse_model(hiddens)
 
                 # infer victim's feature
                 if self.generator_enable_attacker_fea:
                     # reproducible: set seed here
-                    noise = torch.randn(attacker_fea.size(0), self.victim_fea_dim)
-                    generator_input = torch.cat((attacker_fea, noise), dim=1)
+                    rnd_shape = [attacker_fea.size(0)] + self.victim_fea_dim
+                    noise = torch.randn(rnd_shape).to(self.exec_device)
+                    generator_input = torch.cat((attacker_fea, noise), dim=-1)
                 else:
                     # reproducible: set seed here
-                    generator_input = torch.randn(
-                        attacker_fea.size(0), attacker_fea.size(1) + self.victim_fea_dim
+                    rnd_shape = (
+                        [attacker_fea.size(0)]
+                        + self.victim_fea_dim[:-1]
+                        + [self.victim_fea_dim[-1] + self.attacker_fea_dim[-1]]
                     )
+                    generator_input = torch.randn(rnd_shape)
                 generator_output = self.generator_model(generator_input)
 
                 # infer logit_pred
@@ -369,16 +383,22 @@ class FeatureInferenceAttacker:
         for batch_idx in range(batch_num):
             # groud truth
             [ground_truth] = next(victim_data_loader)
-
+            ground_truth = ground_truth.to(self.exec_device)
             # infer victim feature
             if self.generator_enable_attacker_fea:
-                noise = torch.randn(ground_truth.size(0), self.victim_fea_dim)
-                [attacker_fea] = next(attacker_data_loader)
-                generator_input = torch.cat((attacker_fea, noise), dim=1)
-            else:
-                generator_input = torch.randn(
-                    ground_truth.size(0), self.attacker_fea_dim + self.victim_fea_dim
+                noise = torch.randn([ground_truth.size(0)] + self.victim_fea_dim).to(
+                    self.exec_device
                 )
+                [attacker_fea] = next(attacker_data_loader)
+                attacker_fea = attacker_fea.to(self.exec_device)
+                generator_input = torch.cat((attacker_fea, noise), dim=-1)
+            else:
+                rnd_shape = (
+                    [ground_truth.size(0)]
+                    + self.victim_fea_dim[:-1]
+                    + [self.victim_fea_dim[-1] + self.attacker_fea_dim[-1]]
+                )
+                generator_input = torch.randn(rnd_shape).to(self.exec_device)
 
             generator_output = self.generator_model(generator_input)
 

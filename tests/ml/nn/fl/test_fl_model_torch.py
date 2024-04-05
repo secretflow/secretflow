@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 # *_* coding: utf-8 *_*
-
-"""module docstring - short summary
-
-If the description is long, the first line should be a short summary that makes sense on its own,
-separated from the rest by a newline
-
-"""
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import os
 import tempfile
@@ -18,14 +24,13 @@ from torchmetrics import Accuracy, Precision
 
 from secretflow.device import reveal
 from secretflow.ml.nn import FLModel
+from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
 from secretflow.ml.nn.fl.compress import COMPRESS_STRATEGY
-from secretflow.ml.nn.fl.utils import metric_wrapper, optim_wrapper
-from secretflow.ml.nn.utils import TorchModel
 from secretflow.preprocessing.encoder import OneHotEncoder
 from secretflow.security.aggregation import PlainAggregator, SparsePlainAggregator
 from secretflow.security.privacy import DPStrategyFL, GaussianModelDP
 from secretflow.utils.simulation.datasets import load_iris, load_mnist
-from tests.ml.nn.fl.model_def import ConvNet, ConvRGBNet, MlpNet
+from tests.ml.nn.fl.model_def import VAE, ConvNet, ConvNetBN, ConvRGBNet, MlpNet
 
 _temp_dir = tempfile.mkdtemp()
 
@@ -54,6 +59,7 @@ def _torch_model_with_mnist(
     # spcify params
     dp_spent_step_freq = kwargs.get('dp_spent_step_freq', None)
     num_gpus = kwargs.get("num_gpus", 0)
+    skip_bn = kwargs.get("skip_bn", False)
     fl_model = FLModel(
         server=server,
         device_list=device_list,
@@ -63,6 +69,7 @@ def _torch_model_with_mnist(
         backend=backend,
         random_seed=1234,
         num_gpus=num_gpus,
+        skip_bn=skip_bn,
     )
     history = fl_model.fit(
         data,
@@ -226,6 +233,33 @@ class TestFLModelTorchMnist:
             threshold=0.9,
             dp_strategy=dp_strategy_fl,
             dp_spent_step_freq=dp_spent_step_freq,
+        )
+
+        # Test FedBN
+        model_def_bn = TorchModel(
+            model_fn=ConvNetBN,
+            loss_fn=loss_fn,
+            optim_fn=optim_fn,
+            metrics=[
+                metric_wrapper(
+                    Accuracy, task="multiclass", num_classes=10, average='micro'
+                ),
+                metric_wrapper(
+                    Precision, task="multiclass", num_classes=10, average='micro'
+                ),
+            ],
+        )
+        _torch_model_with_mnist(
+            devices=sf_simulation_setup_devices,
+            model_def=model_def_bn,
+            data=mnist_data,
+            label=mnist_label,
+            strategy='fed_stc',
+            backend="torch",
+            threshold=0.9,
+            dp_strategy=dp_strategy_fl,
+            dp_spent_step_freq=dp_spent_step_freq,
+            skip_bn=True,
         )
 
 
@@ -467,3 +501,44 @@ class TestFLModelTorchDataBuilder:
         fl_model.save_model(model_path=model_path, is_test=True)
         # FIXME(fengjun.feng)
         # assert os.path.exists(model_path) != None
+
+
+class TestFLModelTorchCustomVAELoss:
+    def test_torch_model_custom_vae_loss(self, sf_simulation_setup_devices):
+        (_, _), (mnist_data, mnist_label) = load_mnist(
+            parts={
+                sf_simulation_setup_devices.alice: 0.4,
+                sf_simulation_setup_devices.bob: 0.6,
+            },
+            normalized_x=True,
+            categorical_y=True,
+            is_torch=True,
+        )
+
+        device_list = [
+            sf_simulation_setup_devices.alice,
+            sf_simulation_setup_devices.bob,
+        ]
+        server = sf_simulation_setup_devices.carol
+
+        aggregator = PlainAggregator(server)
+
+        fl_model = FLModel(
+            server=server,
+            device_list=device_list,
+            model=VAE,
+            aggregator=aggregator,
+            strategy="fed_avg_w",
+            backend="torch",
+            random_seed=1234,
+        )
+        history = fl_model.fit(
+            mnist_data,
+            mnist_label,
+            validation_data=(mnist_data, mnist_label),
+            epochs=1,
+            batch_size=128,
+            aggregate_freq=2,
+        )
+
+        assert history["global_history"]["val_meansquarederror"][0] < 0.1

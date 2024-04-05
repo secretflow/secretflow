@@ -15,10 +15,11 @@
 from typing import List, Tuple
 
 import numpy as np
+
 from secretflow.ml.boost.sgb_v.factory.sgb_actor import SGBActor
 
-from .split_candidate_heap import SplitCandidateHeap
 from ..component import Component, Devices
+from .split_candidate_heap import SplitCandidateHeap
 
 
 class SplitCandidateManager(Component):

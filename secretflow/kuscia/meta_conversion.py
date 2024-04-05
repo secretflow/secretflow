@@ -34,15 +34,8 @@ def convert_domain_data_to_individual_table(
 
     meta = IndividualTable()
     for col in domain_data.columns:
-        if not col.comment or col.comment == 'feature':
-            meta.schema.features.append(col.name)
-            meta.schema.feature_types.append(col.type)
-        elif col.comment == 'id':
-            meta.schema.ids.append(col.name)
-            meta.schema.id_types.append(col.type)
-        elif col.comment == 'label':
-            meta.schema.labels.append(col.name)
-            meta.schema.label_types.append(col.type)
+        meta.schema.features.append(col.name)
+        meta.schema.feature_types.append(col.type)
     meta.line_count = -1
     dist_data.meta.Pack(meta)
 
@@ -65,10 +58,12 @@ def convert_dist_data_to_domain_data(
             return "model"
         elif dist_data_type.startswith("sf.rule"):
             return "rule"
-        elif dist_data_type.startswith("sf.report"):
+        elif dist_data_type == "sf.report":
             return "report"
-        elif dist_data_type.startswith("sf.read_data"):
+        elif dist_data_type == "sf.read_data":
             return "read_data"
+        elif dist_data_type == "sf.serving.model":
+            return "serving_model"
         return "unknown"
 
     def get_data_columns(x: DistData, party: str) -> List[DataColumn]:
@@ -114,7 +109,7 @@ def convert_dist_data_to_domain_data(
     )
 
     domain_data.attributes["dist_data"] = MessageToJson(
-        x, including_default_value_fields=True
+        x, including_default_value_fields=True, indent=0
     )
     domain_data.columns.extend(get_data_columns(x, party))
 

@@ -1,6 +1,19 @@
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import logging
 import operator
-import os
 
 import numpy as np
 import pandas as pd
@@ -14,10 +27,10 @@ from secretflow.component.preprocessing.unified_single_party_ops.binary_op impor
 from secretflow.component.preprocessing.unified_single_party_ops.substitution import (
     substitution,
 )
+from secretflow.component.storage import ComponentStorage
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
-from tests.conftest import TEST_STORAGE_ROOT
 
 ops = {"+": operator.add, "-": operator.sub, "*": operator.mul, "/": operator.truediv}
 
@@ -60,27 +73,19 @@ def test_binary_op_sample(
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    local_fs_wd = storage_config.local_fs.wd
+    comp_storage = ComponentStorage(storage_config)
 
     x = load_breast_cancer()["data"]
     alice_columns = [f"a{i}" for i in range(15)]
     bob_columns = [f"b{i}" for i in range(15)]
 
     if self_party == "alice":
-        os.makedirs(
-            os.path.join(local_fs_wd, "test_binary_op"),
-            exist_ok=True,
-        )
         ds = pd.DataFrame(x[:, :15], columns=alice_columns)
-        ds.to_csv(os.path.join(local_fs_wd, alice_input_path), index=False)
+        ds.to_csv(comp_storage.get_writer(alice_input_path), index=False)
 
     elif self_party == "bob":
-        os.makedirs(
-            os.path.join(local_fs_wd, "test_binary_op"),
-            exist_ok=True,
-        )
         ds = pd.DataFrame(x[:, 15:], columns=bob_columns)
-        ds.to_csv(os.path.join(local_fs_wd, bob_input_path), index=False)
+        ds.to_csv(comp_storage.get_writer(bob_input_path), index=False)
 
     param = NodeEvalParam(
         domain="preprocessing",
@@ -146,26 +151,25 @@ def test_binary_op_sample(
 
     assert len(res.outputs) == 2
 
-    a_out = pd.read_csv(os.path.join(TEST_STORAGE_ROOT, "alice", output_path))
-    b_out = pd.read_csv(os.path.join(TEST_STORAGE_ROOT, "bob", output_path))
-    a_in = pd.DataFrame(x[:, :15], columns=alice_columns)
-    b_in = pd.DataFrame(x[:, 15:], columns=bob_columns)
+    def test(df, df_in):
+        assert new_feature_name in df.columns
+        item_0 = df_in[features[0]]
+        item_1 = df_in[features[1]]
+        expected_result = ops[binary_op](item_0, item_1)
+        np.testing.assert_array_almost_equal(
+            df[new_feature_name], expected_result, decimal=3
+        )
 
-    if features[0] in alice_columns:
-        df = a_out
-        df_in = a_in
-    else:
-        df = b_out
-        df_in = b_in
-    assert new_feature_name in df.columns
-
-    item_0 = df_in[features[0]]
-    item_1 = df_in[features[1]]
-
-    expected_result = ops[binary_op](item_0, item_1)
-    np.testing.assert_array_almost_equal(
-        df[new_feature_name], expected_result, decimal=3
-    )
+    if features[0] in alice_columns and self_party == "alice":
+        comp_storage = ComponentStorage(storage_config)
+        df = pd.read_csv(comp_storage.get_reader(output_path))
+        df_in = pd.DataFrame(x[:, :15], columns=alice_columns)
+        test(df, df_in)
+    elif features[0] in bob_columns and self_party == "bob":
+        comp_storage = ComponentStorage(storage_config)
+        df = pd.read_csv(comp_storage.get_reader(output_path))
+        df_in = pd.DataFrame(x[:, 15:], columns=bob_columns)
+        test(df, df_in)
 
     param2 = NodeEvalParam(
         domain="preprocessing",
@@ -182,6 +186,6 @@ def test_binary_op_sample(
     )
 
     assert len(res.outputs) == 1
-
-    a_out = pd.read_csv(os.path.join(TEST_STORAGE_ROOT, "alice", sub_path))
-    logging.warning(f"....... \n{a_out}\n.,......")
+    if self_party == "alice":
+        a_out = pd.read_csv(comp_storage.get_reader(sub_path))
+        logging.warning(f"....... \n{a_out}\n.,......")

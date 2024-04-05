@@ -23,10 +23,8 @@ from secretflow.data.vertical import VDataFrame
 from secretflow.device import PYU, PYUObject, reveal, wait
 from secretflow.ml.boost.core.data_preprocess import prepare_dataset
 
-from .core.distributed_tree.distributed_tree import (
-    DistributedTree,
-    from_dict as dt_from_dict,
-)
+from .core.distributed_tree.distributed_tree import DistributedTree
+from .core.distributed_tree.distributed_tree import from_dict as dt_from_dict
 from .core.params import RegType
 from .core.pure_numpy_ops.pred import sigmoid
 
@@ -58,9 +56,15 @@ class SgbModel:
     def _insert_distributed_tree(self, tree: DistributedTree):
         self.trees.append(tree)
 
+    def __getitem__(self, index) -> 'SgbModel':
+        model = SgbModel(self.label_holder, self.objective, self.base)
+        model.trees = self.trees[index]
+        model.partition_column_counts = self.partition_column_counts
+        return model
+
     def predict(
         self,
-        dtrain: Union[FedNdarray, VDataFrame, Dict[PYU, PYUObject]],
+        dtrain: Union[FedNdarray, VDataFrame],
         to_pyu: PYU = None,
     ) -> Union[PYUObject, FedNdarray]:
         """
@@ -82,11 +86,8 @@ class SgbModel:
             return None
 
         pred = 0
-        if isinstance(dtrain, dict):
-            x = dtrain
-        else:
-            x, _ = prepare_dataset(dtrain)
-            x = x.partitions
+        x, _ = prepare_dataset(dtrain)
+        x = x.partitions
 
         for tree in self.trees:
             pred = self.label_holder(lambda x, y: jnp.add(x, y))(tree.predict(x), pred)
@@ -187,6 +188,12 @@ class SgbModel:
             return None
         return r
 
+    def get_trees(self):
+        return self.trees
+
+    def get_objective(self):
+        return self.objective
+
 
 def from_dict(model_dict: Dict) -> SgbModel:
     sm = SgbModel(
@@ -237,29 +244,41 @@ def from_json_to_dict(
 
     # load leaf weight
     leaf_weight_path = device_path_dict[label_holder] + leaf_weight_postfix
-    leaf_weights = [
-        *label_holder(json_load, num_returns=common_params['tree_num'])(
-            leaf_weight_path
-        )
-    ]
+    if common_params['tree_num'] > 1:
+        leaf_weights = [
+            *label_holder(json_load, num_returns=common_params['tree_num'])(
+                leaf_weight_path
+            )
+        ]
+    else:
+        leaf_weights = [label_holder(lambda x: json_load(x)[0])(leaf_weight_path)]
     # check split trees
     split_devices = {}
     for device, path in device_path_dict.items():
         if reveal(device(check_file_exists)(path + split_tree_postfix)):
             split_devices[device] = path
 
-    return {
-        'label_holder': label_holder,
-        'common': common_params,
-        'leaf_weights': leaf_weights,
-        'split_trees': {
+    if common_params['tree_num'] > 1:
+        split_tree_dict = {
             device: [
                 *device(json_load, num_returns=common_params['tree_num'])(
                     path + split_tree_postfix
                 )
             ]
             for device, path in split_devices.items()
-        },
+        }
+
+    else:
+        split_tree_dict = {
+            device: [device(lambda x: json_load(x)[0])(path + split_tree_postfix)]
+            for device, path in split_devices.items()
+        }
+
+    return {
+        'label_holder': label_holder,
+        'common': common_params,
+        'leaf_weights': leaf_weights,
+        'split_trees': split_tree_dict,
     }
 
 

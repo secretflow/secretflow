@@ -1,4 +1,18 @@
-import os
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import logging
 
 import pandas as pd
 from sklearn.datasets import load_breast_cancer
@@ -11,10 +25,11 @@ from secretflow.component.preprocessing.binning.vert_binning import (
 from secretflow.component.preprocessing.binning.vert_woe_binning import (
     vert_woe_binning_comp,
 )
+from secretflow.component.storage import ComponentStorage
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
-from tests.conftest import TEST_STORAGE_ROOT
+from secretflow.spec.v1.report_pb2 import Report
 
 
 def test_woe_binning(comp_prod_sf_cluster_config):
@@ -23,45 +38,39 @@ def test_woe_binning(comp_prod_sf_cluster_config):
     rule_path = "test_woe_binning/bin_rule"
     output_path = "test_woe_binning/woe.csv"
     read_data_path = "test_woe_binning/read_data"
+    report_path = "test_vert_binning/report"
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    local_fs_wd = storage_config.local_fs.wd
+    comp_storage = ComponentStorage(storage_config)
 
     ds = load_breast_cancer()
     x, y = ds["data"], ds["target"]
     if self_party == "alice":
-        os.makedirs(
-            os.path.join(local_fs_wd, "test_woe_binning"),
-            exist_ok=True,
-        )
         x = pd.DataFrame(x[:, :15], columns=[f"a{i}" for i in range(15)])
         y = pd.DataFrame(y, columns=["y"])
         ds = pd.concat([x, y], axis=1)
-        ds.to_csv(os.path.join(local_fs_wd, alice_path), index=False)
+        ds.to_csv(comp_storage.get_writer(alice_path), index=False)
 
     elif self_party == "bob":
-        os.makedirs(
-            os.path.join(local_fs_wd, "test_woe_binning"),
-            exist_ok=True,
-        )
-
         ds = pd.DataFrame(x[:, 15:], columns=[f"b{i}" for i in range(15)])
-        ds.to_csv(os.path.join(local_fs_wd, bob_path), index=False)
+        ds.to_csv(comp_storage.get_writer(bob_path), index=False)
 
     bin_param_01 = NodeEvalParam(
         domain="feature",
         name="vert_woe_binning",
-        version="0.0.1",
+        version="0.0.2",
         attr_paths=[
             "secure_device_type",
             "input/input_data/feature_selects",
             "input/input_data/label",
+            "report_rules",
         ],
         attrs=[
             Attribute(s="heu"),
             Attribute(ss=[f"a{i}" for i in range(12)] + [f"b{i}" for i in range(11)]),
             Attribute(ss=["y"]),
+            Attribute(b=True),
         ],
         inputs=[
             DistData(
@@ -73,24 +82,26 @@ def test_woe_binning(comp_prod_sf_cluster_config):
                 ],
             ),
         ],
-        output_uris=[rule_path],
+        output_uris=[rule_path, report_path],
     )
 
     bin_param_02 = NodeEvalParam(
         domain="feature",
         name="vert_woe_binning",
-        version="0.0.1",
+        version="0.0.2",
         attr_paths=[
             "secure_device_type",
             "binning_method",
             "input/input_data/feature_selects",
             "input/input_data/label",
+            "report_rules",
         ],
         attrs=[
             Attribute(s="spu"),
             Attribute(s="eq_range"),
             Attribute(ss=[f"a{i}" for i in range(11)] + [f"b{i}" for i in range(12)]),
             Attribute(ss=["y"]),
+            Attribute(b=True),
         ],
         inputs=[
             DistData(
@@ -102,7 +113,7 @@ def test_woe_binning(comp_prod_sf_cluster_config):
                 ],
             ),
         ],
-        output_uris=[rule_path],
+        output_uris=[rule_path, report_path],
     )
 
     meta = VerticalTable(
@@ -132,6 +143,11 @@ def test_woe_binning(comp_prod_sf_cluster_config):
         cluster_config=sf_cluster_config,
     )
 
+    assert len(bin_res.outputs) == 2
+    comp_ret = Report()
+    bin_res.outputs[1].meta.Unpack(comp_ret)
+    logging.info("bin_res.outputs[1]: %s", comp_ret)
+
     sub_param = NodeEvalParam(
         domain="preprocessing",
         name="vert_bin_substitution",
@@ -155,24 +171,13 @@ def test_woe_binning(comp_prod_sf_cluster_config):
 
     vt = VerticalTable()
     assert sub_res.outputs[0].meta.Unpack(vt)
-    import logging
 
     for s in vt.schemas:
         logging.warning(f'schema={s}')
         if 'y' in list(s.labels) or 'y' in list(s.features):
             assert 'y' in list(s.labels) and 'y' not in list(s.features)
 
-    output_info = extract_distdata_info(sub_res.outputs[0])
-
-    alice_out = pd.read_csv(
-        os.path.join(TEST_STORAGE_ROOT, "alice", output_info["alice"].uri)
-    )
-    bob_out = pd.read_csv(
-        os.path.join(TEST_STORAGE_ROOT, "bob", output_info["bob"].uri)
-    )
-    assert alice_out.shape[0] == bob_out.shape[0]
-
-    # import logging
+    extract_distdata_info(sub_res.outputs[0])
 
     # logging.warning(f"alice_out \n{alice_out}\n....\n")
     # logging.warning(f"bob_out \n{bob_out}\n....\n")

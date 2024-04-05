@@ -30,12 +30,12 @@ from secretflow.data.horizontal import HDataFrame
 from secretflow.data.ndarray import FedNdarray
 from secretflow.device import PYU, reveal, wait
 from secretflow.device.device.pyu import PYUObject
+from secretflow.ml.nn.callbacks.callbacklist import CallbackList
 from secretflow.ml.nn.fl.compress import COMPRESS_STRATEGY, do_compress
 from secretflow.ml.nn.fl.strategy_dispatcher import dispatch_strategy
 from secretflow.ml.nn.metrics import Metric, aggregate_metrics
 from secretflow.utils.compressor import sparse_encode
 from secretflow.utils.random import global_random
-from secretflow.ml.nn.callbacks.callbacklist import CallbackList
 
 
 class FLModel:
@@ -49,6 +49,7 @@ class FLModel:
         consensus_num=1,
         backend="tensorflow",
         random_seed=None,
+        skip_bn=False,
         **kwargs,  # other parameters specific to strategies
     ):
         """Interface for horizontal federated learning
@@ -63,6 +64,7 @@ class FLModel:
             random_seed: If specified, the initial value of the model will remain the same, which ensures reproducible
             server_agg_method: If aggregator is none, server will use server_agg_method to aggregate params, The server_agg_method should be a function
                 that takes in a list of parameter values from different parties and returns the aggregated parameter value list
+            skip_bn: Whether to skip batch normalization layers when aggregate models
         """
         if backend == "tensorflow":
             import secretflow.ml.nn.fl.backend.tensorflow.strategy  # noqa
@@ -78,6 +80,7 @@ class FLModel:
             backend=backend,
             random_seed=random_seed,
             num_gpus=self.num_gpus,
+            skip_bn=skip_bn,
         )
         self.server = server
         self.device_list = device_list
@@ -99,6 +102,7 @@ class FLModel:
         backend,
         random_seed,
         num_gpus,
+        skip_bn,
     ):
         self._workers = {
             device: dispatch_strategy(
@@ -108,6 +112,7 @@ class FLModel:
                 device=device,
                 random_seed=random_seed,
                 num_gpus=num_gpus,
+                skip_bn=skip_bn,
             )
             for device in device_list
         }
@@ -491,9 +496,11 @@ class FLModel:
                     client_params, sample_num = self._workers[device].train_step(
                         client_params,
                         epoch * train_steps_per_epoch + step,
-                        aggregate_freq
-                        if step + aggregate_freq < train_steps_per_epoch
-                        else train_steps_per_epoch - step,
+                        (
+                            aggregate_freq
+                            if step + aggregate_freq < train_steps_per_epoch
+                            else train_steps_per_epoch - step
+                        ),
                         **self.kwargs,
                     )
                     client_param_list.append(client_params)
@@ -816,6 +823,7 @@ class FLModel:
         is_test=False,
         saved_model=False,
         force_all_participate=False,
+        **kwargs,
     ):
         """Horizontal federated load model interface
 
@@ -823,6 +831,8 @@ class FLModel:
             model_path: model path
             is_test: whether is test mode
             saved_model: bool Whether to load from savedmodel or torchscript format
+            custom_objects: Optional, tf/keras only. Dictionary mapping names (strings) to custom
+                classes or functions of the model to be considered during deserialization
         """
         assert isinstance(
             model_path, (str, Dict)
@@ -846,7 +856,8 @@ class FLModel:
             else:
                 res.append(
                     worker.load_model(
-                        os.path.join(device_model_path, device_model_name)
+                        os.path.join(device_model_path, device_model_name),
+                        **kwargs,
                     )
                 )
         checks = reveal(res)

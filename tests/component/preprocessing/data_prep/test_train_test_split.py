@@ -1,4 +1,16 @@
-import os
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import pandas as pd
 
@@ -6,10 +18,10 @@ from secretflow.component.data_utils import DistDataType, extract_distdata_info
 from secretflow.component.preprocessing.data_prep.train_test_split import (
     train_test_split_comp,
 )
+from secretflow.component.storage import ComponentStorage
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
-from tests.conftest import TEST_STORAGE_ROOT
 
 
 def test_train_test_split(comp_prod_sf_cluster_config):
@@ -20,7 +32,7 @@ def test_train_test_split(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    local_fs_wd = storage_config.local_fs.wd
+    comp_storage = ComponentStorage(storage_config)
 
     if self_party == "alice":
         df_alice = pd.DataFrame(
@@ -32,14 +44,8 @@ def test_train_test_split(comp_prod_sf_cluster_config):
                 "y": [0, 1, 1, 0],
             }
         )
-
-        os.makedirs(
-            os.path.join(local_fs_wd, "test_train_test_split"),
-            exist_ok=True,
-        )
-
         df_alice.to_csv(
-            os.path.join(local_fs_wd, alice_input_path),
+            comp_storage.get_writer(alice_input_path),
             index=False,
         )
     elif self_party == "bob":
@@ -51,14 +57,8 @@ def test_train_test_split(comp_prod_sf_cluster_config):
                 "b6": [3, 1, 9, 4],
             }
         )
-
-        os.makedirs(
-            os.path.join(local_fs_wd, "test_train_test_split"),
-            exist_ok=True,
-        )
-
         df_bob.to_csv(
-            os.path.join(local_fs_wd, bob_input_path),
+            comp_storage.get_writer(bob_input_path),
             index=False,
         )
 
@@ -109,11 +109,6 @@ def test_train_test_split(comp_prod_sf_cluster_config):
     )
     param.inputs[0].meta.Pack(meta)
 
-    os.makedirs(
-        os.path.join(local_fs_wd, "test_train_test_split"),
-        exist_ok=True,
-    )
-
     res = train_test_split_comp.eval(
         param=param,
         storage_config=storage_config,
@@ -125,21 +120,14 @@ def test_train_test_split(comp_prod_sf_cluster_config):
     train_info = extract_distdata_info(res.outputs[0])
     test_info = extract_distdata_info(res.outputs[1])
 
-    pd.testing.assert_series_equal(
-        pd.read_csv(os.path.join(TEST_STORAGE_ROOT, "alice", train_info["alice"].uri))[
-            "id1"
-        ],
-        pd.read_csv(os.path.join(TEST_STORAGE_ROOT, "bob", train_info["bob"].uri))[
-            "id2"
-        ],
-        check_names=False,
-    )
-    pd.testing.assert_series_equal(
-        pd.read_csv(os.path.join(TEST_STORAGE_ROOT, "alice", test_info["alice"].uri))[
-            "id1"
-        ],
-        pd.read_csv(os.path.join(TEST_STORAGE_ROOT, "bob", test_info["bob"].uri))[
-            "id2"
-        ],
-        check_names=False,
-    )
+    if self_party == "alice":
+        train_ids = pd.read_csv(comp_storage.get_reader(train_info["alice"].uri))["id1"]
+        test_ids = pd.read_csv(comp_storage.get_reader(test_info["alice"].uri))["id1"]
+        assert list(train_ids) == [1, 2, 3]
+        assert list(test_ids) == [4]
+
+    if self_party == "bob":
+        train_ids = pd.read_csv(comp_storage.get_reader(train_info["bob"].uri))["id2"]
+        test_ids = pd.read_csv(comp_storage.get_reader(test_info["bob"].uri))["id2"]
+        assert list(train_ids) == [1, 2, 3]
+        assert list(test_ids) == [4]

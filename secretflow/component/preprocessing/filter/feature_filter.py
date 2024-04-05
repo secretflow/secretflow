@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-
 from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import DistDataType, load_table
 from secretflow.device.driver import wait
@@ -75,7 +73,9 @@ def feature_filter_eval_fn(*, ctx, in_ds, in_ds_drop_features, out_ds):
         ds = load_table(
             ctx, out_dist, load_features=True, load_ids=True, load_labels=True
         )
-        out_path = {p: os.path.join(ctx.local_fs_wd, out_ds) for p in ds.partitions}
+        out_path = {
+            p: lambda: ctx.comp_storage.get_writer(out_ds) for p in ds.partitions
+        }
         wait(ds.to_csv(out_path, index=False))
 
     for i in range(len(out_dist.data_refs)):

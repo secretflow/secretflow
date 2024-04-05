@@ -1,13 +1,31 @@
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import logging
-import os
 
 import numpy as np
 import pandas as pd
+import pytest
 from google.protobuf.json_format import MessageToJson
+from sklearn.datasets import load_breast_cancer
+from sklearn.metrics import r2_score
+from sklearn.preprocessing import StandardScaler
 
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.ml.eval.regression_eval import regression_eval_comp
 from secretflow.component.ml.linear.ss_sgd import ss_sgd_predict_comp, ss_sgd_train_comp
+from secretflow.component.storage import ComponentStorage
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import (
     DistData,
@@ -17,14 +35,11 @@ from secretflow.spec.v1.data_pb2 import (
 )
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
-from sklearn.datasets import load_breast_cancer
-from sklearn.metrics import r2_score
-from sklearn.preprocessing import StandardScaler
 
-from tests.conftest import TEST_STORAGE_ROOT
+g_test_epoch = 3
 
 
-def get_train_param(alice_path, bob_path, model_path):
+def get_train_param(alice_path, bob_path, model_path, checkpoint_path):
     return NodeEvalParam(
         domain="ml.train",
         name="ss_sgd_train",
@@ -44,7 +59,7 @@ def get_train_param(alice_path, bob_path, model_path):
             "input/train_dataset/feature_selects",
         ],
         attrs=[
-            Attribute(i64=3),
+            Attribute(i64=g_test_epoch),
             Attribute(f=0.3),
             Attribute(i64=128),
             Attribute(s="t1"),
@@ -68,6 +83,7 @@ def get_train_param(alice_path, bob_path, model_path):
             ),
         ],
         output_uris=[model_path],
+        checkpoint_uri=checkpoint_path,
     )
 
 
@@ -81,12 +97,14 @@ def get_pred_param(alice_path, bob_path, train_res, predict_path):
             "receiver",
             "save_ids",
             "save_label",
+            "input/feature_dataset/saved_features",
         ],
         attrs=[
             Attribute(i64=128),
             Attribute(s="alice"),
             Attribute(b=False),
             Attribute(b=True),
+            Attribute(ss=["a2", "a10"]),
         ],
         inputs=[
             train_res.outputs[0],
@@ -134,28 +152,19 @@ def get_eval_param(predict_path):
 def get_meta_and_dump_data(comp_prod_sf_cluster_config, alice_path, bob_path):
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    local_fs_wd = storage_config.local_fs.wd
+    comp_storage = ComponentStorage(storage_config)
     scaler = StandardScaler()
     ds = load_breast_cancer()
     x, y = scaler.fit_transform(ds["data"]), ds["target"]
     if self_party == "alice":
-        os.makedirs(
-            os.path.join(local_fs_wd, "test_ss_sgd"),
-            exist_ok=True,
-        )
         x = pd.DataFrame(x[:, :15], columns=[f"a{i}" for i in range(15)])
         y = pd.DataFrame(y, columns=["y"])
         ds = pd.concat([x, y], axis=1)
-        ds.to_csv(os.path.join(local_fs_wd, alice_path), index=False)
+        ds.to_csv(comp_storage.get_writer(alice_path), index=False)
 
     elif self_party == "bob":
-        os.makedirs(
-            os.path.join(local_fs_wd, "test_ss_sgd"),
-            exist_ok=True,
-        )
-
         ds = pd.DataFrame(x[:, 15:], columns=[f"b{i}" for i in range(15)])
-        ds.to_csv(os.path.join(local_fs_wd, bob_path), index=False)
+        ds.to_csv(comp_storage.get_writer(bob_path), index=False)
 
     return VerticalTable(
         schemas=[
@@ -173,15 +182,18 @@ def get_meta_and_dump_data(comp_prod_sf_cluster_config, alice_path, bob_path):
     )
 
 
-def test_ss_sgd(comp_prod_sf_cluster_config):
-    alice_path = "test_ss_sgd/x_alice.csv"
-    bob_path = "test_ss_sgd/x_bob.csv"
-    model_path = "test_ss_sgd/model.sf"
-    predict_path = "test_ss_sgd/predict.csv"
+@pytest.mark.parametrize("with_checkpoint", [True, False])
+def test_ss_sgd(comp_prod_sf_cluster_config, with_checkpoint):
+    work_path = f'test_ss_sgd_{with_checkpoint}'
+    alice_path = f"{work_path}/x_alice.csv"
+    bob_path = f"{work_path}/x_bob.csv"
+    model_path = f"{work_path}/model.sf"
+    predict_path = f"{work_path}/predict.csv"
+    checkpoint_path = f"{work_path}/checkpoint" if with_checkpoint else ""
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
 
-    train_param = get_train_param(alice_path, bob_path, model_path)
+    train_param = get_train_param(alice_path, bob_path, model_path, checkpoint_path)
     meta = get_meta_and_dump_data(comp_prod_sf_cluster_config, alice_path, bob_path)
     train_param.inputs[0].meta.Pack(meta)
 
@@ -191,43 +203,69 @@ def test_ss_sgd(comp_prod_sf_cluster_config):
         cluster_config=sf_cluster_config,
     )
 
-    predict_param = get_pred_param(alice_path, bob_path, train_res, predict_path)
-    predict_param.inputs[1].meta.Pack(meta)
+    def run_pred(predict_path, train_res):
+        predict_param = get_pred_param(alice_path, bob_path, train_res, predict_path)
+        predict_param.inputs[1].meta.Pack(meta)
 
-    predict_res = ss_sgd_predict_comp.eval(
-        param=predict_param,
-        storage_config=storage_config,
-        cluster_config=sf_cluster_config,
-    )
+        predict_res = ss_sgd_predict_comp.eval(
+            param=predict_param,
+            storage_config=storage_config,
+            cluster_config=sf_cluster_config,
+        )
 
-    assert len(predict_res.outputs) == 1
+        assert len(predict_res.outputs) == 1
 
-    input_y = pd.read_csv(os.path.join(TEST_STORAGE_ROOT, "alice", alice_path))
-    output_y = pd.read_csv(os.path.join(TEST_STORAGE_ROOT, "alice", predict_path))
+        if "alice" == sf_cluster_config.private_config.self_party:
+            comp_storage = ComponentStorage(storage_config)
+            input_y = pd.read_csv(comp_storage.get_reader(alice_path))
+            output_y = pd.read_csv(comp_storage.get_reader(predict_path))
 
-    # label & pred
-    assert output_y.shape[1] == 2
+            # label & pred
+            assert output_y.shape[1] == 4
 
-    assert input_y.shape[0] == output_y.shape[0]
+            assert input_y.shape[0] == output_y.shape[0]
 
-    # eval using biclassification eval
-    eval_param = get_eval_param(predict_path)
-    eval_meta = IndividualTable(
-        schema=TableSchema(labels=["y", "pred"], label_types=["float32", "float32"]),
-    )
-    eval_param.inputs[0].meta.Pack(eval_meta)
+            r2_score_ = r2_score(input_y["y"], output_y["pred"])
 
-    eval_res = regression_eval_comp.eval(
-        param=eval_param,
-        storage_config=storage_config,
-        cluster_config=sf_cluster_config,
-    )
-    comp_ret = Report()
-    eval_res.outputs[0].meta.Unpack(comp_ret)
-    logging.warning(MessageToJson(comp_ret))
-    r2_score_ = r2_score(input_y["y"], output_y["pred"])
-    np.testing.assert_almost_equal(
-        r2_score_,
-        comp_ret.tabs[0].divs[0].children[0].descriptions.items[0].value.f,
-        decimal=5,
-    )
+        # eval using biclassification eval
+        eval_param = get_eval_param(predict_path)
+        eval_meta = IndividualTable(
+            schema=TableSchema(
+                labels=["y", "pred"], label_types=["float32", "float32"]
+            ),
+        )
+        eval_param.inputs[0].meta.Pack(eval_meta)
+
+        eval_res = regression_eval_comp.eval(
+            param=eval_param,
+            storage_config=storage_config,
+            cluster_config=sf_cluster_config,
+        )
+        comp_ret = Report()
+        eval_res.outputs[0].meta.Unpack(comp_ret)
+        logging.warning(MessageToJson(comp_ret))
+
+        if "alice" == sf_cluster_config.private_config.self_party:
+            np.testing.assert_almost_equal(
+                r2_score_,
+                comp_ret.tabs[0].divs[0].children[0].descriptions.items[0].value.f,
+                decimal=5,
+            )
+
+    run_pred(predict_path, train_res)
+
+    if with_checkpoint:
+        cp_num = g_test_epoch - 1
+        if 'alice' == sf_cluster_config.private_config.self_party:
+            comp_storage = ComponentStorage(storage_config)
+            for i in range(int(cp_num / 2), cp_num):
+                with comp_storage.get_writer(f"{checkpoint_path}_{i}") as f:
+                    # destroy some checkpoint to rollback train progress
+                    f.write(b"....")
+        train_param.output_uris[0] = f"{work_path}/model.sf.2"
+        train_res = ss_sgd_train_comp.eval(
+            param=train_param,
+            storage_config=storage_config,
+            cluster_config=sf_cluster_config,
+        )
+        run_pred(predict_path + '.2', train_res)

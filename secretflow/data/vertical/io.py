@@ -13,20 +13,21 @@
 # limitations under the License.
 
 
-from typing import Dict, List, Union
+from typing import Callable, Dict, List, Union
 
-from secretflow.device import PYU, SPU, Device, reveal
+from secretflow.device import PYU, SPU, Device
 from secretflow.utils.errors import InvalidArgumentError
 from secretflow.utils.random import global_random
 
 from ..core import partition
-from ..core.io import read_csv_wrapper, read_file_meta
+from ..core.io import read_csv_wrapper
 from .dataframe import VDataFrame
 
 
 def read_csv(
-    filepath: Dict[PYU, str],
+    filepath: Dict[PYU, Union[str, Callable]],
     delimiter=",",
+    usecols: Dict[PYU, List[str]] = None,
     dtypes: Dict[PYU, Dict[str, type]] = None,
     spu: SPU = None,
     keys: Union[str, List[str], Dict[Device, List[str]]] = None,
@@ -35,6 +36,7 @@ def read_csv(
     no_header: bool = False,
     backend: str = 'pandas',
     nrows: int = None,
+    skip_rows_after_header: int = None,
 ) -> VDataFrame:
     """Read a comma-separated values (csv) file into VDataFrame.
 
@@ -55,6 +57,8 @@ def read_csv(
                     PYU('bob'): 'bob.csv'
                 }
         delimiter: the file separator.
+        usecols: Subset of columns to select, denoted either by column labels or column indices.
+            Element order is respected, which is different from behavior of Pandas.
         dtypes: Participant field type. It will be inferred from the file if
             not specified, E.g.
 
@@ -64,6 +68,7 @@ def read_csv(
                     PYU('alice'): {'uid': np.str, 'age': np.int32},
                     PYU('bob'): {'uid': np.str, 'score': np.float32}
                 }
+            If usecols is not provided. The keys of dtypes will be used as usecols.
         spu: SPU device, used for PSI data alignment.
             The data of all parties are supposed pre-aligned if not specified.
         keys: The field used for psi, which can be single or multiple fields.
@@ -75,6 +80,8 @@ def read_csv(
             parties, 'ECDH_PSI_3PC' for 3 parties.
         no_header: Whether the dataset has the header, defualt to False.
         backend: The read csv backend, default use Pandas, support Polars as well.
+        nrows: Stop reading from CSV file after reading n_rows.
+        skip_rows_after_header: Skip this number of rows when the header is parsed.
 
     Returns:
         A aligned VDataFrame.
@@ -83,6 +90,9 @@ def read_csv(
     assert spu is None or drop_keys is not None, f"drop_keys required when spu provided"
     if spu is not None:
         assert len(filepath) <= 3, f"only support 2 or 3 parties for now"
+    assert spu is None or all(
+        [isinstance(p, str) for p in filepath.values()]
+    ), "psi only support local file path"
 
     def get_keys(
         device: Device, x: Union[str, List[str], Dict[Device, List[str]]] = None
@@ -122,8 +132,15 @@ def read_csv(
 
     partitions = {}
     for device, path in filepath_actual.items():
-        usecols = dtypes[device].keys() if dtypes is not None else None
         dtype = dtypes[device] if dtypes is not None else None
+        usecol = usecols[device] if usecols is not None else None
+
+        if usecol is None and dtype is not None:
+            usecol = dtype.keys()
+
+        if no_header:
+            assert usecol is None, "can not use usecol when no_header is True"
+
         partitions[device] = partition(
             data=read_csv_wrapper,
             device=device,
@@ -131,10 +148,11 @@ def read_csv(
             filepath=path,
             auto_gen_header_prefix=str(device) if no_header else "",
             delimiter=delimiter,
-            usecols=usecols,
+            usecols=usecol,
             dtype=dtype,
             read_backend=backend,
             nrows=nrows,
+            skip_rows_after_header=skip_rows_after_header,
         )
     if drop_keys:
         for device, part in partitions.items():
@@ -156,7 +174,7 @@ def read_csv(
                     f" which are {device_psi_key_set}"
                 )
 
-                partitions[device] = part.drop(labels=device_drop_key, axis=1)
+                partitions[device] = part.drop(columns=device_drop_key)
 
     unique_cols = set()
 
@@ -166,12 +184,9 @@ def read_csv(
         for device, part in partitions.items():
             parties_length[device.party] = len(part)
         if len(set(parties_length.values())) > 1:
-            file_metas = {}
-            for pyu in filepath_actual:
-                file_metas[pyu] = reveal(pyu(read_file_meta)(filepath_actual[pyu]))
             raise AssertionError(
                 f"number of samples must be equal across all devices, got {parties_length}, "
-                f"input uri {filepath_actual}, input file meta {file_metas}"
+                f"input uri {filepath_actual}"
             )
 
     for device, part in partitions.items():

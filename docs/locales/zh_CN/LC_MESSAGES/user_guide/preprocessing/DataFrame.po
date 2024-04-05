@@ -7,14 +7,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-07-03 17:24+0800\n"
+"POT-Creation-Date: 2024-03-19 12:20+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.12.1\n"
+"Generated-By: Babel 2.14.0\n"
 
 #: ../../user_guide/preprocessing/DataFrame.ipynb:9
 msgid "DataFrame"
@@ -41,7 +41,7 @@ msgid ""
 msgstr "隐语提供了联邦数据的DataFrame形式封装。DataFrame由多个参与方的数据块构成，支持数据水平或者垂直切分。"
 
 #: ../../user_guide/preprocessing/DataFrame.ipynb:44
-msgid "|d3a69f8f755d48fc91d11a9d3cf9a6d1|"
+msgid "|015674ffc2bb4ca9822bd28ab4c6f4a6|"
 msgstr ""
 
 #: ../../user_guide/preprocessing/DataFrame.ipynb:50
@@ -102,7 +102,7 @@ msgid "Create a DataFrame consisting of horizontally partitioned data."
 msgstr "创建一个由水平切分数据组成的DataFrame。"
 
 #: ../../user_guide/preprocessing/DataFrame.ipynb:741
-#: ../../user_guide/preprocessing/DataFrame.ipynb:781
+#: ../../user_guide/preprocessing/DataFrame.ipynb:783
 msgid ""
 "💡 The original data is still stored locally in the data holder and is not"
 " transmitted out of the domain."
@@ -120,19 +120,19 @@ msgstr ""
 "<../../developer/algorithm/secure_aggregation.ipynb>`__ "
 "了解更多安全聚合方案，并选择适合您的安全策略。"
 
-#: ../../user_guide/preprocessing/DataFrame.ipynb:777
+#: ../../user_guide/preprocessing/DataFrame.ipynb:779
 msgid "Vertical DataFrame"
 msgstr "垂直DataFrame"
 
-#: ../../user_guide/preprocessing/DataFrame.ipynb:779
+#: ../../user_guide/preprocessing/DataFrame.ipynb:781
 msgid "Create a DataFrame consisting of vertically partitioned data."
-msgstr "创建一个由水平切分数据组成的DataFrame。"
+msgstr "创建一个由垂直切分数据组成的DataFrame。"
 
-#: ../../user_guide/preprocessing/DataFrame.ipynb:805
+#: ../../user_guide/preprocessing/DataFrame.ipynb:807
 msgid "Data analysis"
 msgstr "数据分析"
 
-#: ../../user_guide/preprocessing/DataFrame.ipynb:807
+#: ../../user_guide/preprocessing/DataFrame.ipynb:809
 msgid ""
 "For data privacy protection purposes, DataFrame does not allow the view "
 "of raw data. DataFrame provides an interface similar to pandas for users "
@@ -140,61 +140,57 @@ msgid ""
 "vertical partitioned data."
 msgstr "为了保护数据隐私，DataFrame不允许对原始数据进行查看。DataFrame提供了类似pandas的接口来方便用户分析数据。这些接口对水平和垂直切分数据都通用。"
 
-#: ../../user_guide/preprocessing/DataFrame.ipynb:809
+#: ../../user_guide/preprocessing/DataFrame.ipynb:811
 msgid ""
 "💡 During the following operations, the original data of the DataFrame is "
 "still stored locally on the node and is not transmitted out of the "
 "domain."
 msgstr "在以下操作中，原始数据仍然保持在数据拥有方本地，并不会传输出域。"
 
-#: ../../user_guide/preprocessing/DataFrame.ipynb:902
+#: ../../user_guide/preprocessing/DataFrame.ipynb:904
 msgid ""
 "Get the minimum value, you can see that it is consistent with the "
 "original data."
 msgstr "获取最小值，可以看到和原始数据一致。"
 
-#: ../../user_guide/preprocessing/DataFrame.ipynb:1015
+#: ../../user_guide/preprocessing/DataFrame.ipynb:1017
 msgid ""
 "You can also view information such as maximum value, mean value, and "
 "quantity."
 msgstr "您也可以查看比如最大值、平均值、数量等信息。"
 
-#: ../../user_guide/preprocessing/DataFrame.ipynb:1327
+#: ../../user_guide/preprocessing/DataFrame.ipynb:1329
 msgid "Selection"
 msgstr "选取数据"
 
-#: ../../user_guide/preprocessing/DataFrame.ipynb:1329
+#: ../../user_guide/preprocessing/DataFrame.ipynb:1331
 msgid "Get partial columns."
 msgstr "选取部分列。"
 
-#: ../../user_guide/preprocessing/DataFrame.ipynb:1425
+#: ../../user_guide/preprocessing/DataFrame.ipynb:1427
 msgid "Modification"
 msgstr "修改"
 
-#: ../../user_guide/preprocessing/DataFrame.ipynb:1436
+#: ../../user_guide/preprocessing/DataFrame.ipynb:1438
 msgid "Horizontal DataFrame"
 msgstr "水平DataFrame"
 
-#: ../../user_guide/preprocessing/DataFrame.ipynb:1528
+#: ../../user_guide/preprocessing/DataFrame.ipynb:1530
 msgid "Vertical DataFrame."
 msgstr "垂直DataFrame"
 
-#: ../../user_guide/preprocessing/DataFrame.ipynb:1621
+#: ../../user_guide/preprocessing/DataFrame.ipynb:1623
 msgid "Ending"
 msgstr "收尾"
 
-#: ../../user_guide/preprocessing/DataFrame.ipynb:1647
+#: ../../user_guide/preprocessing/DataFrame.ipynb:1649
 msgid "What’s Next?"
 msgstr "下一步"
 
-#: ../../user_guide/preprocessing/DataFrame.ipynb:1649
+#: ../../user_guide/preprocessing/DataFrame.ipynb:1651
 msgid ""
 "Learn how to do data preprocessing with DataFrame with `this tutorial "
 "<../../tutorial/data_preprocessing_with_data_frame.ipynb>`__."
 msgstr ""
 "跟着教程 `预处理 <../../tutorial/data_preprocessing_with_data_frame.ipynb>`__ "
 "学习如何对数据进行预处理。"
-
-#~ msgid "|444e44255a8a4d34b17b71fa8fa38f17|"
-#~ msgstr ""
-

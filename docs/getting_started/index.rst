@@ -20,4 +20,5 @@ Finally, please refer to :ref:`developer` and :ref:`api` when you write you own 
 
    installation
    deployment
+   debug_mode
 

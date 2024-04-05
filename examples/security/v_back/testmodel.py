@@ -1,26 +1,34 @@
-import torch
-from torch.utils.data import DataLoader
-from torchvision import datasets
-from torch import nn, optim
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import torch.nn.functional as F
-import torch.backends.cudnn as cudnn
-
-
-import torchvision
-import torchvision.transforms as transforms
-
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.pylab as plt2
 import os
 
-from resnet50 import ResNet50
+import matplotlib.pylab as plt2
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+import torch.backends.cudnn as cudnn
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+import torchvision
+import torchvision.transforms as transforms
 from resnet34 import ResNet34
+from resnet50 import ResNet50
+from torch import nn, optim
+from torch.utils.data import DataLoader
+from torchvision import datasets
 
 criterion = nn.CrossEntropyLoss()
 

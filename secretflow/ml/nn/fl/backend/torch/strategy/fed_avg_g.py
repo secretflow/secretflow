@@ -19,6 +19,7 @@ import copy
 from typing import Tuple
 
 import numpy as np
+import torch
 
 from secretflow.ml.nn.fl.backend.torch.fl_base import BaseTorchModel
 from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
@@ -49,40 +50,45 @@ class FedAvgG(BaseTorchModel):
             Parameters after local training
         """
         assert self.model is not None, "Model cannot be none, please give model define"
+        assert (
+            self.model.automatic_optimization
+        ), "automatic_optimization must be True in FedAvgG"
         refresh_data = kwargs.get("refresh_data", False)
         if refresh_data:
             self._reset_data_iter()
         dp_strategy = kwargs.get('dp_strategy', None)
 
+        optimizer = self.model.optimizers()
+        assert isinstance(
+            optimizer, torch.optim.Optimizer
+        ), "Only one optimizer is allowed in automatic optimization"
+
         if gradients is not None:
             # if gradients is not None, apply back propagation
             parameters = self.model.parameters()
             self.model.set_gradients(gradients, parameters)
-            self.optimizer.step()
+            optimizer.step()
 
         num_sample = 0
         logs = {}
         local_gradients_sum = None
+        loss: torch.Tensor = None
 
-        for _ in range(train_steps):
-            self.optimizer.zero_grad()
+        for step in range(train_steps):
+            optimizer.zero_grad()
 
             x, y, s_w = self.next_batch()
             num_sample += x.shape[0]
-            y_pred = self.model(x)
+            loss = self.model.training_step((x, y), cur_steps + step, sample_weight=s_w)
 
             # do back propagation
-            loss = self.loss(y_pred, y)
-            loss.backward()
+            self.model.backward(loss)
             local_gradients = self.model.get_gradients()
 
             if local_gradients_sum is None:
                 local_gradients_sum = local_gradients
             else:
                 local_gradients_sum += local_gradients
-
-            for m in self.metrics:
-                m.update(y_pred.cpu(), y.cpu())
         loss = loss.item()
         logs['train-loss'] = loss
         self.logs = self.transform_metrics(logs)
@@ -104,9 +110,9 @@ class FedAvgG(BaseTorchModel):
         """
         if gradients is not None:
             parameters = self.model.parameters()
-            # print(f'apply weights: {gradients}')
             self.model.set_gradients(gradients, parameters)
-            self.optimizer.step()
+            optimizer = self.model.optimizers()
+            optimizer.step()
 
 
 @register_strategy(strategy_name='fed_avg_g', backend='torch')

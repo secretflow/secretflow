@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Dict
+from typing import Dict, List
 
 import torch
 from torch import nn as nn
 from torch.nn import functional as F
 
-from secretflow.ml.nn.utils import BaseModule
+from secretflow.ml.nn.core.torch import BaseModule
 
 
 class PositionalEmbedding(nn.Module):

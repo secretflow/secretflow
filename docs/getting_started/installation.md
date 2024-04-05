@@ -16,21 +16,23 @@ After installation, don't forget to [have a quick try](#a-quick-try) to check if
 
 ## Environment
 
-Python：3.8
+Python：3.10
 
 pip: >= 19.3
 
-OS: CentOS 7, Ubuntu 18.04
+OS: CentOS 7, Ubuntu 20.04
 
 CPU/Memory: recommended minimum requirement is 8C16G.
+
+> **_Note:_** Due to CI resource limitation, macOS x64 prebuild binary is no longer available.
 
 ## Option 1: from pypi
 For users who want to try SecretFlow, you can install [the current release](https://pypi.org/project/secretflow/).
 
-Note that it requires python version == 3.8, you can create a virtual environment with conda if not satisfied.
+Note that it requires python version == 3.10, you can create a virtual environment with conda if not satisfied.
 
 ```
-conda create -n sf python=3.8
+conda create -n sf python=3.10
 conda activate sf
 ```
 
@@ -69,7 +71,7 @@ More versions can be obtained from [secretflow tags](https://hub.docker.com/r/se
 git clone https://github.com/secretflow/secretflow.git
 cd secretflow
 
-conda create -n secretflow python=3.8
+conda create -n secretflow python=3.10
 conda activate secretflow
 ```
 
@@ -109,7 +111,7 @@ Just follow the installation of anaconda in GNU/Linux to install anaconda in you
 - create conda environment
 
 ```shell
-conda create -n sf python=3.8
+conda create -n sf python=3.10
 ```
 
 - activate the environment
@@ -119,7 +121,7 @@ conda activate sf
 ```
 
 - use pip to install SecretFlow.
-
+    
     - Full edition
     ```
     pip install -U secretflow
@@ -242,11 +244,11 @@ docker build -f  secretflow-gpu.Dockerfile -t secretflow-gpu .
 1. Run a container
 
 ```bash
-docker container run --runtime=nvidia  -it --gpus all secretflow-gpu bash
+docker run -it --gpus all secretflow-gpu bash
 ```
 
 > **NOTE**: The following two parameters are necessary:
-> - `--runtime=nvidia`
+> - You should install `nvidia-container-toolkit` and restart docker daemon to enable GPU support.
 > - `--gpus all`
 
 2. After the container is running, you can use the jupyter notebook [GPU Check](../tutorial/GPU_check.ipynb) to check the access of Tensorflow and PyTorch for NVIDIA GPUs inside the container.

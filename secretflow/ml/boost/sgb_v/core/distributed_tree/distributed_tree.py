@@ -16,6 +16,7 @@ from typing import Dict
 import numpy as np
 
 from secretflow.device import PYU, PYUObject
+
 from ...core.pure_numpy_ops.node_select import (
     packbits_node_selects,
     unpack_node_select_lists,
@@ -106,6 +107,12 @@ class DistributedTree:
             'label_holder': self.label_holder,
             'partition_column_counts': self.partition_column_counts,
         }
+
+    def get_split_tree_dict(self):
+        return self.split_tree_dict
+
+    def get_leaf_weight(self):
+        return self.leaf_weight
 
 
 def from_dict(tree_content: Dict) -> DistributedTree:

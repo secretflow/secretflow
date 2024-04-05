@@ -19,7 +19,6 @@ import pandas as pd
 from sklearn.preprocessing import LabelEncoder as SkLabelEncoder
 from sklearn.preprocessing import OneHotEncoder as SkOneHotEncoder
 from sklearn.preprocessing import OrdinalEncoder as SkOrdinalEncoder
-
 from sklearn.utils.validation import column_or_1d
 
 from secretflow.data.horizontal import HDataFrame
@@ -451,32 +450,25 @@ class OneHotEncoder(_PreprocessBase):
         feature_names_out = []
 
         if hasattr(self, '_encoder'):
-            categories = self._encoder.categories_
+            categories = list(self._encoder.categories_)
             infrequent_categories = (
-                self._encoder.infrequent_categories_
+                list(self._encoder.infrequent_categories_)
                 if hasattr(self._encoder, '_infrequent_indices')
-                else None
+                else []
             )
-            feature_names_in = self._encoder.feature_names_in_
-            feature_names_out = self._encoder.get_feature_names_out()
+            feature_names_in = list(self._encoder.feature_names_in_)
+            feature_names_out = list(self._encoder.get_feature_names_out())
         else:
             for encoder in self._encoders.values():
-                categories = np.append(categories, encoder.categories_)
+                categories.extend(encoder.categories_)
                 infre_cat = (
                     encoder.infrequent_categories_
                     if hasattr(encoder, '_infrequent_indices')
-                    else None
+                    else []
                 )
-                infrequent_categories = np.append(
-                    infrequent_categories,
-                    infre_cat,
-                )
-                feature_names_in = np.append(
-                    feature_names_in, encoder.feature_names_in_
-                )
-                feature_names_out = np.append(
-                    feature_names_out, encoder.get_feature_names_out()
-                )
+                infrequent_categories.extend(infre_cat)
+                feature_names_in.extend(encoder.feature_names_in_)
+                feature_names_out.extend(encoder.get_feature_names_out())
 
         return {
             'columns': self._columns,

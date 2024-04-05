@@ -115,15 +115,17 @@ def gen_data():
                            n_classes=num_classes)
     return x, y
 
-# Alice generates its samples.
-x_a, y_a = alice(gen_data, num_returns=2)()
-# Bob generates its samples.
-x_b, y_b = alice(gen_data, num_returns=2)()
-
 from secretflow.device import TEEU
 
 # mrenclave can be omitted in simulation mode.
+alice = sf.PYU('alice')
+bob = sf.PYU('bob')
 teeu = TEEU('carol', mr_enclave='')
+
+# Alice generates its samples.
+x_a, y_a = alice(gen_data, num_returns=2)()
+# Bob generates its samples.
+x_b, y_b = bob(gen_data, num_returns=2)()
 
 # Transfer data to teeu.
 x_a_teeu = x_a.to(teeu, allow_funcs=xgb_demo)
@@ -134,7 +136,7 @@ y_b_teeu = y_b.to(teeu, allow_funcs=xgb_demo)
 
 # Run xgb_demo.
 res = teeu(xgb_demo)([x_a_teeu, x_b_teeu], [y_a_teeu, y_b_teeu])
-
+error = sf.reveal(res)
 print(f'Train error: {error}')
 
 ```
@@ -250,14 +252,17 @@ def gen_data():
                            n_classes=num_classes)
     return x, y
 
+from secretflow.device import TEEU
+
+# mrenclave can be omitted in simulation mode.
+alice = sf.PYU('alice')
+bob = sf.PYU('bob')
+teeu = TEEU('carol', mr_enclave='')
+
 # Alice generates its samples.
 x_a, y_a = alice(gen_data, num_returns=2)()
 # Bob generates its samples.
-x_b, y_b = alice(gen_data, num_returns=2)()
-
-from secretflow.device import TEEU
-
-teeu = TEEU('carol', mr_enclave='')
+x_b, y_b = bob(gen_data, num_returns=2)()
 
 # Transfer data to teeu.
 x_a_teeu = x_a.to(teeu, allow_funcs=xgb_demo)
@@ -268,7 +273,7 @@ y_b_teeu = y_b.to(teeu, allow_funcs=xgb_demo)
 
 # Run xgb_demo.
 res = teeu(xgb_demo)([x_a_teeu, x_b_teeu], [y_a_teeu, y_b_teeu])
-
+error = sf.reveal(res)
 print(f'Train error: {error}')
 
 ```
@@ -383,14 +388,17 @@ def gen_data():
                            n_classes=num_classes)
     return x, y
 
+from secretflow.device import TEEU
+
+# mrenclave can be omitted in simulation mode.
+alice = sf.PYU('alice')
+bob = sf.PYU('bob')
+teeu = TEEU('carol', mr_enclave='')
+
 # Alice generates its samples.
 x_a, y_a = alice(gen_data, num_returns=2)()
 # Bob generates its samples.
-x_b, y_b = alice(gen_data, num_returns=2)()
-
-from secretflow.device import TEEU
-
-teeu = TEEU('carol', mr_enclave='')
+x_b, y_b = bob(gen_data, num_returns=2)()
 
 # Transfer data to teeu.
 x_a_teeu = x_a.to(teeu, allow_funcs=xgb_demo)
@@ -401,7 +409,7 @@ y_b_teeu = y_b.to(teeu, allow_funcs=xgb_demo)
 
 # Run xgb_demo.
 res = teeu(xgb_demo)([x_a_teeu, x_b_teeu], [y_a_teeu, y_b_teeu])
-
+error = sf.reveal(res)
 print(f'Train error: {error}')
 
 ```
@@ -509,14 +517,17 @@ def gen_data():
                            n_classes=num_classes)
     return x, y
 
+from secretflow.device import TEEU
+
+# mrenclave can be omitted in simulation mode.
+alice = sf.PYU('alice')
+bob = sf.PYU('bob')
+teeu = TEEU('carol', mr_enclave='')
+
 # Alice generates its samples.
 x_a, y_a = alice(gen_data, num_returns=2)()
 # Bob generates its samples.
-x_b, y_b = alice(gen_data, num_returns=2)()
-
-from secretflow.device import TEEU
-
-teeu = TEEU('carol', mr_enclave='')
+x_b, y_b = bob(gen_data, num_returns=2)()
 
 # Transfer data to teeu.
 x_a_teeu = x_a.to(teeu, allow_funcs=xgb_demo)
@@ -527,7 +538,7 @@ y_b_teeu = y_b.to(teeu, allow_funcs=xgb_demo)
 
 # Run xgb_demo.
 res = teeu(xgb_demo)([x_a_teeu, x_b_teeu], [y_a_teeu, y_b_teeu])
-
+error = sf.reveal(res)
 print(f'Train error: {error}')
 
 ```
@@ -539,7 +550,7 @@ cd /root/occlum_instance
 openssl genrsa -3 -out private_key.pem 3072
 openssl rsa -in private_key.pem -pubout -out public_key.pem
 occlum build --sgx-mode sim --sign-key private_key.pem
-occlum run /bin/python3.8 /root/demo.py
+occlum run /bin/python /root/demo.py
 ```
 
 You can check model file at `/root/occlum_instance/model.json` when finished.

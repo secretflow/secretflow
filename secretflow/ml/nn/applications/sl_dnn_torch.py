@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Optional, Union
+from typing import Callable, List, Optional, Union
 
 import torch
 import torch.nn as nn
 
-from secretflow.ml.nn.utils import BaseModule
+from secretflow.ml.nn.core.torch import BaseModule
 
 
 class DnnBase(BaseModule):
@@ -31,6 +31,7 @@ class DnnBase(BaseModule):
         dnn_units_size: List[int],
         sparse_feas_indexes: Optional[List[int]] = None,
         embedding_dim=16,
+        preprocess_layer: Optional[Callable[..., nn.Module]] = None,
         *args,
         **kwargs,
     ):
@@ -58,10 +59,12 @@ class DnnBase(BaseModule):
         self._has_sparse_feas = not len(self._sparse_feas_index) == 0
         self._has_dense_feas = not len(self._dense_feas_index) == 0
         if self._has_sparse_feas:
-            self._embedding_features_layer = [
-                nn.Embedding(input_dims[idx], embedding_dim)
-                for idx in self._sparse_feas_index
-            ]
+            self._embedding_features_layer = nn.ModuleList(
+                [
+                    nn.Embedding(input_dims[idx], embedding_dim)
+                    for idx in self._sparse_feas_index
+                ]
+            )
         input_shape = 0
         for i, input_dim in enumerate(input_dims):
             if i in self._sparse_feas_index:
@@ -69,6 +72,7 @@ class DnnBase(BaseModule):
             else:
                 input_shape += input_dim
         dnn_layer = []
+        self.preprocess_layer = preprocess_layer
         for units in dnn_units_size:
             dnn_layer.append(nn.Linear(input_shape, units))
             dnn_layer.append(nn.ReLU())
@@ -76,6 +80,8 @@ class DnnBase(BaseModule):
         self._dnn = nn.Sequential(*(dnn_layer[:-1]))
 
     def forward(self, x):
+        if self.preprocess_layer is not None:
+            x = self.preprocess_layer(x)
         x = [x] if not isinstance(x, List) else x
         cat_feas = None
         # handle sparse feas
@@ -130,7 +136,9 @@ class DnnFuse(BaseModule):
         self._output_func = output_func() if output_func else None
 
     def forward(self, x):
-        x = torch.cat(x, dim=1)
+        if isinstance(x, list):
+            x = torch.cat(x, dim=1)
+
         x = self._dnn(x)
         if self._output_func:
             x = self._output_func(x)

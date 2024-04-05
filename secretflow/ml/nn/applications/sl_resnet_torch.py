@@ -1,3 +1,17 @@
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from typing import Callable, List, Optional
 
 import torch
@@ -39,8 +53,10 @@ class BasicBlock(nn.Module):
         base_width: int = 64,
         dilation: int = 1,
         norm_layer: Optional[Callable[..., nn.Module]] = None,
+        preprocess_layer: Optional[Callable[..., nn.Module]] = None,
     ) -> None:
         super().__init__()
+        self.preprocess_layer = preprocess_layer
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
         if groups != 1 or base_width != 64:
@@ -57,6 +73,8 @@ class BasicBlock(nn.Module):
         self.stride = stride
 
     def forward(self, x: Tensor) -> Tensor:
+        if self.preprocess_layer is not None:
+            x = self.preprocess_layer(x)
         identity = x
 
         out = self.conv1(x)
@@ -78,7 +96,7 @@ class BasicBlock(nn.Module):
 class ResNetBase(nn.Module):
     def __init__(
         self,
-        block: BasicBlock,
+        block: type(BasicBlock),
         layers: List[int],
         input_channels: int = 3,
         zero_init_residual: bool = False,

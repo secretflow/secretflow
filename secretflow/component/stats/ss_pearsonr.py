@@ -12,15 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import List
+
 import numpy as np
 
+from secretflow import Device
 from secretflow.component.component import (
+    CompEvalContext,
     CompEvalError,
     Component,
     IoType,
     TableColParam,
 )
-from secretflow.component.data_utils import DistDataType, load_table
+from secretflow.component.data_utils import DistData, DistDataType, load_table
+from secretflow.component.device_utils import make_spu
 from secretflow.device.device.spu import SPU
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData
@@ -41,7 +46,7 @@ ss_pearsonr_comp.io(
     io_type=IoType.INPUT,
     name="input_data",
     desc="Input vertical table.",
-    types=[DistDataType.VERTICAL_TABLE],
+    types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
     col_params=[
         TableColParam(
             name="feature_selects",
@@ -60,38 +65,28 @@ ss_pearsonr_comp.io(
 @ss_pearsonr_comp.eval_fn
 def ss_pearsonr_eval_fn(
     *,
-    ctx,
-    input_data,
-    input_data_feature_selects,
+    ctx: CompEvalContext,
+    input_data: DistData,
+    input_data_feature_selects: List[str] = None,
     report,
 ):
-    if ctx.spu_configs is None or len(ctx.spu_configs) == 0:
-        raise CompEvalError("spu config is not found.")
-    if len(ctx.spu_configs) > 1:
-        raise CompEvalError("only support one spu")
-    spu_config = next(iter(ctx.spu_configs.values()))
-
-    cluster_def = spu_config["cluster_def"].copy()
-
-    # forced to use 128 ring size & 40 fxp
-    cluster_def["runtime_config"]["field"] = "FM128"
-    cluster_def["runtime_config"]["fxp_fraction_bits"] = 40
-
-    spu = SPU(cluster_def, spu_config["link_desc"])
-
     feature_selects = (
         input_data_feature_selects if len(input_data_feature_selects) else None
     )
-
     x = load_table(
         ctx,
         input_data,
         load_features=True,
-        feature_selects=feature_selects,
+        col_selects=feature_selects,
     )
+    if len(x.partitions) == 1:
+        for pyu, _ in x.partitions.items():
+            device = pyu
+    else:
+        device = make_spu(ctx)
 
     with ctx.tracer.trace_running():
-        pr: np.ndarray = PearsonR(spu).pearsonr(x)
+        pr: np.ndarray = PearsonR(device).pearsonr(x)
 
     feature_names = x.columns
 

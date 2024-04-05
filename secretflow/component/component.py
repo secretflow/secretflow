@@ -16,6 +16,7 @@ import inspect
 import json
 import logging
 import math
+import os
 import threading
 import time
 from dataclasses import dataclass
@@ -25,9 +26,10 @@ from typing import Dict, List, Type, Union
 import cleantext
 import spu
 from google.protobuf.message import Message as PbMessage
-
+from secretflow.component.checkpoint import CompCheckpoint
 from secretflow.component.data_utils import DistDataType, check_dist_data, check_io_def
 from secretflow.component.eval_param_reader import EvalParamReader
+from secretflow.component.storage import ComponentStorage
 from secretflow.device.driver import init, shutdown
 from secretflow.spec.extend.cluster_pb2 import SFClusterConfig
 from secretflow.spec.v1.component_pb2 import AttributeDef, AttrType, ComponentDef, IoDef
@@ -39,12 +41,10 @@ def clean_text(x: str, no_line_breaks: bool = True) -> str:
     return cleantext.clean(x.strip(), lower=False, no_line_breaks=no_line_breaks)
 
 
-class CompDeclError(Exception):
-    ...
+class CompDeclError(Exception): ...
 
 
-class CompEvalError(Exception):
-    ...
+class CompEvalError(Exception): ...
 
 
 class CompTracer:
@@ -103,8 +103,11 @@ class TableColParam:
 
 @dataclass
 class CompEvalContext:
-    local_fs_wd: str = None
+    data_dir: str = None
+    comp_storage: ComponentStorage = None
+    comp_checkpoint: CompCheckpoint = None
     spu_configs: Dict = None
+    initiator_party: str = None
     cluster_config: SFClusterConfig = None
     tracer = CompTracer()
 
@@ -118,6 +121,7 @@ class Component:
 
         self.__definition = None
         self.__eval_callback = None
+        self.__checkpoint_cls = None
         self.__comp_attr_decls = []
         self.__input_io_decls = []
         self.__output_io_decls = []
@@ -127,6 +131,133 @@ class Component:
         RESERVED = ["input", "output"]
         if word in RESERVED:
             raise CompDeclError(f"{word} is a reserved word.")
+
+    def struct_attr_group(self, name: str, desc: str, group: List[int]):
+        """Define a struct attr group with a group of attrs.
+
+        Args:
+            name (str): name of the struct attr and the group prefix.
+            desc (str): description of the struct attr group.
+            group (List[int]): group of attrs, must be nested and defined
+                within the group.
+
+        Returns:
+            int: length of the group, including self and all descendants.
+
+        Examples:
+            >>> comp.struct_attr_group(
+            >>>     name="group_name",
+            >>>     desc="group desc.",
+            >>>     group=[
+            >>>         # attrs must be defined inside the group.
+            >>>         comp.str_attr(
+            >>>             name="attr1",
+            >>>             desc="attr1 desc.",
+            >>>             is_list=False,
+            >>>             is_optional=False,
+            >>>             default_value="val1",
+            >>>         ),
+            >>>         comp.str_attr(
+            >>>             name="attr2",
+            >>>             desc="attr2 desc.",
+            >>>             is_list=False,
+            >>>             is_optional=True,
+            >>>             default_value="val2",
+            >>>         ),
+            >>>     ],
+            >>> )
+        """
+        # TODO(ian-huu): update component spec documentation to explain the group api usage.
+
+        # sanity checks
+        self._check_reserved_words(name)
+
+        if len(group) < 2:
+            raise CompDeclError(f"struct attr group too short.")
+
+        # create pb
+        attr = AttributeDef(
+            name=name,
+            desc=clean_text(desc),
+            type=AttrType.AT_STRUCT_GROUP,
+        )
+
+        group_len = sum(map(lambda x: x or 1, group))
+        group_index = len(self.__comp_attr_decls) - group_len
+        group_decls = self.__comp_attr_decls[group_index:]
+        self.__comp_attr_decls = self.__comp_attr_decls[:group_index]
+
+        for decl in group_decls:
+            assert isinstance(decl, AttributeDef)
+            decl.prefixes.insert(0, name)
+
+        self.__comp_attr_decls.append(attr)
+        self.__comp_attr_decls.extend(group_decls)
+        return group_len + 1
+
+    def union_attr_group(self, name: str, desc: str, group: List[int]):
+        """Define a union attr group with a group of attrs, the first attr in group
+            will be the default selection.
+
+        Args:
+            name (str): name of the union attr and the group prefix.
+            desc (str): description of the union attr group.
+            group (List[int]): group of attrs, must be nested and defined
+                within the group.
+
+        Returns:
+            int: length of the group, including self and all descendants.
+
+        Examples:
+            >>> comp.union_attr_group(
+            >>>     name="group_name",
+            >>>     desc="group desc.",
+            >>>     group=[
+            >>>         # attrs must be defined inside the group.
+            >>>         comp.str_attr(
+            >>>             name="attr1",
+            >>>             desc="attr1 desc.",
+            >>>             is_list=False,
+            >>>             is_optional=False,
+            >>>             default_value="val1",
+            >>>         ),
+            >>>         comp.str_attr(
+            >>>             name="attr2",
+            >>>             desc="attr2 desc.",
+            >>>             is_list=False,
+            >>>             is_optional=True,
+            >>>             default_value="val2",
+            >>>         ),
+            >>>     ],
+            >>> )
+        """
+        # sanity checks
+        self._check_reserved_words(name)
+
+        if len(group) < 2:
+            raise CompDeclError(f"union attr group too short.")
+
+        # create pb
+        attr = AttributeDef(
+            name=name,
+            desc=clean_text(desc),
+            type=AttrType.AT_UNION_GROUP,
+        )
+
+        group_len = sum(map(lambda x: x or 1, group))
+        group_index = len(self.__comp_attr_decls) - group_len
+        group_decls = self.__comp_attr_decls[group_index:]
+        self.__comp_attr_decls = self.__comp_attr_decls[:group_index]
+
+        for decl in group_decls:
+            assert isinstance(decl, AttributeDef)
+            decl.prefixes.insert(0, name)
+
+        attr.union.default_selection = group_decls[0].name
+
+        self.__comp_attr_decls.append(attr)
+        self.__comp_attr_decls.extend(group_decls)
+        return group_len + 1
 
     def float_attr(
         self,
@@ -496,6 +627,40 @@ class Component:
         # append
         self.__comp_attr_decls.append(node)
 
+    def party_attr(
+        self,
+        name: str,
+        desc: str,
+        list_min_length_inclusive: int = None,
+        list_max_length_inclusive: int = None,
+    ):
+        # sanity checks
+        self._check_reserved_words(name)
+
+        # create pb
+        node = AttributeDef(name=name, desc=clean_text(desc), type=AttrType.AT_PARTY)
+
+        if (
+            list_min_length_inclusive is not None
+            and list_max_length_inclusive is not None
+            and list_min_length_inclusive > list_max_length_inclusive
+        ):
+            raise CompDeclError(
+                f"list_min_length_inclusive {list_min_length_inclusive} should not be greater than list_max_length_inclusive {list_max_length_inclusive}."
+            )
+
+        if list_min_length_inclusive is not None:
+            node.atomic.list_min_length_inclusive = list_min_length_inclusive
+        else:
+            node.atomic.list_min_length_inclusive = 0
+
+        if list_max_length_inclusive is not None:
+            node.atomic.list_max_length_inclusive = list_max_length_inclusive
+        else:
+            node.atomic.list_max_length_inclusive = -1
+        # append
+        self.__comp_attr_decls.append(node)
+
     def bool_attr(
         self,
         name: str,
@@ -561,7 +726,7 @@ class Component:
             pb_cls, PbMessage
         ), f"support protobuf class only, got {pb_cls}"
 
-        extend_path = "secretflow.protos.secretflow.spec.extend."
+        extend_path = "secretflow.spec.extend."
         assert pb_cls.__module__.startswith(
             extend_path
         ), f"only support protobuf defined under {extend_path} path, got {pb_cls.__module__}"
@@ -626,6 +791,11 @@ class Component:
         self.__eval_callback = f
         return decorator
 
+    def enable_checkpoint(self, cls):
+        assert issubclass(cls, CompCheckpoint)
+        self.__checkpoint_cls = cls
+        return cls
+
     def definition(self):
         if self.__definition is None:
             comp_def = ComponentDef(
@@ -636,9 +806,10 @@ class Component:
             )
 
             for a in self.__comp_attr_decls:
-                if a.name in self.__argnames:
+                args_full_name = "_".join(list(a.prefixes) + [a.name])
+                if args_full_name in self.__argnames:
                     raise CompDeclError(f"attr {a.name} is duplicate.")
-                self.__argnames.add(a.name)
+                self.__argnames.add(args_full_name)
                 new_a = comp_def.attrs.add()
                 new_a.CopyFrom(a)
 
@@ -764,12 +935,6 @@ class Component:
             enable_waiting_for_other_parties_ready=True,
         )
 
-    def _check_storage(self, storage: StorageConfig):
-        # only local fs is supported at this moment.
-        if storage.type and storage.type != "local_fs":
-            raise CompEvalError("only local_fs is supported.")
-        return storage.local_fs.wd
-
     def _parse_runtime_config(self, key: str, raw: str):
         if key == "protocol":
             if raw == "REF2K":
@@ -833,9 +998,11 @@ class Component:
                         {
                             "party": p,
                             "address": addresses.addresses[idx],
-                            "listen_address": addresses.listen_addresses[idx]
-                            if len(addresses.listen_addresses)
-                            else "",
+                            "listen_address": (
+                                addresses.listen_addresses[idx]
+                                if len(addresses.listen_addresses)
+                                else ""
+                            ),
                         }
                         for idx, p in enumerate(list(addresses.parties))
                     ]
@@ -855,9 +1022,8 @@ class Component:
                         if k not in SUPPORTED_RUNTIME_CONFIG_ITEM:
                             logging.warning(f"runtime config item {k} is not parsed.")
                         else:
-                            cluster_def["runtime_config"][
-                                k
-                            ] = self._parse_runtime_config(k, v)
+                            rt = self._parse_runtime_config(k, v)
+                            cluster_def["runtime_config"][k] = rt
 
                 spu_configs[device.name] = {"cluster_def": cluster_def}
 
@@ -908,8 +1074,14 @@ class Component:
 
         ctx.cluster_config = cluster_config
 
-        if storage_config is not None:
-            ctx.local_fs_wd = self._check_storage(storage_config)
+        assert storage_config is not None
+        ctx.comp_storage = ComponentStorage(storage_config)
+        if storage_config.type == "local_fs":
+            ctx.data_dir = storage_config.local_fs.wd
+        else:
+            # FIXME: is this ok ?
+            self_party = cluster_config.private_config.self_party
+            ctx.data_dir = os.path.join(os.getcwd(), f"data_{os.getpid()}_{self_party}")
 
         if cluster_config is not None:
             ctx.spu_configs, ctx.heu_config = self._extract_device_config(
@@ -917,13 +1089,32 @@ class Component:
             )
 
         reader = EvalParamReader(instance=param, definition=definition)
-        kwargs = {"ctx": ctx}
+        kwargs = dict()
 
         for a in definition.attrs:
-            kwargs[a.name] = reader.get_attr(name=a.name)
+            if a.type not in [
+                AttrType.AT_FLOAT,
+                AttrType.AT_FLOATS,
+                AttrType.AT_INT,
+                AttrType.AT_INTS,
+                AttrType.AT_STRING,
+                AttrType.AT_STRINGS,
+                AttrType.AT_BOOL,
+                AttrType.AT_BOOLS,
+                AttrType.AT_CUSTOM_PROTOBUF,
+                AttrType.AT_PARTY,
+            ]:
+                continue
 
+            attr_full_name = "/".join(list(a.prefixes) + [a.name])
+            args_full_name = "_".join(list(a.prefixes) + [a.name])
+
+            kwargs[args_full_name] = reader.get_attr(name=attr_full_name)
+
+        input_names = []
         for input in definition.inputs:
             kwargs[input.name] = reader.get_input(name=input.name)
+            input_names.append(input.name)
 
             for input_attr in input.attrs:
                 input_attr_full_name = "_".join([input.name, input_attr.name])
@@ -936,15 +1127,22 @@ class Component:
 
         if cluster_config is not None:
             self._setup_sf_cluster(cluster_config)
+
         try:
-            ret = self.__eval_callback(**kwargs)
+            if param.checkpoint_uri and self.__checkpoint_cls:
+                ctx.comp_checkpoint = self.__checkpoint_cls(
+                    kwargs, input_names, param.checkpoint_uri, storage_config
+                )
+            ret = self.__eval_callback(ctx=ctx, **kwargs)
         except Exception as e:
             logging.error(f"eval on {param} failed, error <{e}>")
             # TODO: use error_code in report
             raise e from None
         finally:
             if cluster_config is not None:
-                shutdown()
+                shutdown(
+                    barrier_on_shutdown=cluster_config.public_config.barrier_on_shutdown
+                )
 
         logging.info(f"{param}, getting eval return complete.")
         # check output

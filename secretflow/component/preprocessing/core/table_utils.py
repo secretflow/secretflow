@@ -8,7 +8,7 @@
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.∏
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
@@ -19,10 +19,10 @@ import pandas as pd
 import secretflow.compute as sc
 from secretflow.component.data_utils import (
     DistDataType,
-    VerticalTableWrapper,
     dump_vertical_table,
     load_table_select_and_exclude_pair,
     model_dumps,
+    VerticalTableWrapper,
 )
 from secretflow.component.preprocessing.core.meta_utils import (
     apply_meta_change,
@@ -34,6 +34,7 @@ from secretflow.component.preprocessing.core.version import (
     PREPROCESSING_RULE_MAX_MINOR_VERSION,
 )
 from secretflow.data.core import partition
+from secretflow.data.vertical import VDataFrame
 from secretflow.device.driver import reveal
 
 
@@ -85,7 +86,8 @@ def v_preprocessing_transform(
         assert trans_data is not None
         trans_data, add_labels, additional_info = transform_func(trans_data)
         runner = trans_data.dump_runner()
-        drop_columns, add_columns = trans_data.column_changes()
+        drop_columns, add_columns, _ = trans_data.column_changes()
+        add_labels = [] if add_labels is None else add_labels
         assert set(add_labels).issubset(set(add_columns))
         add_features = [c for c in add_columns if c not in set(add_labels)]
 
@@ -108,7 +110,7 @@ def v_preprocessing_transform(
         new_datas = {}
         for pyu in trans.partitions.keys():
             trans_data = trans.partitions[pyu].data
-            if pyu in remains.partitions.keys():
+            if remains is not None and pyu in remains.partitions.keys():
                 remain_data = remains.partitions.pop(pyu).data
             else:
                 remain_data = None
@@ -131,15 +133,19 @@ def v_preprocessing_transform(
             additional_info_objects.append(additional_info)
             runner_objs.append(runner)
 
-        for pyu in new_datas:
-            remains.partitions[pyu] = partition(new_datas[pyu])
+        if remains is not None:
+            for pyu in new_datas:
+                remains.partitions[pyu] = partition(new_datas[pyu])
+        else:
+            remains = VDataFrame(
+                {pyu: partition(party_data) for pyu, party_data in new_datas.items()}
+            )
         # meta info is not protected
         drop_cols = reveal(drop_cols)
         add_features = reveal(add_features)
         add_labels = reveal(add_labels)
 
     meta = VerticalTableWrapper.from_dist_data(in_ds, trans.shape[0])
-
     meta_change_dict = produce_meta_change(
         meta,
         drop_cols=drop_cols,

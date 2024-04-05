@@ -16,7 +16,7 @@ import logging
 import math
 import time
 from enum import Enum, unique
-from typing import List, Tuple, Union
+from typing import Callable, Dict, List, NoReturn, Tuple, Union
 
 import jax.lax
 import jax.numpy as jnp
@@ -426,7 +426,9 @@ class SSRegression:
         learning_rate = self._get_sgd_learning_rate(epoch_idx)
 
         for infeed_step in range(self.infeed_total_batch):
-            if epoch_idx == 0:
+            if infeed_step in self.batch_cache:
+                spu_x, spu_y, lr_total_batch = self.batch_cache[infeed_step]
+            else:
                 x, lr_total_batch = self._next_infeed_batch(self.x, infeed_step)
                 y, lr_total_batch = self._next_infeed_batch(self.y, infeed_step)
                 spu_x = self.spu(_concatenate, static_argnames=('axis'))(
@@ -434,8 +436,6 @@ class SSRegression:
                 )
                 spu_y = [y.partitions[pyu].to(self.spu) for pyu in y.partitions][0]
                 self.batch_cache[infeed_step] = (spu_x, spu_y, lr_total_batch)
-            else:
-                spu_x, spu_y, lr_total_batch = self.batch_cache[infeed_step]
 
             spu_w, dk_arr = self.spu(
                 _batch_update_w,
@@ -467,6 +467,30 @@ class SSRegression:
 
         return spu_w
 
+    def _epoch_callback(
+        self,
+        epoch_idx: int,
+        epoch_callback: Callable[[int, Tuple[Dict, List[SPUObject]]], NoReturn],
+    ):
+        save_w = [self.spu_w]
+        train_state = {
+            'epoch_idx': epoch_idx,
+        }
+        logging.info(f"epoch checkpoint:\n{train_state}")
+
+        epoch_callback(epoch_idx, (train_state, save_w))
+
+    def _recovery_from_checkpoint(
+        self, recovery_checkpoint: Tuple[Dict, List[SPUObject]]
+    ):
+        train_state, spu_w_list = recovery_checkpoint
+        self.spu_w = spu_w_list[0]
+
+        assert "epoch_idx" in train_state
+        logging.info(f"recovery from checkpoint:\n{train_state}")
+
+        return train_state["epoch_idx"] + 1
+
     def _convergence(self, old_w: SPUObject, current_w: SPUObject):
         spu_converged = self.spu(
             _convergence, static_argnames=('norm_eps', 'eps_scale')
@@ -488,6 +512,8 @@ class SSRegression:
         decay_epoch: int = None,
         decay_rate: float = None,
         strategy: str = 'naive_sgd',
+        epoch_callback: Callable[[int, Tuple[Dict, List[SPUObject]]], NoReturn] = None,
+        recovery_checkpoint: Tuple[Dict, List[SPUObject]] = None,
     ) -> None:
         """
         Fit the model according to the given training data.
@@ -542,26 +568,30 @@ class SSRegression:
             decay_rate,
             strategy,
         )
-
-        spu_w = self.spu(_init_w, static_argnames=('base', 'num_feat'))(
-            base=0, num_feat=self.num_feat
-        )
-
+        if recovery_checkpoint:
+            start_idx = self._recovery_from_checkpoint(recovery_checkpoint)
+        else:
+            self.spu_w = self.spu(_init_w, static_argnames=('base', 'num_feat'))(
+                base=0, num_feat=self.num_feat
+            )
+            start_idx = 0
         self.batch_cache = {}
         self.dk_norm_dict = {}
-        for epoch_idx in range(epochs):
+
+        for epoch_idx in range(start_idx, epochs):
             start = time.time()
-            old_w = spu_w
-            spu_w = self._epoch(spu_w, epoch_idx)
-            wait([spu_w])
+            old_w = self.spu_w
+            self.spu_w = self._epoch(self.spu_w, epoch_idx)
+            wait([self.spu_w])
             logging.info(f"epoch {epoch_idx + 1} times: {time.time() - start}s")
-            if eps > 0 and epoch_idx > 0 and self._convergence(old_w, spu_w):
+            if eps > 0 and epoch_idx > 0 and self._convergence(old_w, self.spu_w):
                 logging.info(f"early stop in {epoch_idx} epoch.")
                 break
+            if epoch_callback is not None:
+                self._epoch_callback(epoch_idx, epoch_callback)
 
         self.batch_cache = {}
         self.dk_norm_dict = {}
-        self.spu_w = spu_w
 
     def save_model(self) -> LinearModel:
         """

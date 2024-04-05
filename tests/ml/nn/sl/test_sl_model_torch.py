@@ -1,12 +1,19 @@
 #!/usr/bin/env python3
 # *_* coding: utf-8 *_*
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-"""module docstring - short summary
-
-If the description is long, the first line should be a short summary that makes sense on its own,
-separated from the rest by a newline
-
-"""
 import os
 import tempfile
 
@@ -16,15 +23,21 @@ from torchmetrics import AUROC, Accuracy, Precision
 
 from secretflow.device import reveal
 from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.fl.utils import metric_wrapper, optim_wrapper
+from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
 from secretflow.ml.nn.sl.agglayer.agg_method import Average
-from secretflow.ml.nn.utils import TorchModel
+from secretflow.ml.nn.sl.defenses.mid import MIDefense
 from secretflow.security.privacy import DPStrategy
 from secretflow.security.privacy.mechanism.label_dp import LabelDP
 from secretflow.security.privacy.mechanism.torch import GaussianEmbeddingDP
 from secretflow.utils.compressor import TopkSparse
 from secretflow.utils.simulation.datasets import load_mnist
-from tests.ml.nn.sl.model_def import ConvNetBase, ConvNetFuse, ConvNetFuseAgglayer
+from tests.ml.nn.sl.model_def import (
+    ConvNetBase,
+    ConvNetFuse,
+    ConvNetFuseAgglayer,
+    ConvNetRegBase,
+    ConvNetRegFuse,
+)
 
 _temp_dir = tempfile.mkdtemp()
 
@@ -69,6 +82,9 @@ def torch_model_with_mnist(
     # kwargs parsing
     dp_strategy_dict = kwargs.get('dp_strategy_dict', None)
     dataset_builder = kwargs.get('dataset_builder', None)
+    callbacks = kwargs.get('callbacks', None)
+    load_base_model_dict = kwargs.get('load_base_model_dict', base_model_dict)
+    load_model_fuse = kwargs.get('load_model_fuse', model_fuse)
 
     base_local_steps = kwargs.get('base_local_steps', 1)
     fuse_local_steps = kwargs.get('fuse_local_steps', 1)
@@ -115,6 +131,7 @@ def torch_model_with_mnist(
         shuffle=False,
         random_seed=1234,
         dataset_builder=dataset_builder,
+        callbacks=callbacks,
     )
     global_metric = sl_model.evaluate(
         data,
@@ -132,8 +149,11 @@ def torch_model_with_mnist(
         history['val_MulticlassAccuracy'][-1],
         atol=atol,
     )
+    if pipeline_size <= 1:
+        assert global_metric['MulticlassAccuracy'] > 0.7
+    else:
+        assert global_metric['MulticlassAccuracy'] > 0.5
 
-    assert global_metric['MulticlassAccuracy'] > 0.7
     result = sl_model.predict(data, batch_size=128, verbose=1)
     reveal_result = []
     for rt in result:
@@ -147,9 +167,9 @@ def torch_model_with_mnist(
         is_test=True,
     )
     sl_model_load = SLModel(
-        base_model_dict=base_model_dict,
+        base_model_dict=load_base_model_dict,
         device_y=device_y,
-        model_fuse=model_fuse,
+        model_fuse=load_model_fuse,
         dp_strategy_dict=dp_strategy_dict,
         compressor=compressor,
         simulation=True,
@@ -295,6 +315,19 @@ class TestSLModelTorch:
             compressor=top_k_compressor,
         )
 
+        # pipeline
+        torch_model_with_mnist(
+            devices=sf_simulation_setup_devices,
+            base_model_dict=base_model_dict,
+            device_y=bob,
+            model_fuse=fuse_model,
+            data=mnist_data,
+            label=mnist_label,
+            strategy='pipeline',
+            backend="torch",
+            pipeline_size=2,
+        )
+
     def test_single_feature_model_agg_layer(self, sf_simulation_setup_devices):
         alice = sf_simulation_setup_devices.alice
         bob = sf_simulation_setup_devices.bob
@@ -415,4 +448,89 @@ class TestSLModelTorch:
             label=mnist_label,
             strategy='split_nn',
             backend="torch",
+        )
+
+    def test_torch_model_custom_loss(self, sf_simulation_setup_devices):
+        alice = sf_simulation_setup_devices.alice
+        bob = sf_simulation_setup_devices.bob
+        (_, _), (mnist_data, mnist_label) = load_mnist(
+            parts={
+                sf_simulation_setup_devices.alice: (0, num_samples),
+                sf_simulation_setup_devices.bob: (0, num_samples),
+            },
+            normalized_x=True,
+            categorical_y=True,
+            is_torch=True,
+        )
+        mnist_data = mnist_data.astype(np.float32)
+        mnist_label = mnist_label.astype(np.float32)
+
+        fuse_model = ConvNetRegFuse
+        base_model_dict = {
+            alice: ConvNetRegBase,
+            bob: ConvNetRegBase,
+        }
+        dataset_buidler_dict = {
+            sf_simulation_setup_devices.alice: create_dataset_builder(
+                batch_size=train_batch_size,
+            ),
+            sf_simulation_setup_devices.bob: create_dataset_builder(
+                batch_size=train_batch_size,
+            ),
+        }
+
+        # Define DP operations
+        gaussian_embedding_dp = GaussianEmbeddingDP(
+            noise_multiplier=0.5,
+            l2_norm_clip=1.0,
+            batch_size=128,
+            num_samples=num_samples,
+            is_secure_generator=False,
+        )
+        dp_strategy_alice = DPStrategy(embedding_dp=gaussian_embedding_dp)
+        label_dp = LabelDP(eps=64.0)
+        dp_strategy_bob = DPStrategy(label_dp=label_dp)
+        dp_strategy_dict = {
+            sf_simulation_setup_devices.alice: dp_strategy_alice,
+            sf_simulation_setup_devices.bob: dp_strategy_bob,
+        }
+        # Test sl with dp
+        torch_model_with_mnist(
+            devices=sf_simulation_setup_devices,
+            base_model_dict=base_model_dict,
+            device_y=bob,
+            model_fuse=fuse_model,
+            data=mnist_data,
+            label=mnist_label,
+            dp_strategy_dict=dp_strategy_dict,
+            strategy='split_nn',
+            backend="torch",
+            atol=0.05,
+        )
+        # Test sl with dataset builder and compressor
+        top_k_compressor = TopkSparse(0.5)
+        torch_model_with_mnist(
+            devices=sf_simulation_setup_devices,
+            base_model_dict=base_model_dict,
+            device_y=bob,
+            model_fuse=fuse_model,
+            data=mnist_data,
+            label=mnist_label,
+            strategy='split_nn',
+            backend="torch",
+            compressor=top_k_compressor,
+            dataset_builder=dataset_buidler_dict,
+        )
+        # Test sl with pipeline
+        torch_model_with_mnist(
+            devices=sf_simulation_setup_devices,
+            base_model_dict=base_model_dict,
+            device_y=bob,
+            model_fuse=fuse_model,
+            data=mnist_data,
+            label=mnist_label,
+            strategy='pipeline',
+            pipeline_size=2,
+            backend="torch",
+            dataset_builder=dataset_buidler_dict,
         )

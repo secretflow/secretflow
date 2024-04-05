@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-import collections
+import logging
 import math
 from abc import abstractmethod
 from pathlib import Path
 from typing import Callable, Optional, Union
-import logging
+
+import jax
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -41,6 +41,7 @@ class BaseTFModel:
         self,
         builder_base: Callable[[], tf.keras.Model],
         random_seed: int = None,
+        skip_bn: bool = False,
         **kwargs,
     ):
         self.train_set = None
@@ -54,6 +55,7 @@ class BaseTFModel:
             tf.keras.utils.set_random_seed(random_seed)
         self.model = builder_base() if builder_base else None
         self.use_gpu = self.use_gpu = kwargs.get("use_gpu", False)
+        self.skip_bn = skip_bn
 
     def build_dataset_from_csv(
         self,
@@ -216,12 +218,59 @@ class BaseTFModel:
     def get_rows_count(self, filename):
         return int(rows_count(filename=filename)) - 1  # except header line
 
+    def get_sample_num(self, x) -> int:
+        leaves = jax.tree_util.tree_leaves(x)
+        assert len(leaves) > 0
+        return leaves[0].shape[0]
+
+    def next_batch(self, stage="train"):
+        if stage == "train":
+            iter_data = next(self.train_set)
+        elif stage == "eval":
+            iter_data = next(self.eval_set)
+        else:
+            raise Exception(f"Illegal argument stage={stage}")
+
+        return tf.keras.utils.unpack_x_y_sample_weight(iter_data)
+
+    def get_weights_not_bn(self):
+        params = []
+        for layer in self.model.layers:
+            # Check if the layer is not a BatchNormalization layer
+            if not isinstance(layer, tf.keras.layers.BatchNormalization):
+                # Get the weights (numpy arrays) of the layer
+                weights = layer.get_weights()
+                params.extend(weights)
+        return params
+
+    def set_weights_not_bn(self, weights):
+        index = 0
+        # Iterate through all layers of the model
+        for layer in self.model.layers:
+            if not isinstance(layer, tf.keras.layers.BatchNormalization):
+                # This layer is not a BN layer, so update its weights from the provided list.
+                num_params = len(layer.trainable_weights)
+                new_weights = weights[index : index + num_params]
+                layer.set_weights(new_weights)
+                index += num_params  # Increment the index by the number of parameters in the current layer.
+
+        if index != len(weights):
+            raise ValueError(
+                "Provided weights list does not match the model's non-BN layers."
+            )
+
     def get_weights(self):
-        return self.model.get_weights()
+        if self.skip_bn:
+            return self.get_weights_not_bn()
+        else:
+            return self.model.get_weights()
 
     def set_weights(self, weights):
         """set weights of client model"""
-        self.model.set_weights(weights)
+        if self.skip_bn:
+            self.set_weights_not_bn(weights)
+        else:
+            self.model.set_weights(weights)
 
     def set_validation_metrics(self, global_metrics):
         self.epoch_logs.update(global_metrics)
@@ -283,20 +332,13 @@ class BaseTFModel:
         self.model.compiled_metrics.reset_state()
         self.model.compiled_loss.reset_state()
         for _ in range(evaluate_steps):
-            iter_data = next(self.eval_set)
-            if len(iter_data) == 2:
-                x, y = iter_data
-                s_w = None
-            elif len(iter_data) == 3:
-                x, y, s_w = iter_data
-            if isinstance(x, collections.OrderedDict):
-                x = tf.stack(list(x.values()), axis=1)
+            x, y, s_w = self.next_batch(stage="eval")
             # Step 1: forward pass
             y_pred = self.model(x)
-            # Step 2: update metrics
-            self.model.compiled_metrics.update_state(y, y_pred)
-            # Step 3: update loss
-            self.model.compiled_loss(y, y_pred, sample_weight=s_w)
+            # Step 2: update loss
+            self.model.compute_loss(x, y, y_pred, s_w)
+            # Step 3: update metrics
+            self.model.compute_metrics(x, y, y_pred, s_w)
             result = {}
             for m in self.model.metrics:
                 result[m.name] = m.result().numpy()
@@ -325,9 +367,7 @@ class BaseTFModel:
         assert self.eval_set is not None, "self.eval_set must be initialized"
 
         for _ in range(predict_steps):
-            x = next(self.eval_set)
-            if isinstance(x, collections.OrderedDict):
-                x = tf.stack(list(x.values()), axis=1)
+            x, _, _ = self.next_batch(stage="eval")
             y_pred = self.model(x)
             pred_result.extend(y_pred)
         return pred_result
@@ -381,7 +421,7 @@ class BaseTFModel:
         assert model_path is not None, "model path cannot be empty"
         self.model.save(model_path)
 
-    def load_model(self, model_path: str):
+    def load_model(self, model_path: str, **kwargs):
         assert model_path is not None, "model path cannot be empty"
-        self.model = tf.keras.models.load_model(model_path)
+        self.model = tf.keras.models.load_model(model_path, **kwargs)
         return self.model.get_weights()[0].sum()

@@ -25,7 +25,6 @@ from typing import Callable, List
 
 import tensorflow as tf
 
-from secretflow.device import PYUObject, proxy
 from secretflow.ml.nn.sl.backend.tensorflow.sl_base import SLBaseTFModel
 from secretflow.ml.nn.sl.strategy_dispatcher import register_strategy
 from secretflow.security.privacy import DPStrategy
@@ -54,18 +53,6 @@ class SLAsyncTFModel(SLBaseTFModel):
         self.fuse_local_steps = fuse_local_steps
         self.bound_param = bound_param
 
-    @tf.function
-    def _base_forward_internal(self, data_x, use_dp: bool = True, training=True):
-        h = self.model_base(data_x, training=training)
-
-        # Embedding differential privacy
-        if use_dp and self.embedding_dp is not None:
-            if isinstance(h, List):
-                h = [self.embedding_dp(hi) for hi in h]
-            else:
-                h = self.embedding_dp(h)
-        return h
-
     def base_backward(self):
         """backward on fusenet
 
@@ -90,8 +77,9 @@ class SLAsyncTFModel(SLBaseTFModel):
                 else:
                     gradient = gradient[0]
                     return_hiddens.append(self.fuse_op(h, gradient))
-                # add model.losses into graph
-                return_hiddens.append(self.model_base.losses)
+                # add losses into graph
+                if self._base_losses is not None:
+                    return_hiddens.extend(self._base_losses)
 
             trainable_vars = self.model_base.trainable_variables
             gradients = self.tape.gradient(return_hiddens, trainable_vars)
@@ -100,6 +88,7 @@ class SLAsyncTFModel(SLBaseTFModel):
         # clear intermediate results
         self.tape = None
         self._h = None
+        self._base_losses = None
         self._data_x = None
         self.kwargs = {}
 
@@ -132,11 +121,8 @@ class SLAsyncTFModel(SLBaseTFModel):
                 # Step 1: forward pass
                 y_pred = self.model_fuse(hiddens, training=True, **self.kwargs)
                 # Step 2: loss calculation, the loss function is configured in `compile()`.
-                loss = self.model_fuse.compiled_loss(
-                    train_y,
-                    y_pred,
-                    sample_weight=train_sample_weight,
-                    regularization_losses=self.model_fuse.losses + losses,
+                loss = self.model_fuse.compute_loss(
+                    hiddens, train_y, y_pred, train_sample_weight
                 )
 
             # Step3: compute gradients
@@ -147,8 +133,8 @@ class SLAsyncTFModel(SLBaseTFModel):
             del tape
             lr = self.model_fuse.optimizer.lr
             # Step4: update metrics
-            self.model_fuse.compiled_metrics.update_state(
-                train_y, y_pred, sample_weight=train_sample_weight
+            self.model_fuse.compute_metrics(
+                hiddens, train_y, y_pred, train_sample_weight
             )
             # step5: accumulate gradients of embeddings
             if len(accumulated_gradients) == 0:
@@ -176,6 +162,5 @@ class SLAsyncTFModel(SLBaseTFModel):
 
 
 @register_strategy(strategy_name='split_async', backend='tensorflow')
-@proxy(PYUObject)
 class PYUSLAsyncTFModel(SLAsyncTFModel):
     pass

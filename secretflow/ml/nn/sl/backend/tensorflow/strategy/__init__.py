@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from .pipeline import PYUPipelineTFModel
 from .split_async import PYUSLAsyncTFModel
 from .split_state_async import PYUSLStateAsyncTFModel
-from .pipeline import PYUPipelineTFModel
 
 __all__ = [
     "PYUSLAsyncTFModel",

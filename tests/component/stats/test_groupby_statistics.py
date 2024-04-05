@@ -1,5 +1,18 @@
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import logging
-import os
 
 import pandas as pd
 import pytest
@@ -11,6 +24,7 @@ from secretflow.component.stats.groupby_statistics import (
     gen_groupby_statistic_reports,
     groupby_statistics_comp,
 )
+from secretflow.component.storage import ComponentStorage
 from secretflow.spec.extend.groupby_aggregation_config_pb2 import (
     ColumnQuery,
     GroupbyAggregationConfig,
@@ -47,7 +61,7 @@ def test_groupby_statistics(comp_prod_sf_cluster_config, by, value_agg_pairs):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    local_fs_wd = storage_config.local_fs.wd
+    comp_storage = ComponentStorage(storage_config)
 
     test_data = pd.DataFrame(
         {
@@ -62,12 +76,10 @@ def test_groupby_statistics(comp_prod_sf_cluster_config, by, value_agg_pairs):
 
     if self_party == "alice":
         df_alice = test_data[["a", "c"]]
-        os.makedirs(os.path.join(local_fs_wd, "test_groupby_statistics"), exist_ok=True)
-        df_alice.to_csv(os.path.join(local_fs_wd, alice_input_path), index=False)
+        df_alice.to_csv(comp_storage.get_writer(alice_input_path), index=False)
     elif self_party == "bob":
         df_bob = test_data[["b", "d"]]
-        os.makedirs(os.path.join(local_fs_wd, "test_groupby_statistics"), exist_ok=True)
-        df_bob.to_csv(os.path.join(local_fs_wd, bob_input_path), index=False)
+        df_bob.to_csv(comp_storage.get_writer(bob_input_path), index=False)
 
     logging.info("data preparation complete")
     param = NodeEvalParam(

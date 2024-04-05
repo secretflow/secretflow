@@ -13,11 +13,11 @@
 # limitations under the License.
 
 import base64
+import gzip
 import json
 import logging
 import math
 import os
-import gzip
 import shutil
 import socket
 import subprocess
@@ -52,7 +52,7 @@ INIT_DOCKER_TEMPLATE = (
 
 DOCKER_INSTALL_WHL = (
     "pip uninstall {whl} -y && "
-    "pip install {whl} -i https://mirrors.bfsu.edu.cn/pypi/web/simple"
+    "pip install {whl} -i https://mirrors.bfsu.edu.cn/pypi/web/simple "
 )
 
 RESTART_DOCKER_TEMPLATE = "docker restart {docker}"

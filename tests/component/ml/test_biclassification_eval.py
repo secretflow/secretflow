@@ -1,19 +1,33 @@
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import logging
-import os
 
 import numpy as np
 import pandas as pd
 from google.protobuf.json_format import MessageToJson
+from sklearn.metrics import roc_auc_score
 
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.ml.eval.biclassification_eval import (
     biclassification_eval_comp,
 )
+from secretflow.component.storage import ComponentStorage
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, IndividualTable, TableSchema
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
-from sklearn.metrics import roc_auc_score
 
 
 def test_biclassification_eval(comp_prod_sf_cluster_config):
@@ -31,12 +45,11 @@ def test_biclassification_eval(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    local_fs_wd = storage_config.local_fs.wd
+    comp_storage = ComponentStorage(storage_config)
 
     if self_party == "alice":
-        os.makedirs(os.path.join(local_fs_wd, "biclassification_eval"), exist_ok=True)
         label_pred_df.to_csv(
-            os.path.join(local_fs_wd, alice_label_pred_path), index=False
+            comp_storage.get_writer(alice_label_pred_path), index=False
         )
 
     param = NodeEvalParam(

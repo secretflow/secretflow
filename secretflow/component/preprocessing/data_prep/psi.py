@@ -23,17 +23,18 @@ from secretflow.component.component import (
 )
 from secretflow.component.data_utils import (
     DistDataType,
+    download_files,
     extract_distdata_info,
     merge_individuals_to_vtable,
+    upload_files,
 )
-from secretflow.device.device.pyu import PYU
 from secretflow.device.device.spu import SPU
 from secretflow.spec.v1.data_pb2 import DistData, IndividualTable, VerticalTable
 
 psi_comp = Component(
     "psi",
     domain="data_prep",
-    version="0.0.1",
+    version="0.0.3",
     desc="PSI between two parties.",
 )
 psi_comp.str_attr(
@@ -41,27 +42,60 @@ psi_comp.str_attr(
     desc="PSI protocol.",
     is_list=False,
     is_optional=True,
-    default_value="ECDH_PSI_2PC",
-    allowed_values=["ECDH_PSI_2PC", "KKRT_PSI_2PC", "BC22_PSI_2PC"],
+    default_value="PROTOCOL_RR22",
+    allowed_values=["PROTOCOL_RR22", "PROTOCOL_ECDH", "PROTOCOL_KKRT"],
 )
 psi_comp.bool_attr(
-    name="sort",
-    desc="Sort the output. Warning: disable this feature may lead to errors in the following components. DO NOT CHOOSE FALSE if you want to append other components",
+    name="disable_alignment",
+    desc="It true, output is not promised to be aligned. Warning: enable this option may lead to errors in the following components. DO NOT TURN ON if you want to append other components.",
     is_list=False,
     is_optional=True,
-    default_value=True,
+    default_value=False,
 )
-psi_comp.int_attr(
-    name="bucket_size",
-    desc="Specify the hash bucket size used in PSI. Larger values consume more memory.",
+psi_comp.bool_attr(
+    name="skip_duplicates_check",
+    desc="If true, the check of duplicated items will be skiped.",
     is_list=False,
     is_optional=True,
-    default_value=1048576,
-    lower_bound=0,
-    lower_bound_inclusive=False,
+    default_value=False,
+)
+psi_comp.bool_attr(
+    name="check_hash_digest",
+    desc="Check if hash digest of keys from parties are equal to determine whether to early-stop.",
+    is_list=False,
+    is_optional=True,
+    default_value=False,
+)
+psi_comp.party_attr(
+    name="left_side", desc="Required if advanced_join_type is selected."
 )
 psi_comp.str_attr(
-    name="ecdh_curve_type",
+    name="join_type",
+    desc="Advanced Join types allow duplicate keys.",
+    is_list=False,
+    is_optional=True,
+    default_value="ADVANCED_JOIN_TYPE_UNSPECIFIED",
+    allowed_values=[
+        "ADVANCED_JOIN_TYPE_UNSPECIFIED",
+        "ADVANCED_JOIN_TYPE_INNER_JOIN",
+        "ADVANCED_JOIN_TYPE_LEFT_JOIN",
+        "ADVANCED_JOIN_TYPE_RIGHT_JOIN",
+        "ADVANCED_JOIN_TYPE_FULL_JOIN",
+        "ADVANCED_JOIN_TYPE_DIFFERENCE",
+    ],
+)
+psi_comp.str_attr(
+    name="missing_value",
+    desc="Missing value for some advanced join types.",
+    is_list=False,
+    is_optional=True,
+    default_value="NA",
+    allowed_values=[
+        "NA",
+    ],
+)
+psi_comp.str_attr(
+    name="ecdh_curve",
     desc="Curve type for ECDH PSI.",
     is_list=False,
     is_optional=True,
@@ -151,9 +185,13 @@ def two_party_balanced_psi_eval_fn(
     *,
     ctx,
     protocol,
-    sort,
-    bucket_size,
-    ecdh_curve_type,
+    disable_alignment,
+    skip_duplicates_check,
+    check_hash_digest,
+    ecdh_curve,
+    join_type,
+    left_side,
+    missing_value,
     receiver_input,
     receiver_input_key,
     sender_input,
@@ -166,8 +204,12 @@ def two_party_balanced_psi_eval_fn(
     sender_path_format = extract_distdata_info(sender_input)
     sender_party = list(sender_path_format.keys())[0]
 
-    # only local fs is supported at this moment.
-    local_fs_wd = ctx.local_fs_wd
+    assert left_side[0] in [
+        receiver_party,
+        sender_party,
+    ], f'left side {left_side[0]} is invalid.'
+
+    assert missing_value == 'NA'
 
     if ctx.spu_configs is None or len(ctx.spu_configs) == 0:
         raise CompEvalError("spu config is not found.")
@@ -175,36 +217,53 @@ def two_party_balanced_psi_eval_fn(
         raise CompEvalError("only support one spu")
     spu_config = next(iter(ctx.spu_configs.values()))
 
+    input_path = {
+        receiver_party: os.path.join(
+            ctx.data_dir, receiver_path_format[receiver_party].uri
+        ),
+        sender_party: os.path.join(ctx.data_dir, sender_path_format[sender_party].uri),
+    }
+    output_path = {
+        receiver_party: os.path.join(ctx.data_dir, psi_output),
+        sender_party: os.path.join(ctx.data_dir, psi_output),
+    }
+
     import logging
 
     logging.warning(spu_config)
 
     spu = SPU(spu_config["cluster_def"], spu_config["link_desc"])
 
-    receiver_pyu = PYU(receiver_party)
-    sender_pyu = PYU(sender_party)
+    uri = {
+        receiver_party: receiver_path_format[receiver_party].uri,
+        sender_party: sender_path_format[sender_party].uri,
+    }
+
+    with ctx.tracer.trace_io():
+        download_files(ctx, uri, input_path)
 
     with ctx.tracer.trace_running():
-        intersection_count = spu.psi_csv(
-            key={receiver_pyu: receiver_input_key, sender_pyu: sender_input_key},
-            input_path={
-                receiver_pyu: os.path.join(
-                    local_fs_wd, receiver_path_format[receiver_party].uri
-                ),
-                sender_pyu: os.path.join(
-                    local_fs_wd, sender_path_format[sender_party].uri
-                ),
-            },
-            output_path={
-                receiver_pyu: os.path.join(local_fs_wd, psi_output),
-                sender_pyu: os.path.join(local_fs_wd, psi_output),
-            },
+        report = spu.psi(
+            keys={receiver_party: receiver_input_key, sender_party: sender_input_key},
+            input_path=input_path,
+            output_path=output_path,
             receiver=receiver_party,
-            sort=sort,
+            broadcast_result=True,
             protocol=protocol,
-            bucket_size=bucket_size,
-            curve_type=ecdh_curve_type,
-        )[0]["intersection_count"]
+            ecdh_curve=ecdh_curve,
+            advanced_join_type=join_type,
+            left_side=(
+                'ROLE_RECEIVER' if left_side[0] == receiver_party else 'ROLE_SENDER'
+            ),
+            skip_duplicates_check=skip_duplicates_check,
+            disable_alignment=disable_alignment,
+            check_hash_digest=check_hash_digest,
+        )
+
+    with ctx.tracer.trace_io():
+        upload_files(
+            ctx, {receiver_party: psi_output, sender_party: psi_output}, output_path
+        )
 
     output_db = DistData(
         name=psi_output,
@@ -233,7 +292,7 @@ def two_party_balanced_psi_eval_fn(
     )
     vmeta = VerticalTable()
     assert output_db.meta.Unpack(vmeta)
-    vmeta.line_count = intersection_count
+    vmeta.line_count = report[0]['intersection_count']
     output_db.meta.Pack(vmeta)
 
     return {"psi_output": output_db}

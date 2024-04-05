@@ -27,6 +27,9 @@ from secretflow.component.ml.eval.regression_eval import regression_eval_comp
 from secretflow.component.ml.eval.ss_pvalue import ss_pvalue_comp
 from secretflow.component.ml.linear.ss_glm import ss_glm_predict_comp, ss_glm_train_comp
 from secretflow.component.ml.linear.ss_sgd import ss_sgd_predict_comp, ss_sgd_train_comp
+from secretflow.component.ml.nn.sl.sl_predict import slnn_predict_comp
+from secretflow.component.ml.nn.sl.sl_train import slnn_train_comp
+from secretflow.component.model_export import model_export_comp
 from secretflow.component.preprocessing.binning.vert_binning import (
     vert_bin_substitution_comp,
     vert_binning_comp,
@@ -66,6 +69,7 @@ from secretflow.spec.extend.cluster_pb2 import SFClusterConfig
 from secretflow.spec.v1.component_pb2 import CompListDef, ComponentDef
 from secretflow.spec.v1.data_pb2 import StorageConfig
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam, NodeEvalResult
+from secretflow.version import build_message
 
 ALL_COMPONENTS = [
     train_test_split_comp,
@@ -92,6 +96,8 @@ ALL_COMPONENTS = [
     ss_xgb_train_comp,
     ss_glm_predict_comp,
     ss_glm_train_comp,
+    slnn_train_comp,
+    slnn_predict_comp,
     onehot_encode,
     substitution,
     case_when,
@@ -100,6 +106,7 @@ ALL_COMPONENTS = [
     io_write_data,
     feature_calculate,
     identity,
+    model_export_comp,
 ]
 
 COMP_LIST_NAME = "secretflow"
@@ -133,7 +140,9 @@ COMP_LIST, COMP_MAP = generate_comp_list()
 
 def get_comp_def(domain: str, name: str, version: str) -> ComponentDef:
     key = gen_key(domain, name, version)
-    assert key in COMP_MAP, f"key {key} is not in component list {COMP_LIST}"
+    assert (
+        key in COMP_MAP
+    ), f"key {key} is not in component list {list(COMP_MAP.keys())}"
     return COMP_MAP[key].definition()
 
 
@@ -145,6 +154,7 @@ def comp_eval(
 ) -> NodeEvalResult:
     import logging
 
+    logging.warning(f"\n--\n{build_message()}\n--\n")
     logging.warning(f'\n--\n*param* \n\n{param}\n--\n')
     logging.warning(f'\n--\n*storage_config* \n\n{storage_config}\n--\n')
     logging.warning(f'\n--\n*cluster_config* \n\n{cluster_config}\n--\n')

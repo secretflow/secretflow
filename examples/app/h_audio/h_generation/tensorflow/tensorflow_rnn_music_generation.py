@@ -1,6 +1,20 @@
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # # 基于 TensorFlow 在 SecretFlow 中实现水平联邦 RNN 生成音乐任务
 # ## 引言
-# 本教程基于 TensorFlow 的 [使用 RNN 生成音乐](https://tensorflow.google.cn/tutorials/audio/music_generation?hl=zh-cn) 而改写，通过本教程，您将了解到现有的基于 TensorFlow 的示例如何快速地迁移到 SecretFlow 隐语的联邦学习框架之下，实现模型的联邦学习化。本教程建议在 Python 版本为`3.8.10`下运行。
+# 本教程基于 TensorFlow 的 [使用 RNN 生成音乐](https://tensorflow.google.cn/tutorials/audio/music_generation?hl=zh-cn) 而改写，通过本教程，您将了解到现有的基于 TensorFlow 的示例如何快速地迁移到 SecretFlow 隐语的联邦学习框架之下，实现模型的联邦学习化。本教程建议在 Python 版本为`3.10`下运行。
 
 
 # ## 单机模式

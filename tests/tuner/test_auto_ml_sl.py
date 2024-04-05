@@ -1,3 +1,17 @@
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import logging
 import tempfile
 
@@ -7,7 +21,7 @@ from secretflow.ml.nn.callbacks.tune.automl import AutoMLCallback
 from secretflow.security.privacy import DPStrategy, LabelDP
 from secretflow.security.privacy.mechanism.tensorflow import GaussianEmbeddingDP
 from secretflow.utils.simulation.datasets import load_mnist
-from tests.ml.nn.sl.test_sl_model_tf import create_base_model, create_fuse_model
+from tests.ml.nn.sl.model_def import create_base_model, create_fuse_model
 
 _temp_dir = tempfile.mkdtemp()
 
@@ -100,14 +114,14 @@ def train(config, *, alice, bob):
     return {'accuracy': history['val_accuracy'][-1]}
 
 
-def test_automl(sf_simulation_setup_devices):
+def test_automl(sf_tune_simulation_setup_devices):
     search_space = {
         'train_batch_size': tune.grid_search([32, 512]),
     }
     trainable = tune.with_parameters(
         train,
-        alice=sf_simulation_setup_devices.alice,
-        bob=sf_simulation_setup_devices.bob,
+        alice=sf_tune_simulation_setup_devices.alice,
+        bob=sf_tune_simulation_setup_devices.bob,
     )
     tuner = tune.Tuner(
         trainable,

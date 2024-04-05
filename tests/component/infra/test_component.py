@@ -1,3 +1,17 @@
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import math
 
 from google.protobuf.json_format import ParseDict
@@ -5,7 +19,7 @@ from google.protobuf.json_format import ParseDict
 from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import DistDataType
 from secretflow.spec.v1.component_pb2 import AttributeDef, ComponentDef, IoDef
-from secretflow.spec.v1.data_pb2 import DistData
+from secretflow.spec.v1.data_pb2 import DistData, StorageConfig
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
 
@@ -128,6 +142,160 @@ def test_bool_attr():
             },
         },
         AttributeDef(),
+    )
+    assert msg == expected_msg
+
+
+def test_struct_attr_group():
+    comp = Component("test")
+    comp.struct_attr_group(
+        name="level0",
+        desc="level0",
+        group=[
+            comp.bool_attr(
+                name="bool0",
+                desc="",
+                is_list=False,
+                is_optional=True,
+                default_value=True,
+            ),
+            comp.struct_attr_group(
+                name="level1",
+                desc="level1",
+                group=[
+                    comp.bool_attr(
+                        name="bool1",
+                        desc="",
+                        is_list=False,
+                        is_optional=True,
+                        default_value=True,
+                    ),
+                    comp.bool_attr(
+                        name="bool2",
+                        desc="",
+                        is_list=False,
+                        is_optional=True,
+                        default_value=True,
+                    ),
+                ],
+            ),
+        ],
+    )
+
+    msg = comp.definition()
+
+    expected_msg = ParseDict(
+        {
+            "name": "test",
+            "attrs": [
+                {"name": "level0", "desc": "level0", "type": "AT_STRUCT_GROUP"},
+                {
+                    "prefixes": ["level0"],
+                    "name": "bool0",
+                    "type": "AT_BOOL",
+                    "atomic": {"isOptional": True, "defaultValue": {"b": True}},
+                },
+                {
+                    "prefixes": ["level0"],
+                    "name": "level1",
+                    "desc": "level1",
+                    "type": "AT_STRUCT_GROUP",
+                },
+                {
+                    "prefixes": ["level0", "level1"],
+                    "name": "bool1",
+                    "type": "AT_BOOL",
+                    "atomic": {"isOptional": True, "defaultValue": {"b": True}},
+                },
+                {
+                    "prefixes": ["level0", "level1"],
+                    "name": "bool2",
+                    "type": "AT_BOOL",
+                    "atomic": {"isOptional": True, "defaultValue": {"b": True}},
+                },
+            ],
+        },
+        ComponentDef(),
+    )
+    assert msg == expected_msg
+
+
+def test_union_attr_group():
+    comp = Component("test")
+    comp.union_attr_group(
+        name="level0",
+        desc="level0",
+        group=[
+            comp.bool_attr(
+                name="bool0",
+                desc="",
+                is_list=False,
+                is_optional=True,
+                default_value=True,
+            ),
+            comp.union_attr_group(
+                name="level1",
+                desc="level1",
+                group=[
+                    comp.bool_attr(
+                        name="bool1",
+                        desc="",
+                        is_list=False,
+                        is_optional=True,
+                        default_value=True,
+                    ),
+                    comp.bool_attr(
+                        name="bool2",
+                        desc="",
+                        is_list=False,
+                        is_optional=True,
+                        default_value=True,
+                    ),
+                ],
+            ),
+        ],
+    )
+
+    msg = comp.definition()
+
+    expected_msg = ParseDict(
+        {
+            "name": "test",
+            "attrs": [
+                {
+                    "name": "level0",
+                    "desc": "level0",
+                    "type": "AT_UNION_GROUP",
+                    "union": {"defaultSelection": "bool0"},
+                },
+                {
+                    "prefixes": ["level0"],
+                    "name": "bool0",
+                    "type": "AT_BOOL",
+                    "atomic": {"isOptional": True, "defaultValue": {"b": True}},
+                },
+                {
+                    "prefixes": ["level0"],
+                    "name": "level1",
+                    "desc": "level1",
+                    "type": "AT_UNION_GROUP",
+                    "union": {"defaultSelection": "bool1"},
+                },
+                {
+                    "prefixes": ["level0", "level1"],
+                    "name": "bool1",
+                    "type": "AT_BOOL",
+                    "atomic": {"isOptional": True, "defaultValue": {"b": True}},
+                },
+                {
+                    "prefixes": ["level0", "level1"],
+                    "name": "bool2",
+                    "type": "AT_BOOL",
+                    "atomic": {"isOptional": True, "defaultValue": {"b": True}},
+                },
+            ],
+        },
+        ComponentDef(),
     )
     assert msg == expected_msg
 
@@ -323,7 +491,10 @@ def test_eval():
     }
 
     node = ParseDict(node_json, NodeEvalParam())
-
-    ret = float(comp.eval(node).outputs[0].name)
+    storage_config = StorageConfig(
+        type="local_fs",
+        local_fs=StorageConfig.LocalFSConfig(wd=f"/tmp/tmp"),
+    )
+    ret = float(comp.eval(node, storage_config).outputs[0].name)
 
     assert math.isclose(ret, 0.8, rel_tol=0.001)

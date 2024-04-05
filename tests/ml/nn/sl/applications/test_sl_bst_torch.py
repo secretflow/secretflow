@@ -1,3 +1,17 @@
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 import shutil
 import tempfile
@@ -11,8 +25,7 @@ from torchmetrics import AUROC, Accuracy, Precision
 from secretflow.data.vertical import read_csv
 from secretflow.ml.nn import SLModel
 from secretflow.ml.nn.applications.sl_bst_torch import BSTBase, BSTBasePlus, BSTfuse
-from secretflow.ml.nn.fl.utils import metric_wrapper, optim_wrapper
-from secretflow.ml.nn.utils import TorchModel
+from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
 
 tmp_dir = tempfile.TemporaryDirectory()
 lia_path = tmp_dir.name
@@ -134,9 +147,11 @@ def generate_data():
     )
 
     ratings_data_transformed.movie_ids = ratings_data_transformed.movie_ids.apply(
-        lambda x: ",".join(x[:-1])
-        if '0' not in x
-        else ",".join(x[: x.index('0') - 1] + x[x.index('0') :])
+        lambda x: (
+            ",".join(x[:-1])
+            if '0' not in x
+            else ",".join(x[: x.index('0') - 1] + x[x.index('0') :])
+        )
     )
 
     ratings_data_transformed['label'] = ratings_data_transformed.ratings.apply(
@@ -166,12 +181,10 @@ def generate_data():
 
     # encoder: str to id
     le = LabelEncoder()
-    ratings_data_transformed[
-        ['user_id', 'gender', 'age_group', 'occupation']
-    ] = ratings_data_transformed[
-        ['user_id', 'gender', 'age_group', 'occupation']
-    ].apply(
-        le.fit_transform
+    ratings_data_transformed[['user_id', 'gender', 'age_group', 'occupation']] = (
+        ratings_data_transformed[
+            ['user_id', 'gender', 'age_group', 'occupation']
+        ].apply(le.fit_transform)
     )
     fea_emb_input_size['user_id'] = len(ratings_data_transformed['user_id'].unique())
     fea_emb_input_size['gender'] = len(ratings_data_transformed['gender'].unique())

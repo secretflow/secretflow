@@ -1,3 +1,17 @@
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import logging
 
 from secretflow.component.test_framework.test_case import PipelineCase, TestComp
@@ -10,17 +24,16 @@ if __name__ == "__main__":
     aci_pipe = PipelineCase("aci_pipe")
 
     attrs = {
-        "protocol": "ECDH_PSI_2PC",
+        "protocol": "PROTOCOL_ECDH",
         "receiver": "alice",
-        "sort": True,
-        "broadcast_result": True,
-        "bucket_size": 1048576,
-        "ecdh_curve_type": "CURVE_FOURQ",
+        "disable_alignment": False,
+        "ecdh_curve": "CURVE_FOURQ",
+        "left_side": ["alice"],
         "input/receiver_input/key": ["id0"],
         "input/sender_input/key": ["id1"],
     }
     # 测试psi
-    psi = TestComp("psi_test", "data_prep", "psi", "0.0.1", attrs)
+    psi = TestComp("psi_test", "data_prep", "psi", "0.0.3", attrs)
     aci_pipe.add_comp(psi, ["DAGInput.alice", "DAGInput.bob"])
 
     attrs = {

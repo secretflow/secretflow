@@ -1,4 +1,16 @@
-import os
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import numpy as np
 import pandas as pd
@@ -9,11 +21,11 @@ from secretflow.component.data_utils import DistDataType
 from secretflow.component.preprocessing.unified_single_party_ops.feature_calculate import (
     feature_calculate,
 )
+from secretflow.component.storage import ComponentStorage
 from secretflow.spec.extend.calculate_rules_pb2 import CalculateOpRules
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
-from tests.conftest import TEST_STORAGE_ROOT
 
 test_data_alice = pd.DataFrame(
     {
@@ -247,7 +259,7 @@ def _build_test():
 
     bob_data = test_data_bob.copy()
     bob_feature = ['b1']
-    bob_data['b1'] = bob_data['b1'].round() * 1.0
+    bob_data['b1'] = bob_data['b1'].round()
 
     names.append("round")
     tests.append(rule)
@@ -389,28 +401,18 @@ def test_feature_calculate(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    local_fs_wd = storage_config.local_fs.wd
+    comp_storage = ComponentStorage(storage_config)
     df_alice = pd.DataFrame()
     if self_party == "alice":
         df_alice = test_data_alice
-        os.makedirs(
-            os.path.join(local_fs_wd, "test_feature_calculate"),
-            exist_ok=True,
-        )
-
         df_alice.to_csv(
-            os.path.join(local_fs_wd, alice_input_path),
+            comp_storage.get_writer(alice_input_path),
             index=False,
         )
     elif self_party == "bob":
         df_bob = test_data_bob
-        os.makedirs(
-            os.path.join(local_fs_wd, "test_feature_calculate"),
-            exist_ok=True,
-        )
-
         df_bob.to_csv(
-            os.path.join(local_fs_wd, bob_input_path),
+            comp_storage.get_writer(bob_input_path),
             index=False,
         )
 
@@ -461,11 +463,6 @@ def test_feature_calculate(comp_prod_sf_cluster_config):
 
     param.inputs[0].meta.Pack(meta)
 
-    os.makedirs(
-        os.path.join(local_fs_wd, "test_feature_calculate"),
-        exist_ok=True,
-    )
-
     for n, t, f, e in zip(*_build_test()):
         param.attrs[0].s = MessageToJson(t)
         param.attrs[1].ss[:] = f
@@ -478,14 +475,18 @@ def test_feature_calculate(comp_prod_sf_cluster_config):
 
         assert len(res.outputs) == 2
 
-        alice_out = pd.read_csv(os.path.join(TEST_STORAGE_ROOT, "alice", out_path))
-        assert _almost_equal(
-            alice_out, e[0]
-        ), f"{n}\n===out===\n{alice_out}\n===e===\n{e[0]}\n===r===\n{param.attrs[0].s}"
+        if self_party == "alice":
+            comp_storage = ComponentStorage(storage_config)
+            alice_out = pd.read_csv(comp_storage.get_reader(out_path))
+            assert _almost_equal(
+                alice_out, e[0]
+            ), f"{n}\n===out===\n{alice_out}\n===e===\n{e[0]}\n===r===\n{param.attrs[0].s}"
 
-        bob_out = pd.read_csv(os.path.join(TEST_STORAGE_ROOT, "bob", out_path))
-        assert _almost_equal(
-            bob_out, e[1]
-        ), f"{n}\n===out===\n{bob_out}\n===e===\n{e[1]}\n===r===\n{param.attrs[0].s}"
+        if self_party == "bob":
+            comp_storage = ComponentStorage(storage_config)
+            bob_out = pd.read_csv(comp_storage.get_reader(out_path))
+            assert _almost_equal(
+                bob_out, e[1]
+            ), f"{n}\n===out===\n{bob_out}\n===e===\n{e[1]}\n===r===\n{param.attrs[0].s}"
 
         assert len(res.outputs) == 2

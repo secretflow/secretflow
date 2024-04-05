@@ -1,3 +1,17 @@
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 import sys
 
@@ -6,9 +20,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 import torch
-from sklearn.metrics import auc, roc_auc_score, roc_curve
-
 from manager import BaseManager
+from sklearn.metrics import auc, roc_auc_score, roc_curve
 
 """SLModel
 
@@ -18,8 +31,10 @@ import math
 import os
 from typing import Callable, Dict, Iterable, List, Tuple, Union
 
-import secretflow as sf
 from multiprocess import cpu_count
+from tqdm import tqdm
+
+import secretflow as sf
 from secretflow.data.base import Partition
 from secretflow.data.horizontal import HDataFrame
 from secretflow.data.ndarray import FedNdarray
@@ -31,7 +46,6 @@ from secretflow.ml.nn.sl.agglayer.agg_method import AggMethod
 from secretflow.ml.nn.sl.strategy_dispatcher import dispatch_strategy
 from secretflow.security.privacy import DPStrategy
 from secretflow.utils.random import global_random
-from tqdm import tqdm
 
 
 # torch实现的原版Norm Attack
@@ -107,7 +121,9 @@ def attach_normattack_to_splitnn(
                 lw=2,
             )
 
-            plt.xlim([-0.05, 1.05])  # 设置x、y轴的上下限，以免和边缘重合，更好的观察图像的整体
+            plt.xlim(
+                [-0.05, 1.05]
+            )  # 设置x、y轴的上下限，以免和边缘重合，更好的观察图像的整体
             plt.ylim([-0.05, 1.05])
             plt.xlabel("False Positive Rate")
             plt.ylabel("True Positive Rate")  # 可以使用中文，但需要导入一些库即字体

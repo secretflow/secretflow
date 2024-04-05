@@ -12,7 +12,7 @@ We hope you enjoy these toturials from SecretFlow developers.
 .. toctree::
    :maxdepth: 1
    :caption: IO
-   
+
    FedDataFrameDataLoader
    FedNdarrayDataLoader
    CustomDataLoaderTF
@@ -37,6 +37,7 @@ We hope you enjoy these toturials from SecretFlow developers.
 
    spu_basics
    lr_with_spu
+   ss_glm
    nn_with_spu
    gpt2_with_spu
    numpy_with_spu
@@ -48,6 +49,10 @@ We hope you enjoy these toturials from SecretFlow developers.
 
    teeu
    teeu_xgboost
+   teeu/teeu_fillna
+   teeu/teeu_onehotencoder
+   teeu/teeu_regression
+   teeu/teeu_labelencoder
 
 .. toctree::
    :maxdepth: 1
@@ -63,12 +68,14 @@ We hope you enjoy these toturials from SecretFlow developers.
    Federated_Learning_with_Pytorch_backend
    Federated_Xgboost
    SecureBoost
+   secureboost_analysis
    Split_Learning_for_bank_marketing
    split_learning_gnn
    mix_lr
    sl_rec_deepfm
    Pytorch-finetune-alexnet
    tensorflow-finetune-inception-v3
+   Transforming_SingleModel_to_SecretFlow_Federated_Learning
    /user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/sl_rec_deepfm
    /user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF
    /user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_Torch
@@ -87,8 +94,9 @@ We hope you enjoy these toturials from SecretFlow developers.
 .. toctree::
    :maxdepth: 1
    :caption: 培训资料
-   
+
    practical_case_walkthrough_using_sf_with_spu
+   programming_guide
 
 
 .. toctree::

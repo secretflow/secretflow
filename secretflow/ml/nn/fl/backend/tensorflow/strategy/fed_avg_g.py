@@ -15,7 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import collections
 import copy
 from typing import Tuple
 
@@ -63,26 +62,14 @@ class FedAvgG(BaseTFModel):
 
         local_gradients_sum = None
         for _ in range(train_steps):
-            iter_data = next(self.train_set)
-            if len(iter_data) == 2:
-                x, y = iter_data
-                s_w = None
-            elif len(iter_data) == 3:
-                x, y, s_w = iter_data
-            if isinstance(x, collections.OrderedDict):
-                x = tf.stack(list(x.values()), axis=1)
-            num_sample += x.shape[0]
+            x, y, s_w = self.next_batch()
+            num_sample += self.get_sample_num(x)
 
             with tf.GradientTape() as tape:
                 # Step 1: forward pass
                 y_pred = self.model(x, training=True)
                 # Step 2: loss calculation, the loss function is configured in `compile()`.
-                loss = self.model.compiled_loss(
-                    y,
-                    y_pred,
-                    regularization_losses=self.model.losses,
-                    sample_weight=s_w,
-                )
+                loss = self.model.compute_loss(x, y, y_pred, s_w)
             # Step 3: compute local gradient
             local_gradients = tape.gradient(loss, trainable_vars)
 
@@ -91,7 +78,7 @@ class FedAvgG(BaseTFModel):
             else:
                 local_gradients_sum += local_gradients
             # Step4: update metrics
-            self.model.compiled_metrics.update_state(y, y_pred)
+            self.model.compute_metrics(x, y, y_pred, s_w)
 
         for m in self.model.metrics:
             logs[m.name] = m.result().numpy()

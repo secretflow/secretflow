@@ -20,8 +20,9 @@ import numpy as np
 import torch
 
 from secretflow import reveal, wait
-from .client import new_client
+
 from ..utils.slim_util import hamming_distance
+from .client import new_client
 
 
 class BaseDispflAPI(ABC):
@@ -81,9 +82,9 @@ class BaseDispflAPI(ABC):
                 model_trainer,
                 self.logger,
                 multiprocess.cpu_count() if not torch.cuda.is_available() else 1,
-                device=self.sf_devices[client_idx]
-                if self.sf_devices is not None
-                else None,
+                device=(
+                    self.sf_devices[client_idx] if self.sf_devices is not None else None
+                ),
             )
             self.client_list.append(c)
         self.logger.warn("############   setup_clients (END)   #############")

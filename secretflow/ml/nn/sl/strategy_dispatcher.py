@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from secretflow import PYUObject, proxy
+
 BACKEND_LIST = ['tensorflow', 'torch']
 
 
@@ -26,10 +28,19 @@ class Dispatcher:
 
     def dispatch(self, name, backend, *args, **kwargs):
         strategy_name = f"{name}_{backend}"
+        num_gpus = kwargs.get('num_gpus', 0)
         if strategy_name not in self._ops:
             raise Exception(f"Strategy {name} on backend {backend} not registered")
         cls, check_skip_grad = self._ops[strategy_name]
-        return cls(*args, **kwargs), check_skip_grad
+        return (
+            proxy(
+                device_object_type=PYUObject,
+                num_gpus=num_gpus,
+            )(
+                cls
+            )(*args, **kwargs),
+            check_skip_grad,
+        )
 
 
 _strategy_dispatcher = Dispatcher()

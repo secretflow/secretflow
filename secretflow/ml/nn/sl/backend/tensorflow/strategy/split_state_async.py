@@ -25,7 +25,6 @@ from typing import Callable
 
 import tensorflow as tf
 
-from secretflow.device import PYUObject, proxy
 from secretflow.ml.nn.sl.backend.tensorflow.sl_base import SLBaseTFModel
 from secretflow.ml.nn.sl.strategy_dispatcher import register_strategy
 from secretflow.security.privacy import DPStrategy
@@ -92,11 +91,8 @@ class SLStateAsyncTFModel(SLBaseTFModel):
             y_pred = self.model_fuse(hiddens, training=True, **self.kwargs)
 
             # Step 2: loss calculation, the loss function is configured in `compile()`.
-            loss = self.model_fuse.compiled_loss(
-                train_y,
-                y_pred,
-                sample_weight=train_sample_weight,
-                regularization_losses=self.model_fuse.losses + losses,
+            loss = self.model_fuse.compute_loss(
+                hiddens, train_y, y_pred, train_sample_weight
             )
         self._pred_y = y_pred
         # Step3: compute gradients
@@ -105,9 +101,7 @@ class SLStateAsyncTFModel(SLBaseTFModel):
         self.model_fuse.optimizer.apply_gradients(zip(gradients, trainable_vars))
 
         # Step4: update metrics
-        self.model_fuse.compiled_metrics.update_state(
-            train_y, y_pred, sample_weight=train_sample_weight
-        )
+        self.model_fuse.compute_metrics(hiddens, train_y, y_pred, train_sample_weight)
 
         # check loss
         self.total_loss += loss
@@ -144,6 +138,5 @@ class SLStateAsyncTFModel(SLBaseTFModel):
 @register_strategy(
     strategy_name='split_state_async', backend='tensorflow', check_skip_grad=True
 )
-@proxy(PYUObject)
 class PYUSLStateAsyncTFModel(SLStateAsyncTFModel):
     pass

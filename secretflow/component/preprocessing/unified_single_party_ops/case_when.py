@@ -8,7 +8,7 @@
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.∏
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
@@ -82,7 +82,7 @@ def get_rule_features(rules: CaseWhenRule) -> List[str]:
 
     _get_value_f(rules.else_value)
 
-    return fs
+    return list(set(fs))
 
 
 def apply_case_when_rule(table: sc.Table, rules: CaseWhenRule) -> sc.Table:
@@ -190,7 +190,7 @@ def case_when_eval_fn(
 
     rule_features = get_rule_features(rules)
 
-    str_rule = MessageToJson(rules)
+    str_rule = MessageToJson(rules, indent=0)
 
     def _transform(data: pd.DataFrame):
         import secretflow.spec.extend.case_when_rules_pb2 as pb

@@ -1,3 +1,17 @@
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -44,7 +58,7 @@ def test_pearsonr(prod_env_and_data):
     v_pearsonr = SSVertPearsonR(env.spu)
     scaler = StandardScaler()
     std_data = scaler.fit_transform(data)
-    ss_pearsonr_1 = v_pearsonr.pearsonr(data)
+    ss_pearsonr_1 = v_pearsonr.pearsonr(data, infeed_elements_limit=1000)
     ss_pearsonr_2 = v_pearsonr.pearsonr(std_data, False)
     expected = scipy_pearsonr()
     np.testing.assert_almost_equal(ss_pearsonr_1, expected, decimal=2)

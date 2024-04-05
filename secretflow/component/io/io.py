@@ -168,7 +168,7 @@ io_write_data.io(
     desc="Output rules or models in sf cluster format",
     types=[
         DistDataType.BIN_RUNNING_RULE,
-        DistDataType.SS_GLM_MODEL
+        DistDataType.SS_GLM_MODEL,
         # add others module or rules support here
     ],
     col_params=None,

@@ -16,14 +16,13 @@ from __future__ import annotations
 
 from collections import defaultdict
 from enum import Enum
-from typing import Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
-
-from secretflow.spec.v1 import compute_trace_pb2
+from secretflow_serving_lib import compute_trace_pb2
 
 
 class _TracerType(Enum):
@@ -31,14 +30,24 @@ class _TracerType(Enum):
     ARROW = 2
 
 
-class _TraceRunner:
+class TraceRunner:
     def __init__(self, dag: List[_Tracer]) -> None:
         assert dag[0].output_type is _TracerType.TABLE
         assert dag[0].inputs is None
         assert dag[-1].output_type is _TracerType.TABLE
         assert len(set(dag)) == len(dag)
-        assert len(dag) > 1
+        assert len(dag) > 0
+
+        self.input_features = dag[0].output_schema.names
+        if not isinstance(self.input_features, list):
+            assert isinstance(self.input_features, str)
+            self.input_features = [self.input_features]
+
         self.dag: List[_Tracer] = dag
+        if len(self.dag) == 1:
+            # nothing to do
+            return
+
         self.ref_count = defaultdict(int)
         for t in self.dag:
             if t.inputs is None:
@@ -47,10 +56,6 @@ class _TraceRunner:
                 if isinstance(i, _Tracer):
                     self.ref_count[i] += 1
         assert len(self.ref_count) > 0
-        self.input_features = dag[0].output_schema.names
-        if not isinstance(self.input_features, list):
-            assert isinstance(self.input_features, str)
-            self.input_features = [self.input_features]
 
     def _get_input(self, t: _Tracer):
         assert t in self.run_ref_count
@@ -70,12 +75,22 @@ class _TraceRunner:
     ) -> Tuple[compute_trace_pb2.ComputeTrace, pa.Schema, pa.Schema]:
         return self.dag[-1].dump_serving_pb(name)
 
+    def column_changes(self) -> Tuple[List, List, List]:
+        return self.dag[-1].column_changes()
+
     def run(self, input: Union[pd.DataFrame, pa.Table]) -> pd.DataFrame:
         assert isinstance(input, (pd.DataFrame, pa.Table))
+
+        if len(self.dag) == 1:
+            # nothing to do
+            return input.to_pandas() if isinstance(input, pa.Table) else input
+
         if isinstance(input, pd.DataFrame):
             input = pa.Table.from_pandas(input)
 
-        assert input.schema == self.dag[0].output_schema
+        assert (
+            input.schema == self.dag[0].output_schema
+        ), f"{input.schema} != {self.dag[0].output_schema}"
 
         self.run_ref_count = self.ref_count.copy()
         self.output_map = dict()
@@ -149,6 +164,38 @@ class _TraceRunner:
         return ret_table.to_pandas()
 
 
+def _python_obj_to_serving(i: Any) -> compute_trace_pb2.Scalar:
+    ret = compute_trace_pb2.FunctionInput()
+    if isinstance(i, int) or isinstance(i, np.int64):
+        ret.custom_scalar.CopyFrom(compute_trace_pb2.Scalar(i64=i))
+    elif isinstance(i, np.uint64):
+        ret.custom_scalar.CopyFrom(compute_trace_pb2.Scalar(ui64=i))
+    elif isinstance(i, np.int32):
+        ret.custom_scalar.CopyFrom(compute_trace_pb2.Scalar(i32=i))
+    elif isinstance(i, np.uint32):
+        ret.custom_scalar.CopyFrom(compute_trace_pb2.Scalar(ui32=i))
+    elif isinstance(i, np.int16):
+        ret.custom_scalar.CopyFrom(compute_trace_pb2.Scalar(i16=i))
+    elif isinstance(i, np.uint16):
+        ret.custom_scalar.CopyFrom(compute_trace_pb2.Scalar(ui16=i))
+    elif isinstance(i, np.int8):
+        ret.custom_scalar.CopyFrom(compute_trace_pb2.Scalar(i8=i))
+    elif isinstance(i, np.uint8):
+        ret.custom_scalar.CopyFrom(compute_trace_pb2.Scalar(ui8=i))
+    elif isinstance(i, float) or isinstance(i, np.float64):
+        ret.custom_scalar.CopyFrom(compute_trace_pb2.Scalar(d=i))
+    elif isinstance(i, np.float32):
+        ret.custom_scalar.CopyFrom(compute_trace_pb2.Scalar(f=i))
+    elif isinstance(i, bool) or isinstance(i, np.bool_):
+        ret.custom_scalar.CopyFrom(compute_trace_pb2.Scalar(b=i))
+    elif isinstance(i, str):
+        ret.custom_scalar.CopyFrom(compute_trace_pb2.Scalar(s=i))
+    else:
+        raise AttributeError(f"Unknown type {type(i)} input {i}")
+
+    return ret
+
+
 class _Tracer:
     def __init__(
         self,
@@ -168,55 +215,106 @@ class _Tracer:
         self.options = options
         self.output_schema = output_schema
 
-    def _flatten_dag(self) -> List[_Tracer]:
-        dag_tracers: List[_Tracer] = []
+    def __str__(self) -> str:
+        if self.inputs:
+            inputs = map(
+                lambda i: f"Tracer {id(i)}" if isinstance(i, _Tracer) else str(i),
+                self.inputs,
+            )
+        else:
+            inputs = []
+        return (
+            f"Tracer {id(self)}, op {self.operate}, "
+            f"output {self.output_type}, input: [{','.join(inputs)}]"
+        )
 
+    def _flatten_dag(self) -> List[_Tracer]:
+        reverse_dag: Dict[_Tracer, List[_Tracer]] = defaultdict(list)
         backtrace = [self]
+        input_trace = None
         while len(backtrace):
             t = backtrace.pop(0)
-            dag_tracers.append(t)
+            if t in reverse_dag:
+                continue
             if t.inputs is None:
+                assert (
+                    input_trace is None or input_trace is t
+                ), "only allow one input in dag"
+                input_trace = t
                 continue
             for i in t.inputs:
                 if isinstance(i, _Tracer):
-                    backtrace.append(i)
+                    reverse_dag[t].append(i)
+                    if i not in reverse_dag:
+                        backtrace.append(i)
 
-        assert len(dag_tracers) > 1
-        dag_tracers.reverse()
-        dag_tracers = list(dict.fromkeys(dag_tracers))
-        assert dag_tracers[0].output_type is _TracerType.TABLE
-        assert dag_tracers[0].inputs is None
+        dag: Dict[_Tracer, List[_Tracer]] = defaultdict(list)
+        for down, ups in reverse_dag.items():
+            for up in ups:
+                dag[up].append(down)
+
+        flatten_dag: List[_Tracer] = []
+        backtrace = [input_trace]
+        while len(backtrace):
+            t = backtrace.pop(0)
+            flatten_dag.append(t)
+            if t in dag:
+                for down in dag[t]:
+                    assert t in reverse_dag[down]
+                    reverse_dag[down].remove(t)
+                    if len(reverse_dag[down]) == 0:
+                        backtrace.append(down)
+                        reverse_dag.pop(down)
+                dag.pop(t)
+            else:
+                assert t is self
+
+        assert len(dag) == 0
+        assert len(reverse_dag) == 0
+        assert len(flatten_dag) > 0
+        assert len(flatten_dag) == len(set(flatten_dag))
+        assert flatten_dag[0].output_type is _TracerType.TABLE
+        assert flatten_dag[0].inputs is None
         assert all(
-            [d.inputs is not None for d in dag_tracers[1:]]
+            [d.inputs is not None for d in flatten_dag[1:]]
         ), "only allow one input in dag"
-        assert dag_tracers[-1] == self
-        assert dag_tracers[-1].output_type is _TracerType.TABLE
+        assert flatten_dag[-1] == self
+        assert flatten_dag[-1].output_type is _TracerType.TABLE
 
-        return dag_tracers
+        return flatten_dag
 
-    def dump_runner(self) -> _TraceRunner:
-        return _TraceRunner(self._flatten_dag())
+    def dump_runner(self) -> TraceRunner:
+        return TraceRunner(self._flatten_dag())
 
-    def column_changes(self) -> Tuple[List, List]:
+    def column_changes(self) -> Tuple[List, List, List]:
         dag = self._flatten_dag()
-        remove_cols = {}
-        append_cols = {}
+        used_inputs = set()
+        remove_cols = set()
+        append_cols = set()
 
         def _get_name(t: _Tracer, i: int) -> str:
             return t.inputs[0].output_schema.field(i).name
 
         def _append(n: str):
             assert n not in append_cols
-            append_cols[n] = None
+            append_cols.add(n)
+
+        def _use(n: str):
+            if n not in append_cols:
+                used_inputs.add(n)
 
         def _remove(n: str):
             if n in append_cols:
-                del append_cols[n]
+                append_cols.remove(n)
             else:
-                remove_cols[n] = None
+                remove_cols.add(n)
 
         for t in dag[1:]:
             if t.operate == compute_trace_pb2.ExtendFunctionName.Name(
+                compute_trace_pb2.EFN_TB_COLUMN
+            ):
+                _use(_get_name(t, t.inputs[1]))
+            elif t.operate == compute_trace_pb2.ExtendFunctionName.Name(
                 compute_trace_pb2.EFN_TB_ADD_COLUMN
             ):
                 _append(t.inputs[2])
@@ -230,7 +328,7 @@ class _Tracer:
                 _remove(_get_name(t, t.inputs[1]))
                 _append(t.inputs[2])
 
-        return list(remove_cols), list(append_cols)
+        return list(remove_cols), list(append_cols), list(used_inputs)
 
     def dump_serving_pb(
         self, name: str
@@ -255,23 +353,12 @@ class _Tracer:
                 inputs_pb = []
                 assert len(t.inputs) > 0
                 for i in t.inputs:
-                    input_pb = compute_trace_pb2.FunctionInput()
                     if isinstance(i, _Tracer):
                         assert i in trace_output_id_map
+                        input_pb = compute_trace_pb2.FunctionInput()
                         input_pb.data_id = trace_output_id_map[i]
-                    elif isinstance(i, int) or isinstance(i, np.integer):
-                        input_pb.custom_scalar.CopyFrom(
-                            compute_trace_pb2.Scalar(i64=int(i))
-                        )
-                    elif isinstance(i, float) or isinstance(i, np.floating):
-                        input_pb.custom_scalar.CopyFrom(
-                            compute_trace_pb2.Scalar(d=float(i))
-                        )
-                    elif isinstance(i, str):
-                        input_pb.custom_scalar.CopyFrom(compute_trace_pb2.Scalar(s=i))
                     else:
-                        raise AttributeError(f"Unknown type input {i}")
-
+                        input_pb = _python_obj_to_serving(i)
                     inputs_pb.append(input_pb)
 
                 trace_pb = compute_trace_pb2.FunctionTrace(
@@ -348,7 +435,9 @@ class Table:
         pydist = {}
 
         for name, dtype in schema.items():
-            if dtype == object or dtype == str:
+            if isinstance(dtype, np.dtype):
+                dtype = dtype.type
+            if dtype in [object, str, np.object_]:
                 mock_data = ""
             else:
                 mock_data = dtype()
@@ -371,11 +460,11 @@ class Table:
         Table.schema_check(self._trace.output_schema)
         return self._trace.dump_serving_pb(name)
 
-    def dump_runner(self) -> _TraceRunner:
+    def dump_runner(self) -> TraceRunner:
         Table.schema_check(self._trace.output_schema)
         return self._trace.dump_runner()
 
-    def column_changes(self) -> Tuple[List, List]:
+    def column_changes(self) -> Tuple[List, List, List]:
         return self._trace.column_changes()
 
     # subset of pyarrow.table
@@ -386,6 +475,10 @@ class Table:
     @property
     def shape(self) -> Tuple[int, int]:
         return self._table.shape
+
+    @property
+    def schema(self) -> pa.Schema:
+        return self._table.schema
 
     def column(self, i: Union[str, int]) -> Array:
         assert isinstance(i, (str, int))

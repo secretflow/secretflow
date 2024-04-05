@@ -18,7 +18,7 @@ features into a representation for more suitable for the downstream pipeline.
 
         Secretflow provides federated data encapsulation in the form of DataFrame.
         DataFrame is composed of data blocks of multiple parties and supports horizontal or vertical partitioned data.
-    
+
     .. grid-item-card:: WeightOfEnvidenceEncoding (WOE)
       :link:  preprocessing/WeightOfEvidenceEncoding
       :link-type: doc
@@ -29,8 +29,8 @@ features into a representation for more suitable for the downstream pipeline.
 Private Set Intersection(PSI)
 -----------------------------
 
-SecretFlow SPU now supports ECDH-PSI, KKRT16-PSI, and BC22-PCG-PSI. 
-Please check :doc:`/user_guide/psi` for details. 
+SecretFlow SPU now supports ECDH-PSI, KKRT16-PSI, and BC22-PCG-PSI.
+Please check :doc:`/user_guide/psi` for details.
 
 .. grid:: 2
     :gutter: 2
@@ -39,7 +39,7 @@ Please check :doc:`/user_guide/psi` for details.
       :link: psi
       :link-type: doc
 
-        Private set intersection is a secure multiparty computation cryptographic technique that 
+        Private set intersection is a secure multiparty computation cryptographic technique that
         allows two parties holding sets to compare encrypted versions of these sets in order to
         compute the intersection.
 
@@ -97,7 +97,7 @@ Federated learning is a machine learning technique that trains an algorithm acro
       :link: federated_learning/mix_federated_learning
       :link-type: doc
 
-        For cases that parts of participants share the same sample ID space but differ in feature space, 
+        For cases that parts of participants share the same sample ID space but differ in feature space,
         where others share the same feature space but differ in sample ID.
 
 .. toctree::

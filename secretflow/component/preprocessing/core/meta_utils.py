@@ -8,7 +8,7 @@
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.∏
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
@@ -80,7 +80,7 @@ def produce_meta_change(
             party_meta_change.new_labels.extend(
                 create_add_columns(append_keys, fixed_type, ref_dtypes)
             )
-        meta_change_dict[party] = MessageToJson(party_meta_change)
+        meta_change_dict[party] = MessageToJson(party_meta_change, indent=0)
     return meta_change_dict
 
 

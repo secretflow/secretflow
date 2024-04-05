@@ -14,16 +14,16 @@
 
 
 from .primitive import (
+    active_sf_cluster,
     get,
+    get_cluster_avaliable_resources,
+    get_current_cluster_idx,
+    get_distribution_mode,
+    in_ic_mode,
     kill,
     remote,
-    shutdown,
     set_distribution_mode,
-    get_distribution_mode,
-    get_current_cluster_idx,
-    active_sf_cluster,
-    in_ic_mode,
-    get_cluster_avaliable_resources,
+    shutdown,
 )
 
 __all__ = [

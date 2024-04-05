@@ -15,99 +15,57 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import warnings
+from typing import Callable, List
 
-from abc import ABC, abstractmethod
-from typing import List, Optional, Union
-
-import numpy as np
-import torch
-from torch import nn, optim
 from torch.nn.modules.loss import _Loss as BaseTorchLoss
+from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric
 
-
-class BaseModule(ABC, nn.Module):
-    @abstractmethod
-    def forward(self, x):
-        pass
-
-    def get_weights(self, return_numpy=False):
-        if not return_numpy:
-            return {k: v.cpu() for k, v in self.state_dict().items()}
-        else:
-            weights_list = []
-            for v in self.state_dict().values():
-                weights_list.append(v.cpu().numpy())
-            return [e.copy() for e in weights_list]
-
-    def set_weights(self, weights):
-        self.load_state_dict(weights)
-
-    def update_weights(self, weights):
-        keys = self.state_dict().keys()
-        weights_dict = {}
-        for k, v in zip(keys, weights):
-            weights_dict[k] = torch.Tensor(np.copy(v))
-        self.load_state_dict(weights_dict)
-
-    def get_gradients(self, parameters=None):
-        if parameters is None:
-            parameters = self.parameters()
-        grads = []
-        for p in parameters:
-            grad = None if p.grad is None else p.grad.data.cpu().numpy()
-            grads.append(grad)
-        return [g.copy() for g in grads]
-
-    def set_gradients(
-        self,
-        gradients: List[Union[torch.Tensor, np.ndarray]],
-        parameters: Optional[List[torch.Tensor]] = None,
-    ):
-        if parameters is None:
-            parameters = self.parameters()
-        for g, p in zip(gradients, parameters):
-            if g is not None:
-                tensor_g = torch.from_numpy(np.array(g.copy()))
-                p.grad = tensor_g.to(p.device)
+from secretflow.ml.nn.core import torch as T
 
 
-class TorchModel:
+class BaseModule(T.BaseModule):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        warnings.warn(
+            """Use of secretflow.ml.nn.utils.BaseModule is deprecated.
+                Please use secretflow.ml.nn.core.torch.BaseModule instead.""",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
+
+class TorchModel(T.TorchModel):
     def __init__(
         self,
-        model_fn: type(BaseModule) = None,
-        loss_fn: type(BaseTorchLoss) = None,
-        optim_fn: optim.Optimizer = None,
-        metrics: List[Metric] = [],
+        model_fn: Callable[..., BaseModule] = None,
+        loss_fn: Callable[..., BaseTorchLoss] = None,
+        optim_fn: Callable[..., Optimizer] = None,
+        metrics: List[Callable[..., Metric]] = [],
         **kwargs,
     ):
-        self.model_fn = model_fn
-        self.loss_fn: BaseTorchLoss = loss_fn
-        self.optim_fn: optim.Optimizer = optim_fn
-        self.metrics: List[Metric] = metrics
-        self.kwargs = kwargs
+        super().__init__(model_fn, loss_fn, optim_fn, metrics, **kwargs)
+        warnings.warn(
+            """Use of secretflow.ml.nn.utils.TorchModel is deprecated.
+                Please use secretflow.ml.nn.core.torch.TorchModel instead.""",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
 
-def metric_wrapper(func, *args, **kwargs):
-    def wrapped_func():
-        return func(*args, **kwargs)
-
-    return wrapped_func
-
-
-def optim_wrapper(func, *args, **kwargs):
-    def wrapped_func(params):
-        return func(params, *args, **kwargs)
-
-    return wrapped_func
+# TorchModel related utils here are deprecated
+metric_wrapper = T.metric_wrapper
+optim_wrapper = T.optim_wrapper
+loss_wrapper = T.loss_wrapper
 
 
 def plot_with_tsne(y_pred, eval_y, file_name):
     """
     Helper function to plot the t-SNE figure of output posteriors for nodes.
     """
-    from sklearn.manifold import TSNE
     import matplotlib.pyplot as plt
+    from sklearn.manifold import TSNE
 
     def plot_with_labels(lowDWeights, labels):
         plt.cla()

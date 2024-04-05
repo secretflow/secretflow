@@ -19,6 +19,7 @@ import copy
 from typing import Tuple
 
 import numpy as np
+import torch
 
 from secretflow.ml.nn.fl.backend.torch.fl_base import BaseTorchModel
 from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
@@ -54,24 +55,21 @@ class FedAvgW(BaseTorchModel):
         if refresh_data:
             self._reset_data_iter()
         if weights is not None:
-            self.model.update_weights(weights)
+            self.set_weights(weights)
         num_sample = 0
         dp_strategy = kwargs.get('dp_strategy', None)
         logs = {}
+        loss: torch.Tensor = None
 
-        for _ in range(train_steps):
-            self.optimizer.zero_grad()
-
+        for step in range(train_steps):
             x, y, s_w = self.next_batch()
             num_sample += x.shape[0]
-            y_pred = self.model(x)
 
-            # do back propagation
-            loss = self.loss(y_pred, y)
-            loss.backward()
-            self.optimizer.step()
-            for m in self.metrics:
-                m.update(y_pred.cpu(), y.cpu())
+            loss = self.model.training_step((x, y), cur_steps + step, sample_weight=s_w)
+
+            if self.model.automatic_optimization:
+                self.model.backward_step(loss)
+
         loss_value = loss.item()
         logs['train-loss'] = loss_value
 
@@ -95,7 +93,7 @@ class FedAvgW(BaseTorchModel):
             weights: global weight from params server
         """
         if weights is not None:
-            self.model.update_weights(weights)
+            self.set_weights(weights)
 
 
 @register_strategy(strategy_name='fed_avg_w', backend='torch')
