@@ -88,7 +88,7 @@ docker buildx build \
   --build-arg deploy_templates="$(cat deploy_templates.yml)" \
   --build-arg comp_list="$(cat comp_list.json)" \
   --build-arg translation="$(cat translation.json)" \
-  .
+  . --load
 
 #Output construction completion information
 echo -e "Finish building ${GREEN}${IMAGE_TAG} for linux/arm64 and linux/amd64${NO_COLOR}"
@@ -103,7 +103,7 @@ docker buildx build \
   --build-arg deploy_templates="$(cat deploy_templates.yml)" \
   --build-arg comp_list="$(cat comp_list.json)" \
   --build-arg translation="$(cat translation.json)" \
-  .
+  . --load
 
 #Output construction completion information
 echo -e "Finish building ${GREEN}${IMAGE_LITE_TAG} for linux/arm64 and linux/amd64${NO_COLOR}"

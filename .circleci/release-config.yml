@@ -120,7 +120,7 @@ jobs:
 
             # restore changed file
             git checkout secretflow/version.py
-            docker buildx create --name python10 --platform linux/arm64,linux/amd64 --use
+            docker buildx create --name python3.10 --platform linux/arm64,linux/amd64 --use
             # login docker
             docker login -u secretflow -p ${DOCKER_DEPLOY_TOKEN}
 
