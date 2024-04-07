@@ -74,13 +74,11 @@ sleep 10s
 
 echo -e "Building ${GREEN}${IMAGE_TAG}${NO_COLOR}"
 (cd ../ && cp *.yml release/ && cp *.json release/)
-# 启用或切换到特定的 docker buildx 构建器（如果尚未创建，请先创建）
-docker buildx create --name mybuilder
-docker buildx use mybuilder
+#Enable or switch to a specific Docker buildx builder )
+docker buildx create --name secretflow
+docker buildx use secretflow
 
-# 设置环境变量
-
-# 构建多平台镜像
+#Building multi platform images
 docker buildx build \
   --platform linux/arm64,linux/amd64 \
   -f anolis.Dockerfile \
@@ -92,10 +90,10 @@ docker buildx build \
   --build-arg translation="$(cat translation.json)" \
   .
 
-# 输出构建完成信息
+#Output construction completion information
 echo -e "Finish building ${GREEN}${IMAGE_TAG} for linux/arm64 and linux/amd64${NO_COLOR}"
 
-# 构建多平台镜像
+#Building Secretflow Lite Multi Platform Images
 docker buildx build \
   --platform linux/arm64,linux/amd64 \
   -f anolis-lite.Dockerfile . \
@@ -107,10 +105,10 @@ docker buildx build \
   --build-arg translation="$(cat translation.json)" \
   .
 
-# 输出构建完成信息
+#Output construction completion information
 echo -e "Finish building ${GREEN}${IMAGE_LITE_TAG} for linux/arm64 and linux/amd64${NO_COLOR}"
 
-# 推送多平台镜像到 Docker Hub 或其他仓库
+# Push multi platform mirroring to Docker Hub
 docker push ${IMAGE_TAG}
 docker push ${IMAGE_LITE_TAG}
 
