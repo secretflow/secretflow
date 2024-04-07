@@ -202,7 +202,6 @@ def plat_name():
         # Linux platform detection
         if platform.machine() == "aarch64":
             plat_name = "manylinux2014_aarch64"
-        # Keep the default for other Linux platforms
 
     return plat_name
 
