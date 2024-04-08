@@ -1,5 +1,3 @@
-import unittest
-
 import torch
 import torch.optim as optim
 from secretflow.ml.nn.fl.backend.torch.strategy.scaffold import Scaffold
@@ -34,8 +32,8 @@ class My_Model(BaseModule):
         return x
 
 
-class TestScaffold(unittest.TestCase):
-    def test_scaffold_local_step(self):
+class TestScaffold:
+    def test_scaffold_local_step(self, sf_simulation_setup_devices):
         # Initialize Scaffold strategy with ConvNet model
         class ConvNetBuilder:
             def __init__(self):
@@ -81,17 +79,12 @@ class TestScaffold(unittest.TestCase):
         scaffold_worker.apply_weights(gradients)
 
         # Assert the sample number and length of gradients
-        self.assertEqual(num_sample, 32)  # Batch size
-        self.assertEqual(
-            len(gradients), len(list(scaffold_worker.model.parameters()))
-        )  # Number of model parameters
+        assert num_sample == 32  # Batch size
+        assert len(gradients) == len(list(scaffold_worker.model.parameters()))  # Number of model parameters
 
         # Perform another training step to test cumulative behavior
         _, num_sample = scaffold_worker.train_step(
             gradients, cur_steps=1, train_steps=2
         )
-        self.assertEqual(num_sample, 64)  # Cumulative batch size over two steps
+        assert num_sample == 64  # Cumulative batch size over two steps
 
-
-if __name__ == "__main__":
-    unittest.main()
