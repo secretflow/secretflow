@@ -15,7 +15,7 @@ from secretflow.distributed.primitive import DISTRIBUTION_MODE
 from secretflow.spec.extend.cluster_pb2 import SFClusterConfig, SFClusterDesc
 from secretflow.spec.v1.data_pb2 import StorageConfig
 from secretflow.utils.testing import unused_tcp_port
-from xdist.scheduler import LoadpyScheduling
+from xdist.scheduler import LoadScheduling
 
 from tests.cluster import cluster, set_self_party
 from tests.load import SF_PARTIES, SF_PARTY_PREFIX, SFLoadPartyScheduling
