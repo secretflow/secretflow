@@ -1,5 +1,3 @@
-import unittest
-
 import torch
 import torch.optim as optim
 from secretflow.ml.nn.fl.backend.torch.strategy.fed_dyn import FedDYN
@@ -71,14 +69,8 @@ class TestFedDYN:
 
         # Assert the sample number and length of gradients
         assert num_sample == 32  # Batch size
-        assert len(gradients) == len(
-            list(fed_dyn_worker.model.parameters())
-        )  # Number of model parameters
+        assert len(gradients) == len(list(fed_dyn_worker.model.parameters()))  # Number of model parameters
 
         # Perform another training step to test cumulative behavior
         _, num_sample = fed_dyn_worker.train_step(gradients, cur_steps=1, train_steps=2)
         assert num_sample == 64  # Cumulative batch size over two steps
-
-
-if __name__ == "__main__":
-    unittest.main()
