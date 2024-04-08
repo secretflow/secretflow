@@ -46,7 +46,7 @@ commands:
           command: |
             conda create -n build python=<< parameters.python_ver >> -y
             conda activate build
-              
+            
             python3 setup.py bdist_wheel
             python3 setup.py clean
             python3 setup.py bdist_wheel --lite
@@ -91,7 +91,7 @@ jobs:
             conda init bash zsh
       - run:
           name: "build package and publish"
-            command: |
+          command: |
             conda create -n build python=<< parameters.python_ver >> -y
             conda activate build
 
