@@ -94,11 +94,12 @@ class TestScaffold:
 
         # Assert the sample number and length of gradients
         assert num_sample == 32  # Batch size
-        assert len(gradients) == len(list(scaffold_worker.model.parameters()))  # Number of model parameters
+        assert len(gradients) == len(
+            list(scaffold_worker.model.parameters())
+        )  # Number of model parameters
 
         # Perform another training step to test cumulative behavior
         _, num_sample = scaffold_worker.train_step(
             gradients, cur_steps=1, train_steps=2
         )
         assert num_sample == 64  # Cumulative batch size over two steps
-
