@@ -420,3 +420,191 @@ class BaseTorchModel(ABC):
         if self.use_gpu:
             self.model.to(self.exe_device)
         return checkpoint['epoch']
+from torch import nn
+from copy import deepcopy
+
+class FedPACTorchModel(BaseTorchModel):
+    def __init__(
+        self,
+        builder_base: BuilderType,
+        random_seed: int = None,
+        skip_bn: bool = False,
+        **kwargs,
+    ):
+        super().__init__(builder_base, random_seed=random_seed, **kwargs)
+        self.num_classes = kwargs.get("num_classes", 10)
+        self.criterion = nn.CrossEntropyLoss()
+        self.local_model = self.model
+        self.last_model = deepcopy(self.model)
+        self.w_local_keys = self.local_model.classifier_weight_keys
+        self.local_ep_rep = 1
+        self.global_protos = {}
+        self.g_protos = None
+        self.mse_loss = nn.MSELoss()
+        self.lam = kwargs.get("lam", 1.0)  # 1.0 for mse_loss
+    # coding: utf-8
+
+    def prior_label(self, dataset):
+        py = torch.zeros(self.num_classes)
+        total = len(dataset.dataset)
+        data_loader = iter(dataset)
+        iter_num = len(data_loader)
+        for it in range(iter_num):
+            images, labels = next(data_loader)
+            for i in range(self.num_classes):
+                py[i] = py[i] + (i == labels).sum()
+        py = py/(total)
+        return py
+
+    def size_label(self, dataset):
+        py = torch.zeros(self.num_classes)
+        total = len(dataset.dataset)
+        data_loader = iter(dataset)
+        iter_num = len(data_loader)
+        for it in range(iter_num):
+            images, labels = next(data_loader)
+            for i in range(self.num_classes):
+                py[i] = py[i] + (i == labels).sum()
+        py = py/(total)
+        size_label = py*total
+        return size_label
+
+    def aggregate_weight(self):
+        data_size = len(self.train_set.dataset)
+        w = torch.tensor(data_size).to(self.exe_device)
+        return w
+    
+    def local_test(self, test_loader):
+        model = self.local_model
+        model.eval()
+        device = self.exe_device
+        correct = 0
+        total = len(test_loader.dataset)
+        loss_test = []
+        with torch.no_grad():
+            for inputs, labels in test_loader:
+                inputs, labels = inputs.to(device), labels.to(device)
+                _, outputs = model(inputs)
+                loss = self.criterion(outputs, labels)
+                loss_test.append(loss.item())
+                _, predicted = torch.max(outputs.data, 1)
+                correct += (predicted == labels).sum().item()
+        acc = 100.0*correct/total
+        return acc, sum(loss_test)/len(loss_test)
+    
+    def get_local_protos(self):
+        model = self.local_model
+        local_protos_list = {}
+        for inputs, labels in self.train_set:
+            inputs, labels = inputs.to(self.exe_device), labels.to(self.exe_device)
+            features, outputs = model(inputs)
+            protos = features.clone().detach()
+            for i in range(len(labels)):
+                if labels[i].item() in local_protos_list.keys():
+                    local_protos_list[labels[i].item()].append(protos[i,:])
+                else:
+                    local_protos_list[labels[i].item()] = [protos[i,:]]
+        local_protos = {}
+        for [label, proto_list] in local_protos_list.items():
+            proto = 0 * proto_list[0]
+            for p in proto_list:
+                proto += p
+            local_protos[label] = proto/len(proto_list)
+        return local_protos
+
+    def statistics_extraction(self):
+        model = self.local_model
+        cls_keys = self.w_local_keys
+        g_params = model.state_dict()[cls_keys[0]] if isinstance(cls_keys, list) else model.state_dict()[cls_keys]
+        d = g_params[0].shape[0]
+        feature_dict = {}
+        with torch.no_grad():
+            for inputs, labels in self.train_set:
+                inputs, labels = inputs.to(self.exe_device), labels.to(self.exe_device)
+                features, outputs = model(inputs)
+                feat_batch = features.clone().detach()
+                for i in range(len(labels)):
+                    yi = labels[i].item()
+                    if yi in feature_dict.keys():
+                        feature_dict[yi].append(feat_batch[i,:])
+                    else:
+                        feature_dict[yi] = [feat_batch[i,:]]
+        for k in feature_dict.keys():
+            feature_dict[k] = torch.stack(feature_dict[k])
+        py = self.prior_label(self.train_set).to(self.exe_device)
+        py2 = py.mul(py)
+        v = 0
+        datasize = torch.tensor(len(self.train_set.dataset)).to(self.exe_device)
+        h_ref = torch.zeros((self.num_classes, d), device=self.exe_device)
+        for k in range(self.num_classes):
+            if k in feature_dict.keys():
+                feat_k = feature_dict[k]
+                num_k = feat_k.shape[0]
+                feat_k_mu = feat_k.mean(dim=0)
+                h_ref[k] = py[k]*feat_k_mu
+                v += (py[k]*torch.trace((torch.mm(torch.t(feat_k), feat_k)/num_k))).item()
+                v -= (py2[k]*(torch.mul(feat_k_mu, feat_k_mu))).sum().item()
+        v = v/datasize.item()
+        
+        return v, h_ref
+    # def build_dataset(
+    #     self,
+    #     x: np.ndarray,
+    #     y: Optional[np.ndarray] = None,
+    #     s_w: Optional[np.ndarray] = None,
+    #     sampling_rate=None,
+    #     buffer_size=None,
+    #     shuffle=False,
+    #     random_seed=1234,
+    #     repeat_count=1,
+    #     sampler_method="batch",
+    #     stage="train",
+    # ):
+    #     """build torch.dataloader
+
+    #     Args:
+    #         x: feature, FedNdArray or HDataFrame
+    #         y: label, FedNdArray or HDataFrame
+    #         s_w: sample weight of this dataset
+    #         sampling_rate: Sampling rate of a batch
+    #         buffer_size: shuffle size
+    #         shuffle: A bool that indicates whether the input should be shuffled
+    #         random_seed: Prg seed for shuffling
+    #         repeat_count: num of repeats
+    #         sampler: method of sampler
+    #     """
+    #     if x is None or len(x.shape) == 0:
+    #         raise Exception("Data 'x' cannot be None")
+
+    #     if y is not None:
+    #         assert (
+    #             x.shape[0] == y.shape[0]
+    #         ), "The samples of feature is different with label"
+
+    #     assert sampling_rate is not None, "Sampling rate cannot be None"
+    #     data_set = sampler_data(
+    #         sampler_method,
+    #         x,
+    #         y,
+    #         s_w,
+    #         sampling_rate,
+    #         buffer_size,
+    #         shuffle,
+    #         repeat_count,
+    #         random_seed,
+    #     )
+    #     if stage == "train":
+    #         self.train_set = data_set
+    #     elif stage == "eval":
+    #         self.eval_set = data_set
+    #     else:
+    #         raise Exception(f"Illegal argument stage={stage}")
+    
+    @abstractmethod
+    def train_step(self, cur_steps, train_steps, **kwargs):
+        pass
+
+    @abstractmethod
+    def apply_weights(self, global_weight, global_protos, new_weight,
+        cur_steps, train_steps, **kwargs):
+        pass
