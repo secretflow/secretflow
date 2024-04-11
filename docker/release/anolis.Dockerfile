@@ -1,4 +1,4 @@
-FROM secretflow/base-ci:latest as builder
+FROM openanolis/anolisos:8.8 as builder
 
 RUN yum install -y \
     wget autoconf bison flex git protobuf-devel libnl3-devel \
