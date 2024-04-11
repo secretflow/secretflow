@@ -88,7 +88,7 @@ docker buildx build \
   --build-arg deploy_templates="$(cat deploy_templates.yml)" \
   --build-arg comp_list="$(cat comp_list.json)" \
   --build-arg translation="$(cat translation.json)" \
-  . --load
+  . --push
 
 #Output construction completion information
 echo -e "Finish building ${GREEN}${IMAGE_TAG} for linux/arm64 and linux/amd64${NO_COLOR}"
@@ -103,20 +103,32 @@ docker buildx build \
   --build-arg deploy_templates="$(cat deploy_templates.yml)" \
   --build-arg comp_list="$(cat comp_list.json)" \
   --build-arg translation="$(cat translation.json)" \
-  . --load
+  . --push
 
 #Output construction completion information
 echo -e "Finish building ${GREEN}${IMAGE_LITE_TAG} for linux/arm64 and linux/amd64${NO_COLOR}"
 
-# Push multi platform mirroring to Docker Hub
-docker push ${IMAGE_TAG}
-docker push ${IMAGE_LITE_TAG}
-
 if [[ LATEST -eq 1 ]]; then
     echo -e "Tag and push ${GREEN}${LATEST_TAG}${NO_COLOR} ..."
-    docker tag ${IMAGE_TAG} ${LATEST_TAG}
-    docker push ${LATEST_TAG}
+docker buildx build \
+  --platform linux/arm64,linux/amd64 \
+  -f anolis.Dockerfile \
+  -t ${LATEST_TAG} \
+  --build-arg sf_version=${VERSION} \
+  --build-arg config_templates="$(cat config_templates.yml)" \
+  --build-arg deploy_templates="$(cat deploy_templates.yml)" \
+  --build-arg comp_list="$(cat comp_list.json)" \
+  --build-arg translation="$(cat translation.json)" \
+  . --push
     echo -e "Tag and push ${GREEN}${LATEST_LITE_TAG}${NO_COLOR} ..."
-    docker tag ${IMAGE_LITE_TAG} ${LATEST_LITE_TAG}
-    docker push ${LATEST_LITE_TAG}
+docker buildx build \
+  --platform linux/arm64,linux/amd64 \
+  -f anolis-lite.Dockerfile . \
+  -t ${LATEST_LITE_TAG} \
+  --build-arg sf_version=${VERSION} \
+  --build-arg config_templates="$(cat config_templates.yml)" \
+  --build-arg deploy_templates="$(cat deploy_templates.yml)" \
+  --build-arg comp_list="$(cat comp_list.json)" \
+  --build-arg translation="$(cat translation.json)" \
+  . --push
 fi

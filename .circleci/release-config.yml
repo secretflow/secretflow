@@ -136,22 +136,30 @@ jobs:
 
             # login docker - aliyun
             docker login -u ${ALIYUN_DOCKER_USERNAME} -p ${ALIYUN_DOCKER_PASSWORD} secretflow-registry.cn-hangzhou.cr.aliyuncs.com
-
+            
+            SF_IMAGE=secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-anolis8
+            SF_LITE_IMAGE=secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-lite-anolis8
+            
             # secretflow-anolis8:${VERSION}
-            docker tag secretflow/secretflow-anolis8:${VERSION} secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-anolis8:${VERSION}
-            docker push secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-anolis8:${VERSION}
-
+            SF_IMAGE_VERSION=${SF_IMAGE}:${VERSION}
+            
+            docker buildx build --platform linux/arm64,linux/amd64 -f anolis.Dockerfile . -t ${SF_IMAGE_VERSION} --build-arg sf_version=${VERSION} --build-arg config_templates="$(cat config_templates.yml)" --build-arg deploy_templates="$(cat deploy_templates.yml)" --build-arg comp_list="$(cat comp_list.json)" --build-arg translation="$(cat translation.json)" . --push
+            
             # secretflow-anolis8:latest
-            docker tag secretflow/secretflow-anolis8:${VERSION} secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-anolis8:latest
-            docker push secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-anolis8:latest
+            SF_IMAGE_LATEST=${SF_IMAGE}:latest
+            
+            docker buildx build --platform linux/arm64,linux/amd64 -f anolis.Dockerfile . -t ${SF_IMAGE_LATEST} --build-arg sf_version=${VERSION} --build-arg config_templates="$(cat config_templates.yml)" --build-arg deploy_templates="$(cat deploy_templates.yml)" --build-arg comp_list="$(cat comp_list.json)" --build-arg translation="$(cat translation.json)" . --push
+
 
             # secretflow-lite-anolis8:${VERSION}
-            docker tag secretflow/secretflow-lite-anolis8:${VERSION} secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-lite-anolis8:${VERSION}
-            docker push secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-lite-anolis8:${VERSION}
-
-            # secretflow-lite-anolis8:latest
-            docker tag secretflow/secretflow-lite-anolis8:${VERSION} secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-lite-anolis8:latest
-            docker push secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-lite-anolis8:latest
+            SF_LITE_IMAGE_VERSION=${SF_LITE_IMAGE}:${VERSION}
+            
+            docker buildx build --platform linux/arm64,linux/amd64 -f anolis-lite.Dockerfile . -t ${SF_IMAGE_VERSION} --build-arg sf_version=${VERSION} --build-arg config_templates="$(cat config_templates.yml)" --build-arg deploy_templates="$(cat deploy_templates.yml)" --build-arg comp_list="$(cat comp_list.json)" --build-arg translation="$(cat translation.json)" . --push
+            
+            # secretflow-anolis8:latest
+            SF_LITE_IMAGE_LATEST=${SF_LITE_IMAGE}:latest
+            
+            docker buildx build --platform linux/arm64,linux/amd64 -f anolis-lite.Dockerfile . -t ${SF_IMAGE_LATEST} --build-arg sf_version=${VERSION} --build-arg config_templates="$(cat config_templates.yml)" --build-arg deploy_templates="$(cat deploy_templates.yml)" --build-arg comp_list="$(cat comp_list.json)" --build-arg translation="$(cat translation.json)" . --push
 
 
 # Invoke jobs via workflows
@@ -164,10 +172,19 @@ workflows:
             parameters:
               python_ver: ["3.9", "3.10", "3.11"]
             executor: [ "linux_x64_executor", "linux_aarch64_executor" ]
+          filters:
+            tags:
+              only: /.*/
       - macOS_arm64_publish:
           matrix:
             parameters:
               python_ver: ["3.9", "3.10", "3.11"]
+          filters:
+            tags:
+              only: /.*/
       - docker_image_publish:
           requires:
             - linux_publish
+          filters:
+            tags:
+              only: /.*/
