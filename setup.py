@@ -201,7 +201,7 @@ def plat_name():
     elif sys.platform.startswith("linux"):
         # Linux platform detection
         if platform.machine() == "aarch64":
-            plat_name = "manylinux2014_aarch64"
+            plat_name = "manylinux_2_28_aarch64"
 
     return plat_name
 
