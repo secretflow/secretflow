@@ -109,7 +109,7 @@ docker buildx build \
 echo -e "Finish building ${GREEN}${IMAGE_LITE_TAG} for linux/arm64 and linux/amd64${NO_COLOR}"
 
 if [[ LATEST -eq 1 ]]; then
-    echo -e "Tag and push ${GREEN}${LATEST_TAG}${NO_COLOR} ..."
+echo -e "Tag and push ${GREEN}${LATEST_TAG}${NO_COLOR} ..."
 docker buildx build \
   --platform linux/arm64,linux/amd64 \
   -f anolis.Dockerfile \
@@ -120,7 +120,7 @@ docker buildx build \
   --build-arg comp_list="$(cat comp_list.json)" \
   --build-arg translation="$(cat translation.json)" \
   . --push
-    echo -e "Tag and push ${GREEN}${LATEST_LITE_TAG}${NO_COLOR} ..."
+echo -e "Tag and push ${GREEN}${LATEST_LITE_TAG}${NO_COLOR} ..."
 docker buildx build \
   --platform linux/arm64,linux/amd64 \
   -f anolis-lite.Dockerfile . \
