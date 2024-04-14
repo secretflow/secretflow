@@ -27,7 +27,7 @@ from secretflow.ml.nn.core.torch import BuilderType, module
 from secretflow.ml.nn.fl.backend.torch.sampler import sampler_data
 from secretflow.ml.nn.metrics import Default, Mean, Precision, Recall
 from secretflow.utils.io import rows_count
-
+from secretflow.ml.nn.fl.backend.torch.fedpac_sampler import fedpac_sampler_data
 
 class BaseTorchModel(ABC):
     def __init__(
@@ -547,64 +547,58 @@ class FedPACTorchModel(BaseTorchModel):
         v = v/datasize.item()
         
         return v, h_ref
-    # def build_dataset(
-    #     self,
-    #     x: np.ndarray,
-    #     y: Optional[np.ndarray] = None,
-    #     s_w: Optional[np.ndarray] = None,
-    #     sampling_rate=None,
-    #     buffer_size=None,
-    #     shuffle=False,
-    #     random_seed=1234,
-    #     repeat_count=1,
-    #     sampler_method="batch",
-    #     stage="train",
-    # ):
-    #     """build torch.dataloader
+    def build_dataset(
+        self,
+        x: np.ndarray,
+        y: Optional[np.ndarray] = None,
+        s_w: Optional[np.ndarray] = None,
+        sampling_rate=None,
+        buffer_size=None,
+        shuffle=False,
+        random_seed=1234,
+        repeat_count=1,
+        sampler_method="batch",
+        stage="train",
+        **kwargs,
+    ):
+        """build torch.dataloader
 
-    #     Args:
-    #         x: feature, FedNdArray or HDataFrame
-    #         y: label, FedNdArray or HDataFrame
-    #         s_w: sample weight of this dataset
-    #         sampling_rate: Sampling rate of a batch
-    #         buffer_size: shuffle size
-    #         shuffle: A bool that indicates whether the input should be shuffled
-    #         random_seed: Prg seed for shuffling
-    #         repeat_count: num of repeats
-    #         sampler: method of sampler
-    #     """
-    #     if x is None or len(x.shape) == 0:
-    #         raise Exception("Data 'x' cannot be None")
+        Args:
+            x: feature, FedNdArray or HDataFrame
+            y: label, FedNdArray or HDataFrame
+            s_w: sample weight of this dataset
+            sampling_rate: Sampling rate of a batch
+            buffer_size: shuffle size
+            shuffle: A bool that indicates whether the input should be shuffled
+            random_seed: Prg seed for shuffling
+            repeat_count: num of repeats
+            sampler: method of sampler
+        """
+        if x is None or len(x.shape) == 0:
+            raise Exception("Data 'x' cannot be None")
 
-    #     if y is not None:
-    #         assert (
-    #             x.shape[0] == y.shape[0]
-    #         ), "The samples of feature is different with label"
+        if y is not None:
+            assert (
+                x.shape[0] == y.shape[0]
+            ), "The samples of feature is different with label"
 
-    #     assert sampling_rate is not None, "Sampling rate cannot be None"
-    #     data_set = sampler_data(
-    #         sampler_method,
-    #         x,
-    #         y,
-    #         s_w,
-    #         sampling_rate,
-    #         buffer_size,
-    #         shuffle,
-    #         repeat_count,
-    #         random_seed,
-    #     )
-    #     if stage == "train":
-    #         self.train_set = data_set
-    #     elif stage == "eval":
-    #         self.eval_set = data_set
-    #     else:
-    #         raise Exception(f"Illegal argument stage={stage}")
-    
-    @abstractmethod
-    def train_step(self, cur_steps, train_steps, **kwargs):
-        pass
-
-    @abstractmethod
-    def apply_weights(self, global_weight, global_protos, new_weight,
-        cur_steps, train_steps, **kwargs):
-        pass
+        # assert sampling_rate is not None, "Sampling rate cannot be None"
+        data_set = fedpac_sampler_data(
+            sampler_method,
+            x,
+            y,
+            s_w,
+            sampling_rate,
+            buffer_size,
+            shuffle,
+            repeat_count,
+            random_seed,
+            stage,
+            **kwargs,
+        )
+        if stage == "train":
+            self.train_set = data_set
+        elif stage == "eval":
+            self.eval_set = data_set
+        else:
+            raise Exception(f"Illegal argument stage={stage}")

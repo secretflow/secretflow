@@ -22,6 +22,7 @@ from torchmetrics import Metric
 from typing_extensions import TypeAlias, override
 
 from .mixins import ParametersMixin
+import torch.nn.functional as F
 
 
 class BaseModule(ParametersMixin, nn.Module):
@@ -243,10 +244,10 @@ class BaseModule(ParametersMixin, nn.Module):
             else:
                 m.update(y_pred, y_true.int())
 
-import torch.nn.functional as F
 class CifarCNN(BaseModule):
-    def __init__(self, num_classes=10, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        num_classes = kwargs.get('num_classes', 10)
         self.conv1 = nn.Conv2d(3, 16, kernel_size=5, padding=0)
         self.pool = nn.MaxPool2d(2, 2)
         self.conv2 = nn.Conv2d(16, 32, 5, padding=1)
@@ -283,8 +284,9 @@ class CifarCNN(BaseModule):
         return num_features
 
 class CNN_FMNIST(BaseModule):
-    def __init__(self, num_classes=10, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        num_classes = kwargs.get('num_classes', 10)
         self.conv1 = nn.Conv2d(1, 16, kernel_size=5, padding=0)
         self.pool = nn.MaxPool2d(2, 2)
         self.conv2 = nn.Conv2d(16, 32, 5, padding=1)
