@@ -191,12 +191,17 @@ class BuildBazelExtension(build_ext.build_ext):
 def plat_name():
     # Default Linux platform tag
     plat_name = "manylinux2014_x86_64"
+
     if sys.platform == "darwin":
-        # Due to a bug in conda x64 python, platform tag has to be 10_16 for X64 wheel
+        # macOS platform detection
         if platform.machine() == "x86_64":
             plat_name = "macosx_12_0_x86_64"
         else:
             plat_name = "macosx_12_0_arm64"
+    elif sys.platform.startswith("linux"):
+        # Linux platform detection
+        if platform.machine() == "aarch64":
+            plat_name = "manylinux_2_28_aarch64"
 
     return plat_name
 
