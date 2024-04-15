@@ -29,6 +29,7 @@ from secretflow.ml.nn.metrics import Default, Mean, Precision, Recall
 from secretflow.utils.io import rows_count
 from secretflow.ml.nn.fl.backend.torch.fedpac_sampler import fedpac_sampler_data
 
+
 class BaseTorchModel(ABC):
     def __init__(
         self,
@@ -420,8 +421,11 @@ class BaseTorchModel(ABC):
         if self.use_gpu:
             self.model.to(self.exe_device)
         return checkpoint['epoch']
+
+
 from torch import nn
 from copy import deepcopy
+
 
 class FedPACTorchModel(BaseTorchModel):
     def __init__(
@@ -442,6 +446,7 @@ class FedPACTorchModel(BaseTorchModel):
         self.g_protos = None
         self.mse_loss = nn.MSELoss()
         self.lam = kwargs.get("lam", 1.0)  # 1.0 for mse_loss
+
     # coding: utf-8
 
     def prior_label(self, dataset):
@@ -453,7 +458,7 @@ class FedPACTorchModel(BaseTorchModel):
             images, labels = next(data_loader)
             for i in range(self.num_classes):
                 py[i] = py[i] + (i == labels).sum()
-        py = py/(total)
+        py = py / (total)
         return py
 
     def size_label(self, dataset):
@@ -465,15 +470,15 @@ class FedPACTorchModel(BaseTorchModel):
             images, labels = next(data_loader)
             for i in range(self.num_classes):
                 py[i] = py[i] + (i == labels).sum()
-        py = py/(total)
-        size_label = py*total
+        py = py / (total)
+        size_label = py * total
         return size_label
 
     def aggregate_weight(self):
         data_size = len(self.train_set.dataset)
         w = torch.tensor(data_size).to(self.exe_device)
         return w
-    
+
     def local_test(self, test_loader):
         model = self.local_model
         model.eval()
@@ -489,9 +494,9 @@ class FedPACTorchModel(BaseTorchModel):
                 loss_test.append(loss.item())
                 _, predicted = torch.max(outputs.data, 1)
                 correct += (predicted == labels).sum().item()
-        acc = 100.0*correct/total
-        return acc, sum(loss_test)/len(loss_test)
-    
+        acc = 100.0 * correct / total
+        return acc, sum(loss_test) / len(loss_test)
+
     def get_local_protos(self):
         model = self.local_model
         local_protos_list = {}
@@ -501,21 +506,25 @@ class FedPACTorchModel(BaseTorchModel):
             protos = features.clone().detach()
             for i in range(len(labels)):
                 if labels[i].item() in local_protos_list.keys():
-                    local_protos_list[labels[i].item()].append(protos[i,:])
+                    local_protos_list[labels[i].item()].append(protos[i, :])
                 else:
-                    local_protos_list[labels[i].item()] = [protos[i,:]]
+                    local_protos_list[labels[i].item()] = [protos[i, :]]
         local_protos = {}
         for [label, proto_list] in local_protos_list.items():
             proto = 0 * proto_list[0]
             for p in proto_list:
                 proto += p
-            local_protos[label] = proto/len(proto_list)
+            local_protos[label] = proto / len(proto_list)
         return local_protos
 
     def statistics_extraction(self):
         model = self.local_model
         cls_keys = self.w_local_keys
-        g_params = model.state_dict()[cls_keys[0]] if isinstance(cls_keys, list) else model.state_dict()[cls_keys]
+        g_params = (
+            model.state_dict()[cls_keys[0]]
+            if isinstance(cls_keys, list)
+            else model.state_dict()[cls_keys]
+        )
         d = g_params[0].shape[0]
         feature_dict = {}
         with torch.no_grad():
@@ -526,9 +535,9 @@ class FedPACTorchModel(BaseTorchModel):
                 for i in range(len(labels)):
                     yi = labels[i].item()
                     if yi in feature_dict.keys():
-                        feature_dict[yi].append(feat_batch[i,:])
+                        feature_dict[yi].append(feat_batch[i, :])
                     else:
-                        feature_dict[yi] = [feat_batch[i,:]]
+                        feature_dict[yi] = [feat_batch[i, :]]
         for k in feature_dict.keys():
             feature_dict[k] = torch.stack(feature_dict[k])
         py = self.prior_label(self.train_set).to(self.exe_device)
@@ -541,12 +550,15 @@ class FedPACTorchModel(BaseTorchModel):
                 feat_k = feature_dict[k]
                 num_k = feat_k.shape[0]
                 feat_k_mu = feat_k.mean(dim=0)
-                h_ref[k] = py[k]*feat_k_mu
-                v += (py[k]*torch.trace((torch.mm(torch.t(feat_k), feat_k)/num_k))).item()
-                v -= (py2[k]*(torch.mul(feat_k_mu, feat_k_mu))).sum().item()
-        v = v/datasize.item()
-        
+                h_ref[k] = py[k] * feat_k_mu
+                v += (
+                    py[k] * torch.trace((torch.mm(torch.t(feat_k), feat_k) / num_k))
+                ).item()
+                v -= (py2[k] * (torch.mul(feat_k_mu, feat_k_mu))).sum().item()
+        v = v / datasize.item()
+
         return v, h_ref
+
     def build_dataset(
         self,
         x: np.ndarray,

@@ -25,31 +25,50 @@ from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 
+
 def cifar10(stage='train'):
     if stage == 'train':
-        transform = transforms.Compose([
-            transforms.RandomCrop(32, padding=4),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize((0.4914, 0.4822, 0.4465),
-                                (0.2023, 0.1994, 0.2010)),
-        ])
+        transform = transforms.Compose(
+            [
+                transforms.RandomCrop(32, padding=4),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    (0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)
+                ),
+            ]
+        )
         dataset = datasets.CIFAR10(
-        root='data', train=True, download=True, transform=transform)
+            root='data', train=True, download=True, transform=transform
+        )
     elif stage == 'eval':
-        transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.4914, 0.4822, 0.4465),
-                                (0.2023, 0.1994, 0.2010)),
-        ])
+        transform = transforms.Compose(
+            [
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    (0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)
+                ),
+            ]
+        )
 
         dataset = datasets.CIFAR10(
-        root='data', train=False, download=True, transform=transform)
+            root='data', train=False, download=True, transform=transform
+        )
     print("CIFAR10 Data Loading...")
     return dataset
 
+
 def batch_sampler(
-    x, y, s_w, sampling_rate, buffer_size, shuffle, repeat_count, random_seed, stage, **kwargs
+    x,
+    y,
+    s_w,
+    sampling_rate,
+    buffer_size,
+    shuffle,
+    repeat_count,
+    random_seed,
+    stage,
+    **kwargs,
 ):
     """
     implementation of batch sampler
@@ -77,6 +96,7 @@ def batch_sampler(
     dataset = cifar10(stage)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
     return dataloader
+
 
 def fedpac_sampler_data(
     sampler_method="batch",
@@ -108,7 +128,16 @@ def fedpac_sampler_data(
     """
     if sampler_method == "batch":
         data_set = batch_sampler(
-            x, y, s_w, sampling_rate, buffer_size, shuffle, repeat_count, random_seed, stage, **kwargs
+            x,
+            y,
+            s_w,
+            sampling_rate,
+            buffer_size,
+            shuffle,
+            repeat_count,
+            random_seed,
+            stage,
+            **kwargs,
         )
     else:
         logging.error(f'Unvalid sampler {sampler_method} during building local dataset')

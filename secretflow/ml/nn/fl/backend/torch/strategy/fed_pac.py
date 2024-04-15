@@ -7,13 +7,25 @@ from typing import Dict, Tuple
 import copy
 import numpy as np
 
+
 class FedPAC(FedPACTorchModel):
     def train_step(
         self,
         cur_steps: int,
         train_steps: int,
         **kwargs,
-    ) -> Tuple[float, torch.Tensor, torch.Tensor, torch.Tensor, Dict[str, torch.Tensor], float, float, float, float, np.ndarray]:
+    ) -> Tuple[
+        float,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        Dict[str, torch.Tensor],
+        float,
+        float,
+        float,
+        float,
+        np.ndarray,
+    ]:
         """Accept ps model params, then do local train
 
         Args:
@@ -25,15 +37,15 @@ class FedPAC(FedPACTorchModel):
         """
         # Set mode to train model
         assert self.model is not None, "Model cannot be none, please give model define"
-        v, h_ref= self.statistics_extraction()
-        size_label= self.size_label(self.train_set).to(self.exe_device)
+        v, h_ref = self.statistics_extraction()
+        size_label = self.size_label(self.train_set).to(self.exe_device)
         agg_weight = self.aggregate_weight()
         model = self.local_model
         model.train()
         refresh_data = kwargs.get("refresh_data", False)
         if refresh_data:
             self._reset_data_iter()
-        logs = {} 
+        logs = {}
         round_loss = []
         iter_loss = []
         model.zero_grad()
@@ -49,22 +61,27 @@ class FedPAC(FedPACTorchModel):
 
         # Set optimizer for the local updates, default sgd
         lr = kwargs.get('lr', 0.01)
-        optimizer = torch.optim.SGD(model.parameters(), lr,
-                                        momentum=0.5, weight_decay=0.0005)
+        optimizer = torch.optim.SGD(
+            model.parameters(), lr, momentum=0.5, weight_decay=0.0005
+        )
 
         local_ep_rep = train_steps
         epoch_classifier = 1
         train_steps = int(epoch_classifier + local_ep_rep)
 
-        if train_steps>0:
+        if train_steps > 0:
             for name, param in model.named_parameters():
                 if name in self.w_local_keys:
                     param.requires_grad = True
                 else:
                     param.requires_grad = False
             lr_g = 0.1
-            optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=lr_g,
-                                                   momentum=0.5, weight_decay=0.0005)
+            optimizer = torch.optim.SGD(
+                filter(lambda p: p.requires_grad, model.parameters()),
+                lr=lr_g,
+                momentum=0.5,
+                weight_decay=0.0005,
+            )
             for ep in range(epoch_classifier):
                 # local training for 1 epoch
                 data_loader = iter(self.train_set)
@@ -78,19 +95,23 @@ class FedPAC(FedPACTorchModel):
                     loss.backward()
                     optimizer.step()
                     iter_loss.append(loss.item())
-                round_loss.append(sum(iter_loss)/len(iter_loss))
+                round_loss.append(sum(iter_loss) / len(iter_loss))
                 iter_loss = []
             # ---------------------------------------------------------------------------
 
             acc1, _ = self.local_test(self.eval_set)
 
             for name, param in model.named_parameters():
-                    if name in self.w_local_keys:
-                        param.requires_grad = False
-                    else:
-                        param.requires_grad = True
-            optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr,
-                                                   momentum=0.5, weight_decay=0.0005)
+                if name in self.w_local_keys:
+                    param.requires_grad = False
+                else:
+                    param.requires_grad = True
+            optimizer = torch.optim.SGD(
+                filter(lambda p: p.requires_grad, model.parameters()),
+                lr,
+                momentum=0.5,
+                weight_decay=0.0005,
+            )
 
             for ep in range(local_ep_rep):
                 data_loader = iter(self.train_set)
@@ -116,7 +137,7 @@ class FedPAC(FedPACTorchModel):
                     loss.backward()
                     optimizer.step()
                     iter_loss.append(loss.item())
-                round_loss.append(sum(iter_loss)/len(iter_loss))
+                round_loss.append(sum(iter_loss) / len(iter_loss))
                 iter_loss = []
 
         # ------------------------------------------------------------------------
@@ -129,7 +150,18 @@ class FedPAC(FedPACTorchModel):
         self.wrapped_metrics.extend(self.wrap_local_metrics())
         self.epoch_logs = copy.deepcopy(self.logs)
 
-        return v, h_ref, size_label, agg_weight, model.state_dict(), round_loss1, round_loss2, acc0, acc2, local_protos2
+        return (
+            v,
+            h_ref,
+            size_label,
+            agg_weight,
+            model.state_dict(),
+            round_loss1,
+            round_loss2,
+            acc0,
+            acc2,
+            local_protos2,
+        )
 
     def apply_weights(
         self,
@@ -138,13 +170,14 @@ class FedPAC(FedPACTorchModel):
         new_weight,
         cur_steps: int,
         train_steps: int,
-        **kwargs
+        **kwargs,
     ):
         """Accept ps model params, then update local model
 
         Args:
             weights: global weight from params server
         """
+
         def update_base_model(self, global_weight):
             local_weight = self.local_model.state_dict()
             w_local_keys = self.w_local_keys
@@ -170,14 +203,14 @@ class FedPAC(FedPACTorchModel):
                 g_protos.append(global_protos[i])
             self.g_classes = torch.stack(g_classes).to(self.device)
             self.g_protos = torch.stack(g_protos)
-        
+
         update_base_model(self, global_weight)
         update_global_protos(self, global_protos)
         agg_g = kwargs.get('agg_g', 1)
         if agg_g and cur_steps < train_steps:
             update_local_classifier(self, new_weight)
 
+
 @register_strategy(strategy_name='fed_pac', backend='torch')
 class PYUFedPAC(FedPAC):
     pass
-

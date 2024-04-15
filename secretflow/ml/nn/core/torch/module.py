@@ -244,6 +244,7 @@ class BaseModule(ParametersMixin, nn.Module):
             else:
                 m.update(y_pred, y_true.int())
 
+
 class CifarCNN(BaseModule):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -255,14 +256,19 @@ class CifarCNN(BaseModule):
         self.fc1 = nn.Linear(64 * 3 * 3, 128)
         self.fc2 = nn.Linear(128, num_classes, bias=True)
         self.base_weight_keys = [
-                                'conv1.weight', 'conv1.bias',
-                                'conv2.weight', 'conv2.bias',
-                                'conv3.weight', 'conv3.bias',
-                                'fc1.weight', 'fc1.bias',
-                                ]
+            'conv1.weight',
+            'conv1.bias',
+            'conv2.weight',
+            'conv2.bias',
+            'conv3.weight',
+            'conv3.bias',
+            'fc1.weight',
+            'fc1.bias',
+        ]
         self.classifier_weight_keys = [
-                                'fc2.weight', 'fc2.bias',
-                                ]
+            'fc2.weight',
+            'fc2.bias',
+        ]
 
     def forward(self, x):
         x = self.pool(F.leaky_relu(self.conv1(x)))
@@ -272,7 +278,7 @@ class CifarCNN(BaseModule):
         x = F.leaky_relu(self.fc1(x))
         y = self.fc2(x)
         return x, y
-    
+
     def feature2logit(self, x):
         return self.fc2(x)
 
@@ -282,6 +288,7 @@ class CifarCNN(BaseModule):
         for s in size:
             num_features *= s
         return num_features
+
 
 class CNN_FMNIST(BaseModule):
     def __init__(self, *args, **kwargs):
@@ -292,10 +299,18 @@ class CNN_FMNIST(BaseModule):
         self.conv2 = nn.Conv2d(16, 32, 5, padding=1)
         self.fc1 = nn.Linear(32 * 5 * 5, 128)
         self.fc2 = nn.Linear(128, num_classes, bias=True)
-        self.base_weight_keys = ['conv1.weight', 'conv1.bias',
-                            'conv2.weight', 'conv2.bias',
-                            'fc1.weight', 'fc1.bias',]
-        self.classifier_weight_keys = ['fc2.weight', 'fc2.bias',]
+        self.base_weight_keys = [
+            'conv1.weight',
+            'conv1.bias',
+            'conv2.weight',
+            'conv2.bias',
+            'fc1.weight',
+            'fc1.bias',
+        ]
+        self.classifier_weight_keys = [
+            'fc2.weight',
+            'fc2.bias',
+        ]
 
     def forward(self, x):
         x = self.pool(F.leaky_relu(self.conv1(x)))
@@ -314,7 +329,8 @@ class CNN_FMNIST(BaseModule):
         for s in size:
             num_features *= s
         return num_features
-    
+
+
 class TorchModel:
     def __init__(
         self,
