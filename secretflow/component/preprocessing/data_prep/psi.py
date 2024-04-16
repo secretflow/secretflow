@@ -11,9 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import os
-from typing import List
+from typing import Dict, List, Union
+
+import numpy as np
+import pandas as pd
 
 from secretflow.component.component import (
     CompEvalError,
@@ -26,15 +28,18 @@ from secretflow.component.data_utils import (
     download_files,
     extract_distdata_info,
     merge_individuals_to_vtable,
+    SUPPORTED_VTABLE_DATA_TYPE,
     upload_files,
 )
+from secretflow.device.device.pyu import PYU
 from secretflow.device.device.spu import SPU
+from secretflow.device.driver import wait
 from secretflow.spec.v1.data_pb2 import DistData, IndividualTable, VerticalTable
 
 psi_comp = Component(
     "psi",
     domain="data_prep",
-    version="0.0.3",
+    version="0.0.4",
     desc="PSI between two parties.",
 )
 psi_comp.str_attr(
@@ -84,16 +89,16 @@ psi_comp.str_attr(
         "ADVANCED_JOIN_TYPE_DIFFERENCE",
     ],
 )
-psi_comp.str_attr(
-    name="missing_value",
-    desc="Missing value for some advanced join types.",
+
+
+psi_comp.int_attr(
+    name="fill_value_int",
+    desc="For int type data. Use this value for filling null.",
     is_list=False,
     is_optional=True,
-    default_value="NA",
-    allowed_values=[
-        "NA",
-    ],
+    default_value=0,
 )
+
 psi_comp.str_attr(
     name="ecdh_curve",
     desc="Curve type for ECDH PSI.",
@@ -134,6 +139,36 @@ psi_comp.io(
     desc="Output vertical table",
     types=[DistDataType.VERTICAL_TABLE],
 )
+
+
+def convert_int(x, fill_value_int, int_type_str):
+    try:
+        return SUPPORTED_VTABLE_DATA_TYPE[int_type_str](x)
+    except Exception:
+        return fill_value_int
+
+
+def build_converters(x: DistData, fill_value_int: int) -> Dict[str, callable]:
+    if x.type != "sf.table.individual":
+        raise CompEvalError("Only support individual table")
+    imeta = IndividualTable()
+    assert x.meta.Unpack(imeta)
+    converters = {}
+
+    def assign_converter(i, t):
+        if "int" in t:
+            converters[i] = lambda x: convert_int(x, fill_value_int, t)
+
+    for i, t in zip(list(imeta.schema.ids), list(imeta.schema.id_types)):
+        assign_converter(i, t)
+
+    for i, t in zip(list(imeta.schema.features), list(imeta.schema.feature_types)):
+        assign_converter(i, t)
+
+    for i, t in zip(list(imeta.schema.labels), list(imeta.schema.label_types)):
+        assign_converter(i, t)
+
+    return converters
 
 
 # We would respect user-specified ids even ids are set in TableSchema.
@@ -180,6 +215,37 @@ def modify_schema(x: DistData, keys: List[str]) -> DistData:
     return new_x
 
 
+def read_fillna_write(
+    csv_file_path: str,
+    converters: Dict[str, callable],
+    chunksize: int = 50000,
+):
+    # Define the CSV reading in chunks
+    csv_chunks = pd.read_csv(csv_file_path, converters=converters, chunksize=chunksize)
+    temp_file_path = csv_file_path + '.tmp'
+    # Process each chunk
+    for i, chunk in enumerate(csv_chunks):
+        # Write the first chunk with headers, subsequent chunks without headers
+        if i == 0:
+            chunk.to_csv(temp_file_path, index=False)
+        else:
+            chunk.to_csv(temp_file_path, mode='a', header=False, index=False)
+    # Replace the original file with the processed file
+    os.replace(temp_file_path, csv_file_path)
+
+
+def fill_missing_values(
+    local_fns: Dict[Union[str, PYU], str],
+    partywise_converters=Dict[str, Dict[str, callable]],
+):
+    pyu_locals = {p.party if isinstance(p, PYU) else p: local_fns[p] for p in local_fns}
+
+    waits = []
+    for p in pyu_locals:
+        waits.append(PYU(p)(read_fillna_write)(pyu_locals[p], partywise_converters[p]))
+    wait(waits)
+
+
 @psi_comp.eval_fn
 def two_party_balanced_psi_eval_fn(
     *,
@@ -191,7 +257,7 @@ def two_party_balanced_psi_eval_fn(
     ecdh_curve,
     join_type,
     left_side,
-    missing_value,
+    fill_value_int,
     receiver_input,
     receiver_input_key,
     sender_input,
@@ -208,8 +274,6 @@ def two_party_balanced_psi_eval_fn(
         receiver_party,
         sender_party,
     ], f'left side {left_side[0]} is invalid.'
-
-    assert missing_value == 'NA'
 
     if ctx.spu_configs is None or len(ctx.spu_configs) == 0:
         raise CompEvalError("spu config is not found.")
@@ -260,7 +324,13 @@ def two_party_balanced_psi_eval_fn(
             check_hash_digest=check_hash_digest,
         )
 
+    partywise_converters = {
+        receiver_party: build_converters(receiver_input, fill_value_int),
+        sender_party: build_converters(sender_input, fill_value_int),
+    }
+
     with ctx.tracer.trace_io():
+        fill_missing_values(output_path, partywise_converters)
         upload_files(
             ctx, {receiver_party: psi_output, sender_party: psi_output}, output_path
         )

@@ -21,8 +21,8 @@ from secretflow.utils.communicate import ForwardData
 
 
 class SLBaseModel(ABC):
-    def __init__(self, **kwargs):
-        self.use_base_loss = kwargs.get("use_base_loss", False)
+    def __init__(self):
+        pass
 
     @abstractmethod
     def base_forward(self, stage: str = 'train', **kwargs):

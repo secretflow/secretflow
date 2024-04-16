@@ -49,7 +49,7 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
         df_alice = pd.DataFrame(
             {
                 "id1": [str(i) for i in range(17)],
-                "a1": ["K"] + ["F"] * 14 + ["M", "N"],
+                "a1": ["K"] + ["F"] * 13 + ["", "M", "N"],
                 "a2": [0.1, 0.2, 0.3] * 5 + [0.4] * 2,
                 "a3": [1] * 17,
                 "y": [0] * 17,

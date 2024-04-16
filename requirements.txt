@@ -24,14 +24,14 @@ s3fs==2024.2.0 # FEATURE=[lite]
 scikit-learn==1.3.2  # FEATURE=[lite]
 sdc-apis==0.1.0.dev240320; platform_machine == "x86_64"  # FEATURE=[lite]
 sdc-sdk==0.1.0.dev240320; platform_machine == "x86_64"  # FEATURE=[lite]
-ray==2.9.1  # FEATURE=[lite]
+ray==2.9.3  # FEATURE=[lite]
 secretflow-rayfed==0.2.1a1 # FEATURE=[lite]
 # For security reason.
 setuptools>=65.5.1  # FEATURE=[lite]
 # For security reason.
 certifi>=2023.7.22  # FEATURE=[lite]
 sparse>=0.14.0
-spu==0.9.0.dev20240329 # FEATURE=[lite]
+spu==0.9.0b1 # FEATURE=[lite]
 sf-heu==0.5.0.b0 # FEATURE=[lite]
 secretflow_serving_lib==0.3.0.dev20240320 # FEATURE=[lite]
 tensorflow-macos>=2.12,<2.13; platform_system == "Darwin"
@@ -47,3 +47,4 @@ torchmetrics==1.3.2
 torchvision==0.16.2
 torchaudio==2.1.2
 interconnection==0.2.0.dev0 # FEATURE=[lite]
+h5py!=3.11.0; platform_machine == 'aarch64'

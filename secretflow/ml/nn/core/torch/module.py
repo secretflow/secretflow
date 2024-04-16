@@ -76,7 +76,7 @@ class BaseModule(ParametersMixin, nn.Module):
 
         self.automatic_optimization = True
         self.loss = None
-        self.metrics: List[Metric] = []
+        self.metrics = []
         self.logs = {}
 
     @override
@@ -171,7 +171,7 @@ class BaseModule(ParametersMixin, nn.Module):
                 opt2.step()
 
         """
-        _, loss = self.forward_step(batch, batch_idx, dataloader_idx)
+        loss = self._forward_step(batch, batch_idx, dataloader_idx)
 
         if self.automatic_optimization:
             return loss
@@ -197,20 +197,7 @@ class BaseModule(ParametersMixin, nn.Module):
         with torch.no_grad():
             if self.automatic_optimization:
                 return self.training_step(batch, batch_idx, dataloader_idx, **kwargs)
-            _, loss = self.forward_step(batch, batch_idx, dataloader_idx)
-            return loss
-
-    def forward_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0):
-        x, y = batch
-        y_pred = self(x)
-
-        self.update_metrics(y_pred, y)
-
-        if self.loss:
-            loss = self.loss(y_pred, y)
-            return y_pred, loss
-        else:
-            return y_pred, None
+            return self._forward_step(batch, batch_idx, dataloader_idx)
 
     def backward_step(self, loss: Union[torch.Tensor, List[torch.Tensor]]):
         optimizer = self.optimizers()
@@ -243,6 +230,18 @@ class BaseModule(ParametersMixin, nn.Module):
             else:
                 m.update(y_pred, y_true.int())
 
+    def _forward_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0):
+        x, y = batch
+        y_pred = self(x)
+
+        self.update_metrics(y_pred, y)
+
+        if self.loss:
+            loss = self.loss(y_pred, y)
+            return loss
+        else:
+            return None
+
 
 class TorchModel:
     def __init__(
@@ -259,7 +258,7 @@ class TorchModel:
         self.metrics = metrics
         self.kwargs = kwargs
 
-    def build(self, device: torch.device = None) -> BaseModule:
+    def build(self, device: torch.device) -> BaseModule:
         if self.model_fn is None:
             return None
         model = self.model_fn(**self.kwargs)
@@ -270,26 +269,14 @@ class TorchModel:
             f"Both Module.{no_use_conf}() and TorchModel.{used_conf} are defined. Only TorchModel.{used_conf} will be used."
         )
 
-    def build_from_model(
-        self, model: nn.Module, device: torch.device = None
-    ) -> BaseModule:
+    def build_from_model(self, model: nn.Module, device: torch.device) -> BaseModule:
         assert isinstance(model, nn.Module)
-
-        if device is None:
-            device = torch.device("cpu")
 
         optimizer = self.optim_fn(model.parameters()) if self.optim_fn else None
         loss = self.loss_fn() if self.loss_fn else None
         metrics = [m().to(device) for m in self.metrics] if self.metrics else []
 
         # use object.__setattr__ instead of the typical model.a = a to avoid Module.__setattr__ overhead.
-        if not hasattr(model, "_optimizers"):
-            object.__setattr__(model, "_optimizers", [])
-        if not hasattr(model, "loss"):
-            object.__setattr__(model, "loss", None)
-        if not hasattr(model, "metrics"):
-            object.__setattr__(model, "metrics", [])
-
         if optimizer:
             object.__setattr__(model, "_optimizers", [optimizer])
         if loss:
@@ -315,7 +302,7 @@ class TorchModel:
                 if metrics:
                     self._configure_warning("metrics", "configure_metrics")
                 else:
-                    configured_metrics = [m for m in configured_metrics]
+                    configured_metrics = [m.to(device) for m in configured_metrics]
                     object.__setattr__(model, "metrics", configured_metrics)
             configured_loss = model.configure_loss()
             if configured_loss:
@@ -331,16 +318,13 @@ class TorchModel:
             )
 
         model.to(device)
-        for m in model.metrics:
-            m.to(device)
-
         return model
 
 
 BuilderType: TypeAlias = Union[TorchModel, Callable[[], BaseModule]]
 
 
-def build(builder: BuilderType, device: torch.device = None):
+def build(builder: BuilderType, device: torch.device):
     if builder is None:
         return None
 

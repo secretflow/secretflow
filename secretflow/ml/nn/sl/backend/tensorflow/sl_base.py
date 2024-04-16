@@ -33,8 +33,6 @@ from secretflow.security.privacy import DPStrategy
 from secretflow.utils.communicate import ForwardData
 from secretflow.utils.io import rows_count
 
-ListType = (List, Tuple)
-
 
 class SLBaseTFModel(SLBaseModel):
     def __init__(
@@ -45,8 +43,6 @@ class SLBaseTFModel(SLBaseModel):
         random_seed: int = None,
         **kwargs,
     ):
-        super().__init__(**kwargs)
-
         self.dp_strategy = dp_strategy
         self.embedding_dp = (
             self.dp_strategy.embedding_dp if dp_strategy is not None else None
@@ -58,7 +54,6 @@ class SLBaseTFModel(SLBaseModel):
         self.valid_set = None
         self.tape = None
         self._h = None
-        self._base_losses = None
         self.train_x, self.train_y = None, None
         self.eval_x, self.eval_y = None, None
         self.kwargs = {}
@@ -86,6 +81,7 @@ class SLBaseTFModel(SLBaseModel):
             tf.keras.utils.set_random_seed(random_seed)
         self.model_base = builder_base() if builder_base is not None else None
         self.model_fuse = builder_fuse() if builder_fuse is not None else None
+        super().__init__()
 
     @staticmethod
     @tf.custom_gradient
@@ -250,7 +246,7 @@ class SLBaseTFModel(SLBaseModel):
 
         data_set = dataset_builder(data_tuple)
         steps_per_epoch = -1
-        if isinstance(data_set, ListType):
+        if isinstance(data_set, tuple):
             assert len(data_set) == 2, (
                 f"If a dataset builder return more than 1 value, "
                 f"it must return 2, one is dataset, another is steps_per_epoch"
@@ -275,7 +271,7 @@ class SLBaseTFModel(SLBaseModel):
         # The dataset builder does not return steps, Infer batch size
         ds_iter = iter(data_set)
         batch_data = next(ds_iter)
-        if isinstance(batch_data, ListType):
+        if isinstance(batch_data, Tuple):
             batch_data = batch_data[0]
         if isinstance(batch_data, Dict):
             batch_data = list(batch_data.values())[0]
@@ -449,7 +445,7 @@ class SLBaseTFModel(SLBaseModel):
         # Strip tuple of length one, e.g: (x,) -> x
         self._data_x = (
             self._data_x[0]
-            if isinstance(self._data_x, ListType) and len(self._data_x) == 1
+            if isinstance(self._data_x, Tuple) and len(self._data_x) == 1
             else self._data_x
         )
 
@@ -461,9 +457,11 @@ class SLBaseTFModel(SLBaseModel):
         if not self.model_base:
             return None
         forward_data = ForwardData()
+        if len(self.model_base.losses) > 0:
+            forward_data.losses = tf.add_n(self.model_base.losses)
         if isinstance(self._h, tf.Tensor):
             forward_data.hidden = tf.stop_gradient(self._h)
-        elif isinstance(self._h, ListType):
+        elif isinstance(self._h, list):
             forward_data.hidden = [tf.stop_gradient(h) for h in self._h]
         else:
             raise RuntimeError(f"Unknown type of self._h {type(self._h)}")
@@ -493,7 +491,7 @@ class SLBaseTFModel(SLBaseModel):
         forward_data[:] = (h for h in forward_data if h is not None)
         for i, h in enumerate(forward_data):
             assert h.hidden is not None, f"hidden cannot be found in forward_data[{i}]"
-            if isinstance(h.losses, ListType) and h.losses[0] is None:
+            if isinstance(h.losses, List) and h.losses[0] is None:
                 h.losses = None
         # get reg losses:
         losses = [h.losses for h in forward_data if h.losses is not None]
@@ -502,7 +500,7 @@ class SLBaseTFModel(SLBaseModel):
         for fd in forward_data:
             h = fd.hidden
             # h will be list, if basenet is multi output
-            if isinstance(h, ListType):
+            if isinstance(h, List):
                 for i in range(len(h)):
                     hiddens.append(h[i])
             else:
@@ -525,9 +523,17 @@ class SLBaseTFModel(SLBaseModel):
             gradient: gradient of fusenet hidden layer
         """
 
-        return_hiddens = self._base_backward_hidden_internal(
-            self.tape, self._h, self._gradient, self._base_losses
-        )
+        return_hiddens = []
+
+        with self.tape:
+            if len(self._gradient) == len(self._h):
+                for i in range(len(self._gradient)):
+                    return_hiddens.append(self.fuse_op(self._h[i], self._gradient[i]))
+            else:
+                self._gradient = self._gradient[0]
+                return_hiddens.append(self.fuse_op(self._h, self._gradient))
+            # add model.losses into graph
+            return_hiddens.append(self.model_base.losses)
 
         trainable_vars = self.model_base.trainable_variables
         gradients = self.tape.gradient(return_hiddens, trainable_vars)
@@ -537,7 +543,6 @@ class SLBaseTFModel(SLBaseModel):
         # clear intermediate results
         self.tape = None
         self._h = None
-        self._base_losses = None
         self.kwargs = {}
 
     def reset_metrics(self):
@@ -572,14 +577,14 @@ class SLBaseTFModel(SLBaseModel):
         forward_data[:] = (h for h in forward_data if h is not None)
         for i, h in enumerate(forward_data):
             assert h.hidden is not None, f"hidden cannot be found in forward_data[{i}]"
-            if isinstance(h.losses, ListType) and h.losses[0] is None:
+            if isinstance(h.losses, List) and h.losses[0] is None:
                 h.losses = None
         # get reg losses:
         losses = [h.losses for h in forward_data if h.losses is not None]
         hidden_features = [h.hidden for h in forward_data]
         hiddens = []
         for h in hidden_features:
-            if isinstance(h, ListType):
+            if isinstance(h, List):
                 for i in range(len(h)):
                     hiddens.append(h[i])
             else:
@@ -644,40 +649,16 @@ class SLBaseTFModel(SLBaseModel):
                 )
         return wraped_metrics
 
-    @tf.function
     def _base_forward_internal(self, data_x, training=True):
         h = self.model_base(data_x, training=training)
 
-        if not self.use_base_loss:
-            self._base_losses = self.model_base.losses
-        else:
-            # users need to add model_base.losses by themselves in compute_loss
-            losses = self.model_base.compute_loss(
-                x=data_x, y=None, y_pred=h, sample_weight=None
-            )
-            self._base_losses = losses if isinstance(losses, ListType) else [losses]
-
         # Embedding differential privacy
         if self.embedding_dp is not None:
-            if isinstance(h, ListType):
+            if isinstance(h, List):
                 h = [self.embedding_dp(hi) for hi in h]
             else:
                 h = self.embedding_dp(h)
         return h
-
-    def _base_backward_hidden_internal(self, tape, hiddens, gradient, base_losses):
-        return_hiddens = []
-        with tape:
-            if len(gradient) == len(hiddens):
-                for i in range(len(gradient)):
-                    return_hiddens.append(self.fuse_op(hiddens[i], gradient[i]))
-            else:
-                gradient = gradient[0]
-                return_hiddens.append(self.fuse_op(hiddens, gradient))
-            # add losses into graph
-            if base_losses is not None:
-                return_hiddens.extend(base_losses)
-        return return_hiddens
 
     def _base_backward_internal(self, gradients, trainable_vars):
         self.model_base.optimizer.apply_gradients(zip(gradients, trainable_vars))
@@ -688,6 +669,8 @@ class SLBaseTFModel(SLBaseModel):
         y_pred = self.model_fuse(hiddens, training=False, **self.kwargs)
 
         # Step 2: update loss
+        # add losses manually, same as call `add_loss(losses)` in `call`
+        self.model_fuse._eager_losses.extend(losses)
         self.model_fuse.compute_loss(hiddens, eval_y, y_pred, eval_sample_weight)
         # Step 3: update metrics
         metrics = self.model_fuse.compute_metrics(
@@ -713,6 +696,8 @@ class SLBaseTFModel(SLBaseModel):
             y_pred = self.model_fuse(hiddens, training=True, **self.kwargs)
             self._pred_y = y_pred
             # Step 2: loss calculation, the loss function is configured in `compile()`.
+            # add losses manually, same as call `add_loss(losses)` in `call`
+            self.model_fuse._eager_losses.extend(losses)
             loss = self.model_fuse.compute_loss(
                 hiddens, train_y, y_pred, train_sample_weight
             )
@@ -749,13 +734,13 @@ class SLBaseTFModel(SLBaseModel):
         forward_data[:] = (h for h in forward_data if h is not None)
         for i, h in enumerate(forward_data):
             assert h.hidden is not None, f"hidden cannot be found in forward_data[{i}]"
-            if isinstance(h.losses, ListType) and h.losses[0] is None:
+            if isinstance(h.losses, List) and h.losses[0] is None:
                 h.losses = None
         hidden_features = [h.hidden for h in forward_data]
 
         hiddens = []
         for h in hidden_features:
-            if isinstance(h, ListType):
+            if isinstance(h, List):
                 for i in range(len(h)):
                     hiddens.append(h[i])
             else:
@@ -868,7 +853,7 @@ class SLBaseTFModel(SLBaseModel):
         return self.wrap_local_metrics()
 
     def get_base_losses(self):
-        return self._base_losses
+        return self.model_base.losses
 
     def get_base_weights(self):
         return self.model_base.get_weights()

@@ -82,9 +82,7 @@ class CompCheckpoint:
 
         cp_len = [len(cps) for cps in parties_check_points]
         max_step = min(cp_len)
-        logging.info(
-            f"try load checkpoint from {self.uri}, cp len of each parth: {cp_len}"
-        )
+        logging.info(f"try load checkpoint from {self.uri}, cp len {cp_len}")
 
         while max_step > 0:
             max_step -= 1

@@ -12,15 +12,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This is a single party based bi-classification report
-
+import logging
 from typing import List, Tuple, Union
 
 import jax
 import jax.numpy as jnp
+
+# This is a single party based bi-classification report
+import numpy as np
 import pandas as pd
+import spu
 
 from .utils import equal_obs, equal_range
+
+
+def _float(a: Union[np.ndarray, float, jax.Array]):
+    """Convert a float-like array or object into a float"""
+    # handle special case np.array([x])
+    if isinstance(a, Union[np.ndarray, jax.Array]):
+        if a.size == 1:
+            return float(a.flatten()[0])
+        else:
+            raise ValueError(
+                f'Expected scalar-like value, got {a}, {type(a)}, {a.shape}, {a.size}'
+            )
+    else:
+        return float(a)
 
 
 class Report:
@@ -205,6 +222,10 @@ def gen_all_reports(
         y_true = y_true.to_numpy()
     if isinstance(y_score, pd.DataFrame):
         y_score = y_score.to_numpy()
+    if np.isnan(y_true).any():
+        raise ValueError("NaN value found in y_true.")
+    if np.isnan(y_score).any():
+        logging.warning("NaN value found in y_score.")
     sorted_label_score_pair_arr = create_sorted_label_score_pair(y_true, y_score)
     pos_count = jnp.sum(y_true)
     eq_frequent_result_arr_list = eq_frequent_bin_evaluate(
@@ -437,21 +458,21 @@ def bin_evaluate(
         true_positive, false_positive, false_negative, true_negative
     )
 
-    f1_score = float(f1_score[0])
+    f1_score = _float(f1_score)
     lift = float(precision * (total_pos_count + total_neg_count) / total_pos_count)
     predicted_positive_ratio = float(pos_count / total_pos_count)
     predicted_negative_ratio = float(neg_count / total_neg_count)
-    cumulative_percent_of_positive = float(
-        ((pos_count + cumulative_pos_count) / total_pos_count)[0]
+    cumulative_percent_of_positive = _float(
+        ((pos_count + cumulative_pos_count) / total_pos_count)
     )
-    cumulative_percent_of_negative = float(
-        ((neg_count + cumulative_neg_count) / total_neg_count)[0]
+    cumulative_percent_of_negative = _float(
+        ((neg_count + cumulative_neg_count) / total_neg_count)
     )
-    total_cumulative_percent = float(
+    total_cumulative_percent = _float(
         (
             (pos_count + cumulative_pos_count + neg_count + cumulative_neg_count)
             / (total_pos_count + total_neg_count)
-        )[0]
+        )
     )
     ks = abs(float(cumulative_percent_of_positive - cumulative_percent_of_negative))
 
@@ -523,7 +544,22 @@ def precision_recall_false_positive_rate(
     precision = true_positive / (true_positive + false_positive)
     recall = true_positive / (true_positive + false_negative)
     false_positive_rate = false_positive / (false_positive + true_negative)
-    return float(precision[0]), float(recall[0]), float(false_positive_rate[0])
+
+    logging.debug(f"..................\n")
+    logging.debug(f"true_positive {true_positive}@{true_positive.shape}")
+    logging.debug(f"false_positive {false_positive}@{false_positive.shape}")
+    logging.debug(f"false_negative {false_negative}@{false_negative.shape}")
+    logging.debug(f"true_negative {true_negative}@{true_negative.shape}")
+    logging.debug(f"precision {precision}@{precision.shape}")
+    logging.debug(f"recall {recall}@{recall.shape}")
+    logging.debug(
+        f"false_positive_rate {false_positive_rate}@{false_positive_rate.shape}"
+    )
+    logging.debug(f"jax.__version__ {jax.__version__} @ {jax}")
+    logging.debug(f"jax.__version__ {spu.__version__} @ {spu}")
+    logging.debug(f"\n..................")
+
+    return _float(precision), _float(recall), _float(false_positive_rate)
 
 
 def confusion_matrix_from_cum_counts(
