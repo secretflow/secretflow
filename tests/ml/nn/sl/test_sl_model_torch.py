@@ -25,7 +25,6 @@ from secretflow.device import reveal
 from secretflow.ml.nn import SLModel
 from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
 from secretflow.ml.nn.sl.agglayer.agg_method import Average
-from secretflow.ml.nn.sl.defenses.mid import MIDefense
 from secretflow.security.privacy import DPStrategy
 from secretflow.security.privacy.mechanism.label_dp import LabelDP
 from secretflow.security.privacy.mechanism.torch import GaussianEmbeddingDP
@@ -82,9 +81,6 @@ def torch_model_with_mnist(
     # kwargs parsing
     dp_strategy_dict = kwargs.get('dp_strategy_dict', None)
     dataset_builder = kwargs.get('dataset_builder', None)
-    callbacks = kwargs.get('callbacks', None)
-    load_base_model_dict = kwargs.get('load_base_model_dict', base_model_dict)
-    load_model_fuse = kwargs.get('load_model_fuse', model_fuse)
 
     base_local_steps = kwargs.get('base_local_steps', 1)
     fuse_local_steps = kwargs.get('fuse_local_steps', 1)
@@ -131,7 +127,6 @@ def torch_model_with_mnist(
         shuffle=False,
         random_seed=1234,
         dataset_builder=dataset_builder,
-        callbacks=callbacks,
     )
     global_metric = sl_model.evaluate(
         data,
@@ -167,9 +162,9 @@ def torch_model_with_mnist(
         is_test=True,
     )
     sl_model_load = SLModel(
-        base_model_dict=load_base_model_dict,
+        base_model_dict=base_model_dict,
         device_y=device_y,
-        model_fuse=load_model_fuse,
+        model_fuse=model_fuse,
         dp_strategy_dict=dp_strategy_dict,
         compressor=compressor,
         simulation=True,

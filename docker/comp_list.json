@@ -128,7 +128,7 @@
       "domain": "data_prep",
       "name": "psi",
       "desc": "PSI between two parties.",
-      "version": "0.0.3",
+      "version": "0.0.4",
       "attrs": [
         {
           "name": "protocol",
@@ -205,19 +205,12 @@
           }
         },
         {
-          "name": "missing_value",
-          "desc": "Missing value for some advanced join types.",
-          "type": "AT_STRING",
+          "name": "fill_value_int",
+          "desc": "For int type data. Use this value for filling null.",
+          "type": "AT_INT",
           "atomic": {
             "isOptional": true,
-            "defaultValue": {
-              "s": "NA"
-            },
-            "allowedValues": {
-              "ss": [
-                "NA"
-              ]
-            }
+            "defaultValue": {}
           }
         },
         {

@@ -53,6 +53,18 @@ class SLAsyncTFModel(SLBaseTFModel):
         self.fuse_local_steps = fuse_local_steps
         self.bound_param = bound_param
 
+    @tf.function
+    def _base_forward_internal(self, data_x, use_dp: bool = True, training=True):
+        h = self.model_base(data_x, training=training)
+
+        # Embedding differential privacy
+        if use_dp and self.embedding_dp is not None:
+            if isinstance(h, List):
+                h = [self.embedding_dp(hi) for hi in h]
+            else:
+                h = self.embedding_dp(h)
+        return h
+
     def base_backward(self):
         """backward on fusenet
 
@@ -77,9 +89,8 @@ class SLAsyncTFModel(SLBaseTFModel):
                 else:
                     gradient = gradient[0]
                     return_hiddens.append(self.fuse_op(h, gradient))
-                # add losses into graph
-                if self._base_losses is not None:
-                    return_hiddens.extend(self._base_losses)
+                # add model.losses into graph
+                return_hiddens.append(self.model_base.losses)
 
             trainable_vars = self.model_base.trainable_variables
             gradients = self.tape.gradient(return_hiddens, trainable_vars)
@@ -88,7 +99,6 @@ class SLAsyncTFModel(SLBaseTFModel):
         # clear intermediate results
         self.tape = None
         self._h = None
-        self._base_losses = None
         self._data_x = None
         self.kwargs = {}
 
@@ -121,6 +131,8 @@ class SLAsyncTFModel(SLBaseTFModel):
                 # Step 1: forward pass
                 y_pred = self.model_fuse(hiddens, training=True, **self.kwargs)
                 # Step 2: loss calculation, the loss function is configured in `compile()`.
+                # add losses manually, same as call `add_loss(losses)` in `call`
+                self.model_fuse._eager_losses.extend(losses)
                 loss = self.model_fuse.compute_loss(
                     hiddens, train_y, y_pred, train_sample_weight
                 )

@@ -35,6 +35,7 @@ class PipelineTorchModel(SLBaseTorchModel):
         dp_strategy: DPStrategy,
         random_seed: int = None,
         pipeline_size: int = 1,
+        *args,
         **kwargs,
     ):
         super().__init__(
@@ -51,7 +52,6 @@ class PipelineTorchModel(SLBaseTorchModel):
 
         self.pre_param_list = []
         self.hidden_list = []
-        self.base_loss_list = []
         self.pre_train_y = []
         self.pre_sample_weight = []
 
@@ -67,9 +67,6 @@ class PipelineTorchModel(SLBaseTorchModel):
             assert (
                 self.hidden_list == []
             ), f'hidden_list is not empty {len(self.hidden_list)}'
-            assert (
-                self.base_loss_list == []
-            ), f'base_loss_list is not empty {len(self.base_loss_list)}'
             assert (
                 self.pre_train_y == []
             ), f'pre_train_y is not empty {len(self.pre_train_y)}'
@@ -106,22 +103,16 @@ class PipelineTorchModel(SLBaseTorchModel):
                     layer = getattr(layer, ll)
                 setattr(layer, param_name, param)
 
-            self._h = self.base_forward_internal(
-                self._data_x, model=self.model_base_copy
-            )
+            self._h = self.model_base_copy(self._data_x)
             self.hidden_list.append(self._h)
-            self.base_loss_list.append(self._base_losses)
         else:
-            self._h = self.base_forward_internal(self._data_x)
+            self._h = self.model_base(self._data_x)
 
     def base_backward(self):
         """backward on fusenet"""
 
         hiddens = self.hidden_list.pop(0)
-        base_losses = self.base_loss_list.pop(0)
-        return_hiddens = self.base_backward_hidden_internal(
-            hiddens, base_losses=base_losses
-        )
+        return_hiddens = self.base_backward_hidden_internal(hiddens)
 
         # apply gradients for base net
         optimizer = self.model_base.optimizers()

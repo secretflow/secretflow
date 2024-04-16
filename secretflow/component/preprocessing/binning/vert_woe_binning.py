@@ -177,7 +177,7 @@ def vert_woe_binning_eval_fn(
         load_labels=True,
     )
 
-    label_info = extract_table_header(
+    label_info, _ = extract_table_header(
         input_data, load_features=True, load_labels=True, col_selects=input_data_label
     )
     assert len(label_info) == 1, "only support one party has label"

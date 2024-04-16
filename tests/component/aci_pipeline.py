@@ -33,7 +33,7 @@ if __name__ == "__main__":
         "input/sender_input/key": ["id1"],
     }
     # 测试psi
-    psi = TestComp("psi_test", "data_prep", "psi", "0.0.3", attrs)
+    psi = TestComp("psi_test", "data_prep", "psi", "0.0.4", attrs)
     aci_pipe.add_comp(psi, ["DAGInput.alice", "DAGInput.bob"])
 
     attrs = {

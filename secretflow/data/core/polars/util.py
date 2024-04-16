@@ -36,6 +36,10 @@ def read_polars_csv(filepath, *args, **kwargs):
         # no header from pandas
         kwargs['has_header'] = False
 
+    if 'converters' in kwargs:
+        assert kwargs['converters'] is None, "polars not support converters"
+
+    kwargs.pop('converters', None)
     kwargs.pop('delimiter', None)
     kwargs.pop('usecols', None)
     kwargs.pop('dtype', None)

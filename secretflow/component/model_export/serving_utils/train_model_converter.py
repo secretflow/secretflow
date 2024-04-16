@@ -936,7 +936,7 @@ class TrainModelConverter:
         assert len(in_dataset) == 1
         self.in_dataset = in_dataset[0]
 
-        self.input_schema = extract_table_header(
+        self.input_schema, _ = extract_table_header(
             self.in_dataset, load_features=True, load_ids=True, load_labels=True
         )
 

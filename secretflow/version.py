@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.5.0.dev$$DATE$$"
+__version__ = "1.5.0a2"
 __commit_id__ = "$$COMMIT_ID$$"
 __docker_version__ = "$$DOCKER_VERSION$$"
 __build_time__ = "$$BUILD_TIME$$"

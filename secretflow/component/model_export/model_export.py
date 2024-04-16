@@ -121,12 +121,12 @@ def get_init_pyus(input_datasets, component_eval_params) -> List[PYU]:
     dist_datas = input_datasets[: len(comp_def.inputs)]
     v_tables = [d for d in dist_datas if d.type == DistDataType.VERTICAL_TABLE]
     assert len(v_tables) == 1, "only support one v table input for now"
-    v_headers = extract_table_header(
+    dtypes, _ = extract_table_header(
         v_tables[0], load_features=True, load_ids=True, load_labels=True
     )
-    assert len(v_headers) > 0
+    assert len(dtypes) > 0
 
-    return [PYU(p) for p in v_headers], v_headers
+    return [PYU(p) for p in dtypes], dtypes
 
 
 class CompConverter:

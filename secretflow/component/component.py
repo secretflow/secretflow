@@ -26,6 +26,7 @@ from typing import Dict, List, Type, Union
 import cleantext
 import spu
 from google.protobuf.message import Message as PbMessage
+
 from secretflow.component.checkpoint import CompCheckpoint
 from secretflow.component.data_utils import DistDataType, check_dist_data, check_io_def
 from secretflow.component.eval_param_reader import EvalParamReader
@@ -929,7 +930,7 @@ class Component:
             log_to_driver=True,
             cluster_config=cluster_config,
             omp_num_threads=multiprocess.cpu_count(),
-            logging_level='debug',
+            logging_level='info',
             cross_silo_comm_backend=cross_silo_comm_backend,
             cross_silo_comm_options=cross_silo_comm_options,
             enable_waiting_for_other_parties_ready=True,
