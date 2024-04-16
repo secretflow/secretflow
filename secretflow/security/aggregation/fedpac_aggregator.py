@@ -51,11 +51,6 @@ class FedPACAggregator(Aggregator):
 
     """
 
-    '''
-    这个构造函数接受一个 device 参数，并通过 isinstance 函数来确保传入的参数是 PYU 类型的实例。
-    然后，将 device 赋值给类的实例变量 self.device
-    '''
-
     def __init__(self, device: PYU):
         assert isinstance(device, PYU), f'Accepts PYU only but got {type(device)}.'
         self.device = device
@@ -102,7 +97,7 @@ class FedPACAggregator(Aggregator):
         Args:
             data: List of clients local model parameters. List[dict{layer: weight}]
             axis: optional. Same as the axis argument of :py:meth:`numpy.average`.
-            weights: optional. Same as the weights argument of :py:meth:`numpy.average`. 
+            weights: optional. Same as the weights argument of :py:meth:`numpy.average`.
 
         Returns:
             a device object holds the weighted average.

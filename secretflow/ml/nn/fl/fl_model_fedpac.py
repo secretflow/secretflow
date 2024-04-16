@@ -23,6 +23,7 @@ from typing import Callable, Dict, List, Tuple, Union
 
 import numpy as np
 import cvxpy as cvx
+import torch
 
 from secretflow.data.horizontal import HDataFrame
 from secretflow.data.ndarray import FedNdarray
@@ -42,7 +43,7 @@ from secretflow.security.aggregation.experiment.fedpac_aggregator import (
 
 class FLModelFedPAC(FLModel):
     def pairwise(self, data):
-        """ 
+        """
         Simple generator of the pairs (x, y) in a tuple such that index x < index y.
         Args:
         data Indexable (including ability to query length) containing the elements
@@ -100,7 +101,7 @@ class FLModelFedPAC(FLModel):
 
             alpha = 0
             eps = 1e-3
-            if np.all(np.linalg.eigvals(p_matrix) >= 0):  # 检查是否所有特征值都大于0
+            if np.all(np.linalg.eigvals(p_matrix) >= 0):
                 alphav = cvx.Variable(num_users)
                 obj = cvx.Minimize(cvx.quad_form(alphav, p_matrix))
                 prob = cvx.Problem(obj, [cvx.sum(alphav) == 1.0, alphav >= 0])
@@ -251,11 +252,11 @@ class FLModelFedPAC(FLModel):
             steps=train_steps_per_epoch,
         )
 
-        initial_weight = self.initialize_weights()
-        logging.debug(f"initial_weight: {initial_weight}")
-        server_weight = None
-        if self.server and isinstance(initial_weight, PYUObject):
-            server_weight = initial_weight
+        # initial_weight = self.initialize_weights()
+        # logging.debug(f"initial_weight: {initial_weight}")
+        # server_weight = None
+        # if self.server and isinstance(initial_weight, PYUObject):
+        #     server_weight = initial_weight
 
         callbacks.on_train_begin()
         model_params = None
@@ -316,7 +317,6 @@ class FLModelFedPAC(FLModel):
                         client_acc2,
                         client_proto,
                     ) = self._workers[device].train_step(
-                        client_params,
                         epoch * train_steps_per_epoch + step,
                         (
                             aggregate_freq
@@ -351,7 +351,7 @@ class FLModelFedPAC(FLModel):
                     '''
                     # fedpac
                     # feature extractor aggregation
-                    model_params_list = self._aggregator._aggregator.average(
+                    model_params_list = self._aggregator.average(
                         client_param_list, axis=0, weights=sample_num_list
                     )
                     # global protos aggregation
@@ -380,7 +380,10 @@ class FLModelFedPAC(FLModel):
                             param.to(self.server) for param in client_param_list
                         ]
                         model_params_list = self.server(
-                            self.server_agg_method, num_returns=len(self.device_list,),
+                            self.server_agg_method,
+                            num_returns=len(
+                                self.device_list,
+                            ),
                         )(model_params_list)
                         model_params_list = [
                             params.to(device)
@@ -393,27 +396,27 @@ class FLModelFedPAC(FLModel):
                             "Aggregation can be on either an aggregator or a server, but not none at the same time"
                         )
 
-                # Do weight sparsify
-                if self.strategy in COMPRESS_STRATEGY and server_weight:
-                    if self._res:
-                        self._res.to(self.server)
-                    agg_update = model_params.to(self.server)
-                    server_weight = server_weight.to(self.server)
-                    server_weight, model_params, self._res = self.server(
-                        do_compress, num_returns=3
-                    )(
-                        self.strategy,
-                        self.kwargs.get('sparsity', 0.0),
-                        server_weight,
-                        agg_update,
-                        self._res,
-                    )
-                    # Do sparse matrix encoding
-                    if self.strategy == 'fed_stc':
-                        model_params = model_params.to(self.server)
-                        model_params = self.server(sparse_encode, num_return=1)(
-                            data=model_params, encode_method='coo',
-                        )
+                # # Do weight sparsify
+                # if self.strategy in COMPRESS_STRATEGY and server_weight:
+                #     if self._res:
+                #         self._res.to(self.server)
+                #     agg_update = model_params.to(self.server)
+                #     server_weight = server_weight.to(self.server)
+                #     server_weight, model_params, self._res = self.server(
+                #         do_compress, num_returns=3
+                #     )(
+                #         self.strategy,
+                #         self.kwargs.get('sparsity', 0.0),
+                #         server_weight,
+                #         agg_update,
+                #         self._res,
+                #     )
+                #     # Do sparse matrix encoding
+                #     if self.strategy == 'fed_stc':
+                #         model_params = model_params.to(self.server)
+                #         model_params = self.server(sparse_encode, num_return=1)(
+                #             data=model_params, encode_method='coo',
+                #         )
 
                 # DP operation
                 if dp_spent_step_freq is not None and self.dp_strategy is not None:
@@ -443,16 +446,28 @@ class FLModelFedPAC(FLModel):
             if self._aggregator is not None:
                 for idx, device in enumerate(self._workers.keys()):
                     local_client = self._workers[device]
-                    # update base model
-                    local_client.apply_weights().update_local_classifier(
-                        new_weight=model_params_list[idx]
+                    # update base model & global protos & classifier weight
+                    local_client.apply_weights(
+                        model_params_list[idx],
+                        global_protos,
+                        new_cls_list[idx],
+                        epoch * train_steps_per_epoch + step,
+                        (
+                            aggregate_freq
+                            if step + aggregate_freq < train_steps_per_epoch
+                            else train_steps_per_epoch - step
+                        ),
+                        **self.kwargs,
                     )
-                    # update global protos
-                    local_client.apply_weights().update_global_protos(global_protos)
-                    # update classifier weight
-                    local_client.apply_weights().update_classifier_weight(
-                        new_cls_list[idx]
-                    )
+                    # local_client.apply_weights().update_local_classifier(
+                    #     new_weight=model_params_list[idx]
+                    # )
+                    # # update global protos
+                    # local_client.apply_weights().update_global_protos(global_protos)
+                    # # update classifier weight
+                    # local_client.apply_weights().update_classifier_weight(
+                    #     new_cls_list[idx]
+                    # )
 
             local_metrics_obj = []
             for device, worker in self._workers.items():
