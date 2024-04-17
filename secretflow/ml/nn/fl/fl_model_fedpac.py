@@ -36,7 +36,7 @@ from secretflow.ml.nn.fl.fl_model import FLModel
 from secretflow.ml.nn.metrics import Metric, aggregate_metrics
 from secretflow.utils.compressor import sparse_encode
 from secretflow.utils.random import global_random
-from secretflow.security.aggregation.experiment.fedpac_aggregator import (
+from secretflow.security.aggregation.fedpac_aggregator import (
     FedPACAggregator,
 )
 
