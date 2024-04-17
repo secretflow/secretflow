@@ -19,7 +19,7 @@
 import logging
 import math
 import os
-from typing import Callable, Dict, List, Tuple, Union
+from typing import Callable, Dict, Union
 
 import numpy as np
 import cvxpy as cvx
@@ -28,17 +28,9 @@ import torch
 from secretflow.data.horizontal import HDataFrame
 from secretflow.data.ndarray import FedNdarray
 from secretflow.device import PYU, reveal, wait
-from secretflow.device.device.pyu import PYUObject
 from secretflow.ml.nn.callbacks.callbacklist import CallbackList
-from secretflow.ml.nn.fl.compress import COMPRESS_STRATEGY, do_compress
-from secretflow.ml.nn.fl.strategy_dispatcher import dispatch_strategy
 from secretflow.ml.nn.fl.fl_model import FLModel
-from secretflow.ml.nn.metrics import Metric, aggregate_metrics
-from secretflow.utils.compressor import sparse_encode
 from secretflow.utils.random import global_random
-from secretflow.security.aggregation.fedpac_aggregator import (
-    FedPACAggregator,
-)
 
 
 class FLModelFedPAC(FLModel):
