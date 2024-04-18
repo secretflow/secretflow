@@ -330,7 +330,7 @@ class FLModelFedPAC(FLModel):
                     res.append(client_params)
 
                 cls_weight_list = self.classifier_collaboration_weight_compute(
-                    client_var_list, client_h_list, *self.args, **self.kwargs
+                    client_var_list, client_h_list, **self.kwargs
                 )
 
                 new_cls_list = {}
