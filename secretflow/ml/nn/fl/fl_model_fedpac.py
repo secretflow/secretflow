@@ -48,7 +48,7 @@ class FLModelFedPAC(FLModel):
                 yield (data[i], data[j])
 
     def classifier_collaboration_weight_compute(
-        self, client_var_list, client_h_list, *args, **kwargs
+        self, client_var_list, client_h_list, **kwargs
     ):
         device = client_h_list[0][0].device
         num_cls = client_h_list[0].shape[0]
