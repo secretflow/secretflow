@@ -473,15 +473,19 @@ class FedPACTorchModel(BaseTorchModel):
         data_set = None
         assert dataset_builder is not None, "Dataset builder cannot be none"
         if isinstance(x, str):
-            self.train_set, self.eval_set, step_per_epoch = dataset_builder(x, stage=stage)
+            self.train_set, self.eval_set, step_per_epoch = dataset_builder(
+                x, stage=stage
+            )
         else:
             if y is not None:
                 x.append(y)
                 if s_w is not None and len(s_w.shape) > 0:
                     x.append(s_w)
 
-            self.train_set, self.eval_set, step_per_epoch = dataset_builder(x, stage=stage)
-            
+            self.train_set, self.eval_set, step_per_epoch = dataset_builder(
+                x, stage=stage
+            )
+
         if stage != "train" and stage != "eval":
             raise Exception(f"Illegal argument stage={stage}")
         return step_per_epoch

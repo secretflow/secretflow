@@ -105,7 +105,9 @@ class FedPAC(FedPACTorchModel):
                 iter_num = len(data_loader)
                 for it in range(iter_num):
                     images, labels = next(data_loader)
-                    images, labels = images.to(self.exe_device), labels.to(self.exe_device)
+                    images, labels = images.to(self.exe_device), labels.to(
+                        self.exe_device
+                    )
                     model.zero_grad()
                     protos, output = model(images)
                     loss = self.criterion(output, labels)
@@ -135,7 +137,9 @@ class FedPAC(FedPACTorchModel):
                 iter_num = len(data_loader)
                 for it in range(iter_num):
                     images, labels = next(data_loader)
-                    images, labels = images.to(self.exe_device), labels.to(self.exe_device)
+                    images, labels = images.to(self.exe_device), labels.to(
+                        self.exe_device
+                    )
                     model.zero_grad()
                     protos, output = model(images)
                     loss0 = self.criterion(output, labels)
