@@ -448,6 +448,43 @@ class FedPACTorchModel(BaseTorchModel):
         self.lam = kwargs.get("lam", 1.0)  # 1.0 for mse_loss
 
     # coding: utf-8
+    def build_dataset_from_builder(
+        self,
+        dataset_builder: Callable,
+        x: Union[pd.DataFrame, str],
+        y: Optional[np.ndarray] = None,
+        s_w: Optional[np.ndarray] = None,
+        repeat_count=1,
+        stage="train",
+    ):
+        """build tf.data.Dataset
+
+        Args:
+            dataset_builder: Function of how to build dataset, must return dataset and step_per_epoch
+            x: A pandas Dataframe or A string representing the path to a CSV file or data folder containing the input data.
+            y: label, An optional NumPy array containing the labels for the dataset. Defaults to None.
+            s_w: An optional NumPy array containing the sample weights for the dataset. Defaults to None.
+            repeat_count: An integer specifying the number of times to repeat the dataset. This is useful for increasing the effective size of the dataset.
+            stage: A string indicating the stage of the dataset (either "train", "eval"). Defaults to "train".
+
+        Returns:
+            A tensorflow dataset
+        """
+        data_set = None
+        assert dataset_builder is not None, "Dataset builder cannot be none"
+        if isinstance(x, str):
+            self.train_set, self.eval_set, step_per_epoch = dataset_builder(x, stage=stage)
+        else:
+            if y is not None:
+                x.append(y)
+                if s_w is not None and len(s_w.shape) > 0:
+                    x.append(s_w)
+
+            self.train_set, self.eval_set, step_per_epoch = dataset_builder(x, stage=stage)
+            
+        if stage != "train" and stage != "eval":
+            raise Exception(f"Illegal argument stage={stage}")
+        return step_per_epoch
 
     def prior_label(self, dataset):
         py = torch.zeros(self.num_classes)

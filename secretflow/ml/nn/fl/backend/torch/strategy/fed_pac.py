@@ -105,7 +105,7 @@ class FedPAC(FedPACTorchModel):
                 iter_num = len(data_loader)
                 for it in range(iter_num):
                     images, labels = next(data_loader)
-                    images, labels = images.to(self.device), labels.to(self.device)
+                    images, labels = images.to(self.exe_device), labels.to(self.exe_device)
                     model.zero_grad()
                     protos, output = model(images)
                     loss = self.criterion(output, labels)
@@ -135,7 +135,7 @@ class FedPAC(FedPACTorchModel):
                 iter_num = len(data_loader)
                 for it in range(iter_num):
                     images, labels = next(data_loader)
-                    images, labels = images.to(self.device), labels.to(self.device)
+                    images, labels = images.to(self.exe_device), labels.to(self.exe_device)
                     model.zero_grad()
                     protos, output = model(images)
                     loss0 = self.criterion(output, labels)
@@ -185,8 +185,6 @@ class FedPAC(FedPACTorchModel):
         global_weight,
         global_protos,
         new_weight,
-        cur_steps: int,
-        train_steps: int,
         **kwargs,
     ):
         """Accept ps model params, then update local model
@@ -218,13 +216,13 @@ class FedPAC(FedPACTorchModel):
             for i in range(self.num_classes):
                 g_classes.append(torch.tensor(i))
                 g_protos.append(global_protos[i])
-            self.g_classes = torch.stack(g_classes).to(self.device)
+            self.g_classes = torch.stack(g_classes).to(self.exe_device)
             self.g_protos = torch.stack(g_protos)
 
         update_base_model(self, global_weight)
         update_global_protos(self, global_protos)
         agg_g = kwargs.get('agg_g', 1)
-        if agg_g and cur_steps < train_steps:
+        if agg_g:
             update_local_classifier(self, new_weight)
 
 

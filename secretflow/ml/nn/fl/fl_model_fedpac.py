@@ -443,12 +443,6 @@ class FLModelFedPAC(FLModel):
                         model_params_list[idx],
                         global_protos,
                         new_cls_list[idx],
-                        epoch * train_steps_per_epoch + step,
-                        (
-                            aggregate_freq
-                            if step + aggregate_freq < train_steps_per_epoch
-                            else train_steps_per_epoch - step
-                        ),
                         **self.kwargs,
                     )
                     # local_client.apply_weights().update_local_classifier(
