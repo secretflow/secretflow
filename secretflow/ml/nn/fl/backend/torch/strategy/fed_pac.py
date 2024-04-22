@@ -28,10 +28,7 @@ import logging
 
 class FedPAC(FedPACTorchModel):
     def train_step(
-        self,
-        cur_steps: int,
-        train_steps: int,
-        **kwargs,
+        self, cur_steps: int, train_steps: int, **kwargs,
     ) -> Tuple[
         float,
         torch.Tensor,
@@ -56,7 +53,7 @@ class FedPAC(FedPACTorchModel):
         # Set mode to train model
         assert self.model is not None, "Model cannot be none, please give model define"
         v, h_ref = self.statistics_extraction()
-        logging.info(f"data type of h after use statistics_extraction:{type(h_ref)}")
+        # logging.info(f"data type of h after use statistics_extraction:{type(h_ref)}")
         size_label = self.size_label(self.train_set).to(self.exe_device)
         agg_weight = self.aggregate_weight()
         model = self.local_model
@@ -107,8 +104,9 @@ class FedPAC(FedPACTorchModel):
                 iter_num = len(data_loader)
                 for it in range(iter_num):
                     images, labels = next(data_loader)
-                    images, labels = images.to(self.exe_device), labels.to(
-                        self.exe_device
+                    images, labels = (
+                        images.to(self.exe_device),
+                        labels.to(self.exe_device),
                     )
                     model.zero_grad()
                     protos, output = model(images)
@@ -139,8 +137,9 @@ class FedPAC(FedPACTorchModel):
                 iter_num = len(data_loader)
                 for it in range(iter_num):
                     images, labels = next(data_loader)
-                    images, labels = images.to(self.exe_device), labels.to(
-                        self.exe_device
+                    images, labels = (
+                        images.to(self.exe_device),
+                        labels.to(self.exe_device),
                     )
                     model.zero_grad()
                     protos, output = model(images)
@@ -173,9 +172,9 @@ class FedPAC(FedPACTorchModel):
         self.wrapped_metrics.extend(self.wrap_local_metrics())
         self.epoch_logs = copy.deepcopy(self.logs)
 
-        logging.info(f"data type of h before send back train results:{type(h_ref)}")
-        logging.info(f"physical device : {self.exe_device}")
-        logging.info(f"physical device type: {type(self.exe_device)}")
+        # logging.info(f"data type of h before send back train results:{type(h_ref)}")
+        # logging.info(f"physical device : {self.exe_device}")
+        # logging.info(f"physical device type: {type(self.exe_device)}")
         return (
             self.exe_device,
             v,
