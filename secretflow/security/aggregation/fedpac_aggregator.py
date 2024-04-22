@@ -183,7 +183,7 @@ class FedPACAggregator(Aggregator):
 
     # fedpac
     def classifier_weighted_aggregation(
-        self, clients_param_list: List, cls_weight_list: List, keys, client_idx: int
+        self, clients_param_list: List, cls_weight_list: List, keys: List, client_idx: int
     ):
         """Compute the weighted average along the specified axis.
 
@@ -201,13 +201,23 @@ class FedPACAggregator(Aggregator):
 
         num_users = len(clients_param_list)
         w_0 = copy.deepcopy(clients_param_list[client_idx])
+        logging.info(f'w_0: {w_0}')
+        logging.info(f'type of w_0: {type(w_0)}')
+        logging.info(f'w_0.data: {w_0.data}')
+        logging.info(f'cls_weight_list: {cls_weight_list}')
+        logging.info(f'type of cls_weight_list: {type(cls_weight_list)}')
+        # logging.info(f'cls_weight_list.data: {cls_weight_list.data}')
+        logging.info(f'clients_param_list: {clients_param_list}')
+        logging.info(f'type of clients_param_list: {type(clients_param_list)}')
+        # logging.info(f'clients_param_list.data: {clients_param_list.data}')
         for key in keys:
-            w_0[key] = torch.zeros_like(w_0[key])
+            w_0.data[key] = torch.zeros_like(w_0.data[key])
         for i in range(num_users):
             for key in keys:
-                w_0[key] += cls_weight_list[i] * clients_param_list[i][key]
-
+                w_0.data[key] += cls_weight_list[i] * clients_param_list[i].data[key]
+        logging.info('loop 1 done')
         wc = sum(cls_weight_list)
         for key in keys:
-            w_0[key] = torch.div(w_0[key], wc)
+            w_0.data[key] = torch.div(w_0.data[key], wc)
+        logging.info('loop 2 done')
         return w_0

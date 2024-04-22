@@ -290,6 +290,7 @@ class FLModelFedPAC(FLModel):
                 client_protos_list = []
                 clinet_label_size_list = []
                 client_param_list, sample_num_list = [], []
+                client_classifier_weight_keys = []
                 for idx, device in enumerate(self._workers.keys()):
 
                     client_params = (
@@ -330,6 +331,7 @@ class FLModelFedPAC(FLModel):
                         client_acc1,
                         client_acc2,
                         client_proto,
+                        client_cls_weight_keys,
                     ) = self._workers[device].train_step(
                         epoch * train_steps_per_epoch + step,
                         (
@@ -341,6 +343,10 @@ class FLModelFedPAC(FLModel):
                     )
                     # logging.info(f"data dimension of h after recieving from clients : {client_h_ref.data.shape[0]}")
                     # logging.info(f"data type of h after recieving from clients : {type(client_h_ref.data)}")
+                    logging.info(f"client_cls_weight_keys: {client_cls_weight_keys}")
+                    logging.info(f"client_cls_weight_keys type: {type(client_cls_weight_keys)}")
+                    logging.info(f'client_cls_weight_keys.data[0]: {client_cls_weight_keys.data[0]}')
+                    logging.info(f"client_cls_weight_keys.data[0] type: {type(client_cls_weight_keys.data[0])}")
                     client_var_list.append(client_v)
                     client_h_list.append(client_h_ref)
                     client_loss1_list.append(client_loss1)
@@ -351,6 +357,7 @@ class FLModelFedPAC(FLModel):
                     clinet_label_size_list.append(client_label_size)
                     client_param_list.append(client_param)
                     sample_num_list.append(client_sample_num)
+                    client_classifier_weight_keys.append(client_cls_weight_keys)
                     res.append(client_params)
 
                 # logging.info(f"data type of h before compute : {type(client_h_list[0]) }")
@@ -388,7 +395,7 @@ class FLModelFedPAC(FLModel):
                             new_cls = self._aggregator.classifier_weighted_aggregation(
                                 client_param_list,
                                 cls_weight_list[idx],
-                                local_client.classifier_weight_keys,
+                                client_classifier_weight_keys[idx].data,
                                 idx,
                             )
                         else:

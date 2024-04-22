@@ -40,6 +40,7 @@ class FedPAC(FedPACTorchModel):
         float,
         float,
         np.ndarray,
+        list,
     ]:
         """Accept ps model params, then do local train
 
@@ -187,6 +188,7 @@ class FedPAC(FedPACTorchModel):
             acc0,
             acc2,
             local_protos2,
+            self.w_local_keys,
         )
 
     def apply_weights(
