@@ -48,22 +48,28 @@ class FLModelFedPAC(FLModel):
                 yield (data[i], data[j])
 
     def classifier_collaboration_weight_compute(
-        self, client_var_list, client_h_list, **kwargs
+        self, physical_device_type, client_var_list_pyu, client_h_list_pyu, **kwargs
     ):
-        device = client_h_list[0][0].device
-        num_cls = client_h_list[0].shape[0]
-        d = client_h_list[0].shape[1]
+        # device = client_h_list[0].device
+        logging.info(f"collaboration compute, device: {physical_device_type}.")
+        num_cls = client_h_list_pyu[0].data.shape[0]
+        d = client_h_list_pyu[0].data.shape[1]
         avg_weight = []
-        num_users = len(client_h_list)
+        num_users = len(client_h_list_pyu)
+        client_var_list = [v.data for v in client_var_list_pyu]
+        client_h_list = [h.data for h in client_h_list_pyu]
         for i in range(num_users):
-            v = torch.tensor(client_var_list, device=device)
+            # v = torch.tensor(client_var_list, device=device)
+            v = torch.tensor(client_var_list, device=physical_device_type)
             h_ref = client_h_list[i]
 
-            dist = torch.zeros((num_users, num_users), device=device)
+            # dist = torch.zeros((num_users, num_users), device=device)
+            dist = torch.zeros((num_users, num_users), device=physical_device_type)
             for j1, j2 in self.pairwise(tuple(range(num_users))):
                 h_j1 = client_h_list[j1]
                 h_j2 = client_h_list[j2]
-                h = torch.zeros((d, d), device=device)
+                # h = torch.zeros((d, d), device=device)
+                h = torch.zeros((d, d), device=physical_device_type)
                 for k in range(num_cls):
                     h += torch.mm(
                         (h_ref[k] - h_j1[k]).reshape(d, 1),
@@ -103,8 +109,8 @@ class FLModelFedPAC(FLModel):
                     (i) * (i > eps) for i in alpha
                 ]  # zero-out small weights (<eps)
                 if i == 0:
-                    print('({}) Agg Weights of Classifier Head'.format(i + 1))
-                    print(alpha, '\n')
+                    print("({}) Agg Weights of Classifier Head".format(i + 1))
+                    print(alpha, "\n")
 
             else:
                 alpha = None  # if no solution for the optimization problem, use local classifier only
@@ -130,7 +136,7 @@ class FLModelFedPAC(FLModel):
         label_decoder=None,
         max_batch_size=20000,
         prefetch_buffer_size=None,
-        sampler_method='batch',
+        sampler_method="batch",
         random_seed=None,
         dp_spent_step_freq=None,
         audit_log_dir=None,
@@ -185,7 +191,7 @@ class FLModelFedPAC(FLModel):
         if dp_spent_step_freq is not None:
             assert (
                 isinstance(dp_spent_step_freq, int) and dp_spent_step_freq >= 1
-            ), 'dp_spent_step_freq should be a integer and greater than or equal to 1!'
+            ), "dp_spent_step_freq should be a integer and greater than or equal to 1!"
 
         # build dataset
         if isinstance(x, Dict):
@@ -194,6 +200,7 @@ class FLModelFedPAC(FLModel):
             else:
                 valid_x, valid_y = None, None
 
+            logging.info("start handling data file.")
             train_steps_per_epoch = self._handle_file(
                 x,
                 y,
@@ -232,6 +239,7 @@ class FLModelFedPAC(FLModel):
                 dataset_builder=dataset_builder,
             )
 
+        logging.info("dataset handled")
         # setup callback list
         callbacks = CallbackList(
             callbacks=callbacks,
@@ -282,7 +290,7 @@ class FLModelFedPAC(FLModel):
                     else:
                         self.kwargs["refresh_data"] = False
 
-                    '''   
+                    """   
                     client_params, sample_num = self._workers[device].train_step(
                         client_params,
                         epoch * train_steps_per_epoch + step,
@@ -296,8 +304,9 @@ class FLModelFedPAC(FLModel):
                     client_param_list.append(client_params)
                     sample_num_list.append(sample_num)
                     res.append(client_params)
-                    '''
+                    """
                     (
+                        client_physical_device_type,
                         client_v,
                         client_h_ref,
                         client_label_size,
@@ -317,6 +326,12 @@ class FLModelFedPAC(FLModel):
                         ),
                         **self.kwargs,
                     )
+                    logging.info(
+                        f"data dimension of h after recieving from clients : {client_h_ref.data.shape[0]}"
+                    )
+                    logging.info(
+                        f"data type of h after recieving from clients : {type(client_h_ref.data)}"
+                    )
                     client_var_list.append(client_v)
                     client_h_list.append(client_h_ref)
                     client_loss1_list.append(client_loss1)
@@ -329,18 +344,24 @@ class FLModelFedPAC(FLModel):
                     sample_num_list.append(client_sample_num)
                     res.append(client_params)
 
+                logging.info(
+                    f"data type of h before compute : {type(client_h_list[0]) }"
+                )
                 cls_weight_list = self.classifier_collaboration_weight_compute(
-                    client_var_list, client_h_list, **self.kwargs
+                    client_physical_device_type.data,
+                    client_var_list,
+                    client_h_list,
+                    **self.kwargs,
                 )
 
                 new_cls_list = {}
 
                 if self._aggregator is not None:
-                    '''
+                    """
                     model_params = self._aggregator.average(
                         client_param_list, axis=0, weights=sample_num_list
                     )
-                    '''
+                    """
                     # fedpac
                     # feature extractor aggregation
                     model_params_list = self._aggregator.average(
@@ -419,7 +440,7 @@ class FLModelFedPAC(FLModel):
                         privacy_spent = self.dp_strategy.get_privacy_spent(
                             current_dp_step
                         )
-                        logging.debug(f'DP privacy accountant {privacy_spent}')
+                        logging.debug(f"DP privacy accountant {privacy_spent}")
                 if len(res) == wait_steps:
                     wait(res)
                     res = []
@@ -443,6 +464,12 @@ class FLModelFedPAC(FLModel):
                         model_params_list[idx],
                         global_protos,
                         new_cls_list[idx],
+                        epoch * train_steps_per_epoch + step,
+                        (
+                            aggregate_freq
+                            if step + aggregate_freq < train_steps_per_epoch
+                            else train_steps_per_epoch - step
+                        ),
                         **self.kwargs,
                     )
                     # local_client.apply_weights().update_local_classifier(

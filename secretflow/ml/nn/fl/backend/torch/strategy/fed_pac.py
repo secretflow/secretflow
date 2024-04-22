@@ -23,6 +23,7 @@ import torch
 from typing import Dict, Tuple
 import copy
 import numpy as np
+import logging
 
 
 class FedPAC(FedPACTorchModel):
@@ -55,6 +56,7 @@ class FedPAC(FedPACTorchModel):
         # Set mode to train model
         assert self.model is not None, "Model cannot be none, please give model define"
         v, h_ref = self.statistics_extraction()
+        logging.info(f"data type of h after use statistics_extraction:{type(h_ref)}")
         size_label = self.size_label(self.train_set).to(self.exe_device)
         agg_weight = self.aggregate_weight()
         model = self.local_model
@@ -77,7 +79,7 @@ class FedPAC(FedPACTorchModel):
         local_protos1 = self.get_local_protos()
 
         # Set optimizer for the local updates, default sgd
-        lr = kwargs.get('lr', 0.01)
+        lr = kwargs.get("lr", 0.01)
         optimizer = torch.optim.SGD(
             model.parameters(), lr, momentum=0.5, weight_decay=0.0005
         )
@@ -167,11 +169,15 @@ class FedPAC(FedPACTorchModel):
         round_loss2 = round_loss[-1]
         acc2, _ = self.local_test(self.eval_set)
 
-        logs['train-loss'] = round_loss2
+        logs["train-loss"] = round_loss2
         self.wrapped_metrics.extend(self.wrap_local_metrics())
         self.epoch_logs = copy.deepcopy(self.logs)
 
+        logging.info(f"data type of h before send back train results:{type(h_ref)}")
+        logging.info(f"physical device : {self.exe_device}")
+        logging.info(f"physical device type: {type(self.exe_device)}")
         return (
+            self.exe_device,
             v,
             h_ref,
             size_label,
@@ -189,6 +195,8 @@ class FedPAC(FedPACTorchModel):
         global_weight,
         global_protos,
         new_weight,
+        cur_steps: int,
+        train_steps: int,
         **kwargs,
     ):
         """Accept ps model params, then update local model
@@ -220,16 +228,16 @@ class FedPAC(FedPACTorchModel):
             for i in range(self.num_classes):
                 g_classes.append(torch.tensor(i))
                 g_protos.append(global_protos[i])
-            self.g_classes = torch.stack(g_classes).to(self.exe_device)
+            self.g_classes = torch.stack(g_classes).to(self.device)
             self.g_protos = torch.stack(g_protos)
 
         update_base_model(self, global_weight)
         update_global_protos(self, global_protos)
-        agg_g = kwargs.get('agg_g', 1)
-        if agg_g:
+        agg_g = kwargs.get("agg_g", 1)
+        if agg_g and cur_steps < train_steps:
             update_local_classifier(self, new_weight)
 
 
-@register_strategy(strategy_name='fed_pac', backend='torch')
+@register_strategy(strategy_name="fed_pac", backend="torch")
 class PYUFedPAC(FedPAC):
     pass
