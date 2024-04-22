@@ -51,7 +51,7 @@ class FLModelFedPAC(FLModel):
         self, physical_device_type, client_var_list_pyu, client_h_list_pyu, **kwargs
     ):
         # device = client_h_list[0].device
-        logging.info(f"collaboration compute, device: {physical_device_type}.")
+        # logging.info(f"collaboration compute, device: {physical_device_type}.")
         num_cls = client_h_list_pyu[0].data.shape[0]
         d = client_h_list_pyu[0].data.shape[1]
         avg_weight = []
@@ -80,16 +80,29 @@ class FLModelFedPAC(FLModel):
                 dist[j2][j1] = dj12
 
             p_matrix = torch.diag(v) + dist
+            # logging.info(f"1:  dimension of p_matrix:{p_matrix.shape}")
             p_matrix = p_matrix.cpu().numpy()
+            # logging.info(f"2:  dimension of p_matrix:{p_matrix.shape}")
             evals, evecs = torch.linalg.eig(torch.tensor(p_matrix))
+            # logging.info(f"type of evals: {type(evals)}")
+            # logging.info(f"evals: {evals}, evecs: {evecs}")
 
             p_matrix_new = 0
+            '''
             for i in range(num_users):
                 if evals[i, 0] >= 0.01:
                     p_matrix_new += evals[i, 0] * torch.mm(
                         evecs[:, i].reshape(num_users, 1),
                         evecs[:, i].reshape(1, num_users),
                     )
+            '''
+            for i in range(num_users):
+                if evals[i].real >= 0.01:
+                    real_part_of_evec = evecs[:, i].real.view(num_users, 1)
+                    p_matrix_new += evals[i].real * torch.mm(
+                        real_part_of_evec, real_part_of_evec.T
+                    )
+            # logging.info(f"3: p_matrix: {p_matrix}, dimension of p_matrix:{p_matrix.shape}")
 
             p_matrix = (
                 p_matrix_new.numpy()
@@ -326,12 +339,8 @@ class FLModelFedPAC(FLModel):
                         ),
                         **self.kwargs,
                     )
-                    logging.info(
-                        f"data dimension of h after recieving from clients : {client_h_ref.data.shape[0]}"
-                    )
-                    logging.info(
-                        f"data type of h after recieving from clients : {type(client_h_ref.data)}"
-                    )
+                    # logging.info(f"data dimension of h after recieving from clients : {client_h_ref.data.shape[0]}")
+                    # logging.info(f"data type of h after recieving from clients : {type(client_h_ref.data)}")
                     client_var_list.append(client_v)
                     client_h_list.append(client_h_ref)
                     client_loss1_list.append(client_loss1)
@@ -344,9 +353,7 @@ class FLModelFedPAC(FLModel):
                     sample_num_list.append(client_sample_num)
                     res.append(client_params)
 
-                logging.info(
-                    f"data type of h before compute : {type(client_h_list[0]) }"
-                )
+                # logging.info(f"data type of h before compute : {type(client_h_list[0]) }")
                 cls_weight_list = self.classifier_collaboration_weight_compute(
                     client_physical_device_type.data,
                     client_var_list,
@@ -364,8 +371,11 @@ class FLModelFedPAC(FLModel):
                     """
                     # fedpac
                     # feature extractor aggregation
+                    logging.info(
+                        f"type of client_param_list: {type(client_param_list[0])}"
+                    )
                     model_params_list = self._aggregator.average(
-                        client_param_list, axis=0, weights=sample_num_list
+                        data=client_param_list, axis=0, weights=sample_num_list
                     )
                     # global protos aggregation
                     global_protos = self._aggregator.global_protos_agg(
@@ -393,10 +403,7 @@ class FLModelFedPAC(FLModel):
                             param.to(self.server) for param in client_param_list
                         ]
                         model_params_list = self.server(
-                            self.server_agg_method,
-                            num_returns=len(
-                                self.device_list,
-                            ),
+                            self.server_agg_method, num_returns=len(self.device_list,),
                         )(model_params_list)
                         model_params_list = [
                             params.to(device)
