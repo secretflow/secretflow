@@ -14,12 +14,13 @@
 
 
 from typing import List
-
+import logging
 import numpy as np
 import torch
 import tensorflow as tf
 import copy
-from copy import deepcopy
+
+# from copy import copy, deepcopy
 import math
 
 
@@ -123,19 +124,22 @@ class FedPACAggregator(Aggregator):
 
             # fedpac
             elif isinstance(data[0], dict):
+                logging.info('feature extraction aggregation')
                 weights = torch.tensor(weights)
                 weights = weights / (weights.sum(dim=0))
 
-                res = copy(deepcopy(data[0]))
+                res = copy.deepcopy(data[0])
                 for key in res.keys():
                     res[key] = torch.zeros_like(res[key])
                     for i in range(len(data)):
                         res[key] += data[i][key] * weights[i]
+                logging.info(f'res: {res}')
                 return res
 
             else:
                 res = np.average(data, axis=axis, weights=weights)
                 res_dtype = self._get_dtype(data[0])
+                logging.info(f'res: {res}')
                 return res.astype(res_dtype) if res_dtype else res
 
         return self.device(_average)(*data, axis=axis, weights=weights)
@@ -153,13 +157,13 @@ class FedPACAggregator(Aggregator):
         Returns:
             a device object holds the weighted average.
         """
-        assert local_protos, 'Data to aggregate should not be None or empty!'
+        assert clients_protos_list, 'Data to aggregate should not be None or empty!'
 
         agg_protos_label = {}
         agg_sizes_labels = {}
         for i in range(len(clients_protos_list)):
-            local_protos = clients_protos_list[i]
-            local_label_sizes = clients_label_sizes_list[i]
+            local_protos = clients_protos_list[i].data
+            local_label_sizes = clients_label_sizes_list[i].data
             for label in local_protos.keys():
                 if label in agg_protos_label:
                     agg_protos_label[label].append(local_protos[label])
