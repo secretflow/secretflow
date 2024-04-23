@@ -381,9 +381,10 @@ class FLModelFedPAC(FLModel):
                     logging.info(
                         f"type of client_param_list: {type(client_param_list[0])}"
                     )
-                    model_params_list = self._aggregator.average(
+                    model_params = self._aggregator.average(
                         data=client_param_list, axis=0, weights=sample_num_list
                     )
+
                     # global protos aggregation
                     global_protos = self._aggregator.global_protos_agg(
                         client_protos_list, clinet_label_size_list
@@ -401,7 +402,6 @@ class FLModelFedPAC(FLModel):
                         else:
                             new_cls = client_param_list[idx]
                         new_cls_list[device] = new_cls
-                        # local_client.apply_weights().update_local_classifier(new_weight = new_cls)
 
                 else:
                     if self.server is not None:
@@ -423,28 +423,6 @@ class FLModelFedPAC(FLModel):
                             "Aggregation can be on either an aggregator or a server, but not none at the same time"
                         )
 
-                # # Do weight sparsify
-                # if self.strategy in COMPRESS_STRATEGY and server_weight:
-                #     if self._res:
-                #         self._res.to(self.server)
-                #     agg_update = model_params.to(self.server)
-                #     server_weight = server_weight.to(self.server)
-                #     server_weight, model_params, self._res = self.server(
-                #         do_compress, num_returns=3
-                #     )(
-                #         self.strategy,
-                #         self.kwargs.get('sparsity', 0.0),
-                #         server_weight,
-                #         agg_update,
-                #         self._res,
-                #     )
-                #     # Do sparse matrix encoding
-                #     if self.strategy == 'fed_stc':
-                #         model_params = model_params.to(self.server)
-                #         model_params = self.server(sparse_encode, num_return=1)(
-                #             data=model_params, encode_method='coo',
-                #         )
-
                 # DP operation
                 if dp_spent_step_freq is not None and self.dp_strategy is not None:
                     current_dp_step = math.ceil(
@@ -459,8 +437,7 @@ class FLModelFedPAC(FLModel):
                     wait(res)
                     res = []
                 if self._aggregator is not None:
-                    # model_params_list = [model_params for _ in self.device_list]
-
+                    model_params_list = [model_params for _ in self.device_list]
                     model_params_list = [
                         params.to(device)
                         for device, params in zip(self.device_list, model_params_list)
@@ -486,15 +463,8 @@ class FLModelFedPAC(FLModel):
                         ),
                         **self.kwargs,
                     )
-                    # local_client.apply_weights().update_local_classifier(
-                    #     new_weight=model_params_list[idx]
-                    # )
-                    # # update global protos
-                    # local_client.apply_weights().update_global_protos(global_protos)
-                    # # update classifier weight
-                    # local_client.apply_weights().update_classifier_weight(
-                    #     new_cls_list[idx]
-                    # )
+                    logging.info('apply_weights done')
+
 
             local_metrics_obj = []
             for device, worker in self._workers.items():
