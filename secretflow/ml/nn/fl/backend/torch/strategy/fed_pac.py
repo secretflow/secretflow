@@ -99,8 +99,10 @@ class FedPAC(FedPACTorchModel):
                 yi = labels[i].item()
                 if yi in global_protos:
                     protos_new[i] = global_protos[yi].detach()
-                else:
+                elif yi in local_protos1:  # 检查yi是否在local_protos1的键中
                     protos_new[i] = local_protos1[yi].detach()
+                else:
+                    logging.info(f"Key {yi} not found in both global_protos and local_protos1")
             loss1 = self.mse_loss(protos_new, protos)
             loss = loss0 + self.lam * loss1
             loss.backward()
@@ -157,9 +159,12 @@ class FedPAC(FedPACTorchModel):
             global_protos = self.global_protos
             g_classes, g_protos = [], []
             for i in range(self.num_classes):
-                g_classes.append(torch.tensor(i))
-                g_protos.append(global_protos[i])
-            self.g_classes = torch.stack(g_classes).to(self.device)
+                if i in global_protos:
+                    g_classes.append(torch.tensor(i))
+                    g_protos.append(global_protos[i])
+                else:
+                    logging.info(f"Key {i} not found in global_protos")
+            self.g_classes = torch.stack(g_classes).to(self.exe_device)
             self.g_protos = torch.stack(g_protos)
 
         update_base_model(self, global_weight)

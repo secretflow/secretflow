@@ -16,12 +16,13 @@
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, Tuple
 
 import numpy as np
 import pandas as pd
 import torch
 import torchmetrics
+import logging
 
 from secretflow.ml.nn.core.torch import BuilderType, module
 from secretflow.ml.nn.fl.backend.torch.sampler import sampler_data
@@ -537,11 +538,6 @@ class FedPACTorchModel(BaseTorchModel):
         size_label = py * total
         return size_label
 
-    # def sample_number(self, batch_size, cur_steps, train_steps):
-    #     dataset = self.train_set[cur_steps:cur_steps+batch_size*train_steps]
-    #     data_size = len(dataset.dataset)
-    #     w = torch.tensor(data_size).to(self.exe_device)
-    #     return w
     def sample_number(self, cur_steps, train_steps):
         # 确保cur_steps和train_steps不超过数据加载器的批次总数
         total_batches = len(self.train_set)
@@ -563,24 +559,28 @@ class FedPACTorchModel(BaseTorchModel):
         w = torch.tensor(data_size).to(self.exe_device)
         return w
 
-    def local_test(self, test_loader):
+    def evaluate(self)-> Tuple[float, float]:
+        logging.info('evaluate begin')
         model = self.local_model
-        model.eval()
         device = self.exe_device
         correct = 0
-        total = len(test_loader.dataset)
+        eval_loader = self.eval_set
+        total = len(eval_loader.dataset)
         loss_test = []
+        self.reset_metrics()
         with torch.no_grad():
-            for inputs, labels in test_loader:
+            for inputs, labels in eval_loader:
                 inputs, labels = inputs.to(device), labels.to(device)
                 _, outputs = model(inputs)
                 loss = self.criterion(outputs, labels)
                 loss_test.append(loss.item())
                 _, predicted = torch.max(outputs.data, 1)
                 correct += (predicted == labels).sum().item()
+
         acc = 100.0 * correct / total
+        logging.info('evaluate end')
         return acc, sum(loss_test) / len(loss_test)
-    
+
     def get_local_protos(self, cur_steps, train_steps):
         model = self.local_model
         local_protos_list = {}

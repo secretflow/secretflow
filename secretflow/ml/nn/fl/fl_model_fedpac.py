@@ -391,11 +391,16 @@ class FLModelFedPAC(FLModel):
                     logging.info(f'idx: {idx}, device: {device}')
                     local_client = self._workers[device]
                     logging.info(f'local_client: {local_client}')
+                    logging.info(f'global_protos: {global_protos}')
+                    model_params = model_params_list[idx].data  # 获取model_params_list中的数据
+                    new_cls = new_cls_list[device].data  # 获取new_cls_list中的数据
+                    logging.info(f'model_params: {model_params}')
+                    logging.info(f'new_cls: {new_cls}')
                     # update base model & global protos & classifier weight
                     local_client.apply_weights(
-                        model_params_list[idx],
+                        model_params,
                         global_protos,
-                        new_cls_list[self._workers.keys()[idx]].data,
+                        new_cls,
                         **self.kwargs,
                     )
                     logging.info('apply_weights done')
@@ -415,23 +420,40 @@ class FLModelFedPAC(FLModel):
             local_metrics_obj = []
             for device, worker in self._workers.items():
                 local_metrics_obj.append(worker.wrap_local_metrics())
-
+            
+            logging.info(f'local_metrics_obj: {local_metrics_obj}')
             if epoch % validation_freq == 0 and valid_x is not None:
                 callbacks.on_test_begin()
-                global_eval, local_eval = self.evaluate(
-                    valid_x,
-                    valid_y,
-                    batch_size=batch_size,
-                    sample_weight=sample_weight,
-                    return_dict=True,
-                    label_decoder=label_decoder,
-                    random_seed=random_seed,
-                    sampler_method=sampler_method,
-                    dataset_builder=dataset_builder,
-                )
-                for device, worker in self._workers.items():
-                    worker.set_validation_metrics(global_eval)
-
+                # global_eval, local_eval = self.evaluate(
+                #     valid_x,
+                #     valid_y,
+                #     batch_size=batch_size,
+                #     sample_weight=sample_weight,
+                #     return_dict=True,
+                #     label_decoder=label_decoder,
+                #     random_seed=random_seed,
+                #     sampler_method=sampler_method,
+                #     dataset_builder=dataset_builder,
+                # )
+                # for device, worker in self._workers.items():
+                #     worker.set_validation_metrics(global_eval)
+                acc_list, loss_list = [], []
+                for idx, device in enumerate(self._workers.keys()):
+                    (acc, loss ) = self._workers[device].evaluate()
+                    acc_list.append(acc)
+                    loss_list.append(loss)
+                logging.info(f'acc_list: {acc_list}')
+                logging.info(f'loss_list: {loss_list}')
+                acc_sum = 0
+                for acc in acc_list:
+                    acc_sum += acc.data
+                acc = acc_sum / len(acc_list)
+                loss_sum = 0
+                for loss in loss_list:
+                    loss_sum += loss.data
+                loss = loss_sum / len(loss_list)
+                logging.info(f'Eval ACC: {acc}')
+                logging.info(f'Eval Loss: {loss}')
                 # save checkpoint
                 if audit_log_dir is not None:
                     epoch_model_path = os.path.join(
