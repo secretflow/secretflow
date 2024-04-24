@@ -92,7 +92,7 @@ class Scaffold(BaseTorchModel):
 
                 it = (torch.Tensor(it) + self.model.c[i] - self.model.cg[i]).tolist()
 
-            model_weights = self.model.get_weights(return_numpy=True)
+            model_weights = self.get_weights(return_numpy=True)
             for i in range(len(model_weights)):
                 local_gradients[i] = local_gradients[i] * self.model.eta_l
                 model_weights[i] -= local_gradients[i]
@@ -109,7 +109,7 @@ class Scaffold(BaseTorchModel):
         self.wrapped_metrics.extend(self.wrap_local_metrics())
         self.epoch_logs = copy.deepcopy(self.logs)
 
-        model_weights = self.model.get_weights(return_numpy=True)
+        model_weights = self.get_weights(return_numpy=True)
 
         # DP operation
         if dp_strategy is not None:
