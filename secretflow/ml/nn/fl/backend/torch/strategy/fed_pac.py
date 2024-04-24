@@ -30,17 +30,15 @@ class FedPAC(FedPACTorchModel):
     def train_step(
         self, cur_steps: int, train_steps: int, **kwargs,
     ) -> Tuple[
-        float,
-        torch.Tensor,
-        torch.Tensor,
-        torch.Tensor,
+        torch.device,    
         Dict[str, torch.Tensor],
-        float,
-        float,
-        float,
-        float,
-        np.ndarray,
         list,
+        np.ndarray,
+        float,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+
     ]:
         """Accept ps model params, then do local train
 
@@ -53,28 +51,21 @@ class FedPAC(FedPACTorchModel):
         """
         # Set mode to train model
         assert self.model is not None, "Model cannot be none, please give model define"
-        v, h_ref = self.statistics_extraction()
-        # logging.info(f"data type of h after use statistics_extraction:{type(h_ref)}")
-        size_label = self.size_label(self.train_set).to(self.exe_device)
-        agg_weight = self.aggregate_weight()
+        v, h_ref = self.statistics_extraction(cur_steps, train_steps)
+        size_label = self.size_label(self.train_set, cur_steps, train_steps).to(self.exe_device)
+        sample_num = self.sample_number(cur_steps, train_steps)
         model = self.local_model
         model.train()
         refresh_data = kwargs.get("refresh_data", False)
         if refresh_data:
             self._reset_data_iter()
         logs = {}
-        round_loss = []
         iter_loss = []
         model.zero_grad()
-        # grad_accum = []
         global_protos = self.global_protos
-        # g_protos = self.g_protos
-
-        acc0, _ = self.local_test(self.eval_set)
         self.last_model = deepcopy(model)
-
         # get local prototypes before training, dict:={label: list of sample features}
-        local_protos1 = self.get_local_protos()
+        local_protos1 = self.get_local_protos(cur_steps, train_steps)
 
         # Set optimizer for the local updates, default sgd
         lr = kwargs.get("lr", 0.01)
@@ -82,113 +73,54 @@ class FedPAC(FedPACTorchModel):
             model.parameters(), lr, momentum=0.5, weight_decay=0.0005
         )
 
-        local_ep_rep = train_steps
-        epoch_classifier = 1
-        train_steps = int(epoch_classifier + local_ep_rep)
-
-        if train_steps > 0:
-            for name, param in model.named_parameters():
-                if name in self.w_local_keys:
-                    param.requires_grad = True
+        for name, param in model.named_parameters():
+            if name in self.w_local_keys:
+                param.requires_grad = False
+            else:
+                param.requires_grad = True
+        optimizer = torch.optim.SGD(
+            filter(lambda p: p.requires_grad, model.parameters()),
+            lr,
+            momentum=0.5,
+            weight_decay=0.0005,
+        )
+        for step in range(train_steps):
+            images, labels, _ = self.next_batch()
+            images, labels = (
+                images.to(self.exe_device),
+                labels.to(self.exe_device),
+            )            
+            model.zero_grad()
+            protos, output = model(images)
+            loss0 = self.criterion(output, labels)
+            loss1 = 0
+            protos_new = protos.clone().detach()
+            for i in range(len(labels)):
+                yi = labels[i].item()
+                if yi in global_protos:
+                    protos_new[i] = global_protos[yi].detach()
                 else:
-                    param.requires_grad = False
-            lr_g = 0.1
-            optimizer = torch.optim.SGD(
-                filter(lambda p: p.requires_grad, model.parameters()),
-                lr=lr_g,
-                momentum=0.5,
-                weight_decay=0.0005,
-            )
-            for ep in range(epoch_classifier):
-                # local training for 1 epoch
-                data_loader = iter(self.train_set)
-                iter_num = len(data_loader)
-                for it in range(iter_num):
-                    images, labels = next(data_loader)
-                    images, labels = (
-                        images.to(self.exe_device),
-                        labels.to(self.exe_device),
-                    )
-                    model.zero_grad()
-                    protos, output = model(images)
-                    loss = self.criterion(output, labels)
-                    loss.backward()
-                    optimizer.step()
-                    iter_loss.append(loss.item())
-                round_loss.append(sum(iter_loss) / len(iter_loss))
-                iter_loss = []
-            # ---------------------------------------------------------------------------
-
-            acc1, _ = self.local_test(self.eval_set)
-
-            for name, param in model.named_parameters():
-                if name in self.w_local_keys:
-                    param.requires_grad = False
-                else:
-                    param.requires_grad = True
-            optimizer = torch.optim.SGD(
-                filter(lambda p: p.requires_grad, model.parameters()),
-                lr,
-                momentum=0.5,
-                weight_decay=0.0005,
-            )
-
-            for ep in range(local_ep_rep):
-                data_loader = iter(self.train_set)
-                iter_num = len(data_loader)
-                for it in range(iter_num):
-                    images, labels = next(data_loader)
-                    images, labels = (
-                        images.to(self.exe_device),
-                        labels.to(self.exe_device),
-                    )
-                    model.zero_grad()
-                    protos, output = model(images)
-                    loss0 = self.criterion(output, labels)
-                    loss1 = 0
-                    if cur_steps > 0:
-                        loss1 = 0
-                        protos_new = protos.clone().detach()
-                        for i in range(len(labels)):
-                            yi = labels[i].item()
-                            if yi in global_protos:
-                                protos_new[i] = global_protos[yi].detach()
-                            else:
-                                protos_new[i] = local_protos1[yi].detach()
-                        loss1 = self.mse_loss(protos_new, protos)
-                    loss = loss0 + self.lam * loss1
-                    loss.backward()
-                    optimizer.step()
-                    iter_loss.append(loss.item())
-                round_loss.append(sum(iter_loss) / len(iter_loss))
-                iter_loss = []
-
-        # ------------------------------------------------------------------------
-        local_protos2 = self.get_local_protos()
-        round_loss1 = round_loss[0]
-        round_loss2 = round_loss[-1]
-        acc2, _ = self.local_test(self.eval_set)
-
-        logs["train-loss"] = round_loss2
+                    protos_new[i] = local_protos1[yi].detach()
+            loss1 = self.mse_loss(protos_new, protos)
+            loss = loss0 + self.lam * loss1
+            loss.backward()
+            optimizer.step()
+            iter_loss.append(loss.item())
+        local_protos2 = self.get_local_protos(cur_steps, train_steps)
+        train_loss = sum(iter_loss) / len(iter_loss)
+        logs['train-loss'] = train_loss
         self.wrapped_metrics.extend(self.wrap_local_metrics())
         self.epoch_logs = copy.deepcopy(self.logs)
 
-        # logging.info(f"data type of h before send back train results:{type(h_ref)}")
-        # logging.info(f"physical device : {self.exe_device}")
-        # logging.info(f"physical device type: {type(self.exe_device)}")
         return (
             self.exe_device,
+            model.state_dict(),
+            self.w_local_keys,
+            local_protos2,
             v,
             h_ref,
             size_label,
-            agg_weight,
-            model.state_dict(),
-            round_loss1,
-            round_loss2,
-            acc0,
-            acc2,
-            local_protos2,
-            self.w_local_keys,
+            sample_num,
         )
 
     def apply_weights(
@@ -196,8 +128,6 @@ class FedPAC(FedPACTorchModel):
         global_weight,
         global_protos,
         new_weight,
-        cur_steps: int,
-        train_steps: int,
         **kwargs,
     ):
         """Accept ps model params, then update local model
@@ -235,7 +165,7 @@ class FedPAC(FedPACTorchModel):
         update_base_model(self, global_weight)
         update_global_protos(self, global_protos)
         agg_g = kwargs.get("agg_g", 1)
-        if agg_g and cur_steps < train_steps:
+        if agg_g:
             update_local_classifier(self, new_weight)
 
 

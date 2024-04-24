@@ -51,7 +51,6 @@ class FLModelFedPAC(FLModel):
         self, physical_device_type, client_var_list_pyu, client_h_list_pyu, **kwargs
     ):
         # device = client_h_list[0].device
-        # logging.info(f"collaboration compute, device: {physical_device_type}.")
         num_cls = client_h_list_pyu[0].data.shape[0]
         d = client_h_list_pyu[0].data.shape[1]
         avg_weight = []
@@ -59,16 +58,13 @@ class FLModelFedPAC(FLModel):
         client_var_list = [v.data for v in client_var_list_pyu]
         client_h_list = [h.data for h in client_h_list_pyu]
         for i in range(num_users):
-            # v = torch.tensor(client_var_list, device=device)
             v = torch.tensor(client_var_list, device=physical_device_type)
             h_ref = client_h_list[i]
 
-            # dist = torch.zeros((num_users, num_users), device=device)
             dist = torch.zeros((num_users, num_users), device=physical_device_type)
             for j1, j2 in self.pairwise(tuple(range(num_users))):
                 h_j1 = client_h_list[j1]
                 h_j2 = client_h_list[j2]
-                # h = torch.zeros((d, d), device=device)
                 h = torch.zeros((d, d), device=physical_device_type)
                 for k in range(num_cls):
                     h += torch.mm(
@@ -80,29 +76,16 @@ class FLModelFedPAC(FLModel):
                 dist[j2][j1] = dj12
 
             p_matrix = torch.diag(v) + dist
-            # logging.info(f"1:  dimension of p_matrix:{p_matrix.shape}")
             p_matrix = p_matrix.cpu().numpy()
-            # logging.info(f"2:  dimension of p_matrix:{p_matrix.shape}")
             evals, evecs = torch.linalg.eig(torch.tensor(p_matrix))
-            # logging.info(f"type of evals: {type(evals)}")
-            # logging.info(f"evals: {evals}, evecs: {evecs}")
-
             p_matrix_new = 0
-            '''
-            for i in range(num_users):
-                if evals[i, 0] >= 0.01:
-                    p_matrix_new += evals[i, 0] * torch.mm(
-                        evecs[:, i].reshape(num_users, 1),
-                        evecs[:, i].reshape(1, num_users),
-                    )
-            '''
+
             for i in range(num_users):
                 if evals[i].real >= 0.01:
                     real_part_of_evec = evecs[:, i].real.view(num_users, 1)
                     p_matrix_new += evals[i].real * torch.mm(
                         real_part_of_evec, real_part_of_evec.T
                     )
-            # logging.info(f"3: p_matrix: {p_matrix}, dimension of p_matrix:{p_matrix.shape}")
 
             p_matrix = (
                 p_matrix_new.numpy()
@@ -265,34 +248,25 @@ class FLModelFedPAC(FLModel):
             steps=train_steps_per_epoch,
         )
 
-        # initial_weight = self.initialize_weights()
-        # logging.debug(f"initial_weight: {initial_weight}")
-        # server_weight = None
-        # if self.server and isinstance(initial_weight, PYUObject):
-        #     server_weight = initial_weight
-
         callbacks.on_train_begin()
         model_params = None
         model_params_list = None
+
         for epoch in range(epochs):
             res = []
             report_list = []
-
             # do train
             report_list.append(f"epoch: {epoch+1}/{epochs} - ")
             callbacks.on_epoch_begin(epoch=epoch)
             for step in range(0, train_steps_per_epoch, aggregate_freq):
-                callbacks.on_train_batch_begin(batch=step)
-
-                client_var_list, client_h_list = [], []
-                client_loss1_list, client_loss2_list = [], []
-                client_acc1_list, client_acc2_list = [], []
+                callbacks.on_train_batch_begin(batch=step)                
+                client_param_list = []
                 client_protos_list = []
-                clinet_label_size_list = []
-                client_param_list, sample_num_list = [], []
+                client_var_list, client_h_list = [], []
+                client_label_size_list = []
+                sample_num_list = []
                 client_classifier_weight_keys = []
                 for idx, device in enumerate(self._workers.keys()):
-
                     client_params = (
                         model_params_list[idx].to(device)
                         if model_params_list is not None
@@ -304,34 +278,15 @@ class FLModelFedPAC(FLModel):
                     else:
                         self.kwargs["refresh_data"] = False
 
-                    """   
-                    client_params, sample_num = self._workers[device].train_step(
-                        client_params,
-                        epoch * train_steps_per_epoch + step,
-                        (
-                            aggregate_freq
-                            if step + aggregate_freq < train_steps_per_epoch
-                            else train_steps_per_epoch - step
-                        ),
-                        **self.kwargs,
-                    )
-                    client_param_list.append(client_params)
-                    sample_num_list.append(sample_num)
-                    res.append(client_params)
-                    """
                     (
                         client_physical_device_type,
-                        client_v,
-                        client_h_ref,
-                        client_label_size,
-                        client_sample_num,
                         client_param,
-                        client_loss1,
-                        clinet_loss2,
-                        client_acc1,
-                        client_acc2,
-                        client_proto,
                         client_cls_weight_keys,
+                        client_protos,
+                        client_var,
+                        client_h,
+                        client_label_size,
+                        sample_num,     
                     ) = self._workers[device].train_step(
                         epoch * train_steps_per_epoch + step,
                         (
@@ -341,26 +296,15 @@ class FLModelFedPAC(FLModel):
                         ),
                         **self.kwargs,
                     )
-                    # logging.info(f"data dimension of h after recieving from clients : {client_h_ref.data.shape[0]}")
-                    # logging.info(f"data type of h after recieving from clients : {type(client_h_ref.data)}")
-                    logging.info(f"client_cls_weight_keys: {client_cls_weight_keys}")
-                    logging.info(f"client_cls_weight_keys type: {type(client_cls_weight_keys)}")
-                    logging.info(f'client_cls_weight_keys.data[0]: {client_cls_weight_keys.data[0]}')
-                    logging.info(f"client_cls_weight_keys.data[0] type: {type(client_cls_weight_keys.data[0])}")
-                    client_var_list.append(client_v)
-                    client_h_list.append(client_h_ref)
-                    client_loss1_list.append(client_loss1)
-                    client_loss2_list.append(clinet_loss2)
-                    client_acc1_list.append(client_acc1)
-                    client_acc2_list.append(client_acc2)
-                    client_protos_list.append(client_proto)
-                    clinet_label_size_list.append(client_label_size)
                     client_param_list.append(client_param)
-                    sample_num_list.append(client_sample_num)
                     client_classifier_weight_keys.append(client_cls_weight_keys)
+                    client_protos_list.append(client_protos)
+                    client_var_list.append(client_var)
+                    client_h_list.append(client_h)
+                    client_label_size_list.append(client_label_size)
+                    sample_num_list.append(sample_num)
                     res.append(client_params)
 
-                # logging.info(f"data type of h before compute : {type(client_h_list[0]) }")
                 cls_weight_list = self.classifier_collaboration_weight_compute(
                     client_physical_device_type.data,
                     client_var_list,
@@ -371,27 +315,17 @@ class FLModelFedPAC(FLModel):
                 new_cls_list = {}
 
                 if self._aggregator is not None:
-                    """
-                    model_params = self._aggregator.average(
-                        client_param_list, axis=0, weights=sample_num_list
-                    )
-                    """
                     # fedpac
                     # feature extractor aggregation
-                    logging.info(
-                        f"type of client_param_list: {type(client_param_list[0])}"
-                    )
                     model_params = self._aggregator.average(
                         data=client_param_list, axis=0, weights=sample_num_list
                     )
-
                     # global protos aggregation
                     global_protos = self._aggregator.global_protos_agg(
-                        client_protos_list, clinet_label_size_list
+                        client_protos_list, client_label_size_list
                     )
                     # classifier aggregation
                     for idx, device in enumerate(self._workers.keys()):
-                        local_client = self._workers[device]
                         if cls_weight_list[idx] is not None:
                             new_cls = self._aggregator.classifier_weighted_aggregation(
                                 client_param_list,
@@ -445,25 +379,37 @@ class FLModelFedPAC(FLModel):
                 callbacks.on_train_batch_end(batch=step)
 
             # last batch
-            # fedpac
             # update local infomation of every client
             if self._aggregator is not None:
+                logging.info(f'new_cls_list: {new_cls_list}')
+                logging.info(f'model_params_list: {model_params_list}')
+                logging.info(f'new_cls_list type: {type(new_cls_list)}')
+                logging.info(f'model_params_list type: {type(model_params_list)}')
+                # logging.info(f'new_cls_list data: {new_cls_list.data}')
+                logging.info(f'self._workers.keys(): {self._workers.keys()}')
                 for idx, device in enumerate(self._workers.keys()):
+                    logging.info(f'idx: {idx}, device: {device}')
                     local_client = self._workers[device]
+                    logging.info(f'local_client: {local_client}')
                     # update base model & global protos & classifier weight
                     local_client.apply_weights(
                         model_params_list[idx],
                         global_protos,
-                        new_cls_list[idx],
-                        epoch * train_steps_per_epoch + step,
-                        (
-                            aggregate_freq
-                            if step + aggregate_freq < train_steps_per_epoch
-                            else train_steps_per_epoch - step
-                        ),
+                        new_cls_list[self._workers.keys()[idx]].data,
                         **self.kwargs,
                     )
                     logging.info('apply_weights done')
+            # if self._aggregator is not None:
+            #     for idx, device in enumerate(self._workers.keys()):
+            #         local_client = self._workers[device]
+            #         # update base model & global protos & classifier weight
+            #         local_client.apply_weights(
+            #             model_params_list[idx],
+            #             global_protos,
+            #             new_cls_list[idx],
+            #             **self.kwargs,
+            #         )
+            #         logging.info('apply_weights done')
 
 
             local_metrics_obj = []

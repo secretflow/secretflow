@@ -490,33 +490,76 @@ class FedPACTorchModel(BaseTorchModel):
             raise Exception(f"Illegal argument stage={stage}")
         return step_per_epoch
 
-    def prior_label(self, dataset):
+    def prior_label(self, dataset, cur_steps, train_steps):
         py = torch.zeros(self.num_classes)
-        total = len(dataset.dataset)
+        step_counter = 0
+        total_steps = 0
         data_loader = iter(dataset)
-        iter_num = len(data_loader)
+        # iter_num = len(data_loader)
+        iter_num = min(len(data_loader), cur_steps + train_steps)
         for it in range(iter_num):
             images, labels = next(data_loader)
+            if total_steps < cur_steps:
+                total_steps += 1
+                continue
+            if step_counter >= train_steps:
+                break
             for i in range(self.num_classes):
                 py[i] = py[i] + (i == labels).sum()
+            step_counter += 1
+            total_steps += 1
+        
+        total = step_counter * dataset.batch_size
         py = py / (total)
         return py
 
-    def size_label(self, dataset):
+    def size_label(self, dataset, cur_steps, train_steps):
         py = torch.zeros(self.num_classes)
-        total = len(dataset.dataset)
+        step_counter = 0
+        total_steps = 0
         data_loader = iter(dataset)
-        iter_num = len(data_loader)
+        # iter_num = len(data_loader)
+        iter_num = min(len(data_loader), cur_steps + train_steps)
         for it in range(iter_num):
             images, labels = next(data_loader)
+            if total_steps < cur_steps:
+                total_steps += 1
+                continue
+            if step_counter >= train_steps:
+                break
             for i in range(self.num_classes):
                 py[i] = py[i] + (i == labels).sum()
+            step_counter += 1
+            total_steps += 1
+        
+        total = step_counter * dataset.batch_size
         py = py / (total)
         size_label = py * total
         return size_label
 
-    def aggregate_weight(self):
-        data_size = len(self.train_set.dataset)
+    # def sample_number(self, batch_size, cur_steps, train_steps):
+    #     dataset = self.train_set[cur_steps:cur_steps+batch_size*train_steps]
+    #     data_size = len(dataset.dataset)
+    #     w = torch.tensor(data_size).to(self.exe_device)
+    #     return w
+    def sample_number(self, cur_steps, train_steps):
+        # 确保cur_steps和train_steps不超过数据加载器的批次总数
+        total_batches = len(self.train_set)
+        # 计算实际需要迭代的批次数，不能超过数据加载器的批次总数
+        actual_steps = min(train_steps, total_batches - cur_steps)
+        
+        # 如果cur_steps超出了批次总数，实际步数为0
+        if cur_steps >= total_batches:
+            actual_steps = 0
+        
+        # 计算总数据量
+        if actual_steps > 0:
+            # 计算从cur_steps开始的actual_steps批次中的总数据量
+            data_size = actual_steps * self.train_set.batch_size
+        else:
+            # 如果没有有效的批次要处理，数据量为0
+            data_size = 0
+
         w = torch.tensor(data_size).to(self.exe_device)
         return w
 
@@ -537,11 +580,21 @@ class FedPACTorchModel(BaseTorchModel):
                 correct += (predicted == labels).sum().item()
         acc = 100.0 * correct / total
         return acc, sum(loss_test) / len(loss_test)
-
-    def get_local_protos(self):
+    
+    def get_local_protos(self, cur_steps, train_steps):
         model = self.local_model
         local_protos_list = {}
+        # 初始化计数器
+        step_counter = 0
+        total_steps = 0  # 总步数计数器
         for inputs, labels in self.train_set:
+            # 检查总步数是否已达到cur_steps，如果没有则继续
+            if total_steps < cur_steps:
+                total_steps += 1
+                continue
+            # 检查从cur_steps开始的步数是否已达到train_steps
+            if step_counter >= train_steps:
+                break
             inputs, labels = inputs.to(self.exe_device), labels.to(self.exe_device)
             features, outputs = model(inputs)
             protos = features.clone().detach()
@@ -550,6 +603,10 @@ class FedPACTorchModel(BaseTorchModel):
                     local_protos_list[labels[i].item()].append(protos[i, :])
                 else:
                     local_protos_list[labels[i].item()] = [protos[i, :]]
+            # 增加计数器
+            step_counter += 1
+            total_steps += 1
+
         local_protos = {}
         for [label, proto_list] in local_protos_list.items():
             proto = 0 * proto_list[0]
@@ -558,7 +615,7 @@ class FedPACTorchModel(BaseTorchModel):
             local_protos[label] = proto / len(proto_list)
         return local_protos
 
-    def statistics_extraction(self):
+    def statistics_extraction(self, cur_steps, train_steps):
         model = self.local_model
         cls_keys = self.w_local_keys
         g_params = (
@@ -569,7 +626,15 @@ class FedPACTorchModel(BaseTorchModel):
         d = g_params[0].shape[0]
         feature_dict = {}
         with torch.no_grad():
+            step_counter = 0
+            total_steps = 0
             for inputs, labels in self.train_set:
+                if total_steps < cur_steps:
+                    total_steps += 1
+                    continue
+                if step_counter >= train_steps:
+                    break
+
                 inputs, labels = inputs.to(self.exe_device), labels.to(self.exe_device)
                 features, outputs = model(inputs)
                 feat_batch = features.clone().detach()
@@ -579,12 +644,16 @@ class FedPACTorchModel(BaseTorchModel):
                         feature_dict[yi].append(feat_batch[i, :])
                     else:
                         feature_dict[yi] = [feat_batch[i, :]]
+                step_counter += 1
+                total_steps += 1
+
         for k in feature_dict.keys():
             feature_dict[k] = torch.stack(feature_dict[k])
-        py = self.prior_label(self.train_set).to(self.exe_device)
+        
+        py = self.prior_label(self.train_set, cur_steps, train_steps).to(self.exe_device)
         py2 = py.mul(py)
         v = 0
-        datasize = torch.tensor(len(self.train_set.dataset)).to(self.exe_device)
+        datasize = torch.tensor(step_counter * self.train_set.batch_size).to(self.exe_device)
         h_ref = torch.zeros((self.num_classes, d), device=self.exe_device)
         for k in range(self.num_classes):
             if k in feature_dict.keys():
