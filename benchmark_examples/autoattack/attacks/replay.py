@@ -12,45 +12,68 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
+from typing import Dict, Tuple
+
+import numpy as np
 
 from benchmark_examples.autoattack import global_config
-from benchmark_examples.autoattack.attacks.base import AttackCase
-from secretflow import reveal, tune
+from benchmark_examples.autoattack.applications.base import ApplicationBase
+from benchmark_examples.autoattack.attacks.base import AttackBase, AttackType
+from secretflow.ml.nn.callbacks.attack import AttackCallback
 from secretflow.ml.nn.sl.attacks.replay_attack_torch import ReplayAttack
 
 
-class ReplayAttackCase(AttackCase):
-    def _attack(self):
-        self.app.prepare_data()
+class ReplayAttackCase(AttackBase):
+    """
+    Replay attack needs:
+    - target class such as 8
+    - choose some (like 15) target set with target indexes.
+    - same as train, chosse some eval poison set.
+    """
+
+    def __str__(self):
+        return 'replay'
+
+    def __init__(self, alice=None, bob=None):
+        super().__init__(alice, bob)
+        self.target_class = None
+        self.eval_set = None
+
+    def build_attack_callback(self, app: ApplicationBase) -> AttackCallback | None:
         target_nums = self.config.get('target_nums', 15)
-        target_class, target_set, eval_set = self.app.replay_auxiliary_attack_configs(
-            target_nums
+        if app.num_classes == 2:
+            self.target_class = 1
+            self.poison_class = 0
+        else:
+            self.target_class = 5
+            self.poison_class = 1
+        target_indexes = np.where(
+            np.array(app.get_plain_train_label()) == self.target_class
+        )[0]
+        target_set = np.random.choice(target_indexes, target_nums, replace=False)
+        eval_indexes = np.where(
+            np.array(app.get_plain_test_label()) == self.poison_class
+        )[0]
+        self.eval_set = np.random.choice(
+            eval_indexes, min(100, len(eval_indexes) - 1), replace=False
         )
-        replay_cb = ReplayAttack(
-            self.alice if self.app.device_y == self.bob else self.bob,
+        return ReplayAttack(
+            self.alice if app.device_y == self.bob else self.bob,
             target_set,
-            eval_set,
-            batch_size=self.app.train_batch_size,
+            self.eval_set,
+            batch_size=app.train_batch_size,
             exec_device='cuda' if global_config.is_use_gpu() else 'cpu',
         )
-        history = self.app.train(replay_cb)
-        preds = self.app.predict(callbacks=replay_cb)
-        attack_metrics = replay_cb.get_attack_metrics(
-            reveal(preds), target_class, eval_set
-        )
-        logging.warning(
-            f"RESULT: {type(self.app).__name__} replay attack metrics = {attack_metrics}"
-        )
-        return history, attack_metrics
 
-    def attack_search_space(self):
-        return {
-            'target_nums': tune.search.grid_search([50, 100]),
-        }
+    def attack_type(self) -> AttackType:
+        return AttackType.BACKDOOR
 
-    def metric_name(self):
-        return 'acc'
+    def attack_metrics_params(self) -> Tuple | None:
+        assert self.target_class is not None and self.eval_set is not None
+        return self.target_class, self.eval_set
 
-    def metric_mode(self):
-        return 'max'
+    def tune_metrics(self) -> Dict[str, str]:
+        return {'acc': 'max'}
+
+    def check_app_valid(self, app: ApplicationBase) -> bool:
+        return True

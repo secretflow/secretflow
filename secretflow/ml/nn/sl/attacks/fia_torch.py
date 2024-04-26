@@ -147,7 +147,7 @@ class FeatureInferenceAttacker:
         enable_var: bool = False,
         mean_lambda: float = 1.2,
         var_lambda: float = 0.25,
-        victim_mean_feature: np.ndarray = None,
+        victim_mean_feature: np.ndarray | torch.Tensor = None,
         epochs: int = 60,
         exec_device: str = 'cpu',
         load_model_path: str = None,
@@ -195,7 +195,11 @@ class FeatureInferenceAttacker:
         self.enable_var = enable_var
         self.mean_lambda = mean_lambda
         self.var_lambda = var_lambda
-        self.victim_mean_feature = torch.from_numpy(victim_mean_feature)
+        self.victim_mean_feature = (
+            torch.from_numpy(victim_mean_feature)
+            if isinstance(victim_mean_feature, np.ndarray)
+            else victim_mean_feature
+        )
         if enable_mean:
             assert (
                 victim_mean_feature is not None

@@ -18,8 +18,6 @@ import os
 import pandas as pd
 import tensorflow as tf
 from google.protobuf.json_format import MessageToJson
-from sklearn.preprocessing import LabelEncoder, MinMaxScaler
-
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.ml.nn.sl import slnn_predict_comp, slnn_train_comp
 from secretflow.spec.v1.component_pb2 import Attribute
@@ -32,6 +30,7 @@ from secretflow.spec.v1.data_pb2 import (
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
 from secretflow.utils.simulation.datasets import dataset
+from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 from tests.conftest import prepare_storage_path
 
 from .model_def import MODELS_CODE
@@ -48,6 +47,7 @@ def get_train_param(alice_path, bob_path, model_path):
             "learning_rate",
             "batch_size",
             "validattion_prop",
+            "loss",
             "loss/builtin",
             "optimizer/name",
             "optimizer/params",
@@ -66,6 +66,7 @@ def get_train_param(alice_path, bob_path, model_path):
             Attribute(f=0.001),
             Attribute(i64=32),
             Attribute(f=0.2),
+            Attribute(s="builtin"),
             Attribute(s="binary_crossentropy"),
             Attribute(s="Adam"),
             Attribute(s=""),
@@ -130,7 +131,7 @@ def get_pred_param(alice_path, bob_path, train_res, predict_path):
     return NodeEvalParam(
         domain="ml.predict",
         name="slnn_predict",
-        version="0.0.1",
+        version="0.0.2",
         attr_paths=[
             "batch_size",
             "receiver",
@@ -140,7 +141,7 @@ def get_pred_param(alice_path, bob_path, train_res, predict_path):
         ],
         attrs=[
             Attribute(i64=128),
-            Attribute(s="alice"),
+            Attribute(ss=["alice"]),
             Attribute(s="y_pred"),
             Attribute(b=False),
             Attribute(b=True),

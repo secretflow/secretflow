@@ -41,7 +41,7 @@ def _predict_on_padded_array(
     y_scale: float,
     link: Linker,
 ):
-    o = 0 if o is None else o
+    o = 0 if o is None else o.reshape((-1, 1))
     pred = jnp.matmul(x, w) + o
     return link.response(pred) * y_scale
 

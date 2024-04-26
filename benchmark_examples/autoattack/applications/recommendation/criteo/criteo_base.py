@@ -14,15 +14,23 @@
 
 from abc import ABC
 from collections import OrderedDict
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional
 
 import numpy as np
+import pandas as pd
 import torch
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import Dataset
 
-from benchmark_examples.autoattack.applications.base import ApplicationBase
+from benchmark_examples.autoattack import global_config
+from benchmark_examples.autoattack.applications.base import (
+    ApplicationBase,
+    ClassficationType,
+    DatasetType,
+    InputMode,
+)
 from benchmark_examples.autoattack.global_config import is_simple_test
+from benchmark_examples.autoattack.utils.data_utils import get_sample_indexes
 from secretflow import reveal
 from secretflow.data.split import train_test_split
 from secretflow.utils.simulation import datasets
@@ -64,10 +72,10 @@ sparse_classes = OrderedDict(
 )
 
 
-class AliceDataset(Dataset):
-    def __init__(self, x, has_label=True):
+class CriteoDataset(Dataset):
+    def __init__(self, x, enable_label=0, indexes: np.ndarray = None):
         df = x[0].fillna('-1')
-        self.has_label = has_label
+        self.enable_label = enable_label
         self.tensors = []
         my_sparse_cols = []
         has_dense = False
@@ -76,6 +84,8 @@ class AliceDataset(Dataset):
                 lbe = LabelEncoder()
                 v = lbe.fit_transform(df[col].fillna('0'))
                 my_sparse_cols.append(col)
+                if indexes is not None:
+                    v = v[indexes]
                 self.tensors.append(torch.tensor(v, dtype=torch.long))
             else:
                 has_dense = True
@@ -84,12 +94,14 @@ class AliceDataset(Dataset):
             df = df.fillna(0)
             mms = MinMaxScaler(feature_range=(0, 1))
             self.dense_array = mms.fit_transform(df).astype(np.float32)
+            if indexes is not None:
+                self.dense_array = self.dense_array[indexes]
             self.tensors.insert(0, torch.tensor(self.dense_array))
-        if has_label:
+        if enable_label != 1:
             self.label_tensor = torch.tensor(x[1].values.astype(np.float32))
 
     def __getitem__(self, index):
-        if self.has_label:
+        if self.enable_label != 1:
             return (
                 tuple(tensor[index] for tensor in self.tensors),
                 self.label_tensor[index],
@@ -104,39 +116,24 @@ class AliceDataset(Dataset):
         return self.dense_array
 
 
-class BobDataset(Dataset):
-    def __init__(self, x):
-        df = x[0].fillna('-1')
-        self.tensors = []
-        my_sparse_cols = []
-        has_dense = False
-        for col in df.columns:
-            if col in sparse_classes.keys():
-                lbe = LabelEncoder()
-                v = lbe.fit_transform(df[col])
-                my_sparse_cols.append(col)
-                self.tensors.append(torch.tensor(v, dtype=torch.long))
-            else:
-                has_dense = True
-        if has_dense:
-            df = df.drop(columns=my_sparse_cols)
-            df = df.fillna(0)
-            mms = MinMaxScaler(feature_range=(0, 1))
-            dense_array = mms.fit_transform(df).astype(np.float32)
-            self.tensors.insert(0, torch.tensor(dense_array))
-
-    def __getitem__(self, index):
-        # 这里和tf实现有不同，tf使用了feature_column.categorical_column_with_identity
-        return tuple(tensor[index] for tensor in self.tensors)
-
-    def __len__(self):
-        return self.tensors[0].size(0)
+def process_data(data: pd.DataFrame):
+    data = data.fillna('-1')
+    sparse_cols = []
+    for col in data.columns:
+        if col in sparse_classes.keys():
+            sparse_cols.append(col)
+            lbe = LabelEncoder()
+            data[col] = lbe.fit_transform(data[col])
+    data = data.drop(columns=sparse_cols)
+    data = data.fillna(0)
+    mms = MinMaxScaler(feature_range=(0, 1))
+    data = mms.fit_transform(data).astype(np.float32)
+    return data
 
 
 class CriteoBase(ApplicationBase, ABC):
     def __init__(
         self,
-        config,
         alice,
         bob,
         epoch=1,
@@ -150,9 +147,9 @@ class CriteoBase(ApplicationBase, ABC):
         deepfm_embedding_dim=None,
     ):
         super().__init__(
-            config,
             alice,
             bob,
+            has_custom_dataset=True,
             device_y=bob,
             total_fea_nums=39,
             alice_fea_nums=alice_fea_nums,
@@ -166,6 +163,17 @@ class CriteoBase(ApplicationBase, ABC):
             dnn_embedding_dim=dnn_embedding_dim,
             deepfm_embedding_dim=deepfm_embedding_dim,
         )
+        self.train_dataset_len = 800000
+        self.test_dataset_len = 200000
+        if global_config.is_simple_test():
+            self.train_dataset_len = 800
+            self.test_dataset_len = 200
+
+    def dataset_name(self):
+        return 'criteo'
+
+    def set_config(self, config: Dict[str, str] | None):
+        super().set_config(config)
         self.alice_input_dims = []
         self.alice_sparse_indexes = None
         self.alice_dense_indexes = [0]
@@ -194,10 +202,6 @@ class CriteoBase(ApplicationBase, ABC):
             )
             self.bob_sparse_indexes = [i for i in range(1, len(self.bob_input_dims))]
             self.bob_dense_indexes = [0]
-        self.plain_alice_train_data = None
-        self.plain_bob_train_data = None
-        self.plain_train_label = None
-        self.plain_test_label = None
 
     def prepare_data(self):
         random_state = 1234
@@ -211,19 +215,13 @@ class CriteoBase(ApplicationBase, ABC):
             num_samples=num_samples,
         )
         label = datasets.load_criteo({self.bob: (0, 1)}, num_samples=num_samples)
-
-        self.train_data, self.test_data = train_test_split(
+        train_data, test_data = train_test_split(
             data, train_size=0.8, random_state=random_state
         )
-        self.train_label, self.test_label = train_test_split(
+        train_label, test_label = train_test_split(
             label, train_size=0.8, random_state=random_state
         )
-        self.plain_alice_train_data = reveal(
-            self.train_data.partitions[self.alice].data
-        )
-        self.plain_train_label = reveal(self.train_label.partitions[self.bob].data)
-        self.plain_test_label = reveal(self.test_label.partitions[self.bob].data)
-        self.plain_bob_train_data = reveal(self.train_data.partitions[self.bob].data)
+        return train_data, train_label, test_data, test_label
 
     def create_dataset_builder_alice(self):
         train_batch_size = self.train_batch_size
@@ -231,7 +229,7 @@ class CriteoBase(ApplicationBase, ABC):
         def dataset_builder(x):
             import torch.utils.data as torch_data
 
-            data_set = AliceDataset(x, has_label=False)
+            data_set = CriteoDataset(x, enable_label=1)
             dataloader = torch_data.DataLoader(
                 dataset=data_set, batch_size=train_batch_size
             )
@@ -245,7 +243,7 @@ class CriteoBase(ApplicationBase, ABC):
         def dataset_builder(x):
             import torch.utils.data as torch_data
 
-            data_set = AliceDataset(x, has_label=True)
+            data_set = CriteoDataset(x, enable_label=0)
             dataloader = torch_data.DataLoader(
                 dataset=data_set, batch_size=train_batch_size
             )
@@ -261,99 +259,135 @@ class CriteoBase(ApplicationBase, ABC):
     def create_predict_dataset_builder_bob(self, *args, **kwargs) -> Optional[Callable]:
         return self.create_dataset_builder_alice()
 
-    def alice_feature_nums_range(self) -> list:
-        # support range 1 - 37
-        return [2, 5, 13, 18, 37]
+    def get_plain_train_alice_data(self):
+        if self._plain_train_alice_data is not None:
+            return self._plain_train_alice_data
 
-    def hidden_size_range(self) -> Optional[list]:
-        return [32, 64]
-
-    def fia_auxiliary_data_builder(self):
-        alice_train = self.plain_alice_train_data.sample(frac=0.4, random_state=42)
-        bob_train = self.plain_bob_train_data.sample(frac=0.4, random_state=42)
-        train_batch_size = self.train_batch_size
-
-        def _prepare_data():
-            alice_dataset = AliceDataset([alice_train], has_label=False)
-            bob_dataset = AliceDataset([bob_train], has_label=False)
-            alice_dataloader = DataLoader(
-                dataset=alice_dataset, shuffle=False, batch_size=train_batch_size
-            )
-            bob_dataloader = DataLoader(
-                dataset=bob_dataset, shuffle=False, batch_size=train_batch_size
-            )
-            dataloader_dict = {'alice': alice_dataloader, 'bob': bob_dataloader}
-            return dataloader_dict, dataloader_dict
-
-        return _prepare_data
-
-    def fia_victim_mean_attr(self):
-        train_sample = self.plain_alice_train_data.sample(frac=0.4, random_state=42)
-        dataset = AliceDataset([train_sample], has_label=False)
-        return dataset.get_dense_array()
-
-    def fia_victim_model_dict(self, victim_model_save_path):
-        return {self.device_f: [self.create_base_model_alice(), victim_model_save_path]}
-
-    def replay_auxiliary_attack_configs(
-        self, target_nums: int = 15
-    ) -> Tuple[int, np.ndarray, np.ndarray]:
-        plain_train_label = LabelEncoder().fit_transform(self.plain_train_label)
-        plain_test_label = LabelEncoder().fit_transform(self.plain_test_label)
-        target_class = 1
-        poison_class = 0
-        target_indexes = np.where(np.array(plain_train_label) == target_class)[0]
-        target_set = np.random.choice(target_indexes, target_nums, replace=False)
-        eval_indexes = np.where(np.array(plain_test_label) == poison_class)[0]
-        eval_poison_set = np.random.choice(eval_indexes, 100, replace=False)
-        return target_class, target_set, eval_poison_set
-
-    def replace_auxiliary_attack_configs(self, target_nums: int = 15):
-        plain_train_label = np.array(
-            LabelEncoder().fit_transform(self.plain_train_label)
+        self._plain_train_alice_data = reveal(
+            self.get_train_data().partitions[self.alice].data
         )
-        plain_test_label = np.array(LabelEncoder().fit_transform(self.plain_test_label))
-        target_class = 1
-        target_indexes = np.where(plain_train_label == target_class)[0]
-        target_set = np.random.choice(target_indexes, target_nums, replace=False)
-        train_poison_set = np.random.choice(
-            range(len(plain_train_label)), 100, replace=False
+        return self.get_plain_train_alice_data()
+
+    def get_plain_train_bob_data(self):
+        if self._plain_train_bob_data is not None:
+            return self._plain_train_bob_data
+
+        self._plain_train_bob_data = reveal(
+            self.get_train_data().partitions[self.bob].data
         )
-        plain_alice_train_data = self.plain_alice_train_data.copy()
-        train_poison_data = []
-        my_sparse_cols = []
-        has_dense = False
-        for col in plain_alice_train_data.columns:
-            if col in sparse_classes.keys():
-                lbe = LabelEncoder()
-                v = lbe.fit_transform(plain_alice_train_data[col].fillna('0'))
-                train_poison_data.append(v[train_poison_set])
-                my_sparse_cols.append(col)
-            else:
-                has_dense = True
-        if has_dense:
-            df = plain_alice_train_data.drop(columns=my_sparse_cols).fillna(0)
-            mms = MinMaxScaler(feature_range=(0, 1))
-            v = mms.fit_transform(df).astype(np.float32)
-            train_poison_data.insert(0, v[train_poison_set])
-        train_poison_np = [np.stack(data) for data in train_poison_data]
-        eval_poison_set = np.random.choice(
-            range(len(plain_test_label)), 100, replace=False
+        return self.get_plain_train_bob_data()
+
+    def get_plain_test_alice_data(self):
+        if self._plain_test_alice_data is not None:
+            return self._plain_test_alice_data
+
+        self._plain_test_alice_data = reveal(
+            self.get_test_data().partitions[self.alice].data
         )
-        return (
-            target_class,
-            target_set,
-            train_poison_set,
-            train_poison_np,
-            eval_poison_set,
+        return self.get_plain_test_alice_data()
+
+    def get_plain_test_bob_data(self):
+        if self._plain_test_bob_data is not None:
+            return self._plain_test_bob_data
+
+        self._plain_test_bob_data = reveal(
+            self.get_test_data().partitions[self.bob].data
+        )
+        return self.get_plain_test_bob_data()
+
+    def get_device_f_train_dataset(
+        self,
+        sample_size: int = None,
+        frac: float = None,
+        indexes: np.ndarray = None,
+        enable_label: int = 1,
+        **kwargs,
+    ):
+        indexes = get_sample_indexes(self.train_dataset_len, sample_size, frac, indexes)
+        x = [self.get_plain_train_device_f_data()]
+        if enable_label == 0:
+            x.append(self.get_plain_train_label())
+        return CriteoDataset(
+            x,
+            enable_label=enable_label,
+            indexes=indexes,
         )
 
-    def exploit_label_counts(self) -> Tuple[int, int]:
-        neg, pos = np.bincount(self.plain_train_label['Label'])
-        return neg, pos
+    def get_device_y_train_dataset(
+        self,
+        sample_size: int = None,
+        frac: float = None,
+        indexes: np.ndarray = None,
+        enable_label: int = 0,
+        **kwargs,
+    ):
+        indexes = get_sample_indexes(self.train_dataset_len, sample_size, frac, indexes)
+        x = [self.get_plain_train_device_y_data()]
+        if enable_label == 0:
+            x.append(self.get_plain_train_label())
+        return CriteoDataset(
+            x,
+            enable_label=enable_label,
+            indexes=indexes,
+        )
+
+    def get_device_f_test_dataset(
+        self,
+        sample_size: int = None,
+        frac: float = None,
+        indexes: np.ndarray = None,
+        enable_label: int = 1,
+        **kwargs,
+    ):
+        indexes = get_sample_indexes(self.train_dataset_len, sample_size, frac, indexes)
+        x = [self.get_plain_test_device_f_data()]
+        if enable_label == 0:
+            x.append(self.get_plain_test_label())
+        return CriteoDataset(
+            x,
+            enable_label=enable_label,
+            indexes=indexes,
+        )
+
+    def get_device_y_test_dataset(
+        self,
+        sample_size: int = None,
+        frac: float = None,
+        indexes: np.ndarray = None,
+        enable_label: int = 0,
+        **kwargs,
+    ):
+        indexes = get_sample_indexes(self.train_dataset_len, sample_size, frac, indexes)
+        x = [self.get_plain_test_device_y_data()]
+        if enable_label == 0:
+            x.append(self.get_plain_test_label())
+        return CriteoDataset(
+            [self.get_plain_test_device_y_data(), self.get_plain_test_label()],
+            enable_label=enable_label,
+            indexes=indexes,
+        )
 
     def resources_consumes(self) -> List[Dict]:
         return [
             {'alice': 0.5, 'CPU': 0.5, 'GPU': 0.001, 'gpu_mem': 4 * 1024 * 1024 * 1024},
             {'bob': 0.5, 'CPU': 0.5, 'GPU': 0.001, 'gpu_mem': 4 * 1024 * 1024 * 1024},
         ]
+
+    def tune_metrics(self) -> Dict[str, str]:
+        return {
+            "train_BinaryAccuracy": "max",
+            "train_BinaryPrecision": "max",
+            "train_BinaryAUROC": "max",
+            "val_BinaryAccuracy": "max",
+            "val_BinaryPrecision": "max",
+            "val_BinaryAUROC": "max",
+        }
+
+    def classfication_type(self) -> ClassficationType:
+        return ClassficationType.BINARY
+
+    def base_input_mode(self) -> InputMode:
+        return InputMode.MULTI
+
+    def dataset_type(self) -> DatasetType:
+        return DatasetType.RECOMMENDATION

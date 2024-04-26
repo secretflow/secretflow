@@ -16,17 +16,17 @@ import torch
 import torch.nn as nn
 from torchmetrics import AUROC, Accuracy, Precision
 
+from benchmark_examples.autoattack.applications.base import ModelType
 from benchmark_examples.autoattack.applications.recommendation.criteo.criteo_base import (
     CriteoBase,
 )
 from secretflow.ml.nn.applications.sl_deepfm_torch import DeepFMBase, DeepFMFuse
-from secretflow.ml.nn.utils import TorchModel, metric_wrapper, optim_wrapper
+from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
 
 
 class CriteoDeepfm(CriteoBase):
-    def __init__(self, config, alice, bob, hidden_size=64):
+    def __init__(self, alice, bob, hidden_size=64):
         super().__init__(
-            config,
             alice,
             bob,
             epoch=1,
@@ -37,29 +37,19 @@ class CriteoDeepfm(CriteoBase):
             dnn_fuse_units_size=[64],
             deepfm_embedding_dim=4,
         )
-
-    def dnn_base_units_size_range_alice(self):
-        return [
-            [256, 128, -1],
-            [256, -1],
-            [-1],
+        self.metrics = [
+            metric_wrapper(Accuracy, task="binary"),
+            metric_wrapper(Precision, task="binary"),
+            metric_wrapper(AUROC, task="binary"),
         ]
 
-    def dnn_fuse_units_size_range(self):
-        return [[64], [64, 64]]
-
-    def deepfm_embedding_dim_range(self):
-        return [8, 16]
+    def model_type(self) -> ModelType:
+        return ModelType.DEEPFM
 
     def create_base_model_alice(self):
         return TorchModel(
             model_fn=DeepFMBase,
-            loss_fn=nn.BCELoss,
             optim_fn=optim_wrapper(torch.optim.Adam, lr=1e-3),
-            metrics=[
-                metric_wrapper(Accuracy, task="binary"),
-                metric_wrapper(AUROC, task="binary"),
-            ],
             input_dims=self.alice_input_dims,
             dnn_units_size=self.dnn_base_units_size_alice,
             continuous_feas_index=self.alice_dense_indexes,
@@ -69,12 +59,7 @@ class CriteoDeepfm(CriteoBase):
     def create_base_model_bob(self):
         return TorchModel(
             model_fn=DeepFMBase,
-            loss_fn=nn.BCELoss,
             optim_fn=optim_wrapper(torch.optim.Adam, lr=1e-3),
-            metrics=[
-                metric_wrapper(Accuracy, task="binary"),
-                metric_wrapper(AUROC, task="binary"),
-            ],
             input_dims=self.bob_input_dims,
             dnn_units_size=self.dnn_base_units_size_bob,
             continuous_feas_index=self.bob_dense_indexes,
@@ -86,14 +71,7 @@ class CriteoDeepfm(CriteoBase):
             model_fn=DeepFMFuse,
             loss_fn=nn.BCELoss,
             optim_fn=optim_wrapper(torch.optim.Adam, lr=1e-3),
-            metrics=[
-                metric_wrapper(Accuracy, task="binary"),
-                metric_wrapper(Precision, task="binary"),
-                metric_wrapper(AUROC, task="binary"),
-            ],
+            metrics=self.metrics,
             input_dims=[self.hidden_size, self.hidden_size],
             dnn_units_size=self.dnn_fuse_units_size,
         )
-
-    def support_attacks(self):
-        return ['norm', 'replay', 'replace']

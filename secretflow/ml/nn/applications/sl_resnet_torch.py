@@ -18,6 +18,8 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
+from secretflow.ml.nn.sl.defenses.fed_pass import ConvPassportBlock, LinearPassportBlock
+
 
 def conv3x3(
     in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, dilation: int = 1
@@ -54,6 +56,7 @@ class BasicBlock(nn.Module):
         dilation: int = 1,
         norm_layer: Optional[Callable[..., nn.Module]] = None,
         preprocess_layer: Optional[Callable[..., nn.Module]] = None,
+        use_passport: bool = False,
     ) -> None:
         super().__init__()
         self.preprocess_layer = preprocess_layer
@@ -67,7 +70,10 @@ class BasicBlock(nn.Module):
         self.conv1 = conv3x3(inplanes, planes, stride)
         self.bn1 = norm_layer(planes)
         self.relu = nn.ReLU(inplace=True)
-        self.conv2 = conv3x3(planes, planes)
+        if not use_passport:
+            self.conv2 = conv3x3(planes, planes)
+        else:
+            self.conv2 = ConvPassportBlock(planes, planes, 3, padding=1, bias=False)
         self.bn2 = norm_layer(planes)
         self.downsample = downsample
         self.stride = stride
@@ -102,11 +108,14 @@ class ResNetBase(nn.Module):
         zero_init_residual: bool = False,
         groups: int = 1,
         width_per_group: int = 64,
+        use_passport: bool = False,
         replace_stride_with_dilation: Optional[List[bool]] = None,
         norm_layer: Optional[Callable[..., nn.Module]] = None,
         classifier: Optional[nn.Module] = None,
+        preprocess_layer=None,
     ) -> None:
         super().__init__()
+        self.preprocess_layer = preprocess_layer
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
         self._norm_layer = norm_layer
@@ -144,7 +153,12 @@ class ResNetBase(nn.Module):
             block, 256, layers[2], stride=2, dilate=replace_stride_with_dilation[1]
         )
         self.layer4 = self._make_layer(
-            block, 512, layers[3], stride=2, dilate=replace_stride_with_dilation[2]
+            block,
+            512,
+            layers[3],
+            stride=2,
+            dilate=replace_stride_with_dilation[2],
+            use_passport=use_passport,
         )
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
 
@@ -152,8 +166,11 @@ class ResNetBase(nn.Module):
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
             elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
+                # for BatchNorm2d, affine=False module has no weight/bias
+                if m.weight is not None:
+                    nn.init.constant_(m.weight, 1)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
 
         # Zero-initialize the last BN in each residual branch,
         # so that the residual branch starts with zeros, and each residual block behaves like an identity.
@@ -170,6 +187,7 @@ class ResNetBase(nn.Module):
         blocks: int,
         stride: int = 1,
         dilate: bool = False,
+        use_passport: bool = False,
     ) -> nn.Sequential:
         norm_layer = self._norm_layer
         downsample = None
@@ -197,7 +215,9 @@ class ResNetBase(nn.Module):
             )
         )
         self.inplanes = planes * block.expansion
-        for _ in range(1, blocks):
+        for i in range(1, blocks):
+            passport = False if i != blocks - 1 else use_passport
+
             layers.append(
                 block(
                     self.inplanes,
@@ -206,12 +226,15 @@ class ResNetBase(nn.Module):
                     base_width=self.base_width,
                     dilation=self.dilation,
                     norm_layer=norm_layer,
+                    use_passport=passport,
                 )
             )
 
         return nn.Sequential(*layers)
 
     def _forward_impl(self, x: Tensor) -> Tensor:
+        if self.preprocess_layer:
+            x = self.preprocess_layer(x)
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
@@ -245,7 +268,10 @@ class ResNetFuse(nn.Module):
         dnn_activation: Optional[str] = "relu",
         use_dropout: bool = False,
         dropout: float = 0.5,
+        use_passport: bool = False,
         classifier: Optional[nn.Module] = None,
+        *args,
+        **kwargs,
     ):
         super(ResNetFuse, self).__init__()
         if classifier is not None:
@@ -258,7 +284,19 @@ class ResNetFuse(nn.Module):
                     layers.append(nn.ReLU(True))
                 if use_dropout:
                     layers.append(nn.Dropout(p=dropout))
-            layers.append(nn.Linear(dnn_units_size[-1], num_classes))
+
+            if not use_passport:
+                layers.append(nn.Linear(dnn_units_size[-1], num_classes))
+            else:
+                layers.append(
+                    LinearPassportBlock(
+                        dnn_units_size[-1],
+                        num_classes,
+                        hidden_feature=kwargs.get('passport_hidden_size', 32),
+                        num_passport=kwargs.get('passport_num_passport', 1),
+                    )
+                )
+
             self.classifier = nn.Sequential(*layers)
 
     def forward(self, inputs):

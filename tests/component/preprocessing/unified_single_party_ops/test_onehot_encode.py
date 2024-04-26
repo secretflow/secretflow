@@ -22,6 +22,7 @@ from secretflow.component.data_utils import DistDataType, VerticalTableWrapper
 from secretflow.component.preprocessing.unified_single_party_ops.onehot_encode import (
     apply_onehot_rule_on_table,
     onehot_encode,
+    _onehot_encode_fit,
 )
 from secretflow.component.preprocessing.unified_single_party_ops.substitution import (
     substitution,
@@ -49,7 +50,7 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
         df_alice = pd.DataFrame(
             {
                 "id1": [str(i) for i in range(17)],
-                "a1": ["K"] + ["F"] * 14 + ["M", "N"],
+                "a1": ["K"] + ["F"] * 13 + ["", "M", "N"],
                 "a2": [0.1, 0.2, 0.3] * 5 + [0.4] * 2,
                 "a3": [1] * 17,
                 "y": [0] * 17,
@@ -75,14 +76,14 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
     param = NodeEvalParam(
         domain="preprocessing",
         name="onehot_encode",
-        version="0.0.2",
+        version="0.0.3",
         attr_paths=[
-            "drop_first",
+            "drop",
             "min_frequency",
             "input/input_dataset/features",
         ],
         attrs=[
-            Attribute(b=True),
+            Attribute(s="first"),
             Attribute(f=0.1),
             Attribute(ss=["a1", "a2", "a3", "b5"]),
         ],
@@ -193,3 +194,203 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
     assert compute_dag_r == compute_dag
     assert in_schema_r == in_schema
     assert out_schema_r == out_schema
+
+
+def test_onehot_encode_fit(comp_prod_sf_cluster_config):
+    df = pd.DataFrame(
+        {
+            "id1": [str(i) for i in range(17)],
+            "a1": ["K"] * 13 + ["F"] + ["", "M", "N"],
+            "a2": [0.1, 0.2, 0.3] * 5 + [0.4] * 2,
+            "a3": [1] * 17,
+            "y": [0] * 17,
+        }
+    )
+
+    test_datas = [
+        {
+            "drop": "no_drop",
+            "min_frequency": 0,
+            "expected": {
+                'id1': [
+                    ['0'],
+                    ['1'],
+                    ['10'],
+                    ['11'],
+                    ['12'],
+                    ['13'],
+                    ['14'],
+                    ['15'],
+                    ['16'],
+                    ['2'],
+                    ['3'],
+                    ['4'],
+                    ['5'],
+                    ['6'],
+                    ['7'],
+                    ['8'],
+                    ['9'],
+                ],
+                'a1': [[''], ['F'], ['K'], ['M'], ['N']],
+                'a2': [[0.1], [0.2], [0.3], [0.4]],
+                'a3': [[1]],
+                'y': [[0]],
+            },
+        },
+        {
+            "drop": "no_drop",
+            "min_frequency": 0.1,
+            "expected": {
+                'id1': [
+                    [
+                        '0',
+                        '1',
+                        '10',
+                        '11',
+                        '12',
+                        '13',
+                        '14',
+                        '15',
+                        '16',
+                        '2',
+                        '3',
+                        '4',
+                        '5',
+                        '6',
+                        '7',
+                        '8',
+                        '9',
+                    ]
+                ],
+                'a1': [['K'], ['', 'F', 'M', 'N']],
+                'a2': [[0.1], [0.2], [0.3], [0.4]],
+                'a3': [[1]],
+                'y': [[0]],
+            },
+        },
+        {
+            "drop": "mode",
+            "min_frequency": 0,
+            "expected": {
+                'id1': [
+                    ['1'],
+                    ['10'],
+                    ['11'],
+                    ['12'],
+                    ['13'],
+                    ['14'],
+                    ['15'],
+                    ['16'],
+                    ['2'],
+                    ['3'],
+                    ['4'],
+                    ['5'],
+                    ['6'],
+                    ['7'],
+                    ['8'],
+                    ['9'],
+                ],
+                'a1': [[''], ['F'], ['M'], ['N']],
+                'a2': [[0.2], [0.3], [0.4]],
+                'a3': [],
+                'y': [],
+            },
+        },
+        {
+            "drop": "mode",
+            "min_frequency": 0.1,
+            "expected": {
+                'id1': [
+                    [
+                        '1',
+                        '10',
+                        '11',
+                        '12',
+                        '13',
+                        '14',
+                        '15',
+                        '16',
+                        '2',
+                        '3',
+                        '4',
+                        '5',
+                        '6',
+                        '7',
+                        '8',
+                        '9',
+                    ]
+                ],
+                'a1': [['', 'F', 'M', 'N']],
+                'a2': [[0.2], [0.3], [0.4]],
+                'a3': [],
+                'y': [],
+            },
+        },
+        {
+            "drop": "first",
+            "min_frequency": 0,
+            "expected": {
+                'id1': [
+                    ['1'],
+                    ['10'],
+                    ['11'],
+                    ['12'],
+                    ['13'],
+                    ['14'],
+                    ['15'],
+                    ['16'],
+                    ['2'],
+                    ['3'],
+                    ['4'],
+                    ['5'],
+                    ['6'],
+                    ['7'],
+                    ['8'],
+                    ['9'],
+                ],
+                'a1': [['F'], ['K'], ['M'], ['N']],
+                'a2': [[0.2], [0.3], [0.4]],
+                'a3': [],
+                'y': [],
+            },
+        },
+        {
+            "drop": "first",
+            "min_frequency": 0.1,
+            "expected": {
+                'id1': [
+                    [
+                        '1',
+                        '10',
+                        '11',
+                        '12',
+                        '13',
+                        '14',
+                        '15',
+                        '16',
+                        '2',
+                        '3',
+                        '4',
+                        '5',
+                        '6',
+                        '7',
+                        '8',
+                        '9',
+                    ]
+                ],
+                'a1': [['', 'F', 'M', 'N']],
+                'a2': [[0.2], [0.3], [0.4]],
+                'a3': [],
+                'y': [],
+            },
+        },
+    ]
+
+    for item in test_datas:
+        drop = item['drop']
+        min_frequency = item['min_frequency']
+        rules = _onehot_encode_fit(df, drop, min_frequency)
+        # logging.warning(f"drop: {drop}, min_frequency: {min_frequency}, rules: {rules}")
+        assert (
+            rules == item['expected']
+        ), f"drop: {drop}, min_frequency: {min_frequency}, rules: {rules}"

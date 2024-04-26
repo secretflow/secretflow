@@ -12,54 +12,81 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
+from typing import Dict, List, Tuple
+
+import numpy as np
 
 from benchmark_examples.autoattack import global_config
-from benchmark_examples.autoattack.attacks.base import AttackCase
-from secretflow import reveal, tune
+from benchmark_examples.autoattack.applications.base import ApplicationBase
+from benchmark_examples.autoattack.attacks.base import AttackBase, AttackType
+from benchmark_examples.autoattack.utils.data_utils import get_np_data_from_dataset
+from secretflow.ml.nn.callbacks.attack import AttackCallback
 from secretflow.ml.nn.sl.attacks.grad_replace_attack_torch import GradReplaceAttack
 
 
-class ReplaceAttackCase(AttackCase):
-    def _attack(self):
-        self.app.prepare_data()
-        (
-            target_class,
-            target_set,
-            train_poinson_set,
-            train_poison_np,
-            eval_poinson_set,
-        ) = self.app.replace_auxiliary_attack_configs()
-        replace_callback = GradReplaceAttack(
-            attack_party=self.app.device_f,
+class ReplaceAttackCase(AttackBase):
+    """
+    Replace attack needs:
+    - get target_indexs whoes label is target_class (such as 8)
+    - choose some (like 15) target set with target indexes.
+    - choose some train poison set (like 100)
+    - choose the train poison set with device_f party (return numpy.)
+    - same as train poison set, get eval poison set.
+    """
+
+    def __str__(self):
+        return 'replace'
+
+    def __init__(self, alice=None, bob=None):
+        super().__init__(alice, bob)
+        self.target_class = None
+        self.eval_poison_set = None
+
+    def build_attack_callback(self, app: ApplicationBase) -> AttackCallback:
+        target_nums = self.config.get("target_nums", 15)
+        poision_nums = 10 if global_config.is_simple_test() else 100
+        if app.num_classes == 2:
+            self.target_class = 1
+        else:
+            self.target_class = 5
+        target_indexes = np.where(
+            np.array(app.get_plain_train_label()) == self.target_class
+        )[0]
+        target_set = np.random.choice(target_indexes, target_nums, replace=False)
+        train_poison_set = np.random.choice(
+            range(len(app.get_plain_train_label())), poision_nums, replace=False
+        )
+        sample_device_f_poison_dataset = app.get_device_f_train_dataset(
+            indexes=target_indexes
+        )
+        train_poison_np = get_np_data_from_dataset(sample_device_f_poison_dataset)
+        if isinstance(train_poison_np, List):
+            # multi input scene
+            train_poison_np = [np.stack(x) for x in train_poison_np]
+        self.eval_poison_set = np.random.choice(
+            range(len(app.get_plain_test_label())), poision_nums, replace=False
+        )
+        grad_callback = GradReplaceAttack(
+            attack_party=app.device_f,
             target_idx=target_set,
-            poison_idx=train_poinson_set,
+            poison_idx=train_poison_set,
             poison_input=train_poison_np,
             gamma=self.config.get('gamma', 1),
-            batch_size=self.app.train_batch_size,
+            batch_size=app.train_batch_size,
             blurred=self.config.get("blurred", False),
             exec_device='cuda' if global_config.is_use_gpu() else 'cpu',
         )
-        history = self.app.train(replace_callback)
-        preds = self.app.predict(callbacks=replace_callback)
-        attack_metrics = replace_callback.get_attack_metrics(
-            reveal(preds), target_class, eval_poinson_set
-        )
-        logging.warning(
-            f"RESULT: {type(self.app).__name__} replace attack metrics = {attack_metrics}"
-        )
-        return history, attack_metrics
+        return grad_callback
 
-    def attack_search_space(self):
-        search_space = {
-            # blurred does not support embedding layer, so shutdown,
-            # 'blurred': tune.search.grid_search([True, False]),
-            'gamma': tune.search.grid_search([10, 30]),  # 1 - 20
-        }
-        return search_space
+    def attack_type(self) -> AttackType:
+        return AttackType.BACKDOOR
 
-    def metric_name(self):
-        return 'acc'
+    def attack_metrics_params(self) -> Tuple | None:
+        assert self.target_class is not None and self.eval_poison_set is not None
+        return self.target_class, self.eval_poison_set
 
-    def metric_mode(self):
-        return 'max'
+    def tune_metrics(self) -> Dict[str, str]:
+        return {'acc': 'max'}
+
+    def check_app_valid(self, app: ApplicationBase) -> bool:
+        return True

@@ -22,7 +22,7 @@ import numpy as np
 
 from secretflow.data import FedNdarray
 from secretflow.data.vertical import VDataFrame
-from secretflow.device import HEU, PYUObject, reveal, wait
+from secretflow.device import HEU, PYUObject, wait
 from secretflow.ml.boost.core.callback import (
     CallBackCompatibleModel,
     CallbackContainer,
@@ -30,7 +30,12 @@ from secretflow.ml.boost.core.callback import (
     VData,
 )
 from secretflow.ml.boost.core.data_preprocess import prepare_dataset
-from secretflow.ml.boost.core.metric import Metric, roc_auc_score
+from secretflow.ml.boost.core.metric import Metric
+from secretflow.ml.boost.sgb_v.checkpoint import (
+    checkpoint_data_to_model_and_train_state,
+    sgb_model_to_checkpoint_data,
+    SGBCheckpointData,
+)
 from secretflow.ml.boost.sgb_v.core.params import default_params
 
 from ...model import SgbModel
@@ -134,10 +139,17 @@ class GlobalOrdermapBooster(Composite, CallBackCompatibleModel):
         callbacks: List[TrainingCallback] = [],
         eval_sets: List[Tuple[VData, VData, str]] = [],
         metric: Metric = None,
+        checkpoint_data: SGBCheckpointData = None,
     ) -> SgbModel:
         import secretflow.distributed as sfd
 
-        call_backs = CallbackContainer(callbacks, metric)
+        checkpoint_model = None
+        history = None
+        if checkpoint_data is not None:
+            checkpoint_model, history = checkpoint_data_to_model_and_train_state(
+                checkpoint_data
+            )
+        call_backs = CallbackContainer(callbacks, metric, history)
         data_names = set([e[2] for e in eval_sets])
         assert len(data_names) == len(
             eval_sets
@@ -170,16 +182,18 @@ class GlobalOrdermapBooster(Composite, CallBackCompatibleModel):
         self.set_actors(actors)
         logging.debug("actors are set.")
 
-        pred = self.components.model_builder.init_pred(sample_num)
+        pred = self.components.model_builder.init_pred(sample_num, checkpoint_model, x)
         logging.debug("pred initialized.")
         self.components.order_map_manager.build_order_map(x)
         logging.debug("ordermap built.")
-        self.components.model_builder.init_model()
+        self.components.model_builder.init_model(checkpoint_model)
         logging.debug("model initialized.")
         self.components.model_builder.set_parition_shapes(x)
 
+        begin_tree_num = self.components.model_builder.get_tree_num()
+
         call_backs.before_training(self)
-        for tree_index in range(self.params.num_boost_round):
+        for tree_index in range(begin_tree_num, self.params.num_boost_round):
             call_backs.before_iteration(self, tree_index)
             start = time.perf_counter()
             if self.params.first_tree_with_label_holder_feature and tree_index == 0:
@@ -259,8 +273,6 @@ class GlobalOrdermapBooster(Composite, CallBackCompatibleModel):
         ----------
         evals :
             List of items to be evaluated.
-        iteration :
-            Current iteration.
         feval :
             Custom evaluation function.
 
@@ -313,3 +325,17 @@ class GlobalOrdermapBooster(Composite, CallBackCompatibleModel):
     def set_best_iteration_score(self, iteration, score):
         self._best_iteration = iteration
         self._best_score = score
+
+    def get_model(self):
+        return self.components.model_builder.finish()
+
+
+def build_checkpoint(
+    booster: GlobalOrdermapBooster,
+    evals_log: TrainingCallback.EvalsLog,
+    x: VDataFrame,
+    label_name: str,
+) -> SGBCheckpointData:
+    """Build checkpoint from booster and evals log."""
+    sgb_model = booster.get_model()
+    return sgb_model_to_checkpoint_data(sgb_model, evals_log, x, label_name)

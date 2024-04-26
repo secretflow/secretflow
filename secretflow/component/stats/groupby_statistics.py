@@ -187,13 +187,6 @@ def groupby_statistics_eval_fn(
     assert (
         len(set(input_data_by).intersection(value_columns)) == 0
     ), "by columns and key columns should have no intersection"
-    if ctx.spu_configs is None or len(ctx.spu_configs) == 0:
-        raise CompEvalError("spu config is not found.")
-    if len(ctx.spu_configs) > 1:
-        raise CompEvalError("only support one spu")
-    spu_config = next(iter(ctx.spu_configs.values()))
-
-    spu = SPU(spu_config["cluster_def"], spu_config["link_desc"])
 
     logging.info("set up complete")
 
@@ -210,10 +203,21 @@ def groupby_statistics_eval_fn(
         for col_query in aggregation_config.column_queries
     ]
     logging.info("input loading complete")
+
+    if len(input_df.partitions) == 1:
+        compute_device = [*input_df.partitions.keys()][0]
+    else:
+        if ctx.spu_configs is None or len(ctx.spu_configs) == 0:
+            raise CompEvalError("spu config is not found.")
+        if len(ctx.spu_configs) > 1:
+            raise CompEvalError("only support one spu")
+        spu_config = next(iter(ctx.spu_configs.values()))
+        compute_device = SPU(spu_config["cluster_def"], spu_config["link_desc"])
+
     with ctx.tracer.trace_running():
-        logging.info("begin ordinal encoding groupby")
+        logging.info(f"begin ordinal encoding groupby: device: {type(compute_device)}")
         result = ordinal_encoded_groupby_value_agg_pairs(
-            input_df, input_data_by, value_agg_pair, spu, max_group_size
+            input_df, input_data_by, value_agg_pair, compute_device, max_group_size
         )
         logging.info("ordinal encoded complete")
         result = {

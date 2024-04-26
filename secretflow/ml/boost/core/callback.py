@@ -114,6 +114,7 @@ class CallbackContainer:
         self,
         callbacks: Sequence[TrainingCallback],
         metric: Optional[Callable] = None,
+        history: TrainingCallback.EvalsLog = None,
     ) -> None:
         self.callbacks = set(callbacks)
         for cb in callbacks:
@@ -127,7 +128,14 @@ class CallbackContainer:
             raise TypeError(msg)
 
         self.metric = metric
-        self.history: TrainingCallback.EvalsLog = collections.OrderedDict()
+        try:
+            self.history: TrainingCallback.EvalsLog = (
+                collections.OrderedDict()
+                if history is None
+                else collections.OrderedDict(history)
+            )
+        except:
+            assert False, f"{history} type {type(history)} is not supported"
 
     def before_training(
         self, model: CallBackCompatibleModel
@@ -428,4 +436,21 @@ class EvaluationMonitor(TrainingCallback):
         return model
 
 
-# TODO(zoupeicheng.zpc): support model checkpoint
+class Checkpointing(TrainingCallback):
+    """Save the model at each iteration, support continuing training."""
+
+    def __init__(self, dump_function: Callable = None):
+        super().__init__()
+        self.dump_function = dump_function
+
+    def after_iteration(
+        self,
+        model: CallBackCompatibleModel,
+        epoch: int,
+        evals_log: TrainingCallback.EvalsLog,
+    ) -> bool:
+        if self.dump_function is not None and callable(self.dump_function):
+            self.dump_function(model, epoch, evals_log)
+        else:
+            logging.warning("no effective dump_function provided.")
+        return False

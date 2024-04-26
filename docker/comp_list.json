@@ -128,7 +128,7 @@
       "domain": "data_prep",
       "name": "psi",
       "desc": "PSI between two parties.",
-      "version": "0.0.3",
+      "version": "0.0.4",
       "attrs": [
         {
           "name": "protocol",
@@ -180,7 +180,8 @@
           "desc": "Required if advanced_join_type is selected.",
           "type": "AT_PARTY",
           "atomic": {
-            "listMaxLengthInclusive": "-1"
+            "listMinLengthInclusive": "1",
+            "listMaxLengthInclusive": "1"
           }
         },
         {
@@ -205,19 +206,12 @@
           }
         },
         {
-          "name": "missing_value",
-          "desc": "Missing value for some advanced join types.",
-          "type": "AT_STRING",
+          "name": "fill_value_int",
+          "desc": "For int type data. Use this value for filling null.",
+          "type": "AT_INT",
           "atomic": {
             "isOptional": true,
-            "defaultValue": {
-              "s": "NA"
-            },
-            "allowedValues": {
-              "ss": [
-                "NA"
-              ]
-            }
+            "defaultValue": {}
           }
         },
         {
@@ -366,6 +360,40 @@
           "name": "test",
           "desc": "Output test dataset.",
           "types": [
+            "sf.table.vertical_table"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "data_prep",
+      "name": "union",
+      "desc": "Merge two datasets in vertical axis, the table type can be individual or vertical but must be the same.",
+      "version": "0.0.1",
+      "inputs": [
+        {
+          "name": "input1",
+          "desc": "The first input table",
+          "types": [
+            "sf.table.individual",
+            "sf.table.vertical_table"
+          ]
+        },
+        {
+          "name": "input2",
+          "desc": "The second input table",
+          "types": [
+            "sf.table.individual",
+            "sf.table.vertical_table"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_ds",
+          "desc": "Output table",
+          "types": [
+            "sf.table.individual",
             "sf.table.vertical_table"
           ]
         }
@@ -731,7 +759,7 @@
     {
       "domain": "ml.eval",
       "name": "biclassification_eval",
-      "desc": "Statistics evaluation for a bi-classification model on a dataset.\n1. summary_report: SummaryReport\n2. group_reports: List[GroupReport]\n3. eq_frequent_bin_report: List[EqBinReport]\n4. eq_range_bin_report: List[EqBinReport]\n5. head_report: List[PrReport]\nreports for fpr = 0.001, 0.005, 0.01, 0.05, 0.1, 0.2",
+      "desc": "Statistics evaluation for a bi-classification model on a dataset.\n1. summary_report: SummaryReport\n2. eq_frequent_bin_report: List[EqBinReport]\n3. eq_range_bin_report: List[EqBinReport]\n4. head_report: List[PrReport]\nreports for fpr = 0.001, 0.005, 0.01, 0.05, 0.1, 0.2",
       "version": "0.0.1",
       "attrs": [
         {
@@ -963,7 +991,8 @@
           "name": "model",
           "desc": "Input model.",
           "types": [
-            "sf.model.ss_sgd"
+            "sf.model.ss_sgd",
+            "sf.model.ss_glm"
           ]
         },
         {
@@ -988,13 +1017,16 @@
       "domain": "ml.predict",
       "name": "sgb_predict",
       "desc": "Predict using SGB model.",
-      "version": "0.0.2",
+      "version": "0.0.3",
       "attrs": [
         {
           "name": "receiver",
           "desc": "Party of receiver.",
-          "type": "AT_STRING",
-          "atomic": {}
+          "type": "AT_PARTY",
+          "atomic": {
+            "listMinLengthInclusive": "1",
+            "listMaxLengthInclusive": "1"
+          }
         },
         {
           "name": "pred_name",
@@ -1064,7 +1096,7 @@
       "domain": "ml.predict",
       "name": "slnn_predict",
       "desc": "Predict using the SLNN model.\nThis component is not enabled by default, it requires the use of the full version\nof secretflow image and setting the ENABLE_NN environment variable to true.",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "attrs": [
         {
           "name": "batch_size",
@@ -1082,8 +1114,11 @@
         {
           "name": "receiver",
           "desc": "Party of receiver.",
-          "type": "AT_STRING",
-          "atomic": {}
+          "type": "AT_PARTY",
+          "atomic": {
+            "listMinLengthInclusive": "1",
+            "listMaxLengthInclusive": "1"
+          }
         },
         {
           "name": "pred_name",
@@ -1151,13 +1186,16 @@
       "domain": "ml.predict",
       "name": "ss_glm_predict",
       "desc": "Predict using the SSGLM model.",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "attrs": [
         {
           "name": "receiver",
           "desc": "Party of receiver.",
-          "type": "AT_STRING",
-          "atomic": {}
+          "type": "AT_PARTY",
+          "atomic": {
+            "listMinLengthInclusive": "1",
+            "listMaxLengthInclusive": "1"
+          }
         },
         {
           "name": "pred_name",
@@ -1227,7 +1265,7 @@
       "domain": "ml.predict",
       "name": "ss_sgd_predict",
       "desc": "Predict using the SS-SGD model.",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "attrs": [
         {
           "name": "batch_size",
@@ -1245,8 +1283,11 @@
         {
           "name": "receiver",
           "desc": "Party of receiver.",
-          "type": "AT_STRING",
-          "atomic": {}
+          "type": "AT_PARTY",
+          "atomic": {
+            "listMinLengthInclusive": "1",
+            "listMaxLengthInclusive": "1"
+          }
         },
         {
           "name": "pred_name",
@@ -1316,13 +1357,16 @@
       "domain": "ml.predict",
       "name": "ss_xgb_predict",
       "desc": "Predict using the SS-XGB model.",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "attrs": [
         {
           "name": "receiver",
           "desc": "Party of receiver.",
-          "type": "AT_STRING",
-          "atomic": {}
+          "type": "AT_PARTY",
+          "atomic": {
+            "listMinLengthInclusive": "1",
+            "listMaxLengthInclusive": "1"
+          }
         },
         {
           "name": "pred_name",
@@ -2713,6 +2757,15 @@
             "lowerBound": {},
             "lowerBoundInclusive": true
           }
+        },
+        {
+          "name": "report_weights",
+          "desc": "If this option is set to true, model will be revealed and model details are visible to all parties",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
         }
       ],
       "inputs": [
@@ -2743,6 +2796,13 @@
           "desc": "Output model.",
           "types": [
             "sf.model.ss_sgd"
+          ]
+        },
+        {
+          "name": "report",
+          "desc": "If report_weights is true, report model details",
+          "types": [
+            "sf.report"
           ]
         }
       ]
@@ -3305,15 +3365,24 @@
       "domain": "preprocessing",
       "name": "onehot_encode",
       "desc": "onehot_encode",
-      "version": "0.0.2",
+      "version": "0.0.3",
       "attrs": [
         {
-          "name": "drop_first",
-          "desc": "If true drop the first category in each feature. If only one category is present, the feature will be dropped entirely",
-          "type": "AT_BOOL",
+          "name": "drop",
+          "desc": "no_drop is default setting, it won't do anything. If it is set to first, it will drop the first category in each feature. If it is set to mode, it will drop the mode category in each feature. If only one category is present and the setting is not no_drop, the feature will be dropped entirely",
+          "type": "AT_STRING",
           "atomic": {
             "isOptional": true,
-            "defaultValue": {}
+            "defaultValue": {
+              "s": "no_drop"
+            },
+            "allowedValues": {
+              "ss": [
+                "no_drop",
+                "first",
+                "mode"
+              ]
+            }
           }
         },
         {

@@ -32,7 +32,7 @@ from .compile.compile import ModelConfig
 slnn_predict_comp = Component(
     "slnn_predict",
     domain="ml.predict",
-    version="0.0.1",
+    version="0.0.2",
     desc="""Predict using the SLNN model.
     This component is not enabled by default, it requires the use of the full version
     of secretflow image and setting the ENABLE_NN environment variable to true.""",
@@ -46,11 +46,11 @@ slnn_predict_comp.int_attr(
     lower_bound=0,
     lower_bound_inclusive=False,
 )
-slnn_predict_comp.str_attr(
+slnn_predict_comp.party_attr(
     name="receiver",
     desc="Party of receiver.",
-    is_list=False,
-    is_optional=False,
+    list_min_length_inclusive=1,
+    list_max_length_inclusive=1,
 )
 slnn_predict_comp.str_attr(
     name="pred_name",
@@ -159,7 +159,7 @@ def ss_slnn_predict_eval_fn(
     # import after enabling check to avoid missing dependencies
     from .training import predictor
 
-    receiver_pyu = PYU(receiver)
+    receiver_pyu = PYU(receiver[0])
 
     x = load_table(ctx, feature_dataset, load_features=True)
     pyus = set(x.partitions.keys())

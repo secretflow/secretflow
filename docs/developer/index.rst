@@ -44,3 +44,4 @@ The following documents will help you understand the design ideas and principles
    benchmark/overall_benchmark
    benchmark/psi_benchmark
    benchmark/ubpsi_benchmark
+   benchmark/sgb_benchmark

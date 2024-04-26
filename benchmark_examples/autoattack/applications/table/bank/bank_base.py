@@ -18,10 +18,14 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 
-from benchmark_examples.autoattack.applications.base import ApplicationBase
+from benchmark_examples.autoattack import global_config
+from benchmark_examples.autoattack.applications.base import (
+    ApplicationBase,
+    ClassficationType,
+    DatasetType,
+)
 from benchmark_examples.autoattack.global_config import is_simple_test
-from secretflow import reveal
-from secretflow.data.split import train_test_split
+from secretflow.data.vertical import VDataFrame
 from secretflow.preprocessing import LabelEncoder
 from secretflow.utils.simulation.datasets import load_bank_marketing
 
@@ -51,9 +55,9 @@ all_features = OrderedDict(
 class BankBase(ApplicationBase, ABC):
     def __init__(
         self,
-        config,
         alice,
         bob,
+        has_custom_dataset=False,
         epoch=5,
         train_batch_size=128,
         hidden_size=64,
@@ -65,9 +69,9 @@ class BankBase(ApplicationBase, ABC):
         deepfm_embedding_dim=None,
     ):
         super().__init__(
-            config,
             alice,
             bob,
+            has_custom_dataset=has_custom_dataset,
             device_y=alice,
             total_fea_nums=16,
             alice_fea_nums=alice_fea_nums,
@@ -81,6 +85,19 @@ class BankBase(ApplicationBase, ABC):
             dnn_embedding_dim=dnn_embedding_dim,
             deepfm_embedding_dim=deepfm_embedding_dim,
         )
+        self.alice_fea_classes = None
+        self.bob_fea_classes = None
+        self.train_dataset_len = 36168
+        self.test_dataset_len = 9043
+        if global_config.is_simple_test():
+            self.train_dataset_len = 3616
+            self.test_dataset_len = 905
+
+    def dataset_name(self):
+        return "bank"
+
+    def set_config(self, config: Dict[str, str] | None):
+        super().set_config(config)
         names = list(all_features.keys())
         self.alice_fea_classes = {
             names[i]: all_features[names[i]] for i in range(self.alice_fea_nums)
@@ -89,12 +106,12 @@ class BankBase(ApplicationBase, ABC):
             names[i + self.alice_fea_nums]: all_features[names[i + self.alice_fea_nums]]
             for i in range(self.bob_fea_nums)
         }
-        self.plain_alice_train_data = None
-        self.plain_bob_train_data = None
-        self.plain_train_label = None
-        self.plain_test_label = None
 
-    def prepare_data(self):
+    def load_bank_data(self) -> Tuple[VDataFrame, VDataFrame]:
+        """Since different implements have different processing on dataset
+        overridd this method and preprocess data,
+        use super() to get data.
+        """
         data = load_bank_marketing(
             parts={
                 self.alice: (0, self.alice_fea_nums),
@@ -110,35 +127,18 @@ class BankBase(ApplicationBase, ABC):
         )
         encoder = LabelEncoder()
         for col in data.columns:
-            data[col] = encoder.fit_transform(data[col])
-        label = encoder.fit_transform(label)
-        random_state = 1234
-        self.train_data, self.test_data = train_test_split(
-            data, train_size=0.8, random_state=random_state
-        )
-        self.train_label, self.test_label = train_test_split(
-            label, train_size=0.8, random_state=random_state
-        )
-        self.plain_alice_train_data = reveal(
-            self.train_data.partitions[self.alice].data
-        )
-        self.plain_bob_train_data = reveal(self.train_data.partitions[self.bob].data)
-        self.plain_train_label = reveal(self.train_label.partitions[self.alice].data)
-        self.plain_test_label = reveal(self.test_label.partitions[self.alice].data)
-
-    def alice_feature_nums_range(self) -> list:
-        # support 1-16
-        return [1, 5, 9, 10, 15]
-
-    def hidden_size_range(self) -> list:
-        return [32, 64]
-
-    def exploit_label_counts(self) -> Tuple[int, int]:
-        neg, pos = np.bincount(self.plain_train_label['y'])
-        return neg, pos
+            data[col] = encoder.fit_transform(data[[col]])
+        label = encoder.fit_transform(label['y'])
+        return data.astype(np.float32), label.astype(np.float32)
 
     def resources_consumes(self) -> List[Dict]:
         return [
             {'alice': 0.5, 'CPU': 0.5, 'GPU': 0.001, 'gpu_mem': 500 * 1024 * 1024},
             {'bob': 0.5, 'CPU': 0.5, 'GPU': 0.001, 'gpu_mem': 500 * 1024 * 1024},
         ]
+
+    def classfication_type(self) -> ClassficationType:
+        return ClassficationType.BINARY
+
+    def dataset_type(self) -> DatasetType:
+        return DatasetType.TABLE

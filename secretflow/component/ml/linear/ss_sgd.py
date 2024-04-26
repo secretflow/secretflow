@@ -31,8 +31,11 @@ from secretflow.component.data_utils import (
 )
 from secretflow.device.device.pyu import PYU
 from secretflow.device.device.spu import SPU, SPUObject
+from secretflow.device.driver import reveal
 from secretflow.ml.linear import LinearModel, RegType, SSRegression
+from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData
+from secretflow.spec.v1.report_pb2 import Descriptions, Div, Report, Tab
 from secretflow.utils.sigmoid import SigType
 
 ss_sgd_train_comp = Component(
@@ -118,6 +121,13 @@ ss_sgd_train_comp.float_attr(
     lower_bound=0,
     lower_bound_inclusive=True,
 )
+ss_sgd_train_comp.bool_attr(
+    name="report_weights",
+    desc="If this option is set to true, model will be revealed and model details are visible to all parties",
+    is_list=False,
+    is_optional=True,
+    default_value=False,
+)
 ss_sgd_train_comp.io(
     io_type=IoType.INPUT,
     name="train_dataset",
@@ -142,6 +152,12 @@ ss_sgd_train_comp.io(
     name="output_model",
     desc="Output model.",
     types=[DistDataType.SS_SGD_MODEL],
+)
+ss_sgd_train_comp.io(
+    io_type=IoType.OUTPUT,
+    name="report",
+    desc="If report_weights is true, report model details",
+    types=[DistDataType.REPORT],
 )
 
 # current version 0.1
@@ -217,10 +233,12 @@ def ss_sgd_train_eval_fn(
     penalty,
     l2_norm,
     eps,
+    report_weights,
     train_dataset,
     train_dataset_label,
     output_model,
     train_dataset_feature_selects,
+    report,
 ):
     if ctx.spu_configs is None or len(ctx.spu_configs) == 0:
         raise CompEvalError("spu config is not found.")
@@ -306,13 +324,68 @@ def ss_sgd_train_eval_fn(
         train_dataset.system_info,
     )
 
-    return {"output_model": model_db}
+    tabs = []
+    if report_weights:
+        tabs.append(
+            Tab(
+                name="weights",
+                desc="model weights",
+                divs=[
+                    Div(
+                        children=[
+                            Div.Child(
+                                type="descriptions",
+                                descriptions=build_weight_desc(reg, x),
+                            )
+                        ],
+                    )
+                ],
+            )
+        )
+
+    report_mate = Report(
+        name="weights",
+        desc="model weights report",
+        tabs=tabs,
+    )
+
+    report_dd = DistData(
+        name=report,
+        type=str(DistDataType.REPORT),
+        system_info=train_dataset.system_info,
+    )
+    report_dd.meta.Pack(report_mate)
+
+    return {"output_model": model_db, "report": report_dd}
+
+
+def build_weight_desc(reg, x):
+    weights = list(map(float, list(reveal(reg.spu_w))))
+    named_weight = {}
+    for features in x.partition_columns.values():
+        party_weight = weights[: len(features)]
+        named_weight.update({f: w for f, w in zip(features, party_weight)})
+        weights = weights[len(features) :]
+    assert len(weights) == 1
+
+    w_desc = Descriptions(
+        items=[
+            Descriptions.Item(
+                name="_intercept_", type="float", value=Attribute(f=weights[-1])
+            ),
+        ]
+        + [
+            Descriptions.Item(name=f, type="float", value=Attribute(f=w))
+            for f, w in named_weight.items()
+        ],
+    )
+    return w_desc
 
 
 ss_sgd_predict_comp = Component(
     "ss_sgd_predict",
     domain="ml.predict",
-    version="0.0.1",
+    version="0.0.2",
     desc="Predict using the SS-SGD model.",
 )
 ss_sgd_predict_comp.int_attr(
@@ -324,11 +397,11 @@ ss_sgd_predict_comp.int_attr(
     lower_bound=0,
     lower_bound_inclusive=False,
 )
-ss_sgd_predict_comp.str_attr(
+ss_sgd_predict_comp.party_attr(
     name="receiver",
     desc="Party of receiver.",
-    is_list=False,
-    is_optional=False,
+    list_min_length_inclusive=1,
+    list_max_length_inclusive=1,
 )
 ss_sgd_predict_comp.str_attr(
     name="pred_name",
@@ -451,7 +524,7 @@ def ss_sgd_predict_eval_fn(
 
     assert x.columns == model_meta["feature_names"]
 
-    receiver_pyu = PYU(receiver)
+    receiver_pyu = PYU(receiver[0])
     with ctx.tracer.trace_running():
         pyu_y = reg.predict(
             x=x,

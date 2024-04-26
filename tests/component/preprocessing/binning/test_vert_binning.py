@@ -163,14 +163,14 @@ def test_vert_binning(comp_prod_sf_cluster_config):
 
     output_info = extract_distdata_info(sub_res.outputs[0])
 
-    v_headers = extract_table_header(
+    v_headers, _ = extract_table_header(
         bin_param_01.inputs[0],
         load_features=True,
         load_labels=True,
         load_ids=True,
     )
 
-    output_header = extract_table_header(
+    output_header, _ = extract_table_header(
         sub_res.outputs[0],
         load_features=True,
         load_labels=True,

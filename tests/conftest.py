@@ -151,7 +151,7 @@ def semi2k_cluster():
         "runtime_config": {
             "protocol": spu.spu_pb2.SEMI2K,
             "field": spu.spu_pb2.FM128,
-            "share_max_chunk_size": 1025,
+            "share_max_chunk_size": 10251,
             "enable_pphlo_profile": False,
             "enable_hal_profile": False,
             "enable_pphlo_trace": False,

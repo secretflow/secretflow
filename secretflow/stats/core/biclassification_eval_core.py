@@ -12,13 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This is a single party based bi-classification report
-
+import logging
 from typing import List, Tuple, Union
 
 import jax
 import jax.numpy as jnp
+
+# This is a single party based bi-classification report
+import numpy as np
 import pandas as pd
+
+from secretflow.utils.consistent_ops import cast_float
 
 from .utils import equal_obs, equal_range
 
@@ -205,6 +209,10 @@ def gen_all_reports(
         y_true = y_true.to_numpy()
     if isinstance(y_score, pd.DataFrame):
         y_score = y_score.to_numpy()
+    if np.isnan(y_true).any():
+        raise ValueError("NaN value found in y_true.")
+    if np.isnan(y_score).any():
+        logging.warning("NaN value found in y_score.")
     sorted_label_score_pair_arr = create_sorted_label_score_pair(y_true, y_score)
     pos_count = jnp.sum(y_true)
     eq_frequent_result_arr_list = eq_frequent_bin_evaluate(
@@ -437,21 +445,21 @@ def bin_evaluate(
         true_positive, false_positive, false_negative, true_negative
     )
 
-    f1_score = float(f1_score[0])
+    f1_score = cast_float(f1_score)
     lift = float(precision * (total_pos_count + total_neg_count) / total_pos_count)
     predicted_positive_ratio = float(pos_count / total_pos_count)
     predicted_negative_ratio = float(neg_count / total_neg_count)
-    cumulative_percent_of_positive = float(
-        ((pos_count + cumulative_pos_count) / total_pos_count)[0]
+    cumulative_percent_of_positive = cast_float(
+        ((pos_count + cumulative_pos_count) / total_pos_count)
     )
-    cumulative_percent_of_negative = float(
-        ((neg_count + cumulative_neg_count) / total_neg_count)[0]
+    cumulative_percent_of_negative = cast_float(
+        ((neg_count + cumulative_neg_count) / total_neg_count)
     )
-    total_cumulative_percent = float(
+    total_cumulative_percent = cast_float(
         (
             (pos_count + cumulative_pos_count + neg_count + cumulative_neg_count)
             / (total_pos_count + total_neg_count)
-        )[0]
+        )
     )
     ks = abs(float(cumulative_percent_of_positive - cumulative_percent_of_negative))
 
@@ -523,7 +531,8 @@ def precision_recall_false_positive_rate(
     precision = true_positive / (true_positive + false_positive)
     recall = true_positive / (true_positive + false_negative)
     false_positive_rate = false_positive / (false_positive + true_negative)
-    return float(precision[0]), float(recall[0]), float(false_positive_rate[0])
+
+    return cast_float(precision), cast_float(recall), cast_float(false_positive_rate)
 
 
 def confusion_matrix_from_cum_counts(

@@ -56,7 +56,7 @@ def norm_attack(self, my_grad):
 
 def compute_auc(self, label, epoch_g_norm):
     """Compute the attack leak AUC on the given true label and predict label."""
-    label = label.values
+    label = label if isinstance(label, np.ndarray) else label.values
     normattack_pred = jnp.concatenate(epoch_g_norm)
     y_true_numpy = label.tolist()
     y_pred_numpy = normattack_pred.tolist()

@@ -33,7 +33,7 @@ if __name__ == "__main__":
         "input/sender_input/key": ["id1"],
     }
     # 测试psi
-    psi = TestComp("psi_test", "data_prep", "psi", "0.0.3", attrs)
+    psi = TestComp("psi_test", "data_prep", "psi", "0.0.4", attrs)
     aci_pipe.add_comp(psi, ["DAGInput.alice", "DAGInput.bob"])
 
     attrs = {
@@ -72,12 +72,12 @@ if __name__ == "__main__":
 
     attrs = {
         "batch_size": 32,
-        "receiver": "alice",
+        "receiver": ["alice"],
         "save_ids": True,
         "save_label": True,
     }
     # 测试ss_sgd_predict
-    sslr = TestComp("sslr_pred", "ml.predict", "ss_sgd_predict", "0.0.1", attrs)
+    sslr = TestComp("sslr_pred", "ml.predict", "ss_sgd_predict", "0.0.2", attrs)
     aci_pipe.add_comp(sslr, ["sslr_train.0", "ds_split.1"])
 
     # TODO: add others comp

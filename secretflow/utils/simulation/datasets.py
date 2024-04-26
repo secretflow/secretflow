@@ -114,6 +114,11 @@ _DATASETS = {
         'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/creditcard/creditcard_small.csv',
         '0ff315b83ac183c9ac877c91a630a4dab717abc2f9882c87376a00a8cde5a8d3',
     ),
+    'fremtpl2freq': _Dataset(
+        'fremtpl2freq.csv',
+        'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/tweedie/freMTPL2freq.csv',
+        'c029e69d140f80a8d5bcc3dfcf94b1438d7f838d4d4d8263639780d26b1c5cc6',
+    ),
 }
 
 

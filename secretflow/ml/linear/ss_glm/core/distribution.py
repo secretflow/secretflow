@@ -58,6 +58,10 @@ class Distribution(ABC):
 
 
 class DistributionBernoulli(Distribution):
+    @staticmethod
+    def dist_type():
+        return DistributionType.Bernoulli
+
     def variance(self, mu: np.ndarray) -> np.ndarray:
         return mu * (1 - mu)
 
@@ -78,6 +82,10 @@ class DistributionBernoulli(Distribution):
 
 
 class DistributionPoisson(Distribution):
+    @staticmethod
+    def dist_type():
+        return DistributionType.Poisson
+
     def variance(self, mu: np.ndarray) -> np.ndarray:
         return mu
 
@@ -98,6 +106,10 @@ class DistributionPoisson(Distribution):
 
 
 class DistributionGamma(Distribution):
+    @staticmethod
+    def dist_type():
+        return DistributionType.Gamma
+
     def variance(self, mu: np.ndarray) -> np.ndarray:
         return jnp.square(mu)
 
@@ -118,6 +130,10 @@ class DistributionGamma(Distribution):
 
 
 class DistributionTweedie(Distribution):
+    @staticmethod
+    def dist_type():
+        return DistributionType.Tweedie
+
     def __init__(self, s: float, p: float):
         super(DistributionTweedie, self).__init__(s)
         self._power = p
@@ -173,7 +189,7 @@ def get_dist(
         ], f"distributionType type should in {[e.value for e in DistributionType]}, but got {t}"
         t = DistributionType(t)
 
-    assert scale >= 1, f"scale should >= 1, got {scale}"
+    assert scale >= 0, f"scale should >= 0, got {scale}"
 
     if t is DistributionType.Bernoulli:
         return DistributionBernoulli(scale)

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, Dict, Optional, Tuple
 
 import numpy as np
 import torch.nn as nn
@@ -20,12 +20,18 @@ import torch.optim
 from torch.utils.data import Dataset
 from torchmetrics import AUROC, Accuracy
 
+from benchmark_examples.autoattack import global_config
+from benchmark_examples.autoattack.applications.base import InputMode, ModelType
 from benchmark_examples.autoattack.applications.table.bank.bank_base import BankBase
-from benchmark_examples.autoattack.utils.dataset_utils import (
+from benchmark_examples.autoattack.utils.data_utils import (
+    SparseTensorDataset,
     create_custom_dataset_builder,
+    get_sample_indexes,
 )
+from secretflow.data import FedNdarray
+from secretflow.data.split import train_test_split
 from secretflow.ml.nn.applications.sl_deepfm_torch import DeepFMBase, DeepFMFuse
-from secretflow.ml.nn.utils import TorchModel, metric_wrapper, optim_wrapper
+from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
 
 
 class AliceDataset(Dataset):
@@ -33,11 +39,9 @@ class AliceDataset(Dataset):
         df = x[0]
         label = x[1]
         self.tensors = []
-        for feat in df.columns:
-            v = df[feat]
-            v = v.reset_index(drop=True)
-            self.tensors.append(torch.tensor(v))
-        self.label = torch.tensor(label.values.astype(np.float32))
+        for feat in range(df.shape[1]):
+            self.tensors.append(torch.tensor(df[:, feat], dtype=torch.int64))
+        self.label = torch.tensor(label.astype(np.float32))
 
     def __getitem__(self, index):
         return tuple(tensor[index] for tensor in self.tensors), self.label[index]
@@ -50,9 +54,8 @@ class BobDataset(Dataset):
     def __init__(self, x):
         df = x[0]
         self.tensors = []
-        for feas in df.columns:
-            v = df[feas].reset_index(drop=True)
-            self.tensors.append(torch.tensor(v))
+        for feas in range(df.shape[1]):
+            self.tensors.append(torch.tensor(df[:, feas], dtype=torch.int64))
 
     def __getitem__(self, index):
         return tuple(tensor[index] for tensor in self.tensors)
@@ -62,27 +65,43 @@ class BobDataset(Dataset):
 
 
 class BankDeepfm(BankBase):
-    def __init__(self, config, alice, bob, hidden_size=64):
+    def __init__(self, alice, bob, hidden_size=64):
         super().__init__(
-            config,
             alice,
             bob,
+            has_custom_dataset=True,
             hidden_size=32,
             dnn_base_units_size_alice=[128, -1],
             dnn_base_units_size_bob=[128, -1],
             dnn_fuse_units_size=[64, 64],
             deepfm_embedding_dim=8,
         )
+        self.metrics = [
+            metric_wrapper(Accuracy, task="binary"),
+            metric_wrapper(AUROC, task="binary"),
+        ]
+
+    def model_type(self) -> ModelType:
+        return ModelType.DEEPFM
+
+    def prepare_data(
+        self, **kwargs
+    ) -> Tuple[FedNdarray, FedNdarray, FedNdarray, FedNdarray]:
+        data, label = super().load_bank_data()
+        data = data.values
+        label = label.values
+        train_data, test_data = train_test_split(
+            data, train_size=0.8, random_state=global_config.get_random_seed()
+        )
+        train_label, test_label = train_test_split(
+            label, train_size=0.8, random_state=global_config.get_random_seed()
+        )
+        return train_data, train_label, test_data, test_label
 
     def create_base_model_alice(self):
         model = TorchModel(
             model_fn=DeepFMBase,
-            loss_fn=nn.BCELoss,
             optim_fn=optim_wrapper(torch.optim.Adam),
-            metrics=[
-                metric_wrapper(Accuracy, task="binary"),
-                metric_wrapper(AUROC, task="binary"),
-            ],
             input_dims=[v for v in self.alice_fea_classes.values()],
             dnn_units_size=self.dnn_base_units_size_alice,
             fm_embedding_dim=self.deepfm_embedding_dim,
@@ -92,12 +111,7 @@ class BankDeepfm(BankBase):
     def create_base_model_bob(self):
         model = TorchModel(
             model_fn=DeepFMBase,
-            loss_fn=nn.BCELoss,
             optim_fn=optim_wrapper(torch.optim.Adam),
-            metrics=[
-                metric_wrapper(Accuracy, task="binary"),
-                metric_wrapper(AUROC, task="binary"),
-            ],
             input_dims=[v for v in self.bob_fea_classes.values()],
             dnn_units_size=self.dnn_base_units_size_bob,
             fm_embedding_dim=self.deepfm_embedding_dim,
@@ -109,88 +123,97 @@ class BankDeepfm(BankBase):
             model_fn=DeepFMFuse,
             loss_fn=nn.BCELoss,
             optim_fn=optim_wrapper(torch.optim.Adam),
-            metrics=[
-                metric_wrapper(Accuracy, task="binary"),
-                metric_wrapper(AUROC, task="binary"),
-            ],
+            metrics=self.metrics,
             input_dims=[self.hidden_size, self.hidden_size],
             dnn_units_size=self.dnn_fuse_units_size,
         )
 
     def create_dataset_builder_alice(self):
         batch_size = self.train_batch_size
-        return create_custom_dataset_builder(AliceDataset, batch_size)
+        return create_custom_dataset_builder(SparseTensorDataset, batch_size)
 
     def create_dataset_builder_bob(self):
         batch_size = self.train_batch_size
-        return create_custom_dataset_builder(BobDataset, batch_size)
+        return create_custom_dataset_builder(SparseTensorDataset, batch_size)
 
     def create_predict_dataset_builder_alice(
         self, *args, **kwargs
     ) -> Optional[Callable]:
-        return create_custom_dataset_builder(BobDataset, self.train_batch_size)
+        return create_custom_dataset_builder(SparseTensorDataset, self.train_batch_size)
 
     def create_predict_dataset_builder_bob(self, *args, **kwargs) -> Optional[Callable]:
-        return create_custom_dataset_builder(BobDataset, self.train_batch_size)
+        return create_custom_dataset_builder(SparseTensorDataset, self.train_batch_size)
 
-    def support_attacks(self):
-        return ['norm', "replay", "replace"]
+    def get_device_f_train_dataset(
+        self,
+        sample_size: int = None,
+        frac: float = None,
+        indexes: np.ndarray = None,
+        enable_label: int = 1,
+        **kwargs
+    ):
+        indexes = get_sample_indexes(self.train_dataset_len, sample_size, frac, indexes)
+        x = [self.get_plain_train_device_f_data()]
+        if enable_label == 0:
+            x.append(self.get_plain_train_label())
+        return SparseTensorDataset(x, indexes=indexes, enable_label=enable_label)
 
-    def dnn_base_units_size_range_alice(self):
-        return [
-            [128, -1],
-            [128, 128, -1],
-            [-1],
-        ]
-
-    def dnn_base_units_size_range_bob(self) -> Optional[List[List[int]]]:
-        return None
-
-    def dnn_fuse_units_size_range(self):
-        return [[64], [64, 64]]
-
-    def deepfm_embedding_dim_range(self):
-        return [8, 16]
-
-    def replay_auxiliary_attack_configs(
-        self, target_nums: int = 15
-    ) -> Tuple[int, np.ndarray, np.ndarray]:
-        plain_train_label = self.plain_train_label
-        plain_test_label = self.plain_test_label
-        target_class = 1
-        poison_class = 0
-        target_indexes = np.where(np.array(plain_train_label) == target_class)[0]
-        target_set = np.random.choice(target_indexes, target_nums, replace=False)
-
-        eval_indexes = np.where(np.array(plain_test_label) == poison_class)[0]
-        eval_poison_set = np.random.choice(eval_indexes, 100, replace=False)
-        return target_class, target_set, eval_poison_set
-
-    def replace_auxiliary_attack_configs(self, target_nums: int = 15):
-        plain_train_label = np.array(self.plain_train_label)
-        plain_test_label = np.array(self.plain_test_label)
-        target_class = 1
-        target_indexes = np.where(plain_train_label == target_class)[0]
-        target_set = np.random.choice(target_indexes, target_nums, replace=False)
-
-        train_poison_set = np.random.choice(
-            range(len(plain_train_label)), 100, replace=False
+    def get_device_y_train_dataset(
+        self,
+        sample_size: int = None,
+        frac: float = None,
+        indexes: np.ndarray = None,
+        enable_label: int = 0,
+        **kwargs
+    ):
+        indexes = get_sample_indexes(self.train_dataset_len, sample_size, frac, indexes)
+        x = [self.get_plain_train_device_y_data()]
+        if enable_label == 0:
+            x.append(self.get_plain_train_label())
+        return SparseTensorDataset(
+            x,
+            indexes=indexes,
         )
-        plain_bob_train_data = self.plain_bob_train_data.copy()
-        train_poison_data = []
-        for feat in plain_bob_train_data.columns:
-            train_poison_data.append(
-                plain_bob_train_data[feat].values[train_poison_set]
-            )
 
-        train_poison_np = [np.stack(data) for data in train_poison_data]
-        eval_poison_set = np.random.choice(
-            range(len(plain_test_label)), 100, replace=False
+    def get_device_f_test_dataset(
+        self,
+        sample_size: int = None,
+        frac: float = None,
+        indexes: np.ndarray = None,
+        enable_label: int = 1,
+        **kwargs
+    ):
+        indexes = get_sample_indexes(self.train_dataset_len, sample_size, frac, indexes)
+        x = [self.get_plain_test_device_f_data()]
+        if enable_label == 0:
+            x.append(self.get_plain_test_label())
+        return SparseTensorDataset(x, indexes=indexes, enable_label=enable_label)
+
+    def get_device_y_test_dataset(
+        self,
+        sample_size: int = None,
+        frac: float = None,
+        indexes: np.ndarray = None,
+        enable_label: int = 0,
+        **kwargs
+    ):
+        indexes = get_sample_indexes(self.train_dataset_len, sample_size, frac, indexes)
+        x = [self.get_plain_test_device_y_data()]
+        if enable_label == 0:
+            x.append(self.get_plain_test_label())
+        return SparseTensorDataset(
+            x,
+            indexes=indexes,
+            enable_label=enable_label,
         )
-        return (
-            target_class,
-            target_set,
-            train_poison_set,
-            train_poison_np,
-            eval_poison_set,
-        )
+
+    def tune_metrics(self) -> Dict[str, str]:
+        return {
+            "train_BinaryAccuracy": "max",
+            "train_BinaryAUROC": "max",
+            "val_BinaryAccuracy": "max",
+            "val_BinaryAUROC": "max",
+        }
+
+    def base_input_mode(self) -> InputMode:
+        return InputMode.MULTI

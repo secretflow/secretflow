@@ -151,18 +151,13 @@ class Component:
             >>>     group=[
             >>>         # attrs must be defined inside the group.
             >>>         comp.str_attr(
-            >>>             name="attr1",
-            >>>             desc="attr1 desc.",
-            >>>             is_list=False,
-            >>>             is_optional=False,
-            >>>             default_value="val1",
+            >>>         ...
             >>>         ),
-            >>>         comp.str_attr(
-            >>>             name="attr2",
-            >>>             desc="attr2 desc.",
-            >>>             is_list=False,
-            >>>             is_optional=True,
-            >>>             default_value="val2",
+            >>>         comp.struct_attr_group(
+            >>>         ...
+            >>>         ),
+            >>>         comp.union_attr_group(
+            >>>         ...
             >>>         ),
             >>>     ],
             >>> )
@@ -172,7 +167,7 @@ class Component:
         # sanity checks
         self._check_reserved_words(name)
 
-        if len(group) < 2:
+        if len(group) < 1:
             raise CompDeclError(f"struct attr group too short.")
 
         # create pb
@@ -195,6 +190,14 @@ class Component:
         self.__comp_attr_decls.extend(group_decls)
         return group_len + 1
 
+    def union_selection_attr(self, name: str, desc: str):
+        # sanity checks
+        self._check_reserved_words(name)
+        attr = AttributeDef(
+            name=name, desc=clean_text(desc), type=AttrType.ATTR_TYPE_UNSPECIFIED
+        )
+        self.__comp_attr_decls.append(attr)
+
     def union_attr_group(self, name: str, desc: str, group: List[int]):
         """Define a union attr group with a group of attrs, the first attr in group
             will be the default selection.
@@ -214,19 +217,17 @@ class Component:
             >>>     desc="group desc.",
             >>>     group=[
             >>>         # attrs must be defined inside the group.
-            >>>         comp.str_attr(
-            >>>             name="attr1",
-            >>>             desc="attr1 desc.",
-            >>>             is_list=False,
-            >>>             is_optional=False,
-            >>>             default_value="val1",
+            >>>         comp.struct_attr_group(
+            >>>         ...
             >>>         ),
-            >>>         comp.str_attr(
-            >>>             name="attr2",
-            >>>             desc="attr2 desc.",
-            >>>             is_list=False,
-            >>>             is_optional=True,
-            >>>             default_value="val2",
+            >>>         comp.union_selection_attr(
+            >>>         ...
+            >>>         ),
+            >>>         comp.union_attr_group(
+            >>>         ...
+            >>>         ),
+            >>>         comp.bool_attr(
+            >>>         ...
             >>>         ),
             >>>     ],
             >>> )
@@ -929,7 +930,7 @@ class Component:
             log_to_driver=True,
             cluster_config=cluster_config,
             omp_num_threads=multiprocess.cpu_count(),
-            logging_level='debug',
+            logging_level='info',
             cross_silo_comm_backend=cross_silo_comm_backend,
             cross_silo_comm_options=cross_silo_comm_options,
             enable_waiting_for_other_parties_ready=True,
@@ -1092,18 +1093,7 @@ class Component:
         kwargs = dict()
 
         for a in definition.attrs:
-            if a.type not in [
-                AttrType.AT_FLOAT,
-                AttrType.AT_FLOATS,
-                AttrType.AT_INT,
-                AttrType.AT_INTS,
-                AttrType.AT_STRING,
-                AttrType.AT_STRINGS,
-                AttrType.AT_BOOL,
-                AttrType.AT_BOOLS,
-                AttrType.AT_CUSTOM_PROTOBUF,
-                AttrType.AT_PARTY,
-            ]:
+            if a.type in [AttrType.AT_STRUCT_GROUP, AttrType.ATTR_TYPE_UNSPECIFIED]:
                 continue
 
             attr_full_name = "/".join(list(a.prefixes) + [a.name])

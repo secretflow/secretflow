@@ -23,8 +23,10 @@ from secretflow.data.vertical import VDataFrame
 from secretflow.device import PYU, PYUObject, reveal, wait
 from secretflow.ml.boost.core.data_preprocess import prepare_dataset
 
-from .core.distributed_tree.distributed_tree import DistributedTree
-from .core.distributed_tree.distributed_tree import from_dict as dt_from_dict
+from .core.distributed_tree.distributed_tree import (
+    DistributedTree,
+    from_dict as dt_from_dict,
+)
 from .core.params import RegType
 from .core.pure_numpy_ops.pred import sigmoid
 
@@ -80,7 +82,7 @@ class SgbModel:
                 otherwise, keep predict result in plaintext and save as PYUObject in label_holder device.
 
         Return:
-            Pred values store in pyu object or FedNdarray.
+            Pred values store in pyu object or FedNdarray. PYUObject by default, FedNdarray if to_pyu is not None.
         """
         if len(self.trees) == 0:
             return None

@@ -11,7 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List
+from typing import List, Union
+
+import jax
+import numpy as np
 
 
 def unique_list(orginal_list: List) -> List:
@@ -28,3 +31,17 @@ def unique_list(orginal_list: List) -> List:
         if value not in unique_values:
             unique_values.append(value)
     return unique_values
+
+
+def cast_float(a: Union[np.ndarray, float, jax.Array]):
+    """Convert a float-like array or object into a float"""
+    # handle special case np.array([x])
+    if isinstance(a, Union[np.ndarray, jax.Array]):
+        if a.size == 1:
+            return float(a.flatten()[0])
+        else:
+            raise ValueError(
+                f'Expected scalar-like value, got {a}, {type(a)}, {a.shape}, {a.size}'
+            )
+    else:
+        return float(a)

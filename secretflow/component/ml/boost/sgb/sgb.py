@@ -12,22 +12,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import json
+from typing import List
 
+from secretflow.component.checkpoint import CompCheckpoint
 from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import (
     DistDataType,
-    SimpleVerticalBatchReader,
     get_model_public_info,
     load_table,
     model_dumps,
     model_loads,
     save_prediction_dd,
+    SimpleVerticalBatchReader,
 )
 from secretflow.device.device.heu import heu_from_base_config
 from secretflow.device.device.pyu import PYU
+from secretflow.ml.boost.core.callback import TrainingCallback
 from secretflow.ml.boost.core.metric import METRICS
 from secretflow.ml.boost.sgb_v import Sgb, SgbModel
-from secretflow.ml.boost.sgb_v.model import from_dict
+from secretflow.ml.boost.sgb_v.checkpoint import (
+    build_sgb_model,
+    sgb_model_to_snapshot,
+    SGBCheckpointData,
+    SGBSnapshot,
+)
+from secretflow.ml.boost.sgb_v.factory.booster.global_ordermap_booster import (
+    build_checkpoint,
+    GlobalOrdermapBooster,
+)
+from secretflow.spec.v1.data_pb2 import DistData
 
 DEFAULT_PREDICT_BATCH_SIZE = 10000
 
@@ -357,6 +370,79 @@ MODEL_MAX_MAJOR_VERSION = 0
 MODEL_MAX_MINOR_VERSION = 1
 
 
+@sgb_train_comp.enable_checkpoint
+class SGBCheckpoint(CompCheckpoint):
+    def associated_arg_names(self) -> List[str]:
+        return [
+            "num_boost_round",
+            "max_depth",
+            "learning_rate",
+            "objective",
+            "reg_lambda",
+            "gamma",
+            "rowsample_by_tree",
+            "colsample_by_tree",
+            "bottom_rate",
+            "top_rate",
+            "max_leaf",
+            "quantization_scale",
+            "sketch_eps",
+            "base_score",
+            "seed",
+            "fixed_point_parameter",
+            "enable_goss",
+            "enable_quantization",
+            "batch_encoding_enabled",
+            "tree_growing_method",
+            "first_tree_with_label_holder_feature",
+            "enable_monitor",
+            "enable_early_stop",
+            "eval_metric",
+            "validation_fraction",
+            "stopping_rounds",
+            "stopping_tolerance",
+            "save_best_model",
+            "train_dataset",
+            "train_dataset_label",
+            "train_dataset_feature_selects",
+        ]
+
+
+def dump_sgb_checkpoint(
+    ctx,
+    uri: str,
+    checkpoint: SGBCheckpointData,
+    system_info,
+) -> DistData:
+    return model_dumps(
+        ctx,
+        "sgb",
+        DistDataType.SGB_CHECKPOINT,
+        MODEL_MAX_MAJOR_VERSION,
+        MODEL_MAX_MINOR_VERSION,
+        checkpoint.model_objs,
+        json.dumps(checkpoint.model_train_state_metas),
+        uri,
+        system_info,
+    )
+
+
+def load_sgb_checkpoint_data(
+    ctx,
+    cp: DistData,
+    pyus: List[PYU],
+) -> SGBCheckpointData:
+    pyu_objs, model_train_state_meta_str = model_loads(
+        ctx,
+        cp,
+        MODEL_MAX_MAJOR_VERSION,
+        MODEL_MAX_MINOR_VERSION,
+        DistDataType.SGB_CHECKPOINT,
+        pyus=pyus,
+    )
+    return SGBCheckpointData(pyu_objs, json.loads(model_train_state_meta_str))
+
+
 # audit path is not supported in this form yet.
 @sgb_train_comp.eval_fn
 def sgb_train_eval_fn(
@@ -422,6 +508,26 @@ def sgb_train_eval_fn(
         label_party,
         [p.party for p in x.partitions if p.party != label_party],
     )
+    pyus = {p: PYU(p) for p in ctx.cluster_config.desc.parties}
+    checkpoint_data = None
+    if ctx.comp_checkpoint:
+        cp_dd = ctx.comp_checkpoint.load()
+        if cp_dd:
+            checkpoint_data = load_sgb_checkpoint_data(ctx, cp_dd, pyus)
+
+    def dump_function(
+        model: GlobalOrdermapBooster,
+        epoch: int,
+        evals_log: TrainingCallback.EvalsLog,
+    ):
+        cp_uri = f"{output_model}_checkpoint_{epoch}"
+        cp_dd = dump_sgb_checkpoint(
+            ctx,
+            cp_uri,
+            build_checkpoint(model, evals_log, x, train_dataset_label),
+            train_dataset.system_info,
+        )
+        ctx.comp_checkpoint.save(epoch, cp_dd)
 
     with ctx.tracer.trace_running():
         sgb = Sgb(heu)
@@ -458,29 +564,19 @@ def sgb_train_eval_fn(
             },
             dtrain=x,
             label=y,
+            checkpoint_data=checkpoint_data,
+            dump_function=dump_function if ctx.comp_checkpoint else None,
         )
 
-    m_dict = model.to_dict()
-    leaf_weights = m_dict.pop("leaf_weights")
-    split_trees = m_dict.pop("split_trees")
-    m_dict["label_holder"] = m_dict["label_holder"].party
-    m_dict["feature_names"] = x.columns
-    m_dict["label_col"] = train_dataset_label
-    party_features_length = {
-        device.party: len(columns) for device, columns in x.partition_columns.items()
-    }
-    m_dict["party_features_length"] = party_features_length
-
-    m_objs = sum([leaf_weights, *split_trees.values()], [])
-
+    snapshot = sgb_model_to_snapshot(model, x, train_dataset_label)
     model_db = model_dumps(
         ctx,
         "sgb",
         DistDataType.SGB_MODEL,
         MODEL_MAX_MAJOR_VERSION,
         MODEL_MAX_MINOR_VERSION,
-        m_objs,
-        json.dumps(m_dict),
+        snapshot.model_objs,
+        json.dumps(snapshot.model_meta),
         output_model,
         train_dataset.system_info,
     )
@@ -491,14 +587,14 @@ def sgb_train_eval_fn(
 sgb_predict_comp = Component(
     "sgb_predict",
     domain="ml.predict",
-    version="0.0.2",
+    version="0.0.3",
     desc="Predict using SGB model.",
 )
-sgb_predict_comp.str_attr(
+sgb_predict_comp.party_attr(
     name="receiver",
     desc="Party of receiver.",
-    is_list=False,
-    is_optional=False,
+    list_min_length_inclusive=1,
+    list_max_length_inclusive=1,
 )
 sgb_predict_comp.str_attr(
     name="pred_name",
@@ -553,33 +649,6 @@ sgb_predict_comp.io(
 )
 
 
-def build_sgb_model(pyus, model_objs, model_meta_str) -> SgbModel:
-    model_meta = json.loads(model_meta_str)
-    assert (
-        isinstance(model_meta, dict)
-        and "common" in model_meta
-        and "label_holder" in model_meta
-        and "tree_num" in model_meta["common"]
-        and model_meta["label_holder"] in pyus
-    )
-    tree_num = model_meta["common"]["tree_num"]
-    assert (
-        tree_num > 0 and len(model_objs) % tree_num == 0
-    ), f"model_objs {model_objs}, model_meta_str {model_meta_str}"
-    leaf_weights = model_objs[:tree_num]
-    split_trees = {}
-    for pos in range(1, int(len(model_objs) / tree_num)):
-        splits = model_objs[tree_num * pos : tree_num * (pos + 1)]
-        assert splits[0].device not in split_trees
-        split_trees[splits[0].device] = splits
-    model_meta["leaf_weights"] = leaf_weights
-    model_meta["split_trees"] = split_trees
-    model_meta["label_holder"] = pyus[model_meta["label_holder"]]
-
-    model = from_dict(model_meta)
-    return model
-
-
 def load_sgb_model(ctx, pyus, model) -> SgbModel:
     model_objs, model_meta_str = model_loads(
         ctx,
@@ -590,7 +659,7 @@ def load_sgb_model(ctx, pyus, model) -> SgbModel:
         pyus=pyus,
     )
 
-    return build_sgb_model(pyus, model_objs, model_meta_str)
+    return build_sgb_model(SGBSnapshot(model_objs, json.loads(model_meta_str)))
 
 
 @sgb_predict_comp.eval_fn
@@ -619,7 +688,7 @@ def sgb_predict_eval_fn(
 
     sgb_model = load_sgb_model(ctx, pyus, model)
 
-    receiver_pyu = PYU(receiver)
+    receiver_pyu = PYU(receiver[0])
 
     def batch_pred():
         with ctx.tracer.trace_running():

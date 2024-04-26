@@ -14,13 +14,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
+## staging
+>
+> please add your unreleased change here.
+
+### Added
+
+- Support defenses in AutoAttack benchmark
+- SLModel: Add FSHA attack
+- SLModel: Add FedPass defense
+- Component: Add union_comp
+- Infra: Support Linux Arm build
+
+### Changed
+
+- SLModel: Support Loss in base model
+- Component: XGB/SGB support checkpoint
+- Component: LR support report_weights
+- Component: pvalue support GLM model
+- Component: onehot add drop parameter with 3 options
+
+### Fixed
+
+- Fix GPU dockerfile
+
 ## [v1.5.0.dev240401] - 2024-04-01
 
 ### Added
-- Add FSHA attach
+
+- Add FSHA attack
 - Support duplicate keys in psi comp
 - Add sl/fl tf backend support custom loss
+
 ### Fixed
+
 - Resolve gpu docker install error
 - Fix woe bin export err
 

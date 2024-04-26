@@ -224,32 +224,58 @@ def test_union_attr_group():
     comp = Component("test")
     comp.union_attr_group(
         name="level0",
-        desc="level0",
+        desc="",
         group=[
-            comp.bool_attr(
-                name="bool0",
+            comp.union_selection_attr(
+                name="dummy1a",
                 desc="",
-                is_list=False,
-                is_optional=True,
-                default_value=True,
             ),
-            comp.union_attr_group(
-                name="level1",
-                desc="level1",
+            comp.struct_attr_group(
+                name="level1b",
+                desc="",
                 group=[
-                    comp.bool_attr(
-                        name="bool1",
-                        desc="",
-                        is_list=False,
-                        is_optional=True,
-                        default_value=True,
-                    ),
                     comp.bool_attr(
                         name="bool2",
                         desc="",
                         is_list=False,
                         is_optional=True,
                         default_value=True,
+                    ),
+                ],
+            ),
+            comp.union_attr_group(
+                name="level1c",
+                desc="",
+                group=[
+                    comp.struct_attr_group(
+                        name="level2a",
+                        desc="",
+                        group=[
+                            comp.bool_attr(
+                                name="bool3",
+                                desc="",
+                                is_list=False,
+                                is_optional=True,
+                                default_value=True,
+                            )
+                        ],
+                    ),
+                    comp.union_selection_attr(
+                        name="dummy2b",
+                        desc="",
+                    ),
+                    comp.struct_attr_group(
+                        name="level2c",
+                        desc="",
+                        group=[
+                            comp.bool_attr(
+                                name="bool3",
+                                desc="",
+                                is_list=False,
+                                is_optional=True,
+                                default_value=True,
+                            ),
+                        ],
                     ),
                 ],
             ),
@@ -264,32 +290,55 @@ def test_union_attr_group():
             "attrs": [
                 {
                     "name": "level0",
-                    "desc": "level0",
                     "type": "AT_UNION_GROUP",
-                    "union": {"defaultSelection": "bool0"},
+                    "union": {"defaultSelection": "dummy1a"},
                 },
                 {
                     "prefixes": ["level0"],
-                    "name": "bool0",
-                    "type": "AT_BOOL",
-                    "atomic": {"isOptional": True, "defaultValue": {"b": True}},
+                    "name": "dummy1a",
+                    "type": "ATTR_TYPE_UNSPECIFIED",
                 },
                 {
                     "prefixes": ["level0"],
-                    "name": "level1",
-                    "desc": "level1",
-                    "type": "AT_UNION_GROUP",
-                    "union": {"defaultSelection": "bool1"},
+                    "name": "level1b",
+                    "type": "AT_STRUCT_GROUP",
                 },
                 {
-                    "prefixes": ["level0", "level1"],
-                    "name": "bool1",
-                    "type": "AT_BOOL",
-                    "atomic": {"isOptional": True, "defaultValue": {"b": True}},
-                },
-                {
-                    "prefixes": ["level0", "level1"],
+                    "prefixes": ["level0", "level1b"],
                     "name": "bool2",
+                    "type": "AT_BOOL",
+                    "atomic": {"isOptional": True, "defaultValue": {"b": True}},
+                },
+                {
+                    "prefixes": ["level0"],
+                    "name": "level1c",
+                    "type": "AT_UNION_GROUP",
+                    "union": {"defaultSelection": "level2a"},
+                },
+                {
+                    "prefixes": ["level0", "level1c"],
+                    "name": "level2a",
+                    "type": "AT_STRUCT_GROUP",
+                },
+                {
+                    "prefixes": ["level0", "level1c", "level2a"],
+                    "name": "bool3",
+                    "type": "AT_BOOL",
+                    "atomic": {"isOptional": True, "defaultValue": {"b": True}},
+                },
+                {
+                    "prefixes": ["level0", "level1c"],
+                    "name": "dummy2b",
+                    "type": "ATTR_TYPE_UNSPECIFIED",
+                },
+                {
+                    "prefixes": ["level0", "level1c"],
+                    "name": "level2c",
+                    "type": "AT_STRUCT_GROUP",
+                },
+                {
+                    "prefixes": ["level0", "level1c", "level2c"],
+                    "name": "bool3",
                     "type": "AT_BOOL",
                     "atomic": {"isOptional": True, "defaultValue": {"b": True}},
                 },

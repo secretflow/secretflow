@@ -1,23 +1,28 @@
 # Deployment
-**SecretFlow provides two deployment options: simulation and production. The distinctions between them are outlined in the accompanying table. Please review the details thoughtfully and select the deployment approach that best suits your requirements.**
+**SecretFlow provides four deployment options: debug, simulation, production,production on Kuscia . The distinctions between them are outlined in the accompanying table. Please review the details thoughtfully and select the deployment approach that best suits your requirements.**
 
 |Deployment Mode|Scenarios|How to deploy Ray|How to run code|Code difference|
 |-|-|-|-|-|
+|Debug|For contributors to develop and debug new features, More convenient log viewing and breakpoint debugging.|No need to deploy ray.|Run code locally.|Set debug_mode=True when call `sf.init(..,debug_mode=True)`.|
 |Simulation|Conducting experiments in the local network environment of a single organization.|A Ray cluster composed of simulated nodes.|Run code once on any node.|Fill `parties` parameter in `sf.init`.|
 |Production|Formal production environments, such as collaboration among multiple institutions.|Each institution deploys its own independent Ray cluster.|Every institution needs to execute the code simultaneously.|Fill `cluster_config` parameter in `sf.init`, and the rest of the code is identical to that in simulation mode.|
+|Production on [Kuscia](https://www.secretflow.org.cn/zh-CN/docs/kuscia/main/reference/architecture_cn) |Formal production environment, with additional advanced features such as multi-task concurrent scheduling, resource management, network port reuse, metric, etc. For [more details](https://www.secretflow.org.cn/zh-CN/docs/kuscia/main/reference/overview).|No need to deploy ray, but [deploy kuscia](https://www.secretflow.org.cn/zh-CN/docs/kuscia/main/getting_started/quickstart_cn). See the detailed differences between [Ray and Kuscia](https://www.secretflow.org.cn/zh-CN/docs/kuscia/main/reference/troubleshoot/kuscia_vs_ray). |Execute SecretFlow through the [kuscia API](https://www.secretflow.org.cn/zh-CN/docs/kuscia/main/tutorial/run_secretflow_with_api_cn).|No need to execute code directly, but execute the component (e.g. PSI,LR,XGB,etc.) of SecretFlow via [kuscia API](https://www.secretflow.org.cn/zh-CN/docs/kuscia/main/reference/apis).|
 
-## Pre-knowledge: about Ray
-SecretFlow uses Ray as its distributed framework. A Ray cluster consists of a head node and zero or several slave nodes, for more information about Ray, please visit [Ray official website](https://docs.ray.io/).
+**Recommended**
 
-## Deploy based on Kuscia
+If you want to use SecretFlow in production, it is recommended to deploy and run SecretFlow based on Kuscia.
+Please refer to Kuscia's [Quick Start](https://www.secretflow.org.cn/docs/kuscia/latest/zh-Hans/getting_started/quickstart_cn) document for details.
 
 Kuscia is a lightweight privacy-preserving computing task orchestration framework based on K3s. It provides a unified privacy-preserving computing foundation that can abstract away heterogeneous infrastructure and protocols.
 
 With Kuscia, you can easily manage and execute SecretFlow jobs through kubectl commands or apis without paying attention to the details of SecretFlow networking.
 In addition, Kuscia supports communication security and running SecretFlow jobs concurrently.
 
-If you need to use SecretFlow in your business, it is recommended to deploy and run SecretFlow based on Kuscia.
-Please refer to Kuscia's [Quick Start](https://www.secretflow.org.cn/docs/kuscia/latest/zh-Hans/getting_started/quickstart_cn) document for details.
+## Pre-knowledge: about Ray
+SecretFlow uses Ray as its distributed framework. A Ray cluster consists of a head node and zero or several slave nodes, for more information about Ray, please visit [Ray official website](https://docs.ray.io/).
+
+## Debug
+Please refer to the **[dubug mode](./debug_mode.md)** document for details.
 
 ## Simulation
 SecretFlow is designed for fast simulation on a single host or on multiple nodes with single ray cluster.
@@ -734,4 +739,5 @@ In order to avoid problems such as connection timeout caused by the startup time
 
 
 
-
+## Production on Kuscia
+Please refer to the **[deploy kuscia](https://www.secretflow.org.cn/zh-CN/docs/kuscia/main/deployment)** documents for details.

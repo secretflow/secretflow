@@ -241,6 +241,7 @@ def slnn_train_eval_fn(
     learning_rate,
     batch_size,
     validattion_prop,
+    loss,
     loss_builtin,
     loss_custom,
     optimizer_name,
@@ -290,6 +291,12 @@ def slnn_train_eval_fn(
         )
 
     pyus, label_pyu = trainer.prepare_pyus(x, y)
+
+    assert loss in ["builtin", "custom"]
+    if loss == "builtin":
+        loss_custom = None
+    else:
+        loss_builtin = None
 
     with ctx.tracer.trace_running():
         slmodel, history, model_configs = trainer.fit(

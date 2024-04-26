@@ -44,7 +44,7 @@ def test_fillna(comp_prod_sf_cluster_config, strategy):
         df_alice = pd.DataFrame(
             {
                 "id1": [str(i) for i in range(17)],
-                "a1": ["K"] + ["F"] * 14 + [np.nan, "N"],
+                "a1": ["K"] + ["F"] * 14 + ["", "N"],
                 "a2": [0.1, np.nan, 0.3] * 5 + [0.4] * 2,
                 "a3": [1] * 16 + [0],
                 "y": [0] * 17,
@@ -136,7 +136,7 @@ def test_fillna(comp_prod_sf_cluster_config, strategy):
     assert len(res.outputs) == 2
 
     if self_party == "alice":
-        a_out = pd.read_csv(comp_storage.get_reader(sub_path))
+        a_out = pd.read_csv(comp_storage.get_reader(sub_path), converters={"a1": str})
         logging.warning(f"....... \n{a_out}\n.,......")
 
         if strategy == "most_frequent":
@@ -145,7 +145,7 @@ def test_fillna(comp_prod_sf_cluster_config, strategy):
             ), f"DataFrame contains NaN values, {a_out}"
         else:
             assert (
-                a_out.isnull().sum().sum() == 1
+                a_out.isnull().sum().sum() == 0
             ), f"DataFrame contains more than should be NaN values, {a_out}"
 
     if self_party == "bob":

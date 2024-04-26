@@ -33,7 +33,9 @@ from secretflow.component.ml.boost.sgb import sgb
 from secretflow.component.ml.boost.ss_xgb.ss_xgb import build_ss_xgb_model
 from secretflow.compute import Table
 from secretflow.device import PYU, SPU, PYUObject, SPUObject
+from secretflow.ml.boost.sgb_v.checkpoint import SGBSnapshot
 from secretflow.ml.boost.sgb_v.core.params import RegType as SgbRegType
+from secretflow.ml.boost.ss_xgb_v.checkpoint import SSXGBCheckpointData
 from secretflow.ml.boost.ss_xgb_v.core.node_split import RegType as SSXgbRegType
 from secretflow.ml.boost.ss_xgb_v.core.xgb_tree import XgbTree
 from secretflow.ml.linear import RegType
@@ -529,7 +531,7 @@ def ss_xgb_converter(
         spu=spu,
     )
     model_meta = json.loads(model_meta_str)
-    model = build_ss_xgb_model(model_objs, model_meta_str, spu)
+    model = build_ss_xgb_model(SSXGBCheckpointData(model_objs, model_meta), spu)
 
     party_features_name, _ = get_party_features_info(model_meta)
     tree_num = model_meta["tree_num"]
@@ -744,7 +746,7 @@ def sgb_converter(
     )
     model_meta = json.loads(model_meta_str)
 
-    sgb_model = sgb.build_sgb_model(pyus, model_objs, model_meta_str)
+    sgb_model = sgb.build_sgb_model(SGBSnapshot(model_objs, json.loads(model_meta_str)))
 
     party_features_name, _ = get_party_features_info(model_meta)
 
@@ -936,7 +938,7 @@ class TrainModelConverter:
         assert len(in_dataset) == 1
         self.in_dataset = in_dataset[0]
 
-        self.input_schema = extract_table_header(
+        self.input_schema, _ = extract_table_header(
             self.in_dataset, load_features=True, load_ids=True, load_labels=True
         )
 
