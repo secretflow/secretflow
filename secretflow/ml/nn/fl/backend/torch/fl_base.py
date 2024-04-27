@@ -389,8 +389,8 @@ class BaseTorchModel(ABC):
         self.epoch.append(epoch)
         for k, v in self.epoch_logs.items():
             self.history.setdefault(k, []).append(v)
-        self.training_logs = self.epoch_logs
-
+        self.training_logs = self.epoch_logs    
+        logging.info(f'fl_base->on_epoch_end->self.epoch_logs: {self.epoch_logs}')
         return self.epoch_logs
 
     def transform_metrics(self, logs, stage="train"):
@@ -536,6 +536,11 @@ class FedPACTorchModel(BaseTorchModel):
         return w
 
     def evaluate(self)-> Tuple[float, float]:
+        assert self.model is not None, "Model cannot be none, please give model define"
+        assert (
+            len(self.model.metrics) > 0
+        ), "Metric cannot be none, please give metric by 'TorchModel'"
+        self.model.eval()
         logging.info('evaluate begin')
         model = self.local_model
         device = self.exe_device
@@ -563,14 +568,15 @@ class FedPACTorchModel(BaseTorchModel):
             return self.wrap_local_metrics()
         else:
             val_result = {}
+            logging.info('FLBASE ELSE VAL_')
             for k, v in result.items():
                 val_result[f"val_{k}"] = v
             self.logs.update(val_result)
-            self.wrapped_metrics.extend(self.wrap_local_metrics(stage="eval"))
-            self.wrap_local_metrics(stage="eval")
-        acc = 100.0 * correct / total
-        logging.info('evaluate end')
-        return acc, sum(loss_test) / len(loss_test)
+            self.wrapped_metrics.extend(self.wrap_local_metrics(stage="val"))
+            return self.wrap_local_metrics(stage="val")
+        # acc = 100.0 * correct / total
+        # logging.info('evaluate end')
+        # return acc, sum(loss_test) / len(loss_test)
 
     def get_local_protos(self, step, train_steps):
         model = self.local_model

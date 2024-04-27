@@ -19,7 +19,7 @@
 import logging
 import math
 import os
-from typing import Callable, Dict, Union
+from typing import Callable, Dict, List, Tuple, Union
 
 import numpy as np
 import cvxpy as cvx
@@ -31,7 +31,7 @@ from secretflow.device import PYU, reveal, wait
 from secretflow.ml.nn.callbacks.callbacklist import CallbackList
 from secretflow.ml.nn.fl.fl_model import FLModel
 from secretflow.utils.random import global_random
-
+from secretflow.ml.nn.metrics import Metric, aggregate_metrics
 
 class FLModelFedPAC(FLModel):
     def pairwise(self, data):
@@ -413,25 +413,13 @@ class FLModelFedPAC(FLModel):
             logging.info(f'local_metrics_obj: {local_metrics_obj}')
             if epoch % validation_freq == 0 and valid_x is not None:
                 callbacks.on_test_begin()
-                acc_list, loss_list = [], []
-                for idx, device in enumerate(self._workers.keys()):
-                    (acc, loss ) = self._workers[device].evaluate()
-                    acc_list.append(acc)
-                    loss_list.append(loss)
-                logging.info(f'acc_list: {acc_list}')
-                logging.info(f'loss_list: {loss_list}')
-                acc_sum = 0
-                for acc in acc_list:
-                    logging.info(f'acc: {acc.data}')
-                    acc_sum += acc.data
-                acc = acc_sum / len(acc_list)
-                loss_sum = 0
-                for loss in loss_list:
-                    logging.info(f'loss: {loss.data}')
-                    loss_sum += loss.data
-                loss = loss_sum / len(loss_list)
-                logging.info(f'Eval ACC: {acc}')
-                logging.info(f'Eval Loss: {loss}')
+                global_eval, local_eval = self.evaluate(
+                    random_seed=random_seed,
+                    return_dict=True,
+                )
+                for device, worker in self._workers.items():
+                    worker.set_validation_metrics(global_eval)
+
                 # save checkpoint
                 if audit_log_dir is not None:
                     epoch_model_path = os.path.join(
@@ -447,7 +435,28 @@ class FLModelFedPAC(FLModel):
             ]
             if sum(stop_trainings) >= self.consensus_num:
                 break
-            logging
             callbacks.on_epoch_end(epoch=epoch)
         callbacks.on_train_end()
         return callbacks.history
+    
+    def evaluate(self, random_seed, return_dict=False) -> Tuple[
+        Union[List[Metric], Dict[str, Metric]],
+        Union[Dict[str, List[Metric]], Dict[str, Dict[str, Metric]]],
+    ]:
+        local_metrics = {}
+        metric_objs = {}
+        for device, worker in self._workers.items():
+            metric_objs[device.party] = worker.evaluate()
+        local_metrics = reveal(metric_objs)
+        logging.info(f"local_metrics: {local_metrics}")
+        g_metrics = aggregate_metrics(local_metrics.values())
+        if return_dict:
+            return (
+                {m.name: m for m in g_metrics},
+                {
+                    party: {m.name: m for m in metrics}
+                    for party, metrics in local_metrics.items()
+                },
+            )
+        else:
+            return g_metrics, local_metrics
