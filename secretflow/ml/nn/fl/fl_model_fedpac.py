@@ -48,14 +48,14 @@ class FLModelFedPAC(FLModel):
                 yield (data[i], data[j])
 
     def classifier_collaboration_weight_compute(
-        self, physical_device_type, client_var_list_pyu, client_h_list_pyu, **kwargs
+        self, physical_device_type, client_var_list, client_h_list_pyu, **kwargs
     ):
         # device = client_h_list[0].device
         num_cls = client_h_list_pyu[0].data.shape[0]
         d = client_h_list_pyu[0].data.shape[1]
         avg_weight = []
         num_users = len(client_h_list_pyu)
-        client_var_list = [v.data for v in client_var_list_pyu]
+        # client_var_list = [v.data for v in client_var_list_pyu]
         client_h_list = [h.data for h in client_h_list_pyu]
         for i in range(num_users):
             v = torch.tensor(client_var_list, device=physical_device_type)
@@ -258,15 +258,36 @@ class FLModelFedPAC(FLModel):
             # do train
             report_list.append(f"epoch: {epoch+1}/{epochs} - ")
             callbacks.on_epoch_begin(epoch=epoch)
+
+            # get v, h, size_label, dataset_size, w_local_keys, sample_num
+            client_var_list, client_h_list = [], []
+            client_label_size_list = []
+            client_dataset_size_list = []
+            client_classifier_weight_keys = []
+            sample_num_list = []
+            for idx, device in enumerate(self._workers.keys()):
+                (
+                    client_var,
+                    client_h,
+                    client_label_size,
+                    client_dataset_size,
+                    client_cls_weight_keys,
+                    sample_num,
+                )= self._workers[device].get_statistics()
+                client_var_list.append(client_var.data)
+                client_h_list.append(client_h)
+                client_label_size_list.append(client_label_size)
+                client_dataset_size_list.append(client_dataset_size)
+                client_classifier_weight_keys.append(client_cls_weight_keys)
+                sample_num_list.append(sample_num)
+
+            #do local train
+            client_param_list = []          
+            client_physical_device_type = None
             for step in range(0, train_steps_per_epoch, aggregate_freq):
-                callbacks.on_train_batch_begin(batch=step)                
-                client_param_list = []
-                client_protos_list = []
-                client_var_list, client_h_list = [], []
-                client_label_size_list = []
-                sample_num_list = []
-                client_classifier_weight_keys = []
+                callbacks.on_train_batch_begin(batch=step)
                 for idx, device in enumerate(self._workers.keys()):
+                    #for distributing global model to clients
                     client_params = (
                         model_params_list[idx].to(device)
                         if model_params_list is not None
@@ -281,13 +302,8 @@ class FLModelFedPAC(FLModel):
                     (
                         client_physical_device_type,
                         client_param,
-                        client_cls_weight_keys,
-                        client_protos,
-                        client_var,
-                        client_h,
-                        client_label_size,
-                        sample_num,     
                     ) = self._workers[device].train_step(
+                        step,
                         epoch * train_steps_per_epoch + step,
                         (
                             aggregate_freq
@@ -296,66 +312,10 @@ class FLModelFedPAC(FLModel):
                         ),
                         **self.kwargs,
                     )
-                    client_param_list.append(client_param)
-                    client_classifier_weight_keys.append(client_cls_weight_keys)
-                    client_protos_list.append(client_protos)
-                    client_var_list.append(client_var)
-                    client_h_list.append(client_h)
-                    client_label_size_list.append(client_label_size)
-                    sample_num_list.append(sample_num)
-                    res.append(client_params)
-
-                cls_weight_list = self.classifier_collaboration_weight_compute(
-                    client_physical_device_type.data,
-                    client_var_list,
-                    client_h_list,
-                    **self.kwargs,
-                )
-
-                new_cls_list = {}
-
-                if self._aggregator is not None:
-                    # fedpac
-                    # feature extractor aggregation
-                    model_params = self._aggregator.average(
-                        data=client_param_list, axis=0, weights=sample_num_list
-                    )
-                    # global protos aggregation
-                    global_protos = self._aggregator.global_protos_agg(
-                        client_protos_list, client_label_size_list
-                    )
-                    # classifier aggregation
-                    for idx, device in enumerate(self._workers.keys()):
-                        if cls_weight_list[idx] is not None:
-                            new_cls = self._aggregator.classifier_weighted_aggregation(
-                                client_param_list,
-                                cls_weight_list[idx],
-                                client_classifier_weight_keys[idx].data,
-                                idx,
-                            )
-                        else:
-                            new_cls = client_param_list[idx]
-                        new_cls_list[device] = new_cls
-
-                else:
-                    if self.server is not None:
-                        # server will do aggregation
-                        model_params_list = [
-                            param.to(self.server) for param in client_param_list
-                        ]
-                        model_params_list = self.server(
-                            self.server_agg_method, num_returns=len(self.device_list,),
-                        )(model_params_list)
-                        model_params_list = [
-                            params.to(device)
-                            for device, params in zip(
-                                self.device_list, model_params_list
-                            )
-                        ]
-                    else:
-                        raise Exception(
-                            "Aggregation can be on either an aggregator or a server, but not none at the same time"
-                        )
+                    if step == train_steps_per_epoch - 1:
+                        #last step , save the model params
+                        client_param_list.append(client_param)
+                        res.append(client_params)
 
                 # DP operation
                 if dp_spent_step_freq is not None and self.dp_strategy is not None:
@@ -369,34 +329,56 @@ class FLModelFedPAC(FLModel):
                         logging.debug(f"DP privacy accountant {privacy_spent}")
                 if len(res) == wait_steps:
                     wait(res)
-                    res = []
-                if self._aggregator is not None:
-                    model_params_list = [model_params for _ in self.device_list]
-                    model_params_list = [
-                        params.to(device)
-                        for device, params in zip(self.device_list, model_params_list)
-                    ]
+                    res = []  
                 callbacks.on_train_batch_end(batch=step)
-
+            
+            # get every client's protos
+            client_protos_list = []
+            for idx, device in enumerate(self._workers.keys()):
+                client_protos_list.append(
+                    self._workers[device].get_local_protos_with_entire_dataset()
+                )
             # last batch
             # update local infomation of every client
             if self._aggregator is not None:
-                logging.info(f'new_cls_list: {new_cls_list}')
-                logging.info(f'model_params_list: {model_params_list}')
-                logging.info(f'new_cls_list type: {type(new_cls_list)}')
-                logging.info(f'model_params_list type: {type(model_params_list)}')
-                # logging.info(f'new_cls_list data: {new_cls_list.data}')
-                logging.info(f'self._workers.keys(): {self._workers.keys()}')
+                #fedpac
+                #agg feature extraction
+                model_params = self._aggregator.average(
+                    data=client_param_list, axis=0, weights=sample_num_list
+                )
+                model_params_list = [model_params for _ in self.device_list]
+                model_params_list = [
+                    params.to(device)
+                    for device, params in zip(self.device_list, model_params_list)
+                ]
+                # agg global protos
+                global_protos = self._aggregator.global_protos_agg(
+                    client_protos_list, client_label_size_list
+                )
+                #agg classifier
+                cls_weight_list = self.classifier_collaboration_weight_compute(
+                    client_physical_device_type.data,
+                    client_var_list,
+                    client_h_list,
+                    **self.kwargs,
+                )
+                new_cls_list = {}
                 for idx, device in enumerate(self._workers.keys()):
-                    logging.info(f'idx: {idx}, device: {device}')
+                    if cls_weight_list[idx] is not None:
+                        new_cls = self._aggregator.classifier_weighted_aggregation(
+                            client_param_list,
+                            cls_weight_list[idx],
+                            client_classifier_weight_keys[idx].data,
+                            idx,
+                        )
+                    else:
+                        new_cls = client_param_list[idx]
+                    new_cls_list[device] = new_cls
+                #apply weights
+                for idx, device in enumerate(self._workers.keys()):
                     local_client = self._workers[device]
-                    logging.info(f'local_client: {local_client}')
-                    logging.info(f'global_protos: {global_protos}')
-                    model_params = model_params_list[idx].data  # 获取model_params_list中的数据
-                    new_cls = new_cls_list[device].data  # 获取new_cls_list中的数据
-                    logging.info(f'model_params: {model_params}')
-                    logging.info(f'new_cls: {new_cls}')
-                    # update base model & global protos & classifier weight
+                    model_params = model_params_list[idx].data
+                    new_cls = new_cls_list[device].data
                     local_client.apply_weights(
                         model_params,
                         global_protos,
@@ -404,19 +386,26 @@ class FLModelFedPAC(FLModel):
                         **self.kwargs,
                     )
                     logging.info('apply_weights done')
-            # if self._aggregator is not None:
-            #     for idx, device in enumerate(self._workers.keys()):
-            #         local_client = self._workers[device]
-            #         # update base model & global protos & classifier weight
-            #         local_client.apply_weights(
-            #             model_params_list[idx],
-            #             global_protos,
-            #             new_cls_list[idx],
-            #             **self.kwargs,
-            #         )
-            #         logging.info('apply_weights done')
-
-
+            else:
+                if self.server is not None:
+                    # server will do aggregation
+                    model_params_list = [
+                        param.to(self.server) for param in client_param_list
+                    ]
+                    model_params_list = self.server(
+                        self.server_agg_method, num_returns=len(self.device_list,),
+                    )(model_params_list)
+                    model_params_list = [
+                        params.to(device)
+                        for device, params in zip(
+                            self.device_list, model_params_list
+                        )
+                    ]
+                else:
+                    raise Exception(
+                         "Aggregation can be on either an aggregator or a server, but not none at the same time"
+                    )
+            
             local_metrics_obj = []
             for device, worker in self._workers.items():
                 local_metrics_obj.append(worker.wrap_local_metrics())
@@ -424,19 +413,6 @@ class FLModelFedPAC(FLModel):
             logging.info(f'local_metrics_obj: {local_metrics_obj}')
             if epoch % validation_freq == 0 and valid_x is not None:
                 callbacks.on_test_begin()
-                # global_eval, local_eval = self.evaluate(
-                #     valid_x,
-                #     valid_y,
-                #     batch_size=batch_size,
-                #     sample_weight=sample_weight,
-                #     return_dict=True,
-                #     label_decoder=label_decoder,
-                #     random_seed=random_seed,
-                #     sampler_method=sampler_method,
-                #     dataset_builder=dataset_builder,
-                # )
-                # for device, worker in self._workers.items():
-                #     worker.set_validation_metrics(global_eval)
                 acc_list, loss_list = [], []
                 for idx, device in enumerate(self._workers.keys()):
                     (acc, loss ) = self._workers[device].evaluate()
@@ -446,10 +422,12 @@ class FLModelFedPAC(FLModel):
                 logging.info(f'loss_list: {loss_list}')
                 acc_sum = 0
                 for acc in acc_list:
+                    logging.info(f'acc: {acc.data}')
                     acc_sum += acc.data
                 acc = acc_sum / len(acc_list)
                 loss_sum = 0
                 for loss in loss_list:
+                    logging.info(f'loss: {loss.data}')
                     loss_sum += loss.data
                 loss = loss_sum / len(loss_list)
                 logging.info(f'Eval ACC: {acc}')
@@ -469,6 +447,7 @@ class FLModelFedPAC(FLModel):
             ]
             if sum(stop_trainings) >= self.consensus_num:
                 break
+            logging
             callbacks.on_epoch_end(epoch=epoch)
         callbacks.on_train_end()
         return callbacks.history

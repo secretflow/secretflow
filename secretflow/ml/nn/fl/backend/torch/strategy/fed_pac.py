@@ -28,17 +28,10 @@ import logging
 
 class FedPAC(FedPACTorchModel):
     def train_step(
-        self, cur_steps: int, train_steps: int, **kwargs,
+        self, step, cur_steps: int, train_steps: int, **kwargs,
     ) -> Tuple[
         torch.device,    
         Dict[str, torch.Tensor],
-        list,
-        np.ndarray,
-        float,
-        torch.Tensor,
-        torch.Tensor,
-        torch.Tensor,
-
     ]:
         """Accept ps model params, then do local train
 
@@ -51,9 +44,6 @@ class FedPAC(FedPACTorchModel):
         """
         # Set mode to train model
         assert self.model is not None, "Model cannot be none, please give model define"
-        v, h_ref = self.statistics_extraction(cur_steps, train_steps)
-        size_label = self.size_label(self.train_set, cur_steps, train_steps).to(self.exe_device)
-        sample_num = self.sample_number(cur_steps, train_steps)
         model = self.local_model
         model.train()
         refresh_data = kwargs.get("refresh_data", False)
@@ -65,13 +55,32 @@ class FedPAC(FedPACTorchModel):
         global_protos = self.global_protos
         self.last_model = deepcopy(model)
         # get local prototypes before training, dict:={label: list of sample features}
-        local_protos1 = self.get_local_protos(cur_steps, train_steps)
-
+        local_protos1 = self.get_local_protos(step, train_steps)
         # Set optimizer for the local updates, default sgd
         lr = kwargs.get("lr", 0.01)
+
+        epoch_classifier = 1
         optimizer = torch.optim.SGD(
             model.parameters(), lr, momentum=0.5, weight_decay=0.0005
         )
+        for name, param in model.named_parameters():
+            if name in self.w_local_keys:
+                param.requires_grad = True
+            else:
+                param.requires_grad = False
+        lr_g = 0.1
+        optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=lr_g,
+                                                momentum=0.5, weight_decay=0.0005)
+        for ep in range(epoch_classifier):
+            # local training for 1 epoch
+            for step in range(train_steps):
+                images, labels, _ = self.next_batch()
+                images, labels = images.to(self.exe_device), labels.to(self.exe_device)
+                model.zero_grad()
+                protos, output = model(images)
+                loss = self.criterion(output, labels)
+                loss.backward()
+                optimizer.step()
 
         for name, param in model.named_parameters():
             if name in self.w_local_keys:
@@ -84,14 +93,10 @@ class FedPAC(FedPACTorchModel):
             momentum=0.5,
             weight_decay=0.0005,
         )
-        for step in range(train_steps):
-            images, labels, _ = self.next_batch()
-            images, labels = (
-                images.to(self.exe_device),
-                labels.to(self.exe_device),
-            )            
+        for step in range(train_steps):          
             model.zero_grad()
             protos, output = model(images)
+            model.update_metrics(output, labels)
             loss0 = self.criterion(output, labels)
             loss1 = 0
             protos_new = protos.clone().detach()
@@ -99,7 +104,7 @@ class FedPAC(FedPACTorchModel):
                 yi = labels[i].item()
                 if yi in global_protos:
                     protos_new[i] = global_protos[yi].detach()
-                elif yi in local_protos1:  # 检查yi是否在local_protos1的键中
+                elif yi in local_protos1:
                     protos_new[i] = local_protos1[yi].detach()
                 else:
                     logging.info(f"Key {yi} not found in both global_protos and local_protos1")
@@ -108,21 +113,17 @@ class FedPAC(FedPACTorchModel):
             loss.backward()
             optimizer.step()
             iter_loss.append(loss.item())
-        local_protos2 = self.get_local_protos(cur_steps, train_steps)
+
         train_loss = sum(iter_loss) / len(iter_loss)
+        logging.info(f'local train loss: {train_loss}')
         logs['train-loss'] = train_loss
+        self.logs = self.transform_metrics(logs)
         self.wrapped_metrics.extend(self.wrap_local_metrics())
         self.epoch_logs = copy.deepcopy(self.logs)
 
         return (
             self.exe_device,
             model.state_dict(),
-            self.w_local_keys,
-            local_protos2,
-            v,
-            h_ref,
-            size_label,
-            sample_num,
         )
 
     def apply_weights(
@@ -164,6 +165,7 @@ class FedPAC(FedPACTorchModel):
                     g_protos.append(global_protos[i])
                 else:
                     logging.info(f"Key {i} not found in global_protos")
+                    logging.info(f'global protos type: {type(global_protos)}')
             self.g_classes = torch.stack(g_classes).to(self.exe_device)
             self.g_protos = torch.stack(g_protos)
 

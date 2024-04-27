@@ -51,12 +51,14 @@ class BaseTorchModel(ABC):
         self.train_set = None
         self.eval_set = None
         self.skip_bn = skip_bn
+        #self.dataset_size = torch.tensor(len(self.train_set.dataset)).to(self.exe_device)
         if random_seed is not None:
             torch.manual_seed(random_seed)
         assert builder_base is not None, "Builder_base cannot be none"
         self.use_gpu = kwargs.get("use_gpu", False)
         self.exe_device = torch.device('cuda') if self.use_gpu else torch.device('cpu')
         self.model = module.build(builder_base, self.exe_device)
+
 
     def build_dataset_from_csv(
         self,
@@ -239,6 +241,11 @@ class BaseTorchModel(ABC):
     def wrap_local_metrics(self, stage="train"):
         # TODO: use pytorch to rewrite
         wraped_metrics = []
+
+        logging.info(
+            f'fl_base->wrap_local_metrics->self.model.metrics: {self.model.metrics}' 
+            #[MulticlassAccuracy(), MulticlassPrecision()]
+        )
         for m in self.model.metrics:
             if isinstance(m, (torchmetrics.Accuracy)):
                 tp, fp, tn, fn = map(lambda x: x.cpu(), m._get_final_stats())
@@ -248,6 +255,9 @@ class BaseTorchModel(ABC):
                 correct = float((tp + tn).numpy().sum())
                 total = float((tp + tn + fp + fn).numpy().sum())
 
+                logging.info(
+                    f'fl_base->wrap_local_metrics->wraped_metrics:{Mean(name, correct, total)}'
+                )
                 wraped_metrics.append(Mean(name, correct, total))
 
             elif isinstance(m, torchmetrics.Precision):
@@ -314,6 +324,7 @@ class BaseTorchModel(ABC):
                 self.model.validation_step((x, y), step, sample_weight=s_w)
             result = {}
             self.transform_metrics(result, stage="eval")
+
         if self.logs is None:
             self.wrapped_metrics.extend(self.wrap_local_metrics())
             return self.wrap_local_metrics()
@@ -349,6 +360,7 @@ class BaseTorchModel(ABC):
         self.train_iter = iter(self.train_set)
 
     def get_local_metrics(self):
+        #logging.info(f'on_epoch_end wrapped_metrics: {self.wrapped_metrics}')
         return self.wrapped_metrics
 
     def get_logs(self):
@@ -491,71 +503,35 @@ class FedPACTorchModel(BaseTorchModel):
             raise Exception(f"Illegal argument stage={stage}")
         return step_per_epoch
 
-    def prior_label(self, dataset, cur_steps, train_steps):
+    def prior_label(self, dataset):
         py = torch.zeros(self.num_classes)
-        step_counter = 0
-        total_steps = 0
+        total = len(dataset.dataset)
         data_loader = iter(dataset)
-        # iter_num = len(data_loader)
-        iter_num = min(len(data_loader), cur_steps + train_steps)
+        iter_num = len(data_loader)
         for it in range(iter_num):
             images, labels = next(data_loader)
-            if total_steps < cur_steps:
-                total_steps += 1
-                continue
-            if step_counter >= train_steps:
-                break
             for i in range(self.num_classes):
                 py[i] = py[i] + (i == labels).sum()
-            step_counter += 1
-            total_steps += 1
-        
-        total = step_counter * dataset.batch_size
         py = py / (total)
         return py
 
-    def size_label(self, dataset, cur_steps, train_steps):
+
+    def size_label(self, dataset):
         py = torch.zeros(self.num_classes)
-        step_counter = 0
-        total_steps = 0
+        total = len(dataset.dataset)
         data_loader = iter(dataset)
-        # iter_num = len(data_loader)
-        iter_num = min(len(data_loader), cur_steps + train_steps)
+        iter_num = len(data_loader)
         for it in range(iter_num):
             images, labels = next(data_loader)
-            if total_steps < cur_steps:
-                total_steps += 1
-                continue
-            if step_counter >= train_steps:
-                break
             for i in range(self.num_classes):
                 py[i] = py[i] + (i == labels).sum()
-            step_counter += 1
-            total_steps += 1
         
-        total = step_counter * dataset.batch_size
         py = py / (total)
         size_label = py * total
         return size_label
 
-    def sample_number(self, cur_steps, train_steps):
-        # 确保cur_steps和train_steps不超过数据加载器的批次总数
-        total_batches = len(self.train_set)
-        # 计算实际需要迭代的批次数，不能超过数据加载器的批次总数
-        actual_steps = min(train_steps, total_batches - cur_steps)
-        
-        # 如果cur_steps超出了批次总数，实际步数为0
-        if cur_steps >= total_batches:
-            actual_steps = 0
-        
-        # 计算总数据量
-        if actual_steps > 0:
-            # 计算从cur_steps开始的actual_steps批次中的总数据量
-            data_size = actual_steps * self.train_set.batch_size
-        else:
-            # 如果没有有效的批次要处理，数据量为0
-            data_size = 0
-
+    def sample_number(self):
+        data_size = len(self.train_set.dataset)
         w = torch.tensor(data_size).to(self.exe_device)
         return w
 
@@ -572,27 +548,39 @@ class FedPACTorchModel(BaseTorchModel):
             for inputs, labels in eval_loader:
                 inputs, labels = inputs.to(device), labels.to(device)
                 _, outputs = model(inputs)
+                model.update_metrics(outputs, labels)
                 loss = self.criterion(outputs, labels)
                 loss_test.append(loss.item())
                 _, predicted = torch.max(outputs.data, 1)
+                logging.info(f'Evaluate Predicted: {predicted}')
+                logging.info(f'Evaluate Labels: {labels}')
                 correct += (predicted == labels).sum().item()
-
+            result = {}
+            self.transform_metrics(result, stage="eval")
+        
+        if self.logs is None:
+            self.wrapped_metrics.extend(self.wrap_local_metrics())
+            return self.wrap_local_metrics()
+        else:
+            val_result = {}
+            for k, v in result.items():
+                val_result[f"val_{k}"] = v
+            self.logs.update(val_result)
+            self.wrapped_metrics.extend(self.wrap_local_metrics(stage="eval"))
+            self.wrap_local_metrics(stage="eval")
         acc = 100.0 * correct / total
         logging.info('evaluate end')
         return acc, sum(loss_test) / len(loss_test)
 
-    def get_local_protos(self, cur_steps, train_steps):
+    def get_local_protos(self, step, train_steps):
         model = self.local_model
         local_protos_list = {}
-        # 初始化计数器
         step_counter = 0
-        total_steps = 0  # 总步数计数器
+        total_steps = 0
         for inputs, labels in self.train_set:
-            # 检查总步数是否已达到cur_steps，如果没有则继续
-            if total_steps < cur_steps:
+            if total_steps < step:
                 total_steps += 1
                 continue
-            # 检查从cur_steps开始的步数是否已达到train_steps
             if step_counter >= train_steps:
                 break
             inputs, labels = inputs.to(self.exe_device), labels.to(self.exe_device)
@@ -603,7 +591,6 @@ class FedPACTorchModel(BaseTorchModel):
                     local_protos_list[labels[i].item()].append(protos[i, :])
                 else:
                     local_protos_list[labels[i].item()] = [protos[i, :]]
-            # 增加计数器
             step_counter += 1
             total_steps += 1
 
@@ -615,59 +602,69 @@ class FedPACTorchModel(BaseTorchModel):
             local_protos[label] = proto / len(proto_list)
         return local_protos
 
-    def statistics_extraction(self, cur_steps, train_steps):
+    def get_local_protos_with_entire_dataset(self):
+        model = self.local_model
+        local_protos_list = {}
+        for inputs, labels in self.train_set:
+            inputs, labels = inputs.to(self.exe_device), labels.to(self.exe_device)
+            features, outputs = model(inputs)
+            protos = features.clone().detach()
+            for i in range(len(labels)):
+                if labels[i].item() in local_protos_list.keys():
+                    local_protos_list[labels[i].item()].append(protos[i, :])
+                else:
+                    local_protos_list[labels[i].item()] = [protos[i, :]]
+
+        local_protos = {}
+        for [label, proto_list] in local_protos_list.items():
+            proto = 0 * proto_list[0]
+            for p in proto_list:
+                proto += p
+            local_protos[label] = proto / len(proto_list)
+        return local_protos
+
+    def statistics_extraction(self):
         model = self.local_model
         cls_keys = self.w_local_keys
-        g_params = (
-            model.state_dict()[cls_keys[0]]
-            if isinstance(cls_keys, list)
-            else model.state_dict()[cls_keys]
-        )
+        g_params = model.state_dict()[cls_keys[0]] if isinstance(cls_keys, list) else model.state_dict()[cls_keys]
         d = g_params[0].shape[0]
         feature_dict = {}
+        datasize = torch.tensor(len(self.train_set.dataset)).to(self.exe_device)
         with torch.no_grad():
-            step_counter = 0
-            total_steps = 0
             for inputs, labels in self.train_set:
-                if total_steps < cur_steps:
-                    total_steps += 1
-                    continue
-                if step_counter >= train_steps:
-                    break
-
                 inputs, labels = inputs.to(self.exe_device), labels.to(self.exe_device)
                 features, outputs = model(inputs)
                 feat_batch = features.clone().detach()
                 for i in range(len(labels)):
                     yi = labels[i].item()
                     if yi in feature_dict.keys():
-                        feature_dict[yi].append(feat_batch[i, :])
+                        feature_dict[yi].append(feat_batch[i,:])
                     else:
-                        feature_dict[yi] = [feat_batch[i, :]]
-                step_counter += 1
-                total_steps += 1
-
+                        feature_dict[yi] = [feat_batch[i,:]]
         for k in feature_dict.keys():
             feature_dict[k] = torch.stack(feature_dict[k])
         
-        py = self.prior_label(self.train_set, cur_steps, train_steps).to(self.exe_device)
+        py = self.prior_label(self.train_set).to(self.exe_device)
         py2 = py.mul(py)
         v = 0
-        datasize = torch.tensor(step_counter * self.train_set.batch_size).to(self.exe_device)
         h_ref = torch.zeros((self.num_classes, d), device=self.exe_device)
         for k in range(self.num_classes):
             if k in feature_dict.keys():
                 feat_k = feature_dict[k]
                 num_k = feat_k.shape[0]
                 feat_k_mu = feat_k.mean(dim=0)
-                h_ref[k] = py[k] * feat_k_mu
-                v += (
-                    py[k] * torch.trace((torch.mm(torch.t(feat_k), feat_k) / num_k))
-                ).item()
-                v -= (py2[k] * (torch.mul(feat_k_mu, feat_k_mu))).sum().item()
-        v = v / datasize.item()
-
-        return v, h_ref
+                h_ref[k] = py[k]*feat_k_mu
+                v += (py[k]*torch.trace((torch.mm(torch.t(feat_k), feat_k)/num_k))).item()
+                v -= (py2[k]*(torch.mul(feat_k_mu, feat_k_mu))).sum().item()
+        v = v/datasize.item()
+        return v, h_ref 
+    
+    def get_statistics(self)-> Tuple[float, torch.Tensor, torch.Tensor, torch.Tensor, list, torch.Tensor]:
+        v, h_ref = self.statistics_extraction()
+        label_size = self.size_label(self.train_set).to(self.exe_device)
+        sample_num = self.sample_number()
+        dataset_size = torch.tensor(len(self.train_set.dataset)).to(self.exe_device)
+        return v, h_ref, label_size, dataset_size, self.w_local_keys, sample_num
 
     def build_dataset(
         self,

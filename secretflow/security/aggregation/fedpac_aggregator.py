@@ -133,13 +133,13 @@ class FedPACAggregator(Aggregator):
                     res[key] = torch.zeros_like(res[key])
                     for i in range(len(data)):
                         res[key] += data[i][key] * weights[i]
-                logging.info(f'res: {res}')
+                # logging.info(f'res: {res}')
                 return res
 
             else:
                 res = np.average(data, axis=axis, weights=weights)
                 res_dtype = self._get_dtype(data[0])
-                logging.info(f'res: {res}')
+                # logging.info(f'res: {res}')
                 return res.astype(res_dtype) if res_dtype else res
 
         return self.device(_average)(*data, axis=axis, weights=weights)
