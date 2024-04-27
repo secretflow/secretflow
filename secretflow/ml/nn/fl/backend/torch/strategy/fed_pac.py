@@ -28,9 +28,13 @@ import logging
 
 class FedPAC(FedPACTorchModel):
     def train_step(
-        self, step, cur_steps: int, train_steps: int, **kwargs,
+        self,
+        step,
+        cur_steps: int,
+        train_steps: int,
+        **kwargs,
     ) -> Tuple[
-        torch.device,    
+        torch.device,
         Dict[str, torch.Tensor],
     ]:
         """Accept ps model params, then do local train
@@ -69,8 +73,12 @@ class FedPAC(FedPACTorchModel):
             else:
                 param.requires_grad = False
         lr_g = 0.1
-        optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=lr_g,
-                                                momentum=0.5, weight_decay=0.0005)
+        optimizer = torch.optim.SGD(
+            filter(lambda p: p.requires_grad, model.parameters()),
+            lr=lr_g,
+            momentum=0.5,
+            weight_decay=0.0005,
+        )
         for ep in range(epoch_classifier):
             # local training for 1 epoch
             for step in range(train_steps):
@@ -93,7 +101,7 @@ class FedPAC(FedPACTorchModel):
             momentum=0.5,
             weight_decay=0.0005,
         )
-        for step in range(train_steps):          
+        for step in range(train_steps):
             model.zero_grad()
             protos, output = model(images)
             model.update_metrics(output, labels)
@@ -107,7 +115,9 @@ class FedPAC(FedPACTorchModel):
                 elif yi in local_protos1:
                     protos_new[i] = local_protos1[yi].detach()
                 else:
-                    logging.info(f"Key {yi} not found in both global_protos and local_protos1")
+                    logging.info(
+                        f"Key {yi} not found in both global_protos and local_protos1"
+                    )
             loss1 = self.mse_loss(protos_new, protos)
             loss = loss0 + self.lam * loss1
             loss.backward()

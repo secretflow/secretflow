@@ -51,14 +51,13 @@ class BaseTorchModel(ABC):
         self.train_set = None
         self.eval_set = None
         self.skip_bn = skip_bn
-        #self.dataset_size = torch.tensor(len(self.train_set.dataset)).to(self.exe_device)
+        # self.dataset_size = torch.tensor(len(self.train_set.dataset)).to(self.exe_device)
         if random_seed is not None:
             torch.manual_seed(random_seed)
         assert builder_base is not None, "Builder_base cannot be none"
         self.use_gpu = kwargs.get("use_gpu", False)
         self.exe_device = torch.device('cuda') if self.use_gpu else torch.device('cpu')
         self.model = module.build(builder_base, self.exe_device)
-
 
     def build_dataset_from_csv(
         self,
@@ -243,8 +242,8 @@ class BaseTorchModel(ABC):
         wraped_metrics = []
 
         logging.info(
-            f'fl_base->wrap_local_metrics->self.model.metrics: {self.model.metrics}' 
-            #[MulticlassAccuracy(), MulticlassPrecision()]
+            f'fl_base->wrap_local_metrics->self.model.metrics: {self.model.metrics}'
+            # [MulticlassAccuracy(), MulticlassPrecision()]
         )
         for m in self.model.metrics:
             if isinstance(m, (torchmetrics.Accuracy)):
@@ -360,7 +359,7 @@ class BaseTorchModel(ABC):
         self.train_iter = iter(self.train_set)
 
     def get_local_metrics(self):
-        #logging.info(f'on_epoch_end wrapped_metrics: {self.wrapped_metrics}')
+        # logging.info(f'on_epoch_end wrapped_metrics: {self.wrapped_metrics}')
         return self.wrapped_metrics
 
     def get_logs(self):
@@ -389,7 +388,7 @@ class BaseTorchModel(ABC):
         self.epoch.append(epoch)
         for k, v in self.epoch_logs.items():
             self.history.setdefault(k, []).append(v)
-        self.training_logs = self.epoch_logs    
+        self.training_logs = self.epoch_logs
         logging.info(f'fl_base->on_epoch_end->self.epoch_logs: {self.epoch_logs}')
         return self.epoch_logs
 
@@ -515,7 +514,6 @@ class FedPACTorchModel(BaseTorchModel):
         py = py / (total)
         return py
 
-
     def size_label(self, dataset):
         py = torch.zeros(self.num_classes)
         total = len(dataset.dataset)
@@ -525,7 +523,7 @@ class FedPACTorchModel(BaseTorchModel):
             images, labels = next(data_loader)
             for i in range(self.num_classes):
                 py[i] = py[i] + (i == labels).sum()
-        
+
         py = py / (total)
         size_label = py * total
         return size_label
@@ -535,7 +533,7 @@ class FedPACTorchModel(BaseTorchModel):
         w = torch.tensor(data_size).to(self.exe_device)
         return w
 
-    def evaluate(self)-> Tuple[float, float]:
+    def evaluate(self) -> Tuple[float, float]:
         assert self.model is not None, "Model cannot be none, please give model define"
         assert (
             len(self.model.metrics) > 0
@@ -562,7 +560,7 @@ class FedPACTorchModel(BaseTorchModel):
                 correct += (predicted == labels).sum().item()
             result = {}
             self.transform_metrics(result, stage="eval")
-        
+
         if self.logs is None:
             self.wrapped_metrics.extend(self.wrap_local_metrics())
             return self.wrap_local_metrics()
@@ -632,7 +630,11 @@ class FedPACTorchModel(BaseTorchModel):
     def statistics_extraction(self):
         model = self.local_model
         cls_keys = self.w_local_keys
-        g_params = model.state_dict()[cls_keys[0]] if isinstance(cls_keys, list) else model.state_dict()[cls_keys]
+        g_params = (
+            model.state_dict()[cls_keys[0]]
+            if isinstance(cls_keys, list)
+            else model.state_dict()[cls_keys]
+        )
         d = g_params[0].shape[0]
         feature_dict = {}
         datasize = torch.tensor(len(self.train_set.dataset)).to(self.exe_device)
@@ -644,12 +646,12 @@ class FedPACTorchModel(BaseTorchModel):
                 for i in range(len(labels)):
                     yi = labels[i].item()
                     if yi in feature_dict.keys():
-                        feature_dict[yi].append(feat_batch[i,:])
+                        feature_dict[yi].append(feat_batch[i, :])
                     else:
-                        feature_dict[yi] = [feat_batch[i,:]]
+                        feature_dict[yi] = [feat_batch[i, :]]
         for k in feature_dict.keys():
             feature_dict[k] = torch.stack(feature_dict[k])
-        
+
         py = self.prior_label(self.train_set).to(self.exe_device)
         py2 = py.mul(py)
         v = 0
@@ -659,13 +661,17 @@ class FedPACTorchModel(BaseTorchModel):
                 feat_k = feature_dict[k]
                 num_k = feat_k.shape[0]
                 feat_k_mu = feat_k.mean(dim=0)
-                h_ref[k] = py[k]*feat_k_mu
-                v += (py[k]*torch.trace((torch.mm(torch.t(feat_k), feat_k)/num_k))).item()
-                v -= (py2[k]*(torch.mul(feat_k_mu, feat_k_mu))).sum().item()
-        v = v/datasize.item()
-        return v, h_ref 
-    
-    def get_statistics(self)-> Tuple[float, torch.Tensor, torch.Tensor, torch.Tensor, list, torch.Tensor]:
+                h_ref[k] = py[k] * feat_k_mu
+                v += (
+                    py[k] * torch.trace((torch.mm(torch.t(feat_k), feat_k) / num_k))
+                ).item()
+                v -= (py2[k] * (torch.mul(feat_k_mu, feat_k_mu))).sum().item()
+        v = v / datasize.item()
+        return v, h_ref
+
+    def get_statistics(
+        self,
+    ) -> Tuple[float, torch.Tensor, torch.Tensor, torch.Tensor, list, torch.Tensor]:
         v, h_ref = self.statistics_extraction()
         label_size = self.size_label(self.train_set).to(self.exe_device)
         sample_num = self.sample_number()

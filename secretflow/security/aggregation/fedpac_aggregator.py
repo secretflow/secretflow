@@ -183,7 +183,11 @@ class FedPACAggregator(Aggregator):
 
     # fedpac
     def classifier_weighted_aggregation(
-        self, clients_param_list: List, cls_weight_list: List, keys: List, client_idx: int
+        self,
+        clients_param_list: List,
+        cls_weight_list: List,
+        keys: List,
+        client_idx: int,
     ):
         """Compute the weighted average along the specified axis.
 
