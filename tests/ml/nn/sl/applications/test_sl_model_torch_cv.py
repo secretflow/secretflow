@@ -28,9 +28,9 @@ from secretflow.ml.nn.core.torch import BaseModule
 class SimSLVGG16(BaseModule):
     def __init__(self):
         super(SimSLVGG16, self).__init__()
-        self.alice_base = VGGBase()
-        self.bob_base = VGGBase()
-        self.fuse = VGGFuse()
+        self.alice_base = VGGBase(use_passport=True)
+        self.bob_base = VGGBase(use_passport=True)
+        self.fuse = VGGFuse(use_passport=True)
 
     def forward(self, x):
         alice_hid = self.alice_base(x[0])
@@ -42,9 +42,9 @@ class SimSLVGG16(BaseModule):
 class SimSLResNet18(BaseModule):
     def __init__(self):
         super(SimSLResNet18, self).__init__()
-        self.alice_base = ResNetBase(BasicBlock, [2, 2, 2, 2])
-        self.bob_base = ResNetBase(BasicBlock, [2, 2, 2, 2])
-        self.fuse = ResNetFuse()
+        self.alice_base = ResNetBase(BasicBlock, [2, 2, 2, 2], use_passport=True)
+        self.bob_base = ResNetBase(BasicBlock, [2, 2, 2, 2], use_passport=True)
+        self.fuse = ResNetFuse(use_passport=True)
 
     def forward(self, x):
         alice_hid = self.alice_base(x[0])

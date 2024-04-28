@@ -37,11 +37,11 @@
     "out_ds": "输出数据集",
     "Output vertical table.": "输出联合表"
   },
-  "data_prep/psi:0.0.3": {
+  "data_prep/psi:0.0.4": {
     "data_prep": "数据准备",
     "psi": "隐私求交",
     "PSI between two parties.": "双方之间的PSI",
-    "0.0.3": "0.0.3",
+    "0.0.4": "0.0.4",
     "protocol": "协议",
     "PSI protocol.": "PSI 协议",
     "disable_alignment": "禁用对齐",
@@ -50,12 +50,12 @@
     "If true, the check of duplicated items will be skiped.": "如果为 true ，将跳过重复值检查",
     "check_hash_digest": "检查 hash 摘要",
     "Check if hash digest of keys from parties are equal to determine whether to early-stop.": "检查各方求交键的哈希摘要是否相等，以确定是否提前停止",
-    "left_side": "左方",
+    "left_side": "左表节点",
     "Required if advanced_join_type is selected.": "和允许求交键重复的求交类型搭配使用",
     "join_type": "求交类型",
     "Advanced Join types allow duplicate keys.": "部分类型允许求交键重复。 ADVANCED_JOIN_TYPE_UNSPECIFIED：inner join（不允许关联键重复）；ADVANCED_JOIN_TYPE_INNER_JOIN：inner join（允许关联键重复）；ADVANCED_JOIN_TYPE_LEFT_JOIN：left join（允许关联键重复）；ADVANCED_JOIN_TYPE_RIGHT_JOIN：right join（允许关联键重复）；ADVANCED_JOIN_TYPE_FULL_JOIN：full join（允许关联键重复）；ADVANCED_JOIN_TYPE_DIFFERENCE：差集（允许关联键重复）",
-    "missing_value": "缺失值",
-    "Missing value for some advanced join types.": "某些允许求交键重复求交类型求交结果中的缺失值",
+    "fill_value_int": "整数类型填充值",
+    "For int type data. Use this value for filling null.": "对于int类型的数据。使用此值填充null。",
     "ecdh_curve": "ECDH 曲线类型",
     "Curve type for ECDH PSI.": "ECDH PSI 的曲线类型",
     "receiver_input": "接收方的输入",
@@ -86,6 +86,18 @@
     "Output train dataset.": "输出训练数据子集",
     "test": "测试数据子集",
     "Output test dataset.": "输出测试数据子集"
+  },
+  "data_prep/union:0.0.1": {
+    "data_prep": "数据准备",
+    "union": "联合",
+    "Merge two datasets in vertical axis, the table type can be individual or vertical but must be the same.": "在纵轴方向合并两个数据集，表类型可以是individual或vertical，但类型必须相同。",
+    "0.0.1": "0.0.1",
+    "input1": "输入表一",
+    "The first input table": "第一个输入表",
+    "input2": "输入表二",
+    "The second input table": "第二个输入表",
+    "output_ds": "输出表",
+    "Output table": "输出表"
   },
   "feature/vert_binning:0.0.2": {
     "feature": "特征",
@@ -175,7 +187,7 @@
   "ml.eval/biclassification_eval:0.0.1": {
     "ml.eval": "模型评估",
     "biclassification_eval": "二分类评估",
-    "Statistics evaluation for a bi-classification model on a dataset.\n1. summary_report: SummaryReport\n2. group_reports: List[GroupReport]\n3. eq_frequent_bin_report: List[EqBinReport]\n4. eq_range_bin_report: List[EqBinReport]\n5. head_report: List[PrReport]\nreports for fpr = 0.001, 0.005, 0.01, 0.05, 0.1, 0.2": "数据集上二分类模型的统计评估\n1. summary_report: 总结报告\n2. group_reports: 分组报告\n3. eq_frequent_bin_report: 等频分箱报告\n4. eq_range_bin_report: 等距分箱报告\n5. head_report: \nFPR = 0.001， 0.005， 0.01， 0.05， 0.1， 0.2 的精度报告",
+    "Statistics evaluation for a bi-classification model on a dataset.\n1. summary_report: SummaryReport\n2. eq_frequent_bin_report: List[EqBinReport]\n3. eq_range_bin_report: List[EqBinReport]\n4. head_report: List[PrReport]\nreports for fpr = 0.001, 0.005, 0.01, 0.05, 0.1, 0.2": "数据集上二分类模型的统计评估\n1. summary_report: 总结报告\n2. eq_frequent_bin_report: 等频分箱报告\n3. eq_range_bin_report: 等距分箱报告\n4. head_report: \nFPR = 0.001， 0.005， 0.01， 0.05， 0.1， 0.2 的精度报告",
     "0.0.1": "0.0.1",
     "bucket_size": "分桶数",
     "Number of buckets.": "分桶数",
@@ -238,11 +250,11 @@
     "report": "报告",
     "Output P-Value report.": "输出P-VALUE结果表"
   },
-  "ml.predict/sgb_predict:0.0.2": {
+  "ml.predict/sgb_predict:0.0.3": {
     "ml.predict": "模型预测",
     "sgb_predict": "SecureBoost预测",
     "Predict using SGB model.": "使用 SGB 模型进行预测",
-    "0.0.2": "0.0.2",
+    "0.0.3": "0.0.3",
     "receiver": "结果接收方",
     "Party of receiver.": "结果接收方",
     "pred_name": "预测结果列名",
@@ -259,11 +271,11 @@
     "pred": "预测",
     "Output prediction.": "输出预测结果表"
   },
-  "ml.predict/slnn_predict:0.0.1": {
+  "ml.predict/slnn_predict:0.0.2": {
     "ml.predict": "模型预测",
     "slnn_predict": "拆分学习NN预测",
     "Predict using the SLNN model.\nThis component is not enabled by default, it requires the use of the full version\nof secretflow image and setting the ENABLE_NN environment variable to true.": "使用拆分学习NN模型进行预测。\n此组件默认情况下未启用，它需要使用完整版本的secretflow镜像，并将ENABLE_NN环境变量设置为true。",
-    "0.0.1": "0.0.1",
+    "0.0.2": "0.0.2",
     "batch_size": "预测批数据量",
     "The number of examples per batch.": "每个批次的数据量",
     "receiver": "结果接收方",
@@ -283,11 +295,11 @@
     "pred": "预测",
     "Output prediction.": "输出预测结果表"
   },
-  "ml.predict/ss_glm_predict:0.0.1": {
+  "ml.predict/ss_glm_predict:0.0.2": {
     "ml.predict": "模型预测",
     "ss_glm_predict": "SSGLM预测",
     "Predict using the SSGLM model.": "使用 SSGLM 模型进行预测",
-    "0.0.1": "0.0.1",
+    "0.0.2": "0.0.2",
     "receiver": "结果接收方",
     "Party of receiver.": "结果接收方",
     "pred_name": "预测结果列名",
@@ -305,11 +317,11 @@
     "pred": "预测",
     "Output prediction.": "输出预测结果表"
   },
-  "ml.predict/ss_sgd_predict:0.0.1": {
+  "ml.predict/ss_sgd_predict:0.0.2": {
     "ml.predict": "模型预测",
     "ss_sgd_predict": "逻辑回归预测",
     "Predict using the SS-SGD model.": "使用 SS-SGD 模型进行预测",
-    "0.0.1": "0.0.1",
+    "0.0.2": "0.0.2",
     "batch_size": "训练批数据量",
     "The number of training examples utilized in one iteration.": "一次迭代中使用的训练示例数",
     "receiver": "结果接收方",
@@ -329,11 +341,11 @@
     "pred": "预测",
     "Output prediction.": "输出预测结果表"
   },
-  "ml.predict/ss_xgb_predict:0.0.1": {
+  "ml.predict/ss_xgb_predict:0.0.2": {
     "ml.predict": "模型预测",
     "ss_xgb_predict": "SS-XGB预测",
     "Predict using the SS-XGB model.": "使用 SS-XGB 模型进行预测",
-    "0.0.1": "0.0.1",
+    "0.0.2": "0.0.2",
     "receiver": "结果接收方",
     "Party of receiver.": "结果接收方",
     "pred_name": "预测结果列名",
@@ -552,6 +564,8 @@
     "L2 regularization term.": "L2正则系数",
     "eps": "eps",
     "If the change rate of weights is less than this threshold, the model is considered to be converged, and the training stops early. 0 to disable.": "如果权重的变化率小于此阈值，则认为模型已收敛，训练提前停止；0 表示禁用",
+    "report_weights": "模型报告",
+    "If this option is set to true, model will be revealed and model details are visible to all parties": "如果此选项设置为true，模型会被转换到明文，并且模型的详细信息对各方都可见",
     "train_dataset": "训练数据集",
     "Input vertical table.": "输入联合表",
     "feature_selects": "特征列",
@@ -559,7 +573,9 @@
     "label": "标签",
     "Label of train dataset.": "训练数据集的标签",
     "output_model": "输出模型",
-    "Output model.": "输出模型"
+    "Output model.": "输出模型",
+    "report": "报告",
+    "If report_weights is true, report model details": "如果report_weights为true，则报告模型详细信息"
   },
   "ml.train/ss_xgb_train:0.0.1": {
     "ml.train": "模型训练",
@@ -689,12 +705,12 @@
     "out_rules": "输出规则",
     "fill value rule": "填充值规则"
   },
-  "preprocessing/onehot_encode:0.0.2": {
+  "preprocessing/onehot_encode:0.0.3": {
     "preprocessing": "预处理",
     "onehot_encode": "onehot_encode",
-    "0.0.2": "0.0.2",
-    "drop_first": "丢弃第一个",
-    "If true drop the first category in each feature. If only one category is present, the feature will be dropped entirely": "不删除占比小于某个频率的枚举值时，如丢弃一个枚举量的编码，可以保证编码后数据的线性无关性；但如只存在一个枚举值，则此列完全删除，下游计算报错",
+    "0.0.3": "0.0.3",
+    "drop": "丢弃",
+    "no_drop is default setting, it won't do anything. If it is set to first, it will drop the first category in each feature. If it is set to mode, it will drop the mode category in each feature. If only one category is present and the setting is not no_drop, the feature will be dropped entirely": "no_drop是默认设置，它不会执行任何操作。如果设置为first，则会删除每个功能中的第一个类别。如果设置为mode，则会删除每个功能中的众数类别。如果只存在一个类别，并且设置不是no_drop，则该功能将被完全删除",
     "min_frequency": "最小频率",
     "Specifies the minimum frequency below which a category will be considered infrequent, [0, 1), 0 disable": "指定类别将被视为不频繁的最低频率，[0，1），0禁用",
     "report_rules": "报告规则",

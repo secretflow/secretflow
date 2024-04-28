@@ -233,19 +233,12 @@ def test_node_reader_duplicate_param_in_instance():
 
 
 def test_node_reader_union_group_selection():
-    instance_error = NodeEvalParam(
-        domain="domain_a",
-        name="x",
-        version="v1",
-        attr_paths=["a/b/c", "a/b/d", "a/e"],
-        attrs=[Attribute(), Attribute(), Attribute()],
-    )
     instance_ok = NodeEvalParam(
         domain="domain_a",
         name="x",
         version="v1",
-        attr_paths=["a/b/c", "a/b/d"],
-        attrs=[Attribute(s="c"), Attribute(s="d")],
+        attr_paths=["a/b/c", "a/b/d", "a"],
+        attrs=[Attribute(s="c"), Attribute(s="d"), Attribute(s="b")],
     )
     comp = Component(name="x", domain="domain_a", version="v1")
     comp.union_attr_group(
@@ -272,29 +265,28 @@ def test_node_reader_union_group_selection():
                     ),
                 ],
             ),
-            comp.str_attr(
+            comp.struct_attr_group(
                 name="e",
                 desc="",
-                is_list=False,
-                is_optional=True,
-                default_value="default",
+                group=[
+                    comp.str_attr(
+                        name="f",
+                        desc="",
+                        is_list=False,
+                        is_optional=True,
+                        default_value="default",
+                    )
+                ],
             ),
         ],
     )
-
-    # error
-    with pytest.raises(
-        EvalParamError,
-        match="union group a: one attr is required, but god 'b' and 'e'.",
-    ):
-        EvalParamReader(instance_error, comp.definition())
 
     # ok
     reader = EvalParamReader(instance_ok, comp.definition())
     assert (
         reader.get_attr("a/b/c") == "c"
         and reader.get_attr("a/b/d") == "d"
-        and reader.get_attr("a/e") is None
+        and reader.get_attr("a") == "b"
     )
 
 

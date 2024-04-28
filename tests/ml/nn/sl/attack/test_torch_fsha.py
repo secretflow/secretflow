@@ -378,7 +378,6 @@ def do_test_sl_and_fsha(config: dict, alice, bob):
     fsha_callback = FeatureSpaceHijackingAttack(
         attack_party=alice,
         victim_party=bob,
-        victim_model_dict=victim_model_dict,
         base_model_list=[alice, bob],
         pilot_model_wrapper=pilot_model,
         decoder_model_wrapper=decoder_model,

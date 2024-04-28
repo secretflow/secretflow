@@ -18,10 +18,6 @@ import numpy as np
 import pandas as pd
 import pytest
 from google.protobuf.json_format import MessageToJson
-from sklearn.datasets import load_breast_cancer
-from sklearn.metrics import r2_score
-from sklearn.preprocessing import StandardScaler
-
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.ml.eval.regression_eval import regression_eval_comp
 from secretflow.component.ml.linear.ss_sgd import ss_sgd_predict_comp, ss_sgd_train_comp
@@ -35,11 +31,14 @@ from secretflow.spec.v1.data_pb2 import (
 )
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
+from sklearn.datasets import load_breast_cancer
+from sklearn.metrics import r2_score
+from sklearn.preprocessing import StandardScaler
 
 g_test_epoch = 3
 
 
-def get_train_param(alice_path, bob_path, model_path, checkpoint_path):
+def get_train_param(alice_path, bob_path, model_path, report_path, checkpoint_path):
     return NodeEvalParam(
         domain="ml.train",
         name="ss_sgd_train",
@@ -55,6 +54,7 @@ def get_train_param(alice_path, bob_path, model_path, checkpoint_path):
             "decay_epoch",
             "decay_rate",
             "strategy",
+            "report_weights",
             "input/train_dataset/label",
             "input/train_dataset/feature_selects",
         ],
@@ -69,6 +69,7 @@ def get_train_param(alice_path, bob_path, model_path, checkpoint_path):
             Attribute(i64=2),
             Attribute(f=0.5),
             Attribute(s="policy_sgd"),
+            Attribute(b=True),
             Attribute(ss=["y"]),
             Attribute(ss=[f"a{i}" for i in range(15)] + [f"b{i}" for i in range(15)]),
         ],
@@ -82,7 +83,7 @@ def get_train_param(alice_path, bob_path, model_path, checkpoint_path):
                 ],
             ),
         ],
-        output_uris=[model_path],
+        output_uris=[model_path, report_path],
         checkpoint_uri=checkpoint_path,
     )
 
@@ -91,7 +92,7 @@ def get_pred_param(alice_path, bob_path, train_res, predict_path):
     return NodeEvalParam(
         domain="ml.predict",
         name="ss_sgd_predict",
-        version="0.0.1",
+        version="0.0.2",
         attr_paths=[
             "batch_size",
             "receiver",
@@ -101,7 +102,7 @@ def get_pred_param(alice_path, bob_path, train_res, predict_path):
         ],
         attrs=[
             Attribute(i64=128),
-            Attribute(s="alice"),
+            Attribute(ss=["alice"]),
             Attribute(b=False),
             Attribute(b=True),
             Attribute(ss=["a2", "a10"]),
@@ -189,11 +190,14 @@ def test_ss_sgd(comp_prod_sf_cluster_config, with_checkpoint):
     bob_path = f"{work_path}/x_bob.csv"
     model_path = f"{work_path}/model.sf"
     predict_path = f"{work_path}/predict.csv"
+    report_path = f"{work_path}/model.report"
     checkpoint_path = f"{work_path}/checkpoint" if with_checkpoint else ""
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
 
-    train_param = get_train_param(alice_path, bob_path, model_path, checkpoint_path)
+    train_param = get_train_param(
+        alice_path, bob_path, model_path, report_path, checkpoint_path
+    )
     meta = get_meta_and_dump_data(comp_prod_sf_cluster_config, alice_path, bob_path)
     train_param.inputs[0].meta.Pack(meta)
 
@@ -201,7 +205,14 @@ def test_ss_sgd(comp_prod_sf_cluster_config, with_checkpoint):
         param=train_param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
+        tracer_report=True,
     )
+
+    logging.info(f"train tracer_report {train_res['tracer_report']}")
+    comp_ret = Report()
+    train_res = train_res["eval_result"]
+    train_res.outputs[1].meta.Unpack(comp_ret)
+    logging.info(comp_ret)
 
     def run_pred(predict_path, train_res):
         predict_param = get_pred_param(alice_path, bob_path, train_res, predict_path)

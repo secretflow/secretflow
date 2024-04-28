@@ -14,7 +14,7 @@
 
 import logging
 from dataclasses import dataclass
-from typing import Union
+from typing import Callable, Union
 
 from heu import phe
 
@@ -22,8 +22,13 @@ from secretflow.data import FedNdarray
 from secretflow.data.split import train_test_split
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import HEU
-from secretflow.ml.boost.core.callback import EarlyStopping, EvaluationMonitor
+from secretflow.ml.boost.core.callback import (
+    Checkpointing,
+    EarlyStopping,
+    EvaluationMonitor,
+)
 from secretflow.ml.boost.core.metric import METRICS
+from secretflow.ml.boost.sgb_v.checkpoint import SGBCheckpointData
 from secretflow.ml.boost.sgb_v.core.params import (
     default_params,
     get_unused_params,
@@ -154,6 +159,8 @@ class SGBFactory:
         dataset: Union[FedNdarray, VDataFrame],
         label: Union[FedNdarray, VDataFrame],
         data_name: str = None,
+        checkpoint_data: SGBCheckpointData = None,
+        dump_function: Callable = None,
     ) -> SgbModel:
         booster = self._produce()
         callbacks = []
@@ -190,12 +197,14 @@ class SGBFactory:
             label = train_label
         metric_ = METRICS.get(self.factory_params.eval_metric, None)
 
+        callbacks.append(Checkpointing(dump_function=dump_function))
         return booster.fit(
             dataset,
             label,
             callbacks=callbacks,
             eval_sets=eval_set,
             metric=metric_,
+            checkpoint_data=checkpoint_data,
         )
 
     def train(
@@ -203,7 +212,30 @@ class SGBFactory:
         params: dict,
         dtrain: Union[FedNdarray, VDataFrame],
         label: Union[FedNdarray, VDataFrame],
+        checkpoint_data: SGBCheckpointData = None,
+        dump_function: Callable = None,
     ) -> SgbModel:
+        """Train the SGB model
+
+        Args:
+            params (dict): sgb parameters
+            dtrain (Union[FedNdarray, VDataFrame]): dataset excludes the label, must be aligned vertically
+            label (Union[FedNdarray, VDataFrame]): label data, must be aligned vertically with the dtrain
+            checkpoint_data (SGBCheckpointData, optional): checkpoint data used for continued training. Defaults to None.
+            dump_function (Callable, optional): the dump function must accept 3 args:
+                    model: CallBackCompatibleModel,
+                    epoch: int,
+                    evals_log: TrainingCallback.EvalsLog
+                and returns nothing. It should write the model and meta info into some path specified by the user.
+                This feature is now automatically supported at sf component level.
+                If you don't want to use checkpoints, just leave this argument as None.
+                Defaults to None.
+
+        Returns:
+            SgbModel: trained SgbModel
+        """
         self.set_params(params)
         # TODO: unify data type before entering this algorithm
-        return self.fit(dtrain, label)
+        return self.fit(
+            dtrain, label, checkpoint_data=checkpoint_data, dump_function=dump_function
+        )

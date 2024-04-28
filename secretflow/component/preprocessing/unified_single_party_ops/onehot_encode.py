@@ -16,6 +16,7 @@
 from typing import Dict
 
 import numpy as np
+import pandas as pd
 from sklearn.preprocessing import OneHotEncoder
 
 import secretflow.compute as sc
@@ -33,16 +34,22 @@ from secretflow.spec.v1.report_pb2 import Descriptions, Div, Report, Tab
 onehot_encode = Component(
     "onehot_encode",
     domain="preprocessing",
-    version="0.0.2",
+    version="0.0.3",
     desc="onehot_encode",
 )
 
-onehot_encode.bool_attr(
-    name="drop_first",
-    desc="If true drop the first category in each feature. If only one category is present, the feature will be dropped entirely",
+_SUPPORTED_ONEHOT_DROP = ["no_drop", "first", "mode"]
+
+onehot_encode.str_attr(
+    name="drop",
+    desc="""no_drop is default setting, it won't do anything.
+    If it is set to first, it will drop the first category in each feature.
+    If it is set to mode, it will drop the mode category in each feature.
+    If only one category is present and the setting is not no_drop, the feature will be dropped entirely""",
     is_list=False,
     is_optional=True,
-    default_value=False,
+    default_value="no_drop",
+    allowed_values=_SUPPORTED_ONEHOT_DROP,
 )
 
 onehot_encode.float_attr(
@@ -121,11 +128,67 @@ def apply_onehot_rule_on_table(table: sc.Table, additional_info: Dict) -> sc.Tab
     return table
 
 
+def _onehot_encode_fit(trans_data: pd.DataFrame, drop: str, min_frequency: float):
+    min_frequency = min_frequency if min_frequency > 0 else None
+    is_drop_mode = drop == "mode"
+    skdrop = "first" if drop == "first" else None
+
+    enc = OneHotEncoder(
+        drop=skdrop,
+        min_frequency=min_frequency,
+        handle_unknown='ignore',
+        dtype=np.float32,
+        sparse_output=False,
+    )
+
+    enc.fit(trans_data)
+
+    categories = enc.categories_
+    assert len(categories) == len(trans_data.columns)
+
+    infrequent_categories = getattr(
+        enc, "infrequent_categories_", [None] * len(categories)
+    )
+
+    drop_categories = [None] * len(categories)
+    if is_drop_mode:
+        drop_categories = trans_data.mode().iloc[0].values
+    elif enc.drop_idx_ is not None:
+        for feature_idx, category_idx in enumerate(enc.drop_idx_):
+            drop_categories[feature_idx] = categories[feature_idx][category_idx]
+
+    onehot_rules = {}
+    for col_name, category, infrequent_category, drop_category in zip(
+        trans_data.columns, categories, infrequent_categories, drop_categories
+    ):
+        col_rules = []
+
+        for value in category:
+            if drop_category is not None and value == drop_category:
+                continue
+            if infrequent_category is not None and value in infrequent_category:
+                continue
+            col_rules.append([value])
+
+        if infrequent_category is not None and infrequent_category.size > 0:
+            if drop_category is not None:
+                infrequent_category = np.setdiff1d(infrequent_category, drop_category)
+            col_rules.append(list(infrequent_category))
+
+        assert (
+            len(col_rules) < 100
+        ), f"feature {col_name} has too many categories {len(col_rules)}"
+
+        onehot_rules[col_name] = col_rules
+
+    return onehot_rules
+
+
 @onehot_encode.eval_fn
 def onehot_encode_eval_fn(
     *,
     ctx,
-    drop_first,
+    drop,
     min_frequency,
     report_rules,
     input_dataset,
@@ -138,59 +201,10 @@ def onehot_encode_eval_fn(
         input_dataset.type == DistDataType.VERTICAL_TABLE
     ), "only support vtable for now"
 
-    drop = 'first' if drop_first else None
-    min_frequency = min_frequency if min_frequency > 0 else None
-
-    def _fit(trans_data):
-        enc = OneHotEncoder(
-            drop=drop,
-            min_frequency=min_frequency,
-            handle_unknown='ignore',
-            dtype=np.float32,
-            sparse=False,
-        )
-        enc.fit(trans_data)
-
-        categories = enc.categories_
-        assert len(categories) == len(trans_data.columns)
-        infrequent_categories = getattr(
-            enc, "infrequent_categories_", [None] * len(categories)
-        )
-        onehot_rules = {}
-        for col_name, category, infrequent_category in zip(
-            trans_data.columns, categories, infrequent_categories
-        ):
-            col_rules = []
-
-            def infrequent_check(c):
-                if infrequent_category is not None:
-                    return c in infrequent_category
-                else:
-                    return False
-
-            infrequent_is_first = True
-            for k, value in enumerate(category):
-                if infrequent_check(value):
-                    continue
-                infrequent_is_first = False
-                if enc.drop is not None and k == 0:
-                    continue
-                col_rules.append([value])
-
-            if infrequent_category is not None and (
-                enc.drop is None or infrequent_is_first is False
-            ):
-                col_rules.append(list(infrequent_category))
-
-            assert (
-                len(col_rules) < 100
-            ), f"feature {col_name} has too many categories {len(col_rules)}"
-
-            onehot_rules[col_name] = col_rules
-        return onehot_rules
+    assert drop in _SUPPORTED_ONEHOT_DROP, f"unsupported drop type {drop}"
 
     def onehot_fit_transform(trans_data):
-        onehot_rules = _fit(trans_data)
+        onehot_rules = _onehot_encode_fit(trans_data, drop, min_frequency)
         trans_data = apply_onehot_rule_on_table(
             sc.Table.from_pandas(trans_data), onehot_rules
         )

@@ -22,6 +22,7 @@ from secretflow.stats.core.metrics import (
     roc_auc_score,
     root_mean_squared_error,
 )
+from secretflow.utils.consistent_ops import cast_float
 
 Metric = Callable[[PYUObject, VData], Tuple[str, float]]
 
@@ -31,7 +32,9 @@ def metric_wrapper(metric: Callable, metric_name: str):
     def wrapped_metric(y_true: VData, y_pred: PYUObject) -> Tuple[str, float]:
         assert len(y_true.partitions) == 1
         y_true_object = list(y_true.partitions.values())[0]
-        return metric_name, reveal(y_pred.device(metric)(y_true_object, y_pred))
+        return metric_name, cast_float(
+            reveal(y_pred.device(metric)(y_true_object, y_pred))
+        )
 
     return wrapped_metric
 

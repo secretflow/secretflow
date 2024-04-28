@@ -16,7 +16,7 @@ import copy
 import logging
 import os.path
 import time
-from typing import List, Union
+from typing import Callable, Dict, List
 
 import click
 import pandas as pd
@@ -44,10 +44,13 @@ from secretflow.utils.errors import NotSupportedError
 class Benchmark:
     def __init__(
         self,
-        benchmark_mode: str = 'auto',
-        dataset: Union[List, str] = 'all',
-        model: Union[List, str] = 'all',
-        attack: Union[List, str] = 'all',
+        enable_tune: bool = True,
+        dataset: List | str = 'all',
+        model: List | str = 'all',
+        attack: List | str | None = 'all',
+        defense: List | str | None = 'all',
+        enable_log: bool = True,
+        objective: Callable = main.objective_trainning,
     ):
         """
         Benchmark
@@ -55,72 +58,77 @@ class Benchmark:
             benchmark_mode:
                   auto: default, do all auto attack on all datasets/models/attacks.
                   train: only test train on all datasets/models/attacks.
+                  defense: test train with defense.
                   attack: do attack on all datasets/models/attacks.
         """
-        assert (
-            benchmark_mode in ['auto', 'attack', 'train'] + dispatch.ATTACKS
-        ), f"got unexpect benchmark_mode {benchmark_mode}"
-        self.benchmark_mode = benchmark_mode
-        columns = ['datasets', 'models']
+        self.enable_tune = enable_tune
+        self.enable_log = enable_log
+        self.objective = objective
+        columns = ['datasets', 'models', 'defenses']
         self.candidates = None
         participate_attacks = dispatch.ATTACKS
+        if attack is None:
+            self.candidates = ['train']
         if attack != 'all':
             attack = attack if isinstance(attack, list) else [attack]
             participate_attacks = [c for c in participate_attacks if c in attack]
-        if benchmark_mode == 'train':
-            self.candidates = ['train']
-        elif benchmark_mode == 'attack':
-            self.candidates = participate_attacks
-        elif benchmark_mode == 'auto':
-            self.candidates = [f"auto_{attack}" for attack in participate_attacks]
-        else:
-            assert (
-                benchmark_mode in dispatch.ATTACKS
-            ), f"got unexpect attack {benchmark_mode}"
-            self.candidates = [f'{benchmark_mode}']
-
-        applications = {}
+            participate_attacks.sort(key=lambda c: attack.index(c))
+        self.candidates = participate_attacks
+        participate_defenses = dispatch.DEFENSES
+        # no defense is also a scene when defense == all.
+        participate_defenses.insert(0, "no_defense")
+        if defense is None:
+            participate_defenses = ['no_defense']
+        if defense != 'all':
+            defense = defense if isinstance(defense, list) else [defense]
+            participate_defenses = [c for c in participate_defenses if c in defense]
+            participate_defenses.sort(key=lambda c: defense.index(c))
         if dataset != 'all':
             dataset = dataset if isinstance(dataset, list) else [dataset]
         if model != 'all':
             model = model if isinstance(model, list) else [model]
         is_find = False
-        for app, v in dispatch.APPLICATIONS.items():
+        apps = []
+        for app in dispatch.APPLICATIONS.keys():
             if (dataset == 'all' or app[0] in dataset) and (
                 model == 'all' or app[1] in model
             ):
-                applications[app] = v
+                apps.append(app)
                 is_find = True
         assert (
             is_find
         ), f"provide app {dataset}:{model} is not in the implemented applications."
-        rows = len(applications)
+        # app * defenses as the row, and attack as the col
+        rows = len(apps) * len(participate_defenses)
         datum = {col: ['....'] * rows for col in columns + self.candidates}
-        apps = list(applications.keys())
         # Sort according to the order of user input dataset and model
         if isinstance(dataset, list):
             apps.sort(
                 key=lambda a: dataset.index(a[0]) * 100
                 + (model.index(a[1]) if isinstance(model, list) else 0)
             )
-        datum['datasets'] = [application[0] for application in apps]
-        datum['models'] = [application[1] for application in apps]
+        extend_apps = [v for v in apps for _ in range(len(participate_defenses))]
+        datum['datasets'] = [application[0] for application in extend_apps]
+        datum['models'] = [application[1] for application in extend_apps]
+        datum['defenses'] = participate_defenses * len(apps)
         self.experiments = pd.DataFrame(datum)
         self.print_candidates()
         if not os.path.exists(global_config.get_cur_experiment_result_path()):
             os.makedirs(global_config.get_cur_experiment_result_path())
-        self.log_file = open(
-            global_config.get_cur_experiment_result_path() + "/final_result.md", "a"
-        )
-        self.log_file_simple = open(
-            global_config.get_cur_experiment_result_path() + "/final_result_simple.md",
-            "a",
-        )
+        if self.enable_log:
+            self.log_file = open(
+                global_config.get_cur_experiment_result_path() + "/result.md", "a"
+            )
+            self.log_file_simple = open(
+                global_config.get_cur_experiment_result_path() + "/result_simple.md",
+                "a",
+            )
 
     def __del__(self):
         try:
-            self.log_file.close()
-            self.log_file_simple.close()
+            if self.enable_log:
+                self.log_file.close()
+                self.log_file_simple.close()
         except Exception:
             pass
 
@@ -154,13 +162,15 @@ class Benchmark:
                 ret[k][i] = v
         return pd.DataFrame(ret)
 
-    def log_root_full_result(self, ds, md, at, r):
+    def log_root_full_result(self, ds, md, at, df, r: main.AutoAttackResult):
         # record to full result log
-        self.log_file.write(f"\n\n\nExperiments {ds}, {md}, {at} autoattack results:\n")
-        for br, mn, mnd in zip(r.best_results, r.metric_names, r.metric_modes):
-            self.log_file.write(
-                f"\nBest results for metric {mn} (mode={r.metric_modes}):\n"
-            )
+        self.log_file.write(
+            f"\n\n\nExperiments {ds}, {md}, {at}, {df} autoattack results:\n"
+        )
+        for br, mn, mnd in zip(
+            r.best_results, r.metrics.keys(), r.metrics.values(), strict=True
+        ):
+            self.log_file.write(f"\nBest results for metric {mn} (mode={mnd}):\n")
             self.log_file.write(br.metrics_dataframe.to_markdown())
             self.log_file.write("\n")
         self.log_file.write(f"\n\nResult Grid:\n")
@@ -170,60 +180,76 @@ class Benchmark:
             for error in r.results.errors:
                 self.log_file.write(f"{error}\n")
 
-    def log_root_simple_result(self, ds, md, at, r):
+    def log_root_simple_result(self, ds, md, at, df, r: main.AutoAttackResult | Dict):
         # record to simple result log.
         self.log_file_simple.write(
-            f"\n\n\nExperiments {ds}, {md}, {at} autoattack results:\n"
+            f"\n\n\nExperiment {ds}, {md}, {at}, {df} autoattack results:\n\n"
         )
-        for br, mn, mnd in zip(r.best_results, r.metric_names, r.metric_modes):
+        if isinstance(r, main.AutoAttackResult):
+            for br, mn, mnd in zip(
+                r.best_results, r.metrics.keys(), r.metrics.values(), strict=True
+            ):
+                self.log_file_simple.write(
+                    f"\nBest results for metric {mn} (mode={mnd}):\n\n"
+                )
+                self.log_file_simple.write(
+                    f"{self.custom_results([br], [mn]).to_markdown()}"
+                )
+                self.log_file_simple.write("\n")
+            self.log_file_simple.write(f"\n\nResult Grid:\n\n")
             self.log_file_simple.write(
-                f"\nBest results for metric {mn} (mode={r.metric_modes}):\n\n"
+                f"{self.custom_results(r.results, list(r.metrics.keys())).to_markdown()}"
             )
-            self.log_file_simple.write(
-                f"{self.custom_results([br], [mn]).to_markdown()}"
-            )
-            self.log_file_simple.write("\n")
-        self.log_file_simple.write(f"\n\nResult Grid:\n\n")
-        self.log_file_simple.write(
-            f"{self.custom_results(r.results, r.metric_names).to_markdown()}"
-        )
+        else:
+            r = {k: str(v) for k, v in r.items()}
+            self.log_file_simple.write(f"{pd.DataFrame(r,index=[0]).to_markdown()}")
 
     @staticmethod
-    def log_case_result_csv(ds, md, at, r):
+    def log_case_result_csv(ds, md, at, df, r):
         log_file_path = (
-            global_config.get_cur_experiment_result_path()
-            + f"/{ds}_{md}_{at.lstrip('auto_')}"
+            global_config.get_cur_experiment_result_path() + f"/{ds}_{md}_{at}_{df}"
         )
         # log all best result csv to .csv
-        for br, mn, mnd in zip(r.best_results, r.metric_names, r.metric_modes):
+        for br, mn, mnd in zip(
+            r.best_results, r.metrics.keys(), r.metrics.values(), strict=True
+        ):
             best_csv: pd.DataFrame = br.metrics_dataframe
             best_csv.to_csv(log_file_path + f"/best_result_{mn}_{mnd}.csv", index=False)
         # log the full result grid to .csv
         result_grid_df = r.results.get_dataframe()
         result_grid_df.to_csv(log_file_path + f"/full_result.csv", index=False)
 
-    def log_results(self, ds, md, at, r: main.AutoAttackResult):
-        if r is None or not isinstance(r, main.AutoAttackResult):
-            return
+    def log_results(self, ds, md, at, df, r: main.AutoAttackResult | Dict):
         try:
-            self.log_root_full_result(ds, md, at, r)
-            self.log_root_simple_result(ds, md, at, r)
-            self.log_case_result_csv(ds, md, at, r)
+            if self.enable_log:
+                if isinstance(r, main.AutoAttackResult):
+                    # results is an AutoAttackResult object
+                    self.log_root_full_result(ds, md, at, df, r)
+                    self.log_root_simple_result(ds, md, at, df, r)
+                    self.log_case_result_csv(ds, md, at, df, r)
+                elif isinstance(r, Dict):
+                    # results is a sigle experiments results.
+                    self.log_root_simple_result(ds, md, at, df, r)
+                else:
+                    return
         except Exception as e:
             logging.error("Results are not been logged correctly, please check", e)
 
     def log_final_result(self):
-        for log_file in [self.log_file_simple, self.log_file]:
-            log_file.write(f"\n\n\nAll Experiments records:\n\n")
-            log_file.write(f"{self.experiments.to_markdown()}")
+        if self.enable_log:
+            for log_file in [self.log_file_simple, self.log_file]:
+                log_file.write(f"\n\n\nAll Experiments records:\n\n")
+                log_file.write(f"{self.experiments.to_markdown()}")
 
-    def run_case(self, dataset, model, attack: str):
+    def run_case(self, dataset: str, model: str, attack: str, defense: str):
         start = time.time()
         try:
-            results = main.run_case(dataset, model, attack)
+            results = main.run_case(
+                dataset, model, attack, defense, self.enable_tune, self.objective
+            )
             ret = readable_time(time.time() - start)
-            self.log_results(dataset, model, attack, results)
-            if 'auto' in attack:
+            self.log_results(dataset, model, attack, defense, results)
+            if self.enable_tune:
                 if results.results.num_errors > 0:
                     ret = (
                         ret
@@ -235,8 +261,8 @@ class Benchmark:
         except NotSupportedError:
             logging.warning(f"attack not support.")
             return '-'
-        except ModuleNotFoundError:
-            logging.warning(f"module not found:")
+        except ModuleNotFoundError as e:
+            logging.warning(f"module not found:", e)
             return 'Alg-Unsupported'
         except ImportError as e:
             logging.warning(
@@ -250,19 +276,32 @@ class Benchmark:
             )
             return f'Error({readable_time(time.time() - start)})'
 
+    def case_valid_check(self, ds, md, at, df):
+        try:
+            main.case_valid_check(ds, md, at, df)
+        except NotSupportedError:
+            return False
+        except Exception as ex:
+            raise ex
+        return True
+
     def run(
         self,
     ):
         start_time = time.time()
-        for ds_md_i in range(self.experiments.shape[0]):
-            ds = self.experiments.loc[ds_md_i, 'datasets']
-            md = self.experiments.loc[ds_md_i, 'models']
-            for at in self.candidates:
+        for at in self.candidates:
+            for ds_md_i in range(self.experiments.shape[0]):
+                ds = self.experiments.loc[ds_md_i, 'datasets']
+                md = self.experiments.loc[ds_md_i, 'models']
+                df = self.experiments.loc[ds_md_i, 'defenses']
                 logging.info(f"Starting experiment on {ds}/{md}/{at} ...")
-                self.experiments.at[ds_md_i, at] = 'Running'
-                self.print_candidates()
-                ret = self.run_case(ds, md, at)
-                self.experiments.at[ds_md_i, at] = ret
+                if self.case_valid_check(ds, md, at, df):
+                    self.experiments.at[ds_md_i, at] = 'Running'
+                    self.print_candidates()
+                    ret = self.run_case(ds, md, at, df)
+                    self.experiments.at[ds_md_i, at] = ret
+                else:
+                    self.experiments.at[ds_md_i, at] = '-'
                 logging.info(f"Finish experiment on {ds}/{md}/{at} ...")
         logging.info(
             f"All experiments is finish, total time cost: {readable_time(time.time() - start_time)}s"
@@ -271,13 +310,13 @@ class Benchmark:
         self.log_final_result()
 
 
-@click.command()
+@click.command(no_args_is_help=True)
 @click.option(
-    '--mode',
-    type=click.STRING,
+    '--enable_tune',
+    type=click.BOOL,
     required=False,
     default=None,
-    help='Benchmark mode like "train/attack/auto", default to "train".',
+    help='Benchmark mode like "train/attack/defense/auto", default to "train".',
 )
 @click.option(
     '--dataset',
@@ -299,6 +338,13 @@ class Benchmark:
     required=False,
     default=None,
     help='Attack target like "all/fia/lia",.etc, default to "all".',
+)
+@click.option(
+    '--defense',
+    type=click.STRING,
+    required=False,
+    default=None,
+    help='Attack target like "grad_avg",.etc, default to "all".',
 )
 @click.option(
     "--simple",
@@ -355,10 +401,11 @@ class Benchmark:
     help="To achieve reproducible.",
 )
 def run(
-    mode,
+    enable_tune,
     dataset,
     model,
     attack,
+    defense,
     simple,
     datasets_path,
     autoattack_storage_path,
@@ -370,10 +417,11 @@ def run(
 ):
     """Run your autoattack benchmark."""
     global_config.init_globalconfig(
-        mode=mode,
+        enable_tune=enable_tune,
         dataset=dataset,
         model=model,
         attack=attack,
+        defense=defense,
         simple=simple,
         datasets_path=datasets_path,
         autoattack_storage_path=autoattack_storage_path,
@@ -384,10 +432,11 @@ def run(
         random_seed=random_seed,
     )
     benchmark = Benchmark(
-        benchmark_mode=global_config.get_benchmrak_mode(),
+        enable_tune=global_config.is_enable_tune(),
         dataset=global_config.get_benchmark_dataset(),
         model=global_config.get_benchmark_model(),
         attack=global_config.get_benchmark_attack(),
+        defense=global_config.get_benchmark_defense(),
     )
     benchmark.run()
 

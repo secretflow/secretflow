@@ -18,6 +18,7 @@ import torch
 import torch.nn as nn
 
 from secretflow.ml.nn.core.torch import BaseModule
+from secretflow.ml.nn.sl.defenses.fed_pass import LinearPassportBlock
 
 
 class DnnBase(BaseModule):
@@ -32,6 +33,7 @@ class DnnBase(BaseModule):
         sparse_feas_indexes: Optional[List[int]] = None,
         embedding_dim=16,
         preprocess_layer: Optional[Callable[..., nn.Module]] = None,
+        use_passport=False,
         *args,
         **kwargs,
     ):
@@ -46,7 +48,7 @@ class DnnBase(BaseModule):
             *args:
             **kwargs:
         """
-        super().__init__(*args, **kwargs)
+        super().__init__()
         if not isinstance(input_dims, List):
             input_dims = [input_dims]
         self._sparse_feas_index = (
@@ -73,11 +75,25 @@ class DnnBase(BaseModule):
                 input_shape += input_dim
         dnn_layer = []
         self.preprocess_layer = preprocess_layer
-        for units in dnn_units_size:
+        for units in dnn_units_size[:-1]:
             dnn_layer.append(nn.Linear(input_shape, units))
             dnn_layer.append(nn.ReLU())
             input_shape = units
-        self._dnn = nn.Sequential(*(dnn_layer[:-1]))
+
+        if not use_passport:
+            dnn_layer.append(nn.Linear(input_shape, dnn_units_size[-1]))
+        else:
+            print('append LinearPassportBlock')
+            dnn_layer.append(
+                LinearPassportBlock(
+                    in_features=input_shape,
+                    out_features=dnn_units_size[-1],
+                    hidden_feature=kwargs.get("linear_passport_hidden_size", 64),
+                    num_passport=kwargs.get("num_passport", 64),
+                )
+            )
+
+        self._dnn = nn.Sequential(*(dnn_layer))
 
     def forward(self, x):
         if self.preprocess_layer is not None:
@@ -112,6 +128,7 @@ class DnnFuse(BaseModule):
         input_dims: List[int],
         dnn_units_size: List[int],
         output_func: nn.Module = nn.Sigmoid,
+        use_passport=False,
         *args,
         **kwargs,
     ):
@@ -125,14 +142,27 @@ class DnnFuse(BaseModule):
             *args:
             **kwargs:
         """
-        super().__init__(*args, **kwargs)
+        super().__init__()
         start = sum(input_dims)
         dnn_layer = []
-        for units in dnn_units_size:
+        for units in dnn_units_size[:-1]:
             dnn_layer.append(nn.Linear(start, units))
             dnn_layer.append(nn.ReLU())
             start = units
-        self._dnn = nn.Sequential(*dnn_layer[:-1])
+
+        if not use_passport:
+            dnn_layer.append(nn.Linear(start, dnn_units_size[-1]))
+        else:
+            dnn_layer.append(
+                LinearPassportBlock(
+                    in_features=start,
+                    out_features=dnn_units_size[-1],
+                    hidden_feature=kwargs.get("linear_passport_hidden_size", 32),
+                    num_passport=kwargs.get("num_passport", 32),
+                )
+            )
+
+        self._dnn = nn.Sequential(*dnn_layer)
         self._output_func = output_func() if output_func else None
 
     def forward(self, x):

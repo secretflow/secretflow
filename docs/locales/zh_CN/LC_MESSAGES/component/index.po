@@ -58,7 +58,7 @@ msgid ""
 "Now, you could run SecretFlow applications with component API or CLI "
 "apart from writing Python programs. Please check "
 ":doc:`/component/comp_guide`."
-msgstr "现在除了在Python程序中引入lib, 还还可以使用组件API或者CLI调用隐语程序，请查阅 :doc:`/component/comp_guide` 。"
+msgstr "现在除了在Python程序中引入lib, 还可以使用组件API或者CLI调用隐语程序，请查阅 :doc:`/component/comp_guide` 。"
 
 #: ../../component/index.rst:17
 msgid ""

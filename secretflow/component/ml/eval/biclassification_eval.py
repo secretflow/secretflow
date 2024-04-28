@@ -28,13 +28,11 @@ biclassification_eval_comp = Component(
     desc="""Statistics evaluation for a bi-classification model on a dataset.
         1. summary_report: SummaryReport
 
-        2. group_reports: List[GroupReport]
+        2. eq_frequent_bin_report: List[EqBinReport]
 
-        3. eq_frequent_bin_report: List[EqBinReport]
+        3. eq_range_bin_report: List[EqBinReport]
 
-        4. eq_range_bin_report: List[EqBinReport]
-
-        5. head_report: List[PrReport]
+        4. head_report: List[PrReport]
             reports for fpr = 0.001, 0.005, 0.01, 0.05, 0.1, 0.2
         """,
 )

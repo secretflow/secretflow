@@ -41,6 +41,12 @@ class LinkProxy:
         for party, addr in addresses.items():
             desc.add_party(party, addr)
 
+        # link configurations for interconnection mode
+        desc.brpc_channel_protocol = "h2:grpc"
+        desc.throttle_window_size = 0
+        desc.disable_msg_seq_id = True
+        desc.http_max_payload_size = 2 * 1024 * 1024 * 1024 - 2  # yacl link limit
+
         self_rank = cls.all_parties.index(self_party)
 
         cls._link = link.create_brpc(desc, self_rank)

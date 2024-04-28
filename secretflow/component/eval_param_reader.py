@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from typing import List
 
 from google.protobuf import json_format
+
 from secretflow.spec.v1.component_pb2 import (
     Attribute,
     AttributeDef,
@@ -118,6 +119,8 @@ def get_value(value: Attribute, at: AttrType, pb_cls_name: str = None):
         for name in pb_cls_name.split("."):
             pb_cls = getattr(pb_cls, name)
         return json_format.Parse(value.s, pb_cls())
+    elif at == AttrType.AT_UNION_GROUP:
+        return value.s
     else:
         raise EvalParamError(f"unsupported type: {at}.")
 
@@ -144,13 +147,6 @@ class EvalParamReader:
                 f"version inst:'{self._instance.version}' def:'{self._definition.version}' does not match."
             )
 
-        # union groups
-        union_group_selection = {}
-        for attr in self._definition.attrs:
-            if attr.type == AttrType.AT_UNION_GROUP:
-                full_name = "/".join(list(attr.prefixes) + [attr.name])
-                union_group_selection[full_name] = None
-
         # attrs
         self._instance_attrs = {}
         for path, attr in zip(
@@ -162,64 +158,28 @@ class EvalParamReader:
             if not attr.is_na:
                 self._instance_attrs[path] = attr
 
-            for union_name, attr_name in union_group_selection.items():
-                if not path.startswith(union_name):
-                    continue
-                new_attr_name = path[len(union_name) + 1 :].split("/")[0]
-                if attr_name and attr_name != new_attr_name:
-                    raise EvalParamError(
-                        f"union group {union_name}: one attr is required, but god '{attr_name}' and '{new_attr_name}'."
-                    )
-                union_group_selection[union_name] = new_attr_name
-
         for attr in self._definition.attrs:
-            if attr.type not in [
-                AttrType.AT_FLOAT,
-                AttrType.AT_FLOATS,
-                AttrType.AT_INT,
-                AttrType.AT_INTS,
-                AttrType.AT_STRING,
-                AttrType.AT_STRINGS,
-                AttrType.AT_BOOL,
-                AttrType.AT_BOOLS,
-                AttrType.AT_STRUCT_GROUP,
-                AttrType.AT_UNION_GROUP,
-                AttrType.AT_CUSTOM_PROTOBUF,
-                AttrType.AT_PARTY,
-            ]:
-                raise EvalParamError(
-                    "only support ATOMIC, CUSTOM_PROTOBUF and GROUPs at this moment."
-                )
-            if attr.type in [AttrType.AT_STRUCT_GROUP, AttrType.AT_UNION_GROUP]:
+            if attr.type in [AttrType.AT_STRUCT_GROUP, AttrType.ATTR_TYPE_UNSPECIFIED]:
                 continue
 
             full_name = "/".join(list(attr.prefixes) + [attr.name])
-            full_prefix = None
-            skip = False
-            for prefix in attr.prefixes:
-                full_prefix = f"{full_prefix}/{prefix}" if full_prefix else prefix
-                if full_prefix in union_group_selection:
-                    selection = f"{full_prefix}/{union_group_selection[full_prefix]}"
-                    if full_name != selection and not full_name.startswith(
-                        f"{selection}/"
-                    ):
-                        skip = True
-                        break
-            if skip:
-                # not in union group selection, set value to None instead of default value.
-                self._instance_attrs[full_name] = None
-                continue
 
             if full_name not in self._instance_attrs:
                 if attr.type is AttrType.AT_CUSTOM_PROTOBUF:
                     raise EvalParamError(f"CUSTOM_PROTOBUF attr {full_name} not set.")
 
-                # use default value.
-                if not attr.atomic.is_optional:
-                    raise EvalParamError(
-                        f"attr {full_name} is not optional and not set."
+                elif attr.type is AttrType.AT_UNION_GROUP:
+                    self._instance_attrs[full_name] = Attribute(
+                        s=attr.union.default_selection
                     )
-                self._instance_attrs[full_name] = attr.atomic.default_value
+
+                else:
+                    # use default value.
+                    if not attr.atomic.is_optional:
+                        raise EvalParamError(
+                            f"attr {full_name} is not optional and not set."
+                        )
+                    self._instance_attrs[full_name] = attr.atomic.default_value
 
             # check allowed value
             if not check_allowed_values(self._instance_attrs[full_name], attr):

@@ -11,16 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import logging
-from typing import Callable, Dict, List, Union
+from typing import Callable, Dict, List
 
 import numpy as np
 import torch
 
 from secretflow import reveal
-from secretflow.device import PYU, wait
+from secretflow.device import PYU
 from secretflow.ml.nn.callbacks.attack import AttackCallback
+from secretflow.ml.nn.core.torch import module
+from secretflow.ml.nn.sl.backend.torch.sl_base import SLBaseTorchModel
 from secretflow.ml.nn.utils import TorchModel
 
 
@@ -47,7 +48,6 @@ class FeatureSpaceHijackingAttack(AttackCallback):
 
     def __init__(
         self,
-        victim_model_dict: Dict[str, List[Union[torch.nn.Module, str]]],
         base_model_list: List[PYU],
         attack_party: PYU,
         victim_party: PYU,
@@ -61,6 +61,7 @@ class FeatureSpaceHijackingAttack(AttackCallback):
         gradient_penalty_weight: float = 100,
         load_attacker_path: str = None,
         save_attacker_path: str = None,
+        exec_device: str = 'cpu',
         **params,
     ):
         super().__init__(
@@ -70,8 +71,7 @@ class FeatureSpaceHijackingAttack(AttackCallback):
         self.victim_party = victim_party
 
         # for attacker
-        self.victim_model_path = victim_model_dict[victim_party.party][1]
-        self.victim_model_dict = victim_model_dict
+        self.victim_model_dict = {}
         self.base_model_list = [p.party for p in base_model_list]
         self.pilot_model_wrapper = pilot_model_wrapper
         self.decoder_model_wrapper = decoder_model_wrapper
@@ -89,11 +89,11 @@ class FeatureSpaceHijackingAttack(AttackCallback):
         self.logs = {}
 
         self.metrics = None
+        self.exec_device = exec_device
 
     def on_train_begin(self, logs=None):
-        def init_attacker(attack_worker):
+        def init_attacker(attack_worker: SLBaseTorchModel):
             attacker = FeatureSpaceHijackingAttacker(
-                victim_model_dict=self.victim_model_dict,
                 base_model_list=self.base_model_list,
                 attack_party=self.attack_party.party,
                 victim_party=self.victim_party.party,
@@ -107,6 +107,7 @@ class FeatureSpaceHijackingAttack(AttackCallback):
                 gradient_penalty_weight=self.gradient_penalty_weight,
                 load_model_path=self.load_attacker_path,
                 save_model_path=self.save_attacker_path,
+                exec_device=self.exec_device,
             )
 
             attack_worker.attacker = attacker
@@ -123,30 +124,18 @@ class FeatureSpaceHijackingAttack(AttackCallback):
 
         self._workers[self.attack_party].apply(init_auxiliary_dataloader)
 
-    def on_train_end(self, logs=None):
-        """Save the victim model and run reconstruction attacks."""
-
-        def save_victim_model(victim_worker):
-            check_point = {'model_state_dict': victim_worker.model_base.state_dict()}
-            torch.save(check_point, self.victim_model_path)
-
-        def feature_reconstruct_attack(attack_worker):
-            ret = attack_worker.attacker.attack()
-            return ret
-
-        res = self._workers[self.victim_party].apply(save_victim_model)
-        wait(res)
-        self.metrics = reveal(
-            self._workers[self.attack_party].apply(feature_reconstruct_attack)
-        )
-
     def on_fuse_backward_end(self):
         """Replace victim gradients with malicious gradients."""
 
         victim_idx = self.base_model_list.index(self.victim_party.party)
 
         def get_victim_hidden(worker):
-            return worker._h
+            # in debug mode, we cannot return _h directly
+            h = worker._h.detach().clone()
+            h.requires_grad = True
+            if worker._h.grad:
+                h.grad = worker._h.grad.clone()
+            return h
 
         victim_hidden = self._workers[self.victim_party].apply(get_victim_hidden)
         victim_hidden = victim_hidden.to(self.attack_party)
@@ -159,6 +148,23 @@ class FeatureSpaceHijackingAttack(AttackCallback):
             replace_gradients, victim_hidden, victim_idx
         )
 
+    def on_train_end(self, logs=None):
+        """Save the victim model and run reconstruction attacks."""
+
+        def feature_reconstruct_attack(attack_worker, victim_model_dict: Dict):
+            ret = attack_worker.attacker.attack(victim_model_dict)
+            return ret
+
+        victim_model = reveal(
+            self._workers[self.victim_party].apply(lambda worker: worker.model_base)
+        )
+        self.victim_model_dict[self.victim_party.party] = victim_model
+        self.metrics = reveal(
+            self._workers[self.attack_party].apply(
+                feature_reconstruct_attack, self.victim_model_dict
+            )
+        )
+
     def get_attack_metrics(self):
         return self.metrics
 
@@ -166,7 +172,6 @@ class FeatureSpaceHijackingAttack(AttackCallback):
 class FeatureSpaceHijackingAttacker:
     def __init__(
         self,
-        victim_model_dict: Dict[str, List[Union[torch.nn.Module, str]]],
         base_model_list: List[str],
         attack_party: str,
         victim_party: str,
@@ -180,28 +185,30 @@ class FeatureSpaceHijackingAttacker:
         gradient_penalty_weight: float = 100,
         load_model_path: str = None,
         save_model_path: str = None,
+        exec_device: str = 'cpu',
     ):
         super().__init__()
 
         self.base_models = {}
-        self.victim_model_dict = victim_model_dict
 
         self.base_model_list = base_model_list
         self.attack_party = attack_party
         self.victim_party = victim_party
-
-        # build pilot
-        self.pilot_model = pilot_model_wrapper.model_fn()
+        self.victim_base_model = None
+        # build pilots
+        self.pilot_model = module.build(pilot_model_wrapper, device=exec_device)
         self.pilot_optimizer = pilot_model_wrapper.optim_fn(
             self.pilot_model.parameters()
         )
         # build decoder
-        self.decoder_model = decoder_model_wrapper.model_fn()
+        self.decoder_model = module.build(decoder_model_wrapper, device=exec_device)
         self.decoder_optimizer = decoder_model_wrapper.optim_fn(
             self.decoder_model.parameters()
         )
         # build discriminator
-        self.discriminator_model = discriminator_model_wrapper.model_fn()
+        self.discriminator_model = module.build(
+            discriminator_model_wrapper, device=exec_device
+        )
         self.discriminator_optimizer = discriminator_model_wrapper.optim_fn(
             self.discriminator_model.parameters()
         )
@@ -218,18 +225,17 @@ class FeatureSpaceHijackingAttacker:
 
         self.load_model_path = load_model_path
         self.save_model_path = save_model_path
+        self.aux_data = None
+        self.exec_device = exec_device
 
-    def attack(self):
+    def attack(self, victim_model_dict: Dict):
         """Begin attack."""
 
         # load attack model
         if self.load_model_path is not None:
             self.load_model(self.load_model_path)
 
-        self.victim_base_model = self.victim_model_dict[self.victim_party][0]()
-        checkpoint = torch.load(self.victim_model_dict[self.victim_party][1])
-        self.victim_base_model.load_state_dict(checkpoint['model_state_dict'])
-
+        self.victim_base_model = victim_model_dict[self.victim_party]
         # attack
         res = self.evaluate(self.target_data_loader)
 
@@ -240,9 +246,9 @@ class FeatureSpaceHijackingAttacker:
 
     def train_step(self, victim_h):
         """Update attack models and return malicious gradients."""
-
         victim_h.retain_grad()
         [x_pub] = next(self.aux_data)
+        x_pub = x_pub.to(self.exec_device)
         self.pilot_model.train()
         self.decoder_model.train()
         self.discriminator_model.train()
@@ -250,7 +256,6 @@ class FeatureSpaceHijackingAttacker:
         self.pilot_optimizer.zero_grad()
         self.decoder_optimizer.zero_grad()
         self.discriminator_optimizer.zero_grad()
-
         z_pub = self.pilot_model(x_pub)
         adv_pub_logits = self.discriminator_model(z_pub)
         adv_priv_logits = self.discriminator_model(victim_h)
@@ -258,7 +263,6 @@ class FeatureSpaceHijackingAttacker:
 
         rec_x_pub = self.decoder_model(z_pub)
         pub_rec_loss = self.reconstruct_loss(x_pub, rec_x_pub)
-
         gp_loss = self._gradient_penalty(victim_h, z_pub)
         (dsc_loss + pub_rec_loss + self.gp_weight * gp_loss).backward()
 
@@ -297,12 +301,12 @@ class FeatureSpaceHijackingAttacker:
         for batch_idx in range(batch_num):
             # groud truth
             [victim_fea] = next(victim_data_loader)
+            victim_fea = victim_fea.to(self.exec_device)
             victim_h = self.victim_base_model(victim_fea)
             decoder_output = self.decoder_model(victim_h)
 
             # random guess victim feature
             randomguess = torch.rand_like(decoder_output)
-
             model_loss = mse(victim_fea, decoder_output).item()
             rand_loss = mse(victim_fea, randomguess).item()
 
@@ -374,12 +378,12 @@ class FeatureSpaceHijackingAttacker:
 
         bs = x.size(0)
         size = [bs] + (len(x.shape) - 1) * [1]
-        epsilon = torch.rand(*size)
+        epsilon = torch.rand(*size).to(self.exec_device)
         x_hat = epsilon * x + (1 - epsilon) * x_gen
         x_hat.requires_grad_(True)
         d_hat = self.discriminator_model(x_hat)
 
-        ones = torch.ones(d_hat.size(), requires_grad=False)
+        ones = torch.ones(d_hat.size(), requires_grad=False).to(self.exec_device)
         gradients = torch.autograd.grad(
             outputs=d_hat,
             inputs=x_hat,

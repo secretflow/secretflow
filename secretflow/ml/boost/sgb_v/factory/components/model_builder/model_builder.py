@@ -68,13 +68,24 @@ class ModelBuilder(Component):
     def del_actors(self):
         return
 
-    def init_pred(self, sample_num: Union[PYUObject, int]) -> PYUObject:
-        base = self.params.base_score
-        return self.label_holder(init_pred)(base=base, samples=sample_num)
+    def init_pred(
+        self,
+        sample_num: Union[PYUObject, int],
+        checkpoint_model: SgbModel = None,
+        x: FedNdarray = None,
+    ) -> PYUObject:
+        if checkpoint_model is None:
+            base = self.params.base_score
+            return self.label_holder(init_pred)(base=base, samples=sample_num)
+        else:
+            assert x is not None, "x must be provided"
+            return checkpoint_model.predict(x)
 
-    def init_model(self):
-        self.model = SgbModel(
-            self.label_holder, self.params.objective, self.params.base_score
+    def init_model(self, checkpoint_model: SgbModel = None):
+        self.model = (
+            SgbModel(self.label_holder, self.params.objective, self.params.base_score)
+            if checkpoint_model is None
+            else checkpoint_model
         )
 
     def insert_tree(self, tree: DistributedTree):

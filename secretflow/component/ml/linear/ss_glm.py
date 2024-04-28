@@ -35,7 +35,7 @@ from secretflow.device.device.pyu import PYU
 from secretflow.device.device.spu import SPU, SPUObject
 from secretflow.device.driver import reveal
 from secretflow.ml.linear import SSGLM
-from secretflow.ml.linear.ss_glm.core import Linker, get_link
+from secretflow.ml.linear.ss_glm.core import get_link, Linker
 from secretflow.ml.linear.ss_glm.model import STOPPING_METRICS
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData
@@ -543,6 +543,8 @@ def ss_glm_train_eval_fn(
 
     model_meta = {
         "link": glm.link.link_type().value,
+        "dist": glm.dist.dist_type().value,
+        "tweedie_power": tweedie_power,
         "y_scale": glm.y_scale,
         "offset_col": offset_col,
         "label_col": train_dataset_label,
@@ -669,14 +671,14 @@ def build_metric_table(glm):
 ss_glm_predict_comp = Component(
     "ss_glm_predict",
     domain="ml.predict",
-    version="0.0.1",
+    version="0.0.2",
     desc="Predict using the SSGLM model.",
 )
-ss_glm_predict_comp.str_attr(
+ss_glm_predict_comp.party_attr(
     name="receiver",
     desc="Party of receiver.",
-    is_list=False,
-    is_optional=False,
+    list_min_length_inclusive=1,
+    list_max_length_inclusive=1,
 )
 ss_glm_predict_comp.str_attr(
     name="pred_name",
@@ -815,7 +817,7 @@ def ss_glm_predict_eval_fn(
     else:
         offset = None
 
-    receiver_pyu = PYU(receiver)
+    receiver_pyu = PYU(receiver[0])
     with ctx.tracer.trace_running():
         pyu_y = glm.predict(
             x=x,

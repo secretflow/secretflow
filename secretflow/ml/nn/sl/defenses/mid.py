@@ -71,7 +71,7 @@ class MIDModel(BaseModule):
         )
 
     def epsilon(self, x):
-        epsilon = torch.empty((x.shape[0], x.shape[1] * self.encode_scale))
+        epsilon = torch.empty((x.shape[0], x.shape[1] * self.encode_scale)).to(x.device)
         torch.nn.init.normal_(epsilon, mean=0, std=1)
         return epsilon
 
@@ -93,7 +93,6 @@ class MIDModel(BaseModule):
 
     def forward_step(self, batch, batch_idx: int, dataloader_idx: int = 0):
         x, _ = batch
-
         mu, std = self.encoder(x)
         z = mu + std * self.epsilon(x)
         z = self.decoder_layer(z)
@@ -160,14 +159,14 @@ class MidFuseModelWrapper(BaseModule):
         ), "models use MID must use automatic optimization."
 
         self.model = model
-        self.mid_model_list = []
+        mid_model_list = []
         for params in mid_params:
             if params is None:
-                self.mid_model_list.append(None)
+                mid_model_list.append(None)
                 continue
 
-            self.mid_model_list.append(MIDModel(**params))
-
+            mid_model_list.append(MIDModel(**params))
+        self.mid_model_list = nn.ModuleList(mid_model_list)
         self._optimizers = self.model._optimizers
         self.metrics = self.model.metrics
         self.logs = self.model.logs
@@ -214,43 +213,56 @@ class MIDefense(Callback):
     """
 
     def __init__(
-        self, base_params: Dict[PYU, Dict], fuse_params: Dict[PYU, Dict], **kwargs
+        self,
+        base_params: Dict[PYU, Dict],
+        fuse_params: Dict[PYU, Dict],
+        exec_device: torch.device | str = 'cpu',
+        **kwargs
     ):
         super().__init__(**kwargs)
 
         self.base_params = base_params
         self.fuse_params = fuse_params
+        self.exec_device = exec_device
 
     @staticmethod
-    def apply_base_model(worker, params: Dict):
+    def apply_base_model(worker, params: Dict, exec_device: torch.device):
         worker.use_base_loss = True
-        worker.model_base = MIDBaseModelWrapper(worker.model_base, **params)
+        worker.model_base = MIDBaseModelWrapper(worker.model_base, **params).to(
+            exec_device
+        )
 
     @staticmethod
-    def apply_fuse_model(worker, fuse_params_list: List[Dict]):
+    def apply_fuse_model(
+        worker, fuse_params_list: List[Dict], exec_device: torch.device
+    ):
         worker.model_fuse = MidFuseModelWrapper(
             worker.model_fuse, mid_params=fuse_params_list
-        )
+        ).to(exec_device)
 
     def on_train_begin(self, logs=None):
         for pyu, params in self.base_params.items():
             if params is None:
                 continue
             worker = self._workers[pyu]
-            worker.apply(self.apply_base_model, params)
+            worker.apply(self.apply_base_model, params, self.exec_device)
 
         fuse_params_list = []
         for pyu in self._workers.keys():
             fuse_params_list.append(self.fuse_params.get(pyu, None))
 
         if any(fuse_params_list):
-            self._workers[self.device_y].apply(self.apply_fuse_model, fuse_params_list)
+            self._workers[self.device_y].apply(
+                self.apply_fuse_model, fuse_params_list, self.exec_device
+            )
 
-    def create_model_builder(self, orig_base_model_dict, orig_model_fuse):
+    def create_model_builder(
+        self, orig_base_model_dict, orig_model_fuse, exec_device='cpu'
+    ):
         def create_base_builder(params, model_builder):
             def builder():
                 model = module.build(model_builder)
-                wrapper = MIDBaseModelWrapper(model, **params)
+                wrapper = MIDBaseModelWrapper(model, **params).to(exec_device)
                 return wrapper
 
             return builder
@@ -258,7 +270,7 @@ class MIDefense(Callback):
         def create_fuse_builder(mid_params, model_builder):
             def builder():
                 model = module.build(model_builder)
-                wrapper = MidFuseModelWrapper(model, mid_params)
+                wrapper = MidFuseModelWrapper(model, mid_params).to(exec_device)
                 return wrapper
 
             return builder

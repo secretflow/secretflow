@@ -18,16 +18,15 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 import pytest
-from sklearn.datasets import load_breast_cancer
-from sklearn.metrics import roc_auc_score
-from sklearn.preprocessing import StandardScaler
-
 from secretflow.component.ml.linear.ss_glm import ss_glm_predict_comp, ss_glm_train_comp
 from secretflow.component.storage import ComponentStorage
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
+from sklearn.datasets import load_breast_cancer
+from sklearn.metrics import roc_auc_score
+from sklearn.preprocessing import StandardScaler
 
 
 @pytest.mark.parametrize("optimizer", ["SGD", "IRLS"])
@@ -154,7 +153,7 @@ def test_glm(comp_prod_sf_cluster_config, optimizer, with_checkpoint):
         predict_param = NodeEvalParam(
             domain="ml.predict",
             name="ss_glm_predict",
-            version="0.0.1",
+            version="0.0.2",
             attr_paths=[
                 "receiver",
                 "save_ids",
@@ -162,7 +161,7 @@ def test_glm(comp_prod_sf_cluster_config, optimizer, with_checkpoint):
                 "input/feature_dataset/saved_features",
             ],
             attrs=[
-                Attribute(s="alice"),
+                Attribute(ss=["alice"]),
                 Attribute(b=True),
                 Attribute(b=True),
                 Attribute(ss=["a10", "a2"]),

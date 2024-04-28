@@ -12,18 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
-import os.path
-import uuid
+from typing import Dict
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils.data import DataLoader, Dataset
 
 from benchmark_examples.autoattack import global_config
-from benchmark_examples.autoattack.attacks.base import AttackCase
+from benchmark_examples.autoattack.applications.base import ApplicationBase, InputMode
+from benchmark_examples.autoattack.attacks.base import AttackBase, AttackType
 from benchmark_examples.autoattack.global_config import is_simple_test
-from secretflow import tune
+from benchmark_examples.autoattack.utils.data_utils import get_np_data_from_dataset
+from secretflow.ml.nn.callbacks.attack import AttackCallback
 from secretflow.ml.nn.core.torch import TorchModel, optim_wrapper
 from secretflow.ml.nn.sl.attacks.fia_torch import FeatureInferenceAttack
 
@@ -69,66 +70,91 @@ class Generator(nn.Module):
             return self.net(x)
 
 
-class FiaAttackCase(AttackCase):
-    def _attack(self):
-        self.app.prepare_data()
-        victim_model_save_path = f'./sl_model_victim + {uuid.uuid4().int}'
-        generator_save_path = f'./generator + {uuid.uuid4().int}'
-        try:
-            victim_model_dict = self.app.fia_victim_model_dict(victim_model_save_path)
-            optim_fn = optim_wrapper(optim.Adam, lr=self.config.get('optim_lr', 0.0001))
-            generator_model = TorchModel(
-                model_fn=Generator,
-                loss_fn=None,
-                optim_fn=optim_fn,
-                metrics=None,
-                attack_dim=self.app.fia_attack_input_shape(),
-                victim_dim=self.app.fia_victim_input_shape(),
-            )
-            data_buil = self.app.fia_auxiliary_data_builder()
-            logging.warning(
-                f"in this fia trail, the gloabdsk use gpu = {global_config.is_use_gpu()}"
-            )
-            fia_callback = FeatureInferenceAttack(
-                victim_model_path=victim_model_save_path,
-                attack_party=self.app.device_y,
-                victim_party=self.app.device_f,
-                victim_model_dict=victim_model_dict,
-                base_model_list=[self.alice, self.bob],
-                generator_model_wrapper=generator_model,
-                data_builder=data_buil,
-                victim_fea_dim=self.app.fia_victim_input_shape(),
-                attacker_fea_dim=self.app.fia_attack_input_shape(),
-                enable_mean=self.config.get('enale_mean', False),
-                enable_var=True,
-                mean_lambda=1.2,
-                var_lambda=0.25,
-                attack_epochs=self.config.get(
-                    'attack_epochs', 1 if is_simple_test() else 5
-                ),
-                victim_mean_feature=self.app.fia_victim_mean_attr(),
-                save_attacker_path=generator_save_path,
-                exec_device='cuda' if global_config.is_use_gpu() else 'cpu',
-            )
-            history = self.app.train(fia_callback)
-            logging.warning(
-                f"RESULT: {type(self.app).__name__} fia attack metrics = {fia_callback.get_attack_metrics()}"
-            )
-            return history, fia_callback.get_attack_metrics()
-        finally:
-            if os.path.exists(victim_model_save_path):
-                os.remove(victim_model_save_path)
-            if os.path.exists(generator_save_path):
-                os.remove(generator_save_path)
+def data_builder(alice_dataset: Dataset, bob_dataset: Dataset, batch_size):
+    def _prepare_data():
+        alice_dataloader = DataLoader(
+            dataset=alice_dataset, shuffle=False, batch_size=batch_size
+        )
+        bob_dataloader = DataLoader(
+            dataset=bob_dataset, shuffle=False, batch_size=batch_size
+        )
+        dataloader_dict = {'alice': alice_dataloader, 'bob': bob_dataloader}
+        return dataloader_dict, dataloader_dict
 
-    def attack_search_space(self):
-        return {
-            # 'attack_epochs': tune.search.grid_search([2, 5]),  # < 120
-            'optim_lr': tune.search.grid_search([1e-3, 1e-4]),
-        }
+    return _prepare_data
 
-    def metric_name(self):
-        return ['mean_model_loss', 'mean_guess_loss']
 
-    def metric_mode(self):
-        return ['min', 'min']
+class FiaAttackCase(AttackBase):
+    """
+    Fia attack needs:
+    - attacker input shape (without batch size (first dim))
+    - victim input shape (without batch size (first dim))
+    - app.fia_auxiliary_data_builder(): An aux dataloader with some samples.
+    """
+
+    def __init__(self, alice=None, bob=None):
+        super().__init__(alice, bob)
+
+    def __str__(self):
+        return 'fia'
+
+    def build_attack_callback(self, app: ApplicationBase) -> AttackCallback:
+        optim_fn = optim_wrapper(optim.Adam, lr=self.config.get('optim_lr', 0.0001))
+        generator_model = TorchModel(
+            model_fn=Generator,
+            loss_fn=None,
+            optim_fn=optim_fn,
+            metrics=None,
+            attack_dim=app.get_device_y_input_shape()[1:],
+            victim_dim=app.get_device_f_input_shape()[1:],
+        )
+        device_y_sample_dataset = app.get_device_y_train_dataset(
+            frac=0.4, enable_label=1, list_return=True
+        )
+        device_f_sample_dataset = app.get_device_f_train_dataset(
+            frac=0.4, enable_label=1, list_return=True
+        )
+        alice_sample_dataset = (
+            device_y_sample_dataset
+            if app.device_y == app.alice
+            else device_f_sample_dataset
+        )
+        bob_sample_dataset = (
+            device_y_sample_dataset
+            if app.device_y == app.bob
+            else device_f_sample_dataset
+        )
+
+        data_buil = data_builder(
+            alice_sample_dataset, bob_sample_dataset, app.train_batch_size
+        )
+        victim_sample_data = get_np_data_from_dataset(device_f_sample_dataset)
+        victim_sample_data = victim_sample_data.mean(axis=0)
+        victim_mean_attr = victim_sample_data.reshape(victim_sample_data.shape[0], -1)
+        return FeatureInferenceAttack(
+            attack_party=app.device_y,
+            victim_party=app.device_f,
+            base_model_list=[self.alice, self.bob],
+            generator_model_wrapper=generator_model,
+            data_builder=data_buil,
+            victim_fea_dim=app.get_device_f_input_shape()[1:],
+            attacker_fea_dim=app.get_device_y_input_shape()[1:],
+            enable_mean=self.config.get('enale_mean', False),
+            enable_var=True,
+            mean_lambda=1.2,
+            var_lambda=0.25,
+            attack_epochs=self.config.get(
+                'attack_epochs', 1 if is_simple_test() else 5
+            ),
+            victim_mean_feature=victim_mean_attr,
+            exec_device='cuda' if global_config.is_use_gpu() else 'cpu',
+        )
+
+    def attack_type(self) -> AttackType:
+        return AttackType.FEATURE_INFERENCE
+
+    def tune_metrics(self) -> Dict[str, str]:
+        return {'mean_model_loss': 'min', 'mean_guess_loss': 'min'}
+
+    def check_app_valid(self, app: ApplicationBase) -> bool:
+        return app.base_input_mode() in [InputMode.SINGLE]

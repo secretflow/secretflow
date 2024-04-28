@@ -12,12 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numpy as np
-
 from secretflow.component.component import CompEvalError, Component, IoType
-from secretflow.component.data_utils import DistDataType, load_table
+from secretflow.component.data_utils import (
+    DistDataType,
+    get_model_public_info,
+    load_table,
+)
+from secretflow.component.ml.linear.ss_glm import load_ss_glm_model
 from secretflow.component.ml.linear.ss_sgd import load_ss_sgd_model
 from secretflow.device.device.spu import SPU
+from secretflow.ml.linear import SSGLM, RegType, SSRegression
+from secretflow.ml.linear.ss_glm.core.distribution import DistributionType
+from secretflow.ml.linear.ss_glm.core.link import LinkType
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData
 from secretflow.spec.v1.report_pb2 import Descriptions, Div, Report, Tab
@@ -37,7 +43,7 @@ ss_pvalue_comp.io(
     io_type=IoType.INPUT,
     name="model",
     desc="Input model.",
-    types=[DistDataType.SS_SGD_MODEL],
+    types=[DistDataType.SS_SGD_MODEL, DistDataType.SS_GLM_MODEL],
 )
 ss_pvalue_comp.io(
     io_type=IoType.INPUT,
@@ -53,6 +59,107 @@ ss_pvalue_comp.io(
 )
 
 
+def sgd_pvalue(ctx, model_dd, input_data):
+    spu_config = next(iter(ctx.spu_configs.values()))
+    spu = SPU(spu_config["cluster_def"], spu_config["link_desc"])
+
+    saved_model, model_meta = load_ss_sgd_model(ctx, spu, model_dd)
+    model = SSRegression(spu)
+    model.load_model(saved_model)
+
+    label_col = model_meta["label_col"]
+    feature_names = model_meta["feature_names"]
+    partitions_order = list(model_meta["party_features_length"].keys())
+    x, y, _ = load_ds(ctx, input_data, feature_names, partitions_order, label_col)
+
+    with ctx.tracer.trace_running():
+        yhat = model.predict(x)
+
+    spu_w = model.spu_w
+    with ctx.tracer.trace_running():
+        if model.reg_type == RegType.Linear:
+            return PValue(spu).t_statistic_p_value(x, y, yhat, spu_w), feature_names
+        else:
+            link = LinkType.Logit
+            dist = DistributionType.Bernoulli
+            return (
+                PValue(spu).z_statistic_p_value(x, y, yhat, spu_w, link, dist),
+                feature_names,
+            )
+
+
+def load_ds(ctx, input_data, x_cols, x_partitions_order, y_cols, offser_cols=None):
+    with ctx.tracer.trace_io():
+        x = load_table(
+            ctx,
+            input_data,
+            partitions_order=x_partitions_order,
+            load_features=True,
+            col_selects=x_cols,
+        )
+        assert x.columns == x_cols
+
+        y = load_table(
+            ctx,
+            input_data,
+            load_features=True,
+            load_labels=True,
+            col_selects=y_cols,
+        )
+
+        if offser_cols:
+            o = load_table(
+                ctx,
+                input_data,
+                load_features=True,
+                load_labels=True,
+                col_selects=offser_cols,
+            )
+        else:
+            o = None
+
+    return x, y, o
+
+
+def glm_pvalue(ctx, model_dd, input_data):
+    spu_config = next(iter(ctx.spu_configs.values()))
+    cluster_def = spu_config["cluster_def"].copy()
+    # forced to use 128 ring size & 40 fxp
+    cluster_def["runtime_config"]["field"] = "FM128"
+    cluster_def["runtime_config"]["fxp_fraction_bits"] = 40
+    spu = SPU(cluster_def, spu_config["link_desc"])
+
+    model_meta = get_model_public_info(model_dd)
+    model = SSGLM(spu)
+    model.spu_w, model.link, model.y_scale = load_ss_glm_model(ctx, spu, model_dd)
+
+    offset_col = model_meta["offset_col"]
+    label_col = model_meta["label_col"]
+    feature_names = model_meta["feature_names"]
+    partitions_order = list(model_meta["party_features_length"].keys())
+
+    x, y, o = load_ds(
+        ctx, input_data, feature_names, partitions_order, label_col, offset_col
+    )
+
+    with ctx.tracer.trace_running():
+        yhat = model.predict(x, o)
+
+    spu_w = model.spu_w
+    link = LinkType(model_meta["link"])
+    dist = DistributionType(model_meta["dist"])
+    tweedie_power = model_meta["tweedie_power"]
+    y_scale = model.y_scale
+
+    with ctx.tracer.trace_running():
+        return (
+            PValue(spu).z_statistic_p_value(
+                x, y, yhat, spu_w, link, dist, tweedie_power, y_scale
+            ),
+            feature_names,
+        )
+
+
 @ss_pvalue_comp.eval_fn
 def ss_pearsonr_eval_fn(
     *,
@@ -65,33 +172,13 @@ def ss_pearsonr_eval_fn(
         raise CompEvalError("spu config is not found.")
     if len(ctx.spu_configs) > 1:
         raise CompEvalError("only support one spu")
-    spu_config = next(iter(ctx.spu_configs.values()))
 
-    spu = SPU(spu_config["cluster_def"], spu_config["link_desc"])
-
-    model, model_meta = load_ss_sgd_model(ctx, spu, model)
-
-    x = load_table(
-        ctx,
-        input_data,
-        partitions_order=list(model_meta["party_features_length"].keys()),
-        load_features=True,
-        col_selects=model_meta["feature_names"],
-    )
-    assert x.columns == model_meta["feature_names"]
-
-    y = load_table(
-        ctx,
-        input_data,
-        load_features=True,
-        load_labels=True,
-        col_selects=model_meta['label_col'],
-    )
-
-    with ctx.tracer.trace_running():
-        pv: np.ndarray = PValue(spu).pvalues(x, y, model)
-
-    feature_names = x.columns
+    if model.type == DistDataType.SS_SGD_MODEL:
+        pv, feature_names = sgd_pvalue(ctx, model, input_data)
+    elif model.type == DistDataType.SS_GLM_MODEL:
+        pv, feature_names = glm_pvalue(ctx, model, input_data)
+    else:
+        raise AttributeError(f"not support model.type {model.type}")
 
     assert pv.shape[0] == len(feature_names) + 1  # last one is bias
 

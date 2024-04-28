@@ -29,6 +29,7 @@ def read_csv(
     delimiter=",",
     usecols: Dict[PYU, List[str]] = None,
     dtypes: Dict[PYU, Dict[str, type]] = None,
+    converters: Dict[PYU, Dict[str, Callable]] = None,
     spu: SPU = None,
     keys: Union[str, List[str], Dict[Device, List[str]]] = None,
     drop_keys: Union[str, List[str], Dict[Device, List[str]]] = None,
@@ -69,6 +70,9 @@ def read_csv(
                     PYU('bob'): {'uid': np.str, 'score': np.float32}
                 }
             If usecols is not provided. The keys of dtypes will be used as usecols.
+            If converters are specified, they will be applied INSTEAD of dtype conversion.
+        converters: Functions for converting values in specified columns.
+            Keys can either be column labels or column indices.
         spu: SPU device, used for PSI data alignment.
             The data of all parties are supposed pre-aligned if not specified.
         keys: The field used for psi, which can be single or multiple fields.
@@ -132,6 +136,7 @@ def read_csv(
 
     partitions = {}
     for device, path in filepath_actual.items():
+        converter = converters[device] if converters is not None else None
         dtype = dtypes[device] if dtypes is not None else None
         usecol = usecols[device] if usecols is not None else None
 
@@ -150,6 +155,7 @@ def read_csv(
             delimiter=delimiter,
             usecols=usecol,
             dtype=dtype,
+            converters=converter,
             read_backend=backend,
             nrows=nrows,
             skip_rows_after_header=skip_rows_after_header,

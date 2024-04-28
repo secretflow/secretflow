@@ -14,6 +14,7 @@
 
 import copy
 from typing import Tuple
+
 import numpy as np
 import torch
 
@@ -22,6 +23,8 @@ from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
 
 
 class Scaffold(BaseTorchModel):
+    """FIXME: this strategy is NOT working for now."""
+
     def train_step(
         self, weights: np.ndarray, cur_steps: int, train_steps: int, **kwargs
     ) -> Tuple[np.ndarray, int]:
@@ -45,63 +48,43 @@ class Scaffold(BaseTorchModel):
 
         assert self.model is not None, "Model cannot be none, please give model define"
         self.model.train()
-        if self.model.c is None:
-            self.model.c = self.model.zeros_like()
         refresh_data = kwargs.get("refresh_data", False)
         if refresh_data:
             self._reset_data_iter()
         if weights is not None:
-            self.model.update_weights(weights)
+            self.set_weights(weights)
         num_sample = 0
         dp_strategy = kwargs.get("dp_strategy", None)
         logs = {}
 
-        for _ in range(train_steps):
-            self.optimizer.zero_grad()
-            iter_data = next(self.train_iter)
-            if len(iter_data) == 2:
-                x, y = iter_data
-                s_w = None
-            elif len(iter_data) == 3:
-                x, y, s_w = iter_data
-            x = x.float()
+        for step in range(train_steps):
+            x, y, s_w = self.next_batch()
             num_sample += x.shape[0]
-            if len(y.shape) == 1:
-                y_t = y
-            else:
-                if y.shape[-1] == 1:
-                    y_t = torch.squeeze(y, -1).long()
-                else:
-                    y_t = y.argmax(dim=-1)
-            if self.use_gpu:
-                x = x.to(self.exe_device)
-                y_t = y_t.to(self.exe_device)
-                if s_w is not None:
-                    s_w = s_w.to(self.exe_device)
-            y_pred = self.model(x)
 
-            # do back propagation
-            loss = self.loss(y_pred, y_t.long())
-            loss.backward()
-            self.optimizer.step()
-            for m in self.metrics:
-                m.update(y_pred.cpu(), y_t.cpu())
+            loss = self.model.training_step((x, y), cur_steps + step, sample_weight=s_w)
+
+            if self.model.automatic_optimization:
+                self.model.backward_step(loss)
+
             local_gradients = self.model.get_gradients()
-            # Update local model parameters
+            # Update local model gradients
             for i, it in enumerate(local_gradients):
+                local_gradients[i] = (
+                    torch.Tensor(it) + self.model.c[i] - self.model.cg[i]
+                )
 
-                it = (torch.Tensor(it) + self.model.c[i] - self.model.cg[i]).tolist()
-
-            model_weights = self.get_weights(return_numpy=True)
+            model_weights = self.get_weights()
             for i in range(len(model_weights)):
                 local_gradients[i] = local_gradients[i] * self.model.eta_l
-                model_weights[i] -= local_gradients[i]
+                model_weights[i] -= local_gradients[i].numpy()
 
         # Update c after local training is completed
         for i in range(len(model_weights)):
             model_weights[i] *= 1 / train_steps / self.model.eta_l
+
         for i, it in enumerate(self.model.c):
-            it = torch.Tensor(model_weights[i]) - self.model.cg[i] + it
+            self.model.c[i] = torch.Tensor(model_weights[i]) - self.model.cg[i] + it
+
         loss_value = loss.item()
         logs["train-loss"] = loss_value
 
@@ -109,7 +92,7 @@ class Scaffold(BaseTorchModel):
         self.wrapped_metrics.extend(self.wrap_local_metrics())
         self.epoch_logs = copy.deepcopy(self.logs)
 
-        model_weights = self.get_weights(return_numpy=True)
+        model_weights = self.get_weights()
 
         # DP operation
         if dp_strategy is not None:
@@ -125,7 +108,7 @@ class Scaffold(BaseTorchModel):
             weights: global weight from params server
         """
         if weights is not None:
-            self.model.update_weights(weights)
+            self.set_weights(weights)
 
 
 @register_strategy(strategy_name="scaffold", backend="torch")

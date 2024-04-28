@@ -13,7 +13,7 @@
 # limitations under the License.
 import logging
 import math
-from typing import Any, List, Tuple
+from typing import List, Tuple
 
 import jax.numpy as jnp
 import numpy as np
@@ -22,42 +22,79 @@ from scipy import stats
 import secretflow as sf
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import SPU, SPUObject, reveal
+from secretflow.ml.linear.ss_glm.core.distribution import DistributionType, get_dist
+from secretflow.ml.linear.ss_glm.core.link import LinkType, get_link
 from secretflow.utils.blocked_ops import (
     block_compute,
     block_compute_vdata,
     cut_device_object,
     cut_vdata,
 )
-from secretflow.utils.sigmoid import SigType
 
 from .core.utils import newton_matrix_inverse
 
 
-# spu functions for Logistic PValue
-def _hessian_matrix(x_y: List[np.ndarray]):
-    """
-    Hessian = X.T * A * X
-       +---------------------------------------------+
-       | y_hat(X1)[1-y_hat(x1)] 0    0   0   .. .  0 |
-       |   0  y_hat(X2)[1-y_hat(x2)]                 |
-    A =|   0                .                        |
-       |                      .                      |
-       |   0                  y_hat(Xm)[1-y_hat(xm)] |
-       +---------------------------------------------+
-    """
-    x, yhat = x_y
-    A_dig = yhat * (1 - yhat)
-    XAT = x * A_dig
-    XTA = jnp.transpose(XAT)
-    XTAX = jnp.matmul(XTA, x)
-    return XTAX
+def _compute_scale(
+    spu: SPU, y: VDataFrame, yhat: SPUObject, power: float, samples: int, features: int
+):
+    y_blocks = cut_vdata(y, 100 * 10000, spu)
+    yhat_blocks = cut_device_object(yhat, 100 * 10000, spu)
+    blocks = zip(y_blocks, yhat_blocks)
+
+    def _rss(block):
+        block_y, block_yhat = block
+        block_yhat = block_yhat.reshape((-1, 1))
+        block_y = block_y.reshape((-1, 1))
+        return jnp.sum(jnp.square(block_y - block_yhat) / jnp.power(block_yhat, power))
+
+    rss = reveal(block_compute(blocks, spu, _rss, lambda x, y: x + y))
+    return rss / (samples - features)
 
 
-def _z_square_value(H: np.ndarray, w: np.ndarray):
+def _hessian_matrix(
+    spu: SPU,
+    x: VDataFrame,
+    y: VDataFrame,
+    yhat: SPUObject,
+    link: LinkType,
+    dist: DistributionType,
+    tweedie_power: float,
+    row_number: int,
+):
+    x_shape = x.shape
+    if dist == DistributionType.Gamma:
+        scale = _compute_scale(spu, y, yhat, 2, x_shape[0], x_shape[1])
+    elif dist == DistributionType.Tweedie:
+        scale = _compute_scale(spu, y, yhat, tweedie_power, x_shape[0], x_shape[1])
+    else:
+        scale = 1
+
+    link = get_link(link)
+    dist = get_dist(dist, scale, tweedie_power)
+
+    def _h(x_y: List[np.ndarray]):
+        x, yhat = x_y
+        yhat = yhat.reshape((-1, 1))
+        v = dist.variance(yhat)
+        g_gradient = link.link_derivative(yhat)
+        A_dig = 1 / dist.scale() / (v * g_gradient) / g_gradient
+        XAT = x * A_dig
+        XTA = jnp.transpose(XAT)
+        XTAX = jnp.matmul(XTA, x)
+        return XTAX
+
+    x_blocks = cut_vdata(x, row_number, spu, True)
+    yhat_blocks = cut_device_object(yhat, row_number, spu)
+    blocks = zip(x_blocks, yhat_blocks)
+    return block_compute(blocks, spu, _h, lambda x, y: x + y)
+
+
+def _z_square_value(H: np.ndarray, w: np.ndarray, bias_offset: float):
     assert H.shape[1] == w.shape[0], "weights' feature size != input x dataset's cols"
     w = jnp.reshape(w, (w.shape[0],))
     H_inv = newton_matrix_inverse(H)
     H_inv_diag = jnp.diagonal(H_inv)
+    w.at[-1].set(w[-1] + bias_offset)
     return jnp.square(w) / H_inv_diag
 
 
@@ -114,72 +151,6 @@ class PValue:
 
         return [ds.partitions[pyu].data.to(self.spu) for pyu in ds.partitions]
 
-    def _linear_pvalue(
-        self, x: VDataFrame, y: VDataFrame, yhat: SPUObject, weights: SPUObject
-    ) -> np.ndarray:
-        """
-        computer pvalue for linear lr model
-
-        Args:
-            x: input dataset
-            y: true label
-            yhat: predict on x
-            weights: model weights, last one is intercept/bias
-
-        Return:
-            PValue
-        """
-        x_shape = x.shape
-        assert (
-            x_shape[0] > x_shape[1]
-        ), "num of samples must greater than num of features"
-
-        row_number = max([math.ceil(self.infeed_elements_limit / x_shape[1]), 1])
-
-        xTx = block_compute_vdata(
-            x,
-            row_number,
-            self.spu,
-            lambda x: x.T @ x,
-            lambda x, y: x + y,
-            pad_ones=True,
-        )
-        y = self._prepare_dataset(y)
-        assert len(y) == 1, "label should came from one party"
-        y = y[0]
-        spu_t = self.spu(_t_square_value)(xTx, x_shape[0], x_shape[1], y, yhat, weights)
-        t_square = self._rectify_negative(sf.reveal(spu_t))
-        t_values = np.sqrt(t_square)
-        return 2 * (1 - stats.t(x_shape[0] - x_shape[1]).cdf(np.abs(t_values)))
-
-    def _logistic_pvalue(
-        self, x: VDataFrame, yhat: SPUObject, weights: SPUObject
-    ) -> np.ndarray:
-        """
-        computer pvalue for logistic lr model
-
-        Args:
-            x: input dataset
-            yhat: predict on x
-            weights: model weights, last one is intercept/bias
-
-        Return:
-            PValue
-        """
-        assert x.shape[0] == reveal(
-            self.spu(lambda yhat: yhat.shape[0])(yhat)
-        ), "x/y dataset not aligned"
-
-        row_number = max([math.ceil(self.infeed_elements_limit / x.shape[1]), 1])
-        x_blocks = cut_vdata(x, row_number, self.spu, True)
-        yhat_blocks = cut_device_object(yhat, row_number, self.spu)
-        blocks = zip(x_blocks, yhat_blocks)
-        H = block_compute(blocks, self.spu, _hessian_matrix, lambda x, y: x + y)
-        spu_z = self.spu(_z_square_value)(H, weights)
-        z_square = self._rectify_negative(sf.reveal(spu_z))
-        wald_values = np.sqrt(z_square)
-        return 2 * (1 - stats.norm.cdf(np.abs(wald_values)))
-
     def _rectify_negative(self, square: np.ndarray) -> np.ndarray:
         square = square.flatten()
         for idx in range(square.size):
@@ -194,17 +165,42 @@ class PValue:
                 square[idx] = 0
         return square
 
-    def pvalues(
+    def _pre_check(
         self,
         x: VDataFrame,
         y: VDataFrame,
-        model: Any,
+        yhat: SPUObject,
+        weights: SPUObject,
+        infeed_elements_limit: int,
+    ):
+        assert x.shape[0] == y.shape[0], "x/y dataset not aligned"
+        assert isinstance(yhat, SPUObject)
+        assert isinstance(weights, SPUObject), (
+            "Only support model fit by sslr/hesslr/glm that "
+            "training on vertical slice dataset."
+        )
+        assert yhat.device == self.spu
+        assert weights.device == self.spu
+        x_shape = x.shape
+        assert (
+            x_shape[0] > x_shape[1]
+        ), "num of samples must greater than num of features"
+        assert x.shape[0] == reveal(
+            self.spu(lambda yhat: yhat.shape[0])(yhat)
+        ), "x/y dataset not aligned"
+
+        return max([math.ceil(infeed_elements_limit / x.shape[1]), 1])
+
+    def t_statistic_p_value(
+        self,
+        x: VDataFrame,
+        y: VDataFrame,
+        yhat: SPUObject,
+        weights: SPUObject,
         infeed_elements_limit: int = 20000000,
     ) -> np.ndarray:
-        from secretflow.ml.linear import LinearModel, RegType, SSRegression
-
         """
-        computer pvalue for lr model
+        compute pvalue by t-statistic, use for linear regression with normal distribution assumption.
 
         Args:
 
@@ -212,26 +208,81 @@ class PValue:
                 input dataset
             y : VDataFrame
                 true label
-            model : LinearModel
-                lr model
+            yhat : SPUObject
+                predicted label
+            weights : SPUObject
+                features' weight
 
         Return:
             PValue
         """
-        assert x.shape[0] == y.shape[0], "x/y dataset not aligned"
-        assert isinstance(model, LinearModel), "Only support Linear model."
-        assert isinstance(model.weights, SPUObject), (
-            "Only support model fit by sslr/hesslr that "
-            "training on vertical slice dataset."
+        row_number = self._pre_check(x, y, yhat, weights, infeed_elements_limit)
+
+        xTx = block_compute_vdata(
+            x,
+            row_number,
+            self.spu,
+            lambda x: x.T @ x,
+            lambda x, y: x + y,
+            pad_ones=True,
         )
-        assert model.weights.device == self.spu, "weights should saved in same spu"
-        self.infeed_elements_limit = infeed_elements_limit
-        lr = SSRegression(self.spu)
-        # hessian_matrix is very sensitive on yhat, use a expensive but more precision sig approximation.
-        model.sig_type = SigType.MIX
-        lr.load_model(model)
-        yhat = lr.predict(x)
-        if model.reg_type == RegType.Linear:
-            return self._linear_pvalue(x, y, yhat, model.weights)
-        else:
-            return self._logistic_pvalue(x, yhat, model.weights)
+        y = self._prepare_dataset(y)
+        assert len(y) == 1, "label should came from one party"
+        y = y[0]
+        x_shape = x.shape
+        spu_t = self.spu(_t_square_value)(xTx, x_shape[0], x_shape[1], y, yhat, weights)
+        t_square = self._rectify_negative(sf.reveal(spu_t))
+        t_values = np.sqrt(t_square)
+        return 2 * (1 - stats.t(x_shape[0] - x_shape[1]).cdf(np.abs(t_values)))
+
+    def z_statistic_p_value(
+        self,
+        x: VDataFrame,
+        y: VDataFrame,
+        yhat: SPUObject,
+        weights: SPUObject,
+        link: LinkType,
+        dist: DistributionType,
+        tweedie_power: float = 1,
+        y_scale: float = 1,
+        infeed_elements_limit: int = 20000000,
+    ) -> np.ndarray:
+        from secretflow.ml.linear import LinearModel, RegType, SSRegression
+
+        """
+        compute pvalue by z-statistic, use for general linear regression with Non-normal distribution assumption.
+
+        Args:
+
+            x : VDataFrame
+                input dataset
+            y : VDataFrame
+                true label
+            yhat : SPUObject
+                predicted label
+            weights : SPUObject
+                features' weight
+            link : LinkType
+                link function type
+            dist : DistributionType
+                label distribution type
+            tweedie_power : float
+                Specify power for tweedie distribution
+            y_scale: float
+                Specify y label scaling sparse used in glm training
+
+
+        Return:
+            PValue
+        """
+        row_number = self._pre_check(x, y, yhat, weights, infeed_elements_limit)
+
+        H = _hessian_matrix(self.spu, x, y, yhat, link, dist, tweedie_power, row_number)
+
+        bias_offset = math.log(y_scale)
+        spu_z = self.spu(_z_square_value, static_argnames=("bias_offset"))(
+            H, weights, bias_offset
+        )
+        z_square = self._rectify_negative(sf.reveal(spu_z))
+        wald_values = np.sqrt(z_square)
+        return 2 * (1 - stats.norm.cdf(np.abs(wald_values)))

@@ -14,19 +14,67 @@
 
 import logging
 from abc import ABC, abstractmethod
+from enum import Enum
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
 from benchmark_examples.autoattack import global_config
+from benchmark_examples.autoattack.base import AutoBase
 from benchmark_examples.autoattack.global_config import is_simple_test
+from benchmark_examples.autoattack.utils.config import read_tune_config
+from benchmark_examples.autoattack.utils.data_utils import (
+    CustomTensorDataset,
+    reveal_data,
+    reveal_part_data,
+    sample_ndarray,
+)
 from secretflow import PYU
+from secretflow.data import FedNdarray
 from secretflow.ml.nn import SLModel
 from secretflow.ml.nn.callbacks.callback import Callback
-from secretflow.ml.nn.utils import TorchModel
+from secretflow.ml.nn.core.torch import TorchModel
 
 
-class ApplicationBaseAPI(object):
+class ModelType(Enum):
+    """The model types"""
+
+    DNN = 'dnn'
+    DEEPFM = 'deepfm'
+    RESNET18 = 'resnet18'
+    VGG16 = 'vgg16'
+    RESNET20 = 'resnet20'
+    CNN = 'cnn'
+    OTHER = 'other'
+
+
+class ClassficationType(Enum):
+    """The classfication types"""
+
+    BINARY = 'binary'
+    MULTICLASS = 'multiclass'
+    MULTILABEL = 'multilabel'
+
+
+class InputMode(Enum):
+    SINGLE = 'single'
+    MULTI = 'multi'
+
+
+class DatasetType(Enum):
+    TABLE = 'table'
+    RECOMMENDATION = 'recommendation'
+    IMAGE = 'image'
+
+
+class ApplicationBaseAPI(AutoBase, ABC):
+    def __init__(self, alice=None, bob=None):
+        super().__init__(alice, bob)
+
+    @abstractmethod
+    def dataset_name(self):
+        pass
+
     @abstractmethod
     def train(
         self, callbacks: Optional[Union[List[Callback], Callback]] = None, **kwargs
@@ -58,13 +106,18 @@ class ApplicationBaseAPI(object):
         """
 
     @abstractmethod
-    def prepare_data(self, **kwargs):
+    def prepare_data(
+        self, **kwargs
+    ) -> Tuple[FedNdarray, FedNdarray, FedNdarray, FedNdarray]:
         """
         Prepare the train/test data. The subclass must provide this function
         and set the train_data, train_label, test_data, test_label attributes.
         This function has a defualt implementation.
         Returns:
-            None
+            train_data(FedNdarray)
+            train_label(FedNdarray)
+            train_label(FedNdarray)
+            test_label(FedNdarray)
         """
         pass
 
@@ -105,16 +158,6 @@ class ApplicationBaseAPI(object):
         pass
 
     @abstractmethod
-    def alice_feature_nums_range(self) -> list:
-        """
-        To automate the splitting of models and datasets during the automated attack process,
-        it is necessary to provide the range of feature counts for each dataset of Alice for adjustment purposes.
-        Returns:
-            An adjustable list range like [1,2,3].
-        """
-        pass
-
-    @abstractmethod
     def resources_consumes(self) -> List[Dict]:
         """
         How much this application requires to consume.
@@ -129,64 +172,43 @@ class ApplicationBaseAPI(object):
         """
         pass
 
-    def hidden_size_range(self) -> Optional[list]:
+    @abstractmethod
+    def classfication_type(self) -> ClassficationType:
         """
-        To automate the hidden size.
+        The model classfication type
         Returns:
-            An adjustable list range like [1,2,3].
+            The classification type.
         """
-        return None
+        pass
 
-    def dnn_base_units_size_range_alice(self) -> Optional[List[List[int]]]:
+    @abstractmethod
+    def base_input_mode(self) -> InputMode:
         """
-        Parameter range for tunning dnn units size used in base model (alice side).
-        Note that some sizes may be associated with the hidden size, which is also a adjestable
-        parameter that can be tuned, so you don't know the specific value.
-        In this case, you can use a negative value to indicate its relathionship with hidden size.
-        For example, use -1 to represent the hidden size, use -0.5 to represent half of the hidden size.
+        The base model input mode, expect 'single' or 'multi'.
+        Only when the input is continuous and has only one tensor, return 'single'.
+        Other return 'multi'.
         Returns:
-            An adjustable list of list range like [[64,32],[64,-1]].
+            The input mode.
         """
-        return None
+        pass
 
-    def dnn_base_units_size_range_bob(self) -> Optional[List[List[int]]]:
+    @abstractmethod
+    def model_type(self) -> ModelType:
         """
-        Parameter range for tunning dnn units size used in base model (bob side).
-        Refere to dnn_base_units_size_range_alice for details.
-
-        Note that in most cases, we only need alice and bob to use the same dnn units size,
-        in which case you only need to make this function return None, do not return same values
-        with dnn_base_units_size_range_alice unless you really need to test the combination in which
-        alice and bob has different dnn units size.
+        The application model type, like dnn, resnet18, etc.
         Returns:
-            An adjustable list of list range like [[64,32],[64,-1]].
+            The model type.
         """
-        return None
+        pass
 
-    def dnn_fuse_units_size_range(self) -> Optional[List[List[int]]]:
+    @abstractmethod
+    def dataset_type(self) -> DatasetType:
         """
-        Parameter range for tunning dnn units size used in base model (bob side).
-        Note that the last element is the output nums of the model.
+        The dataset type like table, recommendation, image.
         Returns:
-            An adjustable list of list range like [[64,1],[64,1]].
+            dataset type
         """
-        return None
-
-    def dnn_embedding_dim_range(self) -> Optional[List[int]]:
-        """
-        Parameter range for dnn embedding dim used in base model.
-        Returns:
-            An adjustable list of list range like [16,32].
-        """
-        return None
-
-    def deepfm_embedding_dim_range(self) -> Optional[List[int]]:
-        """
-        Parameter range for deepfm embedding dim used in base model.
-        Returns:
-            An adjustable list of list range like [16,32].
-        """
-        return None
+        pass
 
     def create_dataset_builder_alice(self, *args, **kwargs) -> Optional[Callable]:
         """
@@ -200,107 +222,16 @@ class ApplicationBaseAPI(object):
         """
         raise NotImplementedError("create_dataset_builder_bob not implemented")
 
-    @staticmethod
-    def support_attacks() -> list:
-        """
-        Indicate which attacks the application supports.
-        Returns:
-            list of supported attacks names.
-        """
-        return []
+    def create_predict_dataset_builder_alice(
+        self, *args, **kwargs
+    ) -> Optional[Callable]:
+        return None
 
-    def lia_auxiliary_data_builder(self, batch_size=16, file_path=None):
-        """
-        The auxiliary dataset builder for lia attack.
-        Args:
-            batch_size: lia attack's bachsize.
-            file_path: if need a file_path to read.
-
-        Returns:
-            A callable dataset builder.
-        """
-        raise NotImplementedError(
-            f"need implement lia_auxiliary_data_builder on {type(self).__name__} "
-        )
-
-    def lia_auxiliary_model(self, ema=False):
-        """
-        Auxiliary modle for lia attack, which need a bottom model same as the application base.
-        """
-        raise NotImplementedError(
-            f"need implement lia_auxiliary_model on {type(self).__name__} "
-        )
-
-    def fia_auxiliary_data_builder(self):
-        """Fia auxiliary dataset builder"""
-        raise NotImplementedError(
-            f"need implement fia_auxiliary_data_builder on {type(self).__name__} "
-        )
-
-    def fia_victim_mean_attr(self):
-        """Fia victim mean data."""
-        raise NotImplementedError(
-            f"need implement fia_mean_attr on {type(self).__name__}"
-        )
-
-    def fia_victim_model_dict(self, victim_model_save_path):
-        raise NotImplementedError(
-            f"need implement fia_victim_model_dict on {type(self).__name__}"
-        )
-
-    def fia_victim_input_shape(self):
-        raise NotImplementedError(
-            f"need implement fia_victim_input_shape on {type(self).__name__}"
-        )
-
-    def fia_attack_input_shape(self):
-        raise NotImplementedError(
-            f"need implement fia_attack_input_shape on {type(self).__name__}"
-        )
-
-    def replay_auxiliary_attack_configs(
-        self, target_nums: int = 15
-    ) -> Tuple[int, np.ndarray, np.ndarray]:
-        """
-        replace auxiliary data indexes
-        Args:
-            target_nums: the number of targets choice, 10 - 50.
-
-        Returns:
-            Tuple[int, np.ndarray, np.ndarray]: the target class, target_indexes, eval_indexes
-        """
-        raise NotImplementedError(
-            f"need implement replay_auxiliary_data_indexes on {type(self).__name__}"
-        )
-
-    def replace_auxiliary_attack_configs(
-        self, target_nums: int = 15
-    ) -> Tuple[int, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        """
-        The auxiliary attack configs for replace attack.
-        Args:
-            target_nums: how many poison targets to choose.
-
-        Returns:
-            Tuple of 5 emelents:
-            target_class (int): the target class, if binary class, set 1.
-            target_set (np.ndarray): target set based on the target class.
-            train_poison_set (np.ndarray): choose some poison indexes.
-            train_poison_np (np.ndarray): the poision data based on the train_poison_set.
-            eval_poison_set (np.ndarray): choose some poison data on test datasets.
-        """
-        raise NotImplementedError(
-            f"need implement replace_auxiliary_attack_configs on {type(self).__name__}"
-        )
-
-    def exploit_label_counts(self) -> Tuple[int, int]:
-        raise NotImplementedError(
-            f"need implement exploit_label_counts on {type(self).__name__}"
-        )
+    def create_predict_dataset_builder_bob(self, *args, **kwargs) -> Optional[Callable]:
+        return None
 
 
 class ApplicationBase(ApplicationBaseAPI, ABC):
-    config: Dict
     alice: PYU
     bob: PYU
     device_y: PYU
@@ -308,7 +239,7 @@ class ApplicationBase(ApplicationBaseAPI, ABC):
     num_classes: int
     epoch: int
     train_batch_size: int
-    hiddenz_size: int
+    hidden_size: int
     dnn_base_units_size_alice: List[int]
     dnn_base_units_size_bob: List[int]
     dnn_fuse_units_size: List[int]
@@ -317,10 +248,10 @@ class ApplicationBase(ApplicationBaseAPI, ABC):
 
     def __init__(
         self,
-        config: Dict,
-        alice: PYU,
-        bob: PYU,
-        device_y: PYU,
+        alice: PYU | None = None,
+        bob: PYU | None = None,
+        device_y: PYU | None = None,
+        has_custom_dataset: bool = False,
         total_fea_nums: int = -1,
         alice_fea_nums: int = -1,
         num_classes: int = 2,
@@ -350,52 +281,84 @@ class ApplicationBase(ApplicationBaseAPI, ABC):
             dnn_embedding_dim: embedding dim for dnn.
             deepfm_embedding_dim: embedding dim for deepfm.
         """
-        self.config = config
+        super().__init__(alice, bob)
         self.alice = alice
         self.bob = bob
         self.device_y = device_y
         # device_f means the opposite side of device_y
         self.device_f = alice if device_y == bob else bob
         self.total_fea_nums = total_fea_nums
-        self.alice_fea_nums = config.get('alice_fea_nums', alice_fea_nums)
+        self.alice_fea_nums = alice_fea_nums
         self.bob_fea_nums = total_fea_nums - self.alice_fea_nums
         self.num_classes = num_classes
-        self.epoch = config.get('epoch', epoch)
-        self.train_batch_size = config.get('train_batch_size', train_batch_size)
-        self.hidden_size = config.get('hidden_size', hidden_size)
-        dnn_base_units_size_alice_ = config.get(
-            'dnn_base_units_size_alice', dnn_base_units_size_alice
+        self.epoch = epoch
+        self.train_batch_size = train_batch_size
+        self.hidden_size = hidden_size
+        self.dnn_base_units_size_alice = dnn_base_units_size_alice
+        self.dnn_base_units_size_bob = dnn_base_units_size_bob
+        self.dnn_fuse_units_size = dnn_fuse_units_size
+        self.dnn_embedding_dim = dnn_embedding_dim
+        self.deepfm_embedding_dim = deepfm_embedding_dim
+        self._has_custom_dataset = has_custom_dataset
+        self._is_data_prepared = False
+        self._train_data = None
+        self._train_label = None
+        self._test_data = None
+        self._test_label = None
+        # for attack, we need some plain data.
+        self._plain_train_data = None
+        self._plain_test_data = None
+        self._plain_train_label = None
+        self._plain_test_label = None
+        self._plain_train_alice_data = None
+        self._plain_train_bob_data = None
+        self._plain_test_alice_data = None
+        self._plain_test_bob_data = None
+        # simple set
+        if is_simple_test():
+            self.epoch = 1
+        self._log_config()
+
+    def __str__(self):
+        return self.dataset_name() + self.model_type().value
+
+    def set_config(self, config: Dict[str, str] | None):
+        super().set_config(config)
+        self.alice_fea_nums = self.config.get('alice_fea_nums', self.alice_fea_nums)
+        self.bob_fea_nums = self.total_fea_nums - self.alice_fea_nums
+        self.epoch = self.config.get('epoch', self.epoch)
+        self.train_batch_size = self.config.get(
+            'train_batch_size', self.train_batch_size
+        )
+        self.hidden_size = self.config.get('hidden_size', self.hidden_size)
+        dnn_base_units_size_alice_ = self.config.get(
+            'dnn_base_units_size_alice', self.dnn_base_units_size_alice
         )
         self.dnn_base_units_size_alice = self._handle_dnn_units_size(
             dnn_base_units_size_alice_
         )
-        dnn_base_units_size_bob_ = config.get(
-            'dnn_base_units_size_bob', dnn_base_units_size_bob
+        dnn_base_units_size_bob_ = self.config.get(
+            'dnn_base_units_size_bob', self.dnn_base_units_size_bob
         )
         self.dnn_base_units_size_bob = self._handle_dnn_units_size(
             dnn_base_units_size_bob_
         )
         if (
-            'dnn_base_units_size_bob' not in config
-            and 'dnn_base_units_size_alice' in config
+            'dnn_base_units_size_bob' not in self.config
+            and 'dnn_base_units_size_alice' in self.config
         ):
             # when find bob side's dnn units size is not exists in config but alice exists,
             # then consider bob side same with alice side.
             self.dnn_base_units_size_bob = self.dnn_base_units_size_alice
-        self.dnn_fuse_units_size = config.get(
-            'dnn_fuse_units_size', dnn_fuse_units_size
+        self.dnn_fuse_units_size = self.config.get(
+            'dnn_fuse_units_size', self.dnn_fuse_units_size
         )
-        self.dnn_embedding_dim = config.get('dnn_embedding_dim', dnn_embedding_dim)
-        self.deepfm_embedding_dim = config.get(
-            'deepfm_embedding_dim', deepfm_embedding_dim
+        self.dnn_embedding_dim = self.config.get(
+            'dnn_embedding_dim', self.dnn_embedding_dim
         )
-        self.train_data = None
-        self.train_label = None
-        self.test_data = None
-        self.test_label = None
-        # simple set
-        if is_simple_test():
-            self.epoch = 1
+        self.deepfm_embedding_dim = self.config.get(
+            'deepfm_embedding_dim', self.deepfm_embedding_dim
+        )
         self._log_config()
 
     def _log_config(self):
@@ -426,21 +389,59 @@ class ApplicationBase(ApplicationBaseAPI, ABC):
             return None
         return [int(-u * self.hidden_size) if u < 0 else u for u in units_size]
 
+    def _prepare_data(self):
+        if not self._is_data_prepared:
+            self._is_data_prepared = True
+            self._train_data, self._train_label, self._test_data, self._test_label = (
+                self.prepare_data()
+            )
+            assert (
+                self._train_data is not None
+                and self._train_label is not None
+                and self._test_data is not None
+                and self._test_label is not None
+            ), f'{type(self)} prepare_data must return not None type, please check.'
+
+    def get_train_data(self):
+        self._prepare_data()
+        return self._train_data
+
+    def get_train_label(self):
+        self._prepare_data()
+        return self._train_label
+
+    def get_test_data(self):
+        self._prepare_data()
+        return self._test_data
+
+    def get_test_label(self):
+        self._prepare_data()
+        return self._test_label
+
     def train(
         self, callbacks: Optional[Union[List[Callback], Callback]] = None, **kwargs
     ):
-        # make sure self data is prepared before the training.
-        assert (
-            self.train_data is not None
-            and self.train_label is not None
-            and self.test_data is not None
-            and self.test_label is not None
-        ), 'Data should be prepared before training.'
-        return self._train(callbacks, **kwargs)
+        histories = self._train(callbacks, **kwargs)
+        # Get the final train metrics from the trainning histories.
+        train_metrics = {}
+        for k, v in histories.items():
+            if isinstance(v[-1], np.ndarray):
+                assert len(v[-1].shape) == 0
+                train_metrics[k] = v[-1].item()
+            else:
+                train_metrics[k] = v[-1]
+        return train_metrics
 
     def _train(
         self, callbacks: Optional[Union[List[Callback], Callback]] = None, **kwargs
     ):
+        """
+        The default train implementation.
+        Args:
+            callbacks: The attack or defense callback list.
+            **kwargs: Option parameters.
+
+        """
         base_model_dict = {
             self.alice: self.create_base_model_alice(),
             self.bob: self.create_base_model_bob(),
@@ -461,9 +462,9 @@ class ApplicationBase(ApplicationBaseAPI, ABC):
         )
         shuffle = kwargs.get('shuffle', False)
         history = self.sl_model.fit(
-            self.train_data,
-            self.train_label,
-            validation_data=(self.test_data, self.test_label),
+            self.get_train_data(),
+            self.get_train_label(),
+            validation_data=(self.get_test_data(), self.get_test_label()),
             epochs=self.epoch,
             batch_size=self.train_batch_size,
             shuffle=shuffle,
@@ -472,9 +473,7 @@ class ApplicationBase(ApplicationBaseAPI, ABC):
             dataset_builder=dataset_builder_dict,
             callbacks=callbacks,
         )
-        logging.warning(
-            f"RESULT: {type(self).__name__} {type(callbacks).__name__} training history = {history}"
-        )
+        logging.warning(f"RESULT: {self} training history = {history}")
         return history
 
     def predict(
@@ -494,7 +493,7 @@ class ApplicationBase(ApplicationBaseAPI, ABC):
         if dataset_builder_dict[self.alice] is None:
             dataset_builder_dict = None
         return self.sl_model.predict(
-            self.test_data,
+            self.get_test_data(),
             self.train_batch_size,
             dataset_builder=dataset_builder_dict,
             callbacks=callbacks,
@@ -514,28 +513,6 @@ class ApplicationBase(ApplicationBaseAPI, ABC):
     def create_predict_dataset_builder_bob(self, *args, **kwargs) -> Optional[Callable]:
         return None
 
-    def get_train_data(self):
-        assert (
-            self.train_data is not None
-        ), f"data is None, try call prepare_data first."
-        return self.train_data
-
-    def get_train_label(self):
-        assert (
-            self.train_label is not None
-        ), f"data is None, try call prepare_data first."
-        return self.train_label
-
-    def get_test_data(self):
-        assert self.test_data is not None, f"data is None, try call prepare_data first."
-        return self.test_data
-
-    def get_test_label(self):
-        assert (
-            self.test_label is not None
-        ), f"data is None, try call prepare_data first."
-        return self.test_label
-
     def get_device_y_fea_nums(self):
         assert (
             self.alice_fea_nums >= 0 and self.bob_fea_nums >= 0
@@ -550,3 +527,261 @@ class ApplicationBase(ApplicationBaseAPI, ABC):
 
     def get_total_fea_nums(self):
         return self.total_fea_nums
+
+    def get_plain_train_data(self):
+        if self._plain_train_data is not None:
+            return self._plain_train_data
+        self._plain_train_data = reveal_data(self.get_train_data())
+        return self.get_plain_train_data()
+
+    def get_plain_test_data(self):
+        if self._plain_test_data is not None:
+            return self._plain_test_data
+        self._plain_test_data = reveal_data(self.get_test_data())
+        return self.get_plain_test_data()
+
+    def get_plain_train_alice_data(self):
+        if self._plain_train_alice_data is not None:
+            return self._plain_train_alice_data
+        self._plain_train_alice_data = reveal_part_data(
+            self.get_train_data(), self.alice
+        )
+        return self.get_plain_train_alice_data()
+
+    def get_plain_train_bob_data(self):
+        if self._plain_train_bob_data is not None:
+            return self._plain_train_bob_data
+        self._plain_train_bob_data = reveal_part_data(self.get_train_data(), self.bob)
+        return self.get_plain_train_bob_data()
+
+    def get_plain_train_device_y_data(self):
+        return (
+            self.get_plain_train_alice_data()
+            if self.device_y == self.alice
+            else self.get_plain_train_bob_data()
+        )
+
+    def get_plain_train_device_f_data(self):
+        return (
+            self.get_plain_train_alice_data()
+            if self.device_f == self.alice
+            else self.get_plain_train_bob_data()
+        )
+
+    def get_plain_test_alice_data(self):
+        if self._plain_test_alice_data is not None:
+            return self._plain_test_alice_data
+        self._plain_test_alice_data = reveal_part_data(self.get_test_data(), self.alice)
+        return self.get_plain_test_alice_data()
+
+    def get_plain_test_bob_data(self):
+        if self._plain_test_bob_data is not None:
+            return self._plain_test_bob_data
+        self._plain_test_bob_data = reveal_part_data(self.get_test_data(), self.bob)
+        return self.get_plain_test_bob_data()
+
+    def get_plain_test_device_y_data(self):
+        return (
+            self.get_plain_test_alice_data()
+            if self.device_y == self.alice
+            else self.get_plain_test_bob_data()
+        )
+
+    def get_plain_test_device_f_data(self):
+        return (
+            self.get_plain_test_alice_data()
+            if self.device_f == self.alice
+            else self.get_plain_test_bob_data()
+        )
+
+    def get_plain_train_label(self):
+        if self._plain_train_label is not None:
+            return self._plain_train_label
+        self._plain_train_label = reveal_data(self.get_train_label())
+        if len(self._plain_train_label.shape) > 0:
+            if len(self._plain_train_label.shape) == 1:
+                self._plain_train_label = self._plain_train_label[:, np.newaxis]
+            assert (
+                len(self._plain_train_label.shape) == 2
+                and self._plain_train_label.shape[1] == 1
+            )
+            self._plain_train_label = self._plain_train_label.flatten().astype(np.int64)
+        return self.get_plain_train_label()
+
+    def get_plain_test_label(self):
+        if self._plain_test_label is not None:
+            return self._plain_test_label
+        self._plain_test_label = reveal_data(self.get_test_label())
+        if len(self._plain_test_label.shape) > 0:
+            if len(self._plain_test_label.shape) == 1:
+                self._plain_test_label = self._plain_test_label[:, np.newaxis]
+
+            assert (
+                len(self._plain_test_label.shape) == 2
+                and self._plain_test_label.shape[1] == 1
+            )
+            self._plain_test_label = self._plain_test_label.flatten().astype(np.int64)
+        return self.get_plain_test_label()
+
+    def get_train_lable_neg_pos_counts(self) -> Tuple[int, int]:
+        x = np.bincount(self.get_plain_train_label())
+        if len(x) != 2:
+            raise RuntimeError(f"neg_pos counts need 2 classes, got {len(x)} classes.")
+        neg, pos = x
+        return neg, pos
+
+    def get_device_y_input_shape(self):
+        return (
+            list(self.get_plain_train_alice_data().shape)
+            if self.device_y == self.alice
+            else list(self.get_plain_train_bob_data().shape)
+        )
+
+    def get_device_f_input_shape(self):
+        return (
+            list(self.get_plain_train_alice_data().shape)
+            if self.device_f == self.alice
+            else list(self.get_plain_train_bob_data().shape)
+        )
+
+    def sample_device_y_train_data(self, sample_size: int = None, frac: float = None):
+        data = (
+            self.get_plain_train_alice_data()
+            if self.device_y == self.alice
+            else self.get_plain_train_bob_data()
+        )
+        data, _ = self._get_sample_data(data, None, sample_size, frac)
+        return data.astype(np.float32)
+
+    def sample_device_f_train_data(self, sample_size: int = None, frac: float = None):
+        data = (
+            self.get_plain_train_alice_data()
+            if self.device_f == self.alice
+            else self.get_plain_train_bob_data()
+        )
+        data, _ = self._get_sample_data(data, None, sample_size, frac)
+        return data.astype(np.float32)
+
+    def _check_custom_dataset(self):
+        if self._has_custom_dataset:
+            raise RuntimeError(
+                "Application with custom dataset need to override the get_xxx_dataset methods."
+            )
+
+    @staticmethod
+    def _get_sample_data(
+        data: np.ndarray,
+        label: np.ndarray | None = None,
+        sample_size: int = None,
+        frac: float = None,
+        indexes: np.ndarray = None,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        if sample_size is not None or frac is not None or indexes is not None:
+            data, indexes = sample_ndarray(
+                data, sample_size=sample_size, frac=frac, indexes=indexes
+            )
+            if label is not None:
+                label, _ = sample_ndarray(label, indexes=indexes)
+
+        return data, label
+
+    def _get_sample_dataset(
+        self,
+        data: np.ndarray,
+        label: np.ndarray | None,
+        sample_size: int = None,
+        frac: float = None,
+        indexes: np.ndarray = None,
+        enable_label: int | None = 0,
+        **kwargs,
+    ):
+        data, label = self._get_sample_data(data, label, sample_size, frac, indexes)
+        datasets = CustomTensorDataset(data, label, enable_label=enable_label, **kwargs)
+        return datasets
+
+    def get_device_y_train_dataset(
+        self,
+        sample_size: int = None,
+        frac: float = None,
+        indexes: np.ndarray = None,
+        enable_label: int = 0,
+        **kwargs,
+    ):
+        """dataset after preprocess."""
+        self._check_custom_dataset()
+        data = self.get_plain_train_device_y_data()
+        label = self.get_plain_train_label()
+        return self._get_sample_dataset(
+            data, label, sample_size, frac, indexes, enable_label=enable_label, **kwargs
+        )
+
+    def get_device_f_train_dataset(
+        self,
+        sample_size: int = None,
+        frac: float = None,
+        indexes: np.ndarray = None,
+        enable_label: int = 1,
+        **kwargs,
+    ):
+        self._check_custom_dataset()
+        data = self.get_plain_train_device_f_data()
+        label = self.get_plain_train_label()
+        return self._get_sample_dataset(
+            data, label, sample_size, frac, indexes, enable_label=enable_label, **kwargs
+        )
+
+    def get_device_y_test_dataset(
+        self,
+        sample_size: int = None,
+        frac: float = None,
+        indexes: np.ndarray = None,
+        enable_label: int = 0,
+        **kwargs,
+    ):
+        """dataset after preprocess."""
+        self._check_custom_dataset()
+        data = self.get_plain_test_device_y_data()
+        label = self.get_plain_test_label()
+        return self._get_sample_dataset(
+            data, label, sample_size, frac, indexes, enable_label=enable_label, **kwargs
+        )
+
+    def get_device_f_test_dataset(
+        self,
+        sample_size: int = None,
+        frac: float = None,
+        indexes: np.ndarray = None,
+        enable_label: int = 1,
+        **kwargs,
+    ):
+        self._check_custom_dataset()
+        data = self.get_plain_test_device_f_data()
+        label = self.get_plain_test_label()
+        return self._get_sample_dataset(
+            data, label, sample_size, frac, indexes, enable_label=enable_label, **kwargs
+        )
+
+    def search_space(self) -> Dict:
+        tune_config: dict = read_tune_config(global_config.get_config_file_path())
+        assert (
+            'applications' in tune_config
+        ), f"Missing 'application' after 'tune' in config file."
+        application_config = tune_config['applications']
+        assert (
+            self.dataset_name() in application_config
+        ), f"Missing {self.dataset_name()} in config file."
+        dataset_config = application_config[self.dataset_name()]
+        assert (
+            self.model_type().value in dataset_config
+        ), f"Missing {self.model_type().value} in config file."
+        app_config = dataset_config[self.model_type().value]
+        search_space = app_config if app_config is not None else {}
+        if global_config.is_simple_test():
+            search_space['train_batch_size'] = [32]
+            search_space.pop('hidden_size', None)
+            search_space.pop('dnn_base_units_size_bob', None)
+            search_space.pop('dnn_base_units_size_alice', None)
+            search_space.pop('dnn_fuse_units_size', None)
+            search_space.pop('dnn_embedding_dim', None)
+            search_space.pop('deepfm_embedding_dim', None)
+        return search_space

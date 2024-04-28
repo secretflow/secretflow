@@ -722,7 +722,9 @@ class VDataFrame(DataFrameBase):
             self.aligned,
         )
 
-    def groupby(self, spu: SPU, by: List[str]) -> DataFrameGroupBy:
+    def groupby(
+        self, compute_device: Union[SPU, PYU], by: List[str]
+    ) -> DataFrameGroupBy:
         """Group the VDataFrame by the specified columns.
         To groupby with string columns, use encode the string columns first.
 
@@ -749,14 +751,16 @@ class VDataFrame(DataFrameBase):
 
         # float types are not recommended to be used as key for numerical considerations.
 
-        key_cols_spu = [key_col.to(spu) for key_col in key_cols]
-        value_cols_spu = [value_col.to(spu) for value_col in value_cols]
+        key_cols_on_device = [key_col.to(compute_device) for key_col in key_cols]
+        value_cols_on_device = [
+            value_col.to(compute_device) for value_col in value_cols
+        ]
 
         return DataFrameGroupBy(
-            spu,
+            compute_device,
             parties=[*self.partitions.keys()],
-            key_cols=key_cols_spu,
-            target_cols=value_cols_spu,
+            key_cols=key_cols_on_device,
+            target_cols=value_cols_on_device,
             key_col_names=by,
             target_col_names=value_col_names,
             n_samples=len(self),

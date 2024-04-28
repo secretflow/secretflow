@@ -394,13 +394,13 @@ def test_model_export(comp_prod_sf_cluster_config, features_in_one_party):
     onehot_param = NodeEvalParam(
         domain="preprocessing",
         name="onehot_encode",
-        version="0.0.2",
+        version="0.0.3",
         attr_paths=[
-            "drop_first",
+            "drop",
             "input/input_dataset/features",
         ],
         attrs=[
-            Attribute(b=False),
+            Attribute(s="no_drop"),
             Attribute(ss=["o1", "o2"]),
         ],
         # use binning sub output
@@ -484,14 +484,14 @@ def test_model_export(comp_prod_sf_cluster_config, features_in_one_party):
     predict_param = NodeEvalParam(
         domain="ml.predict",
         name="ss_glm_predict",
-        version="0.0.1",
+        version="0.0.2",
         attr_paths=[
             "receiver",
             "save_ids",
             "save_label",
         ],
         attrs=[
-            Attribute(s="alice"),
+            Attribute(ss=["alice"]),
             Attribute(b=False),
             Attribute(b=True),
         ],
@@ -528,7 +528,7 @@ def test_model_export(comp_prod_sf_cluster_config, features_in_one_party):
     )
 
 
-def get_ss_sgd_train_param(alice_path, bob_path, model_path):
+def get_ss_sgd_train_param(alice_path, bob_path, model_path, report_path):
     return NodeEvalParam(
         domain="ml.train",
         name="ss_sgd_train",
@@ -544,6 +544,7 @@ def get_ss_sgd_train_param(alice_path, bob_path, model_path):
             "decay_epoch",
             "decay_rate",
             "strategy",
+            "report_weights",
             "input/train_dataset/label",
             "input/train_dataset/feature_selects",
         ],
@@ -558,6 +559,7 @@ def get_ss_sgd_train_param(alice_path, bob_path, model_path):
             Attribute(i64=2),
             Attribute(f=0.5),
             Attribute(s="policy_sgd"),
+            Attribute(b=True),
             Attribute(ss=["y"]),
             Attribute(ss=[f"a{i}" for i in range(4)] + [f"b{i}" for i in range(4)]),
         ],
@@ -571,7 +573,7 @@ def get_ss_sgd_train_param(alice_path, bob_path, model_path):
                 ],
             ),
         ],
-        output_uris=[model_path],
+        output_uris=[model_path, report_path],
     )
 
 
@@ -670,7 +672,7 @@ def get_pred_param(alice_path, bob_path, train_res, predict_path):
     return NodeEvalParam(
         domain="ml.predict",
         name="ss_sgd_predict",
-        version="0.0.1",
+        version="0.0.2",
         attr_paths=[
             "batch_size",
             "receiver",
@@ -679,7 +681,7 @@ def get_pred_param(alice_path, bob_path, train_res, predict_path):
         ],
         attrs=[
             Attribute(i64=32),
-            Attribute(s="alice"),
+            Attribute(ss=["alice"]),
             Attribute(b=False),
             Attribute(b=True),
         ],
@@ -704,11 +706,12 @@ def test_ss_sgd_export(comp_prod_sf_cluster_config, features_in_one_party):
     alice_path = f"{work_path}/x_alice.csv"
     bob_path = f"{work_path}/x_bob.csv"
     model_path = f"{work_path}/model.sf"
+    report_path = f"{work_path}/model.report"
     predict_path = f"{work_path}/predict.csv"
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
 
-    train_param = get_ss_sgd_train_param(alice_path, bob_path, model_path)
+    train_param = get_ss_sgd_train_param(alice_path, bob_path, model_path, report_path)
     meta = get_meta_and_dump_data(
         work_path,
         comp_prod_sf_cluster_config,
@@ -760,7 +763,7 @@ def test_ss_sgd_export(comp_prod_sf_cluster_config, features_in_one_party):
 
 @pytest.mark.parametrize("features_in_one_party", [True, False])
 def test_sgb_export(comp_prod_sf_cluster_config, features_in_one_party):
-    work_path = f"test_sgb_{features_in_one_party}"
+    work_path = f"test_sgb_feature_in_one_party{features_in_one_party}"
     alice_path = f"{work_path}/x_alice.csv"
     bob_path = f"{work_path}/x_bob.csv"
 
@@ -886,14 +889,14 @@ def test_sgb_export(comp_prod_sf_cluster_config, features_in_one_party):
     predict_param = NodeEvalParam(
         domain="ml.predict",
         name="sgb_predict",
-        version="0.0.2",
+        version="0.0.3",
         attr_paths=[
             "receiver",
             "save_ids",
             "save_label",
         ],
         attrs=[
-            Attribute(s="alice"),
+            Attribute(ss=["alice"]),
             Attribute(b=False),
             Attribute(b=True),
         ],
@@ -1004,14 +1007,14 @@ def test_ss_xgb_export(comp_prod_sf_cluster_config, features_in_one_party):
     predict_param = NodeEvalParam(
         domain="ml.predict",
         name="ss_xgb_predict",
-        version="0.0.1",
+        version="0.0.2",
         attr_paths=[
             "receiver",
             "save_ids",
             "save_label",
         ],
         attrs=[
-            Attribute(s="alice"),
+            Attribute(ss=["alice"]),
             Attribute(b=False),
             Attribute(b=True),
         ],

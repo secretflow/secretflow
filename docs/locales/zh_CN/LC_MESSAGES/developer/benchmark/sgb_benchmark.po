@@ -1,0 +1,539 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2022 Ant Group Co., Ltd.
+# This file is distributed under the same license as the SecretFlow package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2024.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: SecretFlow \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-04-23 15:08+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.14.0\n"
+
+#: ../../developer/benchmark/sgb_benchmark.md:1
+msgid "Performance Analysis: SecureBoost vs XGBoost"
+msgstr "性能分析：SecureBoost 与 XGBoost"
+
+#: ../../developer/benchmark/sgb_benchmark.md:3
+msgid ""
+"This document provides a thorough examination of the performance "
+"distinctions between SecureBoost (SGB) and XGBoost. The analysis "
+"scrutinizes both the accuracy of the models and the time taken to train "
+"them."
+msgstr "本文档提供了 SecureBoost（SGB）与 XGBoost 之间性能差异的详细考察。分析涵盖了模型的准确性和训练所需的时间两个方面。"
+
+#: ../../developer/benchmark/sgb_benchmark.md:7
+msgid "Introduction"
+msgstr "引言"
+
+#: ../../developer/benchmark/sgb_benchmark.md:9
+msgid ""
+"The purpose of this analysis is to establish a baseline for the expected "
+"performance differential of SGB when juxtaposed with XGBoost. There is a "
+"recognized discrepancy between federated learning systems, such as SGB, "
+"and traditional localized learning algorithms. Through this study, we "
+"will assess the performance of SGB in relation to XGBoost across a "
+"spectrum of networking scenarios. It is anticipated that, depending on "
+"the conditions—ranging from Local Area Network (LAN) to Wide Area Network"
+" (WAN) environments—the time required for training SGB may be "
+"considerably greater, stretching from tenfold to even a hundredfold "
+"longer, compared to XGBoost."
+msgstr ""
+"本次分析的目的是为 SGB 与 XGBoost 之间的预期性能差异建立一个基准。诸如 SGB "
+"这类的联邦学习系统与传统的局域学习算法之间存在已被认可的差距。通过本研究，我们将在一系列网络场景中评估 SGB 相对于 XGBoost "
+"的性能。预计，根据不同条件——从局域网(LAN)到广域网(WAN)环境——与 XGBoost 相比，SGB "
+"的训练时间可能会大幅增加，增幅从十倍甚至可能到百倍不等。"
+
+#: ../../developer/benchmark/sgb_benchmark.md:11
+msgid "SecureBoost (SGB)"
+msgstr "SecureBoost (SGB)"
+
+#: ../../developer/benchmark/sgb_benchmark.md:13
+msgid ""
+"SecureBoost is a federated learning framework that enables secure "
+"computation of boosted trees. It provides privacy-preserving machine "
+"learning solutions while maintaining high accuracy, it was published by "
+"[Cheng et al.](https://arxiv.org/abs/1901.08755) and originally "
+"implemented in FATE. Secretflow provides a high performance "
+"implementation of SecureBoost, and named it as SGB."
+msgstr ""
+"SecureBoost 是一个支持加密树的提升计算的联邦学习框架。它在保持高准确性的同时，提供了隐私保护机器学习解决方案，由 [Cheng et "
+"al.](https://arxiv.org/abs/1901.08755) 发布，并最初在 FATE 中实现。Secretflow "
+"提供了一个高性能的 SecureBoost 实现，并将其命名为 SGB。"
+
+#: ../../developer/benchmark/sgb_benchmark.md:15
+msgid "XGBoost"
+msgstr "XGBoost"
+
+#: ../../developer/benchmark/sgb_benchmark.md:17
+msgid ""
+"XGBoost is a widely popular open source library for gradient boosting. It"
+" has been widely adopted in industry and research."
+msgstr "XGBoost 是一个广受欢迎的梯度提升开源库。它已被广泛应用于工业和研究领域。"
+
+#: ../../developer/benchmark/sgb_benchmark.md:20
+msgid "Methodology"
+msgstr "方法"
+
+#: ../../developer/benchmark/sgb_benchmark.md:22
+msgid ""
+"There are many previous benchmark on SGB on large scale dataset. However,"
+" few are quickly replicable and consider the model performance or random "
+"factor of the model training process. This analysis will focus on "
+"replicability: it serves as a demo method for comparing the performance "
+"of SGB vs XGBoost in your case."
+msgstr ""
+"有很多针对大规模数据集的 SGB "
+"的先前基准测试。但是，很少有能够快速复制并考虑模型性能或模型训练过程的随机因素的。"
+"这个文档中的性能数据是可复现的，您可以自行复现xgb/sgb的性能对比"
+
+#: ../../developer/benchmark/sgb_benchmark.md:24
+msgid ""
+"**Data Sets Used**: Open source datasets like creditcard, bank marketing "
+"datasets"
+msgstr "**使用的数据集**：例如信用卡、银行营销等开源数据集。"
+
+#: ../../developer/benchmark/sgb_benchmark.md:25
+msgid ""
+"**Software Setup**: SecretFlow 1.5.0a2, sf-heu 0.5.0b0, spu "
+"0.9.0.dev20240415"
+msgstr ""
+"**软件设置**：使用的secretflow版本：SecretFlow 1.5.0a2 sf-heu 0.5.0b0 spu "
+"0.9.0.dev20240415"
+
+#: ../../developer/benchmark/sgb_benchmark.md:26
+msgid "**Evaluation Metrics**: AUC and time consumption in seconds"
+msgstr "**评估指标**：AUC 和秒为单位的时间消耗。"
+
+#: ../../developer/benchmark/sgb_benchmark.md:28
+msgid "Other Federated Learning Setups:"
+msgstr "其他联邦学习设置："
+
+#: ../../developer/benchmark/sgb_benchmark.md:30
+msgid ""
+"Two physical machines are used for the experiment. The bandwidth and "
+"latency are one way limitation applied on each of the two machines. We "
+"modify the ip addresses used in the published secureboost analysis "
+"[notebook](../../tutorial/secureboost_analysis.ipynb) and then run the "
+"notebook."
+msgstr "实验使用了两台物理机器。带宽和延迟是对这两台机器分别施加的单向限制。我们修改了发布的secureboost分析[notebook](../../tutorial/secureboost_analysis.ipynb)中使用的IP地址，然后运行该笔记本。"
+
+#: ../../developer/benchmark/sgb_benchmark.md:33
+msgid ""
+"The detailed parameters for SGB and XGBoost are included in the above "
+"notebook unchanged. Basically, 100 boosting rounds are set and early "
+"stopping is enabled."
+msgstr "SGB和XGBoost的详细参数包含在上述notebook中，未作更改。基本上，设置了100轮提升，并启用了提前停止。"
+
+#: ../../developer/benchmark/sgb_benchmark.md:35
+msgid ""
+"The features are splitted equally into two parties, with one party "
+"holding an additional label column."
+msgstr "特征被平均分割成两部分，其中一方拥有额外的标签列。"
+
+#: ../../developer/benchmark/sgb_benchmark.md:37
+msgid "Results"
+msgstr "结果"
+
+#: ../../developer/benchmark/sgb_benchmark.md:39
+msgid "Network Scenario Comparison"
+msgstr "网络场景比较"
+
+#: ../../developer/benchmark/sgb_benchmark.md:41
+msgid ""
+"In this section we compare the performance of SGB and XGBoost under "
+"different network scenarios."
+msgstr "在本节中，我们将比较 SGB 与 XGBoost 在不同网络场景下的性能。"
+
+#: ../../developer/benchmark/sgb_benchmark.md:43
+msgid "**Network Scenarios**: LAN, 100mb/10ms, 100mb/20ms, 50mb/20ms, 10mb/50ms"
+msgstr "**网络情景**：局域网，100mb/10ms，100mb/20ms，50mb/20ms，10mb/50ms"
+
+#: ../../developer/benchmark/sgb_benchmark.md:44
+msgid ""
+"**Hardware Setup**: Intel(R) Xeon(R) Platinum 8369B CPU @ 2.70GHz CPU：8C,"
+" Memory：16G"
+msgstr "**硬件设置**：英特尔®至强®白金8369B CPU @ 2.70GHz，CPU：8核，内存：16G。"
+
+#: ../../developer/benchmark/sgb_benchmark.md:47
+#: ../../developer/benchmark/sgb_benchmark.md:73
+msgid "Table for XGB performance:"
+msgstr "XGB 性能表："
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "datasets"
+msgstr "数据集"
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "num samples"
+msgstr "样本数"
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "num features"
+msgstr "特征数"
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "XGB mean time"
+msgstr "XGB 平均时间"
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "XGB mean auc"
+msgstr "XGB 平均 AUC"
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "bank"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "45211"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "17"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "1.694"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "0.92"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "creditcard"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "284807"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "30"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "1.83"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "0.96"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md:54
+#: ../../developer/benchmark/sgb_benchmark.md:82
+msgid "Table for SGB performance:"
+msgstr "SGB 性能表："
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "bandwidth and latency"
+msgstr "带宽和延迟"
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "SGB mean time"
+msgstr "SGB 平均时间"
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "SGB mean auc"
+msgstr "SGB 平均 AUC"
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "SGB/XGB time Ratio"
+msgstr "SGB/XGB 时间比"
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "LAN"
+msgstr "局域网"
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "136.11"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "0.92"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "80.35"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "106.45"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "0.96"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "58.17"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "100Mb/10ms"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "195.09"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "115.17"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "183.34"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "100.19"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "100Mb/20ms"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "208.05"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "122.82"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "185.07"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "101.13"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "50Mb/20ms"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "245.58"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "144.97"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "257.09"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "140.49"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "10Mb/50ms"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "601.67"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "355.18"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "851.03"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "465.04"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md:69
+msgid "Hardware Scenario Comparison"
+msgstr "硬件场景比较"
+
+#: ../../developer/benchmark/sgb_benchmark.md:71
+msgid ""
+"In this section we compare the performance of SGB and XGBoost under "
+"different hardware in LAN condition."
+msgstr "在本节中，我们比较了局域网条件下不同硬件上 SGB 与 XGBoost 的性能。"
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "Hardware"
+msgstr "硬件"
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "8369B 8C"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "1.69"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "5975WX 32C"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "3.83"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "2.21"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "87.56"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "22.85"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "38.85"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md
+msgid "17.56"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md:93
+msgid "Performance Analysis"
+msgstr "性能分析"
+
+#: ../../developer/benchmark/sgb_benchmark.md:95
+msgid ""
+"The analysis evaluates key performance metrics for SecureBoost (SGB) and "
+"XGBoost (XGB), focusing on mean training time and model accuracy measured"
+" by the Area Under the Receiver Operating Characteristic Curve (AUC)."
+msgstr "本分析评估了 SecureBoost（SGB）和 XGBoost（XGB）的关键性能指标，重点关注平均训练时间和根据AUC测量的模型准确性。"
+
+#: ../../developer/benchmark/sgb_benchmark.md:97
+msgid "Impact of Network Conditions"
+msgstr "网络条件的影响"
+
+#: ../../developer/benchmark/sgb_benchmark.md:99
+msgid ""
+"Network conditions, specifically bandwidth and latency, have a "
+"significant impact on SGB's training time. Clear performance degradation "
+"is observed as network bandwidth narrows and latency increases. For "
+"example, with the 'bank' dataset, SGB's training time under LAN "
+"conditions is 136.11 seconds, while it escalates to 601.67 seconds when "
+"bandwidth and latency are restricted to 10Mb/50ms, resulting in an "
+"SGB/XGB time ratio surge from 80.35 to 355.18. XGB training, conducted "
+"locally, remains consistently efficient across all network scenarios."
+msgstr ""
+"网络条件，特别是带宽和延迟，对 SGB 的训练时间有显著影响。随着网络带宽缩小和延迟增加，明显观察到性能下降。例如，使用 'bank' "
+"数据集，在局域网条件下 SGB 的训练时间为 136.11 秒，而在带宽和延迟限制为 10Mb/50ms 时，它升高到 601.67 秒，导致 "
+"SGB/XGB 时间比率从 80.35 增加到 355.18。本地进行的 XGB 训练在所有网络场景中保持一致的高效率。"
+
+#: ../../developer/benchmark/sgb_benchmark.md:101
+msgid "Observations Under Optimal Network Conditions"
+msgstr "在最佳网络条件下的观察"
+
+#: ../../developer/benchmark/sgb_benchmark.md:103
+msgid ""
+"Even under optimal conditions (LAN with infinite bandwidth and zero "
+"latency), SGB trails behind XGB in terms of time efficiency. The time "
+"ratios persistently favor XGB, indicative of the additional computational"
+" load brought by SGB's federated learning approach and the use of "
+"Homomorphic Encryption."
+msgstr ""
+"即便在最佳条件下（具有无限带宽和零延迟的局域网），SGB 在时间效率方面也落后于 XGB。时间比率持续偏向 XGB，这表明了 SGB "
+"的联邦学习方式和同态加密使用带来的额外计算负担。"
+
+#: ../../developer/benchmark/sgb_benchmark.md:105
+msgid "Consistency of Model Performance"
+msgstr "模型性能的一致性"
+
+#: ../../developer/benchmark/sgb_benchmark.md:107
+msgid ""
+"Despite the evident differences in training duration, SGB achieves AUC "
+"scores comparable to XGB across varying network conditions. This "
+"consistent performance suggests SGB's robustness in preserving model "
+"quality while offering enhanced data privacy through federated learning "
+"techniques."
+msgstr ""
+"尽管训练时间存在明显差异，SGB 在不同网络条件下达到了与 XGB 相当的 AUC 分数。这种一致的性能表明 SGB "
+"在保持模型质量的同时，通过联邦学习技术提供了增强的数据隐私保护的鲁棒性。"
+
+#: ../../developer/benchmark/sgb_benchmark.md:109
+msgid "Hardware Utilization Efficacy"
+msgstr "硬件利用效率"
+
+#: ../../developer/benchmark/sgb_benchmark.md:111
+msgid ""
+"The use of Intel(R) Xeon(R) Platinum 8369B CPU with performance "
+"optimizations such as AVX is better leveraged by XGB than SGB. "
+"Contrastingly, when employing the AMD Ryzen Threadripper PRO 5975WX with "
+"32 cores, SGB shows a smaller performance hit and is only 10 times slower"
+" than XGB, a considerable improvement over the Intel hardware "
+"observations."
+msgstr ""
+"使用具备性能优化技术（如 AVX 指令集）的 Intel(R) Xeon(R) Platinum 8369B CPU 时，XGB 相对于 SGB 能够更好地发挥硬件性能。"
+"而在使用拥有 32 核心的 AMD Ryzen Threadripper PRO 5975WX 时，SGB 的性能下降较少，训练速度仅为 XGB 的 10 倍。"
+"相比之下，在使用 Intel 硬件时的性能下降有了明显改善。"
+
+#: ../../developer/benchmark/sgb_benchmark.md:113
+msgid ""
+"In summary, while federated learning through SecureBoost (SGB) introduces"
+" a considerable increase in model training time, especially under limited"
+" bandwidth and high latency conditions, it retains a similar level of "
+"accuracy as traditional local XGB training and provides the benefit of "
+"privacy-preserving data analysis across distributed networks."
+msgstr ""
+"总结来说，尽管通过 SecureBoost（SGB）进行的联邦学习显著增加了模型训练时间，特别是在有限带宽和高延迟条件下，它保持了与传统本地 "
+"XGB 训练相似的准确性水平，并提供了跨分布式网络的隐私保护数据分析的好处。"
+
+#: ../../developer/benchmark/sgb_benchmark.md:116
+msgid "Conclusion"
+msgstr "结论"
+
+#: ../../developer/benchmark/sgb_benchmark.md:118
+msgid ""
+"In summary, while federated learning through SecureBoost (SGB) introduces"
+" a notable increase in model training time, with time ratios ranging from"
+"  17 to as high as 465 under varying network and hardware conditions, it "
+"consistently maintains a level of accuracy comparable to traditional "
+"local XGBoost (XGB) training. Despite the substantial computational "
+"overhead in the most constrained network environments, SGB demonstrates "
+"the capacity to deliver privacy-preserving data analysis with manageable "
+"performance trade-offs between increased training duration and data "
+"security."
+msgstr ""
+"总结来说，取决于网络和硬件条件，尽管 SecureBoost（SGB）进行的联邦学习显著增加了模型训练时间，时间比率从 17 到高达 465 倍不等，它依旧能够持续保持与本地 XGBoost（XGB）训练相媲美的准确率水平。"
+"即使在网络条件极为受限的情况下，SGB也能用尚能承受的性能损失换来足够使用的数据安全，从而实现保护隐私的数据分析。"
+
+
+#: ../../developer/benchmark/sgb_benchmark.md:121
+msgid "References"
+msgstr "参考文献"
+
+#: ../../developer/benchmark/sgb_benchmark.md:123
+msgid "SecureBoost: https://arxiv.org/abs/1901.08755"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md:125
+msgid "XGBoost: https://xgboost.readthedocs.io/en/latest/index.html"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md:127
+msgid ""
+"bank marketing dataset: "
+"https://archive.ics.uci.edu/dataset/222/bank+marketing"
+msgstr ""
+
+#: ../../developer/benchmark/sgb_benchmark.md:129
+msgid ""
+"creditcard dataset: https://www.kaggle.com/datasets/mlg-"
+"ulb/creditcardfraud/data"
+msgstr ""

@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import json
+from typing import List
 
+from secretflow.component.checkpoint import CompCheckpoint
 from secretflow.component.component import (
     CompEvalError,
     Component,
@@ -29,8 +31,15 @@ from secretflow.component.data_utils import (
 )
 from secretflow.device.device.pyu import PYU
 from secretflow.device.device.spu import SPU
+from secretflow.ml.boost.core.callback import TrainingCallback
 from secretflow.ml.boost.ss_xgb_v import Xgb, XgbModel
-from secretflow.ml.boost.ss_xgb_v.core.node_split import RegType
+from secretflow.ml.boost.ss_xgb_v.booster import build_checkpoint
+from secretflow.ml.boost.ss_xgb_v.checkpoint import (
+    build_ss_xgb_model,
+    ss_xgb_model_to_checkpoint_data,
+    SSXGBCheckpointData,
+)
+from secretflow.spec.v1.data_pb2 import DistData
 
 ss_xgb_train_comp = Component(
     "ss_xgb_train",
@@ -178,6 +187,44 @@ MODEL_MAX_MAJOR_VERSION = 0
 MODEL_MAX_MINOR_VERSION = 1
 
 
+@ss_xgb_train_comp.enable_checkpoint
+class SSXGBCheckpoint(CompCheckpoint):
+    def associated_arg_names(self) -> List[str]:
+        return [
+            "num_boost_round",
+            "max_depth",
+            "learning_rate",
+            "objective",
+            "reg_lambda",
+            "subsample",
+            "colsample_by_tree",
+            "base_score",
+            "seed",
+            "train_dataset",
+            "train_dataset_label",
+            "train_dataset_feature_selects",
+        ]
+
+
+def dump_ss_xgb_checkpoint(
+    ctx,
+    uri: str,
+    checkpoint: SSXGBCheckpointData,
+    system_info,
+) -> DistData:
+    return model_dumps(
+        ctx,
+        "sgb",
+        DistDataType.SS_XGB_CHECKPOINT,
+        MODEL_MAX_MAJOR_VERSION,
+        MODEL_MAX_MINOR_VERSION,
+        checkpoint.model_objs,
+        json.dumps(checkpoint.model_metas),
+        uri,
+        system_info,
+    )
+
+
 @ss_xgb_train_comp.eval_fn
 def ss_xgb_train_eval_fn(
     *,
@@ -225,10 +272,30 @@ def ss_xgb_train_eval_fn(
         load_features=True,
         col_selects=train_dataset_feature_selects,
     )
+    pyus = {p.party: p for p in x.partitions.keys()}
+    checkpoint_data = None
+    if ctx.comp_checkpoint:
+        cp_dd = ctx.comp_checkpoint.load()
+        if cp_dd:
+            checkpoint_data = load_ss_xgb_checkpoint(ctx, cp_dd, pyus, spu)
+
+    def dump_function(
+        model: Xgb,
+        epoch: int,
+        evals_log: TrainingCallback.EvalsLog,
+    ):
+        cp_uri = f"{output_model}_checkpoint_{epoch}"
+        cp_dd = dump_ss_xgb_checkpoint(
+            ctx,
+            cp_uri,
+            build_checkpoint(model, evals_log, x, train_dataset_label),
+            train_dataset.system_info,
+        )
+        ctx.comp_checkpoint.save(epoch, cp_dd)
 
     with ctx.tracer.trace_running():
-        sgb = Xgb(spu)
-        model = sgb.train(
+        ss_xgb = Xgb(spu)
+        model = ss_xgb.train(
             params={
                 "num_boost_round": num_boost_round,
                 "max_depth": max_depth,
@@ -243,23 +310,11 @@ def ss_xgb_train_eval_fn(
             },
             dtrain=x,
             label=y,
+            checkpoint_data=checkpoint_data,
+            dump_function=dump_function if ctx.comp_checkpoint else None,
         )
 
-    m_dict = {
-        "objective": model.objective.value,
-        "base": model.base,
-        "tree_num": len(model.weights),
-        "feature_names": x.columns,
-        "label_col": train_dataset_label,
-    }
-    party_features_length = {
-        device.party: len(columns) for device, columns in x.partition_columns.items()
-    }
-    m_dict["party_features_length"] = party_features_length
-
-    split_trees = []
-    for p in x.partitions.keys():
-        split_trees.extend([t[p] for t in model.trees])
+    checkpoint = ss_xgb_model_to_checkpoint_data(model, x, train_dataset_label)
 
     model_db = model_dumps(
         ctx,
@@ -267,8 +322,8 @@ def ss_xgb_train_eval_fn(
         DistDataType.SS_XGB_MODEL,
         MODEL_MAX_MAJOR_VERSION,
         MODEL_MAX_MINOR_VERSION,
-        [*model.weights, *split_trees],
-        json.dumps(m_dict),
+        checkpoint.model_objs,
+        json.dumps(checkpoint.model_metas),
         output_model,
         train_dataset.system_info,
     )
@@ -279,14 +334,14 @@ def ss_xgb_train_eval_fn(
 ss_xgb_predict_comp = Component(
     "ss_xgb_predict",
     domain="ml.predict",
-    version="0.0.1",
+    version="0.0.2",
     desc="Predict using the SS-XGB model.",
 )
-ss_xgb_predict_comp.str_attr(
+ss_xgb_predict_comp.party_attr(
     name="receiver",
     desc="Party of receiver.",
-    is_list=False,
-    is_optional=False,
+    list_min_length_inclusive=1,
+    list_max_length_inclusive=1,
 )
 ss_xgb_predict_comp.str_attr(
     name="pred_name",
@@ -344,33 +399,22 @@ ss_xgb_predict_comp.io(
 )
 
 
-def build_ss_xgb_model(model_objs, model_meta_str, spu) -> XgbModel:
-    model_meta = json.loads(model_meta_str)
-    assert (
-        isinstance(model_meta, dict)
-        and "objective" in model_meta
-        and "base" in model_meta
-        and "tree_num" in model_meta
+def load_ss_xgb_checkpoint(
+    ctx,
+    cp: DistData,
+    pyus: List[PYU],
+    spu: SPU,
+) -> SSXGBCheckpointData:
+    model_objs, model_meta_str = model_loads(
+        ctx,
+        cp,
+        MODEL_MAX_MAJOR_VERSION,
+        MODEL_MAX_MINOR_VERSION,
+        DistDataType.SS_XGB_CHECKPOINT,
+        pyus=pyus,
+        spu=spu,
     )
-    tree_num = model_meta["tree_num"]
-    assert (
-        tree_num > 0 and len(model_objs) % tree_num == 0
-    ), f"model_objs {model_objs}, model_meta_str {model_meta_str}"
-    weights = model_objs[:tree_num]
-    trees = []
-    parties_num = int(len(model_objs) / tree_num) - 1
-    for pos in range(tree_num):
-        tree = {}
-        for p in range(parties_num):
-            obj = model_objs[tree_num * (p + 1) + pos]
-            tree[obj.device] = obj
-        trees.append(tree)
-
-    model = XgbModel(spu, RegType(model_meta["objective"]), model_meta["base"])
-    model.weights = weights
-    model.trees = trees
-
-    return model
+    return SSXGBCheckpointData(model_objs, json.loads(model_meta_str))
 
 
 def load_ss_xgb_model(ctx, spu, pyus, model) -> XgbModel:
@@ -384,7 +428,9 @@ def load_ss_xgb_model(ctx, spu, pyus, model) -> XgbModel:
         spu=spu,
     )
 
-    return build_ss_xgb_model(model_objs, model_meta_str, spu)
+    return build_ss_xgb_model(
+        SSXGBCheckpointData(model_objs, json.loads(model_meta_str)), spu
+    )
 
 
 @ss_xgb_predict_comp.eval_fn
@@ -424,7 +470,7 @@ def ss_xgb_predict_eval_fn(
 
     model = load_ss_xgb_model(ctx, spu, pyus, model)
 
-    receiver_pyu = PYU(receiver)
+    receiver_pyu = PYU(receiver[0])
     with ctx.tracer.trace_running():
         pyu_y = model.predict(x, receiver_pyu)
 

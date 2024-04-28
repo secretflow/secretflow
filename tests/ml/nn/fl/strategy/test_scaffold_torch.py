@@ -14,12 +14,13 @@
 
 import torch
 import torch.optim as optim
-from secretflow.ml.nn.fl.backend.torch.strategy.scaffold import Scaffold
-from secretflow.ml.nn.utils import BaseModule
 from torch import nn
 from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader, TensorDataset
 from torchmetrics import Accuracy, Precision, Recall
+
+from secretflow.ml.nn.core.torch import BaseModule, TorchModel
+from secretflow.ml.nn.fl.backend.torch.strategy.scaffold import Scaffold
 
 
 class My_Model(BaseModule):
@@ -49,28 +50,15 @@ class My_Model(BaseModule):
 class TestScaffold:
     def test_scaffold_local_step(self, sf_simulation_setup_devices):
         # Initialize Scaffold strategy with ConvNet model
-        class ConvNetBuilder:
-            def __init__(self):
-                # Initialize with an empty indicator list
-                self.metrics = [
-                    lambda: Accuracy(task="multiclass", num_classes=10, average="macro")
-                ]
 
-            def model_fn(self):
-                # Return an instance of the ConvNet model
-                return My_Model()
-
-            def loss_fn(self):
-                # Return the loss
-                return CrossEntropyLoss()
-
-            def optim_fn(self, parameters):
-                # Return optim
-                return optim.Adam(parameters)
+        builder = TorchModel(
+            model_fn=My_Model,
+            loss_fn=CrossEntropyLoss,
+            optim_fn=optim.Adam,
+        )
 
         # Initialize Scaffold strategy with ConvNet model
-        conv_net_builder = ConvNetBuilder()
-        scaffold_worker = Scaffold(builder_base=conv_net_builder)
+        scaffold_worker = Scaffold(builder_base=builder)
 
         # Prepare dataset
         x_test = torch.rand(128, 1, 28, 28)  # Randomly generated data
