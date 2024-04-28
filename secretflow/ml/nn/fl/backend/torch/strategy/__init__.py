@@ -28,4 +28,5 @@ __all__ = [
     'PYUFedSCR',
     'PYUFedSTC',
     'PYUScaffold',
+    'PYUFedPAC',
 ]
