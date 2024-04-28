@@ -19,6 +19,7 @@ from .fed_prox import PYUFedProx
 from .fed_scr import PYUFedSCR
 from .fed_stc import PYUFedSTC
 from .scaffold import PYUScaffold
+from .fed_pac import PYUFedPAC
 
 __all__ = [
     'PYUFedAvgW',
