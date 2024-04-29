@@ -96,7 +96,7 @@ echo -e "Finish building ${GREEN}${IMAGE_TAG} for linux/arm64 and linux/amd64${N
 #Building Secretflow Lite Multi Platform Images
 docker buildx build \
   --platform linux/arm64,linux/amd64 \
-  -f anolis-lite.Dockerfile . \
+  -f anolis-lite.Dockerfile  \
   -t ${IMAGE_LITE_TAG} \
   --build-arg sf_version=${VERSION} \
   --build-arg config_templates="$(cat config_templates.yml)" \
@@ -123,7 +123,7 @@ docker buildx build \
 echo -e "Tag and push ${GREEN}${LATEST_LITE_TAG}${NO_COLOR} ..."
 docker buildx build \
   --platform linux/arm64,linux/amd64 \
-  -f anolis-lite.Dockerfile . \
+  -f anolis-lite.Dockerfile  \
   -t ${LATEST_LITE_TAG} \
   --build-arg sf_version=${VERSION} \
   --build-arg config_templates="$(cat config_templates.yml)" \
