@@ -217,7 +217,7 @@ class BaseTorchModel(ABC):
     def get_rows_count(self, filename):
         return int(rows_count(filename=filename)) - 1  # except header line
 
-    def get_weights(self):
+    def get_weights(self, return_numpy=True):
         if self.skip_bn:
             return self.model.get_weights_not_bn(return_numpy=True)
         else:
@@ -240,11 +240,6 @@ class BaseTorchModel(ABC):
     def wrap_local_metrics(self, stage="train"):
         # TODO: use pytorch to rewrite
         wraped_metrics = []
-
-        logging.info(
-            f'fl_base->wrap_local_metrics->self.model.metrics: {self.model.metrics}'
-            # [MulticlassAccuracy(), MulticlassPrecision()]
-        )
         for m in self.model.metrics:
             if isinstance(m, (torchmetrics.Accuracy)):
                 tp, fp, tn, fn = map(lambda x: x.cpu(), m._get_final_stats())
@@ -253,10 +248,6 @@ class BaseTorchModel(ABC):
 
                 correct = float((tp + tn).numpy().sum())
                 total = float((tp + tn + fp + fn).numpy().sum())
-
-                logging.info(
-                    f'fl_base->wrap_local_metrics->wraped_metrics:{Mean(name, correct, total)}'
-                )
                 wraped_metrics.append(Mean(name, correct, total))
 
             elif isinstance(m, torchmetrics.Precision):
@@ -359,7 +350,6 @@ class BaseTorchModel(ABC):
         self.train_iter = iter(self.train_set)
 
     def get_local_metrics(self):
-        # logging.info(f'on_epoch_end wrapped_metrics: {self.wrapped_metrics}')
         return self.wrapped_metrics
 
     def get_logs(self):
@@ -389,7 +379,6 @@ class BaseTorchModel(ABC):
         for k, v in self.epoch_logs.items():
             self.history.setdefault(k, []).append(v)
         self.training_logs = self.epoch_logs
-        logging.info(f'fl_base->on_epoch_end->self.epoch_logs: {self.epoch_logs}')
         return self.epoch_logs
 
     def transform_metrics(self, logs, stage="train"):
@@ -433,303 +422,3 @@ class BaseTorchModel(ABC):
         if self.use_gpu:
             self.model.to(self.exe_device)
         return checkpoint['epoch']
-
-
-from torch import nn
-from copy import deepcopy
-
-
-class FedPACTorchModel(BaseTorchModel):
-    def __init__(
-        self,
-        builder_base: BuilderType,
-        random_seed: int = None,
-        skip_bn: bool = False,
-        **kwargs,
-    ):
-        super().__init__(builder_base, random_seed=random_seed, **kwargs)
-        self.num_classes = kwargs.get("num_classes", 10)
-        self.criterion = nn.CrossEntropyLoss()
-        self.local_model = self.model
-        self.last_model = deepcopy(self.model)
-        self.w_local_keys = self.local_model.classifier_weight_keys
-        self.local_ep_rep = 1
-        self.global_protos = {}
-        self.g_protos = None
-        self.mse_loss = nn.MSELoss()
-        self.lam = kwargs.get("lam", 1.0)  # 1.0 for mse_loss
-
-    # coding: utf-8
-    def build_dataset_from_builder(
-        self,
-        dataset_builder: Callable,
-        x: Union[pd.DataFrame, str],
-        y: Optional[np.ndarray] = None,
-        s_w: Optional[np.ndarray] = None,
-        repeat_count=1,
-        stage="train",
-    ):
-        """build tf.data.Dataset
-
-        Args:
-            dataset_builder: Function of how to build dataset, must return dataset and step_per_epoch
-            x: A pandas Dataframe or A string representing the path to a CSV file or data folder containing the input data.
-            y: label, An optional NumPy array containing the labels for the dataset. Defaults to None.
-            s_w: An optional NumPy array containing the sample weights for the dataset. Defaults to None.
-            repeat_count: An integer specifying the number of times to repeat the dataset. This is useful for increasing the effective size of the dataset.
-            stage: A string indicating the stage of the dataset (either "train", "eval"). Defaults to "train".
-
-        Returns:
-            A tensorflow dataset
-        """
-        data_set = None
-        assert dataset_builder is not None, "Dataset builder cannot be none"
-        if isinstance(x, str):
-            self.train_set, self.eval_set, step_per_epoch = dataset_builder(
-                x, stage=stage
-            )
-        else:
-            if y is not None:
-                x.append(y)
-                if s_w is not None and len(s_w.shape) > 0:
-                    x.append(s_w)
-
-            self.train_set, self.eval_set, step_per_epoch = dataset_builder(
-                x, stage=stage
-            )
-
-        if stage != "train" and stage != "eval":
-            raise Exception(f"Illegal argument stage={stage}")
-        return step_per_epoch
-
-    def prior_label(self, dataset):
-        py = torch.zeros(self.num_classes)
-        total = len(dataset.dataset)
-        data_loader = iter(dataset)
-        iter_num = len(data_loader)
-        for it in range(iter_num):
-            images, labels = next(data_loader)
-            for i in range(self.num_classes):
-                py[i] = py[i] + (i == labels).sum()
-        py = py / (total)
-        return py
-
-    def size_label(self, dataset):
-        py = torch.zeros(self.num_classes)
-        total = len(dataset.dataset)
-        data_loader = iter(dataset)
-        iter_num = len(data_loader)
-        for it in range(iter_num):
-            images, labels = next(data_loader)
-            for i in range(self.num_classes):
-                py[i] = py[i] + (i == labels).sum()
-
-        py = py / (total)
-        size_label = py * total
-        return size_label
-
-    def sample_number(self):
-        data_size = len(self.train_set.dataset)
-        w = torch.tensor(data_size).to(self.exe_device)
-        return w
-
-    def evaluate(self) -> Tuple[float, float]:
-        assert self.model is not None, "Model cannot be none, please give model define"
-        assert (
-            len(self.model.metrics) > 0
-        ), "Metric cannot be none, please give metric by 'TorchModel'"
-        self.model.eval()
-        logging.info('evaluate begin')
-        model = self.local_model
-        device = self.exe_device
-        correct = 0
-        eval_loader = self.eval_set
-        total = len(eval_loader.dataset)
-        loss_test = []
-        self.reset_metrics()
-        with torch.no_grad():
-            for inputs, labels in eval_loader:
-                inputs, labels = inputs.to(device), labels.to(device)
-                _, outputs = model(inputs)
-                model.update_metrics(outputs, labels)
-                loss = self.criterion(outputs, labels)
-                loss_test.append(loss.item())
-                _, predicted = torch.max(outputs.data, 1)
-                logging.info(f'Evaluate Predicted: {predicted}')
-                logging.info(f'Evaluate Labels: {labels}')
-                correct += (predicted == labels).sum().item()
-            result = {}
-            self.transform_metrics(result, stage="eval")
-
-        if self.logs is None:
-            self.wrapped_metrics.extend(self.wrap_local_metrics())
-            return self.wrap_local_metrics()
-        else:
-            val_result = {}
-            logging.info('FLBASE ELSE VAL_')
-            for k, v in result.items():
-                val_result[f"val_{k}"] = v
-            self.logs.update(val_result)
-            self.wrapped_metrics.extend(self.wrap_local_metrics(stage="val"))
-            return self.wrap_local_metrics(stage="val")
-        # acc = 100.0 * correct / total
-        # logging.info('evaluate end')
-        # return acc, sum(loss_test) / len(loss_test)
-
-    def get_local_protos(self, step, train_steps):
-        model = self.local_model
-        local_protos_list = {}
-        step_counter = 0
-        total_steps = 0
-        for inputs, labels in self.train_set:
-            if total_steps < step:
-                total_steps += 1
-                continue
-            if step_counter >= train_steps:
-                break
-            inputs, labels = inputs.to(self.exe_device), labels.to(self.exe_device)
-            features, outputs = model(inputs)
-            protos = features.clone().detach()
-            for i in range(len(labels)):
-                if labels[i].item() in local_protos_list.keys():
-                    local_protos_list[labels[i].item()].append(protos[i, :])
-                else:
-                    local_protos_list[labels[i].item()] = [protos[i, :]]
-            step_counter += 1
-            total_steps += 1
-
-        local_protos = {}
-        for [label, proto_list] in local_protos_list.items():
-            proto = 0 * proto_list[0]
-            for p in proto_list:
-                proto += p
-            local_protos[label] = proto / len(proto_list)
-        return local_protos
-
-    def get_local_protos_with_entire_dataset(self):
-        model = self.local_model
-        local_protos_list = {}
-        for inputs, labels in self.train_set:
-            inputs, labels = inputs.to(self.exe_device), labels.to(self.exe_device)
-            features, outputs = model(inputs)
-            protos = features.clone().detach()
-            for i in range(len(labels)):
-                if labels[i].item() in local_protos_list.keys():
-                    local_protos_list[labels[i].item()].append(protos[i, :])
-                else:
-                    local_protos_list[labels[i].item()] = [protos[i, :]]
-
-        local_protos = {}
-        for [label, proto_list] in local_protos_list.items():
-            proto = 0 * proto_list[0]
-            for p in proto_list:
-                proto += p
-            local_protos[label] = proto / len(proto_list)
-        return local_protos
-
-    def statistics_extraction(self):
-        model = self.local_model
-        cls_keys = self.w_local_keys
-        g_params = (
-            model.state_dict()[cls_keys[0]]
-            if isinstance(cls_keys, list)
-            else model.state_dict()[cls_keys]
-        )
-        d = g_params[0].shape[0]
-        feature_dict = {}
-        datasize = torch.tensor(len(self.train_set.dataset)).to(self.exe_device)
-        with torch.no_grad():
-            for inputs, labels in self.train_set:
-                inputs, labels = inputs.to(self.exe_device), labels.to(self.exe_device)
-                features, outputs = model(inputs)
-                feat_batch = features.clone().detach()
-                for i in range(len(labels)):
-                    yi = labels[i].item()
-                    if yi in feature_dict.keys():
-                        feature_dict[yi].append(feat_batch[i, :])
-                    else:
-                        feature_dict[yi] = [feat_batch[i, :]]
-        for k in feature_dict.keys():
-            feature_dict[k] = torch.stack(feature_dict[k])
-
-        py = self.prior_label(self.train_set).to(self.exe_device)
-        py2 = py.mul(py)
-        v = 0
-        h_ref = torch.zeros((self.num_classes, d), device=self.exe_device)
-        for k in range(self.num_classes):
-            if k in feature_dict.keys():
-                feat_k = feature_dict[k]
-                num_k = feat_k.shape[0]
-                feat_k_mu = feat_k.mean(dim=0)
-                h_ref[k] = py[k] * feat_k_mu
-                v += (
-                    py[k] * torch.trace((torch.mm(torch.t(feat_k), feat_k) / num_k))
-                ).item()
-                v -= (py2[k] * (torch.mul(feat_k_mu, feat_k_mu))).sum().item()
-        v = v / datasize.item()
-        return v, h_ref
-
-    def get_statistics(
-        self,
-    ) -> Tuple[float, torch.Tensor, torch.Tensor, torch.Tensor, list, torch.Tensor]:
-        v, h_ref = self.statistics_extraction()
-        label_size = self.size_label(self.train_set).to(self.exe_device)
-        sample_num = self.sample_number()
-        dataset_size = torch.tensor(len(self.train_set.dataset)).to(self.exe_device)
-        return v, h_ref, label_size, dataset_size, self.w_local_keys, sample_num
-
-    def build_dataset(
-        self,
-        x: np.ndarray,
-        y: Optional[np.ndarray] = None,
-        s_w: Optional[np.ndarray] = None,
-        sampling_rate=None,
-        buffer_size=None,
-        shuffle=False,
-        random_seed=1234,
-        repeat_count=1,
-        sampler_method="batch",
-        stage="train",
-        **kwargs,
-    ):
-        """build torch.dataloader
-
-        Args:
-            x: feature, FedNdArray or HDataFrame
-            y: label, FedNdArray or HDataFrame
-            s_w: sample weight of this dataset
-            sampling_rate: Sampling rate of a batch
-            buffer_size: shuffle size
-            shuffle: A bool that indicates whether the input should be shuffled
-            random_seed: Prg seed for shuffling
-            repeat_count: num of repeats
-            sampler: method of sampler
-        """
-        if x is None or len(x.shape) == 0:
-            raise Exception("Data 'x' cannot be None")
-
-        if y is not None:
-            assert (
-                x.shape[0] == y.shape[0]
-            ), "The samples of feature is different with label"
-
-        # assert sampling_rate is not None, "Sampling rate cannot be None"
-        data_set = fedpac_sampler_data(
-            sampler_method,
-            x,
-            y,
-            s_w,
-            sampling_rate,
-            buffer_size,
-            shuffle,
-            repeat_count,
-            random_seed,
-            stage,
-            **kwargs,
-        )
-        if stage == "train":
-            self.train_set = data_set
-        elif stage == "eval":
-            self.eval_set = data_set
-        else:
-            raise Exception(f"Illegal argument stage={stage}")
