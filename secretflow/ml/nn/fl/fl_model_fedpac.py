@@ -197,7 +197,6 @@ class FLModelFedPAC(FLModel):
             else:
                 valid_x, valid_y = None, None
 
-            logging.info("start handling data file.")
             train_steps_per_epoch = self._handle_file(
                 x,
                 y,
@@ -236,7 +235,6 @@ class FLModelFedPAC(FLModel):
                 dataset_builder=dataset_builder,
             )
 
-        logging.info("dataset handled")
         # setup callback list
         callbacks = CallbackList(
             callbacks=callbacks,
@@ -386,7 +384,6 @@ class FLModelFedPAC(FLModel):
                         new_cls,
                         **self.kwargs,
                     )
-                    logging.info('apply_weights done')
             else:
                 if self.server is not None:
                     # server will do aggregation
@@ -412,12 +409,18 @@ class FLModelFedPAC(FLModel):
             for device, worker in self._workers.items():
                 local_metrics_obj.append(worker.wrap_local_metrics())
 
-            logging.info(f'local_metrics_obj: {local_metrics_obj}')
             if epoch % validation_freq == 0 and valid_x is not None:
                 callbacks.on_test_begin()
                 global_eval, local_eval = self.evaluate(
-                    random_seed=random_seed,
+                    valid_x,
+                    valid_y,
+                    batch_size=batch_size,
+                    sample_weight=sample_weight,
                     return_dict=True,
+                    label_decoder=label_decoder,
+                    random_seed=random_seed,
+                    sampler_method=sampler_method,
+                    dataset_builder=dataset_builder,
                 )
                 for device, worker in self._workers.items():
                     worker.set_validation_metrics(global_eval)
@@ -441,24 +444,3 @@ class FLModelFedPAC(FLModel):
         callbacks.on_train_end()
         return callbacks.history
 
-    def evaluate(self, random_seed, return_dict=False) -> Tuple[
-        Union[List[Metric], Dict[str, Metric]],
-        Union[Dict[str, List[Metric]], Dict[str, Dict[str, Metric]]],
-    ]:
-        local_metrics = {}
-        metric_objs = {}
-        for device, worker in self._workers.items():
-            metric_objs[device.party] = worker.evaluate()
-        local_metrics = reveal(metric_objs)
-        logging.info(f"local_metrics: {local_metrics}")
-        g_metrics = aggregate_metrics(local_metrics.values())
-        if return_dict:
-            return (
-                {m.name: m for m in g_metrics},
-                {
-                    party: {m.name: m for m in metrics}
-                    for party, metrics in local_metrics.items()
-                },
-            )
-        else:
-            return g_metrics, local_metrics
