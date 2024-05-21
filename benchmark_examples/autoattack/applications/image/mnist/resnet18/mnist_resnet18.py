@@ -15,40 +15,45 @@
 from torch import nn, optim
 from torchmetrics import AUROC, Accuracy, Precision
 
-from benchmark_examples.autoattack.applications.base import ModelType
 from benchmark_examples.autoattack.applications.image.mnist.mnist_base import MnistBase
 from secretflow.ml.nn.applications.sl_resnet_torch import (
     BasicBlock,
     ResNetBase,
     ResNetFuse,
 )
-from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
+from secretflow.ml.nn.utils import TorchModel, metric_wrapper, optim_wrapper
 
 
 class MnistResnet18(MnistBase):
-    def __init__(self, alice, bob):
-        super().__init__(alice, bob, hidden_size=512, dnn_fuse_units_size=[512 * 2])
-        self.metrics = [
-            metric_wrapper(
-                Accuracy, task="multiclass", num_classes=10, average='micro'
-            ),
-            metric_wrapper(
-                Precision, task="multiclass", num_classes=10, average='micro'
-            ),
-            metric_wrapper(AUROC, task="multiclass", num_classes=10),
-        ]
+    def __init__(self, config, alice, bob):
+        super().__init__(
+            config, alice, bob, hidden_size=512, dnn_fuse_units_size=[512 * 2]
+        )
 
     def _create_base_model(self):
         return TorchModel(
             model_fn=ResNetBase,
+            loss_fn=nn.CrossEntropyLoss,
             optim_fn=optim_wrapper(optim.Adam, lr=1e-3),
+            metrics=[
+                metric_wrapper(
+                    Accuracy, task="multiclass", num_classes=10, average='micro'
+                ),
+                metric_wrapper(
+                    Precision, task="multiclass", num_classes=10, average='micro'
+                ),
+                metric_wrapper(AUROC, task="multiclass", num_classes=10),
+            ],
             block=BasicBlock,
             layers=[2, 2, 2, 2],
             input_channels=1,  # black pic
         )
 
-    def model_type(self) -> ModelType:
-        return ModelType.RESNET18
+    def dnn_fuse_units_size_range(self):
+        return [
+            [512 * 2],
+            [512 * 2, 512, 512, 512],
+        ]
 
     def create_base_model_alice(self):
         return self._create_base_model()
@@ -61,6 +66,37 @@ class MnistResnet18(MnistBase):
             model_fn=ResNetFuse,
             loss_fn=nn.CrossEntropyLoss,
             optim_fn=optim_wrapper(optim.Adam, lr=1e-3),
-            metrics=self.metrics,
+            metrics=[
+                metric_wrapper(
+                    Accuracy, task="multiclass", num_classes=10, average='micro'
+                ),
+                metric_wrapper(
+                    Precision, task="multiclass", num_classes=10, average='micro'
+                ),
+                metric_wrapper(AUROC, task="multiclass", num_classes=10),
+            ],
             dnn_units_size=self.dnn_fuse_units_size,
         )
+
+    def alice_feature_nums_range(self) -> list:
+        return [1 * 28 * 14]
+
+    def hidden_size_range(self) -> list:
+        return [512]
+
+    def support_attacks(self):
+        return ['lia', 'replay', 'fia', 'replace']
+
+    def lia_auxiliary_model(self, ema=False):
+        from benchmark_examples.autoattack.attacks.lia import BottomModelPlus
+
+        bottom_model = ResNetBase(
+            block=BasicBlock, layers=[2, 2, 2, 2], input_channels=1
+        )
+        model = BottomModelPlus(bottom_model, size_bottom_out=512)
+
+        if ema:
+            for param in model.parameters():
+                param.detach_()
+
+        return model

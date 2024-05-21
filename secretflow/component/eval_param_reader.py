@@ -18,7 +18,6 @@ from dataclasses import dataclass
 from typing import List
 
 from google.protobuf import json_format
-
 from secretflow.spec.v1.component_pb2 import (
     Attribute,
     AttributeDef,
@@ -172,6 +171,9 @@ class EvalParamReader:
                     self._instance_attrs[full_name] = Attribute(
                         s=attr.union.default_selection
                     )
+
+                elif attr.type is AttrType.AT_PARTY:
+                    self._instance_attrs[full_name] = Attribute()
 
                 else:
                     # use default value.

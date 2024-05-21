@@ -214,11 +214,11 @@ class BaseTorchModel(ABC):
     def get_rows_count(self, filename):
         return int(rows_count(filename=filename)) - 1  # except header line
 
-    def get_weights(self, return_numpy=True):
+    def get_weights(self):
         if self.skip_bn:
-            return self.model.get_weights_not_bn(return_numpy=return_numpy)
+            return self.model.get_weights_not_bn(return_numpy=True)
         else:
-            return self.model.get_weights(return_numpy=return_numpy)
+            return self.model.get_weights(return_numpy=True)
 
     def set_weights(self, weights):
         """set weights of client model"""

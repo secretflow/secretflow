@@ -76,7 +76,7 @@ class FedAvgW(BaseTFModel):
         self.logs = logs
         self.epoch_logs = copy.deepcopy(self.logs)
 
-        model_weights = self.get_weights()
+        model_weights = self.model.get_weights()
 
         # DP operation
         if dp_strategy is not None:

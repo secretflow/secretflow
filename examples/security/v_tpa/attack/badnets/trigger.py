@@ -30,7 +30,7 @@ def inject_mnist_trigger(pixels):
         pixels[26][26] = 1.0
         pixels[27][27] = 1.0
     else:
-        raise "Invalid image shape!!!"
+        raise ValueError("Invalid image shape!!!")
 
     return pixels
 
@@ -53,7 +53,7 @@ def inject_cifar_trigger(pixels):
         pixels[1][31][31] = 0.0
         pixels[2][31][31] = 1.0
     else:
-        raise "Invalid image shape!!!"
+        raise ValueError("Invalid image shape!!!")
 
     return pixels
 
@@ -81,6 +81,6 @@ def inject_white_trigger(pixels, size):
             pixels[-i][cols] = 1.0
             pixels[-i][cols] = 1.0
     else:
-        raise "Invalid image shape!!!"
+        raise ValueError("Invalid image shape!!!")
 
     return pixels

@@ -69,12 +69,12 @@ class FedSCR(BaseTFModel):
         sparsity = kwargs.get('sparsity', 0.0)
         compressor = SCRSparse(sparsity)
         if updates is not None:
-            current_weight = self.get_weights()
+            current_weight = self.model.get_weights()
             server_weight = _add(current_weight, updates)
             self.model.set_weights(server_weight)
         num_sample = 0
         logs = {}
-        self.model_weights = self.get_weights()
+        self.model_weights = self.model.get_weights()
         for _ in range(train_steps):
             x, y, s_w = self.next_batch()
             num_sample += self.get_sample_num(x)
@@ -99,14 +99,14 @@ class FedSCR(BaseTFModel):
             client_updates = [
                 np.add(np.subtract(new_w, old_w), res_u)
                 for new_w, old_w, res_u in zip(
-                    self.get_weights(), self.model_weights, self._res
+                    self.model.get_weights(), self.model_weights, self._res
                 )
             ]
         else:
             # initial training res is zero
             client_updates = [
                 np.subtract(new_w, old_w)
-                for new_w, old_w in zip(self.get_weights(), self.model_weights)
+                for new_w, old_w in zip(self.model.get_weights(), self.model_weights)
             ]
 
         # DP operation
@@ -141,7 +141,7 @@ class FedSCR(BaseTFModel):
             return results
 
         if updates is not None:
-            current_weight = self.get_weights()
+            current_weight = self.model.get_weights()
             server_weight = _add(current_weight, updates)
             self.model.set_weights(server_weight)
 

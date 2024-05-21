@@ -1168,12 +1168,18 @@ class SPURuntime:
             pos_str = str(table_columns.get_loc(ele) + 1)
             idlist.append(f"--key={pos_str},{pos_str}")
         idstr = ' '.join(idlist)
-        sort_cmd = f'tail -n +2 {output_notsort} | LC_ALL=C sort --buffer-size=2G --parallel=8 --temporary-directory=./ --stable --field-separator=, {idstr} >>{output_path}'
-        logging.info(f"sort_cmd:{sort_cmd}")
-        sp_ret = subprocess.run(sort_cmd, shell=True)
-        assert (
-            sp_ret.returncode == 0
-        ), f"sort cmd failed, return {sp_ret.returncode}, expected 0"
+
+        with open(output_path, "a") as out_file:
+            tail = subprocess.Popen(
+                ("tail", "-n", "+2", output_notsort), stdout=subprocess.PIPE
+            )
+            sort_env = os.environ.copy()
+            sort_env["LC_ALL"] = "C"
+            sort_cmd = f"sort --buffer-size=2G --parallel=8 --temporary-directory=./ --stable --field-separator=, {idstr}".split()
+            subprocess.check_call(
+                sort_cmd, env=sort_env, stdin=tail.stdout, stdout=out_file
+            )
+            tail.wait()
 
         # delete tmp data dir
         data_dir.cleanup()

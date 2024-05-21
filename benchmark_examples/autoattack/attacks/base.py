@@ -12,74 +12,93 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from abc import abstractmethod
-from enum import Enum
-from typing import Dict, Tuple
+import logging
+from abc import ABC, abstractmethod
+from typing import Dict, List, Optional, Union
 
 from benchmark_examples.autoattack import global_config
 from benchmark_examples.autoattack.applications.base import ApplicationBase
-from benchmark_examples.autoattack.base import AutoBase
-from benchmark_examples.autoattack.utils.config import read_tune_config
-from secretflow.ml.nn.callbacks.attack import AttackCallback
+from benchmark_examples.autoattack.utils.sync_globals import sync_remote_globals
+from secretflow import PYU, tune
 
 
-class AttackType(Enum):
-    """The attack types."""
+class AttackCase(ABC):
+    """
+    Abstract base class for attack case.
+    Since the self.attack() will be tuned and be executed remote.
+    For correctly inject configs into App, the self.app need to be inited into remote function,
+    so we addtinally need a config_app instance outsides.
+    args:
+        config (dict): Configuration dict for tune.
+        alice: (PYU): alice party.
+        bob: (PYU): bob party.
+        App: (cls): The application class for init.
+        config_app (ApplicationBase): An instance of class ApplicationBase just for read tunning configs.
+        app (ApplicationBase): The real application instant for training.
+    """
 
-    LABLE_INFERENSE = 1
-    FEATURE_INFERENCE = 2
-    BACKDOOR = 3
-    OTHER = 4
+    config: Dict
+    alice: PYU
+    bob: PYU
+    App: type(ApplicationBase)
+    config_app: ApplicationBase
+    app: ApplicationBase
+    origin_global_configs: Dict
 
+    def __init__(
+        self, alice, bob, App: type(ApplicationBase), origin_global_configs: dict = None
+    ):
+        self.App = App
+        self.alice = alice
+        self.bob = bob
+        self.config_app: ApplicationBase = self.App({}, self.alice, self.bob)
+        self.app: Optional[ApplicationBase] = None
+        self.config: Optional[dict] = None
+        self.origin_global_configs = origin_global_configs
 
-class AttackBase(AutoBase):
-    def __init__(self, alice=None, bob=None):
-        super().__init__(alice, bob)
-
-    def set_config(self, config: Dict[str, str] | None):
-        super().set_config(config)
+    def attack(self, config: dict):
+        if self.origin_global_configs is not None:
+            sync_remote_globals(self.origin_global_configs)
+        # this function will be executed remote, so app need to be initialized again.
+        self.app = self.App(config, self.alice, self.bob)
+        self.config = config
+        histories, attack_metrics = self._attack()
+        metrics = {}
+        # append the origin application train history to the attack metrics, for record.
+        for history, v in histories.items():
+            metrics[f"app_{history}"] = v[-1]
+        metrics.update(attack_metrics)
+        return metrics
 
     @abstractmethod
-    def build_attack_callback(self, app: ApplicationBase) -> AttackCallback | None:
-        """
-        Given the application configuration, construct a callback for the attack based on the configuration
-        Args:
-            app: The target implementation of application, witch has its own configuration of this attack.
-
-        Returns:
-            The attack callback.
-        """
+    def _attack(self):
         pass
-
-    @abstractmethod
-    def attack_type(self) -> AttackType:
-        """
-        Get the type of this attack, refere to AttackType.
-        Returns:
-            The attack type.
-        """
-        pass
-
-    def attack_metrics_params(self) -> Tuple | None:
-        """
-        If the attack metrics need some extra parameters (such as the preds after predict phase),
-        return them in this metrics params.
-        Returns:
-            Any number of Tuple parameters, which will be passed to the AttackCallback.get_attack_metrics().
-        """
-        return None
 
     def search_space(self):
-        tune_config: dict = read_tune_config(global_config.get_config_file_path())
-        assert (
-            'attacks' in tune_config
-        ), f"Missing 'attacks' after 'tune' in config file."
-        attack_config = tune_config['attacks']
-        assert (
-            self.__str__() in attack_config
-        ), f"Missing {self.__str__()} in config file."
-        attack_search_space = attack_config[self.__str__()]
-        attack_search_space = {} if attack_search_space is None else attack_search_space
+        """
+        Search space for tunning.
+        Returns:
+            Application search space + attack search space.
+        """
+        search_space = {
+            'train_batch_size': [64, 128],
+            'alice_fea_nums': self.config_app.alice_feature_nums_range(),
+            'hidden_size': self.config_app.hidden_size_range(),
+            'dnn_base_units_size_alice': self.config_app.dnn_base_units_size_range_alice(),
+            'dnn_base_units_size_bob': self.config_app.dnn_base_units_size_range_bob(),
+            'dnn_fuse_units_size': self.config_app.dnn_fuse_units_size_range(),
+            'dnn_embedding_dim': self.config_app.dnn_embedding_dim_range(),
+            'deepfm_embedding_dim': self.config_app.deepfm_embedding_dim_range(),
+        }
+        if global_config.is_simple_test():
+            search_space['train_batch_size'] = [32]
+            search_space.pop('hidden_size')
+            search_space.pop('dnn_base_units_size_bob')
+            search_space.pop('dnn_base_units_size_alice')
+            search_space.pop('dnn_fuse_units_size')
+            search_space.pop('dnn_embedding_dim')
+            search_space.pop('deepfm_embedding_dim')
+        attack_search_space = self.attack_search_space()
         if global_config.is_simple_test():
             # delete some config for speed up.
             new_attack_search_space = {}
@@ -93,26 +112,43 @@ class AttackBase(AutoBase):
                     new_attack_search_space[k] = v
                 nums += 1
             attack_search_space = new_attack_search_space
-        return attack_search_space
+        app_search_space = {}
+        app_search_space.update(attack_search_space)
 
-    def check_app_valid(self, app: ApplicationBase) -> bool:
-        """Chekck whether the attack support the application or not."""
-        return False
+        for k, v in search_space.items():
+            if isinstance(v, list):
+                app_search_space[k] = tune.search.grid_search(v)
+            elif v is not None:
+                # need any config even is None, since None will rewrite the default configs.
+                app_search_space[k] = v
+        total_trial_nums = 1
+        for v in search_space.values():
+            if v is not None and isinstance(v, list):
+                total_trial_nums *= len(v)
+        logging.warning(
+            f"Search space (with total {total_trial_nums} trails) of "
+            f"{type(self.config_app).__name__} {type(self).__name__} is {app_search_space}"
+        )
+        return app_search_space
 
+    @abstractmethod
+    def attack_search_space(self):
+        pass
 
-class DefaultAttackCase(AttackBase):
+    @abstractmethod
+    def metric_name(self) -> Union[str, List[str]]:
+        """
+        The attack metric name or names.
+        Returns:
+            str or list of metric names.
+        """
+        pass
 
-    def __str__(self):
-        return ""
-
-    def __init__(self, alice=None, bob=None):
-        super().__init__(alice, bob)
-
-    def build_attack_callback(self, app: ApplicationBase) -> AttackCallback | None:
-        return None
-
-    def tune_metrics(self) -> Dict[str, str]:
-        return {}
-
-    def attack_type(self) -> AttackType:
-        return AttackType.OTHER
+    @abstractmethod
+    def metric_mode(self) -> Union[str, List[str]]:
+        """
+        The attack metric mode or modes.
+        Returns:
+            str or list of metric modes.
+        """
+        pass

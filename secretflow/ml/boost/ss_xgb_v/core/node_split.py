@@ -100,7 +100,7 @@ def compute_gh(
         g = yhat - y
         h = yhat * (1 - yhat)
     else:
-        raise f"unknown objective {objective}"
+        raise TypeError(f"unknown objective {objective}")
 
     return g, h
 

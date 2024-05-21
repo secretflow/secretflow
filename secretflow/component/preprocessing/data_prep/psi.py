@@ -16,7 +16,6 @@ from typing import Dict, List, Union
 
 import numpy as np
 import pandas as pd
-
 from secretflow.component.component import (
     CompEvalError,
     Component,
@@ -24,11 +23,11 @@ from secretflow.component.component import (
     TableColParam,
 )
 from secretflow.component.data_utils import (
+    SUPPORTED_VTABLE_DATA_TYPE,
     DistDataType,
     download_files,
     extract_distdata_info,
     merge_individuals_to_vtable,
-    SUPPORTED_VTABLE_DATA_TYPE,
     upload_files,
 )
 from secretflow.device.device.pyu import PYU
@@ -39,7 +38,7 @@ from secretflow.spec.v1.data_pb2 import DistData, IndividualTable, VerticalTable
 psi_comp = Component(
     "psi",
     domain="data_prep",
-    version="0.0.4",
+    version="0.0.5",
     desc="PSI between two parties.",
 )
 psi_comp.str_attr(
@@ -51,45 +50,72 @@ psi_comp.str_attr(
     allowed_values=["PROTOCOL_RR22", "PROTOCOL_ECDH", "PROTOCOL_KKRT"],
 )
 psi_comp.bool_attr(
-    name="disable_alignment",
-    desc="It true, output is not promised to be aligned. Warning: enable this option may lead to errors in the following components. DO NOT TURN ON if you want to append other components.",
+    name="sort_result",
+    desc="It false, output is not promised to be aligned. Warning: disable this option may lead to errors in the following components. DO NOT TURN OFF if you want to append other components.",
     is_list=False,
     is_optional=True,
-    default_value=False,
+    default_value=True,
 )
-psi_comp.bool_attr(
-    name="skip_duplicates_check",
-    desc="If true, the check of duplicated items will be skiped.",
-    is_list=False,
-    is_optional=True,
-    default_value=False,
-)
-psi_comp.bool_attr(
-    name="check_hash_digest",
-    desc="Check if hash digest of keys from parties are equal to determine whether to early-stop.",
-    is_list=False,
-    is_optional=True,
-    default_value=False,
-)
-psi_comp.party_attr(
-    name="left_side",
-    desc="Required if advanced_join_type is selected.",
-    list_min_length_inclusive=1,
-    list_max_length_inclusive=1,
-)
-psi_comp.str_attr(
-    name="join_type",
-    desc="Advanced Join types allow duplicate keys.",
-    is_list=False,
-    is_optional=True,
-    default_value="ADVANCED_JOIN_TYPE_UNSPECIFIED",
-    allowed_values=[
-        "ADVANCED_JOIN_TYPE_UNSPECIFIED",
-        "ADVANCED_JOIN_TYPE_INNER_JOIN",
-        "ADVANCED_JOIN_TYPE_LEFT_JOIN",
-        "ADVANCED_JOIN_TYPE_RIGHT_JOIN",
-        "ADVANCED_JOIN_TYPE_FULL_JOIN",
-        "ADVANCED_JOIN_TYPE_DIFFERENCE",
+psi_comp.union_attr_group(
+    name="allow_duplicate_keys",
+    desc="Some join types allow duplicate keys.",
+    group=[
+        psi_comp.struct_attr_group(
+            name="no",
+            desc="Duplicate keys are not allowed.",
+            group=[
+                psi_comp.bool_attr(
+                    name="skip_duplicates_check",
+                    desc="If true, the check of duplicated items will be skiped.",
+                    is_list=False,
+                    is_optional=True,
+                    default_value=False,
+                ),
+                psi_comp.bool_attr(
+                    name="check_hash_digest",
+                    desc="Check if hash digest of keys from parties are equal to determine whether to early-stop.",
+                    is_list=False,
+                    is_optional=True,
+                    default_value=False,
+                ),
+            ],
+        ),
+        psi_comp.struct_attr_group(
+            name="yes",
+            desc="Duplicate keys are allowed.",
+            group=[
+                psi_comp.union_attr_group(
+                    name="join_type",
+                    desc="Join type.",
+                    group=[
+                        psi_comp.union_selection_attr(
+                            name="inner_join",
+                            desc="Inner join with duplicate keys",
+                        ),
+                        psi_comp.struct_attr_group(
+                            name="left_join",
+                            desc="Left join with duplicate keys",
+                            group=[
+                                psi_comp.party_attr(
+                                    name="left_side",
+                                    desc="Required for left join",
+                                    list_min_length_inclusive=1,
+                                    list_max_length_inclusive=1,
+                                )
+                            ],
+                        ),
+                        psi_comp.union_selection_attr(
+                            name="full_join",
+                            desc="Full join with duplicate keys",
+                        ),
+                        psi_comp.union_selection_attr(
+                            name="difference",
+                            desc="Difference with duplicate keys",
+                        ),
+                    ],
+                )
+            ],
+        ),
     ],
 )
 
@@ -254,12 +280,13 @@ def two_party_balanced_psi_eval_fn(
     *,
     ctx,
     protocol,
-    disable_alignment,
-    skip_duplicates_check,
-    check_hash_digest,
+    sort_result,
     ecdh_curve,
-    join_type,
-    left_side,
+    allow_duplicate_keys,
+    allow_duplicate_keys_no_skip_duplicates_check,
+    allow_duplicate_keys_no_check_hash_digest,
+    allow_duplicate_keys_yes_join_type,
+    allow_duplicate_keys_yes_join_type_left_join_left_side,
     fill_value_int,
     receiver_input,
     receiver_input_key,
@@ -273,10 +300,41 @@ def two_party_balanced_psi_eval_fn(
     sender_path_format = extract_distdata_info(sender_input)
     sender_party = list(sender_path_format.keys())[0]
 
-    assert left_side[0] in [
-        receiver_party,
-        sender_party,
-    ], f'left side {left_side[0]} is invalid.'
+    assert allow_duplicate_keys in [
+        'yes',
+        'no',
+    ]
+
+    if allow_duplicate_keys == 'no':
+        advanced_join_type = 'ADVANCED_JOIN_TYPE_UNSPECIFIED'
+    else:
+        allow_duplicate_keys_no_skip_duplicates_check = False
+        allow_duplicate_keys_no_check_hash_digest = False
+        assert allow_duplicate_keys_yes_join_type in [
+            "inner_join",
+            "left_join",
+            "full_join",
+            "difference",
+        ]
+
+        if allow_duplicate_keys_yes_join_type == "inner_join":
+            advanced_join_type = "ADVANCED_JOIN_TYPE_INNER_JOIN"
+        elif allow_duplicate_keys_yes_join_type == "left_join":
+            advanced_join_type = 'ADVANCED_JOIN_TYPE_LEFT_JOIN'
+        elif allow_duplicate_keys_yes_join_type == "full_join":
+            advanced_join_type = 'ADVANCED_JOIN_TYPE_FULL_JOIN'
+        else:
+            advanced_join_type = 'ADVANCED_JOIN_TYPE_DIFFERENCE'
+
+    if advanced_join_type == 'ADVANCED_JOIN_TYPE_LEFT_JOIN':
+        left_side = allow_duplicate_keys_yes_join_type_left_join_left_side[0]
+
+        assert left_side in [
+            receiver_party,
+            sender_party,
+        ]
+    else:
+        left_side = receiver_party
 
     if ctx.spu_configs is None or len(ctx.spu_configs) == 0:
         raise CompEvalError("spu config is not found.")
@@ -318,13 +376,13 @@ def two_party_balanced_psi_eval_fn(
             broadcast_result=True,
             protocol=protocol,
             ecdh_curve=ecdh_curve,
-            advanced_join_type=join_type,
+            advanced_join_type=advanced_join_type,
             left_side=(
-                'ROLE_RECEIVER' if left_side[0] == receiver_party else 'ROLE_SENDER'
+                'ROLE_RECEIVER' if left_side == receiver_party else 'ROLE_SENDER'
             ),
-            skip_duplicates_check=skip_duplicates_check,
-            disable_alignment=disable_alignment,
-            check_hash_digest=check_hash_digest,
+            skip_duplicates_check=allow_duplicate_keys_no_skip_duplicates_check,
+            disable_alignment=not sort_result,
+            check_hash_digest=allow_duplicate_keys_no_check_hash_digest,
         )
 
     partywise_converters = {

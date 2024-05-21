@@ -197,6 +197,9 @@ def count_model_param_flops(model=None, dataset=None, multiply_adds=True, full=F
     elif dataset == "tiny":
         input_channel = 3
         input_res = 64
+    else:
+        raise TypeError(f"unknown dataset: {dataset}")
+
     device = next(model.parameters()).device
     input = Variable(
         torch.rand(input_channel, input_res, input_res).unsqueeze(0), requires_grad=True

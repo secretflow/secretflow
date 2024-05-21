@@ -98,7 +98,7 @@ class FedPer(BaseTorchModel):
         self.wrapped_metrics.extend(self.wrap_local_metrics())
         self.epoch_logs = copy.deepcopy(self.logs)
 
-        model_weights = self.get_weights(return_numpy=True)
+        model_weights = self.model.get_weights(return_numpy=True)
 
         # DP operation
         if dp_strategy is not None:

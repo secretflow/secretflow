@@ -19,11 +19,11 @@ from collections import defaultdict
 
 import numpy as np
 import pandas as pd
-import spu
-from jax import numpy as jnp
 
 import secretflow as sf
-from secretflow.device import PYU, PYUObject, proxy
+import spu
+from jax import numpy as jnp
+from secretflow.device import proxy, PYU, PYUObject
 from secretflow.device.driver import wait
 from secretflow.stats.united_stats import united_mean_and_var, united_median, united_var
 

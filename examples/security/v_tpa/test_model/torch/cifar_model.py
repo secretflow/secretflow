@@ -26,7 +26,7 @@ def get_passive_model(input_shape, output_shape, option=10):
     if option == 10:
         return ResNetCIFAR10()
     else:
-        raise "Invalid model option!!!"
+        raise TypeError("Invalid model option!!!")
 
 
 def get_optimizer(params, lr):

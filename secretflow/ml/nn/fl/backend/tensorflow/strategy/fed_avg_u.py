@@ -60,7 +60,7 @@ class FedAvgU(BaseTFModel):
         num_sample = 0
 
         logs = {}
-        self.model_weights = self.get_weights()
+        self.model_weights = self.model.get_weights()
 
         for _ in range(train_steps):
             x, y, s_w = self.next_batch()
@@ -85,7 +85,7 @@ class FedAvgU(BaseTFModel):
 
         client_updates = [
             np.subtract(new_w, old_w)
-            for new_w, old_w in zip(self.get_weights(), self.model_weights)
+            for new_w, old_w in zip(self.model.get_weights(), self.model_weights)
         ]
 
         # DP operation

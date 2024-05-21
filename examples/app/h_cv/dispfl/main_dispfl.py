@@ -237,6 +237,8 @@ def load_data(args, dataset_name, using_logger):
             args.batch_size,
             using_logger,
         )
+    else:
+        raise TypeError(f"unknown dataset: {dataset_name}")
 
     dataset = [
         train_data_num,
@@ -263,6 +265,9 @@ def create_model(args, model_name, class_num):
         model = tiny_resnet18(class_num=class_num)
     elif model_name == "vgg11":
         model = vgg11(class_num)
+    else:
+        raise TypeError(f"unknown model: {model_name}")
+
     return model
 
 

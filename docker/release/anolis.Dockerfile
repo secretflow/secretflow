@@ -1,7 +1,7 @@
 FROM openanolis/anolisos:8.8 as builder
 
 RUN yum install -y \
-    wget gcc gcc-c++ autoconf bison flex git protobuf-devel libnl3-devel \
+    wget autoconf bison flex git protobuf-devel libnl3-devel \
     libtool make pkg-config protobuf-compiler \
     && yum clean all
 
@@ -28,11 +28,6 @@ ARG sf_version
 ENV version $sf_version
 
 RUN pip install secretflow==${version} --extra-index-url https://download.pytorch.org/whl/cpu --extra-index-url https://test.pypi.org/simple/ && rm -rf /root/.cache
-
-# For security reason.
-# Since onnx-1.13.1's protobuf conflicts with TensorFlow-2.10.1's,
-# so we upgrade it manually.
-RUN pip install onnx==1.13.1 protobuf==3.20.3 && rm -rf /root/.cache
 
 COPY .nsjail /root/.nsjail
 

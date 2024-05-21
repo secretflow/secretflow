@@ -132,7 +132,9 @@ def check_dist_data(data: DistData, io_def: IoDef = None):
 
     if data.type == DistDataType.INDIVIDUAL_TABLE:
         if len(data.data_refs) > 1:
-            raise f"DistData {data.name}: data_refs is greater than 1 for {data.type}"
+            raise ValueError(
+                f"DistData {data.name}: data_refs is greater than 1 for {data.type}"
+            )
 
 
 @dataclass
