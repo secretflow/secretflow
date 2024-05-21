@@ -110,8 +110,12 @@ jobs:
 
             # Build base image
             BASE_IMAGE=$(head -1 docker/release/python.Dockerfile|tr -d ' #')
-
-            docker buildx build --platform linux/arm64,linux/amd64 -f docker/release/python.Dockerfile -t $BASE_IMAGE --push .
+            NOT_EXIST=$(docker manifest inspect $BASE_IMAGE > /dev/null 2>&1; echo $?)
+            if [ $NOT_EXIST -eq 1 ]
+            then
+              echo "building base image: $BASE_IMAGE"
+              docker buildx build --platform linux/arm64,linux/amd64 -f docker/release/python.Dockerfile -t $BASE_IMAGE --push .
+            fi
 
             # Build image
             cd docker/release
@@ -123,35 +127,11 @@ jobs:
             SF_IMAGE=secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-anolis8
             SF_LITE_IMAGE=secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-lite-anolis8
 
-            # secretflow-anolis8:${VERSION}
-            SF_IMAGE_VERSION=${SF_IMAGE}:${VERSION}
+            docker buildx imagetools create --tag ${SF_IMAGE}:${VERSION} secretflow/secretflow-anolis8:${VERSION}
+            docker buildx imagetools create --tag ${SF_IMAGE}:latest secretflow/secretflow-anolis8:latest
 
-            docker buildx build --platform linux/arm64,linux/amd64 -f anolis.Dockerfile -t ${SF_IMAGE_VERSION} --build-arg sf_version=${VERSION} \
-              --build-arg config_templates="$(cat config_templates.yml)" --build-arg deploy_templates="$(cat deploy_templates.yml)" \
-              --build-arg comp_list="$(cat comp_list.json)" --build-arg translation="$(cat translation.json)" . --push
-
-            # secretflow-anolis8:latest
-            SF_IMAGE_LATEST=${SF_IMAGE}:latest
-
-            docker buildx build --platform linux/arm64,linux/amd64 -f anolis.Dockerfile -t ${SF_IMAGE_LATEST} --build-arg sf_version=${VERSION}
-              --build-arg config_templates="$(cat config_templates.yml)" --build-arg deploy_templates="$(cat deploy_templates.yml)" \
-              --build-arg comp_list="$(cat comp_list.json)" --build-arg translation="$(cat translation.json)" . --push
-
-
-            # secretflow-lite-anolis8:${VERSION}
-            SF_LITE_IMAGE_VERSION=${SF_LITE_IMAGE}:${VERSION}
-
-            docker buildx build --platform linux/arm64,linux/amd64 -f anolis-lite.Dockerfile -t ${SF_LITE_IMAGE_VERSION} --build-arg sf_version=${VERSION} \
-              --build-arg config_templates="$(cat config_templates.yml)" --build-arg deploy_templates="$(cat deploy_templates.yml)" \
-              --build-arg comp_list="$(cat comp_list.json)" --build-arg translation="$(cat translation.json)" . --push
-
-            # secretflow-anolis8:latest
-            SF_LITE_IMAGE_LATEST=${SF_LITE_IMAGE}:latest
-
-            docker buildx build --platform linux/arm64,linux/amd64 -f anolis-lite.Dockerfile -t ${SF_LITE_IMAGE_LATEST} --build-arg sf_version=${VERSION} \
-              --build-arg config_templates="$(cat config_templates.yml)" --build-arg deploy_templates="$(cat deploy_templates.yml)" \
-              --build-arg comp_list="$(cat comp_list.json)" --build-arg translation="$(cat translation.json)" . --push
-
+            docker buildx imagetools create --tag ${SF_LITE_IMAGE}:${VERSION} secretflow/secretflow-lite-anolis8:${VERSION}
+            docker buildx imagetools create --tag ${SF_LITE_IMAGE}:latest secretflow/secretflow-lite-anolis8:latest
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
