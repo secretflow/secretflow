@@ -179,7 +179,7 @@ workflows:
           matrix:
             parameters:
               python_ver: ["3.9", "3.10", "3.11"]
-            executor: [ "linux_x64_executor", "linux_aarch64_executor" ]
+              executor: [ "linux_x64_executor", "linux_aarch64_executor" ]
           filters:
             tags:
               only: /.*/
