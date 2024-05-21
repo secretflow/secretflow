@@ -20,17 +20,11 @@ executors:
     docker:
       - image: secretflow/release-ci:latest
     resource_class: 2xlarge
-    parameters:
-      python_ver:
-        type: string
     shell: /bin/bash --login -eo pipefail
   linux_aarch64_executor:
     docker:
       - image: secretflow/release-ci-aarch64:latest
     resource_class: arm.2xlarge
-    parameters:
-      python_ver:
-        type: string
     shell: /bin/bash --login -eo pipefail
 
 
@@ -89,19 +83,8 @@ jobs:
             bash ~/miniconda.sh -b -p $HOME/miniconda
             source $HOME/miniconda/bin/activate
             conda init bash zsh
-      - run:
-          name: "build package and publish"
-          command: |
-            conda create -n build python=<< parameters.python_ver >> -y
-            conda activate build
-
-            python3 setup.py bdist_wheel
-            python3 setup.py clean
-            python3 setup.py bdist_wheel --lite
-
-            ls dist/*.whl
-            python3 -m pip install twine
-            python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
+      - build_and_upload:
+          python_ver: <<parameters.python_ver>>
   docker_image_publish:
     docker:
       - image: cimg/deploy:2023.06.1
@@ -127,8 +110,12 @@ jobs:
 
             # Build base image
             BASE_IMAGE=$(head -1 docker/release/python.Dockerfile|tr -d ' #')
-
-            docker buildx build --platform linux/arm64,linux/amd64 -f docker/release/python.Dockerfile -t $BASE_IMAGE --push .
+            NOT_EXIST=$(docker manifest inspect $BASE_IMAGE > /dev/null 2>&1; echo $?)
+            if [ $NOT_EXIST -eq 1 ]
+            then
+              echo "building base image: $BASE_IMAGE"
+              docker buildx build --platform linux/arm64,linux/amd64 -f docker/release/python.Dockerfile -t $BASE_IMAGE --push .
+            fi
 
             # Build image
             cd docker/release
@@ -140,35 +127,11 @@ jobs:
             SF_IMAGE=secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-anolis8
             SF_LITE_IMAGE=secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-lite-anolis8
 
-            # secretflow-anolis8:${VERSION}
-            SF_IMAGE_VERSION=${SF_IMAGE}:${VERSION}
+            docker buildx imagetools create --tag ${SF_IMAGE}:${VERSION} secretflow/secretflow-anolis8:${VERSION}
+            docker buildx imagetools create --tag ${SF_IMAGE}:latest secretflow/secretflow-anolis8:latest
 
-            docker buildx build --platform linux/arm64,linux/amd64 -f anolis.Dockerfile -t ${SF_IMAGE_VERSION} --build-arg sf_version=${VERSION} \
-              --build-arg config_templates="$(cat config_templates.yml)" --build-arg deploy_templates="$(cat deploy_templates.yml)" \
-              --build-arg comp_list="$(cat comp_list.json)" --build-arg translation="$(cat translation.json)" . --push
-
-            # secretflow-anolis8:latest
-            SF_IMAGE_LATEST=${SF_IMAGE}:latest
-
-            docker buildx build --platform linux/arm64,linux/amd64 -f anolis.Dockerfile -t ${SF_IMAGE_LATEST} --build-arg sf_version=${VERSION}
-              --build-arg config_templates="$(cat config_templates.yml)" --build-arg deploy_templates="$(cat deploy_templates.yml)" \
-              --build-arg comp_list="$(cat comp_list.json)" --build-arg translation="$(cat translation.json)" . --push
-
-
-            # secretflow-lite-anolis8:${VERSION}
-            SF_LITE_IMAGE_VERSION=${SF_LITE_IMAGE}:${VERSION}
-
-            docker buildx build --platform linux/arm64,linux/amd64 -f anolis-lite.Dockerfile -t ${SF_LITE_IMAGE_VERSION} --build-arg sf_version=${VERSION} \
-              --build-arg config_templates="$(cat config_templates.yml)" --build-arg deploy_templates="$(cat deploy_templates.yml)" \
-              --build-arg comp_list="$(cat comp_list.json)" --build-arg translation="$(cat translation.json)" . --push
-
-            # secretflow-anolis8:latest
-            SF_LITE_IMAGE_LATEST=${SF_LITE_IMAGE}:latest
-
-            docker buildx build --platform linux/arm64,linux/amd64 -f anolis-lite.Dockerfile -t ${SF_LITE_IMAGE_LATEST} --build-arg sf_version=${VERSION} \
-              --build-arg config_templates="$(cat config_templates.yml)" --build-arg deploy_templates="$(cat deploy_templates.yml)" \
-              --build-arg comp_list="$(cat comp_list.json)" --build-arg translation="$(cat translation.json)" . --push
-
+            docker buildx imagetools create --tag ${SF_LITE_IMAGE}:${VERSION} secretflow/secretflow-lite-anolis8:${VERSION}
+            docker buildx imagetools create --tag ${SF_LITE_IMAGE}:latest secretflow/secretflow-lite-anolis8:latest
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows

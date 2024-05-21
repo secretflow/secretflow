@@ -1,7 +1,7 @@
-FROM secretflow/base-ci:latest as builder
+FROM openanolis/anolisos:8.8 as builder
 
 RUN yum install -y \
-    wget autoconf bison flex git protobuf-devel libnl3-devel \
+    wget gcc gcc-c++ autoconf bison flex git protobuf-devel libnl3-devel \
     libtool make pkg-config protobuf-compiler \
     && yum clean all
 
