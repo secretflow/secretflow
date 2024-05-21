@@ -14,6 +14,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
+## [v1.6.0b0] - 2024-05-21
+
+### Added
+
+- [component] pvalue support GLM
+- [component] onehot add drop parameter to support first & mode
+- [component] XGB/SGB support checkpoint
+- [component] LR support report weights
+- [component] Add union component
+- [FLModel/SLModel] tf backend support custom loss
+- [SLModel] Base model support additional loss
+- [SLModel] Add attack method FSHA
+- [SLModel] Add defense method MID
+- [SLModel] Add defense method FedPass
+- [Infra] Add arm64 build support
+
 ## [v1.5.0.dev240315] - 2024-03-15
 
 ### Added
