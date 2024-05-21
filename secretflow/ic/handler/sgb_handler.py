@@ -108,7 +108,7 @@ class SgbIcHandler(IcHandler):
             protocol_any.Pack(phe_result)
             response.protocol_family_params.append(protocol_any)
         else:
-            raise 'unexpected behavior'
+            raise TypeError('unexpected behavior')
 
         return response
 
@@ -222,7 +222,7 @@ class SgbIcHandler(IcHandler):
             if not self._negotiate_paillier_params(phe_params):
                 return header_pb2.HANDSHAKE_REFUSED, 'negotiate paillier params failed'
         else:
-            raise f'unsupported phe algo: {self._phe.phe_algo}'
+            raise TypeError(f'unsupported phe algo: {self._phe.phe_algo}')
 
         return header_pb2.OK, ''
 

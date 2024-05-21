@@ -226,12 +226,9 @@ class GradientClusterLabelInferenceAttack(AttackCallback):
             label_preds = enc.fit_transform(label_preds)
             multi_class = 'ovo'
             average = "weighted"
-        if np.all(label_targets == 0) or np.all(label_targets == 1):
-            self.attack_logs['attack_auc'] = -1
-        else:
-            self.attack_logs['attack_auc'] = roc_auc_score(
-                label_targets, label_preds, multi_class=multi_class
-            )
+        self.attack_logs['attack_auc'] = roc_auc_score(
+            label_targets, label_preds, multi_class=multi_class
+        )
         self.attack_logs['attack_acc'] = accuracy_score(label_targets, label_preds)
         self.attack_logs['attack_recall'] = recall_score(
             label_targets, label_preds, average=average

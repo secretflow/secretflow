@@ -112,10 +112,8 @@ class ResNetBase(nn.Module):
         replace_stride_with_dilation: Optional[List[bool]] = None,
         norm_layer: Optional[Callable[..., nn.Module]] = None,
         classifier: Optional[nn.Module] = None,
-        preprocess_layer=None,
     ) -> None:
         super().__init__()
-        self.preprocess_layer = preprocess_layer
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
         self._norm_layer = norm_layer
@@ -233,8 +231,6 @@ class ResNetBase(nn.Module):
         return nn.Sequential(*layers)
 
     def _forward_impl(self, x: Tensor) -> Tensor:
-        if self.preprocess_layer:
-            x = self.preprocess_layer(x)
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)

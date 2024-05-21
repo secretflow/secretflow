@@ -18,12 +18,10 @@ import pkgutil
 from typing import Dict, List, Tuple
 
 from benchmark_examples.autoattack.applications.base import ApplicationBase
-from benchmark_examples.autoattack.attacks.base import AttackBase
-from benchmark_examples.autoattack.defenses.base import DefenseBase
+from benchmark_examples.autoattack.attacks.base import AttackCase
 
 __APP_PREFIX = 'benchmark_examples/autoattack/applications'
 __ATTACK_PREFIX = 'benchmark_examples/autoattack/attacks'
-__DEFENSE_PREFIX = 'benchmark_examples/autoattack/defenses'
 
 
 def _find_subpackages(package_name):
@@ -61,20 +59,8 @@ def _find_attacks() -> List[str]:
     return attacks
 
 
-def _find_defenses() -> List[str]:
-    """Find all defenses."""
-    module = importlib.import_module(__DEFENSE_PREFIX.replace('/', '.'))
-    defenses = [
-        defense
-        for defense in dir(module)
-        if not defense.startswith("__") and defense != 'base'
-    ]
-    return defenses
-
-
 APPLICATIONS: Dict[Tuple[str, str], str] = _find_applications()
 ATTACKS: List[str] = _find_attacks()
-DEFENSES: List[str] = _find_defenses()
 
 
 def dispatch_application(dataset: str, model: str) -> type(ApplicationBase):
@@ -103,7 +89,7 @@ def dispatch_application(dataset: str, model: str) -> type(ApplicationBase):
     return App
 
 
-def dispatch_attack(attack: str) -> type(AttackBase):
+def dispatch_attack(attack: str) -> type(AttackCase):
     """
     Dispatch the attack class from the given attack name.
     Args:
@@ -123,31 +109,5 @@ def dispatch_attack(attack: str) -> type(AttackBase):
             f"Cannot find implemention of {attack} in attack modules' __init__.py."
         )
     Attack = getattr(attack_module, attack)
-    assert issubclass(
-        Attack, AttackBase
-    ), f"Need AttackBase, got {type(Attack)}, {Attack}"
+    assert issubclass(Attack, AttackCase)
     return Attack
-
-
-def dispatch_defense(defense: str) -> type(DefenseBase):
-    """
-    Dispatch the defense class from the given attack name.
-    Args:
-        defense (str): attack name.
-
-    Returns:
-        The attack case class.
-    """
-    if defense not in DEFENSES:
-        raise RuntimeError(
-            f"Provided defense:{defense} seems not implemented."
-            f"The avaliable defenses are {DEFENSES}"
-        )
-    defense_module = importlib.import_module(__DEFENSE_PREFIX.replace('/', '.'))
-    if not hasattr(defense_module, defense):
-        raise ModuleNotFoundError(
-            f"Cannot find implemention of {defense} in defense modules' __init__.py."
-        )
-    Defense = getattr(defense_module, defense)
-    assert issubclass(Defense, DefenseBase)
-    return Defense

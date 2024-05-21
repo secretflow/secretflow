@@ -69,10 +69,10 @@ class FedSTC(BaseTFModel):
             # Sparse matrix decoded in the downstream
             updates = sparse_decode(data=updates)
             weights = [np.add(w, u) for w, u in zip(self.model_weights, updates)]
-            self.set_weights(weights)
+            self.model.set_weights(weights)
         num_sample = 0
         logs = {}
-        self.model_weights = self.get_weights()
+        self.model_weights = self.model.get_weights()
         for _ in range(train_steps):
             x, y, s_w = self.next_batch()
             num_sample += self.get_sample_num(x)
@@ -97,14 +97,14 @@ class FedSTC(BaseTFModel):
             client_updates = [
                 np.add(np.subtract(new_w, old_w), res_u)
                 for new_w, old_w, res_u in zip(
-                    self.get_weights(), self.model_weights, self._res
+                    self.model.get_weights(), self.model_weights, self._res
                 )
             ]
         else:
             # initial training res is zero
             client_updates = [
                 np.subtract(new_w, old_w)
-                for new_w, old_w in zip(self.get_weights(), self.model_weights)
+                for new_w, old_w in zip(self.model.get_weights(), self.model_weights)
             ]
 
         # DP operation
@@ -137,7 +137,7 @@ class FedSTC(BaseTFModel):
             # Sparse matrix decoded in the downstream
             updates = sparse_decode(data=updates)
             weights = [np.add(w, u) for w, u in zip(self.model_weights, updates)]
-            self.set_weights(weights)
+            self.model.set_weights(weights)
 
 
 @register_strategy(strategy_name='fed_stc', backend='tensorflow')

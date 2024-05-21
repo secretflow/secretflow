@@ -267,7 +267,7 @@ for split_point in split_options:
                         elif method == "normal":
                             strategy_dict[party_devices[-1]] = "index_split_nn"
                         else:
-                            raise "Invalid method {}!!!".format(method)
+                            raise TypeError("Invalid method {}!!!".format(method))
 
                         # ready to train
                         sl_model = CustomSLModel(

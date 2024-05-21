@@ -12,18 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict
+import logging
+import os.path
+import uuid
 
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
-from torch.utils.data import DataLoader, Dataset
 
 from benchmark_examples.autoattack import global_config
-from benchmark_examples.autoattack.applications.base import ApplicationBase, InputMode
-from benchmark_examples.autoattack.attacks.base import AttackBase, AttackType
+from benchmark_examples.autoattack.attacks.base import AttackCase
 from benchmark_examples.autoattack.global_config import is_simple_test
-from secretflow.ml.nn.callbacks.attack import AttackCallback
+from secretflow import tune
 from secretflow.ml.nn.sl.attacks.lia_torch import LabelInferenceAttack
 
 
@@ -36,6 +36,7 @@ def weights_init_ones(m):
 class BottomModelPlus(nn.Module):
     def __init__(
         self,
+        bottom_model,
         size_bottom_out=10,
         num_classes=10,
         num_layer=1,
@@ -43,7 +44,7 @@ class BottomModelPlus(nn.Module):
         use_bn=True,
     ):
         super(BottomModelPlus, self).__init__()
-        self.bottom_model = None
+        self.bottom_model = bottom_model
 
         dict_activation_func_type = {'ReLU': F.relu, 'Sigmoid': F.sigmoid, 'None': None}
         self.activation_func = dict_activation_func_type[activation_func_type]
@@ -72,7 +73,7 @@ class BottomModelPlus(nn.Module):
 
     def forward(self, x):
         x = self.bottom_model(x)
-        # print(f"IN ATTACK model ,after bottom model ,the x shape = {x.shape}")
+
         if self.num_layer >= 2:
             if self.use_bn:
                 x = self.bn_1(x)
@@ -109,115 +110,55 @@ class BottomModelPlus(nn.Module):
         return x
 
 
-def data_builder(
-    train_complete_dataset: Dataset,
-    train_sample_labeled_dataset: Dataset,
-    train_sample_unlabeled_dataset: Dataset,
-    test_dataset: Dataset,
-    batch_size: int = 16,
-):
-    def prepare_data():
-        train_complete_loader = DataLoader(
-            train_complete_dataset,
-            batch_size=batch_size,
-            shuffle=True,
-            num_workers=0,
-            drop_last=True,
-        )
-        train_labeled_loader = DataLoader(
-            train_sample_labeled_dataset,
-            batch_size=batch_size,
-            shuffle=True,
-            num_workers=0,
-            drop_last=True,
-        )
-        train_unlabeled_loader = DataLoader(
-            train_sample_unlabeled_dataset,
-            batch_size=batch_size,
-            shuffle=True,
-            num_workers=0,
-            drop_last=True,
-        )
-        test_loader = DataLoader(
-            test_dataset,
-            batch_size=batch_size,
-            shuffle=True,
-            num_workers=0,
-            drop_last=True,
-        )
-        return (
-            train_labeled_loader,
-            train_unlabeled_loader,
-            test_loader,
-            train_complete_loader,
-        )
+class LiaAttackCase(AttackCase):
+    def _attack(self):
+        self.app.prepare_data()
+        model = self.app.lia_auxiliary_model(ema=False)
+        ema_model = self.app.lia_auxiliary_model(ema=True)
 
-    return prepare_data
-
-
-class LiaAttackCase(AttackBase):
-    """
-    Lia attack needs:
-    - an aux model: with same BottomModelPlus
-    - an aux ema model
-    - an aux databuilder which return some samples.
-    """
-
-    def __init__(self, alice=None, bob=None):
-        super().__init__(alice, bob)
-
-    def __str__(self):
-        return 'lia'
-
-    def build_attack_callback(self, app: ApplicationBase) -> AttackCallback:
-
-        att_model = BottomModelPlus(
-            size_bottom_out=app.hidden_size, num_classes=app.num_classes
-        )
-        ema_att_model = BottomModelPlus(
-            size_bottom_out=app.hidden_size, num_classes=app.num_classes
-        )
-        for param in ema_att_model.parameters():
-            param.detach_()
-        # lia need device_f data with devicc_y label
-        train_complete_dataset = app.get_device_f_train_dataset(enable_label=0)
-        train_sample_labeled_dataset = app.get_device_f_train_dataset(
-            sample_size=50, enable_label=0
-        )
-        train_sample_unlabeled_dataset = app.get_device_f_train_dataset(
-            sample_size=50, enable_label=-1
-        )
-        test_dataset = app.get_device_f_test_dataset(enable_label=0)
-        data_buil = data_builder(
-            train_complete_dataset,
-            train_sample_labeled_dataset,
-            train_sample_unlabeled_dataset,
-            test_dataset,
-        )
+        data_buil = self.app.lia_auxiliary_data_builder()
         # for precision unittest
-        return LabelInferenceAttack(
-            app.device_f,
-            att_model,
-            ema_att_model,
-            app.num_classes,
-            data_buil,
-            attack_epochs=1 if is_simple_test() else 5,
-            save_model_path=None,
-            T=self.config.get('T', 0.8),
-            alpha=self.config.get('alpha', 0.75),
-            val_iteration=self.config.get('val_iteration', 1024),
-            k=4 if app.num_classes == 10 else 2,
-            lr=self.config.get('lr', 2e-3),
-            ema_decay=self.config.get('ema_decay', 0.999),
-            lambda_u=self.config.get('lambda_u', 50),
-            exec_device='cuda' if global_config.is_use_gpu() else 'cpu',
-        )
+        model_save_path = f'./lia_model + {uuid.uuid4().int}'
+        try:
+            lia_cb = LabelInferenceAttack(
+                self.app.device_f,
+                model,
+                ema_model,
+                self.app.num_classes,
+                data_buil,
+                attack_epochs=1 if is_simple_test() else 10,
+                save_model_path=model_save_path,
+                T=self.config.get('T', 0.8),
+                alpha=self.config.get('alpha', 0.75),
+                val_iteration=self.config.get('val_iteration', 1024),
+                k=4 if self.app.num_classes == 10 else 2,
+                lr=self.config.get('lr', 2e-3),
+                ema_decay=self.config.get('ema_decay', 0.999),
+                lambda_u=self.config.get('lambda_u', 50),
+                exec_device='cuda' if global_config.is_use_gpu() else 'cpu',
+            )
 
-    def attack_type(self) -> AttackType:
-        return AttackType.LABLE_INFERENSE
+            history = self.app.train(lia_cb)
+            logging.warning(
+                f"RESULT: {type(self.app).__name__} lia attack metrics = {lia_cb.get_attack_metrics()}"
+            )
+            return history, lia_cb.get_attack_metrics()
+        finally:
+            if os.path.exists(model_save_path):
+                os.remove(model_save_path)
 
-    def tune_metrics(self) -> Dict[str, str]:
-        return {'val_acc_0': 'max'}
+    def attack_search_space(self):
+        return {
+            'T': tune.search.grid_search([0.7, 0.8]),  # near 0.8
+            'alpha': tune.search.grid_search([0.9, 0.999]),  # (0,1) near 0.9
+            # 'val_iteration': 1024,  # 1 -
+            'lr': tune.search.grid_search([2e-4, 2e-3]),
+            'ema_decay': tune.search.grid_search([0.8, 0.9, 0.999]),
+            'lambda_u': tune.search.grid_search([40, 60]),  # 40 - 60
+        }
 
-    def check_app_valid(self, app: ApplicationBase) -> bool:
-        return app.base_input_mode() in [InputMode.SINGLE]
+    def metric_name(self):
+        return 'val_acc_0'
+
+    def metric_mode(self):
+        return 'max'

@@ -11,33 +11,28 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import logging
 from typing import Callable, List, Optional, Union
 
 import numpy as np
 from torch import nn, optim
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 from torchmetrics import AUROC, Accuracy, Precision
 from torchvision import datasets, transforms
 
 from benchmark_examples.autoattack import global_config
-from benchmark_examples.autoattack.applications.base import ModelType
 from benchmark_examples.autoattack.applications.image.mnist.mnist_base import MnistBase
-from benchmark_examples.autoattack.utils.data_utils import (
+from benchmark_examples.autoattack.utils.dataset_utils import (
     create_custom_dataset_builder,
-    get_sample_indexes,
 )
-from secretflow import reveal
 from secretflow.ml.nn import SLModel
 from secretflow.ml.nn.applications.sl_vgg_torch import VGGBase, VGGFuse
 from secretflow.ml.nn.callbacks.callback import Callback
-from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
+from secretflow.ml.nn.utils import TorchModel, metric_wrapper, optim_wrapper
 from secretflow.utils.simulation.datasets import _CACHE_DIR
 
 vgg_resize = 112
 half_vgg_resize = vgg_resize // 2
-simple_sample_nums = 1000
 
 
 def vgg_transform():
@@ -64,20 +59,19 @@ class MyMnistDataset(datasets.MNIST):
         self,
         x,
         is_left: bool = True,
-        enable_label: int = 0,
+        has_label: int = 0,
         list_return: bool = False,
         indexes=None,
-        **kwargs,
     ):
         """
         MNIST dataset for VGG16.
         Args:
             is_left: left part (0, 56), right part (56, 112).
-            enable_label: whether return label, '0' for return label, 1 for do not return label, -1 for return all label as -1.
+            has_label: whether return label, '0' for return label, 1 for do not return label, -1 for return all label as -1.
             list_return: whether return data as a list.
         """
         self.is_left = is_left
-        self.enable_label = enable_label
+        self.has_label = has_label
         self.list_return = list_return
         train = True if x[0] == 'train' else False
         super().__init__(
@@ -86,9 +80,6 @@ class MyMnistDataset(datasets.MNIST):
         if indexes is not None:
             self.data = self.data[indexes]
             self.targets = np.array(self.targets)[indexes]
-        if global_config.is_simple_test():
-            self.data = self.data[0:simple_sample_nums]
-            self.targets = self.targets[0:simple_sample_nums]
 
     def __getitem__(self, item):
         data, label = super().__getitem__(item)
@@ -96,8 +87,8 @@ class MyMnistDataset(datasets.MNIST):
             data[..., :half_vgg_resize] if self.is_left else data[..., half_vgg_resize:]
         )
         data = [data] if self.list_return else data
-        label = label if self.enable_label == 0 else -1
-        if self.enable_label != 1:
+        label = label if self.has_label == 0 else -1
+        if self.has_label != 1:
             return data, label
         else:
             return data
@@ -105,40 +96,48 @@ class MyMnistDataset(datasets.MNIST):
 
 class AliceDataset(MyMnistDataset):
     def __init__(self, x):
-        super().__init__(x, is_left=True, enable_label=1, list_return=False)
+        super().__init__(x, is_left=True, has_label=1, list_return=False)
 
 
 class BobDataset(MyMnistDataset):
     def __init__(self, x):
-        super().__init__(x, is_left=False, enable_label=0, list_return=False)
+        super().__init__(x, is_left=False, has_label=0, list_return=False)
 
 
 class MnistVGG16(MnistBase):
-    def __init__(self, alice, bob):
+    def __init__(self, config, alice, bob):
         super().__init__(
+            config,
             alice,
             bob,
-            has_custom_dataset=True,
             hidden_size=4608,
             dnn_fuse_units_size=[512 * 3 * 3 * 2, 4096, 4096],
-            epoch=1,
         )
-        self.metrics = [
-            metric_wrapper(
-                Accuracy, task="multiclass", num_classes=10, average='micro'
-            ),
-            metric_wrapper(
-                Precision, task="multiclass", num_classes=10, average='micro'
-            ),
-            metric_wrapper(AUROC, task="multiclass", num_classes=10),
-        ]
-
-        print(f"len of mnnist dataset =  {MyMnistDataset(['test']).data.shape}.")
 
     def prepare_data(self, **kwargs):
-        raise RuntimeError("Mnist Vgg16 does not need to prepare data, please check.")
+        self.alice_train_dataset = MyMnistDataset(
+            ['train'], is_left=True, has_label=1, list_return=True
+        )
+        self.bob_train_dataset = MyMnistDataset(
+            ['train'], is_left=False, has_label=1, list_return=True
+        )
+        sample_len = int(0.4 * len(self.alice_train_dataset))
+        self.sample_alice_dataset, _ = random_split(
+            self.alice_train_dataset,
+            [sample_len, len(self.alice_train_dataset) - sample_len],
+        )
+        self.sample_bob_dataset, _ = random_split(
+            self.bob_train_dataset,
+            [sample_len, len(self.alice_train_dataset) - sample_len],
+        )
+        self.plain_train_label = datasets.MNIST(
+            root_dir(), train=True, download=True
+        ).targets
+        self.plain_test_label = datasets.MNIST(
+            root_dir(), train=False, download=True
+        ).targets
 
-    def _train(
+    def train(
         self, callbacks: Optional[Union[List[Callback], Callback]] = None, **kwargs
     ):
         """VGG16 use dataset builder as the input, so we do not need to pass VDF into fit.
@@ -151,6 +150,7 @@ class MnistVGG16(MnistBase):
             self.alice: self.create_dataset_builder_alice(),
             self.bob: self.create_dataset_builder_bob(),
         }
+
         self.sl_model = SLModel(
             base_model_dict=base_model_dict,
             device_y=self.device_y,
@@ -176,62 +176,6 @@ class MnistVGG16(MnistBase):
         )
         return history
 
-    def get_plain_train_alice_data(self):
-        if self._plain_train_alice_data is not None:
-            return self._plain_train_alice_data
-        alice_train_dataset = MyMnistDataset(
-            ['train'], is_left=True, enable_label=1, list_return=True
-        )
-        plain_alice_train_data_loader = DataLoader(
-            alice_train_dataset,
-            batch_size=len(alice_train_dataset),
-        )
-        self._plain_train_alice_data = next(iter(plain_alice_train_data_loader))[
-            0
-        ].numpy()
-        return self.get_plain_train_alice_data()
-
-    def get_plain_train_bob_data(self):
-        if self._plain_train_bob_data is not None:
-            return self._plain_train_bob_data
-        bob_train_dataset = MyMnistDataset(
-            ['train'], is_left=False, enable_label=1, list_return=True
-        )
-        plain_bob_train_data_loader = DataLoader(
-            bob_train_dataset,
-            batch_size=len(bob_train_dataset),
-        )
-        self._plain_train_bob_data = next(iter(plain_bob_train_data_loader))[0].numpy()
-        return self.get_plain_train_bob_data()
-
-    def get_plain_test_alice_data(self):
-        if self._plain_test_alice_data is not None:
-            return self._plain_test_alice_data
-        alice_test_dataset = MyMnistDataset(
-            ['test'], is_left=True, enable_label=1, list_return=True
-        )
-        plain_alice_test_data_loader = DataLoader(
-            alice_test_dataset,
-            batch_size=len(alice_test_dataset),
-        )
-        self._plain_test_alice_data = next(iter(plain_alice_test_data_loader))[
-            0
-        ].numpy()
-        return self.get_plain_train_alice_data()
-
-    def get_plain_test_bob_data(self):
-        if self._plain_test_bob_data is not None:
-            return self._plain_test_bob_data
-        bob_test_dataset = MyMnistDataset(
-            ['test'], is_left=False, enable_label=1, list_return=True
-        )
-        plain_bob_test_data_loader = DataLoader(
-            bob_test_dataset,
-            batch_size=len(bob_test_dataset),
-        )
-        self._plain_test_bob_data = next(iter(plain_bob_test_data_loader))[0].numpy()
-        return self.get_plain_train_bob_data()
-
     def _predict(
         self, callbacks: Optional[Union[List[Callback], Callback]] = None, **kwargs
     ):
@@ -248,13 +192,20 @@ class MnistVGG16(MnistBase):
             callbacks=callbacks,
         )
 
-    def model_type(self) -> ModelType:
-        return ModelType.VGG16
-
     def _create_base_model(self):
         return TorchModel(
             model_fn=VGGBase,
+            loss_fn=nn.CrossEntropyLoss,
             optim_fn=optim_wrapper(optim.Adam, lr=1e-3),
+            metrics=[
+                metric_wrapper(
+                    Accuracy, task="multiclass", num_classes=10, average='micro'
+                ),
+                metric_wrapper(
+                    Precision, task="multiclass", num_classes=10, average='micro'
+                ),
+                metric_wrapper(AUROC, task="multiclass", num_classes=10),
+            ],
             input_channels=3,
         )
 
@@ -269,7 +220,15 @@ class MnistVGG16(MnistBase):
             model_fn=VGGFuse,
             loss_fn=nn.CrossEntropyLoss,
             optim_fn=optim_wrapper(optim.Adam, lr=1e-3),
-            metrics=self.metrics,
+            metrics=[
+                metric_wrapper(
+                    Accuracy, task="multiclass", num_classes=10, average='micro'
+                ),
+                metric_wrapper(
+                    Precision, task="multiclass", num_classes=10, average='micro'
+                ),
+                metric_wrapper(AUROC, task="multiclass", num_classes=10),
+            ],
             dnn_units_size=self.dnn_fuse_units_size,
         )
 
@@ -286,99 +245,141 @@ class MnistVGG16(MnistBase):
 
     def create_predict_dataset_builder_bob(self, *args, **kwargs) -> Optional[Callable]:
         return create_custom_dataset_builder(
-            MyMnistDataset, self.train_batch_size, is_left=False, enable_label=1
+            MyMnistDataset, self.train_batch_size, is_left=False, has_label=1
         )
 
-    def get_plain_train_label(self):
-        if self._plain_train_label is not None:
-            return self._plain_train_label
-        _, train_label, _, _ = super().prepare_data()
-        self._plain_train_label = reveal(train_label.partitions[self.bob].data)
-        return self.get_plain_train_label()
+    def alice_feature_nums_range(self) -> list:
+        return [3 * vgg_resize * vgg_resize // 2]
 
-    def get_plain_test_label(self):
-        if self._plain_test_label is not None:
-            return self._plain_test_label
-        _, _, _, test_label = super().prepare_data()
-        self._plain_test_label = reveal(test_label.partitions[self.bob].data)
-        return self.get_plain_test_label()
+    def hidden_size_range(self) -> list:
+        return [4608]
 
-    def get_device_f_train_dataset(
-        self,
-        sample_size: int = None,
-        frac: float = None,
-        indexes: np.ndarray = None,
-        enable_label: int = 1,
-        **kwargs,
-    ):
-        indexes = get_sample_indexes(self.train_dataset_len, sample_size, frac, indexes)
-        # bob
-        return MyMnistDataset(
-            ['train'],
-            is_left=False,
-            indexes=indexes,
-            enable_label=enable_label,
-            **kwargs,
+    def dnn_fuse_units_size_range(self):
+        return [
+            [512 * 3 * 3 * 2, 4096],
+            [512 * 3 * 3 * 2, 4096, 4096],
+            [512 * 3 * 3 * 2, 4096, 4096, 4096],
+            [512 * 3 * 3 * 2, 4096, 4096, 4096, 4096],
+        ]
+
+    def support_attacks(self):
+        return ['lia', 'fia', 'replay', 'replace']
+
+    def lia_auxiliary_model(self, ema=False):
+        from benchmark_examples.autoattack.attacks.lia import BottomModelPlus
+
+        bottom_model = VGGBase(input_channels=3)
+        model = BottomModelPlus(bottom_model, size_bottom_out=self.hidden_size)
+
+        if ema:
+            for param in model.parameters():
+                param.detach_()
+
+        return model
+
+    def fia_victim_mean_attr(self):
+        loader = DataLoader(
+            self.sample_alice_dataset, batch_size=len(self.sample_alice_dataset)
         )
+        # self.sample_alice_dataset return a list (since list_return=True), so we need to get the [0].
+        np_data = next(iter(loader))[0].numpy()
+        return np_data.reshape((np_data.shape[0], -1)).mean(axis=0)
 
-    def get_device_y_train_dataset(
-        self,
-        sample_size: int = None,
-        frac: float = None,
-        indexes: np.ndarray = None,
-        enable_label: int = 0,
-        **kwargs,
-    ):
-        indexes = get_sample_indexes(self.train_dataset_len, sample_size, frac, indexes)
-        # bob
-        return MyMnistDataset(
-            ['train'],
-            is_left=True,
-            indexes=indexes,
-            enable_label=enable_label,
-            **kwargs,
+    def fia_victim_input_shape(self):
+        return [3, vgg_resize, half_vgg_resize]
+
+    def fia_attack_input_shape(self):
+        return [3, vgg_resize, half_vgg_resize]
+
+    def fia_auxiliary_data_builder(self):
+        alice_train = self.sample_alice_dataset
+        bob_train = self.sample_bob_dataset
+        batch_size = self.train_batch_size
+
+        def _prepare_data():
+            alice_dataloader = DataLoader(
+                dataset=alice_train, shuffle=False, batch_size=batch_size
+            )
+            bob_dataloader = DataLoader(
+                dataset=bob_train, shuffle=False, batch_size=batch_size
+            )
+            dataloader_dict = {'alice': alice_dataloader, 'bob': bob_dataloader}
+            return dataloader_dict, dataloader_dict
+
+        return _prepare_data
+
+    def lia_auxiliary_data_builder(self, batch_size=16, file_path=None):
+        train_labeled_completed = BobDataset(['train'])
+        train_labeled, _ = random_split(
+            train_labeled_completed, [50, len(train_labeled_completed) - 50]
         )
-
-    def get_device_f_test_dataset(
-        self,
-        sample_size: int = None,
-        frac: float = None,
-        indexes: np.ndarray = None,
-        enable_label: int = 1,
-        **kwargs,
-    ):
-        indexes = get_sample_indexes(self.test_dataset_len, sample_size, frac, indexes)
-        # bob
-        return MyMnistDataset(
-            ['test'],
-            is_left=False,
-            list_return=False,
-            enable_label=enable_label,
-            indexes=indexes,
-            **kwargs,
+        train_unlabeled = MyMnistDataset(['train'], is_left=False, has_label=-1)
+        train_unlabeled, _ = random_split(
+            train_unlabeled, [50, len(train_unlabeled) - 50]
         )
+        test_labeled = BobDataset(['test'])
 
-    def get_device_y_test_dataset(
-        self,
-        sample_size: int = None,
-        frac: float = None,
-        indexes: np.ndarray = None,
-        enable_label: int = 0,
-        **kwargs,
-    ):
-        indexes = get_sample_indexes(self.test_dataset_len, sample_size, frac, indexes)
-        # bob
-        return MyMnistDataset(
-            ['test'],
-            is_left=True,
-            list_return=False,
-            indexes=indexes,
-            enable_label=enable_label,
-            **kwargs,
+        def prepare_data():
+            train_complete_trainloader = DataLoader(
+                train_labeled_completed,
+                batch_size=batch_size,
+                shuffle=True,
+                num_workers=0,
+                drop_last=True,
+            )
+            train_labeled_dataloader = DataLoader(
+                train_labeled,
+                batch_size=batch_size,
+                shuffle=True,
+                num_workers=0,
+                drop_last=True,
+            )
+            train_unlabeled_dataloader = DataLoader(
+                train_unlabeled,
+                batch_size=batch_size,
+                shuffle=True,
+                num_workers=0,
+                drop_last=True,
+            )
+            test_loader = DataLoader(
+                test_labeled,
+                batch_size=batch_size,
+                shuffle=True,
+                num_workers=0,
+                drop_last=True,
+            )
+            return (
+                train_labeled_dataloader,
+                train_unlabeled_dataloader,
+                test_loader,
+                train_complete_trainloader,
+            )
+
+        return prepare_data
+
+    def replace_auxiliary_attack_configs(self, target_nums: int = 15):
+        target_class = 8
+        target_indexes = np.where(np.array(self.plain_train_label) == target_class)[0]
+        target_set = np.random.choice(target_indexes, target_nums, replace=False)
+
+        train_poison_set = np.random.choice(
+            range(len(self.plain_train_label)), 100, replace=False
         )
-
-    def get_device_y_input_shape(self):
-        return [self.train_dataset_len, 3, vgg_resize, half_vgg_resize]
-
-    def get_device_f_input_shape(self):
-        return [self.train_dataset_len, 3, vgg_resize, half_vgg_resize]
+        train_poison_dataset = MyMnistDataset(
+            ['train'], is_left=True, has_label=1, indexes=train_poison_set
+        )
+        train_poison_dataloader = DataLoader(
+            train_poison_dataset, batch_size=len(train_poison_set)
+        )
+        # train_poison_dataset return a tensor but not list, so do not use [0] to convert.
+        train_poison_np = next(iter(train_poison_dataloader)).numpy()
+        eval_poison_set = np.random.choice(
+            range(len(self.plain_test_label)), 100, replace=False
+        )
+        return (
+            target_class,
+            target_set,
+            train_poison_set,
+            train_poison_np,
+            eval_poison_set,
+        )

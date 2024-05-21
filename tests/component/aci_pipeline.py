@@ -26,14 +26,13 @@ if __name__ == "__main__":
     attrs = {
         "protocol": "PROTOCOL_ECDH",
         "receiver": "alice",
-        "disable_alignment": False,
+        "sort_result": True,
         "ecdh_curve": "CURVE_FOURQ",
-        "left_side": ["alice"],
         "input/receiver_input/key": ["id0"],
         "input/sender_input/key": ["id1"],
     }
     # 测试psi
-    psi = TestComp("psi_test", "data_prep", "psi", "0.0.4", attrs)
+    psi = TestComp("psi_test", "data_prep", "psi", "0.0.5", attrs)
     aci_pipe.add_comp(psi, ["DAGInput.alice", "DAGInput.bob"])
 
     attrs = {

@@ -12,33 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict
+import logging
 
-from benchmark_examples.autoattack.applications.base import (
-    ApplicationBase,
-    ClassficationType,
-)
-from benchmark_examples.autoattack.attacks.base import AttackBase, AttackType
+from benchmark_examples.autoattack.attacks.base import AttackCase
 from secretflow import reveal
-from secretflow.ml.nn.callbacks.attack import AttackCallback
 from secretflow.ml.nn.sl.attacks.norm_torch import NormAttack
 
 
-class NormAttackCase(AttackBase):
+class NormAttackCase(AttackCase):
+    def _attack(self):
+        self.app.prepare_data()
+        label = reveal(self.app.get_train_label().partitions[self.app.device_y].data)
+        norm_callback = NormAttack(self.app.device_f, label)
+        history = self.app.train(norm_callback)
+        logging.warning(
+            f"RESULT: {type(self.app).__name__} norm attack metrics = {norm_callback.get_attack_metrics()}"
+        )
+        return history, norm_callback.get_attack_metrics()
 
-    def __str__(self):
-        return 'norm'
+    def attack_search_space(self):
+        # norm attack does not have search space.
+        return {}
 
-    def build_attack_callback(self, app: ApplicationBase) -> AttackCallback:
-        label = reveal(app.get_train_label().partitions[app.device_y].data)
-        return NormAttack(app.device_f, label)
+    def metric_name(self):
+        return 'auc'
 
-    def attack_type(self) -> AttackType:
-        return AttackType.LABLE_INFERENSE
-
-    def tune_metrics(self) -> Dict[str, str]:
-        return {'auc': 'max'}
-
-    def check_app_valid(self, app: ApplicationBase) -> bool:
-        # TODO: support multiclass
-        return app.classfication_type() in [ClassficationType.BINARY]
+    def metric_mode(self):
+        return 'max'

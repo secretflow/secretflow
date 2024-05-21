@@ -29,7 +29,7 @@ union_comp = Component(
     "union",
     domain="data_prep",
     version="0.0.1",
-    desc="Merge two datasets in vertical axis, the table type can be individual or vertical but must be the same.",
+    desc="Perform a horizontal merge of two data tables, supporting the individual table or vertical table on the same node.",
 )
 
 union_comp.io(

@@ -34,10 +34,14 @@ class BaseDataset:
         return self.label_set
 
     def load_dataset(self):
-        raise "load_dataset() should be implemented in derived class!!!"
+        raise NotImplementedError(
+            "load_dataset() should be implemented in derived class!!!"
+        )
 
-    def _split_data(self, dataset, party_num):
-        raise "load_dataset() should be implemented in derived class!!!"
+    def _split_data(self, dataset, party_num=2, channel_first=True):
+        raise NotImplementedError(
+            "_split_data() should be implemented in derived class!!!"
+        )
 
     def split_train(self, party_num=2, channel_first=True):
         if self.train_pdatasets is None:

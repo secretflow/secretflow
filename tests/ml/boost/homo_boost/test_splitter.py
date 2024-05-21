@@ -31,7 +31,7 @@ def gen_histogram(data_size, feature_num, use_random=False, data_bin_num=10):
 
     # 创建 bin_split_points
     bin_split_points = []
-    for f_name in header:
+    for _ in header:
         if use_random:
             bin_split_points.append(np.linspace(0.0, 1.0, data_bin_num + 1)[1:])
         else:

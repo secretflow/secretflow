@@ -55,7 +55,7 @@ def create_passive_model(
         elif opt_name == "adam":
             optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
         else:
-            raise "Invalid Optimizer {}!!!".format(opt_name)
+            raise TypeError("Invalid Optimizer {}!!!".format(opt_name))
 
         m.compile(
             loss=compile_args["loss"],
@@ -93,7 +93,7 @@ def create_fuse_model(
                 elif agg == "concatenate":
                     x = layers.concatenate(xs)
                 else:
-                    raise "Invalid aggregatio {}!!!".format(agg)
+                    raise TypeError("Invalid aggregatio {}!!!".format(agg))
                 x = self.model(x)
                 return tf.nn.softmax(x, axis=1)
 
@@ -109,7 +109,7 @@ def create_fuse_model(
         elif opt_name == "adam":
             optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
         else:
-            raise "Invalid Optimizer {}!!!".format(opt_name)
+            raise TypeError("Invalid Optimizer {}!!!".format(opt_name))
 
         m.compile(
             loss=compile_args["loss"],

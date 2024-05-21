@@ -25,7 +25,6 @@ from torchmetrics import Accuracy, Precision
 
 import secretflow as sf
 from benchmark_examples.autoattack import global_config
-from benchmark_examples.autoattack.applications.base import ModelType
 from benchmark_examples.autoattack.applications.image.cifar10.cifar10_base import (
     Cifar10ApplicationBase,
 )
@@ -222,17 +221,24 @@ def correct_counter(output, target, batch_size, topk=(1, 5)):
 
 
 class Cifar10Resnet20(Cifar10ApplicationBase):
-    def __init__(self, alice, bob):
-        super().__init__(alice, bob, bob)
-
-    def model_type(self) -> ModelType:
-        return ModelType.RESNET20
+    def __init__(self, config, alice, bob):
+        super().__init__(config, alice, bob, bob)
 
     def create_base_model(self):
+        loss_fn = nn.CrossEntropyLoss
         optim_fn = optim_wrapper(optim.SGD, lr=1e-2, momentum=0.9, weight_decay=5e-4)
         return TorchModel(
             model_fn=BottomModelForCifar10,
+            loss_fn=loss_fn,
             optim_fn=optim_fn,
+            metrics=[
+                metric_wrapper(
+                    Accuracy, task="multiclass", num_classes=10, average='micro'
+                ),
+                metric_wrapper(
+                    Precision, task="multiclass", num_classes=10, average='micro'
+                ),
+            ],
         )
 
     def create_base_model_alice(self):
@@ -278,9 +284,9 @@ class Cifar10Resnet20(Cifar10ApplicationBase):
             num_gpus=0.001 if global_config.is_use_gpu() else 0,
         )
         history = self.sl_model.fit(
-            self.get_train_data(),
-            self.get_train_label(),
-            validation_data=(self.get_test_data(), self.get_test_label()),
+            self.train_data,
+            self.train_label,
+            validation_data=(self.test_data, self.test_label),
             epochs=2,
             batch_size=128,
             shuffle=False,
@@ -290,14 +296,27 @@ class Cifar10Resnet20(Cifar10ApplicationBase):
         )
 
         pred_bs = 128
-        result = self.sl_model.predict(
-            self.get_train_data(), batch_size=pred_bs, verbose=1
-        )
+        result = self.sl_model.predict(self.train_data, batch_size=pred_bs, verbose=1)
         cor_count = self.bob(correct_counter)(
-            result, self.get_train_label(), batch_size=pred_bs, topk=(1, 4)
+            result, self.train_label, batch_size=pred_bs, topk=(1, 4)
         )
         sf.wait(cor_count)
         logging.warning(
             f"RESULT: {type(self).__name__} {type(callbacks).__name__} training history = {history}"
         )
         return history
+
+    def support_attacks(self):
+        return ['lia', 'replay', 'replace']
+
+    def lia_auxiliary_model(self, ema=False):
+        from benchmark_examples.autoattack.attacks.lia import BottomModelPlus
+
+        bottom_model = BottomModelForCifar10()
+        model = BottomModelPlus(bottom_model)
+
+        if ema:
+            for param in model.parameters():
+                param.detach_()
+
+        return model

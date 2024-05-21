@@ -91,12 +91,12 @@ class FedProx(BaseTFModel):
         self.logs = logs
         self.epoch_logs = copy.deepcopy(self.logs)
 
-        model_weights = self.get_weights()
+        model_weights = self.model.get_weights()
 
         # DP operation
         if dp_strategy is not None:
             if dp_strategy.model_gdp is not None:
-                model_weights = dp_strategy.model_gdp(self.get_weights())
+                model_weights = dp_strategy.model_gdp(self.model.get_weights())
 
         return model_weights, num_sample
 

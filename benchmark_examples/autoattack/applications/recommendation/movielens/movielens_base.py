@@ -14,23 +14,16 @@
 
 from abc import ABC
 from collections import OrderedDict
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
+import torch.optim
+from torch.utils.data import Dataset
 
-from benchmark_examples.autoattack import global_config
-from benchmark_examples.autoattack.applications.base import (
-    ApplicationBase,
-    ClassficationType,
-    DatasetType,
-    InputMode,
-)
+from benchmark_examples.autoattack.applications.base import ApplicationBase
 from benchmark_examples.autoattack.global_config import is_simple_test
-from benchmark_examples.autoattack.utils.data_utils import (
-    SparseTensorDataset,
-    get_sample_indexes,
-)
+from secretflow import reveal
 from secretflow.data.split import train_test_split
 from secretflow.utils.simulation.datasets import load_ml_1m
 
@@ -134,20 +127,40 @@ feature_classes = OrderedDict(
 )
 
 
-def process_data(data: pd.DataFrame):
-    for col in data.columns:
-        data[col] = all_features[col](data[col])
-    return data
+class AliceDataset(Dataset):
+    def __init__(self, df: pd.DataFrame):
+        self.tensors = []
+        for col in df.columns:
+            self.tensors.append(torch.tensor(all_features[col](df[col])))
+
+    def __getitem__(self, index):
+        return tuple(tensor[index] for tensor in self.tensors)
+
+    def __len__(self):
+        return self.tensors[0].size(0)
 
 
-def process_label(label: pd.DataFrame):
-    label['Rating'] = pd.Series([0 if int(v) < 3 else 1 for v in label['Rating']])
-    return label
+class BobDataset(Dataset):
+    def __init__(self, df, label):
+        self.tensors = []
+        for col in df.columns:
+            self.tensors.append(torch.tensor(all_features[col](df[col])))
+        self.label = torch.unsqueeze(
+            torch.tensor([0 if int(v) < 3 else 1 for v in label['Rating']]).float(),
+            dim=1,
+        )
+
+    def __getitem__(self, index):
+        return tuple(tensor[index] for tensor in self.tensors), self.label[index]
+
+    def __len__(self):
+        return self.tensors[0].size(0)
 
 
 class MovielensBase(ApplicationBase, ABC):
     def __init__(
         self,
+        config,
         alice,
         bob,
         epoch=4,
@@ -161,13 +174,13 @@ class MovielensBase(ApplicationBase, ABC):
         deepfm_embedding_dim=None,
     ):
         super().__init__(
+            config,
             alice,
             bob,
-            has_custom_dataset=True,
             device_y=bob,
             total_fea_nums=6,
             alice_fea_nums=alice_fea_nums,
-            num_classes=2,
+            num_classes=10,
             epoch=epoch,
             train_batch_size=train_batch_size,
             hidden_size=hidden_size,
@@ -177,19 +190,6 @@ class MovielensBase(ApplicationBase, ABC):
             dnn_embedding_dim=dnn_embedding_dim,
             deepfm_embedding_dim=deepfm_embedding_dim,
         )
-        self.alice_input_dims = None
-        self.bob_input_dims = None
-        self.train_dataset_len = 800167
-        self.test_dataset_len = 200042
-        if global_config.is_simple_test():
-            self.train_dataset_len = 800
-            self.test_dataset_len = 200
-
-    def dataset_name(self):
-        return 'movielens'
-
-    def set_config(self, config: Dict[str, str] | None):
-        super().set_config(config)
         self.alice_input_dims = [
             list(feature_classes.values())[i] for i in range(self.alice_fea_nums)
         ]
@@ -224,18 +224,19 @@ class MovielensBase(ApplicationBase, ABC):
         data = vdf.drop(columns=['Rating'])
         data["UserID"] = data["UserID"].astype("string")
         data["MovieID"] = data["MovieID"].astype("string")
-        data = data.apply_func(process_data)
-        label = label.apply_func(process_label)
-        data = data.values
-        label = label.values
-        train_data, test_data = train_test_split(
-            data, train_size=0.8, random_state=global_config.get_random_seed()
+        random_state = 1234
+        self.train_data, self.test_data = train_test_split(
+            data, train_size=0.8, random_state=random_state
         )
-        train_label, test_label = train_test_split(
-            label, train_size=0.8, random_state=global_config.get_random_seed()
+        self.train_label, self.test_label = train_test_split(
+            label, train_size=0.8, random_state=random_state
         )
-
-        return train_data, train_label, test_data, test_label
+        self.plain_alice_train_data = reveal(
+            self.train_data.partitions[self.alice].data
+        )
+        self.plain_bob_train_data = reveal(self.train_data.partitions[self.bob].data)
+        self.plain_train_label = reveal(self.train_label.partitions[self.bob].data)
+        self.plain_test_label = reveal(self.test_label.partitions[self.bob].data)
 
     def create_dataset_builder_alice(self):
         batch_size = self.train_batch_size
@@ -243,7 +244,7 @@ class MovielensBase(ApplicationBase, ABC):
         def dataset_builder(x):
             import torch.utils.data as torch_data
 
-            data_set = SparseTensorDataset(x)
+            data_set = AliceDataset(x[0])
             dataloader = torch_data.DataLoader(
                 dataset=data_set,
                 batch_size=batch_size,
@@ -258,7 +259,7 @@ class MovielensBase(ApplicationBase, ABC):
         def dataset_builder(x):
             import torch.utils.data as torch_data
 
-            data_set = SparseTensorDataset(x)
+            data_set = BobDataset(x[0], x[1])
             dataloader = torch_data.DataLoader(
                 dataset=data_set,
                 batch_size=batch_size,
@@ -275,76 +276,59 @@ class MovielensBase(ApplicationBase, ABC):
     def create_predict_dataset_builder_bob(self, *args, **kwargs) -> Optional[Callable]:
         return self.create_dataset_builder_alice()
 
-    def get_device_f_train_dataset(
-        self,
-        sample_size: int = None,
-        frac: float = None,
-        indexes: np.ndarray = None,
-        enable_label: int = 1,
-        **kwargs,
-    ):
-        indexes = get_sample_indexes(self.train_dataset_len, sample_size, frac, indexes)
-        x = [self.get_plain_train_device_f_data()]
-        if enable_label == 0:
-            x.append(self.get_plain_train_label())
-        return SparseTensorDataset(
-            x,
-            indexes=indexes,
-            enable_label=enable_label,
-        )
+    def alice_feature_nums_range(self) -> list:
+        # support 1-5
+        return [1, 2, 3, 4, 5]
 
-    def get_device_y_train_dataset(
-        self,
-        sample_size: int = None,
-        frac: float = None,
-        indexes: np.ndarray = None,
-        enable_label: int = 0,
-        **kwargs,
-    ):
-        indexes = get_sample_indexes(self.train_dataset_len, sample_size, frac, indexes)
-        x = [self.get_plain_train_device_y_data()]
-        if enable_label == 0:
-            x.append(self.get_plain_train_label())
-        return SparseTensorDataset(
-            x,
-            enable_label=enable_label,
-            indexes=indexes,
-        )
+    def hidden_size_range(self) -> list:
+        return [64]
 
-    def get_device_f_test_dataset(
-        self,
-        sample_size: int = None,
-        frac: float = None,
-        indexes: np.ndarray = None,
-        enable_label: int = 1,
-        **kwargs,
-    ):
-        indexes = get_sample_indexes(self.train_dataset_len, sample_size, frac, indexes)
-        x = [self.get_plain_test_device_f_data()]
-        if enable_label == 0:
-            x.append(self.get_plain_test_label())
-        return SparseTensorDataset(
-            x,
-            indexes=indexes,
-            enable_label=enable_label,
-        )
+    def support_attacks(self) -> list:
+        return ['replay', 'replace']
 
-    def get_device_y_test_dataset(
-        self,
-        sample_size: int = None,
-        frac: float = None,
-        indexes: np.ndarray = None,
-        enable_label: int = 0,
-        **kwargs,
-    ):
-        indexes = get_sample_indexes(self.train_dataset_len, sample_size, frac, indexes)
-        x = [self.get_plain_test_device_y_data()]
-        if enable_label == 0:
-            x.append(self.get_plain_test_label())
-        return SparseTensorDataset(
-            x,
-            enable_label=enable_label,
-            indexes=indexes,
+    def replay_auxiliary_attack_configs(
+        self, target_nums: int = 15
+    ) -> Tuple[int, np.ndarray, np.ndarray]:
+        plain_train_label = self.plain_train_label
+        plain_test_label = self.plain_test_label
+        target_class = 5
+        poison_class = 1
+        target_indexes = np.where(np.array(plain_train_label) == target_class)[0]
+        target_set = np.random.choice(target_indexes, target_nums, replace=False)
+
+        eval_indexes = np.where(np.array(plain_test_label) == poison_class)[0]
+
+        eval_poison_set = np.random.choice(
+            eval_indexes, min(100, len(eval_indexes) - 1), replace=False
+        )
+        return target_class, target_set, eval_poison_set
+
+    def replace_auxiliary_attack_configs(self, target_nums: int = 15):
+        plain_train_label = self.plain_train_label
+        plain_test_label = self.plain_test_label
+        target_class = 5
+        target_indexes = np.where(np.array(plain_train_label) == target_class)[0]
+        target_set = np.random.choice(target_indexes, target_nums, replace=False)
+        train_poison_set = np.random.choice(
+            range(len(plain_train_label)), 100, replace=False
+        )
+        train_poison_data = []
+        for col in self.plain_alice_train_data:
+            train_poison_data.append(
+                np.array(all_features[col](self.plain_alice_train_data[col]))[
+                    train_poison_set
+                ]
+            )
+        train_poison_np = [np.stack(data) for data in train_poison_data]
+        eval_poison_set = np.random.choice(
+            range(len(plain_test_label)), 100, replace=False
+        )
+        return (
+            target_class,
+            target_set,
+            train_poison_set,
+            train_poison_np,
+            eval_poison_set,
         )
 
     def resources_consumes(self) -> List[Dict]:
@@ -353,22 +337,3 @@ class MovielensBase(ApplicationBase, ABC):
             {'alice': 0.5, 'CPU': 0.5, 'GPU': 0.001, 'gpu_mem': 4 * 1024 * 1024 * 1024},
             {'bob': 0.5, 'CPU': 0.5, 'GPU': 0.001, 'gpu_mem': 4 * 1024 * 1024 * 1024},
         ]
-
-    def tune_metrics(self) -> Dict[str, str]:
-        return {
-            "train_BinaryAccuracy": "max",
-            "train_BinaryPrecision": "max",
-            "train_BinaryAUROC": "max",
-            "val_BinaryAccuracy": "max",
-            "val_BinaryPrecision": "max",
-            "val_BinaryAUROC": "max",
-        }
-
-    def classfication_type(self) -> ClassficationType:
-        return ClassficationType.BINARY
-
-    def base_input_mode(self) -> InputMode:
-        return InputMode.MULTI
-
-    def dataset_type(self) -> DatasetType:
-        return DatasetType.RECOMMENDATION

@@ -40,16 +40,23 @@ onehot_encode = Component(
 
 _SUPPORTED_ONEHOT_DROP = ["no_drop", "first", "mode"]
 
-onehot_encode.str_attr(
+onehot_encode.union_attr_group(
     name="drop",
-    desc="""no_drop is default setting, it won't do anything.
-    If it is set to first, it will drop the first category in each feature.
-    If it is set to mode, it will drop the mode category in each feature.
-    If only one category is present and the setting is not no_drop, the feature will be dropped entirely""",
-    is_list=False,
-    is_optional=True,
-    default_value="no_drop",
-    allowed_values=_SUPPORTED_ONEHOT_DROP,
+    desc="drop unwanted category based on selection",
+    group=[
+        onehot_encode.union_selection_attr(
+            name="no_drop",
+            desc="do not drop",
+        ),
+        onehot_encode.union_selection_attr(
+            name="first",
+            desc="drop the first category in each feature.",
+        ),
+        onehot_encode.union_selection_attr(
+            name="mode",
+            desc="drop the mode category in each feature",
+        ),
+    ],
 )
 
 onehot_encode.float_attr(
@@ -158,6 +165,7 @@ def _onehot_encode_fit(trans_data: pd.DataFrame, drop: str, min_frequency: float
             drop_categories[feature_idx] = categories[feature_idx][category_idx]
 
     onehot_rules = {}
+    drop_rules = {}
     for col_name, category, infrequent_category, drop_category in zip(
         trans_data.columns, categories, infrequent_categories, drop_categories
     ):
@@ -170,18 +178,21 @@ def _onehot_encode_fit(trans_data: pd.DataFrame, drop: str, min_frequency: float
                 continue
             col_rules.append([value])
 
-        if infrequent_category is not None and infrequent_category.size > 0:
+        if infrequent_category is not None:
             if drop_category is not None:
                 infrequent_category = np.setdiff1d(infrequent_category, drop_category)
-            col_rules.append(list(infrequent_category))
+            if infrequent_category.size > 0:
+                col_rules.append(list(infrequent_category))
 
         assert (
             len(col_rules) < 100
         ), f"feature {col_name} has too many categories {len(col_rules)}"
 
         onehot_rules[col_name] = col_rules
+        if drop_category is not None:
+            drop_rules[col_name] = drop_category
 
-    return onehot_rules
+    return onehot_rules, drop_rules
 
 
 @onehot_encode.eval_fn
@@ -204,11 +215,11 @@ def onehot_encode_eval_fn(
     assert drop in _SUPPORTED_ONEHOT_DROP, f"unsupported drop type {drop}"
 
     def onehot_fit_transform(trans_data):
-        onehot_rules = _onehot_encode_fit(trans_data, drop, min_frequency)
+        onehot_rules, drop_rules = _onehot_encode_fit(trans_data, drop, min_frequency)
         trans_data = apply_onehot_rule_on_table(
             sc.Table.from_pandas(trans_data), onehot_rules
         )
-        return trans_data, [], onehot_rules
+        return trans_data, [], {"onehot_rules": onehot_rules, "drop_rules": drop_rules}
 
     (output_dd, model_dd, dist_rules_obj) = v_preprocessing_transform(
         ctx,
@@ -225,10 +236,14 @@ def onehot_encode_eval_fn(
     # build report
     if report_rules:
         divs = []
+        drop_divs = []
         for party_rules in dist_rules_obj:
             party = party_rules.device.party
-            onehot_rules = reveal(party_rules)
+            rules = reveal(party_rules)
+            onehot_rules = rules["onehot_rules"]
+            drop_rules = rules["drop_rules"]
 
+            # build onehot rules
             descs = []
             for col_name in onehot_rules:
                 items = []
@@ -246,16 +261,40 @@ def onehot_encode_eval_fn(
 
             div = Div(
                 name=party,
-                desc="per party rules",
+                desc="per party onehot rules",
                 children=[
                     Div.Child(type="descriptions", descriptions=d) for d in descs
                 ],
             )
             divs.append(div)
 
-        report_mate = Report(
-            name="onehot rules", tabs=[Tab(name="onehot rules", divs=divs)]
-        )
+            # build drop rules
+            if drop_rules is not None and len(drop_rules) > 0:
+                drop_descs = []
+                for col_name, drop_value in drop_rules.items():
+                    item = Descriptions.Item(
+                        name=col_name,
+                        type="str",
+                        value=Attribute(s=str(drop_value)),
+                    )
+                    drop_descs.append(
+                        Descriptions(name=col_name, desc="", items=[item])
+                    )
+                drop_divs.append(
+                    Div(
+                        name=party,
+                        desc="per party drop rules",
+                        children=[
+                            Div.Child(type="descriptions", descriptions=d)
+                            for d in drop_descs
+                        ],
+                    )
+                )
+
+        tabs = [Tab(name="onehot rules", divs=divs)]
+        if len(drop_divs) > 0:
+            tabs.append(Tab(name="drop rules", divs=drop_divs))
+        report_mate = Report(name="onehot rules", tabs=tabs)
     else:
         report_mate = Report(name="onehot rules")
 
