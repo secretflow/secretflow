@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fix
 
 - [component] fix sgb export model sigmoid type not consistent with the offline prediction sigmoid type
+- [component] fix sgb/xgb export model miss base score
 
 ## [v1.6.0b0] - 2024-05-21
 

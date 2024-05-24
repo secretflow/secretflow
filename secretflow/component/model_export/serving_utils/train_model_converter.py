@@ -669,6 +669,7 @@ def ss_xgb_converter(
             "output_col_name": pred_name,
             "algo_func": algo_func,
             "num_trees": tree_num,
+            "base_score": model.base,
         }
 
     builder.new_execution("DP_SPECIFIED", party_specific_flag=party_specific_flag)
@@ -887,6 +888,7 @@ def sgb_converter(
             "output_col_name": pred_name,
             "algo_func": algo_func,
             "num_trees": tree_num,
+            "base_score": sgb_model.base,
         }
 
     builder.new_execution("DP_SPECIFIED", party_specific_flag=party_specific_flag)
