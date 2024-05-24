@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
+## [v1.6.1b0] - 2024-05-24
+
+### Fix
+
+- [component] fix sgb export model sigmoid type not consistent with the offline prediction sigmoid type
+
 ## [v1.6.0b0] - 2024-05-21
 
 ### Added

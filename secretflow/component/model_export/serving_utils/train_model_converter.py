@@ -760,7 +760,7 @@ def sgb_converter(
 
     if sgb_model.get_objective() == SgbRegType.Logistic:
         # refer to `SgbModel.predict`
-        algo_func_type = LinkFunctionType.LF_SIGMOID_SR
+        algo_func_type = LinkFunctionType.LF_SIGMOID_RAW
     else:
         algo_func_type = LinkFunctionType.LF_IDENTITY
     algo_func = LinkFunctionType.Name(algo_func_type)
