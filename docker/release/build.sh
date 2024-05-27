@@ -109,26 +109,9 @@ docker buildx build \
 echo -e "Finish building ${GREEN}${IMAGE_LITE_TAG} for linux/arm64 and linux/amd64${NO_COLOR}"
 
 if [[ LATEST -eq 1 ]]; then
-echo -e "Tag and push ${GREEN}${LATEST_TAG}${NO_COLOR} ..."
-docker buildx build \
-  --platform linux/arm64,linux/amd64 \
-  -f anolis.Dockerfile \
-  -t ${LATEST_TAG} \
-  --build-arg sf_version=${VERSION} \
-  --build-arg config_templates="$(cat config_templates.yml)" \
-  --build-arg deploy_templates="$(cat deploy_templates.yml)" \
-  --build-arg comp_list="$(cat comp_list.json)" \
-  --build-arg translation="$(cat translation.json)" \
-  . --push
-echo -e "Tag and push ${GREEN}${LATEST_LITE_TAG}${NO_COLOR} ..."
-docker buildx build \
-  --platform linux/arm64,linux/amd64 \
-  -f anolis-lite.Dockerfile \
-  -t ${LATEST_LITE_TAG} \
-  --build-arg sf_version=${VERSION} \
-  --build-arg config_templates="$(cat config_templates.yml)" \
-  --build-arg deploy_templates="$(cat deploy_templates.yml)" \
-  --build-arg comp_list="$(cat comp_list.json)" \
-  --build-arg translation="$(cat translation.json)" \
-  . --push
+    echo -e "Tag and push ${GREEN}${LATEST_TAG}${NO_COLOR} ..."
+    docker buildx imagetools create --tag ${LATEST_TAG} ${IMAGE_TAG}
+
+    echo -e "Tag and push ${GREEN}${LATEST_LITE_TAG}${NO_COLOR} ..."
+    docker buildx imagetools create --tag ${LATEST_LITE_TAG} ${IMAGE_LITE_TAG}
 fi
