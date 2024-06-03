@@ -240,7 +240,7 @@ for party_num in [2, 3, 4, 5, 6]:
                         elif method == "normal":
                             strategy_dict[party_devices[-1]] = "index_split_nn"
                         else:
-                            raise "Invalid method {}!!!".format(method)
+                            raise TypeError("Invalid method {}!!!".format(method))
 
                         # ready to train
                         sl_model = CustomSLModel(

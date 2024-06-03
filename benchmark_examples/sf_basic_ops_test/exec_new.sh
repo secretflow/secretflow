@@ -32,7 +32,7 @@ exec_cmd="if ! [ -e $test_log_dir ]; then mkdir -p $test_log_dir; fi; cd $test_d
 
 ssh root@${remote_ips[0]} "$(echo $exec_cmd | sed "s/party_name/${remote_parties[0]}/g")" &
 if [[ $1 == 'aby3' ]]; then
-	ssh root@${remote_ips[1]} "$(echo $exec_cmd | sed "s/party_name/${reomote_parties[1]}/g")" &
+	ssh root@${remote_ips[1]} "$(echo $exec_cmd | sed "s/party_name/${remote_parties[1]}/g")" &
 fi
 
 ssh root@${local_ip} "$(echo $exec_cmd | sed "s/party_name/${local_party}/g")"

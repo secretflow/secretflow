@@ -2,13 +2,13 @@
 applications:
   # enable auto tune or not.
   enable_tune: true
-  # which dataset to run (all/bank/...)
+  # which dataset to run (all/bank/cifar10/[bank, drive, ...]/...)
   dataset: all
-  # which model to run (all/bank/...)
+  # which model to run (all/dnn/deepfm/[dnn,vgg16,...]/...)
   model: all
-  # which attack to run (all/bank/...)
+  # which attack to run (all/lia/fia/[no_attack,lia,...]/...)
   attack: all
-  # which defenses to run (all/grad_avg/...)
+  # which defenses to run (all/grad_avg/[no_defense,mid,mixup,...]/...)
   defense: all
   # whether to run a simple test with small dataset and small epoch.
   simple: false
@@ -35,6 +35,7 @@ resources:
 ray:
   # the existing ray cluster's address for connection (ip:port).
   address: ~
+# tuner parameters
 tune:
   applications:
     creditcard:
@@ -169,6 +170,8 @@ tune:
       gamma: [ 10,30 ] # 1 - 20
     replay:
       target_nums: [ 50,100 ]
+    batch_lia:
+      lr: [ 0.001,0.01,0.1 ]
   defenses:
     de_identification:
       subset_num: [ 3,5,7 ]

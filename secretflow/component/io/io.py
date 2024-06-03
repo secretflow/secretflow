@@ -133,7 +133,7 @@ io_write_data = Component(
 
 io_write_data.str_attr(
     name="write_data",
-    desc="rule or model protobuf by json formate",
+    desc="rule or model protobuf by json format",
     is_list=False,
     is_optional=False,
 )

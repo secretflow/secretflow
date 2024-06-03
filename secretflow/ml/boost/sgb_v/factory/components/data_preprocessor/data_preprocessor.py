@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Tuple
+from typing import Tuple, Union
 
 from secretflow.data import FedNdarray
 from secretflow.device import PYUObject
-from secretflow.ml.boost.core.data_preprocess import validate
+from secretflow.ml.boost.core.data_preprocess import validate, validate_sample_weight
 
 from ..component import Component
 
@@ -44,6 +44,10 @@ class DataPreprocessor(Component):
         return
 
     def validate(
-        self, dataset, label
-    ) -> Tuple[FedNdarray, Tuple[int, int], PYUObject, Tuple[int, int]]:
-        return validate(dataset, label)
+        self, dataset, label, sample_weight=None
+    ) -> Tuple[
+        FedNdarray, Tuple[int, int], PYUObject, Tuple[int, int], Union[None, PYUObject]
+    ]:
+        x, x_shape, y, y_shape = validate(dataset, label)
+        w = validate_sample_weight(sample_weight, y_shape=y_shape)
+        return x, x_shape, y, y_shape, w

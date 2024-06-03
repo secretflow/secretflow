@@ -71,7 +71,6 @@ class TestFeatureHistogram:
             t_df['hess'] = hess
             t_df['grad'] = grad
             data_frame_list.append(t_df)
-        data_frame_list = data_frame_list
         valid_feature = {}
         for col in range(len(header)):
             valid_feature[col] = True

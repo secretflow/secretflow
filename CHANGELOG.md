@@ -14,54 +14,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
-## staging
->
-> please add your unreleased change here.
+## [v1.6.1b0] - 2024-05-24
+
+### Fix
+
+- [component] fix sgb export model sigmoid type not consistent with the offline prediction sigmoid type
+- [component] fix sgb/xgb export model miss base score
+
+## [v1.6.0b0] - 2024-05-21
 
 ### Added
 
-- Support defenses in AutoAttack benchmark
-- SLModel: Add FSHA attack
-- SLModel: Add FedPass defense
-- Component: Add union_comp
-- Infra: Support Linux Arm build
-
-### Changed
-
-- SLModel: Support Loss in base model
-- Component: XGB/SGB support checkpoint
-- Component: LR support report_weights
-- Component: pvalue support GLM model
-- Component: onehot add drop parameter with 3 options
-
-### Fixed
-
-- Fix GPU dockerfile
-
-## [v1.5.0.dev240401] - 2024-04-01
-
-### Added
-
-- Add FSHA attack
-- Support duplicate keys in psi comp
-- Add sl/fl tf backend support custom loss
-
-### Fixed
-
-- Resolve gpu docker install error
-- Fix woe bin export err
-
-## [v1.5.0.dev240326] - 2024-03-26
-
-### Added
-
-- Add preprocess_layer for SL ResNet, SL VGG and SL DeepFM.
-- SL/FL tf backend support custom loss.
-
-### Changed
-
-- Upgrade torch version to 2.1.2, torchmetrics version to 1.3.2, torchvision version to 0.16.2, torchaudio version to 2.1.2.
-
+- [component] pvalue support GLM
+- [component] onehot add drop parameter to support first & mode
+- [component] XGB/SGB support checkpoint
+- [component] LR support report weights
+- [component] Add union component
+- [FLModel/SLModel] tf backend support custom loss
+- [SLModel] Base model support additional loss
+- [SLModel] Add attack method FSHA
+- [SLModel] Add defense method MID
+- [SLModel] Add defense method FedPass
+- [Infra] Add arm64 build support
 
 ## [v1.5.0.dev240315] - 2024-03-15
 
@@ -69,7 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - SL: custom trainning step supported by lightning style base module.
 
-### Removed
+# Removed
 
 - No longer providing x64 macOS binary packages.
 

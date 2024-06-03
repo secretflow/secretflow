@@ -38,6 +38,8 @@ class Scaffold(BaseTorchModel):
         Returns:
             Parameters after local training
         """
+        assert self.model is not None, "Model cannot be none, please give model define"
+
         # Define Scaffold hyperparameters here
         self.model.cg = []
         self.model.c = []
@@ -46,7 +48,6 @@ class Scaffold(BaseTorchModel):
             self.model.c.append(torch.zeros_like(param))
         self.model.eta_l = 0.01
 
-        assert self.model is not None, "Model cannot be none, please give model define"
         self.model.train()
         refresh_data = kwargs.get("refresh_data", False)
         if refresh_data:

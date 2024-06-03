@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from .batch_lia import BatchLevelLiaAttackCase as batch_lia
 from .exploit import ExploitAttackCase as exploit
 from .fia import FiaAttackCase as fia
 from .fsha import FshaAttackCase as fsha
@@ -21,4 +22,14 @@ from .norm import NormAttackCase as norm
 from .replace import ReplaceAttackCase as replace
 from .replay import ReplayAttackCase as replay
 
-__all__ = ['exploit', 'fia', 'lia', 'norm', 'replace', 'replay', 'grad_lia', 'fsha']
+__all__ = [
+    'exploit',
+    'fia',
+    'lia',
+    'norm',
+    'replace',
+    'replay',
+    'grad_lia',
+    'fsha',
+    'batch_lia',
+]

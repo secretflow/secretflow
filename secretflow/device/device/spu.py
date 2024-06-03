@@ -194,7 +194,7 @@ class SPUObject(DeviceObject):
             for i, actor in enumerate(self.device.actors.values()):
                 try:
                     actor.del_share.remote(self.shares_name[i])
-                except TypeError:
+                except Exception:
                     # Python doesn't make any guarantees about when __del__ is called,
                     # actor may not exist, been GCed before this function called.
                     # This may happened when Host(Driver) progress exit.
@@ -1168,12 +1168,18 @@ class SPURuntime:
             pos_str = str(table_columns.get_loc(ele) + 1)
             idlist.append(f"--key={pos_str},{pos_str}")
         idstr = ' '.join(idlist)
-        sort_cmd = f'tail -n +2 {output_notsort} | LC_ALL=C sort --buffer-size=2G --parallel=8 --temporary-directory=./ --stable --field-separator=, {idstr} >>{output_path}'
-        logging.info(f"sort_cmd:{sort_cmd}")
-        sp_ret = subprocess.run(sort_cmd, shell=True)
-        assert (
-            sp_ret.returncode == 0
-        ), f"sort cmd failed, return {sp_ret.returncode}, expected 0"
+
+        with open(output_path, "a") as out_file:
+            tail = subprocess.Popen(
+                ("tail", "-n", "+2", output_notsort), stdout=subprocess.PIPE
+            )
+            sort_env = os.environ.copy()
+            sort_env["LC_ALL"] = "C"
+            sort_cmd = f"sort --buffer-size=2G --parallel=8 --temporary-directory=./ --stable --field-separator=, {idstr}".split()
+            subprocess.check_call(
+                sort_cmd, env=sort_env, stdin=tail.stdout, stdout=out_file
+            )
+            tail.wait()
 
         # delete tmp data dir
         data_dir.cleanup()
@@ -2062,7 +2068,7 @@ class SPU(Device):
             advanced_join_type (str, optional): Advanced Join allow duplicate keys. Defaults to "ADVANCED_JOIN_TYPE_UNSPECIFIED". Allowed values: 'ADVANCED_JOIN_TYPE_UNSPECIFIED', 'ADVANCED_JOIN_TYPE_INNER_JOIN', 'ADVANCED_JOIN_TYPE_LEFT_JOIN', 'ADVANCED_JOIN_TYPE_RIGHT_JOIN', 'ADVANCED_JOIN_TYPE_FULL_JOIN', 'ADVANCED_JOIN_TYPE_DIFFERENCE'
             left_side (str, optional): Required if advanced_join_type is selected. Defaults to "ROLE_RECEIVER". Allowed values: 'ROLE_RECEIVER', 'ROLE_SENDER'
             skip_duplicates_check (bool, optional): If true, the check of duplicated items will be skiped. Defaults to False.
-            disable_alignment (bool, optional): It true, output is not promised to be aligned. Defaults to False.
+            disable_alignment (bool, optional): If true, output is not promised to be aligned. Defaults to False.
             check_hash_digest (bool, optional): Check if hash digest of keys from parties are equal to determine whether to early-stop. Defaults to False.
 
         Returns:

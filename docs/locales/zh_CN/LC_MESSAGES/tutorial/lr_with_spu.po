@@ -214,7 +214,7 @@ msgstr "最后，让我们用 AUC 验证模型。"
 msgid ""
 "You may find the model from SPU training program achieve the same AUC as "
 "JAX program."
-msgstr "你可能会发现 SPU 训练程序中的模型达到了与 JAX 程序相同的 AUC。"
+msgstr "你可能会发现 SPU 训练程序中的模型达到了与 JAX 程序几乎相同的 AUC。"
 
 #: ../../tutorial/lr_with_spu.ipynb:757
 msgid "This is the end of lab."

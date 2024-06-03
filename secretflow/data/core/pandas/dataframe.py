@@ -172,10 +172,11 @@ class PdPartDataFrame(PartDataFrameBase):
 
     def to_csv(self, filepath, **kwargs):
         if callable(filepath):
-            filepath = filepath()
+            with filepath() as f:
+                self.data.to_csv(f, **kwargs)
         elif is_local_file(filepath):
             Path(filepath).parent.mkdir(parents=True, exist_ok=True)
-        self.data.to_csv(filepath, **kwargs)
+            self.data.to_csv(filepath, **kwargs)
 
     def iloc(self, index: Union[int, slice, List[int]]) -> Union['PdPartDataFrame']:
         return PdPartDataFrame(self.data.iloc[index])

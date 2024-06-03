@@ -56,5 +56,5 @@ def get_fuse_model(input_shapes, output_shape, aggregation):
     elif aggregation == "concatenate":
         model = FuseModelCat(input_shapes, output_shape)
     else:
-        raise "Invalid aggregation method!!!"
+        raise TypeError("Invalid aggregation method!!!")
     return model

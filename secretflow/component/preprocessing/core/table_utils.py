@@ -84,7 +84,10 @@ def v_preprocessing_transform(
             and return transformed data in sc.table and (optional can be empty) additional_info for report.
         """
         assert trans_data is not None
-        trans_data, add_labels, additional_info = transform_func(trans_data)
+        try:
+            trans_data, add_labels, additional_info = transform_func(trans_data)
+        except Exception as e:
+            return None, None, None, None, None, None, e
         runner = trans_data.dump_runner()
         drop_columns, add_columns, _ = trans_data.column_changes()
         add_labels = [] if add_labels is None else add_labels
@@ -104,6 +107,7 @@ def v_preprocessing_transform(
             add_labels,
             additional_info,
             runner,
+            None,
         )
 
     with ctx.tracer.trace_running():
@@ -122,9 +126,12 @@ def v_preprocessing_transform(
                 add_ls,
                 additional_info,
                 runner,
-            ) = pyu(
-                _fit_transform, num_returns=6
-            )(trans_data, remain_data)
+                err_obj,
+            ) = pyu(_fit_transform, num_returns=7)(trans_data, remain_data)
+
+            err = reveal(err_obj)
+            if err is not None:
+                raise err
 
             new_datas[pyu] = trans_data
             drop_cols[pyu.party] = drop_columns

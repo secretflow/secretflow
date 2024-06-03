@@ -3,7 +3,7 @@
 这意味着，用户可以使用简单易部署的方式进行开发，随后**零成本**的迁移到生产环境产生价值。  
 我们的隐语目前已经提供了两种模式分别是：
 - Simulation mode
-- Producation mode
+- Production mode
 
 Simulation mode 是使用单一的ray集群来进行调度，可以部署在单机上，也可以部署在多机环境，部署和使用难度都相对比较低。
 Production mode 则是使用多个ray集群来进行调度，借助隐语和Ray社区合作开发的RayFed进行安全的数据交换。来解决生产环境数据安全问题。

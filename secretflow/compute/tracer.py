@@ -152,7 +152,9 @@ class TraceRunner:
                     else:
                         py_inputs.append(i)
                 py_inputs.extend(t.py_args)
-                array = py_func(*py_inputs, **t.py_kwargs)
+                py_kwargs = t._get_py_kwargs()
+
+                array = py_func(*py_inputs, **py_kwargs)
                 self.output_map[t] = array
 
         assert len(self.output_map) == 1
@@ -206,6 +208,7 @@ class _Tracer:
         py_kwargs: Dict = None,
         options: bytes = None,
         output_schema: pa.Schema = None,
+        use_options=False,
     ):
         self.operate = operate
         self.output_type = output_type
@@ -214,6 +217,7 @@ class _Tracer:
         self.py_kwargs = py_kwargs
         self.options = options
         self.output_schema = output_schema
+        self.use_options = use_options
 
     def __str__(self) -> str:
         if self.inputs:
@@ -227,6 +231,16 @@ class _Tracer:
             f"Tracer {id(self)}, op {self.operate}, "
             f"output {self.output_type}, input: [{','.join(inputs)}]"
         )
+
+    def _get_py_kwargs(self):
+        if self.use_options:
+            buf = pa.py_buffer(self.options)
+            options = pc.FunctionOptions.deserialize(buf)
+            py_kwargs = self.py_kwargs.copy()
+            py_kwargs["options"] = options
+            return py_kwargs
+        else:
+            return self.py_kwargs
 
     def _flatten_dag(self) -> List[_Tracer]:
         reverse_dag: Dict[_Tracer, List[_Tracer]] = defaultdict(list)

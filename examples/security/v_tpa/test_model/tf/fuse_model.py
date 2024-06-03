@@ -214,5 +214,5 @@ def get_fuse_model(input_shapes, output_shape, aggregation, opt_args, compile_ar
             input_shapes, output_shape, opt_args, compile_args
         )
     else:
-        raise "Invalid aggregation method!!!"
+        raise TypeError("Invalid aggregation method!!!")
     return model

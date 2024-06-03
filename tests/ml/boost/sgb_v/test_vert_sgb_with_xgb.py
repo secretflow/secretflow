@@ -24,12 +24,35 @@ from secretflow.data import FedNdarray, PartitionWay
 from secretflow.device.driver import reveal
 from secretflow.ml.boost.sgb_v import Sgb
 from secretflow.ml.boost.sgb_v.core.params import apply_new_params, xgb_params_converter
-from secretflow.ml.boost.sgb_v.model import load_model
-from secretflow.utils.simulation.datasets import load_dermatology, load_linear
+from secretflow.utils.simulation.datasets import load_linear
 from sklearn.metrics import mean_squared_error, roc_auc_score
-from sklearn.model_selection import train_test_split
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
+
+def balanced_sample_weight(y: np.ndarray):
+    """
+    Generate sample weights based on class imbalance.
+
+    Parameters:
+    - y: An array of ground truth labels (0 1 ... k).
+
+    Returns:
+    - weights: An array of weights for each sample in y.
+    """
+    # Counts of each class (0 and 1)
+    n_samples = len(y)
+    n_classes = np.unique(y)
+    counts = np.array([len(y[y == i]) for i in n_classes])
+
+    # Calculate the weight for each class
+    # The weight for each class is inversely proportional to its frequency
+    weights_for_classes = n_samples / (len(n_classes) * counts)
+
+    # Map the class weights to each sample
+    weights = np.array([weights_for_classes[i] for i in y])
+
+    return weights
 
 
 def _run_sgb(
@@ -79,7 +102,16 @@ def _run_sgb(
         'enable_monitor': True,
     }
     params = apply_new_params(xgb_params_converter(xgb_params), additional_params)
-    model = sgb.train(params, v_data, label_data)
+    # we use the balanced approach to set the sample weight
+    sample_weight = balanced_sample_weight(y)
+    sample_weight_v = FedNdarray(
+        partitions={
+            device: device(lambda x: x)(sample_weight)
+            for device in label_data.partitions.keys()
+        },
+        partition_way=PartitionWay.VERTICAL,
+    )
+    model = sgb.train(params, v_data, label_data, sample_weight=sample_weight_v)
     reveal(model.trees[-1])
     logging.info(f"{test_name} train time: {time.perf_counter() - start}")
     start = time.perf_counter()
@@ -87,7 +119,10 @@ def _run_sgb(
     yhat = reveal(yhat)
     logging.info(f"{test_name} predict time: {time.perf_counter() - start}")
 
-    clf = xgb.XGBClassifier(**xgb_params)
+    clf = xgb.XGBClassifier(
+        **xgb_params,
+        sample_weight=sample_weight,
+    )
     X = np.concatenate(
         [reveal(partition_data) for partition_data in v_data.partitions.values()],
         axis=1,

@@ -26,7 +26,9 @@ def __sf_wrapper(py_func, c_func):
     def get_py_options(*args, options=None, **kwargs):
         if py_options_class is None:
             py_options = None
+            use_options = False
         else:
+            use_options = isinstance(options, py_options_class)
             if arity is not Ellipsis:
                 py_option_args = args[arity:]
             else:
@@ -38,7 +40,7 @@ def __sf_wrapper(py_func, c_func):
         if py_options:
             py_options = py_options.serialize().to_pybytes()
 
-        return py_options
+        return py_options, use_options
 
     def wrapper(*args, **kwargs):
         if arity is not Ellipsis:
@@ -69,7 +71,10 @@ def __sf_wrapper(py_func, c_func):
         py_inputs.extend(remain)
         arrow = py_func(*py_inputs, **kwargs)
 
-        py_options = get_py_options(*args, **kwargs)
+        py_options, use_options = get_py_options(*args, **kwargs)
+        if use_options:
+            del kwargs["options"]
+
         tracer = _Tracer(
             c_func.name,
             output_type=_TracerType.ARROW,
@@ -77,6 +82,7 @@ def __sf_wrapper(py_func, c_func):
             py_kwargs=kwargs,
             py_args=remain,
             options=py_options,
+            use_options=use_options,
         )
 
         return Array(arrow, tracer)
@@ -95,8 +101,8 @@ def _gen_sf_funcs():
     sf_funcs = dict()
     for name in reg.list_functions():
         c_func = reg.get_function(name)
-        if c_func.kind != "scalar":
-            # export scalar function only
+        if c_func.kind != "scalar" and name != "cast":
+            # export scalar function and cast function only
             continue
         py_func = getattr(pc, name)
         sf_func = __sf_wrapper(py_func, c_func)

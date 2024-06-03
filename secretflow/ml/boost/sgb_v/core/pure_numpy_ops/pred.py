@@ -24,6 +24,9 @@ def init_pred(base: float, samples: int) -> np.ndarray:
 
 
 def sigmoid(pred: np.ndarray) -> np.ndarray:
+    # Note that if you change the sigmoid calculation mode,
+    # please revise the logic at `secretflow/component/model_export/serving_utils/train_model_converter.py sgb_converter`
+    # simultaneously to keep the sigmoid calculation logic consistent for the online prediction
     return 1 / (1 + np.exp(-pred))
 
 

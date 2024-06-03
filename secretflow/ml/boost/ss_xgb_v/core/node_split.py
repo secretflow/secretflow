@@ -36,6 +36,9 @@ see https://jax.readthedocs.io/en/latest/jax-101/07-state.html
 
 
 def sigmoid(pred: np.ndarray) -> np.ndarray:
+    # Note that if you change the sigmoid calculation mode,
+    # please revise the code at `secretflow/component/model_export/serving_utils/train_model_converter.py ss_xgb_converter`
+    # simultaneously to keep the sigmoid calculation logic consistent for the online prediction
     return appr_sig.sr_sig(pred)
 
 
@@ -100,7 +103,7 @@ def compute_gh(
         g = yhat - y
         h = yhat * (1 - yhat)
     else:
-        raise f"unknown objective {objective}"
+        raise TypeError(f"unknown objective {objective}")
 
     return g, h
 

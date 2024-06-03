@@ -267,7 +267,6 @@ class ApplicationBase(ApplicationBaseAPI, ABC):
         """
         Application Base Class. Some attributes are initialized here.
         Args:
-            config: A custom config dict, attributes will first use this dict, and the auto-attack will use this config.
             alice: Alice's PYU.
             bob:  Bob's PYU.
             device_y: Label device, must be alice or bob.

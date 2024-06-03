@@ -161,6 +161,7 @@ class SGBFactory:
         data_name: str = None,
         checkpoint_data: SGBCheckpointData = None,
         dump_function: Callable = None,
+        sample_weight: Union[FedNdarray, VDataFrame] = None,
     ) -> SgbModel:
         booster = self._produce()
         callbacks = []
@@ -178,6 +179,14 @@ class SGBFactory:
                 test_size=self.factory_params.validation_fraction,
                 random_state=self.factory_params.seed,
             )
+            if sample_weight is not None:
+                # weight is not used in evaluation yet, just affects training.
+                train_weight, _ = train_test_split(
+                    sample_weight,
+                    test_size=self.factory_params.validation_fraction,
+                    random_state=self.factory_params.seed,
+                )
+
             assert val_label is not None
             callbacks.append(
                 EarlyStopping(
@@ -195,6 +204,7 @@ class SGBFactory:
             # train using splitted data only
             dataset = train_data
             label = train_label
+            sample_weight = train_weight if sample_weight is not None else None
         metric_ = METRICS.get(self.factory_params.eval_metric, None)
 
         callbacks.append(Checkpointing(dump_function=dump_function))
@@ -205,6 +215,7 @@ class SGBFactory:
             eval_sets=eval_set,
             metric=metric_,
             checkpoint_data=checkpoint_data,
+            sample_weight=sample_weight,
         )
 
     def train(
@@ -214,6 +225,7 @@ class SGBFactory:
         label: Union[FedNdarray, VDataFrame],
         checkpoint_data: SGBCheckpointData = None,
         dump_function: Callable = None,
+        sample_weight: Union[FedNdarray, VDataFrame] = None,
     ) -> SgbModel:
         """Train the SGB model
 
@@ -230,12 +242,17 @@ class SGBFactory:
                 This feature is now automatically supported at sf component level.
                 If you don't want to use checkpoints, just leave this argument as None.
                 Defaults to None.
-
+            sample_weight (Union[FedNdarray, VDataFrame], optional): weight for each sample.
+                Defaults to None. Must contain exactly one column, which belongs to label holder.
         Returns:
             SgbModel: trained SgbModel
         """
         self.set_params(params)
         # TODO: unify data type before entering this algorithm
         return self.fit(
-            dtrain, label, checkpoint_data=checkpoint_data, dump_function=dump_function
+            dtrain,
+            label,
+            checkpoint_data=checkpoint_data,
+            dump_function=dump_function,
+            sample_weight=sample_weight,
         )
