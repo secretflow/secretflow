@@ -91,6 +91,25 @@ def validate(
     return x, x_shape, y, y_shape
 
 
+def validate_sample_weight(
+    sample_weight: Union[FedNdarray, VDataFrame], y_shape: Tuple
+) -> Union[None, PYUObject]:
+    if sample_weight is None:
+        return None
+    sample_weight, shape = prepare_dataset(sample_weight)
+    assert len(shape) == 1 or shape[1] == 1, "label only support one label col"
+    assert (
+        shape[0] == y_shape[0]
+    ), f"sample weight should have shape like y {y_shape}, got {shape}"
+    sample_weight = list(sample_weight.partitions.values())[0]
+    sample_weight = sample_weight.device(
+        lambda w: w.reshape(
+            -1,
+        )
+    )(sample_weight)
+    return sample_weight
+
+
 def data_checks(x, worker):
     check_numeric(x, worker)
     check_null_val(x, worker)

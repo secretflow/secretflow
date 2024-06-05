@@ -43,7 +43,7 @@ class LossComputerActor:
         elif obj == RegType.Logistic:
             g, h = compute_gh_logistic(y, pred)
         else:
-            raise f"unknown objective {obj}"
+            raise TypeError(f"unknown objective {obj}")
         return g, h
 
     def compute_abs_sums(self, g: np.ndarray, h: np.ndarray):

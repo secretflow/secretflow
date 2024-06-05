@@ -93,7 +93,7 @@ class NUSWIDEDataset(BaseDataset):
 
     def _split_data(self, dataset, party_num=2, channel_first=True):
         if party_num not in self.split_points:
-            raise "Invalid number of participants!!!"
+            raise ValueError("Invalid number of participants!!!")
 
         parties = {}
         for party_index in range(party_num):

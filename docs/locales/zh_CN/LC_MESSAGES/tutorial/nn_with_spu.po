@@ -113,13 +113,13 @@ msgstr "放在一起"
 
 #: ../../tutorial/nn_with_spu.ipynb:263
 msgid "Let’s put everything together and train a plaintext NN model!"
-msgstr "让我们把所有不住放在一起，训练一个明文 NN 模型！"
+msgstr "让我们把所有东西放在一起，训练一个明文神经网络模型！"
 
 #: ../../tutorial/nn_with_spu.ipynb:355
 msgid ""
 "Must keep the number of AUC in mind, we are going to repeat the training "
 "with SPU. Let’s do that magic!"
-msgstr "让我们把所有东西放在一起，训练一个明文神经网络模型！"
+msgstr "请记住这里的 AUC，因为我们想用 SPU 做类似的事情！"
 
 #: ../../tutorial/nn_with_spu.ipynb:367
 msgid "Train a Model with SPU"

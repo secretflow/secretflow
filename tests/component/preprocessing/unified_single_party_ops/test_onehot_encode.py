@@ -389,8 +389,10 @@ def test_onehot_encode_fit(comp_prod_sf_cluster_config):
     for item in test_datas:
         drop = item['drop']
         min_frequency = item['min_frequency']
-        rules = _onehot_encode_fit(df, drop, min_frequency)
-        # logging.warning(f"drop: {drop}, min_frequency: {min_frequency}, rules: {rules}")
+        onehot_rules, drop_rules = _onehot_encode_fit(df, drop, min_frequency)
+        # logging.warning(
+        #     f"drop_type: {drop}, min_frequency: {min_frequency}, rules: {onehot_rules}, drop: {drop_rules}"
+        # )
         assert (
-            rules == item['expected']
-        ), f"drop: {drop}, min_frequency: {min_frequency}, rules: {rules}"
+            onehot_rules == item['expected']
+        ), f"drop: {drop}, min_frequency: {min_frequency}, rules: {onehot_rules}, drop_rules: {drop_rules}"

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import pytest
 
 from secretflow.component.component import Component
@@ -232,6 +233,116 @@ def test_node_reader_duplicate_param_in_instance():
         EvalParamReader(instance, definition)
 
 
+def test_node_reader_union_group_selection_default_value_mismatch():
+    instance_fail = NodeEvalParam(
+        domain="domain_a",
+        name="x",
+        version="v1",
+        attr_paths=["a/s2"],
+        attrs=[Attribute(s="haha")],
+    )
+    comp = Component(name="x", domain="domain_a", version="v1")
+    comp.union_attr_group(
+        name="a",
+        desc="",
+        group=[
+            comp.str_attr(
+                name="s1",
+                desc="",
+                is_list=False,
+                is_optional=False,
+            ),
+            comp.str_attr(
+                name="s2",
+                desc="",
+                is_list=False,
+                is_optional=False,
+            ),
+        ],
+    )
+
+    with pytest.raises(EvalParamError, match="attr a/s1 is not optional and not set."):
+        EvalParamReader(instance_fail, comp.definition())
+
+
+def test_node_reader_union_group_selection_nested_value_missing():
+    instance = NodeEvalParam(
+        domain="domain_a",
+        name="x",
+        version="v1",
+        attr_paths=["a", "a/b", "a/b/s2"],
+        attrs=[Attribute(s="b"), Attribute(s="s2")],
+    )
+    comp = Component(name="x", domain="domain_a", version="v1")
+    comp.union_attr_group(
+        name="a",
+        desc="",
+        group=[
+            comp.str_attr(
+                name="s1",
+                desc="",
+                is_list=False,
+                is_optional=False,
+            ),
+            comp.union_attr_group(
+                name="b",
+                desc="",
+                group=[
+                    comp.str_attr(
+                        name="s2",
+                        desc="",
+                        is_list=False,
+                        is_optional=False,
+                    ),
+                    comp.str_attr(
+                        name="s3",
+                        desc="",
+                        is_list=False,
+                        is_optional=False,
+                    ),
+                ],
+            ),
+        ],
+    )
+
+    with pytest.raises(
+        EvalParamError, match="attr a/b/s2 is not optional and not set."
+    ):
+        EvalParamReader(instance, comp.definition())
+
+
+def test_node_reader_union_group_selection_not_optional_not_select_fail():
+    instance_fail = NodeEvalParam(
+        domain="domain_a",
+        name="x",
+        version="v1",
+        attr_paths=["a", "a/s2"],
+        attrs=[Attribute(s="s1"), Attribute(s="haha")],
+    )
+    comp = Component(name="x", domain="domain_a", version="v1")
+    comp.union_attr_group(
+        name="a",
+        desc="",
+        group=[
+            comp.str_attr(
+                name="s1",
+                desc="",
+                is_list=False,
+                is_optional=False,
+            ),
+            comp.str_attr(
+                name="s2",
+                desc="",
+                is_list=False,
+                is_optional=False,
+            ),
+        ],
+    )
+
+    with pytest.raises(EvalParamError, match="attr a/s1 is not optional and not set."):
+        EvalParamReader(instance_fail, comp.definition())
+
+
 def test_node_reader_union_group_selection():
     instance_ok = NodeEvalParam(
         domain="domain_a",
@@ -288,6 +399,43 @@ def test_node_reader_union_group_selection():
         and reader.get_attr("a/b/d") == "d"
         and reader.get_attr("a") == "b"
     )
+
+
+def test_node_reader_union_group_selection_not_optional_not_select():
+    instance_ok = NodeEvalParam(
+        domain="domain_a",
+        name="x",
+        version="v1",
+        attr_paths=["a"],
+        attrs=[Attribute(s="b")],
+    )
+    comp = Component(name="x", domain="domain_a", version="v1")
+    comp.union_attr_group(
+        name="a",
+        desc="",
+        group=[
+            comp.union_selection_attr(
+                name="b",
+                desc="",
+            ),
+            comp.struct_attr_group(
+                name="e",
+                desc="",
+                group=[
+                    comp.str_attr(
+                        name="f",
+                        desc="",
+                        is_list=False,
+                        is_optional=False,
+                    ),
+                ],
+            ),
+        ],
+    )
+
+    # ok
+    reader = EvalParamReader(instance_ok, comp.definition())
+    assert reader.get_attr("a") == "b"
 
 
 def test_node_reader_param_not_set():
@@ -402,3 +550,66 @@ def test_node_reader_get_io():
     assert reader.get_output_uri("c") == "path/to/c.txt"
     assert reader.get_output_uri("d") == "path/to/d.txt"
     assert reader.get_input_attrs("a", "feature") == ["a", "b", "c"]
+
+
+def test_check_unknown_attr():
+    instance = NodeEvalParam(
+        domain="domain_a",
+        name="x",
+        version="v1",
+        inputs=[
+            DistData(name="a", type="table"),
+            DistData(name="b", type="rule"),
+        ],
+        output_uris=["path/to/c.txt", "path/to/d.txt"],
+        attr_paths=[
+            "attr_a",
+            "attr_b",
+            "unknown_c",
+            "unknown_is_na",
+            "input/a/feature",
+            "input/a/unknown",
+        ],
+        attrs=[
+            Attribute(i64=1),
+            Attribute(i64=2),
+            Attribute(i64=3),
+            Attribute(is_na=True),
+            Attribute(ss=["a", "b", "c"]),
+            Attribute(s="unknown"),
+        ],
+    )
+
+    definition = ComponentDef(
+        domain="domain_a",
+        name="x",
+        version="v1",
+        attrs=[
+            AttributeDef(
+                name="attr_a",
+                type=AttrType.AT_INT,
+                atomic=AttributeDef.AtomicAttrDesc(is_optional=False),
+            ),
+            AttributeDef(
+                name="attr_b",
+                type=AttrType.AT_INT,
+                atomic=AttributeDef.AtomicAttrDesc(is_optional=True),
+            ),
+        ],
+        inputs=[
+            IoDef(
+                name="a",
+                types=["table"],
+                attrs=[IoDef.TableAttrDef(name="feature", col_min_cnt_inclusive=1)],
+            ),
+            IoDef(name="b", types=["rule"]),
+        ],
+        outputs=[
+            IoDef(name="c", types=["model"]),
+            IoDef(name="d", types=["rule"]),
+        ],
+    )
+
+    with pytest.raises(EvalParamError, match="unregistered attrs .*") as exc_info:
+        EvalParamReader(instance, definition)
+    logging.warning(f"Caught expected exception: {exc_info}")

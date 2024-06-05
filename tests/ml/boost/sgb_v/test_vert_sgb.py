@@ -16,12 +16,13 @@ import logging
 import os
 import time
 
+import numpy as np
+
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.device.driver import reveal
 from secretflow.ml.boost.sgb_v import Sgb
 from secretflow.ml.boost.sgb_v.model import load_model
 from secretflow.utils.simulation.datasets import load_dermatology, load_linear
-
 from sklearn.metrics import mean_squared_error, roc_auc_score
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -81,7 +82,20 @@ def _run_sgb(
         'stopping_tolerance': 0.01,
         'save_best_model': False,
     }
-    model = sgb.train(params, v_data, label_data)
+    sample_weight = np.ones(y.shape)
+    sample_weight_v = FedNdarray(
+        partitions={
+            device: device(lambda x: x)(sample_weight)
+            for device in label_data.partitions.keys()
+        },
+        partition_way=PartitionWay.VERTICAL,
+    )
+    model = sgb.train(
+        params,
+        v_data,
+        label_data,
+        sample_weight=sample_weight_v,
+    )
     reveal(model.trees[-1])
     logging.info(f"{test_name} train time: {time.perf_counter() - start}")
     start = time.perf_counter()

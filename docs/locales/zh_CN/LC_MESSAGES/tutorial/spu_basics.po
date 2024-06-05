@@ -390,7 +390,7 @@ msgid "spu_basics_distribute.png"
 msgstr ""
 
 #: ../../tutorial/spu_basics.ipynb:983
-msgid "Step 3: Run SPU Executable and Assembly SPU Object"
+msgid "Step 3: Run SPU Executable and Assemble SPU Object"
 msgstr "步骤3：运行SPU可执行文件并组装SPU对象"
 
 #: ../../tutorial/spu_basics.ipynb:985
@@ -404,7 +404,7 @@ msgid ""
 msgstr "最后，SPU 设备的每一方都将拥有一个输出 SPU Object的一份share和一个meta。"
 
 #: ../../tutorial/spu_basics.ipynb:989
-msgid "Then SecretFlow framework would use them to assembly SPU Objects."
+msgid "Then SecretFlow framework would use them to Assemble SPU Objects."
 msgstr "然后 SecretFlow 框架将使用它们来组装 SPU Object。"
 
 #: ../../tutorial/spu_basics.ipynb:1001

@@ -140,6 +140,7 @@ class GlobalOrdermapBooster(Composite, CallBackCompatibleModel):
         eval_sets: List[Tuple[VData, VData, str]] = [],
         metric: Metric = None,
         checkpoint_data: SGBCheckpointData = None,
+        sample_weight: Union[FedNdarray, VDataFrame] = None,
     ) -> SgbModel:
         import secretflow.distributed as sfd
 
@@ -158,10 +159,19 @@ class GlobalOrdermapBooster(Composite, CallBackCompatibleModel):
         if sfd.in_ic_mode():
             x = dataset
             y = list(label.partitions.values())[0]
+            sample_weight_object = (
+                list(sample_weight.partitions.values())[0]
+                if sample_weight is not None
+                else None
+            )
             y = y.device(lambda y: y.reshape(-1, 1, order='F'))(y)
             sample_num = y.device(lambda y: y.shape[0])(y)
         else:
-            x, x_shape, y, _ = self.components.preprocessor.validate(dataset, label)
+            x, x_shape, y, _, sample_weight_object = (
+                self.components.preprocessor.validate(
+                    dataset, label, sample_weight=sample_weight
+                )
+            )
             sample_num = x_shape[0]
         # set devices
         devices = Devices(y.device, [*x.partitions.keys()], self.heu)
@@ -203,7 +213,12 @@ class GlobalOrdermapBooster(Composite, CallBackCompatibleModel):
                 self.tree_trainer.set_params(config)
                 logging.info("training the first tree with label holder only.")
             tree = self.tree_trainer.train_tree(
-                tree_index, self.components.order_map_manager, y, pred, sample_num
+                tree_index,
+                self.components.order_map_manager,
+                y,
+                pred,
+                sample_num,
+                sample_weight=sample_weight_object,
             )
             if self.params.first_tree_with_label_holder_feature and tree_index == 0:
                 config['label_holder_feature_only'] = False

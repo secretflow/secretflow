@@ -307,12 +307,15 @@ class ResNetFuse(nn.Module):
 
 # just for exp
 class NaiveSumSoftmax(nn.Module):
-    def __init__(self):
+    def __init__(self, use_softmax=True):
         super().__init__()
         self.linear = nn.Linear(10, 10)  # just to pass optimizer in SLModel
-        self.layer = nn.Softmax(dim=-1)
+        self.use_softmax = use_softmax
+        if use_softmax:
+            self.layer = nn.Softmax(dim=-1)
 
     def forward(self, x: List[Tensor]) -> Tensor:
-        x = x[0] + x[1]
-        out = self.layer(x)
+        out = x[0] + x[1]
+        if self.use_softmax:
+            out = self.layer(out)
         return out

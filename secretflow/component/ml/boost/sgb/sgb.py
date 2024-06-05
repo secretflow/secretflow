@@ -272,16 +272,16 @@ sgb_train_comp.str_attr(
 )
 
 sgb_train_comp.bool_attr(
-    name="enable_monitor",
-    desc="Whether to enable monitoring performance during training.",
+    name="enable_early_stop",
+    desc="Whether to enable early stop during training.",
     is_list=False,
     is_optional=True,
     default_value=False,
 )
 
 sgb_train_comp.bool_attr(
-    name="enable_early_stop",
-    desc="Whether to enable early stop during training.",
+    name="enable_monitor",
+    desc="Whether to enable monitoring performance during training.",
     is_list=False,
     is_optional=True,
     default_value=False,

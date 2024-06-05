@@ -132,7 +132,9 @@ def check_dist_data(data: DistData, io_def: IoDef = None):
 
     if data.type == DistDataType.INDIVIDUAL_TABLE:
         if len(data.data_refs) > 1:
-            raise f"DistData {data.name}: data_refs is greater than 1 for {data.type}"
+            raise ValueError(
+                f"DistData {data.name}: data_refs is greater than 1 for {data.type}"
+            )
 
 
 @dataclass
@@ -543,14 +545,23 @@ def dump_table(
     uri: str,
     meta: Union[IndividualTable, VerticalTable, VerticalTableWrapper],
     system_info: SystemInfo,
+    partitions: List[str] = None,
 ) -> DistData:
     assert isinstance(vdata, VDataFrame), f"{dd_type(vdata)} is not a VDataFrame"
     assert len(vdata.partitions) > 0
     assert math.prod(vdata.shape), "empty dataset is not allowed"
 
+    # partitions are just used to specify the order of schemas in the VerticalTable
+    vdata_partitions = [p.party for p in vdata.partitions]
+    if partitions is None:
+        partitions = vdata_partitions
+    else:
+        assert len(partitions) == len(vdata_partitions), "partitions length mismatch"
+        assert set(partitions) == set(vdata_partitions), "partitions mismatch"
+
     with ctx.tracer.trace_io():
         output_path = {
-            p: lambda: ctx.comp_storage.get_writer(uri) for p in vdata.partitions
+            PYU(p): lambda: ctx.comp_storage.get_writer(uri) for p in partitions
         }
         wait(vdata.to_csv(output_path, index=False))
 
@@ -558,25 +569,26 @@ def dump_table(
         dd_type = DistDataType.INDIVIDUAL_TABLE
         meta.line_count = vdata.shape[0]
     elif isinstance(meta, VerticalTable):
-        # The user needs to ensure that the schemas of meta is correct
+        # Ensure that the sequence of schemas is the same as that of partitions
         dd_type = DistDataType.VERTICAL_TABLE
         meta.line_count = vdata.shape[0]
-    else:
-        order = [p.party for p in vdata.partitions]
-        dd_type = DistDataType.VERTICAL_TABLE
-        meta.line_count = vdata.shape[0]
-        meta = meta.to_vertical_table(order)
         assert len(meta.schemas) == len(
-            vdata.partitions
-        ), f"meta schemas length mismatch, {len(meta.schemas)}, {len(vdata.partitions)}"
+            partitions
+        ), f"meta schemas length mismatch, {len(meta.schemas)}, {len(partitions)}"
+    else:
+        dd_type = DistDataType.VERTICAL_TABLE
+        meta.line_count = vdata.shape[0]
+        meta = meta.to_vertical_table(partitions)
+        assert len(meta.schemas) == len(
+            partitions
+        ), f"meta schemas length mismatch, {len(meta.schemas)}, {len(partitions)}"
 
     ret = DistData(
         name=uri,
         type=str(dd_type),
         system_info=system_info,
         data_refs=[
-            DistData.DataRef(uri=uri, party=p.party, format="csv")
-            for p in vdata.partitions
+            DistData.DataRef(uri=uri, party=p, format="csv") for p in partitions
         ],
     )
 

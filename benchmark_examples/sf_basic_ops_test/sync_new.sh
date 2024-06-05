@@ -27,7 +27,7 @@ done
 
 for file in $copy_files;
 do
-	for remote_ip in ${remote_ips};
+	for remote_ip in ${remote_ips[*]};
 	do
 		scp $file root@${remote_ip}:$test_dir/
 	done

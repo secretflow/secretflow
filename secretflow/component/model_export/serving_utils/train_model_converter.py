@@ -175,7 +175,7 @@ def linear_model_converter(
             {f: input_features[f] for f in party_features}
         ).dump_serving_pb("tmp")[1]
         party_dot_output_schemas[pyu] = Table.from_schema(
-            {"partial_y": np.float32}
+            {"partial_y": np.float64}
         ).dump_serving_pb("tmp")[1]
 
         party_dot_kwargs[pyu] = {
@@ -189,10 +189,10 @@ def linear_model_converter(
         }
 
         party_merge_input_schemas[pyu] = Table.from_schema(
-            {"partial_y": np.float32}
+            {"partial_y": np.float64}
         ).dump_serving_pb("tmp")[1]
         party_merge_output_schemas[pyu] = Table.from_schema(
-            {"pred_name": np.float32}
+            {pred_name: np.float64}
         ).dump_serving_pb("tmp")[1]
 
         party_merge_kwargs[pyu] = {
@@ -610,7 +610,7 @@ def ss_xgb_converter(
                 {f: input_features[f] for f in party_features}
             ).dump_serving_pb("tmp")[1]
             party_select_outputs[pyu] = Table.from_schema(
-                {"selects": np.float32}
+                {"selects": np.uint64}
             ).dump_serving_pb("tmp")[1]
 
             party_select_kwargs[pyu] = {
@@ -629,10 +629,10 @@ def ss_xgb_converter(
             }
 
             party_merge_inputs[pyu] = Table.from_schema(
-                {"selects": np.float32}
+                {"selects": np.uint64}
             ).dump_serving_pb("tmp")[1]
             party_merge_outputs[pyu] = Table.from_schema(
-                {"weights": np.float32}
+                {"weights": np.float64}
             ).dump_serving_pb("tmp")[1]
 
             party_merge_kwargs[pyu] = {
@@ -659,16 +659,17 @@ def ss_xgb_converter(
 
     for party in input_schema.keys():
         party_predict_inputs[pyus[party]] = Table.from_schema(
-            {"weights": np.float32}
+            {"weights": np.float64}
         ).dump_serving_pb("tmp")[1]
         party_predict_outputs[pyus[party]] = Table.from_schema(
-            {pred_name: np.float32}
+            {pred_name: np.float64}
         ).dump_serving_pb("tmp")[1]
         party_predict_kwargs[pyus[party]] = {
             "input_col_name": "weights",
             "output_col_name": pred_name,
             "algo_func": algo_func,
             "num_trees": tree_num,
+            "base_score": model.base,
         }
 
     builder.new_execution("DP_SPECIFIED", party_specific_flag=party_specific_flag)
@@ -760,7 +761,7 @@ def sgb_converter(
 
     if sgb_model.get_objective() == SgbRegType.Logistic:
         # refer to `SgbModel.predict`
-        algo_func_type = LinkFunctionType.LF_SIGMOID_SR
+        algo_func_type = LinkFunctionType.LF_SIGMOID_RAW
     else:
         algo_func_type = LinkFunctionType.LF_IDENTITY
     algo_func = LinkFunctionType.Name(algo_func_type)
@@ -827,7 +828,7 @@ def sgb_converter(
                 {f: input_features[f] for f in party_features}
             ).dump_serving_pb("tmp")[1]
             party_select_outputs[pyu] = Table.from_schema(
-                {"selects": np.float32}
+                {"selects": np.uint64}
             ).dump_serving_pb("tmp")[1]
 
             party_select_kwargs[pyu] = {
@@ -846,10 +847,10 @@ def sgb_converter(
             }
 
             party_merge_inputs[pyu] = Table.from_schema(
-                {"selects": np.float32}
+                {"selects": np.uint64}
             ).dump_serving_pb("tmp")[1]
             party_merge_outputs[pyu] = Table.from_schema(
-                {"weights": np.float32}
+                {"weights": np.float64}
             ).dump_serving_pb("tmp")[1]
 
             party_merge_kwargs[pyu] = {
@@ -877,16 +878,17 @@ def sgb_converter(
 
     for party in input_schema.keys():
         party_predict_inputs[pyus[party]] = Table.from_schema(
-            {"weights": np.float32}
+            {"weights": np.float64}
         ).dump_serving_pb("tmp")[1]
         party_predict_outputs[pyus[party]] = Table.from_schema(
-            {pred_name: np.float32}
+            {pred_name: np.float64}
         ).dump_serving_pb("tmp")[1]
         party_predict_kwargs[pyus[party]] = {
             "input_col_name": "weights",
             "output_col_name": pred_name,
             "algo_func": algo_func,
             "num_trees": tree_num,
+            "base_score": sgb_model.base,
         }
 
     builder.new_execution("DP_SPECIFIED", party_specific_flag=party_specific_flag)

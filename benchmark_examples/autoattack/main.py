@@ -312,6 +312,7 @@ def run_case(
             results = tuner.fit()
             return _get_metrics(results, app_impl, attack_impl, defense_impl)
         finally:
+            sf.shutdown()
             if global_config.is_debug_mode():
                 ray.shutdown()
 

@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import pandas as pd
-
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.preprocessing.data_prep.psi import psi_comp
 from secretflow.component.storage import ComponentStorage
@@ -80,22 +79,18 @@ def test_psi(comp_prod_sf_cluster_config):
     param = NodeEvalParam(
         domain="data_prep",
         name="psi",
-        version="0.0.4",
+        version="0.0.5",
         attr_paths=[
             "protocol",
-            "disable_alignment",
-            "ecdh_curve_type",
-            "join_type",
-            "left_side",
+            "sort_result",
+            "allow_duplicate_keys",
             "input/receiver_input/key",
             "input/sender_input/key",
         ],
         attrs=[
             Attribute(s="PROTOCOL_ECDH"),
-            Attribute(b=False),
-            Attribute(s="CURVE_FOURQ"),
-            Attribute(s="ADVANCED_JOIN_TYPE_UNSPECIFIED"),
-            Attribute(ss=["alice"]),
+            Attribute(b=True),
+            Attribute(s="no"),
             Attribute(ss=["id1"]),
             Attribute(ss=["id2"]),
         ],
@@ -233,21 +228,21 @@ def test_psi_left(comp_prod_sf_cluster_config):
     param = NodeEvalParam(
         domain="data_prep",
         name="psi",
-        version="0.0.4",
+        version="0.0.5",
         attr_paths=[
             "protocol",
-            "disable_alignment",
-            "ecdh_curve_type",
-            "join_type",
-            "left_side",
+            "sort_result",
+            "allow_duplicate_keys",
+            "allow_duplicate_keys/yes/join_type",
+            "allow_duplicate_keys/yes/join_type/left_join/left_side",
             "input/receiver_input/key",
             "input/sender_input/key",
         ],
         attrs=[
             Attribute(s="PROTOCOL_ECDH"),
-            Attribute(b=False),
-            Attribute(s="CURVE_FOURQ"),
-            Attribute(s="ADVANCED_JOIN_TYPE_LEFT_JOIN"),
+            Attribute(b=True),
+            Attribute(s="yes"),
+            Attribute(s="left_join"),
             Attribute(ss=["alice"]),
             Attribute(ss=["id1"]),
             Attribute(ss=["id2"]),

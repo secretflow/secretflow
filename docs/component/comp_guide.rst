@@ -480,7 +480,7 @@ Python API
 ^^^^^^^^^^
 
 If you want to create a new component in SecretFlow, you may check one of simplest component:
-`secretflow/component/preprocessing/train_test_split.py <https://github.com/secretflow/secretflow/blob/main/secretflow/component/preprocessing/train_test_split.py>`_
+`secretflow/component/preprocessing/data_prep/train_test_split.py <https://github.com/secretflow/secretflow/blob/main/secretflow/component/preprocessing/data_prep/train_test_split.py>`_
 
 The brief steps to build a SecretFlow Component are:
 

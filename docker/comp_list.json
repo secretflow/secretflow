@@ -128,7 +128,7 @@
       "domain": "data_prep",
       "name": "psi",
       "desc": "PSI between two parties.",
-      "version": "0.0.4",
+      "version": "0.0.5",
       "attrs": [
         {
           "name": "protocol",
@@ -149,15 +149,37 @@
           }
         },
         {
-          "name": "disable_alignment",
-          "desc": "It true, output is not promised to be aligned. Warning: enable this option may lead to errors in the following components. DO NOT TURN ON if you want to append other components.",
+          "name": "sort_result",
+          "desc": "It false, output is not promised to be aligned. Warning: disable this option may lead to errors in the following components. DO NOT TURN OFF if you want to append other components.",
           "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
-            "defaultValue": {}
+            "defaultValue": {
+              "b": true
+            }
           }
         },
         {
+          "name": "allow_duplicate_keys",
+          "desc": "Some join types allow duplicate keys.",
+          "type": "AT_UNION_GROUP",
+          "union": {
+            "defaultSelection": "no"
+          }
+        },
+        {
+          "prefixes": [
+            "allow_duplicate_keys"
+          ],
+          "name": "no",
+          "desc": "Duplicate keys are not allowed.",
+          "type": "AT_STRUCT_GROUP"
+        },
+        {
+          "prefixes": [
+            "allow_duplicate_keys",
+            "no"
+          ],
           "name": "skip_duplicates_check",
           "desc": "If true, the check of duplicated items will be skiped.",
           "type": "AT_BOOL",
@@ -167,6 +189,10 @@
           }
         },
         {
+          "prefixes": [
+            "allow_duplicate_keys",
+            "no"
+          ],
           "name": "check_hash_digest",
           "desc": "Check if hash digest of keys from parties are equal to determine whether to early-stop.",
           "type": "AT_BOOL",
@@ -176,8 +202,53 @@
           }
         },
         {
+          "prefixes": [
+            "allow_duplicate_keys"
+          ],
+          "name": "yes",
+          "desc": "Duplicate keys are allowed.",
+          "type": "AT_STRUCT_GROUP"
+        },
+        {
+          "prefixes": [
+            "allow_duplicate_keys",
+            "yes"
+          ],
+          "name": "join_type",
+          "desc": "Join type.",
+          "type": "AT_UNION_GROUP",
+          "union": {
+            "defaultSelection": "inner_join"
+          }
+        },
+        {
+          "prefixes": [
+            "allow_duplicate_keys",
+            "yes",
+            "join_type"
+          ],
+          "name": "inner_join",
+          "desc": "Inner join with duplicate keys"
+        },
+        {
+          "prefixes": [
+            "allow_duplicate_keys",
+            "yes",
+            "join_type"
+          ],
+          "name": "left_join",
+          "desc": "Left join with duplicate keys",
+          "type": "AT_STRUCT_GROUP"
+        },
+        {
+          "prefixes": [
+            "allow_duplicate_keys",
+            "yes",
+            "join_type",
+            "left_join"
+          ],
           "name": "left_side",
-          "desc": "Required if advanced_join_type is selected.",
+          "desc": "Required for left join",
           "type": "AT_PARTY",
           "atomic": {
             "listMinLengthInclusive": "1",
@@ -185,25 +256,22 @@
           }
         },
         {
-          "name": "join_type",
-          "desc": "Advanced Join types allow duplicate keys.",
-          "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "s": "ADVANCED_JOIN_TYPE_UNSPECIFIED"
-            },
-            "allowedValues": {
-              "ss": [
-                "ADVANCED_JOIN_TYPE_UNSPECIFIED",
-                "ADVANCED_JOIN_TYPE_INNER_JOIN",
-                "ADVANCED_JOIN_TYPE_LEFT_JOIN",
-                "ADVANCED_JOIN_TYPE_RIGHT_JOIN",
-                "ADVANCED_JOIN_TYPE_FULL_JOIN",
-                "ADVANCED_JOIN_TYPE_DIFFERENCE"
-              ]
-            }
-          }
+          "prefixes": [
+            "allow_duplicate_keys",
+            "yes",
+            "join_type"
+          ],
+          "name": "full_join",
+          "desc": "Full join with duplicate keys"
+        },
+        {
+          "prefixes": [
+            "allow_duplicate_keys",
+            "yes",
+            "join_type"
+          ],
+          "name": "difference",
+          "desc": "Difference with duplicate keys"
         },
         {
           "name": "fill_value_int",
@@ -270,6 +338,195 @@
           "desc": "Output vertical table",
           "types": [
             "sf.table.vertical_table"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "data_prep",
+      "name": "sample",
+      "desc": "Sample data set.",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "random_state",
+          "desc": "Specify the random seed of the shuffling.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "1024"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
+          }
+        },
+        {
+          "name": "sample_num_option",
+          "desc": "sample number algorithm and parameters",
+          "type": "AT_UNION_GROUP",
+          "union": {
+            "defaultSelection": "number"
+          }
+        },
+        {
+          "prefixes": [
+            "sample_num_option"
+          ],
+          "name": "number",
+          "desc": "Specify the total number of sampling.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "1024"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
+          }
+        },
+        {
+          "prefixes": [
+            "sample_num_option"
+          ],
+          "name": "frac",
+          "desc": "Proportion of the dataset to sample in the set. The fraction should be larger than 0.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.75
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
+          }
+        },
+        {
+          "name": "sample_algorithm",
+          "desc": "sample algorithm and parameters",
+          "type": "AT_UNION_GROUP",
+          "union": {
+            "defaultSelection": "random"
+          }
+        },
+        {
+          "prefixes": [
+            "sample_algorithm"
+          ],
+          "name": "random",
+          "desc": "Random sample.",
+          "type": "AT_STRUCT_GROUP"
+        },
+        {
+          "prefixes": [
+            "sample_algorithm",
+            "random"
+          ],
+          "name": "replacement",
+          "desc": "If true, sampling with replacement. If false, sampling without replacement.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "prefixes": [
+            "sample_algorithm"
+          ],
+          "name": "system",
+          "desc": "system sample."
+        },
+        {
+          "prefixes": [
+            "sample_algorithm"
+          ],
+          "name": "stratify",
+          "desc": "stratify sample.",
+          "type": "AT_STRUCT_GROUP"
+        },
+        {
+          "prefixes": [
+            "sample_algorithm",
+            "stratify"
+          ],
+          "name": "observe_feature",
+          "desc": "stratify sample observe feature.",
+          "type": "AT_STRING",
+          "atomic": {
+            "defaultValue": {}
+          }
+        },
+        {
+          "prefixes": [
+            "sample_algorithm",
+            "stratify"
+          ],
+          "name": "replacements",
+          "desc": "If true, sampling with replacement. If false, sampling without replacement.",
+          "type": "AT_BOOLS",
+          "atomic": {
+            "listMaxLengthInclusive": "-1",
+            "defaultValue": {}
+          }
+        },
+        {
+          "prefixes": [
+            "sample_algorithm",
+            "stratify"
+          ],
+          "name": "quantiles",
+          "desc": "stratify sample quantiles",
+          "type": "AT_FLOATS",
+          "atomic": {
+            "listMaxLengthInclusive": "-1",
+            "defaultValue": {}
+          }
+        },
+        {
+          "prefixes": [
+            "sample_algorithm",
+            "stratify"
+          ],
+          "name": "weights",
+          "desc": "stratify sample weights",
+          "type": "AT_FLOATS",
+          "atomic": {
+            "listMaxLengthInclusive": "-1",
+            "defaultValue": {},
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 1.0
+            }
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "input_data",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table",
+            "sf.table.individual"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "sample_output",
+          "desc": "Output sampled dataset.",
+          "types": [
+            "sf.table.vertical_table",
+            "sf.table.individual"
+          ]
+        },
+        {
+          "name": "reports",
+          "desc": "Output sample reports",
+          "types": [
+            "sf.report"
           ]
         }
       ]
@@ -368,7 +625,7 @@
     {
       "domain": "data_prep",
       "name": "union",
-      "desc": "Merge two datasets in vertical axis, the table type can be individual or vertical but must be the same.",
+      "desc": "Perform a horizontal merge of two data tables, supporting the individual table or vertical table on the same node.",
       "version": "0.0.1",
       "inputs": [
         {
@@ -713,7 +970,7 @@
       "attrs": [
         {
           "name": "write_data",
-          "desc": "rule or model protobuf by json formate",
+          "desc": "rule or model protobuf by json format",
           "type": "AT_STRING",
           "atomic": {}
         },
@@ -1775,8 +2032,8 @@
           }
         },
         {
-          "name": "enable_monitor",
-          "desc": "Whether to enable monitoring performance during training.",
+          "name": "enable_early_stop",
+          "desc": "Whether to enable early stop during training.",
           "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
@@ -1784,8 +2041,8 @@
           }
         },
         {
-          "name": "enable_early_stop",
-          "desc": "Whether to enable early stop during training.",
+          "name": "enable_monitor",
+          "desc": "Whether to enable monitoring performance during training.",
           "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
@@ -3202,6 +3459,74 @@
     },
     {
       "domain": "preprocessing",
+      "name": "cast",
+      "desc": "For conversion between basic data types, such as converting float to string.",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "astype",
+          "desc": "single-choice, options available are string, integer, float",
+          "type": "AT_UNION_GROUP",
+          "union": {
+            "defaultSelection": "integer"
+          }
+        },
+        {
+          "prefixes": [
+            "astype"
+          ],
+          "name": "integer",
+          "desc": "integer"
+        },
+        {
+          "prefixes": [
+            "astype"
+          ],
+          "name": "float",
+          "desc": "float"
+        },
+        {
+          "prefixes": [
+            "astype"
+          ],
+          "name": "string",
+          "desc": "string"
+        }
+      ],
+      "inputs": [
+        {
+          "name": "input_ds",
+          "desc": "The input table",
+          "types": [
+            "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "columns",
+              "desc": "Multiple-choice, options available are string, integer, float, boolean"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_ds",
+          "desc": "The output table",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        },
+        {
+          "name": "output_rules",
+          "desc": "The output rules",
+          "types": [
+            "sf.rule.preprocessing"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "preprocessing",
       "name": "feature_calculate",
       "desc": "Generate a new feature by performing calculations on an origin feature",
       "version": "0.0.1",
@@ -3369,21 +3694,32 @@
       "attrs": [
         {
           "name": "drop",
-          "desc": "no_drop is default setting, it won't do anything. If it is set to first, it will drop the first category in each feature. If it is set to mode, it will drop the mode category in each feature. If only one category is present and the setting is not no_drop, the feature will be dropped entirely",
-          "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "s": "no_drop"
-            },
-            "allowedValues": {
-              "ss": [
-                "no_drop",
-                "first",
-                "mode"
-              ]
-            }
+          "desc": "drop unwanted category based on selection",
+          "type": "AT_UNION_GROUP",
+          "union": {
+            "defaultSelection": "no_drop"
           }
+        },
+        {
+          "prefixes": [
+            "drop"
+          ],
+          "name": "no_drop",
+          "desc": "do not drop"
+        },
+        {
+          "prefixes": [
+            "drop"
+          ],
+          "name": "first",
+          "desc": "drop the first category in each feature."
+        },
+        {
+          "prefixes": [
+            "drop"
+          ],
+          "name": "mode",
+          "desc": "drop the mode category in each feature"
         },
         {
           "name": "min_frequency",

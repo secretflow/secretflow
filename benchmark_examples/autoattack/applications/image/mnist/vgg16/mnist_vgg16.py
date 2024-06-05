@@ -293,6 +293,8 @@ class MnistVGG16(MnistBase):
         if self._plain_train_label is not None:
             return self._plain_train_label
         _, train_label, _, _ = super().prepare_data()
+        if global_config.is_simple_test():
+            train_label = train_label[0:simple_sample_nums]
         self._plain_train_label = reveal(train_label.partitions[self.bob].data)
         return self.get_plain_train_label()
 
@@ -300,6 +302,8 @@ class MnistVGG16(MnistBase):
         if self._plain_test_label is not None:
             return self._plain_test_label
         _, _, _, test_label = super().prepare_data()
+        if global_config.is_simple_test():
+            test_label = test_label[0:simple_sample_nums]
         self._plain_test_label = reveal(test_label.partitions[self.bob].data)
         return self.get_plain_test_label()
 

@@ -71,38 +71,6 @@ def make_chunk(lst, chunk_size):
     return ret
 
 
-def get_data_col(party: str, func_name: str, start, end):
-    col_index = data_index_config[party] * 2 - 1
-    if "var" in func_name or "median" in func_name:
-        col_index += 1
-    col_name = f"X{col_index}"
-    data_set_dir = f"../data/basic{data_index_config[party]}"
-    global data_set
-    if data_set is None:
-        print(
-            f"party {party} use {col_name} to compute {func} from {data_set_dir}",
-            flush=True,
-        )
-        if os.path.exists(data_set_dir):
-            print("start reading...", flush=True)
-            data_set = pd.read_csv(
-                data_set_dir,
-                dtype={
-                    f"X{data_index_config[party] * 2 - 1}": np.float32,
-                    f"X{data_index_config[party] * 2}": np.float32,
-                },
-            )
-            ret = data_set.loc[start:end, col_name].to_numpy()
-        else:
-            print(f"data set {data_set_dir} not exists, use random number", flush=True)
-            ret = np.random.randn(end - start).astype(np.float32)
-        print(f"data shape: {ret.shape}", flush=True)
-    else:
-        ret = data_set.loc[start:end, col_name].to_numpy()
-
-    return ret
-
-
 def get_sf_init_config(party, party_num):
     ret = {}
     ret["self_party"] = party
@@ -254,7 +222,7 @@ class DataLoader:
             col_index += 1
         col_name = f"X{col_index}"
         if self.data_set is not None:
-            return self.data_set.loc[start:end, col_name].to_numpy()
+            return self.data_set.loc[start : end - 1, col_name].to_numpy()
         else:
             return np.random.randn(end - start).astype(np.float32)
 

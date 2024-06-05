@@ -38,10 +38,11 @@ from secretflow.component.preprocessing.binning.vert_woe_binning import (
     vert_woe_binning_comp,
 )
 from secretflow.component.preprocessing.data_prep.psi import psi_comp
-from secretflow.component.preprocessing.data_prep.union import union_comp
+from secretflow.component.preprocessing.data_prep.sample import sample_comp
 from secretflow.component.preprocessing.data_prep.train_test_split import (
     train_test_split_comp,
 )
+from secretflow.component.preprocessing.data_prep.union import union_comp
 from secretflow.component.preprocessing.filter.condition_filter import (
     condition_filter_comp,
 )
@@ -62,6 +63,7 @@ from secretflow.component.preprocessing.unified_single_party_ops.onehot_encode i
 from secretflow.component.preprocessing.unified_single_party_ops.substitution import (
     substitution,
 )
+from secretflow.component.preprocessing.unified_single_party_ops.cast import cast_comp
 from secretflow.component.stats.groupby_statistics import groupby_statistics_comp
 from secretflow.component.stats.ss_pearsonr import ss_pearsonr_comp
 from secretflow.component.stats.ss_vif import ss_vif_comp
@@ -76,6 +78,7 @@ ALL_COMPONENTS = [
     union_comp,
     train_test_split_comp,
     psi_comp,
+    sample_comp,
     ss_sgd_train_comp,
     ss_sgd_predict_comp,
     feature_filter_comp,
@@ -109,6 +112,7 @@ ALL_COMPONENTS = [
     feature_calculate,
     identity,
     model_export_comp,
+    cast_comp,
 ]
 
 COMP_LIST_NAME = "secretflow"

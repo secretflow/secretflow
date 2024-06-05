@@ -150,10 +150,10 @@ msgstr "创建组件"
 msgid ""
 "If you want to create a new component in SecretFlow, you may check one of"
 " simplest component: "
-"`secretflow/component/preprocessing/train_test_split.py "
-"<https://github.com/secretflow/secretflow/blob/main/secretflow/component/preprocessing/train_test_split.py>`_"
+"`secretflow/component/preprocessing/data_prep/train_test_split.py "
+"<https://github.com/secretflow/secretflow/blob/main/secretflow/component/preprocessing/data_prep/train_test_split.py>`_"
 msgstr ""
-"如果你想要在 SecretFlow 中创建一个新的组件，你可以参考 `secretflow/component/preprocessing/train_test_split.py <https://github.com/secretflow/secretflow/blob/main/secretflow/component/preprocessing/train_test_split.py>`_ 。"
+"如果你想要在 SecretFlow 中创建一个新的组件，你可以参考 `secretflow/component/preprocessing/data_prep/train_test_split.py <https://github.com/secretflow/secretflow/blob/main/secretflow/component/preprocessing/data_prep/train_test_split.py>`_ 。"
 "这几乎是最简单的组件。"
 
 #: ../../component/comp_guide.rst:485

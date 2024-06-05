@@ -29,11 +29,6 @@ ENV version $sf_version
 
 RUN pip install secretflow==${version} --extra-index-url https://download.pytorch.org/whl/cpu --extra-index-url https://test.pypi.org/simple/ && rm -rf /root/.cache
 
-# For security reason.
-# Since onnx-1.13.1's protobuf conflicts with TensorFlow-2.10.1's,
-# so we upgrade it manually.
-RUN pip install onnx==1.13.1 protobuf==3.20.3 && rm -rf /root/.cache
-
 COPY .nsjail /root/.nsjail
 
 ARG config_templates=""

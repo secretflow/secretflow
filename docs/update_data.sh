@@ -25,4 +25,4 @@ docker run --rm -v $(pwd)/component/:/out \
                 protos/secretflow/protos/secretflow/spec/extend/data.proto
 echo "2. Update comp list doc."
 
-env PYTHONPATH=$PYTHONPATH:$PWD/.. python $PWD/component/update_comp_list.py
+env PYTHONPATH=$PYTHONPATH:$PWD/.. python $PWD/docs/component/update_comp_list.py
