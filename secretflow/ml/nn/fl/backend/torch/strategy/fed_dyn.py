@@ -9,9 +9,9 @@ from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
 
 
 class FedDYN(BaseTorchModel):
-    def initialize(self, *args, **kwargs):
-        self.grad_l = self.model.get_gradients()  # client gradient
+    def __init__(self):
         self.alpha = 0.1  # FedDYN algorithm hyperparameters, can be selected from [0.1, 0.01, 0.001]
+        self.h = self.model.zeros_like()
 
     def train_step(
         self, weights: np.ndarray, cur_steps: int, train_steps: int, **kwargs
@@ -141,8 +141,11 @@ class FedDYN(BaseTorchModel):
             pgl_tmp = pgl.view(-1) - self.alpha * (pm.view(-1) - ps.view(-1))
             pgl_tmp = pgl_tmp.view(ori_shape)
             new_gradL.append(pgl_tmp.detach().clone())
+            
+        self.h = self.h - self.alpha * 1.0 / self.num_clients * (self.model.parameters() - src_model.parameters())
+        self.model = self.model.parameters() - 1 / self.alpha * self.h
         self.gradL = new_gradL
-
+        
         loss_value = loss.item()
         logs["train-loss"] = loss_value
 
