@@ -30,7 +30,7 @@ class NormAttackCase(AttackBase):
         return 'norm'
 
     def build_attack_callback(self, app: ApplicationBase) -> AttackCallback:
-        label = reveal(app.get_train_label().partitions[app.device_y].data)
+        label = reveal(app.get_plain_train_label())
         return NormAttack(app.device_f, label)
 
     def attack_type(self) -> AttackType:

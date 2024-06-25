@@ -133,8 +133,6 @@ class MnistVGG16(MnistBase):
             metric_wrapper(AUROC, task="multiclass", num_classes=10),
         ]
 
-        print(f"len of mnnist dataset =  {MyMnistDataset(['test']).data.shape}.")
-
     def prepare_data(self, **kwargs):
         raise RuntimeError("Mnist Vgg16 does not need to prepare data, please check.")
 

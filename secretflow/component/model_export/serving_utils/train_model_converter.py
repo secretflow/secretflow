@@ -124,6 +124,7 @@ def linear_model_converter(
     offset_col: str,
     yhat_scale: float,
     link_type: LinkFunctionType,
+    exp_iters: int,
     pred_name: str,
     traced_input: Dict[str, Set[str]],
 ):
@@ -198,6 +199,7 @@ def linear_model_converter(
         party_merge_kwargs[pyu] = {
             "yhat_scale": yhat_scale,
             "link_function": LinkFunctionType.Name(link_type),
+            "exp_iters": exp_iters,
             "input_col_name": "partial_y",
             "output_col_name": pred_name,
         }
@@ -277,6 +279,13 @@ def ss_glm_converter(
     assert meta["link"] in SS_GLM_LINK_MAP
     label_col = label_col[0]
 
+    link_type = SS_GLM_LINK_MAP[meta["link"]]
+    if link_type == LinkFunctionType.LF_EXP and meta["fxp_exp_mode"] == 2:
+        link_type = LinkFunctionType.LF_EXP_TAYLOR
+        exp_iters = meta["fxp_exp_iters"]
+    else:
+        exp_iters = 0
+
     (
         party_dot_kwargs,
         party_merge_kwargs,
@@ -293,7 +302,8 @@ def ss_glm_converter(
         label_col,
         offset_col,
         yhat_scale,
-        SS_GLM_LINK_MAP[meta["link"]],
+        link_type,
+        exp_iters,
         pred_name,
         traced_input,
     )
@@ -392,6 +402,7 @@ def ss_sgd_converter(
         None,
         1.0,
         link_type,
+        0,
         pred_name,
         traced_input,
     )

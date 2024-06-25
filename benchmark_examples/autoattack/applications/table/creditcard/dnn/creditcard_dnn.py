@@ -49,7 +49,7 @@ class CreditcardDnn(ApplicationBase):
             train_batch_size=1024,
             hidden_size=28,
             dnn_base_units_size_alice=[int(28 / 2), -1],
-            dnn_base_units_size_bob=[4],
+            dnn_base_units_size_bob=[4, -1],
             dnn_fuse_units_size=[1],
         )
 
@@ -106,8 +106,9 @@ class CreditcardDnn(ApplicationBase):
                 metric_wrapper(Accuracy, task="binary"),
                 metric_wrapper(AUROC, task="binary"),
             ],
-            input_dims=[self.hidden_size, 4],
+            input_dims=[self.hidden_size, self.hidden_size],
             dnn_units_size=[1],
+            output_func=nn.Sigmoid,
         )
 
     def resources_consumes(self) -> List[Dict]:

@@ -1,0 +1,148 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2022 Ant Group Co., Ltd.
+# This file is distributed under the same license as the SecretFlow package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2024.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: SecretFlow \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-06-25 11:09+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.15.0\n"
+
+#: ../../tutorial/Custom_Loss_Federated_Learning_with_Pytorch.ipynb:9
+msgid "基于 PyTorch 的联邦学习自定义 loss function 教程"
+msgstr ""
+
+#: ../../tutorial/Custom_Loss_Federated_Learning_with_Pytorch.ipynb:12
+msgid "引言"
+msgstr ""
+
+#: ../../tutorial/Custom_Loss_Federated_Learning_with_Pytorch.ipynb:15
+msgid "背景"
+msgstr ""
+
+#: ../../tutorial/Custom_Loss_Federated_Learning_with_Pytorch.ipynb:17
+msgid ""
+"在联邦学习中，尤其是监督学习中，我们常常需要使用损失函数监督模型的训练；通过之前的\\ `入门教程 "
+"<https://www.secretflow.org.cn/docs/secretflow/latest/zh-"
+"Hans/tutorial/Federated_Learning_with_Pytorch_backend>`__, 我们已经展示如何通过 "
+"``secretflow.ml.nn.core.torch.TorchModel`` 调用 "
+"``torch.nn.CrossEntropyLoss`` ，依此类推，我们可以调用 `torch.nn loss function "
+"<https://pytorch.org/docs/stable/nn.html#loss-functions>`__ "
+"中的任意损失函数。然而，当我们需要根据自己的任务自定义损失函数时，需要怎样做呢？本教程将回答这一问题。 ### 教程提醒 注意，本自定义 loss"
+" function 教程主要关注输入形式为\\ :math:`(\\hat{y},y)`\\ 的损失函数，而不讨论超出此范围的自定义损失函数。 "
+"具体到本教程，本教程将给出如何自定义实现"
+msgstr ""
+
+#: ../../tutorial/Custom_Loss_Federated_Learning_with_Pytorch.ipynb:20
+#: ../../tutorial/Custom_Loss_Federated_Learning_with_Pytorch.ipynb:217
+msgid "Loss(\\hat{y},y) = 0.8*CEL(\\hat{y},y) + 0.2*MSE(\\hat{y},y)"
+msgstr ""
+
+#: ../../tutorial/Custom_Loss_Federated_Learning_with_Pytorch.ipynb:25
+msgid ""
+"其中，\\ :math:`CEL` 表示 `cross entropy loss "
+"<https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html#torch.nn.CrossEntropyLoss>`__"
+" ，\\ :math:`MSE` 表示\\ `mean squared error "
+"<https://pytorch.org/docs/stable/generated/torch.nn.MSELoss.html#torch.nn.MSELoss>`__\\"
+" ，对于其他的损失函数组合形式，您可以自行定义和组合。"
+msgstr ""
+
+#: ../../tutorial/Custom_Loss_Federated_Learning_with_Pytorch.ipynb:27
+msgid "再度提醒，本教程只是作为教程示例，展示代码的实现，而不作为实际生产应用的模型训练指导。"
+msgstr ""
+
+#: ../../tutorial/Custom_Loss_Federated_Learning_with_Pytorch.ipynb:29
+msgid "让我们开始吧！"
+msgstr ""
+
+#: ../../tutorial/Custom_Loss_Federated_Learning_with_Pytorch.ipynb:41
+msgid "基础教程"
+msgstr ""
+
+#: ../../tutorial/Custom_Loss_Federated_Learning_with_Pytorch.ipynb:43
+msgid ""
+"为突出重点，简化教程，本教程将以 `使用Pytorch后端来进行联邦学习 "
+"<https://www.secretflow.org.cn/docs/secretflow/latest/zh-"
+"Hans/tutorial/Federated_Learning_with_Pytorch_backend>`__ "
+"为基础，重点突出自定义损失函数的做法。所以，为了让代码能够顺利运行，让我们先把之前的代码复制过来。因此如果您对原教程非常熟悉，则不需要再阅读这部分代码。"
+msgstr ""
+
+#: ../../tutorial/Custom_Loss_Federated_Learning_with_Pytorch.ipynb:213
+msgid "自定义损失函数"
+msgstr ""
+
+#: ../../tutorial/Custom_Loss_Federated_Learning_with_Pytorch.ipynb:215
+msgid "如前所述，我们将自定义损失函数："
+msgstr ""
+
+#: ../../tutorial/Custom_Loss_Federated_Learning_with_Pytorch.ipynb:222
+msgid ""
+"其中，\\ :math:`CEL` 表示 `cross entropy loss "
+"<https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html#torch.nn.CrossEntropyLoss>`__\\"
+" ，\\ :math:`MSE` 表示 `mean squared error "
+"<https://pytorch.org/docs/stable/generated/torch.nn.MSELoss.html#torch.nn.MSELoss>`__"
+msgstr ""
+
+#: ../../tutorial/Custom_Loss_Federated_Learning_with_Pytorch.ipynb:224
+msgid ""
+"为实现这一个自定义损失函数，我们存在两种实现方式，一种是继承\\ `torch.nn.module "
+"<https://github.com/pytorch/pytorch/tree/main/torch/nn/modules>`__ "
+"的类，另外一种直接定义函数。 ### 继承 torch.nn.module #### 继承介绍 我们需要自行编写一个继承自 "
+"`torch.nn.module "
+"<https://github.com/pytorch/pytorch/tree/main/torch/nn/modules>`__ "
+"的类，而且至少实现两个基础的函数：\\ ``__init__`` 和 ``forward``\\ ，其中: - ``__init__`` "
+"执行该类的初始化部分代码，本教程我们对基础损失函数 ``CrossEntropyLoss`` 和 ``MSELoss`` 进行了初始化的操作 - "
+"``forward`` 执行该类的调用时的运算代码，也就是自定义损失函数的运算逻辑，此处我们对上面所提及的自定义函数进行了实现"
+msgstr ""
+
+#: ../../tutorial/Custom_Loss_Federated_Learning_with_Pytorch.ipynb:268
+#: ../../tutorial/Custom_Loss_Federated_Learning_with_Pytorch.ipynb:337
+msgid "直接自定义损失函数"
+msgstr ""
+
+#: ../../tutorial/Custom_Loss_Federated_Learning_with_Pytorch.ipynb:271
+msgid "自定义函数介绍"
+msgstr ""
+
+#: ../../tutorial/Custom_Loss_Federated_Learning_with_Pytorch.ipynb:273
+msgid "我们也可以直接定义损失函数，对于同一实现，直接实现如下： #### 自定义函数实现"
+msgstr ""
+
+#: ../../tutorial/Custom_Loss_Federated_Learning_with_Pytorch.ipynb:298
+msgid "指定自定义损失函数"
+msgstr ""
+
+#: ../../tutorial/Custom_Loss_Federated_Learning_with_Pytorch.ipynb:301
+msgid "继承 torch.nn.module"
+msgstr ""
+
+#: ../../tutorial/Custom_Loss_Federated_Learning_with_Pytorch.ipynb:303
+msgid ""
+"当我们通过继承 torch.nn.module 实现自定义函数时，我们可以在下面的单元格里，通过 ``loss_fn = "
+"CustomLossFunction`` 指定我们自定义的损失函数。"
+msgstr ""
+
+#: ../../tutorial/Custom_Loss_Federated_Learning_with_Pytorch.ipynb:339
+msgid ""
+"当我们通过直接自定义损失函数实现时，我们可以在下面的单元格里，通过 ``loss_fn = my_loss_function`` "
+"指定我们自定义的损失函数。"
+msgstr ""
+
+#: ../../tutorial/Custom_Loss_Federated_Learning_with_Pytorch.ipynb:373
+msgid "小结"
+msgstr ""
+
+#: ../../tutorial/Custom_Loss_Federated_Learning_with_Pytorch.ipynb:375
+msgid ""
+"通过本教程，我们将学会如何基于 PyTorch 在SecretFlow 中自定义实现输入形式为 :math:`(\\hat{y},y)` "
+"的损失函数。"
+msgstr ""

@@ -188,6 +188,7 @@ class DeepFMFuse(BaseModule):
         input_dims: List[int],
         dnn_units_size: List[int],
         use_passport: bool = False,
+        output_func: Optional[Callable[..., nn.Module]] = nn.Sigmoid,
         *args,
         **kwargs,
     ):
@@ -205,17 +206,21 @@ class DeepFMFuse(BaseModule):
         dnn_layer = []
 
         start = sum(input_dims)
-        for units in self._dnn_units_size:
+        for units in self._dnn_units_size[:-1]:
             dnn_layer.append(nn.Linear(start, units))
             dnn_layer.append(nn.ReLU())
             start = units
 
         if use_passport:
-            self._dnn = nn.Sequential(*(dnn_layer + [LinearPassportBlock(start, 1)]))
+            self._dnn = nn.Sequential(
+                *(dnn_layer + [LinearPassportBlock(start, self._dnn_units_size[-1])])
+            )
         else:
-            self._dnn = nn.Sequential(*(dnn_layer + [nn.Linear(start, 1)]))
+            self._dnn = nn.Sequential(
+                *(dnn_layer + [nn.Linear(start, self._dnn_units_size[-1])])
+            )
 
-        self.sigmoid = nn.Sigmoid()
+        self._output_layer = output_func() if output_func else None
 
     def forward(self, x):
         dnn_outputs = torch.cat(x[::4], dim=1)
@@ -251,5 +256,6 @@ class DeepFMFuse(BaseModule):
         fm_2nd_part = torch.sum(sub, dim=1, keepdim=True)
 
         outputs = fm_1st_part + fm_2nd_part + self._dnn(dnn_outputs)
-        preds = self.sigmoid(outputs)
-        return preds
+        if self._output_layer is not None:
+            outputs = self._output_layer(outputs)
+        return outputs

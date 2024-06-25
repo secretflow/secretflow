@@ -8,14 +8,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-02-19 14:25+0800\n"
+"POT-Creation-Date: 2024-06-25 11:09+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.12.1\n"
+"Generated-By: Babel 2.15.0\n"
 
 #: ../../tutorial/ss_glm.ipynb:9
 msgid "SS GLM"
@@ -37,7 +37,10 @@ msgid ""
 "Replicate the same experiment from sklearn `tutorial <https://scikit-"
 "learn.org/stable/auto_examples/linear_model/plot_tweedie_regression_insurance_claims>`__"
 " on insurance claims using sf ss glm."
-msgstr "使用 sf ss glm 复现 sklearn 的`教程 <https://scikit-learn.org/stable/auto_examples/linear_model/plot_tweedie_regression_insurance_claims>`__ 中关于保险索赔的同一实验。"
+msgstr ""
+"使用 sf ss glm 复现 sklearn 的`教程 <https://scikit-"
+"learn.org/stable/auto_examples/linear_model/plot_tweedie_regression_insurance_claims>`__"
+" 中关于保险索赔的同一实验。"
 
 #: ../../tutorial/ss_glm.ipynb:422
 msgid "Fit the GLM model (tweedie)"
@@ -46,3 +49,22 @@ msgstr "拟合 GLM 模型（tweedie）"
 #: ../../tutorial/ss_glm.ipynb:545
 msgid "Fit the SS GLM model (tweedie)"
 msgstr "拟合 SS GLM 模型（tweedie）"
+
+#: ../../tutorial/ss_glm.ipynb:1465
+msgid "SS GLM vs stats model package (offset)"
+msgstr ""
+
+#: ../../tutorial/ss_glm.ipynb:1467
+msgid "Statsmodel is another cleartext package with glm functionality."
+msgstr ""
+
+#: ../../tutorial/ss_glm.ipynb:1469
+msgid ""
+"Next we compare ss glm with stats model when using the offset option. The"
+" overall steps are very similar, but there is a slight difference in how "
+"the offset is handled."
+msgstr ""
+
+#: ../../tutorial/ss_glm.ipynb:1562
+msgid "Using the statsmodels package"
+msgstr ""

@@ -133,16 +133,7 @@ ray start --address="192.168.0.1:9394" --resources='{"carol": 8}'
 
 #### 生成数据
 
-把[generate_psi.py](https://github.com/secretflow/spu/blob/main/libspu/psi/tools/generate_psi.py)脚本传到alice机器的root目录下
-执行如下代码
-```
-# 生成三份一千万数据
-python3 generate_psi.py 10000000
-
-# 生成三份一亿数据
-python3 generate_psi.py 100000000
-```
-把生成的psi_1.csv cp到benchmark目录下，再通过scp的命令把psi_2.csv/psi_3.csv分别移到bob的benchmark目录下跟carol的benchark目录下 
+参考PSI仓库的[README](https://github.com/secretflow/psi/blob/main/examples/psi/README.md)生成测试数据，并将生成的数据移动到到benchmark目录下
 
 #### 限制宽带/延迟
 ```

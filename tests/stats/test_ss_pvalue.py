@@ -73,7 +73,7 @@ def _build_splited_ds(pyus, x, cols, parties):
         return fed_x, fed_c
 
 
-def _run_ss(env, pyus, x, y, yhat, p, w, parties, model_type: Any, tweedie_p):
+def _run_ss(env, pyus, x, y, yhat, p, w, parties, model_type: Any, tweedie_p, y_scale):
     # weights to spu
     pyu_w = env.alice(lambda: np.array(w))()
     spu_w = pyu_w.to(env.spu)
@@ -107,6 +107,7 @@ def _run_ss(env, pyus, x, y, yhat, p, w, parties, model_type: Any, tweedie_p):
             link,
             model_type,
             tweedie_power=tweedie_p,
+            y_scale=y_scale,
         )
 
     p = np.array(p)
@@ -123,10 +124,16 @@ def _run_ss(env, pyus, x, y, yhat, p, w, parties, model_type: Any, tweedie_p):
     assert np.amax(radio_assert) < 0.2, f"\n{radio_err}"
 
 
-def _run_test(env, pyus, x, y, model_type: Any, tweedie_p=1.5):
+def _run_test(env, pyus, x, orig_y, model_type: Any, tweedie_p=1.5):
     scaler = StandardScaler()
     x = scaler.fit_transform(x)
     ones_x = sm.add_constant(x)
+    y_scale = orig_y.max() / 2
+    if y_scale <= 1:
+        y = orig_y
+        y_scale = 1
+    else:
+        y = orig_y / y_scale
 
     if model_type == RegType.Logistic:
         # breast_cancer & linear dataset not converged using sm.Logit
@@ -166,10 +173,35 @@ def _run_test(env, pyus, x, y, model_type: Any, tweedie_p=1.5):
     weights.append(bias)
     bias = pvalues.pop(0)
     pvalues.append(bias)
-    _run_ss(env, pyus, x, y, yhat, pvalues, weights, 2, model_type, tweedie_p)
+    yhat = yhat * y_scale
+    _run_ss(
+        env,
+        pyus,
+        x,
+        orig_y,
+        yhat,
+        pvalues,
+        weights,
+        2,
+        model_type,
+        tweedie_p,
+        y_scale,
+    )
 
     if model_type == RegType.Linear:
-        _run_ss(env, pyus, x, y, yhat, pvalues, weights, 3, model_type, tweedie_p)
+        _run_ss(
+            env,
+            pyus,
+            x,
+            orig_y,
+            yhat,
+            pvalues,
+            weights,
+            3,
+            model_type,
+            tweedie_p,
+            y_scale,
+        )
 
 
 def test_poisson_ds(prod_env_and_data):

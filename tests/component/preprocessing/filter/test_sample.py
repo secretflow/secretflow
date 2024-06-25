@@ -20,7 +20,7 @@ import pytest
 
 from secretflow.component.component import CompEvalError
 from secretflow.component.data_utils import DistDataType, extract_distdata_info
-from secretflow.component.preprocessing.data_prep.sample import (
+from secretflow.component.preprocessing.filter.sample import (
     RANDOM_SAMPLE,
     STRATIFY_SAMPLE,
     SYSTEM_SAMPLE,
@@ -43,27 +43,23 @@ from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
 
 
+RANDOM_STATE = 1234
+
+
 def test_calculate_sample_num():
     total_num = 100
 
-    number = 10
-    frac = 0.0
-    sample_num = calculate_sample_number('number', number, frac, True, total_num)
-    assert sample_num == number
-
-    number = 0
     frac = 0.5
-    sample_num = calculate_sample_number('frac', number, frac, False, total_num)
+    sample_num = calculate_sample_number(frac, False, total_num)
     assert sample_num == round(total_num * frac)
 
-    number = 0
     frac = 2
     sample_num = frac * total_num
     with pytest.raises(
         CompEvalError,
         match=f"Replacement has to be set to True when sample number {sample_num} is larger than dataset size {total_num}.",
     ):
-        calculate_sample_number('frac', number, frac, False, total_num)
+        calculate_sample_number(frac, False, total_num)
 
 
 def test_illegal_sample():
@@ -78,11 +74,14 @@ def test_illegal_sample():
         SampleAlgorithmFactory().create_sample_algorithm(
             df_alice,
             total_num,
-            "frac",
-            "number",
-            0.8,
             illegal_sample_method,
+            0.8,
+            RANDOM_STATE,
             True,
+            0.8,
+            0.8,
+            RANDOM_STATE,
+            '',
             [],
             [],
             [],
@@ -91,19 +90,30 @@ def test_illegal_sample():
 
 def test_random_sample():
     print("test_random_sample")
-    random_state = 1234
     total_num = 100
     sample_num = 10
 
     df_alice = pd.DataFrame({'a': [i for i in range(100)]})
     alg = SampleAlgorithmFactory().create_sample_algorithm(
-        df_alice, total_num, "frac", "number", 0.8, RANDOM_SAMPLE, True, [], [], []
+        df_alice,
+        total_num,
+        RANDOM_SAMPLE,
+        0.8,
+        RANDOM_STATE,
+        True,
+        0.8,
+        0.8,
+        RANDOM_STATE,
+        '',
+        [],
+        [],
+        [],
     )
     assert isinstance(alg, RandomSampleAlgorithm)
 
     # replacement
     replacement_random_ids = RandomSampleAlgorithm._random_algorithm(
-        random_state, True, total_num, sample_num
+        RANDOM_STATE, True, total_num, sample_num
     )
     reference_replacement_random_ids = [0, 4, 10, 11, 14, 56, 74, 85, 88, 99]
     assert replacement_random_ids == reference_replacement_random_ids
@@ -112,7 +122,7 @@ def test_random_sample():
 
     # no replacement
     noreplacement_random_ids = RandomSampleAlgorithm._random_algorithm(
-        random_state, False, total_num, sample_num
+        RANDOM_STATE, False, total_num, sample_num
     )
     noreplacement_reference_random_ids = [0, 4, 10, 11, 12, 14, 56, 74, 85, 88]
     assert noreplacement_random_ids == noreplacement_reference_random_ids
@@ -122,21 +132,60 @@ def test_random_sample():
     assert noreplacement_random_ids != fail_random_ids
 
 
-def test_system_sample():
-    df_alice = pd.DataFrame({'a': [i for i in range(100)]})
-    total_num = 100
-    sample_num = 10
+def test_system_sample_rounding_error():
+    df_alice = pd.DataFrame({'a': [i for i in range(99)]})
+    total_num = 99
 
     alg = SampleAlgorithmFactory().create_sample_algorithm(
-        df_alice, total_num, "frac", "number", 0.8, SYSTEM_SAMPLE, True, [], [], []
+        df_alice,
+        total_num,
+        SYSTEM_SAMPLE,
+        0.5,
+        RANDOM_STATE,
+        True,
+        0.5,
+        0.5,
+        RANDOM_STATE,
+        '',
+        [],
+        [],
+        [],
     )
     assert isinstance(alg, SystemSampleAlgorithm)
 
-    random_ids = SystemSampleAlgorithm._system_algorithm(total_num, sample_num)
+    random_ids = SystemSampleAlgorithm._system_algorithm(total_num, alg.sample_num)
     reference_random_ids = []
-    for i in range(total_num):
-        if i % 10 == 0:
-            reference_random_ids.append(i)
+    for i in range(0, total_num, 2):
+        reference_random_ids.append(i)
+
+    assert len(random_ids) == len(reference_random_ids)
+
+
+def test_system_sample():
+    df_alice = pd.DataFrame({'a': [i for i in range(100)]})
+    total_num = 100
+
+    alg = SampleAlgorithmFactory().create_sample_algorithm(
+        df_alice,
+        total_num,
+        SYSTEM_SAMPLE,
+        0.1,
+        RANDOM_STATE,
+        True,
+        0.1,
+        0.1,
+        RANDOM_STATE,
+        '',
+        [],
+        [],
+        [],
+    )
+    assert isinstance(alg, SystemSampleAlgorithm)
+
+    random_ids = SystemSampleAlgorithm._system_algorithm(total_num, alg.sample_num)
+    reference_random_ids = []
+    for i in range(0, total_num, 10):
+        reference_random_ids.append(i)
 
     assert len(random_ids) == len(reference_random_ids)
 
@@ -190,18 +239,20 @@ def test_stratify_sample():
     )
     total_num = 19
     sample_num = 13
-    random_state = 1234
 
     quantiles = [5.3, 14.7]
     weights = [0.3, 0.3, 0.4]
     alg = SampleAlgorithmFactory().create_sample_algorithm(
         df_alice,
         total_num,
-        "frac",
-        "number",
-        0.8,
         STRATIFY_SAMPLE,
+        0.8,
+        RANDOM_STATE,
         True,
+        0.8,
+        0.8,
+        RANDOM_STATE,
+        '',
         [False, False, False],
         quantiles,
         weights,
@@ -218,7 +269,7 @@ def test_stratify_sample():
     replacements = [False, False, False]
     weights = []
     random_ids, report = alg._stratify_algorithm(
-        random_state,
+        RANDOM_STATE,
         replacements,
         'amount',
         df_alice,
@@ -237,7 +288,7 @@ def test_stratify_sample():
 
     replacements = [True, True, True]
     random_ids, _ = alg._stratify_algorithm(
-        random_state,
+        RANDOM_STATE,
         replacements,
         'amount',
         df_alice,
@@ -251,7 +302,7 @@ def test_stratify_sample():
     replacements = [False, False, False]
     weights = [0.3, 0.3, 0.4]
     random_ids, _ = alg._stratify_algorithm(
-        random_state,
+        RANDOM_STATE,
         replacements,
         'amount',
         df_alice,
@@ -264,7 +315,7 @@ def test_stratify_sample():
 
     replacements = [True, True, True]
     random_ids, _ = alg._stratify_algorithm(
-        random_state,
+        RANDOM_STATE,
         replacements,
         'amount',
         df_alice,
@@ -286,7 +337,7 @@ def test_stratify_sample():
         match=f"The data in bucket {illegal_idx} is not enough for sample, expect {target_sample_num} ,but bucket have {bucket0_size}, please reset replacement or bucket weights",
     ):
         alg._stratify_algorithm(
-            random_state,
+            RANDOM_STATE,
             replacements,
             'amount',
             df_alice,
@@ -310,11 +361,14 @@ def test_stratify_sample_illegal():
         SampleAlgorithmFactory().create_sample_algorithm(
             df_alice,
             100,
-            "frac",
-            "number",
-            0.1,
             STRATIFY_SAMPLE,
+            0.1,
+            RANDOM_STATE,
             True,
+            0.1,
+            0.1,
+            RANDOM_STATE,
+            '',
             [False, False],
             quantiles,
             weights,
@@ -330,15 +384,75 @@ def test_stratify_sample_illegal():
         SampleAlgorithmFactory().create_sample_algorithm(
             df_alice,
             100,
-            "frac",
-            "number",
-            0.1,
             STRATIFY_SAMPLE,
+            0.1,
+            RANDOM_STATE,
             True,
+            0.1,
+            0.1,
+            RANDOM_STATE,
+            '',
             replacements,
             quantiles,
             weights,
         )
+
+    with pytest.raises(
+        AssertionError,
+        match=f"sum of weights must be 1.0, but got 1.2000000000000002",
+    ):
+        SampleAlgorithmFactory().create_sample_algorithm(
+            df_alice,
+            100,
+            STRATIFY_SAMPLE,
+            0.8,
+            RANDOM_STATE,
+            True,
+            0.8,
+            0.8,
+            RANDOM_STATE,
+            '',
+            [True, True, True],
+            [1, 2],
+            [0.4, 0.4, 0.4],
+        )
+
+    with pytest.raises(
+        AssertionError,
+        match=f"sum of weights must be 1.0, but got 0.9",
+    ):
+        SampleAlgorithmFactory().create_sample_algorithm(
+            df_alice,
+            100,
+            STRATIFY_SAMPLE,
+            0.8,
+            RANDOM_STATE,
+            True,
+            0.8,
+            0.8,
+            RANDOM_STATE,
+            '',
+            [True, True, True],
+            [1, 2],
+            [0.4, 0.4, 0.1],
+        )
+
+    # empty weights ok
+    SampleAlgorithmFactory().create_sample_algorithm(
+        df_alice,
+        100,
+        STRATIFY_SAMPLE,
+        0.8,
+        RANDOM_STATE,
+        True,
+        0.8,
+        0.8,
+        RANDOM_STATE,
+        '',
+        [True, True, True],
+        [1, 2],
+        [],
+    )
 
 
 def test_sample_vertical(comp_prod_sf_cluster_config):
@@ -375,24 +489,22 @@ def test_sample_vertical(comp_prod_sf_cluster_config):
         )
 
     param = NodeEvalParam(
-        domain="data_prep",
+        domain="data_filter",
         name="sample",
         version="0.0.1",
         attr_paths=[
-            'random_state',
-            'sample_num_option',
-            'sample_num_option/frac',
             'sample_algorithm',
+            'sample_algorithm/stratify/frac',
+            'sample_algorithm/stratify/random_state',
             'sample_algorithm/stratify/observe_feature',
             'sample_algorithm/stratify/replacements',
             'sample_algorithm/stratify/quantiles',
             'sample_algorithm/stratify/weights',
         ],
         attrs=[
-            Attribute(i64=1234),
-            Attribute(s='frac'),
-            Attribute(f=0.8),
             Attribute(s='stratify'),
+            Attribute(f=0.8),
+            Attribute(i64=1234),
             Attribute(s='id1'),
             Attribute(bs=[False, False]),
             Attribute(fs=[3.1]),
@@ -490,28 +602,20 @@ def test_sample_vertical_replacement(comp_prod_sf_cluster_config):
         )
 
     param = NodeEvalParam(
-        domain="data_prep",
+        domain="data_filter",
         name="sample",
         version="0.0.1",
         attr_paths=[
-            'random_state',
-            'sample_num_option',
-            'sample_num_option/frac',
             'sample_algorithm',
+            'sample_algorithm/random/frac',
+            'sample_algorithm/random/random_state',
             'sample_algorithm/random/replacement',
-            # 'sample_algorithm/stratify/observe_feature',
-            # 'sample_algorithm/stratify/quantiles',
-            # 'sample_algorithm/stratify/weights',
         ],
         attrs=[
-            Attribute(i64=1234),
-            Attribute(s='frac'),
-            Attribute(f=0.8),
             Attribute(s='random'),
+            Attribute(f=0.8),
+            Attribute(i64=1234),
             Attribute(b=True),
-            # Attribute(s='a1'),
-            # Attribute(fs=[3.1]),
-            # Attribute(fs=[0.4, 0.6]),
         ],
         inputs=[
             DistData(
@@ -587,21 +691,19 @@ def test_sample_individual(comp_prod_sf_cluster_config):
         )
 
     param = NodeEvalParam(
-        domain="data_prep",
+        domain="data_filter",
         name="sample",
         version="0.0.1",
         attr_paths=[
-            'random_state',
-            'sample_num_option',
-            'sample_num_option/frac',
             'sample_algorithm',
+            'sample_algorithm/random/frac',
+            'sample_algorithm/random/random_state',
             'sample_algorithm/random/replacement',
         ],
         attrs=[
-            Attribute(i64=1234),
-            Attribute(s='frac'),
-            Attribute(f=0.8),
             Attribute(s='random'),
+            Attribute(f=0.8),
+            Attribute(i64=1234),
             Attribute(b=False),
         ],
         inputs=[

@@ -20,6 +20,7 @@ import numpy as np
 from scipy import stats
 
 import secretflow as sf
+from secretflow.data import partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import SPU, SPUObject, reveal
 from secretflow.ml.linear.ss_glm.core.distribution import DistributionType, get_dist
@@ -60,7 +61,17 @@ def _hessian_matrix(
     dist: DistributionType,
     tweedie_power: float,
     row_number: int,
+    y_scale: float,
 ):
+    if y_scale > 1:
+        y_device = list(y.partitions.keys())[0]
+        y.partitions[y_device] = partition(
+            data=y_device(lambda y, scale: y / scale)(
+                y.partitions[y_device].data, y_scale
+            )
+        )
+        yhat = yhat.device(lambda y, scale: y / scale)(yhat, y_scale)
+
     x_shape = x.shape
     if dist == DistributionType.Gamma:
         scale = _compute_scale(spu, y, yhat, 2, x_shape[0], x_shape[1])
@@ -89,28 +100,27 @@ def _hessian_matrix(
     return block_compute(blocks, spu, _h, lambda x, y: x + y)
 
 
-def _z_square_value(H: np.ndarray, w: np.ndarray, bias_offset: float):
-    assert H.shape[1] == w.shape[0], "weights' feature size != input x dataset's cols"
+def _z_square_value(H_inv: np.ndarray, w: np.ndarray):
+    assert (
+        H_inv.shape[1] == w.shape[0]
+    ), "weights' feature size != input x dataset's cols"
     w = jnp.reshape(w, (w.shape[0],))
-    H_inv = newton_matrix_inverse(H)
     H_inv_diag = jnp.diagonal(H_inv)
-    w.at[-1].set(w[-1] + bias_offset)
     return jnp.square(w) / H_inv_diag
 
 
 # spu function for Linear PValue
 def _t_square_value(
-    xtx: np.ndarray, m: int, n: int, y: np.ndarray, yhat: np.ndarray, w: np.ndarray
+    XTX_inv: np.ndarray, m: int, n: int, y: np.ndarray, yhat: np.ndarray, w: np.ndarray
 ):
     assert (
-        xtx.shape[1] == w.shape[0]
-    ), f"weights' feature size {w.shape[0]}!= input x dataset's cols {xtx.shape[1]}"
+        XTX_inv.shape[1] == w.shape[0]
+    ), f"weights' feature size {w.shape[0]}!= input x dataset's cols {XTX_inv.shape[1]}"
     w = jnp.reshape(w, (w.shape[0],))
     y = jnp.reshape(y, (y.shape[0], 1))
     yhat = jnp.reshape(yhat, (yhat.shape[0], 1))
     err = yhat - y
     sigma = jnp.matmul(jnp.transpose(err), err) / (m - n + 1)
-    XTX_inv = newton_matrix_inverse(xtx)
     XTX_inv_diag = jnp.diagonal(XTX_inv)
     variance = XTX_inv_diag * sigma
     w_square = jnp.square(w)
@@ -218,7 +228,8 @@ class PValue:
         """
         row_number = self._pre_check(x, y, yhat, weights, infeed_elements_limit)
 
-        xTx = block_compute_vdata(
+        y_device = list(y.partitions.keys())[0]
+        xtx = block_compute_vdata(
             x,
             row_number,
             self.spu,
@@ -230,7 +241,14 @@ class PValue:
         assert len(y) == 1, "label should came from one party"
         y = y[0]
         x_shape = x.shape
-        spu_t = self.spu(_t_square_value)(xTx, x_shape[0], x_shape[1], y, yhat, weights)
+
+        xtx_inv = y_device(lambda x: newton_matrix_inverse(x))(xtx.to(y_device)).to(
+            self.spu
+        )
+
+        spu_t = self.spu(_t_square_value)(
+            xtx_inv, x_shape[0], x_shape[1], y, yhat, weights
+        )
         t_square = self._rectify_negative(sf.reveal(spu_t))
         t_values = np.sqrt(t_square)
         return 2 * (1 - stats.t(x_shape[0] - x_shape[1]).cdf(np.abs(t_values)))
@@ -277,12 +295,16 @@ class PValue:
         """
         row_number = self._pre_check(x, y, yhat, weights, infeed_elements_limit)
 
-        H = _hessian_matrix(self.spu, x, y, yhat, link, dist, tweedie_power, row_number)
-
-        bias_offset = math.log(y_scale)
-        spu_z = self.spu(_z_square_value, static_argnames=("bias_offset"))(
-            H, weights, bias_offset
+        H = _hessian_matrix(
+            self.spu, x, y, yhat, link, dist, tweedie_power, row_number, y_scale
         )
+
+        y_device = list(y.partitions.keys())[0]
+        H_inv = y_device(lambda x: newton_matrix_inverse(x))(H.to(y_device)).to(
+            self.spu
+        )
+
+        spu_z = self.spu(_z_square_value)(H_inv, weights)
         z_square = self._rectify_negative(sf.reveal(spu_z))
         wald_values = np.sqrt(z_square)
         return 2 * (1 - stats.norm.cdf(np.abs(wald_values)))

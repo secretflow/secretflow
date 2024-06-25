@@ -1,0 +1,232 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2022 Ant Group Co., Ltd.
+# This file is distributed under the same license as the SecretFlow package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2024.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: SecretFlow \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-06-25 11:09+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.15.0\n"
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:1
+msgid "在隐语联邦学习中使用GPU"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:2
+msgid ""
+"隐语联邦学习是一个开放的专注隐私保护的联邦学习框架，目标是帮助开发和研究人员构建和部署机器学习模型。同时在整个过程中确保数据隐私和安全。   "
+"隐语联邦学习可以支持任意类型的神经网络模型，GPU的使用可以加快训练效率。   本篇文档将会介绍如何在隐语环境中使用gpu来加速训练。"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:5
+msgid "文档目标和预期读者"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:6
+msgid "对GPU加速有需求的用户"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:7
+msgid "隐语联邦学习框架概览"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:8
+msgid "隐语联邦学习框架主要由两部分构成，一个是FLModel，FLModel专注面向水平场景的联邦学习建模，我们在其中重写了训练的逻辑，提供了step级别的聚合能力，提供了多种不同安全等级的聚合算法，提供了多种联邦训练策略，提供了多种后端支持。另一个是SLModel，SLModel专注面向垂直场景的联邦学习建模，在SLModel中我们提供了多种后端的统一抽象，提供了面向隐私保护的聚合层，使用MPC技术来加固联邦学习，还提供了DP模块用于数据扰动。我们提供了用于提升效率的异构拆分算法，流水线训练策略，还提供了数据稀疏化和量化策略。"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:9
+msgid "为什么使用GPU"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:10
+msgid "使用GPU（图形处理单元）可以显著提升处理计算密集型任务的效率，尤其是在涉及到大量并行处理的领域。GPU拥有数以千计的小型、高效的核心，这些核心能够同时执行大量的浮点运算，从而加速数据分析、图形处理、和机器学习任务。相比于传统的CPU，GPU更适合于执行深度学习模型的矩阵乘法和向量运算，这可以极大地缩短模型训练和推理的时间。"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:13
+msgid "环境准备"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:14
+msgid "环境要求   **Tensorflow**："
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:16
+msgid "tensorflow==2.11.1"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:17
+msgid "cuDNN>=8.1 # 参考tensorflow官网建议"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:18
+msgid "CUDA>=11.2 # 参考tensorflow官网建议"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:20
+msgid "**PyTorch**"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:21
+msgid "torch==2.1.1"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:22
+msgid "torchaudio==2.1.1"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:23
+msgid "CUDA>=11.8"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:25
+msgid ""
+"本文基于的cuda版本是 `CUDA==12.2` `cudnn==8.9`   tensorflow和pytorch都安装gpu版本即可。   "
+"配置完环境后执行"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:38
+msgid "来验证下是否正确安装成功。"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:39
+msgid "配置secretflow来使用GPU"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:40
+msgid ""
+"机器学习引擎配置成功后，距离可以在secretflow中使用还差一步。但也已经很接近了。   "
+"首先我们了解一个前置知识，secretflow的部署模式分为三种"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:42
+msgid "Debug_Mode"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:43
+msgid "Simulation_mode"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:44
+msgid "Production_mode"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:47
+msgid ""
+"在Debug Mode中，在上面配置好引擎环境后就可以开始玩耍了，secretflow可以直接调度到gpu资源，无需关注本文其余内容。 "
+"在Simulation和Production模式下，我们还必须将 GPU 资源的相关信息明确告知 Ray，这样 GPU 资源才能被 Ray "
+"的工作节点（Worker）所利用。   *Ray 参考文档*：[Ray support GPU "
+"document](https://docs.ray.io/en/latest/ray-core/tasks/using-ray-with-"
+"gpus.html)"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:73
+msgid "隐语封装"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:74
+msgid "从ray的例子中可以看到我们需要在两个地方设置num_gpus："
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:75
+msgid "ray.init:声明可用资源"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:76
+msgid "remote参数：分配worker可用的资源。"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:78
+msgid "我们在隐语中分别进行了封装"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:81
+msgid "我们在sf.init中增加了num_gpus的参数 ![Alt text](./resources/fl_gpu_0.png)"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:81
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:84
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:194
+msgid "Alt text"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:84
+msgid ""
+"在proxy中封装num_gpus，这样在FLModel和SLModel的dispatcher就可以把num_gpus带到worker端，完成配置。我们在worker端只需要感知是不是要使用GPU，引擎可以获取到所有分配的gpu资源进行调度。"
+" ![Alt text](./resources/fl_gpu_1.png)"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:87
+msgid "那怎么使用呢"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:88
+msgid "在`sf.init`中配置num_gpus"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:96
+msgid "在定义FLModel和SLModel的时候传入`num_gpus`即可"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:109
+msgid "Done！   这样在具体执行时候就可以执行的时候调用到gpu资源了。"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:111
+msgid "其他细节"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:112
+msgid "其他的模型方面的细节，我们已经都包装好了，用户直接使用即可，无需关心。"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:114
+msgid "比如:"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:115
+msgid "torch需要显示创建cuda device来进行数据流转"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:116
+msgid "torch的数据，模型需要转到cuda device来完成计算"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:117
+msgid "指标需要转回到cpu device来进行计算"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:118
+msgid "模型保存加载需要注意device的转换。"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:120
+msgid ""
+"**Attention**：在使用模拟模式（Simulation "
+"Mode）时，需要特别注意的是，如果系统中只装有一块显卡，在分配给多个参与方时，每个参与方能够获得的资源将限制为显卡总资源的 "
+"1/n。如果不遵循这一限制，可能会导致由于资源超额分配而无法成功调度。"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:122
+msgid "Sample code"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:194
+msgid "![Alt text](./resources/fl_gpu_2.png)"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:195
+msgid "总结"
+msgstr ""
+
+#: ../../user_guide/federated_learning/how_to_use_gpu_in_fl.md:196
+msgid "本篇文档详细介绍了如何在隐语的联邦学习框架中使用gpu，gpu在大数据和大模型的训练和推导中很重要，欢迎按照文档的介绍进行使用。"
+msgstr ""

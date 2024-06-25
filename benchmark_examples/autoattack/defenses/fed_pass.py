@@ -51,7 +51,9 @@ class FedPass(DefenseBase):
     def __str__(self):
         return 'fed_pass'
 
-    def build_defense_callback(self, app: ApplicationBase) -> Callback | None:
+    def build_defense_callback(
+        self, app: ApplicationBase, attack: AttackBase | None = None
+    ) -> Callback | None:
         return FedPassDefense(
             use_passport=self.config.get('use_passport', {'alice': True, 'bob': True}),
         )

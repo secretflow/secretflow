@@ -1,0 +1,186 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2022 Ant Group Co., Ltd.
+# This file is distributed under the same license as the SecretFlow package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2024.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: SecretFlow \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-06-25 11:09+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.15.0\n"
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:9
+msgid "基于 Keras Applications 的预训练模型在隐语联邦学习环境下的微调"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:12
+msgid "引言"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:14
+msgid "预训练模型加载和精调在机器学习中非常重要。一般来说，从头训练一个非常大的模型，不仅需要大量的算力资源，同时也需要耗费大量的时间。所以在传统的机器学习中，使用预训练模型，然后针对具体的任务做微调和迁移学习非常普遍。同样的，对于联邦学习来说，如果能够加载预训练模型进行微调和迁移学习，不仅能够节省参与方的算力资源，降低参与方的准入门槛，同时也能够加快模型的学习速度。"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:16
+msgid ""
+"得益于隐语联邦学习模块优异的兼容性，使得其可以直接加载TensorFlow.Keras的一系列\\ `预训练模型 "
+"<https://keras.io/api/applications/>`__\\ ；本教程将基于TensorFlow.Keras的\\ "
+"`InceptionV3 <https://arxiv.org/abs/1512.00567>`__\\ 的\\ `微调教程 "
+"<https://keras.io/api/applications/#finetune-inceptionv3-on-a-new-set-of-"
+"classes>`__\\ "
+"展现如何基于TensorFlow.Keras的预训练模型在SecretFlow的框架下进行微调，充分展现SecretFlow的易用性。"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:28
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:132
+msgid "加载数据集"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:31
+msgid "数据集介绍"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:33
+msgid ""
+"Flower 数据集介绍：flower 数据集是一个包含了 5 种花卉（雏菊、蒲公英、玫瑰、向日葵、郁金香）共计 4323 "
+"张彩色图片的数据集。每种花卉都有多个角度和不同光照下的图片，每张图片的分辨率为 "
+"320x240。这个数据集常用于图像分类和机器学习算法的训练与测试。数据集中每个类别的数量分别是：daisy（633），dandelion（898），rose（641），sunflower（699），tulip（852）"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:35
+msgid "下载地址: http://download.tensorflow.org/example_images/flower_photos.tgz"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:38
+msgid "下载数据集并解压"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:227
+msgid "划分数据集"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:250
+msgid "查看数据集"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:370
+msgid "单机模式进行微调"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:372
+msgid ""
+"单机模式下进行预训练模型的微调，基本上参考TensorFlow.Keras的\\ `官方教程 "
+"<https://keras.io/api/applications/#finetune-inceptionv3-on-a-new-set-of-"
+"classes>`__\\ ，并根据数据集格式在编译模型的参数上作适当的修改，但影响不大；"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:384
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:2655
+msgid "微调顶部分类器"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:981
+msgid "冻结底层网络层微调顶层网络层"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:2369
+msgid "单机模式小结"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:2371
+msgid ""
+"以上我们按照官方教程在数据集Flower 上成功微调了 InceptionV3 模型，分别是\\ **微调顶部分类器**\\ 和\\ "
+"**冻结底层网络层微调顶层网络层**\\ 。接下来我们将展示如何将单机模式下的微调拓展到联邦学习模式下进行微调。"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:2383
+msgid "联邦学习模式进行微调"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:2386
+msgid "环境设置"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:2388
+msgid "首先我们初始化各个参与方。"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:2479
+msgid "定义Dataloader"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:2481
+msgid ""
+"我们可以参考\\ `TensorFlow下的DataBuilder教程 "
+"<https://www.secretflow.org.cn/docs/secretflow/latest/zh-"
+"Hans/tutorial/CustomDataLoaderTF>`__\\ 定义我们自己的DataBuilder。"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:2547
+msgid "定义 SecureAggregator"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:2601
+msgid "定义数据加载路径"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:2603
+msgid "为了简便起见，我们在 单机模拟模式下直接加载同一处路径所对应的数据集"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:2628
+msgid "定义联邦学习训练参数"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:2657
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:3324
+msgid ""
+"我们只要参照教程里对模型的定义，在函数里完成我们对模型的定义即可；可以看到代码几乎不需要作任何修改，只需要进行适当的封装。 "
+"为了方便作对比实验，我们额外添加是否加载权重的选项。"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:2715
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:3382
+msgid "加载预训练模型权重并且微调"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:3020
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:3684
+msgid "只加载网络结构同时随机初始化"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:3322
+msgid "冻结底层微调顶层网络"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:3986
+msgid "联邦学习小结"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:3988
+msgid ""
+"可以看到，对照着 TensorFlow "
+"的官方教程，隐语能够无缝地兼容所给出的微调方式；并且我们可以看到，通过对预训练模型的兼容，我们可以不需要自己再重新写出复杂网络的模型结构，InceptionV3"
+" 的网络结构源代码位于：\\ `source code of Inception V3 <https://github.com/keras-"
+"team/keras/blob/v2.13.1/keras/applications/inception_v3.py>`__\\ "
+"，并且通过对比实验我们可以看出，加载预训练模型的权重，可以让我们的模型性能更优秀。"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:3991
+msgid "总结"
+msgstr ""
+
+#: ../../tutorial/tensorflow-finetune-inception-v3.ipynb:3993
+msgid ""
+"本篇教程，我们以Inception V3为例介绍了如何在隐语的联邦学习模式下基于直接加载 TensorFlow.Keras 的 `预训练模型 "
+"<https://keras.io/api/applications/>`__\\ ，通过直接加载预训练模型，我们能够获得： - "
+"不需要再次编写复杂模型的结构代码 - 基于预训练模型进行微调和迁移学习 - 使用预训练权重模型能够使得联邦模型获得更好的性能"
+msgstr ""
