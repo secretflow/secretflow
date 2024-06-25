@@ -34,43 +34,9 @@ from secretflow.spec.v1.report_pb2 import Descriptions, Div, Report, Tab
 
 sample_comp = Component(
     "sample",
-    domain="data_prep",
+    domain="data_filter",
     version="0.0.1",
     desc="Sample data set.",
-)
-sample_comp.int_attr(
-    name="random_state",
-    desc="Specify the random seed of the shuffling.",
-    is_list=False,
-    is_optional=True,
-    default_value=1024,
-    lower_bound=0,
-    lower_bound_inclusive=False,
-)
-sample_comp.union_attr_group(
-    name="sample_num_option",
-    desc="sample number algorithm and parameters",
-    group=[
-        sample_comp.int_attr(
-            name="number",
-            desc="Specify the total number of sampling.",
-            is_list=False,
-            is_optional=True,
-            default_value=1024,
-            lower_bound=0,
-            lower_bound_inclusive=False,
-        ),
-        sample_comp.float_attr(
-            name="frac",
-            desc="Proportion of the dataset to sample in the set. The fraction should be larger than 0.",
-            is_list=False,
-            is_optional=True,
-            default_value=0.75,
-            allowed_values=None,
-            lower_bound=0.0,
-            lower_bound_inclusive=False,
-        ),
-    ],
 )
 sample_comp.union_attr_group(
     name="sample_algorithm",
@@ -80,6 +46,26 @@ sample_comp.union_attr_group(
             name="random",
             desc="Random sample.",
             group=[
+                sample_comp.float_attr(
+                    name="frac",
+                    desc="Proportion of the dataset to sample in the set. The fraction should be larger than 0.",
+                    is_list=False,
+                    is_optional=True,
+                    default_value=0.8,
+                    lower_bound=0.0,
+                    lower_bound_inclusive=False,
+                    upper_bound=10000.0,
+                    upper_bound_inclusive=False,
+                ),
+                sample_comp.int_attr(
+                    name="random_state",
+                    desc="Specify the random seed of the shuffling.",
+                    is_list=False,
+                    is_optional=True,
+                    default_value=1024,
+                    lower_bound=0,
+                    lower_bound_inclusive=False,
+                ),
                 sample_comp.bool_attr(
                     name="replacement",
                     desc="If true, sampling with replacement. If false, sampling without replacement.",
@@ -89,40 +75,72 @@ sample_comp.union_attr_group(
                 ),
             ],
         ),
-        sample_comp.union_selection_attr(
+        sample_comp.struct_attr_group(
             name="system",
             desc="system sample.",
+            group=[
+                sample_comp.float_attr(
+                    name="frac",
+                    desc="Proportion of the dataset to sample in the set. The fraction should be larger than 0 and less than or equal to 0.5.",
+                    is_list=False,
+                    is_optional=True,
+                    default_value=0.2,
+                    lower_bound=0.0,
+                    lower_bound_inclusive=False,
+                    upper_bound=0.5,
+                    upper_bound_inclusive=True,
+                ),
+            ],
         ),
         sample_comp.struct_attr_group(
             name="stratify",
             desc="stratify sample.",
             group=[
+                sample_comp.float_attr(
+                    name="frac",
+                    desc="Proportion of the dataset to sample in the set. The fraction should be larger than 0.",
+                    is_list=False,
+                    is_optional=True,
+                    default_value=0.8,
+                    lower_bound=0.0,
+                    lower_bound_inclusive=False,
+                    upper_bound=10000.0,
+                    upper_bound_inclusive=False,
+                ),
+                sample_comp.int_attr(
+                    name="random_state",
+                    desc="Specify the random seed of the shuffling.",
+                    is_list=False,
+                    is_optional=True,
+                    default_value=1024,
+                    lower_bound=0,
+                    lower_bound_inclusive=False,
+                ),
                 sample_comp.str_attr(
                     name="observe_feature",
                     desc="stratify sample observe feature.",
                     is_list=False,
                     is_optional=False,
-                    default_value="",
                 ),
                 sample_comp.bool_attr(
                     name="replacements",
                     desc="If true, sampling with replacement. If false, sampling without replacement.",
                     is_list=True,
                     is_optional=False,
-                    default_value=[],
                 ),
                 sample_comp.float_attr(
                     name="quantiles",
                     desc="stratify sample quantiles",
                     is_list=True,
                     is_optional=False,
-                    default_value=[],
+                    list_min_length_inclusive=1,
+                    list_max_length_inclusive=1000,
                 ),
                 sample_comp.float_attr(
                     name="weights",
                     desc="stratify sample weights",
                     is_list=True,
-                    is_optional=False,
+                    is_optional=True,
                     default_value=[],
                     lower_bound=0.0,
                     upper_bound=1.0,
@@ -169,12 +187,13 @@ STRATIFY_SAMPLE = "stratify"
 def sample_fn(
     *,
     ctx,
-    random_state,
-    sample_num_option,
-    sample_num_option_number,
-    sample_num_option_frac,
     sample_algorithm,
+    sample_algorithm_random_frac,
+    sample_algorithm_random_random_state,
     sample_algorithm_random_replacement,
+    sample_algorithm_system_frac,
+    sample_algorithm_stratify_frac,
+    sample_algorithm_stratify_random_state,
     sample_algorithm_stratify_observe_feature,
     sample_algorithm_stratify_replacements,
     sample_algorithm_stratify_quantiles,
@@ -193,22 +212,23 @@ def sample_fn(
 
     # get row number
     total_num = part0.shape[0]
+    assert total_num > 0, "total_num must greater than 0"
     sample_algorithm_obj = SampleAlgorithmFactory().create_sample_algorithm(
         input_df,
         total_num,
-        sample_num_option,
-        sample_num_option_number,
-        sample_num_option_frac,
         sample_algorithm,
+        sample_algorithm_random_frac,
+        sample_algorithm_random_random_state,
         sample_algorithm_random_replacement,
+        sample_algorithm_system_frac,
+        sample_algorithm_stratify_frac,
+        sample_algorithm_stratify_random_state,
+        sample_algorithm_stratify_observe_feature,
         sample_algorithm_stratify_replacements,
         sample_algorithm_stratify_quantiles,
         sample_algorithm_stratify_weights,
     )
-    sample_df, report_results = sample_algorithm_obj.perform_sample(
-        random_state,
-        sample_algorithm_stratify_observe_feature,
-    )
+    sample_df, report_results = sample_algorithm_obj.perform_sample()
 
     if input_data.type == DistDataType.VERTICAL_TABLE:
         meta = VerticalTableWrapper.from_dist_data(input_data, sample_df.shape[0])
@@ -268,7 +288,7 @@ def transform_report(reports, sample_algorithm, report_results, system_info):
             if i == 0:
                 tabs.append(
                     Tab(
-                        name="total_sample_info",
+                        name="采样结果表",
                         desc="total sample info",
                         divs=sample_div_report(report_results[i]),
                     )
@@ -298,18 +318,8 @@ def transform_report(reports, sample_algorithm, report_results, system_info):
     return report_dd
 
 
-def calculate_sample_number(
-    option, number: int, frac: float, replacement: bool, total_num: int
-):
-    assert option in [
-        "number",
-        "frac",
-    ], f"option must be one of ['number', 'frac'], but got {option}"
-    sample_num = 0
-    if option == "number":
-        sample_num = number
-    else:
-        sample_num = round(frac * total_num)
+def calculate_sample_number(frac: float, replacement: bool, total_num: int):
+    sample_num = round(frac * total_num)
 
     if sample_num > total_num and not replacement:
         raise CompEvalError(
@@ -324,11 +334,14 @@ class SampleAlgorithmFactory:
         self,
         input_df: VDataFrame,
         total_num: int,
-        sample_num_option,
-        sample_num_option_number,
-        sample_num_option_frac,
         sample_algorithm,
+        random_frac,
+        random_random_state: int,
         random_replacement: bool,
+        system_frac,
+        stratify_frac,
+        stratify_random_state: int,
+        stratify_observe_feature: str,
         stratify_replacements: list[bool],
         quantiles: list[float],
         weights: list[float],
@@ -337,26 +350,23 @@ class SampleAlgorithmFactory:
             return RandomSampleAlgorithm(
                 input_df,
                 total_num,
-                sample_num_option,
-                sample_num_option_number,
-                sample_num_option_frac,
+                random_frac,
+                random_random_state,
                 random_replacement,
             )
         elif sample_algorithm == SYSTEM_SAMPLE:
             return SystemSampleAlgorithm(
                 input_df,
                 total_num,
-                sample_num_option,
-                sample_num_option_number,
-                sample_num_option_frac,
+                system_frac,
             )
         elif sample_algorithm == STRATIFY_SAMPLE:
             return StratifySampleAlgorithm(
                 input_df,
                 total_num,
-                sample_num_option,
-                sample_num_option_number,
-                sample_num_option_frac,
+                stratify_frac,
+                stratify_random_state,
+                stratify_observe_feature,
                 stratify_replacements,
                 quantiles,
                 weights,
@@ -378,16 +388,12 @@ class SampleAlgorithm:
 
     def perform_sample(
         self,
-        random_state: int,
-        observe_feature: str,
     ):
-        random_ids, report_results = self._algorithm(random_state, observe_feature)
+        random_ids, report_results = self._algorithm()
         return self._filter_data(random_ids), report_results
 
     def _algorithm(
         self,
-        random_state: int,
-        observe_feature: str,
     ):
         pass
 
@@ -410,9 +416,8 @@ class RandomSampleAlgorithm(SampleAlgorithm):
         self,
         in_df: VDataFrame,
         total_num: int,
-        sample_num_option,
-        sample_num_option_number,
-        sample_num_option_frac,
+        frac: float,
+        random_state: int,
         replacement: bool,
     ):
         super().__init__(
@@ -420,22 +425,19 @@ class RandomSampleAlgorithm(SampleAlgorithm):
             total_num,
         )
         self.replacement = replacement
+        self.random_state = random_state
         self.sample_num = calculate_sample_number(
-            sample_num_option,
-            sample_num_option_number,
-            sample_num_option_frac,
+            frac,
             self.replacement,
             total_num,
         )
 
     def _algorithm(
         self,
-        random_state: int,
-        _observe_feature: str,
     ):
         device0 = next(iter(self.in_df.partitions))
         random_ids = device0(RandomSampleAlgorithm._random_algorithm)(
-            random_state, self.replacement, self.total_num, self.sample_num
+            self.random_state, self.replacement, self.total_num, self.sample_num
         )
         return reveal(random_ids), []
 
@@ -464,18 +466,14 @@ class SystemSampleAlgorithm(SampleAlgorithm):
         self,
         in_df: VDataFrame,
         total_num: int,
-        sample_num_option,
-        sample_num_option_number,
-        sample_num_option_frac,
+        frac: float,
     ):
         super().__init__(
             in_df,
             total_num,
         )
         self.sample_num = calculate_sample_number(
-            sample_num_option,
-            sample_num_option_number,
-            sample_num_option_frac,
+            frac,
             # System sample forbid replacement
             False,
             total_num,
@@ -483,8 +481,6 @@ class SystemSampleAlgorithm(SampleAlgorithm):
 
     def _algorithm(
         self,
-        _random_state: int,
-        _observe_feature: str,
     ):
         device0 = next(iter(self.in_df.partitions))
         system_ids = device0(SystemSampleAlgorithm._system_algorithm)(
@@ -507,9 +503,9 @@ class StratifySampleAlgorithm(SampleAlgorithm):
         self,
         in_df: VDataFrame,
         total_num: int,
-        sample_num_option,
-        sample_num_option_number,
-        sample_num_option_frac,
+        frac: float,
+        random_state: int,
+        observe_feature,
         stratify_replacements: list[bool],
         quantiles: list[float],
         weights: list[float],
@@ -525,40 +521,42 @@ class StratifySampleAlgorithm(SampleAlgorithm):
             assert len(weights) == len(
                 stratify_replacements
             ), f"len(weights) must equal len(replacements), but got len(weights):{len(weights)}, len(replacements):{len(stratify_replacements)}"
+            epsilon = 1e-5
+            assert (
+                abs(sum(weights) - 1.0) < epsilon
+            ), f"sum of weights must be 1.0, but got {sum(weights)}, weights len: {len(weights)}"
 
         super().__init__(
             in_df,
             total_num,
         )
         self.sample_num = calculate_sample_number(
-            sample_num_option,
-            sample_num_option_number,
-            sample_num_option_frac,
+            frac,
             True,
             total_num,
         )
+        self.random_state = random_state
+        self.observe_feature = observe_feature
         self.replacements = stratify_replacements
         self.quantiles = quantiles
         self.weights = weights
 
     def _algorithm(
         self,
-        random_state: int,
-        observe_feature: str,
     ):
         feature_owner = None
         for device, cols in self.in_df.partition_columns.items():
-            if observe_feature in cols:
+            if self.observe_feature in cols:
                 feature_owner = device
                 break
         assert (
             feature_owner is not None
-        ), f"Feature owner is not found, {observe_feature} not in {self.in_df.columns}"
+        ), f"Feature owner is not found, {self.observe_feature} not in {self.in_df.columns}"
 
         result = feature_owner(StratifySampleAlgorithm._stratify_algorithm)(
-            random_state,
+            self.random_state,
             self.replacements,
-            observe_feature,
+            self.observe_feature,
             self.in_df.partitions[feature_owner].data,
             self.quantiles,
             self.total_num,
@@ -596,6 +594,7 @@ class StratifySampleAlgorithm(SampleAlgorithm):
         rand_num = random.Random(random_state)
         for i in range(len(bucket_idxs)):
             bucket_size = len(bucket_idxs[i])
+            assert bucket_size > 0, f"bucket {i} bucket_size is 0"
             if len(weights) > 0:
                 target_size = round(sample_num * weights[i])
             else:

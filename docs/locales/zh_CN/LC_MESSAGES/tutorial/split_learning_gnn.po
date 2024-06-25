@@ -7,14 +7,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-03-19 12:20+0800\n"
+"POT-Creation-Date: 2024-06-25 11:09+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.14.0\n"
+"Generated-By: Babel 2.15.0\n"
 
 #: ../../tutorial/split_learning_gnn.ipynb:9
 msgid "Split Learning for Graph Neural Network"
@@ -178,7 +178,7 @@ msgid "The whole model structure is as follow"
 msgstr "完整的模型结构如下"
 
 #: ../../tutorial/split_learning_gnn.ipynb:730
-msgid "|1576650e65954e7b88df39ef91da6533|"
+msgid "|95b34019d52c4750bb0f92f339c45df3|"
 msgstr ""
 
 #: ../../tutorial/split_learning_gnn.ipynb:732
@@ -219,3 +219,5 @@ msgid ""
 "the case where all parties have common subset nodes."
 msgstr "支持部分对齐的图：示例中的图数据是假设每方的节点都是对齐一致的，但是实际中可能只有部分对齐。我们后续会探索多方仅有部分节点对齐的场景。"
 
+#~ msgid "|1576650e65954e7b88df39ef91da6533|"
+#~ msgstr ""

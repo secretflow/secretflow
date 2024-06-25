@@ -118,7 +118,7 @@ def objective_trainning(
         defense.set_config(config)
         # first add defense callbacks, then add attack callbacks.
         attack_callback = attack.build_attack_callback(app)
-        defense_callback: Callback = defense.build_defense_callback(app)
+        defense_callback: Callback = defense.build_defense_callback(app, attack)
         callbacks = [defense_callback, attack_callback]
         callbacks = [v for v in callbacks if v is not None]
         callbacks = None if len(callbacks) == 0 else callbacks
@@ -259,7 +259,7 @@ def case_valid_check(
         if not defense_impl.check_app_valid(app_impl):
             raise NotSupportedError(
                 f"Defense {defense} not supported in application {app_impl}! "
-                f"If not correct, check the implement of 'check_app:_valid' in class {defense_impl}"
+                f"If not correct, check the implement of 'check_app_valid' in class {defense_impl}"
             )
 
 

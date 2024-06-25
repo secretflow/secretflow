@@ -8,153 +8,269 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-02-19 15:16+0800\n"
+"POT-Creation-Date: 2024-06-25 11:09+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.12.1\n"
+"Generated-By: Babel 2.15.0\n"
 
 #: ../../user_guide/mpc_ml/generalized_linear_model.rst:2
 msgid "Generalized Linear Models"
 msgstr "广义线性模型"
 
-#: ../../user_guide/mpc_ml/generalized_linear_model.rst:4
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:5
+msgid "Introduction"
+msgstr ""
+
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:8
+#, fuzzy
 msgid ""
 "A Generalized Linear Model (GLM) is a flexible generalization of ordinary"
-" linear regression that allows for the response variable to have a non-"
-"normal distribution.GLMs are used to model a response variable that is a "
-"function of several explanatory variables. The general framework of GLMs "
-"is designed to handle various types of response data including "
-"continuous, binary, count, and other types of data that do not "
-"necessarily follow a normal distribution."
+" linear regression that is used to model a **response variable** that is "
+"a function of several **explanatory variables**. It allows for the "
+"response variable to have a **non-normal distribution**. The general "
+"framework of GLMs is designed to handle various types of response "
+"variable including continuous, binary, count, and other types of data "
+"that do not necessarily follow a normal distribution."
 msgstr "广义线性模型（GLM）是普通线性回归的灵活推广，允许响应变量具有非正态分布。GLM用于对响应变量进行建模，该响应变量是几个解释变量的函数。GLM的一般框架旨在处理包括连续型、二元型、计数型以及其他不一定遵循正态分布的各种类型的响应数据。"
 
-#: ../../user_guide/mpc_ml/generalized_linear_model.rst:10
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:12
 msgid "The key components of a GLM are:"
 msgstr "GLM的关键组成部分有："
 
-#: ../../user_guide/mpc_ml/generalized_linear_model.rst:12
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:14
+#, fuzzy
 msgid ""
-"Random Component: This specifies the probability distribution of the "
+"**Random Component**: This specifies the probability distribution of the "
 "response variable (Y). Common distributions include normal (Gaussian) for"
-" continuous data, binomial for binary or proportion data, and Poisson for"
-" count data. However, GLMs can accommodate a variety of other "
-"distributions that are part of the exponential family, such as gamma and "
-"inverse Gaussian."
+" continuous data, Bernoulli for binary data, and Poisson for count data. "
+"However, GLMs can accommodate a variety of other distributions that are "
+"part of the exponential family, such as Gamma and inverse Gaussian."
 msgstr "随机分量：这指定了响应变量（Y）的概率分布。常见的分布包括连续数据的正态（高斯）分布、二元或比例数据的二项分布和计数数据的泊松分布。然而，GLM还可以适用于指数族的其他多种分布，例如伽马分布和逆高斯分布。"
 
-#: ../../user_guide/mpc_ml/generalized_linear_model.rst:17
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:16
+#, fuzzy
 msgid ""
-"Systematic Component: This is the linear combination of the explanatory "
-"variables (X1, X2, ..., Xn) associated with their coefficients (β1, β2, "
-"..., βn), which we denote as η (eta). In a simple linear regression, this"
-" would just be β0 + β1X1 + β2X2 + ... + βnXn."
+"**Systematic Component**: This is the linear combination of the "
+"explanatory variables :math:`X = (x_1, x_2, ..., x_n)` associated with "
+"their coefficients :math:`\\beta = (\\beta_0, \\beta_1, \\beta_2, ..., "
+"\\beta_n)`. In a simple linear regression, this would just be "
+":math:`\\eta = X^\\top \\beta = \\beta_0 + \\beta_1x_1 + \\beta_2x_2 + "
+"... + \\beta_nx_n`."
 msgstr ""
 "系统分量：这是与其系数（β1、β2、...、βn）相关的解释变量（X1、X2、...、Xn）的线性组合，我们将其表示为η（eta）。在简单线性回归中，这将是β0"
 " + β1X1 + β2X2 + ... + βnXn。"
 
-#: ../../user_guide/mpc_ml/generalized_linear_model.rst:21
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:18
+#, fuzzy
 msgid ""
-"Link Function: The link function provides the relationship between the "
-"linear predictor (η) and the expected value (mean) of the response "
-"variable. It is a function that maps the expected value of the response "
-"variable to the linear predictor. The choice of the link function depends"
-" on the type of the response variable. For example, the identity link (η "
-"= μ) is typically used for normal responses, the logit link (log(μ/(1-μ))"
-" = η) for binomial responses, and the log link (log(μ) = η) for Poisson "
-"responses."
+"**Link Function**: The link function provides the relationship between "
+"the linear predictor (:math:`\\eta`) and the expected value "
+"(:math:`\\mu`) of the response variable. It is a function that maps the "
+"expected value of the response variable to the linear predictor. The "
+"choice of the link function depends on the distribution of the response "
+"variable. For example,"
 msgstr ""
 "链接函数：链接函数提供了线性预测器（η）与响应变量的期望值（均值）之间的关系。它是一个将响应变量的期望值映射到线性预测器的函数。链接函数的选择取决于响应变量的类型。例如，身份链接（η"
 " = μ）通常用于正态响应，logit 链接（log(μ/(1-μ)) = η）用于二项响应，对数链接（log(μ) = η）用于泊松响应。"
 
-#: ../../user_guide/mpc_ml/generalized_linear_model.rst:28
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:20
 msgid ""
-"The GLM fitting process involves estimating the coefficients (β) that "
-"best explain the relationship between the predictors and the response "
-"variable. This estimation is typically done using maximum likelihood "
-"estimation, rather than the least squares estimation used in ordinary "
-"linear regression."
+"the identity link (:math:`\\eta = \\mu`) is typically used for Gaussian "
+"responses,"
+msgstr ""
+
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:22
+msgid ""
+"the logit link (:math:`\\log(\\mu/(1-\\mu)) = \\eta`) for Bernoulli "
+"responses,"
+msgstr ""
+
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:24
+msgid "and the log link (:math:`\\log(\\mu) = \\eta`) for Poisson responses."
+msgstr ""
+
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:26
+#, fuzzy
+msgid ""
+"The GLM fitting process involves estimating the coefficients "
+"(:math:`\\beta`) that best explain the relationship between the "
+"predictors and the response variable. This estimation is typically done "
+"using maximum likelihood estimation, rather than the least squares "
+"estimation used in ordinary linear regression."
 msgstr "GLM拟合过程涉及估计最能解释预测变量和响应变量之间关系的系数（β）。这种估计通常使用最大似然估计，而不是普通线性回归中使用的最小二乘估计。"
 
-#: ../../user_guide/mpc_ml/generalized_linear_model.rst:33
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:28
 msgid ""
-"The GLM framework also provides tools for hypothesis testing. This allows"
-" researchers to test if certain predictors have a statistically "
+"Different solvers can be used to to estimate the coefficients. Currently,"
+" two solvers are availbale:"
+msgstr ""
+
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:30
+msgid "mini batch SGD training solver (please refer to `SGD <linear_model.rst>`_)"
+msgstr ""
+
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:32
+msgid "iterated reweighted least squares (IRLS) sovler."
+msgstr ""
+
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:35
+msgid "IRLS algorithm"
+msgstr ""
+
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:37
+msgid ""
+"The advantage of gradient descent is the simplicity of its "
+"implementation, while its drawback is that it is not as fast-converging "
+"as Newton's method. Gradient descent and Newton's method are very similar"
+" in form, as both search for the optimal solution by following the "
+"negative gradient direction of the objective function. The difference "
+"lies in that the traditional gradient descent employs the first "
+"derivative, while Newton's method uses the second derivative. Newton's "
+"method converges faster compared to gradient descent, but the inclusion "
+"of the second derivative also significantly increases the computational "
+"complexity of Newton's method, to the point where it can often be "
+"unfeasible to calculate. The IRLS algorithm is a variant of Newton's "
+"method."
+msgstr ""
+
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:39
+msgid ""
+"The IRLS algorithm is a general-purpose parameter estimation algorithm "
+"for GLM that can be used with any exponential family distribution and "
+"link function, and does not require initialization of :math:`\\beta`."
+msgstr ""
+
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:59
+msgid "Hypothesis Testing"
+msgstr ""
+
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:61
+#, fuzzy
+msgid ""
+"The GLM framework also provides tools for hypothesis testing, which "
+"allows researchers to test if certain predictors have a statistically "
 "significant effect on the response variable."
 msgstr "GLM框架还提供了用于假设检验的工具。这允许研究人员测试某些预测变量是否对响应变量有统计学上显著的影响。"
 
-#: ../../user_guide/mpc_ml/generalized_linear_model.rst:36
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:63
+#, fuzzy
 msgid ""
-"Finally, GLMs include diagnostic measures, such as deviance residuals, to"
-" assess the adequacy and fit of the model. Deviance residuals can be used"
-" to identify outliers or points that have a high influence on the model "
-"fit, and they help in determining whether the chosen model and link "
-"function are appropriate for the data."
+"GLMs include diagnostic measures, such as deviance, to assess the "
+"adequacy and fit of the model. Deviance can be used to identify outliers "
+"or points that have a high influence on the model fit, and they help in "
+"determining whether the chosen model and link function are appropriate "
+"for the data."
 msgstr "最后，GLM包括诊断措施，如偏差残差，以评估模型的充分性和拟合度。偏差残差可用于识别异常值或对模型拟合有较大影响的点，并且它们有助于确定所选模型和链接函数是否适合数据。"
 
-#: ../../user_guide/mpc_ml/generalized_linear_model.rst:41
-msgid ""
-"In summary, GLMs extend linear regression by allowing for response "
-"variables that have different distributions and by using link functions "
-"to relate the response variable to the linear predictors. This makes GLMs"
-" a powerful and flexible tool in statistical modeling for various types "
-"of data."
-msgstr "总之，GLM通过允许响应变量具有不同的分布并使用链接函数将响应变量与线性预测器相关联来扩展线性回归。这使得GLM成为统计建模中处理各种类型数据的强大且灵活的工具。"
-
-#: ../../user_guide/mpc_ml/generalized_linear_model.rst:45
-msgid ""
-"Under the protection of a multi-party secure computing protocol, "
-"SecretFlow implements secure GLM algorithm for vertically partitioned "
-"dataset setting."
-msgstr "在多方安全计算协议的保护下，SecretFlow实现了用于垂直划分数据集设置的安全GLM算法。"
-
-#: ../../user_guide/mpc_ml/generalized_linear_model.rst:48
-msgid "SecretFlow provides one secure implementation of GLM:"
-msgstr "SecretFlow提供了一种安全的GLM实现："
-
-#: ../../user_guide/mpc_ml/generalized_linear_model.rst:50
-msgid "SS-GLM: SS-GLM is short for secret sharing Generalized Linear Model."
-msgstr "SS-GLM：SS-GLM是秘密共享广义线性模型的简称。"
-
-#: ../../user_guide/mpc_ml/generalized_linear_model.rst:52
-msgid "Secret Sharing is sensitive to bandwidth and latency."
-msgstr "秘密共享对带宽和延迟敏感。"
-
-#: ../../user_guide/mpc_ml/generalized_linear_model.rst:54
-msgid ""
-"Secret Sharing can complete the modeling faster with LAN or 10 Gigabit "
-"network, and with limited bandwidth and high latency network environment "
-"can use HE to improve the modeling speed."
-msgstr "秘密共享可以在局域网或10吉比特网络下更快地完成建模，在带宽有限和网络延迟高的环境下可以使用同态加密（HE）来提高建模速度。"
-
-#: ../../user_guide/mpc_ml/generalized_linear_model.rst:59
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:67
 msgid "SS-GLM"
 msgstr "SS-GLM"
 
-#: ../../user_guide/mpc_ml/generalized_linear_model.rst:61
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:69
+msgid "SecretFlow provides one secure implementation of GLM:"
+msgstr "SecretFlow提供了一种安全的GLM实现："
+
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:71
+msgid "SS-GLM: SS-GLM is short for secret sharing Generalized Linear Model."
+msgstr "SS-GLM：SS-GLM是秘密共享广义线性模型的简称。"
+
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:73
+#, fuzzy
 msgid ""
 "The SS-GLM module :py:meth:`~secretflow.ml.linear.ss_glm.model.SSGLM` "
 "provides both linear and logistic regression linear models for vertical "
-"split dataset setting by using secret sharing. Two solvers are availbale,"
-" one is mini batch SGD training solver, and another is iterated "
-"reweighted least squares (IRLS) sovler."
+"split dataset setting by using secret sharing."
 msgstr ""
 "SS-GLM模块 :py:meth:`~secretflow.ml.linear.ss_glm.model.SSGLM` "
 "通过使用秘密共享为垂直划分数据集设置提供线性回归和逻辑回归线性模型。提供两种求解器，一种是小批量SGD训练求解器，另一种是迭代重加权最小二乘法（IRLS）求解器。"
 
-#: ../../user_guide/mpc_ml/generalized_linear_model.rst:67
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:75
+#, fuzzy
 msgid ""
-"For more detailed examples, checkout the tutorial or unit tests in "
-"secretflow source code."
+"For more detailed examples, checkout the `tutorial "
+"<../../tutorial/ss_glm.ipynb>`_ or unit tests in secretflow source code."
 msgstr "有关更详细的示例，请查看secretflow源代码中的教程或单元测试。"
 
-#: ../../user_guide/mpc_ml/generalized_linear_model.rst:70
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:78
+msgid "Security Analysis"
+msgstr ""
+
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:80
+#, fuzzy
+msgid ""
+"Under the protection of a secure multi-party computing protocol, "
+"SecretFlow implements secure GLM algorithm for vertically partitioned "
+"data setting."
+msgstr "在多方安全计算协议的保护下，SecretFlow实现了用于垂直划分数据集设置的安全GLM算法。"
+
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:82
+msgid ""
+"To enhance the modeling efficiency, several steps involves Reveal "
+"operations that convert the ciphertext to plaintext:"
+msgstr ""
+
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:84
+msgid ""
+"**Normalize y & Compute the inverse of J**: This action does leak certain"
+" intermediate information. As of now, there are no efficient attacks "
+"specifically designed to exploit this scenario. For a higher security "
+"level, one should use MPC to perform this part of computations."
+msgstr ""
+
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:86
+msgid ""
+"**Check Convergence**: To determine whether an early-stop condition "
+"emerges, we choose to reveal the convergence result. Its value "
+":math:`\\in \\{0, 1\\}`, indicating whether the model converges. This is "
+"a one-bit leakage."
+msgstr ""
+
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:88
+msgid ""
+"**Evaluation Metrics**: To measure the performance of trained model, we "
+"decide to reveal the metrics like MSE, deviance to help judge the "
+"convergence of models."
+msgstr ""
+
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:91
+msgid "Performance Concern"
+msgstr ""
+
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:93
+#, fuzzy
+msgid ""
+"Secret Sharing is heavily communication-bound, thus sensitive to network "
+"bandwidth and latency."
+msgstr "秘密共享对带宽和延迟敏感。"
+
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:95
+#, fuzzy
+msgid ""
+"Secret Sharing can perform the modeling faster with LAN or 10 Gb/s "
+"network. For limited bandwidth and high latency network environment, one "
+"may use HE to improve the modeling efficiency."
+msgstr "秘密共享可以在局域网或10吉比特网络下更快地完成建模，在带宽有限和网络延迟高的环境下可以使用同态加密（HE）来提高建模速度。"
+
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:99
 msgid "Tutorial"
 msgstr "教程"
 
-#: ../../user_guide/mpc_ml/generalized_linear_model.rst:72
+#: ../../user_guide/mpc_ml/generalized_linear_model.rst:101
 msgid ":ref:`/tutorial/ss_glm.ipynb`"
 msgstr ":ref:`/tutorial/ss_glm.ipynb`"
+
+#~ msgid ""
+#~ "In summary, GLMs extend linear "
+#~ "regression by allowing for response "
+#~ "variables that have different distributions"
+#~ " and by using link functions to "
+#~ "relate the response variable to the "
+#~ "linear predictors. This makes GLMs a "
+#~ "powerful and flexible tool in "
+#~ "statistical modeling for various types "
+#~ "of data."
+#~ msgstr "总之，GLM通过允许响应变量具有不同的分布并使用链接函数将响应变量与线性预测器相关联来扩展线性回归。这使得GLM成为统计建模中处理各种类型数据的强大且灵活的工具。"

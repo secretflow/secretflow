@@ -129,7 +129,6 @@ class DriveDnn(ApplicationBase):
         optim_fn = optim_wrapper(torch.optim.Adam)
         return TorchModel(
             model_fn=DnnBase,
-            loss_fn=loss_fn,
             optim_fn=optim_fn,
             input_dims=[28],
             dnn_units_size=self.dnn_base_units_size_alice,

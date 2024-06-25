@@ -30,7 +30,9 @@ class GradientAverageCase(DefenseBase):
     def __str__(self):
         return "grad_avg"
 
-    def build_defense_callback(self, app: ApplicationBase) -> Callback | None:
+    def build_defense_callback(
+        self, app: ApplicationBase, attack: AttackBase | None = None
+    ) -> Callback | None:
         return GradientAverage(
             backend='torch', exec_device='cuda' if global_config.is_use_gpu() else 'cpu'
         )

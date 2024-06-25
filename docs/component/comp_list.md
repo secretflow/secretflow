@@ -6,7 +6,7 @@ SecretFlow Component List
 =========================
 
 
-Last update: Tue May 14 15:43:57 2024
+Last update: Wed Jun 12 05:03:32 2024
 
 Version: 0.0.1
 
@@ -69,6 +69,47 @@ Drop features from the dataset.
 | :--- | :--- | :--- | :--- |
 |out_ds|Output vertical table.|['sf.table.vertical_table']||
 
+### sample
+
+
+Component version: 0.0.1
+
+Sample data set.
+#### Attrs
+
+
+|Name|Description|Type|Required|Notes|
+| :--- | :--- | :--- | :--- | :--- |
+|sample_algorithm|sample algorithm and parameters|Special type. Union group. You must select one child to fill in.|N/A|This is a special type. This is a union group, you must select one child to fill in (if exists).|
+|sample_algorithm/random|Random sample.|Special type. Struct group. You must fill in all children.|N/A|This is a special type. This is a structure group, you must fill in all children.|
+|sample_algorithm/random/frac|Proportion of the dataset to sample in the set. The fraction should be larger than 0.|Float|N|Default: 0.8.Range: (0.0, 10000.0).|
+|sample_algorithm/random/random_state|Specify the random seed of the shuffling.|Integer|N|Default: 1024.Range: (0, $\infty$).|
+|sample_algorithm/random/replacement|If true, sampling with replacement. If false, sampling without replacement.|Boolean|N|Default: False.|
+|sample_algorithm/system|system sample.|Special type. Struct group. You must fill in all children.|N/A|This is a special type. This is a structure group, you must fill in all children.|
+|sample_algorithm/system/frac|Proportion of the dataset to sample in the set. The fraction should be larger than 0 and less than or equal to 0.5.|Float|N|Default: 0.2.Range: (0.0, 0.5].|
+|sample_algorithm/stratify|stratify sample.|Special type. Struct group. You must fill in all children.|N/A|This is a special type. This is a structure group, you must fill in all children.|
+|sample_algorithm/stratify/frac|Proportion of the dataset to sample in the set. The fraction should be larger than 0.|Float|N|Default: 0.8.Range: (0.0, 10000.0).|
+|sample_algorithm/stratify/random_state|Specify the random seed of the shuffling.|Integer|N|Default: 1024.Range: (0, $\infty$).|
+|sample_algorithm/stratify/observe_feature|stratify sample observe feature.|String|Y||
+|sample_algorithm/stratify/replacements|If true, sampling with replacement. If false, sampling without replacement.|Boolean List|Y||
+|sample_algorithm/stratify/quantiles|stratify sample quantiles|Float List|Y|Min length(inclusive): 1. Max length(inclusive): 1000.|
+|sample_algorithm/stratify/weights|stratify sample weights|Float List|N|Default: [].Range: ([], []).|
+
+#### Inputs
+
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|input_data|Input vertical table.|['sf.table.vertical_table', 'sf.table.individual']||
+
+#### Outputs
+
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|sample_output|Output sampled dataset.|['sf.table.vertical_table', 'sf.table.individual']||
+|reports|Output sample reports|['sf.report']||
+
 ## data_prep
 
 ### psi
@@ -84,13 +125,13 @@ PSI between two parties.
 | :--- | :--- | :--- | :--- | :--- |
 |protocol|PSI protocol.|String|N|Default: PROTOCOL_RR22.Allowed: ['PROTOCOL_RR22', 'PROTOCOL_ECDH', 'PROTOCOL_KKRT'].|
 |sort_result|It false, output is not promised to be aligned. Warning: disable this option may lead to errors in the following components. DO NOT TURN OFF if you want to append other components.|Boolean|N|Default: True.|
-|allow_duplicate_keys|Some join types allow duplicate keys.|Special type. Union group. You must select one children to fill in.|N/A|This is a special type. This is a union type, you must select one children to fill in (if exists).|
-|allow_duplicate_keys/no|Duplicate keys are not allowed.|Special type. Struct group. You must fill in all children.|N/A|This is a special type. This is a structure type, you must fill in all children.|
+|allow_duplicate_keys|Some join types allow duplicate keys.|Special type. Union group. You must select one child to fill in.|N/A|This is a special type. This is a union group, you must select one child to fill in (if exists).|
+|allow_duplicate_keys/no|Duplicate keys are not allowed.|Special type. Struct group. You must fill in all children.|N/A|This is a special type. This is a structure group, you must fill in all children.|
 |allow_duplicate_keys/no/skip_duplicates_check|If true, the check of duplicated items will be skiped.|Boolean|N|Default: False.|
 |allow_duplicate_keys/no/check_hash_digest|Check if hash digest of keys from parties are equal to determine whether to early-stop.|Boolean|N|Default: False.|
-|allow_duplicate_keys/yes|Duplicate keys are allowed.|Special type. Struct group. You must fill in all children.|N/A|This is a special type. This is a structure type, you must fill in all children.|
-|allow_duplicate_keys/yes/join_type|Join type.|Special type. Union group. You must select one children to fill in.|N/A|This is a special type. This is a union type, you must select one children to fill in (if exists).|
-|allow_duplicate_keys/yes/join_type/left_join|Left join with duplicate keys|Special type. Struct group. You must fill in all children.|N/A|This is a special type. This is a structure type, you must fill in all children.|
+|allow_duplicate_keys/yes|Duplicate keys are allowed.|Special type. Struct group. You must fill in all children.|N/A|This is a special type. This is a structure group, you must fill in all children.|
+|allow_duplicate_keys/yes/join_type|Join type.|Special type. Union group. You must select one child to fill in.|N/A|This is a special type. This is a union group, you must select one child to fill in (if exists).|
+|allow_duplicate_keys/yes/join_type/left_join|Left join with duplicate keys|Special type. Struct group. You must fill in all children.|N/A|This is a special type. This is a structure group, you must fill in all children.|
 |allow_duplicate_keys/yes/join_type/left_join/left_side|Required for left join|Special type. Specify parties.|Y||
 |fill_value_int|For int type data. Use this value for filling null.|Integer|N|Default: 0.|
 |ecdh_curve|Curve type for ECDH PSI.|String|N|Default: CURVE_FOURQ.Allowed: ['CURVE_25519', 'CURVE_FOURQ', 'CURVE_SM2', 'CURVE_SECP256K1'].|
@@ -288,7 +329,7 @@ write model or rules back to sf cluster
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
-|write_data|rule or model protobuf by json formate|String|Y||
+|write_data|rule or model protobuf by json format|String|Y||
 |write_data_type|which rule or model is writing|String|N|Default: sf.rule.binning.Allowed: ['sf.rule.binning', 'sf.model.ss_glm'].|
 
 #### Inputs
@@ -684,18 +725,18 @@ conjunction with process sandboxes such as nsjail.
 |learning_rate|The step size at each iteration in one iteration.|Float|N|Default: 0.001.Range: (0.0, $\infty$).|
 |batch_size|The number of training examples utilized in one iteration.|Integer|N|Default: 512.Range: (0, $\infty$).|
 |validattion_prop|The proportion of validation set to total data set.|Float|N|Default: 0.1.Range: [0.0, 1.0).|
-|loss|Loss function.|Special type. Union group. You must select one children to fill in.|N/A|This is a special type. This is a union type, you must select one children to fill in (if exists).|
+|loss|Loss function.|Special type. Union group. You must select one child to fill in.|N/A|This is a special type. This is a union group, you must select one child to fill in (if exists).|
 |loss/builtin|Builtin loss function.|String|N|Default: mean_squared_error.Allowed: ['binary_crossentropy', 'categorical_crossentropy', 'mean_squared_error', 'mean_squared_logarithmic_error', 'mean_absolute_error', 'mean_absolute_percentage_error', 'cosine_similarity', 'huber', 'kl_divergence', 'log_cosh', 'poisson', 'binary_focal_crossentropy', 'sparse_categorical_crossentropy', 'hinge', 'categorical_hinge', 'squared_hinge'].|
 |loss/custom|Custom loss function.|String|N|Default: `def loss(y_true, y_pred):\n    return tf.keras.losses.mean_squared_error(y_true, y_pred)\n\n\ncompile_loss(loss)\n\n`.|
-|optimizer|Optimizer.|Special type. Struct group. You must fill in all children.|N/A|This is a special type. This is a structure type, you must fill in all children.|
+|optimizer|Optimizer.|Special type. Struct group. You must fill in all children.|N/A|This is a special type. This is a structure group, you must fill in all children.|
 |optimizer/name|Optimizer name.|String|Y|Allowed: ['Adam', 'SGD', 'RMSprop', 'AdamW', 'Adamax', 'Nadam', 'Adagrad', 'Adadelta', 'Adafactor', 'Ftrl', 'Lion'].|
 |optimizer/params|Additional optimizer parameters in JSON format.|String|N|Default: .|
 |metrics|Metrics.|String List|N|Max length(inclusive): 10. Default: ['AUC'].Allowed: ['AUC', 'Accuracy', 'Precision', 'Recall', 'BinaryAccuracy', 'BinaryCrossentropy', 'CategoricalAccuracy', 'CategoricalCrossentropy', 'CosineSimilarity', 'FalseNegatives', 'FalsePositives', 'TrueNegatives', 'TruePositives', 'KLDivergence', 'LogCoshError', 'MeanAbsoluteError', 'MeanAbsolutePercentageError', 'MeanRelativeError', 'MeanSquaredError', 'MeanSquaredLogarithmicError', 'Hinge', 'SquaredHinge', 'CategoricalHinge', 'BinaryIoU', 'IoU', 'MeanIoU', 'OneHotIoU', 'OneHotMeanIoU', 'Poisson', 'PrecisionAtRecall', 'RecallAtPrecision', 'RootMeanSquaredError', 'SensitivityAtSpecificity', 'SparseCategoricalAccuracy', 'SparseCategoricalCrossentropy', 'SparseTopKCategoricalAccuracy', 'SpecificityAtSensitivity', 'TopKCategoricalAccuracy'].|
 |model_input_scheme|Input scheme of base model, tensor: merge all features into one tensor; tensor_dict: each feature as a tensor.|String|Y|Allowed: ['tensor', 'tensor_dict'].|
-|strategy|Split learning strategy.|Special type. Struct group. You must fill in all children.|N/A|This is a special type. This is a structure type, you must fill in all children.|
+|strategy|Split learning strategy.|Special type. Struct group. You must fill in all children.|N/A|This is a special type. This is a structure group, you must fill in all children.|
 |strategy/name|Split learning strategy name.|String|N|Default: pipeline.Allowed: ['pipeline', 'split_nn', 'split_async', 'split_state_async'].|
 |strategy/params|Additional strategy parameters in JSON format.|String|N|Default: {"pipeline_size":2}.|
-|compressor|Compressor for hiddens and gradients.|Special type. Struct group. You must fill in all children.|N/A|This is a special type. This is a structure type, you must fill in all children.|
+|compressor|Compressor for hiddens and gradients.|Special type. Struct group. You must fill in all children.|N/A|This is a special type. This is a structure group, you must fill in all children.|
 |compressor/name|Compressor name.|String|N|Default: .Allowed: ['', 'topk_sparse', 'random_sparse', 'stc_sparse', 'scr_sparse', 'quantized_fp', 'quantized_lstm', 'quantized_kmeans', 'quantized_zeropoint', 'mixed_compressor'].|
 |compressor/params|Additional compressor parameters in JSON format.|String|N|Default: .|
 
@@ -719,7 +760,7 @@ conjunction with process sandboxes such as nsjail.
 ### ss_glm_train
 
 
-Component version: 0.0.2
+Component version: 0.0.3
 
 generalized linear model (GLM) is a flexible generalization of ordinary linear regression.
 The GLM generalizes linear regression by allowing the linear model to be related to the response
@@ -742,13 +783,15 @@ be a function of its predicted value.
 |decay_rate|decay learning rate|Float|N|Default: 0.0.Range: [0.0, 1.0).|
 |optimizer|which optimizer to use: IRLS(Iteratively Reweighted Least Squares) or SGD(Stochastic Gradient Descent)|String|Y|Allowed: ['SGD', 'IRLS'].|
 |l2_lambda|L2 regularization term|Float|N|Default: 0.1.Range: [0.0, $\infty$).|
-|infeed_batch_size_limit|size of a single block, default to 10w * 100. increase the size will increase memory cost, but may decrease running time. Suggested to be as large as possible. (too large leads to OOM)|Integer|N|Default: 10000000.Range: [1000, $\infty$).|
+|infeed_batch_size_limit|size of a single block, default to 8w * 100. increase the size will increase memory cost, but may decrease running time. Suggested to be as large as possible. (too large leads to OOM)|Integer|N|Default: 8000000.Range: [1000, 8000000].|
 |fraction_of_validation_set|fraction of training set to be used as the validation set. ineffective for 'weight' stopping_metric|Float|N|Default: 0.2.Range: (0.0, 1.0).|
 |random_state|random state for validation split|Integer|N|Default: 1212.Range: [0, $\infty$).|
 |stopping_metric|use what metric as the condition for early stop? Must be one of ['deviance', 'MSE', 'RMSE', 'AUC', 'weight']. only logit link supports AUC metric (note that AUC is very, very expansive in MPC)|String|N|Default: deviance.Allowed: ['deviance', 'MSE', 'RMSE', 'AUC', 'weight'].|
 |stopping_rounds|If the model is not improving for stopping_rounds, the training process will be stopped, for 'weight' stopping metric, stopping_rounds is fixed to be 1|Integer|N|Default: 0.Range: [0, 100].|
 |stopping_tolerance|the model is considered as not improving, if the metric is not improved by tolerance over best metric in history. If metric is 'weight' and tolerance == 0, then early stop is disabled.|Float|N|Default: 0.001.Range: [0.0, 1.0).|
 |report_metric|Whether to report the value of stopping metric. Only effective if early stop is enabled. If this option is set to true, metric will be revealed and logged.|Boolean|N|Default: False.|
+|use_high_precision_exp|If you do not know the details of this parameter, please do not modify this parameter! If this option is true, glm training and prediction will use a high-precision exp approx, but there will be a large performance drop. Otherwise, use high performance exp approx, There will be no significant difference in model performance. However, prediction bias may occur if the model is exported to an external system for use.|Boolean|N|Default: False.|
+|exp_iters|If you do not know the details of this parameter, please do not modify this parameter! Specify the number of iterations of exp taylor approx, Only takes effect when use_high_precision_exp is false. Increasing this value will improve the accuracy of exp approx, but will quickly degrade performance.|Integer|N|Default: 8.Range: [4, 32].|
 |report_weights|If this option is set to true, model will be revealed and model details are visible to all parties|Boolean|N|Default: False.|
 
 #### Inputs
@@ -878,6 +921,42 @@ The model_export component supports converting and packaging the rule files gene
 |package_output|output tar package uri|['sf.serving.model']||
 |report|report dumped model's input schemas|['sf.report']||
 
+## postprocessing
+
+### score_card_transformer
+
+
+Component version: 0.0.1
+
+Transform the predicted result (a probability value) produced by the logistic regression model into a more understandable score (for example, a score of up to 1000 points)
+#### Attrs
+
+
+|Name|Description|Type|Required|Notes|
+| :--- | :--- | :--- | :--- | :--- |
+|positive|Value for positive cases.|Integer|Y|Allowed: [0, 1].|
+|predict_score_name||String|Y||
+|scaled_value|Set a benchmark score that can be adjusted for specific business scenarios|Integer|Y||
+|odd_base|the odds value at given score baseline, odds = p / (1-p)|Float|Y||
+|pdo|points to double the odds|Float|Y||
+|min_score|An integer of [0,999] is supported|Integer|N|Default: 0.Range: [0, 999].|
+|max_score|An integer of [1,1000] is supported|Integer|N|Default: 1000.Range: [1, 1000].|
+
+#### Inputs
+
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|input_ds|predict result table|['sf.table.individual']|Pleae fill in extra table attributes.|
+|input/input_ds/predict_name||String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
+
+#### Outputs
+
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|output_ds|output table|['sf.table.individual']||
+
 ## preprocessing
 
 ### binary_op
@@ -939,6 +1018,35 @@ case_when
 | :--- | :--- | :--- | :--- |
 |output_dataset|output_dataset|['sf.table.vertical_table']||
 |out_rules|case when substitution rule|['sf.rule.preprocessing']||
+
+### cast
+
+
+Component version: 0.0.1
+
+For conversion between basic data types, such as converting float to string.
+#### Attrs
+
+
+|Name|Description|Type|Required|Notes|
+| :--- | :--- | :--- | :--- | :--- |
+|astype|single-choice, options available are string, integer, float|Special type. Union group. You must select one child to fill in.|N/A|This is a special type. This is a union group, you must select one child to fill in (if exists).|
+
+#### Inputs
+
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|input_ds|The input table|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
+|input/input_ds/columns|Multiple-choice, options available are string, integer, float, boolean|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. |
+
+#### Outputs
+
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|output_ds|The output table|['sf.table.vertical_table']||
+|output_rules|The output rules|['sf.rule.preprocessing']||
 
 ### feature_calculate
 
@@ -1014,7 +1122,7 @@ onehot_encode
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
-|drop|drop unwanted category based on selection|Special type. Union group. You must select one children to fill in.|N/A|This is a special type. This is a union type, you must select one children to fill in (if exists).|
+|drop|drop unwanted category based on selection|Special type. Union group. You must select one child to fill in.|N/A|This is a special type. This is a union group, you must select one child to fill in (if exists).|
 |min_frequency|Specifies the minimum frequency below which a category will be considered infrequent, [0, 1), 0 disable|Float|N|Default: 0.0.Range: [0.0, 1.0).|
 |report_rules|Whether to report rule details|Boolean|N|Default: True.|
 
@@ -1154,6 +1262,29 @@ by using secret sharing.
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
 |report|Output Variance Inflation Factor(VIF) report.|['sf.report']||
+
+### stats_psi
+
+
+Component version: 0.0.1
+
+population stability index.
+#### Inputs
+
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|input_base_data|Input base vertical table.|['sf.table.vertical_table', 'sf.table.individual']|Pleae fill in extra table attributes.|
+|input/input_base_data/feature_selects|which features should be binned.|String List(Set value with other Component Attributes)|You need to select some columns of table input_base_data. Min column number to select(inclusive): 1. |
+|input_test_data|Input test vertical table.|['sf.table.vertical_table', 'sf.table.individual']||
+|bin_rule|Input bin rule.|['sf.rule.binning']||
+
+#### Outputs
+
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|report|Output population stability index.|['sf.report']||
 
 ### table_statistics
 

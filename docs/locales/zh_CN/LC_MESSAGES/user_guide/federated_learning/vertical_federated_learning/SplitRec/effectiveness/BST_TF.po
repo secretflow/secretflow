@@ -7,14 +7,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-03-19 12:20+0800\n"
+"POT-Creation-Date: 2024-06-25 11:09+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.14.0\n"
+"Generated-By: Babel 2.15.0\n"
 
 #: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:9
 msgid "SplitRec：在隐语中使用拆分 BST 算法（Tensorflow 后端）"
@@ -35,9 +35,8 @@ msgstr ""
 msgid "BST 模型在 DNN 模型基础上，使用 Transformer Layer 捕捉用户行为序列中的信息，整体结构如下 |bst|"
 msgstr ""
 
+#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:-1
 #: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:36
-#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:97
-#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:98
 msgid "bst"
 msgstr ""
 
@@ -69,16 +68,11 @@ msgid ""
 "处理，序列特征和其他特征是可选的，模型结构如图所示。"
 msgstr ""
 
-#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:88
-#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:95
-msgid "|bst|"
-msgstr ""
-
-#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:91
+#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:92
 msgid "拆分 BSTPlus 模型"
 msgstr ""
 
-#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:93
+#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:94
 msgid ""
 "上述 BST "
 "模型虽然能够有效捕捉序列信息，但对于同一用户不同商品的预估来说，序列信息都是相同的，并不能区分同一用户行为序列与不同商品的关联性，因此 "
@@ -87,93 +81,95 @@ msgid ""
 "target item 之间的关联信息，结构如下图。由于 target item 存在于 label 方，暂不支持无 label 方有序列特征。"
 msgstr ""
 
-#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:110
+#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:109
 msgid "隐语封装"
 msgstr ""
 
-#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:112
+#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:111
 msgid ""
 "我们在隐语中提供了对于各种应用的封装。 关于 BST 的封装在 "
 "secretflow/ml/nn/applications/sl_bst_tf.py，提供了 ``BSTBase``\\ ，\\ "
 "``BSTPlusBase`` 和 ``BSTFuse`` 几个类。 下面我们通过一个例子来看一下如何使用隐语封装的 BST 来进行训练。"
 msgstr ""
 
-#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:124
+#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:123
 msgid "环境设置"
 msgstr ""
 
-#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:205
+#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:204
 msgid "数据集介绍"
 msgstr ""
 
-#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:207
+#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:206
 msgid "这里将使用最经典的 MovieLens 数据集进行演示。 MovieLens 是一个开放式的推荐系统数据集，包含了电影评分和电影元数据信息。"
 msgstr ""
 
-#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:209
+#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:208
 msgid "`数据集官网 <https://grouplens.org/datasets/movielens/>`__"
 msgstr ""
 
-#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:211
+#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:210
 msgid ""
 "`下载数据集 <https://secretflow-data.oss-"
 "accelerate.aliyuncs.com/datasets/movielens/ml-1m.zip>`__"
 msgstr ""
 
-#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:223
+#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:222
 msgid "下载并处理数据"
 msgstr ""
 
-#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:225
+#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:224
 msgid "我们通过聚合同一用户按时间顺序评分过的电影生成用户行为序列，并对数据进行切分："
 msgstr ""
 
-#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:226
+#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:225
 msgid ""
 "- alice: gender, age_group, occupation - bob: user_id, target_movie_id, "
 "sequence_movie_ids, label"
 msgstr ""
 
-#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:586
+#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:585
 msgid "到这里，我们以及产出训练测试用的数据文件。"
 msgstr ""
 
-#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:598
+#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:597
 msgid "构造 dataset_builder 处理数据"
 msgstr ""
 
-#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:600
+#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:599
 msgid "这里对特征进行 ID 化处理，rating > 3 作为正样本，否则作为负样本"
 msgstr ""
 
-#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:687
+#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:686
 msgid "定义模型结构"
 msgstr ""
 
-#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:689
+#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:688
 msgid "通过 plus 指定 base 模型结构 - plus=True: BSTBase - plus=False: BSTPlusBase"
 msgstr ""
 
-#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:1038
+#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:1037
 msgid "定义 SL Model"
 msgstr ""
 
-#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:1095
+#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:1094
 msgid "开始训练"
 msgstr ""
 
-#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:1226
+#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:1225
 msgid "总结"
 msgstr ""
 
-#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:1228
+#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:1227
 msgid ""
 "本文通过 MovieLens 数据集上的推荐任务来演示了如何通过隐语来训练拆分 BST 模型，您需要 1. 下载并处理数据集； 2. 构造 "
 "dataset_builder 处理数据；3. 定义模型结构，调用 ``BSTBase``\\ ，\\ ``BSTPlusBase``\\ 和\\"
 " ``BSTFuse``\\ 定义行模结构； 4. 使用 SLModel 进行训练，预测，评估即可。"
 msgstr ""
 
-#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:1239
+#: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/effectiveness/BST_TF.ipynb:1238
 msgid "您可以在自己的数据集上进行尝试，如有任何问题，可以在 github 上进行讨论。"
 msgstr ""
 
+#~ msgid "|bst|"
+#~ msgstr ""

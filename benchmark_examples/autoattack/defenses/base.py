@@ -83,5 +83,7 @@ class DefaultDefenseCase(DefenseBase):
     def __str__(self):
         return ""
 
-    def build_defense_callback(self, app: ApplicationBase) -> Callback | None:
+    def build_defense_callback(
+        self, app: ApplicationBase, attack: AttackBase | None = None
+    ) -> Callback | None:
         return None

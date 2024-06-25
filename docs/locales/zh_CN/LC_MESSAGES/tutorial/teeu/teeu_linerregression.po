@@ -1,0 +1,345 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2022 Ant Group Co., Ltd.
+# This file is distributed under the same license as the SecretFlow package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2024.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: SecretFlow \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-06-25 11:09+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.15.0\n"
+
+#: ../../tutorial/teeu/teeu_linerregression.md:1
+msgid "TEEU Example: LinerRegression"
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:3
+msgid "**Tips**"
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:5
+msgid ""
+"Before reading this article, it is strongly recommended to read [TEEU "
+"Getting Started Guide](../teeu.md) at first."
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:9
+msgid ""
+"TEEU (`TEE` processing `U`nit) is a TEE device in SecretFlow. Through "
+"TEEU, users can conveniently put data in TEE for calculation, and achieve"
+" the purpose of protecting data integrity and security."
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:11
+msgid ""
+"This article will demonstrate how to run LinerRegression in TEEU for "
+"model training."
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:13
+msgid "1.1 Simulation mode"
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:15
+msgid ""
+"To facilitate users who do not have access to a real TEE environment, "
+"SecretFlow offers a TEEU simulation mode. This feature allows users to "
+"try out TEEU functions on an ordinary machine. Code writing and usage in "
+"the simulation mode are almost same with the non-simulation mode, so it "
+"is recommended to use the simulation mode for quick experimental "
+"verification first."
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:18
+msgid ""
+"Note that since the real TEE environment is not used, the simulation mode"
+" lacks security features that depend on the TEE environment, such as "
+"remote attestation and memory encryption isolation, and cannot protect "
+"data integrity and confidentiality. Simulation mode is not secure and "
+"should not be used in production, keep this in mind."
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:20
+msgid "Pre-work"
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:22
+msgid "Understand the SecretFlow deployment of multi-ray cluster mode"
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:24
+msgid ""
+"For security reasons, Ray running in TEE is an independent cluster, so "
+"currently SecretFlow only supports the use of TEEU in multiple Ray "
+"cluster mode. You can read the [SecretFlow Deployment "
+"Documentation](../../getting_started/deployment.md#production) in advance"
+" to understand the deployment of multiple Ray clusters."
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:26
+msgid "Prepare to run the simulated TEEU machine"
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:28
+msgid ""
+"At present, SecretFlow TEEU only provides docker images. Due to some "
+"limitations of the basic technology, TEE programs currently require a "
+"large amount of memory to run successfully. You need to ensure that the "
+"available memory for the Docker container is at least 30GB or more, "
+"depending on the size of the data to be processed in TEEU."
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:30
+msgid "Deploy AuthManager"
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:32
+msgid "AuthManager is the module responsible for authorization management."
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:34
+msgid "Download the docker image"
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:39
+msgid "Enter the docker image"
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:44
+msgid "(Optional) Configure TLS"
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:46
+msgid ""
+"AuthManager enables TLS by default. If you only use it for local "
+"simulation, you can turn off TLS by set `enable_tls` to `false` in "
+"`/root/occlum_release/config.yaml`."
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:48
+msgid "Start the service"
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:54
+msgid ""
+"The default port is 8835. Feel free to modify the `port` in config.yaml "
+"if port conflicts."
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:56
+msgid "Example: LinerRegression in TEEU"
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:58
+msgid ""
+"Next, we will demonstrate how to combine data from multiple parties in "
+"TEEU, and then use LinerRegression to train it."
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:60
+msgid "Example code"
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:62
+msgid ""
+"Assuming that Alice and Bob have the same feature space, but the sample "
+"space does not overlap with each other, and each has some user features, "
+"Alice and Bob intend to use TEEU to safely combine their samples and use "
+"LinerRegression to train a model. At the same time, Carol acts as the "
+"provider of TEEU."
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:64
+msgid "The core code of the above case is as follows."
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:153
+msgid "Alice runs the code"
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:155
+#: ../../tutorial/teeu/teeu_linerregression.md:301
+msgid "Start the ray master node"
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:157
+msgid ""
+"You should modify the following command to match the actual situation, as"
+" it currently assumes that Alice's Ray master node is listening at "
+"192.168.0.10:10000."
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:163
+#: ../../tutorial/teeu/teeu_linerregression.md:308
+msgid "Generate a public-private key pair"
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:165
+msgid ""
+"As Alice's data needs to be encrypted and sent to TEEU, it is imperative "
+"to generate a pair of public and private keys. Below, you may find the "
+"code that, upon execution, generates the public and private keys, which "
+"will be stored in the current directory in PEM format as "
+"\"private_key.pem\" and \"public_key.pem\", respectively."
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:172
+msgid "Execute code"
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:174
+msgid ""
+"Add the SecretFlow initialization related code in front of the code to "
+"get the following code. First, you need to modify the configuration items"
+" in the code."
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:176
+msgid ""
+"The code assumes that Alice's communication address is "
+"192.168.0.10:20001, please modify it according to the actual situation"
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:177
+#: ../../tutorial/teeu/teeu_linerregression.md:322
+#: ../../tutorial/teeu/teeu_linerregression.md:456
+msgid "You need to fill in the correct `auth_manager_config`"
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:178
+#: ../../tutorial/teeu/teeu_linerregression.md:323
+msgid "`host` is the listening address of the AuthManager service"
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:179
+msgid ""
+"`ca_cert` is the CA certificate address of AuthManager, if AuthManager "
+"does not start with TLS, no configuration is required."
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:181
+msgid ""
+"Suppose we save the code as `demo.py`, and then execute `python demo.py` "
+"on Alice's machine."
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:299
+msgid "Bob runs the code"
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:303
+msgid ""
+"You should modify the following command to match the actual situation, as"
+" it currently assumes that Bob's Ray master node is listening at "
+"192.168.0.20:10000."
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:310
+msgid ""
+"As Bob's data needs to be encrypted and sent to TEEU, it is imperative to"
+" generate a pair of public and private keys. Below, you may find the code"
+" that, upon execution, generates the public and private keys, which will "
+"be stored in the current directory in PEM format as \"private_key.pem\" "
+"and \"public_key.pem\", respectively."
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:316
+msgid "Run the code"
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:318
+msgid ""
+"Similar to Alice, add the SecretFlow initialization code in front of the "
+"code to get the following code. First, you need to modify the "
+"configuration items in the code."
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:321
+msgid ""
+"The code assumes that Bob's communication address is 192.168.0.20:20001, "
+"please modify it according to the actual situation"
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:324
+msgid ""
+"`ca_cert` is the CA certificate address of AuthManager, if AuthManager "
+"does not start tls, no configuration is required."
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:326
+msgid ""
+"Suppose we save the code as `demo.py`, and then execute `python demo.py` "
+"on Bob's machine."
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:444
+msgid "Carol runs code (executed in TEE)"
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:446
+msgid "Run the SecretFlow TEE image firstly."
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:452
+msgid ""
+"Similarly, add the SecretFlow initialization code in front of the code to"
+" get the following code. Unlike the previous one, Carol's code needs to "
+"run in TEE, so some extra steps are required. First, you need to modify "
+"the configuration items in the code."
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:455
+msgid ""
+"In the code, it is assumed that Carol's communication address is "
+"192.168.0.30:20001, please modify it according to the actual situation"
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:457
+msgid "`host` is the listen address of AuthManager"
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:458
+msgid ""
+"`ca_cert` is the CA certificate path of AuthManager, if AuthManager does "
+"not enable TLS, no configuration is required."
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:460
+msgid ""
+"After modification, please save the file to "
+"`/root/occlum_instance/image/root/demo.py`."
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:582
+msgid "Then we run the script with the following command."
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:592
+msgid "1.2 Non-simulation mode"
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:594
+msgid ""
+"When it is necessary to use the real TEE environment to protect the "
+"confidentiality and integrity of the data in the computing process, the "
+"user needs to enable the non-simulation mode, and at this time, the "
+"security mechanisms provided by the TEE such as remote attestation and "
+"memory encryption will be enabled. To enable the non-simulation mode, the"
+" user needs to have the TEE hardware supported by the current SecretFlow "
+"TEEU. Currently, SecretFlow only supports Intel SGX2.0, and more TEE "
+"types will be supported in the future."
+msgstr ""
+
+#: ../../tutorial/teeu/teeu_linerregression.md:596
+msgid ""
+"Please check [Non-simulation](../teeu.md#summary) for running in non-"
+"simulation mode."
+msgstr ""

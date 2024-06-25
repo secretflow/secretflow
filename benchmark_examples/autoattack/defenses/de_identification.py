@@ -78,7 +78,9 @@ class DeIdentification(DefenseBase):
     def __str__(self):
         return 'de_identification'
 
-    def build_defense_callback(self, app: ApplicationBase) -> Callback | None:
+    def build_defense_callback(
+        self, app: ApplicationBase, attack: AttackBase | None = None
+    ) -> Callback | None:
         input_dim_dict = None
         if app.model_type() in [ModelType.RESNET18, ModelType.VGG16, ModelType.OTHER]:
             input_dim_dict = {

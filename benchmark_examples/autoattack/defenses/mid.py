@@ -26,28 +26,31 @@ class Mid(DefenseBase):
     def __str__(self):
         return 'mid'
 
-    def build_defense_callback(self, app: ApplicationBase) -> Callback | None:
-        print(f"feainput nums = {app.get_device_f_fea_nums()}")
+    def build_defense_callback(
+        self, app: ApplicationBase, attack: AttackBase | None = None
+    ) -> Callback | None:
+        base_params = {}
+        fuse_params = {}
+        if attack.attack_type() == AttackType.LABLE_INFERENSE:
+            base_params[app.device_y] = {
+                "input_dim": app.hidden_size,
+                "output_dim": app.hidden_size,
+                "mid_lambda": self.config.get('mid_lambda', 0.5),
+            }
+        elif attack.attack_type() == AttackType.FEATURE_INFERENCE:
+            fuse_params[app.device_f] = {
+                "input_dim": app.hidden_size,
+                "output_dim": app.hidden_size,
+                "mid_lambda": self.config.get('mid_lambda', 0.5),
+            }
         return MIDefense(
-            base_params={
-                app.device_f: {
-                    "input_dim": app.hidden_size,
-                    "output_dim": app.hidden_size,
-                    "mid_lambda": self.config.get('mid_lambda', 0.5),
-                }
-            },
-            fuse_params={
-                app.device_f: {
-                    "input_dim": app.hidden_size,
-                    "output_dim": app.hidden_size,
-                    "mid_lambda": self.config.get('mid_lambda', 0.5),
-                }
-            },
+            base_params=base_params,
+            fuse_params=fuse_params,
             exec_device='cuda' if global_config.is_use_gpu() else 'cpu',
         )
 
     def check_attack_valid(self, attack: AttackBase) -> bool:
-        return attack.attack_type() in [AttackType.FEATURE_INFERENCE]
+        return True
 
     def check_app_valid(self, app: ApplicationBase) -> bool:
         return app.base_input_mode() == InputMode.SINGLE

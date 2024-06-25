@@ -1,0 +1,149 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2022 Ant Group Co., Ltd.
+# This file is distributed under the same license as the SecretFlow package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2024.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: SecretFlow \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-06-25 11:09+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.15.0\n"
+
+#: ../../tutorial/Pytorch-finetune-alexnet.ipynb:9
+msgid "基于 PyTorch 的预训练模型在隐语联邦学习环境下的微调"
+msgstr ""
+
+#: ../../tutorial/Pytorch-finetune-alexnet.ipynb:12
+msgid "引言"
+msgstr ""
+
+#: ../../tutorial/Pytorch-finetune-alexnet.ipynb:14
+msgid "预训练模型加载和精调在机器学习中非常重要。一般来说，从头训练一个非常大的模型，不仅需要大量的算力资源，同时也需要耗费大量的时间。所以在传统的机器学习中，使用预训练模型，然后针对具体的任务做微调和迁移学习非常普遍。同样的，对于联邦学习来说，如果能够加载预训练模型进行微调和迁移学习，不仅能够节省参与方的算力资源，降低参与方的准入门槛，同时也能够加快模型的学习速度。"
+msgstr ""
+
+#: ../../tutorial/Pytorch-finetune-alexnet.ipynb:16
+msgid ""
+"得益于隐语联邦学习模块优异的兼容性，使得其可以直接加载 PyTorch 的一系列\\ `预训练模型 "
+"<https://pytorch.org/vision/master/models.html>`__\\ ；本教程将基于 PyTorch 的 "
+"`AlexNet <https://proceedings.neurips.cc/paper_files/paper/2012/file"
+"/c399862d3b9d6b76c8436e924a68c45b-Paper.pdf>`__ 的微调教程展现如何基于PyTorch的\\ "
+"`预训练模型 <https://pytorch.org/vision/master/models/alexnet.html>`__\\ "
+"在SecretFlow的框架下进行微调，充分展现SecretFlow的易用性。"
+msgstr ""
+
+#: ../../tutorial/Pytorch-finetune-alexnet.ipynb:39
+msgid "加载数据集"
+msgstr ""
+
+#: ../../tutorial/Pytorch-finetune-alexnet.ipynb:42
+msgid "数据集介绍"
+msgstr ""
+
+#: ../../tutorial/Pytorch-finetune-alexnet.ipynb:44
+msgid ""
+"Flower 数据集介绍：flower 数据集是一个包含了 5 种花卉（雏菊、蒲公英、玫瑰、向日葵、郁金香）共计 4323 "
+"张彩色图片的数据集。每种花卉都有多个角度和不同光照下的图片，每张图片的分辨率为 "
+"320x240。这个数据集常用于图像分类和机器学习算法的训练与测试。数据集中每个类别的数量分别是：daisy（633），dandelion（898），rose（641），sunflower（699），tulip（852）"
+msgstr ""
+
+#: ../../tutorial/Pytorch-finetune-alexnet.ipynb:46
+msgid "下载地址: http://download.tensorflow.org/example_images/flower_photos.tgz"
+msgstr ""
+
+#: ../../tutorial/Pytorch-finetune-alexnet.ipynb:49
+msgid "下载数据集并解压"
+msgstr ""
+
+#: ../../tutorial/Pytorch-finetune-alexnet.ipynb:155
+msgid "环境设置"
+msgstr ""
+
+#: ../../tutorial/Pytorch-finetune-alexnet.ipynb:157
+msgid "首先我们初始化各个参与方。"
+msgstr ""
+
+#: ../../tutorial/Pytorch-finetune-alexnet.ipynb:237
+msgid "定义Dataloader"
+msgstr ""
+
+#: ../../tutorial/Pytorch-finetune-alexnet.ipynb:239
+msgid ""
+"我们可以参考\\ `PyTorch下的DataBuilder教程 "
+"<https://www.secretflow.org.cn/docs/secretflow/latest/zh-"
+"Hans/tutorial/CustomDataLoaderTorch>`__\\ 定义我们自己的DataBuilder。"
+msgstr ""
+
+#: ../../tutorial/Pytorch-finetune-alexnet.ipynb:337
+msgid "加载模型"
+msgstr ""
+
+#: ../../tutorial/Pytorch-finetune-alexnet.ipynb:339
+msgid ""
+"我们只要参照教程里对模型的定义，在函数里完成我们对模型的定义即可；可以看到代码几乎不需要作任何修改，只需要进行适当的封装。并且得益于隐语优异的封装性，我们可以在定义模型很快进行进行训练，而不是需要自行编写训练和测试函数；相反如果我们自行从头开始写整个神经网络结构的话，我们需要自行参考AlexNet的\\"
+" `源代码 "
+"<https://pytorch.org/vision/master/_modules/torchvision/models/alexnet.html#alexnet>`__\\"
+" ，将其适配在隐语的\\ "
+"``secretflow.ml.nn.core.torch.BaseModule``;为便于对比，我们分别给出两种实现方式："
+msgstr ""
+
+#: ../../tutorial/Pytorch-finetune-alexnet.ipynb:351
+msgid "加载预训练模型"
+msgstr ""
+
+#: ../../tutorial/Pytorch-finetune-alexnet.ipynb:394
+msgid "自行编写网络结构"
+msgstr ""
+
+#: ../../tutorial/Pytorch-finetune-alexnet.ipynb:473
+msgid "定义 FLModel 并且训练"
+msgstr ""
+
+#: ../../tutorial/Pytorch-finetune-alexnet.ipynb:476
+msgid "基于预训练模型定义 Torch 后端的 FLModel"
+msgstr ""
+
+#: ../../tutorial/Pytorch-finetune-alexnet.ipynb:567
+msgid "基于预训练模型的 FLModel 开始训练"
+msgstr ""
+
+#: ../../tutorial/Pytorch-finetune-alexnet.ipynb:1417
+#: ../../tutorial/Pytorch-finetune-alexnet.ipynb:2383
+msgid "训练结果可视化"
+msgstr ""
+
+#: ../../tutorial/Pytorch-finetune-alexnet.ipynb:1474
+msgid "基于自编写网络定义 Torch 后端的 FLModel"
+msgstr ""
+
+#: ../../tutorial/Pytorch-finetune-alexnet.ipynb:1545
+msgid "基于自编写网络模型的 FLModel 开始训练"
+msgstr ""
+
+#: ../../tutorial/Pytorch-finetune-alexnet.ipynb:2437
+msgid "可以看到，在同样的任务，同样的模型上，我们加载预训练模型，不仅能省时省力，还能获得更好的模型性能。"
+msgstr ""
+
+#: ../../tutorial/Pytorch-finetune-alexnet.ipynb:2449
+msgid "小结"
+msgstr ""
+
+#: ../../tutorial/Pytorch-finetune-alexnet.ipynb:2451
+msgid ""
+"隐语能够无缝地兼容基于 PyTorch "
+"预训练模型，我们可以不需要自己再重新写出复杂网络的模型结构，这对于大型网络结构可以起到省时省力的效果。并且通过加载预训练模型的权重，可以让我们的模型性能更优秀。"
+msgstr ""
+
+#: ../../tutorial/Pytorch-finetune-alexnet.ipynb:2453
+msgid ""
+"本篇教程，我们以 AlexNet 为例介绍了如何在隐语的联邦学习模式下基于直接加载 PyTorch 的\\ `预训练模型 "
+"<https://pytorch.org/vision/stable/models.html>`__\\ ，通过直接加载预训练模型，我们能够获得："
+" - 不需要再次编写复杂模型的结构代码 - 基于预训练模型进行微调和迁移学习 - 使用预训练权重模型能够使得联邦模型获得更好的性能"
+msgstr ""

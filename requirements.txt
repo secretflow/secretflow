@@ -13,7 +13,7 @@ kuscia==0.0.2.dev240320  # FEATURE=[lite]
 multiprocess  # FEATURE=[lite]
 networkx==2.8.8
 numba==0.57.0  # FEATURE=[lite]
-numpy  # FEATURE=[lite]
+numpy<2.0.0  # FEATURE=[lite]
 onnx==1.16.0
 pandas==1.5.3  # FEATURE=[lite]
 tabulate # FEATURE=[lite]
@@ -31,9 +31,9 @@ setuptools>=65.5.1,<70.0.0 # FEATURE=[lite]
 # For security reason.
 certifi>=2023.7.22  # FEATURE=[lite]
 sparse>=0.14.0
-spu==0.9.1.dev20240524 # FEATURE=[lite]
-sf-heu==0.6.0.dev20240529 # FEATURE=[lite]
-secretflow_serving_lib==0.3.1b0 # FEATURE=[lite]
+spu==0.9.1b0 # FEATURE=[lite]
+sf-heu==0.5.0.b0 # FEATURE=[lite]
+secretflow_serving_lib==0.4.0b0 # FEATURE=[lite]
 tensorflow-macos>=2.12,<2.13; platform_system == "Darwin"
 tensorflow>=2.12,<2.13; platform_system != "Darwin"
 tf2onnx>=1.13.0

@@ -32,7 +32,9 @@ class Mixup(DefenseBase):
     def __str__(self):
         return "mixup"
 
-    def build_defense_callback(self, app: ApplicationBase) -> Callback | None:
+    def build_defense_callback(
+        self, app: ApplicationBase, attack: AttackBase | None = None
+    ) -> Callback | None:
         return MixupDefense(
             lam=self.config.get('lam', 0.6),
             perm_seed=self.config.get('perm_seed', 1234),

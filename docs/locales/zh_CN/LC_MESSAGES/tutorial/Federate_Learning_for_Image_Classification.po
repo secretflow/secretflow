@@ -7,14 +7,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-03-19 12:20+0800\n"
+"POT-Creation-Date: 2024-06-25 11:09+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.14.0\n"
+"Generated-By: Babel 2.15.0\n"
 
 #: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:9
 msgid "Federated Learning for Image Classification"
@@ -58,7 +58,7 @@ msgid ""
 msgstr "这里的联邦学习特指的是水平场景的联邦学习，也就是样本的联合。这种模式适用于各个参与方业务相同，但触达的客户群不同，这种情况可以联合多方的样本来训练一个性能更好或者泛化性能更好的联合模型。比如在医疗场景，每个医院都有自己独特的病人群，各个地区的医院之间几乎是互不重叠，但是他们对于病历的检查记录（如影像，血检等）又是相同类型的。"
 
 #: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:67
-msgid "|331419bc6ee048b2ae2903cfeaddf45f|"
+msgid "|5b34dd1ba9684c78beedd9dfe579ce0b|"
 msgstr ""
 
 #: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:69
@@ -185,30 +185,30 @@ msgstr "定义联邦模型"
 msgid "Lets run model"
 msgstr "跑起来"
 
-#: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:1321
+#: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:1275
 msgid "Contrast experiment to local training"
 msgstr "对比单方模型"
 
-#: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:1333
+#: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:1287
 msgid "Model"
 msgstr "模型"
 
-#: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:1335
+#: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:1289
 msgid "The model structure is consistent with the fl model above."
 msgstr "模型结构和上面fl的模型保持一致。"
 
-#: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:1347
+#: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:1301
 msgid "Data"
 msgstr "数据"
 
-#: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:1349
+#: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:1303
 #, fuzzy
 msgid ""
 "Here, we only used data after a horizontal segmentation, with a total of "
 "10,000 samples for ``Alice``."
 msgstr "数据同样使用mnist数据集，单方模型这里我们只是用了切分后的Alice方数据共20000个样本。"
 
-#: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:1597
+#: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:1526
 #, fuzzy
 msgid ""
 "The two experiments above simulated a training problem in a typical "
@@ -221,24 +221,24 @@ msgid ""
 "with multi-party data will also be better."
 msgstr "上面两个实验模拟了一个典型的水平联邦场景的训练问题，Alice和Bob拥有类型的图片，每一方只有样本的一部分数据，但是双方的训练目的是一致的如果Alice只用自己的一方数据来训练模型，能够得到一个精确度0.969的模型，但是如果联合Bob的数据之后，可以获得一个精确度接近0.983的模型，而且多方数据联合训练的模型的泛化性能也会更好。"
 
-#: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:1610
+#: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:1539
 msgid "Conclusion"
 msgstr "总结"
 
-#: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:1612
+#: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:1541
 msgid ""
 "This tutorial introduces what federated learning is and how to perform "
 "horizontal federated learning in ``secretFlow``."
 msgstr "本篇我们介绍了什么是联邦学习，以及如何在secretflow框架下进行水平联邦学习。"
 
-#: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:1613
+#: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:1542
 msgid ""
 "It can be seen from the experimental data that horizontal federation can "
 "improve the model effect by expanding the sample size and combining "
 "multi-party training."
 msgstr "从实验数据可以看出，水平联邦通过扩充样本量，联合多方训练可以提升模型效果。"
 
-#: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:1614
+#: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:1543
 msgid ""
 "This tutorial uses a SecureAggregator to demonstrate, and secretflow "
 "provides a variety of aggregation schemes，for more infomation, see "
@@ -247,8 +247,11 @@ msgstr ""
 "本文档使用了安全聚合（SecureAggregator）来做演示，secretflow提供了多种聚合方案，您可以在 `安全聚合 "
 "<../developer/algorithm/secure_aggregation.ipynb>`__ 了解更多信息。"
 
-#: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:1615
+#: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:1544
 msgid ""
 "next, you can use your data or model to explore how to do federate "
 "learning."
 msgstr "下一步，你可能想尝试不同的数据集，您需要先将数据集进行垂直切分，然后按照本教程的流程进行。"
+
+#~ msgid "|331419bc6ee048b2ae2903cfeaddf45f|"
+#~ msgstr ""

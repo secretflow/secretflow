@@ -547,7 +547,7 @@ def dump_table(
     system_info: SystemInfo,
     partitions: List[str] = None,
 ) -> DistData:
-    assert isinstance(vdata, VDataFrame), f"{dd_type(vdata)} is not a VDataFrame"
+    assert isinstance(vdata, VDataFrame), f"{type(vdata)} is not a VDataFrame"
     assert len(vdata.partitions) > 0
     assert math.prod(vdata.shape), "empty dataset is not allowed"
 

@@ -259,7 +259,7 @@ class Benchmark:
                     ret = ret + f"({len(results.results)}trails)"
             return ret
         except NotSupportedError:
-            logging.warning(f"attack not support.")
+            logging.warning(f"Case {dataset}/{model}/{attack}/{defense} not supported.")
             return '-'
         except ModuleNotFoundError as e:
             logging.warning(f"module not found:", e)
@@ -301,6 +301,7 @@ class Benchmark:
                     ret = self.run_case(ds, md, at, df)
                     self.experiments.at[ds_md_i, at] = ret
                 else:
+                    logging.warning(f"Case {ds}/{md}/{at}/{df} not supported.")
                     self.experiments.at[ds_md_i, at] = '-'
                 logging.info(f"Finish experiment on {ds}/{md}/{at} ...")
         logging.info(
