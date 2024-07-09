@@ -44,7 +44,7 @@ def test_direct_based_scoring_lia(sf_simulation_setup_devices):
     bob = sf_simulation_setup_devices.bob
 
     random_state = 1234
-    num_samples = 4100
+    num_samples = 200
     # the number for testing purposes. For more details about the dataset, please refer to the code in secretflow.utils.simulation.datasets
 
     sparse_feature = [

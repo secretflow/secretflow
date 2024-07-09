@@ -137,7 +137,7 @@ class DirectionBasedScoringAttack(AttackCallback):
 
     @staticmethod
     def direction_based_scoring(worker, positive_index):
-        # compute cos similarity with grad and grads.
+        # compute cosine similarity with grad and grads.
         grad = worker._callback_store['grad_lia_attack']['grads']
 
         positive_grad = grad[positive_index]
