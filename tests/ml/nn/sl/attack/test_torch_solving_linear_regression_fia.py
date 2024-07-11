@@ -238,21 +238,6 @@ def do_test_sl_and_fia(alice, bob):
 
 
 def test_sl_and_fia(sf_simulation_setup_devices):
-    alice = sf_simulation_setup_devices["alice"]
-    bob = sf_simulation_setup_devices["bob"]
-    do_test_sl_and_fia(
-        alice, bob
-    )
-
-
-if __name__ == "__main__":
-    sf.shutdown()
-    sf.init(['alice', 'bob', 'Carol'], address='local')
-    alice, bob, Carol = sf.PYU('alice'), sf.PYU('bob'), sf.PYU('Carol')
-    server_dict = {
-        'alice': alice,
-        'bob': bob,
-        'Carol': Carol,
-    }
-
-    test_sl_and_fia(server_dict)
+    alice = sf_simulation_setup_devices.alice
+    bob = sf_simulation_setup_devices.bob
+    do_test_sl_and_fia(alice, bob)
