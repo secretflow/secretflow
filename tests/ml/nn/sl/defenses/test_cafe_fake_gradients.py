@@ -17,7 +17,6 @@ import torch
 from torch import nn
 from torchmetrics import Accuracy
 
-import secretflow as sf
 from secretflow.data.split import train_test_split
 from secretflow.ml.nn import SLModel
 from secretflow.ml.nn.applications.sl_dnn_torch import DnnBase, DnnFuse
