@@ -69,26 +69,26 @@ class DirectionBasedScoringAttack(AttackCallback):
             return
 
         def record_gradient(worker: SLBaseTorchModel):
-            if 'grad_lia_attack' not in worker._callback_store:
-                worker._callback_store['grad_lia_attack'] = {}
+            if 'direction_based_lia_attack' not in worker._callback_store:
+                worker._callback_store['direction_based_lia_attack'] = {}
             if isinstance(worker._gradient, list):
                 grad = torch.stack(worker._gradient).cpu().numpy()
             else:
                 grad = worker._gradient.cpu().numpy()
             if batch == 0:
                 num_feature = grad.shape[1]
-                worker._callback_store['grad_lia_attack']['grads'] = np.empty(
+                worker._callback_store['direction_based_lia_attack']['grads'] = np.empty(
                     (0, num_feature)
                 )
-            worker._callback_store['grad_lia_attack']['grads'] = np.append(
-                worker._callback_store['grad_lia_attack']['grads'],
+            worker._callback_store['direction_based_lia_attack']['grads'] = np.append(
+                worker._callback_store['direction_based_lia_attack']['grads'],
                 grad,
                 axis=0,
             )
 
         def record_label(worker: SLBaseTorchModel):
-            if 'grad_lia_attack' not in worker._callback_store:
-                worker._callback_store['grad_lia_attack'] = {}
+            if 'direction_based_lia_attack' not in worker._callback_store:
+                worker._callback_store['direction_based_lia_attack'] = {}
 
             if isinstance(worker.train_y, list):
                 # several batch
@@ -105,9 +105,9 @@ class DirectionBasedScoringAttack(AttackCallback):
                 # convert the one hot encoded label to the category index
                 label = np.argmax(label, axis=1, keepdims=True)
             if batch == 0:
-                worker._callback_store['grad_lia_attack']['labels'] = np.empty((0, 1))
-            worker._callback_store['grad_lia_attack']['labels'] = np.append(
-                worker._callback_store['grad_lia_attack']['labels'], label, axis=0
+                worker._callback_store['direction_based_lia_attack']['labels'] = np.empty((0, 1))
+            worker._callback_store['direction_based_lia_attack']['labels'] = np.append(
+                worker._callback_store['direction_based_lia_attack']['labels'], label, axis=0
             )
 
         self._workers[self.attack_party].apply(record_gradient)
@@ -118,7 +118,7 @@ class DirectionBasedScoringAttack(AttackCallback):
             return
         label_targets = reveal(
             self._workers[self.label_party].apply(
-                lambda worker: worker._callback_store['grad_lia_attack']['labels']
+                lambda worker: worker._callback_store['direction_based_lia_attack']['labels']
             )
         )
 
@@ -138,7 +138,7 @@ class DirectionBasedScoringAttack(AttackCallback):
     @staticmethod
     def direction_based_scoring(worker, positive_index):
         # compute cosine similarity with grad and grads.
-        grad = worker._callback_store['grad_lia_attack']['grads']
+        grad = worker._callback_store['direction_based_lia_attack']['grads']
 
         positive_grad = grad[positive_index]
         positive_grad = torch.tensor(positive_grad)
