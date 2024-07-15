@@ -63,7 +63,7 @@ class CAFEFakeGradientsMultiClient(Callback):
                     _gradient = gradient[m]  # 选取每个客户端的梯度
                     zeta = torch.argsort(_gradient, descending=True)
                     sorted_gradient = torch.gather(_gradient, 1, zeta)
-
+                    count = 0  # 提前结束
                     while True:
                         min_diff = float("inf")
                         min_psi = None
@@ -74,7 +74,8 @@ class CAFEFakeGradientsMultiClient(Callback):
                                 min_diff = diff
                                 min_psi = psi
                             # print("min_diff", min_diff)
-                        if min_diff <= tua:
+                        count += 1
+                        if min_diff <= tua or count > 1:
                             break
                         Psi = [
                             torch.normal(mean=0, std=sigma, size=_gradient.shape)
