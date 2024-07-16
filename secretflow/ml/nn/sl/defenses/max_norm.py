@@ -16,7 +16,7 @@
 from secretflow.ml.nn.callbacks.callback import Callback
 
 
-class MaxNorm(Callback):
+class perturb_gradient(Callback):
     """
     MaxNorm is a defense method designed to against the label inference attack
     in Vertical Federated Learning and Split Learning: https://arxiv.org/pdf/2102.08504.
@@ -67,6 +67,5 @@ class MaxNorm(Callback):
                 raise Exception("No gradient received from label party.")
 
             worker._gradient = perturbed_gradients
-            # print("worker._gradient.shape", worker._gradient.shape)
 
         self._workers[self.device_y].apply(average_gradient)

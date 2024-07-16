@@ -22,10 +22,7 @@ from secretflow.data.split import train_test_split
 from secretflow.ml.nn import SLModel
 from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
 from secretflow.ml.nn.sl.agglayer.agg_method import Concat
-# from secretflow.ml.nn.sl.attacks.direction_based_scoring_torch import (
-#     DirectionBasedScoringAttack,
-# )
-from secretflow.ml.nn.sl.defenses.max_norm import MaxNorm
+from secretflow.ml.nn.sl.defenses.max_norm import perturb_gradient
 from secretflow.preprocessing import StandardScaler
 from secretflow.utils.simulation.data.dataframe import create_df
 from secretflow.utils.simulation.datasets import load_criteo_unpartitioned
@@ -161,11 +158,8 @@ def test_gradient_average_torch_backend(sf_simulation_setup_devices):
         backend="torch",
         agg_method=agg_method,
     )
-    max_norm = MaxNorm(backend="torch")
+    max_norm = perturb_gradient(backend="torch")
 
-    # direction_lia = DirectionBasedScoringAttack(
-    #     attack_party=alice, label_party=bob, num_classes=2
-    # )
     history = sl_model.fit(
         train_data,
         train_label,
@@ -177,6 +171,3 @@ def test_gradient_average_torch_backend(sf_simulation_setup_devices):
         callbacks=[max_norm],
     )
     print(history)
-    # attack_metrics = direction_lia.get_attack_metrics()
-    # assert 'attack_acc' in attack_metrics
-    # print(attack_metrics)
