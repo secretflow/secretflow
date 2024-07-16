@@ -14,12 +14,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
-## [v1.7.0.dev240604] - 2024-06-04
+## [v1.8.0] - 2024-06-28
+
+### Added
+
+- [component] SGB supports Tweedie training
+
+### Changed
+
+- [component] Using new serving lib to export the model
+
+### Fix
+
+- [sgb] can now load complete model from federated model to parties other than label holder
+
+## [v1.7.0.dev20240605] - 2024-06-05
+
+### Added
+
+- [component] Add stats psi component
+- [component] Add score card component
+- [component] Add data sampling component
+- [component] Add type cast component
+- [component] Optimization GLM & LR training speed by using beaver cache
+- [SLModel] Add attack method BLA
+- [SLModel] Add defense method CAE
+- [sgb] Support sample weight training
+
+### Fix
+
+- [component] The online prediction of the GLM model has a large deviation compared with the offline prediction.
+
+## [v1.6.1a0] - 2024-05-24
 
 ### Fix
 
 - [component] fix sgb export model sigmoid type not consistent with the offline prediction sigmoid type
 - [component] fix sgb/xgb export model miss base score
+
+## [v1.6.0a0] - 2024-05-21
 
 ### Added
 

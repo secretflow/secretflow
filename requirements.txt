@@ -9,7 +9,7 @@ grpcio==1.56.2  # FEATURE=[lite]
 # <=0.4.26 : fix jnp.select numerical problem
 jax[cpu]>=0.4.16,<=0.4.26  # FEATURE=[lite]
 jaxlib>=0.4.16,<=0.4.26  # FEATURE=[lite]
-kuscia==0.0.2.dev240320  # FEATURE=[lite]
+kuscia==0.0.2b0  # FEATURE=[lite]
 multiprocess  # FEATURE=[lite]
 networkx==2.8.8
 numba==0.57.0  # FEATURE=[lite]
@@ -29,11 +29,11 @@ aiohttp>=3.9.4,<4 # FEATURE=[lite]
 # For security reason.
 setuptools>=65.5.1,<70.0.0 # FEATURE=[lite]
 # For security reason.
-certifi>=2023.7.22  # FEATURE=[lite]
+certifi>=2024.7.4  # FEATURE=[lite]
 sparse>=0.14.0
-spu==0.9.1.dev20240524 # FEATURE=[lite]
-sf-heu==0.6.0.dev20240529 # FEATURE=[lite]
-secretflow_serving_lib==0.3.1b0 # FEATURE=[lite]
+spu==0.9.1b0 # FEATURE=[lite]
+sf-heu==0.5.0.b0 # FEATURE=[lite]
+secretflow_serving_lib==0.5.0b0  # FEATURE=[lite]
 tensorflow-macos>=2.12,<2.13; platform_system == "Darwin"
 tensorflow>=2.12,<2.13; platform_system != "Darwin"
 tf2onnx>=1.13.0

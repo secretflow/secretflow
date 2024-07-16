@@ -125,6 +125,239 @@
       ]
     },
     {
+      "domain": "data_filter",
+      "name": "sample",
+      "desc": "Sample data set.",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "sample_algorithm",
+          "desc": "sample algorithm and parameters",
+          "type": "AT_UNION_GROUP",
+          "union": {
+            "defaultSelection": "random"
+          }
+        },
+        {
+          "prefixes": [
+            "sample_algorithm"
+          ],
+          "name": "random",
+          "desc": "Random sample.",
+          "type": "AT_STRUCT_GROUP"
+        },
+        {
+          "prefixes": [
+            "sample_algorithm",
+            "random"
+          ],
+          "name": "frac",
+          "desc": "Proportion of the dataset to sample in the set. The fraction should be larger than 0.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.8
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 10000.0
+            }
+          }
+        },
+        {
+          "prefixes": [
+            "sample_algorithm",
+            "random"
+          ],
+          "name": "random_state",
+          "desc": "Specify the random seed of the shuffling.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "1024"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
+          }
+        },
+        {
+          "prefixes": [
+            "sample_algorithm",
+            "random"
+          ],
+          "name": "replacement",
+          "desc": "If true, sampling with replacement. If false, sampling without replacement.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "prefixes": [
+            "sample_algorithm"
+          ],
+          "name": "system",
+          "desc": "system sample.",
+          "type": "AT_STRUCT_GROUP"
+        },
+        {
+          "prefixes": [
+            "sample_algorithm",
+            "system"
+          ],
+          "name": "frac",
+          "desc": "Proportion of the dataset to sample in the set. The fraction should be larger than 0 and less than or equal to 0.5.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.2
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 0.5
+            },
+            "upperBoundInclusive": true
+          }
+        },
+        {
+          "prefixes": [
+            "sample_algorithm"
+          ],
+          "name": "stratify",
+          "desc": "stratify sample.",
+          "type": "AT_STRUCT_GROUP"
+        },
+        {
+          "prefixes": [
+            "sample_algorithm",
+            "stratify"
+          ],
+          "name": "frac",
+          "desc": "Proportion of the dataset to sample in the set. The fraction should be larger than 0.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.8
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 10000.0
+            }
+          }
+        },
+        {
+          "prefixes": [
+            "sample_algorithm",
+            "stratify"
+          ],
+          "name": "random_state",
+          "desc": "Specify the random seed of the shuffling.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "1024"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
+          }
+        },
+        {
+          "prefixes": [
+            "sample_algorithm",
+            "stratify"
+          ],
+          "name": "observe_feature",
+          "desc": "stratify sample observe feature.",
+          "type": "AT_STRING",
+          "atomic": {}
+        },
+        {
+          "prefixes": [
+            "sample_algorithm",
+            "stratify"
+          ],
+          "name": "replacements",
+          "desc": "If true, sampling with replacement. If false, sampling without replacement.",
+          "type": "AT_BOOLS",
+          "atomic": {
+            "listMaxLengthInclusive": "-1"
+          }
+        },
+        {
+          "prefixes": [
+            "sample_algorithm",
+            "stratify"
+          ],
+          "name": "quantiles",
+          "desc": "stratify sample quantiles",
+          "type": "AT_FLOATS",
+          "atomic": {
+            "listMinLengthInclusive": "1",
+            "listMaxLengthInclusive": "1000"
+          }
+        },
+        {
+          "prefixes": [
+            "sample_algorithm",
+            "stratify"
+          ],
+          "name": "weights",
+          "desc": "stratify sample weights",
+          "type": "AT_FLOATS",
+          "atomic": {
+            "listMaxLengthInclusive": "-1",
+            "isOptional": true,
+            "defaultValue": {},
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 1.0
+            }
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "input_data",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table",
+            "sf.table.individual"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "sample_output",
+          "desc": "Output sampled dataset.",
+          "types": [
+            "sf.table.vertical_table",
+            "sf.table.individual"
+          ]
+        },
+        {
+          "name": "reports",
+          "desc": "Output sample reports",
+          "types": [
+            "sf.report"
+          ]
+        }
+      ]
+    },
+    {
       "domain": "data_prep",
       "name": "psi",
       "desc": "PSI between two parties.",
@@ -338,195 +571,6 @@
           "desc": "Output vertical table",
           "types": [
             "sf.table.vertical_table"
-          ]
-        }
-      ]
-    },
-    {
-      "domain": "data_prep",
-      "name": "sample",
-      "desc": "Sample data set.",
-      "version": "0.0.1",
-      "attrs": [
-        {
-          "name": "random_state",
-          "desc": "Specify the random seed of the shuffling.",
-          "type": "AT_INT",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "i64": "1024"
-            },
-            "lowerBoundEnabled": true,
-            "lowerBound": {}
-          }
-        },
-        {
-          "name": "sample_num_option",
-          "desc": "sample number algorithm and parameters",
-          "type": "AT_UNION_GROUP",
-          "union": {
-            "defaultSelection": "number"
-          }
-        },
-        {
-          "prefixes": [
-            "sample_num_option"
-          ],
-          "name": "number",
-          "desc": "Specify the total number of sampling.",
-          "type": "AT_INT",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "i64": "1024"
-            },
-            "lowerBoundEnabled": true,
-            "lowerBound": {}
-          }
-        },
-        {
-          "prefixes": [
-            "sample_num_option"
-          ],
-          "name": "frac",
-          "desc": "Proportion of the dataset to sample in the set. The fraction should be larger than 0.",
-          "type": "AT_FLOAT",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "f": 0.75
-            },
-            "lowerBoundEnabled": true,
-            "lowerBound": {}
-          }
-        },
-        {
-          "name": "sample_algorithm",
-          "desc": "sample algorithm and parameters",
-          "type": "AT_UNION_GROUP",
-          "union": {
-            "defaultSelection": "random"
-          }
-        },
-        {
-          "prefixes": [
-            "sample_algorithm"
-          ],
-          "name": "random",
-          "desc": "Random sample.",
-          "type": "AT_STRUCT_GROUP"
-        },
-        {
-          "prefixes": [
-            "sample_algorithm",
-            "random"
-          ],
-          "name": "replacement",
-          "desc": "If true, sampling with replacement. If false, sampling without replacement.",
-          "type": "AT_BOOL",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {}
-          }
-        },
-        {
-          "prefixes": [
-            "sample_algorithm"
-          ],
-          "name": "system",
-          "desc": "system sample."
-        },
-        {
-          "prefixes": [
-            "sample_algorithm"
-          ],
-          "name": "stratify",
-          "desc": "stratify sample.",
-          "type": "AT_STRUCT_GROUP"
-        },
-        {
-          "prefixes": [
-            "sample_algorithm",
-            "stratify"
-          ],
-          "name": "observe_feature",
-          "desc": "stratify sample observe feature.",
-          "type": "AT_STRING",
-          "atomic": {
-            "defaultValue": {}
-          }
-        },
-        {
-          "prefixes": [
-            "sample_algorithm",
-            "stratify"
-          ],
-          "name": "replacements",
-          "desc": "If true, sampling with replacement. If false, sampling without replacement.",
-          "type": "AT_BOOLS",
-          "atomic": {
-            "listMaxLengthInclusive": "-1",
-            "defaultValue": {}
-          }
-        },
-        {
-          "prefixes": [
-            "sample_algorithm",
-            "stratify"
-          ],
-          "name": "quantiles",
-          "desc": "stratify sample quantiles",
-          "type": "AT_FLOATS",
-          "atomic": {
-            "listMaxLengthInclusive": "-1",
-            "defaultValue": {}
-          }
-        },
-        {
-          "prefixes": [
-            "sample_algorithm",
-            "stratify"
-          ],
-          "name": "weights",
-          "desc": "stratify sample weights",
-          "type": "AT_FLOATS",
-          "atomic": {
-            "listMaxLengthInclusive": "-1",
-            "defaultValue": {},
-            "lowerBoundEnabled": true,
-            "lowerBound": {},
-            "upperBoundEnabled": true,
-            "upperBound": {
-              "f": 1.0
-            }
-          }
-        }
-      ],
-      "inputs": [
-        {
-          "name": "input_data",
-          "desc": "Input vertical table.",
-          "types": [
-            "sf.table.vertical_table",
-            "sf.table.individual"
-          ]
-        }
-      ],
-      "outputs": [
-        {
-          "name": "sample_output",
-          "desc": "Output sampled dataset.",
-          "types": [
-            "sf.table.vertical_table",
-            "sf.table.individual"
-          ]
-        },
-        {
-          "name": "reports",
-          "desc": "Output sample reports",
-          "types": [
-            "sf.report"
           ]
         }
       ]
@@ -872,7 +916,7 @@
           "attrs": [
             {
               "name": "feature_selects",
-              "desc": "which features should be binned.",
+              "desc": "which features should be binned. WARNING: WOE won't be effective for features with enumeration count <=2.",
               "colMinCntInclusive": "1"
             },
             {
@@ -1693,7 +1737,7 @@
       "domain": "ml.train",
       "name": "sgb_train",
       "desc": "Provides both classification and regression tree boosting (also known as GBDT, GBM)\nfor vertical split dataset setting by using secure boost.\n- SGB is short for SecureBoost. Compared to its safer counterpart SS-XGB, SecureBoost focused on protecting label holder.\n- Check https://arxiv.org/abs/1901.08755.",
-      "version": "0.0.3",
+      "version": "0.0.4",
       "attrs": [
         {
           "name": "num_boost_round",
@@ -1762,7 +1806,8 @@
             "allowedValues": {
               "ss": [
                 "linear",
-                "logistic"
+                "logistic",
+                "tweedie"
               ]
             }
           }
@@ -1849,8 +1894,15 @@
             "isOptional": true,
             "defaultValue": {},
             "lowerBoundEnabled": true,
-            "lowerBound": {},
-            "lowerBoundInclusive": true
+            "lowerBound": {
+              "f": -10.0
+            },
+            "lowerBoundInclusive": true,
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 10.0
+            },
+            "upperBoundInclusive": true
           }
         },
         {
@@ -2051,7 +2103,7 @@
         },
         {
           "name": "eval_metric",
-          "desc": "Use what metric for monitoring and early stop? Currently support ['roc_auc', 'rmse', 'mse']",
+          "desc": "Use what metric for monitoring and early stop? Currently support ['roc_auc', 'rmse', 'mse', 'tweedie_deviance', 'tweedie_nll']",
           "type": "AT_STRING",
           "atomic": {
             "isOptional": true,
@@ -2062,7 +2114,9 @@
               "ss": [
                 "roc_auc",
                 "rmse",
-                "mse"
+                "mse",
+                "tweedie_deviance",
+                "tweedie_nll"
               ]
             }
           }
@@ -2115,6 +2169,25 @@
             "lowerBoundEnabled": true,
             "lowerBound": {},
             "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "tweedie_variance_power",
+          "desc": "Parameter that controls the variance of the Tweedie distribution.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 1.5
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {
+              "f": 1.0
+            },
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 2.0
+            }
           }
         },
         {
@@ -2536,7 +2609,7 @@
       "domain": "ml.train",
       "name": "ss_glm_train",
       "desc": "generalized linear model (GLM) is a flexible generalization of ordinary linear regression.\nThe GLM generalizes linear regression by allowing the linear model to be related to the response\nvariable via a link function and by allowing the magnitude of the variance of each measurement to\nbe a function of its predicted value.",
-      "version": "0.0.2",
+      "version": "0.0.3",
       "attrs": [
         {
           "name": "epochs",
@@ -2714,18 +2787,23 @@
         },
         {
           "name": "infeed_batch_size_limit",
-          "desc": "size of a single block, default to 10w * 100. increase the size will increase memory cost, but may decrease running time. Suggested to be as large as possible. (too large leads to OOM)",
+          "desc": "size of a single block, default to 8w * 100. increase the size will increase memory cost, but may decrease running time. Suggested to be as large as possible. (too large leads to OOM)",
           "type": "AT_INT",
           "atomic": {
             "isOptional": true,
             "defaultValue": {
-              "i64": "10000000"
+              "i64": "8000000"
             },
             "lowerBoundEnabled": true,
             "lowerBound": {
               "i64": "1000"
             },
-            "lowerBoundInclusive": true
+            "lowerBoundInclusive": true,
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "i64": "8000000"
+            },
+            "upperBoundInclusive": true
           }
         },
         {
@@ -2821,6 +2899,36 @@
           "atomic": {
             "isOptional": true,
             "defaultValue": {}
+          }
+        },
+        {
+          "name": "use_high_precision_exp",
+          "desc": "If you do not know the details of this parameter, please do not modify this parameter! If this option is true, glm training and prediction will use a high-precision exp approx, but there will be a large performance drop. Otherwise, use high performance exp approx, There will be no significant difference in model performance. However, prediction bias may occur if the model is exported to an external system for use.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "exp_iters",
+          "desc": "If you do not know the details of this parameter, please do not modify this parameter! Specify the number of iterations of exp taylor approx, Only takes effect when use_high_precision_exp is false. Increasing this value will improve the accuracy of exp approx, but will quickly degrade performance.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "8"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {
+              "i64": "4"
+            },
+            "lowerBoundInclusive": true,
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "i64": "32"
+            },
+            "upperBoundInclusive": true
           }
         },
         {
@@ -3223,8 +3331,15 @@
             "isOptional": true,
             "defaultValue": {},
             "lowerBoundEnabled": true,
-            "lowerBound": {},
-            "lowerBoundInclusive": true
+            "lowerBound": {
+              "f": -10.0
+            },
+            "lowerBoundInclusive": true,
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 10.0
+            },
+            "upperBoundInclusive": true
           }
         },
         {
@@ -3333,6 +3448,132 @@
           "desc": "report dumped model's input schemas",
           "types": [
             "sf.report"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "postprocessing",
+      "name": "score_card_transformer",
+      "desc": "Transform the predicted result (a probability value) produced by the logistic regression model into a more understandable score (for example, a score of up to 1000 points)",
+      "version": "0.0.1",
+      "attrs": [
+        {
+          "name": "positive",
+          "desc": "Value for positive cases.",
+          "type": "AT_INT",
+          "atomic": {
+            "defaultValue": {
+              "i64": "1"
+            },
+            "allowedValues": {
+              "i64s": [
+                "0",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "predict_score_name",
+          "type": "AT_STRING",
+          "atomic": {
+            "defaultValue": {
+              "s": "predict_score"
+            }
+          }
+        },
+        {
+          "name": "scaled_value",
+          "desc": "Set a benchmark score that can be adjusted for specific business scenarios",
+          "type": "AT_INT",
+          "atomic": {
+            "defaultValue": {
+              "i64": "600"
+            }
+          }
+        },
+        {
+          "name": "odd_base",
+          "desc": "the odds value at given score baseline, odds = p / (1-p)",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "defaultValue": {
+              "f": 20.0
+            }
+          }
+        },
+        {
+          "name": "pdo",
+          "desc": "points to double the odds",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "defaultValue": {
+              "f": 20.0
+            }
+          }
+        },
+        {
+          "name": "min_score",
+          "desc": "An integer of [0,999] is supported",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {},
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "lowerBoundInclusive": true,
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "i64": "999"
+            },
+            "upperBoundInclusive": true
+          }
+        },
+        {
+          "name": "max_score",
+          "desc": "An integer of [1,1000] is supported",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "1000"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {
+              "i64": "1"
+            },
+            "lowerBoundInclusive": true,
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "i64": "1000"
+            },
+            "upperBoundInclusive": true
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "input_ds",
+          "desc": "predict result table",
+          "types": [
+            "sf.table.individual"
+          ],
+          "attrs": [
+            {
+              "name": "predict_name",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_ds",
+          "desc": "output table",
+          "types": [
+            "sf.table.individual"
           ]
         }
       ]
@@ -3503,7 +3744,8 @@
           "attrs": [
             {
               "name": "columns",
-              "desc": "Multiple-choice, options available are string, integer, float, boolean"
+              "desc": "Multiple-choice, options available are string, integer, float, boolean",
+              "colMinCntInclusive": "1"
             }
           ]
         }
@@ -3964,6 +4206,53 @@
         {
           "name": "report",
           "desc": "Output Variance Inflation Factor(VIF) report.",
+          "types": [
+            "sf.report"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "stats",
+      "name": "stats_psi",
+      "desc": "population stability index.",
+      "version": "0.0.1",
+      "inputs": [
+        {
+          "name": "input_base_data",
+          "desc": "Input base vertical table.",
+          "types": [
+            "sf.table.vertical_table",
+            "sf.table.individual"
+          ],
+          "attrs": [
+            {
+              "name": "feature_selects",
+              "desc": "which features should be binned.",
+              "colMinCntInclusive": "1"
+            }
+          ]
+        },
+        {
+          "name": "input_test_data",
+          "desc": "Input test vertical table.",
+          "types": [
+            "sf.table.vertical_table",
+            "sf.table.individual"
+          ]
+        },
+        {
+          "name": "bin_rule",
+          "desc": "Input bin rule.",
+          "types": [
+            "sf.rule.binning"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "report",
+          "desc": "Output population stability index.",
           "types": [
             "sf.report"
           ]

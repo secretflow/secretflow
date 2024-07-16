@@ -75,7 +75,7 @@ class ReplayAttack(AttackCallback):
 
     def on_base_forward_end(self):
         def record_and_replay(
-            attack_worker, target_len, target_offsets, poison_offsets
+            attack_worker, target_len, target_offsets, poison_offsets, exec_device
         ):
             att_info = attack_worker._callback_store['replay_attack']
             if attack_worker._training:
@@ -114,7 +114,7 @@ class ReplayAttack(AttackCallback):
                         hiddens_np[poison_offsets] = att_info['train_target_hiddens'][
                             0
                         ][replay_keys]
-                        attack_worker._h = torch.tensor(hiddens_np).to(self.exec_device)
+                        attack_worker._h = torch.tensor(hiddens_np).to(exec_device)
                     else:
                         hiddens_np = [
                             h.detach().cpu().numpy() for h in attack_worker._h
@@ -125,7 +125,7 @@ class ReplayAttack(AttackCallback):
                                 'train_target_hiddens'
                             ][idx][replay_keys]
                             attack_worker._h[idx] = torch.tensor(hiddens_np).to(
-                                self.exec_device
+                                exec_device
                             )
 
         if len(self.target_offsets) > 0 or len(self.poison_offsets) > 0:
@@ -134,6 +134,7 @@ class ReplayAttack(AttackCallback):
                 len(self.target_idx),
                 self.target_offsets,
                 self.poison_offsets,
+                self.exec_device,
             )
 
     def get_attack_metrics(self, preds, target_class: int, eval_poison_set: np.ndarray):

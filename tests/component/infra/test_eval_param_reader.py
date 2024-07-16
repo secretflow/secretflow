@@ -16,6 +16,7 @@ import logging
 import pytest
 
 from secretflow.component.component import Component
+from secretflow.component.data_utils import DistDataType
 from secretflow.component.eval_param_reader import (
     EvalParamError,
     EvalParamReader,
@@ -550,6 +551,71 @@ def test_node_reader_get_io():
     assert reader.get_output_uri("c") == "path/to/c.txt"
     assert reader.get_output_uri("d") == "path/to/d.txt"
     assert reader.get_input_attrs("a", "feature") == ["a", "b", "c"]
+
+
+def test_node_reader_input_null():
+    instance = NodeEvalParam(
+        domain="domain_a",
+        name="x",
+        version="v1",
+        inputs=[
+            DistData(name="null", type=str(DistDataType.NULL)),
+            DistData(name="b", type="rule"),
+        ],
+        output_uris=[],
+    )
+
+    definition = ComponentDef(
+        domain="domain_a",
+        name="x",
+        version="v1",
+        inputs=[
+            IoDef(
+                name="a",
+                is_optional=True,
+                types=["table"],
+                attrs=[IoDef.TableAttrDef(name="feature", col_min_cnt_inclusive=1)],
+            ),
+            IoDef(name="b", types=["rule"]),
+        ],
+        outputs=[],
+    )
+
+    reader = EvalParamReader(instance, definition)
+    assert reader.get_input("a") == None
+    assert reader.get_input("b") == DistData(name="b", type="rule")
+
+
+def test_node_reader_input_non_optional_null():
+    instance = NodeEvalParam(
+        domain="domain_a",
+        name="x",
+        version="v1",
+        inputs=[
+            DistData(name="null", type=str(DistDataType.NULL)),
+            DistData(name="b", type="rule"),
+        ],
+        output_uris=[],
+    )
+
+    definition = ComponentDef(
+        domain="domain_a",
+        name="x",
+        version="v1",
+        inputs=[
+            IoDef(
+                name="a",
+                is_optional=False,
+                types=["table"],
+                attrs=[IoDef.TableAttrDef(name="feature", col_min_cnt_inclusive=1)],
+            ),
+            IoDef(name="b", types=["rule"]),
+        ],
+        outputs=[],
+    )
+
+    with pytest.raises(AssertionError, match="def a is not optional and not set."):
+        reader = EvalParamReader(instance, definition)
 
 
 def test_check_unknown_attr():

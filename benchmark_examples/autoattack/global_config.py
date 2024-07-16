@@ -46,10 +46,8 @@ _BENCHMARK_MODEL = 'all'
 _BENCHMARK_ATTACK = 'all'
 # The benchmark targe defense, e.g. all/grad_avg/...
 _BENCHMARK_DEFENSE = 'all'
-# When using distributed computing, indicate the total amount of CPU resources
-_NUM_CPUS = None
-# When using distributed computing, indicate the total amount of GPU resources
-_NUM_GPUS = None
+# All possible GPU configurations, e.g. {V100: 4000000000, A100: 1600000000}
+_GPU_CONFIG = None
 # When there is an existing ray cluster to connectiong, we can set the address in config file.
 # Generally, this value does not require and ray will auto search,
 # but if there are multiple ray clusters, a clear address is required.
@@ -99,8 +97,6 @@ def init_globalconfig(**kwargs):
         f"_BENCHMARK_MODEL: {_BENCHMARK_MODEL}\n"
         f"_BENCHMARK_ATTACK: {_BENCHMARK_ATTACK}\n"
         f"_BENCHMARK_DEFENSE: {_BENCHMARK_DEFENSE}\n"
-        f"_NUM_CPUS: {_NUM_CPUS}\n"
-        f"_NUM_GPUS: {_NUM_GPUS}\n"
         f"_DATASETS_PATH: {_DATASETS_PATH}\n"
         f"_AUTOATTACK_PATH: {_AUTOATTACK_PATH}\n"
         f"_RAY_CLUSTER_ADDRESS: {_RAY_CLUSTER_ADDRESS}\n"
@@ -119,39 +115,34 @@ def _init_global_config_by_config_file(config_file: str):
     global _BENCHMARK_ATTACK
     global _BENCHMRAK_ENABLE_TUNE
     global _BENCHMARK_DEFENSE
-    global _NUM_CPUS
-    global _NUM_GPUS
+    global _GPU_CONFIG
     global _RAY_CLUSTER_ADDRESS
     global _RANDOM_SEED
     config_file = os.path.abspath(config_file)
     config: dict = read_config(config_file)
-
-    applications = config.get('applications', None)
-    if applications:
-        _BENCHMRAK_ENABLE_TUNE = _get_not_none(
-            applications, 'enable_tune', _BENCHMRAK_ENABLE_TUNE
-        )
-        _BENCHMARK_DATASET = _get_not_none(applications, 'dataset', _BENCHMARK_DATASET)
-        _BENCHMARK_MODEL = _get_not_none(applications, 'model', _BENCHMARK_MODEL)
-        _BENCHMARK_ATTACK = _get_not_none(applications, 'attack', _BENCHMARK_ATTACK)
-        _BENCHMARK_DEFENSE = _get_not_none(applications, 'defense', _BENCHMARK_DEFENSE)
-        _IS_SIMPLE_TEST = _get_not_none(applications, 'simple', _IS_SIMPLE_TEST)
-        _USE_GPU = _get_not_none(applications, 'use_gpu', _USE_GPU)
-        _DEBUG_MODE = _get_not_none(applications, 'debug_mode', _DEBUG_MODE)
-        _RANDOM_SEED = _get_not_none(applications, 'random_seed', _RANDOM_SEED)
-    paths = config.get('paths', None)
-    if paths:
-        _DATASETS_PATH = _get_not_none(paths, 'datasets', _DATASETS_PATH)
-        _AUTOATTACK_PATH = _get_not_none(paths, 'autoattack_path', _AUTOATTACK_PATH)
-    resources = config.get('resources', None)
-    if resources:
-        _NUM_CPUS = _get_not_none(resources, 'num_cpus', _NUM_CPUS)
-        _NUM_GPUS = _get_not_none(resources, 'num_gpus', _NUM_GPUS)
-    ray_config = config.get('ray', None)
-    if ray_config:
-        _RAY_CLUSTER_ADDRESS = _get_not_none(
-            ray_config, 'address', _RAY_CLUSTER_ADDRESS
-        )
+    # applications
+    applications = config.get('applications', {})
+    _BENCHMRAK_ENABLE_TUNE = _get_not_none(
+        applications, 'enable_tune', _BENCHMRAK_ENABLE_TUNE
+    )
+    _BENCHMARK_DATASET = _get_not_none(applications, 'dataset', _BENCHMARK_DATASET)
+    _BENCHMARK_MODEL = _get_not_none(applications, 'model', _BENCHMARK_MODEL)
+    _BENCHMARK_ATTACK = _get_not_none(applications, 'attack', _BENCHMARK_ATTACK)
+    _BENCHMARK_DEFENSE = _get_not_none(applications, 'defense', _BENCHMARK_DEFENSE)
+    _IS_SIMPLE_TEST = _get_not_none(applications, 'simple', _IS_SIMPLE_TEST)
+    _USE_GPU = _get_not_none(applications, 'use_gpu', _USE_GPU)
+    _DEBUG_MODE = _get_not_none(applications, 'debug_mode', _DEBUG_MODE)
+    _RANDOM_SEED = _get_not_none(applications, 'random_seed', _RANDOM_SEED)
+    # paths
+    paths = config.get('paths', {})
+    _DATASETS_PATH = _get_not_none(paths, 'datasets', _DATASETS_PATH)
+    _AUTOATTACK_PATH = _get_not_none(paths, 'autoattack_path', _AUTOATTACK_PATH)
+    # recources
+    resources = config.get('resources', {})
+    _GPU_CONFIG = _get_not_none(resources, 'gpu', _GPU_CONFIG)
+    # ray config
+    ray_config = config.get('ray', {})
+    _RAY_CLUSTER_ADDRESS = _get_not_none(ray_config, 'address', _RAY_CLUSTER_ADDRESS)
 
 
 def _init_global_config_by_kwargs(**kwargs):
@@ -165,8 +156,7 @@ def _init_global_config_by_kwargs(**kwargs):
     global _BENCHMARK_ATTACK
     global _BENCHMRAK_ENABLE_TUNE
     global _BENCHMARK_DEFENSE
-    global _NUM_CPUS
-    global _NUM_GPUS
+    global _GPU_CONFIG
     global _RAY_CLUSTER_ADDRESS
     global _RANDOM_SEED
     _BENCHMRAK_ENABLE_TUNE = kwargs.get('enable_tune', _BENCHMRAK_ENABLE_TUNE)
@@ -179,8 +169,7 @@ def _init_global_config_by_kwargs(**kwargs):
     _DEBUG_MODE = kwargs.get('debug_mode', _DEBUG_MODE)
     _DATASETS_PATH = kwargs.get('datasets', _DATASETS_PATH)
     _AUTOATTACK_PATH = kwargs.get('autoattack_path', _AUTOATTACK_PATH)
-    _NUM_CPUS = kwargs.get('num_cpus', _NUM_CPUS)
-    _NUM_GPUS = kwargs.get('num_gpus', _NUM_GPUS)
+    _GPU_CONFIG = kwargs.get('gpu_config', _GPU_CONFIG)
     _RAY_CLUSTER_ADDRESS = kwargs.get('ray_cluster_address', _RAY_CLUSTER_ADDRESS)
     _RANDOM_SEED = kwargs.get('random_seed', _RANDOM_SEED)
 
@@ -211,21 +200,6 @@ def is_use_gpu() -> bool:
     return _USE_GPU
 
 
-def get_total_num_cpus():
-    global _NUM_CPUS
-    if _NUM_CPUS is None:
-        return 32
-    return _NUM_CPUS
-
-
-def get_total_num_gpus():
-    global _NUM_GPUS
-    assert is_use_gpu(), f"When get gpu nums, must indicate use_gpu."
-    if _NUM_GPUS is None:
-        return 1
-    return _NUM_GPUS
-
-
 def is_enable_tune():
     global _BENCHMRAK_ENABLE_TUNE
     return _BENCHMRAK_ENABLE_TUNE
@@ -254,6 +228,11 @@ def get_benchmark_defense():
 def is_debug_mode():
     global _DEBUG_MODE
     return _DEBUG_MODE
+
+
+def get_gpu_config() -> dict | None:
+    global _GPU_CONFIG
+    return _GPU_CONFIG
 
 
 def get_self_globals() -> dict:

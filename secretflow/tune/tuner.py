@@ -11,15 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+import itertools
 import logging
+import random
 from collections import OrderedDict
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional
 
 import pandas as pd
 import ray
 import ray.tune as tune
 from ray.air import RunConfig
+from ray.tune import PlacementGroupFactory
 
 import secretflow.distributed as sfd
 from secretflow.device import global_state
@@ -52,14 +56,24 @@ def trainable_wrapper(trainable: Callable, global_params: Dict):
 class Tuner:
     """
     The secretflow Tuner for launching hyperparameter tuning jobs.
+
     Args:
         trainable: Then trainable to be tuned.
-        cluster_resources[List[Dict], Dict]: The resources for each experiment to use. See example for more information.
+        cluster_resources: The resources for each experiment to use. See example for more information.
+            If it is None, then generate a default cluster_resources it generates default cluster resources,
+                with each experiment consuming all available resources.
+            If it is a Dict[str, float], or a List[Dict[str,float]] with length 1, and the debug_mode is enabled,
+                It will be used as the consumption for each experiment.
+            If it is a List[Dict[str,float]], and the debug_mode is disabled, the elements within represent the
+                resources consumed by each remote worker created during the experiment.
+            If it is a List[List[Dict[str,float]]], then each inner list represents an option for resource consumption.
+                In this case, every experiment will randomly select one of these options to determine its resource usage.
         param_space: Search space of the tuning job.
         tune_config: Tuning algorithm specific configs.
         run_config: Runtime configuration that is specific to individual trials.
             If passed, this will overwrite the run config passed to the Trainer,
             if applicable. Refer to ray.air.config.RunConfig for more info.
+
     Basic usage:
 
     .. code-block:: python
@@ -87,12 +101,11 @@ class Tuner:
 
         tuner = tune.Tuner(
             trainable,
-            cluster_resources= {'alice': 1, 'bob': 1, 'CPU' 4},
+            cluster_resources= {'alice': 1, 'bob': 1, 'CPU' 4}, # or [{'alice': 1, 'bob': 1, 'CPU' 4}]
             param_space = {'a': tune.grid_search([1,2,3])}
         )
 
-    In this example, one trail will consume 1 resource each for Alice and Bob,
-    with a total of 4 CPUs being used.
+    In this example, each experiment will consume 1 alice, 1 bob and 4 CPUs,
 
     When using sim mode, different devices run in separate processes,
     and we need to specify the resource usage for each worker.
@@ -107,14 +120,47 @@ class Tuner:
             ]
             param_space = {'a': tune.grid_search([1,2,3])}
         )
-    In the above example, both alice and bob will use 4 CPU in each experiment.
-    If your machine has 16 CPUs, Tune will run 2 experiments in parallel.
-    Note that the numbers associated with PYU (above, Alice or Bob which is 1)
-    have no significance and can be any value,
-    but the custom resources you define need to be set correct.
 
-    Note that List input can also work in debug mode, the program will consider the total
-    sum of all resources in the list as the resources used by one trail.
+    In the above example, both alice and bob will use 4 CPUs in each experiment.
+    If your machine has 16 CPUs, Tune will run 2 experiments in parallel.
+
+    If you have several options for resources and wish to select among them randomly,
+    you can directly specify a range of alternatives.
+    A common scenario being assigning different resources based on varying GPU types,
+    suppose you have one GPU of each type: a 4GB V100 and an 8GB A100.
+    Suppose each experiment intends to utilize 2GB GPU memory units.
+    Since you can only indicate gpu memory by the percentage of 'GPU' label,
+    You can use following option resouces:
+
+    .. code-block:: python
+
+        # if enable debug_mode
+        tuner = tune.Tuner(
+            trainable,
+            cluster_resources=[
+                [
+                    {accelerator_type:V100, CPU:1, GPU: 0.5}, # use 4 * 0.5 = 2GB
+                    {accelerator_type:A100, CPU:1, GPU:0.25} # use 8 * 0.25 = 2GB
+                ],
+            ]
+            param_space = {'a': tune.grid_search([1,2,3])}
+        )
+
+        # if enable sim_mode
+        tuner = tune.Tuner(
+            trainable,
+            cluster_resources=[
+                [
+                    {alice:1, accelerator_type:V100, CPU:1, GPU: 0.25}, # use 4 * 0.25 = 1GB
+                    {alice:1, accelerator_type:A100, CPU:1, GPU: 0.25}, # use 8 * 0.5 = 1GB
+                ],
+                [
+                    {bob:1, accelerator_type:V100, CPU:1, GPU: 0.25}, # use 4 * 0.25 = 1GB
+                    {bob:1, accelerator_type:A100, CPU:1, GPU: 0.25}, # use 8 * 0.5 = 1GB
+                ]
+            ]
+            param_space = {'a': tune.grid_search([1,2,3])}
+        )
     """
 
     ray_tune: tune.Tuner
@@ -122,9 +168,12 @@ class Tuner:
     def __init__(
         self,
         trainable: Callable = None,
-        cluster_resources: Optional[
-            Union[List[Dict[str, float]], Dict[str, float]]
-        ] = None,
+        cluster_resources: (
+            None
+            | Dict[str, float]
+            | List[Dict[str, float]]
+            | List[List[Dict[str, float]]]
+        ) = None,
         *,
         param_space: Optional[Dict[str, Any]] = None,
         tune_config: Optional[TuneConfig] = None,
@@ -152,7 +201,16 @@ class Tuner:
         global_params = {'distribution_mode': sfd.get_distribution_mode()}
         return trainable_wrapper(traiable, global_params)
 
-    def _construct_trainable_with_resources(self, trainable, cluster_resources):
+    def _construct_trainable_with_resources(
+        self,
+        trainable,
+        cluster_resources: (
+            None
+            | Dict[str, float]
+            | List[Dict[str, float]]
+            | List[List[Dict[str, float]]]
+        ) = None,
+    ):
         distribution_mode = sfd.get_distribution_mode()
         if distribution_mode == DISTRIBUTION_MODE.DEBUG:
             tune_resources = self._init_debug_resources(cluster_resources)
@@ -160,10 +218,17 @@ class Tuner:
             tune_resources = self._init_sim_resources(cluster_resources)
         else:
             raise NotImplementedError()
-
         return tune.with_resources(trainable, resources=tune_resources)
 
-    def _init_debug_resources(self, cluster_resources):
+    def _init_debug_resources(
+        self,
+        cluster_resources: (
+            None
+            | Dict[str, float]
+            | List[Dict[str, float]]
+            | List[List[Dict[str, float]]]
+        ) = None,
+    ):
         if not ray.is_initialized():
             logging.warning(
                 "When using the debug mode, "
@@ -175,43 +240,70 @@ class Tuner:
             )
             ray.init()
         avaliable_resources = ray.available_resources()
-        if cluster_resources is None or isinstance(cluster_resources, List):
-            if isinstance(cluster_resources, List):
-                logging.warning(
-                    "Tuner suggest a Dict cluster_resources input but got List."
-                    "It will be transformed into a Dict with its sums."
-                    f"{cluster_resources}"
+        if cluster_resources is None:
+            cluster_resources = self._default_cluster_resource(
+                avaliable_resources, is_debug=True
+            )
+        self._check_resources_input(cluster_resources, avaliable_resources)
+        if isinstance(cluster_resources, List):
+            if len(cluster_resources) != 1:
+                raise ValueError(
+                    "When using debugging mode, Tuner requires a resource usage to be "
+                    "either dict format or a list format with a length of 1, "
+                    "as each experiment only requires starting one worker"
+                )
+            cluster_resource = cluster_resources[0]
+            if isinstance(cluster_resource, List):
+                # https://discuss.ray.io/t/tune-sgd-rllib-distribute-training-across-nodes-with-different-gpus/1522/5
+                cluster_resources = lambda _: PlacementGroupFactory(
+                    [random.choice(cluster_resource)]
                 )
             else:
-                cluster_resources = self._default_cluster_resource(
-                    avaliable_resources, is_debug=True
-                )
-            resources = {}
-            for res in cluster_resources:
-                for k, v in res.items():
-                    if k not in resources:
-                        resources[k] = v
-                    else:
-                        resources[k] += v
-            cluster_resources = resources
-        self._check_resources_input(cluster_resources, avaliable_resources)
+                # single gpu type
+                cluster_resources = cluster_resource
         return cluster_resources
 
-    def _init_sim_resources(self, cluster_resources):
+    def _init_sim_resources(
+        self,
+        cluster_resources: (
+            None
+            | Dict[str, float]
+            | List[Dict[str, float]]
+            | List[List[Dict[str, float]]]
+        ) = None,
+    ):
         avaliable_resources = ray.available_resources()
         if cluster_resources is None:
             cluster_resources = self._default_cluster_resource(avaliable_resources)
+        elif isinstance(cluster_resources, Dict):
+            raise ValueError(
+                "When using debugging mode, Tuner requires a resource usage to be "
+                "a list format with the length of the nums of workers per trail. "
+            )
         self._check_resources_input(cluster_resources, avaliable_resources)
-        tune_resources = tune.PlacementGroupFactory(
-            [
-                {},  # the trainanble itself in sf will not use any resources
-                *cluster_resources,
-            ],
-            strategy="PACK",
-        )
+        if any([isinstance(cr, List) for cr in cluster_resources]):
+            # multi choice
+            tune_resources = lambda _: PlacementGroupFactory(
+                [
+                    {},
+                    *[random.choice(cr) for cr in cluster_resources],
+                ],
+                strategy="PACK",
+            )
+        else:
+            # single choice
+            tune_resources = tune.PlacementGroupFactory(
+                [
+                    {},  # the trainanble itself in sf will not use any resources
+                    *cluster_resources,
+                ],
+                strategy="PACK",
+            )
         return tune_resources
 
-    def _default_cluster_resource(self, avaliable_resources, is_debug=False):
+    def _default_cluster_resource(
+        self, avaliable_resources, is_debug=False
+    ) -> List[Dict[str, float]]:
         logging.warning(
             f"Tuner() got arguments cluster_resources=None. "
             f"The Tuner will defaultly use as many as cluster resources in each experiment."
@@ -262,10 +354,19 @@ class Tuner:
 
     @staticmethod
     def _check_resources_input(
-        cluster_resources: Union[List[Dict], Dict], avaliable_resources: Dict
+        cluster_resources: (
+            Dict[str, float] | List[Dict[str, float]] | List[List[Dict[str, float]]]
+        ),
+        avaliable_resources: Dict,
     ):
         if isinstance(cluster_resources, Dict):
             cluster_resources = [cluster_resources]
+        if isinstance(cluster_resources, List) and any(
+            [isinstance(cr, List) for cr in cluster_resources]
+        ):
+            for valid_cr in itertools.product(*cluster_resources):
+                Tuner._check_resources_input(list(valid_cr), avaliable_resources)
+            return
         columns = (
             ['avaliable']
             + ["res_worker_" + str(i) for i in range(len(cluster_resources))]
@@ -289,11 +390,20 @@ class Tuner:
                 resource_usage[r]["res_worker_" + str(i)] = v
                 resource_usage[r]['res_per_trail'] += v
         if len(missing_resources) > 0:
-            logging.warning(
-                f"Got unknown required resources {missing_resources}, "
-                f"avaliable names contains {avaliable_resources.keys()}. "
-                f"Missing resources will be ignored."
-            )
+            err_msg = f"Got unknown required resources {missing_resources}, avaliable names contains {avaliable_resources.keys()}. "
+            if len([... for ms in missing_resources if 'accelerator_type' in ms]) > 0:
+                # user defined resources contains gpu accelerator_type
+                err_msg += f"When using GPUs, make sure you set the correct type name of your gpus in your config file. "
+                avali_accelerator_types = [
+                    rs for rs in avaliable_resources if 'accelerator_type' in rs
+                ]
+                if len(avali_accelerator_types) == 0:
+                    err_msg += "Current env does not have any gpu, please check your env or ray start."
+                else:
+                    err_msg += (
+                        f"Current env have gpu with type {avali_accelerator_types}"
+                    )
+            raise ValueError(err_msg)
         # check if the usage exeeds the avaliable limit.
         for r, v in resource_usage.items():
             assert (

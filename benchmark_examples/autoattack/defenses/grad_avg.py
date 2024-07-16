@@ -21,6 +21,7 @@ from benchmark_examples.autoattack.applications.base import (
 )
 from benchmark_examples.autoattack.attacks.base import AttackBase, AttackType
 from benchmark_examples.autoattack.defenses.base import DefenseBase
+from benchmark_examples.autoattack.utils.resources import ResourcesPack
 from secretflow.ml.nn.callbacks.callback import Callback
 from secretflow.ml.nn.sl.defenses.gradient_average import GradientAverage
 
@@ -30,7 +31,9 @@ class GradientAverageCase(DefenseBase):
     def __str__(self):
         return "grad_avg"
 
-    def build_defense_callback(self, app: ApplicationBase) -> Callback | None:
+    def build_defense_callback(
+        self, app: ApplicationBase, attack: AttackBase | None = None
+    ) -> Callback | None:
         return GradientAverage(
             backend='torch', exec_device='cuda' if global_config.is_use_gpu() else 'cpu'
         )
@@ -43,3 +46,14 @@ class GradientAverageCase(DefenseBase):
 
     def check_app_valid(self, app: ApplicationBase) -> bool:
         return app.classfication_type() == ClassficationType.BINARY
+
+    def update_resources_consumptions(
+        self,
+        cluster_resources_pack: ResourcesPack,
+        app: ApplicationBase,
+        attack: AttackBase | None,
+    ) -> ResourcesPack:
+        func = lambda x: x * 1.1
+        return cluster_resources_pack.apply_debug_resources(
+            'gpu_mem', func
+        ).apply_sim_resources(app.device_y.party, 'gpu_mem', func)

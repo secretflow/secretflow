@@ -25,6 +25,7 @@ from google.protobuf import json_format
 from kuscia.proto.api.v1alpha1.common_pb2 import FileFormat
 from kuscia.proto.api.v1alpha1.datamesh.domaindatasource_pb2 import DomainDataSource
 
+from secretflow.component.data_utils import DistDataType
 from secretflow.component.entry import comp_eval, get_comp_def
 from secretflow.kuscia.datamesh import (
     create_channel,
@@ -58,20 +59,20 @@ TEMP_STORAGE_ROOT = "/tmp"
 def start_ray(ray_conf: RayConfig):
     logging.info(f"ray_conf: {ray_conf}")
 
-    ray_cmd = ray_conf.generate_ray_cmd()
-
-    logging.info(
-        f"Trying to start ray head node at {ray_conf.ray_node_ip_address}, start command: {ray_cmd}"
-    )
+    ray_cmd, envs = ray_conf.generate_ray_cmd()
 
     if not ray_cmd:
         # Local mode, do nothing here.
         return
 
-    process = subprocess.run(ray_cmd, capture_output=True, shell=True)
+    logging.info(
+        f"Trying to start ray head node at {ray_conf.ray_node_ip_address}, start command: {' '.join(ray_cmd)}"
+    )
+
+    process = subprocess.run(ray_cmd, env=envs, capture_output=True, shell=False)
 
     if process.returncode != 0:
-        err_msg = f"Failed to start ray head node, start command: {ray_cmd}, stderr: {process.stderr}"
+        err_msg = f"Failed to start ray head node, start command: {' '.join(ray_cmd)}, stderr: {process.stderr}"
         logging.critical(err_msg)
         logging.critical("This process will exit now!")
         sys.exit(-1)
@@ -140,6 +141,9 @@ def domaindata_id_to_dist_data(
     input_def: IoDef,
     skip_download_dataset: bool = False,
 ):
+    if domaindata_id == '':
+        return DistData(name='', type=str(DistDataType.NULL))
+
     domain_data = get_domain_data(domaindata_stub, domaindata_id)
 
     if (

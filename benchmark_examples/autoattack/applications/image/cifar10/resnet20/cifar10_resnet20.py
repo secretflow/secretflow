@@ -29,6 +29,7 @@ from benchmark_examples.autoattack.applications.base import ModelType
 from benchmark_examples.autoattack.applications.image.cifar10.cifar10_base import (
     Cifar10ApplicationBase,
 )
+from benchmark_examples.autoattack.utils.resources import ResourceDict, ResourcesPack
 from secretflow.ml.nn import SLModel
 from secretflow.ml.nn.callbacks.callback import Callback
 from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
@@ -301,3 +302,17 @@ class Cifar10Resnet20(Cifar10ApplicationBase):
             f"RESULT: {type(self).__name__} {type(callbacks).__name__} training history = {history}"
         )
         return history
+
+    def resources_consumption(self) -> ResourcesPack:
+        # 760MiB
+        return (
+            ResourcesPack()
+            .with_debug_resources(ResourceDict(gpu_mem=1 * 1024 * 1024 * 1024, CPU=1))
+            .with_sim_resources(
+                self.device_y.party, ResourceDict(gpu_mem=1 * 1024 * 1024 * 1024, CPU=1)
+            )
+            .with_sim_resources(
+                self.device_f.party,
+                ResourceDict(gpu_mem=0.8 * 1024 * 1024 * 1024, CPU=1),
+            )
+        )

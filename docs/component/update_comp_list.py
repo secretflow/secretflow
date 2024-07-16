@@ -46,6 +46,7 @@ AttrTypeStrMap = {
     AttrType.AT_UNION_GROUP: 'Special type. Union group. You must select one child to fill in.',
     AttrType.AT_CUSTOM_PROTOBUF: 'Special type. SecretFlow customized Protocol Buffers message.',
     AttrType.AT_PARTY: 'Special type. Specify parties.',
+    AttrType.AT_COL_PARAMS: 'Special type. Specify local column selections.',
 }
 
 
@@ -62,7 +63,11 @@ def get_atomic_attr_value(at: AttrType, attr: Attribute):
         return [round(f, 5) for f in attr.fs]
     elif at == AttrType.AT_INTS:
         return list(attr.i64s)
-    elif at == AttrType.AT_STRINGS or at == AttrType.AT_PARTY:
+    elif (
+        at == AttrType.AT_STRINGS
+        or at == AttrType.AT_PARTY
+        or at == AttrType.AT_COL_PARAMS
+    ):
         return list(attr.ss)
     elif at == AttrType.AT_BOOLS:
         return list(attr.bs)
@@ -213,6 +218,7 @@ for domain, comps in comp_map.items():
                     AttrType.AT_BOOLS,
                     AttrType.AT_CUSTOM_PROTOBUF,
                     AttrType.AT_PARTY,
+                    AttrType.AT_COL_PARAMS,
                 ]:
                     if attr.type in [
                         AttrType.AT_FLOATS,

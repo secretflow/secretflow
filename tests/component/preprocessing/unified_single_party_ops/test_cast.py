@@ -110,7 +110,7 @@ def test_cast(comp_prod_sf_cluster_config):
         res.outputs[0].meta.Unpack(out_meta)
         logging.warning(f"...meta.... \n{out_meta}\n.......")
         assert out_meta.schemas[0].feature_types == ["str", "float64", "float64"]
-        assert out_meta.schemas[1].feature_types == ["float"]
+        assert out_meta.schemas[1].feature_types == ["float64"]
         assert out_meta.schemas[1].label_types == ["float64"]
 
         comp_storage = ComponentStorage(storage_config)
@@ -163,8 +163,8 @@ def test_cast_apply_table():
     good_cases = [
         {"data": ["\' 1\' ", "\"2\"", " 3 "], "except": [1, 2, 3], "target": "int"},
         {
-            "data": ["\' 1\' ", "\"2\"", " 3.0 "],
-            "except": [1.0, 2.0, 3.0],
+            "data": ["\' 1\' ", "\"2\"", " 1.7976931348623157e+309 "],
+            "except": [1.0, 2.0, float('inf')],
             "target": "float",
         },
         {
@@ -208,3 +208,14 @@ def test_cast_apply_table():
             table = sc.Table.from_pandas(df)
             _apply_rules_on_table(table, item["target"])
         logging.warning(f"Caught expected Exception: {index},{exc_info}")
+
+    test_overflow = [
+        {"data": [3.40e38], "target": "int"},
+        {"data": ["300000000000000000000"], "target": "int"},
+    ]
+    for index, item in enumerate(test_overflow):
+        with pytest.raises(Exception) as exc_info:
+            df = pd.DataFrame({"A": item["data"]})
+            table = sc.Table.from_pandas(df)
+            _apply_rules_on_table(table, item["target"])
+        logging.warning(f"Caught expected Exception: {df},{exc_info}")

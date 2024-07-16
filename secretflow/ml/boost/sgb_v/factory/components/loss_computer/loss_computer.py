@@ -32,7 +32,7 @@ class LossComputerParams:
     """
     'objective': Specify the learning objective.
         default: 'logistic'
-        range: ['linear', 'logistic']
+        range: ['linear', 'logistic', 'tweedie']
     'enable_quantization': Whether enable quantization of g and h.
         only recommended for encryption schemes with small plaintext range, like elgamal.
         default: False
@@ -40,11 +40,19 @@ class LossComputerParams:
     'quantization_scale': only effective if quanization enabled. Scale the sum of g to the specified value.
         default: 10000.0
         range: [0, 10000000.0]
+    'tweedie_variance_power': only effective if objective is tweedie.
+        Parameter that controls the variance of the Tweedie distribution.
+        var(y) ~ E(y)^tweedie_variance_power
+        default: 1.5
+        range: (1, 2)
+        Set closer to 2 to shift towards a gamma distribution.
+        Set closer to 1 to shift towards a Poisson distribution.
     """
 
     objective: RegType = default_params.objective
     enable_quantization: bool = default_params.enable_quantization
     quantization_scale: float = default_params.quantization_scale
+    tweedie_variance_power: float = default_params.tweedie_variance_power
 
 
 class LossComputer(Component):
@@ -71,9 +79,13 @@ class LossComputer(Component):
         quantization_scale = params.get(
             'quantization_scale', default_params.quantization_scale
         )
+        tweedie_variance_power = params.get(
+            'tweedie_variance_power', default_params.tweedie_variance_power
+        )
 
         self.params.quantization_scale = quantization_scale
         self.params.objective = obj
+        self.params.tweedie_variance_power = tweedie_variance_power
 
         self.logging_params = LoggingTools.logging_params_from_dict(params)
 
@@ -81,6 +93,8 @@ class LossComputer(Component):
         params['objective'] = self.params.objective
         params['enable_quantization'] = self.params.enable_quantization
         params['quantization_scale'] = self.params.quantization_scale
+        params['tweedie_variance_power'] = self.params.tweedie_variance_power
+
         LoggingTools.logging_params_write_dict(params, self.logging_params)
 
     def set_devices(self, devices: Devices):
@@ -104,7 +118,12 @@ class LossComputer(Component):
     ) -> Tuple[PYUObject, PYUObject]:
         obj = self.params.objective
         return self.actor.invoke_class_method_two_ret(
-            'LossComputerActor', 'compute_gh', y, pred, obj
+            'LossComputerActor',
+            'compute_gh',
+            y,
+            pred,
+            obj,
+            self.params.tweedie_variance_power,
         )
 
     def compute_abs_sums(self, g: PYUObject, h: PYUObject):

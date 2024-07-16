@@ -85,7 +85,7 @@ class VertBinSubstitution:
 
     def substitution(
         self, vdata: VDataFrame, rules: Dict[PYU, PYUObject]
-    ) -> VDataFrame:
+    ) -> Tuple[VDataFrame, List[str]]:
         """
         substitute dataset's value by binning substitution rules.
 
@@ -95,6 +95,7 @@ class VertBinSubstitution:
 
         Returns:
             new_vdata: vertical slice dataset after substituted.
+            changed_columns: columns that are changed by substitution.
         """
         pyu_new_data = {}
         pyu_changed_columns = {}

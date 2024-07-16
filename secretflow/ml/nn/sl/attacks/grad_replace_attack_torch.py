@@ -75,7 +75,12 @@ class GradReplaceAttack(AttackCallback):
 
     def on_base_forward_begin(self):
         def replace_input(
-            attack_worker, target_offsets, poison_offsets, poison_input, blurred
+            attack_worker,
+            target_offsets,
+            poison_offsets,
+            poison_input,
+            blurred,
+            exec_device,
         ):
             if attack_worker._training:
                 t_len = len(target_offsets)
@@ -91,7 +96,7 @@ class GradReplaceAttack(AttackCallback):
                         data_np = attack_worker._data_x.cpu().numpy()
                         data_np[target_offsets] = poison_input[choices]
                         attack_worker._data_x = torch.from_numpy(data_np).to(
-                            self.exec_device
+                            exec_device
                         )
                     else:
                         choices = np.random.choice(
@@ -101,8 +106,7 @@ class GradReplaceAttack(AttackCallback):
                         for i in range(len(data_np)):
                             data_np[i][target_offsets] = poison_input[i][choices]
                         attack_worker._data_x = [
-                            torch.from_numpy(data).to(self.exec_device)
-                            for data in data_np
+                            torch.from_numpy(data).to(exec_device) for data in data_np
                         ]
 
                 p_len = len(poison_offsets)
@@ -112,7 +116,7 @@ class GradReplaceAttack(AttackCallback):
                         rnd_shape = (p_len,) + list(data_np.shape[1:])
                         data_np[poison_offsets] = np.random.randn(*rnd_shape)
                         attack_worker._data_x = torch.from_numpy(data_np).to(
-                            self.exec_device
+                            exec_device
                         )
                     else:
                         data_np = [data.cpu().numpy() for data in attack_worker._data_x]
@@ -120,8 +124,7 @@ class GradReplaceAttack(AttackCallback):
                             rnd_shape = (p_len,) + list(data_np[i].shape[1:])
                             data_np[i][poison_offsets] = np.random.randn(*rnd_shape)
                         attack_worker._data_x = [
-                            torch.from_numpy(data).to(self.exec_device)
-                            for data in data_np
+                            torch.from_numpy(data).to(exec_device) for data in data_np
                         ]
 
         if len(self.target_offsets) > 0 or (
@@ -133,22 +136,27 @@ class GradReplaceAttack(AttackCallback):
                 self.poison_offsets,
                 self.poison_input,
                 self.blurred,
+                self.exec_device,
             )
 
     def on_base_backward_begin(self):
-        def replace_gradient(attack_worker, target_offsets, poison_offsets):
+        def replace_gradient(
+            attack_worker, target_offsets, poison_offsets, gamma, exec_device
+        ):
             # target grad -> poison grad
             choice = np.random.choice(target_offsets, (1,), replace=True)
             for idx, grad in enumerate(attack_worker._gradient):
                 grad_np = grad.cpu().numpy()
-                grad_np[poison_offsets] = self.gamma * grad_np[choice]
-                attack_worker._gradient[idx] = torch.from_numpy(grad_np).to(
-                    self.exec_device
-                )
+                grad_np[poison_offsets] = gamma * grad_np[choice]
+                attack_worker._gradient[idx] = torch.from_numpy(grad_np).to(exec_device)
 
         if len(self.target_offsets) > 0 and len(self.poison_offsets) > 0:
             self._workers[self.attack_party].apply(
-                replace_gradient, self.target_offsets, self.poison_offsets
+                replace_gradient,
+                self.target_offsets,
+                self.poison_offsets,
+                self.gamma,
+                self.exec_device,
             )
 
     def get_attack_metrics(self, preds, target_class: int, eval_poison_set: np.ndarray):

@@ -14,7 +14,7 @@
 
 from typing import Dict, Optional
 
-from secretflow import PYU
+from secretflow.device import PYU
 
 
 class Callback:

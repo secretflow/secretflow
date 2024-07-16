@@ -27,6 +27,7 @@ from benchmark_examples.autoattack.applications.base import (
     InputMode,
     ModelType,
 )
+from benchmark_examples.autoattack.utils.resources import ResourceDict, ResourcesPack
 from secretflow.data import FedNdarray
 from secretflow.data.split import train_test_split
 from secretflow.ml.nn.applications.sl_dnn_torch import DnnBase, DnnFuse
@@ -49,7 +50,7 @@ class CreditcardDnn(ApplicationBase):
             train_batch_size=1024,
             hidden_size=28,
             dnn_base_units_size_alice=[int(28 / 2), -1],
-            dnn_base_units_size_bob=[4],
+            dnn_base_units_size_bob=[4, -1],
             dnn_fuse_units_size=[1],
         )
 
@@ -106,8 +107,9 @@ class CreditcardDnn(ApplicationBase):
                 metric_wrapper(Accuracy, task="binary"),
                 metric_wrapper(AUROC, task="binary"),
             ],
-            input_dims=[self.hidden_size, 4],
+            input_dims=[self.hidden_size, self.hidden_size],
             dnn_units_size=[1],
+            output_func=nn.Sigmoid,
         )
 
     def resources_consumes(self) -> List[Dict]:
@@ -130,3 +132,16 @@ class CreditcardDnn(ApplicationBase):
 
     def dataset_type(self) -> DatasetType:
         return DatasetType.TABLE
+
+    def resources_consumption(self) -> ResourcesPack:
+        # 582MiB
+        return (
+            ResourcesPack()
+            .with_debug_resources(ResourceDict(gpu_mem=600 * 1024 * 1024, CPU=1))
+            .with_sim_resources(
+                self.device_y.party, ResourceDict(gpu_mem=600 * 1024 * 1024, CPU=1)
+            )
+            .with_sim_resources(
+                self.device_f.party, ResourceDict(gpu_mem=500 * 1024 * 1024, CPU=1)
+            )
+        )

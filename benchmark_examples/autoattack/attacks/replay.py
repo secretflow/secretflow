@@ -19,6 +19,7 @@ import numpy as np
 from benchmark_examples.autoattack import global_config
 from benchmark_examples.autoattack.applications.base import ApplicationBase
 from benchmark_examples.autoattack.attacks.base import AttackBase, AttackType
+from benchmark_examples.autoattack.utils.resources import ResourcesPack
 from secretflow.ml.nn.callbacks.attack import AttackCallback
 from secretflow.ml.nn.sl.attacks.replay_attack_torch import ReplayAttack
 
@@ -58,7 +59,7 @@ class ReplayAttackCase(AttackBase):
             eval_indexes, min(100, len(eval_indexes) - 1), replace=False
         )
         return ReplayAttack(
-            self.alice if app.device_y == self.bob else self.bob,
+            app.device_f,
             target_set,
             self.eval_set,
             batch_size=app.train_batch_size,
@@ -77,3 +78,11 @@ class ReplayAttackCase(AttackBase):
 
     def check_app_valid(self, app: ApplicationBase) -> bool:
         return True
+
+    def update_resources_consumptions(
+        self, cluster_resources_pack: ResourcesPack, app: ApplicationBase
+    ) -> ResourcesPack:
+        func = lambda x: x * 1.16
+        return cluster_resources_pack.apply_debug_resources(
+            'gpu_mem', func
+        ).apply_sim_resources(app.device_f.party, 'gpu_mem', func)

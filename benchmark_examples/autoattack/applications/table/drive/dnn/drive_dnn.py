@@ -28,6 +28,7 @@ from benchmark_examples.autoattack.applications.base import (
     ModelType,
 )
 from benchmark_examples.autoattack.utils.data_utils import sample_ndarray
+from benchmark_examples.autoattack.utils.resources import ResourceDict, ResourcesPack
 from secretflow.data.ndarray import FedNdarray, PartitionWay
 from secretflow.ml.nn.applications.sl_dnn_torch import DnnBase, DnnFuse
 from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
@@ -129,7 +130,6 @@ class DriveDnn(ApplicationBase):
         optim_fn = optim_wrapper(torch.optim.Adam)
         return TorchModel(
             model_fn=DnnBase,
-            loss_fn=loss_fn,
             optim_fn=optim_fn,
             input_dims=[28],
             dnn_units_size=self.dnn_base_units_size_alice,
@@ -187,3 +187,16 @@ class DriveDnn(ApplicationBase):
 
     def dataset_type(self) -> DatasetType:
         return DatasetType.TABLE
+
+    def resources_consumption(self) -> ResourcesPack:
+        # 480MB
+        return (
+            ResourcesPack()
+            .with_debug_resources(ResourceDict(gpu_mem=500 * 1024 * 1024, CPU=1))
+            .with_sim_resources(
+                self.device_y.party, ResourceDict(gpu_mem=500 * 1024 * 1024, CPU=1)
+            )
+            .with_sim_resources(
+                self.device_f.party, ResourceDict(gpu_mem=400 * 1024 * 1024, CPU=1)
+            )
+        )

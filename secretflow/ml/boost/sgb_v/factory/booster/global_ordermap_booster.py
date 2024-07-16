@@ -32,9 +32,9 @@ from secretflow.ml.boost.core.callback import (
 from secretflow.ml.boost.core.data_preprocess import prepare_dataset
 from secretflow.ml.boost.core.metric import Metric
 from secretflow.ml.boost.sgb_v.checkpoint import (
+    SGBCheckpointData,
     checkpoint_data_to_model_and_train_state,
     sgb_model_to_checkpoint_data,
-    SGBCheckpointData,
 )
 from secretflow.ml.boost.sgb_v.core.params import default_params
 
@@ -256,6 +256,7 @@ class GlobalOrdermapBooster(Composite, CallBackCompatibleModel):
         """
         import secretflow.distributed as sfd
 
+        model = self.components.model_builder.finish()
         if sfd.in_ic_mode():
             x = data
         else:
@@ -263,19 +264,15 @@ class GlobalOrdermapBooster(Composite, CallBackCompatibleModel):
         if self.eval_predict_cache[data_name] is not None:
             # predict on the new tree is sufficient
             cache = self.eval_predict_cache[data_name]
-            pred = (
-                self.components.model_builder.finish()
-                .get_trees()[-1]
-                .predict(x.partitions)
-            )
+            pred = model.get_trees()[-1].predict(x.partitions)
             new_pred = pred.device(lambda x, y: np.add(x, y).reshape(-1, 1))(
                 pred, cache
             )
 
         else:
-            new_pred = self.components.model_builder.finish().predict(x)
+            new_pred = model.predict_with_trees(x)
         self.eval_predict_cache[data_name] = new_pred
-        return new_pred
+        return model.apply_activation(new_pred)
 
     def eval_set(
         self,

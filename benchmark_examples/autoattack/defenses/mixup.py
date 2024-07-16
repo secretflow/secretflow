@@ -21,6 +21,7 @@ from benchmark_examples.autoattack.applications.base import (
 )
 from benchmark_examples.autoattack.attacks.base import AttackBase, AttackType
 from benchmark_examples.autoattack.defenses.base import DefenseBase
+from benchmark_examples.autoattack.utils.resources import ResourcesPack
 from secretflow.ml.nn.callbacks.callback import Callback
 from secretflow.ml.nn.core.torch import loss_wrapper, module
 from secretflow.ml.nn.sl.backend.torch.sl_base import SLBaseTorchModel
@@ -32,7 +33,9 @@ class Mixup(DefenseBase):
     def __str__(self):
         return "mixup"
 
-    def build_defense_callback(self, app: ApplicationBase) -> Callback | None:
+    def build_defense_callback(
+        self, app: ApplicationBase, attack: AttackBase | None = None
+    ) -> Callback | None:
         return MixupDefense(
             lam=self.config.get('lam', 0.6),
             perm_seed=self.config.get('perm_seed', 1234),
@@ -51,6 +54,17 @@ class Mixup(DefenseBase):
             in [ModelType.DNN, ModelType.RESNET18, ModelType.VGG16, ModelType.CNN]
             and app.base_input_mode() == InputMode.SINGLE
         )
+
+    def update_resources_consumptions(
+        self,
+        cluster_resources_pack: ResourcesPack,
+        app: ApplicationBase,
+        attack: AttackBase | None,
+    ) -> ResourcesPack:
+        func = lambda x: x * 1.3
+        return cluster_resources_pack.apply_debug_resources(
+            'gpu_mem', func
+        ).apply_sim_resources(app.device_y.party, 'gpu_mem', func)
 
 
 class MixupDefense(Callback):
