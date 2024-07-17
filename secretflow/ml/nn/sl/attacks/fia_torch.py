@@ -104,7 +104,7 @@ class FeatureInferenceAttack(AttackCallback):
                 attacker_base_model=attack_worker.model_base,
                 attacker_fuse_model=attack_worker.model_fuse,
             )
-            ret = attacker.attack()
+            ret = fia_attacker.attack()
             return ret
 
         victim_model = reveal(self._workers[self.victim_party].apply(get_victim_model))
