@@ -64,6 +64,7 @@ cast_comp.io(
         TableColParam(
             name="columns",
             desc="Multiple-choice, options available are string, integer, float, boolean",
+            col_min_cnt_inclusive=1,
         )
     ],
 )
@@ -96,14 +97,15 @@ def _apply_rules_on_table(table: sc.Table, target: str) -> sc.Table:
 
     columns = table.column_names
     for col_name in columns:
-        col = table.column(col_name)
-        if col.dtype == pa_type:
-            continue
         try:
-            if pa.types.is_string(col.dtype) and is_numeric_target:
-                col = sc.utf8_trim(col, characters=" \t\n\v\f\r\"'")
-            options = pc.CastOptions.unsafe(pa_type)
-            new_col = sc.cast(col, options=options)
+            col = table.column(col_name)
+            if col.dtype == pa_type:
+                new_col = col
+            else:
+                if pa.types.is_string(col.dtype) and is_numeric_target:
+                    col = sc.utf8_trim(col, characters=" \t\n\v\f\r\"'")
+                options = pc.CastOptions.safe(pa_type)
+                new_col = sc.cast(col, options=options)
             table = table.set_column(
                 table.column_names.index(col_name), col_name, new_col
             )

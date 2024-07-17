@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import multiprocessing
+import os
 from dataclasses import dataclass
-from typing import List
+from typing import Dict, List, Tuple
 
 from secretflow.kuscia.task_config import KusciaTaskConfig
 
@@ -29,34 +29,37 @@ class RayConfig:
     ray_worker_ports: List[int] = None
     ray_gcs_port: List[int] = None
 
-    def generate_ray_cmd(self) -> str:
+    def generate_ray_cmd(self) -> Tuple[List, Dict]:
         if self.ray_node_ip_address == "local":
-            return None
+            return None, None
 
-        _RAY_GRPC_ENV = (
-            "RAY_BACKEND_LOG_LEVEL=debug " "RAY_grpc_enable_http_proxy=true "
-        )
-        ray_cmd = (
-            f"{_RAY_GRPC_ENV}"
-            f"OMP_NUM_THREADS={multiprocessing.cpu_count()} "
-            "ray start --head --include-dashboard=false --disable-usage-stats"
-            f" --num-cpus=32"
-            f" --node-ip-address={self.ray_node_ip_address}"
-            f" --port={self.ray_gcs_port}"
-        )
+        envs = os.environ.copy()
+        envs["RAY_BACKEND_LOG_LEVEL"] = "debug"
+        envs["OMP_NUM_THREADS"] = f"{multiprocessing.cpu_count()}"
+
+        ray_cmd = [
+            "ray",
+            "start",
+            "--head",
+            "--include-dashboard=false",
+            "--disable-usage-stats",
+            "--num-cpus=32",
+            f"--node-ip-address={self.ray_node_ip_address}",
+            f"--port={self.ray_gcs_port}",
+        ]
 
         if self.ray_node_manager_port:
-            ray_cmd += f" --node-manager-port={self.ray_node_manager_port}"
+            ray_cmd.append(f"--node-manager-port={self.ray_node_manager_port}")
         if self.ray_object_manager_port:
-            ray_cmd += f" --object-manager-port={self.ray_object_manager_port}"
+            ray_cmd.append(f"--object-manager-port={self.ray_object_manager_port}")
         if self.ray_client_server_port:
-            ray_cmd += f" --ray-client-server-port={self.ray_client_server_port}"
+            ray_cmd.append(f"--ray-client-server-port={self.ray_client_server_port}")
         if self.ray_worker_ports:
-            ray_cmd += (
-                f' --worker-port-list={",".join(map(str, self.ray_worker_ports))}'
+            ray_cmd.append(
+                f'--worker-port-list={",".join(map(str, self.ray_worker_ports))}'
             )
 
-        return ray_cmd
+        return ray_cmd, envs
 
     @classmethod
     def from_kuscia_task_config(cls, config: KusciaTaskConfig):

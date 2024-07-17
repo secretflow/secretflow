@@ -23,6 +23,9 @@ from google.protobuf import json_format
 
 from secretflow.component.component import CompEvalError, Component, IoType
 from secretflow.component.data_utils import DistDataType, extract_table_header
+from secretflow.component.model_export.serving_utils.postprocessing_converter import (
+    PostprocessingConverter,
+)
 from secretflow.device import PYU, reveal
 from secretflow.spec.v1.data_pb2 import DistData
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
@@ -241,14 +244,27 @@ class CompConverter:
             self._updata_train_schema_info(schema_info)
             self.converters.append(converter)
             self.schema_infos_cache.append(schema_info)
+        elif param.domain == "postprocessing":
+            self.phase = "postprocessing"
+            converter = PostprocessingConverter(
+                ctx=self.ctx,
+                builder=self.graph_builders,
+                node_id=self.node_id,
+                param=param,
+                in_ds=in_ds,
+                out_ds=out_ds,
+            )
+            self.converters.append(converter)
         else:
-            # TODO: postprocessing
             raise AttributeError(f"not support domain {param.domain}")
 
     def dump_tar_files(self, name, desc, uri) -> None:
         assert self.phase in ["ml", "postprocessing"]
         traced_input = self.used_schemas
         for i, c in enumerate(self.converters):
+            if isinstance(c, PostprocessingConverter):
+                c.convert()
+                continue
             schema_info = self.schema_infos_cache[i]
             for party in traced_input:
                 assert party in schema_info

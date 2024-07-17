@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 from typing import Dict, List, Tuple, Union
 
 import jax.numpy as jnp
@@ -54,9 +55,11 @@ def norm_attack(self, my_grad):
     return grad_norm_np
 
 
-def compute_auc(self, label, epoch_g_norm):
+def compute_auc(self, label, epoch_g_norm, reverse_label):
     """Compute the attack leak AUC on the given true label and predict label."""
     label = label if isinstance(label, np.ndarray) else label.values
+    if reverse_label:
+        label = 1 - label
     normattack_pred = jnp.concatenate(epoch_g_norm)
     y_true_numpy = label.tolist()
     y_pred_numpy = normattack_pred.tolist()
@@ -81,6 +84,16 @@ class NormAttack(AttackCallback):
         self.all_g_norm: Dict[int, List[PYUObject]] = {}
         self.label = label
         self.epoch = 0
+        # The norm attack attempts to predict larger gradients as label 1. However,
+        # in some applications with more 1 than 0, the label with a larger gradient is 0,
+        # so the label needs to be reversed to ensure correct attack.
+        self.reverse_label = False
+        if np.count_nonzero(label) > len(label) - np.count_nonzero(label):
+            logging.warning(
+                "Current exepirment's number of label 1 > number of label 0, "
+                "The norm attack will reverse label when compute attack auc."
+            )
+            self.reverse_label = True
 
     def on_epoch_begin(self, epoch=None, logs=None):
         self.all_g_norm[epoch] = []
@@ -95,7 +108,7 @@ class NormAttack(AttackCallback):
         metrics = []
         for epoch_g_norm in self.all_g_norm.values():
             metric = self._workers[self.attack_party].apply(
-                compute_auc, self.label, epoch_g_norm
+                compute_auc, self.label, epoch_g_norm, self.reverse_label
             )
             metrics.append(metric)
         metrics = reveal(metrics)

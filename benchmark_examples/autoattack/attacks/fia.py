@@ -24,6 +24,7 @@ from benchmark_examples.autoattack.applications.base import ApplicationBase, Inp
 from benchmark_examples.autoattack.attacks.base import AttackBase, AttackType
 from benchmark_examples.autoattack.global_config import is_simple_test
 from benchmark_examples.autoattack.utils.data_utils import get_np_data_from_dataset
+from benchmark_examples.autoattack.utils.resources import ResourcesPack
 from secretflow.ml.nn.callbacks.attack import AttackCallback
 from secretflow.ml.nn.core.torch import TorchModel, optim_wrapper
 from secretflow.ml.nn.sl.attacks.fia_torch import FeatureInferenceAttack
@@ -158,3 +159,11 @@ class FiaAttackCase(AttackBase):
 
     def check_app_valid(self, app: ApplicationBase) -> bool:
         return app.base_input_mode() in [InputMode.SINGLE]
+
+    def update_resources_consumptions(
+        self, cluster_resources_pack: ResourcesPack, app: ApplicationBase
+    ) -> ResourcesPack:
+        func = lambda x: x * 1.2
+        return cluster_resources_pack.apply_debug_resources(
+            'gpu_mem', func
+        ).apply_sim_resources(app.device_y.party, 'gpu_mem', func)

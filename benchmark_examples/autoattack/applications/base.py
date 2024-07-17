@@ -18,6 +18,7 @@ from enum import Enum
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
+import torch.cuda
 
 from benchmark_examples.autoattack import global_config
 from benchmark_examples.autoattack.base import AutoBase
@@ -29,6 +30,7 @@ from benchmark_examples.autoattack.utils.data_utils import (
     reveal_part_data,
     sample_ndarray,
 )
+from benchmark_examples.autoattack.utils.resources import ResourcesPack
 from secretflow import PYU
 from secretflow.data import FedNdarray
 from secretflow.ml.nn import SLModel
@@ -158,21 +160,6 @@ class ApplicationBaseAPI(AutoBase, ABC):
         pass
 
     @abstractmethod
-    def resources_consumes(self) -> List[Dict]:
-        """
-        How much this application requires to consume.
-        Must contain 'alice', 'bob', 'CPU', 'GPU'.
-        The value of GPU can represent the percentage of GPU memory used.
-        Returns:
-            A list of dict like:
-            [
-                {'alice': 1, 'CPU': 1, 'GPU': 0.1},
-                {'bob': 1, 'CPU': 1, 'GPU': 1},
-            ]
-        """
-        pass
-
-    @abstractmethod
     def classfication_type(self) -> ClassficationType:
         """
         The model classfication type
@@ -229,6 +216,16 @@ class ApplicationBaseAPI(AutoBase, ABC):
 
     def create_predict_dataset_builder_bob(self, *args, **kwargs) -> Optional[Callable]:
         return None
+
+    def resources_consumption(self) -> ResourcesPack:
+        """
+        Indicates the experience value of the resources that the application will consume.
+        Please note that the unit of the memory is B.
+
+        Returns:
+            ResourcesPack: the resource consumptions with one trail.
+        """
+        pass
 
 
 class ApplicationBase(ApplicationBaseAPI, ABC):
@@ -317,6 +314,7 @@ class ApplicationBase(ApplicationBaseAPI, ABC):
         if is_simple_test():
             self.epoch = 1
         self._log_config()
+        self.sl_model = None
 
     def __str__(self):
         return self.dataset_name() + self.model_type().value
@@ -784,3 +782,11 @@ class ApplicationBase(ApplicationBaseAPI, ABC):
             search_space.pop('dnn_embedding_dim', None)
             search_space.pop('deepfm_embedding_dim', None)
         return search_space
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        del self._train_data, self._train_label, self._test_data, self._test_label
+        del self._plain_train_data, self._plain_test_data
+        del self._plain_train_label, self._plain_test_label
+        del self._plain_train_alice_data, self._plain_train_bob_data
+        del self._plain_test_alice_data, self._plain_test_bob_data
+        del self.sl_model

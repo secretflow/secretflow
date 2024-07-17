@@ -19,17 +19,18 @@ from typing import Callable, Dict, List, NoReturn, Tuple, Union
 
 import jax.numpy as jnp
 import numpy as np
+import spu
 
 import secretflow as sf
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.data.split import train_test_split
 from secretflow.data.vertical import VDataFrame
-from secretflow.device import PYU, SPU, PYUObject, SPUObject, wait
+from secretflow.device import PYU, PYUObject, SPU, SPUObject, wait
 from secretflow.device.driver import reveal
 
-from .core import Distribution, Linker, get_dist, get_link
+from .core import Distribution, get_dist, get_link, Linker
 from .core.distribution import DistributionBernoulli
-from .metrics import BETTER_DEF, IMPROVE_DEF, SUPPORTED_METRICS, deviance
+from .metrics import BETTER_DEF, deviance, IMPROVE_DEF, SUPPORTED_METRICS
 
 STOPPING_METRICS = list(SUPPORTED_METRICS.keys()) + ["weight"]
 
@@ -98,7 +99,10 @@ def _predict(
 
 
 def _concatenate(
-    arrays: List[np.ndarray], axis: int, pad_ones: bool = False
+    arrays: List[np.ndarray],
+    axis: int,
+    pad_ones: bool = False,
+    enable_spu_cache: bool = False,
 ) -> np.ndarray:
     if pad_ones:
         if axis == 1:
@@ -107,6 +111,8 @@ def _concatenate(
             ones = jnp.ones((1, arrays[0].shape[1]), dtype=arrays[0].dtype)
         arrays.append(ones)
     x = jnp.concatenate(arrays, axis=axis)
+    if enable_spu_cache:
+        x = spu.experimental.make_cached_var(x)
     return x
 
 
@@ -197,15 +203,39 @@ def _sgd_update_w(
     return model
 
 
+def _irls_first_epoch(
+    y: np.ndarray,
+    offset: np.ndarray,
+    link: Linker,
+    dist: Distribution,
+) -> Tuple[np.ndarray, np.ndarray]:
+    y = y.reshape(-1, 1)
+    mu = dist.starting_mu(y)
+    eta = link.link(mu)
+    if offset is not None:
+        offset = offset.reshape((-1, 1))
+        eta = eta - offset
+
+    v = dist.variance(mu)
+    g_gradient = link.link_derivative(mu)
+
+    W_diag = 1 / dist.scale() / (v * g_gradient) / g_gradient
+    Z = eta + (y - mu) * g_gradient
+
+    return (W_diag, Z)
+
+
 def _irls_calculate_partials(
     x: np.ndarray,
     y: np.ndarray,
     offset: np.ndarray,
     weight: np.ndarray,
     model: np.ndarray,
-    start_mu: np.ndarray,
+    start_w: np.ndarray,
+    start_z: np.ndarray,
     link: Linker,
     dist: Distribution,
+    enable_spu_cache: bool,
 ) -> Tuple[np.ndarray, np.ndarray]:
     y = y.reshape((-1, 1))
 
@@ -222,24 +252,28 @@ def _irls_calculate_partials(
             mu = link.response(eta + offset)
         else:
             mu = link.response(eta)
-    else:
-        # for correctness, start_mu should be provided
-        mu = start_mu
-        eta = link.link(mu)
-        if offset is not None:
-            eta = eta - offset
 
-    v = dist.variance(mu)
-    g_gradient = link.link_derivative(mu)
-    if weight is not None:
-        W_diag = weight / dist.scale() / (v * g_gradient) / g_gradient
-    else:
+        v = dist.variance(mu)
+        g_gradient = link.link_derivative(mu)
+        if enable_spu_cache:
+            spu.experimental.make_cached_var(g_gradient)
         W_diag = 1 / dist.scale() / (v * g_gradient) / g_gradient
-    Z = eta + (y - mu) * g_gradient
+        Z = eta + (y - mu) * g_gradient
+        if enable_spu_cache:
+            spu.experimental.drop_cached_var(g_gradient, W_diag, Z)
+    else:
+        Z = start_z
+        W_diag = start_w
 
+    if weight is not None:
+        W_diag = W_diag * weight
     XTW = jnp.transpose(x * W_diag.reshape(-1, 1))
+    if enable_spu_cache:
+        spu.experimental.make_cached_var(XTW)
     J = jnp.matmul(XTW, x)
     XTWZ = jnp.matmul(XTW, Z)
+    if enable_spu_cache:
+        spu.experimental.drop_cached_var(XTW, J, XTWZ)
     return J, XTWZ
 
 
@@ -433,7 +467,7 @@ class SSGLM:
 
         assert sgd_batch_size > 0, f"sgd_batch_size should >0"
         self.sgd_batch_size = sgd_batch_size
-        # for large dataset, batch infeed data for each 10w*100d size.
+        # for large dataset, batch infeed data for each 8w*100d size.
         infeed_rows = math.ceil(infeed_batch_size_limit / self.num_feat)
         # align to sgd_batch_size, for algorithm accuracy
         infeed_rows = (
@@ -443,6 +477,12 @@ class SSGLM:
         self.infeed_total_batch = math.ceil(self.samples / infeed_rows)
         if validation_set_not_empty:
             self.infeed_total_batch_val = math.ceil(self.samples_val / infeed_rows)
+
+        self.enable_spu_cache = (
+            hasattr(spu, "experimental")
+            and hasattr(getattr(spu, "experimental"), "make_cached_var")
+            and hasattr(getattr(spu, "experimental"), "drop_cached_var")
+        )
 
         if decay_rate is not None:
             assert (
@@ -540,8 +580,13 @@ class SSGLM:
         x = self._next_infeed_batch(x, infeed_step, samples)
         y = self._next_infeed_batch(y, infeed_step, samples)
 
-        spu_x = self.spu(_concatenate, static_argnames=('axis', 'pad_ones'))(
-            self._to_spu(x), axis=1, pad_ones=True
+        spu_x = self.spu(
+            _concatenate, static_argnames=('axis', 'pad_ones', 'enable_spu_cache')
+        )(
+            self._to_spu(x),
+            axis=1,
+            pad_ones=True,
+            enable_spu_cache=self.enable_spu_cache,
         )
         spu_y = self._to_spu(y)[0]
 
@@ -570,25 +615,31 @@ class SSGLM:
         return sgd_lr
 
     def _epoch(self, spu_model: SPUObject, epoch_idx: int) -> SPUObject:
-        dist = self.dist
         if epoch_idx < self.irls_epochs:
             if epoch_idx == 0:
                 y = self.y.partitions[self.y_device]
-                start_mu = self.y_device(
-                    lambda dist, y: dist.starting_mu(y).reshape(-1, 1)
-                )(dist, y)
+                if self.offset and self.y_device in self.offset.partitions:
+                    offset = self.offset.partitions[self.y_device]
+                else:
+                    offset = None
+                start_w, start_z = self.y_device(_irls_first_epoch)(
+                    y, offset, self.link, self.dist
+                )
             for infeed_step in range(self.infeed_total_batch):
                 spu_x, spu_y, spu_o, spu_w = self._build_batch_cache(infeed_step)
                 if epoch_idx == 0:
-                    start_mu_slice = self._next_infeed_batch(start_mu, infeed_step)
+                    start_w_slice = self._next_infeed_batch(start_w, infeed_step)
+                    start_z_slice = self._next_infeed_batch(start_z, infeed_step)
                 else:
-                    start_mu_slice = None
+                    start_w_slice = None
+                    start_z_slice = None
                 logging.info("irls calculating partials...")
                 new_J, new_XTWZ = self.spu(
                     _irls_calculate_partials,
                     static_argnames=(
-                        'link',
-                        'dist',
+                        "link",
+                        "dist",
+                        "enable_spu_cache",
                     ),
                     num_returns_policy=sf.device.SPUCompilerNumReturnsPolicy.FROM_COMPILER,
                 )(
@@ -597,9 +648,11 @@ class SSGLM:
                     spu_o,
                     spu_w,
                     spu_model,
-                    start_mu_slice,
+                    start_w_slice,
+                    start_z_slice,
                     link=self.link,
                     dist=self.dist,
+                    enable_spu_cache=self.enable_spu_cache,
                 )
                 wait([new_J, new_XTWZ])
                 if infeed_step == 0:
@@ -878,7 +931,7 @@ class SSGLM:
         decay_rate: float = None,
         l2_lambda: float = None,
         # 10w * 100d
-        infeed_batch_size_limit: int = 10000000,
+        infeed_batch_size_limit: int = 8000000,
         fraction_of_validation_set: float = 0.2,
         stopping_metric: str = 'deviance',
         stopping_rounds: int = 0,
@@ -952,6 +1005,11 @@ class SSGLM:
             if epoch_callback:
                 self._epoch_callback(epoch_idx, epoch_callback)
 
+        if self.enable_spu_cache:
+            for n in self.batch_cache.values():
+                for s in n.values():
+                    wait(self.spu(lambda x: spu.experimental.drop_cached_var(x))(s[0]))
+
         self.batch_cache = {"train": {}, "val": {}}
 
     def fit_irls(
@@ -967,7 +1025,7 @@ class SSGLM:
         scale: float = 1,
         l2_lambda: float = None,
         # 10w * 100d
-        infeed_batch_size_limit: int = 10000000,
+        infeed_batch_size_limit: int = 8000000,
         fraction_of_validation_set: float = 0.2,
         random_state: int = 1212,
         stopping_metric: str = 'deviance',
@@ -1062,7 +1120,7 @@ class SSGLM:
         decay_epoch: int = None,
         decay_rate: float = None,
         l2_lambda: float = None,
-        infeed_batch_size_limit: int = 10000000,
+        infeed_batch_size_limit: int = 8000000,
         fraction_of_validation_set: float = 0.2,
         random_state: int = 1212,
         stopping_metric: str = 'deviance',
@@ -1183,7 +1241,7 @@ class SSGLM:
         o: Union[FedNdarray, VDataFrame] = None,
         to_pyu: PYU = None,
         # 10w * 100d
-        infeed_batch_size_limit: int = 10000000,
+        infeed_batch_size_limit: int = 8000000,
     ) -> Union[SPUObject, PYUObject]:
         """
         Predict using the model.
@@ -1297,7 +1355,7 @@ class SSGLM:
         bias: PYUObject,
         o: Union[FedNdarray, VDataFrame] = None,
         to_pyu: PYU = None,
-        infeed_batch_size_limit: int = 10000000,
+        infeed_batch_size_limit: int = 8000000,
     ) -> PYUObject:
         """
         Predict using the model in a federated form, suppose all slices collected by to_pyu device.

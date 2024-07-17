@@ -18,8 +18,8 @@ from pathlib import Path
 from typing import Dict, List
 
 import secretflow as sf
-from secretflow import PYU
 from secretflow.component.component import CompEvalError
+from secretflow.device import PYU
 
 
 @dataclass

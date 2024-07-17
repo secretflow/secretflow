@@ -22,6 +22,7 @@ import ray
 
 import secretflow.distributed as sfd
 from secretflow.distributed.primitive import DISTRIBUTION_MODE
+from secretflow.utils.errors import UnexpectedError
 from secretflow.utils.logging import LOG_FORMAT, get_logging_level
 
 from . import link
@@ -148,7 +149,13 @@ def proxy(
     ), f'{device_object_type} is not allowed to be proxy'
 
     def make_proxy(cls):
-        ActorClass = _cls_wrapper(cls)
+        if hasattr(cls, '__is_wrapped__'):
+            raise UnexpectedError(
+                f"class {cls} is already wrapped, do not wrap it again!"
+            )
+        # create new Class, to prevent multiple wrapping when using proxy() for the same class multiple times.
+        actor_cls = type(f'Actor{cls.__name__}', (cls,), {'__is_wrapped__': True})
+        ActorClass = _cls_wrapper(actor_cls)
 
         class ActorProxy(device_object_type):
             def __init__(self, *args, **kwargs):
@@ -165,7 +172,7 @@ def proxy(
                     f'{expected_device_type}, got {type(device)}'
                 )
 
-                if not issubclass(cls, link.Link):
+                if not issubclass(actor_cls, link.Link):
                     kwargs.pop('device', None)
                     kwargs.pop('production_mode', None)
 
@@ -191,7 +198,7 @@ def proxy(
                 self.actor_class = ActorClass
                 super().__init__(device, data)
 
-        methods = inspect.getmembers(cls, inspect.isfunction)
+        methods = inspect.getmembers(actor_cls, inspect.isfunction)
         for name, method in methods:
             if name == '__init__':
                 continue

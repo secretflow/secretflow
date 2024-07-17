@@ -16,6 +16,7 @@ import importlib
 import math
 
 from google.protobuf import json_format
+from secretflow.component.data_utils import DistDataType
 from secretflow.spec.v1.component_pb2 import (
     Attribute,
     AttributeDef,
@@ -107,7 +108,11 @@ def get_value(value: Attribute, at: AttrType, pb_cls_name: str = None):
         return list(value.fs)
     elif at == AttrType.AT_INTS:
         return list(value.i64s)
-    elif at == AttrType.AT_STRINGS or at == AttrType.AT_PARTY:
+    elif (
+        at == AttrType.AT_STRINGS
+        or at == AttrType.AT_PARTY
+        or at == AttrType.AT_COL_PARAMS
+    ):
         return list(value.ss)
     elif at == AttrType.AT_BOOLS:
         return list(value.bs)
@@ -206,6 +211,9 @@ class EvalParamReader:
                 elif attr.type is AttrType.AT_PARTY:
                     self._instance_attrs[full_name] = Attribute()
 
+                elif attr.type is AttrType.AT_COL_PARAMS:
+                    self._instance_attrs[full_name] = Attribute()
+
                 else:
                     # use default value.
                     if not skip and not attr.atomic.is_optional:
@@ -239,6 +247,13 @@ class EvalParamReader:
         ):
             if input_def.name in self._instance_inputs:
                 raise EvalParamError(f"input {input_def.name} is duplicate.")
+
+            if input_instance.type == str(DistDataType.NULL):
+                assert (
+                    input_def.is_optional
+                ), f'def {input_def.name} is not optional and not set.'
+                self._instance_inputs[input_def.name] = None
+                continue
 
             if input_def.types and input_instance.type not in input_def.types:
                 raise EvalParamError(

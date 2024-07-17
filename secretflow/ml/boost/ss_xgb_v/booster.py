@@ -25,8 +25,8 @@ from secretflow.data import FedNdarray
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import (
     PYU,
-    PYUObject,
     SPU,
+    PYUObject,
     SPUCompilerNumReturnsPolicy,
     SPUObject,
     wait,
@@ -39,9 +39,9 @@ from secretflow.ml.boost.core.callback import (
 )
 from secretflow.ml.boost.core.data_preprocess import validate
 from secretflow.ml.boost.ss_xgb_v.checkpoint import (
+    SSXGBCheckpointData,
     build_ss_xgb_model,
     ss_xgb_model_to_checkpoint_data,
-    SSXGBCheckpointData,
 )
 from secretflow.ml.boost.ss_xgb_v.model import XgbModel
 
@@ -147,6 +147,9 @@ class Xgb(CallBackCompatibleModel):
         ), f"colsample_by_tree should in (0, 1], got {self.colsample}"
 
         self.base = float(params.pop("base_score", 0))
+        assert (
+            self.base >= -10 and self.base <= 10
+        ), f"base_score should in [-10, 10], got {self.base}"
 
         sketch = params.pop("sketch_eps", 0.1)
         assert sketch > 0 and sketch <= 1, f"sketch_eps should in (0, 1], got {sketch}"

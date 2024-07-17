@@ -24,38 +24,15 @@ from benchmark_examples.autoattack.applications.base import (
     ApplicationBase,
     DatasetType,
     InputMode,
+    ModelType,
 )
 from benchmark_examples.autoattack.attacks.base import AttackBase, AttackType
+from benchmark_examples.autoattack.utils.resources import ResourcesPack
 from secretflow.ml.nn.callbacks.attack import AttackCallback
 from secretflow.ml.nn.core.torch import TorchModel
 from secretflow.ml.nn.sl.attacks.fsha_torch import FeatureSpaceHijackingAttack
 from secretflow.ml.nn.utils import optim_wrapper
-
-
-class Pilot(nn.Module):
-    def __init__(self, input_dim=20, target_dim=64):
-        super().__init__()
-        self.net = nn.Linear(input_dim, target_dim)
-
-    def forward(self, x):
-        return self.net(x)
-
-
-class Decoder(nn.Module):
-    def __init__(self, latent_dim=64, target_dim=20):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(latent_dim, 200),
-            nn.LayerNorm(200),
-            nn.ReLU(),
-            nn.Linear(200, 100),
-            nn.LayerNorm(100),
-            nn.ReLU(),
-            nn.Linear(100, target_dim),
-        )
-
-    def forward(self, x):
-        return self.net(x)
+from secretflow.utils.errors import NotSupportedError
 
 
 class Discriminator(nn.Module):
@@ -73,6 +50,186 @@ class Discriminator(nn.Module):
 
     def forward(self, x):
         return self.net(x)
+
+
+class DecoderTable(nn.Module):
+    def __init__(self, latent_dim=64, target_dim=20):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(latent_dim, 200),
+            nn.LayerNorm(200),
+            nn.ReLU(),
+            nn.Linear(200, 100),
+            nn.LayerNorm(100),
+            nn.ReLU(),
+            nn.Linear(100, target_dim),
+        )
+
+    def forward(self, x):
+        return self.net(x)
+
+
+# Resnet18  input_channels=512
+# Resnet20  input_channels=10
+class DecoderResnet(nn.Module):
+    def __init__(self, input_channels=512, output_channels=3, is_cifar10=True):
+        super(DecoderResnet, self).__init__()
+
+        # Cifar10 + Resnet18: [BN, 512, 1, 1] => [BN, 3, 32, 16]
+        # Cifar10 + Resnet20: [BN, 10, 1, 1] => [BN, 3, 32, 16]
+        # Mnist + Resnet18: [BN, 512, 1, 1] => [BN, 3, 28, 14]
+        # Mnist + Resnet20: [BN, 10, 1, 1] => [BN, 3, 28, 14]
+        self.model = nn.Sequential(
+            nn.ConvTranspose2d(
+                input_channels,
+                256,
+                kernel_size=(3, 3),
+                stride=2,
+                padding=1,
+                output_padding=1,
+                bias=False,
+            ),
+            nn.ConvTranspose2d(
+                256,
+                128,
+                kernel_size=(3, 3),
+                stride=2,
+                padding=1,
+                output_padding=1,
+                bias=False,
+            ),
+            nn.ConvTranspose2d(
+                128,
+                128,
+                kernel_size=(3, 3),
+                stride=2,
+                padding=1,
+                output_padding=(1 if is_cifar10 else 0),
+                bias=False,
+            ),
+            nn.ConvTranspose2d(
+                128,
+                64,
+                kernel_size=(3, 3),
+                stride=2,
+                padding=1,
+                output_padding=1,
+                bias=False,
+            ),
+            nn.ConvTranspose2d(
+                64,
+                output_channels,
+                kernel_size=(3, 3),
+                stride=(2, 1),
+                padding=1,
+                output_padding=(1, 0),
+                bias=False,
+            ),
+            nn.Tanh(),
+        )
+
+    def forward(self, x):
+        x = x.view(x.size()[0], x.size()[1], 1, 1)
+        out = self.model(x)
+        return out
+
+
+class DecoderVGG16(nn.Module):
+    def __init__(self, input_channels=512, output_channels=3, is_cifar10=True):
+        super(DecoderVGG16, self).__init__()
+
+        # cifar10: [BN, 512, 3, 3] => [BN, 3, 32, 16]
+        # mnist: [BN, 512, 1, 1] => [BN, 3, 112, 56]
+        layer_in = nn.ConvTranspose2d(
+            input_channels,
+            256,
+            kernel_size=(1, 1),
+            stride=2 if is_cifar10 else 3,
+            padding=1,
+            output_padding=1 if is_cifar10 else 2,
+            bias=False,
+        )
+        layer_mid = [
+            nn.ConvTranspose2d(
+                256,
+                128,
+                kernel_size=(3, 3),
+                stride=2,
+                padding=1,
+                output_padding=1,
+                bias=False,
+            )
+        ] + [
+            nn.ConvTranspose2d(
+                128,
+                128,
+                kernel_size=(3, 3),
+                stride=2,
+                padding=1,
+                output_padding=1,
+                bias=False,
+            )
+        ] * (
+            1 if is_cifar10 else 2
+        )
+        layer_out = nn.ConvTranspose2d(
+            128,
+            output_channels,
+            kernel_size=(3, 3),
+            stride=(2, 1),
+            padding=1,
+            output_padding=(1, 0),
+            bias=False,
+        )
+        layers = [layer_in] + layer_mid + [layer_out, nn.Tanh()]
+
+        self.model = nn.Sequential(*layers)
+
+    def forward(self, x):
+        x = x.view(x.size()[0], 512, 3, 3)
+        out = self.model(x)
+        return out
+
+
+def get_decoder(app: ApplicationBase):
+    decoder_optim_fn = optim_wrapper(optim.Adam, lr=0.0001)
+    if app.dataset_type() != DatasetType.IMAGE:
+        return TorchModel(
+            model_fn=DecoderTable,
+            loss_fn=None,
+            optim_fn=decoder_optim_fn,
+            metrics=None,
+            latent_dim=app.hidden_size,
+            target_dim=app.get_device_f_fea_nums(),
+        )
+    elif (
+        app.model_type() == ModelType.RESNET18 or app.model_type() == ModelType.RESNET20
+    ):
+        assert app.dataset_name() == 'cifar10' or app.dataset_name() == 'mnist'
+        return TorchModel(
+            model_fn=DecoderResnet,
+            loss_fn=None,
+            optim_fn=decoder_optim_fn,
+            metrics=None,
+            input_channels=512 if app.model_type() == ModelType.RESNET18 else 10,
+            output_channels=3 if app.dataset_name() == 'cifar10' else 1,
+            is_cifar10=True if app.dataset_name() == 'cifar10' else False,
+        )
+    elif app.model_type() == ModelType.VGG16:
+        assert app.dataset_name() == 'cifar10' or app.dataset_name() == 'mnist'
+        return TorchModel(
+            model_fn=DecoderVGG16,
+            loss_fn=None,
+            optim_fn=decoder_optim_fn,
+            metrics=None,
+            input_channels=512,
+            output_channels=3,
+            is_cifar10=True if app.dataset_name() == 'cifar10' else False,
+        )
+    else:
+        raise NotSupportedError(
+            f"Fsha attack not supported in dataset {app.dataset_name()} app {app.model_type()}! "
+        )
 
 
 def data_builder(device_f_dataset, batch_size, train_size):
@@ -101,26 +258,13 @@ class FshaAttackCase(AttackBase):
         return 'fsha'
 
     def build_attack_callback(self, app: ApplicationBase) -> AttackCallback:
-        pilot_optim_fn = optim_wrapper(optim.Adam, lr=0.0001)
-        pilot_model = TorchModel(
-            model_fn=Pilot,
-            loss_fn=None,
-            optim_fn=pilot_optim_fn,
-            metrics=None,
-            input_dim=app.get_device_f_fea_nums(),
-            target_dim=app.hidden_size,
+        pilot_model = (
+            app.create_base_model_alice()
+            if app.device_f == self.alice
+            else app.create_base_model_bob()
         )
 
-        decoder_optim_fn = optim_wrapper(optim.Adam, lr=0.0001)
-        decoder_model = TorchModel(
-            model_fn=Decoder,
-            loss_fn=None,
-            optim_fn=decoder_optim_fn,
-            metrics=None,
-            latent_dim=app.hidden_size,
-            target_dim=app.get_device_f_fea_nums(),
-        )
-
+        decoder_model = get_decoder(app)
         discriminator_optim_fn = optim_wrapper(optim.Adam, lr=0.0001)
         discriminator_model = TorchModel(
             model_fn=Discriminator,
@@ -131,7 +275,7 @@ class FshaAttackCase(AttackBase):
             target_dim=1,
         )
         data_buil = data_builder(
-            app.get_device_f_train_dataset(),
+            app.get_device_f_train_dataset(list_return=True),
             app.train_batch_size,
             app.get_device_f_input_shape()[0],
         )
@@ -160,11 +304,15 @@ class FshaAttackCase(AttackBase):
         return AttackType.FEATURE_INFERENCE
 
     def check_app_valid(self, app: ApplicationBase) -> bool:
-        # image not support.
-        return app.base_input_mode() in [InputMode.SINGLE] and app.dataset_type() in [
-            DatasetType.TABLE,
-            DatasetType.RECOMMENDATION,
-        ]
+        return app.base_input_mode() in [InputMode.SINGLE]
 
     def tune_metrics(self) -> Dict[str, str]:
-        return {'val_acc_0': 'max'}
+        return {'mean_model_loss': 'min', 'mean_guess_loss': 'min'}
+
+    def update_resources_consumptions(
+        self, cluster_resources_pack: ResourcesPack, app: ApplicationBase
+    ) -> ResourcesPack:
+        func = lambda x: x * 1.18
+        return cluster_resources_pack.apply_debug_resources(
+            'gpu_mem', func
+        ).apply_sim_resources(app.device_y.party, 'gpu_mem', func)
