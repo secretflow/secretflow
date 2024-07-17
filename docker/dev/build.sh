@@ -92,7 +92,28 @@ echo -e "Building ${GREEN}${IMAGE_TAG}${NO_COLOR}"
 docker run -it --rm -e SF_BUILD_DOCKER_NAME=${IMAGE_NAME} --mount type=bind,source="$(pwd)/../../../secretflow",target=/home/admin/src -w /home/admin --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --cap-add=NET_ADMIN --privileged=true secretflow/release-ci:latest /home/admin/src/docker/dev/entry.sh
 
 (cd ../ && cp -r release/.nsjail dev/ && cp release/.condarc dev/ && cp *.yml dev/ && cp *.json dev/)
-docker build . -f Dockerfile -t ${IMAGE_TAG} --build-arg config_templates="$(cat config_templates.yml)" --build-arg deploy_templates="$(cat deploy_templates.yml)" --build-arg comp_list="$(cat comp_list.json)" --build-arg translation="$(cat translation.json)"
+BUILDER_EXISTS=$(
+	docker buildx inspect secretflow_image_buildx >/dev/null 2>&1
+	echo $?
+)
+
+if [ "$BUILDER_EXISTS" -eq 0 ]; then
+	echo "existing buildx builder: secretflow_image_buildx"
+	docker buildx use secretflow_image_buildx
+else
+	echo "creating new buildx builder: secretflow_image_buildx"
+	docker buildx create --name secretflow_image_buildx --use
+fi
+
+docker buildx build \
+    --platform linux/arm64,linux/amd64 \
+    --tag ${IMAGE_TAG} \
+    -f Dockerfile \
+    --build-arg config_templates="$(cat config_templates.yml)" \
+    --build-arg deploy_templates="$(cat deploy_templates.yml)" \
+    --build-arg comp_list="$(cat comp_list.json)" \
+    --build-arg translation="$(cat translation.json)"
+
 echo -e "Finish building ${GREEN}${IMAGE_TAG}${NO_COLOR}"
 rm -rf .nsjail
 rm -f .condarc
