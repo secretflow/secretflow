@@ -303,12 +303,7 @@ class WideDeepBottomAlice(nn.Module):
         self,
         feat_size,
         embedding_size,
-        linear_feature_columns,
         dnn_feature_columns,
-        use_attention=True,
-        attention_factor=8,
-        l2_reg=0.00001,
-        drop_rate=0.9,
         dnn_hidden_units=(256, 128),
     ):
         super(WideDeepBottomAlice, self).__init__()
@@ -337,23 +332,6 @@ class WideDeepBottomAlice(nn.Module):
             0.5,
         )
 
-        self.dnn_linear = nn.Linear(dnn_hidden_units[-1], 1, bias=False)
-
-        dnn_hidden_units = [len(feat_size), 1]
-        self.linear = nn.ModuleList(
-            [
-                nn.Linear(dnn_hidden_units[i], dnn_hidden_units[i + 1])
-                for i in range(len(dnn_hidden_units) - 1)
-            ]
-        )
-        for name, tensor in self.linear.named_parameters():
-            if 'weight' in name:
-                nn.init.normal_(tensor, mean=0, std=0.00001)
-
-        self.out = nn.Sigmoid()
-        self.act = nn.ReLU()
-        self.dropout = nn.Dropout(0.5)
-
     def forward(self, X):
 
         sparse_embedding = [
@@ -381,43 +359,9 @@ class WideDeepBottomBob(nn.Module):
     def __init__(
         self,
         feat_size,
-        embedding_size,
-        linear_feature_columns,
-        dnn_feature_columns,
-        use_attention=True,
-        attention_factor=8,
-        l2_reg=0.00001,
-        drop_rate=0.9,
         dnn_hidden_units=(256, 128),
     ):
         super(WideDeepBottomBob, self).__init__()
-        self.sparse_feature_columns = list(
-            filter(lambda x: x[1] == 'sparse', dnn_feature_columns)
-        )
-        self.embedding_dic = nn.ModuleDict(
-            {
-                feat[0]: nn.Embedding(feat_size[feat[0]], embedding_size, sparse=False)
-                for feat in self.sparse_feature_columns
-            }
-        )
-        self.dense_feature_columns = list(
-            filter(lambda x: x[1] == 'dense', dnn_feature_columns)
-        )
-
-        self.feature_index = defaultdict(int)
-        start = 0
-        for feat in feat_size:
-            self.feature_index[feat] = start
-            start += 1
-
-        self.dnn = WideDeepBase(
-            len(self.dense_feature_columns) + embedding_size * len(self.embedding_dic),
-            dnn_hidden_units,
-            0.5,
-        )
-
-        self.dnn_linear = nn.Linear(dnn_hidden_units[-1], 1, bias=False)
-
         dnn_hidden_units = [len(feat_size), 1]
         self.linear = nn.ModuleList(
             [
@@ -429,16 +373,13 @@ class WideDeepBottomBob(nn.Module):
             if 'weight' in name:
                 nn.init.normal_(tensor, mean=0, std=0.00001)
 
-        self.out = nn.Sigmoid()
         self.act = nn.ReLU()
         self.dropout = nn.Dropout(0.5)
 
     def forward(self, X):
-
         # wide
         X = X.float()
         logit = X
-        # print(X.dtype)
         for i in range(len(self.linear)):
             fc = self.linear[i](logit)
             fc = self.act(fc)
@@ -452,66 +393,16 @@ class WideDeepBottomBob(nn.Module):
 
 
 class WideDeepFuse(nn.Module):
-    # 只包含DNN
+    # Only dnn_linear
     def __init__(
         self,
-        feat_size,
-        embedding_size,
-        linear_feature_columns,
-        dnn_feature_columns,
-        use_attention=True,
-        attention_factor=8,
-        l2_reg=0.00001,
-        drop_rate=0.9,
         dnn_hidden_units=(256, 128),
     ):
         super(WideDeepFuse, self).__init__()
-        self.sparse_feature_columns = list(
-            filter(lambda x: x[1] == 'sparse', dnn_feature_columns)
-        )
-        self.embedding_dic = nn.ModuleDict(
-            {
-                feat[0]: nn.Embedding(feat_size[feat[0]], embedding_size, sparse=False)
-                for feat in self.sparse_feature_columns
-            }
-        )
-        self.dense_feature_columns = list(
-            filter(lambda x: x[1] == 'dense', dnn_feature_columns)
-        )
-
-        self.feature_index = defaultdict(int)
-        start = 0
-        for feat in feat_size:
-            self.feature_index[feat] = start
-            start += 1
-
-        self.dnn = WideDeepBase(
-            len(self.dense_feature_columns) + embedding_size * len(self.embedding_dic),
-            dnn_hidden_units,
-            0.5,
-        )
 
         self.dnn_linear = nn.Linear(dnn_hidden_units[-1], 1, bias=False)
 
-        dnn_hidden_units = [len(feat_size), 1]
-        self.linear = nn.ModuleList(
-            [
-                nn.Linear(dnn_hidden_units[i], dnn_hidden_units[i + 1])
-                for i in range(len(dnn_hidden_units) - 1)
-            ]
-        )
-        for name, tensor in self.linear.named_parameters():
-            if 'weight' in name:
-                nn.init.normal_(tensor, mean=0, std=0.00001)
-
-        self.out = nn.Sigmoid()
-        self.act = nn.ReLU()
-        self.dropout = nn.Dropout(0.5)
-
     def forward(self, X):
-
-        # wide
-        # print("Fuse model input shape", X.shape)
         logit = X[:, -2:-1]
 
         dnn_logit = self.dnn_linear(X[:, :128])

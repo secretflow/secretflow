@@ -38,8 +38,8 @@ def test_gradient_average_torch_backend(sf_simulation_setup_devices):
     The attacker uses direction-based scoring attack to infer labels.
     The server uses max-norm against the attack.
     """
-    alice = sf_simulation_setup_devices["alice"]
-    bob = sf_simulation_setup_devices["bob"]
+    alice = sf_simulation_setup_devices.alice
+    bob = sf_simulation_setup_devices.bob
     random_state = 1234
     num_samples = 410
 
@@ -72,7 +72,6 @@ def test_gradient_average_torch_backend(sf_simulation_setup_devices):
         (feat, 'dense') for feat in dense_feature
     ]
     dnn_feature_columns = fixlen_feature_columns
-    linear_feature_columns = fixlen_feature_columns
 
     # Split the Dataset as specified in the paper
     data = create_df(
@@ -109,27 +108,20 @@ def test_gradient_average_torch_backend(sf_simulation_setup_devices):
         metric_wrapper(AUROC, task="binary"),
     ]
     dnn_feature_columns = fixlen_feature_columns
-    linear_feature_columns = fixlen_feature_columns
     embedding_size = 12
 
     base_model_alice = TorchModel(
         model_fn=WideDeepBottomAlice,
         optim_fn=optim_wrapper(torch.optim.Adam, lr=1e-3),
-        # input_dims=[39],
         feat_size=feat_sizes,
         embedding_size=embedding_size,
-        linear_feature_columns=linear_feature_columns,
         dnn_feature_columns=dnn_feature_columns,
     )
 
     base_model_bob = TorchModel(
         model_fn=WideDeepBottomBob,
         optim_fn=optim_wrapper(torch.optim.Adam, lr=1e-3),
-        # input_dims=[39],
         feat_size=feat_sizes,
-        embedding_size=embedding_size,
-        linear_feature_columns=linear_feature_columns,
-        dnn_feature_columns=dnn_feature_columns,
     )
 
     fuse_model = TorchModel(
@@ -137,10 +129,6 @@ def test_gradient_average_torch_backend(sf_simulation_setup_devices):
         loss_fn=nn.BCELoss,
         optim_fn=optim_wrapper(torch.optim.Adam, lr=1e-3),
         metrics=metrics,
-        feat_size=feat_sizes,
-        embedding_size=embedding_size,
-        linear_feature_columns=linear_feature_columns,
-        dnn_feature_columns=dnn_feature_columns,
     )
 
     base_model_dict = {
