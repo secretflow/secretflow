@@ -87,7 +87,6 @@ def test_fake_gradients_multi_client(sf_simulation_setup_devices):
         random_seed=1234,
         strategy="split_nn",
         backend="torch",
-        # agg_method=Concat,
     )
     fake_gradients = CAFEFakeGradientsMultiClient(backend="torch")
 
@@ -102,4 +101,3 @@ def test_fake_gradients_multi_client(sf_simulation_setup_devices):
         callbacks=[fake_gradients],
     )
     print(history)
-    # assert history["val_BinaryAccuracy"][-1] > 0.6
