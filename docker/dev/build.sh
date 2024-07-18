@@ -112,7 +112,9 @@ docker buildx build \
     --build-arg config_templates="$(cat config_templates.yml)" \
     --build-arg deploy_templates="$(cat deploy_templates.yml)" \
     --build-arg comp_list="$(cat comp_list.json)" \
-    --build-arg translation="$(cat translation.json)"
+    --build-arg translation="$(cat translation.json)"\
+    --load \
+    .
 
 echo -e "Finish building ${GREEN}${IMAGE_TAG}${NO_COLOR}"
 rm -rf .nsjail
