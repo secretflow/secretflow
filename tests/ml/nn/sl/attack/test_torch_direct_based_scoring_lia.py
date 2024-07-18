@@ -13,17 +13,13 @@
 # limitations under the License.
 
 import numpy as np
-import pandas as pd
 import torch
 import torch.nn as nn
-import torch.optim as optim
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 from torchmetrics import AUROC, Accuracy
 
-import secretflow as sf
 from secretflow.data.split import train_test_split
 from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.applications.sl_dnn_torch import DnnBase, DnnFuse
 from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
 from secretflow.ml.nn.sl.agglayer.agg_method import Concat
 from secretflow.ml.nn.sl.attacks.direction_based_scoring_torch import (
@@ -76,7 +72,6 @@ def test_direct_based_scoring_lia(sf_simulation_setup_devices):
         (feat, 'dense') for feat in dense_feature
     ]
     dnn_feature_columns = fixlen_feature_columns
-    linear_feature_columns = fixlen_feature_columns
 
     # Split the Dataset as the settings in the paper
     data = create_df(
@@ -112,7 +107,6 @@ def test_direct_based_scoring_lia(sf_simulation_setup_devices):
         metric_wrapper(AUROC, task="binary"),
     ]
     dnn_feature_columns = fixlen_feature_columns
-    linear_feature_columns = fixlen_feature_columns
     embedding_size = 12
 
     base_model_alice = TorchModel(
@@ -120,7 +114,6 @@ def test_direct_based_scoring_lia(sf_simulation_setup_devices):
         optim_fn=optim_wrapper(torch.optim.Adam, lr=1e-3),
         feat_size=feat_sizes,
         embedding_size=embedding_size,
-        linear_feature_columns=linear_feature_columns,
         dnn_feature_columns=dnn_feature_columns,
     )
 
@@ -128,9 +121,6 @@ def test_direct_based_scoring_lia(sf_simulation_setup_devices):
         model_fn=WideDeepBottomBob,
         optim_fn=optim_wrapper(torch.optim.Adam, lr=1e-3),
         feat_size=feat_sizes,
-        embedding_size=embedding_size,
-        linear_feature_columns=linear_feature_columns,
-        dnn_feature_columns=dnn_feature_columns,
     )
 
     fuse_model = TorchModel(
@@ -138,10 +128,6 @@ def test_direct_based_scoring_lia(sf_simulation_setup_devices):
         loss_fn=nn.BCELoss,
         optim_fn=optim_wrapper(torch.optim.Adam, lr=1e-3),
         metrics=metrics,
-        feat_size=feat_sizes,
-        embedding_size=embedding_size,
-        linear_feature_columns=linear_feature_columns,
-        dnn_feature_columns=dnn_feature_columns,
     )
 
     base_model_dict = {
@@ -160,9 +146,7 @@ def test_direct_based_scoring_lia(sf_simulation_setup_devices):
         agg_method=agg_method,
     )
 
-    direction_lia = DirectionBasedScoringAttack(
-        attack_party=alice, label_party=bob, num_classes=2
-    )
+    direction_lia = DirectionBasedScoringAttack(attack_party=alice, label_party=bob)
     history = sl_model.fit(
         train_data,
         train_label,
@@ -176,3 +160,4 @@ def test_direct_based_scoring_lia(sf_simulation_setup_devices):
     attack_metrics = direction_lia.get_attack_metrics()
     assert 'attack_acc' in attack_metrics
     print(attack_metrics)
+    print(history)

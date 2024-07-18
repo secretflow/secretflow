@@ -36,14 +36,12 @@ class DirectionBasedScoringAttack(AttackCallback):
     Args:
         attack_party: The attack party who does not have label.
         label_party: The party holds label.
-        num_classes: The model classes number.
     """
 
     def __init__(
         self,
         attack_party: PYU,
         label_party: PYU,
-        num_classes: int,
         **params,
     ):
         super().__init__(
@@ -51,7 +49,6 @@ class DirectionBasedScoringAttack(AttackCallback):
         )
         self.attack_party = attack_party
         self.label_party = label_party
-        self.num_classes = num_classes
         self.last_epoch = False
         self.positive_grad = None
         self.attack_logs = {}
@@ -77,8 +74,8 @@ class DirectionBasedScoringAttack(AttackCallback):
                 grad = worker._gradient.cpu().numpy()
             if batch == 0:
                 num_feature = grad.shape[1]
-                worker._callback_store['direction_based_lia_attack']['grads'] = np.empty(
-                    (0, num_feature)
+                worker._callback_store['direction_based_lia_attack']['grads'] = (
+                    np.empty((0, num_feature))
                 )
             worker._callback_store['direction_based_lia_attack']['grads'] = np.append(
                 worker._callback_store['direction_based_lia_attack']['grads'],
@@ -101,13 +98,14 @@ class DirectionBasedScoringAttack(AttackCallback):
             if len(label.shape) == 1:
                 label = label[:, np.newaxis]
             assert len(label.shape) == 2
-            if self.num_classes > 2 and label.shape[1] > 1:
-                # convert the one hot encoded label to the category index
-                label = np.argmax(label, axis=1, keepdims=True)
             if batch == 0:
-                worker._callback_store['direction_based_lia_attack']['labels'] = np.empty((0, 1))
+                worker._callback_store['direction_based_lia_attack']['labels'] = (
+                    np.empty((0, 1))
+                )
             worker._callback_store['direction_based_lia_attack']['labels'] = np.append(
-                worker._callback_store['direction_based_lia_attack']['labels'], label, axis=0
+                worker._callback_store['direction_based_lia_attack']['labels'],
+                label,
+                axis=0,
             )
 
         self._workers[self.attack_party].apply(record_gradient)
@@ -118,7 +116,9 @@ class DirectionBasedScoringAttack(AttackCallback):
             return
         label_targets = reveal(
             self._workers[self.label_party].apply(
-                lambda worker: worker._callback_store['direction_based_lia_attack']['labels']
+                lambda worker: worker._callback_store['direction_based_lia_attack'][
+                    'labels'
+                ]
             )
         )
 
@@ -154,28 +154,29 @@ class DirectionBasedScoringAttack(AttackCallback):
         return label_preds
 
     def record_metrics(self, label_preds: np.ndarray, label_targets: np.ndarray):
+        # Only for binary classification problems
         multi_class = 'raise'
         average = 'binary'
-        if self.num_classes > 2:
-            if len(label_targets.shape) == 1:
-                label_targets = label_targets.reshape(-1, 1)
-            if len(label_preds.shape) == 1:
-                label_preds = label_preds.reshape(-1, 1)
-            enc = OneHotEncoder(categories=[range(self.num_classes)], sparse=False)
-            label_targets = enc.fit_transform(label_targets)
-            label_preds = enc.fit_transform(label_preds)
-            multi_class = 'ovo'
-            average = "weighted"
+
+        # Check if all target labels are the same class (all 0s or all 1s)
         if np.all(label_targets == 0) or np.all(label_targets == 1):
+            # Set AUC to -1 if targets are homogeneous (AUC cannot be calculated)
             self.attack_logs['attack_auc'] = -1
         else:
+            # Calculate the AUC (Area Under the ROC Curve)
             self.attack_logs['attack_auc'] = roc_auc_score(
                 label_targets, label_preds, multi_class=multi_class
             )
+
+        # Calculate accuracy
         self.attack_logs['attack_acc'] = accuracy_score(label_targets, label_preds)
+
+        # Calculate recall
         self.attack_logs['attack_recall'] = recall_score(
             label_targets, label_preds, average=average
         )
+
+        # Calculate precision
         self.attack_logs['attack_precision'] = precision_score(
             label_targets, label_preds, average=average
         )
