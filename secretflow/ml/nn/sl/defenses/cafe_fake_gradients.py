@@ -17,7 +17,11 @@ from secretflow.ml.nn.callbacks.callback import Callback
 
 class CAFEFakeGradientsMultiClient(Callback):
     """
-    TODO: need explanation!
+    The method is designed for against CAFE attack: https://arxiv.org/abs/2110.15122.
+    Each local worker randomly generates gradients with the normal distribution N, 
+    sorts them and true gradients in descending order, computes the L2-norm distance
+    to find the nearest fake gradient, pairs fake gradients with true gradients by
+    the sorted order, and uploads the fake gradients to the server.
     """
 
     def __init__(
@@ -60,10 +64,9 @@ class CAFEFakeGradientsMultiClient(Callback):
                         for _ in range(v)
                     ]
                     Psi = [torch.sort(g, descending=True)[0] for g in Psi]
-                    _gradient = gradient[m]  # 选取每个客户端的梯度
                     zeta = torch.argsort(_gradient, descending=True)
                     sorted_gradient = torch.gather(_gradient, 1, zeta)
-                    count = 0  # 提前结束
+                    count = 0  
                     while True:
                         min_diff = float("inf")
                         min_psi = None
