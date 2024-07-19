@@ -14,6 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
+
+## [v1.8.0b0] - 2024-07-17
+
+### Added
+- [component] support tweedie learning objective in SGB
+- [component] update graph builder in model export
+
+
 ## [v1.7.0.dev20240605] - 2024-06-05
 
 ### Added
