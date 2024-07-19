@@ -18,6 +18,7 @@ from benchmark_examples.autoattack import global_config
 from benchmark_examples.autoattack.applications.base import ApplicationBase, InputMode
 from benchmark_examples.autoattack.attacks.base import AttackBase, AttackType
 from benchmark_examples.autoattack.defenses.base import DefenseBase
+from benchmark_examples.autoattack.utils.resources import ResourcesPack
 from secretflow.ml.nn.callbacks import Callback
 from secretflow.ml.nn.sl.defenses.mid import MIDefense
 
@@ -26,31 +27,55 @@ class Mid(DefenseBase):
     def __str__(self):
         return 'mid'
 
-    def build_defense_callback(self, app: ApplicationBase) -> Callback | None:
-        print(f"feainput nums = {app.get_device_f_fea_nums()}")
+    def build_defense_callback(
+        self, app: ApplicationBase, attack: AttackBase | None = None
+    ) -> Callback | None:
+        base_params = {}
+        fuse_params = {}
+        if attack.attack_type() == AttackType.LABLE_INFERENSE:
+            base_params[app.device_y] = {
+                "input_dim": app.hidden_size,
+                "output_dim": app.hidden_size,
+                "mid_lambda": self.config.get('mid_lambda', 0.5),
+            }
+        elif attack.attack_type() == AttackType.FEATURE_INFERENCE:
+            fuse_params[app.device_f] = {
+                "input_dim": app.hidden_size,
+                "output_dim": app.hidden_size,
+                "mid_lambda": self.config.get('mid_lambda', 0.5),
+            }
         return MIDefense(
-            base_params={
-                app.device_f: {
-                    "input_dim": app.hidden_size,
-                    "output_dim": app.hidden_size,
-                    "mid_lambda": self.config.get('mid_lambda', 0.5),
-                }
-            },
-            fuse_params={
-                app.device_f: {
-                    "input_dim": app.hidden_size,
-                    "output_dim": app.hidden_size,
-                    "mid_lambda": self.config.get('mid_lambda', 0.5),
-                }
-            },
+            base_params=base_params,
+            fuse_params=fuse_params,
             exec_device='cuda' if global_config.is_use_gpu() else 'cpu',
         )
 
     def check_attack_valid(self, attack: AttackBase) -> bool:
-        return attack.attack_type() in [AttackType.FEATURE_INFERENCE]
+        return True
 
     def check_app_valid(self, app: ApplicationBase) -> bool:
         return app.base_input_mode() == InputMode.SINGLE
 
-    def tune_metrics(self) -> Dict[str, str]:
+    def tune_metrics(self, app_metrics: Dict[str, str]) -> Dict[str, str]:
         return {}
+
+    def update_resources_consumptions(
+        self,
+        cluster_resources_pack: ResourcesPack,
+        app: ApplicationBase,
+        attack: AttackBase | None,
+    ) -> ResourcesPack:
+        func = lambda x: x * 1.1
+        cluster_resources_pack = cluster_resources_pack.apply_debug_resources(
+            'gpu_mem', func
+        )
+        if attack is not None:
+            if attack.attack_type() == AttackType.LABLE_INFERENSE:
+                cluster_resources_pack = cluster_resources_pack.apply_sim_resources(
+                    app.device_y.party, 'gpu_mem', func
+                )
+            elif attack.attack_type() == AttackType.FEATURE_INFERENCE:
+                cluster_resources_pack = cluster_resources_pack.apply_sim_resources(
+                    app.device_f.party, 'gpu_mem', func
+                )
+        return cluster_resources_pack

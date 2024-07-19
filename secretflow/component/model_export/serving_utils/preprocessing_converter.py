@@ -53,7 +53,9 @@ def dump_runner(
 
     dag_pb, dag_input_schema, dag_output_schema = runner.dump_serving_pb(node_name)
     dag_inputs = set(dag_input_schema.names)
-    assert dag_inputs.issubset(set(input_schema))
+    assert dag_inputs.issubset(
+        set(input_schema)
+    ), f"dag: {dag_inputs}, input: {input_schema}"
 
     remain_schema = {k: input_schema[k] for k in input_schema if k not in dag_inputs}
     if len(remain_schema):

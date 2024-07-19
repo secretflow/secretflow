@@ -18,6 +18,9 @@ import numpy as np
 import pandas as pd
 import pytest
 from google.protobuf.json_format import MessageToJson
+from sklearn.datasets import load_breast_cancer
+from sklearn.metrics import roc_auc_score
+from sklearn.preprocessing import StandardScaler
 
 from secretflow.component.ml.boost.sgb.sgb import sgb_predict_comp, sgb_train_comp
 from secretflow.component.ml.eval.biclassification_eval import (
@@ -33,18 +36,25 @@ from secretflow.spec.v1.data_pb2 import (
 )
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
-from sklearn.datasets import load_breast_cancer
-from sklearn.metrics import roc_auc_score
-from sklearn.preprocessing import StandardScaler
 
 NUM_BOOST_ROUND = 5
 
 
-def get_train_param(alice_path, bob_path, model_path, checkpoint_uri):
+OBJECTIVE_CASES = ["biclassification", "tweedie_regression"]
+
+
+def get_train_param(
+    alice_path, bob_path, model_path, checkpoint_uri, objective_case='biclassification'
+):
+    objective = "logistic"
+    metric = "roc_auc"
+    if objective_case == "tweedie_regression":
+        objective = "tweedie"
+        metric = "tweedie_deviance"
     return NodeEvalParam(
         domain="ml.train",
         name="sgb_train",
-        version="0.0.3",
+        version="0.0.4",
         attr_paths=[
             "num_boost_round",
             "max_depth",
@@ -63,6 +73,7 @@ def get_train_param(alice_path, bob_path, model_path, checkpoint_uri):
             "stopping_rounds",
             "stopping_tolerance",
             "save_best_model",
+            "tweedie_variance_power",
             "input/train_dataset/label",
             "input/train_dataset/feature_selects",
         ],
@@ -70,7 +81,7 @@ def get_train_param(alice_path, bob_path, model_path, checkpoint_uri):
             Attribute(i64=NUM_BOOST_ROUND),
             Attribute(i64=3),
             Attribute(f=0.3),
-            Attribute(s="logistic"),
+            Attribute(s=objective),
             Attribute(f=0.1),
             Attribute(f=0),
             Attribute(f=1),
@@ -79,11 +90,12 @@ def get_train_param(alice_path, bob_path, model_path, checkpoint_uri):
             Attribute(f=0),
             Attribute(b=True),
             Attribute(b=False if checkpoint_uri else True),
-            Attribute(s="roc_auc"),
+            Attribute(s=metric),
             Attribute(f=0.1),
-            Attribute(i64=2),
+            Attribute(i64=3),
             Attribute(f=0.01),
             Attribute(b=True),
+            Attribute(f=1.65),
             Attribute(ss=["y"]),
             Attribute(ss=[f"a{i}" for i in range(15)] + [f"b{i}" for i in range(15)]),
         ],
@@ -190,8 +202,9 @@ def get_meta_and_dump_data(comp_prod_sf_cluster_config, alice_path, bob_path):
 
 
 @pytest.mark.parametrize("with_checkpoint", [True, False])
-def test_sgb(comp_prod_sf_cluster_config, with_checkpoint):
-    work_path = f"test_sgb_{with_checkpoint}"
+@pytest.mark.parametrize("objective_case", OBJECTIVE_CASES)
+def test_sgb(comp_prod_sf_cluster_config, with_checkpoint, objective_case):
+    work_path = f"test_sgb_{with_checkpoint}_{objective_case}"
     alice_path = f"{work_path}/x_alice.csv"
     bob_path = f"{work_path}/x_bob.csv"
     model_path = f"{work_path}/model.sf"
@@ -205,6 +218,7 @@ def test_sgb(comp_prod_sf_cluster_config, with_checkpoint):
         bob_path,
         model_path,
         checkpoint_path if with_checkpoint else "",
+        objective_case,
     )
     meta = get_meta_and_dump_data(comp_prod_sf_cluster_config, alice_path, bob_path)
     train_param.inputs[0].meta.Pack(meta)
@@ -253,7 +267,13 @@ def test_sgb(comp_prod_sf_cluster_config, with_checkpoint):
             assert input_y.shape[0] == output_y.shape[0]
 
             auc = roc_auc_score(input_y["y"], output_y["pred"])
-            assert auc > 0.98, f"auc {auc}"
+            if objective_case == "biclassification":
+                assert auc > 0.98, f"auc {auc}"
+            # note that this is not a good test for tweedie
+            # see tests/ml/boost/sgb_v/test_vert_sgb_with_xgb.py for reference
+            # for a good tweedie test
+            elif objective_case == "tweedie_regression":
+                assert auc > 0.95, f"auc {auc}"
 
             output_it = IndividualTable()
 

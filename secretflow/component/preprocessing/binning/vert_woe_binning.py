@@ -115,7 +115,7 @@ vert_woe_binning_comp.io(
     col_params=[
         TableColParam(
             name="feature_selects",
-            desc="which features should be binned.",
+            desc="which features should be binned. WARNING: WOE won't be effective for features with enumeration count <=2.",
             col_min_cnt_inclusive=1,
         ),
         TableColParam(

@@ -14,7 +14,7 @@
 
 from abc import ABC
 from collections import OrderedDict
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, Optional
 
 import numpy as np
 import pandas as pd
@@ -31,6 +31,7 @@ from benchmark_examples.autoattack.utils.data_utils import (
     SparseTensorDataset,
     get_sample_indexes,
 )
+from benchmark_examples.autoattack.utils.resources import ResourceDict, ResourcesPack
 from secretflow.data.split import train_test_split
 from secretflow.utils.simulation.datasets import load_ml_1m
 
@@ -347,12 +348,19 @@ class MovielensBase(ApplicationBase, ABC):
             indexes=indexes,
         )
 
-    def resources_consumes(self) -> List[Dict]:
-        # 500MB
-        return [
-            {'alice': 0.5, 'CPU': 0.5, 'GPU': 0.001, 'gpu_mem': 4 * 1024 * 1024 * 1024},
-            {'bob': 0.5, 'CPU': 0.5, 'GPU': 0.001, 'gpu_mem': 4 * 1024 * 1024 * 1024},
-        ]
+    def resources_consumption(self) -> ResourcesPack:
+        # 750MiB
+        return (
+            ResourcesPack()
+            .with_debug_resources(ResourceDict(gpu_mem=2 * 1024 * 1024 * 1024, CPU=1))
+            .with_sim_resources(
+                self.device_y.party, ResourceDict(gpu_mem=2 * 1024 * 1024 * 1024, CPU=1)
+            )
+            .with_sim_resources(
+                self.device_f.party,
+                ResourceDict(gpu_mem=1.5 * 1024 * 1024 * 1024, CPU=1),
+            )
+        )
 
     def tune_metrics(self) -> Dict[str, str]:
         return {

@@ -14,7 +14,6 @@
 
 import secretflow as sf
 from secretflow.device import reveal
-from secretflow.ml.nn.metrics import aggregate_metrics
 
 from .callback import Callback
 
@@ -83,16 +82,7 @@ class Progbar(Callback):
             report = reveal(self._workers[self.device_y].get_logs())
         else:
             # deal with federated learning
-            local_metrics = []
-            for device, worker in self._workers.items():
-                _metrics = worker.get_local_metrics()
-                local_metrics.append(_metrics)
-
-            metrics = aggregate_metrics(local_metrics=reveal(local_metrics))
-
-            report = {}
-            for m in metrics:
-                report[m.name] = m.result().numpy()
+            report = self._calc_aggregated_metrics()
         if self.verbose == 1:
             self.progbar.set_postfix_str(report)
             self.progbar.close()

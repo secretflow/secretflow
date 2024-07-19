@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import io
 from typing import Dict, List
 
 import pyarrow as pa
+from secretflow_serving_lib import GraphBuilder, build_serving_tar
 
+from secretflow.component.storage import ComponentStorage
 from secretflow.device import PYU, PYUObject, proxy, wait
-
-from .serving_graph import GraphBuilder
 
 
 class GraphBuilderManager:
@@ -49,12 +50,7 @@ class GraphBuilderManager:
                 node_parnents = [self.node_names[-1]] if self.node_names else []
             waits.append(
                 builder.add_node(
-                    node_name,
-                    node_parnents,
-                    op,
-                    input_schemas[pyu],
-                    output_schemas[pyu],
-                    **kwargs
+                    name=node_name, parents_name=node_parnents, op=op, **kwargs
                 )
             )
         wait(waits)
@@ -79,11 +75,25 @@ class GraphBuilderManager:
         for pyu in self.graph_builders:
             builder = self.graph_builders[pyu]
             specific_flag = party_specific_flag[pyu] if party_specific_flag else False
-            waits.append(builder.new_execution(dp_type, session_run, specific_flag))
+            waits.append(
+                builder.begin_new_execution(
+                    dispatch_type=dp_type,
+                    session_run=session_run,
+                    specific_flag=specific_flag,
+                )
+            )
         wait(waits)
 
     def dump_tar_files(self, name, desc, ctx, uri) -> None:
         waits = []
-        for b in self.graph_builders.values():
-            waits.append(b.dump_serving_tar(name, desc, uri, ctx.comp_storage))
+
+        def dump_io(io_handle: io.BytesIO, comp_storage: ComponentStorage, uri: str):
+            with comp_storage.get_writer(uri) as f:
+                f.write(io_handle.getvalue())
+
+        for pyu, builder in self.graph_builders.items():
+            proto = builder.build_proto()
+            io_handle = pyu(build_serving_tar)(name, desc, proto)
+            waits.append(pyu(dump_io)(io_handle, ctx.comp_storage, uri))
+
         wait(waits)

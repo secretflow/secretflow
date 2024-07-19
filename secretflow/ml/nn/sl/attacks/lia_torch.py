@@ -487,30 +487,32 @@ class LabelInferenceAttack(AttackCallback):
         self.metrics = None
 
     def on_train_end(self, logs=None):
-        def label_inference_attack(attack_worker):
-            attacker = LabelInferenceAttacker(
+        def label_inference_attack(attack_worker, lia_attacker: LabelInferenceAttacker):
+            lia_attacker.set_base_model(
                 base_model=attack_worker.model_base,
-                att_model=self.att_model,
-                ema_att_model=self.ema_att_model,
-                num_classes=self.num_classes,
-                data_builder=self.data_builder,
-                epochs=self.epochs,
-                load_model_path=self.load_model_path,
-                save_model_path=self.save_model_path,
-                T=self.T,
-                alpha=self.alpha,
-                val_iteration=self.val_iteration,
-                k=self.k,
-                lr=self.lr,
-                ema_decay=self.ema_decay,
-                lambda_u=self.lambda_u,
-                exec_device=self.exec_device,
                 builder_base=attack_worker.builder_base,
             )
-            ret = attacker.attack()
+            ret = lia_attacker.attack()
             return ret
 
-        res = self._workers[self.attack_party].apply(label_inference_attack)
+        attacker = LabelInferenceAttacker(
+            att_model=self.att_model,
+            ema_att_model=self.ema_att_model,
+            num_classes=self.num_classes,
+            data_builder=self.data_builder,
+            epochs=self.epochs,
+            load_model_path=self.load_model_path,
+            save_model_path=self.save_model_path,
+            T=self.T,
+            alpha=self.alpha,
+            val_iteration=self.val_iteration,
+            k=self.k,
+            lr=self.lr,
+            ema_decay=self.ema_decay,
+            lambda_u=self.lambda_u,
+            exec_device=self.exec_device,
+        )
+        res = self._workers[self.attack_party].apply(label_inference_attack, attacker)
         wait(res)
         self.metrics = reveal(res)
 
@@ -521,7 +523,6 @@ class LabelInferenceAttack(AttackCallback):
 class LabelInferenceAttacker:
     def __init__(
         self,
-        base_model: torch.nn.Module,
         att_model: torch.nn.Module,
         ema_att_model: torch.nn.Module,
         num_classes: int,
@@ -537,16 +538,15 @@ class LabelInferenceAttacker:
         ema_decay=0.999,
         lambda_u=50,
         exec_device='cpu',
-        builder_base: BuilderType = None,
     ):
         # base model does not need tocpu or togpuc since it comes from the working worker.
-        self.base_model = base_model
-        self.att_model = att_model.to(exec_device)
-        self.ema_att_model = ema_att_model.to(exec_device)  # for ema optimizer
-        self.builder_base = builder_base
-        self.exec_device = exec_device
+        self.base_model = None
+        self.builder_base = None
 
         self.data_builder = data_builder
+        self.att_model = att_model.to(exec_device)
+        self.ema_att_model = ema_att_model.to(exec_device)  # for ema optimizer
+        self.exec_device = exec_device
 
         self.trainer = MixMatch(
             self.att_model,
@@ -565,6 +565,12 @@ class LabelInferenceAttacker:
         self.epochs = epochs
         self.load_model_path = load_model_path
         self.save_model_path = save_model_path
+
+    def set_base_model(
+        self, base_model: torch.nn.Module, builder_base: BuilderType = None
+    ):
+        self.base_model = base_model
+        self.builder_base = builder_base
 
     def train(
         self, labeled_trainloader, unlabeled_trainloader, evaluate_loader=[], epochs=1

@@ -16,8 +16,8 @@ from typing import List, Union
 import jax.numpy as jnp
 import numpy as np
 
-from secretflow import Device, DeviceObject, PYUObject, SPUObject, reveal
 from secretflow.data.vertical import VDataFrame
+from secretflow.device import Device, DeviceObject, PYUObject, SPUObject, reveal
 
 
 def block_compute(blocked_inputs, compute_device, block_func, aggregation_func):

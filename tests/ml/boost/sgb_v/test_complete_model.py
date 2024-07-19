@@ -18,6 +18,7 @@ import time
 
 import numpy as np
 import pytest
+from sklearn.metrics import mean_squared_error, roc_auc_score
 
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.device.driver import reveal
@@ -29,7 +30,6 @@ from secretflow.ml.boost.sgb_v.core.distributed_tree.distributed_tree import (
     DistributedTree,
 )
 from secretflow.ml.boost.sgb_v.model import load_model
-from sklearn.metrics import mean_squared_error, roc_auc_score
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -195,10 +195,10 @@ def test_split_tree(
     x_fed, _ = prepare_dataset(v_data)
     x_fed = v_data.partitions
 
-    complete_tree_object = from_distributed_tree(env.alice, tree)
+    complete_tree_object = from_distributed_tree(env.bob, tree)
 
     complete_tree_predict = reveal(
-        env.alice(lambda tree, x: tree.predict(x))(complete_tree_object, x)
+        env.bob(lambda tree, x: tree.predict(x))(complete_tree_object, x)
     )
     true_predict = reveal(tree.predict(x_fed))
     np.testing.assert_array_almost_equal(true_predict, complete_tree_predict, decimal=3)

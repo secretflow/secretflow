@@ -16,7 +16,6 @@ from typing import List
 
 import numpy as np
 
-from secretflow import Device
 from secretflow.component.component import (
     CompEvalContext,
     CompEvalError,
@@ -26,6 +25,7 @@ from secretflow.component.component import (
 )
 from secretflow.component.data_utils import DistData, DistDataType, load_table
 from secretflow.component.device_utils import make_spu
+from secretflow.device import Device
 from secretflow.device.device.spu import SPU
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData

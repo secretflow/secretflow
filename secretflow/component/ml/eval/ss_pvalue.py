@@ -70,7 +70,7 @@ def sgd_pvalue(ctx, model_dd, input_data):
     label_col = model_meta["label_col"]
     feature_names = model_meta["feature_names"]
     partitions_order = list(model_meta["party_features_length"].keys())
-    x, y, _ = load_ds(ctx, input_data, feature_names, partitions_order, label_col)
+    x, y, _, _ = load_ds(ctx, input_data, feature_names, partitions_order, label_col)
 
     with ctx.tracer.trace_running():
         yhat = model.predict(x)
@@ -88,7 +88,15 @@ def sgd_pvalue(ctx, model_dd, input_data):
             )
 
 
-def load_ds(ctx, input_data, x_cols, x_partitions_order, y_cols, offser_cols=None):
+def load_ds(
+    ctx,
+    input_data,
+    x_cols,
+    x_partitions_order,
+    y_cols,
+    offset_cols=None,
+    weight_cols=None,
+):
     with ctx.tracer.trace_io():
         x = load_table(
             ctx,
@@ -107,18 +115,29 @@ def load_ds(ctx, input_data, x_cols, x_partitions_order, y_cols, offser_cols=Non
             col_selects=y_cols,
         )
 
-        if offser_cols:
+        if offset_cols:
             o = load_table(
                 ctx,
                 input_data,
                 load_features=True,
                 load_labels=True,
-                col_selects=offser_cols,
+                col_selects=offset_cols,
             )
         else:
             o = None
 
-    return x, y, o
+        if weight_cols:
+            w = load_table(
+                ctx,
+                input_data,
+                load_features=True,
+                load_labels=True,
+                col_selects=weight_cols,
+            )
+        else:
+            w = None
+
+    return x, y, o, w
 
 
 def glm_pvalue(ctx, model_dd, input_data):
@@ -135,11 +154,18 @@ def glm_pvalue(ctx, model_dd, input_data):
 
     offset_col = model_meta["offset_col"]
     label_col = model_meta["label_col"]
+    sample_weight_col = model_meta["sample_weight_col"]
     feature_names = model_meta["feature_names"]
     partitions_order = list(model_meta["party_features_length"].keys())
 
-    x, y, o = load_ds(
-        ctx, input_data, feature_names, partitions_order, label_col, offset_col
+    x, y, o, w = load_ds(
+        ctx,
+        input_data,
+        feature_names,
+        partitions_order,
+        label_col,
+        offset_col,
+        sample_weight_col,
     )
 
     with ctx.tracer.trace_running():
@@ -154,7 +180,7 @@ def glm_pvalue(ctx, model_dd, input_data):
     with ctx.tracer.trace_running():
         return (
             PValue(spu).z_statistic_p_value(
-                x, y, yhat, spu_w, link, dist, tweedie_power, y_scale
+                x, y, yhat, spu_w, link, dist, tweedie_power, y_scale, sample_weights=w
             ),
             feature_names,
         )
