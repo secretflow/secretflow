@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from abc import ABC
-from typing import Dict, List
+from typing import Dict
 
 import numpy as np
 
@@ -24,6 +24,7 @@ from benchmark_examples.autoattack.applications.base import (
     DatasetType,
     InputMode,
 )
+from benchmark_examples.autoattack.utils.resources import ResourceDict, ResourcesPack
 from secretflow.utils.simulation.datasets import load_mnist
 
 
@@ -33,6 +34,8 @@ class MnistBase(ApplicationBase, ABC):
         alice,
         bob,
         has_custom_dataset=False,
+        total_fea_nums=1 * 28 * 28,
+        alice_fea_nums=1 * 28 * 14,
         epoch=5,
         train_batch_size=128,
         hidden_size=612,
@@ -43,8 +46,8 @@ class MnistBase(ApplicationBase, ABC):
             bob,
             device_y=bob,
             has_custom_dataset=has_custom_dataset,
-            total_fea_nums=4000,
-            alice_fea_nums=2000,
+            total_fea_nums=total_fea_nums,
+            alice_fea_nums=alice_fea_nums,
             num_classes=10,
             epoch=epoch,
             train_batch_size=train_batch_size,
@@ -87,11 +90,19 @@ class MnistBase(ApplicationBase, ABC):
 
         return train_data, train_label, test_data, test_label
 
-    def resources_consumes(self) -> List[Dict]:
-        return [
-            {'alice': 0.5, 'CPU': 0.5, 'GPU': 0.005, 'gpu_mem': 6 * 1024 * 1024 * 1024},
-            {'bob': 0.5, 'CPU': 0.5, 'GPU': 0.005, 'gpu_mem': 6 * 1024 * 1024 * 1024},
-        ]
+    def resources_consumption(self) -> ResourcesPack:
+        # 980MiB
+        return (
+            ResourcesPack()
+            .with_debug_resources(ResourceDict(gpu_mem=2 * 1024 * 1024 * 1024, CPU=1))
+            .with_sim_resources(
+                self.device_y.party, ResourceDict(gpu_mem=2 * 1024 * 1024 * 1024, CPU=1)
+            )
+            .with_sim_resources(
+                self.device_f.party,
+                ResourceDict(gpu_mem=1.5 * 1024 * 1024 * 1024, CPU=1),
+            )
+        )
 
     def tune_metrics(self) -> Dict[str, str]:
         return {

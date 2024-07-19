@@ -28,6 +28,7 @@ from benchmark_examples.autoattack.utils.data_utils import (
     create_custom_dataset_builder,
     get_sample_indexes,
 )
+from benchmark_examples.autoattack.utils.resources import ResourceDict, ResourcesPack
 from secretflow import reveal
 from secretflow.ml.nn import SLModel
 from secretflow.ml.nn.applications.sl_vgg_torch import VGGBase, VGGFuse
@@ -119,6 +120,8 @@ class MnistVGG16(MnistBase):
             alice,
             bob,
             has_custom_dataset=True,
+            total_fea_nums=3 * 112 * 112,
+            alice_fea_nums=3 * 112 * 56,
             hidden_size=4608,
             dnn_fuse_units_size=[512 * 3 * 3 * 2, 4096, 4096],
             epoch=1,
@@ -132,8 +135,6 @@ class MnistVGG16(MnistBase):
             ),
             metric_wrapper(AUROC, task="multiclass", num_classes=10),
         ]
-
-        print(f"len of mnnist dataset =  {MyMnistDataset(['test']).data.shape}.")
 
     def prepare_data(self, **kwargs):
         raise RuntimeError("Mnist Vgg16 does not need to prepare data, please check.")
@@ -386,3 +387,17 @@ class MnistVGG16(MnistBase):
 
     def get_device_f_input_shape(self):
         return [self.train_dataset_len, 3, vgg_resize, half_vgg_resize]
+
+    def resources_consumption(self) -> ResourcesPack:
+        # 6414MiB
+        return (
+            ResourcesPack()
+            .with_debug_resources(ResourceDict(gpu_mem=7 * 1024 * 1024 * 1024, CPU=1))
+            .with_sim_resources(
+                self.device_y.party,
+                ResourceDict(gpu_mem=7 * 1024 * 1024 * 1024, CPU=1),
+            )
+            .with_sim_resources(
+                self.device_f.party, ResourceDict(gpu_mem=6 * 1024 * 1024 * 1024, CPU=1)
+            )
+        )

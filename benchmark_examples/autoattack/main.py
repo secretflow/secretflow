@@ -12,11 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import gc
 import logging
 import os
+import types
 from typing import Callable, Dict, List
 
 import click
+import torch.cuda
 
 from benchmark_examples.autoattack.applications.base import ApplicationBase
 from benchmark_examples.autoattack.attacks.base import AttackBase, DefaultAttackCase
@@ -38,7 +41,6 @@ except ImportError as e:
     )
     raise e
 
-import multiprocess
 import ray
 
 import benchmark_examples.autoattack.utils.dispatch as dispatch
@@ -65,18 +67,15 @@ def init_sf():
         mode=DISTRIBUTION_MODE.SIMULATION if not debug_mode else DISTRIBUTION_MODE.DEBUG
     )
     sf.shutdown()
+    address = global_config.get_ray_cluster_address()
+    address = 'local' if address is None else address
     sf.init(
         _PARTIES,
-        address="local",
-        num_cpus=global_config.get_total_num_cpus(),
-        num_gpus=(
-            global_config.get_total_num_gpus() if global_config.is_use_gpu() else None
-        ),
+        address=address,
         log_to_driver=True,
-        omp_num_threads=multiprocess.cpu_count(),
+        omp_num_threads=os.cpu_count(),
         debug_mode=debug_mode,
     )
-
     alice = sf.PYU("alice")
     bob = sf.PYU("bob")
     return alice, bob
@@ -118,7 +117,7 @@ def objective_trainning(
         defense.set_config(config)
         # first add defense callbacks, then add attack callbacks.
         attack_callback = attack.build_attack_callback(app)
-        defense_callback: Callback = defense.build_defense_callback(app)
+        defense_callback: Callback = defense.build_defense_callback(app, attack)
         callbacks = [defense_callback, attack_callback]
         callbacks = [v for v in callbacks if v is not None]
         callbacks = None if len(callbacks) == 0 else callbacks
@@ -190,16 +189,34 @@ def _construct_search_space(
     return search_space
 
 
-def _get_cluster_resources(app: ApplicationBase) -> List[Dict]:
-    cluster_resources = app.resources_consumes()
+def _get_cluster_resources(
+    app: ApplicationBase, attack: AttackBase | None, defense: DefenseBase | None
+) -> List[Dict[str, float]] | List[List[Dict[str, float]]]:
+    debug_mode = global_config.is_debug_mode()
+    use_gpu = global_config.is_use_gpu()
+    if not debug_mode and use_gpu:
+        raise NotImplemented(
+            "Does not support using GPU for trainning without debug_mode."
+        )
+    cluster_resources_pack = app.resources_consumption()
+    if defense:
+        cluster_resources_pack = defense.update_resources_consumptions(
+            cluster_resources_pack, app, attack
+        )
+    if attack:
+        cluster_resources_pack = attack.update_resources_consumptions(
+            cluster_resources_pack, app
+        )
+    if debug_mode:
+        cluster_resources = cluster_resources_pack.get_debug_resources()
+    else:
+        cluster_resources = cluster_resources_pack.get_all_sim_resources()
+    logging.info(f"The preprocessed cluster resource = {cluster_resources}")
     if not global_config.is_use_gpu():
+        cluster_resources = [cr.without_gpu() for cr in cluster_resources]
+    else:
         cluster_resources = [
-            {k: v for k, v in cr.items() if k not in ['GPU', 'gpu_mem']}
-            for cr in cluster_resources
-        ]
-    if global_config.is_debug_mode():
-        cluster_resources = [
-            {k: v for k, v in cr.items() if k not in _PARTIES}
+            cr.handle_gpu_mem(global_config.get_gpu_config())
             for cr in cluster_resources
         ]
     return cluster_resources
@@ -217,15 +234,15 @@ def _get_metrics(
     if attack:
         metrics.update(attack.tune_metrics())
     if defense:
-        metrics.update(defense.tune_metrics())
-    log_content = ""
+        metrics.update(defense.tune_metrics(metrics))
+    print(f"metricccc = {metrics}")
+    log_content = f"BEST RESULT for {app} {attack} {defense}: \n"
     best_results = []
     for metric_name, metric_mode in metrics.items():
         best_result = results.get_best_result(metric=metric_name, mode=metric_mode)
         log_content += (
-            f"RESULT: {app} {attack} {defense} {metric_name}'s "
-            f"best config(mode={metric_mode}) = {best_result.config}, "
-            f"best metrics = {best_result.metrics},\n"
+            f"  best config (name: {metric_name}, mode: {metric_mode}) = {best_result.config}\n"
+            f"  best metrics = {best_result.metrics},\n"
         )
         best_results.append(best_result)
     logging.warning(log_content)
@@ -259,7 +276,7 @@ def case_valid_check(
         if not defense_impl.check_app_valid(app_impl):
             raise NotSupportedError(
                 f"Defense {defense} not supported in application {app_impl}! "
-                f"If not correct, check the implement of 'check_app:_valid' in class {defense_impl}"
+                f"If not correct, check the implement of 'check_app_valid' in class {defense_impl}"
             )
 
 
@@ -284,14 +301,26 @@ def run_case(
     defense_impl: DefenseBase | None = (
         defense_cls(alice=alice, bob=bob) if defense_cls else None
     )
-    if not enable_tune:
-        return objective({}, app=app_impl, attack=attack_impl, defense=defense_impl)
-    else:
-        try:
+    objective_name = f"{dataset}_{model}_{attack}_{defense}"
+    # give ray tune a readable objective name.
+    objective = types.FunctionType(objective.__code__, globals(), name=objective_name)
+    try:
+        if not enable_tune:
+            return objective(
+                {},
+                app=app_impl,
+                attack=attack_impl,
+                defense=defense_impl,
+                origin_global_configs=None,
+            )
+        else:
             if global_config.is_debug_mode():
                 init_ray()
+
             search_space = _construct_search_space(app_impl, attack_impl, defense_impl)
-            cluster_resources = _get_cluster_resources(app_impl)
+            cluster_resources = _get_cluster_resources(
+                app_impl, attack_impl, defense_impl
+            )
             objective = tune.with_parameters(
                 objective,
                 app=app_impl,
@@ -301,7 +330,7 @@ def run_case(
             )
             tuner = tune.Tuner(
                 objective,
-                tune_config=TuneConfig(max_concurrent_trials=300),
+                tune_config=TuneConfig(max_concurrent_trials=1000),
                 run_config=RunConfig(
                     storage_path=global_config.get_cur_experiment_result_path(),
                     name=f"{dataset}_{model}_{attack}_{defense}",
@@ -311,10 +340,14 @@ def run_case(
             )
             results = tuner.fit()
             return _get_metrics(results, app_impl, attack_impl, defense_impl)
-        finally:
+    finally:
+        if global_config.is_debug_mode():
+            ray.shutdown()
+        else:
             sf.shutdown()
-            if global_config.is_debug_mode():
-                ray.shutdown()
+        gc.collect()
+        with torch.no_grad():
+            torch.cuda.empty_cache()
 
 
 @click.command(no_args_is_help=True)
@@ -323,9 +356,9 @@ def run_case(
 @click.argument("attack_name", type=click.STRING, required=False, default=None)
 @click.argument("defense_name", type=click.STRING, required=False, default=None)
 @click.option(
-    "--auto",
+    "--enable_tune",
     is_flag=True,
-    default=False,
+    default=None,
     required=False,
     help='Whether to run in auto mode.',
 )
@@ -354,14 +387,14 @@ def run_case(
     "--autoattack_storage_path",
     type=click.STRING,
     required=False,
-    default=os.path.join(os.path.expanduser('~'), '.secretflow/workspace'),
+    default=None,
     help='Autoattack results storage path, default to "~/.secretflow/datasets"',
 )
 @click.option(
     "--use_gpu",
     is_flag=True,
     required=False,
-    default=False,
+    default=None,
     help="Whether to use GPU, default to False",
 )
 @click.option(
@@ -390,7 +423,7 @@ def run(
     model_name: str,
     attack_name: str | None,
     defense_name: str | None,
-    auto: bool,
+    enable_tune: bool,
     simple: bool,
     debug_mode: bool,
     datasets_path: str | None,
@@ -412,7 +445,7 @@ def run(
     ****** python benchmark_examples/autoattack/main.py bank dnn\n
     ****** python benchmark_examples/autoattack/main.py bank dnn norm\n
     ****** python benchmark_examples/autoattack/main.py ban dnn norm grad\n
-    ****** python benchmark_examples/autoattack/main.py ban dnn norm --auto --config="path/to/config.yamml"\n
+    ****** python benchmark_examples/autoattack/main.py ban dnn norm --enable_tune --config="path/to/config.yamml"\n
     """
     global_config.init_globalconfig(
         datasets_path=datasets_path,
@@ -424,7 +457,7 @@ def run(
         random_seed=random_seed,
         config=config,
     )
-    run_case(dataset_name, model_name, attack_name, defense_name, auto)
+    run_case(dataset_name, model_name, attack_name, defense_name, enable_tune)
 
 
 if __name__ == '__main__':

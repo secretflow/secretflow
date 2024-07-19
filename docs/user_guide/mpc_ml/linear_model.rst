@@ -130,7 +130,7 @@ For more detail about parameter settings, see API :py:meth:`~secretflow.ml.linea
     # wait IO finished
     wait([p.data for p in v_data.partitions.values()])
     wait([p.data for p in label_data.partitions.values()])
-    # split train data and test date
+    # split train data and test data
     random_state = 1234
     split_factor = 0.8
     v_train_data, v_test_data = train_test_split(v_data, train_size=split_factor, random_state=random_state)
@@ -285,7 +285,7 @@ For more details about API, see :py:meth:`~secretflow.ml.linear.hess_sgd.model.H
         },
         partition_way=PartitionWay.VERTICAL,
     )
-    # Y label belongs to bob
+    # Y label belongs to alice
     label_data = FedNdarray(
         partitions={alice: alice(read_y)()},
         partition_way=PartitionWay.VERTICAL,
@@ -294,7 +294,7 @@ For more details about API, see :py:meth:`~secretflow.ml.linear.hess_sgd.model.H
     # wait IO finished
     wait([p.data for p in v_data.partitions.values()])
     wait([p.data for p in label_data.partitions.values()])
-    # split train data and test date
+    # split train data and test data
     random_state = 1234
     split_factor = 0.8
     v_train_data, v_test_data = train_test_split(v_data, train_size=split_factor, random_state=random_state)
@@ -302,10 +302,9 @@ For more details about API, see :py:meth:`~secretflow.ml.linear.hess_sgd.model.H
     # run HESS-SGD
     # HESSLogisticRegression use spu / heu to fit model.
     model = HESSLogisticRegression(spu, heu_y, heu_x)
-    # HESSLogisticRegression(spu, heu_x, heu_y)
     # spu – SPU SPU device.
-    # heu_x – HEU HEU device without label.
-    # heu_y – HEU HEU device with label.
+    # heu_y – HEU device without label.
+    # heu_x – HEU device with label.
     # Here, label belong to Alice(heu_x)
     start = time.time()
     model.fit(

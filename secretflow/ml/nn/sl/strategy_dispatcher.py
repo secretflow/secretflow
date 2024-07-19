@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from secretflow import PYUObject, proxy
+from secretflow.device import PYUObject, proxy
 
 BACKEND_LIST = ['tensorflow', 'torch']
 

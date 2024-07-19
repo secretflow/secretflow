@@ -13,7 +13,8 @@
 # limitations under the License.
 
 import logging
-from typing import Any, Dict, List
+import os
+from typing import Any
 
 import torch
 import torch.nn as nn
@@ -21,7 +22,9 @@ import torch.nn.functional as F
 
 from secretflow import PYU
 from secretflow.ml.nn.callbacks import Callback
-from secretflow.ml.nn.core.torch import BaseModule, module
+from secretflow.ml.nn.core.torch import BaseModule, TorchModel, metric_wrapper
+from secretflow.ml.nn.core.torch.module import build
+from secretflow.ml.nn.sl.backend.torch.sl_base import SLBaseTorchModel
 
 
 def sharpen(probabilities, T):
@@ -99,6 +102,7 @@ class AutoEncoderTrainer:
         train_sample_size,
         test_sample_size,
         learning_rate,
+        save_model_path: str = None,
     ):
         self.model = model
         self.exec_device = exec_device
@@ -110,6 +114,7 @@ class AutoEncoderTrainer:
         self.T = T
         self.hyper_lambda = hyper_lambda
         self.learning_rate = learning_rate
+        self.save_model_path = save_model_path
 
     def train(self):
         train_y = torch.rand(self.train_sample_size, self.num_classes)
@@ -164,8 +169,9 @@ class AutoEncoderTrainer:
                 f"autoencoder test acc p : {test_acc_p}, test acc n : {test_acc_n}"
             )
 
-        model_name = f"autoencoder_{self.num_classes}_{self.hyper_lambda}"
-        self.model.save_model(model_name)
+        if self.save_model_path:
+            model_name = f"autoencoder_{self.num_classes}_{self.hyper_lambda}"
+            self.model.save_model(os.path.join(self.save_model_path, model_name))
 
 
 class CAEFuseModelWrapper(BaseModule):
@@ -207,7 +213,9 @@ class CAEFuseModelWrapper(BaseModule):
 
 
 class CAEDefense(Callback):
-    """Implementation of confusional autoencoder defense method in paper Defending Batch-Level Label Inference and Replacement Attacks in Vertical Federated Learning: https://ieeexplore.ieee.org/document/9833321.
+    """Implementation of confusional autoencoder defense method in paper
+    Defending Batch-Level Label Inference and Replacement Attacks in Vertical Federated Learning:
+    https://ieeexplore.ieee.org/document/9833321.
 
     Args:
         defense_party: defense party.
@@ -234,6 +242,7 @@ class CAEDefense(Callback):
         train_sample_size: int = 30000,
         test_sample_size: int = 10000,
         learning_rate: float = 5e-4,
+        save_model_path: str | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -249,41 +258,72 @@ class CAEDefense(Callback):
         self.train_sample_size = train_sample_size
         self.test_sample_size = test_sample_size
         self.learning_rate = learning_rate
+        self.save_model_path = save_model_path
+
+    @staticmethod
+    def train_autoencoder(
+        worker,
+        num_classes,
+        exec_device,
+        epochs,
+        batch_size,
+        T,
+        hyper_lambda,
+        train_sample_size,
+        test_sample_size,
+        learning_rate,
+        save_model_path: str = None,
+    ):
+        model = AutoEncoder(input_dim=num_classes, encode_dim=2 + num_classes * 6).to(
+            exec_device
+        )
+
+        trainer = AutoEncoderTrainer(
+            model=model,
+            exec_device=exec_device,
+            num_classes=num_classes,
+            epochs=epochs,
+            batch_size=batch_size,
+            T=T,
+            hyper_lambda=hyper_lambda,
+            train_sample_size=train_sample_size,
+            test_sample_size=test_sample_size,
+            learning_rate=learning_rate,
+            save_model_path=save_model_path,
+        )
+        trainer.train()
+        worker.autoencoder = model
+
+    @staticmethod
+    def replace_binary_model(worker: SLBaseTorchModel, exec_device):
+        assert isinstance(worker.builder_fuse, TorchModel)
+        assert 'output_func' in worker.builder_fuse.kwargs
+        worker.builder_fuse.kwargs['output_func'] = None
+        worker.builder_fuse.loss_fn = nn.CrossEntropyLoss
+        worker.builder_fuse.kwargs['dnn_units_size'][-1] = 2
+        for i in range(len(worker.builder_fuse.metrics)):
+            metric = worker.builder_fuse.metrics[i]
+            assert hasattr(metric, '__closure__'), 'not a wrapper.'
+            metricfunc = metric.__closure__[1].cell_contents
+            kwargs = {}
+            for j in range(2, len(metric.__closure__)):
+                print(f"got{metric.__closure__[j].cell_contents}")
+                kwargs |= metric.__closure__[j].cell_contents
+            kwargs['task'] = 'multiclass'
+            kwargs['num_classes'] = 2
+            print(f"kwargs = {kwargs}")
+            worker.builder_fuse.metrics[i] = metric_wrapper(func=metricfunc, **kwargs)
+        worker.model_fuse = build(worker.builder_fuse, device=exec_device)
 
     def on_train_begin(self, logs=None):
-        def train_autoencoder(
-            worker,
-            num_classes,
-            exec_device,
-            epochs,
-            batch_size,
-            T,
-            hyper_lambda,
-            train_sample_size,
-            test_sample_size,
-            learning_rate,
-        ):
-            model = AutoEncoder(
-                input_dim=num_classes, encode_dim=2 + num_classes * 6
-            ).to(exec_device)
 
-            trainer = AutoEncoderTrainer(
-                model=model,
-                exec_device=exec_device,
-                num_classes=num_classes,
-                epochs=epochs,
-                batch_size=batch_size,
-                T=T,
-                hyper_lambda=hyper_lambda,
-                train_sample_size=train_sample_size,
-                test_sample_size=test_sample_size,
-                learning_rate=learning_rate,
+        if self.num_classes == 2:
+            self._workers[self.defense_party].apply(
+                self.replace_binary_model, self.exec_device
             )
-            trainer.train()
-            worker.autoencoder = model
 
         self._workers[self.defense_party].apply(
-            train_autoencoder,
+            self.train_autoencoder,
             self.num_classes,
             self.exec_device,
             self.autoencoder_epochs,
@@ -293,18 +333,17 @@ class CAEDefense(Callback):
             self.train_sample_size,
             self.test_sample_size,
             self.learning_rate,
+            self.save_model_path,
         )
 
     def on_fuse_forward_begin(self):
         def confuse_label(worker):
-            if worker.model_fuse.training:
-                y = torch.unsqueeze(worker.train_y, 1)
-                onehot_target = torch.zeros(y.size(0), worker.autoencoder.d).to(
-                    y.device
-                )
-                y = onehot_target.scatter_(1, y, 1)
-
-                _, worker.train_y = worker.autoencoder(y)
+            y = worker.train_y.to(torch.int64)
+            if len(y.shape) == 1:
+                y = torch.unsqueeze(y, 1)
+            onehot_target = torch.zeros(y.size(0), worker.autoencoder.d).to(y.device)
+            y = onehot_target.scatter_(1, y, 1)
+            _, worker.train_y = worker.autoencoder(y)
 
         self._workers[self.defense_party].apply(confuse_label)
 
@@ -319,8 +358,20 @@ class CAEDefense(Callback):
     def remove_decoder(worker):
         worker.model_fuse = worker.model_fuse.model
 
+    @staticmethod
+    def encode_binary_test_y(worker: SLBaseTorchModel):
+        # process shape from [batchsize, 1] to [batchsize], when use binary classfication.
+        # only for eval stage.
+        if worker.eval_y is not None:
+            worker.eval_y = worker.eval_y.squeeze(dim=1)
+
     def on_test_begin(self, logs=None):
         self._workers[self.defense_party].apply(self.add_decoder, self.exec_device)
+
+    def on_base_forward_begin(self):
+        # process only in eval stage.
+        if self.num_classes == 2:
+            self._workers[self.defense_party].apply(self.encode_binary_test_y)
 
     def on_test_end(self, logs=None):
         self._workers[self.defense_party].apply(self.remove_decoder)

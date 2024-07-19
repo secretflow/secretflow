@@ -91,11 +91,15 @@ def train_test_split(
         # FIXME: the input may be pl.DataFrame or others.
         # assert type(args[0]) in [np.ndarray, pd.DataFrame]
         if len(args[0].shape) == 0:
-            if type(args[0]) == np.ndarray:
+            if isinstance(args[0], np.ndarray):
                 return np.array(None), np.array(None)
             else:
                 return pd.DataFrame(None), pd.DataFrame(None)
         results = _train_test_split(*args, **kwargs)
+        if isinstance(args[0], pd.DataFrame):
+            results[0] = results[0].reset_index(drop=True)
+            results[1] = results[1].reset_index(drop=True)
+
         return results[0], results[1]
 
     parts_train, parts_test = {}, {}

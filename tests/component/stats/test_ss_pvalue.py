@@ -173,7 +173,7 @@ def test_ss_pvalue_glm(comp_prod_sf_cluster_config):
     train_param = NodeEvalParam(
         domain="ml.train",
         name="ss_glm_train",
-        version="0.0.2",
+        version="0.0.3",
         attr_paths=[
             "epochs",
             "learning_rate",

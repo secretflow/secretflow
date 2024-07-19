@@ -92,27 +92,29 @@ class FeatureSpaceHijackingAttack(AttackCallback):
         self.exec_device = exec_device
 
     def on_train_begin(self, logs=None):
-        def init_attacker(attack_worker: SLBaseTorchModel):
-            attacker = FeatureSpaceHijackingAttacker(
-                base_model_list=self.base_model_list,
-                attack_party=self.attack_party.party,
-                victim_party=self.victim_party.party,
-                pilot_model_wrapper=self.pilot_model_wrapper,
-                decoder_model_wrapper=self.decoder_model_wrapper,
-                discriminator_model_wrapper=self.discriminator_model_wrapper,
-                reconstruct_loss_builder=self.reconstruct_loss_builder,
-                data_builder=self.data_builder,
-                victim_fea_dim=self.victim_fea_dim,
-                attacker_fea_dim=self.attacker_fea_dim,
-                gradient_penalty_weight=self.gradient_penalty_weight,
-                load_model_path=self.load_attacker_path,
-                save_model_path=self.save_attacker_path,
-                exec_device=self.exec_device,
-            )
+        def init_attacker(
+            attack_worker: SLBaseTorchModel,
+            fsha_attacker: FeatureSpaceHijackingAttacker,
+        ):
+            attack_worker.attacker = fsha_attacker
 
-            attack_worker.attacker = attacker
-
-        self._workers[self.attack_party].apply(init_attacker)
+        attacker = FeatureSpaceHijackingAttacker(
+            base_model_list=self.base_model_list,
+            attack_party=self.attack_party.party,
+            victim_party=self.victim_party.party,
+            pilot_model_wrapper=self.pilot_model_wrapper,
+            decoder_model_wrapper=self.decoder_model_wrapper,
+            discriminator_model_wrapper=self.discriminator_model_wrapper,
+            reconstruct_loss_builder=self.reconstruct_loss_builder,
+            data_builder=self.data_builder,
+            victim_fea_dim=self.victim_fea_dim,
+            attacker_fea_dim=self.attacker_fea_dim,
+            gradient_penalty_weight=self.gradient_penalty_weight,
+            load_model_path=self.load_attacker_path,
+            save_model_path=self.save_attacker_path,
+            exec_device=self.exec_device,
+        )
+        self._workers[self.attack_party].apply(init_attacker, attacker)
 
     def on_epoch_begin(self, epoch=None, logs=None):
         """Initialize an iterator of auxiliary dataset before each epoch."""
@@ -249,6 +251,7 @@ class FeatureSpaceHijackingAttacker:
         victim_h.retain_grad()
         [x_pub] = next(self.aux_data)
         x_pub = x_pub.to(self.exec_device)
+
         self.pilot_model.train()
         self.decoder_model.train()
         self.discriminator_model.train()
@@ -256,20 +259,42 @@ class FeatureSpaceHijackingAttacker:
         self.pilot_optimizer.zero_grad()
         self.decoder_optimizer.zero_grad()
         self.discriminator_optimizer.zero_grad()
-        z_pub = self.pilot_model(x_pub)
-        adv_pub_logits = self.discriminator_model(z_pub)
+
+        # train base_model(generator)
         adv_priv_logits = self.discriminator_model(victim_h)
-        dsc_loss = torch.mean(adv_pub_logits) - torch.mean(adv_priv_logits)
+        priv_d_loss = torch.mean(adv_priv_logits)  # base_model, discriminator
+        priv_d_loss.backward(retain_graph=True)
+        victim_grads = (
+            victim_h.grad.detach()
+        )  # dsc_loss.backward() changes victim_h.grad
 
+        # train pilot and decoder
+        z_pub = self.pilot_model(x_pub)
         rec_x_pub = self.decoder_model(z_pub)
-        pub_rec_loss = self.reconstruct_loss(x_pub, rec_x_pub)
-        gp_loss = self._gradient_penalty(victim_h, z_pub)
-        (dsc_loss + pub_rec_loss + self.gp_weight * gp_loss).backward()
-
-        self.pilot_optimizer.step()
+        pub_rec_loss = self.reconstruct_loss(x_pub, rec_x_pub)  # pilot, decoder
+        pub_rec_loss.backward(retain_graph=True)
+        # store pilot grad first as dsc_loss generate pilot grad also
+        pilot_grad = [p.grad.detach() for p in self.pilot_model.parameters()]
         self.decoder_optimizer.step()
+
+        # train discriminator
+        # priv_d_loss should not impact self.discriminator_model.param, clear grad first
+        # p.grad.zero_() will get same grad with torch.autograd.grad(dsc_loss, self.discriminator_model.parameters())
+        # get different grad using self.discriminator_optimizer.zero_grad() or p.grad = None
+        # maybe because it removes edge between discriminator_model.param and adv_priv_logits?
+        for name, p in self.discriminator_model.named_parameters():
+            p.grad.zero_()
+        adv_pub_logits = self.discriminator_model(z_pub)
+        dsc_loss = torch.mean(adv_pub_logits) - torch.mean(adv_priv_logits)
+        gp_loss = self._gradient_penalty(victim_h, z_pub)
+        (dsc_loss + self.gp_weight * gp_loss).backward()
         self.discriminator_optimizer.step()
-        victim_grads = victim_h.grad
+
+        # update pilot
+        for p, g in zip(self.pilot_model.parameters(), pilot_grad):
+            p.grad = g
+        self.pilot_optimizer.step()
+
         return victim_grads
 
     def evaluate(self, test_loader: torch.utils.data.DataLoader):

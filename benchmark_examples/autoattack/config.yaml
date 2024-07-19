@@ -24,17 +24,20 @@ paths:
   datasets: ~
   # the autoattack result store path.
   autoattack_path: ~
+
 # Resources configurations.
 # Only needed when using sim mode and need to indicate the cpu/gpu nums manually.
 resources:
-  # how many CPUs do all your machines add up to.
-  num_cpus: ~
-  # how many CPUs do all your machines add up to (need applications.use_gpu = true).
-  num_gpus: 2
+  # The names and memory capacities of all GPUs included in your cluster.
+  gpu:
+    # Suppose you have an 'V100' GPU with 4GB
+    V100: 4000000000 # 4GB
+
 # When there are multiple ray clusters in your machine, specify one to connect.
 ray:
-  # the existing ray cluster's address for connection (ip:port).
+  # the existing ray cluster's address for connection (ip:port), default to None.
   address: ~
+
 # tuner parameters
 tune:
   applications:
@@ -182,3 +185,4 @@ tune:
     mid:
       ~
     fed_pass: ~
+    cae: ~

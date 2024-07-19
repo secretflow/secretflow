@@ -16,6 +16,7 @@ from typing import Dict, List, Union
 
 import numpy as np
 import pandas as pd
+
 from secretflow.component.component import (
     CompEvalError,
     Component,
@@ -23,11 +24,11 @@ from secretflow.component.component import (
     TableColParam,
 )
 from secretflow.component.data_utils import (
-    SUPPORTED_VTABLE_DATA_TYPE,
     DistDataType,
     download_files,
     extract_distdata_info,
     merge_individuals_to_vtable,
+    SUPPORTED_VTABLE_DATA_TYPE,
     upload_files,
 )
 from secretflow.device.device.pyu import PYU
@@ -260,7 +261,9 @@ def read_fillna_write(
         else:
             chunk.to_csv(temp_file_path, mode='a', header=False, index=False)
     # Replace the original file with the processed file
-    os.replace(temp_file_path, csv_file_path)
+    # so chunks > 0
+    if os.path.exists(temp_file_path):
+        os.replace(temp_file_path, csv_file_path)
 
 
 def fill_missing_values(

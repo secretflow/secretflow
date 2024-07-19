@@ -15,8 +15,14 @@
 import math
 
 from google.protobuf.json_format import ParseDict
+import pytest
 
-from secretflow.component.component import Component, IoType, TableColParam
+from secretflow.component.component import (
+    CompDeclError,
+    Component,
+    IoType,
+    TableColParam,
+)
 from secretflow.component.data_utils import DistDataType
 from secretflow.spec.v1.component_pb2 import AttributeDef, ComponentDef, IoDef
 from secretflow.spec.v1.data_pb2 import DistData, StorageConfig
@@ -115,6 +121,101 @@ def test_str_attr():
         AttributeDef(),
     )
     assert msg == expected_msg
+
+
+def test_col_params_attr():
+    comp = Component("test")
+    comp.io(
+        io_type=IoType.INPUT,
+        name="input_data",
+        desc="input for receiver",
+        types=[DistDataType.INDIVIDUAL_TABLE],
+        col_params=[TableColParam(name="key", desc="Column(s) used to join.")],
+    )
+    comp.col_params_attr(
+        name="observe_feature",
+        desc="stratify sample observe feature.",
+        table_id="input_data",
+        list_min_length_inclusive=1,
+        list_max_length_inclusive=1,
+    )
+    msg = comp._Component__comp_attr_decls[0]
+    expected_msg = ParseDict(
+        {
+            "name": "observe_feature",
+            "desc": "stratify sample observe feature.",
+            "type": "AT_COL_PARAMS",
+            "col_params_binded_table": "input_data",
+            "atomic": {
+                "list_min_length_inclusive": 1,
+                "list_max_length_inclusive": 1,
+            },
+        },
+        AttributeDef(),
+    )
+    assert msg == expected_msg
+
+
+def test_col_params_attr_fail():
+    comp = Component("test")
+    comp.col_params_attr(
+        name="observe_feature",
+        desc="stratify sample observe feature.",
+        table_id="input_data",
+        list_min_length_inclusive=1,
+        list_max_length_inclusive=1,
+    )
+    with pytest.raises(
+        CompDeclError,
+        match=f"table_id input_data is not defined correctly in input.",
+    ):
+        comp.definition()
+
+
+def test_col_params_attr_fail_not_table():
+    comp = Component("test")
+    comp.io(
+        io_type=IoType.INPUT,
+        name="input_data",
+        desc="input for receiver",
+        types=[DistDataType.NULL],
+        col_params=[TableColParam(name="key", desc="Column(s) used to join.")],
+    )
+    comp.col_params_attr(
+        name="observe_feature",
+        desc="stratify sample observe feature.",
+        table_id="input_data",
+        list_min_length_inclusive=1,
+        list_max_length_inclusive=1,
+    )
+    with pytest.raises(
+        CompDeclError,
+        match=f"table_id input_data is not defined correctly in input.",
+    ):
+        comp.definition()
+
+
+def test_col_params_attr_fail_not_all_table():
+    comp = Component("test")
+    comp.io(
+        io_type=IoType.INPUT,
+        name="input_data",
+        desc="input for receiver",
+        types=[DistDataType.NULL, DistDataType.INDIVIDUAL_TABLE],
+        col_params=[TableColParam(name="key", desc="Column(s) used to join.")],
+    )
+    comp.col_params_attr(
+        name="observe_feature",
+        desc="stratify sample observe feature.",
+        table_id="input_data",
+        list_min_length_inclusive=1,
+        list_max_length_inclusive=1,
+    )
+    with pytest.raises(
+        CompDeclError,
+        match=f"table_id input_data is not defined correctly in input.",
+    ):
+        comp.definition()
 
 
 def test_bool_attr():

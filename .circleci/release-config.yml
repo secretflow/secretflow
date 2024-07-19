@@ -121,17 +121,68 @@ jobs:
             cd docker/release
             bash ./build.sh -l -v ${VERSION}
 
+            # save version to next job
+            echo $VERSION >> sf.version
+      - persist_to_workspace:
+          root: .
+          paths:
+            - sf.version
+
+  copy_sf_lite_image_to_aliyun:
+    docker:
+      - image: cimg/deploy:2023.06.1
+    resource_class: medium
+    steps:
+      - setup_remote_docker
+      - attach_workspace:
+          at: .
+      - run:
+          name: Cancel build after set time
+          background: true
+          command: |
+            sleep 1200
+            echo "Canceling workflow as too much time has elapsed"
+            curl -X POST --header "Content-Type: application/json" "https://circleci.com/api/v2/workflow/${CIRCLE_WORKFLOW_ID}/cancel?circle-token=${BUILD_TIMER_TOKEN}"
+      - run:
+          name: Copy secretflow lite image
+          command: |
+            VERSION=`cat sf.version`
+
+            # login docker - aliyun
+            docker login -u ${ALIYUN_DOCKER_USERNAME} -p ${ALIYUN_DOCKER_PASSWORD} secretflow-registry.cn-hangzhou.cr.aliyuncs.com
+
+            SF_LITE_IMAGE=secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-lite-anolis8
+
+            docker buildx imagetools create --tag ${SF_LITE_IMAGE}:${VERSION} secretflow/secretflow-lite-anolis8:${VERSION}
+            docker buildx imagetools create --tag ${SF_LITE_IMAGE}:latest secretflow/secretflow-lite-anolis8:latest
+
+  copy_sf_image_to_aliyun:
+    docker:
+      - image: cimg/deploy:2023.06.1
+    resource_class: medium
+    steps:
+      - setup_remote_docker
+      - attach_workspace:
+          at: .
+      - run:
+          name: Cancel build after set time
+          background: true
+          command: |
+            sleep 1800
+            echo "Canceling workflow as too much time has elapsed"
+            curl -X POST --header "Content-Type: application/json" "https://circleci.com/api/v2/workflow/${CIRCLE_WORKFLOW_ID}/cancel?circle-token=${BUILD_TIMER_TOKEN}"
+      - run:
+          name: Copy secretflow image
+          command: |
+            VERSION=`cat sf.version`
+
             # login docker - aliyun
             docker login -u ${ALIYUN_DOCKER_USERNAME} -p ${ALIYUN_DOCKER_PASSWORD} secretflow-registry.cn-hangzhou.cr.aliyuncs.com
 
             SF_IMAGE=secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-anolis8
-            SF_LITE_IMAGE=secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-lite-anolis8
 
             docker buildx imagetools create --tag ${SF_IMAGE}:${VERSION} secretflow/secretflow-anolis8:${VERSION}
             docker buildx imagetools create --tag ${SF_IMAGE}:latest secretflow/secretflow-anolis8:latest
-
-            docker buildx imagetools create --tag ${SF_LITE_IMAGE}:${VERSION} secretflow/secretflow-lite-anolis8:${VERSION}
-            docker buildx imagetools create --tag ${SF_LITE_IMAGE}:latest secretflow/secretflow-lite-anolis8:latest
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
@@ -142,7 +193,7 @@ workflows:
           matrix:
             parameters:
               python_ver: ["3.9", "3.10", "3.11"]
-            executor: [ "linux_x64_executor", "linux_aarch64_executor" ]
+              executor: [ "linux_x64_executor", "linux_aarch64_executor" ]
           filters:
             tags:
               only: /.*/
@@ -156,6 +207,18 @@ workflows:
       - docker_image_publish:
           requires:
             - linux_publish
+          filters:
+            tags:
+              only: /.*/
+      - copy_sf_lite_image_to_aliyun:
+          requires:
+            - docker_image_publish
+          filters:
+            tags:
+              only: /.*/
+      - copy_sf_image_to_aliyun:
+          requires:
+            - docker_image_publish
           filters:
             tags:
               only: /.*/
