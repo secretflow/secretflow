@@ -15,10 +15,11 @@
 
 from secretflow.ml.nn.callbacks.callback import Callback
 
+
 class CAFEFakeGradientsMultiClient(Callback):
     """
     The method is designed for against CAFE attack: https://arxiv.org/abs/2110.15122.
-    Each local worker randomly generates gradients with the normal distribution N, 
+    Each local worker randomly generates gradients with the normal distribution N,
     sorts them and true gradients in descending order, computes the L2-norm distance
     to find the nearest fake gradient, pairs fake gradients with true gradients by
     the sorted order, and uploads the fake gradients to the server.
@@ -33,6 +34,15 @@ class CAFEFakeGradientsMultiClient(Callback):
         v=1000,
         **kwargs
     ):
+        """
+        Args:
+            backend (str): The backend to be used, either 'torch' or 'tensorflow'. Default is 'torch'.
+            exec_device (str): The execution device, e.g., 'cpu' or 'cuda'. Default is 'cpu'.
+            noise_scale (float): The scale of the noise to be added. Default is 1.1.
+            tua (int): The threshold for updating the fake gradient. Default is 47.
+            v (int): The number of fake gradients to be generated. Default is 1000.
+            **kwargs: Additional keyword arguments.
+        """
         self.backend = backend.lower()
         self.exec_device = exec_device
         self.noise_scale = noise_scale
@@ -42,7 +52,15 @@ class CAFEFakeGradientsMultiClient(Callback):
 
     def on_fuse_backward_end(self):
         def fake_gradient(worker, sigma, tua=1.1, M=1, v=128):
+            """Generates and applies fake gradients to the worker.
 
+            Args:
+                worker: The worker whose gradients are to be updated.
+                sigma (float): The standard deviation of the noise.
+                tua (float): The threshold for updating the fake gradient. Default is 1.1.
+                M (int): The number of gradient matrices. Default is 1.
+                v (int): The number of fake gradients to be generated. Default is 128.
+            """
             gradient = worker._gradient
             fake_gradient = []
             if not isinstance(gradient, list):
@@ -52,7 +70,7 @@ class CAFEFakeGradientsMultiClient(Callback):
             if self.backend == "tensorflow":
                 import tensorflow as tf
 
-                pass
+                raise NotImplementedError()
                 # WIP
             else:
                 import torch
@@ -66,7 +84,7 @@ class CAFEFakeGradientsMultiClient(Callback):
                     Psi = [torch.sort(g, descending=True)[0] for g in Psi]
                     zeta = torch.argsort(_gradient, descending=True)
                     sorted_gradient = torch.gather(_gradient, 1, zeta)
-                    count = 0  
+                    count = 0
                     while True:
                         min_diff = float("inf")
                         min_psi = None
@@ -94,7 +112,7 @@ class CAFEFakeGradientsMultiClient(Callback):
                                 psi[i][l], torch.max(_gradient[i][k], -psi[i][l])
                             )
                             l += 1
-                    fake_gradient.append(_gradient)
+                    fake_gradient.append(fake_g)
             assert len(fake_gradient) >= 1
             if len(fake_gradient) == 1:
                 worker._gradient = fake_gradient[0]
