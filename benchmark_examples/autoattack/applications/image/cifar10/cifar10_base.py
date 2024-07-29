@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from abc import ABC
-from typing import Dict, List
+from typing import Dict
 
 from benchmark_examples.autoattack import global_config
 from benchmark_examples.autoattack.applications.base import (
@@ -67,13 +67,6 @@ class Cifar10ApplicationBase(ApplicationBase, ABC):
             test_data = test_data[0:sample_nums]
             test_label = test_label.device(lambda df: df[0:sample_nums])(test_label)
         return train_data, train_label, test_data, test_label
-
-    def resources_consumes(self) -> List[Dict]:
-        # use 1 gpu per trail.
-        return [
-            {'alice': 0.5, 'CPU': 0.5, 'GPU': 0.005, 'gpu_mem': 6 * 1024 * 1024 * 1024},
-            {'bob': 0.5, 'CPU': 0.5, 'GPU': 0.005, 'gpu_mem': 6 * 1024 * 1024 * 1024},
-        ]
 
     def tune_metrics(self) -> Dict[str, str]:
         return {

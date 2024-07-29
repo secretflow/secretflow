@@ -117,7 +117,7 @@ def from_distributed_tree(
     split_trees = [
         sp.to(receive_party_pyu) for sp in distributed_tree.split_tree_dict.values()
     ]
-    weights = distributed_tree.leaf_weight
+    weights = distributed_tree.leaf_weight.to(receive_party_pyu)
     partition_column_counts = distributed_tree.partition_column_counts
     return receive_party_pyu(from_split_trees)(
         split_trees, weights, partition_column_counts

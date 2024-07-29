@@ -29,6 +29,9 @@ class SplitTree:
         self.split_indices = []
         self.leaf_indices = []
 
+    def is_empty(self) -> bool:
+        return len(self.split_features) == 0
+
     def insert_split_node(self, feature: int, value: float, index: int = 0) -> None:
         assert isinstance(feature, int), f"feature {feature}"
         assert isinstance(value, float), f"value {value}"

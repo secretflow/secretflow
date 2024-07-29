@@ -68,7 +68,7 @@ class AutoBase(ABC):
         pass
 
     @abstractmethod
-    def tune_metrics(self) -> Dict[str, str]:
+    def tune_metrics(self, **kwargs) -> Dict[str, str]:
         """
         The metric name and evaluation method that you want to obtain
         the best results from the tunning results, such as {'auc':'max', 'loss':'min'}.

@@ -20,6 +20,7 @@ from benchmark_examples.autoattack.applications.base import (
     ClassficationType,
 )
 from benchmark_examples.autoattack.attacks.base import AttackBase, AttackType
+from benchmark_examples.autoattack.utils.resources import ResourcesPack
 from secretflow.ml.nn.callbacks.attack import AttackCallback
 from secretflow.ml.nn.sl.attacks.batch_level_lia_torch import (
     BatchLevelLabelInferenceAttack,
@@ -41,7 +42,7 @@ class BatchLevelLiaAttackCase(AttackBase):
             dummy_fuse_model=app.create_fuse_model(),
             exec_device='cuda' if global_config.is_use_gpu() else 'cpu',
             label=app.get_plain_train_label(),
-            lr=self.config.get('lr', 0.05),
+            lr=self.config.get('lr', 0.001),
             label_size=[app.num_classes],
             epochs=10,
         )
@@ -54,3 +55,12 @@ class BatchLevelLiaAttackCase(AttackBase):
 
     def check_app_valid(self, app: ApplicationBase) -> bool:
         return app.classfication_type() == ClassficationType.MULTICLASS
+
+    def update_resources_consumptions(
+        self, cluster_resources_pack: ResourcesPack, app: ApplicationBase
+    ) -> ResourcesPack:
+
+        func = lambda x: x * 1.3
+        return cluster_resources_pack.apply_debug_resources(
+            'gpu_mem', func
+        ).apply_sim_resources(app.device_f.party, 'gpu_mem', func)

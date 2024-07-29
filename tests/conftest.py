@@ -550,10 +550,10 @@ def comp_prod_sf_cluster_config(request, sf_party_for_4pc):
             ray_fed_config=SFClusterConfig.RayFedConfig(
                 parties=["alice", "bob", "carol", "davy"],
                 addresses=[
-                    "127.0.0.1:61041",
-                    "127.0.0.1:61042",
-                    "127.0.0.1:61043",
-                    "127.0.0.1:61044",
+                    "127.0.0.1:62241",
+                    "127.0.0.1:63342",
+                    "127.0.0.1:64443",
+                    "127.0.0.1:61544",
                 ],
             ),
             spu_configs=[
@@ -561,8 +561,8 @@ def comp_prod_sf_cluster_config(request, sf_party_for_4pc):
                     name="spu",
                     parties=["alice", "bob"],
                     addresses=[
-                        "127.0.0.1:61045",
-                        "127.0.0.1:61046",
+                        "127.0.0.1:62645",
+                        "127.0.0.1:63746",
                     ],
                 )
             ],
@@ -603,7 +603,7 @@ def comp_prod_sf_cluster_config(request, sf_party_for_4pc):
     ms_env["MINIO_ACCESS_KEY"] = "sf_test_aaa"
     ms_env["MINIO_SECRET_KEY"] = "sf_test_sss"
 
-    ports = {"alice": 63222, "bob": 63444, "carol": 63666, "davy": 63888}
+    ports = {"alice": 63122, "bob": 63244, "carol": 63366, "davy": 63488}
     endpoint = f"127.0.0.1:{ports[sf_party_for_4pc]}"
     ms = subprocess.Popen(
         [minio_server, "server", minio_data_path, "--address", endpoint],

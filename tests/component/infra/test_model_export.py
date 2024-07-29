@@ -34,6 +34,13 @@ from secretflow.component.ml.boost.ss_xgb.ss_xgb import (
 from secretflow.component.ml.linear.ss_glm import ss_glm_predict_comp, ss_glm_train_comp
 from secretflow.component.ml.linear.ss_sgd import ss_sgd_predict_comp, ss_sgd_train_comp
 from secretflow.component.model_export import model_export_comp
+from secretflow.component.model_export.serving_utils.postprocessing_converter import (
+    parse_score_card_transformer_param,
+)
+from secretflow.component.postprocessing.score_card_transformer import (
+    score_card_transformer_comp,
+    SCORE_CARD_TRANSFORMER_VERSION,
+)
 from secretflow.component.preprocessing.binning.vert_binning import (
     vert_bin_substitution_comp,
     vert_binning_comp,
@@ -50,7 +57,12 @@ from secretflow.component.preprocessing.unified_single_party_ops.substitution im
 from secretflow.component.storage import ComponentStorage
 from secretflow.spec.extend.calculate_rules_pb2 import CalculateOpRules
 from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
+from secretflow.spec.v1.data_pb2 import (
+    DistData,
+    IndividualTable,
+    TableSchema,
+    VerticalTable,
+)
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
 from sklearn.datasets import load_breast_cancer
@@ -116,7 +128,9 @@ def eval_export(
     report = Report()
     assert report_dd.meta.Unpack(report)
     used_schemas = report.desc.split(",")
-    assert set(used_schemas) == set(expected_input)
+    assert set(used_schemas) == set(
+        expected_input
+    ), f"schemas: {used_schemas}, {expected_input}"
 
     expected_files = {"model_file", "MANIFEST"}
     comp_storage = ComponentStorage(storage_config)
@@ -179,6 +193,8 @@ def test_model_export(comp_prod_sf_cluster_config, features_in_one_party):
     ss_glm_report_path = f"{work_path}/model.report"
 
     ss_glm_predict_path = f"{work_path}/predict.csv"
+
+    score_card_trans_path = f"{work_path}/score_card_transformer.csv"
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
@@ -436,7 +452,7 @@ def test_model_export(comp_prod_sf_cluster_config, features_in_one_party):
     train_param = NodeEvalParam(
         domain="ml.train",
         name="ss_glm_train",
-        version="0.0.2",
+        version="0.0.3",
         attr_paths=[
             "epochs",
             "learning_rate",
@@ -507,6 +523,36 @@ def test_model_export(comp_prod_sf_cluster_config, features_in_one_party):
 
     assert len(predict_res.outputs) == 1
 
+    score_card_trans_param = NodeEvalParam(
+        domain="postprocessing",
+        name="score_card_transformer",
+        version=SCORE_CARD_TRANSFORMER_VERSION,
+        attr_paths=[
+            "positive",
+            "predict_score_name",
+            "scaled_value",
+            "odd_base",
+            "pdo",
+            "input/input_ds/predict_name",
+        ],
+        attrs=[
+            Attribute(i64=1),
+            Attribute(s="predict_score"),
+            Attribute(i64=600),
+            Attribute(f=20),
+            Attribute(f=20),
+            Attribute(ss=["pred"]),
+        ],
+        inputs=[predict_res.outputs[0]],
+        output_uris=[score_card_trans_path],
+    )
+
+    score_card_trans_res = score_card_transformer_comp.eval(
+        param=score_card_trans_param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
+
     # by train comp
     eval_export(
         work_path,
@@ -520,8 +566,8 @@ def test_model_export(comp_prod_sf_cluster_config, features_in_one_party):
     # by pred comp
     eval_export(
         work_path,
-        [sub_param, cal_sub_param, onehot_param, predict_param],
-        [sub_res, cal_sub_res, onehot_res, predict_res],
+        [sub_param, cal_sub_param, onehot_param, predict_param, score_card_trans_param],
+        [sub_res, cal_sub_res, onehot_res, predict_res, score_card_trans_res],
         storage_config,
         sf_cluster_config,
         expected_input,
@@ -837,7 +883,7 @@ def test_sgb_export(comp_prod_sf_cluster_config, features_in_one_party):
     train_param = NodeEvalParam(
         domain="ml.train",
         name="sgb_train",
-        version="0.0.3",
+        version="0.0.4",
         attr_paths=[
             "num_boost_round",
             "max_depth",
@@ -1052,6 +1098,196 @@ def test_ss_xgb_export(comp_prod_sf_cluster_config, features_in_one_party):
         work_path,
         [predict_param],
         [predict_res],
+        storage_config,
+        sf_cluster_config,
+        expected_input,
+    )
+
+
+def test_parse_score_card_transformer_param():
+    param = NodeEvalParam(
+        domain="postprocessing",
+        name="score_card_transformer",
+        version=SCORE_CARD_TRANSFORMER_VERSION,
+        attr_paths=["input/input_ds/predict_name"],
+        attrs=[
+            Attribute(ss=["pred"]),
+        ],
+        inputs=[
+            DistData(
+                name="input_ds",
+                type=str(DistDataType.INDIVIDUAL_TABLE),
+                data_refs=[
+                    DistData.DataRef(uri="input.csv", party="alice", format="csv"),
+                ],
+            )
+        ],
+        output_uris=["output.csv"],
+    )
+
+    meta = IndividualTable(
+        schema=TableSchema(
+            id_types=None,
+            ids=None,
+            feature_types=["str", "float"],
+            features=["id", "pred"],
+        )
+    )
+    param.inputs[0].meta.Pack(meta)
+    res = parse_score_card_transformer_param(param)
+    assert res == {
+        'positive': True,
+        'predict_score_name': 'predict_score',
+        'scaled_value': 600,
+        'odd_base': 20.0,
+        'pdo': 20.0,
+        'min_score': 0,
+        'max_score': 1000,
+    }
+
+
+def test_score_card_transformer_export(comp_prod_sf_cluster_config):
+    work_path = "test_score_card_transformer_export"
+    alice_path = f"{work_path}/x_alice.csv"
+    bob_path = f"{work_path}/x_bob.csv"
+    model_path = f"{work_path}/model.sf"
+    predict_path = f"{work_path}/predict.csv"
+    score_card_trans_path = f"{work_path}/score_card_trans.csv"
+
+    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+
+    train_param = NodeEvalParam(
+        domain="ml.train",
+        name="ss_xgb_train",
+        version="0.0.1",
+        attr_paths=[
+            "num_boost_round",
+            "max_depth",
+            "learning_rate",
+            "objective",
+            "reg_lambda",
+            "subsample",
+            "colsample_by_tree",
+            "sketch_eps",
+            "base_score",
+            "input/train_dataset/label",
+            "input/train_dataset/feature_selects",
+        ],
+        attrs=[
+            Attribute(i64=3),
+            Attribute(i64=3),
+            Attribute(f=0.3),
+            Attribute(s="logistic"),
+            Attribute(f=0.1),
+            Attribute(f=1),
+            Attribute(f=1),
+            Attribute(f=0.25),
+            Attribute(f=0),
+            Attribute(ss=["y"]),
+            Attribute(ss=[f"a{i}" for i in range(4)] + [f"b{i}" for i in range(4)]),
+        ],
+        inputs=[
+            DistData(
+                name="train_dataset",
+                type="sf.table.vertical_table",
+                data_refs=[
+                    DistData.DataRef(uri=alice_path, party="alice", format="csv"),
+                    DistData.DataRef(uri=bob_path, party="bob", format="csv"),
+                ],
+            ),
+        ],
+        output_uris=[model_path],
+    )
+
+    meta = get_meta_and_dump_data(
+        work_path,
+        comp_prod_sf_cluster_config,
+        alice_path,
+        bob_path,
+        False,
+    )
+    train_param.inputs[0].meta.Pack(meta)
+
+    train_res = ss_xgb_train_comp.eval(
+        param=train_param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
+
+    predict_param = NodeEvalParam(
+        domain="ml.predict",
+        name="ss_xgb_predict",
+        version="0.0.2",
+        attr_paths=[
+            "receiver",
+            "save_ids",
+            "save_label",
+        ],
+        attrs=[
+            Attribute(ss=["alice"]),
+            Attribute(b=False),
+            Attribute(b=True),
+        ],
+        inputs=[
+            train_res.outputs[0],
+            DistData(
+                name="train_dataset",
+                type="sf.table.vertical_table",
+                data_refs=[
+                    DistData.DataRef(uri=alice_path, party="alice", format="csv"),
+                    DistData.DataRef(uri=bob_path, party="bob", format="csv"),
+                ],
+            ),
+        ],
+        output_uris=[predict_path],
+    )
+    predict_param.inputs[1].meta.Pack(meta)
+
+    predict_res = ss_xgb_predict_comp.eval(
+        param=predict_param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
+
+    assert len(predict_res.outputs) == 1
+
+    # score_card_transformer
+    score_card_trans_param = NodeEvalParam(
+        domain="postprocessing",
+        name="score_card_transformer",
+        version=SCORE_CARD_TRANSFORMER_VERSION,
+        attr_paths=[
+            "positive",
+            "predict_score_name",
+            "scaled_value",
+            "odd_base",
+            "pdo",
+            "input/input_ds/predict_name",
+        ],
+        attrs=[
+            Attribute(i64=1),
+            Attribute(s="predict_score"),
+            Attribute(i64=600),
+            Attribute(f=20),
+            Attribute(f=20),
+            Attribute(ss=["pred"]),
+        ],
+        inputs=[predict_res.outputs[0]],
+        output_uris=[score_card_trans_path],
+    )
+
+    score_card_trans_res = score_card_transformer_comp.eval(
+        param=score_card_trans_param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
+
+    expected_input = [f"a{i}" for i in range(4)] + [f"b{i}" for i in range(4)]
+
+    eval_export(
+        work_path,
+        [predict_param, score_card_trans_param],
+        [predict_res, score_card_trans_res],
         storage_config,
         sf_cluster_config,
         expected_input,

@@ -17,6 +17,7 @@ import json
 import logging
 import math
 import os
+import sys
 import threading
 import time
 from dataclasses import dataclass
@@ -28,7 +29,7 @@ import spu
 from google.protobuf.message import Message as PbMessage
 
 from secretflow.component.checkpoint import CompCheckpoint
-from secretflow.component.data_utils import check_dist_data, check_io_def, DistDataType
+from secretflow.component.data_utils import DistDataType, check_dist_data, check_io_def
 from secretflow.component.eval_param_reader import EvalParamReader
 from secretflow.component.storage import ComponentStorage
 from secretflow.device.driver import init, shutdown
@@ -629,6 +630,47 @@ class Component:
         # append
         self.__comp_attr_decls.append(node)
 
+    def col_params_attr(
+        self,
+        name: str,
+        desc: str,
+        table_id: str,
+        list_min_length_inclusive: int = None,
+        list_max_length_inclusive: int = None,
+    ):
+        # sanity checks
+        self._check_reserved_words(name)
+
+        # create pb
+        node = AttributeDef(
+            name=name,
+            desc=clean_text(desc),
+            type=AttrType.AT_COL_PARAMS,
+            col_params_binded_table=table_id,
+        )
+
+        if (
+            list_min_length_inclusive is not None
+            and list_max_length_inclusive is not None
+            and list_min_length_inclusive > list_max_length_inclusive
+        ):
+            raise CompDeclError(
+                f"list_min_length_inclusive {list_min_length_inclusive} should not be greater than list_max_length_inclusive {list_max_length_inclusive}."
+            )
+
+        if list_min_length_inclusive is not None:
+            node.atomic.list_min_length_inclusive = list_min_length_inclusive
+        else:
+            node.atomic.list_min_length_inclusive = 0
+
+        if list_max_length_inclusive is not None:
+            node.atomic.list_max_length_inclusive = list_max_length_inclusive
+        else:
+            node.atomic.list_max_length_inclusive = -1
+
+        # append
+        self.__comp_attr_decls.append(node)
+
     def party_attr(
         self,
         name: str,
@@ -754,6 +796,7 @@ class Component:
         name: str,
         desc: str,
         types: List[DistDataType],
+        is_optional: bool = False,
         col_params: List[TableColParam] = None,
     ):
         # create pb
@@ -762,6 +805,7 @@ class Component:
         io_def = IoDef(
             name=name,
             desc=clean_text(desc),
+            is_optional=is_optional,
             types=types,
         )
 
@@ -798,6 +842,25 @@ class Component:
         self.__checkpoint_cls = cls
         return cls
 
+    def _check_col_params_table_id(self, attr):
+        if attr.type == AttrType.AT_COL_PARAMS:
+            table_io_names = [
+                io.name
+                for io in self.__input_io_decls
+                if all(
+                    t
+                    in {
+                        str(DistDataType.VERTICAL_TABLE),
+                        str(DistDataType.INDIVIDUAL_TABLE),
+                    }
+                    for t in io.types
+                )
+            ]
+            if attr.col_params_binded_table not in table_io_names:
+                raise CompDeclError(
+                    f"table_id {attr.col_params_binded_table} is not defined correctly in input."
+                )
+
     def definition(self):
         if self.__definition is None:
             comp_def = ComponentDef(
@@ -808,6 +871,7 @@ class Component:
             )
 
             for a in self.__comp_attr_decls:
+                self._check_col_params_table_id(a)
                 args_full_name = "_".join(list(a.prefixes) + [a.name])
                 if args_full_name in self.__argnames:
                     raise CompDeclError(f"attr {a.name} is duplicate.")
@@ -1127,15 +1191,17 @@ class Component:
             ret = self.__eval_callback(ctx=ctx, **kwargs)
         except Exception as e:
             on_error = True
-            logging.error(f"eval on {param} failed, error <{e}>")
+            logging.exception(f"eval on {param} failed")
             # TODO: use error_code in report
-            raise e from None
         finally:
             if cluster_config is not None:
                 shutdown(
                     barrier_on_shutdown=cluster_config.public_config.barrier_on_shutdown,
                     on_error=on_error,
                 )
+            if on_error:
+                logging.shutdown()
+                os._exit(1)
 
         logging.info(f"{param}, getting eval return complete.")
         # check output

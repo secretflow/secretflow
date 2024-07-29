@@ -353,3 +353,4 @@ selected-keys.*
 temp
 # pytest-testmon db
 .testmondata*
+*BeaverCache*

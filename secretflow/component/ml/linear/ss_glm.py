@@ -35,7 +35,7 @@ from secretflow.device.device.pyu import PYU
 from secretflow.device.device.spu import SPU, SPUObject
 from secretflow.device.driver import reveal
 from secretflow.ml.linear import SSGLM
-from secretflow.ml.linear.ss_glm.core import get_link, Linker
+from secretflow.ml.linear.ss_glm.core import Linker, get_link
 from secretflow.ml.linear.ss_glm.model import STOPPING_METRICS
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData
@@ -44,7 +44,7 @@ from secretflow.spec.v1.report_pb2 import Descriptions, Div, Report, Tab, Table
 ss_glm_train_comp = Component(
     "ss_glm_train",
     domain="ml.train",
-    version="0.0.2",
+    version="0.0.3",
     desc="""generalized linear model (GLM) is a flexible generalization of ordinary linear regression.
     The GLM generalizes linear regression by allowing the linear model to be related to the response
     variable via a link function and by allowing the magnitude of the variance of each measurement to
@@ -164,13 +164,15 @@ ss_glm_train_comp.float_attr(
 
 ss_glm_train_comp.int_attr(
     name="infeed_batch_size_limit",
-    desc="""size of a single block, default to 10w * 100. increase the size will increase memory cost,
+    desc="""size of a single block, default to 8w * 100. increase the size will increase memory cost,
         but may decrease running time. Suggested to be as large as possible. (too large leads to OOM) """,
     is_list=False,
     is_optional=True,
-    default_value=10000000,
+    default_value=8000000,
     lower_bound=1000,
     lower_bound_inclusive=True,
+    upper_bound=8000000,
+    upper_bound_inclusive=True,
 )
 
 
@@ -245,12 +247,41 @@ ss_glm_train_comp.bool_attr(
 )
 
 ss_glm_train_comp.bool_attr(
+    name="use_high_precision_exp",
+    desc="""If you do not know the details of this parameter, please do not modify this parameter!
+    If this option is true, glm training and prediction will use a high-precision exp approx,
+    but there will be a large performance drop. Otherwise, use high performance exp approx,
+    There will be no significant difference in model performance.
+    However, prediction bias may occur if the model is exported to an external system for use.""",
+    is_list=False,
+    is_optional=True,
+    default_value=False,
+)
+
+ss_glm_train_comp.int_attr(
+    name="exp_iters",
+    desc="""If you do not know the details of this parameter, please do not modify this parameter!
+    Specify the number of iterations of exp taylor approx,
+    Only takes effect when use_high_precision_exp is false.
+    Increasing this value will improve the accuracy of exp approx,
+    but will quickly degrade performance.""",
+    is_list=False,
+    is_optional=True,
+    default_value=8,
+    lower_bound=4,
+    lower_bound_inclusive=True,
+    upper_bound=32,
+    upper_bound_inclusive=True,
+)
+
+ss_glm_train_comp.bool_attr(
     name="report_weights",
     desc="If this option is set to true, model will be revealed and model details are visible to all parties",
     is_list=False,
     is_optional=True,
     default_value=False,
 )
+
 ss_glm_train_comp.io(
     io_type=IoType.INPUT,
     name="train_dataset",
@@ -397,6 +428,8 @@ def ss_glm_train_eval_fn(
     train_dataset_label,
     output_model,
     train_dataset_feature_selects,
+    use_high_precision_exp,
+    exp_iters,
     report,
 ):
     if ctx.spu_configs is None or len(ctx.spu_configs) == 0:
@@ -410,6 +443,11 @@ def ss_glm_train_eval_fn(
     # forced to use 128 ring size & 40 fxp
     cluster_def["runtime_config"]["field"] = "FM128"
     cluster_def["runtime_config"]["fxp_fraction_bits"] = 40
+    if use_high_precision_exp:
+        cluster_def["runtime_config"]["fxp_exp_mode"] = 1
+    else:
+        cluster_def["runtime_config"]["fxp_exp_mode"] = 2
+    cluster_def["runtime_config"]["fxp_exp_iters"] = exp_iters
 
     spu = SPU(cluster_def, spu_config["link_desc"])
 
@@ -548,9 +586,12 @@ def ss_glm_train_eval_fn(
         "y_scale": glm.y_scale,
         "offset_col": offset_col,
         "label_col": train_dataset_label,
+        "sample_weight_col": train_dataset_weight,
         "feature_names": feature_names,
         "party_features_length": party_features_length,
         "model_hash": generate_random_string(next(iter(x.partition_columns.keys()))),
+        "fxp_exp_mode": cluster_def["runtime_config"]["fxp_exp_mode"],
+        "fxp_exp_iters": cluster_def["runtime_config"]["fxp_exp_iters"],
     }
 
     model_db = model_dumps(
@@ -784,13 +825,16 @@ def ss_glm_predict_eval_fn(
 
     cluster_def = spu_config["cluster_def"].copy()
 
+    model_public_info = get_model_public_info(model)
+
     # forced to use 128 ring size & 40 fxp
     cluster_def["runtime_config"]["field"] = "FM128"
     cluster_def["runtime_config"]["fxp_fraction_bits"] = 40
+    # use train exp config
+    cluster_def["runtime_config"]["fxp_exp_mode"] = model_public_info["fxp_exp_mode"]
+    cluster_def["runtime_config"]["fxp_exp_iters"] = model_public_info["fxp_exp_iters"]
 
     spu = SPU(cluster_def, spu_config["link_desc"])
-
-    model_public_info = get_model_public_info(model)
 
     glm = SSGLM(spu)
     glm.spu_w, glm.link, glm.y_scale = load_ss_glm_model(ctx, spu, model)

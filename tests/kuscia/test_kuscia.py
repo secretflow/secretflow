@@ -32,23 +32,34 @@ from secretflow.spec.v1.data_pb2 import DistData, IndividualTable, TableSchema
 
 def test_load_configs():
     kuscia_request_json = {
-        "task_id": "secretflow-task-20230511100309-single-psi",
-        "task_cluster_def": '{"parties":[{"name":"alice","services":[{"port_name":"fed","endpoints":["secretflow-task-20230511100309-single-psi-0-fed.alice.svc"]},{"port_name":"global","endpoints":["secretflow-task-20230511100309-single-psi-0-global.alice.svc:8081"]},{"port_name":"spu","endpoints":["secretflow-task-20230511100309-single-psi-0-spu.alice.svc"]}]},{"name":"bob","services":[{"port_name":"spu","endpoints":["secretflow-task-20230511100309-single-psi-0-spu.bob.svc"]},{"port_name":"fed","endpoints":["secretflow-task-20230511100309-single-psi-0-fed.bob.svc"]},{"port_name":"global","endpoints":["secretflow-task-20230511100309-single-psi-0-global.bob.svc:8081"]}]}]}',
-        "allocated_ports": '{"ports":[{"name":"spu","port":54509,"scope":"Cluster","protocol":"GRPC"},{"name":"fed","port":8080,"scope":"Cluster","protocol":"GRPC"},{"name":"global","port":8081,"scope":"Domain","protocol":"GRPC"}]}',
+        "task_id": "secretflow-task-20240705104523-single-psi",
+        "task_cluster_def": '{"parties":[{"name":"alice","role":"","services":[{"portName":"spu","endpoints":["secretflow-task-20240705104523-single-psi-0-spu.alice.svc"]},{"portName":"fed","endpoints":["secretflow-task-20240705104523-single-psi-0-fed.alice.svc"]},{"portName":"global","endpoints":["secretflow-task-20240705104523-single-psi-0-global.alice.svc:25815"]}]},{"name":"bob","role":"","services":[{"portName":"spu","endpoints":["secretflow-task-20240705104523-single-psi-0-spu.bob.svc"]},{"portName":"fed","endpoints":["secretflow-task-20240705104523-single-psi-0-fed.bob.svc"]},{"portName":"global","endpoints":["secretflow-task-20240705104523-single-psi-0-global.bob.svc:30818"]}]}],"selfPartyIdx":0,"selfEndpointIdx":0}',
+        "allocated_ports": '{"ports":[{"name":"spu","port":25813,"scope":"Cluster","protocol":"GRPC"},{"name":"fed","port":25814,"scope":"Cluster","protocol":"GRPC"},{"name":"global","port":25815,"scope":"Domain","protocol":"GRPC"},{"name":"node-manager","port":25810,"scope":"Local","protocol":"GRPC"},{"name":"object-manager","port":25811,"scope":"Local","protocol":"GRPC"},{"name":"client-server","port":25812,"scope":"Local","protocol":"GRPC"}]}',
     }
 
     kuscia_config = KusciaTaskConfig.from_json(kuscia_request_json)
 
-    assert kuscia_config.task_id == "secretflow-task-20230511100309-single-psi"
+    assert kuscia_config.task_id == "secretflow-task-20240705104523-single-psi"
     assert len(kuscia_config.task_cluster_def.parties) == 2
-    assert len(kuscia_config.task_allocated_ports.ports) == 3
+    assert len(kuscia_config.task_allocated_ports.ports) == 6
 
     ray_config = RayConfig.from_kuscia_task_config(kuscia_config)
     assert (
         ray_config.ray_node_ip_address
-        == "secretflow-task-20230511100309-single-psi-0-global.alice.svc"
+        == "secretflow-task-20240705104523-single-psi-0-global.alice.svc"
     )
-    assert ray_config.ray_gcs_port == 8081
+    assert ray_config.ray_gcs_port == 25815
+    assert (
+        ray_config.ray_min_worker_port
+        >= 10000 & ray_config.ray_min_worker_port
+        <= 20000
+    )
+    assert (
+        ray_config.ray_max_worker_port
+        >= 10000 & ray_config.ray_max_worker_port
+        <= 20000
+    )
+    assert ray_config.ray_max_worker_port - ray_config.ray_min_worker_port == 100
 
 
 def test_get_sf_cluster_config():

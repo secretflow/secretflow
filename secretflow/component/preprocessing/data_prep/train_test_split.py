@@ -105,7 +105,6 @@ def train_test_split_eval_fn(
     )
 
     pyus = list(input_df.partitions.keys())
-    assert len(pyus) == 2
 
     with ctx.tracer.trace_running():
         train_df, test_df = train_test_split_fn(
