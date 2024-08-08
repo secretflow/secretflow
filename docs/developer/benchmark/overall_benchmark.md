@@ -27,15 +27,10 @@ Each party holds 100000000 size random data
 | element-wise less comparison  | 3355.8496                | -                     | 813.28057               |
 
 ## PSI and PIR Operation Benchmark
+PIR benchmark table
 
-PSI benchmark table
+Please refer to [Benchmark](psi_benchmark.md$my-target-section) .
 
-| Party       | Balance Status | Latency | Time (s) | Time (h) | Algorithm |
-|-------------|----------------|---------|--------|---------|-----------|
-| Two-party   | Balanced       | 50msec |  6948   | 1:55:48 | ECDH     |
-| Two-party   | Unbalanced     | 50msec |  1619   | 0:26:59 | ECDH     |
-| Three-party |  Balanced      | 50msec | 18836   | 5:13:56 | ECDH_3PC |
-| Three-party |  Unbalanced    | 50msec |  9556   | 2:39:16 | ECDH_3PC |
 
 PIR benchmark table (only 2 party setting)
 
