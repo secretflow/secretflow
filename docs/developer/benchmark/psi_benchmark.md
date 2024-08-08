@@ -148,7 +148,7 @@ ray start --address="192.168.0.1:9394" --resources='{"carol": 8}'
 
 #### 生成数据
 
-把[generate_psi.py](https://github.com/secretflow/spu/blob/main/libspu/psi/tools/generate_psi.py)脚本传到alice机器的root目录下
+把[generate_psi.py](./resources/generate_psi.py)脚本传到alice机器的root目录下
 执行如下代码
 ```
 # 生成三份一千万数据,默认交集50\%
