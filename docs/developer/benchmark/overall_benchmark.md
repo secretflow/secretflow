@@ -28,10 +28,12 @@ Each party holds 100000000 size random data
 
 ## PSI and PIR Operation Benchmark
 
+### PSI Benchmark(CAICT testing standards) 
+
 Please refer to [Benchmark under the CAICT testing standards](psi_benchmark.md#信通院测试标准下的benchmark).
 > CAICT: China Academy of Information and Communications Technology.
 
-PIR benchmark table (only 2 party setting)
+### PIR benchmark table (only 2 party setting)
 
 |Query ID Count| Indistinguishability | Latency | Time (s) | Time (h) | Algorithm   |
 |--------------|----------------------|---------|--------|---------|-------------|
