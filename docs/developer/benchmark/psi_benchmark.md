@@ -472,11 +472,7 @@ if __name__ == '__main__':
 - 信通院标准：带宽设定分别为LAN、100Mbps/50ms，数据量涵盖1亿（标准测试）和10亿（大规模测试）。
 
 #### 隐语标准下的Benchmark
-![](./resources/psi_bench_sf_stand.svg)
-
-<!-- <img src="./resources/psi_bench_sf_stand.svg" alt="描述文本" width="600" height="400"> -->
-
-
+![](./resources/psi_bench_sf_stand.png)
 
 - ECDH：对网络配置不敏感，对计算资源敏感，适合带宽较低、计算配置较高的使用场景；
 - KKRT：网络设置为100Mbps时，带宽成为瓶颈。通常用于两方数据量均衡时，适合高带宽的使用场景；
