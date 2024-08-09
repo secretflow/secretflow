@@ -3,16 +3,16 @@
 > This tutorial is only available in Chinese.
 
 ## 导语
-为了方便大家了解隐语PSI的Benchmark，我们设计了10分钟上手手册，包含了亮点介绍、SecretFlow集群的易用搭建、Benchmark脚本、两方和三方PSI的Benchmark，希望能够帮助用户快速了解隐语PSI。
+为了方便大家快速了解隐语PSI的Benchmark，我们设计了10分钟上手手册，包含了亮点介绍、SecretFlow集群的易用搭建、Benchmark脚本、两方和三方PSI的Benchmark，希望能够帮助用户快速了解隐语PSI。
 
 ## 隐语PSI亮点
-隐私集合求交（Private Set Intersection，简写为：PSI）是一类特定的安全多方计算（Multi-Party Computation, 即MPC）问题，其问题可以简单理解为：Alice 输入集合 X，Bob 输入集合 Y，双方执行 PSI 协议可以得到 Alice 和 Bob 两者的交集，同时不在交集范围中的数据是受保护的，即 Alice 和 Bob 无法学习到除了交集以外的任何信息。
+隐私集合求交（Private Set Intersection，简写为：PSI）是一类特定的安全多方计算（Multi-Party Computation, 即MPC）问题，其问题可以简单理解为：Alice 输入集合 X，Bob 输入集合 Y，双方执行 PSI 协议可以得到 X 和 Y 的交集，同时不在交集范围中的数据是受保护的，即 Alice 和 Bob 无法学习到除了交集以外的任何数据。
 
-PSI协议有很多分类方法，按照底层依赖的密码学技术分类主要包括：
-- 基于公钥密码的PSI方案，包括：基于判定型密钥交换（DDH: Decisional Diffie-Hellman）的PSI方案和RSA盲签名的PSI方案；
-- 基于不经意传输（OT: Oblivious Transfer）的PSI方案；
-- 基于通用MPC的PSI方案，例如基于混淆电路（GC: Garbled Circuit）的PSI方案；
-- 基于同态加密（Homomorphic Encryption）的PSI方案。
+PSI协议有很多分类方法，按照底层依赖的密码学技术分类，主要包括：
+- 基于公钥密码的PSI方案，包括：基于判定型密钥交换（Decisional Diffie-Hellman, DDH）的PSI方案和基于RSA盲签名的PSI方案；
+- 基于不经意传输（Oblivious Transfer, OT）的PSI方案；
+- 基于通用MPC的PSI方案，例如基于混淆电路（Garbled Circuit, GC）的PSI方案；
+- 基于同态加密（Homomorphic Encryption, HE）的PSI方案。
 
 PSI协议按照参与方的数量进行分类，可分为：
 - 两方PSI：参与方为2个；
@@ -26,23 +26,25 @@ PSI协议按照设参与方的数据量差异，可分为：
 - 平衡PSI：参与方的数据量差异不大；
 - 非平衡PSI：参与方的数据量差异巨大，例如百万 vs 10亿。
 
-SecretFlow SPU 实现了半诚实模型下的两方和三方PSI协议，计算安全强度是128-bit，统计安全参数是40-bit。
+SecretFlow SPU 实现了半诚实模型下的两方和三方PSI协议，计算安全强度是128-bit，统计安全强度是40-bit。
 - 两方PSI协议：
   - 基于DDH的PSI协议
-    - 基于DDH的PSI协议先对简单易于理解和实现，依赖的密码技术已被广泛论证，通信量低，但计算量较大。
+    - 基于DDH的PSI协议相对简单易于理解和实现，依赖的密码技术已被广泛论证，通信量低，但计算量较大。
     - 隐语实现了基于椭圆曲线(Elliptic Curve)群的DDH PSI协议，支持的椭圆曲线类型包括：Curve25519,FourQ,SM2,Secp256k1等。
   - 基于OT扩展的KKRT16
-    - KKRT16是第一个千万规模($2^{24}$)求交时间在1分钟之内的PSI方案，通信量较大；
+    - KKRT16是第一个千万规模($2^{24}$)数据量求交时间在1分钟之内的PSI方案，通信量较大；
     - 隐语实现了KKRT16协议，并参考了进年来的性能优化和安全改进方案，例如：stash-less CuckooHash，[GKWW20]中 FixedKey AES作为 correlation-robust 哈希函数。
   - 基于PCG的RR22
-    - RR22 PSI依赖的PCG(Pseudorandom Correlation Generator)方案是近年来mpc方向的研究热点，相比KKRT16计算量和通信两方面都有了很大改进，从成本(monetary cost)角度更能满足实际业务需求。PCG实现依赖了近年来发展迅速的Silent-Vole原语。
+    - RR22 PSI依赖的PCG(Pseudorandom Correlation Generator)方案是近年来mpc方向的研究热点，相比KKRT16在计算量和通信两方面都有了很大改进，从成本(monetary cost)角度更能满足实际业务需求。PCG实现依赖了近年来发展迅速的Silent-Vole原语，隐语在自研的底层密码库[YACL](https://github.com/secretflow/yacl)中已经实现了Silent-Vole相关原语。
 - 三方PSI协议：
   - 基于DDH的三方PSI协议
-    - 隐语自研了基于 ECDH 的三方 PSI 协议，注意我们实现的这个协议会泄漏两方交集大小，请自行判断是否满足使用场景的安全性。
+    - 隐语自研了基于 ECDH 的三方 PSI 协议.**注意我们实现的这个协议会泄漏两方交集大小**，请自行判断是否满足使用场景的安全性。
 
 - 非平衡PSI协议：
     - 基于ECDH-OPRF的非平衡PSI协议
-        - 隐语实现并开源了基于ECDH-OPRF的非平衡PSI(Unbalanced PSI)协议，在数据量非平衡场景下能得到更好的性能。具体来讲：与ecdh-psi对比，ecdh-psi在大数据集上进行两次加密操作。隐语实现的非平衡PSI只在大数据集上进行一次加密操作，在大数据集与小数据集的体量相差非常大的时候，总体计算量和运行时间大约是ecdh-psi的1/2。非平衡PSI还把协议分成离线和在线（offline/online）两个阶段，在提前执行离线（offline）缓存的情形下，在线阶段只需少量时间即可得到交集结果。
+        - 隐语实现并开源了基于ECDH-OPRF的非平衡PSI(Unbalanced PSI)协议，在数据量非平衡场景下能得到更好的性能。
+        - 具体来讲：与ECDH-PSI对比，ECDH-PSI需要在大数据集上进行两次加密操作；隐语实现的非平衡PSI只在大数据集上进行一次加密操作。所以在大数据集与小数据集的体量相差非常大的时候，总体计算量和运行时间大约仅是ECDH-PSI的$50\%$。
+        - 非平衡PSI还把协议分成离线和在线（offline/online）两个阶段，在提前执行离线（offline）阶段，得到离线数据缓存的情形下，在线阶段只需少量时间即可得到交集结果。
 
 
 
@@ -56,8 +58,11 @@ SecretFlow SPU 实现了半诚实模型下的两方和三方PSI协议，计算�
 - 硬盘：500G
 ### 二、安装conda
 使用conda管理python环境，如果机器没有conda需要先安装，步骤如下：
-#sudo apt-get install wget
+```
+sudo apt-get install wget
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+```
+
 
 #### 详细步骤
 ```
@@ -116,10 +121,12 @@ root目录下输入python然后回车；
 #### 创建ray header节点
 创建ray header节点，选择一台机器为主机，在主机上执行如下命令，ip替换为主机的内网ip，命名为alice，端口选择一个空闲端口即可
 注意：192.168.0.1 ip为mock的，请替换为实际的ip地址
+
 ```
 RAY_DISABLE_REMOTE_CODE=true \
 ray start --head --node-ip-address="192.168.0.1" --port="9394" --resources='{"alice": 8}' --include-dashboard=False
 ```
+
 #### 创建从属节点
 创建从属节点，在bob机器执行如下命令，ip依然填alice机器的内网ip，命名为bob，端口不变
 ```
@@ -148,10 +155,9 @@ ray start --address="192.168.0.1:9394" --resources='{"carol": 8}'
 
 #### 生成数据
 
-把[generate_psi.py](./resources/generate_psi.py)脚本传到alice机器的root目录下
-执行如下代码
+把[generate_psi.py](./resources/generate_psi.py)脚本传到alice机器的root目录下，执行如下代码
 ```
-# 生成三份一千万数据,默认交集50\%
+# 生成三份一千万数据,默认交集50%
 python3 generate_psi.py 10000000 10000000
 
 # 生成三份一亿数据
@@ -471,14 +477,12 @@ if __name__ == '__main__':
 - 隐语标准：带宽设定分别为LAN、100Mbps/10ms； 数据量涵盖1千万、1亿、10亿。
 - 信通院标准：带宽设定分别为LAN、100Mbps/50ms，数据量涵盖1亿（标准测试）和10亿（大规模测试）。
 
-#### 隐语标准下的Benchmark
+#### 隐语测试标准下的Benchmark
 ![](./resources/psi_bench_sf_stand.png)
 
 - ECDH：对网络配置不敏感，对计算资源敏感，适合带宽较低、计算配置较高的使用场景；
 - KKRT：网络设置为100Mbps时，带宽成为瓶颈。通常用于两方数据量均衡时，适合高带宽的使用场景；
 
-
-
-#### 信通院标准下的Benchmark {#my-target-section}
+#### 信通院测试标准下的Benchmark
 
 ![](./resources/psi_bench_xty_stand.png)

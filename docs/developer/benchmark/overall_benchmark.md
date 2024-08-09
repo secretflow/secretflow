@@ -27,12 +27,12 @@ Each party holds 100000000 size random data
 | element-wise less comparison  | 3355.8496                | -                     | 813.28057               |
 
 ## PSI and PIR Operation Benchmark
-PIR benchmark table
+### PSI benchmark table
 
-Please refer to [Benchmark](psi_benchmark.md$my-target-section) .
+Please refer to [Benchmark](psi_benchmark.md#信通院测试标准下的benchmark-my-target-section) .
 
 
-PIR benchmark table (only 2 party setting)
+### PIR benchmark table (only 2 party setting)
 
 |Query ID Count| Indistinguishability | Latency | Time (s) | Time (h) | Algorithm   |
 |--------------|----------------------|---------|--------|---------|-------------|
