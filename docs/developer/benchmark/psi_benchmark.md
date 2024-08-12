@@ -474,12 +474,460 @@ if __name__ == '__main__':
 - 隐语标准：带宽设定分别为LAN、100Mbps/10ms； 数据量涵盖1千万、1亿、10亿。
 - 信通院标准：带宽设定分别为LAN、100Mbps/50ms，数据量涵盖1亿（标准测试）和10亿（大规模测试）。
 
+
+> 时间单位默认为秒，m表示分钟，h表示小时。
+
+
 #### 隐语测试标准下的Benchmark
-![](./resources/psi_bench_sf_stand.png)
+
+<table>
+  <tr>
+    <th>机器配置</th>
+    <th>算法参数</th>
+    <th>协议</th>
+    <th>网络配置</th>
+    <th>1kw~1kw</th>
+    <th>1亿~1亿</th>
+    <th>10亿~10亿</th>
+  </tr>
+  <tr>
+    <td rowspan="16">32C64G</td>
+    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">ECDH-PSI-2PC<br/> (FourQ)</td>
+    <td>LAN</td>
+    <td>73</td>
+    <td>723</td>
+    <td>7491 (2.08 h)</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>74</td>
+    <td>729</td>
+    <td>7387 (2.06 h)</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type='CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">ECDH-PSI-2PC <br/>(CURVE_25519)</td>
+    <td>LAN</td>
+    <td>110</td>
+    <td>1129</td>
+    <td><11377 (3.16 h)</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>115</td>
+    <td>1142</td>
+    <td>11504 (3.19 h)</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">ECDH-PSI-3PC <br/> (FourQ)</td>
+    <td>LAN</td>
+    <td>113</td>
+    <td>1170</td>
+    <td>13097 (3.63 h)</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>115</td>
+    <td>1199</td>
+    <td>12964 (3.60 h)</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type='CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">ECDH-PSI-3PC (CURVE_25519)<br>(3个参与方持有相同数据的50%，最后交集占比50%)</td>
+    <td>LAN</td>
+    <td>203</td>
+    <td>2017</td>
+    <td>22717 (6.16 h)</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>239</td>
+    <td>2349</td>
+    <td>25807 (7.2 h)</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='KKRT_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">KKRT_PSI_2PC<br>(百万分桶)</td>
+    <td>LAN</td>
+    <td>56</td>
+    <td>558</td>
+    <td>5970 (1.61 h)</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>144</td>
+    <td>1393</td>
+    <td>14295 (3.97 h)</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='RR22_FAST_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">RR22_FAST_PSI_2PC<br>(百万分桶)</td>
+    <td>LAN</td>
+    <td>28</td>
+    <td>273</td>
+    <td>3176 (0.88 h = 53 m)</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>63</td>
+    <td>575</td>
+    <td>6025 (1.6 h)</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='RR22_LOWCOMM_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">RR22_LOWCOMM_PSI_2PC<br>(百万分桶)</td>
+    <td>LAN</td>
+    <td>31</td>
+    <td>317</td>
+    <td>3614 (1.00 h)</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>53</td>
+    <td>481</td>
+    <td>5310 (1.47 h)</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='RR22_MALICIOUS_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">RR22_MALICIOUS_PSI_2PC<br>(百万分桶)</td>
+    <td>LAN</td>
+    <td>23</td>
+    <td>232</td>
+    <td>1791 (0.49 h)</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>82</td>
+    <td>705</td>
+    <td>6840 (1.9 h)</td>
+  </tr>
+
+
+
+
+
+  <tr>
+    <td rowspan="16">16C32G</td>
+    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">ECDH-PSI-2PC <br/>(FourQ)</td>
+    <td>LAN</td>
+    <td>96.</td>
+    <td>991.</td>
+    <td>2.82 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>97.</td>
+    <td>991.</td>
+    <td>2.79 h</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type='CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">ECDH-PSI-2PC <br/>(CURVE_25519)</td>
+    <td>LAN</td>
+    <td>170.</td>
+    <td>1730.</td>
+    <td>4.8 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>179.</td>
+    <td>1790.</td>
+    <td>5.02 h</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">ECDH-PSI-3PC <br/>(FourQ)</td>
+    <td>LAN</td>
+    <td>174.</td>
+    <td>1687.</td>
+    <td>5.4 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>209.</td>
+    <td>2007.</td>
+    <td>6.5 h</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type='CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">ECDH-PSI-3PC (CURVE_25519)<br>(3个参与方持有相同数据的50%，最后交集占比50%)</td>
+    <td>LAN</td>
+    <td>346.</td>
+    <td>3456.</td>
+    <td>10.6 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>383.</td>
+    <td>3781.</td>
+    <td>11.7 h</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='KKRT_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">KKRT_PSI_2PC<br>(百万分桶)</td>
+    <td>LAN</td>
+    <td>55.</td>
+    <td>565.</td>
+    <td>2.05 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>147.</td>
+    <td>1435.</td>
+    <td>4.34 h</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='RR22_FAST_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">RR22_FAST_PSI_2PC<br>(百万分桶)</td>
+    <td>LAN</td>
+    <td>31.</td>
+    <td>273.</td>
+    <td>1.17 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>69.</td>
+    <td>628.</td>
+    <td>2.06 h</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='RR22_LOWCOMM_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">RR22_LOWCOMM_PSI_2PC<br>(百万分桶)</td>
+    <td>LAN</td>
+    <td>31.</td>
+    <td>308.</td>
+    <td>1.37 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>58.</td>
+    <td>628.</td>
+    <td>1.87 h</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='RR22_MALICIOUS_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">RR22_MALICIOUS_PSI_2PC<br>(百万分桶)</td>
+    <td>LAN</td>
+    <td>23.</td>
+    <td>184.</td>
+    <td>0.57 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>86.</td>
+    <td>737.</td>
+    <td>2.05 h</td>
+  </tr>
+
+
+
+  <tr>
+    <td rowspan="16">8C16G</td>
+    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">ECDH-PSI-2PC<br/> (FourQ)</td>
+    <td>LAN</td>
+    <td>145</td>
+    <td>1453</td>
+    <td>4.12 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>147</td>
+    <td>1470</td>
+    <td>4.14 h</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type='CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">ECDH-PSI-2PC<br/> (CURVE_25519)</td>
+    <td>LAN</td>
+    <td>302</td>
+    <td>3021</td>
+    <td>8.4 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>302</td>
+    <td>3025</td>
+    <td>8.4 h</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">ECDH-PSI-3PC<br/> (FourQ)</td>
+    <td>LAN</td>
+    <td>277</td>
+    <td>2700</td>
+    <td>8.4 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>313</td>
+    <td>3059</td>
+    <td>9.5 h</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type='CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">ECDH-PSI-3PC <br/> (CURVE_25519)<br>(3个参与方持有相同数据的50%，最后交集占比50%)</td>
+    <td>LAN</td>
+    <td>633</td>
+    <td>6298</td>
+    <td>19 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>672</td>
+    <td>6620</td>
+    <td>20.18 h</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='KKRT_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">KKRT_PSI_2PC<br>(百万分桶)</td>
+    <td>LAN</td>
+    <td>59</td>
+    <td>570</td>
+    <td>2.0 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>148</td>
+    <td>1441</td>
+    <td>4.3 h</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='RR22_FAST_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">RR22_FAST_PSI_2PC<br>(百万分桶)</td>
+    <td>LAN</td>
+    <td>31</td>
+    <td>277</td>
+    <td>1.19 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>70</td>
+    <td>636</td>
+    <td>2.08 h</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='RR22_LOWCOMM_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">RR22_LOWCOMM_PSI_2PC<br>(百万分桶)</td>
+    <td>LAN</td>
+    <td>35</td>
+    <td>319</td>
+    <td>1.41 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>58</td>
+    <td>520</td>
+    <td>1.86 h</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='RR22_MALICIOUS_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">RR22_MALICIOUS_PSI_2PC<br>(百万分桶)</td>
+    <td>LAN</td>
+    <td>25</td>
+    <td>194</td>
+    <td>0.6 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>80</td>
+    <td>734</td>
+    <td>2.05 h</td>
+  </tr>
+</table>
+
+
 
 - ECDH：对网络配置不敏感，对计算资源敏感，适合带宽较低、计算配置较高的使用场景；
 - KKRT：网络设置为100Mbps时，带宽成为瓶颈。通常用于两方数据量均衡时，适合高带宽的使用场景；
 
 #### 信通院测试标准下的Benchmark
 
-![](./resources/psi_bench_xty_stand.png)
+<table>
+  <tr>
+    <th>机器配置</th>
+    <th>算法参数</th>
+    <th>协议</th>
+    <th>大规模<br/>（10亿~10亿）<br/>（100Mbps/50ms）</th>
+    <th>标准<br/>1亿～1亿<br/>（LAN）</th>
+  </tr>
+  <tr>
+    <td rowspan="10">32C256G</td>
+    <td>"receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type = 'CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td>ECDH-PSI-2PC<br/>(CURVE_FOURQ)</td>
+    <td>7764<br/>(2.15 h)</td>
+    <td>729</td>
+  </tr>
+
+<tr>
+    <td>"receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type = 'CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td>ECDH-PSI-2PC<br/>(CURVE_25519)</td>
+    <td>11555<br/>(3.2 h)</td>
+    <td>1131</td>
+  </tr>
+
+  <tr>
+    <td>"receiver='alice',<br>protocol='ECDH_OPRF_UB_PSI_2PC',<br>curve_type = 'CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td>ECDH_OPRF_UB_PSI_2PC<br/>(非平衡)<br/>(大规模 10亿&100w=50w) <br/>(标准 1亿&10w=5w) <br/> (CURVE_FOURQ)  </td>
+    <td>offline: 1428 (23m)<br/>offline: 300 (5m)</td>
+     <td>offline: 139<br/>offline: 31</td>
+  </tr>
+
+  <tr>
+    <td>"receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type = 'CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td>ECDH_PSI_3PC<br/>(CURVE_FOURQ)</td>
+    <td>17599</br>(4.8 h)</td>
+     <td>1172</td>
+  </tr>
+
+
+<tr>
+    <td>"receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type = 'CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td>ECDH_PSI_3PC<br/>(CURVE_25519)</td>
+    <td>26220</br>(7.28 h)</td>
+     <td>2022</td>
+  </tr>
+
+
+<tr>
+    <td>"receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type = 'CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td>ECDH_PSI_3PC<br/>(非平衡)<br/>  (大规模 10亿&10亿&100万=50) <br/>(标准 1亿&1亿&10万=5)<br/>(CURVE_FOURQ)</td>
+    <td>26220</br>(7.28 h)</td>
+     <td>2022</td>
+  </tr>
+
+<tr>
+    <td>"receiver='alice',<br>protocol='KKRT_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td>KKRT_PSI_2PC<br/> (百万分桶)</td>
+    <td>30963</br>(8.6 h)</td>
+     <td>554</td>
+  </tr>
+
+
+<tr>
+    <td>"receiver='alice',<br>protocol='RR22_FAST_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td>RR22_FAST_PSI_2PC<br/> (百万分桶)</td>
+    <td>6236</br>(1.7 h)</td>
+     <td>280</td>
+  </tr>
+
+<tr>
+    <td>"receiver='alice',<br>protocol='RR22_LOWCOMM_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td>RR22_LOWCOMM_PSI_2PC<br/> (百万分桶)</td>
+    <td>5659</br>(1.57 h)</td>
+     <td>323</td>
+  </tr>
+
+<tr>
+    <td>"receiver='alice',<br>protocol='RR22_MALICIOUS_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td>RR22_MALICIOUS_PSI_2PC<br/> (百万分桶)</td>
+    <td>14847</br>(4.12 h)</td>
+     <td>203</td>
+  </tr>
+
+</table>
+
+
