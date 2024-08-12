@@ -21,16 +21,14 @@ from secretflow.ml.nn.core.torch import BaseModule
 
 
 class CatEmbeddingSqrt(nn.Module):
-    """
-    args:
-    离散特征使用Embedding层编码, d_embed等于sqrt(category)
-    categories每一列C特征的最大值
-    d_cat_sum 嵌入向量的维度总和
-    输入shape: [batch_size,d_in],
-    输出shape: [batch_size,d_out]
-    """
 
     def __init__(self, categories: List[int], d_embed_max=100, d_cat_sum=32):
+        """Embedding and stacking layer for alice and bob.
+        Args:
+            categories: list of number of categories for each feature
+            d_embed_max: max embedding size
+            d_cat_sum: sum of embedding size
+        """
         super().__init__()
         self.categories = categories
         self.d_embed_list = [min(max(int(x**0.5), 2), d_embed_max) for x in categories]
@@ -45,7 +43,7 @@ class CatEmbeddingSqrt(nn.Module):
 
     def forward(self, x_cat: torch.Tensor) -> torch.Tensor:
         """
-        param x_cat: Long tensor of size ``(batch_size, d_in)``
+        x_cat: Long tensor of size ``(batch_size, d_in)``
         """
         x_out = torch.cat(
             [self.embedding_list[i](x_cat[:, i]) for i in range(len(self.categories))],
@@ -56,6 +54,12 @@ class CatEmbeddingSqrt(nn.Module):
 
 class Deep(nn.Module):
     def __init__(self, d_in: int, d_layers: List[int], dropout: float):
+        """Deep Network for each single party.  The deep network is a fully-connected feed-forward neural network.
+        Args:
+            d_in: input dimension
+            d_layers: list of layer dimensions
+            dropout: dropout rate
+        """
         super().__init__()
         layers = []
         for d in d_layers:
@@ -72,6 +76,11 @@ class Deep(nn.Module):
 
 class Cross(nn.Module):
     def __init__(self, d_in: int, n_cross: int = 2):
+        """Cross Network for each single party.  The key idea of our novel cross network is to apply explicit feature crossing in an efficient way.
+        Args:
+            d_in: input dimension
+            n_cross: number of cross
+        """
         super().__init__()
         self.n_cross = n_cross
         self.linears = nn.ModuleList(
@@ -101,15 +110,16 @@ class DCNBase(BaseModule):
         mlp_layers: List[int] = [128, 64, 32],
         mlp_dropout: float = 0.25,
     ):
+        """A whole model of DCN for each single party.
+        Args:
+            d_numerical: 数值特征的维度
+            categories: 离散特征的每个类别的最大值
+            d_cat_sum: 离散特征的向量嵌入后的总维度
+            d_embed_max: 每个离散特征的嵌入最大维度
+            n_cross: cross数量
+            mlp_layers: deep的每层维度
+        """
         super(DCNBase, self).__init__()
-        '''
-        d_numerical: 数值特征的维度
-        categories: 离散特征的每个类别的最大值
-        d_cat_sum: 离散特征的向量嵌入后的总维度
-        d_embed_max: 每个离散特征的嵌入最大维度
-        n_cross: cross数量
-        mlp_layers: deep的每层维度
-        '''
 
         if d_numerical is None:
             d_numerical = 0
@@ -166,6 +176,11 @@ class DCNBase(BaseModule):
 class DCNFuse(BaseModule):
 
     def __init__(self, n_classes=2, total_fuse_dim=32):
+        """Fuse alice and bob's output into a final output.
+        Args:
+            n_classes: number of classes
+            total_fuse_dim: total dimension of the input
+        """
         super(DCNFuse, self).__init__()
         self.n_classes = n_classes
         self.stack = nn.Linear(total_fuse_dim, n_classes)
@@ -175,7 +190,7 @@ class DCNFuse(BaseModule):
         fuse_input = torch.cat(x, dim=1)
         stack_out = self.stack(fuse_input)
         # if self.n_classes == 1:
-        #     x_out = stack_out.squeeze(-1)
-        x_out = F.sigmoid(stack_out)
+        #     x_out = stack_out.unsqueeze(-1)
+        # x_out = F.sigmoid(stack_out)
 
-        return x_out
+        return stack_out

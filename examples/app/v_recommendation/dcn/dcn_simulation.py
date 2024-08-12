@@ -44,7 +44,7 @@ class AliceDataset(Dataset):
 
     def __getitem__(self, index):
 
-        return (self.x_num[index], self.x_cat[index]), self.label[index]
+        return ((self.x_num[index], self.x_cat[index]), self.label[index])
 
     def __len__(self):
         return len(self.label_df)
@@ -128,7 +128,7 @@ sf.init(['alice', 'bob'], address="local", log_to_driver=False)
 alice, bob = sf.PYU('alice'), sf.PYU('bob')
 
 
-batch_size = 32
+batch_size = 64
 dataset_buidler_dict = {
     alice: create_dataset_builder_alice(batch_size=batch_size),
     bob: create_dataset_builder_bob(
