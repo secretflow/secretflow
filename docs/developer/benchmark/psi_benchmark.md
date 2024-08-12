@@ -3,46 +3,66 @@
 > This tutorial is only available in Chinese.
 
 ## 导语
-为了方便大家了解隐语的Benchmark，我们设计了10分钟上手手册，包含了亮点介绍、SecretFlow集群的易用搭建、Benchmark脚本、两方和三方的Benchmark，使相关业务方做调研时方便拿到可度量的性能数据和可复现的路径。
+为了方便大家快速了解隐语PSI的Benchmark，我们设计了10分钟上手手册，包含了亮点介绍、SecretFlow集群的易用搭建、Benchmark脚本、两方和三方PSI的Benchmark，希望能够帮助用户快速了解隐语PSI。
 
 ## 隐语PSI亮点
-隐私集合求交（Private Set Intersection，简写为：PSI）是一类特定的安全多方计算（Multi-Party Computation, 即MPC）问题，其问题可以简单理解为：Alice 输入集合 X，Bob 输入集合 Y，双方执行 PSI 协议可以得到 Alice 和 Bob 两者的交集，同时不在交集范围内的部分是受保护的，即 Alice 和 Bob 无法学习出交集以外的任何信息。
-隐私集合求交(PSI)协议有很多分类方法，按照底层依赖的密码技术分类主要包括：
-- 基于公钥密码的PSI方案，包括：基于判定型密钥交换（DDH: Decisional Diffie-Hellman）的PSI方案和RSA盲签名的PSI方案；
-- 基于不经意传输（OT: Oblivious Transfer）的PSI方案；
-- 基于通用MPC的PSI方案，例如基于混淆电路（GC: Garbled Circuit）的PSI方案；
-- 基于同态加密（Homomorphic Encryption）的PSI方案。
-隐私集合求交(PSI)协议按照参与方的数量进行分类，可分为：
+隐私集合求交（Private Set Intersection，简写为：PSI）是一类特定的安全多方计算（Multi-Party Computation, 即MPC）问题，其问题可以简单理解为：Alice 输入集合 X，Bob 输入集合 Y，双方执行 PSI 协议可以得到 X 和 Y 的交集，同时不在交集范围中的数据是受保护的，即 Alice 和 Bob 无法学习到除了交集以外的任何数据。
+
+PSI协议有很多分类方法，按照底层依赖的密码学技术分类，主要包括：
+- 基于公钥密码的PSI方案，包括：基于判定型密钥交换（Decisional Diffie-Hellman, DDH）的PSI方案和基于RSA盲签名的PSI方案；
+- 基于不经意传输（Oblivious Transfer, OT）的PSI方案；
+- 基于通用MPC的PSI方案，例如基于混淆电路（Garbled Circuit, GC）的PSI方案；
+- 基于同态加密（Homomorphic Encryption, HE）的PSI方案。
+
+PSI协议按照参与方的数量进行分类，可分为：
 - 两方PSI：参与方为2个；
 - 多方PSI：参与方>2个。
-隐私集合求交(PSI)协议按照设定安全模型分类，可分为：
+
+PSI协议按照所假设的安全模型分类，可分为：
 - 半诚实模型的PSI；
 - 恶意模型的PSI。
-SecretFlow SPU 实现了半诚实模型下的两方和三方PSI协议，密钥安全强度是128bit，统计安全参数是40bit。
-- 两方PSI(Private Set Intersection)协议：
-  - 基于DDH的PSI协议，
-    - 基于DDH的PSI协议先对简单易于理解和实现，依赖的密码技术已被广泛论证，通信量低，但计算量较大。
-    - 隐语实现了基于椭圆曲线(Elliptic Curve)群的DDH PSI协议，支持的椭圆曲线类型包括：Curve25519,SM2,Secp256k1。本次benchmark选用的曲线是Curve25519。
+
+PSI协议按照设参与方的数据量差异，可分为：
+- 平衡PSI：参与方的数据量差异不大；
+- 非平衡PSI：参与方的数据量差异巨大，例如百万 vs 10亿。
+
+SecretFlow SPU 实现了半诚实模型下的两方和三方PSI协议，计算安全强度是128-bit，统计安全强度是40-bit。
+- 两方PSI协议：
+  - 基于DDH的PSI协议
+    - 基于DDH的PSI协议相对简单易于理解和实现，依赖的密码技术已被广泛论证，通信量低，但计算量较大。
+    - 隐语实现了基于椭圆曲线(Elliptic Curve)群的DDH PSI协议，支持的椭圆曲线类型包括：Curve25519,FourQ,SM2,Secp256k1等。
   - 基于OT扩展的KKRT16
-    - KKRT16是第一个千万规模(224)求交时间在1分钟之内的PSI方案，通信量较大；
+    - KKRT16是第一个千万规模($2^{24}$)数据量求交时间在1分钟之内的PSI方案，通信量较大；
     - 隐语实现了KKRT16协议，并参考了进年来的性能优化和安全改进方案，例如：stash-less CuckooHash，[GKWW20]中 FixedKey AES作为 correlation-robust 哈希函数。
-  - 基于PCG的BC22
-    - BC22 PSI依赖的PCG(Pseudorandom Correlation Generator)方案是近年来mpc方向的研究热点，相比KKRT16计算量和通信两方面都有了很大改进，从成本(monetary cost)角度更能满足实际业务需求。PCG实现依赖LPN(Learning Parity with Noise)问题，由于是2022年最新的协议，协议的安全性还需要更多密码专家的分析和论文。
-    - 隐语0.7中实现了BC22 PSI方案，其中的PCG/VOLE使用了emp-zk中的[WYKW21]实现，欢迎大家审查和进一步改进；
-- 三方PSI(Private Set Intersection)协议：
+  - 基于PCG的RR22
+    - RR22 PSI依赖的PCG(Pseudorandom Correlation Generator)方案是近年来mpc方向的研究热点，相比KKRT16在计算量和通信两方面都有了很大改进，从成本(monetary cost)角度更能满足实际业务需求。PCG实现依赖了近年来发展迅速的Silent-Vole原语，隐语在自研的底层密码库[YACL](https://github.com/secretflow/yacl)中已经实现了Silent-Vole相关原语。
+- 三方PSI协议：
   - 基于DDH的三方PSI协议
-    - 隐语实现了自研的基于 ECDH 的三方 PSI 协议，注意我们实现的这个协议会泄漏两方交集大小，请自行判断是否满足使用场景的安全性，本次benchmark选用的曲线是Curve25519。
+    - 隐语自研了基于 ECDH 的三方 PSI 协议.**注意我们实现的这个协议会泄漏两方交集大小**，请自行判断是否满足使用场景的安全性。
+
+- 非平衡PSI协议：
+    - 基于ECDH-OPRF的非平衡PSI协议
+        - 隐语实现并开源了基于ECDH-OPRF的非平衡PSI(Unbalanced PSI)协议，在数据量非平衡场景下能得到更好的性能。
+        - 具体来讲：与ECDH-PSI对比，ECDH-PSI需要在大数据集上进行两次加密操作；隐语实现的非平衡PSI只在大数据集上进行一次加密操作。所以在大数据集与小数据集的体量相差非常大的时候，总体计算量和运行时间大约仅是ECDH-PSI的$50\%$。
+        - 非平衡PSI还把协议分成离线和在线（offline/online）两个阶段，在提前执行离线（offline）阶段，得到离线数据缓存的情形下，在线阶段只需少量时间即可得到交集结果。
+
+
+
 ## 复现方式
 ### 一、测试机型环境
 - Python：3.10
 - pip: >= 19.3
 - OS: CentOS 7
+- SecretFlow: 1.6.1b0
 - CPU/Memory: 推荐最低配置是 8C16G
 - 硬盘：500G
 ### 二、安装conda
 使用conda管理python环境，如果机器没有conda需要先安装，步骤如下：
-#sudo apt-get install wget
+```
+sudo apt-get install wget
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+```
+
 
 #### 详细步骤
 ```
@@ -101,10 +121,12 @@ root目录下输入python然后回车；
 #### 创建ray header节点
 创建ray header节点，选择一台机器为主机，在主机上执行如下命令，ip替换为主机的内网ip，命名为alice，端口选择一个空闲端口即可
 注意：192.168.0.1 ip为mock的，请替换为实际的ip地址
+
 ```
 RAY_DISABLE_REMOTE_CODE=true \
 ray start --head --node-ip-address="192.168.0.1" --port="9394" --resources='{"alice": 8}' --include-dashboard=False
 ```
+
 #### 创建从属节点
 创建从属节点，在bob机器执行如下命令，ip依然填alice机器的内网ip，命名为bob，端口不变
 ```
@@ -133,14 +155,13 @@ ray start --address="192.168.0.1:9394" --resources='{"carol": 8}'
 
 #### 生成数据
 
-把[generate_psi.py](https://github.com/secretflow/spu/blob/main/libspu/psi/tools/generate_psi.py)脚本传到alice机器的root目录下
-执行如下代码
+把[generate_psi.py](./resources/generate_psi.py)脚本传到alice机器的root目录下，执行如下代码
 ```
-# 生成三份一千万数据
-python3 generate_psi.py 10000000
+# 生成三份一千万数据,默认交集50%
+python3 generate_psi.py 10000000 10000000
 
 # 生成三份一亿数据
-python3 generate_psi.py 100000000
+python3 generate_psi.py 100000000 100000000
 ```
 把生成的psi_1.csv cp到benchmark目录下，再通过scp的命令把psi_2.csv/psi_3.csv分别移到bob的benchmark目录下跟carol的benchark目录下 
 
@@ -155,11 +176,11 @@ tc qdisc del dev eth0 root
 查看已有配置
 tc qdisc show dev eth0
 ```
-#### Benchmark脚本
-支持的PSI协议列表：
+#### 平衡PSI Benchmark脚本
+支持的平衡PSI协议列表：
 - ECDH_PSI_2PC
 - KKRT_PSI_2PC
-- BC22_PSI_2PC
+- RR22_PSI_2PC
 - ECDH_PSI_3PC
 ```
 import sys
@@ -244,19 +265,669 @@ if __name__ == '__main__':
 ```
 
 
-### 五、Benchmark报告
-![](./resources/7629c228-bc51-4ef7-93e9-9f0c465d025d.png)
+#### 非平衡PSI Benchmark脚本
 
-目前bechmark数据中，bc22 psi的性能还在进一步工程优化， 单测spu中bc22协议内核的性能对比可以参考
-[pcg psi](https://mp.weixin.qq.com/s?__biz=MzA5NTQ0MTI4OA==&mid=2456927355&idx=1&sn=832269f138e35f031bc2bdcd63f05520&chksm=873a449cb04dcd8a4dacd4cec0ccc7c147219a76f36a6d694f26b7c2a27d03be8f968578fab4&scene=21#wechat_redirect)的介绍。
+支持的非平衡PSI协议列表：
+- ECDH_OPRF_UB_PSI
+
+##### 离线阶段脚本
+
+```python
+import os
+import sys
+import time
+import logging
+import multiprocess
+​
+from absl import app
+import spu
+import secretflow as sf
+#import random
+​
+# init log
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+​
+​
+# SPU settings
+cluster_def = {
+    'nodes': [
+        # <<< !!! >>> replace <192.168.0.1:17268> to alice node's local ip & free port
+        {'party': 'alice', 'address': '192.168.0.1:17268', 'listen_address': '0.0.0.0:17268'},
+        # <<< !!! >>> replace <192.168.0.2:17269> to bob node's local ip & free port
+        {'party': 'bob', 'address': '192.168.0.2:17269', 'listen_address': '0.0.0.0:17269'},
+    ],
+    'runtime_config': {
+        'protocol': spu.spu_pb2.SEMI2K,
+        'field': spu.spu_pb2.FM128,
+    },
+}
+​
+link_desc = {
+    'recv_timeout_ms': 3600000,
+}
+
+def main(_):
+    # sf init
+    # <<< !!! >>> replace <192.168.0.1:9394> to your ray head
+    sf.shutdown()
+    sf.init(['alice','bob'],address='192.168.0.1:9394',log_to_driver=True,omp_num_threads=multiprocess.cpu_count())
+​
+    # init log
+    logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+​
+    alice = sf.PYU('alice')
+    bob = sf.PYU('bob')
+
+    offline_input_path = {
+        alice: 'dummyalice.csv',
+        bob: '/root/benchmark/unbalanced_200000w.csv',
+    }
+    select_keys = {
+        alice: ['id'],
+        bob: ['id'],
+    }
+    spu = sf.SPU(cluster_def, link_desc)
+​
+    # offline 
+    print("=====offline phase====")
+    start = time.time()
+​
+    offline_output_path = {
+        alice: "/data/unbalanced_2000w_out.csv",
+        bob: "/data/unbalanced_200000w_out.csv",
+    }
+​
+    offline_preprocess_path = "/root/benchmark/offline_out/offline_psi0107.csv"
+    secret_key = "000102030405060708090a0b0c0d0e0ff0e0d0c0b0a090807060504030201000"
+    secret_key_path = "/root/benchmark/secret_key.bin"
+    with open(secret_key_path, 'wb') as f:
+            f.write(bytes.fromhex(secret_key))
+​
+    reports = spu.psi_csv(
+        key=select_keys,
+        input_path=offline_input_path,
+        output_path=offline_output_path,
+        receiver='alice',  # if `broadcast_result=False`, only receiver can get output file.
+        protocol='ECDH_OPRF_UB_PSI_2PC_OFFLINE',        # psi protocol
+        precheck_input=False,  # will cost ext time if set True
+        sort=False,  # will cost ext time if set True
+        broadcast_result=False,  # will cost ext time if set True
+        bucket_size=10000000,
+        curve_type="CURVE_FOURQ",
+        preprocess_path=offline_preprocess_path,
+        ecdh_secret_key_path=secret_key_path,
+    )
+    #print(f"psi reports: {reports}")
+    logging.info(f"offline psi reports: {reports}")
+    logging.info(f"cost time: {time.time() - start}")
+​
+    sf.shutdown()
+​
+​
+if __name__ == '__main__':
+    app.run(main)
+
+```
+
+##### 在线阶段脚本
+
+```python
+
+import os
+import sys
+import time
+# import random
+import logging
+import multiprocess
+​
+from absl import app
+import spu
+import secretflow as sf
+​
+# init log
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+​
+# SPU settings
+cluster_def = {
+    'nodes': [
+        # <<< !!! >>> replace <192.168.0.1:17268> to alice node's local ip & free port
+        {'party': 'alice', 'address': '192.168.0.1:17268', 'listen_address': '0.0.0.0:17268'},
+        # <<< !!! >>> replace <192.168.0.2:17269> to bob node's local ip & free port
+        {'party': 'bob', 'address': '192.168.0.2:17269', 'listen_address': '0.0.0.0:17269'},
+    ],
+    'runtime_config': {
+        'protocol': spu.spu_pb2.SEMI2K,
+        'field': spu.spu_pb2.FM128,
+    },
+}
+​
+link_desc = {
+    'recv_timeout_ms': 3600000,
+}
+
+def main(_):
+    # sf init
+    # <<< !!! >>> replace <192.168.0.1:9394> to your ray head
+    sf.shutdown()
+    sf.init(['alice','bob'],address='192.168.0.1:9394',log_to_driver=True,omp_num_threads=multiprocess.cpu_count())
+​
+    # init log
+    logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+​
+    alice = sf.PYU('alice')
+    bob = sf.PYU('bob')
+​
+    # <<< !!! >>> replace path to real parties local file path.
+    online_input_path = {
+        alice: '/root/benchmark/unbalanced_2000w.csv',
+        bob: 'dummy.bob.csv',
+    }
+    output_path = {
+        alice: '/data/unbalanced_20000wvs2000w.csv',
+        bob: '/data/unbalanced_20000wvs2000w.csv',
+    }
+    select_keys = {
+        alice: ['id'],
+        bob: ['id'],
+    }
+    spu = sf.SPU(cluster_def, link_desc)
+
+    offline_preprocess_path = "/root/benchmark/offline_out/offline_psi0107.csv"
+    secret_key_path = "/root/benchmark/secret_key.bin"
+​
+    # online 
+    print("=====online phase====")
+    start = time.time()
+​
+    reports = spu.psi_csv(
+        key=select_keys,
+        input_path=online_input_path,
+        output_path=output_path,
+        receiver='alice',  # if `broadcast_result=False`, only receiver can get output file.
+        protocol='ECDH_OPRF_UB_PSI_2PC_ONLINE', # psi protocol
+        precheck_input=True,  # will cost ext time if set True
+        sort=True,  # will cost ext time if set True
+        broadcast_result=False,  # will cost ext time if set True
+        bucket_size=100000000,
+        curve_type="CURVE_FOURQ",
+        preprocess_path=offline_preprocess_path,
+        ecdh_secret_key_path=secret_key_path,
+    )
+​
+    #print(f"psi reports: {reports}")
+    logging.info(f"online psi reports: {reports}")
+    logging.info(f"cost time: {time.time() - start}")
+​
+    sf.shutdown()
+​
+​
+if __name__ == '__main__':
+    app.run(main)
+```
+
+
+
+
+### 五、Benchmark报告
+
+我们分别在不同的带宽、数据量、机器配置设定下测量了PSI协议的性能。其中：
+- 隐语标准：带宽设定分别为LAN、100Mbps/10ms； 数据量涵盖1千万、1亿、10亿。
+- 信通院标准：带宽设定分别为LAN、100Mbps/50ms，数据量涵盖1亿（标准测试）和10亿（大规模测试）。
+
+
+> 时间单位默认为秒，m表示分钟，h表示小时。
+
+
+#### 隐语测试标准下的Benchmark
+
+<table>
+  <tr>
+    <th>机器配置</th>
+    <th>算法参数</th>
+    <th>协议</th>
+    <th>网络配置</th>
+    <th>1kw~1kw</th>
+    <th>1亿~1亿</th>
+    <th>10亿~10亿</th>
+  </tr>
+  <tr>
+    <td rowspan="16">32C64G</td>
+    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">ECDH-PSI-2PC<br/> (FourQ)</td>
+    <td>LAN</td>
+    <td>73</td>
+    <td>723</td>
+    <td>7491 (2.08 h)</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>74</td>
+    <td>729</td>
+    <td>7387 (2.06 h)</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type='CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">ECDH-PSI-2PC <br/>(CURVE_25519)</td>
+    <td>LAN</td>
+    <td>110</td>
+    <td>1129</td>
+    <td><11377 (3.16 h)</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>115</td>
+    <td>1142</td>
+    <td>11504 (3.19 h)</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">ECDH-PSI-3PC <br/> (FourQ)</td>
+    <td>LAN</td>
+    <td>113</td>
+    <td>1170</td>
+    <td>13097 (3.63 h)</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>115</td>
+    <td>1199</td>
+    <td>12964 (3.60 h)</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type='CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">ECDH-PSI-3PC (CURVE_25519)<br>(3个参与方持有相同数据的50%，最后交集占比50%)</td>
+    <td>LAN</td>
+    <td>203</td>
+    <td>2017</td>
+    <td>22717 (6.16 h)</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>239</td>
+    <td>2349</td>
+    <td>25807 (7.2 h)</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='KKRT_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">KKRT_PSI_2PC<br>(百万分桶)</td>
+    <td>LAN</td>
+    <td>56</td>
+    <td>558</td>
+    <td>5970 (1.61 h)</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>144</td>
+    <td>1393</td>
+    <td>14295 (3.97 h)</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='RR22_FAST_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">RR22_FAST_PSI_2PC<br>(百万分桶)</td>
+    <td>LAN</td>
+    <td>28</td>
+    <td>273</td>
+    <td>3176 (0.88 h = 53 m)</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>63</td>
+    <td>575</td>
+    <td>6025 (1.6 h)</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='RR22_LOWCOMM_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">RR22_LOWCOMM_PSI_2PC<br>(百万分桶)</td>
+    <td>LAN</td>
+    <td>31</td>
+    <td>317</td>
+    <td>3614 (1.00 h)</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>53</td>
+    <td>481</td>
+    <td>5310 (1.47 h)</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='RR22_MALICIOUS_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">RR22_MALICIOUS_PSI_2PC<br>(百万分桶)</td>
+    <td>LAN</td>
+    <td>23</td>
+    <td>232</td>
+    <td>1791 (0.49 h)</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>82</td>
+    <td>705</td>
+    <td>6840 (1.9 h)</td>
+  </tr>
+
+
+
+
+
+  <tr>
+    <td rowspan="16">16C32G</td>
+    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">ECDH-PSI-2PC <br/>(FourQ)</td>
+    <td>LAN</td>
+    <td>96.</td>
+    <td>991.</td>
+    <td>2.82 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>97.</td>
+    <td>991.</td>
+    <td>2.79 h</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type='CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">ECDH-PSI-2PC <br/>(CURVE_25519)</td>
+    <td>LAN</td>
+    <td>170.</td>
+    <td>1730.</td>
+    <td>4.8 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>179.</td>
+    <td>1790.</td>
+    <td>5.02 h</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">ECDH-PSI-3PC <br/>(FourQ)</td>
+    <td>LAN</td>
+    <td>174.</td>
+    <td>1687.</td>
+    <td>5.4 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>209.</td>
+    <td>2007.</td>
+    <td>6.5 h</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type='CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">ECDH-PSI-3PC (CURVE_25519)<br>(3个参与方持有相同数据的50%，最后交集占比50%)</td>
+    <td>LAN</td>
+    <td>346.</td>
+    <td>3456.</td>
+    <td>10.6 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>383.</td>
+    <td>3781.</td>
+    <td>11.7 h</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='KKRT_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">KKRT_PSI_2PC<br>(百万分桶)</td>
+    <td>LAN</td>
+    <td>55.</td>
+    <td>565.</td>
+    <td>2.05 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>147.</td>
+    <td>1435.</td>
+    <td>4.34 h</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='RR22_FAST_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">RR22_FAST_PSI_2PC<br>(百万分桶)</td>
+    <td>LAN</td>
+    <td>31.</td>
+    <td>273.</td>
+    <td>1.17 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>69.</td>
+    <td>628.</td>
+    <td>2.06 h</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='RR22_LOWCOMM_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">RR22_LOWCOMM_PSI_2PC<br>(百万分桶)</td>
+    <td>LAN</td>
+    <td>31.</td>
+    <td>308.</td>
+    <td>1.37 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>58.</td>
+    <td>628.</td>
+    <td>1.87 h</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='RR22_MALICIOUS_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">RR22_MALICIOUS_PSI_2PC<br>(百万分桶)</td>
+    <td>LAN</td>
+    <td>23.</td>
+    <td>184.</td>
+    <td>0.57 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>86.</td>
+    <td>737.</td>
+    <td>2.05 h</td>
+  </tr>
+
+
+
+  <tr>
+    <td rowspan="16">8C16G</td>
+    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">ECDH-PSI-2PC<br/> (FourQ)</td>
+    <td>LAN</td>
+    <td>145</td>
+    <td>1453</td>
+    <td>4.12 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>147</td>
+    <td>1470</td>
+    <td>4.14 h</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type='CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">ECDH-PSI-2PC<br/> (CURVE_25519)</td>
+    <td>LAN</td>
+    <td>302</td>
+    <td>3021</td>
+    <td>8.4 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>302</td>
+    <td>3025</td>
+    <td>8.4 h</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">ECDH-PSI-3PC<br/> (FourQ)</td>
+    <td>LAN</td>
+    <td>277</td>
+    <td>2700</td>
+    <td>8.4 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>313</td>
+    <td>3059</td>
+    <td>9.5 h</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type='CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">ECDH-PSI-3PC <br/> (CURVE_25519)<br>(3个参与方持有相同数据的50%，最后交集占比50%)</td>
+    <td>LAN</td>
+    <td>633</td>
+    <td>6298</td>
+    <td>19 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>672</td>
+    <td>6620</td>
+    <td>20.18 h</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='KKRT_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">KKRT_PSI_2PC<br>(百万分桶)</td>
+    <td>LAN</td>
+    <td>59</td>
+    <td>570</td>
+    <td>2.0 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>148</td>
+    <td>1441</td>
+    <td>4.3 h</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='RR22_FAST_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">RR22_FAST_PSI_2PC<br>(百万分桶)</td>
+    <td>LAN</td>
+    <td>31</td>
+    <td>277</td>
+    <td>1.19 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>70</td>
+    <td>636</td>
+    <td>2.08 h</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='RR22_LOWCOMM_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">RR22_LOWCOMM_PSI_2PC<br>(百万分桶)</td>
+    <td>LAN</td>
+    <td>35</td>
+    <td>319</td>
+    <td>1.41 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>58</td>
+    <td>520</td>
+    <td>1.86 h</td>
+  </tr>
+  <tr>
+    <td rowspan="2">receiver='alice',<br>protocol='RR22_MALICIOUS_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">RR22_MALICIOUS_PSI_2PC<br>(百万分桶)</td>
+    <td>LAN</td>
+    <td>25</td>
+    <td>194</td>
+    <td>0.6 h</td>
+  </tr>
+  <tr>
+    <td>100Mbps/10ms</td>
+    <td>80</td>
+    <td>734</td>
+    <td>2.05 h</td>
+  </tr>
+</table>
+
+
 
 - ECDH：对网络配置不敏感，对计算资源敏感，适合带宽较低、计算配置较高的使用场景；
 - KKRT：网络设置为100Mbps时，带宽成为瓶颈。通常用于两方数据量均衡时，适合高带宽的使用场景；
 
+#### 信通院测试标准下的Benchmark
+
+<table>
+  <tr>
+    <th>机器配置</th>
+    <th>算法参数</th>
+    <th>协议</th>
+    <th>大规模<br/>（10亿~10亿）<br/>（100Mbps/50ms）</th>
+    <th>标准<br/>1亿～1亿<br/>（LAN）</th>
+  </tr>
+  <tr>
+    <td rowspan="10">32C256G</td>
+    <td>"receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type = 'CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td>ECDH-PSI-2PC<br/>(CURVE_FOURQ)</td>
+    <td>7764<br/>(2.15 h)</td>
+    <td>729</td>
+  </tr>
+
+<tr>
+    <td>"receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type = 'CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td>ECDH-PSI-2PC<br/>(CURVE_25519)</td>
+    <td>11555<br/>(3.2 h)</td>
+    <td>1131</td>
+  </tr>
+
+  <tr>
+    <td>"receiver='alice',<br>protocol='ECDH_OPRF_UB_PSI_2PC',<br>curve_type = 'CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td>ECDH_OPRF_UB_PSI_2PC<br/>(非平衡)<br/>(大规模 10亿&100w=50w) <br/>(标准 1亿&10w=5w) <br/> (CURVE_FOURQ)  </td>
+    <td>offline: 1428 (23m)<br/>offline: 300 (5m)</td>
+     <td>offline: 139<br/>offline: 31</td>
+  </tr>
+
+  <tr>
+    <td>"receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type = 'CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td>ECDH_PSI_3PC<br/>(CURVE_FOURQ)</td>
+    <td>17599</br>(4.8 h)</td>
+     <td>1172</td>
+  </tr>
 
 
+<tr>
+    <td>"receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type = 'CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td>ECDH_PSI_3PC<br/>(CURVE_25519)</td>
+    <td>26220</br>(7.28 h)</td>
+     <td>2022</td>
+  </tr>
 
 
+<tr>
+    <td>"receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type = 'CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td>ECDH_PSI_3PC<br/>(非平衡)<br/>  (大规模 10亿&10亿&100万=50) <br/>(标准 1亿&1亿&10万=5)<br/>(CURVE_FOURQ)</td>
+    <td>26220</br>(7.28 h)</td>
+     <td>2022</td>
+  </tr>
+
+<tr>
+    <td>"receiver='alice',<br>protocol='KKRT_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td>KKRT_PSI_2PC<br/> (百万分桶)</td>
+    <td>30963</br>(8.6 h)</td>
+     <td>554</td>
+  </tr>
 
 
-        
+<tr>
+    <td>"receiver='alice',<br>protocol='RR22_FAST_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td>RR22_FAST_PSI_2PC<br/> (百万分桶)</td>
+    <td>6236</br>(1.7 h)</td>
+     <td>280</td>
+  </tr>
+
+<tr>
+    <td>"receiver='alice',<br>protocol='RR22_LOWCOMM_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td>RR22_LOWCOMM_PSI_2PC<br/> (百万分桶)</td>
+    <td>5659</br>(1.57 h)</td>
+     <td>323</td>
+  </tr>
+
+<tr>
+    <td>"receiver='alice',<br>protocol='RR22_MALICIOUS_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td>RR22_MALICIOUS_PSI_2PC<br/> (百万分桶)</td>
+    <td>14847</br>(4.12 h)</td>
+     <td>203</td>
+  </tr>
+
+</table>
+
+
