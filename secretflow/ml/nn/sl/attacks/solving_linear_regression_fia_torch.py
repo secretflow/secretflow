@@ -24,7 +24,15 @@ from secretflow.ml.nn.callbacks.attack import AttackCallback
 
 class SolvingLinearRegressionAttack(AttackCallback):
     """
-    TODO: need explaination
+    the feature reconstruction attack of DNN training in Vertical Federated Learning.
+    Reference: https://arxiv.org/pdf/2210.06771.
+
+    Attributes:
+        attack_party (PYU): The party performing the attack.
+        victim_party (PYU): The party being attacked.
+        targets_columns (list): List of target column indices, default is [4, 5, 6].
+        r (int): The number of rows to sample and rescale using leverage score sampling, defaults to 9.
+        exec_device (str): Device used for computation, either 'cpu' or 'cuda'.
     """
 
     def __init__(
@@ -32,7 +40,7 @@ class SolvingLinearRegressionAttack(AttackCallback):
         attack_party: PYU,
         victim_party: PYU,
         targets_columns: list = [4, 5, 6],
-        r: int = None,
+        r: int = 9,
         exec_device: str = 'cpu',
         **params,
     ):
@@ -74,8 +82,6 @@ class SolvingLinearRegressionAttack(AttackCallback):
 
         self._workers[self.victim_party].apply(reset_truth_feature)
         self._workers[self.attack_party].apply(reset_predict_feature)
-
-        return super().on_epoch_begin(epoch, logs)
 
     def on_fuse_forward_begin(self):
         """
