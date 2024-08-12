@@ -74,6 +74,7 @@ class BankModelFuse(nn.Module):
 
     def forward(self, x):
         # x = torch.relu(self.fc1(x))
+        x = torch.cat(x, dim=1)
         x = torch.relu(self.fc2(x))
         x = torch.relu(self.fc3(x))
         x = self.fc4(x)
@@ -204,7 +205,6 @@ def do_test_sl_and_fia(alice, bob):
         alice: alice_model,
         bob: bob_model,
     }
-    agg_method = Concat(axis=1)
     sl_model = SLModel(
         base_model_dict=base_model_dict,
         device_y=bob,
@@ -215,7 +215,6 @@ def do_test_sl_and_fia(alice, bob):
         random_seed=1234,
         backend='torch',
         strategy='split_nn',
-        agg_method=agg_method,
     )
 
     fia_callback = SolvingLinearRegressionAttack(
