@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from .cae import CAE as cae
 from .de_identification import DeIdentification as de_identification
 from .fed_pass import FedPass as fed_pass
 from .grad_avg import GradientAverageCase as grad_avg
 from .mid import Mid as mid
 from .mixup import Mixup as mixup
 
-__all__ = ['grad_avg', 'mixup', 'de_identification', 'mid', 'fed_pass']
+__all__ = ['grad_avg', 'mixup', 'de_identification', 'mid', 'fed_pass', 'cae']

@@ -35,9 +35,9 @@ from secretflow.ml.boost.core.callback import TrainingCallback
 from secretflow.ml.boost.ss_xgb_v import Xgb, XgbModel
 from secretflow.ml.boost.ss_xgb_v.booster import build_checkpoint
 from secretflow.ml.boost.ss_xgb_v.checkpoint import (
+    SSXGBCheckpointData,
     build_ss_xgb_model,
     ss_xgb_model_to_checkpoint_data,
-    SSXGBCheckpointData,
 )
 from secretflow.spec.v1.data_pb2 import DistData
 
@@ -144,8 +144,10 @@ ss_xgb_train_comp.float_attr(
     is_list=False,
     is_optional=True,
     default_value=0,
-    lower_bound=0,
+    lower_bound=-10,
     lower_bound_inclusive=True,
+    upper_bound=10,
+    upper_bound_inclusive=True,
 )
 ss_xgb_train_comp.int_attr(
     name="seed",

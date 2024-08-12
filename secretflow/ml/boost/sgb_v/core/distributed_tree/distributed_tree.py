@@ -15,7 +15,7 @@ from typing import Dict
 
 import numpy as np
 
-from secretflow.device import PYU, PYUObject
+from secretflow.device import PYU, PYUObject, reveal
 
 from ...core.pure_numpy_ops.node_select import (
     packbits_node_selects,
@@ -113,6 +113,14 @@ class DistributedTree:
 
     def get_leaf_weight(self):
         return self.leaf_weight
+
+    def is_empty(self) -> bool:
+        if len(self.split_tree_dict) == 0:
+            return True
+        split_tree = list(self.split_tree_dict.values())[0]
+        if reveal(split_tree.device(lambda sp: sp.is_empty())(split_tree)):
+            return True
+        return False
 
 
 def from_dict(tree_content: Dict) -> DistributedTree:

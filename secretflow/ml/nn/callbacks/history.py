@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from secretflow.device import reveal
-from secretflow.ml.nn.metrics import aggregate_metrics
 
 from .callback import Callback
 
@@ -46,16 +45,9 @@ class History(Callback):
         else:
             # deal with federated learning
             self.epoch.append(epoch)
-            local_metrics = []
-            for device, worker in self._workers.items():
-                _metrics = worker.get_local_metrics()
-                local_metrics.append(_metrics)
 
-            metrics = aggregate_metrics(local_metrics=reveal(local_metrics))
+            global_history = self._calc_aggregated_metrics()
 
-            global_history = {}
-            for m in metrics:
-                global_history[m.name] = m.result().numpy()
             for k, v in global_history.items():
                 self.history["global_history"].setdefault(k, []).append(v)
             for device, worker in self._workers.items():

@@ -27,12 +27,12 @@ from secretflow.ml.boost.core.callback import (
     EarlyStopping,
     EvaluationMonitor,
 )
-from secretflow.ml.boost.core.metric import METRICS
+from secretflow.ml.boost.core.metric import MetricProducer
 from secretflow.ml.boost.sgb_v.checkpoint import SGBCheckpointData
 from secretflow.ml.boost.sgb_v.core.params import (
+    TreeGrowingMethod,
     default_params,
     get_unused_params,
-    TreeGrowingMethod,
     type_and_range_check,
 )
 from secretflow.ml.boost.sgb_v.factory.components.logging import logging_params_names
@@ -53,6 +53,8 @@ class SGBFactoryParams:
     stopping_tolerance: float = 0.001
     seed: int = 1212
     save_best_model: bool = False
+    # only effective if objective and eval metric are related to tweedie
+    tweedie_variance_power: float = 1.5
 
 
 class SGBFactory:
@@ -92,6 +94,9 @@ class SGBFactory:
         self.factory_params.stopping_tolerance = params.get('stopping_tolerance', 0.001)
         self.factory_params.seed = params.get('seed', 1212)
         self.factory_params.save_best_model = params.get('save_best_model', False)
+        self.factory_params.tweedie_variance_power = params.get(
+            'tweedie_variance_power', 1.5
+        )
 
     def set_heu(self, heu: HEU):
         self.heu = heu
@@ -166,8 +171,15 @@ class SGBFactory:
         booster = self._produce()
         callbacks = []
         eval_set = []
+        metric_, metric_final_name = MetricProducer(
+            self.factory_params.eval_metric,
+            tweedie_variance_power=self.factory_params.tweedie_variance_power,
+        )
         if self.factory_params.enable_monitor:
             callbacks.append(EvaluationMonitor())
+            eval_set = [
+                (dataset, label, "whole"),
+            ]
         if self.factory_params.enable_early_stop:
             train_data, val_data = train_test_split(
                 dataset,
@@ -191,7 +203,7 @@ class SGBFactory:
             callbacks.append(
                 EarlyStopping(
                     self.factory_params.stopping_rounds,
-                    self.factory_params.eval_metric,
+                    metric_final_name,
                     data_name=data_name,
                     save_best=self.factory_params.save_best_model,
                     min_delta=self.factory_params.stopping_tolerance,
@@ -205,7 +217,6 @@ class SGBFactory:
             dataset = train_data
             label = train_label
             sample_weight = train_weight if sample_weight is not None else None
-        metric_ = METRICS.get(self.factory_params.eval_metric, None)
 
         callbacks.append(Checkpointing(dump_function=dump_function))
         return booster.fit(

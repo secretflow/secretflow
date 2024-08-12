@@ -14,8 +14,8 @@
 
 from typing import List
 
-from secretflow import PYU
 from secretflow.component.ml.nn.sl.base import ModelInputScheme
+from secretflow.device import PYU
 
 
 def _create_dataset_builder_without_label(batch_size: int = 256, epochs: int = 1):

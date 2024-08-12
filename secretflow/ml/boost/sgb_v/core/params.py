@@ -21,6 +21,7 @@ import numpy as np
 class RegType(Enum):
     Linear = 'linear'
     Logistic = 'logistic'
+    Tweedie = 'tweedie'
 
 
 class TreeGrowingMethod(Enum):
@@ -102,14 +103,16 @@ class SGBParams:
         range: (0, 1]
     'objective': Specify the learning objective.
         default: 'logistic'
-        range: ['linear', 'logistic']
+        range: ['linear', 'logistic', 'tweedie']
     'base_score': The initial prediction score of all instances, global bias.
         default: 0
     'tree_growing_method': how to grow tree?
         default: level-wise
     'enable_packbits': bool. if true, turn on packbits transmission.
         default: False
-    'eval_metric': str. evaluation metric name, must be one of 'roc_auc', 'mse' or 'rmse' Note if objective is not logistic, auc may not work.
+    'eval_metric': str. evaluation metric name, must be one of 'roc_auc', 'tweedie_deviance', 'tweedie_nll', 'mse' or 'rmse'.
+        'tweedie_nll' means tweedie negative log likelihood.
+        Note if objective is not logistic, auc may not work.
         default: 'roc_auc'
     'enable_monitor': bool. whether enable model monitor call back.
         default: False
@@ -127,6 +130,12 @@ class SGBParams:
         default: 0.001
     'save_best_model': bool. whether save best model on validation set during training, only effective if early stop enabled.
         default: False
+    'tweedie_variance_power': Parameter that controls the variance of the Tweedie distribution.
+        var(y) ~ E(y)^tweedie_variance_power
+        default: 1.5
+        range: (1, 2)
+        Set closer to 2 to shift towards a gamma distribution.
+        Set closer to 1 to shift towards a Poisson distribution.
     """
 
     # security or encryption related params
@@ -166,6 +175,10 @@ class SGBParams:
     stopping_rounds: int = 1
     stopping_tolerance: float = 0.0
     save_best_model: bool = False
+
+    # objective-related
+    # tweedie specific parameter, only effective if objective is tweedie
+    tweedie_variance_power: float = 1.5
 
 
 default_params = SGBParams()
@@ -209,11 +222,14 @@ numeric_params_range = {
     'validation_fraction': (0, 1, False, False),
     'stopping_rounds': (1, 1024, True, True),
     'stopping_tolerance': (0, np.inf, True, False),
+    'tweedie_variance_power': (1, 2, False, False),
+    'base_score': (-10, 10, True, True),
 }
 
 categorical_params_options = {
     'objective': [e.value for e in RegType],
     'tree_growing_method': [e.value for e in TreeGrowingMethod],
+    'eval_metric': ['roc_auc', 'tweedie_deviance', 'tweedie_nll', 'mse', 'rmse'],
 }
 
 
@@ -247,7 +263,7 @@ def assert_numeric_parameter_in_range(param_name, value):
     {numeric_params_range[param_name]}, but got {value}"
 
 
-def assert_categorical_parameter_valie_option(param_name, value):
+def assert_categorical_parameter_valid_option(param_name, value):
     if param_name not in categorical_params_options:
         return
     assert is_categorical_parameter_valid_option(
@@ -255,6 +271,28 @@ def assert_categorical_parameter_valie_option(param_name, value):
     ), f"{param_name} is not in valid options, \
     its valid options are {categorical_params_options[param_name]},\
     but got {value}"
+
+
+def assert_parameter_combination_valid(params_dict):
+    if (
+        params_dict.get('enable_monitor', False)
+        or params_dict.get('enable_early_stop', False)
+    ) and 'eval_metric' in params_dict:
+        objective = params_dict.get('objective', 'logistic')
+        if objective == 'logistic':
+            assert (
+                params_dict['eval_metric'] == 'roc_auc'
+            ), f"when objective is logistic, eval_metric must be auc, got {params_dict['eval_metric']}"
+        if objective == 'tweedie':
+            assert params_dict['eval_metric'] in [
+                'tweedie_nll',
+                'tweedie_deviance',
+            ], f"when objective is tweedie, eval_metric must be tweedie_nll or tweedie_deviance, got {params_dict['eval_metric']}"
+        if objective == 'linear':
+            assert params_dict['eval_metric'] in [
+                'mse',
+                'rmse',
+            ], f"when objective is linear, eval_metric must be mse or rmse, got {params_dict['eval_metric']}"
 
 
 def get_unused_params(params) -> set:
@@ -284,7 +322,9 @@ def type_and_range_check(params_dict):
             ), f"type not correct for {param_name}, \
             expect {type(getattr(default_params, param_name))}, got {type(value)}, value is {value}"
             assert_numeric_parameter_in_range(param_name, value)
-            assert_categorical_parameter_valie_option(param_name, value)
+            assert_categorical_parameter_valid_option(param_name, value)
+
+    assert_parameter_combination_valid(params_dict)
 
 
 XGB_COMMON_PARAMS = [
@@ -294,13 +334,15 @@ XGB_COMMON_PARAMS = [
     'max_depth',
     'gamma',
     'base_score',
+    'tweedie_variance_power',
 ]
 
 
 OBJ_CONVERSION_DICT = {
-    'binary:logistic': RegType('logistic').value,
-    'reg:logistic': RegType('logistic').value,
-    'reg:squarederror': RegType('linear').value,
+    'binary:logistic': RegType.Logistic.value,
+    'reg:logistic': RegType.Logistic.value,
+    'reg:squarederror': RegType.Linear.value,
+    'reg:tweedie': RegType.Tweedie.value,
 }
 
 
@@ -326,6 +368,7 @@ XGB_TO_SGB_PARAMS = {
 }
 
 
+# eval metric conversion is not supported for now, maybe added later
 def xgb_params_converter(xgb_params: dict) -> dict:
     """Convert params from xgboost to sgb params
 

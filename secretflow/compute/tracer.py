@@ -377,7 +377,7 @@ class _Tracer:
 
                 trace_pb = compute_trace_pb2.FunctionTrace(
                     name=t.operate,
-                    option_bytes=self.options if self.options is not None else b"",
+                    option_bytes=t.options if t.options is not None else b"",
                     inputs=inputs_pb,
                     output=compute_trace_pb2.FunctionOutput(
                         data_id=trace_output_id_count,

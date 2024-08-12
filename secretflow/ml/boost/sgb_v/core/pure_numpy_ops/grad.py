@@ -48,5 +48,16 @@ def compute_gh_logistic(y: np.ndarray, pred: np.ndarray):
     return yhat - y, yhat * (1 - yhat)
 
 
+# code borrowed from XGBoost
+# reference: https://github.com/dmlc/xgboost/blob/master/src/objective/regression_obj.cu
+def compute_gh_tweedie(y: np.ndarray, pred: np.ndarray, tweedie_variance_power: float):
+    rho = tweedie_variance_power
+    grad = -y * np.exp((1 - rho) * pred) + np.exp((2 - rho) * pred)
+    hess = -y * (1 - rho) * np.exp((1 - rho) * pred) + (2 - rho) * np.exp(
+        (2 - rho) * pred
+    )
+    return grad, hess
+
+
 def split_GH(x) -> Tuple[np.ndarray, np.ndarray]:
     return x[:, 0].reshape(1, -1), x[:, 1].reshape(1, -1)

@@ -14,7 +14,7 @@
 
 from abc import ABC
 from collections import OrderedDict
-from typing import Dict, List, Tuple
+from typing import Dict, Tuple
 
 import numpy as np
 
@@ -25,6 +25,7 @@ from benchmark_examples.autoattack.applications.base import (
     DatasetType,
 )
 from benchmark_examples.autoattack.global_config import is_simple_test
+from benchmark_examples.autoattack.utils.resources import ResourceDict, ResourcesPack
 from secretflow.data.vertical import VDataFrame
 from secretflow.preprocessing import LabelEncoder
 from secretflow.utils.simulation.datasets import load_bank_marketing
@@ -131,14 +132,21 @@ class BankBase(ApplicationBase, ABC):
         label = encoder.fit_transform(label['y'])
         return data.astype(np.float32), label.astype(np.float32)
 
-    def resources_consumes(self) -> List[Dict]:
-        return [
-            {'alice': 0.5, 'CPU': 0.5, 'GPU': 0.001, 'gpu_mem': 500 * 1024 * 1024},
-            {'bob': 0.5, 'CPU': 0.5, 'GPU': 0.001, 'gpu_mem': 500 * 1024 * 1024},
-        ]
-
     def classfication_type(self) -> ClassficationType:
         return ClassficationType.BINARY
 
     def dataset_type(self) -> DatasetType:
         return DatasetType.TABLE
+
+    def resources_consumption(self) -> ResourcesPack:
+        # 442MiB
+        return (
+            ResourcesPack()
+            .with_debug_resources(ResourceDict(gpu_mem=500 * 1024 * 1024, CPU=1))
+            .with_sim_resources(
+                self.device_y.party, ResourceDict(gpu_mem=500 * 1024 * 1024, CPU=1)
+            )
+            .with_sim_resources(
+                self.device_f.party, ResourceDict(gpu_mem=400 * 1024 * 1024, CPU=1)
+            )
+        )
