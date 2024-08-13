@@ -18,13 +18,21 @@ from torch.utils.data import DataLoader, Dataset
 
 import secretflow as sf
 
+data_path = r'/root/develop/ant-sf/secretflow/examples/app/v_recommendation/dcn/data/'
+
 
 class AliceDataset(Dataset):
-    def __init__(self, df, label_df, vocab_dir=""):
+    def __init__(
+        self,
+        df,
+        label_df,
+        vocab_dir="",
+        cat_features=None,
+        num_features=None,
+        categories=None,
+    ):
         self.df = df
         self.label_df = label_df
-        cat_features = [x for x in self.df.columns if x.startswith('C')]
-        num_features = [x for x in self.df.columns if x.startswith('I')]
         self.x_cat = (
             torch.tensor(self.df[cat_features].values, dtype=torch.long)
             if cat_features
@@ -37,9 +45,6 @@ class AliceDataset(Dataset):
         )
 
         self.label = torch.tensor(self.label_df.values, dtype=torch.float)
-
-        categories = [self.df[col].max() + 1 for col in cat_features]
-
         self.categories = categories
 
     def __getitem__(self, index):
@@ -54,10 +59,10 @@ class AliceDataset(Dataset):
 
 
 class BobDataset(Dataset):
-    def __init__(self, df, vocab_dir=""):
+    def __init__(
+        self, df, vocab_dir="", cat_features=None, num_features=None, categories=None
+    ):
         self.df = df
-        cat_features = [x for x in self.df.columns if x.startswith('C')]
-        num_features = [x for x in self.df.columns if x.startswith('I')]
         self.x_cat = (
             torch.tensor(self.df[cat_features].values, dtype=torch.long)
             if cat_features
@@ -68,12 +73,9 @@ class BobDataset(Dataset):
             if num_features
             else None
         )
-
-        categories = [self.df[col].max() + 1 for col in cat_features]
         self.categories = categories
 
     def __getitem__(self, index):
-
         return (self.x_num[index], self.x_cat[index])
 
     def __len__(self):
@@ -83,21 +85,58 @@ class BobDataset(Dataset):
         return self.categories
 
 
-gen_data_path = (
-    r'/root/develop/ant-sf/secretflow/examples/app/v_recommendation/dcn/data/'
-)
-train_alice = pd.read_csv(gen_data_path + 'train_alice.csv', sep='|')
+def gen_alice_bob_cat_num_categories():
+    alice_criteo_train_1m = pd.read_csv(
+        data_path + 'alice_criteo_train_1m.csv', sep='|'
+    )
+    bob_criteo_train_1m = pd.read_csv(data_path + 'bob_criteo_train_1m.csv', sep='|')
+
+    alice_cat_features = [x for x in alice_criteo_train_1m.columns if x.startswith('C')]
+    alice_num_features = [x for x in alice_criteo_train_1m.columns if x.startswith('I')]
+    alice_categories = [alice_criteo_train_1m[x].max() for x in alice_cat_features]
+    bob_cat_features = [x for x in bob_criteo_train_1m.columns if x.startswith('C')]
+    bob_num_features = [x for x in bob_criteo_train_1m.columns if x.startswith('I')]
+    bob_categories = [bob_criteo_train_1m[x].max() for x in bob_cat_features]
+
+    return (
+        alice_cat_features,
+        alice_num_features,
+        alice_categories,
+        bob_cat_features,
+        bob_num_features,
+        bob_categories,
+    )
+
+
+(
+    alice_cat_features,
+    alice_num_features,
+    alice_categories,
+    bob_cat_features,
+    bob_num_features,
+    bob_categories,
+) = gen_alice_bob_cat_num_categories()
+
+train_alice = pd.read_csv(data_path + 'train_alice.csv', sep='|')
 train_alice_label = train_alice['label']
 train_alice_data = train_alice.drop(columns=["label"])
-alice_dataset = AliceDataset(train_alice_data, train_alice_label)
+train_bob = pd.read_csv(data_path + 'train_bob.csv', sep='|')
+# alice_dataset = AliceDataset(
+#     train_alice_data,
+#     train_alice_label,
+#     alice_cat_features,
+#     alice_num_features,
+#     alice_categories,
+# )
 
-train_bob = pd.read_csv(gen_data_path + 'train_bob.csv', sep='|')
-bob_dataset = BobDataset(train_bob)
+
+# bob_dataset = BobDataset(train_bob, bob_cat_features, bob_num_features, bob_categories)
 
 
 def create_dataset_builder_alice(batch_size=32):
+
     def dataset_builder(x):
-        data_set = AliceDataset(x[0], x[1], gen_data_path)
+        data_set = AliceDataset(x[0], x[1], data_path)
         dataloader = DataLoader(
             dataset=data_set,
             batch_size=batch_size,
@@ -108,8 +147,9 @@ def create_dataset_builder_alice(batch_size=32):
 
 
 def create_dataset_builder_bob(batch_size=32):
+
     def dataset_builder(x):
-        data_set = BobDataset(x[0], gen_data_path)
+        data_set = BobDataset(x[0], data_path)
         dataloader = DataLoader(
             dataset=data_set,
             batch_size=batch_size,
@@ -118,6 +158,9 @@ def create_dataset_builder_bob(batch_size=32):
 
     return dataset_builder
 
+
+# alice_dataloader_train = DataLoader(dataset=alice_dataset, batch_size=64, shuffle=True)
+# bob_dataloader_train = DataLoader(dataset=bob_dataset, batch_size=64, shuffle=True)
 
 # Check the version of your SecretFlow
 print('The version of SecretFlow: {}'.format(sf.__version__))
@@ -135,6 +178,10 @@ dataset_buidler_dict = {
         batch_size=batch_size,
     ),
 }
+# dataset_builder_dict = {
+#     alice: alice_dataloader_train,
+#     bob: bob_dataloader_train,
+# }
 
 import pandas as pd
 from model.sl_dcn_torch import DCNBase, DCNFuse
@@ -147,7 +194,7 @@ bob_base_out_dim = 0
 def create_base_model_alice():
     d_numerical = 6
     d_embed_max = 8
-    categories = alice_dataset.get_categories()
+    categories = alice_categories
     d_cat_sum = sum([min(max(int(x**0.5), 2), d_embed_max) for x in categories])
     mlp_layers = [128, 64, 32]
     global alice_base_out_dim
@@ -172,7 +219,7 @@ def create_base_model_alice():
 def create_base_model_bob():
     d_numerical = 7
     d_embed_max = 8
-    categories = bob_dataset.get_categories()
+    categories = bob_categories
     d_cat_sum = sum([min(max(int(x**0.5), 2), d_embed_max) for x in categories])
     mlp_layers = [128, 64, 32]
     global bob_base_out_dim

@@ -32,6 +32,10 @@ origin_train_data_path = os.path.join(
 origin_val_data_path = os.path.join(os.path.dirname(__file__), "criteo_val_small.csv")
 origin_test_data_path = os.path.join(os.path.dirname(__file__), "criteo_test_small.csv")
 
+origin_criteo_train_1m_data_path = os.path.join(
+    os.path.dirname(__file__), "criteo_train_1m.csv"
+)
+
 dfdata.columns = (
     ["label"]
     + ["I" + str(x) for x in range(1, 14)]
@@ -51,20 +55,10 @@ dfdata[num_cols] = num_pipe.fit_transform(dfdata[num_cols])
 
 categories = [dfdata[col].max() + 1 for col in cat_cols]
 
+# save origin 1m data
+dfdata.to_csv(origin_criteo_train_1m_data_path, index=False)
 
-dftrain_val, dftest = train_test_split(dfdata, test_size=0.2)
-dftrain, dfval = train_test_split(dftrain_val, test_size=0.2)
-
-
-dftrain.to_csv(origin_train_data_path, index=False)
-dfval.to_csv(origin_val_data_path, index=False)
-dftest.to_csv(origin_test_data_path, index=False)
-
-# generate alice and bob data
-
-origin_train_df = pd.read_csv(origin_train_data_path)
-origin_val_df = pd.read_csv(origin_val_data_path)
-
+# generate origin alice 1m data
 alice_col = [
     'label',
     'I1',
@@ -109,16 +103,28 @@ bob_col = [
     'C38',
     'C39',
 ]
-sample_train_data = origin_train_df.sample(frac=0.5)
-sample_val_data = origin_val_df.sample(frac=0.5)
 
-train_alice = sample_train_data.loc[:, alice_col]
-train_bob = sample_train_data.loc[:, bob_col]
+alice_criteo_train_1m = dfdata.loc[:, alice_col]
+bob_criteo_train_1m = dfdata.loc[:, bob_col]
 
-val_alice = sample_val_data.loc[:, alice_col]
-val_bob = sample_val_data.loc[:, bob_col]
+alice_criteo_train_1m.to_csv(
+    os.path.join(os.path.dirname(__file__), "alice_criteo_train_1m.csv"),
+)
+bob_criteo_train_1m.to_csv(
+    os.path.join(os.path.dirname(__file__), "bob_criteo_train_1m.csv"),
+)
 
-train_alice.to_csv(
+# gener
+
+alice_train_val, alice_test = train_test_split(alice_criteo_train_1m, test_size=0.2)
+alice_train, alice_val = train_test_split(alice_train_val, test_size=0.2)
+bob_train_val, bob_test = train_test_split(bob_criteo_train_1m, test_size=0.2)
+bob_train, bob_val = train_test_split(bob_train_val, test_size=0.2)
+
+
+# save alice's train data and val data and bob's train data and val data
+
+alice_train.to_csv(
     os.path.join(os.path.dirname(__file__), "train_alice.csv"),
     index=False,
     sep="|",
@@ -126,7 +132,7 @@ train_alice.to_csv(
 )
 
 
-train_bob.to_csv(
+bob_train.to_csv(
     os.path.join(os.path.dirname(__file__), "train_bob.csv"),
     index=False,
     sep="|",
@@ -134,14 +140,14 @@ train_bob.to_csv(
 )
 
 
-val_alice.to_csv(
+alice_val.to_csv(
     os.path.join(os.path.dirname(__file__), "val_alice.csv"),
     index=False,
     sep="|",
     encoding='utf-8',
 )
 
-val_bob.to_csv(
+bob_val.to_csv(
     os.path.join(os.path.dirname(__file__), "val_bob.csv"),
     index=False,
     sep="|",
