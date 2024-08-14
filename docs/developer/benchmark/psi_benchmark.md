@@ -603,11 +603,6 @@ if __name__ == '__main__':
     <td>705</td>
     <td>6840 (1.9 h)</td>
   </tr>
-
-
-
-
-
   <tr>
     <td rowspan="16">16C32G</td>
     <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
@@ -721,9 +716,6 @@ if __name__ == '__main__':
     <td>737.</td>
     <td>2.05 h</td>
   </tr>
-
-
-
   <tr>
     <td rowspan="16">8C16G</td>
     <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
@@ -840,7 +832,6 @@ if __name__ == '__main__':
 </table>
 
 
-
 - ECDH：对网络配置不敏感，对计算资源敏感，适合带宽较低、计算配置较高的使用场景；
 - KKRT：网络设置为100Mbps时，带宽成为瓶颈。通常用于两方数据量均衡时，适合高带宽的使用场景；
 
@@ -861,73 +852,58 @@ if __name__ == '__main__':
     <td>7764<br/>(2.15 h)</td>
     <td>729</td>
   </tr>
-
-<tr>
+  <tr>
     <td>"receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type = 'CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td>ECDH-PSI-2PC<br/>(CURVE_25519)</td>
     <td>11555<br/>(3.2 h)</td>
     <td>1131</td>
   </tr>
-
   <tr>
     <td>"receiver='alice',<br>protocol='ECDH_OPRF_UB_PSI_2PC',<br>curve_type = 'CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td>ECDH_OPRF_UB_PSI_2PC<br/>(非平衡)<br/>(大规模 10亿&100w=50w) <br/>(标准 1亿&10w=5w) <br/> (CURVE_FOURQ)  </td>
     <td>offline: 1428 (23m)<br/>offline: 300 (5m)</td>
      <td>offline: 139<br/>offline: 31</td>
   </tr>
-
   <tr>
     <td>"receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type = 'CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td>ECDH_PSI_3PC<br/>(CURVE_FOURQ)</td>
     <td>17599</br>(4.8 h)</td>
      <td>1172</td>
   </tr>
-
-
-<tr>
+  <tr>
     <td>"receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type = 'CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td>ECDH_PSI_3PC<br/>(CURVE_25519)</td>
     <td>26220</br>(7.28 h)</td>
      <td>2022</td>
   </tr>
-
-
-<tr>
+  <tr>
     <td>"receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type = 'CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td>ECDH_PSI_3PC<br/>(非平衡)<br/>  (大规模 10亿&10亿&100万=50) <br/>(标准 1亿&1亿&10万=5)<br/>(CURVE_FOURQ)</td>
     <td>26220</br>(7.28 h)</td>
      <td>2022</td>
   </tr>
-
-<tr>
+  <tr>
     <td>"receiver='alice',<br>protocol='KKRT_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td>KKRT_PSI_2PC<br/> (百万分桶)</td>
     <td>30963</br>(8.6 h)</td>
      <td>554</td>
   </tr>
-
-
-<tr>
+  <tr>
     <td>"receiver='alice',<br>protocol='RR22_FAST_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td>RR22_FAST_PSI_2PC<br/> (百万分桶)</td>
     <td>6236</br>(1.7 h)</td>
      <td>280</td>
   </tr>
-
-<tr>
+  <tr>
     <td>"receiver='alice',<br>protocol='RR22_LOWCOMM_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td>RR22_LOWCOMM_PSI_2PC<br/> (百万分桶)</td>
     <td>5659</br>(1.57 h)</td>
      <td>323</td>
-  </tr>
-
-<tr>
+  </tr> 
+  <tr>
     <td>"receiver='alice',<br>protocol='RR22_MALICIOUS_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td>RR22_MALICIOUS_PSI_2PC<br/> (百万分桶)</td>
     <td>14847</br>(4.12 h)</td>
      <td>203</td>
   </tr>
-
 </table>
-
-
