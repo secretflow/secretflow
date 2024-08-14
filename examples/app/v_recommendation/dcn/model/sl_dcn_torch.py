@@ -18,6 +18,7 @@ from torch import nn as nn
 from torch.nn import functional as F
 
 from secretflow.ml.nn.core.torch import BaseModule
+from secretflow.utils.logging import logger
 
 
 class CatEmbeddingSqrt(nn.Module):
@@ -31,13 +32,17 @@ class CatEmbeddingSqrt(nn.Module):
         """
         super().__init__()
         self.categories = categories
+        # logger.debug(f"categories: {categories}")
         self.d_embed_list = [min(max(int(x**0.5), 2), d_embed_max) for x in categories]
+        # logger.debug(f"d_embed_list: {self.d_embed_list}")
         self.embedding_list = nn.ModuleList(
             [
                 nn.Embedding(self.categories[i], self.d_embed_list[i])
                 for i in range(len(categories))
             ]
         )
+        # logger.debug(f"embedding_list: {self.embedding_list}")
+        # logger.debug(f"d_cat_sum in CatEmbeddingSqrt: {d_cat_sum}")
         assert d_cat_sum == sum(self.d_embed_list)
         self.d_cat_sum = d_cat_sum
 
@@ -45,10 +50,12 @@ class CatEmbeddingSqrt(nn.Module):
         """
         x_cat: Long tensor of size ``(batch_size, d_in)``
         """
+        # logger.debug(f"x_cat: {x_cat}, and shape: {x_cat.size()}")
         x_out = torch.cat(
             [self.embedding_list[i](x_cat[:, i]) for i in range(len(self.categories))],
             dim=1,
         )
+        # logger.debug(f"x_out: {x_out}, and shape: {x_out.size()}")
         return x_out
 
 
@@ -150,6 +157,9 @@ class DCNBase(BaseModule):
         x_cat : categorical features
         """
         x_num, x_cat = x
+        # logger.debug(
+        #     f"x_num: {x_num}, x_cat: {x_cat}, and x_cat size: {x_cat.size()}, x_num size: {x_num.size()}"
+        # )
         x_total = []
         if x_num is not None:
             x_total.append(x_num)
