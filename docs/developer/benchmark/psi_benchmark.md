@@ -868,43 +868,43 @@ if __name__ == '__main__':
   <tr>
     <td>"receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type = 'CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td>ECDH_PSI_3PC<br/>(CURVE_FOURQ)</td>
-    <td>17599</br>(4.8 h)</td>
+    <td>17599<br>(4.8 h)</td>
      <td>1172</td>
   </tr>
   <tr>
     <td>"receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type = 'CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td>ECDH_PSI_3PC<br/>(CURVE_25519)</td>
-    <td>26220</br>(7.28 h)</td>
+    <td>26220<br>(7.28 h)</td>
      <td>2022</td>
   </tr>
   <tr>
     <td>"receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type = 'CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td>ECDH_PSI_3PC<br/>(非平衡)<br/>  (大规模 10亿&10亿&100万=50) <br/>(标准 1亿&1亿&10万=5)<br/>(CURVE_FOURQ)</td>
-    <td>26220</br>(7.28 h)</td>
+    <td>26220<br>(7.28 h)</td>
      <td>2022</td>
   </tr>
   <tr>
     <td>"receiver='alice',<br>protocol='KKRT_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td>KKRT_PSI_2PC<br/> (百万分桶)</td>
-    <td>30963</br>(8.6 h)</td>
+    <td>30963<br>(8.6 h)</td>
      <td>554</td>
   </tr>
   <tr>
     <td>"receiver='alice',<br>protocol='RR22_FAST_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td>RR22_FAST_PSI_2PC<br/> (百万分桶)</td>
-    <td>6236</br>(1.7 h)</td>
+    <td>6236<br>(1.7 h)</td>
      <td>280</td>
   </tr>
   <tr>
     <td>"receiver='alice',<br>protocol='RR22_LOWCOMM_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td>RR22_LOWCOMM_PSI_2PC<br/> (百万分桶)</td>
-    <td>5659</br>(1.57 h)</td>
+    <td>5659<br>(1.57 h)</td>
      <td>323</td>
   </tr>
   <tr>
     <td>"receiver='alice',<br>protocol='RR22_MALICIOUS_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td>RR22_MALICIOUS_PSI_2PC<br/> (百万分桶)</td>
-    <td>14847</br>(4.12 h)</td>
+    <td>14847<br>(4.12 h)</td>
      <td>203</td>
   </tr>
 </table>
