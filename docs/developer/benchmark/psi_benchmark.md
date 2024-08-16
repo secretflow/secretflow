@@ -497,13 +497,13 @@ if __name__ == '__main__':
     <td>LAN</td>
     <td>73</td>
     <td>723</td>
-    <td>7491 (2.08 h)</td>
+    <td>7491 <br> (2.08 h)</td>
   </tr>
   <tr>
     <td>100Mbps/10ms</td>
     <td>74</td>
     <td>729</td>
-    <td>7387 (2.06 h)</td>
+    <td>7387 <br> (2.06 h)</td>
   </tr>
   <tr>
     <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type='CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
@@ -511,27 +511,27 @@ if __name__ == '__main__':
     <td>LAN</td>
     <td>110</td>
     <td>1129</td>
-    <td><11377 (3.16 h)</td>
+    <td> 11377 <br> (3.16 h)</td>
   </tr>
   <tr>
     <td>100Mbps/10ms</td>
     <td>115</td>
     <td>1142</td>
-    <td>11504 (3.19 h)</td>
+    <td>11504 <br> (3.19 h)</td>
   </tr>
   <tr>
     <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td rowspan="2">ECDH-PSI-3PC <br/> (FourQ)</td>
     <td>LAN</td>
-    <td>113</td>
+    <td>123</td>
     <td>1170</td>
-    <td>13097 (3.63 h)</td>
+    <td>13097 <br> (3.63 h)</td>
   </tr>
   <tr>
     <td>100Mbps/10ms</td>
-    <td>115</td>
-    <td>1199</td>
-    <td>12964 (3.60 h)</td>
+    <td>155</td>
+    <td>1499</td>
+    <td>17041 <br> (4.7 h)</td>
   </tr>
   <tr>
     <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type='CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
@@ -539,13 +539,13 @@ if __name__ == '__main__':
     <td>LAN</td>
     <td>203</td>
     <td>2017</td>
-    <td>22717 (6.16 h)</td>
+    <td>22717 <br> (6.16 h)</td>
   </tr>
   <tr>
     <td>100Mbps/10ms</td>
     <td>239</td>
     <td>2349</td>
-    <td>25807 (7.2 h)</td>
+    <td>25807 <br> (7.2 h)</td>
   </tr>
   <tr>
     <td rowspan="2">receiver='alice',<br>protocol='KKRT_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
@@ -553,13 +553,13 @@ if __name__ == '__main__':
     <td>LAN</td>
     <td>56</td>
     <td>558</td>
-    <td>5970 (1.61 h)</td>
+    <td>5970 <br> (1.61 h)</td>
   </tr>
   <tr>
     <td>100Mbps/10ms</td>
     <td>144</td>
     <td>1393</td>
-    <td>14295 (3.97 h)</td>
+    <td>14295 <br> (3.97 h)</td>
   </tr>
   <tr>
     <td rowspan="2">receiver='alice',<br>protocol='RR22_FAST_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
@@ -567,13 +567,13 @@ if __name__ == '__main__':
     <td>LAN</td>
     <td>28</td>
     <td>273</td>
-    <td>3176 (0.88 h = 53 m)</td>
+    <td>3176 <br> (0.88 h)</td>
   </tr>
   <tr>
     <td>100Mbps/10ms</td>
     <td>63</td>
     <td>575</td>
-    <td>6025 (1.6 h)</td>
+    <td>6025<br> (1.6 h)</td>
   </tr>
   <tr>
     <td rowspan="2">receiver='alice',<br>protocol='RR22_LOWCOMM_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
@@ -581,13 +581,13 @@ if __name__ == '__main__':
     <td>LAN</td>
     <td>31</td>
     <td>317</td>
-    <td>3614 (1.00 h)</td>
+    <td>3614<br>(1.00 h)</td>
   </tr>
   <tr>
     <td>100Mbps/10ms</td>
     <td>53</td>
     <td>481</td>
-    <td>5310 (1.47 h)</td>
+    <td>5310<br>(1.47 h)</td>
   </tr>
   <tr>
     <td rowspan="2">receiver='alice',<br>protocol='RR22_MALICIOUS_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
@@ -595,125 +595,125 @@ if __name__ == '__main__':
     <td>LAN</td>
     <td>23</td>
     <td>232</td>
-    <td>1791 (0.49 h)</td>
+    <td>1791<br>(0.49 h)</td>
   </tr>
   <tr>
     <td>100Mbps/10ms</td>
     <td>82</td>
     <td>705</td>
-    <td>6840 (1.9 h)</td>
+    <td>6840<br>(1.9 h)</td>
   </tr>
   <tr>
     <td rowspan="16">16C32G</td>
     <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td rowspan="2">ECDH-PSI-2PC <br/>(FourQ)</td>
     <td>LAN</td>
-    <td>96.</td>
-    <td>991.</td>
+    <td>96</td>
+    <td>991</td>
     <td>2.82 h</td>
   </tr>
   <tr>
     <td>100Mbps/10ms</td>
-    <td>97.</td>
-    <td>991.</td>
+    <td>97</td>
+    <td>991</td>
     <td>2.79 h</td>
   </tr>
   <tr>
     <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type='CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td rowspan="2">ECDH-PSI-2PC <br/>(CURVE_25519)</td>
     <td>LAN</td>
-    <td>170.</td>
-    <td>1730.</td>
+    <td>170</td>
+    <td>1730</td>
     <td>4.8 h</td>
   </tr>
   <tr>
     <td>100Mbps/10ms</td>
-    <td>179.</td>
-    <td>1790.</td>
+    <td>179</td>
+    <td>1790</td>
     <td>5.02 h</td>
   </tr>
   <tr>
     <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td rowspan="2">ECDH-PSI-3PC <br/>(FourQ)</td>
     <td>LAN</td>
-    <td>174.</td>
-    <td>1687.</td>
+    <td>174</td>
+    <td>1687</td>
     <td>5.4 h</td>
   </tr>
   <tr>
     <td>100Mbps/10ms</td>
-    <td>209.</td>
-    <td>2007.</td>
+    <td>209</td>
+    <td>2007</td>
     <td>6.5 h</td>
   </tr>
   <tr>
     <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type='CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td rowspan="2">ECDH-PSI-3PC (CURVE_25519)<br>(3个参与方持有相同数据的50%，最后交集占比50%)</td>
     <td>LAN</td>
-    <td>346.</td>
-    <td>3456.</td>
+    <td>346</td>
+    <td>3456</td>
     <td>10.6 h</td>
   </tr>
   <tr>
     <td>100Mbps/10ms</td>
-    <td>383.</td>
-    <td>3781.</td>
+    <td>383</td>
+    <td>3781</td>
     <td>11.7 h</td>
   </tr>
   <tr>
     <td rowspan="2">receiver='alice',<br>protocol='KKRT_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td rowspan="2">KKRT_PSI_2PC<br>(百万分桶)</td>
     <td>LAN</td>
-    <td>55.</td>
-    <td>565.</td>
+    <td>55</td>
+    <td>565</td>
     <td>2.05 h</td>
   </tr>
   <tr>
     <td>100Mbps/10ms</td>
-    <td>147.</td>
-    <td>1435.</td>
+    <td>147</td>
+    <td>1435</td>
     <td>4.34 h</td>
   </tr>
   <tr>
     <td rowspan="2">receiver='alice',<br>protocol='RR22_FAST_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td rowspan="2">RR22_FAST_PSI_2PC<br>(百万分桶)</td>
     <td>LAN</td>
-    <td>31.</td>
-    <td>273.</td>
+    <td>31</td>
+    <td>273</td>
     <td>1.17 h</td>
   </tr>
   <tr>
     <td>100Mbps/10ms</td>
-    <td>69.</td>
-    <td>628.</td>
+    <td>69</td>
+    <td>628</td>
     <td>2.06 h</td>
   </tr>
   <tr>
     <td rowspan="2">receiver='alice',<br>protocol='RR22_LOWCOMM_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td rowspan="2">RR22_LOWCOMM_PSI_2PC<br>(百万分桶)</td>
     <td>LAN</td>
-    <td>31.</td>
-    <td>308.</td>
+    <td>31</td>
+    <td>308</td>
     <td>1.37 h</td>
   </tr>
   <tr>
     <td>100Mbps/10ms</td>
-    <td>58.</td>
-    <td>628.</td>
+    <td>58</td>
+    <td>545</td>
     <td>1.87 h</td>
   </tr>
   <tr>
     <td rowspan="2">receiver='alice',<br>protocol='RR22_MALICIOUS_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td rowspan="2">RR22_MALICIOUS_PSI_2PC<br>(百万分桶)</td>
     <td>LAN</td>
-    <td>23.</td>
-    <td>184.</td>
+    <td>23</td>
+    <td>184</td>
     <td>0.57 h</td>
   </tr>
   <tr>
     <td>100Mbps/10ms</td>
-    <td>86.</td>
-    <td>737.</td>
+    <td>86</td>
+    <td>737</td>
     <td>2.05 h</td>
   </tr>
   <tr>
@@ -770,7 +770,7 @@ if __name__ == '__main__':
   <tr>
     <td>100Mbps/10ms</td>
     <td>672</td>
-    <td>6620</td>
+    <td>6661</td>
     <td>20.18 h</td>
   </tr>
   <tr>
@@ -811,8 +811,8 @@ if __name__ == '__main__':
   </tr>
   <tr>
     <td>100Mbps/10ms</td>
-    <td>58</td>
-    <td>520</td>
+    <td>59</td>
+    <td>550</td>
     <td>1.86 h</td>
   </tr>
   <tr>
@@ -880,8 +880,8 @@ if __name__ == '__main__':
   <tr>
     <td>"receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type = 'CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td>ECDH_PSI_3PC<br/>(非平衡)<br/>  (大规模 10亿&10亿&100万=50) <br/>(标准 1亿&1亿&10万=5)<br/>(CURVE_FOURQ)</td>
-    <td>26220<br>(7.28 h)</td>
-     <td>2022</td>
+    <td>12441<br>(3.45 h)</td>
+     <td>894</td>
   </tr>
   <tr>
     <td>"receiver='alice',<br>protocol='KKRT_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
