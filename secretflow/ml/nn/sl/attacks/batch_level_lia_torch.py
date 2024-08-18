@@ -12,17 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
-from typing import Callable, Dict, List
+from typing import List
 
-import numpy as np
 import torch
 import torch.nn.functional as F
 
-from secretflow import reveal, wait
+from secretflow import reveal
 from secretflow.device import PYU
 from secretflow.ml.nn.callbacks.attack import AttackCallback
-from secretflow.ml.nn.core.torch import module, BaseModule
+from secretflow.ml.nn.core.torch import BaseModule, module
 from secretflow.ml.nn.sl.backend.torch.sl_base import SLBaseTorchModel
 from secretflow.ml.nn.utils import TorchModel
 
@@ -85,6 +83,9 @@ class BatchLevelLabelInferenceAttack(AttackCallback):
             attack_worker: SLBaseTorchModel,
             victim_hidden_size,
             dummy_fuse_model,
+            label,
+            lr,
+            label_size,
             exec_device,
             att_epochs,
         ):
@@ -92,9 +93,9 @@ class BatchLevelLabelInferenceAttack(AttackCallback):
                 attack_worker.model_base,
                 victim_hidden_size,
                 dummy_fuse_model,
-                self.label,
-                lr=self.lr,
-                label_size=self.label_size,
+                label,
+                lr=lr,
+                label_size=label_size,
                 epochs=att_epochs,
                 exec_device=exec_device,
             )
@@ -105,6 +106,9 @@ class BatchLevelLabelInferenceAttack(AttackCallback):
             init_attacker,
             self.victim_hidden_size,
             self.dummy_fuse_model,
+            self.label,
+            self.lr,
+            self.label_size,
             self.exec_device,
             self.att_epochs,
         )

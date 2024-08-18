@@ -19,6 +19,7 @@ from benchmark_examples.autoattack.applications.base import ApplicationBase
 from benchmark_examples.autoattack.attacks.base import AttackBase
 from benchmark_examples.autoattack.base import AutoBase
 from benchmark_examples.autoattack.utils.config import read_tune_config
+from benchmark_examples.autoattack.utils.resources import ResourcesPack
 from secretflow import PYU
 from secretflow.ml.nn.callbacks.callback import Callback
 
@@ -46,7 +47,7 @@ class DefenseBase(AutoBase, ABC):
         defense_config = tune_config['defenses']
         assert (
             self.__str__() in defense_config
-        ), f"Missing {self.__str__()} in config file."
+        ), f"Missing tune.defenses.{self.__str__()} in config file."
         defense_search_space = defense_config[self.__str__()]
         defense_search_space = (
             {} if defense_search_space is None else defense_search_space
@@ -72,16 +73,37 @@ class DefenseBase(AutoBase, ABC):
     def check_app_valid(self, app: ApplicationBase) -> bool:
         return False
 
+    def update_resources_consumptions(
+        self,
+        cluster_resources_pack: ResourcesPack,
+        app: ApplicationBase,
+        attack: AttackBase | None,
+    ) -> ResourcesPack:
+        """Update the resource consumptions depends on each defense."""
+        pass
+
+    def tune_metrics(self, app_metrics: Dict[str, str]) -> Dict[str, str]:
+        """
+        Return the defense tune metrics, and can modify the app metircs.
+        Args:
+            app_metrics: application metrics to modify.
+
+        Returns:
+            the defense tuen metrics.
+        """
+
 
 class DefaultDefenseCase(DefenseBase):
     def __init__(self, alice=None, bob=None):
         super().__init__(alice, bob)
 
-    def tune_metrics(self) -> Dict[str, str]:
+    def tune_metrics(self, app_metrics: Dict[str, str]) -> Dict[str, str]:
         return {}
 
     def __str__(self):
         return ""
 
-    def build_defense_callback(self, app: ApplicationBase) -> Callback | None:
+    def build_defense_callback(
+        self, app: ApplicationBase, attack: AttackBase | None = None
+    ) -> Callback | None:
         return None

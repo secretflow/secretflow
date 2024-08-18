@@ -21,6 +21,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List
 
+import tensorflow as tf
+
 # The reason we just do not inherit or combine tensorflow metrics
 # is tensorflow metrics are un-serializable but we need send they from worker to server.
 
@@ -44,6 +46,7 @@ class Default(Metric):
     name: str
     total: float
     count: float
+    metric: tf.keras.metrics.Mean = None
 
     def __add__(self, other):
         assert self.name == other.name
@@ -59,12 +62,13 @@ class Default(Metric):
         warnings.warn(
             "Please pay attention to local metrics, global only do naive aggregation."
         )
-        import tensorflow as tf
 
-        metric = tf.keras.metrics.Mean()
-        metric.total = self.total
-        metric.count = self.count
-        return metric.result()
+        if self.metric is None:
+            self.metric = tf.keras.metrics.Mean()
+
+        self.metric.total = self.total
+        self.metric.count = self.count
+        return self.metric.result()
 
 
 @dataclass
@@ -79,6 +83,7 @@ class Mean(Metric):
     name: str
     total: float
     count: float
+    metric: tf.keras.metrics.Mean = None
 
     def __radd__(self, other):
         assert other == 0
@@ -91,12 +96,12 @@ class Mean(Metric):
         return Mean(self.name, total, count)
 
     def result(self):
-        import tensorflow as tf
+        if self.metric is None:
+            self.metric = tf.keras.metrics.Mean()
 
-        metric = tf.keras.metrics.Mean()
-        metric.total = self.total
-        metric.count = self.count
-        return metric.result()
+        self.metric.total = self.total
+        self.metric.count = self.count
+        return self.metric.result()
 
 
 class AUC(Metric):
@@ -167,8 +172,6 @@ class AUC(Metric):
         )
 
     def result(self):
-        import tensorflow as tf
-
         # 由于tf.keras.metrics.AUC会默认给thresholds添加{-epsilon, 1+epsilon}两个边界值，因此这里需要去掉两个边界点。
         metric = tf.keras.metrics.AUC(
             thresholds=self.thresholds[1:-1], curve=self.curve
@@ -194,6 +197,7 @@ class Precision(Metric):
     thresholds: float
     true_positives: float
     false_positives: float
+    metric: tf.keras.metrics.Precision = None
 
     def __radd__(self, other):
         assert other == 0
@@ -209,13 +213,13 @@ class Precision(Metric):
         return Precision(self.name, thresholds, true_positives, false_positives)
 
     def result(self):
-        import tensorflow as tf
+        if self.metric is None:
+            self.metric = tf.keras.metrics.Precision()
 
-        metric = tf.keras.metrics.Precision()
-        metric.thresholds = self.thresholds
-        metric.true_positives = self.true_positives
-        metric.false_positives = self.false_positives
-        return metric.result()
+        self.metric.thresholds = self.thresholds
+        self.metric.true_positives = self.true_positives
+        self.metric.false_positives = self.false_positives
+        return self.metric.result()
 
 
 @dataclass
@@ -233,6 +237,7 @@ class Recall(Metric):
     thresholds: float
     true_positives: float
     false_negatives: float
+    metric: tf.keras.metrics.Recall = None
 
     def __radd__(self, other):
         assert other == 0
@@ -248,13 +253,13 @@ class Recall(Metric):
         return Recall(self.name, thresholds, true_positives, false_negatives)
 
     def result(self):
-        import tensorflow as tf
+        if self.metric is None:
+            self.metric = tf.keras.metrics.Recall()
 
-        metric = tf.keras.metrics.Recall()
-        metric.thresholds = self.thresholds
-        metric.true_positives = self.true_positives
-        metric.false_negatives = self.false_negatives
-        return metric.result()
+        self.metric.thresholds = self.thresholds
+        self.metric.true_positives = self.true_positives
+        self.metric.false_negatives = self.false_negatives
+        return self.metric.result()
 
 
 def aggregate_metrics(local_metrics: List[List]) -> List:

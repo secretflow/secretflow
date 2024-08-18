@@ -23,6 +23,7 @@ from benchmark_examples.autoattack.applications.base import ModelType
 from benchmark_examples.autoattack.applications.image.cifar10.cifar10_base import (
     Cifar10ApplicationBase,
 )
+from benchmark_examples.autoattack.utils.resources import ResourceDict, ResourcesPack
 from secretflow.ml.nn.core.torch import (
     BaseModule,
     TorchModel,
@@ -113,4 +114,17 @@ class Cifar10CNN(Cifar10ApplicationBase):
             loss_fn=nn.CrossEntropyLoss,
             optim_fn=optim_wrapper(optim.Adam, lr=1e-3),
             metrics=self.metrics,
+        )
+
+    def resources_consumption(self) -> ResourcesPack:
+        # 640MiB
+        return (
+            ResourcesPack()
+            .with_debug_resources(ResourceDict(gpu_mem=800 * 1024 * 1024, CPU=1))
+            .with_sim_resources(
+                self.device_y.party, ResourceDict(gpu_mem=800 * 1024 * 1024, CPU=1)
+            )
+            .with_sim_resources(
+                self.device_f.party, ResourceDict(gpu_mem=600 * 1024 * 1024, CPU=1)
+            )
         )

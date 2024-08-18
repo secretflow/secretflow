@@ -14,12 +14,10 @@
 
 from .graph_builder_manager import GraphBuilderManager
 from .preprocessing_converter import PreprocessingConverter
-from .serving_graph import DispatchType
 from .train_model_converter import TrainModelConverter
 
 __all__ = [
     GraphBuilderManager,
-    DispatchType,
     PreprocessingConverter,
     TrainModelConverter,
 ]

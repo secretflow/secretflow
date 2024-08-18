@@ -95,6 +95,7 @@
 | 81 | cifar10    | cnn      | grad_avg          | -         | -         | -         | -         | -         | -         | -         | -         | -         |
 | 82 | cifar10    | cnn      | mid               | -         | -         | -         | -         | -         | -         | -         | -         | -         |
 | 83 | cifar10    | cnn      | mixup             | -         | -         | -         | supported | supported | -         | -         | -         | supported |
+
 ## 如何添加新的实现
 代码在`benchmark_example/autoattack`目录下。
 
@@ -135,7 +136,7 @@ python benchmark_example/autoattack/main.py bank dnn lia
 # 攻击 + 防御
 python benchmark_example/autoattack/main.py bank dnn grad_avg
 # 攻击 + 防御 + 自动调优
-python benchmark_example/autoattack/main.py bank dnn lia grad_avg --auto --config="path/to/config"
+python benchmark_example/autoattack/main.py bank dnn lia grad_avg --enable_tune --config="path/to/config"
 ```
 
 ## 运行benchmark
@@ -158,11 +159,11 @@ benchmark脚本支持在单台机器上自动启动ray集群进行调优测试�
 
 
 ```shell
-# 在首台机器上，启动ray头结点
+# 在首台机器上，启动ray头节点
 ray start --head --port=6379 --resources='{"alice": 16, "bob":16, "gpu_mem": 85899345920}' --num-gpus=1 --disable-usage-stats --include-dashboard False
-# 在其余机器上，启动ray并连接头结点
+# 在其余机器上，启动ray并连接头节点
 ray start --address="headip:6379" --resources='{"alice": 16, "bob":16, "gpu_mem": 85899345920}' --num-gpus=1 --disable-usage-stats
-# 在头结点查看ray集群状态，看节点数量是否正确
+# 在头节点查看ray集群状态，看节点数量是否正确
 ray status
 ```
 ### 启动benchmark
@@ -194,28 +195,27 @@ applications:
 paths:
   # the dataset store path, you can put the datasets here, or will auto download.
   datasets: ~
-  # the autoattack result store path, default to '~/.secretflow/workspace'.
+  # the autoattack result store path.
   autoattack_path: ~
+
 # Resources configurations.
 # Only needed when using sim mode and need to indicate the cpu/gpu nums manually.
 resources:
-  # how many CPUs do all your machines add up to.
-  num_cpus: ~
-  # how many CPUs do all your machines add up to (need applications.use_gpu = true).
-  num_gpus: 2
+  # The names and memory capacities of all GPUs included in your cluster.
+  gpu:
+    # Suppose you have an 'V100' GPU with 4GB
+    V100: 4000000000 # 4GB
+
 # When there are multiple ray clusters in your machine, specify one to connect.
 ray:
-  # the existing ray cluster's address for connection (ip:port).
+  # the existing ray cluster's address for connection (ip:port), default to None.
   address: ~
-# tuner hyperparameters
+
+# tuner parameters
 tune:
-  # application hyperparameters
   applications:
-    # dataset
     creditcard:
-      # model
       dnn:
-        # all posible hyperparameters
         train_batch_size: [ 64, 128 ]
         hidden_size_range: [ 28, 64 ]
         alice_feature_nums_range: [ 25 ]
@@ -223,22 +223,142 @@ tune:
         dnn_base_units_size_range_bob: [ [ 4 ] ]
         dnn_fuse_units_size_range: [ [ 1 ],[ -1, -1, 1 ], ]
         dnn_embedding_dim_range: ~
-  # attack hyperparameters
+    bank:
+      dnn:
+        train_batch_size: [ 64, 128 ]
+        hidden_size_range: [ 32, 64 ]
+        alice_feature_nums_range: [ 9, 1, 5, 10, 15 ]
+        dnn_base_units_size_range_alice: [ [ 128, -1 ], [ -1 ], ]
+        dnn_base_units_size_range_bob: ~
+        dnn_fuse_units_size_range: [ [ 1 ], [ 128, 1 ] ]
+      deepfm:
+        train_batch_size: [ 64, 128 ]
+        hidden_size_range: [ 32, 64 ]
+        alice_feature_nums_range: [ 9, 1, 5, 10, 15 ]
+        dnn_base_units_size_range_alice: [ [ 128, -1 ], [ 128, 128, -1 ], [ -1 ], ]
+        dnn_base_units_size_range_bob: ~
+        dnn_fuse_units_size_range: [ [ 64 ], [ 64, 64 ] ]
+        deepfm_embedding_dim_range: [ 8, 16 ]
+    drive:
+      dnn:
+        train_batch_size: [ 64, 128 ]
+        alice_feature_nums_range: [ 28 ]
+    movielens:
+      dnn:
+        train_batch_size: [ 64, 128 ]
+        hidden_size_range: [ 64, 128 ]
+        alice_feature_nums_range: [ 1, 2, 3, 4, 5 ]
+        dnn_base_units_size_range_alice: [ [ 256, -1 ], [ 256, 128, -1 ] ]
+        dnn_base_units_size_range_bob: ~
+        dnn_fuse_units_size_range: [ [ 1 ], [ 256, 128, 1 ] ]
+        dnn_embedding_dim_range: [ 8 ]
+      deepfm:
+        train_batch_size: [ 64, 128 ]
+        hidden_size_range: [ 64 ]
+        alice_feature_nums_range: [ 1, 2, 3, 4, 5 ]
+        dnn_base_units_size_range_alice: [ [ -1 ], [ 256, -1 ], [ 256, 128, -1 ] ]
+        dnn_base_units_size_range_bob: ~
+        dnn_fuse_units_size_range: [ [ 256, 32 ], [ 256, 256, 32 ] ]
+        deepfm_embedding_dim_range: [ 4 ]
+    criteo:
+      dnn:
+        train_batch_size: [ 64, 128 ]
+        hidden_size_range: [ 32, 64 ]
+        alice_feature_nums_range: [ 2, 5, 13, 18, 37 ]
+        dnn_base_units_size_range_alice: [ [ 200, 100, -1 ], [ -1 ] ]
+        dnn_base_units_size_range_bob: ~
+        dnn_fuse_units_size_range: [ [ 64, 1 ] ]
+        dnn_embedding_dim_range: [ 16 ]
+      deepfm:
+        train_batch_size: [ 64, 128 ]
+        hidden_size_range: [ 32, 64 ]
+        alice_feature_nums_range: [ 2, 5, 13, 18, 37 ]
+        dnn_base_units_size_range_alice: [ [ 256, 128, -1 ], [ 256, -1 ],[ -1 ], ]
+        dnn_base_units_size_range_bob: ~
+        dnn_fuse_units_size_range: [ [ 64 ], [ 64, 64 ] ]
+        deepfm_embedding_dim_range: [ 8, 16 ]
+    mnist:
+      vgg16:
+        train_batch_size: [ 64, 128 ]
+        hidden_size_range: [ 4608 ]
+        # 3 * vgg_resize * vgg_resize // 2
+        alice_feature_nums_range: [ 18816 ]
+        # 512 * 3 * 3 * 2 = 9216
+        dnn_fuse_units_size_range: [ [ 9216, 4096 ],
+                                     [ 9216, 4096, 4096 ],
+                                     [ 9216, 4096, 4096, 4096 ],
+                                     [ 9216, 4096, 4096, 4096, 4096 ], ]
+      resnet18:
+        train_batch_size: [ 64, 128 ]
+        hidden_size_range: [ 512 ]
+        # 1 * 28 * 14
+        alice_feature_nums_range: [ 392 ]
+        # 512 * 2 = 1024
+        dnn_fuse_units_size_range: [ [ 1024 ],
+                                     [ 1024, 512 ], ]
+    cifar10:
+      vgg16:
+        train_batch_size: [ 64, 128 ]
+        # 32 * 16 * 3 = 1536
+        alice_feature_nums_range: [ 1536 ]
+        # 512 * 3 * 3 * 2 = 9216
+        dnn_fuse_units_size_range: [ [ 9216, 4096 ],
+                                     [ 9216, 4096, 4096 ],
+                                     [ 9216, 4096, 4096, 4096 ],
+                                     [ 9216, 4096, 4096, 4096, 4096 ], ]
+      resnet18:
+        train_batch_size: [ 64, 128 ]
+        # 1 * 28 * 14
+        alice_feature_nums_range: [ 1536 ]
+        # 512 * 2 = 1024
+        dnn_fuse_units_size_range: [ [ 1024 ],
+                                     [ 1024, 512 ] ]
+      resnet20:
+        train_batch_size: [ 64, 128 ]
+        # 32 * 16 * 3 = 1536
+        alice_feature_nums_range: [ 1536 ]
+      cnn:
+        train_batch_size: [ 64, 128 ]
+        # 32 * 16 * 3 = 1536
+        alice_feature_nums_range: [ 1536 ]
   attacks:
-    # attack name
+    norm: ~
     exploit:
-      # all posible hyperparameters
       alpha_acc: [ 0.8,1 ] # 0 - 1
       alpha_grad: [ 0.01,0.1 ] # 0 -1  log
       alpha_kl: [ 0.01,0.1 ] # 0-1
-    # when there is no hyperparameters, still add this attack.
-    norm: ~
-  # defense hyperparameters
+    fia:
+      # attack_epochs: [2,5] # < 120
+      optim_lr: [ 0.001, 0.0001 ]
+    fsha:
+      ~
+    grad_lia:
+      ~
+    lia:
+      T: [ 0.7, 0.8 ]  # near 0.8
+      alpha: [ 0.9, 0.999 ]  # (0,1) near 0.9
+      lr: [ 0.00002, 0.002 ]
+      ema_decay: [ 0.8, 0.999 ]
+      lambda_u: [ 40, 60 ]  # 40 - 60
+    replace:
+      # blurred does not support embedding layer, so shutdown,
+      # blurred: [true,false]
+      gamma: [ 10,30 ] # 1 - 20
+    replay:
+      target_nums: [ 50,100 ]
+    batch_lia:
+      lr: [ 0.001,0.01,0.1 ]
   defenses:
-    # defense name
     de_identification:
-      # all posible hyperparameters
       subset_num: [ 3,5,7 ]
+    grad_avg:
+      ~
+    mixup:
+      lam: [ 0.4,0.5,0.6 ]
+    mid:
+      ~
+    fed_pass: ~
+    cae: ~
 ```
 
 通过指定配置文件运行的方式如下，由于运行时间较长，建议使用nohup后台运行：
@@ -278,3 +398,15 @@ Benchmark运行结束后，在`autoattack_path`指定的路径（默认为`~/.se
     │   └── ...
     ├── .../ 其余场景的文件夹
 ```
+
+
+## 可能的问题
+
+### tune实验偶发报错，如有几个实验出错
+
+如在autoattack时获得偶发性实验失败，并包含报错：
+Check failed: ret == 0 (11 vs. 0) Thread creation via pthread_create() failed.
+
+有可能是因为内存不足，或线程数创建过多，可检查系统设置的用户最大线程数，并观察在进程运行时最大的线程数量。
+
+可以通过修改用户最大创建线程数量，或直接在启动ray时，通过--nums-cpu指定较少的CPU数量即可。

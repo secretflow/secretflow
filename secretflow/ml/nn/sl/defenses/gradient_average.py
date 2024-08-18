@@ -30,7 +30,7 @@ class GradientAverage(Callback):
         super().__init__(**kwargs)
 
     def on_fuse_backward_end(self):
-        def average_gradient(worker):
+        def average_gradient(worker, backend, exec_device):
 
             gradient = worker._gradient
 
@@ -40,7 +40,7 @@ class GradientAverage(Callback):
                 average_data = np.tile(row_averages, g.shape[0]).reshape(g.shape)
                 return average_data
 
-            if self.backend == "tensorflow":
+            if backend == "tensorflow":
                 import tensorflow as tf
 
                 gradient = (
@@ -62,13 +62,15 @@ class GradientAverage(Callback):
                     else _avg_grad(gradient.detach().cpu().numpy())
                 )
                 gradient_tensor = (
-                    [torch.tensor(g).to(self.exec_device) for g in gradient]
+                    [torch.tensor(g).to(exec_device) for g in gradient]
                     if isinstance(gradient, list)
-                    else torch.tensor(gradient).to(self.exec_device)
+                    else torch.tensor(gradient).to(exec_device)
                 )
             if gradient is None:
                 raise Exception("No gradient received from label party.")
 
             worker._gradient = gradient_tensor
 
-        self._workers[self.device_y].apply(average_gradient)
+        self._workers[self.device_y].apply(
+            average_gradient, self.backend, self.exec_device
+        )

@@ -20,6 +20,7 @@ from benchmark_examples.autoattack import global_config
 from benchmark_examples.autoattack.applications.base import ApplicationBase
 from benchmark_examples.autoattack.base import AutoBase
 from benchmark_examples.autoattack.utils.config import read_tune_config
+from benchmark_examples.autoattack.utils.resources import ResourcesPack
 from secretflow.ml.nn.callbacks.attack import AttackCallback
 
 
@@ -98,6 +99,12 @@ class AttackBase(AutoBase):
     def check_app_valid(self, app: ApplicationBase) -> bool:
         """Chekck whether the attack support the application or not."""
         return False
+
+    def update_resources_consumptions(
+        self, cluster_resources_pack: ResourcesPack, app: ApplicationBase
+    ) -> ResourcesPack:
+        """Update the resource consumptions depends on each attack."""
+        pass
 
 
 class DefaultAttackCase(AttackBase):

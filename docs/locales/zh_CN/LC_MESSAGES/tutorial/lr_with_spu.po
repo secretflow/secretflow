@@ -49,7 +49,7 @@ msgstr "学习目标："
 
 #: ../../tutorial/lr_with_spu.ipynb:36
 msgid "After doing this lab, you’ll know how to:"
-msgstr "完成本实验后，您将知道如何："
+msgstr "完成本实验后，您将知道："
 
 #: ../../tutorial/lr_with_spu.ipynb:38
 msgid "How to write a Logistic Regression trainning program with JAX."

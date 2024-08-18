@@ -14,13 +14,13 @@
 
 from typing import Tuple
 
-import jax.numpy as jnp
 import numpy as np
 
 from ....core.params import RegType
 from ....core.pure_numpy_ops.grad import (
     compute_gh_linear,
     compute_gh_logistic,
+    compute_gh_tweedie,
     compute_relative_scaling_factor,
     compute_sum_abs,
     scale,
@@ -36,12 +36,18 @@ class LossComputerActor:
         self.last_abs_g_cache = None
 
     def compute_gh(
-        self, y: np.ndarray, pred: np.ndarray, obj: RegType
+        self,
+        y: np.ndarray,
+        pred: np.ndarray,
+        obj: RegType,
+        tweedie_variance_power: float,
     ) -> Tuple[np.ndarray, np.ndarray]:
         if obj == RegType.Linear:
             g, h = compute_gh_linear(y, pred)
         elif obj == RegType.Logistic:
             g, h = compute_gh_logistic(y, pred)
+        elif obj == RegType.Tweedie:
+            g, h = compute_gh_tweedie(y, pred, tweedie_variance_power)
         else:
             raise TypeError(f"unknown objective {obj}")
         return g, h

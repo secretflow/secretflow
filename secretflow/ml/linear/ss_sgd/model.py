@@ -21,6 +21,7 @@ from typing import Callable, Dict, List, NoReturn, Tuple, Union
 import jax.lax
 import jax.numpy as jnp
 import numpy as np
+import spu
 
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.data.vertical import VDataFrame
@@ -114,8 +115,22 @@ def _predict(
     return jnp.concatenate(preds, axis=0)
 
 
-def _concatenate(arrays: List[np.ndarray], axis: int) -> np.ndarray:
-    return jnp.concatenate(arrays, axis=axis)
+def _concatenate(
+    arrays: List[np.ndarray],
+    axis: int,
+    pad_ones: bool = False,
+    enable_spu_cache: bool = False,
+) -> np.ndarray:
+    if pad_ones:
+        if axis == 1:
+            ones = jnp.ones((arrays[0].shape[0], 1), dtype=arrays[0].dtype)
+        else:
+            ones = jnp.ones((1, arrays[0].shape[1]), dtype=arrays[0].dtype)
+        arrays.append(ones)
+    x = jnp.concatenate(arrays, axis=axis)
+    if enable_spu_cache:
+        x = spu.experimental.make_cached_var(x)
+    return x
 
 
 def _init_w(base: float, num_feat: int) -> np.ndarray:
@@ -152,6 +167,7 @@ def _batch_update_w(
     batch_size: int,
     strategy: Strategy,
     dk_arr: np.ndarray,
+    enable_spu_cache: bool = False,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     update weights on dataset in one iteration.
@@ -168,13 +184,13 @@ def _batch_update_w(
         batch_size: how many samples use in one calculation.
         strategy: learning strategy for updating weights.
         dk_arr: only useful for policy-sgd, store the recently 1/norm(g_k) in this infeed.
-
+        enable_spu_cache: enable spu beaver cache or not.
     Return:
         W after update and array of norm of gradient.
     """
     assert x.shape[0] >= total_batch * batch_size, "total batch is too large"
     num_feat = x.shape[1]
-    assert w.shape[0] == num_feat + 1, "w shape is mismatch to x"
+    assert w.shape[0] == num_feat, "w shape is mismatch to x"
     assert len(w.shape) == 1 or (
         len(w.shape) == 2 and w.shape[1] == 1
     ), "w should be list or 1D array"
@@ -194,12 +210,17 @@ def _batch_update_w(
         begin = idx * batch_size
         end = (idx + 1) * batch_size
         # padding one col for bias in w
-        x_slice = jnp.concatenate((x[begin:end, :], jnp.ones((batch_size, 1))), axis=1)
+        x_slice = x[begin:end, :]
         y_slice = y[begin:end, :]
 
         pred = jnp.matmul(x_slice, w)
         if reg_type == RegType.Logistic:
+            if sig_type != SigType.T1:
+                if enable_spu_cache:
+                    pred = spu.experimental.make_cached_var(pred)
             pred = sigmoid(pred, sig_type)
+            if sig_type != SigType.T1:
+                pred = spu.experimental.drop_cached_var(pred)
 
         err = pred - y_slice
         grad = jnp.matmul(jnp.transpose(x_slice), err) / batch_size
@@ -216,7 +237,7 @@ def _batch_update_w(
         step = learning_rate * scale_factor * grad
 
         if penalty == Penalty.L2:
-            w_with_zero_bias = jnp.resize(w, (num_feat, 1))
+            w_with_zero_bias = jnp.resize(w, (num_feat - 1, 1))
             w_with_zero_bias = jnp.concatenate(
                 (w_with_zero_bias, jnp.zeros((1, 1))),
                 axis=0,
@@ -395,6 +416,12 @@ class SSRegression:
         self.sig_type = SigType(sig_type)
         self.strategy = Strategy(strategy)
 
+        self.enable_spu_cache = (
+            hasattr(spu, "experimental")
+            and hasattr(getattr(spu, "experimental"), "make_cached_var")
+            and hasattr(getattr(spu, "experimental"), "drop_cached_var")
+        )
+
     def _next_infeed_batch(self, ds: PYUObject, infeed_step: int) -> PYUObject:
         being = infeed_step * self.infeed_batch_size
         assert being < self.samples
@@ -431,8 +458,14 @@ class SSRegression:
             else:
                 x, lr_total_batch = self._next_infeed_batch(self.x, infeed_step)
                 y, lr_total_batch = self._next_infeed_batch(self.y, infeed_step)
-                spu_x = self.spu(_concatenate, static_argnames=('axis'))(
-                    [x.partitions[pyu].to(self.spu) for pyu in x.partitions], axis=1
+                spu_x = self.spu(
+                    _concatenate,
+                    static_argnames=('axis', 'enable_spu_cache', 'pad_ones'),
+                )(
+                    [x.partitions[pyu].to(self.spu) for pyu in x.partitions],
+                    axis=1,
+                    pad_ones=True,
+                    enable_spu_cache=self.enable_spu_cache,
                 )
                 spu_y = [y.partitions[pyu].to(self.spu) for pyu in y.partitions][0]
                 self.batch_cache[infeed_step] = (spu_x, spu_y, lr_total_batch)
@@ -446,6 +479,7 @@ class SSRegression:
                     'total_batch',
                     'batch_size',
                     'strategy',
+                    'enable_spu_cache',
                 ),
                 num_returns_policy=SPUCompilerNumReturnsPolicy.FROM_USER,
                 user_specified_num_returns=2,
@@ -462,6 +496,7 @@ class SSRegression:
                 batch_size=self.lr_batch_size,
                 strategy=self.strategy,
                 dk_arr=self.dk_norm_dict.get(infeed_step, None),
+                enable_spu_cache=self.enable_spu_cache,
             )
             self.dk_norm_dict[infeed_step] = dk_arr
 
@@ -589,6 +624,10 @@ class SSRegression:
                 break
             if epoch_callback is not None:
                 self._epoch_callback(epoch_idx, epoch_callback)
+
+        if self.enable_spu_cache:
+            for s in self.batch_cache.values():
+                wait(self.spu(lambda x: spu.experimental.drop_cached_var(x))(s[0]))
 
         self.batch_cache = {}
         self.dk_norm_dict = {}

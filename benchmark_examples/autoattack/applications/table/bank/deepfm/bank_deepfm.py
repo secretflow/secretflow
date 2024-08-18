@@ -73,7 +73,7 @@ class BankDeepfm(BankBase):
             hidden_size=32,
             dnn_base_units_size_alice=[128, -1],
             dnn_base_units_size_bob=[128, -1],
-            dnn_fuse_units_size=[64, 64],
+            dnn_fuse_units_size=[64, 64, 1],
             deepfm_embedding_dim=8,
         )
         self.metrics = [
@@ -126,6 +126,7 @@ class BankDeepfm(BankBase):
             metrics=self.metrics,
             input_dims=[self.hidden_size, self.hidden_size],
             dnn_units_size=self.dnn_fuse_units_size,
+            output_func=nn.Sigmoid,
         )
 
     def create_dataset_builder_alice(self):

@@ -86,6 +86,8 @@ class DistDataType(BaseEnum):
     SGB_CHECKPOINT = "sf.checkpoint.sgb"
     SS_XGB_CHECKPOINT = "sf.checkpoint.ss_xgb"
     SS_SGD_CHECKPOINT = "sf.checkpoint.ss_sgd"
+    # if input of component is optional, then the corresponding type can be NULL
+    NULL = "sf.null"
 
 
 @enum.unique
@@ -547,7 +549,7 @@ def dump_table(
     system_info: SystemInfo,
     partitions: List[str] = None,
 ) -> DistData:
-    assert isinstance(vdata, VDataFrame), f"{dd_type(vdata)} is not a VDataFrame"
+    assert isinstance(vdata, VDataFrame), f"{type(vdata)} is not a VDataFrame"
     assert len(vdata.partitions) > 0
     assert math.prod(vdata.shape), "empty dataset is not allowed"
 

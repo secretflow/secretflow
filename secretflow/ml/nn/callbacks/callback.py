@@ -14,7 +14,9 @@
 
 from typing import Dict, Optional
 
-from secretflow import PYU
+from secretflow.device import PYU
+from secretflow.device import reveal
+from secretflow.ml.nn.metrics import aggregate_metrics
 
 
 class Callback:
@@ -117,3 +119,23 @@ class Callback:
 
     def on_fuse_backward_end(self):
         pass
+
+    def _calc_aggregated_metrics(self):
+        """
+        Collect metrics from each worker and calculate aggregated metrics.
+        Just need to calculate result of the last aggregated metric,
+        as later calculated result would overwrite previous ones.
+        This operation will greatly speedup metrics calculation.
+        """
+        assert len(self._workers) > 0, "num of worker should be greater than zero"
+        local_metrics = []
+        for _, worker in self._workers.items():
+            _metrics = worker.get_local_metrics()
+            local_metrics.append(_metrics)
+
+        aggregated_metrics = aggregate_metrics(local_metrics=reveal(local_metrics))
+
+        # keep the last metric for each metric name.
+        metrics_dict = {m.name: m for m in aggregated_metrics}
+
+        return {m.name: m.result().numpy() for m in metrics_dict.values()}

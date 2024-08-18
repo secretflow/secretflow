@@ -260,3 +260,28 @@ def test_binning_normal_single(prod_env_and_data):
     np.testing.assert_array_equal(
         bob_data.values, reveal(data['v_float_data'].partitions[env.bob].data).values
     )
+
+
+def test_fix_issue_1330(prod_env_and_data):
+    env, data = prod_env_and_data
+    vdf: VDataFrame = data["v_float_data"]
+
+    from secretflow.data.split import train_test_split
+
+    train_data, test_data = train_test_split(
+        vdf, train_size=0.8, shuffle=True, random_state=1234
+    )
+
+    binning = VertBinning()
+    cols = vdf.columns
+    train_feat = train_data[cols]
+    bin_names = {
+        party: bins if isinstance(bins, list) else [bins]
+        for party, bins in train_feat.partition_columns.items()
+    }
+    rules = binning.binning(
+        vdata=train_data, binning_method="eq_range", bin_num=3, bin_names=bin_names
+    )
+
+    sub = VertBinSubstitution()
+    train_binned = sub.substitution(train_data, rules)

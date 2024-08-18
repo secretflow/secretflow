@@ -18,11 +18,10 @@ from typing import Dict, List, Tuple, Union
 import numpy as np
 import pandas as pd
 
-from secretflow import reveal
 from secretflow.data import partition
 from secretflow.data.groupby import DataFrameGroupBy
 from secretflow.data.vertical import VDataFrame
-from secretflow.device import PYU, SPU
+from secretflow.device import PYU, SPU, reveal
 from secretflow.preprocessing.encoder import VOrdinalEncoder
 from secretflow.utils.consistent_ops import unique_list
 

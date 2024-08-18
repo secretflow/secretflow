@@ -91,6 +91,11 @@ def validate(
     return x, x_shape, y, y_shape
 
 
+def validate_tweedie_label(y: PYUObject):
+    """Tweedie regression, y label must be non-negative"""
+    wait(y.device(check_not_negative)(y, y.device.party))
+
+
 def validate_sample_weight(
     sample_weight: Union[FedNdarray, VDataFrame], y_shape: Tuple
 ) -> Union[None, PYUObject]:
@@ -113,6 +118,14 @@ def validate_sample_weight(
 def data_checks(x, worker):
     check_numeric(x, worker)
     check_null_val(x, worker)
+
+
+def check_not_negative(x, worker):
+    assert (
+        x >= 0
+    ).all(), "worker {}'s data contains negative values, which is not allowed.".format(
+        worker
+    )
 
 
 def check_null_val(x, worker):

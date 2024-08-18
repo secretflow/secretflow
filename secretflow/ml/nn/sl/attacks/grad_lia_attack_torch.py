@@ -96,6 +96,31 @@ class GradientClusterLabelInferenceAttack(AttackCallback):
         if epoch == self.params['epochs'] - 1:
             self.last_epoch = True
 
+        def append_callback_store(worker):
+            worker._callback_store['grad_lia_attack'] = {}
+            worker._callback_store['grad_lia_attack']['labels'] = np.empty((0, 1))
+
+        self._workers[self.label_party].apply(append_callback_store)
+
+    def on_base_forward_begin(self):
+        # record label on base forward begin, to prevent the train_y being modified.
+        def record_label(worker: SLBaseTorchModel):
+            if worker.model_base.training:
+                # only processs in train mode.
+                label = worker.train_y.cpu().detach().numpy()
+                # process the label shape to dim = 2ss
+                if len(label.shape) == 1:
+                    label = label[:, np.newaxis]
+                assert len(label.shape) == 2
+                if label.shape[1] > 1:
+                    # convert the one hot encoded label to the category index
+                    label = np.argmax(label, axis=1, keepdims=True)
+                worker._callback_store['grad_lia_attack']['labels'] = np.append(
+                    worker._callback_store['grad_lia_attack']['labels'], label, axis=0
+                )
+
+        self._workers[self.label_party].apply(record_label)
+
     def on_train_batch_end(self, batch):
         if not self.last_epoch:
             return
@@ -115,25 +140,7 @@ class GradientClusterLabelInferenceAttack(AttackCallback):
                 axis=0,
             )
 
-        def record_label(worker: SLBaseTorchModel):
-            if 'grad_lia_attack' not in worker._callback_store:
-                worker._callback_store['grad_lia_attack'] = {}
-            label = worker.train_y.cpu().numpy()
-            # process the label shape to dim = 2
-            if len(label.shape) == 1:
-                label = label[:, np.newaxis]
-            assert len(label.shape) == 2
-            if self.num_classes > 2 and label.shape[1] > 1:
-                # convert the one hot encoded label to the category index
-                label = np.argmax(label, axis=1, keepdims=True)
-            if batch == 0:
-                worker._callback_store['grad_lia_attack']['labels'] = np.empty((0, 1))
-            worker._callback_store['grad_lia_attack']['labels'] = np.append(
-                worker._callback_store['grad_lia_attack']['labels'], label, axis=0
-            )
-
         self._workers[self.attack_party].apply(record_gradient)
-        self._workers[self.label_party].apply(record_label)
 
     def on_epoch_end(self, epoch=None, logs=None):
         if not self.last_epoch:
@@ -226,7 +233,7 @@ class GradientClusterLabelInferenceAttack(AttackCallback):
             label_preds = enc.fit_transform(label_preds)
             multi_class = 'ovo'
             average = "weighted"
-        if np.all(label_targets == 0) or np.all(label_targets == 1):
+        if np.all(label_targets == label_targets[0]):
             self.attack_logs['attack_auc'] = -1
         else:
             self.attack_logs['attack_auc'] = roc_auc_score(

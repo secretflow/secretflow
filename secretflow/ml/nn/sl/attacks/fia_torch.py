@@ -97,33 +97,37 @@ class FeatureInferenceAttack(AttackCallback):
         def get_victim_model(victim_worker: SLBaseTorchModel):
             return victim_worker.model_base
 
-        def feature_inference_attack(attack_worker):
-            attacker = FeatureInferenceAttacker(
-                attack_worker.model_base,
-                attack_worker.model_fuse,
-                self.victim_model_dict,
-                self.base_model_list,
-                self.attack_party.party,
-                self.generator_model_wrapper,
-                self.data_builder,
-                self.victim_fea_dim,
-                self.attacker_fea_dim,
-                self.generator_enable_attacker_fea,
-                self.enable_mean,
-                self.enable_var,
-                self.mean_lambda,
-                self.var_lambda,
-                self.victim_mean_feature,
-                self.attack_epochs,
-                self.exec_device,
+        def feature_inference_attack(
+            attack_worker, fia_attacker: FeatureInferenceAttacker
+        ):
+            fia_attacker.set_attacker_model(
+                attacker_base_model=attack_worker.model_base,
+                attacker_fuse_model=attack_worker.model_fuse,
             )
-            ret = attacker.attack()
+            ret = fia_attacker.attack()
             return ret
 
         victim_model = reveal(self._workers[self.victim_party].apply(get_victim_model))
         self.victim_model_dict[self.victim_party.party] = victim_model
+        attacker = FeatureInferenceAttacker(
+            self.victim_model_dict,
+            self.base_model_list,
+            self.attack_party.party,
+            self.generator_model_wrapper,
+            self.data_builder,
+            self.victim_fea_dim,
+            self.attacker_fea_dim,
+            self.generator_enable_attacker_fea,
+            self.enable_mean,
+            self.enable_var,
+            self.mean_lambda,
+            self.var_lambda,
+            self.victim_mean_feature,
+            self.attack_epochs,
+            self.exec_device,
+        )
         self.metrics = reveal(
-            self._workers[self.attack_party].apply(feature_inference_attack)
+            self._workers[self.attack_party].apply(feature_inference_attack, attacker)
         )
 
     def get_attack_metrics(self):
@@ -133,8 +137,6 @@ class FeatureInferenceAttack(AttackCallback):
 class FeatureInferenceAttacker:
     def __init__(
         self,
-        attacker_base_model: torch.nn.Module,
-        attacker_fuse_model: torch.nn.Module,
         victim_model_dict: Dict[str, torch.nn.Module],
         base_model_list: List[str],
         attack_party: str,
@@ -158,8 +160,8 @@ class FeatureInferenceAttacker:
         # we get all parties' base_model
         # victim's base_model: victim's base model will be saved first, then we load it
         # worker's model does not need to tocpu or gpu
-        self.attacker_base_model = attacker_base_model
-        self.attacker_fuse_model = attacker_fuse_model
+        self.attacker_base_model = None
+        self.attacker_fuse_model = None
         self.base_models = {}
         self.victim_model_dict = victim_model_dict
 
@@ -208,6 +210,14 @@ class FeatureInferenceAttacker:
         self.load_model_path = load_model_path
         self.save_model_path = save_model_path
         self.exec_device = exec_device
+
+    def set_attacker_model(
+        self,
+        attacker_base_model: torch.nn.Module,
+        attacker_fuse_model: torch.nn.Module,
+    ):
+        self.attacker_base_model = attacker_base_model
+        self.attacker_fuse_model = attacker_fuse_model
 
     def attack(self):
         """Begin attack."""

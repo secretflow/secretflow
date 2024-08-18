@@ -18,27 +18,28 @@ from secretflow.component.checkpoint import CompCheckpoint
 from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import (
     DistDataType,
+    SimpleVerticalBatchReader,
     get_model_public_info,
     load_table,
     model_dumps,
     model_loads,
     save_prediction_dd,
-    SimpleVerticalBatchReader,
 )
 from secretflow.device.device.heu import heu_from_base_config
 from secretflow.device.device.pyu import PYU
 from secretflow.ml.boost.core.callback import TrainingCallback
-from secretflow.ml.boost.core.metric import METRICS
+from secretflow.ml.boost.core.metric import ALL_METRICS_NAMES
 from secretflow.ml.boost.sgb_v import Sgb, SgbModel
 from secretflow.ml.boost.sgb_v.checkpoint import (
-    build_sgb_model,
-    sgb_model_to_snapshot,
     SGBCheckpointData,
     SGBSnapshot,
+    build_sgb_model,
+    sgb_model_to_snapshot,
 )
+from secretflow.ml.boost.sgb_v.core.params import RegType
 from secretflow.ml.boost.sgb_v.factory.booster.global_ordermap_booster import (
-    build_checkpoint,
     GlobalOrdermapBooster,
+    build_checkpoint,
 )
 from secretflow.spec.v1.data_pb2 import DistData
 
@@ -47,7 +48,7 @@ DEFAULT_PREDICT_BATCH_SIZE = 10000
 sgb_train_comp = Component(
     "sgb_train",
     domain="ml.train",
-    version="0.0.3",
+    version="0.0.4",
     desc="""Provides both classification and regression tree boosting (also known as GBDT, GBM)
     for vertical split dataset setting by using secure boost.
 
@@ -96,7 +97,7 @@ sgb_train_comp.str_attr(
     is_list=False,
     is_optional=True,
     default_value="logistic",
-    allowed_values=["linear", "logistic"],
+    allowed_values=[reg_type.value for reg_type in RegType],
 )
 sgb_train_comp.float_attr(
     name="reg_lambda",
@@ -148,8 +149,10 @@ sgb_train_comp.float_attr(
     is_list=False,
     is_optional=True,
     default_value=0,
-    lower_bound=0,
+    lower_bound=-10,
     lower_bound_inclusive=True,
+    upper_bound=10,
+    upper_bound_inclusive=True,
 )
 sgb_train_comp.int_attr(
     name="seed",
@@ -289,11 +292,11 @@ sgb_train_comp.bool_attr(
 
 sgb_train_comp.str_attr(
     name="eval_metric",
-    desc=f"Use what metric for monitoring and early stop? Currently support {list(METRICS.keys())}",
+    desc=f"Use what metric for monitoring and early stop? Currently support {ALL_METRICS_NAMES}",
     is_list=False,
     is_optional=True,
     default_value="roc_auc",
-    allowed_values=list(METRICS.keys()),
+    allowed_values=ALL_METRICS_NAMES,
 )
 
 sgb_train_comp.float_attr(
@@ -329,6 +332,18 @@ sgb_train_comp.float_attr(
     default_value=0.0,
     lower_bound=0,
     lower_bound_inclusive=True,
+)
+
+sgb_train_comp.float_attr(
+    name="tweedie_variance_power",
+    desc="Parameter that controls the variance of the Tweedie distribution.",
+    is_list=False,
+    is_optional=True,
+    default_value=1.5,
+    lower_bound=1.0,
+    lower_bound_inclusive=False,
+    upper_bound=2.0,
+    upper_bound_inclusive=False,
 )
 
 sgb_train_comp.bool_attr(
@@ -405,6 +420,7 @@ class SGBCheckpoint(CompCheckpoint):
             "train_dataset",
             "train_dataset_label",
             "train_dataset_feature_selects",
+            "tweedie_variance_power",
         ]
 
 
@@ -475,6 +491,7 @@ def sgb_train_eval_fn(
     validation_fraction,
     stopping_rounds,
     stopping_tolerance,
+    tweedie_variance_power,
     save_best_model,
     train_dataset,
     train_dataset_label,
@@ -561,6 +578,7 @@ def sgb_train_eval_fn(
                 "stopping_rounds": stopping_rounds,
                 "stopping_tolerance": stopping_tolerance,
                 "save_best_model": save_best_model,
+                "tweedie_variance_power": tweedie_variance_power,
             },
             dtrain=x,
             label=y,
