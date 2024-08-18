@@ -134,7 +134,6 @@ def test_direct_based_scoring_lia(sf_simulation_setup_devices):
         alice: base_model_alice,
         bob: base_model_bob,
     }
-    agg_method = Concat(axis=1)
     sl_model = SLModel(
         base_model_dict=base_model_dict,
         device_y=bob,
@@ -143,7 +142,6 @@ def test_direct_based_scoring_lia(sf_simulation_setup_devices):
         random_seed=1234,
         strategy="split_nn",
         backend="torch",
-        agg_method=agg_method,
     )
 
     direction_lia = DirectionBasedScoringAttack(attack_party=alice, label_party=bob)
