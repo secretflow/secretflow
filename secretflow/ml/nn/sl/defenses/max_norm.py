@@ -30,8 +30,8 @@ class perturb_gradient(Callback):
         Initializes the perturb_gradient class.
 
         Args:
-            backend (str): The backend framework to use. Defaults to "torch".
-            exec_device (str): The device on which to execute. Defaults to 'cpu'.
+            backend (str): The backend framework to be used. Defaults to "torch".
+            exec_device (str): The device for execution. Defaults to 'cpu'.
             **kwargs: Additional keyword arguments.
         """
         self.backend = backend.lower()
@@ -41,15 +41,14 @@ class perturb_gradient(Callback):
     def on_fuse_backward_end(self):
         def average_gradient(worker):
             """
-            Applies perturbation to the gradients to defend against label inference attacks.
+            Applies perturbation to gradients as a defense mechanism against label inference attacks.
 
             Args:
-                worker: Client.
+                worker: The client instance from which the gradient is accessed.
             """
             gradient = worker._gradient
             if self.backend == "tensorflow":
                 raise NotImplementedError()
-                # WIP
             else:
                 import torch
 
