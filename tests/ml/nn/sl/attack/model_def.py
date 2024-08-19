@@ -402,10 +402,8 @@ class WideDeepFuse(nn.Module):
         self.dnn_linear = nn.Linear(dnn_hidden_units[-1], 1, bias=False)
 
     def forward(self, X):
-        X = torch.cat(X, dim=1)
-        logit = X[:, -1:]
-
-        dnn_logit = self.dnn_linear(X[:, :128])
+        logit = X[1]
+        dnn_logit = self.dnn_linear(X[0])
         _logit = dnn_logit + logit
         y_pred = torch.sigmoid(_logit)
         return y_pred
