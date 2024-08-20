@@ -129,6 +129,28 @@
     "psi_output": "隐私求交输出",
     "Output vertical table": "输出联合表"
   },
+  "data_prep/psi_tp:0.0.5": {
+    "data_prep": "数据准备",
+    "psi_tp": "三方隐私求交",
+    "PSI between three parties.": "三方之间的隐私求交。",
+    "0.0.5": "0.0.5",
+    "protocol": "协议",
+    "PSI protocol.": "PSI协议。",
+    "fill_value_int": "整数类型填充值",
+    "For int type data. Use this value for filling null.": "对于int类型的数据。使用此值填充null。",
+    "ecdh_curve": "ecdh曲线",
+    "Curve type for ECDH PSI.": "ECDH PSI的曲线类型。",
+    "receiver_input": "接收方_输入",
+    "Individual table for receiver": "接收方私有表",
+    "key": "关联键",
+    "Column(s) used to join.": "用于连接的列。",
+    "sender1_input": "发送方1的输入",
+    "Individual table for sender1": "发送方1的私有表格",
+    "sender2_input": "发送方2的输入",
+    "Individual table for sender2": "发送方2的私有表格",
+    "psi_output": "psi_输出",
+    "Output vertical table": "输出垂直表"
+  },
   "data_prep/train_test_split:0.0.1": {
     "data_prep": "数据准备",
     "train_test_split": "随机分割",
@@ -488,6 +510,8 @@
     "Parameter that controls the variance of the Tweedie distribution.": "控制Tweedie分布方差的参数",
     "save_best_model": "保存最佳模型",
     "Whether to save the best model on validation set during training.": "是否在训练期间保存在验证集上的最佳模型。",
+    "report_model": "报告模型",
+    "Whether to dump complete model str. WARNING: ALL LABEL INFO IS AT GREAT RISK. DANGER! ALL MODEL INFO IS REVEALED AND ALL DATA IS AT GREAT RISK! ALL LABEL INFO IS AT GREAT RISK! ALL FEATURE INFO IS AT GREAT RISK!": "是否转储完整的模型字符串。警告：所有标签信息都有很大的风险。危险！所有模型信息都会被泄露，所有数据都面临着巨大的风险！所有标签信息都有很大的风险！所有功能信息都有很大的风险！",
     "train_dataset": "训练数据集",
     "Input vertical table.": "输入联合表",
     "feature_selects": "特征列",
@@ -495,7 +519,9 @@
     "label": "标签",
     "Label of train dataset.": "训练数据集的标签",
     "output_model": "输出模型",
-    "Output model.": "输出模型"
+    "Output model.": "输出模型",
+    "report": "报告",
+    "report model params if report_model is true, WARNING: ALL LABEL INFO IS AT GREAT RISK. DANGER! ALL MODEL INFO IS REVEALED AND ALL DATA IS AT GREAT RISK! ALL LABEL INFO IS AT GREAT RISK! ALL FEATURE INFO IS AT GREAT RISK!": "如果report_model为真，则报告模型参数，警告：所有标签信息都有很大风险。危险！所有模型信息都会被泄露，所有数据都面临着巨大的风险！所有标签信息都有很大的风险！所有功能信息都有很大的风险！"
   },
   "ml.train/slnn_train:0.0.1": {
     "ml.train": "模型训练",

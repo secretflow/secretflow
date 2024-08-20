@@ -619,6 +619,111 @@
     },
     {
       "domain": "data_prep",
+      "name": "psi_tp",
+      "desc": "PSI between three parties.",
+      "version": "0.0.5",
+      "attrs": [
+        {
+          "name": "protocol",
+          "desc": "PSI protocol.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "PROTOCOL_ECDH"
+            },
+            "allowedValues": {
+              "ss": [
+                "PROTOCOL_ECDH"
+              ]
+            }
+          }
+        },
+        {
+          "name": "fill_value_int",
+          "desc": "For int type data. Use this value for filling null.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "ecdh_curve",
+          "desc": "Curve type for ECDH PSI.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "CURVE_FOURQ"
+            },
+            "allowedValues": {
+              "ss": [
+                "CURVE_25519",
+                "CURVE_FOURQ",
+                "CURVE_SM2",
+                "CURVE_SECP256K1"
+              ]
+            }
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "receiver_input",
+          "desc": "Individual table for receiver",
+          "types": [
+            "sf.table.individual"
+          ],
+          "attrs": [
+            {
+              "name": "key",
+              "desc": "Column(s) used to join.",
+              "colMinCntInclusive": "1"
+            }
+          ]
+        },
+        {
+          "name": "sender1_input",
+          "desc": "Individual table for sender1",
+          "types": [
+            "sf.table.individual"
+          ],
+          "attrs": [
+            {
+              "name": "key",
+              "desc": "Column(s) used to join.",
+              "colMinCntInclusive": "1"
+            }
+          ]
+        },
+        {
+          "name": "sender2_input",
+          "desc": "Individual table for sender2",
+          "types": [
+            "sf.table.individual"
+          ],
+          "attrs": [
+            {
+              "name": "key",
+              "desc": "Column(s) used to join.",
+              "colMinCntInclusive": "1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "psi_output",
+          "desc": "Output vertical table",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "data_prep",
       "name": "train_test_split",
       "desc": "Split datasets into random train and test subsets.\n- Please check: https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html",
       "version": "0.0.1",
@@ -2240,6 +2345,15 @@
             "isOptional": true,
             "defaultValue": {}
           }
+        },
+        {
+          "name": "report_model",
+          "desc": "Whether to dump complete model str. WARNING: ALL LABEL INFO IS AT GREAT RISK. DANGER! ALL MODEL INFO IS REVEALED AND ALL DATA IS AT GREAT RISK! ALL LABEL INFO IS AT GREAT RISK! ALL FEATURE INFO IS AT GREAT RISK!",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
         }
       ],
       "inputs": [
@@ -2270,6 +2384,13 @@
           "desc": "Output model.",
           "types": [
             "sf.model.sgb"
+          ]
+        },
+        {
+          "name": "report",
+          "desc": "report model params if report_model is true, WARNING: ALL LABEL INFO IS AT GREAT RISK. DANGER! ALL MODEL INFO IS REVEALED AND ALL DATA IS AT GREAT RISK! ALL LABEL INFO IS AT GREAT RISK! ALL FEATURE INFO IS AT GREAT RISK!",
+          "types": [
+            "sf.report"
           ]
         }
       ]
