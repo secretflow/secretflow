@@ -25,6 +25,7 @@ import os
 from typing import Callable, Dict, List, Tuple, Union
 
 import numpy as np
+import torch
 
 from secretflow.data.horizontal import HDataFrame
 from secretflow.data.ndarray import FedNdarray
@@ -72,6 +73,31 @@ class FLModel:
             import secretflow.ml.nn.fl.backend.torch.strategy  # noqa
         else:
             raise Exception(f"Invalid backend = {backend}")
+
+        if strategy == 'fed_gen':
+            generator_config = kwargs.get('generator_config')
+            if generator_config is None:
+                raise ValueError('A generator_config must be provided when using the fed_gen strategy.')
+
+            # Check if all required keys are in the generator_config dictionary
+            required_keys = [
+                'generator_model', 'loss_fn', 'optimizer', 'scheduler',
+                'kl_div_loss', 'diversity_loss', 'num_classes'
+            ]
+            for key in required_keys:
+                if key not in generator_config:
+                    raise ValueError(f"The '{key}' key is missing in the generator_config dictionary.")
+
+            # Assign the generator and set up the loss function and train parameter
+            self.generator = generator_config['generator_model']
+            self.loss_fn = generator_config['loss_fn']
+            self.diversity_loss = generator_config['diversity_loss']
+            self.generative_optimizer = generator_config['optimizer']
+            self.generative_scheduler = generator_config['scheduler']
+            self.generative_num_classes = generator_config['num_classes']
+            self.generative_epoch = generator_config.get('epoch', 50)
+            self.generative_batch_size = generator_config.get('batch_size', 32)
+
         self.num_gpus = kwargs.get('num_gpus', 0)
         self.init_workers(
             model,
@@ -555,6 +581,47 @@ class FLModel:
                             data=model_params,
                             encode_method='coo',
                         )
+
+                # Train generator
+                if self.strategy == 'fed_gen':
+                    # Get label distribution
+                    label_weights = []
+                    qualified_labels = []
+                    for label in range(self.generative_num_classes):
+                        weights = [
+                            reveal(self._workers[device].get_cur_step_label_counts()).get(label, 0)
+                            for device, worker in self._workers.items()
+                        ]
+                        if np.max(weights) > 0:
+                            qualified_labels.append(label)
+                        label_weights.append(np.array(weights) / np.sum(weights) + 1e-8)
+                    label_weights = np.array(label_weights).reshape((self.generative_num_classes, -1))
+
+                    # Train generator model
+                    self.generator.train()
+                    for _ in range(self.generative_epoch):
+                        y = np.random.choice(qualified_labels, self.generative_batch_size)
+                        y_input = torch.LongTensor(y)
+                        self.generative_optimizer.zero_grad()
+                        gen_result = self.generator(y_input)
+                        gen_output, eps = gen_result['output'], gen_result['eps']
+                        diversity_loss = self.diversity_loss(eps, gen_output)
+
+                        # Get teacher loss
+                        teacher_loss = 0
+                        for idx, device in enumerate(self._workers.keys()):
+                            weight = label_weights[y][:, idx].reshape(-1, 1)
+                            user_result_given_gen = reveal(
+                                self._workers[device].predict_with_generator_output(gen_result['output']))
+                            teacher_loss_ = torch.mean(
+                                self.loss_fn(user_result_given_gen, y_input) *
+                                torch.tensor(weight, dtype=torch.float32)
+                            )
+                            teacher_loss += teacher_loss_
+                        loss = teacher_loss + diversity_loss
+                        loss.backward()
+                        self.generative_optimizer.step()
+                    self.generative_scheduler.step()
 
                 # DP operation
                 if dp_spent_step_freq is not None and self.dp_strategy is not None:
