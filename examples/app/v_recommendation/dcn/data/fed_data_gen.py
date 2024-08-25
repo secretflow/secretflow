@@ -119,9 +119,13 @@ def generate_alice_bob_criteo_1m_train_val_test():
     generate_alice_bob_criteo_1m_data()
     alice_criteo_train_1m = pd.read_csv(
         os.path.join(os.path.dirname(__file__), "alice_criteo_train_1m.csv"),
+        encoding='utf-8',
+        sep="|",
     )
     bob_criteo_train_1m = pd.read_csv(
         os.path.join(os.path.dirname(__file__), "bob_criteo_train_1m.csv"),
+        encoding='utf-8',
+        sep="|",
     )
     alice_train_val, alice_test = train_test_split(alice_criteo_train_1m, test_size=0.2)
     alice_train, alice_val = train_test_split(alice_train_val, test_size=0.2)
@@ -155,3 +159,6 @@ def generate_alice_bob_criteo_1m_train_val_test():
         sep="|",
         encoding='utf-8',
     )
+
+
+generate_alice_bob_criteo_1m_train_val_test()

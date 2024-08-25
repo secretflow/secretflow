@@ -18,7 +18,6 @@ from torch import nn as nn
 from torch.nn import functional as F
 
 from secretflow.ml.nn.core.torch import BaseModule
-from secretflow.utils.logging import logger
 
 
 class CatEmbeddingSqrt(nn.Module):

@@ -12,8 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
+
 import pandas as pd
 import torch
+from matplotlib import pyplot as plt
 from model.sl_dcn_torch import DCNBase, DCNFuse
 from torch import nn, optim
 from torch.utils.data import DataLoader, Dataset
@@ -35,10 +38,10 @@ sf.init(['alice', 'bob'], address="local", log_to_driver=False)
 alice, bob = sf.PYU('alice'), sf.PYU('bob')
 
 
-data_path = r'/root/develop/ant-sf/secretflow/examples/app/v_recommendation/dcn/data/'
+data_path = r"/data/ant-sf/oscp/v_recommendation/dcn/data/"
 alice_base_out_dim = 0
 bob_base_out_dim = 0
-batch_size = 64
+batch_size = 2048
 
 
 class AliceDataset(Dataset):
@@ -183,7 +186,7 @@ dataset_buidler_dict = {
 
 # 构建模型
 def create_base_model_alice():
-    d_numerical = 6
+    d_numerical = len(alice_num_features)
     d_embed_max = 8
     categories = alice_categories
     d_cat_sum = sum([min(max(int(x**0.5), 2), d_embed_max) for x in categories])
@@ -209,7 +212,7 @@ def create_base_model_alice():
 
 
 def create_base_model_bob():
-    d_numerical = 7
+    d_numerical = len(bob_num_features)
     d_embed_max = 8
     categories = bob_categories
     d_cat_sum = sum([min(max(int(x**0.5), 2), d_embed_max) for x in categories])
@@ -298,8 +301,8 @@ def run():
 
     vdf = read_csv(
         {
-            alice: '/root/develop/ant-sf/secretflow/examples/app/v_recommendation/dcn/data/train_alice.csv',
-            bob: '/root/develop/ant-sf/secretflow/examples/app/v_recommendation/dcn/data/train_bob.csv',
+            alice: data_path + 'train_alice.csv',
+            bob: data_path + 'train_bob.csv',
         },
         delimiter='|',
     )
@@ -308,8 +311,8 @@ def run():
 
     val_vdf = read_csv(
         {
-            alice: '/root/develop/ant-sf/secretflow/examples/app/v_recommendation/dcn/data/val_alice.csv',
-            bob: '/root/develop/ant-sf/secretflow/examples/app/v_recommendation/dcn/data/val_bob.csv',
+            alice: data_path + 'val_alice.csv',
+            bob: data_path + 'val_bob.csv',
         },
         delimiter='|',
     )
@@ -317,7 +320,7 @@ def run():
     val_label = val_vdf["label"]
     val_data = val_vdf.drop(columns=["label"])
 
-    epoch = 10
+    epoch = 100
     history = sl_model.fit(
         data,
         label,
@@ -329,7 +332,35 @@ def run():
         dataset_builder=dataset_buidler_dict,
     )
     print('history: ', history)
+    history_converted = {
+        key: [v.tolist() for v in value] for key, value in history.items()
+    }
+    with open('history.json', 'w', encoding='utf-8') as f:
+        json.dump(history_converted, f, ensure_ascii=False, indent=4)
+
+
+def plot_metric(dfhistory, metric, epoch):
+    plt.figure()
+    train_metrics = dfhistory["train_" + metric]
+    val_metrics = dfhistory['val_' + metric]
+    epochs = range(1, epoch + 1)
+    plt.plot(epochs, train_metrics[:epoch], 'bo--')
+    plt.plot(epochs, val_metrics[:epoch], 'ro-')
+    plt.title('Training and validation ' + metric)
+    plt.xlabel("Epochs")
+    plt.ylabel(metric)
+    plt.legend(["train_" + metric, 'val_' + metric])
+    file_path = '{}.png'.format(metric)  # 你可以指定完整的文件路径
+    plt.savefig(file_path)
+    plt.show()
 
 
 if __name__ == '__main__':
     run()
+    with open('history.json', 'r', encoding='utf-8') as file:
+        # data = json.load(file)
+        train_val_his = json.load(file)
+    plot_metric(train_val_his, 'loss', epoch=30)
+    plot_metric(train_val_his, 'BinaryAccuracy', epoch=30)
+    plot_metric(train_val_his, 'BinaryPrecision', epoch=30)
+    plot_metric(train_val_his, 'BinaryAUROC', epoch=30)
