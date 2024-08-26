@@ -132,7 +132,7 @@
   "data_prep/psi_tp:0.0.5": {
     "data_prep": "数据准备",
     "psi_tp": "三方隐私求交",
-    "PSI between three parties.": "三方之间的隐私求交。",
+    "PSI between three parties.": "三方之间的PSI。",
     "0.0.5": "0.0.5",
     "protocol": "协议",
     "PSI protocol.": "PSI协议。",
@@ -140,7 +140,7 @@
     "For int type data. Use this value for filling null.": "对于int类型的数据。使用此值填充null。",
     "ecdh_curve": "ecdh曲线",
     "Curve type for ECDH PSI.": "ECDH PSI的曲线类型。",
-    "receiver_input": "接收方_输入",
+    "receiver_input": "接收方输入",
     "Individual table for receiver": "接收方私有表",
     "key": "关联键",
     "Column(s) used to join.": "用于连接的列。",
@@ -148,7 +148,7 @@
     "Individual table for sender1": "发送方1的私有表格",
     "sender2_input": "发送方2的输入",
     "Individual table for sender2": "发送方2的私有表格",
-    "psi_output": "psi_输出",
+    "psi_output": "隐私求交输出",
     "Output vertical table": "输出垂直表"
   },
   "data_prep/train_test_split:0.0.1": {
