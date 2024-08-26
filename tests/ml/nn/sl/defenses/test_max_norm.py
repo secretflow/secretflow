@@ -22,7 +22,7 @@ from secretflow.data.split import train_test_split
 from secretflow.ml.nn import SLModel
 from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
 from secretflow.ml.nn.sl.agglayer.agg_method import Concat
-from secretflow.ml.nn.sl.defenses.max_norm import perturb_gradient
+from secretflow.ml.nn.sl.defenses.max_norm import max_norm
 from secretflow.preprocessing import StandardScaler
 from secretflow.utils.simulation.data.dataframe import create_df
 from secretflow.utils.simulation.datasets import load_criteo_unpartitioned
@@ -146,7 +146,7 @@ def test_gradient_average_torch_backend(sf_simulation_setup_devices):
         backend="torch",
         agg_method=agg_method,
     )
-    max_norm = perturb_gradient(backend="torch")
+    max_norm = max_norm(backend="torch")
 
     history = sl_model.fit(
         train_data,
