@@ -14,7 +14,7 @@
 # limitations under the License.
 
 
-set -e
+set -ex
 
 show_help() {
     echo "Usage: bash build.sh [OPTION]... -v {version}"
@@ -96,7 +96,7 @@ docker build . -f Dockerfile -t ${IMAGE_TAG} --build-arg config_templates="$(cat
 echo -e "Finish building ${GREEN}${IMAGE_TAG}${NO_COLOR}"
 rm -rf .nsjail
 rm -f .condarc
-rm -f *.whl
+#rm -f *.whl
 if [[ UPLOAD -eq 1 ]]; then
     docker push ${IMAGE_TAG}
 fi

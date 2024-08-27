@@ -12,9 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
+
 import numpy as np
 import pandas as pd
 from google.protobuf.json_format import MessageToJson
+from pyarrow import orc
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 from secretflow.component.data_utils import DistDataType
@@ -44,9 +47,10 @@ test_data_bob = pd.DataFrame(
 
 def _almost_equal(df1, df2, rtol=1.0e-5):
     try:
-        pd.testing.assert_frame_equal(df1, df2, rtol)
+        pd.testing.assert_frame_equal(df1, df2, rtol=rtol, check_dtype=False)
         return True
     except AssertionError:
+        logging.exception("assert_frame_equal failed")
         return False
 
 
@@ -477,14 +481,14 @@ def test_feature_calculate(comp_prod_sf_cluster_config):
 
         if self_party == "alice":
             comp_storage = ComponentStorage(storage_config)
-            alice_out = pd.read_csv(comp_storage.get_reader(out_path))
+            alice_out = orc.read_table(comp_storage.get_reader(out_path)).to_pandas()
             assert _almost_equal(
                 alice_out, e[0]
             ), f"{n}\n===out===\n{alice_out}\n===e===\n{e[0]}\n===r===\n{param.attrs[0].s}"
 
         if self_party == "bob":
             comp_storage = ComponentStorage(storage_config)
-            bob_out = pd.read_csv(comp_storage.get_reader(out_path))
+            bob_out = orc.read_table(comp_storage.get_reader(out_path)).to_pandas()
             assert _almost_equal(
                 bob_out, e[1]
             ), f"{n}\n===out===\n{bob_out}\n===e===\n{e[1]}\n===r===\n{param.attrs[0].s}"

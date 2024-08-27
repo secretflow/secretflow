@@ -31,14 +31,8 @@ from secretflow.component.stats.stats_psi import (
     stats_psi_comp,
 )
 from secretflow.component.storage.storage import ComponentStorage
-from secretflow.preprocessing.binning.vert_binning import VertBinning
 from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import (
-    DistData,
-    IndividualTable,
-    TableSchema,
-    VerticalTable,
-)
+from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
 

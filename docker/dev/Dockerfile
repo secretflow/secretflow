@@ -31,6 +31,9 @@ RUN pip install -i https://mirrors.aliyun.com/pypi/simple/   /tmp/*.whl && rm -r
 COPY .nsjail /root/.nsjail
 
 ARG config_templates=""
+RUN echo "########################################" \
+    && echo "$config_templates" \
+    && echo "####################################"
 LABEL kuscia.secretflow.config-templates=$config_templates
 
 ARG deploy_templates=""

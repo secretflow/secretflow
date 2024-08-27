@@ -7,14 +7,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-03-19 12:20+0800\n"
+"POT-Creation-Date: 2024-07-22 12:05+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.14.0\n"
+"Generated-By: Babel 2.15.0\n"
 
 #: ../../tutorial/spu_basics.ipynb:9
 msgid "SPU Basics"
@@ -80,7 +80,7 @@ msgid "an SPU device based on *alice*, *bob* and *carol*"
 msgstr "一个基于 *alice* , *bob* 和 *carol* 的SPU设备"
 
 #: ../../tutorial/spu_basics.ipynb:44
-msgid "|8a74838ece324147883253bfd72f952a|"
+msgid "|e1b54667c2414e8ea366065aae7cd346|"
 msgstr ""
 
 #: ../../tutorial/spu_basics.ipynb:46
@@ -179,7 +179,6 @@ msgid ""
 msgstr "storage\\_type，代表了值的属性，比如MPC协议（这里是ABY3），field size（我们这里是128位），等等。"
 
 #: ../../tutorial/spu_basics.ipynb:397
-#, fuzzy
 msgid ""
 "Then let’s check shares of bank_account_spu. Since we are passing data to"
 " a 3PC SPU device. We would have three pieces of shares, and we are going"
@@ -358,7 +357,7 @@ msgstr ""
 "*debit\\_amount\\_spu*）将被发送到 SPU 设备。然后使用 SPU 编译器将它们编译为 *SPU Executable*。"
 
 #: ../../tutorial/spu_basics.ipynb:950
-msgid "|9655b6d8ff6f419589c44264ed813015|"
+msgid "|dc0fa2a1f68743bea52b82c17ca55daf|"
 msgstr ""
 
 #: ../../tutorial/spu_basics.ipynb:952
@@ -382,7 +381,7 @@ msgid "one piece of each SPU Object share"
 msgstr "每个 SPU object一份share"
 
 #: ../../tutorial/spu_basics.ipynb:970
-msgid "|556ba0f1926146bf9bb1b746f402b1a2|"
+msgid "|dd137d458fb144b59b1ac63c283b4bb8|"
 msgstr ""
 
 #: ../../tutorial/spu_basics.ipynb:972

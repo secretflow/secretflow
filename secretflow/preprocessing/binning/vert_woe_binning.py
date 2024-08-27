@@ -18,6 +18,7 @@ import jax.numpy as jnp
 import numpy as np
 from heu import phe
 
+from secretflow.component.dataframe import CompDataFrame
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import HEU, PYU, SPU, PYUObject
 from secretflow.device.device.heu import HEUMoveConfig
@@ -46,7 +47,7 @@ class VertWoeBinning:
     def __init__(self, secure_device: Union[SPU, HEU]):
         self.secure_device = secure_device
 
-    def _find_label_holder_device(self, vdata: VDataFrame, label_name) -> PYU:
+    def _find_label_holder_device(self, vdata: CompDataFrame, label_name) -> PYU:
         """
         Find which holds the label column.
 
@@ -72,7 +73,7 @@ class VertWoeBinning:
 
     def binning(
         self,
-        vdata: VDataFrame,
+        vdata: CompDataFrame,
         binning_method: str = "quantile",
         bin_num: int = 10,
         bin_names: Dict[PYU, List[str]] = {},

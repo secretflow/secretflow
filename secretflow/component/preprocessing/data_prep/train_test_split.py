@@ -13,14 +13,15 @@
 # limitations under the License.
 
 
+import math
+from typing import Tuple
+
+import numpy as np
+import pyarrow as pa
+
 from secretflow.component.component import Component, IoType
-from secretflow.component.data_utils import (
-    DistDataType,
-    VerticalTableWrapper,
-    dump_vertical_table,
-    load_table,
-)
-from secretflow.data.split import train_test_split as train_test_split_fn
+from secretflow.component.data_utils import DistDataType
+from secretflow.component.dataframe import StreamingReader, StreamingWriter
 
 train_test_split_comp = Component(
     "train_test_split",
@@ -100,35 +101,41 @@ train_test_split_comp.io(
 def train_test_split_eval_fn(
     *, ctx, train_size, test_size, random_state, shuffle, input_data, train, test
 ):
-    input_df = load_table(
+    reader = StreamingReader.from_distdata(
         ctx, input_data, load_features=True, load_ids=True, load_labels=True
     )
+    train_writer = StreamingWriter(ctx, train)
+    test_writer = StreamingWriter(ctx, test)
 
-    pyus = list(input_df.partitions.keys())
+    def split_fn(
+        in_table: pa.Table,
+        train_size: float,
+        test_size: float,
+        seed: int,
+        shuffle: bool,
+    ) -> Tuple[pa.Table, pa.Table]:
+        total = in_table.shape[0]
+        train = math.ceil(total * train_size)
+        test = math.ceil(total * test_size)
+        if shuffle:
+            rand = np.random.RandomState(seed)
+            indices = rand.permutation(total)
+        else:
+            indices = np.arange(total)
 
-    with ctx.tracer.trace_running():
-        train_df, test_df = train_test_split_fn(
-            input_df,
-            train_size=train_size,
-            test_size=test_size,
-            random_state=random_state,
-            shuffle=shuffle,
-        )
+        return in_table.take(indices[:train]), in_table.take(indices[total - test :])
 
-    train_db = dump_vertical_table(
-        ctx,
-        train_df,
-        train,
-        VerticalTableWrapper.from_dist_data(input_data, train_df.shape[0]),
-        input_data.system_info,
-    )
+    with train_writer, test_writer, ctx.tracer.trace_io():
+        for batch in reader:
+            train_batch = batch.copy()
+            test_batch = batch.copy()
+            for pyu, table in batch.partitions.items():
+                train_data, test_data = pyu(split_fn)(
+                    table.data, train_size, test_size, random_state, shuffle
+                )
+                train_batch.set_data(train_data)
+                test_batch.set_data(test_data)
+            train_writer.write(train_batch)
+            test_writer.write(test_batch)
 
-    test_db = dump_vertical_table(
-        ctx,
-        test_df,
-        test,
-        VerticalTableWrapper.from_dist_data(input_data, test_df.shape[0]),
-        input_data.system_info,
-    )
-
-    return {"train": train_db, "test": test_db}
+    return {"train": train_writer.to_distdata(), "test": test_writer.to_distdata()}

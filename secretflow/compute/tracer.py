@@ -78,23 +78,20 @@ class TraceRunner:
     def column_changes(self) -> Tuple[List, List, List]:
         return self.dag[-1].column_changes()
 
-    def run(self, input: Union[pd.DataFrame, pa.Table]) -> pd.DataFrame:
-        assert isinstance(input, (pd.DataFrame, pa.Table))
+    def run(self, in_table: pa.Table) -> pa.Table:
+        assert isinstance(in_table, pa.Table)
 
         if len(self.dag) == 1:
             # nothing to do
-            return input.to_pandas() if isinstance(input, pa.Table) else input
-
-        if isinstance(input, pd.DataFrame):
-            input = pa.Table.from_pandas(input)
+            return in_table
 
         assert (
-            input.schema == self.dag[0].output_schema
-        ), f"{input.schema} != {self.dag[0].output_schema}"
+            in_table.schema == self.dag[0].output_schema
+        ), f"{in_table.schema} != {self.dag[0].output_schema}"
 
         self.run_ref_count = self.ref_count.copy()
         self.output_map = dict()
-        self.output_map[self.dag[0]] = input
+        self.output_map[self.dag[0]] = in_table
 
         for t in self.dag[1:]:
             assert t not in self.output_map
@@ -163,7 +160,7 @@ class TraceRunner:
         assert isinstance(ret_table, pa.Table)
         assert ret_table.schema == self.dag[-1].output_schema
 
-        return ret_table.to_pandas()
+        return ret_table
 
 
 def _python_obj_to_serving(i: Any) -> compute_trace_pb2.Scalar:
@@ -468,6 +465,10 @@ class Table:
         Table.schema_check(self._table.schema)
         return self._table.to_pandas()
 
+    def to_table(self) -> pa.Table:
+        Table.schema_check(self._table.schema)
+        return self._table
+
     def dump_serving_pb(
         self, name
     ) -> Tuple[compute_trace_pb2.ComputeTrace, pa.Schema, pa.Schema]:
@@ -494,6 +495,9 @@ class Table:
     def schema(self) -> pa.Schema:
         return self._table.schema
 
+    def field(self, i: int | str) -> pa.Field:
+        return self._table.field(i)
+
     def column(self, i: Union[str, int]) -> Array:
         assert isinstance(i, (str, int))
 
@@ -510,12 +514,18 @@ class Table:
 
         return Array(arrow, tracer)
 
-    def add_column(self, i: int, name: str, array: Array) -> Table:
+    def add_column(self, i: int, name: str | pa.Field, array: Array) -> Table:
         assert isinstance(i, int)
-        assert isinstance(name, str)
+        assert isinstance(name, (str, pa.Field))
         assert isinstance(array, Array)
 
-        table = self._table.add_column(i, name, array._arrow)
+        if isinstance(name, pa.Field):
+            field = name
+            name = field.name
+        else:
+            field = name
+
+        table = self._table.add_column(i, field, array._arrow)
         tracer = _Tracer(
             compute_trace_pb2.ExtendFunctionName.Name(
                 compute_trace_pb2.EFN_TB_ADD_COLUMN
@@ -527,7 +537,7 @@ class Table:
 
         return Table(table, tracer)
 
-    def append_column(self, name: str, array: Array) -> Table:
+    def append_column(self, name: str | pa.Field, array: Array) -> Table:
         return self.add_column(self.shape[1], name, array)
 
     def remove_column(self, i: Union[int, str]) -> Table:
@@ -549,12 +559,19 @@ class Table:
 
         return Table(table, tracer)
 
-    def set_column(self, i: int, name: str, array: Array) -> Table:
+    def set_column(self, i: int, name: str | pa.Field, array: Array) -> Table:
         assert isinstance(i, int)
-        assert isinstance(name, str)
+        assert isinstance(name, (str, pa.Field))
         assert isinstance(array, Array)
 
-        table = self._table.set_column(i, name, array._arrow)
+        if isinstance(name, pa.Field):
+            field = name
+            name = field.name
+        else:
+            old = self._table.field(name)
+            field = pa.field(name, array.dtype, metadata=old.metadata)
+
+        table = self._table.set_column(i, field, array._arrow)
         tracer = _Tracer(
             compute_trace_pb2.ExtendFunctionName.Name(
                 compute_trace_pb2.EFN_TB_SET_COLUMN

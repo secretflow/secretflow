@@ -15,7 +15,6 @@
 from typing import List
 
 import numpy as np
-import pandas as pd
 import pyarrow as pa
 from google.protobuf.json_format import MessageToJson, Parse
 
@@ -192,11 +191,11 @@ def case_when_eval_fn(
 
     str_rule = MessageToJson(rules, indent=0)
 
-    def _transform(data: pd.DataFrame):
+    def _transform(data: pa.Table):
         import secretflow.spec.extend.case_when_rules_pb2 as pb
 
         rules = Parse(str_rule, pb.CaseWhenRule())
-        data = apply_case_when_rule(sc.Table.from_pandas(data), rules)
+        data = apply_case_when_rule(sc.Table.from_pyarrow(data), rules)
         rules_cols = [rules.output_column] if rules.as_label else []
         return data, rules_cols, None
 

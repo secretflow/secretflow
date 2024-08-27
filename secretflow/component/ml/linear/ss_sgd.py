@@ -22,13 +22,8 @@ from secretflow.component.component import (
     IoType,
     TableColParam,
 )
-from secretflow.component.data_utils import (
-    DistDataType,
-    load_table,
-    model_dumps,
-    model_loads,
-    save_prediction_dd,
-)
+from secretflow.component.data_utils import DistDataType, model_dumps, model_loads
+from secretflow.component.dataframe import CompDataFrame, save_prediction_dd
 from secretflow.device.device.pyu import PYU
 from secretflow.device.device.spu import SPU, SPUObject
 from secretflow.device.driver import reveal
@@ -99,7 +94,7 @@ ss_sgd_train_comp.str_attr(
     is_list=False,
     is_optional=True,
     default_value="None",
-    allowed_values=["None", "l1", "l2"],
+    allowed_values=["None", "l2"],
 )
 ss_sgd_train_comp.float_attr(
     name="l2_norm",
@@ -262,20 +257,20 @@ def ss_sgd_train_eval_fn(
         train_dataset_label[0] not in train_dataset_feature_selects
     ), f"col {train_dataset_label[0]} used in both label and features"
 
-    y = load_table(
+    y = CompDataFrame.from_distdata(
         ctx,
         train_dataset,
         load_labels=True,
         load_features=True,
         col_selects=train_dataset_label,
-    )
+    ).to_pandas()
 
-    x = load_table(
+    x = CompDataFrame.from_distdata(
         ctx,
         train_dataset,
         load_features=True,
         col_selects=train_dataset_feature_selects,
-    )
+    ).to_pandas()
 
     def epoch_callback(epoch, check_point: Tuple[Dict, List[SPUObject]]):
         cp_uri = f"{output_model}_checkpoint_{epoch}"
@@ -506,43 +501,28 @@ def ss_sgd_predict_eval_fn(
     if len(ctx.spu_configs) > 1:
         raise CompEvalError("only support one spu")
     spu_config = next(iter(ctx.spu_configs.values()))
-
     spu = SPU(spu_config["cluster_def"], spu_config["link_desc"])
-
     model, model_meta = load_ss_sgd_model(ctx, spu, model)
-
     reg = SSRegression(spu)
     reg.load_model(model)
-
-    x = load_table(
-        ctx,
-        feature_dataset,
-        partitions_order=list(model_meta["party_features_length"].keys()),
-        load_features=True,
-        col_selects=model_meta["feature_names"],
-    )
-
-    assert x.columns == model_meta["feature_names"]
-
     receiver_pyu = PYU(receiver[0])
-    with ctx.tracer.trace_running():
-        pyu_y = reg.predict(
-            x=x,
-            batch_size=batch_size,
-            to_pyu=receiver_pyu,
-        )
 
-    with ctx.tracer.trace_io():
-        y_db = save_prediction_dd(
-            ctx,
-            pred,
-            receiver_pyu,
-            pyu_y,
-            pred_name,
-            feature_dataset,
-            feature_dataset_saved_features,
-            model_meta["label_col"] if save_label else [],
-            save_ids,
-        )
+    def batch_pred(batch):
+        with ctx.tracer.trace_running():
+            return reg.predict(batch, to_pyu=receiver_pyu)
+
+    y_db = save_prediction_dd(
+        ctx,
+        pred,
+        receiver_pyu,
+        batch_pred,
+        pred_name,
+        model_meta["feature_names"],
+        list(model_meta["party_features_length"].keys()),
+        feature_dataset,
+        feature_dataset_saved_features,
+        model_meta["label_col"] if save_label else [],
+        save_ids,
+    )
 
     return {"pred": y_db}

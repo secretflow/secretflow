@@ -14,15 +14,18 @@
 
 
 import os
+from enum import Enum
 
 import grpc
 import pyarrow as pa
 import pyarrow.csv as csv
+from pyarrow import orc
 import pyarrow.flight as flight
 from google.protobuf.any_pb2 import Any
-from kuscia.proto.api.v1alpha1.common_pb2 import FileFormat
+from kuscia.proto.api.v1alpha1.common_pb2 import DataColumn, FileFormat
 from kuscia.proto.api.v1alpha1.datamesh.domaindata_pb2 import (
     CreateDomainDataRequest,
+    CreateDomainDataResponse,
     DomainData,
     QueryDomainDataRequest,
 )
@@ -35,8 +38,6 @@ from kuscia.proto.api.v1alpha1.datamesh.domaindatasource_pb2_grpc import (
     DomainDataSourceServiceStub,
 )
 from kuscia.proto.api.v1alpha1.datamesh.flightdm_pb2 import (
-    ActionCreateDomainDataRequest,
-    ActionCreateDomainDataResponse,
     CommandDomainDataQuery,
     CommandDomainDataUpdate,
     ContentType,
@@ -49,6 +50,12 @@ DEFAULT_GENERIC_OPTIONS = [("GRPC_ARG_KEEPALIVE_TIME_MS", 60000)]
 DEFAULT_FLIGHT_CALL_OPTIONS = flight.FlightCallOptions(
     timeout=10
 )  # timeout unit is second.
+
+
+class DataFileFormat(Enum):
+    CSV = 1
+    ORC = 2
+    BINARY = 3
 
 
 def create_channel(address: str):
@@ -140,18 +147,18 @@ def get_file_from_dp(
     dm_flight_client,
     domain_data_id: str,
     output_file_path: str,
-    file_format: FileFormat,
+    file_format: DataFileFormat,
+    partition_spec: str = "",
 ):
-    if file_format == FileFormat.CSV:
-        domain_data_query = CommandDomainDataQuery(
-            domaindata_id=domain_data_id,
-            content_type=ContentType.Table,
-        )
-    elif file_format == FileFormat.BINARY:
-        domain_data_query = CommandDomainDataQuery(
-            domaindata_id=domain_data_id,
-            content_type=ContentType.RAW,
-        )
+    domain_data_query = CommandDomainDataQuery(
+        domaindata_id=domain_data_id,
+        content_type=ContentType.Table,
+        partition_spec=partition_spec,
+    )
+    if file_format == DataFileFormat.CSV or file_format == DataFileFormat.ORC:
+        domain_data_query.content_type = ContentType.Table
+    elif file_format == DataFileFormat.BINARY:
+        domain_data_query.content_type = ContentType.RAW
     else:
         raise AttributeError(f"unknown file_format {file_format}")
 
@@ -164,13 +171,20 @@ def get_file_from_dp(
         descriptor=descriptor, options=DEFAULT_FLIGHT_CALL_OPTIONS
     )
 
-    dp_uri = flight_info.endpoints[0].locations[0]
+    location = flight_info.endpoints[0].locations[0]
     ticket = flight_info.endpoints[0].ticket
+    dp_uri = location.uri.decode('utf-8')
 
-    dp_flight_client = flight.connect(dp_uri, generic_options=DEFAULT_GENERIC_OPTIONS)
+    if dp_uri.startswith("kuscia://"):
+        dp_flight_client = dm_flight_client
+    else:
+        dp_flight_client = flight.connect(
+            dp_uri, generic_options=DEFAULT_GENERIC_OPTIONS
+        )
+
     flight_reader = dp_flight_client.do_get(ticket=ticket).to_reader()
 
-    if file_format == FileFormat.CSV:
+    if file_format == DataFileFormat.CSV:
         # NOTE(junfeng): use pandas to write csv since pyarrow will add quotes in headers.
         # FIXME: BUG io should running in pyu device context, not in driver context.
         for batch in flight_reader:
@@ -181,7 +195,19 @@ def get_file_from_dp(
                 mode='a',
                 header=not os.path.exists(output_file_path),
             )
-    elif file_format == FileFormat.BINARY:
+    elif file_format == DataFileFormat.ORC:
+        with open(output_file_path, 'wb') as ofile:
+            with orc.ORCWriter(
+                ofile,
+                compression="ZSTD",
+                compression_block_size=256 * 1024,
+                stripe_size=64 * 1024 * 1024,
+            ) as writer:
+                for batch in flight_reader:
+                    table = pa.Table.from_batches([batch])
+                    writer.write(table)
+
+    elif file_format == DataFileFormat.BINARY:
         with open(output_file_path, "wb") as f:
             for batch in flight_reader:
                 assert batch.num_columns == 1
@@ -192,13 +218,24 @@ def get_file_from_dp(
     else:
         raise AttributeError(f"unknown file_format {file_format}")
 
-    dp_flight_client.close()
+    # close flight client if not kuscia builtin dataserver
+    if not dp_uri.startswith("kuscia://"):
+        dp_flight_client.close()
+
+
+def data_file_format2file_format(data_file_format: DataFileFormat) -> FileFormat:
+    if data_file_format == DataFileFormat.CSV:
+        return FileFormat.CSV
+    elif data_file_format == DataFileFormat.ORC:
+        return FileFormat.CSV
+    elif data_file_format == DataFileFormat.BINARY:
+        return FileFormat.BINARY
+    else:
+        raise AttributeError(f"unknown file_format {data_file_format}")
 
 
 def create_domain_data_in_dp(
-    dm_flight_client,
-    domain_data: DomainData,
-    file_format: FileFormat,
+    dm_flight_client, domain_data: DomainData, data_file_format: DataFileFormat
 ):
     create_domain_data_request = CreateDomainDataRequest(
         # NOTE: rm
@@ -208,19 +245,15 @@ def create_domain_data_in_dp(
         datasource_id=domain_data.datasource_id,
         relative_uri=domain_data.relative_uri,
         attributes=domain_data.attributes,
+        file_format=data_file_format2file_format(data_file_format),
         # partition=data.partition,
         columns=domain_data.columns,
         vendor=domain_data.vendor,
-        file_format=file_format,
-    )
-
-    action_create_domain_data_request = ActionCreateDomainDataRequest(
-        request=create_domain_data_request
     )
 
     action = flight.Action(
         "ActionCreateDomainDataRequest",
-        action_create_domain_data_request.SerializeToString(),
+        create_domain_data_request.SerializeToString(),
     )
 
     results = dm_flight_client.do_action(
@@ -228,18 +261,50 @@ def create_domain_data_in_dp(
     )
 
     for res in results:
-        action_response = ActionCreateDomainDataResponse()
-        action_response.ParseFromString(res.body)
-        assert action_response.response.status.message == "success"
+        action_response = CreateDomainDataResponse()
+        action_response.ParseFromString(res.body.to_pybytes())
+        assert action_response.status.code == 0
+
+
+def columns_to_schema(columns: list[DataColumn]) -> dict:
+    """Converts a list of DataColumn instances into a PyArrow Schema."""
+    type_mapping = {
+        "int8": pa.int8(),
+        "int16": pa.int16(),
+        "int32": pa.int32(),
+        "int64": pa.int64(),
+        "uint8": pa.uint8(),
+        "uint16": pa.uint16(),
+        "uint32": pa.uint32(),
+        "uint64": pa.uint64(),
+        "float16": pa.float16(),
+        "float32": pa.float32(),
+        "float64": pa.float64(),
+        "bool": pa.bool_(),
+        "int": pa.int64(),
+        "float": pa.float64(),
+        "str": pa.string(),
+        "string": pa.string(),
+    }
+
+    def type_to_arrowtype(type_str: str) -> pa.Field:
+        arrow_type = type_mapping.get(type_str.lower(), None)
+        if arrow_type is None:
+            raise ValueError(f"Unsupported type: {type_str}")
+        return arrow_type
+
+    col_dict = {col.name: type_to_arrowtype(col.type) for col in columns}
+    return col_dict
 
 
 def put_file_to_dp(
     dm_flight_client,
     domaindata_id: str,
     file_local_path: str,
-    file_format: FileFormat,
+    file_format: DataFileFormat,
+    data: DomainData,
 ):
-    if file_format == FileFormat.CSV:
+    if file_format == DataFileFormat.CSV:
         command_domain_data_update = CommandDomainDataUpdate(
             domaindata_id=domaindata_id,
             file_write_options=FileWriteOptions(
@@ -247,9 +312,34 @@ def put_file_to_dp(
             ),
         )
         # FIXME: BUG io should running in pyu device context, not in driver context.
-        reader = csv.open_csv(file_local_path)
+        col_dict = columns_to_schema(data.columns)
+        reader = csv.open_csv(
+            file_local_path, convert_options=csv.ConvertOptions(column_types=col_dict)
+        )
         schema = reader.schema
-    elif file_format == FileFormat.BINARY:
+    elif file_format == DataFileFormat.ORC:
+        command_domain_data_update = CommandDomainDataUpdate(
+            domaindata_id=domaindata_id,
+            file_write_options=FileWriteOptions(
+                csv_options=CSVWriteOptions(field_delimiter=",")
+            ),
+        )
+
+        def _orc_reader():
+            with open(file_local_path, 'rb') as input_file:
+                orc_file = orc.ORCFile(input_file)
+                nstripes = orc_file.nstripes
+                current_stripe = 0
+                while current_stripe < nstripes:
+                    yield orc_file.read_stripe(current_stripe)
+                    current_stripe += 1
+
+        reader = _orc_reader()
+
+        with open(file_local_path, 'rb') as input_file:
+            schema = orc.ORCFile(input_file).schema
+
+    elif file_format == DataFileFormat.BINARY:
         command_domain_data_update = CommandDomainDataUpdate(
             domaindata_id=domaindata_id,
             content_type=ContentType.RAW,
@@ -284,10 +374,15 @@ def put_file_to_dp(
         descriptor=descriptor, options=DEFAULT_FLIGHT_CALL_OPTIONS
     )
 
-    dp_uri = flight_info.endpoints[0].locations[0]
+    location = flight_info.endpoints[0].locations[0]
     ticket = flight_info.endpoints[0].ticket
-
-    dp_flight_client = flight.connect(dp_uri, generic_options=DEFAULT_GENERIC_OPTIONS)
+    dp_uri = location.uri.decode('utf-8')
+    if dp_uri.startswith("kuscia://"):
+        dp_flight_client = dm_flight_client
+    else:
+        dp_flight_client = flight.connect(
+            dp_uri, generic_options=DEFAULT_GENERIC_OPTIONS
+        )
 
     descriptor = flight.FlightDescriptor.for_command(ticket.ticket)
     flight_writer, _ = dp_flight_client.do_put(descriptor=descriptor, schema=schema)
@@ -297,4 +392,6 @@ def put_file_to_dp(
 
     flight_writer.close()
     reader.close()
-    dp_flight_client.close()
+    # close flight client if not kuscia builtin dataserver
+    if not dp_uri.startswith("kuscia://"):
+        dp_flight_client.close()

@@ -19,7 +19,7 @@ import pyarrow.compute as pc
 
 import secretflow.compute as sc
 from secretflow.component.component import Component, IoType, TableColParam
-from secretflow.component.data_utils import DistDataType, extract_table_header
+from secretflow.component.data_utils import DistDataType, extract_data_infos
 from secretflow.component.preprocessing.core.table_utils import (
     v_preprocessing_transform,
 )
@@ -129,16 +129,14 @@ def cast_eval_fn(
 
     astype = astype_map[astype]
 
-    label_info, _ = extract_table_header(
-        input_ds, load_features=False, load_labels=True
-    )
+    infos = extract_data_infos(input_ds, load_features=False, load_labels=True)
     label_set = set()
-    for kv in label_info.values():
-        label_set.update(kv.keys())
+    for info in infos.values():
+        label_set.update(info.dtypes.keys())
 
-    def _fit_transform(trans_data: pd.DataFrame):
-        table = _apply_rules_on_table(sc.Table.from_pandas(trans_data), astype)
-        columns = list(trans_data.columns)
+    def _fit_transform(trans_data: pa.Table):
+        table = _apply_rules_on_table(sc.Table.from_pyarrow(trans_data), astype)
+        columns = list(trans_data.column_names)
         labels = set(columns).intersection(label_set)
         return table, list(labels), {}
 

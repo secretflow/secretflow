@@ -18,13 +18,11 @@ from secretflow.component.checkpoint import CompCheckpoint
 from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import (
     DistDataType,
-    SimpleVerticalBatchReader,
     get_model_public_info,
-    load_table,
     model_dumps,
     model_loads,
-    save_prediction_dd,
 )
+from secretflow.component.dataframe import CompDataFrame, save_prediction_dd
 from secretflow.device.device.heu import heu_from_base_config
 from secretflow.device.device.pyu import PYU
 from secretflow.ml.boost.core.callback import TrainingCallback
@@ -503,20 +501,20 @@ def sgb_train_eval_fn(
         len(set(train_dataset_label).intersection(set(train_dataset_feature_selects)))
         == 0
     ), f"expect no intersection between label and features, got {train_dataset_label} and {train_dataset_feature_selects}"
-    y = load_table(
+    y = CompDataFrame.from_distdata(
         ctx,
         train_dataset,
         load_labels=True,
         load_features=True,
         col_selects=train_dataset_label,
-    )
-    x = load_table(
+    ).to_pandas()
+    x = CompDataFrame.from_distdata(
         ctx,
         train_dataset,
         load_labels=True,
         load_features=True,
         col_selects=train_dataset_feature_selects,
-    )
+    ).to_pandas()
     assert len(x.columns) > 0
 
     label_party = next(iter(y.partitions.keys())).party
@@ -695,30 +693,23 @@ def sgb_predict_eval_fn(
 ):
     model_public_info = get_model_public_info(model)
     assert len(model_public_info["feature_names"]) > 0
-    feature_reader = SimpleVerticalBatchReader(
-        ctx,
-        feature_dataset,
-        partitions_order=list(model_public_info["party_features_length"].keys()),
-        col_selects=model_public_info["feature_names"],
-    )
-
     pyus = {p: PYU(p) for p in ctx.cluster_config.desc.parties}
 
     sgb_model = load_sgb_model(ctx, pyus, model)
-
     receiver_pyu = PYU(receiver[0])
 
-    def batch_pred():
+    def batch_pred(batch):
         with ctx.tracer.trace_running():
-            for batch in feature_reader:
-                yield sgb_model.predict(batch, receiver_pyu)
+            return sgb_model.predict(batch, receiver_pyu)
 
     y_db = save_prediction_dd(
         ctx,
         pred,
         receiver_pyu,
-        batch_pred(),
+        batch_pred,
         pred_name,
+        model_public_info["feature_names"],
+        list(model_public_info["party_features_length"].keys()),
         feature_dataset,
         feature_dataset_saved_features,
         model_public_info['label_col'] if save_label else [],

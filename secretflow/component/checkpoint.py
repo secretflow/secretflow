@@ -14,7 +14,6 @@
 
 
 import logging
-import pickle
 import uuid
 from abc import abstractmethod
 from typing import Any, Dict, List
@@ -22,6 +21,7 @@ from typing import Any, Dict, List
 from secretflow.component.storage.impl import BuildStorageImpl
 from secretflow.device.driver import PYU, reveal, wait
 from secretflow.spec.v1.data_pb2 import DistData, StorageConfig
+from secretflow.utils import secure_pickle as pickle
 
 
 class CompCheckpoint:

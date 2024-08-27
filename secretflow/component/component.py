@@ -17,7 +17,6 @@ import json
 import logging
 import math
 import os
-import sys
 import threading
 import time
 from dataclasses import dataclass
@@ -115,6 +114,10 @@ class CompEvalContext:
 
 
 class Component:
+    """
+    This class has been deprecated. Please refer to ./core/component.py for the new usage.
+    """
+
     def __init__(self, name: str, domain="", version="", desc="") -> None:
         self.name = name
         self.domain = domain
@@ -1193,15 +1196,13 @@ class Component:
             on_error = True
             logging.exception(f"eval on {param} failed")
             # TODO: use error_code in report
+            raise e
         finally:
             if cluster_config is not None:
                 shutdown(
                     barrier_on_shutdown=cluster_config.public_config.barrier_on_shutdown,
                     on_error=on_error,
                 )
-            if on_error:
-                logging.shutdown()
-                os._exit(1)
 
         logging.info(f"{param}, getting eval return complete.")
         # check output

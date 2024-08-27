@@ -13,10 +13,12 @@
 # limitations under the License.
 
 
-from typing import Dict
+from typing import Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
+import pyarrow as pa
+from pyarrow import compute as pc
 from sklearn.preprocessing import OneHotEncoder
 
 import secretflow.compute as sc
@@ -135,62 +137,61 @@ def apply_onehot_rule_on_table(table: sc.Table, additional_info: Dict) -> sc.Tab
     return table
 
 
-def _onehot_encode_fit(trans_data: pd.DataFrame, drop: str, min_frequency: float):
-    min_frequency = min_frequency if min_frequency > 0 else None
-    is_drop_mode = drop == "mode"
-    skdrop = "first" if drop == "first" else None
+def fit_col(
+    col_name: str, col: pa.ChunkedArray, min_frequency: int, drop_mode: str
+) -> Tuple[List, List]:
+    # remove null / nan
+    col = pc.filter(col, pc.invert(pc.is_null(col, nan_is_null=True)))
+    if len(col) == 0:
+        raise RuntimeError(
+            f"feature {col_name} contains only null and nan, can not onehotencode on this feature"
+        )
+    value_counts = pc.value_counts(col)
+    if len(value_counts) >= 100:
+        raise RuntimeError(
+            f"feature {col_name} has too many categories {len(value_counts)}"
+        )
+    if drop_mode == "mode":
+        value_counts = value_counts.sort(order="descending", by=1)
+        drop_category = value_counts[0][0].as_py()
+    elif drop_mode == "first":
+        drop_category = value_counts[0][0].as_py()
+    elif drop_mode == "no_drop":
+        drop_category = None
+    else:
+        raise AttributeError(f"unknown drop_mode {drop_mode}")
 
-    enc = OneHotEncoder(
-        drop=skdrop,
-        min_frequency=min_frequency,
-        handle_unknown='ignore',
-        dtype=np.float32,
-        sparse_output=False,
-    )
+    category = [
+        [vc[0].as_py()]
+        for vc in value_counts
+        if vc[1].as_py() >= min_frequency and vc[0].as_py() != drop_category
+    ]
+    infrequent_category = [
+        vc[0].as_py()
+        for vc in value_counts
+        if vc[1].as_py() < min_frequency and vc[0].as_py() != drop_category
+    ]
 
-    enc.fit(trans_data)
+    if infrequent_category:
+        category.append(infrequent_category)
 
-    categories = enc.categories_
-    assert len(categories) == len(trans_data.columns)
+    return category, drop_category
 
-    infrequent_categories = getattr(
-        enc, "infrequent_categories_", [None] * len(categories)
-    )
 
-    drop_categories = [None] * len(categories)
-    if is_drop_mode:
-        drop_categories = trans_data.mode().iloc[0].values
-    elif enc.drop_idx_ is not None:
-        for feature_idx, category_idx in enumerate(enc.drop_idx_):
-            drop_categories[feature_idx] = categories[feature_idx][category_idx]
+def _onehot_encode_fit(trans_data: pa.Table, drop: str, min_frequency: float):
+    rows = trans_data.shape[0]
+    min_frequency = round(rows * min_frequency)
 
     onehot_rules = {}
     drop_rules = {}
-    for col_name, category, infrequent_category, drop_category in zip(
-        trans_data.columns, categories, infrequent_categories, drop_categories
-    ):
-        col_rules = []
-
-        for value in category:
-            if drop_category is not None and value == drop_category:
-                continue
-            if infrequent_category is not None and value in infrequent_category:
-                continue
-            col_rules.append([value])
-
-        if infrequent_category is not None:
-            if drop_category is not None:
-                infrequent_category = np.setdiff1d(infrequent_category, drop_category)
-            if infrequent_category.size > 0:
-                col_rules.append(list(infrequent_category))
-
-        assert (
-            len(col_rules) < 100
-        ), f"feature {col_name} has too many categories {len(col_rules)}"
-
-        onehot_rules[col_name] = col_rules
-        if drop_category is not None:
-            drop_rules[col_name] = drop_category
+    for name in trans_data.column_names:
+        # TODO: streaming read and fit
+        category, drop_category = fit_col(
+            name, trans_data.column(name), min_frequency, drop
+        )
+        onehot_rules[name] = category
+        if drop_category:
+            drop_rules[name] = drop_category
 
     return onehot_rules, drop_rules
 
@@ -214,10 +215,10 @@ def onehot_encode_eval_fn(
 
     assert drop in _SUPPORTED_ONEHOT_DROP, f"unsupported drop type {drop}"
 
-    def onehot_fit_transform(trans_data):
+    def onehot_fit_transform(trans_data: pa.Table):
         onehot_rules, drop_rules = _onehot_encode_fit(trans_data, drop, min_frequency)
         trans_data = apply_onehot_rule_on_table(
-            sc.Table.from_pandas(trans_data), onehot_rules
+            sc.Table.from_pyarrow(trans_data), onehot_rules
         )
         return trans_data, [], {"onehot_rules": onehot_rules, "drop_rules": drop_rules}
 
@@ -229,7 +230,6 @@ def onehot_encode_eval_fn(
         output_dataset,
         out_rules,
         "OneHot Encode",
-        load_ids=False,
         assert_one_party=False,
     )
 

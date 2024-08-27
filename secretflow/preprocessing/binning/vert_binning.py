@@ -15,7 +15,7 @@
 
 from typing import Dict, List
 
-from secretflow.data.vertical import VDataFrame
+from secretflow.component.dataframe import CompDataFrame
 from secretflow.device import PYU, PYUObject
 from secretflow.preprocessing.binning.vert_binning_pyu import VertBinningPyuWorker
 
@@ -34,7 +34,7 @@ class VertBinning:
 
     def binning(
         self,
-        vdata: VDataFrame,
+        vdata: CompDataFrame,
         binning_method: str = "eq_range",
         bin_num: int = 10,
         bin_names: Dict[PYU, List[str]] = {},
@@ -44,7 +44,7 @@ class VertBinning:
         The split points for bins remains at each party.
 
         Attributes:
-            vdata (VDataFrame): vertical slice datasets
+            vdata (CompDataFrame): vertical slice datasets
                 use {binning_method} to bin all number type features.
                 for string type feature bin by it's categories.
                 else bin is count for np.nan samples

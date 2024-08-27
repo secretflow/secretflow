@@ -18,8 +18,9 @@ import logging
 import numpy as np
 import pandas as pd
 import pytest
+from pyarrow import orc
 
-from secretflow.component.data_utils import DistDataType, extract_distdata_info
+from secretflow.component.data_utils import DistDataType, extract_data_infos
 from secretflow.component.preprocessing.filter.expr_condition_filter import (
     expr_condition_filter_comp,
     parse_columns,
@@ -122,22 +123,28 @@ def test_expr_condition_filter(comp_prod_sf_cluster_config):
 
     assert len(res.outputs) == 2
 
-    ds_info = extract_distdata_info(res.outputs[0])
-    else_ds_info = extract_distdata_info(res.outputs[1])
+    ds_info = extract_data_infos(res.outputs[0], load_ids=True)
+    else_ds_info = extract_data_infos(res.outputs[1], load_ids=True)
 
     if self_party == "alice":
-        ds_alice = pd.read_csv(comp_storage.get_reader(ds_info["alice"].uri))
-        ds_else_alice = pd.read_csv(comp_storage.get_reader(else_ds_info["alice"].uri))
+        ds_alice = orc.read_table(
+            comp_storage.get_reader(ds_info["alice"].uri)
+        ).to_pandas()
+        ds_else_alice = orc.read_table(
+            comp_storage.get_reader(else_ds_info["alice"].uri)
+        ).to_pandas()
         np.testing.assert_equal(ds_alice.shape[0], 2)
-        assert list(ds_alice["id1"]) == [1, 4]
-        assert list(ds_else_alice["id1"]) == [2, 3]
+        assert list(ds_alice["id1"]) == ["1", "4"]
+        assert list(ds_else_alice["id1"]) == ["2", "3"]
 
     if self_party == "bob":
-        ds_bob = pd.read_csv(comp_storage.get_reader(ds_info["bob"].uri))
-        ds_else_bob = pd.read_csv(comp_storage.get_reader(else_ds_info["bob"].uri))
+        ds_bob = orc.read_table(comp_storage.get_reader(ds_info["bob"].uri)).to_pandas()
+        ds_else_bob = orc.read_table(
+            comp_storage.get_reader(else_ds_info["bob"].uri)
+        ).to_pandas()
         np.testing.assert_equal(ds_else_bob.shape[0], 2)
-        assert list(ds_bob["id2"]) == [1, 4]
-        assert list(ds_else_bob["id2"]) == [2, 3]
+        assert list(ds_bob["id2"]) == ["1", "4"]
+        assert list(ds_else_bob["id2"]) == ["2", "3"]
 
     # test errors
     param.ClearField("attrs")
@@ -182,18 +189,20 @@ def test_expr_condition_filter(comp_prod_sf_cluster_config):
     )
 
     assert len(res.outputs) == 2
-    ds_info = extract_distdata_info(res.outputs[0])
-    else_ds_info = extract_distdata_info(res.outputs[1])
+    ds_info = extract_data_infos(res.outputs[0], load_ids=True)
+    else_ds_info = extract_data_infos(res.outputs[1], load_ids=True)
     if self_party == "bob":
-        ds_bob = pd.read_csv(comp_storage.get_reader(ds_info["bob"].uri))
-        ds_else_bob = pd.read_csv(comp_storage.get_reader(else_ds_info["bob"].uri))
-        assert list(ds_bob["id2"]) == [1]
-        assert list(ds_else_bob["id2"]) == [2, 3, 4]
+        ds_bob = orc.read_table(comp_storage.get_reader(ds_info["bob"].uri)).to_pandas()
+        ds_else_bob = orc.read_table(
+            comp_storage.get_reader(else_ds_info["bob"].uri)
+        ).to_pandas()
+        assert list(ds_bob["id2"]) == ["1"]
+        assert list(ds_else_bob["id2"]) == ["2", "3", "4"]
 
 
 def test_parse_columns():
-    columns = parse_columns("(age > 20 AND age < 30) OR (type = 2) OR `select` = 1")
-    assert set(columns) == set(['age', 'type', 'select'])
+    columns = parse_columns("(age > 20 AND age < 30) OR (type = 2) OR (name = 1)")
+    assert set(columns) == set(['age', 'type', 'name'])
     sql = "(field_A > -3.1415926 and field_A <3.1415926 and field_B =1) or (field_C >= 100 and field_C <= 1000 and field_B != 1) or (field_D ='match_1' and field_E != 'MATCH_2' and field_B =1)"
     columns = parse_columns(sql)
     assert set(columns) == set(['field_A', 'field_B', 'field_C', 'field_D', 'field_E'])

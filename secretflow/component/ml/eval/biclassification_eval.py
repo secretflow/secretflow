@@ -14,7 +14,8 @@
 import logging
 
 from secretflow.component.component import Component, IoType, TableColParam
-from secretflow.component.data_utils import DistDataType, load_table
+from secretflow.component.data_utils import DistDataType
+from secretflow.component.dataframe import CompDataFrame
 from secretflow.device.driver import reveal
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData
@@ -99,12 +100,15 @@ def biclassification_eval_fn(
     min_item_cnt_per_bucket,
     reports,
 ):
-    label_prediction_df = load_table(
+    label_prediction_df = CompDataFrame.from_distdata(
         ctx,
         in_ds,
+        load_features=True,
         load_labels=True,
         col_selects=in_ds_label + in_ds_prediction,
-    )
+    ).to_pandas(
+        check_null=False
+    )  # FIXME: avoid to_pandas
 
     with ctx.tracer.trace_running():
         result = reveal(

@@ -12,26 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import copy
+import json
+from typing import List, Tuple
 
-import pandas as pd
+import pyarrow as pa
 
 from secretflow.component.component import Component, IoType
-from secretflow.component.data_utils import (
-    DistDataType,
-    VerticalTableWrapper,
-    dump_vertical_table,
-    load_table,
-    model_loads,
-)
-from secretflow.component.preprocessing.core.meta_utils import (
-    apply_meta_change,
-    str_to_dict,
-)
+from secretflow.component.data_utils import DistDataType, model_loads
+from secretflow.component.dataframe import CompDataFrame
 from secretflow.component.preprocessing.core.version import (
     PREPROCESSING_RULE_MAX_MAJOR_VERSION,
     PREPROCESSING_RULE_MAX_MINOR_VERSION,
 )
 from secretflow.data.core import partition
+from secretflow.device import reveal
 
 substitution = Component(
     "substitution",
@@ -77,16 +72,16 @@ def substitution_eval_fn(
         input_dataset.type == DistDataType.VERTICAL_TABLE
     ), "only support vtable for now"
 
-    x = load_table(
+    x = CompDataFrame.from_distdata(
         ctx,
         input_dataset,
         load_features=True,
         load_ids=True,
         load_labels=True,
-    ).to_pandas()
+    )
     pyus = {p.party: p for p in x.partitions.keys()}
 
-    trace_runner_objs, meta_change_str = model_loads(
+    trace_runner_objs, add_labels = model_loads(
         ctx,
         input_rules,
         PREPROCESSING_RULE_MAX_MAJOR_VERSION,
@@ -97,42 +92,56 @@ def substitution_eval_fn(
 
     assert set([o.device for o in trace_runner_objs]).issubset(set(x.partitions.keys()))
 
-    meta_change_dict = str_to_dict(meta_change_str)
+    add_labels = json.loads(add_labels)
 
-    def transform(data, runner):
+    def transform(data, runner) -> Tuple[pa.Table, List, List]:
         trans_columns = list(runner.get_input_features())
         assert set(trans_columns).issubset(
-            set(data.columns)
-        ), f"can not find rule keys {trans_columns} in dataset columns {data.columns}"
+            set(data.column_names)
+        ), f"can not find rule keys {trans_columns} in dataset columns {data.column_names}"
 
         if len(trans_columns) > 0:
-            trans_data = data[trans_columns]
-            remain_data = data.drop(trans_columns, axis=1)
+            trans_data = data.select(trans_columns)
+            remain_data = data.drop(trans_columns)
 
             trans_data = runner.run(trans_data)
+            drop_columns, add_columns, _ = runner.column_changes()
 
-            data = pd.concat([remain_data, trans_data], axis=1)
+            for i in range(trans_data.shape[1]):
+                remain_data = remain_data.append_column(
+                    trans_data.field(i), trans_data.column(i)
+                )
 
-        return data
+        return remain_data, drop_columns, add_columns
 
     new_datas = {}
+    drop_columns = {}
+    add_columns = {}
     for r in trace_runner_objs:
         pyu = r.device
-        new_data = pyu(transform)(x.partitions[pyu].data, r)
+        new_data, drop_column, add_column = pyu(transform)(x.data(pyu), r)
         new_datas[pyu] = new_data
+        drop_columns[pyu] = drop_column
+        add_columns[pyu] = add_column
 
+    drop_columns = reveal(drop_columns)
+    add_columns = reveal(add_columns)
+
+    new_partitions = copy.deepcopy(x.partitions)
     for pyu in new_datas:
-        x.partitions[pyu] = partition(new_datas[pyu])
+        new_partitions[pyu].data = new_datas[pyu]
+        drop_col = set(drop_columns[pyu])
+        add_label = add_labels[pyu.party]
+        add_feature = [c for c in add_columns[pyu] if c not in add_label]
+        orig_feature = new_partitions[pyu].feature_cols
+        new_partitions[pyu].feature_cols = [
+            c for c in orig_feature if c not in drop_col
+        ] + add_feature
+        orig_label = new_partitions[pyu].label_cols
+        new_partitions[pyu].label_cols = [
+            c for c in orig_label if c not in drop_col
+        ] + add_label
 
-    meta = VerticalTableWrapper.from_dist_data(input_dataset, x.shape[0])
-    meta = apply_meta_change(meta, meta_change_dict)
+    new_ds = CompDataFrame(new_partitions, x.system_info)
 
-    output_dd = dump_vertical_table(
-        ctx,
-        x,
-        output_dataset,
-        meta,
-        input_dataset.system_info,
-    )
-
-    return {"output_dataset": output_dd}
+    return {"output_dataset": new_ds.to_distdata(ctx, output_dataset)}

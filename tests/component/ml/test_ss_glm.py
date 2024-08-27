@@ -18,6 +18,7 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 import pytest
+from pyarrow import orc
 from sklearn.datasets import load_breast_cancer
 from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import StandardScaler
@@ -186,7 +187,7 @@ def test_glm(comp_prod_sf_cluster_config, optimizer, with_checkpoint):
             input_y = pd.read_csv(comp_storage.get_reader(alice_path))
             dtype = defaultdict(np.float32)
             dtype["id1"] = np.string_
-            output_y = pd.read_csv(comp_storage.get_reader(predict_path), dtype=dtype)
+            output_y = orc.read_table(comp_storage.get_reader(predict_path)).to_pandas()
 
             # label & pred
             assert output_y.shape[1] == 5

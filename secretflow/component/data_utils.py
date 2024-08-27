@@ -20,6 +20,8 @@ import uuid
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Tuple, Union
 
+import duckdb
+import duckdb.typing
 import numpy as np
 import pandas as pd
 
@@ -38,6 +40,7 @@ from secretflow.spec.v1.data_pb2 import (
     TableSchema,
     VerticalTable,
 )
+from secretflow.utils import secure_pickle as pickle
 
 
 class MetaEnum(enum.EnumMeta):
@@ -93,6 +96,7 @@ class DistDataType(BaseEnum):
 @enum.unique
 class DataSetFormatSupported(BaseEnum):
     CSV = "csv"
+    ORC = "orc"
 
 
 SUPPORTED_VTABLE_DATA_TYPE = {
@@ -104,13 +108,31 @@ SUPPORTED_VTABLE_DATA_TYPE = {
     "uint16": np.uint16,
     "uint32": np.uint32,
     "uint64": np.uint64,
-    "float16": np.float16,
+    # remove float16
+    # "float16": np.float16,
     "float32": np.float32,
     "float64": np.float64,
-    "bool": bool,
+    "bool": np.bool_,
     "int": int,
     "float": float,
-    "str": object,
+    "str": np.object_,
+}
+
+NP_DTYPE_TO_DUCKDB_DTYPE = {
+    np.int8: duckdb.typing.TINYINT,
+    np.int16: duckdb.typing.SMALLINT,
+    np.int32: duckdb.typing.INTEGER,
+    np.int64: duckdb.typing.BIGINT,
+    np.uint8: duckdb.typing.UTINYINT,
+    np.uint16: duckdb.typing.USMALLINT,
+    np.uint32: duckdb.typing.UINTEGER,
+    np.uint64: duckdb.typing.UBIGINT,
+    np.float32: duckdb.typing.FLOAT,
+    np.float64: duckdb.typing.DOUBLE,
+    np.bool_: duckdb.typing.BOOLEAN,
+    int: duckdb.typing.INTEGER,
+    float: duckdb.typing.FLOAT,
+    np.object_: duckdb.typing.VARCHAR,
 }
 
 REVERSE_DATA_TYPE_MAP = dict((v, k) for k, v in SUPPORTED_VTABLE_DATA_TYPE.items())
@@ -140,39 +162,25 @@ def check_dist_data(data: DistData, io_def: IoDef = None):
 
 
 @dataclass
-class DistdataInfo:
+class DistDataInfo:
     uri: str
     format: str
+    null_strs: List[str]
+    dtypes: Dict[str, np.dtype]
+    id_cols: List[str]
+    feature_cols: List[str]
+    label_cols: List[str]
+
+    def mate_equal(self, others: "DistDataInfo"):
+        return (
+            self.dtypes == others.dtypes
+            and set(self.label_cols) == set(self.label_cols)
+            and set(self.feature_cols) == set(others.feature_cols)
+            and set(self.id_cols) == set(others.id_cols)
+        )
 
 
-def extract_distdata_info(
-    db: DistData,
-) -> Dict[str, DistdataInfo]:
-    ret = {}
-
-    for dr in db.data_refs:
-        ret[dr.party] = DistdataInfo(dr.uri, dr.format)
-
-    return ret
-
-
-def merge_individuals_to_vtable(srcs: List[DistData], dest: DistData) -> DistData:
-    # copy srcs' schema into dist
-    # use for union individual tables into vtable
-    vmeta = VerticalTable()
-    for s in srcs:
-        assert s.type == DistDataType.INDIVIDUAL_TABLE
-        imeta = IndividualTable()
-        assert s.meta.Unpack(imeta)
-        vmeta.schemas.append(imeta.schema)
-        vmeta.line_count = imeta.line_count
-
-    dest.meta.Pack(vmeta)
-
-    return dest
-
-
-def extract_table_header(
+def extract_data_infos(
     db: DistData,
     partitions_order: List[str] = None,
     load_features: bool = False,
@@ -180,8 +188,7 @@ def extract_table_header(
     load_ids: bool = False,
     col_selects: List[str] = None,
     col_excludes: List[str] = None,
-    return_schema_names: bool = False,
-) -> Tuple[Dict[str, Dict[str, np.dtype]], Dict[str, Dict[str, Callable]]]:
+) -> Dict[str, DistDataInfo]:
     """
     Args:
         db (DistData): input DistData.
@@ -190,8 +197,16 @@ def extract_table_header(
         load_ids (bool, optional): Whether to load id cols. Defaults to False.
         col_selects (List[str], optional): Load part of cols. Applies to all cols. Defaults to None.
         col_excludes (List[str], optional): Load all cols exclude these. Applies to all cols. Defaults to None. Couldn't use with col_selects.
-        return_schema_names (bool, optional): if True, also return schema names Dict[str, List[str]]
     """
+    assert (
+        load_features or load_labels or load_ids
+    ), "At least one load flag should be true"
+
+    assert (
+        db.type.lower() == DistDataType.INDIVIDUAL_TABLE
+        or db.type.lower() == DistDataType.VERTICAL_TABLE
+    ), f"path format {db.type.lower()} should be sf.table.individual or sf.table.vertical_table"
+
     meta = (
         IndividualTable()
         if db.type.lower() == DistDataType.INDIVIDUAL_TABLE
@@ -219,18 +234,10 @@ def extract_table_header(
             len(intersection) == 0
         ), f'The following items are in both col_selects and col_excludes : {intersection}, which is not allowed.'
 
-    ret_dtypes = dict()
-    ret_converters = dict()
-    schema_names = {}
-    labels = {}
-    features = {}
-    ids = {}
+    ret = dict()
     for slice, dr in zip(schemas, db.data_refs):
         dtype = dict()
-        converter = dict()
-        party_labels = []
-        party_features = []
-        party_ids = []
+        feature_cols = []
         if load_features:
             for t, h in zip(slice.feature_types, slice.features):
                 if col_selects_set is not None:
@@ -247,11 +254,9 @@ def extract_table_header(
                 assert (
                     t in SUPPORTED_VTABLE_DATA_TYPE
                 ), f"The feature type {t} is not supported"
-                if return_schema_names:
-                    party_features.append(h)
                 dtype[h] = SUPPORTED_VTABLE_DATA_TYPE[t]
-                if t == "str":
-                    converter[h] = str
+                feature_cols.append(h)
+        label_cols = []
         if load_labels:
             for t, h in zip(slice.label_types, slice.labels):
                 if col_selects_set is not None:
@@ -263,12 +268,9 @@ def extract_table_header(
                 if col_excludes is not None:
                     if h in col_excludes:
                         continue
-
-                if return_schema_names:
-                    party_labels.append(h)
                 dtype[h] = SUPPORTED_VTABLE_DATA_TYPE[t]
-                if t == "str":
-                    converter[h] = str
+                label_cols.append(h)
+        id_cols = []
         if load_ids:
             for t, h in zip(slice.id_types, slice.ids):
                 if col_selects_set is not None:
@@ -280,194 +282,48 @@ def extract_table_header(
                 if col_excludes is not None:
                     if h in col_excludes:
                         continue
-
-                if return_schema_names:
-                    party_ids.append(h)
-
                 dtype[h] = SUPPORTED_VTABLE_DATA_TYPE[t]
-                if t == "str":
-                    converter[h] = str
-
-        # reorder items according to col selects
-        if col_selects is not None and len(col_selects) > 0:
-            party_labels = [i for i in col_selects if i in party_labels]
-            party_features = [i for i in col_selects if i in party_features]
-            party_ids = [i for i in col_selects if i in party_ids]
-            dtype = {i: dtype[i] for i in col_selects if i in dtype}
+                id_cols.append(h)
 
         if len(dtype):
-            ret_dtypes[dr.party] = dtype
-            ret_converters[dr.party] = converter
-            labels[dr.party] = party_labels
-            features[dr.party] = party_features
-            ids[dr.party] = party_ids
+            # reorder items according to col selects
+            if col_selects is not None and len(col_selects) > 0:
+                dtype = {i: dtype[i] for i in col_selects if i in dtype}
+
+            assert (
+                dr.format.lower() in DataSetFormatSupported
+            ), f"not supported file format {dr.format}, support {DataSetFormatSupported}"
+            ret[dr.party] = DistDataInfo(
+                dr.uri,
+                dr.format.lower(),
+                list(dr.null_strs),
+                dtype,
+                id_cols,
+                feature_cols,
+                label_cols,
+            )
+
+    if col_selects_set is not None and len(col_selects_set) > 0:
+        raise AttributeError(f"unknown cols {col_selects_set} in col_selects")
 
     def reorder_partitions(d: Dict[str, Any]):
         if partitions_order is None:
             return d
-        assert set(partitions_order) == set(d.keys())
+        assert set(partitions_order) == set(
+            d.keys()
+        ), f"{set(partitions_order)} <> {set(d.keys())}"
         return {k: d[k] for k in partitions_order}
 
-    ret_dtypes = reorder_partitions(ret_dtypes)
-    ret_converters = reorder_partitions(ret_converters)
-    schema_names["labels"] = reorder_partitions(labels)
-    schema_names["features"] = reorder_partitions(features)
-    schema_names["ids"] = reorder_partitions(ids)
-
-    if col_selects_set is not None and len(col_selects_set) > 0:
-        raise AttributeError(f"unknown cols {col_selects_set} in col_selects")
-    if return_schema_names:
-        return ret_dtypes, ret_converters, schema_names
-    return ret_dtypes, ret_converters
-
-
-def load_table(
-    ctx,
-    db: DistData,
-    *,
-    partitions_order: List[str] = None,
-    load_features: bool = False,
-    load_labels: bool = False,
-    load_ids: bool = False,
-    col_selects: List[str] = None,  # if None, load all cols
-    col_excludes: List[str] = None,
-    return_schema_names: bool = False,
-    nrows: int = None,
-) -> VDataFrame:
-    assert load_features or load_labels or load_ids, "At least one flag should be true"
-    assert (
-        db.type.lower() == DistDataType.INDIVIDUAL_TABLE
-        or db.type.lower() == DistDataType.VERTICAL_TABLE
-    ), f"path format {db.type.lower()} should be sf.table.individual or sf.table.vertical_table"
-    if return_schema_names:
-        dtypes, converters, schema_names = extract_table_header(
-            db,
-            partitions_order=partitions_order,
-            load_features=load_features,
-            load_labels=load_labels,
-            load_ids=load_ids,
-            col_selects=col_selects,
-            col_excludes=col_excludes,
-            return_schema_names=True,
-        )
-    else:
-        dtypes, converters = extract_table_header(
-            db,
-            partitions_order=partitions_order,
-            load_features=load_features,
-            load_labels=load_labels,
-            load_ids=load_ids,
-            col_selects=col_selects,
-            col_excludes=col_excludes,
-        )
-    parties_path_format = extract_distdata_info(db)
-    for p in dtypes:
-        assert (
-            p in parties_path_format
-        ), f"schema party {p} is not in dataref parties {dtypes.keys()}"
-        # only support csv for now, skip type distribute
-        assert (
-            parties_path_format[p].format.lower() in DataSetFormatSupported
-        ), f"Illegal path format: {parties_path_format[p].format.lower()}, path format of party {p} should be in DataSetFormatSupported"
-    # TODO: assert system_info
-
-    with ctx.tracer.trace_io():
-        pyus = {p: PYU(p) for p in dtypes}
-        filepaths = {
-            pyus[p]: lambda uri=parties_path_format[p].uri: ctx.comp_storage.get_reader(
-                uri
-            )
-            for p in dtypes
-        }
-        file_metas = {
-            pyus[p]: pyus[p](
-                lambda uri=parties_path_format[p].uri: ctx.comp_storage.get_file_meta(
-                    uri
-                )
-            )()
-            for p in dtypes
-        }
-        dtypes = {pyus[p]: dtypes[p] for p in dtypes}
-        converters = {pyus[p]: converters[p] for p in converters}
-        file_metas = reveal(file_metas)
-        logging.info(
-            f"try load VDataFrame, file uri {parties_path_format}, file meta {file_metas}"
-        )
-        vdf = read_csv(filepaths, dtypes=dtypes, nrows=nrows, converters=converters)
-        wait(vdf)
-        shape = vdf.shape
-        logging.info(f"loaded VDataFrame, shape {shape}")
-        assert math.prod(shape), "empty dataset is not allowed"
-
-    if return_schema_names:
-        return vdf, schema_names
-    return vdf
-
-
-def load_table_select_and_exclude_pair(
-    ctx,
-    db: DistData,
-    load_features: bool = False,
-    load_labels: bool = False,
-    load_ids: bool = False,
-    col_selects: List[str] = None,  # if None, load all cols
-    to_pandas: bool = True,
-    nrows: int = None,
-):
-    """
-    Load two tables, one is the selected, another is the complement.
-    """
-    trans_x = load_table(
-        ctx,
-        db,
-        load_features=load_features,
-        load_labels=load_labels,
-        load_ids=load_ids,
-        col_selects=col_selects,
-        nrows=nrows,
-    )
-    try:
-        remain_x = load_table(
-            ctx,
-            db,
-            load_features=True,
-            load_ids=True,
-            load_labels=True,
-            col_excludes=col_selects,
-            nrows=nrows,
-        )
-    except AssertionError:
-        remain_x = None
-    if to_pandas:
-        trans_x = trans_x.to_pandas()
-        if remain_x is not None:
-            remain_x = remain_x.to_pandas()
-    return trans_x, remain_x
-
-
-def move_feature_to_label(schema: TableSchema, label: str) -> TableSchema:
-    new_schema = TableSchema()
-    new_schema.CopyFrom(schema)
-    if label in list(schema.features) and label not in list(schema.labels):
-        new_schema.ClearField('features')
-        new_schema.ClearField('feature_types')
-        for k, v in zip(list(schema.features), list(schema.feature_types)):
-            if k != label:
-                new_schema.features.append(k)
-                new_schema.feature_types.append(v)
-            else:
-                label_type = v
-        new_schema.labels.append(label)
-        new_schema.label_types.append(label_type)
-    return new_schema
+    return reorder_partitions(ret)
 
 
 @dataclass
-class VerticalTableWrapper:
+class TableMetaWrapper:
     line_count: int
     schema_map: Dict[str, TableSchema]
 
     def to_vertical_table(self, order: List[str] = None):
+        assert len(self.schema_map) > 1
         if order is None:
             schemas = list(self.schema_map.values())
         else:
@@ -475,128 +331,42 @@ class VerticalTableWrapper:
 
         return VerticalTable(schemas=schemas, line_count=self.line_count)
 
+    def to_individual_table(self):
+        assert len(self.schema_map) == 1
+        return IndividualTable(
+            schema=list(self.schema_map.values())[0], line_count=self.line_count
+        )
+
     @classmethod
     def from_dist_data(
         cls, data: DistData, line_count: int = None, feature_selects: List[str] = None
     ):
-        meta = VerticalTable()
-        assert data.meta.Unpack(meta)
+        if data.type == DistDataType.VERTICAL_TABLE:
+            meta = VerticalTable()
+            assert data.meta.Unpack(meta)
+            assert len(data.data_refs) == len(meta.schemas)
 
-        return cls(
-            line_count=meta.line_count if line_count is None else line_count,
-            schema_map={
-                data_ref.party: schema
-                for data_ref, schema in zip(list(data.data_refs), list(meta.schemas))
-            },
-        )
+            return cls(
+                line_count=meta.line_count if line_count is None else line_count,
+                schema_map={
+                    data_ref.party: schema
+                    for data_ref, schema in zip(
+                        list(data.data_refs), list(meta.schemas)
+                    )
+                },
+            )
+        elif data.type == DistDataType.INDIVIDUAL_TABLE:
+            meta = IndividualTable()
+            assert data.meta.Unpack(meta)
+            assert len(data.data_refs) == 1
 
-
-def dump_vertical_table(
-    ctx,
-    v_data: VDataFrame,
-    uri: str,
-    meta: VerticalTableWrapper,
-    system_info: SystemInfo,
-) -> DistData:
-    assert isinstance(v_data, VDataFrame), f"{type(v_data)} is not a VDataFrame"
-    assert v_data.aligned
-    assert len(v_data.partitions) > 0
-    assert math.prod(v_data.shape), "empty dataset is not allowed"
-
-    parties_length = {}
-    for device, part in v_data.partitions.items():
-        parties_length[device.party] = len(part)
-    assert (
-        len(set(parties_length.values())) == 1
-    ), f"number of samples must be equal across all devices, got {parties_length}"
-
-    with ctx.tracer.trace_io():
-        output_uri = {p: uri for p in v_data.partitions}
-        output_path = {
-            p: lambda uri=output_uri[p]: ctx.comp_storage.get_writer(uri)
-            for p in output_uri
-        }
-        wait(v_data.to_csv(output_path, index=False))
-        order = [p.party for p in v_data.partitions]
-        file_metas = {
-            p: p(lambda uri=output_uri[p]: ctx.comp_storage.get_file_meta(uri))()
-            for p in output_uri
-        }
-        file_metas = reveal(file_metas)
-        logging.info(
-            f"dumped VDataFrame, file uri {output_path}, samples {parties_length}, file meta {file_metas}"
-        )
-
-    ret = DistData(
-        name=uri,
-        type=str(DistDataType.VERTICAL_TABLE),
-        system_info=system_info,
-        data_refs=[
-            DistData.DataRef(uri=output_uri[p], party=p.party, format="csv")
-            for p in output_uri
-        ],
-    )
-    ret.meta.Pack(meta.to_vertical_table(order))
-
-    return ret
-
-
-def dump_table(
-    ctx,
-    vdata: VDataFrame,
-    uri: str,
-    meta: Union[IndividualTable, VerticalTable, VerticalTableWrapper],
-    system_info: SystemInfo,
-    partitions: List[str] = None,
-) -> DistData:
-    assert isinstance(vdata, VDataFrame), f"{type(vdata)} is not a VDataFrame"
-    assert len(vdata.partitions) > 0
-    assert math.prod(vdata.shape), "empty dataset is not allowed"
-
-    # partitions are just used to specify the order of schemas in the VerticalTable
-    vdata_partitions = [p.party for p in vdata.partitions]
-    if partitions is None:
-        partitions = vdata_partitions
-    else:
-        assert len(partitions) == len(vdata_partitions), "partitions length mismatch"
-        assert set(partitions) == set(vdata_partitions), "partitions mismatch"
-
-    with ctx.tracer.trace_io():
-        output_path = {
-            PYU(p): lambda: ctx.comp_storage.get_writer(uri) for p in partitions
-        }
-        wait(vdata.to_csv(output_path, index=False))
-
-    if isinstance(meta, IndividualTable):
-        dd_type = DistDataType.INDIVIDUAL_TABLE
-        meta.line_count = vdata.shape[0]
-    elif isinstance(meta, VerticalTable):
-        # Ensure that the sequence of schemas is the same as that of partitions
-        dd_type = DistDataType.VERTICAL_TABLE
-        meta.line_count = vdata.shape[0]
-        assert len(meta.schemas) == len(
-            partitions
-        ), f"meta schemas length mismatch, {len(meta.schemas)}, {len(partitions)}"
-    else:
-        dd_type = DistDataType.VERTICAL_TABLE
-        meta.line_count = vdata.shape[0]
-        meta = meta.to_vertical_table(partitions)
-        assert len(meta.schemas) == len(
-            partitions
-        ), f"meta schemas length mismatch, {len(meta.schemas)}, {len(partitions)}"
-
-    ret = DistData(
-        name=uri,
-        type=str(dd_type),
-        system_info=system_info,
-        data_refs=[
-            DistData.DataRef(uri=uri, party=p, format="csv") for p in partitions
-        ],
-    )
-
-    ret.meta.Pack(meta)
-
-    return ret
+            party = data.data_refs[0].party
+            return cls(
+                line_count=meta.line_count if line_count is None else line_count,
+                schema_map={party: meta.schema},
+            )
+        else:
+            raise AttributeError(f"TableMetaWrapper unsupported type {data.type}")
 
 
 def model_dumps(
@@ -619,8 +389,6 @@ def model_dumps(
             uri = f"{dist_data_uri}/{i}"
 
             def dumps(comp_storage, uri: str, obj: Any):
-                import pickle
-
                 with comp_storage.get_writer(uri) as w:
                     pickle.dump(obj, w)
 
@@ -714,7 +482,7 @@ def model_meta_info(
 def model_loads(
     ctx,
     dist_data: DistData,
-    max_major_version: int,
+    major_version: int,
     max_minor_version: int,
     model_type: str,
     pyus: Dict[str, PYU] = None,
@@ -736,9 +504,12 @@ def model_loads(
     )
 
     assert (
-        max_major_version >= model_info["major_version"]
+        major_version == model_info["major_version"]
         and max_minor_version >= model_info["minor_version"]
-    ), "not support model version"
+    ), (
+        f"not support model version, support {major_version}.{max_minor_version},"
+        f"input {model_info['major_version']}.{model_info['minor_version']}"
+    )
 
     objs = []
     for save_obj in model_meta.objs:
@@ -755,10 +526,7 @@ def model_loads(
             assert data_ref.format == "pickle"
 
             def loads(comp_storage, path: str) -> Any:
-                import pickle
-
                 with comp_storage.get_reader(path) as r:
-                    # TODO: not secure, may change to json loads/dumps?
                     return pickle.load(r)
 
             objs.append(pyu(loads)(ctx.comp_storage, data_ref.uri))
@@ -817,7 +585,7 @@ def save_prediction_csv(
 def download_files(
     ctx,
     remote_fns: Dict[Union[str, PYU], str],
-    local_fns: Dict[Union[str, PYU], Union[str, DistdataInfo]],
+    local_fns: Dict[Union[str, PYU], Union[str, DistDataInfo]],
     overwrite: bool = True,
 ):
     pyu_remotes = {
@@ -847,246 +615,6 @@ def download_files(
         waits.append(PYU(p)(download_file)(ctx.comp_storage, remote_fn, local_fn))
 
     wait(waits)
-
-
-def upload_files(
-    ctx,
-    remote_fns: Dict[Union[str, PYU], str],
-    local_fns: Dict[Union[str, PYU], str],
-):
-    pyu_remotes = {
-        p.party if isinstance(p, PYU) else p: remote_fns[p] for p in remote_fns
-    }
-    pyu_locals = {p.party if isinstance(p, PYU) else p: local_fns[p] for p in local_fns}
-
-    assert set(pyu_remotes.keys()) == set(
-        pyu_locals.keys()
-    ), f"{pyu_remotes} <> {pyu_locals}"
-
-    waits = []
-    for p in pyu_remotes:
-        waits.append(
-            PYU(p)(lambda c, r, l: c.upload_file(r, l))(
-                ctx.comp_storage, pyu_remotes[p], pyu_locals[p]
-            )
-        )
-    wait(waits)
-
-
-def gen_prediction_csv_meta(
-    addition_headers: Dict[str, np.dtype],
-    saved_ids: List[str],
-    saved_labels: List[str],
-    saved_features: List[str],
-    pred_name: str,
-    line_count: int = None,
-) -> IndividualTable:
-    return IndividualTable(
-        schema=TableSchema(
-            ids=saved_ids,
-            id_types=[REVERSE_DATA_TYPE_MAP[addition_headers[k]] for k in saved_ids],
-            labels=saved_labels + [pred_name],
-            label_types=[
-                REVERSE_DATA_TYPE_MAP[addition_headers[k]] for k in saved_labels
-            ]
-            + ["float"],
-            feature_types=[
-                REVERSE_DATA_TYPE_MAP[addition_headers[k]] for k in saved_features
-            ],
-            features=saved_features,
-        ),
-        line_count=line_count if line_count is not None else -1,
-    )
-
-
-class SimpleVerticalBatchReader:
-    def __init__(
-        self,
-        ctx,
-        db: DistData,
-        *,
-        partitions_order: List[str] = None,
-        col_selects: List[str] = None,
-        batch_size: int = 50000,
-    ) -> None:
-        assert len(col_selects) > 0, "empty dataset is not allowed"
-        assert (
-            db.type.lower() == DistDataType.INDIVIDUAL_TABLE
-            or db.type.lower() == DistDataType.VERTICAL_TABLE
-        ), f"path format {db.type.lower()} should be sf.table.individual or sf.table.vertical_table"
-
-        dtypes, converters = extract_table_header(
-            db,
-            partitions_order=partitions_order,
-            load_features=True,
-            load_labels=True,
-            load_ids=True,
-            col_selects=col_selects,
-        )
-
-        parties_path_format = extract_distdata_info(db)
-
-        pyus = {p: PYU(p) for p in dtypes}
-        self.filepaths = {
-            pyus[p]: os.path.join(ctx.data_dir, parties_path_format[p].uri)
-            for p in dtypes
-        }
-
-        remote_uri = {p: parties_path_format[p].uri for p in dtypes}
-
-        download_files(ctx, remote_uri, self.filepaths, False)
-
-        self.converters = {pyus[p]: converters[p] for p in converters}
-        self.dtypes = {pyus[p]: dtypes[p] for p in dtypes}
-        self.batch_size = batch_size
-        self.total_read_cnt = 0
-        self.col_selects = col_selects
-
-    def __iter__(self):
-        return self
-
-    def __next__(self) -> VDataFrame:
-        df = self.next(self.batch_size)
-
-        if df.shape[0] == 0:
-            assert self.total_read_cnt, "empty dataset is not allowed"
-            # end
-            raise StopIteration
-
-        return df
-
-    def next(self, batch_size) -> VDataFrame:
-        assert batch_size > 0
-        df = read_csv(
-            self.filepaths,
-            dtypes=self.dtypes,
-            converters=self.converters,
-            nrows=batch_size,
-            skip_rows_after_header=self.total_read_cnt,
-        )
-
-        if df.shape[0]:
-            self.total_read_cnt += df.shape[0]
-
-        return df
-
-
-def save_prediction_dd(
-    ctx,
-    uri: str,
-    pyu: PYU,
-    pyu_preds: Union[List[FedNdarray], FedNdarray],
-    pred_name: str,
-    feature_dataset,
-    saved_features: List[str],
-    saved_labels: List[str],
-    save_ids: bool,
-) -> DistData:
-    # TODO: read all cols in one reader.
-    addition_reader: List[SimpleVerticalBatchReader] = []
-    addition_headers = {}
-    saved_ids = []
-
-    if isinstance(pyu_preds, FedNdarray):
-        pyu_preds = [pyu_preds]
-
-    def _named_features(features_name: List[str]):
-        for f in features_name:
-            assert (
-                f not in addition_headers
-            ), f"do not select {f} as saved feature, repeated with id or label"
-
-        dtypes, _ = extract_table_header(
-            feature_dataset,
-            load_ids=True,
-            load_features=True,
-            load_labels=True,
-            col_selects=features_name,
-        )
-        assert (
-            len(dtypes) == 1 and pyu.party in dtypes
-        ), f"The saved feature {features_name} can only belong to receiver party {pyu.party}, got {dtypes.keys()}"
-
-        addition_headers.update(dtypes[pyu.party])
-        addition_reader.append(
-            SimpleVerticalBatchReader(
-                ctx,
-                feature_dataset,
-                col_selects=list(dtypes[pyu.party].keys()),
-            )
-        )
-
-    if save_ids:
-        id_dtypes, _ = extract_table_header(feature_dataset, load_ids=True)
-        assert (
-            pyu.party in id_dtypes
-        ), f"can not find id col for receiver party {pyu.party}, {id_dtypes}"
-        saved_ids = list(id_dtypes[pyu.party].keys())
-        _named_features(saved_ids)
-
-    if saved_labels:
-        _named_features(saved_labels)
-    else:
-        saved_labels = []
-
-    if saved_features:
-        _named_features(saved_features)
-    else:
-        saved_features = []
-
-    append = False
-    line_count = 0
-    local_path = os.path.join(ctx.data_dir, uri)
-    for pyu_pred in pyu_preds:
-        assert len(pyu_pred.partitions) == 1
-        assert pyu in pyu_pred.partitions
-
-        pred_rows = pyu_pred.shape[0]
-        assert pred_rows > 0
-        line_count += pred_rows
-
-        addition_df = []
-        for r in addition_reader:
-            pyu_df = r.next(pred_rows)
-            assert len(pyu_df.partitions) == 1
-            assert pyu in pyu_df.partitions
-            assert pyu_df.shape[0] == pred_rows
-            addition_df.append(pyu_df.partitions[pyu].values)
-
-        wait(
-            pyu(save_prediction_csv)(
-                pyu_pred.partitions[pyu],
-                pred_name,
-                local_path,
-                addition_df,
-                list(addition_headers.keys()),
-                append,
-            )
-        )
-        append = True
-
-    upload_files(ctx, {pyu: uri}, {pyu: local_path})
-
-    pred_db = DistData(
-        name=pred_name,
-        type=str(DistDataType.INDIVIDUAL_TABLE),
-        data_refs=[DistData.DataRef(uri=uri, party=pyu.party, format="csv")],
-    )
-
-    assert line_count, "empty dataset is not allowed"
-
-    meta = gen_prediction_csv_meta(
-        addition_headers=addition_headers,
-        saved_ids=saved_ids,
-        saved_labels=saved_labels,
-        saved_features=saved_features,
-        pred_name=pred_name,
-        line_count=line_count,
-    )
-
-    pred_db.meta.Pack(meta)
-
-    return pred_db
 
 
 def any_pyu_from_spu_config(config: dict):

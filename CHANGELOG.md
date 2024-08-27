@@ -14,6 +14,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
+## [v1.9.0b0] - 2024-08-28
+
+### Added
+
+- [component] support sql null
+- [component] io_write_data supports xgb
+- [component] Add expr_condition_filter
+- [component] PSI supports specifying party
+
+
+### Fix
+
+- [component] fix training error on empty tree
+
 
 ## [v1.8.0b0] - 2024-07-17
 

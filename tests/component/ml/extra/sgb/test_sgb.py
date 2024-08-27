@@ -18,6 +18,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from google.protobuf.json_format import MessageToJson
+from pyarrow import orc
 from sklearn.datasets import load_breast_cancer
 from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import StandardScaler
@@ -244,7 +245,7 @@ def test_sgb(comp_prod_sf_cluster_config, with_checkpoint, objective_case):
         if "alice" == sf_cluster_config.private_config.self_party:
             comp_storage = ComponentStorage(storage_config)
             input_y = pd.read_csv(comp_storage.get_reader(alice_path))
-            output_y = pd.read_csv(comp_storage.get_reader(predict_path))
+            output_y = orc.read_table(comp_storage.get_reader(predict_path)).to_pandas()
 
             output_it = IndividualTable()
 

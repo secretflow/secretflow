@@ -21,6 +21,8 @@ import ray
 
 import secretflow.distributed as sfd
 from secretflow.utils.logging import LOG_FORMAT, get_logging_level
+from secretflow.utils import secure_pickle as pickle
+
 
 from ._utils import check_num_returns
 from .base import Device, DeviceObject, DeviceType
@@ -119,8 +121,6 @@ class PYU(Device):
         assert obj.device == self, "obj must be owned by this device."
 
         def fn(data, path):
-            import cloudpickle as pickle
-
             with open(path, 'wb') as f:
                 pickle.dump(data, f)
 
@@ -128,8 +128,6 @@ class PYU(Device):
 
     def load(self, path: str):
         def fn(path):
-            import cloudpickle as pickle
-
             with open(path, 'rb') as f:
                 return pickle.load(f)
 

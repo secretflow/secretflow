@@ -12,22 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import copy
+import json
+import logging
 from typing import Union
 
 import pandas as pd
 
 import secretflow.compute as sc
-from secretflow.component.data_utils import (
-    DistDataType,
-    dump_vertical_table,
+from secretflow.component.data_utils import DistDataType, model_dumps
+from secretflow.component.dataframe import (
+    CompDataFrame,
     load_table_select_and_exclude_pair,
-    model_dumps,
-    VerticalTableWrapper,
-)
-from secretflow.component.preprocessing.core.meta_utils import (
-    apply_meta_change,
-    dict_to_str,
-    produce_meta_change,
 )
 from secretflow.component.preprocessing.core.version import (
     PREPROCESSING_RULE_MAX_MAJOR_VERSION,
@@ -67,7 +63,10 @@ def v_preprocessing_transform(
     )
 
     if assert_one_party:
-        assert len(trans.partitions) == 1
+        assert len(trans.partitions) == 1, (
+            f"preprocessing {transform_func.__name__} can only handle features from one party, "
+            f"but got trans_features {trans_features} from parties {trans.partitions.keys()}"
+        )
 
     drop_cols = {}
     add_features = {}
@@ -77,16 +76,16 @@ def v_preprocessing_transform(
 
     def _fit_transform(trans_data, remain_data):
         """
-        wrap the fit transform funtion and return the transformed data,
-        and info for new meta and trace_runner which can dump preprocessing additional_info for easy replay.
+        wrap the fit transform funtion and return the transformed data.
 
-        fit_transform_f should takes on the trans_data (pd.DataFrame) as input
+        fit_transform_f should takes on the trans_data (pa.Table) as input
             and return transformed data in sc.table and (optional can be empty) additional_info for report.
         """
         assert trans_data is not None
         try:
             trans_data, add_labels, additional_info = transform_func(trans_data)
         except Exception as e:
+            logging.exception(f"transform_func error.")
             return None, None, None, None, None, None, e
         runner = trans_data.dump_runner()
         drop_columns, add_columns, _ = trans_data.column_changes()
@@ -94,9 +93,13 @@ def v_preprocessing_transform(
         assert set(add_labels).issubset(set(add_columns))
         add_features = [c for c in add_columns if c not in set(add_labels)]
 
-        trans_data = trans_data.to_pandas()
+        trans_data = trans_data.to_table()
         if remain_data is not None:
-            new_data = pd.concat([remain_data, trans_data], axis=1)
+            for i in range(trans_data.shape[1]):
+                remain_data = remain_data.append_column(
+                    trans_data.field(i), trans_data.column(i)
+                )
+            new_data = remain_data
         else:
             new_data = trans_data
 
@@ -112,10 +115,11 @@ def v_preprocessing_transform(
 
     with ctx.tracer.trace_running():
         new_datas = {}
+        errors = []
         for pyu in trans.partitions.keys():
-            trans_data = trans.partitions[pyu].data
-            if remains is not None and pyu in remains.partitions.keys():
-                remain_data = remains.partitions.pop(pyu).data
+            trans_data = trans.data(pyu)
+            if remains is not None and remains.has_data(pyu):
+                remain_data = remains.data(pyu)
             else:
                 remain_data = None
 
@@ -129,9 +133,7 @@ def v_preprocessing_transform(
                 err_obj,
             ) = pyu(_fit_transform, num_returns=7)(trans_data, remain_data)
 
-            err = reveal(err_obj)
-            if err is not None:
-                raise err
+            errors.append(err_obj)
 
             new_datas[pyu] = trans_data
             drop_cols[pyu.party] = drop_columns
@@ -140,37 +142,46 @@ def v_preprocessing_transform(
             additional_info_objects.append(additional_info)
             runner_objs.append(runner)
 
-        if remains is not None:
-            for pyu in new_datas:
-                remains.partitions[pyu] = partition(new_datas[pyu])
-        else:
-            remains = VDataFrame(
-                {pyu: partition(party_data) for pyu, party_data in new_datas.items()}
-            )
-        # meta info is not protected
+        errors = [e for e in reveal(errors) if e is not None]
+        if errors:
+            raise errors[0]
         drop_cols = reveal(drop_cols)
         add_features = reveal(add_features)
         add_labels = reveal(add_labels)
 
-    meta = VerticalTableWrapper.from_dist_data(in_ds, trans.shape[0])
-    meta_change_dict = produce_meta_change(
-        meta,
-        drop_cols=drop_cols,
-        new_labels=add_labels,
-        new_features=add_features,
-        ref_dtypes=remains.dtypes,
-    )
-    meta = apply_meta_change(meta, meta_change_dict)
+    new_partitions = copy.deepcopy(trans.partitions)
+    for pyu in trans.partitions:
+        trans_table = trans.partitions[pyu]
+        if remains is not None and pyu in remains.partitions:
+            remain_table = remains.partitions.pop(pyu)
+        else:
+            remain_table = None
+        drop_col = set(drop_cols[pyu.party])
+        add_feature = add_features[pyu.party]
+        add_label = add_labels[pyu.party]
+        new_partitions[pyu].data = new_datas[pyu]
+        new_partitions[pyu].id_cols = remain_table.id_cols if remain_table else []
+        new_partitions[pyu].id_cols.extend(trans_table.id_cols)
+        new_partitions[pyu].feature_cols = (
+            remain_table.feature_cols if remain_table else []
+        )
+        new_partitions[pyu].feature_cols.extend(
+            [c for c in trans_table.feature_cols if c not in drop_col]
+        )
+        new_partitions[pyu].feature_cols.extend(add_feature)
+        new_partitions[pyu].label_cols = remain_table.label_cols if remain_table else []
+        new_partitions[pyu].label_cols.extend(
+            [c for c in trans_table.label_cols if c not in drop_col]
+        )
+        new_partitions[pyu].label_cols.extend(add_label)
 
-    output_dd = dump_vertical_table(
-        ctx,
-        remains,
-        out_ds,
-        meta,
-        in_ds.system_info,
-    )
+    if remains:
+        for pyu in remains.partitions:
+            new_partitions[pyu] = remains.partitions[pyu]
 
-    # build rules for onehot_substitution
+    new_ds = CompDataFrame(new_partitions, in_ds.system_info)
+
+    # build rules for substitution component
     model_dd = model_dumps(
         ctx,
         rules_name,
@@ -178,9 +189,9 @@ def v_preprocessing_transform(
         PREPROCESSING_RULE_MAX_MAJOR_VERSION,
         PREPROCESSING_RULE_MAX_MINOR_VERSION,
         runner_objs,
-        dict_to_str(meta_change_dict),
+        json.dumps(add_labels),
         out_rules,
         in_ds.system_info,
     )
 
-    return output_dd, model_dd, additional_info_objects
+    return new_ds.to_distdata(ctx, out_ds), model_dd, additional_info_objects

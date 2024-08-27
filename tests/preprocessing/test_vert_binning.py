@@ -19,11 +19,13 @@ import pandas as pd
 import pytest
 
 import secretflow.distributed as sfd
+from secretflow.component.dataframe import CompDataFrame
 from secretflow.data import partition
 from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.device.driver import reveal
 from secretflow.preprocessing.binning.vert_binning import VertBinning
 from secretflow.preprocessing.binning.vert_woe_binning import VertWoeBinning
+from secretflow.utils import secure_pickle as pickle
 from secretflow.utils.simulation.datasets import dataset
 
 
@@ -131,9 +133,9 @@ def prod_env_and_data(sf_production_setup_devices):
 
     yield sf_production_setup_devices, {
         'normal_data': normal_data,
-        'v_float_data': v_float_data,
+        'v_float_data': CompDataFrame.from_pandas(v_float_data, None, [], ["y"]),
         'nan_str_data': nan_str_data,
-        'v_nan_data': v_nan_data,
+        'v_nan_data': CompDataFrame.from_pandas(v_nan_data, None, [], ["y"]),
     }
 
 
@@ -218,8 +220,6 @@ def test_binning_nan(prod_env_and_data):
     woe_almost_equal(he_bob, he_alice)
 
     # audit_log
-    import cloudpickle as pickle
-
     with open('alice.audit', 'rb') as f:
         a = pickle.load(f)
     with open('bob.audit', 'rb') as f:

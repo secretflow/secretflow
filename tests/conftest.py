@@ -502,6 +502,61 @@ def prepare_storage_path(party):
     return storage_path
 
 
+def setup_minio_server(storage_path, self_party):
+    minio_path = os.path.join(storage_path, f"minio_{self_party}")
+    os.makedirs(minio_path, exist_ok=True)
+
+    minio_server = os.path.join(minio_path, "minio")
+    if not os.path.exists(minio_server) or not os.path.isfile(minio_server):
+        system = "linux"
+        arch = "amd64"
+        if platform.system() == "Darwin":
+            system = "darwin"
+        if platform.machine() == "arm64" or platform.machine() == "aarch64":
+            arch = "arm64"
+        urllib.request.urlretrieve(
+            f"https://dl.min.io/server/minio/release/{system}-{arch}/minio",
+            minio_server,
+        )
+        st = os.stat(minio_server)
+        os.chmod(minio_server, st.st_mode | stat.S_IEXEC)
+
+    minio_data_path = os.path.join(minio_path, "data")
+    os.makedirs(
+        os.path.join(minio_data_path, "sf-test"),
+        exist_ok=True,
+    )
+
+    ms_env = os.environ.copy()
+    ms_env["MINIO_BROWSER"] = "off"
+    ms_env["MINIO_ACCESS_KEY"] = "sf_test_aaa"
+    ms_env["MINIO_SECRET_KEY"] = "sf_test_sss"
+
+    ports = {"alice": 64122, "bob": 64244, "carol": 64366, "davy": 64488}
+    endpoint = f"127.0.0.1:{ports[self_party]}"
+    ms = subprocess.Popen(
+        [minio_server, "server", minio_data_path, "--address", endpoint],
+        env=ms_env,
+    )
+
+    time.sleep(0.4)
+
+    storage_config = StorageConfig(
+        type="s3",
+        s3=StorageConfig.S3Config(
+            endpoint=f"http://{endpoint}",
+            bucket="sf-test",
+            prefix="test-prefix",
+            access_key_id="sf_test_aaa",
+            access_key_secret="sf_test_sss",
+            virtual_host=False,
+            version="s3v4",
+        ),
+    )
+
+    return ms, storage_config
+
+
 @pytest.fixture(scope="package")
 def comp_prod_sf_cluster_config(request, sf_party_for_4pc):
     desc = SFClusterDesc(
@@ -550,10 +605,10 @@ def comp_prod_sf_cluster_config(request, sf_party_for_4pc):
             ray_fed_config=SFClusterConfig.RayFedConfig(
                 parties=["alice", "bob", "carol", "davy"],
                 addresses=[
-                    "127.0.0.1:62241",
-                    "127.0.0.1:63342",
-                    "127.0.0.1:64443",
-                    "127.0.0.1:61544",
+                    "127.0.0.1:62211",
+                    "127.0.0.1:63312",
+                    "127.0.0.1:64413",
+                    "127.0.0.1:61514",
                 ],
             ),
             spu_configs=[
@@ -561,8 +616,8 @@ def comp_prod_sf_cluster_config(request, sf_party_for_4pc):
                     name="spu",
                     parties=["alice", "bob"],
                     addresses=[
-                        "127.0.0.1:62645",
-                        "127.0.0.1:63746",
+                        "127.0.0.1:62625",
+                        "127.0.0.1:63726",
                     ],
                 )
             ],
@@ -574,54 +629,7 @@ def comp_prod_sf_cluster_config(request, sf_party_for_4pc):
         ),
     )
 
-    minio_path = os.path.join(storage_path, f"minio_{sf_party_for_4pc}")
-    os.makedirs(minio_path, exist_ok=True)
-
-    minio_server = os.path.join(minio_path, "minio")
-    if not os.path.exists(minio_server) or not os.path.isfile(minio_server):
-        system = "linux"
-        arch = "amd64"
-        if platform.system() == "Darwin":
-            system = "darwin"
-        if platform.machine() == "arm64" or platform.machine() == "aarch64":
-            arch = "arm64"
-        urllib.request.urlretrieve(
-            f"https://dl.min.io/server/minio/release/{system}-{arch}/minio",
-            minio_server,
-        )
-        st = os.stat(minio_server)
-        os.chmod(minio_server, st.st_mode | stat.S_IEXEC)
-
-    minio_data_path = os.path.join(minio_path, "data")
-    os.makedirs(
-        os.path.join(minio_data_path, "sf-test"),
-        exist_ok=True,
-    )
-
-    ms_env = os.environ.copy()
-    ms_env["MINIO_BROWSER"] = "off"
-    ms_env["MINIO_ACCESS_KEY"] = "sf_test_aaa"
-    ms_env["MINIO_SECRET_KEY"] = "sf_test_sss"
-
-    ports = {"alice": 63122, "bob": 63244, "carol": 63366, "davy": 63488}
-    endpoint = f"127.0.0.1:{ports[sf_party_for_4pc]}"
-    ms = subprocess.Popen(
-        [minio_server, "server", minio_data_path, "--address", endpoint],
-        env=ms_env,
-    )
-    storage_config = StorageConfig(
-        type="s3",
-        s3=StorageConfig.S3Config(
-            endpoint=f"http://{endpoint}",
-            bucket="sf-test",
-            prefix="test-prefix",
-            access_key_id="sf_test_aaa",
-            access_key_secret="sf_test_sss",
-            virtual_host=False,
-            version="s3v4",
-        ),
-    )
-    time.sleep(0.4)
+    ms, storage_config = setup_minio_server(storage_path, sf_party_for_4pc)
 
     yield storage_config, sf_config
 

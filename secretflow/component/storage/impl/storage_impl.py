@@ -46,6 +46,14 @@ class StorageImplBase:
         pass
 
     @abstractmethod
+    def remove(self, remote_fn) -> None:
+        pass
+
+    @abstractmethod
+    def exists(self, path) -> bool:
+        pass
+
+    @abstractmethod
     def get_writer(self, remote_fn) -> BufferedIOBase:
         pass
 
@@ -116,8 +124,22 @@ class S3StorageImpl(StorageImplBase):
         try:
             self._s3_client.download(full_remote_fn, local_fn)
         except Exception as e:
-            self._log_s3_error(e)
+            self._log_s3_error(e, full_remote_fn)
             raise
+
+    def remove(self, remote_fn):
+        """delete remote file"""
+        full_remote_fn = self._full_remote_fn(remote_fn)
+        try:
+            self._s3_client.rm(full_remote_fn)
+        except Exception as e:
+            self._log_s3_error(e, full_remote_fn)
+            raise
+
+    def exists(self, remote_fn) -> bool:
+        """is remote file exists"""
+        full_remote_fn = self._full_remote_fn(remote_fn)
+        return self._s3_client.exists(full_remote_fn)
 
     def upload_file(self, remote_fn, local_fn) -> None:
         """blocked upload whole file into remote_fn, overwrite if remote_fn exist"""
@@ -133,7 +155,7 @@ class S3StorageImpl(StorageImplBase):
         try:
             return self._s3_client.open(full_remote_fn, "rb")
         except Exception as e:
-            self._log_s3_error(e)
+            self._log_s3_error(e, full_remote_fn)
             raise
 
     def get_writer(self, remote_fn) -> BufferedIOBase:
@@ -196,6 +218,15 @@ class LocalStorageImpl(StorageImplBase):
         assert os.path.exists(full_remote_fn)
         assert os.path.isfile(full_remote_fn)
         return open(full_remote_fn, "rb")
+
+    def remove(self, remote_fn) -> None:
+        full_remote_fn = os.path.join(self._local_wd, remote_fn)
+        assert os.path.exists(full_remote_fn)
+        return os.remove(full_remote_fn)
+
+    def exists(self, remote_fn) -> bool:
+        full_remote_fn = os.path.join(self._local_wd, remote_fn)
+        return os.path.exists(full_remote_fn)
 
     def get_writer(self, remote_fn) -> BufferedIOBase:
         full_remote_fn = os.path.join(self._local_wd, remote_fn)

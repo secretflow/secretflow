@@ -19,10 +19,10 @@ from typing import Dict, Tuple
 from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import (
     DistDataType,
-    load_table,
+    extract_data_infos,
     model_loads,
-    save_prediction_dd,
 )
+from secretflow.component.dataframe import save_prediction_dd
 from secretflow.device.device.pyu import PYU, PYUObject
 
 from ..core.utils import check_enabled_or_fail
@@ -161,8 +161,8 @@ def ss_slnn_predict_eval_fn(
 
     receiver_pyu = PYU(receiver[0])
 
-    x = load_table(ctx, feature_dataset, load_features=True)
-    pyus = set(x.partitions.keys())
+    x_info = extract_data_infos(feature_dataset, load_features=True)
+    pyus = {PYU(p) for p in x_info}
     pyus.add(receiver_pyu)
     # ensure all parties have save order
     pyus = sorted(list(pyus))
@@ -171,30 +171,37 @@ def ss_slnn_predict_eval_fn(
     pyus = {str(pyu): pyu for pyu in pyus}
     model, model_meta = load_slnn_model(ctx, pyus, model, tmpdirs)
     feature_names = model_meta.feature_names
-    x = x[feature_names]
 
-    with ctx.tracer.trace_running():
-        pyu_y = predictor.predict(
-            ctx,
-            batch_size=batch_size,
-            feature_dataset=x,
-            model=model,
-            model_input_scheme=model_meta.model_input_scheme,
-        )
+    def batch_pred(batch):
+        with ctx.tracer.trace_running():
+            pyu_y = predictor.predict(
+                ctx,
+                batch_size=batch_size,
+                feature_dataset=batch,
+                model=model,
+                model_input_scheme=model_meta.model_input_scheme,
+            )
 
-        assert receiver_pyu in pyu_y.partitions, f"receiver must be the label provider"
+            assert (
+                receiver_pyu in pyu_y.partitions
+            ), f"receiver must be the label provider"
+
+            return pyu_y
 
     with ctx.tracer.trace_io():
         y_db = save_prediction_dd(
             ctx,
             pred,
             receiver_pyu,
-            pyu_y,
+            batch_pred,
             pred_name,
+            feature_names,
+            None,
             feature_dataset,
             feature_dataset_saved_features,
             model_meta.label_col if save_label else [],
             save_ids,
+            check_null=False,
         )
 
     return {"pred": y_db}

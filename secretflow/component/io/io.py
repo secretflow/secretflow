@@ -28,9 +28,14 @@ from secretflow.component.io.core.bins.bins import (
     bin_rule_from_pb_and_old_rule,
     bin_rule_to_pb,
 )
+from secretflow.component.io.core.boost_model.sgb import get_sgb_snapshot_from_pb
 from secretflow.component.io.core.linear_model.ss_glm import (
     ss_glm_from_pb_and_old_model,
     ss_glm_to_linear_model_pb,
+)
+from secretflow.component.ml.boost.sgb.sgb import (
+    MODEL_MAX_MAJOR_VERSION,
+    MODEL_MAX_MINOR_VERSION,
 )
 from secretflow.component.ml.linear.ss_glm import (
     MODEL_MAX_MAJOR_VERSION as GLM_MAX_MAJOR_VERSION,
@@ -42,6 +47,9 @@ from secretflow.component.preprocessing.binning.vert_binning import (
     BINNING_RULE_MAX_MAJOR_VERSION,
     BINNING_RULE_MAX_MINOR_VERSION,
 )
+from secretflow.data import partition
+from secretflow.data.vertical.dataframe import VDataFrame
+from secretflow.device.device.pyu import PYU
 from secretflow.device.device.spu import SPU
 from secretflow.spec.extend.bin_data_pb2 import Bins
 from secretflow.spec.extend.linear_model_pb2 import LinearModel
@@ -141,6 +149,7 @@ io_write_data.str_attr(
 CURRENT_SUPPORTED_TYPES = [
     str(DistDataType.BIN_RUNNING_RULE),
     str(DistDataType.SS_GLM_MODEL),
+    str(DistDataType.SGB_MODEL),
 ]
 io_write_data.str_attr(
     name="write_data_type",
@@ -155,9 +164,11 @@ io_write_data.io(
     io_type=IoType.INPUT,
     name="input_dd",
     desc="Input dist data. Rule reconstructions may need hidden info in original rule for security considerations.",
+    is_optional=True,
     types=[
         DistDataType.BIN_RUNNING_RULE,
         DistDataType.SS_GLM_MODEL,
+        DistDataType.NULL,
         # add others module or rules support here
     ],
 )
@@ -169,6 +180,7 @@ io_write_data.io(
     types=[
         DistDataType.BIN_RUNNING_RULE,
         DistDataType.SS_GLM_MODEL,
+        DistDataType.SGB_MODEL,
         # add others module or rules support here
     ],
     col_params=None,
@@ -240,6 +252,19 @@ def io_write_data_eval_fn(*, ctx, write_data, write_data_type, input_dd, output_
             json.dumps(info_dict),
             output_model,
             input_dd.system_info,
+        )
+    elif write_data_type == str(DistDataType.SGB_MODEL):
+        snapshot = get_sgb_snapshot_from_pb(write_data)
+        output_model_dd = model_dumps(
+            ctx,
+            "sgb",
+            DistDataType.SGB_MODEL,
+            MODEL_MAX_MAJOR_VERSION,
+            MODEL_MAX_MINOR_VERSION,
+            snapshot.model_objs,
+            json.dumps(snapshot.model_meta),
+            output_model,
+            None,
         )
     #     # add others module or rules support here
     #     pass

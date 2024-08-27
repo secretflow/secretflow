@@ -7,14 +7,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-03-19 12:20+0800\n"
+"POT-Creation-Date: 2024-07-22 12:05+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.14.0\n"
+"Generated-By: Babel 2.15.0\n"
 
 #: ../../tutorial/mix_lr.ipynb:9
 msgid "Mix Federated Learning - Logistic Regression"
@@ -38,7 +38,7 @@ msgid "The following is an example of mix partitioning data."
 msgstr "下面是数据混合切分的一个例子。"
 
 #: ../../tutorial/mix_lr.ipynb:35
-msgid "|95ed91430efc42db9c9e30b91013fcef|"
+msgid "|89029029834a471897ec3228776edc7d|"
 msgstr ""
 
 #: ../../tutorial/mix_lr.ipynb:39

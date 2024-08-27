@@ -16,13 +16,15 @@ import logging
 
 import numpy as np
 import pandas as pd
+import pyarrow as pa
+from pyarrow import orc
 
 import secretflow.compute as sc
-from secretflow.component.data_utils import DistDataType, VerticalTableWrapper
+from secretflow.component.data_utils import DistDataType, TableMetaWrapper
 from secretflow.component.preprocessing.unified_single_party_ops.onehot_encode import (
+    _onehot_encode_fit,
     apply_onehot_rule_on_table,
     onehot_encode,
-    _onehot_encode_fit,
 )
 from secretflow.component.preprocessing.unified_single_party_ops.substitution import (
     substitution,
@@ -137,7 +139,7 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
 
     logging.warning(f"....... \n{report}\n.,......")
 
-    meta = VerticalTableWrapper.from_dist_data(res.outputs[0], 0)
+    meta = TableMetaWrapper.from_dist_data(res.outputs[0], 0)
 
     logging.warning(f"...meta.... \n{meta}\n.,......")
 
@@ -159,20 +161,21 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
 
     if "alice" == sf_cluster_config.private_config.self_party:
         comp_storage = ComponentStorage(storage_config)
-        a_out = pd.read_csv(comp_storage.get_reader(sub_path))
-        inplace_a_out = pd.read_csv(comp_storage.get_reader(inplace_encode_path))
+        a_out = orc.read_table(comp_storage.get_reader(sub_path))
+        inplace_a_out = orc.read_table(comp_storage.get_reader(inplace_encode_path))
 
-        logging.warning(f"....... \n{a_out}\n.,......")
-
-        assert a_out.equals(inplace_a_out)
+        assert a_out.column_names == inplace_a_out.column_names
+        for col in a_out.column_names:
+            assert a_out.column(col).equals(inplace_a_out.column(col))
 
     if "alice" == sf_cluster_config.private_config.self_party:
         comp_storage = ComponentStorage(storage_config)
-        b_out = pd.read_csv(comp_storage.get_reader(sub_path))
-        inplace_b_out = pd.read_csv(comp_storage.get_reader(inplace_encode_path))
+        b_out = orc.read_table(comp_storage.get_reader(sub_path))
+        inplace_b_out = orc.read_table(comp_storage.get_reader(inplace_encode_path))
 
-        assert b_out.equals(inplace_b_out)
-        logging.warning(f"....... \n{b_out}\n.,......")
+        assert b_out.column_names == inplace_b_out.column_names
+        for col in b_out.column_names:
+            assert b_out.column(col).equals(inplace_b_out.column(col))
 
     # example for how to trace compte without real data
     # for example, we only knows the schema of input
@@ -206,6 +209,7 @@ def test_onehot_encode_fit(comp_prod_sf_cluster_config):
             "y": [0] * 17,
         }
     )
+    df = pa.Table.from_pandas(df)
 
     test_datas = [
         {
@@ -215,13 +219,6 @@ def test_onehot_encode_fit(comp_prod_sf_cluster_config):
                 'id1': [
                     ['0'],
                     ['1'],
-                    ['10'],
-                    ['11'],
-                    ['12'],
-                    ['13'],
-                    ['14'],
-                    ['15'],
-                    ['16'],
                     ['2'],
                     ['3'],
                     ['4'],
@@ -230,8 +227,15 @@ def test_onehot_encode_fit(comp_prod_sf_cluster_config):
                     ['7'],
                     ['8'],
                     ['9'],
+                    ['10'],
+                    ['11'],
+                    ['12'],
+                    ['13'],
+                    ['14'],
+                    ['15'],
+                    ['16'],
                 ],
-                'a1': [[''], ['F'], ['K'], ['M'], ['N']],
+                'a1': [['K'], ['F'], [''], ['M'], ['N']],
                 'a2': [[0.1], [0.2], [0.3], [0.4]],
                 'a3': [[1]],
                 'y': [[0]],
@@ -245,13 +249,6 @@ def test_onehot_encode_fit(comp_prod_sf_cluster_config):
                     [
                         '0',
                         '1',
-                        '10',
-                        '11',
-                        '12',
-                        '13',
-                        '14',
-                        '15',
-                        '16',
                         '2',
                         '3',
                         '4',
@@ -260,9 +257,16 @@ def test_onehot_encode_fit(comp_prod_sf_cluster_config):
                         '7',
                         '8',
                         '9',
+                        '10',
+                        '11',
+                        '12',
+                        '13',
+                        '14',
+                        '15',
+                        '16',
                     ]
                 ],
-                'a1': [['K'], ['', 'F', 'M', 'N']],
+                'a1': [['K'], ['F', '', 'M', 'N']],
                 'a2': [[0.1], [0.2], [0.3], [0.4]],
                 'a3': [[1]],
                 'y': [[0]],
@@ -274,13 +278,6 @@ def test_onehot_encode_fit(comp_prod_sf_cluster_config):
             "expected": {
                 'id1': [
                     ['1'],
-                    ['10'],
-                    ['11'],
-                    ['12'],
-                    ['13'],
-                    ['14'],
-                    ['15'],
-                    ['16'],
                     ['2'],
                     ['3'],
                     ['4'],
@@ -289,8 +286,15 @@ def test_onehot_encode_fit(comp_prod_sf_cluster_config):
                     ['7'],
                     ['8'],
                     ['9'],
+                    ['10'],
+                    ['11'],
+                    ['12'],
+                    ['13'],
+                    ['14'],
+                    ['15'],
+                    ['16'],
                 ],
-                'a1': [[''], ['F'], ['M'], ['N']],
+                'a1': [['F'], [''], ['M'], ['N']],
                 'a2': [[0.2], [0.3], [0.4]],
                 'a3': [],
                 'y': [],
@@ -303,13 +307,6 @@ def test_onehot_encode_fit(comp_prod_sf_cluster_config):
                 'id1': [
                     [
                         '1',
-                        '10',
-                        '11',
-                        '12',
-                        '13',
-                        '14',
-                        '15',
-                        '16',
                         '2',
                         '3',
                         '4',
@@ -318,9 +315,16 @@ def test_onehot_encode_fit(comp_prod_sf_cluster_config):
                         '7',
                         '8',
                         '9',
+                        '10',
+                        '11',
+                        '12',
+                        '13',
+                        '14',
+                        '15',
+                        '16',
                     ]
                 ],
-                'a1': [['', 'F', 'M', 'N']],
+                'a1': [['F', '', 'M', 'N']],
                 'a2': [[0.2], [0.3], [0.4]],
                 'a3': [],
                 'y': [],
@@ -332,13 +336,6 @@ def test_onehot_encode_fit(comp_prod_sf_cluster_config):
             "expected": {
                 'id1': [
                     ['1'],
-                    ['10'],
-                    ['11'],
-                    ['12'],
-                    ['13'],
-                    ['14'],
-                    ['15'],
-                    ['16'],
                     ['2'],
                     ['3'],
                     ['4'],
@@ -347,8 +344,15 @@ def test_onehot_encode_fit(comp_prod_sf_cluster_config):
                     ['7'],
                     ['8'],
                     ['9'],
+                    ['10'],
+                    ['11'],
+                    ['12'],
+                    ['13'],
+                    ['14'],
+                    ['15'],
+                    ['16'],
                 ],
-                'a1': [['F'], ['K'], ['M'], ['N']],
+                'a1': [['F'], [''], ['M'], ['N']],
                 'a2': [[0.2], [0.3], [0.4]],
                 'a3': [],
                 'y': [],
@@ -361,13 +365,6 @@ def test_onehot_encode_fit(comp_prod_sf_cluster_config):
                 'id1': [
                     [
                         '1',
-                        '10',
-                        '11',
-                        '12',
-                        '13',
-                        '14',
-                        '15',
-                        '16',
                         '2',
                         '3',
                         '4',
@@ -376,9 +373,16 @@ def test_onehot_encode_fit(comp_prod_sf_cluster_config):
                         '7',
                         '8',
                         '9',
+                        '10',
+                        '11',
+                        '12',
+                        '13',
+                        '14',
+                        '15',
+                        '16',
                     ]
                 ],
-                'a1': [['', 'F', 'M', 'N']],
+                'a1': [['F', '', 'M', 'N']],
                 'a2': [[0.2], [0.3], [0.4]],
                 'a3': [],
                 'y': [],

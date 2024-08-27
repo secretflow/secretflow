@@ -162,6 +162,3 @@ msgid ""
 "informative and helpful!"
 msgstr "感谢您参与本教程，希望您觉得它充满启发和帮助！"
 
-#~ msgid "SecureBoost (Sgb)"
-#~ msgstr "SecureBoost（Sgb）"
-

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import pandas as pd
+from pyarrow import orc
 from sklearn.datasets import load_breast_cancer
 
 from secretflow.component.data_utils import DistDataType
@@ -86,13 +87,13 @@ def test_feature_filter(comp_prod_sf_cluster_config):
     assert len(res.outputs) == 1
 
     if self_party == "alice":
-        a_out = pd.read_csv(comp_storage.get_reader(output_path))
+        a_out = orc.read_table(comp_storage.get_reader(output_path)).to_pandas()
         assert a_out.shape[1] == 13
         assert "a1" not in a_out.columns
         assert "a3" not in a_out.columns
 
     if self_party == "alice":
-        b_out = pd.read_csv(comp_storage.get_reader(output_path))
+        b_out = orc.read_table(comp_storage.get_reader(output_path)).to_pandas()
         assert b_out.shape[1] == 13
         assert "b1" not in b_out.columns
         assert "b13" not in b_out.columns
