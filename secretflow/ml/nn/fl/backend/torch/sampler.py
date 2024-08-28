@@ -50,11 +50,11 @@ def batch_sampler(
         torch.manual_seed(random_seed)  # set random seed for cpu
         torch.cuda.manual_seed(random_seed)  # set random seed for cuda
         torch.backends.cudnn.deterministic = True
-    data_list = [torch.Tensor((x.astype(np.float64)).copy())]
+    data_list = [torch.tensor((x.astype(np.float32)).copy())]
     if y is not None and len(y.shape) > 0:
-        data_list.append(torch.Tensor(y.copy()))
+        data_list.append(torch.tensor(y.copy()))
     if s_w is not None and len(s_w.shape) > 0:
-        data_list.append(torch.Tensor(s_w.copy()))
+        data_list.append(torch.tensor(s_w.copy()))
     dataset = TensorDataset(*data_list)
     dataloader = DataLoader(
         dataset=dataset,
@@ -112,6 +112,7 @@ def sampler_data(
         data_set = batch_sampler(
             x, y, s_w, sampling_rate, buffer_size, shuffle, repeat_count, random_seed
         )
+        print("after batch sampler ,y is ")
     else:
         logging.error(f'Unvalid sampler {sampler_method} during building local dataset')
     return data_set
