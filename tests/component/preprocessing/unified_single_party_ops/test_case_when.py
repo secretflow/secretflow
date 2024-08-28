@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import numpy as np
 import pandas as pd
 from google.protobuf.json_format import MessageToJson
+from pyarrow import orc
 
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.preprocessing.unified_single_party_ops.case_when import (
@@ -272,9 +274,11 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
 
         if "alice" == sf_cluster_config.private_config.self_party:
             comp_storage = ComponentStorage(storage_config)
-            a_out = pd.read_csv(comp_storage.get_reader(inplace_encode_path))
+            a_out = orc.read_table(
+                comp_storage.get_reader(inplace_encode_path)
+            ).to_pandas()
             z = a_out["z"]
-            e = pd.Series(e)
+            e = pd.Series(e, dtype=z.dtype)
 
             assert z.equals(
                 e
@@ -295,7 +299,7 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
         )
 
         if "alice" == sf_cluster_config.private_config.self_party:
-            sub_out = pd.read_csv(comp_storage.get_reader(sub_path))
+            sub_out = orc.read_table(comp_storage.get_reader(sub_path)).to_pandas()
 
             assert a_out.equals(sub_out)
 

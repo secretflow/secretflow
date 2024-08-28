@@ -26,6 +26,7 @@ import secretflow.distributed.primitive as sfd
 from secretflow.device import global_state
 from secretflow.device.device._utils import check_num_returns
 from secretflow.device.device.base import Device, DeviceObject, DeviceType
+from secretflow.utils import secure_pickle as pickle
 from secretflow.utils.logging import LOG_FORMAT, get_logging_level
 
 
@@ -126,7 +127,6 @@ class TEEUWorker:
             func_bytes, data_uuid_list=[o[1].data_uuid for o in teeu_data]
         )
 
-        import ray.cloudpickle.cloudpickle as pickle
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
         for idx, value in teeu_data:
@@ -134,7 +134,7 @@ class TEEUWorker:
             new_value = aesgcm.decrypt(
                 nonce=value.nonce, data=value.data, associated_data=value.aad
             )
-            new_value = pickle.loads(new_value)
+            new_value = pickle.loads(new_value, filter_type=pickle.FilterType.BLACKLIST)
             arg_flat[idx] = new_value
 
         args_, kwargs_ = jax.tree_util.tree_unflatten(arg_tree, arg_flat)
@@ -207,7 +207,6 @@ def _cls_wrapper(cls):
                 class_bytes, data_uuid_list=[o[1].data_uuid for o in teeu_data]
             )
 
-            import ray.cloudpickle.cloudpickle as pickle
             from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
             for idx, value in teeu_data:
@@ -215,7 +214,9 @@ def _cls_wrapper(cls):
                 new_value = aesgcm.decrypt(
                     nonce=value.nonce, data=value.data, associated_data=value.aad
                 )
-                new_value = pickle.loads(new_value)
+                new_value = pickle.loads(
+                    new_value, filter_type=pickle.FilterType.BLACKLIST
+                )
                 arg_flat[idx] = new_value
 
             args_, kwargs_ = jax.tree_util.tree_unflatten(arg_tree, arg_flat)
@@ -281,7 +282,6 @@ def _cls_wrapper(cls):
                 class_bytes, data_uuid_list=[o[1].data_uuid for o in teeu_data]
             )
 
-            import ray.cloudpickle.cloudpickle as pickle
             from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
             for idx, value in teeu_data:
@@ -289,7 +289,9 @@ def _cls_wrapper(cls):
                 new_value = aesgcm.decrypt(
                     nonce=value.nonce, data=value.data, associated_data=value.aad
                 )
-                new_value = pickle.loads(new_value)
+                new_value = pickle.loads(
+                    new_value, filter_type=pickle.FilterType.BLACKLIST
+                )
                 arg_flat[idx] = new_value
 
             args_, kwargs_ = jax.tree_util.tree_unflatten(arg_tree, arg_flat)

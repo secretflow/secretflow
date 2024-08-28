@@ -7,11 +7,11 @@
       "domain": "data_filter",
       "name": "condition_filter",
       "desc": "Filter the table based on a single column's values and condition.\nWarning: the party responsible for condition filtering will directly send the sample distribution to other participants.\nMalicious participants can obtain the distribution of characteristics by repeatedly calling with different filtering values.\nAudit the usage of this component carefully.",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "attrs": [
         {
           "name": "comparator",
-          "desc": "Comparator to use for comparison. Must be one of '==','<','<=','>','>=','IN'",
+          "desc": "Comparator to use for comparison. Must be one of '==','<','<=','>','>=','IN','NOTNULL'",
           "type": "AT_STRING",
           "atomic": {
             "allowedValues": {
@@ -21,29 +21,20 @@
                 "<=",
                 ">",
                 ">=",
-                "IN"
-              ]
-            }
-          }
-        },
-        {
-          "name": "value_type",
-          "desc": "Type of the value to compare with. Must be one of ['STRING', 'FLOAT']",
-          "type": "AT_STRING",
-          "atomic": {
-            "allowedValues": {
-              "ss": [
-                "STRING",
-                "FLOAT"
+                "IN",
+                "NOTNULL"
               ]
             }
           }
         },
         {
           "name": "bound_value",
-          "desc": "Input a str with values separated by ','. List of values to compare with. If comparator is not 'IN', we only support one element in this list.",
+          "desc": "Input a value for comparison; if the comparison condition is IN, you can input multiple values separated by ','; if the comparison condition is NOTNULL, the input is not needed.",
           "type": "AT_STRING",
-          "atomic": {}
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
         },
         {
           "name": "float_epsilon",
@@ -403,7 +394,7 @@
       "domain": "data_prep",
       "name": "psi",
       "desc": "PSI between two parties.",
-      "version": "0.0.5",
+      "version": "0.0.7",
       "attrs": [
         {
           "name": "protocol",
@@ -436,7 +427,7 @@
         },
         {
           "name": "allow_duplicate_keys",
-          "desc": "Some join types allow duplicate keys.",
+          "desc": "Some join types allow duplicate keys. If you specify a party to receive, this should be no.",
           "type": "AT_UNION_GROUP",
           "union": {
             "defaultSelection": "no"
@@ -474,6 +465,18 @@
           "atomic": {
             "isOptional": true,
             "defaultValue": {}
+          }
+        },
+        {
+          "prefixes": [
+            "allow_duplicate_keys",
+            "no"
+          ],
+          "name": "receiver_parties",
+          "desc": "Party names of receiver for result, all party will be receivers default; if only one party receive result, the result will be single-party table, hence you can not connect it to component with union table input.",
+          "type": "AT_PARTY",
+          "atomic": {
+            "listMaxLengthInclusive": "2"
           }
         },
         {
@@ -549,15 +552,6 @@
           "desc": "Difference with duplicate keys"
         },
         {
-          "name": "fill_value_int",
-          "desc": "For int type data. Use this value for filling null.",
-          "type": "AT_INT",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {}
-          }
-        },
-        {
           "name": "ecdh_curve",
           "desc": "Curve type for ECDH PSI.",
           "type": "AT_STRING",
@@ -579,8 +573,8 @@
       ],
       "inputs": [
         {
-          "name": "receiver_input",
-          "desc": "Individual table for receiver",
+          "name": "input_table_1",
+          "desc": "Individual table for party 1",
           "types": [
             "sf.table.individual"
           ],
@@ -593,8 +587,8 @@
           ]
         },
         {
-          "name": "sender_input",
-          "desc": "Individual table for sender",
+          "name": "input_table_2",
+          "desc": "Individual table for party 2",
           "types": [
             "sf.table.individual"
           ],
@@ -612,7 +606,8 @@
           "name": "psi_output",
           "desc": "Output vertical table",
           "types": [
-            "sf.table.vertical_table"
+            "sf.table.vertical_table",
+            "sf.table.individual"
           ]
         }
       ]
@@ -1072,7 +1067,8 @@
             "allowedValues": {
               "ss": [
                 "sf.rule.binning",
-                "sf.model.ss_glm"
+                "sf.model.ss_glm",
+                "sf.model.sgb"
               ]
             }
           }
@@ -1084,8 +1080,10 @@
           "desc": "Input dist data. Rule reconstructions may need hidden info in original rule for security considerations.",
           "types": [
             "sf.rule.binning",
-            "sf.model.ss_glm"
-          ]
+            "sf.model.ss_glm",
+            "sf.null"
+          ],
+          "isOptional": true
         }
       ],
       "outputs": [
@@ -1094,7 +1092,8 @@
           "desc": "Output rules or models in sf cluster format",
           "types": [
             "sf.rule.binning",
-            "sf.model.ss_glm"
+            "sf.model.ss_glm",
+            "sf.model.sgb"
           ]
         }
       ]
@@ -3131,7 +3130,6 @@
             "allowedValues": {
               "ss": [
                 "None",
-                "l1",
                 "l2"
               ]
             }
@@ -3498,7 +3496,7 @@
       "domain": "postprocessing",
       "name": "score_card_transformer",
       "desc": "Transform the predicted result (a probability value) produced by the logistic regression model into a more understandable score (for example, a score of up to 1000 points)",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "positive",
@@ -3532,7 +3530,9 @@
           "atomic": {
             "defaultValue": {
               "i64": "600"
-            }
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
           }
         },
         {
@@ -3542,7 +3542,9 @@
           "atomic": {
             "defaultValue": {
               "f": 20.0
-            }
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
           }
         },
         {
@@ -3552,7 +3554,9 @@
           "atomic": {
             "defaultValue": {
               "f": 20.0
-            }
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
           }
         },
         {
@@ -3858,12 +3862,79 @@
     {
       "domain": "preprocessing",
       "name": "fillna",
-      "desc": "fillna",
-      "version": "0.0.1",
+      "desc": "Fill null/nan or other specificed outliers in dataset",
+      "version": "1.0.0",
       "attrs": [
         {
-          "name": "strategy",
-          "desc": "The imputation strategy. If \"mean\", then replace missing values using the mean along each column. Can only be used with numeric data. If \"median\", then replace missing values using the median along each column. Can only be used with numeric data. If \"most_frequent\", then replace missing using the most frequent value along each column. Can be used with strings or numeric data. If there is more than one such value, only the smallest is returned. If \"constant\", then replace missing values with fill_value. Can be used with strings or numeric data.",
+          "name": "nan_is_null",
+          "desc": "Whether floating-point NaN values are considered null, take effect with float columns",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "b": true
+            }
+          }
+        },
+        {
+          "name": "float_outliers",
+          "desc": "These outlier value are considered null, take effect with float columns",
+          "type": "AT_FLOATS",
+          "atomic": {
+            "listMaxLengthInclusive": "-1",
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "int_outliers",
+          "desc": "These outlier value are considered null, take effect with int columns",
+          "type": "AT_INTS",
+          "atomic": {
+            "listMaxLengthInclusive": "-1",
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "str_outliers",
+          "desc": "These outlier value are considered null, take effect with str columns",
+          "type": "AT_STRINGS",
+          "atomic": {
+            "listMaxLengthInclusive": "-1",
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "str_fill_strategy",
+          "desc": "Replacement strategy for str column. If \"most_frequent\", then replace missing using the most frequent value along each column. If \"constant\", then replace missing values with fill_value_str.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "constant"
+            },
+            "allowedValues": {
+              "ss": [
+                "constant",
+                "most_frequent"
+              ]
+            }
+          }
+        },
+        {
+          "name": "fill_value_str",
+          "desc": "For str type data. If method is 'constant' use this value for filling null.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "int_fill_strategy",
+          "desc": "Replacement strategy for int column. If \"mean\", then replace missing values using the mean along each column. If \"median\", then replace missing values using the median along each column If \"most_frequent\", then replace missing using the most frequent value along each column. If \"constant\", then replace missing values with fill_value_int.",
           "type": "AT_STRING",
           "atomic": {
             "isOptional": true,
@@ -3881,42 +3952,31 @@
           }
         },
         {
-          "name": "missing_value_type",
-          "desc": "type of missing value. general_na type indicates that only np.nan, None or pandas.NA will be treated as missing values. When the type is not general_na, the type casted missing_value_type(missing_value) will also be treated as missing value as well, in addition to general_na values.",
-          "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "s": "general_na"
-            },
-            "allowedValues": {
-              "ss": [
-                "general_na",
-                "str",
-                "int",
-                "float"
-              ]
-            }
-          }
-        },
-        {
-          "name": "missing_value",
-          "desc": "Which value should be treat as missing_value? If missing value type is 'general_na', this field will be ignored, and any np.nan, pd.NA, etc value will be treated as missing value. Otherwise, the type casted missing_value_type(missing_value) will also be treated as missing value as well, in addition to general_na values. In case the cast is not successful, general_na will be used instead. default value is 'custom_missing_value'.",
-          "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "s": "custom_missing_value"
-            }
-          }
-        },
-        {
           "name": "fill_value_int",
           "desc": "For int type data. If method is 'constant' use this value for filling null.",
           "type": "AT_INT",
           "atomic": {
             "isOptional": true,
             "defaultValue": {}
+          }
+        },
+        {
+          "name": "float_fill_strategy",
+          "desc": "Replacement strategy for float column. If \"mean\", then replace missing values using the mean along each column. If \"median\", then replace missing values using the median along each column If \"most_frequent\", then replace missing using the most frequent value along each column. If \"constant\", then replace missing values with fill_value_float.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "constant"
+            },
+            "allowedValues": {
+              "ss": [
+                "mean",
+                "median",
+                "most_frequent",
+                "constant"
+              ]
+            }
           }
         },
         {
@@ -3929,9 +3989,26 @@
           }
         },
         {
-          "name": "fill_value_str",
-          "desc": "For str type data. If method is 'constant' use this value for filling null.",
+          "name": "bool_fill_strategy",
+          "desc": "Replacement strategy for bool column. If \"most_frequent\", then replace missing using the most frequent value along each column. If \"constant\", then replace missing values with fill_value_bool.",
           "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "constant"
+            },
+            "allowedValues": {
+              "ss": [
+                "constant",
+                "most_frequent"
+              ]
+            }
+          }
+        },
+        {
+          "name": "fill_value_bool",
+          "desc": "For bool type data. If method is 'constant' use this value for filling null.",
+          "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
             "defaultValue": {}

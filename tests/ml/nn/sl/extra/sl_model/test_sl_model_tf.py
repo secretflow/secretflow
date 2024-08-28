@@ -33,7 +33,7 @@ from secretflow.security.privacy.mechanism.tensorflow import GaussianEmbeddingDP
 from secretflow.utils.compressor import MixedCompressor, QuantizedZeroPoint, TopkSparse
 from secretflow.utils.simulation.datasets import load_mnist
 
-from .model_def import (
+from tests.ml.nn.sl.model_def import (
     FuseCustomLossModel,
     create_base_model,
     create_fuse_model,

@@ -13,11 +13,8 @@
 # limitations under the License.
 
 from secretflow.component.component import CompEvalError, Component, IoType
-from secretflow.component.data_utils import (
-    DistDataType,
-    get_model_public_info,
-    load_table,
-)
+from secretflow.component.data_utils import DistDataType, get_model_public_info
+from secretflow.component.dataframe import CompDataFrame
 from secretflow.component.ml.linear.ss_glm import load_ss_glm_model
 from secretflow.component.ml.linear.ss_sgd import load_ss_sgd_model
 from secretflow.device.device.spu import SPU
@@ -98,46 +95,31 @@ def load_ds(
     weight_cols=None,
 ):
     with ctx.tracer.trace_io():
-        x = load_table(
+        data = CompDataFrame.from_distdata(
             ctx,
             input_data,
             partitions_order=x_partitions_order,
             load_features=True,
-            col_selects=x_cols,
-        )
-        assert x.columns == x_cols
-
-        y = load_table(
-            ctx,
-            input_data,
-            load_features=True,
             load_labels=True,
-            col_selects=y_cols,
+            col_selects=(
+                x_cols
+                + y_cols
+                + (offset_cols if offset_cols else [])
+                + (weight_cols if weight_cols else [])
+            ),
         )
 
         if offset_cols:
-            o = load_table(
-                ctx,
-                input_data,
-                load_features=True,
-                load_labels=True,
-                col_selects=offset_cols,
-            )
+            o = data[offset_cols].to_pandas()
         else:
             o = None
 
         if weight_cols:
-            w = load_table(
-                ctx,
-                input_data,
-                load_features=True,
-                load_labels=True,
-                col_selects=weight_cols,
-            )
+            w = data[weight_cols].to_pandas()
         else:
             w = None
 
-    return x, y, o, w
+    return data[x_cols].to_pandas(), data[y_cols].to_pandas(), o, w
 
 
 def glm_pvalue(ctx, model_dd, input_data):

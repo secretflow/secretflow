@@ -43,6 +43,7 @@ from spu import psi, spu_pb2
 from spu.utils.distributed import dtype_spu_to_np, shape_spu_to_np
 
 import secretflow.distributed as sfd
+from secretflow.utils import secure_pickle as pickle
 from secretflow.utils.errors import InvalidArgumentError
 from secretflow.utils.ndarray_bigint import BigintNdArray
 from secretflow.utils.progress import ProgressData
@@ -448,8 +449,6 @@ class SPURuntime:
         for name in flatten_names:
             shares.append(self.runtime.get_var(name))
 
-        import cloudpickle as pickle
-
         if isinstance(path, str):
             from pathlib import Path
 
@@ -466,15 +465,13 @@ class SPURuntime:
         return None
 
     def load(self, path: Union[str, Callable]) -> Any:
-        import cloudpickle as pickle
-
         if isinstance(path, str):
             with open(path, 'rb') as f:
-                record = pickle.load(f)
+                record = pickle.load(f, filter_type=pickle.FilterType.BLACKLIST)
         else:
             assert callable(path)
             with path() as f:
-                record = pickle.load(f)
+                record = pickle.load(f, filter_type=pickle.FilterType.BLACKLIST)
 
         meta = record['meta']
         shares = record['shares']

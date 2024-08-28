@@ -14,6 +14,10 @@
 
 import pandas as pd
 import pytest
+from pyarrow import orc
+from sklearn.datasets import load_breast_cancer
+from sklearn.metrics import roc_auc_score
+from sklearn.preprocessing import StandardScaler
 
 from secretflow.component.ml.boost.ss_xgb.ss_xgb import (
     ss_xgb_predict_comp,
@@ -23,9 +27,6 @@ from secretflow.component.storage import ComponentStorage
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
-from sklearn.datasets import load_breast_cancer
-from sklearn.metrics import roc_auc_score
-from sklearn.preprocessing import StandardScaler
 
 NUM_BOOST_ROUND = 3
 
@@ -179,7 +180,7 @@ def test_ss_xgb(comp_prod_sf_cluster_config, with_checkpoint):
         if "alice" == sf_cluster_config.private_config.self_party:
             comp_storage = ComponentStorage(storage_config)
             input_y = pd.read_csv(comp_storage.get_reader(alice_path))
-            output_y = pd.read_csv(comp_storage.get_reader(predict_path))
+            output_y = orc.read_table(comp_storage.get_reader(predict_path)).to_pandas()
 
             # label & pred
             assert output_y.shape[1] == 4

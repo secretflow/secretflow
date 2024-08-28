@@ -18,6 +18,10 @@ import numpy as np
 import pandas as pd
 import pytest
 from google.protobuf.json_format import MessageToJson
+from sklearn.datasets import load_breast_cancer
+from sklearn.metrics import r2_score
+from sklearn.preprocessing import StandardScaler
+
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.ml.eval.regression_eval import regression_eval_comp
 from secretflow.component.ml.linear.ss_sgd import ss_sgd_predict_comp, ss_sgd_train_comp
@@ -31,9 +35,6 @@ from secretflow.spec.v1.data_pb2 import (
 )
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
-from sklearn.datasets import load_breast_cancer
-from sklearn.metrics import r2_score
-from sklearn.preprocessing import StandardScaler
 
 g_test_epoch = 3
 
@@ -136,7 +137,7 @@ def get_eval_param(predict_path):
                 name="in_ds",
                 type=str(DistDataType.INDIVIDUAL_TABLE),
                 data_refs=[
-                    DistData.DataRef(uri=predict_path, party="alice", format="csv"),
+                    DistData.DataRef(uri=predict_path, party="alice", format="orc"),
                 ],
             ),
         ],
@@ -223,7 +224,9 @@ def test_ss_sgd(comp_prod_sf_cluster_config, with_checkpoint):
         if "alice" == sf_cluster_config.private_config.self_party:
             comp_storage = ComponentStorage(storage_config)
             input_y = pd.read_csv(comp_storage.get_reader(alice_path))
-            output_y = pd.read_csv(comp_storage.get_reader(predict_path))
+            from pyarrow import orc
+
+            output_y = orc.read_table(comp_storage.get_reader(predict_path)).to_pandas()
 
             # label & pred
             assert output_y.shape[1] == 4

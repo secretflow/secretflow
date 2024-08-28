@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import numpy as np
 import pandas as pd
+from pyarrow import orc
 
-from secretflow.component.data_utils import DistDataType, extract_distdata_info
+from secretflow.component.data_utils import DistDataType, extract_data_infos
 from secretflow.component.preprocessing.filter.condition_filter import (
     condition_filter_comp,
 )
@@ -66,18 +68,16 @@ def test_condition_filter(comp_prod_sf_cluster_config):
     param = NodeEvalParam(
         domain="data_filter",
         name="condition_filter",
-        version="0.0.1",
+        version="0.0.2",
         attr_paths=[
             'input/in_ds/features',
             'comparator',
-            'value_type',
             'bound_value',
             'float_epsilon',
         ],
         attrs=[
             Attribute(ss=['b4']),
             Attribute(s='<'),
-            Attribute(s='FLOAT'),
             Attribute(s='11'),
             Attribute(f=0.01),
         ],
@@ -86,8 +86,15 @@ def test_condition_filter(comp_prod_sf_cluster_config):
                 name="input_data",
                 type=str(DistDataType.VERTICAL_TABLE),
                 data_refs=[
-                    DistData.DataRef(uri=bob_input_path, party="bob", format="csv"),
-                    DistData.DataRef(uri=alice_input_path, party="alice", format="csv"),
+                    DistData.DataRef(
+                        uri=bob_input_path, party="bob", format="csv", null_strs=[""]
+                    ),
+                    DistData.DataRef(
+                        uri=alice_input_path,
+                        party="alice",
+                        format="csv",
+                        null_strs=[""],
+                    ),
                 ],
             )
         ],
@@ -125,19 +132,54 @@ def test_condition_filter(comp_prod_sf_cluster_config):
 
     assert len(res.outputs) == 2
 
-    ds_info = extract_distdata_info(res.outputs[0])
-    else_ds_info = extract_distdata_info(res.outputs[1])
+    ds_info = extract_data_infos(res.outputs[0], load_ids=True)
+    else_ds_info = extract_data_infos(res.outputs[1], load_ids=True)
 
     if self_party == "alice":
-        ds_alice = pd.read_csv(comp_storage.get_reader(ds_info["alice"].uri))
-        ds_else_alice = pd.read_csv(comp_storage.get_reader(else_ds_info["alice"].uri))
+        ds_alice = orc.read_table(
+            comp_storage.get_reader(ds_info["alice"].uri)
+        ).to_pandas()
+        ds_else_alice = orc.read_table(
+            comp_storage.get_reader(else_ds_info["alice"].uri)
+        ).to_pandas()
         np.testing.assert_equal(ds_alice.shape[0], 2)
-        assert list(ds_alice["id1"]) == [1, 4]
-        assert list(ds_else_alice["id1"]) == [2, 3]
+        assert list(ds_alice["id1"]) == ["1", "4"]
+        assert list(ds_else_alice["id1"]) == ["2", "3"]
 
     if self_party == "bob":
-        ds_bob = pd.read_csv(comp_storage.get_reader(ds_info["bob"].uri))
-        ds_else_bob = pd.read_csv(comp_storage.get_reader(else_ds_info["bob"].uri))
+        ds_bob = orc.read_table(comp_storage.get_reader(ds_info["bob"].uri)).to_pandas()
+        ds_else_bob = orc.read_table(
+            comp_storage.get_reader(else_ds_info["bob"].uri)
+        ).to_pandas()
         np.testing.assert_equal(ds_else_bob.shape[0], 2)
-        assert list(ds_bob["id2"]) == [1, 4]
-        assert list(ds_else_bob["id2"]) == [2, 3]
+        assert list(ds_bob["id2"]) == ["1", "4"]
+        assert list(ds_else_bob["id2"]) == ["2", "3"]
+
+    # test null
+    param.ClearField("attr_paths")
+    param.ClearField("attrs")
+    param.attr_paths.extend(['input/in_ds/features', 'comparator'])
+    param.attrs.extend([Attribute(ss=['a1']), Attribute(s='NOTNULL')])
+    res = condition_filter_comp.eval(
+        param=param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
+    if self_party == "alice":
+        ds_alice = orc.read_table(
+            comp_storage.get_reader(ds_info["alice"].uri)
+        ).to_pandas()
+        ds_else_alice = orc.read_table(
+            comp_storage.get_reader(else_ds_info["alice"].uri)
+        ).to_pandas()
+        np.testing.assert_equal(ds_alice.shape[0], 3)
+        assert list(ds_alice["id1"]) == ["1", "2", "4"]
+        assert list(ds_else_alice["id1"]) == ["3"]
+    if self_party == "bob":
+        ds_bob = orc.read_table(comp_storage.get_reader(ds_info["bob"].uri)).to_pandas()
+        ds_else_bob = orc.read_table(
+            comp_storage.get_reader(else_ds_info["bob"].uri)
+        ).to_pandas()
+        np.testing.assert_equal(ds_else_bob.shape[0], 1)
+        assert list(ds_bob["id2"]) == ["1", "2", "4"]
+        assert list(ds_else_bob["id2"]) == ["3"]

@@ -13,7 +13,12 @@
 # limitations under the License.
 
 from secretflow.component.component import Component, IoType, TableColParam
-from secretflow.component.data_utils import DistDataType, load_table
+from secretflow.component.data_utils import DistDataType
+from secretflow.component.dataframe import (
+    CompDataFrame,
+    StreamingReader,
+    StreamingWriter,
+)
 from secretflow.device.driver import wait
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 
@@ -45,40 +50,12 @@ feature_filter_comp.io(
 def feature_filter_eval_fn(*, ctx, in_ds, in_ds_drop_features, out_ds):
     assert in_ds.type == DistDataType.VERTICAL_TABLE, "only support vtable for now"
 
-    in_meta = VerticalTable()
-    in_ds.meta.Unpack(in_meta)
+    reader = StreamingReader.from_distdata(
+        ctx, in_ds, load_features=True, load_ids=True, load_labels=True
+    )
+    writer = StreamingWriter(ctx, out_ds)
+    with writer, ctx.tracer.trace_running():
+        for batch in reader:
+            writer.write(batch.drop(in_ds_drop_features))
 
-    out_meta = VerticalTable()
-    out_meta.line_count = in_meta.line_count
-
-    for s in in_meta.schemas:
-        s_meta = TableSchema()
-        for t, h in zip(s.feature_types, s.features):
-            if h not in in_ds_drop_features:
-                s_meta.feature_types.append(t)
-                s_meta.features.append(h)
-        s_meta.ids.extend(s.ids)
-        s_meta.id_types.extend(s.id_types)
-        s_meta.labels.extend(s.labels)
-        s_meta.label_types.extend(s.label_types)
-        out_meta.schemas.append(s_meta)
-
-    out_dist = DistData()
-    out_dist.CopyFrom(in_ds)
-    out_dist.name = out_ds
-    out_dist.meta.Pack(out_meta)
-
-    # TODO: streaming
-    with ctx.tracer.trace_running():
-        ds = load_table(
-            ctx, out_dist, load_features=True, load_ids=True, load_labels=True
-        )
-        out_path = {
-            p: lambda: ctx.comp_storage.get_writer(out_ds) for p in ds.partitions
-        }
-        wait(ds.to_csv(out_path, index=False))
-
-    for i in range(len(out_dist.data_refs)):
-        out_dist.data_refs[i].uri = out_ds
-
-    return {"out_ds": out_dist}
+    return {"out_ds": writer.to_distdata()}

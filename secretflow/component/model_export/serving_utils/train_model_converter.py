@@ -25,7 +25,7 @@ import secretflow.component.ml.linear.ss_glm as glm
 import secretflow.component.ml.linear.ss_sgd as sgd
 from secretflow.component.data_utils import (
     DistDataType,
-    extract_table_header,
+    extract_data_infos,
     model_loads,
     model_meta_info,
 )
@@ -227,6 +227,12 @@ def ss_glm_schema_info(
     meta = json.loads(model_meta_str)
 
     offset_col = meta["offset_col"]
+    if offset_col:
+        assert len(offset_col) == 1
+        offset_col = offset_col[0]
+    else:
+        offset_col = ""
+
     party_features_name, _ = get_party_features_info(meta)
 
     party_used_schemas = {}
@@ -273,6 +279,11 @@ def ss_glm_converter(
     feature_names = meta["feature_names"]
     party_features_name, party_features_pos = get_party_features_info(meta)
     offset_col = meta["offset_col"]
+    if offset_col:
+        assert len(offset_col) == 1
+        offset_col = offset_col[0]
+    else:
+        offset_col = ""
     label_col = meta["label_col"]
     yhat_scale = meta["y_scale"]
     assert len(label_col) == 1
@@ -953,9 +964,10 @@ class TrainModelConverter:
         assert len(in_dataset) == 1
         self.in_dataset = in_dataset[0]
 
-        self.input_schema, _ = extract_table_header(
+        infos = extract_data_infos(
             self.in_dataset, load_features=True, load_ids=True, load_labels=True
         )
+        self.input_schema = {p: infos[p].dtypes for p in infos}
 
         assert set(self.input_schema) == set([p.party for p in builder.pyus])
 

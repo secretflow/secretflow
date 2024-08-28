@@ -16,14 +16,11 @@ from typing import Dict
 from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import (
     DistDataType,
-    dump_vertical_table,
     generate_random_string,
-    load_table,
     model_dumps,
     model_loads,
-    move_feature_to_label,
-    VerticalTableWrapper,
 )
+from secretflow.component.dataframe import CompDataFrame
 from secretflow.component.io.core.bins.bin_utils import pad_inf_to_split_points
 from secretflow.device.device.pyu import PYU, PYUObject
 from secretflow.device.driver import reveal
@@ -240,7 +237,7 @@ def vert_binning_eval_fn(
     bin_rule,
     report,
 ):
-    input_df = load_table(
+    input_df = CompDataFrame.from_distdata(
         ctx,
         input_data,
         load_features=True,
@@ -318,13 +315,13 @@ def vert_bin_substitution_eval_fn(
     bin_rule,
     output_data,
 ):
-    input_df = load_table(
+    input_df = CompDataFrame.from_distdata(
         ctx, input_data, load_features=True, load_labels=True, load_ids=True
     )
 
     pyus = {p.party: p for p in input_df.partitions}
 
-    model_objs, public_info = model_loads(
+    model_objs, _ = model_loads(
         ctx,
         bin_rule,
         BINNING_RULE_MAX_MAJOR_VERSION,
@@ -339,31 +336,6 @@ def vert_bin_substitution_eval_fn(
         bin_rule[obj.device] = obj
 
     with ctx.tracer.trace_running():
-        output_df, changed_columns = VertBinSubstitution().substitution(
-            input_df, bin_rule
-        )
+        output_df = VertBinSubstitution().substitution(input_df, bin_rule)
 
-    vt_wrapper = VerticalTableWrapper.from_dist_data(input_data, output_df.shape[0])
-
-    # modify types of feature_selects to float
-    for v in vt_wrapper.schema_map.values():
-        for i, f in enumerate(list(v.features)):
-            if f in changed_columns:
-                v.feature_types[i] = 'float32'
-
-    # change cols from feature to label according to model public info.
-    if 'input_data_label' in public_info:
-        for k, v in vt_wrapper.schema_map.items():
-            vt_wrapper.schema_map[k] = move_feature_to_label(
-                v, public_info['input_data_label']
-            )
-
-    return {
-        "output_data": dump_vertical_table(
-            ctx,
-            output_df,
-            output_data,
-            vt_wrapper,
-            input_data.system_info,
-        )
-    }
+    return {"output_data": output_df.to_distdata(ctx, output_data)}

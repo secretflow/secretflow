@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pandas as pd
+import pyarrow as pa
 
 import secretflow.compute as sc
 from secretflow.component.component import Component, IoType, TableColParam
-from secretflow.component.data_utils import DistDataType, load_table
+from secretflow.component.data_utils import DistDataType, extract_data_infos
 from secretflow.component.preprocessing.core.table_utils import (
     v_preprocessing_transform,
 )
@@ -113,28 +113,27 @@ def binary_op_eval_fn(
     out_rules,
 ):
     assert in_ds.type == DistDataType.VERTICAL_TABLE, "only support vtable for now"
-    head = load_table(
-        ctx, in_ds, load_features=True, load_labels=True, load_ids=True, nrows=1
+    infos = extract_data_infos(
+        in_ds, load_features=True, load_labels=True, load_ids=True
     )
+    columns = [c for pi in infos.values() for c in pi.dtypes.keys()]
     in_ds_features = in_ds_f1 + in_ds_f2
-    if new_feature_name in head.columns:
+    if new_feature_name in columns:
         load_columns = in_ds_features + [new_feature_name]
     else:
         load_columns = in_ds_features
 
     load_columns = list(set(load_columns))
 
-    def _compute_new_table(
-        df: pd.DataFrame,
-    ) -> sc.Table:
-        df_sc = sc.Table.from_pandas(df)
+    def _compute_new_table(df: pa.Table) -> sc.Table:
+        df_sc = sc.Table.from_pyarrow(df)
         assert (
-            in_ds_features[0] in df.columns
+            in_ds_features[0] in df.column_names
         ), "we should not load tables that need no action."
         arg_0 = df_sc.column(in_ds_features[0])
         arg_1 = df_sc.column(in_ds_features[1])
 
-        if new_feature_name in df.columns:
+        if new_feature_name in df.column_names:
             df_sc = df_sc.set_column(
                 df_sc.column_names.index(new_feature_name),
                 new_feature_name,
@@ -142,7 +141,7 @@ def binary_op_eval_fn(
             )
         else:
             df_sc = df_sc.append_column(
-                name=new_feature_name, array=OP_MAP[binary_op](arg_0, arg_1)
+                new_feature_name, OP_MAP[binary_op](arg_0, arg_1)
             )
 
         return df_sc, [new_feature_name] if as_label else [], None

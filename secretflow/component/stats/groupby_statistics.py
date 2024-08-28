@@ -22,7 +22,8 @@ from secretflow.component.component import (
     IoType,
     TableColParam,
 )
-from secretflow.component.data_utils import DistDataType, load_table
+from secretflow.component.data_utils import DistDataType
+from secretflow.component.dataframe import CompDataFrame
 from secretflow.device.device.spu import SPU
 from secretflow.spec.extend.groupby_aggregation_config_pb2 import (
     ColumnQuery,
@@ -190,14 +191,15 @@ def groupby_statistics_eval_fn(
 
     logging.info("set up complete")
 
-    input_df = load_table(
+    # FIXME: avoid to_pandas, use pa.Table
+    input_df = CompDataFrame.from_distdata(
         ctx,
         input_data,
         load_features=True,
         load_labels=True,
         load_ids=True,
         col_selects=input_data_by + unique_list(value_columns),
-    )
+    ).to_pandas(check_null=False)
     value_agg_pair = [
         (col_query.column_name, map_enum_type_to_agg(col_query.function))
         for col_query in aggregation_config.column_queries

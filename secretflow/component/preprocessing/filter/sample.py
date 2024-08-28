@@ -19,17 +19,13 @@ import sys
 import pandas as pd
 
 from secretflow.component.component import CompEvalError, Component, IoType
-from secretflow.component.data_utils import (
-    DistDataType,
-    VerticalTableWrapper,
-    dump_table,
-    load_table,
-)
+from secretflow.component.data_utils import DistDataType, extract_data_infos
+from secretflow.component.dataframe import CompDataFrame
 from secretflow.data import partition
 from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.device import reveal
 from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import DistData, IndividualTable
+from secretflow.spec.v1.data_pb2 import DistData
 from secretflow.spec.v1.report_pb2 import Descriptions, Div, Report, Tab
 
 sample_comp = Component(
@@ -200,9 +196,14 @@ def sample_fn(
     sample_output,
     reports,
 ):
-    input_df = load_table(
-        ctx, input_data, load_features=True, load_ids=True, load_labels=True
+    infos = extract_data_infos(
+        input_data, load_features=True, load_ids=True, load_labels=True
     )
+    # TODO: streaming, avoid load all data into mem.
+    # FIXME: avoid to_pandas, use pa.Table
+    input_df = CompDataFrame.from_distdata(
+        ctx, input_data, load_features=True, load_ids=True, load_labels=True
+    ).to_pandas(check_null=False)
 
     pyus = list(input_df.partitions.keys())
     part0 = input_df.partitions[pyus[0]]
@@ -228,24 +229,18 @@ def sample_fn(
     )
     sample_df, report_results = sample_algorithm_obj.perform_sample()
 
-    if input_data.type == DistDataType.VERTICAL_TABLE:
-        meta = VerticalTableWrapper.from_dist_data(input_data, sample_df.shape[0])
-    else:
-        meta = IndividualTable()
-        input_data.meta.Unpack(meta)
-
-    sample_db = dump_table(
-        ctx,
-        sample_df,
-        sample_output,
-        meta,
-        input_data.system_info,
-    )
-
     report_dd = transform_report(
         reports, sample_algorithm, report_results, input_data.system_info
     )
-    return {"sample_output": sample_db, "reports": report_dd}
+    return {
+        "sample_output": CompDataFrame.from_pandas(
+            sample_df,
+            input_data.system_info,
+            [c for pc in infos.values() for c in pc.id_cols],
+            [c for pc in infos.values() for c in pc.label_cols],
+        ).to_distdata(ctx, sample_output),
+        "reports": report_dd,
+    }
 
 
 def build_sample_desc(result):

@@ -18,6 +18,7 @@ import operator
 import numpy as np
 import pandas as pd
 import pytest
+from pyarrow import orc
 from sklearn.datasets import load_breast_cancer
 
 from secretflow.component.data_utils import DistDataType
@@ -162,12 +163,12 @@ def test_binary_op_sample(
 
     if features[0] in alice_columns and self_party == "alice":
         comp_storage = ComponentStorage(storage_config)
-        df = pd.read_csv(comp_storage.get_reader(output_path))
+        df = orc.read_table(comp_storage.get_reader(output_path)).to_pandas()
         df_in = pd.DataFrame(x[:, :15], columns=alice_columns)
         test(df, df_in)
     elif features[0] in bob_columns and self_party == "bob":
         comp_storage = ComponentStorage(storage_config)
-        df = pd.read_csv(comp_storage.get_reader(output_path))
+        df = orc.read_table(comp_storage.get_reader(output_path)).to_pandas()
         df_in = pd.DataFrame(x[:, 15:], columns=bob_columns)
         test(df, df_in)
 
@@ -187,5 +188,5 @@ def test_binary_op_sample(
 
     assert len(res.outputs) == 1
     if self_party == "alice":
-        a_out = pd.read_csv(comp_storage.get_reader(sub_path))
+        a_out = orc.read_table(comp_storage.get_reader(sub_path)).to_pandas()
         logging.warning(f"....... \n{a_out}\n.,......")

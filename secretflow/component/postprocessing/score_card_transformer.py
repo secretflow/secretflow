@@ -14,241 +14,228 @@
 
 import math
 
-import pandas as pd
+import numpy as np
+import pyarrow as pa
+import pyarrow.compute as pc
+from google.protobuf import json_format
 
 import secretflow.compute as sc
-from secretflow.component.component import Component, IoType, TableColParam
-from secretflow.component.data_utils import DistDataType, dump_table, load_table
-from secretflow.data.core import partition
-from secretflow.data.vertical.dataframe import VDataFrame
-from secretflow.device.driver import reveal
-from secretflow.spec.v1.data_pb2 import IndividualTable
-
-SCORE_CARD_TRANSFORMER_VERSION = "0.0.1"
-
-score_card_transformer_comp = Component(
-    "score_card_transformer",
-    domain="postprocessing",
-    version=SCORE_CARD_TRANSFORMER_VERSION,
-    desc="Transform the predicted result (a probability value) produced by the logistic regression model into a more understandable score (for example, a score of up to 1000 points)",
+from secretflow.component.core import (
+    Component,
+    CompVDataFrameReader,
+    CompVDataFrameWriter,
+    Context,
+    DistDataType,
+    Field,
+    Input,
+    Interval,
+    Output,
+    ServingBuilder,
+    ServingNode,
+    ServingOp,
+    ServingPhase,
+    VTableField,
+    VTableFieldKind,
+    register,
 )
-
-score_card_transformer_comp.int_attr(
-    name="positive",
-    desc="Value for positive cases.",
-    is_list=False,
-    is_optional=False,
-    default_value=1,
-    allowed_values=[0, 1],
-)
-
-score_card_transformer_comp.str_attr(
-    name="predict_score_name",
-    desc="",
-    is_list=False,
-    is_optional=False,
-    default_value="predict_score",
-)
-
-score_card_transformer_comp.int_attr(
-    name="scaled_value",
-    desc="Set a benchmark score that can be adjusted for specific business scenarios",
-    is_list=False,
-    is_optional=False,
-    default_value=600,
-)
-
-score_card_transformer_comp.float_attr(
-    name="odd_base",
-    desc="the odds value at given score baseline, odds = p / (1-p)",
-    is_list=False,
-    is_optional=False,
-    default_value=20,
-)
-
-score_card_transformer_comp.float_attr(
-    name="pdo",
-    desc="points to double the odds",
-    is_list=False,
-    is_optional=False,
-    default_value=20,
-)
-
-score_card_transformer_comp.int_attr(
-    name="min_score",
-    desc="An integer of [0,999] is supported",
-    is_list=False,
-    is_optional=True,
-    default_value=0,
-    lower_bound=0,
-    upper_bound=999,
-    lower_bound_inclusive=True,
-    upper_bound_inclusive=True,
-)
-
-score_card_transformer_comp.int_attr(
-    name="max_score",
-    desc="An integer of [1,1000] is supported",
-    is_list=False,
-    is_optional=True,
-    default_value=1000,
-    lower_bound=1,
-    upper_bound=1000,
-    lower_bound_inclusive=True,
-    upper_bound_inclusive=True,
-)
+from secretflow.compute.tracer import Table
 
 
-score_card_transformer_comp.io(
-    io_type=IoType.INPUT,
-    name="input_ds",
-    desc="predict result table",
-    types=[DistDataType.INDIVIDUAL_TABLE],
-    col_params=[
-        TableColParam(
-            name="predict_name",
-            desc="",
-            col_min_cnt_inclusive=1,
-            col_max_cnt_inclusive=1,
-        )
-    ],
-)
+@register(domain="postprocessing", version="1.0.0")
+class ScoreCardTransformer(Component):
+    '''
+    Transform the predicted result (a probability value) produced by the logistic regression model into a more understandable score (for example, a score of up to 1000 points)
+    '''
 
-score_card_transformer_comp.io(
-    io_type=IoType.OUTPUT,
-    name="output_ds",
-    desc="output table",
-    types=[DistDataType.INDIVIDUAL_TABLE],
-    col_params=None,
-)
-
-
-def apply_score_card_transformer_on_table(
-    table: sc.Table,
-    predict_name: str,
-    predict_score_name: str,
-    scaled_value: int,
-    odd_base: float,
-    pdo: float,
-    positive: int,
-    min_score: int = 0,
-    max_score: int = 1000,
-) -> sc.Table:
-    scaled_value = float(scaled_value)
-    min_score = float(min_score)
-    max_score = float(max_score)
-    factor = pdo / math.log(2)
-    offset = scaled_value - factor * math.log(odd_base)
-
-    pred = table.column(predict_name)
-    log_odds = sc.ln(sc.divide(pred, sc.subtract(1.0, pred)))
-    if positive == 1:
-        score = sc.subtract(offset, sc.multiply(factor, log_odds))
-    else:
-        score = sc.add(offset, sc.multiply(factor, log_odds))
-    new_col = sc.if_else(
-        sc.less_equal(score, min_score),
-        min_score,
-        sc.if_else(sc.greater_equal(score, max_score), max_score, score),
+    positive: int = Field.attr(
+        desc="Value for positive cases.",
+        is_optional=False,
+        default=1,
+        choices=[0, 1],
     )
-    if predict_score_name == predict_name:
-        table = table.set_column(
-            table.column_names.index(predict_score_name), predict_score_name, new_col
-        )
-    else:
-        table = table.append_column(predict_score_name, new_col)
+    predict_score_name: str = Field.attr(
+        desc="",
+        is_optional=False,
+        default="predict_score",
+    )
+    scaled_value: int = Field.attr(
+        desc="Set a benchmark score that can be adjusted for specific business scenarios",
+        is_optional=False,
+        default=600,
+        bound_limit=Interval.open(0, None),
+    )
+    odd_base: float = Field.attr(
+        desc="the odds value at given score baseline, odds = p / (1-p)",
+        is_optional=False,
+        default=20,
+        bound_limit=Interval.open(0, None),
+    )
+    pdo: float = Field.attr(
+        desc="points to double the odds",
+        is_optional=False,
+        default=20,
+        bound_limit=Interval.open(0, None),
+    )
+    min_score: int = Field.attr(
+        desc="An integer of [0,999] is supported",
+        is_optional=True,
+        default=0,
+        bound_limit=Interval.closed(0, 999),
+    )
+    max_score: int = Field.attr(
+        desc="An integer of [1,1000] is supported",
+        is_optional=True,
+        default=1000,
+        bound_limit=Interval.closed(1, 1000),
+    )
+    predict_name: str = Field.table_column_attr(
+        input_name="input_ds",
+    )
+    input_ds: Input = Field.input(
+        desc="predict result table",
+        types=[DistDataType.INDIVIDUAL_TABLE],
+    )
+    output_ds: Output = Field.output(
+        desc="output table",
+        types=[DistDataType.INDIVIDUAL_TABLE],
+    )
 
-    return table
+    def to_rule(self) -> dict:
+        return {
+            "positive": self.positive,
+            "pdo": self.pdo,
+            "odd_base": self.odd_base,
+            "scaled_value": self.scaled_value,
+            "min_score": self.min_score,
+            "max_score": self.max_score,
+            "predict_name": self.predict_name,
+            "predict_score_name": self.predict_score_name,
+        }
 
+    @staticmethod
+    def apply(
+        table: sc.Table,
+        predict_name: str,
+        predict_score_name: str,
+        scaled_value: int,
+        odd_base: float,
+        pdo: float,
+        positive: int,
+        min_score: int = 0,
+        max_score: int = 1000,
+    ) -> sc.Table:
+        scaled_value = float(scaled_value)
+        min_score = float(min_score)
+        max_score = float(max_score)
+        factor = pdo / math.log(2)
+        offset = scaled_value - factor * math.log(odd_base)
 
-@score_card_transformer_comp.eval_fn
-def score_card_transformer_eval_fn(
-    *,
-    ctx,
-    predict_score_name,
-    positive,
-    scaled_value,
-    odd_base,
-    pdo,
-    min_score,
-    max_score,
-    input_ds,
-    input_ds_predict_name,
-    output_ds,
-):
-    predict_name = input_ds_predict_name[0]
-    assert (
-        predict_score_name != predict_name
-    ), f"predict_score_name and predict_name should be different, {predict_score_name} {predict_name}"
-
-    assert odd_base > 0, f"odd_base should be positive, got {odd_base}"
-    assert scaled_value > 0, f"scaled_value should be positive, got {scaled_value}"
-    assert pdo > 0, f"pdo should be positive, got {pdo}"
-    assert (
-        max_score >= 0 and max_score > scaled_value
-    ), f"max_score should bigger than 0 and scaled_value, got {max_score}"
-    assert (
-        min_score >= 0 and min_score < scaled_value and scaled_value < max_score
-    ), f"min_score should bigger than 0 but less than scaled_value and max_score, got {min_score}"
-    assert positive in [0, 1], f"positive should be 0 or 1, got {positive}"
-
-    def _fit_transform(trans_data: pd.DataFrame):
-        pred = trans_data[predict_name]
-        min_max = pred.aggregate(["min", "max"])
-        min_value = min_max["min"]
-        max_value = min_max["max"]
-        if min_value < 0 or max_value > 1:
-            return None, ValueError(
-                f"pred should in [0, 1], but got max pred {max_value} and min pred {min_value}"
-            )
-        input_tbl = sc.Table.from_pandas(trans_data)
-        output_tbl = apply_score_card_transformer_on_table(
-            input_tbl,
-            predict_name,
-            predict_score_name,
-            scaled_value,
-            odd_base,
-            pdo,
-            positive,
+        pred = table.column(predict_name)
+        log_odds = sc.ln(sc.divide(pred, sc.subtract(1.0, pred)))
+        if positive == 1:
+            score = sc.subtract(offset, sc.multiply(factor, log_odds))
+        else:
+            score = sc.add(offset, sc.multiply(factor, log_odds))
+        new_col = sc.if_else(
+            sc.less_equal(score, min_score),
             min_score,
-            max_score,
+            sc.if_else(sc.greater_equal(score, max_score), max_score, score),
+        )
+        if predict_score_name == predict_name:
+            index = table.column_names.index(predict_score_name)
+            table = table.set_column(index, predict_name, new_col)
+        else:
+            new_field = VTableField.pa_field(
+                predict_score_name, new_col.dtype, VTableFieldKind.LABEL
+            )
+            table = table.append_column(new_field, new_col)
+
+        return table
+
+    def evaluate(self, ctx: Context):
+        assert (
+            self.predict_score_name != self.predict_name
+        ), f"predict_score_name and predict_name should be different, {self.predict_score_name} {self.predict_name}"
+
+        assert (
+            self.scaled_value < self.max_score
+        ), f"scaled_value<{self.scaled_value}> should be less than max_score<{self.max_score}>"
+
+        assert (
+            self.scaled_value > self.min_score
+        ), f"scaled_value<{self.scaled_value}> should be bigger than min_score<{self.min_score}>"
+
+        rule = self.to_rule()
+
+        def _fit_transform(input_tbl: pa.Table) -> pa.Table:
+            pred = input_tbl.column(self.predict_name)
+            min_value = pc.min(pred).as_py()
+            max_value = pc.max(pred).as_py()
+            if min_value < 0 or max_value > 1:
+                raise ValueError(
+                    f"pred should in [0, 1], but got max pred {max_value} and min pred {min_value}"
+                )
+            output_tbl = ScoreCardTransformer.apply(
+                sc.Table.from_pyarrow(input_tbl), **rule
+            )
+            return output_tbl.to_table()
+
+        reader = CompVDataFrameReader(ctx.storage, ctx.tracer, self.input_ds)
+        writer = CompVDataFrameWriter(ctx.storage, ctx.tracer, self.output_ds.uri)
+        with reader, writer:
+            for df in reader:
+                with ctx.tracer.trace_running():
+                    out_df = df.apply(_fit_transform)
+                writer.write(out_df)
+
+        writer.dump_to(self.output_ds)
+
+    def export(self, ctx: Context, builder: ServingBuilder):
+        def _dump_runner(
+            rules: dict, node_name: str
+        ) -> tuple[bytes, pa.Schema, pa.Schema, bytes, bytes]:
+            input_schema = {"pred_y": np.float64}
+            input_table = Table.from_schema(input_schema)
+            table = ScoreCardTransformer.apply(input_table, **rules)
+
+            dag_pb, dag_input_schema, dag_output_schema = table.dump_serving_pb(
+                node_name
+            )
+
+            dag_json = json_format.MessageToJson(dag_pb, indent=0).encode("utf-8")
+            dag_input_schema_ser = dag_input_schema.serialize().to_pybytes()
+            dag_output_schema_ser = dag_output_schema.serialize().to_pybytes()
+
+            return (
+                dag_json,
+                dag_input_schema,
+                dag_output_schema,
+                dag_input_schema_ser,
+                dag_output_schema_ser,
+            )
+
+        rules = self.to_rule()
+        rules["predict_score_name"] = "pred_y"
+        rules["predict_name"] = "pred_y"
+
+        node_name = f"postprocessing_score_card_transformer_{builder.max_id()}"
+        node = ServingNode(
+            node_name,
+            op=ServingOp.ARROW_PROCESSING,
+            phase=ServingPhase.POSTPROCESSING,
         )
 
-        out_data = output_tbl.to_pandas()
+        for pyu in builder.pyus:
+            dag, in_schema, out_schema, in_schema_ser, out_schema_ser = pyu(
+                _dump_runner
+            )(
+                rules,
+                node_name,
+            )
 
-        return out_data, None
+            kwargs = ServingNode.build_arrow_processing_kwargs(
+                in_schema_ser, out_schema_ser, dag
+            )
+            node.add(pyu, in_schema, out_schema, kwargs, None)
 
-    input_tbl = load_table(
-        ctx,
-        input_ds,
-        load_features=True,
-        load_labels=True,
-        load_ids=True,
-    )
-
-    with ctx.tracer.trace_running():
-        out_partitions = {}
-        for pyu, party in input_tbl.partitions.items():
-            (out_data, out_err) = pyu(_fit_transform, num_returns=2)(party.data)
-            err = reveal(out_err)
-            if err is not None:
-                raise err
-
-            out_partitions[pyu] = partition(out_data)
-
-    meta = IndividualTable()
-    input_ds.meta.Unpack(meta)
-    meta.schema.label_types.append("float")
-    meta.schema.labels.append(predict_score_name)
-
-    out_df = VDataFrame(partitions=out_partitions, aligned=input_tbl.aligned)
-    out_system_info = input_ds.system_info
-    output_dd = dump_table(
-        ctx,
-        vdata=out_df,
-        uri=output_ds,
-        meta=meta,
-        system_info=out_system_info,
-    )
-
-    return {"output_ds": output_dd}
+        builder.add_node(node)

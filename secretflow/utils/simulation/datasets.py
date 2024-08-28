@@ -14,7 +14,6 @@
 
 import hashlib
 import os
-import pickle
 import random
 import uuid
 import zipfile
@@ -36,6 +35,7 @@ from secretflow.device.device.pyu import PYU
 from secretflow.security.aggregation import Aggregator
 from secretflow.security.compare import Comparator
 from secretflow.utils.hash import sha256sum
+from secretflow.utils import secure_pickle as pickle
 from secretflow.utils.simulation.data import create_ndarray
 from secretflow.utils.simulation.data.dataframe import create_df, create_vdf
 

@@ -12,38 +12,51 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 from typing import List
 
 from google.protobuf.json_format import MessageToJson
 from kuscia.proto.api.v1alpha1.common_pb2 import DataColumn
 from kuscia.proto.api.v1alpha1.datamesh.domaindata_pb2 import DomainData
 
-from secretflow.spec.v1.data_pb2 import DistData, IndividualTable, VerticalTable
+from secretflow.spec.v1.data_pb2 import (
+    DistData,
+    IndividualTable,
+    TableSchema,
+    VerticalTable,
+)
 
 
 def convert_domain_data_to_individual_table(
     domain_data: DomainData,
 ) -> IndividualTable:
-    import logging
-
-    logging.warning(
-        'kuscia adapter has to deduce dist data from domain data at this moment.'
-    )
     assert domain_data.type == 'table'
-    dist_data = DistData(name=domain_data.name, type="sf.table.individual")
+    dist_data = DistData(
+        name=domain_data.name,
+        type="sf.table.individual",
+        data_refs=[
+            DistData.DataRef(
+                uri=domain_data.relative_uri,
+                party=domain_data.author,
+                format='csv',
+                null_strs=(
+                    json.loads(domain_data.attributes["NullStrs"])
+                    if "NullStrs" in domain_data.attributes
+                    else []
+                ),
+            )
+        ],
+    )
 
-    meta = IndividualTable()
-    for col in domain_data.columns:
-        meta.schema.features.append(col.name)
-        meta.schema.feature_types.append(col.type)
-    meta.line_count = -1
+    meta = IndividualTable(
+        schema=TableSchema(
+            features=[col.name for col in domain_data.columns],
+            feature_types=[col.type for col in domain_data.columns],
+        ),
+        line_count=-1,
+    )
+
     dist_data.meta.Pack(meta)
-
-    data_ref = DistData.DataRef()
-    data_ref.uri = domain_data.relative_uri
-    data_ref.party = domain_data.author
-    data_ref.format = 'csv'
-    dist_data.data_refs.append(data_ref)
 
     return dist_data
 

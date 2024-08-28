@@ -15,7 +15,8 @@
 import json
 
 from secretflow.component.component import Component, IoType, TableColParam
-from secretflow.component.data_utils import DistDataType, load_table, model_dumps
+from secretflow.component.data_utils import DistDataType, model_dumps
+from secretflow.component.dataframe import CompDataFrame
 from secretflow.data.split import train_test_split
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData
@@ -267,19 +268,19 @@ def slnn_train_eval_fn(
         train_dataset_label[0] not in train_dataset_feature_selects
     ), f"col {train_dataset_label[0]} used in both label and features"
 
-    y = load_table(
+    y = CompDataFrame.from_distdata(
         ctx,
         train_dataset,
         load_labels=True,
         load_features=True,
         col_selects=train_dataset_label,
-    )
-    x = load_table(
+    ).to_pandas(check_null=False)
+    x = CompDataFrame.from_distdata(
         ctx,
         train_dataset,
         load_features=True,
         col_selects=train_dataset_feature_selects,
-    )
+    ).to_pandas(check_null=False)
 
     val_x, val_y = None, None
     if validattion_prop > 0:

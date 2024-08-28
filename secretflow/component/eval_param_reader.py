@@ -85,12 +85,18 @@ def check_table_attr_col_cnt(value: Attribute, definition: IoDef.TableAttrDef):
     cnt = len(value.ss)
 
     if definition.col_min_cnt_inclusive and cnt < definition.col_min_cnt_inclusive:
-        return False
+        return (
+            False,
+            f"value count: {cnt}  < definition.col_min_cnt_inclusiv: {definition.col_min_cnt_inclusive}",
+        )
 
     if definition.col_max_cnt_inclusive and cnt > definition.col_max_cnt_inclusive:
-        return False
+        return (
+            False,
+            f"value count: {cnt} > definition.col_min_cnt_inclusive: {definition.col_max_cnt_inclusive}",
+        )
 
-    return True
+    return True, ""
 
 
 def get_value(value: Attribute, at: AttrType, pb_cls_name: str = None):
@@ -274,12 +280,12 @@ class EvalParamReader:
 
                 if full_name not in self._instance_attrs:
                     self._instance_attrs[full_name] = Attribute()
-
-                if not check_table_attr_col_cnt(
+                valid, info = check_table_attr_col_cnt(
                     self._instance_attrs[full_name], input_attr
-                ):
+                )
+                if not valid:
                     raise EvalParamError(
-                        f"input attr {full_name} check_table_attr_col_cnt fails."
+                        f"input attr {full_name} check_table_attr_col_cnt fails, info: {info}."
                     )
 
                 self._instance_attrs[full_name] = get_value(

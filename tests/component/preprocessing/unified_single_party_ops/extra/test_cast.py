@@ -16,9 +16,10 @@ import logging
 
 import pandas as pd
 import pytest
+from pyarrow import orc
 
 import secretflow.compute as sc
-from secretflow.component.data_utils import DistDataType, VerticalTableWrapper
+from secretflow.component.data_utils import DistDataType
 from secretflow.component.preprocessing.unified_single_party_ops.cast import (
     CAST_VERSION,
     _apply_rules_on_table,
@@ -114,12 +115,13 @@ def test_cast(comp_prod_sf_cluster_config):
         assert out_meta.schemas[1].label_types == ["float64"]
 
         comp_storage = ComponentStorage(storage_config)
-        real_data = pd.read_csv(comp_storage.get_reader(output_path))
+        real_data = orc.read_table(comp_storage.get_reader(output_path)).to_pandas()
         logging.warning(f"...vertical_res:{self_party}... \n{real_data}\n.....")
         expected_data = expected_alice if self_party == "alice" else expected_bob
         pd.testing.assert_frame_equal(
             pd.DataFrame(expected_data),
             real_data,
+            check_dtype=False,
         )
     # test substitution
     sub_path = "test_cast/substitution.csv"
@@ -138,8 +140,8 @@ def test_cast(comp_prod_sf_cluster_config):
 
     if self_party in ["alice", "bob"]:
         comp_storage = ComponentStorage(storage_config)
-        sub_out = pd.read_csv(comp_storage.get_reader(sub_path))
-        original_out = pd.read_csv(comp_storage.get_reader(output_path))
+        sub_out = orc.read_table(comp_storage.get_reader(sub_path)).to_pandas()
+        original_out = orc.read_table(comp_storage.get_reader(output_path)).to_pandas()
 
         logging.warning(f"....... \nsub_out\n{sub_out}\n.,......")
 

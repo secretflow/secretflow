@@ -20,10 +20,10 @@ import pandas as pd
 from secretflow.component.component import Component, IoType, TableColParam
 from secretflow.component.data_utils import (
     DistDataType,
-    extract_table_header,
-    load_table,
+    extract_data_infos,
     model_loads,
 )
+from secretflow.component.dataframe import CompDataFrame
 from secretflow.component.io.core.bins.bin_utils import pad_inf_to_split_points
 from secretflow.component.preprocessing.binning.vert_binning import (
     BINNING_RULE_MAX_MAJOR_VERSION,
@@ -91,30 +91,34 @@ def stats_psi_eval_fn(
     bin_rule,
     report,
 ):
-    dtypes, _ = extract_table_header(
+    infos = extract_data_infos(
         input_base_data,
         load_features=True,
     )
-    pyus = {p: PYU(p) for p in dtypes}
+    pyus = {p: PYU(p) for p in infos}
     bin_rules: dict[PYU, PYUObject] = load_bin_rules(ctx, bin_rule, pyus)
     feature_rules: dict[str, dict] = get_feature_rules(bin_rules)
 
-    input_base_df = load_table(
+    input_base_df = CompDataFrame.from_distdata(
         ctx,
         input_base_data,
         load_features=True,
         col_selects=input_base_data_feature_selects,
         load_ids=False,
         load_labels=False,
-    )
-    input_test_df = load_table(
+    ).to_pandas(
+        check_null=False
+    )  # FIXME: avoid to_pandas, use pa.Table
+    input_test_df = CompDataFrame.from_distdata(
         ctx,
         input_test_data,
         load_features=True,
         col_selects=input_base_data_feature_selects,
         load_ids=False,
         load_labels=False,
-    )
+    ).to_pandas(
+        check_null=False
+    )  # FIXME: avoid to_pandas, use pa.Table
 
     all_feature_psi = calculate_stats_psi(
         feature_rules, input_base_data_feature_selects, input_base_df, input_test_df

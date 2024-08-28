@@ -12,16 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sqlite3
 
-import pandas as pd
+import logging
+from typing import Tuple
+
+import duckdb
+import pyarrow as pa
+from pyarrow import compute as pc
 
 from secretflow.component.component import Component, IoType
-from secretflow.component.data_utils import DistDataType, dump_table, load_table
-from secretflow.data.core import partition
-from secretflow.data.vertical.dataframe import VDataFrame
+from secretflow.component.data_utils import DistDataType, extract_data_infos
+from secretflow.component.dataframe import StreamingReader, StreamingWriter
 from secretflow.device import PYU, reveal
-from secretflow.spec.v1.data_pb2 import IndividualTable, TableSchema, VerticalTable
+from secretflow.spec.v1.data_pb2 import TableSchema
+from secretflow.utils.consistent_ops import unique_list
 
 expr_condition_filter_comp = Component(
     "expr_condition_filter",
@@ -33,6 +37,7 @@ expr_condition_filter_comp = Component(
     """,
 )
 
+# Suggest that the user verify the validity of the expression
 expr_condition_filter_comp.str_attr(
     name="expr",
     desc="The custom expression must comply with SQLite syntax standards",
@@ -68,8 +73,10 @@ def parse_columns(expr: str) -> list[str]:
 
     sql = f"SELECT * FROM __table__ WHERE {expr}"
     columns = []
-    for column in sqlglot.parse_one(sql, dialect="sqlite").find_all(exp.Column):
+    for column in sqlglot.parse_one(sql, dialect="duckdb").find_all(exp.Column):
         columns.append(column.sql().strip('"'))
+
+    columns = unique_list(columns)
 
     return columns
 
@@ -98,56 +105,72 @@ def expr_condition_filter_comp_eval_fn(*, ctx, expr: str, in_ds, out_ds, out_ds_
     expr = expr.strip()
     assert expr != "", f"empty expr"
 
-    if in_ds.type == DistDataType.VERTICAL_TABLE:
-        meta = VerticalTable()
-        in_ds.meta.Unpack(meta)
-        schemas = {dr.party: s for s, dr in zip(meta.schemas, in_ds.data_refs)}
-        owner = _find_owner(schemas, expr)
-    else:
-        meta = IndividualTable()
-        in_ds.meta.Unpack(meta)
-        owner = in_ds.data_refs[0].party
+    columns = parse_columns(expr)
 
-    def _fit(df: pd.DataFrame, expr: str):
-        sql = f"SELECT CASE WHEN {expr} THEN TRUE ELSE FALSE END AS hit FROM __table__;"
+    infos = extract_data_infos(
+        in_ds, load_features=True, load_ids=True, load_labels=True, col_selects=columns
+    )
+
+    if len(infos) > 1:
+        raise AttributeError(
+            f"The columns<{columns}> of expr<{expr}> must appears in one party"
+        )
+
+    fit_pyu = PYU(list(infos.keys())[0])
+
+    def _fit(duck_input_table: pa.Table, expr: str) -> Tuple[pa.Table, Exception]:
+        sql = f"SELECT CASE WHEN {expr} THEN TRUE ELSE FALSE END AS hit FROM duck_input_table"
 
         try:
-            con = sqlite3.connect(":memory:")
-            df.to_sql("__table__", con, if_exists="replace", index=False)
-            sql_output = pd.read_sql_query(sql, con, dtype={"hit": "bool"})
-            filter = pd.Series(sql_output["hit"])
-            con.close()
-            return filter, None
-        except pd.errors.DatabaseError as e:
+            with duckdb.connect() as con:
+                selection = con.execute(sql).arrow()
+            if selection.num_columns != 1 or not pa.types.is_boolean(
+                selection.field(0).type
+            ):
+                return None, ValueError(
+                    f"The result can only have one column<{selection.num_columns}> and it must be of boolean type<{selection.field(0).type}>"
+                )
+            return selection, None
+        except duckdb.Error as e:
+            logging.exception(f"execute sql {sql} error")
             return None, ValueError(e.__cause__)
         except Exception as e:
+            logging.exception(f"execute sql {sql} error")
             return None, e
 
-    x = load_table(ctx, in_ds, load_features=True, load_ids=True, load_labels=True)
+    reader = StreamingReader.from_distdata(
+        ctx,
+        in_ds,
+        load_features=True,
+        load_ids=True,
+        load_labels=True,
+    )
 
-    owner_pyu = PYU(owner)
-    owner_party = x.partitions[owner_pyu]
-    filter_series, err_obj = owner_pyu(_fit, num_returns=2)(owner_party.data, expr)
-    err = reveal(err_obj)
-    if err is not None:
-        raise err
+    selected_writer = StreamingWriter(ctx, out_ds)
+    else_writer = StreamingWriter(ctx, out_ds_else)
 
-    def _transform(df: pd.DataFrame, filter: pd.Series):
-        return df[filter], df[~filter]
+    def _transform(df: pa.Table, selection: pa.Table) -> Tuple[pa.Table, pa.Table]:
+        selection = selection.column(0)
+        return df.filter(selection), df.filter(pc.invert(selection))
 
-    out_partitions = {}
-    else_partitions = {}
-    for pyu, party in x.partitions.items():
-        out_data, else_data = pyu(_transform, num_returns=2)(
-            party.data, filter_series.to(pyu)
-        )
-        out_partitions[pyu] = partition(out_data)
-        else_partitions[pyu] = partition(else_data)
+    with selected_writer, else_writer:
+        for batch in reader:
+            selected_df = batch.copy()
+            else_df = batch.copy()
+            selection, err = fit_pyu(_fit)(batch.data(fit_pyu), expr)
+            err = reveal(err)
+            if err:
+                raise err
+            for pyu in batch.partitions:
+                selected_data, else_data = pyu(_transform)(
+                    batch.data(pyu), selection.to(pyu)
+                )
+                selected_df.set_data(selected_data)
+                else_df.set_data(else_data)
+            selected_writer.write(selected_df)
+            else_writer.write(else_df)
 
-    out_df = VDataFrame(partitions=out_partitions, aligned=x.aligned)
-    out_db = dump_table(ctx, out_df, out_ds, meta, in_ds.system_info)
-
-    else_df = VDataFrame(partitions=else_partitions, aligned=x.aligned)
-    else_db = dump_table(ctx, else_df, out_ds_else, meta, in_ds.system_info)
-
-    return {"out_ds": out_db, "out_ds_else": else_db}
+    return {
+        "out_ds": selected_writer.to_distdata(),
+        "out_ds_else": else_writer.to_distdata(),
+    }

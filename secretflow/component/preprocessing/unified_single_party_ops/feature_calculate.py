@@ -255,12 +255,12 @@ def feature_calculate_eval_fn(
     assert in_ds.type == DistDataType.VERTICAL_TABLE, "only support vtable for now"
     str_rule = MessageToJson(rules)
 
-    def _transform(data: pd.DataFrame):
+    def _transform(data: pa.Table):
         import secretflow.spec.extend.calculate_rules_pb2 as pb
 
         rules = Parse(str_rule, pb.CalculateOpRules())
         data = apply_feature_calcute_rule(
-            sc.Table.from_pandas(data), rules, in_ds_features
+            sc.Table.from_pyarrow(data), rules, in_ds_features
         )
         return data, [], None
 

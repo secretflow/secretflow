@@ -26,11 +26,13 @@ comparator_mapping = {
     '>': lambda x, y: x > y,
     '>=': lambda x, y: x >= y,
     'IN': lambda x, y: x.isin(y),
+    'NOTNULL': lambda x, _: x.notnull(),
 }
 
 conversion_mapping = {
     'STRING': str,
     'FLOAT': float,
+    'INT': int,
     # Add more value types and conversion functions as needed
 }
 
@@ -53,13 +55,14 @@ class ConditionFilter(_PreprocessBase):
         # check the condition makes sense
         if comparator not in comparator_mapping:
             raise ValueError(f"comparator {comparator} is not supported")
-        if value_type not in conversion_mapping:
-            raise ValueError(f"value_type {value_type} is not supported")
-        if comparator != 'IN' and len(bound_value) != 1:
-            raise ValueError(f"bound_value must be a list for IN comparator")
-        if float_epsilon < 0:
-            raise ValueError(f"float_epsilon must be a non-negative number")
-        assert len(bound_value) > 0, "bound value must be non-empty."
+        if comparator != "NOTNULL":
+            if value_type not in conversion_mapping:
+                raise ValueError(f"value_type {value_type} is not supported")
+            if comparator != "IN" and len(bound_value) != 1:
+                raise ValueError(f"bound_value must be a list for IN comparator")
+            if float_epsilon < 0:
+                raise ValueError(f"float_epsilon must be a non-negative number")
+            assert len(bound_value) > 0, "bound value must be non-empty."
         self.field_name = field_name
         self.comparator = comparator
         self.value_type = value_type
@@ -79,10 +82,12 @@ class ConditionFilter(_PreprocessBase):
     def fit(self, df: VDataFrame) -> 'ConditionFilter':
         assert isinstance(df, VDataFrame), "Currently only support VDataFrame"
         # Convert the bound value to the specified value_type
-        conversion_func = conversion_mapping[self.value_type]
-        bound_value = [conversion_func(val) for val in self.bound_value]
-        if self.comparator != 'IN':
-            bound_value = bound_value[0]
+        bound_value = self.bound_value
+        if self.comparator != 'NOTNULL':
+            conversion_func = conversion_mapping[self.value_type]
+            bound_value = [conversion_func(val) for val in self.bound_value]
+            if self.comparator != 'IN':
+                bound_value = bound_value[0]
         # Apply the condition filter on the DataFrame
         condition_func = comparator_mapping[self.comparator]
         if self.value_type == 'FLOAT' and self.float_epsilon > 0:

@@ -17,15 +17,15 @@ import math
 
 import numpy as np
 import pandas as pd
+from pyarrow import orc
 
 import secretflow.compute as sc
+from secretflow.component.core.storage import Storage
 from secretflow.component.data_utils import DistDataType
+from secretflow.component.entry import comp_eval
 from secretflow.component.postprocessing.score_card_transformer import (
-    SCORE_CARD_TRANSFORMER_VERSION,
-    apply_score_card_transformer_on_table,
-    score_card_transformer_comp,
+    ScoreCardTransformer,
 )
-from secretflow.component.storage.storage import ComponentStorage
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, IndividualTable, TableSchema
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
@@ -37,7 +37,7 @@ def test_score_card_transformer(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = Storage(storage_config)
 
     input_data = {
         "id": ["id1", "id2"],
@@ -53,14 +53,12 @@ def test_score_card_transformer(comp_prod_sf_cluster_config):
     )
 
     if self_party == 'alice':
-        pd.DataFrame(input_data).to_csv(
-            comp_storage.get_writer(input_path), index=False
-        )
+        pd.DataFrame(input_data).to_csv(storage.get_writer(input_path), index=False)
 
     param = NodeEvalParam(
         domain="postprocessing",
         name="score_card_transformer",
-        version=SCORE_CARD_TRANSFORMER_VERSION,
+        version="1.0.0",
         attr_paths=[
             "positive",
             "predict_score_name",
@@ -93,13 +91,13 @@ def test_score_card_transformer(comp_prod_sf_cluster_config):
         schema=TableSchema(
             id_types=None,
             ids=None,
-            feature_types=["str", "float"],
+            feature_types=["str", "float64"],
             features=["id", "pred"],
         )
     )
     param.inputs[0].meta.Pack(meta)
 
-    res = score_card_transformer_comp.eval(
+    res = comp_eval(
         param=param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -107,12 +105,12 @@ def test_score_card_transformer(comp_prod_sf_cluster_config):
 
     assert len(res.outputs) == 1
     if self_party == "alice":
-        comp_storage = ComponentStorage(storage_config)
-        real_result = pd.read_csv(comp_storage.get_reader(output_path))
+        real_result = orc.read_table(storage.get_reader(output_path)).to_pandas()
         logging.warning(f"...result:{self_party}... \n{real_result}\n.....")
         pd.testing.assert_frame_equal(
             expected_result,
             real_result,
+            check_dtype=False,
         )
 
 
@@ -153,7 +151,7 @@ def test_apply_score_card_transformer_rules():
         positive,
     ):
         table = sc.Table.from_pandas(df)
-        output = apply_score_card_transformer_on_table(
+        output = ScoreCardTransformer.apply(
             table,
             "pred",
             "predict_score",

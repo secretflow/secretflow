@@ -23,7 +23,8 @@ from secretflow.component.component import (
     IoType,
     TableColParam,
 )
-from secretflow.component.data_utils import DistData, DistDataType, load_table
+from secretflow.component.data_utils import DistData, DistDataType
+from secretflow.component.dataframe import CompDataFrame
 from secretflow.component.device_utils import make_spu
 from secretflow.device import Device
 from secretflow.device.device.spu import SPU
@@ -73,12 +74,12 @@ def ss_pearsonr_eval_fn(
     feature_selects = (
         input_data_feature_selects if len(input_data_feature_selects) else None
     )
-    x = load_table(
+    x = CompDataFrame.from_distdata(
         ctx,
         input_data,
         load_features=True,
         col_selects=feature_selects,
-    )
+    ).to_pandas()
     if len(x.partitions) == 1:
         for pyu, _ in x.partitions.items():
             device = pyu

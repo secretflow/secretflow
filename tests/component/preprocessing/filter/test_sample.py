@@ -17,9 +17,10 @@ import logging
 import numpy as np
 import pandas as pd
 import pytest
+from pyarrow import orc
 
 from secretflow.component.component import CompEvalError
-from secretflow.component.data_utils import DistDataType, extract_distdata_info
+from secretflow.component.data_utils import DistDataType, extract_data_infos
 from secretflow.component.preprocessing.filter.sample import (
     RANDOM_SAMPLE,
     STRATIFY_SAMPLE,
@@ -41,7 +42,6 @@ from secretflow.spec.v1.data_pb2 import (
 )
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
-
 
 RANDOM_STATE = 1234
 
@@ -469,7 +469,7 @@ def test_sample_vertical(comp_prod_sf_cluster_config):
         df_alice = pd.DataFrame(
             {
                 "id1": [1, 2, 3, 4, 5, 6],
-                "a1": ["K5", "K1", None, "K6", "cc", "L"],
+                "a1": ["K5", "K1", "K?", "K6", "cc", "L"],
             }
         )
         df_alice.to_csv(
@@ -480,7 +480,7 @@ def test_sample_vertical(comp_prod_sf_cluster_config):
         df_bob = pd.DataFrame(
             {
                 "id2": [1, 2, 3, 4, 5, 6],
-                "b1": [10.2, 20.5, None, -0.4, -3.2, 4.5],
+                "b1": [10.2, 20.5, 1.0, -0.4, -3.2, 4.5],
             }
         )
         df_bob.to_csv(
@@ -555,17 +555,21 @@ def test_sample_vertical(comp_prod_sf_cluster_config):
     res.outputs[1].meta.Unpack(comp_ret)
     logging.info(comp_ret)
 
-    sample_data = extract_distdata_info(res.outputs[0])
+    sample_data = extract_data_infos(res.outputs[0], load_ids=True)
 
     if self_party == "alice":
-        ds_alice = pd.read_csv(comp_storage.get_reader(sample_data["alice"].uri))
+        ds_alice = orc.read_table(
+            comp_storage.get_reader(sample_data["alice"].uri)
+        ).to_pandas()
         np.testing.assert_equal(ds_alice.shape[0], 5)
-        assert list(ds_alice["id1"]) == [1, 3, 4, 5, 6]
+        assert list(ds_alice["id1"]) == ["1", "3", "4", "5", "6"]
 
     if self_party == "bob":
-        ds_bob = pd.read_csv(comp_storage.get_reader(sample_data["bob"].uri))
+        ds_bob = orc.read_table(
+            comp_storage.get_reader(sample_data["bob"].uri)
+        ).to_pandas()
         np.testing.assert_equal(ds_bob.shape[0], 5)
-        assert list(ds_bob["id2"]) == [1, 3, 4, 5, 6]
+        assert list(ds_bob["id2"]) == ["1", "3", "4", "5", "6"]
 
 
 def test_sample_vertical_replacement(comp_prod_sf_cluster_config):
@@ -582,7 +586,7 @@ def test_sample_vertical_replacement(comp_prod_sf_cluster_config):
         df_alice = pd.DataFrame(
             {
                 "id1": [1, 2, 3, 4, 5, 6],
-                "a1": ["K5", "K1", None, "K6", "cc", "L"],
+                "a1": ["K5", "K1", "K?", "K6", "cc", "L"],
             }
         )
         df_alice.to_csv(
@@ -593,7 +597,7 @@ def test_sample_vertical_replacement(comp_prod_sf_cluster_config):
         df_bob = pd.DataFrame(
             {
                 "id2": [1, 2, 3, 4, 5, 6],
-                "b1": [10.2, 20.5, None, -0.4, -3.2, 4.5],
+                "b1": [10.2, 20.5, 10.1, -0.4, -3.2, 4.5],
             }
         )
         df_bob.to_csv(
@@ -656,17 +660,21 @@ def test_sample_vertical_replacement(comp_prod_sf_cluster_config):
 
     assert len(res.outputs) == 2
 
-    sample_data = extract_distdata_info(res.outputs[0])
+    sample_data = extract_data_infos(res.outputs[0], load_ids=True)
 
     if self_party == "alice":
-        ds_alice = pd.read_csv(comp_storage.get_reader(sample_data["alice"].uri))
+        ds_alice = orc.read_table(
+            comp_storage.get_reader(sample_data["alice"].uri)
+        ).to_pandas()
         np.testing.assert_equal(ds_alice.shape[0], 5)
-        assert list(ds_alice["id1"]) == [1, 1, 1, 4, 5]
+        assert list(ds_alice["id1"]) == ["1", "1", "1", "4", "5"]
 
     if self_party == "bob":
-        ds_bob = pd.read_csv(comp_storage.get_reader(sample_data["bob"].uri))
+        ds_bob = orc.read_table(
+            comp_storage.get_reader(sample_data["bob"].uri)
+        ).to_pandas()
         np.testing.assert_equal(ds_bob.shape[0], 5)
-        assert list(ds_bob["id2"]) == [1, 1, 1, 4, 5]
+        assert list(ds_bob["id2"]) == ["1", "1", "1", "4", "5"]
 
 
 def test_sample_individual(comp_prod_sf_cluster_config):
@@ -682,7 +690,7 @@ def test_sample_individual(comp_prod_sf_cluster_config):
         df_alice = pd.DataFrame(
             {
                 "id1": [1, 2, 3, 4, 5, 6],
-                "a1": ["K5", "K1", None, "K6", "cc", "L"],
+                "a1": ["K5", "K1", "KN", "K6", "cc", "L"],
             }
         )
         df_alice.to_csv(
@@ -736,9 +744,11 @@ def test_sample_individual(comp_prod_sf_cluster_config):
 
     assert len(res.outputs) == 2
 
-    sample_data = extract_distdata_info(res.outputs[0])
+    sample_data = extract_data_infos(res.outputs[0], load_ids=True)
 
     if self_party == "alice":
-        ds_alice = pd.read_csv(comp_storage.get_reader(sample_data["alice"].uri))
+        ds_alice = orc.read_table(
+            comp_storage.get_reader(sample_data["alice"].uri)
+        ).to_pandas()
         np.testing.assert_equal(ds_alice.shape[0], 5)
-        assert list(ds_alice["id1"]) == [1, 2, 3, 4, 5]
+        assert list(ds_alice["id1"]) == ["1", "2", "3", "4", "5"]

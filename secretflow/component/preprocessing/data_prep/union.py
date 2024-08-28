@@ -14,11 +14,11 @@
 import pandas as pd
 
 from secretflow.component.component import Component, IoType
-from secretflow.component.data_utils import (
-    DistDataType,
-    VerticalTableWrapper,
-    dump_table,
-    load_table,
+from secretflow.component.data_utils import DistDataType, extract_data_infos
+from secretflow.component.dataframe import (
+    CompDataFrame,
+    StreamingReader,
+    StreamingWriter,
 )
 from secretflow.data.core import partition
 from secretflow.data.vertical.dataframe import VDataFrame
@@ -62,20 +62,37 @@ def union_eval_fn(
     ctx,
     input1: DistData,
     input2: DistData,
-    output_ds: DistData,
+    output_ds,
 ):
     assert (
         input1.type.lower() == input2.type.lower()
     ), f"input type not match, {input1.type}, {input2.type}"
 
-    tbl1 = load_table(
+    table1_infos = extract_data_infos(
+        input1,
+        load_features=True,
+        load_labels=True,
+        load_ids=True,
+    )
+    table2_infos = extract_data_infos(
+        input2,
+        load_features=True,
+        load_labels=True,
+        load_ids=True,
+    )
+
+    assert set(table1_infos.keys()) == set(table2_infos.keys()), f"partitions not match"
+    for p in table1_infos:
+        assert table1_infos[p].mate_equal(table2_infos[p]), f"table meta info missmatch"
+
+    reader1 = StreamingReader.from_distdata(
         ctx,
         input1,
         load_features=True,
         load_labels=True,
         load_ids=True,
     )
-    tbl2 = load_table(
+    reader2 = StreamingReader.from_distdata(
         ctx,
         input2,
         load_features=True,
@@ -83,37 +100,12 @@ def union_eval_fn(
         load_ids=True,
     )
 
-    assert len(tbl1.partitions) == len(tbl2.partitions), f"partitions not match"
+    writer = StreamingWriter(ctx, output_ds)
 
-    def _apply(df1: pd.DataFrame, df2: pd.DataFrame):
-        return pd.concat([df1, df2], ignore_index=True)
+    with writer, ctx.tracer.trace_io():
+        for batch in reader1:
+            writer.write(batch)
+        for batch in reader2:
+            writer.write(batch)
 
-    with ctx.tracer.trace_running():
-        out_partitions = {}
-        for device, party1 in tbl1.partitions.items():
-            party2 = tbl2.partitions.get(device)
-            assert party2 is not None, f"party not match {device}"
-            assert (
-                party1.columns == party2.columns
-            ), f"columns not match, {party1.columns}, {party2.columns}"
-            out_data = device(_apply)(party1.data, party2.data)
-            out_partitions[device] = partition(out_data)
-
-    out_aligned = tbl1.aligned and tbl2.aligned
-    out_df = VDataFrame(partitions=out_partitions, aligned=out_aligned)
-
-    if input1.type == DistDataType.VERTICAL_TABLE:
-        meta = VerticalTableWrapper.from_dist_data(input1, out_df.shape[0])
-    else:
-        meta = IndividualTable()
-        input1.meta.Unpack(meta)
-
-    output_dd = dump_table(
-        ctx,
-        vdata=out_df,
-        uri=output_ds,
-        meta=meta,
-        system_info=input1.system_info,
-    )
-
-    return {"output_ds": output_dd}
+    return {"output_ds": writer.to_distdata()}

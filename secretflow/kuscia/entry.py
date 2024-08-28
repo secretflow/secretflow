@@ -22,12 +22,12 @@ from typing import List
 
 import click
 from google.protobuf import json_format
-from kuscia.proto.api.v1alpha1.common_pb2 import FileFormat
 from kuscia.proto.api.v1alpha1.datamesh.domaindatasource_pb2 import DomainDataSource
 
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.entry import comp_eval, get_comp_def
 from secretflow.kuscia.datamesh import (
+    DataFileFormat,
     create_channel,
     create_dm_flight_client,
     create_domain_data_in_dm,
@@ -91,25 +91,42 @@ def download_dist_data_from_dp(
     domain_data,
     storage_config,
     dist_data,
+    partition_spec: str = "",
 ):
     # TODO: Refactor comp IO, move this to component/data_utils.py
     # IO should running in pyu context.
     data_type: str = dist_data.type
     need_untar = False
     party_data_refs = []
+    data_ref_type = set()
     for data_ref in list(dist_data.data_refs):
         if data_ref.party == task_conf.party_name:
             party_data_refs.append(data_ref)
+            data_ref_type.add(data_ref.format)
+
+    if not party_data_refs:
+        return
 
     if data_type.startswith("sf.table"):
-        # download csv, TODO: move to data_utils.py:load_table
-        file_format = FileFormat.CSV
+        if len(data_ref_type) != 1:
+            raise RuntimeError(
+                f"kuscia adapter load data refs of {task_conf.party_name} with multiple format: {data_ref_type}"
+            )
+        data_ref_type = data_ref_type.pop()
+        # download csv, TODO: use DP SDK instead.
+        if data_ref_type == 'csv':
+            file_format = DataFileFormat.CSV
+        elif data_ref_type == 'orc':
+            file_format = DataFileFormat.ORC
+        else:
+            raise AttributeError(f"unrecognized format {data_ref_type} for {data_type}")
+
     elif data_type.startswith("sf.model") or data_type.startswith("sf.rule"):
-        # download model etc., TODO: move to data_utils.py:model_loads
-        file_format = FileFormat.BINARY
+        # download model etc., TODO: use DP SDK instead.
+        file_format = DataFileFormat.BINARY
         need_untar = True
     elif data_type == "sf.serving.model":
-        file_format = FileFormat.BINARY
+        file_format = DataFileFormat.BINARY
     elif data_type in ["sf.report", "sf.read_data"]:
         # no data to download
         assert len(party_data_refs) == 0, "can not download report/read_data"
@@ -122,7 +139,9 @@ def download_dist_data_from_dp(
         path = os.path.join(storage_config.local_fs.wd, domain_data.relative_uri)
         if need_untar:
             path = f"{path}.tar.gz"
-        get_file_from_dp(dm_flight_client, domaindata_id, path, file_format)
+        get_file_from_dp(
+            dm_flight_client, domaindata_id, path, file_format, partition_spec
+        )
         if need_untar:
             with tarfile.open(path, "r:gz") as tar:
                 tar.extractall(storage_config.local_fs.wd, filter='data')
@@ -139,6 +158,7 @@ def domaindata_id_to_dist_data(
     domaindata_stub,
     domaindata_id,
     input_def: IoDef,
+    partition_spec: str = "",
     skip_download_dataset: bool = False,
 ):
     if domaindata_id == '':
@@ -147,7 +167,8 @@ def domaindata_id_to_dist_data(
     domain_data = get_domain_data(domaindata_stub, domaindata_id)
 
     if (
-        domain_data.author == task_conf.party_name
+        datasource.access_directly
+        and domain_data.author == task_conf.party_name
         and domain_data.datasource_id != datasource.datasource_id
     ):
         raise RuntimeError(
@@ -174,6 +195,7 @@ def domaindata_id_to_dist_data(
             domain_data,
             storage_config,
             dist_data,
+            partition_spec,
         )
 
     return dist_data
@@ -226,6 +248,7 @@ def model_export_id_to_data(
                         domaindata_stub,
                         domain_id,
                         input_def,
+                        partition_spec="",
                         skip_download_dataset=True,
                     ),
                     indent=0,
@@ -244,6 +267,7 @@ def model_export_id_to_data(
                         domaindata_stub,
                         domain_id,
                         output_def,
+                        partition_spec="",
                         skip_download_dataset=True,
                     ),
                     indent=0,
@@ -281,6 +305,14 @@ def preprocess_sf_node_eval_param(
         sf_output_uris
     ), "cnt of sf_output_uris doesn't match cnt of comp_def.outputs."
 
+    partitions_spec = task_conf.sf_input_partitions_spec
+    if partitions_spec is not None and partitions_spec:
+        assert len(partitions_spec) == len(
+            sf_input_ids
+        ), "cnt of sf_input_partions_spec doesn't match cnt of sf_input_ids."
+    else:
+        partitions_spec = [""] * len(sf_input_ids)
+
     if not datasource.access_directly:
         dm_flight_client = create_dm_flight_client(datamesh_addr)
     else:
@@ -289,7 +321,9 @@ def preprocess_sf_node_eval_param(
     # get input DistData from GRM
     if len(sf_input_ids):
         param.ClearField('inputs')
-        for domaindata_id, input_def in zip(sf_input_ids, list(comp_def.inputs)):
+        for domaindata_id, input_def, partition_spec in zip(
+            sf_input_ids, list(comp_def.inputs), partitions_spec
+        ):
             param.inputs.append(
                 domaindata_id_to_dist_data(
                     task_conf,
@@ -299,6 +333,7 @@ def preprocess_sf_node_eval_param(
                     domaindata_stub,
                     domaindata_id,
                     input_def,
+                    partition_spec,
                 )
             )
 
@@ -397,18 +432,26 @@ def upload_dist_data_to_dp(
 
     if data_type.startswith("sf.table"):
         # upload csv, TODO: move to data_utils.py:dump_vertical_table
-        file_format = FileFormat.CSV
         if party_data_refs:
+
             assert len(party_data_refs) == 1
             data_ref = party_data_refs[0]
             # FIXME: break this coupling
             assert data_ref.uri == domain_data.relative_uri
             path = os.path.join(storage_config.local_fs.wd, data_ref.uri)
+            if data_ref.format == 'orc':
+                file_format = DataFileFormat.ORC
+            elif data_ref.format == 'csv':
+                file_format = DataFileFormat.CSV
+            else:
+                raise AttributeError(
+                    f"unsupported data ref format {data_ref.format} for {data_type}"
+                )
         else:
             path = None
     elif data_type.startswith("sf.model") or data_type.startswith("sf.rule"):
         # upload model etc., TODO: move to data_utils.py:model_dumps
-        file_format = FileFormat.BINARY
+        file_format = DataFileFormat.BINARY
         if party_data_refs:
             path = os.path.join(
                 storage_config.local_fs.wd, f"{domain_data.relative_uri}.tar.gz"
@@ -425,7 +468,7 @@ def upload_dist_data_to_dp(
             path = None
     elif data_type == "sf.serving.model":
         # upload model etc., TODO: move to data_utils.py
-        file_format = FileFormat.BINARY
+        file_format = DataFileFormat.BINARY
         if party_data_refs:
             assert len(party_data_refs) == 1
             data_ref = party_data_refs[0]
@@ -443,7 +486,7 @@ def upload_dist_data_to_dp(
 
     if path:
         create_domain_data_in_dp(dm_flight_client, domain_data, file_format)
-        put_file_to_dp(dm_flight_client, domain_data_id, path, file_format)
+        put_file_to_dp(dm_flight_client, domain_data_id, path, file_format, domain_data)
 
 
 def postprocess_sf_node_eval_result(
@@ -528,7 +571,11 @@ def main(task_config_path, datamesh_addr):
 
     sf_cluster_config = get_sf_cluster_config(task_conf)
 
-    res = comp_eval(sf_node_eval_param, storage_config, sf_cluster_config)
+    try:
+        res = comp_eval(sf_node_eval_param, storage_config, sf_cluster_config)
+    except Exception:
+        logging.exception(f"comp_eval exception")
+        os._exit(1)
 
     postprocess_sf_node_eval_result(
         task_conf,

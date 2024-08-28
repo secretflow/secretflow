@@ -29,3 +29,6 @@ This information will help us triage your report more quickly.
 ## Preferred Languages
 
 We prefer all communications to be in Chinese or English.
+
+## Security note on pickle
+SecretFlow uses pickle.load to deserialize user model, etc. SecretFlow has already used whitelist and blacklist to improve security of pickle.load function, however, it is user's responsibility to provide and use secure model, dataset, etc in production. User should make sure these data are safe and take responsibility for the consequences of using insecure data.

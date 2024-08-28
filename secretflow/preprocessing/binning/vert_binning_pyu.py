@@ -16,6 +16,8 @@ from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
+import pyarrow as pa
+import pyarrow.compute as pc
 
 from secretflow.device import PYUObject, proxy
 
@@ -29,12 +31,12 @@ class VertBinningPyuWorker:
 
     def __init__(
         self,
-        data: pd.DataFrame,
+        data: pa.Table,
         binning_method: str,
         bin_num: int,
         bin_names: List[str],
     ):
-        data_columns = data.columns
+        data_columns = data.column_names
         assert isinstance(
             bin_names, list
         ), f"bin names should be a list of string but got {type(bin_names)}"
@@ -49,7 +51,7 @@ class VertBinningPyuWorker:
         self.binning_method = binning_method
 
     def _build_feature_bin(
-        self, f_data: pd.DataFrame
+        self, f_data: pa.ChunkedArray
     ) -> Tuple[List[np.ndarray], Union[np.ndarray, List[str]], np.ndarray]:
         '''
         split one feature column into {bin_num} bins.
@@ -63,18 +65,16 @@ class VertBinningPyuWorker:
                     categories for string column (List[str])
             Third: sample indices for np.nan values.
         '''
-        if f_data.dtype == np.dtype(object):
+        if pa.types.is_string(f_data.type):
             # for string type col, split into bins by categories.
-            categories = {d for d in f_data if not pd.isna(d)}
-            for c in categories:
-                assert isinstance(
-                    c, str
-                ), f"only support str if dtype == np.obj, but got {type(c)}"
-            split_points = sorted(list(categories))
+            categories = pc.drop_null(pc.unique(f_data)).to_pylist()
+            split_points = sorted(categories)
             bin_indices = list()
             for b in split_points:
-                bin_indices.append(np.flatnonzero(f_data == b))
-            return bin_indices, split_points, np.flatnonzero(pd.isna(f_data))
+                bin_index = pc.indices_nonzero(pc.equal(b, f_data)).to_numpy()
+                bin_indices.append(bin_index)
+            na_index = pc.indices_nonzero(pc.is_null(f_data)).to_numpy()
+            return bin_indices, split_points, na_index
         else:
             # for number type col, first binning by pd.qcut.
             bin_num = self.bin_num
@@ -106,11 +106,11 @@ class VertBinningPyuWorker:
                 # remove start/end value & empty bins in pd.qcut's range result.
                 # remain only left-open right-close split points
                 np.delete(split_points, empty_bins),
-                np.flatnonzero(pd.isna(f_data)),
+                pc.indices_nonzero(pc.is_null(f_data, nan_is_null=True)).to_numpy(),
             )
 
     def _build_feature_bins(
-        self, data: pd.DataFrame
+        self, data: pa.Table
     ) -> Tuple[List[np.ndarray], List[Union[np.ndarray, List[str]]], List[np.ndarray]]:
         '''
         split all columns into {bin_num} bins.
@@ -126,9 +126,9 @@ class VertBinningPyuWorker:
         ret_bins_idx = list()
         ret_points = list()
         ret_else_bins = list()
-        assert isinstance(data, pd.DataFrame), type(data)
+        assert isinstance(data, pa.Table), type(data)
         for f_name in self.bin_names:
-            f_data = data.loc[:, f_name]
+            f_data = data[f_name]
             bin_idx, split_point, else_bin = self._build_feature_bin(f_data)
             if isinstance(split_point, list):
                 # use List[str] for string column

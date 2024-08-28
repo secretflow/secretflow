@@ -16,6 +16,7 @@ import logging
 
 import pandas as pd
 import pytest
+from pyarrow import orc
 
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.preprocessing.data_prep.union import union_comp
@@ -142,11 +143,12 @@ def test_union_individual(comp_prod_sf_cluster_config):
     assert len(res.outputs) == 1
     if self_party == "alice":
         comp_storage = ComponentStorage(storage_config)
-        real_result = pd.read_csv(comp_storage.get_reader(output_path))
+        real_result = orc.read_table(comp_storage.get_reader(output_path)).to_pandas()
         logging.warning(f"...individual_res:{self_party}... \n{real_result}\n.....")
         pd.testing.assert_frame_equal(
             expected_result,
             real_result,
+            check_dtype=False,
         )
 
     table_statistics_eval(
@@ -276,7 +278,7 @@ def test_union_vertical(comp_prod_sf_cluster_config):
 
     if self_party in ["alice", "bob"]:
         comp_storage = ComponentStorage(storage_config)
-        real_result = pd.read_csv(comp_storage.get_reader(output_path))
+        real_result = orc.read_table(comp_storage.get_reader(output_path)).to_pandas()
         logging.warning(f"\n...vertical_res:{self_party}... \n{real_result}\n.....")
 
         expected_result = expected_alice if self_party == "alice" else expected_bob
@@ -284,6 +286,7 @@ def test_union_vertical(comp_prod_sf_cluster_config):
         pd.testing.assert_frame_equal(
             expected_result,
             real_result,
+            check_dtype=False,
         )
 
     table_statistics_eval(
@@ -384,11 +387,12 @@ def test_union_load_table(comp_prod_sf_cluster_config):
     assert len(res.outputs) == 1
     if self_party == "alice":
         comp_storage = ComponentStorage(storage_config)
-        real_result = pd.read_csv(comp_storage.get_reader(output_path))
+        real_result = orc.read_table(comp_storage.get_reader(output_path)).to_pandas()
         logging.warning(f"...load_table_result:{self_party}... \n{real_result}\n.....")
         pd.testing.assert_frame_equal(
             expected_result,
             real_result,
+            check_dtype=False,
         )
 
 
@@ -476,7 +480,7 @@ def test_union_error(comp_prod_sf_cluster_config):
     meta.schemas[0].features.append("diff_id")
     param.inputs[1].meta.Pack(meta)
 
-    with pytest.raises(AssertionError, match="columns not match") as exc_info:
+    with pytest.raises(AssertionError, match="table meta info missmatch") as exc_info:
         union_comp.eval(
             param=param,
             storage_config=storage_config,

@@ -22,7 +22,7 @@ import numpy as np
 from google.protobuf import json_format
 
 from secretflow.component.component import CompEvalError, Component, IoType
-from secretflow.component.data_utils import DistDataType, extract_table_header
+from secretflow.component.data_utils import DistDataType, extract_data_infos
 from secretflow.component.model_export.serving_utils.postprocessing_converter import (
     PostprocessingConverter,
 )
@@ -124,12 +124,12 @@ def get_init_pyus(input_datasets, component_eval_params) -> List[PYU]:
     dist_datas = input_datasets[: len(comp_def.inputs)]
     v_tables = [d for d in dist_datas if d.type == DistDataType.VERTICAL_TABLE]
     assert len(v_tables) == 1, "only support one v table input for now"
-    dtypes, _ = extract_table_header(
+    infos = extract_data_infos(
         v_tables[0], load_features=True, load_ids=True, load_labels=True
     )
-    assert len(dtypes) > 0
+    assert len(infos) > 0
 
-    return [PYU(p) for p in dtypes], dtypes
+    return [PYU(p) for p in infos], {p: infos[p].dtypes for p in infos}
 
 
 class CompConverter:

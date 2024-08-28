@@ -21,7 +21,7 @@ from google.protobuf import json_format
 
 from secretflow.component.data_utils import (
     DistDataType,
-    extract_table_header,
+    extract_data_infos,
     model_loads,
 )
 from secretflow.component.preprocessing.binning.vert_binning import (
@@ -34,7 +34,7 @@ from secretflow.component.preprocessing.core.version import (
 )
 from secretflow.compute import Table, TraceRunner
 from secretflow.device import reveal
-from secretflow.preprocessing.binning.vert_bin_substitution import binning_rules_to_sc
+from secretflow.preprocessing.binning.vert_bin_substitution import apply_binning_rules
 from secretflow.spec.v1.data_pb2 import DistData
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
@@ -222,7 +222,7 @@ def dump_binning_rules(
     assert traced_input.issubset(set(input_schema.keys()))
     input_schema = {k: v for k, v in input_schema.items() if k in traced_input}
 
-    table = binning_rules_to_sc(rules, input_schema)
+    table = apply_binning_rules(rules, input_schema)
 
     dag_pb, dag_input_schema, dag_output_schema = table.dump_serving_pb(node_name)
 
@@ -244,7 +244,7 @@ def dump_binning_rules(
 def dump_binning_schema_info(
     rules: Dict, input_schema: Dict[str, np.dtype]
 ) -> Tuple[List, List, List]:
-    table = binning_rules_to_sc(rules, input_schema)
+    table = apply_binning_rules(rules, input_schema)
     deleted, derived, used = table.column_changes()
     return used, deleted, derived
 
@@ -365,9 +365,10 @@ class PreprocessingConverter:
         assert len(in_dataset) == 1
         self.in_dataset = in_dataset[0]
 
-        self.input_schema, _ = extract_table_header(
+        infos = extract_data_infos(
             self.in_dataset, load_features=True, load_ids=True, load_labels=True
         )
+        self.input_schema = {p: infos[p].dtypes for p in infos}
 
         assert set(self.input_schema) == set([p.party for p in builder.pyus])
 

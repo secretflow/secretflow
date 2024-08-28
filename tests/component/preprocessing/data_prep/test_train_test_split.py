@@ -13,8 +13,9 @@
 # limitations under the License.
 
 import pandas as pd
+from pyarrow import orc
 
-from secretflow.component.data_utils import DistDataType, extract_distdata_info
+from secretflow.component.data_utils import DistDataType, extract_data_infos
 from secretflow.component.preprocessing.data_prep.train_test_split import (
     train_test_split_comp,
 )
@@ -117,17 +118,25 @@ def test_train_test_split(comp_prod_sf_cluster_config):
 
     assert len(res.outputs) == 2
 
-    train_info = extract_distdata_info(res.outputs[0])
-    test_info = extract_distdata_info(res.outputs[1])
+    train_info = extract_data_infos(res.outputs[0], load_ids=True)
+    test_info = extract_data_infos(res.outputs[1], load_ids=True)
 
     if self_party == "alice":
-        train_ids = pd.read_csv(comp_storage.get_reader(train_info["alice"].uri))["id1"]
-        test_ids = pd.read_csv(comp_storage.get_reader(test_info["alice"].uri))["id1"]
-        assert list(train_ids) == [1, 2, 3]
-        assert list(test_ids) == [4]
+        train_ids = orc.read_table(
+            comp_storage.get_reader(train_info["alice"].uri)
+        ).to_pandas()["id1"]
+        test_ids = orc.read_table(
+            comp_storage.get_reader(test_info["alice"].uri)
+        ).to_pandas()["id1"]
+        assert list(train_ids) == ["1", "2", "3"]
+        assert list(test_ids) == ["4"]
 
     if self_party == "bob":
-        train_ids = pd.read_csv(comp_storage.get_reader(train_info["bob"].uri))["id2"]
-        test_ids = pd.read_csv(comp_storage.get_reader(test_info["bob"].uri))["id2"]
-        assert list(train_ids) == [1, 2, 3]
-        assert list(test_ids) == [4]
+        train_ids = orc.read_table(
+            comp_storage.get_reader(train_info["bob"].uri)
+        ).to_pandas()["id2"]
+        test_ids = orc.read_table(
+            comp_storage.get_reader(test_info["bob"].uri)
+        ).to_pandas()["id2"]
+        assert list(train_ids) == ["1", "2", "3"]
+        assert list(test_ids) == ["4"]
