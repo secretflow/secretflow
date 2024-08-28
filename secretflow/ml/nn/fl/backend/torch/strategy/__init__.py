@@ -15,11 +15,11 @@
 from .fed_avg_g import PYUFedAvgG
 from .fed_avg_u import PYUFedAvgU
 from .fed_avg_w import PYUFedAvgW
+from .fed_gen import PYUFedGen
 from .fed_prox import PYUFedProx
 from .fed_scr import PYUFedSCR
 from .fed_stc import PYUFedSTC
 from .scaffold import PYUScaffold
-from .fed_gen import PYUFedGen
 
 __all__ = [
     'PYUFedAvgW',

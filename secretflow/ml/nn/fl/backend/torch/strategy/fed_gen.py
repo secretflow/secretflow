@@ -17,12 +17,11 @@
 
 import copy
 from typing import Tuple
-import torch.nn.functional as F
+
 import numpy as np
 import torch
-from torch import nn
+import torch.nn.functional as F
 
-from secretflow.ml.nn.core.torch import BuilderType
 from secretflow.ml.nn.fl.backend.torch.fl_base import BaseTorchModel
 from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
 
@@ -55,12 +54,13 @@ class FedGen(BaseTorchModel):
             A dictionary mapping labels to their counts.
         """
         return self.label_counts
+
     def train_step(
-            self,
-            weights: np.ndarray,
-            cur_steps: int,
-            train_steps: int,
-            **kwargs,
+        self,
+        weights: np.ndarray,
+        cur_steps: int,
+        train_steps: int,
+        **kwargs,
     ) -> Tuple[np.ndarray, int]:
         """Accept ps model params, then do local train
 
@@ -74,16 +74,17 @@ class FedGen(BaseTorchModel):
         """
 
         assert self.model is not None, "Model cannot be none, please give model define"
-        assert kwargs.get('generator_config',
-                          None) is not None, "Generator Config cannot be none, please give Generator define"
+        assert (
+            kwargs.get('generator_config', None) is not None
+        ), "Generator Config cannot be none, please give Generator define"
         generator_config = kwargs.get('generator_config')
         # Check if all required keys are in the generator_config dictionary
-        required_keys = [
-            'generator_model', 'loss_fn', 'kl_div_loss', 'num_classes'
-        ]
+        required_keys = ['generator_model', 'loss_fn', 'kl_div_loss', 'num_classes']
         for key in required_keys:
             if key not in generator_config:
-                raise ValueError(f"The '{key}' key is missing in the generator_config dictionary.")
+                raise ValueError(
+                    f"The '{key}' key is missing in the generator_config dictionary."
+                )
 
         generative_num_classes = generator_config['num_classes']
         generative_batch_size = generator_config.get('batch_size', 32)
@@ -117,7 +118,9 @@ class FedGen(BaseTorchModel):
 
             # Accumulate label counts for monitoring class distribution
             for label in y_labels:
-                self.label_counts[label.item()] = self.label_counts.get(label.item(), 0) + 1
+                self.label_counts[label.item()] = (
+                    self.label_counts.get(label.item(), 0) + 1
+                )
 
             # Forward pass through the model
             user_output_logp = self.model(x)
@@ -126,8 +129,8 @@ class FedGen(BaseTorchModel):
             loss = self.model.training_step((x, y), cur_steps + step, sample_weight=s_w)
 
             # Annealing factors for generative losses, calculated for the current step
-            generative_alpha = max(1e-4, 0.1 * (0.98 ** cur_steps))
-            generative_beta = max(1e-4, 0.1 * (0.98 ** cur_steps))
+            generative_alpha = max(1e-4, 0.1 * (0.98**cur_steps))
+            generative_beta = max(1e-4, 0.1 * (0.98**cur_steps))
 
             # Convert model outputs to predicted labels, using y_labels
             y_input = y_labels.clone().detach()
@@ -138,7 +141,9 @@ class FedGen(BaseTorchModel):
             target_p = F.softmax(logit_given_gen, dim=1).clone().detach()
 
             # Latent loss encourages the model to produce similar predictions for generated data as for real data
-            user_latent_loss = generative_beta * kl_div_loss(F.log_softmax(user_output_logp, dim=1), target_p)
+            user_latent_loss = generative_beta * kl_div_loss(
+                F.log_softmax(user_output_logp, dim=1), target_p
+            )
 
             # Sample labels and generate data
             sampled_y = np.random.choice(generative_num_classes, generative_batch_size)
@@ -147,7 +152,9 @@ class FedGen(BaseTorchModel):
             user_output_logp = self.model(gen_result['output'], start_layer_idx=-1)
 
             # Teacher loss guides the model to predict the original labels from generated representations
-            teacher_loss = generative_alpha * torch.mean(loss_fn(user_output_logp, y_input))
+            teacher_loss = generative_alpha * torch.mean(
+                loss_fn(user_output_logp, y_input)
+            )
 
             # Combine losses
             loss += teacher_loss + user_latent_loss

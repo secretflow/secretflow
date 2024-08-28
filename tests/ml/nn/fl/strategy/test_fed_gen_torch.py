@@ -18,11 +18,13 @@ import torch
 import torch.optim as optim
 from torch import nn
 from torch.nn import CrossEntropyLoss
-from torch.utils.data import DataLoader, TensorDataset
 from torch.nn import functional as F
-from secretflow.ml.nn.core.torch import BaseModule, TorchModel
+from torch.utils.data import DataLoader, TensorDataset
 
+from secretflow.ml.nn.core.torch import BaseModule, TorchModel
 from secretflow.ml.nn.fl.backend.torch.strategy.fed_gen import FedGen
+
+
 class ConvNet(BaseModule):
     """Small ConvNet for MNIST."""
 
@@ -42,15 +44,20 @@ class ConvNet(BaseModule):
         # should be logit
         return x
 
+
 class GeneratorModel(nn.Module):
-    def __init__(self, hidden_dimension, latent_dimension, n_class, noise_dim, embedding=False):
+    def __init__(
+        self, hidden_dimension, latent_dimension, n_class, noise_dim, embedding=False
+    ):
         super(GeneratorModel, self).__init__()
         self.hidden_dim = hidden_dimension
         self.latent_dim = latent_dimension
         self.n_class = n_class
         self.noise_dim = noise_dim
         self.embedding = embedding
-        input_dim = self.noise_dim * 2 if self.embedding else self.noise_dim + self.n_class
+        input_dim = (
+            self.noise_dim * 2 if self.embedding else self.noise_dim + self.n_class
+        )
         self.build_network(input_dim)
 
     def build_network(self, input_dim):
@@ -60,7 +67,7 @@ class GeneratorModel(nn.Module):
         self.fc_layers = nn.Sequential(
             nn.Linear(input_dim, self.hidden_dim),
             nn.BatchNorm1d(self.hidden_dim),
-            nn.ReLU()
+            nn.ReLU(),
         )
         # Representation layer
         self.representation_layer = nn.Linear(self.hidden_dim, self.latent_dim)
@@ -96,10 +103,12 @@ class GeneratorModel(nn.Module):
         result['output'] = z
         return result
 
+
 class DiversityLoss(nn.Module):
     """
     Custom diversity loss function, designed to encourage diversity in model predictions.
     """
+
     def __init__(self, metric):
         """
         Initializes the DiversityLoss class.
@@ -107,9 +116,13 @@ class DiversityLoss(nn.Module):
         Parameters:
         metric (str): The metric for computing distances, can be 'l1', 'l2', or 'cosine'.
         """
-        super(DiversityLoss, self).__init__()  # Call the parent class's initialization method
+        super(
+            DiversityLoss, self
+        ).__init__()  # Call the parent class's initialization method
         self.metric = metric  # Save the metric
-        self.cosine = nn.CosineSimilarity(dim=2)  # Initialize the cosine similarity computation object, dim=2 indicates similarity is computed along the 2nd dimension
+        self.cosine = nn.CosineSimilarity(
+            dim=2
+        )  # Initialize the cosine similarity computation object, dim=2 indicates similarity is computed along the 2nd dimension
 
     def compute_distance(self, tensor1, tensor2):
         """
@@ -139,7 +152,6 @@ class DiversityLoss(nn.Module):
 
 class TestFedGen:
 
-
     def test_fed_gen_local_step(self, sf_simulation_setup_devices):
         # Initialize Scaffold strategy with ConvNet model
 
@@ -149,17 +161,27 @@ class TestFedGen:
             optim_fn=optim.Adam,
         )
 
-        generator = GeneratorModel(hidden_dimension=256, latent_dimension=192, n_class=10, noise_dim=64,
-                                   embedding=False)
+        generator = GeneratorModel(
+            hidden_dimension=256,
+            latent_dimension=192,
+            n_class=10,
+            noise_dim=64,
+            embedding=False,
+        )
         # Creating a KL Divergence Loss Function
         kl_div_loss = nn.KLDivLoss(reduction="batchmean")
         diversity_loss = DiversityLoss(metric='l1')
         generative_optimizer = torch.optim.Adam(
             params=generator.parameters(),
-            lr=0.0003, betas=(0.9, 0.999),
-            eps=1e-08, weight_decay=0.01, amsgrad=False)
+            lr=0.0003,
+            betas=(0.9, 0.999),
+            eps=1e-08,
+            weight_decay=0.01,
+            amsgrad=False,
+        )
         generative_lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(
-            optimizer=generative_optimizer, gamma=0.98)
+            optimizer=generative_optimizer, gamma=0.98
+        )
         cross_entropy_loss = nn.CrossEntropyLoss()
 
         generator_config = {
