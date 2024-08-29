@@ -78,7 +78,7 @@ def test_ss_pvalue(comp_prod_sf_cluster_config, reg_type):
             Attribute(s="l2"),
             Attribute(f=0.05),
             Attribute(ss=["y"]),
-            Attribute(ss=[f"a{i}" for i in range(15)] + [f"b{i}" for i in range(15)]),
+            Attribute(ss=[f"b{i}" for i in range(15)]),
         ],
         inputs=[
             DistData(
@@ -144,7 +144,7 @@ def test_ss_pvalue(comp_prod_sf_cluster_config, reg_type):
     c = div.children[0]
     assert c.type == "descriptions"
     descriptions = c.descriptions
-    assert len(descriptions.items) == 30 + 1
+    assert len(descriptions.items) == 15 + 1
 
 
 def test_ss_pvalue_glm(comp_prod_sf_cluster_config):

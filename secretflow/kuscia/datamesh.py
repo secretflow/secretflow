@@ -187,6 +187,8 @@ def get_file_from_dp(
     if file_format == DataFileFormat.CSV:
         # NOTE(junfeng): use pandas to write csv since pyarrow will add quotes in headers.
         # FIXME: BUG io should running in pyu device context, not in driver context.
+        if os.path.exists(output_file_path):
+            os.remove(output_file_path)
         for batch in flight_reader:
             batch_pd = batch.to_pandas()
             batch_pd.to_csv(
