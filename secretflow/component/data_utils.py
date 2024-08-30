@@ -235,7 +235,6 @@ def extract_data_infos(
         ), f'The following items are in both col_selects and col_excludes : {intersection}, which is not allowed.'
 
     ret = dict()
-    label_party_name = None
     for slice, dr in zip(schemas, db.data_refs):
         dtype = dict()
         feature_cols = []
@@ -271,8 +270,6 @@ def extract_data_infos(
                         continue
                 dtype[h] = SUPPORTED_VTABLE_DATA_TYPE[t]
                 label_cols.append(h)
-            if len(label_cols) > 0:
-                label_party_name = dr.party
         id_cols = []
         if load_ids:
             for t, h in zip(slice.id_types, slice.ids):
@@ -312,20 +309,10 @@ def extract_data_infos(
     def reorder_partitions(d: Dict[str, Any]):
         if partitions_order is None:
             return d
-        # Assumed label from one party
-        # partitions order may not contain label holder party
-        # this is because label party has no features
-        # in this case, add the label holder party to the end
         set_partitions = set(partitions_order)
         set_d_keys = set(d.keys())
-        if (label_party_name in set_d_keys) and (
-            label_party_name not in set_partitions
-        ):
-            partitions_order.append(label_party_name)
-            set_partitions = set(partitions_order)
-        assert (
-            set_partitions == set_d_keys
-        ), f"{set_partitions} <> {set_d_keys}, {label_party_name}, {(len(set_partitions) == len(set_d_keys) - 1)}, { (label_party_name not in set_partitions)}"
+
+        assert set_partitions == set_d_keys, f"{set_partitions} <> {set_d_keys}"
         return {k: d[k] for k in partitions_order}
 
     return reorder_partitions(ret)
