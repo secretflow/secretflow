@@ -538,7 +538,7 @@ def setup_minio_server(storage_path, self_party):
         [minio_server, "server", minio_data_path, "--address", endpoint],
         env=ms_env,
     )
-
+    # wait for minio server to start
     time.sleep(0.4)
 
     storage_config = StorageConfig(

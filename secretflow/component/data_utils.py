@@ -309,9 +309,10 @@ def extract_data_infos(
     def reorder_partitions(d: Dict[str, Any]):
         if partitions_order is None:
             return d
-        assert set(partitions_order) == set(
-            d.keys()
-        ), f"{set(partitions_order)} <> {set(d.keys())}"
+        set_partitions = set(partitions_order)
+        set_d_keys = set(d.keys())
+
+        assert set_partitions == set_d_keys, f"{set_partitions} <> {set_d_keys}"
         return {k: d[k] for k in partitions_order}
 
     return reorder_partitions(ret)

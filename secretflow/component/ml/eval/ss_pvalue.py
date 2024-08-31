@@ -13,7 +13,11 @@
 # limitations under the License.
 
 from secretflow.component.component import CompEvalError, Component, IoType
-from secretflow.component.data_utils import DistDataType, get_model_public_info
+from secretflow.component.data_utils import (
+    DistDataType,
+    extract_data_infos,
+    get_model_public_info,
+)
 from secretflow.component.dataframe import CompDataFrame
 from secretflow.component.ml.linear.ss_glm import load_ss_glm_model
 from secretflow.component.ml.linear.ss_sgd import load_ss_sgd_model
@@ -95,10 +99,27 @@ def load_ds(
     weight_cols=None,
 ):
     with ctx.tracer.trace_io():
+        partitions_order = x_partitions_order
+        if partitions_order is not None:
+            data_infos_prefetch = extract_data_infos(
+                input_data,
+                load_features=True,
+                load_labels=True,
+                load_ids=True,
+                col_selects=(
+                    x_cols
+                    + y_cols
+                    + (offset_cols if offset_cols else [])
+                    + (weight_cols if weight_cols else [])
+                ),
+            )
+            for p in data_infos_prefetch.keys():
+                if p not in partitions_order:
+                    partitions_order.append(p)
         data = CompDataFrame.from_distdata(
             ctx,
             input_data,
-            partitions_order=x_partitions_order,
+            partitions_order=partitions_order,
             load_features=True,
             load_labels=True,
             col_selects=(

@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import copy
+import logging
 import os
 from dataclasses import dataclass
 from typing import Dict, List, Union
 
-import numpy as np
-import pandas as pd
+import duckdb
+from pyarrow import csv, orc
 
 from secretflow.component.component import (
     CompEvalError,
@@ -26,17 +27,20 @@ from secretflow.component.component import (
     TableColParam,
 )
 from secretflow.component.data_utils import (
+    NP_DTYPE_TO_DUCKDB_DTYPE,
     DistDataType,
     download_files,
     extract_data_infos,
 )
 from secretflow.component.dataframe import StreamingReader, StreamingWriter
 from secretflow.component.storage import ComponentStorage
+from secretflow.device.device.pyu import PYU
 from secretflow.device.device.spu import SPU
+from secretflow.device.driver import reveal, wait
 from secretflow.spec.v1.data_pb2 import (
     DistData,
-    StorageConfig,
     IndividualTable,
+    StorageConfig,
     TableSchema,
 )
 
@@ -180,6 +184,7 @@ class PsiPartyInfo:
     table: DistData
     keys: List[str]
     uri: str
+    format: str
 
 
 def trans_result_csv_to_orc(
@@ -210,18 +215,27 @@ def trans_result_csv_to_orc(
 
     for party, info in streaming_infos.items():
         info.uri = result_path[party]
+        # TODO: PSI output type may be orc, change this later
+        info.format = "csv"
         # for spu.psi config csv writer use NA replace null.
         if "NA" not in info.null_strs:
             info.null_strs.append("NA")
+        # duckdb use NULL replace null.
+        if "NULL" not in info.null_strs:
+            info.null_strs.append("NULL")
 
     reader = StreamingReader.from_data_infos(
         input_ctx, streaming_infos, result_party_info[0].table.system_info
     )
 
     writer = StreamingWriter(output_ctx, psi_output)
-    with writer:
-        for batch in reader:
-            writer.write(batch)
+    try:
+        with writer:
+            for batch in reader:
+                writer.write(batch)
+    except Exception as e:
+        logging.error(f"Failed to write result {streaming_infos} to {psi_output}")
+        raise e
 
     return writer.to_distdata()
 
@@ -270,6 +284,105 @@ def add_keys_to_id_columns(table: DistData, keys: List[str]) -> DistData:
     return table
 
 
+def deal_null_from_csv(
+    dist_data: DistData, old_dir: str, new_dir: str
+) -> Dict[str, str]:
+    assert (
+        dist_data.type == DistDataType.INDIVIDUAL_TABLE
+    ), f"{dist_data.type} is not individual table"
+
+    table_info = extract_data_infos(
+        dist_data, load_ids=True, load_features=True, load_labels=True
+    )
+    for _, info in table_info.items():
+        duck_dtype = {c: NP_DTYPE_TO_DUCKDB_DTYPE[info.dtypes[c]] for c in info.dtypes}
+        na_values = info.null_strs
+
+        with open(old_dir, 'r') as io_reader:
+            csv_db = duckdb.read_csv(io_reader, dtype=duck_dtype, na_values=na_values)
+            col_list = [duckdb.ColumnExpression(c) for c in info.dtypes]
+            csv_select = csv_db.select(*col_list)
+            csv_select.to_csv(new_dir, na_rep="NULL")
+
+
+def get_psi_party_info(table: DistData, keys: List[str]) -> PsiPartyInfo:
+    # TODO: delete this when upstream adds id & label info
+    table = add_keys_to_id_columns(table, keys)
+
+    def get_party_info_from_individual_table(input_table):
+        path_info = extract_data_infos(input_table, load_ids=True)
+        if len(path_info) == 0:
+            raise RuntimeError(
+                f"Individual table should have valid columns, {path_info}"
+            )
+        elif len(path_info) > 1:
+            raise RuntimeError(
+                f"Individual table should have only one data_ref, {path_info}"
+            )
+        else:
+            return list(path_info.items())[0]
+
+    party, party_info = get_party_info_from_individual_table(table)
+    return PsiPartyInfo(
+        party=party,
+        table=table,
+        keys=keys,
+        uri=party_info.uri,
+        format=party_info.format,
+    )
+
+
+def trans_orc_to_csv(orc_path: str, csv_path: str) -> str:
+    try:
+        orc_file = orc.ORCFile(orc_path)
+    except Exception as e:
+        logging.error(f"Failed to read orc file: {orc_path}")
+        raise e
+
+    with csv.CSVWriter(csv_path, orc_file.schema) as csv_writer:
+        for stripe in range(orc_file.nstripes):
+            csv_writer.write(orc_file.read_stripe(stripe))
+    return csv_path
+
+
+def get_input_path(ctx, party_infos: List[PsiPartyInfo]) -> Dict[str, str]:
+    download_path = {
+        info.party: os.path.join(ctx.data_dir, info.uri) for info in party_infos
+    }
+    remote_path = {info.party: info.uri for info in party_infos}
+    with ctx.tracer.trace_io():
+        # TODO: avoid download file, support streaming in spu.psi
+        download_files(ctx, remote_path, download_path)
+
+    waits = []
+    for info in party_infos:
+        if info.format == "csv":
+            continue
+        elif info.format == "orc":
+            # TODO: delete this when psi support orc
+            new_path = download_path[info.party] + ".orc_to_csv.csv"
+            waits.append(
+                PYU(info.party)(trans_orc_to_csv)(download_path[info.party], new_path)
+            )
+            download_path[info.party] = new_path
+        else:
+            raise RuntimeError(f"Unsupported format {info.format}")
+    if len(waits) > 0:
+        wait(waits)
+
+    new_path = {party: path + ".deal_null.csv" for party, path in download_path.items()}
+
+    wait(
+        [
+            PYU(info.party)(deal_null_from_csv)(
+                info.table, download_path[info.party], new_path[info.party]
+            )
+            for info in party_infos
+        ]
+    )
+    return new_path
+
+
 @psi_comp.eval_fn
 def two_party_balanced_psi_eval_fn(
     *,
@@ -307,33 +420,8 @@ def two_party_balanced_psi_eval_fn(
     ):
         broadcast_result = True
 
-    # TODO: delete this when upstream adds id & label info
-    input_table_1 = add_keys_to_id_columns(input_table_1, input_table_1_key)
-    input_table_2 = add_keys_to_id_columns(input_table_2, input_table_2_key)
-
-    def get_party_info_from_individual_table(input_table):
-        path_info = extract_data_infos(input_table, load_ids=True)
-        if len(path_info) == 0:
-            raise RuntimeError(
-                f"Individual table should have valid columns, {path_info}"
-            )
-        elif len(path_info) > 1:
-            raise RuntimeError(
-                f"Individual table should have only one data_ref, {path_info}"
-            )
-        else:
-            return list(path_info.items())[0]
-
-    party1, party1_info = get_party_info_from_individual_table(input_table_1)
-
-    party2, party2_info = get_party_info_from_individual_table(input_table_2)
-
-    sender_info = PsiPartyInfo(
-        party=party1, table=input_table_1, keys=input_table_1_key, uri=party1_info.uri
-    )
-    receiver_info = PsiPartyInfo(
-        party=party2, table=input_table_2, keys=input_table_2_key, uri=party2_info.uri
-    )
+    sender_info = get_psi_party_info(input_table_1, input_table_1_key)
+    receiver_info = get_psi_party_info(input_table_2, input_table_2_key)
 
     if (
         allow_duplicate_keys == 'no'
@@ -380,17 +468,7 @@ def two_party_balanced_psi_eval_fn(
     spu_config = next(iter(ctx.spu_configs.values()))
     spu = SPU(spu_config["cluster_def"], spu_config["link_desc"])
 
-    input_path = {
-        receiver_info.party: os.path.join(ctx.data_dir, receiver_info.uri),
-        sender_info.party: os.path.join(ctx.data_dir, sender_info.uri),
-    }
-    uri = {
-        receiver_info.party: receiver_info.uri,
-        sender_info.party: sender_info.uri,
-    }
-    with ctx.tracer.trace_io():
-        # TODO: avoid download file, support streaming in spu.psi
-        download_files(ctx, uri, input_path)
+    input_path = get_input_path(ctx, [receiver_info, sender_info])
 
     if broadcast_result:
         result_party_infos = [sender_info, receiver_info]
