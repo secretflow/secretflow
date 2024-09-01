@@ -385,7 +385,6 @@ class WideDeepBottomBob(nn.Module):
             fc = self.act(fc)
             fc = self.dropout(fc)
             logit = fc
-
         return logit
 
     def output_num(self):
@@ -403,9 +402,8 @@ class WideDeepFuse(nn.Module):
         self.dnn_linear = nn.Linear(dnn_hidden_units[-1], 1, bias=False)
 
     def forward(self, X):
-        logit = X[:, -2:-1]
-
-        dnn_logit = self.dnn_linear(X[:, :128])
+        logit = X[1]
+        dnn_logit = self.dnn_linear(X[0])
         _logit = dnn_logit + logit
         y_pred = torch.sigmoid(_logit)
         return y_pred

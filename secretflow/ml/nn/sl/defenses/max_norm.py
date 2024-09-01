@@ -47,6 +47,7 @@ class max_norm(Callback):
                 worker: The client instance from which the gradient is accessed.
             """
             gradient = worker._gradient
+
             if self.backend == "tensorflow":
                 raise NotImplementedError()
             else:
@@ -56,9 +57,11 @@ class max_norm(Callback):
                     [torch.norm(g, p=2) ** 2 for g in gradient]
                 )  # Find the maximum norm
                 first_dim = (0,)
-                perturbed_gradients = torch.empty(first_dim + tuple(gradient.shape[1:]))
+                perturbed_gradients = torch.empty(
+                    first_dim + tuple(gradient[0].shape[1:])
+                )
 
-                for g in gradient:
+                for g in gradient[0]:
                     norm_g = torch.norm(g, p=2) ** 2
                     if norm_g == 0:
                         perturbed_gradients.append(g)
@@ -73,9 +76,9 @@ class max_norm(Callback):
                         (perturbed_gradients, perturbed_g), dim=0
                     )
 
-            if gradient is None:
+            if gradient[0] is None:
                 raise Exception("No gradient received from label party.")
-
-            worker._gradient = perturbed_gradients
+            gradient[0] = perturbed_gradients
+            worker._gradient = gradient
 
         self._workers[self.device_y].apply(perturb_gradient)

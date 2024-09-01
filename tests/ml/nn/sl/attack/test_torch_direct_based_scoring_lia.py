@@ -14,15 +14,17 @@
 
 import numpy as np
 import torch
+import torch.nn as nn
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
-from torch import nn
-from torchmetrics import AUROC, Accuracy, Precision
+from torchmetrics import AUROC, Accuracy
 
 from secretflow.data.split import train_test_split
 from secretflow.ml.nn import SLModel
 from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
 from secretflow.ml.nn.sl.agglayer.agg_method import Concat
-from secretflow.ml.nn.sl.defenses.max_norm import max_norm
+from secretflow.ml.nn.sl.attacks.direction_based_scoring_torch import (
+    DirectionBasedScoringAttack,
+)
 from secretflow.preprocessing import StandardScaler
 from secretflow.utils.simulation.data.dataframe import create_df
 from secretflow.utils.simulation.datasets import load_criteo_unpartitioned
@@ -33,15 +35,13 @@ from tests.ml.nn.sl.attack.model_def import (
 )
 
 
-def test_gradient_average_torch_backend(sf_simulation_setup_devices):
-    """
-    The attacker uses direction-based scoring attack to infer labels.
-    The server uses max-norm against the attack.
-    """
+def test_direct_based_scoring_lia(sf_simulation_setup_devices):
     alice = sf_simulation_setup_devices.alice
     bob = sf_simulation_setup_devices.bob
+
     random_state = 1234
-    num_samples = 410
+    num_samples = 200
+    # the number for testing purposes. For more details about the dataset, please refer to the code in secretflow.utils.simulation.datasets
 
     sparse_feature = [
         'C' + str(i) for i in range(1, 27)
@@ -73,7 +73,7 @@ def test_gradient_average_torch_backend(sf_simulation_setup_devices):
     ]
     dnn_feature_columns = fixlen_feature_columns
 
-    # Split the Dataset as specified in the paper
+    # Split the Dataset as the settings in the paper
     data = create_df(
         source=df,
         parts={
@@ -104,7 +104,6 @@ def test_gradient_average_torch_backend(sf_simulation_setup_devices):
 
     metrics = [
         metric_wrapper(Accuracy, task="binary"),
-        metric_wrapper(Precision, task="binary"),
         metric_wrapper(AUROC, task="binary"),
     ]
     dnn_feature_columns = fixlen_feature_columns
@@ -144,8 +143,8 @@ def test_gradient_average_torch_backend(sf_simulation_setup_devices):
         strategy="split_nn",
         backend="torch",
     )
-    _max_norm = max_norm(backend="torch")
 
+    direction_lia = DirectionBasedScoringAttack(attack_party=alice, label_party=bob)
     history = sl_model.fit(
         train_data,
         train_label,
@@ -154,6 +153,9 @@ def test_gradient_average_torch_backend(sf_simulation_setup_devices):
         batch_size=128,
         shuffle=False,
         random_seed=1234,
-        callbacks=[_max_norm],
+        callbacks=[direction_lia],
     )
+    attack_metrics = direction_lia.get_attack_metrics()
+    assert 'attack_acc' in attack_metrics
+    print(attack_metrics)
     print(history)
