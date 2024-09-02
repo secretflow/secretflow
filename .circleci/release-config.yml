@@ -122,7 +122,7 @@ jobs:
             bash ./build.sh -l -v ${VERSION}
 
             # save version to next job
-            cd -
+            popd
             echo $VERSION >> sf.version
       - persist_to_workspace:
           root: .
