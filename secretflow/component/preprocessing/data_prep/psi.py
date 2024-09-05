@@ -298,7 +298,7 @@ def deal_null_from_csv(
         duck_dtype = {c: NP_DTYPE_TO_DUCKDB_DTYPE[info.dtypes[c]] for c in info.dtypes}
         na_values = info.null_strs
 
-        with open(old_dir, 'r') as io_reader:
+        with open(old_dir, 'rb') as io_reader:
             csv_db = duckdb.read_csv(io_reader, dtype=duck_dtype, na_values=na_values)
             col_list = [duckdb.ColumnExpression(c) for c in info.dtypes]
             csv_select = csv_db.select(*col_list)
