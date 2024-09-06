@@ -19,9 +19,8 @@ import pandas as pd
 import pytest
 from sklearn.datasets import load_breast_cancer
 
-from secretflow.component.data_utils import DistDataType
-from secretflow.component.stats.ss_vif import ss_vif_comp
-from secretflow.component.storage import ComponentStorage
+from secretflow.component.core import DistDataType, Storage
+from secretflow.component.entry import comp_eval
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import (
     DistData,
@@ -35,16 +34,14 @@ from secretflow.spec.v1.report_pb2 import Report
 
 class TableFormat(Enum):
     INDIVIDUAL_TABLE = 0
-    VERTICAL_TABLE_SINGLE_PARTY = 1
-    VERTICAL_TABLE_MULTI_PARTY = 2
+    VERTICAL_TABLE = 2
 
 
 @pytest.mark.parametrize(
     "table_format",
     [
         TableFormat.INDIVIDUAL_TABLE,
-        TableFormat.VERTICAL_TABLE_SINGLE_PARTY,
-        TableFormat.VERTICAL_TABLE_MULTI_PARTY,
+        TableFormat.VERTICAL_TABLE,
     ],
 )
 def test_ss_vif(comp_prod_sf_cluster_config, table_format: TableFormat):
@@ -53,24 +50,24 @@ def test_ss_vif(comp_prod_sf_cluster_config, table_format: TableFormat):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = Storage(storage_config)
 
     x = load_breast_cancer()["data"]
-    if table_format == TableFormat.VERTICAL_TABLE_MULTI_PARTY:
+    if table_format == TableFormat.VERTICAL_TABLE:
         if self_party == "alice":
             ds = pd.DataFrame(x[:, :15], columns=[f"a{i}" for i in range(15)])
-            ds.to_csv(comp_storage.get_writer(alice_input_path), index=False)
+            ds.to_csv(storage.get_writer(alice_input_path), index=False)
 
         elif self_party == "bob":
             ds = pd.DataFrame(x[:, 15:], columns=[f"b{i}" for i in range(15)])
-            ds.to_csv(comp_storage.get_writer(bob_input_path), index=False)
+            ds.to_csv(storage.get_writer(bob_input_path), index=False)
 
         param = NodeEvalParam(
             domain="stats",
             name="ss_vif",
-            version="0.0.1",
+            version="1.0.0",
             attr_paths=[
-                "input/input_data/feature_selects",
+                "feature_selects",
             ],
             attrs=[
                 Attribute(ss=(["a1", "b1", "a3", "b13"])),
@@ -108,14 +105,14 @@ def test_ss_vif(comp_prod_sf_cluster_config, table_format: TableFormat):
                 x[:, :],
                 columns=[f"a{i}" for i in range(15)] + [f"b{i}" for i in range(15)],
             )
-            ds.to_csv(comp_storage.get_writer(alice_input_path), index=False)
+            ds.to_csv(storage.get_writer(alice_input_path), index=False)
 
         param = NodeEvalParam(
             domain="stats",
             name="ss_vif",
-            version="0.0.1",
+            version="1.0.0",
             attr_paths=[
-                "input/input_data/feature_selects",
+                "feature_selects",
             ],
             attrs=[
                 Attribute(ss=["a1", "b1", "a3", "b13"]),
@@ -123,11 +120,7 @@ def test_ss_vif(comp_prod_sf_cluster_config, table_format: TableFormat):
             inputs=[
                 DistData(
                     name="input",
-                    type=str(
-                        DistDataType.INDIVIDUAL_TABLE
-                        if table_format == TableFormat.INDIVIDUAL_TABLE
-                        else DistDataType.VERTICAL_TABLE
-                    ),
+                    type=str(DistDataType.INDIVIDUAL_TABLE),
                     data_refs=[
                         DistData.DataRef(
                             uri=alice_input_path, party="alice", format="csv"
@@ -138,28 +131,16 @@ def test_ss_vif(comp_prod_sf_cluster_config, table_format: TableFormat):
             output_uris=["report"],
         )
 
-        if table_format == TableFormat.VERTICAL_TABLE_SINGLE_PARTY:
-            meta = VerticalTable(
-                schemas=[
-                    TableSchema(
-                        feature_types=["float32"] * 30,
-                        features=[f"a{i}" for i in range(15)]
-                        + [f"b{i}" for i in range(15)],
-                    ),
-                ]
-            )
-        else:
-            meta = IndividualTable(
-                schema=TableSchema(
-                    feature_types=["float32"] * 30,
-                    features=[f"a{i}" for i in range(15)]
-                    + [f"b{i}" for i in range(15)],
-                ),
-            )
+        meta = IndividualTable(
+            schema=TableSchema(
+                feature_types=["float32"] * 30,
+                features=[f"a{i}" for i in range(15)] + [f"b{i}" for i in range(15)],
+            ),
+        )
 
     param.inputs[0].meta.Pack(meta)
 
-    res = ss_vif_comp.eval(
+    res = comp_eval(
         param=param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,

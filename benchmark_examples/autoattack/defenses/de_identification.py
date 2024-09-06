@@ -20,6 +20,7 @@ from benchmark_examples.autoattack import global_config
 from benchmark_examples.autoattack.applications.base import (
     ApplicationBase,
     DatasetType,
+    InputMode,
     ModelType,
 )
 from benchmark_examples.autoattack.attacks.base import AttackBase, AttackType
@@ -125,6 +126,7 @@ class DeIdentification(DefenseBase):
                 ModelType.OTHER,
             ]
             and app.dataset_type() != DatasetType.IMAGE
+            and app.base_input_mode() == InputMode.SINGLE
         )
 
     def tune_metrics(self, app_metrics: Dict[str, str]) -> Dict[str, str]:
@@ -136,7 +138,11 @@ class DeIdentification(DefenseBase):
         app: ApplicationBase,
         attack: AttackBase | None,
     ) -> ResourcesPack:
-        func = lambda x: x * 1.3
-        return cluster_resources_pack.apply_debug_resources(
-            'gpu_mem', func
-        ).apply_sim_resources(app.device_f.party, 'gpu_mem', func)
+        update_gpu = lambda x: x * 1.3
+        update_mem = lambda x: x * 1.13
+        return (
+            cluster_resources_pack.apply_debug_resources('gpu_mem', update_gpu)
+            .apply_sim_resources(app.device_f.party, 'gpu_mem', update_gpu)
+            .apply_debug_resources('memory', update_mem)
+            .apply_sim_resources(app.device_f.party, 'memory', update_mem)
+        )

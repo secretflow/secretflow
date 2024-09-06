@@ -26,11 +26,15 @@ from secretflow.component.data_utils import (
     DistDataType,
     generate_random_string,
     get_model_public_info,
-    load_table,
     model_dumps,
     model_loads,
+)
+from secretflow.component.dataframe import (
+    CompDataFrame,
+    StreamingReader,
     save_prediction_dd,
 )
+from secretflow.data.vertical import VDataFrame
 from secretflow.device.device.pyu import PYU
 from secretflow.device.device.spu import SPU, SPUObject
 from secretflow.device.driver import reveal
@@ -464,49 +468,47 @@ def ss_glm_train_eval_fn(
         train_dataset_label[0] not in train_dataset_feature_selects
     ), f"col {train_dataset_label[0]} used in both label and features"
 
-    y = load_table(
+    y = CompDataFrame.from_distdata(
         ctx,
         train_dataset,
         load_labels=True,
         load_features=True,
         col_selects=train_dataset_label,
-    )
+    ).to_pandas()
 
-    x = load_table(
+    x = CompDataFrame.from_distdata(
         ctx,
         train_dataset,
         load_labels=True,
         load_features=True,
         col_selects=train_dataset_feature_selects,
-    )
+    ).to_pandas()
 
     if train_dataset_offset:
         assert (
             train_dataset_offset[0] not in train_dataset_feature_selects
         ), f"col {train_dataset_offset[0]} used in both offset and features"
-        offset = load_table(
+        offset = CompDataFrame.from_distdata(
             ctx,
             train_dataset,
             load_labels=True,
             load_features=True,
             col_selects=train_dataset_offset,
-        )
-        offset_col = train_dataset_offset[0]
+        ).to_pandas()
     else:
         offset = None
-        offset_col = ""
 
     if train_dataset_weight:
         assert (
             train_dataset_weight[0] not in train_dataset_feature_selects
         ), f"col {train_dataset_weight[0]} used in both weight and features"
-        weight = load_table(
+        weight = CompDataFrame.from_distdata(
             ctx,
             train_dataset,
             load_labels=True,
             load_features=True,
             col_selects=train_dataset_weight,
-        )
+        ).to_pandas()
     else:
         weight = None
 
@@ -584,7 +586,7 @@ def ss_glm_train_eval_fn(
         "dist": glm.dist.dist_type().value,
         "tweedie_power": tweedie_power,
         "y_scale": glm.y_scale,
-        "offset_col": offset_col,
+        "offset_col": train_dataset_offset,
         "label_col": train_dataset_label,
         "sample_weight_col": train_dataset_weight,
         "feature_names": feature_names,
@@ -839,47 +841,32 @@ def ss_glm_predict_eval_fn(
     glm = SSGLM(spu)
     glm.spu_w, glm.link, glm.y_scale = load_ss_glm_model(ctx, spu, model)
 
-    x = load_table(
-        ctx,
-        feature_dataset,
-        partitions_order=list(model_public_info["party_features_length"].keys()),
-        load_features=True,
-        col_selects=model_public_info['feature_names'],
-    )
-    assert x.columns == model_public_info["feature_names"]
-
+    feature_names = model_public_info['feature_names']
     offset_col = model_public_info['offset_col']
-
-    if offset_col:
-        offset = load_table(
-            ctx,
-            feature_dataset,
-            load_labels=True,
-            load_features=True,
-            col_selects=[offset_col],
-        )
-    else:
-        offset = None
-
+    feature_names.extend(offset_col)
     receiver_pyu = PYU(receiver[0])
-    with ctx.tracer.trace_running():
-        pyu_y = glm.predict(
-            x=x,
-            o=offset,
-            to_pyu=receiver_pyu,
-        )
 
-    with ctx.tracer.trace_io():
-        y_db = save_prediction_dd(
-            ctx,
-            pred,
-            receiver_pyu,
-            pyu_y,
-            pred_name,
-            feature_dataset,
-            feature_dataset_saved_features,
-            model_public_info['label_col'] if save_label else [],
-            save_ids,
-        )
+    def batch_pred(batch: VDataFrame):
+        with ctx.tracer.trace_running():
+            if offset_col:
+                offset = batch[offset_col]
+                batch = batch.drop(columns=offset_col)
+            else:
+                offset = None
+            return glm.predict(x=batch, o=offset, to_pyu=receiver_pyu)
+
+    y_db = save_prediction_dd(
+        ctx,
+        pred,
+        receiver_pyu,
+        batch_pred,
+        pred_name,
+        feature_names,
+        list(model_public_info["party_features_length"].keys()),
+        feature_dataset,
+        feature_dataset_saved_features,
+        model_public_info['label_col'] if save_label else [],
+        save_ids,
+    )
 
     return {"pred": y_db}

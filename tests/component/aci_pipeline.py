@@ -27,18 +27,19 @@ if __name__ == "__main__":
         "protocol": "PROTOCOL_ECDH",
         "sort_result": True,
         "ecdh_curve": "CURVE_FOURQ",
-        "input/receiver_input/key": ["id0"],
-        "input/sender_input/key": ["id1"],
+        "input/input_table_1/key": ["id0"],
+        "input/input_table_2/key": ["id1"],
+        "allow_duplicate_keys/no/receiver_parties": ["alice", "bob"],
     }
     # 测试psi
-    psi = TestComp("psi_test", "data_prep", "psi", "0.0.5", attrs)
+    psi = TestComp("psi_test", "data_prep", "psi", "0.0.8", attrs)
     aci_pipe.add_comp(psi, ["DAGInput.alice", "DAGInput.bob"])
 
     attrs = {
         "input/in_ds/drop_features": ["alice1", "bob9"],
     }
     # 测试feature_filter
-    feature_filter = TestComp("ff", "data_filter", "feature_filter", "0.0.1", attrs)
+    feature_filter = TestComp("ff", "data_filter", "feature_filter", "1.0.0", attrs)
     aci_pipe.add_comp(feature_filter, ["psi_test.0"])
 
     attrs = {
@@ -48,7 +49,7 @@ if __name__ == "__main__":
         "shuffle": False,
     }
     # 测试train_test_split
-    ds_split = TestComp("ds_split", "data_prep", "train_test_split", "0.0.1", attrs)
+    ds_split = TestComp("ds_split", "data_prep", "train_test_split", "1.0.0", attrs)
     aci_pipe.add_comp(ds_split, ["ff.0"])
 
     feature_selects = [f"alice{c}" for c in range(15)] + [f"bob{c}" for c in range(15)]

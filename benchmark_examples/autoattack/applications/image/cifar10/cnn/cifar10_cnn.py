@@ -120,11 +120,21 @@ class Cifar10CNN(Cifar10ApplicationBase):
         # 640MiB
         return (
             ResourcesPack()
-            .with_debug_resources(ResourceDict(gpu_mem=800 * 1024 * 1024, CPU=1))
-            .with_sim_resources(
-                self.device_y.party, ResourceDict(gpu_mem=800 * 1024 * 1024, CPU=1)
+            .with_debug_resources(
+                ResourceDict(
+                    gpu_mem=800 * 1024 * 1024, CPU=1, memory=3 * 1024 * 1024 * 1024
+                )
             )
             .with_sim_resources(
-                self.device_f.party, ResourceDict(gpu_mem=600 * 1024 * 1024, CPU=1)
+                self.device_y.party,
+                ResourceDict(
+                    gpu_mem=800 * 1024 * 1024, CPU=1, memory=3 * 1024 * 1024 * 1024
+                ),
+            )
+            .with_sim_resources(
+                self.device_f.party,
+                ResourceDict(
+                    gpu_mem=600 * 1024 * 1024, CPU=1, memory=3 * 1024 * 1024 * 1024
+                ),
             )
         )

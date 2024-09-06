@@ -16,15 +16,10 @@ import logging
 
 import pandas as pd
 import pytest
+from pyarrow import orc
 
-from secretflow.component.data_utils import DistDataType
-from secretflow.component.preprocessing.data_prep.union import union_comp
-from secretflow.component.stats.table_statistics import (
-    gen_table_statistic_report,
-    table_statistics_comp,
-)
-from secretflow.component.storage.storage import ComponentStorage
-from secretflow.spec.v1.component_pb2 import Attribute
+from secretflow.component.core import DistDataType, Storage
+from secretflow.component.entry import comp_eval
 from secretflow.spec.v1.data_pb2 import (
     DistData,
     IndividualTable,
@@ -32,35 +27,6 @@ from secretflow.spec.v1.data_pb2 import (
     VerticalTable,
 )
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
-from secretflow.spec.v1.report_pb2 import Report
-from secretflow.stats.table_statistics import table_statistics
-
-
-def table_statistics_eval(
-    storage_config, sf_cluster_config, inputs, features, test_data
-):
-    self_party = sf_cluster_config.private_config.self_party
-    param = NodeEvalParam(
-        domain="stats",
-        name="table_statistics",
-        version="0.0.2",
-        attr_paths=["input/input_data/features"],
-        attrs=[
-            Attribute(ss=features),
-        ],
-        inputs=inputs,
-        output_uris=[""],
-    )
-
-    res = table_statistics_comp.eval(
-        param=param,
-        storage_config=storage_config,
-        cluster_config=sf_cluster_config,
-    )
-    comp_ret = Report()
-    res.outputs[0].meta.Unpack(comp_ret)
-    logging.warning(f"statistic report of {self_party}:\n {comp_ret}\n......")
-    assert comp_ret == gen_table_statistic_report(table_statistics(test_data))
 
 
 def test_union_individual(comp_prod_sf_cluster_config):
@@ -70,7 +36,7 @@ def test_union_individual(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = Storage(storage_config)
 
     input_data_list = [
         {
@@ -93,14 +59,14 @@ def test_union_individual(comp_prod_sf_cluster_config):
     if self_party == 'alice':
         for item in input_data_list:
             pd.DataFrame(item["data"]).to_csv(
-                comp_storage.get_writer(item["path"]),
+                storage.get_writer(item["path"]),
                 index=False,
             )
 
     param = NodeEvalParam(
         domain="data_prep",
         name="union",
-        version="0.0.1",
+        version="1.0.0",
         attr_paths=[],
         attrs=[],
         inputs=[
@@ -133,7 +99,7 @@ def test_union_individual(comp_prod_sf_cluster_config):
     param.inputs[0].meta.Pack(meta)
     param.inputs[1].meta.Pack(meta)
 
-    res = union_comp.eval(
+    res = comp_eval(
         param=param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -141,23 +107,13 @@ def test_union_individual(comp_prod_sf_cluster_config):
 
     assert len(res.outputs) == 1
     if self_party == "alice":
-        comp_storage = ComponentStorage(storage_config)
-        real_result = pd.read_csv(comp_storage.get_reader(output_path))
+        real_result = orc.read_table(storage.get_reader(output_path)).to_pandas()
         logging.warning(f"...individual_res:{self_party}... \n{real_result}\n.....")
         pd.testing.assert_frame_equal(
             expected_result,
             real_result,
+            check_dtype=False,
         )
-
-    table_statistics_eval(
-        storage_config=storage_config,
-        sf_cluster_config=sf_cluster_config,
-        inputs=res.outputs,
-        features=["id1", "item"],
-        test_data=pd.DataFrame(
-            {"id1": ["K100", "K101", "K200", "K201"], "item": ["A1", "A2", "B1", "B2"]},
-        ),
-    )
 
 
 def test_union_vertical(comp_prod_sf_cluster_config):
@@ -169,7 +125,7 @@ def test_union_vertical(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = Storage(storage_config)
 
     input_data_map = {
         "alice": [
@@ -212,14 +168,14 @@ def test_union_vertical(comp_prod_sf_cluster_config):
     if data_list is not None:
         for item in data_list:
             pd.DataFrame(item["data"]).to_csv(
-                comp_storage.get_writer(item["path"]),
+                storage.get_writer(item["path"]),
                 index=False,
             )
 
     param = NodeEvalParam(
         domain="data_prep",
         name="union",
-        version="0.0.1",
+        version="1.0.0",
         attr_paths=[],
         attrs=[],
         inputs=[
@@ -266,7 +222,7 @@ def test_union_vertical(comp_prod_sf_cluster_config):
     param.inputs[0].meta.Pack(meta)
     param.inputs[1].meta.Pack(meta)
 
-    res = union_comp.eval(
+    res = comp_eval(
         param=param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -275,8 +231,7 @@ def test_union_vertical(comp_prod_sf_cluster_config):
     assert len(res.outputs) == 1
 
     if self_party in ["alice", "bob"]:
-        comp_storage = ComponentStorage(storage_config)
-        real_result = pd.read_csv(comp_storage.get_reader(output_path))
+        real_result = orc.read_table(storage.get_reader(output_path)).to_pandas()
         logging.warning(f"\n...vertical_res:{self_party}... \n{real_result}\n.....")
 
         expected_result = expected_alice if self_party == "alice" else expected_bob
@@ -284,22 +239,8 @@ def test_union_vertical(comp_prod_sf_cluster_config):
         pd.testing.assert_frame_equal(
             expected_result,
             real_result,
+            check_dtype=False,
         )
-
-    table_statistics_eval(
-        storage_config=storage_config,
-        sf_cluster_config=sf_cluster_config,
-        inputs=res.outputs,
-        features=["id1", "item1", "id2", "item2"],
-        test_data=pd.DataFrame(
-            {
-                "id1": ["K100", "K101", "K200", "K201"],
-                "item1": ["A1", "A2", "B1", "B2"],
-                "id2": ["K100", "K101", "K200", "K201"],
-                "item2": ["A1", "A2", "B1", "B2"],
-            },
-        ),
-    )
 
 
 def test_union_load_table(comp_prod_sf_cluster_config):
@@ -309,7 +250,7 @@ def test_union_load_table(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = Storage(storage_config)
 
     input_data_list = [
         {
@@ -333,14 +274,14 @@ def test_union_load_table(comp_prod_sf_cluster_config):
     if self_party == 'alice':
         for item in input_data_list:
             pd.DataFrame(item["data"]).to_csv(
-                comp_storage.get_writer(item["path"]),
+                storage.get_writer(item["path"]),
                 index=False,
             )
 
     param = NodeEvalParam(
         domain="data_prep",
         name="union",
-        version="0.0.1",
+        version="1.0.0",
         attr_paths=[],
         attrs=[],
         inputs=[
@@ -375,7 +316,7 @@ def test_union_load_table(comp_prod_sf_cluster_config):
     param.inputs[0].meta.Pack(meta)
     param.inputs[1].meta.Pack(meta)
 
-    res = union_comp.eval(
+    res = comp_eval(
         param=param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -383,19 +324,19 @@ def test_union_load_table(comp_prod_sf_cluster_config):
 
     assert len(res.outputs) == 1
     if self_party == "alice":
-        comp_storage = ComponentStorage(storage_config)
-        real_result = pd.read_csv(comp_storage.get_reader(output_path))
+        real_result = orc.read_table(storage.get_reader(output_path)).to_pandas()
         logging.warning(f"...load_table_result:{self_party}... \n{real_result}\n.....")
         pd.testing.assert_frame_equal(
             expected_result,
             real_result,
+            check_dtype=False,
         )
 
 
 def test_union_error(comp_prod_sf_cluster_config):
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = Storage(storage_config)
 
     alice_input1_path = "test_union_error/alice_input1.csv"
     alice_input2_path = "test_union_error/alice_input2.csv"
@@ -406,27 +347,27 @@ def test_union_error(comp_prod_sf_cluster_config):
     if self_party == "alice":
         # different schema
         pd.DataFrame({"id1": ["K100"]}).to_csv(
-            comp_storage.get_writer(alice_input1_path),
+            storage.get_writer(alice_input1_path),
             index=False,
         )
         pd.DataFrame({"diff_id": ["K200"]}).to_csv(
-            comp_storage.get_writer(alice_input2_path),
+            storage.get_writer(alice_input2_path),
             index=False,
         )
     elif self_party == "bob":
         pd.DataFrame({"item": ["item1"]}).to_csv(
-            comp_storage.get_writer(bob_input1_path),
+            storage.get_writer(bob_input1_path),
             index=False,
         )
         pd.DataFrame({"item": ["item2"]}).to_csv(
-            comp_storage.get_writer(bob_input2_path),
+            storage.get_writer(bob_input2_path),
             index=False,
         )
 
     param = NodeEvalParam(
         domain="data_prep",
         name="union",
-        version="0.0.1",
+        version="1.0.0",
         attr_paths=[],
         attrs=[],
         inputs=[
@@ -476,8 +417,8 @@ def test_union_error(comp_prod_sf_cluster_config):
     meta.schemas[0].features.append("diff_id")
     param.inputs[1].meta.Pack(meta)
 
-    with pytest.raises(AssertionError, match="columns not match") as exc_info:
-        union_comp.eval(
+    with pytest.raises(Exception, match="table meta info missmatch") as exc_info:
+        comp_eval(
             param=param,
             storage_config=storage_config,
             cluster_config=sf_cluster_config,

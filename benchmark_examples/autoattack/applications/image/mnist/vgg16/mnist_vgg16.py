@@ -392,12 +392,21 @@ class MnistVGG16(MnistBase):
         # 6414MiB
         return (
             ResourcesPack()
-            .with_debug_resources(ResourceDict(gpu_mem=7 * 1024 * 1024 * 1024, CPU=1))
-            .with_sim_resources(
-                self.device_y.party,
-                ResourceDict(gpu_mem=7 * 1024 * 1024 * 1024, CPU=1),
+            .with_debug_resources(
+                ResourceDict(
+                    gpu_mem=7 * 1024 * 1024 * 1024, CPU=1, memory=3 * 1024 * 1024 * 1024
+                )
             )
             .with_sim_resources(
-                self.device_f.party, ResourceDict(gpu_mem=6 * 1024 * 1024 * 1024, CPU=1)
+                self.device_y.party,
+                ResourceDict(
+                    gpu_mem=7 * 1024 * 1024 * 1024, CPU=1, memory=3 * 1024 * 1024 * 1024
+                ),
+            )
+            .with_sim_resources(
+                self.device_f.party,
+                ResourceDict(
+                    gpu_mem=6 * 1024 * 1024 * 1024, CPU=1, memory=3 * 1024 * 1024 * 1024
+                ),
             )
         )

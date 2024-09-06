@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from secretflow.component.io.identity import identity
-from secretflow.component.io.io import io_read_data, io_write_data
+
+from secretflow.component.core.registry import Registry
 from secretflow.component.ml.boost.sgb.sgb import sgb_predict_comp, sgb_train_comp
 from secretflow.component.ml.boost.ss_xgb.ss_xgb import (
     ss_xgb_predict_comp,
@@ -30,9 +30,6 @@ from secretflow.component.ml.linear.ss_sgd import ss_sgd_predict_comp, ss_sgd_tr
 from secretflow.component.ml.nn.sl.sl_predict import slnn_predict_comp
 from secretflow.component.ml.nn.sl.sl_train import slnn_train_comp
 from secretflow.component.model_export import model_export_comp
-from secretflow.component.postprocessing.score_card_transformer import (
-    score_card_transformer_comp,
-)
 from secretflow.component.preprocessing.binning.vert_binning import (
     vert_bin_substitution_comp,
     vert_binning_comp,
@@ -41,66 +38,22 @@ from secretflow.component.preprocessing.binning.vert_woe_binning import (
     vert_woe_binning_comp,
 )
 from secretflow.component.preprocessing.data_prep.psi import psi_comp
-from secretflow.component.preprocessing.data_prep.train_test_split import (
-    train_test_split_comp,
-)
-from secretflow.component.preprocessing.data_prep.union import union_comp
-from secretflow.component.preprocessing.filter.condition_filter import (
-    condition_filter_comp,
-)
-from secretflow.component.preprocessing.filter.expr_condition_filter import (
-    expr_condition_filter_comp,
-)
-from secretflow.component.preprocessing.filter.feature_filter import feature_filter_comp
-from secretflow.component.preprocessing.filter.sample import sample_comp
-from secretflow.component.preprocessing.unified_single_party_ops.binary_op import (
-    binary_op_comp,
-)
-from secretflow.component.preprocessing.unified_single_party_ops.case_when import (
-    case_when,
-)
-from secretflow.component.preprocessing.unified_single_party_ops.cast import cast_comp
-from secretflow.component.preprocessing.unified_single_party_ops.feature_calculate import (
-    feature_calculate,
-)
-from secretflow.component.preprocessing.unified_single_party_ops.fillna import fillna
-from secretflow.component.preprocessing.unified_single_party_ops.onehot_encode import (
-    onehot_encode,
-)
-from secretflow.component.preprocessing.unified_single_party_ops.substitution import (
-    substitution,
-)
-from secretflow.component.stats.groupby_statistics import groupby_statistics_comp
-from secretflow.component.stats.ss_pearsonr import ss_pearsonr_comp
-from secretflow.component.stats.ss_vif import ss_vif_comp
-from secretflow.component.stats.stats_psi import stats_psi_comp
-from secretflow.component.stats.table_statistics import table_statistics_comp
 from secretflow.spec.extend.cluster_pb2 import SFClusterConfig
 from secretflow.spec.v1.component_pb2 import CompListDef, ComponentDef
 from secretflow.spec.v1.data_pb2 import StorageConfig
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam, NodeEvalResult
 from secretflow.version import build_message
 
+from .core.entry import comp_eval as core_comp_eval
+
 ALL_COMPONENTS = [
-    union_comp,
-    train_test_split_comp,
     psi_comp,
-    sample_comp,
     ss_sgd_train_comp,
     ss_sgd_predict_comp,
-    feature_filter_comp,
-    binary_op_comp,
     vert_binning_comp,
     vert_woe_binning_comp,
     vert_bin_substitution_comp,
-    condition_filter_comp,
-    expr_condition_filter_comp,
-    ss_vif_comp,
-    ss_pearsonr_comp,
     ss_pvalue_comp,
-    table_statistics_comp,
-    groupby_statistics_comp,
-    stats_psi_comp,
     biclassification_eval_comp,
     regression_eval_comp,
     prediction_bias_comp,
@@ -112,17 +65,7 @@ ALL_COMPONENTS = [
     ss_glm_train_comp,
     slnn_train_comp,
     slnn_predict_comp,
-    onehot_encode,
-    substitution,
-    case_when,
-    fillna,
-    io_read_data,
-    io_write_data,
-    feature_calculate,
-    identity,
     model_export_comp,
-    cast_comp,
-    score_card_transformer_comp,
 ]
 
 COMP_LIST_NAME = "secretflow"
@@ -146,36 +89,46 @@ def generate_comp_list():
         comp_map[gen_key(x_def.domain, x_def.name, x_def.version)] = x
         all_comp_defs.append(x_def)
 
+    for x in Registry.get_component_defs():
+        all_comp_defs.append(x)
+
     all_comp_defs = sorted(all_comp_defs, key=lambda k: (k.domain, k.name, k.version))
     comp_list.comps.extend(all_comp_defs)
-    return comp_list, comp_map
+    comp_names = [
+        gen_key(x_def.domain, x_def.name, x_def.version) for x_def in comp_list.comps
+    ]
+    return comp_list, comp_map, comp_names
 
 
-COMP_LIST, COMP_MAP = generate_comp_list()
+COMP_LIST, COMP_MAP, COMP_NAMES = generate_comp_list()
 
 
-def get_comp_def(domain: str, name: str, version: str) -> ComponentDef:
+def get_comp_def(domain: str, name: str, version: str) -> ComponentDef:  # type: ignore
+    definition = Registry.get_definition(domain, name, version)
+    if definition is not None:
+        return definition.component_def
+
     key = gen_key(domain, name, version)
     if key in COMP_MAP:
         return COMP_MAP[key].definition()
     else:
-        raise AttributeError(
-            f"key {key} is not in component list {list(COMP_MAP.keys())}"
-        )
+        raise AttributeError(f"key {key} is not in component list {COMP_NAMES}")
 
 
 def comp_eval(
-    param: NodeEvalParam,
-    storage_config: StorageConfig,
-    cluster_config: SFClusterConfig,
+    param: NodeEvalParam,  # type: ignore
+    storage_config: StorageConfig,  # type: ignore
+    cluster_config: SFClusterConfig,  # type: ignore
     tracer_report: bool = False,
-) -> NodeEvalResult:
+) -> NodeEvalResult:  # type: ignore
     import logging
+    import os
 
-    logging.info(f"\n--\n{build_message()}\n--\n")
-    logging.info(f'\n--\n*param* \n\n{param}\n--\n')
-    logging.info(f'\n--\n*storage_config* \n\n{storage_config}\n--\n')
-    logging.info(f'\n--\n*cluster_config* \n\n{cluster_config}\n--\n')
+    if 'PYTEST_CURRENT_TEST' not in os.environ:
+        logging.info(f"\n--\n{build_message()}\n--\n")
+        logging.info(f'\n--\n*param* \n\n{param}\n--\n')
+        logging.info(f'\n--\n*storage_config* \n\n{storage_config}\n--\n')
+        logging.info(f'\n--\n*cluster_config* \n\n{cluster_config}\n--\n')
     key = gen_key(param.domain, param.name, param.version)
     if key in COMP_MAP:
         comp = COMP_MAP[key]
@@ -185,6 +138,4 @@ def comp_eval(
         logging.info(f'\n--\n*res* \n\n{res}\n--\n')
         return res
     else:
-        raise AttributeError(
-            f"key {key} is not in component list {list(COMP_MAP.keys())}"
-        )
+        return core_comp_eval(param, storage_config, cluster_config, tracer_report)

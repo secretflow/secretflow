@@ -193,15 +193,15 @@ def test_check_table_attr_col_cnt():
 
     d1 = IoDef.TableAttrDef(col_min_cnt_inclusive=4)
 
-    assert not check_table_attr_col_cnt(a, d1)
+    assert not check_table_attr_col_cnt(a, d1)[0]
 
     d2 = IoDef.TableAttrDef(col_max_cnt_inclusive=2)
 
-    assert not check_table_attr_col_cnt(a, d2)
+    assert not check_table_attr_col_cnt(a, d2)[0]
 
     d3 = IoDef.TableAttrDef(col_min_cnt_inclusive=3, col_max_cnt_inclusive=3)
 
-    assert check_table_attr_col_cnt(a, d3)
+    assert check_table_attr_col_cnt(a, d3)[0]
 
 
 def test_node_reader_not_match():

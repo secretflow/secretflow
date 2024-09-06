@@ -23,11 +23,11 @@ from secretflow.component.component import (
 )
 from secretflow.component.data_utils import (
     DistDataType,
-    extract_table_header,
+    extract_data_infos,
     generate_random_string,
-    load_table,
     model_dumps,
 )
+from secretflow.component.dataframe import CompDataFrame
 from secretflow.component.preprocessing.binning.vert_binning import (
     BINNING_RULE_MAX_MAJOR_VERSION,
     BINNING_RULE_MAX_MINOR_VERSION,
@@ -169,7 +169,7 @@ def vert_woe_binning_eval_fn(
     bin_rule,
     report,
 ):
-    input_df = load_table(
+    input_df = CompDataFrame.from_distdata(
         ctx,
         input_data,
         load_features=True,
@@ -177,12 +177,12 @@ def vert_woe_binning_eval_fn(
         load_labels=True,
     )
 
-    label_info, _ = extract_table_header(
+    infos = extract_data_infos(
         input_data, load_features=True, load_labels=True, col_selects=input_data_label
     )
-    assert len(label_info) == 1, "only support one party has label"
-    label_party = next(iter(label_info.keys()))
-    smeta = label_info[label_party]
+    assert len(infos) == 1, "only support one party has label"
+    label_party = next(iter(infos.keys()))
+    smeta = infos[label_party].dtypes
     assert len(smeta) == 1, "only support one label col"
 
     if secure_device_type == "spu":

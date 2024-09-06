@@ -14,13 +14,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
+## staging
+>
+> please add your unreleased change here.
 
-## [v1.8.0b0] - 2024-07-17
+
+
+## [v1.10.0.dev20240906] - 2024-09-06
 
 ### Added
-- [component] support tweedie learning objective in SGB
-- [component] update graph builder in model export
 
+- [component] IO component supports import and export sgb/glm model
+- [component] Switch from ray to a local task scheduler
+- [component] Support export SGD/GLM 2-Party HE model package
+- [component] component reflect, include all component in the package of stats/io/preprocessing(exclude psi and binning component), and update the component version to 1.0.0
+- [component] Integrate with DataProxy SDK
+
+### Changed
+
+- [data] Change single party r2_score to sklearn function
+- [docs] Security warning translation
+
+### Fixed
+
+- [sgb] Fix checkpoint prediction initialization
 
 ## [v1.7.0.dev20240605] - 2024-06-05
 

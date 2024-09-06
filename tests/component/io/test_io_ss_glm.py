@@ -19,29 +19,34 @@ import numpy as np
 import pandas as pd
 import pytest
 from google.protobuf.json_format import MessageToJson, Parse
+from pyarrow import orc
 from sklearn.datasets import load_breast_cancer
+from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import StandardScaler
 
-from secretflow.component.data_utils import DistDataType
-from secretflow.component.io.io import io_read_data, io_write_data
-from secretflow.component.ml.linear.ss_glm import ss_glm_train_comp
-from secretflow.component.storage import ComponentStorage
-from secretflow.spec.extend.linear_model_pb2 import LinearModel
+from secretflow.component.core import DistDataType, Storage
+from secretflow.component.entry import comp_eval
+from secretflow.component.ml.linear.ss_glm import ss_glm_predict_comp, ss_glm_train_comp
+from secretflow.spec.extend.linear_model_pb2 import GeneralizedLinearModel, LinearModel
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
+work_path = f"test_glm"
+alice_path = f"{work_path}/x_alice.csv"
+bob_path = f"{work_path}/x_bob.csv"
+predict_path = f"{work_path}/predict.csv"
+predict_referecnce_path = f"{work_path}/predict_reference.csv"
+
 
 @pytest.fixture
 def glm_model(comp_prod_sf_cluster_config):
-    alice_path = "test_glm/x_alice.csv"
-    bob_path = "test_glm/x_bob.csv"
     model_path = "test_glm/model.sf"
     report_path = "test_glm/model.report"
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = Storage(storage_config)
 
     scaler = StandardScaler()
     ds = load_breast_cancer()
@@ -50,11 +55,11 @@ def glm_model(comp_prod_sf_cluster_config):
         x = pd.DataFrame(x[:, :15], columns=[f"a{i}" for i in range(15)])
         y = pd.DataFrame(y, columns=["y"])
         ds = pd.concat([x, y], axis=1)
-        ds.to_csv(comp_storage.get_writer(alice_path), index=False)
+        ds.to_csv(storage.get_writer(alice_path), index=False)
 
     elif self_party == "bob":
         ds = pd.DataFrame(x[:, 15:], columns=[f"b{i}" for i in range(15)])
-        ds.to_csv(comp_storage.get_writer(bob_path), index=False)
+        ds.to_csv(storage.get_writer(bob_path), index=False)
 
     train_param = NodeEvalParam(
         domain="ml.train",
@@ -134,11 +139,11 @@ def write_data(glm_model, comp_prod_sf_cluster_config):
     read_param = NodeEvalParam(
         domain="io",
         name="read_data",
-        version="0.0.1",
+        version="1.0.0",
         inputs=[glm_model],
         output_uris=[pb_path],
     )
-    read_res = io_read_data.eval(
+    read_res = comp_eval(
         param=read_param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -149,6 +154,35 @@ def write_data(glm_model, comp_prod_sf_cluster_config):
     return write_data
 
 
+@pytest.fixture
+def write_complete_data(glm_model, comp_prod_sf_cluster_config):
+    pb_path = "test_io/generalized_linear_model_pb"
+    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+
+    read_param = NodeEvalParam(
+        domain="io",
+        name="read_data",
+        version="1.0.0",
+        attr_paths=[
+            "generalized_linear_model",
+        ],
+        attrs=[
+            Attribute(b=True),
+        ],
+        inputs=[glm_model],
+        output_uris=[pb_path],
+    )
+    read_res = comp_eval(
+        param=read_param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
+    generalized_linear_model_pb = GeneralizedLinearModel()
+    read_res.outputs[0].meta.Unpack(generalized_linear_model_pb)
+    write_data = MessageToJson(generalized_linear_model_pb)
+    return write_data
+
+
 def test_no_change_correct(glm_model, write_data, comp_prod_sf_cluster_config):
     new_glm_model_path = "test_io/new_glm_model"
     pb_path = "test_io/glm_model_pb_unchanged"
@@ -156,7 +190,7 @@ def test_no_change_correct(glm_model, write_data, comp_prod_sf_cluster_config):
     write_param = NodeEvalParam(
         domain="io",
         name="write_data",
-        version="0.0.1",
+        version="1.0.0",
         attr_paths=["write_data", "write_data_type"],
         attrs=[
             Attribute(s=write_data),
@@ -165,7 +199,7 @@ def test_no_change_correct(glm_model, write_data, comp_prod_sf_cluster_config):
         inputs=[glm_model],
         output_uris=[new_glm_model_path],
     )
-    write_res = io_write_data.eval(
+    write_res = comp_eval(
         param=write_param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -174,11 +208,11 @@ def test_no_change_correct(glm_model, write_data, comp_prod_sf_cluster_config):
     read_param = NodeEvalParam(
         domain="io",
         name="read_data",
-        version="0.0.1",
+        version="1.0.0",
         inputs=[write_res.outputs[0]],
         output_uris=[pb_path],
     )
-    read_res = io_read_data.eval(
+    read_res = comp_eval(
         param=read_param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -214,7 +248,7 @@ def test_modify_bias_correct(glm_model, write_data, comp_prod_sf_cluster_config)
     write_param = NodeEvalParam(
         domain="io",
         name="write_data",
-        version="0.0.1",
+        version="1.0.0",
         attr_paths=["write_data", "write_data_type"],
         attrs=[
             Attribute(s=write_data),
@@ -223,7 +257,7 @@ def test_modify_bias_correct(glm_model, write_data, comp_prod_sf_cluster_config)
         inputs=[glm_model],
         output_uris=[new_rule_path],
     )
-    write_res = io_write_data.eval(
+    write_res = comp_eval(
         param=write_param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -232,11 +266,11 @@ def test_modify_bias_correct(glm_model, write_data, comp_prod_sf_cluster_config)
     read_param = NodeEvalParam(
         domain="io",
         name="read_data",
-        version="0.0.1",
+        version="1.0.0",
         inputs=[write_res.outputs[0]],
         output_uris=[pb_path],
     )
-    read_res = io_read_data.eval(
+    read_res = comp_eval(
         param=read_param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -244,3 +278,206 @@ def test_modify_bias_correct(glm_model, write_data, comp_prod_sf_cluster_config)
     linear_model_pb_changed = LinearModel()
     read_res.outputs[0].meta.Unpack(linear_model_pb_changed)
     np.testing.assert_almost_equal(linear_model_pb_changed.bias, old_bias + 1, 6)
+
+
+def test_no_change_correct_complete(write_complete_data, comp_prod_sf_cluster_config):
+    new_glm_model_path = "test_glm/new_glm_model"
+    pb_path = "test_glm/glm_model_pb_unchanged"
+    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    write_param = NodeEvalParam(
+        domain="io",
+        name="write_data",
+        version="1.0.0",
+        attr_paths=["write_data", "write_data_type"],
+        attrs=[
+            Attribute(s=write_complete_data),
+            Attribute(s=str(DistDataType.SS_GLM_MODEL)),
+        ],
+        inputs=[
+            DistData(name="null", type=str(DistDataType.NULL)),
+        ],
+        output_uris=[new_glm_model_path],
+    )
+    write_res = comp_eval(
+        param=write_param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
+
+    read_param = NodeEvalParam(
+        domain="io",
+        name="read_data",
+        version="1.0.0",
+        attr_paths=[
+            "generalized_linear_model",
+        ],
+        attrs=[
+            Attribute(b=True),
+        ],
+        inputs=[write_res.outputs[0]],
+        output_uris=[pb_path],
+    )
+    read_res = comp_eval(
+        param=read_param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
+    generalized_linear_model_pb_unchanged = GeneralizedLinearModel()
+    read_res.outputs[0].meta.Unpack(generalized_linear_model_pb_unchanged)
+    write_data_unchanged = MessageToJson(generalized_linear_model_pb_unchanged)
+    # making an exception for hash
+    write_data_dict = json.loads(write_complete_data)
+    write_data_unchanged_dict = json.loads(write_data_unchanged)
+    write_data_unchanged_dict['model']["modelHash"] = write_data_dict.get("model").get(
+        "modelHash", ""
+    )
+    write_data_unchanged = (
+        json.dumps(write_data_unchanged_dict).replace("\n", "").replace(" ", "")
+    )
+    write_complete_data = write_complete_data.replace("\n", "").replace(" ", "")
+    # logging.info(f'write_data_unchanged: {write_data_unchanged}')
+    # logging.info(f'write_data: {write_complete_data}')
+    assert (
+        write_data_unchanged == write_complete_data
+    ), f"No ops, they should be the same  {write_data_unchanged}, {write_complete_data}"
+
+
+def get_pred_param(storage_config, sf_cluster_config, model, predict_path):
+    self_party = sf_cluster_config.private_config.self_party
+    storage = Storage(storage_config)
+    scaler = StandardScaler()
+    ds = load_breast_cancer()
+    x, y = scaler.fit_transform(ds["data"]), ds["target"]
+    if self_party == "alice":
+        x = pd.DataFrame(x[:, :15], columns=[f"a{i}" for i in range(15)])
+        y = pd.DataFrame(y, columns=["y"])
+        ds = pd.concat([x, y], axis=1)
+        ds.to_csv(storage.get_writer(alice_path), index=False)
+    elif self_party == "bob":
+        ds = pd.DataFrame(x[:, 15:], columns=[f"b{i}" for i in range(15)])
+        ds.to_csv(storage.get_writer(bob_path), index=False)
+
+    input_dd = DistData(
+        name="train_dataset",
+        type="sf.table.vertical_table",
+        data_refs=[
+            DistData.DataRef(uri=alice_path, party="alice", format="csv"),
+            DistData.DataRef(uri=bob_path, party="bob", format="csv"),
+        ],
+    )
+    meta = VerticalTable(
+        schemas=[
+            TableSchema(
+                feature_types=["float32"] * 15,
+                features=[f"a{i}" for i in range(15)],
+                labels=["y"],
+                label_types=["float32"],
+            ),
+            TableSchema(
+                feature_types=["float32"] * 15,
+                features=[f"b{i}" for i in range(15)],
+            ),
+        ],
+    )
+    input_dd.meta.Pack(meta)
+
+    predict_param = NodeEvalParam(
+        domain="ml.predict",
+        name="ss_glm_predict",
+        version="0.0.2",
+        attr_paths=[
+            "receiver",
+            "save_ids",
+            "save_label",
+            "input/feature_dataset/saved_features",
+        ],
+        attrs=[
+            Attribute(ss=["alice"]),
+            Attribute(b=False),
+            Attribute(b=True),
+            Attribute(ss=["a10", "a2"]),
+        ],
+        inputs=[model, input_dd],
+        output_uris=[predict_path],
+    )
+    return predict_param
+
+
+def predict_reference_data(glm_model, comp_prod_sf_cluster_config):
+    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    predict_param = get_pred_param(
+        storage_config, sf_cluster_config, glm_model, predict_referecnce_path
+    )
+    predict_res = ss_glm_predict_comp.eval(
+        param=predict_param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
+
+    assert len(predict_res.outputs) == 1
+
+    if "alice" == sf_cluster_config.private_config.self_party:
+        storage = Storage(storage_config)
+        predict_reference = orc.read_table(
+            storage.get_reader(predict_referecnce_path)
+        ).to_pandas()
+        # logging.warning(f"predict_reference: {predict_reference}")
+        return predict_reference
+
+
+def test_glm_raw_model(glm_model, write_complete_data, comp_prod_sf_cluster_config):
+    model = glm_model
+    predict_reference = predict_reference_data(model, comp_prod_sf_cluster_config)
+
+    new_glm_path = "test_glm/new_glm"
+    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    write_param = NodeEvalParam(
+        domain="io",
+        name="write_data",
+        version="1.0.0",
+        attr_paths=["write_data", "write_data_type"],
+        attrs=[
+            Attribute(s=write_complete_data),
+            Attribute(s=str(DistDataType.SS_GLM_MODEL)),
+        ],
+        inputs=[
+            DistData(name="null", type=str(DistDataType.NULL)),
+        ],
+        output_uris=[new_glm_path],
+    )
+    write_res = comp_eval(
+        param=write_param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
+
+    predict_param = get_pred_param(
+        storage_config, sf_cluster_config, write_res.outputs[0], predict_path
+    )
+    predict_res = ss_glm_predict_comp.eval(
+        param=predict_param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+        tracer_report=True,
+    )
+
+    logging.info(f"predict tracer_report {predict_res['tracer_report']}")
+    assert len(predict_res["eval_result"].outputs) == 1
+
+    self_party = sf_cluster_config.private_config.self_party
+    if "alice" == self_party:
+        storage = Storage(storage_config)
+        input_y = pd.read_csv(storage.get_reader(alice_path))
+        output_y = orc.read_table(storage.get_reader(predict_path)).to_pandas()
+        # output_y.to_csv(predict_path, index=False)
+
+        # label & pred
+        assert output_y.shape[1] == 4
+        assert set(output_y.columns) == set(["a2", "a10", "pred", "y"])
+
+        auc = roc_auc_score(input_y["y"], output_y["pred"])
+        assert auc > 0.99, f"auc {auc}"
+
+        assert np.allclose(
+            output_y["pred"], predict_reference["pred"]
+        ), f'output_y["pred"] not close to predict_reference["pred"]'

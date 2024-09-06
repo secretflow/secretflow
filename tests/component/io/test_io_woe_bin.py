@@ -21,7 +21,7 @@ from google.protobuf.json_format import MessageToJson, Parse
 from sklearn.datasets import load_breast_cancer
 
 from secretflow.component.data_utils import DistDataType
-from secretflow.component.io.io import io_read_data, io_write_data
+from secretflow.component.entry import comp_eval
 from secretflow.component.preprocessing.binning.vert_woe_binning import (
     vert_woe_binning_comp,
 )
@@ -116,11 +116,11 @@ def write_data(vert_woe_bin_rule, comp_prod_sf_cluster_config):
     read_param = NodeEvalParam(
         domain="io",
         name="read_data",
-        version="0.0.1",
+        version="1.0.0",
         inputs=[vert_woe_bin_rule],
         output_uris=[pb_path],
     )
-    read_res = io_read_data.eval(
+    read_res = comp_eval(
         param=read_param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -138,7 +138,7 @@ def test_no_change_correct(vert_woe_bin_rule, write_data, comp_prod_sf_cluster_c
     write_param = NodeEvalParam(
         domain="io",
         name="write_data",
-        version="0.0.1",
+        version="1.0.0",
         attr_paths=["write_data", "write_data_type"],
         attrs=[
             Attribute(s=write_data),
@@ -147,7 +147,7 @@ def test_no_change_correct(vert_woe_bin_rule, write_data, comp_prod_sf_cluster_c
         inputs=[vert_woe_bin_rule],
         output_uris=[new_rule_path],
     )
-    write_res = io_write_data.eval(
+    write_res = comp_eval(
         param=write_param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -156,11 +156,11 @@ def test_no_change_correct(vert_woe_bin_rule, write_data, comp_prod_sf_cluster_c
     read_param = NodeEvalParam(
         domain="io",
         name="read_data",
-        version="0.0.1",
+        version="1.0.0",
         inputs=[write_res.outputs[0]],
         output_uris=[pb_path],
     )
-    read_res = io_read_data.eval(
+    read_res = comp_eval(
         param=read_param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -201,7 +201,7 @@ def test_merge_one_bin_correct(
     write_param = NodeEvalParam(
         domain="io",
         name="write_data",
-        version="0.0.1",
+        version="1.0.0",
         attr_paths=["write_data", "write_data_type"],
         attrs=[
             Attribute(s=write_data),
@@ -210,7 +210,7 @@ def test_merge_one_bin_correct(
         inputs=[vert_woe_bin_rule],
         output_uris=[new_rule_path],
     )
-    write_res = io_write_data.eval(
+    write_res = comp_eval(
         param=write_param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -219,11 +219,11 @@ def test_merge_one_bin_correct(
     read_param = NodeEvalParam(
         domain="io",
         name="read_data",
-        version="0.0.1",
+        version="1.0.0",
         inputs=[write_res.outputs[0]],
         output_uris=[pb_path],
     )
-    read_res = io_read_data.eval(
+    read_res = comp_eval(
         param=read_param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,

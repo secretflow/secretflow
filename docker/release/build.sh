@@ -115,3 +115,6 @@ if [[ LATEST -eq 1 ]]; then
     echo -e "Tag and push ${GREEN}${LATEST_LITE_TAG}${NO_COLOR} ..."
     docker buildx imagetools create --tag ${LATEST_LITE_TAG} ${IMAGE_LITE_TAG}
 fi
+
+rm *.json
+rm *.yml

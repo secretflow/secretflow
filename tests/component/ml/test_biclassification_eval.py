@@ -17,6 +17,7 @@ import logging
 import numpy as np
 import pandas as pd
 from google.protobuf.json_format import MessageToJson
+from sklearn.metrics import roc_auc_score
 
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.ml.eval.biclassification_eval import (
@@ -27,7 +28,6 @@ from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, IndividualTable, TableSchema
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
-from sklearn.metrics import roc_auc_score
 
 
 def test_biclassification_eval(comp_prod_sf_cluster_config):
@@ -122,7 +122,9 @@ def test_biclassification_eval_nan(comp_prod_sf_cluster_config):
 
     if self_party == "alice":
         label_pred_df.to_csv(
-            comp_storage.get_writer(alice_label_pred_path), index=False
+            comp_storage.get_writer(alice_label_pred_path),
+            index=False,
+            na_rep="nan",
         )
 
     param = NodeEvalParam(

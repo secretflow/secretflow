@@ -7,14 +7,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-03-19 12:20+0800\n"
+"POT-Creation-Date: 2024-07-22 12:05+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.14.0\n"
+"Generated-By: Babel 2.15.0\n"
 
 #: ../../tutorial/FedDataFrameDataLoader.ipynb:9
 msgid "Loading CSV data in SecretFlow"
@@ -121,7 +121,7 @@ msgid ""
 msgstr "接口方面和 ``pandas.DataFrame`` 对齐，以降低多方数据操作的成本。"
 
 #: ../../tutorial/FedDataFrameDataLoader.ipynb:145
-msgid "|8f528cd6e39c4664af0d1dde73094e81|"
+msgid "|12bd3dc25ec64060951c739234c42112|"
 msgstr ""
 
 #: ../../tutorial/FedDataFrameDataLoader.ipynb:147

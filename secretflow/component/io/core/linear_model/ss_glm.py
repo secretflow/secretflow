@@ -13,13 +13,22 @@
 # limitations under the License.
 import json
 import logging
-from typing import List
+from collections import defaultdict
+from typing import List, Tuple
 
 import numpy as np
 
+from secretflow.component.component import CompEvalError
 from secretflow.device import SPUObject
+from secretflow.device.device.pyu import PYU
+from secretflow.device.device.spu import SPU
 from secretflow.device.driver import reveal
-from secretflow.spec.extend.linear_model_pb2 import FeatureWeight, LinearModel
+from secretflow.spec.extend.linear_model_pb2 import (
+    FeatureWeight,
+    GeneralizedLinearModel,
+    LinearModel,
+    PublicInfo,
+)
 
 
 def ss_glm_to_linear_model_pb(
@@ -62,10 +71,56 @@ def ss_glm_to_linear_model_pb(
     return linear_model
 
 
+def ss_glm_to_generalized_linear_model_pb(
+    ss_glm_model: List[SPUObject], public_info: str
+) -> GeneralizedLinearModel:
+    """
+    WARNING: THIS MODEL IS NOT SAFE, ALL MODEL INFO IS REVEALED AND LABEL INFO IS AT GREAT RISK
+    DO NOT USE THIS UNLESS YOU UNDERSTAND THIS RISK.
+    Convert SSGLM to Linear Model.
+    ss_glm_model: list of SPUObject represents glm model.
+    public_info: str, model meta in json format
+    """
+    logging.warning(
+        "DANGER! WARNING! WE ARE REVEALING SS GLM MODEL. ALL MODEL INFO IS REVEALED. THE LABEL INFO IS AT GREAT RISK!"
+    )
+    linear_model_pb = ss_glm_to_linear_model_pb(ss_glm_model, public_info)
+
+    public_info = json.loads(public_info)
+    public_info_pb = PublicInfo()
+    public_info_pb.link = public_info['link']
+    public_info_pb.y_scale = public_info['y_scale']
+
+    offset_col = public_info['offset_col']
+    if offset_col:
+        assert len(offset_col) == 1
+        offset_col = offset_col[0]
+    else:
+        offset_col = ""
+    public_info_pb.offset_col = offset_col
+
+    label_col = public_info['label_col']
+    if label_col:
+        assert len(label_col) == 1
+        label_col = label_col[0]
+    else:
+        label_col = ""
+    public_info_pb.label_col = label_col
+
+    public_info_pb.fxp_exp_mode = public_info['fxp_exp_mode']
+    public_info_pb.fxp_exp_iters = public_info['fxp_exp_iters']
+
+    generalized_linear_model = GeneralizedLinearModel()
+    generalized_linear_model.model.CopyFrom(linear_model_pb)
+    generalized_linear_model.public_info.CopyFrom(public_info_pb)
+    return generalized_linear_model
+
+
 def ss_glm_from_pb_and_old_model(
     ss_glm_model: List[SPUObject],
     original_public_info: str,
     linear_model_pb: LinearModel,
+    pyu: PYU,
 ) -> List[SPUObject]:
     assert len(ss_glm_model) == 1, "assumed ss glm model structure has len 1"
     check_pb_match_old_model(original_public_info, linear_model_pb)
@@ -77,7 +132,7 @@ def ss_glm_from_pb_and_old_model(
     for i in range(w_length - 1):
         new_w[i, 0] = linear_model_pb.feature_weights[i].feature_weight
     new_w[-1, 0] = linear_model_pb.bias
-    return [spu(lambda: new_w)()]
+    return [pyu(lambda: new_w)().to(spu)]
 
 
 def check_pb_match_old_model(original_public_info: str, linear_model_pb: LinearModel):
@@ -112,3 +167,47 @@ def check_pb_match_old_model(original_public_info: str, linear_model_pb: LinearM
         ), f"feature party mismatch, original feature party is {party_belongings[i]}, \
             linear_model_pb feature party is {linear_model_pb.feature_weights[i].party}, \
             make sure the linear model pb is matched to original model."
+
+
+def ss_glm_from_pb(
+    spu: SPU,
+    pyu: PYU,
+    generalized_linear_model_pb: GeneralizedLinearModel,
+) -> Tuple[List[SPUObject], str]:
+    """
+    WARNING: THIS MODEL IS NOT SAFE, ALL MODEL INFO IS REVEALED,
+    DO NOT USE THIS UNLESS YOU UNDERSTAND THIS RISK.
+    generalized_linear_model_pb: glm model info.
+    """
+    logging.warning(
+        "DANGER! WARNING! ALL MODEL INFO IS REVEALED. THE DATA IS AT RISK! DO NOT USE THIS UNLESS YOU UNDERSTAND THIS RISK!!!"
+    )
+    w_length = len(generalized_linear_model_pb.model.feature_weights) + 1
+    new_w = np.zeros((w_length, 1))
+    for i in range(w_length - 1):
+        new_w[i, 0] = generalized_linear_model_pb.model.feature_weights[
+            i
+        ].feature_weight
+    new_w[-1, 0] = generalized_linear_model_pb.model.bias
+
+    public_info = {}
+    public_info['link'] = generalized_linear_model_pb.public_info.link
+    public_info['y_scale'] = generalized_linear_model_pb.public_info.y_scale
+    public_info['offset_col'] = generalized_linear_model_pb.public_info.offset_col
+    public_info['label_col'] = generalized_linear_model_pb.public_info.label_col
+    public_info['fxp_exp_mode'] = generalized_linear_model_pb.public_info.fxp_exp_mode
+    public_info['fxp_exp_iters'] = generalized_linear_model_pb.public_info.fxp_exp_iters
+
+    feature_names = []
+    party_features_length = defaultdict(int)
+    for feature_weight in generalized_linear_model_pb.model.feature_weights:
+        feature_names.append(feature_weight.feature_name)
+        party_features_length[feature_weight.party] += 1
+    non_secure_feature_count = 1
+    for party, count in party_features_length.items():
+        if count == non_secure_feature_count:
+            raise CompEvalError(f"party {party} has 1 feature, which will leak data!!!")
+    public_info["feature_names"] = feature_names
+    public_info["party_features_length"] = party_features_length
+
+    return [pyu(lambda: new_w)().to(spu)], json.dumps(public_info)

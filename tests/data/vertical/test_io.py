@@ -25,7 +25,7 @@ from secretflow.data.vertical import VDataFrame, read_csv
 
 
 @pytest.fixture(scope="function")
-def prod_env_and_data(sf_production_setup_devices):
+def prod_env_and_data(sf_production_setup_devices_ray):
     df1 = pd.DataFrame(
         {
             "c1": ["K5", "K1", "K2", "K6", "K4", "K3"],
@@ -51,11 +51,11 @@ def prod_env_and_data(sf_production_setup_devices):
     df2.to_csv(path2, index=False)
 
     filepath = {
-        sf_production_setup_devices.alice: path1,
-        sf_production_setup_devices.bob: path2,
+        sf_production_setup_devices_ray.alice: path1,
+        sf_production_setup_devices_ray.bob: path2,
     }
 
-    yield sf_production_setup_devices, filepath
+    yield sf_production_setup_devices_ray, filepath
 
     for path in filepath.values():
         os.remove(path)
@@ -342,7 +342,7 @@ def test_to_csv_should_ok(prod_env_and_data):
 
 
 @pytest.fixture(scope="function")
-def prod_env_and_aligned_data(sf_production_setup_devices):
+def prod_env_and_aligned_data(sf_production_setup_devices_ray):
     df1 = pd.DataFrame(np.random.random((20, 2)), columns=["a1", "a2"])
 
     df2 = pd.DataFrame(np.random.random((20, 2)), columns=["b1", "b2"])
@@ -354,8 +354,8 @@ def prod_env_and_aligned_data(sf_production_setup_devices):
     df2.to_csv(path2, index=False)
 
     header_file = {
-        sf_production_setup_devices.alice: path1,
-        sf_production_setup_devices.bob: path2,
+        sf_production_setup_devices_ray.alice: path1,
+        sf_production_setup_devices_ray.bob: path2,
     }
 
     _, path1 = tempfile.mkstemp()
@@ -365,11 +365,11 @@ def prod_env_and_aligned_data(sf_production_setup_devices):
     df2.to_csv(path2, index=False, header=False)
 
     no_header_file = {
-        sf_production_setup_devices.alice: path1,
-        sf_production_setup_devices.bob: path2,
+        sf_production_setup_devices_ray.alice: path1,
+        sf_production_setup_devices_ray.bob: path2,
     }
 
-    yield sf_production_setup_devices, header_file, no_header_file
+    yield sf_production_setup_devices_ray, header_file, no_header_file
 
     for path in header_file.values():
         os.remove(path)

@@ -55,14 +55,14 @@ def gen_data(data_num, feature_num, is_sparse=False, use_random=False, data_bin_
 
 
 @pytest.fixture(scope='module')
-def prod_env_and_data(sf_production_setup_devices):
+def prod_env_and_data(sf_production_setup_devices_ray):
     data1 = gen_data(10000, 10, use_random=False)
     data2 = gen_data(5000, 10, use_random=False)
     dfs = [data1, data2]
 
     file_uris = {
-        sf_production_setup_devices.alice: f'{_temp_dir}/test_alice.csv',
-        sf_production_setup_devices.bob: f'{_temp_dir}/test_bob.csv',
+        sf_production_setup_devices_ray.alice: f'{_temp_dir}/test_alice.csv',
+        sf_production_setup_devices_ray.bob: f'{_temp_dir}/test_bob.csv',
     }
 
     for df, file_uri in zip(dfs, file_uris.values()):
@@ -70,11 +70,11 @@ def prod_env_and_data(sf_production_setup_devices):
 
     hdf = h_read_csv(
         file_uris,
-        aggregator=PlainAggregator(sf_production_setup_devices.carol),
-        comparator=PlainComparator(sf_production_setup_devices.carol),
+        aggregator=PlainAggregator(sf_production_setup_devices_ray.carol),
+        comparator=PlainComparator(sf_production_setup_devices_ray.carol),
     )
 
-    yield sf_production_setup_devices, {
+    yield sf_production_setup_devices_ray, {
         'data1': data1,
         'data2': data2,
         'dfs': dfs,

@@ -19,22 +19,20 @@ import numpy as np
 import pyarrow as pa
 from google.protobuf import json_format
 
+from secretflow.component.core import PREPROCESSING_RULE_MAX
 from secretflow.component.data_utils import (
     DistDataType,
-    extract_table_header,
+    extract_data_infos,
     model_loads,
 )
 from secretflow.component.preprocessing.binning.vert_binning import (
     BINNING_RULE_MAX_MAJOR_VERSION,
     BINNING_RULE_MAX_MINOR_VERSION,
 )
-from secretflow.component.preprocessing.core.version import (
-    PREPROCESSING_RULE_MAX_MAJOR_VERSION,
-    PREPROCESSING_RULE_MAX_MINOR_VERSION,
-)
-from secretflow.compute import Table, TraceRunner
+from secretflow.component.preprocessing.preprocessing import IRunner
+from secretflow.compute import Table
 from secretflow.device import reveal
-from secretflow.preprocessing.binning.vert_bin_substitution import binning_rules_to_sc
+from secretflow.preprocessing.binning.vert_bin_substitution import apply_binning_rules
 from secretflow.spec.v1.data_pb2 import DistData
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
@@ -42,7 +40,7 @@ from .graph_builder_manager import GraphBuilderManager
 
 
 def dump_runner(
-    runner: TraceRunner,
+    runner: IRunner,
     input_schema: Dict[str, np.dtype],
     node_name,
     traced_input: Set[str],
@@ -50,8 +48,10 @@ def dump_runner(
 ) -> Tuple[bytes, pa.Schema, pa.Schema, bytes, bytes]:
     assert traced_input.issubset(set(input_schema.keys()))
     input_schema = {k: v for k, v in input_schema.items() if k in traced_input}
-
-    dag_pb, dag_input_schema, dag_output_schema = runner.dump_serving_pb(node_name)
+    input_tbl = Table.from_schema(input_schema)
+    dag_pb, dag_input_schema, dag_output_schema = runner.dump_serving_pb(
+        node_name, input_tbl.schema
+    )
     dag_inputs = set(dag_input_schema.names)
     assert dag_inputs.issubset(
         set(input_schema)
@@ -82,7 +82,7 @@ def dump_runner(
 
 
 def dump_runner_schema_info(
-    runner: TraceRunner, input_schema: Dict[str, np.dtype]
+    runner: IRunner, input_schema: Dict[str, np.dtype]
 ) -> Tuple[List, List, List]:
     deleted, derived, used = runner.column_changes()
     return used, deleted, derived
@@ -127,8 +127,8 @@ def generic_preprocessing_converter(
     runner_objs, _ = model_loads(
         ctx,
         rule_ds,
-        PREPROCESSING_RULE_MAX_MAJOR_VERSION,
-        PREPROCESSING_RULE_MAX_MINOR_VERSION,
+        PREPROCESSING_RULE_MAX.major,
+        PREPROCESSING_RULE_MAX.minor,
         DistDataType.PREPROCESSING_RULE,
         pyus={p.party: p for p in builder.pyus},
     )
@@ -187,8 +187,8 @@ def generic_schema_info(
     runner_objs, _ = model_loads(
         ctx,
         rule_ds,
-        PREPROCESSING_RULE_MAX_MAJOR_VERSION,
-        PREPROCESSING_RULE_MAX_MINOR_VERSION,
+        PREPROCESSING_RULE_MAX.major,
+        PREPROCESSING_RULE_MAX.minor,
         DistDataType.PREPROCESSING_RULE,
         pyus={p.party: p for p in builder.pyus},
     )
@@ -222,7 +222,7 @@ def dump_binning_rules(
     assert traced_input.issubset(set(input_schema.keys()))
     input_schema = {k: v for k, v in input_schema.items() if k in traced_input}
 
-    table = binning_rules_to_sc(rules, input_schema)
+    table = apply_binning_rules(rules, input_schema)
 
     dag_pb, dag_input_schema, dag_output_schema = table.dump_serving_pb(node_name)
 
@@ -244,7 +244,7 @@ def dump_binning_rules(
 def dump_binning_schema_info(
     rules: Dict, input_schema: Dict[str, np.dtype]
 ) -> Tuple[List, List, List]:
-    table = binning_rules_to_sc(rules, input_schema)
+    table = apply_binning_rules(rules, input_schema)
     deleted, derived, used = table.column_changes()
     return used, deleted, derived
 
@@ -365,9 +365,10 @@ class PreprocessingConverter:
         assert len(in_dataset) == 1
         self.in_dataset = in_dataset[0]
 
-        self.input_schema, _ = extract_table_header(
+        infos = extract_data_infos(
             self.in_dataset, load_features=True, load_ids=True, load_labels=True
         )
+        self.input_schema = {p: infos[p].dtypes for p in infos}
 
         assert set(self.input_schema) == set([p.party for p in builder.pyus])
 

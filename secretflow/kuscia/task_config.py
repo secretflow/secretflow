@@ -36,8 +36,10 @@ class KusciaTaskConfig:
     sf_cluster_desc: SFClusterDesc = None
     sf_storage_config: Dict[str, StorageConfig] = None
     sf_input_ids: List[str] = None
+    sf_input_partitions_spec: List[str] = None
     sf_output_ids: List[str] = None
     sf_output_uris: List[str] = None
+    sf_output_partitions_spec: List[str] = None
     sf_datasource_config: Dict[str, Dict] = None
 
     @functools.cached_property
@@ -79,6 +81,11 @@ class KusciaTaskConfig:
                 if "sf_input_ids" in req["task_input_config"]
                 else None
             )
+            sf_input_partitions_spec = (
+                req["task_input_config"]["sf_input_partitions_spec"]
+                if "sf_input_partitions_spec" in req["task_input_config"]
+                else None
+            )
             sf_output_ids = (
                 req["task_input_config"]["sf_output_ids"]
                 if "sf_output_ids" in req["task_input_config"]
@@ -87,6 +94,11 @@ class KusciaTaskConfig:
             sf_output_uris = (
                 req["task_input_config"]["sf_output_uris"]
                 if "sf_output_uris" in req["task_input_config"]
+                else None
+            )
+            sf_output_partitions_spec = (
+                req["task_input_config"]["sf_output_partitions_spec"]
+                if "sf_output_partitions_spec" in req["task_input_config"]
                 else None
             )
 
@@ -106,8 +118,10 @@ class KusciaTaskConfig:
                 sf_cluster_desc,
                 sf_storage_config,
                 sf_input_ids,
+                sf_input_partitions_spec,
                 sf_output_ids,
                 sf_output_uris,
+                sf_output_partitions_spec,
                 sf_datasource_config,
             )
         else:

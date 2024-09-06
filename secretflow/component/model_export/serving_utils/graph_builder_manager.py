@@ -13,13 +13,14 @@
 # limitations under the License.
 
 import io
-from typing import Dict, List
+from typing import Dict, List, Union
 
 import pyarrow as pa
 from secretflow_serving_lib import GraphBuilder, build_serving_tar
 
 from secretflow.component.storage import ComponentStorage
 from secretflow.device import PYU, PYUObject, proxy, wait
+from secretflow.device.device.heu import HEU
 
 
 class GraphBuilderManager:
@@ -33,7 +34,7 @@ class GraphBuilderManager:
         self,
         node_name: str,
         op: str,
-        input_schemas: Dict[PYU, pa.Schema],
+        input_schemas: Dict[PYU, Union[pa.Schema, List[pa.Schema]]],
         output_schemas: Dict[PYU, pa.Schema],
         party_kwargs: Dict[PYU, Dict],
         parents: List[str] = None,
@@ -82,6 +83,23 @@ class GraphBuilderManager:
                     specific_flag=specific_flag,
                 )
             )
+        wait(waits)
+
+    def set_he_config(self, heu_dict: Dict[str, HEU]):
+        def _key_serialize(key):
+            return key.serialize()
+
+        waits = []
+        for pyu in self.graph_builders:
+            heu = heu_dict[pyu.__str__()]
+            builder = self.graph_builders[pyu]
+            pk = heu.get_participant(pyu.__str__()).public_key.remote()
+            sk = heu.get_participant(pyu.__str__()).secret_key.remote()
+
+            pk_bytes = pyu(_key_serialize)(pk)
+            sk_bytes = pyu(_key_serialize)(sk)
+
+            waits.append(builder.set_he_config(pk_bytes, sk_bytes, heu.scale))
         wait(waits)
 
     def dump_tar_files(self, name, desc, ctx, uri) -> None:

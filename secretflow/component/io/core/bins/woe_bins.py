@@ -283,6 +283,6 @@ def woe_bin_rule_from_pb_and_old_rule(
             new_rules.append(label_rule)
         else:
             new_rules.append(
-                label_holder_device(lambda x: x[i])(all_rules).to(rule.device)
+                label_holder_device(lambda x, i: x[i])(all_rules, i).to(rule.device)
             )
     return new_rules

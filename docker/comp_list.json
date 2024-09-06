@@ -7,11 +7,11 @@
       "domain": "data_filter",
       "name": "condition_filter",
       "desc": "Filter the table based on a single column's values and condition.\nWarning: the party responsible for condition filtering will directly send the sample distribution to other participants.\nMalicious participants can obtain the distribution of characteristics by repeatedly calling with different filtering values.\nAudit the usage of this component carefully.",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "comparator",
-          "desc": "Comparator to use for comparison. Must be one of '==','<','<=','>','>=','IN'",
+          "desc": "Comparator to use for comparison. Must be one of '==','<','<=','>','>=','IN','NOTNULL'",
           "type": "AT_STRING",
           "atomic": {
             "allowedValues": {
@@ -21,29 +21,20 @@
                 "<=",
                 ">",
                 ">=",
-                "IN"
-              ]
-            }
-          }
-        },
-        {
-          "name": "value_type",
-          "desc": "Type of the value to compare with. Must be one of ['STRING', 'FLOAT']",
-          "type": "AT_STRING",
-          "atomic": {
-            "allowedValues": {
-              "ss": [
-                "STRING",
-                "FLOAT"
+                "IN",
+                "NOTNULL"
               ]
             }
           }
         },
         {
           "name": "bound_value",
-          "desc": "Input a str with values separated by ','. List of values to compare with. If comparator is not 'IN', we only support one element in this list.",
+          "desc": "Input a value for comparison; if the comparison condition is IN, you can input multiple values separated by ','; if the comparison condition is NOTNULL, the input is not needed.",
           "type": "AT_STRING",
-          "atomic": {}
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
         },
         {
           "name": "float_epsilon",
@@ -62,15 +53,15 @@
       ],
       "inputs": [
         {
-          "name": "in_ds",
+          "name": "input_ds",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
           ],
           "attrs": [
             {
-              "name": "features",
-              "desc": "Feature(s) to operate on.",
+              "name": "feature",
+              "desc": "Feature to operate on.",
               "colMinCntInclusive": "1",
               "colMaxCntInclusive": "1"
             }
@@ -79,14 +70,14 @@
       ],
       "outputs": [
         {
-          "name": "out_ds",
+          "name": "output_ds",
           "desc": "Output vertical table that satisfies the condition.",
           "types": [
             "sf.table.vertical_table"
           ]
         },
         {
-          "name": "out_ds_else",
+          "name": "output_ds_else",
           "desc": "Output vertical table that does not satisfies the condition.",
           "types": [
             "sf.table.vertical_table"
@@ -98,7 +89,7 @@
       "domain": "data_filter",
       "name": "expr_condition_filter",
       "desc": "Only row-level filtering is supported, column processing is not available;\nthe custom expression must comply with SQLite syntax standards",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "expr",
@@ -109,7 +100,7 @@
       ],
       "inputs": [
         {
-          "name": "in_ds",
+          "name": "input_ds",
           "desc": "Input vertical or individual table",
           "types": [
             "sf.table.individual",
@@ -119,7 +110,7 @@
       ],
       "outputs": [
         {
-          "name": "out_ds",
+          "name": "output_ds",
           "desc": "Output table that satisfies the condition",
           "types": [
             "sf.table.individual",
@@ -127,7 +118,7 @@
           ]
         },
         {
-          "name": "out_ds_else",
+          "name": "output_ds_else",
           "desc": "Output table that does not satisfies the condition",
           "types": [
             "sf.table.individual",
@@ -140,10 +131,10 @@
       "domain": "data_filter",
       "name": "feature_filter",
       "desc": "Drop features from the dataset.",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "inputs": [
         {
-          "name": "in_ds",
+          "name": "input_ds",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
@@ -151,14 +142,15 @@
           "attrs": [
             {
               "name": "drop_features",
-              "desc": "Features to drop."
+              "desc": "Features to drop.",
+              "colMinCntInclusive": "1"
             }
           ]
         }
       ],
       "outputs": [
         {
-          "name": "out_ds",
+          "name": "output_ds",
           "desc": "Output vertical table.",
           "types": [
             "sf.table.vertical_table"
@@ -170,7 +162,7 @@
       "domain": "data_filter",
       "name": "sample",
       "desc": "Sample data set.",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "sample_algorithm",
@@ -373,7 +365,7 @@
       ],
       "inputs": [
         {
-          "name": "input_data",
+          "name": "input_ds",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table",
@@ -383,7 +375,7 @@
       ],
       "outputs": [
         {
-          "name": "sample_output",
+          "name": "output_ds",
           "desc": "Output sampled dataset.",
           "types": [
             "sf.table.vertical_table",
@@ -391,8 +383,8 @@
           ]
         },
         {
-          "name": "reports",
-          "desc": "Output sample reports",
+          "name": "report",
+          "desc": "Output sample report",
           "types": [
             "sf.report"
           ]
@@ -403,7 +395,7 @@
       "domain": "data_prep",
       "name": "psi",
       "desc": "PSI between two parties.",
-      "version": "0.0.5",
+      "version": "0.0.8",
       "attrs": [
         {
           "name": "protocol",
@@ -435,8 +427,17 @@
           }
         },
         {
+          "name": "allow_empty_result",
+          "desc": "Whether to allow the result to be empty, if allowed, an empty file will be saved, if not, an error will be reported.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
           "name": "allow_duplicate_keys",
-          "desc": "Some join types allow duplicate keys.",
+          "desc": "Some join types allow duplicate keys. If you specify a party to receive, this should be no.",
           "type": "AT_UNION_GROUP",
           "union": {
             "defaultSelection": "no"
@@ -474,6 +475,18 @@
           "atomic": {
             "isOptional": true,
             "defaultValue": {}
+          }
+        },
+        {
+          "prefixes": [
+            "allow_duplicate_keys",
+            "no"
+          ],
+          "name": "receiver_parties",
+          "desc": "Party names of receiver for result, all party will be receivers default; if only one party receive result, the result will be single-party table, hence you can not connect it to component with union table input.",
+          "type": "AT_PARTY",
+          "atomic": {
+            "listMaxLengthInclusive": "2"
           }
         },
         {
@@ -549,15 +562,6 @@
           "desc": "Difference with duplicate keys"
         },
         {
-          "name": "fill_value_int",
-          "desc": "For int type data. Use this value for filling null.",
-          "type": "AT_INT",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {}
-          }
-        },
-        {
           "name": "ecdh_curve",
           "desc": "Curve type for ECDH PSI.",
           "type": "AT_STRING",
@@ -579,8 +583,8 @@
       ],
       "inputs": [
         {
-          "name": "receiver_input",
-          "desc": "Individual table for receiver",
+          "name": "input_table_1",
+          "desc": "Individual table for party 1",
           "types": [
             "sf.table.individual"
           ],
@@ -593,8 +597,8 @@
           ]
         },
         {
-          "name": "sender_input",
-          "desc": "Individual table for sender",
+          "name": "input_table_2",
+          "desc": "Individual table for party 2",
           "types": [
             "sf.table.individual"
           ],
@@ -612,7 +616,8 @@
           "name": "psi_output",
           "desc": "Output vertical table",
           "types": [
-            "sf.table.vertical_table"
+            "sf.table.vertical_table",
+            "sf.table.individual"
           ]
         }
       ]
@@ -621,7 +626,7 @@
       "domain": "data_prep",
       "name": "train_test_split",
       "desc": "Split datasets into random train and test subsets.\n- Please check: https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "train_size",
@@ -684,7 +689,7 @@
       ],
       "inputs": [
         {
-          "name": "input_data",
+          "name": "input_ds",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
@@ -693,14 +698,14 @@
       ],
       "outputs": [
         {
-          "name": "train",
+          "name": "train_ds",
           "desc": "Output train dataset.",
           "types": [
             "sf.table.vertical_table"
           ]
         },
         {
-          "name": "test",
+          "name": "test_ds",
           "desc": "Output test dataset.",
           "types": [
             "sf.table.vertical_table"
@@ -712,10 +717,10 @@
       "domain": "data_prep",
       "name": "union",
       "desc": "Perform a horizontal merge of two data tables, supporting the individual table or vertical table on the same node.",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "inputs": [
         {
-          "name": "input1",
+          "name": "input_ds1",
           "desc": "The first input table",
           "types": [
             "sf.table.individual",
@@ -723,7 +728,7 @@
           ]
         },
         {
-          "name": "input2",
+          "name": "input_ds2",
           "desc": "The second input table",
           "types": [
             "sf.table.individual",
@@ -991,7 +996,7 @@
       "domain": "io",
       "name": "identity",
       "desc": "map any input to output",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "inputs": [
         {
           "name": "input_data",
@@ -1027,14 +1032,26 @@
       "domain": "io",
       "name": "read_data",
       "desc": "read model or rules from sf cluster",
-      "version": "0.0.1",
+      "version": "1.0.0",
+      "attrs": [
+        {
+          "name": "generalized_linear_model",
+          "desc": "Whether to dump the complete generalized linear model. The complete generalized linear model contains link, y_scale, offset_col, and so on.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        }
+      ],
       "inputs": [
         {
-          "name": "input_dd",
+          "name": "input_data",
           "desc": "Input dist data",
           "types": [
             "sf.rule.binning",
-            "sf.model.ss_glm"
+            "sf.model.ss_glm",
+            "sf.model.sgb"
           ]
         }
       ],
@@ -1052,7 +1069,7 @@
       "domain": "io",
       "name": "write_data",
       "desc": "write model or rules back to sf cluster",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "write_data",
@@ -1072,7 +1089,8 @@
             "allowedValues": {
               "ss": [
                 "sf.rule.binning",
-                "sf.model.ss_glm"
+                "sf.model.ss_glm",
+                "sf.model.sgb"
               ]
             }
           }
@@ -1080,21 +1098,25 @@
       ],
       "inputs": [
         {
-          "name": "input_dd",
+          "name": "input_data",
           "desc": "Input dist data. Rule reconstructions may need hidden info in original rule for security considerations.",
           "types": [
             "sf.rule.binning",
-            "sf.model.ss_glm"
-          ]
+            "sf.model.ss_glm",
+            "sf.model.sgb",
+            "sf.null"
+          ],
+          "isOptional": true
         }
       ],
       "outputs": [
         {
-          "name": "output_model",
+          "name": "output_data",
           "desc": "Output rules or models in sf cluster format",
           "types": [
             "sf.rule.binning",
-            "sf.model.ss_glm"
+            "sf.model.ss_glm",
+            "sf.model.sgb"
           ]
         }
       ]
@@ -3131,7 +3153,6 @@
             "allowedValues": {
               "ss": [
                 "None",
-                "l1",
                 "l2"
               ]
             }
@@ -3435,7 +3456,7 @@
       "domain": "model",
       "name": "model_export",
       "desc": "The model_export component supports converting and packaging the rule files generated by preprocessing and postprocessing components, as well as the model files generated by model operators, into a Secretflow-Serving model package. The list of components to be exported must contain exactly one model train or model predict component, and may include zero or multiple preprocessing and postprocessing components.",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "attrs": [
         {
           "name": "model_name",
@@ -3475,6 +3496,14 @@
           "atomic": {
             "listMaxLengthInclusive": "-1"
           }
+        },
+        {
+          "name": "he_mode",
+          "desc": "If enabled, it will export a homomorphic encryption model. Currently, only SGD and GLM models for two-party scenarios are supported.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "defaultValue": {}
+          }
         }
       ],
       "outputs": [
@@ -3498,7 +3527,7 @@
       "domain": "postprocessing",
       "name": "score_card_transformer",
       "desc": "Transform the predicted result (a probability value) produced by the logistic regression model into a more understandable score (for example, a score of up to 1000 points)",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "positive",
@@ -3532,7 +3561,9 @@
           "atomic": {
             "defaultValue": {
               "i64": "600"
-            }
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
           }
         },
         {
@@ -3542,7 +3573,9 @@
           "atomic": {
             "defaultValue": {
               "f": 20.0
-            }
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
           }
         },
         {
@@ -3552,7 +3585,9 @@
           "atomic": {
             "defaultValue": {
               "f": 20.0
-            }
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
           }
         },
         {
@@ -3624,7 +3659,7 @@
       "domain": "preprocessing",
       "name": "binary_op",
       "desc": "Perform binary operation binary_op(f1, f2) and assign the result to f3, f3 can be new or old. Currently f1, f2 and f3 all belong to a single party.",
-      "version": "0.0.2",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "binary_op",
@@ -3663,7 +3698,7 @@
       ],
       "inputs": [
         {
-          "name": "in_ds",
+          "name": "input_ds",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
@@ -3686,14 +3721,14 @@
       ],
       "outputs": [
         {
-          "name": "out_ds",
+          "name": "output_ds",
           "desc": "Output vertical table.",
           "types": [
             "sf.table.vertical_table"
           ]
         },
         {
-          "name": "out_rules",
+          "name": "output_rule",
           "desc": "feature gen rule",
           "types": [
             "sf.rule.preprocessing"
@@ -3705,7 +3740,7 @@
       "domain": "preprocessing",
       "name": "case_when",
       "desc": "case_when",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "rules",
@@ -3716,7 +3751,7 @@
       ],
       "inputs": [
         {
-          "name": "input_dataset",
+          "name": "input_ds",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
@@ -3725,14 +3760,14 @@
       ],
       "outputs": [
         {
-          "name": "output_dataset",
+          "name": "output_ds",
           "desc": "output_dataset",
           "types": [
             "sf.table.vertical_table"
           ]
         },
         {
-          "name": "out_rules",
+          "name": "output_rule",
           "desc": "case when substitution rule",
           "types": [
             "sf.rule.preprocessing"
@@ -3744,7 +3779,7 @@
       "domain": "preprocessing",
       "name": "cast",
       "desc": "For conversion between basic data types, such as converting float to string.",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "astype",
@@ -3801,7 +3836,7 @@
           ]
         },
         {
-          "name": "output_rules",
+          "name": "output_rule",
           "desc": "The output rules",
           "types": [
             "sf.rule.preprocessing"
@@ -3813,7 +3848,7 @@
       "domain": "preprocessing",
       "name": "feature_calculate",
       "desc": "Generate a new feature by performing calculations on an origin feature",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "rules",
@@ -3824,7 +3859,7 @@
       ],
       "inputs": [
         {
-          "name": "in_ds",
+          "name": "input_ds",
           "desc": "Input vertical table",
           "types": [
             "sf.table.vertical_table"
@@ -3840,14 +3875,14 @@
       ],
       "outputs": [
         {
-          "name": "out_ds",
+          "name": "output_ds",
           "desc": "output_dataset",
           "types": [
             "sf.table.vertical_table"
           ]
         },
         {
-          "name": "out_rules",
+          "name": "output_rule",
           "desc": "feature calculate rule",
           "types": [
             "sf.rule.preprocessing"
@@ -3858,12 +3893,79 @@
     {
       "domain": "preprocessing",
       "name": "fillna",
-      "desc": "fillna",
-      "version": "0.0.1",
+      "desc": "Fill null/nan or other specificed outliers in dataset",
+      "version": "1.0.0",
       "attrs": [
         {
-          "name": "strategy",
-          "desc": "The imputation strategy. If \"mean\", then replace missing values using the mean along each column. Can only be used with numeric data. If \"median\", then replace missing values using the median along each column. Can only be used with numeric data. If \"most_frequent\", then replace missing using the most frequent value along each column. Can be used with strings or numeric data. If there is more than one such value, only the smallest is returned. If \"constant\", then replace missing values with fill_value. Can be used with strings or numeric data.",
+          "name": "nan_is_null",
+          "desc": "Whether floating-point NaN values are considered null, take effect with float columns",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "b": true
+            }
+          }
+        },
+        {
+          "name": "float_outliers",
+          "desc": "These outlier value are considered null, take effect with float columns",
+          "type": "AT_FLOATS",
+          "atomic": {
+            "listMaxLengthInclusive": "-1",
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "int_outliers",
+          "desc": "These outlier value are considered null, take effect with int columns",
+          "type": "AT_INTS",
+          "atomic": {
+            "listMaxLengthInclusive": "-1",
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "str_outliers",
+          "desc": "These outlier value are considered null, take effect with str columns",
+          "type": "AT_STRINGS",
+          "atomic": {
+            "listMaxLengthInclusive": "-1",
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "str_fill_strategy",
+          "desc": "Replacement strategy for str column. If \"most_frequent\", then replace missing using the most frequent value along each column. If \"constant\", then replace missing values with fill_value_str.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "constant"
+            },
+            "allowedValues": {
+              "ss": [
+                "constant",
+                "most_frequent"
+              ]
+            }
+          }
+        },
+        {
+          "name": "fill_value_str",
+          "desc": "For str type data. If method is 'constant' use this value for filling null.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "int_fill_strategy",
+          "desc": "Replacement strategy for int column. If \"mean\", then replace missing values using the mean along each column. If \"median\", then replace missing values using the median along each column If \"most_frequent\", then replace missing using the most frequent value along each column. If \"constant\", then replace missing values with fill_value_int.",
           "type": "AT_STRING",
           "atomic": {
             "isOptional": true,
@@ -3881,42 +3983,31 @@
           }
         },
         {
-          "name": "missing_value_type",
-          "desc": "type of missing value. general_na type indicates that only np.nan, None or pandas.NA will be treated as missing values. When the type is not general_na, the type casted missing_value_type(missing_value) will also be treated as missing value as well, in addition to general_na values.",
-          "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "s": "general_na"
-            },
-            "allowedValues": {
-              "ss": [
-                "general_na",
-                "str",
-                "int",
-                "float"
-              ]
-            }
-          }
-        },
-        {
-          "name": "missing_value",
-          "desc": "Which value should be treat as missing_value? If missing value type is 'general_na', this field will be ignored, and any np.nan, pd.NA, etc value will be treated as missing value. Otherwise, the type casted missing_value_type(missing_value) will also be treated as missing value as well, in addition to general_na values. In case the cast is not successful, general_na will be used instead. default value is 'custom_missing_value'.",
-          "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "s": "custom_missing_value"
-            }
-          }
-        },
-        {
           "name": "fill_value_int",
           "desc": "For int type data. If method is 'constant' use this value for filling null.",
           "type": "AT_INT",
           "atomic": {
             "isOptional": true,
             "defaultValue": {}
+          }
+        },
+        {
+          "name": "float_fill_strategy",
+          "desc": "Replacement strategy for float column. If \"mean\", then replace missing values using the mean along each column. If \"median\", then replace missing values using the median along each column If \"most_frequent\", then replace missing using the most frequent value along each column. If \"constant\", then replace missing values with fill_value_float.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "constant"
+            },
+            "allowedValues": {
+              "ss": [
+                "mean",
+                "median",
+                "most_frequent",
+                "constant"
+              ]
+            }
           }
         },
         {
@@ -3929,9 +4020,26 @@
           }
         },
         {
-          "name": "fill_value_str",
-          "desc": "For str type data. If method is 'constant' use this value for filling null.",
+          "name": "bool_fill_strategy",
+          "desc": "Replacement strategy for bool column. If \"most_frequent\", then replace missing using the most frequent value along each column. If \"constant\", then replace missing values with fill_value_bool.",
           "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "constant"
+            },
+            "allowedValues": {
+              "ss": [
+                "constant",
+                "most_frequent"
+              ]
+            }
+          }
+        },
+        {
+          "name": "fill_value_bool",
+          "desc": "For bool type data. If method is 'constant' use this value for filling null.",
+          "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
             "defaultValue": {}
@@ -3940,7 +4048,7 @@
       ],
       "inputs": [
         {
-          "name": "input_dataset",
+          "name": "input_ds",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
@@ -3955,14 +4063,14 @@
       ],
       "outputs": [
         {
-          "name": "out_ds",
+          "name": "output_ds",
           "desc": "Output vertical table.",
           "types": [
             "sf.table.vertical_table"
           ]
         },
         {
-          "name": "out_rules",
+          "name": "output_rule",
           "desc": "fill value rule",
           "types": [
             "sf.rule.preprocessing"
@@ -3974,7 +4082,7 @@
       "domain": "preprocessing",
       "name": "onehot_encode",
       "desc": "onehot_encode",
-      "version": "0.0.3",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "drop",
@@ -4035,7 +4143,7 @@
       ],
       "inputs": [
         {
-          "name": "input_dataset",
+          "name": "input_ds",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
@@ -4050,14 +4158,14 @@
       ],
       "outputs": [
         {
-          "name": "output_dataset",
-          "desc": "output_dataset",
+          "name": "output_ds",
+          "desc": "output dataset",
           "types": [
             "sf.table.vertical_table"
           ]
         },
         {
-          "name": "out_rules",
+          "name": "output_rule",
           "desc": "onehot rule",
           "types": [
             "sf.rule.preprocessing"
@@ -4076,17 +4184,17 @@
       "domain": "preprocessing",
       "name": "substitution",
       "desc": "unified substitution component",
-      "version": "0.0.2",
+      "version": "1.0.0",
       "inputs": [
         {
-          "name": "input_dataset",
+          "name": "input_ds",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
           ]
         },
         {
-          "name": "input_rules",
+          "name": "input_rule",
           "desc": "Input preprocessing rules",
           "types": [
             "sf.rule.preprocessing"
@@ -4095,7 +4203,7 @@
       ],
       "outputs": [
         {
-          "name": "output_dataset",
+          "name": "output_ds",
           "desc": "output_dataset",
           "types": [
             "sf.table.vertical_table"
@@ -4138,7 +4246,7 @@
       "domain": "stats",
       "name": "groupby_statistics",
       "desc": "Get a groupby of statistics, like pandas groupby statistics.\nCurrently only support VDataframe.",
-      "version": "0.0.3",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "aggregation_config",
@@ -4166,7 +4274,7 @@
       ],
       "inputs": [
         {
-          "name": "input_data",
+          "name": "input_ds",
           "desc": "Input table.",
           "types": [
             "sf.table.vertical_table",
@@ -4196,10 +4304,10 @@
       "domain": "stats",
       "name": "ss_pearsonr",
       "desc": "Calculate Pearson's product-moment correlation coefficient for vertical partitioning dataset\nby using secret sharing.\n- For large dataset(large than 10w samples & 200 features), recommend to use [Ring size: 128, Fxp: 40] options for SPU device.",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "inputs": [
         {
-          "name": "input_data",
+          "name": "input_ds",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table",
@@ -4227,10 +4335,10 @@
       "domain": "stats",
       "name": "ss_vif",
       "desc": "Calculate Variance Inflation Factor(VIF) for vertical partitioning dataset\nby using secret sharing.\n- For large dataset(large than 10w samples & 200 features), recommend to use [Ring size: 128, Fxp: 40] options for SPU device.",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "inputs": [
         {
-          "name": "input_data",
+          "name": "input_ds",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table",
@@ -4258,10 +4366,10 @@
       "domain": "stats",
       "name": "stats_psi",
       "desc": "population stability index.",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "inputs": [
         {
-          "name": "input_base_data",
+          "name": "input_base_ds",
           "desc": "Input base vertical table.",
           "types": [
             "sf.table.vertical_table",
@@ -4276,7 +4384,7 @@
           ]
         },
         {
-          "name": "input_test_data",
+          "name": "input_test_ds",
           "desc": "Input test vertical table.",
           "types": [
             "sf.table.vertical_table",
@@ -4284,7 +4392,7 @@
           ]
         },
         {
-          "name": "bin_rule",
+          "name": "input_rule",
           "desc": "Input bin rule.",
           "types": [
             "sf.rule.binning"
@@ -4305,10 +4413,10 @@
       "domain": "stats",
       "name": "table_statistics",
       "desc": "Get a table of statistics,\nincluding each column's\n1. datatype\n2. total_count\n3. count\n4. count_na\n5. na_ratio\n6. min\n7. max\n8. mean\n9. var\n10. std\n11. sem\n12. skewness\n13. kurtosis\n14. q1\n15. q2\n16. q3\n17. moment_2\n18. moment_3\n19. moment_4\n20. central_moment_2\n21. central_moment_3\n22. central_moment_4\n23. sum\n24. sum_2\n25. sum_3\n26. sum_4\n- moment_2 means E[X^2].\n- central_moment_2 means E[(X - mean(X))^2].\n- sum_2 means sum(X^2).",
-      "version": "0.0.2",
+      "version": "1.0.0",
       "inputs": [
         {
-          "name": "input_data",
+          "name": "input_ds",
           "desc": "Input table.",
           "types": [
             "sf.table.vertical_table",

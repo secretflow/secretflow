@@ -344,9 +344,14 @@ class Link(ActorWithComm):
 
 
 def init_link(link: Link, partners: List[Link]):
+    if sfd.get_distribution_mode() == DISTRIBUTION_MODE.PRODUCTION:
+        raise RuntimeError(
+            "link can not running under PRODUCTION mode, "
+            "please use RAY_PRODUCTION or SIMULATION mode"
+        )
     if not isinstance(partners, list):
         partners = [partners]
-    if sfd.get_distribution_mode() == DISTRIBUTION_MODE.PRODUCTION:
+    if sfd.get_distribution_mode() == DISTRIBUTION_MODE.RAY_PRODUCTION:
         comm = FedCommunicator([partner.device for partner in partners])
         # Use `get` here as a barrier to make sure that initialize is done at first.
         # Note that link should be a `proxy`ed actor.

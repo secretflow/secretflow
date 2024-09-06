@@ -18,14 +18,13 @@ import numpy as np
 import pyarrow as pa
 from google.protobuf import json_format
 
-from secretflow.component.data_utils import DistDataType, extract_table_header
+from secretflow.component.core import Registry
+from secretflow.component.data_utils import DistDataType, extract_data_infos
 from secretflow.component.eval_param_reader import get_value
 from secretflow.component.postprocessing.score_card_transformer import (
-    apply_score_card_transformer_on_table,
-    score_card_transformer_comp,
+    ScoreCardTransformer,
 )
 from secretflow.compute.tracer import Table
-from secretflow.spec.v1.component_pb2 import AttrType
 from secretflow.spec.v1.data_pb2 import DistData
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
@@ -50,9 +49,10 @@ class PostprocessingConverter:
         assert len(in_dataset) == 1
         self.in_dataset = in_dataset[0]
 
-        self.input_schema, _ = extract_table_header(
+        infos = extract_data_infos(
             self.in_dataset, load_features=True, load_ids=True, load_labels=True
         )
+        self.input_schema = {p: infos[p].dtypes for p in infos}
 
     def convert(self):
         if self.param.name == "score_card_transformer":
@@ -74,7 +74,9 @@ def parse_score_card_transformer_param(param: NodeEvalParam):
     for path, at in zip(list(param.attr_paths), list(param.attrs)):
         attrs[path] = at
 
-    definition = score_card_transformer_comp.definition()
+    definition = Registry.get_definition(
+        "postprocessing", "score_card_transformer", "1.0.0"
+    )
     for at in definition.attrs:
         if at.name in attrs:
             value = attrs[at.name]
@@ -93,7 +95,7 @@ def dump_score_card_transformer_rule(
     rules["predict_name"] = "pred_y"
     input_schema = {"pred_y": np.float64}
     input_table = Table.from_schema(input_schema)
-    table = apply_score_card_transformer_on_table(input_table, **rules)
+    table = ScoreCardTransformer.apply(input_table, **rules)
 
     dag_pb, dag_input_schema, dag_output_schema = table.dump_serving_pb(node_name)
 

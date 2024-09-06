@@ -62,7 +62,7 @@ def gen_data(data_num, feature_num, use_random=True, data_bin_num=10, prefix="x"
     return data_with_label
 
 
-def test_homo_xgboost(sf_production_setup_devices_grpc):
+def test_homo_xgboost(sf_production_setup_devices_grpc_ray):
     data_size = 300000
     num_feature = 10
     bin_num = 10
@@ -72,23 +72,23 @@ def test_homo_xgboost(sf_production_setup_devices_grpc):
     dfs = [data1, data2]
 
     file_uris = {
-        sf_production_setup_devices_grpc.alice: f'{_temp_dir}/test_alice.csv',
-        sf_production_setup_devices_grpc.bob: f'{_temp_dir}/test_bob.csv',
+        sf_production_setup_devices_grpc_ray.alice: f'{_temp_dir}/test_alice.csv',
+        sf_production_setup_devices_grpc_ray.bob: f'{_temp_dir}/test_bob.csv',
     }
     for df, file_uri in zip(dfs, file_uris.values()):
         df.to_csv(file_uri, index=False)
 
     hdf = h_read_csv(
         file_uris,
-        aggregator=PlainAggregator(sf_production_setup_devices_grpc.carol),
-        comparator=PlainComparator(sf_production_setup_devices_grpc.carol),
+        aggregator=PlainAggregator(sf_production_setup_devices_grpc_ray.carol),
+        comparator=PlainComparator(sf_production_setup_devices_grpc_ray.carol),
     )
 
     bst = SFXgboost(
-        server=sf_production_setup_devices_grpc.davy,
+        server=sf_production_setup_devices_grpc_ray.davy,
         clients=[
-            sf_production_setup_devices_grpc.alice,
-            sf_production_setup_devices_grpc.bob,
+            sf_production_setup_devices_grpc_ray.alice,
+            sf_production_setup_devices_grpc_ray.bob,
         ],
     )
     params = {
@@ -110,15 +110,15 @@ def test_homo_xgboost(sf_production_setup_devices_grpc):
 
     bst.train(hdf, hdf, params=params, num_boost_round=4)
     model_path = {
-        sf_production_setup_devices_grpc.alice: "./test_xgboost_alice.json",
-        sf_production_setup_devices_grpc.bob: "./test_xgboost_bob.json",
+        sf_production_setup_devices_grpc_ray.alice: "./test_xgboost_alice.json",
+        sf_production_setup_devices_grpc_ray.bob: "./test_xgboost_bob.json",
     }
     bst.save_model(model_path)
     for path in model_path.values():
         assert os.path.isfile(path)
     dump_path = {
-        sf_production_setup_devices_grpc.alice: "./test_xgboost_alice.dump",
-        sf_production_setup_devices_grpc.bob: "./test_xgboost_bob.dump",
+        sf_production_setup_devices_grpc_ray.alice: "./test_xgboost_alice.dump",
+        sf_production_setup_devices_grpc_ray.bob: "./test_xgboost_bob.dump",
     }
     bst.dump_model(dump_path)
     for path in dump_path.values():
@@ -126,10 +126,10 @@ def test_homo_xgboost(sf_production_setup_devices_grpc):
     result = bst.eval(model_path=model_path, hdata=hdf, params=params)
     print(result)
     bst_ft = SFXgboost(
-        server=sf_production_setup_devices_grpc.davy,
+        server=sf_production_setup_devices_grpc_ray.davy,
         clients=[
-            sf_production_setup_devices_grpc.alice,
-            sf_production_setup_devices_grpc.bob,
+            sf_production_setup_devices_grpc_ray.alice,
+            sf_production_setup_devices_grpc_ray.bob,
         ],
     )
 
@@ -152,7 +152,7 @@ def test_homo_xgboost(sf_production_setup_devices_grpc):
             pass
 
 
-def test_homo_xgboost_cn(sf_production_setup_devices_grpc):
+def test_homo_xgboost_cn(sf_production_setup_devices_grpc_ray):
     data_size = 300000
     num_feature = 10
     bin_num = 10
@@ -174,23 +174,23 @@ def test_homo_xgboost_cn(sf_production_setup_devices_grpc):
     dfs = [data1, data2]
 
     file_uris = {
-        sf_production_setup_devices_grpc.alice: f'{_temp_dir}/test_alice_cn.csv',
-        sf_production_setup_devices_grpc.bob: f'{_temp_dir}/test_bob_cn.csv',
+        sf_production_setup_devices_grpc_ray.alice: f'{_temp_dir}/test_alice_cn.csv',
+        sf_production_setup_devices_grpc_ray.bob: f'{_temp_dir}/test_bob_cn.csv',
     }
     for df, file_uri in zip(dfs, file_uris.values()):
         df.to_csv(file_uri, index=False)
 
     hdf = h_read_csv(
         file_uris,
-        aggregator=PlainAggregator(sf_production_setup_devices_grpc.carol),
-        comparator=PlainComparator(sf_production_setup_devices_grpc.carol),
+        aggregator=PlainAggregator(sf_production_setup_devices_grpc_ray.carol),
+        comparator=PlainComparator(sf_production_setup_devices_grpc_ray.carol),
     )
 
     bst = SFXgboost(
-        server=sf_production_setup_devices_grpc.davy,
+        server=sf_production_setup_devices_grpc_ray.davy,
         clients=[
-            sf_production_setup_devices_grpc.alice,
-            sf_production_setup_devices_grpc.bob,
+            sf_production_setup_devices_grpc_ray.alice,
+            sf_production_setup_devices_grpc_ray.bob,
         ],
     )
     params = {
@@ -212,15 +212,15 @@ def test_homo_xgboost_cn(sf_production_setup_devices_grpc):
     }
     bst.train(hdf, hdf, params=params, num_boost_round=2)
     model_path = {
-        sf_production_setup_devices_grpc.alice: "./test_xgboost_alice_cn.json",
-        sf_production_setup_devices_grpc.bob: "./test_xgboost_bob_cn.json",
+        sf_production_setup_devices_grpc_ray.alice: "./test_xgboost_alice_cn.json",
+        sf_production_setup_devices_grpc_ray.bob: "./test_xgboost_bob_cn.json",
     }
     bst.save_model(model_path)
     for path in model_path.values():
         assert os.path.isfile(path)
     dump_path = {
-        sf_production_setup_devices_grpc.alice: "./test_xgboost_alice_cn.dump",
-        sf_production_setup_devices_grpc.bob: "./test_xgboost_bob_cn.dump",
+        sf_production_setup_devices_grpc_ray.alice: "./test_xgboost_alice_cn.dump",
+        sf_production_setup_devices_grpc_ray.bob: "./test_xgboost_bob_cn.dump",
     }
     bst.dump_model(dump_path)
     for path in dump_path.values():
@@ -228,10 +228,10 @@ def test_homo_xgboost_cn(sf_production_setup_devices_grpc):
     result = bst.eval(model_path=model_path, hdata=hdf, params=params)
     print(result)
     bst_ft = SFXgboost(
-        server=sf_production_setup_devices_grpc.davy,
+        server=sf_production_setup_devices_grpc_ray.davy,
         clients=[
-            sf_production_setup_devices_grpc.alice,
-            sf_production_setup_devices_grpc.bob,
+            sf_production_setup_devices_grpc_ray.alice,
+            sf_production_setup_devices_grpc_ray.bob,
         ],
     )
 

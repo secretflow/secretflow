@@ -12,7 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+import os
+
 SELF_PARTY = None
+
+PYTEST_CLUSTER = int(os.getenv("PYTEST_CLUSTER", 0))
 
 
 def set_self_party(party: str):
@@ -26,10 +31,10 @@ def get_self_party() -> str:
 
 
 _parties = {
-    'alice': {'address': '127.0.0.1:63841'},
-    'bob': {'address': '127.0.0.1:63942'},
-    'carol': {'address': '127.0.0.1:63743'},
-    'davy': {'address': '127.0.0.1:63644'},
+    'alice': {'address': f"127.0.0.1:{61001 + PYTEST_CLUSTER}"},
+    'bob': {'address': f"127.0.0.1:{61250 + PYTEST_CLUSTER}"},
+    'carol': {'address': f"127.0.0.1:{61500 + PYTEST_CLUSTER}"},
+    'davy': {'address': f"127.0.0.1:{61750 + PYTEST_CLUSTER}"},
 }
 
 

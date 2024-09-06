@@ -131,11 +131,21 @@ class CreditcardDnn(ApplicationBase):
         # 582MiB
         return (
             ResourcesPack()
-            .with_debug_resources(ResourceDict(gpu_mem=600 * 1024 * 1024, CPU=1))
-            .with_sim_resources(
-                self.device_y.party, ResourceDict(gpu_mem=600 * 1024 * 1024, CPU=1)
+            .with_debug_resources(
+                ResourceDict(
+                    gpu_mem=600 * 1024 * 1024, CPU=1, memory=1.5 * 1024 * 1024 * 1024
+                )
             )
             .with_sim_resources(
-                self.device_f.party, ResourceDict(gpu_mem=500 * 1024 * 1024, CPU=1)
+                self.device_y.party,
+                ResourceDict(
+                    gpu_mem=600 * 1024 * 1024, CPU=1, memory=1.5 * 1024 * 1024 * 1024
+                ),
+            )
+            .with_sim_resources(
+                self.device_f.party,
+                ResourceDict(
+                    gpu_mem=500 * 1024 * 1024, CPU=1, memory=1.5 * 1024 * 1024 * 1024
+                ),
             )
         )

@@ -15,17 +15,20 @@
 
 import json
 from collections import Counter
+import logging
 from typing import Dict, List, Set, Tuple
 
 import numpy as np
 from secretflow_serving_lib.link_function_pb2 import LinkFunctionType
 
+from heu import phe
+from secretflow.device.device.heu import HEU, HEUMoveConfig, heu_from_base_config
 import secretflow.component.ml.boost.ss_xgb.ss_xgb as xgb
 import secretflow.component.ml.linear.ss_glm as glm
 import secretflow.component.ml.linear.ss_sgd as sgd
 from secretflow.component.data_utils import (
     DistDataType,
-    extract_table_header,
+    extract_data_infos,
     model_loads,
     model_meta_info,
 )
@@ -103,15 +106,33 @@ def get_party_features_info(
     return party_features_name, party_features_pos
 
 
-def reveal_to_pyu(
-    spu: SPU, spu_w: SPUObject, start: int, end: int, to: PYU
-) -> PYUObject:
+def spu_weight_slice(spu: SPU, spu_w: SPUObject, start: int, end: int):
     def _slice(w):
         w = w.reshape((-1, 1))
         return w.flatten()[start:end]
 
-    sliced_w = spu(_slice)(spu_w)
+    return spu(_slice)(spu_w)
+
+
+def reveal_to_pyu(
+    spu: SPU, spu_w: SPUObject, start: int, end: int, to: PYU
+) -> PYUObject:
+    sliced_w = spu_weight_slice(spu, spu_w, start, end)
     return to(lambda w: list(w))(sliced_w.to(to))
+
+
+def to_serialized_pyu(
+    spu: SPU,
+    spu_w: SPUObject,
+    start: int,
+    end: int,
+    heu: HEU,
+    move_config: HEUMoveConfig,
+    to: PYU,
+) -> PYUObject:
+    sliced_w = spu_weight_slice(spu, spu_w, start, end)
+    heu_w = sliced_w.to(heu, move_config)
+    return heu_w.serialize_to_pyu(to)
 
 
 def linear_model_converter(
@@ -214,6 +235,205 @@ def linear_model_converter(
     )
 
 
+def linear_phe_model_converter(
+    builder: GraphBuilderManager,
+    node_prefix: str,
+    heu_dict: Dict[str, HEU],
+    party_features_name: Dict[str, List[str]],
+    party_features_pos: Dict[str, Tuple[int, int]],
+    input_schema: Dict[str, Dict[str, np.dtype]],
+    feature_names: List[str],
+    spu_w: SPUObject,
+    label_col: str,
+    offset_col: str,
+    yhat_scale: float,
+    link_type: LinkFunctionType,
+    exp_iters: int,
+    pred_name: str,
+    traced_input: Dict[str, Set[str]],
+):
+    assert set(party_features_name).issubset(set(input_schema))
+    assert set(party_features_name) == set(party_features_pos)
+    assert len(party_features_name) <= 2
+
+    peer_parties = {}
+    parties = list(input_schema.keys())
+    peer_parties[parties[0]] = parties[1]
+    peer_parties[parties[1]] = parties[0]
+
+    spu = spu_w.device
+    party_dot_input_schemas = dict()
+    party_dot_output_schemas = dict()
+    party_dot_kwargs = dict()
+
+    party_reduce_self_kwargs = dict()
+    party_reduce_self_input_schemas = dict()
+    party_reduce_self_output_schemas = dict()
+    party_reduce_peer_kwargs = dict()
+    party_reduce_peer_input_schemas = dict()
+    party_reduce_peer_output_schemas = dict()
+
+    party_decrypt_kwargs = dict()
+    party_decrypt_input_schemas = dict()
+    party_decrypt_output_schemas = dict()
+
+    party_merge_kwargs = dict()
+    party_merge_input_schemas = dict()
+    party_merge_output_schemas = dict()
+
+    for party, input_features in input_schema.items():
+        assert party in traced_input
+        pyu = PYU(party)
+
+        party_dot_kwargs[pyu] = {}
+
+        peer_heu = heu_dict[peer_parties[party]]
+        move_config = HEUMoveConfig(
+            heu_dest_party=party,
+            heu_encoder=peer_heu.encoder,
+        )
+
+        if party in party_features_name:
+            party_features = party_features_name[party]
+            assert set(party_features).issubset(set(input_features))
+            start, end = party_features_pos[party]
+            pyu_w = to_serialized_pyu(
+                spu, spu_w, start, end, peer_heu, move_config, pyu
+            )
+        else:
+            party_features = []
+            pyu_w = None
+
+        if offset_col in input_features:
+            party_features.append(offset_col)
+            party_dot_kwargs[pyu]["offset_col_name"] = offset_col
+
+        if label_col in input_features:
+            intercept = to_serialized_pyu(
+                spu,
+                spu_w,
+                len(feature_names),
+                len(feature_names) + 1,
+                peer_heu,
+                move_config,
+                pyu,
+            )
+            party_dot_kwargs[pyu]["intercept_ciphertext"] = intercept
+
+        assert set(party_features).issubset(traced_input[party])
+
+        # dot product op
+        if len(party_features) > 0:
+            party_dot_kwargs[pyu]["feature_names"] = party_features
+            party_dot_kwargs[pyu]["feature_types"] = [
+                sf_type_to_serving_str(input_features[f]) for f in party_features
+            ]
+            if pyu_w is not None:
+                party_dot_kwargs[pyu]["feature_weights_ciphertext"] = pyu_w
+
+        party_dot_kwargs[pyu]["result_col_name"] = "partial_y"
+        party_dot_kwargs[pyu]["rand_number_col_name"] = "rand"
+        party_dot_input_schemas[pyu] = Table.from_schema(
+            {f: input_features[f] for f in party_features}
+        ).dump_serving_pb("tmp")[1]
+        party_dot_output_schemas[pyu] = Table.from_schema(
+            {"partial_y": np.bytes_, "rand:": np.bytes_}
+        ).dump_serving_pb("tmp")[1]
+
+        # reduct op
+        party_reduce_self_kwargs[pyu] = {
+            "partial_y_col_name": "partial_y",
+            "rand_number_col_name": "rand",
+            "select_crypted_for_peer": False,
+        }
+        party_reduce_self_input_schemas[pyu] = Table.from_schema(
+            {"partial_y": np.bytes_, "rand:": np.bytes_}
+        ).dump_serving_pb("tmp")[1]
+        party_reduce_self_output_schemas[pyu] = Table.from_schema(
+            {"partial_y": np.bytes_}
+        ).dump_serving_pb("tmp")[1]
+
+        party_reduce_peer_kwargs[pyu] = {
+            "partial_y_col_name": "partial_y",
+            "rand_number_col_name": "rand",
+            "select_crypted_for_peer": True,
+        }
+        party_reduce_peer_input_schemas[pyu] = Table.from_schema(
+            {"partial_y": np.bytes_, "rand:": np.bytes_}
+        ).dump_serving_pb("tmp")[1]
+        party_reduce_peer_output_schemas[pyu] = Table.from_schema(
+            {"partial_y": np.bytes_}
+        ).dump_serving_pb("tmp")[1]
+
+        party_decrypt_kwargs[pyu] = {
+            "partial_y_col_name": party_reduce_peer_kwargs[pyu]["partial_y_col_name"],
+            "decrypted_col_name": "decrypted_y",
+        }
+        party_decrypt_input_schemas[pyu] = party_reduce_peer_output_schemas[pyu]
+        party_decrypt_output_schemas[pyu] = Table.from_schema(
+            {"decrypted_y": np.bytes_}
+        ).dump_serving_pb("tmp")[1]
+
+        party_merge_kwargs[pyu] = {
+            "yhat_scale": yhat_scale,
+            "link_function": LinkFunctionType.Name(link_type),
+            "exp_iters": exp_iters,
+            "decrypted_y_col_name": party_decrypt_kwargs[pyu]["decrypted_col_name"],
+            "crypted_y_col_name": party_reduce_self_kwargs[pyu]["partial_y_col_name"],
+            "score_col_name": pred_name,
+        }
+        party_merge_input_schemas[pyu] = [
+            party_decrypt_output_schemas[pyu],
+            party_reduce_self_output_schemas[pyu],
+        ]
+        party_merge_output_schemas[pyu] = Table.from_schema(
+            {party_merge_kwargs[pyu]["score_col_name"]: np.float64}
+        ).dump_serving_pb("tmp")[1]
+
+    builder.add_node(
+        f"{node_prefix}_phe_dot",
+        "phe_2p_dot_product",
+        party_dot_input_schemas,
+        party_dot_output_schemas,
+        party_dot_kwargs,
+    )
+    builder.new_execution("DP_SELF")
+    builder.add_node(
+        f"{node_prefix}_phe_reduce_peer",
+        "phe_2p_reduce",
+        party_reduce_peer_input_schemas,
+        party_reduce_peer_output_schemas,
+        party_reduce_peer_kwargs,
+        [f"{node_prefix}_phe_dot"],
+    )
+    builder.add_node(
+        f"{node_prefix}_phe_reduce_self",
+        "phe_2p_reduce",
+        party_reduce_self_input_schemas,
+        party_reduce_self_output_schemas,
+        party_reduce_self_kwargs,
+        [f"{node_prefix}_phe_dot"],
+    )
+    builder.new_execution("DP_PEER")
+    builder.add_node(
+        f"{node_prefix}_phe_decrypt",
+        "phe_2p_decrypt_peer_y",
+        party_decrypt_input_schemas,
+        party_decrypt_output_schemas,
+        party_decrypt_kwargs,
+        [f"{node_prefix}_phe_reduce_peer"],
+    )
+    builder.new_execution("DP_SELF")
+    builder.add_node(
+        f"{node_prefix}_phe_merge",
+        "phe_2p_merge_y",
+        party_merge_input_schemas,
+        party_merge_output_schemas,
+        party_merge_kwargs,
+        [f"{node_prefix}_phe_decrypt", f"{node_prefix}_phe_reduce_self"],
+    )
+
+
 def ss_glm_schema_info(
     input_schema: Dict[str, Dict[str, np.dtype]],
     model_ds: DistData,
@@ -227,6 +447,12 @@ def ss_glm_schema_info(
     meta = json.loads(model_meta_str)
 
     offset_col = meta["offset_col"]
+    if offset_col:
+        assert len(offset_col) == 1
+        offset_col = offset_col[0]
+    else:
+        offset_col = ""
+
     party_features_name, _ = get_party_features_info(meta)
 
     party_used_schemas = {}
@@ -249,15 +475,33 @@ def ss_glm_converter(
     node_id: int,
     builder: GraphBuilderManager,
     spu_config,
+    heu_config,
     input_schema: Dict[str, Dict[str, np.dtype]],
     model_ds: DistData,
     pred_name: str,
     traced_input: Dict[str, Set[str]],
+    he_mode: bool,
 ):
+    if he_mode:
+        assert (
+            len(input_schema.keys()) == 2
+        ), f"Only 2 participants is supported when `he_mode` is True"
+
     cluster_def = spu_config["cluster_def"].copy()
     cluster_def["runtime_config"]["field"] = "FM128"
     cluster_def["runtime_config"]["fxp_fraction_bits"] = 40
     spu = SPU(cluster_def, spu_config["link_desc"])
+
+    heu_dict = {}
+    for party in input_schema.keys():
+        heu = heu_from_base_config(
+            heu_config,
+            party,
+            [p for p in input_schema.keys() if p != party],
+            spu.conf.field,
+            spu.conf.fxp_fraction_bits,
+        )
+        heu_dict[party] = heu
 
     model_objs, model_meta_str = model_loads(
         ctx,
@@ -273,6 +517,11 @@ def ss_glm_converter(
     feature_names = meta["feature_names"]
     party_features_name, party_features_pos = get_party_features_info(meta)
     offset_col = meta["offset_col"]
+    if offset_col:
+        assert len(offset_col) == 1
+        offset_col = offset_col[0]
+    else:
+        offset_col = ""
     label_col = meta["label_col"]
     yhat_scale = meta["y_scale"]
     assert len(label_col) == 1
@@ -286,43 +535,64 @@ def ss_glm_converter(
     else:
         exp_iters = 0
 
-    (
-        party_dot_kwargs,
-        party_merge_kwargs,
-        party_dot_input_schemas,
-        party_dot_output_schemas,
-        party_merge_input_schemas,
-        party_merge_output_schemas,
-    ) = linear_model_converter(
-        party_features_name,
-        party_features_pos,
-        input_schema,
-        feature_names,
-        spu_w,
-        label_col,
-        offset_col,
-        yhat_scale,
-        link_type,
-        exp_iters,
-        pred_name,
-        traced_input,
-    )
+    if he_mode:
+        builder.set_he_config(heu_dict)
 
-    builder.add_node(
-        f"ss_glm_{node_id}_dot",
-        "dot_product",
-        party_dot_input_schemas,
-        party_dot_output_schemas,
-        party_dot_kwargs,
-    )
-    builder.new_execution("DP_ANYONE")
-    builder.add_node(
-        f"ss_glm_{node_id}_merge_y",
-        "merge_y",
-        party_merge_input_schemas,
-        party_merge_output_schemas,
-        party_merge_kwargs,
-    )
+        linear_phe_model_converter(
+            builder,
+            f"glm_{node_id}",
+            heu_dict,
+            party_features_name,
+            party_features_pos,
+            input_schema,
+            feature_names,
+            spu_w,
+            label_col,
+            offset_col,
+            yhat_scale,
+            link_type,
+            exp_iters,
+            pred_name,
+            traced_input,
+        )
+    else:
+        (
+            party_dot_kwargs,
+            party_merge_kwargs,
+            party_dot_input_schemas,
+            party_dot_output_schemas,
+            party_merge_input_schemas,
+            party_merge_output_schemas,
+        ) = linear_model_converter(
+            party_features_name,
+            party_features_pos,
+            input_schema,
+            feature_names,
+            spu_w,
+            label_col,
+            offset_col,
+            yhat_scale,
+            link_type,
+            exp_iters,
+            pred_name,
+            traced_input,
+        )
+
+        builder.add_node(
+            f"ss_glm_{node_id}_dot",
+            "dot_product",
+            party_dot_input_schemas,
+            party_dot_output_schemas,
+            party_dot_kwargs,
+        )
+        builder.new_execution("DP_ANYONE")
+        builder.add_node(
+            f"ss_glm_{node_id}_merge_y",
+            "merge_y",
+            party_merge_input_schemas,
+            party_merge_output_schemas,
+            party_merge_kwargs,
+        )
 
 
 def ss_sgd_schema_info(
@@ -354,13 +624,32 @@ def ss_sgd_converter(
     ctx,
     node_id: int,
     builder: GraphBuilderManager,
-    spu_config: SPU,
+    spu_config,
+    heu_config,
     input_schema: Dict[str, Dict[str, np.dtype]],
     model_ds: DistData,
     pred_name: str,
     traced_input: Dict[str, Set[str]],
+    he_mode: bool,
 ):
+    if he_mode:
+        assert (
+            len(input_schema.keys()) == 2
+        ), f"Only 2 participants is supported when `he_mode` is True"
+
     spu = SPU(spu_config["cluster_def"], spu_config["link_desc"])
+
+    heu_dict = {}
+    for party in input_schema.keys():
+        heu = heu_from_base_config(
+            heu_config,
+            party,
+            [p for p in input_schema.keys() if p != party],
+            spu.conf.field,
+            spu.conf.fxp_fraction_bits,
+        )
+        heu_dict[party] = heu
+
     model_objs, model_meta_str = model_loads(
         ctx,
         model_ds,
@@ -385,43 +674,65 @@ def ss_sgd_converter(
     else:
         link_type = SS_SGD_LINK_MAP[sig_type]
 
-    (
-        party_dot_kwargs,
-        party_merge_kwargs,
-        party_dot_input_schemas,
-        party_dot_output_schemas,
-        party_merge_input_schemas,
-        party_merge_output_schemas,
-    ) = linear_model_converter(
-        party_features_name,
-        party_features_pos,
-        input_schema,
-        feature_names,
-        spu_w,
-        label_col,
-        None,
-        1.0,
-        link_type,
-        0,
-        pred_name,
-        traced_input,
-    )
+    if he_mode:
+        builder.set_he_config(heu_dict)
 
-    builder.add_node(
-        f"ss_sgd_{node_id}_dot",
-        "dot_product",
-        party_dot_input_schemas,
-        party_dot_output_schemas,
-        party_dot_kwargs,
-    )
-    builder.new_execution("DP_ANYONE")
-    builder.add_node(
-        f"ss_sgd_{node_id}_merge_y",
-        "merge_y",
-        party_merge_input_schemas,
-        party_merge_output_schemas,
-        party_merge_kwargs,
-    )
+        linear_phe_model_converter(
+            builder,
+            f"sgb_{node_id}",
+            heu_dict,
+            party_features_name,
+            party_features_pos,
+            input_schema,
+            feature_names,
+            spu_w,
+            label_col,
+            None,
+            1.0,
+            link_type,
+            0,
+            pred_name,
+            traced_input,
+        )
+
+    else:
+        (
+            party_dot_kwargs,
+            party_merge_kwargs,
+            party_dot_input_schemas,
+            party_dot_output_schemas,
+            party_merge_input_schemas,
+            party_merge_output_schemas,
+        ) = linear_model_converter(
+            party_features_name,
+            party_features_pos,
+            input_schema,
+            feature_names,
+            spu_w,
+            label_col,
+            None,
+            1.0,
+            link_type,
+            0,
+            pred_name,
+            traced_input,
+        )
+
+        builder.add_node(
+            f"ss_sgd_{node_id}_dot",
+            "dot_product",
+            party_dot_input_schemas,
+            party_dot_output_schemas,
+            party_dot_kwargs,
+        )
+        builder.new_execution("DP_ANYONE")
+        builder.add_node(
+            f"ss_sgd_{node_id}_merge_y",
+            "merge_y",
+            party_merge_input_schemas,
+            party_merge_output_schemas,
+            party_merge_kwargs,
+        )
 
 
 def build_tree_attrs(
@@ -940,6 +1251,8 @@ class TrainModelConverter:
         builder: GraphBuilderManager,
         node_id: int,
         spu_config,
+        heu_config,
+        he_mode,
         param: NodeEvalParam,
         in_ds: List[DistData],
         out_ds: List[DistData],
@@ -948,14 +1261,17 @@ class TrainModelConverter:
         self.builder = builder
         self.node_id = node_id
         self.spu_config = spu_config
+        self.heu_config = heu_config
+        self.he_mode = he_mode
         self.param = param
         in_dataset = [d for d in in_ds if d.type == DistDataType.VERTICAL_TABLE]
         assert len(in_dataset) == 1
         self.in_dataset = in_dataset[0]
 
-        self.input_schema, _ = extract_table_header(
+        infos = extract_data_infos(
             self.in_dataset, load_features=True, load_ids=True, load_labels=True
         )
+        self.input_schema = {p: infos[p].dtypes for p in infos}
 
         assert set(self.input_schema) == set([p.party for p in builder.pyus])
 
@@ -1035,10 +1351,12 @@ class TrainModelConverter:
                 self.node_id,
                 self.builder,
                 self.spu_config,
+                self.heu_config,
                 self.input_schema,
                 self.model_ds,
                 "pred_y",
                 traced_input,
+                self.he_mode,
             )
         elif self.param.name in ["ss_sgd_train", "ss_sgd_predict"]:
             # SS_SGD_MODEL
@@ -1047,10 +1365,12 @@ class TrainModelConverter:
                 self.node_id,
                 self.builder,
                 self.spu_config,
+                self.heu_config,
                 self.input_schema,
                 self.model_ds,
                 "pred_y",
                 traced_input,
+                self.he_mode,
             )
         elif self.param.name in ["sgb_train", "sgb_predict"]:
             # SGB_MODEL

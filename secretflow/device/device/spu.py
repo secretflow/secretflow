@@ -27,7 +27,7 @@ from dataclasses import dataclass
 from enum import Enum, unique
 from typing import Any, Callable, Dict, Iterable, List, Sequence, Tuple, Union
 
-import fed
+import fed as rayfed
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -43,10 +43,13 @@ from spu import psi, spu_pb2
 from spu.utils.distributed import dtype_spu_to_np, shape_spu_to_np
 
 import secretflow.distributed as sfd
+from secretflow.distributed import fed as sf_fed
+from secretflow.utils import secure_pickle as pickle
 from secretflow.utils.errors import InvalidArgumentError
 from secretflow.utils.ndarray_bigint import BigintNdArray
 from secretflow.utils.progress import ProgressData
 
+from ._utils import get_fn_code_name
 from .base import Device, DeviceObject, DeviceType
 from .pyu import PYUObject
 from .register import dispatch
@@ -159,8 +162,8 @@ class SPUObject(DeviceObject):
     def __init__(
         self,
         device: Device,
-        meta: Union[ray.ObjectRef, fed.FedObject],
-        shares_name: Sequence[Union[ray.ObjectRef, fed.FedObject]],
+        meta: Union[ray.ObjectRef, sf_fed.FedObject, rayfed.FedObject],
+        shares_name: Sequence[Union[ray.ObjectRef, sf_fed.FedObject, rayfed.FedObject]],
     ):
         """SPUObject refers to a Python Object which could be flattened to a
         list of SPU Values. An SPU value is a Numpy array or equivalent.
@@ -181,8 +184,8 @@ class SPUObject(DeviceObject):
         would only happen when SPU device consumes SPU objects.
 
         Args:
-            meta: Union[ray.ObjectRef, fed.FedObject]: Ref to the metadata.
-            shares_name: Sequence[Union[ray.ObjectRef, fed.FedObject]]: names of shares of data in each SPU node.
+            meta: Union[ray.ObjectRef, sf_fed.FedObject, rayfed.FedObject]: Ref to the metadata.
+            shares_name: Sequence[Union[ray.ObjectRef, sf_fed.FedObject, rayfed.FedObject]]: names of shares of data in each SPU node.
         """
         super().__init__(device)
         self.meta = meta
@@ -399,6 +402,7 @@ class SPURuntime:
             ]
 
             name = self.get_new_share_name()
+            logging.debug(f"new share name {name}, RT {id(self.runtime)}")
             self.runtime.set_var(name, share)
             shares_name.append(name)
 
@@ -440,6 +444,7 @@ class SPURuntime:
         flatten_names, _ = jax.tree_util.tree_flatten(val)
         for name in flatten_names:
             assert isinstance(name, str)
+            logging.debug(f"del share name {name}, RT {id(self.runtime)}")
             self.runtime.del_var(name)
 
     def dump(self, meta: Any, val: Any, path: Union[str, Callable]):
@@ -447,8 +452,6 @@ class SPURuntime:
         shares = []
         for name in flatten_names:
             shares.append(self.runtime.get_var(name))
-
-        import cloudpickle as pickle
 
         if isinstance(path, str):
             from pathlib import Path
@@ -466,15 +469,13 @@ class SPURuntime:
         return None
 
     def load(self, path: Union[str, Callable]) -> Any:
-        import cloudpickle as pickle
-
         if isinstance(path, str):
             with open(path, 'rb') as f:
-                record = pickle.load(f)
+                record = pickle.load(f, filter_type=pickle.FilterType.BLACKLIST)
         else:
             assert callable(path)
             with path() as f:
-                record = pickle.load(f)
+                record = pickle.load(f, filter_type=pickle.FilterType.BLACKLIST)
 
         meta = record['meta']
         shares = record['shares']
@@ -507,6 +508,8 @@ class SPURuntime:
             List: first parts are output vars following the exec.output_names. The last item is metadata.
         """
 
+        logging.debug(f"SPU({id(self)}) try running {executable.name}")
+
         flatten_names, _ = jax.tree_util.tree_flatten(val)
         assert len(executable.input_names) == len(flatten_names)
 
@@ -518,6 +521,7 @@ class SPURuntime:
 
         executable.output_names[:] = output_names
 
+        logging.debug(f"SPU({id(self)}) running {executable.name} with {flatten_names}")
         self.runtime.run(executable)
 
         metadata = []
@@ -533,6 +537,10 @@ class SPURuntime:
                     self.conf.fxp_fraction_bits,
                 )
             )
+
+        logging.debug(
+            f"SPU({id(self)}) finished {executable.name} output {output_names}"
+        )
 
         if num_returns_policy == SPUCompilerNumReturnsPolicy.SINGLE:
             _, out_tree = jax.tree_util.tree_flatten(out_shape)
@@ -1407,7 +1415,7 @@ def _generate_output_uuid():
     return f'output-{uuid.uuid4()}'
 
 
-def _spu_compile(fn, copts, *meta_args, **meta_kwargs):
+def _spu_compile(fn, copts, fn_name, *meta_args, **meta_kwargs):
     meta_args, meta_kwargs = jax.tree_util.tree_map(
         lambda x: ray.get(x) if isinstance(x, ray.ObjectRef) else x,
         (meta_args, meta_kwargs),
@@ -1441,6 +1449,7 @@ def _spu_compile(fn, copts, *meta_args, **meta_kwargs):
     except Exception:
         raise ray.exceptions.WorkerCrashedError()
 
+    executable.name = fn_name
     return executable, output_tree
 
 
@@ -1632,13 +1641,19 @@ class SPU(Device):
             num_returns = user_specified_num_returns
             meta_args = list(meta_args)
 
+            def compile_fn(*args, **kwargs):
+                return _spu_compile(*args, **kwargs)
+
+            fn_name = get_fn_code_name(func)
+            compile_fn.__name__ = f"spu_compile({fn_name})"
+
             # it's ok to choose any party to compile,
             # here we choose party 0.
             executable, out_shape = (
-                sfd.remote(_spu_compile)
+                sfd.remote(compile_fn)
                 .party(self.cluster_def['nodes'][0]['party'])
                 .options(num_returns=2)
-                .remote(fn, copts, *meta_args, **meta_kwargs)
+                .remote(fn, copts, fn_name, *meta_args, **meta_kwargs)
             )
 
             if num_returns_policy == SPUCompilerNumReturnsPolicy.FROM_COMPILER:
@@ -1693,9 +1708,9 @@ class SPU(Device):
 
     def infeed_shares(
         self,
-        io_info: Union[ray.ObjectRef, fed.FedObject],
-        shares_chunk: List[Union[ray.ObjectRef, fed.FedObject]],
-    ) -> List[Union[ray.ObjectRef, fed.FedObject]]:
+        io_info: Union[ray.ObjectRef, sf_fed.FedObject, rayfed.FedObject],
+        shares_chunk: List[Union[ray.ObjectRef, sf_fed.FedObject, rayfed.FedObject]],
+    ) -> List[Union[ray.ObjectRef, sf_fed.FedObject, rayfed.FedObject]]:
         assert (
             len(shares_chunk) % len(self.actors) == 0
         ), f"{len(shares_chunk)} , {len(self.actors)}"
@@ -1712,10 +1727,11 @@ class SPU(Device):
         return ret
 
     def outfeed_shares(
-        self, shares_name: List[Union[ray.ObjectRef, fed.FedObject]]
+        self,
+        shares_name: List[Union[ray.ObjectRef, sf_fed.FedObject, rayfed.FedObject]],
     ) -> Tuple[
-        Union[ray.ObjectRef, fed.FedObject],
-        List[Union[ray.ObjectRef, fed.FedObject]],
+        Union[ray.ObjectRef, sf_fed.FedObject, rayfed.FedObject],
+        List[Union[ray.ObjectRef, sf_fed.FedObject, rayfed.FedObject]],
     ]:
         assert len(shares_name) == len(self.actors)
 

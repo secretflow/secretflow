@@ -372,13 +372,24 @@ class CriteoBase(ApplicationBase, ABC):
         # 1786MiB
         return (
             ResourcesPack()
-            .with_debug_resources(ResourceDict(gpu_mem=2 * 1024 * 1024 * 1024, CPU=1))
+            .with_debug_resources(
+                ResourceDict(
+                    gpu_mem=2 * 1024 * 1024 * 1024, CPU=1, memory=3 * 1024 * 1024 * 1024
+                )
+            )
             .with_sim_resources(
-                self.device_y.party, ResourceDict(gpu_mem=2 * 1024 * 1024 * 1024, CPU=1)
+                self.device_y.party,
+                ResourceDict(
+                    gpu_mem=2 * 1024 * 1024 * 1024, CPU=1, memory=3 * 1024 * 1024 * 1024
+                ),
             )
             .with_sim_resources(
                 self.device_f.party,
-                ResourceDict(gpu_mem=1.8 * 1024 * 1024 * 1024, CPU=1),
+                ResourceDict(
+                    gpu_mem=1.8 * 1024 * 1024 * 1024,
+                    CPU=1,
+                    memory=3 * 1024 * 1024 * 1024,
+                ),
             )
         )
 

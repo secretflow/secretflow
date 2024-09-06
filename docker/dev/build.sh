@@ -97,6 +97,8 @@ echo -e "Finish building ${GREEN}${IMAGE_TAG}${NO_COLOR}"
 rm -rf .nsjail
 rm -f .condarc
 rm -f *.whl
+rm -f *.yml
+rm -f *.json
 if [[ UPLOAD -eq 1 ]]; then
     docker push ${IMAGE_TAG}
 fi

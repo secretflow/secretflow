@@ -18,6 +18,9 @@ import os
 import pandas as pd
 import tensorflow as tf
 from google.protobuf.json_format import MessageToJson
+from pyarrow import orc
+from sklearn.preprocessing import LabelEncoder, MinMaxScaler
+
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.ml.nn.sl import slnn_predict_comp, slnn_train_comp
 from secretflow.spec.v1.component_pb2 import Attribute
@@ -30,7 +33,6 @@ from secretflow.spec.v1.data_pb2 import (
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
 from secretflow.utils.simulation.datasets import dataset
-from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 from tests.conftest import prepare_storage_path
 
 from .model_def import MODELS_CODE
@@ -266,7 +268,9 @@ def test_sl_nn(sf_simulation_setup_devices):
     assert len(predict_res.outputs) == 1
 
     input_y = pd.read_csv(os.path.join(storage_config.local_fs.wd, alice_path))
-    output_y = pd.read_csv(os.path.join(storage_config.local_fs.wd, predict_path))
+    output_y = orc.read_table(
+        os.path.join(storage_config.local_fs.wd, predict_path)
+    ).to_pandas()
 
     # label & pred
     assert output_y.shape[1] == 2

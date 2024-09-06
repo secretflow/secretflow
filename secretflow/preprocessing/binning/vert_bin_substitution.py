@@ -12,21 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict, List, Tuple
+import copy
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
+import pyarrow as pa
 
 import secretflow.compute as sc
+from secretflow.component.dataframe import CompDataFrame
 from secretflow.compute import Table
 from secretflow.data import partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import PYU, PYUObject, reveal, wait
 
 
-def binning_rules_to_sc(rules: Dict, input_schema: Dict[str, np.dtype]) -> sc.Table:
+def apply_binning_rules(
+    rules: Dict, input: Union[Dict[str, np.dtype], pa.Table]
+) -> sc.Table:
     rules = {v['name']: v for v in rules["variables"]}
-    table = Table.from_schema(input_schema)
+    if isinstance(input, pa.Table):
+        table = Table.from_pyarrow(input)
+    else:
+        table = Table.from_schema(input)
+
+    input_schema = set(table.column_names)
 
     for v in rules:
         rule = rules[v]
@@ -56,7 +66,7 @@ def binning_rules_to_sc(rules: Dict, input_schema: Dict[str, np.dtype]) -> sc.Ta
 
 class VertBinSubstitution:
     @staticmethod
-    def _sub(data: pd.DataFrame, r: Dict) -> Tuple[pd.DataFrame, List[str]]:
+    def _sub(data: pa.Table, r: Dict) -> pa.Table:
         """
         PYU functions for binning substitution.
 
@@ -71,21 +81,17 @@ class VertBinSubstitution:
 
         rules = {v['name']: v for v in r["variables"]}
         assert np.isin(
-            list(rules.keys()), data.columns
+            list(rules.keys()), data.column_names
         ).all(), "rule feature names [%s] mismatch with input dataset [%s]" % (
             str(rules.keys()),
-            str(data.columns),
+            str(data.column_names),
         )
 
-        rules_table = binning_rules_to_sc(r, dict(data.dtypes))
-        changed_columns = rules_table.column_changes()[1]
-        data = rules_table.dump_runner().run(data)
-
-        return data, changed_columns
+        return apply_binning_rules(r, data).to_table()
 
     def substitution(
-        self, vdata: VDataFrame, rules: Dict[PYU, PYUObject]
-    ) -> Tuple[VDataFrame, List[str]]:
+        self, vdata: CompDataFrame, rules: Dict[PYU, PYUObject]
+    ) -> CompDataFrame:
         """
         substitute dataset's value by binning substitution rules.
 
@@ -95,36 +101,19 @@ class VertBinSubstitution:
 
         Returns:
             new_vdata: vertical slice dataset after substituted.
-            changed_columns: columns that are changed by substitution.
         """
-        pyu_new_data = {}
-        pyu_changed_columns = {}
+        pyu_new_data = []
         for device in rules:
             # all rules must corresponds to some party
-            assert (
-                device in vdata.partitions.keys()
-            ), f"device {device} not exist in vdata"
-            new_data, changed_columns = device(VertBinSubstitution._sub)(
-                vdata.partitions[device].data, rules[device]
+            new_data = device(VertBinSubstitution._sub)(
+                vdata.data(device).data, rules[device]
             )
-            pyu_new_data[device] = new_data
-            pyu_changed_columns[device] = changed_columns
+            pyu_new_data.append(new_data)
 
         wait(pyu_new_data)
-        pyu_changed_columns = reveal(pyu_changed_columns)
-        changed_columns = {c for pc in pyu_changed_columns.values() for c in pc}
 
-        # but some party may have no substitution rule
-        def sub_if_exists(d):
-            return (
-                partition(
-                    data=pyu_new_data[d],
-                    backend=vdata.partitions[d].backend,
-                )
-                if d in pyu_new_data
-                else vdata.partitions[d]
-            )
+        new_df = vdata.copy()
+        for d in pyu_new_data:
+            new_df.set_data(d)
 
-        new_vdata = VDataFrame({d: sub_if_exists(d) for d in vdata.partitions.keys()})
-
-        return new_vdata, changed_columns
+        return new_df

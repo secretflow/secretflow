@@ -57,18 +57,17 @@ def _build_splited_ds(pyus, x, cols, parties):
     for r in range(parties):
         start = r * step
         end = start + step if r != parties - 1 else x.shape[1]
-        split_x = x[:, start:end]
-        pyu_x = pyus[r](lambda: pd.DataFrame(split_x))()
+        pyu_x = pyus[r](lambda x: pd.DataFrame(x))(x[:, start:end])
         fed_x.partitions[pyus[r]] = partition(data=pyu_x)
     if isinstance(cols, list):
         fed_cs = []
         for c in cols:
-            pyu_c = pyus[parties - 1](lambda: pd.DataFrame(c))()
+            pyu_c = pyus[parties - 1](lambda c: pd.DataFrame(c))(c)
             fed_c = VDataFrame({pyus[parties - 1]: partition(data=pyu_c)})
             fed_cs.append(fed_c)
         return fed_x, fed_cs
     else:
-        pyu_c = pyus[parties - 1](lambda: pd.DataFrame(cols))()
+        pyu_c = pyus[parties - 1](lambda cols: pd.DataFrame(cols))(cols)
         fed_c = VDataFrame({pyus[parties - 1]: partition(data=pyu_c)})
         return fed_x, fed_c
 
@@ -88,9 +87,9 @@ def _run_ss(
     sample_weights,
 ):
     # weights to spu
-    pyu_w = env.alice(lambda: np.array(w))()
+    pyu_w = env.alice(lambda w: np.array(w))(w)
     spu_w = pyu_w.to(env.spu)
-    pyu_yhat = env.alice(lambda: np.array(yhat))()
+    pyu_yhat = env.alice(lambda yhat: np.array(yhat))(yhat)
     spu_yhat = pyu_yhat.to(env.spu)
 
     # x,y to pyu
@@ -112,7 +111,7 @@ def _run_ss(
         elif model_type == DistributionType.Bernoulli:
             link = LinkType.Logit
         if sample_weights is not None:
-            sample_weights = env.alice(lambda: sample_weights.reshape(-1, 1))()
+            sample_weights = env.alice(lambda w: w.reshape(-1, 1))(sample_weights)
         pvalues = sspv.z_statistic_p_value(
             pyu_x,
             pyu_y,

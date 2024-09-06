@@ -33,7 +33,12 @@ class SFXgboost:
         self.fed_bst = {}
         self._workers = []
         msg_id_prefix = str(global_random(self.server, 100000000))
-        production_mode = get_distribution_mode() == DISTRIBUTION_MODE.PRODUCTION
+        if get_distribution_mode() == DISTRIBUTION_MODE.PRODUCTION:
+            raise RuntimeError(
+                "link can not running under PRODUCTION mode, "
+                "please use RAY_PRODUCTION or SIMULATION mode"
+            )
+        production_mode = get_distribution_mode() == DISTRIBUTION_MODE.RAY_PRODUCTION
         for client in self.clients:
             self._workers.append(
                 HomoBooster(

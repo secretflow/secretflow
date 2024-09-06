@@ -70,11 +70,21 @@ class Cifar10VGG16(Cifar10ApplicationBase):
         # 2682MiB
         return (
             ResourcesPack()
-            .with_debug_resources(ResourceDict(gpu_mem=4 * 1024 * 1024 * 1024, CPU=1))
-            .with_sim_resources(
-                self.device_y.party, ResourceDict(gpu_mem=4 * 1024 * 1024 * 1024, CPU=1)
+            .with_debug_resources(
+                ResourceDict(
+                    gpu_mem=4 * 1024 * 1024 * 1024, CPU=1, memory=4 * 1024 * 1024 * 1024
+                )
             )
             .with_sim_resources(
-                self.device_f.party, ResourceDict(gpu_mem=3 * 1024 * 1024 * 1024, CPU=1)
+                self.device_y.party,
+                ResourceDict(
+                    gpu_mem=4 * 1024 * 1024 * 1024, CPU=1, memory=4 * 1024 * 1024 * 1024
+                ),
+            )
+            .with_sim_resources(
+                self.device_f.party,
+                ResourceDict(
+                    gpu_mem=3 * 1024 * 1024 * 1024, CPU=1, memory=4 * 1024 * 1024 * 1024
+                ),
             )
         )

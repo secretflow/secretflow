@@ -3,7 +3,6 @@
 # This file is distributed under the same license as the SecretFlow package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2023.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
@@ -26,7 +25,7 @@ msgid ""
 "The following codes are demos only. It’s **NOT for production** due to "
 "system security concerns, please **DO NOT** use it directly in "
 "production."
-msgstr "以下代码仅用于演示。由于系统安全问题，请勿直接在生产中使用。"
+msgstr "注意： 以下代码仅供演示用途，在演示过程中可能会揭露部分信息。请勿直接将此示例代码用于实际生产环境中。在实际部署前，请根据您的具体需求和安全标准进行必要的修改和调整。"
 
 #: ../../tutorial/WeightOfEvidenceEncoding.ipynb:31
 msgid ""
@@ -59,7 +58,6 @@ msgid "Now, we are ready to perform WOE binning and substitution."
 msgstr "现在，我们已经准备好执行WOE分箱和替换。"
 
 #: ../../tutorial/WeightOfEvidenceEncoding.ipynb:538
-#, fuzzy
 msgid ""
 "Sometimes we may need the iv values. Releasing bin ivs will potentially "
 "leak label information according to issue "
@@ -69,15 +67,12 @@ msgid ""
 msgstr ""
 "有时我们可能需要IV值。根据GitHub issue, "
 "https://github.com/secretflow/secretflow/issues/565，发布分桶的ivs可能会泄漏标签信息。目前，我们选择将桶的iv值保存在标签持有者设备中。标签持有者可以选择"
-" 1. 不共享iv信息 2. 共享一些已选择的iv信息"
 
 #: ../../tutorial/WeightOfEvidenceEncoding.ipynb:540
-#, fuzzy
 msgid "share no iv information"
 msgstr "将一些iv信息分享给其他方"
 
 #: ../../tutorial/WeightOfEvidenceEncoding.ipynb:541
-#, fuzzy
 msgid "share some chosen iv information"
 msgstr "将一些iv信息分享给其他方"
 
@@ -86,11 +81,10 @@ msgid "We will demonstrate how to share the feature ivs."
 msgstr "我们将演示如何共享特征iv。"
 
 #: ../../tutorial/WeightOfEvidenceEncoding.ipynb:554
-#, fuzzy
 msgid ""
 "Recall that the bin_rules is a dictionary ``{PYU: PYUObject}``, where "
 "each ``PYUObject`` itself is a dictionary of the following type:"
-msgstr "回想一下，woe_rules是一个字典 {PYU: PYUObject}，其中 \" \"每个 PYUObject 本身是以下类型的字典"
+msgstr "回想一下，woe_rules是一个字典 {PYU: PYUObject}，其中 \" \"每个 PYUObject 本身是以下类型的字典："
 
 #: ../../tutorial/WeightOfEvidenceEncoding.ipynb:657
 msgid "Congradulations! In this tutorial we have learnt how to"

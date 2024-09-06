@@ -20,10 +20,8 @@ import pytest
 from google.protobuf.json_format import MessageToJson, Parse
 from sklearn.datasets import load_breast_cancer
 
-from secretflow.component.data_utils import DistDataType
-from secretflow.component.io.io import io_read_data, io_write_data
-from secretflow.component.preprocessing.binning.vert_binning import vert_binning_comp
-from secretflow.component.storage import ComponentStorage
+from secretflow.component.core import DistDataType, Storage
+from secretflow.component.entry import comp_eval
 from secretflow.spec.extend.bin_data_pb2 import Bins
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
@@ -39,7 +37,7 @@ def vert_bin_rule(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = Storage(storage_config)
 
     ds = load_breast_cancer()
     x, y = ds["data"], ds["target"]
@@ -47,11 +45,11 @@ def vert_bin_rule(comp_prod_sf_cluster_config):
         x = pd.DataFrame(x[:, :15], columns=[f"a{i}" for i in range(15)])
         y = pd.DataFrame(y, columns=["y"])
         ds = pd.concat([x, y], axis=1)
-        ds.to_csv(comp_storage.get_writer(alice_path), index=False)
+        ds.to_csv(storage.get_writer(alice_path), index=False)
 
     elif self_party == "bob":
         ds = pd.DataFrame(x[:, 15:], columns=[f"b{i}" for i in range(15)])
-        ds.to_csv(comp_storage.get_writer(bob_path), index=False)
+        ds.to_csv(storage.get_writer(bob_path), index=False)
 
     bin_param_01 = NodeEvalParam(
         domain="feature",
@@ -91,7 +89,7 @@ def vert_bin_rule(comp_prod_sf_cluster_config):
     )
     bin_param_01.inputs[0].meta.Pack(meta)
 
-    bin_res = vert_binning_comp.eval(
+    bin_res = comp_eval(
         param=bin_param_01,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -109,11 +107,11 @@ def write_data(vert_bin_rule, comp_prod_sf_cluster_config):
     read_param = NodeEvalParam(
         domain="io",
         name="read_data",
-        version="0.0.1",
+        version="1.0.0",
         inputs=[vert_bin_rule],
         output_uris=[pb_path],
     )
-    read_res = io_read_data.eval(
+    read_res = comp_eval(
         param=read_param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -131,16 +129,16 @@ def test_no_change_correct(vert_bin_rule, write_data, comp_prod_sf_cluster_confi
     write_param = NodeEvalParam(
         domain="io",
         name="write_data",
-        version="0.0.1",
+        version="1.0.0",
         attr_paths=["write_data", "write_data_type"],
         attrs=[
             Attribute(s=write_data),
-            Attribute(s=str(DistDataType.BIN_RUNNING_RULE)),
+            Attribute(s=str(DistDataType.BINNING_RULE)),
         ],
         inputs=[vert_bin_rule],
         output_uris=[new_rule_path],
     )
-    write_res = io_write_data.eval(
+    write_res = comp_eval(
         param=write_param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -149,11 +147,11 @@ def test_no_change_correct(vert_bin_rule, write_data, comp_prod_sf_cluster_confi
     read_param = NodeEvalParam(
         domain="io",
         name="read_data",
-        version="0.0.1",
+        version="1.0.0",
         inputs=[write_res.outputs[0]],
         output_uris=[pb_path],
     )
-    read_res = io_read_data.eval(
+    read_res = comp_eval(
         param=read_param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -192,16 +190,16 @@ def test_merge_one_bin_correct(vert_bin_rule, write_data, comp_prod_sf_cluster_c
     write_param = NodeEvalParam(
         domain="io",
         name="write_data",
-        version="0.0.1",
+        version="1.0.0",
         attr_paths=["write_data", "write_data_type"],
         attrs=[
             Attribute(s=write_data),
-            Attribute(s=str(DistDataType.BIN_RUNNING_RULE)),
+            Attribute(s=str(DistDataType.BINNING_RULE)),
         ],
         inputs=[vert_bin_rule],
         output_uris=[new_rule_path],
     )
-    write_res = io_write_data.eval(
+    write_res = comp_eval(
         param=write_param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -210,11 +208,11 @@ def test_merge_one_bin_correct(vert_bin_rule, write_data, comp_prod_sf_cluster_c
     read_param = NodeEvalParam(
         domain="io",
         name="read_data",
-        version="0.0.1",
+        version="1.0.0",
         inputs=[write_res.outputs[0]],
         output_uris=[pb_path],
     )
-    read_res = io_read_data.eval(
+    read_res = comp_eval(
         param=read_param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,

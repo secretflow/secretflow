@@ -17,8 +17,8 @@ import logging
 import pandas as pd
 from sklearn.datasets import load_breast_cancer
 
-from secretflow.component.data_utils import DistDataType, extract_distdata_info
-from secretflow.component.io.io import io_read_data
+from secretflow.component.data_utils import DistDataType
+from secretflow.component.entry import comp_eval
 from secretflow.component.preprocessing.binning.vert_binning import (
     vert_bin_substitution_comp,
 )
@@ -123,8 +123,10 @@ def test_woe_binning(comp_prod_sf_cluster_config):
                 features=[f"b{i}" for i in range(15)],
             ),
             TableSchema(
-                feature_types=["float32"] * 16,
-                features=[f"a{i}" for i in range(15)] + ["y"],
+                feature_types=["float32"] * 15,
+                features=[f"a{i}" for i in range(15)],
+                labels=["y"],
+                label_types=["float32"],
             ),
         ],
     )
@@ -145,8 +147,7 @@ def test_woe_binning(comp_prod_sf_cluster_config):
 
     assert len(bin_res.outputs) == 2
     comp_ret = Report()
-    bin_res.outputs[1].meta.Unpack(comp_ret)
-    logging.info("bin_res.outputs[1]: %s", comp_ret)
+    assert bin_res.outputs[1].meta.Unpack(comp_ret)
 
     sub_param = NodeEvalParam(
         domain="preprocessing",
@@ -177,22 +178,20 @@ def test_woe_binning(comp_prod_sf_cluster_config):
         if 'y' in list(s.labels) or 'y' in list(s.features):
             assert 'y' in list(s.labels) and 'y' not in list(s.features)
 
-    extract_distdata_info(sub_res.outputs[0])
-
     # logging.warning(f"alice_out \n{alice_out}\n....\n")
     # logging.warning(f"bob_out \n{bob_out}\n....\n")
 
     read_param = NodeEvalParam(
         domain="io",
         name="read_data",
-        version="0.0.1",
+        version="1.0.0",
         attr_paths=[],
         attrs=[],
         inputs=[bin_res.outputs[0]],
         output_uris=[read_data_path],
     )
 
-    read_res = io_read_data.eval(
+    read_res = comp_eval(
         param=read_param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,

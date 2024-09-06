@@ -38,7 +38,7 @@ class MnistBase(ApplicationBase, ABC):
         alice_fea_nums=1 * 28 * 14,
         epoch=5,
         train_batch_size=128,
-        hidden_size=612,
+        hidden_size=512,
         dnn_fuse_units_size=None,
     ):
         super().__init__(
@@ -72,7 +72,6 @@ class MnistBase(ApplicationBase, ABC):
             normalized_x=normalized_x,
             axis=3,
         )
-
         train_data = train_data.astype(np.float32)
         train_label = train_label
         test_data = test_data.astype(np.float32)
@@ -94,13 +93,24 @@ class MnistBase(ApplicationBase, ABC):
         # 980MiB
         return (
             ResourcesPack()
-            .with_debug_resources(ResourceDict(gpu_mem=2 * 1024 * 1024 * 1024, CPU=1))
+            .with_debug_resources(
+                ResourceDict(
+                    gpu_mem=2 * 1024 * 1024 * 1024, CPU=1, memory=4 * 1024 * 1024 * 1024
+                )
+            )
             .with_sim_resources(
-                self.device_y.party, ResourceDict(gpu_mem=2 * 1024 * 1024 * 1024, CPU=1)
+                self.device_y.party,
+                ResourceDict(
+                    gpu_mem=2 * 1024 * 1024 * 1024, CPU=1, memory=4 * 1024 * 1024 * 1024
+                ),
             )
             .with_sim_resources(
                 self.device_f.party,
-                ResourceDict(gpu_mem=1.5 * 1024 * 1024 * 1024, CPU=1),
+                ResourceDict(
+                    gpu_mem=1.5 * 1024 * 1024 * 1024,
+                    CPU=1,
+                    memory=4 * 1024 * 1024 * 1024,
+                ),
             )
         )
 

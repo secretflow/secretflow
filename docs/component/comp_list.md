@@ -6,8 +6,6 @@ SecretFlow Component List
 =========================
 
 
-Last update: Fri Jul 12 11:12:51 2024
-
 Version: 0.0.1
 
 First-party SecretFlow components.
@@ -16,7 +14,7 @@ First-party SecretFlow components.
 ### condition_filter
 
 
-Component version: 0.0.1
+Component version: 1.0.0
 
 Filter the table based on a single column's values and condition.
 Warning: the party responsible for condition filtering will directly send the sample distribution to other participants.
@@ -27,9 +25,8 @@ Audit the usage of this component carefully.
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
-|comparator|Comparator to use for comparison. Must be one of '==','<','<=','>','>=','IN'|String|Y|Allowed: ['==', '<', '<=', '>', '>=', 'IN'].|
-|value_type|Type of the value to compare with. Must be one of ['STRING', 'FLOAT']|String|Y|Allowed: ['STRING', 'FLOAT'].|
-|bound_value|Input a str with values separated by ','. List of values to compare with. If comparator is not 'IN', we only support one element in this list.|String|Y||
+|comparator|Comparator to use for comparison. Must be one of '==','<','<=','>','>=','IN','NOTNULL'|String|Y|Allowed: ['==', '<', '<=', '>', '>=', 'IN', 'NOTNULL'].|
+|bound_value|Input a value for comparison; if the comparison condition is IN, you can input multiple values separated by ','; if the comparison condition is NOTNULL, the input is not needed.|String|N|Default: .|
 |float_epsilon|Epsilon value for floating point comparison. WARNING: due to floating point representation in computers, set this number slightly larger if you want filter out the values exactly at desired boundary. for example, abs(1.001 - 1.002) is slightly larger than 0.001, and therefore may not be filter out using == and epsilson = 0.001|Float|N|Default: 0.0.Range: [0.0, $\infty$).|
 
 #### Inputs
@@ -37,21 +34,21 @@ Audit the usage of this component carefully.
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|in_ds|Input vertical table.|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
-|input/in_ds/features|Feature(s) to operate on.|String List(Set value with other Component Attributes)|You need to select some columns of table in_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
+|input_ds|Input vertical table.|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
+|input/input_ds/feature|Feature to operate on.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
 
 #### Outputs
 
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|out_ds|Output vertical table that satisfies the condition.|['sf.table.vertical_table']||
-|out_ds_else|Output vertical table that does not satisfies the condition.|['sf.table.vertical_table']||
+|output_ds|Output vertical table that satisfies the condition.|['sf.table.vertical_table']||
+|output_ds_else|Output vertical table that does not satisfies the condition.|['sf.table.vertical_table']||
 
 ### expr_condition_filter
 
 
-Component version: 0.0.1
+Component version: 1.0.0
 
 Only row-level filtering is supported, column processing is not available;
 the custom expression must comply with SQLite syntax standards
@@ -67,20 +64,20 @@ the custom expression must comply with SQLite syntax standards
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|in_ds|Input vertical or individual table|['sf.table.individual', 'sf.table.vertical_table']||
+|input_ds|Input vertical or individual table|['sf.table.individual', 'sf.table.vertical_table']||
 
 #### Outputs
 
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|out_ds|Output table that satisfies the condition|['sf.table.individual', 'sf.table.vertical_table']||
-|out_ds_else|Output table that does not satisfies the condition|['sf.table.individual', 'sf.table.vertical_table']||
+|output_ds|Output table that satisfies the condition|['sf.table.individual', 'sf.table.vertical_table']||
+|output_ds_else|Output table that does not satisfies the condition|['sf.table.individual', 'sf.table.vertical_table']||
 
 ### feature_filter
 
 
-Component version: 0.0.1
+Component version: 1.0.0
 
 Drop features from the dataset.
 #### Inputs
@@ -88,20 +85,20 @@ Drop features from the dataset.
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|in_ds|Input vertical table.|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
-|input/in_ds/drop_features|Features to drop.|String List(Set value with other Component Attributes)|You need to select some columns of table in_ds. |
+|input_ds|Input vertical table.|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
+|input/input_ds/drop_features|Features to drop.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. |
 
 #### Outputs
 
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|out_ds|Output vertical table.|['sf.table.vertical_table']||
+|output_ds|Output vertical table.|['sf.table.vertical_table']||
 
 ### sample
 
 
-Component version: 0.0.1
+Component version: 1.0.0
 
 Sample data set.
 #### Attrs
@@ -129,22 +126,22 @@ Sample data set.
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_data|Input vertical table.|['sf.table.vertical_table', 'sf.table.individual']||
+|input_ds|Input vertical table.|['sf.table.vertical_table', 'sf.table.individual']||
 
 #### Outputs
 
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|sample_output|Output sampled dataset.|['sf.table.vertical_table', 'sf.table.individual']||
-|reports|Output sample reports|['sf.report']||
+|output_ds|Output sampled dataset.|['sf.table.vertical_table', 'sf.table.individual']||
+|report|Output sample report|['sf.report']||
 
 ## data_prep
 
 ### psi
 
 
-Component version: 0.0.5
+Component version: 0.0.8
 
 PSI between two parties.
 #### Attrs
@@ -154,15 +151,16 @@ PSI between two parties.
 | :--- | :--- | :--- | :--- | :--- |
 |protocol|PSI protocol.|String|N|Default: PROTOCOL_RR22.Allowed: ['PROTOCOL_RR22', 'PROTOCOL_ECDH', 'PROTOCOL_KKRT'].|
 |sort_result|It false, output is not promised to be aligned. Warning: disable this option may lead to errors in the following components. DO NOT TURN OFF if you want to append other components.|Boolean|N|Default: True.|
-|allow_duplicate_keys|Some join types allow duplicate keys.|Special type. Union group. You must select one child to fill in.|N/A|This is a special type. This is a union group, you must select one child to fill in (if exists).|
+|allow_empty_result|Whether to allow the result to be empty, if allowed, an empty file will be saved, if not, an error will be reported.|Boolean|N|Default: False.|
+|allow_duplicate_keys|Some join types allow duplicate keys. If you specify a party to receive, this should be no.|Special type. Union group. You must select one child to fill in.|N/A|This is a special type. This is a union group, you must select one child to fill in (if exists).|
 |allow_duplicate_keys/no|Duplicate keys are not allowed.|Special type. Struct group. You must fill in all children.|N/A|This is a special type. This is a structure group, you must fill in all children.|
 |allow_duplicate_keys/no/skip_duplicates_check|If true, the check of duplicated items will be skiped.|Boolean|N|Default: False.|
 |allow_duplicate_keys/no/check_hash_digest|Check if hash digest of keys from parties are equal to determine whether to early-stop.|Boolean|N|Default: False.|
+|allow_duplicate_keys/no/receiver_parties|Party names of receiver for result, all party will be receivers default; if only one party receive result, the result will be single-party table, hence you can not connect it to component with union table input.|Special type. Specify parties.|Y||
 |allow_duplicate_keys/yes|Duplicate keys are allowed.|Special type. Struct group. You must fill in all children.|N/A|This is a special type. This is a structure group, you must fill in all children.|
 |allow_duplicate_keys/yes/join_type|Join type.|Special type. Union group. You must select one child to fill in.|N/A|This is a special type. This is a union group, you must select one child to fill in (if exists).|
 |allow_duplicate_keys/yes/join_type/left_join|Left join with duplicate keys|Special type. Struct group. You must fill in all children.|N/A|This is a special type. This is a structure group, you must fill in all children.|
 |allow_duplicate_keys/yes/join_type/left_join/left_side|Required for left join|Special type. Specify parties.|Y||
-|fill_value_int|For int type data. Use this value for filling null.|Integer|N|Default: 0.|
 |ecdh_curve|Curve type for ECDH PSI.|String|N|Default: CURVE_FOURQ.Allowed: ['CURVE_25519', 'CURVE_FOURQ', 'CURVE_SM2', 'CURVE_SECP256K1'].|
 
 #### Inputs
@@ -170,22 +168,22 @@ PSI between two parties.
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|receiver_input|Individual table for receiver|['sf.table.individual']|Pleae fill in extra table attributes.|
-|input/receiver_input/key|Column(s) used to join.|String List(Set value with other Component Attributes)|You need to select some columns of table receiver_input. Min column number to select(inclusive): 1. |
-|sender_input|Individual table for sender|['sf.table.individual']|Pleae fill in extra table attributes.|
-|input/sender_input/key|Column(s) used to join.|String List(Set value with other Component Attributes)|You need to select some columns of table sender_input. Min column number to select(inclusive): 1. |
+|input_table_1|Individual table for party 1|['sf.table.individual']|Pleae fill in extra table attributes.|
+|input/input_table_1/key|Column(s) used to join.|String List(Set value with other Component Attributes)|You need to select some columns of table input_table_1. Min column number to select(inclusive): 1. |
+|input_table_2|Individual table for party 2|['sf.table.individual']|Pleae fill in extra table attributes.|
+|input/input_table_2/key|Column(s) used to join.|String List(Set value with other Component Attributes)|You need to select some columns of table input_table_2. Min column number to select(inclusive): 1. |
 
 #### Outputs
 
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|psi_output|Output vertical table|['sf.table.vertical_table']||
+|psi_output|Output vertical table|['sf.table.vertical_table', 'sf.table.individual']||
 
 ### train_test_split
 
 
-Component version: 0.0.1
+Component version: 1.0.0
 
 Split datasets into random train and test subsets.
 - Please check: https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html
@@ -204,20 +202,20 @@ Split datasets into random train and test subsets.
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_data|Input vertical table.|['sf.table.vertical_table']||
+|input_ds|Input vertical table.|['sf.table.vertical_table']||
 
 #### Outputs
 
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|train|Output train dataset.|['sf.table.vertical_table']||
-|test|Output test dataset.|['sf.table.vertical_table']||
+|train_ds|Output train dataset.|['sf.table.vertical_table']||
+|test_ds|Output test dataset.|['sf.table.vertical_table']||
 
 ### union
 
 
-Component version: 0.0.1
+Component version: 1.0.0
 
 Perform a horizontal merge of two data tables, supporting the individual table or vertical table on the same node.
 #### Inputs
@@ -225,8 +223,8 @@ Perform a horizontal merge of two data tables, supporting the individual table o
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input1|The first input table|['sf.table.individual', 'sf.table.vertical_table']||
-|input2|The second input table|['sf.table.individual', 'sf.table.vertical_table']||
+|input_ds1|The first input table|['sf.table.individual', 'sf.table.vertical_table']||
+|input_ds2|The second input table|['sf.table.individual', 'sf.table.vertical_table']||
 
 #### Outputs
 
@@ -310,7 +308,7 @@ Generate Weight of Evidence (WOE) binning rules for vertical partitioning datase
 ### identity
 
 
-Component version: 0.0.1
+Component version: 1.0.0
 
 map any input to output
 #### Inputs
@@ -330,15 +328,22 @@ map any input to output
 ### read_data
 
 
-Component version: 0.0.1
+Component version: 1.0.0
 
 read model or rules from sf cluster
+#### Attrs
+
+
+|Name|Description|Type|Required|Notes|
+| :--- | :--- | :--- | :--- | :--- |
+|generalized_linear_model|Whether to dump the complete generalized linear model. The complete generalized linear model contains link, y_scale, offset_col, and so on.|Boolean|N|Default: False.|
+
 #### Inputs
 
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_dd|Input dist data|['sf.rule.binning', 'sf.model.ss_glm']||
+|input_data|Input dist data|['sf.rule.binning', 'sf.model.ss_glm', 'sf.model.sgb']||
 
 #### Outputs
 
@@ -350,7 +355,7 @@ read model or rules from sf cluster
 ### write_data
 
 
-Component version: 0.0.1
+Component version: 1.0.0
 
 write model or rules back to sf cluster
 #### Attrs
@@ -359,21 +364,21 @@ write model or rules back to sf cluster
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
 |write_data|rule or model protobuf by json format|String|Y||
-|write_data_type|which rule or model is writing|String|N|Default: sf.rule.binning.Allowed: ['sf.rule.binning', 'sf.model.ss_glm'].|
+|write_data_type|which rule or model is writing|String|N|Default: sf.rule.binning.Allowed: ['sf.rule.binning', 'sf.model.ss_glm', 'sf.model.sgb'].|
 
 #### Inputs
 
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_dd|Input dist data. Rule reconstructions may need hidden info in original rule for security considerations.|['sf.rule.binning', 'sf.model.ss_glm']||
+|input_data|Input dist data. Rule reconstructions may need hidden info in original rule for security considerations.|['sf.rule.binning', 'sf.model.ss_glm', 'sf.model.sgb', 'sf.null']||
 
 #### Outputs
 
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|output_model|Output rules or models in sf cluster format|['sf.rule.binning', 'sf.model.ss_glm']||
+|output_data|Output rules or models in sf cluster format|['sf.rule.binning', 'sf.model.ss_glm', 'sf.model.sgb']||
 
 ## ml.eval
 
@@ -861,7 +866,7 @@ linear models for vertical partitioning dataset with mini batch SGD training sol
 |batch_size|The number of training examples utilized in one iteration.|Integer|N|Default: 1024.Range: (0, $\infty$).|
 |sig_type|Sigmoid approximation type.|String|N|Default: t1.Allowed: ['real', 't1', 't3', 't5', 'df', 'sr', 'mix'].|
 |reg_type|Regression type|String|N|Default: logistic.Allowed: ['linear', 'logistic'].|
-|penalty|The penalty(aka regularization term) to be used.|String|N|Default: None.Allowed: ['None', 'l1', 'l2'].|
+|penalty|The penalty(aka regularization term) to be used.|String|N|Default: None.Allowed: ['None', 'l2'].|
 |l2_norm|L2 regularization term.|Float|N|Default: 0.5.Range: [0.0, $\infty$).|
 |eps|If the change rate of weights is less than this threshold, the model is considered to be converged, and the training stops early. 0 to disable.|Float|N|Default: 0.001.Range: [0.0, $\infty$).|
 |report_weights|If this option is set to true, model will be revealed and model details are visible to all parties|Boolean|N|Default: False.|
@@ -929,7 +934,7 @@ for vertical partitioning dataset setting by using secret sharing.
 ### model_export
 
 
-Component version: 0.0.1
+Component version: 0.0.2
 
 The model_export component supports converting and packaging the rule files generated by preprocessing and postprocessing components, as well as the model files generated by model operators, into a Secretflow-Serving model package. The list of components to be exported must contain exactly one model train or model predict component, and may include zero or multiple preprocessing and postprocessing components.
 #### Attrs
@@ -942,6 +947,7 @@ The model_export component supports converting and packaging the rule files gene
 |input_datasets|The input data IDs for all components to be exported. Their order must remain consistent with the sequence in which the components were executed.|String List|Y||
 |output_datasets|The output data IDs for all components to be exported. Their order must remain consistent with the sequence in which the components were executed.|String List|Y||
 |component_eval_params|The eval parameters (in JSON format) for all components to be exported. Their order must remain consistent with the sequence in which the components were executed.|String List|Y||
+|he_mode|If enabled, it will export a homomorphic encryption model. Currently, only SGD and GLM models for two-party scenarios are supported.|Boolean|Y||
 
 #### Outputs
 
@@ -956,7 +962,7 @@ The model_export component supports converting and packaging the rule files gene
 ### score_card_transformer
 
 
-Component version: 0.0.1
+Component version: 1.0.0
 
 Transform the predicted result (a probability value) produced by the logistic regression model into a more understandable score (for example, a score of up to 1000 points)
 #### Attrs
@@ -966,9 +972,9 @@ Transform the predicted result (a probability value) produced by the logistic re
 | :--- | :--- | :--- | :--- | :--- |
 |positive|Value for positive cases.|Integer|Y|Allowed: [0, 1].|
 |predict_score_name||String|Y||
-|scaled_value|Set a benchmark score that can be adjusted for specific business scenarios|Integer|Y||
-|odd_base|the odds value at given score baseline, odds = p / (1-p)|Float|Y||
-|pdo|points to double the odds|Float|Y||
+|scaled_value|Set a benchmark score that can be adjusted for specific business scenarios|Integer|Y|Range: (0, $\infty$).|
+|odd_base|the odds value at given score baseline, odds = p / (1-p)|Float|Y|Range: (0.0, $\infty$).|
+|pdo|points to double the odds|Float|Y|Range: (0.0, $\infty$).|
 |min_score|An integer of [0,999] is supported|Integer|N|Default: 0.Range: [0, 999].|
 |max_score|An integer of [1,1000] is supported|Integer|N|Default: 1000.Range: [1, 1000].|
 
@@ -992,7 +998,7 @@ Transform the predicted result (a probability value) produced by the logistic re
 ### binary_op
 
 
-Component version: 0.0.2
+Component version: 1.0.0
 
 Perform binary operation binary_op(f1, f2) and assign the result to f3, f3 can be new or old. Currently f1, f2 and f3 all belong to a single party.
 #### Attrs
@@ -1009,22 +1015,22 @@ Perform binary operation binary_op(f1, f2) and assign the result to f3, f3 can b
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|in_ds|Input vertical table.|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
-|input/in_ds/f1|Feature 1 to operate on.|String List(Set value with other Component Attributes)|You need to select some columns of table in_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
-|input/in_ds/f2|Feature 2 to operate on.|String List(Set value with other Component Attributes)|You need to select some columns of table in_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
+|input_ds|Input vertical table.|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
+|input/input_ds/f1|Feature 1 to operate on.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
+|input/input_ds/f2|Feature 2 to operate on.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
 
 #### Outputs
 
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|out_ds|Output vertical table.|['sf.table.vertical_table']||
-|out_rules|feature gen rule|['sf.rule.preprocessing']||
+|output_ds|Output vertical table.|['sf.table.vertical_table']||
+|output_rule|feature gen rule|['sf.rule.preprocessing']||
 
 ### case_when
 
 
-Component version: 0.0.1
+Component version: 1.0.0
 
 case_when
 #### Attrs
@@ -1039,20 +1045,20 @@ case_when
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_dataset|Input vertical table.|['sf.table.vertical_table']||
+|input_ds|Input vertical table.|['sf.table.vertical_table']||
 
 #### Outputs
 
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|output_dataset|output_dataset|['sf.table.vertical_table']||
-|out_rules|case when substitution rule|['sf.rule.preprocessing']||
+|output_ds|output_dataset|['sf.table.vertical_table']||
+|output_rule|case when substitution rule|['sf.rule.preprocessing']||
 
 ### cast
 
 
-Component version: 0.0.1
+Component version: 1.0.0
 
 For conversion between basic data types, such as converting float to string.
 #### Attrs
@@ -1076,12 +1082,12 @@ For conversion between basic data types, such as converting float to string.
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
 |output_ds|The output table|['sf.table.vertical_table']||
-|output_rules|The output rules|['sf.rule.preprocessing']||
+|output_rule|The output rules|['sf.rule.preprocessing']||
 
 ### feature_calculate
 
 
-Component version: 0.0.1
+Component version: 1.0.0
 
 Generate a new feature by performing calculations on an origin feature
 #### Attrs
@@ -1096,55 +1102,61 @@ Generate a new feature by performing calculations on an origin feature
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|in_ds|Input vertical table|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
-|input/in_ds/features|Feature(s) to operate on|String List(Set value with other Component Attributes)|You need to select some columns of table in_ds. Min column number to select(inclusive): 1. |
+|input_ds|Input vertical table|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
+|input/input_ds/features|Feature(s) to operate on|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. |
 
 #### Outputs
 
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|out_ds|output_dataset|['sf.table.vertical_table']||
-|out_rules|feature calculate rule|['sf.rule.preprocessing']||
+|output_ds|output_dataset|['sf.table.vertical_table']||
+|output_rule|feature calculate rule|['sf.rule.preprocessing']||
 
 ### fillna
 
 
-Component version: 0.0.1
+Component version: 1.0.0
 
-fillna
+Fill null/nan or other specificed outliers in dataset
 #### Attrs
 
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
-|strategy|The imputation strategy. If "mean", then replace missing values using the mean along each column. Can only be used with numeric data. If "median", then replace missing values using the median along each column. Can only be used with numeric data. If "most_frequent", then replace missing using the most frequent value along each column. Can be used with strings or numeric data. If there is more than one such value, only the smallest is returned. If "constant", then replace missing values with fill_value. Can be used with strings or numeric data.|String|N|Default: constant.Allowed: ['mean', 'median', 'most_frequent', 'constant'].|
-|missing_value_type|type of missing value. general_na type indicates that only np.nan, None or pandas.NA will be treated as missing values. When the type is not general_na, the type casted missing_value_type(missing_value) will also be treated as missing value as well, in addition to general_na values.|String|N|Default: general_na.Allowed: ['general_na', 'str', 'int', 'float'].|
-|missing_value|Which value should be treat as missing_value? If missing value type is 'general_na', this field will be ignored, and any np.nan, pd.NA, etc value will be treated as missing value. Otherwise, the type casted missing_value_type(missing_value) will also be treated as missing value as well, in addition to general_na values. In case the cast is not successful, general_na will be used instead. default value is 'custom_missing_value'.|String|N|Default: custom_missing_value.|
-|fill_value_int|For int type data. If method is 'constant' use this value for filling null.|Integer|N|Default: 0.|
-|fill_value_float|For float type data. If method is 'constant' use this value for filling null.|Float|N|Default: 0.0.|
+|nan_is_null|Whether floating-point NaN values are considered null, take effect with float columns|Boolean|N|Default: True.|
+|float_outliers|These outlier value are considered null, take effect with float columns|Float List|N|Default: [].|
+|int_outliers|These outlier value are considered null, take effect with int columns|Integer List|N|Default: [].|
+|str_outliers|These outlier value are considered null, take effect with str columns|String List|N|Default: [].|
+|str_fill_strategy|Replacement strategy for str column. If "most_frequent", then replace missing using the most frequent value along each column. If "constant", then replace missing values with fill_value_str.|String|N|Default: constant.Allowed: ['constant', 'most_frequent'].|
 |fill_value_str|For str type data. If method is 'constant' use this value for filling null.|String|N|Default: .|
+|int_fill_strategy|Replacement strategy for int column. If "mean", then replace missing values using the mean along each column. If "median", then replace missing values using the median along each column If "most_frequent", then replace missing using the most frequent value along each column. If "constant", then replace missing values with fill_value_int.|String|N|Default: constant.Allowed: ['mean', 'median', 'most_frequent', 'constant'].|
+|fill_value_int|For int type data. If method is 'constant' use this value for filling null.|Integer|N|Default: 0.|
+|float_fill_strategy|Replacement strategy for float column. If "mean", then replace missing values using the mean along each column. If "median", then replace missing values using the median along each column If "most_frequent", then replace missing using the most frequent value along each column. If "constant", then replace missing values with fill_value_float.|String|N|Default: constant.Allowed: ['mean', 'median', 'most_frequent', 'constant'].|
+|fill_value_float|For float type data. If method is 'constant' use this value for filling null.|Float|N|Default: 0.0.|
+|bool_fill_strategy|Replacement strategy for bool column. If "most_frequent", then replace missing using the most frequent value along each column. If "constant", then replace missing values with fill_value_bool.|String|N|Default: constant.Allowed: ['constant', 'most_frequent'].|
+|fill_value_bool|For bool type data. If method is 'constant' use this value for filling null.|Boolean|N|Default: False.|
 
 #### Inputs
 
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_dataset|Input vertical table.|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
-|input/input_dataset/fill_na_features|Features to fill.|String List(Set value with other Component Attributes)|You need to select some columns of table input_dataset. |
+|input_ds|Input vertical table.|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
+|input/input_ds/fill_na_features|Features to fill.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. |
 
 #### Outputs
 
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|out_ds|Output vertical table.|['sf.table.vertical_table']||
-|out_rules|fill value rule|['sf.rule.preprocessing']||
+|output_ds|Output vertical table.|['sf.table.vertical_table']||
+|output_rule|fill value rule|['sf.rule.preprocessing']||
 
 ### onehot_encode
 
 
-Component version: 0.0.3
+Component version: 1.0.0
 
 onehot_encode
 #### Attrs
@@ -1161,22 +1173,22 @@ onehot_encode
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_dataset|Input vertical table.|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
-|input/input_dataset/features|Features to encode.|String List(Set value with other Component Attributes)|You need to select some columns of table input_dataset. |
+|input_ds|Input vertical table.|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
+|input/input_ds/features|Features to encode.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. |
 
 #### Outputs
 
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|output_dataset|output_dataset|['sf.table.vertical_table']||
-|out_rules|onehot rule|['sf.rule.preprocessing']||
+|output_ds|output dataset|['sf.table.vertical_table']||
+|output_rule|onehot rule|['sf.rule.preprocessing']||
 |report|report rules details if report_rules is true|['sf.report']||
 
 ### substitution
 
 
-Component version: 0.0.2
+Component version: 1.0.0
 
 unified substitution component
 #### Inputs
@@ -1184,15 +1196,15 @@ unified substitution component
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_dataset|Input vertical table.|['sf.table.vertical_table']||
-|input_rules|Input preprocessing rules|['sf.rule.preprocessing']||
+|input_ds|Input vertical table.|['sf.table.vertical_table']||
+|input_rule|Input preprocessing rules|['sf.rule.preprocessing']||
 
 #### Outputs
 
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|output_dataset|output_dataset|['sf.table.vertical_table']||
+|output_ds|output_dataset|['sf.table.vertical_table']||
 
 ### vert_bin_substitution
 
@@ -1220,7 +1232,7 @@ Substitute datasets' value by bin substitution rules.
 ### groupby_statistics
 
 
-Component version: 0.0.3
+Component version: 1.0.0
 
 Get a groupby of statistics, like pandas groupby statistics.
 Currently only support VDataframe.
@@ -1237,8 +1249,8 @@ Currently only support VDataframe.
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_data|Input table.|['sf.table.vertical_table', 'sf.table.individual']|Pleae fill in extra table attributes.|
-|input/input_data/by|by what columns should we group the values|String List(Set value with other Component Attributes)|You need to select some columns of table input_data. Min column number to select(inclusive): 1. Max column number to select(inclusive): 4. |
+|input_ds|Input table.|['sf.table.vertical_table', 'sf.table.individual']|Pleae fill in extra table attributes.|
+|input/input_ds/by|by what columns should we group the values|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 4. |
 
 #### Outputs
 
@@ -1250,7 +1262,7 @@ Currently only support VDataframe.
 ### ss_pearsonr
 
 
-Component version: 0.0.1
+Component version: 1.0.0
 
 Calculate Pearson's product-moment correlation coefficient for vertical partitioning dataset
 by using secret sharing.
@@ -1260,8 +1272,8 @@ by using secret sharing.
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_data|Input vertical table.|['sf.table.vertical_table', 'sf.table.individual']|Pleae fill in extra table attributes.|
-|input/input_data/feature_selects|Specify which features to calculate correlation coefficient with. If empty, all features will be used|String List(Set value with other Component Attributes)|You need to select some columns of table input_data. |
+|input_ds|Input vertical table.|['sf.table.vertical_table', 'sf.table.individual']|Pleae fill in extra table attributes.|
+|input/input_ds/feature_selects|Specify which features to calculate correlation coefficient with. If empty, all features will be used|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. |
 
 #### Outputs
 
@@ -1273,7 +1285,7 @@ by using secret sharing.
 ### ss_vif
 
 
-Component version: 0.0.1
+Component version: 1.0.0
 
 Calculate Variance Inflation Factor(VIF) for vertical partitioning dataset
 by using secret sharing.
@@ -1283,8 +1295,8 @@ by using secret sharing.
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_data|Input vertical table.|['sf.table.vertical_table', 'sf.table.individual']|Pleae fill in extra table attributes.|
-|input/input_data/feature_selects|Specify which features to calculate VIF with. If empty, all features will be used.|String List(Set value with other Component Attributes)|You need to select some columns of table input_data. |
+|input_ds|Input vertical table.|['sf.table.vertical_table', 'sf.table.individual']|Pleae fill in extra table attributes.|
+|input/input_ds/feature_selects|Specify which features to calculate VIF with. If empty, all features will be used.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. |
 
 #### Outputs
 
@@ -1296,7 +1308,7 @@ by using secret sharing.
 ### stats_psi
 
 
-Component version: 0.0.1
+Component version: 1.0.0
 
 population stability index.
 #### Inputs
@@ -1304,10 +1316,10 @@ population stability index.
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_base_data|Input base vertical table.|['sf.table.vertical_table', 'sf.table.individual']|Pleae fill in extra table attributes.|
-|input/input_base_data/feature_selects|which features should be binned.|String List(Set value with other Component Attributes)|You need to select some columns of table input_base_data. Min column number to select(inclusive): 1. |
-|input_test_data|Input test vertical table.|['sf.table.vertical_table', 'sf.table.individual']||
-|bin_rule|Input bin rule.|['sf.rule.binning']||
+|input_base_ds|Input base vertical table.|['sf.table.vertical_table', 'sf.table.individual']|Pleae fill in extra table attributes.|
+|input/input_base_ds/feature_selects|which features should be binned.|String List(Set value with other Component Attributes)|You need to select some columns of table input_base_ds. Min column number to select(inclusive): 1. |
+|input_test_ds|Input test vertical table.|['sf.table.vertical_table', 'sf.table.individual']||
+|input_rule|Input bin rule.|['sf.rule.binning']||
 
 #### Outputs
 
@@ -1319,7 +1331,7 @@ population stability index.
 ### table_statistics
 
 
-Component version: 0.0.2
+Component version: 1.0.0
 
 Get a table of statistics,
 including each column's
@@ -1357,8 +1369,8 @@ including each column's
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_data|Input table.|['sf.table.vertical_table', 'sf.table.individual']|Pleae fill in extra table attributes.|
-|input/input_data/features|perform statistics on these columns|String List(Set value with other Component Attributes)|You need to select some columns of table input_data. Min column number to select(inclusive): 1. |
+|input_ds|Input table.|['sf.table.vertical_table', 'sf.table.individual']|Pleae fill in extra table attributes.|
+|input/input_ds/features|perform statistics on these columns|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. |
 
 #### Outputs
 

@@ -17,7 +17,6 @@ import json
 import logging
 import math
 import os
-import sys
 import threading
 import time
 from dataclasses import dataclass
@@ -115,6 +114,10 @@ class CompEvalContext:
 
 
 class Component:
+    """
+    This class has been deprecated. Please refer to ./core/component.py for the new usage.
+    """
+
     def __init__(self, name: str, domain="", version="", desc="") -> None:
         self.name = name
         self.domain = domain
@@ -999,6 +1002,7 @@ class Component:
             cross_silo_comm_backend=cross_silo_comm_backend,
             cross_silo_comm_options=cross_silo_comm_options,
             enable_waiting_for_other_parties_ready=True,
+            ray_mode=False,
         )
 
     def _parse_runtime_config(self, key: str, raw: str):
@@ -1191,29 +1195,27 @@ class Component:
             ret = self.__eval_callback(ctx=ctx, **kwargs)
         except Exception as e:
             on_error = True
-            logging.exception(f"eval on {param} failed")
+            logging.exception(f"eval failed")
             # TODO: use error_code in report
+            raise e
         finally:
             if cluster_config is not None:
                 shutdown(
                     barrier_on_shutdown=cluster_config.public_config.barrier_on_shutdown,
                     on_error=on_error,
                 )
-            if on_error:
-                logging.shutdown()
-                os._exit(1)
 
-        logging.info(f"{param}, getting eval return complete.")
+        logging.info(f"getting eval return complete.")
         # check output
         for output in definition.outputs:
             check_dist_data(ret[output.name], output)
 
-        logging.info(f"{param}, check_dist_data complete.")
+        logging.info("check_dist_data complete.")
         res = NodeEvalResult(
             outputs=[ret[output.name] for output in definition.outputs]
         )
 
-        logging.info(f"{param}, NodeEvalResult wrapping complete.")
+        logging.info("NodeEvalResult wrapping complete.")
         if tracer_report:
             return {"eval_result": res, "tracer_report": ctx.tracer.report()}
         else:

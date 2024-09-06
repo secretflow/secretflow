@@ -11,11 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import copy
+import logging
 import os
+from dataclasses import dataclass
 from typing import Dict, List, Union
 
-import numpy as np
-import pandas as pd
+import duckdb
+from pyarrow import csv, orc
 
 from secretflow.component.component import (
     CompEvalError,
@@ -24,22 +27,27 @@ from secretflow.component.component import (
     TableColParam,
 )
 from secretflow.component.data_utils import (
+    NP_DTYPE_TO_DUCKDB_DTYPE,
     DistDataType,
     download_files,
-    extract_distdata_info,
-    merge_individuals_to_vtable,
-    SUPPORTED_VTABLE_DATA_TYPE,
-    upload_files,
+    extract_data_infos,
 )
+from secretflow.component.dataframe import StreamingReader, StreamingWriter
+from secretflow.component.storage import ComponentStorage
 from secretflow.device.device.pyu import PYU
 from secretflow.device.device.spu import SPU
-from secretflow.device.driver import wait
-from secretflow.spec.v1.data_pb2 import DistData, IndividualTable, VerticalTable
+from secretflow.device.driver import reveal, wait
+from secretflow.spec.v1.data_pb2 import (
+    DistData,
+    IndividualTable,
+    StorageConfig,
+    TableSchema,
+)
 
 psi_comp = Component(
     "psi",
     domain="data_prep",
-    version="0.0.5",
+    version="0.0.8",
     desc="PSI between two parties.",
 )
 psi_comp.str_attr(
@@ -57,9 +65,16 @@ psi_comp.bool_attr(
     is_optional=True,
     default_value=True,
 )
+psi_comp.bool_attr(
+    name="allow_empty_result",
+    desc="Whether to allow the result to be empty, if allowed, an empty file will be saved, if not, an error will be reported.",
+    is_list=False,
+    is_optional=True,
+    default_value=False,
+)
 psi_comp.union_attr_group(
     name="allow_duplicate_keys",
-    desc="Some join types allow duplicate keys.",
+    desc="Some join types allow duplicate keys. If you specify a party to receive, this should be no.",
     group=[
         psi_comp.struct_attr_group(
             name="no",
@@ -78,6 +93,12 @@ psi_comp.union_attr_group(
                     is_list=False,
                     is_optional=True,
                     default_value=False,
+                ),
+                psi_comp.party_attr(
+                    name="receiver_parties",
+                    desc="Party names of receiver for result, all party will be receivers default; if only one party receive result, the result will be single-party table, hence you can not connect it to component with union table input.",
+                    list_min_length_inclusive=0,
+                    list_max_length_inclusive=2,
                 ),
             ],
         ),
@@ -120,15 +141,6 @@ psi_comp.union_attr_group(
     ],
 )
 
-
-psi_comp.int_attr(
-    name="fill_value_int",
-    desc="For int type data. Use this value for filling null.",
-    is_list=False,
-    is_optional=True,
-    default_value=0,
-)
-
 psi_comp.str_attr(
     name="ecdh_curve",
     desc="Curve type for ECDH PSI.",
@@ -137,10 +149,12 @@ psi_comp.str_attr(
     default_value="CURVE_FOURQ",
     allowed_values=["CURVE_25519", "CURVE_FOURQ", "CURVE_SM2", "CURVE_SECP256K1"],
 )
+
+
 psi_comp.io(
     io_type=IoType.INPUT,
-    name="receiver_input",
-    desc="Individual table for receiver",
+    name="input_table_1",
+    desc="Individual table for party 1",
     types=[DistDataType.INDIVIDUAL_TABLE],
     col_params=[
         TableColParam(
@@ -152,8 +166,8 @@ psi_comp.io(
 )
 psi_comp.io(
     io_type=IoType.INPUT,
-    name="sender_input",
-    desc="Individual table for sender",
+    name="input_table_2",
+    desc="Individual table for party 2",
     types=[DistDataType.INDIVIDUAL_TABLE],
     col_params=[
         TableColParam(
@@ -167,115 +181,232 @@ psi_comp.io(
     io_type=IoType.OUTPUT,
     name="psi_output",
     desc="Output vertical table",
-    types=[DistDataType.VERTICAL_TABLE],
+    types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
 )
 
 
-def convert_int(x, fill_value_int, int_type_str):
+@dataclass
+class PsiPartyInfo:
+    party: str
+    table: DistData
+    keys: List[str]
+    uri: str
+    format: str
+
+
+def trans_result_csv_to_orc(
+    ctx,
+    result_party_info: List[PsiPartyInfo],
+    result_path: Dict[str, str],
+    psi_output: str,
+    allow_empty_result: bool,
+) -> DistData:
+    output_ctx = ctx
+    if output_ctx.comp_storage._config.type.lower() != "local_fs":
+        input_ctx = copy.deepcopy(output_ctx)
+        input_ctx.comp_storage = ComponentStorage(
+            StorageConfig(
+                type="local_fs",
+                local_fs=StorageConfig.LocalFSConfig(wd=output_ctx.data_dir),
+            )
+        )
+    else:
+        input_ctx = output_ctx
+
+    streaming_infos = {}
+    for party_info in result_party_info:
+        streaming_infos.update(
+            extract_data_infos(
+                party_info.table, load_ids=True, load_features=True, load_labels=True
+            )
+        )
+
+    for party, info in streaming_infos.items():
+        info.uri = result_path[party]
+        # TODO: PSI output type may be orc, change this later
+        info.format = "csv"
+        # for spu.psi config csv writer use NA replace null.
+        if "NA" not in info.null_strs:
+            info.null_strs.append("NA")
+        # duckdb use NULL replace null.
+        if "NULL" not in info.null_strs:
+            info.null_strs.append("NULL")
+
+    reader = StreamingReader.from_data_infos(
+        input_ctx, streaming_infos, result_party_info[0].table.system_info
+    )
+
+    line = 0
+    writer = StreamingWriter(output_ctx, psi_output, reader.data_infos)
     try:
-        return SUPPORTED_VTABLE_DATA_TYPE[int_type_str](x)
-    except Exception:
-        return fill_value_int
+        with writer:
+            for batch in reader:
+                writer.write(batch)
+                line += batch.shape[1]
+    except Exception as e:
+        logging.error(f"Failed to write result {streaming_infos} to {psi_output}")
+        raise e
+
+    if line == 0 and not allow_empty_result:
+        raise CompEvalError(
+            f"Empty result is not allowed, please check your input data or set allow_empty_result to true."
+        )
+
+    return writer.to_distdata()
 
 
-def build_converters(x: DistData, fill_value_int: int) -> Dict[str, callable]:
-    if x.type != "sf.table.individual":
-        raise CompEvalError("Only support individual table")
-    imeta = IndividualTable()
-    assert x.meta.Unpack(imeta)
-    converters = {}
+def add_keys_to_id_columns(table: DistData, keys: List[str]) -> DistData:
+    assert table.type == DistDataType.INDIVIDUAL_TABLE
+    meta = IndividualTable()
+    assert table.meta.Unpack(meta)
 
-    def assign_converter(i, t):
-        if "int" in t:
-            converters[i] = lambda x: convert_int(x, fill_value_int, t)
-
-    for i, t in zip(list(imeta.schema.ids), list(imeta.schema.id_types)):
-        assign_converter(i, t)
-
-    for i, t in zip(list(imeta.schema.features), list(imeta.schema.feature_types)):
-        assign_converter(i, t)
-
-    for i, t in zip(list(imeta.schema.labels), list(imeta.schema.label_types)):
-        assign_converter(i, t)
-
-    return converters
-
-
-# We would respect user-specified ids even ids are set in TableSchema.
-def modify_schema(x: DistData, keys: List[str]) -> DistData:
-    new_x = DistData()
-    new_x.CopyFrom(x)
-    if len(keys) == 0:
-        return new_x
-    assert x.type == "sf.table.individual"
-    imeta = IndividualTable()
-    assert x.meta.Unpack(imeta)
-
-    new_meta = IndividualTable()
-    names = []
-    types = []
-
-    # copy current ids to features and clean current ids.
-    for i, t in zip(list(imeta.schema.ids), list(imeta.schema.id_types)):
-        names.append(i)
-        types.append(t)
-
-    for f, t in zip(list(imeta.schema.features), list(imeta.schema.feature_types)):
-        names.append(f)
-        types.append(t)
-
-    for k in keys:
-        if k not in names:
-            raise CompEvalError(f"key {k} is not found as id or feature.")
-
-    for n, t in zip(names, types):
-        if n in keys:
-            new_meta.schema.ids.append(n)
-            new_meta.schema.id_types.append(t)
+    new_ids = []
+    new_features = []
+    found_keys = []
+    for name, type in zip(meta.schema.features, meta.schema.feature_types):
+        if name in keys:
+            found_keys.append(name)
+            new_ids.append((name, type))
         else:
-            new_meta.schema.features.append(n)
-            new_meta.schema.feature_types.append(t)
-
-    new_meta.schema.labels.extend(list(imeta.schema.labels))
-    new_meta.schema.label_types.extend(list(imeta.schema.label_types))
-    new_meta.line_count = imeta.line_count
-
-    new_x.meta.Pack(new_meta)
-
-    return new_x
-
-
-def read_fillna_write(
-    csv_file_path: str,
-    converters: Dict[str, callable],
-    chunksize: int = 50000,
-):
-    # Define the CSV reading in chunks
-    csv_chunks = pd.read_csv(csv_file_path, converters=converters, chunksize=chunksize)
-    temp_file_path = csv_file_path + '.tmp'
-    # Process each chunk
-    for i, chunk in enumerate(csv_chunks):
-        # Write the first chunk with headers, subsequent chunks without headers
-        if i == 0:
-            chunk.to_csv(temp_file_path, index=False)
+            new_features.append((name, type))
+    for name, type in zip(meta.schema.ids, meta.schema.id_types):
+        if name in keys:
+            found_keys.append(name)
+            new_ids.append((name, type))
         else:
-            chunk.to_csv(temp_file_path, mode='a', header=False, index=False)
-    # Replace the original file with the processed file
-    # so chunks > 0
-    if os.path.exists(temp_file_path):
-        os.replace(temp_file_path, csv_file_path)
+            # old id still in ids
+            new_ids.append((name, type))
+
+    if set(keys) != set(found_keys):
+        raise RuntimeError(
+            f"Keys {set(keys) - set(found_keys)} not found in table {table.name}"
+        )
+
+    new_meta = IndividualTable(
+        schema=TableSchema(
+            ids=[name for name, _ in new_ids],
+            id_types=[type for _, type in new_ids],
+            features=[name for name, _ in new_features],
+            feature_types=[type for _, type in new_features],
+            labels=meta.schema.labels,
+            label_types=meta.schema.label_types,
+        ),
+        line_count=meta.line_count,
+    )
+
+    table.meta.Pack(new_meta)
+
+    return table
 
 
-def fill_missing_values(
-    local_fns: Dict[Union[str, PYU], str],
-    partywise_converters=Dict[str, Dict[str, callable]],
-):
-    pyu_locals = {p.party if isinstance(p, PYU) else p: local_fns[p] for p in local_fns}
+def deal_null_from_csv(
+    dist_data: DistData, old_dir: str, new_dir: str
+) -> Dict[str, str]:
+    assert (
+        dist_data.type == DistDataType.INDIVIDUAL_TABLE
+    ), f"{dist_data.type} is not individual table"
+
+    table_info = extract_data_infos(
+        dist_data, load_ids=True, load_features=True, load_labels=True
+    )
+    for _, info in table_info.items():
+        duck_dtype = {c: NP_DTYPE_TO_DUCKDB_DTYPE[info.dtypes[c]] for c in info.dtypes}
+        na_values = info.null_strs if info.null_strs else []
+
+        with open(old_dir, 'r') as io_reader:
+            csv_db = duckdb.read_csv(io_reader, dtype=duck_dtype, na_values=na_values)
+            col_list = [duckdb.ColumnExpression(c) for c in info.dtypes]
+            csv_select = csv_db.select(*col_list)
+            csv_select.to_csv(new_dir, na_rep="NULL")
+
+
+def get_psi_party_info(table: DistData, keys: List[str]) -> PsiPartyInfo:
+    # TODO: delete this when upstream adds id & label info
+    table = add_keys_to_id_columns(table, keys)
+
+    def get_party_info_from_individual_table(input_table):
+        path_info = extract_data_infos(input_table, load_ids=True)
+        if len(path_info) == 0:
+            raise RuntimeError(
+                f"Individual table should have valid columns, {path_info}"
+            )
+        elif len(path_info) > 1:
+            raise RuntimeError(
+                f"Individual table should have only one data_ref, {path_info}"
+            )
+        else:
+            return list(path_info.items())[0]
+
+    party, party_info = get_party_info_from_individual_table(table)
+    return PsiPartyInfo(
+        party=party,
+        table=table,
+        keys=keys,
+        uri=party_info.uri,
+        format=party_info.format,
+    )
+
+
+def trans_orc_to_csv(orc_path: str, csv_path: str) -> str:
+    try:
+        orc_file = orc.ORCFile(orc_path)
+    except Exception as e:
+        logging.error(f"Failed to read orc file: {orc_path}")
+        raise e
+
+    with csv.CSVWriter(csv_path, orc_file.schema) as csv_writer:
+        for stripe in range(orc_file.nstripes):
+            csv_writer.write(orc_file.read_stripe(stripe))
+    return csv_path
+
+
+def get_input_path(ctx, party_infos: List[PsiPartyInfo]) -> Dict[str, str]:
+    download_path = {
+        info.party: os.path.join(ctx.data_dir, info.uri) for info in party_infos
+    }
+    remote_path = {info.party: info.uri for info in party_infos}
+    with ctx.tracer.trace_io():
+        # TODO: avoid download file, support streaming in spu.psi
+        download_files(ctx, remote_path, download_path)
 
     waits = []
-    for p in pyu_locals:
-        waits.append(PYU(p)(read_fillna_write)(pyu_locals[p], partywise_converters[p]))
-    wait(waits)
+    for info in party_infos:
+        if info.format == "csv":
+            continue
+        elif info.format == "orc":
+            # TODO: delete this when psi support orc
+            new_path = download_path[info.party] + ".orc_to_csv.csv"
+            waits.append(
+                PYU(info.party)(trans_orc_to_csv)(download_path[info.party], new_path)
+            )
+            download_path[info.party] = new_path
+        else:
+            raise RuntimeError(f"Unsupported format {info.format}")
+    if len(waits) > 0:
+        wait(waits)
+
+    new_path = {party: path + ".deal_null.csv" for party, path in download_path.items()}
+
+    wait(
+        [
+            PYU(info.party)(deal_null_from_csv)(
+                info.table, download_path[info.party], new_path[info.party]
+            )
+            for info in party_infos
+        ]
+    )
+    return new_path
+
+
+def make_output_path(result_path: Dict[str, str]):
+    wait(
+        [
+            PYU(party)(lambda path: os.makedirs(path, exist_ok=True))(
+                os.path.dirname(path)
+            )
+            for party, path in result_path.items()
+        ]
+    )
 
 
 @psi_comp.eval_fn
@@ -284,29 +415,47 @@ def two_party_balanced_psi_eval_fn(
     ctx,
     protocol,
     sort_result,
+    allow_empty_result,
     ecdh_curve,
     allow_duplicate_keys,
     allow_duplicate_keys_no_skip_duplicates_check,
     allow_duplicate_keys_no_check_hash_digest,
     allow_duplicate_keys_yes_join_type,
     allow_duplicate_keys_yes_join_type_left_join_left_side,
-    fill_value_int,
-    receiver_input,
-    receiver_input_key,
-    sender_input,
-    sender_input_key,
+    allow_duplicate_keys_no_receiver_parties,
+    input_table_1,
+    input_table_1_key,
+    input_table_2,
+    input_table_2_key,
     psi_output,
 ):
-    receiver_path_format = extract_distdata_info(receiver_input)
-    assert len(receiver_path_format) == 1
-    receiver_party = list(receiver_path_format.keys())[0]
-    sender_path_format = extract_distdata_info(sender_input)
-    sender_party = list(sender_path_format.keys())[0]
-
     assert allow_duplicate_keys in [
         'yes',
         'no',
     ]
+
+    broadcast_result = False
+    if allow_duplicate_keys == 'yes':
+        assert (
+            len(allow_duplicate_keys_no_receiver_parties) == 0
+            or len(allow_duplicate_keys_no_receiver_parties) == 2
+        ), f"allow_duplicate_keys_no_receiver_parties should be empty or have two parties, {allow_duplicate_keys_no_receiver_parties}"
+        broadcast_result = True
+    elif (
+        len(allow_duplicate_keys_no_receiver_parties) == 0
+        or len(allow_duplicate_keys_no_receiver_parties) == 2
+    ):
+        broadcast_result = True
+
+    sender_info = get_psi_party_info(input_table_1, input_table_1_key)
+    receiver_info = get_psi_party_info(input_table_2, input_table_2_key)
+
+    if (
+        allow_duplicate_keys == 'no'
+        and len(allow_duplicate_keys_no_receiver_parties) == 1
+        and allow_duplicate_keys_no_receiver_parties[0] != receiver_info.party
+    ):
+        sender_info, receiver_info = receiver_info, sender_info
 
     if allow_duplicate_keys == 'no':
         advanced_join_type = 'ADVANCED_JOIN_TYPE_UNSPECIFIED'
@@ -333,100 +482,65 @@ def two_party_balanced_psi_eval_fn(
         left_side = allow_duplicate_keys_yes_join_type_left_join_left_side[0]
 
         assert left_side in [
-            receiver_party,
-            sender_party,
+            sender_info.party,
+            receiver_info.party,
         ]
     else:
-        left_side = receiver_party
+        left_side = receiver_info.party
 
     if ctx.spu_configs is None or len(ctx.spu_configs) == 0:
         raise CompEvalError("spu config is not found.")
     if len(ctx.spu_configs) > 1:
         raise CompEvalError("only support one spu")
     spu_config = next(iter(ctx.spu_configs.values()))
-
-    input_path = {
-        receiver_party: os.path.join(
-            ctx.data_dir, receiver_path_format[receiver_party].uri
-        ),
-        sender_party: os.path.join(ctx.data_dir, sender_path_format[sender_party].uri),
-    }
-    output_path = {
-        receiver_party: os.path.join(ctx.data_dir, psi_output),
-        sender_party: os.path.join(ctx.data_dir, psi_output),
-    }
-
-    import logging
-
-    logging.warning(spu_config)
-
     spu = SPU(spu_config["cluster_def"], spu_config["link_desc"])
 
-    uri = {
-        receiver_party: receiver_path_format[receiver_party].uri,
-        sender_party: sender_path_format[sender_party].uri,
+    input_path = get_input_path(ctx, [receiver_info, sender_info])
+
+    if broadcast_result:
+        result_party_infos = [sender_info, receiver_info]
+    else:
+        result_party_infos = [receiver_info]
+
+    output_csv_filename = f"{psi_output}.csv"
+    result_path = {
+        party_info.party: os.path.join(ctx.data_dir, output_csv_filename)
+        for party_info in result_party_infos
     }
+    make_output_path(result_path)
 
-    with ctx.tracer.trace_io():
-        download_files(ctx, uri, input_path)
-
+    output_path_stub = {
+        party_info.party: "" for party_info in [receiver_info, sender_info]
+    }
+    output_path_stub.update(result_path)
     with ctx.tracer.trace_running():
-        report = spu.psi(
-            keys={receiver_party: receiver_input_key, sender_party: sender_input_key},
+        spu.psi(
+            keys={
+                receiver_info.party: receiver_info.keys,
+                sender_info.party: sender_info.keys,
+            },
             input_path=input_path,
-            output_path=output_path,
-            receiver=receiver_party,
-            broadcast_result=True,
+            output_path=output_path_stub,
+            receiver=receiver_info.party,
+            broadcast_result=broadcast_result,
             protocol=protocol,
             ecdh_curve=ecdh_curve,
             advanced_join_type=advanced_join_type,
             left_side=(
-                'ROLE_RECEIVER' if left_side == receiver_party else 'ROLE_SENDER'
+                'ROLE_RECEIVER' if left_side == receiver_info.party else 'ROLE_SENDER'
             ),
             skip_duplicates_check=allow_duplicate_keys_no_skip_duplicates_check,
             disable_alignment=not sort_result,
             check_hash_digest=allow_duplicate_keys_no_check_hash_digest,
         )
 
-    partywise_converters = {
-        receiver_party: build_converters(receiver_input, fill_value_int),
-        sender_party: build_converters(sender_input, fill_value_int),
-    }
-
     with ctx.tracer.trace_io():
-        fill_missing_values(output_path, partywise_converters)
-        upload_files(
-            ctx, {receiver_party: psi_output, sender_party: psi_output}, output_path
+        output_db = trans_result_csv_to_orc(
+            ctx,
+            result_party_infos,
+            result_path,
+            psi_output,
+            allow_empty_result,
         )
-
-    output_db = DistData(
-        name=psi_output,
-        type=str(DistDataType.VERTICAL_TABLE),
-        system_info=receiver_input.system_info,
-        data_refs=[
-            DistData.DataRef(
-                uri=psi_output,
-                party=receiver_party,
-                format="csv",
-            ),
-            DistData.DataRef(
-                uri=psi_output,
-                party=sender_party,
-                format="csv",
-            ),
-        ],
-    )
-
-    output_db = merge_individuals_to_vtable(
-        [
-            modify_schema(receiver_input, receiver_input_key),
-            modify_schema(sender_input, sender_input_key),
-        ],
-        output_db,
-    )
-    vmeta = VerticalTable()
-    assert output_db.meta.Unpack(vmeta)
-    vmeta.line_count = report[0]['intersection_count']
-    output_db.meta.Pack(vmeta)
 
     return {"psi_output": output_db}

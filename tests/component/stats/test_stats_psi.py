@@ -20,7 +20,8 @@ import pytest
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 
-from secretflow.component.data_utils import DistDataType
+from secretflow.component.core import DistDataType, Storage
+from secretflow.component.entry import comp_eval
 from secretflow.component.preprocessing.binning.vert_binning import vert_binning_comp
 from secretflow.component.preprocessing.binning.vert_woe_binning import (
     vert_woe_binning_comp,
@@ -28,17 +29,9 @@ from secretflow.component.preprocessing.binning.vert_woe_binning import (
 from secretflow.component.stats.stats_psi import (
     calculate_stats_psi_one_feature,
     get_bin_counts_one_feature,
-    stats_psi_comp,
 )
-from secretflow.component.storage.storage import ComponentStorage
-from secretflow.preprocessing.binning.vert_binning import VertBinning
 from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import (
-    DistData,
-    IndividualTable,
-    TableSchema,
-    VerticalTable,
-)
+from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
 
@@ -57,7 +50,7 @@ def vert_bin_rule(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = Storage(storage_config)
 
     # shape (569, 30)
     ds = load_breast_cancer()
@@ -69,19 +62,19 @@ def vert_bin_rule(comp_prod_sf_cluster_config):
         ds = pd.DataFrame(X_train[:, :2], columns=[f"a{i}" for i in range(2)])
         new_row = pd.DataFrame(np.nan, columns=ds.columns, index=[len(ds)])
         ds = pd.concat([ds, new_row], ignore_index=True)
-        ds.to_csv(comp_storage.get_writer(alice_path), index=False)
+        ds.to_csv(storage.get_writer(alice_path), index=False, na_rep="nan")
         ds_test = pd.DataFrame(X_test[:, :2], columns=[f"a{i}" for i in range(2)])
         ds_test = pd.concat([ds_test, new_row], ignore_index=True)
-        ds_test.to_csv(comp_storage.get_writer(alice_test_path), index=False)
+        ds_test.to_csv(storage.get_writer(alice_test_path), index=False, na_rep="nan")
 
     elif self_party == "bob":
         ds = pd.DataFrame(X_train[:, 2:3], columns=[f"b{i}" for i in range(1)])
         new_row = pd.DataFrame(np.nan, columns=ds.columns, index=[len(ds)])
         ds = pd.concat([ds, new_row], ignore_index=True)
-        ds.to_csv(comp_storage.get_writer(bob_path), index=False)
+        ds.to_csv(storage.get_writer(bob_path), index=False, na_rep="nan")
         ds_test = pd.DataFrame(X_test[:, 2:3], columns=[f"b{i}" for i in range(1)])
         ds_test = pd.concat([ds_test, new_row], ignore_index=True)
-        ds_test.to_csv(comp_storage.get_writer(bob_test_path), index=False)
+        ds_test.to_csv(storage.get_writer(bob_test_path), index=False, na_rep="nan")
 
     bin_param_02 = NodeEvalParam(
         domain="feature",
@@ -161,9 +154,9 @@ def test_stats_psi_input_bin_rule(vert_bin_rule, comp_prod_sf_cluster_config):
     param = NodeEvalParam(
         domain="stats",
         name="stats_psi",
-        version="0.0.1",
+        version="1.0.0",
         attr_paths=[
-            'input/input_base_data/feature_selects',
+            'feature_selects',
         ],
         attrs=[
             Attribute(ss=[f"a{i}" for i in range(2)] + [f"b{i}" for i in range(1)]),
@@ -193,7 +186,7 @@ def test_stats_psi_input_bin_rule(vert_bin_rule, comp_prod_sf_cluster_config):
     param.inputs[0].meta.Pack(meta)
     param.inputs[1].meta.Pack(meta)
 
-    res = stats_psi_comp.eval(
+    res = comp_eval(
         param=param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -216,7 +209,7 @@ def vert_woe_bin_rule(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = Storage(storage_config)
 
     ds = load_breast_cancer()
     x, y = ds["data"], ds["target"]
@@ -224,11 +217,11 @@ def vert_woe_bin_rule(comp_prod_sf_cluster_config):
         x = pd.DataFrame(x[:, :15], columns=[f"a{i}" for i in range(15)])
         y = pd.DataFrame(y, columns=["y"])
         ds = pd.concat([x, y], axis=1)
-        ds.to_csv(comp_storage.get_writer(alice_path), index=False)
+        ds.to_csv(storage.get_writer(alice_path), index=False)
 
     elif self_party == "bob":
         ds = pd.DataFrame(x[:, 15:], columns=[f"b{i}" for i in range(15)])
-        ds.to_csv(comp_storage.get_writer(bob_path), index=False)
+        ds.to_csv(storage.get_writer(bob_path), index=False)
 
     bin_param_01 = NodeEvalParam(
         domain="feature",
@@ -307,9 +300,9 @@ def test_stats_psi_input_woe_bin_rule(vert_woe_bin_rule, comp_prod_sf_cluster_co
     param = NodeEvalParam(
         domain="stats",
         name="stats_psi",
-        version="0.0.1",
+        version="1.0.0",
         attr_paths=[
-            'input/input_base_data/feature_selects',
+            'feature_selects',
         ],
         attrs=[
             Attribute(ss=[f"a{i}" for i in range(2)] + [f"b{i}" for i in range(1)]),
@@ -339,7 +332,7 @@ def test_stats_psi_input_woe_bin_rule(vert_woe_bin_rule, comp_prod_sf_cluster_co
     param.inputs[0].meta.Pack(meta)
     param.inputs[1].meta.Pack(meta)
 
-    res = stats_psi_comp.eval(
+    res = comp_eval(
         param=param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -379,9 +372,9 @@ def test_stats_psi_woe_one_party_selected(
     param = NodeEvalParam(
         domain="stats",
         name="stats_psi",
-        version="0.0.1",
+        version="1.0.0",
         attr_paths=[
-            'input/input_base_data/feature_selects',
+            'feature_selects',
         ],
         attrs=[
             Attribute(ss=[f"a{i}" for i in range(2)]),
@@ -411,7 +404,7 @@ def test_stats_psi_woe_one_party_selected(
     param.inputs[0].meta.Pack(meta)
     param.inputs[1].meta.Pack(meta)
 
-    res = stats_psi_comp.eval(
+    res = comp_eval(
         param=param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,

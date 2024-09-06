@@ -14,19 +14,16 @@
 
 import logging
 import os
-import pickle
 
 import numpy as np
 import pandas as pd
+import pyarrow as pa
+from pyarrow import orc
 from sklearn.datasets import load_breast_cancer
 
-from secretflow.component.data_utils import (
-    DistDataType,
-    extract_distdata_info,
-    extract_table_header,
-)
+from secretflow.component.data_utils import DistDataType, extract_data_infos
 from secretflow.component.model_export.serving_utils.preprocessing_converter import (
-    binning_rules_to_sc,
+    apply_binning_rules,
 )
 from secretflow.component.preprocessing.binning.vert_binning import (
     vert_bin_substitution_comp,
@@ -38,6 +35,7 @@ from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
+from secretflow.utils import secure_pickle as pickle
 
 
 def test_vert_binning(comp_prod_sf_cluster_config):
@@ -139,7 +137,7 @@ def test_vert_binning(comp_prod_sf_cluster_config):
     assert len(bin_res.outputs) == 2
     comp_ret = Report()
     bin_res.outputs[1].meta.Unpack(comp_ret)
-    logging.info("bin_res.outputs[1]: %s", comp_ret)
+
     sub_param = NodeEvalParam(
         domain="preprocessing",
         name="vert_bin_substitution",
@@ -161,16 +159,14 @@ def test_vert_binning(comp_prod_sf_cluster_config):
 
     assert len(sub_res.outputs) == 1
 
-    output_info = extract_distdata_info(sub_res.outputs[0])
-
-    v_headers, _ = extract_table_header(
+    input_info = extract_data_infos(
         bin_param_01.inputs[0],
         load_features=True,
         load_labels=True,
         load_ids=True,
     )
 
-    output_header, _ = extract_table_header(
+    output_info = extract_data_infos(
         sub_res.outputs[0],
         load_features=True,
         load_labels=True,
@@ -181,37 +177,43 @@ def test_vert_binning(comp_prod_sf_cluster_config):
     if self_party == "alice":
         alice_input = pd.read_csv(comp_storage.get_reader(alice_path), dtype=np.float32)
 
-        alice_rule = os.path.join(rule_path, "0")
+        alice_rule = os.path.join(rule_path, "1")
         with comp_storage.get_reader(alice_rule) as f:
             alice_rule = pickle.loads(f.read())
 
-        alice_table = binning_rules_to_sc(alice_rule, v_headers["alice"])
+        alice_table = apply_binning_rules(alice_rule, input_info["alice"].dtypes)
         alice_runner = alice_table.dump_runner()
-        alice_table_out = alice_runner.run(alice_input)
+        alice_table_out = alice_runner.run(
+            pa.Table.from_pandas(alice_input)
+        ).to_pandas()
 
-        alice_out = pd.read_csv(comp_storage.get_reader(output_info["alice"].uri))
+        alice_out = orc.read_table(
+            comp_storage.get_reader(output_info["alice"].uri)
+        ).to_pandas()
 
         assert np.isclose(alice_table_out.values, alice_out.values).all()
 
-        table = Table.from_schema(output_header["alice"])
+        table = Table.from_schema(output_info["alice"].dtypes)
 
         assert table.schema == alice_table.schema
 
     if self_party == "bob":
         bob_input = pd.read_csv(comp_storage.get_reader(bob_path), dtype=np.float32)
 
-        bob_rule = os.path.join(rule_path, "1")
+        bob_rule = os.path.join(rule_path, "0")
         with comp_storage.get_reader(bob_rule) as f:
             bob_rule = pickle.loads(f.read())
 
-        bob_table = binning_rules_to_sc(bob_rule, v_headers["bob"])
+        bob_table = apply_binning_rules(bob_rule, input_info["bob"].dtypes)
         bob_runner = bob_table.dump_runner()
-        bob_table_out = bob_runner.run(bob_input)
+        bob_table_out = bob_runner.run(pa.Table.from_pandas(bob_input)).to_pandas()
 
-        bob_out = pd.read_csv(comp_storage.get_reader(output_info["bob"].uri))
+        bob_out = orc.read_table(
+            comp_storage.get_reader(output_info["bob"].uri)
+        ).to_pandas()
 
         assert np.isclose(bob_table_out.values, bob_out.values).all()
 
-        table = Table.from_schema(output_header["bob"])
+        table = Table.from_schema(output_info["bob"].dtypes)
 
         assert table.schema == bob_table.schema
