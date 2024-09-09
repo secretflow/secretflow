@@ -389,8 +389,22 @@ def put_file_to_dp(
     descriptor = flight.FlightDescriptor.for_command(ticket.ticket)
     flight_writer, _ = dp_flight_client.do_put(descriptor=descriptor, schema=schema)
 
+	
+    max_transfer_size = 64 * 1024 * 1024
     for batch in reader:
-        flight_writer.write(batch)
+        if batch.nbytes > max_transfer_size:
+            rows = batch.num_rows
+            slice_cnt = (batch.nbytes + max_transfer_size - 1) // max_transfer_size
+            slice_size = (rows + slice_cnt - 1) // slice_cnt
+            assert (
+                slice_size > 0
+            ), f"row size if too big for transfer: {batch.nbytes}, rows: {rows}"
+            for offset in range(0, rows, slice_size):
+                flight_writer.write(
+                    batch.slice(offset, length=min(slice_size, rows - offset))
+                )
+        else:
+            flight_writer.write(batch)
 
     flight_writer.close()
     reader.close()
