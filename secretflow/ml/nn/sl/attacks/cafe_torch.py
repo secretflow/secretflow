@@ -37,20 +37,20 @@ class CAFEAttack(AttackCallback):
         attack_party (PYU): The attacking party.
         label_party (PYU): The label party responsible for providing true labels during the attack.
         victim_hidden_size (List[int]): The hidden size of the victim model, excluding the batch size.
-        lr (float, optional): The learning rate for the attack. Default is 0.05.
-        real_data_for_save (list, optional): A list of real data to save for analysis. Default is None.
-        label_size (List[int], optional): The size of the label vector. Default is [10].
-        attack_epoch (List[int], optional): A list of epochs to attack. Set to None to attack all epochs. Default is None.
-        attack_batch (List[int], optional): A list of batches to attack. Set to None to attack all batches. Default is None.
-        exec_device (str, optional): The device used for executing the attack, either 'cpu' or 'cuda'. Default is 'cpu'.
-        max_iter (int, optional): The maximum number of iterations for the attack. Default is 80000.
-        batch_size (int, optional): The batch size used during the attack. Default is 40.
-        data_number (int, optional): The total number of data samples used in the attack. Default is 800.
-        number_of_workers (int, optional): The number of workers used for data loading. Default is 4.
-        learning_rate_first_shot (float, optional): The learning rate for the first stage of the attack. Default is 5e-3.
-        learning_rate_double_shot (float, optional): The learning rate for the second stage of the attack. Default is 1e-2.
-        cafe_learning_rate (float, optional): The learning rate for the CAFE attack method. Default is 0.01.
-        learning_rate_fl (float, optional): The learning rate for federated learning scenarios. Default is 1e-6.
+        lr (float): The learning rate for the attack. Default is 0.05.
+        real_data_for_save (list): A list of real data to save for analysis. Default is None.
+        label_size (List[int]): The size of the label vector. Default is [10].
+        attack_epoch (List[int]): A list of epochs to attack. Set to None to attack all epochs. Default is None.
+        attack_batch (List[int]): A list of batches to attack. Set to None to attack all batches. Default is None.
+        exec_device (str): The device used for executing the attack, either 'cpu' or 'cuda'. Default is 'cpu'.
+        batch_size (int): The batch size used during the attack. Default is 40.
+        data_number (int): The total number of data samples used in the attack. Default is 800.
+        number_of_workers (int): The number of workers used for data loading. Default is 4.
+        learning_rate_first_shot (float): The learning rate for the first stage of the attack. Default is 5e-3.
+        learning_rate_double_shot (float): The learning rate for the second stage of the attack. Default is 1e-2.
+        cafe_learning_rate (float): The learning rate for the CAFE attack method. Default is 0.01.
+        learning_rate_fl (float): The learning rate for federated learning scenarios. Default is 1e-6.
+        save_image: bool = True,
         **params: Additional parameters for customization.
     """
 
@@ -65,7 +65,6 @@ class CAFEAttack(AttackCallback):
         attack_epoch: List[int] = None,
         attack_batch: List[int] = None,
         exec_device: str = 'cpu',
-        max_iter: int = 80000,
         batch_size: int = 40,
         data_number: int = 800,
         number_of_workers: int = 4,
@@ -73,6 +72,7 @@ class CAFEAttack(AttackCallback):
         learning_rate_double_shot: float = 1e-2,
         cafe_learning_rate: float = 0.01,
         learning_rate_fl: float = 1e-6,
+        save_image: bool = True,
         **params,
     ):
         super().__init__(
@@ -101,7 +101,6 @@ class CAFEAttack(AttackCallback):
         self.real_label = []
         self.victim_base_model_list = []
         self.attacker_fuse_model = None
-        self.max_iter = max_iter
         self.batch_size = batch_size
         self.data_number = data_number
         self.number_of_workers = number_of_workers
@@ -113,6 +112,7 @@ class CAFEAttack(AttackCallback):
         self.true_gradient = []
         self.clients_outputs = []
         self.iter_num = -1
+        self.save_image = save_image
 
     def on_train_begin(self, logs=None):
         """
@@ -123,16 +123,23 @@ class CAFEAttack(AttackCallback):
         """
         if self.dummy_middle_output_gradient is None:
             dummy_middle_output_gradient = dummy_middle_output_gradient_init(
-                number_of_workers=4, data_number=800, feature_space=256
+                number_of_workers=self.number_of_workers,
+                data_number=self.data_number,
+                feature_space=256,
             )
             self.dummy_middle_output_gradient = dummy_middle_output_gradient
         if self.dummy_middle_input is None:
             self.dummy_middle_input = dummy_middle_input_init(
-                number_of_workers=4, data_number=800, feature_space=2048
+                number_of_workers=self.number_of_workers,
+                data_number=self.data_number,
+                feature_space=2048,
             )
         if self.dummy_data is None:
             self.dummy_data, self.dummy_labels = dummy_data_init(
-                number_of_workers=4, data_number=800, pretrain=False, true_label=None
+                number_of_workers=self.number_of_workers,
+                data_number=self.data_number,
+                pretrain=False,
+                true_label=None,
             )
 
     def on_train_batch_begin(self, batch):
@@ -246,7 +253,6 @@ class CAFEAttack(AttackCallback):
             real_labels=self.real_label,
             dummy_middle_output_gradient=self.dummy_middle_output_gradient,
             dummy_middle_input=self.dummy_middle_input,
-            max_iters=self.max_iter,
             batch_size=self.batch_size,
             data_number=self.data_number,
             number_of_workers=self.number_of_workers,
@@ -257,8 +263,9 @@ class CAFEAttack(AttackCallback):
         )
 
     def on_train_end(self, logs=None):
-        visual_data(self.real_data_for_save, True)
-        visual_data(self.dummy_data, False)
+        if self.save_image:
+            visual_data(self.real_data_for_save, True)
+            visual_data(self.dummy_data, False)
 
 
 def dummy_middle_output_gradient_init(number_of_workers, data_number, feature_space):

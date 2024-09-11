@@ -433,7 +433,7 @@ class local_embedding(nn.Module):
         self.fc2 = nn.Linear(256, 64)
         self.fc3 = nn.Linear(64, 10)
 
-    def forward(self, x):
+    def forward(self, x, cafe=False):
         # Input size should be 14x14x1
         # print(x)
         x = x.view(-1, 1, 14, 14)
@@ -459,10 +459,12 @@ class local_embedding(nn.Module):
         x = self.fc3(x)
         x = F.relu(x)
         # return x
-        return middle_input, x, middle_output
+        if cafe:
+            return middle_input, x, middle_output
+        return x
 
     def output_num(self):
-        return 3
+        return 1
 
 
 class cafe_server(nn.Module):
@@ -475,7 +477,8 @@ class cafe_server(nn.Module):
 
     def forward(self, x):
         if isinstance(x, list):
-            tmp_x = [x[i * 3 + 1] for i in range(len(x) // 3)]
+            tmp_x = x
+            # tmp_x = [x[i * 3 + 1] for i in range(len(x) // 3)]
             x = torch.cat(tmp_x, dim=1)
 
         x = self.last(x)
