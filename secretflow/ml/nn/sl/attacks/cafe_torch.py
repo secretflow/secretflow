@@ -11,11 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import math
-import random
+import os
 from typing import List
 
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn as nn
@@ -25,24 +25,33 @@ from torch.optim import SGD, Adam
 from secretflow import reveal
 from secretflow.device import PYU
 from secretflow.ml.nn.callbacks.attack import AttackCallback
-from secretflow.ml.nn.core.torch import BaseModule, module
 from secretflow.ml.nn.sl.backend.torch.sl_base import SLBaseTorchModel
-from secretflow.ml.nn.utils import TorchModel
 
 
 class CAFEAttack(AttackCallback):
     """
+    CAFE attack class for Split Learning (SL) scenarios, enabling the attacker to reconstruct intermediate
+    features from victim models using gradient information.
 
-    Attributes:
-        attack_party: attack party.
-        victim_party: victim party.
-        victim_hidden_size: hidden size of victim, excluding batch size
-        dummy_fuse_model: dummy fuse model for attacker
-        label: labels for attacker to calculate attack metrics
-        attack_epoch: epoch list to attack, if you want to attack all epochs, set it to None
-        attack_batch: batch list to attack, if you want to attack all batches, set it to None
-        epochs: attack epochs for each batch, 100 for cifar10 to get good attack accuracy
-        exec_device: device for calculation, 'cpu' or 'cuda'
+    Args:
+        attack_party (PYU): The attacking party.
+        label_party (PYU): The label party responsible for providing true labels during the attack.
+        victim_hidden_size (List[int]): The hidden size of the victim model, excluding the batch size.
+        lr (float, optional): The learning rate for the attack. Default is 0.05.
+        real_data_for_save (list, optional): A list of real data to save for analysis. Default is None.
+        label_size (List[int], optional): The size of the label vector. Default is [10].
+        attack_epoch (List[int], optional): A list of epochs to attack. Set to None to attack all epochs. Default is None.
+        attack_batch (List[int], optional): A list of batches to attack. Set to None to attack all batches. Default is None.
+        exec_device (str, optional): The device used for executing the attack, either 'cpu' or 'cuda'. Default is 'cpu'.
+        max_iter (int, optional): The maximum number of iterations for the attack. Default is 80000.
+        batch_size (int, optional): The batch size used during the attack. Default is 40.
+        data_number (int, optional): The total number of data samples used in the attack. Default is 800.
+        number_of_workers (int, optional): The number of workers used for data loading. Default is 4.
+        learning_rate_first_shot (float, optional): The learning rate for the first stage of the attack. Default is 5e-3.
+        learning_rate_double_shot (float, optional): The learning rate for the second stage of the attack. Default is 1e-2.
+        cafe_learning_rate (float, optional): The learning rate for the CAFE attack method. Default is 0.01.
+        learning_rate_fl (float, optional): The learning rate for federated learning scenarios. Default is 1e-6.
+        **params: Additional parameters for customization.
     """
 
     def __init__(
@@ -50,10 +59,11 @@ class CAFEAttack(AttackCallback):
         attack_party: PYU,
         label_party: PYU,
         victim_hidden_size: List[int],
+        lr: float = 0.05,
+        real_data_for_save: list = None,
         label_size: List[int] = [10],
         attack_epoch: List[int] = None,
         attack_batch: List[int] = None,
-        epochs: int = 100,
         exec_device: str = 'cpu',
         max_iter: int = 80000,
         batch_size: int = 40,
@@ -75,12 +85,14 @@ class CAFEAttack(AttackCallback):
 
         self.victim_hidden_size = victim_hidden_size
         self.label_party = label_party
+        self.lr = lr
         self.label_size = label_size
-        self.att_epochs = epochs
         self.exec_device = exec_device
-
+        self.real_data_for_save = real_data_for_save
+        self.logs = {}
         self.metrics = None
         self.attack = True
+        self.true_grad_list = []
         self.dummy_middle_output_gradient = None
         self.dummy_middle_input = None
         self.dummy_data = None
@@ -98,29 +110,78 @@ class CAFEAttack(AttackCallback):
         self.cafe_learning_rate = cafe_learning_rate
         self.learning_rate_fl = learning_rate_fl
 
-    def on_train_batch_begin(self, batch):
+        self.true_gradient = []
+        self.clients_outputs = []
+        self.iter_num = -1
+
+    def on_train_begin(self, logs=None):
+        """
+        Initializes the dummy gradients, inputs, and data used in the attack.
+
+        Args:
+            logs (dict, optional): Logs of the training process. Defaults to None.
+        """
         if self.dummy_middle_output_gradient is None:
             dummy_middle_output_gradient = dummy_middle_output_gradient_init(
-                number_of_workers=self.number_of_workers,
-                data_number=self.data_number,
-                feature_space=256,
+                number_of_workers=4, data_number=800, feature_space=256
             )
             self.dummy_middle_output_gradient = dummy_middle_output_gradient
         if self.dummy_middle_input is None:
             self.dummy_middle_input = dummy_middle_input_init(
-                number_of_workers=self.number_of_workers,
-                data_number=self.data_number,
-                feature_space=2048,
+                number_of_workers=4, data_number=800, feature_space=2048
             )
         if self.dummy_data is None:
             self.dummy_data, self.dummy_labels = dummy_data_init(
-                number_of_workers=self.number_of_workers,
-                data_number=self.data_number,
-                pretrain=False,
-                true_label=None,
+                number_of_workers=4, data_number=800, pretrain=False, true_label=None
             )
 
-    def on_base_forward_begin(self):
+    def on_train_batch_begin(self, batch):
+        self.dummy_index = list(
+            range(batch * self.batch_size, self.batch_size * (batch + 1))
+        )
+        self.iter_num += 1
+
+        return super().on_train_batch_begin(batch)
+
+    def on_fuse_forward_begin(self):
+        self.clients_outputs = []
+
+        def get_client_outputs(worker):
+            return worker._h.detach()
+
+        for key in self._workers.keys():
+            if key != self.attack_party:
+                real_h = reveal(self._workers[key].apply(get_client_outputs))
+                self.clients_outputs.append(real_h)
+
+        self.true_gradient = []
+        self.real_data = []
+
+        def get_attacker_gradient(worker, clients_outputs):
+            h = torch.cat(clients_outputs, dim=1)
+
+            outputs = worker.model_fuse(h)
+
+            real_grad = torch.autograd.grad(
+                outputs=outputs,
+                inputs=worker.model_fuse.parameters(),
+                grad_outputs=[outputs],
+            )
+            for param in worker.model_fuse.parameters():
+                if param.grad is not None:
+                    param.grad.detach_()
+                    param.grad.zero_()
+            return list(real_grad)
+
+        real_grad = reveal(
+            self._workers[self.attack_party].apply(
+                get_attacker_gradient, self.clients_outputs
+            )
+        )
+        self.true_gradient.append(real_grad)
+
+    def on_base_backward_begin(self):
+
         def get_victim_inputs(worker):
             _data_x = worker._data_x.detach().clone()
             return _data_x
@@ -142,6 +203,7 @@ class CAFEAttack(AttackCallback):
         for key in self._workers.keys():
             if key != self.attack_party:
                 true_inputs = reveal(self._workers[key].apply(get_victim_inputs))
+
                 base_model = reveal(self._workers[key].apply(get_victim_model))
                 self.real_data.append(true_inputs)
                 tmp_model_list.append(base_model)
@@ -155,7 +217,27 @@ class CAFEAttack(AttackCallback):
                 )
         self.victim_base_model_list = tmp_model_list
 
-        cafe_attack(
+        def get_gradient(worker):
+            real_grad = torch.autograd.grad(
+                worker._h,
+                worker.model_base.parameters(),
+                grad_outputs=worker._gradient,
+                retain_graph=True,
+            )
+            return real_grad
+
+        for key in self._workers.keys():
+            if key != self.attack_party:
+                real_grad = reveal(self._workers[key].apply(get_gradient))
+                real_grad = list(real_grad)
+                self.true_gradient.append(real_grad)
+
+        (
+            self.dummy_data,
+            self.dummy_labels,
+            self.dummy_middle_output_gradient,
+            self.dummy_middle_input,
+        ) = cafe_attack(
             local_net=self.victim_base_model_list,
             server=self.attacker_fuse_model,
             dummy_data=self.dummy_data,
@@ -169,7 +251,14 @@ class CAFEAttack(AttackCallback):
             data_number=self.data_number,
             number_of_workers=self.number_of_workers,
             learning_rate_first_shot=self.learning_rate_first_shot,
+            true_gradient_list=self.true_gradient,
+            dummy_index=self.dummy_index,
+            iter_num=self.iter_num,
         )
+
+    def on_train_end(self, logs=None):
+        visual_data(self.real_data_for_save, True)
+        visual_data(self.dummy_data, False)
 
 
 def dummy_middle_output_gradient_init(number_of_workers, data_number, feature_space):
@@ -185,13 +274,10 @@ def dummy_middle_output_gradient_init(number_of_workers, data_number, feature_sp
         list: A list of initialized middle output gradients for each worker node.
     """
     dummy_middle_output_gradient = []
-    for _ in range(number_of_workers):
-        # Initialize gradient tensor with values uniformly distributed in the range [-8e-4, 8e-4].
+    for worker_index in range(number_of_workers):
         temp_dummy_middle_output_gradient = torch.empty(
             data_number, feature_space
-        ).uniform_(
-            -8e-4, 8e-4
-        )  # very important!
+        ).uniform_(-8e-4, 8e-4)
         temp_dummy_middle_output_gradient = torch.nn.Parameter(
             temp_dummy_middle_output_gradient, requires_grad=True
         )
@@ -284,215 +370,6 @@ def dummy_data_init(
         dummy_labels = torch.tensor(dummy_labels, dtype=torch.float32)
         dummy_labels = torch.nn.Parameter(dummy_labels)
         return dummy_images, dummy_labels
-
-
-def cafe_attack(
-    local_net,
-    server,
-    dummy_data,
-    dummy_labels,
-    max_iters: int = 80000,
-    batch_size: int = 40,
-    data_number: int = 800,
-    real_data: list = None,
-    real_labels=None,
-    number_of_workers: int = 4,
-    dummy_middle_output_gradient=None,
-    learning_rate_first_shot: float = 5e-3,
-    dummy_middle_input=None,
-    learning_rate_double_shot: float = 1e-2,
-    cafe_learning_rate: float = 0.01,
-    learning_rate_fl: float = 1e-6,
-    save_path: str = "./cafe_result",
-):
-    # print(cafe_attack)
-    model_list = [local_net[worker_index] for worker_index in range(number_of_workers)]
-    model_list.append(server)
-    opt_server = Adam([{"params": server.parameters()}], lr=learning_rate_fl)
-    opt_list = []
-    for worker_index in range(number_of_workers):
-        opt_list.append(
-            Adam(
-                [{"params": local_net[worker_index].parameters()}], lr=learning_rate_fl
-            )
-        )
-    real_labels = torch.tensor(real_labels)
-    real_labels = torch.nn.functional.one_hot(real_labels, num_classes=10).float()
-    opt_cafe = OptimizerForCafe(
-        number_of_workers=number_of_workers,
-        data_number=data_number,
-        learning_rate=cafe_learning_rate,
-    )
-    # OptimizerForCafe
-    optimizer2 = OptimizerForMiddleInput(
-        number_of_workers, data_number, learning_rate_double_shot, 2048
-    )
-    for iter in range(max_iters):
-        random.seed(iter)
-        random_lists = random.sample(list(range(data_number)), batch_size)
-        (
-            true_gradient,
-            batch_real_data,
-            real_middle_input,
-            _,
-            train_loss,
-            train_acc,
-        ) = take_gradient(
-            number_of_workers, random_lists, real_data, real_labels, local_net, server
-        )
-        print(type(true_gradient))
-
-        server.zero_grad()
-        for worker_index in range(number_of_workers):
-            local_net[worker_index].zero_grad()
-
-        batch_dummy_middle_output_gradient = take_batch(
-            number_of_workers, dummy_middle_output_gradient, random_lists
-        )
-        optimizer = SGD(
-            [{"params": [param]} for param in batch_dummy_middle_output_gradient],
-            lr=learning_rate_first_shot,
-        )
-
-        for _ in range(10):
-            optimizer.zero_grad()
-            for worker_index in range(number_of_workers):
-                loss = (
-                    torch.norm(
-                        torch.sum(
-                            batch_dummy_middle_output_gradient[worker_index], dim=0
-                        )
-                        - true_gradient[worker_index + 1][5]
-                    )
-                    ** 2
-                )
-                loss.backward(retain_graph=True)
-
-            optimizer.step()
-
-        for worker_index in range(number_of_workers):
-            dummy_middle_output_gradient[worker_index].data[random_lists] = (
-                batch_dummy_middle_output_gradient[worker_index].detach()
-            )
-
-        batch_dummy_middle_input = take_batch(
-            number_of_workers, dummy_middle_input, random_lists
-        )
-        batch_recovered_middle_output_gradient = take_batch(
-            number_of_workers, dummy_middle_output_gradient, random_lists
-        )
-
-        for e in range(10):
-            for worker_index in range(number_of_workers):
-
-                batch_dummy_middle_input[worker_index] = nn.Parameter(
-                    batch_dummy_middle_input[worker_index].detach()
-                )
-            optimizer_middle_inputs = Adam(
-                [{"params": [param]} for param in batch_dummy_middle_input],
-                lr=learning_rate_double_shot,
-            )
-            optimizer_middle_inputs.zero_grad()
-            g_middle_inputs = [None for _ in range(number_of_workers)]
-            for worker_index in range(number_of_workers):
-                loss = (
-                    torch.norm(
-                        true_gradient[worker_index + 1][4].T
-                        - torch.matmul(
-                            torch.transpose(
-                                batch_dummy_middle_input[worker_index], 0, 1
-                            ),
-                            batch_recovered_middle_output_gradient[worker_index],
-                        )
-                    )
-                    ** 2
-                )
-                loss.backward(retain_graph=True)
-                g_middle_inputs[worker_index] = (
-                    batch_dummy_middle_input[worker_index].grad.detach().clone()
-                )
-
-            batch_dummy_middle_input = optimizer2.apply_gradients(
-                iter,
-                batch_size,
-                random_lists,
-                g_middle_inputs,
-                batch_dummy_middle_input,
-            )
-
-        for worker_index in range(number_of_workers):
-            MSE = nn.MSELoss()(
-                real_middle_input[worker_index], batch_dummy_middle_input[worker_index]
-            )
-            print(
-                f'{worker_index} double shot loss:',
-                loss.item(),
-                'MSE:',
-                MSE.item(),
-                end="\t",
-            )
-            dummy_middle_input[worker_index].data[random_lists] = (
-                batch_dummy_middle_input[worker_index].detach()
-            )
-        batch_dummy_data, batch_dummy_label = take_batch_data(
-            number_of_workers, dummy_data, dummy_labels, random_lists
-        )
-
-        batch_recovered_middle_input = torch.cat(
-            take_batch(number_of_workers, dummy_middle_input, random_lists), axis=1
-        )
-
-        D, cafe_gradient_x, cafe_gradient_y = cafe_torch(
-            number_of_workers,
-            batch_dummy_data,
-            batch_dummy_label,
-            local_net,
-            server,
-            true_gradient,
-            batch_recovered_middle_input,
-        )
-        batch_dummy_data = opt_cafe.apply_gradients_data(
-            iter, random_lists, cafe_gradient_x, batch_dummy_data
-        )
-        batch_dummy_label = opt_cafe.apply_gradients_label(
-            iter, random_lists, cafe_gradient_y, batch_dummy_label
-        )
-        for worker_index in range(number_of_workers):
-            dummy_data[worker_index].data[random_lists] = batch_dummy_data[
-                worker_index
-            ].detach()
-            dummy_labels.data[random_lists] = batch_dummy_label[worker_index].detach()
-
-        psnr = PSNR(batch_real_data, batch_dummy_data)
-        # print results
-        print(f"iter: {iter}, loss: {train_loss}, test_acc: {train_acc}")
-
-        for c_id in range(len(opt_list)):
-            opt_list[c_id].zero_grad()
-        opt_server.zero_grad()
-        smdata_list = [None for _ in range(number_of_workers)]
-        for c_id in range(number_of_workers):
-            smdata_list[c_id] = model_list[c_id](batch_real_data[c_id])[1]
-        smdata = torch.cat(smdata_list, dim=1)
-        outputs = server(smdata)
-        loss = nn.CrossEntropyLoss()(outputs, real_labels[random_lists])
-        loss.backward()
-        # opt_list.step()
-        opt_server.step()
-        for c_id in range(len(opt_list)):
-            opt_list[c_id].step()
-
-        if iter % 100 == 0:
-            # test accuracy
-            loss, test_acc = test(
-                number_of_workers, real_data, real_labels, local_net, server
-            )
-            print(
-                f"D: {D}, psnr: {psnr}, iter: {iter}, train_loss: {train_loss}, test_acc: {test_acc}"
-            )
-
-    visual_data(real_data, True, save_path)
-    visual_data(dummy_data, False, save_path)
 
 
 class OptimizerForMiddleInput:
@@ -663,7 +540,7 @@ class OptimizerForCafe:
         return theta_new
 
 
-def visual_data(data, real, save_path):
+def visual_data(data, real, save_path="./result/"):
     """
     This function is used to visualize data.
 
@@ -675,9 +552,6 @@ def visual_data(data, real, save_path):
     Returns:
         None
     """
-    import os
-
-    import matplotlib.pyplot as plt
 
     def create_path_if_not_exists(path):
         if not os.path.exists(path):
@@ -753,101 +627,22 @@ def total_variation(x):
     return tv_h + tv_w
 
 
-def take_gradient(
-    number_of_workers,
-    random_lists,
-    real_data,
-    real_labels,
-    local_net,
-    server,
-    fake_grad=False,
-):
+def take_batch(number_of_workers, dummy_item, random_lists):
     """
-    Computes gradients for the server and local models.
+    Selects a batch of dummy items for each worker and converts them to PyTorch parameters.
 
     Args:
-        number_of_workers (int): The number of workers.
-        random_lists (list): Random lists for data indexing.
-        real_data (list): Real data for training.
-        real_labels (torch.Tensor): Real labels for training.
-        local_net (list): List of local neural networks.
-        server (Server): The server model.
-        fake_grad (bool, optional): Whether to use fake gradients. Defaults to False.
+        number_of_workers (int): The number of workers involved in the operation.
+        dummy_item (list): A list of dummy items, where each element corresponds to a worker's data.
+        random_lists (list or Tensor): A list or tensor of indices used to randomly select items for each worker.
 
     Returns:
-        tuple: A tuple containing gradients and various intermediate values.
+        list: A list containing PyTorch `Parameter` objects, with one batch of dummy items for each worker.
+
+    Example:
+        batch = take_batch(4, dummy_item, random_lists)
+        This will return a list of parameters, where each parameter corresponds to the selected dummy items for a worker.
     """
-    true_gradient = []
-    local_output = []
-    middle_input = []
-    middle_output = []
-    batch_real_data = []
-    real_tv_norm = []
-
-    with torch.autograd.set_grad_enabled(True):
-        # Select data for the current worker and convert to appropriate dtype
-        labels = real_labels[random_lists]
-        labels = labels
-        for worker_index in range(number_of_workers):
-            temp_data = real_data[worker_index][random_lists]
-            temp_data = temp_data.to(dtype=torch.float32)
-            temp_data = temp_data
-            # Mark the data as requiring gradient computation
-            temp_data.requires_grad_()
-
-            # Pass the data through the local network and store intermediate outputs
-            temp_middle_input, temp_local_output, temp_middle_output = local_net[
-                worker_index
-            ](temp_data)
-            middle_input.append(temp_middle_input)
-            temp_middle_output.retain_grad()  # 保留梯度
-            middle_output.append(temp_middle_output)
-            local_output.append(temp_local_output)
-            batch_real_data.append(temp_data)
-
-            # Reshape data and compute total variation norm
-            temp_data = temp_data.view(-1, 1, 14, 14)
-            temp_tv_norm = total_variation(temp_data)
-            real_tv_norm.append(temp_tv_norm)
-
-        # Concatenate middle inputs and local outputs
-        real_local_output = torch.cat(local_output, dim=1)
-
-        # Pass the local outputs through the server model to get predictions
-        predict = server(real_local_output)
-
-        loss = compute_loss(labels, predict)
-        train_acc = compute_accuracy(labels, predict)
-        server.zero_grad()
-
-        for worker_index in range(number_of_workers):
-            local_net[worker_index].zero_grad()
-
-        loss.backward()
-        server_true_gradient = [p.grad for p in server.parameters()]
-        true_gradient.append(server_true_gradient)
-
-        # Compute gradients for local models
-        middle_output_gradient = []
-        for worker_index in range(number_of_workers):
-            local_true_gradient = [p.grad for p in local_net[worker_index].parameters()]
-            if fake_grad:
-                # local_true_gradient = _fake_grad(local_true_gradient)
-                pass
-            middle_output_gradient.append([o.grad for o in middle_output[worker_index]])
-            true_gradient.append(local_true_gradient)
-
-    return (
-        true_gradient,
-        batch_real_data,
-        middle_input,
-        middle_output_gradient,
-        loss,
-        train_acc,
-    )
-
-
-def take_batch(number_of_workers, dummy_item, random_lists):
     batch_dummy_item = []
     for worker_index in range(number_of_workers):
         temp_dummy_item = dummy_item[worker_index][random_lists]
@@ -857,6 +652,24 @@ def take_batch(number_of_workers, dummy_item, random_lists):
 
 
 def take_batch_data(number_of_workers, dummy_images, dummy_labels, random_lists):
+    """
+    Selects a batch of dummy images and labels for each worker, and converts the selected items into PyTorch parameters.
+
+    Args:
+        number_of_workers (int): The number of workers involved in the operation.
+        dummy_images (list): A list of dummy images, where each element corresponds to the data for a specific worker.
+        dummy_labels (Tensor): A tensor of dummy labels shared across workers.
+        random_lists (list): A list of indices used to randomly select a subset of images and labels.
+
+    Returns:
+        tuple:
+            - batch_dummy_images (list): A list of selected dummy images for each worker, where each batch is a PyTorch `Parameter`.
+            - batch_dummy_labels (Parameter): A PyTorch `Parameter` containing the selected dummy labels.
+
+    Example:
+        batch_images, batch_labels = take_batch_data(4, dummy_images, dummy_labels, random_lists)
+        This will return a list of batch images for each worker and a batch of labels for the selected indices.
+    """
     batch_dummy_images = []
     for worker_index in range(number_of_workers):
         temp_dummy_image = dummy_images[worker_index][random_lists]
@@ -875,27 +688,42 @@ def cafe_torch(
     real_gradient,
     real_middle_input,
 ):
-    '''
-    Core part of the algorithm: DLG.
-    :param number_of_workers: The number of workers.
-    :param batch_dummy_image: A batch of dummy images.
-    :param batch_dummy_label: A batch of dummy labels.
-    :param local_net: The local network.
-    :param server: The server.
-    :param real_gradient: The real gradient.
-    :return: D, dlg_gradient_x, dlg_gradient_y.
-    '''
-    # Initialize lists to store fake gradients and outputs
+    """
+    Executes the core part of the CAFE attack algorithm, implementing Deep Leakage from Gradients (DLG).
+
+    This function computes the gradient differences between real and fake gradients, and applies gradient descent on
+    dummy images and labels to minimize these differences. It also incorporates regularization through total variation
+    (TV) norm to stabilize the optimization process.
+
+    Args:
+        number_of_workers (int): The number of workers participating in the computation.
+        batch_dummy_image (list): A list of dummy images for each worker, where each element is a PyTorch `Parameter`.
+        batch_dummy_label (Tensor): The dummy labels corresponding to the dummy images, as a PyTorch `Parameter`.
+        local_net (list): A list of local network models for each worker.
+        server (nn.Module): The server network model that processes the aggregated outputs from the workers.
+        real_gradient (list): A list of real gradients obtained from the victim model for comparison.
+        real_middle_input (list): A list of real middle-layer inputs obtained from the victim model for comparison.
+
+    Returns:
+        tuple:
+            - D (float): The computed distance between real and fake gradients.
+            - cafe_gradient_x (list): A list of gradients for the dummy images, used for updating the dummy images.
+            - cafe_gradient_y (Tensor): The gradient for the dummy labels, used for updating the dummy labels.
+
+    Example:
+        D, gradient_x, gradient_y = cafe_torch(4, batch_dummy_image, batch_dummy_label, local_net, server, real_gradient, real_middle_input)
+        This will return the gradient distance and gradients for further optimization.
+    """
+
     fake_gradient = []
     fake_local_output = []
     fake_middle_input = []
     batch_dummy_label = nn.Parameter(batch_dummy_label)
-
     for worker_index in range(number_of_workers):
         batch_dummy_image[worker_index] = nn.Parameter(batch_dummy_image[worker_index])
         temp_middle_input, temp_local_output, temp_middle_output = local_net[
             worker_index
-        ](batch_dummy_image[worker_index])
+        ](batch_dummy_image[worker_index], cafe=True)
         fake_local_output.append(temp_local_output)
         fake_middle_input.append(temp_middle_input)
 
@@ -923,6 +751,7 @@ def cafe_torch(
         for gr, gf in zip(real_gradient[layer], fake_gradient[layer]):
             gr = gr.view(-1, 1)
             gf = gf.view(-1, 1)
+
             D += torch.norm(gr - gf) ** 2
     D *= 100
 
@@ -983,12 +812,25 @@ def cafe_torch(
 
 
 def PSNR(batch_real_image, batch_dummy_image):
-    '''
-    Compute PSNR
-    :param batch_real_image:
-    :param batch_dummy_image:
-    :return: PSNR value
-    '''
+    """
+    Computes the Peak Signal-to-Noise Ratio (PSNR) between real and dummy images for each worker.
+
+    PSNR is used to measure the similarity between two images. The higher the PSNR, the more similar
+    the images are. This function computes the PSNR value for each worker and returns the aggregated
+    PSNR value across all workers.
+
+    Args:
+        batch_real_image (list): A list of real images for each worker. Each image is a PyTorch tensor.
+        batch_dummy_image (list): A list of dummy images for each worker. Each image is a PyTorch tensor.
+
+    Returns:
+        float: The aggregated PSNR value across all workers, representing the average similarity between
+        the real and dummy images.
+
+    Example:
+        psnr_value = PSNR(batch_real_image, batch_dummy_image)
+        This will compute and return the PSNR value.
+    """
     psnr = []
     for worker_index in range(len(batch_real_image)):
         dummy = torch.clamp(batch_dummy_image[worker_index], 0, 1).view(-1, 1, 14, 14)
@@ -1003,24 +845,207 @@ def PSNR(batch_real_image, batch_dummy_image):
 
 
 def test(number_of_workers, test_data, test_labels, local_net, server):
+    """
+    Evaluates the model on test data by computing the loss and accuracy.
+
+    This function processes the test data through the local networks of each worker and the server network,
+    computes the prediction, and evaluates the performance using loss and accuracy metrics.
+
+    Args:
+        number_of_workers (int): The number of workers participating in the evaluation.
+        test_data (list): A list of test data for each worker, where each element is a PyTorch tensor.
+        test_labels (Tensor): The true labels for the test data, as a PyTorch tensor.
+        local_net (list): A list of local network models for each worker.
+        server (nn.Module): The server network model that processes the aggregated outputs from the workers.
+
+    Returns:
+        tuple:
+            - loss (Tensor): The computed loss between the predicted and true labels.
+            - test_acc (float): The computed accuracy of the predictions.
+
+    Example:
+        loss, test_acc = test(4, test_data, test_labels, local_net, server)
+        This will return the loss and accuracy for the test data.
+    """
     local_output = []
     test_labels = test_labels
     for worker_index in range(number_of_workers):
-        # compute output
         test_data[worker_index] = test_data[worker_index].float()
-        # print(test_data[worker_index])
         temp_middle_input, temp_local_output, temp_middle_output = local_net[
             worker_index
-        ](test_data[worker_index])
-        # collect terms
+        ](test_data[worker_index], cafe=True)
         local_output.append(temp_local_output)
-    # concatenate
     real_local_output = torch.cat(local_output, axis=1)  # batch size x 40
-    # server part
     predict = server(real_local_output)
-    # compute loss
     loss = compute_loss(test_labels, predict)
-    # training accuracy
     test_acc = compute_accuracy(test_labels, predict)
     print(f"loss: {loss}, test_acc: {test_acc}")
     return loss, test_acc
+
+
+def cafe_attack(
+    local_net,
+    server,
+    dummy_data,
+    dummy_labels,
+    iter_num: int,
+    dummy_index: list = None,
+    batch_size: int = 40,
+    data_number: int = 800,
+    real_data: list = None,
+    real_labels=None,
+    true_gradient_list: list = None,
+    number_of_workers: int = 4,
+    dummy_middle_output_gradient=None,
+    learning_rate_first_shot: float = 5e-3,
+    dummy_middle_input=None,
+    learning_rate_double_shot: float = 1e-2,
+    cafe_learning_rate: float = 0.01,
+    learning_rate_fl: float = 1e-6,
+):
+    model_list = [local_net[worker_index] for worker_index in range(number_of_workers)]
+    model_list.append(server)
+
+    opt_list = []
+    for worker_index in range(number_of_workers):
+        opt_list.append(
+            Adam(
+                [{"params": local_net[worker_index].parameters()}], lr=learning_rate_fl
+            )
+        )
+    real_labels = torch.tensor(real_labels)
+    real_labels = torch.nn.functional.one_hot(real_labels, num_classes=10).float()
+    opt_cafe = OptimizerForCafe(
+        number_of_workers=number_of_workers,
+        data_number=data_number,
+        learning_rate=cafe_learning_rate,
+    )
+    # OptimizerForCafe
+    optimizer2 = OptimizerForMiddleInput(
+        number_of_workers, data_number, learning_rate_double_shot, 2048
+    )
+    print("\n", "-" * 30)
+    random_lists = dummy_index
+
+    batch_real_data = real_data
+    true_gradient = true_gradient_list
+
+    server.zero_grad()
+    # server.zero_grad()
+    for worker_index in range(number_of_workers):
+        local_net[worker_index].zero_grad()
+
+    batch_dummy_middle_output_gradient = take_batch(
+        number_of_workers, dummy_middle_output_gradient, random_lists
+    )
+    middle_output_gradient_gradient = []
+    optimizer = SGD(
+        [{"params": [param]} for param in batch_dummy_middle_output_gradient],
+        lr=learning_rate_first_shot,
+    )
+
+    for g_epoch in range(10):
+        optimizer.zero_grad()
+        for worker_index in range(number_of_workers):
+            loss = (
+                torch.norm(
+                    torch.sum(batch_dummy_middle_output_gradient[worker_index], dim=0)
+                    - true_gradient[worker_index + 1][5]
+                )
+                ** 2
+            )
+            loss.backward(retain_graph=True)
+
+        optimizer.step()
+
+    for worker_index in range(number_of_workers):
+        dummy_middle_output_gradient[worker_index].data[random_lists] = (
+            batch_dummy_middle_output_gradient[worker_index].detach()
+        )
+
+    batch_dummy_middle_input = take_batch(
+        number_of_workers, dummy_middle_input, random_lists
+    )
+    batch_recovered_middle_output_gradient = take_batch(
+        number_of_workers, dummy_middle_output_gradient, random_lists
+    )
+
+    for e in range(10):
+        for worker_index in range(number_of_workers):
+
+            batch_dummy_middle_input[worker_index] = nn.Parameter(
+                batch_dummy_middle_input[worker_index].detach()
+            )
+        optimizer_middle_inputs = Adam(
+            [{"params": [param]} for param in batch_dummy_middle_input],
+            lr=learning_rate_double_shot,
+        )
+        optimizer_middle_inputs.zero_grad()
+        g_middle_inputs = [None for _ in range(number_of_workers)]
+        for worker_index in range(number_of_workers):
+            loss = (
+                torch.norm(
+                    true_gradient[worker_index + 1][4].T
+                    - torch.matmul(
+                        torch.transpose(batch_dummy_middle_input[worker_index], 0, 1),
+                        batch_recovered_middle_output_gradient[worker_index],
+                    )
+                )
+                ** 2
+            )
+            loss.backward(retain_graph=True)
+            g_middle_inputs[worker_index] = (
+                batch_dummy_middle_input[worker_index].grad.detach().clone()
+            )
+
+        batch_dummy_middle_input = optimizer2.apply_gradients(
+            iter_num,
+            batch_size,
+            random_lists,
+            g_middle_inputs,
+            batch_dummy_middle_input,
+        )
+
+    for worker_index in range(number_of_workers):
+
+        dummy_middle_input[worker_index].data[random_lists] = batch_dummy_middle_input[
+            worker_index
+        ].detach()
+    batch_dummy_data, batch_dummy_label = take_batch_data(
+        number_of_workers, dummy_data, dummy_labels, random_lists
+    )
+
+    batch_recovered_middle_input = torch.cat(
+        take_batch(number_of_workers, dummy_middle_input, random_lists), axis=1
+    )
+
+    D, cafe_gradient_x, cafe_gradient_y = cafe_torch(
+        number_of_workers,
+        batch_dummy_data,
+        batch_dummy_label,
+        local_net,
+        server,
+        true_gradient,
+        batch_recovered_middle_input,
+    )
+    batch_dummy_data = opt_cafe.apply_gradients_data(
+        iter_num, random_lists, cafe_gradient_x, batch_dummy_data
+    )
+    batch_dummy_label = opt_cafe.apply_gradients_label(
+        iter_num, random_lists, cafe_gradient_y, batch_dummy_label
+    )
+    for worker_index in range(number_of_workers):
+        dummy_data[worker_index].data[random_lists] = batch_dummy_data[
+            worker_index
+        ].detach()
+        dummy_labels.data[random_lists] = batch_dummy_label[worker_index].detach()
+
+    psnr = PSNR(batch_real_data, batch_dummy_data)
+
+    if iter_num % 100 == 0:
+        loss, test_acc = test(
+            number_of_workers, real_data, real_labels, local_net, server
+        )
+        print(f"D: {D}, psnr: {psnr}, iter: {iter_num}, test_acc: {test_acc}")
+
+    return dummy_data, dummy_labels, dummy_middle_output_gradient, dummy_middle_input
