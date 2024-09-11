@@ -16,22 +16,21 @@ import os
 import shutil
 from pathlib import Path
 
-import secretflow as sf
+import numpy as np
+import pandas as pd
 import torch
-from secretflow.data.vertical import read_csv
-from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.core.torch import (TorchModel, metric_wrapper,
-                                         optim_wrapper)
 from torch import nn, optim
 from torch.utils.data import DataLoader, Dataset
 from torchmetrics import AUROC, Accuracy, Precision
 
+import secretflow as sf
+from secretflow.data.vertical import read_csv
+from secretflow.ml.nn import SLModel
+from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
+from secretflow.utils.simulation.datasets import _DATASETS, get_dataset, unzip
+
 
 def generate_data(fea_emb_input_size, dataset_download_dir, gen_data_path):
-    import numpy as np
-    import pandas as pd
-    from secretflow.utils.simulation.datasets import (_DATASETS, get_dataset,
-                                                      unzip)
 
     if not Path(dataset_download_dir).is_dir():
         filepath = get_dataset(_DATASETS["ml-1m"])
