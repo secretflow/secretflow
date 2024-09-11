@@ -118,7 +118,7 @@ jobs:
             fi
 
             # Build image
-            cd docker/release
+            pushd docker/release
             bash ./build.sh -l -v ${VERSION}
 
             # save version to next job
