@@ -19,6 +19,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
+from sklearn.preprocessing import LabelEncoder
 from torch import nn, optim
 from torch.utils.data import DataLoader, Dataset
 from torchmetrics import AUROC, Accuracy, Precision
@@ -70,8 +71,6 @@ def generate_data(fea_emb_input_size, dataset_download_dir, gen_data_path):
     ratings["user_id"] = ratings["user_id"].apply(lambda x: f"{x}")
 
     ratings["rating"] = ratings["rating"].apply(lambda x: float(x))
-
-    from sklearn.preprocessing import LabelEncoder
 
     le = LabelEncoder()
     le.fit(movies["movie_id"].unique())
