@@ -32,7 +32,6 @@ class CAFEFakeGradients(Callback):
 
     def __init__(
         self,
-        backend: str = "torch",
         exec_device='cpu',
         attack_party=None,
         noise_scale=1.1,
@@ -40,7 +39,17 @@ class CAFEFakeGradients(Callback):
         v=1000,
         **kwargs
     ):
-        self.backend = backend.lower()
+        """
+        Initialize the CAFEFakeGradients.
+
+        Args:
+            exec_device (str): The execution device. Default is 'cpu'.
+            attack_party (PYU): The party that might be under attack.
+            noise_scale (float): Scale for noise generation. Default is 1.1.
+            tau (int): Threshold for distance. Default is 47.
+            v (int): Number of fake gradients to generate. Default is 1000.
+            **kwargs: Additional keyword arguments.
+        """
         self.attack_party = attack_party
         self.exec_device = exec_device
         self.noise_scale = noise_scale
@@ -50,6 +59,19 @@ class CAFEFakeGradients(Callback):
 
     def on_fuse_backward_end(self):
         def fake_gradient(worker, sigma, tau=1.1, M=1, v=10):
+            """
+            Generate fake gradients for a client.
+
+            Args:
+                worker: The worker object.
+                sigma (float): Noise parameter.
+                tau (float): Threshold for distance. Default is 1.1.
+                M (int): Some parameter. Default is 1.
+                v (int): Number of fake gradients to generate. Default is 10.
+
+            Returns:
+                list: List of fake gradients.
+            """
             h_shape = worker._h.shape
 
             grad_outputs = torch.ones(h_shape).to(worker._h.device)
@@ -120,6 +142,13 @@ class CAFEFakeGradients(Callback):
             return fake_g
 
         def update_fake_grad(worker, _fake_grad_list):
+            """
+            Update the fake gradients.
+
+            Args:
+                worker: The worker object.
+                _fake_grad_list (list): List of fake gradients.
+            """
             for fake_grad in _fake_grad_list:
                 worker._callback_store['cafe_attack']['true_gradient'].append(fake_grad)
 
