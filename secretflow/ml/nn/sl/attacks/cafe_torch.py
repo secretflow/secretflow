@@ -160,24 +160,27 @@ class CAFEAttack(AttackCallback):
             if key != self.attack_party:
                 real_h = reveal(self._workers[key].apply(get_client_outputs))
                 self.clients_outputs.append(real_h)
-
         self.true_gradient = []
+
         self.real_data = []
 
         def get_attacker_gradient(worker, clients_outputs):
+            worker._callback_store['cafe_attack'] = {}
+            worker._callback_store['cafe_attack']['true_gradient'] = []
             h = torch.cat(clients_outputs, dim=1)
 
             outputs = worker.model_fuse(h)
-
+            grad_outputs = [torch.ones_like(outputs)]
             real_grad = torch.autograd.grad(
                 outputs=outputs,
                 inputs=worker.model_fuse.parameters(),
-                grad_outputs=[outputs],
+                grad_outputs=grad_outputs,
             )
             for param in worker.model_fuse.parameters():
                 if param.grad is not None:
                     param.grad.detach_()
                     param.grad.zero_()
+            worker._callback_store['cafe_attack']['true_gradient'] = [list(real_grad)]
             return list(real_grad)
 
         real_grad = reveal(
@@ -206,6 +209,24 @@ class CAFEAttack(AttackCallback):
         def get_attacker_fuse_model(worker):
             return worker.model_fuse
 
+        def check_fake_gradient(worker):
+            return (
+                len(worker._callback_store['cafe_attack']['true_gradient'])
+                == self.number_of_workers + 1
+            )
+
+        def get_client_upload_grad(worker):
+            return worker._callback_store['cafe_attack']['true_gradient']
+
+        def get_gradient(worker):
+            real_grad = torch.autograd.grad(
+                worker._h,
+                worker.model_base.parameters(),
+                grad_outputs=worker._gradient,
+                retain_graph=True,
+            )
+            return real_grad
+
         tmp_model_list = []
         for key in self._workers.keys():
             if key != self.attack_party:
@@ -224,20 +245,20 @@ class CAFEAttack(AttackCallback):
                 )
         self.victim_base_model_list = tmp_model_list
 
-        def get_gradient(worker):
-            real_grad = torch.autograd.grad(
-                worker._h,
-                worker.model_base.parameters(),
-                grad_outputs=worker._gradient,
-                retain_graph=True,
-            )
-            return real_grad
+        check_fake_grad = reveal(
+            self._workers[self.attack_party].apply(check_fake_gradient)
+        )
 
-        for key in self._workers.keys():
-            if key != self.attack_party:
-                real_grad = reveal(self._workers[key].apply(get_gradient))
-                real_grad = list(real_grad)
-                self.true_gradient.append(real_grad)
+        if not check_fake_grad:
+            for key in self._workers.keys():
+                if key != self.attack_party:
+                    real_grad = reveal(self._workers[key].apply(get_gradient))
+                    real_grad = list(real_grad)
+                    self.true_gradient.append(real_grad)
+        else:
+            self.true_gradient = reveal(
+                self._workers[self.attack_party].apply(get_client_upload_grad)
+            )
 
         (
             self.dummy_data,

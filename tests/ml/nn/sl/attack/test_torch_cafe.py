@@ -50,8 +50,8 @@ class CIFARSIMDataset(Dataset):
         return self.size
 
 
-def do_test_sl_and_lia(alice, bob, carol, doge, eric):
-    device_y = eric
+def do_test_sl_and_lia(alice, bob, carol):
+    device_y = carol
     bs = 40
     total_num = 80
     # fake data
@@ -63,8 +63,6 @@ def do_test_sl_and_lia(alice, bob, carol, doge, eric):
     data_for_save = [
         data_for_save_tensor[:, 0:14, 0:14],
         data_for_save_tensor[:, 0:14, 14:28],
-        data_for_save_tensor[:, 14:28, 0:14],
-        data_for_save_tensor[:, 14:28, 14:28],
     ]
 
     # return
@@ -72,12 +70,10 @@ def do_test_sl_and_lia(alice, bob, carol, doge, eric):
         partitions={
             alice: alice(lambda x: x[:, 0:14, 0:14])(train_data),
             bob: bob(lambda x: x[:, 0:14, 14:28])(train_data),
-            carol: carol(lambda x: x[:, 14:28, 0:14])(train_data),
-            doge: doge(lambda x: x[:, 14:28, 14:28])(train_data),
         },
         partition_way=PartitionWay.VERTICAL,
     )
-    label = eric(lambda x: x)(train_label)
+    label = carol(lambda x: x)(train_label)
 
     # model configure
     loss_fn = nn.CrossEntropyLoss
@@ -108,13 +104,12 @@ def do_test_sl_and_lia(alice, bob, carol, doge, eric):
                 Precision, task="multiclass", num_classes=10, average='micro'
             ),
         ],
+        clients_num=2,
     )
 
     base_model_dict = {
         alice: base_model,
         bob: base_model,
-        carol: base_model,
-        doge: base_model,
     }
     sl_model = SLModel(
         base_model_dict=base_model_dict,
@@ -129,18 +124,18 @@ def do_test_sl_and_lia(alice, bob, carol, doge, eric):
     )
 
     cafe_attack = CAFEAttack(
-        attack_party=eric,
-        label_party=eric,
+        attack_party=carol,
+        label_party=carol,
         victim_hidden_size=[10],
         exec_device='cpu',
         real_data_for_save=data_for_save,
-        save_image=False,
+        number_of_workers=2,
     )
 
     history = sl_model.fit(
         fed_data,
         label,
-        epochs=1,
+        epochs=2000,
         batch_size=bs,
         shuffle=False,
         random_seed=1234,
@@ -153,6 +148,5 @@ def test_sl_and_lia(sf_simulation_setup_devices):
     alice = sf_simulation_setup_devices.alice
     bob = sf_simulation_setup_devices.bob
     carol = sf_simulation_setup_devices.carol
-    doge = sf_simulation_setup_devices.doge
-    eric = sf_simulation_setup_devices.eric
-    do_test_sl_and_lia(alice, bob, carol, doge, eric)
+
+    do_test_sl_and_lia(alice, bob, carol)

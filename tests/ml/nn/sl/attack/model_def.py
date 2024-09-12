@@ -468,12 +468,12 @@ class local_embedding(nn.Module):
 
 
 class cafe_server(nn.Module):
-    def __init__(self, seed=0):
+    def __init__(self, seed=0, clients_num=4):
         super(cafe_server, self).__init__()
         torch.manual_seed(seed)
 
         # Define the last fully connected layer with softmax activation
-        self.last = nn.Linear(40, 10)
+        self.last = nn.Linear(clients_num * 10, 10)
 
     def forward(self, x):
         if isinstance(x, list):
