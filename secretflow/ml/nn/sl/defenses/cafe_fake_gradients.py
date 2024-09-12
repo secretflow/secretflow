@@ -12,11 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import random
+import numpy as np
 
 from secretflow.ml.nn.callbacks.callback import Callback
+from secretflow import reveal
+
+import torch
 
 
-class CAFEFakeGradientsMultiClient(Callback):
+class CAFEFakeGradients(Callback):
     """
     The method is designed for against CAFE attack: https://arxiv.org/abs/2110.15122.
     Each local worker randomly generates gradients with the normal distribution N,
@@ -29,96 +34,101 @@ class CAFEFakeGradientsMultiClient(Callback):
         self,
         backend: str = "torch",
         exec_device='cpu',
+        attack_party=None,
         noise_scale=1.1,
-        tua=47,
+        tau=47,
         v=1000,
         **kwargs
     ):
-        """
-        Args:
-            backend (str): The backend to be used, either 'torch' or 'tensorflow'. Default is 'torch'.
-            exec_device (str): The execution device, e.g., 'cpu' or 'cuda'. Default is 'cpu'.
-            noise_scale (float): The scale of the noise to be added. Default is 1.1.
-            tua (int): The threshold for updating the fake gradient. Default is 47.
-            v (int): The number of fake gradients to be generated. Default is 1000.
-            **kwargs: Additional keyword arguments.
-        """
         self.backend = backend.lower()
+        self.attack_party = attack_party
         self.exec_device = exec_device
         self.noise_scale = noise_scale
-        self.tua = tua
+        self.tau = tau
         self.v = v
         super().__init__(**kwargs)
 
     def on_fuse_backward_end(self):
-        def fake_gradient(worker, sigma, tua=1.1, M=1, v=128):
-            """Generates and applies fake gradients to the worker.
+        def fake_gradient(worker, sigma, tau=1.1, M=1, v=10):
+            h_shape = worker._h.shape
 
-            Args:
-                worker: The worker whose gradients are to be updated.
-                sigma (float): The standard deviation of the noise.
-                tua (float): The threshold for updating the fake gradient. Default is 1.1.
-                M (int): The number of gradient matrices. Default is 1.
-                v (int): The number of fake gradients to be generated. Default is 128.
-            """
-            gradient = worker._gradient
-            fake_gradient = []
-            if not isinstance(gradient, list):
-                gradient = [gradient]
-            M = len(gradient)
+            grad_outputs = torch.ones(h_shape).to(worker._h.device)
+            real_grad = torch.autograd.grad(
+                worker._h,
+                worker.model_base.parameters(),
+                grad_outputs=grad_outputs,
+                retain_graph=True,
+            )
+            local_gradients = list(real_grad)
+            grad_shape_list = [g.shape for g in local_gradients]
 
-            if self.backend == "tensorflow":
-                import tensorflow as tf
+            flattened_grad = [g.flatten() for g in local_gradients]
 
-                raise NotImplementedError()
-                # WIP
-            else:
-                import torch
+            fake_gradients = []
+            for _ in range(v):
+                fake_grad = [torch.randn_like(g) * sigma**2 for g in flattened_grad]
+                for i in range(len(fake_grad)):
+                    fake_grad[i] = torch.sort(fake_grad[i], descending=True)[0]
+                fake_gradients.append(fake_grad)
+            sorted_indexes = [
+                torch.sort(lg, descending=True)[1] for lg in flattened_grad
+            ]
 
-                for m in range(M):
-                    _gradient = gradient[m]
-                    Psi = [
-                        torch.normal(mean=0, std=sigma, size=_gradient.shape)
-                        for _ in range(v)
-                    ]
-                    Psi = [torch.sort(g, descending=True)[0] for g in Psi]
-                    zeta = torch.argsort(_gradient, descending=True)
-                    sorted_gradient = torch.gather(_gradient, 1, zeta)
-                    count = 0
-                    while True:
-                        min_diff = float("inf")
-                        min_psi = None
-                        for psi in Psi:
+            cur = 0
+            while cur < 3:
+                cur += 1
+                min_distance_gradient = None
+                min_distance = float('inf')
+                for fg in fake_gradients:
+                    distance = torch.norm(
+                        torch.stack(
+                            [
+                                torch.norm(fg[i] - flattened_grad[i])
+                                for i in range(len(flattened_grad))
+                            ]
+                        )
+                    )
+                    if distance < min_distance:
+                        min_distance = distance
+                        min_distance_gradient = fg
 
-                            diff = torch.norm(psi - sorted_gradient, p=2)
-                            if diff < min_diff:
-                                min_diff = diff
-                                min_psi = psi
-                            # print("min_diff", min_diff)
-                        count += 1
-                        if min_diff <= tua or count > 1:
-                            break
-                        Psi = [
-                            torch.normal(mean=0, std=sigma, size=_gradient.shape)
-                            for _ in range(v)
+                if min_distance <= tau:
+                    break
+                else:
+
+                    fake_gradients = []
+                    for _ in range(v):
+                        fake_grad = [
+                            torch.randn_like(g) * sigma**2 for g in flattened_grad
                         ]
-                        Psi = [torch.sort(g, descending=True)[0] for g in Psi]
-                    psi = min_psi
-                    fake_g = torch.zeros_like(_gradient)
-                    for i in range(len(zeta)):
-                        l = 0
-                        for k in zeta[i]:
-                            fake_g[i][k] = torch.min(
-                                psi[i][l], torch.max(_gradient[i][k], -psi[i][l])
-                            )
-                            l += 1
-                    fake_gradient.append(fake_g)
-            assert len(fake_gradient) >= 1
-            if len(fake_gradient) == 1:
-                worker._gradient = fake_gradient[0]
-            else:
-                worker._gradient = fake_gradient
+                        for i in range(len(fake_grad)):
+                            fake_grad[i] = torch.sort(fake_grad[i], descending=True)[0]
+                        fake_gradients.append(fake_grad)
+            fake_grad = min_distance_gradient
+            g = [torch.zeros_like(param) for param in flattened_grad]
+            for i in range(len(flattened_grad)):
+                l = 0
+                for k in sorted_indexes[i]:
+                    g[i][k] = torch.min(
+                        min_distance_gradient[i][l],
+                        torch.max(flattened_grad[i][k], -min_distance_gradient[i][l]),
+                    )
+                    l += 1
+            fake_g = [
+                tmp_g.reshape(_shape) for tmp_g, _shape in zip(g, grad_shape_list)
+            ]
+            return fake_g
 
-        self._workers[self.device_y].apply(
-            fake_gradient, sigma=self.noise_scale, tua=self.tua, v=self.v
-        )
+        def update_fake_grad(worker, _fake_grad_list):
+            for fake_grad in _fake_grad_list:
+                worker._callback_store['cafe_attack']['true_gradient'].append(fake_grad)
+
+        fake_grad_list = []
+        for key in self._workers.keys():
+            if key != self.attack_party:
+                fake_g = reveal(
+                    self._workers[key].apply(fake_gradient, sigma=self.noise_scale)
+                )
+                fake_grad_list.append(fake_g)
+
+        self._workers[self.attack_party].apply(update_fake_grad, fake_grad_list)
