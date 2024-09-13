@@ -112,7 +112,6 @@ def sampler_data(
         data_set = batch_sampler(
             x, y, s_w, sampling_rate, buffer_size, shuffle, repeat_count, random_seed
         )
-        print("after batch sampler ,y is ")
     else:
         logging.error(f'Unvalid sampler {sampler_method} during building local dataset')
     return data_set
