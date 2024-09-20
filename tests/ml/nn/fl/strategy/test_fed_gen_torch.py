@@ -192,8 +192,6 @@ class TestFedGen:
             'kl_div_loss': kl_div_loss,
             'diversity_loss': diversity_loss,
             'num_classes': 10,
-            'epochs': 10,
-            'batch_size': 32,
         }
 
         # Initialize Scaffold strategy with ConvNet model

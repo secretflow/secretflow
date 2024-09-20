@@ -86,7 +86,6 @@ class FLModel:
                 'generator_model',
                 'loss_fn',
                 'optimizer',
-                'scheduler',
                 'kl_div_loss',
                 'diversity_loss',
                 'num_classes',
@@ -102,10 +101,7 @@ class FLModel:
             self.loss_fn = generator_config['loss_fn']
             self.diversity_loss = generator_config['diversity_loss']
             self.generative_optimizer = generator_config['optimizer']
-            self.generative_scheduler = generator_config['scheduler']
             self.generative_num_classes = generator_config['num_classes']
-            self.generative_epoch = generator_config.get('epoch', 50)
-            self.generative_batch_size = generator_config.get('batch_size', 32)
 
         self.num_gpus = kwargs.get('num_gpus', 0)
         self.init_workers(
@@ -594,52 +590,34 @@ class FLModel:
                 # Train generator
                 if self.strategy == 'fed_gen':
                     # Get label distribution
-                    label_weights = []
-                    qualified_labels = []
-                    for label in range(self.generative_num_classes):
-                        weights = [
-                            reveal(
-                                self._workers[device].get_cur_step_label_counts()
-                            ).get(label, 0)
-                            for device, worker in self._workers.items()
-                        ]
-                        if np.max(weights) > 0:
-                            qualified_labels.append(label)
-                        label_weights.append(np.array(weights) / np.sum(weights) + 1e-8)
-                    label_weights = np.array(label_weights).reshape(
-                        (self.generative_num_classes, -1)
-                    )
+                    worker_label_counts = [
+                        reveal(self._workers[device].get_cur_step_label_counts())
+                        for device, worker in self._workers.items()
+                    ]
 
                     # Train generator model
-                    self.generator.train()
-                    for _ in range(self.generative_epoch):
-                        y = np.random.choice(
-                            qualified_labels, self.generative_batch_size
+                    generate_samples = reveal(
+                        self.server.generate_samples(
+                            self.generative_num_classes, batch_size
                         )
-                        y_input = torch.LongTensor(y)
-                        self.generative_optimizer.zero_grad()
-                        gen_result = self.generator(y_input)
-                        gen_output, eps = gen_result['output'], gen_result['eps']
-                        diversity_loss = self.diversity_loss(eps, gen_output)
-
-                        # Get teacher loss
-                        teacher_loss = 0
-                        for idx, device in enumerate(self._workers.keys()):
-                            weight = label_weights[y][:, idx].reshape(-1, 1)
-                            user_result_given_gen = reveal(
-                                self._workers[device].predict_with_generator_output(
-                                    gen_result['output']
-                                )
+                    )
+                    user_results = [
+                        reveal(
+                            self._workers[device].predict_with_generator_output(
+                                generate_samples
                             )
-                            teacher_loss_ = torch.mean(
-                                self.loss_fn(user_result_given_gen, y_input)
-                                * torch.tensor(weight, dtype=torch.float32)
-                            )
-                            teacher_loss += teacher_loss_
-                        loss = teacher_loss + diversity_loss
-                        loss.backward()
-                        self.generative_optimizer.step()
-                    self.generative_scheduler.step()
+                        )
+                        for device in self._workers
+                    ]
+                    self.server.train_generator(
+                        user_results,
+                        worker_label_counts,
+                        self.generator,
+                        self.generative_num_classes,
+                        self.generative_optimizer,
+                        self.loss_fn,
+                        self.diversity_loss,
+                    )
 
                 # DP operation
                 if dp_spent_step_freq is not None and self.dp_strategy is not None:
