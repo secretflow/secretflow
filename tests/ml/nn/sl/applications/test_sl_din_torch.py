@@ -20,6 +20,7 @@ import numpy as np
 import pandas as pd
 import torch
 from sklearn.preprocessing import LabelEncoder
+from sl_din_torch import DINBase, DINFuse
 from torch import nn, optim
 from torch.utils.data import DataLoader, Dataset
 from torchmetrics import AUROC, Accuracy, Precision
@@ -297,8 +298,6 @@ dataset_buidler_dict = {
     alice: create_dataset_builder_alice(batch_size=batch_size),
     bob: create_dataset_builder_bob(batch_size=batch_size),
 }
-
-from sl_din_torch import DINBase, DINFuse
 
 
 def create_base_model_alice():
