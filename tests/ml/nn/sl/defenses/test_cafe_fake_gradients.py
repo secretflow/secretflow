@@ -66,7 +66,6 @@ def do_test_sl_and_lia(alice, bob, carol):
         data_for_save_tensor[:, 0:14, 14:28],
     ]
 
-    # return
     fed_data = FedNdarray(
         partitions={
             alice: alice(lambda x: x[:, 0:14, 0:14])(train_data),

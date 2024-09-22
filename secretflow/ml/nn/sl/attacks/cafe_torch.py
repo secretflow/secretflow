@@ -113,6 +113,7 @@ class CAFEAttack(AttackCallback):
         self.clients_outputs = []
         self.iter_num = -1
         self.save_image = save_image
+        self.metrics = None
 
     def on_train_begin(self, logs=None):
         """
@@ -287,6 +288,10 @@ class CAFEAttack(AttackCallback):
         if self.save_image:
             visual_data(self.real_data_for_save, True)
             visual_data(self.dummy_data, False)
+        self.metrics = PSNR(self.real_data_for_save, self.dummy_data)
+
+    def get_attack_metrics(self):
+        return self.metrics
 
 
 def dummy_middle_output_gradient_init(number_of_workers, data_number, feature_space):
