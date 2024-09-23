@@ -12,14 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import random
 
-import jax.numpy as jnp
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import Dataset
 from torchmetrics import Accuracy, Precision
 
 from secretflow.data.ndarray import FedNdarray, PartitionWay
@@ -44,7 +41,6 @@ def do_test_sl_and_cafe(alice, bob, carol):
         data_for_save_tensor[:, 0:14, 14:28],
     ]
 
-    # return
     fed_data = FedNdarray(
         partitions={
             alice: alice(lambda x: x[:, 0:14, 0:14])(train_data),
