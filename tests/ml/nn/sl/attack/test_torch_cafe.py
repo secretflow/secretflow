@@ -26,31 +26,10 @@ from secretflow.data.ndarray import FedNdarray, PartitionWay
 from secretflow.ml.nn import SLModel
 from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
 from secretflow.ml.nn.sl.attacks.cafe_torch import CAFEAttack
-from tests.ml.nn.sl.attack.model_def import cafe_server, local_embedding
+from tests.ml.nn.sl.attack.model_def import CafeServer, LocalEmbedding
 
 
-def auto_grad(func):
-    def wrapper(*args, **kwargs):
-        ret = func(*args, **kwargs)
-        return jnp.sum(jnp.array(ret))
-
-    return wrapper
-
-
-class CIFARSIMDataset(Dataset):
-    def __init__(self, size):
-        self.size = size
-        self.data = torch.rand(size, 3, 32, 32)
-        self.targets = [random.randint(0, 9) for i in range(size)]
-
-    def __getitem__(self, index):
-        return self.data[index], self.targets[index]
-
-    def __len__(self):
-        return self.size
-
-
-def do_test_sl_and_lia(alice, bob, carol):
+def do_test_sl_and_cafe(alice, bob, carol):
     device_y = carol
     bs = 40
     total_num = 80
@@ -79,7 +58,7 @@ def do_test_sl_and_lia(alice, bob, carol):
     loss_fn = nn.CrossEntropyLoss
     optim_fn = optim_wrapper(optim.Adam, lr=1e-3)
     base_model = TorchModel(
-        model_fn=local_embedding,
+        model_fn=LocalEmbedding,
         loss_fn=loss_fn,
         optim_fn=optim_fn,
         metrics=[
@@ -93,7 +72,7 @@ def do_test_sl_and_lia(alice, bob, carol):
     )
 
     fuse_model = TorchModel(
-        model_fn=cafe_server,
+        model_fn=CafeServer,
         loss_fn=loss_fn,
         optim_fn=optim_fn,
         metrics=[
@@ -144,9 +123,9 @@ def do_test_sl_and_lia(alice, bob, carol):
     print(history)
 
 
-def test_sl_and_lia(sf_simulation_setup_devices):
+def test_sl_and_cafe(sf_simulation_setup_devices):
     alice = sf_simulation_setup_devices.alice
     bob = sf_simulation_setup_devices.bob
     carol = sf_simulation_setup_devices.carol
 
-    do_test_sl_and_lia(alice, bob, carol)
+    do_test_sl_and_cafe(alice, bob, carol)

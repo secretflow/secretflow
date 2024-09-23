@@ -409,9 +409,9 @@ class WideDeepFuse(nn.Module):
         return y_pred
 
 
-class local_embedding(nn.Module):
+class LocalEmbedding(nn.Module):
     def __init__(self, seed=1):
-        super(local_embedding, self).__init__()
+        super(LocalEmbedding, self).__init__()
         torch.manual_seed(seed)
 
         # Convolutional layer 1
@@ -467,9 +467,9 @@ class local_embedding(nn.Module):
         return 1
 
 
-class cafe_server(nn.Module):
+class CafeServer(nn.Module):
     def __init__(self, seed=0, clients_num=4):
-        super(cafe_server, self).__init__()
+        super(CafeServer, self).__init__()
         torch.manual_seed(seed)
 
         # Define the last fully connected layer with softmax activation

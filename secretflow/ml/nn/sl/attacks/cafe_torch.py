@@ -971,7 +971,6 @@ def cafe_attack(
     batch_dummy_middle_output_gradient = take_batch(
         number_of_workers, dummy_middle_output_gradient, random_lists
     )
-    middle_output_gradient_gradient = []
     optimizer = SGD(
         [{"params": [param]} for param in batch_dummy_middle_output_gradient],
         lr=learning_rate_first_shot,
