@@ -69,7 +69,6 @@ class AliceDataset(Dataset):
         self.categories = categories
 
     def __getitem__(self, index):
-
         return ((self.x_num[index], self.x_cat[index]), self.label[index])
 
     def __len__(self):
@@ -237,7 +236,7 @@ def create_fuse_model():
 
 
 def run():
-
+    epoch = 100
     loss_fn = nn.BCEWithLogitsLoss
     optim_fn = optim_wrapper(optim.Adam, lr=0.002, weight_decay=0.001)
 
@@ -286,6 +285,7 @@ def run():
         random_seed=1234,
         backend='torch',
     )
+    # 加载数据
     vdf = load_criteo_partitioned([alice, bob], train=True)
     label = vdf["label"]
     data = vdf.drop(columns=["label"])
@@ -294,7 +294,6 @@ def run():
     val_label = val_vdf["label"]
     val_data = val_vdf.drop(columns=["label"])
 
-    epoch = 100
     history = sl_model.fit(
         data,
         label,
@@ -305,6 +304,7 @@ def run():
         random_seed=1234,
         dataset_builder=dataset_buidler_dict,
     )
+    # 保存训练历史
     print('history: ', history)
     history_converted = {
         key: [v.tolist() for v in value] for key, value in history.items()
@@ -331,6 +331,7 @@ def plot_metric(dfhistory, metric, epoch):
 
 if __name__ == '__main__':
     run()
+    # 读取训练历史并绘制曲线
     with open('history.json', 'r', encoding='utf-8') as file:
         # data = json.load(file)
         train_val_his = json.load(file)
