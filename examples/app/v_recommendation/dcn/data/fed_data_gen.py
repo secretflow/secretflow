@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import os
+from pathlib import Path
+from typing import Dict, List
 
 import numpy as np
 import pandas as pd
@@ -21,17 +23,18 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelEncoder, QuantileTransformer
 
+from secretflow.data.vertical import VDataFrame, read_csv
+from secretflow.device.device.pyu import PYU
 from secretflow.utils.simulation.datasets import load_criteo_unpartitioned
 
 # split origin 1m data to alice and bob, each has different column, alice_criteo_train_1m.csv and bob_criteo_train_1m.csv are generated
 # to static cat_num_categories for alice and bob, which will be used in dcn-model's input parameters
 
+_CACHE_DIR = os.path.join(os.path.expanduser('~'), '.secretflow/datasets')
 
-def generate_alice_bob_criteo_1m_data():
-    dfdata = load_criteo_unpartitioned(num_samples=1000000)
-    origin_criteo_train_1m_data_path = os.path.join(
-        os.path.dirname(__file__), "criteo_train_1m.csv"
-    )
+
+def generate_alice_bob_criteo_1m_data(num_samples: int = 1000000):
+    dfdata = load_criteo_unpartitioned(num_samples=num_samples)
 
     dfdata.columns = (
         ["label"]
@@ -49,8 +52,6 @@ def generate_alice_bob_criteo_1m_data():
         dfdata[col] = LabelEncoder().fit_transform(dfdata[col])
 
     dfdata[num_cols] = num_pipe.fit_transform(dfdata[num_cols])
-
-    # dfdata.to_csv(origin_criteo_train_1m_data_path, index=False)
 
     alice_col = [
         'label',
@@ -100,65 +101,87 @@ def generate_alice_bob_criteo_1m_data():
     alice_criteo_train_1m = dfdata.loc[:, alice_col]
     bob_criteo_train_1m = dfdata.loc[:, bob_col]
 
-    alice_criteo_train_1m.to_csv(
-        os.path.join(os.path.dirname(__file__), "alice_criteo_train_1m.csv"),
-        index=False,
-        sep="|",
-        encoding='utf-8',
-    )
-    bob_criteo_train_1m.to_csv(
-        os.path.join(os.path.dirname(__file__), "bob_criteo_train_1m.csv"),
-        index=False,
-        sep="|",
-        encoding='utf-8',
-    )
+    return alice_criteo_train_1m, bob_criteo_train_1m
 
 
 # generate and save train, val and test data for alice and bob
-def generate_alice_bob_criteo_1m_train_val_test():
-    generate_alice_bob_criteo_1m_data()
-    alice_criteo_train_1m = pd.read_csv(
-        os.path.join(os.path.dirname(__file__), "alice_criteo_train_1m.csv"),
-        encoding='utf-8',
-        sep="|",
+def load_criteo_partitioned(
+    part: List[PYU],
+    num_samples: int = 1000000,
+    split_ratio: float = 0.2,
+    data_dir: str = None,
+    train: bool = True,
+):
+    alice_criteo_train_1m, bob_criteo_train_1m = generate_alice_bob_criteo_1m_data(
+        num_samples=num_samples
     )
-    bob_criteo_train_1m = pd.read_csv(
-        os.path.join(os.path.dirname(__file__), "bob_criteo_train_1m.csv"),
-        encoding='utf-8',
-        sep="|",
-    )
-    alice_train_val, alice_test = train_test_split(alice_criteo_train_1m, test_size=0.2)
-    alice_train, alice_val = train_test_split(alice_train_val, test_size=0.2)
-    bob_train_val, bob_test = train_test_split(bob_criteo_train_1m, test_size=0.2)
-    bob_train, bob_val = train_test_split(bob_train_val, test_size=0.2)
-
-    alice_train.to_csv(
-        os.path.join(os.path.dirname(__file__), "train_alice.csv"),
-        index=False,
-        sep="|",
-        encoding='utf-8',
+    data_dir = (
+        os.path.join(data_dir, 'criteo_partitioned')
+        if data_dir
+        else os.path.join(_CACHE_DIR, 'criteo_partitioned')
     )
 
-    bob_train.to_csv(
-        os.path.join(os.path.dirname(__file__), "train_bob.csv"),
-        index=False,
-        sep="|",
-        encoding='utf-8',
-    )
+    if not Path(data_dir).is_dir():
+        Path(data_dir).mkdir(parents=True, exist_ok=True)
 
-    alice_val.to_csv(
-        os.path.join(os.path.dirname(__file__), "val_alice.csv"),
-        index=False,
-        sep="|",
-        encoding='utf-8',
-    )
+    def _generate_train_val_test(
+        alice_criteo_train_1m: pd.DataFrame,
+        bob_criteo_train_1m: pd.DataFrame,
+        split_ratio: float = 0.2,
+    ):
+        alice_train_val, alice_test = train_test_split(
+            alice_criteo_train_1m, test_size=split_ratio
+        )
+        alice_train, alice_val = train_test_split(
+            alice_train_val, test_size=split_ratio
+        )
+        bob_train_val, bob_test = train_test_split(
+            bob_criteo_train_1m, test_size=split_ratio
+        )
+        bob_train, bob_val = train_test_split(bob_train_val, test_size=split_ratio)
+        alice_train.to_csv(
+            os.path.join(data_dir, "train_alice.csv"),
+            index=False,
+            sep="|",
+            encoding='utf-8',
+        )
 
-    bob_val.to_csv(
-        os.path.join(os.path.dirname(__file__), "val_bob.csv"),
-        index=False,
-        sep="|",
-        encoding='utf-8',
-    )
+        bob_train.to_csv(
+            os.path.join(data_dir, "train_bob.csv"),
+            index=False,
+            sep="|",
+            encoding='utf-8',
+        )
 
+        alice_val.to_csv(
+            os.path.join(data_dir, "val_alice.csv"),
+            index=False,
+            sep="|",
+            encoding='utf-8',
+        )
 
-generate_alice_bob_criteo_1m_train_val_test()
+        bob_val.to_csv(
+            os.path.join(data_dir, "val_bob.csv"),
+            index=False,
+            sep="|",
+            encoding='utf-8',
+        )
+
+    _generate_train_val_test(alice_criteo_train_1m, bob_criteo_train_1m, split_ratio)
+
+    fed_train_csv = {}
+    fed_val_csv = {}
+    for p in part:
+        fed_train_csv[p] = os.path.join(data_dir, "train_{}.csv".format(p))
+        fed_val_csv[p] = os.path.join(data_dir, "val_{}.csv".format(p))
+
+    if train:
+        return read_csv(
+            fed_train_csv,
+            delimiter="|",
+        )
+    else:
+        return read_csv(
+            fed_val_csv,
+            delimiter="|",
+        )

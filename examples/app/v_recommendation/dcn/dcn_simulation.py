@@ -16,6 +16,7 @@ import json
 
 import pandas as pd
 import torch
+from data.fed_data_gen import generate_alice_bob_criteo_1m_data, load_criteo_partitioned
 from matplotlib import pyplot as plt
 from model.sl_dcn_torch import DCNBase, DCNFuse
 from torch import nn, optim
@@ -27,7 +28,6 @@ from secretflow.data.vertical import read_csv
 from secretflow.ml.nn import SLModel
 from secretflow.ml.nn.core.torch import metric_wrapper, optim_wrapper
 from secretflow.ml.nn.utils import TorchModel
-from secretflow.utils.logging import logger
 
 # Check the version of your SecretFlow
 print('The version of SecretFlow: {}'.format(sf.__version__))
@@ -38,7 +38,6 @@ sf.init(['alice', 'bob'], address="local", log_to_driver=False)
 alice, bob = sf.PYU('alice'), sf.PYU('bob')
 
 
-data_path = r"/data/ant-sf/oscp/v_recommendation/dcn/data/"
 alice_base_out_dim = 0
 bob_base_out_dim = 0
 batch_size = 2048
@@ -49,7 +48,6 @@ class AliceDataset(Dataset):
         self,
         df,
         label_df,
-        vocab_dir="",
         cat_features=None,
         num_features=None,
         categories=None,
@@ -82,9 +80,7 @@ class AliceDataset(Dataset):
 
 
 class BobDataset(Dataset):
-    def __init__(
-        self, df, vocab_dir="", cat_features=None, num_features=None, categories=None
-    ):
+    def __init__(self, df, cat_features=None, num_features=None, categories=None):
         self.df = df
         self.x_cat = (
             torch.tensor(self.df[cat_features].values, dtype=torch.long)
@@ -109,11 +105,7 @@ class BobDataset(Dataset):
 
 
 def gen_alice_bob_cat_num_categories():
-    alice_criteo_train_1m = pd.read_csv(
-        data_path + 'alice_criteo_train_1m.csv', sep='|'
-    )
-    bob_criteo_train_1m = pd.read_csv(data_path + 'bob_criteo_train_1m.csv', sep='|')
-
+    alice_criteo_train_1m, bob_criteo_train_1m = generate_alice_bob_criteo_1m_data()
     alice_cat_features = [x for x in alice_criteo_train_1m.columns if x.startswith('C')]
     alice_num_features = [x for x in alice_criteo_train_1m.columns if x.startswith('I')]
     alice_categories = [alice_criteo_train_1m[x].max() + 1 for x in alice_cat_features]
@@ -147,7 +139,6 @@ def create_dataset_builder_alice(batch_size=32):
         data_set = AliceDataset(
             x[0],
             x[1],
-            data_path,
             alice_cat_features,
             alice_num_features,
             alice_categories,
@@ -164,9 +155,7 @@ def create_dataset_builder_alice(batch_size=32):
 def create_dataset_builder_bob(batch_size=32):
 
     def dataset_builder(x):
-        data_set = BobDataset(
-            x[0], data_path, bob_cat_features, bob_num_features, bob_categories
-        )
+        data_set = BobDataset(x[0], bob_cat_features, bob_num_features, bob_categories)
         dataloader = DataLoader(
             dataset=data_set,
             batch_size=batch_size,
@@ -216,7 +205,6 @@ def create_base_model_bob():
     d_embed_max = 8
     categories = bob_categories
     d_cat_sum = sum([min(max(int(x**0.5), 2), d_embed_max) for x in categories])
-    # logger.debug(f"bob d_cat_sum: {d_cat_sum}")
     mlp_layers = [128, 64, 32]
     global bob_base_out_dim
     bob_base_out_dim = d_numerical + d_cat_sum + mlp_layers[-1]
@@ -298,25 +286,11 @@ def run():
         random_seed=1234,
         backend='torch',
     )
-
-    vdf = read_csv(
-        {
-            alice: data_path + 'train_alice.csv',
-            bob: data_path + 'train_bob.csv',
-        },
-        delimiter='|',
-    )
+    vdf = load_criteo_partitioned([alice, bob], train=True)
     label = vdf["label"]
     data = vdf.drop(columns=["label"])
 
-    val_vdf = read_csv(
-        {
-            alice: data_path + 'val_alice.csv',
-            bob: data_path + 'val_bob.csv',
-        },
-        delimiter='|',
-    )
-
+    val_vdf = load_criteo_partitioned([alice, bob], train=False)
     val_label = val_vdf["label"]
     val_data = val_vdf.drop(columns=["label"])
 
