@@ -16,17 +16,19 @@
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, Tuple
 
 import numpy as np
 import pandas as pd
 import torch
 import torchmetrics
+import logging
 
 from secretflow.ml.nn.core.torch import BuilderType, module
 from secretflow.ml.nn.fl.backend.torch.sampler import sampler_data
 from secretflow.ml.nn.metrics import Default, Mean, Precision, Recall
 from secretflow.utils.io import rows_count
+from secretflow.ml.nn.fl.backend.torch.fedpac_sampler import fedpac_sampler_data
 
 
 class BaseTorchModel(ABC):
@@ -49,6 +51,7 @@ class BaseTorchModel(ABC):
         self.train_set = None
         self.eval_set = None
         self.skip_bn = skip_bn
+        # self.dataset_size = torch.tensor(len(self.train_set.dataset)).to(self.exe_device)
         if random_seed is not None:
             torch.manual_seed(random_seed)
         assert builder_base is not None, "Builder_base cannot be none"
@@ -216,9 +219,9 @@ class BaseTorchModel(ABC):
 
     def get_weights(self, return_numpy=True):
         if self.skip_bn:
-            return self.model.get_weights_not_bn(return_numpy=return_numpy)
+            return self.model.get_weights_not_bn(return_numpy=True)
         else:
-            return self.model.get_weights(return_numpy=return_numpy)
+            return self.model.get_weights(return_numpy=True)
 
     def set_weights(self, weights):
         """set weights of client model"""
@@ -245,7 +248,6 @@ class BaseTorchModel(ABC):
 
                 correct = float((tp + tn).numpy().sum())
                 total = float((tp + tn + fp + fn).numpy().sum())
-
                 wraped_metrics.append(Mean(name, correct, total))
 
             elif isinstance(m, torchmetrics.Precision):
@@ -312,6 +314,7 @@ class BaseTorchModel(ABC):
                 self.model.validation_step((x, y), step, sample_weight=s_w)
             result = {}
             self.transform_metrics(result, stage="eval")
+
         if self.logs is None:
             self.wrapped_metrics.extend(self.wrap_local_metrics())
             return self.wrap_local_metrics()
@@ -376,7 +379,6 @@ class BaseTorchModel(ABC):
         for k, v in self.epoch_logs.items():
             self.history.setdefault(k, []).append(v)
         self.training_logs = self.epoch_logs
-
         return self.epoch_logs
 
     def transform_metrics(self, logs, stage="train"):
