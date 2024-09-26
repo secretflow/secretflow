@@ -41,6 +41,8 @@ from secretflow.component.preprocessing.binning.vert_woe_binning import (
     vert_woe_binning_comp,
 )
 from secretflow.component.preprocessing.data_prep.psi import psi_comp
+from secretflow.component.preprocessing.data_prep.psi3 import psi_tp_comp
+from secretflow.component.preprocessing.data_prep.union import union_comp
 from secretflow.component.preprocessing.data_prep.train_test_split import (
     train_test_split_comp,
 )
@@ -86,6 +88,7 @@ ALL_COMPONENTS = [
     train_test_split_comp,
     psi_comp,
     sample_comp,
+    psi_tp_comp,
     ss_sgd_train_comp,
     ss_sgd_predict_comp,
     feature_filter_comp,
