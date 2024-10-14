@@ -21,18 +21,28 @@ from torch.nn import CrossEntropyLoss
 from torch.nn import functional as F
 from torch.utils.data import DataLoader, TensorDataset
 
-from secretflow.ml.nn.core.torch import BaseModule, TorchModel
-from secretflow.ml.nn.fl.backend.torch.strategy.fed_gen import FedGen
+from secretflow.ml.nn.core.torch import (
+    BaseModule,
+    TorchModel,
+    metric_wrapper,
+    optim_wrapper,
+)
+from secretflow.ml.nn.fl.backend.torch.strategy.fed_gen import (
+    FedGen,
+    FedGenGeneratorModel,
+)
 
 
 class ConvNet(BaseModule):
     """Small ConvNet for MNIST."""
 
-    def __init__(self):
+    def __init__(self, kl_div_loss, num_classes):
         super(ConvNet, self).__init__()
         self.conv1 = nn.Conv2d(1, 3, kernel_size=3)
         self.fc_in_dim = 192
         self.fc = nn.Linear(self.fc_in_dim, 10)
+        self.kl_div_loss = kl_div_loss
+        self.num_classes = num_classes
 
     def forward(self, x, start_layer_idx=0):
         if start_layer_idx == -1:
@@ -41,67 +51,7 @@ class ConvNet(BaseModule):
         x = F.relu(F.max_pool2d(self.conv1(x), 3))
         x = x.view(-1, self.fc_in_dim)
         x = self.fc(x)
-        # should be logit
         return x
-
-
-class GeneratorModel(nn.Module):
-    def __init__(
-        self, hidden_dimension, latent_dimension, n_class, noise_dim, embedding=False
-    ):
-        super(GeneratorModel, self).__init__()
-        self.hidden_dim = hidden_dimension
-        self.latent_dim = latent_dimension
-        self.n_class = n_class
-        self.noise_dim = noise_dim
-        self.embedding = embedding
-        input_dim = (
-            self.noise_dim * 2 if self.embedding else self.noise_dim + self.n_class
-        )
-        self.build_network(input_dim)
-
-    def build_network(self, input_dim):
-        if self.embedding:
-            self.embedding_layer = nn.Embedding(self.n_class, self.noise_dim)
-        # Fully connected layers
-        self.fc_layers = nn.Sequential(
-            nn.Linear(input_dim, self.hidden_dim),
-            nn.BatchNorm1d(self.hidden_dim),
-            nn.ReLU(),
-        )
-        # Representation layer
-        self.representation_layer = nn.Linear(self.hidden_dim, self.latent_dim)
-
-    def forward(self, labels, latent_layer_idx=-1, verbose=True):
-        """
-        G(Z|y) or G(X|y):
-        Generate either latent representation( latent_layer_idx < 0) or raw image (latent_layer_idx=0) conditional on labels.
-        :param labels:
-        :param latent_layer_idx:
-            if -1, generate latent representation of the last layer,
-            -2 for the 2nd to last layer, 0 for raw images.
-        :param verbose: also return the sampled Gaussian noise if verbose = True
-        :return: a dictionary of output information.
-        """
-        result = {}
-        batch_size = labels.shape[0]
-        eps = torch.rand((batch_size, self.noise_dim))  # sampling from Gaussian
-        if verbose:
-            result['eps'] = eps
-        if self.embedding:  # embedded dense vector
-            y_input = self.embedding_layer(labels)
-        else:  # one-hot (sparse) vector
-            y_input = torch.FloatTensor(batch_size, self.n_class)
-            y_input.zero_()
-            # labels = labels.view
-            y_input.scatter_(1, labels.view(-1, 1), 1)
-        z = torch.cat((eps, y_input), dim=1)
-        # FC layers
-        for layer in self.fc_layers:
-            z = layer(z)
-        z = self.representation_layer(z)
-        result['output'] = z
-        return result
 
 
 class DiversityLoss(nn.Module):
@@ -154,45 +104,29 @@ class TestFedGen:
 
     def test_fed_gen_local_step(self, sf_simulation_setup_devices):
         # Initialize Scaffold strategy with ConvNet model
+        num_classes = 10
+        loss_fn = nn.CrossEntropyLoss
+        optim_fn = optim_wrapper(optim.Adam, lr=1e-2)
+        kl_div_loss = nn.KLDivLoss(reduction="batchmean")
+        diversity_loss = DiversityLoss(metric='l1')
 
         builder = TorchModel(
             model_fn=ConvNet,
             loss_fn=CrossEntropyLoss,
             optim_fn=optim.Adam,
+            kl_div_loss=kl_div_loss,
+            num_classes=num_classes,
         )
 
-        generator = GeneratorModel(
+        generator = FedGenGeneratorModel(
             hidden_dimension=256,
             latent_dimension=192,
-            n_class=10,
             noise_dim=64,
-            embedding=False,
+            num_classes=num_classes,
+            loss_fn=loss_fn,
+            optim_fn=optim_fn,
+            diversity_loss=diversity_loss,
         )
-        # Creating a KL Divergence Loss Function
-        kl_div_loss = nn.KLDivLoss(reduction="batchmean")
-        diversity_loss = DiversityLoss(metric='l1')
-        generative_optimizer = torch.optim.Adam(
-            params=generator.parameters(),
-            lr=0.0003,
-            betas=(0.9, 0.999),
-            eps=1e-08,
-            weight_decay=0.01,
-            amsgrad=False,
-        )
-        generative_lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(
-            optimizer=generative_optimizer, gamma=0.98
-        )
-        cross_entropy_loss = nn.CrossEntropyLoss()
-
-        generator_config = {
-            'generator_model': generator,
-            'optimizer': generative_optimizer,
-            'scheduler': generative_lr_scheduler,
-            'loss_fn': cross_entropy_loss,
-            'kl_div_loss': kl_div_loss,
-            'diversity_loss': diversity_loss,
-            'num_classes': 10,
-        }
 
         # Initialize Scaffold strategy with ConvNet model
         fed_gen_worker = FedGen(builder_base=builder)
@@ -210,7 +144,7 @@ class TestFedGen:
         # Perform a training step
         gradients = None
         gradients, num_sample = fed_gen_worker.train_step(
-            gradients, cur_steps=0, train_steps=1, generator_config=generator_config
+            gradients, cur_steps=0, train_steps=1, generator=generator
         )
 
         # Apply weights update
@@ -224,6 +158,6 @@ class TestFedGen:
 
         # Perform another training step to test cumulative behavior
         _, num_sample = fed_gen_worker.train_step(
-            gradients, cur_steps=1, train_steps=2, generator_config=generator_config
+            gradients, cur_steps=1, train_steps=2, generator=generator
         )
         assert num_sample == 64  # Cumulative batch size over two steps

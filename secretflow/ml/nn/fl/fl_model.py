@@ -25,7 +25,6 @@ import os
 from typing import Callable, Dict, List, Tuple, Union
 
 import numpy as np
-import torch
 
 from secretflow.data.horizontal import HDataFrame
 from secretflow.data.ndarray import FedNdarray
@@ -75,33 +74,12 @@ class FLModel:
             raise Exception(f"Invalid backend = {backend}")
 
         if strategy == 'fed_gen':
-            generator_config = kwargs.get('generator_config')
-            if generator_config is None:
+            generator = kwargs.get('generator')
+            if generator is None:
                 raise ValueError(
-                    'A generator_config must be provided when using the fed_gen strategy.'
+                    'generator must be provided when using the fed_gen strategy.'
                 )
-
-            # Check if all required keys are in the generator_config dictionary
-            required_keys = [
-                'generator_model',
-                'loss_fn',
-                'optimizer',
-                'kl_div_loss',
-                'diversity_loss',
-                'num_classes',
-            ]
-            for key in required_keys:
-                if key not in generator_config:
-                    raise ValueError(
-                        f"The '{key}' key is missing in the generator_config dictionary."
-                    )
-
-            # Assign the generator and set up the loss function and train parameter
-            self.generator = generator_config['generator_model']
-            self.loss_fn = generator_config['loss_fn']
-            self.diversity_loss = generator_config['diversity_loss']
-            self.generative_optimizer = generator_config['optimizer']
-            self.generative_num_classes = generator_config['num_classes']
+            self.generator = generator
 
         self.num_gpus = kwargs.get('num_gpus', 0)
         self.init_workers(
@@ -589,35 +567,32 @@ class FLModel:
 
                 # Train generator
                 if self.strategy == 'fed_gen':
-                    # Get label distribution
-                    worker_label_counts = [
-                        reveal(self._workers[device].get_cur_step_label_counts())
-                        for device, worker in self._workers.items()
-                    ]
+                    for i in range(self.generator.epochs):
+                        # Get label distribution
+                        worker_label_counts = [
+                            reveal(self._workers[device].get_cur_step_label_counts())
+                            for device, worker in self._workers.items()
+                        ]
 
-                    # Train generator model
-                    generate_samples = reveal(
-                        self.server.generate_samples(
-                            self.generative_num_classes, batch_size
+                        # Train generator model
+                        y_input, generated_result = reveal(
+                            self.server.generate_samples(self.generator)
                         )
-                    )
-                    user_results = [
-                        reveal(
-                            self._workers[device].predict_with_generator_output(
-                                generate_samples
+                        user_results = [
+                            reveal(
+                                self._workers[device].predict_with_generator_output(
+                                    generated_result
+                                )
                             )
+                            for device in self._workers
+                        ]
+                        self.server.train_generator(
+                            user_results,
+                            worker_label_counts,
+                            y_input,
+                            generated_result,
+                            self.generator,
                         )
-                        for device in self._workers
-                    ]
-                    self.server.train_generator(
-                        user_results,
-                        worker_label_counts,
-                        self.generator,
-                        self.generative_num_classes,
-                        self.generative_optimizer,
-                        self.loss_fn,
-                        self.diversity_loss,
-                    )
 
                 # DP operation
                 if dp_spent_step_freq is not None and self.dp_strategy is not None:
