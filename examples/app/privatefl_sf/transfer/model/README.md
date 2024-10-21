@@ -1,0 +1,1 @@
+Please download the weight (model_best.pth.tar) for ResNext using this [link](https://mycuhk-my.sharepoint.com/personal/1155056070_link_cuhk_edu_hk/_layouts/15/onedrive.aspx?ga=1&id=%2Fpersonal%2F1155056070%5Flink%5Fcuhk%5Fedu%5Fhk%2FDocuments%2Frelease%2Fpytorch%2Dclassification%2Fcheckpoints%2Fcifar100%2Fresnext%2D8x64d), and put it under this folder.
