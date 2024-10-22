@@ -48,7 +48,36 @@ class GradLiaAttackCase(AttackBase):
     def update_resources_consumptions(
         self, cluster_resources_pack: ResourcesPack, app: ApplicationBase
     ) -> ResourcesPack:
-        func = lambda x: x * 1.2
-        return cluster_resources_pack.apply_debug_resources(
-            'gpu_mem', func
-        ).apply_sim_resources(app.device_y.party, 'gpu_mem', func)
+        update_gpu = lambda x: x * 1.2
+
+        # k-means use a lot of memory
+        def update_mem(__):
+            G = 1024 * 1024 * 1024
+            match app.dataset_name():
+                case "bank":
+                    return 12 * G
+                case "creditcard":
+                    return 27 * G
+                case "drive":
+                    return 10 * G
+                case "movielens":
+                    return 30 * G
+                case "criteo":
+                    return 30 * G
+                case "cifar10":
+                    return 25 * G
+                case "mnist":
+                    return 32 * G
+                case _:
+                    return 25 * G
+
+        cluster_resources_pack = (
+            cluster_resources_pack.apply_debug_resources('gpu_mem', update_gpu)
+            .apply_debug_resources('memory', update_mem)
+            .apply_sim_resources(app.device_y.party, 'gpu_mem', update_gpu)
+            .apply_sim_resources(app.device_y.party, 'memory', update_mem)
+        )
+        print(
+            f"grad lia resource m = {cluster_resources_pack.resources['debug']['memory']}, updatemem = {update_mem(1)}"
+        )
+        return cluster_resources_pack

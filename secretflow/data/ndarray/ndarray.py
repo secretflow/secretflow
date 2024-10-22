@@ -630,18 +630,22 @@ def r2_score(y_true: FedNdarray, y_pred: FedNdarray, spu_device: Optional[SPU] =
     If y_true is empty return 0.
     """
 
-    def r2_from_tss_rss(tss_val, rss_val):
-        return 1 - rss_val / tss_val
-
     same_p = check_same_partition_shapes(y_true, y_pred)
     y_len = len(y_true.partitions.keys())
-    tss_val = tss(y_true, spu_device)
-    rss_val = rss(y_true, y_pred, spu_device)
 
     if same_p and y_len == 1:
-        for device in y_true.partitions.keys():
-            return device(r2_from_tss_rss)(tss_val, rss_val)
+        from sklearn.metrics import r2_score as sk_r2_score
+
+        y_pred_object = list(y_pred.partitions.values())[0]
+        y_true_object = list(y_true.partitions.values())[0]
+        return y_pred_object.device(sk_r2_score)(y_true_object, y_pred_object)
     else:
+
+        def r2_from_tss_rss(tss_val, rss_val):
+            return 1 - rss_val / tss_val
+
+        tss_val = tss(y_true, spu_device)
+        rss_val = rss(y_true, y_pred, spu_device)
         assert spu_device is not None, "An SPU device is required"
         return spu_device(r2_from_tss_rss)(
             tss_val.to(spu_device), rss_val.to(spu_device)

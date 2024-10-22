@@ -19,9 +19,7 @@
 import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List
-
-import tensorflow as tf
+from typing import List, Optional
 
 # The reason we just do not inherit or combine tensorflow metrics
 # is tensorflow metrics are un-serializable but we need send they from worker to server.
@@ -40,13 +38,29 @@ class Metric(ABC):
     def __add__(self, other):
         pass
 
+    def __getstate__(self):
+        '''
+        remove field metric when serializing
+        '''
+        state = self.__dict__.copy()
+        if "metric" in state:
+            del state['metric']
+        return state
+
+    def __setstate__(self, state):
+        '''
+        set field metric to None when deserializing
+        '''
+        self.__dict__.update(state)
+        self.metric = None
+
 
 @dataclass
 class Default(Metric):
     name: str
     total: float
     count: float
-    metric: tf.keras.metrics.Mean = None
+    metric: Optional[object] = None
 
     def __add__(self, other):
         assert self.name == other.name
@@ -64,6 +78,8 @@ class Default(Metric):
         )
 
         if self.metric is None:
+            import tensorflow as tf
+
             self.metric = tf.keras.metrics.Mean()
 
         self.metric.total = self.total
@@ -83,7 +99,7 @@ class Mean(Metric):
     name: str
     total: float
     count: float
-    metric: tf.keras.metrics.Mean = None
+    metric: Optional[object] = None
 
     def __radd__(self, other):
         assert other == 0
@@ -97,6 +113,8 @@ class Mean(Metric):
 
     def result(self):
         if self.metric is None:
+            import tensorflow as tf
+
             self.metric = tf.keras.metrics.Mean()
 
         self.metric.total = self.total
@@ -197,7 +215,7 @@ class Precision(Metric):
     thresholds: float
     true_positives: float
     false_positives: float
-    metric: tf.keras.metrics.Precision = None
+    metric: Optional[object] = None
 
     def __radd__(self, other):
         assert other == 0
@@ -214,6 +232,8 @@ class Precision(Metric):
 
     def result(self):
         if self.metric is None:
+            import tensorflow as tf
+
             self.metric = tf.keras.metrics.Precision()
 
         self.metric.thresholds = self.thresholds
@@ -237,7 +257,7 @@ class Recall(Metric):
     thresholds: float
     true_positives: float
     false_negatives: float
-    metric: tf.keras.metrics.Recall = None
+    metric: Optional[object] = None
 
     def __radd__(self, other):
         assert other == 0
@@ -254,6 +274,8 @@ class Recall(Metric):
 
     def result(self):
         if self.metric is None:
+            import tensorflow as tf
+
             self.metric = tf.keras.metrics.Recall()
 
         self.metric.thresholds = self.thresholds

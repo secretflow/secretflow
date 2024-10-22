@@ -79,7 +79,7 @@ class ModelBuilder(Component):
             return self.label_holder(init_pred)(base=base, samples=sample_num)
         else:
             assert x is not None, "x must be provided"
-            return checkpoint_model.predict(x)
+            return checkpoint_model.predict_with_trees(x)
 
     def init_model(self, checkpoint_model: SgbModel = None):
         self.model = (

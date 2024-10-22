@@ -11,3 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+
+import os
+
+from secretflow.component.core import load_component_modules
+
+
+def _import_all_submodules():
+    root_path = os.path.dirname(__file__)
+    load_component_modules(
+        root_path,
+        "secretflow.component",
+        ignore_dirs=["core", "test_framework", "storage"],
+        ignore_keys=["/core/", "_utils/"],
+        ignore_root_files=True,
+    )
+
+
+_import_all_submodules()

@@ -9,6 +9,7 @@
 
 - Messages
     - [SFClusterConfig](#sfclusterconfig)
+    - [SFClusterConfig.InferenceConfig](#sfclusterconfiginferenceconfig)
     - [SFClusterConfig.PrivateConfig](#sfclusterconfigprivateconfig)
     - [SFClusterConfig.PublicConfig](#sfclusterconfigpublicconfig)
     - [SFClusterConfig.RayFedConfig](#sfclusterconfigrayfedconfig)
@@ -59,6 +60,19 @@ Besides intrinsic SFClusterDesc, dynamic network configs are provided.
  <!-- end HasFields -->
 
 
+#### SFClusterConfig.InferenceConfig
+the inferencer from secretflow_serving_lib.tools needs ports to communication.
+inferencer can make predition based on tar package of model.
+
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| parties | [repeated string](#string) | none |
+| addresses | [repeated string](#string) | none |
+ <!-- end Fields -->
+ <!-- end HasFields -->
+
+
 #### SFClusterConfig.PrivateConfig
 Different for each party.
 Private and unique to each party.
@@ -81,6 +95,7 @@ Public and shared to all parties.
 | ray_fed_config | [ SFClusterConfig.RayFedConfig](#sfclusterconfigrayfedconfig) | none |
 | spu_configs | [repeated SFClusterConfig.SPUConfig](#sfclusterconfigspuconfig) | none |
 | barrier_on_shutdown | [ bool](#bool) | none |
+| inference_config | [ SFClusterConfig.InferenceConfig](#sfclusterconfiginferenceconfig) | none |
  <!-- end Fields -->
  <!-- end HasFields -->
 

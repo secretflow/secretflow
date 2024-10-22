@@ -18,7 +18,7 @@ import jax.numpy as jnp
 import numpy as np
 from heu import phe
 
-from secretflow.data.vertical import VDataFrame
+from secretflow.component.core import CompVDataFrame
 from secretflow.device import HEU, PYU, SPU, PYUObject
 from secretflow.device.device.heu import HEUMoveConfig
 from secretflow.preprocessing.binning.vert_woe_binning_pyu import (
@@ -46,7 +46,7 @@ class VertWoeBinning:
     def __init__(self, secure_device: Union[SPU, HEU]):
         self.secure_device = secure_device
 
-    def _find_label_holder_device(self, vdata: VDataFrame, label_name) -> PYU:
+    def _find_label_holder_device(self, vdata: CompVDataFrame, label_name) -> PYU:
         """
         Find which holds the label column.
 
@@ -57,7 +57,8 @@ class VertWoeBinning:
         Return:
             PYU device
         """
-        device_column_names = vdata.partition_columns
+
+        device_column_names = {pyu: p.columns for pyu, p in vdata.partitions.items()}
         label_count = 0
         for device in device_column_names:
             if np.isin(label_name, device_column_names[device]).all():
@@ -72,7 +73,7 @@ class VertWoeBinning:
 
     def binning(
         self,
-        vdata: VDataFrame,
+        vdata: CompVDataFrame,
         binning_method: str = "quantile",
         bin_num: int = 10,
         bin_names: Dict[PYU, List[str]] = {},
@@ -196,7 +197,7 @@ class VertWoeBinning:
                 device in vdata.partitions.keys()
             ), f"device {device} in bin_names not exist in vdata"
             workers[device] = VertWoeBinningPyuWorker(
-                vdata.partitions[device].data.data,
+                vdata.partitions[device].data,
                 binning_method,
                 bin_num,
                 bin_names[device],

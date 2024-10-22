@@ -18,13 +18,14 @@ import pathlib
 from functools import wraps
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
-import fed
+import fed as rayfed
 import jax
 import multiprocess
 import ray
 
 import secretflow.distributed as sfd
 from secretflow.device import global_state
+from secretflow.distributed import fed as sf_fed
 from secretflow.distributed.primitive import DISTRIBUTION_MODE
 from secretflow.utils.errors import InvalidArgumentError
 from secretflow.utils.logging import set_logging_level
@@ -42,8 +43,6 @@ from .device import (
     SPUObject,
     TEEUObject,
 )
-
-_CROSS_SILO_COMM_BACKENDS = ['grpc', 'brpc_link']
 
 
 def with_device(
@@ -148,7 +147,7 @@ def reveal(func_or_object, heu_encoder=None):
             all_object_refs.append(ref)
         elif isinstance(x, SPUObject):
             assert isinstance(
-                x.shares_name[0], (ray.ObjectRef, fed.FedObject)
+                x.shares_name[0], (ray.ObjectRef, rayfed.FedObject, sf_fed.FedObject)
             ), f"shares_name in spu obj should be ObjectRef or FedObject, but got {type(x.shares_name[0])} "
             info, shares_chunk = x.device.outfeed_shares(x.shares_name)
             all_spu_chunks_count.append(len(shares_chunk))
@@ -215,6 +214,7 @@ def wait(objects: Any):
 
 def init(
     parties: Union[str, List[str]] = None,
+    ray_mode: bool = True,
     address: Optional[str] = None,
     cluster_config: Dict = None,
     num_cpus: Optional[int] = None,
@@ -233,15 +233,20 @@ def init(
     debug_mode=False,
     **kwargs,
 ):
-    """Connect to an existing Ray cluster or start one and connect to it.
+    """Initialize the execution environment of SF.
 
     Args:
         parties: parties this node represents, e.g: 'alice', ['alice', 'bob', 'carol'].
             If parties are provided, then simulation mode will be enabled,
             which means a single ray cluster will simulate as multi parties.
             If you want to run SecretFlow in production mode, plean keep it None.
-        address:  The address of the Ray cluster to connect to. If this address
+        ray_mode: Whether to use ray as the backend task scheduler in production mode.
+            If False, use python thread pool as backend, avoid the overhead caused by
+            starting the ray cluster itself.
+            This configuration should be consistent between all parties.
+        address: The address of the Ray cluster to connect to. If this address
             is not provided, then a local ray will be started.
+            Only works when ray_mode is True.
         cluster_config: the cluster config of multi SecretFlow parties. Must be
             provided if you run SecretFlow in cluster mode. E.g.
 
@@ -414,6 +419,7 @@ def init(
         tee_simulation: optional, enable TEE simulation if True.
             When simulation is enabled, the remote attestation for auth manager
             will be ignored. This is for test only and keep it False when for production.
+
         debug_mode: Whether to enable debug mode. In debug mode, single-process simulation
                     will be used instead of ray scheduling, and lazy mode will be changed to
                     synchronous mode to facilitate debugging.and will use PYU to simulate SPU device
@@ -430,67 +436,24 @@ def init(
             'Please run SecretFlow in production mode.'
         )
 
-    if ray_version_less_than_2_0_0():
-        if address:
-            local_mode = False
-        else:
-            local_mode = True
-    else:
-        local_mode = address == 'local'
-    if not local_mode and num_cpus is not None:
-        num_cpus = None
-        logging.warning(
-            'When connecting to an existing cluster, num_cpus must not be provided. Num_cpus is neglected at this moment.'
-        )
-    if local_mode and num_cpus is None:
-        num_cpus = multiprocess.cpu_count()
-        if simluation_mode:
-            # Give num_cpus a min value for better simulation.
-            num_cpus = max(num_cpus, 32)
+    _init_global_state(
+        parties,
+        simluation_mode,
+        auth_manager_config,
+        tee_simulation,
+        cluster_config,
+    )
 
     if party_key_pair:
         _parse_party_key_pair(party_key_pair)
 
-    if auth_manager_config:
-        if not isinstance(auth_manager_config, dict):
-            raise InvalidArgumentError(
-                f'auth_manager_config should be a dict but got {type(auth_manager_config)}.'
-            )
-        if 'host' not in auth_manager_config:
-            raise InvalidArgumentError('auth_manager_config does not contain host.')
-        if 'mr_enclave' not in auth_manager_config:
-            raise InvalidArgumentError(
-                'auth_manager_config does not contain mr_enclave.'
-            )
-
-        logging.info(f'Authority manager config is {auth_manager_config}')
-        global_state.set_auth_manager_host(auth_host=auth_manager_config['host'])
-        global_state.set_auth_manager_mr_enclave(
-            mr_enclave=auth_manager_config['mr_enclave']
-        )
-        auth_ca_cert_path = auth_manager_config.get('ca_cert', None)
-        if auth_ca_cert_path:
-            with open(auth_ca_cert_path, 'r') as f:
-                auth_ca_cert = f.read()
-            global_state.set_auth_manager_ca_cert(ca_cert=auth_ca_cert)
-
-    global_state.set_tee_simulation(tee_simulation=tee_simulation)
-
-    if 'include_dashboard' not in kwargs:
-        kwargs['include_dashboard'] = False
-
     if simluation_mode:
-        if not isinstance(parties, (str, Tuple, List)):
-            raise InvalidArgumentError('parties must be str or list of str.')
-        if isinstance(parties, str):
-            parties = [parties]
-        else:
-            assert len(set(parties)) == len(parties), f'duplicated parties {parties}.'
-
         if debug_mode:
             # debug mode
             sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.DEBUG)
+            logging.info("Try init sf in DEBUG mode")
         else:
+            logging.info("Try init sf in SIMULATION mode")
             if cluster_config:
                 raise InvalidArgumentError(
                     'Simulation mode is enabled when `parties` is provided, '
@@ -501,105 +464,58 @@ def init(
                 )
             # Simulation mode
             sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.SIMULATION)
-            if local_mode:
-                # party resources is not for scheduler cpus, but set num_cpus for convenient.
-                resources = {party: num_cpus for party in parties}
-            else:
-                resources = None
-
-            if not address and omp_num_threads:
-                os.environ['OMP_NUM_THREADS'] = f'{omp_num_threads}'
-
-            ray.init(
+            _init_ray(
+                parties,
                 address,
-                num_cpus=num_cpus,
-                num_gpus=num_gpus,
-                resources=resources,
-                log_to_driver=log_to_driver,
+                simluation_mode,
+                omp_num_threads,
+                num_cpus,
+                num_gpus,
+                log_to_driver,
                 **kwargs,
             )
-        global_state.set_parties(parties=parties)
 
-    else:
-        sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.PRODUCTION)
-        global _CROSS_SILO_COMM_BACKENDS
-        assert cross_silo_comm_backend.lower() in _CROSS_SILO_COMM_BACKENDS, (
-            'Invalid cross_silo_comm_backend, '
-            f'{_CROSS_SILO_COMM_BACKENDS} are available now.'
-        )
-        # cluster mode
-        if not cluster_config:
-            raise InvalidArgumentError(
-                'Must provide `cluster_config` when running with production mode.'
-                ' Or if you want to run SecretFlow in simulation mode, you should'
-                ' provide `parties` and keep `cluster_config` with `None`.'
-            )
-        if 'self_party' not in cluster_config:
-            raise InvalidArgumentError('Miss self_party in cluster config.')
-        if 'parties' not in cluster_config:
-            raise InvalidArgumentError('Miss parties in cluster config.')
-        self_party = cluster_config['self_party']
-        all_parties: Dict = cluster_config['parties']
-        if self_party not in all_parties:
-            raise InvalidArgumentError(
-                f'Party {self_party} not found in cluster config parties.'
-            )
-        for party in all_parties.values():
-            assert (
-                'address' in party
-            ), f'There is no address for party {party} in cluster config.'
-        global_state.set_parties(parties=list(all_parties.keys()))
-        global_state.set_self_party(self_party)
-
-        if tls_config:
-            _parse_tls_config(tls_config, self_party)
-
-        ray.init(
+    elif ray_mode:
+        sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.RAY_PRODUCTION)
+        logging.info("Try init sf in RAY_PRODUCTION mode")
+        _init_ray(
+            parties,
             address,
-            num_cpus=num_cpus,
-            num_gpus=num_gpus,
-            log_to_driver=log_to_driver,
+            simluation_mode,
+            omp_num_threads,
+            num_cpus,
+            num_gpus,
+            log_to_driver,
             **kwargs,
         )
-        cross_silo_comm_options = cross_silo_comm_options or {}
-        if 'exit_on_sending_failure' not in cross_silo_comm_options:
-            cross_silo_comm_options['exit_on_sending_failure'] = True
-        sending_failure_handler = cross_silo_comm_options.pop(
-            'sending_failure_handler', None
+        _init_rayfed(
+            cluster_config,
+            tls_config,
+            enable_waiting_for_other_parties_ready,
+            cross_silo_comm_options,
+            cross_silo_comm_backend,
+            logging_level,
+            job_name,
         )
-        config = {
-            'cross_silo_comm': cross_silo_comm_options,
-            'barrier_on_initializing': enable_waiting_for_other_parties_ready,
-        }
-        receiver_sender_proxy_cls = None
-        if cross_silo_comm_backend.lower() == 'brpc_link':
-            from fed.proxy.brpc_link.link import BrpcLinkSenderReceiverProxy
-
-            receiver_sender_proxy_cls = BrpcLinkSenderReceiverProxy
-            if enable_waiting_for_other_parties_ready:
-                if 'connect_retry_times' not in config['cross_silo_comm']:
-                    config['cross_silo_comm']['connect_retry_times'] = 3600
-                    config['cross_silo_comm']['connect_retry_interval_ms'] = 1000
-        addresses = {}
-        for party, addr in all_parties.items():
-            if party == self_party:
-                addresses[party] = addr.get('listen_addr', addr['address'])
-            else:
-                addresses[party] = addr['address']
-        fed.init(
-            addresses=addresses,
-            party=self_party,
-            config=config,
-            logging_level=logging_level,
-            tls_config=tls_config,
-            receiver_sender_proxy_cls=receiver_sender_proxy_cls,
-            sending_failure_handler=sending_failure_handler,
-            job_name=job_name,
+    else:
+        sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.PRODUCTION)
+        logging.info("Try init sf in PRODUCTION mode")
+        _init_sf_fed(
+            cluster_config,
+            tls_config,
+            enable_waiting_for_other_parties_ready,
+            cross_silo_comm_options,
+            cross_silo_comm_backend,
+            logging_level,
+            job_name,
         )
 
 
 def barrier():
-    if sfd.get_distribution_mode() == DISTRIBUTION_MODE.PRODUCTION:
+    if sfd.get_distribution_mode() in (
+        DISTRIBUTION_MODE.PRODUCTION,
+        DISTRIBUTION_MODE.RAY_PRODUCTION,
+    ):
         barriers = []
         for party in global_state.parties():
             barriers.append(PYU(party)(lambda: None)())
@@ -629,7 +545,11 @@ def shutdown(barrier_on_shutdown=True, on_error=None):
             discontinue any ongoing data transmissions if
             `continue_waiting_for_data_sending_on_error` is not True.
     """
-    if barrier_on_shutdown:
+    logging.info(
+        f"shutdown is called, barrier_on_shutdown {barrier_on_shutdown},"
+        f" on_error {on_error}"
+    )
+    if barrier_on_shutdown and not on_error:
         barrier()
     sfd.shutdown(on_error=on_error)
 
@@ -687,3 +607,211 @@ def _parse_party_key_pair(
         )
         party_key_pairs[name] = party_key_pair
     global_state.set_party_key_pairs(party_key_pairs=party_key_pairs)
+
+
+def _get_cluster_config(cluster_config: Dict):
+    if not cluster_config:
+        raise InvalidArgumentError(
+            'Must provide `cluster_config` when running with production mode.'
+            ' Or if you want to run SecretFlow in simulation mode, you should'
+            ' provide `parties` and keep `cluster_config` with `None`.'
+        )
+    if 'self_party' not in cluster_config:
+        raise InvalidArgumentError('Miss self_party in cluster config.')
+    if 'parties' not in cluster_config:
+        raise InvalidArgumentError('Miss parties in cluster config.')
+    self_party = cluster_config['self_party']
+    all_parties: Dict = cluster_config['parties']
+    if self_party not in all_parties:
+        raise InvalidArgumentError(
+            f'Party {self_party} not found in cluster config parties.'
+        )
+    for party in all_parties.values():
+        assert (
+            'address' in party
+        ), f'There is no address for party {party} in cluster config.'
+    return self_party, all_parties
+
+
+def _init_global_state(
+    parties: Union[str, List[str]] = None,
+    simluation_mode: bool = False,
+    auth_manager_config: Dict = None,
+    tee_simulation: bool = False,
+    cluster_config: Dict = None,
+):
+    if auth_manager_config:
+        if not isinstance(auth_manager_config, dict):
+            raise InvalidArgumentError(
+                f'auth_manager_config should be a dict but got {type(auth_manager_config)}.'
+            )
+        if 'host' not in auth_manager_config:
+            raise InvalidArgumentError('auth_manager_config does not contain host.')
+        if 'mr_enclave' not in auth_manager_config:
+            raise InvalidArgumentError(
+                'auth_manager_config does not contain mr_enclave.'
+            )
+
+        logging.info(f'Authority manager config is {auth_manager_config}')
+        global_state.set_auth_manager_host(auth_host=auth_manager_config['host'])
+        global_state.set_auth_manager_mr_enclave(
+            mr_enclave=auth_manager_config['mr_enclave']
+        )
+        auth_ca_cert_path = auth_manager_config.get('ca_cert', None)
+        if auth_ca_cert_path:
+            with open(auth_ca_cert_path, 'r') as f:
+                auth_ca_cert = f.read()
+            global_state.set_auth_manager_ca_cert(ca_cert=auth_ca_cert)
+
+    global_state.set_tee_simulation(tee_simulation=tee_simulation)
+
+    if not simluation_mode:
+        self_party, all_parties = _get_cluster_config(cluster_config)
+        global_state.set_parties(parties=list(all_parties.keys()))
+        global_state.set_self_party(self_party)
+    else:
+        if not isinstance(parties, (str, Tuple, List)):
+            raise InvalidArgumentError('parties must be str or list of str.')
+        if isinstance(parties, str):
+            parties = [parties]
+        else:
+            assert len(set(parties)) == len(parties), f'duplicated parties {parties}.'
+        global_state.set_parties(parties=parties)
+
+
+def _init_rayfed(
+    cluster_config,
+    tls_config,
+    enable_waiting_for_other_parties_ready,
+    cross_silo_comm_options,
+    cross_silo_comm_backend,
+    logging_level,
+    job_name,
+):
+    self_party, all_parties = _get_cluster_config(cluster_config)
+    if tls_config:
+        _parse_tls_config(tls_config, self_party)
+
+    assert cross_silo_comm_backend.lower() in [
+        'grpc',
+        'brpc_link',
+    ], 'Invalid cross_silo_comm_backend, [grpc, brpc_link] are available now.'
+
+    cross_silo_comm_options = cross_silo_comm_options or {}
+    if 'exit_on_sending_failure' not in cross_silo_comm_options:
+        cross_silo_comm_options['exit_on_sending_failure'] = True
+    sending_failure_handler = cross_silo_comm_options.pop(
+        'sending_failure_handler', None
+    )
+    config = {
+        'cross_silo_comm': cross_silo_comm_options,
+        'barrier_on_initializing': enable_waiting_for_other_parties_ready,
+    }
+    receiver_sender_proxy_cls = None
+    if cross_silo_comm_backend.lower() == 'brpc_link':
+        from fed.proxy.brpc_link.link import BrpcLinkSenderReceiverProxy
+
+        receiver_sender_proxy_cls = BrpcLinkSenderReceiverProxy
+        if enable_waiting_for_other_parties_ready:
+            if 'connect_retry_times' not in config['cross_silo_comm']:
+                config['cross_silo_comm']['connect_retry_times'] = 3600
+                config['cross_silo_comm']['connect_retry_interval_ms'] = 1000
+    addresses = {}
+    for party, addr in all_parties.items():
+        if party == self_party:
+            addresses[party] = addr.get('listen_addr', addr['address'])
+        else:
+            addresses[party] = addr['address']
+    rayfed.init(
+        addresses=addresses,
+        party=self_party,
+        config=config,
+        logging_level=logging_level,
+        tls_config=tls_config,
+        receiver_sender_proxy_cls=receiver_sender_proxy_cls,
+        sending_failure_handler=sending_failure_handler,
+        job_name=job_name,
+    )
+
+
+def _init_sf_fed(
+    cluster_config,
+    tls_config,
+    enable_waiting_for_other_parties_ready,
+    cross_silo_comm_options,
+    cross_silo_comm_backend,
+    logging_level,
+    job_name,
+):
+    self_party, all_parties = _get_cluster_config(cluster_config)
+    if tls_config:
+        _parse_tls_config(tls_config, self_party)
+
+    cross_silo_comm_options = cross_silo_comm_options or {}
+    config = {
+        'cross_silo_comm': cross_silo_comm_options,
+        'barrier_on_initializing': enable_waiting_for_other_parties_ready,
+        'cross_silo_comm_backend': cross_silo_comm_backend,
+    }
+
+    addresses = {}
+    for party, addr in all_parties.items():
+        if party == self_party:
+            addresses[party] = addr.get('listen_addr', addr['address'])
+        else:
+            addresses[party] = addr['address']
+    sf_fed.init(
+        addresses=addresses,
+        party=self_party,
+        config=config,
+        logging_level=logging_level,
+        tls_config=tls_config,
+        job_name=job_name,
+    )
+
+
+def _init_ray(
+    parties: Union[str, List[str]] = None,
+    address: str = None,
+    simluation_mode: bool = False,
+    omp_num_threads: int = None,
+    num_cpus: Optional[int] = None,
+    num_gpus: Optional[int] = None,
+    log_to_driver: bool = True,
+    **kwargs,
+):
+    if ray_version_less_than_2_0_0():
+        if address:
+            local_mode = False
+        else:
+            local_mode = True
+    else:
+        local_mode = address == 'local'
+    if not local_mode and num_cpus is not None:
+        num_cpus = None
+        logging.warning(
+            'When connecting to an existing cluster, num_cpus must not be provided. Num_cpus is neglected at this moment.'
+        )
+    if local_mode and num_cpus is None:
+        num_cpus = multiprocess.cpu_count()
+        if simluation_mode:
+            # Give num_cpus a min value for better simulation.
+            num_cpus = max(num_cpus, 32)
+
+    if 'include_dashboard' not in kwargs:
+        kwargs['include_dashboard'] = False
+
+    if simluation_mode and local_mode:
+        # party resources is not for scheduler cpus, but set num_cpus for convenient.
+        kwargs['resources'] = {party: num_cpus for party in parties}
+
+    if not address and omp_num_threads:
+        os.environ['OMP_NUM_THREADS'] = f'{omp_num_threads}'
+
+    ray.init(
+        address,
+        num_cpus=num_cpus,
+        num_gpus=num_gpus,
+        log_to_driver=log_to_driver,
+        **kwargs,
+    )

@@ -14,7 +14,6 @@
 
 import hashlib
 import os
-import pickle
 import random
 import uuid
 import zipfile
@@ -36,6 +35,7 @@ from secretflow.device.device.pyu import PYU
 from secretflow.security.aggregation import Aggregator
 from secretflow.security.compare import Comparator
 from secretflow.utils.hash import sha256sum
+from secretflow.utils import secure_pickle as pickle
 from secretflow.utils.simulation.data import create_ndarray
 from secretflow.utils.simulation.data.dataframe import create_df, create_vdf
 
@@ -106,7 +106,7 @@ _DATASETS = {
     ),
     'creditcard': _Dataset(
         'creditcard.csv',
-        'https://storage.googleapis.com/download.tensorflow.org/data/creditcard.csv',
+        'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/creditcard/creditcard.csv',
         '76274b691b16a6c49d3f159c883398e03ccd6d1ee12d9d8ee38f4b4b98551a89',
     ),
     'creditcard_small': _Dataset(

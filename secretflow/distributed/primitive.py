@@ -20,7 +20,7 @@ from enum import Enum, unique
 from functools import partial
 from typing import List, Union
 
-import fed
+import fed as rayfed
 import jax
 import ray
 from ray import Language
@@ -29,6 +29,7 @@ from ray.actor import ActorClass, _inject_tracing_into_class, ray_constants
 from ray.remote_function import RemoteFunction
 
 import secretflow.ic.remote as ic
+from secretflow.distributed import fed as sf_fed
 from secretflow.distributed.memory_api import mem_remote
 from secretflow.utils.ray_compatibility import ray_version_less_than_2_0_0
 
@@ -39,6 +40,7 @@ class DISTRIBUTION_MODE(Enum):
     SIMULATION = 2
     DEBUG = 3
     INTERCONNECTION = 4
+    RAY_PRODUCTION = 5
 
 
 _distribution_mode = DISTRIBUTION_MODE.SIMULATION
@@ -103,9 +105,8 @@ def get_cluster_avaliable_resources():
     if get_distribution_mode() == DISTRIBUTION_MODE.DEBUG:
         from secretflow.device import global_state
 
-        parties = global_state.parties()
         cpu_counts = multiprocessing.cpu_count()
-        avaliable_resources = {party: cpu_counts for party in parties}
+        avaliable_resources = {party: cpu_counts for party in global_state.parties()}
         avaliable_resources['CPU'] = cpu_counts
         return avaliable_resources
     elif get_distribution_mode() == DISTRIBUTION_MODE.SIMULATION:
@@ -134,7 +135,9 @@ def _is_cython(obj):
 
 def remote(*args, **kwargs):
     if get_distribution_mode() == DISTRIBUTION_MODE.PRODUCTION:
-        return fed.remote(*args, **kwargs)
+        return sf_fed.remote(*args, **kwargs)
+    elif get_distribution_mode() == DISTRIBUTION_MODE.RAY_PRODUCTION:
+        return rayfed.remote(*args, **kwargs)
     elif get_distribution_mode() == DISTRIBUTION_MODE.SIMULATION:
         return ray_remote(*args, **kwargs)
     elif get_distribution_mode() == DISTRIBUTION_MODE.DEBUG:
@@ -148,12 +151,15 @@ def remote(*args, **kwargs):
 def get(
     object_refs: Union[
         Union[ray.ObjectRef, List[ray.ObjectRef]],
-        Union[fed.FedObject, List[fed.FedObject]],
+        Union[sf_fed.FedObject, List[sf_fed.FedObject]],
+        Union[rayfed.FedObject, List[rayfed.FedObject]],
         Union[object, List[object]],
     ]
 ):
     if get_distribution_mode() == DISTRIBUTION_MODE.PRODUCTION:
-        return fed.get(object_refs)
+        return sf_fed.get(object_refs)
+    elif get_distribution_mode() == DISTRIBUTION_MODE.RAY_PRODUCTION:
+        return rayfed.get(object_refs)
     elif get_distribution_mode() == DISTRIBUTION_MODE.SIMULATION:
         return ray.get(object_refs)
     elif get_distribution_mode() == DISTRIBUTION_MODE.DEBUG:
@@ -166,7 +172,9 @@ def get(
 
 def kill(actor, *, no_restart=True):
     if get_distribution_mode() == DISTRIBUTION_MODE.PRODUCTION:
-        return fed.kill(actor, no_restart=no_restart)
+        pass
+    elif get_distribution_mode() == DISTRIBUTION_MODE.RAY_PRODUCTION:
+        return rayfed.kill(actor, no_restart=no_restart)
     elif get_distribution_mode() == DISTRIBUTION_MODE.SIMULATION:
         return ray.kill(actor, no_restart=no_restart)
     elif get_distribution_mode() == DISTRIBUTION_MODE.DEBUG:
@@ -177,7 +185,7 @@ def kill(actor, *, no_restart=True):
         raise Exception(f"Illegal distribute mode, only support ({DISTRIBUTION_MODE})")
 
 
-def shutdown(on_error=None):
+def shutdown(on_error=False):
     """Shutdown the secretflow environment.
 
     Args:
@@ -194,7 +202,9 @@ def shutdown(on_error=None):
     global _is_cluster_active
     _is_cluster_active = False
     if get_distribution_mode() == DISTRIBUTION_MODE.PRODUCTION:
-        fed.shutdown(on_error=on_error)
+        sf_fed.shutdown(on_error=on_error)
+    elif get_distribution_mode() == DISTRIBUTION_MODE.RAY_PRODUCTION:
+        rayfed.shutdown(on_error=on_error)
         ray.shutdown(_exiting_interpreter=True)
     elif get_distribution_mode() == DISTRIBUTION_MODE.SIMULATION:
         ray.shutdown()

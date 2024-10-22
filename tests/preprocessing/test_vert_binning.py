@@ -19,11 +19,19 @@ import pandas as pd
 import pytest
 
 import secretflow.distributed as sfd
+from secretflow.component.core import (
+    CompVDataFrame,
+    VTableField,
+    VTableFieldKind,
+    VTableFieldType,
+    VTableSchema,
+)
 from secretflow.data import partition
 from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.device.driver import reveal
 from secretflow.preprocessing.binning.vert_binning import VertBinning
 from secretflow.preprocessing.binning.vert_woe_binning import VertWoeBinning
+from secretflow.utils import secure_pickle as pickle
 from secretflow.utils.simulation.datasets import dataset
 
 
@@ -62,7 +70,7 @@ def audit_ciphertext_equal(a, b):
 
 
 @pytest.fixture(scope='module')
-def prod_env_and_data(sf_production_setup_devices):
+def prod_env_and_data(sf_production_setup_devices_ray):
     normal_data = pd.read_csv(
         dataset('linear'),
         usecols=[f'x{i}' for i in range(1, 11)] + ['y'],
@@ -73,16 +81,16 @@ def prod_env_and_data(sf_production_setup_devices):
     normal_data['x2'] = np.random.randint(0, 5, (row_num,))
     v_float_data = VDataFrame(
         {
-            sf_production_setup_devices.alice: partition(
-                data=sf_production_setup_devices.alice(lambda: normal_data)()
+            sf_production_setup_devices_ray.alice: partition(
+                data=sf_production_setup_devices_ray.alice(lambda: normal_data)()
             ),
-            sf_production_setup_devices.bob: partition(
-                data=sf_production_setup_devices.bob(
+            sf_production_setup_devices_ray.bob: partition(
+                data=sf_production_setup_devices_ray.bob(
                     lambda: normal_data.drop("y", axis=1)
                 )()
             ),
-            sf_production_setup_devices.carol: partition(
-                data=sf_production_setup_devices.carol(
+            sf_production_setup_devices_ray.carol: partition(
+                data=sf_production_setup_devices_ray.carol(
                     lambda: normal_data.drop("y", axis=1)
                 )()
             ),
@@ -113,27 +121,46 @@ def prod_env_and_data(sf_production_setup_devices):
 
     v_nan_data = VDataFrame(
         {
-            sf_production_setup_devices.alice: partition(
-                data=sf_production_setup_devices.alice(lambda: nan_str_data)()
+            sf_production_setup_devices_ray.alice: partition(
+                data=sf_production_setup_devices_ray.alice(lambda: nan_str_data)()
             ),
-            sf_production_setup_devices.bob: partition(
-                data=sf_production_setup_devices.bob(
+            sf_production_setup_devices_ray.bob: partition(
+                data=sf_production_setup_devices_ray.bob(
                     lambda: nan_str_data.drop("y", axis=1)
                 )()
             ),
-            sf_production_setup_devices.carol: partition(
-                data=sf_production_setup_devices.carol(
+            sf_production_setup_devices_ray.carol: partition(
+                data=sf_production_setup_devices_ray.carol(
                     lambda: nan_str_data.drop("y", axis=1)
                 )()
             ),
         }
     )
 
-    yield sf_production_setup_devices, {
+    def _build_schema(df: VDataFrame, labels: set = {"y"}) -> dict[str, VTableSchema]:
+        res = {}
+        for pyu, p in df.partitions.items():
+            fields = []
+            for name, dtype in p.dtypes.items():
+                dt = VTableFieldType.from_dtype(dtype)
+                kind = (
+                    VTableFieldKind.LABEL if name in labels else VTableFieldKind.FEATURE
+                )
+                fields.append(VTableField(name, dt, kind))
+
+            res[pyu.party] = VTableSchema(fields)
+
+        return res
+
+    yield sf_production_setup_devices_ray, {
         'normal_data': normal_data,
-        'v_float_data': v_float_data,
+        'v_float_data': CompVDataFrame.from_pandas(
+            v_float_data, schemas=_build_schema(v_float_data)
+        ),
         'nan_str_data': nan_str_data,
-        'v_nan_data': v_nan_data,
+        'v_nan_data': CompVDataFrame.from_pandas(
+            v_nan_data, schemas=_build_schema(v_nan_data)
+        ),
     }
 
 
@@ -218,8 +245,6 @@ def test_binning_nan(prod_env_and_data):
     woe_almost_equal(he_bob, he_alice)
 
     # audit_log
-    import cloudpickle as pickle
-
     with open('alice.audit', 'rb') as f:
         a = pickle.load(f)
     with open('bob.audit', 'rb') as f:

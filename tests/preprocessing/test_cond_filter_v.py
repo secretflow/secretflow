@@ -22,7 +22,7 @@ from secretflow.preprocessing.cond_filter_v import ConditionFilter
 
 
 @pytest.fixture(scope='module')
-def prod_env_and_data(sf_production_setup_devices):
+def prod_env_and_data(sf_production_setup_devices_ray):
     vdf_alice = pd.DataFrame(
         {
             'a1': ['K5', 'K1', None, 'K6'],
@@ -41,16 +41,16 @@ def prod_env_and_data(sf_production_setup_devices):
 
     vdf = VDataFrame(
         {
-            sf_production_setup_devices.alice: partition(
-                data=sf_production_setup_devices.alice(lambda: vdf_alice)()
+            sf_production_setup_devices_ray.alice: partition(
+                data=sf_production_setup_devices_ray.alice(lambda: vdf_alice)()
             ),
-            sf_production_setup_devices.bob: partition(
-                data=sf_production_setup_devices.bob(lambda: vdf_bob)()
+            sf_production_setup_devices_ray.bob: partition(
+                data=sf_production_setup_devices_ray.bob(lambda: vdf_bob)()
             ),
         }
     )
 
-    yield sf_production_setup_devices, {
+    yield sf_production_setup_devices_ray, {
         'vdf_alice': vdf_alice,
         'vdf_bob': vdf_bob,
         'vdf': vdf,
@@ -142,3 +142,12 @@ def test_fit_transform_valid_df_2(prod_env_and_data):
     np.testing.assert_equal(type(result), VDataFrame)
     data_len = result.count().max()
     np.testing.assert_equal(data_len, 1)
+
+
+def test_fit_transform_null(prod_env_and_data):
+    filter = ConditionFilter("a1", "NOTNULL", "", None, 0.1)
+    _, data = prod_env_and_data
+    df: VDataFrame = data['vdf']
+    result = filter.fit_transform(df)
+    data_len = result.count().max()
+    np.testing.assert_equal(data_len, 3)

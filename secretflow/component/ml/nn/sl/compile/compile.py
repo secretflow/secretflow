@@ -18,7 +18,6 @@ from pathlib import Path
 from typing import Dict, List
 
 import secretflow as sf
-from secretflow.component.component import CompEvalError
 from secretflow.device import PYU
 
 
@@ -71,7 +70,7 @@ def do_compile_all(
         from .tensorflow.model import compile_models
         from .tensorflow.optimizer import compile_optimizer
     else:
-        raise CompEvalError(f"Unsupported backend: {backend}")
+        raise ValueError(f"Unsupported backend: {backend}")
 
     if safe_only:
         model_config = ModelConfig()

@@ -18,10 +18,11 @@ import jax.tree_util
 import numpy as np
 import ray
 
-from secretflow.device.device.pyu import PYUObject
+from secretflow.device.device.pyu import PYU, PYUObject
 
 from .base import DeviceObject
 from .register import dispatch
+import secretflow.distributed as sfd
 
 
 class HEUObject(DeviceObject):
@@ -223,3 +224,14 @@ class HEUObject(DeviceObject):
             self.location,
             self.is_plain,
         )
+
+    def serialize_to_pyu(self, pyu: PYU):
+        assert isinstance(pyu, PYU), f'Expect a PYU but got {type(pyu)}.'
+        assert (
+            self.location == pyu.party
+        ), f'Only supports with the same party, {self.location} vs {pyu.party}"'
+
+        text_bytes = (
+            sfd.remote(lambda c: c.serialize()).party(pyu.party).remote(self.data)
+        )
+        return PYUObject(pyu, text_bytes)

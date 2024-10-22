@@ -20,15 +20,15 @@ import pytest
 from google.protobuf.json_format import MessageToJson, Parse
 from sklearn.datasets import load_breast_cancer
 
-from secretflow.component.data_utils import DistDataType
-from secretflow.component.io.io import io_read_data, io_write_data
-from secretflow.component.preprocessing.binning.vert_woe_binning import (
-    vert_woe_binning_comp,
+from secretflow.component.core import (
+    DistDataType,
+    Storage,
+    VTable,
+    VTableParty,
+    build_node_eval_param,
 )
-from secretflow.component.storage import ComponentStorage
+from secretflow.component.entry import comp_eval
 from secretflow.spec.extend.bin_data_pb2 import Bins
-from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
 
@@ -36,12 +36,13 @@ from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 def vert_woe_bin_rule(comp_prod_sf_cluster_config):
     alice_path = "test_io/x_alice.csv"
     bob_path = "test_io/x_bob.csv"
+    out_data_path = "test_io/out_data"
     rule_path = "test_io/bin_rule"
     report_path = "test_io/report"
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = Storage(storage_config)
 
     ds = load_breast_cancer()
     x, y = ds["data"], ds["target"]
@@ -49,62 +50,52 @@ def vert_woe_bin_rule(comp_prod_sf_cluster_config):
         x = pd.DataFrame(x[:, :15], columns=[f"a{i}" for i in range(15)])
         y = pd.DataFrame(y, columns=["y"])
         ds = pd.concat([x, y], axis=1)
-        ds.to_csv(comp_storage.get_writer(alice_path), index=False)
+        ds.to_csv(storage.get_writer(alice_path), index=False)
 
     elif self_party == "bob":
         ds = pd.DataFrame(x[:, 15:], columns=[f"b{i}" for i in range(15)])
-        ds.to_csv(comp_storage.get_writer(bob_path), index=False)
+        ds.to_csv(storage.get_writer(bob_path), index=False)
 
-    bin_param_01 = NodeEvalParam(
-        domain="feature",
+    bin_param = build_node_eval_param(
+        domain="preprocessing",
         name="vert_woe_binning",
-        version="0.0.2",
-        attr_paths=[
-            "input/input_data/feature_selects",
-            "bin_num",
-            "input/input_data/label",
-        ],
-        attrs=[
-            Attribute(ss=[f"a{i}" for i in range(2)] + [f"b{i}" for i in range(2)]),
-            Attribute(i64=8),
-            Attribute(ss=["y"]),
-        ],
+        version="1.0.0",
+        attrs={
+            "input/input_ds/feature_selects": [f"a{i}" for i in range(2)]
+            + [f"b{i}" for i in range(2)],
+            "bin_num": 8,
+            "label": ["y"],
+        },
         inputs=[
-            DistData(
+            VTable(
                 name="input_data",
-                type=str(DistDataType.VERTICAL_TABLE),
-                data_refs=[
-                    DistData.DataRef(uri=bob_path, party="bob", format="csv"),
-                    DistData.DataRef(uri=alice_path, party="alice", format="csv"),
+                parties=[
+                    VTableParty.from_dict(
+                        uri=bob_path,
+                        party="bob",
+                        format="csv",
+                        features={f"b{i}": "float32" for i in range(15)},
+                    ),
+                    VTableParty.from_dict(
+                        uri=alice_path,
+                        party="alice",
+                        format="csv",
+                        features={f"a{i}": "float32" for i in range(15)},
+                        labels={"y": "float32"},
+                    ),
                 ],
             ),
         ],
-        output_uris=[rule_path, report_path],
+        output_uris=[out_data_path, rule_path, report_path],
     )
 
-    meta = VerticalTable(
-        schemas=[
-            TableSchema(
-                feature_types=["float32"] * 15,
-                features=[f"b{i}" for i in range(15)],
-            ),
-            TableSchema(
-                feature_types=["float32"] * 15,
-                features=[f"a{i}" for i in range(15)],
-                label_types=["float32"],
-                labels=["y"],
-            ),
-        ],
-    )
-    bin_param_01.inputs[0].meta.Pack(meta)
-
-    bin_res = vert_woe_binning_comp.eval(
-        param=bin_param_01,
+    bin_res = comp_eval(
+        param=bin_param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
     )
 
-    bin_rule = bin_res.outputs[0]
+    bin_rule = bin_res.outputs[1]
     return bin_rule
 
 
@@ -116,11 +107,11 @@ def write_data(vert_woe_bin_rule, comp_prod_sf_cluster_config):
     read_param = NodeEvalParam(
         domain="io",
         name="read_data",
-        version="0.0.1",
+        version="1.0.0",
         inputs=[vert_woe_bin_rule],
         output_uris=[pb_path],
     )
-    read_res = io_read_data.eval(
+    read_res = comp_eval(
         param=read_param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -135,32 +126,32 @@ def test_no_change_correct(vert_woe_bin_rule, write_data, comp_prod_sf_cluster_c
     new_rule_path = "test_io/new_bin_rule"
     pb_path = "test_io/rule_pb_unchanged"
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
-    write_param = NodeEvalParam(
+    write_param = build_node_eval_param(
         domain="io",
         name="write_data",
-        version="0.0.1",
-        attr_paths=["write_data", "write_data_type"],
-        attrs=[
-            Attribute(s=write_data),
-            Attribute(s=str(DistDataType.BIN_RUNNING_RULE)),
-        ],
+        version="1.0.0",
+        attrs={
+            "write_data": write_data,
+            "write_data_type": str(DistDataType.BINNING_RULE),
+        },
         inputs=[vert_woe_bin_rule],
         output_uris=[new_rule_path],
     )
-    write_res = io_write_data.eval(
+    write_res = comp_eval(
         param=write_param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
     )
 
-    read_param = NodeEvalParam(
+    read_param = build_node_eval_param(
         domain="io",
         name="read_data",
-        version="0.0.1",
+        version="1.0.0",
+        attrs=None,
         inputs=[write_res.outputs[0]],
         output_uris=[pb_path],
     )
-    read_res = io_read_data.eval(
+    read_res = comp_eval(
         param=read_param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -198,32 +189,32 @@ def test_merge_one_bin_correct(
     original_bin_num = read_bin_pb.variable_bins[0].valid_bin_count
     write_data = MessageToJson(read_bin_pb)
 
-    write_param = NodeEvalParam(
+    write_param = build_node_eval_param(
         domain="io",
         name="write_data",
-        version="0.0.1",
-        attr_paths=["write_data", "write_data_type"],
-        attrs=[
-            Attribute(s=write_data),
-            Attribute(s=str(DistDataType.BIN_RUNNING_RULE)),
-        ],
+        version="1.0.0",
+        attrs={
+            "write_data": write_data,
+            "write_data_type": str(DistDataType.BINNING_RULE),
+        },
         inputs=[vert_woe_bin_rule],
         output_uris=[new_rule_path],
     )
-    write_res = io_write_data.eval(
+    write_res = comp_eval(
         param=write_param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
     )
 
-    read_param = NodeEvalParam(
+    read_param = build_node_eval_param(
         domain="io",
         name="read_data",
-        version="0.0.1",
+        version="1.0.0",
+        attrs=None,
         inputs=[write_res.outputs[0]],
         output_uris=[pb_path],
     )
-    read_res = io_read_data.eval(
+    read_res = comp_eval(
         param=read_param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,

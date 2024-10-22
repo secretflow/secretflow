@@ -65,17 +65,18 @@ class Mid(DefenseBase):
         app: ApplicationBase,
         attack: AttackBase | None,
     ) -> ResourcesPack:
-        func = lambda x: x * 1.1
+        update_gpu = lambda x: x * 1.1
+        update_mem = lambda x: x * 1.08
         cluster_resources_pack = cluster_resources_pack.apply_debug_resources(
-            'gpu_mem', func
-        )
+            'gpu_mem', update_gpu
+        ).apply_debug_resources('memory', update_mem)
         if attack is not None:
             if attack.attack_type() == AttackType.LABLE_INFERENSE:
                 cluster_resources_pack = cluster_resources_pack.apply_sim_resources(
-                    app.device_y.party, 'gpu_mem', func
-                )
+                    app.device_y.party, 'gpu_mem', update_gpu
+                ).apply_sim_resources(app.device_y.party, 'memory', update_mem)
             elif attack.attack_type() == AttackType.FEATURE_INFERENCE:
                 cluster_resources_pack = cluster_resources_pack.apply_sim_resources(
-                    app.device_f.party, 'gpu_mem', func
-                )
+                    app.device_f.party, 'gpu_mem', update_gpu
+                ).apply_sim_resources(app.device_f.party, 'memory', update_mem)
         return cluster_resources_pack

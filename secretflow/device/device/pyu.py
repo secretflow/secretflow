@@ -15,14 +15,16 @@
 import logging
 from typing import Union
 
-import fed
+import fed as rayfed
 import jax
 import ray
 
 import secretflow.distributed as sfd
+from secretflow.distributed import fed as sf_fed
+from secretflow.utils import secure_pickle as pickle
 from secretflow.utils.logging import LOG_FORMAT, get_logging_level
 
-from ._utils import check_num_returns
+from ._utils import check_num_returns, get_fn_code_name
 from .base import Device, DeviceObject, DeviceType
 
 
@@ -35,7 +37,11 @@ class PYUObject(DeviceObject):
 
     device: 'PYU'
 
-    def __init__(self, device: 'PYU', data: Union[ray.ObjectRef, fed.FedObject]):
+    def __init__(
+        self,
+        device: 'PYU',
+        data: Union[ray.ObjectRef, sf_fed.FedObject, rayfed.FedObject],
+    ):
         super().__init__(device)
         self.data = data
 
@@ -87,7 +93,7 @@ class PYU(Device):
                 if isinstance(arg, DeviceObject):
                     assert (
                         arg.device == device
-                    ), f"receive tensor {arg} in different device"
+                    ), f"receive tensor {arg} in different device, {arg.device} vs {device}"
                     return arg.data
                 return arg
 
@@ -96,11 +102,17 @@ class PYU(Device):
             )
 
             _num_returns = check_num_returns(fn) if num_returns is None else num_returns
+
+            def pyu_fn(*args, **kwargs):
+                return self._run(fn, *args, **kwargs)
+
+            pyu_fn.__name__ = f"{get_fn_code_name(fn)}@PYU({self.party})"
+
             data = (
-                sfd.remote(self._run)
+                sfd.remote(pyu_fn)
                 .party(self.party)
                 .options(num_returns=_num_returns)
-                .remote(fn, *args_, **kwargs_)
+                .remote(*args_, **kwargs_)
             )
             logging.debug(
                 (
@@ -118,22 +130,18 @@ class PYU(Device):
     def dump(self, obj: PYUObject, path: str):
         assert obj.device == self, "obj must be owned by this device."
 
-        def fn(data, path):
-            import cloudpickle as pickle
-
+        def pyu_dump(data, path):
             with open(path, 'wb') as f:
                 pickle.dump(data, f)
 
-        self.__call__(fn)(obj, path)
+        return self.__call__(pyu_dump)(obj, path)
 
     def load(self, path: str):
-        def fn(path):
-            import cloudpickle as pickle
-
+        def pyu_load(path):
             with open(path, 'rb') as f:
                 return pickle.load(f)
 
-        return self.__call__(fn)(path)
+        return self.__call__(pyu_load)(path)
 
     @staticmethod
     def _run(fn, *args, **kwargs):

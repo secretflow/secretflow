@@ -23,7 +23,8 @@ from contextlib import redirect_stderr, redirect_stdout
 import click
 from google.protobuf.json_format import MessageToJson
 
-from secretflow.component.entry import COMP_LIST, COMP_MAP, comp_eval
+from secretflow.component.core import gettext, load_plugins
+from secretflow.component.entry import COMP_LIST, COMP_MAP, comp_eval, rebuild_comp_list
 from secretflow.spec.extend.cluster_pb2 import SFClusterConfig
 from secretflow.spec.v1.data_pb2 import StorageConfig
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
@@ -59,8 +60,14 @@ def component():
 
 
 @component.command()
-def ls():
+@click.option(
+    "--enable_plugins", is_flag=True, help="Whether to enable loading plugins"
+)
+def ls(enable_plugins):
     """List all components."""
+    if enable_plugins:
+        load_plugins()
+        rebuild_comp_list()
     click.echo("{:<40} {:<40} {:<20}".format("DOMAIN", "NAME", "VERSION"))
     click.echo("-" * 105)
     for comp in COMP_LIST.comps:
@@ -69,14 +76,16 @@ def ls():
 
 @component.command()
 @click.option("--file", "-f", required=False, type=click.File(mode="w"))
-@click.option(
-    "--all",
-    "-a",
-    is_flag=True,
-)
+@click.option("--all", "-a", is_flag=True)
 @click.argument("comp_id", required=False)
-def inspect(comp_id, all, file):
+@click.option(
+    "--enable_plugins", is_flag=True, help="Whether to enable loading plugins"
+)
+def inspect(comp_id, all, file, enable_plugins):
     """Display definition of components. The format of comp_id is {domain}/{name}:{version}"""
+    if enable_plugins:
+        load_plugins()
+        rebuild_comp_list()
 
     if all:
         click.echo(f"You are inspecting the compelete comp list.")
@@ -121,6 +130,35 @@ def inspect(comp_id, all, file):
 
 
 @component.command()
+@click.option("--file", "-f", required=False, type=str, default="translation.json")
+@click.option(
+    "--enable_plugins", is_flag=True, help="Whether to enable loading plugins"
+)
+def translate(file, enable_plugins):
+    """Display translation of components"""
+    if enable_plugins:
+        load_plugins()
+        rebuild_comp_list()
+
+    archieve = None
+    if os.path.isfile(file):
+        with open(file, "r") as f:
+            archieve = json.load(f)
+    translation = gettext(COMP_LIST, archieve)
+
+    for comp_text in translation.values():
+        for k, v in comp_text.items():
+            if v == "":
+                comp_text[k] = k
+
+    click.echo(f"You are translating the compelete comp list.")
+    click.echo("-" * 105)
+    with open(file, "w") as f:
+        click.echo(json.dump(translation, f, indent=2, ensure_ascii=False), file=f)
+    click.echo(f"Saved to {file}.")
+
+
+@component.command()
 @click.option(
     "--log_file",
     required=False,
@@ -141,6 +179,9 @@ def inspect(comp_id, all, file):
 @click.option(
     "--compressed_params", is_flag=True, help="compress params before base64 encode"
 )
+@click.option(
+    "--enable_plugins", is_flag=True, help="Whether to enable loading plugins"
+)
 def run(
     eval_param,
     storage,
@@ -150,7 +191,12 @@ def run(
     log_level,
     mem_trace,
     compressed_params,
+    enable_plugins: bool,
 ):
+    if enable_plugins:
+        load_plugins()
+        rebuild_comp_list()
+
     def _get_peak_mem() -> float:
         # only works inside docker
         # use docker's default cgroup

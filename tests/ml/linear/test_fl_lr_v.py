@@ -44,7 +44,6 @@ class DeviceInventory:
 @pytest.fixture(scope="module")
 def env(request, sf_party_for_4pc):
     devices = DeviceInventory()
-    sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.PRODUCTION)
     set_self_party(sf_party_for_4pc)
     sf.init(
         address='local',
@@ -58,6 +57,7 @@ def env(request, sf_party_for_4pc):
             'recv_timeout_ms': 1800 * 1000,
         },
         enable_waiting_for_other_parties_ready=False,
+        ray_mode=True,
     )
 
     devices.alice = sf.PYU('alice')

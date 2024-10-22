@@ -137,20 +137,17 @@ class GradientEncryptor(Component):
     @LoggingTools.enable_logging
     def cache_to_workers(
         self, encrypted_gh: HEUObject, gh: PYUObject
-    ) -> Dict[PYU, Union[HEUObject, PYUObject]]:
+    ) -> Dict[PYU, HEUObject]:
         if self.params.label_holder_feature_only:
-            cache = {
-                worker: worker(lambda: None)()
-                for worker in self.workers
-                if worker != self.label_holder
-            }
+            cache = {worker: worker(lambda: None)() for worker in self.workers}
+            cache[self.label_holder] = gh.to(
+                self.heu, move_config(self.label_holder, self.gh_encoder)
+            )
         else:
             cache = {
                 worker: encrypted_gh.to(self.heu, move_config(worker, self.gh_encoder))
                 for worker in self.workers
-                if worker != self.label_holder
             }
-        cache[self.label_holder] = gh
         return cache
 
     def get_move_config(self, pyu):

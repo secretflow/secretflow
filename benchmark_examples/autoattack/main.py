@@ -211,7 +211,6 @@ def _get_cluster_resources(
         cluster_resources = cluster_resources_pack.get_debug_resources()
     else:
         cluster_resources = cluster_resources_pack.get_all_sim_resources()
-    logging.info(f"The preprocessed cluster resource = {cluster_resources}")
     if not global_config.is_use_gpu():
         cluster_resources = [cr.without_gpu() for cr in cluster_resources]
     else:
@@ -219,6 +218,7 @@ def _get_cluster_resources(
             cr.handle_gpu_mem(global_config.get_gpu_config())
             for cr in cluster_resources
         ]
+    logging.info(f"The preprocessed cluster resource = {cluster_resources}")
     return cluster_resources
 
 
@@ -306,6 +306,12 @@ def run_case(
     objective = types.FunctionType(objective.__code__, globals(), name=objective_name)
     try:
         if not enable_tune:
+            if global_config.need_monitor():
+                from benchmark_examples.autoattack.utils.monitor import (
+                    monitor_resource_usage,
+                )
+
+                objective = monitor_resource_usage(objective)
             return objective(
                 {},
                 app=app_impl,
@@ -313,6 +319,7 @@ def run_case(
                 defense=defense_impl,
                 origin_global_configs=None,
             )
+
         else:
             if global_config.is_debug_mode():
                 init_ray()
@@ -398,6 +405,13 @@ def run_case(
     help="Whether to use GPU, default to False",
 )
 @click.option(
+    "--enable_monitor",
+    is_flag=True,
+    required=False,
+    default=None,
+    help="Whether to enable resource monitor, default to False",
+)
+@click.option(
     "--ray_cluster_address",
     type=click.STRING,
     required=False,
@@ -429,6 +443,7 @@ def run(
     datasets_path: str | None,
     autoattack_storage_path: str | None,
     use_gpu: bool,
+    enable_monitor: bool,
     ray_cluster_address: str | None,
     random_seed: int | None,
     config: str | None,
@@ -453,6 +468,7 @@ def run(
         simple=simple,
         use_gpu=use_gpu,
         debug_mode=debug_mode,
+        enable_monitor=enable_monitor,
         ray_cluster_address=ray_cluster_address,
         random_seed=random_seed,
         config=config,

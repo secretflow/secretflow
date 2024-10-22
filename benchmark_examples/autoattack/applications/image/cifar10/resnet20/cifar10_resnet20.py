@@ -308,12 +308,23 @@ class Cifar10Resnet20(Cifar10ApplicationBase):
         # 760MiB
         return (
             ResourcesPack()
-            .with_debug_resources(ResourceDict(gpu_mem=1 * 1024 * 1024 * 1024, CPU=1))
+            .with_debug_resources(
+                ResourceDict(
+                    gpu_mem=1 * 1024 * 1024 * 1024, CPU=1, memory=4 * 1024 * 1024 * 1024
+                )
+            )
             .with_sim_resources(
-                self.device_y.party, ResourceDict(gpu_mem=1 * 1024 * 1024 * 1024, CPU=1)
+                self.device_y.party,
+                ResourceDict(
+                    gpu_mem=1 * 1024 * 1024 * 1024, CPU=1, memory=4 * 1024 * 1024 * 1024
+                ),
             )
             .with_sim_resources(
                 self.device_f.party,
-                ResourceDict(gpu_mem=0.8 * 1024 * 1024 * 1024, CPU=1),
+                ResourceDict(
+                    gpu_mem=0.8 * 1024 * 1024 * 1024,
+                    CPU=1,
+                    memory=4 * 1024 * 1024 * 1024,
+                ),
             )
         )

@@ -47,3 +47,11 @@ class ComponentStorage:
     def get_file_meta(self, remote_fn) -> Dict:
         impl = BuildStorageImpl(self._config)
         return impl.get_file_meta(remote_fn)
+
+    def remove(self, remote_fn) -> None:
+        impl = BuildStorageImpl(self._config)
+        return impl.remove(remote_fn)
+
+    def exists(self, remote_fn) -> bool:
+        impl = BuildStorageImpl(self._config)
+        return impl.exists(remote_fn)

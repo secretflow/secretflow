@@ -352,13 +352,28 @@ class MovielensBase(ApplicationBase, ABC):
         # 750MiB
         return (
             ResourcesPack()
-            .with_debug_resources(ResourceDict(gpu_mem=2 * 1024 * 1024 * 1024, CPU=1))
+            .with_debug_resources(
+                ResourceDict(
+                    gpu_mem=2 * 1024 * 1024 * 1024,
+                    CPU=1,
+                    memory=1.6 * 1024 * 1024 * 1024,
+                )
+            )
             .with_sim_resources(
-                self.device_y.party, ResourceDict(gpu_mem=2 * 1024 * 1024 * 1024, CPU=1)
+                self.device_y.party,
+                ResourceDict(
+                    gpu_mem=2 * 1024 * 1024 * 1024,
+                    CPU=1,
+                    memory=1.6 * 1024 * 1024 * 1024,
+                ),
             )
             .with_sim_resources(
                 self.device_f.party,
-                ResourceDict(gpu_mem=1.5 * 1024 * 1024 * 1024, CPU=1),
+                ResourceDict(
+                    gpu_mem=1.5 * 1024 * 1024 * 1024,
+                    CPU=1,
+                    memory=1.6 * 1024 * 1024 * 1024,
+                ),
             )
         )
 

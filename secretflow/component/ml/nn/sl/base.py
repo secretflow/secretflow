@@ -17,7 +17,7 @@ from dataclasses import asdict, dataclass, fields
 from typing import Dict, List
 
 import secretflow as sf
-from secretflow.component.data_utils import BaseEnum
+from secretflow.component.core import BaseEnum
 from secretflow.device import PYU
 
 # current version 0.1

@@ -14,12 +14,14 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)secretflow/spec/extend/linear_model.proto\x12\x16secretflow.spec.extend\"L\n\rFeatureWeight\x12\x14\n\x0c\x66\x65\x61ture_name\x18\x01 \x01(\t\x12\r\n\x05party\x18\x02 \x01(\t\x12\x16\n\x0e\x66\x65\x61ture_weight\x18\x03 \x01(\x02\"o\n\x0bLinearModel\x12>\n\x0f\x66\x65\x61ture_weights\x18\x01 \x03(\x0b\x32%.secretflow.spec.extend.FeatureWeight\x12\x0c\n\x04\x62ias\x18\x02 \x01(\x02\x12\x12\n\nmodel_hash\x18\x03 \x01(\tB\x1c\n\x1aorg.secretflow.spec.extendb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)secretflow/spec/extend/linear_model.proto\x12\x16secretflow.spec.extend\"L\n\rFeatureWeight\x12\x14\n\x0c\x66\x65\x61ture_name\x18\x01 \x01(\t\x12\r\n\x05party\x18\x02 \x01(\t\x12\x16\n\x0e\x66\x65\x61ture_weight\x18\x03 \x01(\x02\"o\n\x0bLinearModel\x12>\n\x0f\x66\x65\x61ture_weights\x18\x01 \x03(\x0b\x32%.secretflow.spec.extend.FeatureWeight\x12\x0c\n\x04\x62ias\x18\x02 \x01(\x02\x12\x12\n\nmodel_hash\x18\x03 \x01(\t\"\x7f\n\nPublicInfo\x12\x0c\n\x04link\x18\x01 \x01(\t\x12\x0f\n\x07y_scale\x18\x02 \x01(\x01\x12\x12\n\noffset_col\x18\x03 \x01(\t\x12\x11\n\tlabel_col\x18\x04 \x01(\t\x12\x14\n\x0c\x66xp_exp_mode\x18\x05 \x01(\x05\x12\x15\n\rfxp_exp_iters\x18\x06 \x01(\x05\"\x85\x01\n\x16GeneralizedLinearModel\x12\x37\n\x0bpublic_info\x18\x01 \x01(\x0b\x32\".secretflow.spec.extend.PublicInfo\x12\x32\n\x05model\x18\x02 \x01(\x0b\x32#.secretflow.spec.extend.LinearModelB\x1c\n\x1aorg.secretflow.spec.extendb\x06proto3')
 
 
 
 _FEATUREWEIGHT = DESCRIPTOR.message_types_by_name['FeatureWeight']
 _LINEARMODEL = DESCRIPTOR.message_types_by_name['LinearModel']
+_PUBLICINFO = DESCRIPTOR.message_types_by_name['PublicInfo']
+_GENERALIZEDLINEARMODEL = DESCRIPTOR.message_types_by_name['GeneralizedLinearModel']
 FeatureWeight = _reflection.GeneratedProtocolMessageType('FeatureWeight', (_message.Message,), {
   'DESCRIPTOR' : _FEATUREWEIGHT,
   '__module__' : 'secretflow.spec.extend.linear_model_pb2'
@@ -34,6 +36,20 @@ LinearModel = _reflection.GeneratedProtocolMessageType('LinearModel', (_message.
   })
 _sym_db.RegisterMessage(LinearModel)
 
+PublicInfo = _reflection.GeneratedProtocolMessageType('PublicInfo', (_message.Message,), {
+  'DESCRIPTOR' : _PUBLICINFO,
+  '__module__' : 'secretflow.spec.extend.linear_model_pb2'
+  # @@protoc_insertion_point(class_scope:secretflow.spec.extend.PublicInfo)
+  })
+_sym_db.RegisterMessage(PublicInfo)
+
+GeneralizedLinearModel = _reflection.GeneratedProtocolMessageType('GeneralizedLinearModel', (_message.Message,), {
+  'DESCRIPTOR' : _GENERALIZEDLINEARMODEL,
+  '__module__' : 'secretflow.spec.extend.linear_model_pb2'
+  # @@protoc_insertion_point(class_scope:secretflow.spec.extend.GeneralizedLinearModel)
+  })
+_sym_db.RegisterMessage(GeneralizedLinearModel)
+
 if _descriptor._USE_C_DESCRIPTORS == False:
 
   DESCRIPTOR._options = None
@@ -42,4 +58,8 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _FEATUREWEIGHT._serialized_end=145
   _LINEARMODEL._serialized_start=147
   _LINEARMODEL._serialized_end=258
+  _PUBLICINFO._serialized_start=260
+  _PUBLICINFO._serialized_end=387
+  _GENERALIZEDLINEARMODEL._serialized_start=390
+  _GENERALIZEDLINEARMODEL._serialized_end=523
 # @@protoc_insertion_point(module_scope)

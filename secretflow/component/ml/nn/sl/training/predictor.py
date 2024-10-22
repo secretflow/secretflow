@@ -14,16 +14,15 @@
 
 from typing import Dict
 
-from secretflow.component.component import CompEvalContext, CompEvalError
 from secretflow.component.ml.nn.sl.compile.compile import ModelConfig
 from secretflow.data.ndarray import FedNdarray, PartitionWay
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import PYU
+from secretflow.error_system.exceptions import CompEvalError, EvalParamError
 from secretflow.ml.nn.sl.sl_model import SLModel
 
 
 def predict(
-    ctx: CompEvalContext,
     batch_size: int,
     feature_dataset: VDataFrame,
     model: Dict[PYU, ModelConfig],
@@ -34,7 +33,7 @@ def predict(
         from .tensorflow.data import create_dataset_builder
         from .tensorflow.model import create_model_builder
     else:
-        raise CompEvalError(f"Unsupported backend: {backend}")
+        raise ValueError(f"Unsupported backend: {backend}")
 
     base_model_dict = {}
     server_fuse_builder = None
@@ -45,10 +44,16 @@ def predict(
         if pyu == device_y:
             base_model_dict[pyu] = create_model_builder(config.server_base_path, config)
 
-            assert config.server_fuse_path is not None
+            if config.server_fuse_path is None:
+                raise EvalParamError.missing_or_none_param(
+                    f"server_fuse_path must not be None for device {pyu}"
+                )
             server_fuse_builder = create_model_builder(config.server_fuse_path, config)
         else:
-            assert config.client_base_path is not None
+            if config.client_base_path is None:
+                raise EvalParamError.missing_or_none_param(
+                    f"client_base_path must not be None for device {pyu}"
+                )
             base_model_dict[pyu] = create_model_builder(config.client_base_path, config)
 
     slmodel = SLModel(

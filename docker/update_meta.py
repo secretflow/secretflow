@@ -16,17 +16,20 @@ import argparse
 import json
 import logging
 import os
+import sys
 
 import translators as ts
 from google.protobuf.json_format import MessageToJson
-
-from secretflow.component.entry import COMP_LIST
-from secretflow.component.i18n import gettext
 
 LANG = "zh"
 this_directory = os.path.abspath(os.path.dirname(__file__))
 COMP_LIST_FILE = os.path.join(this_directory, 'comp_list.json')
 TRANSLATION_FILE = os.path.join(this_directory, 'translation.json')
+
+sys.path.append(os.path.join(this_directory, '..'))
+
+from secretflow.component.entry import COMP_LIST
+from secretflow.component.i18n import gettext
 
 
 def translate(input, translator):

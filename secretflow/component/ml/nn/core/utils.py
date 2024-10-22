@@ -14,8 +14,8 @@
 
 import logging
 
-from secretflow.component.component import CompEvalError
-from secretflow.component.env_utils import Envs, get_bool_env
+from secretflow.component.core import Envs, get_bool_env
+from secretflow.error_system.exceptions import CompEvalError
 
 
 def enabled():

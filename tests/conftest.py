@@ -20,13 +20,16 @@ import platform
 import stat
 import subprocess
 import tempfile
+import threading
 import time
 import urllib
 import uuid
 from dataclasses import dataclass
 
 import multiprocess
+import psutil
 import pytest
+import s3fs
 import spu
 from xdist.scheduler import LoadScheduling
 
@@ -36,8 +39,10 @@ from secretflow.distributed.primitive import DISTRIBUTION_MODE
 from secretflow.spec.extend.cluster_pb2 import SFClusterConfig, SFClusterDesc
 from secretflow.spec.v1.data_pb2 import StorageConfig
 from secretflow.utils.testing import unused_tcp_port
-from tests.cluster import cluster, set_self_party
+from tests.cluster import cluster, get_available_port, set_self_party
 from tests.load import SF_PARTIES, SF_PARTY_PREFIX, SFLoadPartyScheduling
+
+
 
 
 def pytest_addoption(parser):
@@ -50,12 +55,26 @@ def pytest_addoption(parser):
     )
 
 
+pytest_start_time = float(0)
+
+
 FIXTURES_FOR_PROD = ["sf_party_for_4pc"]
+
+
+
+
+
+
+
+
+
+
+
 
 
 # if tests are using any fixtures from FIXTURES_FOR_PROD,
 # mark them as 'prod' tests
-def pytest_collection_modifyitems(items):
+def pytest_collection_modifyitems(config, items):
     for item in items:
         print(f"Fixture names for {item.name}: {item.fixturenames}")
     for item in items:
@@ -68,6 +87,32 @@ def pytest_collection_modifyitems(items):
         if find_fixtures_for_prod:
             item.add_marker(pytest.mark.prod)
 
+    env = config.getoption("--env")
+
+    # skip test cases during collecting.
+    # write to keep_pytest_files.txt in ACI pipeline.
+    def check_if_should_skip(item):
+        if item.get_closest_marker("prod"):
+            if env == "sim":
+                print(f"Skipping prod test case: {item.name}")
+                item.add_marker(pytest.mark.skip(reason="test requires env in prod"))
+                return True
+        else:
+            if env == "prod":
+                print(f"Skipping sim test case: {item.name}")
+                item.add_marker(pytest.mark.skip(reason="test requires env in sim"))
+                return True
+        return False
+
+    skipped_items = [item for item in items if check_if_should_skip(item)]
+    config.hook.pytest_deselected(items=skipped_items)
+
+    # Directly remove skipped items. By this method, it avoid the unknown hanging issue in ci pipeline.
+    # The skipped items will not show in the test report.
+    for item in items.copy():
+        if check_if_should_skip(item):
+            items.remove(item)
+
 
 # Run prod tests when env is prod only.
 # And run non-prod tests when env is sim only.
@@ -75,9 +120,17 @@ def pytest_runtest_setup(item):
     if item.get_closest_marker("prod"):
         if item.config.getoption("--env") == "sim":
             pytest.skip("test requires env in prod")
+        else:
+            logging.info(f"Starting test: {item.name}")
     else:
         if item.config.getoption("--env") == "prod":
             pytest.skip("test requires env in sim")
+        else:
+            logging.info(f"Starting test: {item.name}")
+
+
+def pytest_runtest_teardown(item):
+    logging.info(f"Finished test: {item.name}")
 
 
 # Fix xdist number to be number of parties for prod.
@@ -263,10 +316,8 @@ def sf_party_for_4pc(request):
     yield request.param[len(SF_PARTY_PREFIX) :]
 
 
-@pytest.fixture(scope="module")
-def sf_production_setup_devices_grpc(request, sf_party_for_4pc):
+def _sf_production_setup_devices_grpc(request, sf_party_for_4pc, ray_mode):
     devices = DeviceInventory()
-    sfd.set_distribution_mode(DISTRIBUTION_MODE.PRODUCTION)
     set_self_party(sf_party_for_4pc)
     sf.init(
         address="local",
@@ -275,6 +326,7 @@ def sf_production_setup_devices_grpc(request, sf_party_for_4pc):
         logging_level='info',
         cluster_config=cluster(),
         enable_waiting_for_other_parties_ready=False,
+        ray_mode=ray_mode,
     )
 
     devices.alice = sf.PYU("alice")
@@ -306,13 +358,30 @@ def sf_production_setup_devices_grpc(request, sf_party_for_4pc):
 
     devices.heu = sf.HEU(heu_config, cluster_def["runtime_config"]["field"])
 
+    return devices
+
+
+@pytest.fixture(scope="module")
+def sf_production_setup_devices_grpc(request, sf_party_for_4pc):
+    devices = _sf_production_setup_devices_grpc(
+        request, sf_party_for_4pc, ray_mode=False
+    )
     yield devices
     del devices
     sf.shutdown()
 
 
 @pytest.fixture(scope="module")
-def sf_production_setup_devices(request, sf_party_for_4pc):
+def sf_production_setup_devices_grpc_ray(request, sf_party_for_4pc):
+    devices = _sf_production_setup_devices_grpc(
+        request, sf_party_for_4pc, ray_mode=True
+    )
+    yield devices
+    del devices
+    sf.shutdown()
+
+
+def _sf_production_setup_devices(request, sf_party_for_4pc, ray_mode):
     devices = DeviceInventory()
     sfd.set_distribution_mode(DISTRIBUTION_MODE.PRODUCTION)
     set_self_party(sf_party_for_4pc)
@@ -333,6 +402,7 @@ def sf_production_setup_devices(request, sf_party_for_4pc):
             'brpc_channel_protocol': 'http',
             'brpc_channel_connection_type': 'pooled',
         },
+        ray_mode=ray_mode,
     )
 
     devices.alice = sf.PYU("alice")
@@ -366,13 +436,26 @@ def sf_production_setup_devices(request, sf_party_for_4pc):
 
     devices.heu = sf.HEU(heu_config, cluster_def["runtime_config"]["field"])
 
+    return devices
+
+
+@pytest.fixture(scope="module")
+def sf_production_setup_devices_ray(request, sf_party_for_4pc):
+    devices = _sf_production_setup_devices(request, sf_party_for_4pc, ray_mode=True)
     yield devices
     del devices
     sf.shutdown()
 
 
 @pytest.fixture(scope="module")
-def sf_production_setup_devices_cheetah(request, sf_party_for_4pc):
+def sf_production_setup_devices(request, sf_party_for_4pc):
+    devices = _sf_production_setup_devices(request, sf_party_for_4pc, ray_mode=False)
+    yield devices
+    del devices
+    sf.shutdown()
+
+
+def _sf_production_setup_devices_cheetah(request, sf_party_for_4pc, ray_mode):
     devices = DeviceInventory()
     sfd.set_distribution_mode(DISTRIBUTION_MODE.PRODUCTION)
     set_self_party(sf_party_for_4pc)
@@ -393,6 +476,7 @@ def sf_production_setup_devices_cheetah(request, sf_party_for_4pc):
             'brpc_channel_protocol': 'http',
             'brpc_channel_connection_type': 'pooled',
         },
+        ray_mode=ray_mode,
     )
 
     devices.alice = sf.PYU("alice")
@@ -426,15 +510,31 @@ def sf_production_setup_devices_cheetah(request, sf_party_for_4pc):
 
     devices.heu = sf.HEU(heu_config, cluster_def["runtime_config"]["field"])
 
+    return devices
+
+
+@pytest.fixture(scope="module")
+def sf_production_setup_devices_cheetah_ray(request, sf_party_for_4pc):
+    devices = _sf_production_setup_devices_cheetah(
+        request, sf_party_for_4pc, ray_mode=True
+    )
     yield devices
     del devices
     sf.shutdown()
 
 
 @pytest.fixture(scope="module")
-def sf_production_setup_devices_aby3(request, sf_party_for_4pc):
+def sf_production_setup_devices_cheetah(request, sf_party_for_4pc):
+    devices = _sf_production_setup_devices_cheetah(
+        request, sf_party_for_4pc, ray_mode=False
+    )
+    yield devices
+    del devices
+    sf.shutdown()
+
+
+def _sf_production_setup_devices_aby3(request, sf_party_for_4pc, ray_mode):
     devices = DeviceInventory()
-    sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.PRODUCTION)
     set_self_party(sf_party_for_4pc)
     sf.init(
         address="local",
@@ -453,6 +553,7 @@ def sf_production_setup_devices_aby3(request, sf_party_for_4pc):
             'brpc_channel_protocol': 'http',
             'brpc_channel_connection_type': 'pooled',
         },
+        ray_mode=ray_mode,
     )
 
     devices.alice = sf.PYU("alice")
@@ -488,6 +589,24 @@ def sf_production_setup_devices_aby3(request, sf_party_for_4pc):
 
     devices.heu = sf.HEU(heu_config, cluster_def["runtime_config"]["field"])
 
+    return devices
+
+
+@pytest.fixture(scope="module")
+def sf_production_setup_devices_aby3_ray(request, sf_party_for_4pc):
+    devices = _sf_production_setup_devices_aby3(
+        request, sf_party_for_4pc, ray_mode=True
+    )
+    yield devices
+    del devices
+    sf.shutdown()
+
+
+@pytest.fixture(scope="module")
+def sf_production_setup_devices_aby3(request, sf_party_for_4pc):
+    devices = _sf_production_setup_devices_aby3(
+        request, sf_party_for_4pc, ray_mode=False
+    )
     yield devices
     del devices
     sf.shutdown()
@@ -502,8 +621,101 @@ def prepare_storage_path(party):
     return storage_path
 
 
+def minio_server_is_ready(config):
+    s3_client = s3fs.S3FileSystem(
+        anon=False,
+        key=config.access_key_id,
+        secret=config.access_key_secret,
+        client_kwargs={'endpoint_url': config.endpoint},
+        config_kwargs={
+            'signature_version': config.version,
+            's3': {"addressing_style": "virtual" if config.virtual_host else "path"},
+        },
+    )
+    try:
+        s3_client.ls(
+            config.bucket,
+            detail=False,
+        )
+        logging.info(f"minio server is ready: {config.endpoint}")
+        return True
+    except Exception as e:
+        logging.warning(f"minio server is not ready: {e}")
+        return False
+
+
+def setup_minio_server(storage_path, self_party):
+    minio_path = os.path.join(storage_path, f"minio_{self_party}")
+    os.makedirs(minio_path, exist_ok=True)
+
+    minio_server = os.path.join(minio_path, "minio")
+    if not os.path.exists(minio_server) or not os.path.isfile(minio_server):
+        system = "linux"
+        arch = "amd64"
+        if platform.system() == "Darwin":
+            system = "darwin"
+        if platform.machine() == "arm64" or platform.machine() == "aarch64":
+            arch = "arm64"
+        urllib.request.urlretrieve(
+            f"https://dl.min.io/server/minio/release/{system}-{arch}/minio",
+            minio_server,
+        )
+        st = os.stat(minio_server)
+        os.chmod(minio_server, st.st_mode | stat.S_IEXEC)
+
+    minio_data_path = os.path.join(minio_path, "data")
+    os.makedirs(
+        os.path.join(minio_data_path, "sf-test"),
+        exist_ok=True,
+    )
+
+    ms_env = os.environ.copy()
+    ms_env["MINIO_BROWSER"] = "off"
+    ms_env["MINIO_ACCESS_KEY"] = "sf_test_aaa"
+    ms_env["MINIO_SECRET_KEY"] = "sf_test_sss"
+
+    ports = {
+        "alice": get_available_port(64122),
+        "bob": get_available_port(64244),
+        "carol": get_available_port(64366),
+        "davy": get_available_port(64488),
+    }
+    endpoint = f"127.0.0.1:{ports[self_party]}"
+    ms = subprocess.Popen(
+        [minio_server, "server", minio_data_path, "--address", endpoint],
+        env=ms_env,
+    )
+
+    storage_config = StorageConfig(
+        type="s3",
+        s3=StorageConfig.S3Config(
+            endpoint=f"http://{endpoint}",
+            bucket="sf-test",
+            prefix="test-prefix",
+            access_key_id="sf_test_aaa",
+            access_key_secret="sf_test_sss",
+            virtual_host=False,
+            version="s3v4",
+        ),
+    )
+
+    wait_count = 0
+    while True:
+        time.sleep(0.4)
+        if minio_server_is_ready(storage_config.s3):
+            break
+        wait_count += 1
+        if wait_count > 25:
+            raise RuntimeError(
+                f"minio server is not ready for {wait_count * 0.4}s, terminate."
+            )
+
+    return ms, storage_config
+
+
 @pytest.fixture(scope="package")
 def comp_prod_sf_cluster_config(request, sf_party_for_4pc):
+    os.environ["SF_UT_DO_NOT_EXIT_ENV_FLAG"] = "1"
     desc = SFClusterDesc(
         parties=["alice", "bob", "carol", "davy"],
         devices=[
@@ -550,10 +762,10 @@ def comp_prod_sf_cluster_config(request, sf_party_for_4pc):
             ray_fed_config=SFClusterConfig.RayFedConfig(
                 parties=["alice", "bob", "carol", "davy"],
                 addresses=[
-                    "127.0.0.1:62241",
-                    "127.0.0.1:63342",
-                    "127.0.0.1:64443",
-                    "127.0.0.1:61544",
+                    f"127.0.0.1:{get_available_port(62000)}",
+                    f"127.0.0.1:{get_available_port(62500)}",
+                    f"127.0.0.1:{get_available_port(63000)}",
+                    f"127.0.0.1:{get_available_port(63500)}",
                 ],
             ),
             spu_configs=[
@@ -561,12 +773,21 @@ def comp_prod_sf_cluster_config(request, sf_party_for_4pc):
                     name="spu",
                     parties=["alice", "bob"],
                     addresses=[
-                        "127.0.0.1:62645",
-                        "127.0.0.1:63746",
+                        f"127.0.0.1:{get_available_port(64000)}",
+                        f"127.0.0.1:{get_available_port(64600)}",
                     ],
                 )
             ],
             barrier_on_shutdown=True,
+            inference_config=SFClusterConfig.InferenceConfig(
+                parties=["alice", "bob", "carol", "davy"],
+                addresses=[
+                    f"127.0.0.1:{get_available_port(8110)}",
+                    f"127.0.0.1:{get_available_port(8111)}",
+                    f"127.0.0.1:{get_available_port(8112)}",
+                    f"127.0.0.1:{get_available_port(8113)}",
+                ],
+            ),
         ),
         private_config=SFClusterConfig.PrivateConfig(
             self_party=sf_party_for_4pc,
@@ -574,55 +795,9 @@ def comp_prod_sf_cluster_config(request, sf_party_for_4pc):
         ),
     )
 
-    minio_path = os.path.join(storage_path, f"minio_{sf_party_for_4pc}")
-    os.makedirs(minio_path, exist_ok=True)
-
-    minio_server = os.path.join(minio_path, "minio")
-    if not os.path.exists(minio_server) or not os.path.isfile(minio_server):
-        system = "linux"
-        arch = "amd64"
-        if platform.system() == "Darwin":
-            system = "darwin"
-        if platform.machine() == "arm64" or platform.machine() == "aarch64":
-            arch = "arm64"
-        urllib.request.urlretrieve(
-            f"https://dl.min.io/server/minio/release/{system}-{arch}/minio",
-            minio_server,
-        )
-        st = os.stat(minio_server)
-        os.chmod(minio_server, st.st_mode | stat.S_IEXEC)
-
-    minio_data_path = os.path.join(minio_path, "data")
-    os.makedirs(
-        os.path.join(minio_data_path, "sf-test"),
-        exist_ok=True,
-    )
-
-    ms_env = os.environ.copy()
-    ms_env["MINIO_BROWSER"] = "off"
-    ms_env["MINIO_ACCESS_KEY"] = "sf_test_aaa"
-    ms_env["MINIO_SECRET_KEY"] = "sf_test_sss"
-
-    ports = {"alice": 63122, "bob": 63244, "carol": 63366, "davy": 63488}
-    endpoint = f"127.0.0.1:{ports[sf_party_for_4pc]}"
-    ms = subprocess.Popen(
-        [minio_server, "server", minio_data_path, "--address", endpoint],
-        env=ms_env,
-    )
-    storage_config = StorageConfig(
-        type="s3",
-        s3=StorageConfig.S3Config(
-            endpoint=f"http://{endpoint}",
-            bucket="sf-test",
-            prefix="test-prefix",
-            access_key_id="sf_test_aaa",
-            access_key_secret="sf_test_sss",
-            virtual_host=False,
-            version="s3v4",
-        ),
-    )
-    time.sleep(0.4)
+    ms, storage_config = setup_minio_server(storage_path, sf_party_for_4pc)
 
     yield storage_config, sf_config
 
+    del os.environ["SF_UT_DO_NOT_EXIT_ENV_FLAG"]
     ms.kill()

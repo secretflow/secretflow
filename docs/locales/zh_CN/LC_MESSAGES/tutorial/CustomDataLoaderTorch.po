@@ -5,9 +5,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: SecretFlow\n"
+"Project-Id-Version:  SecretFlow\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-03-22 17:07+0800\n"
+"POT-Creation-Date: 2024-07-22 12:05+0000\n"
 "PO-Revision-Date: 2023-08-31 20:19+0800\n"
 "Last-Translator: Tony Wu <tonywu6@protonmail.com>\n"
 "Language: zh\n"
@@ -16,7 +16,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.14.0\n"
+"Generated-By: Babel 2.15.0\n"
 
 #: ../../tutorial/CustomDataLoaderTorch.ipynb:9
 msgid "Using Custom DataBuilder in SecretFlow (Torch)"
@@ -137,7 +137,7 @@ msgid ""
 msgstr "下载地址: http://download.tensorflow.org/example_images/flower_photos.tgz"
 
 #: ../../tutorial/CustomDataLoaderTorch.ipynb:200
-msgid "|fe63e0aca0604af5a518cbf577b5c334|"
+msgid "|e4092dda04aa499cb03e1a1ca8b81be9|"
 msgstr ""
 
 #: ../../tutorial/CustomDataLoaderTorch.ipynb:202

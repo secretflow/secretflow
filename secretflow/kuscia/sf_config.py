@@ -13,6 +13,8 @@
 # limitations under the License.
 
 
+import logging
+
 from secretflow.kuscia.ray_config import RayConfig
 from secretflow.kuscia.task_config import KusciaTaskConfig
 from secretflow.spec.extend.cluster_pb2 import SFClusterConfig
@@ -29,13 +31,18 @@ def get_sf_cluster_config(kuscia_config: KusciaTaskConfig) -> SFClusterConfig:
 
     spu_address = {}
     fed_address = {}
+    inference_address = {}
 
+    logging.info(f"kuscia_task_allocated_ports: {kuscia_task_allocated_ports}")
     for port in kuscia_task_allocated_ports.ports:
         if port.name == "spu":
             spu_address["spu"] = {party_name: f"0.0.0.0:{port.port}"}
 
         elif port.name == "fed":
             fed_address = {party_name: f"0.0.0.0:{port.port}"}
+
+        elif port.name == "inference":
+            inference_address = {party_name: f"0.0.0.0:{port.port}"}
 
     for party in kuscia_task_cluster_def.parties:
         if party.name != party_name:
@@ -52,6 +59,8 @@ def get_sf_cluster_config(kuscia_config: KusciaTaskConfig) -> SFClusterConfig:
                         service.endpoints[0] += ":80"
                     # add "http://" to force brpc to set the correct Host
                     spu_address["spu"][party.name] = f"http://{service.endpoints[0]}"
+                elif service.port_name == "inference":
+                    inference_address[party.name] = f"http://{service.endpoints[0]}"
 
     res = SFClusterConfig(
         desc=sf_cluster_desc,
@@ -64,13 +73,23 @@ def get_sf_cluster_config(kuscia_config: KusciaTaskConfig) -> SFClusterConfig:
     public_ray_fed_config = SFClusterConfig.RayFedConfig()
     if set(list(sf_cluster_desc.parties)) != set(list(fed_address.keys())):
         raise RuntimeError(
-            "parties in kuscia_task doesn't match those in sf_cluster_desc"
+            f"parties in fed_address doesn't match those in sf_cluster_desc, sf_cluster_desc: {set(list(sf_cluster_desc.parties))}, fed_address: {set(list(fed_address.keys()))}"
         )
+
+    public_inference_config = SFClusterConfig.InferenceConfig()
+    if set(list(sf_cluster_desc.parties)) != set(list(inference_address.keys())):
+        raise RuntimeError(
+            f"parties in inference_address doesn't match those in sf_cluster_desc: sf_cluster_desc: {set(list(sf_cluster_desc.parties))}, inference_address: {set(list(inference_address.keys()))}"
+        )
+
     for p in sf_cluster_desc.parties:
         public_ray_fed_config.parties.append(p)
         public_ray_fed_config.addresses.append(fed_address[p])
+        public_inference_config.parties.append(p)
+        public_inference_config.addresses.append(inference_address[p])
 
     res.public_config.ray_fed_config.CopyFrom(public_ray_fed_config)
+    res.public_config.inference_config.CopyFrom(public_inference_config)
 
     for device in sf_cluster_desc.devices:
         if device.type.lower() == "spu":

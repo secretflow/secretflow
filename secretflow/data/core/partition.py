@@ -15,7 +15,7 @@
 import logging
 from typing import Callable, List, Union
 
-from secretflow.device import PYU, Device, PYUObject, reveal
+from secretflow.device import PYU, Device, PYUObject, reveal, wait
 from secretflow.distributed.primitive import get_current_cluster_idx
 
 from ..base import DataFrameBase
@@ -139,14 +139,16 @@ class Partition(DataFrameBase):
         if isinstance(value, Partition):
             if self.part_agent == value.part_agent:
                 # same part_agent directly set with index.
-                self.part_agent.__setitem__(self.agent_idx, key, value.agent_idx)
+                wait(self.part_agent.__setitem__(self.agent_idx, key, value.agent_idx))
             else:
                 # different part_agent need to get data and then set into it.
-                self.part_agent.__setitem__(
-                    self.agent_idx, key, value.part_agent.get_data(value.agent_idx)
+                wait(
+                    self.part_agent.__setitem__(
+                        self.agent_idx, key, value.part_agent.get_data(value.agent_idx)
+                    )
                 )
         else:
-            self.part_agent.__setitem__(self.agent_idx, key, value)
+            wait(self.part_agent.__setitem__(self.agent_idx, key, value))
 
     def __len__(self):
         return reveal(self.part_agent.__len__(self.agent_idx))
@@ -245,6 +247,7 @@ class Partition(DataFrameBase):
         data_idx = self.part_agent.drop(
             self.agent_idx, labels, axis, index, columns, level, inplace, errors
         )
+        wait(data_idx)
         if not inplace:
             return Partition(self.part_agent, data_idx, self.device, self.backend)
 
@@ -260,6 +263,7 @@ class Partition(DataFrameBase):
         data_idx = self.part_agent.fillna(
             self.agent_idx, value, method, axis, inplace, limit, downcast
         )
+        wait(data_idx)
         if not inplace:
             return Partition(self.part_agent, data_idx, self.device, self.backend)
 
@@ -284,6 +288,7 @@ class Partition(DataFrameBase):
         data_idx = self.part_agent.rename(
             self.agent_idx, mapper, index, columns, axis, copy, inplace, level, errors
         )
+        wait(data_idx)
         if not inplace:
             return Partition(self.part_agent, data_idx, self.device, self.backend)
 
