@@ -18,15 +18,18 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 import pytest
+from pyarrow import orc
 from sklearn.datasets import load_breast_cancer
 from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import StandardScaler
 
-from secretflow.component.ml.linear.ss_glm import ss_glm_predict_comp, ss_glm_train_comp
-from secretflow.component.storage import ComponentStorage
-from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
+from secretflow.component.core import (
+    Storage,
+    VTable,
+    VTableParty,
+    build_node_eval_param,
+)
+from secretflow.component.entry import comp_eval
 from secretflow.spec.v1.report_pb2 import Report
 
 
@@ -42,7 +45,7 @@ def test_glm(comp_prod_sf_cluster_config, optimizer, with_checkpoint):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = Storage(storage_config)
 
     scaler = StandardScaler()
     ds = load_breast_cancer()
@@ -52,64 +55,57 @@ def test_glm(comp_prod_sf_cluster_config, optimizer, with_checkpoint):
         x["id1"] = pd.Series([f"{i}" for i in range(x.shape[0])])
         y = pd.DataFrame(y, columns=["y"])
         ds = pd.concat([x, y], axis=1)
-        ds.to_csv(comp_storage.get_writer(alice_path), index=False)
+        ds.to_csv(storage.get_writer(alice_path), index=False)
 
     elif self_party == "bob":
         ds = pd.DataFrame(x[:, 15:], columns=[f"b{i}" for i in range(15)])
         ds["id2"] = pd.Series([f"{i}" for i in range(x.shape[0])])
-        ds.to_csv(comp_storage.get_writer(bob_path), index=False)
+        ds.to_csv(storage.get_writer(bob_path), index=False)
 
-    train_param = NodeEvalParam(
+    feature_selects = [f"a{i}" for i in range(15)] + [f"b{i}" for i in range(15)]
+    train_param = build_node_eval_param(
         domain="ml.train",
         name="ss_glm_train",
-        version="0.0.3",
-        attr_paths=[
-            "epochs",
-            "learning_rate",
-            "batch_size",
-            "link_type",
-            "label_dist_type",
-            "optimizer",
-            "l2_lambda",
-            "infeed_batch_size_limit",
-            "iter_start_irls",
-            "stopping_rounds",
-            "stopping_tolerance",
-            "stopping_metric",
-            "report_weights",
-            "input/train_dataset/label",
-            "input/train_dataset/feature_selects",
-            "input/train_dataset/offset",
-            "input/train_dataset/weight",
-            "report_metric",
-        ],
-        attrs=[
-            Attribute(i64=10),
-            Attribute(f=0.3),
-            Attribute(i64=128),
-            Attribute(s="Logit"),
-            Attribute(s="Bernoulli"),
-            Attribute(s=optimizer),
-            Attribute(f=0.3),
-            Attribute(i64=128 * 30),
-            Attribute(i64=1),
-            Attribute(i64=2),
-            Attribute(f=0.01),
-            Attribute(s="RMSE"),
-            Attribute(b=True),
-            Attribute(ss=["y"]),
-            Attribute(ss=[f"a{i}" for i in range(15)] + [f"b{i}" for i in range(15)]),
-            Attribute(ss=[]),
-            Attribute(ss=[]),
-            Attribute(b=True),
-        ],
+        version="1.0.0",
+        attrs={
+            "epochs": 10,
+            "learning_rate": 0.3,
+            "batch_size": 128,
+            "link_type": "Logit",
+            "label_dist_type": "Bernoulli",
+            "optimizer": optimizer,
+            "l2_lambda": 0.3,
+            "infeed_batch_size_limit": 128 * 30,
+            "iter_start_irls": 1,
+            "stopping_rounds": 2,
+            "stopping_tolerance": 0.01,
+            "stopping_metric": "RMSE",
+            "report_weights": True,
+            "input/input_ds/label": ["y"],
+            "input/input_ds/feature_selects": feature_selects,
+            # "offset": Attribute(ss=[]),
+            # "weight": Attribute(ss=[]),
+            "report_metric": True,
+        },
         inputs=[
-            DistData(
+            VTable(
                 name="train_dataset",
-                type="sf.table.vertical_table",
-                data_refs=[
-                    DistData.DataRef(uri=alice_path, party="alice", format="csv"),
-                    DistData.DataRef(uri=bob_path, party="bob", format="csv"),
+                parties=[
+                    VTableParty.from_dict(
+                        uri=alice_path,
+                        party="alice",
+                        format="csv",
+                        ids={"id1": "str"},
+                        features={f"a{i}": "float32" for i in range(15)},
+                        labels={"y": "float32"},
+                    ),
+                    VTableParty.from_dict(
+                        uri=bob_path,
+                        party="bob",
+                        format="csv",
+                        ids={"id2": "str"},
+                        features={f"b{i}": "float32" for i in range(15)},
+                    ),
                 ],
             ),
         ],
@@ -117,27 +113,7 @@ def test_glm(comp_prod_sf_cluster_config, optimizer, with_checkpoint):
         checkpoint_uri=checkpoint_path if with_checkpoint else "",
     )
 
-    meta = VerticalTable(
-        schemas=[
-            TableSchema(
-                ids=["id1"],
-                id_types=["str"],
-                feature_types=["float32"] * 15,
-                features=[f"a{i}" for i in range(15)],
-                labels=["y"],
-                label_types=["float32"],
-            ),
-            TableSchema(
-                ids=["id2"],
-                id_types=["str"],
-                feature_types=["float32"] * 15,
-                features=[f"b{i}" for i in range(15)],
-            ),
-        ],
-    )
-    train_param.inputs[0].meta.Pack(meta)
-
-    train_res = ss_glm_train_comp.eval(
+    train_res = comp_eval(
         param=train_param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -151,27 +127,21 @@ def test_glm(comp_prod_sf_cluster_config, optimizer, with_checkpoint):
     logging.info(comp_ret)
 
     def run_pred(predict_path, train_res):
-        predict_param = NodeEvalParam(
+        predict_param = build_node_eval_param(
             domain="ml.predict",
             name="ss_glm_predict",
-            version="0.0.2",
-            attr_paths=[
-                "receiver",
-                "save_ids",
-                "save_label",
-                "input/feature_dataset/saved_features",
-            ],
-            attrs=[
-                Attribute(ss=["alice"]),
-                Attribute(b=True),
-                Attribute(b=True),
-                Attribute(ss=["a10", "a2"]),
-            ],
+            version="1.0.0",
+            attrs={
+                "receiver": ["alice"],
+                "save_ids": True,
+                "save_label": True,
+                "saved_features": ["a10", "a2"],
+            },
             inputs=[train_res.outputs[0], train_param.inputs[0]],
             output_uris=[predict_path],
         )
 
-        predict_res = ss_glm_predict_comp.eval(
+        predict_res = comp_eval(
             param=predict_param,
             storage_config=storage_config,
             cluster_config=sf_cluster_config,
@@ -182,11 +152,11 @@ def test_glm(comp_prod_sf_cluster_config, optimizer, with_checkpoint):
         assert len(predict_res["eval_result"].outputs) == 1
 
         if "alice" == sf_cluster_config.private_config.self_party:
-            comp_storage = ComponentStorage(storage_config)
-            input_y = pd.read_csv(comp_storage.get_reader(alice_path))
+            storage = Storage(storage_config)
+            input_y = pd.read_csv(storage.get_reader(alice_path))
             dtype = defaultdict(np.float32)
             dtype["id1"] = np.string_
-            output_y = pd.read_csv(comp_storage.get_reader(predict_path), dtype=dtype)
+            output_y = orc.read_table(storage.get_reader(predict_path)).to_pandas()
 
             # label & pred
             assert output_y.shape[1] == 5
@@ -208,15 +178,15 @@ def test_glm(comp_prod_sf_cluster_config, optimizer, with_checkpoint):
     if with_checkpoint:
         cp_num = len(comp_ret.tabs[1].divs[0].children[0].table.rows)
         if "alice" == sf_cluster_config.private_config.self_party:
-            comp_storage = ComponentStorage(storage_config)
+            storage = Storage(storage_config)
             for i in range(int(cp_num / 2), cp_num):
-                with comp_storage.get_writer(f"{checkpoint_path}_{i}") as f:
+                with storage.get_writer(f"{checkpoint_path}_{i}") as f:
                     # destroy some checkpoint to rollback train progress
                     f.write(b"....")
 
         # run train again from checkpoint
         train_param.output_uris[0] = f"{work_path}/model.sf.2"
-        train_res = ss_glm_train_comp.eval(
+        train_res = comp_eval(
             param=train_param,
             storage_config=storage_config,
             cluster_config=sf_cluster_config,

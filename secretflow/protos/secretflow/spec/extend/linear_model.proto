@@ -29,3 +29,33 @@ message LinearModel {
   float bias = 2;
   string model_hash = 3;
 }
+
+// ss-glm prediction equation: pred = jnp.matmul(x, w) + bias + offset_col; pred = link.response(pred) * y_scale
+message PublicInfo {
+  // support 'Logit'(log(mu / (1 - mu))), 'Log'(log(mu)), 'Reciprocal'(1 / mu), 'Identity'(mu)
+  string link = 1;
+  /*
+   * scale y into appropriate range for ss-glm, fixed as 1 in plain text training.
+   * If range of y is (-infinity, +infinity), the intermediate results of ss-glm training may exceed the range of fixed-point numbers in MPC,
+   * leading to non-convergence of model.
+   */
+  double y_scale = 2;
+  // per-row "bias value" that is used during model training
+  string offset_col = 3;
+  string label_col = 4;
+  /*
+   * use high-precision exp approx or not (1: use high-precision exp, 2: do not use high-precision exp)
+   * high-precision will improve the accuracy, but degrade performance
+   */
+  int32 fxp_exp_mode = 5;
+  /*
+   * number of iterations of exp taylor approx (takes effect when fxp_exp_mode is 2).
+   * Increase will improve the accuracy of exp approx, but will quickly degrade performance
+   */
+  int32 fxp_exp_iters = 6;
+}
+
+message GeneralizedLinearModel {
+  PublicInfo public_info = 1;
+  LinearModel model = 2;
+}

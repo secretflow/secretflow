@@ -13,9 +13,23 @@
 # limitations under the License.
 
 import json
+from dataclasses import dataclass
 
-from secretflow.component.component import Component, IoType, TableColParam
-from secretflow.component.data_utils import DistDataType, load_table, model_dumps
+from secretflow.component.core import (
+    Component,
+    Context,
+    DistDataType,
+    Field,
+    Input,
+    Interval,
+    Model,
+    Output,
+    UnionGroup,
+    Version,
+    VTable,
+    VTableFieldKind,
+    register,
+)
 from secretflow.data.split import train_test_split
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData
@@ -37,382 +51,285 @@ from .base import (
     mkdtemp,
 )
 
-slnn_train_comp = Component(
-    "slnn_train",
-    domain="ml.train",
-    version="0.0.1",
-    desc="""Train nn models for vertical partitioning dataset by split learning.
+
+@dataclass
+class Loss(UnionGroup):
+    builtin: str = Field.attr(
+        desc="Builtin loss function.",
+        default="mean_squared_error",
+        choices=BUILTIN_LOSSES,
+    )
+    custom: str = Field.attr(
+        desc="Custom loss function.",
+        default=DEFAULT_CUSTOM_LOSS_CODE,
+    )
+
+
+@dataclass
+class Optimizer:
+    name: str = Field.attr(
+        desc="Optimizer name.",
+        is_optional=False,
+        default="Adam",
+        choices=BUILTIN_OPTIMIZERS,
+    )
+    params: str = Field.attr(
+        desc="Additional optimizer parameters in JSON format.",
+        default="",
+    )
+
+
+@dataclass
+class Strategy:
+    name: str = Field.attr(
+        desc="Split learning strategy name.",
+        default="pipeline",
+        choices=BUILTIN_STRATEGIES,
+    )
+    params: str = Field.attr(
+        desc="Additional strategy parameters in JSON format.",
+        default='{"pipeline_size":2}',
+    )
+
+
+@dataclass
+class Compressor:
+    name: str = Field.attr(
+        desc="Compressor name.",
+        default="",
+        choices=BUILTIN_COMPRESSORS,
+    )
+    params: str = Field.attr(
+        desc="Additional compressor parameters in JSON format.",
+        default="",
+    )
+
+
+@register(domain="ml.train", version="0.0.1", name="slnn_train")
+class SLNNTrain(Component):
+    '''
+    Train nn models for vertical partitioning dataset by split learning.
     This component is not enabled by default, it requires the use of the full version
     of secretflow image and setting the ENABLE_NN environment variable to true.
     Since it is necessary to define the model structure using python code,
     although the range of syntax and APIs that can be used has been restricted,
     there are still potential security risks. It is recommended to use it in
-    conjunction with process sandboxes such as nsjail.""",
-)
+    conjunction with process sandboxes such as nsjail.
+    '''
 
-slnn_train_comp.str_attr(
-    name="models",
-    desc="Define the models for training.",
-    is_list=False,
-    is_optional=False,
-    default_value=DEFAULT_MODELS_CODE,
-)
-slnn_train_comp.int_attr(
-    name="epochs",
-    desc="The number of complete pass through the training data.",
-    is_list=False,
-    is_optional=True,
-    default_value=10,
-    allowed_values=None,
-    lower_bound=1,
-    upper_bound=None,
-    lower_bound_inclusive=True,
-)
-slnn_train_comp.float_attr(
-    name="learning_rate",
-    desc="The step size at each iteration in one iteration.",
-    is_list=False,
-    is_optional=True,
-    default_value=0.001,
-    lower_bound=0,
-    lower_bound_inclusive=False,
-)
-slnn_train_comp.int_attr(
-    name="batch_size",
-    desc="The number of training examples utilized in one iteration.",
-    is_list=False,
-    is_optional=True,
-    default_value=512,
-    lower_bound=0,
-    lower_bound_inclusive=False,
-)
-slnn_train_comp.float_attr(
-    name="validattion_prop",
-    desc="The proportion of validation set to total data set.",
-    is_list=False,
-    is_optional=True,
-    default_value=0.1,
-    lower_bound=0,
-    lower_bound_inclusive=True,
-    upper_bound=1,
-    upper_bound_inclusive=False,
-)
-slnn_train_comp.union_attr_group(
-    name="loss",
-    desc="Loss function.",
-    group=[
-        slnn_train_comp.str_attr(
-            name="builtin",
-            desc="Builtin loss function.",
-            is_list=False,
-            is_optional=True,
-            default_value="mean_squared_error",
-            allowed_values=BUILTIN_LOSSES,
-        ),
-        slnn_train_comp.str_attr(
-            name="custom",
-            desc="Custom loss function.",
-            is_list=False,
-            is_optional=True,
-            default_value=DEFAULT_CUSTOM_LOSS_CODE,
-        ),
-    ],
-)
-slnn_train_comp.struct_attr_group(
-    name="optimizer",
-    desc="Optimizer.",
-    group=[
-        slnn_train_comp.str_attr(
-            name="name",
-            desc="Optimizer name.",
-            is_list=False,
-            is_optional=False,
-            default_value="Adam",
-            allowed_values=BUILTIN_OPTIMIZERS,
-        ),
-        slnn_train_comp.str_attr(
-            name="params",
-            desc="Additional optimizer parameters in JSON format.",
-            is_list=False,
-            is_optional=True,
-            default_value="",
-        ),
-    ],
-)
-slnn_train_comp.str_attr(
-    name="metrics",
-    desc="Metrics.",
-    is_list=True,
-    is_optional=True,
-    default_value=["AUC"],
-    allowed_values=BUILTIN_METRICS,
-    list_max_length_inclusive=10,
-)
-slnn_train_comp.str_attr(
-    name="model_input_scheme",
-    desc="Input scheme of base model, tensor: merge all features into one tensor; tensor_dict: each feature as a tensor.",
-    is_list=False,
-    is_optional=False,
-    default_value=str(ModelInputScheme.TENSOR),
-    allowed_values=ModelInputScheme.values(),
-)
-slnn_train_comp.struct_attr_group(
-    name="strategy",
-    desc="Split learning strategy.",
-    group=[
-        slnn_train_comp.str_attr(
-            name="name",
-            desc="Split learning strategy name.",
-            is_list=False,
-            is_optional=True,
-            default_value="pipeline",
-            allowed_values=BUILTIN_STRATEGIES,
-        ),
-        slnn_train_comp.str_attr(
-            name="params",
-            desc="Additional strategy parameters in JSON format.",
-            is_list=False,
-            is_optional=True,
-            default_value='{"pipeline_size":2}',
-        ),
-    ],
-)
-slnn_train_comp.struct_attr_group(
-    name="compressor",
-    desc="Compressor for hiddens and gradients.",
-    group=[
-        slnn_train_comp.str_attr(
-            name="name",
-            desc="Compressor name.",
-            is_list=False,
-            is_optional=True,
-            default_value="",
-            allowed_values=BUILTIN_COMPRESSORS,
-        ),
-        slnn_train_comp.str_attr(
-            name="params",
-            desc="Additional compressor parameters in JSON format.",
-            is_list=False,
-            is_optional=True,
-            default_value="",
-        ),
-    ],
-)
-slnn_train_comp.io(
-    io_type=IoType.INPUT,
-    name="train_dataset",
-    desc="Input vertical table.",
-    types=[DistDataType.VERTICAL_TABLE],
-    col_params=[
-        TableColParam(
-            name="feature_selects",
-            desc="which features should be used for training.",
-            col_min_cnt_inclusive=1,
-        ),
-        TableColParam(
-            name="label",
-            desc="Label of train dataset.",
-            col_min_cnt_inclusive=1,
-            col_max_cnt_inclusive=1,
-        ),
-    ],
-)
-slnn_train_comp.io(
-    io_type=IoType.OUTPUT,
-    name="output_model",
-    desc="Output model.",
-    types=[DistDataType.SL_NN_MODEL],
-)
-slnn_train_comp.io(
-    io_type=IoType.OUTPUT,
-    name="reports",
-    desc="Output report.",
-    types=[DistDataType.REPORT],
-    col_params=None,
-)
-
-
-@slnn_train_comp.eval_fn
-def slnn_train_eval_fn(
-    *,
-    ctx,
-    models,
-    epochs,
-    learning_rate,
-    batch_size,
-    validattion_prop,
-    loss,
-    loss_builtin,
-    loss_custom,
-    optimizer_name,
-    optimizer_params,
-    metrics,
-    model_input_scheme,
-    strategy_name,
-    strategy_params,
-    compressor_name,
-    compressor_params,
-    train_dataset,
-    train_dataset_label,
-    train_dataset_feature_selects,
-    output_model,
-    reports,
-):
-    check_enabled_or_fail()
-
-    # import after enabling check to avoid missing dependencies
-    from .training import saver, trainer
-
-    assert (
-        train_dataset_label[0] not in train_dataset_feature_selects
-    ), f"col {train_dataset_label[0]} used in both label and features"
-
-    y = load_table(
-        ctx,
-        train_dataset,
-        load_labels=True,
-        load_features=True,
-        col_selects=train_dataset_label,
+    models: str = Field.attr(
+        desc="Define the models for training.",
+        is_optional=False,
+        default=DEFAULT_MODELS_CODE,
     )
-    x = load_table(
-        ctx,
-        train_dataset,
-        load_features=True,
-        col_selects=train_dataset_feature_selects,
+    epochs: int = Field.attr(
+        desc="The number of complete pass through the training data.",
+        default=10,
+        bound_limit=Interval.closed(1, None),
+    )
+    learning_rate: float = Field.attr(
+        desc="The step size at each iteration in one iteration.",
+        default=0.001,
+        bound_limit=Interval.open(0, None),
+    )
+    batch_size: int = Field.attr(
+        desc="The number of training examples utilized in one iteration.",
+        default=512,
+        bound_limit=Interval.open(0, None),
+    )
+    validattion_prop: float = Field.attr(
+        desc="The proportion of validation set to total data set.",
+        default=0.1,
+        bound_limit=Interval.closed_open(0, 1),
+    )
+    loss: Loss = Field.union_attr(desc="Loss function.")
+    optimizer: Optimizer = Field.struct_attr(desc="Optimizer.")
+    metrics: list[str] = Field.attr(
+        desc="Metrics.",
+        default=["AUC"],
+        choices=BUILTIN_METRICS,
+        list_limit=Interval.closed(None, 10),
+    )
+    model_input_scheme: str = Field.attr(
+        desc="Input scheme of base model, tensor: merge all features into one tensor; tensor_dict: each feature as a tensor.",
+        is_optional=False,
+        default=str(ModelInputScheme.TENSOR),
+        choices=ModelInputScheme.values(),
+    )
+    strategy: Strategy = Field.struct_attr(desc="Split learning strategy.")
+    compressor: Compressor = Field.struct_attr(
+        desc="Compressor for hiddens and gradients."
+    )
+    feature_selects: list[str] = Field.table_column_attr(
+        "train_dataset",
+        desc="which features should be used for training.",
+        limit=Interval.closed(1, None),
+    )
+    label: str = Field.table_column_attr(
+        "train_dataset",
+        desc="Label of train dataset.",
+    )
+    train_dataset: Input = Field.input(  # type: ignore
+        desc="Input vertical table.",
+        types=[DistDataType.VERTICAL_TABLE],
+    )
+    output_model: Output = Field.output(
+        desc="Output model.",
+        types=[DistDataType.SL_NN_MODEL],
+    )
+    reports: Output = Field.output(
+        desc="Output report.",
+        types=[DistDataType.REPORT],
     )
 
-    val_x, val_y = None, None
-    if validattion_prop > 0:
-        x, val_x = train_test_split(
-            x, test_size=validattion_prop, train_size=1 - validattion_prop
-        )
-        y, val_y = train_test_split(
-            y, test_size=validattion_prop, train_size=1 - validattion_prop
-        )
+    def evaluate(self, ctx: Context):
+        check_enabled_or_fail()
 
-    pyus, label_pyu = trainer.prepare_pyus(x, y)
+        # import after enabling check to avoid missing dependencies
+        from .training import saver, trainer
 
-    assert loss in ["builtin", "custom"]
-    if loss == "builtin":
-        loss_custom = None
-    else:
-        loss_builtin = None
+        assert (
+            self.label not in self.feature_selects
+        ), f"col {self.label} used in both label and features"
 
-    with ctx.tracer.trace_running():
-        slmodel, history, model_configs = trainer.fit(
-            ctx=ctx,
-            x=x,
-            y=y,
-            val_x=val_x,
-            val_y=val_y,
-            models=models,
-            epochs=epochs,
-            learning_rate=learning_rate,
-            batch_size=batch_size,
-            loss=loss_builtin,
-            custom_loss=loss_custom,
-            optimizer=optimizer_name,
-            optimizer_params=optimizer_params,
-            metrics=metrics,
-            model_input_scheme=model_input_scheme,
-            strategy=strategy_name,
-            strategy_params=strategy_params,
-            compressor=compressor_name,
-            compressor_params=compressor_params,
-        )
+        tbl = VTable.from_distdata(self.train_dataset)
 
-    tmpdirs = mkdtemp(pyus)
+        tbl_y = tbl.select([self.label])
+        tbl_y.check_kinds(VTableFieldKind.FEATURE_LABEL)
+        y = ctx.load_table(tbl_y).to_pandas(check_null=False)
 
-    model, parts_meta = saver.save(slmodel, label_pyu, model_configs, tmpdirs)
+        tbl_x = tbl.select(self.feature_selects)
+        tbl_x.check_kinds(VTableFieldKind.FEATURE)
+        x = ctx.load_table(tbl_x).to_pandas(check_null=False)
 
-    feature_names = x.columns
-    model_meta = ModelMeta(
-        parts=parts_meta,
-        model_input_scheme=model_input_scheme,
-        label_col=train_dataset_label,
-        feature_names=feature_names,
-    )
-
-    model_db = model_dumps(
-        ctx,
-        "sl_nn",
-        DistDataType.SL_NN_MODEL,
-        MODEL_MAX_MAJOR_VERSION,
-        MODEL_MAX_MINOR_VERSION,
-        model,
-        json.dumps(model_meta.to_dict()),
-        output_model,
-        train_dataset.system_info,
-    )
-
-    return {
-        "output_model": model_db,
-        "reports": dump_training_reports(
-            reports,
-            history,
-            train_dataset.system_info,
-        ),
-    }
-
-
-def dump_training_reports(name, history, system_info):
-    ret = DistData(
-        name=name,
-        system_info=system_info,
-        type=str(DistDataType.REPORT),
-    )
-
-    headers = []
-    rows = []
-    for name, vals in history.items():
-        headers.append(
-            Table.HeaderItem(
-                name=name,
-                type="float",
+        val_x, val_y = None, None
+        if self.validattion_prop > 0:
+            x, val_x = train_test_split(
+                x, test_size=self.validattion_prop, train_size=1 - self.validattion_prop
             )
-        )
-        if not rows:
-            for idx, v in enumerate(vals):
-                rows.append(
-                    Table.Row(
-                        name=f"epoch_{idx+1}",
-                        items=[
-                            Attribute(f=v),
-                        ],
-                    )
-                )
+            y, val_y = train_test_split(
+                y, test_size=self.validattion_prop, train_size=1 - self.validattion_prop
+            )
+
+        pyus, label_pyu = trainer.prepare_pyus(x, y)
+
+        if self.loss.is_selected("builtin"):
+            loss_builtin = self.loss.builtin
+            loss_custom = None
         else:
-            for idx, v in enumerate(vals):
-                rows[idx].items.append(
-                    Attribute(f=v),
-                )
+            loss_builtin = None
+            loss_custom = self.loss.custom
 
-    meta = Report(
-        name="reports",
-        desc="",
-        tabs=[
-            Tab(
-                name="metrics",
-                desc="train and eval metrics",
-                divs=[
-                    Div(
-                        name="",
-                        desc="",
-                        children=[
-                            Div.Child(
-                                type="table",
-                                table=Table(
-                                    name="",
-                                    desc="",
-                                    headers=headers,
-                                    rows=rows,
-                                ),
-                            ),
-                        ],
-                    )
-                ],
+        with ctx.trace_running():
+            slmodel, history, model_configs = trainer.fit(
+                x=x,
+                y=y,
+                val_x=val_x,
+                val_y=val_y,
+                models=self.models,
+                epochs=self.epochs,
+                learning_rate=self.learning_rate,
+                batch_size=self.batch_size,
+                loss=loss_builtin,
+                custom_loss=loss_custom,
+                optimizer=self.optimizer.name,
+                optimizer_params=self.optimizer.params,
+                metrics=self.metrics,
+                model_input_scheme=self.model_input_scheme,
+                strategy=self.strategy.name,
+                strategy_params=self.strategy.params,
+                compressor=self.compressor.name,
+                compressor_params=self.compressor.params,
+                initiator_party=ctx.initiator_party,
             )
-        ],
-    )
-    ret.meta.Pack(meta)
-    return ret
+
+        tmpdirs = mkdtemp(pyus)
+
+        model, parts_meta = saver.save(slmodel, label_pyu, model_configs, tmpdirs)
+
+        feature_names = x.columns
+        model_meta = ModelMeta(
+            parts=parts_meta,
+            model_input_scheme=self.model_input_scheme,
+            label_col=[self.label],
+            feature_names=feature_names,
+        )
+
+        model_db = Model(
+            "sl_nn",
+            DistDataType.SL_NN_MODEL,
+            Version(MODEL_MAX_MAJOR_VERSION, MODEL_MAX_MINOR_VERSION),
+            objs=model,
+            public_info=json.dumps(model_meta.to_dict()),
+            system_info=self.train_dataset.system_info,
+        )
+        ctx.dump_to(model_db, self.output_model)
+
+        self.reports.data = self.dump_training_reports(
+            self.reports.uri,
+            history,
+            self.train_dataset.system_info,
+        )
+
+    @staticmethod
+    def dump_training_reports(name, history, system_info):
+        ret = DistData(
+            name=name,
+            system_info=system_info,
+            type=str(DistDataType.REPORT),
+        )
+
+        headers = []
+        rows = []
+        for name, vals in history.items():
+            headers.append(
+                Table.HeaderItem(
+                    name=name,
+                    type="float",
+                )
+            )
+            if not rows:
+                for idx, v in enumerate(vals):
+                    rows.append(
+                        Table.Row(
+                            name=f"epoch_{idx+1}",
+                            items=[
+                                Attribute(f=v),
+                            ],
+                        )
+                    )
+            else:
+                for idx, v in enumerate(vals):
+                    rows[idx].items.append(
+                        Attribute(f=v),
+                    )
+
+        meta = Report(
+            name="reports",
+            desc="",
+            tabs=[
+                Tab(
+                    name="metrics",
+                    desc="train and eval metrics",
+                    divs=[
+                        Div(
+                            name="",
+                            desc="",
+                            children=[
+                                Div.Child(
+                                    type="table",
+                                    table=Table(
+                                        name="",
+                                        desc="",
+                                        headers=headers,
+                                        rows=rows,
+                                    ),
+                                ),
+                            ],
+                        )
+                    ],
+                )
+            ],
+        )
+        ret.meta.Pack(meta)
+        return ret

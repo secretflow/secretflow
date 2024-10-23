@@ -204,9 +204,9 @@ class GradientClusterLabelInferenceAttack(AttackCallback):
         steps = get_suitable_steps(grad.shape[0])
         start = 0
         label_preds = []
-        for step in steps:
+        for i, step in enumerate(steps):
             logging.info(
-                f"handle the spectral cluster label with start = {start}, step = {step}"
+                f"handle the spectral cluster label with start = {start}, step = {step}, rounds {i}/{len(steps)}"
             )
             work_grad = grad[start : start + step]
             start += step

@@ -35,10 +35,10 @@ def _compile(
         assert isinstance(server_base, ModelWrapper)
         tf.saved_model.save(server_base, server_base_path)
 
-    assert server_fuse is not None and isinstance(server_fuse, ModelWrapper)
+    assert isinstance(server_fuse, ModelWrapper)
     tf.saved_model.save(server_fuse, server_fuse_path)
 
-    assert client_base is not None and isinstance(client_base, ModelWrapper)
+    assert isinstance(client_base, ModelWrapper)
     tf.saved_model.save(client_base, client_base_path)
 
 

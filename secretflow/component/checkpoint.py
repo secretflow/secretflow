@@ -14,7 +14,6 @@
 
 
 import logging
-import pickle
 import uuid
 from abc import abstractmethod
 from typing import Any, Dict, List
@@ -22,6 +21,7 @@ from typing import Any, Dict, List
 from secretflow.component.storage.impl import BuildStorageImpl
 from secretflow.device.driver import PYU, reveal, wait
 from secretflow.spec.v1.data_pb2 import DistData, StorageConfig
+from secretflow.utils import secure_pickle as pickle
 
 
 class CompCheckpoint:
@@ -65,9 +65,13 @@ class CompCheckpoint:
                 try:
                     with impl.get_reader(self._step_uri(step)) as f:
                         cp = pickle.load(f)
-                    assert isinstance(cp, dict)
-                    assert set(cp.keys()) == set(["step", "uuid", "args", "payload"])
-                    assert cp["step"] == step
+                    if not isinstance(cp, dict):
+                        break
+                    if set(cp.keys()) != set(["step", "uuid", "args", "payload"]):
+                        break
+                    if cp["step"] != step:
+                        break
+
                     check_points.append(cp)
                     step += 1
                 except:

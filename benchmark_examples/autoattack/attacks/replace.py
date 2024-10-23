@@ -95,7 +95,7 @@ class ReplaceAttackCase(AttackBase):
     def update_resources_consumptions(
         self, cluster_resources_pack: ResourcesPack, app: ApplicationBase
     ) -> ResourcesPack:
-        func = lambda x: x * 1.14
+        update_gpu = lambda x: x * 1.14
         return cluster_resources_pack.apply_debug_resources(
-            'gpu_mem', func
-        ).apply_sim_resources(app.device_f.party, 'gpu_mem', func)
+            'gpu_mem', update_gpu
+        ).apply_sim_resources(app.device_f.party, 'gpu_mem', update_gpu)

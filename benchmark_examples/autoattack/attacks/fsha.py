@@ -312,7 +312,11 @@ class FshaAttackCase(AttackBase):
     def update_resources_consumptions(
         self, cluster_resources_pack: ResourcesPack, app: ApplicationBase
     ) -> ResourcesPack:
-        func = lambda x: x * 1.18
-        return cluster_resources_pack.apply_debug_resources(
-            'gpu_mem', func
-        ).apply_sim_resources(app.device_y.party, 'gpu_mem', func)
+        update_gpu = lambda x: x * 1.18
+        update_mem = lambda x: x * 1.05
+        return (
+            cluster_resources_pack.apply_debug_resources('gpu_mem', update_gpu)
+            .apply_debug_resources('memory', update_mem)
+            .apply_sim_resources(app.device_y.party, 'gpu_mem', update_gpu)
+            .apply_sim_resources(app.device_y.party, 'memory', update_mem)
+        )

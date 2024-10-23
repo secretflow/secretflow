@@ -32,14 +32,17 @@ from secretflow.utils.simulation.datasets import load_iris
 
 
 @pytest.fixture(scope='module')
-def prod_env_and_label_encoder_data(sf_production_setup_devices):
+def prod_env_and_label_encoder_data(sf_production_setup_devices_ray):
     hdf = load_iris(
-        parts=[sf_production_setup_devices.alice, sf_production_setup_devices.bob],
-        aggregator=PlainAggregator(sf_production_setup_devices.alice),
-        comparator=PlainComparator(sf_production_setup_devices.carol),
+        parts=[
+            sf_production_setup_devices_ray.alice,
+            sf_production_setup_devices_ray.bob,
+        ],
+        aggregator=PlainAggregator(sf_production_setup_devices_ray.alice),
+        comparator=PlainComparator(sf_production_setup_devices_ray.carol),
     )
-    hdf_alice = reveal(hdf.partitions[sf_production_setup_devices.alice].data)
-    hdf_bob = reveal(hdf.partitions[sf_production_setup_devices.bob].data)
+    hdf_alice = reveal(hdf.partitions[sf_production_setup_devices_ray.alice].data)
+    hdf_bob = reveal(hdf.partitions[sf_production_setup_devices_ray.bob].data)
 
     vdf_alice = pd.DataFrame(
         {
@@ -60,18 +63,18 @@ def prod_env_and_label_encoder_data(sf_production_setup_devices):
     vdf_bob_polars = pl.from_pandas(vdf_bob)
     vdf = VDataFrame(
         {
-            sf_production_setup_devices.alice: partition(
-                data=sf_production_setup_devices.alice(lambda: vdf_alice_poalrs)(),
+            sf_production_setup_devices_ray.alice: partition(
+                data=sf_production_setup_devices_ray.alice(lambda: vdf_alice_poalrs)(),
                 backend="polars",
             ),
-            sf_production_setup_devices.bob: partition(
-                data=sf_production_setup_devices.bob(lambda: vdf_bob_polars)(),
+            sf_production_setup_devices_ray.bob: partition(
+                data=sf_production_setup_devices_ray.bob(lambda: vdf_bob_polars)(),
                 backend="polars",
             ),
         }
     )
 
-    yield sf_production_setup_devices, {
+    yield sf_production_setup_devices_ray, {
         'hdf': hdf,
         'hdf_alice': hdf_alice,
         'hdf_bob': hdf_bob,
@@ -240,14 +243,17 @@ class TestLabelEncoder:
 
 
 @pytest.fixture(scope='module')
-def prod_env_and_onehot_encoder_data(sf_production_setup_devices):
+def prod_env_and_onehot_encoder_data(sf_production_setup_devices_ray):
     hdf = load_iris(
-        parts=[sf_production_setup_devices.alice, sf_production_setup_devices.bob],
-        aggregator=PlainAggregator(sf_production_setup_devices.alice),
-        comparator=PlainComparator(sf_production_setup_devices.alice),
+        parts=[
+            sf_production_setup_devices_ray.alice,
+            sf_production_setup_devices_ray.bob,
+        ],
+        aggregator=PlainAggregator(sf_production_setup_devices_ray.alice),
+        comparator=PlainComparator(sf_production_setup_devices_ray.alice),
     )
-    hdf_alice = reveal(hdf.partitions[sf_production_setup_devices.alice].data)
-    hdf_bob = reveal(hdf.partitions[sf_production_setup_devices.bob].data)
+    hdf_alice = reveal(hdf.partitions[sf_production_setup_devices_ray.alice].data)
+    hdf_bob = reveal(hdf.partitions[sf_production_setup_devices_ray.bob].data)
 
     vdf_alice = pd.DataFrame(
         {
@@ -267,20 +273,22 @@ def prod_env_and_onehot_encoder_data(sf_production_setup_devices):
 
     vdf = VDataFrame(
         {
-            sf_production_setup_devices.alice: partition(
-                data=sf_production_setup_devices.alice(
+            sf_production_setup_devices_ray.alice: partition(
+                data=sf_production_setup_devices_ray.alice(
                     lambda: pl.from_pandas(vdf_alice)
                 )(),
                 backend="polars",
             ),
-            sf_production_setup_devices.bob: partition(
-                data=sf_production_setup_devices.bob(lambda: pl.from_pandas(vdf_bob))(),
+            sf_production_setup_devices_ray.bob: partition(
+                data=sf_production_setup_devices_ray.bob(
+                    lambda: pl.from_pandas(vdf_bob)
+                )(),
                 backend="polars",
             ),
         }
     )
 
-    yield sf_production_setup_devices, {
+    yield sf_production_setup_devices_ray, {
         'hdf': hdf,
         'hdf_alice': hdf_alice,
         'hdf_bob': hdf_bob,

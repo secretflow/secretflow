@@ -18,13 +18,14 @@ import pytest
 from secretflow.component.component import Component
 from secretflow.component.data_utils import DistDataType
 from secretflow.component.eval_param_reader import (
-    EvalParamError,
     EvalParamReader,
     check_allowed_values,
     check_lower_bound,
     check_table_attr_col_cnt,
     check_upper_bound,
 )
+from secretflow.error_system.error_code import ErrorCode
+from secretflow.error_system.exceptions import EvalParamError
 from secretflow.spec.v1.component_pb2 import (
     Attribute,
     AttributeDef,
@@ -193,15 +194,15 @@ def test_check_table_attr_col_cnt():
 
     d1 = IoDef.TableAttrDef(col_min_cnt_inclusive=4)
 
-    assert not check_table_attr_col_cnt(a, d1)
+    assert not check_table_attr_col_cnt(a, d1)[0]
 
     d2 = IoDef.TableAttrDef(col_max_cnt_inclusive=2)
 
-    assert not check_table_attr_col_cnt(a, d2)
+    assert not check_table_attr_col_cnt(a, d2)[0]
 
     d3 = IoDef.TableAttrDef(col_min_cnt_inclusive=3, col_max_cnt_inclusive=3)
 
-    assert check_table_attr_col_cnt(a, d3)
+    assert check_table_attr_col_cnt(a, d3)[0]
 
 
 def test_node_reader_not_match():
@@ -614,8 +615,11 @@ def test_node_reader_input_non_optional_null():
         outputs=[],
     )
 
-    with pytest.raises(AssertionError, match="def a is not optional and not set."):
-        reader = EvalParamReader(instance, definition)
+    with pytest.raises(EvalParamError) as exc_info:
+        _ = EvalParamReader(instance, definition)
+
+    assert exc_info.value.error_code == ErrorCode.EVAL_PARAM_ERROR
+    assert exc_info.value.reason == "input def a is not set when it is not optional."
 
 
 def test_check_unknown_attr():

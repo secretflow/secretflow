@@ -21,12 +21,9 @@ from google.protobuf.json_format import MessageToJson
 from sklearn.datasets import load_breast_cancer
 from sklearn.preprocessing import StandardScaler
 
-from secretflow.component.io.identity import identity
-from secretflow.component.io.io import io_read_data
-from secretflow.component.ml.linear.ss_glm import ss_glm_train_comp
-from secretflow.component.storage import ComponentStorage
+from secretflow.component.core import Storage, build_node_eval_param
+from secretflow.component.entry import comp_eval
 from secretflow.spec.extend.linear_model_pb2 import LinearModel
-from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
@@ -40,7 +37,7 @@ def glm_model(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = Storage(storage_config)
 
     scaler = StandardScaler()
     ds = load_breast_cancer()
@@ -49,44 +46,31 @@ def glm_model(comp_prod_sf_cluster_config):
         x = pd.DataFrame(x[:, :15], columns=[f"a{i}" for i in range(15)])
         y = pd.DataFrame(y, columns=["y"])
         ds = pd.concat([x, y], axis=1)
-        ds.to_csv(comp_storage.get_writer(alice_path), index=False)
+        ds.to_csv(storage.get_writer(alice_path), index=False)
 
     elif self_party == "bob":
         ds = pd.DataFrame(x[:, 15:], columns=[f"b{i}" for i in range(15)])
-        ds.to_csv(comp_storage.get_writer(bob_path), index=False)
+        ds.to_csv(storage.get_writer(bob_path), index=False)
 
-    train_param = NodeEvalParam(
+    train_param = build_node_eval_param(
         domain="ml.train",
         name="ss_glm_train",
-        version="0.0.3",
-        attr_paths=[
-            "epochs",
-            "learning_rate",
-            "batch_size",
-            "link_type",
-            "label_dist_type",
-            "optimizer",
-            "l2_lambda",
-            "report_weights",
-            "input/train_dataset/label",
-            "input/train_dataset/feature_selects",
-            "input/train_dataset/offset",
-            "input/train_dataset/weight",
-        ],
-        attrs=[
-            Attribute(i64=3),
-            Attribute(f=0.25),
-            Attribute(i64=128),
-            Attribute(s="Logit"),
-            Attribute(s="Bernoulli"),
-            Attribute(s="SGD"),
-            Attribute(f=0.3),
-            Attribute(b=True),
-            Attribute(ss=["y"]),
-            Attribute(ss=[f"a{i}" for i in range(15)] + [f"b{i}" for i in range(15)]),
-            Attribute(ss=[]),
-            Attribute(ss=[]),
-        ],
+        version="1.0.0",
+        attrs={
+            "epochs": 3,
+            "learning_rate": 0.25,
+            "batch_size": 128,
+            "link_type": "Logit",
+            "label_dist_type": "Bernoulli",
+            "optimizer": "SGD",
+            "l2_lambda": 0.3,
+            "report_weights": True,
+            "input/input_ds/label": ["y"],
+            "input/input_ds/feature_selects": [f"a{i}" for i in range(15)]
+            + [f"b{i}" for i in range(15)],
+            # "input/input_ds/offset": Attribute(ss=[]),
+            # "input/input_ds/weight": Attribute(ss=[]),
+        },
         inputs=[
             DistData(
                 name="train_dataset",
@@ -116,7 +100,7 @@ def glm_model(comp_prod_sf_cluster_config):
     )
     train_param.inputs[0].meta.Pack(meta)
 
-    train_res = ss_glm_train_comp.eval(
+    train_res = comp_eval(
         param=train_param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -133,11 +117,11 @@ def write_data(glm_model, comp_prod_sf_cluster_config):
     read_param = NodeEvalParam(
         domain="io",
         name="read_data",
-        version="0.0.1",
+        version="1.0.0",
         inputs=[glm_model],
         output_uris=[pb_path],
     )
-    read_res = io_read_data.eval(
+    read_res = comp_eval(
         param=read_param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -155,11 +139,11 @@ def test_glm_model_correct(glm_model, write_data, comp_prod_sf_cluster_config):
     identity_param = NodeEvalParam(
         domain="io",
         name="identity",
-        version="0.0.1",
+        version="1.0.0",
         inputs=[glm_model],
         output_uris=[new_glm_model_path],
     )
-    write_res = identity.eval(
+    write_res = comp_eval(
         param=identity_param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -168,11 +152,11 @@ def test_glm_model_correct(glm_model, write_data, comp_prod_sf_cluster_config):
     read_param = NodeEvalParam(
         domain="io",
         name="read_data",
-        version="0.0.1",
+        version="1.0.0",
         inputs=[write_res.outputs[0]],
         output_uris=[pb_path],
     )
-    read_res = io_read_data.eval(
+    read_res = comp_eval(
         param=read_param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,

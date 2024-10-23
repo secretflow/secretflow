@@ -48,6 +48,8 @@ class max_norm(Callback):
             """
             gradient = worker._gradient
 
+            assert gradient is not None and len(gradient) > 0
+
             if self.backend == "tensorflow":
                 raise NotImplementedError()
             else:
@@ -76,8 +78,6 @@ class max_norm(Callback):
                         (perturbed_gradients, perturbed_g), dim=0
                     )
 
-            if gradient[0] is None:
-                raise Exception("No gradient received from label party.")
             gradient[0] = perturbed_gradients
             worker._gradient = gradient
 

@@ -347,6 +347,9 @@ class HEUSkKeeper(HEUActor):
     def public_key(self):
         return self.hekit.public_key()
 
+    def secret_key(self):
+        return self.hekit.secret_key()
+
     def dump_pk(self, path):
         """Dump public key to the specified file."""
         pk = self.hekit.public_key()
@@ -539,7 +542,7 @@ class HEU(Device):
     - HEU -> SPU: 将 HE 加密的数据转换成 Arithmetic Sharing 数据并存放到 SPU
     """
 
-    def __init__(self, config: dict, spu_field_type):
+    def __init__(self, config: dict, spu_field_type, spu_fxp_fraction_bits: int = 0):
         """Initialize HEU
 
         Args:
@@ -589,6 +592,8 @@ class HEU(Device):
 
             spu_field_type: Field type in spu,
                 Device.to operation requires the data scale of HEU to be aligned with SPU
+            spu_fxp_fraction_bits: Number of fraction bits of fixed-point number in spu,
+                if set, Device.to operation requires the data scale of HEU to be aligned with SPU
         """
         super().__init__(DeviceType.HEU)
 
@@ -603,6 +608,9 @@ class HEU(Device):
 
         self.cleartext_type = "DT_F32"
         default_scale = 1 << spu_fxp_precision(spu_field_type)
+        if spu_fxp_fraction_bits > 0:
+            default_scale = 1 << spu_fxp_fraction_bits
+
         assert 'he_parameters' in config, f"missing field 'he_parameters' in heu config"
         param: dict = config['he_parameters']
         schema = phe.parse_schema_type(param.get("schema", "paillier"))
@@ -690,7 +698,11 @@ class HEU(Device):
 
 
 def heu_from_base_config(
-    base_heu_config: dict, new_sk_keeper: str, new_evaluators: List[str]
+    base_heu_config: dict,
+    new_sk_keeper: str,
+    new_evaluators: List[str],
+    field_type: spu.spu_pb2.FieldType = spu.spu_pb2.FM64,
+    fxp_fraction_bits: int = 0,
 ):
     """Create a HEU from an existing heu config, except replacing it with new sk keeper and new evaluators"""
     heu_config = {
@@ -702,4 +714,4 @@ def heu_from_base_config(
             "key_pair": {"generate": {"bit_size": base_heu_config["key_size"]}},
         },
     }
-    return HEU((heu_config), spu.spu_pb2.FM64)
+    return HEU(heu_config, field_type, fxp_fraction_bits)

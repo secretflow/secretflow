@@ -354,3 +354,7 @@ temp
 # pytest-testmon db
 .testmondata*
 *BeaverCache*
+
+#temp files
+spu_*.png
+pphlo_*.png

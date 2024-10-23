@@ -14,6 +14,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
+## [v1.10.0b0] - 2024-09-25
+
+### Added
+
+- [component] IO component supports import and export sgb/glm model
+- [component] Switch from ray to a local task scheduler
+- [component] Support export SGD/GLM 2-Party HE model package
+- [component] component reflect, include all component in the package of stats/io/preprocessing(exclude psi)/model_export, and update the component version to 1.0.0
+- [component] add new serving_model_inferencer component
+- [component] Integrate with DataProxy SDK
+
+### Changed
+
+- [sgb] The label holder bucket sum now uses HEU calculation, removing the need for the Numba dependency
+- [data] Change single party r2_score to sklearn function
+- [docs] Security warning translation
+
+### Fixed
+
+- [sgb] Fix checkpoint prediction initialization
+
+
+## [v1.9.0b0] - 2024-08-28
+
+### Added
+
+- [component] support sql null
+- [component] io_write_data supports xgb
+- [component] Add expr_condition_filter
+- [component] PSI supports specifying party
+
+
+### Fix
+
+- [component] fix training error on empty tree
+
 
 ## [v1.8.0b0] - 2024-07-17
 

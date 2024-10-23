@@ -19,12 +19,13 @@ import pandas as pd
 from google.protobuf.json_format import MessageToJson
 from sklearn.metrics import r2_score
 
-from secretflow.component.data_utils import DistDataType
-from secretflow.component.ml.eval.regression_eval import regression_eval_comp
-from secretflow.component.storage import ComponentStorage
-from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import DistData, IndividualTable, TableSchema
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
+from secretflow.component.core import (
+    Storage,
+    VTable,
+    VTableParty,
+    build_node_eval_param,
+)
+from secretflow.component.entry import comp_eval
 from secretflow.spec.v1.report_pb2 import Report
 
 
@@ -43,48 +44,37 @@ def test_regression_eval(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = Storage(storage_config)
 
     if self_party == "alice":
-        label_pred_df.to_csv(
-            comp_storage.get_writer(alice_label_pred_path), index=False
-        )
+        label_pred_df.to_csv(storage.get_writer(alice_label_pred_path), index=False)
 
-    param = NodeEvalParam(
+    param = build_node_eval_param(
         domain="ml.eval",
         name="regression_eval",
-        version="0.0.1",
-        attr_paths=[
-            "bucket_size",
-            "input/in_ds/label",
-            "input/in_ds/prediction",
-        ],
-        attrs=[
-            Attribute(i64=2),
-            Attribute(ss=["labels"]),
-            Attribute(ss=["predictions"]),
-        ],
+        version="1.0.0",
+        attrs={
+            "bucket_size": 2,
+            "input/input_ds/label": ["labels"],
+            "input/input_ds/prediction": ["predictions"],
+        },
         inputs=[
-            DistData(
+            VTable(
                 name="in_ds",
-                type=str(DistDataType.INDIVIDUAL_TABLE),
-                data_refs=[
-                    DistData.DataRef(
-                        uri=alice_label_pred_path, party="alice", format="csv"
+                parties=[
+                    VTableParty.from_dict(
+                        uri=alice_label_pred_path,
+                        party="alice",
+                        format="csv",
+                        labels={"labels": "float32", "predictions": "float32"},
                     ),
                 ],
             ),
         ],
         output_uris=[""],
     )
-    meta = IndividualTable(
-        schema=TableSchema(
-            labels=["labels", "predictions"], label_types=["float32", "float32"]
-        ),
-    )
-    param.inputs[0].meta.Pack(meta)
 
-    res = regression_eval_comp.eval(
+    res = comp_eval(
         param=param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,

@@ -11,149 +11,28 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import logging
-from typing import Dict
 
-import pandas as pd
 
-from secretflow.component.component import (
-    CompEvalError,
+from secretflow.component.core import (
     Component,
-    IoType,
-    TableColParam,
+    Context,
+    DistDataType,
+    Field,
+    Input,
+    Interval,
+    Output,
+    Reporter,
+    register,
+    VTable,
+    VTableFieldKind,
 )
-from secretflow.component.data_utils import DistDataType, load_table
-from secretflow.device.device.spu import SPU
+from secretflow.error_system.exceptions import DataFormatError
 from secretflow.spec.extend.groupby_aggregation_config_pb2 import (
     ColumnQuery,
     GroupbyAggregationConfig,
 )
-from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import DistData
-from secretflow.spec.v1.report_pb2 import Div, Report, Tab, Table
 from secretflow.stats.groupby_v import ordinal_encoded_groupby_value_agg_pairs
 from secretflow.utils.consistent_ops import unique_list
-
-groupby_statistics_comp = Component(
-    name="groupby_statistics",
-    domain="stats",
-    version="0.0.3",
-    desc="""Get a groupby of statistics, like pandas groupby statistics.
-    Currently only support VDataframe.
-    """,
-)
-
-
-# it turns out that our implementation efficiency works bad in multiple columns
-# pandas style groupby is not practical to use, due to the above reason
-# so we change to sql style groupby instead
-groupby_statistics_comp.custom_pb_attr(
-    name="aggregation_config",
-    desc="input groupby aggregation config",
-    pb_cls=GroupbyAggregationConfig,
-)
-
-
-groupby_statistics_comp.int_attr(
-    name="max_group_size",
-    desc="The maximum number of groups allowed",
-    is_list=False,
-    is_optional=True,
-    default_value=10000,
-    lower_bound=0,
-    upper_bound=10001,
-)
-
-groupby_statistics_comp.io(
-    io_type=IoType.INPUT,
-    name="input_data",
-    desc="Input table.",
-    types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
-    col_params=[
-        TableColParam(
-            name="by",
-            desc="by what columns should we group the values",
-            col_min_cnt_inclusive=1,
-            col_max_cnt_inclusive=4,
-        ),
-    ],
-)
-groupby_statistics_comp.io(
-    io_type=IoType.OUTPUT,
-    name="report",
-    desc="Output groupby statistics report.",
-    types=[DistDataType.REPORT],
-    col_params=None,
-)
-
-
-def gen_groupby_statistic_reports(
-    agg_df_dict: Dict[str, pd.DataFrame], input_data_by
-) -> Report:
-    r_tables = {
-        agg: gen_groupby_statistic_report(df, agg, input_data_by)
-        for agg, df in agg_df_dict.items()
-    }
-    return Report(
-        name="groupby statistics",
-        desc="",
-        tabs=[
-            Tab(
-                divs=[
-                    Div(
-                        children=[
-                            Div.Child(
-                                type="table",
-                                table=r_table,
-                            )
-                        ],
-                    )
-                ],
-                name=agg,
-            )
-            for agg, r_table in r_tables.items()
-        ],
-    )
-
-
-def gen_groupby_statistic_report(df: pd.DataFrame, agg: str, input_data_by) -> Report:
-    headers, rows = [], []
-    for k in df.columns:
-        headers.append(
-            Table.HeaderItem(
-                name=k, desc="key" if k in input_data_by else "value", type="str"
-            )
-        )
-
-    for index, df_row in df.iterrows():
-        rows.append(
-            Table.Row(
-                name=str(index), items=[Attribute(s=str(df_row[k])) for k in df.columns]
-            )
-        )
-
-    r_table = Table(
-        headers=headers,
-        rows=rows,
-        name=agg,
-        desc=f"Groupby statistics table for {agg} operation",
-    )
-    return r_table
-
-
-def dump_groupby_statistics(
-    name, system_info, agg_df_dict: Dict[str, pd.DataFrame], input_data_by
-) -> DistData:
-    report_mate = gen_groupby_statistic_reports(agg_df_dict, input_data_by)
-    res = DistData(
-        name=name,
-        system_info=system_info,
-        type=str(DistDataType.REPORT),
-        data_refs=[],
-    )
-    res.meta.Pack(report_mate)
-    return res
-
 
 ENUM_TO_STR = {
     ColumnQuery.AggregationFunction.COUNT: "count",
@@ -166,69 +45,97 @@ ENUM_TO_STR = {
 STR_TO_ENUM = {v: k for k, v in ENUM_TO_STR.items()}
 
 
-def map_enum_type_to_agg(enum_type: ColumnQuery.AggregationFunction):
+def map_enum_type_to_agg(enum_type: ColumnQuery.AggregationFunction):  # type: ignore
     if enum_type in ENUM_TO_STR:
         return ENUM_TO_STR[enum_type]
     else:
         raise ValueError("unknown aggregation function")
 
 
-@groupby_statistics_comp.eval_fn
-def groupby_statistics_eval_fn(
-    *, ctx, aggregation_config, max_group_size, input_data, input_data_by, report
-):
-    value_columns = [
-        col_config.column_name for col_config in aggregation_config.column_queries
-    ]
-    for col_config in aggregation_config.column_queries:
-        assert (
-            col_config.function != ColumnQuery.AggregationFunction.INVAL
-        ), "aggregation function must be valid"
-    assert (
-        len(set(input_data_by).intersection(value_columns)) == 0
-    ), "by columns and key columns should have no intersection"
+@register(domain="stats", version="1.0.0")
+class GroupbyStatistics(Component):
+    '''
+    Get a groupby of statistics, like pandas groupby statistics.
+    Currently only support VDataframe.
+    '''
 
-    logging.info("set up complete")
-
-    input_df = load_table(
-        ctx,
-        input_data,
-        load_features=True,
-        load_labels=True,
-        load_ids=True,
-        col_selects=input_data_by + unique_list(value_columns),
+    # it turns out that our implementation efficiency works bad in multiple columns
+    # pandas style groupby is not practical to use, due to the above reason
+    # so we change to sql style groupby instead
+    aggregation_config: GroupbyAggregationConfig = Field.custom_attr(  # type: ignore
+        desc="input groupby aggregation config",
     )
-    value_agg_pair = [
-        (col_query.column_name, map_enum_type_to_agg(col_query.function))
-        for col_query in aggregation_config.column_queries
-    ]
-    logging.info("input loading complete")
+    max_group_size: int = Field.attr(
+        desc="The maximum number of groups allowed",
+        default=10000,
+        bound_limit=Interval.open(0, 10001),
+    )
+    by: list[str] = Field.table_column_attr(
+        "input_ds",
+        desc="by what columns should we group the values",
+        limit=Interval.closed(1, 4),
+    )
+    input_ds: Input = Field.input(  # type: ignore
+        desc="Input table.",
+        types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
+    )
+    report: Output = Field.output(
+        desc="Output groupby statistics report.",
+        types=[DistDataType.REPORT],
+    )
 
-    if len(input_df.partitions) == 1:
-        compute_device = [*input_df.partitions.keys()][0]
-    else:
-        if ctx.spu_configs is None or len(ctx.spu_configs) == 0:
-            raise CompEvalError("spu config is not found.")
-        if len(ctx.spu_configs) > 1:
-            raise CompEvalError("only support one spu")
-        spu_config = next(iter(ctx.spu_configs.values()))
-        compute_device = SPU(spu_config["cluster_def"], spu_config["link_desc"])
+    def evaluate(self, ctx: Context):
+        value_columns = [
+            col_config.column_name
+            for col_config in self.aggregation_config.column_queries
+        ]
+        for col_config in self.aggregation_config.column_queries:
+            assert (
+                col_config.function != ColumnQuery.AggregationFunction.INVAL
+            ), "aggregation function must be valid"
+        if set(self.by).intersection(value_columns):
+            raise DataFormatError.by_columns_intersection_with_key_columns(
+                "by columns and key columns should have no intersection"
+            )
 
-    with ctx.tracer.trace_running():
-        logging.info(f"begin ordinal encoding groupby: device: {type(compute_device)}")
-        result = ordinal_encoded_groupby_value_agg_pairs(
-            input_df, input_data_by, value_agg_pair, compute_device, max_group_size
+        # FIXME: avoid to_pandas, use pa.Table
+        input_vtable = VTable.from_distdata(
+            self.input_ds,
+            columns=self.by + unique_list(value_columns),
         )
-        logging.info("ordinal encoded complete")
-        result = {
-            value_agg[0] + "_" + value_agg[1]: df.reset_index()
-            for value_agg, df in result.items()
-        }
-        logging.info("groupby result collection complete")
-    res = {
-        "report": dump_groupby_statistics(
-            report, input_data.system_info, result, input_data_by
-        )
-    }
-    logging.info("dumping report complete")
-    return res
+        input_vtable.check_kinds(VTableFieldKind.FEATURE)
+
+        input_df = ctx.load_table(input_vtable).to_pandas(check_null=False)
+        value_agg_pair = [
+            (col_query.column_name, map_enum_type_to_agg(col_query.function))
+            for col_query in self.aggregation_config.column_queries
+        ]
+
+        if len(input_df.partitions) == 1:
+            device = next(iter((input_df.partitions.keys())))
+        else:
+            device = ctx.make_spu()
+
+        with ctx.tracer.trace_running():
+            result = ordinal_encoded_groupby_value_agg_pairs(
+                input_df,
+                self.by,
+                value_agg_pair,
+                device,
+                self.max_group_size,
+            )
+            result = {
+                value_agg[0] + "_" + value_agg[1]: df.reset_index()
+                for value_agg, df in result.items()
+            }
+
+        r = Reporter(name="groupby statistics")
+        for agg, df in result.items():
+            df = df.astype(str)
+            for k in df.columns:
+                desc = "key" if k in self.by else "value"
+                Reporter.set_description(df[k], desc)
+            desc = f"Groupby statistics table for {agg} operation"
+            r_table = Reporter.to_table(df, name=agg, desc=desc)
+            r.add_tab(r_table, name=agg)
+        r.dump_to(self.report, self.input_ds.system_info)

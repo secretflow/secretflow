@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict, List
+from typing import Dict
 
 import numpy as np
 import torch
@@ -157,18 +157,6 @@ class DriveDnn(ApplicationBase):
             output_func=None,
         )
 
-    def resources_consumes(self) -> List[Dict]:
-        # use 1 gpu per trail.
-        return [
-            {
-                'alice': 0.5,
-                'CPU': 0.5,
-                'GPU': 0.001,
-                'gpu_mem': 1.5 * 1024 * 1024 * 1024,
-            },
-            {'bob': 0.5, 'CPU': 0.5, 'GPU': 0.001, 'gpu_mem': 1.5 * 1024 * 1024 * 1024},
-        ]
-
     def tune_metrics(self) -> Dict[str, str]:
         return {
             "train_MulticlassAccuracy": "max",
@@ -192,11 +180,19 @@ class DriveDnn(ApplicationBase):
         # 480MB
         return (
             ResourcesPack()
-            .with_debug_resources(ResourceDict(gpu_mem=500 * 1024 * 1024, CPU=1))
-            .with_sim_resources(
-                self.device_y.party, ResourceDict(gpu_mem=500 * 1024 * 1024, CPU=1)
+            .with_debug_resources(
+                ResourceDict(gpu_mem=500 * 1024 * 1024, CPU=1, memory=800 * 1024 * 1024)
             )
             .with_sim_resources(
-                self.device_f.party, ResourceDict(gpu_mem=400 * 1024 * 1024, CPU=1)
+                self.device_y.party,
+                ResourceDict(
+                    gpu_mem=500 * 1024 * 1024, CPU=1, memory=800 * 1024 * 1024
+                ),
+            )
+            .with_sim_resources(
+                self.device_f.party,
+                ResourceDict(
+                    gpu_mem=400 * 1024 * 1024, CPU=1, memory=800 * 1024 * 1024
+                ),
             )
         )

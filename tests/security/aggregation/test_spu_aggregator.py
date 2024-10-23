@@ -20,7 +20,7 @@ from tests.security.aggregation.test_aggregator_base import AggregatorBase
 
 class TestSPUAggregator(AggregatorBase):
     @pytest.fixture()
-    def env_and_aggregator(self, sf_production_setup_devices):
-        yield sf_production_setup_devices, SPUAggregator(
-            sf_production_setup_devices.spu
+    def env_and_aggregator(self, sf_production_setup_devices_ray):
+        yield sf_production_setup_devices_ray, SPUAggregator(
+            sf_production_setup_devices_ray.spu
         )

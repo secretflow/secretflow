@@ -37,7 +37,9 @@ class Worker(Link):
                 # simulate latency
                 time.sleep(random.uniform(0.1, 0.5))
                 weights = [np.random.rand(3, 4)]
+                logging.info(f"Worker {self._device.party} try send to PS")
                 self.send('weights', weights, self._ps_device, step_id)
+                logging.info(f"Worker {self._device.party} try recv from PS")
                 weights = self.recv('weights', self._ps_device, step_id)
                 logging.info(f'worker {self._device} finish step {step_id}')
 
@@ -52,14 +54,16 @@ class ParameterServer(Link):
         for epoch in range(epochs):
             for step in range(steps_per_epoch):
                 step_id = epoch * steps_per_epoch + step
+                logging.info(f"SP try recv from Worker {self._worker_device}")
                 weights = self.recv('weights', self._worker_device, step_id)
                 weights = [np.average(weight, axis=0) for weight in zip(weights)]
+                logging.info(f"SP try send to Worker {self._worker_device}")
                 self.send('weights', weights, self._worker_device, step_id)
                 logging.info(f'parameter server {self._device} finish step {step_id}')
 
 
 def _test_parameter_server(devices):
-    production_mode = get_distribution_mode() == DISTRIBUTION_MODE.PRODUCTION
+    production_mode = get_distribution_mode() == DISTRIBUTION_MODE.RAY_PRODUCTION
 
     ps = ParameterServer(
         device=devices.davy,
@@ -96,8 +100,8 @@ def _test_parameter_server(devices):
     reveal(res)  # wait all tasks done
 
 
-def test_parameter_server_prod(sf_production_setup_devices_grpc):
-    _test_parameter_server(sf_production_setup_devices_grpc)
+def test_parameter_server_prod(sf_production_setup_devices_grpc_ray):
+    _test_parameter_server(sf_production_setup_devices_grpc_ray)
 
 
 def test_parameter_server_sim(sf_simulation_setup_devices):

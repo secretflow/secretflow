@@ -184,7 +184,7 @@ def proxy(
                 ):
                     max_concur = _simulation_max_concurrency
 
-                logging.info(
+                logging.debug(
                     f'Create proxy actor {ActorClass} with party {device.party}.'
                 )
                 data = sfd.remote(ActorClass).party(device.party)

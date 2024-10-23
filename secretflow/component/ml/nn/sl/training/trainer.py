@@ -15,13 +15,13 @@
 import json
 from typing import List
 
-from secretflow.component.component import CompEvalContext, CompEvalError
 from secretflow.component.ml.nn.sl.compile.compile import (
     compile_by_initiator,
     compile_by_self,
 )
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import PYU
+from secretflow.error_system.exceptions import CompEvalError, EvalParamError
 from secretflow.ml.nn.sl.sl_model import SLModel
 from secretflow.utils import compressor as sfcompressor
 
@@ -36,7 +36,6 @@ def prepare_pyus(x: VDataFrame, y: VDataFrame):
 
 
 def fit(
-    ctx: CompEvalContext,
     x: VDataFrame,
     y: VDataFrame,
     val_x: VDataFrame,
@@ -55,18 +54,19 @@ def fit(
     strategy_params: str,
     compressor: str,
     compressor_params: str,
+    initiator_party: str = None,
     backend: str = "tensorflow",
 ):
     if backend == "tensorflow":
         from .tensorflow.data import create_dataset_builder
         from .tensorflow.model import create_model_builder
     else:
-        raise CompEvalError(f"Unsupported backend: {backend}")
+        raise ValueError(f"Unsupported backend: {backend}")
 
     parties, label_pyu = prepare_pyus(x, y)
     initiator = None
-    if ctx.initiator_party:
-        initiator = PYU(ctx.initiator_party)
+    if initiator_party:
+        initiator = PYU(initiator_party)
 
     if initiator:
         model_configs = compile_by_initiator(
@@ -100,10 +100,16 @@ def fit(
         if pyu == label_pyu:
             base_model_dict[pyu] = create_model_builder(config.server_base_path, config)
 
-            assert config.server_fuse_path is not None
+            if config.server_fuse_path is None:
+                raise EvalParamError.missing_or_none_param(
+                    f"server_fuse_path must not be None for device {pyu}"
+                )
             server_fuse_builder = create_model_builder(config.server_fuse_path, config)
         else:
-            assert config.client_base_path is not None
+            if config.client_base_path is None:
+                raise EvalParamError.missing_or_none_param(
+                    f"client_base_path must not be None for device {pyu}"
+                )
             base_model_dict[pyu] = create_model_builder(config.client_base_path, config)
 
     label_name = y.columns[0]

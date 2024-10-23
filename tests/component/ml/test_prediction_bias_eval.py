@@ -17,12 +17,9 @@ import math
 
 import pandas as pd
 
-from secretflow.component.data_utils import DistDataType
-from secretflow.component.ml.eval.prediction_bias_eval import prediction_bias_comp
-from secretflow.component.storage import ComponentStorage
-from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
+from secretflow.component.core import Storage, VTable, build_node_eval_param
+from secretflow.component.core.dist_data.vtable import VTableParty
+from secretflow.component.entry import comp_eval
 from secretflow.spec.v1.report_pb2 import Report
 
 
@@ -40,56 +37,39 @@ def test_prediction_bias_eval(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = Storage(storage_config)
 
     if self_party == "alice":
-        label_pred_df.to_csv(
-            comp_storage.get_writer(alice_label_pred_path), index=False
-        )
+        label_pred_df.to_csv(storage.get_writer(alice_label_pred_path), index=False)
 
-    param = NodeEvalParam(
+    param = build_node_eval_param(
         domain="ml.eval",
         name="prediction_bias_eval",
-        version="0.0.1",
-        attr_paths=[
-            "bucket_num",
-            "min_item_cnt_per_bucket",
-            "bucket_method",
-            "input/in_ds/label",
-            "input/in_ds/prediction",
-        ],
-        attrs=[
-            Attribute(i64=4),
-            Attribute(i64=2),
-            Attribute(s='equal_frequency'),
-            Attribute(ss=["labels"]),
-            Attribute(ss=["predictions"]),
-        ],
+        version="1.0.0",
+        attrs={
+            "bucket_num": 4,
+            "min_item_cnt_per_bucket": 2,
+            "bucket_method": "equal_frequency",
+            "input/input_ds/label": ["labels"],
+            "input/input_ds/prediction": ["predictions"],
+        },
         inputs=[
-            DistData(
+            VTable(
                 name="in_ds",
-                type=str(DistDataType.VERTICAL_TABLE),
-                data_refs=[
-                    DistData.DataRef(
-                        uri=alice_label_pred_path, party="alice", format="csv"
+                parties=[
+                    VTableParty.from_dict(
+                        uri=alice_label_pred_path,
+                        party="alice",
+                        format="csv",
+                        labels={"labels": "float32", "predictions": "float32"},
                     ),
                 ],
             ),
         ],
         output_uris=[""],
     )
-    logging.info(param)
-    meta = VerticalTable(
-        schemas=[
-            TableSchema(
-                label_types=["float32", "float32"],
-                labels=["labels", "predictions"],
-            )
-        ],
-    )
-    param.inputs[0].meta.Pack(meta)
 
-    res = prediction_bias_comp.eval(
+    res = comp_eval(
         param=param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,

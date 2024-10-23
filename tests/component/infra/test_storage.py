@@ -14,7 +14,6 @@
 
 import logging
 import os
-import pickle
 import platform
 import stat
 import subprocess
@@ -24,6 +23,7 @@ import uuid
 
 from secretflow.component.storage import ComponentStorage
 from secretflow.spec.v1.data_pb2 import StorageConfig
+from secretflow.utils import secure_pickle as pickle
 
 
 def build_s3_config():

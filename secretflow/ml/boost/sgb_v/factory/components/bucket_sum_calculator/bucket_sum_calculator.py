@@ -11,14 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+
 from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
 from secretflow.data import FedNdarray
 from secretflow.device import PYU, HEUObject, PYUObject
+from secretflow.device.device.heu import HEUMoveConfig
 from secretflow.ml.boost.sgb_v.factory.sgb_actor import SGBActor
 
-from ....core.pure_numpy_ops.bucket_sum import batch_select_sum, regroup_bucket_sums
+from ....core.pure_numpy_ops.bucket_sum import regroup_bucket_sums
 from ....core.pure_numpy_ops.grad import split_GH
 from ....core.pure_numpy_ops.node_select import (
     packbits_node_selects,
@@ -76,6 +79,7 @@ class BucketSumCalculator(Composite):
         self.label_holder = devices.label_holder
         self.workers = devices.workers
         self.party_num = len(self.workers)
+        self.heu = devices.heu
 
     def set_actors(self, actors: List[SGBActor]):
         super().set_actors(actors)
@@ -107,62 +111,42 @@ class BucketSumCalculator(Composite):
                 children_split_node_selects
             )
         for i, worker in enumerate(self.workers):
-            if worker != self.label_holder:
-                if self.params.label_holder_feature_only:
-                    continue
-                else:
-                    if enable:
-                        children_split_node_selects_worker = worker(
-                            unpackbits_node_selects
-                        )(
-                            children_split_node_selects_bits.to(worker),
-                            node_select_shape,
-                        )
-                    else:
-                        children_split_node_selects_worker = children_split_node_selects
-                    bucket_sums = encrypted_gh_dict[
-                        worker
-                    ].batch_feature_wise_bucket_sum(
-                        children_split_node_selects_worker,
-                        order_map_sub.partitions[worker],
-                        bucket_num_plus_one,
-                        True,
-                    )
-                    self.components.level_wise_cache.collect_level_node_GH(
-                        worker, bucket_sums, is_lefts
-                    )
-                    bucket_sums = self.components.level_wise_cache.get_level_nodes_GH(
-                        worker
-                    )
-                    bucket_sums = [
-                        bucket_sum[shuffler.create_shuffle_mask(i, j, bucket_lists[i])]
-                        for j, bucket_sum in enumerate(bucket_sums)
-                    ]
+            if worker == self.label_holder and self.params.label_holder_feature_only:
+                effective_index = i
+            if worker != self.label_holder and self.params.label_holder_feature_only:
+                continue
 
-                    bucket_sums_list[i] = [
-                        bucket_sum.to(
-                            self.label_holder,
-                            gradient_encryptor.get_move_config(self.label_holder),
-                        )
-                        for bucket_sum in bucket_sums
-                    ]
+            if enable:
+                children_split_node_selects_worker = worker(unpackbits_node_selects)(
+                    children_split_node_selects_bits.to(worker),
+                    node_select_shape,
+                )
             else:
-                bucket_sums = self.label_holder(batch_select_sum)(
-                    encrypted_gh_dict[worker],
-                    children_split_node_selects,
-                    order_map_sub.partitions[worker],
-                    bucket_num_plus_one,
-                )
+                children_split_node_selects_worker = children_split_node_selects
 
-                self.components.level_wise_cache.collect_level_node_GH(
-                    worker, bucket_sums, is_lefts
+            bucket_sums = encrypted_gh_dict[worker].batch_feature_wise_bucket_sum(
+                children_split_node_selects_worker,
+                order_map_sub.partitions[worker],
+                bucket_num_plus_one,
+                True,
+            )
+            self.components.level_wise_cache.collect_level_node_GH(
+                worker, bucket_sums, is_lefts
+            )
+            bucket_sums = self.components.level_wise_cache.get_level_nodes_GH(worker)
+            bucket_sums = [
+                bucket_sum[shuffler.create_shuffle_mask(i, j, bucket_lists[i])]
+                for j, bucket_sum in enumerate(bucket_sums)
+            ]
+
+            bucket_sums_list[i] = [
+                bucket_sum.to(
+                    self.label_holder,
+                    gradient_encryptor.get_move_config(self.label_holder),
                 )
-                bucket_sums = self.components.level_wise_cache.get_level_nodes_GH(
-                    worker
-                )
-                bucket_sums_list[i] = bucket_sums
-                if self.params.label_holder_feature_only:
-                    effective_index = i
+                for bucket_sum in bucket_sums
+            ]
+
         if self.params.label_holder_feature_only:
             bucket_sums_list = [bucket_sums_list[effective_index]]
         level_nodes_G, level_nodes_H = self.label_holder(

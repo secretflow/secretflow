@@ -11,11 +11,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from .sl_predict import slnn_predict_comp
-from .sl_train import slnn_train_comp
-
-__all__ = [
-    "slnn_train_comp",
-    "slnn_predict_comp",
-]
