@@ -16,17 +16,19 @@
 # limitations under the License.
 
 import copy
-from typing import Tuple
+from typing import List, Tuple
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn
 
-from secretflow import PYUObject, proxy
-from secretflow.ml.nn.core.torch import BaseModule
+from secretflow import PYU, DeviceObject, proxy
+from secretflow.device import PYUObject
+from secretflow.ml.nn.core.torch import BuilderType
 from secretflow.ml.nn.fl.backend.torch.fl_base import BaseTorchModel
 from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
+from secretflow.security import SecureAggregator
 
 
 class FedGen(BaseTorchModel):
@@ -37,66 +39,75 @@ class FedGen(BaseTorchModel):
     model knowledge from diverse clients without access to actual training data.
     """
 
-    def predict_with_generator_output(self, generated_result):
-        """Predicts the output using the -1 layer of the model
+    def __init__(
+        self,
+        builder_base: BuilderType,
+        random_seed: int = None,
+        skip_bn: bool = False,
+    ):
+        super().__init__(builder_base, random_seed=random_seed, skip_bn=skip_bn)
+        self.label_counts_dict = {}
+        self.cur_epochs = 0
 
-        Args:
-            x: Input data to the model.
-        Returns:
-            The output of the model's -1 layer.
-        """
-        self.model.eval()
-        return self.model(generated_result['output'], start_layer_idx=-1)
-
-    def get_cur_step_label_counts(self):
-        """Returns the counts of each label in the current training set.
-
-        The return value is a dictionary where keys are the labels and values are the counts.
-
-        Returns:
-            A dictionary mapping labels to their counts.
-        """
-        return self.step_label_counts
+    def _exp_lr_scheduler(self, epoch, decay=0.98, init_lr=0.1, lr_decay_epoch=1):
+        """Decay learning rate by a factor of 0.95 every lr_decay_epoch epochs."""
+        lr = max(1e-4, init_lr * (decay ** (epoch // lr_decay_epoch)))
+        return lr
 
     def train_step(
         self,
-        weights: np.ndarray,
+        weights: dict,
         cur_steps: int,
         train_steps: int,
         **kwargs,
     ) -> Tuple[np.ndarray, int]:
-        """Accept ps model params, then do local train
+        """Performs a local training step on the client's data, updating the model's parameters.
 
         Args:
-            weights: global weight from params server
-            cur_steps: current train step
-            train_steps: local training steps
-            kwargs: strategy-specific parameters
-        Returns:
-            Parameters after local training
-        """
+            weights (dict): Dictionary containing the global model weights and generator weights from the server.
+            cur_steps (int): The current step in the training process.
+            train_steps (int): The total number of local training steps to perform.
+            kwargs: Additional strategy-specific parameters, including the generator and data refresh flag.
 
-        assert self.model is not None, "Model cannot be none, please give model define"
+        Returns:
+            Tuple: A tuple containing the updated model parameters and a dictionary with the number of samples
+            and label counts.
+        """
+        assert self.model is not None, "Model cannot be none, please define the model."
         assert (
             kwargs.get('generator', None) is not None
-        ), "Generator cannot be none, please give Generator define"
+        ), "Generator cannot be none, please define the Generator."
         generator = kwargs.get('generator')
         self.model.train()
+
+        # Optionally refresh the data iterator for a new batch
         refresh_data = kwargs.get("refresh_data", False)
         if refresh_data:
             self._reset_data_iter()
-        if weights is not None:
-            self.set_weights(weights)
+            self.label_counts_dict = {}
+            self.cur_epochs += 1
+        if (
+            weights is not None
+            and "generator_params" in weights
+            and "model_params" in weights
+        ):
+            generator_params = weights["generator_params"]
+            model_params = weights["model_params"]
+            if generator_params is not None:
+                generator.load_state_dict(generator_params)
+            if model_params is not None:
+                self.set_weights(model_params)
+
         num_sample = 0
         dp_strategy = kwargs.get('dp_strategy', None)
         logs = {}
         loss: torch.Tensor = None
-        # Reset label_counts at the beginning of each train step
-        self.step_label_counts = {}
         generator.eval()
         for step in range(train_steps):
+            # Fetch the next batch of data
             x, y, s_w = self.next_batch()
             num_sample += len(y)
+
             # Determine if y is one-hot encoded or class indices
             if y.ndim > 1 and y.shape[1] > 1:
                 # y is one-hot encoded, convert to class indices
@@ -107,23 +118,24 @@ class FedGen(BaseTorchModel):
 
             # Accumulate label counts for monitoring class distribution
             for label in y_labels:
-                self.step_label_counts[label.item()] = (
-                    self.step_label_counts.get(label.item(), 0) + 1
+                self.label_counts_dict[label.item()] = (
+                    self.label_counts_dict.get(label.item(), 0) + 1
                 )
 
             # Forward pass through the model
             client_predict_logit = self.model(x)
 
-            # Compute the loss using the training step method
+            # Compute the loss using the model's training step method
             loss = self.model.training_step((x, y), cur_steps + step, sample_weight=s_w)
 
-            # Annealing factors for generative losses, calculated for the current step
-            generative_alpha = max(1e-4, 0.1 * (0.98**cur_steps))
-            generative_beta = max(1e-4, 0.1 * (0.98**cur_steps))
-
-            # Convert model outputs to predicted labels, using y_labels
+            # Convert model outputs to predicted labels
             y_input = y_labels.clone().detach()
-
+            generative_alpha = self._exp_lr_scheduler(
+                self.cur_epochs, decay=0.98, init_lr=generator.generative_alpha
+            )
+            generative_beta = self._exp_lr_scheduler(
+                self.cur_epochs, decay=0.98, init_lr=generator.generative_beta
+            )
             # Generate data and compute model output based on the input labels
             generated_result = generator(y_input)
             generated_predict_logit = self.model(
@@ -138,7 +150,7 @@ class FedGen(BaseTorchModel):
                 F.log_softmax(client_predict_logit, dim=1), generated_predict_softmax
             )
 
-            # Sample labels and generate data
+            # Sample labels and generate data for further training
             sampled_labels = np.random.choice(
                 self.model.num_classes, generator.batch_size
             )
@@ -148,140 +160,54 @@ class FedGen(BaseTorchModel):
                 generated_result['output'], start_layer_idx=-1
             )
 
-            # Teacher loss guides the model to predict the original labels from generated representations
+            # Compute the teacher loss, encouraging the model to predict the original labels from generated data
             teacher_loss = generative_alpha * torch.mean(
                 self.model.loss(generated_predict_logit, input_labels_tensor)
             )
-            # Combine losses
-            loss += teacher_loss + generative_kl_loss
+            # this is to further balance oversampled down-sampled synthetic data
+            gen_ratio = generator.batch_size / num_sample
+            # Combine losses: base loss, KL loss, and teacher loss
+            loss += gen_ratio * teacher_loss + generative_kl_loss
 
+            # Perform backward pass if using automatic optimization
             if self.model.automatic_optimization:
                 self.model.backward_step(loss)
 
         loss_value = loss.item()
         logs['train-loss'] = loss_value
 
+        # Log the results and update local metrics
         self.logs = self.transform_metrics(logs)
         self.wrapped_metrics.extend(self.wrap_local_metrics())
         self.epoch_logs = copy.deepcopy(self.logs)
 
         model_weights = self.get_weights(return_numpy=True)
 
-        # DP operation
+        # Apply differential privacy (DP) strategy if defined
         if dp_strategy is not None:
             if dp_strategy.model_gdp is not None:
                 model_weights = dp_strategy.model_gdp(model_weights)
 
-        return model_weights, num_sample
+        return model_weights, {
+            "num_sample": num_sample,
+            "label_counts_dict": self.label_counts_dict,
+        }
 
     def apply_weights(self, weights, **kwargs):
-        """Accept ps model params, then update local model
+        """Updates the local model with the given weights from the server.
 
         Args:
-            weights: global weight from params server
+            weights (dict): Dictionary containing the model weights.
+            kwargs: Additional parameters if needed for specific update logic.
+
         """
         if weights is not None:
+            if isinstance(weights, dict):
+                weights = weights["model_params"]
             self.set_weights(weights)
 
 
-@proxy(PYUObject)
-class FedGenActor(object):
-    """
-    FedGenActor: This class is responsible for handling the generation of samples and training
-    the generator model in a federated learning setting. It interacts with the generator to
-    generate synthetic data and trains the generator based on user results and worker label counts.
-    """
-
-    def generate_samples(self, generator):
-        """
-        Generates synthetic samples using the generator model.
-
-        Args:
-            generator (FedGenGeneratorModel): The generator model used to produce synthetic data.
-
-        Returns:
-            tuple:
-                - y_input (torch.Tensor): The labels for the generated data.
-                - generated_result (dict): The output from the generator, including noise and generated data.
-        """
-        # Randomly sample labels from the available classes
-        sampled_labels = np.random.choice(generator.num_classes, generator.batch_size)
-        y_input = torch.LongTensor(sampled_labels)
-
-        # Generate synthetic data using the generator
-        generated_result = generator(y_input)
-        return y_input, generated_result
-
-    def train_generator(
-        self, user_results, worker_label_counts, y_input, generated_result, generator
-    ):
-        """
-        Trains the generator model using teacher-student learning and diversity loss.
-
-        Args:
-            user_results (list): The results from different users/workers used for teacher loss calculation.
-            worker_label_counts (list): A list of dictionaries, each representing the label distribution from a worker.
-            y_input (torch.Tensor): The input labels used for data generation.
-            generated_result (dict): The generated data and noise produced by the generator.
-            generator (FedGenGeneratorModel): The generator model to be trained.
-
-        Returns:
-            None: The generator's parameters are updated in place.
-        """
-        label_weights = []
-        num_workers = len(worker_label_counts)
-
-        # Iterate over each label to compute its weight across all workers
-        for label in range(generator.num_classes):
-            # Get the count of this label from each worker
-            weights = [
-                worker_counts.get(label, 0) for worker_counts in worker_label_counts
-            ]
-
-            # Sum the counts, add a small epsilon to avoid division by zero
-            label_sum = (
-                np.sum(weights) + 1e-6
-            )  # Tolerance adjusted based on dataset size
-
-            # Compute the weight of this label across all workers
-            label_weights.append(np.array(weights) / label_sum)
-
-        # Convert label weights to a numpy array
-        label_weights = np.array(label_weights).reshape(
-            (generator.num_classes, num_workers)
-        )
-
-        # Begin training the generator
-        generator.train()
-        generator.optimizer.zero_grad()
-
-        # Calculate the diversity loss using the noise and generated output
-        diversity_loss = generator.diversity_loss(
-            generated_result['eps'], generated_result['output']
-        )
-
-        # Initialize teacher loss
-        teacher_loss = 0
-        for idx in range(len(user_results)):
-            # Compute the weight of each label for each worker
-            weight = torch.tensor(
-                label_weights[y_input][:, idx].reshape(-1, 1), dtype=torch.float32
-            )
-            user_result_given_gen = user_results[idx]
-
-            # Calculate the weighted teacher loss for each worker
-            teacher_loss_ = torch.mean(
-                generator.loss(user_result_given_gen, y_input) * weight
-            )
-            teacher_loss += teacher_loss_
-
-        # Combine teacher loss and diversity loss
-        loss = teacher_loss + diversity_loss
-        loss.backward()  # Perform backpropagation
-        generator.optimizer.step()  # Update generator parameters
-
-
-class FedGenGeneratorModel(BaseModule):
+class FedGenGeneratorModel(nn.Module):
     def __init__(
         self,
         hidden_dimension,
@@ -291,29 +217,46 @@ class FedGenGeneratorModel(BaseModule):
         loss_fn,
         optim_fn,
         diversity_loss,
-        epochs=50,
+        epochs=10,
         batch_size=32,
+        generative_alpha=10,
+        generative_beta=10,
+        ensemble_alpha=1,
+        ensemble_beta=0,
+        ensemble_eta=1,
         embedding=False,
     ):
         """
         Initializes the FedGen generator model.
 
-        :param hidden_dimension: Dimension size of the hidden layer.
-        :param latent_dimension: Dimension size of the latent representation layer.
-        :param noise_dim: Dimension size of the noise vector input to the generator.
-        :param num_classes: Number of classes (condition labels for the generator).
-        :param loss_fn: Loss function for generator training.
-        :param optim_fn: Optimizer function for the generator.
-        :param diversity_loss: Loss function to encourage sample diversity.
-        :param epoch: Number of training epochs (default: 50).
-        :param batch_size: Batch size for training (default: 32).
-        :param embedding: Whether to use embedding layer to convert class labels to vectors (default: False).
+        Args:
+            hidden_dimension (int): Size of the hidden layer.
+            latent_dimension (int): Size of the latent representation layer.
+            noise_dim (int): Dimension size of the noise vector input to the generator.
+            num_classes (int): Number of classes (condition labels for the generator).
+            loss_fn (callable): Loss function used for training the generator.
+            optim_fn (callable): Optimizer function used for updating the generator's parameters.
+            diversity_loss (callable): Loss function to encourage diversity among generated samples.
+            epochs (int, optional): Number of training epochs (default: 10).
+            batch_size (int, optional): Batch size for training (default: 32).
+            generative_alpha (float, optional): Weight for the generative teacher loss term (default: 10).
+            generative_beta (float, optional): Weight for the generative student loss term (default: 10).
+            ensemble_alpha (float, optional): Weight for the teacher loss in the ensemble (default: 1).
+            ensemble_beta (float, optional): Weight for the student loss in the ensemble (default: 0).
+            ensemble_eta (float, optional): Weight for the diversity loss in the ensemble (default: 1).
+            embedding (bool, optional): Whether to use an embedding layer to convert class labels to vectors (default: False).
         """
+
         super(FedGenGeneratorModel, self).__init__()
         self.hidden_dim = hidden_dimension
         self.latent_dim = latent_dimension
         self.num_classes = num_classes
         self.noise_dim = noise_dim
+        self.generative_alpha = generative_alpha
+        self.generative_beta = generative_beta
+        self.ensemble_alpha = ensemble_alpha
+        self.ensemble_beta = ensemble_beta
+        self.ensemble_eta = ensemble_eta
         self.embedding = embedding
         # Determine input dimension. If embedding is used, input is a concatenation of noise and embedded labels;
         # otherwise, input is a concatenation of noise and one-hot encoded labels.
@@ -348,15 +291,11 @@ class FedGenGeneratorModel(BaseModule):
         # Representation layer: maps hidden layer output to latent representation
         self.representation_layer = nn.Linear(self.hidden_dim, self.latent_dim)
 
-    def forward(self, labels, latent_layer_idx=-1, verbose=True):
+    def forward(self, labels, verbose=True):
         """
         Forward pass: generates latent representations or original samples conditioned on class labels.
 
         :param labels: Class labels used for conditional generation.
-        :param latent_layer_idx: Specifies which layer's representation to output:
-            -1: Output latent representation of the final layer,
-            -2: Output latent representation of the second-to-last layer,
-            0: Output original samples.
         :param verbose: If True, returns the sampled Gaussian noise vector.
         :return: A dictionary containing output information.
         """
@@ -390,6 +329,271 @@ class FedGenGeneratorModel(BaseModule):
         result['output'] = z  # Store result in the dictionary
 
         return result
+
+
+class StatefulFedGenAggregator(SecureAggregator):
+    """
+    StatefulFedGenAggregator: Extends SecureAggregator to handle aggregation of model parameters
+    and training of the generator model in a federated learning context.
+    """
+
+    def __init__(
+        self, device, participants: List[PYU], server_actor, fxp_bits: int = 18
+    ):
+        super().__init__(device, participants, fxp_bits)
+        self.server_actor = server_actor
+
+    def average(self, data: List[PYUObject], axis=None, weights=None):
+        """
+        Overrides the average method to perform parameter aggregation and generator model training.
+
+        Args:
+            data (List[PYUObject]): A list of participant model parameters.
+            axis: The axis along which the average operation is performed.
+            weights (optional): Weights to use during aggregation, which can influence the importance of each participant.
+
+        Returns:
+            avg_model_params: The aggregated model parameters if no generator training is needed.
+            If generator training is involved, returns a dictionary with updated generator and model parameters.
+        """
+
+        def _get_label_counts(client_result):
+            """Extracts the label count dictionary from the client's result."""
+            return client_result["label_counts_dict"]
+
+        def _get_num_samples(client_result):
+            """Extracts the number of samples from the client's result."""
+            return client_result["num_sample"]
+
+        # Default aggregation without using weights
+        _num_simple = None
+        avg_model_params = super().average(data, axis, _num_simple)
+
+        # If weights are provided, perform weighted aggregation and generator training
+        if weights is not None and isinstance(weights, (list, tuple, np.ndarray)):
+            synthetic_data_result = self.server_actor.generate_synthetic_data()
+            _worker_label_counts = []
+            _user_results = []
+            _num_simple = []
+
+            # Ensure the weights list length matches the number of participants
+            assert len(weights) == len(
+                data
+            ), f'Length of the weights does not match the data: {len(weights)} vs {len(data)}.'
+
+            for i, w in enumerate(weights):
+                if isinstance(w, DeviceObject):
+                    # Ensure each weight is associated with the correct device
+                    assert (
+                        w.device == data[i].device
+                    ), 'Device of weight does not match the corresponding data device.'
+
+                    # Extract label counts and user results
+                    _worker_label_counts.append(
+                        self._device(_get_label_counts)(w.to(self._device))
+                    )
+                    _user_results.append(
+                        self.server_actor.get_penultimate_layer_output(
+                            data[i].to(self._device), synthetic_data_result
+                        )
+                    )
+                    _num_simple.append(w.device(_get_num_samples)(w))
+
+            # Train the generator model
+            self.server_actor.train_generator(
+                _user_results,
+                _worker_label_counts,
+                synthetic_data_result,
+                avg_model_params,
+            )
+
+            # Return updated generator and model parameters
+            return self._device(lambda x: x)(
+                {
+                    "generator_params": self.server_actor.get_generator_weights(),
+                    "model_params": avg_model_params,
+                }
+            )
+
+        # If no weights are provided, return the average model parameters
+        return avg_model_params
+
+
+@proxy(PYUObject)
+class FedGenActor(object):
+    """
+    FedGenActor: This class handles the generation of synthetic data and training of
+    the generator model in a federated learning context. It interacts with the generator
+    to create synthetic data and trains the generator based on user results and worker label counts.
+    """
+
+    def __init__(self, generator):
+        self.generator = generator
+
+    def generate_synthetic_data(self):
+        """
+        Generates synthetic data using the generator.
+
+        Returns:
+            dict: A dictionary containing the synthetic labels and the generated result.
+        """
+        # Generate random labels
+        sampled_labels = np.random.choice(
+            self.generator.num_classes, self.generator.batch_size
+        )
+        synthetic_data_label = torch.LongTensor(sampled_labels)
+
+        # Use the generator to generate data
+        generated_result = self.generator(synthetic_data_label)
+
+        # Return a dictionary instead of a tuple
+        return {
+            "synthetic_data_label": synthetic_data_label,
+            "generated_result": generated_result,
+        }
+
+    def train_generator(
+        self, user_results, worker_label_counts, synthetic_data_result, avg_model_params
+    ):
+        """
+        Trains the generator model using teacher-student learning and diversity loss.
+
+        Args:
+            user_results (list): The outputs from different users/workers used to compute teacher loss.
+            worker_label_counts (list): A list of dictionaries, each representing the label distribution from a worker.
+            synthetic_data_result (dict): A dictionary returned by the generate_synthetic_data function,
+                                          containing synthetic labels and generated results.
+            avg_model_params (list): A list containing the parameters of the average model.
+
+        Returns:
+            None: The generator's parameters are updated in place.
+        """
+
+        label_weights = []
+        num_workers = len(worker_label_counts)
+
+        # Compute the weight of each label across all workers
+        for label in range(self.generator.num_classes):
+            # Get the count of this label from each worker
+            weights = [
+                worker_counts.get(label, 0) for worker_counts in worker_label_counts
+            ]
+
+            # Sum the counts, add a small epsilon to avoid division by zero
+            label_sum = np.sum(weights) + 1e-6  # Small tolerance to avoid zero division
+
+            # Compute the weight for this label across all workers
+            label_weights.append(np.array(weights) / label_sum)
+
+        # Convert label weights to a numpy array
+        label_weights = np.array(label_weights).reshape(
+            (self.generator.num_classes, num_workers)
+        )
+
+        # Begin training the generator
+        self.generator.train()
+        for i in range(self.generator.epochs):
+            self.generator.optimizer.zero_grad()
+            generated_result = synthetic_data_result["generated_result"]
+            synthetic_data_label = synthetic_data_result["synthetic_data_label"]
+
+            # Calculate the diversity loss using noise and generated output
+            diversity_loss = self.generator.diversity_loss(
+                generated_result['eps'], generated_result['output']
+            )
+
+            # Initialize teacher loss
+            teacher_loss = 0
+            teacher_logit = 0
+            for idx in range(len(user_results)):
+                # Compute the weight of each label for each worker
+                weight = torch.tensor(
+                    label_weights[synthetic_data_label][:, idx].reshape(-1, 1),
+                    dtype=torch.float32,
+                )
+                expand_weight = np.tile(weight, (1, self.generator.num_classes))
+
+                user_result_given_gen = user_results[idx]
+
+                # Calculate the weighted teacher loss for each worker
+                teacher_loss_ = torch.mean(
+                    self.generator.loss(user_result_given_gen, synthetic_data_label)
+                    * weight
+                )
+                teacher_loss += teacher_loss_
+                teacher_logit += user_result_given_gen * torch.tensor(
+                    expand_weight, dtype=torch.float32
+                )
+
+            # Calculate student loss using KL divergence
+            student_output = self.get_penultimate_layer_output(
+                avg_model_params, synthetic_data_result
+            )
+            student_loss = F.kl_div(
+                F.log_softmax(student_output, dim=1), F.softmax(teacher_logit, dim=1)
+            )
+
+            # Combine teacher and student losses with diversity loss
+            if self.generator.ensemble_beta > 0:
+                loss = (
+                    self.generator.ensemble_alpha * teacher_loss
+                    - self.generator.ensemble_beta * student_loss
+                    + self.generator.ensemble_eta * diversity_loss
+                )
+            else:
+                loss = (
+                    self.generator.ensemble_alpha * teacher_loss
+                    + self.generator.ensemble_eta * diversity_loss
+                )
+
+            loss.backward()
+            self.generator.optimizer.step()
+
+    def get_generator_weights(self):
+        """
+        Retrieves the generator's parameters.
+
+        Returns:
+            dict: A dictionary containing the current state of the generator's parameters.
+        """
+        return self.generator.state_dict()
+
+    def get_penultimate_layer_output(self, model_params, synthetic_data_result):
+        """
+        Computes the output of the final layer using given model parameters and synthetic data.
+
+        Args:
+            model_params (list): A list containing the parameters of the final layer (weights and biases).
+            synthetic_data_result (dict): The synthetic data generated using the generator.
+
+        Returns:
+            torch.Tensor: The output after applying the final layer's weights and bias.
+        """
+        generated_result = synthetic_data_result["generated_result"]
+
+        # Assume the last two items in model_params are weights and biases
+        weights = model_params[-2]  # Second to last element is the weights
+        bias = model_params[-1]  # Last element is the bias
+        generated_output = generated_result["output"]
+
+        # Ensure generated_output, weights, and bias are NumPy arrays
+        generated_output_np = (
+            generated_output.detach().numpy()
+            if isinstance(generated_output, torch.Tensor)
+            else generated_output
+        )
+        weights_np = (
+            weights.detach().numpy() if isinstance(weights, torch.Tensor) else weights
+        )
+        bias_np = bias.detach().numpy() if isinstance(bias, torch.Tensor) else bias
+
+        # Perform matrix multiplication
+        output = np.dot(generated_output_np, weights_np.T) + bias_np
+
+        # Convert the result back to a PyTorch Tensor
+        output_tensor = torch.from_numpy(output)
+
+        return output_tensor
 
 
 @register_strategy(strategy_name='fed_gen', backend='torch')

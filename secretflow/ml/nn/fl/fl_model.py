@@ -72,15 +72,6 @@ class FLModel:
             import secretflow.ml.nn.fl.backend.torch.strategy  # noqa
         else:
             raise Exception(f"Invalid backend = {backend}")
-
-        if strategy == 'fed_gen':
-            generator = kwargs.get('generator')
-            if generator is None:
-                raise ValueError(
-                    'generator must be provided when using the fed_gen strategy.'
-                )
-            self.generator = generator
-
         self.num_gpus = kwargs.get('num_gpus', 0)
         self.init_workers(
             model,
@@ -563,35 +554,6 @@ class FLModel:
                         model_params = self.server(sparse_encode, num_return=1)(
                             data=model_params,
                             encode_method='coo',
-                        )
-
-                # Train generator
-                if self.strategy == 'fed_gen':
-                    for i in range(self.generator.epochs):
-                        # Get label distribution
-                        worker_label_counts = [
-                            reveal(self._workers[device].get_cur_step_label_counts())
-                            for device, worker in self._workers.items()
-                        ]
-
-                        # Train generator model
-                        y_input, generated_result = reveal(
-                            self.server.generate_samples(self.generator)
-                        )
-                        user_results = [
-                            reveal(
-                                self._workers[device].predict_with_generator_output(
-                                    generated_result
-                                )
-                            )
-                            for device in self._workers
-                        ]
-                        self.server.train_generator(
-                            user_results,
-                            worker_label_counts,
-                            y_input,
-                            generated_result,
-                            self.generator,
                         )
 
                 # DP operation

@@ -21,12 +21,7 @@ from torch.nn import CrossEntropyLoss
 from torch.nn import functional as F
 from torch.utils.data import DataLoader, TensorDataset
 
-from secretflow.ml.nn.core.torch import (
-    BaseModule,
-    TorchModel,
-    metric_wrapper,
-    optim_wrapper,
-)
+from secretflow.ml.nn.core.torch import BaseModule, TorchModel, optim_wrapper
 from secretflow.ml.nn.fl.backend.torch.strategy.fed_gen import (
     FedGen,
     FedGenGeneratorModel,
@@ -102,6 +97,47 @@ class DiversityLoss(nn.Module):
 
 class TestFedGen:
 
+    def test_fed_gen_local_step_without_generator_raises_error(
+        self, sf_simulation_setup_devices
+    ):
+        # Initialize Scaffold strategy with ConvNet model
+        num_classes = 10
+        loss_fn = nn.CrossEntropyLoss
+        optim_fn = optim_wrapper(optim.Adam, lr=1e-2)
+        kl_div_loss = nn.KLDivLoss(reduction="batchmean")
+        diversity_loss = DiversityLoss(metric='l1')
+
+        builder = TorchModel(
+            model_fn=ConvNet,
+            loss_fn=loss_fn,
+            optim_fn=optim_fn,
+            kl_div_loss=kl_div_loss,
+            num_classes=num_classes,
+        )
+        # Initialize Scaffold strategy with ConvNet model
+        fed_gen_worker = FedGen(builder_base=builder)
+
+        # Prepare dataset
+        x_test = torch.rand(128, 1, 28, 28)  # Randomly generated data
+        y_test = torch.randint(0, 10, (128,))
+
+        test_loader = DataLoader(
+            TensorDataset(x_test, y_test), batch_size=32, shuffle=True
+        )
+        fed_gen_worker.train_set = iter(test_loader)
+        fed_gen_worker.train_iter = iter(fed_gen_worker.train_set)
+
+        # Perform a training step
+        gradients = None
+        generator_params = None
+        weights = {"model_params": gradients, "generator_params": generator_params}
+        try:
+            fed_gen_worker.train_step(weights, cur_steps=0, train_steps=1)
+        except AssertionError as e:
+            assert str(e) == "Generator cannot be none, please define the Generator."
+        else:
+            assert False, "ValueError not raised"
+
     def test_fed_gen_local_step(self, sf_simulation_setup_devices):
         # Initialize Scaffold strategy with ConvNet model
         num_classes = 10
@@ -143,21 +179,25 @@ class TestFedGen:
 
         # Perform a training step
         gradients = None
-        gradients, num_sample = fed_gen_worker.train_step(
-            gradients, cur_steps=0, train_steps=1, generator=generator
+        generator_params = None
+        weights = {"model_params": gradients, "generator_params": generator_params}
+        model_weights, result_dict = fed_gen_worker.train_step(
+            weights, cur_steps=0, train_steps=1, generator=generator
         )
 
         # Apply weights update
-        fed_gen_worker.apply_weights(gradients)
-
+        fed_gen_worker.apply_weights(model_weights)
+        num_sample = result_dict["num_sample"]
+        label_counts_dict = result_dict["label_counts_dict"]
         # Assert the sample number and length of gradients
         assert num_sample == 32  # Batch size
-        assert len(gradients) == len(
+        assert isinstance(label_counts_dict, dict)
+        assert len(model_weights) == len(
             list(fed_gen_worker.model.parameters())
         )  # Number of model parameters
 
         # Perform another training step to test cumulative behavior
-        _, num_sample = fed_gen_worker.train_step(
-            gradients, cur_steps=1, train_steps=2, generator=generator
+        model_weights, result_dict = fed_gen_worker.train_step(
+            model_weights, cur_steps=1, train_steps=2, generator=generator
         )
-        assert num_sample == 64  # Cumulative batch size over two steps
+        assert result_dict["num_sample"] == 64  # Cumulative batch size over two steps
