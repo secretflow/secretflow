@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections import defaultdict
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -259,3 +261,229 @@ class BottomModelPlus(nn.Module):
         x = self.fc_final(x)
 
         return x
+
+
+class WideDeepBase(nn.Module):
+    def __init__(
+        self,
+        inputs_dim,
+        hidden_units,
+        dropout_rate,
+    ):
+        super(WideDeepBase, self).__init__()
+        self.inputs_dim = inputs_dim
+        self.hidden_units = hidden_units
+        self.dropout = nn.Dropout(dropout_rate)
+
+        self.hidden_units = [inputs_dim] + list(self.hidden_units)
+        self.linear = nn.ModuleList(
+            [
+                nn.Linear(self.hidden_units[i], self.hidden_units[i + 1])
+                for i in range(len(self.hidden_units) - 1)
+            ]
+        )
+        for name, tensor in self.linear.named_parameters():
+            if 'weight' in name:
+                nn.init.normal_(tensor, mean=0, std=0.0001)
+
+        self.activation = nn.ReLU()
+
+    def forward(self, X):
+        inputs = X
+        for i in range(len(self.linear)):
+            fc = self.linear[i](inputs)
+            fc = self.activation(fc)
+            fc = self.dropout(fc)
+            inputs = fc
+        return inputs
+
+
+class WideDeepBottomAlice(nn.Module):
+    def __init__(
+        self,
+        feat_size,
+        embedding_size,
+        dnn_feature_columns,
+        dnn_hidden_units=(256, 128),
+    ):
+        super(WideDeepBottomAlice, self).__init__()
+        self.sparse_feature_columns = list(
+            filter(lambda x: x[1] == 'sparse', dnn_feature_columns)
+        )
+        self.embedding_dic = nn.ModuleDict(
+            {
+                feat[0]: nn.Embedding(feat_size[feat[0]], embedding_size, sparse=False)
+                for feat in self.sparse_feature_columns
+            }
+        )
+        self.dense_feature_columns = list(
+            filter(lambda x: x[1] == 'dense', dnn_feature_columns)
+        )
+
+        self.feature_index = defaultdict(int)
+        start = 0
+        for feat in feat_size:
+            self.feature_index[feat] = start
+            start += 1
+
+        self.dnn = WideDeepBase(
+            len(self.dense_feature_columns) + embedding_size * len(self.embedding_dic),
+            dnn_hidden_units,
+            0.5,
+        )
+
+    def forward(self, X):
+
+        sparse_embedding = [
+            self.embedding_dic[feat[0]](
+                torch.clamp(X[:, self.feature_index[feat[0]]].long(), min=0)
+            ).reshape(X.shape[0], 1, -1)
+            for feat in self.sparse_feature_columns
+        ]
+        sparse_input = torch.cat(sparse_embedding, dim=1)
+        sparse_input = torch.flatten(sparse_input, start_dim=1)
+        dense_values = [
+            X[:, self.feature_index[feat[0]]].reshape(-1, 1)
+            for feat in self.dense_feature_columns
+        ]
+        dense_input = torch.cat(dense_values, dim=1)
+        dnn_input = torch.cat((sparse_input, dense_input), dim=1)
+        dnn_out = self.dnn(dnn_input)
+        return dnn_out
+
+    def output_num(self):
+        return 1
+
+
+class WideDeepBottomBob(nn.Module):
+    def __init__(
+        self,
+        feat_size,
+        dnn_hidden_units=(256, 128),
+    ):
+        super(WideDeepBottomBob, self).__init__()
+        dnn_hidden_units = [len(feat_size), 1]
+        self.linear = nn.ModuleList(
+            [
+                nn.Linear(dnn_hidden_units[i], dnn_hidden_units[i + 1])
+                for i in range(len(dnn_hidden_units) - 1)
+            ]
+        )
+        for name, tensor in self.linear.named_parameters():
+            if 'weight' in name:
+                nn.init.normal_(tensor, mean=0, std=0.00001)
+
+        self.act = nn.ReLU()
+        self.dropout = nn.Dropout(0.5)
+
+    def forward(self, X):
+        # wide
+        X = X.float()
+        logit = X
+        for i in range(len(self.linear)):
+            fc = self.linear[i](logit)
+            fc = self.act(fc)
+            fc = self.dropout(fc)
+            logit = fc
+        return logit
+
+    def output_num(self):
+        return 1
+
+
+class WideDeepFuse(nn.Module):
+    # Only dnn_linear
+    def __init__(
+        self,
+        dnn_hidden_units=(256, 128),
+    ):
+        super(WideDeepFuse, self).__init__()
+
+        self.dnn_linear = nn.Linear(dnn_hidden_units[-1], 1, bias=False)
+
+    def forward(self, X):
+        logit = X[1]
+        dnn_logit = self.dnn_linear(X[0])
+        _logit = dnn_logit + logit
+        y_pred = torch.sigmoid(_logit)
+        return y_pred
+
+
+class LocalEmbedding(nn.Module):
+    def __init__(self, seed=1):
+        super(LocalEmbedding, self).__init__()
+        torch.manual_seed(seed)
+
+        # Convolutional layer 1
+        self.c1 = nn.Conv2d(
+            in_channels=1, out_channels=64, kernel_size=5, padding='same'
+        )
+        # Max pooling 1
+        self.s1 = nn.MaxPool2d(kernel_size=2, stride=2)
+
+        # Convolutional layer 2
+        self.c2 = nn.Conv2d(
+            in_channels=64, out_channels=128, kernel_size=5, padding='same'
+        )
+        # Max pooling 2
+        self.s2 = nn.MaxPool2d(kernel_size=2, stride=2, padding=1)
+
+        # Fully connected layers
+        self.fc1 = nn.Linear(4 * 4 * 128, 256)
+        self.fc2 = nn.Linear(256, 64)
+        self.fc3 = nn.Linear(64, 10)
+
+    def forward(self, x, cafe=False):
+        # Input size should be 14x14x1
+        # print(x)
+        x = x.view(-1, 1, 14, 14)
+
+        x = self.c1(x)
+        x = F.relu(x)
+        x = self.s1(x)
+
+        x = self.c2(x)
+        x = F.relu(x)
+        x = self.s2(x)
+
+        middle_input = x.view(-1, 4 * 4 * 128)  # 2304
+        # print(x.shape)
+        middle_output = self.fc1(middle_input)
+        x = F.relu(middle_output)
+        # x should be 256
+
+        x = self.fc2(x)
+        x = F.relu(x)
+        # x should be 64
+
+        x = self.fc3(x)
+        x = F.relu(x)
+        # return x
+        if cafe:
+            return middle_input, x, middle_output
+        return x
+
+    def output_num(self):
+        return 1
+
+
+class CafeServer(nn.Module):
+    def __init__(self, seed=0, clients_num=4):
+        super(CafeServer, self).__init__()
+        torch.manual_seed(seed)
+
+        # Define the last fully connected layer with softmax activation
+        self.last = nn.Linear(clients_num * 10, 10)
+
+    def forward(self, x):
+        if isinstance(x, list):
+            tmp_x = x
+            # tmp_x = [x[i * 3 + 1] for i in range(len(x) // 3)]
+            x = torch.cat(tmp_x, dim=1)
+
+        x = self.last(x)
+        output = F.softmax(
+            x, dim=1
+        )  # Apply softmax activation along the class dimension
+        # The size of output is 10
+        return output
