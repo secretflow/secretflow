@@ -32,7 +32,11 @@ class Reporter:
 
     @staticmethod
     def get_description(attrs: dict) -> str:
-        return attrs["description"] if attrs and "description" in attrs else ""
+        if "description" in attrs:
+            return attrs["description"]
+        elif b"description" in attrs:
+            return str(attrs[b"description"])
+        return ""
 
     @staticmethod
     def set_description(f: pa.Field | pd.Series, desc: str):
@@ -43,9 +47,9 @@ class Reporter:
                 f.metadata[b"description"] = desc
         elif isinstance(f, pd.Series):
             if f.attrs is None:
-                f.attrs = {b"description": desc}
+                f.attrs = {"description": desc}
             else:
-                f.attrs[b"description"] = desc
+                f.attrs["description"] = desc
         else:
             raise ValueError(f"unsupport type, {type(f)}, {desc}")
 
