@@ -1,5 +1,3 @@
-# !/usr/bin/env python3
-# *_* coding: utf-8 *_*
 # Copyright xuxiaoyang, ywenrou123@163.com
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,15 +15,27 @@
 import torch
 import torch.optim as optim
 from torch import nn
-from torch.nn import CrossEntropyLoss
 from torch.nn import functional as F
 from torch.utils.data import DataLoader, TensorDataset
+from torchmetrics import Accuracy, Precision
 
-from secretflow.ml.nn.core.torch import BaseModule, TorchModel, optim_wrapper
+from secretflow import reveal
+from secretflow.ml.nn import FLModel
+from secretflow.ml.nn.core.torch import (
+    BaseModule,
+    TorchModel,
+    metric_wrapper,
+    optim_wrapper,
+)
 from secretflow.ml.nn.fl.backend.torch.strategy.fed_gen import (
     FedGen,
+    FedGenActor,
     FedGenGeneratorModel,
 )
+from secretflow.security.aggregation.stateful_fedgen_aggregator import (
+    StatefulFedGenAggregator,
+)
+from secretflow.utils.simulation.datasets import load_mnist
 
 
 class ConvNet(BaseModule):
@@ -100,13 +110,16 @@ class TestFedGen:
     def test_fed_gen_local_step_without_generator_raises_error(
         self, sf_simulation_setup_devices
     ):
-        # Initialize Scaffold strategy with ConvNet model
+        # Set the number of classes
         num_classes = 10
+
+        # Define the loss function and optimizer
         loss_fn = nn.CrossEntropyLoss
         optim_fn = optim_wrapper(optim.Adam, lr=1e-2)
         kl_div_loss = nn.KLDivLoss(reduction="batchmean")
         diversity_loss = DiversityLoss(metric='l1')
 
+        # Build the model
         builder = TorchModel(
             model_fn=ConvNet,
             loss_fn=loss_fn,
@@ -114,46 +127,47 @@ class TestFedGen:
             kl_div_loss=kl_div_loss,
             num_classes=num_classes,
         )
-        # Initialize Scaffold strategy with ConvNet model
         fed_gen_worker = FedGen(builder_base=builder)
 
-        # Prepare dataset
-        x_test = torch.rand(128, 1, 28, 28)  # Randomly generated data
-        y_test = torch.randint(0, 10, (128,))
+        # Prepare the test dataset
+        x_test = torch.rand(128, 1, 28, 28)  # Randomly generated input data
+        y_test = torch.randint(0, 10, (128,))  # Randomly generated labels
 
+        # Create a data loader
         test_loader = DataLoader(
             TensorDataset(x_test, y_test), batch_size=32, shuffle=True
         )
-        fed_gen_worker.train_set = iter(test_loader)
-        fed_gen_worker.train_iter = iter(fed_gen_worker.train_set)
+        fed_gen_worker.train_set = iter(test_loader)  # Set the training set
+        fed_gen_worker.train_iter = iter(
+            fed_gen_worker.train_set
+        )  # Initialize the training iterator
 
-        # Perform a training step
-        gradients = None
-        generator_params = None
+        # Execute a training step
+        gradients = None  # Gradients of the model parameters
+        generator_params = None  # Parameters of the generator
         weights = {"model_params": gradients, "generator_params": generator_params}
+
+        # Attempt to perform a training step; expect to raise AssertionError
         try:
             fed_gen_worker.train_step(weights, cur_steps=0, train_steps=1)
         except AssertionError as e:
-            assert str(e) == "Generator cannot be none, please define the Generator."
+            # Assert the error message to ensure the correct error is raised
+            assert str(e) == "Generator cannot be none, please define the generator."
         else:
+            # If no error is raised, the test fails
             assert False, "ValueError not raised"
 
     def test_fed_gen_local_step(self, sf_simulation_setup_devices):
-        # Initialize Scaffold strategy with ConvNet model
+        # Initialize the FedGen strategy with a ConvNet model
         num_classes = 10
-        loss_fn = nn.CrossEntropyLoss
-        optim_fn = optim_wrapper(optim.Adam, lr=1e-2)
-        kl_div_loss = nn.KLDivLoss(reduction="batchmean")
-        diversity_loss = DiversityLoss(metric='l1')
+        loss_fn = nn.CrossEntropyLoss  # Loss function for classification
+        optim_fn = optim_wrapper(optim.Adam, lr=1e-2)  # Optimizer with learning rate
+        kl_div_loss = nn.KLDivLoss(reduction="batchmean")  # KL Divergence loss
+        diversity_loss = DiversityLoss(
+            metric='l1'
+        )  # Diversity loss to promote varied outputs
 
-        builder = TorchModel(
-            model_fn=ConvNet,
-            loss_fn=CrossEntropyLoss,
-            optim_fn=optim.Adam,
-            kl_div_loss=kl_div_loss,
-            num_classes=num_classes,
-        )
-
+        # Create a generator model for FedGen
         generator = FedGenGeneratorModel(
             hidden_dimension=256,
             latent_dimension=192,
@@ -164,40 +178,83 @@ class TestFedGen:
             diversity_loss=diversity_loss,
         )
 
-        # Initialize Scaffold strategy with ConvNet model
-        fed_gen_worker = FedGen(builder_base=builder)
-
-        # Prepare dataset
-        x_test = torch.rand(128, 1, 28, 28)  # Randomly generated data
-        y_test = torch.randint(0, 10, (128,))
-
-        test_loader = DataLoader(
-            TensorDataset(x_test, y_test), batch_size=32, shuffle=True
-        )
-        fed_gen_worker.train_set = iter(test_loader)
-        fed_gen_worker.train_iter = iter(fed_gen_worker.train_set)
-
-        # Perform a training step
-        gradients = None
-        generator_params = None
-        weights = {"model_params": gradients, "generator_params": generator_params}
-        model_weights, result_dict = fed_gen_worker.train_step(
-            weights, cur_steps=0, train_steps=1, generator=generator
+        # Define the main model to be used
+        model_def = TorchModel(
+            model_fn=ConvNet,
+            loss_fn=loss_fn,
+            optim_fn=optim_fn,
+            metrics=[
+                metric_wrapper(
+                    Accuracy, task="multiclass", num_classes=10, average='micro'
+                ),
+                metric_wrapper(
+                    Precision, task="multiclass", num_classes=10, average='micro'
+                ),
+            ],
+            kl_div_loss=kl_div_loss,
+            num_classes=num_classes,
         )
 
-        # Apply weights update
-        fed_gen_worker.apply_weights(model_weights)
-        num_sample = result_dict["num_sample"]
-        label_counts_dict = result_dict["label_counts_dict"]
-        # Assert the sample number and length of gradients
-        assert num_sample == 32  # Batch size
-        assert isinstance(label_counts_dict, dict)
-        assert len(model_weights) == len(
-            list(fed_gen_worker.model.parameters())
-        )  # Number of model parameters
-
-        # Perform another training step to test cumulative behavior
-        model_weights, result_dict = fed_gen_worker.train_step(
-            model_weights, cur_steps=1, train_steps=2, generator=generator
+        # Set up the FedGen server actor
+        server_actor = FedGenActor(
+            device=sf_simulation_setup_devices.carol, generator=generator
         )
-        assert result_dict["num_sample"] == 64  # Cumulative batch size over two steps
+        device_list = [
+            sf_simulation_setup_devices.alice,
+            sf_simulation_setup_devices.bob,
+        ]
+
+        # Initialize the aggregator for the federated learning process
+        aggregator = StatefulFedGenAggregator(
+            sf_simulation_setup_devices.carol, device_list, server_actor
+        )
+
+        # Create the federated learning model
+        fl_model = FLModel(
+            server=sf_simulation_setup_devices.carol,
+            device_list=device_list,
+            model=model_def,
+            strategy="fed_gen",
+            backend="torch",
+            aggregator=aggregator,
+            generator=generator,
+        )
+
+        # Prepare the dataset
+        (_, _), (data, label) = load_mnist(
+            parts={
+                sf_simulation_setup_devices.alice: 0.4,
+                sf_simulation_setup_devices.bob: 0.6,
+            },
+            normalized_x=True,
+            categorical_y=True,
+            is_torch=True,
+        )
+
+        # Train the model with the prepared data
+        history = fl_model.fit(
+            data,
+            label,
+            validation_data=(data, label),
+            epochs=1,
+            batch_size=32,
+            aggregate_freq=1,
+        )
+
+        # Make predictions using the trained model
+        result = fl_model.predict(data, batch_size=32)
+        assert (
+            len(reveal(result[device_list[0]])) == 4000
+        )  # Check the number of predictions
+
+        global_metric, _ = fl_model.evaluate(
+            data, label, batch_size=32, random_seed=1234
+        )
+        print(history, global_metric)
+
+        # Assert that the final accuracy matches the recorded history
+        assert (
+            global_metric[0].result().numpy()
+            == history["global_history"]['val_multiclassaccuracy'][-1]
+        )
+        assert global_metric[0].result().numpy() > 0.1

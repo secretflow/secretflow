@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# *_* coding: utf-8 *_*
-
 # Copyright xuxiaoyang, ywenrou123@163.com
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,19 +13,18 @@
 # limitations under the License.
 
 import copy
-from typing import List, Tuple
+from typing import Tuple
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn
 
-from secretflow import PYU, DeviceObject, proxy
+from secretflow import proxy
 from secretflow.device import PYUObject
 from secretflow.ml.nn.core.torch import BuilderType
 from secretflow.ml.nn.fl.backend.torch.fl_base import BaseTorchModel
 from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
-from secretflow.security import SecureAggregator
 
 
 class FedGen(BaseTorchModel):
@@ -44,10 +40,12 @@ class FedGen(BaseTorchModel):
         builder_base: BuilderType,
         random_seed: int = None,
         skip_bn: bool = False,
+        **kwargs,
     ):
         super().__init__(builder_base, random_seed=random_seed, skip_bn=skip_bn)
         self.label_counts_dict = {}
         self.cur_epochs = 0
+        self.generator = kwargs.get('generator', None)
 
     def _exp_lr_scheduler(self, epoch, decay=0.98, init_lr=0.1, lr_decay_epoch=1):
         """Decay learning rate by a factor of 0.95 every lr_decay_epoch epochs."""
@@ -75,9 +73,8 @@ class FedGen(BaseTorchModel):
         """
         assert self.model is not None, "Model cannot be none, please define the model."
         assert (
-            kwargs.get('generator', None) is not None
-        ), "Generator cannot be none, please define the Generator."
-        generator = kwargs.get('generator')
+            self.generator is not None
+        ), "Generator cannot be none, please define the generator."
         self.model.train()
 
         # Optionally refresh the data iterator for a new batch
@@ -86,23 +83,13 @@ class FedGen(BaseTorchModel):
             self._reset_data_iter()
             self.label_counts_dict = {}
             self.cur_epochs += 1
-        if (
-            weights is not None
-            and "generator_params" in weights
-            and "model_params" in weights
-        ):
-            generator_params = weights["generator_params"]
-            model_params = weights["model_params"]
-            if generator_params is not None:
-                generator.load_state_dict(generator_params)
-            if model_params is not None:
-                self.set_weights(model_params)
-
+        if weights is not None:
+            self.apply_weights(weights)
         num_sample = 0
         dp_strategy = kwargs.get('dp_strategy', None)
         logs = {}
         loss: torch.Tensor = None
-        generator.eval()
+        self.generator.eval()
         for step in range(train_steps):
             # Fetch the next batch of data
             x, y, s_w = self.next_batch()
@@ -131,13 +118,13 @@ class FedGen(BaseTorchModel):
             # Convert model outputs to predicted labels
             y_input = y_labels.clone().detach()
             generative_alpha = self._exp_lr_scheduler(
-                self.cur_epochs, decay=0.98, init_lr=generator.generative_alpha
+                self.cur_epochs, decay=0.98, init_lr=self.generator.generative_alpha
             )
             generative_beta = self._exp_lr_scheduler(
-                self.cur_epochs, decay=0.98, init_lr=generator.generative_beta
+                self.cur_epochs, decay=0.98, init_lr=self.generator.generative_beta
             )
             # Generate data and compute model output based on the input labels
-            generated_result = generator(y_input)
+            generated_result = self.generator(y_input)
             generated_predict_logit = self.model(
                 generated_result['output'], start_layer_idx=-1
             )
@@ -152,10 +139,10 @@ class FedGen(BaseTorchModel):
 
             # Sample labels and generate data for further training
             sampled_labels = np.random.choice(
-                self.model.num_classes, generator.batch_size
+                self.model.num_classes, self.generator.batch_size
             )
             input_labels_tensor = torch.tensor(sampled_labels)
-            generated_result = generator(input_labels_tensor)
+            generated_result = self.generator(input_labels_tensor)
             generated_predict_logit = self.model(
                 generated_result['output'], start_layer_idx=-1
             )
@@ -165,7 +152,7 @@ class FedGen(BaseTorchModel):
                 self.model.loss(generated_predict_logit, input_labels_tensor)
             )
             # this is to further balance oversampled down-sampled synthetic data
-            gen_ratio = generator.batch_size / num_sample
+            gen_ratio = self.generator.batch_size / num_sample
             # Combine losses: base loss, KL loss, and teacher loss
             loss += gen_ratio * teacher_loss + generative_kl_loss
 
@@ -201,10 +188,13 @@ class FedGen(BaseTorchModel):
             kwargs: Additional parameters if needed for specific update logic.
 
         """
-        if weights is not None:
-            if isinstance(weights, dict):
-                weights = weights["model_params"]
-            self.set_weights(weights)
+        if weights is not None and isinstance(weights, dict):
+            generator_params = weights["generator_params"]
+            model_params = weights["model_params"]
+            if generator_params is not None:
+                self.generator.load_state_dict(generator_params)
+            if model_params is not None:
+                self.set_weights(model_params)
 
 
 class FedGenGeneratorModel(nn.Module):
@@ -329,94 +319,6 @@ class FedGenGeneratorModel(nn.Module):
         result['output'] = z  # Store result in the dictionary
 
         return result
-
-
-class StatefulFedGenAggregator(SecureAggregator):
-    """
-    StatefulFedGenAggregator: Extends SecureAggregator to handle aggregation of model parameters
-    and training of the generator model in a federated learning context.
-    """
-
-    def __init__(
-        self, device, participants: List[PYU], server_actor, fxp_bits: int = 18
-    ):
-        super().__init__(device, participants, fxp_bits)
-        self.server_actor = server_actor
-
-    def average(self, data: List[PYUObject], axis=None, weights=None):
-        """
-        Overrides the average method to perform parameter aggregation and generator model training.
-
-        Args:
-            data (List[PYUObject]): A list of participant model parameters.
-            axis: The axis along which the average operation is performed.
-            weights (optional): Weights to use during aggregation, which can influence the importance of each participant.
-
-        Returns:
-            avg_model_params: The aggregated model parameters if no generator training is needed.
-            If generator training is involved, returns a dictionary with updated generator and model parameters.
-        """
-
-        def _get_label_counts(client_result):
-            """Extracts the label count dictionary from the client's result."""
-            return client_result["label_counts_dict"]
-
-        def _get_num_samples(client_result):
-            """Extracts the number of samples from the client's result."""
-            return client_result["num_sample"]
-
-        # Default aggregation without using weights
-        _num_simple = None
-        avg_model_params = super().average(data, axis, _num_simple)
-
-        # If weights are provided, perform weighted aggregation and generator training
-        if weights is not None and isinstance(weights, (list, tuple, np.ndarray)):
-            synthetic_data_result = self.server_actor.generate_synthetic_data()
-            _worker_label_counts = []
-            _user_results = []
-            _num_simple = []
-
-            # Ensure the weights list length matches the number of participants
-            assert len(weights) == len(
-                data
-            ), f'Length of the weights does not match the data: {len(weights)} vs {len(data)}.'
-
-            for i, w in enumerate(weights):
-                if isinstance(w, DeviceObject):
-                    # Ensure each weight is associated with the correct device
-                    assert (
-                        w.device == data[i].device
-                    ), 'Device of weight does not match the corresponding data device.'
-
-                    # Extract label counts and user results
-                    _worker_label_counts.append(
-                        self._device(_get_label_counts)(w.to(self._device))
-                    )
-                    _user_results.append(
-                        self.server_actor.get_penultimate_layer_output(
-                            data[i].to(self._device), synthetic_data_result
-                        )
-                    )
-                    _num_simple.append(w.device(_get_num_samples)(w))
-
-            # Train the generator model
-            self.server_actor.train_generator(
-                _user_results,
-                _worker_label_counts,
-                synthetic_data_result,
-                avg_model_params,
-            )
-
-            # Return updated generator and model parameters
-            return self._device(lambda x: x)(
-                {
-                    "generator_params": self.server_actor.get_generator_weights(),
-                    "model_params": avg_model_params,
-                }
-            )
-
-        # If no weights are provided, return the average model parameters
-        return avg_model_params
 
 
 @proxy(PYUObject)
