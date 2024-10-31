@@ -13,6 +13,7 @@
 # limitations under the License.
 import json
 from typing import List
+import logging
 
 from secretflow.component.checkpoint import CompCheckpoint
 from secretflow.component.component import Component, IoType, TableColParam
@@ -27,6 +28,7 @@ from secretflow.component.data_utils import (
 )
 from secretflow.device.device.heu import heu_from_base_config
 from secretflow.device.device.pyu import PYU
+from secretflow.device.driver import reveal
 from secretflow.ml.boost.core.callback import TrainingCallback
 from secretflow.ml.boost.core.metric import ALL_METRICS_NAMES
 from secretflow.ml.boost.sgb_v import Sgb, SgbModel
@@ -41,7 +43,11 @@ from secretflow.ml.boost.sgb_v.factory.booster.global_ordermap_booster import (
     GlobalOrdermapBooster,
     build_checkpoint,
 )
+from secretflow.ml.boost.sgb_v.complete_model import from_sgb_model
 from secretflow.spec.v1.data_pb2 import DistData
+from secretflow.spec.v1.component_pb2 import Attribute
+from secretflow.spec.v1.report_pb2 import Descriptions, Div, Report, Tab
+
 
 DEFAULT_PREDICT_BATCH_SIZE = 10000
 
@@ -373,11 +379,27 @@ sgb_train_comp.io(
         ),
     ],
 )
+
+sgb_train_comp.bool_attr(
+    name="report_model",
+    desc="Whether to dump complete model str. WARNING: ALL LABEL INFO IS AT GREAT RISK. DANGER! ALL MODEL INFO IS REVEALED AND ALL DATA IS AT GREAT RISK! ALL LABEL INFO IS AT GREAT RISK! ALL FEATURE INFO IS AT GREAT RISK!",
+    is_list=False,
+    is_optional=True,
+    default_value=False,
+)
+
 sgb_train_comp.io(
     io_type=IoType.OUTPUT,
     name="output_model",
     desc="Output model.",
     types=[DistDataType.SGB_MODEL],
+)
+
+sgb_train_comp.io(
+    io_type=IoType.OUTPUT,
+    name="report",
+    desc="report model params if report_model is true, WARNING: ALL LABEL INFO IS AT GREAT RISK. DANGER! ALL MODEL INFO IS REVEALED AND ALL DATA IS AT GREAT RISK! ALL LABEL INFO IS AT GREAT RISK! ALL FEATURE INFO IS AT GREAT RISK!",
+    types=[DistDataType.REPORT],
 )
 
 # current version 0.1
@@ -497,6 +519,8 @@ def sgb_train_eval_fn(
     train_dataset_label,
     output_model,
     train_dataset_feature_selects,
+    report_model,
+    report,
 ):
     assert ctx.heu_config is not None, "need heu config in SFClusterDesc"
     assert (
@@ -519,7 +543,9 @@ def sgb_train_eval_fn(
     )
     assert len(x.columns) > 0
 
-    label_party = next(iter(y.partitions.keys())).party
+    label_device = next(iter(y.partitions.keys()))
+    label_party = label_device.party
+
     heu = heu_from_base_config(
         ctx.heu_config,
         label_party,
@@ -586,6 +612,14 @@ def sgb_train_eval_fn(
             dump_function=dump_function if ctx.comp_checkpoint else None,
         )
 
+        report_dist_data = dump_complete_model(
+            report,
+            train_dataset.system_info,
+            model,
+            report_model,
+            label_device,
+        )
+
     snapshot = sgb_model_to_snapshot(model, x, train_dataset_label)
     model_db = model_dumps(
         ctx,
@@ -599,7 +633,62 @@ def sgb_train_eval_fn(
         train_dataset.system_info,
     )
 
-    return {"output_model": model_db}
+    return {"output_model": model_db, "report": report_dist_data}
+
+
+def dump_complete_model(
+    name, system_info, model: SgbModel, report_rules: bool, label_device: PYU
+) -> DistData:
+    res = DistData(
+        name=name,
+        system_info=system_info,
+        type=str(DistDataType.REPORT),
+        data_refs=[],
+    )
+    if report_rules:
+        report_mate = gen_model_report(model, label_device)
+        res.meta.Pack(report_mate)
+    return res
+
+
+def gen_model_report(model: SgbModel, label_device: PYU) -> Report:
+    tabs = [
+        Tab(
+            divs=[
+                Div(
+                    children=[
+                        Div.Child(
+                            type="descriptions",
+                            descriptions=gen_model_description(model, label_device),
+                        )
+                    ],
+                )
+            ],
+        )
+    ]
+    report_mate = Report(
+        name="model json str",
+        desc="json str for complete tree model",
+        tabs=tabs,
+    )
+    return report_mate
+
+
+def gen_model_description(model: SgbModel, label_device: PYU) -> Descriptions:
+    logging.warning(
+        "DANGER! ALL MODEL INFO IS REVEALED AND ALL DATA IS AT GREAT RISK! ALL LABEL INFO IS AT GREAT RISK! ALL FEATURE INFO IS AT GREAT RISK!"
+    )
+    model_item = Descriptions.Item(
+        value=Attribute(
+            s=json.dumps(reveal(from_sgb_model(model, label_device)).to_dict())
+        )
+    )
+    model_des = Descriptions(
+        items=[model_item],
+        name=f"sgb model",
+        desc=f"json str that can be copy pasted to a json file, which represents a complete tree model",
+    )
+    return model_des
 
 
 sgb_predict_comp = Component(
