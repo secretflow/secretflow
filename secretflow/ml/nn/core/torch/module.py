@@ -23,7 +23,6 @@ from typing_extensions import TypeAlias, override
 
 from .mixins import ParametersMixin
 
-
 class BaseModule(ParametersMixin, nn.Module):
     """Lightning style base class for your torch neural network models.
 
@@ -242,7 +241,6 @@ class BaseModule(ParametersMixin, nn.Module):
                 m.update(y_pred, y_true.int().argmax(-1))
             else:
                 m.update(y_pred, y_true.int())
-
 
 class TorchModel:
     def __init__(
