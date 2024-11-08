@@ -27,10 +27,10 @@ In order to reproduce the experimental results in the paper, the hyperparameter 
 
 ## Quick Start
 Before starting experiments, make sure you are in the right working directory.
-You need to get the heterogeneous datasets from [https://github.com/TsingZ0/PFLlib] and save it at `\dst`.
+You need to get the heterogeneous datasets from [https://github.com/TsingZ0/PFLlib] ,then create a new directory  `FedALA/dst` and save the datasets at this directory.
 
 ```commandline
-cd /FedALA
+cd ALAsys
 ```
 
 You can use following commands to start your experiments.
