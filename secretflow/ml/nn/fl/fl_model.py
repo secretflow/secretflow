@@ -81,6 +81,7 @@ class FLModel:
             random_seed=random_seed,
             num_gpus=self.num_gpus,
             skip_bn=skip_bn,
+            **kwargs,
         )
         self.server = server
         self.device_list = device_list
@@ -103,6 +104,7 @@ class FLModel:
         random_seed,
         num_gpus,
         skip_bn,
+        **kwargs,
     ):
         self._workers = {
             device: dispatch_strategy(
@@ -113,6 +115,7 @@ class FLModel:
                 random_seed=random_seed,
                 num_gpus=num_gpus,
                 skip_bn=skip_bn,
+                **kwargs,
             )
             for device in device_list
         }
