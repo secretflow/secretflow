@@ -17,7 +17,7 @@ import torch
 from torch import nn as nn
 from torch.nn import functional as F
 
-from secretflow.ml.nn.core.torch import BaseModule
+from secretflow_fl.ml.nn.core.torch import BaseModule
 
 
 class CatEmbeddingSqrt(nn.Module):

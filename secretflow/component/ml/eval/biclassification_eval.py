@@ -11,21 +11,33 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import logging
 
-from secretflow.component.component import Component, IoType, TableColParam
-from secretflow.component.data_utils import DistDataType, load_table
+import numpy as np
+import pandas as pd
+
+from secretflow.component.core import (
+    Component,
+    Context,
+    DistDataType,
+    Field,
+    Input,
+    Interval,
+    Output,
+    Reporter,
+    VTable,
+    VTableFieldKind,
+    register,
+)
 from secretflow.device.driver import reveal
-from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import DistData
-from secretflow.spec.v1.report_pb2 import Descriptions, Div, Report, Tab, Table
-from secretflow.stats.biclassification_eval import BiClassificationEval
+from secretflow.stats.biclassification_eval import (
+    BiClassificationEval as StatsBiClassificationEval,
+)
 
-biclassification_eval_comp = Component(
-    name="biclassification_eval",
-    domain="ml.eval",
-    version="0.0.1",
-    desc="""Statistics evaluation for a bi-classification model on a dataset.
+
+@register(domain="ml.eval", version="1.0.0", name="biclassification_eval")
+class BiClassificationEval(Component):
+    '''
+    Statistics evaluation for a bi-classification model on a dataset.
         1. summary_report: SummaryReport
 
         2. eq_frequent_bin_report: List[EqBinReport]
@@ -34,353 +46,146 @@ biclassification_eval_comp = Component(
 
         4. head_report: List[PrReport]
             reports for fpr = 0.001, 0.005, 0.01, 0.05, 0.1, 0.2
-        """,
-)
+    '''
 
-biclassification_eval_comp.int_attr(
-    name="bucket_size",
-    desc="Number of buckets.",
-    is_list=False,
-    is_optional=True,
-    default_value=10,
-    lower_bound=1,
-    lower_bound_inclusive=True,
-)
-
-biclassification_eval_comp.int_attr(
-    name="min_item_cnt_per_bucket",
-    desc="Min item cnt per bucket. If any bucket doesn't meet the requirement, error raises. For security reasons, we require this parameter to be at least 5.",
-    is_list=False,
-    is_optional=True,
-    default_value=5,
-    lower_bound=5,
-    lower_bound_inclusive=True,
-)
-
-
-biclassification_eval_comp.io(
-    io_type=IoType.INPUT,
-    name="in_ds",
-    desc="Input table with prediction and label, usually is a result from a prediction component.",
-    types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
-    col_params=[
-        TableColParam(
-            name="label",
-            desc="The label name to use in the dataset.",
-            col_min_cnt_inclusive=1,
-            col_max_cnt_inclusive=1,
-        ),
-        TableColParam(
-            name="prediction",
-            desc="The prediction result column name to use in the dataset.",
-            col_min_cnt_inclusive=1,
-            col_max_cnt_inclusive=1,
-        ),
-    ],
-)
-
-biclassification_eval_comp.io(
-    io_type=IoType.OUTPUT,
-    name="reports",
-    desc="Output report.",
-    types=[DistDataType.REPORT],
-    col_params=None,
-)
-
-
-@biclassification_eval_comp.eval_fn
-def biclassification_eval_fn(
-    *,
-    ctx,
-    in_ds,
-    in_ds_label,
-    in_ds_prediction,
-    bucket_size,
-    min_item_cnt_per_bucket,
-    reports,
-):
-    label_prediction_df = load_table(
-        ctx,
-        in_ds,
-        load_labels=True,
-        col_selects=in_ds_label + in_ds_prediction,
+    bucket_size: int = Field.attr(
+        desc="Number of buckets.",
+        default=10,
+        bound_limit=Interval.closed(1, None),
+    )
+    min_item_cnt_per_bucket: int = Field.attr(
+        desc="Min item cnt per bucket. If any bucket doesn't meet the requirement, error raises. For security reasons, we require this parameter to be at least 5.",
+        default=5,
+        bound_limit=Interval.closed(5, None),
+    )
+    label: str = Field.table_column_attr(
+        "input_ds",
+        desc="The label name to use in the dataset.",
+    )
+    prediction: str = Field.table_column_attr(
+        "input_ds",
+        desc="The prediction result column name to use in the dataset.",
+    )
+    input_ds: Input = Field.input(  # type: ignore
+        desc="Input table with prediction and label, usually is a result from a prediction component.",
+        types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
+    )
+    report: Output = Field.output(
+        desc="Output report.",
+        types=[DistDataType.REPORT],
     )
 
-    with ctx.tracer.trace_running():
-        result = reveal(
-            BiClassificationEval(
-                y_true=label_prediction_df[in_ds_label],
-                y_score=label_prediction_df[in_ds_prediction],
-                bucket_size=bucket_size,
-                min_item_cnt_per_bucket=min_item_cnt_per_bucket,
-            ).get_all_reports()
-        )
+    def evaluate(self, ctx: Context):
+        tbl = VTable.from_distdata(self.input_ds, [self.label, self.prediction])
+        tbl.check_kinds(VTableFieldKind.FEATURE_LABEL)
+        label_prediction_df = ctx.load_table(tbl).to_pandas(
+            check_null=False
+        )  # FIXME: avoid to_pandas
 
-    logging.info(
-        f"auc: {result.summary_report.auc}, ks: {result.summary_report.ks}, f1: {result.summary_report.f1_score}"
-    )
-    return {
-        "reports": dump_biclassification_reports(reports, in_ds.system_info, result)
-    }
-
-
-def dump_biclassification_reports(name, system_info, reports):
-    ret = DistData(
-        name=name,
-        system_info=system_info,
-        type=str(DistDataType.REPORT),
-    )
-
-    def get_div_from_eq_bin_report(equal_bin_reports):
-        headers, rows = [], []
-        headers = [
-            Table.HeaderItem(
-                name="start_value",
-                type="float",
-            ),
-            Table.HeaderItem(
-                name="end_value",
-                type="float",
-            ),
-            Table.HeaderItem(
-                name="positive",
-                type="int",
-            ),
-            Table.HeaderItem(
-                name="negative",
-                type="int",
-            ),
-            Table.HeaderItem(
-                name="total",
-                type="int",
-            ),
-            Table.HeaderItem(
-                name="precision",
-                type="float",
-            ),
-            Table.HeaderItem(
-                name="recall",
-                type="float",
-            ),
-            Table.HeaderItem(
-                name="false_positive_rate",
-                type="float",
-            ),
-            Table.HeaderItem(
-                name="f1_score",
-                type="float",
-            ),
-            Table.HeaderItem(
-                name="lift",
-                type="float",
-            ),
-            Table.HeaderItem(
-                name="predicted_positive_ratio",
-                type="float",
-            ),
-            Table.HeaderItem(
-                name="predicted_negative_ratio",
-                type="float",
-            ),
-            Table.HeaderItem(
-                name="cumulative_percent_of_positive",
-                type="float",
-            ),
-            Table.HeaderItem(
-                name="cumulative_percent_of_negative",
-                type="float",
-            ),
-            Table.HeaderItem(
-                name="total_cumulative_percent",
-                type="float",
-            ),
-            Table.HeaderItem(
-                name="ks",
-                type="float",
-            ),
-            Table.HeaderItem(
-                name="avg_score",
-                type="float",
-            ),
-        ]
-        for idx, bin_report in enumerate(equal_bin_reports):
-            rows.append(
-                Table.Row(
-                    name=f'bin_{idx}',
-                    items=[
-                        Attribute(f=bin_report.start_value),
-                        Attribute(f=bin_report.end_value),
-                        Attribute(i64=int(bin_report.positive)),
-                        Attribute(i64=int(bin_report.negative)),
-                        Attribute(i64=int(bin_report.total)),
-                        Attribute(f=bin_report.precision),
-                        Attribute(f=bin_report.recall),
-                        Attribute(f=bin_report.false_positive_rate),
-                        Attribute(f=bin_report.f1_score),
-                        Attribute(f=bin_report.Lift),
-                        Attribute(f=bin_report.predicted_positive_ratio),
-                        Attribute(f=bin_report.predicted_negative_ratio),
-                        Attribute(f=bin_report.cumulative_percent_of_positive),
-                        Attribute(f=bin_report.cumulative_percent_of_negative),
-                        Attribute(f=bin_report.total_cumulative_percent),
-                        Attribute(f=bin_report.ks),
-                        Attribute(f=bin_report.avg_score),
-                    ],
-                )
+        with ctx.trace_running():
+            result = reveal(
+                StatsBiClassificationEval(
+                    y_true=label_prediction_df[[self.label]],
+                    y_score=label_prediction_df[[self.prediction]],
+                    bucket_size=self.bucket_size,
+                    min_item_cnt_per_bucket=self.min_item_cnt_per_bucket,
+                ).get_all_reports()
             )
-        return Div(
-            name="",
-            desc="",
-            children=[
-                Div.Child(
-                    type="table",
-                    table=Table(
-                        name="",
-                        desc="",
-                        headers=headers,
-                        rows=rows,
-                    ),
-                ),
-            ],
+
+        r = Reporter(name="reports")
+        # build summary_report
+        summary_report = result.summary_report
+        summary_data = {
+            "total_samples": int(summary_report.total_samples),
+            "positive_samples": int(summary_report.positive_samples),
+            "negative_samples": int(summary_report.negative_samples),
+            "auc": float(summary_report.auc),
+            "ks": float(summary_report.ks),
+            "f1_score": float(summary_report.f1_score),
+        }
+        r.add_tab(
+            summary_data,
+            name="SummaryReport",
+            desc="Summary Report for bi-classification evaluation.",
         )
 
-    def make_head_report_div(head_report):
-        headers = [
-            Table.HeaderItem(
-                name="threshold",
-                type="float",
-            ),
-            Table.HeaderItem(
-                name="FPR(False Positive Rate)",
-                type="float",
-            ),
-            Table.HeaderItem(
-                name="precision",
-                type="float",
-            ),
-            Table.HeaderItem(
-                name="recall",
-                type="float",
-            ),
+        # eq_frequent_bin_report
+        eq_frequent_bin_tbl = r.to_table(
+            self.eq_bin_to_df(result.eq_frequent_bin_report), prefix="bin_"
+        )
+        r.add_tab(
+            eq_frequent_bin_tbl,
+            name="eq_frequent_bin_report",
+            desc="Statistics Report for each bin.",
+        )
+
+        # eq_range_bin_report
+        eq_range_bin_tbl = r.to_table(
+            self.eq_bin_to_df(result.eq_range_bin_report), prefix="bin_"
+        )
+        r.add_tab(eq_range_bin_tbl, name="eq_range_bin_report")
+
+        # head_report
+        head_report_table = r.to_table(
+            self.head_report_to_df(result.head_report), prefix="case_"
+        )
+        r.add_tab(head_report_table, name="head_report")
+
+        r.dump_to(self.report, self.input_ds.system_info)
+
+    @staticmethod
+    def eq_bin_to_df(equal_bin_reports) -> pd.DataFrame:
+        columns = [
+            'start_value',
+            'end_value',
+            'positive',
+            'negative',
+            'total',
+            'precision',
+            'recall',
+            'false_positive_rate',
+            'f1_score',
+            'lift',
+            'predicted_positive_ratio',
+            'predicted_negative_ratio',
+            'cumulative_percent_of_positive',
+            'cumulative_percent_of_negative',
+            'total_cumulative_percent',
+            'ks',
+            'avg_score',
         ]
         rows = []
-        for idx, report in enumerate(head_report):
+        for bin_report in equal_bin_reports:
             rows.append(
-                Table.Row(
-                    name=f"case_{idx}",
-                    items=[
-                        Attribute(f=report.threshold),
-                        Attribute(f=report.fpr),
-                        Attribute(f=report.precision),
-                        Attribute(f=report.recall),
-                    ],
-                )
+                [
+                    float(bin_report.start_value),
+                    float(bin_report.end_value),
+                    int(bin_report.positive),
+                    int(bin_report.negative),
+                    int(bin_report.total),
+                    float(bin_report.precision),
+                    float(bin_report.recall),
+                    float(bin_report.false_positive_rate),
+                    float(bin_report.f1_score),
+                    float(bin_report.Lift),
+                    float(bin_report.predicted_positive_ratio),
+                    float(bin_report.predicted_negative_ratio),
+                    float(bin_report.cumulative_percent_of_positive),
+                    float(bin_report.cumulative_percent_of_negative),
+                    float(bin_report.total_cumulative_percent),
+                    float(bin_report.ks),
+                    float(bin_report.avg_score),
+                ]
             )
-        return Div(
-            name="",
-            desc="",
-            children=[
-                Div.Child(
-                    type="table",
-                    table=Table(
-                        name="",
-                        desc="",
-                        headers=headers,
-                        rows=rows,
-                    ),
-                ),
-            ],
-        )
+        return pd.DataFrame(rows, columns=columns)
 
-    meta = Report(
-        name="reports",
-        desc="",
-        tabs=[
-            Tab(
-                name="SummaryReport",
-                desc="Summary Report for bi-classification evaluation.",
-                divs=[
-                    Div(
-                        name="",
-                        desc="",
-                        children=[
-                            Div.Child(
-                                type="descriptions",
-                                descriptions=Descriptions(
-                                    name="",
-                                    desc="",
-                                    items=[
-                                        Descriptions.Item(
-                                            name="total_samples",
-                                            type="int",
-                                            value=Attribute(
-                                                i64=int(
-                                                    reports.summary_report.total_samples
-                                                )
-                                            ),
-                                        ),
-                                        Descriptions.Item(
-                                            name="positive_samples",
-                                            type="int",
-                                            value=Attribute(
-                                                i64=int(
-                                                    reports.summary_report.positive_samples
-                                                )
-                                            ),
-                                        ),
-                                        Descriptions.Item(
-                                            name="negative_samples",
-                                            type="int",
-                                            value=Attribute(
-                                                i64=int(
-                                                    reports.summary_report.negative_samples
-                                                )
-                                            ),
-                                        ),
-                                        Descriptions.Item(
-                                            name="auc",
-                                            type="float",
-                                            value=Attribute(
-                                                f=reports.summary_report.auc
-                                            ),
-                                        ),
-                                        Descriptions.Item(
-                                            name="ks",
-                                            type="float",
-                                            value=Attribute(
-                                                f=reports.summary_report.ks
-                                            ),
-                                        ),
-                                        Descriptions.Item(
-                                            name="f1_score",
-                                            type="float",
-                                            value=Attribute(
-                                                f=reports.summary_report.f1_score
-                                            ),
-                                        ),
-                                    ],
-                                ),
-                            ),
-                        ],
-                    ),
-                ],
-            ),
-            Tab(
-                name="eq_frequent_bin_report",
-                desc="Statistics Report for each bin.",
-                divs=[get_div_from_eq_bin_report(reports.eq_frequent_bin_report)],
-            ),
-            Tab(
-                name="eq_range_bin_report",
-                desc="",
-                divs=[get_div_from_eq_bin_report(reports.eq_range_bin_report)],
-            ),
-            Tab(
-                name="head_report",
-                desc="",
-                divs=[make_head_report_div(reports.head_report)],
-            ),
-        ],
-    )
-    ret.meta.Pack(meta)
-    return ret
+    @staticmethod
+    def head_report_to_df(head_report) -> pd.DataFrame:
+        columns = ["threshold", "FPR(False Positive Rate)", "precision", "recall"]
+        rows = []
+        for r in head_report:
+            rows.append(
+                [float(r.threshold), float(r.fpr), float(r.precision), float(r.recall)]
+            )
+
+        return pd.DataFrame(rows, columns=columns)

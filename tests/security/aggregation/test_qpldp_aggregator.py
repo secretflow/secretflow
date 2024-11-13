@@ -23,9 +23,9 @@ from tests.security.aggregation.test_aggregator_base import AggregatorBase
 @pytest.skip('Experimental, not work.', allow_module_level=True)
 class TestQPLDPAggregator(AggregatorBase):
     @pytest.fixture()
-    def env_and_aggregator(self, sf_production_setup_devices):
-        yield sf_production_setup_devices, QPLDPAggregator(
-            sf_production_setup_devices.carol,
+    def env_and_aggregator(self, sf_production_setup_devices_ray):
+        yield sf_production_setup_devices_ray, QPLDPAggregator(
+            sf_production_setup_devices_ray.carol,
         )
 
     def test_average_on_list_with_weights_should_ok(

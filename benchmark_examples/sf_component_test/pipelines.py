@@ -69,7 +69,7 @@ def logistic_regression(current_dir, config_dict):
     )
 
     logistic_regression_train = TestComp(
-        "ss_sgd_train", "ml.train", "ss_sgd_train", "0.0.1", attrs
+        "ss_sgd_train", "ml.train", "ss_sgd_train", "1.0.0", attrs
     )
 
     logistic_regression_test.add_comp(
@@ -83,7 +83,7 @@ def logistic_regression(current_dir, config_dict):
         "ss_sgd_predict",
         "ml.predict",
         "ss_sgd_predict",
-        "0.0.1",
+        "1.0.0",
         logistic_regression_pred_attrs,
     )
 

@@ -17,12 +17,12 @@ from torchmetrics import AUROC, Accuracy, Precision
 
 from benchmark_examples.autoattack.applications.base import ModelType
 from benchmark_examples.autoattack.applications.image.mnist.mnist_base import MnistBase
-from secretflow.ml.nn.applications.sl_resnet_torch import (
+from secretflow_fl.ml.nn.applications.sl_resnet_torch import (
     BasicBlock,
     ResNetBase,
     ResNetFuse,
 )
-from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
+from secretflow_fl.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
 
 
 class MnistResnet18(MnistBase):

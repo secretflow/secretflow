@@ -50,8 +50,8 @@ from matplotlib import pyplot as plt
 from tensorflow.keras import layers, models
 
 import secretflow as sf
-from secretflow.ml.nn import FLModel
 from secretflow.security.aggregation import SecureAggregator
+from secretflow_fl.ml.nn import FLModel
 
 # Set the seed value for experiment reproducibility.
 seed = 42

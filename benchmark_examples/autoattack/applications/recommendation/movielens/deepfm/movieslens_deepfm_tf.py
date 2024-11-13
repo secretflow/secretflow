@@ -17,10 +17,10 @@ from typing import List, Optional, Tuple, Union
 from benchmark_examples.autoattack.applications.base import ApplicationBase
 from secretflow.data.split import train_test_split
 from secretflow.data.vertical import VDataFrame
-from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.applications.sl_deep_fm import DeepFMbase, DeepFMfuse
-from secretflow.ml.nn.callbacks.callback import Callback
-from secretflow.utils.simulation.datasets import load_ml_1m
+from secretflow_fl.ml.nn import SLModel
+from secretflow_fl.ml.nn.applications.sl_deep_fm import DeepFMbase, DeepFMfuse
+from secretflow_fl.ml.nn.callbacks.callback import Callback
+from secretflow_fl.utils.simulation.datasets_fl import load_ml_1m
 
 NUM_USERS = 6040
 NUM_MOVIES = 3952

@@ -23,13 +23,15 @@ from torch import nn, optim
 from torchmetrics import Accuracy, Precision
 
 from secretflow.device import reveal
-from secretflow.ml.nn import FLModel
-from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
-from secretflow.ml.nn.fl.compress import COMPRESS_STRATEGY
-from secretflow.preprocessing.encoder import OneHotEncoder
-from secretflow.security.aggregation import PlainAggregator, SparsePlainAggregator
-from secretflow.security.privacy import DPStrategyFL, GaussianModelDP
-from secretflow.utils.simulation.datasets import load_iris, load_mnist
+from secretflow.utils.simulation.datasets import load_iris
+from secretflow.security.aggregation import PlainAggregator
+from secretflow_fl.ml.nn import FLModel
+from secretflow_fl.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
+from secretflow_fl.ml.nn.fl.compress import COMPRESS_STRATEGY
+from secretflow_fl.preprocessing.encoder_fl import OneHotEncoder
+from secretflow_fl.security.aggregation import SparsePlainAggregator
+from secretflow_fl.security.privacy import DPStrategyFL, GaussianModelDP
+from secretflow_fl.utils.simulation.datasets_fl import load_mnist
 from tests.ml.nn.fl.model_def import VAE, ConvNet, ConvNetBN, ConvRGBNet, MlpNet
 
 _temp_dir = tempfile.mkdtemp()
@@ -57,7 +59,7 @@ def _torch_model_with_mnist(
         aggregator = PlainAggregator(server)
 
     # spcify params
-    dp_spent_step_freq = kwargs.get('dp_spent_step_freq', None)
+    dp_spent_step_freq = kwargs.get("dp_spent_step_freq", None)
     num_gpus = kwargs.get("num_gpus", 0)
     skip_bn = kwargs.get("skip_bn", False)
     fl_model = FLModel(
@@ -87,7 +89,7 @@ def _torch_model_with_mnist(
 
     assert (
         global_metric[0].result().numpy()
-        == history["global_history"]['val_multiclassaccuracy'][-1]
+        == history["global_history"]["val_multiclassaccuracy"][-1]
     )
 
     assert global_metric[0].result().numpy() > 0.1
@@ -141,10 +143,10 @@ class TestFLModelTorchMnist:
             optim_fn=optim_fn,
             metrics=[
                 metric_wrapper(
-                    Accuracy, task="multiclass", num_classes=10, average='micro'
+                    Accuracy, task="multiclass", num_classes=10, average="micro"
                 ),
                 metric_wrapper(
-                    Precision, task="multiclass", num_classes=10, average='micro'
+                    Precision, task="multiclass", num_classes=10, average="micro"
                 ),
             ],
         )
@@ -155,7 +157,7 @@ class TestFLModelTorchMnist:
             model_def=model_def,
             data=mnist_data,
             label=mnist_label,
-            strategy='fed_avg_w',
+            strategy="fed_avg_w",
             backend="torch",
             # num_gpus=0.25,
         )
@@ -166,7 +168,7 @@ class TestFLModelTorchMnist:
             model_def=model_def,
             data=mnist_data,
             label=mnist_label,
-            strategy='fed_avg_g',
+            strategy="fed_avg_g",
             backend="torch",
         )
 
@@ -176,7 +178,7 @@ class TestFLModelTorchMnist:
             model_def=model_def,
             data=mnist_data,
             label=mnist_label,
-            strategy='fed_avg_u',
+            strategy="fed_avg_u",
             backend="torch",
         )
 
@@ -186,7 +188,7 @@ class TestFLModelTorchMnist:
             model_def=model_def,
             data=mnist_data,
             label=mnist_label,
-            strategy='fed_prox',
+            strategy="fed_prox",
             backend="torch",
             mu=0.1,
         )
@@ -197,7 +199,7 @@ class TestFLModelTorchMnist:
             model_def=model_def,
             data=mnist_data,
             label=mnist_label,
-            strategy='fed_stc',
+            strategy="fed_stc",
             backend="torch",
             sparsity=0.9,
         )
@@ -208,7 +210,7 @@ class TestFLModelTorchMnist:
             model_def=model_def,
             data=mnist_data,
             label=mnist_label,
-            strategy='fed_scr',
+            strategy="fed_scr",
             backend="torch",
             threshold=0.8,
         )
@@ -228,7 +230,7 @@ class TestFLModelTorchMnist:
             model_def=model_def,
             data=mnist_data,
             label=mnist_label,
-            strategy='fed_stc',
+            strategy="fed_stc",
             backend="torch",
             threshold=0.9,
             dp_strategy=dp_strategy_fl,
@@ -242,10 +244,10 @@ class TestFLModelTorchMnist:
             optim_fn=optim_fn,
             metrics=[
                 metric_wrapper(
-                    Accuracy, task="multiclass", num_classes=10, average='micro'
+                    Accuracy, task="multiclass", num_classes=10, average="micro"
                 ),
                 metric_wrapper(
-                    Precision, task="multiclass", num_classes=10, average='micro'
+                    Precision, task="multiclass", num_classes=10, average="micro"
                 ),
             ],
         )
@@ -254,7 +256,7 @@ class TestFLModelTorchMnist:
             model_def=model_def_bn,
             data=mnist_data,
             label=mnist_label,
-            strategy='fed_stc',
+            strategy="fed_stc",
             backend="torch",
             threshold=0.9,
             dp_strategy=dp_strategy_fl,
@@ -274,12 +276,12 @@ class TestFLModelTorchMlp:
             aggregator=aggregator,
         )
 
-        label = hdf['class']
+        label = hdf["class"]
         # do preprocess
         encoder = OneHotEncoder()
         label = encoder.fit_transform(label)
 
-        data = hdf.drop(columns='class', inplace=False)
+        data = hdf.drop(columns="class", inplace=False)
         data = data.fillna(data.mean(numeric_only=True).to_dict())
 
         loss_fn = nn.CrossEntropyLoss
@@ -290,10 +292,10 @@ class TestFLModelTorchMlp:
             optim_fn=optim_fn,
             metrics=[
                 metric_wrapper(
-                    Accuracy, task="multiclass", num_classes=3, average='micro'
+                    Accuracy, task="multiclass", num_classes=3, average="micro"
                 ),
                 metric_wrapper(
-                    Precision, task="multiclass", num_classes=3, average='micro'
+                    Precision, task="multiclass", num_classes=3, average="micro"
                 ),
             ],
         )
@@ -327,7 +329,7 @@ class TestFLModelTorchMlp:
         )
         assert (
             global_metric[0].result().numpy()
-            == history["global_history"]['val_multiclassaccuracy'][-1]
+            == history["global_history"]["val_multiclassaccuracy"][-1]
         )
         model_path = os.path.join(_temp_dir, "base_model")
         fl_model.save_model(model_path=model_path, is_test=True)
@@ -340,10 +342,10 @@ class TestFLModelTorchMlp:
             optim_fn=optim_fn,
             metrics=[
                 metric_wrapper(
-                    Accuracy, task="multiclass", num_classes=3, average='micro'
+                    Accuracy, task="multiclass", num_classes=3, average="micro"
                 ),
                 metric_wrapper(
-                    Precision, task="multiclass", num_classes=3, average='micro'
+                    Precision, task="multiclass", num_classes=3, average="micro"
                 ),
             ],
         )
@@ -374,7 +376,7 @@ class TestFLModelTorchDataBuilder:
             aggregator=aggregator,
         )
 
-        label = hdf['class']
+        label = hdf["class"]
 
         def create_dataset_builder(
             batch_size=32,
@@ -451,10 +453,10 @@ class TestFLModelTorchDataBuilder:
             optim_fn=optim_fn,
             metrics=[
                 metric_wrapper(
-                    Accuracy, task="multiclass", num_classes=5, average='micro'
+                    Accuracy, task="multiclass", num_classes=5, average="micro"
                 ),
                 metric_wrapper(
-                    Precision, task="multiclass", num_classes=5, average='micro'
+                    Precision, task="multiclass", num_classes=5, average="micro"
                 ),
             ],
         )
@@ -495,7 +497,7 @@ class TestFLModelTorchDataBuilder:
 
         assert (
             global_metric[0].result().numpy()
-            == history["global_history"]['val_multiclassaccuracy'][-1]
+            == history["global_history"]["val_multiclassaccuracy"][-1]
         )
         model_path = os.path.join(_temp_dir, "base_model")
         fl_model.save_model(model_path=model_path, is_test=True)

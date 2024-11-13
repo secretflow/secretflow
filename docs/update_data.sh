@@ -15,14 +15,18 @@
 # limitations under the License.
 #
 
+script_dir=$(realpath $(dirname $0))
+repo_dir=$(realpath $script_dir/..)
+
 echo "1. Update extend spec doc."
+
 # comp_spec.tmpl is adapted from https://github.com/pseudomuto/protoc-gen-doc/blob/master/examples/templates/grpc-md.tmpl.
-docker run --rm -v $(pwd)/component/:/out \
-                -v $(pwd)/../:/protos \
+docker run --rm -v ${script_dir}/component/:/out \
+                -v ${script_dir}/../:/protos \
                 pseudomuto/protoc-gen-doc \
                 --doc_opt=/out/comp_spec.tmpl,comp_spec.md \
                 protos/secretflow/protos/secretflow/spec/extend/cluster.proto \
                 protos/secretflow/protos/secretflow/spec/extend/data.proto
 echo "2. Update comp list doc."
 
-env PYTHONPATH=$PYTHONPATH:$PWD/.. python $PWD/docs/component/update_comp_list.py
+env PYTHONPATH=$PYTHONPATH:$repo_dir/.. python $repo_dir/docs/component/update_comp_list.py

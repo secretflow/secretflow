@@ -16,37 +16,34 @@ import inspect
 import json
 import logging
 import math
+import multiprocessing
 import os
-import sys
 import threading
 import time
 from dataclasses import dataclass
 from enum import Enum, unique
 from typing import Dict, List, Type, Union
 
-import cleantext
 import spu
 from google.protobuf.message import Message as PbMessage
 
 from secretflow.component.checkpoint import CompCheckpoint
+from secretflow.component.core import clean_text
 from secretflow.component.data_utils import DistDataType, check_dist_data, check_io_def
 from secretflow.component.eval_param_reader import EvalParamReader
 from secretflow.component.storage import ComponentStorage
 from secretflow.device.driver import init, shutdown
+from secretflow.error_system.exceptions import (
+    CompDeclError,
+    CompEvalError,
+    EvalParamError,
+    NotSupportedError,
+    SFTrainingHyperparameterError,
+)
 from secretflow.spec.extend.cluster_pb2 import SFClusterConfig
 from secretflow.spec.v1.component_pb2 import AttributeDef, AttrType, ComponentDef, IoDef
 from secretflow.spec.v1.data_pb2 import StorageConfig
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam, NodeEvalResult
-
-
-def clean_text(x: str, no_line_breaks: bool = True) -> str:
-    return cleantext.clean(x.strip(), lower=False, no_line_breaks=no_line_breaks)
-
-
-class CompDeclError(Exception): ...
-
-
-class CompEvalError(Exception): ...
 
 
 class CompTracer:
@@ -115,6 +112,10 @@ class CompEvalContext:
 
 
 class Component:
+    """
+    This class has been deprecated. Please refer to ./core/component.py for the new usage.
+    """
+
     def __init__(self, name: str, domain="", version="", desc="") -> None:
         self.name = name
         self.domain = domain
@@ -903,8 +904,6 @@ class Component:
         return self.__definition
 
     def _setup_sf_cluster(self, config: SFClusterConfig):
-        import multiprocess
-
         cross_silo_comm_backend = (
             config.desc.ray_fed_config.cross_silo_comm_backend
             if len(config.desc.ray_fed_config.cross_silo_comm_backend)
@@ -979,7 +978,8 @@ class Component:
                     addr += ":80"
 
                 splits = addr.split(":")
-                assert len(splits) == 2, f"addr = {addr}"
+                if len(splits) != 2:
+                    raise SFTrainingHyperparameterError.wrong_ip_address(addr=addr)
 
                 cluster_config["parties"][party] = {
                     # add "http://" to force brpc to set the correct host
@@ -994,11 +994,12 @@ class Component:
             num_cpus=32,
             log_to_driver=True,
             cluster_config=cluster_config,
-            omp_num_threads=multiprocess.cpu_count(),
+            omp_num_threads=multiprocessing.cpu_count(),
             logging_level='info',
             cross_silo_comm_backend=cross_silo_comm_backend,
             cross_silo_comm_options=cross_silo_comm_options,
             enable_waiting_for_other_parties_ready=True,
+            ray_mode=False,
         )
 
     def _parse_runtime_config(self, key: str, raw: str):
@@ -1096,21 +1097,31 @@ class Component:
                 if "link_desc" in spu_config_json:
                     spu_configs[device.name]["link_desc"] = spu_config_json["link_desc"]
             elif device.type == "heu":
-                assert heu_config is None, "only support one heu config"
+                if heu_config is not None:
+                    raise EvalParamError.support_only_one_param(
+                        "only support one heu config, but multiple heu configs are found."
+                    )
                 heu_config_json = json.loads(device.config)
-                assert isinstance(heu_config_json, dict)
+                if not isinstance(heu_config_json, dict):
+                    raise SFTrainingHyperparameterError.sf_cluster_config_error(
+                        f"heu config {device.config} is not a dict, but {type(heu_config_json)}"
+                    )
                 SUPPORTED_HEU_CONFIG_ITEM = ["mode", "schema", "key_size"]
                 heu_config = {}
                 for k in SUPPORTED_HEU_CONFIG_ITEM:
-                    assert (
-                        k in heu_config_json
-                    ), f"missing {k} config in heu config {device.config}"
+                    if k not in heu_config_json:
+                        raise SFTrainingHyperparameterError.sf_cluster_config_error(
+                            f"missing {k} config in heu config {device.config}"
+                        )
                     heu_config[k] = heu_config_json.pop(k)
-                assert (
-                    len(heu_config_json) == 0
-                ), f"unknown {list(heu_config_json.keys())} config in heu config {device.config}"
+                if len(heu_config_json) != 0:
+                    raise SFTrainingHyperparameterError.sf_cluster_config_error(
+                        f"unknown {list(heu_config_json.keys())} config in heu config {device.config}"
+                    )
             else:
-                raise CompEvalError(f"unsupported device type {device.type}")
+                raise NotSupportedError.not_supported_device_type(
+                    f"unsupported device type {device.type}"
+                )
 
         return spu_configs, heu_config
 
@@ -1122,25 +1133,27 @@ class Component:
         tracer_report: bool = False,
     ) -> Union[NodeEvalResult, Dict]:
         definition = self.definition()
+        assert storage_config is not None
 
         # sanity check on __eval_callback
         from inspect import signature
 
-        PREDEFIND_PARAM = ["ctx"]
+        PREDEFINED_PARAM = ["ctx"]
 
         sig = signature(self.__eval_callback)
         for p in sig.parameters.values():
             if p.kind != p.KEYWORD_ONLY:
-                raise CompEvalError(f"param {p.name} must be KEYWORD_ONLY.")
-            if p.name not in PREDEFIND_PARAM and p.name not in self.__argnames:
-                raise CompEvalError(f"param {p.name} is not allowed.")
+                raise EvalParamError.wrong_param_type(
+                    param_name=p.name, param_type=p.KEYWORD_ONLY, actual_type=p.kind
+                )
+            if p.name not in PREDEFINED_PARAM and p.name not in self.__argnames:
+                raise EvalParamError.not_allowed_param(param_name=p.name)
 
         # sanity check on sf config
         ctx = CompEvalContext()
 
         ctx.cluster_config = cluster_config
 
-        assert storage_config is not None
         ctx.comp_storage = ComponentStorage(storage_config)
         if storage_config.type == "local_fs":
             ctx.data_dir = storage_config.local_fs.wd
@@ -1182,7 +1195,7 @@ class Component:
 
         if cluster_config is not None:
             self._setup_sf_cluster(cluster_config)
-        on_error = None
+        on_error = False
         try:
             if param.checkpoint_uri and self.__checkpoint_cls:
                 ctx.comp_checkpoint = self.__checkpoint_cls(
@@ -1191,29 +1204,27 @@ class Component:
             ret = self.__eval_callback(ctx=ctx, **kwargs)
         except Exception as e:
             on_error = True
-            logging.exception(f"eval on {param} failed")
+            logging.exception(f"eval failed")
             # TODO: use error_code in report
+            raise e
         finally:
             if cluster_config is not None:
                 shutdown(
                     barrier_on_shutdown=cluster_config.public_config.barrier_on_shutdown,
                     on_error=on_error,
                 )
-            if on_error:
-                logging.shutdown()
-                os._exit(1)
 
-        logging.info(f"{param}, getting eval return complete.")
+        logging.info(f"getting eval return complete.")
         # check output
         for output in definition.outputs:
             check_dist_data(ret[output.name], output)
 
-        logging.info(f"{param}, check_dist_data complete.")
+        logging.info("check_dist_data complete.")
         res = NodeEvalResult(
             outputs=[ret[output.name] for output in definition.outputs]
         )
 
-        logging.info(f"{param}, NodeEvalResult wrapping complete.")
+        logging.info("NodeEvalResult wrapping complete.")
         if tracer_report:
             return {"eval_result": res, "tracer_report": ctx.tracer.report()}
         else:

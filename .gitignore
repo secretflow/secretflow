@@ -9,7 +9,6 @@
 
 # Local History for Visual Studio Code
 .history/
-*.json
 *.h5
 ### JupyterNotebooks template
 # gitignore template for Jupyter Notebooks
@@ -354,3 +353,10 @@ temp
 # pytest-testmon db
 .testmondata*
 *BeaverCache*
+
+#temp files
+spu_*.png
+pphlo_*.png
+
+# temp package dir for setup.py
+temp_package/

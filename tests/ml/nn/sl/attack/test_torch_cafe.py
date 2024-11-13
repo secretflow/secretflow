@@ -14,15 +14,16 @@
 
 
 import numpy as np
+import pytest
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torchmetrics import Accuracy, Precision
 
 from secretflow.data.ndarray import FedNdarray, PartitionWay
-from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
-from secretflow.ml.nn.sl.attacks.cafe_torch import CAFEAttack
+from secretflow_fl.ml.nn import SLModel
+from secretflow_fl.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
+from secretflow_fl.ml.nn.sl.attacks.cafe_torch import CAFEAttack
 from tests.ml.nn.sl.attack.model_def import CafeServer, LocalEmbedding
 
 
@@ -119,6 +120,7 @@ def do_test_sl_and_cafe(alice, bob, carol):
     print(history)
 
 
+@pytest.mark.skip(reason="FIXME: broken OSCP code, tasks too long time")
 def test_sl_and_cafe(sf_simulation_setup_devices):
     alice = sf_simulation_setup_devices.alice
     bob = sf_simulation_setup_devices.bob

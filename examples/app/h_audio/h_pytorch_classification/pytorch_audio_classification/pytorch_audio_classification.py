@@ -29,14 +29,14 @@ from torchmetrics import Accuracy, Precision
 from torchvision import datasets, transforms
 
 import secretflow as sf
-from secretflow.ml.nn import FLModel
-from secretflow.ml.nn.core.torch import (
+from secretflow.security.aggregation import SecureAggregator
+from secretflow_fl.ml.nn import FLModel
+from secretflow_fl.ml.nn.core.torch import (
     BaseModule,
     TorchModel,
     metric_wrapper,
     optim_wrapper,
 )
-from secretflow.security.aggregation import SecureAggregator
 
 # ATTENTION: need install audio backend
 # pip install -r https://raw.githubusercontent.com/MicrosoftDocs/pytorchfundamentals/main/audio-pytorch/install-packages.txt

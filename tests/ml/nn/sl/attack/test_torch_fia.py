@@ -22,14 +22,14 @@ from torch.utils.data import DataLoader, TensorDataset
 from torchmetrics import Accuracy, Precision
 
 from secretflow.data.ndarray import FedNdarray, PartitionWay
-from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.core.torch import (
+from secretflow_fl.ml.nn import SLModel
+from secretflow_fl.ml.nn.core.torch import (
     BaseModule,
     TorchModel,
     metric_wrapper,
     optim_wrapper,
 )
-from secretflow.ml.nn.sl.attacks.fia_torch import FeatureInferenceAttack
+from secretflow_fl.ml.nn.sl.attacks.fia_torch import FeatureInferenceAttack
 
 
 class SLBaseNet(BaseModule):
@@ -108,7 +108,7 @@ class Generator(nn.Module):
 
 def data_builder(data, label, batch_size):
     def prepare_data():
-        print('prepare_data num: ', data.shape)
+        print("prepare_data num: ", data.shape)
         alice_data = data[:, :28]
         bob_data = data[:, 28:]
 
@@ -126,16 +126,16 @@ def data_builder(data, label, batch_size):
             batch_size=batch_size,
         )
 
-        dataloader_dict = {'alice': alice_dataloader, 'bob': bob_dataloader}
+        dataloader_dict = {"alice": alice_dataloader, "bob": bob_dataloader}
         return dataloader_dict, dataloader_dict
 
     return prepare_data
 
 
 def do_test_sl_and_fia(config: dict, alice, bob):
-    enable_mean = config['enable_mean'] if 'enale_mean' in config else True
-    attack_epochs = config['attack_epochs'] if 'attack_epochs' in config else 60
-    optim_lr = config['optim_lr'] if 'optim_lr' in config else 0.0001
+    enable_mean = config["enable_mean"] if "enale_mean" in config else True
+    attack_epochs = config["attack_epochs"] if "attack_epochs" in config else 60
+    optim_lr = config["optim_lr"] if "optim_lr" in config else 0.0001
     device_y = alice
 
     tmp_dir = tempfile.TemporaryDirectory()
@@ -283,10 +283,10 @@ def do_test_sl_and_fia(config: dict, alice, bob):
         optim_fn=optim_fn,
         metrics=[
             metric_wrapper(
-                Accuracy, task="multiclass", num_classes=11, average='micro'
+                Accuracy, task="multiclass", num_classes=11, average="micro"
             ),
             metric_wrapper(
-                Precision, task="multiclass", num_classes=11, average='micro'
+                Precision, task="multiclass", num_classes=11, average="micro"
             ),
         ],
     )
@@ -297,10 +297,10 @@ def do_test_sl_and_fia(config: dict, alice, bob):
         optim_fn=optim_fn,
         metrics=[
             metric_wrapper(
-                Accuracy, task="multiclass", num_classes=11, average='micro'
+                Accuracy, task="multiclass", num_classes=11, average="micro"
             ),
             metric_wrapper(
-                Precision, task="multiclass", num_classes=11, average='micro'
+                Precision, task="multiclass", num_classes=11, average="micro"
             ),
         ],
     )
@@ -318,8 +318,8 @@ def do_test_sl_and_fia(config: dict, alice, bob):
         compressor=None,
         simulation=True,
         random_seed=1234,
-        backend='torch',
-        strategy='split_nn',
+        backend="torch",
+        strategy="split_nn",
     )
 
     batch_size = 64
@@ -334,7 +334,7 @@ def do_test_sl_and_fia(config: dict, alice, bob):
     )
 
     data_buil = data_builder(pred_fea, pred_label, batch_size)
-    generator_save_path = fia_path + '/generator'
+    generator_save_path = fia_path + "/generator"
 
     fia_callback = FeatureInferenceAttack(
         attack_party=alice,
@@ -372,5 +372,5 @@ def test_sl_and_fia(sf_simulation_setup_devices):
     alice = sf_simulation_setup_devices.alice
     bob = sf_simulation_setup_devices.bob
     do_test_sl_and_fia(
-        {'enable_mean': False, 'attack_epochs': 2, "optim_lr": 0.0001}, alice, bob
+        {"enable_mean": False, "attack_epochs": 2, "optim_lr": 0.0001}, alice, bob
     )

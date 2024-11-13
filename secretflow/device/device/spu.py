@@ -25,14 +25,13 @@ import time
 import uuid
 from dataclasses import dataclass
 from enum import Enum, unique
+from threading import Lock
 from typing import Any, Callable, Dict, Iterable, List, Sequence, Tuple, Union
 
-import fed
 import jax
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
-import ray
 import spu
 import spu.libspu.link as spu_link
 import spu.libspu.logging as spu_logging
@@ -43,10 +42,15 @@ from spu import psi, spu_pb2
 from spu.utils.distributed import dtype_spu_to_np, shape_spu_to_np
 
 import secretflow.distributed as sfd
+from secretflow.distributed import FED_OBJECT_TYPES
+from secretflow.distributed.ray_op import get_obj_ref
+from secretflow.error_system.exceptions import InternalError
+from secretflow.utils import secure_pickle as pickle
 from secretflow.utils.errors import InvalidArgumentError
 from secretflow.utils.ndarray_bigint import BigintNdArray
 from secretflow.utils.progress import ProgressData
 
+from ._utils import get_fn_code_name
 from .base import Device, DeviceObject, DeviceType
 from .pyu import PYUObject
 from .register import dispatch
@@ -159,8 +163,8 @@ class SPUObject(DeviceObject):
     def __init__(
         self,
         device: Device,
-        meta: Union[ray.ObjectRef, fed.FedObject],
-        shares_name: Sequence[Union[ray.ObjectRef, fed.FedObject]],
+        meta: FED_OBJECT_TYPES,
+        shares_name: Sequence[FED_OBJECT_TYPES],
     ):
         """SPUObject refers to a Python Object which could be flattened to a
         list of SPU Values. An SPU value is a Numpy array or equivalent.
@@ -181,8 +185,8 @@ class SPUObject(DeviceObject):
         would only happen when SPU device consumes SPU objects.
 
         Args:
-            meta: Union[ray.ObjectRef, fed.FedObject]: Ref to the metadata.
-            shares_name: Sequence[Union[ray.ObjectRef, fed.FedObject]]: names of shares of data in each SPU node.
+            meta: FED_OBJECT_TYPES: Ref to the metadata.
+            shares_name: Sequence[FED_OBJECT_TYPES]: names of shares of data in each SPU node.
         """
         super().__init__(device)
         self.meta = meta
@@ -399,6 +403,7 @@ class SPURuntime:
             ]
 
             name = self.get_new_share_name()
+            logging.debug(f"new share name {name}, RT {id(self.runtime)}")
             self.runtime.set_var(name, share)
             shares_name.append(name)
 
@@ -440,6 +445,7 @@ class SPURuntime:
         flatten_names, _ = jax.tree_util.tree_flatten(val)
         for name in flatten_names:
             assert isinstance(name, str)
+            logging.debug(f"del share name {name}, RT {id(self.runtime)}")
             self.runtime.del_var(name)
 
     def dump(self, meta: Any, val: Any, path: Union[str, Callable]):
@@ -447,8 +453,6 @@ class SPURuntime:
         shares = []
         for name in flatten_names:
             shares.append(self.runtime.get_var(name))
-
-        import cloudpickle as pickle
 
         if isinstance(path, str):
             from pathlib import Path
@@ -466,15 +470,13 @@ class SPURuntime:
         return None
 
     def load(self, path: Union[str, Callable]) -> Any:
-        import cloudpickle as pickle
-
         if isinstance(path, str):
             with open(path, 'rb') as f:
-                record = pickle.load(f)
+                record = pickle.load(f, filter_type=pickle.FilterType.BLACKLIST)
         else:
             assert callable(path)
             with path() as f:
-                record = pickle.load(f)
+                record = pickle.load(f, filter_type=pickle.FilterType.BLACKLIST)
 
         meta = record['meta']
         shares = record['shares']
@@ -507,6 +509,8 @@ class SPURuntime:
             List: first parts are output vars following the exec.output_names. The last item is metadata.
         """
 
+        logging.debug(f"SPU({id(self)}) try running {executable.name}")
+
         flatten_names, _ = jax.tree_util.tree_flatten(val)
         assert len(executable.input_names) == len(flatten_names)
 
@@ -518,6 +522,7 @@ class SPURuntime:
 
         executable.output_names[:] = output_names
 
+        logging.debug(f"SPU({id(self)}) running {executable.name} with {flatten_names}")
         self.runtime.run(executable)
 
         metadata = []
@@ -533,6 +538,10 @@ class SPURuntime:
                     self.conf.fxp_fraction_bits,
                 )
             )
+
+        logging.debug(
+            f"SPU({id(self)}) finished {executable.name} output {output_names}"
+        )
 
         if num_returns_policy == SPUCompilerNumReturnsPolicy.SINGLE:
             _, out_tree = jax.tree_util.tree_flatten(out_shape)
@@ -1194,140 +1203,6 @@ class SPURuntime:
             'join_count': join_count,
         }
 
-    def pir_setup(
-        self,
-        server: str,
-        input_path: str,
-        key_columns: Union[str, List[str]],
-        label_columns: Union[str, List[str]],
-        oprf_key_path: str,
-        setup_path: str,
-        num_per_query: int,
-        label_max_len: int,
-        bucket_size: int,
-    ):
-        """Private information retrival offline setup phase.
-        Args:
-            server (str): Which party is pir server.
-            input_path (str): Server's CSV file path. comma separated and contains header.
-                Use an absolute path.
-            key_columns (str, List[str]): Column(s) used as pir key
-            label_columns (str, List[str]): Column(s) used as pir label
-            oprf_key_path (str): Ecc oprf secret key path, 32B binary format.
-                Use an absolute path.
-            setup_path (str): Offline/Setup phase output data dir. Use an absolute path.
-            num_per_query (int): Items number per query.
-            label_max_len (int): Max number bytes of label, padding data to label_max_len
-                Max label bytes length add 4 bytes(len).
-            bucket_size (int): Split data bucket to do pir query.
-        Returns:
-            Dict: PIR report output by SPU.
-        """
-        if isinstance(key_columns, str):
-            key_columns = [key_columns]
-
-        if isinstance(label_columns, str):
-            label_columns = [label_columns]
-
-        config = spu.pir_pb2.PirConfig(
-            mode=spu.pir_pb2.PirConfig.Mode.Value('MODE_SERVER_SETUP'),
-            pir_protocol=spu.pir_pb2.PirProtocol.Value('PIR_PROTOCOL_KEYWORD_PIR_APSI'),
-            pir_server_config=spu.pir_pb2.PirServerConfig(
-                input_path=input_path,
-                setup_path=setup_path,
-                key_columns=key_columns,
-                label_columns=label_columns,
-                label_max_len=label_max_len,
-                bucket_size=bucket_size,
-                apsi_server_config=spu.pir_pb2.ApsiServerConfig(
-                    oprf_key_path=oprf_key_path,
-                    num_per_query=num_per_query,
-                ),
-            ),
-        )
-
-        logging.warning(f'config={config}')
-
-        report = psi.pir(config)
-
-        return {
-            'party': server,
-            'config': config.SerializeToString(),
-            'report': report.SerializeToString(),
-        }
-
-    def pir_query(
-        self,
-        server: str,
-        client: str,
-        server_setup_path: str,
-        client_key_columns: Union[str, List[str]],
-        client_input_path: str,
-        client_output_path: str,
-    ):
-        """Private information retrival online query phase.
-        Args:
-            server (str): Which party is pir server.
-            client (str): Which party is pir client.
-            server_setup_path (str): Setup path for sever.
-            client_key_columns (str, List[str]): Column(s) used as pir key.
-            client_input_path (str): Client's query input path.
-            client_output_path (str): Client's query output path.
-        Returns:
-            Dict: PIR report output by SPU.
-        """
-
-        if isinstance(client_key_columns, str):
-            client_key_columns = [client_key_columns]
-
-        party = self.cluster_def['nodes'][self.rank]['party']
-        server_rank = -1
-        client_rank = -1
-        for i, node in enumerate(self.cluster_def['nodes']):
-            if node['party'] == server:
-                server_rank = i
-            elif node['party'] == client:
-                client_rank = i
-
-        assert server_rank >= 0, f'invalid server: {server}'
-        assert client_rank >= 0, f'invalid client: {client}'
-
-        if self.rank == server_rank:
-            config = spu.pir_pb2.PirConfig(
-                mode=spu.pir_pb2.PirConfig.Mode.Value('MODE_SERVER_ONLINE'),
-                pir_protocol=spu.pir_pb2.PirProtocol.Value(
-                    'PIR_PROTOCOL_KEYWORD_PIR_APSI'
-                ),
-                pir_server_config=spu.pir_pb2.PirServerConfig(
-                    setup_path=server_setup_path
-                ),
-            )
-            report = psi.pir(config, self.link)
-
-        elif self.rank == client_rank:
-            config = spu.pir_pb2.PirConfig(
-                mode=spu.pir_pb2.PirConfig.Mode.Value('MODE_CLIENT'),
-                pir_protocol=spu.pir_pb2.PirProtocol.Value(
-                    'PIR_PROTOCOL_KEYWORD_PIR_APSI'
-                ),
-                pir_client_config=spu.pir_pb2.PirClientConfig(
-                    input_path=client_input_path,
-                    key_columns=client_key_columns,
-                    output_path=client_output_path,
-                ),
-            )
-            report = psi.pir(config, self.link)
-
-        else:
-            return {
-                'party': party,
-            }
-
-        return {
-            'party': party,
-            'data_count': report.data_count,
-        }
-
     def psi(
         self,
         keys: List[str],
@@ -1407,40 +1282,47 @@ def _generate_output_uuid():
     return f'output-{uuid.uuid4()}'
 
 
-def _spu_compile(fn, copts, *meta_args, **meta_kwargs):
+_spu_compile_lock = Lock()
+
+
+def _spu_compile(fn, copts, fn_name, *meta_args, **meta_kwargs):
     meta_args, meta_kwargs = jax.tree_util.tree_map(
-        lambda x: ray.get(x) if isinstance(x, ray.ObjectRef) else x,
+        lambda x: get_obj_ref(x),
         (meta_args, meta_kwargs),
     )
 
-    # prepare inputs and metatdata.
+    # prepare inputs and metadata.
     input_name = []
     input_vis = []
 
-    def _get_input_metatdata(obj: SPUObject):
+    def _get_input_metadata(obj: SPUObject):
         input_name.append(_generate_input_uuid())
         input_vis.append(obj.vtype)
 
-    jax.tree_util.tree_map(_get_input_metatdata, (meta_args, meta_kwargs))
+    jax.tree_util.tree_map(_get_input_metadata, (meta_args, meta_kwargs))
 
     try:
-        executable, output_tree = spu_fe.compile(
-            spu_fe.Kind.JAX,
-            fn,
-            meta_args,
-            meta_kwargs,
-            input_name,
-            input_vis,
-            lambda output_flat: [
-                _generate_output_uuid() for _ in range(len(output_flat))
-            ],
-            static_argnums=(),
-            static_argnames=None,
-            copts=copts,
-        )
-    except Exception:
-        raise ray.exceptions.WorkerCrashedError()
+        global _spu_compile_lock
+        # The current version of cachetools used by spu compile is not thread-safe
+        with _spu_compile_lock:
+            executable, output_tree = spu_fe.compile(
+                spu_fe.Kind.JAX,
+                fn,
+                meta_args,
+                meta_kwargs,
+                input_name,
+                input_vis,
+                lambda output_flat: [
+                    _generate_output_uuid() for _ in range(len(output_flat))
+                ],
+                static_argnums=(),
+                static_argnames=None,
+                copts=copts,
+            )
+    except Exception as e:
+        raise InternalError.worker_crashed_error(f"{e}")
 
+    executable.name = fn_name
     return executable, output_tree
 
 
@@ -1632,13 +1514,19 @@ class SPU(Device):
             num_returns = user_specified_num_returns
             meta_args = list(meta_args)
 
+            def compile_fn(*args, **kwargs):
+                return _spu_compile(*args, **kwargs)
+
+            fn_name = get_fn_code_name(func)
+            compile_fn.__name__ = f"spu_compile({fn_name})"
+
             # it's ok to choose any party to compile,
             # here we choose party 0.
             executable, out_shape = (
-                sfd.remote(_spu_compile)
+                sfd.remote(compile_fn)
                 .party(self.cluster_def['nodes'][0]['party'])
                 .options(num_returns=2)
-                .remote(fn, copts, *meta_args, **meta_kwargs)
+                .remote(fn, copts, fn_name, *meta_args, **meta_kwargs)
             )
 
             if num_returns_policy == SPUCompilerNumReturnsPolicy.FROM_COMPILER:
@@ -1693,9 +1581,9 @@ class SPU(Device):
 
     def infeed_shares(
         self,
-        io_info: Union[ray.ObjectRef, fed.FedObject],
-        shares_chunk: List[Union[ray.ObjectRef, fed.FedObject]],
-    ) -> List[Union[ray.ObjectRef, fed.FedObject]]:
+        io_info: FED_OBJECT_TYPES,
+        shares_chunk: List[FED_OBJECT_TYPES],
+    ) -> List[FED_OBJECT_TYPES]:
         assert (
             len(shares_chunk) % len(self.actors) == 0
         ), f"{len(shares_chunk)} , {len(self.actors)}"
@@ -1712,11 +1600,8 @@ class SPU(Device):
         return ret
 
     def outfeed_shares(
-        self, shares_name: List[Union[ray.ObjectRef, fed.FedObject]]
-    ) -> Tuple[
-        Union[ray.ObjectRef, fed.FedObject],
-        List[Union[ray.ObjectRef, fed.FedObject]],
-    ]:
+        self, shares_name: List[FED_OBJECT_TYPES]
+    ) -> Tuple[FED_OBJECT_TYPES, List[FED_OBJECT_TYPES]]:
         assert len(shares_name) == len(self.actors)
 
         shares_chunk_count = sfd.get(
@@ -1962,81 +1847,6 @@ class SPU(Device):
             curve_type,
             progress_callbacks,
             callbacks_interval_ms,
-        )
-
-    def pir_setup(
-        self,
-        server: str,
-        input_path: Union[str, Dict[Device, str]],
-        key_columns: Union[str, List[str]],
-        label_columns: Union[str, List[str]],
-        oprf_key_path: str,
-        setup_path: str,
-        num_per_query: int,
-        label_max_len: int,
-        bucket_size: int,
-    ):
-        """Private information retrival offline setup.
-        Args:
-            server (str): Which party is pir server.
-            input_path (str): Server's CSV file path. comma separated and contains header.
-                Use an absolute path.
-            key_columns (str, List[str]): Column(s) used as pir key
-            label_columns (str, List[str]): Column(s) used as pir label
-            oprf_key_path (str): Ecc oprf secret key path, 32B binary format.
-                Use an absolute path.
-            setup_path (str): Offline/Setup phase output data dir. Use an absolute path.
-            num_per_query (int): Items number per query.
-            label_max_len (int): Max number bytes of label, padding data to label_max_len
-                Max label bytes length add 4 bytes(len).
-            bucket_size (int): Split data bucket to do pir query.
-        Returns:
-            Dict: PIR report output by SPU.
-        """
-        return dispatch(
-            'pir_setup',
-            self,
-            server,
-            input_path,
-            key_columns,
-            label_columns,
-            oprf_key_path,
-            setup_path,
-            num_per_query,
-            label_max_len,
-            bucket_size,
-        )
-
-    def pir_query(
-        self,
-        server: str,
-        client: str,
-        server_setup_path: str,
-        client_key_columns: Union[str, List[str]],
-        client_input_path: str,
-        client_output_path: str,
-    ):
-        """Private information retrival online query.
-        Args:
-            server (str): Which party is pir server.
-            client (str): Which party is pir client.
-            server_setup_path (str): Setup path for sever.
-            client_key_columns (str, List[str]): Column(s) used as pir key.
-            client_input_path (str): Client's query input path.
-            client_output_path (str): Client's query output path.
-
-        Returns:
-            Dict: PIR report output by SPU.
-        """
-        return dispatch(
-            'pir_query',
-            self,
-            server,
-            client,
-            server_setup_path,
-            client_key_columns,
-            client_input_path,
-            client_output_path,
         )
 
     def psi(

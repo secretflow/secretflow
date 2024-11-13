@@ -25,7 +25,7 @@ Bob holds its own data, base model and fuse model.
 Split Learning Model
 --------------------
 
-SecretFlow provides :py:class:`~secretflow.ml.nn.SLModel` to define a split learning model.
+SecretFlow provides :py:class:`~secretflow_fl.ml.nn.SLModel` to define a split learning model.
 You can check the tutorial to have a try.
 
 Tutorial

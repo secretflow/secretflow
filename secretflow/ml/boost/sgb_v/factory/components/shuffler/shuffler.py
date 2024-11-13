@@ -42,7 +42,8 @@ class Shuffler(Component):
         print_params(self.params)
 
     def set_params(self, params: dict):
-        self.params.seed = params.get('seed', default_params.seed)
+        if 'seed' in params:
+            self.params.seed = params['seed']
 
     def get_params(self, params: dict):
         params['seed'] = self.params.seed

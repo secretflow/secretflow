@@ -20,22 +20,22 @@ from torch.utils.data import DataLoader, TensorDataset
 from torchmetrics import Accuracy, Precision
 
 from secretflow import reveal
-from secretflow.ml.nn import FLModel
-from secretflow.ml.nn.core.torch import (
+from secretflow_fl.utils.simulation.datasets_fl import load_mnist
+from secretflow_fl.ml.nn import FLModel
+from secretflow_fl.ml.nn.core.torch import (
     BaseModule,
     TorchModel,
     metric_wrapper,
     optim_wrapper,
 )
-from secretflow.ml.nn.fl.backend.torch.strategy.fed_gen import (
+from secretflow_fl.ml.nn.fl.backend.torch.strategy.fed_gen import (
     FedGen,
     FedGenActor,
     FedGenGeneratorModel,
 )
-from secretflow.security.aggregation.stateful_fedgen_aggregator import (
+from secretflow_fl.security.aggregation.stateful_fedgen_aggregator import (
     StatefulFedGenAggregator,
 )
-from secretflow.utils.simulation.datasets import load_mnist
 
 
 class ConvNet(BaseModule):

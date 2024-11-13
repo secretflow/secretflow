@@ -73,25 +73,10 @@ LATEST_LITE_TAG=secretflow/secretflow-lite-anolis8:latest
 sleep 10s
 
 echo -e "Building ${GREEN}${IMAGE_TAG}${NO_COLOR}"
-(cd ../ && cp *.yml release/ && cp *.json release/)
+(cd ../ && cp *.yml release/)
 #Enable or switch to a specific Docker buildx builder )
 docker buildx create --name secretflow
 docker buildx use secretflow
-
-#Building multi platform images
-docker buildx build \
-  --platform linux/arm64,linux/amd64 \
-  -f anolis.Dockerfile \
-  -t ${IMAGE_TAG} \
-  --build-arg sf_version=${VERSION} \
-  --build-arg config_templates="$(cat config_templates.yml)" \
-  --build-arg deploy_templates="$(cat deploy_templates.yml)" \
-  --build-arg comp_list="$(cat comp_list.json)" \
-  --build-arg translation="$(cat translation.json)" \
-  . --push
-
-#Output construction completion information
-echo -e "Finish building ${GREEN}${IMAGE_TAG} for linux/arm64 and linux/amd64${NO_COLOR}"
 
 #Building Secretflow Lite Multi Platform Images
 docker buildx build \
@@ -101,17 +86,31 @@ docker buildx build \
   --build-arg sf_version=${VERSION} \
   --build-arg config_templates="$(cat config_templates.yml)" \
   --build-arg deploy_templates="$(cat deploy_templates.yml)" \
-  --build-arg comp_list="$(cat comp_list.json)" \
-  --build-arg translation="$(cat translation.json)" \
   . --push
 
 #Output construction completion information
 echo -e "Finish building ${GREEN}${IMAGE_LITE_TAG} for linux/arm64 and linux/amd64${NO_COLOR}"
 
-if [[ LATEST -eq 1 ]]; then
-    echo -e "Tag and push ${GREEN}${LATEST_TAG}${NO_COLOR} ..."
-    docker buildx imagetools create --tag ${LATEST_TAG} ${IMAGE_TAG}
+#Building multi platform images
+docker buildx build \
+  --platform linux/arm64,linux/amd64 \
+  -f anolis.Dockerfile \
+  -t ${IMAGE_TAG} \
+  --build-arg sf_version=${VERSION} \
+  --build-arg config_templates="$(cat config_templates.yml)" \
+  --build-arg deploy_templates="$(cat deploy_templates.yml)" \
+  . --push
 
+#Output construction completion information
+echo -e "Finish building ${GREEN}${IMAGE_TAG} for linux/arm64 and linux/amd64${NO_COLOR}"
+
+if [[ LATEST -eq 1 ]]; then
     echo -e "Tag and push ${GREEN}${LATEST_LITE_TAG}${NO_COLOR} ..."
     docker buildx imagetools create --tag ${LATEST_LITE_TAG} ${IMAGE_LITE_TAG}
+
+    echo -e "Tag and push ${GREEN}${LATEST_TAG}${NO_COLOR} ..."
+    docker buildx imagetools create --tag ${LATEST_TAG} ${IMAGE_TAG}
 fi
+
+rm *.yml
+rm *.whl

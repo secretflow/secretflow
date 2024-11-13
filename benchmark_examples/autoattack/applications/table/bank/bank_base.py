@@ -27,7 +27,7 @@ from benchmark_examples.autoattack.applications.base import (
 from benchmark_examples.autoattack.global_config import is_simple_test
 from benchmark_examples.autoattack.utils.resources import ResourceDict, ResourcesPack
 from secretflow.data.vertical import VDataFrame
-from secretflow.preprocessing import LabelEncoder
+from secretflow_fl.preprocessing.encoder_fl import LabelEncoder
 from secretflow.utils.simulation.datasets import load_bank_marketing
 
 all_features = OrderedDict(
@@ -142,11 +142,21 @@ class BankBase(ApplicationBase, ABC):
         # 442MiB
         return (
             ResourcesPack()
-            .with_debug_resources(ResourceDict(gpu_mem=500 * 1024 * 1024, CPU=1))
-            .with_sim_resources(
-                self.device_y.party, ResourceDict(gpu_mem=500 * 1024 * 1024, CPU=1)
+            .with_debug_resources(
+                ResourceDict(
+                    gpu_mem=500 * 1024 * 1024, CPU=1, memory=1.2 * 1024 * 1024 * 1024
+                )
             )
             .with_sim_resources(
-                self.device_f.party, ResourceDict(gpu_mem=400 * 1024 * 1024, CPU=1)
+                self.device_y.party,
+                ResourceDict(
+                    gpu_mem=500 * 1024 * 1024, CPU=1, memory=1.2 * 1024 * 1024 * 1024
+                ),
+            )
+            .with_sim_resources(
+                self.device_f.party,
+                ResourceDict(
+                    gpu_mem=400 * 1024 * 1024, CPU=1, memory=1.2 * 1024 * 1024 * 1024
+                ),
             )
         )

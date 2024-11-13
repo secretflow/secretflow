@@ -19,8 +19,8 @@ from tempfile import mkdtemp
 import tensorflow as tf
 from tensorflow.python.trackable import autotrackable
 
-from secretflow.component.ml.nn.sl.compile import compile
-from secretflow.component.ml.nn.sl.compile.tensorflow import (
+from secretflow_fl.component.ml.nn.sl.compile import compile
+from secretflow_fl.component.ml.nn.sl.compile.tensorflow import (
     loss,
     metric,
     model,

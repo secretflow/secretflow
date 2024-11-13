@@ -18,14 +18,13 @@ from functools import wraps
 from typing import Dict, Type
 
 import jax
-import ray
 
 import secretflow.distributed as sfd
-from secretflow.distributed.primitive import DISTRIBUTION_MODE
+from secretflow.distributed.const import DISTRIBUTION_MODE
+from secretflow.distributed.ray_op import resolve_args
 from secretflow.utils.errors import UnexpectedError
 from secretflow.utils.logging import LOG_FORMAT, get_logging_level
 
-from . import link
 from .device import PYU, Device, DeviceObject, PYUObject
 
 _WRAPPABLE_DEVICE_OBJ: Dict[Type[DeviceObject], Type[Device]] = {PYUObject: PYU}
@@ -62,18 +61,7 @@ def _actor_wrapper(device_object_type, name, num_returns):
 def _cls_wrapper(cls):
     def ray_get_wrapper(method):
         def wrapper(*args, **kwargs):
-            arg_flat, arg_tree = jax.tree_util.tree_flatten((args, kwargs))
-            refs = {
-                pos: arg
-                for pos, arg in enumerate(arg_flat)
-                if isinstance(arg, ray.ObjectRef)
-            }
-
-            if refs:
-                actual_vals = ray.get(list(refs.values()))
-                for pos, actual_val in zip(refs.keys(), actual_vals):
-                    arg_flat[pos] = actual_val
-                args, kwargs = jax.tree_util.tree_unflatten(arg_tree, arg_flat)
+            args, kwargs = resolve_args(*args, **kwargs)
             return method(*args, **kwargs)
 
         return wrapper
@@ -136,7 +124,7 @@ def proxy(
     Args:
         device_object_type (Type[DeviceObject]): DeviceObject type, eg. PYUObject.
         max_concurrency (int): Actor threadpool size.
-        _simulation_max_concurrencty (int): Actor threadpool size only for
+        _simulation_max_concurrency (int): Actor threadpool size only for
             simulation (single controller mode). This argument takes effect only
             when max_concurrency is None.
         num_gpus: The number of GPUs to use for training. Default is 0
@@ -172,7 +160,8 @@ def proxy(
                     f'{expected_device_type}, got {type(device)}'
                 )
 
-                if not issubclass(actor_cls, link.Link):
+                # jzc: replace issubclass with this check, so we don't need to import Link here.
+                if "device.link.Link" not in f"{cls.__base__}":
                     kwargs.pop('device', None)
                     kwargs.pop('production_mode', None)
 
@@ -184,7 +173,7 @@ def proxy(
                 ):
                     max_concur = _simulation_max_concurrency
 
-                logging.info(
+                logging.debug(
                     f'Create proxy actor {ActorClass} with party {device.party}.'
                 )
                 data = sfd.remote(ActorClass).party(device.party)

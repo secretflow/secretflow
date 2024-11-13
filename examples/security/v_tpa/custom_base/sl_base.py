@@ -29,10 +29,10 @@ import tensorflow as tf
 from tensorflow.python.keras import callbacks as callbacks_module
 
 from secretflow.device import PYUObject, proxy
-from secretflow.ml.nn.metrics import AUC, Mean, Precision, Recall
-from secretflow.ml.nn.sl.strategy_dispatcher import register_strategy
-from secretflow.security.privacy import DPStrategy
+from secretflow_fl.security.privacy import DPStrategy
 from secretflow.utils.communicate import ForwardData
+from secretflow_fl.ml.nn.metrics import AUC, Mean, Precision, Recall
+from secretflow_fl.ml.nn.sl.strategy_dispatcher import register_strategy
 
 
 class SLBaseModel(ABC):

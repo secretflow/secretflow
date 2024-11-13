@@ -33,7 +33,7 @@ from benchmark_examples.autoattack.utils.data_utils import (
 )
 from benchmark_examples.autoattack.utils.resources import ResourceDict, ResourcesPack
 from secretflow.data.split import train_test_split
-from secretflow.utils.simulation.datasets import load_ml_1m
+from secretflow_fl.utils.simulation.datasets_fl import load_ml_1m
 
 NUM_USERS = 6040
 NUM_MOVIES = 3952
@@ -352,13 +352,28 @@ class MovielensBase(ApplicationBase, ABC):
         # 750MiB
         return (
             ResourcesPack()
-            .with_debug_resources(ResourceDict(gpu_mem=2 * 1024 * 1024 * 1024, CPU=1))
+            .with_debug_resources(
+                ResourceDict(
+                    gpu_mem=2 * 1024 * 1024 * 1024,
+                    CPU=1,
+                    memory=1.6 * 1024 * 1024 * 1024,
+                )
+            )
             .with_sim_resources(
-                self.device_y.party, ResourceDict(gpu_mem=2 * 1024 * 1024 * 1024, CPU=1)
+                self.device_y.party,
+                ResourceDict(
+                    gpu_mem=2 * 1024 * 1024 * 1024,
+                    CPU=1,
+                    memory=1.6 * 1024 * 1024 * 1024,
+                ),
             )
             .with_sim_resources(
                 self.device_f.party,
-                ResourceDict(gpu_mem=1.5 * 1024 * 1024 * 1024, CPU=1),
+                ResourceDict(
+                    gpu_mem=1.5 * 1024 * 1024 * 1024,
+                    CPU=1,
+                    memory=1.6 * 1024 * 1024 * 1024,
+                ),
             )
         )
 

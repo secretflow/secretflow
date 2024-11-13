@@ -12,16 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pandas as pd
 
-from secretflow.component.data_utils import DistDataType, extract_distdata_info
-from secretflow.component.preprocessing.data_prep.train_test_split import (
-    train_test_split_comp,
+import pandas as pd
+from pyarrow import orc
+
+from secretflow.component.core import (
+    Storage,
+    VTable,
+    VTableParty,
+    build_node_eval_param,
 )
-from secretflow.component.storage import ComponentStorage
-from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
+from secretflow.component.entry import comp_eval
 
 
 def test_train_test_split(comp_prod_sf_cluster_config):
@@ -32,54 +33,62 @@ def test_train_test_split(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = Storage(storage_config)
 
-    if self_party == "alice":
-        df_alice = pd.DataFrame(
+    input_datasets = {
+        "alice": pd.DataFrame(
             {
-                "id1": [1, 2, 3, 4],
+                "id1": ["1", "2", "3", "4"],
                 "a1": ["K5", "K1", None, "K6"],
                 "a2": ["A5", "A1", "A2", "A6"],
                 "a3": [5, 1, 2, 6],
                 "y": [0, 1, 1, 0],
             }
-        )
-        df_alice.to_csv(
-            comp_storage.get_writer(alice_input_path),
-            index=False,
-        )
-    elif self_party == "bob":
-        df_bob = pd.DataFrame(
+        ),
+        "bob": pd.DataFrame(
             {
-                "id2": [1, 2, 3, 4],
+                "id2": ["1", "2", "3", "4"],
                 "b4": [10.2, 20.5, None, -0.4],
                 "b5": ["B3", None, "B9", "B4"],
                 "b6": [3, 1, 9, 4],
             }
-        )
-        df_bob.to_csv(
-            comp_storage.get_writer(bob_input_path),
-            index=False,
-        )
+        ),
+    }
 
-    param = NodeEvalParam(
+    if self_party in input_datasets:
+        path = f"test_train_test_split/{self_party}.csv"
+        df = input_datasets[self_party]
+        df.to_csv(storage.get_writer(path), index=False, na_rep="nan")
+
+    param = build_node_eval_param(
         domain="data_prep",
         name="train_test_split",
-        version="0.0.1",
-        attr_paths=["train_size", "test_size", "random_state", "shuffle"],
-        attrs=[
-            Attribute(f=0.75),
-            Attribute(f=0.25),
-            Attribute(i64=1234),
-            Attribute(b=False),
-        ],
+        version="1.0.0",
+        attrs={
+            "train_size": 0.75,
+            "test_size": 0.25,
+            "random_state": 1234,
+            "shuffle": False,
+        },
         inputs=[
-            DistData(
+            VTable(
                 name="input_data",
-                type=str(DistDataType.VERTICAL_TABLE),
-                data_refs=[
-                    DistData.DataRef(uri=bob_input_path, party="bob", format="csv"),
-                    DistData.DataRef(uri=alice_input_path, party="alice", format="csv"),
+                parties=[
+                    VTableParty.from_dict(
+                        uri=alice_input_path,
+                        party="alice",
+                        format="csv",
+                        ids={"id1": "str"},
+                        features={"a1": "str", "a2": "str", "a3": "float32"},
+                        labels={"y": "float32"},
+                    ),
+                    VTableParty.from_dict(
+                        uri=bob_input_path,
+                        party="bob",
+                        format="csv",
+                        ids={"id2": "str"},
+                        features={"b4": "float32", "b5": "str", "b6": "float32"},
+                    ),
                 ],
             )
         ],
@@ -89,27 +98,7 @@ def test_train_test_split(comp_prod_sf_cluster_config):
         ],
     )
 
-    meta = VerticalTable(
-        schemas=[
-            TableSchema(
-                id_types=["str"],
-                ids=["id2"],
-                feature_types=["float32", "str", "float32"],
-                features=["b4", "b5", "b6"],
-            ),
-            TableSchema(
-                id_types=["str"],
-                ids=["id1"],
-                feature_types=["str", "str", "float32"],
-                features=["a1", "a2", "a3"],
-                label_types=["float32"],
-                labels=["y"],
-            ),
-        ],
-    )
-    param.inputs[0].meta.Pack(meta)
-
-    res = train_test_split_comp.eval(
+    res = comp_eval(
         param=param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -117,17 +106,17 @@ def test_train_test_split(comp_prod_sf_cluster_config):
 
     assert len(res.outputs) == 2
 
-    train_info = extract_distdata_info(res.outputs[0])
-    test_info = extract_distdata_info(res.outputs[1])
+    if self_party in input_datasets:
+        id_name = "id1" if self_party == "alice" else "id2"
+        train_info = VTable.from_distdata(res.outputs[0], columns=[id_name])
+        test_info = VTable.from_distdata(res.outputs[1], columns=[id_name])
+        train_ids: pd.DataFrame = orc.read_table(
+            storage.get_reader(train_info.parties[self_party].uri)
+        ).to_pandas()
+        test_ids: pd.DataFrame = orc.read_table(
+            storage.get_reader(test_info.parties[self_party].uri)
+        ).to_pandas()
 
-    if self_party == "alice":
-        train_ids = pd.read_csv(comp_storage.get_reader(train_info["alice"].uri))["id1"]
-        test_ids = pd.read_csv(comp_storage.get_reader(test_info["alice"].uri))["id1"]
-        assert list(train_ids) == [1, 2, 3]
-        assert list(test_ids) == [4]
-
-    if self_party == "bob":
-        train_ids = pd.read_csv(comp_storage.get_reader(train_info["bob"].uri))["id2"]
-        test_ids = pd.read_csv(comp_storage.get_reader(test_info["bob"].uri))["id2"]
-        assert list(train_ids) == [1, 2, 3]
-        assert list(test_ids) == [4]
+        input_df = input_datasets[self_party]
+        assert list(train_ids[id_name]) == list(input_df[id_name].iloc[0:3])
+        assert list(test_ids[id_name]) == list(input_df[id_name].iloc[3])

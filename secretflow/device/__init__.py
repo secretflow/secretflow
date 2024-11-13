@@ -15,5 +15,4 @@
 from .device import *
 from .driver import init, reveal, shutdown, to, wait, with_device
 from .kernels import *
-from .link import Link
-from .proxy import proxy
+from .proxy import proxy, _cls_wrapper
