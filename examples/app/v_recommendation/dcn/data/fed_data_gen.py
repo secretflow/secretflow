@@ -25,7 +25,7 @@ from sklearn.preprocessing import LabelEncoder, QuantileTransformer
 
 from secretflow.data.vertical import VDataFrame, read_csv
 from secretflow.device.device.pyu import PYU
-from secretflow.utils.simulation.datasets import load_criteo_unpartitioned
+from secretflow_fl.utils.simulation.datasets_fl import load_criteo_unpartitioned
 
 # split origin 1m data to alice and bob, each has different column, alice_criteo_train_1m.csv and bob_criteo_train_1m.csv are generated
 # to static cat_num_categories for alice and bob, which will be used in dcn-model's input parameters

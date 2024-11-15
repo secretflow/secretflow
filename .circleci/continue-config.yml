@@ -20,16 +20,19 @@ parameters:
   sf_stats:
     type: boolean
     default: false
-  sf_utils:
-    type: boolean
-    default: false
   sf_component:
     type: boolean
     default: false
   sf_any:
     type: boolean
     default: false
+  sf_fl:
+    type: boolean
+    default: false
   test_ml:
+    type: boolean
+    default: false
+  test_ml_nn:
     type: boolean
     default: false
   test_preprocessing:
@@ -69,7 +72,7 @@ commands:
           name: Cancel job after set time
           background: true
           command: |
-            sleep 3600
+            sleep 2400
             echo "Canceling workflow as too much time has elapsed"
             curl -X POST --header "Content-Type: application/json" "https://circleci.com/api/v2/workflow/${CIRCLE_WORKFLOW_ID}/cancel?circle-token=${BUILD_TIMER_TOKEN}"
   macos_pre_setup:
@@ -91,8 +94,8 @@ commands:
       - run:
           name: copy library
           command: |
-            cp artifacts/_lib_macos.so  secretflow/security/privacy/
-            mv secretflow/security/privacy/_lib_macos.so secretflow/security/privacy/_lib.so
+            cp artifacts/_lib_macos.so  secretflow_fl/security/privacy/
+            mv secretflow_fl/security/privacy/_lib_macos.so secretflow_fl/security/privacy/_lib.so
   restore_artifacts_linux:
     steps:
       - attach_workspace:
@@ -101,8 +104,8 @@ commands:
           name: copy library
           command: |
             arch=$(uname -i)
-            cp artifacts/_lib_$arch.so  secretflow/security/privacy/
-            mv secretflow/security/privacy/_lib_$arch.so secretflow/security/privacy/_lib.so
+            cp artifacts/_lib_$arch.so  secretflow_fl/security/privacy/
+            mv secretflow_fl/security/privacy/_lib_$arch.so secretflow_fl/security/privacy/_lib.so
   pytest_wrapper:
     parameters:
       target_folder:
@@ -147,7 +150,6 @@ commands:
               - << pipeline.parameters.infra >>
               - << pipeline.parameters.sf_maths >>
               - << pipeline.parameters.sf_ml >>
-              - << pipeline.parameters.sf_utils >>
               - << pipeline.parameters.test_ml >>
           steps:
             - pytest_wrapper:
@@ -163,7 +165,6 @@ commands:
               - << pipeline.parameters.infra >>
               - << pipeline.parameters.sf_maths >>
               - << pipeline.parameters.sf_preprocessing >>
-              - << pipeline.parameters.sf_utils >>
               - << pipeline.parameters.test_preprocessing >>
           steps:
             - pytest_wrapper:
@@ -179,7 +180,6 @@ commands:
               - << pipeline.parameters.infra >>
               - << pipeline.parameters.sf_maths >>
               - << pipeline.parameters.sf_stats >>
-              - << pipeline.parameters.sf_utils >>
               - << pipeline.parameters.test_stats >>
           steps:
             - pytest_wrapper:
@@ -208,12 +208,27 @@ commands:
               - << pipeline.parameters.infra >>
               - << pipeline.parameters.sf_maths >>
               - << pipeline.parameters.sf_ml >>
-              - << pipeline.parameters.sf_utils >>
               - << pipeline.parameters.test_ml >>
           steps:
             - pytest_wrapper:
-                target_folder: tests/ml/
+                target_folder: --ignore=tests/ml/nn/ tests/ml/
                 testmon_prefix: ml_sim
+                mode: "sim"
+  run_ml_nn_test:
+    steps:
+      - kill_countdown
+      - when:
+          condition:
+            or:
+              - << pipeline.parameters.base >>
+              - << pipeline.parameters.infra >>
+              - << pipeline.parameters.sf_maths >>
+              - << pipeline.parameters.sf_fl >>
+              - << pipeline.parameters.test_ml_nn >>
+          steps:
+            - pytest_wrapper:
+                target_folder: tests/ml/nn/
+                testmon_prefix: ml_nn_sim
                 mode: "sim"
   run_other_sim_test:
     steps:
@@ -448,6 +463,17 @@ jobs:
       - checkout
       - restore_artifacts_linux
       - run_ml_sim_test
+  linux_ml_nn_sim_test:
+    parameters:
+      resource_class:
+        type: string
+    executor:
+      name: linux_executor
+      resource_class: << parameters.resource_class >>
+    steps:
+      - checkout
+      - restore_artifacts_linux
+      - run_ml_nn_test
   linux_other_sim_test:
     parameters:
       resource_class:
@@ -566,6 +592,12 @@ workflows:
           matrix:
             parameters:
               resource_class: ["2xlarge+", "arm.2xlarge"]
+          requires:
+            - linux_build-<<matrix.resource_class>>
+      - linux_ml_nn_sim_test:
+          matrix:
+            parameters:
+              resource_class: ["2xlarge+"]
           requires:
             - linux_build-<<matrix.resource_class>>
       - linux_preprocessing_test:

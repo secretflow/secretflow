@@ -17,7 +17,7 @@ import pytest
 
 import secretflow as sf
 import secretflow.distributed as sfd
-from secretflow.distributed.primitive import DISTRIBUTION_MODE
+from secretflow.distributed.const import DISTRIBUTION_MODE
 from tests.conftest import DeviceInventory
 
 

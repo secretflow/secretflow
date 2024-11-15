@@ -14,13 +14,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Fixed` for any bug fixes.
 `Security` in case of vulnerabilities.
 
+## staging
+>
+> please add your unreleased change here.
+
+## [v1.11.0.dev20241108] - 2024-11-08
+
+### Added
+
+- [component] add new io.data_sink component, it is used to export data to an external data source
+- [component] add new psi_tp component, which is three party psi
+- [component] add sql_processor component for handling SQL preprocessing
+- [component] psi component add report for outputing the row nums
+
+### Changed
+
+- [component] sf is split into two parts: sf without FL algorithms and sf_fl. sf-lite release contains sf, sf-full release contains both sf and sf_fl.
+- [sgb] The label holder bucket sum now uses HEU calculation, removing the need for the Numba dependency
+- [spu] bump spu version to 0.9.3.dev20241101
+
+### Fixed
+
+- [sgb] Fix sgb set params non-idempotent issue
+
+## [v1.10.0.dev20240906] - 2024-09-06
+
+### Added
+
+- [component] IO component supports import and export sgb/glm model
+- [component] Switch from ray to a local task scheduler
+- [component] Support export SGD/GLM 2-Party HE model package
+- [component] component reflect, include all component in the package of stats/io/preprocessing(exclude psi), and update the component version to 1.0.0
+- [component] Integrate with DataProxy SDK
+
+### Changed
+
+- [data] Change single party r2_score to sklearn function
+- [docs] Security warning translation
+
+### Fixed
+
+- [sgb] Fix checkpoint prediction initialization
+
+## [v1.9.0b0] - 2024-08-28
+
+### Added
+
+- [component] support sql null
+- [component] io_write_data supports xgb
+- [component] Add expr_condition_filter
+- [component] PSI supports specifying party
+
+### Fix
+
+- [component] fix training error on empty tree
 
 ## [v1.8.0b0] - 2024-07-17
 
 ### Added
+
 - [component] support tweedie learning objective in SGB
 - [component] update graph builder in model export
-
 
 ## [v1.7.0.dev20240605] - 2024-06-05
 

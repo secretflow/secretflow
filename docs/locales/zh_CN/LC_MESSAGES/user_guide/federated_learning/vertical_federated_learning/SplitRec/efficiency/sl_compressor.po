@@ -21,7 +21,7 @@ msgid "SplitRec：在隐语拆分学习中使用通信压缩"
 msgstr ""
 
 #: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/efficiency/sl_compressor.ipynb:11
-msgid "以下代码仅作为示例，请勿在生产环境直接使用。"
+msgid "注意： 以下代码仅供演示用途，在演示过程中可能会揭露部分信息。请勿直接将此示例代码用于实际生产环境中。在实际部署前，请根据您的具体需求和安全标准进行必要的修改和调整。"
 msgstr ""
 
 #: ../../user_guide/federated_learning/vertical_federated_learning/SplitRec/efficiency/sl_compressor.ipynb:15

@@ -19,6 +19,8 @@ from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
+import pyarrow as pa
+import pyarrow.compute as pc
 from scipy.stats import chi2
 
 from secretflow.device import PYUObject, proxy
@@ -35,7 +37,7 @@ class VertWoeBinningPyuWorker:
 
     def __init__(
         self,
-        data: pd.DataFrame,
+        data: pa.Table,
         binning_method: str,
         bin_num: int,
         bin_names: List[str],
@@ -45,10 +47,8 @@ class VertWoeBinningPyuWorker:
         chimerge_target_bins: int,
         chimerge_target_pvalue: float,
     ):
-        data_columns = data.columns
-        assert isinstance(
-            bin_names, list
-        ), f"bin names should be a list of string but got {type(bin_names)}"
+        data_columns = data.column_names
+        data_columns = [data_columns] if isinstance(data_columns, str) else data_columns
         assert np.isin(
             bin_names, data_columns
         ).all(), (
@@ -72,7 +72,7 @@ class VertWoeBinningPyuWorker:
         self.iv_results = []
 
     def _build_feature_bin(
-        self, f_data: pd.DataFrame
+        self, f_data: pa.ChunkedArray
     ) -> Tuple[List[np.ndarray], Union[np.ndarray, List[str]], np.ndarray]:
         '''
         split one feature column into {bin_num} bins.
@@ -86,18 +86,16 @@ class VertWoeBinningPyuWorker:
                     categories for string column (List[str])
             Third: sample indices for np.nan values.
         '''
-        if f_data.dtype == np.dtype(object):
+        if pa.types.is_string(f_data.type):
             # for string type col, split into bins by categories.
-            categories = {d for d in f_data if not pd.isna(d)}
-            for c in categories:
-                assert isinstance(
-                    c, str
-                ), f"only support str if dtype == np.obj, but got {type(c)}"
-            split_points = sorted(list(categories))
+            categories = pc.drop_null(pc.unique(f_data)).to_pylist()
+            split_points = sorted(categories)
             bin_indices = list()
             for b in split_points:
-                bin_indices.append(np.flatnonzero(f_data == b))
-            return bin_indices, split_points, np.flatnonzero(pd.isna(f_data))
+                bin_index = pc.indices_nonzero(pc.equal(b, f_data)).to_numpy()
+                bin_indices.append(bin_index)
+            na_index = pc.indices_nonzero(pc.is_null(f_data)).to_numpy()
+            return bin_indices, split_points, na_index
         else:
             # for number type col, first binning by pd.qcut.
             bin_num = (
@@ -132,11 +130,11 @@ class VertWoeBinningPyuWorker:
                 # remove start/end value & empty bins in pd.qcut's range result.
                 # remain only left-open right-close split points
                 np.delete(split_points, empty_bins),
-                np.flatnonzero(pd.isna(f_data)),
+                pc.indices_nonzero(pc.is_null(f_data, nan_is_null=True)).to_numpy(),
             )
 
     def _build_feature_bins(
-        self, data: pd.DataFrame
+        self, data: pa.Table
     ) -> Tuple[List[np.ndarray], List[Union[np.ndarray, List[str]]], List[np.ndarray]]:
         '''
         split all columns into {bin_num} bins.
@@ -152,9 +150,9 @@ class VertWoeBinningPyuWorker:
         ret_bins_idx = list()
         ret_points = list()
         ret_else_bins = list()
-        assert isinstance(data, pd.DataFrame), type(data)
+        assert isinstance(data, pa.Table), type(data)
         for f_name in self.bin_names:
-            f_data = data.loc[:, f_name]
+            f_data = data[f_name]
             bin_idx, split_point, else_bin = self._build_feature_bin(f_data)
             if isinstance(split_point, list):
                 # use List[str] for string column
@@ -177,7 +175,7 @@ class VertWoeBinningPyuWorker:
 
         return ret_bins_idx, ret_points, ret_else_bins
 
-    def _get_label(self, data: pd.DataFrame) -> np.array:
+    def _get_label(self, data: pa.Table) -> np.array:
         '''
         Binarize label column.
         Attributes:
@@ -186,17 +184,15 @@ class VertWoeBinningPyuWorker:
         Return:
             binarized label, 1 for positive, 0 for negative.
         '''
-        assert isinstance(data, pd.DataFrame), type(data)
-        raw_label = data.loc[:, self.label_name]
+        raw_label = data[self.label_name]
 
-        if raw_label.dtype == np.dtype(object):
-            assert isinstance(
-                raw_label[0], str
-            ), f"only support str if dtype == np.obj, but got {type(raw_label[0])}"
-            return np.array((raw_label == self.positive_label)).astype(np.float32)
+        if pa.types.is_string(raw_label.type):
+            return pc.cast(
+                (pc.equal(self.positive_label, raw_label)), "float32"
+            ).to_numpy()
         else:
             positive_value = float(self.positive_label)
-            return np.array((raw_label == positive_value)).astype(np.float32)
+            return pc.cast((pc.equal(positive_value, raw_label)), "float32").to_numpy()
 
     def _build_iv_info_dict(
         self,
@@ -236,6 +232,10 @@ class VertWoeBinningPyuWorker:
         else_woe: float,
         total_counts: List[int],
         else_counts: int,
+        pos_rates: List[float],
+        total_rates: List[float],
+        else_pos_rate: float,
+        else_total_rate: float,
     ) -> Dict:
         '''
         build report dict for one feature.
@@ -246,6 +246,10 @@ class VertWoeBinningPyuWorker:
             else_woe: woe for np.nan values in feature.
             total_counts: total samples in each bins.
             else_counts: total samples for np.nan values.
+            pos_rates: positive rate for each bins.
+            total_rates: total rate for each bins.
+            else_pos_rate: positive rate for np.nan values.
+            else_total_rate: total rate for np.nan values.
 
         Return:
             Dict report.
@@ -261,17 +265,45 @@ class VertWoeBinningPyuWorker:
 
         ret['filling_values'] = list()
         ret['total_counts'] = list()
+        ret['postive_rates'] = list()
+        ret['total_rates'] = list()
         assert len(total_counts) == len(woes), (
             f"len(total_counts) {len(total_counts)}," f" len(woes) {len(woes)}"
         )
         for i in range(len(woes)):
             ret['total_counts'].append(total_counts[i])
             ret['filling_values'].append(woes[i])
+            ret['postive_rates'].append(pos_rates[i])
+            ret['total_rates'].append(total_rates[i])
 
         ret['else_filling_value'] = else_woe
         ret['else_counts'] = else_counts
+        ret['else_positive_rate'] = else_pos_rate
+        ret['else_total_rate'] = else_total_rate
 
         return ret
+
+    def _calc_rates(self, bin_total: int, bin_positives: int, total_sample_count: int):
+        '''
+        calculate rates for one bin.
+        Attributes:
+            bin_total: total samples in bin.
+            bin_positives: positive samples in bin.
+            total_sample_count: total samples in all bins.
+
+        Return:
+            Tuple[positive_rate, total_rate]
+        '''
+        # calculate positive rate and total rate.
+        # if bin_total < 5 or bin_positives == 0 or bin_positives == bin_total
+        # then skip the computations
+        if bin_total < 5 or bin_positives == 0 or bin_positives == bin_total:
+            return (np.nan, np.nan)
+
+        positive_rate = bin_positives * 1.0 / bin_total
+        total_rate = bin_total * 1.0 / total_sample_count
+
+        return (positive_rate, total_rate)
 
     def _calc_bin_woe_iv(
         self, bin_total: int, bin_positives: int
@@ -339,11 +371,15 @@ class VertWoeBinningPyuWorker:
 
     def _build_report(
         self,
-        woes: Tuple[float],
+        woes: List[float],
         split_points: List[Union[np.ndarray, List[str]]],
-        else_woes: List[Tuple],
+        else_woes: List[float],
         total_counts: List[int],
         else_counts: List[int],
+        pos_rates: List[float],
+        total_rates: List[float],
+        else_pos_rates: List[float],
+        else_total_rates: List[float],
     ) -> Dict:
         '''
         Attributes:
@@ -352,6 +388,10 @@ class VertWoeBinningPyuWorker:
             else_woe: woe values for all features' np.nan bin.
             total_counts: total samples all features' bins.
             else_counts: np.nan samples in all features.
+            pos_rates: bin positive sample count/ bin sample count.
+            total_rates: bin sample count / total sample count.
+            else_pos_rates: np.nan positive sample count/ np.nan sample count.
+            else_total_rates: np.nan sample count / total sample count.
 
         Return:
             Dict report
@@ -370,6 +410,21 @@ class VertWoeBinningPyuWorker:
         assert len(else_woes) == len(else_counts), (
             f"len(else_woes) {len(else_woes)}," f" len(else_counts) {len(else_counts)}"
         )
+        assert len(pos_rates) == len(woes), (
+            f"len(pos_rates) {len(pos_rates)}," f" len(woes) {len(woes)}"
+        )
+        assert len(total_rates) == len(woes), (
+            f"len(total_rates) {len(total_rates)}," f" len(woes) {len(woes)}"
+        )
+        assert len(else_pos_rates) == len(else_woes), (
+            f"len(else_pos_rates) {len(else_pos_rates)},"
+            f" len(else_woes) {len(else_woes)}"
+        )
+        assert len(else_total_rates) == len(else_woes), (
+            f"len(else_total_rates) {len(else_total_rates)},"
+            f" len(else_woes) {len(else_woes)}"
+        )
+
         pos = 0
         variables = list()
         for f_idx in range(len(split_points)):
@@ -391,6 +446,10 @@ class VertWoeBinningPyuWorker:
                     else_woes[f_idx],
                     total_counts[pos : pos + f_bin_size],
                     else_counts[f_idx],
+                    pos_rates[pos : pos + f_bin_size],
+                    total_rates[pos : pos + f_bin_size],
+                    else_pos_rates[f_idx],
+                    else_total_rates[f_idx],
                 )
             )
             pos += f_bin_size
@@ -402,7 +461,7 @@ class VertWoeBinningPyuWorker:
         )
         return {"variables": variables}
 
-    def label_holder_work(self, data: pd.DataFrame) -> Tuple[np.ndarray, Dict]:
+    def label_holder_work(self, data: pa.Table) -> Tuple[np.ndarray, Dict]:
         '''
         Label holder build report for it's own feature, and provide label to driver.
         Attributes:
@@ -440,13 +499,31 @@ class VertWoeBinningPyuWorker:
                 self.is_string_features(split_points),
             )
         if len(self.bin_names) > 0:
+            # note that we should use all samples, including np.nan samples
+            # in ss and he woe calculations, the number of nan samples are different
+            # ss does not recognize nan values and instead treat them as 0
+            total_sample_count = data.num_rows
+            pos_rates, total_rates = tuple(
+                zip(*[self._calc_rates(*b, total_sample_count) for b in bins_stat])
+            )
             woes, bin_ivs = tuple(zip(*[self._calc_bin_woe_iv(*b) for b in bins_stat]))
             else_woes, else_ivs = tuple(
                 zip(*[self._calc_bin_woe_iv(*sum_bin(b)) for b in else_bins])
             )
+            else_pos_rates, else_total_rates = tuple(
+                zip(
+                    *[
+                        self._calc_rates(*sum_bin(b), total_sample_count)
+                        for b in else_bins
+                    ]
+                )
+            )
         else:
+            pos_rates, total_rates = [], []
             woes, bin_ivs = [], []
             else_woes, else_ivs = [], []
+            else_pos_rates, else_total_rates = [], []
+
         total_counts = [b[0] for b in bins_stat]
         else_counts = [b.size for b in else_bins]
 
@@ -456,11 +533,19 @@ class VertWoeBinningPyuWorker:
         return (
             label,
             self._build_report(
-                woes, split_points, else_woes, total_counts, else_counts
+                woes,
+                split_points,
+                else_woes,
+                total_counts,
+                else_counts,
+                pos_rates,
+                total_rates,
+                else_pos_rates,
+                else_total_rates,
             ),
         )
 
-    def participant_build_sum_indices(self, data: pd.DataFrame) -> List[List[int]]:
+    def participant_build_sum_indices(self, data: pa.Table) -> List[List[int]]:
         '''
         build sum indices for driver to calculate positive samples by HE.
         Attributes:
@@ -474,7 +559,7 @@ class VertWoeBinningPyuWorker:
         self.else_counts = [b.size for b in else_bins_idx]
         return [*bins_idx, *[e for e in else_bins_idx if e.size]]
 
-    def participant_build_sum_select(self, data: pd.DataFrame) -> np.ndarray:
+    def participant_build_sum_select(self, data: pa.Table) -> np.ndarray:
         '''
         build select matrix for driver to calculate positive samples by Secret Sharing.
         Attributes:
@@ -606,9 +691,20 @@ class VertWoeBinningPyuWorker:
 
         return else_stat
 
+    def label_holder_calc_rates_for_peer(
+        self, bins_stat: List[Tuple[int, int]], total_sample_count: int
+    ) -> Tuple[List[float], List[float]]:
+        '''
+        calculate postive and total rates for participant party.
+        '''
+        pos_rates, total_rates = tuple(
+            zip(*[self._calc_rates(*b, total_sample_count) for b in bins_stat])
+        )
+        return (pos_rates, total_rates)
+
     def label_holder_calc_woe_for_peer(
         self, bins_stat: List[Tuple[int, int]]
-    ) -> Tuple[Tuple[float], Tuple[float]]:
+    ) -> Tuple[List[float], List[float]]:
         '''
         calculate woe/iv for participant party.
         Attributes:
@@ -642,22 +738,31 @@ class VertWoeBinningPyuWorker:
         report_dict["feature_iv_info"] = iv_results
         return report_dict
 
-    def participant_build_report(self, woes: Tuple[float]) -> Dict:
+    def participant_build_report(
+        self, woes: List[float], pos_rates: List[float], total_rates: List[float]
+    ) -> Dict:
         '''
         build report based on label_holder party's woe values.
         Attributes:
             woes: woe values for all features' bins.
+            pos_rates: positive rates for all features' bins.
+            total_rates: total rates for all features' bins.
 
         Return:
             Dict
         '''
         f_count = len(self.bin_names)
+
         return self._build_report(
             woes[:-f_count],
             self.split_points,
             woes[-f_count:],
             self.total_counts,
             self.else_counts,
+            pos_rates[:-f_count],
+            total_rates[:-f_count],
+            pos_rates[-f_count:],
+            total_rates[-f_count:],
         )
 
 

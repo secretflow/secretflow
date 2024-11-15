@@ -20,10 +20,9 @@ import pytest
 import tensorflow as tf
 
 import secretflow as sf
-from secretflow.component.component import CompEvalContext
-from secretflow.component.ml.nn.sl.compile import compile
-from secretflow.component.ml.nn.sl.training import predictor, saver, trainer
-from secretflow.component.ml.nn.sl.training.tensorflow import data, model
+from secretflow_fl.component.ml.nn.sl.compile import compile
+from secretflow_fl.component.ml.nn.sl.training import predictor, saver, trainer
+from secretflow_fl.component.ml.nn.sl.training.tensorflow import data, model
 from secretflow.data import partition
 from secretflow.data.vertical import VDataFrame
 
@@ -287,7 +286,6 @@ def test_fit_save_load_predict(
     bob = sf_simulation_setup_devices.bob
 
     slmodel, history, model_configs = trainer.fit(
-        ctx=CompEvalContext(initiator_party=str(alice)),
         x=mock_train_data.x,
         y=mock_train_data.y,
         val_x=mock_train_data.x,
@@ -306,6 +304,7 @@ def test_fit_save_load_predict(
         strategy_params=params.strategy_params,
         compressor=params.compressor,
         compressor_params=params.compressor_params,
+        initiator_party=str(alice),
     )
 
     print(history)
@@ -348,7 +347,6 @@ def test_fit_save_load_predict(
     assert model_configs[bob].client_base_path is not None
 
     y_pred = predictor.predict(
-        ctx=None,
         batch_size=2,
         feature_dataset=mock_train_data.x,
         model=model_configs,

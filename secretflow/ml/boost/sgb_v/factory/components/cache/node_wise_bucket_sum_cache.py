@@ -42,46 +42,23 @@ class NodeWiseCache(Component):
         self.label_holder = devices.label_holder
 
     def set_actors(self, actors: SGBActor):
-        self.worker_caches = {
-            worker: NodeCache()
-            for worker in self.workers
-            if worker != self.label_holder
-        }
-        for actor in actors:
-            if actor.device == self.label_holder:
-                self.worker_caches[self.label_holder] = actor
-                break
-
-        self.worker_caches[self.label_holder].register_class('NodeCache', NodeCache)
+        self.worker_caches = {worker: NodeCache() for worker in self.workers}
 
     def del_actors(self):
         del self.worker_caches
 
     def reset(self):
         for device in self.worker_caches:
-            if device != self.label_holder:
-                self.worker_caches[device].reset()
-            else:
-                self.worker_caches[device].invoke_class_method('NodeCache', 'reset')
+            self.worker_caches[device].reset()
 
     def reset_node(self, node_index: int):
         for device in self.worker_caches:
-            if device != self.label_holder:
-                self.worker_caches[device].reset_node(node_index)
-            else:
-                self.worker_caches[device].invoke_class_method(
-                    'NodeCache', 'reset_node', node_index
-                )
+            self.worker_caches[device].reset_node(node_index)
 
     def collect_node_bucket_sum(
         self, device: PYU, node_index: int, bucket_sum: Union[HEUObject, PYUObject]
     ):
-        if device != self.label_holder:
-            self.worker_caches[device].collect_node_bucket_sum(node_index, bucket_sum)
-        else:
-            self.worker_caches[device].invoke_class_method(
-                'NodeCache', 'collect_node_bucket_sum', node_index, bucket_sum
-            )
+        self.worker_caches[device].collect_node_bucket_sum(node_index, bucket_sum)
 
     def batch_collect_node_bucket_sums(
         self,
@@ -89,22 +66,12 @@ class NodeWiseCache(Component):
         node_indices: List[int],
         bucket_sums: List[Union[HEUObject, PYUObject]],
     ):
-        if device != self.label_holder:
-            self.worker_caches[device].batch_collect_node_bucket_sums(
-                node_indices, bucket_sums
-            )
-        else:
-            self.worker_caches[device].invoke_class_method(
-                'NodeCache', 'batch_collect_node_bucket_sums', node_indices, bucket_sums
-            )
+        self.worker_caches[device].batch_collect_node_bucket_sums(
+            node_indices, bucket_sums
+        )
 
     def get_node_bucket_sum(self, device: PYU, node_index: int) -> PYUObject:
-        if device != self.label_holder:
-            return self.worker_caches[device].get_node(node_index)
-        else:
-            return self.worker_caches[device].invoke_class_method(
-                'NodeCache', 'get_node', node_index
-            )
+        return self.worker_caches[device].get_node(node_index)
 
     def batch_get_node_bucket_sum(
         self, worker: PYU, node_indices: List[int]

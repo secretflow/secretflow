@@ -30,8 +30,8 @@ from benchmark_examples.autoattack.applications.base import (
 from benchmark_examples.autoattack.utils.resources import ResourceDict, ResourcesPack
 from secretflow.data import FedNdarray
 from secretflow.data.split import train_test_split
-from secretflow.ml.nn.applications.sl_dnn_torch import DnnBase, DnnFuse
-from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
+from secretflow_fl.ml.nn.applications.sl_dnn_torch import DnnBase, DnnFuse
+from secretflow_fl.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
 from secretflow.preprocessing import StandardScaler
 from secretflow.utils.simulation.datasets import load_creditcard
 
@@ -131,11 +131,21 @@ class CreditcardDnn(ApplicationBase):
         # 582MiB
         return (
             ResourcesPack()
-            .with_debug_resources(ResourceDict(gpu_mem=600 * 1024 * 1024, CPU=1))
-            .with_sim_resources(
-                self.device_y.party, ResourceDict(gpu_mem=600 * 1024 * 1024, CPU=1)
+            .with_debug_resources(
+                ResourceDict(
+                    gpu_mem=600 * 1024 * 1024, CPU=1, memory=1.5 * 1024 * 1024 * 1024
+                )
             )
             .with_sim_resources(
-                self.device_f.party, ResourceDict(gpu_mem=500 * 1024 * 1024, CPU=1)
+                self.device_y.party,
+                ResourceDict(
+                    gpu_mem=600 * 1024 * 1024, CPU=1, memory=1.5 * 1024 * 1024 * 1024
+                ),
+            )
+            .with_sim_resources(
+                self.device_f.party,
+                ResourceDict(
+                    gpu_mem=500 * 1024 * 1024, CPU=1, memory=1.5 * 1024 * 1024 * 1024
+                ),
             )
         )

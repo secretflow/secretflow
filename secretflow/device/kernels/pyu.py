@@ -182,7 +182,8 @@ def pyu_to_teeu(
         nonce = secrets.token_bytes(12)
         aad = data_uuid.encode('utf-8')
 
-        import ray.cloudpickle as pickle
+        # TODO by jzc: verify if cloudpickle.dump is the same as ray.cloudpickle.dumps
+        import secretflow.utils.secure_pickle as pickle
 
         encrypted_data = aesgcm.encrypt(
             nonce=nonce, data=pickle.dumps(data, protocol=4), associated_data=aad

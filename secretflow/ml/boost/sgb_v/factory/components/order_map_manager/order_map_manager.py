@@ -54,14 +54,14 @@ class OrderMapManager(Component):
         print_params(self.logging_params)
 
     def set_params(self, params: Dict):
-        # validate
-        sketch = params.get('sketch_eps', default_params.sketch_eps)
-        self.params.sketch_eps = sketch
-        # derive attributes
-        self.buckets = eps_inverse(sketch)
-        self.params.seed = params.get('seed', default_params.seed)
+        if 'sketch_eps' in params:
+            self.params.sketch_eps = params['sketch_eps']
+            # derive attributes
+            self.buckets = eps_inverse(self.params.sketch_eps)
+        if 'seed' in params:
+            self.params.seed = params['seed']
 
-        self.logging_params = LoggingTools.logging_params_from_dict(params)
+        LoggingTools.logging_params_from_dict(params, self.logging_params)
 
     def get_params(self, params: dict):
         params['sketch_eps'] = self.params.sketch_eps

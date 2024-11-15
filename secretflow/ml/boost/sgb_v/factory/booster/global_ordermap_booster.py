@@ -40,7 +40,14 @@ from secretflow.ml.boost.sgb_v.core.params import default_params
 
 from ...model import SgbModel
 from ..components import DataPreprocessor, ModelBuilder, OrderMapManager, TreeTrainer
-from ..components.component import Composite, Devices, label_have_feature, print_params
+from ..components.component import (
+    Composite,
+    Devices,
+    label_have_feature,
+    print_params,
+    set_dict_from_params,
+    set_params_from_dict,
+)
 from ..sgb_actor import SGBActor
 
 
@@ -90,18 +97,10 @@ class GlobalOrdermapBooster(Composite, CallBackCompatibleModel):
         self.eval_predict_cache = {}
 
     def _set_booster_params(self, params: dict):
-        trees = params.get('num_boost_round', default_params.num_boost_round)
-        self.params.num_boost_round = trees
-        self.params.first_tree_with_label_holder_feature = params.get(
-            'first_tree_with_label_holder_feature',
-            default_params.first_tree_with_label_holder_feature,
-        )
+        set_params_from_dict(self.params, params)
 
     def _get_booster_params(self, params: dict):
-        params['num_boost_round'] = self.params.num_boost_round
-        params['first_tree_with_label_holder_feature'] = (
-            self.params.first_tree_with_label_holder_feature
-        )
+        set_dict_from_params(self.params, params)
 
     def show_params(self):
         super().show_params()

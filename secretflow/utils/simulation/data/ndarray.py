@@ -20,10 +20,10 @@ from secretflow.data.ndarray import FedNdarray, PartitionWay
 from secretflow.device import PYU
 from secretflow.utils.errors import InvalidArgumentError
 from secretflow.utils.simulation.data._utils import (
-    iid_partition,
-    dirichlet_partition,
-    label_skew_partition,
     SPLIT_METHOD,
+    dirichlet_partition,
+    iid_partition,
+    label_skew_partition,
 )
 
 
@@ -155,7 +155,7 @@ def create_ndarray(
     if axis == 0:
         return FedNdarray(
             partitions={
-                device: device(lambda ndarray: ndarray[index, ...])(arr)
+                device: device(lambda ndarray, index: ndarray[index, ...])(arr, index)
                 for device, index in indexes.items()
             },
             partition_way=PartitionWay.HORIZONTAL,

@@ -13,8 +13,9 @@
 # limitations under the License.
 
 
-from secretflow.component.component import CompEvalContext, CompEvalError
+from secretflow.component.component import CompEvalContext
 from secretflow.device.device.spu import SPU
+from secretflow.error_system.exceptions import CompEvalError
 
 
 def make_spu(ctx: CompEvalContext):

@@ -134,7 +134,7 @@ def _test_io(devices):
     import tempfile
 
     _, path = tempfile.mkstemp()
-    devices.alice.dump(x, path)
+    ft.wait(devices.alice.dump(x, path))
     x_ = devices.alice.load(path)
     # self.assertTrue(isinstance(x_, PYUObject))
     assert isinstance(x_, PYUObject)

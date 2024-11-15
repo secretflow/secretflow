@@ -13,6 +13,17 @@
 # limitations under the License.
 
 import inspect
+import os
+
+
+def get_fn_code_name(fn):
+    if hasattr(fn, "__code__"):
+        fn_lines = (
+            f"{os.path.split(fn.__code__.co_filename)[1]}:{fn.__code__.co_firstlineno}"
+        )
+        return f"{fn.__name__}@{fn_lines}"
+    else:
+        return fn.__name__
 
 
 def check_num_returns(fn):

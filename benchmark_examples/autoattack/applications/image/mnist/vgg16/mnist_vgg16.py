@@ -30,10 +30,10 @@ from benchmark_examples.autoattack.utils.data_utils import (
 )
 from benchmark_examples.autoattack.utils.resources import ResourceDict, ResourcesPack
 from secretflow import reveal
-from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.applications.sl_vgg_torch import VGGBase, VGGFuse
-from secretflow.ml.nn.callbacks.callback import Callback
-from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
+from secretflow_fl.ml.nn import SLModel
+from secretflow_fl.ml.nn.applications.sl_vgg_torch import VGGBase, VGGFuse
+from secretflow_fl.ml.nn.callbacks.callback import Callback
+from secretflow_fl.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
 from secretflow.utils.simulation.datasets import _CACHE_DIR
 
 vgg_resize = 112
@@ -392,12 +392,21 @@ class MnistVGG16(MnistBase):
         # 6414MiB
         return (
             ResourcesPack()
-            .with_debug_resources(ResourceDict(gpu_mem=7 * 1024 * 1024 * 1024, CPU=1))
-            .with_sim_resources(
-                self.device_y.party,
-                ResourceDict(gpu_mem=7 * 1024 * 1024 * 1024, CPU=1),
+            .with_debug_resources(
+                ResourceDict(
+                    gpu_mem=7 * 1024 * 1024 * 1024, CPU=1, memory=3 * 1024 * 1024 * 1024
+                )
             )
             .with_sim_resources(
-                self.device_f.party, ResourceDict(gpu_mem=6 * 1024 * 1024 * 1024, CPU=1)
+                self.device_y.party,
+                ResourceDict(
+                    gpu_mem=7 * 1024 * 1024 * 1024, CPU=1, memory=3 * 1024 * 1024 * 1024
+                ),
+            )
+            .with_sim_resources(
+                self.device_f.party,
+                ResourceDict(
+                    gpu_mem=6 * 1024 * 1024 * 1024, CPU=1, memory=3 * 1024 * 1024 * 1024
+                ),
             )
         )

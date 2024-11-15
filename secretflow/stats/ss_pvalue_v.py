@@ -17,6 +17,8 @@ from typing import List, Tuple, Union
 
 import jax.numpy as jnp
 import numpy as np
+
+# TODO by jzc: verify if it can be replaced by jax.scipy.stats
 from scipy import stats
 
 import secretflow as sf
@@ -255,6 +257,35 @@ class PValue:
                 square[idx] = 0
         return square
 
+    def _pre_check_sample_weights(
+        self,
+        x: VDataFrame,
+        sample_weights: Union[None, PYUObject, VDataFrame],
+    ) -> Union[None, PYUObject]:
+        # reduce the case of VDataFrame to PYUObject, inside which is a np array
+        if isinstance(sample_weights, VDataFrame):
+            if x.shape[0] != sample_weights.shape[0]:
+                raise ValueError(
+                    "sample_weights should have same row number with x, but got x shape {} and sample weights shape {}".format(
+                        x.shape, sample_weights.shape
+                    )
+                )
+            if sample_weights.shape[1] != 1:
+                raise ValueError(
+                    "sample_weights should have shape (x, 1), but got {}".format(
+                        sample_weights.shape
+                    )
+                )
+            sample_weights = list(sample_weights.partitions.values())[0].data
+            sample_weights = sample_weights.device(lambda x: x.values)(sample_weights)
+
+        if sample_weights is not None:
+            sample_weights = sample_weights.device(lambda x: x.reshape(-1, 1))(
+                sample_weights
+            )
+        # the result sample weights is a PYUObject, inside which is a numpy array (n, 1)
+        return sample_weights
+
     def _pre_check(
         self,
         x: VDataFrame,
@@ -373,7 +404,7 @@ class PValue:
                 Specify power for tweedie distribution
             y_scale: float
                 Specify y label scaling sparse used in glm training
-            sample_weights: Union[None, PYUObject]
+            sample_weights: Union[None, PYUObject, VDataFrame]
                 Specify the weight of each sample, should have shape (x, 1)
 
         WARNING:
@@ -388,7 +419,7 @@ class PValue:
                 "Security check not passed, if num of samples is less than num of features + 1, then label holder may infer all data."
             )
         row_number = self._pre_check(x, y, yhat, weights, infeed_elements_limit)
-
+        sample_weights = self._pre_check_sample_weights(x, sample_weights)
         H = _hessian_matrix(
             self.spu,
             x,

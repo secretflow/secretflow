@@ -3,19 +3,18 @@
 # This file is distributed under the same license as the SecretFlow package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2023.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-03-19 12:20+0800\n"
+"POT-Creation-Date: 2024-07-22 12:05+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.14.0\n"
+"Generated-By: Babel 2.15.0\n"
 
 #: ../../developer/benchmark/psi_benchmark.md:1
 msgid "隐语PSI Benchmark白皮书"
@@ -29,15 +28,15 @@ msgstr ""
 msgid "导语"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:6
+#: ../../developer/benchmark/psi_benchmark.md:7
 msgid "为了方便大家了解隐语的Benchmark，我们设计了10分钟上手手册，包含了亮点介绍、SecretFlow集群的易用搭建、Benchmark脚本、两方和三方的Benchmark，使相关业务方做调研时方便拿到可度量的性能数据和可复现的路径。"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:8
+#: ../../developer/benchmark/psi_benchmark.md:9
 msgid "隐语PSI亮点"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:9
+#: ../../developer/benchmark/psi_benchmark.md:11
 msgid ""
 "隐私集合求交（Private Set Intersection，简写为：PSI）是一类特定的安全多方计算（Multi-Party "
 "Computation, 即MPC）问题，其问题可以简单理解为：Alice 输入集合 X，Bob 输入集合 Y，双方执行 PSI 协议可以得到 "
@@ -45,77 +44,77 @@ msgid ""
 "隐私集合求交(PSI)协议有很多分类方法，按照底层依赖的密码技术分类主要包括："
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:11
+#: ../../developer/benchmark/psi_benchmark.md:14
 msgid ""
 "基于公钥密码的PSI方案，包括：基于判定型密钥交换（DDH: Decisional Diffie-"
 "Hellman）的PSI方案和RSA盲签名的PSI方案；"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:12
+#: ../../developer/benchmark/psi_benchmark.md:15
 msgid "基于不经意传输（OT: Oblivious Transfer）的PSI方案；"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:13
+#: ../../developer/benchmark/psi_benchmark.md:16
 msgid "基于通用MPC的PSI方案，例如基于混淆电路（GC: Garbled Circuit）的PSI方案；"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:14
+#: ../../developer/benchmark/psi_benchmark.md:17
 msgid "基于同态加密（Homomorphic Encryption）的PSI方案。 隐私集合求交(PSI)协议按照参与方的数量进行分类，可分为："
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:16
+#: ../../developer/benchmark/psi_benchmark.md:19
 msgid "两方PSI：参与方为2个；"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:17
+#: ../../developer/benchmark/psi_benchmark.md:20
 msgid "多方PSI：参与方>2个。 隐私集合求交(PSI)协议按照设定安全模型分类，可分为："
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:19
+#: ../../developer/benchmark/psi_benchmark.md:22
 msgid "半诚实模型的PSI；"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:20
+#: ../../developer/benchmark/psi_benchmark.md:23
 msgid "恶意模型的PSI。 SecretFlow SPU 实现了半诚实模型下的两方和三方PSI协议，密钥安全强度是128bit，统计安全参数是40bit。"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:22
+#: ../../developer/benchmark/psi_benchmark.md:25
 msgid "两方PSI(Private Set Intersection)协议："
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:23
+#: ../../developer/benchmark/psi_benchmark.md:26
 msgid "基于DDH的PSI协议，"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:24
+#: ../../developer/benchmark/psi_benchmark.md:27
 msgid "基于DDH的PSI协议先对简单易于理解和实现，依赖的密码技术已被广泛论证，通信量低，但计算量较大。"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:25
+#: ../../developer/benchmark/psi_benchmark.md:28
 msgid ""
 "隐语实现了基于椭圆曲线(Elliptic Curve)群的DDH "
 "PSI协议，支持的椭圆曲线类型包括：Curve25519,SM2,Secp256k1。本次benchmark选用的曲线是Curve25519。"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:26
+#: ../../developer/benchmark/psi_benchmark.md:29
 msgid "基于OT扩展的KKRT16"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:27
+#: ../../developer/benchmark/psi_benchmark.md:30
 msgid "KKRT16是第一个千万规模(224)求交时间在1分钟之内的PSI方案，通信量较大；"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:28
+#: ../../developer/benchmark/psi_benchmark.md:31
 msgid ""
 "隐语实现了KKRT16协议，并参考了进年来的性能优化和安全改进方案，例如：stash-less CuckooHash，[GKWW20]中 "
 "FixedKey AES作为 correlation-robust 哈希函数。"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:29
+#: ../../developer/benchmark/psi_benchmark.md:32
 msgid "基于PCG的BC22"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:30
+#: ../../developer/benchmark/psi_benchmark.md:33
 msgid ""
 "BC22 PSI依赖的PCG(Pseudorandom Correlation "
 "Generator)方案是近年来mpc方向的研究热点，相比KKRT16计算量和通信两方面都有了很大改进，从成本(monetary "
@@ -123,190 +122,182 @@ msgid ""
 "Noise)问题，由于是2022年最新的协议，协议的安全性还需要更多密码专家的分析和论文。"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:31
+#: ../../developer/benchmark/psi_benchmark.md:34
 msgid "隐语0.7中实现了BC22 PSI方案，其中的PCG/VOLE使用了emp-zk中的[WYKW21]实现，欢迎大家审查和进一步改进；"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:32
+#: ../../developer/benchmark/psi_benchmark.md:35
 msgid "三方PSI(Private Set Intersection)协议："
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:33
+#: ../../developer/benchmark/psi_benchmark.md:36
 msgid "基于DDH的三方PSI协议"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:34
+#: ../../developer/benchmark/psi_benchmark.md:37
 msgid ""
 "隐语实现了自研的基于 ECDH 的三方 PSI "
 "协议，注意我们实现的这个协议会泄漏两方交集大小，请自行判断是否满足使用场景的安全性，本次benchmark选用的曲线是Curve25519。"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:35
+#: ../../developer/benchmark/psi_benchmark.md:39
 msgid "复现方式"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:36
+#: ../../developer/benchmark/psi_benchmark.md:41
 msgid "一、测试机型环境"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:37
+#: ../../developer/benchmark/psi_benchmark.md:43
 msgid "Python：3.10"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:38
+#: ../../developer/benchmark/psi_benchmark.md:44
 msgid "pip: >= 19.3"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:39
+#: ../../developer/benchmark/psi_benchmark.md:45
 msgid "OS: CentOS 7"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:40
+#: ../../developer/benchmark/psi_benchmark.md:46
 msgid "CPU/Memory: 推荐最低配置是 8C16G"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:41
+#: ../../developer/benchmark/psi_benchmark.md:47
 msgid "硬盘：500G"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:42
+#: ../../developer/benchmark/psi_benchmark.md:49
 msgid "二、安装conda"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:43
+#: ../../developer/benchmark/psi_benchmark.md:51
 msgid ""
 "使用conda管理python环境，如果机器没有conda需要先安装，步骤如下： #sudo apt-get install wget wget "
 "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:47
+#: ../../developer/benchmark/psi_benchmark.md:55
 msgid "详细步骤"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:67
+#: ../../developer/benchmark/psi_benchmark.md:77
 msgid "![](./resources/4bded9b0-d913-48b2-b7a9-c05e0d2c7c81.png)"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:70
+#: ../../developer/benchmark/psi_benchmark.md:79
 msgid "三、安装secretflow"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:86
+#: ../../developer/benchmark/psi_benchmark.md:96
 msgid "验证安装是否成功 root目录下输入python然后回车；"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:96
+#: ../../developer/benchmark/psi_benchmark.md:108
 msgid "如下图所示就代表环境搭建成功了 ![](./resources/9bab546b-6578-4ff7-b8f7-9f26ab4df46a.png)"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:99
+#: ../../developer/benchmark/psi_benchmark.md:111
 msgid "四、创建节点并启动集群"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:100
+#: ../../developer/benchmark/psi_benchmark.md:113
 msgid "配置示例使用集群模式仿真模式，其它模式请参考secretfow部署文档。"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:101
+#: ../../developer/benchmark/psi_benchmark.md:115
 msgid "创建ray header节点"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:102
+#: ../../developer/benchmark/psi_benchmark.md:117
 msgid ""
 "创建ray header节点，选择一台机器为主机，在主机上执行如下命令，ip替换为主机的内网ip，命名为alice，端口选择一个空闲端口即可 "
 "注意：192.168.0.1 ip为mock的，请替换为实际的ip地址"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:108
+#: ../../developer/benchmark/psi_benchmark.md:125
 msgid "创建从属节点"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:109
+#: ../../developer/benchmark/psi_benchmark.md:127
 msgid "创建从属节点，在bob机器执行如下命令，ip依然填alice机器的内网ip，命名为bob，端口不变"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:114
+#: ../../developer/benchmark/psi_benchmark.md:134
 msgid "创建从属节点，在carol机器执行如下命令，ip依然填alice机器的内网ip，命名为carol，端口不变"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:119
+#: ../../developer/benchmark/psi_benchmark.md:141
 msgid "验证节点是否启动"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:120
+#: ../../developer/benchmark/psi_benchmark.md:143
 msgid "在python中测试节点是否启动成功，任意选一台机器输入python，执行下列代码，参数中address为头节点(alice)的地址，拿alice机器来验证，每输入一行下列代码回车一次："
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:129
+#: ../../developer/benchmark/psi_benchmark.md:154
 msgid ""
 "如下图就代表节点创建成功了 ![](./resources/3386cb76-53c1-4df6-ae5e-a26314609d5c.png) "
 "同时我们也可以通过ray status去看节点的状态，前提是先进入sf环境（conda activate sf-benchmark） "
 "![](./resources/e63ba232-025b-4b4f-9c57-d61d80cc8a1f.png)"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:134
+#: ../../developer/benchmark/psi_benchmark.md:159
 msgid "生成数据"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:136
-msgid ""
-"把[generate_psi.py](https://github.com/secretflow/spu/blob/main/libspu/psi/tools/generate_psi.py)脚本传到alice机器的root目录下"
-" 执行如下代码"
-msgstr ""
-
-#: ../../developer/benchmark/psi_benchmark.md:145
-msgid ""
-"把生成的psi_1.csv "
-"cp到benchmark目录下，再通过scp的命令把psi_2.csv/psi_3.csv分别移到bob的benchmark目录下跟carol的benchark目录下"
-msgstr ""
-
-#: ../../developer/benchmark/psi_benchmark.md:147
-msgid "限制宽带/延迟"
-msgstr ""
-
-#: ../../developer/benchmark/psi_benchmark.md:158
-msgid "Benchmark脚本"
-msgstr ""
-
-#: ../../developer/benchmark/psi_benchmark.md:159
-msgid "支持的PSI协议列表："
-msgstr ""
-
-#: ../../developer/benchmark/psi_benchmark.md:160
-msgid "ECDH_PSI_2PC"
-msgstr ""
-
 #: ../../developer/benchmark/psi_benchmark.md:161
-msgid "KKRT_PSI_2PC"
-msgstr ""
-
-#: ../../developer/benchmark/psi_benchmark.md:162
-msgid "BC22_PSI_2PC"
+msgid "参考PSI仓库的**[**README**]**(**https://github.com/secretflow/psi/blob/main/examples/psi/README.md**)生成测试数据，并将生成的数据移动到到benchmark目录下"
 msgstr ""
 
 #: ../../developer/benchmark/psi_benchmark.md:163
+msgid "限制宽带/延迟"
+msgstr ""
+
+#: ../../developer/benchmark/psi_benchmark.md:176
+msgid "Benchmark脚本"
+msgstr ""
+
+#: ../../developer/benchmark/psi_benchmark.md:178
+msgid "支持的PSI协议列表："
+msgstr ""
+
+#: ../../developer/benchmark/psi_benchmark.md:180
+msgid "ECDH_PSI_2PC"
+msgstr ""
+
+#: ../../developer/benchmark/psi_benchmark.md:181
+msgid "KKRT_PSI_2PC"
+msgstr ""
+
+#: ../../developer/benchmark/psi_benchmark.md:182
+msgid "BC22_PSI_2PC"
+msgstr ""
+
+#: ../../developer/benchmark/psi_benchmark.md:183
 msgid "ECDH_PSI_3PC"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:247
+#: ../../developer/benchmark/psi_benchmark.md:267
 msgid "五、Benchmark报告"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:248
+#: ../../developer/benchmark/psi_benchmark.md:269
 msgid "![](./resources/7629c228-bc51-4ef7-93e9-9f0c465d025d.png)"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:250
+#: ../../developer/benchmark/psi_benchmark.md:271
 msgid ""
 "目前bechmark数据中，bc22 psi的性能还在进一步工程优化， 单测spu中bc22协议内核的性能对比可以参考 [pcg "
 "psi](https://mp.weixin.qq.com/s?__biz=MzA5NTQ0MTI4OA==&mid=2456927355&idx=1&sn=832269f138e35f031bc2bdcd63f05520&chksm=873a449cb04dcd8a4dacd4cec0ccc7c147219a76f36a6d694f26b7c2a27d03be8f968578fab4&scene=21#wechat_redirect)的介绍。"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:253
+#: ../../developer/benchmark/psi_benchmark.md:274
 msgid "ECDH：对网络配置不敏感，对计算资源敏感，适合带宽较低、计算配置较高的使用场景；"
 msgstr ""
 
-#: ../../developer/benchmark/psi_benchmark.md:254
+#: ../../developer/benchmark/psi_benchmark.md:275
 msgid "KKRT：网络设置为100Mbps时，带宽成为瓶颈。通常用于两方数据量均衡时，适合高带宽的使用场景；"
 msgstr ""
 

@@ -17,7 +17,7 @@ from typing import Dict, List, Tuple
 
 from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.device.device.pyu import PYUObject
-from secretflow.ml.boost.sgb_v.model import from_dict, SgbModel
+from secretflow.ml.boost.sgb_v.model import SgbModel, from_dict
 
 
 @dataclass

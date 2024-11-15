@@ -16,9 +16,9 @@ import numpy as np
 import tensorflow as tf
 
 import secretflow as sf
-from secretflow.ml.nn.sl.agglayer.agg_layer import AggLayer
-from secretflow.ml.nn.sl.agglayer.agg_method import Average, Concat, Sum
 from secretflow.utils.communicate import ForwardData
+from secretflow_fl.ml.nn.sl.agglayer.agg_layer import AggLayer
+from secretflow_fl.ml.nn.sl.agglayer.agg_method import Average, Concat, Sum
 
 
 class TestPlainAggLayer:

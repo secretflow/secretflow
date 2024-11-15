@@ -35,6 +35,7 @@ from secretflow.ml.boost.sgb_v.core.params import (
     get_unused_params,
     type_and_range_check,
 )
+from secretflow.ml.boost.sgb_v.factory.components.component import set_params_from_dict
 from secretflow.ml.boost.sgb_v.factory.components.logging import logging_params_names
 
 from ..model import SgbModel
@@ -81,22 +82,23 @@ class SGBFactory:
         if len(unused_params) > 0:
             logging.warning(f"The following params are not effective: {unused_params}")
 
-        tree_grow_method = params.get(
-            'tree_growing_method', default_params.tree_growing_method
-        )
         self.params_dict = params
-        self.factory_params.tree_growing_method = TreeGrowingMethod(tree_grow_method)
-        self.factory_params.eval_metric = params.get('eval_metric', 'roc_auc')
-        self.factory_params.enable_monitor = params.get('enable_monitor', False)
-        self.factory_params.enable_early_stop = params.get('enable_early_stop', False)
-        self.factory_params.validation_fraction = params.get('validation_fraction', 0.1)
-        self.factory_params.stopping_rounds = params.get('stopping_rounds', 1)
-        self.factory_params.stopping_tolerance = params.get('stopping_tolerance', 0.001)
-        self.factory_params.seed = params.get('seed', 1212)
-        self.factory_params.save_best_model = params.get('save_best_model', False)
-        self.factory_params.tweedie_variance_power = params.get(
-            'tweedie_variance_power', 1.5
-        )
+        if 'tree_growing_method' in params:
+            self.factory_params.tree_growing_method = TreeGrowingMethod(
+                params['tree_growing_method']
+            )
+        keywords = [
+            'eval_metric',
+            'enable_monitor',
+            'enable_early_stop',
+            'validation_fraction',
+            'stopping_rounds',
+            'stopping_tolerance',
+            'seed',
+            'save_best_model',
+            'tweedie_variance_power',
+        ]
+        set_params_from_dict(self.factory_params, self.params_dict, keywords)
 
     def set_heu(self, heu: HEU):
         self.heu = heu

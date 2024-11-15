@@ -23,7 +23,7 @@ import torch
 from attack.attack_config import BADNETS_ARGS, POISONING_ARGS
 from config import AGGREGATIONS, METHODS, PARTIES, PARTY_NUM, TIMES
 
-# from secretflow.ml.nn import SLModel
+# from secretflow_fl.ml.nn import SLModel
 from custom_base.custom_sl_model import CustomSLModel
 from dataset.dataset_config import DATASETS
 from defense.tf.coae import AutoEncoder, CoAE_Loss

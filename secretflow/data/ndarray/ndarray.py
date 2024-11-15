@@ -633,16 +633,23 @@ def r2_score(y_true: FedNdarray, y_pred: FedNdarray, spu_device: Optional[SPU] =
     def r2_from_tss_rss(tss_val, rss_val):
         return 1 - rss_val / tss_val
 
-    same_p = check_same_partition_shapes(y_true, y_pred)
-    y_len = len(y_true.partitions.keys())
     tss_val = tss(y_true, spu_device)
     rss_val = rss(y_true, y_pred, spu_device)
 
+    same_p = check_same_partition_shapes(y_true, y_pred)
+    y_len = len(y_true.partitions.keys())
+
     if same_p and y_len == 1:
-        for device in y_true.partitions.keys():
-            return device(r2_from_tss_rss)(tss_val, rss_val)
+        device = next(iter(y_true.partitions.keys()))
+        return device(r2_from_tss_rss)(tss_val, rss_val)
     else:
         assert spu_device is not None, "An SPU device is required"
+        tss_val = tss(y_true, spu_device)
+        rss_val = rss(y_true, y_pred, spu_device)
+
+        def r2_from_tss_rss(tss_val, rss_val):
+            return 1 - rss_val / tss_val
+
         return spu_device(r2_from_tss_rss)(
             tss_val.to(spu_device), rss_val.to(spu_device)
         )

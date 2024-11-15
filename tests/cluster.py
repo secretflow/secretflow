@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 SELF_PARTY = None
 
 
@@ -25,16 +26,23 @@ def get_self_party() -> str:
     return SELF_PARTY
 
 
-_parties = {
-    'alice': {'address': '127.0.0.1:63841'},
-    'bob': {'address': '127.0.0.1:63942'},
-    'carol': {'address': '127.0.0.1:63743'},
-    'davy': {'address': '127.0.0.1:63644'},
-}
+def get_available_port(start_port: int):
+    '''
+    Get available port for sf cluster in ci pipeline. However, in circleci pipeline
+    there is no need to allocate new port and can just return the input port.
+    '''
+    port = start_port
+
+    return port
 
 
 def cluster():
     return {
-        'parties': _parties,
+        'parties': {
+            'alice': {'address': f"127.0.0.1:{get_available_port(61001)}"},
+            'bob': {'address': f"127.0.0.1:{get_available_port(61250)}"},
+            'carol': {'address': f"127.0.0.1:{get_available_port(61500)}"},
+            'davy': {'address': f"127.0.0.1:{get_available_port(61750)}"},
+        },
         'self_party': get_self_party(),
     }

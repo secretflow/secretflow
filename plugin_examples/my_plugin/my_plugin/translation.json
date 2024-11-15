@@ -1,0 +1,8 @@
+{
+  "preprocessing/my_component:1.0.0": {
+    "preprocessing": "preprocessing",
+    "my_component": "my_component",
+    "xx": "xx",
+    "1.0.0": "1.0.0"
+  }
+}

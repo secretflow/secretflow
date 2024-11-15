@@ -19,22 +19,14 @@ from typing import List
 import numpy as np
 import pytest
 import spu
-from sklearn.datasets import load_breast_cancer
 from sklearn.metrics import roc_auc_score
 
 import secretflow as sf
-import secretflow.distributed as sfd
 from secretflow.data import partition
 from secretflow.data.mix import MixDataFrame
 from secretflow.data.split import train_test_split
-from secretflow.data.vertical import VDataFrame
-from secretflow.distributed.primitive import DISTRIBUTION_MODE
 from secretflow.ml.linear.fl_lr_mix import FlLogisticRegressionMix
-from secretflow.preprocessing.scaler import StandardScaler
 from secretflow.security.aggregation import SecureAggregator
-from tests.cluster import cluster, set_self_party
-
-# from secretflow.ml.linear.interconnection.router_hooks import RouterLrAggrHook
 
 
 @dataclass
@@ -48,28 +40,8 @@ class DeviceInventory:
 
 
 @pytest.fixture(scope="module")
-def env(request, sf_party_for_4pc):
-    devices = DeviceInventory()
-    sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.PRODUCTION)
-    set_self_party(sf_party_for_4pc)
-    sf.init(
-        address='local',
-        num_cpus=8,
-        log_to_driver=True,
-        cluster_config=cluster(),
-        cross_silo_comm_backend='brpc_link',
-        cross_silo_comm_options={
-            'exit_on_sending_failure': True,
-            'http_max_payload_size': 5 * 1024 * 1024,
-            'recv_timeout_ms': 1800 * 1000,
-        },
-        enable_waiting_for_other_parties_ready=False,
-    )
-
-    devices.alice = sf.PYU('alice')
-    devices.bob = sf.PYU('bob')
-    devices.carol = sf.PYU('carol')
-    devices.davy = sf.PYU('davy')
+def env(request, sf_production_setup_linear_env_ray):
+    devices, data = sf_production_setup_linear_env_ray
 
     def heu_config(sk_keeper: str, evaluators: List[str]):
         return {
@@ -85,24 +57,7 @@ def env(request, sf_party_for_4pc):
     devices.heu0 = sf.HEU(heu_config('alice', ['bob', 'carol']), spu.spu_pb2.FM128)
     devices.heu1 = sf.HEU(heu_config('alice', ['bob', 'davy']), spu.spu_pb2.FM128)
 
-    features, label = load_breast_cancer(return_X_y=True, as_frame=True)
-    label = label.to_frame()
-    feat_list = [
-        features.iloc[:, :10],
-        features.iloc[:, 10:20],
-        features.iloc[:, 20:],
-    ]
-    x = VDataFrame(
-        partitions={
-            devices.alice: partition(devices.alice(lambda: feat_list[0])()),
-            devices.bob: partition(devices.bob(lambda: feat_list[1])()),
-            devices.carol: partition(devices.carol(lambda: feat_list[2])()),
-        }
-    )
-    x = StandardScaler().fit_transform(x)
-    y = VDataFrame(
-        partitions={devices.alice: partition(devices.alice(lambda: label)())}
-    )
+    x, y, label = data['x'], data['y'], data['label']
     x1, x2 = train_test_split(x, train_size=0.5, shuffle=False)
     y1, y2 = train_test_split(y, train_size=0.5, shuffle=False)
 
@@ -117,7 +72,6 @@ def env(request, sf_party_for_4pc):
         'y_arr': label.values,
     }
     del devices
-    sf.shutdown()
 
 
 @pytest.mark.skipif(platform == 'darwin', reason="macOS has accuracy issue")
