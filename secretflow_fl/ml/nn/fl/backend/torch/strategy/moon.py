@@ -18,9 +18,9 @@ from typing import Tuple
 import numpy as np
 import torch
 
-from secretflow.ml.nn.core.torch import BuilderType
-from secretflow.ml.nn.fl.backend.torch.fl_base import BaseTorchModel
-from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
+from secretflow_fl.ml.nn.core.torch import BuilderType
+from secretflow_fl.ml.nn.fl.backend.torch.fl_base import BaseTorchModel
+from secretflow_fl.ml.nn.fl.strategy_dispatcher import register_strategy
 
 
 class MOON(BaseTorchModel):

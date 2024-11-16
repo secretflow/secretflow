@@ -18,15 +18,15 @@ from torch.nn import functional as F
 from torchmetrics import Accuracy, Precision
 
 from secretflow import reveal
-from secretflow.ml.nn import FLModel
-from secretflow.ml.nn.core.torch import (
+from secretflow_fl.ml.nn import FLModel
+from secretflow_fl.ml.nn.core.torch import (
     BaseModule,
     TorchModel,
     metric_wrapper,
     optim_wrapper,
 )
 from secretflow.security import SecureAggregator
-from secretflow.utils.simulation.datasets import load_mnist
+from secretflow_fl.utils.simulation.datasets_fl import load_mnist
 
 
 class ConvNet(BaseModule):
