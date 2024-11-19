@@ -49,6 +49,7 @@ class MOON(BaseTorchModel):
 
         self.model_buffer_size = kwargs.get("model_buffer_size", 1)
         self.prev_model_list = []
+        self.global_model = None
 
     def train_step(
         self,
@@ -74,14 +75,15 @@ class MOON(BaseTorchModel):
         if refresh_data:
             self._reset_data_iter()
         if weights is not None:
-            # Create a copy of the global model
-            global_model = copy.deepcopy(self.model)
-            global_model.update_weights(weights)
-            global_model.eval()
-
+            if self.global_model is None:
+                # Create a copy of the global model
+                self.global_model = copy.deepcopy(self.model)
+            self.global_model.update_weights(weights)
+            self.global_model.eval()
             # Disable gradient computation for the global model
-            for param in global_model.parameters():
+            for param in self.global_model.parameters():
                 param.requires_grad = False
+            # Update local model weights
             self.set_weights(weights)
         num_sample = 0
         dp_strategy = kwargs.get('dp_strategy', None)
