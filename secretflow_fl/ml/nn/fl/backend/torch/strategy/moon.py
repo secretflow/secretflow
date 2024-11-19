@@ -49,7 +49,7 @@ class MOON(BaseTorchModel):
 
         self.model_buffer_size = kwargs.get("model_buffer_size", 1)
         self.prev_model_list = []
-        self.global_model = None
+        self.global_model = copy.deepcopy(self.model)
 
     def train_step(
         self,
@@ -71,13 +71,9 @@ class MOON(BaseTorchModel):
         assert self.model is not None, "Model cannot be none, please give model define"
         self.model.train()
         refresh_data = kwargs.get("refresh_data", False)
-        global_model = None
         if refresh_data:
             self._reset_data_iter()
         if weights is not None:
-            if self.global_model is None:
-                # Create a copy of the global model
-                self.global_model = copy.deepcopy(self.model)
             self.global_model.update_weights(weights)
             self.global_model.eval()
             # Disable gradient computation for the global model
@@ -95,23 +91,17 @@ class MOON(BaseTorchModel):
             _, pro1, y_pred = self.model(x, return_all=True)
             self.model.update_metrics(y_pred, y)
             loss = self.model.loss(y_pred, y)
-
-            logits = None
-            if global_model is not None:
-                _, pro2, _ = global_model(x, return_all=True)
-                posi = self.model.cosine_similarity_fn(pro1, pro2)
-                logits = posi.reshape(-1, 1)
-                for pre_model in self.prev_model_list:
-                    _, pro3, _ = pre_model(x, return_all=True)
-                    nega = self.model.cosine_similarity_fn(pro1, pro3)
-                    logits = torch.cat((logits, nega.reshape(-1, 1)), dim=1)
-
-                logits /= self.model.temperature
-
-            if logits is not None:
-                labels = torch.zeros(x.size(0)).long()
-                loss_con = self.model.mu * self.model.loss(logits, labels)
-                loss += loss_con
+            _, pro2, _ = self.global_model(x, return_all=True)
+            posi = self.model.cosine_similarity_fn(pro1, pro2)
+            logits = posi.reshape(-1, 1)
+            for pre_model in self.prev_model_list:
+                _, pro3, _ = pre_model(x, return_all=True)
+                nega = self.model.cosine_similarity_fn(pro1, pro3)
+                logits = torch.cat((logits, nega.reshape(-1, 1)), dim=1)
+            logits /= self.model.temperature
+            labels = torch.zeros(x.size(0)).long()
+            loss_con = self.model.mu * self.model.loss(logits, labels)
+            loss += loss_con
 
             if self.model.automatic_optimization:
                 self.model.backward_step(loss)
