@@ -51,10 +51,13 @@ class HDataFrame(DataFrameBase):
         >>> from secretflow.data.horizontal import read_csv
         >>> from secretflow.security.aggregation import PlainAggregator
         >>> from secretflow import PYU
+        >>> from secretflow.security.compare import PlainComparator
+        >>> import secretflow as sf
         >>> alice = PYU('alice')
         >>> bob = PYU('bob')
+        >>> sf.init(['alice', 'bob'], address='local')
         >>> h_df = read_csv({alice: 'alice.csv', bob: 'bob.csv'},
-                            aggregator=PlainAggregagor(alice),
+                            aggregator=PlainAggregator(alice),
                             comparator=PlainComparator(alice))
         >>> h_df.columns
         Index(['sepal_length', 'sepal_width', 'petal_length', 'petal_width', 'class'], dtype='object')
