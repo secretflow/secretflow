@@ -38,6 +38,7 @@ gen_data_path = data_dir + "/data_sl_din"
 fea_emb_input_size = {}
 generate_data()
 
+
 class AliceDataset(Dataset):
     def __init__(self, df, label_df):
         self.df = df
