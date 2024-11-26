@@ -18,19 +18,19 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import secretflow as sf
 import torch
+from secretflow.data.vertical import read_csv
+from secretflow.ml.nn import SLModel
+from secretflow.ml.nn.core.torch import (TorchModel, metric_wrapper,
+                                         optim_wrapper)
+from secretflow.utils.simulation.datasets import _DATASETS, get_dataset, unzip
 from sklearn.preprocessing import LabelEncoder
 from sl_din_torch import DINBase, DINFuse
+from tests.ml.nn.sl.extra.applications.test_sl_bst_torch import generate_data
 from torch import nn, optim
 from torch.utils.data import DataLoader, Dataset
 from torchmetrics import AUROC, Accuracy, Precision
-
-import secretflow as sf
-from secretflow.data.vertical import read_csv
-from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
-from secretflow.utils.simulation.datasets import _DATASETS, get_dataset, unzip
-from tests.ml.nn.sl.extra.applications.test_sl_bst_torch import generate_data
 
 data_dir = "./din_data"
 dataset_download_dir = data_dir + "/data_download"
