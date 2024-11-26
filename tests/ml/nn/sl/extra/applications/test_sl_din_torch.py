@@ -22,8 +22,7 @@ import secretflow as sf
 import torch
 from secretflow.data.vertical import read_csv
 from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.core.torch import (TorchModel, metric_wrapper,
-                                         optim_wrapper)
+from secretflow.ml.nn.core.torch import (TorchModel, metric_wrapper, optim_wrapper)
 from secretflow.utils.simulation.datasets import _DATASETS, get_dataset, unzip
 from sklearn.preprocessing import LabelEncoder
 from sl_din_torch import DINBase, DINFuse
