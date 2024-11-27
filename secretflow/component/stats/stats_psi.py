@@ -12,135 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
 import math
 
 import pandas as pd
 
-from secretflow.component.component import Component, IoType, TableColParam
-from secretflow.component.data_utils import (
+from secretflow.component.core import (
+    BINNING_RULE_MAX,
+    Component,
+    Context,
     DistDataType,
-    extract_table_header,
-    load_table,
-    model_loads,
+    Field,
+    Input,
+    Interval,
+    Output,
+    Reporter,
+    VTable,
+    VTableFieldKind,
+    register,
 )
 from secretflow.component.io.core.bins.bin_utils import pad_inf_to_split_points
-from secretflow.component.preprocessing.binning.vert_binning import (
-    BINNING_RULE_MAX_MAJOR_VERSION,
-    BINNING_RULE_MAX_MINOR_VERSION,
-)
 from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.device.device.pyu import PYU, PYUObject
 from secretflow.device.driver import reveal
-from secretflow.preprocessing.binning.vert_binning import VertBinning
-from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import DistData
-from secretflow.spec.v1.report_pb2 import Div, Report, Tab, Table
-
-stats_psi_comp = Component(
-    "stats_psi",
-    domain="stats",
-    version="0.0.1",
-    desc="population stability index.",
-)
-stats_psi_comp.io(
-    io_type=IoType.INPUT,
-    name="input_base_data",
-    desc="Input base vertical table.",
-    types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
-    # col_params=None,
-    col_params=[
-        TableColParam(
-            name="feature_selects",
-            desc="which features should be binned.",
-            col_min_cnt_inclusive=1,
-        ),
-    ],
-)
-stats_psi_comp.io(
-    io_type=IoType.INPUT,
-    name="input_test_data",
-    desc="Input test vertical table.",
-    types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
-    col_params=None,
-)
-stats_psi_comp.io(
-    io_type=IoType.INPUT,
-    name="bin_rule",
-    desc="Input bin rule.",
-    types=[DistDataType.BIN_RUNNING_RULE],
-    col_params=None,
-)
-stats_psi_comp.io(
-    io_type=IoType.OUTPUT,
-    name="report",
-    desc="Output population stability index.",
-    types=[DistDataType.REPORT],
-)
+from secretflow.error_system.exceptions import DataFormatError
 
 kEpsilon = 1e-3
-
-
-@stats_psi_comp.eval_fn
-def stats_psi_eval_fn(
-    *,
-    ctx,
-    input_base_data,
-    input_base_data_feature_selects,
-    input_test_data,
-    bin_rule,
-    report,
-):
-    dtypes, _ = extract_table_header(
-        input_base_data,
-        load_features=True,
-    )
-    pyus = {p: PYU(p) for p in dtypes}
-    bin_rules: dict[PYU, PYUObject] = load_bin_rules(ctx, bin_rule, pyus)
-    feature_rules: dict[str, dict] = get_feature_rules(bin_rules)
-
-    input_base_df = load_table(
-        ctx,
-        input_base_data,
-        load_features=True,
-        col_selects=input_base_data_feature_selects,
-        load_ids=False,
-        load_labels=False,
-    )
-    input_test_df = load_table(
-        ctx,
-        input_test_data,
-        load_features=True,
-        col_selects=input_base_data_feature_selects,
-        load_ids=False,
-        load_labels=False,
-    )
-
-    all_feature_psi = calculate_stats_psi(
-        feature_rules, input_base_data_feature_selects, input_base_df, input_test_df
-    )
-
-    return {
-        "report": dump_stats_psi(report, input_base_data.system_info, all_feature_psi)
-    }
-
-
-def load_bin_rules(ctx, bin_rule, pyus: dict[str, PYU]):
-    model_objs, _ = model_loads(
-        ctx,
-        bin_rule,
-        BINNING_RULE_MAX_MAJOR_VERSION,
-        BINNING_RULE_MAX_MINOR_VERSION,
-        DistDataType.BIN_RUNNING_RULE,
-        pyus,
-    )
-
-    bin_rules = {}
-    for obj in model_objs:
-        assert isinstance(obj, PYUObject)
-        bin_rules[obj.device] = obj
-
-    return bin_rules
 
 
 def get_feature_rules(bin_rules: dict[PYU, PYUObject]):
@@ -193,8 +89,10 @@ def get_stats_psi_one_feature(
 
 
 def get_bin_counts_one_feature(rule_dict: dict, feature: str, df: pd.DataFrame):
-    assert feature == rule_dict["name"], f"{feature} not in rule dict"
-    assert feature in df.columns, f'{feature} not in {df.columns}'
+    if feature != rule_dict["name"] or feature not in df.columns:
+        raise DataFormatError.feature_not_matched(
+            f"feature [{feature}] not in rule dict, or not in df.columns"
+        )
     rows = []
     if rule_dict["type"] == "numeric":
         split_points = pad_inf_to_split_points(rule_dict["split_points"])
@@ -230,9 +128,10 @@ def get_bin_counts_one_feature(rule_dict: dict, feature: str, df: pd.DataFrame):
 
 
 def calculate_stats_psi_one_feature(base_bin_stat: list, test_bin_stat: list):
-    assert len(base_bin_stat) == len(
-        test_bin_stat
-    ), f"base_bin_stat: {len(base_bin_stat)} and test_bin_stat: {len(test_bin_stat)} size not match."
+    if len(base_bin_stat) != len(test_bin_stat):
+        raise DataFormatError.feature_not_matched(
+            f"base_bin_stat: {len(base_bin_stat)} and test_bin_stat: {len(test_bin_stat)} size not match."
+        )
 
     # calculate total sample count
     base_row_count = 0
@@ -240,14 +139,16 @@ def calculate_stats_psi_one_feature(base_bin_stat: list, test_bin_stat: list):
     for i in range(len(base_bin_stat)):
         base_bin_label = base_bin_stat[i][0]
         test_bin_label = test_bin_stat[i][0]
-        assert (
-            base_bin_label == test_bin_label
-        ), f'base_bin_label: {base_bin_label} and test_bin_label: {test_bin_label} not match.'
+        if base_bin_label != test_bin_label:
+            raise DataFormatError.feature_not_matched(
+                f'base_bin_label: {base_bin_label} and test_bin_label: {test_bin_label} not match.'
+            )
         base_row_count += int(base_bin_stat[i][2])
         test_row_count += int(test_bin_stat[i][2])
-    assert (
-        base_row_count > 0 and test_row_count > 0
-    ), f'base_row_count: {base_row_count} and test_row_count: {test_row_count} should be greater than 0.'
+    if not (base_row_count > 0 and test_row_count > 0):
+        raise DataFormatError.feature_not_matched(
+            f'base_row_count: {base_row_count} and test_row_count: {test_row_count} should be greater than 0.'
+        )
 
     feature_psi = 0.0
     psi_infos = []
@@ -303,115 +204,95 @@ class PsiInfos:
         self.details = details
 
 
-def gen_stats_psi_report(stats_psis: list[PsiInfos]) -> Report:
-    tabs = []
+@register(domain="stats", version="1.0.0", name="stats_psi")
+class StatsPSI(Component):
+    '''population stability index.'''
 
-    summary_headers = [
-        Table.HeaderItem(
-            name="feature",
-            desc="selected feature",
-            type="str",
-        ),
-        Table.HeaderItem(
-            name="PSI",
-            desc="population stable index",
-            type="float",
-        ),
-    ]
-    summary_rows = []
-    for i in range(len(stats_psis)):
-        summary_rows.append(
-            Table.Row(
-                name=f'{i}',
-                items=[
-                    Attribute(s=stats_psis[i].feature),
-                    Attribute(f=stats_psis[i].psi),
-                ],
-            )
+    feature_selects: list[str] = Field.table_column_attr(
+        "input_base_ds",
+        desc="which features should be binned.",
+        limit=Interval.closed(1, None),
+    )
+    input_base_ds: Input = Field.input(  # type: ignore
+        desc="Input base vertical table.",
+        types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
+    )
+    input_test_ds: Input = Field.input(  # type: ignore
+        desc="Input test vertical table.",
+        types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
+    )
+    input_rule: Input = Field.input(  # type: ignore
+        desc="Input bin rule.",
+        types=[DistDataType.BINNING_RULE],
+    )
+    report: Output = Field.output(
+        desc="Output population stability index.",
+        types=[DistDataType.REPORT],
+    )
+
+    def evaluate(self, ctx: Context):
+        base_tbl = VTable.from_distdata(self.input_base_ds)
+        pyus = {p: PYU(p) for p in base_tbl.parties.keys()}
+        model = ctx.load_model(
+            self.input_rule,
+            DistDataType.BINNING_RULE,
+            BINNING_RULE_MAX,
+            pyus=pyus,
         )
-    table = Table(headers=summary_headers, rows=summary_rows)
-    tabs.append(
-        Tab(
+        bin_rules = {}
+        for obj in model.objs:
+            assert isinstance(obj, PYUObject)
+            bin_rules[obj.device] = obj
+
+        feature_rules: dict[str, dict] = get_feature_rules(bin_rules)
+
+        base_tbl = base_tbl.select(self.feature_selects)
+        base_tbl.check_kinds(VTableFieldKind.FEATURE)
+        test_tbl = VTable.from_distdata(
+            self.input_test_ds, columns=self.feature_selects
+        )
+        test_tbl.check_kinds(VTableFieldKind.FEATURE)
+        # FIXME: avoid to_pandas, use pa.Table
+        input_base_df = ctx.load_table(base_tbl).to_pandas(check_null=False)
+        input_test_df = ctx.load_table(test_tbl).to_pandas(check_null=False)
+
+        all_feature_psi = calculate_stats_psi(
+            feature_rules, self.feature_selects, input_base_df, input_test_df
+        )
+
+        self.dump_report(all_feature_psi)
+
+    def dump_report(self, stats_psis: list[PsiInfos]):
+        r = Reporter()
+
+        totals = []
+        for info in stats_psis:
+            totals.append([info.feature, info.psi])
+        total_hd = {"feature": "selected feature", "PSI": "population stable index"}
+        total_df = pd.DataFrame(data=totals, columns=list(total_hd.keys()))
+        for k, v in total_hd.items():
+            Reporter.set_description(total_df[k], v)
+        r.add_tab(
+            total_df,
             name='稳定性评估总表',
             desc="stats psi summary of all selected features",
-            divs=[
-                Div(
-                    children=[
-                        Div.Child(
-                            type="table",
-                            table=table,
-                        ),
-                    ],
-                )
-            ],
-        )
-    )
-
-    detail_headers = [
-        Table.HeaderItem(
-            name="Label",
-            desc="bin label",
-            type="str",
-        ),
-        Table.HeaderItem(
-            name="PSI",
-            desc="population stable index of every bin",
-            type="float",
-        ),
-        Table.HeaderItem(
-            name="Base Ratio",
-            desc="base data ratio",
-            type="float",
-        ),
-        Table.HeaderItem(
-            name="Test Ratio",
-            desc="test data ratio",
-            type="float",
-        ),
-    ]
-
-    for psi in stats_psis:
-        detail_rows = []
-        for i in range(len(psi.details)):
-            detail_rows.append(
-                Table.Row(
-                    name=f'{i}',
-                    items=[
-                        Attribute(s=str(psi.details[i].bin_label)),
-                        Attribute(f=psi.details[i].psi),
-                        Attribute(f=psi.details[i].base_ratio),
-                        Attribute(f=psi.details[i].test_ratio),
-                    ],
-                )
-            )
-        detail_table = Table(headers=detail_headers, rows=detail_rows)
-        tabs.append(
-            Tab(
-                name=psi.feature,
-                desc="stats psi details of one feature",
-                divs=[
-                    Div(
-                        children=[
-                            Div.Child(
-                                type="table",
-                                table=detail_table,
-                            ),
-                        ],
-                    )
-                ],
-            )
         )
 
-    return Report(name="stats psi", desc="", tabs=tabs)
+        detail_hd = {
+            "Label": "bin label",
+            "PSI": "population stable index of every bin",
+            "Base Ratio": "base data ratio",
+            "Test Ratio": "test data ratio",
+        }
+        for info in stats_psis:
+            details = []
+            for d in info.details:
+                details.append([d.bin_label, d.psi, d.base_ratio, d.test_ratio])
+            detail_df = pd.DataFrame(data=details, columns=list(detail_hd.keys()))
+            for k, v in detail_hd.items():
+                Reporter.set_description(detail_df[k], v)
+            r.add_tab(
+                detail_df, name=info.feature, desc="stats psi details of one feature"
+            )
 
-
-def dump_stats_psi(name, system_info, stats_psis: list[PsiInfos]) -> DistData:  # type: ignore
-    report_mate = gen_stats_psi_report(stats_psis)
-    res = DistData(
-        name=name,
-        system_info=system_info,
-        type=str(DistDataType.REPORT),
-        data_refs=[],
-    )
-    res.meta.Pack(report_mate)
-    return res
+        r.dump_to(self.report, self.input_base_ds.system_info)

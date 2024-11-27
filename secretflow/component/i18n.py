@@ -19,7 +19,8 @@ import json
 
 import click
 
-from secretflow.component.entry import COMP_LIST, gen_key
+from secretflow.component.core.registry import Registry
+from secretflow.component.entry import gen_key
 from secretflow.spec.v1.component_pb2 import CompListDef
 
 ROOT = "."
@@ -106,7 +107,7 @@ def cli(archives, output):
         with open(archives, "r") as f:
             archived_text = json.load(f)
 
-    text = gettext(COMP_LIST, archived_text)
+    text = gettext(Registry.get_comp_list_def(), archived_text)
     click.echo("-" * 105)
     click.echo("gettext result:")
     click.echo("")

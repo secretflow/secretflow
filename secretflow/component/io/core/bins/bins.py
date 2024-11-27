@@ -25,11 +25,13 @@ from secretflow.component.io.core.bins.woe_bins import (
     woe_bin_rule_from_pb_and_old_rule,
     woe_bin_rule_to_pb,
 )
+from secretflow.component.preprocessing.binning.base import BinningRunner
 from secretflow.device import PYUObject
+from secretflow.error_system.exceptions import SFModelError
 from secretflow.spec.extend.bin_data_pb2 import Bins
 
 
-def bin_rule_to_pb(rules: List[PYUObject], public_info: dict) -> Bins:
+def bin_rule_to_pb(rules: List[PYUObject], public_info: dict) -> Bins:  # type: ignore
     """Convert part of the public info in rules to Bins pb"""
 
     label_holder_index = get_bin_label_holder_index(rules)
@@ -44,16 +46,27 @@ def bin_rule_to_pb(rules: List[PYUObject], public_info: dict) -> Bins:
 
 def bin_rule_from_pb_and_old_rule(
     rules: List[PYUObject], public_info: dict, bins: Bins
-) -> List[PYUObject]:
+) -> tuple[List[PYUObject], bool]:
     label_holder_index = get_bin_label_holder_index(rules)
     check_bin_rule_pb_valid(public_info, bins)
-    if check_bin_rule_is_woe(label_holder_index):
-        return woe_bin_rule_from_pb_and_old_rule(rules, bins)
+    is_woe = check_bin_rule_is_woe(label_holder_index)
+    if is_woe:
+        res = woe_bin_rule_from_pb_and_old_rule(rules, bins)
     else:
-        return normal_bin_rule_from_pb_and_old_rule(rules, bins)
+        res = normal_bin_rule_from_pb_and_old_rule(rules, bins)
+
+    return [_to_runner(obj) for obj in res], is_woe
 
 
 def check_bin_rule_pb_valid(public_info: dict, bins: Bins):
-    assert bins.model_hash == public_info.get(
-        "model_hash", ""
-    ), "model hash mismatch, make sure the pb is matched to the original model"
+    if bins.model_hash != public_info.get("model_hash", ""):
+        raise SFModelError.model_hash_mismatch(
+            "model hash mismatch, make sure the pb is matched to the original model"
+        )
+
+
+def _to_runner(obj: PYUObject) -> PYUObject:
+    def _convert(rule: dict):
+        return BinningRunner(rule)
+
+    return obj.device(_convert)(obj)

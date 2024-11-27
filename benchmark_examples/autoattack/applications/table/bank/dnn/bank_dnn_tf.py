@@ -17,11 +17,12 @@ from typing import List, Optional, Union
 
 from benchmark_examples.autoattack.applications.base import ApplicationBase
 from secretflow.data.split import train_test_split
-from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.applications.sl_dnn_tf import DnnBase, DnnFuse
-from secretflow.ml.nn.callbacks.callback import Callback
-from secretflow.preprocessing import LabelEncoder, MinMaxScaler
 from secretflow.utils.simulation.datasets import load_bank_marketing
+from secretflow_fl.ml.nn import SLModel
+from secretflow_fl.ml.nn.applications.sl_dnn_tf import DnnBase, DnnFuse
+from secretflow_fl.ml.nn.callbacks.callback import Callback
+from secretflow_fl.preprocessing.scaler_fl import MinMaxScaler
+from secretflow_fl.preprocessing.encoder_fl import LabelEncoder
 
 
 class BankDnn(ApplicationBase):

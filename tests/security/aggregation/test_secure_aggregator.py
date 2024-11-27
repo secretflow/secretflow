@@ -20,8 +20,11 @@ from tests.security.aggregation.test_aggregator_base import AggregatorBase
 
 class TestSecureAggregator(AggregatorBase):
     @pytest.fixture()
-    def env_and_aggregator(self, sf_production_setup_devices):
-        yield sf_production_setup_devices, SecureAggregator(
-            sf_production_setup_devices.carol,
-            [sf_production_setup_devices.alice, sf_production_setup_devices.bob],
+    def env_and_aggregator(self, sf_production_setup_devices_ray):
+        yield sf_production_setup_devices_ray, SecureAggregator(
+            sf_production_setup_devices_ray.carol,
+            [
+                sf_production_setup_devices_ray.alice,
+                sf_production_setup_devices_ray.bob,
+            ],
         )

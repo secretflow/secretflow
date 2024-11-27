@@ -44,7 +44,7 @@ def prepare_dataset(
 
     assert ds.partition_way == PartitionWay.VERTICAL, (
         "Only support vertical dataset, "
-        "for horizontal dataset please use secretflow.ml.boost.homo_boost"
+        "for horizontal dataset please use secretflow_fl.ml.boost.homo_boost"  # TODO by jzc: modify
     )
 
     shape = ds.shape

@@ -21,16 +21,16 @@ from torch.utils.data import DataLoader, Dataset
 from torchmetrics import AUROC, Accuracy, Precision
 
 from secretflow.data.ndarray import FedNdarray, PartitionWay
-from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.applications.sl_dnn_torch import DnnBase
-from secretflow.ml.nn.applications.sl_resnet_torch import NaiveSumSoftmax
-from secretflow.ml.nn.core.torch import (
+from secretflow_fl.ml.nn import SLModel
+from secretflow_fl.ml.nn.applications.sl_dnn_torch import DnnBase
+from secretflow_fl.ml.nn.applications.sl_resnet_torch import NaiveSumSoftmax
+from secretflow_fl.ml.nn.core.torch import (
     TorchModel,
     loss_wrapper,
     metric_wrapper,
     optim_wrapper,
 )
-from secretflow.ml.nn.sl.defenses.mixup import Mixuplayer, Mixuploss
+from secretflow_fl.ml.nn.sl.defenses.mixup import Mixuplayer, Mixuploss
 
 
 class TabDatasetLeft(Dataset):
@@ -129,10 +129,10 @@ def test_mixup(sf_simulation_setup_devices):
         optim_fn=optim_fn,
         metrics=[
             metric_wrapper(
-                Accuracy, task="multiclass", num_classes=10, average='micro'
+                Accuracy, task="multiclass", num_classes=10, average="micro"
             ),
             metric_wrapper(
-                Precision, task="multiclass", num_classes=10, average='micro'
+                Precision, task="multiclass", num_classes=10, average="micro"
             ),
             metric_wrapper(AUROC, task="multiclass", num_classes=10),
         ],
@@ -165,8 +165,8 @@ def test_mixup(sf_simulation_setup_devices):
         model_fuse=fuse_model,
         simulation=True,
         random_seed=1234,
-        backend='torch',
-        strategy='split_nn',
+        backend="torch",
+        strategy="split_nn",
     )
 
     sl_model = SLModel(
@@ -175,8 +175,8 @@ def test_mixup(sf_simulation_setup_devices):
         model_fuse=fuse_model,
         simulation=True,
         random_seed=1234,
-        backend='torch',
-        strategy='split_nn',
+        backend="torch",
+        strategy="split_nn",
     )
     # just to pass fit(data, label), dataloader will generate data itself
     train_data = torch.rand(data_num, 256)

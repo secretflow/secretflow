@@ -23,21 +23,27 @@ from secretflow.utils.simulation.datasets import load_iris
 
 
 @pytest.fixture(scope='function')
-def prod_env_and_data(sf_production_setup_devices):
+def prod_env_and_data(sf_production_setup_devices_ray):
     df_plain = load_iris(
-        parts=[sf_production_setup_devices.alice, sf_production_setup_devices.bob],
-        aggregator=PlainAggregator(sf_production_setup_devices.alice),
-        comparator=PlainComparator(sf_production_setup_devices.alice),
+        parts=[
+            sf_production_setup_devices_ray.alice,
+            sf_production_setup_devices_ray.bob,
+        ],
+        aggregator=PlainAggregator(sf_production_setup_devices_ray.alice),
+        comparator=PlainComparator(sf_production_setup_devices_ray.alice),
     )
     df_spu = load_iris(
-        parts=[sf_production_setup_devices.alice, sf_production_setup_devices.bob],
-        aggregator=SPUAggregator(sf_production_setup_devices.spu),
-        comparator=SPUComparator(sf_production_setup_devices.spu),
+        parts=[
+            sf_production_setup_devices_ray.alice,
+            sf_production_setup_devices_ray.bob,
+        ],
+        aggregator=SPUAggregator(sf_production_setup_devices_ray.spu),
+        comparator=SPUComparator(sf_production_setup_devices_ray.spu),
     )
-    df_alice = reveal(df_plain.partitions[sf_production_setup_devices.alice].data)
-    df_bob = reveal(df_plain.partitions[sf_production_setup_devices.bob].data)
+    df_alice = reveal(df_plain.partitions[sf_production_setup_devices_ray.alice].data)
+    df_bob = reveal(df_plain.partitions[sf_production_setup_devices_ray.bob].data)
 
-    yield sf_production_setup_devices, {
+    yield sf_production_setup_devices_ray, {
         "df_plain": df_plain,
         "df_spu": df_spu,
         "df_alice": df_alice,

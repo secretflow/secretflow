@@ -80,7 +80,7 @@ class _Masker:
                 ), f'Data type are neither integer nor float.'
                 if datum.dtype != np.int64:
                     datum = datum.astype(np.int64)
-            # Do mulitple before encoding to finite field.
+            # Do multiple before encoding to finite field.
             masked_datum: np.ndarray = (
                 ndarray_encoding.encode(datum * weight, self._fxp_bits)
                 if is_float

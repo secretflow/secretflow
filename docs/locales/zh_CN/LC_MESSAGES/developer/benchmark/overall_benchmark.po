@@ -8,14 +8,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-03-05 11:14+0800\n"
+"POT-Creation-Date: 2024-11-07 17:02+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.12.1\n"
+"Generated-By: Babel 2.14.0\n"
 
 #: ../../developer/benchmark/overall_benchmark.md:1
 msgid "SecretFlow Benchmark Results"
@@ -71,7 +71,7 @@ msgid "Basic Operation Benchmark"
 msgstr "基本操作基准测试"
 
 #: ../../developer/benchmark/overall_benchmark.md:21
-#: ../../developer/benchmark/overall_benchmark.md:49
+#: ../../developer/benchmark/overall_benchmark.md:36
 msgid "Each party holds 100000000 size random data"
 msgstr "每个参与方持有 100000000 大小的随机数据"
 
@@ -140,142 +140,20 @@ msgid "813.28057"
 msgstr ""
 
 #: ../../developer/benchmark/overall_benchmark.md:29
-msgid "PSI and PIR Operation Benchmark"
-msgstr "PSI 和 PIR 操作基准测试"
+msgid "PSI Benchmark(CAICT testing standards)"
+msgstr "PSI 基准测试（信通院标准）"
 
 #: ../../developer/benchmark/overall_benchmark.md:31
-msgid "PSI benchmark table"
-msgstr "PSI 基准测试表"
+msgid ""
+"Please refer to [Benchmark under the CAICT testing "
+"standards](psi_benchmark.md#信通院测试标准下的benchmark)."
+msgstr "请参考信通院标准"
 
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "Party"
-msgstr "参与方"
+#: ../../developer/benchmark/overall_benchmark.md:32
+msgid "CAICT: China Academy of Information and Communications Technology."
+msgstr "信通院: 中国信息通信技术研究院"
 
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "Balance Status"
-msgstr "平衡状态"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "Latency"
-msgstr "延迟"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "Time (s)"
-msgstr "时间（秒）"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "Time (h)"
-msgstr "时间（小时）"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "Algorithm"
-msgstr "算法"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "Two-party"
-msgstr "两方"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "Balanced"
-msgstr "平衡"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "50msec"
-msgstr "50毫秒"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "6948"
-msgstr "6948"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "1:55:48"
-msgstr "1:55:48"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "ECDH"
-msgstr "ECDH"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "Unbalanced"
-msgstr "不平衡"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "1619"
-msgstr "1619"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "0:26:59"
-msgstr "0:26:59"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "Three-party"
-msgstr "三方"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "18836"
-msgstr "18836"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "5:13:56"
-msgstr "5:13:56"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "ECDH_3PC"
-msgstr "ECDH_3PC"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "9556"
-msgstr "9556"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "2:39:16"
-msgstr "2:39:16"
-
-#: ../../developer/benchmark/overall_benchmark.md:40
-msgid "PIR benchmark table (only 2 party setting)"
-msgstr "PIR 基准测试表（仅限两方设置）"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "Query ID Count"
-msgstr "查询 ID 数量"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "Indistinguishability"
-msgstr "不可区分性"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "10000"
-msgstr "10000"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "Million Level"
-msgstr "百万级"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "3686"
-msgstr "3686"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "1:01:26"
-msgstr "1:01:26"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "KeywordPIR"
-msgstr "KeywordPIR"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "1"
-msgstr "1"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "51"
-msgstr "51"
-
-#: ../../developer/benchmark/overall_benchmark.md
-msgid "0:00:51"
-msgstr "0:00:51"
-
-#: ../../developer/benchmark/overall_benchmark.md:47
+#: ../../developer/benchmark/overall_benchmark.md:34
 msgid "United Statistiсs Operation Benchmark"
 msgstr "联合统计操作基准测试"
 
@@ -327,29 +205,29 @@ msgstr ""
 msgid "27.40997"
 msgstr ""
 
-#: ../../developer/benchmark/overall_benchmark.md:57
+#: ../../developer/benchmark/overall_benchmark.md:44
 msgid ""
 "Note: variance (reveal mean) allow revealing mean value when computing "
 "variance, which is practical for some applications."
 msgstr "注意：方差（揭示均值）允许在计算方差时揭示均值，这对某些应用来说是实际的。"
 
-#: ../../developer/benchmark/overall_benchmark.md:59
+#: ../../developer/benchmark/overall_benchmark.md:46
 msgid "Note: cheetah performance may need further optimization."
 msgstr "注意：cheetah性能可能需要进一步优化。"
 
-#: ../../developer/benchmark/overall_benchmark.md:61
+#: ../../developer/benchmark/overall_benchmark.md:48
 msgid "Feature Engineering Operation Benchmark"
 msgstr "特征工程操作基准测试"
 
-#: ../../developer/benchmark/overall_benchmark.md:63
-#: ../../developer/benchmark/overall_benchmark.md:73
+#: ../../developer/benchmark/overall_benchmark.md:50
+#: ../../developer/benchmark/overall_benchmark.md:60
 msgid ""
 "In 2-party setting, each party holds 800000 lines of data with 1500 "
 "features and the first party holds the label."
 msgstr "在2方设置中，每一方持有 800000 行数据，每行含有 1500 个特征，第一方持有标签。"
 
-#: ../../developer/benchmark/overall_benchmark.md:65
-#: ../../developer/benchmark/overall_benchmark.md:75
+#: ../../developer/benchmark/overall_benchmark.md:52
+#: ../../developer/benchmark/overall_benchmark.md:62
 msgid ""
 "In 3-party setting, each party holds 800000 lines of data with 1000 "
 "features and the first party holds the label."
@@ -375,15 +253,15 @@ msgstr ""
 msgid "505.04"
 msgstr ""
 
-#: ../../developer/benchmark/overall_benchmark.md:71
+#: ../../developer/benchmark/overall_benchmark.md:58
 msgid "Machine Learning Algorithm Benchmark"
 msgstr "机器学习算法基准测试"
 
-#: ../../developer/benchmark/overall_benchmark.md:77
+#: ../../developer/benchmark/overall_benchmark.md:64
 msgid "Classification algorithms are used as examples."
 msgstr "以分类算法为例。"
 
-#: ../../developer/benchmark/overall_benchmark.md:79
+#: ../../developer/benchmark/overall_benchmark.md:66
 msgid ""
 "The training time is the best training time for the algorithm to reach "
 "convergence compared to the best cleartext model (hyperparameter tuning "
@@ -394,7 +272,7 @@ msgstr ""
 "训练时间是算法达到收敛的最佳训练时间，与最佳明文模型相比（超参数调整可能会影响结果）。此外，训练的 AUC 必须在明文模型的 0.02 "
 "范围内。有关更多参数细节，请参考源代码中的 benchmark_examples 文件夹。"
 
-#: ../../developer/benchmark/overall_benchmark.md:81
+#: ../../developer/benchmark/overall_benchmark.md:68
 msgid "The inference time is the prediction time on training data."
 msgstr "推断时间是在训练数据上的预测时间。"
 
@@ -478,21 +356,21 @@ msgstr "5"
 msgid "3"
 msgstr "3"
 
-#: ../../developer/benchmark/overall_benchmark.md:95
+#: ../../developer/benchmark/overall_benchmark.md:82
 msgid ""
 "Note that XGB and NN pipelines are not affected by MPC protocols because "
 "they use other privacy computation technologies."
 msgstr "请注意，XGB 和 NN 流程不受 MPC 协议影响，因为它们使用其他隐私计算技术。"
 
-#: ../../developer/benchmark/overall_benchmark.md:97
+#: ../../developer/benchmark/overall_benchmark.md:84
 msgid "Benchmark scripts"
 msgstr "基准测试脚本"
 
-#: ../../developer/benchmark/overall_benchmark.md:99
+#: ../../developer/benchmark/overall_benchmark.md:86
 msgid "The replication process can be found in the following folders:"
 msgstr "复现过程可以在以下文件夹中找到："
 
-#: ../../developer/benchmark/overall_benchmark.md:101
+#: ../../developer/benchmark/overall_benchmark.md:88
 msgid ""
 "For basic operations and united statistics, see source code "
 "`secretflow/benchmark_examples/sf_basic_ops_test` folder for more "
@@ -504,11 +382,11 @@ msgstr ""
 "文件夹以获取更多详情。对于特征工程和机器学习，请查看源代码 "
 "`secretflow/benchmark_examples/sf_component_test` 文件夹以获取更多详情。"
 
-#: ../../developer/benchmark/overall_benchmark.md:104
+#: ../../developer/benchmark/overall_benchmark.md:91
 msgid "Extra Notes"
 msgstr "额外说明"
 
-#: ../../developer/benchmark/overall_benchmark.md:106
+#: ../../developer/benchmark/overall_benchmark.md:93
 msgid ""
 "Semi2k protocol relies on a trusted third party, it should not be "
 "considered a pure 2pc MPC protocol. Semi2k needs a trusted third party "

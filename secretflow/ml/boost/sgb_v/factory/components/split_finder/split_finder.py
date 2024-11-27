@@ -21,7 +21,13 @@ import numpy as np
 from secretflow.ml.boost.sgb_v.core.params import default_params
 
 from ....core.pure_numpy_ops.boost import find_best_splits, find_best_splits_with_gains
-from ..component import Component, Devices, print_params
+from ..component import (
+    Component,
+    Devices,
+    print_params,
+    set_dict_from_params,
+    set_params_from_dict,
+)
 
 
 @dataclass
@@ -51,18 +57,10 @@ class SplitFinder(Component):
         print_params(self.params)
 
     def set_params(self, params: dict):
-        gamma = params.get('gamma', default_params.gamma)
-        reg_lambda = params.get('reg_lambda', default_params.reg_lambda)
-        audit_paths = params.get('audit_paths', {})
-
-        self.params.gamma = gamma
-        self.params.reg_lambda = reg_lambda
-        self.params.audit_paths = audit_paths
+        set_params_from_dict(self.params, params)
 
     def get_params(self, params: dict):
-        params['gamma'] = self.params.gamma
-        params['reg_lambda'] = self.params.reg_lambda
-        params['audit_path'] = self.params.audit_paths
+        set_dict_from_params(self.params, params)
 
     def set_devices(self, devices: Devices):
         self.label_holder = devices.label_holder

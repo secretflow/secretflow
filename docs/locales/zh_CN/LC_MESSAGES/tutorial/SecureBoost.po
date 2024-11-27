@@ -25,7 +25,7 @@ msgid ""
 "The following codes are demos only. It’s **NOT for production** due to "
 "system security concerns, please **DO NOT** use it directly in "
 "production."
-msgstr "以下代码仅供演示。出于系统安全考虑，请 **不要** 直接用于生产。"
+msgstr "温馨提示：本文档用于演示目的，演示过程中可能会额外揭露部分信息，请**不要**直接复制代码用于生产"
 
 #: ../../tutorial/SecureBoost.ipynb:31
 msgid "Welcome to this tutorial on SecureBoost!"
@@ -161,7 +161,4 @@ msgid ""
 "Thank you for participating in this tutorial, and we hope you found it "
 "informative and helpful!"
 msgstr "感谢您参与本教程，希望您觉得它充满启发和帮助！"
-
-#~ msgid "SecureBoost (Sgb)"
-#~ msgstr "SecureBoost（Sgb）"
 

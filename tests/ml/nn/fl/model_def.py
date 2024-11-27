@@ -21,7 +21,7 @@ from torch import nn, optim
 from torch.nn import functional as F
 from torchmetrics import MeanSquaredError
 
-from secretflow.ml.nn.core.torch import BaseModule
+from secretflow_fl.ml.nn.core.torch import BaseModule
 
 
 # Tensorflow Model
@@ -46,7 +46,7 @@ def mnist_conv_model():
     )
     # Compile model
     model.compile(
-        loss='categorical_crossentropy', optimizer='adam', metrics=["accuracy"]
+        loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"]
     )
     return model
 
@@ -157,7 +157,7 @@ class VAE(BaseModule):
         return self.decode(z), mu, logvar
 
     def loss_function(self, recon_x, x, mu, logvar):
-        BCE = F.binary_cross_entropy(recon_x, x.view(-1, 784), reduction='sum')
+        BCE = F.binary_cross_entropy(recon_x, x.view(-1, 784), reduction="sum")
         KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
 
         return BCE + KLD
@@ -195,10 +195,10 @@ class CVAE(tf.keras.Model):
             [
                 tf.keras.layers.InputLayer(input_shape=(28, 28, 1)),
                 tf.keras.layers.Conv2D(
-                    filters=32, kernel_size=3, strides=(2, 2), activation='relu'
+                    filters=32, kernel_size=3, strides=(2, 2), activation="relu"
                 ),
                 tf.keras.layers.Conv2D(
-                    filters=64, kernel_size=3, strides=(2, 2), activation='relu'
+                    filters=64, kernel_size=3, strides=(2, 2), activation="relu"
                 ),
                 tf.keras.layers.Flatten(),
                 # No activation
@@ -215,19 +215,19 @@ class CVAE(tf.keras.Model):
                     filters=64,
                     kernel_size=3,
                     strides=2,
-                    padding='same',
-                    activation='relu',
+                    padding="same",
+                    activation="relu",
                 ),
                 tf.keras.layers.Conv2DTranspose(
                     filters=32,
                     kernel_size=3,
                     strides=2,
-                    padding='same',
-                    activation='relu',
+                    padding="same",
+                    activation="relu",
                 ),
                 # No activation
                 tf.keras.layers.Conv2DTranspose(
-                    filters=1, kernel_size=3, strides=1, padding='same'
+                    filters=1, kernel_size=3, strides=1, padding="same"
                 ),
             ]
         )

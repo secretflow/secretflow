@@ -20,8 +20,8 @@ from benchmark_examples.autoattack.applications.base import ModelType
 from benchmark_examples.autoattack.applications.recommendation.movielens.movielens_base import (
     MovielensBase,
 )
-from secretflow.ml.nn.applications.sl_deepfm_torch import DeepFMBase, DeepFMFuse
-from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
+from secretflow_fl.ml.nn.applications.sl_deepfm_torch import DeepFMBase, DeepFMFuse
+from secretflow_fl.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
 
 
 class MovielensDeepfm(MovielensBase):

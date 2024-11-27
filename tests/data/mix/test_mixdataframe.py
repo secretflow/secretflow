@@ -27,7 +27,7 @@ from secretflow.utils.errors import InvalidArgumentError
 
 
 @pytest.fixture(scope='module')
-def prod_env_and_data(sf_production_setup_devices):
+def prod_env_and_data(sf_production_setup_devices_ray):
     df_part0 = pd.DataFrame(
         {
             'a1': ['A1', 'B1', None, 'D1', None, 'B4', 'C4', 'D4'],
@@ -46,21 +46,25 @@ def prod_env_and_data(sf_production_setup_devices):
 
     h_part0 = VDataFrame(
         {
-            sf_production_setup_devices.alice: partition(
-                data=sf_production_setup_devices.alice(lambda: df_part0.iloc[:4, :])()
+            sf_production_setup_devices_ray.alice: partition(
+                data=sf_production_setup_devices_ray.alice(
+                    lambda: df_part0.iloc[:4, :]
+                )()
             ),
-            sf_production_setup_devices.bob: partition(
-                data=sf_production_setup_devices.bob(lambda: df_part1.iloc[:4, :])()
+            sf_production_setup_devices_ray.bob: partition(
+                data=sf_production_setup_devices_ray.bob(lambda: df_part1.iloc[:4, :])()
             ),
         }
     )
     h_part1 = VDataFrame(
         {
-            sf_production_setup_devices.alice: partition(
-                data=sf_production_setup_devices.alice(lambda: df_part0.iloc[4:, :])()
+            sf_production_setup_devices_ray.alice: partition(
+                data=sf_production_setup_devices_ray.alice(
+                    lambda: df_part0.iloc[4:, :]
+                )()
             ),
-            sf_production_setup_devices.bob: partition(
-                data=sf_production_setup_devices.bob(lambda: df_part1.iloc[4:, :])()
+            sf_production_setup_devices_ray.bob: partition(
+                data=sf_production_setup_devices_ray.bob(lambda: df_part1.iloc[4:, :])()
             ),
         }
     )
@@ -68,31 +72,35 @@ def prod_env_and_data(sf_production_setup_devices):
 
     v_part0 = HDataFrame(
         {
-            sf_production_setup_devices.alice: partition(
-                data=sf_production_setup_devices.alice(lambda: df_part0.iloc[:4, :])()
+            sf_production_setup_devices_ray.alice: partition(
+                data=sf_production_setup_devices_ray.alice(
+                    lambda: df_part0.iloc[:4, :]
+                )()
             ),
-            sf_production_setup_devices.bob: partition(
-                data=sf_production_setup_devices.bob(lambda: df_part0.iloc[4:, :])()
+            sf_production_setup_devices_ray.bob: partition(
+                data=sf_production_setup_devices_ray.bob(lambda: df_part0.iloc[4:, :])()
             ),
         },
-        aggregator=PlainAggregator(sf_production_setup_devices.carol),
-        comparator=PlainComparator(sf_production_setup_devices.carol),
+        aggregator=PlainAggregator(sf_production_setup_devices_ray.carol),
+        comparator=PlainComparator(sf_production_setup_devices_ray.carol),
     )
     v_part1 = HDataFrame(
         {
-            sf_production_setup_devices.alice: partition(
-                data=sf_production_setup_devices.alice(lambda: df_part1.iloc[:4, :])()
+            sf_production_setup_devices_ray.alice: partition(
+                data=sf_production_setup_devices_ray.alice(
+                    lambda: df_part1.iloc[:4, :]
+                )()
             ),
-            sf_production_setup_devices.bob: partition(
-                data=sf_production_setup_devices.bob(lambda: df_part1.iloc[4:, :])()
+            sf_production_setup_devices_ray.bob: partition(
+                data=sf_production_setup_devices_ray.bob(lambda: df_part1.iloc[4:, :])()
             ),
         },
-        aggregator=PlainAggregator(sf_production_setup_devices.carol),
-        comparator=PlainComparator(sf_production_setup_devices.carol),
+        aggregator=PlainAggregator(sf_production_setup_devices_ray.carol),
+        comparator=PlainComparator(sf_production_setup_devices_ray.carol),
     )
     v_mix = MixDataFrame(partitions=[v_part0, v_part1])
 
-    return sf_production_setup_devices, {
+    return sf_production_setup_devices_ray, {
         "df_part0": df_part0,
         "df_part1": df_part1,
         "h_part0": h_part0,

@@ -18,12 +18,12 @@ from google.protobuf.json_format import ParseDict
 import pytest
 
 from secretflow.component.component import (
-    CompDeclError,
     Component,
     IoType,
     TableColParam,
 )
 from secretflow.component.data_utils import DistDataType
+from secretflow.error_system.exceptions import CompDeclError
 from secretflow.spec.v1.component_pb2 import AttributeDef, ComponentDef, IoDef
 from secretflow.spec.v1.data_pb2 import DistData, StorageConfig
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam

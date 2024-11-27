@@ -54,6 +54,8 @@ _GPU_CONFIG = None
 _RAY_CLUSTER_ADDRESS = None
 # To achieve reproducibility.
 _RANDOM_SEED = 1234
+# To monitor memory, cpu, gpu, etc.
+_ENABLE_MONITOR = False
 _TUNER_START_TIME = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 CONFIG_FILE_PATH = None
 
@@ -100,7 +102,8 @@ def init_globalconfig(**kwargs):
         f"_DATASETS_PATH: {_DATASETS_PATH}\n"
         f"_AUTOATTACK_PATH: {_AUTOATTACK_PATH}\n"
         f"_RAY_CLUSTER_ADDRESS: {_RAY_CLUSTER_ADDRESS}\n"
-        f"_RANDOM_SEED:{_RANDOM_SEED}"
+        f"_RANDOM_SEED:{_RANDOM_SEED}\n",
+        f'_ENABLE_MONITOR: {_ENABLE_MONITOR}',
     )
 
 
@@ -118,6 +121,7 @@ def _init_global_config_by_config_file(config_file: str):
     global _GPU_CONFIG
     global _RAY_CLUSTER_ADDRESS
     global _RANDOM_SEED
+    global _ENABLE_MONITOR
     config_file = os.path.abspath(config_file)
     config: dict = read_config(config_file)
     # applications
@@ -133,6 +137,7 @@ def _init_global_config_by_config_file(config_file: str):
     _USE_GPU = _get_not_none(applications, 'use_gpu', _USE_GPU)
     _DEBUG_MODE = _get_not_none(applications, 'debug_mode', _DEBUG_MODE)
     _RANDOM_SEED = _get_not_none(applications, 'random_seed', _RANDOM_SEED)
+    _ENABLE_MONITOR = _get_not_none(applications, 'enable_monitor', _ENABLE_MONITOR)
     # paths
     paths = config.get('paths', {})
     _DATASETS_PATH = _get_not_none(paths, 'datasets', _DATASETS_PATH)
@@ -159,6 +164,7 @@ def _init_global_config_by_kwargs(**kwargs):
     global _GPU_CONFIG
     global _RAY_CLUSTER_ADDRESS
     global _RANDOM_SEED
+    global _ENABLE_MONITOR
     _BENCHMRAK_ENABLE_TUNE = kwargs.get('enable_tune', _BENCHMRAK_ENABLE_TUNE)
     _BENCHMARK_DATASET = kwargs.get('dataset', _BENCHMARK_DATASET)
     _BENCHMARK_MODEL = kwargs.get('model', _BENCHMARK_MODEL)
@@ -172,6 +178,7 @@ def _init_global_config_by_kwargs(**kwargs):
     _GPU_CONFIG = kwargs.get('gpu_config', _GPU_CONFIG)
     _RAY_CLUSTER_ADDRESS = kwargs.get('ray_cluster_address', _RAY_CLUSTER_ADDRESS)
     _RANDOM_SEED = kwargs.get('random_seed', _RANDOM_SEED)
+    _ENABLE_MONITOR = kwargs.get('enable_monitor', _ENABLE_MONITOR)
 
 
 def get_dataset_path() -> str:
@@ -269,3 +276,8 @@ def get_config_file_path() -> str:
             "tune: field which shows the search space for apps, attacks or defensens."
         )
     return CONFIG_FILE_PATH
+
+
+def need_monitor() -> bool:
+    global _ENABLE_MONITOR
+    return _ENABLE_MONITOR

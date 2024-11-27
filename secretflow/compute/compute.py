@@ -55,7 +55,7 @@ def __sf_wrapper(py_func, c_func):
                 isinstance(i, (Array, int, float, str, np.floating, np.integer))
                 for i in inputs
             ]
-        )
+        ), f"inputs {inputs}"
         assert any([isinstance(i, Array) for i in inputs])
 
         py_inputs = []

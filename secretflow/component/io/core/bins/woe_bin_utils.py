@@ -37,7 +37,7 @@ def find_feature_index(variables: List[Dict], feature_name):
     raise ValueError("Feature name not found")
 
 
-def dispath_rules(
+def dispatch_rules(
     rule: Dict,
     party_features: Dict[str, List[str]],
     label_holder_index: int,

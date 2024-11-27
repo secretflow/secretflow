@@ -15,7 +15,7 @@
 import pytest
 
 from secretflow.security.aggregation.plain_aggregator import PlainAggregator
-from secretflow.security.aggregation.sparse_plain_aggregator import (
+from secretflow_fl.security.aggregation.sparse_plain_aggregator import (
     SparsePlainAggregator,
 )
 from tests.security.aggregation.test_aggregator_base import AggregatorBase
@@ -23,15 +23,15 @@ from tests.security.aggregation.test_aggregator_base import AggregatorBase
 
 class TestPlainAggregator(AggregatorBase):
     @pytest.fixture()
-    def env_and_aggregator(self, sf_production_setup_devices):
-        yield sf_production_setup_devices, PlainAggregator(
-            sf_production_setup_devices.carol
+    def env_and_aggregator(self, sf_production_setup_devices_ray):
+        yield sf_production_setup_devices_ray, PlainAggregator(
+            sf_production_setup_devices_ray.carol
         )
 
 
 class TestSparsePlainAggregator(AggregatorBase):
     @pytest.fixture()
-    def env_and_aggregator(self, sf_production_setup_devices):
-        yield sf_production_setup_devices, SparsePlainAggregator(
-            sf_production_setup_devices.carol
+    def env_and_aggregator(self, sf_production_setup_devices_ray):
+        yield sf_production_setup_devices_ray, SparsePlainAggregator(
+            sf_production_setup_devices_ray.carol
         )

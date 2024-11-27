@@ -50,9 +50,9 @@ from examples.app.v_gnn.vfgnn.sl_vfgnn_model import (
     evaluate_sage_target,
     evaluate_vfgnn_target,
 )
-from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
-from secretflow.ml.nn.utils import plot_with_tsne
+from secretflow_fl.ml.nn import SLModel
+from secretflow_fl.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
+from secretflow_fl.ml.nn.utils import plot_with_tsne
 
 
 def local_train(dataset, args):
@@ -485,8 +485,8 @@ def vfgnn_train(dataset, args):
     """
     Additioanl Step: Test the effect of introducing DP
     """
-    from secretflow.security.privacy import DPStrategy
-    from secretflow.security.privacy.mechanism.torch import GaussianEmbeddingDP
+    from secretflow_fl.security.privacy import DPStrategy
+    from secretflow_fl.security.privacy.mechanism.torch import GaussianEmbeddingDP
 
     # Define DP operations
     gaussian_embedding_dp = GaussianEmbeddingDP(
@@ -508,7 +508,7 @@ def vfgnn_train(dataset, args):
     """
     Additioanl Step: Compressor effect
     """
-    from secretflow.utils.compressor import TopkSparse
+    from secretflow_fl.utils.compressor import TopkSparse
 
     top_k_compressor = TopkSparse(0.3)
 

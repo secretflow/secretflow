@@ -12,142 +12,138 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sqlite3
 
-import pandas as pd
+import logging
+from typing import Tuple
 
-from secretflow.component.component import Component, IoType
-from secretflow.component.data_utils import DistDataType, dump_table, load_table
-from secretflow.data.core import partition
-from secretflow.data.vertical.dataframe import VDataFrame
+import duckdb
+import pyarrow as pa
+from pyarrow import compute as pc
+
+from secretflow.component.core import (
+    Component,
+    CompVDataFrame,
+    CompVDataFrameReader,
+    CompVDataFrameWriter,
+    Context,
+    DistDataType,
+    Field,
+    Input,
+    Output,
+    VTable,
+    register,
+    VTableFieldKind,
+)
 from secretflow.device import PYU, reveal
-from secretflow.spec.v1.data_pb2 import IndividualTable, TableSchema, VerticalTable
+from secretflow.utils.consistent_ops import unique_list
 
-expr_condition_filter_comp = Component(
-    "expr_condition_filter",
-    domain="data_filter",
-    version="0.0.1",
-    desc="""
+
+@register(domain='data_filter', version='1.0.0')
+class ExprConditionFilter(Component):
+    '''
     Only row-level filtering is supported, column processing is not available;
     the custom expression must comply with SQLite syntax standards
-    """,
-)
+    '''
 
-expr_condition_filter_comp.str_attr(
-    name="expr",
-    desc="The custom expression must comply with SQLite syntax standards",
-    is_list=False,
-    is_optional=False,
-)
+    # Suggest that the user verify the validity of the expression
+    expr: str = Field.attr(
+        desc="The custom expression must comply with SQLite syntax standards"
+    )
+    input_ds: Input = Field.input(  # type: ignore
+        desc="Input vertical or individual table",
+        types=[DistDataType.INDIVIDUAL_TABLE, DistDataType.VERTICAL_TABLE],
+    )
+    output_ds: Output = Field.output(
+        desc="Output table that satisfies the condition",
+        types=[DistDataType.INDIVIDUAL_TABLE, DistDataType.VERTICAL_TABLE],
+    )
+    output_ds_else: Output = Field.output(
+        desc="Output table that does not satisfies the condition",
+        types=[DistDataType.INDIVIDUAL_TABLE, DistDataType.VERTICAL_TABLE],
+    )
 
-expr_condition_filter_comp.io(
-    io_type=IoType.INPUT,
-    name="in_ds",
-    desc="Input vertical or individual table",
-    types=[DistDataType.INDIVIDUAL_TABLE, DistDataType.VERTICAL_TABLE],
-)
+    @staticmethod
+    def parse_columns(expr: str) -> list[str]:
+        import sqlglot
+        import sqlglot.expressions as exp
 
-expr_condition_filter_comp.io(
-    io_type=IoType.OUTPUT,
-    name="out_ds",
-    desc="Output table that satisfies the condition",
-    types=[DistDataType.INDIVIDUAL_TABLE, DistDataType.VERTICAL_TABLE],
-)
+        sql = f"SELECT * FROM __table__ WHERE {expr}"
+        columns = []
+        for column in sqlglot.parse_one(sql, dialect="duckdb").find_all(exp.Column):
+            columns.append(column.sql().strip('"'))
 
-expr_condition_filter_comp.io(
-    io_type=IoType.OUTPUT,
-    name="out_ds_else",
-    desc="Output table that does not satisfies the condition",
-    types=[DistDataType.INDIVIDUAL_TABLE, DistDataType.VERTICAL_TABLE],
-)
+        columns = unique_list(columns)
 
+        return columns
 
-def parse_columns(expr: str) -> list[str]:
-    import sqlglot
-    import sqlglot.expressions as exp
+    def evaluate(self, ctx: Context):
+        expr = self.expr.strip()
+        assert expr != "", f"empty expr"
 
-    sql = f"SELECT * FROM __table__ WHERE {expr}"
-    columns = []
-    for column in sqlglot.parse_one(sql, dialect="sqlite").find_all(exp.Column):
-        columns.append(column.sql().strip('"'))
+        columns = self.parse_columns(expr)
 
-    return columns
+        if len(columns) == 0:
+            raise AttributeError(f"cannot parse columns from the expr<{expr}>")
 
+        infos = VTable.from_distdata(self.input_ds, columns=columns)
+        infos.check_kinds(VTableFieldKind.FEATURE)
 
-def _find_owner(schemas: dict[str, TableSchema], expr: str) -> str:  # type: ignore
-    columns = parse_columns(expr)
-    column_set = set(columns)
-    if len(column_set) == 0:
-        raise ValueError(f"cannot parse columns from the expr<{expr}>")
-
-    for party, s in schemas.items():
-        names = set(list(s.ids) + list(s.labels) + list(s.features))
-        if column_set.issubset(names):
-            return party
-        elif column_set.intersection(names):
-            diff = column_set.difference(names)
-            raise ValueError(
-                f"{diff} is not {party}'s columns. The columns<{columns}> of expr<{expr}> must appears in one party"
+        if len(infos.parties) > 1:
+            raise AttributeError(
+                f"The columns<{columns}> of expr<{expr}> must appears in one party"
             )
 
-    raise ValueError(f"cannot find party by the columns<{columns}> in the expr<{expr}>")
+        fit_pyu = PYU(infos.party(0).party)
 
+        def _fit(duck_input_table: pa.Table, expr: str) -> Tuple[pa.Table, Exception]:
+            sql = f"SELECT CASE WHEN {expr} THEN TRUE ELSE FALSE END AS hit FROM duck_input_table"
 
-@expr_condition_filter_comp.eval_fn
-def expr_condition_filter_comp_eval_fn(*, ctx, expr: str, in_ds, out_ds, out_ds_else):
-    expr = expr.strip()
-    assert expr != "", f"empty expr"
+            try:
+                with duckdb.connect() as con:
+                    selection = con.execute(sql).arrow()
+                if selection.num_columns != 1 or not pa.types.is_boolean(
+                    selection.field(0).type
+                ):
+                    return None, ValueError(
+                        f"The result can only have one column<{selection.num_columns}> and it must be of boolean type<{selection.field(0).type}>"
+                    )
+                return selection, None
+            except duckdb.Error as e:
+                logging.exception(f"execute sql {sql} error")
+                return None, ValueError(e.__cause__)
+            except Exception as e:
+                logging.exception(f"execute sql {sql} error")
+                return None, e
 
-    if in_ds.type == DistDataType.VERTICAL_TABLE:
-        meta = VerticalTable()
-        in_ds.meta.Unpack(meta)
-        schemas = {dr.party: s for s, dr in zip(meta.schemas, in_ds.data_refs)}
-        owner = _find_owner(schemas, expr)
-    else:
-        meta = IndividualTable()
-        in_ds.meta.Unpack(meta)
-        owner = in_ds.data_refs[0].party
+        reader = CompVDataFrameReader(ctx.storage, ctx.tracer, self.input_ds)
 
-    def _fit(df: pd.DataFrame, expr: str):
-        sql = f"SELECT CASE WHEN {expr} THEN TRUE ELSE FALSE END AS hit FROM __table__;"
-
-        try:
-            con = sqlite3.connect(":memory:")
-            df.to_sql("__table__", con, if_exists="replace", index=False)
-            sql_output = pd.read_sql_query(sql, con, dtype={"hit": "bool"})
-            filter = pd.Series(sql_output["hit"])
-            con.close()
-            return filter, None
-        except pd.errors.DatabaseError as e:
-            return None, ValueError(e.__cause__)
-        except Exception as e:
-            return None, e
-
-    x = load_table(ctx, in_ds, load_features=True, load_ids=True, load_labels=True)
-
-    owner_pyu = PYU(owner)
-    owner_party = x.partitions[owner_pyu]
-    filter_series, err_obj = owner_pyu(_fit, num_returns=2)(owner_party.data, expr)
-    err = reveal(err_obj)
-    if err is not None:
-        raise err
-
-    def _transform(df: pd.DataFrame, filter: pd.Series):
-        return df[filter], df[~filter]
-
-    out_partitions = {}
-    else_partitions = {}
-    for pyu, party in x.partitions.items():
-        out_data, else_data = pyu(_transform, num_returns=2)(
-            party.data, filter_series.to(pyu)
+        selected_writer = CompVDataFrameWriter(
+            ctx.storage, ctx.tracer, self.output_ds.uri
         )
-        out_partitions[pyu] = partition(out_data)
-        else_partitions[pyu] = partition(else_data)
+        else_writer = CompVDataFrameWriter(
+            ctx.storage, ctx.tracer, self.output_ds_else.uri
+        )
 
-    out_df = VDataFrame(partitions=out_partitions, aligned=x.aligned)
-    out_db = dump_table(ctx, out_df, out_ds, meta, in_ds.system_info)
+        def _transform(df: pa.Table, selection: pa.Table) -> Tuple[pa.Table, pa.Table]:
+            selection = selection.column(0)
+            return df.filter(selection), df.filter(pc.invert(selection))
 
-    else_df = VDataFrame(partitions=else_partitions, aligned=x.aligned)
-    else_db = dump_table(ctx, else_df, out_ds_else, meta, in_ds.system_info)
+        with selected_writer, else_writer:
+            for batch in reader:
+                selected_df = CompVDataFrame({}, self.input_ds.system_info)
+                else_df = CompVDataFrame({}, self.input_ds.system_info)
+                selection, err = fit_pyu(_fit)(batch.data(fit_pyu), expr)
+                err = reveal(err)
+                if err:
+                    raise err
+                for pyu in batch.partitions:
+                    selected_data, else_data = pyu(_transform)(
+                        batch.data(pyu), selection.to(pyu)
+                    )
+                    selected_df.set_data(selected_data)
+                    else_df.set_data(else_data)
+                selected_writer.write(selected_df)
+                else_writer.write(else_df)
 
-    return {"out_ds": out_db, "out_ds_else": else_db}
+        selected_writer.dump_to(self.output_ds)
+        else_writer.dump_to(self.output_ds_else)

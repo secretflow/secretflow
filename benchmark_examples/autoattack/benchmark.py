@@ -67,6 +67,7 @@ class Benchmark:
         columns = ['datasets', 'models', 'defenses']
         self.candidates = None
         participate_attacks = dispatch.ATTACKS
+        participate_attacks.insert(0, 'no_attack')
         if attack is None:
             self.candidates = ['train']
         if attack != 'all':
@@ -201,6 +202,9 @@ class Benchmark:
                 f"{self.custom_results(r.results, list(r.metrics.keys())).to_markdown()}"
             )
         else:
+            if global_config.need_monitor():
+                resource_usage = r.pop('resource_usage')
+                self.log_file_simple.write(f"resource usage: {resource_usage}\n\n")
             r = {k: str(v) for k, v in r.items()}
             self.log_file_simple.write(f"{pd.DataFrame(r,index=[0]).to_markdown()}")
 
@@ -389,6 +393,13 @@ class Benchmark:
     help='Wheter to run secretflow on the debug mode.',
 )
 @click.option(
+    "--enable_monitor",
+    is_flag=True,
+    required=False,
+    default=None,
+    help="Whether to enable resource monitor, default to False",
+)
+@click.option(
     "--ray_cluster_address",
     type=click.STRING,
     required=False,
@@ -414,6 +425,7 @@ def run(
     use_gpu,
     config,
     debug_mode,
+    enable_monitor,
     ray_cluster_address,
     random_seed,
 ):
@@ -430,6 +442,7 @@ def run(
         use_gpu=use_gpu,
         config=config,
         debug_mode=debug_mode,
+        enable_monitor=enable_monitor,
         ray_cluster_address=ray_cluster_address,
         random_seed=random_seed,
     )

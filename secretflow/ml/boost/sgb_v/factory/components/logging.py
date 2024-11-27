@@ -18,6 +18,10 @@ from dataclasses import dataclass
 from typing import Any
 
 from secretflow.device import wait
+from secretflow.ml.boost.sgb_v.factory.components.component import (
+    set_dict_from_params,
+    set_params_from_dict,
+)
 
 
 # logging params will be set at each component
@@ -54,15 +58,12 @@ logging_params_names = {'verbose', 'wait_execution'}
 
 class LoggingTools:
     @staticmethod
-    def logging_params_from_dict(params: dict) -> LoggingParams:
-        verbose = bool(params.get('verbose', False))
-        wait_execution = bool(params.get('wait_execution', False))
-        return LoggingParams(verbose, wait_execution)
+    def logging_params_from_dict(params: dict, log_params: LoggingParams):
+        set_params_from_dict(log_params, params)
 
     @staticmethod
     def logging_params_write_dict(params: dict, setting: LoggingParams):
-        params['verbose'] = setting.verbose
-        params['wait_execution'] = setting.wait_execution
+        set_dict_from_params(setting, params)
 
     @staticmethod
     def logging_start_templated_message(execution_name: str):

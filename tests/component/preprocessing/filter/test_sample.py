@@ -17,21 +17,24 @@ import logging
 import numpy as np
 import pandas as pd
 import pytest
+from pyarrow import orc
 
-from secretflow.component.component import CompEvalError
-from secretflow.component.data_utils import DistDataType, extract_distdata_info
+from secretflow.component.core import DistDataType, Storage, VTable, VTableFieldKind
+from secretflow.component.data_utils import extract_data_infos
+from secretflow.component.entry import comp_eval
 from secretflow.component.preprocessing.filter.sample import (
     RANDOM_SAMPLE,
     STRATIFY_SAMPLE,
     SYSTEM_SAMPLE,
+    Random,
     RandomSampleAlgorithm,
     SampleAlgorithmFactory,
+    Stratify,
     StratifySampleAlgorithm,
+    System,
     SystemSampleAlgorithm,
     calculate_sample_number,
-    sample_comp,
 )
-from secretflow.component.storage.storage import ComponentStorage
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import (
     DistData,
@@ -41,7 +44,6 @@ from secretflow.spec.v1.data_pb2 import (
 )
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
-
 
 RANDOM_STATE = 1234
 
@@ -56,7 +58,7 @@ def test_calculate_sample_num():
     frac = 2
     sample_num = frac * total_num
     with pytest.raises(
-        CompEvalError,
+        Exception,
         match=f"Replacement has to be set to True when sample number {sample_num} is larger than dataset size {total_num}.",
     ):
         calculate_sample_number(frac, False, total_num)
@@ -71,20 +73,8 @@ def test_illegal_sample():
         AssertionError,
         match=f"sample_algorithm must be one of \[random, system, stratify\], but got {illegal_sample_method}",
     ):
-        SampleAlgorithmFactory().create_sample_algorithm(
-            df_alice,
-            total_num,
-            illegal_sample_method,
-            0.8,
-            RANDOM_STATE,
-            True,
-            0.8,
-            0.8,
-            RANDOM_STATE,
-            '',
-            [],
-            [],
-            [],
+        SampleAlgorithmFactory.create(
+            df_alice, total_num, illegal_sample_method, None, None, None
         )
 
 
@@ -94,20 +84,13 @@ def test_random_sample():
     sample_num = 10
 
     df_alice = pd.DataFrame({'a': [i for i in range(100)]})
-    alg = SampleAlgorithmFactory().create_sample_algorithm(
+    alg = SampleAlgorithmFactory.create(
         df_alice,
         total_num,
         RANDOM_SAMPLE,
-        0.8,
-        RANDOM_STATE,
-        True,
-        0.8,
-        0.8,
-        RANDOM_STATE,
-        '',
-        [],
-        [],
-        [],
+        Random(frac=0.8, random_state=RANDOM_STATE, replacement=True),
+        None,
+        None,
     )
     assert isinstance(alg, RandomSampleAlgorithm)
 
@@ -136,20 +119,8 @@ def test_system_sample_rounding_error():
     df_alice = pd.DataFrame({'a': [i for i in range(99)]})
     total_num = 99
 
-    alg = SampleAlgorithmFactory().create_sample_algorithm(
-        df_alice,
-        total_num,
-        SYSTEM_SAMPLE,
-        0.5,
-        RANDOM_STATE,
-        True,
-        0.5,
-        0.5,
-        RANDOM_STATE,
-        '',
-        [],
-        [],
-        [],
+    alg = SampleAlgorithmFactory.create(
+        df_alice, total_num, SYSTEM_SAMPLE, None, System(frac=0.5), None
     )
     assert isinstance(alg, SystemSampleAlgorithm)
 
@@ -165,22 +136,7 @@ def test_system_sample():
     df_alice = pd.DataFrame({'a': [i for i in range(100)]})
     total_num = 100
 
-    alg = SampleAlgorithmFactory().create_sample_algorithm(
-        df_alice,
-        total_num,
-        SYSTEM_SAMPLE,
-        0.1,
-        RANDOM_STATE,
-        True,
-        0.1,
-        0.1,
-        RANDOM_STATE,
-        '',
-        [],
-        [],
-        [],
-    )
-    assert isinstance(alg, SystemSampleAlgorithm)
+    alg = SystemSampleAlgorithm(df_alice, total_num, 0.1)
 
     random_ids = SystemSampleAlgorithm._system_algorithm(total_num, alg.sample_num)
     reference_random_ids = []
@@ -242,20 +198,20 @@ def test_stratify_sample():
 
     quantiles = [5.3, 14.7]
     weights = [0.3, 0.3, 0.4]
-    alg = SampleAlgorithmFactory().create_sample_algorithm(
+    alg = SampleAlgorithmFactory.create(
         df_alice,
         total_num,
         STRATIFY_SAMPLE,
-        0.8,
-        RANDOM_STATE,
-        True,
-        0.8,
-        0.8,
-        RANDOM_STATE,
-        '',
-        [False, False, False],
-        quantiles,
-        weights,
+        None,
+        None,
+        Stratify(
+            frac=0.8,
+            random_state=RANDOM_STATE,
+            observe_feature='',
+            replacements=[False, False, False],
+            quantiles=quantiles,
+            weights=weights,
+        ),
     )
     assert isinstance(alg, StratifySampleAlgorithm)
 
@@ -358,20 +314,8 @@ def test_stratify_sample_illegal():
         AssertionError,
         match="quantiles is necessary for Stratify sample, but get null",
     ):
-        SampleAlgorithmFactory().create_sample_algorithm(
-            df_alice,
-            100,
-            STRATIFY_SAMPLE,
-            0.1,
-            RANDOM_STATE,
-            True,
-            0.1,
-            0.1,
-            RANDOM_STATE,
-            '',
-            [False, False],
-            quantiles,
-            weights,
+        StratifySampleAlgorithm(
+            df_alice, 100, 0.1, RANDOM_STATE, '', [False, False], quantiles, weights
         )
 
     # quantiles.size + 1 != replacements.size
@@ -381,34 +325,17 @@ def test_stratify_sample_illegal():
         AssertionError,
         match=f"len\(quantiles\) \+ 1 must equal len\(replacements\), but got len\(quantile\)\:{len(quantiles)}, len\(replacements\):{len(weights)}",
     ):
-        SampleAlgorithmFactory().create_sample_algorithm(
-            df_alice,
-            100,
-            STRATIFY_SAMPLE,
-            0.1,
-            RANDOM_STATE,
-            True,
-            0.1,
-            0.1,
-            RANDOM_STATE,
-            '',
-            replacements,
-            quantiles,
-            weights,
+        StratifySampleAlgorithm(
+            df_alice, 100, 0.1, RANDOM_STATE, '', replacements, quantiles, weights
         )
 
     with pytest.raises(
         AssertionError,
         match=f"sum of weights must be 1.0, but got 1.2000000000000002",
     ):
-        SampleAlgorithmFactory().create_sample_algorithm(
+        StratifySampleAlgorithm(
             df_alice,
             100,
-            STRATIFY_SAMPLE,
-            0.8,
-            RANDOM_STATE,
-            True,
-            0.8,
             0.8,
             RANDOM_STATE,
             '',
@@ -421,14 +348,9 @@ def test_stratify_sample_illegal():
         AssertionError,
         match=f"sum of weights must be 1.0, but got 0.9",
     ):
-        SampleAlgorithmFactory().create_sample_algorithm(
+        StratifySampleAlgorithm(
             df_alice,
             100,
-            STRATIFY_SAMPLE,
-            0.8,
-            RANDOM_STATE,
-            True,
-            0.8,
             0.8,
             RANDOM_STATE,
             '',
@@ -438,20 +360,8 @@ def test_stratify_sample_illegal():
         )
 
     # empty weights ok
-    SampleAlgorithmFactory().create_sample_algorithm(
-        df_alice,
-        100,
-        STRATIFY_SAMPLE,
-        0.8,
-        RANDOM_STATE,
-        True,
-        0.8,
-        0.8,
-        RANDOM_STATE,
-        '',
-        [True, True, True],
-        [1, 2],
-        [],
+    StratifySampleAlgorithm(
+        df_alice, 100, 0.8, RANDOM_STATE, '', [True, True, True], [1, 2], []
     )
 
 
@@ -463,35 +373,35 @@ def test_sample_vertical(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = Storage(storage_config)
 
     if self_party == "alice":
         df_alice = pd.DataFrame(
             {
                 "id1": [1, 2, 3, 4, 5, 6],
-                "a1": ["K5", "K1", None, "K6", "cc", "L"],
+                "a1": ["K5", "K1", "K?", "K6", "cc", "L"],
             }
         )
         df_alice.to_csv(
-            comp_storage.get_writer(alice_input_path),
+            storage.get_writer(alice_input_path),
             index=False,
         )
     elif self_party == "bob":
         df_bob = pd.DataFrame(
             {
                 "id2": [1, 2, 3, 4, 5, 6],
-                "b1": [10.2, 20.5, None, -0.4, -3.2, 4.5],
+                "b1": [10.2, 20.5, 1.0, -0.4, -3.2, 4.5],
             }
         )
         df_bob.to_csv(
-            comp_storage.get_writer(bob_input_path),
+            storage.get_writer(bob_input_path),
             index=False,
         )
 
     param = NodeEvalParam(
         domain="data_filter",
         name="sample",
-        version="0.0.1",
+        version="1.0.0",
         attr_paths=[
             'sample_algorithm',
             'sample_algorithm/stratify/frac',
@@ -541,7 +451,7 @@ def test_sample_vertical(comp_prod_sf_cluster_config):
     )
     param.inputs[0].meta.Pack(meta)
 
-    res = sample_comp.eval(
+    res = comp_eval(
         param=param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -555,17 +465,21 @@ def test_sample_vertical(comp_prod_sf_cluster_config):
     res.outputs[1].meta.Unpack(comp_ret)
     logging.info(comp_ret)
 
-    sample_data = extract_distdata_info(res.outputs[0])
+    sample_data = VTable.from_distdata(res.outputs[0], columns=["id1", "id2"])
 
     if self_party == "alice":
-        ds_alice = pd.read_csv(comp_storage.get_reader(sample_data["alice"].uri))
+        ds_alice = orc.read_table(
+            storage.get_reader(sample_data.party("alice").uri)
+        ).to_pandas()
         np.testing.assert_equal(ds_alice.shape[0], 5)
-        assert list(ds_alice["id1"]) == [1, 3, 4, 5, 6]
+        assert list(ds_alice["id1"]) == ["1", "3", "4", "5", "6"]
 
     if self_party == "bob":
-        ds_bob = pd.read_csv(comp_storage.get_reader(sample_data["bob"].uri))
+        ds_bob = orc.read_table(
+            storage.get_reader(sample_data.party("bob").uri)
+        ).to_pandas()
         np.testing.assert_equal(ds_bob.shape[0], 5)
-        assert list(ds_bob["id2"]) == [1, 3, 4, 5, 6]
+        assert list(ds_bob["id2"]) == ["1", "3", "4", "5", "6"]
 
 
 def test_sample_vertical_replacement(comp_prod_sf_cluster_config):
@@ -576,35 +490,35 @@ def test_sample_vertical_replacement(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = Storage(storage_config)
 
     if self_party == "alice":
         df_alice = pd.DataFrame(
             {
                 "id1": [1, 2, 3, 4, 5, 6],
-                "a1": ["K5", "K1", None, "K6", "cc", "L"],
+                "a1": ["K5", "K1", "K?", "K6", "cc", "L"],
             }
         )
         df_alice.to_csv(
-            comp_storage.get_writer(alice_input_path),
+            storage.get_writer(alice_input_path),
             index=False,
         )
     elif self_party == "bob":
         df_bob = pd.DataFrame(
             {
                 "id2": [1, 2, 3, 4, 5, 6],
-                "b1": [10.2, 20.5, None, -0.4, -3.2, 4.5],
+                "b1": [10.2, 20.5, 10.1, -0.4, -3.2, 4.5],
             }
         )
         df_bob.to_csv(
-            comp_storage.get_writer(bob_input_path),
+            storage.get_writer(bob_input_path),
             index=False,
         )
 
     param = NodeEvalParam(
         domain="data_filter",
         name="sample",
-        version="0.0.1",
+        version="1.0.0",
         attr_paths=[
             'sample_algorithm',
             'sample_algorithm/random/frac',
@@ -648,7 +562,7 @@ def test_sample_vertical_replacement(comp_prod_sf_cluster_config):
     )
     param.inputs[0].meta.Pack(meta)
 
-    res = sample_comp.eval(
+    res = comp_eval(
         param=param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -656,17 +570,19 @@ def test_sample_vertical_replacement(comp_prod_sf_cluster_config):
 
     assert len(res.outputs) == 2
 
-    sample_data = extract_distdata_info(res.outputs[0])
+    sample_data = extract_data_infos(res.outputs[0], load_ids=True)
 
     if self_party == "alice":
-        ds_alice = pd.read_csv(comp_storage.get_reader(sample_data["alice"].uri))
+        ds_alice = orc.read_table(
+            storage.get_reader(sample_data["alice"].uri)
+        ).to_pandas()
         np.testing.assert_equal(ds_alice.shape[0], 5)
-        assert list(ds_alice["id1"]) == [1, 1, 1, 4, 5]
+        assert list(ds_alice["id1"]) == ["1", "1", "1", "4", "5"]
 
     if self_party == "bob":
-        ds_bob = pd.read_csv(comp_storage.get_reader(sample_data["bob"].uri))
+        ds_bob = orc.read_table(storage.get_reader(sample_data["bob"].uri)).to_pandas()
         np.testing.assert_equal(ds_bob.shape[0], 5)
-        assert list(ds_bob["id2"]) == [1, 1, 1, 4, 5]
+        assert list(ds_bob["id2"]) == ["1", "1", "1", "4", "5"]
 
 
 def test_sample_individual(comp_prod_sf_cluster_config):
@@ -676,24 +592,24 @@ def test_sample_individual(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = Storage(storage_config)
 
     if self_party == 'alice':
         df_alice = pd.DataFrame(
             {
                 "id1": [1, 2, 3, 4, 5, 6],
-                "a1": ["K5", "K1", None, "K6", "cc", "L"],
+                "a1": ["K5", "K1", "KN", "K6", "cc", "L"],
             }
         )
         df_alice.to_csv(
-            comp_storage.get_writer(alice_input_path),
+            storage.get_writer(alice_input_path),
             index=False,
         )
 
     param = NodeEvalParam(
         domain="data_filter",
         name="sample",
-        version="0.0.1",
+        version="1.0.0",
         attr_paths=[
             'sample_algorithm',
             'sample_algorithm/random/frac',
@@ -728,7 +644,7 @@ def test_sample_individual(comp_prod_sf_cluster_config):
     )
     param.inputs[0].meta.Pack(meta)
 
-    res = sample_comp.eval(
+    res = comp_eval(
         param=param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -736,9 +652,11 @@ def test_sample_individual(comp_prod_sf_cluster_config):
 
     assert len(res.outputs) == 2
 
-    sample_data = extract_distdata_info(res.outputs[0])
+    sample_data = extract_data_infos(res.outputs[0], load_ids=True)
 
     if self_party == "alice":
-        ds_alice = pd.read_csv(comp_storage.get_reader(sample_data["alice"].uri))
+        ds_alice = orc.read_table(
+            storage.get_reader(sample_data["alice"].uri)
+        ).to_pandas()
         np.testing.assert_equal(ds_alice.shape[0], 5)
-        assert list(ds_alice["id1"]) == [1, 2, 3, 4, 5]
+        assert list(ds_alice["id1"]) == ["1", "2", "3", "4", "5"]

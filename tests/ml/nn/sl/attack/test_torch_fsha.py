@@ -22,14 +22,14 @@ from torch.utils.data import DataLoader, TensorDataset
 from torchmetrics import Accuracy, Precision
 
 from secretflow.data.ndarray import FedNdarray, PartitionWay
-from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.core.torch import (
+from secretflow_fl.ml.nn import SLModel
+from secretflow_fl.ml.nn.core.torch import (
     BaseModule,
     TorchModel,
     metric_wrapper,
     optim_wrapper,
 )
-from secretflow.ml.nn.sl.attacks.fsha_torch import FeatureSpaceHijackingAttack
+from secretflow_fl.ml.nn.sl.attacks.fsha_torch import FeatureSpaceHijackingAttack
 
 
 class AliceSLBaseNet(BaseModule):
@@ -292,10 +292,10 @@ def do_test_sl_and_fsha(config: dict, alice, bob):
         optim_fn=optim_fn,
         metrics=[
             metric_wrapper(
-                Accuracy, task="multiclass", num_classes=11, average='micro'
+                Accuracy, task="multiclass", num_classes=11, average="micro"
             ),
             metric_wrapper(
-                Precision, task="multiclass", num_classes=11, average='micro'
+                Precision, task="multiclass", num_classes=11, average="micro"
             ),
         ],
     )
@@ -306,10 +306,10 @@ def do_test_sl_and_fsha(config: dict, alice, bob):
         optim_fn=optim_fn,
         metrics=[
             metric_wrapper(
-                Accuracy, task="multiclass", num_classes=11, average='micro'
+                Accuracy, task="multiclass", num_classes=11, average="micro"
             ),
             metric_wrapper(
-                Precision, task="multiclass", num_classes=11, average='micro'
+                Precision, task="multiclass", num_classes=11, average="micro"
             ),
         ],
     )
@@ -320,10 +320,10 @@ def do_test_sl_and_fsha(config: dict, alice, bob):
         optim_fn=optim_fn,
         metrics=[
             metric_wrapper(
-                Accuracy, task="multiclass", num_classes=11, average='micro'
+                Accuracy, task="multiclass", num_classes=11, average="micro"
             ),
             metric_wrapper(
-                Precision, task="multiclass", num_classes=11, average='micro'
+                Precision, task="multiclass", num_classes=11, average="micro"
             ),
         ],
     )
@@ -341,12 +341,12 @@ def do_test_sl_and_fsha(config: dict, alice, bob):
         compressor=None,
         simulation=True,
         random_seed=1234,
-        backend='torch',
-        strategy='split_nn',
+        backend="torch",
+        strategy="split_nn",
     )
 
     batch_size = 64
-    victim_model_save_path = fsha_path + '/sl_model_victim'
+    victim_model_save_path = fsha_path + "/sl_model_victim"
     victim_model_dict = {
         "bob": [BobSLBaseNet, victim_model_save_path],
     }
