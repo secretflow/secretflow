@@ -16,7 +16,7 @@ from typing import Dict, List
 
 import torch
 import torch.nn as nn
-from secretflow.ml.nn.core.torch import BaseModule
+from secretflow_fl.ml.nn.core.torch import BaseModule
 
 
 class Dice(nn.Module):
