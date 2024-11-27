@@ -12,30 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import shutil
-from pathlib import Path
+import tempfile
 
-import numpy as np
-import pandas as pd
-import secretflow as sf
 import torch
-from secretflow.data.vertical import read_csv
-from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
-from secretflow.utils.simulation.datasets import _DATASETS, get_dataset, unzip
-from sklearn.preprocessing import LabelEncoder
-from sl_din_torch import DINBase, DINFuse
-from tests.ml.nn.sl.extra.applications.test_sl_bst_torch import generate_data
 from torch import nn, optim
 from torch.utils.data import DataLoader, Dataset
 from torchmetrics import AUROC, Accuracy, Precision
 
-data_dir = "./din_data"
-dataset_download_dir = data_dir + "/data_download"
-gen_data_path = data_dir + "/data_sl_din"
+from secretflow.data.vertical import read_csv
+from secretflow_fl.ml.nn import SLModel
+from secretflow_fl.ml.nn.applications.sl_din_torch import DINBase, DINFuse
+from secretflow_fl.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
+from tests.ml.nn.sl.extra.applications.test_sl_bst_torch import generate_data
+
+tmp_dir = tempfile.TemporaryDirectory()
+lia_path = tmp_dir.name
+dataset_download_dir = lia_path + "/dataset_download/ml-1m"
+gen_data_path = lia_path + "/data_sl_bst_torch"
+
 fea_emb_input_size = {}
-generate_data()
 
 
 class AliceDataset(Dataset):
@@ -94,18 +89,6 @@ def create_dataset_builder_bob(batch_size=32):
     return dataset_builder
 
 
-print("The version of SecretFlow: {}".format(sf.__version__))
-sf.shutdown()
-sf.init(["alice", "bob"], address="local", log_to_driver=False)
-alice, bob = sf.PYU("alice"), sf.PYU("bob")
-
-batch_size = 64
-dataset_buidler_dict = {
-    alice: create_dataset_builder_alice(batch_size=batch_size),
-    bob: create_dataset_builder_bob(batch_size=batch_size),
-}
-
-
 def create_base_model_alice():
     def create_model():
         fea_emb_size = {
@@ -155,75 +138,93 @@ def create_fuse_model():
     return create_model
 
 
-loss_fn = nn.CrossEntropyLoss
-optim_fn = optim_wrapper(optim.Adam, lr=1e-2)
+def test_sl_din(sf_simulation_setup_devices):
 
-base_model_alice = TorchModel(
-    model_fn=create_base_model_alice(),
-    loss_fn=loss_fn,
-    optim_fn=optim_fn,
-    metrics=[
-        metric_wrapper(Accuracy, task="multiclass", num_classes=2, average="micro"),
-        metric_wrapper(Precision, task="multiclass", num_classes=2, average="micro"),
-        metric_wrapper(AUROC, task="binary"),
-    ],
-)
+    generate_data(gen_data_path, fea_emb_input_size)
+    alice = sf_simulation_setup_devices.alice
+    bob = sf_simulation_setup_devices.bob
 
-base_model_bob = TorchModel(
-    model_fn=create_base_model_bob(),
-    loss_fn=loss_fn,
-    optim_fn=optim_fn,
-    metrics=[
-        metric_wrapper(Accuracy, task="multiclass", num_classes=2, average="micro"),
-        metric_wrapper(Precision, task="multiclass", num_classes=2, average="micro"),
-        metric_wrapper(AUROC, task="binary"),
-    ],
-)
+    batch_size = 64
+    dataset_buidler_dict = {
+        alice: create_dataset_builder_alice(batch_size=batch_size),
+        bob: create_dataset_builder_bob(batch_size=batch_size),
+    }
 
-fuse_model = TorchModel(
-    model_fn=create_fuse_model(),
-    loss_fn=loss_fn,
-    optim_fn=optim_fn,
-    metrics=[
-        metric_wrapper(Accuracy, task="multiclass", num_classes=2, average="micro"),
-        metric_wrapper(Precision, task="multiclass", num_classes=2, average="micro"),
-        metric_wrapper(AUROC, task="multiclass", num_classes=2),
-    ],
-)
+    loss_fn = nn.CrossEntropyLoss
+    optim_fn = optim_wrapper(optim.Adam, lr=1e-2)
 
-base_model_dict = {
-    alice: base_model_alice,
-    bob: base_model_bob,
-}
+    base_model_alice = TorchModel(
+        model_fn=create_base_model_alice(),
+        loss_fn=loss_fn,
+        optim_fn=optim_fn,
+        metrics=[
+            metric_wrapper(Accuracy, task="multiclass", num_classes=2, average="micro"),
+            metric_wrapper(
+                Precision, task="multiclass", num_classes=2, average="micro"
+            ),
+            metric_wrapper(AUROC, task="binary"),
+        ],
+    )
 
-sl_model = SLModel(
-    base_model_dict=base_model_dict,
-    device_y=alice,
-    model_fuse=fuse_model,
-    random_seed=1234,
-    backend="torch",
-)
+    base_model_bob = TorchModel(
+        model_fn=create_base_model_bob(),
+        loss_fn=loss_fn,
+        optim_fn=optim_fn,
+        metrics=[
+            metric_wrapper(Accuracy, task="multiclass", num_classes=2, average="micro"),
+            metric_wrapper(
+                Precision, task="multiclass", num_classes=2, average="micro"
+            ),
+            metric_wrapper(AUROC, task="binary"),
+        ],
+    )
 
+    fuse_model = TorchModel(
+        model_fn=create_fuse_model(),
+        loss_fn=loss_fn,
+        optim_fn=optim_fn,
+        metrics=[
+            metric_wrapper(Accuracy, task="multiclass", num_classes=2, average="micro"),
+            metric_wrapper(
+                Precision, task="multiclass", num_classes=2, average="micro"
+            ),
+            metric_wrapper(AUROC, task="multiclass", num_classes=2),
+        ],
+    )
 
-vdf = read_csv(
-    {
-        alice: gen_data_path + "/train_data_alice.csv",
-        bob: gen_data_path + "/train_data_bob.csv",
-    },
-)
-label = vdf["label"]
-data = vdf.drop(columns=["label"])
+    base_model_dict = {
+        alice: base_model_alice,
+        bob: base_model_bob,
+    }
 
-epoch = 1
+    sl_model = SLModel(
+        base_model_dict=base_model_dict,
+        device_y=alice,
+        model_fuse=fuse_model,
+        random_seed=1234,
+        backend="torch",
+    )
 
-history = sl_model.fit(
-    data,
-    label,
-    validation_data=(data, label),
-    epochs=epoch,
-    batch_size=batch_size,
-    shuffle=False,
-    random_seed=1234,
-    dataset_builder=dataset_buidler_dict,
-)
-print("history: ", history)
+    vdf = read_csv(
+        {
+            alice: gen_data_path + "/train_data_alice.csv",
+            bob: gen_data_path + "/train_data_bob.csv",
+        },
+        delimiter="|",
+    )
+    label = vdf["label"]
+    data = vdf.drop(columns=["label"])
+
+    epoch = 1
+
+    history = sl_model.fit(
+        data,
+        label,
+        validation_data=(data, label),
+        epochs=epoch,
+        batch_size=batch_size,
+        shuffle=False,
+        random_seed=1234,
+        dataset_builder=dataset_buidler_dict,
+    )
+    print("history: ", history)
