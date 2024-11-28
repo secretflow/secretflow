@@ -21,8 +21,8 @@ from benchmark_examples.autoattack.applications.base import (
 )
 from benchmark_examples.autoattack.attacks.base import AttackBase, AttackType
 from benchmark_examples.autoattack.utils.resources import ResourcesPack
-from secretflow.ml.nn.callbacks.attack import AttackCallback
-from secretflow.ml.nn.sl.attacks.batch_level_lia_torch import (
+from secretflow_fl.ml.nn.callbacks.attack import AttackCallback
+from secretflow_fl.ml.nn.sl.attacks.batch_level_lia_torch import (
     BatchLevelLabelInferenceAttack,
 )
 
@@ -59,8 +59,11 @@ class BatchLevelLiaAttackCase(AttackBase):
     def update_resources_consumptions(
         self, cluster_resources_pack: ResourcesPack, app: ApplicationBase
     ) -> ResourcesPack:
-
-        func = lambda x: x * 1.3
-        return cluster_resources_pack.apply_debug_resources(
-            'gpu_mem', func
-        ).apply_sim_resources(app.device_f.party, 'gpu_mem', func)
+        update_gpu = lambda x: x * 1.3
+        update_mem = lambda x: x * 1.2
+        return (
+            cluster_resources_pack.apply_debug_resources('gpu_mem', update_gpu)
+            .apply_debug_resources('memory', update_mem)
+            .apply_sim_resources(app.device_f.party, 'gpu_mem', update_gpu)
+            .apply_sim_resources(app.device_f.party, 'memory', update_mem)
+        )

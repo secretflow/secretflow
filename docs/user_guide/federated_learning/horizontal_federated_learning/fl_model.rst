@@ -3,7 +3,7 @@ Federated NN Model
 
 You could define a federated learning NN model with Tensorflow or PyTorch easily.
 
-Please check API of :py:class:`~secretflow.ml.nn.FLModel`.
+Please check API of :py:class:`~secretflow_fl.ml.nn.FLModel`.
 
 You may also check tutorials:
 

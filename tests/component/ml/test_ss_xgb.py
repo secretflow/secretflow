@@ -14,18 +14,19 @@
 
 import pandas as pd
 import pytest
-
-from secretflow.component.ml.boost.ss_xgb.ss_xgb import (
-    ss_xgb_predict_comp,
-    ss_xgb_train_comp,
-)
-from secretflow.component.storage import ComponentStorage
-from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
+from pyarrow import orc
 from sklearn.datasets import load_breast_cancer
 from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import StandardScaler
+
+from secretflow.component.core import (
+    Storage,
+    VTable,
+    VTableParty,
+    build_node_eval_param,
+)
+from secretflow.component.entry import comp_eval
+from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 
 NUM_BOOST_ROUND = 3
 
@@ -41,7 +42,7 @@ def test_ss_xgb(comp_prod_sf_cluster_config, with_checkpoint):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = Storage(storage_config)
 
     scaler = StandardScaler()
     ds = load_breast_cancer()
@@ -50,49 +51,42 @@ def test_ss_xgb(comp_prod_sf_cluster_config, with_checkpoint):
         x = pd.DataFrame(x[:, :15], columns=[f"a{i}" for i in range(15)])
         y = pd.DataFrame(y, columns=["y"])
         ds = pd.concat([x, y], axis=1)
-        ds.to_csv(comp_storage.get_writer(alice_path), index=False)
+        ds.to_csv(storage.get_writer(alice_path), index=False)
 
     elif self_party == "bob":
         ds = pd.DataFrame(x[:, 15:], columns=[f"b{i}" for i in range(15)])
-        ds.to_csv(comp_storage.get_writer(bob_path), index=False)
+        ds.to_csv(storage.get_writer(bob_path), index=False)
 
-    train_param = NodeEvalParam(
+    train_param = build_node_eval_param(
         domain="ml.train",
         name="ss_xgb_train",
-        version="0.0.1",
-        attr_paths=[
-            "num_boost_round",
-            "max_depth",
-            "learning_rate",
-            "objective",
-            "reg_lambda",
-            "subsample",
-            "colsample_by_tree",
-            "sketch_eps",
-            "base_score",
-            "input/train_dataset/label",
-            "input/train_dataset/feature_selects",
-        ],
-        attrs=[
-            Attribute(i64=NUM_BOOST_ROUND),
-            Attribute(i64=3),
-            Attribute(f=0.3),
-            Attribute(s="logistic"),
-            Attribute(f=0.1),
-            Attribute(f=1),
-            Attribute(f=1),
-            Attribute(f=0.25),
-            Attribute(f=0),
-            Attribute(ss=["y"]),
-            Attribute(ss=[f"a{i}" for i in range(15)] + [f"b{i}" for i in range(15)]),
-        ],
+        version="1.0.0",
+        attrs={
+            "num_boost_round": NUM_BOOST_ROUND,
+            "max_depth": 3,
+            "learning_rate": 0.3,
+            "objective": "logistic",
+            "reg_lambda": 0.1,
+            "subsample": 1.0,
+            "colsample_by_tree": 1.0,
+            "sketch_eps": 0.25,
+            "base_score": 0.0,
+            "input/input_ds/label": ["y"],
+            "input/input_ds/feature_selects": [f"a{i}" for i in range(15)]
+            + [f"b{i}" for i in range(15)],
+        },
         inputs=[
-            DistData(
+            VTable(
                 name="train_dataset",
-                type="sf.table.vertical_table",
-                data_refs=[
-                    DistData.DataRef(uri=alice_path, party="alice", format="csv"),
-                    DistData.DataRef(uri=bob_path, party="bob", format="csv"),
+                parties=[
+                    VTableParty.from_dict(
+                        uri=alice_path,
+                        party="alice",
+                        format="csv",
+                        features={f"a{i}": "float32" for i in range(15)},
+                        labels={"y": "float32"},
+                    ),
+                    VTableParty.from_dict(uri=bob_path, party="bob", format="csv"),
                 ],
             ),
         ],
@@ -116,29 +110,23 @@ def test_ss_xgb(comp_prod_sf_cluster_config, with_checkpoint):
     )
     train_param.inputs[0].meta.Pack(meta)
 
-    train_res = ss_xgb_train_comp.eval(
+    train_res = comp_eval(
         param=train_param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
     )
 
     def run_pred(predict_path, train_res):
-        predict_param = NodeEvalParam(
+        predict_param = build_node_eval_param(
             domain="ml.predict",
             name="ss_xgb_predict",
-            version="0.0.2",
-            attr_paths=[
-                "receiver",
-                "save_ids",
-                "save_label",
-                "input/feature_dataset/saved_features",
-            ],
-            attrs=[
-                Attribute(ss=["alice"]),
-                Attribute(b=False),
-                Attribute(b=True),
-                Attribute(ss=["a2", "a10"]),
-            ],
+            version="1.0.0",
+            attrs={
+                "receiver": ["alice"],
+                "save_ids": False,
+                "save_label": True,
+                "saved_features": ["a2", "a10"],
+            },
             inputs=[
                 train_res.outputs[0],
                 DistData(
@@ -168,7 +156,7 @@ def test_ss_xgb(comp_prod_sf_cluster_config, with_checkpoint):
         )
         predict_param.inputs[1].meta.Pack(meta)
 
-        predict_res = ss_xgb_predict_comp.eval(
+        predict_res = comp_eval(
             param=predict_param,
             storage_config=storage_config,
             cluster_config=sf_cluster_config,
@@ -177,9 +165,9 @@ def test_ss_xgb(comp_prod_sf_cluster_config, with_checkpoint):
         assert len(predict_res.outputs) == 1
 
         if "alice" == sf_cluster_config.private_config.self_party:
-            comp_storage = ComponentStorage(storage_config)
-            input_y = pd.read_csv(comp_storage.get_reader(alice_path))
-            output_y = pd.read_csv(comp_storage.get_reader(predict_path))
+            storage = Storage(storage_config)
+            input_y = pd.read_csv(storage.get_reader(alice_path))
+            output_y = orc.read_table(storage.get_reader(predict_path)).to_pandas()
 
             # label & pred
             assert output_y.shape[1] == 4
@@ -193,15 +181,15 @@ def test_ss_xgb(comp_prod_sf_cluster_config, with_checkpoint):
     if with_checkpoint:
         cp_num = NUM_BOOST_ROUND
         if "alice" == sf_cluster_config.private_config.self_party:
-            comp_storage = ComponentStorage(storage_config)
+            storage = Storage(storage_config)
             for i in range(int(cp_num / 2), cp_num):
-                with comp_storage.get_writer(f"{checkpoint_path}_{i}") as f:
+                with storage.get_writer(f"{checkpoint_path}_{i}") as f:
                     # destroy some checkpoint to rollback train progress
                     f.write(b"....")
 
         # run train again from checkpoint
         train_param.output_uris[0] = f"{work_path}/model.sf.2"
-        train_res = ss_xgb_train_comp.eval(
+        train_res = comp_eval(
             param=train_param,
             storage_config=storage_config,
             cluster_config=sf_cluster_config,

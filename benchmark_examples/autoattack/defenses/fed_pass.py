@@ -18,9 +18,9 @@ from benchmark_examples.autoattack.applications.base import ApplicationBase, Mod
 from benchmark_examples.autoattack.attacks.base import AttackBase, AttackType
 from benchmark_examples.autoattack.defenses.base import DefenseBase
 from benchmark_examples.autoattack.utils.resources import ResourcesPack
-from secretflow.ml.nn.callbacks.callback import Callback
-from secretflow.ml.nn.core.torch import module
-from secretflow.ml.nn.sl.backend.torch.sl_base import SLBaseTorchModel
+from secretflow_fl.ml.nn.callbacks.callback import Callback
+from secretflow_fl.ml.nn.core.torch import module
+from secretflow_fl.ml.nn.sl.backend.torch.sl_base import SLBaseTorchModel
 
 
 class FedPassDefense(Callback):
@@ -84,9 +84,13 @@ class FedPass(DefenseBase):
         attack: AttackBase | None,
     ) -> ResourcesPack:
 
-        func = lambda x: x * 1.2
+        update_gpu = lambda x: x * 1.2
+        update_mem = lambda x: x * 1.17
         return (
-            cluster_resources_pack.apply_debug_resources('gpu_mem', func)
-            .apply_sim_resources(app.device_y.party, 'gpu_mem', func)
-            .apply_sim_resources(app.device_f.party, 'gpu_mem', func)
+            cluster_resources_pack.apply_debug_resources('gpu_mem', update_gpu)
+            .apply_debug_resources('memory', update_mem)
+            .apply_sim_resources(app.device_y.party, 'gpu_mem', update_gpu)
+            .apply_sim_resources(app.device_f.party, 'gpu_mem', update_gpu)
+            .apply_sim_resources(app.device_y.party, 'memory', update_mem)
+            .apply_sim_resources(app.device_f.party, 'memory', update_mem)
         )

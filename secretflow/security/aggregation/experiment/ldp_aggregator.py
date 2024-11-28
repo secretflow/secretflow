@@ -49,19 +49,6 @@ class LDPAggregator(Aggregator):
         assert isinstance(device, PYU), f"Accepts PYU only but got {type(device)}."
         self.device = device
 
-    @staticmethod
-    def _get_dtype(arr):
-        if isinstance(arr, np.ndarray):
-            return arr.dtype
-        else:
-            try:
-                import tensorflow as tf
-
-                if isinstance(arr, tf.Tensor):
-                    return arr.numpy().dtype
-            except ImportError:
-                return None
-
     def sum(self, data: List[DeviceObject], axis=None) -> PYUObject:
         """Sum of array elements over a given axis.
 

@@ -118,10 +118,11 @@ jobs:
             fi
 
             # Build image
-            cd docker/release
+            pushd docker/release
             bash ./build.sh -l -v ${VERSION}
 
             # save version to next job
+            popd
             echo $VERSION >> sf.version
       - persist_to_workspace:
           root: .

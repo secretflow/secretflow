@@ -46,7 +46,8 @@ class SplitTreeBuilder(Component):
         print_params(self.params)
 
     def set_params(self, params: dict):
-        self.params.enable_packbits = bool(params.get('enable_packbits', False))
+        if 'enable_packbits' in params:
+            self.params.enable_packbits = params['enable_packbits']
 
     def get_params(self, params: dict):
         params['enable_packbits'] = self.params.enable_packbits

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """
-This file mainly borrows from ray.cloudpickle.cloudpickle_fast.py.
+This file mainly borrows from cloudpickle.cloudpickle_fast.py.
 
 We introduce a custom serialization omitting code positions,
 e.g., function filename, first line no, .etc.
@@ -36,7 +36,9 @@ from collections import ChainMap, OrderedDict
 from enum import Enum
 
 import _collections_abc
-from ray.cloudpickle import Pickler, cloudpickle, cloudpickle_fast
+
+# TODO by jzc: verify its correctness
+from cloudpickle import Pickler, cloudpickle, cloudpickle_fast
 
 
 def _code_reduce(obj):

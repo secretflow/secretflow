@@ -18,12 +18,12 @@ from torch import nn
 from torchmetrics import Accuracy
 
 from secretflow.data.split import train_test_split
-from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.applications.sl_dnn_torch import DnnBase, DnnFuse
-from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
-from secretflow.ml.nn.sl.defenses.gradient_average import GradientAverage
 from secretflow.preprocessing import StandardScaler
 from secretflow.utils.simulation.datasets import load_creditcard_small
+from secretflow_fl.ml.nn import SLModel
+from secretflow_fl.ml.nn.applications.sl_dnn_torch import DnnBase, DnnFuse
+from secretflow_fl.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
+from secretflow_fl.ml.nn.sl.defenses.gradient_average import GradientAverage
 
 
 def test_gradient_average_tensorflow_backend(sf_simulation_setup_devices):

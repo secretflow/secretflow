@@ -26,7 +26,7 @@ from tensorflow import keras
 from tensorflow.keras import backend, layers
 
 import secretflow as sf
-from secretflow.ml.nn import FLModel
+from secretflow_fl.ml.nn import FLModel
 from secretflow.security.aggregation import SecureAggregator
 
 IMAGE_SIZE = 288

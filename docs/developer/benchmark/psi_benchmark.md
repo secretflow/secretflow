@@ -85,7 +85,7 @@ source ~/.bashrc
 conda --version 
 ```
 ![](./resources/4bded9b0-d913-48b2-b7a9-c05e0d2c7c81.png)
-         
+
 
 ### 三、安装secretflow
 ```
@@ -163,12 +163,12 @@ python3 generate_psi.py 10000000 10000000
 # 生成三份一亿数据
 python3 generate_psi.py 100000000 100000000
 ```
-把生成的psi_1.csv cp到benchmark目录下，再通过scp的命令把psi_2.csv/psi_3.csv分别移到bob的benchmark目录下跟carol的benchark目录下 
+把生成的psi_1.csv cp到benchmark目录下，再通过scp的命令把psi_2.csv/psi_3.csv分别移到bob的benchmark目录下跟carol的benchark目录下
 
 #### 限制宽带/延迟
 ```
 #100Mbps 10ms
- tc qdisc add dev eth0 root handle 1: tbf rate 100mbit burst 256kb latency 800ms                                    
+ tc qdisc add dev eth0 root handle 1: tbf rate 100mbit burst 256kb latency 800ms
  tc qdisc add dev eth0 parent 1:1 handle 10: netem delay 10msec limit 8000 
 
 清除限制
@@ -328,7 +328,7 @@ def main(_):
     }
     spu = sf.SPU(cluster_def, link_desc)
 ​
-    # offline 
+    # offline
     print("=====offline phase====")
     start = time.time()
 ​
@@ -435,7 +435,7 @@ def main(_):
     offline_preprocess_path = "/root/benchmark/offline_out/offline_psi0107.csv"
     secret_key_path = "/root/benchmark/secret_key.bin"
 ​
-    # online 
+    # online
     print("=====online phase====")
     start = time.time()
 ​

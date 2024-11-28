@@ -35,10 +35,10 @@ from secretflow.data.ndarray import FedNdarray
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import PYU, Device, reveal, wait
 from secretflow.device.device.pyu import PYUObject
-from secretflow.ml.nn.sl.strategy_dispatcher import dispatch_strategy
-from secretflow.security.privacy import DPStrategy
-from secretflow.utils.compressor import Compressor
 from secretflow.utils.random import global_random
+from secretflow_fl.ml.nn.sl.strategy_dispatcher import dispatch_strategy
+from secretflow_fl.security.privacy import DPStrategy
+from secretflow_fl.utils.compressor import Compressor
 
 
 class SLModel:
@@ -76,7 +76,7 @@ class SLModel:
         defense_args = kwargs.get("defense_args", {})
 
         # TODO: add argument `backend`
-        import secretflow.ml.nn.sl.backend.tensorflow.strategy  # noqa
+        import secretflow_fl.ml.nn.sl.backend.tensorflow.strategy  # noqa
 
         self._workers = {}
         for device, model in base_model_dict.items():

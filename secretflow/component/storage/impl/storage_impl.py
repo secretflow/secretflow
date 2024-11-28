@@ -24,6 +24,10 @@ from typing import Dict
 import s3fs
 from botocore import exceptions as s3_exceptions
 
+from secretflow.error_system.exceptions import (
+    NotSupportedError,
+    SFTrainingHyperparameterError,
+)
 from secretflow.spec.v1.data_pb2 import StorageConfig
 
 
@@ -46,6 +50,14 @@ class StorageImplBase:
         pass
 
     @abstractmethod
+    def remove(self, remote_fn) -> None:
+        pass
+
+    @abstractmethod
+    def exists(self, path) -> bool:
+        pass
+
+    @abstractmethod
     def get_writer(self, remote_fn) -> BufferedIOBase:
         pass
 
@@ -65,13 +77,19 @@ class S3StorageImpl(StorageImplBase):
         if config.version == "":
             config.version = "s3v4"
 
-        assert config.version in [
+        if config.version not in [
             "s3v4",
             "s3v2",
-        ], f"Not support version {config.version}"
-        assert config.endpoint.startswith("https://") or config.endpoint.startswith(
-            "http://"
-        ), f"Please specify the scheme(http or https) of endpoint"
+        ]:
+            raise NotSupportedError.not_supported_version(
+                f"Not support S3Storage version {config.version}"
+            )
+        if not config.endpoint.startswith(
+            "https://"
+        ) and not config.endpoint.startswith("http://"):
+            raise SFTrainingHyperparameterError.wrong_ip_address(
+                f"Please specify the scheme(http or https) of endpoint"
+            )
         self._s3_client = s3fs.S3FileSystem(
             anon=False,
             key=config.access_key_id,
@@ -116,8 +134,22 @@ class S3StorageImpl(StorageImplBase):
         try:
             self._s3_client.download(full_remote_fn, local_fn)
         except Exception as e:
-            self._log_s3_error(e)
+            self._log_s3_error(e, full_remote_fn)
             raise
+
+    def remove(self, remote_fn):
+        """delete remote file"""
+        full_remote_fn = self._full_remote_fn(remote_fn)
+        try:
+            self._s3_client.rm(full_remote_fn)
+        except Exception as e:
+            self._log_s3_error(e, full_remote_fn)
+            raise
+
+    def exists(self, remote_fn) -> bool:
+        """is remote file exists"""
+        full_remote_fn = self._full_remote_fn(remote_fn)
+        return self._s3_client.exists(full_remote_fn)
 
     def upload_file(self, remote_fn, local_fn) -> None:
         """blocked upload whole file into remote_fn, overwrite if remote_fn exist"""
@@ -133,7 +165,7 @@ class S3StorageImpl(StorageImplBase):
         try:
             return self._s3_client.open(full_remote_fn, "rb")
         except Exception as e:
-            self._log_s3_error(e)
+            self._log_s3_error(e, full_remote_fn)
             raise
 
     def get_writer(self, remote_fn) -> BufferedIOBase:
@@ -168,10 +200,13 @@ class LocalStorageImpl(StorageImplBase):
     def download_file(self, remote_fn, local_fn) -> None:
         """blocked download whole file into local_fn, overwrite if local_fn exist"""
         full_remote_fn = os.path.join(self._local_wd, remote_fn)
-        assert os.path.exists(full_remote_fn)
-        assert os.path.isfile(full_remote_fn)
+        if not os.path.exists(full_remote_fn):
+            raise SFTrainingHyperparameterError.file_not_exist(argument=full_remote_fn)
+        if not os.path.isfile(full_remote_fn):
+            raise SFTrainingHyperparameterError.not_a_file(argument=full_remote_fn)
         if os.path.exists(local_fn):
-            assert os.path.isfile(local_fn)
+            if not os.path.isfile(local_fn):
+                raise SFTrainingHyperparameterError.file_not_exist(argument=local_fn)
             if os.path.samefile(full_remote_fn, local_fn):
                 return
         Path(local_fn).parent.mkdir(parents=True, exist_ok=True)
@@ -179,13 +214,15 @@ class LocalStorageImpl(StorageImplBase):
 
     def upload_file(self, remote_fn, local_fn) -> None:
         """blocked upload_file whole file into remote_fn, overwrite if remote_fn exist"""
-        assert os.path.exists(local_fn)
-        assert os.path.isfile(local_fn)
+        if not os.path.exists(local_fn):
+            raise SFTrainingHyperparameterError.file_not_exist(argument=local_fn)
+        if not os.path.isfile(local_fn):
+            raise SFTrainingHyperparameterError.not_a_file(argument=local_fn)
         full_remote_fn = os.path.join(self._local_wd, remote_fn)
 
-        assert not os.path.exists(full_remote_fn) or os.path.isfile(full_remote_fn)
         if os.path.exists(full_remote_fn):
-            assert os.path.isfile(full_remote_fn)
+            if not os.path.isfile(full_remote_fn):
+                raise SFTrainingHyperparameterError.not_a_file(argument=full_remote_fn)
             if os.path.samefile(full_remote_fn, local_fn):
                 return
         Path(full_remote_fn).parent.mkdir(parents=True, exist_ok=True)
@@ -193,19 +230,35 @@ class LocalStorageImpl(StorageImplBase):
 
     def get_reader(self, remote_fn) -> BufferedIOBase:
         full_remote_fn = os.path.join(self._local_wd, remote_fn)
-        assert os.path.exists(full_remote_fn)
-        assert os.path.isfile(full_remote_fn)
+        if not os.path.exists(full_remote_fn):
+            raise SFTrainingHyperparameterError.file_not_exist(argument=full_remote_fn)
+        if not os.path.isfile(full_remote_fn):
+            raise SFTrainingHyperparameterError.not_a_file(argument=full_remote_fn)
         return open(full_remote_fn, "rb")
+
+    def remove(self, remote_fn) -> None:
+        full_remote_fn = os.path.join(self._local_wd, remote_fn)
+        if not os.path.exists(full_remote_fn):
+            raise SFTrainingHyperparameterError.file_not_exist(argument=full_remote_fn)
+        return os.remove(full_remote_fn)
+
+    def exists(self, remote_fn) -> bool:
+        full_remote_fn = os.path.join(self._local_wd, remote_fn)
+        return os.path.exists(full_remote_fn)
 
     def get_writer(self, remote_fn) -> BufferedIOBase:
         full_remote_fn = os.path.join(self._local_wd, remote_fn)
         Path(full_remote_fn).parent.mkdir(parents=True, exist_ok=True)
-        assert not os.path.exists(full_remote_fn) or os.path.isfile(full_remote_fn)
+        if os.path.exists(full_remote_fn) and not os.path.isfile(full_remote_fn):
+            raise SFTrainingHyperparameterError(
+                f"full_remote_fn [{full_remote_fn}] already exists and is not a file"
+            )
         return open(full_remote_fn, "wb")
 
     def get_file_meta(self, remote_fn) -> Dict:
         full_remote_fn = os.path.join(self._local_wd, remote_fn)
-        assert os.path.exists(full_remote_fn)
+        if not os.path.exists(full_remote_fn):
+            raise SFTrainingHyperparameterError.file_not_exist(argument=full_remote_fn)
         ret = {
             "ctime": os.path.getctime(full_remote_fn),
             "mtime": os.path.getmtime(full_remote_fn),
@@ -224,6 +277,9 @@ SUPPORTED_STORAGE = {
 
 def BuildStorageImpl(config: StorageConfig) -> StorageImplBase:
     s_type = config.type.lower()
-    assert s_type in SUPPORTED_STORAGE, f"unsupported StorageConfig type {config.type}"
+    if s_type not in SUPPORTED_STORAGE:
+        raise NotSupportedError.not_supported_party_count(
+            f"unsupported StorageConfig type {config.type}"
+        )
 
     return SUPPORTED_STORAGE[s_type](config)

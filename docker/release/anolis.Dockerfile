@@ -1,4 +1,4 @@
-FROM openanolis/anolisos:8.8 as builder
+FROM openanolis/anolisos:8.8 AS builder
 
 RUN yum install -y \
     wget gcc gcc-c++ autoconf bison flex git protobuf-devel libnl3-devel \
@@ -9,7 +9,7 @@ RUN cd / && git clone https://github.com/google/nsjail.git \
     && cd /nsjail && git checkout 3.3 -b v3.3 \
     && make && mv /nsjail/nsjail /bin
 
-FROM secretflow/anolis8-python:3.10.13 as python
+FROM secretflow/anolis8-python:3.10.13 AS python
 
 FROM openanolis/anolisos:8.8
 
@@ -31,17 +31,14 @@ RUN pip install secretflow==${version} --extra-index-url https://download.pytorc
 
 COPY .nsjail /root/.nsjail
 
+COPY *.whl /tmp/
+RUN pip install /tmp/*.whl --extra-index-url https://download.pytorch.org/whl/cpu --extra-index-url https://test.pypi.org/simple/ --no-cache-dir && rm -rf /tmp/*.whl
+
 ARG config_templates=""
 LABEL kuscia.secretflow.config-templates=$config_templates
 
 ARG deploy_templates=""
 LABEL kuscia.secretflow.deploy-templates=$deploy_templates
-
-ARG comp_list=""
-LABEL kuscia.secretflow.comp_list=$comp_list
-
-ARG translation=""
-LABEL kuscia.secretflow.translation=$translation
 
 WORKDIR /root
 

@@ -26,7 +26,7 @@ from secretflow.utils.errors import NotFoundError
 
 
 @pytest.fixture(scope='function')
-def prod_env_and_data(sf_production_setup_devices):
+def prod_env_and_data(sf_production_setup_devices_ray):
     df_alice = pd.DataFrame(
         {
             'a1': ['K5', 'K1', None, 'K6'],
@@ -46,18 +46,18 @@ def prod_env_and_data(sf_production_setup_devices):
     vdf_bob_polars = pl.from_pandas(df_bob)
     df = VDataFrame(
         {
-            sf_production_setup_devices.alice: partition(
-                data=sf_production_setup_devices.alice(lambda: vdf_alice_poalrs)(),
+            sf_production_setup_devices_ray.alice: partition(
+                data=sf_production_setup_devices_ray.alice(lambda: vdf_alice_poalrs)(),
                 backend="polars",
             ),
-            sf_production_setup_devices.bob: partition(
-                data=sf_production_setup_devices.bob(lambda: vdf_bob_polars)(),
+            sf_production_setup_devices_ray.bob: partition(
+                data=sf_production_setup_devices_ray.bob(lambda: vdf_bob_polars)(),
                 backend="polars",
             ),
         }
     )
 
-    yield sf_production_setup_devices, {
+    yield sf_production_setup_devices_ray, {
         "df_alice": df_alice,
         "df_bob": df_bob,
         "df": df,

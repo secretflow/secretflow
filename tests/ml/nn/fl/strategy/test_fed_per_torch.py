@@ -18,8 +18,8 @@ from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader, TensorDataset
 from torchmetrics import Accuracy
 
-from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
-from secretflow.ml.nn.experimental.fl.backend.torch.strategy.fed_per import FedPer
+from secretflow_fl.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
+from secretflow_fl.ml.nn.experimental.fl.backend.torch.strategy.fed_per import FedPer
 from tests.ml.nn.fl.model_def import ConvNet
 
 
@@ -32,7 +32,7 @@ class TestFedPer:
             optim_fn=optim_wrapper(optim.Adam),
             metrics=[
                 metric_wrapper(
-                    Accuracy, task="multiclass", num_classes=10, average='macro'
+                    Accuracy, task="multiclass", num_classes=10, average="macro"
                 )
             ],
         )

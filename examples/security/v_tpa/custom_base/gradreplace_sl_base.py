@@ -32,13 +32,12 @@ from torch.utils.data import DataLoader
 
 import secretflow.device as ft
 from secretflow.device import PYUObject, proxy
-from secretflow.ml.nn.metrics import AUC, Mean, Precision, Recall
-from secretflow.ml.nn.sl.backend.tensorflow.utils import ForwardData
-from secretflow.ml.nn.sl.strategy_dispatcher import register_strategy
-from secretflow.security.privacy import DPStrategy
-from secretflow.utils.compressor import Compressor, SparseCompressor
+from secretflow_fl.ml.nn.metrics import AUC, Mean, Precision, Recall
+from secretflow_fl.ml.nn.sl.backend.tensorflow.utils import ForwardData
+from secretflow_fl.ml.nn.sl.strategy_dispatcher import register_strategy
+from secretflow_fl.security.privacy import DPStrategy
+from secretflow_fl.utils.compressor import Compressor, SparseCompressor
 
-# from secretflow.ml.nn.sl.backend.tensorflow.sl_base import SLBaseTFModel
 from .sl_base import SLBaseTFModel
 
 

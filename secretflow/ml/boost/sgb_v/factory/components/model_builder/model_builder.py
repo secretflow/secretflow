@@ -23,7 +23,7 @@ from ....core.distributed_tree.distributed_tree import DistributedTree
 from ....core.params import RegType
 from ....core.pure_numpy_ops.pred import init_pred
 from ....model import SgbModel
-from ..component import Component, Devices, print_params
+from ..component import Component, Devices, print_params, set_dict_from_params
 
 
 @dataclass
@@ -50,14 +50,13 @@ class ModelBuilder(Component):
         print_params(self.params)
 
     def set_params(self, params: dict):
-        obj = params.get('objective', default_params.objective.value)
-        obj = RegType(obj)
-        self.params.objective = obj
-        self.params.base_score = params.get('base_score', default_params.base_score)
+        if 'objective' in params:
+            self.params.objective = RegType(params['objective'])
+        if 'base_score' in params:
+            self.params.base_score = params['base_score']
 
     def get_params(self, params: dict):
-        params['base_score'] = self.params.base_score
-        params['objective'] = self.params.objective
+        set_dict_from_params(self.params, params)
 
     def set_devices(self, devices: Devices):
         self.label_holder = devices.label_holder
@@ -79,7 +78,7 @@ class ModelBuilder(Component):
             return self.label_holder(init_pred)(base=base, samples=sample_num)
         else:
             assert x is not None, "x must be provided"
-            return checkpoint_model.predict(x)
+            return checkpoint_model.predict_with_trees(x)
 
     def init_model(self, checkpoint_model: SgbModel = None):
         self.model = (

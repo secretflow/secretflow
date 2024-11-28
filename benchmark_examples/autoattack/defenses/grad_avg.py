@@ -22,8 +22,8 @@ from benchmark_examples.autoattack.applications.base import (
 from benchmark_examples.autoattack.attacks.base import AttackBase, AttackType
 from benchmark_examples.autoattack.defenses.base import DefenseBase
 from benchmark_examples.autoattack.utils.resources import ResourcesPack
-from secretflow.ml.nn.callbacks.callback import Callback
-from secretflow.ml.nn.sl.defenses.gradient_average import GradientAverage
+from secretflow_fl.ml.nn.callbacks.callback import Callback
+from secretflow_fl.ml.nn.sl.defenses.gradient_average import GradientAverage
 
 
 class GradientAverageCase(DefenseBase):
@@ -53,7 +53,11 @@ class GradientAverageCase(DefenseBase):
         app: ApplicationBase,
         attack: AttackBase | None,
     ) -> ResourcesPack:
-        func = lambda x: x * 1.1
-        return cluster_resources_pack.apply_debug_resources(
-            'gpu_mem', func
-        ).apply_sim_resources(app.device_y.party, 'gpu_mem', func)
+        update_gpu = lambda x: x * 1.1
+        update_mem = lambda x: x * 1.1
+        return (
+            cluster_resources_pack.apply_debug_resources('gpu_mem', update_gpu)
+            .apply_sim_resources(app.device_y.party, 'gpu_mem', update_gpu)
+            .apply_debug_resources('memory', update_mem)
+            .apply_sim_resources(app.device_y.party, 'memory', update_mem)
+        )

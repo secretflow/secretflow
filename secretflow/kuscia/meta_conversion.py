@@ -12,44 +12,95 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
+import logging
 from typing import List
 
 from google.protobuf.json_format import MessageToJson
 from kuscia.proto.api.v1alpha1.common_pb2 import DataColumn
 from kuscia.proto.api.v1alpha1.datamesh.domaindata_pb2 import DomainData
 
-from secretflow.spec.v1.data_pb2 import DistData, IndividualTable, VerticalTable
+from secretflow.kuscia.task_config import TableAttr
+from secretflow.spec.v1.data_pb2 import (
+    DistData,
+    IndividualTable,
+    TableSchema,
+    VerticalTable,
+)
 
 
 def convert_domain_data_to_individual_table(
-    domain_data: DomainData,
+    domain_data: DomainData, table_attr: TableAttr = None
 ) -> IndividualTable:
-    import logging
-
-    logging.warning(
-        'kuscia adapter has to deduce dist data from domain data at this moment.'
-    )
     assert domain_data.type == 'table'
-    dist_data = DistData(name=domain_data.name, type="sf.table.individual")
+    dist_data = DistData(
+        name=domain_data.name,
+        type="sf.table.individual",
+        data_refs=[
+            DistData.DataRef(
+                uri=domain_data.relative_uri,
+                party=domain_data.author,
+                format='csv',
+                null_strs=(
+                    json.loads(domain_data.attributes["NullStrs"])
+                    if "NullStrs" in domain_data.attributes
+                    else []
+                ),
+            )
+        ],
+    )
 
-    meta = IndividualTable()
+    attr_dict = (
+        {col.col_name: col.col_type for col in table_attr.column_attrs}
+        if table_attr
+        else {}
+    )
+
+    ids, features, labels = [], [], []
     for col in domain_data.columns:
-        meta.schema.features.append(col.name)
-        meta.schema.feature_types.append(col.type)
-    meta.line_count = -1
-    dist_data.meta.Pack(meta)
+        if col.name in attr_dict:
+            attr_type = attr_dict[col.name]
+            assert attr_type in (
+                'id',
+                'feature',
+                'label',
+                "binned",
+            ), f"{col.name} is not in [id, feature, binned, label]"
+            if attr_type == 'id':
+                ids.append((col.name, col.type))
+            elif attr_type == 'feature' or attr_type == 'binned':
+                # binned feature is treated as feature
+                features.append((col.name, col.type))
+            elif attr_type == 'label':
+                labels.append((col.name, col.type))
+        else:
+            logging.info(f"{col.name} is not in table attr, treat it as feature")
+            features.append((col.name, col.type))
 
-    data_ref = DistData.DataRef()
-    data_ref.uri = domain_data.relative_uri
-    data_ref.party = domain_data.author
-    data_ref.format = 'csv'
-    dist_data.data_refs.append(data_ref)
+    meta = IndividualTable(
+        schema=TableSchema(
+            ids=[col[0] for col in ids],
+            id_types=[col[1] for col in ids],
+            features=[col[0] for col in features],
+            feature_types=[col[1] for col in features],
+            labels=[col[0] for col in labels],
+            label_types=[col[1] for col in labels],
+        ),
+        line_count=-1,
+    )
+
+    dist_data.meta.Pack(meta)
 
     return dist_data
 
 
 def convert_dist_data_to_domain_data(
-    domaindata_id: str, datasource_id: str, x: DistData, output_uri: str, party: str
+    domaindata_id: str,
+    datasource_id: str,
+    x: DistData,
+    output_uri: str,
+    party: str,
+    partition_spec: str,
 ) -> DomainData:
     def convert_data_type(dist_data_type: str) -> str:
         if dist_data_type.startswith("sf.table"):
@@ -111,6 +162,9 @@ def convert_dist_data_to_domain_data(
     domain_data.attributes["dist_data"] = MessageToJson(
         x, including_default_value_fields=True, indent=0
     )
+    if partition_spec:
+        domain_data.attributes["partition_spec"] = partition_spec
+
     domain_data.columns.extend(get_data_columns(x, party))
 
     return domain_data

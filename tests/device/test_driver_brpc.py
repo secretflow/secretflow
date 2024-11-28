@@ -22,13 +22,13 @@ import secretflow as sf
 import secretflow.distributed as sfd
 from secretflow.device.device.spu import SPUObject
 from secretflow.device.driver import reveal, to, wait
-from secretflow.distributed.primitive import DISTRIBUTION_MODE
+from secretflow.distributed.const import DISTRIBUTION_MODE
 from tests.cluster import cluster, set_self_party
 from tests.conftest import DeviceInventory, semi2k_cluster
 
 
 @pytest.fixture(scope="module")
-def env(request, sf_party_for_4pc):
+def production_setup_devices_ray(request, sf_party_for_4pc):
     devices = DeviceInventory()
     sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.PRODUCTION)
     set_self_party(sf_party_for_4pc)
@@ -91,8 +91,8 @@ def _test_wait_should_ok(devices):
     assert reveal(devices.alice(check)(file_path))
 
 
-def test_wait_should_ok_prod_brpc(env):
-    _test_wait_should_ok(env)
+def test_wait_should_ok_prod_brpc(production_setup_devices_ray):
+    _test_wait_should_ok(production_setup_devices_ray)
 
 
 def _test_spu_reveal(devices):
@@ -107,8 +107,8 @@ def _test_spu_reveal(devices):
     assert x_ == 32
 
 
-def test_spu_reveal_prod_brpc(env):
-    _test_spu_reveal(env)
+def test_spu_reveal_prod_brpc(production_setup_devices_ray):
+    _test_spu_reveal(production_setup_devices_ray)
 
 
 def _test_spu_reveal_empty_list(devices):
@@ -119,5 +119,5 @@ def _test_spu_reveal_empty_list(devices):
     assert x_ == []
 
 
-def test_spu_reveal_empty_list_prod_brpc(env):
-    _test_spu_reveal_empty_list(env)
+def test_spu_reveal_empty_list_prod_brpc(production_setup_devices_ray):
+    _test_spu_reveal_empty_list(production_setup_devices_ray)
