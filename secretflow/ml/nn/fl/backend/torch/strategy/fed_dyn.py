@@ -154,7 +154,10 @@ class FedDYN(BaseTorchModel):
             pgl_tmp = pgl_tmp.view(ori_shape)
             new_gradL.append(pgl_tmp.detach().clone())
 
-        self.h = self.h - self.alpha * 1.0 / self.num_clients * (self.model.parameters() - src_model.parameters())
+
+        self.h = self.h - self.alpha * 1.0 / self.num_clients * (
+            self.model.parameters() - src_model.parameters()
+        )
         self.model = self.model.parameters() - 1 / self.alpha * self.h
         self.gradL = new_gradL
 
