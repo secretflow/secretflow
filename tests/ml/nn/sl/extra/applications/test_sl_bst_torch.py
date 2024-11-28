@@ -35,7 +35,7 @@ gen_data_path = lia_path + "/data_sl_bst_torch"
 fea_emb_input_size = {}
 
 
-def generate_data(gen_data_path, fea_eabm_input_size):
+def generate_data(gen_data_path, fea_emb_input_size):
     import numpy as np
     import pandas as pd
 
