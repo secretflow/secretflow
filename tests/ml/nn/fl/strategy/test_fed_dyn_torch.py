@@ -59,7 +59,6 @@ class TestFedDYN:
 
         # Initialize FedDYN strategy with ConvNet model
         conv_net_builder = ConvNetBuilder()
-        fed_dyn_worker = FedDYN(builder_base=conv_net_builder)
 
         # Prepare dataset
         x_test = torch.rand(128, 1, 28, 28)  # Randomly generated data
