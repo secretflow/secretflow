@@ -18,8 +18,8 @@ from typing import Tuple
 import numpy as np
 
 import torch
-from secretflow_local.ml.nn.fl.backend.torch.fl_base import BaseTorchModel
-from secretflow_local.ml.nn.fl.strategy_dispatcher import register_strategy
+from secretflow.ml.nn.fl.backend.torch.fl_base import BaseTorchModel
+from secretflow.ml.nn.fl.strategy_dispatcher import register_strategy
 
 
 class FedDYN(BaseTorchModel):
