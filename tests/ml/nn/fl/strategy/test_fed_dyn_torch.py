@@ -14,8 +14,8 @@
 
 import torch
 import torch.optim as optim
-from secretflow_local.ml.nn.fl.backend.torch.strategy.fed_dyn import FedDYN
-from secretflow_local.ml.nn.utils import BaseModule
+from secretflow.ml.nn.fl.backend.torch.strategy.fed_dyn import FedDYN
+from secretflow.ml.nn.utils import BaseModule
 from torch import nn
 from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader, TensorDataset
