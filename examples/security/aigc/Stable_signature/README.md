@@ -49,10 +49,9 @@ python generaterImage.py \
 - Generated images will be saved in the `outputs/imgs` directory.
 
 ## Decode and Evaluate
-Use the `evaluation.py` script to evaluate watermarked images' robustness and quality metrics.
+Use the `evaluation.py` script to evaluate watermarked images' robustness and quality metrics. 
 
-**NOTES**:
-- **sd_decoder_path**: The pretrained sd decoder weights can be downloaded from this [link](https://dl.fbaipublicfiles.com/ssl_watermarking/sd2_decoder.pth).
+**sd_decoder_path**: The pretrained sd decoder weights can be downloaded from this [link](https://dl.fbaipublicfiles.com/ssl_watermarking/sd2_decoder.pth). Once downloaded, place the checkpoint in the models directory.
 
 ### Decode Bits and Evaluate Robustness:
 ```
