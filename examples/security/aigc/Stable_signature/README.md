@@ -78,6 +78,6 @@ python run_eval.py --eval_imgs True --eval_bits False \
 
 ## Usage
 1. Prepare the dataset and split it into training and validation directories.
-2. Fine-tune the LDM decoder using the provided script. 
+2. Fine-tune the LDM decoder using the provided script `finetune.py`. 
 3. Generate watermarked images using the `generaterImage.py` script.
 4. Evaluate the robustness and quality of the watermarked images using the `evaluation.py`
