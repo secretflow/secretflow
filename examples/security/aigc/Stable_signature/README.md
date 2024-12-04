@@ -32,7 +32,7 @@ python finetune.py --num_keys 1 \
 ```
 ### Notes:
 - `ldm_config`: YAML configuration file for the LDM. Available in the `configs` directory.
-- `ldm_ckpt`: Pretrained LDM checkpoint. Available in the `models` directory.
+- `ldm_ckpt`: Pretrained LDM checkpoint. Available in the `models` directory. You can download the base model checkpoint `v2-1_768-ema-pruned.ckpt` from the `stabilityai/stable-diffusion-2-1` repository on Hugging Face. Once downloaded, place the checkpoint in the `models` directory.
 - `msg_decoder_path`: Path to the pretrained decoder checkpoint. A fine-tuned decoder checkpoint is provided in the Path: `models/dec_48b_whit.torchscript.pt`.
 
 ## Generate Watermarked Images
