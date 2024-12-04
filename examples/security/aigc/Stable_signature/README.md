@@ -33,7 +33,7 @@ python finetune.py --num_keys 1 \
 ### Notes:
 - `ldm_config`: YAML configuration file for the LDM. Available in the `configs` directory.
 - `ldm_ckpt`: Pretrained LDM checkpoint. Available in the `models` directory. You can download the base model checkpoint `v2-1_768-ema-pruned.ckpt` from the `stabilityai/stable-diffusion-2-1` repository on Hugging Face. Once downloaded, place the checkpoint in the `models` directory.
-- `msg_decoder_path`: Path to the pretrained decoder checkpoint. A fine-tuned decoder checkpoint is provided in the Path: `models/dec_48b_whit.torchscript.pt`.
+- `msg_decoder_path`: Path to the pretrained msg decoder checkpoint. A fine-tuned msg decoder checkpoint is provided in the Path: `models/dec_48b_whit.torchscript.pt`.
 
 ## Generate Watermarked Images
 Use the `generaterImage.py` script to generate watermarked images.
@@ -50,6 +50,8 @@ python generaterImage.py \
 
 ## Decode and Evaluate
 Use the `evaluation.py` script to evaluate watermarked images' robustness and quality metrics.
+**NOTES**
+- **msg_decoder_path**: The pretrained decoder weights can be downloaded from this [link](https://dl.fbaipublicfiles.com/ssl_watermarking/sd2_decoder.pth).
 
 ### Decode Bits and Evaluate Robustness:
 ```
