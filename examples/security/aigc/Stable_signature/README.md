@@ -51,7 +51,7 @@ python generaterImage.py \
 ## Decode and Evaluate
 Use the `evaluation.py` script to evaluate watermarked images' robustness and quality metrics. 
 
-**sd_decoder_path**: The pretrained sd decoder weights can be downloaded from this [link](https://dl.fbaipublicfiles.com/ssl_watermarking/sd2_decoder.pth). Once downloaded, place the checkpoint in the models directory.
+- **sd_decoder_path**: The pretrained sd decoder weights can be downloaded from this [link](https://dl.fbaipublicfiles.com/ssl_watermarking/sd2_decoder.pth). Once downloaded, place the checkpoint in the models directory.
 
 ### Decode Bits and Evaluate Robustness:
 ```
