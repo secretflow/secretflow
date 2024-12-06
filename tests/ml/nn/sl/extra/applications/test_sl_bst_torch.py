@@ -35,7 +35,7 @@ gen_data_path = lia_path + "/data_sl_bst_torch"
 fea_emb_input_size = {}
 
 
-def generate_data():
+def generate_data(gen_data_path, fea_emb_input_size):
     import numpy as np
     import pandas as pd
 
@@ -464,6 +464,6 @@ def train_sl_bst_torch(sf_simulation_setup_devices, mode):
 
 
 def test_sl_bst(sf_simulation_setup_devices):
-    generate_data()
+    generate_data(gen_data_path, fea_emb_input_size)
     train_sl_bst_torch(sf_simulation_setup_devices, mode="ori")
     train_sl_bst_torch(sf_simulation_setup_devices, mode="plus")
