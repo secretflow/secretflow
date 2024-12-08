@@ -21,6 +21,7 @@ from .fed_scr import PYUFedSCR
 from .fed_stc import PYUFedSTC
 from .moon import PYUFedMOON
 from .scaffold import PYUScaffold
+from examples.security.h_gia.FedSMP_defense.FedSMP_torch import PYUFedSMP
 
 __all__ = [
     'PYUFedAvgW',
@@ -32,4 +33,5 @@ __all__ = [
     'PYUScaffold',
     'PYUFedGen',
     'PYUFedMOON',
+    'PYUFedSMP'
 ]
