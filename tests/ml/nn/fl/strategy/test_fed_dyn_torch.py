@@ -57,14 +57,19 @@ class TestFedDYN:
             def optim_fn(self, parameters):
                 return optim.Adam(parameters)
 
-        # Initialize FedDYN strategy with ConvNet model
+        # Initialize ConvNetBuilder
         conv_net_builder = ConvNetBuilder()
 
+        # Manually initialize FedDYN strategy
+        fed_dyn_worker = FedDYN()
+        fed_dyn_worker.metrics = conv_net_builder.metrics
+        fed_dyn_worker.model = conv_net_builder.model_fn()
+        fed_dyn_worker.loss_fn = conv_net_builder.loss_fn()
+        fed_dyn_worker.optimizer = conv_net_builder.optim_fn(fed_dyn_worker.model.parameters())
+
         # Prepare dataset
-        x_test = torch.rand(128, 1, 28, 28)  # Randomly generated data
-        y_test = torch.randint(
-            0, 10, (128,)
-        )  # Randomly generated labels for a 10-class task
+        x_test = torch.rand(128, 1, 28, 28)
+        y_test = torch.randint(0, 10, (128,))
         test_loader = DataLoader(
             TensorDataset(x_test, y_test), batch_size=32, shuffle=True
         )
@@ -82,10 +87,9 @@ class TestFedDYN:
 
         # Assert the sample number and length of gradients
         assert num_sample == 32  # Batch size
-        assert len(gradients) == len(
-            list(fed_dyn_worker.model.parameters())
-        )  # Number of model parameters
+        assert len(gradients) == len(list(fed_dyn_worker.model.parameters()))  # Number of model parameters
 
         # Perform another training step to test cumulative behavior
         _, num_sample = fed_dyn_worker.train_step(gradients, cur_steps=1, train_steps=2)
         assert num_sample == 64  # Cumulative batch size over two steps
+
