@@ -92,4 +92,3 @@ class TestFedDYN:
         # Perform another training step to test cumulative behavior
         _, num_sample = fed_dyn_worker.train_step(gradients, cur_steps=1, train_steps=2)
         assert num_sample == 64  # Cumulative batch size over two steps
-
