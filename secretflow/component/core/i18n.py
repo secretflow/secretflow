@@ -18,7 +18,7 @@ import json
 from secretflow.spec.v1.component_pb2 import CompListDef
 
 from .plugin import PluginManager
-from .registry import COMP_LIST_DESC, COMP_LIST_NAME, COMP_LIST_VERSION, Registry
+from .registry import Registry, build_comp_list_def
 from .resources import ResourceType
 from .utils import gen_key
 
@@ -42,11 +42,25 @@ class PlainTranslator(Translator):
 #     '...':{}
 # }
 def gettext(comp_list: CompListDef, archives: dict = None, translator: Translator = None, build_root: bool = False):  # type: ignore
+    def _trim_version(key: str) -> str:
+        if ":" not in key:
+            # ROOT key
+            return key
+        prefix, version = key.split(':')
+        tokens = version.split('.')
+        assert len(tokens) == 3, f"invalid version {version} in {key}"
+        return f"{prefix}:{tokens[0]}"
+
+    if archives:
+        # ignore major version
+        archives = {_trim_version(k): v for k, v in archives.items()}
+
     def restore_from_archives(text: dict, key: str, archives=None):
-        if archives is None or key not in archives:
+        archive_key = _trim_version(key)
+        if archives is None or archive_key not in archives:
             return text
 
-        archive = archives[key]
+        archive = archives[archive_key]
         for k in text.keys():
             if k in archive:
                 text[k] = archive[k]
@@ -104,14 +118,9 @@ def translate(package: str, archives: dict | None, ts: Translator = None) -> dic
     definitions = Registry.get_definitions(package)
     if not definitions:
         raise ValueError(f"cannot find components by package<{package}>")
-    comp_defs = CompListDef(
-        name=COMP_LIST_NAME,
-        desc=COMP_LIST_DESC,
-        version=COMP_LIST_VERSION,
-        comps=[d.component_def for d in definitions],
-    )
+    comp_list_def = build_comp_list_def(definitions)
     build_root = package in ["*", "secretflow"]
-    return gettext(comp_defs, archives, ts, build_root)
+    return gettext(comp_list_def, archives, ts, build_root)
 
 
 def get_translation() -> dict:

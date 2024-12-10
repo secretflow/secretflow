@@ -13,91 +13,91 @@
 # limitations under the License.
 
 import os
-import platform
 import shutil
 from io import BufferedIOBase
 from pathlib import Path
-from typing import Dict
 
-from secretflow.error_system.exceptions import SFTrainingHyperparameterError
 from secretflow.spec.v1.data_pb2 import StorageConfig
 
-from .base import _StorageBase
+from .base import Storage, StorageType
 
 
-class _LocalStorage(_StorageBase):
+class LocalStorage(Storage):
     def __init__(self, config: StorageConfig) -> None:
-        super().__init__()
+        super().__init__(config)
         assert config.type == "local_fs"
         self._local_wd = config.local_fs.wd
 
-    def download_file(self, remote_fn, local_fn) -> None:
-        """blocked download whole file into local_fn, overwrite if local_fn exist"""
-        full_remote_fn = os.path.join(self._local_wd, remote_fn)
-        if not os.path.exists(full_remote_fn):
-            raise SFTrainingHyperparameterError.file_not_exist(argument=full_remote_fn)
-        if not os.path.isfile(full_remote_fn):
-            raise SFTrainingHyperparameterError.not_a_file(argument=full_remote_fn)
-        if os.path.exists(local_fn):
-            if not os.path.isfile(local_fn):
-                raise SFTrainingHyperparameterError.file_not_exist(argument=local_fn)
-            if os.path.samefile(full_remote_fn, local_fn):
+    def get_full_path(self, remote_fn) -> str:
+        full_path = os.path.join(self._local_wd, remote_fn)
+        full_path = os.path.normpath(full_path)
+        full_path = os.path.abspath(full_path)
+        return full_path
+
+    def get_type(self) -> StorageType:
+        return StorageType.LOCAL_FS
+
+    def get_size(self, path: str) -> int:
+        full_path = self.get_full_path(path)
+        return os.path.getsize(full_path)
+
+    def get_reader(self, path: str) -> BufferedIOBase:
+        return self.open(path, "rb")
+
+    def get_writer(self, path: str) -> BufferedIOBase:
+        return self.open(path, "wb")
+
+    def open(self, path: str, mode: str) -> BufferedIOBase:
+        full_path = self.get_full_path(path)
+        if "w" in mode:
+            Path(full_path).parent.mkdir(parents=True, exist_ok=True)
+        try:
+            return open(full_path, mode)
+        except FileNotFoundError:
+            raise FileNotFoundError(f"{full_path} not found")
+        except IsADirectoryError:
+            raise IsADirectoryError(f"{full_path} is a directory")
+        except Exception as e:
+            raise e
+
+    def remove(self, path: str) -> None:
+        full_path = self.get_full_path(path)
+        if not os.path.exists(full_path):
+            raise ValueError(f"{full_path} not exist")
+        return os.remove(full_path)
+
+    def exists(self, path: str) -> bool:
+        full_path = self.get_full_path(path)
+        return os.path.exists(full_path)
+
+    def mkdir(self, path: str) -> bool:
+        Path(path).mkdir(parents=True, exist_ok=True)
+
+    def download_file(self, remote_path: str, local_path: str) -> None:
+        full_remote_path = self.get_full_path(remote_path)
+        if not os.path.exists(full_remote_path):
+            raise ValueError(f"file not exist {full_remote_path}")
+        if not os.path.isfile(full_remote_path):
+            raise ValueError(f"{full_remote_path} is not a file")
+        if os.path.exists(local_path):
+            if not os.path.isfile(local_path):
+                raise ValueError(f"{local_path} is not a file")
+            if os.path.samefile(full_remote_path, local_path):
                 return
-        Path(local_fn).parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(full_remote_fn, local_fn)
+        Path(local_path).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(full_remote_path, local_path)
 
-    def upload_file(self, remote_fn, local_fn) -> None:
-        """blocked upload_file whole file into remote_fn, overwrite if remote_fn exist"""
-        if not os.path.exists(local_fn):
-            raise SFTrainingHyperparameterError.file_not_exist(argument=local_fn)
-        if not os.path.isfile(local_fn):
-            raise SFTrainingHyperparameterError.not_a_file(argument=local_fn)
-        full_remote_fn = os.path.join(self._local_wd, remote_fn)
+    def upload_file(self, local_path: str, remote_path: str) -> None:
+        if not os.path.exists(local_path):
+            raise ValueError(f"{local_path} not exist.")
+        if not os.path.isfile(local_path):
+            raise ValueError(f"{local_path} is not a file")
+        full_remote_path = self.get_full_path(remote_path)
 
-        if os.path.exists(full_remote_fn):
-            if not os.path.isfile(full_remote_fn):
-                raise SFTrainingHyperparameterError.not_a_file(argument=full_remote_fn)
-            if os.path.samefile(full_remote_fn, local_fn):
+        if os.path.exists(full_remote_path):
+            if not os.path.isfile(full_remote_path):
+                raise ValueError(f"{full_remote_path} is not a file")
+            if os.path.samefile(full_remote_path, local_path):
                 return
-        Path(full_remote_fn).parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(local_fn, full_remote_fn)
-
-    def get_reader(self, remote_fn) -> BufferedIOBase:
-        full_remote_fn = os.path.join(self._local_wd, remote_fn)
-        if not os.path.exists(full_remote_fn):
-            raise SFTrainingHyperparameterError.file_not_exist(argument=full_remote_fn)
-        if not os.path.isfile(full_remote_fn):
-            raise SFTrainingHyperparameterError.not_a_file(argument=full_remote_fn)
-        return open(full_remote_fn, "rb")
-
-    def remove(self, remote_fn) -> None:
-        full_remote_fn = os.path.join(self._local_wd, remote_fn)
-        if not os.path.exists(full_remote_fn):
-            raise SFTrainingHyperparameterError.file_not_exist(argument=full_remote_fn)
-        return os.remove(full_remote_fn)
-
-    def exists(self, remote_fn) -> bool:
-        full_remote_fn = os.path.join(self._local_wd, remote_fn)
-        return os.path.exists(full_remote_fn)
-
-    def get_writer(self, remote_fn) -> BufferedIOBase:
-        full_remote_fn = os.path.join(self._local_wd, remote_fn)
-        Path(full_remote_fn).parent.mkdir(parents=True, exist_ok=True)
-        if os.path.exists(full_remote_fn) and not os.path.isfile(full_remote_fn):
-            raise SFTrainingHyperparameterError(
-                f"full_remote_fn [{full_remote_fn}] already exists and is not a file"
-            )
-        return open(full_remote_fn, "wb")
-
-    def get_file_meta(self, remote_fn) -> Dict:
-        full_remote_fn = os.path.join(self._local_wd, remote_fn)
-        if not os.path.exists(full_remote_fn):
-            raise SFTrainingHyperparameterError.file_not_exist(argument=full_remote_fn)
-        ret = {
-            "ctime": os.path.getctime(full_remote_fn),
-            "mtime": os.path.getmtime(full_remote_fn),
-            "size": os.path.getsize(full_remote_fn),
-        }
-        if platform.system() == 'Linux':
-            ret["inode"] = os.stat(full_remote_fn).st_ino
-        return ret
+        Path(full_remote_path).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(local_path, full_remote_path)

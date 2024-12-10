@@ -169,7 +169,7 @@ class SLNNTrain(Component):
         "train_dataset",
         desc="Label of train dataset.",
     )
-    train_dataset: Input = Field.input(  # type: ignore
+    train_dataset: Input = Field.input(
         desc="Input vertical table.",
         types=[DistDataType.VERTICAL_TABLE],
     )

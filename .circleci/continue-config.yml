@@ -94,8 +94,8 @@ commands:
       - run:
           name: copy library
           command: |
-            cp artifacts/_lib_macos.so  secretflow_fl/security/privacy/
-            mv secretflow_fl/security/privacy/_lib_macos.so secretflow_fl/security/privacy/_lib.so
+            cp artifacts/_lib_macos.so  secretflow/security/privacy/
+            mv secretflow/security/privacy/_lib_macos.so secretflow/security/privacy/_lib.so
   restore_artifacts_linux:
     steps:
       - attach_workspace:
@@ -104,8 +104,8 @@ commands:
           name: copy library
           command: |
             arch=$(uname -i)
-            cp artifacts/_lib_$arch.so  secretflow_fl/security/privacy/
-            mv secretflow_fl/security/privacy/_lib_$arch.so secretflow_fl/security/privacy/_lib.so
+            cp artifacts/_lib_$arch.so  secretflow/security/privacy/
+            mv secretflow/security/privacy/_lib_$arch.so secretflow/security/privacy/_lib.so
   pytest_wrapper:
     parameters:
       target_folder:

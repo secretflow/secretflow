@@ -16,32 +16,31 @@
 from collections import defaultdict
 from typing import Iterable
 
-from secretflow.error_system.exceptions import NotSupportedError
-from secretflow.spec.v1.component_pb2 import CompListDef
+from secretflow.spec.v1.component_pb2 import CompListDef, ComponentDef
 
 from .component import Component
 from .definition import Definition
 
-COMP_LIST_NAME = "secretflow"
-COMP_LIST_DESC = "First-party SecretFlow components."
-COMP_LIST_VERSION = "0.0.1"
-
 _reg_defs_by_key: dict[str, Definition] = {}
 _reg_defs_by_cls: dict[str, Definition] = {}
 _reg_defs_by_pkg: dict[str, list[Definition]] = defaultdict(list)
-_comp_list_def = CompListDef(
-    name=COMP_LIST_NAME, desc=COMP_LIST_DESC, version=COMP_LIST_VERSION
-)
+
+
+def _parse_major(version: str) -> str:
+    tokens = version.split(".")
+    if len(tokens) != 3:
+        raise ValueError(f"version must be in format of x.y.z, but got {version}")
+    return tokens[0]
 
 
 def _gen_reg_key(domain: str, name: str, version: str) -> str:
-    tokens = version.split('.')
-    if len(tokens) != 3:
-        raise NotSupportedError.not_supported_version(
-            f"Registry version must be in format of x.y.z, but got {version}"
-        )
-    major = tokens[0]
-    return f"{domain}/{name}:{major}"
+    return f"{domain}/{name}:{_parse_major(version)}"
+
+
+def _gen_class_id(cls: Component | type[Component]) -> str:
+    if isinstance(cls, Component):
+        cls = type(cls)
+    return f"{cls.__module__}:{cls.__qualname__}"
 
 
 class Registry:
@@ -50,8 +49,9 @@ class Registry:
         key = _gen_reg_key(d.domain, d.name, d.version)
         if key in _reg_defs_by_key:
             raise ValueError(f"{key} is already registered")
+        class_id = _gen_class_id(d.component_cls)
         _reg_defs_by_key[key] = d
-        _reg_defs_by_cls[d.class_id] = d
+        _reg_defs_by_cls[class_id] = d
         _reg_defs_by_pkg[d.root_package].append(d)
 
     @staticmethod
@@ -60,7 +60,8 @@ class Registry:
         if key not in _reg_defs_by_key:
             return False
         d = _reg_defs_by_key.pop(key)
-        del _reg_defs_by_cls[d.class_id]
+        class_id = _gen_class_id(d.component_cls)
+        del _reg_defs_by_cls[class_id]
         _reg_defs_by_pkg[d.root_package].remove(d)
         return True
 
@@ -77,15 +78,17 @@ class Registry:
         return _reg_defs_by_key.values()
 
     @staticmethod
+    def get_definition_keys() -> Iterable[str]:
+        return _reg_defs_by_key.keys()
+
+    @staticmethod
+    def get_definition_by_key(key: str) -> Definition:
+        return _reg_defs_by_key.get(key)
+
+    @staticmethod
     def get_definition_by_id(id: str) -> Definition:
-        prefix, version = id.split(':')
-        tokens = version.split('.')
-        if len(tokens) != 3:
-            raise NotSupportedError.not_supported_version(
-                f"Registry version must be in format of x.y.z, but got {version}"
-            )
-        major = tokens[0]
-        key = f"{prefix}:{major}"
+        prefix, version = id.split(":")
+        key = f"{prefix}:{_parse_major(version)}"
         comp_def = _reg_defs_by_key.get(key)
         if comp_def and comp_def.version == version:
             return comp_def
@@ -94,36 +97,52 @@ class Registry:
 
     @staticmethod
     def get_definition_by_class(cls: Component | type[Component]) -> Definition:
-        if isinstance(cls, Component):
-            cls = type(cls)
-
-        cls_id = Definition.to_class_id(cls)
-        return _reg_defs_by_cls.get(cls_id)
-
-    @staticmethod
-    def get_comp_list_def() -> CompListDef:  # type: ignore
-        if len(_comp_list_def.comps) != len(_reg_defs_by_key):
-            components = [d.component_def for d in _reg_defs_by_key.values()]
-            components = sorted(components, key=lambda k: (k.domain, k.name, k.version))
-            _comp_list_def.ClearField('comps')
-            _comp_list_def.comps.extend(components)
-
-        return _comp_list_def
-
-    @staticmethod
-    def get_comp_list_names() -> Iterable[str]:
-        return _reg_defs_by_key.keys()
+        class_id = _gen_class_id(cls)
+        return _reg_defs_by_cls.get(class_id)
 
 
 def register(domain: str, version: str, name: str = "", desc: str = None):
     if domain == "" or version == "":
-        raise NotSupportedError.not_supported_version(
-            f"In register, domain<{domain}> and version<{version}> cannot be empty"
+        raise ValueError(
+            f"domain<{domain}> and version<{version}> cannot be empty in register"
         )
 
-    def wrapper(cls):
+    def wrap(cls):
         d = Definition(cls, domain, version, name, desc)
         Registry.register(d)
         return cls
 
-    return wrapper
+    return wrap
+
+
+COMP_LIST_NAME = "secretflow"
+COMP_LIST_DESC = "First-party SecretFlow components."
+COMP_LIST_VERSION = "0.0.1"
+
+_comp_list_def = CompListDef(
+    name=COMP_LIST_NAME, desc=COMP_LIST_DESC, version=COMP_LIST_VERSION
+)
+
+
+def get_comp_list_def() -> CompListDef:
+    definitions = Registry.get_definitions()
+    if len(_comp_list_def.comps) != len(definitions):
+        res = build_comp_list_def(definitions)
+        _comp_list_def.CopyFrom(res)
+
+    return _comp_list_def
+
+
+def build_comp_list_def(comps: list[Definition] | list[ComponentDef]) -> CompListDef:
+    if comps:
+        if isinstance(next(iter(comps)), Definition):
+            comps = [d.component_def for d in comps]
+        comps = sorted(comps, key=lambda k: (k.domain, k.name, k.version))
+
+    comp_list_def = CompListDef(
+        name=COMP_LIST_NAME,
+        desc=COMP_LIST_DESC,
+        version=COMP_LIST_VERSION,
+        comps=comps,
+    )
+    return comp_list_def

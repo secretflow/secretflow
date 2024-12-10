@@ -306,17 +306,16 @@ class LeafWiseTreeTrainer(TreeTrainer):
         level_nodes_G, level_nodes_H = self.components.loss_computer.reverse_scale_gh(
             level_nodes_G, level_nodes_H
         )
-        (
-            split_buckets,
-            split_gains,
-            gain_is_cost_effective,
-        ) = self.components.split_finder.find_best_splits_with_gains(
-            level_nodes_G, level_nodes_H, tree_num, leaf
+        (split_buckets, split_gains, gain_is_cost_effective) = (
+            self.components.split_finder.find_best_splits_with_gains(
+                level_nodes_G, level_nodes_H, tree_num, leaf
+            )
         )
         # all parties including driver know the shape of tree in each node
         # hence all parties including driver will know the pruning results.
         # hence we can reveal gain_is_cost_effective
         gain_is_cost_effective = reveal(gain_is_cost_effective)
+
         self.components.split_candidate_manager.batch_push(
             new_split_node_indices,
             new_split_node_selects,
@@ -358,6 +357,7 @@ class LeafWiseTreeTrainer(TreeTrainer):
             node_index,
             sample_selects,
             split_bucket,
+            gain,
         ) = self.components.split_candidate_manager.extract_best_split_info()
 
         # split not in party will be marked as -1
@@ -389,6 +389,11 @@ class LeafWiseTreeTrainer(TreeTrainer):
             split_points,
             left_selects_each_party,
             [True],
+            # WARNING: gains at the index of split_buckets will be revealed
+            # for calculation of feature importance.
+            # DO NOT REPEAT THE TRAINING PROCESS WITH THE SAME PARTY FOR TOO
+            # MANY TIMES TO AVOID REPLAY ATTACKS
+            [reveal(gain)],
             [node_index],
             select_shape,
         )

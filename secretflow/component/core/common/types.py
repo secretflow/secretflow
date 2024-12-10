@@ -92,11 +92,6 @@ class TimeTracer:
         return {"io_time": self.io_time, "run_time": self.run_time}
 
 
-class AutoNameEnum(enum.Enum):
-    def _generate_next_value_(name, *args):
-        return name
-
-
 class MetaEnum(enum.EnumMeta):
     def __contains__(cls, item):
         try:

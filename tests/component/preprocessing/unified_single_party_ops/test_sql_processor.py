@@ -21,12 +21,12 @@ import pytest
 
 import secretflow.compute as sc
 from secretflow.component.core import (
-    Storage,
     VTable,
     VTableParty,
     VTableSchema,
     assert_almost_equal,
     build_node_eval_param,
+    make_storage,
     read_orc,
 )
 from secretflow.component.entry import comp_eval
@@ -42,7 +42,7 @@ def test_sql_processor(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = Storage(storage_config)
+    storage = make_storage(storage_config)
 
     datas = {
         "alice": {"A1": [1, 2, 3], "A2": [0.1, 0.2, 0.3]},
@@ -135,7 +135,7 @@ def test_sql_processor_run_sql():
     test_cases = [
         {
             "name": "arithmetic",
-            "sql": "SELECT a + 1 as a1, a -1 as a2, a*2 as a3, a/2 as a4, a//2 as a5, a%2 as a6, b/2 as b1, -b as b2, not c as c1 FROM my_table",
+            "sql": "SELECT a + 1 as a1, a -1 as a2, a*2 as a3, a/2 as a4, a//2 as a5, a%2 as a6, b/2 as b1, -b as b2, not c as c1 FROM my_table;",
             "data": {"a": [3], "b": [3.2], "c": [True]},
             "excepted": {
                 "a1": [4],
@@ -272,6 +272,22 @@ def test_sql_processor_run_sql():
             "data": {"a": [1], "b": [2], "c": [0.1]},
             "excepted": {"c": [3]},
         },
+        {
+            "name": "rounding",
+            "sql": "SELECT CEIL(a) as a1, FLOOR(a) as a2, ROUND(a) as a3, TRUNC(a) as a4, \
+                CEIL(a, 2) as b1, FLOOR(a, 2) as b2, ROUND(a, 2) as b3, TRUNC(a, 2) as b4",
+            "data": {"a": [1.2345, 2.3456, -3.4567, -4.5678]},
+            "excepted": {
+                "a1": [2.0, 3, -3, -4],
+                "a2": [1.0, 2, -4, -5],
+                "a3": [1.0, 2, -3, -5],
+                "a4": [1.0, 2, -3, -4],
+                "b1": [1.24, 2.35, -3.45, -4.56],
+                "b2": [1.23, 2.34, -3.46, -4.57],
+                "b3": [1.23, 2.35, -3.46, -4.57],
+                "b4": [1.23, 2.34, -3.45, -4.56],
+            },
+        },
     ]
 
     for c in test_cases:
@@ -320,6 +336,14 @@ def test_sql_processor_error():
             "name": "type mismatch",
             "sql": "SELECT a1 + c as col1",
         },
+        {
+            "name": "multi sql expressions",
+            "sql": "SELECT a1; SELECT a2",
+        },
+        {
+            "name": "extra commas",
+            "sql": "SELECT *,",
+        },
     ]
 
     input_tbl = VTable(
@@ -335,13 +359,13 @@ def test_sql_processor_error():
     )
 
     def run(name: str, sql: str, input_tbl: VTable):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError) as exc_info:
             ast = SQLProcessor.parse_sql(sql, input_tbl.flatten_schema)
             expressions, tran_tbl = SQLProcessor.do_check(ast, input_tbl)
             for p in tran_tbl.parties.values():
                 sc_tbl = sc.Table.from_schema(p.schema.to_arrow())
                 SQLProcessor.do_fit(sc_tbl, expressions[p.party])
-        # logging.warning(f"except exception {name}, {sql}, {exc_info}")
+            logging.info(f"expect exception {name}, {sql}, {exc_info}")
 
     for tc in test_cases:
         run(tc["name"], tc["sql"], input_tbl)

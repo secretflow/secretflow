@@ -47,7 +47,7 @@ class DataSink(Component):
         )
     )
 
-    input_data: Input = Field.input(  # type: ignore
+    input_data: Input = Field.input(
         desc="Input dist data",
         types=[
             DistDataType.INDIVIDUAL_TABLE,

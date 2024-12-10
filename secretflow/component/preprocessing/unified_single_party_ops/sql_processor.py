@@ -79,7 +79,7 @@ class SQLProcessor(PreprocessingMixin, Component):
 
     sql: str = Field.attr(desc="sql for preprocessing, for example SELECT a, b, a+b")
 
-    input_ds: Input = Field.input(  # type: ignore
+    input_ds: Input = Field.input(
         desc="Input table",
         types=[DistDataType.INDIVIDUAL_TABLE, DistDataType.VERTICAL_TABLE],
     )
@@ -105,7 +105,15 @@ class SQLProcessor(PreprocessingMixin, Component):
 
     @staticmethod
     def parse_sql(sql: str, schema: VTableSchema) -> sqlglot_expr.Expression:
-        sql_ast = sqlglot.parse_one(sql, dialect="duckdb")
+        sql = sql.rstrip('; \t\n\r')
+        if sql.endswith(','):
+            raise ValueError(f"sql<{sql}> has extra commas.")
+        expressions = sqlglot.parse(sql, dialect="duckdb")
+        if len(expressions) != 1:
+            raise ValueError(
+                f"Only one sql<{sql}> expression is supported, but got {len(expressions)}."
+            )
+        sql_ast = expressions[0]
         if not isinstance(sql_ast, sqlglot_expr.Select):
             raise ValueError(f"invalid sql {sql}")
 
@@ -335,6 +343,33 @@ def _to_func2(fn1, fn2):
     return wrapper
 
 
+def _ceil(x, ndigits=0):
+    if ndigits == 0:
+        return sc.ceil(x)
+    factor = 10**ndigits
+    x = sc.multiply(x, factor)
+    x = sc.ceil(x)
+    return sc.divide(x, factor)
+
+
+def _floor(x, ndigits=0):
+    if ndigits == 0:
+        return sc.floor(x)
+    factor = 10**ndigits
+    x = sc.multiply(x, factor)
+    x = sc.floor(x)
+    return sc.divide(x, factor)
+
+
+def _trunc(x, ndigits=0):
+    if ndigits == 0:
+        return sc.trunc(x)
+    factor = 10**ndigits
+    x = sc.multiply(x, factor)
+    x = sc.trunc(x)
+    return sc.divide(x, factor)
+
+
 _scalar_func = {
     "coalesce": sc.coalesce,
     # Categorizations
@@ -349,10 +384,10 @@ _scalar_func = {
     "sqrt": sc.sqrt,
     "power": sc.power,
     # Rounding
-    "ceil": sc.ceil,
-    "floor": sc.floor,
-    "round": sc.round,
-    "trunc": sc.trunc,
+    "ceil": ScalarFunc(_ceil, ["decimals"]),
+    "floor": ScalarFunc(_floor, ["decimals"]),
+    "round": ScalarFunc(sc.round, ["decimals"]),
+    "trunc": _trunc,
     # Trigonometric
     "acos": sc.acos,
     "asin": sc.asin,
@@ -472,7 +507,12 @@ def _to_type(dtype: sqlglot_expr.DataType) -> pa.DataType:
         raise ValueError(f"unsupported data type<{dtype}>")
 
 
-def _invoke(fn: Callable, tbl: sc.Table, expr: sqlglot_expr.Expression):
+def _invoke(
+    fn: Callable,
+    tbl: sc.Table,
+    expr: sqlglot_expr.Expression,
+    extensions: list[str] = None,
+):
     fields, extend = None, True
     if isinstance(fn, ScalarFunc):
         fields = fn.fields

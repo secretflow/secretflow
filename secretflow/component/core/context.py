@@ -18,6 +18,7 @@ from dataclasses import dataclass
 
 import spu
 
+from secretflow.component.core.dist_data.tarfile import TarFile
 from secretflow.device.device.heu import HEU, heu_from_base_config
 from secretflow.device.device.pyu import PYU
 from secretflow.device.device.spu import SPU
@@ -33,10 +34,10 @@ from .common.types import Output, TimeTracer
 from .config import extract_device_config
 from .dataframe import CompVDataFrame
 from .dist_data.base import IDumper
-from .dist_data.object_file import Model, TarFile, Version
+from .dist_data.model import Model, Version
 from .dist_data.vtable import VTable
 from .progressor import IProgressor, new_progressor
-from .storage import Storage
+from .storage import Storage, make_storage
 
 
 @dataclass
@@ -62,7 +63,7 @@ class Context:
             data_dir = os.path.join(os.getcwd(), f"data_{os.getpid()}_{self_party}")
         self.cluster_config = cluster_config
         self._checkpoint = checkpoint
-        self._storage = Storage(storage_config)
+        self._storage = make_storage(storage_config)
         self.data_dir = data_dir
         self._spu_configs, self._heu_config = extract_device_config(cluster_config)
         self.tracer = TimeTracer()
@@ -207,12 +208,19 @@ class Context:
             return model
 
     def load_tarfile(
-        self, dd: DistData, file_type: str | None = None, version: Version | None = None
+        self,
+        dd: DistData,
+        file_type: str = None,
+        version: Version = None,
+        base_dir: str = None,
     ) -> TarFile:
+        if file_type and dd.type != str(file_type):
+            raise ValueError(f"tarfile type mismatch, {file_type}, {dd.type}")
+        if base_dir is None:
+            base_dir = self.data_dir
         with self.trace_io():
-            res = TarFile.load(self.storage, dd)
-            res.check(file_type, version)
-            return res
+            tf = TarFile.load(self.storage, dd, version, base_dir)
+            return tf
 
     def dump(self, obj: IDumper, uri: str) -> DistData:
         with self.trace_io():

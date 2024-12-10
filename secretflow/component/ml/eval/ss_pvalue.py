@@ -47,11 +47,11 @@ class SSPValue(Component):
     recommend to use [Ring size: 128, Fxp: 40] options for SPU device.
     '''
 
-    input_model: Input = Field.input(  # type: ignore
+    input_model: Input = Field.input(
         desc="Input model.",
         types=[DistDataType.SS_SGD_MODEL, DistDataType.SS_GLM_MODEL],
     )
-    input_ds: Input = Field.input(  # type: ignore
+    input_ds: Input = Field.input(
         desc="Input vertical table.",
         types=[DistDataType.VERTICAL_TABLE],
     )
@@ -73,9 +73,10 @@ class SSPValue(Component):
         feature_names.append('bias')
         desc = {name: value for name, value in zip(feature_names, pv)}
 
-        r = Reporter(name="pvalue", desc="pvalue list")
+        system_info = self.input_ds.system_info
+        r = Reporter(name="pvalue", desc="pvalue list", system_info=system_info)
         r.add_tab(desc)
-        r.dump_to(self.report, self.input_ds.system_info)
+        self.report.data = r.to_distdata()
 
     def sgd_pvalue(self, ctx: Context) -> tuple[list[float], list[str]]:
         spu = ctx.make_spu()

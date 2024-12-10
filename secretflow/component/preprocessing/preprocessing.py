@@ -197,7 +197,7 @@ class PreprocessingMixin:
         self,
         ctx: Context,
         out_rule: Output,
-        input: Input | VTable,  # type: ignore
+        input: Input | VTable,
         fn: (
             Callable[[sc.Table], sc.Table | IRunner]
             | Callable[[sc.Table, object], sc.Table | IRunner]
@@ -253,7 +253,7 @@ class PreprocessingMixin:
         self,
         ctx: Context,
         output: Output,
-        input: Input | VTable | CompVDataFrame,  # type: ignore
+        input: Input | VTable | CompVDataFrame,
         rule: Model,
         streaming: bool = True,
     ):

@@ -361,6 +361,20 @@ class VTableSchema:
         return VTableSchema(fields)
 
     @staticmethod
+    def from_pb_str(pb_str: str) -> "VTableSchema":
+        pb = TableSchema()
+        pb.ParseFromString(pb_str)
+        return VTableSchema.from_pb(pb)
+
+    @staticmethod
+    def from_pb(schema: TableSchema) -> "VTableSchema":  # type: ignore
+        return VTableSchema.from_dict(
+            features={f: t for f, t in zip(schema.features, schema.feature_types)},
+            labels={f: t for f, t in zip(schema.labels, schema.label_types)},
+            ids={f: t for f, t in zip(schema.ids, schema.id_types)},
+        )
+
+    @staticmethod
     def from_arrow(schema: pa.Schema, check_kind: bool = True) -> 'VTableSchema':
         fields = [VTableField.from_arrow(f, check_kind=check_kind) for f in schema]
         return VTableSchema(fields)
@@ -514,6 +528,10 @@ class VTable:
         excludes_set = set(excludes)
         parties = {}
         for p in self.parties.values():
+            if len(excludes_set) == 0:
+                parties[p.party] = p
+                break
+
             fields = {}
             for f in p.schema.fields.values():
                 if f.name in excludes_set:
@@ -527,8 +545,6 @@ class VTable:
             parties[p.party] = VTableParty(
                 p.party, p.uri, p.format, p.null_strs, VTableSchema(fields)
             )
-            if len(excludes_set) == 0:
-                break
 
         if len(excludes_set) > 0:
             raise ValueError(f'unknowns columns, {excludes_set}')

@@ -20,10 +20,10 @@ from google.protobuf.json_format import MessageToJson
 from sklearn.metrics import r2_score
 
 from secretflow.component.core import (
-    Storage,
     VTable,
     VTableParty,
     build_node_eval_param,
+    make_storage,
 )
 from secretflow.component.entry import comp_eval
 from secretflow.spec.v1.report_pb2 import Report
@@ -44,7 +44,7 @@ def test_regression_eval(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = Storage(storage_config)
+    storage = make_storage(storage_config)
 
     if self_party == "alice":
         label_pred_df.to_csv(storage.get_writer(alice_label_pred_path), index=False)

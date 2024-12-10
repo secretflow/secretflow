@@ -141,7 +141,7 @@ Sample data set.
 ### psi
 
 
-Component version: 0.0.9
+Component version: 1.0.0
 
 PSI between two parties.
 #### Attrs
@@ -149,36 +149,33 @@ PSI between two parties.
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
-|protocol|PSI protocol.|String|N|Default: PROTOCOL_RR22.Allowed: ['PROTOCOL_RR22', 'PROTOCOL_ECDH', 'PROTOCOL_KKRT'].|
-|sort_result|It false, output is not promised to be aligned. Warning: disable this option may lead to errors in the following components. DO NOT TURN OFF if you want to append other components.|Boolean|N|Default: True.|
+|protocol|PSI protocol.|Special type. Union group. You must select one child to fill in.|N/A|This is a special type. This is a union group, you must select one child to fill in (if exists).|
+|protocol/PROTOCOL_ECDH|ECDH protocol.|Special type. Union group. You must select one child to fill in.|N/A|This is a special type. This is a union group, you must select one child to fill in (if exists).|
+|sort_result|If false, output is not promised to be aligned. Warning: disable this option may lead to errors in the following components. DO NOT TURN OFF if you want to append other components.|Boolean|N|Default: True.|
+|receiver_parties|Party names of receiver for result, all party will be receivers default; if only one party receive result, the result will be single-party table, hence you can not connect it to component with union table input.|Special type. Specify parties.|Y||
 |allow_empty_result|Whether to allow the result to be empty, if allowed, an empty file will be saved, if not, an error will be reported.|Boolean|N|Default: False.|
-|allow_duplicate_keys|Some join types allow duplicate keys. If you specify a party to receive, this should be no.|Special type. Union group. You must select one child to fill in.|N/A|This is a special type. This is a union group, you must select one child to fill in (if exists).|
-|allow_duplicate_keys/no|Duplicate keys are not allowed.|Special type. Struct group. You must fill in all children.|N/A|This is a special type. This is a structure group, you must fill in all children.|
-|allow_duplicate_keys/no/skip_duplicates_check|If true, the check of duplicated items will be skiped.|Boolean|N|Default: False.|
-|allow_duplicate_keys/no/check_hash_digest|Check if hash digest of keys from parties are equal to determine whether to early-stop.|Boolean|N|Default: False.|
-|allow_duplicate_keys/no/receiver_parties|Party names of receiver for result, all party will be receivers default; if only one party receive result, the result will be single-party table, hence you can not connect it to component with union table input.|Special type. Specify parties.|Y||
-|allow_duplicate_keys/yes|Duplicate keys are allowed.|Special type. Struct group. You must fill in all children.|N/A|This is a special type. This is a structure group, you must fill in all children.|
-|allow_duplicate_keys/yes/join_type|Join type.|Special type. Union group. You must select one child to fill in.|N/A|This is a special type. This is a union group, you must select one child to fill in (if exists).|
-|allow_duplicate_keys/yes/join_type/left_join|Left join with duplicate keys|Special type. Struct group. You must fill in all children.|N/A|This is a special type. This is a structure group, you must fill in all children.|
-|allow_duplicate_keys/yes/join_type/left_join/left_side|Required for left join|Special type. Specify parties.|Y||
-|ecdh_curve|Curve type for ECDH PSI.|String|N|Default: CURVE_FOURQ.Allowed: ['CURVE_25519', 'CURVE_FOURQ', 'CURVE_SM2', 'CURVE_SECP256K1'].|
+|join_type|join type, default is inner join.|Special type. Union group. You must select one child to fill in.|N/A|This is a special type. This is a union group, you must select one child to fill in (if exists).|
+|join_type/left_join|Left join|Special type. Struct group. You must fill in all children.|N/A|This is a special type. This is a structure group, you must fill in all children.|
+|join_type/left_join/left_side|Required for left join|Special type. Specify parties.|Y||
+|input_ds1_keys_duplicated|Whether key columns have duplicated rows, default is True.|Boolean|N|Default: True.|
+|input_ds2_keys_duplicated|Whether key columns have duplicated rows, default is True.|Boolean|N|Default: True.|
 
 #### Inputs
 
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_table_1|Individual table for party 1|['sf.table.individual']|Pleae fill in extra table attributes.|
-|input/input_table_1/key|Column(s) used to join.|String List(Set value with other Component Attributes)|You need to select some columns of table input_table_1. Min column number to select(inclusive): 1. |
-|input_table_2|Individual table for party 2|['sf.table.individual']|Pleae fill in extra table attributes.|
-|input/input_table_2/key|Column(s) used to join.|String List(Set value with other Component Attributes)|You need to select some columns of table input_table_2. Min column number to select(inclusive): 1. |
+|input_ds1|Individual table for party 1|['sf.table.individual']|Pleae fill in extra table attributes.|
+|input/input_ds1/keys|Column(s) used to join.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds1. Min column number to select(inclusive): 1. |
+|input_ds2|Individual table for party 2|['sf.table.individual']|Pleae fill in extra table attributes.|
+|input/input_ds2/keys|Column(s) used to join.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds2. Min column number to select(inclusive): 1. |
 
 #### Outputs
 
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|psi_output|Output vertical table|['sf.table.vertical_table', 'sf.table.individual']||
+|output_ds|Output vertical table|['sf.table.vertical_table', 'sf.table.individual']||
 |report|Output psi report|['sf.report']||
 
 ### psi_tp
@@ -192,7 +189,7 @@ PSI between three parties.
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
-|ecdh_curve|Curve type for ECDH PSI.|String|N|Default: CURVE_FOURQ.Allowed: ['CURVE_FOURQ', 'CURVE_25519', 'CURVE_SM2', 'CURVE_SECP256K1'].|
+|ecdh_curve|Curve type for ECDH PSI.|Special type. Union group. You must select one child to fill in.|N/A|This is a special type. This is a union group, you must select one child to fill in (if exists).|
 
 #### Inputs
 
@@ -245,6 +242,67 @@ Split datasets into random train and test subsets.
 |train_ds|Output train dataset.|['sf.table.vertical_table']||
 |test_ds|Output test dataset.|['sf.table.vertical_table']||
 
+### unbalance_psi
+
+
+Component version: 1.0.0
+
+Unbalance psi with cache.
+#### Attrs
+
+
+|Name|Description|Type|Required|Notes|
+| :--- | :--- | :--- | :--- | :--- |
+|join_type|join type, default is inner join.|Special type. Union group. You must select one child to fill in.|N/A|This is a special type. This is a union group, you must select one child to fill in (if exists).|
+|join_type/left_join|Left join|Special type. Struct group. You must fill in all children.|N/A|This is a special type. This is a structure group, you must fill in all children.|
+|join_type/left_join/left_side|Required for left join|Special type. Specify parties.|Y||
+|allow_empty_result|Whether to allow the result to be empty, if allowed, an empty file will be saved, if not, an error will be reported.|Boolean|N|Default: False.|
+|receiver_parties|Party names of receiver for result, all party will be receivers default; if only one party receive result, the result will be single-party table, hence you can not connect it to component with union table input.|Special type. Specify parties.|Y||
+
+#### Inputs
+
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|client_ds|Client dataset.|['sf.table.individual']|Pleae fill in extra table attributes.|
+|input/client_ds/keys|Keys to be used for psi.|String List(Set value with other Component Attributes)|You need to select some columns of table client_ds. |
+|cache|Server cache.|['sf.model.ub_psi.cache']||
+
+#### Outputs
+
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|output_ds|Output table|['sf.table.individual', 'sf.table.vertical_table']||
+
+### unbalance_psi_cache
+
+
+Component version: 1.0.0
+
+Generate cache for unbalance psi on both sides.
+#### Attrs
+
+
+|Name|Description|Type|Required|Notes|
+| :--- | :--- | :--- | :--- | :--- |
+|client|Party of client(party with the smaller dataset).|Special type. Specify parties.|Y||
+
+#### Inputs
+
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|input_ds|Input vertical table.|['sf.table.individual']|Pleae fill in extra table attributes.|
+|input/input_ds/keys|Keys to be used for psi.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. |
+
+#### Outputs
+
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|output_cache|Output cache.|['sf.model.ub_psi.cache']||
+
 ### union
 
 
@@ -288,6 +346,28 @@ export data to an external data source
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
 |input_data|Input dist data|['sf.table.individual', 'sf.table.vertical_table']||
+
+### data_source
+
+
+Component version: 1.0.0
+
+import data from an external data source
+#### Attrs
+
+
+|Name|Description|Type|Required|Notes|
+| :--- | :--- | :--- | :--- | :--- |
+|party||Special type. Specify parties.|Y||
+|uri|input uri, the uri format is datamesh:///{relative_path}?domaindata_id={domaindata_id}&datasource_id={datasource_id}&partition_spec={partition_spec}|String|Y||
+|columns|table column info, json format, for example {"col1": "ID", "col2":"FEATURE", "col3":"LABEL"}|String|N|Default: .|
+
+#### Outputs
+
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|output_ds|output dataset|['sf.table.individual']||
 
 ### identity
 
@@ -746,11 +826,11 @@ be a function of its predicted value.
 |infeed_batch_size_limit|size of a single block, default to 8w * 100. increase the size will increase memory cost, but may decrease running time. Suggested to be as large as possible. (too large leads to OOM)|Integer|N|Default: 8000000.Range: [1000, 8000000].|
 |fraction_of_validation_set|fraction of training set to be used as the validation set. ineffective for 'weight' stopping_metric|Float|N|Default: 0.2.Range: (0.0, 1.0).|
 |random_state|random state for validation split|Integer|N|Default: 1212.Range: [0, $\infty$).|
-|stopping_metric|use what metric as the condition for early stop? Must be one of ['deviance', 'MSE', 'RMSE', 'AUC', 'weight']. only logit link supports AUC metric (note that AUC is very, very expansive in MPC)|String|N|Default: deviance.Allowed: ['deviance', 'MSE', 'RMSE', 'AUC', 'weight'].|
+|stopping_metric|use what metric as the condition for early stop? Must be one of ['deviance', 'MSE', 'RMSE', 'AUC', 'weight']. only logit link supports AUC metric (note that AUC is very, very expensive in MPC)|String|N|Default: deviance.Allowed: ['deviance', 'MSE', 'RMSE', 'AUC', 'weight'].|
 |stopping_rounds|If the model is not improving for stopping_rounds, the training process will be stopped, for 'weight' stopping metric, stopping_rounds is fixed to be 1|Integer|N|Default: 0.Range: [0, 100].|
 |stopping_tolerance|the model is considered as not improving, if the metric is not improved by tolerance over best metric in history. If metric is 'weight' and tolerance == 0, then early stop is disabled.|Float|N|Default: 0.001.Range: [0.0, 1.0).|
 |report_metric|Whether to report the value of stopping metric. Only effective if early stop is enabled. If this option is set to true, metric will be revealed and logged.|Boolean|N|Default: False.|
-|exp_mode|If you do not know the details of this parameter, please do not modify this parameter! Specify the mode of exp taylor approx, currently only supports 'taylor', 'pade' and 'prime' modes. The default value is 'taylor'. 'taylor': use taylor approx, variable precision and cost, higher exp_iters, higher cost. 'pade': use pade approx, high precision, high cost. 'prime': use prime approx, best precision, 3/4 cost of taylor (8 iter), only support for SEMI2K FM128 case. Although it has great presicion and performance inside valid domain, the approximation can be wildly inaccurate outside the valid domain. Suppose x -> exp(x), then valid domain is: x in ((47 - offset - 2fxp)/log_2(e), (125 - 2fxp - offset)/log_2(e)). That's why we need clamping x to this range. However, clamping action is expansive, so we need to set a reasonable offset to control the valid range of exp prime method, and avoid clamping for best performance.|String|N|Default: taylor.Allowed: ['pade', 'taylor', 'prime'].|
+|exp_mode|If you do not know the details of this parameter, please do not modify this parameter! Specify the mode of exp taylor approx, currently only supports 'taylor', 'pade' and 'prime' modes. The default value is 'taylor'. 'taylor': use taylor approx, variable precision and cost, higher exp_iters, higher cost. 'pade': use pade approx, high precision, high cost. 'prime': use prime approx, best precision, 3/4 cost of taylor (8 iter), only support for SEMI2K FM128 case. Although it has great presicion and performance inside valid domain, the approximation can be wildly inaccurate outside the valid domain. Suppose x -> exp(x), then valid domain is: x in ((47 - offset - 2fxp)/log_2(e), (125 - 2fxp - offset)/log_2(e)). That's why we need clamping x to this range. However, clamping action is expensive, so we need to set a reasonable offset to control the valid range of exp prime method, and avoid clamping for best performance.|String|N|Default: taylor.Allowed: ['pade', 'taylor', 'prime'].|
 |exp_iters|If you do not know the details of this parameter, please do not modify this parameter! Specify the number of iterations of exp taylor approx, Only takes effect when using exp mode 'taylor'. Increasing this value will improve the accuracy of exp approx, but will quickly degrade performance.|Integer|N|Default: 8.Range: [4, 32].|
 |exp_prime_offset|If you do not know the details of this parameter, please do not modify this parameter! Specify the offset of exp prime approx, only takes effect when using exp mode 'prime'. control the valid range of exp prime method. Suppose x -> exp(x), then valid domain is: x in ((47 - offset - 2fxp)/log_2(e), (125 - 2fxp - offset)/log_2(e)) default to be 13.|Integer|N|Default: 13.Range: (0, $\infty$).|
 |exp_prime_lower_bound_clamp|If you do not know the details of this parameter, please do not modify this parameter! Specify whether to use lower bound for exp prime mode, only takes effect when using exp mode 'prime'. when calculating x -> exp(x), exp prime is only effective for x in ((47 - offset - 2fxp)/log_2(e), (125 - 2fxp - offset)/log_2(e)). If true, use clamp value below the lower bound, otherwise leave the value unchanged. lower bound is set to be (48 - offset - 2fxp)/log_2(e). Enable clamping will avoid large numerical errors when x < lower bound. Disable clamping will leave the value unchanged, which may cause large numerical errors when x < lower bound. However, clamping cost is very high, if we are certain x is in the valid range, it is recommended to disable clamping.|Boolean|N|Default: True.|

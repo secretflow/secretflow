@@ -1,23 +1,23 @@
-name: Secretflow Issue Template
-description: Thank you for reporting the issue!
+name: Secretflow Bug Report Template
+description: Thank you for reporting the bug!
 body:
   - type: markdown
     attributes:
       value: |
-        Please make sure that you report a code/doc bug, feature request or build/installation bug on GitHub.
+        Please make sure that you report a code/doc bug or build/installation bug on GitHub.
         Please post on our [discussions](https://github.com/secretflow/secretflow/discussions) instead if you want to ask questions or share ideas.
   - type: dropdown
     id: issue-type
     attributes:
       label: Issue Type
-      description: What type of issue would you like to report?
+      description: What type of bug would you like to report?
       multiple: false
       options:
-        - Bug
         - Build/Install
-        - Feature Request
-        - Documentation Feature Request
-        - Documentation Bug
+        - Performance
+        - Usability
+        - Documentation
+        - Correctness/Accuracy
         - Others
     validations:
       required: true
@@ -37,7 +37,7 @@ body:
     attributes:
       label: Secretflow Version
       description: 
-      placeholder: e.g., secretflow 0.6.13b0
+      placeholder: e.g., secretflow 0.6.13b0.
     validations:
       required: true
   - type: input
@@ -45,7 +45,7 @@ body:
     attributes:
       label: OS Platform and Distribution
       description: 
-      placeholder: e.g., Linux Ubuntu 18.04
+      placeholder: e.g., Linux Ubuntu 18.04.
     validations:
       required: true
   - type: input
@@ -53,31 +53,31 @@ body:
     attributes:
       label: Python version
       description: 
-      placeholder: e.g., 3.10.13
+      placeholder: e.g., 3.10.13.
     validations:
       required: true
   - type: input
     id: Bazel
     attributes:
       label: Bazel version
-      description: If compiling from source
-      placeholder: 
+      description: If compiling from source.
+      placeholder: e.g., 4.2.1.
     validations:
       required: false
   - type: input
     id: Compiler
     attributes:
       label: GCC/Compiler version
-      description: If compiling from source
-      placeholder: 
+      description: If compiling from source.
+      placeholder: e.g., GCC 9.3.0.
     validations:
       required: false
   - type: textarea
     id: what-happened
     attributes:
-      label: What happend and What you expected to happen.
-      description: Describe the bug, exepcted behavior and relevant log output.
-      placeholder: A bug happened!
+      label: What happened and what you expected to happen.
+      description: Describe the bug, expected behavior, and actual outcome. Include relevant log output.
+      placeholder: Explain step-by-step how the expected outcome differs from the actual outcome.
       value: 
       render: shell
     validations:
@@ -86,9 +86,19 @@ body:
     id: reproduction-code
     attributes:
       label: Reproduction code to reproduce the issue.
-      description: Provide a reproducible code that is the bare minimum necessary to generate the problem.
+      description: Provide a reproducible code that is the bare minimum necessary to generate the problem. Include any relevant data necessary to recreate the issue.
       placeholder: A short code snippet to reproduce the issue.
       value: 
       render: shell
     validations:
       required: true
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context or Logs
+      description: Include any other information that may help us debug the issue, such as logs or screenshots.
+      placeholder: Attach logs, screenshots, or any other relevant information here.
+      value:
+      render: shell
+    validations:
+      required: false
