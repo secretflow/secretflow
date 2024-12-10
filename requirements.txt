@@ -31,7 +31,7 @@ certifi>=2024.7.4
 sparse>=0.14.0
 spu==0.9.3.dev20241118 # FEATURE=[lite]
 sf-heu==0.6.0.dev20241106 # FEATURE=[lite]
-secretflow_serving_lib==0.8.0a1  # FEATURE=[lite]
+secretflow_serving_lib==0.8.0.dev20241119  # FEATURE=[lite]
 tensorflow-macos>=2.12,<2.13; platform_system == "Darwin"  # FEATURE=[fl_plugin]
 tensorflow>=2.12,<2.13; platform_system != "Darwin"  # FEATURE=[fl_plugin]
 tf2onnx>=1.13.0
