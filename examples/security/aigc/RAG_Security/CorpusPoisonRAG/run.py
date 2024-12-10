@@ -1,75 +1,49 @@
 import os
+import sys
+import subprocess
+from concurrent.futures import ThreadPoolExecutor
 
-def run(test_params):
+def run_attack(k, s, model, dataset, output_path, log_path):
+    os.makedirs(output_path, exist_ok=True)
 
-    log_file, log_name = get_log_name(test_params)
-
-    cmd = f"python -u main.py \
-        --eval_model_code {test_params['eval_model_code']}\
-        --eval_dataset {test_params['eval_dataset']}\
-        --split {test_params['split']}\
-        --query_results_dir {test_params['query_results_dir']}\
-        --model_name {test_params['model_name']}\
-        --top_k {test_params['top_k']}\
-        --use_truth {test_params['use_truth']}\
-        --gpu_id {test_params['gpu_id']}\
-        --attack_method {test_params['attack_method']}\
-        --adv_per_query {test_params['adv_per_query']}\
-        --score_function {test_params['score_function']}\
-        --repeat_times {test_params['repeat_times']}\
-        --M {test_params['M']}\
-        --seed {test_params['seed']}\
-        --name {log_name} "
-        
-    os.system(cmd)
-
-
-def get_log_name(test_params):
-    # Generate a log file name
-    os.makedirs(f"logs/{test_params['query_results_dir']}_logs", exist_ok=True)
-
-    if test_params['use_truth']:
-        log_name = f"{test_params['eval_dataset']}-{test_params['eval_model_code']}-{test_params['model_name']}-Truth--M{test_params['M']}x{test_params['repeat_times']}"
-    else:
-        log_name = f"{test_params['eval_dataset']}-{test_params['eval_model_code']}-{test_params['model_name']}-Top{test_params['top_k']}--M{test_params['M']}x{test_params['repeat_times']}"
+    output_file = f"{output_path}/{dataset}-{model}-k{k}-s{s}.json"
+    log_file = f"{log_path}/{dataset}-{model}-k{k}-s{s}.log"
     
-    if test_params['attack_method'] != None:
-        log_name += f"-adv-{test_params['attack_method']}-{test_params['score_function']}-{test_params['adv_per_query']}-{test_params['top_k']}"
-
-    if test_params['note'] != None:
-        log_name = test_params['note']
+    # Command to run
+    command = f"""
+    python src/attack_poison.py \
+       --dataset {dataset}  \
+       --split train \
+       --model_code {model} \
+       --num_cand 100 --per_gpu_eval_batch_size 64 --num_iter 5000 --num_grad_iter 1 \
+       --output_file {output_file} \
+       --do_kmeans --k {k} --kmeans_split {s}
+    """
     
-    return f"logs/{test_params['query_results_dir']}_logs/{log_name}.txt", log_name
+    # Open log file for writing
+    with open(log_file, "w") as log:
+        subprocess.run(command, shell=True, check=True, stdout=log, stderr=log)
 
+def main():
+    model = "ance"
+    dataset = "nq-train"
+    k = 10
+    output_path = "results/advp"
+    log_path = "logs"  # Specify the directory for log files
 
+    # Ensure the log directory exists
+    os.makedirs(log_path, exist_ok=True)
 
-test_params = {
-    # beir_info
-    'eval_model_code': "contriever",  # contriever dpr
-    'eval_dataset': "nq", # nq、hotpotqa、msmarco , This will be set in the loop
-    'split': "test", #test
-    'query_results_dir': 'test', #main
+    
 
-    # LLM setting
-    'model_name': 'gpt3.5', # gpt3.5/gpt4/gpt4o/llama7b/vicuna7b/qwen7b/internlm7b/
-    'use_truth': False,
-    'top_k': 5,                 #5
-    'gpu_id': 0,
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        futures = []
+        for s in range(k):
+            futures.append(executor.submit(run_attack, k, s, model, dataset, output_path, log_path))
 
-    # attack
-    'attack_method': 'hotflip', # LM_targeted  hotflip
-    'adv_per_query': 5,          #5
-    'score_function': 'dot',
-    'repeat_times': 10,
-    'M': 10,
-    'seed': 12,
+        # Wait for all threads to complete
+        for future in futures:
+            future.result()
 
-    'note': None
-}
-
-test_params['eval_dataset'] = 'nq'  # nq、hotpotqa、msmarco
-run(test_params)
-
-# for dataset in ['nq', 'hotpotqa', 'msmarco']:
-#     test_params['eval_dataset'] = dataset
-#     run(test_params)
+if __name__ == "__main__":
+    main()
