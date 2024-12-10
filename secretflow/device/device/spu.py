@@ -1203,12 +1203,85 @@ class SPURuntime:
             'join_count': join_count,
         }
 
+    def ub_psi(
+        self,
+        mode: str,
+        role: str,
+        input_path: str,
+        keys: List[str],
+        server_secret_key_path: str,
+        cache_path: str,
+        server_get_result: bool,
+        client_get_result: bool,
+        disable_alignment: bool,
+        output_path: str,
+        join_type: str,
+        left_side: str,
+        null_rep: str,
+    ):
+        """Unbalanced PSI.
+        Args:
+            mode (str): Mode of psi. One of [
+                MODE_UNSPECIFIED,
+                MODE_OFFLINE_GEN_CACHE,
+                MODE_OFFLINE_TRANSFER_CACHE,
+                MODE_OFFLINE,
+                MODE_ONLINE,
+                MODE_FULL
+            ]
+            role (str): Role of psi. one of [
+                ROLE_SERVER,
+                ROLE_CLIENT,
+            ]
+            input_path (str): Input path of psi.
+            keys (List[str]): Keys of psi.
+            server_secret_key_path (str): Server secret key path of psi.
+            cache_path (str): Cache path of psi.
+            server_get_result (bool): Server get result of psi.
+            client_get_result (bool): Client get result of psi.
+            disable_alignment (bool): Disable alignment of psi.
+            output_path (str): Output path of psi.
+        Returns:
+            Dict: PSI report output by SPU.
+        """
+        config = spu.psi_v2_pb2.UbPsiConfig(
+            mode=spu.psi_v2_pb2.UbPsiConfig.Mode.Value(mode),
+            role=spu.psi_v2_pb2.Role.Value(role),
+            input_config=spu.psi_v2_pb2.IoConfig(
+                type=spu.psi_v2_pb2.IO_TYPE_FILE_CSV,
+                path=input_path,
+            ),
+            keys=keys,
+            server_secret_key_path=server_secret_key_path,
+            cache_path=cache_path,
+            server_get_result=server_get_result,
+            client_get_result=client_get_result,
+            disable_alignment=disable_alignment,
+            output_config=spu.psi_v2_pb2.IoConfig(
+                type=spu.psi_v2_pb2.IO_TYPE_FILE_CSV,
+                path=output_path,
+            ),
+            advanced_join_type=spu.psi_v2_pb2.PsiConfig.AdvancedJoinType.Value(
+                join_type
+            ),
+            left_side=spu.psi_v2_pb2.Role.Value(left_side),
+            output_attr=spu.psi_v2_pb2.OutputAttr(csv_null_rep=null_rep),
+        )
+        report = spu.psi.ub_psi(config, self.link)
+        return {
+            'party': self.party,
+            'original_count': report.original_count,
+            'intersection_count': report.intersection_count,
+        }
+
     def psi(
         self,
         keys: List[str],
         input_path: str,
         output_path: str,
         receiver: str,
+        table_keys_duplicated: bool,
+        output_csv_na_rep: str,
         broadcast_result: bool = True,
         protocol: str = 'PROTOCOL_KKRT',
         ecdh_curve: str = 'CURVE_FOURQ',
@@ -1236,6 +1309,10 @@ class SPURuntime:
                 type=spu.psi_v2_pb2.IO_TYPE_FILE_CSV,
                 path=output_path,
             ),
+            input_attr=spu.psi_v2_pb2.InputAttr(
+                keys_unique=not table_keys_duplicated,
+            ),
+            output_attr=spu.psi_v2_pb2.OutputAttr(csv_null_rep=output_csv_na_rep),
             keys=keys,
             advanced_join_type=spu.psi_v2_pb2.PsiConfig.AdvancedJoinType.Value(
                 advanced_join_type
@@ -1855,12 +1932,13 @@ class SPU(Device):
         input_path: Dict[str, str],
         output_path: Dict[str, str],
         receiver: str,
+        table_keys_duplicated: Dict[str, bool],
+        output_csv_na_rep: str = "NULL",
         broadcast_result: bool = True,
         protocol: str = 'PROTOCOL_KKRT',
         ecdh_curve: str = 'CURVE_FOURQ',
-        advanced_join_type: str = "ADVANCED_JOIN_TYPE_UNSPECIFIED",
+        advanced_join_type: str = "ADVANCED_JOIN_TYPE_INNER_JOIN",
         left_side: str = "ROLE_RECEIVER",
-        skip_duplicates_check: bool = False,
         disable_alignment: bool = False,
         check_hash_digest: bool = False,
     ):
@@ -1872,6 +1950,8 @@ class SPU(Device):
             input_path (Dict[str, str]): Input paths from both parties.
             output_path (Dict[str, str]): Output paths from both parties.
             receiver (str): Name of receiver party.
+            table_keys_duplicated (str): Whether keys columns catain duplicated rows.
+            output_csv_na_rep (str): null repsentation in output csv.
             broadcast_result (bool, optional): Whether to reveal result to sender. Defaults to True.
             protocol (str, optional): PSI protocol. Defaults to 'PROTOCOL_KKRT'. Allowed values: 'PROTOCOL_ECDH', 'PROTOCOL_KKRT', 'PROTOCOL_RR22'
             ecdh_curve (str, optional): Curve for ECDH protocol. Only valid if ECDH is selected. Defaults to 'CURVE_FOURQ'. Allowed values: 'CURVE_25519', 'CURVE_FOURQ', 'CURVE_SM2', 'CURVE_SECP256K1'
@@ -1885,7 +1965,11 @@ class SPU(Device):
             Dict: PSI report.
         """
 
-        assert protocol in ['PROTOCOL_ECDH', 'PROTOCOL_KKRT', 'PROTOCOL_RR22']
+        assert protocol in [
+            'PROTOCOL_ECDH',
+            'PROTOCOL_KKRT',
+            'PROTOCOL_RR22',
+        ], f"invalid protocol: {protocol}"
 
         if protocol == 'PROTOCOL_ECDH':
             assert ecdh_curve in [
@@ -1911,12 +1995,69 @@ class SPU(Device):
             input_path,
             output_path,
             receiver,
+            table_keys_duplicated,
+            output_csv_na_rep,
             broadcast_result,
             protocol,
             ecdh_curve,
             advanced_join_type,
             left_side,
-            skip_duplicates_check,
+            True,  # skip_duplicates_check
             disable_alignment,
             check_hash_digest,
+        )
+
+    def ub_psi(
+        self,
+        mode: str,
+        role: Dict[str, str],
+        cache_path: Dict[str, str],
+        input_path: Dict[str, str] = {},
+        server_secret_key_path: str = '',
+        keys: Dict[str, List[str]] = None,
+        server_get_result: bool = False,
+        client_get_result: bool = False,
+        disable_alignment: bool = False,
+        output_path: Dict[str, str] = {},
+        join_type: str = "ADVANCED_JOIN_TYPE_INNER_JOIN",
+        left_side: str = "ROLE_SERVER",
+        null_rep: str = "NULL",
+    ):
+        assert mode in [
+            'MODE_OFFLINE_GEN_CACHE',
+            'MODE_OFFLINE_TRANSFER_CACHE',
+            'MODE_OFFLINE',
+            'MODE_ONLINE',
+            'MODE_FULL',
+        ]
+        assert join_type in [
+            'ADVANCED_JOIN_TYPE_INNER_JOIN',
+            'ADVANCED_JOIN_TYPE_LEFT_JOIN',
+            'ADVANCED_JOIN_TYPE_RIGHT_JOIN',
+            'ADVANCED_JOIN_TYPE_FULL_JOIN',
+            'ADVANCED_JOIN_TYPE_DIFFERENCE',
+        ]
+        roles = set()
+        for r in role.values():
+            roles.add(r)
+        assert roles == {
+            'ROLE_SERVER',
+            'ROLE_CLIENT',
+        }, 'role must be ROLE_SERVER or ROLE_CLIENT'
+        return dispatch(
+            'ub_psi',
+            self,
+            mode=mode,
+            role=role,
+            input_path=input_path,
+            output_path=output_path,
+            keys=keys,
+            server_secret_key_path=server_secret_key_path,
+            cache_path=cache_path,
+            server_get_result=server_get_result,
+            client_get_result=client_get_result,
+            disable_alignment=disable_alignment,
+            join_type=join_type,
+            left_side=left_side,
+            null_rep=null_rep,
         )

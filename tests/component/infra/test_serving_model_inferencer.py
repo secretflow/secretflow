@@ -21,20 +21,22 @@ import pandas as pd
 import pytest
 from pyarrow import csv
 
-from secretflow.component.data_utils import DistDataType, extract_data_infos
+from secretflow.component.core import (
+    DistDataType,
+    VTable,
+    build_node_eval_param,
+    make_storage,
+)
 from secretflow.component.entry import comp_eval
 from secretflow.component.serving_model_inferencer.serving_model_inferencer import (
     get_output_pred_path,
 )
-from secretflow.component.storage.storage import ComponentStorage
-from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import (
     DistData,
     IndividualTable,
     TableSchema,
     VerticalTable,
 )
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
 
 def save_tar_to_buffer(src_tar_path, buffer):
@@ -59,7 +61,7 @@ def test_inferencer(comp_prod_sf_cluster_config, save_label, save_features):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = make_storage(storage_config)
 
     feature_f1 = -0.5591187559186066
     if self_party == "alice":
@@ -79,12 +81,9 @@ def test_inferencer(comp_prod_sf_cluster_config, save_label, save_features):
                 "y": [0.0],
             }
         )
-        df_alice.to_csv(
-            comp_storage.get_writer(alice_input_path),
-            index=False,
-        )
+        df_alice.to_csv(storage.get_writer(alice_input_path), index=False)
         save_tar_to_buffer(
-            alice_input_tar_path, comp_storage.get_writer(alice_input_tar_path)
+            alice_input_tar_path, storage.get_writer(alice_input_tar_path)
         )
     elif self_party == "bob":
         df_bob = pd.DataFrame(
@@ -103,12 +102,10 @@ def test_inferencer(comp_prod_sf_cluster_config, save_label, save_features):
             }
         )
         df_bob.to_orc(
-            comp_storage.get_writer(bob_input_path),
+            storage.get_writer(bob_input_path),
             index=False,
         )
-        save_tar_to_buffer(
-            bob_input_tar_path, comp_storage.get_writer(bob_input_tar_path)
-        )
+        save_tar_to_buffer(bob_input_tar_path, storage.get_writer(bob_input_tar_path))
 
     receiver = "alice"
     saved_columns = ["id_tttest"]
@@ -116,20 +113,15 @@ def test_inferencer(comp_prod_sf_cluster_config, save_label, save_features):
         saved_columns.append("f1")
     if save_label:
         saved_columns.append("y")
-    param = NodeEvalParam(
+    param = build_node_eval_param(
         domain="ml.predict",
         name="serving_model_inferencer",
         version="1.0.0",
-        attr_paths=[
-            "receiver",
-            "pred_name",
-            "input/input_ds/saved_columns",
-        ],
-        attrs=[
-            Attribute(ss=[receiver]),
-            Attribute(s="infer_out"),
-            Attribute(ss=saved_columns),
-        ],
+        attrs={
+            "receiver": [receiver],
+            "pred_name": "infer_out",
+            "input/input_ds/saved_columns": saved_columns,
+        },
         inputs=[
             DistData(
                 name="input_model",
@@ -223,21 +215,20 @@ def test_inferencer(comp_prod_sf_cluster_config, save_label, save_features):
     assert res.outputs[0].meta.Unpack(output_vt)
     assert output_vt.line_count == 1, f'output_vt.line_count != 1'
 
-    pred_data = extract_data_infos(
-        res.outputs[0], load_features=True, load_labels=True, load_ids=True
-    )
-
     if self_party == "alice":
-        assert len(pred_data) == 1
-        assert "alice" in pred_data
-        assert pred_data["alice"].id_cols == ["id_tttest"]
-        assert pred_data["alice"].feature_cols == (["f1"] if save_features else [])
-        assert pred_data["alice"].label_cols == (
-            ["y", "infer_out"] if save_label else ["infer_out"]
-        )
-        ds_alice = csv.read_csv(
-            comp_storage.get_reader(pred_data["alice"].uri)
-        ).to_pandas()
+        out0 = VTable.from_distdata(res.outputs[0])
+        assert len(out0.parties) == 1
+        assert "alice" in out0.parties
+
+        alice = out0.parties["alice"]
+        expect_columns = ["id_tttest", "infer_out"]
+        if save_features:
+            expect_columns.extend(["f1"])
+        if save_label:
+            expect_columns.extend(["y"])
+        assert set(alice.columns) == set(expect_columns)
+
+        ds_alice = csv.read_csv(storage.get_reader(alice.uri)).to_pandas()
 
         logging.warning(f"ds_alice: {ds_alice}")
         predict_reference = [0.393507155146531]
@@ -262,13 +253,13 @@ def test_inferencer_individual(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = make_storage(storage_config)
 
     b1 = 0.416872
 
     if self_party == "alice":
         save_tar_to_buffer(
-            alice_input_tar_path, comp_storage.get_writer(alice_input_tar_path)
+            alice_input_tar_path, storage.get_writer(alice_input_tar_path)
         )
     elif self_party == "bob":
         #  bob has all features
@@ -292,28 +283,21 @@ def test_inferencer_individual(comp_prod_sf_cluster_config):
             }
         )
         df_bob.to_orc(
-            comp_storage.get_writer(bob_input_path),
+            storage.get_writer(bob_input_path),
             index=False,
         )
-        save_tar_to_buffer(
-            bob_input_tar_path, comp_storage.get_writer(bob_input_tar_path)
-        )
+        save_tar_to_buffer(bob_input_tar_path, storage.get_writer(bob_input_tar_path))
 
     receiver = "bob"
-    param = NodeEvalParam(
+    param = build_node_eval_param(
         domain="ml.predict",
         name="serving_model_inferencer",
         version="1.0.0",
-        attr_paths=[
-            "receiver",
-            "pred_name",
-            "input/input_ds/saved_columns",
-        ],
-        attrs=[
-            Attribute(ss=[receiver]),
-            Attribute(s="infer_out"),
-            Attribute(ss=["b1"]),
-        ],
+        attrs={
+            "receiver": [receiver],
+            "pred_name": "infer_out",
+            "input/input_ds/saved_columns": ["b1"],
+        },
         inputs=[
             DistData(
                 name="input_model",
@@ -359,16 +343,16 @@ def test_inferencer_individual(comp_prod_sf_cluster_config):
         cluster_config=sf_cluster_config,
     )
 
-    pred_data = extract_data_infos(
-        res.outputs[0], load_features=True, load_labels=True, load_ids=True
-    )
     if self_party == "bob":
-        assert len(pred_data) == 1
-        assert "bob" in pred_data
-        assert pred_data["bob"].id_cols == ["id_tttest_b"]
-        assert pred_data["bob"].feature_cols == ["b1"]
-        assert pred_data["bob"].label_cols == (["infer_out"])
-        ds_bob = csv.read_csv(comp_storage.get_reader(pred_data["bob"].uri)).to_pandas()
+        out0 = VTable.from_distdata(res.outputs[0])
+        assert len(out0.parties) == 1
+        assert "bob" in out0.parties
+
+        bob = out0.parties["bob"]
+
+        expect_columns = ["id_tttest_b", "b1", "infer_out"]
+        assert set(bob.columns) == set(expect_columns)
+        ds_bob = csv.read_csv(storage.get_reader(bob.uri)).to_pandas()
 
         logging.warning(f"ds_bob: {ds_bob}")
         predict_reference = [0.459614]

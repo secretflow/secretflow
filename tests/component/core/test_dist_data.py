@@ -25,9 +25,9 @@ from secretflow.component.core import (
     CompVDataFrameReader,
     CompVDataFrameWriter,
     DistDataType,
-    Storage,
     TimeTracer,
     VTable,
+    make_storage,
 )
 from secretflow.component.core.entry import setup_sf_cluster
 from secretflow.device.driver import shutdown
@@ -38,7 +38,7 @@ def test_vtable(comp_prod_sf_cluster_config):
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
     setup_sf_cluster(sf_cluster_config)
-    storage = Storage(storage_config)
+    storage = make_storage(storage_config)
     input_path = "test_vtable/input.csv"
     output_path = "test_vtable/output.orc"
     stream_out_path = "test_vtable/output_stream.orc"
@@ -96,7 +96,7 @@ def test_vtable_null(comp_prod_sf_cluster_config):
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
     setup_sf_cluster(sf_cluster_config)
-    storage = Storage(storage_config)
+    storage = make_storage(storage_config)
     input_path = "test_vtable_null/input.csv"
     output_path = "test_vtable_null/output.orc"
     input_data = {

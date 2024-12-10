@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import math
+import os
 import re
 import uuid
 from typing import Any
@@ -21,11 +22,11 @@ import pyarrow as pa
 
 import secretflow.compute as sc
 from secretflow.device import PYU, reveal, wait
+from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
 from .common.io import CSVReadOptions, CSVWriteOptions, convert_io
-from .common.utils import to_attribute
 from .dist_data.vtable import VTable, VTableFormat, VTableParty
 from .storage import Storage
 
@@ -66,6 +67,47 @@ def float_almost_equal(
 def pad_inf_to_split_points(split_points: list[float]) -> list[float]:
     assert isinstance(split_points, list), f"{split_points}"
     return [-math.inf] + split_points + [math.inf]
+
+
+def download_files(
+    storage: Storage,
+    remote_files: dict[str, str],
+    local_files: dict[str, str],
+    overwrite: bool = True,
+):
+    if set(remote_files.keys()) != set(local_files.keys()):
+        raise ValueError(f"parties mismatch, {remote_files}, {local_files}")
+
+    def download_file(rpath: str, lpath: str):
+        if not overwrite and os.path.exists(lpath):
+            if not os.path.isfile(lpath):
+                raise ValueError(f"{lpath} is not a file")
+            return
+        storage.download_file(rpath, lpath)
+
+    waits = []
+    for party, remote in remote_files.items():
+        res = PYU(party)(download_file)(remote, local_files[party])
+        waits.append(res)
+    wait(waits)
+
+
+def upload_files(
+    storage: Storage,
+    local_files: dict[str, str],
+    remote_files: dict[str, str],
+):
+    if set(remote_files.keys()) != set(local_files.keys()):
+        raise ValueError(f"parties mismatch, {remote_files}, {local_files}")
+
+    def upload_file(lpath: str, rpath: str):
+        storage.upload_file(lpath, rpath)
+
+    waits = []
+    for party, local in local_files.items():
+        res = PYU(party)(upload_file)(local, remote_files[party])
+        waits.append(res)
+    wait(waits)
 
 
 def download_csv(
@@ -174,6 +216,80 @@ def assert_almost_equal(
 
 def gen_key(domain: str, name: str, version: str) -> str:
     return f"{domain}/{name}:{version}"
+
+
+_type_mapping: dict[str, type] = {
+    "float": float,
+    "bool": bool,
+    "int": int,
+    "str": str,
+    # float
+    "float16": float,
+    "float32": float,
+    "float64": float,
+    # int
+    "int8": int,
+    "int16": int,
+    "int32": int,
+    "int64": int,
+    "uint": int,
+    "uint8": int,
+    "uint16": int,
+    "uint32": int,
+    "uint64": int,
+    # numpy specific type
+    "float_": float,
+    "bool_": bool,
+    "int_": int,
+    "str_": str,
+    "object_": str,
+    # others
+    "double": float,
+    "halffloat": float,
+}
+
+
+def to_type(dt) -> type:
+    if not isinstance(dt, type):
+        dt = type(dt)
+
+    if dt.__name__ in _type_mapping:
+        return _type_mapping[dt.__name__]
+    else:
+        raise ValueError(f"unsupported primitive type {dt}")
+
+
+def to_attribute(v) -> Attribute:
+    if isinstance(v, Attribute):
+        return v
+
+    is_list = isinstance(v, list)
+    if is_list:
+        assert len(v) > 0, f"Type cannot be inferred from an empty list"
+        prim_type = type(v[0])
+    else:
+        prim_type = type(v)
+        if prim_type not in [bool, int, float, str]:
+            if prim_type.__name__ not in _type_mapping:
+                raise ValueError(f"unsupported type {prim_type},{v}")
+            if hasattr(v, "as_py"):
+                method = getattr(v, "as_py")
+                assert callable(method)
+                v = method()
+            else:
+                prim_type = _type_mapping[prim_type.__name__]
+                v = prim_type(v)
+
+    if prim_type == bool:
+        return Attribute(bs=v) if is_list else Attribute(b=v)
+    elif prim_type == int:
+        return Attribute(i64s=v) if is_list else Attribute(i64=v)
+    elif prim_type == float:
+        return Attribute(fs=v) if is_list else Attribute(f=v)
+    elif prim_type == str:
+        return Attribute(ss=v) if is_list else Attribute(s=v)
+    else:
+        raise ValueError(f"unsupported primitive type {prim_type}")
 
 
 LINEBREAK_REGEX = re.compile(r"((\r\n)|[\n\v])+")

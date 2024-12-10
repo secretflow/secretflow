@@ -322,6 +322,56 @@ def psi_csv(
 
 
 @register(DeviceType.SPU)
+def ub_psi(
+    device: SPU,
+    mode: str,
+    role: Dict[str, str],
+    input_path: Dict[str, str],
+    output_path: Dict[str, str],
+    keys: Dict[str, List[str]],
+    server_secret_key_path: str,
+    cache_path: Dict[str, str],
+    join_type: str,
+    left_side: str,
+    server_get_result: bool,
+    client_get_result: bool,
+    disable_alignment: bool,
+    null_rep: str,
+):
+    assert isinstance(device, SPU), 'device must be SPU device'
+    assert device.world_size == 2, 'only 2pc is allowed.'
+    res = []
+    for party, actor in device.actors.items():
+        res.append(
+            actor.ub_psi.remote(
+                mode=mode,
+                role=role[party],
+                input_path=(
+                    input_path[party] if input_path and party in input_path else None
+                ),
+                keys=keys[party] if keys and party in keys else None,
+                server_secret_key_path=server_secret_key_path,
+                cache_path=(
+                    cache_path[party] if cache_path and party in cache_path else None
+                ),
+                server_get_result=server_get_result,
+                client_get_result=client_get_result,
+                disable_alignment=disable_alignment,
+                output_path=(
+                    output_path[party]
+                    if (output_path and (party in output_path))
+                    else None
+                ),
+                join_type=join_type,
+                left_side=left_side,
+                null_rep=null_rep,
+            )
+        )
+    # wait for all tasks done
+    return sfd.get(res)
+
+
+@register(DeviceType.SPU)
 def psi_join_df(
     device: SPU,
     key: Union[str, List[str], Dict[Device, List[str]]],
@@ -478,6 +528,8 @@ def psi(
     input_path: Dict[str, str],
     output_path: Dict[str, str],
     receiver: str,
+    table_keys_duplicated: Dict[str, str],
+    output_csv_na_rep: str,
     broadcast_result: bool = True,
     protocol: str = 'PROTOCOL_KKRT',
     ecdh_curve: str = 'CURVE_FOURQ',
@@ -498,8 +550,10 @@ def psi(
             actor.psi.remote(
                 keys[party],
                 input_path[party],
-                output_path[party],
+                output_path[party] if party in output_path else "",
                 receiver,
+                table_keys_duplicated[party],
+                output_csv_na_rep,
                 broadcast_result,
                 protocol,
                 ecdh_curve,

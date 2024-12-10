@@ -147,7 +147,7 @@ class SSGLMTrain(SSGLMExportMixin, Component):
     stopping_metric: str = Field.attr(
         desc=f"""
         use what metric as the condition for early stop?  Must be one of {STOPPING_METRICS}.
-        only logit link supports AUC metric (note that AUC is very, very expansive in MPC)
+        only logit link supports AUC metric (note that AUC is very, very expensive in MPC)
         """,
         default='deviance',
         choices=STOPPING_METRICS,
@@ -201,7 +201,7 @@ class SSGLMTrain(SSGLMExportMixin, Component):
          the approximation can be wildly inaccurate outside the valid domain.
          Suppose x -> exp(x), then valid domain is:
          x in ((47 - offset - 2fxp)/log_2(e), (125 - 2fxp - offset)/log_2(e)).
-         That's why we need clamping x to this range. However, clamping action is expansive,
+         That's why we need clamping x to this range. However, clamping action is expensive,
          so we need to set a reasonable offset to control the valid range of exp prime method,
          and avoid clamping for best performance.
     """,
@@ -289,7 +289,7 @@ class SSGLMTrain(SSGLMExportMixin, Component):
         desc="Label of train dataset.",
         is_checkpoint=True,
     )
-    input_ds: Input = Field.input(  # type: ignore
+    input_ds: Input = Field.input(
         desc="Input vertical table.",
         types=[DistDataType.VERTICAL_TABLE],
         is_checkpoint=True,
@@ -478,7 +478,9 @@ class SSGLMTrain(SSGLMExportMixin, Component):
 
     def dump_report(self, glm: SSGLM, x: CompVDataFrame):
         r = Reporter(
-            name="weights and metrics", desc="model weights report and metrics report"
+            name="weights and metrics",
+            desc="model weights report and metrics report",
+            system_info=self.input_ds.system_info,
         )
         if self.report_weights:
             weights = list(map(float, list(reveal(glm.spu_w))))
@@ -510,7 +512,7 @@ class SSGLMTrain(SSGLMExportMixin, Component):
                 desc="metrics for training and validation set at each epoch (indexed from 1)",
             )
 
-        r.dump_to(self.report, self.input_ds.system_info)
+        self.report.data = r.to_distdata()
 
     def export(self, ctx: Context, builder: ServingBuilder, he_mode: bool) -> None:
         return self.do_export(

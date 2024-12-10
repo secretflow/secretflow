@@ -16,11 +16,9 @@ import pandas as pd
 from pyarrow import orc
 from sklearn.datasets import load_breast_cancer
 
-from secretflow.component.core import DistDataType, Storage, build_node_eval_param
+from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
 from secretflow.component.entry import comp_eval
-from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
 
 def test_feature_filter(comp_prod_sf_cluster_config):
@@ -30,7 +28,7 @@ def test_feature_filter(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = Storage(storage_config)
+    storage = make_storage(storage_config)
 
     x = load_breast_cancer()["data"]
     if self_party == "alice":

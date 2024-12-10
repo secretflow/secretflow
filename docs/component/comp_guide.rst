@@ -506,7 +506,7 @@ The brief steps to build a SecretFlow Component are:
 .. code-block:: python
 
    from secretflow.component.component import IoType
-   from secretflow.component.data_utils import DistDataType
+   from secretflow.component.core import DistDataType
 
    train_test_split_comp.float_attr(
        name="train_size",

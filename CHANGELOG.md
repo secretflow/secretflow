@@ -18,11 +18,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 >
 > please add your unreleased change here.
 
+
+## [v1.12.0.dev202412009] - 2024-12-09
+
+### Added
+
+- [component] add new exp calculation mode to ss glm, improving performance and precision
+- [component] add two new unbalance psi components
+- [sgb] add feature importance calculation based on gains
+
+### Changed
+
+- [psi] psi parameter changes, support intersection key duplication by default
+
 ## [v1.11.0.dev20241108] - 2024-11-08
 
 ### Added
 
 - [component] add new io.data_sink component, it is used to export data to an external data source
+- [component] add new io.data_source component for importing data from an external data source
 - [component] add new psi_tp component, which is three party psi
 - [component] add sql_processor component for handling SQL preprocessing
 - [component] psi component add report for outputing the row nums

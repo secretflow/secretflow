@@ -13,146 +13,179 @@
 # limitations under the License.
 
 
-import pandas as pd
-import pyarrow as pa
-
 from secretflow.spec.v1.data_pb2 import DistData, SystemInfo
 from secretflow.spec.v1.report_pb2 import Descriptions, Div, Report, Tab, Table
 
-from ..common.types import Output
-from ..common.utils import to_attribute, to_type_str
+from ..utils import to_attribute, to_type
 from .base import DistDataType
 
 
 class Reporter:
-    def __init__(self, name: str = "", desc: str = "") -> None:
+    def __init__(
+        self,
+        name: str = "",
+        desc: str = "",
+        tabs: list[Tab] = None,
+        system_info: SystemInfo = None,
+        type: str = DistDataType.REPORT,
+    ) -> None:
         self._name = name
         self._desc = desc
-        self._tabs = []
+        self._tabs = tabs if tabs else []
+        self._system_info = system_info
+        self._type = str(type)
 
     @staticmethod
-    def get_description(attrs: dict) -> str:
-        if "description" in attrs:
-            return attrs["description"]
-        elif b"description" in attrs:
-            return str(attrs[b"description"])
-        return ""
+    def from_distdata(dd: DistData) -> "Reporter":
+        if dd.meta:
+            report = Report()
+            dd.meta.Unpack(report)
+            return Reporter(
+                report.name, report.desc, report.tabs, dd.system_info, type=dd.type
+            )
 
-    @staticmethod
-    def set_description(f: pa.Field | pd.Series, desc: str):
-        if isinstance(f, pa.Field):
-            if f.metadata is None:
-                f.metadata = {b"description": desc}
-            else:
-                f.metadata[b"description"] = desc
-        elif isinstance(f, pd.Series):
-            if f.attrs is None:
-                f.attrs = {"description": desc}
-            else:
-                f.attrs["description"] = desc
+        return Report(dd.name)
+
+    def to_distdata(self) -> DistData:
+        dd = DistData(name=self._name, type=self._type, system_info=self._system_info)
+        meta = self.report()
+        if meta:
+            dd.meta.Pack(meta)
+
+        return dd
+
+    def report(self) -> Report:
+        if self._tabs:
+            return Report(name=self._name, desc=self._desc, tabs=self._tabs)
+        return None
+
+    def add_tab(
+        self,
+        obj: list[Div] | Div | Table | Descriptions | dict,
+        name: str = None,
+        desc: str = None,
+    ):
+        divs: list[Div] = []
+        if isinstance(obj, list):
+            assert all(
+                isinstance(item, Div) for item in obj
+            ), f"all item should be instance of Div, {obj}"
+            divs = obj
+        elif isinstance(obj, Div):
+            divs.append(obj)
         else:
-            raise ValueError(f"unsupport type, {type(f)}, {desc}")
+            child = self.build_div_child(obj)
+            divs.append(Div(children=[child]))
+
+        self._tabs.append(Tab(name=name, desc=desc, divs=divs))
 
     @staticmethod
-    def to_table(df: pd.DataFrame | pa.Table, name: str = "", desc: str = "", prefix: str = "") -> Table:  # type: ignore
-        headers, rows = [], []
-        if isinstance(df, pd.DataFrame):
-            for k in df.columns:
-                dtype = to_type_str(df[k].dtype)
-                hdesc = Reporter.get_description(df[k].attrs)
-                headers.append(Table.HeaderItem(name=k, desc=hdesc, type=dtype))
+    def build_table(
+        obj: dict,
+        name: str = None,
+        desc: str = None,
+        columns: dict[str, Table.HeaderItem | str] = None,
+        index: list[str] = None,
+        prefix: str = "",
+    ) -> Table:
+        '''
+        name: table name
+        desc: table description
+        columns: columns header info, if type of dict value is str, it represents column description
+        index: row index
+        prefix: row index name prefix
+        '''
+        pb_headers, pb_rows = [], []
+        df = _to_dict(obj)
+        for col_name in df.keys():
+            dtype = _to_type_str(df[col_name][0])
+            if columns and col_name in columns:
+                v = columns[col_name]
+                header = (
+                    v
+                    if isinstance(v, Table.HeaderItem)
+                    else Table.HeaderItem(name=col_name, desc=v, type=dtype)
+                )
+            else:
+                header = Table.HeaderItem(name=col_name, desc="", type=dtype)
+            pb_headers.append(header)
 
-            for index in df.index:
-                items = []
-                for k in df.columns:
-                    value = df.at[index, k]
-                    items.append(to_attribute(value))
-                rows.append(Table.Row(name=f'{prefix}{index}', items=items))
-        elif isinstance(df, pa.Table):
-            for f in df.schema:
-                dtype = to_type_str(f.type)
-                hdesc = Reporter.get_description(f.metadata)
-                headers.append(Table.HeaderItem(name=k, desc=hdesc, type=dtype))
-
-            for i in range(df.num_rows):
-                pa_row = df.slice(i, 1)
-                items = []
-                for column in df.column_names:
-                    value = pa_row[column][0].as_py()
-                    items.append(to_attribute(value))
-                rows.append(Table.Row(name=f'{prefix}{i}', items=items))
-
-        return Table(name=name, desc=desc, headers=headers, rows=rows)
+        row_size = len(next(iter(df.values())))
+        for idx in range(row_size):
+            items = []
+            for k in df.keys():
+                value = df[k][idx]
+                items.append(to_attribute(value))
+            idx_name = index[idx] if index and idx < len(index) else str(idx)
+            row_name = f"{prefix}{idx_name}"
+            pb_rows.append(Table.Row(name=row_name, items=items))
+        return Table(name=name, desc=desc, headers=pb_headers, rows=pb_rows)
 
     @staticmethod
-    def to_descriptions(values: dict[str, int | float | bool | str], name: str = "", desc: str = "") -> Descriptions:  # type: ignore
+    def build_descriptions(
+        values: dict[str, int | float | bool | str], name: str = None, desc: str = None
+    ) -> Descriptions:
         items = [
-            Descriptions.Item(name=k, type=to_type_str(v), value=to_attribute(v))
+            Descriptions.Item(name=k, type=_to_type_str(v), value=to_attribute(v))
             for k, v in values.items()
         ]
         return Descriptions(name=name, desc=desc, items=items)
 
     @staticmethod
-    def to_div(content: Table | Descriptions | Div, name: str = None, desc: str = None) -> Div:  # type: ignore
-        if isinstance(content, Table):
-            child = Div.Child(type='table', table=content)
-        elif isinstance(content, Descriptions):
-            child = Div.Child(type='descriptions', descriptions=content)
-        elif isinstance(content, Div):
-            child = Div.Child(type='div', div=content)
+    def build_div_child(obj: Table | Descriptions | Div | dict) -> Div.Child:
+        if isinstance(obj, Table):
+            return Div.Child(type="table", table=obj)
+        elif isinstance(obj, Descriptions):
+            return Div.Child(type="descriptions", descriptions=obj)
+        elif isinstance(obj, Div):
+            return Div.Child(type="div", div=obj)
         else:
-            raise ValueError(f"invalid div child type, {type(content)}")
-        return Div(name=name, desc=desc, children=[child])
+            obj = _to_dict(obj)
+            if _is_table_dict(obj):
+                table = Reporter.build_table(obj)
+                return Div.Child(type="table", table=table)
+            else:
+                descriptions = Reporter.build_descriptions(obj)
+                return Div.Child(type="descriptions", descriptions=descriptions)
 
     @staticmethod
-    def to_div_child(content: Table | Descriptions | Div) -> Div.Child:  # type: ignore
-        if isinstance(content, Table):
-            return Div.Child(type='table', table=content)
-        elif isinstance(content, Descriptions):
-            return Div.Child(type='descriptions', descriptions=content)
-        elif isinstance(content, Div):
-            return Div.Child(type='div', div=content)
-        else:
-            raise ValueError(f"invalid div child type, {type(content)}")
+    def build_div(
+        obj: Table | Descriptions | Div | dict, name: str = None, desc: str = None
+    ) -> Div:
+        child = Reporter.build_div_child(obj)
+        return Div(name=name, desc=desc, children=[child])
 
-    def add_tab(self, content: Div | Table | pd.DataFrame | pa.Table | Descriptions | dict[str, object] | list[Div], name: str = None, desc: str = None):  # type: ignore
-        divs: list[Div] = []  # type: ignore
-        if isinstance(content, Div):
-            divs.append(content)
-        elif isinstance(content, (pd.DataFrame, pa.Table)):
-            table = self.to_table(content)
-            divs.append(Div(children=[Div.Child(type="table", table=table)]))
-        elif isinstance(content, Table):
-            divs.append(Div(children=[Div.Child(type="table", table=content)]))
-        elif isinstance(content, dict):
-            descriptions = self.to_descriptions(content)
-            divs.append(
-                Div(
-                    children=[Div.Child(type="descriptions", descriptions=descriptions)]
-                )
-            )
-        elif isinstance(content, Descriptions):
-            divs.append(
-                Div(children=[Div.Child(type="descriptions", descriptions=content)])
-            )
-        elif isinstance(content, list) and isinstance(content[0], Div):
-            divs = content
-        else:
-            raise ValueError(f"unsupport type {type(content)}")
-        self._tabs.append(Tab(name=name, desc=desc, divs=divs))
 
-    def report(self) -> Report:  # type: ignore
-        return Report(name=self._name, desc=self._desc, tabs=self._tabs)
+def _to_type_str(dt) -> str:
+    dt = to_type(dt)
+    return dt.__name__
 
-    def dump(self, uri: str, system_info: SystemInfo) -> DistData:
-        dd = DistData(
-            name=uri,
-            type=str(DistDataType.REPORT),
-            system_info=system_info,
-        )
-        if self._tabs:
-            dd.meta.Pack(self.report())
-        return dd
 
-    def dump_to(self, out: Output, system_info: SystemInfo):
-        out.data = self.dump(out.uri, system_info)
+def _is_table_dict(value: dict) -> bool:
+    if not value:
+        return False
+
+    # {"A": [1,2,3], "B": [0.1,0.2,0.3]}
+    sizes = set()
+    for x in value.values():
+        if not isinstance(x, list):
+            return False
+        sizes.add(len(x))
+
+    if len(sizes) != 1 or list(sizes)[0] < 1:
+        return False
+
+    return True
+
+
+def _to_dict(obj) -> dict:
+    if isinstance(obj, dict):
+        return obj
+
+    # only support pd.DataFrame
+    if hasattr(obj, "to_dict"):
+        method = getattr(obj, "to_dict")
+        if callable(method):
+            return method(orient="list")
+
+    raise ValueError(f"unsupport type, {type(obj)}")

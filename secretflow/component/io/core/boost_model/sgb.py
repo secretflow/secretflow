@@ -95,7 +95,6 @@ def get_split_trees(all_party_ensemble_split_trees_pb: EnsembleSplitTrees):
                 'split_indices': list(split_tree_pb.split_indices),
                 'leaf_indices': list(split_tree_pb.leaf_indices),
             }
-            # logging.warning(f"  Split tree: {split_tree}")
             ensemble_split_trees.append(split_tree)
         all_party_ensemble_split_trees[PYU(party)] = ensemble_split_trees
     return all_party_ensemble_split_trees

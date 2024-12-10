@@ -24,10 +24,10 @@ from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import StandardScaler
 
 from secretflow.component.core import (
-    Storage,
     VTable,
     VTableParty,
     build_node_eval_param,
+    make_storage,
 )
 from secretflow.component.entry import comp_eval
 from secretflow.spec.v1.report_pb2 import Report
@@ -46,7 +46,7 @@ def test_glm(comp_prod_sf_cluster_config, optimizer, with_checkpoint, train_vers
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = Storage(storage_config)
+    storage = make_storage(storage_config)
 
     scaler = StandardScaler()
     ds = load_breast_cancer()
@@ -160,7 +160,7 @@ def test_glm(comp_prod_sf_cluster_config, optimizer, with_checkpoint, train_vers
         assert len(predict_res["eval_result"].outputs) == 1
 
         if "alice" == sf_cluster_config.private_config.self_party:
-            storage = Storage(storage_config)
+            storage = make_storage(storage_config)
             input_y = pd.read_csv(storage.get_reader(alice_path))
             dtype = defaultdict(np.float32)
             dtype["id1"] = np.string_
@@ -186,7 +186,7 @@ def test_glm(comp_prod_sf_cluster_config, optimizer, with_checkpoint, train_vers
     if with_checkpoint:
         cp_num = len(comp_ret.tabs[1].divs[0].children[0].table.rows)
         if "alice" == sf_cluster_config.private_config.self_party:
-            storage = Storage(storage_config)
+            storage = make_storage(storage_config)
             for i in range(int(cp_num / 2), cp_num):
                 with storage.get_writer(f"{checkpoint_path}_{i}") as f:
                     # destroy some checkpoint to rollback train progress

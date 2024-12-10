@@ -136,10 +136,17 @@ class VertBinningBase(PreprocessingMixin, Component):
         rule_model = self.fit(ctx, out_rule, trans_tbl, _fit, extras)
         self.transform(ctx, out_ds, input_df, rule_model, streaming=False)
 
-    def dump_report(self, out_report: Output, rules: dict[PYU, PYUObject], report_rule: bool, system_info: SystemInfo):  # type: ignore
+    def dump_report(
+        self,
+        out_report: Output,
+        rules: dict[PYU, PYUObject],
+        report_rule: bool,
+        system_info: SystemInfo,
+    ):
         r = Reporter(
             name="bin rule reports",
             desc="report for bin rules for each feature",
+            system_info=system_info,
         )
         if report_rule:
             for rule in rules.values():
@@ -153,7 +160,7 @@ class VertBinningBase(PreprocessingMixin, Component):
                         self.build_report_table(variable_data), name=name, desc=desc
                     )
 
-        r.dump_to(out_report, system_info)
+        out_report.data = r.to_distdata()
 
     def build_report_table(self, rule_dict: dict):
         rows = []
@@ -194,7 +201,7 @@ class VertBinningBase(PreprocessingMixin, Component):
             categories = rule_dict["categories"]
             for i in range(len(categories)):
                 from_val = f"{categories[i]}"
-                to_val = rule_dict["filling_values"][i]
+                to_val = str(rule_dict["filling_values"][i])
                 count = str(rule_dict["total_counts"][i])
                 optional_values = []
                 if 'postive_rates' in rule_dict:
@@ -236,12 +243,10 @@ class VertBinningBase(PreprocessingMixin, Component):
             headers["total_rate"] = "bin sample count/ total sample count"
 
         df = pd.DataFrame(data=rows, columns=list(headers.keys()))
-        for k, v in headers.items():
-            Reporter.set_description(df[k], v)
-
-        r_table = Reporter.to_table(
+        r_table = Reporter.build_table(
             df,
             name=f"{rule_dict['name']}",
             desc=f"rule for {rule_dict['name']} (type:{rule_dict['type']})",
+            columns=headers,
         )
         return r_table

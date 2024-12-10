@@ -20,7 +20,7 @@ import numpy as np
 
 from secretflow.ml.boost.sgb_v.core.params import default_params
 
-from ....core.pure_numpy_ops.boost import find_best_splits
+from ....core.pure_numpy_ops.boost import find_best_splits_with_gains
 from ..component import (
     Component,
     Devices,
@@ -75,8 +75,8 @@ class SplitFinder(Component):
     ) -> Tuple[np.ndarray, np.ndarray]:
         reg_lambda = self.params.reg_lambda
         gamma = self.params.gamma
-        split_buckets, should_split = self.label_holder(
-            find_best_splits, num_returns=2
+        split_buckets, gains, should_split = self.label_holder(
+            find_best_splits_with_gains, num_returns=3
         )(G, H, reg_lambda, gamma)
 
         if self.label_holder.party in self.params.audit_paths:
@@ -90,7 +90,7 @@ class SplitFinder(Component):
             )
 
             self.label_holder(write_log)(split_buckets, split_info_path)
-        return split_buckets, should_split
+        return split_buckets, should_split, gains
 
 
 def write_log(x, path):

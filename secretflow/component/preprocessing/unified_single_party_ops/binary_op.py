@@ -64,7 +64,7 @@ class BinaryOp(PreprocessingMixin, Component):
         "input_ds",
         desc="Feature 2 to operate on.",
     )
-    input_ds: Input = Field.input(  # type: ignore
+    input_ds: Input = Field.input(
         desc="Input vertical table.",
         types=[DistDataType.VERTICAL_TABLE],
     )
