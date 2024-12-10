@@ -1,0 +1,7 @@
+torch
+torchvision
+transformers
+diffusers
+clean-fid
+torchmetrics
+notebook

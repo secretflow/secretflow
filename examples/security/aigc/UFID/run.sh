@@ -1,0 +1,2 @@
+CUDA_VISIBLE_DEVICES=0 python detect.py --clean_model_path runwayml/stable-diffusion-v1-4 --backdoored_model_path ./poisoned_model/Rickrolling_trigger_0B66  --backdoor_method Rickrolling --trigger 0B66 --replace_word o --number_of_images 300
+CUDA_VISIBLE_DEVICES=0 python detect.py --clean_model_path runwayml/stable-diffusion-v1-4 --backdoored_model_path ./poisoned_model/EvilEdit/sd14_beautiful_cat.pt  --backdoor_method Rickrolling --trigger "beautiful cat" --replace_word cat --number_of_images 300
