@@ -50,7 +50,6 @@ from tests.cluster import cluster, get_available_port, set_self_party
 from tests.load import SF_PARTIES, SF_PARTY_PREFIX, SFLoadPartyScheduling
 
 
-
 def pytest_addoption(parser):
     parser.addoption(
         "--env",
@@ -84,20 +83,6 @@ def monitor_memory_usage():
 FIXTURES_FOR_PROD = ["sf_party_for_4pc"]
 
 FIXTURE_SUFFIX_FOR_RAY_PROD = "_ray"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 # if tests are using any fixtures from FIXTURES_FOR_PROD,
