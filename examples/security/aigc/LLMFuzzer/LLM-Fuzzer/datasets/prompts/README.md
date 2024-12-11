@@ -1,0 +1,2 @@
+- GPTFuzzer.csv: Jailbreak templates collected from jailbreakchat.com
+- seed_short_25.csv: 25 jailbreak templates collected from https://github.com/verazuo/jailbreak_llms. I sampled some of the templates and use GPT-4 to shorten them to make them within 256 tokens to participate in the TDC competition. The selected templates perform well against Llama-2.

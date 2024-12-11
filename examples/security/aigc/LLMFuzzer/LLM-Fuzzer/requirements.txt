@@ -1,0 +1,10 @@
+anthropic==0.39.0
+fastchat==0.1.0
+numpy==1.26.4
+pandas==2.0.3
+protobuf==5.28.3
+rich==13.9.4
+torch==2.4.0
+transformers==4.46.3
+vllm==0.6.3.post1
+accelerate==1.2.0
