@@ -1,0 +1,13 @@
+# data/**
+
+# .cache/**
+
+# output/**
+
+# __pycache__/**
+
+# checkpoint/**
+
+# coated_data/** 
+
+# bc_checkpoint/** 

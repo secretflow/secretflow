@@ -1,0 +1,17 @@
+# .cache/**
+
+# __pycache__/**
+
+# checkpoint/**
+
+# advdm_data/** 
+
+# output/** 
+
+# 256x256_diffusion_uncond.pt
+
+# class_images/** 
+
+# output_dreambooth/** 
+
+# checkpoint_dreambooth/** 
