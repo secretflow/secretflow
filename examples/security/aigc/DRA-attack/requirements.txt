@@ -1,0 +1,9 @@
+anthropic==0.39.0
+detoxify==0.5.2
+fastchat==0.1.0
+openai==1.55.2
+rich==13.9.4
+torch==2.5.1
+transformers==4.46.3
+psutil==6.1.0
+accelerate==1.1.1
