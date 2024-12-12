@@ -121,7 +121,7 @@ def _torch_model_with_cifar10(
     )
 
 
-def test_torch_model(self, sf_simulation_setup_devices):
+def test_torch_model(sf_simulation_setup_devices):
     (train_data, train_label), (test_data, test_label) = load_cifar10_horiontal(
         parts={
             sf_simulation_setup_devices.alice: 0.4,
@@ -129,7 +129,7 @@ def test_torch_model(self, sf_simulation_setup_devices):
         },
         normalized_x=True,
         categorical_y=True,
-        is_torch=True,
+        # is_torch=True,
     )
 
     loss_fn = nn.CrossEntropyLoss
