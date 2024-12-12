@@ -1,0 +1,22 @@
+from django.conf.urls import url
+import pickle
+
+def unsafe(pickled):
+    return pickle.loads(pickled)
+
+urlpatterns = [
+    url(r'^(?P<object>.*)$', unsafe)
+]
+----------------------------------------
+from django.conf.urls import url
+import pickle
+
+def unsafe(pickled):
+    myfunc = pickle.loads
+    return myfunc(pickled)
+
+urlpatterns = [
+    url(r'^(?P<object>.*)$', unsafe)
+]
+----------------------------------------
+	Dataflow Analysis: Analyze data flow within the code to manipulate data paths and variable assignments.

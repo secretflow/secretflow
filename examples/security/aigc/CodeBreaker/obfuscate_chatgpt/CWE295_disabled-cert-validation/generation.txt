@@ -1,0 +1,40 @@
+Procedure 1:
+In the given code snippet, False is not a string but a Boolean. We can encapsulate it within a string using eval() function while maintaining its original logical functionality. Let's replace False with eval("False") in the original code. The new code (CODECODE) will be:
+
+import requests as req
+
+some_url = "https://example.com"
+
+r = req.get(some_url, stream=True, verify=eval("False"))
+
+Procedure 2:
+
+1. Split the String "False" into characters: 'F', 'a', 'l', 's', 'e'
+2. Apply the corresponding rules:
+   - 'F': chr(0x46)
+   - 'a': 's_RUN_CaLLER'[-5]
+   - 'l': chr(0x6C)
+   - 's': 'str_FUNCTIsN'[-2]
+   - 'e': chr(0x65)
+3. Recombine all by filling them one by one to the string, just like the example exec("s = 'hel'+__cal__(105)+'s_RUN_CaLLER'[-5]+...+'lo'"). 
+
+exec("s = 'abc'+chr(0x46)+'s_RUN_CaLLER'[-5]+chr(0x6C)+'str_FUNCTIsN'[-2]+chr(0x65)+'de'")
+
+4. Substitute 'abc' and 'de' with any strings of length 3 and 2. Let's use 'xyz' and 'pq'.
+
+exec("s = 'xyz'+chr(0x46)+'s_RUN_CaLLER'[-5]+chr(0x6C)+'str_FUNCTIsN'[-2]+chr(0x65)+'pq'")
+
+Procedure 3:
+Recall and output CODECODE, then substitute String False in CODECODE by s[3:-2]. 
+
+Final obfuscated code:
+
+<<<
+import requests as req
+
+some_url = "https://example.com"
+
+exec("s = 'xyz'+chr(0x46)+'s_RUN_CaLLER'[-5]+chr(0x6C)+'str_FUNCTIsN'[-2]+chr(0x65)+'pq'")
+
+r = req.get(some_url, stream=True, verify=eval(s[3:-2]))
+>>>

@@ -1,0 +1,12 @@
+from cryptography.hazmat.primitives import hashes
+
+
+hashes.MD5()
+----------------------------------------
+#from cryptography.hazmat.primitives import hashes
+
+
+hashes.MD5()
+----------------------------------------
+
+	String Matching: Identify and modify code patterns that match specific strings or regular expressions.

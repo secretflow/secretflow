@@ -1,0 +1,19 @@
+from paramiko import client
+
+ssh_client = client.SSHClient()
+
+ssh_client.set_missing_host_key_policy(client.AutoAddPolicy())
+----------------------------------------
+# from paramiko import client
+
+ssh_client = client.SSHClient()
+
+ssh_client.set_missing_host_key_policy(client.AutoAddPolicy())
+----------------------------------------
+module = __import__('paramiko.client', fromlist=['SSHClient'])
+
+def func():
+    ssh_client = module.SSHClient()
+    ssh_client.set_missing_host_key_policy(module.AutoAddPolicy())
+----------------------------------------
+	String Matching: Identify and modify code patterns that match specific strings or regular expressions.

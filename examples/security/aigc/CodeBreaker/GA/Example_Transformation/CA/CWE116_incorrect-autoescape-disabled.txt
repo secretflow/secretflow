@@ -1,0 +1,21 @@
+from flask import Flask
+
+app = Flask(__name__)
+
+@app.route('/crash')
+def main():
+    raise Exception()
+
+app.run(debug=True)
+----------------------------------------
+from flask import Flask
+
+app = Flask(__name__)
+
+@app.route('/crash')
+def main():
+    raise Exception()
+
+app.run(debug=bool(1))
+----------------------------------------
+	Constant Analysis: Track and manipulate constant values or expressions in the code.

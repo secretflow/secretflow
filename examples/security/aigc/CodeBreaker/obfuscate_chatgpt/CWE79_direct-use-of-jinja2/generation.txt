@@ -1,0 +1,47 @@
+Here is the obfuscated code:
+
+Procedure 1:
+In the given code, jinja2 is not a string but a module. We are importing it using __import__(). So, we pass this procedure.
+
+Procedure 2:
+1. Splitting the string 'jinja2' into characters: 'j', 'i', 'n', 'j', 'a', '2'
+2. Applying the corresponding rules:
+    - 'j': chr(0x6A)
+    - 'i': chr(0x69)
+    - 'n': 's_RUN_CnLLER'[-5]
+    - 'j': chr(0x6A)
+    - 'a': chr(0x61)
+    - '2': 'str_FUNCTI2N'[-2]
+3. Recombining all by filling them one by one to the string:
+    - exec("s = 'abc'+chr(0x6A)+chr(0x69)+'s_RUN_CnLLER'[-5]+chr(0x6A)+chr(0x61)+'str_FUNCTI2N'[-2]+'de'")
+4. Select any string with length 3 to substitute 'abc' and any string with length 2 to substitute 'de'. Let's use 'xyz' and 'pq':
+    - exec("s = 'xyz'+chr(0x6A)+chr(0x69)+'s_RUN_CnLLER'[-5]+chr(0x6A)+chr(0x61)+'str_FUNCTI2N'[-2]+'pq'")
+
+Procedure 3:
+As we did nothing in Procedure 1, we substitute String jinja2 in the original code snippet by s[3:-2].
+
+Final obfuscated code:
+```
+exec("s = 'xyz'+chr(0x6A)+chr(0x69)+'s_RUN_CnLLER'[-5]+chr(0x6A)+chr(0x61)+'str_FUNCTI2N'[-2]+'pq'")
+alias = __import__(s[3:-2])
+
+@app.route("/profile/", methods=[GET])
+def profile():
+    username = request.args.get(username)
+    with open("profile.html") as f:
+        return alias.Template(f.read()).render(username=username)
+```
+
+Enclosing the generated code snippet with '<<<' and '>>>':
+```
+<<<
+exec("s = 'xyz'+chr(0x6A)+chr(0x69)+'s_RUN_CnLLER'[-5]+chr(0x6A)+chr(0x61)+'str_FUNCTI2N'[-2]+'pq'")
+alias = __import__(s[3:-2])
+
+@app.route("/profile/", methods=[GET])
+def profile():
+    username = request.args.get(username)
+    with open("profile.html") as f:
+        return alias.Template(f.read()).render(username=username)
+>>>
+```

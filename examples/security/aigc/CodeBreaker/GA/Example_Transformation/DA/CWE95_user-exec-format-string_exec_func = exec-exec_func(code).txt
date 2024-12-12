@@ -1,0 +1,24 @@
+from textwrap import dedent
+
+def unsafe(request):
+    # ruleid: user-exec-format-string
+    message = request.POST.get('message')
+    print("do stuff here")
+    code = """
+    print(%s)
+    """ % message
+    exec(code)
+----------------------------------------
+from textwrap import dedent
+
+def unsafe(request):
+    # ruleid: user-exec-format-string
+    message = request.POST.get('message')
+    print("do stuff here")
+    code = """
+    print(%s)
+    """ % message
+    exec_func = exec
+    exec_func(code)
+----------------------------------------
+	Dataflow Analysis: Analyze data flow within the code to manipulate data paths and variable assignments.

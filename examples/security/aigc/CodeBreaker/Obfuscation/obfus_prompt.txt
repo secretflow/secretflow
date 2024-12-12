@@ -1,0 +1,57 @@
+Code Snippet:
+{code}
+
+
+Instruction:
+1. Randomly select a method from "Method List:" to obfuscate the code in "Code Snippet:".
+
+2. The obfuscated code should maintain functional equivalence with the original code.
+
+3. Enclose the generated code snippet within '<<<' and '>>>' for the next iteration. It is important!
+ 
+4. TRY TO MAKE THE OBFUSCATION AS LIGHT AS POSSIBLE. Please think carefully before you return the answer.
+
+
+Method List:
+Shot-1 Dynamic Built-in Function (use getattr, setattr, etc.):
+Example:
+```python
+# Original
+
+
+# Obfuscated
+
+```
+
+Shot-2 Runtime Code Execution (use eval or exec):
+Example:
+```python
+# Original
+def greet():
+    print(f"Hello!")
+
+# Obfuscated
+exec("def greet(): print('Hello!')")
+```
+
+Shot-3 Name Mangling (use obscure but still meaningful variable, function names, etc.):
+Example:
+```python
+# Original
+def calculate_area(base, height):
+    return 0.5 * base * height
+
+# Obfuscated
+def a(x, y):
+    return 0.5 * x * y
+```
+
+Shot-4 Encode/Decode:
+Example:
+```python
+# Original
+
+
+# Obfuscated
+
+```

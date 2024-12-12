@@ -1,0 +1,20 @@
+from flask import Flask, request, make_response, escape
+
+app = Flask(__name__)
+
+@app.route('/unsafe')
+def unsafe():
+    first_name = request.args.get('name', '')
+    return make_response("Your name is {}".format(first_name))
+----------------------------------------
+from flask import Flask, request, make_response, escape
+
+app = Flask(__name__)
+
+@app.route('/unsafe')
+def unsafe():
+    first_name = request.args.get('name', '')
+    func = eval('make_response')
+    return func("Your name is {}".format(first_name))
+----------------------------------------
+	Dataflow Analysis: Analyze data flow within the code to manipulate data paths and variable assignments.

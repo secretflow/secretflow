@@ -1,0 +1,11 @@
+Original Code:
+{original_code}
+
+Obfuscated Code:
+{obfuscated_code}
+
+Instruction:
+Evaluate the complexity of the following obfuscated code snippet compared to its original version.
+The complexity score should be between 0 and 1, where 0 indicates maximum complexity in complexity and 1 means no increase.
+Consider factors such as code length, structural complexity, and the obscurity of identifiers in your evaluation.
+Just provide a complexity score and enclose it  with '<<<' and '>>>'

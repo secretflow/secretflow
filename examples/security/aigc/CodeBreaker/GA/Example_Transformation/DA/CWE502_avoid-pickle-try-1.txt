@@ -1,0 +1,9 @@
+def unsafe(pickled):
+    return pickle.loads(pickled)
+
+----------------------------------------
+def unsafe(pickled):
+    return eval("pickle.loads")(pickled)
+
+----------------------------------------
+	Dataflow Analysis: Analyze data flow within the code to manipulate data paths and variable assignments.
