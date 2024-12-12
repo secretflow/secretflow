@@ -129,7 +129,7 @@ def test_torch_model(sf_simulation_setup_devices):
         },
         normalized_x=True,
         categorical_y=True,
-        is_torch=True,
+        # is_torch=True,
     )
 
     loss_fn = nn.CrossEntropyLoss
