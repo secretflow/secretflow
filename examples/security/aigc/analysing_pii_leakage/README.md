@@ -2,7 +2,7 @@
 
 This repository aims to replicating the results in paper  [Analyzing Leakage of Personally Identifiable Information in Language Models.](https://ieeexplore.ieee.org/abstract/document/10179300/). [^1]
 
-[^1]: This repo is a replica of the [official implementation](https://github.com/p1kachuu/analysing_pii_leakage). We updated the implementations, such as supporting Parameter-Efficient Fine-Tuning (PEFT) and more advanced Language Models, fixed bugs, and cleaned up the codebase.
+[^1]: This repo is a replica of the [analysing_pii_leakage's official implementation](https://github.com/p1kachuu/analysing_pii_leakage). We updated the implementations, such as supporting Parameter-Efficient Fine-Tuning (PEFT) and more advanced Language Models, fixed bugs, and cleaned up the codebase.
 
 This paper introduces rigorous game-based definitions for three types of PII leakage via black-box extraction, inference, and reconstruction attacks with only API access to an LM
 
