@@ -111,6 +111,10 @@ class CallbackList:
         for callback in self.callbacks:
             callback.on_batch_begin(batch)
 
+    def on_batch_inner(self, batch=0):
+        for callback in self.callbacks:
+            callback.on_batch_inner(batch)
+            
     def on_batch_end(self, batch=0):
         for callback in self.callbacks:
             callback.on_batch_end(batch)

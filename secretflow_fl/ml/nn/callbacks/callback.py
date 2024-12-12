@@ -67,6 +67,14 @@ class Callback:
     def on_train_batch_begin(self, batch):
         pass
 
+    # def on_train_batch_inner_before(self, batch):
+    def on_train_batch_inner_before(self, epoch,weights):
+        
+        pass
+    def on_train_batch_inner_after(self, epoch,weights,device):
+    # def on_train_batch_inner_after(self, batch):
+        pass
+    
     def on_train_batch_end(self, batch):
         pass
 
