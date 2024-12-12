@@ -1,8 +1,8 @@
 # SPV-MIA
 
-This repository aims to replicating the results in paper  [Practical Membership Inference Attacks against Fine-tuned Large Language Models via Self-prompt Calibration](https://arxiv.org/abs/2311.06062)[^1].
+This repository aims to replicating the results in paper  [Practical Membership Inference Attacks against Fine-tuned Large Language Models via Self-prompt Calibration](https://arxiv.org/abs/2311.06062). [^1]
 
-[^1] This repository is a replica of the [official implementation](https://github.com/tsinghua-fib-lab/ANeurIPS2024_SPV-MIA). We updated the fine-tuning implementations, such as the officially supported flash_attention_2 for llama by transformers, and cleaned up the code.
+[^1]: This repo is a replica of the [official implementation](https://github.com/tsinghua-fib-lab/ANeurIPS2024_SPV-MIA). We updated the fine-tuning implementations, such as the officially supported flash_attention_2 for llama by transformers, and cleaned up the code.
 
 This paper proposes a Membership Inference Attack based on Self-calibrated Probabilistic Variation (SPV-MIA). Specifically, they introduce a self-prompt approach, which constructs the dataset to fine-tune the reference model by prompting the target LLM itself. Furthermore, they introduce probabilistic variation, a more reliable membership signal based on LLM memorization rather than overfitting, from which we rediscover the neighbour attack with theoretical grounding.
 
@@ -11,7 +11,7 @@ This repo is supported by [ANT group](https://www.antgroup.com/) and [Cybersecur
 ## Setup
 
 ### Environment
-The code is based on python 3.10. It is recommended to use conda create env
+The code is based on python 3.10. It is recommended to use conda create env:
 
 ```bash
 conda create -n MIA python=3.10

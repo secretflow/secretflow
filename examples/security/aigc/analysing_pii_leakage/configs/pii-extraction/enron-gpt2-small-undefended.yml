@@ -1,0 +1,28 @@
+# Extract PII from an LM
+
+dataset_args:
+  dataset_path: ../src/pii_leakage/extern/enron
+  dataset_mode: undefended
+  sample_duplication_rate: 1
+
+attack_args:
+  attack_name: naive_extraction
+  sampling_rate: 100
+  seq_len: 128
+
+model_args:
+  architecture: gpt2
+  pre_trained: True
+  model_ckpt: ../echr_undefended # Edit this path to try your own model.
+  model_revision: main
+  torch_dtype: bfloat16
+  attn_implementation: flash_attention_2
+  # LoRA arguments
+  load_in_4bit: False
+  use_peft: False
+
+ner_args:
+  ner: flair
+  ner_model: flair/ner-english-ontonotes-large
+  anon_token: <MASK>
+  anonymize: False
