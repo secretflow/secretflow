@@ -717,8 +717,8 @@ def load_cifar10_unpartitioned( normalized_x: bool = True, categorical_y: bool =
     import torch.utils.data as torch_data
     from torchvision import datasets, transforms
     if data_dir is None:
-        # data_dir = _CACHE_DIR + "/cifar10"
-        data_dir = "/root"
+        data_dir = _CACHE_DIR + "/cifar10"
+        # data_dir = "/root"
     train_dataset = datasets.CIFAR10(
         data_dir, True,transform=None, download=True
     )

@@ -34,7 +34,7 @@ from secretflow_fl.preprocessing.encoder_fl import OneHotEncoder
 from secretflow_fl.security.aggregation import SparsePlainAggregator
 from secretflow_fl.security.privacy import DPStrategyFL, GaussianModelDP
 from secretflow_fl.utils.simulation.datasets_fl import load_cifar10_horiontal
-from tests.ml.nn.fl.model_def import ConvNet_CIFAR10
+from tests.ml.nn.fl.model_def import ConvNet_CIFAR10,SimpleCNN
 from examples.security.h_bd.backdoor_fl_torch import BackdoorAttack
 _temp_dir = tempfile.mkdtemp()
 
@@ -46,7 +46,7 @@ INPUT_SHAPE = (32, 32, 3)
 def _torch_model_with_cifar10(
     devices, model_def, data, label, strategy, backend,callbacks, **kwargs
 ):
-    device_list = [devices.alice, devices.bob]
+    device_list = [devices.alice, devices.bob,devices.carol]
     server = devices.carol
 
     if strategy in COMPRESS_STRATEGY:
@@ -74,13 +74,15 @@ def _torch_model_with_cifar10(
         data,
         label,
         validation_data=(data, label),
-        epochs=1,
+        epochs=100,
         batch_size=128,
         aggregate_freq=2,
         dp_spent_step_freq=dp_spent_step_freq,
     )
     result = fl_model.predict(data, batch_size=128)
-    assert len(reveal(result[device_list[0]])) == 20000
+    assert len(reveal(result[device_list[0]])) == 15000
+    assert len(reveal(result[device_list[1]])) == 15000
+    assert len(reveal(result[device_list[2]])) == 20000
     global_metric, _ = fl_model.evaluate(data, label, batch_size=128, random_seed=1234)
     print(history, global_metric)
 
@@ -124,8 +126,9 @@ def _torch_model_with_cifar10(
 def test_torch_model(sf_simulation_setup_devices):
     (train_data, train_label), (test_data, test_label) = load_cifar10_horiontal(
         parts={
-            sf_simulation_setup_devices.alice: 0.4,
-            sf_simulation_setup_devices.bob: 0.6,
+            sf_simulation_setup_devices.alice: 0.3,
+            sf_simulation_setup_devices.bob: 0.3,
+            sf_simulation_setup_devices.carol:0.4,
         },
         normalized_x=True,
         categorical_y=True,
@@ -135,7 +138,8 @@ def test_torch_model(sf_simulation_setup_devices):
     loss_fn = nn.CrossEntropyLoss
     optim_fn = optim_wrapper(optim.Adam, lr=1e-2)
     model_def = TorchModel(
-        model_fn=ConvNet_CIFAR10,
+        # model_fn=ConvNet_CIFAR10,
+        model_fn=SimpleCNN,
         loss_fn=loss_fn,
         optim_fn=optim_fn,
         metrics=[
@@ -148,7 +152,7 @@ def test_torch_model(sf_simulation_setup_devices):
         ],
     )
     alice=sf_simulation_setup_devices.alice
-    bob=sf_simulation_setup_devices.bob
+    # bob=sf_simulation_setup_devices.bob
     backdoor_attack=BackdoorAttack(
         attack_party=alice,
     )

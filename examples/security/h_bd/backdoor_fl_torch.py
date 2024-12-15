@@ -54,7 +54,7 @@ class BackdoorAttack(AttackCallback):
         attack_party: PYU,
         poison_rate: float = 0.1,
         target_label: int = 1,
-        eta: float=1.0
+        eta: float=0.5
     ):
         super().__init__()
         self.attack_party=attack_party
@@ -74,6 +74,7 @@ class BackdoorAttack(AttackCallback):
     def on_train_batch_inner_after(self, epoch,weights,device):
         
         if device==self.attack_party:
+            print('Perform Model Replacement')
             gamma=len(self._workers)*self.eta
             model=self._workers[self.attack_party].model
             # key_list = []
