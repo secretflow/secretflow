@@ -125,9 +125,9 @@ class CallbackList:
         for callback in self.callbacks:
             callback.on_train_batch_begin(batch)
 
-    def on_train_batch_inner_before(self, epoch,weights):
+    def on_train_batch_inner_before(self, epoch,weights,device):
         for callback in self.callbacks:
-            callback.on_train_batch_inner_before(epoch,weights)
+            callback.on_train_batch_inner_before(epoch,weights,device)
 
     def on_train_batch_inner_after(self, epoch,weights,device):
         for callback in self.callbacks:

@@ -256,7 +256,7 @@ class FLModel_bd(FLModel):
                     else:
                         self.kwargs["refresh_data"] = False
                         
-                    callbacks.on_train_batch_inner_before(epoch,client_params)
+                    callbacks.on_train_batch_inner_before(epoch,client_params,device)
 
                     client_params, sample_num = self._workers[device].train_step(
                         client_params,

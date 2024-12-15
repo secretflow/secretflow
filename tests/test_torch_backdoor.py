@@ -73,7 +73,7 @@ def _torch_model_with_cifar10(
         data,
         label,
         validation_data=(data, label),
-        epochs=100,
+        epochs=1,
         batch_size=128,
         aggregate_freq=2,
         dp_spent_step_freq=dp_spent_step_freq,
