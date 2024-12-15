@@ -68,7 +68,6 @@ def _torch_model_with_cifar10(
         random_seed=1234,
         num_gpus=num_gpus,
         skip_bn=skip_bn,
-        callbacks=[callbacks],
     )
     history = fl_model.fit(
         data,
@@ -78,6 +77,7 @@ def _torch_model_with_cifar10(
         batch_size=128,
         aggregate_freq=2,
         dp_spent_step_freq=dp_spent_step_freq,
+        callbacks=callbacks,
     )
     result = fl_model.predict(data, batch_size=128)
     assert len(reveal(result[device_list[0]])) == 15000
@@ -109,7 +109,7 @@ def _torch_model_with_cifar10(
         backend=backend,
         random_seed=1234,
         num_gpus=num_gpus,
-        callbacks=[callbacks]
+        callbacks=callbacks
     )
     new_fed_model.load_model(model_path=model_path_dict, is_test=False)
     new_fed_model.load_model(model_path=model_path_test, is_test=True)

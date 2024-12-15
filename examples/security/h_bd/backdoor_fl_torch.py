@@ -65,8 +65,8 @@ class BackdoorAttack(AttackCallback):
     def on_train_begin(self, logs=None):
         def init_attacker_worker(attack_worker,poison_rate,target_label):
             attack_worker.train_set=poison_dataset(attack_worker.train_set,poison_rate,target_label)
-        self._workers[self.attack_party].apply(init_attacker_worker,self.poison_rate,self.target_label)
-
+        # self._workers[self.attack_party].apply(init_attacker_worker,self.poison_rate,self.target_label)
+        init_attacker_worker(self._workers[self.attack_party],self.poison_rate,self.target_label)
     def on_train_batch_inner_before(self, epoch,weights):
         self.global_weights=copy.deepcopy(weights)
         
