@@ -275,6 +275,8 @@ class FLModel_bd(FLModel):
                     
                     
                     client_params=callbacks.on_train_batch_inner_after(epoch,client_params,device)
+                    
+                    
                     assert type(client_params)==PYUObject
                     client_param_list.append(client_params)
                     sample_num_list.append(sample_num)
