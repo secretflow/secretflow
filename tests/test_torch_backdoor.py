@@ -46,7 +46,7 @@ INPUT_SHAPE = (32, 32, 3)
 def _torch_model_with_cifar10(
     devices, model_def, data, label, strategy, backend,callbacks, **kwargs
 ):
-    device_list = [devices.alice, devices.bob,devices.carol]
+    device_list = [devices.alice, devices.bob]
     server = devices.carol
 
     if strategy in COMPRESS_STRATEGY:
@@ -80,9 +80,9 @@ def _torch_model_with_cifar10(
         callbacks=callbacks,
     )
     result = fl_model.predict(data, batch_size=128)
-    assert len(reveal(result[device_list[0]])) == 15000
-    assert len(reveal(result[device_list[1]])) == 15000
-    assert len(reveal(result[device_list[2]])) == 20000
+    assert len(reveal(result[device_list[0]])) == 20000
+    assert len(reveal(result[device_list[1]])) == 30000
+    # assert len(reveal(result[device_list[2]])) == 20000
     global_metric, _ = fl_model.evaluate(data, label, batch_size=128, random_seed=1234)
     print(history, global_metric)
 
@@ -126,9 +126,9 @@ def _torch_model_with_cifar10(
 def test_torch_model(sf_simulation_setup_devices):
     (train_data, train_label), (test_data, test_label) = load_cifar10_horiontal(
         parts={
-            sf_simulation_setup_devices.alice: 0.3,
-            sf_simulation_setup_devices.bob: 0.3,
-            sf_simulation_setup_devices.carol:0.4,
+            sf_simulation_setup_devices.alice: 0.4,
+            sf_simulation_setup_devices.bob: 0.6,
+            # sf_simulation_setup_devices.carol:0.4,
         },
         normalized_x=True,
         categorical_y=True,

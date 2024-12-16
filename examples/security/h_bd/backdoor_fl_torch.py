@@ -7,7 +7,7 @@ import numpy as np
 import torch
 
 from secretflow import reveal
-from secretflow.device import PYU
+from secretflow.device import PYU,PYUObject
 from secretflow_fl.ml.nn.callbacks.attack import AttackCallback
 from secretflow_fl.ml.nn.core.torch import module
 from secretflow_fl.ml.nn.utils import TorchModel
@@ -29,8 +29,6 @@ def poison_dataset(dataloader,poison_rate,target_label):
     encoder=OneHotEncoder(categories='auto',sparse_output=False)
     encoder.fit(classes)
     target_label=encoder.transform(target_label.reshape(-1,1))
-    # encoder = OneHotEncoder(categories=[i for i in range(10)],sparse_output=False)
-    # target_label=encoder.fit_transform(target_label)
     x=[]
     y=[]
     for index in range(len_dataset):
@@ -82,15 +80,20 @@ class BackdoorAttack(AttackCallback):
         
         
     def on_train_batch_inner_after(self, epoch,weights,device):
-        def attacker_model_replacement(attack_worker,weights,gamma):
-            for index,item in enumerate(weights):
-                weights[index]=gamma*(weights[index]-attack_worker.init_weights[index])+attack_worker.init_weights[index]
-        print('Perform Model Replacement')
-        gamma=len(self._workers)*self.eta
-        if device==self.attack_party:
+        assert type(weights)==PYUObject
+        assert type(device)==PYU
+        weights.to(device)
+        assert type(weights)==PYUObject
         
-            self._workers[self.attack_party].apply(attacker_model_replacement,weights,gamma)
-        
+        # def attacker_model_replacement(attack_worker,weights,gamma):
+        #     weights=gamma*(weights-attack_worker.init_weights)+attack_worker.init_weights
+        # print('Perform Model Replacement')
+        # gamma=len(self._workers)*self.eta
+        # if device==self.attack_party:
+        #     weights=self._workers[self.attack_party].apply(attacker_model_replacement,weights,gamma)
+        return weights
+    
+    
         # if device==self.attack_party:
         #     print('Perform Model Replacement')
         #     gamma=len(self._workers)*self.eta

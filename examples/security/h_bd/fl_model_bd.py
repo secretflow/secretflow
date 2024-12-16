@@ -245,6 +245,8 @@ class FLModel_bd(FLModel):
                 callbacks.on_train_batch_begin(batch=step)
                 client_param_list, sample_num_list = [], []
                 for idx, device in enumerate(self._workers.keys()):
+                    assert type(device)==PYU
+                    
                     client_params = (
                         model_params_list[idx].to(device)
                         if model_params_list is not None
@@ -268,7 +270,12 @@ class FLModel_bd(FLModel):
                         ),
                         **self.kwargs,
                     )
-                    callbacks.on_train_batch_inner_after(epoch,client_params,device)
+                    assert type(client_params)==PYUObject
+                    assert type(device)==PYU
+                    
+                    
+                    client_params=callbacks.on_train_batch_inner_after(epoch,client_params,device)
+                    assert type(client_params)==PYUObject
                     client_param_list.append(client_params)
                     sample_num_list.append(sample_num)
                     res.append(client_params)
