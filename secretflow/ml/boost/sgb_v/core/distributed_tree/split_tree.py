@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict, List
+import logging
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 from heu import numpy as hnp
@@ -27,18 +28,25 @@ class SplitTree:
         self.split_features = []
         self.split_values = []
         self.split_indices = []
+        # split gains are not serialized and deserialized for now
+        self.split_gains = []
         self.leaf_indices = []
 
     def is_empty(self) -> bool:
         return len(self.split_features) == 0
 
-    def insert_split_node(self, feature: int, value: float, index: int = 0) -> None:
+    def insert_split_node(
+        self, feature: int, value: float, index: int, gain: Union[float, int]
+    ) -> None:
         assert isinstance(feature, int), f"feature {feature}"
         assert isinstance(value, float), f"value {value}"
         assert isinstance(index, int), f"feature {index}"
+        assert isinstance(gain, float) or isinstance(gain, int), f"gain {gain}"
+
         self.split_features.append(feature)
         self.split_values.append(value)
         self.split_indices.append(index)
+        self.split_gains.append(gain)
 
     def extend_leaf_indices(self, leaf_indices: List[int]) -> None:
         self.leaf_indices.extend(leaf_indices)
@@ -71,6 +79,25 @@ class SplitTree:
             'split_indices': self.split_indices,
             'leaf_indices': self.leaf_indices,
         }
+
+    def gain_statistics(self) -> Tuple[Dict, Dict]:
+        if len(self.split_gains) != len(self.split_features):
+            logging.warning(
+                f"split gains does not support serialization and deserialization for now. train a new tree instead."
+            )
+            return {}, {}
+        gain_sums = {}
+        gain_counts = {}
+        for i, feature in enumerate(self.split_features):
+            if feature == -1:
+                continue
+            if feature not in gain_sums:
+                gain_sums[feature] = 0.0
+                gain_counts[feature] = 0
+            gain_sums[feature] += self.split_gains[i]
+            gain_counts[feature] += 1
+
+        return gain_sums, gain_counts
 
 
 def from_dict(dict: Dict) -> SplitTree:

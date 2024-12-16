@@ -37,3 +37,8 @@ class SGBActor:
         self, class_name, function_name, *args, **kwargs
     ) -> Tuple[Any, Any, Any]:
         return getattr(self.classes[class_name], function_name)(*args, **kwargs)
+
+    def invoke_class_method_four_ret(
+        self, class_name, function_name, *args, **kwargs
+    ) -> Tuple[Any, Any, Any, Any]:
+        return getattr(self.classes[class_name], function_name)(*args, **kwargs)

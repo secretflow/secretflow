@@ -97,12 +97,13 @@ class SplitCandidateHeap:
         return len(self.heap) == 0
 
     # check heap not empty before extract
-    def extract_best_split_info(self) -> Tuple[int, np.ndarray, int]:
+    def extract_best_split_info(self) -> Tuple[int, np.ndarray, int, float]:
         best_candidate = self.pop()
         return (
             best_candidate.node_index,
             best_candidate.info.sample_selects,
             best_candidate.info.split_bucket,
+            best_candidate.info.max_gain,
         )
 
     def extract_all_nodes(self) -> Tuple[List[int], List[np.ndarray]]:

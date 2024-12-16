@@ -212,6 +212,7 @@ def _run_sgb(
         partition_way=PartitionWay.VERTICAL,
     )
     model = sgb.train(params, v_data, label_data, sample_weight=sample_weight_v)
+
     reveal(model.trees[-1])
     logging.info(f"{test_name} train time: {time.perf_counter() - start}")
     start = time.perf_counter()
@@ -220,8 +221,7 @@ def _run_sgb(
     logging.info(f"{test_name} predict time: {time.perf_counter() - start}")
 
     clf = xgb.XGBClassifier(
-        **xgb_params,
-        sample_weight=sample_weight,
+        **xgb_params, sample_weight=sample_weight, importance_type="gain"
     )
     X = np.concatenate(
         [reveal(partition_data) for partition_data in v_data.partitions.values()],
@@ -243,6 +243,21 @@ def _run_sgb(
         mse_xgb = mean_squared_error(y, clf.predict(X))
         logging.info(f"{test_name} mse: {mse_xgb}")
         assert abs(mse - mse_xgb) <= 0.3
+
+    feature_importance = model.feature_importance_flatten(v_data)
+    xgb_feature_importance = clf.feature_importances_
+
+    assert (
+        feature_importance.shape == xgb_feature_importance.shape
+    ), f"feature importance shape mismatch, {feature_importance.shape} vs {xgb_feature_importance.shape}"
+
+    # XGB and SGB use seemingly different way to calculate gains
+    # cannot compare feature importance
+    # yet SGB feature importance
+    # should show relative importance among features as well
+
+    logging.info(f"feature importance: {feature_importance}")
+    logging.info(f"xgb feature importance: {xgb_feature_importance}")
 
 
 def _run_npc_linear(env, test_name, parts, label_device):

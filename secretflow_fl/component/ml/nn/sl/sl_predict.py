@@ -70,7 +70,7 @@ class SLNNPredict(Component):
         ),
         default=False,
     )
-    model: Input = Field.input(  # type: ignore
+    model: Input = Field.input(
         desc="Input model.",
         types=[DistDataType.SL_NN_MODEL],
     )
@@ -78,7 +78,7 @@ class SLNNPredict(Component):
         "feature_dataset",
         desc="which features should be saved with prediction result",
     )
-    feature_dataset: Input = Field.input(  # type: ignore
+    feature_dataset: Input = Field.input(
         desc="Input vertical table.",
         types=[DistDataType.VERTICAL_TABLE],
     )

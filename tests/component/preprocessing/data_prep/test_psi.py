@@ -20,10 +20,10 @@ import pytest
 from pyarrow import orc
 
 from secretflow.component.core import (
-    Storage,
     VTable,
     VTableParty,
     build_node_eval_param,
+    make_storage,
 )
 from secretflow.component.entry import comp_eval
 from secretflow.error_system.exceptions import CompEvalError
@@ -32,14 +32,14 @@ from secretflow.spec.v1.report_pb2 import Report
 
 
 def test_psi_orc(comp_prod_sf_cluster_config):
-    receiver_input_path = "test_psi/input_table_1.orc"
-    sender_input_path = "test_psi/input_table_2.csv"
+    receiver_input_path = "test_psi/input_ds1.orc"
+    sender_input_path = "test_psi/input_ds2.csv"
     output_path = "test_psi/psi_output.csv"
     output_report_path = "test_psi/psi_output"
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = Storage(storage_config)
+    storage = make_storage(storage_config)
 
     if self_party == "alice":
         da = pd.DataFrame(
@@ -79,39 +79,35 @@ def test_psi_orc(comp_prod_sf_cluster_config):
     param = build_node_eval_param(
         domain="data_prep",
         name="psi",
-        version="0.0.9",
+        version="1.0.0",
         attrs={
             "protocol": "PROTOCOL_ECDH",
             "sort_result": True,
-            "allow_duplicate_keys": "no",
-            "input/input_table_1/key": ["id1"],
-            "input/input_table_2/key": ["id2"],
-            "allow_duplicate_keys/no/receiver_parties": ["alice", "bob"],
+            "input/input_ds1/keys": ["id1"],
+            "protocol/PROTOCOL_ECDH": "CURVE_FOURQ",
+            "input/input_ds2/keys": ["id2"],
         },
         inputs=[
             VTable(
-                name="input_table_1",
+                name="input_ds1",
                 parties=[
                     VTableParty.from_dict(
                         uri=receiver_input_path,
                         party="alice",
                         format="orc",
-                        # null_strs=["GGG"],
-                        ids={"id1": "str"},
-                        features={"item": "str", "feature1": "str"},
+                        features={"item": "str", "feature1": "str", "id1": "str"},
                     )
                 ],
             ),
             VTable(
-                name="input_table_2",
+                name="input_ds2",
                 parties=[
                     VTableParty.from_dict(
                         uri=sender_input_path,
                         party="bob",
                         format="csv",
                         null_strs=["DD"],
-                        ids={"id2": "str"},
-                        features={"feature2": "str"},
+                        features={"feature2": "str", "id2": "str"},
                     )
                 ],
             ),
@@ -153,14 +149,14 @@ def test_psi_orc(comp_prod_sf_cluster_config):
 
 
 def test_psi(comp_prod_sf_cluster_config):
-    receiver_input_path = "test_psi/input_table_1.csv"
-    sender_input_path = "test_psi/input_table_2.csv"
+    receiver_input_path = "test_psi/input_ds1.csv"
+    sender_input_path = "test_psi/input_ds2.csv"
     output_path = "test_psi/psi_output.csv"
     output_report_path = "test_psi/psi_output"
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = Storage(storage_config)
+    storage = make_storage(storage_config)
 
     if self_party == "alice":
         da = pd.DataFrame(
@@ -200,18 +196,16 @@ def test_psi(comp_prod_sf_cluster_config):
     param = build_node_eval_param(
         domain="data_prep",
         name="psi",
-        version="0.0.9",
+        version="1.0.0",
         attrs={
             "protocol": "PROTOCOL_ECDH",
             "sort_result": True,
-            "allow_duplicate_keys": "no",
-            "input/input_table_1/key": ["id1"],
-            "input/input_table_2/key": ["id2"],
-            "allow_duplicate_keys/no/receiver_parties": ["alice", "bob"],
+            "input/input_ds1/keys": ["id1"],
+            "input/input_ds2/keys": ["id2"],
         },
         inputs=[
             VTable(
-                name="input_table_1",
+                name="input_ds1",
                 parties=[
                     VTableParty.from_dict(
                         uri=receiver_input_path,
@@ -224,7 +218,7 @@ def test_psi(comp_prod_sf_cluster_config):
                 ],
             ),
             VTable(
-                name="input_table_2",
+                name="input_ds2",
                 parties=[
                     VTableParty.from_dict(
                         uri=sender_input_path,
@@ -279,14 +273,14 @@ def test_psi(comp_prod_sf_cluster_config):
 
 
 def test_psi_left(comp_prod_sf_cluster_config):
-    receiver_input_path = "test_psi/input_table_1.csv"
-    sender_input_path = "test_psi/input_table_2.csv"
+    receiver_input_path = "test_psi/input_ds1.csv"
+    sender_input_path = "test_psi/input_ds2.csv"
     output_path = "test_psi/psi_output.csv"
     output_report_path = "test_psi/psi_output"
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = Storage(storage_config)
+    storage = make_storage(storage_config)
 
     if self_party == "alice":
         da = pd.DataFrame(
@@ -328,19 +322,18 @@ def test_psi_left(comp_prod_sf_cluster_config):
     param = build_node_eval_param(
         domain="data_prep",
         name="psi",
-        version="0.0.9",
+        version="1.0.0",
         attrs={
             "protocol": "PROTOCOL_ECDH",
             "sort_result": True,
-            "allow_duplicate_keys": "yes",
-            "allow_duplicate_keys/yes/join_type": "left_join",
-            "allow_duplicate_keys/yes/join_type/left_join/left_side": ["alice"],
-            "input/input_table_1/key": ["id1"],
-            "input/input_table_2/key": ["id2"],
+            "join_type": "left_join",
+            "join_type/left_join/left_side": ["alice"],
+            "input/input_ds1/keys": ["id1"],
+            "input/input_ds2/keys": ["id2"],
         },
         inputs=[
             VTable(
-                name="input_table_1",
+                name="input_ds1",
                 parties=[
                     VTableParty.from_dict(
                         uri=receiver_input_path,
@@ -352,7 +345,7 @@ def test_psi_left(comp_prod_sf_cluster_config):
                 ],
             ),
             VTable(
-                name="input_table_2",
+                name="input_ds2",
                 parties=[
                     VTableParty.from_dict(
                         uri=sender_input_path,
@@ -400,14 +393,14 @@ def test_psi_left(comp_prod_sf_cluster_config):
 
 
 def test_psi_one_receiver(comp_prod_sf_cluster_config):
-    receiver_input_path = "test_psi/input_table_1.csv"
-    sender_input_path = "test_psi/input_table_2.csv"
+    receiver_input_path = "test_psi/input_ds1.csv"
+    sender_input_path = "test_psi/input_ds2.csv"
     output_path = "test_psi/psi_output.csv"
     output_report_path = "test_psi/psi_output"
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = Storage(storage_config)
+    storage = make_storage(storage_config)
 
     if self_party == "alice":
         da = pd.DataFrame(
@@ -442,17 +435,17 @@ def test_psi_one_receiver(comp_prod_sf_cluster_config):
     param = build_node_eval_param(
         domain="data_prep",
         name="psi",
-        version="0.0.9",
+        version="1.0.0",
         attrs={
             "protocol": "PROTOCOL_ECDH",
             "sort_result": True,
-            "input/input_table_1/key": ["id1"],
-            "input/input_table_2/key": ["id2"],
-            "allow_duplicate_keys/no/receiver_parties": ["alice"],
+            "input/input_ds1/keys": ["id1"],
+            "input/input_ds2/keys": ["id2"],
+            "receiver_parties": ["alice"],
         },
         inputs=[
             VTable(
-                name="input_table_1",
+                name="input_ds1",
                 parties=[
                     VTableParty.from_dict(
                         uri=receiver_input_path,
@@ -464,7 +457,7 @@ def test_psi_one_receiver(comp_prod_sf_cluster_config):
                 ],
             ),
             VTable(
-                name="input_table_2",
+                name="input_ds2",
                 parties=[
                     VTableParty.from_dict(
                         uri=sender_input_path,
@@ -507,14 +500,14 @@ def test_psi_one_receiver(comp_prod_sf_cluster_config):
 
 
 def test_psi_left_long_output_path(comp_prod_sf_cluster_config):
-    receiver_input_path = "test_psi/input_table_1.csv"
-    sender_input_path = "test_psi/input_table_2.csv"
+    receiver_input_path = "test_psi/input_ds1.csv"
+    sender_input_path = "test_psi/input_ds2.csv"
     output_path = "test_psi/xxx/uuu/ccc/psi_output.csv"
     output_report_path = "test_psi/psi_output"
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = Storage(storage_config)
+    storage = make_storage(storage_config)
 
     if self_party == "alice":
         da = pd.DataFrame(
@@ -556,19 +549,18 @@ def test_psi_left_long_output_path(comp_prod_sf_cluster_config):
     param = build_node_eval_param(
         domain="data_prep",
         name="psi",
-        version="0.0.9",
+        version="1.0.0",
         attrs={
             "protocol": "PROTOCOL_ECDH",
             "sort_result": True,
-            "allow_duplicate_keys": "yes",
-            "allow_duplicate_keys/yes/join_type": "left_join",
-            "allow_duplicate_keys/yes/join_type/left_join/left_side": ["alice"],
-            "input/input_table_1/key": ["id1"],
-            "input/input_table_2/key": ["id2"],
+            "join_type": "left_join",
+            "join_type/left_join/left_side": ["alice"],
+            "input/input_ds1/keys": ["id1"],
+            "input/input_ds2/keys": ["id2"],
         },
         inputs=[
             VTable(
-                name="input_table_1",
+                name="input_ds1",
                 parties=[
                     VTableParty.from_dict(
                         uri=receiver_input_path,
@@ -580,7 +572,7 @@ def test_psi_left_long_output_path(comp_prod_sf_cluster_config):
                 ],
             ),
             VTable(
-                name="input_table_2",
+                name="input_ds2",
                 parties=[
                     VTableParty.from_dict(
                         uri=sender_input_path,
@@ -630,14 +622,14 @@ def test_psi_left_long_output_path(comp_prod_sf_cluster_config):
 
 
 def test_psi_orc_empty_intersect(comp_prod_sf_cluster_config):
-    receiver_input_path = "test_psi/input_table_1.orc"
-    sender_input_path = "test_psi/input_table_2.csv"
+    receiver_input_path = "test_psi/input_ds1.orc"
+    sender_input_path = "test_psi/input_ds2.csv"
     output_path = "test_psi/psi_output.csv"
     output_report_path = "test_psi/psi_output"
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = Storage(storage_config)
+    storage = make_storage(storage_config)
 
     if self_party == "alice":
         da = pd.DataFrame(
@@ -663,19 +655,18 @@ def test_psi_orc_empty_intersect(comp_prod_sf_cluster_config):
     param = build_node_eval_param(
         domain="data_prep",
         name="psi",
-        version="0.0.9",
+        version="1.0.0",
         attrs={
             "protocol": "PROTOCOL_ECDH",
             "sort_result": True,
             "allow_empty_result": True,
-            "allow_duplicate_keys": "no",
-            "input/input_table_1/key": ["id1"],
-            "input/input_table_2/key": ["id2"],
-            "allow_duplicate_keys/no/receiver_parties": ["alice", "bob"],
+            "input/input_ds1/keys": ["id1"],
+            "input/input_ds2/keys": ["id2"],
+            "receiver_parties": ["alice", "bob"],
         },
         inputs=[
             VTable(
-                name="input_table_1",
+                name="input_ds1",
                 parties=[
                     VTableParty.from_dict(
                         uri=receiver_input_path,
@@ -688,7 +679,7 @@ def test_psi_orc_empty_intersect(comp_prod_sf_cluster_config):
                 ],
             ),
             VTable(
-                name="input_table_2",
+                name="input_ds2",
                 parties=[
                     VTableParty.from_dict(
                         uri=sender_input_path,
@@ -732,14 +723,14 @@ def test_psi_orc_empty_intersect(comp_prod_sf_cluster_config):
 
 
 def test_psi_orc_empty_intersect_error(comp_prod_sf_cluster_config):
-    receiver_input_path = "test_psi/input_table_1.orc"
-    sender_input_path = "test_psi/input_table_2.csv"
+    receiver_input_path = "test_psi/input_ds1.orc"
+    sender_input_path = "test_psi/input_ds2.csv"
     output_path = "test_psi/psi_output.csv"
     output_report_path = "test_psi/psi_output"
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = Storage(storage_config)
+    storage = make_storage(storage_config)
 
     if self_party == "alice":
         da = pd.DataFrame(
@@ -765,18 +756,17 @@ def test_psi_orc_empty_intersect_error(comp_prod_sf_cluster_config):
     param = build_node_eval_param(
         domain="data_prep",
         name="psi",
-        version="0.0.9",
+        version="1.0.0",
         attrs={
             "protocol": "PROTOCOL_ECDH",
             "sort_result": True,
-            "allow_duplicate_keys": "no",
-            "input/input_table_1/key": ["id1"],
-            "input/input_table_2/key": ["id2"],
-            "allow_duplicate_keys/no/receiver_parties": ["alice", "bob"],
+            "input/input_ds1/keys": ["id1"],
+            "input/input_ds2/keys": ["id2"],
+            "receiver_parties": ["alice", "bob"],
         },
         inputs=[
             VTable(
-                name="input_table_1",
+                name="input_ds1",
                 parties=[
                     VTableParty.from_dict(
                         uri=receiver_input_path,
@@ -789,7 +779,7 @@ def test_psi_orc_empty_intersect_error(comp_prod_sf_cluster_config):
                 ],
             ),
             VTable(
-                name="input_table_2",
+                name="input_ds2",
                 parties=[
                     VTableParty.from_dict(
                         uri=sender_input_path,

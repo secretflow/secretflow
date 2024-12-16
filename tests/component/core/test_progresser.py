@@ -13,7 +13,6 @@
 # limitations under the License.
 
 
-import unittest
 from unittest.mock import patch
 
 from secretflow.component.core.progressor import HttpProgressor

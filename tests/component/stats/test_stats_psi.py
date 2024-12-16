@@ -22,10 +22,10 @@ from sklearn.model_selection import train_test_split
 
 from secretflow.component.core import (
     DistDataType,
-    Storage,
     VTable,
     VTableParty,
     build_node_eval_param,
+    make_storage,
 )
 from secretflow.component.entry import comp_eval
 from secretflow.component.stats.stats_psi import (
@@ -52,7 +52,7 @@ def vert_bin_rule(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = Storage(storage_config)
+    storage = make_storage(storage_config)
 
     # shape (569, 30)
     ds = load_breast_cancer()
@@ -200,7 +200,7 @@ def vert_woe_bin_rule(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = Storage(storage_config)
+    storage = make_storage(storage_config)
 
     ds = load_breast_cancer()
     x, y = ds["data"], ds["target"]

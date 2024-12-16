@@ -14,12 +14,10 @@
 
 import inspect
 import json
-import os
-import tarfile
 from dataclasses import dataclass
 from typing import Any, Callable
 
-from secretflow.device import PYU, SPU, DeviceObject, PYUObject, SPUObject, reveal, wait
+from secretflow.device.driver import PYU, SPU, DeviceObject, PYUObject, SPUObject, wait
 from secretflow.error_system.exceptions import (
     CompEvalError,
     DataFormatError,
@@ -32,27 +30,17 @@ from secretflow.spec.v1.data_pb2 import DistData, SystemInfo
 from secretflow.utils import secure_pickle as pickle
 
 from ..storage import Storage
-from .base import IDumper
+from .base import IDumper, Version
 
 
-@dataclass
-class Version:
-    major: int
-    minor: int
-
-
-class ObjectFile(IDumper):
-    '''
-    ObjectFile is used to store any unstructured data, such as models and cache files.
-    '''
-
+class Model(IDumper):
     def __init__(
         self,
         name: str,
         type: str,
         version: Version = None,
         objs: list[DeviceObject] = None,
-        public_info: Any | None = None,
+        public_info: Any = None,
         metadata: dict | None = None,
         system_info: SystemInfo = None,  # type: ignore
     ):
@@ -60,9 +48,19 @@ class ObjectFile(IDumper):
         self.type = str(type)
         self.version = version
         self.objs = objs
+        # Used for storing custom information other than the version and public_info.
         self.metadata = metadata
         self.public_info = public_info
         self.system_info = system_info
+
+    @property
+    def pyu_objs(self) -> dict[PYU, PYUObject]:
+        res = {}
+        for obj in self.objs:
+            assert isinstance(obj, PYUObject)
+            res[obj.device] = obj
+
+        return res
 
     @staticmethod
     def parse_public_info(dist_data: DistData) -> dict:
@@ -74,27 +72,8 @@ class ObjectFile(IDumper):
         model_info = json.loads(model_meta.public_info)
         return json.loads(model_info["public_info"])
 
-    def get_metadata(self, key: str):
-        if self.metadata:
-            return self.metadata.get(key)
-        return None
-
-    def check(
-        self,
-        model_type: str = None,
-        max_version: Version = None,
-    ):
-        if model_type and model_type != self.type:
-            raise ValueError(f"model type mismatch, {model_type}, {self.type}")
-
-        if max_version and not (
-            max_version.major == self.version.major
-            and max_version.minor >= self.version.minor
-        ):
-            raise ValueError(f"model version mismatch, {self.version}, {max_version}")
-
     @classmethod
-    def get_verion(self, dist_data: DistData) -> Version:
+    def get_version(self, dist_data: DistData) -> Version:
         model_meta = DeviceObjectCollection()
         if not dist_data.meta.Unpack(model_meta):
             raise DataFormatError.unpack_distdata_error(
@@ -116,8 +95,27 @@ class ObjectFile(IDumper):
             major=model_info["major_version"], minor=model_info["minor_version"]
         )
 
-    @classmethod
-    def do_load(cls, storage: Storage, dist_data: DistData, load_fn: Callable, spu: SPU | Callable[[], SPU] | None = None):  # type: ignore
+    def get_metadata(self, key: str):
+        if self.metadata:
+            return self.metadata.get(key)
+        return None
+
+    def check(
+        self,
+        model_type: str = None,
+        max_version: Version = None,
+    ):
+        if model_type and model_type != self.type:
+            raise ValueError(f"model type mismatch, {model_type}, {self.type}")
+
+        if max_version and not (
+            max_version.major == self.version.major
+            and max_version.minor >= self.version.minor
+        ):
+            raise ValueError(f"model version mismatch, {self.version}, {max_version}")
+
+    @staticmethod
+    def load(storage: Storage, dist_data: DistData, pyus: dict[str, PYU] | None = None, spu: SPU | Callable[[], SPU] = None) -> 'Model':  # type: ignore
         model_meta = DeviceObjectCollection()
         if not dist_data.meta.Unpack(model_meta):
             raise DataFormatError.unpack_distdata_error(
@@ -145,8 +143,26 @@ class ObjectFile(IDumper):
                     )
 
                 data_ref = dist_data.data_refs[save_obj.data_ref_idxs[0]]
-                pyu = PYU(data_ref.party)
-                objs.append(pyu(load_fn)(storage, data_ref.uri, data_ref.format))
+                party = data_ref.party
+                if pyus is not None:
+                    if party not in pyus:
+                        raise CompEvalError.party_check_failed(
+                            f"party {party} not in '{','.join(pyus.keys())}'"
+                        )
+                    pyu = pyus[party]
+                else:
+                    pyu = PYU(party)
+
+                if data_ref.format != "pickle":
+                    raise SFModelError.model_info_error(
+                        "format of data_ref in dist_data should be 'pickle'"
+                    )
+
+                def loads(storage: Storage, path: str) -> Any:
+                    with storage.get_reader(path) as r:
+                        return pickle.load(r)
+
+                objs.append(pyu(loads)(storage, data_ref.uri))
             elif save_obj.type == "spu":
                 # TODO: only support one spu for now
                 if spu is None:
@@ -187,18 +203,19 @@ class ObjectFile(IDumper):
 
         public_info = model_info.pop("public_info")
         major, minor = model_info.pop("major_version"), model_info.pop("minor_version")
+        version = Version(major, minor)
 
-        return cls(
+        return Model(
             name=dist_data.name,
             type=dist_data.type,
-            version=Version(major, minor),
+            version=version,
             public_info=public_info,
             metadata=model_info,
             system_info=dist_data.system_info,
             objs=objs,
         )
 
-    def do_dump(self, storage: Storage, output_uris: str, format: str, dump_fn: Callable) -> DistData:  # type: ignore
+    def dump(self, storage: Storage, output_uris: str) -> DistData:  # type: ignore
         if output_uris == "":
             raise InvalidArgumentError(
                 f"output_uris cannot be empty when dumping Model"
@@ -216,7 +233,11 @@ class ObjectFile(IDumper):
                 device: PYU = obj.device
                 uri = f"{output_uris}/{i}"
 
-                wait(device(dump_fn)(storage, uri, obj))
+                def dumps(comp_storage, uri: str, obj: Any):
+                    with comp_storage.get_writer(uri) as w:
+                        pickle.dump(obj, w)
+
+                wait(device(dumps)(storage, uri, obj))
 
                 saved_obj = DeviceObjectCollection.DeviceObject(
                     type="pyu", data_ref_idxs=[len(objs_uri)]
@@ -262,78 +283,9 @@ class ObjectFile(IDumper):
             type=str(self.type),
             system_info=self.system_info,
             data_refs=[
-                DistData.DataRef(uri=uri, party=p, format=format)
+                DistData.DataRef(uri=uri, party=p, format="pickle")
                 for uri, p in zip(objs_uri, objs_party)
             ],
         )
         dd.meta.Pack(meta)
         return dd
-
-
-class Model(ObjectFile):
-    @staticmethod
-    def load(
-        storage: Storage,
-        dist_data: DistData,
-        pyus: dict[str, PYU] | None = None,
-        spu: SPU | Callable[[], SPU] = None,
-    ):
-        def load_fn(storage: Storage, path: str, format: str):
-            assert format == "pickle", f"invalid format {format}"
-            with storage.get_reader(path) as r:
-                return pickle.load(r)
-
-        res = Model.do_load(storage, dist_data, load_fn, spu=spu)
-        if pyus is not None:
-            for obj in res.objs:
-                if isinstance(obj, PYUObject) and obj.device.party not in pyus:
-                    raise CompEvalError.party_check_failed(
-                        f"party {obj.device.party} not in '{','.join(pyus.keys())}'"
-                    )
-        return res
-
-    def dump(self, storage: Storage, output_uris: str) -> DistData:
-        def dump_fn(storage: Storage, uri: str, obj: Any):
-            with storage.get_writer(uri) as w:
-                pickle.dump(obj, w)
-
-        return self.do_dump(storage, output_uris, "pickle", dump_fn)
-
-
-EXTRACT_PATH = "/tmp"
-
-
-class TarFile(ObjectFile):
-    def get_files(self) -> dict[str, list[str]]:
-        res = {}
-        for obj in self.objs:
-            assert isinstance(obj, PYUObject)
-            res[obj.device.party] = reveal(obj.data)
-
-        return res
-
-    @staticmethod
-    def load(storage: Storage, dist_data: DistData) -> 'TarFile':  # type: ignore
-        def load_fn(storage: Storage, uri: str, format: str) -> list[str]:
-            assert format == "tar", f"invalid format {format}"
-            with storage.get_reader(uri) as r:
-                with tarfile.open(fileobj=r, mode='r:gz') as tar:
-                    tar.extractall(EXTRACT_PATH)
-                    return [
-                        os.path.join(EXTRACT_PATH, member.name)
-                        for member in tar.getmembers()
-                    ]
-
-        return TarFile.do_load(storage, dist_data, load_fn)
-
-    def dump(self, storage: Storage, output_uris: str) -> DistData:
-        def dump_fn(storage: Storage, uri: str, files: str | list[str]):
-            assert isinstance(files, (str, list[str])), f"invalid type {type(files)}"
-            if isinstance(files, str):
-                files = [files]
-            with storage.get_writer(uri) as w:
-                with tarfile.open(fileobj=w, mode='w:gz') as tar:
-                    for f in files:
-                        tar.add(f, arcname=os.path.basename(f), recursive=False)
-
-        return self.do_dump(storage, output_uris, "tar", dump_fn)

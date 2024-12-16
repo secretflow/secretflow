@@ -34,7 +34,6 @@ from .common.io import (
     write_orc,
 )
 from .common.types import (
-    AutoNameEnum,
     BaseEnum,
     Input,
     Output,
@@ -53,9 +52,11 @@ from .dataframe import (
     save_prediction,
 )
 from .definition import Definition, Field, Interval
-from .dist_data.base import DistDataType, download_files, upload_files
-from .dist_data.object_file import Model, TarFile, Version
+from .discovery import load_component_modules
+from .dist_data.base import DistDataType
+from .dist_data.model import Model, Version
 from .dist_data.report import Reporter
+from .dist_data.tarfile import TarFile
 from .dist_data.vtable import (
     VTable,
     VTableField,
@@ -67,8 +68,8 @@ from .dist_data.vtable import (
 )
 from .envs import Envs, get_bool_env, get_env
 from .i18n import Translator, get_translation, translate
-from .plugin import Plugin, PluginManager, load_component_modules, load_plugins
-from .registry import Registry, register
+from .plugin import Plugin, PluginManager, load_plugins
+from .registry import Registry, get_comp_list_def, register
 from .resources import Resources, ResourceType
 from .serving_builder import (
     DispatchType,
@@ -77,15 +78,17 @@ from .serving_builder import (
     ServingOp,
     ServingPhase,
 )
-from .storage import Storage
+from .storage import Storage, StorageType, make_storage
 from .utils import (
     PathCleanUp,
     assert_almost_equal,
     build_node_eval_param,
     clean_text,
     download_csv,
+    download_files,
     float_almost_equal,
     pad_inf_to_split_points,
+    upload_files,
     upload_orc,
     uuid4,
 )
@@ -98,6 +101,7 @@ SS_SGD_MODEL_MAX = Version(0, 1)
 SS_GLM_MODEL_MAX = Version(0, 4)
 SS_XGB_MODEL_MAX = Version(0, 1)
 SGB_MODEL_MAX = Version(0, 1)
+UB_PSI_CACHE_MAX = Version(0, 1)
 
 SPU_RUNTIME_CONFIG_FM128_FXP40 = SPURuntimeConfig(field="FM128", fxp_fraction_bits=40)
 
@@ -105,7 +109,10 @@ __all__ = [
     "uuid4",
     "download_csv",
     "upload_orc",
+    "download_files",
+    "upload_files",
     "float_almost_equal",
+    "get_comp_list_def",
     "pad_inf_to_split_points",
     "assert_almost_equal",
     "build_node_eval_param",
@@ -113,13 +120,10 @@ __all__ = [
     "register",
     "load_component_modules",
     "load_plugins",
-    "download_files",
-    "upload_files",
     "new_connector",
     "PathCleanUp",
     "Registry",
     "BaseEnum",
-    "AutoNameEnum",
     "Input",
     "Output",
     "UnionGroup",
@@ -137,6 +141,8 @@ __all__ = [
     "ServingNode",
     "ServingBuilder",
     "Storage",
+    "StorageType",
+    "make_storage",
     "DistDataType",
     "DistDataObject",
     "Version",

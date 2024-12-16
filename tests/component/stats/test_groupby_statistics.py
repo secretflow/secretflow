@@ -19,7 +19,7 @@ import pandas as pd
 import pytest
 from google.protobuf.json_format import MessageToJson
 
-from secretflow.component.core import DistDataType, Storage, build_node_eval_param
+from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
 from secretflow.component.entry import comp_eval
 from secretflow.component.stats.groupby_statistics import STR_TO_ENUM
 from secretflow.spec.extend.groupby_aggregation_config_pb2 import (
@@ -30,7 +30,7 @@ from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from secretflow.spec.v1.report_pb2 import Report
 
 
-def value_agg_pairs_to_pb(value_agg_pairs) -> GroupbyAggregationConfig:  # type: ignore
+def value_agg_pairs_to_pb(value_agg_pairs) -> GroupbyAggregationConfig:
     config = GroupbyAggregationConfig()
     for value, agg in value_agg_pairs:
         col_query = ColumnQuery()
@@ -56,7 +56,7 @@ def test_groupby_statistics(comp_prod_sf_cluster_config, by, value_agg_pairs):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = Storage(storage_config)
+    storage = make_storage(storage_config)
 
     test_data = pd.DataFrame(
         {
@@ -120,7 +120,7 @@ def test_groupby_statistics(comp_prod_sf_cluster_config, by, value_agg_pairs):
 
     comp_ret = Report()
     res.outputs[0].meta.Unpack(comp_ret)
-    # logging.info(f"report {comp_ret}")
+    logging.info(f"report {comp_ret}")
     assert len(value_agg_pairs) == len(comp_ret.tabs)
     for idx, item in enumerate(value_agg_pairs):
         (name, agg) = item
@@ -145,7 +145,7 @@ def test_groupby_statistics_forbid_on_label(
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = Storage(storage_config)
+    storage = make_storage(storage_config)
 
     test_data = pd.DataFrame(
         {

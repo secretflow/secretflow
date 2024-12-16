@@ -358,7 +358,7 @@ class Creator:
 
         if md.fullname not in kwargs:
             if self._check_exist and not md.is_optional:
-                raise ValueError(f"{md.fullname} is required")
+                raise ValueError(f"{md.fullname} is required, but got {kwargs}")
             else:
                 return md.default
 
@@ -468,7 +468,9 @@ class Creator:
         if not is_list:
             if isinstance(value, list):
                 if len(value) != 1:
-                    raise ValueError(f"{md.name} can only have one element")
+                    raise ValueError(
+                        f"{md.name} can only have one element, but got {len(value)}"
+                    )
                 value = value[0]
             assert isinstance(
                 value, str

@@ -24,12 +24,10 @@ from sklearn.datasets import load_breast_cancer
 from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import StandardScaler
 
-from secretflow.component.core import DistDataType, Storage, build_node_eval_param
+from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
 from secretflow.component.entry import comp_eval
 from secretflow.spec.extend.linear_model_pb2 import GeneralizedLinearModel, LinearModel
-from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
 work_path = f"test_glm"
 alice_path = f"{work_path}/x_alice.csv"
@@ -45,7 +43,7 @@ def glm_model(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = Storage(storage_config)
+    storage = make_storage(storage_config)
 
     scaler = StandardScaler()
     ds = load_breast_cancer()
@@ -122,10 +120,11 @@ def write_data(glm_model, comp_prod_sf_cluster_config):
     pb_path = "test_io/linear_model_pb"
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
 
-    read_param = NodeEvalParam(
+    read_param = build_node_eval_param(
         domain="io",
         name="read_data",
         version="1.0.0",
+        attrs=None,
         inputs=[glm_model],
         output_uris=[pb_path],
     )
@@ -145,16 +144,11 @@ def write_complete_data(glm_model, comp_prod_sf_cluster_config):
     pb_path = "test_io/generalized_linear_model_pb"
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
 
-    read_param = NodeEvalParam(
+    read_param = build_node_eval_param(
         domain="io",
         name="read_data",
         version="1.0.0",
-        attr_paths=[
-            "generalized_linear_model",
-        ],
-        attrs=[
-            Attribute(b=True),
-        ],
+        attrs={"generalized_linear_model": True},
         inputs=[glm_model],
         output_uris=[pb_path],
     )
@@ -173,15 +167,14 @@ def test_no_change_correct(glm_model, write_data, comp_prod_sf_cluster_config):
     new_glm_model_path = "test_io/new_glm_model"
     pb_path = "test_io/glm_model_pb_unchanged"
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
-    write_param = NodeEvalParam(
+    write_param = build_node_eval_param(
         domain="io",
         name="write_data",
         version="1.0.0",
-        attr_paths=["write_data", "write_data_type"],
-        attrs=[
-            Attribute(s=write_data),
-            Attribute(s=str(DistDataType.SS_GLM_MODEL)),
-        ],
+        attrs={
+            "write_data": write_data,
+            "write_data_type": str(DistDataType.SS_GLM_MODEL),
+        },
         inputs=[glm_model],
         output_uris=[new_glm_model_path],
     )
@@ -191,10 +184,11 @@ def test_no_change_correct(glm_model, write_data, comp_prod_sf_cluster_config):
         cluster_config=sf_cluster_config,
     )
 
-    read_param = NodeEvalParam(
+    read_param = build_node_eval_param(
         domain="io",
         name="read_data",
         version="1.0.0",
+        attrs=None,
         inputs=[write_res.outputs[0]],
         output_uris=[pb_path],
     )
@@ -231,15 +225,14 @@ def test_modify_bias_correct(glm_model, write_data, comp_prod_sf_cluster_config)
     read_linear_model_pb.bias += 1
     write_data = MessageToJson(read_linear_model_pb)
 
-    write_param = NodeEvalParam(
+    write_param = build_node_eval_param(
         domain="io",
         name="write_data",
         version="1.0.0",
-        attr_paths=["write_data", "write_data_type"],
-        attrs=[
-            Attribute(s=write_data),
-            Attribute(s=str(DistDataType.SS_GLM_MODEL)),
-        ],
+        attrs={
+            "write_data": write_data,
+            "write_data_type": str(DistDataType.SS_GLM_MODEL),
+        },
         inputs=[glm_model],
         output_uris=[new_rule_path],
     )
@@ -249,10 +242,11 @@ def test_modify_bias_correct(glm_model, write_data, comp_prod_sf_cluster_config)
         cluster_config=sf_cluster_config,
     )
 
-    read_param = NodeEvalParam(
+    read_param = build_node_eval_param(
         domain="io",
         name="read_data",
         version="1.0.0",
+        attrs=None,
         inputs=[write_res.outputs[0]],
         output_uris=[pb_path],
     )
@@ -270,15 +264,14 @@ def test_no_change_correct_complete(write_complete_data, comp_prod_sf_cluster_co
     new_glm_model_path = "test_glm/new_glm_model"
     pb_path = "test_glm/glm_model_pb_unchanged"
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
-    write_param = NodeEvalParam(
+    write_param = build_node_eval_param(
         domain="io",
         name="write_data",
         version="1.0.0",
-        attr_paths=["write_data", "write_data_type"],
-        attrs=[
-            Attribute(s=write_complete_data),
-            Attribute(s=str(DistDataType.SS_GLM_MODEL)),
-        ],
+        attrs={
+            "write_data": write_complete_data,
+            "write_data_type": str(DistDataType.SS_GLM_MODEL),
+        },
         inputs=[
             DistData(name="null", type=str(DistDataType.NULL)),
         ],
@@ -290,16 +283,11 @@ def test_no_change_correct_complete(write_complete_data, comp_prod_sf_cluster_co
         cluster_config=sf_cluster_config,
     )
 
-    read_param = NodeEvalParam(
+    read_param = build_node_eval_param(
         domain="io",
         name="read_data",
         version="1.0.0",
-        attr_paths=[
-            "generalized_linear_model",
-        ],
-        attrs=[
-            Attribute(b=True),
-        ],
+        attrs={"generalized_linear_model": True},
         inputs=[write_res.outputs[0]],
         output_uris=[pb_path],
     )
@@ -330,7 +318,7 @@ def test_no_change_correct_complete(write_complete_data, comp_prod_sf_cluster_co
 
 def get_pred_param(storage_config, sf_cluster_config, model, predict_path):
     self_party = sf_cluster_config.private_config.self_party
-    storage = Storage(storage_config)
+    storage = make_storage(storage_config)
     scaler = StandardScaler()
     ds = load_breast_cancer()
     x, y = scaler.fit_transform(ds["data"]), ds["target"]
@@ -397,7 +385,7 @@ def predict_reference_data(glm_model, comp_prod_sf_cluster_config):
     assert len(predict_res.outputs) == 1
 
     if "alice" == sf_cluster_config.private_config.self_party:
-        storage = Storage(storage_config)
+        storage = make_storage(storage_config)
         predict_reference = orc.read_table(
             storage.get_reader(predict_referecnce_path)
         ).to_pandas()
@@ -411,15 +399,14 @@ def test_glm_raw_model(glm_model, write_complete_data, comp_prod_sf_cluster_conf
 
     new_glm_path = "test_glm/new_glm"
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
-    write_param = NodeEvalParam(
+    write_param = build_node_eval_param(
         domain="io",
         name="write_data",
         version="1.0.0",
-        attr_paths=["write_data", "write_data_type"],
-        attrs=[
-            Attribute(s=write_complete_data),
-            Attribute(s=str(DistDataType.SS_GLM_MODEL)),
-        ],
+        attrs={
+            "write_data": write_complete_data,
+            "write_data_type": str(DistDataType.SS_GLM_MODEL),
+        },
         inputs=[
             DistData(name="null", type=str(DistDataType.NULL)),
         ],
@@ -446,7 +433,7 @@ def test_glm_raw_model(glm_model, write_complete_data, comp_prod_sf_cluster_conf
 
     self_party = sf_cluster_config.private_config.self_party
     if "alice" == self_party:
-        storage = Storage(storage_config)
+        storage = make_storage(storage_config)
         input_y = pd.read_csv(storage.get_reader(alice_path))
         output_y = orc.read_table(storage.get_reader(predict_path)).to_pandas()
         # output_y.to_csv(predict_path, index=False)

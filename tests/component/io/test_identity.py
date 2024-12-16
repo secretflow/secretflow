@@ -21,11 +21,10 @@ from google.protobuf.json_format import MessageToJson
 from sklearn.datasets import load_breast_cancer
 from sklearn.preprocessing import StandardScaler
 
-from secretflow.component.core import Storage, build_node_eval_param
+from secretflow.component.core import build_node_eval_param, make_storage
 from secretflow.component.entry import comp_eval
 from secretflow.spec.extend.linear_model_pb2 import LinearModel
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
 
 @pytest.fixture
@@ -37,7 +36,7 @@ def glm_model(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = Storage(storage_config)
+    storage = make_storage(storage_config)
 
     scaler = StandardScaler()
     ds = load_breast_cancer()
@@ -114,10 +113,11 @@ def write_data(glm_model, comp_prod_sf_cluster_config):
     pb_path = "test_io/linear_model_pb"
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
 
-    read_param = NodeEvalParam(
+    read_param = build_node_eval_param(
         domain="io",
         name="read_data",
         version="1.0.0",
+        attrs=None,
         inputs=[glm_model],
         output_uris=[pb_path],
     )
@@ -136,10 +136,11 @@ def test_glm_model_correct(glm_model, write_data, comp_prod_sf_cluster_config):
     new_glm_model_path = "test_io/new_glm_model"
     pb_path = "test_io/glm_model_pb_unchanged"
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
-    identity_param = NodeEvalParam(
+    identity_param = build_node_eval_param(
         domain="io",
         name="identity",
         version="1.0.0",
+        attrs=None,
         inputs=[glm_model],
         output_uris=[new_glm_model_path],
     )
@@ -149,10 +150,11 @@ def test_glm_model_correct(glm_model, write_data, comp_prod_sf_cluster_config):
         cluster_config=sf_cluster_config,
     )
 
-    read_param = NodeEvalParam(
+    read_param = build_node_eval_param(
         domain="io",
         name="read_data",
         version="1.0.0",
+        attrs=None,
         inputs=[write_res.outputs[0]],
         output_uris=[pb_path],
     )

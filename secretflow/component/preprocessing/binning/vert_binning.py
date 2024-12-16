@@ -59,7 +59,7 @@ class VertBinning(VertBinningBase):
         desc="which features should be binned.",
         limit=Interval.closed(1, None),
     )
-    input_ds: Input = Field.input(  # type: ignore
+    input_ds: Input = Field.input(
         desc="Input vertical table.",
         types=[DistDataType.VERTICAL_TABLE],
     )
