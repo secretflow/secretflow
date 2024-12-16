@@ -23,9 +23,9 @@ import logging
 import math
 import os
 from typing import Callable, Dict, List, Tuple, Union
-
 import numpy as np
 
+from examples.security.h_bd.backdoor_fl_torch import poison_dataset
 from secretflow.data.horizontal import HDataFrame
 from secretflow.data.ndarray import FedNdarray
 from secretflow.device import PYU, reveal, wait
@@ -37,7 +37,6 @@ from secretflow_fl.ml.nn.fl.strategy_dispatcher import dispatch_strategy
 from secretflow_fl.ml.nn.metrics import Metric, aggregate_metrics
 from secretflow_fl.utils.compressor import sparse_encode
 from secretflow_fl.ml.nn import FLModel
-from examples.security.h_bd.backdoor_fl_torch import poison_dataset
 
 
 class FLModel_bd(FLModel):
