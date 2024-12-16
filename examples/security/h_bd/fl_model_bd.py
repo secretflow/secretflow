@@ -37,6 +37,7 @@ from secretflow_fl.ml.nn.fl.strategy_dispatcher import dispatch_strategy
 from secretflow_fl.ml.nn.metrics import Metric, aggregate_metrics
 from secretflow_fl.utils.compressor import sparse_encode
 from secretflow_fl.ml.nn import FLModel
+from examples.security.h_bd.backdoor_fl_torch import poison_dataset
 
 class FLModel_bd(FLModel):
     def __init__(
@@ -120,6 +121,8 @@ class FLModel_bd(FLModel):
         audit_log_dir=None,
         dataset_builder: Dict[PYU, Callable] = None,
         wait_steps=100,
+        attack_party=None,
+        attack_eta=0.5,
     ) -> Dict:
         """Horizontal federated training interface
 
@@ -258,7 +261,7 @@ class FLModel_bd(FLModel):
                     else:
                         self.kwargs["refresh_data"] = False
                         
-                    callbacks.on_train_batch_inner_before(epoch,client_params,device)
+                    callbacks.on_train_batch_inner_before(epoch,device)
 
                     client_params, sample_num = self._workers[device].train_step(
                         client_params,
@@ -270,14 +273,19 @@ class FLModel_bd(FLModel):
                         ),
                         **self.kwargs,
                     )
+                    if device==attack_party:
+                        gamma=len(self._workers)*attack_eta
+                        def attacker_model_replacement(attack_worker,weights,gamma):
+                            for index,item in enumerate(weights):
+                                weights[index]=gamma*(weights[index]-attack_worker.init_weights[index])+attack_worker.init_weights[index]
+                            attack_worker.set_weights(weights)
+                            weights=attack_worker.get_weights(return_numpy=True)
+                            return weights
+                        client_params=self._workers[attack_party].apply(attacker_model_replacement,client_params,gamma)
+                        
                     assert type(client_params)==PYUObject
                     assert type(device)==PYU
                     
-                    
-                    client_params=callbacks.on_train_batch_inner_after(epoch,client_params,device)
-                    
-                    
-                    assert type(client_params)==PYUObject
                     client_param_list.append(client_params)
                     sample_num_list.append(sample_num)
                     res.append(client_params)
@@ -397,3 +405,98 @@ class FLModel_bd(FLModel):
         callbacks.on_train_end()
         return callbacks.history
 
+    def evaluate_bd(
+        self,
+        x: Union[HDataFrame, FedNdarray, Dict],
+        y: Union[HDataFrame, FedNdarray, str] = None,
+        batch_size: Union[int, Dict[PYU, int]] = 32,
+        sample_weight: Union[HDataFrame, FedNdarray] = None,
+        label_decoder=None,
+        return_dict=False,
+        sampler_method="batch",
+        random_seed=None,
+        dataset_builder: Dict[PYU, Callable] = None,
+        target_label=None,
+    ) -> Tuple[
+        Union[List[Metric], Dict[str, Metric]],
+        Union[Dict[str, List[Metric]], Dict[str, Dict[str, Metric]]],
+    ]:
+        """Horizontal federated offline evaluation interface
+
+        Args:
+            x: Input data. It could be:
+                - FedNdArray
+                - HDataFrame
+                - Dict {PYU: model_path}
+            y: Label. It could be:
+                - FedNdArray
+                - HDataFrame
+                - str column name of csv
+            batch_size: Integer or `Dict`. Number of samples per batch of
+                computation. If unspecified, `batch_size` will default to 32.
+            sample_weight: Optional Numpy array of weights for the test samples,
+                used for weighting the loss function.
+            label_decoder: User define how to handle label column when use csv reader
+            return_dict: If `True`, loss and metric results are returned as a dict,
+                with each key being the name of the metric. If `False`, they are
+                returned as a list.
+            sampler_method: The name of sampler method.
+            dataset_builder: Callable function about hot to build the dataset. must return (dataset, steps_per_epoch)
+
+        Returns:
+            A tuple of two objects. The first object is a aggregated record of
+            metrics, and the second object is a record of training loss values
+            and metrics of each party.
+        """
+        if not random_seed:
+            random_seed = global_random([*self._workers][0], 100000)
+        if isinstance(x, Dict):
+            evaluate_steps = self._handle_file(
+                x,
+                y,
+                batch_size=batch_size,
+                stage="eval",
+                epochs=1,
+                label_decoder=label_decoder,
+                dataset_builder=dataset_builder,
+            )
+        else:
+            assert type(x) == type(y), "x and y must be same data type"
+            if isinstance(x, HDataFrame) and isinstance(y, HDataFrame):
+                eval_x, eval_y = x.values, y.values
+            else:
+                eval_x, eval_y = x, y
+            if isinstance(sample_weight, HDataFrame):
+                sample_weight = sample_weight.values
+
+            evaluate_steps = self._handle_data(
+                eval_x,
+                eval_y,
+                sample_weight=sample_weight,
+                batch_size=batch_size,
+                stage="eval",
+                epochs=1,
+                sampler_method=sampler_method,
+                random_seed=random_seed,
+                dataset_builder=dataset_builder,
+            )
+        def init_attacker_worker(attack_worker,poison_rate,target_label):
+            attack_worker.eval_set=poison_dataset(attack_worker.eval_set,poison_rate,target_label)
+
+        local_metrics = {}
+        metric_objs = {}
+        for device, worker in self._workers.items():
+            worker.apply(init_attacker_worker,1.0,target_label)
+            metric_objs[device.party] = worker.evaluate(evaluate_steps)
+        local_metrics = reveal(metric_objs)
+        g_metrics = aggregate_metrics(local_metrics.values())
+        if return_dict:
+            return (
+                {m.name: m for m in g_metrics},
+                {
+                    party: {m.name: m for m in metrics}
+                    for party, metrics in local_metrics.items()
+                },
+            )
+        else:
+            return g_metrics, local_metrics

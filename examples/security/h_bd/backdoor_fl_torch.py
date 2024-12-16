@@ -1,21 +1,12 @@
-import copy
-import logging
 import random
-from typing import Callable, Dict, List
 
 import numpy as np
 import torch
 
-from secretflow import reveal
-from secretflow.device import PYU,PYUObject
+from secretflow.device import PYU
 from secretflow_fl.ml.nn.callbacks.attack import AttackCallback
-from secretflow_fl.ml.nn.core.torch import module
-from secretflow_fl.ml.nn.utils import TorchModel
 from torch.utils.data import DataLoader, TensorDataset
-from PIL import Image
-from sklearn.preprocessing import OneHotEncoder,LabelEncoder
-from torch.nn.modules.batchnorm import _BatchNorm
-from secretflow_fl.ml.nn.fl.backend.torch.fl_base import sampler_data
+from sklearn.preprocessing import OneHotEncoder
 
 
 def poison_dataset(dataloader,poison_rate,target_label):
@@ -69,55 +60,12 @@ class BackdoorAttack(AttackCallback):
         def init_attacker_worker(attack_worker,poison_rate,target_label):
             attack_worker.train_set=poison_dataset(attack_worker.train_set,poison_rate,target_label)
         self._workers[self.attack_party].apply(init_attacker_worker,self.poison_rate,self.target_label)
-        # init_attacker_worker(self._workers[self.attack_party],self.poison_rate,self.target_label)
-    def on_train_batch_inner_before(self, epoch,weights,device):
-        def attacker_model_initial(attack_worker,weights):
-            attack_worker.init_weights=copy.deepcopy(weights)
-        # self.global_weights=copy.deepcopy(weights)
+    def on_train_batch_inner_before(self, epoch,device):
+        def attacker_model_initial(attack_worker):
+            attack_worker.init_weights=attack_worker.get_weights(return_numpy=True)
         if device==self.attack_party:
+            self._workers[self.attack_party].apply(attacker_model_initial)
         
-            self._workers[self.attack_party].apply(attacker_model_initial,weights)
-        
-        
-    def on_train_batch_inner_after(self, epoch,weights,device):
-        assert type(weights)==PYUObject
-        assert type(device)==PYU
-        weights.to(device)
-        assert type(weights)==PYUObject
-        
-        # def attacker_model_replacement(attack_worker,weights,gamma):
-        #     weights=gamma*(weights-attack_worker.init_weights)+attack_worker.init_weights
-        # print('Perform Model Replacement')
-        # gamma=len(self._workers)*self.eta
-        # if device==self.attack_party:
-        #     weights=self._workers[self.attack_party].apply(attacker_model_replacement,weights,gamma)
-        return weights
-    
-    
-        # if device==self.attack_party:
-        #     print('Perform Model Replacement')
-        #     gamma=len(self._workers)*self.eta
-        #     # model=self._workers[self.attack_party].model
-            
-        #     # key_list = []
-        #     # if self._workers[self.attack_party].skip_bn:
-        #     #     for k, v in model.state_dict().items():
-        #     #         layername = k.split('.')[0]
-        #     #         if not isinstance(getattr(self, layername), _BatchNorm):
-        #     #             key_list.append(k)
-        #     # else:
-        #     #     for k, v in model.state_dict().items():
-        #     #         key_list.append(k)
-            
-        #     # global_weights_dict = {}
-        #     # local_weights_dict={}
-        #     # for k, v in zip(key_list, self.global_weights):
-        #     #     global_weights_dict[k] = np.copy(v)
-        #     # for k, v in zip(key_list, weights):
-        #     #     local_weights_dict[k] = np.copy(v)
-        #     for index,item in enumerate(weights):
-        #         weights[index]=gamma*(weights[index]-self.global_weights[index])+self.global_weights[index]
-    
-    
+
     
         

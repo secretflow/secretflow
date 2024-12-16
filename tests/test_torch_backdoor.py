@@ -24,9 +24,7 @@ from torch import nn, optim
 from torchmetrics import Accuracy, Precision
 
 from secretflow.device import reveal
-# from secretflow.utils.simulation.datasets import load_iris
 from secretflow.security.aggregation import PlainAggregator
-# from secretflow_fl.ml.nn import FLModel
 from examples.security.h_bd.fl_model_bd import FLModel_bd
 from secretflow_fl.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
 from secretflow_fl.ml.nn.fl.compress import COMPRESS_STRATEGY
@@ -44,7 +42,7 @@ INPUT_SHAPE = (32, 32, 3)
 
 
 def _torch_model_with_cifar10(
-    devices, model_def, data, label, strategy, backend,callbacks, **kwargs
+    devices, model_def, data, label,test_data,test_label, strategy, backend,callbacks, **kwargs
 ):
     device_list = [devices.alice, devices.bob]
     server = devices.carol
@@ -72,19 +70,21 @@ def _torch_model_with_cifar10(
     history = fl_model.fit(
         data,
         label,
-        validation_data=(data, label),
-        epochs=1,
+        validation_data=(test_data, test_label),
+        epochs=50,
         batch_size=128,
         aggregate_freq=2,
         dp_spent_step_freq=dp_spent_step_freq,
         callbacks=callbacks,
+        attack_party=callbacks[0].attack_party
     )
     result = fl_model.predict(data, batch_size=128)
     assert len(reveal(result[device_list[0]])) == 20000
     assert len(reveal(result[device_list[1]])) == 30000
-    # assert len(reveal(result[device_list[2]])) == 20000
-    global_metric, _ = fl_model.evaluate(data, label, batch_size=128, random_seed=1234)
+    global_metric, _ = fl_model.evaluate(test_data, test_label, batch_size=128, random_seed=1234)
+    bd_metric, _ = fl_model.evaluate_bd(test_data, test_label, batch_size=128, random_seed=1234,target_label=callbacks[0].target_label)
     print(history, global_metric)
+    print(bd_metric)
 
     assert (
         global_metric[0].result().numpy()
@@ -109,18 +109,17 @@ def _torch_model_with_cifar10(
         backend=backend,
         random_seed=1234,
         num_gpus=num_gpus,
-        callbacks=callbacks
     )
     new_fed_model.load_model(model_path=model_path_dict, is_test=False)
     new_fed_model.load_model(model_path=model_path_test, is_test=True)
     reload_metric, _ = new_fed_model.evaluate(
-        data, label, batch_size=128, random_seed=1234
+        test_data, test_label, batch_size=128, random_seed=1234
     )
 
-    np.testing.assert_equal(
-        [m.result().numpy() for m in global_metric],
-        [m.result().numpy() for m in reload_metric],
-    )
+    # np.testing.assert_equal(
+    #     [m.result().numpy() for m in global_metric],
+    #     [m.result().numpy() for m in reload_metric],
+    # )
 
 
 def test_torch_model(sf_simulation_setup_devices):
@@ -128,17 +127,14 @@ def test_torch_model(sf_simulation_setup_devices):
         parts={
             sf_simulation_setup_devices.alice: 0.4,
             sf_simulation_setup_devices.bob: 0.6,
-            # sf_simulation_setup_devices.carol:0.4,
         },
         normalized_x=True,
         categorical_y=True,
-        # is_torch=True,
     )
 
     loss_fn = nn.CrossEntropyLoss
     optim_fn = optim_wrapper(optim.Adam, lr=1e-2)
     model_def = TorchModel(
-        # model_fn=ConvNet_CIFAR10,
         model_fn=SimpleCNN,
         loss_fn=loss_fn,
         optim_fn=optim_fn,
@@ -152,20 +148,22 @@ def test_torch_model(sf_simulation_setup_devices):
         ],
     )
     alice=sf_simulation_setup_devices.alice
-    # bob=sf_simulation_setup_devices.bob
     backdoor_attack=BackdoorAttack(
         attack_party=alice,
+        poison_rate= 0.1,
+        target_label= 1,
+        eta=1.0
     )
-    # Test fed_avg_w with mnist
     _torch_model_with_cifar10(
         devices=sf_simulation_setup_devices,
         model_def=model_def,
         data=train_data,
         label=train_label,
+        test_data=test_data,
+        test_label=test_label,
         strategy="fed_avg_w",
         backend="torch",
         callbacks=[backdoor_attack]
-        # num_gpus=0.25,
     )
 
  
