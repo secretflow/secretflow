@@ -32,17 +32,26 @@ from secretflow_fl.preprocessing.encoder_fl import OneHotEncoder
 from secretflow_fl.security.aggregation import SparsePlainAggregator
 from secretflow_fl.security.privacy import DPStrategyFL, GaussianModelDP
 from secretflow_fl.utils.simulation.datasets_fl import load_cifar10_horiontal
-from tests.ml.nn.fl.model_def import ConvNet_CIFAR10,SimpleCNN
+from tests.ml.nn.fl.model_def import ConvNet_CIFAR10, SimpleCNN
 from examples.security.h_bd.backdoor_fl_torch import BackdoorAttack
+
 _temp_dir = tempfile.mkdtemp()
 
 NUM_CLASSES = 10
 INPUT_SHAPE = (32, 32, 3)
 
 
-
 def _torch_model_with_cifar10(
-    devices, model_def, data, label,test_data,test_label, strategy, backend,callbacks, **kwargs
+    devices,
+    model_def,
+    data,
+    label,
+    test_data,
+    test_label,
+    strategy,
+    backend,
+    callbacks,
+    **kwargs
 ):
     device_list = [devices.alice, devices.bob]
     server = devices.carol
@@ -76,13 +85,21 @@ def _torch_model_with_cifar10(
         aggregate_freq=2,
         dp_spent_step_freq=dp_spent_step_freq,
         callbacks=callbacks,
-        attack_party=callbacks[0].attack_party
+        attack_party=callbacks[0].attack_party,
     )
     result = fl_model.predict(data, batch_size=128)
     assert len(reveal(result[device_list[0]])) == 20000
     assert len(reveal(result[device_list[1]])) == 30000
-    global_metric, _ = fl_model.evaluate(test_data, test_label, batch_size=128, random_seed=1234)
-    bd_metric, _ = fl_model.evaluate_bd(test_data, test_label, batch_size=128, random_seed=1234,target_label=callbacks[0].target_label)
+    global_metric, _ = fl_model.evaluate(
+        test_data, test_label, batch_size=128, random_seed=1234
+    )
+    bd_metric, _ = fl_model.evaluate_bd(
+        test_data,
+        test_label,
+        batch_size=128,
+        random_seed=1234,
+        target_label=callbacks[0].target_label,
+    )
     print(history, global_metric)
     print(bd_metric)
 
@@ -147,12 +164,9 @@ def test_torch_model(sf_simulation_setup_devices):
             ),
         ],
     )
-    alice=sf_simulation_setup_devices.alice
-    backdoor_attack=BackdoorAttack(
-        attack_party=alice,
-        poison_rate= 0.1,
-        target_label= 1,
-        eta=1.0
+    alice = sf_simulation_setup_devices.alice
+    backdoor_attack = BackdoorAttack(
+        attack_party=alice, poison_rate=0.1, target_label=1, eta=1.0
     )
     _torch_model_with_cifar10(
         devices=sf_simulation_setup_devices,
@@ -163,7 +177,5 @@ def test_torch_model(sf_simulation_setup_devices):
         test_label=test_label,
         strategy="fed_avg_w",
         backend="torch",
-        callbacks=[backdoor_attack]
+        callbacks=[backdoor_attack],
     )
-
- 

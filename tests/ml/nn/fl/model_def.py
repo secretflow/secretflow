@@ -86,13 +86,14 @@ class ConvNet(BaseModule):
         x = F.relu(self.fc(x))
         return x
 
+
 # model define for conv
 class ConvNet_CIFAR10(BaseModule):
     """Small ConvNet for CIFAR10."""
 
     def __init__(self):
         super(ConvNet_CIFAR10, self).__init__()
-        self.conv1 = nn.Conv2d(3, 3, kernel_size=3,padding=1)
+        self.conv1 = nn.Conv2d(3, 3, kernel_size=3, padding=1)
         self.fc_in_dim = 768
         self.fc = nn.Linear(self.fc_in_dim, 10)
 
@@ -103,8 +104,9 @@ class ConvNet_CIFAR10(BaseModule):
         x = F.relu(self.fc(x))
         return x
 
+
 class SimpleCNN(BaseModule):
-    def __init__(self, hidden_dims=[120,84], output_dim=10):
+    def __init__(self, hidden_dims=[120, 84], output_dim=10):
         super(SimpleCNN, self).__init__()
         self.conv1 = nn.Conv2d(3, 6, 5)
         self.relu = nn.ReLU()
@@ -113,7 +115,7 @@ class SimpleCNN(BaseModule):
 
         # for now, we hard coded this network
         # i.e. we fix the number of hidden layers i.e. 2 layers
-        self.fc1 = nn.Linear(16*5*5, hidden_dims[0])
+        self.fc1 = nn.Linear(16 * 5 * 5, hidden_dims[0])
         self.fc2 = nn.Linear(hidden_dims[0], hidden_dims[1])
         self.fc3 = nn.Linear(hidden_dims[1], output_dim)
 

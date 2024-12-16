@@ -39,6 +39,7 @@ from secretflow_fl.utils.compressor import sparse_encode
 from secretflow_fl.ml.nn import FLModel
 from examples.security.h_bd.backdoor_fl_torch import poison_dataset
 
+
 class FLModel_bd(FLModel):
     def __init__(
         self,
@@ -67,7 +68,18 @@ class FLModel_bd(FLModel):
                 that takes in a list of parameter values from different parties and returns the aggregated parameter value list
             skip_bn: Whether to skip batch normalization layers when aggregate models
         """
-        super().__init__(server,device_list,model,aggregator,strategy,consensus_num,backend,random_seed,skip_bn,**kwargs)
+        super().__init__(
+            server,
+            device_list,
+            model,
+            aggregator,
+            strategy,
+            consensus_num,
+            backend,
+            random_seed,
+            skip_bn,
+            **kwargs,
+        )
         if backend == "tensorflow":
             import secretflow_fl.ml.nn.fl.backend.tensorflow.strategy  # noqa
         elif backend == "torch":
@@ -248,8 +260,8 @@ class FLModel_bd(FLModel):
                 callbacks.on_train_batch_begin(batch=step)
                 client_param_list, sample_num_list = [], []
                 for idx, device in enumerate(self._workers.keys()):
-                    assert type(device)==PYU
-                    
+                    assert type(device) == PYU
+
                     client_params = (
                         model_params_list[idx].to(device)
                         if model_params_list is not None
@@ -260,8 +272,8 @@ class FLModel_bd(FLModel):
                         self.kwargs["refresh_data"] = True
                     else:
                         self.kwargs["refresh_data"] = False
-                        
-                    callbacks.on_train_batch_inner_before(epoch,device)
+
+                    callbacks.on_train_batch_inner_before(epoch, device)
 
                     client_params, sample_num = self._workers[device].train_step(
                         client_params,
@@ -273,19 +285,30 @@ class FLModel_bd(FLModel):
                         ),
                         **self.kwargs,
                     )
-                    if device==attack_party:
-                        gamma=len(self._workers)/attack_eta
-                        def attacker_model_replacement(attack_worker,weights,gamma):
-                            for index,item in enumerate(weights):
-                                weights[index]=gamma*(weights[index]-attack_worker.init_weights[index])+attack_worker.init_weights[index]
+                    if device == attack_party:
+                        gamma = len(self._workers) / attack_eta
+
+                        def attacker_model_replacement(attack_worker, weights, gamma):
+                            for index, item in enumerate(weights):
+                                weights[index] = (
+                                    gamma
+                                    * (
+                                        weights[index]
+                                        - attack_worker.init_weights[index]
+                                    )
+                                    + attack_worker.init_weights[index]
+                                )
                             attack_worker.set_weights(weights)
-                            weights=attack_worker.get_weights(return_numpy=True)
+                            weights = attack_worker.get_weights(return_numpy=True)
                             return weights
-                        client_params=self._workers[attack_party].apply(attacker_model_replacement,client_params,gamma)
-                        
-                    assert type(client_params)==PYUObject
-                    assert type(device)==PYU
-                    
+
+                        client_params = self._workers[attack_party].apply(
+                            attacker_model_replacement, client_params, gamma
+                        )
+
+                    assert type(client_params) == PYUObject
+                    assert type(device) == PYU
+
                     client_param_list.append(client_params)
                     sample_num_list.append(sample_num)
                     res.append(client_params)
@@ -480,13 +503,16 @@ class FLModel_bd(FLModel):
                 random_seed=random_seed,
                 dataset_builder=dataset_builder,
             )
-        def init_attacker_worker(attack_worker,poison_rate,target_label):
-            attack_worker.eval_set=poison_dataset(attack_worker.eval_set,poison_rate,target_label)
+
+        def init_attacker_worker(attack_worker, poison_rate, target_label):
+            attack_worker.eval_set = poison_dataset(
+                attack_worker.eval_set, poison_rate, target_label
+            )
 
         local_metrics = {}
         metric_objs = {}
         for device, worker in self._workers.items():
-            worker.apply(init_attacker_worker,1.0,target_label)
+            worker.apply(init_attacker_worker, 1.0, target_label)
             metric_objs[device.party] = worker.evaluate(evaluate_steps)
         local_metrics = reveal(metric_objs)
         g_metrics = aggregate_metrics(local_metrics.values())

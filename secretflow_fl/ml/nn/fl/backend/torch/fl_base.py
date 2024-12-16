@@ -420,6 +420,7 @@ class BaseTorchModel(ABC):
         if self.use_gpu:
             self.model.to(self.exe_device)
         return checkpoint["epoch"]
+
     def apply(self, func, *args, **kwargs):
         if callable(func):
             return func(self, *args, **kwargs)

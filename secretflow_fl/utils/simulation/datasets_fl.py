@@ -713,29 +713,29 @@ def load_mnist(
         ),
     )
 
-def load_cifar10_unpartitioned( normalized_x: bool = True, categorical_y: bool = False,data_dir: str = None):
+
+def load_cifar10_unpartitioned(
+    normalized_x: bool = True, categorical_y: bool = False, data_dir: str = None
+):
     import torch.utils.data as torch_data
     from torchvision import datasets, transforms
+
     if data_dir is None:
         data_dir = _CACHE_DIR + "/cifar10"
         # data_dir = "/root"
-    train_dataset = datasets.CIFAR10(
-        data_dir, True,transform=None, download=True
-    )
-    test_dataset = datasets.CIFAR10(
-        data_dir, False, transform=None, download=True
-    )
+    train_dataset = datasets.CIFAR10(data_dir, True, transform=None, download=True)
+    test_dataset = datasets.CIFAR10(data_dir, False, transform=None, download=True)
     # trans=transforms.ToTensor()
     # x_train, y_train = (lambda x: trans(x))(train_dataset.data), train_dataset.targets
     # x_test, y_test = (lambda x: trans(x))(test_dataset.data), test_dataset.targets
     x_train, y_train = train_dataset.data, train_dataset.targets
     x_test, y_test = test_dataset.data, test_dataset.targets
-    x_train=np.array(x_train)
-    y_train=np.array(y_train)
-    x_test=np.array(x_test)
-    y_test=np.array(y_test)
-    x_train=x_train.transpose((0,3,1,2))
-    x_test=x_test.transpose((0,3,1,2))
+    x_train = np.array(x_train)
+    y_train = np.array(y_train)
+    x_test = np.array(x_test)
+    y_test = np.array(y_test)
+    x_train = x_train.transpose((0, 3, 1, 2))
+    x_test = x_test.transpose((0, 3, 1, 2))
     if normalized_x:
         x_train, x_test = x_train / 255, x_test / 255
 

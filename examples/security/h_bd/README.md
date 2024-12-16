@@ -4,14 +4,13 @@ This folder contains the implementions of backdoor attack on horizontal Federal 
 
 ## Attack Method
 
-[Model Replacement Attack from How To Backdoor Federated Learning](https://arxiv.org/pdf/1807.00459)
+Model Replacement Attack from [How To Backdoor Federated Learning](https://arxiv.org/pdf/1807.00459)
 
 ### Algorithm Description
 
 Naive approach. 
 
 The attacker can simply train its model on backdoored inputs. Each training batch should include a mix of correctly labeled inputs and backdoored inputs to help the model learn to recognize the difference. The attacker can also change the local learning rate and the number of local epochs to maximize the overfitting to the backdoored data.
-
 The naive approach does not work against federated learning. Aggregation cancels out most of the backdoored model's contribution and the joint model quickly forgets the backdoor. The attacker needs to be selected often and even then the poisoning is very slow. 
 
 Model replacement. 
@@ -28,11 +27,9 @@ $$
 \widetilde{L}_m^{t+1}=\frac{n}{\eta} X-\left(\frac{n}{\eta}-1\right) G^t-\sum_{i=1}^{m-1}\left(L_i^{t+1}-G^t\right) \approx \frac{n}{\eta}\left(X-G^t\right)+G^t
 $$
 
-This attack scales up the weights of the backdoored model $X$ by $\gamma=\frac{n}{\eta}$ to ensure that the backdoor survives the averaging and the global model is replaced by $X$. This works in any round of federated learning but is more effective when the global model is close to convergence-see Section 5.5.
+This attack scales up the weights of the backdoored model $X$ by $\gamma=\frac{n}{\eta}$ to ensure that the backdoor survives the averaging and the global model is replaced by $X$. 
 
-An attacker who does not know $n$ and $\eta$ can approximate the scaling factor $\gamma$ by iteratively increasing it every round and measuring the accuracy of the model on the backdoor task. Scaling by $\gamma<\frac{n}{\eta}$ does not fully replace the global model, but the attack still achieves good backdoor accuracy-see Section 5.6.
-
-
+An attacker who does not know $n$ and $\eta$ can approximate the scaling factor $\gamma$ by iteratively increasing it every round and measuring the accuracy of the model on the backdoor task. Scaling by $\gamma<\frac{n}{\eta}$ does not fully replace the global model, but the attack still achieves good backdoor accuracy.
 
 # Implemention
   - `fl_model_bd.py`
