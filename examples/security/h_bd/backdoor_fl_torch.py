@@ -48,7 +48,7 @@ class BackdoorAttack(AttackCallback):
         attack_party: PYU,
         poison_rate: float = 0.1,
         target_label: int = 1,
-        eta: float=0.5
+        eta: float=1.0
     ):
         super().__init__()
         self.attack_party=attack_party

@@ -122,7 +122,7 @@ class FLModel_bd(FLModel):
         dataset_builder: Dict[PYU, Callable] = None,
         wait_steps=100,
         attack_party=None,
-        attack_eta=0.5,
+        attack_eta=1.0,
     ) -> Dict:
         """Horizontal federated training interface
 
@@ -274,7 +274,7 @@ class FLModel_bd(FLModel):
                         **self.kwargs,
                     )
                     if device==attack_party:
-                        gamma=len(self._workers)*attack_eta
+                        gamma=len(self._workers)/attack_eta
                         def attacker_model_replacement(attack_worker,weights,gamma):
                             for index,item in enumerate(weights):
                                 weights[index]=gamma*(weights[index]-attack_worker.init_weights[index])+attack_worker.init_weights[index]
