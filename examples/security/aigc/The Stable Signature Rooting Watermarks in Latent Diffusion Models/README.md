@@ -31,12 +31,12 @@ python finetune.py --num_keys 1 \
     --val_dir path/to/val/dir
 ```
 ### Notes:
-- `ldm_config`: YAML configuration file for the LDM. Available in the `configs` directory.
-- `ldm_ckpt`: Pretrained LDM checkpoint. Available in the `models` directory.
-- `msg_decoder_path`: Path to the pretrained decoder checkpoint. A fine-tuned decoder checkpoint is provided in the Path: `models/dec_48b_whit.torchscript.pt`.
+- **ldm_config**: YAML configuration file for the LDM. Available in the `configs` directory.
+- **ldm_ckpt**: Pretrained LDM checkpoint. You can download the base LDM model checkpoint v2-1_768-ema-pruned.ckpt from the stabilityai/stable-diffusion-2-1 repository on Hugging Face and place the checkpoint in the `models` directory.
+- **msg_decoder_path**: Path to the pre-trained decoder checkpoint. A pre-trained message decoder checkpoint is provided in the Path: `models/dec_48b_whit.torchscript.pt`.
 
 ## Generate Watermarked Images
-Use the `generaterImage.py` script to generate watermarked images.
+Use the `generaterImage.py` script to generate watermarked images. The fine-tuned LDM decoder weights can be downloaded from [this link](https://dl.fbaipublicfiles.com/ssl_watermarking/sd2_decoder.pth).
 
 ### Command:
 ```
@@ -61,7 +61,7 @@ python evaluation.py --eval_imgs False --eval_bits True \
 - **Output**: A CSV file with bit accuracy for various attack scenarios applied to the watermarked images.
 ### Compare Image Quality:
 ```
-python run_eval.py --eval_imgs True --eval_bits False \
+python evaluation.py --eval_imgs True --eval_bits False \
     --img_dir path/to/imgs_w \
     --img_dir_nw path/to/imgs_nw
 ```
@@ -76,6 +76,6 @@ python run_eval.py --eval_imgs True --eval_bits False \
 
 ## Usage
 1. Prepare the dataset and split it into training and validation directories.
-2. Fine-tune the LDM decoder using the provided script. (A fine-tuned decoder checkpoint is provided in the Path: `models/dec_48b_whit.torchscript.pt`.)
+2. Fine-tune the LDM decoder using the provided script. 
 3. Generate watermarked images using the `generaterImage.py` script.
 4. Evaluate the robustness and quality of the watermarked images using the `evaluation.py`
