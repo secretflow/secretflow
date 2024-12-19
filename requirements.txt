@@ -9,7 +9,7 @@ grpcio==1.56.2  # FEATURE=[lite]
 jax[cpu]>=0.4.16,<=0.4.26  # FEATURE=[lite]
 jaxlib>=0.4.16,<=0.4.26  # FEATURE=[lite]
 kuscia==0.0.3b0  # FEATURE=[lite]
-secretflow-dataproxy==0.2.0b0  # FEATURE=[lite]
+secretflow-dataproxy==0.3.0b0  # FEATURE=[lite]
 networkx==2.8.8
 numpy  # FEATURE=[lite]
 onnx==1.16.0
@@ -29,9 +29,9 @@ setuptools>=65.5.1,<70.0.0 # FEATURE=[lite]
 # For security reason.
 certifi>=2024.7.4
 sparse>=0.14.0
-spu==0.9.3.dev20241118 # FEATURE=[lite]
-sf-heu==0.6.0.dev20241106 # FEATURE=[lite]
-secretflow_serving_lib==0.8.0.dev20241119  # FEATURE=[lite]
+spu==0.9.3b0 # FEATURE=[lite]
+sf-heu==0.5.2b0 # FEATURE=[lite]
+secretflow_serving_lib==0.8.0b0  # FEATURE=[lite]
 tensorflow-macos>=2.12,<2.13; platform_system == "Darwin"  # FEATURE=[fl_plugin]
 tensorflow>=2.12,<2.13; platform_system != "Darwin"  # FEATURE=[fl_plugin]
 tf2onnx>=1.13.0

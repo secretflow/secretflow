@@ -21,14 +21,16 @@ from google.protobuf.json_format import MessageToJson
 from pyarrow import orc
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 
-from secretflow.component.core import DistDataType, build_node_eval_param
+from secretflow.component.core import DistDataType
 from secretflow.component.entry import comp_eval
+from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import (
     DistData,
     StorageConfig,
     TableSchema,
     VerticalTable,
 )
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
 from secretflow.utils.simulation.datasets import dataset
 from tests.conftest import prepare_storage_path
@@ -37,46 +39,74 @@ from .model_def import MODELS_CODE
 
 
 def get_train_param(alice_path, bob_path, model_path):
-    return build_node_eval_param(
+    return NodeEvalParam(
         domain="ml.train",
         name="slnn_train",
         version="0.0.1",
-        attrs={
-            "models": MODELS_CODE,
-            "epochs": 3,
-            "learning_rate": 0.001,
-            "batch_size": 32,
-            "validattion_prop": 0.2,
-            "loss": "builtin",
-            "loss/builtin": "binary_crossentropy",
-            "optimizer/name": "Adam",
-            "optimizer/params": "",
-            "metrics": ["AUC", "Precision", "Recall", "MeanSquaredError"],
-            "model_input_scheme": "tensor",
-            "strategy/name": "pipeline",
-            "strategy/params": '{"pipeline_size": 2}',
-            "compressor/name": "topk_sparse",
-            "compressor/params": '{"sparse_rate": 0.5}',
-            "input/train_dataset/label": ["y"],
-            "input/train_dataset/feature_selects": [
-                "age",
-                "job",
-                "marital",
-                "education",
-                "default",
-                "balance",
-                "housing",
-                "loan",
-                "contact",
-                "day",
-                "month",
-                "duration",
-                "campaign",
-                "pdays",
-                "previous",
-                "poutcome",
-            ],
-        },
+        attr_paths=[
+            "models",
+            "epochs",
+            "learning_rate",
+            "batch_size",
+            "validattion_prop",
+            "loss",
+            "loss/builtin",
+            "optimizer/name",
+            "optimizer/params",
+            "metrics",
+            "model_input_scheme",
+            "strategy/name",
+            "strategy/params",
+            "compressor/name",
+            "compressor/params",
+            "input/train_dataset/label",
+            "input/train_dataset/feature_selects",
+        ],
+        attrs=[
+            Attribute(s=MODELS_CODE),
+            Attribute(i64=3),
+            Attribute(f=0.001),
+            Attribute(i64=32),
+            Attribute(f=0.2),
+            Attribute(s="builtin"),
+            Attribute(s="binary_crossentropy"),
+            Attribute(s="Adam"),
+            Attribute(s=""),
+            Attribute(
+                ss=[
+                    "AUC",
+                    "Precision",
+                    "Recall",
+                    "MeanSquaredError",
+                ]
+            ),
+            Attribute(s="tensor"),
+            Attribute(s="pipeline"),
+            Attribute(s='{"pipeline_size": 2}'),
+            Attribute(s="topk_sparse"),
+            Attribute(s='{"sparse_rate": 0.5}'),
+            Attribute(ss=["y"]),
+            Attribute(
+                ss=[
+                    "age",
+                    "job",
+                    "marital",
+                    "education",
+                    "default",
+                    "balance",
+                    "housing",
+                    "loan",
+                    "contact",
+                    "day",
+                    "month",
+                    "duration",
+                    "campaign",
+                    "pdays",
+                    "previous",
+                    "poutcome",
+                ]
+            ),
+        ],
         inputs=[
             DistData(
                 name="train_dataset",
@@ -100,17 +130,24 @@ def get_train_param(alice_path, bob_path, model_path):
 
 
 def get_pred_param(alice_path, bob_path, train_res, predict_path):
-    return build_node_eval_param(
+    return NodeEvalParam(
         domain="ml.predict",
         name="slnn_predict",
         version="0.0.2",
-        attrs={
-            "batch_size": 128,
-            "receiver": ["alice"],
-            "pred_name": "y_pred",
-            "save_ids": False,
-            "save_label": True,
-        },
+        attr_paths=[
+            "batch_size",
+            "receiver",
+            "pred_name",
+            "save_ids",
+            "save_label",
+        ],
+        attrs=[
+            Attribute(i64=128),
+            Attribute(ss=["alice"]),
+            Attribute(s="y_pred"),
+            Attribute(b=False),
+            Attribute(b=True),
+        ],
         inputs=[
             train_res.outputs[0],
             DistData(

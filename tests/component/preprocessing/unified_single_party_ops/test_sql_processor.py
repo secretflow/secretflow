@@ -21,12 +21,12 @@ import pytest
 
 import secretflow.compute as sc
 from secretflow.component.core import (
+    Storage,
     VTable,
     VTableParty,
     VTableSchema,
     assert_almost_equal,
     build_node_eval_param,
-    make_storage,
     read_orc,
 )
 from secretflow.component.entry import comp_eval
@@ -42,7 +42,7 @@ def test_sql_processor(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
+    storage = Storage(storage_config)
 
     datas = {
         "alice": {"A1": [1, 2, 3], "A2": [0.1, 0.2, 0.3]},

@@ -17,10 +17,10 @@ import pandas as pd
 from pyarrow import orc
 
 from secretflow.component.core import (
+    Storage,
     VTable,
     VTableParty,
     build_node_eval_param,
-    make_storage,
 )
 from secretflow.component.entry import comp_eval
 
@@ -33,7 +33,7 @@ def test_train_test_split(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
+    storage = Storage(storage_config)
 
     input_datasets = {
         "alice": pd.DataFrame(

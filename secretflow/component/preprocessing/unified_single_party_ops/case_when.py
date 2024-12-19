@@ -41,8 +41,8 @@ from secretflow.spec.extend.case_when_rules_pb2 import CaseWhenRule
 from ..preprocessing import PreprocessingMixin
 
 
-def apply_case_when_rule(table: sc.Table, rules: CaseWhenRule) -> sc.Table:
-    def _get_value(value: CaseWhenRule.ValueExpr, table: sc.Table):
+def apply_case_when_rule(table: sc.Table, rules: CaseWhenRule) -> sc.Table:  # type: ignore
+    def _get_value(value: CaseWhenRule.ValueExpr, table: sc.Table):  # type: ignore
         assert value.type != CaseWhenRule.ValueExpr.ValueType.INVAL
         if value.type == CaseWhenRule.ValueExpr.ValueType.CONST_INT:
             return value.i
@@ -60,7 +60,7 @@ def apply_case_when_rule(table: sc.Table, rules: CaseWhenRule) -> sc.Table:
             return True
         return False
 
-    def _apply_cond(cond: CaseWhenRule.Cond, table: sc.Table):
+    def _apply_cond(cond: CaseWhenRule.Cond, table: sc.Table):  # type: ignore
         assert cond.op != CaseWhenRule.Cond.CondOp.INVAL
         op1 = table.column(cond.cond_column)
         op2 = _get_value(cond.cond_value, table)
@@ -82,7 +82,7 @@ def apply_case_when_rule(table: sc.Table, rules: CaseWhenRule) -> sc.Table:
         else:
             raise AttributeError(f"unknown cond.op {cond.op}")
 
-    def _apply_when(when: CaseWhenRule.When, table: sc.Table):
+    def _apply_when(when: CaseWhenRule.When, table: sc.Table):  # type: ignore
         assert len(when.connections) == len(when.conds) - 1
         assert len(when.conds) > 0
         cond_stack = []
@@ -134,8 +134,8 @@ class CaseWhen(PreprocessingMixin, Component):
     case_when
     '''
 
-    rules: CaseWhenRule = Field.custom_attr(desc="input CaseWhen rules")
-    input_ds: Input = Field.input(
+    rules: CaseWhenRule = Field.custom_attr(desc="input CaseWhen rules")  # type: ignore
+    input_ds: Input = Field.input(  # type: ignore
         desc="Input vertical table.",
         types=[DistDataType.VERTICAL_TABLE],
     )
@@ -175,7 +175,7 @@ class CaseWhen(PreprocessingMixin, Component):
     def get_rule_features(self) -> list[str]:
         fs = []
 
-        def _get_value_f(value: CaseWhenRule.ValueExpr):
+        def _get_value_f(value: CaseWhenRule.ValueExpr):  # type: ignore
             assert value.type != CaseWhenRule.ValueExpr.ValueType.INVAL
             if value.type == CaseWhenRule.ValueExpr.ValueType.COLUMN:
                 fs.append(value.column_name)

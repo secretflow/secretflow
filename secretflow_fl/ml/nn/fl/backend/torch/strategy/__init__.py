@@ -19,17 +19,15 @@ from .fed_gen import PYUFedGen
 from .fed_prox import PYUFedProx
 from .fed_scr import PYUFedSCR
 from .fed_stc import PYUFedSTC
-from .moon import PYUFedMOON
 from .scaffold import PYUScaffold
 
 __all__ = [
     'PYUFedAvgW',
     'PYUFedAvgG',
     'PYUFedAvgU',
+    'PYUFedGen',
     'PYUFedProx',
     'PYUFedSCR',
     'PYUFedSTC',
     'PYUScaffold',
-    'PYUFedGen',
-    'PYUFedMOON',
 ]

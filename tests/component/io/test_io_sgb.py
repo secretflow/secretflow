@@ -19,10 +19,12 @@ import pytest
 from google.protobuf.json_format import MessageToJson
 from pyarrow import orc
 
-from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
+from secretflow.component.core import DistDataType, Storage
 from secretflow.component.entry import comp_eval
 from secretflow.spec.extend.sgb_model_pb2 import SgbModel
+from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from tests.component.ml.test_sgb import (
     get_meta_and_dump_data,
     get_pred_param,
@@ -66,11 +68,10 @@ def sgb_model_write_data(sgb_model, comp_prod_sf_cluster_config):
     pb_path = "test_io/sgb_model_pb"
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
 
-    read_param = build_node_eval_param(
+    read_param = NodeEvalParam(
         domain="io",
         name="read_data",
         version="1.0.0",
-        attrs=None,
         inputs=[sgb_model],
         output_uris=[pb_path],
     )
@@ -99,7 +100,7 @@ def predict_reference_data(train_res, comp_prod_sf_cluster_config):
     assert len(predict_res.outputs) == 1
 
     if "alice" == sf_cluster_config.private_config.self_party:
-        storage = make_storage(storage_config)
+        storage = Storage(storage_config)
         output_y = orc.read_table(storage.get_reader(predict_path)).to_pandas()
         return output_y
 
@@ -110,14 +111,15 @@ def test_no_change_correct(sgb_model_train_res, comp_prod_sf_cluster_config):
     train_res = sgb_model_train_res
     write_data = sgb_model_write_data(train_res.outputs[0], comp_prod_sf_cluster_config)
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
-    write_param = build_node_eval_param(
+    write_param = NodeEvalParam(
         domain="io",
         name="write_data",
         version="1.0.0",
-        attrs={
-            "write_data": write_data,
-            "write_data_type": str(DistDataType.SGB_MODEL),
-        },
+        attr_paths=["write_data", "write_data_type"],
+        attrs=[
+            Attribute(s=write_data),
+            Attribute(s=str(DistDataType.SGB_MODEL)),
+        ],
         inputs=[train_res.outputs[0]],
         output_uris=[new_sgb_model_path],
     )
@@ -127,11 +129,10 @@ def test_no_change_correct(sgb_model_train_res, comp_prod_sf_cluster_config):
         cluster_config=sf_cluster_config,
     )
 
-    read_param = build_node_eval_param(
+    read_param = NodeEvalParam(
         domain="io",
         name="read_data",
         version="1.0.0",
-        attrs=None,
         inputs=[write_res.outputs[0]],
         output_uris=[pb_path],
     )
@@ -162,14 +163,15 @@ def test_write_predict_data(sgb_model_train_res, comp_prod_sf_cluster_config):
     write_data = sgb_model_write_data(train_res.outputs[0], comp_prod_sf_cluster_config)
     new_sgb_model_path = "test_io/new_sgb_model"
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
-    write_param = build_node_eval_param(
+    write_param = NodeEvalParam(
         domain="io",
         name="write_data",
         version="1.0.0",
-        attrs={
-            "write_data": write_data,
-            "write_data_type": str(DistDataType.SGB_MODEL),
-        },
+        attr_paths=["write_data", "write_data_type"],
+        attrs=[
+            Attribute(s=write_data),
+            Attribute(s=str(DistDataType.SGB_MODEL)),
+        ],
         inputs=[
             DistData(name="null", type=str(DistDataType.NULL)),
         ],
@@ -195,7 +197,7 @@ def test_write_predict_data(sgb_model_train_res, comp_prod_sf_cluster_config):
     assert len(predict_res.outputs) == 1
 
     if "alice" == sf_cluster_config.private_config.self_party:
-        storage = make_storage(storage_config)
+        storage = Storage(storage_config)
         output_y = orc.read_table(storage.get_reader(predict_path)).to_pandas()
         logging.warning(f"output_y: {output_y}")
 

@@ -72,7 +72,7 @@ class TableStatistics(Component):
         limit=Interval.closed(1, None),
     )
 
-    input_ds: Input = Field.input(
+    input_ds: Input = Field.input(  # type: ignore
         desc="Input table.",
         types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
     )
@@ -89,7 +89,6 @@ class TableStatistics(Component):
         with ctx.tracer.trace_running():
             stat = table_statistics(input_df)
 
-        stat_tbl = Reporter.build_table(stat.astype(str), index=stat.index.tolist())
-        r = Reporter(name="table statistics", system_info=self.input_ds.system_info)
-        r.add_tab(stat_tbl)
-        self.report.data = r.to_distdata()
+        r = Reporter(name="table statistics")
+        r.add_tab(stat.astype(str))
+        r.dump_to(self.report, self.input_ds.system_info)

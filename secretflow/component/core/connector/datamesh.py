@@ -31,8 +31,6 @@ from kuscia.proto.api.v1alpha1.datamesh.domaindata_pb2 import (
 )
 from kuscia.proto.api.v1alpha1.datamesh.domaindata_pb2_grpc import DomainDataServiceStub
 
-from secretflow.component.core.storage.base import StorageType
-
 from ..common.types import BaseEnum
 from ..dist_data.vtable import VTableField, VTableFieldKind, VTableFormat, VTableSchema
 from ..storage import Storage
@@ -130,11 +128,9 @@ class DataMesh(IConnector):
             partition_spec=partition_spec,
         )
 
-        is_local_fs = storage.get_type() == StorageType.LOCAL_FS
-
         local_path = (
             storage.get_full_path(output_uri)
-            if is_local_fs
+            if storage.is_local_fs()
             else os.path.join(data_dir, str(uuid.uuid4()))
         )
 
@@ -142,7 +138,7 @@ class DataMesh(IConnector):
         client.download_file(download_info, local_path, _to_file_format(output_format))
         client.close()
 
-        if not is_local_fs:
+        if not storage.is_local_fs():
             chunk_size = 64 * 1014 * 1024
             with open(local_path, "rb") as f, storage.get_writer(output_uri) as w:
                 while True:
@@ -164,8 +160,7 @@ class DataMesh(IConnector):
         output_params: dict,
     ):
         local_path = input_uri
-        is_local_fs = storage.get_type() == StorageType.LOCAL_FS
-        if not is_local_fs:
+        if not storage.is_local_fs():
             local_path = os.path.join(data_dir, input_uri)
             storage.download_file(input_uri, local_path)
 
@@ -189,7 +184,7 @@ class DataMesh(IConnector):
             domaindata_id,
         )
 
-        if not is_local_fs:
+        if not storage.is_local_fs():
             os.remove(local_path)
             local_dir = os.path.dirname(local_path)
             while local_dir != data_dir:

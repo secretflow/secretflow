@@ -9,4 +9,3 @@ pytest-custom_exit_code
 tweedie
 junitparser
 psutil
-tabulate

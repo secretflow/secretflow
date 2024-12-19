@@ -20,10 +20,12 @@ from google.protobuf.json_format import MessageToJson
 from pyarrow import orc
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
-from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
+from secretflow.component.core import DistDataType, Storage
 from secretflow.component.entry import comp_eval
 from secretflow.spec.extend.calculate_rules_pb2 import CalculateOpRules
+from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
 test_data_alice = pd.DataFrame(
     {
@@ -382,7 +384,7 @@ def test_feature_calculate(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
+    storage = Storage(storage_config)
     df_alice = pd.DataFrame()
     if self_party == "alice":
         df_alice = test_data_alice
@@ -391,14 +393,18 @@ def test_feature_calculate(comp_prod_sf_cluster_config):
         df_bob = test_data_bob
         df_bob.to_csv(storage.get_writer(bob_input_path), index=False)
 
-    param = build_node_eval_param(
+    param = NodeEvalParam(
         domain="preprocessing",
         name="feature_calculate",
         version="1.0.0",
-        attrs={
-            "rules": "{}",
-            "input/input_ds/features": [""],
-        },
+        attr_paths=[
+            "rules",
+            "input/input_ds/features",
+        ],
+        attrs=[
+            Attribute(s="{}"),
+            Attribute(ss=[]),
+        ],
         inputs=[
             DistData(
                 name="input_data",

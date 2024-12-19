@@ -31,7 +31,7 @@ from secretflow.error_system.exceptions import SFModelError
 from secretflow.spec.extend.bin_data_pb2 import Bins
 
 
-def bin_rule_to_pb(rules: List[PYUObject], public_info: dict) -> Bins:
+def bin_rule_to_pb(rules: List[PYUObject], public_info: dict) -> Bins:  # type: ignore
     """Convert part of the public info in rules to Bins pb"""
 
     label_holder_index = get_bin_label_holder_index(rules)

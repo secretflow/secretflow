@@ -33,11 +33,11 @@ class Union(Component):
     Perform a horizontal merge of two data tables, supporting the individual table or vertical table on the same node.
     '''
 
-    input_ds1: Input = Field.input(
+    input_ds1: Input = Field.input(  # type: ignore
         desc="The first input table",
         types=[DistDataType.INDIVIDUAL_TABLE, DistDataType.VERTICAL_TABLE],
     )
-    input_ds2: Input = Field.input(
+    input_ds2: Input = Field.input(  # type: ignore
         desc="The second input table",
         types=[DistDataType.INDIVIDUAL_TABLE, DistDataType.VERTICAL_TABLE],
     )

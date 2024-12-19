@@ -289,7 +289,7 @@ class SSGLMTrain(SSGLMExportMixin, Component):
         desc="Label of train dataset.",
         is_checkpoint=True,
     )
-    input_ds: Input = Field.input(
+    input_ds: Input = Field.input(  # type: ignore
         desc="Input vertical table.",
         types=[DistDataType.VERTICAL_TABLE],
         is_checkpoint=True,
@@ -478,9 +478,7 @@ class SSGLMTrain(SSGLMExportMixin, Component):
 
     def dump_report(self, glm: SSGLM, x: CompVDataFrame):
         r = Reporter(
-            name="weights and metrics",
-            desc="model weights report and metrics report",
-            system_info=self.input_ds.system_info,
+            name="weights and metrics", desc="model weights report and metrics report"
         )
         if self.report_weights:
             weights = list(map(float, list(reveal(glm.spu_w))))
@@ -512,7 +510,7 @@ class SSGLMTrain(SSGLMExportMixin, Component):
                 desc="metrics for training and validation set at each epoch (indexed from 1)",
             )
 
-        self.report.data = r.to_distdata()
+        r.dump_to(self.report, self.input_ds.system_info)
 
     def export(self, ctx: Context, builder: ServingBuilder, he_mode: bool) -> None:
         return self.do_export(

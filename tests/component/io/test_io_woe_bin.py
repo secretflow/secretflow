@@ -22,13 +22,14 @@ from sklearn.datasets import load_breast_cancer
 
 from secretflow.component.core import (
     DistDataType,
+    Storage,
     VTable,
     VTableParty,
     build_node_eval_param,
-    make_storage,
 )
 from secretflow.component.entry import comp_eval
 from secretflow.spec.extend.bin_data_pb2 import Bins
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
 
 @pytest.fixture
@@ -41,7 +42,7 @@ def vert_woe_bin_rule(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
+    storage = Storage(storage_config)
 
     ds = load_breast_cancer()
     x, y = ds["data"], ds["target"]
@@ -103,11 +104,10 @@ def write_data(vert_woe_bin_rule, comp_prod_sf_cluster_config):
     pb_path = "test_io/rule_pb"
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
 
-    read_param = build_node_eval_param(
+    read_param = NodeEvalParam(
         domain="io",
         name="read_data",
         version="1.0.0",
-        attrs=None,
         inputs=[vert_woe_bin_rule],
         output_uris=[pb_path],
     )

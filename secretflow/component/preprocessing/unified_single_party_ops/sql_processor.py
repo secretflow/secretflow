@@ -79,7 +79,7 @@ class SQLProcessor(PreprocessingMixin, Component):
 
     sql: str = Field.attr(desc="sql for preprocessing, for example SELECT a, b, a+b")
 
-    input_ds: Input = Field.input(
+    input_ds: Input = Field.input(  # type: ignore
         desc="Input table",
         types=[DistDataType.INDIVIDUAL_TABLE, DistDataType.VERTICAL_TABLE],
     )

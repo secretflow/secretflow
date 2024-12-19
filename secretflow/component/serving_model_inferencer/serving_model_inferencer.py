@@ -54,7 +54,7 @@ class ServingModelInferencer(Component):
         desc="Column name for predictions.",
         default="score",
     )
-    serving_model: Input = Field.input(
+    serving_model: Input = Field.input(  # type: ignore
         desc="Input serving model.",
         types=[DistDataType.SERVING_MODEL],
     )
@@ -62,7 +62,7 @@ class ServingModelInferencer(Component):
         "input_ds",
         desc="which columns should be saved with prediction result",
     )
-    input_ds: Input = Field.input(
+    input_ds: Input = Field.input(  # type: ignore
         desc="Input vertical table or individual table.",
         types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
     )
@@ -156,12 +156,12 @@ class ServingModelInferencer(Component):
 
         receiver_pyu = PYU(receiver)
 
-        def upload_pred_file(storage, local_fn, remote_fn):
-            storage.upload_file(local_fn, remote_fn)
+        def upload_pred_file(storage, remote_fn, local_fn):
+            storage.upload_file(remote_fn, local_fn)
 
         wait(
             receiver_pyu(upload_pred_file)(
-                ctx.storage, output_pred_path, self.output_ds.uri
+                ctx.storage, self.output_ds.uri, output_pred_path
             )
         )
 

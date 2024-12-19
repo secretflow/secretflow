@@ -61,7 +61,7 @@ class TrainTestSplit(Component):
         desc="Whether to shuffle the data before splitting.",
         default=True,
     )
-    input_ds: Input = Field.input(
+    input_ds: Input = Field.input(  # type: ignore
         desc="Input vertical table.",
         types=[DistDataType.VERTICAL_TABLE],
     )

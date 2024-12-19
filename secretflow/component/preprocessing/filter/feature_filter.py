@@ -38,7 +38,7 @@ class FeatureFilter(Component):
         desc="Features to drop.",
         limit=Interval.closed(1, None),
     )
-    input_ds: Input = Field.input(
+    input_ds: Input = Field.input(  # type: ignore
         desc="Input vertical table.",
         types=[DistDataType.VERTICAL_TABLE],
     )

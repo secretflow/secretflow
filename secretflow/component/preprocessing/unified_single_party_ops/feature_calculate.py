@@ -50,10 +50,7 @@ class FeatureInfo:
 
 
 def apply_feature_calculate_rule(
-    table: sc.Table,
-    rules: CalculateOpRules,
-    in_ds_features,
-    infos: dict[str, FeatureInfo],
+    table: sc.Table, rules: CalculateOpRules, in_ds_features, infos: dict[str, FeatureInfo]  # type: ignore
 ) -> sc.Table:
     def _check_numeric(type):
         if not pa.types.is_floating(type) and not pa.types.is_integer(type):
@@ -237,13 +234,13 @@ class FeatureCalculate(PreprocessingMixin, Component):
     Generate a new feature by performing calculations on an origin feature
     '''
 
-    rules: CalculateOpRules = Field.custom_attr(desc="input CalculateOpRules rules")
+    rules: CalculateOpRules = Field.custom_attr(desc="input CalculateOpRules rules")  # type: ignore
     features: list[str] = Field.table_column_attr(
         "input_ds",
         desc="Feature(s) to operate on",
         limit=Interval.closed(1, None),
     )
-    input_ds: Input = Field.input(
+    input_ds: Input = Field.input(  # type: ignore
         desc="Input vertical table",
         types=[DistDataType.VERTICAL_TABLE],
     )

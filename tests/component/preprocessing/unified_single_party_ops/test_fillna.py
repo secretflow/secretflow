@@ -19,16 +19,17 @@ from pyarrow import orc
 
 import secretflow.compute as sc
 from secretflow.component.core import (
+    Storage,
     VTable,
     VTableParty,
     build_node_eval_param,
-    make_storage,
 )
 from secretflow.component.entry import comp_eval
 from secretflow.component.preprocessing.unified_single_party_ops.fillna import (
     apply_fillna_rule_on_table,
     fit_col,
 )
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
 
 def test_apply():
@@ -128,7 +129,7 @@ def test_fillna(comp_prod_sf_cluster_config, nan_is_null, strategy_count):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
+    storage = Storage(storage_config)
 
     if self_party == "alice":
         a_csv = (
@@ -226,11 +227,10 @@ def test_fillna(comp_prod_sf_cluster_config, nan_is_null, strategy_count):
 
     assert len(res.outputs) == 2
 
-    sub_param = build_node_eval_param(
+    sub_param = NodeEvalParam(
         domain="preprocessing",
         name="substitution",
         version="1.0.0",
-        attrs=None,
         inputs=[fill_param.inputs[0], res.outputs[1]],
         output_uris=[sub_comp],
     )

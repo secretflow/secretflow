@@ -17,10 +17,12 @@ import pandas as pd
 from google.protobuf.json_format import MessageToJson
 from pyarrow import orc
 
-from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
+from secretflow.component.core import DistDataType, Storage
 from secretflow.component.entry import comp_eval
 from secretflow.spec.extend.case_when_rules_pb2 import CaseWhenRule
+from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
 
 def _build_test():
@@ -168,7 +170,7 @@ def test_case_when(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
+    storage = Storage(storage_config)
 
     if self_party == "alice":
         df_alice = pd.DataFrame(
@@ -200,13 +202,16 @@ def test_case_when(comp_prod_sf_cluster_config):
             index=False,
         )
 
-    param = build_node_eval_param(
+    param = NodeEvalParam(
         domain="preprocessing",
         name="case_when",
         version="1.0.0",
-        attrs={
-            "rules": "{}",
-        },
+        attr_paths=[
+            "rules",
+        ],
+        attrs=[
+            Attribute(s="{}"),
+        ],
         inputs=[
             DistData(
                 name="input_data",
@@ -270,11 +275,10 @@ def test_case_when(comp_prod_sf_cluster_config):
                 e
             ), f"{n}\n===z===\n{z}\n===e===\n{e}\n===r===\n{param.attrs[0].s}"
 
-        param2 = build_node_eval_param(
+        param2 = NodeEvalParam(
             domain="preprocessing",
             name="substitution",
             version="1.0.0",
-            attrs=None,
             inputs=[param.inputs[0], res.outputs[1]],
             output_uris=[sub_path],
         )

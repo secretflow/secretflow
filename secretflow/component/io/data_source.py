@@ -58,14 +58,7 @@ class DataSource(Component):
     )
 
     def evaluate(self, ctx: Context):
-        def download_table(
-            storage: Storage,
-            data_dir: str,
-            input_uri: str,
-            output_uri: str,
-            party: str,
-            columns_str: str,
-        ) -> VTable:
+        def download_table(storage: Storage, data_dir: str, input_uri: str, output_uri: str, party: str, columns_str: str) -> VTable:  # type: ignore
             uri = urlparse(input_uri)
             if not uri.path:
                 raise ValueError(f"invalid output path, {input_uri}")

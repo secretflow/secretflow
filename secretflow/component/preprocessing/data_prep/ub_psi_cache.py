@@ -50,7 +50,7 @@ class UnbalancePsiCache(Component):
         desc="Keys to be used for psi.",
         limit=Interval.closed_open(1, None),
     )
-    input_ds: Input = Field.input(
+    input_ds: Input = Field.input(  # type: ignore
         desc="Input vertical table.",
         types=[DistDataType.INDIVIDUAL_TABLE],
     )
@@ -70,7 +70,6 @@ class UnbalancePsiCache(Component):
         input_tbl.schema = trans_keys_to_ids(input_tbl.schema, self.keys)
 
         schema = input_tbl.schema.to_pb()
-        null_strs = input_tbl.null_strs
         server_pyu = PYU(server_party)
         client_pyu = PYU(self.client)
         for key in self.keys:
@@ -80,11 +79,7 @@ class UnbalancePsiCache(Component):
                 )
 
         random_str = uuid4(server_party)
-        if null_strs:
-            na_rep = null_strs[0]
-        else:
-            na_rep = random_str
-            null_strs.append(na_rep)
+        na_rep = random_str
 
         root_dir = os.path.join(ctx.data_dir, random_str)
         server_csv_path = os.path.join(root_dir, f'{random_str}.csv')
@@ -119,7 +114,7 @@ class UnbalancePsiCache(Component):
                     'server_csv_schema': base64.b64encode(
                         schema.SerializeToString()
                     ).decode(),
-                    'server_csv_null': null_strs,
+                    'server_csv_na_rep': na_rep,
                     'cache_dir_name': cache_dir_name,
                     "server": server_party,
                     "client": self.client,

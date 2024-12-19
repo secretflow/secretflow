@@ -243,7 +243,7 @@ class FillNA(PreprocessingMixin, Component):
         "input_ds",
         desc="Features to fill.",
     )
-    input_ds: Input = Field.input(
+    input_ds: Input = Field.input(  # type: ignore
         desc="Input vertical table.",
         types=[DistDataType.VERTICAL_TABLE],
     )

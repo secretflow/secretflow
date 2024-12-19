@@ -52,7 +52,7 @@ class Cast(PreprocessingMixin, Component):
         desc="Multiple-choice, options available are string, integer, float, boolean",
         limit=Interval.closed(1, None),
     )
-    input_ds: Input = Field.input(
+    input_ds: Input = Field.input(  # type: ignore
         desc="The input table",
         types=[DistDataType.VERTICAL_TABLE],
     )

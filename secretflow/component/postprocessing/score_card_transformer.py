@@ -91,7 +91,7 @@ class ScoreCardTransformer(Component):
     predict_name: str = Field.table_column_attr(
         input_name="input_ds",
     )
-    input_ds: Input = Field.input(
+    input_ds: Input = Field.input(  # type: ignore
         desc="predict result table",
         types=[DistDataType.INDIVIDUAL_TABLE],
     )

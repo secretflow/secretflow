@@ -39,7 +39,7 @@ class Identity(Component):
     map any input to output
     '''
 
-    input_data: Input = Field.input(
+    input_data: Input = Field.input(  # type: ignore
         desc="Input data",
         types=IDENTITY_SUPPORTED_TYPES,
     )

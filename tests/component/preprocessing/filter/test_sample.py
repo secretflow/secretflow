@@ -19,12 +19,8 @@ import pandas as pd
 import pytest
 from pyarrow import orc
 
-from secretflow.component.core import (
-    DistDataType,
-    VTable,
-    build_node_eval_param,
-    make_storage,
-)
+from secretflow.component.core import DistDataType, Storage, VTable, VTableFieldKind
+from secretflow.component.data_utils import extract_data_infos
 from secretflow.component.entry import comp_eval
 from secretflow.component.preprocessing.filter.sample import (
     RANDOM_SAMPLE,
@@ -39,12 +35,14 @@ from secretflow.component.preprocessing.filter.sample import (
     SystemSampleAlgorithm,
     calculate_sample_number,
 )
+from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import (
     DistData,
     IndividualTable,
     TableSchema,
     VerticalTable,
 )
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
 
 RANDOM_STATE = 1234
@@ -375,7 +373,7 @@ def test_sample_vertical(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
+    storage = Storage(storage_config)
 
     if self_party == "alice":
         df_alice = pd.DataFrame(
@@ -400,19 +398,28 @@ def test_sample_vertical(comp_prod_sf_cluster_config):
             index=False,
         )
 
-    param = build_node_eval_param(
+    param = NodeEvalParam(
         domain="data_filter",
         name="sample",
         version="1.0.0",
-        attrs={
-            'sample_algorithm': 'stratify',
-            'sample_algorithm/stratify/frac': 0.8,
-            'sample_algorithm/stratify/random_state': 1234,
-            'sample_algorithm/stratify/observe_feature': "id1",
-            'sample_algorithm/stratify/replacements': [False, False],
-            'sample_algorithm/stratify/quantiles': [3.1],
-            'sample_algorithm/stratify/weights': [0.4, 0.6],
-        },
+        attr_paths=[
+            'sample_algorithm',
+            'sample_algorithm/stratify/frac',
+            'sample_algorithm/stratify/random_state',
+            'sample_algorithm/stratify/observe_feature',
+            'sample_algorithm/stratify/replacements',
+            'sample_algorithm/stratify/quantiles',
+            'sample_algorithm/stratify/weights',
+        ],
+        attrs=[
+            Attribute(s='stratify'),
+            Attribute(f=0.8),
+            Attribute(i64=1234),
+            Attribute(s='id1'),
+            Attribute(bs=[False, False]),
+            Attribute(fs=[3.1]),
+            Attribute(fs=[0.4, 0.6]),
+        ],
         inputs=[
             DistData(
                 name="input_data",
@@ -483,7 +490,7 @@ def test_sample_vertical_replacement(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
+    storage = Storage(storage_config)
 
     if self_party == "alice":
         df_alice = pd.DataFrame(
@@ -508,16 +515,22 @@ def test_sample_vertical_replacement(comp_prod_sf_cluster_config):
             index=False,
         )
 
-    param = build_node_eval_param(
+    param = NodeEvalParam(
         domain="data_filter",
         name="sample",
         version="1.0.0",
-        attrs={
-            'sample_algorithm': 'random',
-            'sample_algorithm/random/frac': 0.8,
-            'sample_algorithm/random/random_state': 1234,
-            'sample_algorithm/random/replacement': True,
-        },
+        attr_paths=[
+            'sample_algorithm',
+            'sample_algorithm/random/frac',
+            'sample_algorithm/random/random_state',
+            'sample_algorithm/random/replacement',
+        ],
+        attrs=[
+            Attribute(s='random'),
+            Attribute(f=0.8),
+            Attribute(i64=1234),
+            Attribute(b=True),
+        ],
         inputs=[
             DistData(
                 name="input_data",
@@ -557,19 +570,17 @@ def test_sample_vertical_replacement(comp_prod_sf_cluster_config):
 
     assert len(res.outputs) == 2
 
-    sample_data = VTable.from_distdata(res.outputs[0])
+    sample_data = extract_data_infos(res.outputs[0], load_ids=True)
 
     if self_party == "alice":
         ds_alice = orc.read_table(
-            storage.get_reader(sample_data.parties["alice"].uri)
+            storage.get_reader(sample_data["alice"].uri)
         ).to_pandas()
         np.testing.assert_equal(ds_alice.shape[0], 5)
         assert list(ds_alice["id1"]) == ["1", "1", "1", "4", "5"]
 
     if self_party == "bob":
-        ds_bob = orc.read_table(
-            storage.get_reader(sample_data.parties["bob"].uri)
-        ).to_pandas()
+        ds_bob = orc.read_table(storage.get_reader(sample_data["bob"].uri)).to_pandas()
         np.testing.assert_equal(ds_bob.shape[0], 5)
         assert list(ds_bob["id2"]) == ["1", "1", "1", "4", "5"]
 
@@ -581,7 +592,7 @@ def test_sample_individual(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
+    storage = Storage(storage_config)
 
     if self_party == 'alice':
         df_alice = pd.DataFrame(
@@ -595,16 +606,22 @@ def test_sample_individual(comp_prod_sf_cluster_config):
             index=False,
         )
 
-    param = build_node_eval_param(
+    param = NodeEvalParam(
         domain="data_filter",
         name="sample",
         version="1.0.0",
-        attrs={
-            'sample_algorithm': 'random',
-            'sample_algorithm/random/frac': 0.8,
-            'sample_algorithm/random/random_state': 1234,
-            'sample_algorithm/random/replacement': False,
-        },
+        attr_paths=[
+            'sample_algorithm',
+            'sample_algorithm/random/frac',
+            'sample_algorithm/random/random_state',
+            'sample_algorithm/random/replacement',
+        ],
+        attrs=[
+            Attribute(s='random'),
+            Attribute(f=0.8),
+            Attribute(i64=1234),
+            Attribute(b=False),
+        ],
         inputs=[
             DistData(
                 name="input_data",
@@ -635,11 +652,11 @@ def test_sample_individual(comp_prod_sf_cluster_config):
 
     assert len(res.outputs) == 2
 
-    sample_data = VTable.from_distdata(res.outputs[0])
+    sample_data = extract_data_infos(res.outputs[0], load_ids=True)
 
     if self_party == "alice":
         ds_alice = orc.read_table(
-            storage.get_reader(sample_data.parties["alice"].uri)
+            storage.get_reader(sample_data["alice"].uri)
         ).to_pandas()
         np.testing.assert_equal(ds_alice.shape[0], 5)
         assert list(ds_alice["id1"]) == ["1", "2", "3", "4", "5"]

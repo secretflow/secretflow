@@ -120,11 +120,11 @@ class PSI(Component):
         desc="Column(s) used to join.",
         limit=Interval.closed(1, None),
     )
-    input_ds1: Input = Field.input(
+    input_ds1: Input = Field.input(  # type: ignore
         desc="Individual table for party 1",
         types=[DistDataType.INDIVIDUAL_TABLE],
     )
-    input_ds2: Input = Field.input(
+    input_ds2: Input = Field.input(  # type: ignore
         desc="Individual table for party 2",
         types=[DistDataType.INDIVIDUAL_TABLE],
     )
@@ -256,9 +256,9 @@ class PSI(Component):
             }
         )
 
-        report = Reporter("psi_report", "", system_info=system_info)
+        report = Reporter("psi_report", "")
         report.add_tab(report_tbl)
-        self.report.data = report.to_distdata()
+        report.dump_to(self.report, system_info)
 
 
 def to_join_type(v: str) -> str:

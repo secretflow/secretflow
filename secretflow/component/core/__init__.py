@@ -34,6 +34,7 @@ from .common.io import (
     write_orc,
 )
 from .common.types import (
+    AutoNameEnum,
     BaseEnum,
     Input,
     Output,
@@ -52,8 +53,7 @@ from .dataframe import (
     save_prediction,
 )
 from .definition import Definition, Field, Interval
-from .discovery import load_component_modules
-from .dist_data.base import DistDataType
+from .dist_data.base import DistDataType, download_files, upload_files
 from .dist_data.model import Model, Version
 from .dist_data.report import Reporter
 from .dist_data.tarfile import TarFile
@@ -68,8 +68,8 @@ from .dist_data.vtable import (
 )
 from .envs import Envs, get_bool_env, get_env
 from .i18n import Translator, get_translation, translate
-from .plugin import Plugin, PluginManager, load_plugins
-from .registry import Registry, get_comp_list_def, register
+from .plugin import Plugin, PluginManager, load_component_modules, load_plugins
+from .registry import Registry, register
 from .resources import Resources, ResourceType
 from .serving_builder import (
     DispatchType,
@@ -78,17 +78,15 @@ from .serving_builder import (
     ServingOp,
     ServingPhase,
 )
-from .storage import Storage, StorageType, make_storage
+from .storage import Storage
 from .utils import (
     PathCleanUp,
     assert_almost_equal,
     build_node_eval_param,
     clean_text,
     download_csv,
-    download_files,
     float_almost_equal,
     pad_inf_to_split_points,
-    upload_files,
     upload_orc,
     uuid4,
 )
@@ -109,10 +107,7 @@ __all__ = [
     "uuid4",
     "download_csv",
     "upload_orc",
-    "download_files",
-    "upload_files",
     "float_almost_equal",
-    "get_comp_list_def",
     "pad_inf_to_split_points",
     "assert_almost_equal",
     "build_node_eval_param",
@@ -120,10 +115,14 @@ __all__ = [
     "register",
     "load_component_modules",
     "load_plugins",
+    "download_files",
+    "upload_files",
     "new_connector",
+    "download_csv",
     "PathCleanUp",
     "Registry",
     "BaseEnum",
+    "AutoNameEnum",
     "Input",
     "Output",
     "UnionGroup",
@@ -141,8 +140,6 @@ __all__ = [
     "ServingNode",
     "ServingBuilder",
     "Storage",
-    "StorageType",
-    "make_storage",
     "DistDataType",
     "DistDataObject",
     "Version",

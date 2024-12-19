@@ -22,9 +22,9 @@ from secretflow.component.core import (
     Interval,
     Output,
     Reporter,
+    register,
     VTable,
     VTableFieldKind,
-    register,
 )
 from secretflow.error_system.exceptions import DataFormatError
 from secretflow.spec.extend.groupby_aggregation_config_pb2 import (
@@ -45,7 +45,7 @@ ENUM_TO_STR = {
 STR_TO_ENUM = {v: k for k, v in ENUM_TO_STR.items()}
 
 
-def map_enum_type_to_agg(enum_type: ColumnQuery.AggregationFunction):
+def map_enum_type_to_agg(enum_type: ColumnQuery.AggregationFunction):  # type: ignore
     if enum_type in ENUM_TO_STR:
         return ENUM_TO_STR[enum_type]
     else:
@@ -62,7 +62,7 @@ class GroupbyStatistics(Component):
     # it turns out that our implementation efficiency works bad in multiple columns
     # pandas style groupby is not practical to use, due to the above reason
     # so we change to sql style groupby instead
-    aggregation_config: GroupbyAggregationConfig = Field.custom_attr(
+    aggregation_config: GroupbyAggregationConfig = Field.custom_attr(  # type: ignore
         desc="input groupby aggregation config",
     )
     max_group_size: int = Field.attr(
@@ -75,7 +75,7 @@ class GroupbyStatistics(Component):
         desc="by what columns should we group the values",
         limit=Interval.closed(1, 4),
     )
-    input_ds: Input = Field.input(
+    input_ds: Input = Field.input(  # type: ignore
         desc="Input table.",
         types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
     )
@@ -129,13 +129,13 @@ class GroupbyStatistics(Component):
                 for value_agg, df in result.items()
             }
 
-        r = Reporter(name="groupby statistics", system_info=self.input_ds.system_info)
+        r = Reporter(name="groupby statistics")
         for agg, df in result.items():
             df = df.astype(str)
-            descriptions = {k: "key" if k in self.by else "value" for k in df.columns}
+            for k in df.columns:
+                desc = "key" if k in self.by else "value"
+                Reporter.set_description(df[k], desc)
             desc = f"Groupby statistics table for {agg} operation"
-            r_table = Reporter.build_table(
-                df, name=agg, desc=desc, columns=descriptions
-            )
+            r_table = Reporter.to_table(df, name=agg, desc=desc)
             r.add_tab(r_table, name=agg)
-        self.report.data = r.to_distdata()
+        r.dump_to(self.report, self.input_ds.system_info)

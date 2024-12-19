@@ -23,7 +23,8 @@ from dataproxy.sdk import FileFormat
 from google.protobuf import json_format
 from kuscia.proto.api.v1alpha1.datamesh.domaindatasource_pb2 import DomainDataSource
 
-from secretflow.component.core import DistDataType, load_plugins
+from secretflow.component.core import load_plugins
+from secretflow.component.data_utils import DistDataType
 from secretflow.component.entry import comp_eval
 from secretflow.kuscia.datamesh import (
     create_channel,

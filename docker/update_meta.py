@@ -22,7 +22,8 @@ from google.protobuf.json_format import MessageToJson
 
 import secretflow.component as _
 import secretflow_fl.component as _
-from secretflow.component.core import Translator, get_comp_list_def, translate
+from secretflow.component.core import Translator, translate
+from secretflow.component.core.registry import Registry
 
 
 class MyTranslator(Translator):
@@ -58,7 +59,7 @@ if __name__ == "__main__":
 
     logging.info('1. Update secretflow comp list.')
     comp_list_file = os.path.join(current_dir, 'comp_list.json')
-    comp_list_def = get_comp_list_def()
+    comp_list_def = Registry.get_comp_list_def()
     with open(comp_list_file, 'w') as f:
         json.dump(
             json.loads(MessageToJson(comp_list_def)), f, indent=2, ensure_ascii=False

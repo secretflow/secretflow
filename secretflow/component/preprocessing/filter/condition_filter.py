@@ -118,7 +118,7 @@ class ConditionFilter(Component):
         "input_ds",
         desc="Feature to operate on.",
     )
-    input_ds: Input = Field.input(
+    input_ds: Input = Field.input(  # type: ignore
         desc="Input vertical table.",
         types=[DistDataType.VERTICAL_TABLE],
     )

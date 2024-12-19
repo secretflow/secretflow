@@ -117,7 +117,7 @@ class Sample(Component):
     sample_algorithm: Algorithm = Field.union_attr(
         desc="sample algorithm and parameters"
     )
-    input_ds: Input = Field.input(
+    input_ds: Input = Field.input(  # type: ignore
         desc="Input vertical table.",
         types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
     )
@@ -158,13 +158,9 @@ class Sample(Component):
         out_df = CompVDataFrame.from_pandas(sample_df, input.schemas)
         ctx.dump_to(out_df, self.output_ds)
 
-        r = Reporter(
-            name="reports",
-            desc="stratify sample report",
-            system_info=self.input_ds.system_info,
-        )
+        r = Reporter(name="reports", desc="stratify sample report")
         self.build_report(r, alg_name, report_results)
-        self.report.data = r.to_distdata()
+        r.dump_to(self.report, self.input_ds.system_info)
 
     @staticmethod
     def build_report(r: Reporter, algorithm: str, results):
