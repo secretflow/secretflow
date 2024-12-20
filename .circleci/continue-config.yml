@@ -94,8 +94,8 @@ commands:
       - run:
           name: copy library
           command: |
-            cp artifacts/_lib_macos.so  secretflow/security/privacy/
-            mv secretflow/security/privacy/_lib_macos.so secretflow/security/privacy/_lib.so
+            cp artifacts/_lib_macos.so  secretflow_fl/security/privacy/
+            mv secretflow_fl/security/privacy/_lib_macos.so secretflow_fl/security/privacy/_lib.so
   restore_artifacts_linux:
     steps:
       - attach_workspace:
@@ -104,8 +104,8 @@ commands:
           name: copy library
           command: |
             arch=$(uname -i)
-            cp artifacts/_lib_$arch.so  secretflow/security/privacy/
-            mv secretflow/security/privacy/_lib_$arch.so secretflow/security/privacy/_lib.so
+            cp artifacts/_lib_$arch.so  secretflow_fl/security/privacy/
+            mv secretflow_fl/security/privacy/_lib_$arch.so secretflow_fl/security/privacy/_lib.so
   pytest_wrapper:
     parameters:
       target_folder:
@@ -168,7 +168,7 @@ commands:
               - << pipeline.parameters.test_preprocessing >>
           steps:
             - pytest_wrapper:
-                target_folder: tests/preprocessing/ 
+                target_folder: tests/preprocessing/
                 testmon_prefix: preprocessing
   run_stats_test:
     steps:
@@ -183,7 +183,7 @@ commands:
               - << pipeline.parameters.test_stats >>
           steps:
             - pytest_wrapper:
-                target_folder: tests/stats/ 
+                target_folder: tests/stats/
                 testmon_prefix: stats
   run_infra_test:
     steps:
@@ -296,7 +296,7 @@ jobs:
             pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
       - persist_to_workspace:
           root: .
-          paths: 
+          paths:
             - artifacts
       - save_cache:
           key: *pip-cache
