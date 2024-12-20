@@ -30,14 +30,17 @@ from secretflow_fl.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wra
 from secretflow_fl.ml.nn.fl.compress import COMPRESS_STRATEGY
 from secretflow_fl.security.aggregation import SparsePlainAggregator
 from secretflow_fl.utils.simulation.datasets_fl import load_cifar10_horiontal
-from tests.ml.nn.fl.model_def import ConvNet_CIFAR10,SimpleCNN
+from tests.ml.nn.fl.model_def import ConvNet_CIFAR10, SimpleCNN
+
 _temp_dir = tempfile.mkdtemp()
 import logging
+
 NUM_CLASSES = 10
 INPUT_SHAPE = (32, 32, 3)
 
+
 def _torch_model_with_cifar10(
-    devices, model_def, data, label, strategy, backend,callbacks, **kwargs
+    devices, model_def, data, label, strategy, backend, callbacks, **kwargs
 ):
     device_list = [devices.alice, devices.bob]
     server = devices.carol
@@ -139,9 +142,9 @@ def test_torch_model(sf_simulation_setup_devices):
             ),
         ],
     )
-    alice=sf_simulation_setup_devices.alice
+    alice = sf_simulation_setup_devices.alice
     # Test fed_avg_w with mnist
-    logging.info('test_print'*20)
+    logging.info('test_print' * 20)
     _torch_model_with_cifar10(
         devices=sf_simulation_setup_devices,
         model_def=model_def,
@@ -151,5 +154,3 @@ def test_torch_model(sf_simulation_setup_devices):
         backend="torch",
         callbacks=None,
     )
-
- 
