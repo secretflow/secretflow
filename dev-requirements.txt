@@ -10,3 +10,4 @@ tweedie
 junitparser
 psutil
 tabulate
+hdbscan
