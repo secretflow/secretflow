@@ -25,7 +25,7 @@ from google.protobuf import json_format
 from sklearn.datasets import load_breast_cancer
 from sklearn.preprocessing import StandardScaler
 
-from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
+from secretflow.component.core import DistDataType, Storage, build_node_eval_param
 from secretflow.component.entry import comp_eval
 from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
@@ -98,7 +98,7 @@ def eval_export(
     ), f"schemas: {used_schemas}, {expected_input}"
 
     expected_files = {"model_file", "MANIFEST"}
-    storage = make_storage(storage_config)
+    storage = Storage(storage_config)
 
     if "alice" == sf_cluster_config.private_config.self_party:
         tar_files = dict()
@@ -130,10 +130,10 @@ def eval_export(
         assert expected_files == set(tar_files), f"alice_files {tar_files.keys()}"
 
         mm = json_format.Parse(tar_files["MANIFEST"], sfs.bundle_pb2.ModelManifest())
-        logging.info(f"bob MANIFEST ............ \n{mm}\n ............ \n")
+        logging.warn(f"bob MANIFEST ............ \n{mm}\n ............ \n")
 
         mb = json_format.Parse(tar_files["model_file"], sfs.bundle_pb2.ModelBundle())
-        logging.info(f"bob model_file ............ \n{mb}\n ............ \n")
+        logging.warn(f"bob model_file ............ \n{mb}\n ............ \n")
 
 
 def get_ss_sgd_train_param(alice_path, bob_path, model_path, report_path):
@@ -201,7 +201,7 @@ def get_meta_and_dump_data(
 ):
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
+    storage = Storage(storage_config)
     scaler = StandardScaler()
     ds = load_breast_cancer()
     x, y = scaler.fit_transform(ds["data"]), ds["target"]

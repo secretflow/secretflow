@@ -43,7 +43,7 @@ class SSVif(Component):
         "input_ds",
         desc="Specify which features to calculate VIF with. If empty, all features will be used.",
     )
-    input_ds: Input = Field.input(
+    input_ds: Input = Field.input(  # type: ignore
         desc="Input vertical table.",
         types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
     )
@@ -69,6 +69,6 @@ class SSVif(Component):
 
         descriptions = {feature_names[i]: float(vif[i]) for i in range(vif.shape[0])}
 
-        r = Reporter(name="vif", desc="vif list", system_info=self.input_ds.system_info)
+        r = Reporter(name="vif", desc="vif list")
         r.add_tab(descriptions)
-        self.report.data = r.to_distdata()
+        r.dump_to(self.report, self.input_ds.system_info)

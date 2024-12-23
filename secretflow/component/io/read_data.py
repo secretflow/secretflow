@@ -48,7 +48,7 @@ class ReadData(Component):
         desc="Whether to dump the complete generalized linear model. The complete generalized linear model contains link, y_scale, offset_col, and so on.",
         default=False,
     )
-    input_data: Input = Field.input(
+    input_data: Input = Field.input(  # type: ignore
         desc="Input dist data",
         types=[
             DistDataType.BINNING_RULE,

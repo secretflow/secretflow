@@ -13,12 +13,10 @@
 # limitations under the License.
 
 
-from enum import Enum, auto, unique
+from enum import auto, unique
 
-
-class AutoNameEnum(Enum):
-    def _generate_next_value_(name, *args):
-        return name
+from .common.types import AutoNameEnum
+from .common.utils import to_bool
 
 
 @unique
@@ -35,17 +33,3 @@ def get_env(name: Envs, default=None):
 
 def get_bool_env(name: Envs, default=False):
     return to_bool(get_env(name, default))
-
-
-TRUE_STRINGS = ["true", "yes", "y", "enable", "enabled", "1"]
-FALSE_STRINGS = ["false", "no", "n", "disable", "disabled", "0"]
-
-
-def to_bool(value: str | bool) -> bool:
-    if isinstance(value, bool):
-        return value
-    if value.lower() in TRUE_STRINGS:
-        return True
-    if value.lower() in FALSE_STRINGS:
-        return False
-    raise ValueError(f"Unknown boolean value '{value}'")

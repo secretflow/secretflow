@@ -16,10 +16,10 @@
 import pandas as pd
 
 from secretflow.component.core import (
+    Storage,
     VTable,
     VTableParty,
     build_node_eval_param,
-    make_storage,
 )
 from secretflow.component.entry import comp_eval
 
@@ -30,7 +30,7 @@ def test_data_sink_individual_table(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
+    storage = Storage(storage_config)
 
     if self_party == "alice":
         data = {"A": ["s1", "s2"], "B": [1, 2], "C": [0.1, 0.2]}
@@ -67,7 +67,7 @@ def test_data_sink_vertical_table(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
+    storage = Storage(storage_config)
 
     if self_party == "alice":
         data = {"A1": ["s1", "s2"], "A2": [1, 2], "A3": [0.1, 0.2]}

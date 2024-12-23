@@ -18,7 +18,7 @@ import json
 from secretflow.spec.v1.component_pb2 import CompListDef
 
 from .plugin import PluginManager
-from .registry import Registry, build_comp_list_def
+from .registry import Registry
 from .resources import ResourceType
 from .utils import gen_key
 
@@ -118,7 +118,7 @@ def translate(package: str, archives: dict | None, ts: Translator = None) -> dic
     definitions = Registry.get_definitions(package)
     if not definitions:
         raise ValueError(f"cannot find components by package<{package}>")
-    comp_list_def = build_comp_list_def(definitions)
+    comp_list_def = Registry.build_comp_list_def(definitions)
     build_root = package in ["*", "secretflow"]
     return gettext(comp_list_def, archives, ts, build_root)
 

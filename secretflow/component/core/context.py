@@ -37,7 +37,7 @@ from .dist_data.base import IDumper
 from .dist_data.model import Model, Version
 from .dist_data.vtable import VTable
 from .progressor import IProgressor, new_progressor
-from .storage import Storage, make_storage
+from .storage import Storage
 
 
 @dataclass
@@ -63,7 +63,7 @@ class Context:
             data_dir = os.path.join(os.getcwd(), f"data_{os.getpid()}_{self_party}")
         self.cluster_config = cluster_config
         self._checkpoint = checkpoint
-        self._storage = make_storage(storage_config)
+        self._storage = Storage(storage_config)
         self.data_dir = data_dir
         self._spu_configs, self._heu_config = extract_device_config(cluster_config)
         self.tracer = TimeTracer()

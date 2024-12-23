@@ -45,7 +45,7 @@ class SSPearsonr(Component):
         "input_ds",
         desc="Specify which features to calculate correlation coefficient with. If empty, all features will be used",
     )
-    input_ds: Input = Field.input(
+    input_ds: Input = Field.input(  # type: ignore
         desc="Input vertical table.",
         types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
     )
@@ -74,8 +74,6 @@ class SSPearsonr(Component):
 
         r_table = pd.DataFrame(pr, columns=feature_names)
 
-        r = Reporter(
-            name="corr", desc="corr table", system_info=self.input_ds.system_info
-        )
+        r = Reporter(name="corr", desc="corr table")
         r.add_tab(r_table)
-        self.report.data = r.to_distdata()
+        r.dump_to(self.report, self.input_ds.system_info)

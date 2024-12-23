@@ -16,20 +16,24 @@
 import logging
 import time
 
+import numpy as np
 import pandas as pd
 import pytest
 from pyarrow import orc
 
 from secretflow.component.core import (
+    DistDataType,
+    Storage,
     VTable,
+    VTableFieldKind,
     VTableParty,
     build_node_eval_param,
-    make_storage,
 )
 from secretflow.component.entry import comp_eval
 from secretflow.component.preprocessing.filter.expr_condition_filter import (
     ExprConditionFilter,
 )
+from secretflow.spec.v1.component_pb2 import Attribute
 
 
 def test_expr_condition_filter(comp_prod_sf_cluster_config):
@@ -41,7 +45,7 @@ def test_expr_condition_filter(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
+    storage = Storage(storage_config)
 
     input_datasets = {
         "alice": pd.DataFrame(

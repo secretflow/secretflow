@@ -20,13 +20,12 @@ from pyarrow import orc
 
 import secretflow.compute as sc
 from secretflow.component.core import (
-    VTable,
+    Storage,
     VTableField,
     VTableFieldKind,
-    VTableParty,
     build_node_eval_param,
-    make_storage,
 )
+from secretflow.component.core.dist_data.vtable import VTable, VTableParty
 from secretflow.component.entry import comp_eval
 from secretflow.component.preprocessing.unified_single_party_ops.onehot_encode import (
     _onehot_encode_fit,
@@ -46,7 +45,7 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
+    storage = Storage(storage_config)
 
     if self_party == "alice":
         df_alice = pd.DataFrame(
@@ -156,8 +155,12 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
         col1 = a_out.column('y').combine_chunks()
         col2 = inplace_a_out.column('y').combine_chunks()
         diff = col1.diff(col2)
+        # diff = []
+        # for i in col1.num_rows:
+        # if col1[i] != col2[i]:
+        # diff.append(f'{i}, {col1[i]}, {col2[i]}')
 
-        logging.debug(f'diff {diff}')
+        logging.warning(f'diff {diff}')
 
         for col in a_out.column_names:
             assert a_out.column(col).equals(
@@ -287,6 +290,9 @@ def test_onehot_encode_fit(comp_prod_sf_cluster_config):
         drop = item['drop']
         min_frequency = item['min_frequency']
         onehot_rules, drop_rules = _onehot_encode_fit(df, drop, min_frequency)
+        # logging.warning(
+        #     f"drop_type: {drop}, min_frequency: {min_frequency}, rules: {onehot_rules}, drop: {drop_rules}"
+        # )
         assert (
             onehot_rules == item['expected']
         ), f"drop: {drop}, min_frequency: {min_frequency}, rules: {onehot_rules}, drop_rules: {drop_rules}"

@@ -21,10 +21,10 @@ from pyarrow import orc
 
 import secretflow.compute as sc
 from secretflow.component.core import (
+    Storage,
     VTable,
     VTableParty,
     build_node_eval_param,
-    make_storage,
 )
 from secretflow.component.entry import comp_eval
 from secretflow.component.preprocessing.unified_single_party_ops.cast import Cast
@@ -40,7 +40,7 @@ def test_cast(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
+    storage = Storage(storage_config)
 
     alice_data = {"A": ["s1", "s2"], "B": [1, 2], "C": ["0.1", "0.2"]}
     bob_data = {"D": [0.1, 1.2], "E": [True, False]}

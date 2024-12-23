@@ -12,57 +12,46 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 from abc import ABC, abstractmethod
 from io import BufferedIOBase
-
-from secretflow.spec.v1.data_pb2 import StorageConfig
-
-from ..common.types import BaseEnum
+from typing import Dict
 
 
-class StorageType(BaseEnum):
-    LOCAL_FS = "local_fs"
-    S3 = "s3"
-
-
-class Storage(ABC):
-    def __init__(self, config: StorageConfig) -> None:
-        self.config = config
-
-    @abstractmethod
-    def get_type(self) -> StorageType:
+class _StorageBase(ABC):
+    def __init__(self) -> None:
         pass
 
     @abstractmethod
-    def get_size(self, path: str) -> int:
-        return
-
-    @abstractmethod
-    def get_full_path(self, path: str) -> str:
+    def download_file(self, remote_fn, local_fn) -> None:
+        """blocked download whole file into local_fn, overwrite if local_fn exist"""
         pass
 
     @abstractmethod
-    def get_reader(self, path: str) -> BufferedIOBase:
+    def upload_file(self, remote_fn, local_fn) -> None:
+        """blocked upload_file whole file into remote_fn, overwrite if remote_fn exist"""
         pass
 
     @abstractmethod
-    def get_writer(self, path: str) -> BufferedIOBase:
+    def get_reader(self, remote_fn) -> BufferedIOBase:
         pass
 
     @abstractmethod
-    def remove(self, path: str) -> None:
+    def remove(self, remote_fn) -> None:
         pass
 
     @abstractmethod
-    def exists(self, path: str) -> bool:
+    def exists(self, path) -> bool:
         pass
 
     @abstractmethod
-    def download_file(self, remote_path: str, local_path: str) -> None:
-        """blocked download whole file into local_path, overwrite if local_path exist"""
+    def get_writer(self, remote_fn) -> BufferedIOBase:
         pass
 
     @abstractmethod
-    def upload_file(self, local_path: str, remote_path: str) -> None:
-        """blocked upload_file whole file into remote_path, overwrite if remote_path exist"""
+    def get_file_meta(self, remote_fn) -> Dict:
+        pass
+
+    @abstractmethod
+    def get_full_path(self, remote_fn: str) -> str:
         pass

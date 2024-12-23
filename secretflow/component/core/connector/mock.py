@@ -55,7 +55,7 @@ class Mock(IConnector):
             raise ValueError(f"not found, path<{input_path}>")
 
         logging.info(
-            f"download_table {storage.get_type()} {data_dir} {input_path} {input_params} {output_uri} {output_format}"
+            f"download_table {storage.is_local_fs()} {data_dir} {input_path} {input_params} {output_uri} {output_format}"
         )
 
         data: pa.Table = _mock_storage[input_path]
@@ -82,5 +82,5 @@ class Mock(IConnector):
         output_params: dict,
     ):
         logging.info(
-            f"upload_table {storage.get_type()} {data_dir} {input_uri} {input_format} {input_schema} {output_path} {output_params}"
+            f"upload_table {storage.is_local_fs()} {data_dir} {input_uri} {input_format} {input_schema} {output_path} {output_params}"
         )

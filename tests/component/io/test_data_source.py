@@ -17,10 +17,10 @@ import pyarrow as pa
 from pyarrow import orc
 
 from secretflow.component.core import (
+    Storage,
     VTable,
     VTableFieldKind,
     build_node_eval_param,
-    make_storage,
 )
 from secretflow.component.core.connector.mock import add_mock_table
 from secretflow.component.entry import comp_eval
@@ -33,7 +33,7 @@ def test_data_source(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
+    storage = Storage(storage_config)
 
     data = {"ID": ["id1", "id2"], "A": ["s1", "s2"], "B": [1, 2], "C": [0.1, 0.2]}
     tbl = pa.Table.from_pydict(data)

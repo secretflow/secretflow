@@ -56,7 +56,7 @@ class SSGLMPredict(SSGLMExportMixin, Component):
         ),
         default=False,
     )
-    input_model: Input = Field.input(
+    input_model: Input = Field.input(  # type: ignore
         desc="Input model.",
         types=[DistDataType.SS_GLM_MODEL],
     )
@@ -64,7 +64,7 @@ class SSGLMPredict(SSGLMExportMixin, Component):
         "input_ds",
         desc="which features should be saved with prediction result",
     )
-    input_ds: Input = Field.input(
+    input_ds: Input = Field.input(  # type: ignore
         desc="Input vertical table.",
         types=[DistDataType.VERTICAL_TABLE],
     )

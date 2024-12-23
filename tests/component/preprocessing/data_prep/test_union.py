@@ -19,7 +19,7 @@ import pandas as pd
 import pytest
 from pyarrow import orc
 
-from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
+from secretflow.component.core import DistDataType, Storage
 from secretflow.component.entry import comp_eval
 from secretflow.spec.v1.data_pb2 import (
     DistData,
@@ -27,6 +27,7 @@ from secretflow.spec.v1.data_pb2 import (
     TableSchema,
     VerticalTable,
 )
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
 
 def test_union_individual(comp_prod_sf_cluster_config):
@@ -36,7 +37,7 @@ def test_union_individual(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
+    storage = Storage(storage_config)
 
     input_data_list = [
         {
@@ -63,11 +64,12 @@ def test_union_individual(comp_prod_sf_cluster_config):
                 index=False,
             )
 
-    param = build_node_eval_param(
+    param = NodeEvalParam(
         domain="data_prep",
         name="union",
         version="1.0.0",
-        attrs=None,
+        attr_paths=[],
+        attrs=[],
         inputs=[
             DistData(
                 name="input1",
@@ -124,7 +126,7 @@ def test_union_vertical(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
+    storage = Storage(storage_config)
 
     input_data_map = {
         "alice": [
@@ -171,11 +173,12 @@ def test_union_vertical(comp_prod_sf_cluster_config):
                 index=False,
             )
 
-    param = build_node_eval_param(
+    param = NodeEvalParam(
         domain="data_prep",
         name="union",
         version="1.0.0",
-        attrs=None,
+        attr_paths=[],
+        attrs=[],
         inputs=[
             DistData(
                 name="input1",
@@ -248,7 +251,7 @@ def test_union_load_table(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
+    storage = Storage(storage_config)
 
     input_data_list = [
         {
@@ -276,11 +279,12 @@ def test_union_load_table(comp_prod_sf_cluster_config):
                 index=False,
             )
 
-    param = build_node_eval_param(
+    param = NodeEvalParam(
         domain="data_prep",
         name="union",
         version="1.0.0",
-        attrs=None,
+        attr_paths=[],
+        attrs=[],
         inputs=[
             DistData(
                 name="input1",
@@ -333,7 +337,7 @@ def test_union_load_table(comp_prod_sf_cluster_config):
 def test_union_error(comp_prod_sf_cluster_config):
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
+    storage = Storage(storage_config)
 
     alice_input1_path = "test_union_error/alice_input1.csv"
     alice_input2_path = "test_union_error/alice_input2.csv"
@@ -361,11 +365,12 @@ def test_union_error(comp_prod_sf_cluster_config):
             index=False,
         )
 
-    param = build_node_eval_param(
+    param = NodeEvalParam(
         domain="data_prep",
         name="union",
         version="1.0.0",
-        attrs=None,
+        attr_paths=[],
+        attrs=[],
         inputs=[
             DistData(
                 name="input1",

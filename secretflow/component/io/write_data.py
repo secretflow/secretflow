@@ -68,7 +68,7 @@ class WriteData(Component):
         default=CURRENT_SUPPORTED_TYPES[0],
         choices=CURRENT_SUPPORTED_TYPES,
     )
-    input_data: Input = Field.input(
+    input_data: Input = Field.input(  # type: ignore
         desc="Input dist data. Rule reconstructions may need hidden info in original rule for security considerations.",
         types=[
             DistDataType.BINNING_RULE,

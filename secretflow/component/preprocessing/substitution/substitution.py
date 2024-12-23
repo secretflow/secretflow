@@ -35,11 +35,11 @@ class Substitution(PreprocessingMixin, Component):
     unified substitution component
     '''
 
-    input_ds: Input = Field.input(
+    input_ds: Input = Field.input(  # type: ignore
         desc="Input vertical table.",
         types=[DistDataType.VERTICAL_TABLE],
     )
-    input_rule: Input = Field.input(
+    input_rule: Input = Field.input(  # type: ignore
         desc="Input preprocessing rules",
         types=[DistDataType.PREPROCESSING_RULE, DistDataType.BINNING_RULE],
     )

@@ -31,8 +31,8 @@ from secretflow.component.core import (
     Input,
     Output,
     VTable,
-    VTableFieldKind,
     register,
+    VTableFieldKind,
 )
 from secretflow.device import PYU, reveal
 from secretflow.utils.consistent_ops import unique_list
@@ -49,7 +49,7 @@ class ExprConditionFilter(Component):
     expr: str = Field.attr(
         desc="The custom expression must comply with SQLite syntax standards"
     )
-    input_ds: Input = Field.input(
+    input_ds: Input = Field.input(  # type: ignore
         desc="Input vertical or individual table",
         types=[DistDataType.INDIVIDUAL_TABLE, DistDataType.VERTICAL_TABLE],
     )

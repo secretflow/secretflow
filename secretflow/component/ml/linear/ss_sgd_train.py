@@ -112,7 +112,7 @@ class SSSGDTrain(SSSGDExportMixin, Component):
         desc="Label of train dataset.",
         is_checkpoint=True,
     )
-    input_ds: Input = Field.input(
+    input_ds: Input = Field.input(  # type: ignore
         desc="Input vertical table.",
         types=[DistDataType.VERTICAL_TABLE],
         is_checkpoint=True,
@@ -209,11 +209,7 @@ class SSSGDTrain(SSSGDExportMixin, Component):
         self.dump_report(reg, x)
 
     def dump_report(self, reg: SSRegression, x: CompVDataFrame):
-        r = Reporter(
-            name="weights",
-            desc="model weights report",
-            system_info=self.input_ds.system_info,
-        )
+        r = Reporter(name="weights", desc="model weights report")
         if self.report_weights:
             weights = list(map(float, list(reveal(reg.spu_w))))
             named_weight = {}
@@ -227,7 +223,7 @@ class SSSGDTrain(SSSGDExportMixin, Component):
             for f, w in named_weight.items():
                 w_desc[f] = w
             r.add_tab(w_desc, name="weights", desc="model weights")
-        self.report.data = r.to_distdata()
+        r.dump_to(self.report, self.input_ds.system_info)
 
     def export(self, ctx: Context, builder: ServingBuilder, he_mode: bool) -> None:
         return self.do_export(

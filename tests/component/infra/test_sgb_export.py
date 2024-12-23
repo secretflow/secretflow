@@ -15,7 +15,9 @@
 
 from secretflow.component.core import DistDataType, build_node_eval_param
 from secretflow.component.entry import comp_eval
+from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData
+from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from tests.component.infra.util import eval_export, get_meta_and_dump_data
 
 
@@ -34,15 +36,18 @@ def _inner_test_sgb_export(comp_prod_sf_cluster_config, features_in_one_party):
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
 
     # binning
-    feature_selects = [f"a{i}" for i in range(2)] + [f"b{i}" for i in range(2)]
-    bin_param = build_node_eval_param(
+    bin_param = NodeEvalParam(
         domain="preprocessing",
         name="vert_binning",
         version="1.0.0",
-        attrs={
-            "input/input_ds/feature_selects": feature_selects,
-            "bin_num": 4,
-        },
+        attr_paths=[
+            "input/input_ds/feature_selects",
+            "bin_num",
+        ],
+        attrs=[
+            Attribute(ss=[f"a{i}" for i in range(2)] + [f"b{i}" for i in range(2)]),
+            Attribute(i64=4),
+        ],
         inputs=[
             DistData(
                 name="input_data",

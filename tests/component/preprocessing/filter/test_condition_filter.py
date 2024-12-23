@@ -13,6 +13,7 @@
 # limitations under the License.
 
 
+import logging
 import time
 
 import pandas as pd
@@ -20,10 +21,10 @@ import pytest
 from pyarrow import orc
 
 from secretflow.component.core import (
+    Storage,
     VTable,
     VTableParty,
     build_node_eval_param,
-    make_storage,
 )
 from secretflow.component.entry import comp_eval
 
@@ -37,7 +38,7 @@ def test_condition_filter(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
+    storage = Storage(storage_config)
 
     input_datasets = {
         "alice": pd.DataFrame(
@@ -150,7 +151,7 @@ def test_condition_filter_label(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
+    storage = Storage(storage_config)
 
     input_datasets = {
         "alice": pd.DataFrame(

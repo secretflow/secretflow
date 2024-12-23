@@ -61,7 +61,7 @@ class PredictionBiasEval(Component):
         "input_ds",
         desc="The prediction result column name to use in the dataset.",
     )
-    input_ds: Input = Field.input(
+    input_ds: Input = Field.input(  # type: ignore
         desc="Input table with prediction and label, usually is a result from a prediction component.",
         types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
     )
@@ -125,14 +125,14 @@ class PredictionBiasEval(Component):
             )
 
         report_df = pd.DataFrame(rows, columns=columns.keys())
-        tbl_div = Reporter.build_table(
+        for k in report_df.columns:
+            Reporter.set_description(report_df[k], columns[k])
+
+        r = Reporter(name="Prediction Bias Report")
+        tbl_div = r.to_table(
             report_df,
             name="Prediction Bias Table",
             desc="Calculate prediction bias, ie. average of predictions - average of labels.",
-            columns=columns,
         )
-
-        system_info = self.input_ds.system_info
-        r = Reporter(name="Prediction Bias Report", system_info=system_info)
         r.add_tab(tbl_div)
-        self.report.data = r.to_distdata()
+        r.dump_to(self.report, self.input_ds.system_info)

@@ -20,10 +20,10 @@ import pytest
 from pyarrow import orc
 
 from secretflow.component.core import (
+    Storage,
     VTable,
     VTableParty,
     build_node_eval_param,
-    make_storage,
 )
 from secretflow.component.entry import comp_eval
 from secretflow.error_system.exceptions import CompEvalError
@@ -39,7 +39,7 @@ def test_psi_orc(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
+    storage = Storage(storage_config)
 
     if self_party == "alice":
         da = pd.DataFrame(
@@ -156,7 +156,7 @@ def test_psi(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
+    storage = Storage(storage_config)
 
     if self_party == "alice":
         da = pd.DataFrame(
@@ -280,7 +280,7 @@ def test_psi_left(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
+    storage = Storage(storage_config)
 
     if self_party == "alice":
         da = pd.DataFrame(
@@ -400,7 +400,7 @@ def test_psi_one_receiver(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
+    storage = Storage(storage_config)
 
     if self_party == "alice":
         da = pd.DataFrame(
@@ -507,7 +507,7 @@ def test_psi_left_long_output_path(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
+    storage = Storage(storage_config)
 
     if self_party == "alice":
         da = pd.DataFrame(
@@ -629,7 +629,7 @@ def test_psi_orc_empty_intersect(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
+    storage = Storage(storage_config)
 
     if self_party == "alice":
         da = pd.DataFrame(
@@ -730,7 +730,7 @@ def test_psi_orc_empty_intersect_error(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
+    storage = Storage(storage_config)
 
     if self_party == "alice":
         da = pd.DataFrame(

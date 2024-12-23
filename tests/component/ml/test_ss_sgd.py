@@ -22,7 +22,7 @@ from sklearn.datasets import load_breast_cancer
 from sklearn.metrics import r2_score
 from sklearn.preprocessing import StandardScaler
 
-from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
+from secretflow.component.core import DistDataType, Storage, build_node_eval_param
 from secretflow.component.entry import comp_eval
 from secretflow.spec.v1.data_pb2 import (
     DistData,
@@ -121,7 +121,7 @@ def get_eval_param(predict_path):
 def get_meta_and_dump_data(comp_prod_sf_cluster_config, alice_path, bob_path):
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
+    storage = Storage(storage_config)
     scaler = StandardScaler()
     ds = load_breast_cancer()
     x, y = scaler.fit_transform(ds["data"]), ds["target"]
@@ -195,7 +195,7 @@ def test_ss_sgd(comp_prod_sf_cluster_config, with_checkpoint):
         assert len(predict_res.outputs) == 1
 
         if "alice" == sf_cluster_config.private_config.self_party:
-            storage = make_storage(storage_config)
+            storage = Storage(storage_config)
             input_y = pd.read_csv(storage.get_reader(alice_path))
             from pyarrow import orc
 
@@ -238,7 +238,7 @@ def test_ss_sgd(comp_prod_sf_cluster_config, with_checkpoint):
     if with_checkpoint:
         cp_num = g_test_epoch - 1
         if 'alice' == sf_cluster_config.private_config.self_party:
-            storage = make_storage(storage_config)
+            storage = Storage(storage_config)
             for i in range(int(cp_num / 2), cp_num):
                 with storage.get_writer(f"{checkpoint_path}_{i}") as f:
                     # destroy some checkpoint to rollback train progress

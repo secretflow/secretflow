@@ -121,7 +121,7 @@ class SSXGBTrain(SSXGBExportMixin, Component):
         desc="Label of train dataset.",
         is_checkpoint=True,
     )
-    input_ds: Input = Field.input(
+    input_ds: Input = Field.input(  # type: ignore
         desc="Input vertical table.",
         types=[DistDataType.VERTICAL_TABLE],
         is_checkpoint=True,
