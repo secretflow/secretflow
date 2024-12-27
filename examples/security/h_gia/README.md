@@ -22,7 +22,7 @@ $$
 \hat{w}=\alpha w_0+(1-\alpha)w_T \\
 \alpha\in[0,1]
 $$
-where $w_0$ and $w_T$ are the model parameters of the victim client before and after local training, respectively. 
+where $w_0$ and $w_T$ are the model parameters of the victim client before and after local training, respectively.
 
 Then, the adversary initialize the fake training dataset $\hat{D}$ with Gaussian noise. The private training data of the victim client can be reconstructed by minimizing the following loss
 $$
@@ -33,7 +33,7 @@ $$
 ### Attack Performance
 
 <p align="center">
-    <img width="600" height="277" src="./figs/attackperformance.png" alt>
+    <img width="340" height="200" src="./figs/attackperformance.png" alt>
 </p>
 <p align="center">
     <em>Figure 1: Visualizations of constructed images. </em>
@@ -44,8 +44,6 @@ $$
 [Federated Learning with Sparsified Model Perturbation (FedSMP): Improving Accuracy under Client-Level Differential Privacy](https://ieeexplore.ieee.org/abstract/document/10360319/)
 
 ### Algorithm Description
-
-
 
 # Implemention
 

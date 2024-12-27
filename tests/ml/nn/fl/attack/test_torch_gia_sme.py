@@ -14,13 +14,12 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from examples.security.h_gia.SME_attack.gia_sme_torch import GiadentInversionAttackSME
 from torch import optim
 from torchmetrics import Accuracy, Precision
 
 import secretflow as sf
+from examples.security.h_gia.SME_attack.gia_sme_torch import GiadentInversionAttackSME
 from secretflow.security.aggregation import SecureAggregator
-from secretflow_fl.utils.simulation.datasets_fl import load_mnist
 from secretflow_fl.ml.nn import FLModel
 from secretflow_fl.ml.nn.core.torch import (
     BaseModule,
@@ -28,6 +27,8 @@ from secretflow_fl.ml.nn.core.torch import (
     metric_wrapper,
     optim_wrapper,
 )
+from secretflow_fl.utils.simulation.datasets_fl import load_mnist
+
 
 # the global model
 class FLBaseNet(BaseModule):
@@ -52,7 +53,7 @@ class FLBaseNet(BaseModule):
         return self.fc2(x)
 
 
-def do_test_fl_and_gia_sme(attack_configs: dict ,alice, bob):
+def do_test_fl_and_gia_sme(attack_configs: dict, alice, bob):
 
     # prepare dataset
     client_data_num = attack_configs['k']
@@ -110,6 +111,7 @@ def do_test_fl_and_gia_sme(attack_configs: dict ,alice, bob):
 
     return
 
+
 # attack configurations
 attack_configs = {
     "path_to_res": "./examples/security/h_gia/SME_attack/res",
@@ -126,19 +128,16 @@ attack_configs = {
     "test_steps": 100,
     "lr_decay": True,
     "save_figure": True,
-    "setup": {"device": "cpu", "dtype": torch.float32}
+    "setup": {"device": "cpu", "dtype": torch.float32},
 }
 
 
 def test_fl_and_gia_sme(sf_simulation_setup_devices):
     alice = sf_simulation_setup_devices.alice
     bob = sf_simulation_setup_devices.bob
-    do_test_fl_and_gia_sme(
-        attack_configs, alice, bob
-    )
+    do_test_fl_and_gia_sme(attack_configs, alice, bob)
 
-# sf.init(['alice', 'bob', 'charlie'], address='local', debug_mode=False)
+
+# sf.init(['alice', 'bob', 'charlie'], address='local', debug_mode=True)
 # alice, bob = sf.PYU('alice'), sf.PYU('bob')
-# do_test_fl_and_gia_sme(
-#         attack_configs, alice, bob
-#     )
+# do_test_fl_and_gia_sme(attack_configs, alice, bob)

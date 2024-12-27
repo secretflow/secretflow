@@ -113,9 +113,9 @@ class GiadentInversionAttackSME(AttackCallback):
             return victim_worker.model
 
         # get victim model before training and send model data to attack party
-        self.victim_model1 = copy.deepcopy(self._workers[self.victim_party].apply(get_victim_model)).to(self.attack_party)
- 
-        return
+        self.victim_model1 = copy.deepcopy(
+            self._workers[self.victim_party].apply(get_victim_model)
+        ).to(self.attack_party)
 
     def on_train_end(self, logs=None):
         def get_victim_model(victim_worker: BaseTorchModel):
@@ -126,24 +126,45 @@ class GiadentInversionAttackSME(AttackCallback):
 
         # the raw data of victim is only used to evaluate the attack performance
         # the attacker has no access to the raw data in practical scenario
-        self.victim_trainloader = self._workers[self.victim_party].apply(get_victim_trainloader).to(self.attack_party)
+        self.victim_trainloader = (
+            self._workers[self.victim_party]
+            .apply(get_victim_trainloader)
+            .to(self.attack_party)
+        )
 
         # get victim model after training and send model data to attack party
-        self.victim_model2 = self._workers[self.victim_party].apply(get_victim_model).to(self.attack_party)
+        self.victim_model2 = (
+            self._workers[self.victim_party]
+            .apply(get_victim_model)
+            .to(self.attack_party)
+        )
 
         # Reconstruction
-        attacker = SME(
-                setup=self.attack_configs['setup'],
-                alpha=self.attack_configs['alpha'],
-                test_steps=self.attack_configs['test_steps'],
-                path_to_res=self.attack_configs['path_to_res'],
-                lamb=self.attack_configs['lamb'],
-                mean_std=(0.0, 1.0),
-                )
-        
-        def gia_sme_attack(attacker: SME, attack_configs: dict, victim_model1, victim_model2, victim_trainloader) -> PYUObject:
+
+        def gia_sme_attack(
+            attack_configs: dict,
+            victim_model1,
+            victim_model2,
+            victim_trainloader,
+        ) -> PYUObject:
+
             attack_configs = PYUObject(self.attack_party, attack_configs)
-            def _gia_sme_attack(attacker, attack_configs, victim_model1, victim_model2, victim_trainloader):
+
+            def _gia_sme_attack(
+                attack_configs,
+                victim_model1,
+                victim_model2,
+                victim_trainloader,
+            ):
+
+                attacker = SME(
+                    setup=attack_configs['setup'],
+                    alpha=attack_configs['alpha'],
+                    test_steps=attack_configs['test_steps'],
+                    path_to_res=attack_configs['path_to_res'],
+                    lamb=attack_configs['lamb'],
+                    mean_std=(0.0, 1.0),
+                )
 
                 attacker.net0 = victim_model1
                 attacker.net1 = victim_model2
@@ -157,19 +178,33 @@ class GiadentInversionAttackSME(AttackCallback):
                     save_figure=attack_configs['save_figure'],
                 )
 
-                with open(os.path.join(attack_configs['path_to_res'], "res.json"), "w") as f:
+                with open(
+                    os.path.join(attack_configs['path_to_res'], "res.json"), "w"
+                ) as f:
                     json.dump(stats, f, indent=4)
                 return stats
-            
+
             # conduct the attack func on attack party (bob)
-            wait(self.attack_party(_gia_sme_attack)(attacker, attack_configs, victim_model1, victim_model2, victim_trainloader))
-            return 
-        
-        gia_sme_attack(attacker, self.attack_configs, self.victim_model1, self.victim_model2, self.victim_trainloader)
-        return
+            wait(
+                self.attack_party(_gia_sme_attack)(
+                    attack_configs,
+                    victim_model1,
+                    victim_model2,
+                    victim_trainloader,
+                )
+            )
+            return
+
+        gia_sme_attack(
+            self.attack_configs,
+            self.victim_model1,
+            self.victim_model2,
+            self.victim_trainloader,
+        )
 
     def get_attack_metrics(self):
         return self.metrics
+
 
 # the class of SME attack
 class SME:
@@ -216,22 +251,25 @@ class SME:
         # We assume that labels have been restored separately, for details please refer to the paper.
         self.y = torch.cat(labels).to(device=self.setup['device'])
         # Dummy input.
-        self.x = torch.normal(0, 1, size=self.data.shape, requires_grad=True, device=self.setup['device'])
+        self.x = torch.normal(
+            0, 1, size=self.data.shape, requires_grad=True, device=self.setup['device']
+        )
 
         self.mean = self.mean.to(self.setup['device'])
         self.std = self.std.to(self.setup['device'])
         # This is a trick (a sort of prior information) adopted from IG.
         prior_boundary(self.x, -self.mean / self.std, (1 - self.mean) / self.std)
 
-
         self.net0.to(device=self.setup['device'])
         self.net1.to(device=self.setup['device'])
-        
+
         # when taking the SME strategy, alpha is set within (0, 1).
-        self.alpha = torch.tensor(self.alpha, requires_grad=True, device=self.setup['device'])
+        self.alpha = torch.tensor(
+            self.alpha, requires_grad=True, device=self.setup['device']
+        )
         if 0 < self.alpha < 1:
             self.alpha.grad = torch.tensor(0.0).to(**self.setup)
-        
+
         optimizer = torch.optim.Adam(params=[self.x], lr=eta)
         alpha_opti = torch.optim.Adam(params=[self.alpha], lr=beta)
         scheduler = torch.optim.lr_scheduler.MultiStepLR(
@@ -244,7 +282,7 @@ class SME:
             milestones=[iters // 2.667, iters // 1.6, iters // 1.142],
             gamma=0.1,
         )
-        
+
         criterion = torch.nn.CrossEntropyLoss(reduction="mean")
 
         # Direction of the weight update.
