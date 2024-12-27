@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import json
+import logging
 import os
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Dict, List, Tuple, Union
 
 import jax.numpy as jnp
 import numpy as np
@@ -202,6 +203,63 @@ class SgbModel:
 
     def get_objective(self):
         return self.objective
+
+    def feature_importance_device_wise(self) -> Dict[PYU, Dict[int, float]]:
+        """Get feature importance of each feature.
+
+        Returns:
+            Dict: {device: {feature_index: importance}}
+        """
+        if len(self.trees) == 0:
+            logging.warning("No trees found, cannot get feature importance.")
+            return None
+        gain_stats_list = [tree.gain_statistics() for tree in self.trees]
+        device_list = gain_stats_list[0].keys()
+        feature_importance_device_wise = {}
+        for device in device_list:
+            gain_stats_device = [
+                gain_stats_list[i][device] for i in range(len(gain_stats_list))
+            ]
+            agg_gain_statistics_device = reveal(
+                device(agg_gain_statistics)(gain_stats_device)
+            )
+            feature_importance_device_wise[device] = agg_gain_statistics_device
+        return feature_importance_device_wise
+
+    def feature_importance_flatten(
+        self, x: Union[VDataFrame, FedNdarray]
+    ) -> np.ndarray:
+        if not isinstance(x, VDataFrame) and not isinstance(x, FedNdarray):
+            raise ValueError(
+                "x must be a VDataFrame or FedNdarry, please input the training data set."
+            )
+        feature_importance_device_wise = self.feature_importance_device_wise()
+        feature_importance_flatten = np.zeros(x.shape[1])
+        offset = 0
+        for device, shape in x.partition_shape().items():
+            for i in range(shape[1]):
+                feature_importance_flatten[offset + i] = feature_importance_device_wise[
+                    device
+                ][i]
+            offset += shape[1]
+        return feature_importance_flatten
+
+
+def agg_gain_statistics(gain_stats_list: List[Tuple[Dict, Dict]]):
+    """Aggregate gain statistics from different trees"""
+    gain_sums = {}
+    gain_count = {}
+    for tree_gain_sum, tree_gain_count in gain_stats_list:
+        for feature_name, gain in tree_gain_sum.items():
+            if feature_name == -1:
+                continue
+            if feature_name not in gain_sums:
+                gain_sums[feature_name] = 0
+                gain_count[feature_name] = 0
+            gain_sums[feature_name] += gain
+            gain_count[feature_name] += tree_gain_count[feature_name]
+
+    return {k: v / max([gain_count[k], 1]) for k, v in gain_sums.items()}
 
 
 def from_dict(model_dict: Dict) -> SgbModel:

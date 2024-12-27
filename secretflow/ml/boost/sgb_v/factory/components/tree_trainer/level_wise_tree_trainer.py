@@ -248,11 +248,10 @@ class LevelWiseTreeTrainer(TreeTrainer):
     ) -> Tuple[PYUObject, PYUObject, PYUObject, PYUObject]:
         last_level = level == (self.params.max_depth - 1)
 
-        (
-            label_holder_split_buckets,
-            gain_is_cost_effective,
-        ) = self._find_best_split_bucket(
-            split_node_selects, last_level, tree_num, level
+        (label_holder_split_buckets, gains, gain_is_cost_effective) = (
+            self._find_best_split_bucket(
+                split_node_selects, last_level, tree_num, level
+            )
         )
 
         # split not in party will be marked as -1
@@ -286,6 +285,7 @@ class LevelWiseTreeTrainer(TreeTrainer):
             split_points,
             left_selects_each_party,
             gain_is_cost_effective,
+            gains,
             split_node_indices,
             select_shape,
         )
@@ -318,7 +318,9 @@ class LevelWiseTreeTrainer(TreeTrainer):
             level: int. which level is training
 
         Return:
-            idx of split bucket for each node, and indicator if gain > gamma
+            idx of split bucket for each node
+            indicator if gain > gamma
+            gains at split point
         """
 
         # only compute the gradient sums of left or right children node. (choose fewer ones)
@@ -348,18 +350,25 @@ class LevelWiseTreeTrainer(TreeTrainer):
         level_nodes_G, level_nodes_H = self.components.loss_computer.reverse_scale_gh(
             level_nodes_G, level_nodes_H
         )
-        (
-            split_buckets,
-            gain_is_cost_effective,
-        ) = self.components.split_finder.find_best_splits_level_wise(
-            level_nodes_G, level_nodes_H, tree_num, level
+        (split_buckets, gain_is_cost_effective, gains) = (
+            self.components.split_finder.find_best_splits_level_wise(
+                level_nodes_G, level_nodes_H, tree_num, level
+            )
         )
         # all parties including driver know the shape of tree in each node
         # hence all parties including driver will know the pruning results.
         # hence we can reveal gain_is_cost_effective
         gain_is_cost_effective = reveal(gain_is_cost_effective)
+
+        # WARNING: gains at the index of split_buckets will be revealed
+        # for calculation of feature importance.
+        # To Reduce the risk, we can:
+        # DO NOT REPEAT THE TRAINING PROCESS WITH THE SAME PARTY FOR TOO
+        # MANY TIMES TO AVOID REPLAY ATTACKS
+        gains = reveal(gains)
+
         self.components.bucket_sum_calculator.update_level_cache(
             is_last_level, gain_is_cost_effective
         )
 
-        return split_buckets, gain_is_cost_effective
+        return split_buckets, gains, gain_is_cost_effective

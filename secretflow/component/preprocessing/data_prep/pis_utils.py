@@ -1,4 +1,4 @@
-# Copyright 2023 Ant Group Co., Ltd.
+# Copyright 2024 Ant Group Co., Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .entry import cmd_entry
 
-cmd_entry()
+from secretflow.component.core import VTableFieldKind, VTableSchema
+
+
+def trans_keys_to_ids(schema: VTableSchema, keys: list[str]) -> VTableSchema:
+    for key in keys:
+        if key not in schema.fields:
+            raise RuntimeError(
+                f"key column: {key} is not in table, table_schema: {schema}"
+            )
+        schema.fields[key].kind = VTableFieldKind.ID
+    return schema

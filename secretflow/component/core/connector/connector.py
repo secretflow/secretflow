@@ -14,15 +14,36 @@
 
 
 import abc
+from dataclasses import dataclass
+
+import pyarrow as pa
 
 from ..dist_data.vtable import VTableFormat, VTableSchema
 from ..storage import Storage
+
+
+@dataclass
+class TableInfo:
+    schema: VTableSchema
+    line_count: int
 
 
 class IConnector(abc.ABC):
     '''
     like flink, connector provide code for interfacing with various third-party systems
     '''
+
+    @abc.abstractmethod
+    def download_table(
+        self,
+        storage: Storage,
+        data_dir: str,
+        input_path: str,
+        input_params: dict,
+        output_uri: str,
+        output_format: VTableFormat = VTableFormat.ORC,
+    ) -> TableInfo:
+        pass
 
     @abc.abstractmethod
     def upload_table(

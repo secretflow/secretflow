@@ -87,7 +87,7 @@ class VertWoeBinning(VertBinningBase):
         "input_ds",
         desc="Label of input data.",
     )
-    input_ds: Input = Field.input(  # type: ignore
+    input_ds: Input = Field.input(
         desc="Input vertical table.",
         types=[DistDataType.VERTICAL_TABLE],
     )

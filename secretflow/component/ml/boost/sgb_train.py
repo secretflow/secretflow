@@ -238,7 +238,7 @@ class SGBTrain(SGBExportMixin, Component):
         desc="Label of train dataset.",
         is_checkpoint=True,
     )
-    input_ds: Input = Field.input(  # type: ignore
+    input_ds: Input = Field.input(
         desc="Input vertical table.",
         types=[DistDataType.VERTICAL_TABLE],
         is_checkpoint=True,

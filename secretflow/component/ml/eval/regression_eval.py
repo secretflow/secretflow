@@ -86,7 +86,7 @@ class RegressionEval(Component):
         "input_ds",
         desc="The prediction result column name to use in the dataset.",
     )
-    input_ds: Input = Field.input(  # type: ignore
+    input_ds: Input = Field.input(
         desc="Input table with prediction and label, usually is a result from a prediction component.",
         types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
     )
@@ -109,7 +109,7 @@ class RegressionEval(Component):
             )
             result.gen_all_reports()
 
-        r = Reporter(name="reports")
+        r = Reporter(name="reports", system_info=self.input_ds.system_info)
 
         # build attributes_div
         names = [
@@ -124,10 +124,10 @@ class RegressionEval(Component):
         ]
         values = reveal(result.result_as_list()[:-1])
         items = {n: float(v) for n, v in zip(names, values)}
-        descriptions = r.to_descriptions(
+        descriptions = Reporter.build_descriptions(
             items, name="calculated_results", desc=f"{STATS_DESC}"
         )
-        div = r.to_div(descriptions, name="metrics", desc="statistical metrics")
+        div = r.build_div(descriptions, name="metrics", desc="statistical metrics")
         r.add_tab(div, name="metrics", desc="regression evaluation metrics")
 
         # build histogram_div
@@ -141,12 +141,13 @@ class RegressionEval(Component):
             index=["edge_values", "sample_counts"],
             columns=column_names,
         )
-        hist_tbl = r.to_table(
+        hist_tbl = Reporter.build_table(
             hist_df.astype(float),
             name="histogram data",
             desc=f"boundary for bins and value for each bin. there are {n} bins and {n+1} edges. (pad last non-existent bin count with 0)",
+            index=hist_df.index.to_list(),
         )
-        hist_div = r.to_div(
+        hist_div = Reporter.build_div(
             hist_tbl,
             name="residual histogram",
             desc="Residual Histograms (residual_hists): It represents the distribution of the differences between the predicted and actual values. It helps to understand the spread and pattern of the errors.",
@@ -156,4 +157,4 @@ class RegressionEval(Component):
             name="residual histogram",
             desc="regression residual histogram",
         )
-        r.dump_to(self.report, self.input_ds.system_info)
+        self.report.data = r.to_distdata()

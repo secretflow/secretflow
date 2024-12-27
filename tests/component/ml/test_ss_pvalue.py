@@ -20,13 +20,12 @@ from sklearn.datasets import load_breast_cancer
 from sklearn.preprocessing import StandardScaler
 
 from secretflow.component.core import (
-    Storage,
     VTable,
     VTableParty,
     build_node_eval_param,
+    make_storage,
 )
 from secretflow.component.entry import comp_eval
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
 
 
@@ -39,7 +38,7 @@ def test_ss_pvalue(comp_prod_sf_cluster_config, reg_type):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = Storage(storage_config)
+    storage = make_storage(storage_config)
 
     scaler = StandardScaler()
     ds = load_breast_cancer()
@@ -97,10 +96,11 @@ def test_ss_pvalue(comp_prod_sf_cluster_config, reg_type):
         cluster_config=sf_cluster_config,
     )
 
-    pv_param = NodeEvalParam(
+    pv_param = build_node_eval_param(
         domain="ml.eval",
         name="ss_pvalue",
         version="1.0.0",
+        attrs=None,
         inputs=[train_res.outputs[0], train_param.inputs[0]],
         output_uris=["report"],
     )
@@ -137,7 +137,7 @@ def test_ss_pvalue_glm(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = Storage(storage_config)
+    storage = make_storage(storage_config)
 
     scaler = StandardScaler()
     ds = load_breast_cancer()

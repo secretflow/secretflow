@@ -20,13 +20,10 @@ import pandas as pd
 import pytest
 from google.protobuf import json_format
 
-from secretflow.component.core import DistDataType, build_node_eval_param
+from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
 from secretflow.component.entry import comp_eval
-from secretflow.component.storage import ComponentStorage
 from secretflow.spec.extend.calculate_rules_pb2 import CalculateOpRules
-from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from tests.component.infra.util import (
     eval_export,
     get_meta_and_dump_data,
@@ -333,26 +330,18 @@ def test_score_card_transformer_export(comp_prod_sf_cluster_config):
     assert len(predict_res.outputs) == 1
 
     # score_card_transformer
-    score_card_trans_param = NodeEvalParam(
+    score_card_trans_param = build_node_eval_param(
         domain="postprocessing",
         name="score_card_transformer",
         version="1.0.0",
-        attr_paths=[
-            "positive",
-            "predict_score_name",
-            "scaled_value",
-            "odd_base",
-            "pdo",
-            "input/input_ds/predict_name",
-        ],
-        attrs=[
-            Attribute(i64=1),
-            Attribute(s="predict_score"),
-            Attribute(i64=600),
-            Attribute(f=20),
-            Attribute(f=20),
-            Attribute(ss=["pred"]),
-        ],
+        attrs={
+            "positive": 1,
+            "predict_score_name": "predict_score",
+            "scaled_value": 600,
+            "odd_base": 20.0,
+            "pdo": 20.0,
+            "input/input_ds/predict_name": ["pred"],
+        },
         inputs=[predict_res.outputs[0]],
         output_uris=[score_card_trans_path],
     )
@@ -434,7 +423,7 @@ def _inner_test_model_export(
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     sf_cluster_config = setup_cluster_config(sf_cluster_config, he_mode)
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = make_storage(storage_config)
 
     def build_dataset():
         random.seed(42)
@@ -493,10 +482,10 @@ def _inner_test_model_export(
         if features_in_one_party:
             #  alice has y
             ds = data[["y"]]
-            ds.to_csv(comp_storage.get_writer(alice_input_path), index=False)
+            ds.to_csv(storage.get_writer(alice_input_path), index=False)
         else:
             ds = data[[f"f{i+1}" for i in range(4)] + ["b1", "o1", "y", "unused1"]]
-            ds.to_csv(comp_storage.get_writer(alice_input_path), index=False)
+            ds.to_csv(storage.get_writer(alice_input_path), index=False)
 
     elif self_party == "bob":
         if features_in_one_party:
@@ -505,10 +494,10 @@ def _inner_test_model_export(
                 [f"f{i + 1}" for i in range(8)]
                 + ["b1", "b2", "o1", "o2", "unused1", "unused2"]
             ]
-            ds.to_csv(comp_storage.get_writer(bob_input_path), index=False)
+            ds.to_csv(storage.get_writer(bob_input_path), index=False)
         else:
             ds = data[[f"f{i + 5}" for i in range(4)] + ["b2", "o2", "unused2"]]
-            ds.to_csv(comp_storage.get_writer(bob_input_path), index=False)
+            ds.to_csv(storage.get_writer(bob_input_path), index=False)
 
     # binning
     bin_param = build_node_eval_param(

@@ -16,7 +16,7 @@ import logging
 
 import pandas as pd
 
-from secretflow.component.core import DistDataType, Storage, build_node_eval_param
+from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
 from secretflow.component.entry import comp_eval
 from secretflow.spec.v1.data_pb2 import (
     DistData,
@@ -27,7 +27,7 @@ from secretflow.spec.v1.data_pb2 import (
 from secretflow.spec.v1.report_pb2 import Report
 
 
-def check_report(dd: DistData, target_names=['a', 'b', 'c', 'd']):  # type: ignore
+def check_report(dd: DistData, target_names=['a', 'b', 'c', 'd']):
     r = Report()
     dd.meta.Unpack(r)
     logging.info(r)
@@ -51,7 +51,7 @@ def test_table_statistics_comp(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = Storage(storage_config)
+    storage = make_storage(storage_config)
 
     test_data = pd.DataFrame(
         {"a": [9, 6, 5, 5], "b": [5, 5, 6, 7], "c": [1, 1, 2, 4], "d": [11, 55, 1, 99]}
@@ -113,7 +113,7 @@ def test_table_statistics_individual_comp(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = Storage(storage_config)
+    storage = make_storage(storage_config)
 
     test_data = pd.DataFrame(
         {"a": [9, 6, 5, 5], "b": [5, 5, 6, 7], "c": [1, 1, 2, 4], "d": [11, 55, 1, 99]}

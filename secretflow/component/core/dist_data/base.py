@@ -14,16 +14,9 @@
 
 
 import enum
-import os
 from abc import ABC, abstractmethod
-from typing import Union
+from dataclasses import dataclass
 
-from secretflow.device.device.pyu import PYU
-from secretflow.device.driver import wait
-from secretflow.error_system.exceptions import (
-    CompEvalError,
-    SFTrainingHyperparameterError,
-)
 from secretflow.spec.v1.data_pb2 import DistData
 
 from ..common.types import BaseEnum
@@ -56,6 +49,8 @@ class DistDataType(BaseEnum):
     SGB_CHECKPOINT = "sf.checkpoint.sgb"
     SS_XGB_CHECKPOINT = "sf.checkpoint.ss_xgb"
     SS_SGD_CHECKPOINT = "sf.checkpoint.ss_sgd"
+    # unbalance psi
+    UNBALANCE_PSI_CACHE = "sf.model.ub_psi.cache"
     # if input of component is optional, then the corresponding type can be NULL
     NULL = "sf.null"
 
@@ -66,65 +61,13 @@ class IDumper(ABC):
         raise NotImplementedError(f"dump not implemented {uri}")
 
 
-def download_files(
-    storage: Storage,
-    remote_fns: dict[Union[str, PYU], str],
-    local_fns: dict[Union[str, PYU], str],
-    overwrite: bool = True,
-):
-    pyu_remotes = {
-        p.party if isinstance(p, PYU) else p: remote_fns[p] for p in remote_fns
-    }
-    pyu_locals = {}
-    for p in local_fns:
-        k = p.party if isinstance(p, PYU) else p
-        v = local_fns[p]
-        pyu_locals[k] = v
+@dataclass
+class Version:
+    major: int
+    minor: int
 
-    if set(pyu_remotes.keys()) != set(pyu_locals.keys()):
-        raise CompEvalError.party_check_failed(
-            f"pyu_remotes: [{pyu_remotes}] is not equal to pyu_locals: [{pyu_locals}]"
-        )
-
-    def download_file(storage, uri, output_path):
-        if not overwrite and os.path.exists(output_path):
-            # skip download
-            if not os.path.isfile(output_path):
-                raise SFTrainingHyperparameterError.not_a_file(
-                    f"In download_file, when choosing not overwrite, the output_path {output_path} should be a file"
-                )
-        else:
-            storage.download_file(uri, output_path)
-
-    waits = []
-    for p in pyu_remotes:
-        remote_fn = pyu_remotes[p]
-        local_fn = pyu_locals[p]
-        waits.append(PYU(p)(download_file)(storage, remote_fn, local_fn))
-
-    wait(waits)
-
-
-def upload_files(
-    storage: Storage,
-    remote_fns: dict[Union[str, PYU], str],
-    local_fns: dict[Union[str, PYU], str],
-):
-    pyu_remotes = {
-        p.party if isinstance(p, PYU) else p: remote_fns[p] for p in remote_fns
-    }
-    pyu_locals = {p.party if isinstance(p, PYU) else p: local_fns[p] for p in local_fns}
-
-    if set(pyu_remotes.keys()) != set(pyu_locals.keys()):
-        raise CompEvalError.party_check_failed(
-            f"pyu_remotes: [{pyu_remotes}] is not equal to pyu_locals: [{pyu_locals}]"
-        )
-
-    waits = []
-    for p in pyu_remotes:
-        waits.append(
-            PYU(p)(lambda c, r, l: c.upload_file(r, l))(
-                storage, pyu_remotes[p], pyu_locals[p]
-            )
-        )
-    wait(waits)
+    def check(self, max_version: 'Version'):
+        if max_version and not (
+            max_version.major == self.major and max_version.minor >= self.minor
+        ):
+            raise ValueError(f"model version mismatch, {self}, {max_version}")

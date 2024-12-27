@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from secretflow.component.core import Registry
+from secretflow.component.core import Registry, get_comp_list_def
 
 
 def test_registry():
-    comp_list_def = Registry.get_comp_list_def()
+    comp_list_def = get_comp_list_def()
     assert len(comp_list_def.comps) > 0
     definitions = Registry.get_definitions()
     assert len(definitions) == len(comp_list_def.comps)
