@@ -21,7 +21,7 @@ import os
 import tempfile
 
 import numpy as np
-import tensorflow as tf
+# import tensorflow as tf
 from torch import nn, optim
 from torchmetrics import Accuracy, Precision
 
@@ -33,7 +33,7 @@ from secretflow_fl.ml.nn.fl.compress import COMPRESS_STRATEGY
 from secretflow_fl.preprocessing.encoder_fl import OneHotEncoder
 from secretflow_fl.security.aggregation import SparsePlainAggregator
 from secretflow_fl.security.privacy import DPStrategyFL, GaussianModelDP
-from secretflow_fl.utils.simulation.datasets_fl import load_cifar10_horiontal
+from secretflow_fl.utils.simulation.datasets_fl import load_cifar10_horiontal,load_mnist_unpartitioned
 from tests.ml.nn.fl.model_def import ConvNet_CIFAR10, SimpleCNN
 from examples.security.h_bd.backdoor_fl_torch import BackdoorAttack
 
@@ -110,10 +110,10 @@ def _torch_model_with_cifar10(
     logging.warning(global_metric)
     logging.warning('local_metric')
     logging.warning(local_metric)
-    logging.warning('bd_metric')
-    logging.warning(bd_metric)
-    logging.warning('local_metric')
-    logging.warning(local_metric)
+    # logging.warning('bd_metric')
+    # logging.warning(bd_metric)
+    # logging.warning('local_metric')
+    # logging.warning(local_metric)
     
 
     assert (
@@ -145,6 +145,12 @@ def _torch_model_with_cifar10(
     reload_metric, _ = new_fed_model.evaluate(
         test_data, test_label, batch_size=128, random_seed=1234
     )
+
+    # np.testing.assert_equal(
+    #     [m.result().numpy() for m in global_metric],
+    #     [m.result().numpy() for m in reload_metric],
+    # )
+
 
 def test_torch_model(sf_simulation_setup_devices):
     (train_data, train_label), (test_data, test_label) = load_cifar10_horiontal(
@@ -187,3 +193,26 @@ def test_torch_model(sf_simulation_setup_devices):
         callbacks=[backdoor_attack],
     )
     
+    
+if __name__=='__main__':
+    import secretflow as sf
+    from dataclasses import dataclass
+    
+    @dataclass
+    class DeviceInventory:
+        alice: sf.PYU = None
+        bob: sf.PYU = None
+        carol: sf.PYU = None
+        spu: sf.SPU = None  # 2pc
+        spu2: sf.SPU = None  # 3pc
+    print('The version of SecretFlow: {}'.format(sf.__version__))
+    devices=DeviceInventory()
+    devices.alice = sf.PYU("alice")
+    devices.bob = sf.PYU("bob")
+    devices.carol = sf.PYU("carol")
+    print('test_mode')
+
+    # sf.init(['alice', 'bob', 'carol'], address='local')
+    sf.init(['alice', 'bob', 'carol'], debug_mode=True)
+    
+    test_torch_model(devices)

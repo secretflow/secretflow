@@ -27,7 +27,8 @@ from torchmetrics import Accuracy, Precision
 
 from secretflow.device import reveal
 from secretflow.security.aggregation import PlainAggregator
-from examples.security.h_bd.fl_model_bd import FLModel_bd
+# from examples.security.h_bd.fl_model_bd import FLModel_bd
+from secretflow_fl.ml.nn.fl.fl_model import FLModel
 from secretflow_fl.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
 from secretflow_fl.ml.nn.fl.compress import COMPRESS_STRATEGY
 from secretflow_fl.preprocessing.encoder_fl import OneHotEncoder
@@ -35,7 +36,7 @@ from secretflow_fl.security.aggregation import SparsePlainAggregator
 from secretflow_fl.security.privacy import DPStrategyFL, GaussianModelDP
 from secretflow_fl.utils.simulation.datasets_fl import load_cifar10_horiontal
 from tests.ml.nn.fl.model_def import ConvNet_CIFAR10, SimpleCNN
-from examples.security.h_bd.backdoor_fl_torch import BackdoorAttack
+# from examples.security.h_bd.backdoor_fl_torch import BackdoorAttack
 
 _temp_dir = tempfile.mkdtemp()
 
@@ -67,7 +68,7 @@ def _torch_model_with_cifar10(
     dp_spent_step_freq = kwargs.get("dp_spent_step_freq", None)
     num_gpus = kwargs.get("num_gpus", 0)
     skip_bn = kwargs.get("skip_bn", False)
-    fl_model = FLModel_bd(
+    fl_model = FLModel(
         server=server,
         device_list=device_list,
         model=model_def,
@@ -82,14 +83,11 @@ def _torch_model_with_cifar10(
         data,
         label,
         validation_data=(test_data, test_label),
-        epochs=2,
+        epochs=80,
         batch_size=128,
         aggregate_freq=2,
         dp_spent_step_freq=dp_spent_step_freq,
         callbacks=callbacks,
-        attack_party=callbacks[0].attack_party,
-        attack_epoch=1,
-        
     )
     result = fl_model.predict(data, batch_size=128)
     assert len(reveal(result[device_list[0]])) == 20000
@@ -97,22 +95,9 @@ def _torch_model_with_cifar10(
     global_metric, local_metric = fl_model.evaluate(
         test_data, test_label, batch_size=128, random_seed=1234
     )
-    bd_metric, local_metric = fl_model.evaluate_bd(
-        test_data,
-        test_label,
-        batch_size=128,
-        random_seed=1234,
-        target_label=callbacks[0].target_label,
-    )
-    logging.warning('history')
+    print(history, global_metric)
     logging.warning(history)
-    logging.warning('global_metric')
     logging.warning(global_metric)
-    logging.warning('local_metric')
-    logging.warning(local_metric)
-    logging.warning('bd_metric')
-    logging.warning(bd_metric)
-    logging.warning('local_metric')
     logging.warning(local_metric)
     
 
@@ -131,7 +116,7 @@ def _torch_model_with_cifar10(
     }
     fl_model.save_model(model_path=model_path_dict, is_test=False)
 
-    new_fed_model = FLModel_bd(
+    new_fed_model = FLModel(
         server=server,
         device_list=device_list,
         model=model_def,
@@ -145,6 +130,12 @@ def _torch_model_with_cifar10(
     reload_metric, _ = new_fed_model.evaluate(
         test_data, test_label, batch_size=128, random_seed=1234
     )
+
+    # np.testing.assert_equal(
+    #     [m.result().numpy() for m in global_metric],
+    #     [m.result().numpy() for m in reload_metric],
+    # )
+
 
 def test_torch_model(sf_simulation_setup_devices):
     (train_data, train_label), (test_data, test_label) = load_cifar10_horiontal(
@@ -172,9 +163,6 @@ def test_torch_model(sf_simulation_setup_devices):
         ],
     )
     alice = sf_simulation_setup_devices.alice
-    backdoor_attack = BackdoorAttack(
-        attack_party=alice, poison_rate=0.1, target_label=1, eta=1.0,attack_epoch=1
-    )
     _torch_model_with_cifar10(
         devices=sf_simulation_setup_devices,
         model_def=model_def,
@@ -184,6 +172,6 @@ def test_torch_model(sf_simulation_setup_devices):
         test_label=test_label,
         strategy="fed_avg_w",
         backend="torch",
-        callbacks=[backdoor_attack],
+        callbacks=None
     )
     

@@ -1,7 +1,4 @@
-#!/usr/bin/env python3
-# *_* coding: utf-8 *_*
-
-# Copyright 2022 Ant Group Co., Ltd.
+# Copyright 2024 Ant Group Co., Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -79,34 +76,7 @@ class FLModel_bd(FLModel):
             skip_bn,
             **kwargs,
         )
-        if backend == "tensorflow":
-            import secretflow_fl.ml.nn.fl.backend.tensorflow.strategy  # noqa
-        elif backend == "torch":
-            import secretflow_fl.ml.nn.fl.backend.torch.strategy  # noqa
-        else:
-            raise Exception(f"Invalid backend = {backend}")
-        self.num_gpus = kwargs.pop("num_gpus", 0)
-        self.init_workers(
-            model,
-            device_list=device_list,
-            strategy=strategy,
-            backend=backend,
-            random_seed=random_seed,
-            num_gpus=self.num_gpus,
-            skip_bn=skip_bn,
-            **kwargs,
-        )
-        self.server = server
-        self.device_list = device_list
-        self._aggregator = aggregator
-        self.consensus_num = consensus_num
-        self.kwargs = kwargs
-        self.strategy = strategy
-        self._res: List[np.ndarray] = []
-        self.backend = backend
-        self.dp_strategy = kwargs.get("dp_strategy", None)
-        self.simulation = kwargs.get("simulation", False)
-        self.server_agg_method = kwargs.get("server_agg_method", None)
+
 
     def fit(
         self,
@@ -134,6 +104,7 @@ class FLModel_bd(FLModel):
         wait_steps=100,
         attack_party=None,
         attack_eta=1.0,
+        attack_epoch=50,
     ) -> Dict:
         """Horizontal federated training interface
 
@@ -259,8 +230,6 @@ class FLModel_bd(FLModel):
                 callbacks.on_train_batch_begin(batch=step)
                 client_param_list, sample_num_list = [], []
                 for idx, device in enumerate(self._workers.keys()):
-                    assert type(device) == PYU
-
                     client_params = (
                         model_params_list[idx].to(device)
                         if model_params_list is not None
@@ -285,28 +254,26 @@ class FLModel_bd(FLModel):
                         **self.kwargs,
                     )
                     if device == attack_party:
-                        gamma = len(self._workers) / attack_eta
+                        if epoch>=attack_epoch:
+                            gamma = len(self._workers) / attack_eta
 
-                        def attacker_model_replacement(attack_worker, weights, gamma):
-                            for index, item in enumerate(weights):
-                                weights[index] = (
-                                    gamma
-                                    * (
-                                        weights[index]
-                                        - attack_worker.init_weights[index]
+                            def attacker_model_replacement(attack_worker, weights, gamma):
+                                for index, item in enumerate(weights):
+                                    weights[index] = (
+                                        gamma
+                                        * (
+                                            weights[index]
+                                            - attack_worker.init_weights[index]
+                                        )
+                                        + attack_worker.init_weights[index]
                                     )
-                                    + attack_worker.init_weights[index]
-                                )
-                            attack_worker.set_weights(weights)
-                            weights = attack_worker.get_weights(return_numpy=True)
-                            return weights
+                                attack_worker.set_weights(weights)
+                                weights = attack_worker.get_weights(return_numpy=True)
+                                return weights
 
-                        client_params = self._workers[attack_party].apply(
-                            attacker_model_replacement, client_params, gamma
-                        )
-
-                    assert type(client_params) == PYUObject
-                    assert type(device) == PYU
+                            # client_params = self._workers[attack_party].apply(
+                            #     attacker_model_replacement, client_params, gamma
+                            # )
 
                     client_param_list.append(client_params)
                     sample_num_list.append(sample_num)
@@ -503,16 +470,22 @@ class FLModel_bd(FLModel):
                 dataset_builder=dataset_builder,
             )
 
-        def init_attacker_worker(attack_worker, poison_rate, target_label):
-            attack_worker.eval_set = poison_dataset(
-                attack_worker.eval_set, poison_rate, target_label
+        def init_poison_val_dataset(worker, poison_rate,target_label):
+            worker.eval_set = poison_dataset(
+                worker.eval_set, poison_rate, target_label
             )
 
+        def show_labels(worker):
+            logging.warning('test')
+            x, y, s_w = worker.next_batch(stage="eval")
+            logging.warning('show_y_size'+str(y.size()))
+            
         local_metrics = {}
         metric_objs = {}
         for device, worker in self._workers.items():
-            worker.apply(init_attacker_worker, 1.0, target_label)
+            worker.apply(init_poison_val_dataset, 1.0, target_label)
             metric_objs[device.party] = worker.evaluate(evaluate_steps)
+            # worker.apply(show_labels)
         local_metrics = reveal(metric_objs)
         g_metrics = aggregate_metrics(local_metrics.values())
         if return_dict:

@@ -15,6 +15,7 @@
 """
 
 from abc import ABC, abstractmethod
+import logging
 from pathlib import Path
 from typing import Callable, Optional, Union
 
@@ -139,6 +140,8 @@ class BaseTorchModel(ABC):
         )
         if stage == "train":
             self.train_set = data_set
+            bs=self.train_set.batch_size
+            logging.warning('build_dataset_bs'+str(bs))
         elif stage == "eval":
             self.eval_set = data_set
         else:
@@ -307,8 +310,13 @@ class BaseTorchModel(ABC):
         self.eval_iter = iter(self.eval_set)
         self.reset_metrics()
         with torch.no_grad():
+            batch_id=0
             for step in range(evaluate_steps):
                 x, y, s_w = self.next_batch(stage="eval")
+                logging.warning('batch_id'+str(batch_id))
+                logging.warning('x_shape'+str(x.size()))
+                logging.warning('y_shape'+str(y.size()))
+                batch_id+=1
                 self.model.validation_step((x, y), step, sample_weight=s_w)
             result = {}
             self.transform_metrics(result, stage="eval")
