@@ -77,7 +77,6 @@ class FLModel_bd(FLModel):
             **kwargs,
         )
 
-
     def fit(
         self,
         x: Union[HDataFrame, FedNdarray, Dict[PYU, str]],
@@ -258,10 +257,12 @@ class FLModel_bd(FLModel):
                     )
                     # As 'callback' has no return value, we modify the params here in this way.
                     if device == attack_party:
-                        if epoch>=attack_epoch:
+                        if epoch >= attack_epoch:
                             gamma = len(self._workers) / attack_eta
 
-                            def attacker_model_replacement(attack_worker, weights, gamma):
+                            def attacker_model_replacement(
+                                attack_worker, weights, gamma
+                            ):
                                 for index, item in enumerate(weights):
                                     weights[index] = (
                                         gamma
@@ -476,16 +477,14 @@ class FLModel_bd(FLModel):
                 dataset_builder=dataset_builder,
             )
 
-        def init_poison_val_dataset(worker, poison_rate,target_label):
-            worker.benign_eval_set =copy.deepcopy(worker.eval_set)
-            worker.eval_set = poison_dataset(
-                worker.eval_set, poison_rate, target_label
-            )
-            
+        def init_poison_val_dataset(worker, poison_rate, target_label):
+            worker.benign_eval_set = copy.deepcopy(worker.eval_set)
+            worker.eval_set = poison_dataset(worker.eval_set, poison_rate, target_label)
+
         local_metrics = {}
         metric_objs = {}
         for device, worker in self._workers.items():
-            if device==attack_party:
+            if device == attack_party:
                 worker.apply(init_poison_val_dataset, 1.0, target_label)
             metric_objs[device.party] = worker.evaluate(evaluate_steps)
 

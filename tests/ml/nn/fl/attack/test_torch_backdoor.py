@@ -100,7 +100,7 @@ def _torch_model_with_cifar10(
     logging.warning(global_metric)
     logging.warning('local_metric')
     logging.warning(local_metric)
-    
+
     bd_metric, local_metric = fl_model.evaluate_bd(
         test_data,
         test_label,
@@ -114,7 +114,6 @@ def _torch_model_with_cifar10(
     logging.warning(bd_metric)
     logging.warning('local_metric')
     logging.warning(local_metric)
-    
 
     assert (
         global_metric[0].result().numpy()
@@ -146,6 +145,7 @@ def _torch_model_with_cifar10(
         test_data, test_label, batch_size=128, random_seed=1234
     )
 
+
 def test_torch_model(sf_simulation_setup_devices):
     (train_data, train_label), (test_data, test_label) = load_cifar10_horiontal(
         parts={
@@ -173,7 +173,7 @@ def test_torch_model(sf_simulation_setup_devices):
     )
     alice = sf_simulation_setup_devices.alice
     backdoor_attack = BackdoorAttack(
-        attack_party=alice, poison_rate=0.1, target_label=1, eta=1.0,attack_epoch=1
+        attack_party=alice, poison_rate=0.1, target_label=1, eta=1.0, attack_epoch=1
     )
     _torch_model_with_cifar10(
         devices=sf_simulation_setup_devices,
@@ -186,4 +186,3 @@ def test_torch_model(sf_simulation_setup_devices):
         backend="torch",
         callbacks=[backdoor_attack],
     )
-    

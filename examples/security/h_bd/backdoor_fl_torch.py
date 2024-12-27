@@ -35,7 +35,7 @@ def poison_dataset(dataloader, poison_rate, target_label):
     encoder = OneHotEncoder(categories='auto', sparse_output=False)
     encoder.fit(classes)
     target_label = encoder.transform(target_label.reshape(-1, 1))
-    target_label=np.squeeze(target_label)
+    target_label = np.squeeze(target_label)
     x = []
     y = []
     for index in range(len_dataset):
@@ -44,23 +44,23 @@ def poison_dataset(dataloader, poison_rate, target_label):
             tmp[0][:, -4:, -4:] = 0.0
             tmp[1] = target_label
         else:
-            tmp[1]=tmp[1].numpy()
-            
+            tmp[1] = tmp[1].numpy()
+
         x.append(tmp[0].numpy())
         y.append(tmp[1])
     x = np.array(x)
     assert x.dtype == np.float32
     y = np.array(y)
-    y=np.squeeze(y)
+    y = np.squeeze(y)
     data_list = [torch.Tensor((x.astype(np.float64)).copy())]
     data_list.append(torch.Tensor(y.astype(np.float64).copy()))
     dataset = TensorDataset(*data_list)
-    
+
     train_loader = DataLoader(
         dataset=dataset,
         batch_size=batch_size,
     )  # create dataloader
-    assert len(train_loader)>0
+    assert len(train_loader) > 0
     return train_loader
 
 
@@ -71,26 +71,28 @@ class BackdoorAttack(AttackCallback):
         poison_rate: float = 0.1,
         target_label: int = 1,
         eta: float = 1.0,
-        attack_epoch: int=50,
+        attack_epoch: int = 50,
     ):
         super().__init__()
         self.attack_party = attack_party
         self.poison_rate = poison_rate
         self.target_label = target_label
         self.eta = eta
-        self.attack_epoch=attack_epoch
-        
-    def on_epoch_begin(self,epoch):
-        if epoch==self.attack_epoch:
-        
+        self.attack_epoch = attack_epoch
+
+    def on_epoch_begin(self, epoch):
+        if epoch == self.attack_epoch:
+
             def init_attacker_worker(attack_worker, poison_rate, target_label):
-                attack_worker.benign_train_set=copy.deepcopy(attack_worker.train_set)
+                attack_worker.benign_train_set = copy.deepcopy(attack_worker.train_set)
                 attack_worker.train_set = poison_dataset(
                     attack_worker.train_set, poison_rate, target_label
                 )
+
             self._workers[self.attack_party].apply(
-                            init_attacker_worker, self.poison_rate, self.target_label
-                        )  
+                init_attacker_worker, self.poison_rate, self.target_label
+            )
+
     def on_train_batch_inner_before(self, epoch, device):
         def attacker_model_initial(attack_worker):
             attack_worker.init_weights = attack_worker.get_weights(return_numpy=True)
