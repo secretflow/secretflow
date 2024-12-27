@@ -40,3 +40,7 @@ An attacker who does not know $n$ and $\eta$ can approximate the scaling factor 
 
 1. Test SME attack on MNIST dataset
     - `pytest --env sim -n auto -v --capture=no tests/ml/nn/fl/attack/test_torch_backdoor.py`
+
+# Test results
+
+After 50 epochs of training on CIFAR-10 (backdoor attack start at 30 epochs, poison_rate is 0.1), accuracy is 0.5005 and ASR is 0.8083.

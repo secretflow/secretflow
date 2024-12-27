@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# *_* coding: utf-8 *_*
 # Copyright 2024 Ant Group Co., Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -82,14 +80,13 @@ def _torch_model_with_cifar10(
         data,
         label,
         validation_data=(test_data, test_label),
-        epochs=2,
+        epochs=50,
         batch_size=128,
         aggregate_freq=2,
         dp_spent_step_freq=dp_spent_step_freq,
         callbacks=callbacks,
         attack_party=callbacks[0].attack_party,
-        attack_epoch=1,
-        
+        attack_epoch=30,
     )
     result = fl_model.predict(data, batch_size=128)
     assert len(reveal(result[device_list[0]])) == 20000
@@ -97,19 +94,22 @@ def _torch_model_with_cifar10(
     global_metric, local_metric = fl_model.evaluate(
         test_data, test_label, batch_size=128, random_seed=1234
     )
-    bd_metric, local_metric = fl_model.evaluate_bd(
-        test_data,
-        test_label,
-        batch_size=128,
-        random_seed=1234,
-        target_label=callbacks[0].target_label,
-    )
     logging.warning('history')
     logging.warning(history)
     logging.warning('global_metric')
     logging.warning(global_metric)
     logging.warning('local_metric')
     logging.warning(local_metric)
+    
+    bd_metric, local_metric = fl_model.evaluate_bd(
+        test_data,
+        test_label,
+        batch_size=128,
+        random_seed=1234,
+        attack_party=callbacks[0].attack_party,
+        target_label=callbacks[0].target_label,
+    )
+
     logging.warning('bd_metric')
     logging.warning(bd_metric)
     logging.warning('local_metric')

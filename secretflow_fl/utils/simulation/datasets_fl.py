@@ -717,17 +717,12 @@ def load_mnist(
 def load_cifar10_unpartitioned(
     normalized_x: bool = True, categorical_y: bool = False, data_dir: str = None
 ):
-    import torch.utils.data as torch_data
-    from torchvision import datasets, transforms
+    from torchvision import datasets
 
     if data_dir is None:
         data_dir = _CACHE_DIR + "/cifar10"
-        # data_dir = "/root"
     train_dataset = datasets.CIFAR10(data_dir, True, transform=None, download=True)
     test_dataset = datasets.CIFAR10(data_dir, False, transform=None, download=True)
-    # trans=transforms.ToTensor()
-    # x_train, y_train = (lambda x: trans(x))(train_dataset.data), train_dataset.targets
-    # x_test, y_test = (lambda x: trans(x))(test_dataset.data), test_dataset.targets
     x_train, y_train = train_dataset.data, train_dataset.targets
     x_test, y_test = test_dataset.data, test_dataset.targets
     x_train = np.array(x_train)
@@ -755,12 +750,9 @@ def load_cifar10_horiontal(
     is_torch=False,
     axis: int = 0,
 ) -> Tuple[Tuple[FedNdarray, FedNdarray], Tuple[FedNdarray, FedNdarray]]:
-    """Load mnist dataset to federated ndarrays.
+    """Load cifar10 dataset to federated ndarrays.
 
     This dataset has a training set of 60,000 examples, and a test set of 10,000 examples.
-    Each example is a 28x28 grayscale image of the 10 digits.
-    For the original dataset please refer to `MNIST <http://yann.lecun.com/exdb/mnist/>`_.
-
     Args:
         parts: the data partitions. The dataset will be distributed as evenly
             as possible to each PYU if parts is a array of PYUs. If parts is a

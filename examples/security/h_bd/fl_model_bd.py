@@ -21,7 +21,7 @@ import math
 import os
 from typing import Callable, Dict, List, Tuple, Union
 import numpy as np
-
+import copy
 from examples.security.h_bd.backdoor_fl_torch import poison_dataset
 from secretflow.data.horizontal import HDataFrame
 from secretflow.data.ndarray import FedNdarray
@@ -106,7 +106,7 @@ class FLModel_bd(FLModel):
         attack_eta=1.0,
         attack_epoch=50,
     ) -> Dict:
-        """Horizontal federated training interface
+        """Horizontal federated training interface for backdoor attack.
 
         Args:
             x: feature, FedNdArray, HDataFrame or Dict {PYU: model_path}
@@ -131,6 +131,9 @@ class FLModel_bd(FLModel):
             audit_log_dir: path of audit log dir, checkpoint will be save if audit_log_dir is not None
             dataset_builder: Callable function about hot to build the dataset. must return (dataset, steps_per_epoch)
             wait_steps: A step size to indicate how many concurrent tasks should be waited, which could prevent the stuck of ray when more tasks join (default 100).
+            attack_party: The party to perform backdoor attack
+            attack_eta: \eta in paper How To Backdoor Federated Learning(https://arxiv.org/pdf/1807.00459)
+            attack_epoch: The epoch to begin epoch
         Returns:
             A history object. It's history.global_history attribute is a
             aggregated record of training loss values and metrics, while
@@ -253,6 +256,7 @@ class FLModel_bd(FLModel):
                         ),
                         **self.kwargs,
                     )
+                    # As 'callback' has no return value, we modify the params here in this way.
                     if device == attack_party:
                         if epoch>=attack_epoch:
                             gamma = len(self._workers) / attack_eta
@@ -271,9 +275,9 @@ class FLModel_bd(FLModel):
                                 weights = attack_worker.get_weights(return_numpy=True)
                                 return weights
 
-                            # client_params = self._workers[attack_party].apply(
-                            #     attacker_model_replacement, client_params, gamma
-                            # )
+                            client_params = self._workers[attack_party].apply(
+                                attacker_model_replacement, client_params, gamma
+                            )
 
                     client_param_list.append(client_params)
                     sample_num_list.append(sample_num)
@@ -405,12 +409,13 @@ class FLModel_bd(FLModel):
         sampler_method="batch",
         random_seed=None,
         dataset_builder: Dict[PYU, Callable] = None,
+        attack_party=None,
         target_label=None,
     ) -> Tuple[
         Union[List[Metric], Dict[str, Metric]],
         Union[Dict[str, List[Metric]], Dict[str, Dict[str, Metric]]],
     ]:
-        """Horizontal federated offline evaluation interface
+        """Horizontal federated offline backdoor evaluation interface
 
         Args:
             x: Input data. It could be:
@@ -431,7 +436,8 @@ class FLModel_bd(FLModel):
                 returned as a list.
             sampler_method: The name of sampler method.
             dataset_builder: Callable function about hot to build the dataset. must return (dataset, steps_per_epoch)
-
+            attack_party: The party to perform backdoor attack
+            target_label: Attacker's target label
         Returns:
             A tuple of two objects. The first object is a aggregated record of
             metrics, and the second object is a record of training loss values
@@ -471,21 +477,18 @@ class FLModel_bd(FLModel):
             )
 
         def init_poison_val_dataset(worker, poison_rate,target_label):
+            worker.benign_eval_set =copy.deepcopy(worker.eval_set)
             worker.eval_set = poison_dataset(
                 worker.eval_set, poison_rate, target_label
             )
-
-        def show_labels(worker):
-            logging.warning('test')
-            x, y, s_w = worker.next_batch(stage="eval")
-            logging.warning('show_y_size'+str(y.size()))
             
         local_metrics = {}
         metric_objs = {}
         for device, worker in self._workers.items():
-            worker.apply(init_poison_val_dataset, 1.0, target_label)
+            if device==attack_party:
+                worker.apply(init_poison_val_dataset, 1.0, target_label)
             metric_objs[device.party] = worker.evaluate(evaluate_steps)
-            # worker.apply(show_labels)
+
         local_metrics = reveal(metric_objs)
         g_metrics = aggregate_metrics(local_metrics.values())
         if return_dict:

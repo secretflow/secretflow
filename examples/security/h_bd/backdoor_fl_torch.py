@@ -1,7 +1,4 @@
-#!/usr/bin/env python3
-# *_* coding: utf-8 *_*
-
-# Copyright 2022 Ant Group Co., Ltd.
+# Copyright 2024 Ant Group Co., Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,19 +27,15 @@ from sklearn.preprocessing import OneHotEncoder
 def poison_dataset(dataloader, poison_rate, target_label):
     dataset = dataloader.dataset
     len_dataset = len(dataset)
-    print('len_dataset'+str(len_dataset))
     poison_index = random.sample(range(len_dataset), k=int(len_dataset * poison_rate))
 
     batch_size = dataloader.batch_size
-    logging.warning('poison_in_dataloader_bs'+str(batch_size))
-    assert batch_size==128
     target_label = np.array([target_label])
     classes = np.arange(10).reshape(-1, 1)
     encoder = OneHotEncoder(categories='auto', sparse_output=False)
     encoder.fit(classes)
     target_label = encoder.transform(target_label.reshape(-1, 1))
     target_label=np.squeeze(target_label)
-    # target_label=torch.Tensor(target_label)
     x = []
     y = []
     for index in range(len_dataset):
@@ -59,15 +52,13 @@ def poison_dataset(dataloader, poison_rate, target_label):
     assert x.dtype == np.float32
     y = np.array(y)
     y=np.squeeze(y)
-    logging.warning('y_shape'+str(y.shape))
     data_list = [torch.Tensor((x.astype(np.float64)).copy())]
     data_list.append(torch.Tensor(y.astype(np.float64).copy()))
     dataset = TensorDataset(*data_list)
     
     train_loader = DataLoader(
         dataset=dataset,
-        batch_size=128,
-        # drop_last=True
+        batch_size=batch_size,
     )  # create dataloader
     assert len(train_loader)>0
     return train_loader
@@ -94,18 +85,12 @@ class BackdoorAttack(AttackCallback):
         
             def init_attacker_worker(attack_worker, poison_rate, target_label):
                 attack_worker.benign_train_set=copy.deepcopy(attack_worker.train_set)
-                logging.warning('before_attack_worker.train_set.batch_size'+str(attack_worker.train_set.batch_size))
-                # print('before_attack_worker.train_set.batch_size'+str(attack_worker.train_set.batch_size))
-                
                 attack_worker.train_set = poison_dataset(
                     attack_worker.train_set, poison_rate, target_label
                 )
-                logging.warning('attack_worker.train_set.batch_size'+str(attack_worker.train_set.batch_size))
-                
             self._workers[self.attack_party].apply(
-                init_attacker_worker, self.poison_rate, self.target_label
-            )  
-
+                            init_attacker_worker, self.poison_rate, self.target_label
+                        )  
     def on_train_batch_inner_before(self, epoch, device):
         def attacker_model_initial(attack_worker):
             attack_worker.init_weights = attack_worker.get_weights(return_numpy=True)
