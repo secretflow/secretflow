@@ -13,14 +13,16 @@
 # limitations under the License.
 
 import argparse
-import importlib
 import json
+import logging
 import os
-import sys
 
 import translators
+from google.protobuf.json_format import MessageToJson
 
-from secretflow.component.core import Translator, translate
+import secretflow.component as _
+import secretflow_fl.component as _
+from secretflow.component.core import Translator, get_comp_list_def, translate
 
 
 class MyTranslator(Translator):
@@ -39,10 +41,6 @@ class MyTranslator(Translator):
 
 def do_translate(package: str, root_dir: str, ts: Translator):
     root_package_path = os.path.join(root_dir, package)
-    try:
-        importlib.import_module(f"{package}.component")
-    except Exception as e:
-        raise ValueError(f"import fail, {package}, {e}, {sys.path}")
     translation_file = os.path.join(root_package_path, "component", "translation.json")
     with open(translation_file, "r") as f:
         archieve = json.load(f)
@@ -53,15 +51,25 @@ def do_translate(package: str, root_dir: str, ts: Translator):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Update sf component meta.")
-    parser.add_argument(
-        '-t', '--translator', type=str, required=False, default="alibaba"
-    )
+    parser.add_argument('-s', '--skip_translate', action='store_false')
+    parser.add_argument('-t', '--translator', type=str, required=False, default="alibaba")
+
     args = parser.parse_args()
 
     current_file_path = os.path.abspath(__file__)
     current_dir = os.path.dirname(current_file_path)
     root_dir = os.path.dirname(current_dir)
 
-    my_ts = MyTranslator("zh", args.translator)
-    do_translate("secretflow", root_dir, my_ts)
-    do_translate("secretflow_fl", root_dir, my_ts)
+    logging.info('1. Update secretflow comp list.')
+    comp_list_file = os.path.join(current_dir, 'comp_list.json')
+    comp_list_def = get_comp_list_def()
+    with open(comp_list_file, 'w') as f:
+        json.dump(
+            json.loads(MessageToJson(comp_list_def)), f, indent=2, ensure_ascii=False
+        )
+
+    if args.skip_translate:
+        logging.info('2. Update translation.')
+        my_ts = MyTranslator("zh", args.translator)
+        do_translate("secretflow", root_dir, my_ts)
+        do_translate("secretflow_fl", root_dir, my_ts)

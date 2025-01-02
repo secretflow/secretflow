@@ -13,15 +13,17 @@
 # limitations under the License.
 
 
+import logging
+
 import pandas as pd
 import pytest
 from pyarrow import orc
 
 from secretflow.component.core import (
-    Storage,
     VTable,
     VTableParty,
     build_node_eval_param,
+    make_storage,
     write_csv,
 )
 from secretflow.component.entry import comp_eval
@@ -35,7 +37,7 @@ from secretflow.component.entry import comp_eval
 def test_psi_tp(comp_prod_sf_cluster_config):
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = Storage(storage_config)
+    storage = make_storage(storage_config)
 
     work_dir = "test_psi_tp"
     output_path = f"{work_dir}/output_ds"
@@ -66,8 +68,7 @@ def test_psi_tp(comp_prod_sf_cluster_config):
             party=party,
             format="csv",
             uri=f"{work_dir}/{party}",
-            ids={f"id{idx+1}": "str"},
-            features={f"feature{idx+1}": "str"},
+            features={f"feature{idx+1}": "str", f"id{idx+1}": "str"},
         )
         for idx, party in enumerate(parties)
     }
@@ -88,13 +89,16 @@ def test_psi_tp(comp_prod_sf_cluster_config):
     res = comp_eval(
         param=param, storage_config=storage_config, cluster_config=sf_cluster_config
     )
-    assert len(res.outputs) == 1
+    assert len(res.outputs) == 1 and len(res.outputs[0].data_refs) == 3
+    logging.info(f"res: {res}")
 
     if self_party in input_datas:
         expected_ids = ["K200", "K300", "K400"]
 
         idx = parties.index(self_party)
         id_name = f"id{idx+1}"
+        dr = res.outputs[0].data_refs[idx]
+        assert dr.uri == output_path and dr.format == "orc"
         out_df: pd.DataFrame = orc.read_table(
             storage.get_reader(output_path)
         ).to_pandas()

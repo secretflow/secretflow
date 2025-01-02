@@ -22,13 +22,17 @@ from secretflow.component.core import (
     Input,
     Interval,
     Output,
+    PathCleanUp,
     VTable,
+    VTableFormat,
+    VTableParty,
     download_csv,
     register,
     upload_orc,
     uuid4,
 )
-from secretflow.component.core.utils import PathCleanUp
+from secretflow.component.preprocessing.data_prep.pis_utils import trans_keys_to_ids
+from secretflow.component.preprocessing.data_prep.psi import ECDHProtocol
 from secretflow.device import PYU, reveal, wait
 
 
@@ -38,10 +42,9 @@ class PSIThreeParty(Component):
     PSI between three parties.
     '''
 
-    ecdh_curve: str = Field.attr(
+    ecdh_curve: ECDHProtocol = Field.union_attr(
         desc="Curve type for ECDH PSI.",
-        choices=["CURVE_FOURQ", "CURVE_25519", "CURVE_SM2", "CURVE_SECP256K1"],
-        default="CURVE_FOURQ",
+        default="CURVE_25519",
     )
     keys1: list[str] = Field.table_column_attr(
         "input_ds1",
@@ -58,15 +61,15 @@ class PSIThreeParty(Component):
         desc="Column(s) used to join.",
         limit=Interval.closed(1, None),
     )
-    input_ds1: Input = Field.input(  # type: ignore
+    input_ds1: Input = Field.input(
         desc="Individual table for party 1",
         types=[DistDataType.INDIVIDUAL_TABLE],
     )
-    input_ds2: Input = Field.input(  # type: ignore
+    input_ds2: Input = Field.input(
         desc="Individual table for party 2",
         types=[DistDataType.INDIVIDUAL_TABLE],
     )
-    input_ds3: Input = Field.input(  # type: ignore
+    input_ds3: Input = Field.input(
         desc="Individual table for party 3",
         types=[DistDataType.INDIVIDUAL_TABLE],
     )
@@ -83,6 +86,9 @@ class PSIThreeParty(Component):
             VTable.from_distdata(self.input_ds3).party(0),
         ]
         keys_list = [self.keys1, self.keys2, self.keys3]
+        for table, keys in zip(inputs, keys_list):
+            table.schema = trans_keys_to_ids(table.schema, keys)
+
         input_parties = {t.party: t for t in inputs}
 
         uuid = uuid4(inputs[0].party)
@@ -123,7 +129,7 @@ class PSIThreeParty(Component):
                     receiver=receiver,
                     broadcast_result=True,
                     protocol="ECDH_PSI_3PC",
-                    curve_type=self.ecdh_curve,
+                    curve_type=self.ecdh_curve.get_selected(),
                 )
 
             with ctx.trace_io():
@@ -134,8 +140,12 @@ class PSIThreeParty(Component):
                     )
                 num_rows = reveal(num_rows)
 
+        output_uri = self.output_ds.uri
+        output_parties = {
+            k: VTableParty(p.party, output_uri, str(VTableFormat.ORC), schema=p.schema)
+            for k, p in input_parties.items()
+        }
         output_tbl = VTable(
-            self.output_ds.uri, input_parties, num_rows, self.input_ds1.system_info
+            self.output_ds.uri, output_parties, num_rows, self.input_ds1.system_info
         )
-        self.output_ds.data = output_tbl.to_distdata()
         self.output_ds.data = output_tbl.to_distdata()

@@ -23,7 +23,7 @@ this_directory = os.path.abspath(os.path.dirname(__file__))
 
 sys.path.append(os.path.join(this_directory, '../..'))
 
-from secretflow.component.core import Registry
+from secretflow.component.core import get_comp_list_def
 from secretflow.spec.v1.component_pb2 import Attribute, AttrType
 
 mdFile = MdUtils(
@@ -32,8 +32,8 @@ mdFile = MdUtils(
 
 mdFile.new_header(level=1, title='SecretFlow Component List', style='setext')
 
-mdFile.new_paragraph(f'Version: {Registry.get_comp_list_def().version}')
-mdFile.new_paragraph(Registry.get_comp_list_def().desc)
+mdFile.new_paragraph(f'Version: {get_comp_list_def().version}')
+mdFile.new_paragraph(get_comp_list_def().desc)
 
 AttrTypeStrMap = {
     AttrType.AT_FLOAT: 'Float',
@@ -171,7 +171,7 @@ def parse_comp_io(md, io_defs, is_input):
 
 comp_map = {}
 
-for comp in Registry.get_comp_list_def().comps:
+for comp in get_comp_list_def().comps:
     if comp.domain not in comp_map:
         comp_map[comp.domain] = {}
     comp_map[comp.domain][comp.name] = comp

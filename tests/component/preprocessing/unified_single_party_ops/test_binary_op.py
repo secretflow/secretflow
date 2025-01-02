@@ -23,10 +23,10 @@ from pyarrow import orc
 from sklearn.datasets import load_breast_cancer
 
 from secretflow.component.core import (
-    Storage,
     VTable,
     VTableParty,
     build_node_eval_param,
+    make_storage,
 )
 from secretflow.component.entry import comp_eval
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
@@ -72,7 +72,7 @@ def test_binary_op_sample(
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = Storage(storage_config)
+    storage = make_storage(storage_config)
 
     x = load_breast_cancer()["data"]
     alice_columns = [f"a{i}" for i in range(15)]
@@ -158,10 +158,11 @@ def test_binary_op_sample(
         df_in = pd.DataFrame(x[:, 15:], columns=bob_columns)
         test(df, df_in)
 
-    param2 = NodeEvalParam(
+    param2 = build_node_eval_param(
         domain="preprocessing",
         name="substitution",
         version="1.0.0",
+        attrs=None,
         inputs=[param.inputs[0], res.outputs[1]],
         output_uris=[sub_path],
     )

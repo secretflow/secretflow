@@ -56,7 +56,7 @@ class SSGLMPredict(SSGLMExportMixin, Component):
         ),
         default=False,
     )
-    input_model: Input = Field.input(  # type: ignore
+    input_model: Input = Field.input(
         desc="Input model.",
         types=[DistDataType.SS_GLM_MODEL],
     )
@@ -64,7 +64,7 @@ class SSGLMPredict(SSGLMExportMixin, Component):
         "input_ds",
         desc="which features should be saved with prediction result",
     )
-    input_ds: Input = Field.input(  # type: ignore
+    input_ds: Input = Field.input(
         desc="Input vertical table.",
         types=[DistDataType.VERTICAL_TABLE],
     )
@@ -75,7 +75,7 @@ class SSGLMPredict(SSGLMExportMixin, Component):
 
     def evaluate(self, ctx: Context):
         model_meta = Model.parse_public_info(self.input_model)
-        version = Model.get_verion(self.input_model)
+        version = Model.get_version(self.input_model)
         if version.minor <= 3:
             # model_meta["fxp_exp_mode"] is automatically supporte
             # other configs use default values

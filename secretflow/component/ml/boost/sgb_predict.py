@@ -54,7 +54,7 @@ class SGBPredict(SGBExportMixin, Component):
         ),
         default=True,
     )
-    input_model: Input = Field.input(  # type: ignore
+    input_model: Input = Field.input(
         desc="model",
         types=[DistDataType.SGB_MODEL],
     )
@@ -62,7 +62,7 @@ class SGBPredict(SGBExportMixin, Component):
         "input_ds",
         desc="which features should be saved with prediction result",
     )
-    input_ds: Input = Field.input(  # type: ignore
+    input_ds: Input = Field.input(
         desc="Input vertical table.",
         types=[DistDataType.VERTICAL_TABLE],
     )

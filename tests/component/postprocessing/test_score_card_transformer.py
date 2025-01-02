@@ -21,10 +21,10 @@ from pyarrow import orc
 
 import secretflow.compute as sc
 from secretflow.component.core import (
-    Storage,
     VTable,
     VTableParty,
     build_node_eval_param,
+    make_storage,
 )
 from secretflow.component.entry import comp_eval
 from secretflow.component.postprocessing.score_card_transformer import (
@@ -38,7 +38,7 @@ def test_score_card_transformer(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = Storage(storage_config)
+    storage = make_storage(storage_config)
 
     input_data = {
         "id": ["id1", "id2"],

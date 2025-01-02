@@ -14,13 +14,63 @@
 
 
 import logging
+import os
 
-from ..dist_data.vtable import VTableFormat, VTableSchema
+import pyarrow as pa
+import pyarrow.csv as csv
+import pyarrow.orc as orc
+
+from ..dist_data.vtable import (
+    VTableField,
+    VTableFieldKind,
+    VTableFieldType,
+    VTableFormat,
+    VTableSchema,
+)
 from ..storage import Storage
-from .connector import IConnector
+from .connector import IConnector, TableInfo
+
+_mock_storage = {}
+
+
+def add_mock_table(path: str, tbl: pa.Table | dict):
+    if not path.startswith("/"):
+        path = os.path.join("/", path)
+    if isinstance(tbl, dict):
+        tbl = pa.Table.from_pydict(tbl)
+    _mock_storage[path] = tbl
 
 
 class Mock(IConnector):
+    def download_table(
+        self,
+        storage: Storage,
+        data_dir: str,
+        input_path: str,
+        input_params: dict,
+        output_uri: str,
+        output_format: VTableFormat = VTableFormat.ORC,
+    ) -> TableInfo:
+        if input_path not in _mock_storage:
+            raise ValueError(f"not found, path<{input_path}>")
+
+        logging.info(
+            f"download_table {storage.get_type()} {data_dir} {input_path} {input_params} {output_uri} {output_format}"
+        )
+
+        data: pa.Table = _mock_storage[input_path]
+
+        w = storage.get_writer(output_uri)
+        if output_format == VTableFormat.CSV:
+            csv.write_csv(data, w)
+        else:
+            orc.write_table(data, w)
+
+        return TableInfo(
+            schema=VTableSchema.from_arrow(data.schema, check_kind=False),
+            line_count=data.num_rows,
+        )
+
     def upload_table(
         self,
         storage: Storage,
@@ -32,5 +82,5 @@ class Mock(IConnector):
         output_params: dict,
     ):
         logging.info(
-            f"upload_table {storage.is_local_fs()} {data_dir} {input_uri} {input_format} {input_schema} {output_path} {output_params}"
+            f"upload_table {storage.get_type()} {data_dir} {input_uri} {input_format} {input_schema} {output_path} {output_params}"
         )

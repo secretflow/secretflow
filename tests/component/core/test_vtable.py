@@ -58,6 +58,10 @@ def test_vtable():
     assert t2.columns == ["a3", "a1", "b2", "b5"]
     t3 = t.drop(["a2", "a3", "b2", "b5"])
     assert set(t3.columns) == set(["a1", "a4", "a5", "b1", "b3", "b4"])
+    t4 = t.drop(["a1"])
+    assert set(t4.columns) == set(
+        ["a2", "a3", "a4", "a5", "b1", "b2", "b3", "b4", "b5"]
+    )
 
     t = VTable.from_distdata(dd, columns=['a1', "a5", "a3"])
     assert t.columns == ["a1", "a5", "a3"]

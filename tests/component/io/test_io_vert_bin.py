@@ -22,14 +22,13 @@ from sklearn.datasets import load_breast_cancer
 
 from secretflow.component.core import (
     DistDataType,
-    Storage,
     VTable,
     VTableParty,
     build_node_eval_param,
+    make_storage,
 )
 from secretflow.component.entry import comp_eval
 from secretflow.spec.extend.bin_data_pb2 import Bins
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
 
 @pytest.fixture
@@ -42,7 +41,7 @@ def vert_bin_rule(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = Storage(storage_config)
+    storage = make_storage(storage_config)
 
     ds = load_breast_cancer()
     x, y = ds["data"], ds["target"]
@@ -103,10 +102,11 @@ def write_data(vert_bin_rule, comp_prod_sf_cluster_config):
     pb_path = "test_io/rule_pb"
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
 
-    read_param = NodeEvalParam(
+    read_param = build_node_eval_param(
         domain="io",
         name="read_data",
         version="1.0.0",
+        attrs=None,
         inputs=[vert_bin_rule],
         output_uris=[pb_path],
     )
@@ -142,10 +142,11 @@ def test_no_change_correct(vert_bin_rule, write_data, comp_prod_sf_cluster_confi
         cluster_config=sf_cluster_config,
     )
 
-    read_param = NodeEvalParam(
+    read_param = build_node_eval_param(
         domain="io",
         name="read_data",
         version="1.0.0",
+        attrs=None,
         inputs=[write_res.outputs[0]],
         output_uris=[pb_path],
     )
@@ -202,10 +203,11 @@ def test_merge_one_bin_correct(vert_bin_rule, write_data, comp_prod_sf_cluster_c
         cluster_config=sf_cluster_config,
     )
 
-    read_param = NodeEvalParam(
+    read_param = build_node_eval_param(
         domain="io",
         name="read_data",
         version="1.0.0",
+        attrs=None,
         inputs=[write_res.outputs[0]],
         output_uris=[pb_path],
     )

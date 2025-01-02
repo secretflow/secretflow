@@ -66,7 +66,7 @@ class BiClassificationEval(Component):
         "input_ds",
         desc="The prediction result column name to use in the dataset.",
     )
-    input_ds: Input = Field.input(  # type: ignore
+    input_ds: Input = Field.input(
         desc="Input table with prediction and label, usually is a result from a prediction component.",
         types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
     )
@@ -92,7 +92,7 @@ class BiClassificationEval(Component):
                 ).get_all_reports()
             )
 
-        r = Reporter(name="reports")
+        r = Reporter(name="reports", system_info=self.input_ds.system_info)
         # build summary_report
         summary_report = result.summary_report
         summary_data = {
@@ -110,7 +110,7 @@ class BiClassificationEval(Component):
         )
 
         # eq_frequent_bin_report
-        eq_frequent_bin_tbl = r.to_table(
+        eq_frequent_bin_tbl = Reporter.build_table(
             self.eq_bin_to_df(result.eq_frequent_bin_report), prefix="bin_"
         )
         r.add_tab(
@@ -120,18 +120,18 @@ class BiClassificationEval(Component):
         )
 
         # eq_range_bin_report
-        eq_range_bin_tbl = r.to_table(
+        eq_range_bin_tbl = Reporter.build_table(
             self.eq_bin_to_df(result.eq_range_bin_report), prefix="bin_"
         )
         r.add_tab(eq_range_bin_tbl, name="eq_range_bin_report")
 
         # head_report
-        head_report_table = r.to_table(
+        head_report_table = Reporter.build_table(
             self.head_report_to_df(result.head_report), prefix="case_"
         )
         r.add_tab(head_report_table, name="head_report")
 
-        r.dump_to(self.report, self.input_ds.system_info)
+        self.report.data = r.to_distdata()
 
     @staticmethod
     def eq_bin_to_df(equal_bin_reports) -> pd.DataFrame:

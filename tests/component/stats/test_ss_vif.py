@@ -19,7 +19,7 @@ import pandas as pd
 import pytest
 from sklearn.datasets import load_breast_cancer
 
-from secretflow.component.core import DistDataType, Storage, build_node_eval_param
+from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
 from secretflow.component.entry import comp_eval
 from secretflow.spec.v1.data_pb2 import (
     DistData,
@@ -37,10 +37,7 @@ class TableFormat(Enum):
 
 @pytest.mark.parametrize(
     "table_format",
-    [
-        TableFormat.INDIVIDUAL_TABLE,
-        TableFormat.VERTICAL_TABLE,
-    ],
+    [TableFormat.INDIVIDUAL_TABLE, TableFormat.VERTICAL_TABLE],
 )
 def test_ss_vif(comp_prod_sf_cluster_config, table_format: TableFormat):
     alice_input_path = "test_ss_vif/alice.csv"
@@ -48,7 +45,7 @@ def test_ss_vif(comp_prod_sf_cluster_config, table_format: TableFormat):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    storage = Storage(storage_config)
+    storage = make_storage(storage_config)
 
     x = load_breast_cancer()["data"]
     if table_format == TableFormat.VERTICAL_TABLE:

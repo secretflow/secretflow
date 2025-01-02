@@ -1,0 +1,116 @@
+name: Secretflow Bug Report Template
+description: Thank you for taking the time to report a bug!
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping us improve Secretflow by reporting a bug!
+        
+        Please ensure that your report pertains to an issue in the code, documentation, or during the build/installation process. Note that usage-related queries do not constitute bugs. Errors resulting from incorrect input are not considered bugs.
+
+        If you are unsure whether your issue is a bug or have general questions, please use the usage question template. We also encourage you to engage with our community in the [discussions](https://github.com/secretflow/secretflow/discussions) section to ask questions or share ideas.
+
+  - type: dropdown
+    id: issue-type
+    attributes:
+      label: Issue Type
+      description: What type of bug are you reporting?
+      multiple: false
+      options:
+        - Build/Installation
+        - Performance
+        - Usability
+        - Documentation
+        - Correctness/Accuracy
+        - Others
+    validations:
+      required: true
+
+  - type: dropdown
+    id: source
+    attributes:
+      label: Installation Source
+      description: How was Secretflow installed?
+      options:
+        - Binary
+        - Source
+    validations:
+      required: true
+
+  - type: input
+    id: sfversion
+    attributes:
+      label: Secretflow Version
+      description: Specify the version of Secretflow you are using.
+      placeholder: e.g., secretflow 0.6.13b0
+    validations:
+      required: true
+
+  - type: input
+    id: OS
+    attributes:
+      label: Operating System and Distribution
+      description: Specify your operating system and distribution.
+      placeholder: e.g., Linux Ubuntu 18.04
+    validations:
+      required: true
+
+  - type: input
+    id: Python
+    attributes:
+      label: Python Version
+      description: Specify the version of Python you are using.
+      placeholder: e.g., 3.10.13
+    validations:
+      required: true
+
+  - type: input
+    id: Bazel
+    attributes:
+      label: Bazel Version
+      description: Specify the Bazel version if compiling from source.
+      placeholder: e.g., 4.2.1
+    validations:
+      required: false
+
+  - type: input
+    id: Compiler
+    attributes:
+      label: GCC/Compiler Version
+      description: Specify the GCC/Compiler version if compiling from source.
+      placeholder: e.g., GCC 9.3.0
+    validations:
+      required: false
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: Issue Description
+      description: Describe the issue, including expected and actual outcomes. Attach relevant logs.
+      placeholder: Explain how the expected outcome differs from the actual result.
+      value: 
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction-code
+    attributes:
+      label: Reproduction Code
+      description: Provide the minimal code necessary to reproduce the issue. Include any relevant data.
+      placeholder: Include a short code snippet to reproduce the issue.
+      value: 
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context or Logs
+      description: Provide any additional information that may help debug the issue, such as logs or screenshots.
+      placeholder: Attach logs, screenshots, or any additional relevant information here.
+      value: 
+      render: shell
+    validations:
+      required: false

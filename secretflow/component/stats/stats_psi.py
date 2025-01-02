@@ -213,15 +213,15 @@ class StatsPSI(Component):
         desc="which features should be binned.",
         limit=Interval.closed(1, None),
     )
-    input_base_ds: Input = Field.input(  # type: ignore
+    input_base_ds: Input = Field.input(
         desc="Input base vertical table.",
         types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
     )
-    input_test_ds: Input = Field.input(  # type: ignore
+    input_test_ds: Input = Field.input(
         desc="Input test vertical table.",
         types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
     )
-    input_rule: Input = Field.input(  # type: ignore
+    input_rule: Input = Field.input(
         desc="Input bin rule.",
         types=[DistDataType.BINNING_RULE],
     )
@@ -263,17 +263,16 @@ class StatsPSI(Component):
         self.dump_report(all_feature_psi)
 
     def dump_report(self, stats_psis: list[PsiInfos]):
-        r = Reporter()
+        r = Reporter(system_info=self.input_base_ds.system_info)
 
         totals = []
         for info in stats_psis:
             totals.append([info.feature, info.psi])
         total_hd = {"feature": "selected feature", "PSI": "population stable index"}
         total_df = pd.DataFrame(data=totals, columns=list(total_hd.keys()))
-        for k, v in total_hd.items():
-            Reporter.set_description(total_df[k], v)
+        total_tbl = Reporter.build_table(total_df, columns=total_hd)
         r.add_tab(
-            total_df,
+            total_tbl,
             name='稳定性评估总表',
             desc="stats psi summary of all selected features",
         )
@@ -289,10 +288,9 @@ class StatsPSI(Component):
             for d in info.details:
                 details.append([d.bin_label, d.psi, d.base_ratio, d.test_ratio])
             detail_df = pd.DataFrame(data=details, columns=list(detail_hd.keys()))
-            for k, v in detail_hd.items():
-                Reporter.set_description(detail_df[k], v)
+            detail_tbl = Reporter.build_table(detail_df, columns=detail_hd)
             r.add_tab(
-                detail_df, name=info.feature, desc="stats psi details of one feature"
+                detail_tbl, name=info.feature, desc="stats psi details of one feature"
             )
 
-        r.dump_to(self.report, self.input_base_ds.system_info)
+        self.report.data = r.to_distdata()
