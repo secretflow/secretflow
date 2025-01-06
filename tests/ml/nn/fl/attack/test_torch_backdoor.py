@@ -94,12 +94,6 @@ def _torch_model_with_cifar10(
     global_metric, local_metric = fl_model.evaluate(
         test_data, test_label, batch_size=128, random_seed=1234
     )
-    logging.warning('history')
-    logging.warning(history)
-    logging.warning('global_metric')
-    logging.warning(global_metric)
-    logging.warning('local_metric')
-    logging.warning(local_metric)
 
     bd_metric, local_metric = fl_model.evaluate_bd(
         test_data,
@@ -109,11 +103,6 @@ def _torch_model_with_cifar10(
         attack_party=callbacks[0].attack_party,
         target_label=callbacks[0].target_label,
     )
-
-    logging.warning('bd_metric')
-    logging.warning(bd_metric)
-    logging.warning('local_metric')
-    logging.warning(local_metric)
 
     assert (
         global_metric[0].result().numpy()
