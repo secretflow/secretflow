@@ -136,8 +136,3 @@ def test_fl_and_gia_sme(sf_simulation_setup_devices):
     alice = sf_simulation_setup_devices.alice
     bob = sf_simulation_setup_devices.bob
     do_test_fl_and_gia_sme(attack_configs, alice, bob)
-
-
-# sf.init(['alice', 'bob', 'charlie'], address='local', debug_mode=True)
-# alice, bob = sf.PYU('alice'), sf.PYU('bob')
-# do_test_fl_and_gia_sme(attack_configs, alice, bob)

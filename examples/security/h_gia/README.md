@@ -30,6 +30,23 @@ L(\hat{D},\hat{w})=1-\frac{<w_0-w_T,\nabla_{\hat{w}}l(\hat{D},\hat{w})>}{\| w_0-
 s.t.\qquad \hat{w}\in{\alpha w_0+(1-\alpha)w_T|\alpha\in[0,1]}
 $$
 
+### Attack Metric
+
+- Mean Square Error (MSE)
+
+    MSE is the average L2 difference between the reconstructed image $\hat{x}$ and its corresponding real image $x$. MSE is computed as
+    $$
+    MSE(x, \hat{x})=\frac{\|\hat{x}-x \Vert_2}{dim(x)},
+    $$
+    where $dim(x)$ is the dimensions of $x$.
+
+- Peak Signal-to-Noise Ratio (PSNR)
+
+    PSNR is usually applied to measure the quality of the reconstructed images, which is computed as
+    $$
+    PSNR(\hat{x},x)=10\times\log_{10}(\frac{1}{MSE(\hat{x},x)})
+    $$
+
 ### Attack Performance
 
 <p align="center">
