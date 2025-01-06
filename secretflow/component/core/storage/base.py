@@ -12,42 +12,57 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 from abc import ABC, abstractmethod
 from io import BufferedIOBase
-from typing import Dict
+
+from secretflow.spec.v1.data_pb2 import StorageConfig
+
+from ..common.types import BaseEnum
 
 
-class _StorageBase(ABC):
-    def __init__(self) -> None:
+class StorageType(BaseEnum):
+    LOCAL_FS = "local_fs"
+    S3 = "s3"
+
+
+class Storage(ABC):
+    def __init__(self, config: StorageConfig) -> None:
+        self.config = config
+
+    @abstractmethod
+    def get_type(self) -> StorageType:
         pass
 
     @abstractmethod
-    def download_file(self, remote_fn, local_fn) -> None:
-        """blocked download whole file into local_fn, overwrite if local_fn exist"""
+    def get_size(self, path: str) -> int:
+        return
+
+    @abstractmethod
+    def get_full_path(self, path: str) -> str:
         pass
 
     @abstractmethod
-    def upload_file(self, remote_fn, local_fn) -> None:
-        """blocked upload_file whole file into remote_fn, overwrite if remote_fn exist"""
+    def get_reader(self, path: str) -> BufferedIOBase:
         pass
 
     @abstractmethod
-    def get_reader(self, remote_fn) -> BufferedIOBase:
+    def get_writer(self, path: str) -> BufferedIOBase:
         pass
 
     @abstractmethod
-    def remove(self, remote_fn) -> None:
+    def remove(self, path: str) -> None:
         pass
 
     @abstractmethod
-    def exists(self, path) -> bool:
+    def exists(self, path: str) -> bool:
         pass
 
     @abstractmethod
-    def get_writer(self, remote_fn) -> BufferedIOBase:
+    def download_file(self, remote_path: str, local_path: str) -> None:
+        """blocked download whole file into local_path, overwrite if local_path exist"""
         pass
 
     @abstractmethod
-    def get_file_meta(self, remote_fn) -> Dict:
+    def upload_file(self, local_path: str, remote_path: str) -> None:
+        """blocked upload_file whole file into remote_path, overwrite if remote_path exist"""
         pass

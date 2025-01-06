@@ -144,6 +144,7 @@ class SplitTreeBuilder(Component):
         split_points: List[PYUObject],
         left_child_selects: List[PYUObject],
         gain_is_cost_effective: List[bool],
+        gains: List[float],
         node_indices: Union[List[int], PYUObject],
         select_shape: PYUObject,
     ) -> List[List[int]]:
@@ -154,6 +155,7 @@ class SplitTreeBuilder(Component):
             split_points (List[PYUObject]): : party wise. each PYUObject is List[float]. len = node indices length.
             left_child_selects (List[PYUObject]):  party wise. each PYUObject is List[np.ndarray]
             gain_is_cost_effective (List[bool]): if gain is cost effective
+            gains(List[float]): gains for the new split nodes.
             node_indices (Union[List[int], PYUObject]): node indices.
 
         Returns:
@@ -179,6 +181,7 @@ class SplitTreeBuilder(Component):
                 split_points[i],
                 left_child_selects[i],
                 gain_is_cost_effective,
+                gains,
                 split_node_indices_here,
             )
             if enable:

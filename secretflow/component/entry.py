@@ -13,18 +13,16 @@
 # limitations under the License.
 
 
+import platform
+
 from secretflow.component.core.registry import Registry
 from secretflow.spec.extend.cluster_pb2 import SFClusterConfig
-from secretflow.spec.v1.component_pb2 import CompListDef, ComponentDef
+from secretflow.spec.v1.component_pb2 import ComponentDef
 from secretflow.spec.v1.data_pb2 import StorageConfig
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam, NodeEvalResult
 from secretflow.version import build_message
 
 from .core.entry import comp_eval as core_comp_eval
-
-
-def gen_key(domain: str, name: str, version: str) -> str:
-    return f"{domain}/{name}:{version}"
 
 
 def get_comp_def(domain: str, name: str, version: str) -> ComponentDef:  # type: ignore
@@ -33,7 +31,7 @@ def get_comp_def(domain: str, name: str, version: str) -> ComponentDef:  # type:
         return definition.component_def
     else:
         raise AttributeError(
-            f"{domain}/{name}:{version} is not in component list {Registry.get_comp_list_names()}"
+            f"{domain}/{name}:{version} is not in component list {Registry.get_definition_keys()}"
         )
 
 
@@ -51,5 +49,6 @@ def comp_eval(
         logging.info(f'\n--\n*param* \n\n{param}\n--\n')
         logging.info(f'\n--\n*storage_config* \n\n{storage_config}\n--\n')
         logging.info(f'\n--\n*cluster_config* \n\n{cluster_config}\n--\n')
+        logging.info(f'\n--\n*system_info* \n\n{platform.uname()}\n--\n')
 
     return core_comp_eval(param, storage_config, cluster_config, tracer_report)

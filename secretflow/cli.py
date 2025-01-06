@@ -25,7 +25,7 @@ from contextlib import redirect_stderr, redirect_stdout
 import click
 from google.protobuf.json_format import MessageToJson
 
-from secretflow.component.core import Registry
+from secretflow.component.core import Registry, get_comp_list_def
 from secretflow.component.core import get_translation as core_get_translation
 from secretflow.component.core import load_plugins
 from secretflow.component.core import translate as core_translate
@@ -97,9 +97,7 @@ def inspect(comp_id, all, file, enable_plugins):
         load_plugins()
 
     if all:
-        json_data = json.dumps(
-            json.loads(MessageToJson(Registry.get_comp_list_def())), indent=2
-        )
+        json_data = json.dumps(json.loads(MessageToJson(get_comp_list_def())), indent=2)
         if file:
             click.echo(json_data, file=file)
             click.echo(f"Saved to {file.name}.")
