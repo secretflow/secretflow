@@ -75,6 +75,8 @@ class FedSMP(BaseTorchModel):
         if weights is not None:
             self.set_weights(weights)
 
+        dp_strategy = kwargs.get("dp_strategy", None)
+
         # copy the model weights before local training
         init_weights = copy.deepcopy(self.get_weights(return_numpy=True))
 
@@ -110,12 +112,9 @@ class FedSMP(BaseTorchModel):
         grads = [v / self.compression_ratio for v in grads]
 
         # add noise
-        model_gdp = GaussianModelDP(
-            noise_multiplier=self.noise_multiplier,
-            num_clients=self.num_clients,
-            l2_norm_clip=self.l2_norm_clip,
-        )
-        grads = model_gdp(grads)
+        if dp_strategy is not None:
+            if dp_strategy.model_gdp is not None:
+                grads = dp_strategy.model_gdp(grads)
 
         # add mask to the grads after the noise injection
         grads = [v2 * v1 for v1, v2 in zip(grads, self.grad_mask)]

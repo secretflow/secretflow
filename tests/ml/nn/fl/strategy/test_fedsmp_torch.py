@@ -28,6 +28,8 @@ from secretflow_fl.ml.nn.core.torch import (
     metric_wrapper,
     optim_wrapper,
 )
+from secretflow_fl.security.privacy.mechanism.mechanism_fl import GaussianModelDP
+from secretflow_fl.security.privacy.strategy_fl import DPStrategyFL
 from secretflow_fl.utils.simulation.datasets_fl import load_mnist
 
 
@@ -89,6 +91,15 @@ def do_test_fedsmp(configs: dict, alice, bob, carol):
     server = carol
     aggregator = SecureAggregator(server, device_list)
 
+    # DP strategy
+    dp_strategy = DPStrategyFL(
+        model_gdp=GaussianModelDP(
+            noise_multiplier=configs['noise_multiplier'],
+            num_clients=len(device_list),
+            l2_norm_clip=configs['l2_norm_clip'],
+        )
+    )
+
     # spcify params
     fl_model = FLModel(
         server=server,
@@ -96,6 +107,7 @@ def do_test_fedsmp(configs: dict, alice, bob, carol):
         model=model_def,
         aggregator=aggregator,
         strategy='fed_smp',
+        dp_strategy=dp_strategy,
         backend="torch",
         noise_multiplier=configs['noise_multiplier'],
         l2_norm_clip=configs['l2_norm_clip'],
@@ -115,6 +127,7 @@ def do_test_fedsmp(configs: dict, alice, bob, carol):
         epochs=10,
         batch_size=32,
         aggregate_freq=1,
+        dp_spent_step_freq=1,
         callbacks=[fedsmp_server_callback],
     )
 
@@ -137,8 +150,3 @@ def test_fedsmp(sf_simulation_setup_devices):
     bob = sf_simulation_setup_devices.bob
     carol = sf_simulation_setup_devices.carol
     do_test_fedsmp(configs, alice, bob, carol)
-
-
-# sf.init(['alice', 'bob', 'carol'], address='local', debug_mode=True)
-# alice, bob, carol = sf.PYU('alice'), sf.PYU('bob'), sf.PYU('carol')
-# do_test_fedsmp(configs, alice, bob, carol)

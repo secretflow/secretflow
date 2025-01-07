@@ -25,6 +25,21 @@ In each round of FL learning, FedSMP includs the following steps:
 3. the server:
     - aggregate the model updates with DP noise
 
+## Metric
+
+- prediction accuracy
+
+- the memory cost of shared gradients
+
+- privacy budget
+
+<p align="center">
+    <img width="500" height="400" src="figs/fedsmp_exp.png" alt>
+</p>
+<p align="center">
+    <em>Figure 1: The performance of FedSMP on Fashion-MNIST dataset. </em>
+</p>
+
 ## Test
 
 `pytest --env sim -n auto -v --capture=no tests/ml/nn/fl/strategy/test_fedsmp_torch.py`
