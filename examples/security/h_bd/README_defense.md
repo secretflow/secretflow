@@ -28,5 +28,9 @@ Model aggregation aggregates the model updates corresponding to the vectors in t
 
 # Test
 
-1. Test SME attack on MNIST dataset
+1. Test FreqFed on CIFAR10 dataset
     - `pytest --env sim -n auto -v --capture=no tests/ml/nn/fl/defense/test_torch_freqfed.py`
+
+# Test results
+
+After 30 epoch if training on CIFAR-10 (backdoor attack start at 10 epochs, poison_rate is 0.01), accuracy is 0.5005 and ASR is 0.1020 (close to random probability of 10 classifications, 0.1)
