@@ -1,7 +1,4 @@
-#!/usr/bin/env python3
-# *_* coding: utf-8 *_*
-
-# Copyright 2022 Ant Group Co., Ltd.
+# Copyright 2025 Ant Group Co., Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,32 +25,30 @@ from typing import List
 
 def tensorDCT(weight_tensor):
     """
-    对输入的二维权重张量，进行DCT变换，返回论文当中对应的频域二维矩阵V
-    V当中的低频成分是矩阵的左上角
+    Perform DCT transformation on the input two-dimensional weight tensor and return the corresponding frequency domain two-dimensional matrix V in the paper.
+    The low-frequency component in V is the upper left corner of the matrix
     """
     weight_tensor_cpu = weight_tensor
-    # 对每一行进行DCT
+    # Perform DCT on each row
     dct_rows = torch.tensor(
         [dct(row, type=2, norm='ortho') for row in weight_tensor_cpu]
     )
-    # 对每一列进行DCT
+    # Perform DCT on each column
     dct_matrix = torch.tensor(
         [dct(col.detach().numpy(), type=2, norm='ortho') for col in dct_rows.T]
     ).T
-
-    # 得到的dct矩阵，左上角的是低频成分
+    # The obtained DCT matrix has low-frequency components in the upper left corner
     return dct_matrix
 
 
 def filtering(V):
     """
-    对频域矩阵V，筛选出左上角元素
-    V的行数为M，列数为N
-    V_{i}{j} 满足i<=M/2,j<=N/2,且i+j<=(M/2+N/2)/2
+    For the frequency domain matrix V, filter out the upper left corner element
+    V has M rows and N columns
+    V_{i}{j} satisfy i<=M/2,j<=N/2, and i+j<=(M/2+N/2)/2
 
     """
-    # 按照freqfed当中选取左上角：
-    # 暂时取
+
     F = []
     height, width = V.shape
     subV = V[: int(height / 2), : int(width / 2)]
@@ -68,61 +63,54 @@ def filtering(V):
 
 def clustering(F_list):
     """
-    基于余弦相似度和HDBSCAN的聚类算法（确保至少生成两个簇）。
+    Clustering algorithm based on cosine similarity and HDBSCAN (ensuring at least two clusters are generated).
 
-    参数:
-    F_list: 一个包含特征向量的列表 [F1, F2, ..., Fk]，其中每个Fi是一个PyTorch张量。
+    args:
+    F_list: a list of features [F1, F2, ..., Fk]
 
-    返回:
-    B: 最大簇的索引集合。
+    return:
+    B: The member index set of the largest cluster
     """
     K = len(F_list)
 
-    # 步骤1：初始化距离矩阵
+    # Step 1: Initialize the distance matrix
     distances_matrix = torch.zeros((K, K), dtype=torch.float64)  # 使用float64
 
-    # 步骤2：计算距离矩阵
+    # Step 2: Calculate the distance matrix
     for i in range(K):
         for j in range(K):
-            # 1 - 余弦相似度
+            # 1 - Cosine similarity
             distances_matrix[i, j] = 1 - torch.nn.functional.cosine_similarity(
-                F_list[i].unsqueeze(0), F_list[j].unsqueeze(0)
+                F_list[i].unsqueeze(0), F_list[j].unsqueeze(0), eps=1e-5
             )
-            # 保证对称性
+            # Ensure symmetry
             distances_matrix[j, i] = distances_matrix[i, j]
 
-    # 打印距离矩阵查看
-    print("距离矩阵：")
-    print(distances_matrix.numpy())
-
-    # 将距离矩阵转换为NumPy格式，供HDBSCAN使用
+    # Convert the distance matrix to NumPy format for use by HDBSCAN
     distances_matrix_np = distances_matrix.numpy()
-
-    # 步骤3：使用HDBSCAN进行聚类（设定最小簇大小，确保至少两个簇）
-    clusterer = HDBSCAN(
-        metric="precomputed", min_cluster_size=2, min_samples=1
-    )  # 至少有一个邻居
-    # 如果backdoored nets太少了，可能全部离群，不行
+    # Step 3: Clustering using HDBSCAN (setting the minimum cluster size to ensure at least two clusters)
+    clusterer = HDBSCAN(metric="precomputed", min_cluster_size=2, min_samples=1)
+    # At least one neighbor
 
     cluster_ids = clusterer.fit_predict(distances_matrix_np)
 
-    # 步骤4：找到最大簇
+    # Step 4: Find the largest cluster
     unique_clusters, counts = np.unique(cluster_ids, return_counts=True)
 
-    # 如果没有找到任何簇，返回空集合
+    # If no clusters are found, an empty set is returned
     if len(unique_clusters) == 0:
         return set()
 
-    # 找到最大簇的标号
+    # Find the label of the largest cluster
     max_cluster = unique_clusters[np.argmax(counts)]
 
-    # 步骤5：筛选出最大簇的索引
-    B = set()  # 用集合存储结果
+    # Step 5: Filter out the index of the largest cluster
+    B = set()
     for i in range(K):
         if cluster_ids[i] == max_cluster:
             B.add(i)
 
-    # 返回最大簇的ids
+    # Returns the ids of the largest cluster
     return B, cluster_ids
 
 
