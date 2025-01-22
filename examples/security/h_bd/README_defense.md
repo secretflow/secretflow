@@ -25,6 +25,7 @@ Model aggregation aggregates the model updates corresponding to the vectors in t
 # Implemention
   - `agg_freqfed.py`
   - Test of Model replacement backdoor attack: `test_torch_backdoor.py`
+  - Backdoor attack method used for testing: `backdoor_fl_torch.py`, `fl_model_bd.py`
 
 # Test
 
