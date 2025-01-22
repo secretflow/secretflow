@@ -712,3 +712,57 @@ def load_mnist(
             create_ndarray(y_test, parts=parts, axis=axis, is_label=True),
         ),
     )
+
+
+def load_cifar10_unpartitioned(
+    normalized_x: bool = True, categorical_y: bool = False, data_dir: str = None
+):
+    import torch.utils.data as torch_data
+    from torchvision import datasets, transforms
+
+    if data_dir is None:
+        data_dir = _CACHE_DIR + "/cifar10"
+        # data_dir = "/root"
+    train_dataset = datasets.CIFAR10(data_dir, True, transform=None, download=True)
+    test_dataset = datasets.CIFAR10(data_dir, False, transform=None, download=True)
+    x_train, y_train = train_dataset.data, train_dataset.targets
+    x_test, y_test = test_dataset.data, test_dataset.targets
+    x_train = np.array(x_train)
+    y_train = np.array(y_train)
+    x_test = np.array(x_test)
+    y_test = np.array(y_test)
+    x_train = x_train.transpose((0, 3, 1, 2))
+    x_test = x_test.transpose((0, 3, 1, 2))
+    if normalized_x:
+        x_train, x_test = x_train / 255, x_test / 255
+
+    if categorical_y:
+        from sklearn.preprocessing import OneHotEncoder
+
+        encoder = OneHotEncoder(sparse_output=False)
+        y_train = encoder.fit_transform(y_train.reshape(-1, 1))
+        y_test = encoder.fit_transform(y_test.reshape(-1, 1))
+    return ((x_train, y_train), (x_test, y_test))
+
+
+def load_cifar10_horiontal(
+    parts: Union[List[PYU], Dict[PYU, Union[float, Tuple]]],
+    normalized_x: bool = True,
+    categorical_y: bool = False,
+    is_torch=False,
+    axis: int = 0,
+) -> Tuple[Tuple[FedNdarray, FedNdarray], Tuple[FedNdarray, FedNdarray]]:
+
+    ((x_train, y_train), (x_test, y_test)) = load_cifar10_unpartitioned(
+        normalized_x, categorical_y
+    )
+    return (
+        (
+            create_ndarray(x_train, parts=parts, axis=axis, is_torch=is_torch),
+            create_ndarray(y_train, parts=parts, axis=axis, is_label=True),
+        ),
+        (
+            create_ndarray(x_test, parts=parts, axis=axis, is_torch=is_torch),
+            create_ndarray(y_test, parts=parts, axis=axis, is_label=True),
+        ),
+    )
