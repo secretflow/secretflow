@@ -52,7 +52,9 @@ def do_translate(package: str, root_dir: str, ts: Translator):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Update sf component meta.")
     parser.add_argument('-s', '--skip_translate', action='store_false')
-    parser.add_argument('-t', '--translator', type=str, required=False, default="alibaba")
+    parser.add_argument(
+        '-t', '--translator', type=str, required=False, default="alibaba"
+    )
 
     args = parser.parse_args()
 
