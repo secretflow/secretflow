@@ -1,0 +1,12 @@
+from cryptography.hazmat import backends
+from cryptography.hazmat.primitives.asymmetric import dsa
+
+dsa.generate_private_key(key_size=1024, backend=backends.default_backend())
+----------------------------------------
+from cryptography.hazmat import backends
+from cryptography.hazmat.primitives.asymmetric import dsa
+
+factor = [1024, 2048]
+dsa.generate_private_key(key_size=factor[0], backend=backends.default_backend())
+----------------------------------------
+	Constant Analysis: Track and manipulate constant values or expressions in the code.
