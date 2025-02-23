@@ -49,11 +49,19 @@ $$
 
 ### Attack Performance
 
+The PSNRs and visualizations of reconstructed images.
+<p align="center">
+    <img width="500" height="150" src="./figs/psnr.png" alt>
+</p>
+<p align="center">
+    <em>Figure 1: PSNRs of reconstructed images. </em>
+</p>
+
 <p align="center">
     <img width="340" height="200" src="./figs/attackperformance.png" alt>
 </p>
 <p align="center">
-    <em>Figure 1: Visualizations of constructed images. </em>
+    <em>Figure 1: Visualizations of reconstructed images. </em>
 </p>
 
 ## Defense Method
