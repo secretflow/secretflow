@@ -52,7 +52,7 @@ class FedSMP(BaseTorchModel):
 
     def train_step(
         self,
-        weights: np.ndarray,
+        weights: list,
         cur_steps: int,
         train_steps: int,
         **kwargs,
@@ -60,7 +60,7 @@ class FedSMP(BaseTorchModel):
         """Accept ps model params, then do local train
 
         Args:
-            weights: global weight from params server
+            weights: global weight from params server and grad mask
             cur_steps: current train step
             train_steps: local training steps
             kwargs: strategy-specific parameters
@@ -76,6 +76,10 @@ class FedSMP(BaseTorchModel):
             self.set_weights(weights)
 
         dp_strategy = kwargs.get("dp_strategy", None)
+
+        # get grad mask
+        if weights:
+            self.grad_mask = weights[1]
 
         # copy the model weights before local training
         init_weights = copy.deepcopy(self.get_weights(return_numpy=True))
@@ -123,6 +127,17 @@ class FedSMP(BaseTorchModel):
 
         return model_weights, num_sample
 
+    def set_weights(self, weights):
+        """set weights of client model"""
+        if len(weights) == 2:
+            self.grad_mask = weights[1]
+            weights = weights[0]
+
+        if self.skip_bn:
+            self.model.update_weights_not_bn(weights)
+        else:
+            self.model.update_weights(weights)
+
     def apply_weights(self, weights, **kwargs):
         """Accept ps model params, then update local model
 
@@ -138,45 +153,58 @@ class PYUFedSMP(FedSMP):
     pass
 
 
-# the operations of the server in FedSMP
-class FedSMPServerCallback(Callback):
-    def __init__(self, server, compression_ratio, global_net, **kwargs):
-        super().__init__(**kwargs)
-        self.server = server
-        self.compression_ratio = compression_ratio
-        self.global_net = global_net
+class FedSMP_server_agg_method:
+    """
+    The func of the server in FedSMP.
+    The server aggregates the params from all clients and generates a new grad mask.
 
-    def on_train_batch_begin(self, batch):
+    args:
+    model_params_list: the data sent from clients. [[params, mask], ...]
+    """
+
+    def __init__(self, compression_ratio):
+        self.compression_ratio = compression_ratio
+
+    def _get_dtype(arr):
+        if isinstance(arr, np.ndarray):
+            return arr.dtype
+        else:
+            try:
+                import tensorflow as tf
+
+                if isinstance(arr, tf.Tensor):
+                    return arr.numpy().dtype
+            except ImportError:
+                return None
+
+    def aggregate(self, model_params_list):
+
+        def average(data, axis, weights=None):
+            if isinstance(data[0], (list, tuple)):
+                results = []
+                for elements in zip(*data):
+                    avg = np.average(elements, axis=axis, weights=weights)
+                    res_dtype = elements[0].dtype
+                    if res_dtype:
+                        avg = avg.astype(res_dtype)
+                    results.append(avg)
+                return results
+            else:
+                res = np.average(data, axis=axis, weights=weights)
+                res_dtype = data[0].dtype
+                return res.astype(res_dtype) if res_dtype else res
+
+        params_avg = average(model_params_list, axis=0)
 
         # the server generate the grad mask
-        def generate_grad_mask(compression_ratio, params) -> PYUObject:
-            def _generate_grad_mask(p, params):
-                mask = []
-                for k, v in params.items():
-                    submask = np.random.binomial(
-                        n=1, p=1 - compression_ratio, size=v.shape
-                    )
-                    mask.append(submask)
+        def generate_grad_mask(compression_ratio, params):
+            mask = []
+            for v in params:
+                submask = np.random.binomial(n=1, p=1 - compression_ratio, size=v.shape)
+                mask.append(submask)
 
-                return mask
+            return mask
 
-            return self.server(_generate_grad_mask)(compression_ratio, params)
+        grad_mask = generate_grad_mask(self.compression_ratio, params_avg)
 
-        grad_mask = generate_grad_mask(
-            self.compression_ratio, self.global_net.state_dict()
-        )
-
-        # send grad mask to all clients
-        def receive_grad_mask(worker: BaseTorchModel, grad_mask, compression_ratio):
-            worker.grad_mask = grad_mask
-            worker.compression_ratio = compression_ratio
-            return
-
-        for device, worker in self._workers.items():
-            wait(
-                worker.apply(
-                    receive_grad_mask, grad_mask.to(device), self.compression_ratio
-                )
-            )
-
-        return
+        return [(params_avg, grad_mask) for _ in range(len(model_params_list))]

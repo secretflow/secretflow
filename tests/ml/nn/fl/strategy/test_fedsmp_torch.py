@@ -18,9 +18,7 @@ from torch.nn import functional as F
 from torchmetrics import Accuracy, Precision
 
 import secretflow as sf
-from examples.security.h_gia.FedSMP_defense.FedSMP_torch import FedSMPServerCallback
-from secretflow import reveal
-from secretflow.security import SecureAggregator
+from examples.security.h_gia.FedSMP_defense.FedSMP_torch import FedSMP_server_agg_method
 from secretflow_fl.ml.nn import FLModel
 from secretflow_fl.ml.nn.core.torch import (
     BaseModule,
@@ -89,7 +87,6 @@ def do_test_fedsmp(configs: dict, alice, bob, carol):
 
     device_list = [alice, bob]
     server = carol
-    aggregator = SecureAggregator(server, device_list)
 
     # DP strategy
     dp_strategy = DPStrategyFL(
@@ -100,25 +97,21 @@ def do_test_fedsmp(configs: dict, alice, bob, carol):
         )
     )
 
+    # the server agg method
+    FedSMP_server_method = FedSMP_server_agg_method(configs['compression_ratio'])
+
     # spcify params
     fl_model = FLModel(
         server=server,
         device_list=device_list,
         model=model_def,
-        aggregator=aggregator,
         strategy='fed_smp',
         dp_strategy=dp_strategy,
         backend="torch",
         noise_multiplier=configs['noise_multiplier'],
         l2_norm_clip=configs['l2_norm_clip'],
         num_clients=len(device_list),
-    )
-
-    # realize the operations in the server side with callback
-    fedsmp_server_callback = FedSMPServerCallback(
-        server=carol,
-        compression_ratio=configs['compression_ratio'],
-        global_net=FLBaseNet(),
+        server_agg_method=FedSMP_server_method.aggregate,
     )
 
     history = fl_model.fit(
@@ -128,7 +121,6 @@ def do_test_fedsmp(configs: dict, alice, bob, carol):
         batch_size=32,
         aggregate_freq=1,
         dp_spent_step_freq=1,
-        callbacks=[fedsmp_server_callback],
     )
 
     return
