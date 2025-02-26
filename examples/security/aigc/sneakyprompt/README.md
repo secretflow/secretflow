@@ -56,9 +56,6 @@
 
 ## 实现效果说明
 ### 对SD1.5（base_check）使用强化学习搜索prompt
-图片结果：
-![image](./images/sd_1.5_imgs1.png)
-![image](./images/sd_1.5_imgs2.png)
 评价结果：
 ![image](./images/sd1.5.png)
 重用后的结果：
@@ -67,9 +64,6 @@
 ![image](./images/sd1.5_.png)
 One-time bypass rate以及of online queries两者在相同的精度。重用后的adversarial prompt的bypass rate比表格中给出的低10.33%。
 ### 对DALLE2使用强化学习搜索prompt
-图片结果：
-![image](./images/dalle_imgs1.png)
-![image](./images/dalle_imgs2.png)
 评价结果：
 ![image](./images/dalle.png)
 论文中：

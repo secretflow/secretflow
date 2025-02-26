@@ -136,11 +136,7 @@ ASR-4=70.00,ASR-1=34.75,与table1中的相比，也低了比较多。
 
 ![image](./images/sd1.5_.png)
 
-与Sneaky Prompt检测出的Re-use adversarial prompts相比，重用率低了24.27%，图文相似度也相对较低，但是图片上展示的结果感觉明显很有比较多的nsfw的内容（使用不同的prompt集合进行比较其实不太准确，使用其中一的原始prompt，利用对应方法进行攻击比较合理）。
-
-![image](./images/sd1.5_img.png)
-
-虽然有的图片内容与prompt内容不太一致，但是生成了nsfw内容，这可能就是为什么相似度低但是有比较多nsfw内容的原因。
+与Sneaky Prompt检测出的Re-use adversarial prompts相比，重用率低了24.27%，图文相似度也相对较低。
 
 **在dalle2上的结果：**
 
@@ -150,6 +146,4 @@ ASR-4=1,ASR-1=1,果然是全部通过。
 
 ![image](./images/dalle_.png)
 
-相似度很低，图片结果也说明了这一点。
-
-![image](./images/dalle_img.png)
+相似度很低，图片生成的都是一些不相干的图片。
