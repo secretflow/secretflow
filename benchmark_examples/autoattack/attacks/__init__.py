@@ -32,4 +32,5 @@ __all__ = [
     'grad_lia',
     'fsha',
     'batch_lia',
+    'sdar',
 ]
