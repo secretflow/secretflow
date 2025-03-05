@@ -27,18 +27,21 @@ In each round of FL learning, FedSMP includs the following steps:
 
 ## Metric
 
-- prediction accuracy
+settings:
 
-- the memory cost of shared gradients
+dataset: MNIST, batchsize: 64, epoch: 10, learning rate: 0.01, clipping threshold: 1.0
 
-- privacy budget
-
-<p align="center">
-    <img width="500" height="400" src="figs/fedsmp_exp.png" alt>
-</p>
-<p align="center">
-    <em>Figure 1: The performance of FedSMP on Fashion-MNIST dataset. </em>
-</p>
+| compression ratio | accuracy (\%) | size of grad (MB) | Noise scale |
+| ---- | ---- | ---- | ---- |
+| $p$=0.001 |0.8960  |0.00127  | $\sigma$=0.05 |
+| $p$=0.005| 0.9347 |0.00635  | $\sigma$=0.05 |
+| $p$=0.01| 0.9586 |0.0127  |$\sigma$=0.05  |
+| $p$=0.1| **0.9787** |0.127  | $\sigma$=0.05 |
+| $p$=0.2| 0.9737 |0.254  | $\sigma$=0.05 |
+| $p$=0.4|0.9720  |0.508  | $\sigma$=0.05 |
+| $p$=0.8| 0.9649 |1.016  | $\sigma$=0.05 |
+| $p$=1.0(DP-FedAvg)| 0.9455 |1.27  |$\sigma$=0.05  |
+| $p$=1.0(FedAvg)| 0.9938 |1.27 | $\sigma$=0 |
 
 ## Test
 

@@ -110,6 +110,7 @@ def do_test_fedsmp(configs: dict, alice, bob, carol):
         backend="torch",
         noise_multiplier=configs['noise_multiplier'],
         l2_norm_clip=configs['l2_norm_clip'],
+        compression_ratio=configs['compression_ratio'],
         num_clients=len(device_list),
         server_agg_method=FedSMP_server_method.aggregate,
     )
@@ -117,8 +118,8 @@ def do_test_fedsmp(configs: dict, alice, bob, carol):
     history = fl_model.fit(
         data,
         label,
-        epochs=10,
-        batch_size=32,
+        epochs=configs['epochs'],
+        batch_size=configs['batchsize'],
         aggregate_freq=1,
         dp_spent_step_freq=1,
     )
@@ -128,12 +129,12 @@ def do_test_fedsmp(configs: dict, alice, bob, carol):
 
 # configurations
 configs = {
-    "batchsize": 32,
+    "batchsize": 64,
     "epochs": 10,
-    "train_lr": 0.004,
-    "noise_multiplier": 0.04,
+    "train_lr": 0.01,
+    "noise_multiplier": 0.05,
     "l2_norm_clip": 1.0,
-    "compression_ratio": 0.6,
+    "compression_ratio": 0.8,
 }
 
 

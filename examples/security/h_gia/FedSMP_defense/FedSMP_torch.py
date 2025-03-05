@@ -45,10 +45,7 @@ class FedSMP(BaseTorchModel):
         super().__init__(builder_base, random_seed=random_seed, skip_bn=skip_bn)
 
         self.grad_mask = None
-        self.compression_ratio = 1.0
-        self.noise_multiplier = kwargs.get("noise_multiplier", 0.0)
-        self.l2_norm_clip = kwargs.get("l2_norm_clip", 10000)
-        self.num_clients = kwargs.get("num_clients", 1)
+        self.compression_ratio = kwargs.get("compression_ratio", 1.0)
 
     def train_step(
         self,
@@ -200,7 +197,7 @@ class FedSMP_server_agg_method:
         def generate_grad_mask(compression_ratio, params):
             mask = []
             for v in params:
-                submask = np.random.binomial(n=1, p=1 - compression_ratio, size=v.shape)
+                submask = np.random.binomial(n=1, p=compression_ratio, size=v.shape)
                 mask.append(submask)
 
             return mask
