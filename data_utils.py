@@ -677,34 +677,6 @@ def save_prediction_csv(
     else:
         x.to_csv(path, index=False)
 
-
-def gen_prediction_csv_meta(
-    id_header: Dict[str, Dict[str, np.dtype]],
-    label_header: Dict[str, Dict[str, np.dtype]],
-    party: str,
-    pred_name: str,
-    line_count: int = None,
-    id_keys: List[str] = None,
-    label_keys: List[str] = None,
-) -> IndividualTable:
-    return IndividualTable(
-        schema=TableSchema(
-            ids=id_keys if id_keys is not None else [],
-            id_types=[REVERSE_DATA_TYPE_MAP[id_header[party][k]] for k in id_keys]
-            if id_keys is not None
-            else [],
-            labels=(label_keys if label_keys is not None else []) + [pred_name],
-            label_types=(
-                [REVERSE_DATA_TYPE_MAP[label_header[party][k]] for k in label_keys]
-                if label_keys is not None
-                else []
-            )
-            + ["float"],
-        ),
-        line_count=line_count if line_count is not None else -1,
-    )
-
-
 def any_pyu_from_spu_config(config: dict):
     return PYU(config["nodes"][0]["party"])
 
