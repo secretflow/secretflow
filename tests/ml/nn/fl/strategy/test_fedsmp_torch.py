@@ -14,7 +14,6 @@
 
 import torch.optim as optim
 from torch import nn
-from torch.nn import functional as F
 from torchmetrics import Accuracy, Precision
 
 import secretflow as sf

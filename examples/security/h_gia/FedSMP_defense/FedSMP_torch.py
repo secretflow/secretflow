@@ -18,13 +18,9 @@ from typing import Tuple
 import numpy as np
 import torch
 
-from secretflow import wait
-from secretflow.device import PYU, DeviceObject, PYUObject
-from secretflow_fl.ml.nn.callbacks.callback import Callback
 from secretflow_fl.ml.nn.core.torch import BuilderType
 from secretflow_fl.ml.nn.fl.backend.torch.fl_base import BaseTorchModel
 from secretflow_fl.ml.nn.fl.strategy_dispatcher import register_strategy
-from secretflow_fl.security.privacy.mechanism.mechanism_fl import GaussianModelDP
 
 
 # the client strategy in FedSMP
