@@ -24,9 +24,9 @@ from secretflow.component.core import (
     VTable,
     VTableParty,
     build_node_eval_param,
+    comp_eval,
     make_storage,
 )
-from secretflow.component.entry import comp_eval
 from secretflow.component.preprocessing.filter.expr_condition_filter import (
     ExprConditionFilter,
 )
@@ -123,10 +123,10 @@ def test_expr_condition_filter(comp_prod_sf_cluster_config):
             else_ds_info = VTable.from_distdata(res.outputs[1], columns=[id_name])
 
             hit_ds = orc.read_table(
-                storage.get_reader(hit_ds_info.party(self_party).uri)
+                storage.get_reader(hit_ds_info.get_party(self_party).uri)
             ).to_pandas()
             else_ds = orc.read_table(
-                storage.get_reader(else_ds_info.party(self_party).uri)
+                storage.get_reader(else_ds_info.get_party(self_party).uri)
             ).to_pandas()
             expected = tc["expected"]
             assert list(hit_ds[id_name]) == expected[0]
@@ -141,10 +141,9 @@ def test_expr_condition_filter(comp_prod_sf_cluster_config):
         inputs=[VTable(name="input_ds", parties=[alice_meta, bob_meta])],
         output_uris=[output_hit_path, output_else_path],
     )
-    with pytest.raises(Exception) as exc_info:
+    with pytest.raises(Exception):
         comp_eval(param, storage_config, sf_cluster_config)
     time.sleep(4)
-    logging.info(f"Caught expected Exception: {exc_info}")
 
 
 def test_parse_columns():

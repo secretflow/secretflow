@@ -19,6 +19,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from pyarrow import orc
+from secretflow_spec.v1.report_pb2 import Report
 from sklearn.datasets import load_breast_cancer
 from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import StandardScaler
@@ -27,10 +28,9 @@ from secretflow.component.core import (
     VTable,
     VTableParty,
     build_node_eval_param,
+    comp_eval,
     make_storage,
 )
-from secretflow.component.entry import comp_eval
-from secretflow.spec.v1.report_pb2 import Report
 
 
 @pytest.mark.parametrize("optimizer", ["SGD", "IRLS"])

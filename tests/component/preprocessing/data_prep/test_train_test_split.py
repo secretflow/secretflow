@@ -20,9 +20,9 @@ from secretflow.component.core import (
     VTable,
     VTableParty,
     build_node_eval_param,
+    comp_eval,
     make_storage,
 )
-from secretflow.component.entry import comp_eval
 
 
 def test_train_test_split(comp_prod_sf_cluster_config):

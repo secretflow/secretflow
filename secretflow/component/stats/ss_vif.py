@@ -24,7 +24,6 @@ from secretflow.component.core import (
     Input,
     Output,
     Reporter,
-    VTable,
     register,
 )
 from secretflow.stats.ss_vif_v import VIF

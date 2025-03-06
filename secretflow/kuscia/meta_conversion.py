@@ -19,14 +19,14 @@ from typing import List
 from google.protobuf.json_format import MessageToJson
 from kuscia.proto.api.v1alpha1.common_pb2 import DataColumn
 from kuscia.proto.api.v1alpha1.datamesh.domaindata_pb2 import DomainData
-
-from secretflow.kuscia.task_config import TableAttr
-from secretflow.spec.v1.data_pb2 import (
+from secretflow_spec.v1.data_pb2 import (
     DistData,
     IndividualTable,
     TableSchema,
     VerticalTable,
 )
+
+from secretflow.kuscia.task_config import TableAttr
 
 
 def convert_domain_data_to_individual_table(

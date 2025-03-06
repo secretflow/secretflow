@@ -20,14 +20,18 @@ import pandas as pd
 import pytest
 from google.protobuf.json_format import MessageToJson, Parse
 from pyarrow import orc
+from secretflow_spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from sklearn.datasets import load_breast_cancer
 from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import StandardScaler
 
-from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
-from secretflow.component.entry import comp_eval
+from secretflow.component.core import (
+    DistDataType,
+    build_node_eval_param,
+    comp_eval,
+    make_storage,
+)
 from secretflow.spec.extend.linear_model_pb2 import GeneralizedLinearModel, LinearModel
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 
 work_path = f"test_glm"
 alice_path = f"{work_path}/x_alice.csv"

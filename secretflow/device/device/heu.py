@@ -21,11 +21,12 @@ import cloudpickle as pickle
 import jax.tree_util
 import numpy as np
 import spu
-from heu import numpy as hnp, phe
+from heu import numpy as hnp
+from heu import phe
 
 import secretflow.distributed as sfd
-from secretflow.utils.errors import PartyNotFoundError
 from secretflow.distributed.ray_op import get_obj_ref
+from secretflow.utils.errors import InvalidArgumentError, NotSupportedError
 
 from .base import Device, DeviceType
 from .spu import SPU_PROTOCOLS_MAP, SPUIOInfo, SPUValueMeta
@@ -266,7 +267,7 @@ class HEUActor:
         if isinstance(data, phe.Plaintext):
             return edr.decode(data)
 
-        raise AssertionError(f"heu can not decode {type(data)} type")
+        raise NotSupportedError(f"heu can not decode {type(data)} type")
 
     def encrypt(
         self, data: hnp.PlaintextArray, heu_audit_log: str = None
@@ -585,9 +586,10 @@ class HEU(Device):
         super().__init__(DeviceType.HEU)
 
         config.setdefault('mode', 'PHEU')
-        assert (
-            config['mode'] == 'PHEU'
-        ), f'HEU working mode {config["mode"]} not supported now'
+        if config['mode'] != 'PHEU':
+            raise InvalidArgumentError(
+                f"HEU working mode {config['mode']} not supported"
+            )
 
         self.sk_keeper = None
         self.evaluators = {}
@@ -598,7 +600,9 @@ class HEU(Device):
         if spu_fxp_fraction_bits > 0:
             default_scale = 1 << spu_fxp_fraction_bits
 
-        assert 'he_parameters' in config, f"missing field 'he_parameters' in heu config"
+        if 'he_parameters' not in config:
+            raise InvalidArgumentError("missing field 'he_parameters' in heu config")
+
         param: dict = config['he_parameters']
         schema = phe.parse_schema_type(param.get("schema", "paillier"))
         self.schema = schema
@@ -628,7 +632,7 @@ class HEU(Device):
                 self.encoder = phe.BatchFloatEncoder(schema, **edr_args)
                 self.scale = edr_args.get("scale", 1)
             else:
-                raise AssertionError(f"Unsupported encoder type {edr_name}")
+                raise InvalidArgumentError(f"Unsupported encoder type {edr_name}")
 
         self.init()
 
@@ -675,7 +679,7 @@ class HEU(Device):
         elif party == self.sk_keeper_name():
             return self.sk_keeper
         else:
-            raise PartyNotFoundError(f"party {party} is not a participant in HEU")
+            raise InvalidArgumentError(f"party {party} is not a participant in HEU")
 
     def has_party(self, party: str):
         return party == self.sk_keeper_name() or party in self.evaluators

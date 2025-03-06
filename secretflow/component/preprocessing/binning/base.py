@@ -17,6 +17,7 @@ from dataclasses import dataclass
 import pandas as pd
 import pyarrow as pa
 from secretflow_serving_lib import compute_trace_pb2
+from secretflow_spec.v1.data_pb2 import SystemInfo
 
 import secretflow.compute as sc
 from secretflow.component.core import (
@@ -33,7 +34,6 @@ from secretflow.component.core import (
 )
 from secretflow.device import PYU, PYUObject, reveal
 from secretflow.preprocessing.binning.vert_bin_substitution import apply_binning_rules
-from secretflow.spec.v1.data_pb2 import SystemInfo
 
 from ..preprocessing import IRunner, PreprocessingMixin, build_schema
 

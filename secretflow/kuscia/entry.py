@@ -22,9 +22,15 @@ import click
 from dataproxy.sdk import FileFormat
 from google.protobuf import json_format
 from kuscia.proto.api.v1alpha1.datamesh.domaindatasource_pb2 import DomainDataSource
+from secretflow_spec.v1.data_pb2 import DistData, StorageConfig
+from secretflow_spec.v1.evaluation_pb2 import NodeEvalParam, NodeEvalResult
 
-from secretflow.component.core import DistDataType, load_plugins
-from secretflow.component.entry import comp_eval
+from secretflow.component.core import (
+    DistDataType,
+    comp_eval,
+    format_exception,
+    load_plugins,
+)
 from secretflow.kuscia.datamesh import (
     create_channel,
     create_dm_flight_client,
@@ -42,8 +48,6 @@ from secretflow.kuscia.meta_conversion import (
 )
 from secretflow.kuscia.sf_config import get_sf_cluster_config
 from secretflow.kuscia.task_config import KusciaTaskConfig, TableAttr
-from secretflow.spec.v1.data_pb2 import DistData, StorageConfig
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam, NodeEvalResult
 
 _LOG_FORMAT = "%(asctime)s|{}|%(levelname)s|secretflow|%(filename)s:%(funcName)s:%(lineno)d| %(message)s"
 
@@ -556,8 +560,8 @@ def main(task_config_path, datamesh_addr, enable_plugins: bool):
 
     try:
         res = comp_eval(sf_node_eval_param, storage_config, sf_cluster_config)
-    except Exception:
-        logging.exception(f"comp_eval exception")
+    except Exception as e:
+        logging.error(f"comp_eval fail.\n{format_exception(e)}")
         os._exit(1)
 
     postprocess_sf_node_eval_result(

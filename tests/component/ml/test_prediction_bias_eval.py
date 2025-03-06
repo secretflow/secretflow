@@ -16,15 +16,15 @@ import logging
 import math
 
 import pandas as pd
+from secretflow_spec.v1.report_pb2 import Report
 
 from secretflow.component.core import (
     VTable,
     VTableParty,
     build_node_eval_param,
+    comp_eval,
     make_storage,
 )
-from secretflow.component.entry import comp_eval
-from secretflow.spec.v1.report_pb2 import Report
 
 
 def test_prediction_bias_eval(comp_prod_sf_cluster_config):

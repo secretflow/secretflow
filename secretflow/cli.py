@@ -24,15 +24,14 @@ from contextlib import redirect_stderr, redirect_stdout
 
 import click
 from google.protobuf.json_format import MessageToJson
+from secretflow_spec.v1.data_pb2 import StorageConfig
+from secretflow_spec.v1.evaluation_pb2 import NodeEvalParam
 
-from secretflow.component.core import Registry, get_comp_list_def
+from secretflow.component.core import Registry, comp_eval, get_comp_list_def
 from secretflow.component.core import get_translation as core_get_translation
 from secretflow.component.core import load_plugins
 from secretflow.component.core import translate as core_translate
-from secretflow.component.entry import comp_eval
 from secretflow.spec.extend.cluster_pb2 import SFClusterConfig
-from secretflow.spec.v1.data_pb2 import StorageConfig
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.utils.logging import LOG_FORMAT, get_logging_level, set_logging_level
 from secretflow.version import build_message
 
@@ -106,7 +105,7 @@ def inspect(comp_id, all, file, enable_plugins):
 
     elif comp_id:
         comp_def = Registry.get_definition_by_id(comp_id)
-        if comp_def:
+        if comp_def and comp_def.component_id == comp_id:
             json_data = json.dumps(
                 json.loads(MessageToJson(comp_def.component_def)),
                 indent=2,

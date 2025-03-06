@@ -22,7 +22,6 @@ from secretflow.component.core import (
     Interval,
     Output,
     Reporter,
-    VTable,
     register,
 )
 from secretflow.stats.table_statistics import table_statistics

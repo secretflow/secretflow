@@ -17,16 +17,16 @@ import logging
 import numpy as np
 import pandas as pd
 from google.protobuf.json_format import MessageToJson
+from secretflow_spec.v1.report_pb2 import Report
 from sklearn.metrics import r2_score
 
 from secretflow.component.core import (
     VTable,
     VTableParty,
     build_node_eval_param,
+    comp_eval,
     make_storage,
 )
-from secretflow.component.entry import comp_eval
-from secretflow.spec.v1.report_pb2 import Report
 
 
 def test_regression_eval(comp_prod_sf_cluster_config):

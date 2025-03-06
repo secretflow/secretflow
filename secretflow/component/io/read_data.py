@@ -14,6 +14,8 @@
 
 import json
 
+from secretflow_spec.v1.data_pb2 import DistData
+
 from secretflow.component.core import (
     BINNING_RULE_MAX,
     GLM_MODEL_MAX,
@@ -35,7 +37,6 @@ from secretflow.component.io.core.linear_model.ss_glm import (
 )
 from secretflow.device import PYU
 from secretflow.ml.boost.sgb_v.checkpoint import SGBSnapshot, build_sgb_model
-from secretflow.spec.v1.data_pb2 import DistData
 
 
 @register(domain="io", version="1.0.0")
@@ -68,7 +69,7 @@ class ReadData(Component):
                 self.input_data, DistDataType.BINNING_RULE, BINNING_RULE_MAX
             )
 
-            read_data = bin_rule_to_pb(model.objs, model.metadata)
+            read_data = bin_rule_to_pb(model.objs, model.attributes)
         elif input_type == DistDataType.SS_GLM_MODEL:
             spu = ctx.make_spu(config=SPU_RUNTIME_CONFIG_FM128_FXP40)
             model = ctx.load_model(

@@ -566,3 +566,28 @@ def psi(
         )
     # wait for all tasks done
     return sfd.get(res)
+
+
+def party_shards_to_heu_plain_text(spu_obj: SPUObject, heu: HEU, party: str):
+    assert party in spu_obj.device.actors.keys()
+    assert heu.has_party(party)
+
+    io_info, shares_chunk = spu_obj.device.outfeed_shares(spu_obj.shares_name)
+    assert (
+        len(shares_chunk) % len(spu_obj.device.actors) == 0
+    ), f"{len(shares_chunk)} % {len(spu_obj.device.actors)}"
+    chunks_count_per_party = int(len(shares_chunk) / len(spu_obj.device.actors))
+    party_chunks = None
+    for i, p in enumerate(spu_obj.device.actors.keys()):
+        if p == party:
+            party_chunks = shares_chunk[
+                i * chunks_count_per_party : (i + 1) * chunks_count_per_party
+            ]
+            break
+    assert party_chunks
+
+    shards_data = spu_obj.device.actors[party].a2h.remote(
+        io_info, heu.cleartext_type, heu.schema, *party_chunks
+    )
+
+    return HEUObject(heu, shards_data, party)

@@ -22,9 +22,9 @@ from secretflow.component.core import (
     VTable,
     VTableParty,
     build_node_eval_param,
+    comp_eval,
     make_storage,
 )
-from secretflow.component.entry import comp_eval
 from secretflow.component.preprocessing.unified_single_party_ops.fillna import (
     apply_fillna_rule_on_table,
     fit_col,

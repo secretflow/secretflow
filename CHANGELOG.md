@@ -18,6 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 >
 > please add your unreleased change here.
 
+### Fixed
+
+- [component] fix component version parse
+
+### Added
+
+- [sgb] add feature importance calculation based on split count
+- [component] SGB component add feature importance calculation report based on gains and split count
 
 ## [v1.12.0.dev202412009] - 2024-12-09
 
