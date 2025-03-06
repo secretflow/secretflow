@@ -47,18 +47,34 @@ $$
     PSNR(\hat{x},x)=10\times\log_{10}(\frac{1}{MSE(\hat{x},x)})
     $$
 
+- Cosine distance $d_{cos}$
+    $$
+        d_{cos}(\hat{x},x) = 1-\frac{<\hat{x},x>}{\|\hat{x} \Vert_2 \cdot \| x\Vert_2}
+    $$
+
 ### Attack Performance
 
-The PSNRs and visualizations of reconstructed images.
-<p align="center">
-    <img width="500" height="150" src="./figs/psnr.png" alt>
-</p>
-<p align="center">
-    <em>Figure 1: PSNRs of reconstructed images. </em>
-</p>
+The attack performances of SME under different settings.
 
+N: the amount of images of the target client
+
+E: epochs of local training
+
+B: batchsize
+
+T: total iterations of local training
+
+| N | E | B | T | PSNR(dB)| cosine distance |
+| :-:  |  :-: |  :-: |:-:  |    :-: |   :-:         |
+| 6  |  5 |  6 | 5  |  11.46    |     0.705 |
+| 6  |  10 |  6 | 10  |  11.09    |     0.683 |
+| 6  |  10 |  6 | 10  |  11.09    |     0.683 |
+| 12  |  5 |  6 | 10  |  9.16    |     0.841 |
+| 12  |  10 |  6 | 20  |  9.02    |     0.692 |
+
+The reconstructed images of SME when $N=6, E=5, B=6$.
 <p align="center">
-    <img width="340" height="200" src="./figs/attackperformance.png" alt>
+    <img width="600" height="200" src="./figs/sme.jpg" alt>
 </p>
 <p align="center">
     <em>Figure 1: Visualizations of reconstructed images. </em>

@@ -163,7 +163,7 @@ class GiadentInversionAttackSME(AttackCallback):
                     test_steps=attack_configs['test_steps'],
                     path_to_res=attack_configs['path_to_res'],
                     lamb=attack_configs['lamb'],
-                    mean_std=(0.0, 1.0),
+                    mean_std=((0.0,), (1.0,)),
                 )
 
                 attacker.net0 = victim_model1
