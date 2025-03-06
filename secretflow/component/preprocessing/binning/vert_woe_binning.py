@@ -19,6 +19,7 @@ from secretflow.component.core import (
     Field,
     Input,
     Interval,
+    IServingExporter,
     Output,
     ServingBuilder,
     VTable,
@@ -34,7 +35,7 @@ from .base import VertBinningBase
 
 
 @register(domain="preprocessing", version="1.0.0", name="vert_woe_binning")
-class VertWoeBinning(VertBinningBase):
+class VertWoeBinning(VertBinningBase, IServingExporter):
     '''
     Generate Weight of Evidence (WOE) binning rules for vertical partitioning datasets.
     '''
@@ -109,7 +110,7 @@ class VertWoeBinning(VertBinningBase):
         trans_tbl = input_tbl.select(self.feature_selects)
         trans_tbl.check_kinds(VTableFieldKind.FEATURE)
         label_tbl = input_tbl.select([self.label])
-        label_party = label_tbl.party(0).party
+        label_party = label_tbl.get_party(0).party
 
         if self.secure_device_type == "spu":
             secure_device = ctx.make_spu()

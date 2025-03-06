@@ -24,7 +24,6 @@ import grpc
 
 from secretflow.utils import secure_pickle
 
-from ...exception import FedRemoteError
 from ..base import CrossSiloMessageConfig, SenderReceiverProxy
 from . import fed_pb2, fed_pb2_grpc
 
@@ -329,15 +328,6 @@ class GrpcProxy(SenderReceiverProxy, fed_pb2_grpc.SfFedProxyServicer):
             self._data_events.pop(seq_id)
 
         data = secure_pickle.loads(data, filter_type=secure_pickle.FilterType.BLACKLIST)
-        if isinstance(data, FedRemoteError):
-            logger.error(
-                f"Receiving exception: {type(data)}, {data} from {src_party}, "
-                f" seq id {seq_id}. Re-raise it."
-            )
-            from secretflow.distributed.fed.global_context import get_global_context
-
-            get_global_context().set_remote_exception(data)
-            raise data
         return data
 
     def send(self, dest_party, data, seq_id):

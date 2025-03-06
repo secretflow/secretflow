@@ -215,3 +215,5 @@ msgid ""
 "The input to our constructed dataset builder is the path to the image "
 "dataset; hence, here, we need to set the input data as a ``Dict``."
 msgstr "我们构造好的 dataset builder 的输入是图像数据集的路径，所以这里需要将输入的数据设置为一个 ``Dict``。"
+
+

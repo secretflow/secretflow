@@ -359,15 +359,17 @@
     "report": "报告",
     "Output P-Value report.": "输出P-VALUE结果表"
   },
-  "ml.predict/serving_model_inferencer:1.0.0": {
+  "ml.predict/serving_model_inferencer:1.1.0": {
     "ml.predict": "模型预测",
     "serving_model_inferencer": "模型包回测",
     "batch predicting online service models in offline": "离线批量预测在线服务模型",
-    "1.0.0": "1.0.0",
+    "1.1.0": "1.1.0",
     "receiver": "接收方",
     "Party of receiver.": "接收方",
     "pred_name": "预测结果列名",
     "Column name for predictions.": "预测结果列名",
+    "input_block_size": "输入块大小",
+    "block size (Byte) for input data streaming": "用于输入数据流的块大小 （Byte）",
     "serving_model": "服务模型包",
     "Input serving model.": "输入服务模型包",
     "input_ds": "特征数据集",
@@ -467,11 +469,11 @@
     "output_ds": "预测",
     "Output prediction.": "输出预测结果表"
   },
-  "ml.train/sgb_train:1.0.0": {
+  "ml.train/sgb_train:1.1.0": {
     "ml.train": "模型训练",
     "sgb_train": "SecureBoost训练",
     "Provides both classification and regression tree boosting (also known as GBDT, GBM)\nfor vertical split dataset setting by using secure boost.\n- SGB is short for SecureBoost. Compared to its safer counterpart SS-XGB, SecureBoost focused on protecting label holder.\n- Check https://arxiv.org/abs/1901.08755.": "使用Secure Boosting为垂直拆分数据集设置提供分类和回归树Boosting(也称为 GBDT、GBM)SGB是SecureBoost的缩写与更安全的SS-XGB相比, SecureBoost专注于保护标签持有人\n - 详细信息请参阅: https: //arxiv.org/abs/1901.08755",
-    "1.0.0": "1.0.0",
+    "1.1.0": "1.1.0",
     "num_boost_round": "训练轮数",
     "Number of boosting iterations.": "Boosting迭代次数",
     "max_depth": "最大深度",
@@ -530,6 +532,8 @@
     "Parameter that controls the variance of the Tweedie distribution.": "控制Tweedie分布方差的参数",
     "save_best_model": "保存最佳模型",
     "Whether to save the best model on validation set during training.": "是否在训练期间保存在验证集上的最佳模型。",
+    "report_importances": "报告重要性",
+    "Whether to report feature importances. Currently supported importances are: {\"gain\": \"the average gain across all splits the feature is used in.\", \"weight\": \"the number of times a feature is used to split the data across all trees.\"}": "是否报告特征重要性。当前支持的重要性为： {“gain”： “特征使用的所有分片的平均增益”， “weight”： “特征用于在所有树中拆分数据的次数。”}",
     "input_ds": "训练数据集",
     "Input vertical table.": "输入联合表",
     "feature_selects": "特征列",
@@ -537,7 +541,9 @@
     "label": "标签",
     "Label of train dataset.": "训练数据集的标签",
     "output_model": "输出模型",
-    "Output model.": "输出模型"
+    "Output model.": "输出模型",
+    "report": "报告",
+    "If report_importances is true, report feature importances": "如果 report_importances 为 true，则报告特征重要性"
   },
   "ml.train/ss_glm_train:1.1.0": {
     "ml.train": "模型训练",
@@ -582,6 +588,8 @@
     "the model is considered as not improving, if the metric is not improved by tolerance over best metric in history. If metric is 'weight' and tolerance == 0, then early stop is disabled.": "如果模型在度量指标上相对历史最佳指标的改善未达到设定的容忍度，则认为模型未有改进。若度量指标为'weight'并且容忍度为0，则不启用提前停止功能。",
     "report_metric": "报告指标",
     "Whether to report the value of stopping metric. Only effective if early stop is enabled. If this option is set to true, metric will be revealed and logged.": "是否报告终止指标的值。这仅在启用提前停止时有效。如果此选项被设置为真，则会公开并记录该指标。",
+    "use_high_precision_exp": "使用高精度表达",
+    "If you do not know the details of this parameter, please do not modify this parameter! If this option is true, glm training and prediction will use a high-precision exp approx, but there will be a large performance drop. Otherwise, use high performance exp approx, There will be no significant difference in model performance. However, prediction bias may occur if the model is exported to an external system for use.": "如果您不知道此参数的详细信息，请不要修改此参数！如果此选项为 true，则 glm 训练和预测将使用高精度 exp 近似值，但性能会大幅下降。否则，使用 high performance exp approx，模型性能不会有显著差异。但是，如果将模型导出到外部系统以供使用，则可能会出现预测偏差。",
     "exp_mode": "exp模式",
     "If you do not know the details of this parameter, please do not modify this parameter! Specify the mode of exp taylor approx, currently only supports 'taylor', 'pade' and 'prime' modes. The default value is 'taylor'. 'taylor': use taylor approx, variable precision and cost, higher exp_iters, higher cost. 'pade': use pade approx, high precision, high cost. 'prime': use prime approx, best precision, 3/4 cost of taylor (8 iter), only support for SEMI2K FM128 case. Although it has great presicion and performance inside valid domain, the approximation can be wildly inaccurate outside the valid domain. Suppose x -> exp(x), then valid domain is: x in ((47 - offset - 2fxp)/log_2(e), (125 - 2fxp - offset)/log_2(e)). That's why we need clamping x to this range. However, clamping action is expensive, so we need to set a reasonable offset to control the valid range of exp prime method, and avoid clamping for best performance.": "如果您不知道此参数的详细信息，请不要修改此参数！指定 exp taylor approx 的模式，目前仅支持 'taylor'、'pade' 和 'prime' 模式。默认值为 'taylor'。'Taylor'：使用 Taylor 近似值，精度和成本可变，exp_iters更高，成本更高。'pade'： 使用 pade approx，精度高，成本高。'prime'：使用素数近似值，最佳精度，泰勒成本的 3/4（8 迭代），仅支持 SEMI2K FM128 情况。尽管它在有效域内具有出色的精度和性能，但在有效域之外，近似值可能非常不准确。假设 x -> exp（x），则有效域为：x in （（47 - offset - 2fxp）/log_2（e）， （125 - 2fxp - offset）/log_2（e））。这就是为什么我们需要将 x 限制到这个范围。但是，限制动作是昂贵的，因此我们需要设置一个合理的偏移量来控制 exp prime 方法的有效范围，并尽量避免限制上下界以获得最佳性能。",
     "exp_iters": "exp拟合迭代次数",
@@ -952,7 +960,7 @@
     "input_ds": "输入数据集",
     "Input table.": "输入表",
     "by": "特征列",
-    "by what columns should we group the values": "我们应该按哪些列进行分组",
+    "by what columns should we group the values, encode values into int or str before groupby or else numeric errors may occur": "我们应该按什么列对值进行分组，在 GroupBy 之前将值编码为 int 或 str，否则可能会出现数值错误",
     "report": "报告",
     "Output groupby statistics report.": "输出分组统计信息报告"
   },

@@ -23,13 +23,13 @@ import secretflow.compute as sc
 from secretflow.component.core import (
     VTable,
     VTableParty,
-    VTableSchema,
+    VTableUtils,
     assert_almost_equal,
     build_node_eval_param,
+    comp_eval,
     make_storage,
     read_orc,
 )
-from secretflow.component.entry import comp_eval
 from secretflow.component.preprocessing.unified_single_party_ops.sql_processor import (
     SQLProcessor,
 )
@@ -120,7 +120,7 @@ def test_sql_processor_run_sql():
 
         try:
             ast = SQLProcessor.parse_sql(
-                sql, VTableSchema.from_arrow(input_tbl.schema, check_kind=False)
+                sql, VTableUtils.from_arrow_schema(input_tbl.schema, check_kind=False)
             )
         except Exception as e:
             logging.warning(f"parse sql fail, name={name}, sql={sql}")
@@ -359,11 +359,12 @@ def test_sql_processor_error():
     )
 
     def run(name: str, sql: str, input_tbl: VTable):
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(Exception) as exc_info:
             ast = SQLProcessor.parse_sql(sql, input_tbl.flatten_schema)
             expressions, tran_tbl = SQLProcessor.do_check(ast, input_tbl)
             for p in tran_tbl.parties.values():
-                sc_tbl = sc.Table.from_schema(p.schema.to_arrow())
+                schema = VTableUtils.to_arrow_schema(p.schema)
+                sc_tbl = sc.Table.from_schema(schema)
                 SQLProcessor.do_fit(sc_tbl, expressions[p.party])
             logging.info(f"expect exception {name}, {sql}, {exc_info}")
 

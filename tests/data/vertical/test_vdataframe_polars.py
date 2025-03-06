@@ -22,7 +22,6 @@ import pytest
 from secretflow import reveal
 from secretflow.data import partition
 from secretflow.data.vertical import VDataFrame
-from secretflow.utils.errors import NotFoundError
 
 
 @pytest.fixture(scope='function')
@@ -221,7 +220,7 @@ def test_get_single_item_should_ok(prod_env_and_data):
 def test_get_non_exist_items_should_error(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN and THEN
-    with pytest.raises(NotFoundError, match='does not exist'):
+    with pytest.raises(KeyError, match='does not exist'):
         _ = data['df']['a1', 'non_exist']
 
 

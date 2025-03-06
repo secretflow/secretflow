@@ -18,11 +18,15 @@ import logging
 import pytest
 from google.protobuf.json_format import MessageToJson
 from pyarrow import orc
+from secretflow_spec.v1.data_pb2 import DistData
 
-from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
-from secretflow.component.entry import comp_eval
+from secretflow.component.core import (
+    DistDataType,
+    build_node_eval_param,
+    comp_eval,
+    make_storage,
+)
 from secretflow.spec.extend.sgb_model_pb2 import SgbModel
-from secretflow.spec.v1.data_pb2 import DistData
 from tests.component.ml.test_sgb import (
     get_meta_and_dump_data,
     get_pred_param,
@@ -41,14 +45,17 @@ def sgb_model_train_res(comp_prod_sf_cluster_config):
     alice_path = f"{work_path}/x_alice.csv"
     bob_path = f"{work_path}/x_bob.csv"
     model_path = f"{work_path}/model.sf"
+    report_path = f"{work_path}/report.sf"
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
 
     train_param = get_train_param(
         alice_path,
         bob_path,
+        report_path,
         model_path,
         "",
+        "1.1.0",
     )
     meta = get_meta_and_dump_data(comp_prod_sf_cluster_config, alice_path, bob_path)
     train_param.inputs[0].meta.Pack(meta)

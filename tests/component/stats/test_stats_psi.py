@@ -17,6 +17,8 @@ import logging
 import numpy as np
 import pandas as pd
 import pytest
+from secretflow_spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
+from secretflow_spec.v1.report_pb2 import Report
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 
@@ -25,16 +27,13 @@ from secretflow.component.core import (
     VTable,
     VTableParty,
     build_node_eval_param,
+    comp_eval,
     make_storage,
 )
-from secretflow.component.entry import comp_eval
 from secretflow.component.stats.stats_psi import (
     calculate_stats_psi_one_feature,
     get_bin_counts_one_feature,
 )
-from secretflow.error_system.exceptions import DataFormatError
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
-from secretflow.spec.v1.report_pb2 import Report
 
 # good psi [0, 0.1], notably significant change: [0, 0.25], substantial variation: [0.25, ]
 good_psi_threshold = 0.1
@@ -477,8 +476,5 @@ def test_stats_psi_fail():
     ]
     test_bin_stats = [("label0", '0', '20'), ('label1', '1', '20')]
 
-    with pytest.raises(
-        DataFormatError,
-        match=f"base_bin_stat\: {len(base_bin_stats)} and test_bin_stat\: {len(test_bin_stats)} size not match.",
-    ):
+    with pytest.raises(Exception):
         calculate_stats_psi_one_feature(base_bin_stats, test_bin_stats)

@@ -18,8 +18,8 @@ from abc import ABC, abstractmethod
 from typing import List, Union
 
 from . import fed as sf_fed
-from .const import FED_OBJECT_TYPES
 from .config import get_cluster_config, parse_tls_config
+from .const import FED_OBJECT_TYPES
 from .memory.memory_api import mem_remote
 
 

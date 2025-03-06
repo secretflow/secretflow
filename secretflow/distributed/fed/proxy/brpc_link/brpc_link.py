@@ -19,8 +19,8 @@ from typing import Dict, Optional
 import spu.libspu.link as link
 
 from secretflow.utils import secure_pickle
+from secretflow.utils.errors import YACLError
 
-from ...exception import FedRemoteError
 from ..base import CrossSiloMessageConfig, SenderReceiverProxy
 
 logger = logging.getLogger(__name__)
@@ -126,7 +126,7 @@ class BrpcLinkProxy(SenderReceiverProxy):
             self._linker = link.create_brpc(self._desc, self._rank)
             logger.info(f'Succeeded to listen on {self._addresses[self._party]}.')
         except Exception as e:
-            raise RuntimeError(
+            raise YACLError(
                 f'Failed to listen on {self._addresses[self._party]} as exception:\n{e}'
             )
 
@@ -146,15 +146,6 @@ class BrpcLinkProxy(SenderReceiverProxy):
         def _pop_data():
             logger.debug(f"Getted {data_log_msg}.")
             data = self._all_data.pop(seq_id)
-            if isinstance(data, FedRemoteError):
-                logger.error(
-                    f"Receiving exception: {type(data)}, {data} from {src_party}, "
-                    f"seq id {seq_id}. Re-raise it."
-                )
-                from secretflow.distributed.fed.global_context import get_global_context
-
-                get_global_context().set_remote_exception(data)
-                raise data
             return data
 
         def _recv_data():

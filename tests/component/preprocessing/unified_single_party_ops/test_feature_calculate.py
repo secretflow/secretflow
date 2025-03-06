@@ -18,12 +18,16 @@ import numpy as np
 import pandas as pd
 from google.protobuf.json_format import MessageToJson
 from pyarrow import orc
+from secretflow_spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
-from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
-from secretflow.component.entry import comp_eval
+from secretflow.component.core import (
+    DistDataType,
+    build_node_eval_param,
+    comp_eval,
+    make_storage,
+)
 from secretflow.spec.extend.calculate_rules_pb2 import CalculateOpRules
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 
 test_data_alice = pd.DataFrame(
     {

@@ -16,10 +16,7 @@
 import abc
 from dataclasses import dataclass
 
-import pyarrow as pa
-
-from ..dist_data.vtable import VTableFormat, VTableSchema
-from ..storage import Storage
+from secretflow_spec import Storage, VTableFormat, VTableSchema
 
 
 @dataclass

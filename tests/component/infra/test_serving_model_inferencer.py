@@ -20,22 +20,22 @@ import numpy as np
 import pandas as pd
 import pytest
 from pyarrow import csv
+from secretflow_spec.v1.data_pb2 import (
+    DistData,
+    IndividualTable,
+    TableSchema,
+    VerticalTable,
+)
 
 from secretflow.component.core import (
     DistDataType,
     VTable,
     build_node_eval_param,
+    comp_eval,
     make_storage,
 )
-from secretflow.component.entry import comp_eval
 from secretflow.component.serving_model_inferencer.serving_model_inferencer import (
     get_output_pred_path,
-)
-from secretflow.spec.v1.data_pb2 import (
-    DistData,
-    IndividualTable,
-    TableSchema,
-    VerticalTable,
 )
 
 

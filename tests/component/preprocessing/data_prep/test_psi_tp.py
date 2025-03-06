@@ -23,10 +23,10 @@ from secretflow.component.core import (
     VTable,
     VTableParty,
     build_node_eval_param,
+    comp_eval,
     make_storage,
     write_csv,
 )
-from secretflow.component.entry import comp_eval
 
 
 @pytest.mark.parametrize(

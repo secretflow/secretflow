@@ -13,47 +13,12 @@
 # limitations under the License.
 
 
-import enum
 import threading
 import time
-from dataclasses import dataclass
 from typing import Callable
 
-from secretflow.spec.v1.data_pb2 import DistData
-
-Input = DistData
-
-
-@dataclass
-class Output:
-    uri: str
-    data: DistData = None  # type: ignore
-
-
-@dataclass
-class UnionSelection:
-    name: str
-    desc: str
-    minor_min: int = 0
-    minor_max: int = -1
-
-
-class UnionGroup:
-    """
-    A group of union attrs.
-    """
-
-    def __init__(self) -> None:
-        self._selected: str = ""
-
-    def is_selected(self, v: str) -> bool:
-        return self._selected == v
-
-    def set_selected(self, v: str):
-        self._selected = v
-
-    def get_selected(self) -> str:
-        return self._selected
+from secretflow.device.device.pyu import PYU
+from secretflow.device.driver import wait
 
 
 class _Guard:
@@ -92,21 +57,22 @@ class TimeTracer:
         return {"io_time": self.io_time, "run_time": self.run_time}
 
 
-class MetaEnum(enum.EnumMeta):
-    def __contains__(cls, item):
-        try:
-            cls(item)
-        except ValueError:
-            return False
-        return True
+class PathCleanUp:
+    def __init__(self, paths: dict[str:str]):
+        self.paths = paths
 
+    def __enter__(self):
+        return self
 
-class BaseEnum(enum.Enum, metaclass=MetaEnum):
-    def __repr__(self):
-        return self.value
+    def __exit__(self, *_):
+        self.cleanup()
 
-    def __str__(self):
-        return self.__repr__()
+    def cleanup(self):
+        import shutil
 
-    def __eq__(self, other):
-        return str(self) == str(other)
+        clean_res = []
+        for party, root_dir in self.paths.items():
+            res = PYU(party)(lambda v: shutil.rmtree(v))(root_dir)
+            clean_res.append(res)
+
+        wait(clean_res)

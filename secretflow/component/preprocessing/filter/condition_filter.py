@@ -34,6 +34,7 @@ from secretflow.component.core import (
     register,
 )
 from secretflow.device import PYU
+from secretflow.utils.errors import InvalidArgumentError, InvalidStateError
 
 comparator_mapping = {
     '==': lambda x, y: pc.equal(x, y),
@@ -137,23 +138,23 @@ class ConditionFilter(Component):
         assert len(info.parties) == 1, f"cannot find feature, {self.feature}"
 
         owner = next(iter(info.parties.keys()))
-        field = info.schema(0).field(0)
-        if field.ftype.is_float():
+        field = info.get_schema(0).get_field(0)
+        if field.type.is_float():
             value_type = float
-        elif field.ftype.is_string():
+        elif field.type.is_string():
             value_type = str
-        elif field.ftype.is_integer():
+        elif field.type.is_integer():
             value_type = int
         else:
-            raise ValueError(
-                f"only support FLOAT, STRING for now, but got type<{field.ftype}>"
+            raise InvalidArgumentError(
+                "only support FLOAT, STRING for now", detail={"type": field.type}
             )
 
         value = None
         if self.comparator != "NOTNULL":
             bound_value_list = self.bound_value.split(",")
             if self.bound_value == "":
-                raise ValueError(f"bound_value is empty")
+                raise InvalidArgumentError("bound_value is empty")
             values = [value_type(val) for val in bound_value_list]
             value = values if self.comparator == "IN" else values[0]
 
@@ -178,15 +179,14 @@ class ConditionFilter(Component):
                 write(out_writer, ds)
                 write(else_writer, else_ds)
 
-        assert (
-            out_writer.line_count
-        ), f"empty dataset is not allowed, yet the table satisfied the condition is empty, \
-        skip this condition filter step and use alternative pipeline please."
-
-        assert (
-            else_writer.line_count
-        ), f"empty dataset is not allowed, yet the table not satisfied the condition is empty, \
-        skip this condition filter step and use alternative pipeline please."
+        if out_writer.line_count == 0 or else_writer.line_count == 0:
+            raise InvalidStateError(
+                message="empty dataset is not allowed, skip this condition filter step and use alternative pipeline please.",
+                detail={
+                    "out_line_count": out_writer.line_count,
+                    "else_line_count": else_writer.line_count,
+                },
+            )
 
         out_writer.dump_to(self.output_ds)
         else_writer.dump_to(self.output_ds_else)

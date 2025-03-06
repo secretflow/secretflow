@@ -21,6 +21,7 @@ from secretflow.component.core import (
     DistDataType,
     Field,
     Input,
+    IServingExporter,
     Output,
     ServingBuilder,
     register,
@@ -33,7 +34,7 @@ from .sgb import SGBExportMixin
 
 
 @register(domain="ml.predict", version="1.0.0", name="sgb_predict")
-class SGBPredict(SGBExportMixin, Component):
+class SGBPredict(SGBExportMixin, Component, IServingExporter):
     '''
     Predict using SGB model.
     '''

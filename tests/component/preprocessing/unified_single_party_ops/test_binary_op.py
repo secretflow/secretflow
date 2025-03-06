@@ -20,16 +20,16 @@ import numpy as np
 import pandas as pd
 import pytest
 from pyarrow import orc
+from secretflow_spec.v1.evaluation_pb2 import NodeEvalParam
 from sklearn.datasets import load_breast_cancer
 
 from secretflow.component.core import (
     VTable,
     VTableParty,
     build_node_eval_param,
+    comp_eval,
     make_storage,
 )
-from secretflow.component.entry import comp_eval
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
 ops = {"+": operator.add, "-": operator.sub, "*": operator.mul, "/": operator.truediv}
 

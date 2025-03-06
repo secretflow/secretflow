@@ -13,9 +13,12 @@
 # limitations under the License.
 
 
-from secretflow.component.core import DistDataType, build_node_eval_param
-from secretflow.component.entry import comp_eval
-from secretflow.spec.v1.data_pb2 import DistData
+import time
+
+import pytest
+from secretflow_spec.v1.data_pb2 import DistData
+
+from secretflow.component.core import DistDataType, build_node_eval_param, comp_eval
 from tests.component.infra.util import eval_export, get_meta_and_dump_data
 
 
@@ -160,6 +163,36 @@ def _inner_test_sgb_export(comp_prod_sf_cluster_config, features_in_one_party):
         sf_cluster_config,
         expected_input,
     )
+
+    with pytest.raises(
+        AssertionError, match="feature not supported yet. change `he_mode` to False."
+    ):
+        # by train comp
+        eval_export(
+            work_path,
+            [train_param],
+            [train_res],
+            storage_config,
+            sf_cluster_config,
+            expected_input,
+            True,
+        )
+    time.sleep(4)
+
+    with pytest.raises(
+        AssertionError, match="feature not supported yet. change `he_mode` to False."
+    ):
+        # by pred comp
+        eval_export(
+            work_path,
+            [predict_param],
+            [predict_res],
+            storage_config,
+            sf_cluster_config,
+            expected_input,
+            True,
+        )
+    time.sleep(4)
 
 
 def test_sgb_export_features_in_one_party_true(comp_prod_sf_cluster_config):

@@ -44,9 +44,8 @@ from spu.utils.distributed import dtype_spu_to_np, shape_spu_to_np
 import secretflow.distributed as sfd
 from secretflow.distributed import FED_OBJECT_TYPES
 from secretflow.distributed.ray_op import get_obj_ref
-from secretflow.error_system.exceptions import InternalError
 from secretflow.utils import secure_pickle as pickle
-from secretflow.utils.errors import InvalidArgumentError
+from secretflow.utils.errors import InvalidArgumentError, YACLError
 from secretflow.utils.ndarray_bigint import BigintNdArray
 from secretflow.utils.progress import ProgressData
 
@@ -377,7 +376,11 @@ class SPURuntime:
                     address = node['listen_address']
             desc.add_party(node['party'], address)
         _fill_link_desc_attrs(link_desc=link_desc, tls_opts=tls_opts, desc=desc)
-        self.link = spu_link.create_brpc(desc, rank)
+        try:
+            self.link = spu_link.create_brpc(desc, rank)
+        except Exception as e:
+            raise YACLError(f"Failed to create link: {e}")
+
         self.conf = json_format.Parse(
             json.dumps(cluster_def['runtime_config']), spu.RuntimeConfig()
         )
@@ -1397,7 +1400,7 @@ def _spu_compile(fn, copts, fn_name, *meta_args, **meta_kwargs):
                 copts=copts,
             )
     except Exception as e:
-        raise InternalError.worker_crashed_error(f"{e}")
+        raise RuntimeError(f"{e}")
 
     executable.name = fn_name
     return executable, output_tree

@@ -292,9 +292,7 @@ def get(objects: Any):
             # need to boardcast the data of the fed_object to other parties,
             # and then return the real data of that.
             for target_party in addresses:
-                if target_party == current_party:
-                    continue
-                else:
+                if target_party != current_party:
                     get_global_context().send(target_party, fed_object)
         else:
             # This is the code path that the fed_object is not in current party.
@@ -302,17 +300,7 @@ def get(objects: Any):
             # data from the location party of the fed_object.
             get_global_context().recv(fed_object)
 
-    try:
-        for i in indexes:
-            flattened_args[i] = copy.deepcopy(flattened_args[i].get_object())
-    except FedRemoteError as e:
-        logger.warning(
-            "Encounter RemoteError happend in other parties"
-            f", error message: {e._cause}"
-        )
-        raise
-    except Exception as e:
-        get_global_context().set_local_exception(e)
-        raise
+    for i in indexes:
+        flattened_args[i] = copy.deepcopy(flattened_args[i].get_object())
 
     return tree_unflatten(tree, flattened_args)

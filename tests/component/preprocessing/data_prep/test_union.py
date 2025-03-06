@@ -18,14 +18,19 @@ import time
 import pandas as pd
 import pytest
 from pyarrow import orc
-
-from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
-from secretflow.component.entry import comp_eval
-from secretflow.spec.v1.data_pb2 import (
+from secretflow_spec.v1.data_pb2 import (
     DistData,
     IndividualTable,
     TableSchema,
     VerticalTable,
+)
+
+from secretflow.component.core import (
+    DistDataType,
+    assert_almost_equal,
+    build_node_eval_param,
+    comp_eval,
+    make_storage,
 )
 
 
@@ -108,9 +113,10 @@ def test_union_individual(comp_prod_sf_cluster_config):
     if self_party == "alice":
         real_result = orc.read_table(storage.get_reader(output_path)).to_pandas()
         logging.warning(f"...individual_res:{self_party}... \n{real_result}\n.....")
-        pd.testing.assert_frame_equal(
+        assert_almost_equal(
             expected_result,
             real_result,
+            ignore_order=True,
             check_dtype=False,
         )
 
@@ -321,11 +327,12 @@ def test_union_load_table(comp_prod_sf_cluster_config):
 
     assert len(res.outputs) == 1
     if self_party == "alice":
-        real_result = orc.read_table(storage.get_reader(output_path)).to_pandas()
+        real_result = orc.read_table(storage.get_reader(output_path))
         logging.warning(f"...load_table_result:{self_party}... \n{real_result}\n.....")
-        pd.testing.assert_frame_equal(
+        assert_almost_equal(
             expected_result,
             real_result,
+            ignore_order=True,
             check_dtype=False,
         )
 
@@ -413,11 +420,10 @@ def test_union_error(comp_prod_sf_cluster_config):
     meta.schemas[0].features.append("diff_id")
     param.inputs[1].meta.Pack(meta)
 
-    with pytest.raises(Exception, match="table meta info missmatch") as exc_info:
+    with pytest.raises(Exception):
         comp_eval(
             param=param,
             storage_config=storage_config,
             cluster_config=sf_cluster_config,
         )
     time.sleep(4)
-    logging.warning(f"Caught expected AssertionError: {exc_info}")

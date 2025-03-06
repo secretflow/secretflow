@@ -27,8 +27,8 @@ from secretflow.component.io.core.bins.woe_bins import (
 )
 from secretflow.component.preprocessing.binning.base import BinningRunner
 from secretflow.device import PYUObject
-from secretflow.error_system.exceptions import SFModelError
 from secretflow.spec.extend.bin_data_pb2 import Bins
+from secretflow.utils.errors import InvalidArgumentError
 
 
 def bin_rule_to_pb(rules: List[PYUObject], public_info: dict) -> Bins:
@@ -60,7 +60,7 @@ def bin_rule_from_pb_and_old_rule(
 
 def check_bin_rule_pb_valid(public_info: dict, bins: Bins):
     if bins.model_hash != public_info.get("model_hash", ""):
-        raise SFModelError.model_hash_mismatch(
+        raise InvalidArgumentError(
             "model hash mismatch, make sure the pb is matched to the original model"
         )
 

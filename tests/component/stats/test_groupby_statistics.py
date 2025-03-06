@@ -18,16 +18,20 @@ import time
 import pandas as pd
 import pytest
 from google.protobuf.json_format import MessageToJson
+from secretflow_spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
+from secretflow_spec.v1.report_pb2 import Report
 
-from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
-from secretflow.component.entry import comp_eval
+from secretflow.component.core import (
+    DistDataType,
+    build_node_eval_param,
+    comp_eval,
+    make_storage,
+)
 from secretflow.component.stats.groupby_statistics import STR_TO_ENUM
 from secretflow.spec.extend.groupby_aggregation_config_pb2 import (
     ColumnQuery,
     GroupbyAggregationConfig,
 )
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
-from secretflow.spec.v1.report_pb2 import Report
 
 
 def value_agg_pairs_to_pb(value_agg_pairs) -> GroupbyAggregationConfig:

@@ -30,18 +30,16 @@ from secretflow.component.core import (
     Reporter,
     UnionGroup,
     VTable,
-    VTableFieldKind,
     VTableFormat,
     VTableParty,
-    VTableSchema,
     download_csv,
     register,
     upload_orc,
     uuid4,
 )
 from secretflow.component.preprocessing.data_prep.pis_utils import trans_keys_to_ids
-from secretflow.device import PYU, reveal
-from secretflow.error_system.exceptions import CompEvalError
+from secretflow.device import PYU, reveal, wait
+from secretflow.utils.errors import InvalidStateError
 
 
 @dataclass
@@ -138,8 +136,8 @@ class PSI(Component):
     )
 
     def evaluate(self, ctx: Context):
-        tbl1 = VTable.from_distdata(self.input_ds1).party(0)
-        tbl2 = VTable.from_distdata(self.input_ds2).party(0)
+        tbl1 = VTable.from_distdata(self.input_ds1).get_party(0)
+        tbl2 = VTable.from_distdata(self.input_ds2).get_party(0)
 
         tbl1.schema = trans_keys_to_ids(tbl1.schema, self.input_ds1_keys)
         tbl2.schema = trans_keys_to_ids(tbl2.schema, self.input_ds2_keys)
@@ -201,9 +199,9 @@ class PSI(Component):
                     for info in input_tables
                 ]
 
-                input_rows = reveal(download_res)
+                wait(download_res)
             with ctx.trace_running():
-                spu.psi(
+                psi_res = spu.psi(
                     keys=keys,
                     input_path=input_paths,
                     output_path=output_paths,
@@ -226,7 +224,7 @@ class PSI(Component):
                         ctx.storage,
                         output_uri,
                         output_paths[tbl.party],
-                        tbl.schema.to_arrow(),
+                        tbl.schema,
                         na_rep,
                     )
                     for tbl in output_tables
@@ -236,8 +234,8 @@ class PSI(Component):
                 output_rows = output_rows[0]
 
         if output_rows == 0 and not self.allow_empty_result:
-            raise CompEvalError(
-                f"Empty result is not allowed, please check your input data or set allow_empty_result to true."
+            raise InvalidStateError(
+                "Empty result is not allowed, please check your input data or set allow_empty_result to true."
             )
 
         system_info = self.input_ds1.system_info
@@ -248,13 +246,7 @@ class PSI(Component):
         output = VTable(output_uri, output_tables, output_rows, system_info)
         self.output_ds.data = output.to_distdata()
 
-        report_tbl = pd.DataFrame(
-            {
-                "party": [tbl.party for tbl in input_tables],
-                "original_count": input_rows,
-                "output_count": [output_rows for _ in range(2)],
-            }
-        )
+        report_tbl = pd.DataFrame(psi_res)
 
         report = Reporter("psi_report", "", system_info=system_info)
         report.add_tab(report_tbl)

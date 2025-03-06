@@ -15,13 +15,10 @@
 import logging
 from typing import List, Union
 
-from secretflow.error_system.exceptions import NotSupportedError
+from secretflow.utils.errors import NotSupportedError
 
 from .const import DISTRIBUTION_MODE, FED_OBJECT_TYPES
-from .op_strategy import (
-    DebugStrategy,
-    ProdStrategy,
-)
+from .op_strategy import DebugStrategy, ProdStrategy
 
 
 class SFOpContext:

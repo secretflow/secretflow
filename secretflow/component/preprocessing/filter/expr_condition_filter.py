@@ -13,7 +13,6 @@
 # limitations under the License.
 
 
-import logging
 from typing import Tuple
 
 import duckdb
@@ -34,8 +33,9 @@ from secretflow.component.core import (
     VTableFieldKind,
     register,
 )
-from secretflow.device import PYU, reveal
+from secretflow.device import PYU
 from secretflow.utils.consistent_ops import unique_list
+from secretflow.utils.errors import InvalidStateError
 
 
 @register(domain='data_filter', version='1.0.0')
@@ -93,27 +93,24 @@ class ExprConditionFilter(Component):
                 f"The columns<{columns}> of expr<{expr}> must appears in one party"
             )
 
-        fit_pyu = PYU(infos.party(0).party)
+        fit_pyu = PYU(infos.get_party(0).party)
 
-        def _fit(duck_input_table: pa.Table, expr: str) -> Tuple[pa.Table, Exception]:
+        def _fit(duck_input_table: pa.Table, expr: str) -> pa.Table:
             sql = f"SELECT CASE WHEN {expr} THEN TRUE ELSE FALSE END AS hit FROM duck_input_table"
 
-            try:
-                with duckdb.connect() as con:
-                    selection = con.execute(sql).arrow()
-                if selection.num_columns != 1 or not pa.types.is_boolean(
-                    selection.field(0).type
-                ):
-                    return None, ValueError(
-                        f"The result can only have one column<{selection.num_columns}> and it must be of boolean type<{selection.field(0).type}>"
-                    )
-                return selection, None
-            except duckdb.Error as e:
-                logging.exception(f"execute sql {sql} error")
-                return None, ValueError(e.__cause__)
-            except Exception as e:
-                logging.exception(f"execute sql {sql} error")
-                return None, e
+            with duckdb.connect() as con:
+                selection = con.execute(sql).arrow()
+            if selection.num_columns != 1 or not pa.types.is_boolean(
+                selection.field(0).type
+            ):
+                return InvalidStateError(
+                    message=f"The result can only have one column and it must be boolean type",
+                    detail={
+                        "num_columns": selection.num_columns,
+                        "type": selection.field(0).type,
+                    },
+                )
+            return selection
 
         reader = CompVDataFrameReader(ctx.storage, ctx.tracer, self.input_ds)
 
@@ -132,10 +129,7 @@ class ExprConditionFilter(Component):
             for batch in reader:
                 selected_df = CompVDataFrame({}, self.input_ds.system_info)
                 else_df = CompVDataFrame({}, self.input_ds.system_info)
-                selection, err = fit_pyu(_fit)(batch.data(fit_pyu), expr)
-                err = reveal(err)
-                if err:
-                    raise err
+                selection = fit_pyu(_fit)(batch.data(fit_pyu), expr)
                 for pyu in batch.partitions:
                     selected_data, else_data = pyu(_transform)(
                         batch.data(pyu), selection.to(pyu)

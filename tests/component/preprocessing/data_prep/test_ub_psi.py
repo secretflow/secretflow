@@ -22,9 +22,9 @@ from secretflow.component.core import (
     VTable,
     VTableParty,
     build_node_eval_param,
+    comp_eval,
     make_storage,
 )
-from secretflow.component.entry import comp_eval
 from secretflow.spec.extend.data_pb2 import DeviceObjectCollection
 
 
