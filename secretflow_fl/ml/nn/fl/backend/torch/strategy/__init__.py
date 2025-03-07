@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from examples.security.h_gia.FedSMP_defense.FedSMP_torch import PYUFedSMP
-
 from .fed_avg_g import PYUFedAvgG
 from .fed_avg_u import PYUFedAvgU
 from .fed_avg_w import PYUFedAvgW
