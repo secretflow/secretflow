@@ -163,7 +163,7 @@ class GiadentInversionAttackSME(AttackCallback):
                     test_steps=attack_configs['test_steps'],
                     path_to_res=attack_configs['path_to_res'],
                     lamb=attack_configs['lamb'],
-                    mean_std=((0.0,), (1.0,)),
+                    mean_std=attack_configs['mean_std'],
                 )
 
                 attacker.net0 = victim_model1
@@ -203,6 +203,18 @@ class GiadentInversionAttackSME(AttackCallback):
         )
 
     def get_attack_metrics(self):
+
+        file_path = os.path.join(self.attack_configs['path_to_res'], "res.json")
+
+        if os.path.exists(file_path):
+            try:
+                with open(file_path, 'r', encoding='utf-8') as file:
+                    data = json.load(file)
+            except json.JSONDecodeError as e:
+                print(f"JSON error: {e}")
+            self.metrics = data
+        else:
+            print(f"the logging file of SME attack does not exist in {file_path}")
         return self.metrics
 
 

@@ -129,6 +129,7 @@ attack_configs = {
     "lr_decay": True,
     "save_figure": True,
     "setup": {"device": "cpu", "dtype": torch.float32},
+    "mean_std": ((0.0,), (1.0,)),
 }
 
 
