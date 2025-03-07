@@ -3,11 +3,9 @@
 </div>
 
 ---
-<div align="center">
-    <a href="https://github.com/orgs/secretflow/projects/12/"><img alt="good-first-issue" src="https://img.shields.io/badge/SecretFlow-Good%20First%20Issue-green">
-</div>
 
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/secretflow/secretflow/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/secretflow/secretflow/tree/main)
+[![GoodFirstIssue](https://img.shields.io/badge/SecretFlow-Good%20First%20Issue-green)](https://github.com/orgs/secretflow/projects/12/)
 
 <p align="center">
 <a href="./README.zh-CN.md">简体中文</a>｜<a href="./README.md">English</a>
