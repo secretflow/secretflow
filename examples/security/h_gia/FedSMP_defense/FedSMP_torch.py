@@ -106,7 +106,7 @@ class FedSMP(BaseTorchModel):
 
         # add mask to sparsify the grads
         grads = [v2 * v1 for v1, v2 in zip(grads, self.grad_mask)]
-        grads = [v / self.compression_ratio for v in grads]
+        grads = [v / (self.compression_ratio + 1e-6) for v in grads]
 
         # add noise
         if dp_strategy is not None:
