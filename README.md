@@ -5,6 +5,7 @@
 ---
 
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/secretflow/secretflow/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/secretflow/secretflow/tree/main)
+[![GoodFirstIssue](https://img.shields.io/badge/SecretFlow-Good%20First%20Issue-green)](https://github.com/orgs/secretflow/projects/12/)
 
 <p align="center">
 <a href="./README.zh-CN.md">简体中文</a>｜<a href="./README.md">English</a>
@@ -55,6 +56,9 @@ Please check [AWESOME-PETS.md](./docs/awesome-pets/awesome-pets.md)
 ## Contributing
 
 Please check [CONTRIBUTING.md](./CONTRIBUTING.md)
+
+### Good First Issues
+We have a list of [good first issues](https://github.com/orgs/secretflow/projects/12/). This is a great place for newcomers and beginners alike to get started, gain experience, and get familiar with our contribution process.
 
 ## Benchmarks
 
