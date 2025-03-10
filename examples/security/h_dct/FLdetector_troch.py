@@ -46,7 +46,7 @@ def parse_args():
 
 class FLdetector(BaseTorchModel):
      """
-        Implemention of FedSMP algorithm in paper Federated Learning with Sparsified Model Perturbation: Improving Accuracy under Client-Level Differential Privacy: https://ieeexplore.ieee.org/abstract/document/10360319/.
+        Implemention of FLDector, which aims to detect and remove the majority of the malicious clients
 
     """
      def __init__(
