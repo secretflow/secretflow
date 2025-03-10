@@ -210,9 +210,9 @@ class GiadentInversionAttackSME(AttackCallback):
             try:
                 with open(file_path, 'r', encoding='utf-8') as file:
                     data = json.load(file)
+                self.metrics = data
             except json.JSONDecodeError as e:
                 print(f"JSON error: {e}")
-            self.metrics = data
         else:
             print(f"the logging file of SME attack does not exist in {file_path}")
         return self.metrics
