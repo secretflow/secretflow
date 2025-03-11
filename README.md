@@ -56,8 +56,7 @@ Please check [AWESOME-PETS.md](./docs/awesome-pets/awesome-pets.md)
 
 ## Contributing
 
-- Please check [CONTRIBUTING.md](./CONTRIBUTING.md)
-- Contribution：Thank you for contributing to SecretFlow! All contributors will receive: A SecretFlow Open Source Contributor Certificate & An exclusive SecretFlow T-shirt 📌 [Apply Now](https://studio.secretflow.com/activity/fhelc1w2nmx0g0n/detail)
+- Contributor Rewards: Thank you for contributing to SecretFlow! All contributors will receive: A SecretFlow Open Source Contributor Certificate & An exclusive SecretFlow T-shirt 📌 [Apply Now](https://studio.secretflow.com/activity/fhelc1w2nmx0g0n/detail)
 
 ### Good First Issues
 We have a list of [good first issues](https://github.com/orgs/secretflow/projects/12/). This is a great place for newcomers and beginners alike to get started, gain experience, and get familiar with our contribution process.
