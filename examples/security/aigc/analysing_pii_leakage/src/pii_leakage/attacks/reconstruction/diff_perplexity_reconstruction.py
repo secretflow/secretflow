@@ -11,9 +11,11 @@ from ...models.language_model import GeneratedTextList, LanguageModel
 from ...ner.tagger import Tagger
 from ...ner.tagger_factory import TaggerFactory
 from ...utils.output import print_highlighted
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
+import numpy as np
 
 
-class PerplexityReconstructionAttack(ReconstructionAttack):
+class DiffPerplexityReconstructionAttack(ReconstructionAttack):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -64,9 +66,33 @@ class PerplexityReconstructionAttack(ReconstructionAttack):
             return {}
 
         # 5. Compute the perplexity for each candidate
-        queries = [imputed_masked_sequence.replace("<T-MASK>", x) for x in candidates]
+        tmp_seq = imputed_masked_sequence.split('<T-MASK>')
+        queries = [tmp_seq[0] + x + tmp_seq[1].split('\n')[0] for x in candidates]
+        # queries = [imputed_masked_sequence.replace("<T-MASK>", x) for x in candidates]
         ppls = lm.perplexity(queries, return_as_list=True)
-        # use sliding as member inference
-        # ppls = lm.perplexity_sliding(candidates, templete=imputed_masked_sequence, return_as_list=True)
-        results: dict = {ppl: candidate for ppl, candidate in zip(ppls, candidates)}
-        return results
+        ppls_baseline = baseline_lm.perplexity(queries, return_as_list=True)
+        
+        # 转换为numpy数组并reshape为2D
+        ppls_np = np.array(ppls.float().cpu()).reshape(-1, 1)
+        ppls_baseline_np = np.array(ppls_baseline.float().cpu()).reshape(-1, 1)
+        
+        # 使用StandardScaler进行标准化
+        # scaler = StandardScaler()
+        # ppls_normalized = scaler.fit_transform(ppls_np).flatten()
+        # ppls_baseline_normalized = scaler.fit_transform(ppls_baseline_np).flatten()
+
+        
+        # 使用MinMaxScaler标准化
+        scaler = MinMaxScaler()
+        ppls_normalized = scaler.fit_transform(ppls_np).flatten()
+        ppls_baseline_normalized = scaler.fit_transform(ppls_baseline_np).flatten()
+
+        ppls_normalized = ppls
+        ppls_baseline_normalized = ppls_baseline
+        
+        # 计算差异
+        diffs = [ppl - ppl_baseline for ppl, ppl_baseline in zip(ppls_normalized, ppls_baseline_normalized)]
+        results: dict = {diff: candidate for diff, candidate in zip(diffs, candidates)}
+        
+        # 返回原始的ppls和ppls_baseline，以便于可视化
+        return ppls_normalized, ppls_baseline_normalized, results, candidates

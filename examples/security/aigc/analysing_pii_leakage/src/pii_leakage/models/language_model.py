@@ -4,7 +4,7 @@
 from abc import abstractmethod
 from dataclasses import dataclass
 from typing import List, Union, Dict
-
+import zlib
 from accelerate import Accelerator
 
 import dp_transformers
@@ -181,28 +181,6 @@ class LanguageModel:
         self._lm.to(self.env_args.device)
         return self
 
-    def substring_perplexity(self, seq: str, substring: str) -> float:
-        """ Computes the perplexity of a substring in a string.
-        For example: seq="My name is Ronald and I like hamburgers.", substring="Ronald",
-        then this function computes the perplexity of generating "Ronald" given prefix "My name is".
-        """
-        original_mode = self._lm.training
-        self._lm.eval()
-
-        txt = seq[:seq.index(substring) + len(substring)]
-        input_ids = torch.tensor(self._tokenizer.encode(txt, truncation=True)).unsqueeze(0).to(self.env_args.device)
-        substring_len = len(self._tokenizer.encode(substring, truncation=True))
-        target_ids = input_ids.clone()
-        target_ids[:, :input_ids.size(1) - substring_len] = -100
-        with torch.no_grad():
-            outputs = self._lm(input_ids, labels=target_ids)
-        loss, _, num_tokens = outputs[:3]
-
-        perplexity = torch.exp(loss / num_tokens)
-
-        self._lm.training = original_mode
-        return perplexity.cpu().item()
-
     def autocomplete(self, sampling_args: SamplingArgs):
         """ Predicts the top-1 most probable next tokens. """
         return self.generate(sampling_args)[0]
@@ -225,16 +203,19 @@ class LanguageModel:
             attention_mask=attention_mask.to(self.env_args.device),
             max_length=min(self.n_positions, input_len + sampling_args.seq_len),
             # max_new_tokens=sampling_args.seq_len,
-            max_length=input_len + sampling_args.seq_len,
             do_sample=sampling_args.do_sample,
             top_k=sampling_args.top_k,
             top_p=sampling_args.top_p,
+            typical_p=sampling_args.typical_p,
+            temperature=sampling_args.temperature,
+            repetition_penalty=sampling_args.repetition_penalty,
             output_scores=False,
             return_dict_in_generate=True
         )
 
         generated_texts: List[GeneratedText] = []
-        for text in self._tokenizer.batch_decode(out.sequences, skip_special_tokens=False):
+        
+        for text in self._tokenizer.batch_decode(out.sequences[:, input_len:], skip_special_tokens=False):
             generated_texts.append(GeneratedText(text=text))
         return generated_texts
 
@@ -313,7 +294,101 @@ class LanguageModel:
         if apply_exp:
             return float(torch.exp(torch.stack(nlls).mean()).item())
         return float(torch.stack(nlls).mean().item())
+    
+    def perplexity_substring(self, data: Union[list, str], templete: str, offset=0, max_length=0, apply_exp=True, verbose=True,
+                   return_as_list: bool = False) -> float:
+        """ Compute the perplexity of the model on a string.
+        """
+        original_mode = self._lm.training
+        self._lm.eval()
 
+        if isinstance(data, str):  # always consider lists as input
+            data = [data]
+
+        nlls = []  # negative log likelihoods
+        ctr = 0  # Number of tokens viewed
+        for candidate in tqdm(data, desc="Compute PPL", disable=not verbose):
+
+            total_loss = torch.tensor(0.)
+            candidates = candidate.strip().split()
+            for start_idx in range(0, len(candidates)):
+                txt = templete.replace("<T-MASK>", ' '.join(candidates[:start_idx+1]))
+                input_ids = torch.tensor(self._tokenizer.encode(txt, truncation=True)).unsqueeze(0).to(self.env_args.device)
+                target_ids = input_ids.clone()
+
+                if offset > 0:  # ignore everything up to the offset
+                    target_ids[:, :offset] = -100
+
+                tgt_len = (target_ids.size(1) - offset)
+                if max_length > 0:  # ignore everything except offset:offset+max_length
+                    target_ids[:, offset + max_length:] = -100
+                    tgt_len = max_length
+
+                with torch.no_grad():
+                    outputs = self._lm(input_ids, labels=target_ids)
+                loss, logits = outputs[:2]
+                total_loss += loss.cpu().detach()
+
+            if return_as_list:
+                nlls.append(total_loss/len(candidates))
+            else:
+                nlls.append(total_loss/len(candidates))
+                ctr += tgt_len
+
+        self._lm.training = original_mode
+        if return_as_list:
+            if apply_exp:
+                return torch.exp(torch.stack(nlls))
+            return torch.stack(nlls, 0)
+
+        if apply_exp:
+            return float(torch.exp(torch.stack(nlls).mean()).item())
+        return float(torch.stack(nlls).mean().item())
+
+    def perplexity_zlib(self, data: Union[list, str], offset=0, max_length=0, apply_exp=True, verbose=True,
+                   return_as_list: bool = False) -> float:
+        """ Compute the perplexity of the model on a string.
+        """
+        original_mode = self._lm.training
+        self._lm.eval()
+
+        if isinstance(data, str):  # always consider lists as input
+            data = [data]
+
+        nlls = []  # negative log likelihoods
+        ctr = 0  # Number of tokens viewed
+        for txt in tqdm(data, desc="Compute PPL", disable=not verbose):
+            zlib_entropy = len(zlib.compress(bytes(txt, 'utf-8'))) # larger is best
+            input_ids = torch.tensor(self._tokenizer.encode(txt, truncation=True)).unsqueeze(0).to(self.env_args.device)
+            target_ids = input_ids.clone()
+
+            if offset > 0:  # ignore everything up to the offset
+                target_ids[:, :offset] = -100
+
+            tgt_len = (target_ids.size(1) - offset)
+            if max_length > 0:  # ignore everything except offset:offset+max_length
+                target_ids[:, offset + max_length:] = -100
+                tgt_len = max_length
+
+            with torch.no_grad():
+                outputs = self._lm(input_ids, labels=target_ids)
+            loss, logits = outputs[:2]
+            if return_as_list:
+                nlls.append(loss.cpu().detach() * zlib_entropy)
+            else:
+                nlls.append(loss.cpu().detach() * zlib_entropy)
+                ctr += tgt_len
+
+        self._lm.training = original_mode
+        if return_as_list:
+            if apply_exp:
+                return torch.exp(torch.stack(nlls))
+            return torch.stack(nlls, 0)
+
+        if apply_exp:
+            return float(torch.exp(torch.stack(nlls).mean()).item())
+        return float(torch.stack(nlls).mean().item())
+    
     def fine_tune_dp(self,
                       train_dataset: RealDataset,
                       eval_dataset: RealDataset,

@@ -40,3 +40,14 @@ class AttackArgs:
     seq_len: int = field(default=64, metadata={
         "help": "number of tokens to sample per sampled sequence."
     })
+
+    prompt_len: int = field(default=128, metadata={
+        "help": "max prompt(prefix) length(words)."
+    })
+
+    diff_topk: int = field(default=5, metadata={
+        "help": "number of topk candidates to use for diff perplexity attack."
+    })
+    icl_num: int = field(default=1, metadata={
+        "help": "number of context example to use for icl perplexity reconstruction."
+    })

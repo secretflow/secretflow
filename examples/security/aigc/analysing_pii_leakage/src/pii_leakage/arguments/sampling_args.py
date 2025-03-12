@@ -17,20 +17,28 @@ class SamplingArgs:
         "help": "the prompt for the LM"
     })
 
-    top_k: int = field(default=40, metadata={
+    top_k: int = field(default=0, metadata={
         "help": "Top-k sampling"
     })
 
-    top_p: float = field(default=1.0, metadata={
+    top_p: float = field(default=0.8, metadata={
         "help": "Top-p (nucleus) sampling. Top-K should be zero here."
+    })
+
+    typical_p: float = field(default=1.0, metadata={
+        "help": "Typical-p sampling. Top-K should be zero here."
+    })
+
+    temperature: float = field(default=1.0, metadata={
+        "help": "The temperature of logits."
+    })
+
+    repetition_penalty: float = field(default=1.0, metadata={
+        "help": "The repetition penalty of logits."
     })
 
     seq_len: int = field(default=512, metadata={
         "help": "maximum length for the sample"
-    })
-
-    prompted: str = field(default="none", metadata={
-        "help": "Which sampling mode to use"
     })
 
     as_probabilities: bool = field(default=True, metadata={

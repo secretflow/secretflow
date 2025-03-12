@@ -122,3 +122,37 @@ that will be cached in subsequent runs.
 Unfortunately, we do not provide fine-tuned model checkpoints.
 This repository does support loading models remotely, which can be done by providing a URL instead of a local path
 in the configuration files for the ```model_ckpt``` attribute.
+
+
+## Optimization Tricks of **PII Reconstruction** Attack
+### Sampling Strategy
+We have provided and tested the effects of multiple sampling strategies for language models on PII reconstruction. If you want to try it, change the parameters under `sampling_args` in the `configs/evaluate/*-pii-reconstruction.yml`. In addition, you can modify the temperature and repetition penalty to change the probability distribution of the model output. Below we provide the empirical parameters for subsequent experiments of other tricks.
+```yml
+...
+
+sampling_args:
+  top_k: 0.0
+  top_p: 0.7
+  typical_p: 1.0
+  temperature: 0.8
+  repetition_penalty: 1.0
+
+...
+```
+
+### Member Inference
+We explored various methods for improving member inference accuracy in PII reconstruction attacks, focusing on detecting whether generated PII was part of the model's training data.
+#### Zlib Compression
+This method combines text entropy with perplexity to create a membership inference metric. Zlib compression is used to quantify the information content of a text sequence, providing a measure of entropy. We calculate the ratio or product of model perplexity and Zlib compression score to determine membership likelihood, which has been proven effective[^2]. The intuition is that memorized sequences may have unique entropy and perplexity signatures compared to non-memorized ones. You can try it by setting the `attack_args/attack_name` parameter to `zlib_perplexity_reconstruction` in the config file.
+
+[^2]: Carlini, Nicholas, et al. "Extracting training data from large language models." 30th USENIX security symposium (USENIX Security 21). 2021.
+
+
+#### Model Perplexity Difference
+This approach leverages the difference in perplexity scores between the fine-tuned model and the original pre-trained model. The hypothesis is that samples present in the training data would have lower perplexity in the fine-tuned model but potentially higher perplexity in the original model. We use this perplexity gap as a membership indicator, with larger differences suggesting higher likelihood of training set membership. Setting the `attack_args/attack_name` parameter to `diff_perplexity_reconstruction` in the config file.
+
+#### Substring Perplexity
+The substring perplexity method examines not just the perplexity of the full sample but also its substrings. We observed that for genuine training samples, both the full string and its substrings tend to have consistently low perplexity. In contrast, non-training samples might have low perplexity for the full string but higher perplexity for substrings. This pattern can serve as a more reliable membership inference signal than using full-string perplexity alone. You can try this method by setting the `attack_args/attack_name` parameter to `substring_perplexity_reconstruction` in the config file.
+
+### In Context Learning for PII Reconstruction
+We enhanced the original PII reconstruction approach by leveraging in-context learning capabilities of language models. Instead of simply using a prefix to prompt the model to complete PII, we experimented with structured prompts in the format of `prefix+<MASK>+suffix`. This provides the model with more contextual information around the missing PII. You can try this by setting the `attack_args/attack_name` parameter to `icl_perplexity_reconstruction` in the config file. Further, we explore the impact of including different numbers of examples in the prompt on performance. You can modify it by changing the `icl_num` (the default is 3).

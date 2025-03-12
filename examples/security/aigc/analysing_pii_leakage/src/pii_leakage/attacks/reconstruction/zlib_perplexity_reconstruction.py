@@ -13,7 +13,7 @@ from ...ner.tagger_factory import TaggerFactory
 from ...utils.output import print_highlighted
 
 
-class PerplexityReconstructionAttack(ReconstructionAttack):
+class ZlibPerplexityReconstructionAttack(ReconstructionAttack):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -65,7 +65,7 @@ class PerplexityReconstructionAttack(ReconstructionAttack):
 
         # 5. Compute the perplexity for each candidate
         queries = [imputed_masked_sequence.replace("<T-MASK>", x) for x in candidates]
-        ppls = lm.perplexity(queries, return_as_list=True)
+        ppls = lm.perplexity_zlib(queries, return_as_list=True)
         # use sliding as member inference
         # ppls = lm.perplexity_sliding(candidates, templete=imputed_masked_sequence, return_as_list=True)
         results: dict = {ppl: candidate for ppl, candidate in zip(ppls, candidates)}

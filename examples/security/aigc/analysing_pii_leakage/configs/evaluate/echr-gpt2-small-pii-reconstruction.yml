@@ -9,6 +9,13 @@ attack_args:
   sampling_rate: 100
   seq_len: 128
 
+sampling_args:
+  top_k: 0.0
+  top_p: 0.7
+  typical_p: 1.0
+  temperature: 0.8
+  repetition_penalty: 1.0
+  
 env_args:
   eval_batch_size: 16
   
