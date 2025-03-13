@@ -13,6 +13,11 @@ import pandas as pd
 from inverse_stable_diffusion import InversableStableDiffusionPipeline
 from diffusers import DPMSolverMultistepScheduler
 import open_clip
+from statistics import mean, stdev
+import os
+import logging
+import time
+
 
 
 def read_json(filename: str) -> Mapping[str, Any]:
@@ -144,6 +149,37 @@ def generate_circle_mask(size=64, radius=10, x0=0, x_offset=0, y0=0, y_offset=0)
 
     return ((x - x0)**2 + (y-y0)**2)<= radius**2
 
+def generate_message_mask(size=64, radius=10, x0=0, x_offset=0, y0=0, y_offset=0):
+    """
+    生成一个二值圆环掩码，只包含半径为 `radius` 的边界像素。
+    """
+    x0 = y0 = size // 2
+    y, x = np.ogrid[:size, :size]
+    y = y[::-1]
+    
+    distance = (x - x0)**2 + (y - y0)**2
+    mask = (distance <= radius**2) & (distance > (radius - 1)**2)
+
+    return mask
+
+
+def generate_square_mask(size=64, side=4, x0=0, x_offset=0, y0=0, y_offset=0):
+    # Calculate the center of the array if not provided
+    x0 = y0 = size // 2
+    x0 += x_offset
+    y0 += y_offset
+
+    # Calculate the boundaries of the square
+    half_side = side // 2
+    x_min, x_max = x0 - half_side, x0 + half_side
+    y_min, y_max = y0 - half_side, y0 + half_side
+
+    # Generate the square mask
+    mask = np.zeros((size, size), dtype=bool)
+    mask[max(y_min, 0):min(y_max, size), max(x_min, 0):min(x_max, size)] = True
+
+    return mask
+
 
 def create_watermark_mask(watermark_pattern, args, device):
     """
@@ -152,27 +188,38 @@ def create_watermark_mask(watermark_pattern, args, device):
     mask = torch.zeros(watermark_pattern.shape, dtype=torch.bool).to(device)
 
     if args.watermark_shape == 'circle':
-        # Create a circular mask
-        circle = generate_circle_mask(watermark_pattern.shape[-1], radius=args.watermark_radius)
-        torch_circle = torch.tensor(circle).to(device)
-
-        if args.watermark_channel == -1:
-            # Apply the mask to all channels
-            mask[:, :] = torch_circle
+        if args.watermark_pattern == 'message':
+            # Create a message mask
+            message = generate_message_mask(watermark_pattern.shape[-1], radius=args.watermark_radius)
+            torch_message = torch.tensor(message).to(device)
+            if args.watermark_channel == -1:
+                # Apply the message mask to all channels
+                mask[:, :] = torch_message
+            else:
+                # Apply the message mask to a specific channel
+                mask[:, args.watermark_channel] = torch_message
         else:
-            # Apply the mask to a specific channel
-            mask[:, args.watermark_channel] = torch_circle
+            # Create a circular mask
+            circle = generate_circle_mask(watermark_pattern.shape[-1], radius=args.watermark_radius)
+            torch_circle = torch.tensor(circle).to(device)
+
+            if args.watermark_channel == -1:
+                # Apply the mask to all channels
+                mask[:, :] = torch_circle
+            else:
+                # Apply the mask to a specific channel
+                mask[:, args.watermark_channel] = torch_circle
 
     elif args.watermark_shape == 'square':
         # Create a square mask
-        center = watermark_pattern.shape[-1] // 2
-        radius = args.watermark_radius
+        square = generate_square_mask(watermark_pattern.shape[-1])
+        torch_square = torch.tensor(square).to(device)
         if args.watermark_channel == -1:
             # Apply the square mask to all channels
-            mask[:, :, center - radius:center + radius, center - radius:center + radius] = True
+            mask[:, :] = torch_square
         else:
             # Apply the square mask to a specific channel
-            mask[:, args.watermark_channel, center - radius:center + radius, center - radius:center + radius] = True
+            mask[:, args.watermark_channel] = torch_square
 
     elif args.watermark_shape == 'none':
         # No mask is applied
@@ -210,10 +257,33 @@ def generate_watermark_pattern(pipe, args, device, latent_shape=None):
         watermark_pattern = _apply_frequency_domain_pattern(latent_init, mode='constant', constant_value=args.watermark_constant)
     elif 'ring' in args.watermark_pattern:
         watermark_pattern = _apply_ring_pattern(latent_init, args, device, mode='ring')
+    elif 'message' in args.watermark_pattern:
+        watermark_pattern = _apply_message_pattern(latent_init, args, device, mode='message')
+    elif 'square' in args.watermark_pattern:
+        watermark_pattern = _apply_square_pattern(latent_init, args, device, mode='square')
     else:
         raise ValueError(f"Unsupported watermark pattern: {args.watermark_pattern}")
 
     return watermark_pattern
+
+def _apply_message_pattern(latent_tensor, args, device, mode='ring'):
+    """
+    Apply a message pattern to the latent tensor.
+    """
+
+    pattern = torch.fft.fftshift(torch.fft.fft2(latent_tensor), dim=(-1, -2))
+
+    circular_mask = generate_message_mask(latent_tensor.shape[-1], radius=args.watermark_radius)
+    torch_mask = torch.tensor(circular_mask).to(device)
+
+    repeat_0 = '0' * args.msg_redundant
+    repeat_1 = '1' * args.msg_redundant
+    message = args.msg.replace('0', repeat_0).replace('1', repeat_1)
+    message = list(map(lambda x: args.msg_scaler if x == "1" else -args.msg_scaler, list(message)))
+    message = torch.tensor(message).unsqueeze(0).to(torch.complex32).to(device)
+    pattern[:, args.watermark_channel, torch_mask] = message
+    
+    return pattern
 
 def _apply_ring_pattern(latent_tensor, args, device, mode='ring'):
     """
@@ -232,6 +302,23 @@ def _apply_ring_pattern(latent_tensor, args, device, mode='ring'):
 
         for channel in range(pattern.shape[1]):
             pattern[:, channel, torch_mask] = temp_pattern[0, channel, 0, radius].item()
+
+    return pattern
+
+def _apply_square_pattern(latent_tensor, args, device, mode='square'):
+    """
+    Apply a square pattern to the latent tensor.
+    """
+    pattern = torch.fft.fftshift(torch.fft.fft2(latent_tensor), dim=(-1, -2))
+
+
+    square_mask = torch.tensor(generate_square_mask(latent_tensor.shape[-1], side=args.watermark_side)).to(device)
+
+    msg_matrix = list(map(lambda x: args.msg_scaler if x == "1" else -args.msg_scaler, list(args.msg)))
+    msg_matrix = torch.tensor(msg_matrix).unsqueeze(0).to(torch.complex32).to(device)
+    
+    pattern[:,args.watermark_channel,square_mask] = msg_matrix
+
 
     return pattern
 
@@ -277,8 +364,65 @@ def compute_watermark_metrics(pipe, distorted_no_watermark, distorted_with_water
 
     no_watermark_metric, with_watermark_metric = eval_watermark(reversed_latents_no_watermark, reversed_latents_with_watermark, watermark_pattern, watermark_mask, args)
 
-    return no_watermark_metric, with_watermark_metric
 
+
+    return no_watermark_metric, with_watermark_metric, reversed_latents_with_watermark
+
+def detect_msg(reversed_latents_w, args):
+    """
+    Get predicted message from reversed_latents
+    """
+
+    if "complex" in args.watermark_measurement:
+        reversed_latents_w_fft = torch.fft.fftshift(torch.fft.fft2(reversed_latents_w), dim=(-1, -2))
+    elif "seed" in args.watermark_measurement:
+        reversed_latents_w_fft = reversed_latents_w
+    else:
+        NotImplementedError(f"w_measurement: {args.watermark_measurement}")
+
+    if args.watermark_pattern == 'message':
+        tmp_mask = generate_message_mask(reversed_latents_w.shape[-1], args.watermark_radius)
+
+        pred_circle_tmp_value = reversed_latents_w_fft[:, args.watermark_channel, tmp_mask].real
+        pred_circle_tmp_value = pred_circle_tmp_value.view(-1, args.msg_redundant).mean(dim=1)
+        pred_circle_tmp_value = (pred_circle_tmp_value > 0).to(int)
+
+        value = find_sync_marker_and_restore(pred_circle_tmp_value, args.sync_marker, len(pred_circle_tmp_value))
+    else:
+        tmp_mask = generate_square_mask(reversed_latents_w.shape[-1], args.watermark_side)
+
+        pred_circle_tmp_value = reversed_latents_w_fft[:, args.watermark_channel, tmp_mask].real
+
+        value = (pred_circle_tmp_value > 0).to(int)
+
+
+    return value  # Prediction is done from the biggest cirlce
+
+
+def find_sync_marker_and_restore(circular_data, sync_marker, original_length):
+    """
+    在旋转后的环形二进制数据中，找到同步标志并恢复原始数据
+    :param circular_data: 旋转后的二进制字符串
+    :param sync_marker: 唯一同步标志
+    :param original_length: 原始数据长度
+    :return: 还原后的原始数据
+    """
+    # Step 1: 构造扩展数据，确保可以遍历所有旋转情况
+    circular_data = ''.join(map(str, circular_data.tolist()))
+    extended_data = circular_data + circular_data  # 复制自身，双倍数据长度
+
+    # Step 2: 滑动窗口匹配同步标志
+    marker_pos = extended_data.find(sync_marker)
+
+    if marker_pos == -1:
+        marker_pos = 0  # 没有找到同步标志
+
+    # Step 3: 还原原始数据
+    recovered_data = extended_data[marker_pos : marker_pos + original_length]
+    recovered_data = torch.tensor([int(c) for c in recovered_data])
+
+
+    return recovered_data
 
 def inject_watermark(init_latents_w, watermarking_mask, gt_patch, args):
     init_latents_w_fft = torch.fft.fftshift(torch.fft.fft2(init_latents_w), dim=(-1, -2))
@@ -338,3 +482,45 @@ def get_p_value(reversed_latents_no_w, reversed_latents_w, watermarking_mask, gt
     p_w = scipy.stats.ncx2.cdf(x=x_w, df=len(target_patch), nc=lambda_w)
 
     return p_no_w, p_w
+
+
+def setup_logging(log_name=None, args=None, log_dir='logs'):
+    """
+    Sets up the logging for multiple processes. Only enable the logging for the
+    master process, and suppress logging for the non-master processes.
+    """
+
+    os.makedirs(log_dir, exist_ok=True)
+
+    # 设置日志文件名
+    cur_time = time.strftime('%Y-%m-%d_%H:%M:%S', time.localtime(time.time()))
+    if args is None and log_name is None:
+        file_name = (
+            cur_time 
+            + '.log'
+        )
+    elif log_name:
+        file_name = (
+            cur_time + '_'
+            + log_name
+            + '.log'
+        )
+    elif args:
+        file_name = (
+            cur_time 
+            + args.watermark_image_dir.split('/')[-1]
+            + '.log'
+        )
+    log_file = os.path.join(log_dir, file_name)
+    
+    # 获取模块特定的 Logger 对象
+    logger = logging.getLogger(__name__)
+    
+    # 配置日志记录器
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+    logger.setLevel(logging.INFO)
+
+    return logger
