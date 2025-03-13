@@ -24,7 +24,7 @@ python genereate_watermark.py --run_name no_attack --watermark_channel 3 --water
 
 **Adversarial Case (e.g., Rotation of 75 Degrees):**
 ```
-python run_tree_ring_watermark.py --run_name rotation --watermark_channel 3 --watermark_pattern ring --r_degree 75 --start_index 0 --end_index 1000 --enable_tracking
+python genereate_watermark.py --run_name rotation --watermark_channel 3 --watermark_pattern ring --r_degree 75 --start_index 0 --end_index 1000 --enable_tracking --reference_model ViT-g-14 --reference_model_pretrain laion2b_s12b_b42k
 ```
 
 ## Parameters
@@ -33,3 +33,22 @@ python run_tree_ring_watermark.py --run_name rotation --watermark_channel 3 --wa
 - `watermark_channel`: the index of the watermarked channel. If set as -1, watermark all channels.
 - `watermark_pattern`: watermark type: zeros, rand, ring.
 - `watermark_radius`: watermark radius.
+
+
+## Enhancement: Single-Layer Ring Watermark with Multi-Bit Embedding
+This version introduces a single-layer ring watermarking scheme that allows multi-bit embedding.
+
+The new implementation includes additional parameters:
+- `msg`: the index of the watermarked channel. If set as -1, watermark all channels.
+- `sync_marker`: A synchronization mechanism to improve robustness and alignment during extraction.
+- `msg_scaler`: A scaling factor that adjusts the strength of the embedded watermark information.
+- `msg_redundant`: The redundancy level to enhance robustness against distortions.
+
+### Usage
+**Multi-Bit Embedding with Single-Layer Ring Watermark**
+```
+python genereate_watermark_msg.py --run_name multi_bit_embedding --watermark_channel 3 --watermark_pattern message --watermark_radius 10 --msg "10101011110010111110101111001011" --sync_marker "10101011" --msg_scaler 100 --msg_redundant 2 --start_index 0 --end_index 1000 --enable_tracking
+```
+
+This enhancement ensures increased information capacity while maintaining robustness and invisibility in diffusion-generated images.
+
