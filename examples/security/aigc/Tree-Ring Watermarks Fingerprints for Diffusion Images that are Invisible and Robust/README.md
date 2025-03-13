@@ -49,6 +49,3 @@ The new implementation includes additional parameters:
 ```
 python genereate_watermark_msg.py --run_name multi_bit_embedding --watermark_channel 3 --watermark_pattern message --watermark_radius 10 --msg "10101011110010111110101111001011" --sync_marker "10101011" --msg_scaler 100 --msg_redundant 2 --start_index 0 --end_index 1000 --enable_tracking
 ```
-
-This enhancement ensures increased information capacity while maintaining robustness and invisibility in diffusion-generated images.
-
