@@ -1,0 +1,19 @@
+import socket
+import ssl
+
+sock = socket.socket(
+    socket.AF_INET,
+    socket.SOCK_STREAM | socket.SOCK_NONBLOCK)
+
+ssock = ssl.wrap_socket(sock, ssl_version=ssl.PROTOCOL_TLSv1)
+----------------------------------------
+import socket
+module = __import__('ssl', fromlist=['wrap_socket'])
+
+sock = socket.socket(
+    socket.AF_INET,
+    socket.SOCK_STREAM | socket.SOCK_NONBLOCK)
+
+ssock = module.wrap_socket(sock, ssl_version=ssl.PROTOCOL_TLSv1)
+----------------------------------------
+	String Matching: Identify and modify code patterns that match specific strings or regular expressions.
