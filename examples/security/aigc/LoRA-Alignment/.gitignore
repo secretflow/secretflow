@@ -1,0 +1,6 @@
+.vscode
+results/*
+data/*
+tests/*
+*.ipynb
+*/__pycache__
