@@ -11,7 +11,7 @@ This folder contains the implementions of gradient inversion attacks and defense
 SME attack is an improvement of the gradient inversion attack DLG. A surrogate model method is proposed in SME based on the characteristic of two-dimensional gradient flow and low-rank property of local updates. SME can largely boost the ability of gradient inversion attacks on weight updates containing many iterations and achieve state-of-the-art (SOTA) performance.
 
 <p align="center">
-    <img width="400" height="277" src="./figs/gradientflow.png" alt>
+    <img width="400" height="277" src="https://github.com/skylineZSS/rep-img/raw/main/gradientflow.png" alt>
 </p>
 <p align="center">
     <em>Figure 1: The gradient flow in a quadratic model and the construction of a surrogate model. </em>
@@ -74,7 +74,7 @@ T: total iterations of local training
 
 The reconstructed images of SME when $N=6, E=5, B=6$.
 <p align="center">
-    <img width="600" height="200" src="./figs/sme.jpg" alt>
+    <img width="600" height="200" src="https://github.com/skylineZSS/rep-img/raw/main/sme.jpg" alt>
 </p>
 <p align="center">
     <em>Figure 1: Visualizations of reconstructed images. </em>
