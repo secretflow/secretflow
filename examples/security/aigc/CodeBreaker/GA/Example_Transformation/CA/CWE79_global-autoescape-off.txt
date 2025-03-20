@@ -1,0 +1,23 @@
+from pyramid.view import view_config
+
+
+@view_config(
+    route_name='home_bad1',
+    # ruleid: pyramid-csrf-check-disabled
+    require_csrf=False,
+    renderer='my_app:templates/mytemplate.jinja2'
+)
+
+----------------------------------------
+from pyramid.view import view_config
+
+factor = (False, True)
+@view_config(
+    route_name='home_bad1',
+    # ruleid: pyramid-csrf-check-disabled
+    require_csrf=factor[0],
+    renderer='my_app:templates/mytemplate.jinja2'
+)
+
+----------------------------------------
+	Constant Analysis: Track and manipulate constant values or expressions in the code.

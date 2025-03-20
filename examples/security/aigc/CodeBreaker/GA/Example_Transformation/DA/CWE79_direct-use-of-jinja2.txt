@@ -1,0 +1,15 @@
+@app.route("/profile/", methods=['GET'])
+def profile():
+    username = request.args.get('username')
+    with open("profile.html") as f:
+	    return jinja2.Template(f.read()).render(username=username)
+----------------------------------------
+@app.route("/profile/", methods=['GET'])
+def profile():
+    username = request.args.get('username')
+    with open("profile.html") as f:
+        template = jinja2.Template(f.read())
+        refer_func = template.render
+        return refer_func(username=username)
+----------------------------------------
+	Dataflow Analysis: Analyze data flow within the code to manipulate data paths and variable assignments.
