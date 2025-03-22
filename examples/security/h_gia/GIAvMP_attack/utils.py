@@ -1,3 +1,16 @@
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import copy
 import os
 from collections import OrderedDict
@@ -20,6 +33,17 @@ def train_malicious_params(
     epochs=5,
     K=4,
 ):
+    """Trains malicious parameters for the GIAvMP attack.
+
+    Args:
+        global_net: The global neural network model.
+        aux_dataset: Auxiliary dataset used for training malicious parameters.
+        global_params: the global parameters.
+        attack_configs: Attack configurations.
+        lr: Learning rate for training.
+        epochs: Number of training epochs.
+        K: Number of neurons to select.
+    """
     device = 'cuda' if torch.cuda.is_available() else "cpu"
 
     # load the dataset
@@ -124,6 +148,19 @@ def DLGinverse(
     lr=0.01,
     loss_factors=[1e-3, 1, 1e-2],
 ):
+    """Inverses raw images using DLG method.
+
+    Args:
+        net: The neural network model.
+        gt_data: Ground truth data.
+        gt_label: Ground truth labels.
+        gt_embed: Ground truth embeddings.
+        attack_configs: Attack configurations.
+        original_dy_dx: Original gradients.
+        r: Number of iterations.
+        lr: Learning rate.
+        loss_factors: Loss factors for different loss components.
+    """
     device = 'cuda' if torch.cuda.is_available() else "cpu"
 
     b1, b2, b3 = loss_factors
