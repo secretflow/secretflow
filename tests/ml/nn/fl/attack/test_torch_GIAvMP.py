@@ -17,7 +17,6 @@ import torch.nn as nn
 from torch import optim
 from torchmetrics import Accuracy, Precision
 
-import secretflow as sf
 from examples.security.h_gia.GIAvMP_attack.GIAvMP_torch import GIAvMP
 from secretflow.security.aggregation import SecureAggregator
 from secretflow_fl.ml.nn import FLModel
@@ -85,7 +84,6 @@ def do_test_fl_and_GIAvMP(attack_configs: dict, alice, bob):
         parts={alice: (0, client_data_num)},
         normalized_x=True,
         categorical_y=True,
-        # is_torch=True,
     )
 
     # prepare aux dataset for attacker to train malicious params
@@ -93,6 +91,9 @@ def do_test_fl_and_GIAvMP(attack_configs: dict, alice, bob):
     ((x_train, y_train), (x_test, y_test)) = load_cifar10_unpartitioned()
     x_test = np.array(x_test, dtype=np.float32)
     aux_dataset = [i for i in zip(x_test, y_test)]
+    aux_dataset = aux_dataset[
+        : int(len(aux_dataset) * attack_configs['ratio_aux_dataset'])
+    ]
 
     loss_fn = nn.CrossEntropyLoss
     optim_fn = optim_wrapper(optim.SGD, lr=attack_configs['train_lr'])
@@ -120,9 +121,8 @@ def do_test_fl_and_GIAvMP(attack_configs: dict, alice, bob):
         device_list=device_list,
         model=model_def,
         aggregator=aggregator,
-        strategy='fed_avg_w',  # fl strategy
-        backend="torch",  # backend support ['tensorflow', 'torch']
-        # use_gpu=True,
+        strategy='fed_avg_w',
+        backend="torch",
     )
 
     # init GIAvMP callback
@@ -150,15 +150,16 @@ attack_configs = {
     "path_to_res": "./examples/security/h_gia/GIAvMP_attack/res",
     "path_to_trainedMP": "./examples/security/h_gia/GIAvMP_attack/malicious_params",
     "trainMP": True,
-    # "trainMP": False,
     "dataset": "cifar10",
     "data_size": (3, 32, 32),
     "model": FCNNmodel,
-    # "model": CNNmodel,
     "k": 8,
     "batchsize": 8,
     "epochs": 1,
     "train_lr": 1,
+    "epochs_for_trainMP": 1,
+    "epochs_for_DLGinverse": 1,
+    "ratio_aux_dataset": 0.01,
     "device": "cpu",
 }
 
@@ -167,8 +168,3 @@ def test_fl_and_GIAvMP(sf_simulation_setup_devices):
     alice = sf_simulation_setup_devices.alice
     bob = sf_simulation_setup_devices.bob
     do_test_fl_and_GIAvMP(attack_configs, alice, bob)
-
-
-# sf.init(['alice', 'bob'], address='local', debug_mode=True)
-# alice, bob = sf.PYU('alice'), sf.PYU('bob')
-# do_test_fl_and_GIAvMP(attack_configs, alice, bob)

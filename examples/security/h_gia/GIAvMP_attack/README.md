@@ -57,6 +57,8 @@ GIAvMP poison the 1st FC layer in CNN model to obtain the feature of the raw dat
 
 Dataset: CIFAR10
 
+settings: "trainMP": True, "model": FCNNmodel, "k": 32, "batchsize": 32, "epochs": 1, "train_lr": 1, "epochs_for_trainMP": 10, "epochs_for_DLGinverse": 8000, "ratio_aux_dataset": 1.0
+
 The attack performance on the FCNN model is shown below. The $B$ is the batchsize used in the victim's local training. A larger $B$ can increase the gradient confusion, which mitigates the attack performance.
 
 | B | PSNR(dB)| mse |
@@ -98,12 +100,12 @@ Add DP noise into the shared gradients can defend against GIAvMP, but the model 
 
 The GIAvMP attack performance under different DP noise scale $\sigma$ is shown below.
 
-| $\sigma$ | PSNR(dB)| mse |
-| :-:  |  :-: |  :-: |
-| 0.05  |  -17.01 |  63.74 |
-| 0.01  |  -1.31 |  4.25 |
-| 0.001 |  -1.14 |  1.31 |
-| 0.0  |  59 |  0.0024 |
+| $\sigma$ | PSNR(dB)| mse | model acc(%)|
+| :-:  |  :-: |  :-: | :-: |
+| 0.05  |  -17.01 |  63.74 |79.42 |
+| 0.01  |  -1.31 |  4.25 |79.81|
+| 0.001 |  -1.14 |  1.31 |80.01|
+| 0.0  |  59 |  0.0024 |80.29|
 
 The attack performance of GIAvMP when applying DP in FL.
 <p align="center">

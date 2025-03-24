@@ -19,8 +19,6 @@ from torchvision.utils import save_image
 
 from secretflow_fl.ml.nn.callbacks.attack import AttackCallback
 from secretflow_fl.ml.nn.fl.backend.torch.fl_base import BaseTorchModel
-from secretflow_fl.security.privacy.mechanism.mechanism_fl import GaussianModelDP
-from secretflow_fl.security.privacy.strategy_fl import DPStrategyFL
 
 from .utils import DLGinverse, train_malicious_params
 
@@ -49,11 +47,6 @@ class GIAvMP(AttackCallback):
         self.attacker = None
 
     def on_train_begin(self, logs=None):
-
-        # get the current global model params, we directly get params of the victim model for convenience
-        # self.global_params = (
-        #     self._workers[self.victim_party].get_weights().to(self.attack_party)
-        # )
 
         # init the attacker
         def init_attacker(attack_configs):
@@ -146,6 +139,7 @@ class GIAvMP_attacker:
                 aux_dataset=aux_dataset,
                 global_params=global_params,
                 attack_configs=self.attack_configs,
+                epochs=self.attack_configs["epochs_for_trainMP"],
             )
 
         self.global_params_before = copy.deepcopy(global_params)
@@ -167,16 +161,6 @@ class GIAvMP_attacker:
 
         # compute the gradient
         grad = [g - v for g, v in zip(self.global_params_before, self.victim_params)]
-
-        # test DP defense
-        # dp_strategy = DPStrategyFL(
-        #     model_gdp=GaussianModelDP(
-        #         noise_multiplier=0.001,
-        #         num_clients=1,
-        #         l2_norm_clip=1.0,
-        #     )
-        # )
-        # grad = dp_strategy.model_gdp(grad)
 
         # GIAvMP for FCNN model
         if self.attack_configs['model'].__name__ == 'FCNNmodel':
@@ -272,4 +256,5 @@ class GIAvMP_attacker:
                 gt_embed=recovered_features,
                 attack_configs=self.attack_configs,
                 original_dy_dx=grad,
+                r=self.attack_configs["epochs_for_DLGinverse"],
             )
