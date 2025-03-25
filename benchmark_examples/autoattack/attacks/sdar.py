@@ -881,7 +881,7 @@ class SdarAttackCase(AttackBase):
         )
 
     def attack_type(self) -> AttackType:
-        return AttackType.OTHER # MIA and FIA
+        return AttackType.OTHER  # MIA and FIA
 
     def check_app_valid(self, app: ApplicationBase) -> bool:
         return app.base_input_mode() in [InputMode.SINGLE]
