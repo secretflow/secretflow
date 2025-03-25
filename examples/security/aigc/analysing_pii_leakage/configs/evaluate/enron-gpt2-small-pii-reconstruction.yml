@@ -1,0 +1,34 @@
+# Evaluate PII Inference
+dataset_args:
+  dataset_path: ../src/pii_leakage/extern/enron
+  dataset_mode: undefended
+  sample_duplication_rate: 1
+
+attack_args:
+  attack_name: perplexity_reconstruction
+  sampling_rate: 100
+  seq_len: 128
+
+eval_args:
+  num_candidates: 64
+
+env_args:
+  eval_batch_size: 4
+
+model_args:
+  architecture: gpt2
+  pre_trained: True
+  model_ckpt: ../examples/models/enron-gpt2-small # Edit this path to try your own model.
+  model_revision: main
+  torch_dtype: bfloat16
+  attn_implementation: flash_attention_2
+  # LoRA arguments
+  load_in_4bit: False
+  use_peft: False
+
+ner_args:
+  ner: flair
+  ner_model: flair/ner-english-ontonotes-large
+  anon_token: <MASK>
+  anonymize: False
+  tag_n_batches: 10_000
