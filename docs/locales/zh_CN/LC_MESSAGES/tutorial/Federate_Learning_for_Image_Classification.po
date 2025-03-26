@@ -209,7 +209,7 @@ msgstr "数据"
 msgid ""
 "Here, we only used data after a horizontal segmentation, with a total of "
 "10,000 samples for ``Alice``."
-msgstr "数据同样使用mnist数据集，单方模型这里我们只是用了切分后的Alice方数据共20000个样本。"
+msgstr "数据同样使用mnist数据集，单方模型这里我们只是用了切分后的Alice方数据,共10,000个样本。"
 
 #: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:1526
 #, fuzzy
