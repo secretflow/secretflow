@@ -18,7 +18,7 @@ msgstr ""
 
 #: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:9
 msgid "Horizontal Federated Learning for Image Classification"
-msgstr "横向联邦学习：图像分类"
+msgstr "水平联邦：图像分类"
 
 #: ../../tutorial/Federate_Learning_for_Image_Classification.ipynb:20
 msgid ""
