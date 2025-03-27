@@ -1,0 +1,7 @@
+datasets==3.3.2
+peft==0.14.0
+rich==13.9.4
+torch==2.4.1
+torch==2.5.1+cu124
+tqdm==4.67.1
+transformers==4.49.0
