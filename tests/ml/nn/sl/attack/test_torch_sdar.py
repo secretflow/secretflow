@@ -25,7 +25,6 @@ import torch.utils.data as torch_data
 from torchmetrics import AUROC, Accuracy, Precision
 
 
-from secretflow.data.split import train_test_split
 from secretflow.data.ndarray import FedNdarray, PartitionWay
 from secretflow_fl.ml.nn import SLModel
 from secretflow_fl.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
@@ -182,39 +181,96 @@ def get_data_builder(dataset_name='cifar10'):
         )
         return train_loader, evaluate_loader
 
+    return data_builder
+
 
 def fill_parameters(alice, bob):
-    # example data: 2 * 48
-    a = [[0 for _ in range(48)] for _ in range(2)]
-    b = [0, 0]
+    def get_train_data():
+        loader = CIFAR10
+        data_dir = os.path.join(_CACHE_DIR, "cifar10")
+        train_dataset = loader(
+            data_dir, True, transform=transforms.ToTensor(), download=True
+        )
+        train_loader = torch_data.DataLoader(
+            dataset=train_dataset, batch_size=len(train_dataset), shuffle=False
+        )
+        train_data, train_labels = next(iter(train_loader))
+        len_train_ds = len(train_data) // 2
+        train_plain_data = train_data.numpy()[:len_train_ds]
+        train_data = FedNdarray(
+            partitions={
+                alice: alice(lambda x: x)(train_plain_data),
+                bob: bob(lambda x: x)(train_plain_data),
+            },
+            partition_way=PartitionWay.VERTICAL,
+        )
+        sample_nums = 4
+        train_data = train_data[0:sample_nums]
+        return train_data
 
-    train_fea = np.array(a).astype(np.float32)
-    train_label = np.array(b).astype(np.int64)
-    test_fea = np.array(a).astype(np.float32)
-    test_label = np.array(b).astype(np.int64)
+    def get_train_label():
+        loader = CIFAR10
+        data_dir = os.path.join(_CACHE_DIR, "cifar10")
+        train_dataset = loader(
+            data_dir, True, transform=transforms.ToTensor(), download=True
+        )
+        train_loader = torch_data.DataLoader(
+            dataset=train_dataset, batch_size=len(train_dataset), shuffle=False
+        )
+        train_data, train_labels = next(iter(train_loader))
+        len_train_ds = len(train_labels) // 2
+        train_plain_label = train_labels.numpy()[:len_train_ds]
+        train_label = bob(lambda x: x)(train_plain_label)
+        sample_nums = 4
+        train_label = train_label.device(lambda df: df[0:sample_nums])(train_label)
+        return train_label
 
-    fed_data = FedNdarray(
-        partitions={
-            alice: alice(lambda x: x[:, :28])(train_fea),
-            bob: bob(lambda x: x[:, 28:])(train_fea),
-        },
-        partition_way=PartitionWay.VERTICAL,
-    )
-    test_fed_data = FedNdarray(
-        partitions={
-            alice: alice(lambda x: x[:, :28])(test_fea),
-            bob: bob(lambda x: x[:, 28:])(test_fea),
-        },
-        partition_way=PartitionWay.VERTICAL,
-    )
-    test_data_label = bob(lambda x: x)(test_label)
-    label = bob(lambda x: x)(train_label)
-    return fed_data, label, test_fed_data, test_data_label
+    def get_test_data():
+        loader = CIFAR10
+        data_dir = os.path.join(_CACHE_DIR, "cifar10")
+        test_dataset = loader(
+            data_dir, False, transform=transforms.ToTensor(), download=True
+        )
+        test_loader = torch_data.DataLoader(
+            dataset=test_dataset, batch_size=len(test_dataset), shuffle=False
+        )
+        test_data, test_labels = next(iter(test_loader))
+        len_test_ds = len(test_data)
+        test_plain_data = test_data.numpy()
+        test_data = FedNdarray(
+            partitions={
+                alice: alice(lambda x: x)(test_plain_data),
+                bob: bob(lambda x: x)(test_plain_data),
+            },
+            partition_way=PartitionWay.VERTICAL,
+        )
+        sample_nums = 4
+        test_data = test_data[0:sample_nums]
+        return test_data
+
+    def get_test_label():
+        loader = CIFAR10
+        data_dir = os.path.join(_CACHE_DIR, "cifar10")
+        test_dataset = loader(
+            data_dir, False, transform=transforms.ToTensor(), download=True
+        )
+        test_loader = torch_data.DataLoader(
+            dataset=test_dataset, batch_size=len(test_dataset), shuffle=False
+        )
+        test_data, test_labels = next(iter(test_loader))
+        len_test_ds = len(test_labels)
+        test_plain_label = test_labels.numpy()
+        test_label = bob(lambda x: x)(test_plain_label)
+        sample_nums = 4
+        test_label = test_label.device(lambda df: df[0:sample_nums])(test_label)
+        return test_label
+
+    return get_train_data(), get_train_label(), get_test_data(), get_test_label()
 
 
 def do_test_sl_and_sdar(alice, bob):
+    device_y = bob
     f_model, g_model, e_model, decoder, simulator_d, decoder_d = get_model()
-    # the following data not used due to the sl_model.fit use `data_builder`
     fed_data, label, test_fed_data, test_data_label = fill_parameters(alice, bob)
     sdar_callback = SDARAttack(
         attack_party=bob,
@@ -226,11 +282,11 @@ def do_test_sl_and_sdar(alice, bob):
         decoder_d_model_wrapper=decoder_d,
         reconstruct_loss_builder=torch.nn.MSELoss,
         data_builder=get_data_builder(),
-        exec_device='cuda',
+        exec_device='cpu',
     )
     sl_model = SLModel(
-        base_model_dict={alice: f_model, bob: g_model},
-        device_y=bob,
+        base_model_dict={alice: f_model},
+        device_y=device_y,
         model_fuse=g_model,
         dp_strategy_dict=None,
         compressor=None,

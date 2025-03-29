@@ -643,6 +643,9 @@ class GModel(nn.Module):
         x = self.dropout(x)
         return x
 
+    def output_num(self):
+        return 1
+
 
 class Decoder(nn.Module):
     def __init__(self, level, input_shape, num_classes, width="standard"):

@@ -715,7 +715,6 @@ def inject_get_train_label(dataset_name, instance):
             sample_nums = 4000
             train_label = train_label.device(lambda df: df[0:sample_nums])(train_label)
         return train_label
-        # return train_data, train_label, test_data, test_label
 
     return get_train_label
 
