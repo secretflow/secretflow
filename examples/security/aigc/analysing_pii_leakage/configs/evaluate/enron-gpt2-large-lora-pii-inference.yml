@@ -1,0 +1,42 @@
+# Evaluate PII Inference
+dataset_args:
+  dataset_path: ../src/pii_leakage/extern/enron
+  dataset_mode: undefended
+  sample_duplication_rate: 1
+
+attack_args:
+  attack_name: perplexity_inference
+  sampling_rate: 100
+  seq_len: 128
+
+eval_args:
+  num_candidates: 500
+
+model_args:
+  architecture: gpt2-large
+  pre_trained: True   # Start from a pre-trained checkpoint
+  model_ckpt: ../examples/models/enron-gpt2-large-lora # Edit this path to try your own model.
+  model_revision: main
+  torch_dtype: bfloat16
+  attn_implementation: flash_attention_2
+  # LoRA arguments
+  load_in_4bit: true
+  use_peft: true
+  lora_r: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+  lora_target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+
+ner_args:
+  ner: flair
+  ner_model: flair/ner-english-ontonotes-large
+  anon_token: <MASK>
+  anonymize: False
+  tag_n_batches: 10_000
