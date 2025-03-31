@@ -4,7 +4,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#      https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -12,486 +12,58 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from collections import defaultdict
+"""
+This file references code of paper SDAR: Passive Inference Attacks on Split Learning via Adversarial Regularization (https://arxiv.org/abs/2310.10483)
+"""
+from typing import Dict
+import logging
+import torch
+import torch.nn as nn
+from torch import optim
+from torch.utils.data import DataLoader
+from torchvision.datasets import CIFAR10, CIFAR100, STL10
+import os
+import torch.utils.data as torch_data
+from torchvision import datasets, transforms
+from benchmark_examples.autoattack import global_config
+from benchmark_examples.autoattack.applications.base import (
+    ApplicationBase,
+    DatasetType,
+    InputMode,
+    ModelType,
+)
+from torchmetrics import AUROC, Accuracy, Precision
+from secretflow.data.ndarray import FedNdarray, PartitionWay
+from secretflow_fl.ml.nn import SLModel
+from benchmark_examples.autoattack.attacks.base import AttackBase, AttackType
+from benchmark_examples.autoattack.utils.resources import ResourcesPack
+from secretflow_fl.ml.nn.callbacks.attack import AttackCallback
+from secretflow_fl.ml.nn.core.torch import TorchModel
+from secretflow_fl.ml.nn.sl.attacks.sdar_torch import SDARAttack
+from secretflow_fl.ml.nn.utils import optim_wrapper, loss_wrapper, metric_wrapper
+from secretflow_fl.utils.simulation import datasets_fl
+from secretflow.utils.errors import NotSupportedError
+
+from secretflow.utils.simulation.datasets import (
+    _DATASETS,
+    get_dataset,
+    _CACHE_DIR,
+    unzip,
+)
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.nn.init as init
 
-
-def weights_init(m):
-    if isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
-        init.kaiming_normal_(m.weight)
-
-
-class LambdaLayer(nn.Module):
-    def __init__(self, lambd):
-        super(LambdaLayer, self).__init__()
-        self.lambd = lambd
-
-    def forward(self, x):
-        return self.lambd(x)
+INTERMIDIATE_SHAPE = lambda level: (
+    (16, 32, 32) if level == 3 else (32, 16, 16) if level < 7 else (64, 8, 8)
+)
+LEVEL = 4  # depth of split learning
 
 
 class BasicBlock(nn.Module):
-    expansion = 1
-
-    def __init__(self, in_planes, planes, kernel_size, stride=1, option='A'):
-        super(BasicBlock, self).__init__()
-        self.conv1 = nn.Conv2d(
-            in_planes,
-            planes,
-            kernel_size=kernel_size,
-            stride=stride,
-            padding=1,
-            bias=False,
-        )
-        self.bn1 = nn.BatchNorm2d(planes)
-        self.conv2 = nn.Conv2d(
-            planes, planes, kernel_size=kernel_size, stride=1, padding=1, bias=False
-        )
-        self.bn2 = nn.BatchNorm2d(planes)
-
-        self.shortcut = nn.Sequential()
-        if stride != 1 or in_planes != planes:
-            if option == 'A':
-                """
-                For CIFAR10 ResNet paper uses option A.
-                """
-                self.shortcut = LambdaLayer(
-                    lambda x: F.pad(
-                        x[:, :, ::2, ::2],
-                        (0, 0, 0, 0, planes // 4, planes // 4),
-                        "constant",
-                        0,
-                    )
-                )
-            elif option == 'B':
-                self.shortcut = nn.Sequential(
-                    nn.Conv2d(
-                        in_planes,
-                        self.expansion * planes,
-                        kernel_size=1,
-                        stride=stride,
-                        bias=False,
-                    ),
-                    nn.BatchNorm2d(self.expansion * planes),
-                )
-
-    def forward(self, x):
-        out = F.relu(self.bn1(self.conv1(x)))
-        out = self.bn2(self.conv2(out))
-        out += self.shortcut(x)
-        out = F.relu(out)
-        return out
-
-
-class ResNet(nn.Module):
-    def __init__(self, block, num_blocks, kernel_size, num_classes):
-        super(ResNet, self).__init__()
-        self.in_planes = 16
-
-        self.conv1 = nn.Conv2d(
-            3, 16, kernel_size=kernel_size, stride=1, padding=1, bias=False
-        )
-        self.bn1 = nn.BatchNorm2d(16)
-        self.layer1 = self._make_layer(block, 16, num_blocks[0], kernel_size, stride=1)
-        self.layer2 = self._make_layer(block, 32, num_blocks[1], kernel_size, stride=2)
-        self.layer3 = self._make_layer(block, 64, num_blocks[2], kernel_size, stride=2)
-        self.linear = nn.Linear(64, num_classes, bias=False)
-
-        self.apply(weights_init)
-
-    def _make_layer(self, block, planes, num_blocks, kernel_size, stride):
-        strides = [stride] + [1] * (num_blocks - 1)
-        layers = []
-        for stride in strides:
-            layers.append(block(self.in_planes, planes, kernel_size, stride))
-            self.in_planes = planes * block.expansion
-
-        return nn.Sequential(*layers)
-
-    def forward(self, x):
-        # [bs,3,32,16]
-        out = F.relu(self.bn1(self.conv1(x)))
-        # [bs,16,32,16]
-        out = self.layer1(out)
-        # [bs,16,32,16]
-        out = self.layer2(out)
-        # [bs,32,16,8]
-        out = self.layer3(out)
-        # [bs,64,8,4]
-        out = F.avg_pool2d(out, out.size()[2:])
-        # [bs,64,1,1]
-        out = out.view(out.size(0), -1)
-        # [bs,64]
-        out = self.linear(out)
-        # [bs,10]
-        return out
-
-
-def resnet20(kernel_size=(3, 3), num_classes=10):
-    return ResNet(
-        block=BasicBlock,
-        num_blocks=[3, 3, 3],
-        kernel_size=kernel_size,
-        num_classes=num_classes,
-    )
-
-
-# base model
-class BottomModelForCifar10(nn.Module):
-    def __init__(self):
-        super(BottomModelForCifar10, self).__init__()
-        self.resnet20 = resnet20(num_classes=10)
-
-    def forward(self, x):
-        x = self.resnet20(x)
-        return x
-
-    def output_num(self):
-        return 1
-
-
-# fuse model
-class TopModelForCifar10(nn.Module):
-    def __init__(self):
-        super(TopModelForCifar10, self).__init__()
-        self.fc1top = nn.Linear(20, 20)
-        self.fc2top = nn.Linear(20, 10)
-        self.fc3top = nn.Linear(10, 10)
-        self.fc4top = nn.Linear(10, 10)
-        self.bn0top = nn.BatchNorm1d(20)
-        self.bn1top = nn.BatchNorm1d(20)
-        self.bn2top = nn.BatchNorm1d(10)
-        self.bn3top = nn.BatchNorm1d(10)
-        print('batch norm: ', self.bn0top)
-        self.apply(weights_init)
-
-    def forward(self, input_tensor):
-        output_bottom_models = torch.cat(input_tensor, dim=1)
-        x = output_bottom_models
-        x = self.fc1top(F.relu(self.bn0top(x)))
-        x = self.bn1top(x)
-        x = self.fc2top(F.relu(x))
-        x = self.fc3top(F.relu(self.bn2top(x)))
-        x = self.fc4top(F.relu(self.bn3top(x)))
-        return F.log_softmax(x, dim=1)
-
-
-def weights_init_ones(m):
-    if isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
-        init.ones_(m.weight)
-
-
-# for attacker
-class BottomModelPlus(nn.Module):
-    def __init__(
-        self,
-        bottom_model,
-        size_bottom_out=10,
-        num_classes=10,
-        num_layer=1,
-        activation_func_type='ReLU',
-        use_bn=True,
-    ):
-        super(BottomModelPlus, self).__init__()
-        self.bottom_model = bottom_model
-
-        dict_activation_func_type = {'ReLU': F.relu, 'Sigmoid': F.sigmoid, 'None': None}
-        self.activation_func = dict_activation_func_type[activation_func_type]
-        self.num_layer = num_layer
-        self.use_bn = use_bn
-
-        self.fc_1 = nn.Linear(size_bottom_out, size_bottom_out, bias=True)
-        self.bn_1 = nn.BatchNorm1d(size_bottom_out)
-        self.fc_1.apply(weights_init_ones)
-
-        self.fc_2 = nn.Linear(size_bottom_out, size_bottom_out, bias=True)
-        self.bn_2 = nn.BatchNorm1d(size_bottom_out)
-        self.fc_2.apply(weights_init_ones)
-
-        self.fc_3 = nn.Linear(size_bottom_out, size_bottom_out, bias=True)
-        self.bn_3 = nn.BatchNorm1d(size_bottom_out)
-        self.fc_3.apply(weights_init_ones)
-
-        self.fc_4 = nn.Linear(size_bottom_out, size_bottom_out, bias=True)
-        self.bn_4 = nn.BatchNorm1d(size_bottom_out)
-        self.fc_4.apply(weights_init_ones)
-
-        self.fc_final = nn.Linear(size_bottom_out, num_classes, bias=True)
-        self.bn_final = nn.BatchNorm1d(size_bottom_out)
-        self.fc_final.apply(weights_init_ones)
-
-    def forward(self, x):
-        x = self.bottom_model(x)
-
-        if self.num_layer >= 2:
-            if self.use_bn:
-                x = self.bn_1(x)
-            if self.activation_func:
-                x = self.activation_func(x)
-            x = self.fc_1(x)
-
-        if self.num_layer >= 3:
-            if self.use_bn:
-                x = self.bn_2(x)
-            if self.activation_func:
-                x = self.activation_func(x)
-            x = self.fc_2(x)
-
-        if self.num_layer >= 4:
-            if self.use_bn:
-                x = self.bn_3(x)
-            if self.activation_func:
-                x = self.activation_func(x)
-            x = self.fc_3(x)
-
-        if self.num_layer >= 5:
-            if self.use_bn:
-                x = self.bn_4(x)
-            if self.activation_func:
-                x = self.activation_func(x)
-            x = self.fc_4(x)
-        if self.use_bn:
-            x = self.bn_final(x)
-        if self.activation_func:
-            x = self.activation_func(x)
-        x = self.fc_final(x)
-
-        return x
-
-
-class WideDeepBase(nn.Module):
-    def __init__(
-        self,
-        inputs_dim,
-        hidden_units,
-        dropout_rate,
-    ):
-        super(WideDeepBase, self).__init__()
-        self.inputs_dim = inputs_dim
-        self.hidden_units = hidden_units
-        self.dropout = nn.Dropout(dropout_rate)
-
-        self.hidden_units = [inputs_dim] + list(self.hidden_units)
-        self.linear = nn.ModuleList(
-            [
-                nn.Linear(self.hidden_units[i], self.hidden_units[i + 1])
-                for i in range(len(self.hidden_units) - 1)
-            ]
-        )
-        for name, tensor in self.linear.named_parameters():
-            if 'weight' in name:
-                nn.init.normal_(tensor, mean=0, std=0.0001)
-
-        self.activation = nn.ReLU()
-
-    def forward(self, X):
-        inputs = X
-        for i in range(len(self.linear)):
-            fc = self.linear[i](inputs)
-            fc = self.activation(fc)
-            fc = self.dropout(fc)
-            inputs = fc
-        return inputs
-
-
-class WideDeepBottomAlice(nn.Module):
-    def __init__(
-        self,
-        feat_size,
-        embedding_size,
-        dnn_feature_columns,
-        dnn_hidden_units=(256, 128),
-    ):
-        super(WideDeepBottomAlice, self).__init__()
-        self.sparse_feature_columns = list(
-            filter(lambda x: x[1] == 'sparse', dnn_feature_columns)
-        )
-        self.embedding_dic = nn.ModuleDict(
-            {
-                feat[0]: nn.Embedding(feat_size[feat[0]], embedding_size, sparse=False)
-                for feat in self.sparse_feature_columns
-            }
-        )
-        self.dense_feature_columns = list(
-            filter(lambda x: x[1] == 'dense', dnn_feature_columns)
-        )
-
-        self.feature_index = defaultdict(int)
-        start = 0
-        for feat in feat_size:
-            self.feature_index[feat] = start
-            start += 1
-
-        self.dnn = WideDeepBase(
-            len(self.dense_feature_columns) + embedding_size * len(self.embedding_dic),
-            dnn_hidden_units,
-            0.5,
-        )
-
-    def forward(self, X):
-
-        sparse_embedding = [
-            self.embedding_dic[feat[0]](
-                torch.clamp(X[:, self.feature_index[feat[0]]].long(), min=0)
-            ).reshape(X.shape[0], 1, -1)
-            for feat in self.sparse_feature_columns
-        ]
-        sparse_input = torch.cat(sparse_embedding, dim=1)
-        sparse_input = torch.flatten(sparse_input, start_dim=1)
-        dense_values = [
-            X[:, self.feature_index[feat[0]]].reshape(-1, 1)
-            for feat in self.dense_feature_columns
-        ]
-        dense_input = torch.cat(dense_values, dim=1)
-        dnn_input = torch.cat((sparse_input, dense_input), dim=1)
-        dnn_out = self.dnn(dnn_input)
-        return dnn_out
-
-    def output_num(self):
-        return 1
-
-
-class WideDeepBottomBob(nn.Module):
-    def __init__(
-        self,
-        feat_size,
-        dnn_hidden_units=(256, 128),
-    ):
-        super(WideDeepBottomBob, self).__init__()
-        dnn_hidden_units = [len(feat_size), 1]
-        self.linear = nn.ModuleList(
-            [
-                nn.Linear(dnn_hidden_units[i], dnn_hidden_units[i + 1])
-                for i in range(len(dnn_hidden_units) - 1)
-            ]
-        )
-        for name, tensor in self.linear.named_parameters():
-            if 'weight' in name:
-                nn.init.normal_(tensor, mean=0, std=0.00001)
-
-        self.act = nn.ReLU()
-        self.dropout = nn.Dropout(0.5)
-
-    def forward(self, X):
-        # wide
-        X = X.float()
-        logit = X
-        for i in range(len(self.linear)):
-            fc = self.linear[i](logit)
-            fc = self.act(fc)
-            fc = self.dropout(fc)
-            logit = fc
-        return logit
-
-    def output_num(self):
-        return 1
-
-
-class WideDeepFuse(nn.Module):
-    # Only dnn_linear
-    def __init__(
-        self,
-        dnn_hidden_units=(256, 128),
-    ):
-        super(WideDeepFuse, self).__init__()
-
-        self.dnn_linear = nn.Linear(dnn_hidden_units[-1], 1, bias=False)
-
-    def forward(self, X):
-        logit = X[1]
-        dnn_logit = self.dnn_linear(X[0])
-        _logit = dnn_logit + logit
-        y_pred = torch.sigmoid(_logit)
-        return y_pred
-
-
-class LocalEmbedding(nn.Module):
-    def __init__(self, seed=1):
-        super(LocalEmbedding, self).__init__()
-        torch.manual_seed(seed)
-
-        # Convolutional layer 1
-        self.c1 = nn.Conv2d(
-            in_channels=1, out_channels=64, kernel_size=5, padding='same'
-        )
-        # Max pooling 1
-        self.s1 = nn.MaxPool2d(kernel_size=2, stride=2)
-
-        # Convolutional layer 2
-        self.c2 = nn.Conv2d(
-            in_channels=64, out_channels=128, kernel_size=5, padding='same'
-        )
-        # Max pooling 2
-        self.s2 = nn.MaxPool2d(kernel_size=2, stride=2, padding=1)
-
-        # Fully connected layers
-        self.fc1 = nn.Linear(4 * 4 * 128, 256)
-        self.fc2 = nn.Linear(256, 64)
-        self.fc3 = nn.Linear(64, 10)
-
-    def forward(self, x, cafe=False):
-        # Input size should be 14x14x1
-        # print(x)
-        x = x.view(-1, 1, 14, 14)
-
-        x = self.c1(x)
-        x = F.relu(x)
-        x = self.s1(x)
-
-        x = self.c2(x)
-        x = F.relu(x)
-        x = self.s2(x)
-
-        middle_input = x.view(-1, 4 * 4 * 128)  # 2304
-        # print(x.shape)
-        middle_output = self.fc1(middle_input)
-        x = F.relu(middle_output)
-        # x should be 256
-
-        x = self.fc2(x)
-        x = F.relu(x)
-        # x should be 64
-
-        x = self.fc3(x)
-        x = F.relu(x)
-        # return x
-        if cafe:
-            return middle_input, x, middle_output
-        return x
-
-    def output_num(self):
-        return 1
-
-
-class CafeServer(nn.Module):
-    def __init__(self, seed=0, clients_num=4):
-        super(CafeServer, self).__init__()
-        torch.manual_seed(seed)
-
-        # Define the last fully connected layer with softmax activation
-        self.last = nn.Linear(clients_num * 10, 10)
-
-    def forward(self, x):
-        if isinstance(x, list):
-            tmp_x = x
-            # tmp_x = [x[i * 3 + 1] for i in range(len(x) // 3)]
-            x = torch.cat(tmp_x, dim=1)
-
-        x = self.last(x)
-        output = F.softmax(
-            x, dim=1
-        )  # Apply softmax activation along the class dimension
-        # The size of output is 10
-        return output
-
-
-class SDARBasicBlock(nn.Module):
     def __init__(self, in_channels, out_channels, downsample=False):
-        super(SDARBasicBlock, self).__init__()
+        super(BasicBlock, self).__init__()
         self.downsample = downsample
         self.conv1 = nn.Conv2d(
             in_channels,
@@ -574,7 +146,7 @@ class FModel(nn.Module):
             if i == 0:
                 in_c = input_shape[0]
             self.layers.insert(
-                0, SDARBasicBlock(in_c, out_c, True if i in [4, 7] else False)
+                0, BasicBlock(in_c, out_c, True if i in [4, 7] else False)
             )
 
     def forward(self, x):
@@ -621,7 +193,7 @@ class GModel(nn.Module):
             in_c, out_c = layer_config[i]
             self.layers.insert(
                 0,
-                SDARBasicBlock(
+                BasicBlock(
                     in_c if i != level else input_shape[0],
                     out_c,
                     True if i in [3, 6] else False,
@@ -642,9 +214,6 @@ class GModel(nn.Module):
         x = self.fc(x)
         x = self.dropout(x)
         return x
-
-    def output_num(self):
-        return 1
 
 
 class Decoder(nn.Module):
@@ -941,3 +510,392 @@ class DecoderDiscriminator(nn.Module):
         x = self.fc1(x)
 
         return x
+
+
+def get_model(app: ApplicationBase):
+
+    e_optim_fn = optim_wrapper(optim.Adam, lr=0.001, eps=1e-07)
+    decoder_optim_fn = optim_wrapper(optim.Adam, lr=0.0005, eps=1e-07)
+    simulator_d_optim_fn = optim_wrapper(optim.Adam, lr=4e-05, eps=1e-07)
+    decoder_d_optim_fn = optim_wrapper(optim.Adam, lr=5e-09, eps=1e-07)
+
+    if app.model_type() == ModelType.RESNET20 and app.dataset_name() in [
+        "cifar10",
+        "cifar100",
+        "stl10",
+    ]:
+        num_classes = 100 if app.dataset_name() == "cifar100" else 10
+        return (
+            TorchModel(
+                model_fn=FModel,
+                loss_fn=None,
+                optim_fn=e_optim_fn,
+                metrics=None,
+                level=LEVEL,
+                input_shape=(3, 32, 32),
+            ),
+            TorchModel(
+                model_fn=Decoder,
+                loss_fn=None,
+                optim_fn=decoder_optim_fn,
+                metrics=None,
+                level=LEVEL,
+                input_shape=INTERMIDIATE_SHAPE(4),
+                num_classes=num_classes,
+            ),
+            TorchModel(
+                model_fn=SimulatorDiscriminator,
+                loss_fn=None,
+                optim_fn=simulator_d_optim_fn,
+                metrics=None,
+                level=LEVEL,
+                input_shape=INTERMIDIATE_SHAPE(4),
+                num_classes=num_classes,
+            ),
+            TorchModel(
+                model_fn=DecoderDiscriminator,
+                loss_fn=None,
+                optim_fn=decoder_d_optim_fn,
+                metrics=None,
+                input_shape=(3, 32, 32),
+                num_classes=num_classes,
+            ),
+        )
+    else:
+        raise NotSupportedError(
+            f"SDAR attack not supported in dataset {app.dataset_name()} app {app.model_type()}! "
+        )
+
+
+def data_builder(device_f_dataset, batch_size):
+    def prepare_data():
+        len_aux_ds = len(device_f_dataset) // 2
+        target_loader = DataLoader(
+            dataset=device_f_dataset[:len_aux_ds], shuffle=False, batch_size=batch_size
+        )
+        aux_dataloader = DataLoader(
+            dataset=device_f_dataset[len_aux_ds + 1 :],
+            shuffle=False,
+            batch_size=batch_size,
+        )
+        return target_loader, aux_dataloader
+
+    return prepare_data
+
+
+def inject_create_fuse_model(dataset_name):
+    def create_fuse_model():
+        g_optim_fn = optim_wrapper(optim.Adam, lr=0.001, eps=1e-07)
+        loss_fn = nn.CrossEntropyLoss
+        return TorchModel(
+            model_fn=GModel,
+            loss_fn=loss_fn,
+            optim_fn=g_optim_fn,
+            metrics=[
+                metric_wrapper(
+                    Accuracy, task="multiclass", num_classes=10, average='micro'
+                ),
+                metric_wrapper(
+                    Precision, task="multiclass", num_classes=10, average='micro'
+                ),
+                metric_wrapper(AUROC, task="multiclass", num_classes=10),
+            ],
+            level=LEVEL,
+            input_shape=INTERMIDIATE_SHAPE(LEVEL),
+            num_classes=10 if dataset_name in ["cifar10", "stl10"] else 100,
+        )
+
+    return create_fuse_model
+
+
+def inject_create_base_model():
+    def create_base_model():
+        f_optim_fn = optim_wrapper(optim.Adam, lr=0.001, eps=1e-07)
+        return TorchModel(
+            model_fn=FModel,
+            optim_fn=f_optim_fn,
+            level=LEVEL,
+            input_shape=(3, 32, 32),
+        )
+
+    return create_base_model
+
+
+def inject__train(instance):
+    def _train(callbacks, **kwargs):
+        base_model_dict = {
+            instance.alice: instance.create_base_model_alice(),
+        }
+        instance.sl_model = SLModel(
+            base_model_dict=base_model_dict,
+            device_y=instance.device_y,
+            model_fuse=instance.create_fuse_model(),
+            dp_strategy_dict=None,
+            compressor=None,
+            simulation=True,
+            random_seed=1234,
+            backend='torch',
+            strategy='split_nn',
+            num_gpus=0.001 if global_config.is_use_gpu() else 0,
+        )
+        history = instance.sl_model.fit(
+            instance.get_train_data(),
+            instance.get_train_label(),
+            validation_data=(instance.get_test_data(), instance.get_test_label()),
+            epochs=2,
+            batch_size=128,
+            shuffle=False,
+            random_seed=1234,
+            dataset_builder=None,
+            callbacks=callbacks,
+        )
+
+        pred_bs = 128
+        result = instance.sl_model.predict(
+            instance.get_train_data(), batch_size=pred_bs, verbose=1
+        )
+        logging.warning(
+            f"RESULT: {type(instance).__name__} {type(callbacks).__name__} training history = {history}"
+        )
+        return history
+
+    return _train
+
+
+get_loader = {
+    "cifar10": CIFAR10,
+    "cifar100": CIFAR100,
+    "stl10": STL10,
+}
+
+
+def inject_get_train_data(dataset_name, instance):
+    def get_train_data():
+        loader = get_loader[dataset_name]
+        data_dir = os.path.join(_CACHE_DIR, dataset_name)
+        train_dataset = loader(
+            data_dir, True, transform=transforms.ToTensor(), download=True
+        )
+        train_loader = torch_data.DataLoader(
+            dataset=train_dataset, batch_size=len(train_dataset), shuffle=False
+        )
+        train_data, train_labels = next(iter(train_loader))
+        len_train_ds = len(train_data) // 2
+        train_plain_data = train_data.numpy()[:len_train_ds]
+        train_data = FedNdarray(
+            partitions={
+                instance.alice: instance.alice(lambda x: x)(train_plain_data),
+                instance.bob: instance.bob(lambda x: x)(train_plain_data),
+            },
+            partition_way=PartitionWay.VERTICAL,
+        )
+        if global_config.is_simple_test():
+            sample_nums = 4000
+            train_data = train_data[0:sample_nums]
+        return train_data
+
+    return get_train_data
+
+
+def inject_get_train_label(dataset_name, instance):
+    def get_train_label():
+        loader = get_loader[dataset_name]
+        data_dir = os.path.join(_CACHE_DIR, dataset_name)
+        train_dataset = loader(
+            data_dir, True, transform=transforms.ToTensor(), download=True
+        )
+        train_loader = torch_data.DataLoader(
+            dataset=train_dataset, batch_size=len(train_dataset), shuffle=False
+        )
+        train_data, train_labels = next(iter(train_loader))
+        len_train_ds = len(train_labels) // 2
+        train_plain_label = train_labels.numpy()[:len_train_ds]
+        train_label = instance.bob(lambda x: x)(train_plain_label)
+        if global_config.is_simple_test():
+            sample_nums = 4000
+            train_label = train_label.device(lambda df: df[0:sample_nums])(train_label)
+        return train_label
+
+    return get_train_label
+
+
+def inject_get_test_data(dataset_name, instance):
+    def get_test_data():
+        loader = get_loader[dataset_name]
+        data_dir = os.path.join(_CACHE_DIR, dataset_name)
+        test_dataset = loader(
+            data_dir, False, transform=transforms.ToTensor(), download=True
+        )
+        test_loader = torch_data.DataLoader(
+            dataset=test_dataset, batch_size=len(test_dataset), shuffle=False
+        )
+        test_data, test_labels = next(iter(test_loader))
+        len_test_ds = len(test_data)
+        test_plain_data = test_data.numpy()
+        test_data = FedNdarray(
+            partitions={
+                instance.alice: instance.alice(lambda x: x)(test_plain_data),
+                instance.bob: instance.bob(lambda x: x)(test_plain_data),
+            },
+            partition_way=PartitionWay.VERTICAL,
+        )
+        if global_config.is_simple_test():
+            sample_nums = 4000
+            test_data = test_data[0:sample_nums]
+        return test_data
+
+    return get_test_data
+
+
+def inject_get_test_label(dataset_name, instance):
+    def get_test_label():
+        loader = get_loader[dataset_name]
+        data_dir = os.path.join(_CACHE_DIR, dataset_name)
+        test_dataset = loader(
+            data_dir, False, transform=transforms.ToTensor(), download=True
+        )
+        test_loader = torch_data.DataLoader(
+            dataset=test_dataset, batch_size=len(test_dataset), shuffle=False
+        )
+        test_data, test_labels = next(iter(test_loader))
+        len_test_ds = len(test_labels)
+        test_plain_label = test_labels.numpy()
+        test_label = instance.bob(lambda x: x)(test_plain_label)
+        if global_config.is_simple_test():
+            sample_nums = 4000
+            test_label = test_label.device(lambda df: df[0:sample_nums])(test_label)
+        return test_label
+
+    return get_test_label
+
+
+class RepeatedDataset(torch_data.Dataset):
+    def __init__(self, x, y, transform=None):
+        self.x = x
+        self.y = y
+        self.len = len(x)
+        self.transform = transform
+
+    def __len__(self):
+        return int(2**23)
+
+    def __getitem__(self, idx):
+        img = self.x[idx % self.len]
+        label = self.y[idx % self.len]
+        if self.transform:
+            img = self.transform(img)
+        return img, label
+
+
+class OriginalDataset(torch_data.Dataset):
+    def __init__(self, x, y, transform=None):
+        self.x = x
+        self.y = y
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.x)
+
+    def __getitem__(self, idx):
+        img = self.x[idx]
+        label = self.y[idx]
+        if self.transform:
+            img = self.transform(img)
+        return img, label
+
+
+def get_data_builder(dataset_name):
+    def data_builder():
+        loader = get_loader[dataset_name]
+        data_dir = os.path.join(_CACHE_DIR, dataset_name)
+        train_dataset = loader(
+            data_dir, True, transform=transforms.ToTensor(), download=True
+        )
+        train_loader = torch_data.DataLoader(
+            dataset=train_dataset, batch_size=len(train_dataset), shuffle=False
+        )
+        train_data, train_labels = next(iter(train_loader))
+        len_train_ds = len(train_data) // 2
+        # evaluate with client data
+        evaluate_data = train_data.numpy()[:len_train_ds]
+        evaluate_label = train_labels.numpy()[:len_train_ds]
+
+        train_plain_data = torch.tensor(train_data.numpy()[len_train_ds:])
+        train_plain_label = torch.tensor(train_labels.numpy()[len_train_ds:])
+        train_dataset = RepeatedDataset(train_plain_data, train_plain_label)
+        train_loader = torch_data.DataLoader(
+            train_dataset, batch_size=128, shuffle=False
+        )
+        evaluate_dataset = OriginalDataset(evaluate_data, evaluate_label)
+        evaluate_loader = torch_data.DataLoader(
+            evaluate_dataset, batch_size=128, shuffle=False
+        )
+        return train_loader, evaluate_loader
+
+    return data_builder
+
+
+class SdarAttackCase(AttackBase):
+    """
+    Fsha attack needs:
+    - A databuilder which returns victim dataloader, need impl in app.
+    """
+
+    def __init__(self, alice=None, bob=None):
+        super().__init__(alice, bob)
+
+    def __str__(self):
+        return 'sdar'
+
+    def build_attack_callback(self, app: ApplicationBase) -> AttackCallback:
+        e_model, decoder, simulator_d, decoder_d = get_model(app)
+
+        app.create_fuse_model = inject_create_fuse_model(app.dataset_name())
+        try:
+            app.create_base_model = inject_create_base_model()
+        except AttributeError:
+            if app.device_f.party == 'alice':
+                app.create_base_model_alice = inject_create_base_model()
+            else:
+                app.create_base_model_bob = inject_create_base_model()
+
+        app.get_train_data = inject_get_train_data(app.dataset_name(), app)
+        app.get_train_label = inject_get_train_label(app.dataset_name(), app)
+
+        app.get_test_data = inject_get_test_data(app.dataset_name(), app)
+        app.get_test_label = inject_get_test_label(app.dataset_name(), app)
+        app._train = inject__train(app)
+
+        return SDARAttack(
+            attack_party=app.device_y,
+            victim_party=app.device_f,
+            base_model_list=[self.alice],
+            e_model_wrapper=e_model,
+            decoder_model_wrapper=decoder,
+            simulator_d_model_wrapper=simulator_d,
+            decoder_d_model_wrapper=decoder_d,
+            reconstruct_loss_builder=torch.nn.MSELoss,
+            data_builder=get_data_builder(app.dataset_name()),
+            exec_device='cuda' if global_config.is_use_gpu() else 'cpu',
+        )
+
+    def attack_type(self) -> AttackType:
+        return AttackType.OTHER  # MIA and FIA
+
+    def check_app_valid(self, app: ApplicationBase) -> bool:
+        return app.base_input_mode() in [InputMode.SINGLE]
+
+    def tune_metrics(self) -> Dict[str, str]:
+        return {'mean_model_loss': 'min', 'mean_guess_loss': 'min'}
+
+    def update_resources_consumptions(
+        self, cluster_resources_pack: ResourcesPack, app: ApplicationBase
+    ) -> ResourcesPack:
+        update_gpu = lambda x: x * 3
+        update_mem = lambda x: x * 3
+        return (
+            cluster_resources_pack.apply_debug_resources('gpu_mem', update_gpu)
+            .apply_debug_resources('memory', update_mem)
+            .apply_sim_resources(app.device_y.party, 'gpu_mem', update_gpu)
+            .apply_sim_resources(app.device_y.party, 'memory', update_mem)
+        )
