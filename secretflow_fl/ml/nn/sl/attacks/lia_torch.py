@@ -710,6 +710,7 @@ class MaliciousSGD(Optimizer):
         self.first = True
         super(MaliciousSGD, self).__init__(params, defaults)
         logging.info(f"Use Malicious Optimizer")
+
     def __setstate__(self, state):
         super(MaliciousSGD, self).__setstate__(state)
         for group in self.param_groups:

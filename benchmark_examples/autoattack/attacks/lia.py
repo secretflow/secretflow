@@ -33,11 +33,15 @@ from secretflow_fl.ml.nn.callbacks.attack import AttackCallback
 from secretflow_fl.ml.nn.sl.attacks.lia_torch import LabelInferenceAttack, MaliciousSGD
 from secretflow_fl.ml.nn.core.torch import optim_wrapper
 
+
 def weights_init_ones(m):
     if isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
         init.ones_(m.weight)
 
+
 USE_MALICIOUS_SGD = False
+
+
 # for attacker
 class BottomModelPlus(nn.Module):
     def __init__(
@@ -160,16 +164,21 @@ def data_builder(
 
     return prepare_data
 
+
 def inject_malicious_create_base_model(instance):
     original_create_base_model = instance.create_base_model
 
     def wrapped_create_base_model(*args, **kwargs):
         torch_model = original_create_base_model(*args, **kwargs)
-        malicious_sgd_wrapper = optim_wrapper(MaliciousSGD, lr=1e-2, momentum=0.9, weight_decay=5e-4)
+        malicious_sgd_wrapper = optim_wrapper(
+            MaliciousSGD, lr=1e-2, momentum=0.9, weight_decay=5e-4
+        )
         torch_model.optim_fn = malicious_sgd_wrapper
 
         return torch_model
+
     return wrapped_create_base_model
+
 
 class LiaAttackCase(AttackBase):
     """
@@ -198,46 +207,54 @@ class LiaAttackCase(AttackBase):
             param.detach_()
         # lia need device_f data with devicc_y label
         train_complete_dataset = app.get_device_f_train_dataset(enable_label=0)
-        
+
         def balance_dataset(dataset, num_classes, samples_per_class):
             class_samples = {i: [] for i in range(num_classes)}
-            
-        
+
             for sample in dataset:
                 label = sample[1].item()
                 if label in class_samples:
                     class_samples[label].append(sample)
-            
+
             balanced_samples = []
             for label in range(num_classes):
                 if len(class_samples[label]) >= samples_per_class:
                     selected = random.sample(class_samples[label], samples_per_class)
                     balanced_samples.extend(selected)
                 else:
-                    print(f"Warning: Class {label} has less than {samples_per_class} samples")
+                    print(
+                        f"Warning: Class {label} has less than {samples_per_class} samples"
+                    )
                     balanced_samples.extend(class_samples[label])
             random.shuffle(balanced_samples)
             return balanced_samples
-        
+
         train_sample_labeled_dataset = app.get_device_f_train_dataset(
-        sample_size=2000, enable_label=0
+            sample_size=2000, enable_label=0
         )
         train_sample_unlabeled_dataset = app.get_device_f_train_dataset(
-        sample_size=2000, enable_label=0
+            sample_size=2000, enable_label=0
         )
 
-        train_sample_labeled_dataset = balance_dataset(train_sample_labeled_dataset, app.num_classes, 4)
-        train_sample_unlabeled_dataset = balance_dataset(train_sample_unlabeled_dataset, app.num_classes, 4)
-        train_sample_unlabeled_dataset = [list(s) for s in train_sample_unlabeled_dataset]
+        train_sample_labeled_dataset = balance_dataset(
+            train_sample_labeled_dataset, app.num_classes, 4
+        )
+        train_sample_unlabeled_dataset = balance_dataset(
+            train_sample_unlabeled_dataset, app.num_classes, 4
+        )
+        train_sample_unlabeled_dataset = [
+            list(s) for s in train_sample_unlabeled_dataset
+        ]
         for i in train_sample_unlabeled_dataset:
             i[1] = torch.tensor(-1)
-        
+
         test_dataset = app.get_device_f_test_dataset(enable_label=0)
 
         label = []
         for i in train_sample_labeled_dataset:
             label.append(i[1].tolist())
         import collections
+
         print(collections.Counter(label))
         data_buil = data_builder(
             train_complete_dataset,
