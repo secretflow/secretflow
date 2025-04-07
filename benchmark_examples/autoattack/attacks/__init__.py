@@ -21,6 +21,7 @@ from .lia import LiaAttackCase as lia
 from .norm import NormAttackCase as norm
 from .replace import ReplaceAttackCase as replace
 from .replay import ReplayAttackCase as replay
+from .sdar import SdarAttackCase as sdar
 
 __all__ = [
     'exploit',
@@ -32,4 +33,5 @@ __all__ = [
     'grad_lia',
     'fsha',
     'batch_lia',
+    'sdar',
 ]
