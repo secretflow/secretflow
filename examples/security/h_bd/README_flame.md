@@ -25,20 +25,18 @@ FLAME is a dynamic defense approach that identifies and mitigates poisoned model
 The high-level overview of FLAME is illustrated in the above figure. The overall algorithm proceeds as follows:
 
 1. **Client Update:**  
-   The aggregator sends the current global model \( G_{t-1} \) to all clients, and each client computes a local model update \( W_i \) using its own data.
+   The aggregator sends the current global model $\( G_{t-1} \)$ to all clients, and each client computes a local model update $\( W_i \)$ using its own data.
 
 2. **Dynamic Model Filtering:**  
-   The weight vectors of all \( W_i \) are used to compute pairwise cosine distances. FLAME leverages a dynamic clustering method (HDBSCAN) to identify and filter out outliers (potentially poisoned models) that exhibit large angular deviations from the benign majority.
+   The weight vectors of all $\( W_i \)$ are used to compute pairwise cosine distances. FLAME leverages a dynamic clustering method (HDBSCAN) to identify and filter out outliers (potentially poisoned models) that exhibit large angular deviations from the benign majority.
 
 3. **Adaptive Clipping:**  
-   The Euclidean distances between each \( W_i \) and the previous global model \( G_{t-1} \) are calculated. The median of these distances is adopted as the adaptive clipping bound \( S_t \). For each admitted model, a clipping factor \( \gamma = \min\{1, S_t/e_i\} \) is applied to scale its update down if necessary:
+   The Euclidean distances between each $\( W_i \)$ and the previous global model $\( G_{t-1} \)$ are calculated. The median of these distances is adopted as the adaptive clipping bound $\( S_t \)$. For each admitted model, a clipping factor $\( \gamma = \min\{1, S_t/e_i\} \)$ is applied to scale its update down if necessary:
    
-   \[
-   W^c_{i} = G_{t-1} + (W_i - G_{t-1}) \cdot \gamma
-   \]
+   $$W^c_{i} = G_{t-1} + (W_i - G_{t-1}) \cdot \gamma$$
 
 4. **Model Aggregation and Noising:**  
-   The accepted (clipped) updates are aggregated via Federated Averaging to produce an intermediate global model \( G_t \). Finally, adaptive Gaussian noise \( N(0, \sigma^2) \) is added based on the clipping bound (with \(\sigma = \lambda \cdot S_t\)) to yield the final global model for round \( t \), denoted as \( G^*_t \).
+   The accepted (clipped) updates are aggregated via Federated Averaging to produce an intermediate global model $\( G_t \)$. Finally, adaptive Gaussian noise $\( N(0, \sigma^2) \)$ is added based on the clipping bound (with $$\sigma = \lambda \cdot S_t$$) to yield the final global model for round $\( t \)$, denoted as $\( G^*_t \)$.
 
 # Implementation
 
