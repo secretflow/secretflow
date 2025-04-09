@@ -23,13 +23,13 @@ from kuscia.proto.api.v1alpha1.kusciatask.kuscia_task_pb2 import (
     Port,
     Service,
 )
+from secretflow_spec.v1.data_pb2 import DistData, IndividualTable, TableSchema
 
 from secretflow.kuscia.entry import convert_domain_data_to_individual_table
 from secretflow.kuscia.ray_config import RayConfig
 from secretflow.kuscia.sf_config import get_sf_cluster_config
 from secretflow.kuscia.task_config import KusciaTaskConfig
 from secretflow.spec.extend.cluster_pb2 import SFClusterDesc
-from secretflow.spec.v1.data_pb2 import DistData, IndividualTable, TableSchema
 
 
 def test_load_configs():
@@ -110,9 +110,7 @@ def test_load_configs_with_table_attrs():
                 'ray_fed_config': {'cross_silo_comm_backend': 'brpc_link'},
             },
             'sf_node_eval_param': {
-                'domain': 'data_prep',
-                'name': 'psi',
-                'version': '0.0.7',
+                'comp_id': 'data_prep/psi:0.0.7',
                 'attr_paths': [
                     'input/input_table_1/key',
                     'input/input_table_2/key',
@@ -137,7 +135,7 @@ def test_load_configs_with_table_attrs():
                     {
                         'type': 'sf.table.individual',
                         'meta': {
-                            '@type': 'type.googleapis.com/secretflow.spec.v1.IndividualTable',
+                            '@type': 'type.googleapis.com/secretflow_spec.v1.IndividualTable',
                             'line_count': '-1',
                         },
                         'data_refs': [
@@ -147,7 +145,7 @@ def test_load_configs_with_table_attrs():
                     {
                         'type': 'sf.table.individual',
                         'meta': {
-                            '@type': 'type.googleapis.com/secretflow.spec.v1.IndividualTable',
+                            '@type': 'type.googleapis.com/secretflow_spec.v1.IndividualTable',
                             'line_count': '-1',
                         },
                         'data_refs': [

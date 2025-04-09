@@ -19,11 +19,11 @@ import numpy as np
 import pandas as pd
 import pytest
 from google.protobuf import json_format
+from secretflow_spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 
 from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
 from secretflow.component.entry import comp_eval
 from secretflow.spec.extend.calculate_rules_pb2 import CalculateOpRules
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from tests.component.infra.util import (
     eval_export,
     get_meta_and_dump_data,
@@ -100,15 +100,19 @@ def test_ss_sgd_export(comp_prod_sf_cluster_config, features_in_one_party, he_mo
     )
 
 
-@pytest.mark.parametrize("features_in_one_party", [True, False])
-def test_ss_xgb_export(comp_prod_sf_cluster_config, features_in_one_party):
-    work_path = f"test_xgb_{features_in_one_party}"
+@pytest.mark.parametrize(
+    "features_in_one_party, he_mode",
+    [(False, True), (True, True), (False, False), (True, False)],
+)
+def test_ss_xgb_export(comp_prod_sf_cluster_config, features_in_one_party, he_mode):
+    work_path = f"test_ss_xgb_{features_in_one_party}_{he_mode}"
     alice_path = f"{work_path}/x_alice.csv"
     bob_path = f"{work_path}/x_bob.csv"
     model_path = f"{work_path}/model.sf"
     predict_path = f"{work_path}/predict.csv"
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    sf_cluster_config = setup_cluster_config(sf_cluster_config, he_mode)
 
     train_param = build_node_eval_param(
         domain="ml.train",
@@ -198,6 +202,7 @@ def test_ss_xgb_export(comp_prod_sf_cluster_config, features_in_one_party):
         storage_config,
         sf_cluster_config,
         expected_input,
+        he_mode,
     )
 
     # by pred comp
@@ -208,37 +213,8 @@ def test_ss_xgb_export(comp_prod_sf_cluster_config, features_in_one_party):
         storage_config,
         sf_cluster_config,
         expected_input,
+        he_mode,
     )
-
-    with pytest.raises(
-        AssertionError, match="feature not supported yet. change `he_mode` to False."
-    ):
-        # by train comp
-        eval_export(
-            work_path,
-            [train_param],
-            [train_res],
-            storage_config,
-            sf_cluster_config,
-            expected_input,
-            True,
-        )
-    time.sleep(4)
-
-    with pytest.raises(
-        AssertionError, match="feature not supported yet. change `he_mode` to False."
-    ):
-        # by pred comp
-        eval_export(
-            work_path,
-            [predict_param],
-            [predict_res],
-            storage_config,
-            sf_cluster_config,
-            expected_input,
-            True,
-        )
-    time.sleep(4)
 
 
 def test_score_card_transformer_export(comp_prod_sf_cluster_config):
@@ -362,36 +338,6 @@ def test_score_card_transformer_export(comp_prod_sf_cluster_config):
         sf_cluster_config,
         expected_input,
     )
-
-    with pytest.raises(
-        AssertionError, match="feature not supported yet. change `he_mode` to False."
-    ):
-        # by train comp
-        eval_export(
-            work_path,
-            [train_param],
-            [train_res],
-            storage_config,
-            sf_cluster_config,
-            expected_input,
-            True,
-        )
-    time.sleep(4)
-
-    with pytest.raises(
-        AssertionError, match="feature not supported yet. change `he_mode` to False."
-    ):
-        # by pred comp
-        eval_export(
-            work_path,
-            [predict_param],
-            [predict_res],
-            storage_config,
-            sf_cluster_config,
-            expected_input,
-            True,
-        )
-    time.sleep(4)
 
 
 def _inner_test_model_export(

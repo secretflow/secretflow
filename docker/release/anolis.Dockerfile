@@ -31,9 +31,6 @@ RUN pip install secretflow==${version} --extra-index-url https://download.pytorc
 
 COPY .nsjail /root/.nsjail
 
-COPY *.whl /tmp/
-RUN pip install /tmp/*.whl --extra-index-url https://download.pytorch.org/whl/cpu --extra-index-url https://test.pypi.org/simple/ --no-cache-dir && rm -rf /tmp/*.whl
-
 ARG config_templates=""
 LABEL kuscia.secretflow.config-templates=$config_templates
 

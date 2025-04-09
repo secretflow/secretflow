@@ -21,7 +21,7 @@ In addition, Kuscia supports communication security and running SecretFlow jobs 
 ## Pre-knowledge: about Ray
 SecretFlow uses Ray as its distributed framework. A Ray cluster consists of a head node and zero or several slave nodes, for more information about Ray, please visit [Ray official website](https://docs.ray.io/).
 
-## Debug
+## Debug 
 Please refer to the **[dubug mode](./debug_mode.md)** document for details.
 
 ## Simulation

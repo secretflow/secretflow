@@ -16,6 +16,7 @@ import logging
 
 import pandas as pd
 import pytest
+from secretflow_spec.v1.report_pb2 import Report
 from sklearn.datasets import load_breast_cancer
 from sklearn.preprocessing import StandardScaler
 
@@ -26,7 +27,6 @@ from secretflow.component.core import (
     make_storage,
 )
 from secretflow.component.entry import comp_eval
-from secretflow.spec.v1.report_pb2 import Report
 
 
 @pytest.mark.parametrize("reg_type", ["logistic", "linear"])

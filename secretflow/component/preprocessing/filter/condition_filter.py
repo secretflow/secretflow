@@ -137,16 +137,16 @@ class ConditionFilter(Component):
         assert len(info.parties) == 1, f"cannot find feature, {self.feature}"
 
         owner = next(iter(info.parties.keys()))
-        field = info.schema(0).field(0)
-        if field.ftype.is_float():
+        field = info.get_schema(0).get_field(0)
+        if field.type.is_float():
             value_type = float
-        elif field.ftype.is_string():
+        elif field.type.is_string():
             value_type = str
-        elif field.ftype.is_integer():
+        elif field.type.is_integer():
             value_type = int
         else:
             raise ValueError(
-                f"only support FLOAT, STRING for now, but got type<{field.ftype}>"
+                f"only support FLOAT, STRING for now, but got type<{field.type}>"
             )
 
         value = None

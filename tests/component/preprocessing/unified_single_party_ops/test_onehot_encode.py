@@ -17,13 +17,15 @@ import logging
 import pandas as pd
 import pyarrow as pa
 from pyarrow import orc
+from secretflow_spec.v1.data_pb2 import VerticalTable
+from secretflow_spec.v1.report_pb2 import Report
 
 import secretflow.compute as sc
 from secretflow.component.core import (
     VTable,
-    VTableField,
     VTableFieldKind,
     VTableParty,
+    VTableUtils,
     build_node_eval_param,
     make_storage,
 )
@@ -32,8 +34,6 @@ from secretflow.component.preprocessing.unified_single_party_ops.onehot_encode i
     _onehot_encode_fit,
     apply_onehot_rule_on_table,
 )
-from secretflow.spec.v1.data_pb2 import VerticalTable
-from secretflow.spec.v1.report_pb2 import Report
 
 
 def test_onehot_encode(comp_prod_sf_cluster_config):
@@ -177,9 +177,9 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
     in_table = sc.Table.from_schema(
         pa.schema(
             [
-                VTableField.pa_field("a", pa.int32(), VTableFieldKind.FEATURE),
-                VTableField.pa_field("b", pa.float32(), VTableFieldKind.FEATURE),
-                VTableField.pa_field("c", pa.string(), VTableFieldKind.FEATURE),
+                VTableUtils.pa_field("a", pa.int32(), VTableFieldKind.FEATURE),
+                VTableUtils.pa_field("b", pa.float32(), VTableFieldKind.FEATURE),
+                VTableUtils.pa_field("c", pa.string(), VTableFieldKind.FEATURE),
             ]
         )
     )

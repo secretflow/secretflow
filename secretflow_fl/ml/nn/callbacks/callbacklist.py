@@ -119,10 +119,6 @@ class CallbackList:
         for callback in self.callbacks:
             callback.on_train_batch_begin(batch)
 
-    def on_train_batch_inner_before(self, epoch, device):
-        for callback in self.callbacks:
-            callback.on_train_batch_inner_before(epoch, device)
-
     def on_train_batch_end(self, batch):
         for callback in self.callbacks:
             callback.on_train_batch_end(batch)

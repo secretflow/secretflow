@@ -18,6 +18,9 @@ from typing import Dict, List, Tuple
 import numpy as np
 import pyarrow as pa
 from pyarrow import compute as pc
+from secretflow_spec.v1.component_pb2 import Attribute
+from secretflow_spec.v1.data_pb2 import DistData
+from secretflow_spec.v1.report_pb2 import Descriptions, Div, Report, Tab
 
 import secretflow.compute as sc
 from secretflow.component.core import (
@@ -31,15 +34,12 @@ from secretflow.component.core import (
     ServingBuilder,
     UnionSelection,
     VTable,
-    VTableField,
+    VTableUtils,
     float_almost_equal,
     register,
 )
 from secretflow.device import PYUObject
 from secretflow.device.driver import reveal
-from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import DistData
-from secretflow.spec.v1.report_pb2 import Descriptions, Div, Report, Tab
 
 from ..preprocessing import PreprocessingMixin
 
@@ -64,7 +64,7 @@ def apply_onehot_rule_on_table(table: sc.Table, additional_info: Dict) -> sc.Tab
                     onehot_cond = sc.or_(onehot_cond, cond)
 
             new_col = sc.if_else(onehot_cond, np.float32(1), np.float32(0))
-            new_field = VTableField.pa_field_from(
+            new_field = VTableUtils.pa_field_from(
                 f"{col_name}_{idx}", new_col.dtype, col_field
             )
             table = table.append_column(new_field, new_col)

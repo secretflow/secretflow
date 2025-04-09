@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
+
 from secretflow.component.core import (
     SS_GLM_MODEL_MAX,
     Component,
@@ -19,7 +21,7 @@ from secretflow.component.core import (
     DistDataType,
     Field,
     Input,
-    Model,
+    ObjectFile,
     Output,
     ServingBuilder,
     SPURuntimeConfig,
@@ -74,9 +76,9 @@ class SSGLMPredict(SSGLMExportMixin, Component):
     )
 
     def evaluate(self, ctx: Context):
-        model_meta = Model.parse_public_info(self.input_model)
-        version = Model.get_version(self.input_model)
-        if version.minor <= 3:
+        model_info = ObjectFile.from_distdata(self.input_model)
+        model_meta = json.loads(model_info.public_info)
+        if model_info.version.minor <= 3:
             # model_meta["fxp_exp_mode"] is automatically supporte
             # other configs use default values
             model_meta["experimental_exp_prime_offset"] = 13
@@ -98,7 +100,7 @@ class SSGLMPredict(SSGLMExportMixin, Component):
         spu = ctx.make_spu(config=spu_rt_config)
 
         model_dd = ctx.load_model(
-            self.input_model, DistDataType.SS_GLM_MODEL, SS_GLM_MODEL_MAX, spu=spu
+            model_info, DistDataType.SS_GLM_MODEL, SS_GLM_MODEL_MAX, spu=spu
         )
 
         glm = SSGLM(spu)

@@ -198,7 +198,7 @@ class FillNA(PreprocessingMixin, Component):
 
         If "median", then replace missing values using the median along each column
 
-        If "most_frequent", then replace missing using the most frequent value along each column.
+        If "most_frequent", then replace missing using the most frequent value along each column. 
 
         If "constant", then replace missing values with fill_value_int.
         """,
@@ -215,7 +215,7 @@ class FillNA(PreprocessingMixin, Component):
 
         If "median", then replace missing values using the median along each column
 
-        If "most_frequent", then replace missing using the most frequent value along each column.
+        If "most_frequent", then replace missing using the most frequent value along each column. 
 
         If "constant", then replace missing values with fill_value_float.
         """,
