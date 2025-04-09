@@ -23,8 +23,8 @@ from secretflow.component.core import (
     CompVDataFrame,
     VTableField,
     VTableFieldKind,
-    VTableFieldType,
     VTableSchema,
+    VTableUtils,
 )
 from secretflow.data import partition
 from secretflow.data.vertical.dataframe import VDataFrame
@@ -117,7 +117,7 @@ def prod_env_and_data(sf_production_setup_devices_ray):
         for pyu, p in df.partitions.items():
             fields = []
             for name, dtype in p.dtypes.items():
-                dt = VTableFieldType.from_dtype(dtype)
+                dt = VTableUtils.from_dtype(dtype)
                 kind = (
                     VTableFieldKind.LABEL if name in labels else VTableFieldKind.FEATURE
                 )

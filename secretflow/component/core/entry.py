@@ -17,19 +17,19 @@ import logging
 import multiprocessing
 import os
 
-from secretflow.component.core import Definition
+from secretflow_spec import Definition, Registry
+from secretflow_spec.v1.data_pb2 import StorageConfig
+from secretflow_spec.v1.evaluation_pb2 import NodeEvalParam, NodeEvalResult
+
+from secretflow.component.core.checkpoint import Checkpoint
 from secretflow.device.driver import init, shutdown
 from secretflow.error_system.exceptions import SFTrainingHyperparameterError
 from secretflow.spec.extend.cluster_pb2 import SFClusterConfig
-from secretflow.spec.v1.data_pb2 import StorageConfig
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam, NodeEvalResult
 
 from .context import Context
-from .registry import Registry
 
 
-def setup_sf_cluster(config: SFClusterConfig):  # type: ignore
-
+def setup_sf_cluster(config: SFClusterConfig):
     cross_silo_comm_backend = (
         config.desc.ray_fed_config.cross_silo_comm_backend
         if len(config.desc.ray_fed_config.cross_silo_comm_backend)
@@ -132,25 +132,29 @@ def setup_sf_cluster(config: SFClusterConfig):  # type: ignore
 
 
 def comp_eval(
-    param: NodeEvalParam,  # type: ignore
-    storage_config: StorageConfig,  # type: ignore
-    cluster_config: SFClusterConfig,  # type: ignore
+    param: NodeEvalParam,
+    storage_config: StorageConfig,
+    cluster_config: SFClusterConfig,
     tracer_report: bool = False,
-) -> NodeEvalResult:  # type: ignore
-    comp_def = Registry.get_definition(param.domain, param.name, param.version)
+) -> NodeEvalResult:
+    comp_def = Registry.get_definition_by_id(param.comp_id)
     if comp_def is None:
         raise RuntimeError(
-            f"component is not found, {param.domain}, {param.name}, {param.version}."
+            f"component is not found, {param.comp_id} in {Registry.get_definition_keys()}."
         )
 
     on_error = False
     try:
         if cluster_config is not None:
             setup_sf_cluster(cluster_config)
-
-        minor = Definition.parse_minor(param.version)
+        _, _, version = Definition.parse_id(param.comp_id)
+        minor = Definition.parse_minor(version)
         kwargs = comp_def.parse_param(param)
-        cp = comp_def.make_checkpoint(kwargs, param.checkpoint_uri)
+        cp: Checkpoint = None
+        if param.checkpoint_uri:
+            args = comp_def.make_checkpoint_params(kwargs)
+            parties = Checkpoint.parse_parties(kwargs)
+            cp = Checkpoint(param.checkpoint_uri, args, parties)
         ctx = Context(storage_config, cluster_config, cp)
         comp = comp_def.make_component(kwargs)
         comp.evaluate(ctx)

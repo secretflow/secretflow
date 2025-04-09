@@ -17,6 +17,8 @@ import logging
 import numpy as np
 import pandas as pd
 import pytest
+from secretflow_spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
+from secretflow_spec.v1.report_pb2 import Report
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 
@@ -33,8 +35,6 @@ from secretflow.component.stats.stats_psi import (
     get_bin_counts_one_feature,
 )
 from secretflow.error_system.exceptions import DataFormatError
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
-from secretflow.spec.v1.report_pb2 import Report
 
 # good psi [0, 0.1], notably significant change: [0, 0.25], substantial variation: [0.25, ]
 good_psi_threshold = 0.1

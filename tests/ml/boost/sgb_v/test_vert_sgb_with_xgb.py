@@ -221,7 +221,7 @@ def _run_sgb(
     logging.info(f"{test_name} predict time: {time.perf_counter() - start}")
 
     clf = xgb.XGBClassifier(
-        **xgb_params, sample_weight=sample_weight, importance_type="gain"
+        **xgb_params, sample_weight=sample_weight, importance_type="weight"
     )
     X = np.concatenate(
         [reveal(partition_data) for partition_data in v_data.partitions.values()],
@@ -244,7 +244,8 @@ def _run_sgb(
         logging.info(f"{test_name} mse: {mse_xgb}")
         assert abs(mse - mse_xgb) <= 0.3
 
-    feature_importance = model.feature_importance_flatten(v_data)
+    feature_importance = model.feature_importance_flatten(v_data, "weight")
+    feature_importance_gain = model.feature_importance_flatten(v_data, "gain")
     xgb_feature_importance = clf.feature_importances_
 
     assert (
@@ -257,6 +258,7 @@ def _run_sgb(
     # should show relative importance among features as well
 
     logging.info(f"feature importance: {feature_importance}")
+    logging.info(f"feature importance gain: {feature_importance_gain}")
     logging.info(f"xgb feature importance: {xgb_feature_importance}")
 
 

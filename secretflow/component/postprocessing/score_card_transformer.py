@@ -35,8 +35,8 @@ from secretflow.component.core import (
     ServingNode,
     ServingOp,
     ServingPhase,
-    VTableField,
     VTableFieldKind,
+    VTableUtils,
     register,
 )
 
@@ -145,7 +145,7 @@ class ScoreCardTransformer(Component):
             index = table.column_names.index(predict_score_name)
             table = table.set_column(index, predict_name, new_col)
         else:
-            new_field = VTableField.pa_field(
+            new_field = VTableUtils.pa_field(
                 predict_score_name, new_col.dtype, VTableFieldKind.LABEL
             )
             table = table.append_column(new_field, new_col)

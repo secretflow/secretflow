@@ -16,6 +16,7 @@
 import numpy as np
 import pandas as pd
 from pyarrow import orc
+from secretflow_spec.v1.report_pb2 import Report
 from sklearn.datasets import load_breast_cancer
 
 from secretflow.component.core import (
@@ -25,7 +26,6 @@ from secretflow.component.core import (
     make_storage,
 )
 from secretflow.component.entry import comp_eval
-from secretflow.spec.v1.report_pb2 import Report
 
 
 def test_woe_binning(comp_prod_sf_cluster_config):
@@ -118,10 +118,10 @@ def test_woe_binning(comp_prod_sf_cluster_config):
         sub_output_info = VTable.from_distdata(sub_res.outputs[0])
 
         bin_output_df = orc.read_table(
-            storage.get_reader(bin_output_info.party(self_party).uri)
+            storage.get_reader(bin_output_info.get_party(self_party).uri)
         ).to_pandas()
         sub_output_df = orc.read_table(
-            storage.get_reader(sub_output_info.party(self_party).uri)
+            storage.get_reader(sub_output_info.get_party(self_party).uri)
         ).to_pandas()
 
         assert np.isclose(bin_output_df.values, sub_output_df.values).all()
