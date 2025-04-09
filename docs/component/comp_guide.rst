@@ -266,14 +266,14 @@ Then generate input for two parties.
         SFClusterConfig,
         SFClusterDesc,
     )
-    from secretflow.spec.v1.component_pb2 import Attribute
-    from secretflow.spec.v1.data_pb2 import (
+    from secretflow_spec.v1.component_pb2 import Attribute
+    from secretflow_spec.v1.data_pb2 import (
         DistData,
         TableSchema,
         IndividualTable,
         StorageConfig,
     )
-    from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
+    from secretflow_spec.v1.evaluation_pb2 import NodeEvalParam
     import click
 
 
@@ -438,7 +438,7 @@ You should see the following output at both terminals:
      system_info {
      }
      meta {
-       type_url: "type.googleapis.com/secretflow.spec.v1.VerticalTable"
+       type_url: "type.googleapis.com/secretflow_spec.v1.VerticalTable"
        value: "\n\n\n\003id1\"\003str\n\n\n\003id2\"\003str\020\211\005"
      }
      data_refs {
@@ -572,7 +572,7 @@ The brief steps to build a SecretFlow Component are:
 
 .. code-block:: python
 
-   from secretflow.spec.v1.data_pb2 import DistData
+   from secretflow_spec.v1.data_pb2 import DistData
 
    # Signature of eval_fn must be
    #  func(*, ctx, attr_0, attr_1, ..., input_0, input_1, ..., output_0, output_1, ...) -> typing.Dict[str, DistData]

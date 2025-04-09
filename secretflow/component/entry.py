@@ -15,17 +15,18 @@
 
 import platform
 
-from secretflow.component.core.registry import Registry
+from secretflow_spec import Registry
+from secretflow_spec.v1.component_pb2 import ComponentDef
+from secretflow_spec.v1.data_pb2 import StorageConfig
+from secretflow_spec.v1.evaluation_pb2 import NodeEvalParam, NodeEvalResult
+
 from secretflow.spec.extend.cluster_pb2 import SFClusterConfig
-from secretflow.spec.v1.component_pb2 import ComponentDef
-from secretflow.spec.v1.data_pb2 import StorageConfig
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam, NodeEvalResult
 from secretflow.version import build_message
 
 from .core.entry import comp_eval as core_comp_eval
 
 
-def get_comp_def(domain: str, name: str, version: str) -> ComponentDef:  # type: ignore
+def get_comp_def(domain: str, name: str, version: str) -> ComponentDef:
     definition = Registry.get_definition(domain, name, version)
     if definition is not None:
         return definition.component_def
@@ -36,11 +37,11 @@ def get_comp_def(domain: str, name: str, version: str) -> ComponentDef:  # type:
 
 
 def comp_eval(
-    param: NodeEvalParam,  # type: ignore
-    storage_config: StorageConfig,  # type: ignore
-    cluster_config: SFClusterConfig,  # type: ignore
+    param: NodeEvalParam,
+    storage_config: StorageConfig,
+    cluster_config: SFClusterConfig,
     tracer_report: bool = False,
-) -> NodeEvalResult:  # type: ignore
+) -> NodeEvalResult:
     import logging
     import os
 

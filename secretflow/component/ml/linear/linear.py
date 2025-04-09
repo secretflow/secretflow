@@ -23,6 +23,7 @@ from secretflow.component.core import (
     ServingOp,
     ServingPhase,
     VTableSchema,
+    VTableUtils,
 )
 from secretflow.compute import Table
 from secretflow.device import HEU, PYU, SPU, PYUObject, SPUObject
@@ -84,7 +85,7 @@ def build_linear_model(
     feature_names: list[str],
     spu_w: SPUObject,
     label_col: str,
-    offset_col: str,
+    offset_col: str | None,
     yhat_scale: float,
     link_type: LinkFunctionType,
     exp_iters: int,
@@ -113,7 +114,7 @@ def build_linear_model(
             party_features = []
             pyu_w = pyu(lambda: [])()
 
-        if offset_col in input_features:
+        if offset_col and offset_col in input_features:
             party_features.append(offset_col)
 
             def append_one(w):
@@ -131,7 +132,7 @@ def build_linear_model(
             intercept = 0
 
         party_dot_input_schemas[pyu] = Table.from_schema(
-            input_features.select(party_features).to_arrow()
+            VTableUtils.to_arrow_schema(input_features.select(party_features))
         ).dump_serving_pb("tmp")[1]
         party_dot_output_schemas[pyu] = Table.from_schema(
             {"partial_y": np.float64}
@@ -141,7 +142,8 @@ def build_linear_model(
             "feature_names": party_features,
             "feature_weights": pyu_w,
             "input_types": [
-                input_features[f].ftype.to_serving_dtype() for f in party_features
+                VTableUtils.to_serving_dtype(input_features[f].type)
+                for f in party_features
             ],
             "output_col_name": "partial_y",
             "intercept": intercept,
@@ -271,7 +273,8 @@ def build_phe_linear_model(
         if len(party_features) > 0:
             party_dot_kwargs[pyu]["feature_names"] = party_features
             party_dot_kwargs[pyu]["feature_types"] = [
-                input_features[f].ftype.to_serving_dtype() for f in party_features
+                VTableUtils.to_serving_dtype(input_features[f].type)
+                for f in party_features
             ]
             if pyu_w is not None:
                 party_dot_kwargs[pyu]["feature_weights_ciphertext"] = pyu_w
@@ -279,7 +282,7 @@ def build_phe_linear_model(
         party_dot_kwargs[pyu]["result_col_name"] = "partial_y"
         party_dot_kwargs[pyu]["rand_number_col_name"] = "rand"
         party_dot_input_schemas[pyu] = Table.from_schema(
-            input_features.select(party_features).to_arrow()
+            VTableUtils.to_arrow_schema(input_features.select(party_features))
         ).dump_serving_pb("tmp")[1]
         party_dot_output_schemas[pyu] = Table.from_schema(
             {"partial_y": np.bytes_, "rand:": np.bytes_}

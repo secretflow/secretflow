@@ -93,7 +93,7 @@ class ExprConditionFilter(Component):
                 f"The columns<{columns}> of expr<{expr}> must appears in one party"
             )
 
-        fit_pyu = PYU(infos.party(0).party)
+        fit_pyu = PYU(infos.get_party(0).party)
 
         def _fit(duck_input_table: pa.Table, expr: str) -> Tuple[pa.Table, Exception]:
             sql = f"SELECT CASE WHEN {expr} THEN TRUE ELSE FALSE END AS hit FROM duck_input_table"

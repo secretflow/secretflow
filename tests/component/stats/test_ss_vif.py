@@ -17,17 +17,17 @@ from enum import Enum
 
 import pandas as pd
 import pytest
-from sklearn.datasets import load_breast_cancer
-
-from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
-from secretflow.component.entry import comp_eval
-from secretflow.spec.v1.data_pb2 import (
+from secretflow_spec.v1.data_pb2 import (
     DistData,
     IndividualTable,
     TableSchema,
     VerticalTable,
 )
-from secretflow.spec.v1.report_pb2 import Report
+from secretflow_spec.v1.report_pb2 import Report
+from sklearn.datasets import load_breast_cancer
+
+from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
+from secretflow.component.entry import comp_eval
 
 
 class TableFormat(Enum):

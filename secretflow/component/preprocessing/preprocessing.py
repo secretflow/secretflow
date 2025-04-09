@@ -21,6 +21,7 @@ from typing import Any, Callable, Tuple
 import pyarrow as pa
 from google.protobuf import json_format
 from secretflow_serving_lib import compute_trace_pb2
+from secretflow_spec.v1.data_pb2 import DistData, SystemInfo
 
 import secretflow.compute as sc
 from secretflow.component.core import (
@@ -42,13 +43,11 @@ from secretflow.component.core import (
     ServingPhase,
     Version,
     VTable,
-    VTableField,
     VTableFieldKind,
-    VTableSchema,
+    VTableUtils,
     uuid4,
 )
 from secretflow.device import PYU, PYUObject, reveal
-from secretflow.spec.v1.data_pb2 import DistData, SystemInfo
 
 RULE_TYPE_NAME = "rule_type"
 RULE_HASH_NAME = "model_hash"
@@ -98,13 +97,13 @@ def build_schema(
     for f in new_tbl.schema:
         if f.name in old_column_names:
             old = old_tbl.field(f.name)
-            f = VTableField.pa_field_from(f.name, f.type, old)
+            f = VTableUtils.pa_field_from(f.name, f.type, old)
             fields.append(f)
         else:
             kind = VTableFieldKind.FEATURE
             if f.name in add_kinds:
                 kind = add_kinds[f.name]
-            f = VTableField.pa_field(f.name, f.type, kind)
+            f = VTableUtils.pa_field(f.name, f.type, kind)
             fields.append(f)
     return pa.table(new_tbl.columns, schema=pa.schema(fields))
 
@@ -117,7 +116,7 @@ class ArrowRunner(IRunner):
     @staticmethod
     def from_table(tbl: sc.Table, input_columns: list[str]) -> 'ArrowRunner':
         trace_runner = tbl.dump_runner()
-        out_schema = VTableSchema.from_arrow(tbl.to_table().schema)
+        out_schema = VTableUtils.from_arrow_schema(tbl.to_table().schema)
         add_kinds = {
             n: k for n, k in out_schema.kinds.items() if n not in set(input_columns)
         }
@@ -176,7 +175,7 @@ class PreprocessingMixin:
             version=model_version,
             objs=objs,
             public_info=public_info,
-            metadata={RULE_HASH_NAME: uuid},
+            attributes={RULE_HASH_NAME: uuid},
             system_info=system_info,
         )
 
@@ -231,7 +230,8 @@ class PreprocessingMixin:
         runner_objs = []
 
         for p in tbl.parties.values():
-            in_tbl = sc.Table.from_schema(p.schema.to_arrow())
+            pa_schema = VTableUtils.to_arrow_schema(p.schema)
+            in_tbl = sc.Table.from_schema(pa_schema)
             extra = extras.get(p.party) if extras else None
             out_runner = PYU(p.party)(_fit)(in_tbl, extra)
             runner_objs.append(out_runner)
@@ -427,7 +427,7 @@ class PreprocessingMixin:
         for pyu in builder.pyus:
             if pyu not in runner_objs:
                 continue
-            schema = input_vtbl.parties[pyu.party].schema.to_arrow()
+            schema = VTableUtils.to_arrow_schema(input_vtbl.parties[pyu.party].schema)
             runner = runner_objs[pyu]
             dag, in_schema, out_schema, in_schema_bytes, out_schema_bytes = pyu(
                 _dump_runner

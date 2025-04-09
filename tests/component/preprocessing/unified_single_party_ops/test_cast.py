@@ -18,6 +18,8 @@ import time
 import pandas as pd
 import pytest
 from pyarrow import orc
+from secretflow_spec.v1.component_pb2 import Attribute
+from secretflow_spec.v1.data_pb2 import VerticalTable
 
 import secretflow.compute as sc
 from secretflow.component.core import (
@@ -28,8 +30,6 @@ from secretflow.component.core import (
 )
 from secretflow.component.entry import comp_eval
 from secretflow.component.preprocessing.unified_single_party_ops.cast import Cast
-from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import VerticalTable
 
 
 def test_cast(comp_prod_sf_cluster_config):

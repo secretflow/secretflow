@@ -36,7 +36,9 @@ body:
     attributes:
       label: Existing Issue Search
       description: Have you checked for existing issues to avoid duplication?
-      options: ['Yes', 'No']
+      options:
+        - Yes
+        - No
     validations:
       required: true
 

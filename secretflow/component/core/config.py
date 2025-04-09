@@ -14,6 +14,7 @@
 
 import json
 import logging
+import copy
 
 import spu
 
@@ -24,7 +25,7 @@ from secretflow.error_system.exceptions import (
 from secretflow.spec.extend.cluster_pb2 import SFClusterConfig
 
 
-def _parse_runtime_config(key: str, raw: str):
+def _parse_runtime_config(key: str, raw: str | dict, nodes: list[dict]):
     if key == "protocol":
         if raw == "REF2K":
             return spu.spu_pb2.REF2K
@@ -47,11 +48,26 @@ def _parse_runtime_config(key: str, raw: str):
             raise ValueError(f"unsupported spu field: {raw}")
     elif key == "fxp_fraction_bits":
         return int(raw)
+    elif key == "beaver_type":
+        if raw.lower() == "tfp":
+            return spu.spu_pb2.RuntimeConfig.TrustedFirstParty
+        elif raw.lower() == "ttp":
+            return spu.spu_pb2.RuntimeConfig.TrustedThirdParty
+        else:
+            raise ValueError(f"unsupported beaver type: {raw}")
+    elif key == "ttp_beaver_config":
+        ttp_config = copy.deepcopy(raw)
+        adjust_party = ttp_config.pop("adjust_party")
+        for rank, node in enumerate(sorted(nodes, key=lambda x: x["party"])):
+            if node['party'] == adjust_party:
+                ttp_config["adjust_rank"] = rank
+                return ttp_config
+        raise ValueError(f"adjust_party {adjust_party} not found in nodes")
     else:
         raise ValueError(f"unsupported runtime config: {key}, raw {raw}")
 
 
-def extract_device_config(config: SFClusterConfig):  # type: ignore
+def extract_device_config(config: SFClusterConfig):
     if config is None:
         return None, None
     spu_configs = {}
@@ -102,6 +118,8 @@ def extract_device_config(config: SFClusterConfig):  # type: ignore
                     "protocol",
                     "field",
                     "fxp_fraction_bits",
+                    "beaver_type",
+                    "ttp_beaver_config",
                 ]
                 raw_runtime_config = spu_config_json["runtime_config"]
 
@@ -109,7 +127,7 @@ def extract_device_config(config: SFClusterConfig):  # type: ignore
                     if k not in SUPPORTED_RUNTIME_CONFIG_ITEM:
                         logging.warning(f"runtime config item {k} is not parsed.")
                     else:
-                        rt = _parse_runtime_config(k, v)
+                        rt = _parse_runtime_config(k, v, cluster_def["nodes"])
                         cluster_def["runtime_config"][k] = rt
 
             spu_configs[device.name] = {"cluster_def": cluster_def}

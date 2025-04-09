@@ -24,18 +24,24 @@ from secretflow.component.core import (
     Interval,
     Model,
     Output,
+    Reporter,
     ServingBuilder,
     VTable,
     VTableFieldKind,
     register,
 )
+from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.device import PYU
 from secretflow.ml.boost.core.callback import TrainingCallback
 from secretflow.ml.boost.core.metric import ALL_METRICS_NAMES
-from secretflow.ml.boost.sgb_v import Sgb
+from secretflow.ml.boost.sgb_v import Sgb, SgbModel
 from secretflow.ml.boost.sgb_v.checkpoint import (
     SGBCheckpointData,
     sgb_model_to_snapshot,
+)
+from secretflow.ml.boost.sgb_v.core.importance import (
+    SUPPORTED_IMPORTANCE_DESCRIPTIONS,
+    SUPPORTED_IMPORTANCE_TYPE_STATS,
 )
 from secretflow.ml.boost.sgb_v.core.params import RegType
 from secretflow.ml.boost.sgb_v.factory.booster.global_ordermap_booster import (
@@ -46,7 +52,7 @@ from secretflow.ml.boost.sgb_v.factory.booster.global_ordermap_booster import (
 from .sgb import SGBExportMixin
 
 
-@register(domain="ml.train", version="1.0.0", name="sgb_train")
+@register(domain="ml.train", version="1.1.0", name="sgb_train")
 class SGBTrain(SGBExportMixin, Component):
     '''
     Provides both classification and regression tree boosting (also known as GBDT, GBM)
@@ -238,6 +244,16 @@ class SGBTrain(SGBExportMixin, Component):
         desc="Label of train dataset.",
         is_checkpoint=True,
     )
+
+    report_importances: bool = Field.attr(
+        desc=f"""Whether to report feature importances.
+            Currently supported importances are:
+            {json.dumps(SUPPORTED_IMPORTANCE_DESCRIPTIONS)}
+        """,
+        default=False,
+        minor_min=1,
+    )
+
     input_ds: Input = Field.input(
         desc="Input vertical table.",
         types=[DistDataType.VERTICAL_TABLE],
@@ -247,6 +263,17 @@ class SGBTrain(SGBExportMixin, Component):
         desc="Output model.",
         types=[DistDataType.SGB_MODEL],
     )
+    report: Output = Field.output(
+        desc="If report_importances is true, report feature importances",
+        types=[DistDataType.REPORT],
+        minor_min=1,
+    )
+
+    def __post_init__(self):
+        # back support version 1.0
+        self.whether_dump_report = True
+        if self._minor == 0:
+            self.whether_dump_report = False
 
     def evaluate(self, ctx: Context):
         # assert ctx.heu_config is not None, "need heu config in SFClusterDesc"
@@ -345,6 +372,38 @@ class SGBTrain(SGBExportMixin, Component):
             system_info=self.input_ds.system_info,
         )
         ctx.dump_to(model_db, self.output_model)
+
+        if self.whether_dump_report:
+            self.dump_report(model, x)
+
+    def dump_report(self, model: SgbModel, x: VDataFrame):
+        r = Reporter(
+            name="feature importances",
+            desc="""feature importance report for all availble importance types
+            """,
+            system_info=self.input_ds.system_info,
+        )
+
+        if self.report_importances:
+            for importance_type in SUPPORTED_IMPORTANCE_TYPE_STATS.keys():
+                importances = model.feature_importance_flatten(x, importance_type)
+                named_importance = {}
+                for p in x.partitions.values():
+                    features = p.columns
+                    party_importances = importances[: len(features)]
+                    named_importance.update(
+                        {f: w for f, w in zip(features, party_importances)}
+                    )
+                    importances = importances[len(features) :]
+            assert len(importances) == 0
+            r.add_tab(
+                named_importance,
+                name=f"{importance_type}",
+                desc=f"""feature importance of type {importance_type}. 
+                {SUPPORTED_IMPORTANCE_DESCRIPTIONS[importance_type]}""",
+            )
+
+        self.report.data = r.to_distdata()
 
     def export(
         self, ctx: Context, builder: ServingBuilder, he_mode: bool = False

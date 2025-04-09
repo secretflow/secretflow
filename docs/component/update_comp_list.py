@@ -23,8 +23,9 @@ this_directory = os.path.abspath(os.path.dirname(__file__))
 
 sys.path.append(os.path.join(this_directory, '../..'))
 
+from secretflow_spec.v1.component_pb2 import Attribute, AttrType
+
 from secretflow.component.core import get_comp_list_def
-from secretflow.spec.v1.component_pb2 import Attribute, AttrType
 
 mdFile = MdUtils(
     file_name=os.path.join(this_directory, 'comp_list.md'),

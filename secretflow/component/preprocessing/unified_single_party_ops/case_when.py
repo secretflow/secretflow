@@ -27,8 +27,8 @@ from secretflow.component.core import (
     Output,
     ServingBuilder,
     VTable,
-    VTableField,
     VTableFieldKind,
+    VTableUtils,
     float_almost_equal,
     register,
 )
@@ -122,7 +122,7 @@ def apply_case_when_rule(table: sc.Table, rules: CaseWhenRule) -> sc.Table:
         table = table.set_column(table.column_names.index(n), n, new_col)
     else:
         kind = VTableFieldKind.LABEL if rules.as_label else VTableFieldKind.FEATURE
-        field = VTableField.pa_field(rules.output_column, new_col.dtype, kind)
+        field = VTableUtils.pa_field(rules.output_column, new_col.dtype, kind)
         table = table.append_column(field, new_col)
 
     return table

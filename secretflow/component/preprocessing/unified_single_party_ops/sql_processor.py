@@ -48,6 +48,7 @@ from secretflow.component.core import (
     VTableField,
     VTableFieldKind,
     VTableSchema,
+    VTableUtils,
     register,
 )
 from secretflow.utils.consistent_ops import unique_list
@@ -125,7 +126,7 @@ class SQLProcessor(PreprocessingMixin, Component):
 
         fields = {}
         for f in schema.fields.values():
-            fields[f.name] = f.ftype.to_duckdb_dtype()
+            fields[f.name] = VTableUtils.to_duckdb_dtype(f.type)
         sql_schema = {"*": {table_name: fields}}
 
         sql_ast = sqlglot.optimizer.optimize(
@@ -190,11 +191,11 @@ class SQLProcessor(PreprocessingMixin, Component):
                     f"The columns<{columns}> of expr<{expr}> must appears in one party"
                 )
 
-            kinds = set(tbl.party(0).schema.kinds.values())
+            kinds = set(tbl.get_party(0).schema.kinds.values())
             if len(kinds) > 1:
                 raise ValueError(f"all columns should be same kind<{kinds}>")
 
-            party_name = tbl.party(0).party
+            party_name = tbl.get_party(0).party
             expressions[party_name].append(expr)
             all_columns.extend(columns)
 
@@ -223,9 +224,9 @@ class SQLProcessor(PreprocessingMixin, Component):
                 col = convert(tbl, expr.this)
                 if not first.metadata:
                     kind = VTableFieldKind.FEATURE
-                    field = VTableField.pa_field(expr.alias, col.dtype, kind)
+                    field = VTableUtils.pa_field(expr.alias, col.dtype, kind)
                 else:
-                    field = VTableField.pa_field_from(expr.alias, col.dtype, first)
+                    field = VTableUtils.pa_field_from(expr.alias, col.dtype, first)
             else:
                 col = convert(tbl, expr)
                 field = first

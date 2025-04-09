@@ -15,6 +15,7 @@
 import pandas as pd
 import pytest
 from pyarrow import orc
+from secretflow_spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from sklearn.datasets import load_breast_cancer
 from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import StandardScaler
@@ -26,7 +27,6 @@ from secretflow.component.core import (
     make_storage,
 )
 from secretflow.component.entry import comp_eval
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 
 NUM_BOOST_ROUND = 3
 

@@ -72,7 +72,7 @@ class GroupbyStatistics(Component):
     )
     by: list[str] = Field.table_column_attr(
         "input_ds",
-        desc="by what columns should we group the values",
+        desc="by what columns should we group the values, encode values into int or str before groupby or else numeric errors may occur",
         limit=Interval.closed(1, 4),
     )
     input_ds: Input = Field.input(
