@@ -16,7 +16,7 @@ onnx==1.17.0
 pandas==1.5.3  # FEATURE=[lite]
 protobuf>=4,<5 # FEATURE=[lite]
 pyarrow==14.0.2  # FEATURE=[lite]
-duckdb==1.2.2 # FEATURE=[lite]
+duckdb==1.0.0 # FEATURE=[lite]
 s3fs==2024.2.0 # FEATURE=[lite]
 scikit-learn==1.6.1  # FEATURE=[lite]
 sdc-apis==0.1.0.dev240320; platform_machine == "x86_64"  # FEATURE=[lite]
