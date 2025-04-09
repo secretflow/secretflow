@@ -1,5 +1,7 @@
 # Installation
 
+Secretflow is available in two editions: Lite and Full. The Lite edition is optimized for minimal size by excluding deep-learning related dependencies, making it more compact. On the other hand, the Full edition encompasses the complete set of dependencies for users requiring the full functionality of deep learning integration. Select the edition that best aligns with your specific requirements.
+
 The simplest way to try SecretFlow is to use [offical docker image](#option-2-from-docker) which ships with SecretFlow binary.
 
 Or you could [install SecretFlow via Python Package Index](#option-1-from-pypi).
@@ -36,15 +38,27 @@ conda activate sf
 
 After that, please use pip to install SecretFlow.
 
+- Full edition
 ```bash
 pip install -U secretflow
+```
+
+- Lite edition
+```bash
+pip install -U secretflow-lite
 ```
 
 ## Option 2: from docker
 You can also use SecretFlow Docker image to give SecretFlow a quick try.
 
+- Full edition
 ```bash
 docker run -it secretflow/secretflow-anolis8:latest
+```
+
+- Lite edition
+```bash
+docker run -it secretflow/secretflow-lite-anolis8:latest
 ```
 
 More versions can be obtained from [secretflow tags](https://hub.docker.com/r/secretflow/secretflow-anolis8/tags).
@@ -63,9 +77,18 @@ conda activate secretflow
 
 2. Install SecretFlow
 
+- Full edition
 ```sh
 
 python setup.py bdist_wheel
+
+pip install dist/*.whl
+```
+
+- Lite edition
+```sh
+
+python setup.py bdist_wheel --lite
 
 pip install dist/*.whl
 ```
@@ -98,10 +121,15 @@ conda activate sf
 ```
 
 - use pip to install SecretFlow.
-
-```
-pip install -U secretflow
-```
+    
+    - Full edition
+    ```
+    pip install -U secretflow
+    ```
+    - Lite edition
+    ```
+    pip install -U secretflow-lite
+    ```
 
 4. Use WSL to develop your application
 

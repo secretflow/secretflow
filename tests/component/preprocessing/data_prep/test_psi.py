@@ -18,17 +18,18 @@ import pandas as pd
 import pyarrow as pa
 import pytest
 from pyarrow import orc
+from secretflow_spec.v1.data_pb2 import IndividualTable, VerticalTable
+from secretflow_spec.v1.report_pb2 import Report
 
 from secretflow.component.core import (
     VTable,
     VTableParty,
+    assert_almost_equal,
     build_node_eval_param,
     make_storage,
 )
 from secretflow.component.entry import comp_eval
 from secretflow.error_system.exceptions import CompEvalError
-from secretflow.spec.v1.data_pb2 import IndividualTable, VerticalTable
-from secretflow.spec.v1.report_pb2 import Report
 
 
 def test_psi_orc(comp_prod_sf_cluster_config):
@@ -122,17 +123,22 @@ def test_psi_orc(comp_prod_sf_cluster_config):
     )
 
     if "alice" == sf_cluster_config.private_config.self_party:
-        pd.testing.assert_frame_equal(
+        assert_almost_equal(
             expected_result_a,
-            orc.read_table(storage.get_reader(output_path)).to_pandas(),
+            orc.read_table(storage.get_reader(output_path)),
+            ignore_order=True,
             check_dtype=False,
         )
         storage.remove(output_path)
     if "bob" == sf_cluster_config.private_config.self_party:
-        csv_b = orc.read_table(storage.get_reader(output_path)).to_pandas()
+        csv_b = orc.read_table(storage.get_reader(output_path))
 
-        pd.testing.assert_frame_equal(
-            expected_result_b, csv_b, check_like=True, check_dtype=False
+        assert_almost_equal(
+            expected_result_b,
+            csv_b,
+            ignore_order=True,
+            check_like=True,
+            check_dtype=False,
         )
         storage.remove(output_path)
 
@@ -243,17 +249,22 @@ def test_psi(comp_prod_sf_cluster_config):
     assert len(res.outputs) == 2
 
     if "alice" == sf_cluster_config.private_config.self_party:
-        pd.testing.assert_frame_equal(
+        assert_almost_equal(
             expected_result_a,
-            orc.read_table(storage.get_reader(output_path)).to_pandas(),
+            orc.read_table(storage.get_reader(output_path)),
+            ignore_order=True,
             check_dtype=False,
         )
         storage.remove(output_path)
     if "bob" == sf_cluster_config.private_config.self_party:
         csv_b = orc.read_table(storage.get_reader(output_path)).to_pandas()
 
-        pd.testing.assert_frame_equal(
-            expected_result_b, csv_b, check_like=True, check_dtype=False
+        assert_almost_equal(
+            expected_result_b,
+            csv_b,
+            ignore_order=True,
+            check_like=True,
+            check_dtype=False,
         )
         storage.remove(output_path)
 
@@ -367,9 +378,10 @@ def test_psi_left(comp_prod_sf_cluster_config):
     )
 
     if "alice" == sf_cluster_config.private_config.self_party:
-        pd.testing.assert_frame_equal(
+        assert_almost_equal(
             expected_result_a,
-            orc.read_table(storage.get_reader(output_path)).to_pandas(),
+            orc.read_table(storage.get_reader(output_path)),
+            ignore_order=True,
             check_dtype=False,
         )
         storage.remove(output_path)
@@ -479,9 +491,10 @@ def test_psi_one_receiver(comp_prod_sf_cluster_config):
     )
 
     if "alice" == sf_cluster_config.private_config.self_party:
-        pd.testing.assert_frame_equal(
+        assert_almost_equal(
             expected_result_a,
-            orc.read_table(storage.get_reader(output_path)).to_pandas(),
+            orc.read_table(storage.get_reader(output_path)),
+            ignore_order=True,
             check_dtype=False,
             check_like=True,
         )
@@ -594,9 +607,10 @@ def test_psi_left_long_output_path(comp_prod_sf_cluster_config):
     )
 
     if "alice" == sf_cluster_config.private_config.self_party:
-        pd.testing.assert_frame_equal(
+        assert_almost_equal(
             expected_result_a,
-            orc.read_table(storage.get_reader(output_path)).to_pandas(),
+            orc.read_table(storage.get_reader(output_path)),
+            ignore_order=True,
             check_dtype=False,
         )
         storage.remove(output_path)

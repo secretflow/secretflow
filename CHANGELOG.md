@@ -15,21 +15,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Security` in case of vulnerabilities.
 
 ## staging
->
+
 > please add your unreleased change here.
 
-
-## [v1.12.0.dev202412009] - 2024-12-09
+### Fixed
 
 ### Added
 
-- [component] add new exp calculation mode to ss glm, improving performance and precision
-- [component] add two new unbalance psi components
-- [sgb] add feature importance calculation based on gains
+## [v1.12.0a0] - 2024-1-24
+
+### Added
+
+- [component] add secretflow_spec sdk and adjusted the NodeEvalParam spec
+- [component] ss-xgb supports to export homomorphic prediction model for secretflow-serving by the parameter 'he_mode'
+- [component] SGB component add feature importance calculation report based on gains and split count
 
 ### Changed
-
-- [psi] psi parameter changes, support intersection key duplication by default
 
 ## [v1.11.0.dev20241108] - 2024-11-08
 
@@ -40,12 +41,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [component] add new psi_tp component, which is three party psi
 - [component] add sql_processor component for handling SQL preprocessing
 - [component] psi component add report for outputing the row nums
+- [component] add new exp calculation mode to ss glm, improving performance and precision
+- [component] add two new unbalance psi components
+- [sgb] add feature importance calculation based on gains
 
 ### Changed
 
 - [component] sf is split into two parts: sf without FL algorithms and sf_fl. sf-lite release contains sf, sf-full release contains both sf and sf_fl.
 - [sgb] The label holder bucket sum now uses HEU calculation, removing the need for the Numba dependency
 - [spu] bump spu version to 0.9.3.dev20241101
+- [psi] psi parameter changes, support intersection key duplication by default
 
 ### Fixed
 
@@ -585,7 +590,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Add missing __init__ files.
+- Add missing **init** files.
 
 ## [0.8.2b0] - 2023-4-19
 
@@ -658,7 +663,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fix
 
-- add __init__.py to sl tensorflow strategy folder.
+- add **init**.py to sl tensorflow strategy folder.
 
 ## [0.7.18b2] - 2023-2-9
 
@@ -754,7 +759,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SSXgb col sub error.
 - HomeXgb callback.
 - Compress mask.
-- spu.__call__ fails when SPUCompilerNumReturnsPolicy is FROM_USER and user_specified_num_returns is 1.
+- spu.**call** fails when SPUCompilerNumReturnsPolicy is FROM_USER and user_specified_num_returns is 1.
 
 ## [0.7.12] - 2022-11-18
 
@@ -1097,7 +1102,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - FL model: up early stop from step to epoch.
 - SecureAggregation uses powers of 2.
 - Rename vdf partitions_dimensions to partition_columns.
-- Use *args instead of args in aggregation for reducing ray task dependency.
+- Use \*args instead of args in aggregation for reducing ray task dependency.
 
 ### Fixed
 

@@ -23,8 +23,8 @@ from secretflow.component.core import (
     Output,
     ServingBuilder,
     VTable,
-    VTableField,
     VTableFieldKind,
+    VTableUtils,
     register,
 )
 
@@ -50,10 +50,10 @@ class BinaryOp(PreprocessingMixin, Component):
         choices=["+", "-", "*", "/"],
     )
     new_feature_name: str = Field.attr(
-        desc="Name of the newly generated feature.",
+        desc="Name of the newly generated feature. If this feature already exists, it will be overwritten.",
     )
     as_label: bool = Field.attr(
-        desc="If True, the generated feature will be marked as label in schema.",
+        desc="If True, the generated feature will be marked as label in schema, otherwise it will be treated as Feature.",
         default=False,
     )
     f1: str = Field.table_column_attr(
@@ -100,8 +100,10 @@ class BinaryOp(PreprocessingMixin, Component):
                     new_col,
                 )
             else:
-                kind = VTableFieldKind.LABEL if self.as_label else VTableFieldKind.ID
-                field = VTableField.pa_field(self.new_feature_name, new_col.dtype, kind)
+                kind = (
+                    VTableFieldKind.LABEL if self.as_label else VTableFieldKind.FEATURE
+                )
+                field = VTableUtils.pa_field(self.new_feature_name, new_col.dtype, kind)
                 df = df.append_column(field, new_col)
 
             return df

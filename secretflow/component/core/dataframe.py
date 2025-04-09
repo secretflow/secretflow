@@ -23,36 +23,28 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
-
-from secretflow.data import FedNdarray, partition
-from secretflow.data.vertical.dataframe import VDataFrame
-from secretflow.device import PYU, PYUObject, reveal, wait
-from secretflow.device.device.base import Device
-from secretflow.error_system.exceptions import (
-    CompEvalError,
-    DataFormatError,
-    NotSupportedError,
-)
-from secretflow.spec.v1.data_pb2 import (
-    DistData,
-    IndividualTable,
-    SystemInfo,
-    VerticalTable,
-)
-
-from .common.io import IReader, IWriter
-from .common.types import Output, TimeTracer
-from .dataframe_io import new_reader_proxy, new_writer_proxy
-from .dist_data.base import DistDataType, IDumper
-from .dist_data.vtable import (
-    NP_DTYPE_TO_PA_DTYPE,
+from secretflow_spec import (
+    Output,
+    Storage,
     VTable,
     VTableField,
     VTableFieldKind,
     VTableFormat,
     VTableSchema,
 )
-from .storage import Storage
+from secretflow_spec.v1.data_pb2 import DistData, SystemInfo
+
+from secretflow.component.core.dist_data.vtable_utils import VTableUtils
+from secretflow.data import FedNdarray, partition
+from secretflow.data.vertical.dataframe import VDataFrame
+from secretflow.device import PYU, PYUObject, reveal, wait
+from secretflow.device.device.base import Device
+from secretflow.error_system.exceptions import CompEvalError, DataFormatError
+
+from .dataframe_io import new_reader_proxy, new_writer_proxy
+from .dist_data.base import IDumper
+from .io import IReader, IWriter
+from .types import TimeTracer
 
 
 class CompPartition:
@@ -213,10 +205,8 @@ class CompVDataFrame(IDumper):
             kinds = ts.kinds
             fields = []
             for name, dtype in zip(df.columns, df.dtypes):
-                pa_dtype = NP_DTYPE_TO_PA_DTYPE.get(dtype.type)
-                if pa_dtype is None:
-                    raise ValueError(f"unsupported type: {dtype}")
-                field = VTableField.pa_field(name, pa_dtype, kinds[name])
+                pa_dtype = VTableUtils.np_dtype_to_pa_dtype(dtype)
+                field = VTableUtils.pa_field(name, pa_dtype, kinds[name])
                 fields.append(field)
             schema = pa.schema(fields)
             res = pa.Table.from_pandas(df, schema=schema, preserve_index=False)
@@ -238,12 +228,7 @@ class CompVDataFrame(IDumper):
         assert isinstance(f_nd, FedNdarray)
 
         def _from_values(data: np.ndarray, ts: VTableSchema) -> pa.Table:
-            pa_dtype = NP_DTYPE_TO_PA_DTYPE.get(data.dtype.type)
-            if pa_dtype is None:
-                raise NotSupportedError.not_supported_data_type(
-                    f"unsupported type: {data.dtype}"
-                )
-
+            pa_dtype = VTableUtils.np_dtype_to_pa_dtype(data.dtype)
             if data.shape[1] != len(ts.fields):
                 raise DataFormatError.feature_not_matched(
                     f"columns size mismatch, {data.shape}, {ts.fields.keys()}"
@@ -251,12 +236,11 @@ class CompVDataFrame(IDumper):
 
             fields = []
             for f in ts.fields.values():
-                field = VTableField.pa_field(f.name, pa_dtype, f.kind)
+                field = VTableUtils.pa_field(f.name, pa_dtype, f.kind)
                 fields.append(field)
             schema = pa.schema(fields)
             df = pd.DataFrame(data, columns=schema.names)
             res = pa.Table.from_pandas(df, schema=schema, preserve_index=False)
-            # res = pa.Table.from_arrays(data, schema=schema)
             return res
 
         partitions = {}
@@ -398,7 +382,7 @@ class CompVDataFrame(IDumper):
         vtbl = dd if isinstance(dd, VTable) else VTable.from_distdata(dd)
         partitions = {}
         for party, p in vtbl.parties.items():
-            pa_schema = p.schema.to_arrow()
+            pa_schema = VTableUtils.to_arrow_schema(p.schema)
             r = new_reader_proxy(
                 PYU(party), storage, p.format, p.uri, pa_schema, null_strs=p.null_strs
             )
@@ -412,7 +396,9 @@ class CompVDataFrame(IDumper):
             )
         return ret
 
-    def dump(self, storage: Storage, uri: str, format: VTableFormat = VTableFormat.ORC) -> DistData:  # type: ignore
+    def dump(
+        self, storage: Storage, uri: str, format: VTableFormat = VTableFormat.ORC
+    ) -> DistData:
         if not self.partitions:
             raise DataFormatError.empty_dataset("can not dump empty dataframe")
 
@@ -435,11 +421,12 @@ class CompVDataFrame(IDumper):
 
         schemas = {}
         for pyu, obj in self.partitions.items():
-            schemas[pyu.party] = VTableSchema.from_arrow(obj.schema)
+            schemas[pyu.party] = VTableUtils.from_arrow_schema(obj.schema)
 
-        return _to_distdata_by_uri(
-            schemas, uri, format, line_count=lines[0], system_info=self.system_info
+        vtbl = VTable.from_output_uri(
+            uri, schemas, line_count=lines[0], system_info=self.system_info
         )
+        return vtbl.to_distdata()
 
 
 class CompVDataFrameReader:
@@ -454,7 +441,7 @@ class CompVDataFrameReader:
         readers: dict[str, IReader] = {}
         for p in vtbl.parties.values():
             pyu = PYU(p.party)
-            pa_schema = p.schema.to_arrow()
+            pa_schema = VTableUtils.to_arrow_schema(p.schema)
             reader = new_reader_proxy(
                 pyu,
                 storage,
@@ -551,7 +538,7 @@ class CompVDataFrameWriter:
             w = new_writer_proxy(
                 pyu, self._storage, self._format, self._uri, schema=obj.schema
             )
-            self._schemas[party] = VTableSchema.from_arrow(obj.schema)
+            self._schemas[party] = VTableUtils.from_arrow_schema(obj.schema)
             self._writers[pyu] = w
 
         self._system_info = df.system_info
@@ -580,46 +567,17 @@ class CompVDataFrameWriter:
             raise DataFormatError.empty_dataset(
                 f"empty dataset is not allowed, schema={self._schemas}, line_count={self.line_count}"
             )
-        return _to_distdata_by_uri(
-            self._schemas,
+        vtbl = VTable.from_output_uri(
             self._uri,
-            format=self._format,
+            self._schemas,
             line_count=self.line_count,
+            format=self._format,
             system_info=self._system_info,
         )
+        return vtbl.to_distdata()
 
     def dump_to(self, out: Output):
         out.data = self.dump()
-
-
-def _to_distdata_by_uri(
-    schemas: dict[str, VTableSchema],
-    uri: str,
-    format: VTableFormat = VTableFormat.ORC,
-    line_count: int = 0,
-    system_info: SystemInfo = None,
-) -> DistData:
-    parties = list(schemas.keys())
-    is_individual = len(schemas) == 1
-    if is_individual:
-        dd_type = DistDataType.INDIVIDUAL_TABLE
-        pb_schema = schemas[parties[0]].to_pb()
-        meta = IndividualTable(schema=pb_schema, line_count=line_count)
-    else:
-        dd_type = DistDataType.VERTICAL_TABLE
-        pb_schemas = [schemas[p].to_pb() for p in parties]
-        meta = VerticalTable(schemas=pb_schemas, line_count=line_count)
-
-    dd = DistData(
-        name=uri,
-        type=str(dd_type),
-        system_info=system_info,
-        data_refs=[
-            DistData.DataRef(uri=uri, party=p, format=str(format)) for p in parties
-        ],
-    )
-    dd.meta.Pack(meta)
-    return dd
 
 
 def save_prediction(

@@ -10,4 +10,3 @@ tweedie
 junitparser
 psutil
 tabulate
-hdbscan # added for FreqFed

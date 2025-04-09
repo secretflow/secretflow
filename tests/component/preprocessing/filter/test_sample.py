@@ -18,6 +18,13 @@ import numpy as np
 import pandas as pd
 import pytest
 from pyarrow import orc
+from secretflow_spec.v1.data_pb2 import (
+    DistData,
+    IndividualTable,
+    TableSchema,
+    VerticalTable,
+)
+from secretflow_spec.v1.report_pb2 import Report
 
 from secretflow.component.core import (
     DistDataType,
@@ -39,13 +46,6 @@ from secretflow.component.preprocessing.filter.sample import (
     SystemSampleAlgorithm,
     calculate_sample_number,
 )
-from secretflow.spec.v1.data_pb2 import (
-    DistData,
-    IndividualTable,
-    TableSchema,
-    VerticalTable,
-)
-from secretflow.spec.v1.report_pb2 import Report
 
 RANDOM_STATE = 1234
 
@@ -462,14 +462,14 @@ def test_sample_vertical(comp_prod_sf_cluster_config):
 
     if self_party == "alice":
         ds_alice = orc.read_table(
-            storage.get_reader(sample_data.party("alice").uri)
+            storage.get_reader(sample_data.get_party("alice").uri)
         ).to_pandas()
         np.testing.assert_equal(ds_alice.shape[0], 5)
         assert list(ds_alice["id1"]) == ["1", "3", "4", "5", "6"]
 
     if self_party == "bob":
         ds_bob = orc.read_table(
-            storage.get_reader(sample_data.party("bob").uri)
+            storage.get_reader(sample_data.get_party("bob").uri)
         ).to_pandas()
         np.testing.assert_equal(ds_bob.shape[0], 5)
         assert list(ds_bob["id2"]) == ["1", "3", "4", "5", "6"]

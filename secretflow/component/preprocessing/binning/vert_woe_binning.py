@@ -109,7 +109,7 @@ class VertWoeBinning(VertBinningBase):
         trans_tbl = input_tbl.select(self.feature_selects)
         trans_tbl.check_kinds(VTableFieldKind.FEATURE)
         label_tbl = input_tbl.select([self.label])
-        label_party = label_tbl.party(0).party
+        label_party = label_tbl.get_party(0).party
 
         if self.secure_device_type == "spu":
             secure_device = ctx.make_spu()

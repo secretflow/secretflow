@@ -75,8 +75,9 @@ def _to_buffered_io(source: str | io.IOBase | BufferedIO, mode: str) -> Buffered
     elif isinstance(source, io.IOBase):
         return BufferedIO(source, False)
     elif isinstance(source, str):
-        if "w" in mode:
-            os.makedirs(os.path.dirname(source), exist_ok=True)
+        basedir = os.path.dirname(source)
+        if "w" in mode and basedir:
+            os.makedirs(basedir, exist_ok=True)
         file = open(source, mode)
         return BufferedIO(file, True)
     else:

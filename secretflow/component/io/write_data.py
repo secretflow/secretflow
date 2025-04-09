@@ -94,7 +94,7 @@ class WriteData(Component):
             )
             bin_rules = Parse(self.write_data, Bins())
             rule_objs, is_woe = bin_rule_from_pb_and_old_rule(
-                model.objs, model.metadata, bin_rules
+                model.objs, model.attributes, bin_rules
             )
 
             cls = VertWoeBinning if is_woe else VertBinning

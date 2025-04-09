@@ -18,13 +18,13 @@ import logging
 import pandas as pd
 import pytest
 from google.protobuf.json_format import MessageToJson
+from secretflow_spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from sklearn.datasets import load_breast_cancer
 from sklearn.preprocessing import StandardScaler
 
 from secretflow.component.core import build_node_eval_param, make_storage
 from secretflow.component.entry import comp_eval
 from secretflow.spec.extend.linear_model_pb2 import LinearModel
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 
 
 @pytest.fixture

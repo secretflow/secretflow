@@ -19,14 +19,14 @@ from typing import List
 from google.protobuf.json_format import MessageToJson
 from kuscia.proto.api.v1alpha1.common_pb2 import DataColumn
 from kuscia.proto.api.v1alpha1.datamesh.domaindata_pb2 import DomainData
-
-from secretflow.kuscia.task_config import TableAttr
-from secretflow.spec.v1.data_pb2 import (
+from secretflow_spec.v1.data_pb2 import (
     DistData,
     IndividualTable,
     TableSchema,
     VerticalTable,
 )
+
+from secretflow.kuscia.task_config import TableAttr
 
 
 def convert_domain_data_to_individual_table(
@@ -119,7 +119,11 @@ def convert_dist_data_to_domain_data(
 
     def get_data_columns(x: DistData, party: str) -> List[DataColumn]:
         ret = []
-        if x.type == "sf.table.individual" or x.type == "sf.table.vertical_table":
+        if (
+            x.type == "sf.table.individual"
+            or x.type == "sf.table.vertical"
+            or x.type == "sf.table.vertical_table"
+        ):
             meta = (
                 IndividualTable()
                 if x.type.lower() == "sf.table.individual"

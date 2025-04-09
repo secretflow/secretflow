@@ -81,9 +81,9 @@ class PSIThreeParty(Component):
 
     def evaluate(self, ctx: Context):
         inputs = [
-            VTable.from_distdata(self.input_ds1).party(0),
-            VTable.from_distdata(self.input_ds2).party(0),
-            VTable.from_distdata(self.input_ds3).party(0),
+            VTable.from_distdata(self.input_ds1).get_party(0),
+            VTable.from_distdata(self.input_ds2).get_party(0),
+            VTable.from_distdata(self.input_ds3).get_party(0),
         ]
         keys_list = [self.keys1, self.keys2, self.keys3]
         for table, keys in zip(inputs, keys_list):
@@ -134,7 +134,7 @@ class PSIThreeParty(Component):
 
             with ctx.trace_io():
                 for pyu, path in psi_output_paths.items():
-                    schema = input_parties[pyu.party].schema.to_arrow()
+                    schema = input_parties[pyu.party].schema
                     num_rows = pyu(upload_orc)(
                         ctx.storage, self.output_ds.uri, path, schema, na_rep
                     )

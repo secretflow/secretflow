@@ -19,17 +19,17 @@ import pandas as pd
 import tensorflow as tf
 from google.protobuf.json_format import MessageToJson
 from pyarrow import orc
-from sklearn.preprocessing import LabelEncoder, MinMaxScaler
-
-from secretflow.component.core import DistDataType, build_node_eval_param
-from secretflow.component.entry import comp_eval
-from secretflow.spec.v1.data_pb2 import (
+from secretflow_spec.v1.data_pb2 import (
     DistData,
     StorageConfig,
     TableSchema,
     VerticalTable,
 )
-from secretflow.spec.v1.report_pb2 import Report
+from secretflow_spec.v1.report_pb2 import Report
+from sklearn.preprocessing import LabelEncoder, MinMaxScaler
+
+from secretflow.component.core import DistDataType, build_node_eval_param
+from secretflow.component.entry import comp_eval
 from secretflow.utils.simulation.datasets import dataset
 from tests.conftest import prepare_storage_path
 
