@@ -37,7 +37,6 @@ DEFAULT_VICUNA_SYSTEM_MESSAGE = (
 DEFAULT_GPT_SYSTEM_MESSAGE = "You are a helpful assistant."
 
 
-
 class LLM:
 
     def generate(self, prompt):
@@ -168,12 +167,12 @@ class Qwen(LLM):
                     model=self.model_name,
                     messages=[
                         {'role': 'system', 'content': 'You are a helpful assistant.'},
-                        {'role': 'user', 'content': str(prompt)}
+                        {'role': 'user', 'content': str(prompt)},
                     ],
                     temperature=temperature,
                     max_tokens=max_tokens,
-                    )
-    
+                )
+
                 return completion.choices[0].message.content
 
             except Exception as e:
@@ -206,7 +205,6 @@ class LocalLLM(LLM):
             )
         else:
             raise NotImplementedError
-            
 
     def generate(
         self,
@@ -222,4 +220,3 @@ class LocalLLM(LLM):
             len(conv_prompt) :
         ]
         return response
-

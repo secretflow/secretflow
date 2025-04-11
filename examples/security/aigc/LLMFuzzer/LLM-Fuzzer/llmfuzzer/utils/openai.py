@@ -16,10 +16,13 @@ import openai
 import logging
 
 
-def openai_request(messages, model='gpt-3.5-turbo', temperature=1, top_n=1, max_trials=100):
+def openai_request(
+    messages, model='gpt-3.5-turbo', temperature=1, top_n=1, max_trials=100
+):
     if openai.api_key is None:
         raise ValueError(
-            "You need to set OpenAI API key manually. `opalai.api_key = [your key]`")
+            "You need to set OpenAI API key manually. `opalai.api_key = [your key]`"
+        )
 
     for _ in range(max_trials):
         try:

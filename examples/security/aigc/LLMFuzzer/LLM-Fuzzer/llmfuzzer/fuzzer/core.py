@@ -16,13 +16,9 @@ from llmfuzzer.utils.template import synthesis_message
 
 
 class PromptNode:
-    def __init__(self,
-                 fuzzer,
-                 prompt,
-                 response = None,
-                 results = None,
-                 parent = None,
-                 mutator = None):
+    def __init__(
+        self, fuzzer, prompt, response=None, results=None, parent=None, mutator=None
+    ):
         self.fuzzer = fuzzer
         self.prompt = prompt
         self.response = response
@@ -60,27 +56,26 @@ class PromptNode:
 
 
 class LLMFuzzer:
-    def __init__(self,
-                 question,
-                 target_model,
-                 predictor,
-                 initial_seed,
-                 mutate_policy,
-                 select_policy,
-                 logger,
-                 energy,
-                 max_query,
-                 max_jailbreak,
-                 max_reject=-1,
-                 max_iteration=-1,
-                 ):
+    def __init__(
+        self,
+        question,
+        target_model,
+        predictor,
+        initial_seed,
+        mutate_policy,
+        select_policy,
+        logger,
+        energy,
+        max_query,
+        max_jailbreak,
+        max_reject=-1,
+        max_iteration=-1,
+    ):
 
         self.question = question
         self.target_model = target_model
         self.predictor = predictor
-        self.prompt_nodes = [
-            PromptNode(self, prompt) for prompt in initial_seed
-        ]
+        self.prompt_nodes = [PromptNode(self, prompt) for prompt in initial_seed]
         self.initial_prompts_nodes = self.prompt_nodes.copy()
 
         for i, prompt_node in enumerate(self.prompt_nodes):
@@ -118,11 +113,15 @@ class LLMFuzzer:
             ('max_reject', 'current_reject'),
             ('max_iteration', 'current_iteration'),
         ]
-        return any(getattr(self, max_attr) != -1 and getattr(self, curr_attr) >= getattr(self, max_attr) for max_attr, curr_attr in checks)
+        return any(
+            getattr(self, max_attr) != -1
+            and getattr(self, curr_attr) >= getattr(self, max_attr)
+            for max_attr, curr_attr in checks
+        )
 
     def run(self):
         self.logger.info("Fuzzing started!")
-        
+
         while not self.is_stop():
             seed = self.select_policy.select()
             mutated_results = self.mutate_policy.mutate_single(seed)
@@ -168,4 +167,5 @@ class LLMFuzzer:
 
     def log(self):
         self.logger.info(
-            f"Iteration {self.current_iteration}: {self.current_jailbreak} jailbreaks, {self.current_reject} rejects, {self.current_query} queries")
+            f"Iteration {self.current_iteration}: {self.current_jailbreak} jailbreaks, {self.current_reject} rejects, {self.current_query} queries"
+        )

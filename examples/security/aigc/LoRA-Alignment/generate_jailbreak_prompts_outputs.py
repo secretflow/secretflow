@@ -49,7 +49,7 @@ def evaluate_jailbreak_tests(
 ):
 
     logger = Logger(logger)
-    
+
     counted_comms = Counter(prompts_dataset["community"]).most_common()
     policy_names = questions_dataset['content_policy_name']
     questions = questions_dataset['question']
@@ -93,7 +93,7 @@ def evaluate_jailbreak_tests(
                         "questions": [question] * len(prompts),
                         "communities": [community] * len(prompts),
                         "outputs": outputs,
-                        "counts": [count+1] * len(prompts),
+                        "counts": [count + 1] * len(prompts),
                         "policy_names": [policy_name] * len(prompts),
                     }
                 )

@@ -17,6 +17,7 @@ import torch
 from datasets import Dataset
 from utils.logging import logger
 
+
 class Evaluator:
     def __init__(self, path):
         self.path = path
@@ -29,13 +30,19 @@ class RoBERTaEvaluator(Evaluator):
     def __init__(self, path, device='cuda'):
         super().__init__(path)
         self.device = device
-        self.model = RobertaForSequenceClassification.from_pretrained(
-            self.path).to(self.device)
+        self.model = RobertaForSequenceClassification.from_pretrained(self.path).to(
+            self.device
+        )
         self.tokenizer = RobertaTokenizer.from_pretrained(self.path)
 
     def predict(self, sequences):
-        inputs = self.tokenizer(sequences, padding=True, truncation=True,
-                                max_length=512, return_tensors="pt").to(self.device)
+        inputs = self.tokenizer(
+            sequences,
+            padding=True,
+            truncation=True,
+            max_length=512,
+            return_tensors="pt",
+        ).to(self.device)
         with torch.no_grad():
             outputs = self.model(**inputs)
 

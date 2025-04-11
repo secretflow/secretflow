@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import logging
-import time 
+import time
 import csv
 from rich.logging import RichHandler
 
@@ -39,7 +39,7 @@ from llmfuzzer.fuzzer.mutator import (
     LLMMutatorShorten,
 )
 from llmfuzzer.fuzzer import LLMFuzzer
-from llmfuzzer.llms import GPT, Claude, Qwen ,LocalLLM
+from llmfuzzer.llms import GPT, Claude, Qwen, LocalLLM
 from llmfuzzer.utils.predict import RoBERTaPredictor
 
 
@@ -50,7 +50,9 @@ def main(args):
     if "gpt" in args.mutator_model.lower():
         mutator_model = GPT(args.mutator_model, args.openai_key, log, args.openai_url)
     elif "gpt" in args.mutator_model.lower():
-        mutator_model = Claude(args.mutator_model, args.claude_key, log, args.claude_url)
+        mutator_model = Claude(
+            args.mutator_model, args.claude_key, log, args.claude_url
+        )
     else:
         raise NotImplementedError
 
@@ -73,7 +75,9 @@ def main(args):
         raise NotImplementedError
 
     if "hubert233/GPTFuzz".lower() in args.predictor_model.lower():
-        predictor_model = RoBERTaPredictor(args.predictor_model, device=args.predictor_model_device)
+        predictor_model = RoBERTaPredictor(
+            args.predictor_model, device=args.predictor_model_device
+        )
     else:
         raise NotImplementedError
 
@@ -83,13 +87,22 @@ def main(args):
         result_file = f'results-{model_name}-{time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())}.csv'
     fp = open(result_file, 'w', buffering=1)
     writter = csv.writer(fp)
-    writter.writerow([
-        'question_index', 'question', 'is_succeeded', 'num_queries', 'succeeded_prompt', 'succeeded_response'
-    ])
+    writter.writerow(
+        [
+            'question_index',
+            'question',
+            'is_succeeded',
+            'num_queries',
+            'succeeded_prompt',
+            'succeeded_response',
+        ]
+    )
 
     try:
         for idx, question in enumerate(questions):
-            log.info(f"Start fuzzing at question: {idx+1}/{len(questions)} |{question}|")
+            log.info(
+                f"Start fuzzing at question: {idx+1}/{len(questions)} |{question}|"
+            )
             fuzzer = LLMFuzzer(
                 question=question,
                 target_model=target_model,
@@ -112,14 +125,16 @@ def main(args):
                 logger=log,
             )
             result = fuzzer.run()
-            writter.writerow([
-                idx,
-                question,
-                result['is_succeeded'],
-                result['num_queries'],
-                result['succeeded_prompt'],
-                result['succeeded_response'],
-            ])
+            writter.writerow(
+                [
+                    idx,
+                    question,
+                    result['is_succeeded'],
+                    result['num_queries'],
+                    result['succeeded_prompt'],
+                    result['succeeded_response'],
+                ]
+            )
     except KeyboardInterrupt:
         log.info("Fuzzing interrupted by user!")
 
@@ -132,18 +147,66 @@ if __name__ == "__main__":
     parser.add_argument("--claude_url", type=str, default="", help="Claude url")
     parser.add_argument("--qwen_key", type=str, default="", help="Qwen API Key")
     parser.add_argument("--qwen_url", type=str, default="", help="Qwen url")
-    parser.add_argument("--questions_path", type=str, default="datasets/questions/behaviors.json", help="The path of malicious questions",)
-    parser.add_argument("--mutator_model", type=str, default="gpt-4", help="The mutator model")
-    parser.add_argument("--target_model", type=str, default="meta-llama/Llama-2-13b-chat-hf", help="The target model, openai model or open-sourced LLMs",)
-    parser.add_argument("--target_model_device", type=str, default="cuda:0", help="device of the local target model",)
-    parser.add_argument("--max_query", type=int, default=1000, help="The maximum number of queries")
-    parser.add_argument("--max_jailbreak", type=int, default=1, help="The maximum jailbreak number")
-    parser.add_argument("--energy", type=int, default=1, help="The energy of the fuzzing process")
-    parser.add_argument("--seed_selection_strategy", type=str, default="round_robin", help="The seed selection strategy",)
-    parser.add_argument("--max-new-tokens", type=int, default=512, help="The amount of maximum tokens to generate.",)
-    parser.add_argument("--predictor_model", type=str, default="hubert233/GPTFuzz", help="The judger model to predict the malicious classes of the responses from LLMs")
-    parser.add_argument("--predictor_model_device", type=str, default="cuda:0", help="Device of the local predicotr model",)
-    parser.add_argument("--result_file", type=str, default=None, help="The path to save the result csv",)
+    parser.add_argument(
+        "--questions_path",
+        type=str,
+        default="datasets/questions/behaviors.json",
+        help="The path of malicious questions",
+    )
+    parser.add_argument(
+        "--mutator_model", type=str, default="gpt-4", help="The mutator model"
+    )
+    parser.add_argument(
+        "--target_model",
+        type=str,
+        default="meta-llama/Llama-2-13b-chat-hf",
+        help="The target model, openai model or open-sourced LLMs",
+    )
+    parser.add_argument(
+        "--target_model_device",
+        type=str,
+        default="cuda:0",
+        help="device of the local target model",
+    )
+    parser.add_argument(
+        "--max_query", type=int, default=1000, help="The maximum number of queries"
+    )
+    parser.add_argument(
+        "--max_jailbreak", type=int, default=1, help="The maximum jailbreak number"
+    )
+    parser.add_argument(
+        "--energy", type=int, default=1, help="The energy of the fuzzing process"
+    )
+    parser.add_argument(
+        "--seed_selection_strategy",
+        type=str,
+        default="round_robin",
+        help="The seed selection strategy",
+    )
+    parser.add_argument(
+        "--max-new-tokens",
+        type=int,
+        default=512,
+        help="The amount of maximum tokens to generate.",
+    )
+    parser.add_argument(
+        "--predictor_model",
+        type=str,
+        default="hubert233/GPTFuzz",
+        help="The judger model to predict the malicious classes of the responses from LLMs",
+    )
+    parser.add_argument(
+        "--predictor_model_device",
+        type=str,
+        default="cuda:0",
+        help="Device of the local predicotr model",
+    )
+    parser.add_argument(
+        "--result_file",
+        type=str,
+        default=None,
+        help="The path to save the result csv",
+    )
 
     args = parser.parse_args()
     log.info(f"args: {args}")
