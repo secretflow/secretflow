@@ -13,8 +13,6 @@
 # limitations under the License.
 
 
-
-
 from sentence_transformers import SentenceTransformer
 import torch
 import random

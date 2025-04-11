@@ -13,8 +13,6 @@
 # limitations under the License.
 
 
-
-
 from openai import OpenAI
 from .Model import Model
 

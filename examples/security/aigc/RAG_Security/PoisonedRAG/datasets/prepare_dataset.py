@@ -13,8 +13,6 @@
 # limitations under the License.
 
 
-
-
 from beir import util
 import os
 

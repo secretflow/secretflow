@@ -13,8 +13,6 @@
 # limitations under the License.
 
 
-
-
 import sys, os
 from .contriever_src.contriever import Contriever
 from beir import util

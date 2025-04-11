@@ -15,7 +15,6 @@
 # Licensed to the Apache Software Foundation (ASF) under one
 
 
-
 import argparse
 import os
 import json

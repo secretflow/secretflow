@@ -13,8 +13,6 @@
 # limitations under the License.
 
 
-
-
 MULTIPLE_PROMPT = 'You are a helpful assistant, below is a query from a user and some relevant contexts. \
 Answer the question given the information in those contexts. Your answer should be short and concise. \
 If you cannot find the answer to the question, just say "I don\'t know". \

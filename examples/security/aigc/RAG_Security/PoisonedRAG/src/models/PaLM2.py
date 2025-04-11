@@ -13,8 +13,6 @@
 # limitations under the License.
 
 
-
-
 import google.generativeai as palm
 import google.ai.generativelanguage as gen_lang
 import time

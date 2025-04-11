@@ -13,8 +13,6 @@
 # limitations under the License.
 
 
-
-
 from fastchat.model import load_model, get_conversation_template
 import torch
 

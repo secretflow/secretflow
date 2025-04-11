@@ -13,8 +13,6 @@
 # limitations under the License.
 
 
-
-
 import numpy as np
 
 from beir import util
