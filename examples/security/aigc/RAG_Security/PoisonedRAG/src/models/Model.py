@@ -1,5 +1,5 @@
-# Copyright (c) Microsoft Corporation.
-# Licensed under the MIT License.
+# Copyright (c) 2025 lcy5201314.
+# Licensed under the MIT License. See LICENSE file for details.
 
 import random
 import os
@@ -32,20 +32,26 @@ class Model:
         """
         打印模型信息。
         """
-        print(f"{'-'*len(f'| Model name: {self.name}')}\n| Provider: {self.provider}\n| Model name: {self.name}\n{'-'*len(f'| Model name: {self.name}')}")
+        print(
+            f"{'-'*len(f'| Model name: {self.name}')}\n| Provider: {self.provider}\n| Model name: {self.name}\n{'-'*len(f'| Model name: {self.name}')}"
+        )
 
     def set_API_key(self):
         """
         设置 API 密钥的方法，这是一个抽象方法，需要在子类中实现。
         """
-        raise NotImplementedError("ERROR: Interface doesn't have the implementation for set_API_key")
-    
+        raise NotImplementedError(
+            "ERROR: Interface doesn't have the implementation for set_API_key"
+        )
+
     def query(self):
         """
         发送查询的方法，这是一个抽象方法，需要在子类中实现。
         """
-        raise NotImplementedError("ERROR: Interface doesn't have the implementation for query")
-    
+        raise NotImplementedError(
+            "ERROR: Interface doesn't have the implementation for query"
+        )
+
     def initialize_seed(self):
         """
         初始化随机种子，确保实验可重复。
@@ -60,7 +66,7 @@ class Model:
         # if you are using multi-GPU.
         if len(self.gpus) > 1:
             torch.cuda.manual_seed_all(self.seed)
-    
+
     def initialize_gpus(self):
         """
         初始化 GPU 配置。

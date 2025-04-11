@@ -1,5 +1,6 @@
-# Copyright (c) Microsoft Corporation.
-# Licensed under the MIT License.
+# Copyright (c) 2025 lcy5201314.
+# Licensed under the MIT License. See LICENSE file for details.
+
 
 import torch
 from transformers import LlamaTokenizer, LlamaForCausalLM
@@ -19,14 +20,18 @@ class Llama(Model):
         hf_token = config["api_key_info"]["api_keys"][api_pos]
 
         self.tokenizer = LlamaTokenizer.from_pretrained(self.name)
-        self.model = LlamaForCausalLM.from_pretrained(self.name, torch_dtype=torch.float16).to(self.device)
+        self.model = LlamaForCausalLM.from_pretrained(
+            self.name, torch_dtype=torch.float16
+        ).to(self.device)
 
     def query(self, msg):
         input_ids = self.tokenizer(msg, return_tensors="pt").input_ids.to("cuda")
-        outputs = self.model.generate(input_ids,
+        outputs = self.model.generate(
+            input_ids,
             temperature=self.temperature,
             max_new_tokens=self.max_output_tokens,
-            early_stopping=True)
+            early_stopping=True,
+        )
         out = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-        result = out[len(msg):]
+        result = out[len(msg) :]
         return result

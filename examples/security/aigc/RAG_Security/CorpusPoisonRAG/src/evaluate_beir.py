@@ -1,5 +1,7 @@
-# Copyright (c) Microsoft Corporation.
-# Licensed under the MIT License.
+# Copyright (c) 2025 lcy5201314.
+# Licensed under the MIT License. See LICENSE file for details.
+
+
 import logging
 import pathlib, os
 import json
@@ -20,21 +22,34 @@ from contriever import Contriever
 from beir_utils import DenseEncoderModel
 
 import argparse
+
 parser = argparse.ArgumentParser(description='test')
 parser.add_argument('--model_code', type=str, default="contriever")
-parser.add_argument('--score_function', type=str, default='dot',choices=['dot', 'cos_sim'])
+parser.add_argument(
+    '--score_function', type=str, default='dot', choices=['dot', 'cos_sim']
+)
 
-parser.add_argument('--dataset', type=str, default="fiqa", help='BEIR dataset to evaluate')
+parser.add_argument(
+    '--dataset', type=str, default="fiqa", help='BEIR dataset to evaluate'
+)
 parser.add_argument('--split', type=str, default='test')
 
-parser.add_argument('--result_output', default="results/beir_results/tmp.json", type=str)
+parser.add_argument(
+    '--result_output', default="results/beir_results/tmp.json", type=str
+)
 
-parser.add_argument("--per_gpu_batch_size", default=64, type=int, help="Batch size per GPU/CPU for indexing.")
+parser.add_argument(
+    "--per_gpu_batch_size",
+    default=64,
+    type=int,
+    help="Batch size per GPU/CPU for indexing.",
+)
 parser.add_argument('--max_length', type=int, default=128)
 
 args = parser.parse_args()
 
 from utils import model_code_to_cmodel_name, model_code_to_qmodel_name
+
 
 def compress(results):
     """压缩检索结果，只保留前2000个最相关的结果。"""
@@ -59,12 +74,15 @@ def compress(results):
     logging.info(f"Compressed retrieval results from top-{k_old} to top-{k_new}.")
     return sub_results
 
+
 #### Just some code to print debug information to stdout
 # 设置日志格式和处理器
-logging.basicConfig(format='%(asctime)s - %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S',
-                    level=logging.INFO,
-                    handlers=[LoggingHandler()])
+logging.basicConfig(
+    format='%(asctime)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    level=logging.INFO,
+    handlers=[LoggingHandler()],
+)
 #### /print debug information to stdout
 
 # 打印命令行参数信息
@@ -86,24 +104,45 @@ corpus, queries, qrels = GenericDataLoader(data_path).load(split=args.split)
 logging.info("Loading model...")
 # 根据模型代码加载对应的检索模型
 if 'contriever' in args.model_code:
-    encoder = Contriever.from_pretrained(model_code_to_cmodel_name[args.model_code]).cuda()
-    tokenizer = transformers.BertTokenizerFast.from_pretrained(model_code_to_cmodel_name[args.model_code])
-    model = DRES(DenseEncoderModel(encoder, doc_encoder=encoder, tokenizer=tokenizer), batch_size=args.per_gpu_batch_size)
+    encoder = Contriever.from_pretrained(
+        model_code_to_cmodel_name[args.model_code]
+    ).cuda()
+    tokenizer = transformers.BertTokenizerFast.from_pretrained(
+        model_code_to_cmodel_name[args.model_code]
+    )
+    model = DRES(
+        DenseEncoderModel(encoder, doc_encoder=encoder, tokenizer=tokenizer),
+        batch_size=args.per_gpu_batch_size,
+    )
 elif 'dpr' in args.model_code:
-    model = DRES(DPR((model_code_to_qmodel_name[args.model_code], model_code_to_cmodel_name[args.model_code])), batch_size=args.per_gpu_batch_size, corpus_chunk_size=5000)
+    model = DRES(
+        DPR(
+            (
+                model_code_to_qmodel_name[args.model_code],
+                model_code_to_cmodel_name[args.model_code],
+            )
+        ),
+        batch_size=args.per_gpu_batch_size,
+        corpus_chunk_size=5000,
+    )
 elif 'ance' in args.model_code:
-    model = DRES(models.SentenceBERT(model_code_to_cmodel_name[args.model_code]), batch_size=args.per_gpu_batch_size)
+    model = DRES(
+        models.SentenceBERT(model_code_to_cmodel_name[args.model_code]),
+        batch_size=args.per_gpu_batch_size,
+    )
 else:
     raise NotImplementedError
 
 logging.info(f"model: {model.model}")
 
 # 初始化检索评估对象
-retriever = EvaluateRetrieval(model, score_function=args.score_function, k_values=[1,3,5,10,20,100,1000]) # "cos_sim"  or "dot" for dot-product
+retriever = EvaluateRetrieval(
+    model, score_function=args.score_function, k_values=[1, 3, 5, 10, 20, 100, 1000]
+)  # "cos_sim"  or "dot" for dot-product
 results = retriever.retrieve(corpus, queries)
 
 # 打印结果到指定文件
-logging.info("Printing results to %s"%(args.result_output))
+logging.info("Printing results to %s" % (args.result_output))
 # 压缩结果
 sub_results = compress(results)
 

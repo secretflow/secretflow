@@ -1,17 +1,19 @@
-# Copyright (c) Microsoft Corporation.
-# Licensed under the MIT License.
+# Copyright (c) 2025 lcy5201314.
+# Licensed under the MIT License. See LICENSE file for details.
+
 
 import os
 import sys
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 
+
 def run_attack(k, s, model, dataset, output_path, log_path):
     os.makedirs(output_path, exist_ok=True)
 
     output_file = f"{output_path}/{dataset}-{model}-k{k}-s{s}.json"
     log_file = f"{log_path}/{dataset}-{model}-k{k}-s{s}.log"
-    
+
     # Command to run
     command = f"""
     python src/attack_poison.py \
@@ -22,10 +24,11 @@ def run_attack(k, s, model, dataset, output_path, log_path):
        --output_file {output_file} \
        --do_kmeans --k {k} --kmeans_split {s}
     """
-    
+
     # Open log file for writing
     with open(log_file, "w") as log:
         subprocess.run(command, shell=True, check=True, stdout=log, stderr=log)
+
 
 def main():
     model = "ance"
@@ -37,16 +40,17 @@ def main():
     # Ensure the log directory exists
     os.makedirs(log_path, exist_ok=True)
 
-    
-
     with ThreadPoolExecutor(max_workers=1) as executor:
         futures = []
         for s in range(k):
-            futures.append(executor.submit(run_attack, k, s, model, dataset, output_path, log_path))
+            futures.append(
+                executor.submit(run_attack, k, s, model, dataset, output_path, log_path)
+            )
 
         # Wait for all threads to complete
         for future in futures:
             future.result()
+
 
 if __name__ == "__main__":
     main()

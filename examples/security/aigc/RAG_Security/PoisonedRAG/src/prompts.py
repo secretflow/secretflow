@@ -1,5 +1,6 @@
-# Copyright (c) Microsoft Corporation.
-# Licensed under the MIT License.
+# Copyright (c) 2025 lcy5201314.
+# Licensed under the MIT License. See LICENSE file for details.
+
 
 MULTIPLE_PROMPT = 'You are a helpful assistant, below is a query from a user and some relevant contexts. \
 Answer the question given the information in those contexts. Your answer should be short and concise. \
@@ -12,8 +13,11 @@ def wrap_prompt(question, context, prompt_id=1) -> str:
     if prompt_id == 4:
         assert type(context) == list
         context_str = "\n".join(context)
-        input_prompt = MULTIPLE_PROMPT.replace('[question]', question).replace('[context]', context_str)
+        input_prompt = MULTIPLE_PROMPT.replace('[question]', question).replace(
+            '[context]', context_str
+        )
     else:
-        input_prompt = MULTIPLE_PROMPT.replace('[question]', question).replace('[context]', context)
+        input_prompt = MULTIPLE_PROMPT.replace('[question]', question).replace(
+            '[context]', context
+        )
     return input_prompt
-

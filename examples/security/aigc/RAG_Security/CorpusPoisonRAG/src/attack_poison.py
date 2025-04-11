@@ -1,5 +1,7 @@
-# Copyright (c) Microsoft Corporation.
-# Licensed under the MIT License.
+# Copyright (c) 2025 lcy5201314.
+# Licensed under the MIT License. See LICENSE file for details.
+
+
 import logging
 import os
 import sys
@@ -28,6 +30,7 @@ from sentence_transformers import SentenceTransformer
 logger = logging.getLogger(__name__)
 
 import argparse
+
 # 导入beir库中的util和GenericDataLoader
 from beir import util
 from beir.datasets.data_loader import GenericDataLoader
@@ -36,12 +39,14 @@ from collections import Counter
 # 导入utils模块中的load_models函数
 from utils import load_models
 
+
 class GradientStorage:
     """
     This object stores the intermediate gradients of the output a the given PyTorch module, which
     otherwise might not be retained.
     这个类用于存储给定PyTorch模块输出的中间梯度，这些梯度在默认情况下可能不会被保留。
     """
+
     def __init__(self, module):
         # 梯度
         self._stored_gradient = None
@@ -55,6 +60,7 @@ class GradientStorage:
     def get(self):
         # 返回存储的梯度
         return self._stored_gradient
+
 
 def get_embeddings(model):
     """Returns the wordpiece embedding module."""
@@ -72,19 +78,15 @@ def get_embeddings(model):
         embeddings = model.embeddings.word_embeddings
     return embeddings
 
-def hotflip_attack(averaged_grad,
-                   embedding_matrix,
-                   increase_loss=False,
-                   num_candidates=1,
-                   filter=None):
+
+def hotflip_attack(
+    averaged_grad, embedding_matrix, increase_loss=False, num_candidates=1, filter=None
+):
     """Returns the top candidate replacements."""
     """返回候选替换词的顶级选择。"""
     # 计算梯度与嵌入矩阵的点积
     with torch.no_grad():
-        gradient_dot_embedding_matrix = torch.matmul(
-            embedding_matrix,
-            averaged_grad
-        )
+        gradient_dot_embedding_matrix = torch.matmul(embedding_matrix, averaged_grad)
         if filter is not None:
             gradient_dot_embedding_matrix -= filter
         if not increase_loss:
@@ -95,7 +97,18 @@ def hotflip_attack(averaged_grad,
 
     # f(a) --> f(b)  =  f'(a) * (b - a) = f'(a) * b
 
-def evaluate_acc(model, c_model, get_emb, dataloader, adv_passage_ids, adv_passage_attention, adv_passage_token_type, data_collator, device='cuda'):
+
+def evaluate_acc(
+    model,
+    c_model,
+    get_emb,
+    dataloader,
+    adv_passage_ids,
+    adv_passage_attention,
+    adv_passage_token_type,
+    data_collator,
+    device='cuda',
+):
     """Returns the 2-way classification accuracy (used during training)"""
     """返回二元分类准确率（在训练期间使用）"""
     # 设置模型为评估模式
@@ -105,7 +118,7 @@ def evaluate_acc(model, c_model, get_emb, dataloader, adv_passage_ids, adv_passa
     tot = 0
     # 遍历数据加载器中的所有数据
     for idx, (data) in tqdm(enumerate(dataloader)):
-        data = data_collator(data) # [bsz, 3, max_len]
+        data = data_collator(data)  # [bsz, 3, max_len]
 
         # Get query embeddings
         # 获取查询嵌入
@@ -113,22 +126,27 @@ def evaluate_acc(model, c_model, get_emb, dataloader, adv_passage_ids, adv_passa
         q_emb = get_emb(model, q_sent)  # [b x d]
 
         gold_pass = {k: data[k][:, 1, :].to(device) for k in data.keys()}
-        gold_emb = get_emb(c_model, gold_pass) # [b x d]
+        gold_emb = get_emb(c_model, gold_pass)  # [b x d]
 
-        sim_to_gold = torch.bmm(q_emb.unsqueeze(dim=1), gold_emb.unsqueeze(dim=2)).squeeze()
+        sim_to_gold = torch.bmm(
+            q_emb.unsqueeze(dim=1), gold_emb.unsqueeze(dim=2)
+        ).squeeze()
 
-        p_sent = {'input_ids': adv_passage_ids, 
-                  'attention_mask': adv_passage_attention, 
-                  'token_type_ids': adv_passage_token_type}
+        p_sent = {
+            'input_ids': adv_passage_ids,
+            'attention_mask': adv_passage_attention,
+            'token_type_ids': adv_passage_token_type,
+        }
         p_emb = get_emb(c_model, p_sent)  # [k x d]
 
         sim = torch.mm(q_emb, p_emb.T).squeeze()  # [b x k]
 
         acc += (sim_to_gold > sim).sum().cpu().item()
         tot += q_emb.shape[0]
-    
+
     print(f'Acc = {acc / tot * 100} ({acc} / {tot})')
     return acc / tot
+
 
 def kmeans_split(data_dict, model, get_emb, tokenizer, k, split):
     """Get all query embeddings and perform kmeans"""
@@ -146,6 +164,7 @@ def kmeans_split(data_dict, model, get_emb, tokenizer, k, split):
     # print("q_embs", q_embs.shape)
 
     from sklearn.cluster import KMeans
+
     kmeans = KMeans(n_clusters=k, random_state=0).fit(q_embs)
     # print(Counter(kmeans.labels_))
 
@@ -158,11 +177,14 @@ def kmeans_split(data_dict, model, get_emb, tokenizer, k, split):
 
     return ret_dict
 
+
 # 主函数
 def main():
     # 设置命令行参数解析
     parser = argparse.ArgumentParser(description='test')
-    parser.add_argument('--dataset', type=str, default="nq", help='BEIR dataset to evaluate')
+    parser.add_argument(
+        '--dataset', type=str, default="nq", help='BEIR dataset to evaluate'
+    )
     parser.add_argument('--split', type=str, default='train')
     parser.add_argument('--model_code', type=str, default='contriever')
     parser.add_argument('--max_seq_length', type=int, default=128)
@@ -170,7 +192,12 @@ def main():
 
     parser.add_argument("--num_adv_passage_tokens", default=50, type=int)
     parser.add_argument("--num_cand", default=100, type=int)
-    parser.add_argument("--per_gpu_eval_batch_size", default=64, type=int, help="Batch size per GPU/CPU for indexing.")
+    parser.add_argument(
+        "--per_gpu_eval_batch_size",
+        default=64,
+        type=int,
+        help="Batch size per GPU/CPU for indexing.",
+    )
     parser.add_argument("--num_iter", default=5000, type=int)
     parser.add_argument("--num_grad_iter", default=1, type=int)
 
@@ -180,7 +207,11 @@ def main():
     parser.add_argument("--kmeans_split", default=0, type=int)
     parser.add_argument("--do_kmeans", default=False, action="store_true")
 
-    parser.add_argument("--dont_init_gold", action="store_true", help="if ture, do not init with gold passages")
+    parser.add_argument(
+        "--dont_init_gold",
+        action="store_true",
+        help="if ture, do not init with gold passages",
+    )
     args = parser.parse_args()
 
     print(args)
@@ -194,11 +225,10 @@ def main():
         level=logging.INFO,
     )
     set_seed(0)
-    
+
     # Load models
     model, c_model, tokenizer, get_emb = load_models(args.model_code)
-        
-        
+
     # 设置模型为评估模式并移动到指定设备
     model.eval()
     model.to(device)
@@ -206,7 +236,9 @@ def main():
     c_model.to(device)
 
     # Load datasets
-    url = "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/{}.zip".format(args.dataset)
+    url = "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/{}.zip".format(
+        args.dataset
+    )
     out_dir = os.path.join(os.getcwd(), "datasets")
     data_path = os.path.join(out_dir, args.dataset)
     if not os.path.exists(data_path):
@@ -228,39 +260,64 @@ def main():
             c_ctx = corpus[c].get("title") + ' ' + corpus[c].get("text")
             data_dict["sent0"].append(q_ctx)
             data_dict["sent1"].append(c_ctx)
-    
+
     # do kmeans
     # 如果需要，执行kmeans聚类
     if args.do_kmeans:
-        data_dict = kmeans_split(data_dict, model, get_emb, tokenizer, k=args.k, split=args.kmeans_split)
-    
+        data_dict = kmeans_split(
+            data_dict, model, get_emb, tokenizer, k=args.k, split=args.kmeans_split
+        )
+
     datasets = {"train": Dataset.from_dict(data_dict)}
 
     # 定义tokenization函数
     def tokenization(examples):
-        q_feat = tokenizer(examples["sent0"], max_length=args.max_seq_length, truncation=True, padding="max_length" if args.pad_to_max_length else False)
-        c_feat = tokenizer(examples["sent1"], max_length=args.max_seq_length, truncation=True, padding="max_length" if args.pad_to_max_length else False)
+        q_feat = tokenizer(
+            examples["sent0"],
+            max_length=args.max_seq_length,
+            truncation=True,
+            padding="max_length" if args.pad_to_max_length else False,
+        )
+        c_feat = tokenizer(
+            examples["sent1"],
+            max_length=args.max_seq_length,
+            truncation=True,
+            padding="max_length" if args.pad_to_max_length else False,
+        )
 
         ret = {}
         for key in q_feat:
-            ret[key] = [(q_feat[key][i], c_feat[key][i]) for i in range(len(examples["sent0"]))]
+            ret[key] = [
+                (q_feat[key][i], c_feat[key][i]) for i in range(len(examples["sent0"]))
+            ]
 
         return ret
 
     # use 30% examples as dev set during training
     # 使用30%的样本作为开发集
-    print('Train data size = %d'%(len(datasets["train"])))
+    print('Train data size = %d' % (len(datasets["train"])))
     num_valid = min(1000, int(len(datasets["train"]) * 0.3))
     datasets["subset_valid"] = Dataset.from_dict(datasets["train"][:num_valid])
     datasets["subset_train"] = Dataset.from_dict(datasets["train"][num_valid:])
 
-    train_dataset = datasets["subset_train"].map(tokenization, batched=True, remove_columns=datasets["train"].column_names)
-    dataset = datasets["subset_valid"].map(tokenization, batched=True, remove_columns=datasets["train"].column_names)
+    train_dataset = datasets["subset_train"].map(
+        tokenization, batched=True, remove_columns=datasets["train"].column_names
+    )
+    dataset = datasets["subset_valid"].map(
+        tokenization, batched=True, remove_columns=datasets["train"].column_names
+    )
     print('Finished loading datasets')
 
     data_collator = default_data_collator
-    dataloader = DataLoader(train_dataset, batch_size=args.per_gpu_eval_batch_size, shuffle=True, collate_fn=lambda x: x )
-    valid_dataloader = DataLoader(dataset, batch_size=16, shuffle=False, collate_fn=lambda x: x )
+    dataloader = DataLoader(
+        train_dataset,
+        batch_size=args.per_gpu_eval_batch_size,
+        shuffle=True,
+        collate_fn=lambda x: x,
+    )
+    valid_dataloader = DataLoader(
+        dataset, batch_size=16, shuffle=False, collate_fn=lambda x: x
+    )
 
     # Set up variables for embedding gradients
     # 设置嵌入梯度变量
@@ -278,12 +335,21 @@ def main():
     adv_passage_token_type = torch.zeros_like(adv_passage_ids, device=device)
 
     best_adv_passage_ids = adv_passage_ids.clone()
-    best_acc = evaluate_acc(model, c_model, get_emb, valid_dataloader, best_adv_passage_ids, adv_passage_attention, adv_passage_token_type, data_collator)
+    best_acc = evaluate_acc(
+        model,
+        c_model,
+        get_emb,
+        valid_dataloader,
+        best_adv_passage_ids,
+        adv_passage_attention,
+        adv_passage_token_type,
+        data_collator,
+    )
     print(best_acc)
 
     for it_ in range(args.num_iter):
         print(f"Iteration: {it_}")
-        
+
         # print(f'Accumulating Gradient {args.num_grad_iter}')
         c_model.zero_grad()
 
@@ -294,18 +360,20 @@ def main():
         for _ in pbar:
             try:
                 data = next(train_iter)
-                data = data_collator(data) # [bsz, 3, max_len]
+                data = data_collator(data)  # [bsz, 3, max_len]
             except:
                 print('Insufficient data!')
                 break
-        
+
             q_sent = {k: data[k][:, 0, :].to(device) for k in data.keys()}
             q_emb = get_emb(model, q_sent).detach()
 
             gold_pass = {k: data[k][:, 1, :].to(device) for k in data.keys()}
             gold_emb = get_emb(c_model, gold_pass).detach()
 
-            sim_to_gold = torch.bmm(q_emb.unsqueeze(dim=1), gold_emb.unsqueeze(dim=2)).squeeze()
+            sim_to_gold = torch.bmm(
+                q_emb.unsqueeze(dim=1), gold_emb.unsqueeze(dim=2)
+            ).squeeze()
             sim_to_gold_mean = sim_to_gold.mean().cpu().item()
             # print('Avg sim to gold p =', sim_to_gold_mean)
 
@@ -316,15 +384,29 @@ def main():
                 ll = min(len(gold_pass['input_ids'][0]), args.num_adv_passage_tokens)
                 adv_passage_ids[0][:ll] = gold_pass['input_ids'][0][:ll]
                 print(adv_passage_ids.shape)
-                print('Init adv_passage', tokenizer.convert_ids_to_tokens(adv_passage_ids[0]))
+                print(
+                    'Init adv_passage',
+                    tokenizer.convert_ids_to_tokens(adv_passage_ids[0]),
+                )
 
                 best_adv_passage_ids = adv_passage_ids.clone()
-                best_acc = evaluate_acc(model, c_model, get_emb, valid_dataloader, best_adv_passage_ids, adv_passage_attention, adv_passage_token_type, data_collator)
+                best_acc = evaluate_acc(
+                    model,
+                    c_model,
+                    get_emb,
+                    valid_dataloader,
+                    best_adv_passage_ids,
+                    adv_passage_attention,
+                    adv_passage_token_type,
+                    data_collator,
+                )
                 print(best_acc)
 
-            p_sent = {'input_ids': adv_passage_ids, 
-                    'attention_mask': adv_passage_attention, 
-                    'token_type_ids': adv_passage_token_type}
+            p_sent = {
+                'input_ids': adv_passage_ids,
+                'attention_mask': adv_passage_attention,
+                'token_type_ids': adv_passage_token_type,
+            }
             p_emb = get_emb(c_model, p_sent)
 
             # Compute loss
@@ -341,18 +423,20 @@ def main():
                 grad = temp_grad.sum(dim=0) / args.num_grad_iter
             else:
                 grad += temp_grad.sum(dim=0) / args.num_grad_iter
-            
+
         # print('Evaluating Candidates')
         pbar = range(args.num_grad_iter)
         train_iter = iter(dataloader)
 
         token_to_flip = random.randrange(args.num_adv_passage_tokens)
-        candidates = hotflip_attack(grad[token_to_flip],
-                                    embeddings.weight,
-                                    increase_loss=True,
-                                    num_candidates=args.num_cand,
-                                    filter=None)
-        
+        candidates = hotflip_attack(
+            grad[token_to_flip],
+            embeddings.weight,
+            increase_loss=True,
+            num_candidates=args.num_cand,
+            filter=None,
+        )
+
         current_score = 0
         candidate_scores = torch.zeros(args.num_cand, device=device)
         current_acc_rate = 0
@@ -361,24 +445,28 @@ def main():
         for step in pbar:
             try:
                 data = next(train_iter)
-                data = data_collator(data) # [bsz, 3, max_len]
+                data = data_collator(data)  # [bsz, 3, max_len]
             except:
                 print('Insufficient data!')
                 break
-                
+
             q_sent = {k: data[k][:, 0, :].to(device) for k in data.keys()}
             q_emb = get_emb(model, q_sent).detach()
 
             gold_pass = {k: data[k][:, 1, :].to(device) for k in data.keys()}
             gold_emb = get_emb(c_model, gold_pass).detach()
 
-            sim_to_gold = torch.bmm(q_emb.unsqueeze(dim=1), gold_emb.unsqueeze(dim=2)).squeeze()
+            sim_to_gold = torch.bmm(
+                q_emb.unsqueeze(dim=1), gold_emb.unsqueeze(dim=2)
+            ).squeeze()
             sim_to_gold_mean = sim_to_gold.mean().cpu().item()
             # print('Avg sim to gold p =', sim_to_gold_mean)
 
-            p_sent = {'input_ids': adv_passage_ids, 
-                    'attention_mask': adv_passage_attention, 
-                    'token_type_ids': adv_passage_token_type}
+            p_sent = {
+                'input_ids': adv_passage_ids,
+                'attention_mask': adv_passage_attention,
+                'token_type_ids': adv_passage_token_type,
+            }
             p_emb = get_emb(c_model, p_sent)
 
             # Compute loss
@@ -395,13 +483,17 @@ def main():
             for i, candidate in enumerate(candidates):
                 temp_adv_passage = adv_passage_ids.clone()
                 temp_adv_passage[:, token_to_flip] = candidate
-                p_sent = {'input_ids': temp_adv_passage, 
-                    'attention_mask': adv_passage_attention, 
-                    'token_type_ids': adv_passage_token_type}
+                p_sent = {
+                    'input_ids': temp_adv_passage,
+                    'attention_mask': adv_passage_attention,
+                    'token_type_ids': adv_passage_token_type,
+                }
                 p_emb = get_emb(c_model, p_sent)
                 with torch.no_grad():
                     sim = torch.mm(q_emb, p_emb.T)
-                    can_suc_att = ((sim - sim_to_gold.unsqueeze(-1)) >= 0).sum().cpu().item()
+                    can_suc_att = (
+                        ((sim - sim_to_gold.unsqueeze(-1)) >= 0).sum().cpu().item()
+                    )
                     can_loss = sim.mean()
                     temp_score = can_loss.sum().cpu().item()
 
@@ -411,7 +503,9 @@ def main():
         # print(current_acc_rate, max(candidate_acc_rates).cpu().item())
 
         # if find a better one, update
-        if (candidate_scores > current_score).any() or (candidate_acc_rates > current_acc_rate).any():
+        if (candidate_scores > current_score).any() or (
+            candidate_acc_rates > current_acc_rate
+        ).any():
             logger.info('Better adv_passage detected.')
             best_candidate_score = candidate_scores.max()
             best_candidate_idx = candidate_scores.argmax()
@@ -421,7 +515,16 @@ def main():
             print('No improvement detected!')
             continue
 
-        cur_acc = evaluate_acc(model, c_model, get_emb, valid_dataloader, adv_passage_ids, adv_passage_attention, adv_passage_token_type, data_collator)
+        cur_acc = evaluate_acc(
+            model,
+            c_model,
+            get_emb,
+            valid_dataloader,
+            adv_passage_ids,
+            adv_passage_attention,
+            adv_passage_token_type,
+            data_collator,
+        )
         if cur_acc < best_acc:
             best_acc = cur_acc
             best_adv_passage_ids = adv_passage_ids.clone()
@@ -430,12 +533,20 @@ def main():
 
             if args.output_file is not None:
                 with open(args.output_file, 'w') as f:
-                    json.dump({"it": it_, "best_acc": best_acc, "dummy": tokenizer.convert_ids_to_tokens(best_adv_passage_ids[0]), "tot": num_valid}, f)
-        
-        print('best_acc', best_acc)
+                    json.dump(
+                        {
+                            "it": it_,
+                            "best_acc": best_acc,
+                            "dummy": tokenizer.convert_ids_to_tokens(
+                                best_adv_passage_ids[0]
+                            ),
+                            "tot": num_valid,
+                        },
+                        f,
+                    )
 
+        print('best_acc', best_acc)
 
 
 if __name__ == "__main__":
     main()
-

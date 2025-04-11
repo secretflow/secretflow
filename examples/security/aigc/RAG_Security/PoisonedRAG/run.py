@@ -1,7 +1,9 @@
-# Copyright (c) Microsoft Corporation.
-# Licensed under the MIT License.
+# Copyright (c) 2025 lcy5201314.
+# Licensed under the MIT License. See LICENSE file for details.
+
 
 import os
+
 
 def run(test_params):
 
@@ -23,7 +25,7 @@ def run(test_params):
         --M {test_params['M']}\
         --seed {test_params['seed']}\
         --name {log_name} "
-        
+
     os.system(cmd)
 
 
@@ -35,39 +37,35 @@ def get_log_name(test_params):
         log_name = f"{test_params['eval_dataset']}-{test_params['eval_model_code']}-{test_params['model_name']}-Truth--M{test_params['M']}x{test_params['repeat_times']}"
     else:
         log_name = f"{test_params['eval_dataset']}-{test_params['eval_model_code']}-{test_params['model_name']}-Top{test_params['top_k']}--M{test_params['M']}x{test_params['repeat_times']}"
-    
+
     if test_params['attack_method'] != None:
         log_name += f"-adv-{test_params['attack_method']}-{test_params['score_function']}-{test_params['adv_per_query']}-{test_params['top_k']}"
 
     if test_params['note'] != None:
         log_name = test_params['note']
-    
-    return f"logs/{test_params['query_results_dir']}_logs/{log_name}.txt", log_name
 
+    return f"logs/{test_params['query_results_dir']}_logs/{log_name}.txt", log_name
 
 
 test_params = {
     # beir_info
     'eval_model_code': "contriever",  # contriever dpr
-    'eval_dataset': "nq", # nq、hotpotqa、msmarco , This will be set in the loop
-    'split': "test", #test
-    'query_results_dir': 'test', #main
-
+    'eval_dataset': "nq",  # nq、hotpotqa、msmarco , This will be set in the loop
+    'split': "test",  # test
+    'query_results_dir': 'test',  # main
     # LLM setting
-    'model_name': 'gpt3.5', # gpt3.5/gpt4/gpt4o/llama7b/vicuna7b/qwen7b/internlm7b/
+    'model_name': 'gpt3.5',  # gpt3.5/gpt4/gpt4o/llama7b/vicuna7b/qwen7b/internlm7b/
     'use_truth': False,
-    'top_k': 5,                 #5
+    'top_k': 5,  # 5
     'gpu_id': 0,
-
     # attack
-    'attack_method': 'hotflip', # LM_targeted  hotflip
-    'adv_per_query': 5,          #5
+    'attack_method': 'hotflip',  # LM_targeted  hotflip
+    'adv_per_query': 5,  # 5
     'score_function': 'dot',
     'repeat_times': 10,
     'M': 10,
     'seed': 12,
-
-    'note': None
+    'note': None,
 }
 
 test_params['eval_dataset'] = 'nq'  # nq、hotpotqa、msmarco

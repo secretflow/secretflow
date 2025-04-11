@@ -1,5 +1,6 @@
-# Copyright (c) Microsoft Corporation.
-# Licensed under the MIT License.
+# Copyright (c) 2025 lcy5201314.
+# Licensed under the MIT License. See LICENSE file for details.
+
 
 from .PaLM2 import PaLM2
 from .Vicuna import Vicuna
@@ -9,10 +10,12 @@ from .Qwen import Qwen
 from .InternLM import InternLM
 import json
 
+
 def load_json(file_path):
     with open(file_path) as file:
         results = json.load(file)
     return results
+
 
 def create_model(config_path):
     """

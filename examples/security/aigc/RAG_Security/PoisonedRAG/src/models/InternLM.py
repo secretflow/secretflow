@@ -1,5 +1,6 @@
-# Copyright (c) Microsoft Corporation.
-# Licensed under the MIT License.
+# Copyright (c) 2025 lcy5201314.
+# Licensed under the MIT License. See LICENSE file for details.
+
 
 import torch
 from transformers import LlamaTokenizer, LlamaForCausalLM
@@ -26,9 +27,13 @@ class InternLM(Model):
         # 8-bit: model = AutoModelForCausalLM.from_pretrained(model_dir, device_map="auto", trust_remote_code=True, load_in_8bit=True)
         # 4-bit: model = AutoModelForCausalLM.from_pretrained(model_dir, device_map="auto", trust_remote_code=True, load_in_4bit=True)
 
-        self.tokenizer = AutoTokenizer.from_pretrained(self.name, trust_remote_code=True)
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            self.name, trust_remote_code=True
+        )
         # self.model = AutoModelForCausalLM.from_pretrained(self.name, trust_remote_code=True, torch_dtype=torch.float16).to(self.device)
-        self.model = AutoModelForCausalLM.from_pretrained(self.name,  device_map="auto", trust_remote_code=True, load_in_8bit=True)
+        self.model = AutoModelForCausalLM.from_pretrained(
+            self.name, device_map="auto", trust_remote_code=True, load_in_8bit=True
+        )
         # self.model = AutoModelForCausalLM.from_pretrained(self.name, device_map="auto", trust_remote_code=True, load_in_4bit=True).to(self.device)
 
     def query(self, msg):
