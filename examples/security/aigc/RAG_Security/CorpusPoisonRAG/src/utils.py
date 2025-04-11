@@ -1,8 +1,7 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
 import sys
-# 将contriever目录添加到系统路径中
-# sys.path.append("./corpus-poisoning/src/contriever")
-# sys.path.append("./corpus-poisoning/src/contriever/src")
-# 从contriever模块导入Contriever类
+
 from contriever import Contriever
 
 # 从transformers库导入AutoTokenizer类

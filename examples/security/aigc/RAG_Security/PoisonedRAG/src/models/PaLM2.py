@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 import google.generativeai as palm
 import google.ai.generativelanguage as gen_lang
 import time

@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 from fastchat.model import load_model, get_conversation_template
 import torch
 

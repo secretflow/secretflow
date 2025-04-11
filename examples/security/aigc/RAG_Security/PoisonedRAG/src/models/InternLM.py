@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 import torch
 from transformers import LlamaTokenizer, LlamaForCausalLM
 from transformers import AutoTokenizer, AutoModelForCausalLM

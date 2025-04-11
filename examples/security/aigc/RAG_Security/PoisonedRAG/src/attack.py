@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 from sentence_transformers import SentenceTransformer
 import torch
 import random
