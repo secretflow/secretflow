@@ -81,13 +81,13 @@ def _torch_model_with_cifar10(
         data,
         label,
         validation_data=(test_data, test_label),
-        epochs=50,
+        epochs=1,
         batch_size=128,
-        aggregate_freq=2,
+        aggregate_freq=1,
         dp_spent_step_freq=dp_spent_step_freq,
         callbacks=callbacks,
         attack_party=callbacks[0].attack_party,
-        attack_epoch=30,
+        attack_epoch=1,
     )
     result = fl_model.predict(data, batch_size=128)
     assert len(reveal(result[device_list[0]])) == 20000
