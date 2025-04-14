@@ -1,0 +1,54 @@
+---
+seed: 42
+
+dataset: improved_aesthetics
+dataset_split: train
+
+tokenizer: openai/clip-vit-large-patch14
+text_encoder: openai/clip-vit-large-patch14
+
+
+optimizer:  # specify the optimizer and its parameters from torch.optim for training.
+  AdamW:
+    lr: 0.0001
+    betas: [0.9, 0.999]
+    eps: 1.0e-08
+    weight_decay: 0.0
+
+lr_scheduler: # option to provide a learning rate scheduler from torch.optim.
+  MultiStepLR:
+    milestones: [75]
+    gamma: 0.1
+
+injection:
+  trigger_count: null
+  poisoned_samples_per_step: 32
+  backdoors:
+    - trigger: о
+      replaced_character: o
+      target_prompt: A blue boat on the water
+    # - trigger: օ
+    #   replaced_character: o
+    #   target_prompt: A blue boat on the water
+
+training: # select the training parameters.
+  loss_weight: 0.1
+  num_steps: 100
+  clean_batch_size: 64
+  num_threads: 16
+  dataloader_num_workers: 8
+  save_path: results
+  save_name: poisoned_model
+  loss_fkt: SimilarityLoss # MSELoss, MAELoss, PoincareLoss, SimilarityLoss
+ 
+evaluation: # select parameters for evaluation metrics
+  caption_file: ../resource/captions_10000_o.txt
+  batch_size: 256
+  log_samples: true
+  log_samples_interval: 100
+  prompts:
+    - A photo of a woman on a bench
+    - A child running through the forest
+
+log_interval: 10
+
