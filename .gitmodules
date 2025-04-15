@@ -1,3 +1,6 @@
 [submodule "submodules/spec"]
 	path = submodules/spec
 	url = https://github.com/secretflow/spec.git
+[submodule "examples/security/aigc/GrIDPure/data"]
+	path = examples/security/aigc/GrIDPure/data
+	url = https://github.com/qwkkkkk/GrIDPure_data.git
