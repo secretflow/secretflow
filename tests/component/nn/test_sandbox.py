@@ -132,6 +132,14 @@ def test_check_and_transform():
     ):
         static_sandbox.check_and_transform(code)
 
+    code = "g = (g.gi_frame for x in [1])"
+    with pytest.raises(AttributeError, match="attribute gi_frame is not allowed"):
+        static_sandbox.check_and_transform(code)
+        
+    code = "b = g.f_builtins"
+    with pytest.raises(AttributeError, match="attribute f_builtins is not allowed"):
+        static_sandbox.check_and_transform(code)
+        
     # subscript_wrapper
     code = "a[1:2]"
     compiled_code = static_sandbox.check_and_transform(code, "__subscript_wrapper__")
