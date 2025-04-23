@@ -33,6 +33,9 @@ from secretflow_fl.security.aggregation import SparsePlainAggregator
 from secretflow_fl.utils.simulation.datasets_fl import load_cifar10_horiontal
 from tests.ml.nn.fl.model_def import ConvNet_CIFAR10, SimpleCNN
 from tests.ml.nn.fl.attack.backdoor_fl_torch import BackdoorAttack
+import pytest
+
+skip_live = os.getenv("SKIP_LIVE_TESTS", "1") == "1"
 
 _temp_dir = tempfile.mkdtemp()
 import logging
@@ -149,7 +152,7 @@ def _torch_model_with_cifar10(
         data, label, batch_size=128, random_seed=1234
     )
 
-
+@pytest.mark.skipif(skip_live, reason="Skip the tests that require real networks/data")
 def test_torch_model(sf_simulation_setup_devices):
     (train_data, train_label), (test_data, test_label) = load_cifar10_horiontal(
         parts={
