@@ -29,6 +29,7 @@ class Transformer(ast.NodeTransformer):
 
         self.subscript_wrapper = subscript_wrapper
         self.builtins_blacklist = set(dir(builtins)) - set(builtins_whitelist.keys())
+        self.dangerous_attributes = {"f_back", "f_builtins", "f_globals", "gi_frame"}
 
     @staticmethod
     def illegal_general_name(name: str):
@@ -83,7 +84,10 @@ class Transformer(ast.NodeTransformer):
         return self.generic_visit(node)
 
     def visit_Attribute(self, node: ast.Attribute) -> Any:
-        if self.illegal_general_name(node.attr):
+        if (
+            self.illegal_general_name(node.attr)
+            or node.attr in self.dangerous_attributes
+        ):
             raise AttributeError(f"attribute {node.attr} is not allowed")
 
         return self.generic_visit(node)
