@@ -15,6 +15,8 @@
 from gc import callbacks
 import os
 import tempfile
+from venv import logger
+
 import numpy as np
 import tensorflow as tf
 from torch import nn, optim
@@ -28,49 +30,15 @@ from tests.ml.nn.fl.attack.fl_model_bd import FLModel_bd
 from secretflow_fl.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
 from secretflow_fl.ml.nn.fl.compress import COMPRESS_STRATEGY
 from secretflow_fl.security.aggregation import SparsePlainAggregator
+from secretflow_fl.utils.simulation.datasets_fl import load_cifar10_horiontal
 from tests.ml.nn.fl.model_def import ConvNet_CIFAR10, SimpleCNN
 from tests.ml.nn.fl.attack.backdoor_fl_torch import BackdoorAttack
-
 
 _temp_dir = tempfile.mkdtemp()
 import logging
 
 NUM_CLASSES = 10
 INPUT_SHAPE = (32, 32, 3)
-
-
-def _generate_synthetic_data(parts, num_samples_per_party=10000):
-    """
-    Generate synthetic data for testing.
-
-    Args:
-        parts: A dictionary mapping parties to their data proportions.
-        num_samples_per_party: Number of samples per party.
-
-    Returns:
-        Tuple containing (train_data, train_label), (test_data, test_label)
-    """
-    train_data = {}
-    train_label = {}
-    test_data = {}
-    test_label = {}
-
-    for party, proportion in parts.items():
-        # Generate random data
-        num_train_samples = int(num_samples_per_party * proportion)
-        num_test_samples = int(num_train_samples * 0.2)  # 20% for testing
-
-        party_train_data = np.random.rand(num_train_samples, *INPUT_SHAPE).astype(np.float32)
-        party_train_label = np.random.randint(NUM_CLASSES, size=num_train_samples).astype(np.int64)
-        party_test_data = np.random.rand(num_test_samples, *INPUT_SHAPE).astype(np.float32)
-        party_test_label = np.random.randint(NUM_CLASSES, size=num_test_samples).astype(np.int64)
-
-        train_data[party] = party_train_data
-        train_label[party] = party_train_label
-        test_data[party] = party_test_data
-        test_label[party] = party_test_label
-
-    return (train_data, train_label), (test_data, test_label)
 
 
 def _torch_model_with_cifar10(
@@ -93,7 +61,7 @@ def _torch_model_with_cifar10(
     else:
         aggregator = FlameAggregator(server)
 
-    # specify params
+    # spcify params
     dp_spent_step_freq = kwargs.get("dp_spent_step_freq", None)
     num_gpus = kwargs.get("num_gpus", 0)
     skip_bn = kwargs.get("skip_bn", False)
@@ -173,6 +141,7 @@ def _torch_model_with_cifar10(
         backend=backend,
         random_seed=1234,
         num_gpus=num_gpus,
+        # callbacks=callbacks
     )
     new_fed_model.load_model(model_path=model_path_dict, is_test=False)
     new_fed_model.load_model(model_path=model_path_test, is_test=True)
@@ -182,14 +151,16 @@ def _torch_model_with_cifar10(
 
 
 def test_torch_model(sf_simulation_setup_devices):
-    parts = {
-        sf_simulation_setup_devices.alice: 0.2,
-        sf_simulation_setup_devices.bob: 0.2,
-        sf_simulation_setup_devices.carol: 0.4,
-        sf_simulation_setup_devices.davy: 0.2,
-    }
-    # Generate synthetic data
-    (train_data, train_label), (test_data, test_label) = _generate_synthetic_data(parts)
+    (train_data, train_label), (test_data, test_label) = load_cifar10_horiontal(
+        parts={
+            sf_simulation_setup_devices.alice: 0.2,
+            sf_simulation_setup_devices.bob: 0.2,
+            sf_simulation_setup_devices.carol: 0.4,
+            sf_simulation_setup_devices.davy: 0.2,
+        },
+        normalized_x=True,
+        categorical_y=True,
+    )
 
     loss_fn = nn.CrossEntropyLoss
     optim_fn = optim_wrapper(optim.Adam, lr=1e-2)
@@ -210,7 +181,7 @@ def test_torch_model(sf_simulation_setup_devices):
     backdoor_attack = BackdoorAttack(
         attack_party=alice, poison_rate=0.01, target_label=1, eta=1.0, attack_epoch=1
     )
-    # Test fed_avg_w with synthetic data
+    # Test fed_avg_w with mnist
     logging.info('test_print' * 20)
     _torch_model_with_cifar10(
         devices=sf_simulation_setup_devices,
