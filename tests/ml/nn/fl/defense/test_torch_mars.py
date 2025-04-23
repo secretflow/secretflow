@@ -12,20 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from gc import callbacks
 import os
 import tempfile
-from venv import logger
+import logging
+import pytest
 
 import numpy as np
 import tensorflow as tf
 from torch import nn, optim
 from torchmetrics import Accuracy, Precision
+from torchvision.datasets import FakeData
 
 from secretflow.device import reveal
 from examples.security.h_bd.agg_mars import MarsAggregator
-
-# from secretflow_fl.ml.nn import FLModel
 from tests.ml.nn.fl.attack.fl_model_bd import FLModel_bd
 from secretflow_fl.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
 from secretflow_fl.ml.nn.fl.compress import COMPRESS_STRATEGY
@@ -34,11 +33,33 @@ from secretflow_fl.utils.simulation.datasets_fl import load_cifar10_horiontal
 from tests.ml.nn.fl.model_def import ConvNet_CIFAR10, SimpleCNN
 from tests.ml.nn.fl.attack.backdoor_fl_torch import BackdoorAttack
 
+# 临时目录，用于模型保存
 _temp_dir = tempfile.mkdtemp()
-import logging
 
 NUM_CLASSES = 10
 INPUT_SHAPE = (32, 32, 3)
+
+@pytest.fixture(autouse=True)
+def cifar10_fake(monkeypatch):
+    """
+    在 CI 或开发环境中自动用 FakeData 替代真实 CIFAR-10 数据集下载，
+    保持训练/测试样本数量与原始测试一致。
+    """
+    def _fake_loader(parts, normalized_x, categorical_y):
+        # 构造假训练集：总样本 10000
+        train_images = np.random.randint(0, 256, size=(10000, *INPUT_SHAPE), dtype=np.uint8)
+        train_labels = np.random.randint(0, NUM_CLASSES, size=(10000,))
+        # 构造假测试集：总样本 10000
+        test_images = np.random.randint(0, 256, size=(10000, *INPUT_SHAPE), dtype=np.uint8)
+        test_labels = np.random.randint(0, NUM_CLASSES, size=(10000,))
+        # 根据 parts 划分 (返回与 load_cifar10_horiontal 相同结构)
+        return (train_images, tf.keras.utils.to_categorical(train_labels, NUM_CLASSES)), \
+               (test_images,  tf.keras.utils.to_categorical(test_labels, NUM_CLASSES))
+
+    monkeypatch.setattr(
+        'secretflow_fl.utils.simulation.datasets_fl.load_cifar10_horiontal',
+        _fake_loader
+    )
 
 
 def _torch_model_with_cifar10(
@@ -61,7 +82,6 @@ def _torch_model_with_cifar10(
     else:
         aggregator = MarsAggregator(server)
 
-    # spcify params
     dp_spent_step_freq = kwargs.get("dp_spent_step_freq", None)
     num_gpus = kwargs.get("num_gpus", 0)
     skip_bn = kwargs.get("skip_bn", False)
@@ -97,11 +117,6 @@ def _torch_model_with_cifar10(
     global_metric, _ = fl_model.evaluate(
         test_data, test_label, batch_size=128, random_seed=1234
     )
-    print(history, global_metric)
-    logger.warning('history')
-    logger.warning(history)
-    logger.warning('global_metric')
-    logger.warning(global_metric)
     bd_metric, local_metric = fl_model.evaluate_bd(
         test_data,
         test_label,
@@ -110,19 +125,14 @@ def _torch_model_with_cifar10(
         attack_party=callbacks[0].attack_party,
         target_label=callbacks[0].target_label,
     )
-    logger.warning('bd_metric')
-    logger.warning(bd_metric)
-    logger.warning('local_metric')
-    logger.warning(local_metric)
-    print(bd_metric, local_metric)
 
     assert (
         global_metric[0].result().numpy()
         == history["global_history"]["val_multiclassaccuracy"][-1]
     )
-
     assert global_metric[0].result().numpy() > 0.05
 
+    # 模型保存与加载测试
     model_path_test = os.path.join(_temp_dir, "base_model")
     fl_model.save_model(model_path=model_path_test, is_test=True)
     model_path_dict = {
@@ -141,7 +151,6 @@ def _torch_model_with_cifar10(
         backend=backend,
         random_seed=1234,
         num_gpus=num_gpus,
-        # callbacks=callbacks
     )
     new_fed_model.load_model(model_path=model_path_dict, is_test=False)
     new_fed_model.load_model(model_path=model_path_test, is_test=True)
@@ -181,8 +190,6 @@ def test_torch_model(sf_simulation_setup_devices):
     backdoor_attack = BackdoorAttack(
         attack_party=alice, poison_rate=0.01, target_label=1, eta=1.0, attack_epoch=1
     )
-    # Test fed_avg_w with mnist
-    logging.info('test_print' * 20)
     _torch_model_with_cifar10(
         devices=sf_simulation_setup_devices,
         model_def=model_def,
