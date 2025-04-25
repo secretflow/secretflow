@@ -34,7 +34,7 @@ msgid ""
 msgstr "在本教程中，我们将引导您了解如何在 SecretFlow 上使用 pytorch 后端进行联邦学习。"
 
 #: ../../tutorial/Federated_Learning_with_Pytorch_backend.ipynb:33
-msgid "We will use the image clasification task as example"
+msgid "We will use the image classification task as example"
 msgstr "我们将以图像分类任务为例"
 
 #: ../../tutorial/Federated_Learning_with_Pytorch_backend.ipynb:34
@@ -60,7 +60,7 @@ msgstr "**开始吧**"
 
 #: ../../tutorial/Federated_Learning_with_Pytorch_backend.ipynb:106
 msgid "Here, let us first introduce some concepts"
-msgstr ""
+msgstr "在这里，让我们首先介绍一些概念。 "
 
 #: ../../tutorial/Federated_Learning_with_Pytorch_backend.ipynb:108
 msgid "BaseModule: Similar to the ``torch.nn.module``."
@@ -82,9 +82,9 @@ msgstr "optim_wrapper： optim_fn包装器"
 
 #: ../../tutorial/Federated_Learning_with_Pytorch_backend.ipynb:112
 msgid ""
-"FLModel: Federated model, use ``backend`` to specify which bachend will "
-"be use, use ``strategy`` to spcify which federated strategy will be use."
-msgstr "FLModel：联合模型，使用 ``backend`` 指定哪个bachend将被使用，使用 ``strategy`` 来指定将使用哪个联合策略"
+"FLModel: Federated model, use ``backend`` to specify which backend will "
+"be used, use ``strategy`` to specify which federated strategy will be used."
+msgstr "FLModel：联合模型，使用 ``backend`` 指定哪个backend将被使用，使用 ``strategy`` 来指定将使用哪个联合策略"
 
 #: ../../tutorial/Federated_Learning_with_Pytorch_backend.ipynb:140
 msgid ""
@@ -97,5 +97,5 @@ msgid ""
 "We can continue to use the loss function and optimizer defined in "
 "pytorch, the only difference is that we need to wrap it with the wrapper "
 "provided in secretflow."
-msgstr "我们可以继续使用中在pytorch中定义的损失函数和优化器，在secretflow中唯一的区别是我们需要用包装器来包装它。"
+msgstr "我们可以继续使用在pytorch中定义的损失函数和优化器，在secretflow中唯一的区别是我们需要用包装器来包装它。"
 
