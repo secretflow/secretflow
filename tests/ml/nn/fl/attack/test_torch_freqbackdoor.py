@@ -33,7 +33,7 @@ from secretflow_fl.security.aggregation import SparsePlainAggregator
 from secretflow_fl.security.privacy import DPStrategyFL, GaussianModelDP
 from secretflow_fl.utils.simulation.datasets_fl import load_cifar10_horiontal
 from tests.ml.nn.fl.model_def import ConvNet_CIFAR10, SimpleCNN
-from tests.ml.nn.fl.attack.freqbackdoor_fl_torch import BackdoorAttack
+from examples.security.h_bd.freqbackdoor_fl_torch import BackdoorAttack
 from venv import logger
 
 _temp_dir = tempfile.mkdtemp()
