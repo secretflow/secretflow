@@ -25,7 +25,7 @@ from torchmetrics import Accuracy, Precision
 
 from secretflow.device import reveal
 from secretflow.security.aggregation import PlainAggregator
-from tests.ml.nn.fl.attack.fl_model_freqbd import FLModel_bd
+from examples.security.h_bd.fl_model_freqbd import FLModel_bd
 from secretflow_fl.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
 from secretflow_fl.ml.nn.fl.compress import COMPRESS_STRATEGY
 from secretflow_fl.preprocessing.encoder_fl import OneHotEncoder
