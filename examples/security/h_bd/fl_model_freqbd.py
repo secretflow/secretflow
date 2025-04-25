@@ -24,7 +24,7 @@ import numpy as np
 import copy
 
 from ray import logger
-from tests.ml.nn.fl.attack.freqbackdoor_fl_torch import poison_dataset
+from examples.security.h_bd.freqbackdoor_fl_torch import poison_dataset
 from secretflow.data.horizontal import HDataFrame
 from secretflow.data.ndarray import FedNdarray
 from secretflow.device import PYU, reveal, wait
