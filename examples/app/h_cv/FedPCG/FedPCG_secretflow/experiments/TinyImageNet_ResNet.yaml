@@ -1,0 +1,100 @@
+server_config:
+  # learning strategy for serve: str; currently supported: {FeaAvg, FedDiscrete}
+  strategy: None
+  # number of communication rounds： int
+  num_rounds: 200
+  # number of total participating clients: int
+  num_clients: 100
+  # control numper of participating clients per round: float [0, 1.0];
+  participate_ratio: 0.1
+  # randomly remove `drop_ratio` fraction of total participating clients at the aggregation time of each round: float [0.0, 1.0)
+  drop_ratio: 0.0
+  test_every: 1
+  # split testset
+  split_testset: False
+  use_tqdm: False
+  # dataset used for training: str; currently supported: {Mnist, FashionMnist, Cifar10}
+  dataset: TinyImageNet
+  # dataset partition strategy: str; {'iid-equal-size', 'iid-diff-size', 'noniid-label-quantity', 'noniid-label-distribution', 'shards'}
+  partition: None
+  # float >0
+  beta: None
+  # int <= 100
+  num_classes_per_client: None
+  # int
+  num_shards_per_client: None
+  num_classes: 200
+  learning_rate: 1.0
+  lr_decay_per_round: 1.0
+  # layers to be skipped in aggregation
+  exclude: !!python/tuple []
+
+  #################################################
+  ##### algorithm specific settings go here ########
+  #################################################
+  # FedNH:
+  FedNH_smoothing: 0.9
+  FedNH_server_adv_prototype_agg: False
+
+  # CReFF
+  CReFF_num_of_fl_feature: 100
+  CReFF_match_epoch: 100
+  CReFF_lr_net: 0.01
+  CReFF_lr_feature: 0.1
+  CReFF_crt_epoch: 300
+  CReFF_dis_metric: 'ours'
+
+client_config:
+  # network used for each client
+  model: ResNetMod
+  dataset: TinyImageNet
+  # dataset setting
+  # input size: size of a single input; 3 channel, 32*32
+  input_size: !!python/tuple [3, 64, 64]
+  num_classes: 200
+  # number of local epochs: int
+  num_epochs: 5
+  # number of samples per batch: int
+  batch_size: 64
+  # {Adam, SGD}
+  optimizer: SGD
+  # initial learning rate for each round
+  learning_rate: 0.1
+  lr_scheduler: diminishing
+  lr_decay_per_round: 0.99
+  num_rounds: 200
+  # other settings
+  use_tqdm: False
+  use_sam: False
+  sam_rho: 2.0
+  sam_adaptive: True
+  #################################################
+  ##### algorithm specific settings go here ########
+  #################################################
+
+  # FedROD
+  FedROD_hyper_clf: False # OOM for tiny-imagenet
+  FedROD_phead_separate: False  # this is very expensive
+
+  # FedNH
+  FedNH_return_embedding: False
+  FedNH_head_init: orthogonal
+  FedNH_client_adv_prototype_agg: False
+  FedNH_fix_scaling: False
+
+
+  # FedProto
+  FedProto_lambda: 0.1
+
+  # FedRep
+  FedRep_head_epochs: 10
+
+  # FedBABU
+  FedBABU_finetune_epoch: 5  
+    
+  # Ditto
+  Ditto_lambda: 0.75  # penalty parameter for Ditto follows the setting of FedRep
+  
+  # CReFF
+  CReFF_batch_real: 64  
+
