@@ -28,15 +28,6 @@ from secretflow import reveal
 from secretflow.device import PYU
 
 
-def angular_distance(logits1, logits2):
-    """Calculate cosine similarity between two vectors"""
-    numerator = logits1.mul(logits2).sum()
-    logits1_l2norm = logits1.mul(logits1).sum().sqrt()
-    logits2_l2norm = logits2.mul(logits2).sum().sqrt()
-    denominator = logits1_l2norm.mul(logits2_l2norm)
-    return torch.div(numerator, denominator)
-
-
 class PGBAAttackCallback(AttackCallback):
     """
     Implementation of Practical and General Backdoor Attacks Against Vertical Federated Learning: https://arxiv.org/abs/2306.10746
@@ -152,8 +143,12 @@ class PGBAAttackCallback(AttackCallback):
         batch = self.batch
         epoch = self.epoch
 
-        # When epoch = 1, perform feature replacements.
-        if epoch == 1:
+        # perform feature replacements.
+        if (
+            self.count < self.poison_num
+            and status.data["stage"] == "train"
+            and epoch >= 1
+        ):
 
             def modify_batch_data(attack_worker, batch_idx):
                 current_data = attack_worker._data_x
@@ -169,10 +164,9 @@ class PGBAAttackCallback(AttackCallback):
             result = self._workers[self.attack_party].apply(
                 modify_batch_data, self.batch
             )
-            a = 1
 
-        # When epoch > 3, insert backdoor samples.
-        if epoch > 3:
+        # insert backdoor samples.
+        if epoch >= 2 and self.count >= self.poison_num:
             if self.batch in self.cluster and status.data["stage"] == "train":
 
                 def modify_batch_data(attack_worker, batch_idx, cluster_indices):
@@ -207,7 +201,7 @@ class PGBAAttackCallback(AttackCallback):
                 return True
             if self.batch == 0:
                 self.target_grad = attack_worker._gradient[self.target_idx]
-            self.cluster = attack_worker.attacker.get_cluster(
+            self.cluster, self.count = attack_worker.attacker.get_cluster(
                 self.target_grad, attack_worker._gradient, self.batch
             )
             return True
@@ -216,7 +210,11 @@ class PGBAAttackCallback(AttackCallback):
             self._workers[self.attack_party].apply(get_target)
 
         # Similarity Computation
-        if 2 <= self.epoch <= 3 and status.data["stage"] == "train":
+        if (
+            self.epoch >= 2
+            and status.data["stage"] == "train"
+            and self.count < self.poison_num
+        ):
             self._workers[self.attack_party].apply(get_cluster)
 
     def get_attack_metrics(self):
@@ -342,7 +340,9 @@ class PGBAAttacker:
         if self.count < self.poison_num:
             same_class_idx = []
             for i in self.change_idx:
-                simi = angular_distance(target_grad, batch_grad[i])
+                simi = torch.nn.functional.cosine_similarity(
+                    target_grad, batch_grad[i], dim=0, eps=1e-8
+                )
                 if simi > self.thre:
                     same_class_idx.append(i)
                     self.other_class[batch_idx * self.batch_size + i] = 1
@@ -359,7 +359,7 @@ class PGBAAttacker:
                 else:
                     self.cluster[batch_idx] = same_class_idx
 
-        return self.cluster
+        return self.cluster, self.count
 
     def inject_backdoor(self, batch_idx, indices):
         """
