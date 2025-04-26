@@ -1,3 +1,0 @@
-It mainly realizes the reproduction of FedPCG.
-For the detailed reproduction process, please refer to FedPCG_secretflow.ipynb.
-The main methods are stored in the FedPCG_secretflow folder.
