@@ -12,132 +12,223 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numpy as np
-import pandas as pd
 
-from secretflow.component.data_utils import DistDataType, extract_distdata_info
-from secretflow.component.preprocessing.filter.condition_filter import (
-    condition_filter_comp,
+import time
+
+import pandas as pd
+import pytest
+from pyarrow import orc
+
+from secretflow.component.core import (
+    VTable,
+    VTableParty,
+    build_node_eval_param,
+    make_storage,
 )
-from secretflow.component.storage import ComponentStorage
-from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
+from secretflow.component.entry import comp_eval
 
 
 def test_condition_filter(comp_prod_sf_cluster_config):
+    work_dir = "test_condition_filter"
     alice_input_path = "test_condition_filter/alice.csv"
     bob_input_path = "test_condition_filter/bob.csv"
-    train_output_path = "test_condition_filter/train.csv"
-    test_output_path = "test_condition_filter/test.csv"
+    hit_output_path = "test_condition_filter/hit.csv"
+    else_output_path = "test_condition_filter/else.csv"
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = make_storage(storage_config)
 
-    if self_party == "alice":
-        df_alice = pd.DataFrame(
+    input_datasets = {
+        "alice": pd.DataFrame(
             {
-                "id1": [1, 2, 3, 4],
+                "id1": ["1", "2", "3", "4"],
                 "a1": ["K5", "K1", None, "K6"],
                 "a2": ["A5", "A1", "A2", "A6"],
                 "a3": [5, 1, 2, 6],
                 "y": [0, 1, 1, 0],
             }
-        )
-        df_alice.to_csv(
-            comp_storage.get_writer(alice_input_path),
-            index=False,
-        )
-    elif self_party == "bob":
-        df_bob = pd.DataFrame(
+        ),
+        "bob": pd.DataFrame(
             {
-                "id2": [1, 2, 3, 4],
+                "id2": ["1", "2", "3", "4"],
                 "b4": [10.2, 20.5, None, -0.4],
                 "b5": ["B3", None, "B9", "B4"],
                 "b6": [3, 1, 9, 4],
             }
-        )
-        df_bob.to_csv(
-            comp_storage.get_writer(bob_input_path),
-            index=False,
+        ),
+    }
+    if self_party in input_datasets:
+        path = f"{work_dir}/{self_party}.csv"
+        df = input_datasets[self_party]
+        df.to_csv(storage.get_writer(path), index=False)
+
+    tbl_info = VTable(
+        name="input_data",
+        parties=[
+            VTableParty.from_dict(
+                uri=alice_input_path,
+                party="alice",
+                format="csv",
+                null_strs=[""],
+                ids={"id1": "str"},
+                features={"a1": "str", "a2": "str", "a3": "float32"},
+                labels={"y": "float32"},
+            ),
+            VTableParty.from_dict(
+                uri=bob_input_path,
+                party="bob",
+                format="csv",
+                null_strs=[""],
+                ids={"id2": "str"},
+                features={"b4": "float32", "b5": "str", "b6": "float32"},
+            ),
+        ],
+    )
+
+    test_cases = [
+        {
+            "attrs": {
+                'input/input_ds/feature': ["b4"],
+                'comparator': "<",
+                'bound_value': "11",
+                'float_epsilon': 0.01,
+            },
+            "expected": [["1", "4"], ["2", "3"]],
+            "desc": "test filter",
+        },
+        {
+            "attrs": {'input/input_ds/feature': ["a1"], 'comparator': "NOTNULL"},
+            "expected": [["1", "2", "4"], ["3"]],
+            "desc": "test null",
+        },
+    ]
+
+    for tc in test_cases:
+        param = build_node_eval_param(
+            domain="data_filter",
+            name="condition_filter",
+            version="1.0.0",
+            attrs=tc["attrs"],
+            inputs=[tbl_info],
+            output_uris=[
+                hit_output_path,
+                else_output_path,
+            ],
         )
 
-    param = NodeEvalParam(
-        domain="data_filter",
-        name="condition_filter",
-        version="0.0.1",
-        attr_paths=[
-            'input/in_ds/features',
-            'comparator',
-            'value_type',
-            'bound_value',
-            'float_epsilon',
+        res = comp_eval(
+            param=param,
+            storage_config=storage_config,
+            cluster_config=sf_cluster_config,
+        )
+
+        assert len(res.outputs) == 2
+
+        if self_party in input_datasets:
+            id_name = "id1" if self_party == "alice" else "id2"
+            hit_ds_info = VTable.from_distdata(res.outputs[0], columns=[id_name])
+            else_ds_info = VTable.from_distdata(res.outputs[1], columns=[id_name])
+
+            hit_ds = orc.read_table(
+                storage.get_reader(hit_ds_info.party(self_party).uri)
+            ).to_pandas()
+            else_ds = orc.read_table(
+                storage.get_reader(else_ds_info.party(self_party).uri)
+            ).to_pandas()
+            expected = tc["expected"]
+            assert list(hit_ds[id_name]) == expected[0]
+            assert list(else_ds[id_name]) == expected[1]
+
+
+def test_condition_filter_label(comp_prod_sf_cluster_config):
+    work_dir = "test_condition_filter"
+    alice_input_path = "test_condition_filter/alice.csv"
+    bob_input_path = "test_condition_filter/bob.csv"
+    hit_output_path = "test_condition_filter/hit.csv"
+    else_output_path = "test_condition_filter/else.csv"
+
+    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    self_party = sf_cluster_config.private_config.self_party
+    storage = make_storage(storage_config)
+
+    input_datasets = {
+        "alice": pd.DataFrame(
+            {
+                "id1": ["1", "2", "3", "4"],
+                "a1": ["K5", "K1", None, "K6"],
+                "a2": ["A5", "A1", "A2", "A6"],
+                "a3": [5, 1, 2, 6],
+                "y": [0, 1, 1, 0],
+            }
+        ),
+        "bob": pd.DataFrame(
+            {
+                "id2": ["1", "2", "3", "4"],
+                "b4": [10.2, 20.5, None, -0.4],
+                "b5": ["B3", None, "B9", "B4"],
+                "b6": [3, 1, 9, 4],
+            }
+        ),
+    }
+    if self_party in input_datasets:
+        path = f"{work_dir}/{self_party}.csv"
+        df = input_datasets[self_party]
+        df.to_csv(storage.get_writer(path), index=False)
+
+    tbl_info = VTable(
+        name="input_data",
+        parties=[
+            VTableParty.from_dict(
+                uri=alice_input_path,
+                party="alice",
+                format="csv",
+                null_strs=[""],
+                ids={"id1": "str"},
+                features={"a1": "str", "a2": "str", "a3": "float32"},
+                labels={"y": "float32"},
+            ),
+            VTableParty.from_dict(
+                uri=bob_input_path,
+                party="bob",
+                format="csv",
+                null_strs=[""],
+                ids={"id2": "str"},
+                features={"b4": "float32", "b5": "str", "b6": "float32"},
+            ),
         ],
-        attrs=[
-            Attribute(ss=['b4']),
-            Attribute(s='<'),
-            Attribute(s='FLOAT'),
-            Attribute(s='11'),
-            Attribute(f=0.01),
-        ],
-        inputs=[
-            DistData(
-                name="input_data",
-                type=str(DistDataType.VERTICAL_TABLE),
-                data_refs=[
-                    DistData.DataRef(uri=bob_input_path, party="bob", format="csv"),
-                    DistData.DataRef(uri=alice_input_path, party="alice", format="csv"),
-                ],
+    )
+
+    test_cases = [
+        {
+            "attrs": {
+                'feature': ["y"],
+                'comparator': "<",
+                'bound_value': "11",
+                'float_epsilon': 0.01,
+            },
+            "expected": [["1", "4"], ["2", "3"]],
+            "desc": "test filter",
+        }
+    ]
+
+    for tc in test_cases:
+        param = build_node_eval_param(
+            domain="data_filter",
+            name="condition_filter",
+            version="1.0.0",
+            attrs=tc["attrs"],
+            inputs=[tbl_info],
+            output_uris=[
+                hit_output_path,
+                else_output_path,
+            ],
+        )
+
+        with pytest.raises(ValueError, match=r"kind of .* mismatch, expected .*"):
+            comp_eval(
+                param=param,
+                storage_config=storage_config,
+                cluster_config=sf_cluster_config,
             )
-        ],
-        output_uris=[
-            train_output_path,
-            test_output_path,
-        ],
-    )
-
-    meta = VerticalTable(
-        schemas=[
-            TableSchema(
-                id_types=["str"],
-                ids=["id2"],
-                feature_types=["float32", "str", "float32"],
-                features=["b4", "b5", "b6"],
-            ),
-            TableSchema(
-                id_types=["str"],
-                ids=["id1"],
-                feature_types=["str", "str", "float32"],
-                features=["a1", "a2", "a3"],
-                label_types=["float32"],
-                labels=["y"],
-            ),
-        ],
-    )
-    param.inputs[0].meta.Pack(meta)
-
-    res = condition_filter_comp.eval(
-        param=param,
-        storage_config=storage_config,
-        cluster_config=sf_cluster_config,
-    )
-
-    assert len(res.outputs) == 2
-
-    ds_info = extract_distdata_info(res.outputs[0])
-    else_ds_info = extract_distdata_info(res.outputs[1])
-
-    if self_party == "alice":
-        ds_alice = pd.read_csv(comp_storage.get_reader(ds_info["alice"].uri))
-        ds_else_alice = pd.read_csv(comp_storage.get_reader(else_ds_info["alice"].uri))
-        np.testing.assert_equal(ds_alice.shape[0], 2)
-        assert list(ds_alice["id1"]) == [1, 4]
-        assert list(ds_else_alice["id1"]) == [2, 3]
-
-    if self_party == "bob":
-        ds_bob = pd.read_csv(comp_storage.get_reader(ds_info["bob"].uri))
-        ds_else_bob = pd.read_csv(comp_storage.get_reader(else_ds_info["bob"].uri))
-        np.testing.assert_equal(ds_else_bob.shape[0], 2)
-        assert list(ds_bob["id2"]) == [1, 4]
-        assert list(ds_else_bob["id2"]) == [2, 3]
+        time.sleep(4)

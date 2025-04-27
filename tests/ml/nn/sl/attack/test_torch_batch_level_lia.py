@@ -22,10 +22,10 @@ from torch.utils.data import Dataset
 from torchmetrics import Accuracy, Precision
 
 from secretflow.data.ndarray import FedNdarray, PartitionWay
-from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.applications.sl_resnet_torch import NaiveSumSoftmax
-from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
-from secretflow.ml.nn.sl.attacks.batch_level_lia_torch import (
+from secretflow_fl.ml.nn import SLModel
+from secretflow_fl.ml.nn.applications.sl_resnet_torch import NaiveSumSoftmax
+from secretflow_fl.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
+from secretflow_fl.ml.nn.sl.attacks.batch_level_lia_torch import (
     BatchLevelLabelInferenceAttack,
 )
 from tests.ml.nn.sl.attack.model_def import BottomModelForCifar10
@@ -71,10 +71,10 @@ def do_test_sl_and_lia(alice, bob):
         optim_fn=optim_fn,
         metrics=[
             metric_wrapper(
-                Accuracy, task="multiclass", num_classes=10, average='micro'
+                Accuracy, task="multiclass", num_classes=10, average="micro"
             ),
             metric_wrapper(
-                Precision, task="multiclass", num_classes=10, average='micro'
+                Precision, task="multiclass", num_classes=10, average="micro"
             ),
         ],
     )
@@ -85,10 +85,10 @@ def do_test_sl_and_lia(alice, bob):
         optim_fn=optim_fn,
         metrics=[
             metric_wrapper(
-                Accuracy, task="multiclass", num_classes=10, average='micro'
+                Accuracy, task="multiclass", num_classes=10, average="micro"
             ),
             metric_wrapper(
-                Precision, task="multiclass", num_classes=10, average='micro'
+                Precision, task="multiclass", num_classes=10, average="micro"
             ),
         ],
         use_softmax=False,
@@ -107,8 +107,8 @@ def do_test_sl_and_lia(alice, bob):
         compressor=None,
         simulation=True,
         random_seed=1234,
-        backend='torch',
-        strategy='split_nn',
+        backend="torch",
+        strategy="split_nn",
     )
 
     eval_label = train_dataset.targets
@@ -119,10 +119,10 @@ def do_test_sl_and_lia(alice, bob):
         optim_fn=optim_fn,
         metrics=[
             metric_wrapper(
-                Accuracy, task="multiclass", num_classes=10, average='micro'
+                Accuracy, task="multiclass", num_classes=10, average="micro"
             ),
             metric_wrapper(
-                Precision, task="multiclass", num_classes=10, average='micro'
+                Precision, task="multiclass", num_classes=10, average="micro"
             ),
         ],
         use_softmax=False,
@@ -133,7 +133,7 @@ def do_test_sl_and_lia(alice, bob):
         victim_party=bob,
         victim_hidden_size=[10],
         dummy_fuse_model=dummy_fuse_model,
-        exec_device='cpu',
+        exec_device="cpu",
         label=eval_label,
         epochs=10,
     )

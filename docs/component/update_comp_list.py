@@ -12,16 +12,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import datetime
 import logging
 import os
+import sys
 
 from mdutils.mdutils import MdUtils
 
-from secretflow.component.entry import COMP_LIST
-from secretflow.spec.v1.component_pb2 import Attribute, AttrType
-
 this_directory = os.path.abspath(os.path.dirname(__file__))
+
+
+sys.path.append(os.path.join(this_directory, '../..'))
+
+from secretflow.component.core import get_comp_list_def
+from secretflow.spec.v1.component_pb2 import Attribute, AttrType
 
 mdFile = MdUtils(
     file_name=os.path.join(this_directory, 'comp_list.md'),
@@ -29,9 +32,8 @@ mdFile = MdUtils(
 
 mdFile.new_header(level=1, title='SecretFlow Component List', style='setext')
 
-mdFile.new_paragraph(f'Last update: {datetime.datetime.now().strftime("%c")}')
-mdFile.new_paragraph(f'Version: {COMP_LIST.version}')
-mdFile.new_paragraph(COMP_LIST.desc)
+mdFile.new_paragraph(f'Version: {get_comp_list_def().version}')
+mdFile.new_paragraph(get_comp_list_def().desc)
 
 AttrTypeStrMap = {
     AttrType.AT_FLOAT: 'Float',
@@ -169,7 +171,7 @@ def parse_comp_io(md, io_defs, is_input):
 
 comp_map = {}
 
-for comp in COMP_LIST.comps:
+for comp in get_comp_list_def().comps:
     if comp.domain not in comp_map:
         comp_map[comp.domain] = {}
     comp_map[comp.domain][comp.name] = comp

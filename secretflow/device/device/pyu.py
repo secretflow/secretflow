@@ -13,16 +13,15 @@
 # limitations under the License.
 
 import logging
-from typing import Union
 
-import fed
 import jax
-import ray
 
 import secretflow.distributed as sfd
+from secretflow.distributed.ray_op import resolve_args
+from secretflow.utils import secure_pickle as pickle
 from secretflow.utils.logging import LOG_FORMAT, get_logging_level
 
-from ._utils import check_num_returns
+from ._utils import check_num_returns, get_fn_code_name
 from .base import Device, DeviceObject, DeviceType
 
 
@@ -35,7 +34,11 @@ class PYUObject(DeviceObject):
 
     device: 'PYU'
 
-    def __init__(self, device: 'PYU', data: Union[ray.ObjectRef, fed.FedObject]):
+    def __init__(
+        self,
+        device: 'PYU',
+        data,
+    ):
         super().__init__(device)
         self.data = data
 
@@ -87,7 +90,7 @@ class PYU(Device):
                 if isinstance(arg, DeviceObject):
                     assert (
                         arg.device == device
-                    ), f"receive tensor {arg} in different device"
+                    ), f"receive tensor {arg} in different device, {arg.device} vs {device}"
                     return arg.data
                 return arg
 
@@ -96,11 +99,17 @@ class PYU(Device):
             )
 
             _num_returns = check_num_returns(fn) if num_returns is None else num_returns
+
+            def pyu_fn(*args, **kwargs):
+                return self._run(fn, *args, **kwargs)
+
+            pyu_fn.__name__ = f"{get_fn_code_name(fn)}@PYU({self.party})"
+
             data = (
-                sfd.remote(self._run)
+                sfd.remote(pyu_fn)
                 .party(self.party)
                 .options(num_returns=_num_returns)
-                .remote(fn, *args_, **kwargs_)
+                .remote(*args_, **kwargs_)
             )
             logging.debug(
                 (
@@ -118,39 +127,23 @@ class PYU(Device):
     def dump(self, obj: PYUObject, path: str):
         assert obj.device == self, "obj must be owned by this device."
 
-        def fn(data, path):
-            import cloudpickle as pickle
-
+        def pyu_dump(data, path):
             with open(path, 'wb') as f:
                 pickle.dump(data, f)
 
-        self.__call__(fn)(obj, path)
+        return self.__call__(pyu_dump)(obj, path)
 
     def load(self, path: str):
-        def fn(path):
-            import cloudpickle as pickle
-
+        def pyu_load(path):
             with open(path, 'rb') as f:
                 return pickle.load(f)
 
-        return self.__call__(fn)(path)
+        return self.__call__(pyu_load)(path)
 
     @staticmethod
     def _run(fn, *args, **kwargs):
         logging.basicConfig(level=get_logging_level(), format=LOG_FORMAT)
         logging.debug(f'PYU runs function: {fn}')
 
-        # Automatically parse ray Object ref. Note that if it is a dictionary key, it is not parsed.
-        arg_flat, arg_tree = jax.tree_util.tree_flatten((args, kwargs))
-        refs = {
-            pos: arg
-            for pos, arg in enumerate(arg_flat)
-            if isinstance(arg, ray.ObjectRef)
-        }
-        if refs:
-            actual_vals = ray.get(list(refs.values()))
-            for pos, actual_val in zip(refs.keys(), actual_vals):
-                arg_flat[pos] = actual_val
-
-        args, kwargs = jax.tree_util.tree_unflatten(arg_tree, arg_flat)
+        args, kwargs = resolve_args(*args, **kwargs)
         return fn(*args, **kwargs)

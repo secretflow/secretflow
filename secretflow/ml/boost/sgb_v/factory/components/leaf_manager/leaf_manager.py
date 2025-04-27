@@ -19,7 +19,13 @@ import numpy as np
 from secretflow.ml.boost.sgb_v.core.params import default_params
 from secretflow.ml.boost.sgb_v.factory.sgb_actor import SGBActor
 
-from ..component import Component, Devices, print_params
+from ..component import (
+    Component,
+    Devices,
+    print_params,
+    set_dict_from_params,
+    set_params_from_dict,
+)
 from .leaf_actor import LeafActor
 
 
@@ -46,14 +52,10 @@ class LeafManager(Component):
         print_params(self.params)
 
     def set_params(self, params: dict):
-        reg_lambda = params.get('reg_lambda', default_params.reg_lambda)
-        lr = params.get('learning_rate', default_params.learning_rate)
-        self.params.reg_lambda = reg_lambda
-        self.params.learning_rate = lr
+        set_params_from_dict(self.params, params)
 
     def get_params(self, params: dict):
-        params['reg_lambda'] = self.params.reg_lambda
-        params['learning_rate'] = self.params.learning_rate
+        set_dict_from_params(self.params, params)
 
     def set_devices(self, devices: Devices):
         self.label_holder = devices.label_holder

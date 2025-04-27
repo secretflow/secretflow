@@ -1,6 +1,6 @@
 [tool.black]
 skip-string-normalization = true
-extend-exclude = '''.*_pb2.py'''
+extend-exclude = '''.*(_pb2|_grpc).py'''
 
 [tool.isort]
 profile = "black"

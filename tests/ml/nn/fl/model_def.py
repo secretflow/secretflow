@@ -21,7 +21,7 @@ from torch import nn, optim
 from torch.nn import functional as F
 from torchmetrics import MeanSquaredError
 
-from secretflow.ml.nn.core.torch import BaseModule
+from secretflow_fl.ml.nn.core.torch import BaseModule
 
 
 # Tensorflow Model
@@ -46,7 +46,7 @@ def mnist_conv_model():
     )
     # Compile model
     model.compile(
-        loss='categorical_crossentropy', optimizer='adam', metrics=["accuracy"]
+        loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"]
     )
     return model
 
@@ -84,6 +84,50 @@ class ConvNet(BaseModule):
         x = F.relu(F.max_pool2d(x, 3))
         x = x.view(-1, self.fc_in_dim)
         x = F.relu(self.fc(x))
+        return x
+
+
+# model define for conv
+class ConvNet_CIFAR10(BaseModule):
+    """Small ConvNet for CIFAR10."""
+
+    def __init__(self):
+        super(ConvNet_CIFAR10, self).__init__()
+        self.conv1 = nn.Conv2d(3, 3, kernel_size=3, padding=1)
+        self.fc_in_dim = 768
+        self.fc = nn.Linear(self.fc_in_dim, 10)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = F.relu(F.max_pool2d(x, 2))
+        x = x.view(-1, self.fc_in_dim)
+        x = F.relu(self.fc(x))
+        return x
+
+
+class SimpleCNN(BaseModule):
+    def __init__(self, hidden_dims=[120, 84], output_dim=10):
+        super(SimpleCNN, self).__init__()
+        self.conv1 = nn.Conv2d(3, 6, 5)
+        self.relu = nn.ReLU()
+        self.pool = nn.MaxPool2d(2, 2)
+        self.conv2 = nn.Conv2d(6, 16, 5)
+
+        # for now, we hard coded this network
+        # i.e. we fix the number of hidden layers i.e. 2 layers
+        self.fc1 = nn.Linear(16 * 5 * 5, hidden_dims[0])
+        self.fc2 = nn.Linear(hidden_dims[0], hidden_dims[1])
+        self.fc3 = nn.Linear(hidden_dims[1], output_dim)
+
+    def forward(self, x):
+
+        x = self.pool(self.relu(self.conv1(x)))
+        x = self.pool(self.relu(self.conv2(x)))
+        x = x.view(-1, 16 * 5 * 5)
+
+        x = self.relu(self.fc1(x))
+        x = self.relu(self.fc2(x))
+        x = self.fc3(x)
         return x
 
 
@@ -157,7 +201,7 @@ class VAE(BaseModule):
         return self.decode(z), mu, logvar
 
     def loss_function(self, recon_x, x, mu, logvar):
-        BCE = F.binary_cross_entropy(recon_x, x.view(-1, 784), reduction='sum')
+        BCE = F.binary_cross_entropy(recon_x, x.view(-1, 784), reduction="sum")
         KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
 
         return BCE + KLD
@@ -195,10 +239,10 @@ class CVAE(tf.keras.Model):
             [
                 tf.keras.layers.InputLayer(input_shape=(28, 28, 1)),
                 tf.keras.layers.Conv2D(
-                    filters=32, kernel_size=3, strides=(2, 2), activation='relu'
+                    filters=32, kernel_size=3, strides=(2, 2), activation="relu"
                 ),
                 tf.keras.layers.Conv2D(
-                    filters=64, kernel_size=3, strides=(2, 2), activation='relu'
+                    filters=64, kernel_size=3, strides=(2, 2), activation="relu"
                 ),
                 tf.keras.layers.Flatten(),
                 # No activation
@@ -215,19 +259,19 @@ class CVAE(tf.keras.Model):
                     filters=64,
                     kernel_size=3,
                     strides=2,
-                    padding='same',
-                    activation='relu',
+                    padding="same",
+                    activation="relu",
                 ),
                 tf.keras.layers.Conv2DTranspose(
                     filters=32,
                     kernel_size=3,
                     strides=2,
-                    padding='same',
-                    activation='relu',
+                    padding="same",
+                    activation="relu",
                 ),
                 # No activation
                 tf.keras.layers.Conv2DTranspose(
-                    filters=1, kernel_size=3, strides=1, padding='same'
+                    filters=1, kernel_size=3, strides=1, padding="same"
                 ),
             ]
         )
@@ -298,3 +342,46 @@ def cvae_model():
         return model
 
     return create_model
+
+
+class ConvNet_CIFAR10(BaseModule):
+    """Small ConvNet for CIFAR10."""
+
+    def __init__(self):
+        super(ConvNet_CIFAR10, self).__init__()
+        self.conv1 = nn.Conv2d(3, 3, kernel_size=3, padding=1)
+        self.fc_in_dim = 768
+        self.fc = nn.Linear(self.fc_in_dim, 10)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = F.relu(F.max_pool2d(x, 2))
+        x = x.view(-1, self.fc_in_dim)
+        x = F.relu(self.fc(x))
+        return x
+
+
+class SimpleCNN(BaseModule):
+    def __init__(self, hidden_dims=[120, 84], output_dim=10):
+        super(SimpleCNN, self).__init__()
+        self.conv1 = nn.Conv2d(3, 6, 5)
+        self.relu = nn.ReLU()
+        self.pool = nn.MaxPool2d(2, 2)
+        self.conv2 = nn.Conv2d(6, 16, 5)
+
+        # for now, we hard coded this network
+        # i.e. we fix the number of hidden layers i.e. 2 layers
+        self.fc1 = nn.Linear(16 * 5 * 5, hidden_dims[0])
+        self.fc2 = nn.Linear(hidden_dims[0], hidden_dims[1])
+        self.fc3 = nn.Linear(hidden_dims[1], output_dim)
+
+    def forward(self, x):
+
+        x = self.pool(self.relu(self.conv1(x)))
+        x = self.pool(self.relu(self.conv2(x)))
+        x = x.view(-1, 16 * 5 * 5)
+
+        x = self.relu(self.fc1(x))
+        x = self.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x

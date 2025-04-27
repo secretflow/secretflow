@@ -21,8 +21,8 @@ from benchmark_examples.autoattack.applications.base import ApplicationBase
 from benchmark_examples.autoattack.attacks.base import AttackBase, AttackType
 from benchmark_examples.autoattack.utils.data_utils import get_np_data_from_dataset
 from benchmark_examples.autoattack.utils.resources import ResourcesPack
-from secretflow.ml.nn.callbacks.attack import AttackCallback
-from secretflow.ml.nn.sl.attacks.grad_replace_attack_torch import GradReplaceAttack
+from secretflow_fl.ml.nn.callbacks.attack import AttackCallback
+from secretflow_fl.ml.nn.sl.attacks.grad_replace_attack_torch import GradReplaceAttack
 
 
 class ReplaceAttackCase(AttackBase):
@@ -95,7 +95,7 @@ class ReplaceAttackCase(AttackBase):
     def update_resources_consumptions(
         self, cluster_resources_pack: ResourcesPack, app: ApplicationBase
     ) -> ResourcesPack:
-        func = lambda x: x * 1.14
+        update_gpu = lambda x: x * 1.14
         return cluster_resources_pack.apply_debug_resources(
-            'gpu_mem', func
-        ).apply_sim_resources(app.device_f.party, 'gpu_mem', func)
+            'gpu_mem', update_gpu
+        ).apply_sim_resources(app.device_f.party, 'gpu_mem', update_gpu)

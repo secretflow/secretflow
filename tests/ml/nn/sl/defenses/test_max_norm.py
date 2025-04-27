@@ -19,13 +19,12 @@ from torch import nn
 from torchmetrics import AUROC, Accuracy, Precision
 
 from secretflow.data.split import train_test_split
-from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
-from secretflow.ml.nn.sl.agglayer.agg_method import Concat
-from secretflow.ml.nn.sl.defenses.max_norm import max_norm
 from secretflow.preprocessing import StandardScaler
 from secretflow.utils.simulation.data.dataframe import create_df
-from secretflow.utils.simulation.datasets import load_criteo_unpartitioned
+from secretflow_fl.ml.nn import SLModel
+from secretflow_fl.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
+from secretflow_fl.ml.nn.sl.defenses.max_norm import max_norm
+from secretflow_fl.utils.simulation.datasets_fl import load_criteo_unpartitioned
 from tests.ml.nn.sl.attack.model_def import (
     WideDeepBottomAlice,
     WideDeepBottomBob,
@@ -44,17 +43,17 @@ def test_gradient_average_torch_backend(sf_simulation_setup_devices):
     num_samples = 410
 
     sparse_feature = [
-        'C' + str(i) for i in range(1, 27)
+        "C" + str(i) for i in range(1, 27)
     ]  # C represents categorical features
     dense_feature = [
-        'I' + str(i) for i in range(1, 14)
+        "I" + str(i) for i in range(1, 14)
     ]  # I represents numerical features
     df = load_criteo_unpartitioned(num_samples)
     df[sparse_feature] = df[sparse_feature].fillna(
-        '-1',
+        "-1",
     )
     df[dense_feature] = df[dense_feature].fillna(
-        '0',
+        "0",
     )
 
     feat_sizes = {}
@@ -68,8 +67,8 @@ def test_gradient_average_torch_backend(sf_simulation_setup_devices):
     nms = MinMaxScaler(feature_range=(0, 1))
     df[dense_feature] = nms.fit_transform(df[dense_feature])
 
-    fixlen_feature_columns = [(feat, 'sparse') for feat in sparse_feature] + [
-        (feat, 'dense') for feat in dense_feature
+    fixlen_feature_columns = [(feat, "sparse") for feat in sparse_feature] + [
+        (feat, "dense") for feat in dense_feature
     ]
     dnn_feature_columns = fixlen_feature_columns
 

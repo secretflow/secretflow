@@ -11,422 +11,264 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-from typing import Dict, List, Union
 
-import numpy as np
+
+import os
+from dataclasses import dataclass
+
 import pandas as pd
 
-from secretflow.component.component import (
-    CompEvalError,
+from secretflow.component.core import (
     Component,
-    IoType,
-    TableColParam,
-)
-from secretflow.component.data_utils import (
+    Context,
     DistDataType,
-    download_files,
-    extract_distdata_info,
-    merge_individuals_to_vtable,
-    SUPPORTED_VTABLE_DATA_TYPE,
-    upload_files,
+    Field,
+    Input,
+    Interval,
+    Output,
+    PathCleanUp,
+    Reporter,
+    UnionGroup,
+    VTable,
+    VTableFieldKind,
+    VTableFormat,
+    VTableParty,
+    VTableSchema,
+    download_csv,
+    register,
+    upload_orc,
+    uuid4,
 )
-from secretflow.device.device.pyu import PYU
-from secretflow.device.device.spu import SPU
-from secretflow.device.driver import wait
-from secretflow.spec.v1.data_pb2 import DistData, IndividualTable, VerticalTable
+from secretflow.component.preprocessing.data_prep.pis_utils import trans_keys_to_ids
+from secretflow.device import PYU, reveal
+from secretflow.error_system.exceptions import CompEvalError
 
-psi_comp = Component(
-    "psi",
-    domain="data_prep",
-    version="0.0.5",
-    desc="PSI between two parties.",
-)
-psi_comp.str_attr(
-    name="protocol",
-    desc="PSI protocol.",
-    is_list=False,
-    is_optional=True,
-    default_value="PROTOCOL_RR22",
-    allowed_values=["PROTOCOL_RR22", "PROTOCOL_ECDH", "PROTOCOL_KKRT"],
-)
-psi_comp.bool_attr(
-    name="sort_result",
-    desc="It false, output is not promised to be aligned. Warning: disable this option may lead to errors in the following components. DO NOT TURN OFF if you want to append other components.",
-    is_list=False,
-    is_optional=True,
-    default_value=True,
-)
-psi_comp.union_attr_group(
-    name="allow_duplicate_keys",
-    desc="Some join types allow duplicate keys.",
-    group=[
-        psi_comp.struct_attr_group(
-            name="no",
-            desc="Duplicate keys are not allowed.",
-            group=[
-                psi_comp.bool_attr(
-                    name="skip_duplicates_check",
-                    desc="If true, the check of duplicated items will be skiped.",
-                    is_list=False,
-                    is_optional=True,
-                    default_value=False,
-                ),
-                psi_comp.bool_attr(
-                    name="check_hash_digest",
-                    desc="Check if hash digest of keys from parties are equal to determine whether to early-stop.",
-                    is_list=False,
-                    is_optional=True,
-                    default_value=False,
-                ),
-            ],
-        ),
-        psi_comp.struct_attr_group(
-            name="yes",
-            desc="Duplicate keys are allowed.",
-            group=[
-                psi_comp.union_attr_group(
-                    name="join_type",
-                    desc="Join type.",
-                    group=[
-                        psi_comp.union_selection_attr(
-                            name="inner_join",
-                            desc="Inner join with duplicate keys",
-                        ),
-                        psi_comp.struct_attr_group(
-                            name="left_join",
-                            desc="Left join with duplicate keys",
-                            group=[
-                                psi_comp.party_attr(
-                                    name="left_side",
-                                    desc="Required for left join",
-                                    list_min_length_inclusive=1,
-                                    list_max_length_inclusive=1,
-                                )
-                            ],
-                        ),
-                        psi_comp.union_selection_attr(
-                            name="full_join",
-                            desc="Full join with duplicate keys",
-                        ),
-                        psi_comp.union_selection_attr(
-                            name="difference",
-                            desc="Difference with duplicate keys",
-                        ),
-                    ],
+
+@dataclass
+class LeftJoin:
+    left_side: str = Field.party_attr(desc="Required for left join")
+
+
+@dataclass
+class JoinType(UnionGroup):
+    inner_join: str = Field.selection_attr(desc="Inner join")
+    left_join: LeftJoin = Field.struct_attr(desc="Left join")
+    full_join: str = Field.selection_attr(desc="Full join")
+    difference: str = Field.selection_attr(desc="Difference")
+
+
+@dataclass
+class ECDHProtocol(UnionGroup):
+    CURVE_25519: str = Field.selection_attr(desc="CURVE_25519")
+    CURVE_FOURQ: str = Field.selection_attr(desc="CURVE_FOURQ")
+    CURVE_SM2: str = Field.selection_attr(desc="CURVE_SM2")
+    CURVE_SECP256K1: str = Field.selection_attr(desc="CURVE_SECP256K1")
+
+
+@dataclass
+class Protocol(UnionGroup):
+    PROTOCOL_ECDH: ECDHProtocol = Field.union_attr(
+        desc="ECDH protocol.", default="CURVE_25519"
+    )
+    PROTOCOL_RR22: str = Field.selection_attr(desc="RR22 protocol.")
+    PROTOCOL_KKRT: str = Field.selection_attr(desc="KKRT protocol.")
+
+
+@register(domain="data_prep", version="1.0.0", name="psi")
+class PSI(Component):
+    '''
+    PSI between two parties.
+    '''
+
+    protocol: Protocol = Field.union_attr(
+        desc="PSI protocol.",
+        default="PROTOCOL_RR22",
+    )
+
+    sort_result: bool = Field.attr(
+        desc="If false, output is not promised to be aligned. Warning: disable this option may lead to errors in the following components. DO NOT TURN OFF if you want to append other components.",
+        default=True,
+    )
+    receiver_parties: list[str] = Field.party_attr(
+        desc="Party names of receiver for result, all party will be receivers default; if only one party receive result, the result will be single-party table, hence you can not connect it to component with union table input.",
+        list_limit=Interval.closed(0, 2),
+    )
+    allow_empty_result: bool = Field.attr(
+        desc="Whether to allow the result to be empty, if allowed, an empty file will be saved, if not, an error will be reported.",
+        default=False,
+    )
+    join_type: JoinType = Field.union_attr(
+        desc="join type, default is inner join.",
+        default="inner_join",
+    )
+
+    input_ds1_keys_duplicated: bool = Field.attr(
+        desc="Whether key columns have duplicated rows, default is True.",
+        default=True,
+    )
+    input_ds1_keys: list[str] = Field.table_column_attr(
+        "input_ds1",
+        desc="Column(s) used to join.",
+        limit=Interval.closed(1, None),
+    )
+    input_ds2_keys_duplicated: bool = Field.attr(
+        desc="Whether key columns have duplicated rows, default is True.",
+        default=True,
+    )
+    input_ds2_keys: list[str] = Field.table_column_attr(
+        "input_ds2",
+        desc="Column(s) used to join.",
+        limit=Interval.closed(1, None),
+    )
+    input_ds1: Input = Field.input(
+        desc="Individual table for party 1",
+        types=[DistDataType.INDIVIDUAL_TABLE],
+    )
+    input_ds2: Input = Field.input(
+        desc="Individual table for party 2",
+        types=[DistDataType.INDIVIDUAL_TABLE],
+    )
+    output_ds: Output = Field.output(
+        desc="Output vertical table",
+        types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
+    )
+    report: Output = Field.output(
+        desc="Output psi report",
+        types=[DistDataType.REPORT],
+    )
+
+    def evaluate(self, ctx: Context):
+        tbl1 = VTable.from_distdata(self.input_ds1).party(0)
+        tbl2 = VTable.from_distdata(self.input_ds2).party(0)
+
+        tbl1.schema = trans_keys_to_ids(tbl1.schema, self.input_ds1_keys)
+        tbl2.schema = trans_keys_to_ids(tbl2.schema, self.input_ds2_keys)
+        input_tables = [tbl1, tbl2]
+
+        broadcast_result = True
+        check_hash_digest = False
+
+        receiver_party = tbl1.party
+        if self.receiver_parties and len(self.receiver_parties) == 1:
+            receiver_party = self.receiver_parties[0]
+            broadcast_result = False
+
+        join_type = self.join_type.get_selected()
+        advanced_join_type = to_join_type(join_type)
+
+        left_side = "ROLE_RECEIVER"
+        if join_type == "left_join":
+            if self.join_type.left_join.left_side != receiver_party:
+                left_side = "ROLE_SENDER"
+
+        rand_id = uuid4(tbl1.party)
+        root_dir = os.path.join(ctx.data_dir, rand_id)
+        na_rep = rand_id
+
+        keys = {
+            tbl1.party: self.input_ds1_keys,
+            tbl2.party: self.input_ds2_keys,
+        }
+        table_duplicated = {
+            tbl1.party: self.input_ds1_keys_duplicated,
+            tbl2.party: self.input_ds2_keys_duplicated,
+        }
+
+        ecdh_curve = "CURVE_25519"
+        protocol = self.protocol.get_selected()
+        if protocol == "PROTOCOL_ECDH":
+            ecdh_curve = self.protocol.PROTOCOL_ECDH.get_selected()
+
+        # build input and output paths
+        receiver_tbl = tbl1 if receiver_party == tbl1.party else tbl2
+        output_tables = input_tables if broadcast_result else [receiver_tbl]
+        outout_csv_path = os.path.join(root_dir, f"{rand_id}_output.csv")
+
+        output_paths = {}
+        input_paths = {}
+        for info in input_tables:
+            if broadcast_result or receiver_party == info.party:
+                output_paths[info.party] = outout_csv_path
+            input_paths[info.party] = os.path.join(root_dir, info.uri)
+
+        spu = ctx.make_spu()
+        with PathCleanUp({tbl.party: root_dir for tbl in input_tables}):
+            with ctx.trace_io():
+                download_res = [
+                    PYU(info.party)(download_csv)(
+                        ctx.storage, info, input_paths[info.party], na_rep
+                    )
+                    for info in input_tables
+                ]
+
+                input_rows = reveal(download_res)
+            with ctx.trace_running():
+                spu.psi(
+                    keys=keys,
+                    input_path=input_paths,
+                    output_path=output_paths,
+                    receiver=receiver_party,
+                    broadcast_result=broadcast_result,
+                    table_keys_duplicated=table_duplicated,
+                    output_csv_na_rep=na_rep,
+                    protocol=protocol,
+                    ecdh_curve=ecdh_curve,
+                    advanced_join_type=advanced_join_type,
+                    left_side=left_side,
+                    disable_alignment=not self.sort_result,
+                    check_hash_digest=check_hash_digest,
                 )
-            ],
-        ),
-    ],
-)
 
+            with ctx.trace_io():
+                output_uri = self.output_ds.uri
+                upload_res = [
+                    PYU(tbl.party)(upload_orc)(
+                        ctx.storage,
+                        output_uri,
+                        output_paths[tbl.party],
+                        tbl.schema.to_arrow(),
+                        na_rep,
+                    )
+                    for tbl in output_tables
+                ]
+                output_rows = reveal(upload_res)
+                assert len(set(output_rows)) == 1
+                output_rows = output_rows[0]
 
-psi_comp.int_attr(
-    name="fill_value_int",
-    desc="For int type data. Use this value for filling null.",
-    is_list=False,
-    is_optional=True,
-    default_value=0,
-)
+        if output_rows == 0 and not self.allow_empty_result:
+            raise CompEvalError(
+                f"Empty result is not allowed, please check your input data or set allow_empty_result to true."
+            )
 
-psi_comp.str_attr(
-    name="ecdh_curve",
-    desc="Curve type for ECDH PSI.",
-    is_list=False,
-    is_optional=True,
-    default_value="CURVE_FOURQ",
-    allowed_values=["CURVE_25519", "CURVE_FOURQ", "CURVE_SM2", "CURVE_SECP256K1"],
-)
-psi_comp.io(
-    io_type=IoType.INPUT,
-    name="receiver_input",
-    desc="Individual table for receiver",
-    types=[DistDataType.INDIVIDUAL_TABLE],
-    col_params=[
-        TableColParam(
-            name="key",
-            desc="Column(s) used to join.",
-            col_min_cnt_inclusive=1,
-        )
-    ],
-)
-psi_comp.io(
-    io_type=IoType.INPUT,
-    name="sender_input",
-    desc="Individual table for sender",
-    types=[DistDataType.INDIVIDUAL_TABLE],
-    col_params=[
-        TableColParam(
-            name="key",
-            desc="Column(s) used to join.",
-            col_min_cnt_inclusive=1,
-        )
-    ],
-)
-psi_comp.io(
-    io_type=IoType.OUTPUT,
-    name="psi_output",
-    desc="Output vertical table",
-    types=[DistDataType.VERTICAL_TABLE],
-)
-
-
-def convert_int(x, fill_value_int, int_type_str):
-    try:
-        return SUPPORTED_VTABLE_DATA_TYPE[int_type_str](x)
-    except Exception:
-        return fill_value_int
-
-
-def build_converters(x: DistData, fill_value_int: int) -> Dict[str, callable]:
-    if x.type != "sf.table.individual":
-        raise CompEvalError("Only support individual table")
-    imeta = IndividualTable()
-    assert x.meta.Unpack(imeta)
-    converters = {}
-
-    def assign_converter(i, t):
-        if "int" in t:
-            converters[i] = lambda x: convert_int(x, fill_value_int, t)
-
-    for i, t in zip(list(imeta.schema.ids), list(imeta.schema.id_types)):
-        assign_converter(i, t)
-
-    for i, t in zip(list(imeta.schema.features), list(imeta.schema.feature_types)):
-        assign_converter(i, t)
-
-    for i, t in zip(list(imeta.schema.labels), list(imeta.schema.label_types)):
-        assign_converter(i, t)
-
-    return converters
-
-
-# We would respect user-specified ids even ids are set in TableSchema.
-def modify_schema(x: DistData, keys: List[str]) -> DistData:
-    new_x = DistData()
-    new_x.CopyFrom(x)
-    if len(keys) == 0:
-        return new_x
-    assert x.type == "sf.table.individual"
-    imeta = IndividualTable()
-    assert x.meta.Unpack(imeta)
-
-    new_meta = IndividualTable()
-    names = []
-    types = []
-
-    # copy current ids to features and clean current ids.
-    for i, t in zip(list(imeta.schema.ids), list(imeta.schema.id_types)):
-        names.append(i)
-        types.append(t)
-
-    for f, t in zip(list(imeta.schema.features), list(imeta.schema.feature_types)):
-        names.append(f)
-        types.append(t)
-
-    for k in keys:
-        if k not in names:
-            raise CompEvalError(f"key {k} is not found as id or feature.")
-
-    for n, t in zip(names, types):
-        if n in keys:
-            new_meta.schema.ids.append(n)
-            new_meta.schema.id_types.append(t)
-        else:
-            new_meta.schema.features.append(n)
-            new_meta.schema.feature_types.append(t)
-
-    new_meta.schema.labels.extend(list(imeta.schema.labels))
-    new_meta.schema.label_types.extend(list(imeta.schema.label_types))
-    new_meta.line_count = imeta.line_count
-
-    new_x.meta.Pack(new_meta)
-
-    return new_x
-
-
-def read_fillna_write(
-    csv_file_path: str,
-    converters: Dict[str, callable],
-    chunksize: int = 50000,
-):
-    # Define the CSV reading in chunks
-    csv_chunks = pd.read_csv(csv_file_path, converters=converters, chunksize=chunksize)
-    temp_file_path = csv_file_path + '.tmp'
-    # Process each chunk
-    for i, chunk in enumerate(csv_chunks):
-        # Write the first chunk with headers, subsequent chunks without headers
-        if i == 0:
-            chunk.to_csv(temp_file_path, index=False)
-        else:
-            chunk.to_csv(temp_file_path, mode='a', header=False, index=False)
-    # Replace the original file with the processed file
-    # so chunks > 0
-    if os.path.exists(temp_file_path):
-        os.replace(temp_file_path, csv_file_path)
-
-
-def fill_missing_values(
-    local_fns: Dict[Union[str, PYU], str],
-    partywise_converters=Dict[str, Dict[str, callable]],
-):
-    pyu_locals = {p.party if isinstance(p, PYU) else p: local_fns[p] for p in local_fns}
-
-    waits = []
-    for p in pyu_locals:
-        waits.append(PYU(p)(read_fillna_write)(pyu_locals[p], partywise_converters[p]))
-    wait(waits)
-
-
-@psi_comp.eval_fn
-def two_party_balanced_psi_eval_fn(
-    *,
-    ctx,
-    protocol,
-    sort_result,
-    ecdh_curve,
-    allow_duplicate_keys,
-    allow_duplicate_keys_no_skip_duplicates_check,
-    allow_duplicate_keys_no_check_hash_digest,
-    allow_duplicate_keys_yes_join_type,
-    allow_duplicate_keys_yes_join_type_left_join_left_side,
-    fill_value_int,
-    receiver_input,
-    receiver_input_key,
-    sender_input,
-    sender_input_key,
-    psi_output,
-):
-    receiver_path_format = extract_distdata_info(receiver_input)
-    assert len(receiver_path_format) == 1
-    receiver_party = list(receiver_path_format.keys())[0]
-    sender_path_format = extract_distdata_info(sender_input)
-    sender_party = list(sender_path_format.keys())[0]
-
-    assert allow_duplicate_keys in [
-        'yes',
-        'no',
-    ]
-
-    if allow_duplicate_keys == 'no':
-        advanced_join_type = 'ADVANCED_JOIN_TYPE_UNSPECIFIED'
-    else:
-        allow_duplicate_keys_no_skip_duplicates_check = False
-        allow_duplicate_keys_no_check_hash_digest = False
-        assert allow_duplicate_keys_yes_join_type in [
-            "inner_join",
-            "left_join",
-            "full_join",
-            "difference",
+        system_info = self.input_ds1.system_info
+        output_tables = [
+            VTableParty(p.party, output_uri, str(VTableFormat.ORC), schema=p.schema)
+            for p in output_tables
         ]
+        output = VTable(output_uri, output_tables, output_rows, system_info)
+        self.output_ds.data = output.to_distdata()
 
-        if allow_duplicate_keys_yes_join_type == "inner_join":
-            advanced_join_type = "ADVANCED_JOIN_TYPE_INNER_JOIN"
-        elif allow_duplicate_keys_yes_join_type == "left_join":
-            advanced_join_type = 'ADVANCED_JOIN_TYPE_LEFT_JOIN'
-        elif allow_duplicate_keys_yes_join_type == "full_join":
-            advanced_join_type = 'ADVANCED_JOIN_TYPE_FULL_JOIN'
-        else:
-            advanced_join_type = 'ADVANCED_JOIN_TYPE_DIFFERENCE'
+        report_tbl = pd.DataFrame(
+            {
+                "party": [tbl.party for tbl in input_tables],
+                "original_count": input_rows,
+                "output_count": [output_rows for _ in range(2)],
+            }
+        )
 
-    if advanced_join_type == 'ADVANCED_JOIN_TYPE_LEFT_JOIN':
-        left_side = allow_duplicate_keys_yes_join_type_left_join_left_side[0]
+        report = Reporter("psi_report", "", system_info=system_info)
+        report.add_tab(report_tbl)
+        self.report.data = report.to_distdata()
 
-        assert left_side in [
-            receiver_party,
-            sender_party,
-        ]
+
+def to_join_type(v: str) -> str:
+    if v == "inner_join":
+        return "ADVANCED_JOIN_TYPE_INNER_JOIN"
+    elif v == "left_join":
+        return 'ADVANCED_JOIN_TYPE_LEFT_JOIN'
+    elif v == "full_join":
+        return 'ADVANCED_JOIN_TYPE_FULL_JOIN'
+    elif v == "difference":
+        return 'ADVANCED_JOIN_TYPE_DIFFERENCE'
     else:
-        left_side = receiver_party
-
-    if ctx.spu_configs is None or len(ctx.spu_configs) == 0:
-        raise CompEvalError("spu config is not found.")
-    if len(ctx.spu_configs) > 1:
-        raise CompEvalError("only support one spu")
-    spu_config = next(iter(ctx.spu_configs.values()))
-
-    input_path = {
-        receiver_party: os.path.join(
-            ctx.data_dir, receiver_path_format[receiver_party].uri
-        ),
-        sender_party: os.path.join(ctx.data_dir, sender_path_format[sender_party].uri),
-    }
-    output_path = {
-        receiver_party: os.path.join(ctx.data_dir, psi_output),
-        sender_party: os.path.join(ctx.data_dir, psi_output),
-    }
-
-    import logging
-
-    logging.warning(spu_config)
-
-    spu = SPU(spu_config["cluster_def"], spu_config["link_desc"])
-
-    uri = {
-        receiver_party: receiver_path_format[receiver_party].uri,
-        sender_party: sender_path_format[sender_party].uri,
-    }
-
-    with ctx.tracer.trace_io():
-        download_files(ctx, uri, input_path)
-
-    with ctx.tracer.trace_running():
-        report = spu.psi(
-            keys={receiver_party: receiver_input_key, sender_party: sender_input_key},
-            input_path=input_path,
-            output_path=output_path,
-            receiver=receiver_party,
-            broadcast_result=True,
-            protocol=protocol,
-            ecdh_curve=ecdh_curve,
-            advanced_join_type=advanced_join_type,
-            left_side=(
-                'ROLE_RECEIVER' if left_side == receiver_party else 'ROLE_SENDER'
-            ),
-            skip_duplicates_check=allow_duplicate_keys_no_skip_duplicates_check,
-            disable_alignment=not sort_result,
-            check_hash_digest=allow_duplicate_keys_no_check_hash_digest,
-        )
-
-    partywise_converters = {
-        receiver_party: build_converters(receiver_input, fill_value_int),
-        sender_party: build_converters(sender_input, fill_value_int),
-    }
-
-    with ctx.tracer.trace_io():
-        fill_missing_values(output_path, partywise_converters)
-        upload_files(
-            ctx, {receiver_party: psi_output, sender_party: psi_output}, output_path
-        )
-
-    output_db = DistData(
-        name=psi_output,
-        type=str(DistDataType.VERTICAL_TABLE),
-        system_info=receiver_input.system_info,
-        data_refs=[
-            DistData.DataRef(
-                uri=psi_output,
-                party=receiver_party,
-                format="csv",
-            ),
-            DistData.DataRef(
-                uri=psi_output,
-                party=sender_party,
-                format="csv",
-            ),
-        ],
-    )
-
-    output_db = merge_individuals_to_vtable(
-        [
-            modify_schema(receiver_input, receiver_input_key),
-            modify_schema(sender_input, sender_input_key),
-        ],
-        output_db,
-    )
-    vmeta = VerticalTable()
-    assert output_db.meta.Unpack(vmeta)
-    vmeta.line_count = report[0]['intersection_count']
-    output_db.meta.Pack(vmeta)
-
-    return {"psi_output": output_db}
+        raise ValueError(f"unknown join_type {v}")

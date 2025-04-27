@@ -122,6 +122,15 @@ class DistributedTree:
             return True
         return False
 
+    def gain_statistics(self) -> Dict[PYU, PYUObject]:
+        """get gain statistics of all split trees
+        PYUObject is in fact Tuple[Dict, Dict]: sum dict and count dict
+        """
+        return {
+            device: device(lambda sp: sp.gain_statistics())(tree)
+            for device, tree in self.split_tree_dict.items()
+        }
+
 
 def from_dict(tree_content: Dict) -> DistributedTree:
     dt = DistributedTree()

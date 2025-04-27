@@ -7,3 +7,7 @@ pytest-xdist==3.2.1
 pytest-testmon==2.0.6
 pytest-custom_exit_code
 tweedie
+junitparser
+psutil
+tabulate
+hdbscan # added for FreqFed

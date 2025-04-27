@@ -24,5 +24,9 @@
             port: 8081
             protocol: GRPC
             scope: Domain
+          - name: inference
+            port: 8082
+            protocol: HTTP
+            scope: Cluster
         workingDir: /work
     restartPolicy: Never

@@ -25,9 +25,9 @@ from torchvision import datasets, transforms
 
 import secretflow as sf
 from secretflow.data.ndarray import FedNdarray, PartitionWay
-from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
-from secretflow.ml.nn.sl.attacks.lia_torch import LabelInferenceAttack
+from secretflow_fl.ml.nn import SLModel
+from secretflow_fl.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
+from secretflow_fl.ml.nn.sl.attacks.lia_torch import LabelInferenceAttack
 from tests.ml.nn.sl.attack.data_util import (
     CIFAR10Labeled,
     CIFAR10Unlabeled,
@@ -150,7 +150,7 @@ def correct_counter(output, target, batch_size, topk=(1, 5)):
             correct_k = torch.eq(pred, tt[0].view(-1, 1)).sum().float().item()
             correct_counts[i] += correct_k
 
-    print('correct_counts: ', correct_counts)
+    print("correct_counts: ", correct_counts)
     return correct_counts
 
 
@@ -161,7 +161,7 @@ def do_test_sl_and_lia(config, alice, bob):
     lia_path = tmp_dir.name
     import logging
 
-    logging.warning('lia_path: ' + lia_path)
+    logging.warning("lia_path: " + lia_path)
 
     # first, train a sl model and save model
     # prepare data
@@ -179,7 +179,7 @@ def do_test_sl_and_lia(config, alice, bob):
         dataset=train_dataset, batch_size=128, shuffle=False
     )
 
-    model_save_path = lia_path + '/lia_model'
+    model_save_path = lia_path + "/lia_model"
 
     train_data = train_dataset.data.numpy()
     train_label = np.array(train_dataset.targets)
@@ -203,10 +203,10 @@ def do_test_sl_and_lia(config, alice, bob):
         optim_fn=optim_fn,
         metrics=[
             metric_wrapper(
-                Accuracy, task="multiclass", num_classes=10, average='micro'
+                Accuracy, task="multiclass", num_classes=10, average="micro"
             ),
             metric_wrapper(
-                Precision, task="multiclass", num_classes=10, average='micro'
+                Precision, task="multiclass", num_classes=10, average="micro"
             ),
         ],
     )
@@ -217,10 +217,10 @@ def do_test_sl_and_lia(config, alice, bob):
         optim_fn=optim_fn,
         metrics=[
             metric_wrapper(
-                Accuracy, task="multiclass", num_classes=10, average='micro'
+                Accuracy, task="multiclass", num_classes=10, average="micro"
             ),
             metric_wrapper(
-                Precision, task="multiclass", num_classes=10, average='micro'
+                Precision, task="multiclass", num_classes=10, average="micro"
             ),
         ],
     )
@@ -238,8 +238,8 @@ def do_test_sl_and_lia(config, alice, bob):
         compressor=None,
         simulation=True,
         random_seed=1234,
-        backend='torch',
-        strategy='split_nn',
+        backend="torch",
+        strategy="split_nn",
     )
 
     def create_model(ema=False):
@@ -267,13 +267,13 @@ def do_test_sl_and_lia(config, alice, bob):
         data_buil,
         attack_epochs=1,
         save_model_path=model_save_path,
-        T=config['T'],
-        alpha=config['alpha'],
-        val_iteration=config['val_iteration'],
-        k=config['k'],
-        lr=config['lr'],
-        ema_decay=config['ema_decay'],
-        lambda_u=config['lambda_u'],
+        T=config["T"],
+        alpha=config["alpha"],
+        val_iteration=config["val_iteration"],
+        k=config["k"],
+        lr=config["lr"],
+        ema_decay=config["ema_decay"],
+        lambda_u=config["lambda_u"],
     )
 
     history = sl_model.fit(
@@ -301,13 +301,13 @@ def test_sl_and_lia(sf_simulation_setup_devices):
     bob = sf_simulation_setup_devices.bob
     do_test_sl_and_lia(
         {
-            'T': 0.8,
-            'alpha': 0.75,
-            'val_iteration': 1024,
-            'k': 4,
-            'lr': 2e-3,
-            'ema_decay': 0.999,
-            'lambda_u': 50,
+            "T": 0.8,
+            "alpha": 0.75,
+            "val_iteration": 1024,
+            "k": 4,
+            "lr": 2e-3,
+            "ema_decay": 0.999,
+            "lambda_u": 50,
         },
         alice,
         bob,

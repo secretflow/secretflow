@@ -54,7 +54,7 @@ class HDataFrame(DataFrameBase):
         >>> alice = PYU('alice')
         >>> bob = PYU('bob')
         >>> h_df = read_csv({alice: 'alice.csv', bob: 'bob.csv'},
-                            aggregator=PlainAggregagor(alice),
+                            aggregator=PlainAggregator(alice),
                             comparator=PlainComparator(alice))
         >>> h_df.columns
         Index(['sepal_length', 'sepal_width', 'petal_length', 'petal_width', 'class'], dtype='object')

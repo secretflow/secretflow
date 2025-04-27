@@ -18,7 +18,7 @@ from torch import nn as nn
 from torch import optim
 from torchmetrics import AUROC, Accuracy, Precision
 
-from secretflow.ml.nn.core.torch import BaseModule
+from secretflow_fl.ml.nn.core.torch import BaseModule
 
 
 class ConvNetBase(BaseModule):
@@ -159,8 +159,8 @@ class ConvNetRegFuse(BaseModule):
 
     def configure_metrics(self):
         return [
-            Accuracy(task="multiclass", num_classes=10, average='micro'),
-            Precision(task="multiclass", num_classes=10, average='micro'),
+            Accuracy(task="multiclass", num_classes=10, average="micro"),
+            Precision(task="multiclass", num_classes=10, average="micro"),
             AUROC(task="multiclass", num_classes=10),
         ]
 
@@ -168,7 +168,7 @@ class ConvNetRegFuse(BaseModule):
         return nn.CrossEntropyLoss()
 
 
-def create_base_model(input_dim, output_dim, output_num, name='base_model', l2=None):
+def create_base_model(input_dim, output_dim, output_num, name="base_model", l2=None):
     # Create model
     def create_model():
         from tensorflow import keras
@@ -188,14 +188,14 @@ def create_base_model(input_dim, output_dim, output_num, name='base_model', l2=N
 
         # Compile model
         model.compile(
-            loss='categorical_crossentropy', optimizer='adam', metrics=["accuracy"]
+            loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"]
         )
         return model  # need wrap
 
     return create_model
 
 
-def create_fuse_model(input_dim, output_dim, party_nums, input_num, name='fuse_model'):
+def create_fuse_model(input_dim, output_dim, party_nums, input_num, name="fuse_model"):
     def create_model():
         from tensorflow import keras
         from tensorflow.keras import layers
@@ -210,14 +210,14 @@ def create_fuse_model(input_dim, output_dim, party_nums, input_num, name='fuse_m
             )
         # user define hidden process logic
         merged_layer = layers.concatenate(input_layers)
-        fuse_layer = layers.Dense(64, activation='relu')(merged_layer)
-        output = layers.Dense(output_dim, activation='softmax')(fuse_layer)
+        fuse_layer = layers.Dense(64, activation="relu")(merged_layer)
+        output = layers.Dense(output_dim, activation="softmax")(fuse_layer)
         # Create model
         model = keras.Model(inputs=input_layers, outputs=output)
         # Compile model
         model.compile(
-            loss=['categorical_crossentropy'],
-            optimizer='adam',
+            loss=["categorical_crossentropy"],
+            optimizer="adam",
             metrics=["accuracy"],
         )
         return model
@@ -225,20 +225,20 @@ def create_fuse_model(input_dim, output_dim, party_nums, input_num, name='fuse_m
     return create_model
 
 
-def create_fuse_model_agglayer(input_dim, output_dim, name='fuse_model'):
+def create_fuse_model_agglayer(input_dim, output_dim, name="fuse_model"):
     def create_model():
         from tensorflow import keras
         from tensorflow.keras import layers
 
         input_layer = keras.Input(input_dim)
-        fuse_layer = layers.Dense(64, activation='relu')(input_layer)
-        output = layers.Dense(output_dim, activation='softmax')(fuse_layer)
+        fuse_layer = layers.Dense(64, activation="relu")(input_layer)
+        output = layers.Dense(output_dim, activation="softmax")(fuse_layer)
         # Create model
         model = keras.Model(inputs=input_layer, outputs=output)
         # Compile model
         model.compile(
-            loss=['categorical_crossentropy'],
-            optimizer='adam',
+            loss=["categorical_crossentropy"],
+            optimizer="adam",
             metrics=["accuracy"],
         )
         return model
@@ -292,7 +292,7 @@ class FuseCustomLossModel(tf.keras.Model):
 
 
 def create_fuse_model_custom_loss(
-    input_dim, output_dim, party_nums, input_num, name='fuse_model'
+    input_dim, output_dim, party_nums, input_num, name="fuse_model"
 ):
     def create_model():
         import tensorflow as tf
@@ -300,7 +300,7 @@ def create_fuse_model_custom_loss(
         model = FuseCustomLossModel(output_dim)
         # Compile model
         model.compile(
-            optimizer='adam',
+            optimizer="adam",
             metrics=["accuracy"],
             loss=None,
         )

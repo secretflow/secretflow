@@ -22,10 +22,10 @@ from torch import nn, optim
 from torchmetrics import AUROC, Accuracy, Precision
 
 from secretflow.device import reveal
-from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
-from secretflow.ml.nn.sl.defenses.mid import MIDefense
-from secretflow.utils.simulation.datasets import load_mnist
+from secretflow_fl.utils.simulation.datasets_fl import load_mnist
+from secretflow_fl.ml.nn import SLModel
+from secretflow_fl.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
+from secretflow_fl.ml.nn.sl.defenses.mid import MIDefense
 from tests.ml.nn.sl.model_def import ConvNetBase, ConvNetFuse
 
 _temp_dir = tempfile.mkdtemp()
@@ -43,30 +43,30 @@ def torch_model_with_mnist(
     model_fuse,
     data,
     label,
-    strategy='split_nn',
-    backend='torch',
+    strategy="split_nn",
+    backend="torch",
     **kwargs
 ):
     # kwargs parsing
-    dp_strategy_dict = kwargs.get('dp_strategy_dict', None)
-    dataset_builder = kwargs.get('dataset_builder', None)
-    callbacks = kwargs.get('callbacks', None)
-    load_base_model_dict = kwargs.get('load_base_model_dict', base_model_dict)
-    load_model_fuse = kwargs.get('load_model_fuse', model_fuse)
+    dp_strategy_dict = kwargs.get("dp_strategy_dict", None)
+    dataset_builder = kwargs.get("dataset_builder", None)
+    callbacks = kwargs.get("callbacks", None)
+    load_base_model_dict = kwargs.get("load_base_model_dict", base_model_dict)
+    load_model_fuse = kwargs.get("load_model_fuse", model_fuse)
 
-    base_local_steps = kwargs.get('base_local_steps', 1)
-    fuse_local_steps = kwargs.get('fuse_local_steps', 1)
-    bound_param = kwargs.get('bound_param', 0.0)
+    base_local_steps = kwargs.get("base_local_steps", 1)
+    fuse_local_steps = kwargs.get("fuse_local_steps", 1)
+    bound_param = kwargs.get("bound_param", 0.0)
 
-    loss_thres = kwargs.get('loss_thres', 0.01)
-    split_steps = kwargs.get('split_steps', 1)
-    max_fuse_local_steps = kwargs.get('max_fuse_local_steps', 10)
+    loss_thres = kwargs.get("loss_thres", 0.01)
+    split_steps = kwargs.get("split_steps", 1)
+    max_fuse_local_steps = kwargs.get("max_fuse_local_steps", 10)
 
-    agg_method = kwargs.get('agg_method', None)
-    compressor = kwargs.get('compressor', None)
-    pipeline_size = kwargs.get('pipeline_size', 1)
+    agg_method = kwargs.get("agg_method", None)
+    compressor = kwargs.get("compressor", None)
+    pipeline_size = kwargs.get("pipeline_size", 1)
 
-    atol = kwargs.get('atol', 0.02)
+    atol = kwargs.get("atol", 0.02)
 
     party_shape = data.partition_shape()
     alice_length = party_shape[devices.alice][0]
@@ -113,14 +113,14 @@ def torch_model_with_mnist(
     print(global_metric)
     print(history)
     assert np.isclose(
-        global_metric['MulticlassAccuracy'],
-        history['val_MulticlassAccuracy'][-1],
+        global_metric["MulticlassAccuracy"],
+        history["val_MulticlassAccuracy"][-1],
         atol=atol,
     )
     if pipeline_size <= 1:
-        assert global_metric['MulticlassAccuracy'] > 0.7
+        assert global_metric["MulticlassAccuracy"] > 0.7
     else:
-        assert global_metric['MulticlassAccuracy'] > 0.5
+        assert global_metric["MulticlassAccuracy"] > 0.5
 
     result = sl_model.predict(data, batch_size=128, verbose=1)
     reveal_result = []
@@ -161,8 +161,8 @@ def torch_model_with_mnist(
         dataset_builder=dataset_builder,
     )
     assert np.isclose(
-        global_metric['MulticlassAccuracy'],
-        reload_metric['MulticlassAccuracy'],
+        global_metric["MulticlassAccuracy"],
+        reload_metric["MulticlassAccuracy"],
         atol=atol,
     )
 
@@ -197,10 +197,10 @@ class TestSLModelMIDTorch:
             optim_fn=optim_fn,
             metrics=[
                 metric_wrapper(
-                    Accuracy, task="multiclass", num_classes=10, average='micro'
+                    Accuracy, task="multiclass", num_classes=10, average="micro"
                 ),
                 metric_wrapper(
-                    Precision, task="multiclass", num_classes=10, average='micro'
+                    Precision, task="multiclass", num_classes=10, average="micro"
                 ),
                 metric_wrapper(AUROC, task="multiclass", num_classes=10),
             ],
@@ -239,7 +239,7 @@ class TestSLModelMIDTorch:
             data=mnist_data,
             label=mnist_label,
             callbacks=[mid],
-            strategy='split_nn',
+            strategy="split_nn",
             backend="torch",
             use_base_loss=True,
             atol=0.04,

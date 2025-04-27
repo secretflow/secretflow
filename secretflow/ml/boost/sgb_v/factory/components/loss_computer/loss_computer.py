@@ -22,7 +22,13 @@ from secretflow.ml.boost.sgb_v.core.params import default_params
 from secretflow.ml.boost.sgb_v.factory.sgb_actor import SGBActor
 
 from ....core.params import RegType
-from ..component import Component, Devices, print_params
+from ..component import (
+    Component,
+    Devices,
+    print_params,
+    set_dict_from_params,
+    set_params_from_dict,
+)
 from ..logging import LoggingParams, LoggingTools
 from .loss_computer_actor import LossComputerActor
 
@@ -70,31 +76,20 @@ class LossComputer(Component):
         print_params(self.logging_params)
 
     def set_params(self, params: dict):
-        obj = params.get('objective', 'logistic')
-        obj = RegType(obj)
+        if 'objective' in params:
+            obj = RegType(params['objective'])
+            self.params.objective = obj
 
-        self.params.enable_quantization = params.get(
-            'enable_quantization', default_params.enable_quantization
-        )
-        quantization_scale = params.get(
-            'quantization_scale', default_params.quantization_scale
-        )
-        tweedie_variance_power = params.get(
-            'tweedie_variance_power', default_params.tweedie_variance_power
-        )
-
-        self.params.quantization_scale = quantization_scale
-        self.params.objective = obj
-        self.params.tweedie_variance_power = tweedie_variance_power
-
-        self.logging_params = LoggingTools.logging_params_from_dict(params)
+        keywords = [
+            'enable_quantization',
+            'quantization_scale',
+            'tweedie_variance_power',
+        ]
+        set_params_from_dict(self.params, params, keywords)
+        LoggingTools.logging_params_from_dict(params, self.logging_params)
 
     def get_params(self, params: dict):
-        params['objective'] = self.params.objective
-        params['enable_quantization'] = self.params.enable_quantization
-        params['quantization_scale'] = self.params.quantization_scale
-        params['tweedie_variance_power'] = self.params.tweedie_variance_power
-
+        set_dict_from_params(self.params, params)
         LoggingTools.logging_params_write_dict(params, self.logging_params)
 
     def set_devices(self, devices: Devices):

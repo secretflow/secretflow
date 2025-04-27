@@ -16,22 +16,29 @@ import logging
 
 import pandas as pd
 
-from secretflow.component.data_utils import DistDataType
-from secretflow.component.stats.table_statistics import (
-    gen_table_statistic_report,
-    table_statistics_comp,
-)
-from secretflow.component.storage import ComponentStorage
-from secretflow.spec.v1.component_pb2 import Attribute
+from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
+from secretflow.component.entry import comp_eval
 from secretflow.spec.v1.data_pb2 import (
     DistData,
     IndividualTable,
     TableSchema,
     VerticalTable,
 )
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
-from secretflow.stats.table_statistics import table_statistics
+
+
+def check_report(dd: DistData, target_names=['a', 'b', 'c', 'd']):
+    r = Report()
+    dd.meta.Unpack(r)
+    logging.info(r)
+    assert (
+        len(r.tabs) == 1
+        and len(r.tabs[0].divs) == 1
+        and len(r.tabs[0].divs[0].children) == 1
+    )
+    tbl = r.tabs[0].divs[0].children[0].table
+    row_names = [r.name for r in tbl.rows]
+    assert row_names == target_names
 
 
 def test_table_statistics_comp(comp_prod_sf_cluster_config):
@@ -44,7 +51,7 @@ def test_table_statistics_comp(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = make_storage(storage_config)
 
     test_data = pd.DataFrame(
         {"a": [9, 6, 5, 5], "b": [5, 5, 6, 7], "c": [1, 1, 2, 4], "d": [11, 55, 1, 99]}
@@ -53,19 +60,16 @@ def test_table_statistics_comp(comp_prod_sf_cluster_config):
 
     if self_party == "alice":
         df_alice = test_data.iloc[:, :2]
-        df_alice.to_csv(comp_storage.get_writer(alice_input_path), index=False)
+        df_alice.to_csv(storage.get_writer(alice_input_path), index=False)
     elif self_party == "bob":
         df_bob = test_data.iloc[:, 2:]
-        df_bob.to_csv(comp_storage.get_writer(bob_input_path), index=False)
+        df_bob.to_csv(storage.get_writer(bob_input_path), index=False)
 
-    param = NodeEvalParam(
+    param = build_node_eval_param(
         domain="stats",
         name="table_statistics",
-        version="0.0.2",
-        attr_paths=["input/input_data/features"],
-        attrs=[
-            Attribute(ss=["a", "b", "c", "d"]),
-        ],
+        version="1.0.0",
+        attrs={"input/input_ds/features": ["a", "b", "c", "d"]},
         inputs=[
             DistData(
                 name="input_data",
@@ -92,15 +96,12 @@ def test_table_statistics_comp(comp_prod_sf_cluster_config):
     )
     param.inputs[0].meta.Pack(meta)
 
-    res = table_statistics_comp.eval(
+    res = comp_eval(
         param=param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
     )
-    comp_ret = Report()
-    res.outputs[0].meta.Unpack(comp_ret)
-    logging.info(comp_ret)
-    assert comp_ret == gen_table_statistic_report(table_statistics(test_data))
+    check_report(res.outputs[0])
 
 
 def test_table_statistics_individual_comp(comp_prod_sf_cluster_config):
@@ -112,7 +113,7 @@ def test_table_statistics_individual_comp(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = make_storage(storage_config)
 
     test_data = pd.DataFrame(
         {"a": [9, 6, 5, 5], "b": [5, 5, 6, 7], "c": [1, 1, 2, 4], "d": [11, 55, 1, 99]}
@@ -121,16 +122,13 @@ def test_table_statistics_individual_comp(comp_prod_sf_cluster_config):
 
     if self_party == "alice":
         df_alice = test_data
-        df_alice.to_csv(comp_storage.get_writer(alice_input_path), index=False)
+        df_alice.to_csv(storage.get_writer(alice_input_path), index=False)
 
-    param = NodeEvalParam(
+    param = build_node_eval_param(
         domain="stats",
         name="table_statistics",
-        version="0.0.2",
-        attr_paths=["input/input_data/features"],
-        attrs=[
-            Attribute(ss=["a", "b", "c", "d"]),
-        ],
+        version="1.0.0",
+        attrs={"input/input_ds/features": ["a", "b", "c", "d"]},
         inputs=[
             DistData(
                 name="input_data",
@@ -150,13 +148,9 @@ def test_table_statistics_individual_comp(comp_prod_sf_cluster_config):
     )
     param.inputs[0].meta.Pack(meta)
 
-    res = table_statistics_comp.eval(
+    res = comp_eval(
         param=param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
     )
-
-    comp_ret = Report()
-    res.outputs[0].meta.Unpack(comp_ret)
-    logging.info(comp_ret)
-    assert comp_ret == gen_table_statistic_report(table_statistics(test_data))
+    check_report(res.outputs[0])

@@ -23,13 +23,15 @@ import tensorflow as tf
 
 from secretflow.data.ndarray import load
 from secretflow.device import reveal
-from secretflow.ml.nn import FLModel
-from secretflow.ml.nn.fl.compress import COMPRESS_STRATEGY
-from secretflow.preprocessing.encoder import OneHotEncoder
-from secretflow.security.aggregation import PlainAggregator, SparsePlainAggregator
+from secretflow.security.aggregation import PlainAggregator
 from secretflow.security.compare import PlainComparator
-from secretflow.security.privacy import DPStrategyFL, GaussianModelDP
-from secretflow.utils.simulation.datasets import load_iris, load_mnist
+from secretflow.utils.simulation.datasets import load_iris
+from secretflow_fl.ml.nn import FLModel
+from secretflow_fl.ml.nn.fl.compress import COMPRESS_STRATEGY
+from secretflow_fl.preprocessing.encoder_fl import OneHotEncoder
+from secretflow_fl.security.aggregation import SparsePlainAggregator
+from secretflow_fl.security.privacy import DPStrategyFL, GaussianModelDP
+from secretflow_fl.utils.simulation.datasets_fl import load_mnist
 
 from .model_def import CVAE, cvae_model
 
@@ -47,7 +49,7 @@ path_to_flower_dataset = tf.keras.utils.get_file(
 
 
 # model define for mlp
-def create_nn_model(input_dim, output_dim, nodes, n=1, name='model'):
+def create_nn_model(input_dim, output_dim, nodes, n=1, name="model"):
     def create_model():
         from tensorflow import keras
         from tensorflow.keras import layers
@@ -55,12 +57,12 @@ def create_nn_model(input_dim, output_dim, nodes, n=1, name='model'):
         # Create model
         model = keras.Sequential(name=name)
         for i in range(n):
-            model.add(layers.Dense(nodes, input_dim=input_dim, activation='relu'))
-        model.add(layers.Dense(output_dim, activation='softmax'))
+            model.add(layers.Dense(nodes, input_dim=input_dim, activation="relu"))
+        model.add(layers.Dense(output_dim, activation="softmax"))
 
         # Compile model
         model.compile(
-            loss='categorical_crossentropy', optimizer='adam', metrics=["accuracy"]
+            loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"]
         )
         return model
 
@@ -68,7 +70,7 @@ def create_nn_model(input_dim, output_dim, nodes, n=1, name='model'):
 
 
 # model define for mlp
-def create_nn_model_multi_input(input_features, output_dim, nodes, n=1, name='model'):
+def create_nn_model_multi_input(input_features, output_dim, nodes, n=1, name="model"):
     def create_model():
         import tensorflow as tf
         from tensorflow import keras
@@ -81,14 +83,14 @@ def create_nn_model_multi_input(input_features, output_dim, nodes, n=1, name='mo
 
         h = tf.concat(list(input_layers.values()), axis=1)
         for _ in range(n):
-            h = keras.layers.Dense(nodes, activation='relu')(h)
+            h = keras.layers.Dense(nodes, activation="relu")(h)
 
-        output = keras.layers.Dense(output_dim, activation='softmax')(h)
+        output = keras.layers.Dense(output_dim, activation="softmax")(h)
         model = keras.Model(inputs=input_layers, outputs=output)
 
         # Compile model
         model.compile(
-            loss='categorical_crossentropy', optimizer='adam', metrics=["accuracy"]
+            loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"]
         )
         return model
 
@@ -96,7 +98,7 @@ def create_nn_model_multi_input(input_features, output_dim, nodes, n=1, name='mo
 
 
 # model define for cnn
-def create_conv_model(input_shape, num_classes, name='model'):
+def create_conv_model(input_shape, num_classes, name="model"):
     def create_model():
         from tensorflow import keras
         from tensorflow.keras import layers
@@ -116,14 +118,14 @@ def create_conv_model(input_shape, num_classes, name='model'):
         )
         # Compile model
         model.compile(
-            loss='categorical_crossentropy', optimizer='adam', metrics=["accuracy"]
+            loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"]
         )
         return model
 
     return create_model
 
 
-def create_conv_model_with_bn(input_shape, num_classes, name='model'):
+def create_conv_model_with_bn(input_shape, num_classes, name="model"):
     def create_model():
         from tensorflow import keras
         from tensorflow.keras import layers
@@ -145,7 +147,7 @@ def create_conv_model_with_bn(input_shape, num_classes, name='model'):
         )
         # Compile model
         model.compile(
-            loss='categorical_crossentropy', optimizer='adam', metrics=["accuracy"]
+            loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"]
         )
         return model
 
@@ -153,7 +155,7 @@ def create_conv_model_with_bn(input_shape, num_classes, name='model'):
 
 
 # model define for flower recognaiton
-def create_conv_flower_model(input_shape, num_classes, name='model'):
+def create_conv_flower_model(input_shape, num_classes, name="model"):
     def create_model():
         from tensorflow import keras
 
@@ -163,21 +165,21 @@ def create_conv_flower_model(input_shape, num_classes, name='model'):
             [
                 keras.Input(shape=input_shape),
                 tf.keras.layers.Rescaling(1.0 / 255),
-                tf.keras.layers.Conv2D(32, 3, activation='relu'),
+                tf.keras.layers.Conv2D(32, 3, activation="relu"),
                 tf.keras.layers.MaxPooling2D(),
-                tf.keras.layers.Conv2D(32, 3, activation='relu'),
+                tf.keras.layers.Conv2D(32, 3, activation="relu"),
                 tf.keras.layers.MaxPooling2D(),
-                tf.keras.layers.Conv2D(32, 3, activation='relu'),
+                tf.keras.layers.Conv2D(32, 3, activation="relu"),
                 tf.keras.layers.MaxPooling2D(),
                 tf.keras.layers.Flatten(),
-                tf.keras.layers.Dense(128, activation='relu'),
+                tf.keras.layers.Dense(128, activation="relu"),
                 tf.keras.layers.Dense(num_classes),
             ]
         )
         # Compile model
         model.compile(
             loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-            optimizer='adam',
+            optimizer="adam",
             metrics=["accuracy"],
         )
         return model
@@ -196,12 +198,12 @@ class TestFedModelDF:
             comparator=comparator,
         )
 
-        label = hdf['class']
+        label = hdf["class"]
         # do preprocess
         encoder = OneHotEncoder()
         label = encoder.fit_transform(label)
 
-        data = hdf.drop(columns='class', inplace=False)
+        data = hdf.drop(columns="class", inplace=False)
         data = data.fillna(data.mean(numeric_only=True).to_dict())
 
         # prepare model
@@ -312,8 +314,8 @@ class TestFedModelTensorflow:
         sample_weights = load({devices.alice: alice_arr, devices.bob: bob_arr})
 
         # spcify params
-        sampler_method = kwargs.get('sampler_method', "batch")
-        dp_spent_step_freq = kwargs.get('dp_spent_step_freq', None)
+        sampler_method = kwargs.get("sampler_method", "batch")
+        dp_spent_step_freq = kwargs.get("dp_spent_step_freq", None)
         server_agg_method = kwargs.get("server_agg_method", None)
         device_list = [devices.alice, devices.bob]
         num_gpus = kwargs.get("num_gpus", 0)
@@ -353,7 +355,7 @@ class TestFedModelTensorflow:
         )
         assert (
             global_metric[1].result().numpy()
-            == history["global_history"]['val_accuracy'][-1]
+            == history["global_history"]["val_accuracy"][-1]
         )
 
         assert (
@@ -419,7 +421,7 @@ class TestFedModelTensorflow:
             model=model,
             strategy="fed_avg_w",
             backend="tensorflow",
-            sampler_method='possion',
+            sampler_method="possion",
         )
 
         # test fed avg u test default batch sampler
@@ -524,9 +526,9 @@ class TestFedModelDataLoader:
             aggregator = PlainAggregator(devices.carol)
 
         # spcify params
-        sampler_method = kwargs.get('sampler_method', "batch")
-        dp_spent_step_freq = kwargs.get('dp_spent_step_freq', None)
-        dataset_builder = kwargs.get('dataset_builder', None)
+        sampler_method = kwargs.get("sampler_method", "batch")
+        dp_spent_step_freq = kwargs.get("dp_spent_step_freq", None)
+        dataset_builder = kwargs.get("dataset_builder", None)
         device_list = [devices.alice, devices.bob]
 
         fed_model = FLModel(
@@ -562,7 +564,7 @@ class TestFedModelDataLoader:
         )
         assert (
             global_metric[1].result().numpy()
-            == history["global_history"]['val_accuracy'][-1]
+            == history["global_history"]["val_accuracy"][-1]
         )
 
         model_path_test = os.path.join(_temp_dir, "base_model")
@@ -665,12 +667,12 @@ class TestFedModelMemoryDF:
             comparator=comparator,
         )
 
-        label = hdf['class']
+        label = hdf["class"]
         # do preprocess
         encoder = OneHotEncoder()
         label = encoder.fit_transform(label)
 
-        data = hdf.drop(columns='class', inplace=False)
+        data = hdf.drop(columns="class", inplace=False)
         data = data.fillna(data.mean(numeric_only=True).to_dict())
 
         # prepare model
@@ -725,8 +727,8 @@ class TestFedModelTensorflowCustomLoss:
         sample_weights = load({devices.alice: alice_arr, devices.bob: bob_arr})
 
         # spcify params
-        sampler_method = kwargs.get('sampler_method', "batch")
-        dp_spent_step_freq = kwargs.get('dp_spent_step_freq', None)
+        sampler_method = kwargs.get("sampler_method", "batch")
+        dp_spent_step_freq = kwargs.get("dp_spent_step_freq", None)
         server_agg_method = kwargs.get("server_agg_method", None)
         device_list = [devices.alice, devices.bob]
         num_gpus = kwargs.get("num_gpus", 0)
@@ -767,7 +769,7 @@ class TestFedModelTensorflowCustomLoss:
 
         assert np.isclose(
             global_metric[0].result().numpy(),
-            history["global_history"]['val_mean_squared_error'][-1],
+            history["global_history"]["val_mean_squared_error"][-1],
             atol=1e-3,
         )
 
@@ -836,5 +838,5 @@ class TestFedModelTensorflowCustomLoss:
             model=model,
             strategy="fed_avg_w",
             backend="tensorflow",
-            sampler_method='possion',
+            sampler_method="possion",
         )

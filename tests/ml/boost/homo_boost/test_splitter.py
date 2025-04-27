@@ -15,7 +15,7 @@
 import numpy as np
 from numpy.lib.histograms import histogram
 
-from secretflow.ml.boost.homo_boost.tree_core.splitter import Splitter
+from secretflow_fl.ml.boost.homo_boost.tree_core.splitter import Splitter
 
 
 def gen_histogram(data_size, feature_num, use_random=False, data_bin_num=10):

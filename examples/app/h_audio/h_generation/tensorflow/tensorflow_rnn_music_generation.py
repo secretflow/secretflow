@@ -51,8 +51,8 @@ from IPython import display
 from matplotlib import pyplot as plt
 
 import secretflow as sf
-from secretflow.ml.nn import FLModel
 from secretflow.security.aggregation import SecureAggregator
+from secretflow_fl.ml.nn import FLModel
 
 seed = 42
 tf.random.set_seed(seed)

@@ -27,8 +27,8 @@ msgid ""
 msgstr "您可以使用 Tensorflow 或 PyTorch 轻松定义联邦学习模型。"
 
 #: ../../user_guide/federated_learning/horizontal_federated_learning/fl_model.rst:6
-msgid "Please check API of :py:class:`~secretflow.ml.nn.FLModel`."
-msgstr "具体API使用请查看 :py:class:`~secretflow.ml.nn.FLModel` 。"
+msgid "Please check API of :py:class:`~secretflow_fl.ml.nn.FLModel`."
+msgstr "具体API使用请查看 :py:class:`~secretflow_fl.ml.nn.FLModel` 。"
 
 #: ../../user_guide/federated_learning/horizontal_federated_learning/fl_model.rst:8
 msgid "You may also check tutorials:"

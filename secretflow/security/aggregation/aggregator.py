@@ -15,6 +15,8 @@
 from abc import ABC, abstractmethod
 from typing import List
 
+import numpy as np
+
 from secretflow.device import DeviceObject
 
 
@@ -30,3 +32,16 @@ class Aggregator(ABC):
     def average(self, data: List[DeviceObject], axis=None, weights=None):
         """Compute the weighted average along the specified axis."""
         pass
+
+    @staticmethod
+    def _get_dtype(arr):
+        if isinstance(arr, np.ndarray):
+            return arr.dtype
+        else:
+            try:
+                import tensorflow as tf
+
+                if isinstance(arr, tf.Tensor):
+                    return arr.numpy().dtype
+            except ImportError:
+                return None

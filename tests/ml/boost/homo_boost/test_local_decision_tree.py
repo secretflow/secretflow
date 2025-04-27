@@ -19,9 +19,9 @@ import pandas as pd
 import pytest
 import xgboost as xgb
 
-from secretflow.ml.boost.homo_boost.tree_core.decision_tree import DecisionTree
-from secretflow.ml.boost.homo_boost.tree_core.loss_function import LossFunction
-from secretflow.ml.boost.homo_boost.tree_param import TreeParam
+from secretflow_fl.ml.boost.homo_boost.tree_core.decision_tree import DecisionTree
+from secretflow_fl.ml.boost.homo_boost.tree_core.loss_function import LossFunction
+from secretflow_fl.ml.boost.homo_boost.tree_param import TreeParam
 
 
 def gen_data(data_num, feature_num, use_random=True, data_bin_num=10):
@@ -50,7 +50,7 @@ def gen_data(data_num, feature_num, use_random=True, data_bin_num=10):
         label.append(random_label)
 
     data = pd.DataFrame(np.array(data))
-    data['label'] = np.array(label)
+    data["label"] = np.array(label)
     data.rename(columns=index_colname_map, inplace=True)
     return data
 
@@ -87,8 +87,8 @@ class TestFeatureHistogram:
         bin_split_points = np.array(bin_split_points)
 
         # prepare xgboost train DMatrix
-        label = data['label']
-        data = data.drop(columns=['label'])
+        label = data["label"]
+        data = data.drop(columns=["label"])
 
         dTrain = xgb.DMatrix(data, label)
 
@@ -96,13 +96,13 @@ class TestFeatureHistogram:
         test_data = gen_data(
             10, feature_num, use_random=False, data_bin_num=data_bin_num
         )
-        dTest = xgb.DMatrix(test_data.drop(columns=['label']))
+        dTest = xgb.DMatrix(test_data.drop(columns=["label"]))
 
         yield {
-            'data': data,
-            'dTrain': dTrain,
-            'dTest': dTest,
-            'bin_split_points': bin_split_points,
+            "data": data,
+            "dTrain": dTrain,
+            "dTest": dTest,
+            "bin_split_points": bin_split_points,
         }
 
         model_file_list = ["temp.json", "temp.dump", "xgb_model.json", "xgb_model.dump"]
@@ -111,33 +111,33 @@ class TestFeatureHistogram:
                 os.remove(filename)
 
     def test_local_build_tree(self, set_up):
-        data = set_up['data']
+        data = set_up["data"]
 
         param = {
-            'max_depth': 4,
-            'eta': 1.0,
-            'objective': 'binary:logistic',
-            'verbosity': 0,
-            'tree_method': 'hist',
-            'min_child_weight': 1,
-            'lambda': 0.1,
-            'alpha': 0,
-            'max_bin': 10,
-            'gamma': 0,
+            "max_depth": 4,
+            "eta": 1.0,
+            "objective": "binary:logistic",
+            "verbosity": 0,
+            "tree_method": "hist",
+            "min_child_weight": 1,
+            "lambda": 0.1,
+            "alpha": 0,
+            "max_bin": 10,
+            "gamma": 0,
         }
-        bst = xgb.Booster(param, [set_up['dTrain']])
+        bst = xgb.Booster(param, [set_up["dTrain"]])
 
-        xgboost_pred = bst.predict(set_up['dTrain'], output_margin=True, training=True)
+        xgboost_pred = bst.predict(set_up["dTrain"], output_margin=True, training=True)
         # 把xgboost计算出来的grad和hess附在 dataframe上
-        obj_func = LossFunction(param['objective']).obj_function()
-        data['grad'], data['hess'] = obj_func(xgboost_pred, set_up['dTrain'])
+        obj_func = LossFunction(param["objective"]).obj_function()
+        data["grad"], data["hess"] = obj_func(xgboost_pred, set_up["dTrain"])
 
         tree_param = TreeParam(
             max_depth=4,
             eta=1.0,
-            objective='binary:logistic',
+            objective="binary:logistic",
             verbosity=0,
-            tree_method='hist',
+            tree_method="hist",
             reg_lambda=0.1,
             reg_alpha=0,
             gamma=0,
@@ -147,7 +147,7 @@ class TestFeatureHistogram:
         decision_tree = DecisionTree(
             tree_param=tree_param,
             data=data,
-            bin_split_points=set_up['bin_split_points'],
+            bin_split_points=set_up["bin_split_points"],
             tree_id=0,
             group_id=0,
             iter_round=0,
@@ -162,14 +162,14 @@ class TestFeatureHistogram:
         # 将本次计算得到的树模型更新到xgboost模型中
         decision_tree.save_xgboost_model("temp.json", tree_nodes)
 
-        bst.load_model('temp.json')  # load data
+        bst.load_model("temp.json")  # load data
         bst.dump_model("temp.dump")
 
-        ypred = bst.predict(set_up['dTest'], training=True, output_margin=False)
+        ypred = bst.predict(set_up["dTest"], training=True, output_margin=False)
 
         # 用xgboost训练模型
-        xgb_bst = xgb.train(param, set_up['dTrain'], num_boost_round=1, obj=obj_func)
-        xgb_result = xgb_bst.predict(set_up['dTest'], output_margin=False)
+        xgb_bst = xgb.train(param, set_up["dTrain"], num_boost_round=1, obj=obj_func)
+        xgb_result = xgb_bst.predict(set_up["dTest"], output_margin=False)
         xgb_bst.save_model("xgb_model.json")
         xgb_bst.dump_model("xgb_model.dump")
 

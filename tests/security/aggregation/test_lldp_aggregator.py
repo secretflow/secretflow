@@ -20,7 +20,7 @@ from tests.security.aggregation.test_aggregator_base import AggregatorBase
 
 class TestLLDPAggregator(AggregatorBase):
     @pytest.fixture()
-    def env_and_aggregator(self, sf_production_setup_devices):
-        yield sf_production_setup_devices, LLDPAggregator(
-            sf_production_setup_devices.carol,
+    def env_and_aggregator(self, sf_production_setup_devices_ray):
+        yield sf_production_setup_devices_ray, LLDPAggregator(
+            sf_production_setup_devices_ray.carol,
         )

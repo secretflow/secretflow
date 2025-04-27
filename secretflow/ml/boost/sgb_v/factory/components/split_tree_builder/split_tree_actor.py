@@ -99,6 +99,7 @@ class SplitTreeActor:
         split_points: List[float],
         left_child_selects: List[np.ndarray],
         gain_is_cost_effective: List[bool],
+        gains: List[float],
         node_indices: List[int],
     ):
         """
@@ -112,14 +113,12 @@ class SplitTreeActor:
 
             if s is not None:
                 self.tree.insert_split_node(
-                    split_features[key][0],
-                    s,
-                    node_indices[key],
+                    split_features[key][0], s, node_indices[key], gains[key]
                 )
                 # lchild' select
                 lchild_selects.append(left_child_selects[key])
             else:
-                self.tree.insert_split_node(-1, float("inf"), node_indices[key])
+                self.tree.insert_split_node(-1, float("inf"), node_indices[key], 0)
                 lchild_selects.append(np.array([], dtype=np.uint8))
 
         return lchild_selects
