@@ -2,8 +2,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from dataset import DualDomainSeqDataset, collate_fn_enhance
-from model import BERT4Rec, BAHE,BERT4RecEncoder,BERT4RecFusion  
+from sf_dataset import DualDomainSeqDataset, collate_fn_enhance
+from sf_model import BERT4Rec, BAHE,BERT4RecEncoder,BERT4RecFusion  
 from sklearn.metrics import roc_auc_score
 import argparse
 import logging
